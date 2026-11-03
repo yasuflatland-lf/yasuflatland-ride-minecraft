@@ -78,7 +78,7 @@ const anims = JSON.parse(
   readFileSync("packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json", "utf8"),
 ).animations;
 
-// How far the hover animation moves each folded wheel out (ADR 0215). The
+// How far the hover animation moves each folded wheel out (ADR 0218). The
 // translations are generated from suv_dims.py by sync_animation, so the glow
 // and arms must follow the generated animation.
 const FOLD_OUT = Math.abs(
@@ -481,7 +481,7 @@ describe("SUV model (ADR 0009)", () => {
 
   // Each arm is the axle carried straight out along x, from the axle beam's
   // end at the tyre's inner face to the hub on top of the folded wheel, at
-  // axle height (ADR 0215).
+  // axle height (ADR 0218).
   it("extends one straight shaft from each axle beam end to the folded hub", () => {
     for (const w of ["fl", "fr", "rl", "rr"]) {
       const wheel = pivot(`wheel_${w}`);

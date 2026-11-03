@@ -103,7 +103,7 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
     for (const w of WHEELS) {
       expect(Math.abs(folded[w].rotation[2]), w).toBe(90);
       // Animation positions run along the model's axes (ADR 0043), and the
-      // fold offsets are generated from suv_dims.py (ADR 0215), so the
+      // fold offsets are generated from suv_dims.py (ADR 0218), so the
       // outward step takes the sign of the wheel's side.
       const [pivotX = 0, pivotY = 0] = geoPivot(w);
       const outward = Math.sign(pivotX);

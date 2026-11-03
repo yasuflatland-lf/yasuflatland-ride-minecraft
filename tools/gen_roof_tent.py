@@ -157,16 +157,16 @@ GROUND_DIMS = Dims(
     end_window_bottom=6, end_window_top=10, end_window_half_depth=7,
     pole_x=(), mount_bar_x=(), ladder_style="ground",
 )
+# The SUV tent owns this platform span, independent of vehicle body probes.
+SUV_SHELL_HALF_WIDTH = 1.968 * 16
 SUV_DIMS = Dims(
-    # The span is 1.2 times the SUV's 1.64-block body half width, in pixels.
-    half_width=1.2 * 1.64 * 16,
+    half_width=SUV_SHELL_HALF_WIDTH,
     # Rotation puts the former 32-pixel width along z, enlarged by 1.2.
     half_depth=1.2 * 32 / 2,
     shell_lift=5, host_roof_height=26.1 * 1.45,
     mount_bar_width=2, mount_bar_drop=3.5, mount_foot_drop=5,
-    # The left shift moved the +18 px bar past the hardtop edge. Both bars now stay on the
-    # hardtop (host x within +-1.64 blocks) and under the platform (tent x within +-31.5 px).
-    mount_bar_x=(-26, 4),
+    # Only the outer bar moves inward to fit the CAB-based hardtop support (ADR 0217).
+    mount_bar_x=(-26, -7),
     platform_height=1.2, wall_height=1.2 * 12, ridge_height=1.2 * 12 + 6.6,
     end_window_half_depth=12.5, end_window_top=12,
     ridge_cap_half_depth=5, ridge_cap_thickness=0.12,
@@ -174,14 +174,14 @@ SUV_DIMS = Dims(
     # The eaves span the depth; the end taper continues above them toward the ridge.
     half_roof=1.2 * 16, end_inset=9,
     # Posts sit one scaled pixel inside the narrower eaves, with room for their thickness.
-    pole_x=(-(1.2 * 1.64 * 16-9-1.2), 1.2 * 1.64 * 16-9-2.4),
+    pole_x=(-(SUV_SHELL_HALF_WIDTH-9-1.2), SUV_SHELL_HALF_WIDTH-9-2.4),
     window_bottom=6, window_top=12,
     window_half_depth=19, doorway_half_width=6.5,
     frame_thickness=0.4, ridge_cap_rise=0.15,
     toggle_length=1.2, toggle_height=0.8,
     ladder_tape_length=2.2, ladder_tape_thickness=0.3,
     # Model +x is vehicle left; +z is the rear half.
-    ladder_pivot=(1.2 * 1.64 * 16 + 0.5, 2, 6),
+    ladder_pivot=(SUV_SHELL_HALF_WIDTH + 0.5, 2, 6),
     # Rail length and tilt retain the outward reach while compensating for the shell lift.
     ladder_first_rung=-39,
     ladder_rails_z=(1, 12), ladder_lower=(31, -38, 1), ladder_upper_x=42,

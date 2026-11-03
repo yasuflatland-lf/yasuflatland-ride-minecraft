@@ -36,7 +36,7 @@ type TexturedBone = Omit<Bone, "cubes"> & {
   })[];
 };
 const geometry = geometries[0];
-const [groundDims, suvDims] = JSON.parse(
+const [groundDims, suvDims, bodyDims] = JSON.parse(
   execFileSync(
     "python3",
     [
@@ -48,7 +48,10 @@ from dataclasses import asdict
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 m = load_tool('gen_roof_tent')
-print(json.dumps(m.tent.rounded(json.loads(json.dumps([asdict(m.GROUND_DIMS), asdict(m.SUV_DIMS)])))))
+d = load_tool('suv_dims')
+print(json.dumps([*m.tent.rounded(json.loads(json.dumps([asdict(m.GROUND_DIMS), asdict(m.SUV_DIMS)]))),
+                  {k: getattr(d, k)*d.SIZE_SCALE/16
+                   for k in ('CABIN_HALF_WIDTH', 'HARDTOP_FRONT_Z', 'HARDTOP_REAR_Z')}]))
 `,
     ],
     { encoding: "utf8" },
@@ -110,7 +113,7 @@ describe("roof tent asset contract", () => {
         16,
     );
     expect(SUV_SPEC.roofTentAnchorX - suvDims.half_width / 16).toBeCloseTo(
-      -SUV_SPEC.bodyHalfWidth + 0.875,
+      -bodyDims.CABIN_HALF_WIDTH,
     );
     expect(
       SUV_SPEC.roofTentAnchorX +
@@ -148,6 +151,11 @@ describe("roof tent asset contract", () => {
   });
 
   it("keeps every SUV rack bar on the hardtop and under the platform", () => {
+    expect(SUV_SPEC.roofTentShellHalfWidth).toBe(suvDims.half_width / 16);
+    expect(SUV_SPEC.roofTentHardtopHalfWidth).toBeCloseTo(
+      bodyDims.CABIN_HALF_WIDTH,
+      12,
+    );
     for (const x of suvDims.mount_bar_x as number[]) {
       for (const edge of [
         x - suvDims.mount_bar_width / 2,
@@ -156,9 +164,23 @@ describe("roof tent asset contract", () => {
         expect(Math.abs(edge)).toBeLessThanOrEqual(suvDims.half_width);
         expect(
           Math.abs(SUV_SPEC.roofTentAnchorX + edge / 16),
-        ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth);
+        ).toBeLessThanOrEqual(bodyDims.CABIN_HALF_WIDTH);
       }
     }
+  });
+
+  it("keeps both tent depth edges over the hardtop and the ladder outside the wheels", () => {
+    expect(
+      SUV_SPEC.roofTentAnchorZ + suvDims.half_depth / 16,
+    ).toBeLessThanOrEqual(bodyDims.HARDTOP_FRONT_Z);
+    expect(
+      SUV_SPEC.roofTentAnchorZ - suvDims.half_depth / 16,
+    ).toBeGreaterThanOrEqual(bodyDims.HARDTOP_REAR_Z);
+    expect(SUV_SPEC.roofTentAnchorZ).toBeCloseTo(
+      (bodyDims.HARDTOP_FRONT_Z + bodyDims.HARDTOP_REAR_Z) / 2,
+      12,
+    );
+    expect(SUV_SPEC.roofTentEntranceX).toBeGreaterThan(SUV_SPEC.bodyHalfWidth);
   });
 
   it("maps the model +x ladder foot to the vehicle-left gameplay entrance", () => {

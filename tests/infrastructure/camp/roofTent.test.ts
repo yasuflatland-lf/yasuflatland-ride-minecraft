@@ -235,9 +235,9 @@ it("places the SUV tent at its shifted left anchor with the model front at -z", 
     ids.ROOF_TENT_TYPE,
   );
   const location = game.dimension.spawnEntity.mock.calls[0]?.[1];
-  expect(location?.x).toBeCloseTo(1.203, 10);
+  expect(location?.x).toBeCloseTo(1.1658106831395347, 10);
   expect(location?.y).toBeCloseTo((26.1 * 1.45) / 16, 10);
-  expect(location?.z).toBeCloseTo(-0.605, 10);
+  expect(location?.z).toBeCloseTo(-1.0770148982558139, 10);
   expect(tent.triggerEvent).toHaveBeenCalledWith("yasu_ride:suv_bounds");
 });
 it("rolls back a failed spawn so placement can refund the item", () => {

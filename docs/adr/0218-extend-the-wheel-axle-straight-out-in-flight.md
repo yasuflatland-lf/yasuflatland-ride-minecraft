@@ -1,4 +1,4 @@
-# 0215. Extend the wheel axle straight out in flight
+# 0218. Extend the wheel axle straight out in flight
 
 - Status: Accepted
 - Decided in: #1280
@@ -26,3 +26,5 @@ The Rubicon wheels have construction radius D/2, where D = 26.1/2.064 = 12.645 p
 The SUV loses 32 cubes: four nine-cube diagonal assemblies become four single shafts. Its folded hubs sit about 21.491 px out, close to the old model's 21.5 px. The generated preview shows straight shafts without a renderer special case. Resource Pack version 0.1.250 invalidates cached assets.
 
 The geometric samples and existing submarine clearance tests pass without additional outward travel or submarine changes. They do not replace a client check of attachment and appearance during animation. Revisit the axle travel if a future wheel or body change fails these collision checks; keep the drop tied to the shaft underside.
+
+The extended axle moves the farthest rotated model corner to 3.175 blocks, past the 3.12 footprint that ADR 0217 derived for the unfolded model. `SUV_SPEC.footprint` is therefore 3.18 (rounded upward). This supersedes the 3.12 figure in ADR 0217 for the footprint only.
