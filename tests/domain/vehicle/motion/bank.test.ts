@@ -1,12 +1,14 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { normalizeYaw } from "../../../../src/domain/shared/vec";
+import { approach, normalizeYaw } from "../../../../src/domain/shared/vec";
 import {
   SUV_SPEC,
   SUV_TRANSFORMING,
 } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { bankSink, stepBank } from "../../../../src/domain/vehicle/motion/bank";
 import { FORMS } from "../../../../src/domain/vehicle/motion/forms";
+
+const constant = { ...SUV_TRANSFORMING, bankEasing: "constant" as const };
 
 const angle = fc.double({
   min: -SUV_SPEC.maxBank,
@@ -26,14 +28,7 @@ describe("stepBank (ADR 0026, 0044)", () => {
   it("moves at most bankRate per tick and stays within maxBank", () => {
     fc.assert(
       fc.property(angle, form, yaw, turn, (prev, m, y, d) => {
-        const next = stepBank(
-          prev,
-          m,
-          y,
-          y + d,
-          SUV_SPEC.turnRate,
-          SUV_TRANSFORMING,
-        );
+        const next = stepBank(prev, m, y, y + d, SUV_SPEC.turnRate, constant);
         expect(Math.abs(next - prev)).toBeLessThanOrEqual(
           SUV_SPEC.bankRate + 1e-9,
         );
@@ -199,7 +194,7 @@ describe("per-kind bank limits", () => {
         yaw,
         turn,
         (maxBank, bankRate, share, form, yaw, turn) => {
-          const spec = { ...SUV_TRANSFORMING, maxBank, bankRate };
+          const spec = { ...constant, maxBank, bankRate };
           const prev = share * maxBank;
           const next = stepBank(
             prev,
@@ -224,6 +219,81 @@ describe("per-kind bank limits", () => {
           bank = stepBank(bank, m, 0, rate, rate, SUV_TRANSFORMING);
         expect(bank).toBe(SUV_SPEC.maxBank);
       }),
+    );
+  });
+});
+
+describe("smooth bank easing (ADR 0213)", () => {
+  it("never overshoots or moves away and reaches any steady target within bounded ticks", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0, max: 90, noNaN: true }),
+        fc.double({ min: 0, max: 20, noNaN: true }),
+        fc.double({ min: -180, max: 180, noNaN: true }),
+        fc.integer({ min: -100, max: 100 }),
+        banking,
+        (maxBank, bankRate, prev, turn, form) => {
+          const spec = { ...SUV_TRANSFORMING, maxBank, bankRate };
+          const target = (turn / 100) * maxBank || 0;
+          const bound = Math.ceil(Math.abs(target - prev) / 0.75) + 1;
+          let bank = prev;
+          for (let tick = 0; tick < bound && bank !== target; tick++) {
+            const next = stepBank(bank, form, 0, turn, 100, spec);
+            expect(next).toBeGreaterThanOrEqual(Math.min(bank, target));
+            expect(next).toBeLessThanOrEqual(Math.max(bank, target));
+            expect(Math.abs(next - target)).toBeLessThan(
+              Math.abs(bank - target),
+            );
+            bank = next;
+          }
+          expect(bank === target).toBe(true);
+        },
+      ),
+    );
+  });
+
+  it("reaches full SUV bank in 10 to 13 ticks with slower entry and exit", () => {
+    fc.assert(
+      fc.property(banking, fc.constantFrom(-1, 1), (form, direction) => {
+        let bank = 0;
+        const steps: number[] = [];
+        const target = direction * SUV_SPEC.maxBank;
+        while (bank !== target && steps.length < 14) {
+          const next = stepBank(bank, form, 0, direction, 1, SUV_TRANSFORMING);
+          steps.push(Math.abs(next - bank));
+          bank = next;
+        }
+        expect(bank === target).toBe(true);
+        expect(steps.length).toBeGreaterThanOrEqual(10);
+        expect(steps.length).toBeLessThanOrEqual(13);
+        expect(steps[0]).toBe(1.5);
+        expect(steps[1]).toBeGreaterThan(1.5);
+        const peak = Math.max(...steps);
+        expect(peak).toBeGreaterThan(SUV_SPEC.bankRate);
+        expect(steps.at(-2)).toBeLessThan(peak);
+        expect(steps.at(-1)).toBeLessThanOrEqual(0.75);
+      }),
+    );
+  });
+
+  it("preserves the constant profile for arbitrary rates and targets", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0, max: 90, noNaN: true }),
+        fc.double({ min: 0, max: 20, noNaN: true }),
+        angle,
+        fc.integer({ min: -100, max: 100 }),
+        form,
+        (maxBank, bankRate, prev, turn, form) => {
+          const spec = { ...constant, maxBank, bankRate };
+          const target = BANKING.some((m) => m === form)
+            ? (turn / 100) * maxBank
+            : 0;
+          expect(stepBank(prev, form, 0, turn, 100, spec)).toBe(
+            approach(prev, target, bankRate),
+          );
+        },
+      ),
     );
   });
 });

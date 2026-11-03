@@ -1,7 +1,7 @@
 import type { Medium } from "./motion";
 
 /** `constant` moves the bank angle by `bankRate` degrees every tick. */
-type BankEasing = "constant";
+type BankEasing = "constant" | "smooth";
 
 /**
  * Values a transforming drivetrain reads (ADR 0021, 0026, 0032, 0033, 0040,
