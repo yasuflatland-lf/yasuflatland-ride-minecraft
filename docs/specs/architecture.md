@@ -22,6 +22,7 @@
 - Source: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md)
 - Excluded: [0179](../adr/0179-support-realms-as-a-second-play-environment.md): Realms support belongs to the dev-environment topic.
 - Excluded: [0204](../adr/0204-shard-unit-tests-across-ci-jobs.md): CI sharding belongs to the testing topic, not runtime layering.
+- Excluded: [0207](../adr/0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md): temporary occupied roof tent rain ceilings belong to the camping gear topic.
 
 ## Rules
 

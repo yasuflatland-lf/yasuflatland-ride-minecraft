@@ -12,6 +12,7 @@ export class FakeRoofTentOccupantWorld implements RoofTentOccupantWorld {
     if (player === undefined) this.occupants.delete(id);
     else this.occupants.set(id, player);
   });
+  syncCeiling = vi.fn<RoofTentOccupantWorld["syncCeiling"]>();
   conceal = vi.fn<RoofTentOccupantWorld["conceal"]>();
   reveal = vi.fn<RoofTentOccupantWorld["reveal"]>((player) => {
     this.calls.push(["reveal", player]);

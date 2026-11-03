@@ -162,6 +162,7 @@ beforeEach(() => {
       if (p) occupied.set(id, p);
       else occupied.delete(id);
     }),
+    syncCeiling: vi.fn(),
     conceal: vi.fn(),
     reveal: vi.fn(),
     moveInside: vi.fn(),
@@ -826,4 +827,17 @@ it("gives a fresh entry its own hint and ignores the previous entry's pending po
   await pollMenu();
   expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledTimes(2);
   expect(game.timeout.mock.calls).toHaveLength(0);
+});
+
+it("syncs ceilings for every loaded tent on each twenty-tick restore scan", () => {
+  game.interval.mockClear();
+  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent", "empty"]);
+  occupied.set("tent", pid);
+  poll();
+  expect(occupants.syncCeiling).toHaveBeenNthCalledWith(1, "tent");
+  expect(occupants.syncCeiling).toHaveBeenNthCalledWith(2, "empty");
+  for (let i = 0; i < 19; i++) poll();
+  expect(occupants.syncCeiling).toHaveBeenCalledTimes(2);
+  poll();
+  expect(occupants.syncCeiling).toHaveBeenCalledTimes(4);
 });

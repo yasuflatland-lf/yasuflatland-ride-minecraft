@@ -6,8 +6,10 @@ import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
 import type { VehicleHostState } from "../../../src/application/shared/ports/vehicleHost";
+import { roofTentCeilingCells } from "../../../src/domain/camp/roofTent/ceiling";
 import { seatPosition } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
+import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PAINTS } from "../../../src/domain/shared/paint";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
@@ -68,6 +70,7 @@ vi.mock("@minecraft/server", () => ({
     runInterval: game.runInterval,
     afterEvents: game.script,
   },
+  BlockPermutation: { resolve: (typeId: string) => ({ typeId }) },
   Direction: { Up: "Up" },
   ScriptEventSource: { Server: "Server" },
   Player: game.Player,
@@ -174,6 +177,7 @@ beforeEach(() => {
   game.dimension.getBlock.mockImplementation((at: { y: number }) => ({
     isAir: at.y >= 0,
     isLiquid: false,
+    setPermutation: vi.fn(),
   }));
   occupants = new BedrockRoofTentOccupantWorld(host, bed as never, () => false);
   tents = new BedrockRoofTentWorld({
@@ -789,3 +793,167 @@ it("reveals on ejection even when no safe exit exists, and on forgetting an unlo
   occupants.forget("tent");
   expect(p.removeEffect).toHaveBeenCalledTimes(2);
 });
+
+function ceilingTerrain() {
+  const blocks = new Map<string, string>();
+  const missing = new Set<string>();
+  const throwing = new Set<string>();
+  game.dimension.getBlock.mockImplementation((cell: Cell) => {
+    const key = cellKey(cell);
+    if (throwing.has(key)) throw new Error("Unloaded chunk");
+    if (missing.has(key)) return undefined;
+    const typeId = blocks.get(key) ?? "minecraft:air";
+    return {
+      typeId,
+      isAir: typeId === "minecraft:air",
+      setPermutation: ({ typeId }: { typeId: string }) =>
+        blocks.set(key, typeId),
+    };
+  });
+  return { blocks, missing, throwing };
+}
+function savedCeiling(tent: ReturnType<typeof entity>): Cell[] {
+  return JSON.parse(
+    tent.getDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY) as string,
+  );
+}
+
+it.each([true, false])(
+  "lays and records the rotated ceiling on entry with ladder %s, then clears only its own blocks",
+  (ladder) => {
+    const tent = spawn(ladder);
+    tent.getRotation = () => ({ x: 0, y: 37 });
+    const { blocks } = ceilingTerrain();
+    const cells = roofTentCeilingCells(
+      tent.location,
+      37,
+      ladder ? "suv" : "ground",
+    );
+    occupants.setOccupant("tent", PLAYER);
+    expect(savedCeiling(tent)).toEqual(cells);
+    expect([...blocks.keys()].sort()).toEqual(cells.map(cellKey).sort());
+    occupants.syncCeiling("tent");
+    expect(savedCeiling(tent)).toEqual(cells);
+    const replaced = cells[0] as Cell;
+    blocks.set(cellKey(replaced), "minecraft:stone");
+    occupants.setOccupant("tent", undefined);
+    expect(blocks.get(cellKey(replaced))).toBe("minecraft:stone");
+    for (const cell of cells.slice(1))
+      expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+    expect(
+      tent.getDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY),
+    ).toBeUndefined();
+  },
+);
+
+it("skips occupied, missing, unloaded and vehicle-space cells without losing successful cells", () => {
+  const tent = spawn();
+  const { blocks, missing, throwing } = ceilingTerrain();
+  const cells = roofTentCeilingCells(tent.location, 0, "suv");
+  const [solid, absent, unloaded, vehicle] = cells as [
+    Cell,
+    Cell,
+    Cell,
+    Cell,
+    ...Cell[],
+  ];
+  blocks.set(cellKey(solid), "minecraft:stone");
+  missing.add(cellKey(absent));
+  throwing.add(cellKey(unloaded));
+  const space = vi.fn(
+    (_dimension: unknown, cell: Cell) => cellKey(cell) === cellKey(vehicle),
+  );
+  const adapter = new BedrockRoofTentOccupantWorld(host, bed as never, space);
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    adapter.setOccupant("tent", PLAYER);
+    expect(savedCeiling(tent)).toEqual(cells.slice(4));
+    expect(blocks.get(cellKey(solid))).toBe("minecraft:stone");
+    expect(blocks.has(cellKey(vehicle))).toBe(false);
+    expect(space).toHaveBeenCalledWith(DIM, vehicle);
+    expect(warn).toHaveBeenCalledOnce();
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+it.each(["forget", "removed"] as const)(
+  "clears a saved ceiling through %s after the entity is gone",
+  (method) => {
+    const tent = spawn();
+    const { blocks } = ceilingTerrain();
+    occupants.setOccupant("tent", PLAYER);
+    const cells = savedCeiling(tent);
+    // A fresh adapter must recover the cells from the persisted entity property.
+    const restored = new BedrockRoofTentOccupantWorld(
+      host,
+      bed as never,
+      () => false,
+    );
+    restored.remember(tent as never);
+    tent.remove();
+    if (method === "removed") restored.removed("tent", undefined);
+    else restored.forget("tent");
+    for (const cell of cells)
+      expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+    expect(
+      restored.ceilingOwner(DIM, cells[0] as Cell, ids.TENT_CEILING_BLOCK),
+    ).toBeUndefined();
+  },
+);
+
+it("restores occupied ceilings and clears unoccupied saved ceilings after reload", () => {
+  const tent = spawn();
+  const { blocks } = ceilingTerrain();
+  tent.setDynamicProperty(ids.ROOF_TENT_OCCUPANT_PROPERTY, PLAYER);
+  occupants.syncCeiling("tent");
+  const cells = savedCeiling(tent);
+  const restored = new BedrockRoofTentOccupantWorld(
+    host,
+    bed as never,
+    () => false,
+  );
+  tent.setDynamicProperty(ids.ROOF_TENT_OCCUPANT_PROPERTY, undefined);
+  restored.syncCeiling("tent");
+  for (const cell of cells)
+    expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+  game.dimension.getBlock.mockClear();
+  restored.syncCeiling("tent");
+  expect(game.dimension.getBlock).not.toHaveBeenCalled();
+});
+
+it("guards only recorded ceiling cells in their tent's dimension", () => {
+  const tent = spawn();
+  ceilingTerrain();
+  occupants.setOccupant("tent", PLAYER);
+  const cell = savedCeiling(tent)[0] as Cell;
+  expect(occupants.ceilingOwner(DIM, cell, ids.TENT_CEILING_BLOCK)).toBe(
+    "tent",
+  );
+  expect(occupants.ceilingOwner(DIM, cell, "minecraft:stone")).toBeUndefined();
+  expect(
+    occupants.ceilingOwner(
+      asDimensionId("minecraft:nether"),
+      cell,
+      ids.TENT_CEILING_BLOCK,
+    ),
+  ).toBeUndefined();
+  expect(
+    occupants.ceilingOwner(
+      DIM,
+      { ...cell, y: cell.y + 1 },
+      ids.TENT_CEILING_BLOCK,
+    ),
+  ).toBeUndefined();
+});
+
+it.each(["not json", "null", "{}", '[null, {}, {"x":0,"y":1.5,"z":0}]'])(
+  "ignores malformed saved ceiling cells: %s",
+  (saved) => {
+    const tent = spawn();
+    tent.setDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY, saved);
+    game.dimension.getBlock.mockClear();
+    occupants.syncCeiling("tent");
+    expect(game.dimension.getBlock).not.toHaveBeenCalled();
+  },
+);

@@ -6,6 +6,8 @@ export interface RoofTentOccupantWorld {
   occupantOf(tentId: string): PlayerId | undefined;
   /** Stores occupancy and toggles the adapter's occupied and flap_open state. */
   setOccupant(tentId: string, playerId: PlayerId | undefined): void;
+  /** Lays the ceiling if occupied (idempotent), or removes it if not. */
+  syncCeiling(tentId: string): void;
   /** Moves the player to the tent's interior position. */
   moveInside(playerId: PlayerId, tentId: string): void;
   /** Hides the occupant with an idempotent, expiring timer refresh. */

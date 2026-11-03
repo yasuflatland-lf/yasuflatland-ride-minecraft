@@ -30,6 +30,7 @@ export function registerRoofTentOccupantCleanup(
   let ticks = 0;
   const restore = () => {
     for (const tentId of loadedTents()) {
+      occupants.syncCeiling(tentId);
       const occupant = occupants.occupantOf(tentId);
       if (occupant !== undefined && !tracked.has(occupant))
         tracked.set(occupant, {

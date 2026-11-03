@@ -365,6 +365,10 @@ vi.mock(
 );
 
 it("shares roof tent actions, occupant adapters and the vehicle host lookup across handlers", () => {
+  const ceilingOwner = vi.spyOn(
+    BedrockRoofTentOccupantWorld.prototype,
+    "ceilingOwner",
+  );
   const vehicleHost = vi.fn(() => ({ status: "unknown" as const }));
   installCamp({ isVehicleSpace: () => false, vehicleHost });
   const [place, lookup] =
@@ -378,6 +382,19 @@ it("shares roof tent actions, occupant adapters and the vehicle host lookup acro
   expect(lookup?.("host")).toEqual({ status: "unknown" });
   expect(vehicleHost).toHaveBeenCalledWith("host");
   expect(occupants).toBeInstanceOf(BedrockRoofTentOccupantWorld);
+  const ceilingGuard = vi.mocked(registerLaidBlockGuard).mock.calls[1]?.[0];
+  const cell = { x: 0, y: 4, z: 0 };
+  ceilingGuard?.(
+    asDimensionId("minecraft:overworld"),
+    cell,
+    "yasu_ride:tent_ceiling",
+  );
+  expect(ceilingOwner).toHaveBeenCalledWith(
+    asDimensionId("minecraft:overworld"),
+    cell,
+    "yasu_ride:tent_ceiling",
+  );
+  ceilingOwner.mockRestore();
   expect(guard).toBeInstanceOf(RoofTentHostGuard);
   expect(registerTestRoofTent).toHaveBeenCalledExactlyOnceWith(
     place,

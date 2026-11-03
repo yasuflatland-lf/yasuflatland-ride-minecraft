@@ -185,6 +185,7 @@ export const ROOF_TENT_OWNER_PROPERTY = id("roof_tent_owner");
 export const ROOF_TENT_HOST_PROPERTY = id("host");
 export const ROOF_TENT_OCCUPANT_PROPERTY = id("roof_tent_occupant");
 export const ROOF_TENT_SPAWN_SET_BY_PROPERTY = id("roof_tent_spawn_set_by");
+export const ROOF_TENT_CEILING_PROPERTY = id("roof_tent_ceiling");
 export const ROOF_TENT_EXIT_PROPERTY = id("roof_tent_exit");
 /** Server hooks: place takes `<x> <y> <z> <yaw>` or `<host id>`; hit takes a tent id. */
 export const TEST_ROOF_TENT_PLACE_EVENT = id("test_roof_tent_place");
