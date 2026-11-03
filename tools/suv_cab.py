@@ -9,6 +9,7 @@ from tool_loader import load_tool
 
 kit_module = load_tool("suv_kit")
 hull = load_tool("suv_hull")
+dims = load_tool("suv_dims")
 kit = kit_module.kit
 box, beam, oriented = kit.box, kit.beam, kit.oriented
 rx, rz, apply = kit_module.rx, kit_module.rz, kit_module.apply
@@ -51,7 +52,9 @@ def side_window(s, z0, z1, y0, y1, rake=0):
 def upper_cabin():
     """The hollow upper shell, the hardtop with its rounded shoulders, caps and ribs, and the pillars."""
     box(-CAB, CAB, 1.38, 1.46, 0.79, 3.52, "body")
-    box(-CAB, CAB, 2.018, 2.060, 1.16, 3.44, "hardtop")
+    box(-CAB, CAB, dims.ROOF_Y / dims.D, dims.HARDTOP_TOP_Y / dims.D,
+        (dims.FRONT_AXLE_Z - dims.HARDTOP_FRONT_Z) / dims.D,
+        (dims.FRONT_AXLE_Z - dims.HARDTOP_REAR_Z) / dims.D, "hardtop")
     for s in (-1, 1):
         oriented((s * 0.686, 2.029, 2.29), (0.065, 0.050, 2.32), rz(math.radians(s * 30)), "hardtop")
         box(min(s * 0.685, s * 0.707), max(s * 0.685, s * 0.707), 1.97, 2.035, 1.17, 3.45, "hardtop")
@@ -170,7 +173,7 @@ def seams_and_fittings():
         # Mirror arms and rounded mirror housing, inside the outside-tyre span; the front doors carry them.
         with kit.bone(door_name(s, rear=False)):
             box(min(s * 0.72, s * 0.84), max(s * 0.72, s * 0.84), 1.44, 1.485, 0.85, 0.92, "dark")
-            kit.rounded_rect("z", 0.895, min(s * 0.80, s * 0.995), max(s * 0.80, s * 0.995), 1.49, 1.70, 0.027, 0.135, "dark", 4)
+            kit.rounded_rect("z", 0.895, min(s * 0.80, s * dims.MIRROR_OUTER_X / dims.D), max(s * 0.80, s * dims.MIRROR_OUTER_X / dims.D), 1.49, 1.70, 0.027, 0.135, "dark", 4)
         # Rock rail and the three cross bars under it
         box(min(s * 0.79, s * 0.90), max(s * 0.79, s * 0.90), 0.68, 0.735, 0.77, 2.36, "dark")
         for z in (1.0, 1.8, 2.25):

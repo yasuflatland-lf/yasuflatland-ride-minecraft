@@ -37,12 +37,18 @@ FLOOR_Y = 0.80 * D  # top of the cabin floor
 BELT_Y = 1.49 * D  # bottom of the side windows
 WINDOW_BOTTOM_Y = BELT_Y
 WINDOW_TOP_Y = 1.97 * D
+HARDTOP_TOP_Y = 2.060 * D
+HARDTOP_FRONT_Z = z_at(1.16)
+HARDTOP_REAR_Z = z_at(3.44)
 ROOF_Y = 2.018 * D  # underside of the hardtop
 HOOD_TOP_Y = 1.485 * D
 WINDSHIELD_RAIL_HEIGHT = 0.035 * D
 
+BODY_NOSE_HALF_WIDTH = 0.755 * D
+MIRROR_OUTER_X = 0.995 * D  # housing before the hull widening transform
 BODY_HALF_WIDTH = 0.885 * D  # side wall behind the windshield base
 CABIN_HALF_WIDTH = 0.70 * D
+SHELL_OUTER_HALF_WIDTH = MIRROR_OUTER_X * BODY_HALF_WIDTH / BODY_NOSE_HALF_WIDTH
 
 REAR = z_at(3.56)  # z of the tailgate's outer face
 CARGO_FRONT = z_at(2.68)  # z where the rear doors end and the cargo area's fixed panels begin
