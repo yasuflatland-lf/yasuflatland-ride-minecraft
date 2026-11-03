@@ -14,6 +14,7 @@ import {
   SEAT_FILLER_FAMILY,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
@@ -1074,25 +1075,30 @@ describe("sports boat hull planking (ADR 0161)", () => {
     return hit ? Math.max(...hit.map(Math.abs)) : 0;
   };
 
-  it("uses the shipped SUV bumper's inward y-turned corners", () => {
+  it("uses the shipped SUV bumper wings' y-turn sign: +y turns +x toward -z", () => {
     const suv = read(`${RP}/models/entity/yasu_ride/suv.geo.json`)[
       "minecraft:geometry"
     ][0];
-    const corners: Cube[] = suv.bones
-      .flatMap((b: { cubes?: Cube[] }) => b.cubes ?? [])
-      .filter(
-        (cube: Cube) =>
-          cube.rotation?.[1] === 30 && Math.abs(cube.size[1] - 4.205) < 1e-6,
-      );
-    expect(corners).toHaveLength(1);
-    const corner = corners[0];
-    expect(corner).toBeDefined();
-    if (!corner) return;
-    const z = corner.pivot?.[2] ?? 0;
-    const innerX = Math.abs(corner.pivot?.[0] ?? 0);
-    const y = corner.origin[1] + corner.size[1] / 2;
-    expect(reach(corner, y, z - 0.1)).toBeLessThan(innerX + 0.5);
-    expect(reach(corner, y, z + 1)).toBeGreaterThan(innerX + 1.5);
+    const body = suv.bones.find((b: { name: string }) => b.name === "body");
+    // The two winch bumper wings are the only cubes turned 8 degrees about y alone.
+    const wings: Cube[] = body.cubes.filter(
+      (cube: Cube) =>
+        cube.rotation?.[0] === 0 &&
+        cube.rotation[2] === 0 &&
+        Math.abs(Math.abs(cube.rotation[1] ?? 0) - 8) < 1e-6,
+    );
+    expect(wings).toHaveLength(2);
+    for (const wing of wings) {
+      const side = Math.sign((wing.pivot?.[0] ?? 0) || wing.origin[0]);
+      const points = turnedCorners(body, wing);
+      const mid = points.reduce((sum, p) => sum + p[0], 0) / points.length;
+      const outer = points.filter((p) => (p[0] - mid) * side > 0);
+      const inner = points.filter((p) => (p[0] - mid) * side < 0);
+      const meanZ = (ps: number[][]) =>
+        ps.reduce((sum, p) => sum + (p[2] ?? 0), 0) / ps.length;
+      // The wing's outer end is forward of its inner end (the front is -z).
+      expect(meanZ(outer)).toBeLessThan(meanZ(inner));
+    }
   });
 
   it("intercepts vertical rays throughout the outer plan, including both stem gaps", () => {

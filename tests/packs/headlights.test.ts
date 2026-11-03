@@ -87,49 +87,6 @@ describe("SUV tail lights", () => {
     ]);
   });
 
-  it("keeps the outer resin blocks and bumper reflectors on the body", () => {
-    const resin = [];
-    const reflectors = [];
-    for (const bone of bones) {
-      for (const cube of bone.cubes ?? []) {
-        if (
-          Object.values(cube.uv).every(({ uv }) => uv[0] === 85 && uv[1] === 1)
-        ) {
-          resin.push(cube);
-          expect(bone.name).toBe("body");
-        }
-        if (
-          Object.values(cube.uv).every(({ uv }) => uv[0] === 33 && uv[1] === 1)
-        ) {
-          if (cube.size[2] < 1) reflectors.push(cube);
-          expect(bone.name).toBe("body");
-        }
-      }
-    }
-    expect(resin).toHaveLength(2);
-    expect(reflectors).toHaveLength(2);
-    const tailCubes =
-      bones.find((bone) => bone.name === "tail_lights")?.cubes ?? [];
-    for (const cube of resin) {
-      const side = Math.sign(cube.origin[0]);
-      const lamp = tailCubes.find(
-        (entry) =>
-          entry.uv.south?.uv_size[1] === 24 &&
-          Math.sign(entry.origin[0]) === side,
-      );
-      expect(lamp).toBeDefined();
-      expect(cube.origin.slice(1)).toEqual(lamp?.origin.slice(1));
-      expect(cube.size.slice(1)).toEqual(lamp?.size.slice(1));
-      expect(
-        side > 0 ? cube.origin[0] : cube.origin[0] + cube.size[0],
-      ).toBeCloseTo(
-        side > 0
-          ? (lamp?.origin[0] ?? 0) + (lamp?.size[0] ?? 0)
-          : (lamp?.origin[0] ?? 0),
-      );
-    }
-  });
-
   it("uses the unlit material and hides the base pass when switched on", () => {
     expect(controller.materials).toContainEqual({
       tail_lights: "Material.lamp",

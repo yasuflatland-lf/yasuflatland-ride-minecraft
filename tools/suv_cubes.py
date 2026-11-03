@@ -132,3 +132,9 @@ def translate(cubes, axis, offset):
             pivot = list(cube["pivot"])
             pivot[axis] += offset
             cube["pivot"] = pivot
+
+
+def shifted_z(cubes, offset):
+    """The same cubes moved by `offset` along z."""
+    translate(cubes, 2, offset)
+    return cubes

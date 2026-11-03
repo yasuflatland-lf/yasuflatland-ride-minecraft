@@ -89,20 +89,20 @@ const scale = (cubes: Cubes, factors: Vec): Cubes =>
 const baseline = await run(generated);
 
 describe("SUV proportions", () => {
-  it("preserves every completed 7/7 proportion within 0.005", () => {
+  it("preserves every recorded Rubicon proportion within 0.005 (ADR 0214)", () => {
     const previous = {
-      wheelbase: 3.5264418956676304,
-      front_overhang: 0.705288379133526,
-      rear_overhang: 0.9127261377022102,
-      ground_clearance: 0.5726032154990395,
-      overall_height: 2.192692109920462,
-      belt_height: 1.528891282500673,
-      side_window_height: 0.5393381722785787,
-      hood_height: 1.5786763445571574,
-      hood_length: 1.795549102379232,
-      front_bumper_length: 0.3319004137098946,
-      rear_bumper_length: 0.41487551713736825,
-      bumper_height: 0.3484954343953894,
+      wheelbase: 3.007017748211538,
+      front_overhang: 0.9737958138248144,
+      rear_overhang: 0.8260262082995267,
+      ground_clearance: 0.6792262234033082,
+      overall_height: 2.064410771843314,
+      belt_height: 1.4947055498455246,
+      side_window_height: 0.4600139534878472,
+      hood_height: 1.460590617289932,
+      hood_length: 1.7477556959102472,
+      front_bumper_length: 0.2867619574453579,
+      rear_bumper_length: 0.3403,
+      bumper_height: 0.3568,
     };
     for (const [key, ratio] of Object.entries(previous)) {
       expect(Math.abs(linear(baseline, key).ratio - ratio)).toBeLessThanOrEqual(
@@ -252,15 +252,15 @@ describe("SUV proportions", () => {
       Math.max(...points.map((p) => Math.abs(p[0]))) / 16,
     ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth);
     expect(Math.max(...points.map((p) => -p[2])) / 16).toBeCloseTo(
-      2.67796875,
+      2.6795230741279377,
       10,
     );
     expect(Math.max(...points.map((p) => Math.abs(p[0]))) / 16).toBeCloseTo(
-      1.4953125,
+      1.3365900807841251,
       10,
     );
     expect(linear(baseline, "overall_height").pixels / 16).toBeCloseTo(
-      2.394847541651231,
+      2.3759970767731184,
       10,
     );
     // ADR 0170 retains the maximum 0.30-block roof allowance after scaling.

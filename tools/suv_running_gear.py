@@ -41,9 +41,9 @@ def round_tire(axis, center, radius, a0, a1, segments=16):
     return cubes
 
 
-def hub_span(x_out, inner, outer):
-    """The x span from HUB_X + inner to HUB_X + outer on the side x_out (+1 = right, -1 = left), low end first."""
-    return sorted((x_out * (HUB_X + inner), x_out * (HUB_X + outer)))
+def hub_span(x_out, inner, outer, hub_x=HUB_X):
+    """The x span from hub_x + inner to hub_x + outer on the side x_out (+1 = right, -1 = left), low end first."""
+    return sorted((x_out * (hub_x + inner), x_out * (hub_x + outer)))
 
 
 def around_axle(center, x0, x1, r0, r1, half_width, angles, color):
@@ -65,23 +65,24 @@ def ring(center, x0, x1, r0, r1, segments, color):
     return around_axle(center, x0, x1, r0, r1, half_chord, [i * 360 / segments for i in range(segments)], color)
 
 
-def wheel(name, x_out, z_center):
-    """A road wheel modeled on a black eight-spoke off-road wheel: a lugged tire, a gray barrel behind the
-    spokes, a black lip with chrome rivets, black spokes with a machined stripe down each, and a black
-    hub with chrome lug nuts and a small center cap. Every turned set is symmetric under reversing its
-    angles, so it looks the same whichever way the game turns x rotations. Nothing reaches past
-    HUB_X + 2.5, where the submarine prop mounts (ADR 0042)."""
-    center = (HUB_X * x_out, HUB_Y, z_center)
+def drawn_wheel(x_out):
+    """The 133-cube road wheel in its drawn size, centred on the origin: a lugged tire, a gray barrel behind
+    the spokes, a black lip with chrome rivets, black spokes with a machined stripe down each, and a black
+    hub with chrome lug nuts and a small center cap. The drawn radius is WHEEL_DRAWN_RADIUS and the drawn
+    half tread width WHEEL_DRAWN_HALF_WIDTH. Every turned set is symmetric under reversing its angles, so
+    it looks the same whichever way the game turns x rotations."""
+    center = (0, 0, 0)
+    radius = WHEEL_DRAWN_RADIUS
 
     def span(inner, outer):
-        return hub_span(x_out, inner, outer)
+        return hub_span(x_out, inner, outer, hub_x=0)
 
     rivets = [i * 22.5 for i in range(16)]
     spokes = [22.5 + i * 45 for i in range(8)]
-    cubes = [
-        *round_tire("x", center, ROAD_WHEEL_RADIUS, *span(-TIRE_HALF_WIDTH, TIRE_HALF_WIDTH), segments=24),
+    return [
+        *round_tire("x", center, radius, *span(-WHEEL_DRAWN_HALF_WIDTH, WHEEL_DRAWN_HALF_WIDTH), segments=24),
         # Shoulder lugs on every other tread block, standing out of the outer sidewall
-        *around_axle(center, *span(1.8, 2.15), ROAD_WHEEL_RADIUS - 0.9, ROAD_WHEEL_RADIUS, 0.75, [i * 30 for i in range(12)], "tire"),
+        *around_axle(center, *span(1.8, 2.15), radius - 0.9, radius, 0.75, [i * 30 for i in range(12)], "tire"),
         *disc("x", center, 3.6, *span(1.8, 1.85), (0, 30, 60), "trim"),  # barrel behind the spokes
         *ring(center, *span(1.85, 2.2), 3.25, 3.9, 24, "grille"),  # lip
         *around_axle(center, *span(2.2, 2.3), 3.45, 3.7, 0.12, rivets, "rim"),
@@ -91,7 +92,42 @@ def wheel(name, x_out, z_center):
         *around_axle(center, *span(2.35, 2.45), 0.75, 0.97, 0.11, [i * 60 for i in range(6)], "rim"),
         *disc("x", center, 0.4, *span(2.35, 2.5), (0, 45), "spoke"),  # center cap
     ]
-    return {"name": name, "parent": "root", "pivot": list(center), "cubes": cubes}
+
+
+def place_wheel(cubes, center, axle="x"):
+    """Scale a drawn wheel to the model (RADIAL_SCALE across, AXIAL_SCALE along the axle) and move it to
+    `center`. The spare's axle is z, its face toward the rear (-z before export): the wheel's x, y and z
+    become -z, y and x of the model's frame, a quarter turn about y that keeps the wheel itself."""
+    def point(p):
+        x, y, z = p[0] * AXIAL_SCALE, p[1] * RADIAL_SCALE, p[2] * RADIAL_SCALE
+        offset = (x, y, z) if axle == "x" else (z, y, -x)
+        return [center[i] + offset[i] for i in range(3)]
+
+    placed = []
+    for cube in cubes:
+        low = point(cube["origin"])
+        high = point([cube["origin"][i] + cube["size"][i] for i in range(3)])
+        moved = {**cube, "origin": [min(a, b) for a, b in zip(low, high)],
+                 "size": [abs(a - b) for a, b in zip(low, high)]}
+        if "pivot" in cube:
+            moved["pivot"] = point(cube["pivot"])
+        if axle == "z" and "rotation" in cube:
+            moved["rotation"] = [0, 0, -cube["rotation"][0]]
+        placed.append(moved)
+    return placed
+
+
+def wheel(name, x_out, z_center):
+    """A road wheel: the drawn wheel scaled to the new size (ADR 0214). Nothing reaches past
+    HUB_X + HUB_CAP_OUT, where the submarine prop mounts (ADR 0042)."""
+    center = (HUB_X * x_out, HUB_Y, z_center)
+    return {"name": name, "parent": "root", "pivot": list(center),
+            "cubes": place_wheel(drawn_wheel(x_out), center)}
+
+
+def spare_wheel():
+    """The spare on the tailgate: the same wheel, with its axle along z and its face toward the rear."""
+    return place_wheel(drawn_wheel(+1), (0, SPARE_Y, SPARE_Z), axle="z")
 
 
 # Segments of one prop blade: (inner radius, outer radius, half width, sweep in degrees). Each segment
@@ -105,10 +141,11 @@ def prop(name, x_out, z_center):
     plane and inside the tire's inner radius, so the tread ring frames the prop."""
     center = (HUB_X * x_out, HUB_Y, z_center)
     _, cy, cz = center
-    x0, x1 = hub_span(x_out, 2.5, 3.1)
+    x0, x1 = hub_span(x_out, HUB_CAP_OUT, HUB_CAP_OUT + 0.6)
     blades = []
     for base in (0, 90, 180, 270):
         for r0, r1, half, sweep in PROP_BLADE:
+            r0, r1, half = r0 * RADIAL_SCALE, r1 * RADIAL_SCALE, half * RADIAL_SCALE
             blade = box(x0 + 0.1, cy + r0, cz - half, x1 - 0.1, cy + r1, cz + half, "prop")
             if base + sweep:
                 blade["rotation"] = [base + sweep, 0, 0]
@@ -122,8 +159,8 @@ def prop(name, x_out, z_center):
         "parent": "root",
         "pivot": list(center),
         "cubes": [
-            *disc("x", center, 1.4, hub0, hub1, (0, 30, 60), "prop_hub"),
-            *disc("x", center, 0.6, bore0, bore1, (0, 45), "tire"),
+            *disc("x", center, 1.4 * RADIAL_SCALE, hub0, hub1, (0, 30, 60), "prop_hub"),
+            *disc("x", center, 0.6 * RADIAL_SCALE, bore0, bore1, (0, 45), "tire"),
             *blades,
         ],
     }
@@ -154,7 +191,7 @@ def sub_arm(name, x_out, z_center):
     prop on the rear face. Before turn_around the front is +z. Hidden by scale outside the submarine."""
     s = x_out
     hx = HUB_X + SUB_OUT
-    xs = sorted((s * 11, s * (hx + 0.8)))
+    xs = sorted((s * (BODY_HALF_WIDTH - 2), s * (hx + 0.8)))
     face = z_center + TIRE_HALF_WIDTH  # the tire's front face
     return {
         "name": name,

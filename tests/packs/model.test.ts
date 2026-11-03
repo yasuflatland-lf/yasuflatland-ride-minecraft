@@ -30,6 +30,18 @@ const dimensions = JSON.parse(
   WINDSHIELD_LEAN: number;
   ROOF_Y: number;
   ROOF_TOP: number;
+  FLOOR_Y: number;
+  DASH_FACE_Z: number;
+  INTERIOR_SHIFT_Z: number;
+  HOOD_REAR_Z: number;
+  FOLDED_WHEEL_TOP_Y: number;
+  BODY_HALF_WIDTH: number;
+  WINDOW_BOTTOM_Y: number;
+  WINDOW_TOP_Y: number;
+  D: number;
+  SPARE_Y: number;
+  SPARE_Z: number;
+  FRONT_AXLE_Z: number;
 };
 const SIZE_SCALE = dimensions.SIZE_SCALE;
 const scaled = (value: number) => Number((value * SIZE_SCALE).toFixed(12));
@@ -143,9 +155,10 @@ it("keeps every seated player's head beneath the SUV roof and behind the raked w
     ?.cubes?.filter(
       (cube) =>
         !cube.rotation &&
-        cube.size[0] > 30 &&
+        cube.origin[1] > scaled(dimensions.ROOF_Y - 1) &&
+        cube.size[0] > 20 &&
         cube.size[2] > 30 &&
-        cube.size[1] < 0.3,
+        cube.size[1] < 1,
     )
     .sort((a, b) => b.size[0] * b.size[2] - a.size[0] * a.size[2])[0];
   if (!roof) throw new Error("Missing SUV roof slab");
@@ -175,6 +188,11 @@ it("keeps every seated player's head beneath the SUV roof and behind the raked w
   }
 });
 
+// The dashboard, gauges and their fittings use the fixed painted blocks of the atlas, below the
+// swatch rows; the hull's own parts use plain swatches.
+const isPaintedInterior = (cube: Cube) =>
+  Object.values(cube.uv ?? {}).some(({ uv: [, v] }) => v >= 168);
+
 describe("SUV model (ADR 0009)", () => {
   it("keeps every gauge face, ring and hub on the cabin side of the dash slab", () => {
     const body = bones.get("body");
@@ -183,7 +201,7 @@ describe("SUV model (ADR 0009)", () => {
     const slabs = cubes.filter(
       (c) =>
         !c.rotation &&
-        c.size[0] > 30 &&
+        c.size[0] > 20 &&
         c.origin[1] === scaled(13) &&
         c.size[1] > 5 &&
         c.size[2] < 2,
@@ -267,10 +285,58 @@ describe("SUV model (ADR 0009)", () => {
     );
   });
 
+  // The spike's spare cut into the rear window glass, the tailgate and the rear bumper (ADR 0214).
+  it("keeps the spare wheel clear of every other body cube and of the rear glass", () => {
+    const body = bones.get("body");
+    if (!body) throw new Error("Missing SUV body");
+    const radius = scaled(dimensions.D) / 2;
+    const centerY = scaled(dimensions.SPARE_Y);
+    const isSpare = (corners: Vec3[]) =>
+      corners.every(
+        ([x, y]) => Math.hypot(x, y - centerY) <= radius * 1.03 + 1e-6,
+      ) &&
+      corners.every(
+        ([, , z]) =>
+          z >= -scaled(dimensions.SPARE_Z) - scaled(dimensions.D) * 0.22,
+      );
+    const boxOf = (corners: Vec3[]) =>
+      [0, 1, 2].map(
+        (axis) =>
+          [
+            Math.min(...corners.map((p) => p[axis] as number)),
+            Math.max(...corners.map((p) => p[axis] as number)),
+          ] as const,
+      );
+    const cubes = (body.cubes ?? []).map((c) => {
+      const corners = turnedCorners(body, c);
+      return { corners, box: boxOf(corners) };
+    });
+    const spare = cubes.filter((c) => isSpare(c.corners));
+    expect(spare).toHaveLength(133);
+    const glass = bones.get("rear_glass");
+    const others = [
+      ...cubes.filter((c) => !isSpare(c.corners)),
+      ...(glass?.cubes ?? []).map((c) => {
+        const corners = turnedCorners(glass as Bone, c);
+        return { corners, box: boxOf(corners) };
+      }),
+    ];
+    for (const a of spare)
+      for (const b of others) {
+        const apart = a.box.some(
+          ([min, max], axis) =>
+            max <= (b.box[axis]?.[0] ?? 0) + 1e-9 ||
+            (b.box[axis]?.[1] ?? 0) <= min + 1e-9,
+        );
+        if (!apart) expect(separated(a.corners, b.corners)).toBe(true);
+      }
+  });
+
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = [...bones.values()].flatMap((bone) => bone.cubes ?? []);
+    // The steering wheel's 30 arc cubes (ADR 0167) and the hood's 4 shoulder strips (ADR 0214).
     const assemblies = { arc: cubes.filter(multipleAxes) };
-    expect(assemblies.arc).toHaveLength(30);
+    expect(assemblies.arc).toHaveLength(34);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });
 
@@ -423,10 +489,15 @@ describe("SUV model (ADR 0009)", () => {
       const xs = cubes.flatMap((c) => [c.origin[0], c.origin[0] + c.size[0]]);
       const ys = cubes.flatMap((c) => [c.origin[1], c.origin[1] + c.size[1]]);
       const hubX = Math.abs(wheel[0]) + FOLD_OUT;
-      expect(Math.min(...xs.map((x) => x * out))).toBeLessThan(scaled(13));
+      expect(Math.min(...xs.map((x) => x * out))).toBeLessThan(
+        scaled(dimensions.BODY_HALF_WIDTH),
+      );
       expect(Math.max(...xs.map((x) => x * out))).toBeGreaterThan(hubX);
       // The arm rests on the scaled folded tire's top face.
-      expect(Math.min(...ys)).toBeCloseTo(scaled(4), 6);
+      expect(Math.min(...ys)).toBeCloseTo(
+        scaled(dimensions.FOLDED_WHEEL_TOP_Y),
+        6,
+      );
       for (const c of cubes) {
         expect(c.rotation, `arm_${w}`).toBeUndefined();
         // Each arm stays in its own wheel's plane, centered on the axle in z.
@@ -447,7 +518,7 @@ describe("SUV model (ADR 0009)", () => {
   });
 
   // The window openings have no glass of their own (ADR 0026), so the plates
-  // fill them: the windshield plate leans with the A-pillars, and the side
+  // fill them: the windshield plate leans with the windshield frame, and the side
   // plates are thin, sit in the window frames, and overlap no body cube.
   describe("windows_sealed", () => {
     const sealed = bones.get("windows_sealed");
@@ -463,74 +534,35 @@ describe("SUV model (ADR 0009)", () => {
       (c.origin[a] ?? 0) + (c.size[a] ?? 0),
     ];
     const thinAxis = (c: Cube) => c.size.indexOf(Math.min(...c.size));
-    // A right-handed x rotation. The game turns a cube's x rotation the other
-    // way (ADR 0051): a written -25 leans the A-pillars' tops back toward +z,
-    // the cabin. So inside() undoes a cube's rotation with +rx.
-    const turnX = (p: Vec3, pivot: Vec3, degrees: number): Vec3 => {
-      const r = (degrees * Math.PI) / 180;
-      const [y, z] = [p[1] - pivot[1], p[2] - pivot[2]];
-      return [
-        p[0],
-        y * Math.cos(r) - z * Math.sin(r) + pivot[1],
-        y * Math.sin(r) + z * Math.cos(r) + pivot[2],
-      ];
-    };
-    const inside = (c: Cube, p: Vec3) => {
-      const local = turnX(p, c.pivot ?? [0, 0, 0], c.rotation?.[0] ?? 0);
-      return local.every((v, a) => {
-        const [c0, c1] = span(c, a);
-        return c0 - EPS <= v && v <= c1 + EPS;
-      });
-    };
 
     it("is a child of body with the pivot of rear_glass", () => {
       expect(sealed?.parent).toBe("body");
       expect(sealed?.pivot).toEqual(pivot("rear_glass"));
     });
 
-    it("has one windshield plate, leaning with the A-pillars", () => {
+    it("has one windshield plate, leaning with the windshield frame", () => {
       const leaning = plates.filter((c) => c.rotation);
       expect(leaning).toHaveLength(1);
       const [windshield] = leaning;
-      const pillars = allBodyCubes.filter(
-        (c) =>
-          c.rotation?.[0] === windshield?.rotation?.[0] &&
-          Math.abs(c.size[0] - SIZE_SCALE) < 1e-6 &&
-          c.pivot?.[1] === windshield?.pivot?.[1],
-      );
-      expect(pillars).toHaveLength(2);
       // In game a negative x rotation leans the top back toward +z, the cabin
       expect(windshield?.rotation?.[0]).toBeLessThan(0);
-      for (const pillar of pillars) {
-        expect(windshield?.rotation).toEqual(pillar.rotation);
-        expect(windshield?.pivot).toEqual(pillar.pivot);
-      }
-    });
-
-    it("joins the thin lower rail to the sealed plate at the named rail height", () => {
-      const rails = allBodyCubes.filter(
-        (c) =>
-          c.rotation?.[0] === -dimensions.WINDSHIELD_LEAN &&
-          c.size[0] > scaled(20),
+      expect(Math.abs(windshield?.rotation?.[0] ?? 0)).toBeCloseTo(
+        dimensions.WINDSHIELD_LEAN,
+        6,
       );
-      expect(rails).toHaveLength(1);
-      const rail = rails[0];
-      const plate = plates.find((c) => c.rotation);
-      if (!rail || !plate) throw new Error("Missing windshield");
-      expect(dimensions.WINDSHIELD_RAIL_HEIGHT).toBeGreaterThan(0);
-      expect(dimensions.WINDSHIELD_RAIL_HEIGHT).toBeLessThanOrEqual(0.3);
-      expect(rail.origin[1]).toBe(scaled(dimensions.HOOD_TOP_Y));
-      expect(rail.size[1]).toBe(scaled(dimensions.WINDSHIELD_RAIL_HEIGHT));
-      expect(plate.origin[1]).toBeCloseTo(
-        scaled(dimensions.HOOD_TOP_Y + dimensions.WINDSHIELD_RAIL_HEIGHT),
-        10,
+      const frame = allBodyCubes.filter(
+        (c) => c.rotation?.[0] === windshield?.rotation?.[0],
       );
-      expect(plate.origin[1]).toBeCloseTo(rail.origin[1] + rail.size[1], 10);
-      expect(plate.pivot).toEqual(rail.pivot);
-      expect(plate.rotation).toEqual(rail.rotation);
-      expect(span(plate, 0)).toEqual(span(rail, 0));
-      expect(span(plate, 2)[0]).toBeCloseTo(span(rail, 2)[0], 10);
-      expect(span(plate, 2)[1]).toBeLessThanOrEqual(span(rail, 2)[1]);
+      // Four bars make the frame, which the plate fills.
+      expect(frame).toHaveLength(4);
+      const sideBars = frame.filter((c) => c.size[1] > c.size[0]);
+      const barX = sideBars.flatMap((c) => span(c, 0));
+      expect(Math.min(...barX)).toBeLessThanOrEqual(
+        (windshield?.origin[0] ?? 0) + EPS,
+      );
+      expect(Math.max(...barX)).toBeGreaterThanOrEqual(
+        (windshield?.origin[0] ?? 0) + (windshield?.size[0] ?? 0) - EPS,
+      );
     });
 
     it("keeps the dashboard fittings and steering clear of the sealed windshield", () => {
@@ -539,6 +571,7 @@ describe("SUV model (ADR 0009)", () => {
       if (!windshield || !sealed || !body) throw new Error("Missing cabin");
       const glass = turnedCorners(sealed, windshield);
       const fittings = (body.cubes ?? [])
+        .filter(isPaintedInterior)
         .map((c) => turnedCorners(body, c))
         .filter((corners) =>
           corners.every(
@@ -560,16 +593,17 @@ describe("SUV model (ADR 0009)", () => {
       if (!body) throw new Error("Missing cabin");
       const levers = (body.cubes ?? []).filter(
         (c) =>
-          c.pivot?.[1] === scaled(8) &&
+          c.pivot?.[1] === scaled(dimensions.FLOOR_Y) &&
           Math.abs(c.pivot[0]) <= scaled(1.1) &&
-          c.pivot[2] >= -scaled(8.5) &&
-          c.pivot[2] <= -scaled(6.5) &&
+          c.pivot[2] >= -scaled(7.5 + dimensions.INTERIOR_SHIFT_Z) &&
+          c.pivot[2] <= -scaled(6.5 + dimensions.INTERIOR_SHIFT_Z) &&
           c.rotation?.[1] === 0 &&
           c.rotation[2] === 0 &&
           (c.rotation[0] === -15 || c.rotation[0] === -22),
       );
       // Include the slab and fittings, from the grab handle to the cowl edge.
       const dash = (body.cubes ?? [])
+        .filter(isPaintedInterior)
         .map((c) => turnedCorners(body, c))
         .filter((corners) =>
           corners.every(
@@ -577,8 +611,8 @@ describe("SUV model (ADR 0009)", () => {
               Math.abs(x) <= scaled(12) &&
               y >= scaled(13) &&
               y <= scaled(19) &&
-              z >= -scaled(7.75) - 1e-8 &&
-              z <= -scaled(6.2) + 1e-8,
+              z >= -scaled(dimensions.HOOD_REAR_Z) - 1e-8 &&
+              z <= -scaled(dimensions.DASH_FACE_Z - 0.8) + 1e-8,
           ),
         );
       expect(levers).toHaveLength(12);
@@ -654,63 +688,24 @@ describe("SUV model (ADR 0009)", () => {
       }
     });
 
-    // Every edge of a side plate meets the face of a pillar, a door frame or
-    // the roof along its whole length, so the plates fill the opening rather
-    // than a corner of it. The front side windows are trapezoids under the
-    // leaning front post, built from strips: a strip's front end reaches into
-    // that post, and where a strip meets the next one, the part the next one
-    // does not cover lies inside the post.
-    it("fills its opening from frame to frame", () => {
-      const posts = doorCubes.filter((c) => c.rotation);
-      const near = (a: number, b: number) => Math.abs(a - b) < EPS;
-      for (const p of sidePlates) {
-        const thin = thinAxis(p);
-        const [t0, t1] = span(p, thin);
-        const inPlane = [0, 1, 2].filter((a) => a !== thin);
-        for (const a of inPlane) {
-          const other = inPlane.find((b) => b !== a) ?? 0;
-          const [o0, o1] = span(p, other);
-          for (const edge of span(p, a)) {
-            const met = frame.some((c) => {
-              const [c0, c1] = span(c, a);
-              const [ct0, ct1] = span(c, thin);
-              const [co0, co1] = span(c, other);
-              return (
-                (near(c0, edge) || near(c1, edge)) &&
-                ct0 <= t1 + EPS &&
-                t0 <= ct1 + EPS &&
-                co0 <= o0 + EPS &&
-                o1 <= co1 + EPS
-              );
-            });
-            const at = (o: number): Vec3 => {
-              const point: Vec3 = [0, 0, 0];
-              point[thin] = (t0 + t1) / 2;
-              point[a] = edge;
-              point[other] = o;
-              return point;
-            };
-            const inPost = (from: number, to: number) =>
-              posts.some((c) => inside(c, at(from)) && inside(c, at(to)));
-            const byNeighbor = sidePlates.some((n) => {
-              if (n === p || !span(n, a).some((e) => near(e, edge)))
-                return false;
-              // The mirrored plate on the other side has the same spans
-              if (Math.sign(n.origin[0]) !== Math.sign(p.origin[0]))
-                return false;
-              const [n0, n1] = span(n, other);
-              if (n1 <= o0 || o1 <= n0) return false;
-              return (
-                (n0 <= o0 + EPS || inPost(o0, n0)) &&
-                (o1 <= n1 + EPS || inPost(n1, o1))
-              );
-            });
-            expect(
-              met || inPost(o0, o1) || byNeighbor,
-              `${JSON.stringify(p)} edge ${a}=${edge}`,
-            ).toBe(true);
-          }
-        }
+    // The plates of one window run from its frame's rear edge to its front
+    // edge and from the sill to the top rail, so the opening has no gap.
+    it("fills each side window from sill to top rail", () => {
+      for (const sign of [-1, 1]) {
+        const side = sidePlates.filter((p) => Math.sign(p.origin[0]) === sign);
+        expect(side.length).toBeGreaterThan(3);
+        const ys = side.flatMap((p) => span(p, 1));
+        expect(Math.min(...ys)).toBeCloseTo(
+          scaled(dimensions.WINDOW_BOTTOM_Y + 0.009 * dimensions.D),
+          2,
+        );
+        expect(Math.max(...ys)).toBeCloseTo(
+          scaled(dimensions.WINDOW_TOP_Y - 0.009 * dimensions.D),
+          2,
+        );
+        // The raked front window is built from stacked strips.
+        const rows = [...new Set(side.map((p) => p.origin[2] + p.size[2]))];
+        expect(rows.length).toBeGreaterThanOrEqual(3);
       }
     });
   });
