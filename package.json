@@ -39,7 +39,7 @@
     "dependency-cruiser": "18.7.0",
     "esbuild": "0.28.2",
     "fast-check": "4.10.2",
-    "knip": "6.44.0",
+    "knip": "6.44.1",
     "typescript": "7.0.2",
     "vitest": "5.0.5"
   },
