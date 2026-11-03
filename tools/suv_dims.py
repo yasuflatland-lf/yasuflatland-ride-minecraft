@@ -91,6 +91,7 @@ SEAT_Y = math.floor((ROOF_Y * SIZE_SCALE - HEAD_CLEARANCE -
 EYE_Y = (SEAT_Y * 16 - RIDER_DROP + RIDER_EYE_HEIGHT) / SIZE_SCALE
 CABIN_INNER_HALF_WIDTH = DOOR_SKIN_X[0] * K_REAR * D
 RIDER_X = CABIN_INNER_HALF_WIDTH / 2
+DRIVER_SHIFT_X = RIDER_X - 6.0  # the steering, gauges and pedals were drawn around a driver at x = 6
 
 # At the grown head's top the rear face of the leaning frame is the limiting plane.
 GROWN_HEAD_TOP_Y = (SEAT_Y * 16 - RIDER_DROP + RIDER_HEAD_TOP + 0.5) / SIZE_SCALE

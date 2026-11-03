@@ -36,7 +36,7 @@ def gauge_cluster_cubes():
     gauges += dial(6.0, 18.2, 1.0, "fuel_temp")
     gauges += dial(8.6, 18.2, 1.25, "speed")
     # The raked glass requires the cluster to sit lower inside the cabin (ADR 0170).
-    translate(gauges, 0, RIDER_X - 6.0)
+    translate(gauges, 0, DRIVER_SHIFT_X)
     translate(gauges, 1, -DASH_GAUGE_DROP)
     translate(gauges, 2, DASH_SHIFT_Z)
     return gauges

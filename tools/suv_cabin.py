@@ -167,5 +167,5 @@ def pedal_cubes():
     accelerator["pivot"] = [8.8, FLOOR_Y, 12.8]
     accelerator["rotation"] = [-25, 0, 0]
     result.append(accelerator)
-    suv_cubes.translate(result, 0, RIDER_X - 6.0)
+    suv_cubes.translate(result, 0, DRIVER_SHIFT_X)
     return result

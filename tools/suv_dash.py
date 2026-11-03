@@ -36,16 +36,25 @@ KNOB_TURNED_SETBACK = 0.02
 FACES = ("north", "south", "east", "west", "up", "down")
 
 
+DRAWN_PASSENGER_EDGE_X = -12  # the passenger fittings were drawn for a dash ending here (ADR 0215)
+
+
 def passenger_x(x):
-    return -CABIN_INNER_HALF_WIDTH + (x + 12) * (DASH_STACK_X0 + CABIN_INNER_HALF_WIDTH) / (DASH_STACK_X0 + 12)
+    """Map a drawn passenger-side x from [-12, DASH_STACK_X0] onto the door's inner face."""
+    return -CABIN_INNER_HALF_WIDTH + (x - DRAWN_PASSENGER_EDGE_X) * (DASH_STACK_X0 + CABIN_INNER_HALF_WIDTH) / (
+        DASH_STACK_X0 - DRAWN_PASSENGER_EDGE_X)
 
 
 def passenger_bounds(bounds, keep_width=False):
+    """Map box bounds with passenger_x; keep_width maps only the centre and keeps the drawn width."""
     x0, y0, z0, x1, y1, z1 = bounds
-    centre = passenger_x((x0 + x1) / 2)
-    half = (x1 - x0) / 2
-    return (centre - half if keep_width else passenger_x(x0), y0, z0,
-            centre + half if keep_width else passenger_x(x1), y1, z1)
+    if keep_width:
+        centre = passenger_x((x0 + x1) / 2)
+        half = (x1 - x0) / 2
+        x0, x1 = centre - half, centre + half
+    else:
+        x0, x1 = passenger_x(x0), passenger_x(x1)
+    return (x0, y0, z0, x1, y1, z1)
 
 
 def region_rectangle(name):
