@@ -16,8 +16,8 @@ import {
   type TentFace,
   type TentLayout,
   type TentLocalCell,
-  tentCellKey,
   TRAPEZOID_LAYOUT,
+  tentCellKey,
 } from "./tentLayout";
 
 export type { FlapId, TentFace, TentLocalCell } from "./tentLayout";
