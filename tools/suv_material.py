@@ -19,12 +19,17 @@ FLAT_HEIGHT = 128
 RELIEF_DEPTH_STEP = 32
 RELIEF_STRENGTH = 4
 
-PAINT_METALNESS = 110
-PAINT_ROUGHNESS = 60
+# Pending the owner's check on the iPad with Vibrant Visuals: the renderer cannot show MER (ADR 0213).
+# Body: metallic automotive paint, far above the matte hardtop and resin.
+PAINT_METALNESS = 190
+# Body: low roughness gives a tight, clear reflection; the flake jitter adds up to 5.
+PAINT_ROUGHNESS = 35
 HARDTOP_ROUGHNESS = 220
 GLASS_ROUGHNESS = 30
-CHROME_METALNESS = 230
-CHROME_ROUGHNESS = 40
+# Chrome: near-full metalness so it stays brighter than the painted body.
+CHROME_METALNESS = 250
+# Chrome: lower roughness than the body so trim reads as polished.
+CHROME_ROUGHNESS = 25
 RESIN_ROUGHNESS = 235
 GLOW_EMISSIVE = 255 - palette.ALPHA["glow"]
 

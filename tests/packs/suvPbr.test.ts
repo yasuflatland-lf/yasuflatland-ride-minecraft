@@ -97,7 +97,7 @@ describe("SUV paint texture sets", () => {
     "%s has painted steel and matte hardtop swatches",
     (paint) => {
       const mer = merFor(paint);
-      expect(swatch(mer, "body")).toEqual([110, 0, 60, 255]);
+      expect(swatch(mer, "body")).toEqual([190, 0, 35, 255]);
       for (const name of ["hardtop", "hardtop_rib"])
         expect(swatch(mer, name), name).toEqual([0, 0, 220, 255]);
     },
@@ -145,7 +145,7 @@ describe("SUV detailed steel body regions", () => {
               mer.pixels.subarray(i, i + 4);
             const valid =
               region.base === "body"
-                ? metal >= 102 && metal <= 118 && rough >= 55 && rough <= 65
+                ? metal >= 182 && metal <= 198 && rough >= 30 && rough <= 40
                 : metal === 0 && rough >= 218 && rough <= 222;
             if (
               (!valid || emissive !== 0 || alpha !== 255) &&
