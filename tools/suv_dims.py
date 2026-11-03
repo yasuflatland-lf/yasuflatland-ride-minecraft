@@ -50,10 +50,10 @@ REAR_SEAT_Z = CARGO_FRONT + 1
 # The roof starts where the A-pillars meet it.
 WINDSHIELD_LEAN = 35  # degrees back from vertical
 WINDSHIELD_PIVOT = (0, HOOD_TOP_Y, WINDSHIELD_FOOT_Z)
-_LEAN_SIN = math.sin(math.radians(WINDSHIELD_LEAN))
-_LEAN_COS = math.cos(math.radians(WINDSHIELD_LEAN))
-_LEAN_TAN = math.tan(math.radians(WINDSHIELD_LEAN))
-ROOF_FRONT = WINDSHIELD_FOOT_Z - (ROOF_TOP - HOOD_TOP_Y) * _LEAN_TAN + 0.6
+LEAN_SIN = math.sin(math.radians(WINDSHIELD_LEAN))
+LEAN_COS = math.cos(math.radians(WINDSHIELD_LEAN))
+LEAN_TAN = math.tan(math.radians(WINDSHIELD_LEAN))
+ROOF_FRONT = WINDSHIELD_FOOT_Z - (ROOF_TOP - HOOD_TOP_Y) * LEAN_TAN + 0.6
 
 # Distance of the wheel hubs from the center line. The tires stand out from the body's side, under
 # over-fenders.
@@ -112,6 +112,8 @@ SUB_OUT = 6
 ARM_THICK = 1.4
 ARM_ROOT_X, ARM_ROOT_Y = CABIN_HALF_WIDTH, FLOOR_Y + 2
 FOLDED_WHEEL_TOP_Y = HUB_Y - FOLD_DROP + TIRE_HALF_WIDTH
+# Radius of the disc under each folded wheel; it sets how far the hover glow reaches (ADR 0122).
+GLOW_RADIUS = 5
 
 LAMP_Y0, LAMP_Y1 = 11.4, 12.2
 FRONT_BUMPER_END_BACK_Z = FRONT_AXLE_Z + BUMPER_END_CLEARANCE
@@ -144,7 +146,7 @@ ROOF_SEAM = B_PILLAR_FRONT_Z
 
 # The front door's window frame leans with the windshield, so its window is a trapezoid. The frame's
 # front post sits just behind the A-pillar, turned around the same pivot.
-FRONT_POST_LENGTH = (ROOF_Y - HOOD_TOP_Y) / _LEAN_COS
+FRONT_POST_LENGTH = (ROOF_Y - HOOD_TOP_Y) / LEAN_COS
 
 # Rear spare tire (on the tailgate, axle along z)
 SPARE = (0, 13.5, REAR - 1.5)

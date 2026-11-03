@@ -212,3 +212,29 @@ it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)"
   expect(depth).toBe(3);
   expect(-60 - depth - 1).toBeGreaterThanOrEqual(-64);
 });
+
+it("keeps the SUV spec values that mirror the model above the generator constants", () => {
+  const blocks = (name: string): number => dimension(name) / 16;
+  // The fog lamps and bumper tips are the farthest-forward parts.
+  expect(SUV_SPEC.bodyFront).toBeGreaterThanOrEqual(
+    blocks("FRONT_BUMPER_TIP_Z"),
+  );
+  // The bumper end pieces reach out over the wheel hubs, the widest parts.
+  expect(SUV_SPEC.bodyHalfWidth).toBeGreaterThanOrEqual(
+    blocks("BUMPER_HALF_WIDTH"),
+  );
+  expect(SUV_SPEC.bodyHalfWidth).toBeGreaterThanOrEqual(blocks("HUB_X"));
+  // The folded rear wheel's glow disc reaches farthest from the center.
+  const glowReach =
+    Math.hypot(
+      constant("HUB_X") + constant("FOLD_OUT"),
+      constant("REAR_AXLE_Z"),
+    ) + constant("GLOW_RADIUS");
+  expect(SUV_SPEC.footprint).toBeGreaterThanOrEqual(
+    (glowReach * constant("SIZE_SCALE")) / 16,
+  );
+  // The roof ribs sit up to 0.3 blocks above the collision box (ADR 0170).
+  expect(SUV_SPEC.roofTentRoofHeight).toBeCloseTo(blocks("ROOF_TOP"), 12);
+  expect(blocks("ROOF_TOP") - SUV_SPEC.carHeight).toBeGreaterThanOrEqual(0);
+  expect(blocks("ROOF_TOP") - SUV_SPEC.carHeight).toBeLessThanOrEqual(0.3);
+});
