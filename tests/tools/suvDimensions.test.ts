@@ -228,7 +228,7 @@ it("keeps the SUV spec values that mirror the model above the generator constant
   const glowReach =
     Math.hypot(
       constant("HUB_X") + constant("FOLD_OUT"),
-      constant("REAR_AXLE_Z") * -1,
+      constant("REAR_AXLE_Z"),
     ) + constant("GLOW_RADIUS");
   expect(SUV_SPEC.footprint).toBeGreaterThanOrEqual(
     (glowReach * constant("SIZE_SCALE")) / 16,
