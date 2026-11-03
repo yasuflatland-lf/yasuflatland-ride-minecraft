@@ -8,28 +8,56 @@ from tool_loader import load_tool
 
 _cube_tilt = load_tool("cube_tilt")
 
-# Pixel landmarks and uncertainty are recorded in ADR 0170. Rake is in degrees.
-_REFERENCE_D = 138
+# Pixel landmarks, D used per image and uncertainty are recorded in ADR 0213.
+# Rake is in degrees.
 TARGETS = {
-    name: {"ratio": pixels / _REFERENCE_D, "tolerance": 0.05}
-    for name, pixels in {
-        "wheelbase": 489,
-        "front_overhang": 96,
-        "rear_overhang": 126,
-        "ground_clearance": 79,
-        "overall_height": 303,
-        "belt_height": 211,
-        "side_window_height": 74,
-        "hood_height": 217,
-        "hood_length": 249,
-        "front_bumper_length": 45,
-        "rear_bumper_length": 58,
-        "bumper_height": 51,
+    name: {"ratio": ratio, "tolerance": 0.05}
+    for name, ratio in {
+        "wheelbase": 3.16,
+        "front_overhang": 0.86,
+        "rear_overhang": 0.95,
+        "ground_clearance": 0.59,
+        "overall_height": 2.13,
+        "belt_height": 1.52,
+        "side_window_height": 0.545,
+        "hood_height": 1.56,
+        "hood_length": 1.77,
+        "front_bumper_length": 0.29,
+        "rear_bumper_length": 0.41,
+        "bumper_height": 0.35,
+        "overall_length": 4.97,
+        "overall_width": 2.21,
+        "track_width": 1.87,
+        "tyre_width": 0.43,
+        "flare_reach": 0.29,
+        "flare_top_height": 1.45,
+        "hood_scoop_height": 0.07,
+        "hood_scoop_length": 0.22,
+        "front_bumper_reach": 0.31,
+        "step_height": 0.125,
+        "step_reach": 0.06,
     }.items()
 }
-TARGETS["windshield_rake"] = {"degrees": 34.34609740006154, "tolerance": 3}
-# Every row meets its target since 7/7; a row added later starts here until the model meets it.
-PENDING = set()
+TARGETS["windshield_rake"] = {"degrees": 24, "tolerance": 3}
+# Rows start pending; the PR that makes the model meet a row removes it:
+# 6/13 massing, 7/13 hood scoop, 8/13 flares, 9/13 bumper, 10/13 steps (ADR 0213).
+PENDING = {
+    "wheelbase",
+    "front_overhang",
+    "overall_height",
+    "windshield_rake",
+    "overall_length",
+    "overall_width",
+    "track_width",
+    "tyre_width",
+    "flare_reach",
+    "flare_top_height",
+    "hood_scoop_height",
+    "hood_scoop_length",
+    "front_bumper_reach",
+    "step_height",
+    "step_reach",
+}
 
 
 def _bounds(cubes):
@@ -51,13 +79,16 @@ def _bounds(cubes):
 def measure(cubes_by_bone):
     """Return linear rows as {pixels, ratio}; rake as {degrees} (not a length).
 
-    It deliberately fails if the generator no longer supplies these landmarks.
+    Pending rows without a landmark measure as None.
+    It deliberately fails if the generator no longer supplies existing landmarks.
     """
     body = cubes_by_bone["body"]
     wheels = [_bounds(cubes_by_bone[name])
               for name in ("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr")]
     diameter = sum(hi[1] - lo[1] for lo, hi in wheels) / 4
     ground = min(lo[1] for lo, hi in wheels)
+    body_lo, body_hi = _bounds(body)
+    lateral_centers = [(lo[0] + hi[0]) / 2 for lo, hi in wheels]
     centers = [(lo[2] + hi[2]) / 2 for lo, hi in wheels]
     front_axle, rear_axle = sum(centers[:2]) / 2, sum(centers[2:]) / 2
     frames = [c for c in body if c.get("rotation", [0, 0, 0])[0] < 0
@@ -103,11 +134,16 @@ def measure(cubes_by_bone):
     rear_lo, rear_hi = bumper(False)
     # Bumper tips exclude the spare, exhaust, tow hooks and lamp lenses.
     values = {
+        "overall_length": rear_hi[2] - front_lo[2],
+        "overall_width": 2 * max(abs(body_lo[0]), abs(body_hi[0])),
+        "track_width": (abs(lateral_centers[0] - lateral_centers[1])
+                        + abs(lateral_centers[2] - lateral_centers[3])) / 2,
+        "tyre_width": sum(hi[0] - lo[0] for lo, hi in wheels) / len(wheels),
         "wheelbase": rear_axle - front_axle,
         "front_overhang": front_axle - front_lo[2],
         "rear_overhang": rear_hi[2] - rear_axle,
         "ground_clearance": sill - ground,
-        "overall_height": _bounds(body)[1][1] - ground,
+        "overall_height": body_hi[1] - ground,
         "belt_height": window_lo[1] - ground,
         "side_window_height": window_hi[1] - window_lo[1],
         "hood_height": frame["pivot"][1] - ground,
@@ -119,4 +155,7 @@ def measure(cubes_by_bone):
     result = {name: {"pixels": value, "ratio": value / diameter}
               for name, value in values.items()}
     result["windshield_rake"] = {"degrees": abs(frame["rotation"][0])}
+    for name in TARGETS:
+        if name in PENDING and name not in result:
+            result[name] = None
     return result

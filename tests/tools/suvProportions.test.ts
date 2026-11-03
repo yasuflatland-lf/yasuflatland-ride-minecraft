@@ -9,7 +9,10 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-type Measurement = { pixels: number; ratio: number } | { degrees: number };
+type Measurement =
+  | { pixels: number; ratio: number }
+  | { degrees: number }
+  | null;
 type Vec = [number, number, number];
 type Cube = { origin: Vec; size: Vec; pivot?: Vec; rotation?: Vec };
 type Cubes = Record<string, Cube[]>;
@@ -62,6 +65,17 @@ const keys = [
   "front_bumper_length",
   "rear_bumper_length",
   "bumper_height",
+  "overall_length",
+  "overall_width",
+  "track_width",
+  "tyre_width",
+  "flare_reach",
+  "flare_top_height",
+  "hood_scoop_height",
+  "hood_scoop_length",
+  "front_bumper_reach",
+  "step_height",
+  "step_reach",
 ];
 const linear = (result: Result, key: string) => {
   const value = result.measures[key];
@@ -89,7 +103,7 @@ const scale = (cubes: Cubes, factors: Vec): Cubes =>
 const baseline = await run(generated);
 
 describe("SUV proportions", () => {
-  it("preserves every completed 7/7 proportion within 0.005", () => {
+  it("preserves the completed proportions of non-pending rows within 0.005", () => {
     const previous = {
       wheelbase: 3.5264418956676304,
       front_overhang: 0.705288379133526,
@@ -105,17 +119,21 @@ describe("SUV proportions", () => {
       bumper_height: 0.3484954343953894,
     };
     for (const [key, ratio] of Object.entries(previous)) {
+      if (baseline.pending.includes(key)) continue;
       expect(Math.abs(linear(baseline, key).ratio - ratio)).toBeLessThanOrEqual(
         0.005,
       );
     }
   });
 
-  it("measures every row positively and deterministically without mutating cubes", () => {
+  it("reports every row deterministically without mutating cubes", () => {
     expect(Object.keys(baseline.measures).sort()).toEqual([...keys].sort());
     expect(Object.keys(baseline.targets).sort()).toEqual([...keys].sort());
     expect(baseline.pending.every((key) => keys.includes(key))).toBe(true);
-    for (const row of Object.values(baseline.measures)) {
+    for (const [key, row] of Object.entries(baseline.measures)) {
+      if (baseline.pending.includes(key) && row === null) continue;
+      expect(row).not.toBeNull();
+      if (row === null) throw new Error(`Missing completed measure ${key}`);
       for (const value of Object.values(row)) {
         expect(Number.isFinite(value)).toBe(true);
         expect(value).toBeGreaterThan(0);
@@ -123,6 +141,12 @@ describe("SUV proportions", () => {
     }
     expect(baseline.repeated).toEqual(baseline.measures);
     expect(baseline.unchanged).toBe(true);
+  });
+
+  it("keeps every row without a landmark in PENDING", () => {
+    for (const [key, row] of Object.entries(baseline.measures)) {
+      if (row === null) expect(baseline.pending).toContain(key);
+    }
   });
 
   it("preserves ratios and rake under uniform scaling and reversed cube order", async () => {
@@ -134,7 +158,9 @@ describe("SUV proportions", () => {
           for (const members of Object.values(cubes)) members.reverse();
           const result = await run(cubes);
           for (const key of keys) {
-            if (key === "windshield_rake") {
+            if (baseline.measures[key] === null) {
+              expect(result.measures[key]).toBeNull();
+            } else if (key === "windshield_rake") {
               expect(result.measures[key]).toEqual(baseline.measures[key]);
             } else {
               expect(linear(result, key).ratio).toBeCloseTo(
