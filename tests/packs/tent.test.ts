@@ -108,8 +108,8 @@ const overlaps = (a: Bounds, b: Bounds) =>
   );
 const openings: Record<string, Bounds> = {
   flap_front: [-40, 0, -88.5, 40, 35, -88],
-  flap_left: [49, 9.5, -62, 53.58, 26.5, -46],
-  flap_right: [-53.58, 9.5, -62, -49, 26.5, -46],
+  flap_left: [45.1, 9.5, -62, 52.08, 26.5, -46],
+  flap_right: [-52.08, 9.5, -62, -45.1, 26.5, -46],
   flap_bedroom: [-8, 0, -51, 8, 32, -50],
 };
 describe("tent entity and client", () => {
@@ -309,7 +309,7 @@ describe("tent geometry and texture", () => {
     const rooms: Bounds[] = [
       [-34, 0, -69, 34, 44, -52],
       [-34, 0, -40, 34, 35, -10],
-      [-48, 0, -136, 48, 32, -90],
+      [-48, 0, -136, 46.5, 32, -90],
     ];
     const bones: Bone[] = geometry().bones;
     for (const bone of bones) {
@@ -348,7 +348,7 @@ describe("tent geometry and texture", () => {
         );
     }
   });
-  it("builds a low trapezoid body with distinct roof slopes, a flat ridge, and seam frames", () => {
+  it("builds a straight-sloped trapezoid body with a flat ridge and seam frames", () => {
     const fly: Cube[] = geometry().bones.find(
       (b: Bone) => b.name === "fly",
     ).cubes;
@@ -369,11 +369,33 @@ describe("tent geometry and texture", () => {
         .filter((c) => c.rotation?.[2])
         .map((c) => Math.abs(c.rotation?.[2] ?? 0)),
     );
-    expect(slopes.size).toBeGreaterThanOrEqual(2);
-    const seams = fly.filter((c) => c.uv.north?.uv[1] === 16);
-    expect(seams.length).toBeGreaterThan(80);
+    expect(slopes.size).toBe(1);
+    expect([...slopes][0]).toBeCloseTo(
+      (Math.atan2(19.2, 48) * 180) / Math.PI,
+      3,
+    );
+    const seams = body.filter((c) => c.uv.north?.uv[1] === 16);
+    for (const front of [true, false]) {
+      const endSeams = seams.filter(
+        (c) => (c.rotation?.[0] ?? 0) * (front ? -1 : 1) > 0,
+      );
+      for (let y = 0; y < 48; y += 2) {
+        const edges = endSeams.filter(
+          (c) => c.pivot?.[1] === y && c.size[0] === 1,
+        );
+        expect(edges).toHaveLength(2);
+        for (const edge of edges)
+          expect(Math.abs(edge.origin[0] + edge.size[0] / 2)).toBeCloseTo(
+            56 - (19.2 * y) / 48 - 0.5,
+            2,
+          );
+      }
+    }
+    const doorHead = seams.find((c) => c.pivot?.[1] === 35 && c.size[0] > 80);
+    expect(doorHead?.origin[0]).toBe(-42);
+    expect(doorHead?.size[0]).toBe(84);
     const cubes = (geometry().bones as Bone[]).flatMap((b) => b.cubes ?? []);
-    expect(cubes.length).toBeLessThan(400);
+    expect(cubes.length).toBeLessThan(550);
   });
   it("keeps every rotated cube inside the footprint and the entrance clear except for its flap", () => {
     for (const bone of geometry().bones as Bone[]) {
@@ -387,37 +409,78 @@ describe("tent geometry and texture", () => {
       }
     }
   });
-  it("covers the tarp with a near-horizontal roof, a slanted left screen, and two front poles", () => {
+  it("covers the tarp with a tan roof, a tapered inward left screen, and two front poles", () => {
     const bones: Bone[] = geometry().bones;
     const fly = bones.find((b) => b.name === "fly")?.cubes ?? [];
     const roof = fly.find(
       (c) => c.origin[2] === -136 && c.size[0] === 112 && c.origin[1] === 35,
     );
     expect(roof?.size).toEqual([112, 0.5, 48]);
-    const screens = fly.filter(
-      (c) => c.origin[2] === -136 && c.rotation?.[2] && c.size[2] === 48,
+    const slots = (cube: Cube) =>
+      Object.fromEntries(
+        Object.entries(cube.uv).map(([side, face]) => [
+          side,
+          face.uv[0] / 4 + face.uv[1],
+        ]),
+      );
+    expect(slots(roof as Cube)).toEqual({
+      north: 17,
+      south: 17,
+      east: 17,
+      west: 17,
+      up: 17,
+      down: 18,
+    });
+    const screens = fly.filter((c) => c.rotation?.[2] && slots(c).west === 18);
+    expect(screens.length).toBeGreaterThan(1);
+    const first = screens[0] as Cube;
+    const last = screens.at(-1) as Cube;
+    expect(first.pivot).toEqual([48, 0, -136]);
+    expect(first.size[2]).toBe(16);
+    expect(last.size[2]).toBe(48);
+    expect(bounds(last)[3]).toBeCloseTo(56, 2);
+    for (const [i, screen] of screens.entries()) {
+      expect(screen.origin[2]).toBe(-136);
+      expect(screen.rotation?.[2]).toBeGreaterThan(0);
+      expect(slots(screen)).toEqual({
+        north: 17,
+        south: 17,
+        east: 17,
+        west: 18,
+        up: 17,
+        down: 17,
+      });
+      if (i > 0) {
+        expect(screen.size[2]).toBeGreaterThan(
+          (screens[i - 1] as Cube).size[2],
+        );
+        expect(screen.pivot?.[0]).toBeGreaterThan(
+          (screens[i - 1] as Cube).pivot?.[0] ?? 0,
+        );
+      }
+    }
+    const roofSeams = fly.filter(
+      (c) => !c.rotation && c.origin[2] === -136 && c.origin[1] === 35.5,
     );
-    expect(screens).toHaveLength(1);
-    const screen = screens[0] as Cube;
-    expect(bounds(screen)[0]).toBeGreaterThan(49);
-    expect(bounds(screen)[3]).toBeCloseTo(56, 2);
-    expect(screen.rotation?.[2]).toBeLessThan(0);
+    expect(roofSeams).toHaveLength(1);
+    expect(roofSeams[0]?.origin[0]).toBe(55);
+    expect(roofSeams[0]?.size[2]).toBe(48);
     const poles = bones.find((b) => b.name === "poles")?.cubes ?? [];
     expect(poles).toHaveLength(2);
     expect(poles.map((c) => c.origin)).toEqual([
-      [54.5, 0, -136],
+      [46.5, 0, -136],
       [-56, 0, -136],
     ]);
     for (const pole of poles) expect(pole.size).toEqual([1.5, 35, 1.5]);
   });
-  it("keeps seventeen swatches in a taller atlas, including alpha-zero emissive glass", () => {
+  it("keeps nineteen swatches in a taller atlas, including alpha-zero emissive glass", () => {
     const { width, height, pixels } = readPng(
       `${RP}/textures/entity/yasu_ride/tent.png`,
     );
     expect([width, height]).toEqual([16, 32]);
     const palette = [
-      [176, 140, 98, 255],
-      [136, 104, 68, 255],
+      [154, 132, 120, 255],
+      [119, 102, 93, 255],
       [236, 234, 226, 255],
       [204, 202, 194, 255],
       [170, 174, 180, 255],
@@ -432,7 +495,9 @@ describe("tent geometry and texture", () => {
       [76, 70, 60, 255],
       [20, 20, 18, 255],
       [154, 148, 132, 255],
-      [106, 84, 59, 255],
+      [92, 79, 72, 255],
+      [176, 135, 90, 255],
+      [198, 164, 122, 255],
     ];
     for (let y = 0; y < 32; y++) {
       for (let x = 0; x < 16; x++)

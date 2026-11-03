@@ -17,9 +17,9 @@ def flaps(d: Dims):
         "flap_front": ((-w, 0, d.front_z-t, w, h, d.front_z),
                        (0, h, d.front_z-t/2), "fly", "fly"),
         "flap_left": ((x0, d.window_bottom-t, z0, x1, d.window_top+t, z1),
-                      (body.half_width(d, d.window_top), d.window_top, (z0+z1)/2), "fly", "fly"),
+                       (d.window_pivot_x, d.window_top, (z0+z1)/2), "fly", "fly"),
         "flap_right": ((-x1, d.window_bottom-t, z0, -x0, d.window_top+t, z1),
-                       (-body.half_width(d, d.window_top), d.window_top, (z0+z1)/2), "fly", "fly"),
+                       (-d.window_pivot_x, d.window_top, (z0+z1)/2), "fly", "fly"),
     }
 
 

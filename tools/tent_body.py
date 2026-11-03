@@ -1,4 +1,4 @@
-"""Build the ground tent's trapezoid panels, seam frames, and hanging fixtures."""
+"""Build straight-sloped body panels, outlined ends, and hanging fixtures."""
 import math
 from typing import Callable
 
@@ -10,9 +10,7 @@ panel = load_tool("panels").panel
 
 
 def half_width(d: Dims, y):
-    if y <= d.eave_height:
-        return d.half_width - d.eave_lean * y / d.eave_height
-    return d.half_width - d.eave_lean - (d.lean-d.eave_lean) * (y-d.eave_height) / (d.ridge_height-d.eave_height)
+    return d.half_width - d.lean * y / d.ridge_height
 
 
 def ends(d: Dims, y):
@@ -79,7 +77,22 @@ def seams(d: Dims, face):
             for start in (z0, z1-d.seam_width):
                 result.append(side_band(d, face, side, max(y0, d.shell_thickness), y1, start, start+d.seam_width,
                                         "seam", d.seam_proud))
-    for y in (d.eave_height, d.ridge_height):
+        w = half_width(d, y0)
+        for front in (True, False):
+            for x0, x1 in ((-w, -w+d.seam_width), (w-d.seam_width, w)):
+                # Clip at the jamb below the door head to preserve the clear opening.
+                if front and y0 < d.door_height:
+                    a, b = (x0, min(x1, -d.door_half_width)) if x0 < 0 else (max(x0, d.door_half_width), x1)
+                    if a < b:
+                        result.append(end_band(d, face, front, y0, min(y1, d.door_height),
+                                               a, b, "seam", d.seam_proud))
+                if not front or y1 > d.door_height:
+                    result.append(end_band(d, face, front, max(y0, d.door_height) if front else y0,
+                                           y1, x0, x1, "seam", d.seam_proud))
+    w = half_width(d, d.door_height)
+    result.append(end_band(d, face, True, d.door_height, d.door_height+d.seam_width,
+                           -w, w, "seam", d.seam_proud))
+    for y in (d.ridge_height,):
         z0, z1 = ends(d, y)
         for side in (-1, 1):
             result.append(side_band(d, face, side, y-d.seam_width, y-d.seam_proud,

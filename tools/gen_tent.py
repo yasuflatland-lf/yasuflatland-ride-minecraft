@@ -8,9 +8,10 @@ depth behind the tarp front, and layer above ground. Model pixels are
 The footprint is seven by nine cells; the body spans depths 3..8 and the tarp 0..2.
 The ridge is three layers high. The cell-laying changes belong to part 4/6 of #1222;
 this generator changes only assets, with the entrance and inner rebuild left to 6/6.
-Thin wall and roof panels use dark seam frames. The tarp has a left slanted screen,
-two front poles, and an open right side. Existing flap and fixture bones remain valid.
-The sixteen paints recolor only fly, fly_dark, and seam (ADR 0031, 0076).
+Straight body slopes meet a flat ridge; dark seams outline both ends and the door head.
+The caramel tarp has a tapered left screen with an inward front foot, two front poles,
+and an open right side. Existing flap and fixture bones remain valid. The sixteen paints
+recolor only fly, fly_dark, and seam; both tan tarp slots stay fixed (ADR 0031, 0076).
 --check compares parsed JSON and decoded pixels, independent of formatting and compression.
 """
 import argparse
@@ -43,7 +44,7 @@ def scale(color, factor):
 
 
 PALETTE = {
-    "fly": (176, 140, 98, 255), "fly_dark": (136, 104, 68, 255),
+    "fly": (154, 132, 120, 255), "fly_dark": scale((154, 132, 120), 136 / 176) + (255,),
     "inner": (236, 234, 226, 255), "inner_shade": (204, 202, 194, 255),
     "pole": (170, 174, 180, 255), "pole_dark": (120, 124, 130, 255),
     "strap": (24, 24, 24, 255), "ring": (196, 198, 202, 255),
@@ -51,14 +52,15 @@ PALETTE = {
     "mattress": (64, 86, 120, 255), "mattress_edge": (44, 60, 86, 255),
     "mesh": (32, 34, 32, 255), "mesh_frame": (76, 70, 60, 255),
     "zip": (20, 20, 18, 255), "inner_floor": (154, 148, 132, 255),
-    "seam": scale((176, 140, 98), 0.6) + (255,),
+    "seam": scale((154, 132, 120), 0.6) + (255,),
+    "tarp_top": (176, 135, 90, 255), "tarp_under": (198, 164, 122, 255),
 }
 SLOTS = list(PALETTE)
 # The fly color of each paint, in PAINTS order (src/domain/shared/paint.ts). khaki is the
-# tan-brown fly above; the others copy ACCENT_BASES in tools/gen_camper.py, since tools
+# taupe body fly above; the others copy ACCENT_BASES in tools/gen_camper.py, since tools
 # run with python3 -I and cannot import each other.
 FLY_PAINTS = {
-    "khaki": (176, 140, 98),
+    "khaki": (154, 132, 120),
     "green": (62, 96, 56),
     "red": (128, 22, 26),
     "white": (222, 222, 216),
@@ -166,7 +168,7 @@ def validate(parts):
     """Reject bounds, interior intrusions, flap bounds, and paint ownership before writing."""
     errors = []
     rooms = [(-34, 0, -69, 34, 44, -52), (-34, 0, -40, 34, 35, -10),
-             (-48, 0, -136, 48, 32, -90)]
+             (-48, 0, -136, DIMS.tarp_foot_x-DIMS.pole_thickness, 32, -90)]
     def inside(b, outer):
         return all(b[i] >= outer[i] - 0.002 and b[i+3] <= outer[i+3] + 0.002 for i in range(3))
     def overlaps(b, room):
