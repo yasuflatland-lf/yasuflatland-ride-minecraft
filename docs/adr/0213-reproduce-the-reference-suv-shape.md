@@ -98,3 +98,47 @@ The reference is a perspective render, so the targets are approximate. Wheelbase
 The rake target of 24 degrees is more upright than the current 35 degrees. Recheck front-seat head clearance when changing it, and preserve the tests even if that leaves a residual difference.
 
 Revisit these measurements when an orthographic reference becomes available, or when a row's measurement disagrees with the part built in a later PR by more than its recorded uncertainty. Pending rows remain explicit until completed or reported as residuals; acceptance still requires the owner's verification-branch checks on iPad and PC.
+
+## Notes
+
+### 2026-11-03: 6/13 (#1251), SUV massing and gameplay envelope
+
+Keep `SIZE_SCALE=1.45` and body half width 13 construction pixels, anchored to two seated players side by side. Grow `Wheels.road_radius` from 6 to 7.5: measured road wheel diameter D grows from about 12.05 to 15.05 construction pixels. Grow vertical massing and overhangs with D so the already-met rows stay met while width and track fall to their targets. The initial Context table above remains the pre-6/13 measurement record; the following values describe the rebuilt model.
+
+Re-running `tools/suv_proportions.py` through `tool_loader` on the exported closed-door model gives all seventeen measured rows below. Ratios are rounded to six decimals; rake is in degrees. All meet the unchanged 0.05 D or 3-degree tolerance.
+
+| Row                   | Measured / D |
+| --------------------- | -----------: |
+| `wheelbase`           |     3.162463 |
+| `front_overhang`      |     0.863698 |
+| `rear_overhang`       |     0.950068 |
+| `ground_clearance`    |     0.591353 |
+| `overall_height`      |     2.136043 |
+| `belt_height`         |     1.529794 |
+| `side_window_height`  |     0.539811 |
+| `hood_height`         |     1.579622 |
+| `hood_length`         |     1.740862 |
+| `windshield_rake`     |   24 degrees |
+| `front_bumper_length` |     0.290668 |
+| `rear_bumper_length`  |     0.415239 |
+| `bumper_height`       |     0.348801 |
+| `overall_length`      |     4.976228 |
+| `overall_width`       |     2.212395 |
+| `track_width`         |     1.873560 |
+| `tyre_width`          |     0.431849 |
+
+The eight 6/13 rows are now removed from `PENDING`: `wheelbase`, `front_overhang`, `overall_height`, `windshield_rake`, `overall_length`, `overall_width`, `track_width`, and `tyre_width`. Only `flare_reach`, `flare_top_height`, `hood_scoop_height`, `hood_scoop_length`, `front_bumper_reach`, `step_height`, and `step_reach` remain pending for 7-10/13; these seven still have no landmarks.
+
+The floor, dash, steering, and seat cushions rise by `DIMS.hood.interior_rise=4.75` construction pixels with the hood top, preserving their relation to the rider's estimated eye. All four rideable seats and the cow seat probe rise from 0.73 to 1.16 blocks: `round(0.73 + 4.75 * 1.45 / 16, 2)`. Seat x/z stay unchanged. The head-clearance and sealed-windshield tests are not relaxed. The owner must still confirm the horizon at the 1.16-block seat height on the iPad; the earlier observation in 0196 covered 0.73 blocks.
+
+The collision box stays square from above and 2.61 blocks wide. Its height becomes `(31.825 - 0.5) * 1.45 / 16 = 2.838828125` blocks, retaining the 0.5 construction-pixel gap below the roof slab. `carHeight=2.838828125`, `hitboxFront=1.305`, `floatDraft=2.12912109375`, and `gearProbeOffset=1.16` follow from the box. These replace 0194's height and draft for this model.
+
+Round the enclosing probes upward to `shellFront=3.10`, `shellHalfWidth=1.58`, and `footprint=3.95` blocks; these supply `SUV_SPEC.bodyFront`, `bodyHalfWidth`, and `footprint`. The fog lamp lenses reach 3.092125 blocks forward, wheel hub caps reach 1.57234375 blocks sideways, and the farthest rotated corner reaches radius 3.945698957 blocks. The shell alone reaches 3.08578125 forward and 1.50890625 sideways. `roofTop=2.884140625` blocks follows the 31.825-pixel roof slab top. All eight rotated corners of every exported cube give max |x|=2.38796875, model z=-3.092125..3.933125, and max y=2.911328125 blocks, including hidden fold assemblies in their unanimated pose.
+
+The visible roof including ribs reaches 2.911328125 blocks, 0.0725 above `carHeight`. Road-to-roof height is 2.913664437 blocks, including the lowest rotated tire corner at -0.002336312, leaving a 0.074836312-block margin. Retain the pre-growth margin below 0.075 blocks; do not enlarge it to the broader 0.30-block allowance. The roof tent mount follows `roofTop`; its ladder length follows the roof rise and its anchor and entrance follow the shell half width.
+
+Placement stays `halfX=halfZ=1` and height 3: the 3x3x3 cells still hold the collision box. The visible model can extend outside those cells. `DIVE_DEPTH=ceil(carHeight)=3` stays unchanged. The 3.95-block footprint fits the existing arena starts, pool lane, and roof tent spot; the turn scenario checks its entire footprint against the arena floor.
+
+The hardtop rib panel now uses `HARDTOP_FLAT_DENSITY=2` so its enlarged flat faces fit the atlas; rib sides retain density 4 and paint colours stay unchanged. Resource Pack manifest version rises from 0.1.248 to 0.1.249, with the matching Behavior Pack dependency (0015).
+
+Geometry and pack tests check the measured proportions, enclosing probes, collision box, seat positions, placement, roof tent, and unchanged head-clearance guard. In-game scenarios run in CI through `.github/workflows/integration-test.yml` against BDS in four serial shards and a four-lane full-suite job. This note records no local BDS run or completed CI result. Client checks, including the owner's iPad horizon and the verification-branch silhouette on iPad with Vibrant Visuals and PC, remain pending.
