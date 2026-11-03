@@ -2,7 +2,7 @@
 
 from tool_loader import load_tool
 
-globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
+DIMS = load_tool("suv_dims").DIMS
 suv_cubes = load_tool("suv_cubes")
 suv_atlas = load_tool("suv_atlas")
 box = suv_cubes.box
@@ -12,7 +12,7 @@ translate = suv_cubes.translate
 # Dials sit on the dash slab's rear face; the instrument panel behind it is
 # buried in the slab. Leave a 0.01 gap to avoid z-fighting, with the ring
 # projecting 0.35 forward of the 0.04-thick face and the hub between them.
-SLAB_FACE_Z = DASH_FACE_Z - DASH_SHIFT_Z
+SLAB_FACE_Z = DIMS.dash.face_z - DIMS.dash.shift_z
 FACE_BACK_Z = SLAB_FACE_Z - 0.01
 FACE_Z = FACE_BACK_Z - 0.04
 RING_FRONT_Z = FACE_Z - 0.35
@@ -36,6 +36,6 @@ def gauge_cluster_cubes():
     gauges += dial(6.0, 18.2, 1.0, "fuel_temp")
     gauges += dial(8.6, 18.2, 1.25, "speed")
     # The raked glass requires the cluster to sit lower inside the cabin (ADR 0170).
-    translate(gauges, 1, -DASH_GAUGE_DROP)
-    translate(gauges, 2, DASH_SHIFT_Z)
+    translate(gauges, 1, -DIMS.dash.gauge_drop)
+    translate(gauges, 2, DIMS.dash.shift_z)
     return gauges

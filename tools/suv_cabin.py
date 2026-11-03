@@ -4,7 +4,7 @@ import math
 
 from tool_loader import load_tool
 
-globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
+DIMS = load_tool("suv_dims").DIMS
 suv_cubes = load_tool("suv_cubes")
 box = suv_cubes.box
 
@@ -12,8 +12,8 @@ box = suv_cubes.box
 ASSEMBLIES = {"arc": 30}
 HUB_RADIUS = 1.0
 HUB_SEGMENTS = 16
-HUB_FRONT = WHEEL_Z - 0.65
-HUB_BACK = WHEEL_Z - 0.35
+HUB_FRONT = DIMS.steering.z - 0.65
+HUB_BACK = DIMS.steering.z - 0.35
 
 
 def pleated_seat(x0, x1, z_back):
@@ -52,7 +52,7 @@ def tilted_spin(spin):
 
     A cube applies its x rotation first and z last, so a tilted, spun block needs all three angles.
     """
-    st, ct = math.sin(math.radians(WHEEL_TILT)), math.cos(math.radians(WHEEL_TILT))
+    st, ct = math.sin(math.radians(DIMS.steering.tilt)), math.cos(math.radians(DIMS.steering.tilt))
     sz, cz = math.sin(math.radians(spin)), math.cos(math.radians(spin))
     # M = Rx(tilt) @ Rz(spin), decomposed as Rz(c) @ Ry(b) @ Rx(a)
     m00, m10 = cz, ct * sz
@@ -63,14 +63,14 @@ def tilted_spin(spin):
     return [round(math.degrees(v), 3) for v in (a, b, c)]
 
 
-def steering_part(x0, y0, x1, y1, color, z0=WHEEL_Z - 0.5, z1=WHEEL_Z + 0.3, spin=0):
+def steering_part(x0, y0, x1, y1, color, z0=DIMS.steering.z - 0.5, z1=DIMS.steering.z + 0.3, spin=0):
     cube = box(x0, y0, z0, x1, y1, z1, color)
-    cube["pivot"] = WHEEL_PIVOT
+    cube["pivot"] = DIMS.steering.pivot
     cube["rotation"] = tilted_spin(spin)
     return cube
 
 
-def small(cx, cy, w, h, color, z0=WHEEL_Z - 0.5, z1=WHEEL_Z + 0.3):
+def small(cx, cy, w, h, color, z0=DIMS.steering.z - 0.5, z1=DIMS.steering.z + 0.3):
     return steering_part(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2, color, z0, z1)
 
 
@@ -79,16 +79,16 @@ def small(cx, cy, w, h, color, z0=WHEEL_Z - 0.5, z1=WHEEL_Z + 0.3):
 # the seats (a positive x rotation tips +y toward -z in game, see WINDSHIELD_LEAN) and ends in a ball
 # knob.
 def floor_lever(x, z, height, knob, lean=15):
-    pivot = [x, FLOOR_Y, z]
+    pivot = [x, DIMS.chassis.floor_y, z]
 
     def leaned(cube):
         cube["pivot"] = pivot
         cube["rotation"] = [lean, 0, 0]
         return cube
 
-    top = FLOOR_Y + height
+    top = DIMS.chassis.floor_y + height
     return [
-        leaned(box(x - 0.2, FLOOR_Y, z - 0.2, x + 0.2, top, z + 0.2, "trim")),  # rod
+        leaned(box(x - 0.2, DIMS.chassis.floor_y, z - 0.2, x + 0.2, top, z + 0.2, "trim")),  # rod
         leaned(box(x - knob, top - knob * 0.8, z - knob * 0.8, x + knob, top + knob * 0.8, z + knob * 0.8, "grille")),
         leaned(box(x - knob * 0.8, top - knob, z - knob * 0.8, x + knob * 0.8, top + knob, z + knob * 0.8, "grille")),
         leaned(box(x - knob * 0.8, top - knob * 0.8, z - knob, x + knob * 0.8, top + knob * 0.8, z + knob, "grille")),
@@ -97,15 +97,15 @@ def floor_lever(x, z, height, knob, lean=15):
 
 # Like the tires, the rim is a ring of thin blocks turned around the column.
 def steering_cubes():
-    cx, cy = WHEEL_CENTER
+    cx, cy = DIMS.steering.center
     RIM_SEGMENTS, RIM_WIDTH = 16, 0.7
-    rim_half_chord = round(WHEEL_RADIUS * math.tan(math.radians(180 / RIM_SEGMENTS)) + 0.05, 3)
+    rim_half_chord = round(DIMS.steering.radius * math.tan(math.radians(180 / RIM_SEGMENTS)) + 0.05, 3)
     leather = suv_cubes.region_faces(
         "gauges", "leather", {face: (0, 0, 8, 8) for face in ("north", "south", "east", "west", "up", "down")}
     )
     steering = [
         steering_part(
-            cx - rim_half_chord, cy + WHEEL_RADIUS - RIM_WIDTH / 2, cx + rim_half_chord, cy + WHEEL_RADIUS + RIM_WIDTH / 2,
+            cx - rim_half_chord, cy + DIMS.steering.radius - RIM_WIDTH / 2, cx + rim_half_chord, cy + DIMS.steering.radius + RIM_WIDTH / 2,
             leather, spin=i * 360 / RIM_SEGMENTS,
         )
         for i in range(RIM_SEGMENTS)
@@ -113,7 +113,7 @@ def steering_cubes():
     hub_uv = suv_cubes.region_faces(
         "gauges", "hub", {face: (0, 0, 1, 1) for face in leather}
     )
-    hub = suv_cubes.disc("z", WHEEL_PIVOT, HUB_RADIUS / math.sqrt(2), HUB_FRONT, HUB_BACK,
+    hub = suv_cubes.disc("z", DIMS.steering.pivot, HUB_RADIUS / math.sqrt(2), HUB_FRONT, HUB_BACK,
                          [i * 90 / HUB_SEGMENTS for i in range(HUB_SEGMENTS)], hub_uv)
     for cube in hub:
         cube["rotation"] = tilted_spin(cube["rotation"][2])
@@ -128,7 +128,7 @@ def steering_cubes():
         small(cx - 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (left)
         small(cx + 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (right)
         small(cx, cy - 1.2, 0.5, 1.2, "spoke"),  # spoke (bottom)
-        small(cx, cy - 0.15, 0.8, 0.8, "grille", WHEEL_Z + 0.4, COLUMN_END_Z),  # column
+        small(cx, cy - 0.15, 0.8, 0.8, "grille", DIMS.steering.z + 0.4, DIMS.steering.column_end_z),  # column
     ]
     return steering
 
@@ -137,8 +137,8 @@ def floor_console_cubes():
     result = []
     SHIFT_X, SHIFT_Z = 0, 8.5
     SHIFT_LEAN = 22  # Keep the tall rod and knob behind the dashboard's lower edge.
-    TUNNEL_TOP_Y = FLOOR_Y + 0.6
-    result.append(box(-1.8, FLOOR_Y, 4, 1.8, TUNNEL_TOP_Y, 11, "trim"))  # transmission tunnel
+    TUNNEL_TOP_Y = DIMS.chassis.floor_y + 0.6
+    result.append(box(-1.8, DIMS.chassis.floor_y, 4, 1.8, TUNNEL_TOP_Y, 11, "trim"))  # transmission tunnel
     BOOT_RINGS = ((1.0, 0.5), (0.75, 0.4), (0.85, 0.4), (0.6, 0.4), (0.7, 0.35), (0.45, 0.4))  # (half width, height)
     for i, (half, height) in enumerate(BOOT_RINGS):
         y = TUNNEL_TOP_Y + sum(h for _, h in BOOT_RINGS[:i])
@@ -161,8 +161,8 @@ def pedal_cubes():
             box(px - 0.9, 8.2, 11.4, px + 0.9, 9.6, 11.7, "grille"),  # pad
         ]
         result += [box(px - 0.8, y, 11.3, px + 0.8, y + 0.2, 11.4, "trim") for y in (8.45, 8.8, 9.15)]  # ribs
-    accelerator = box(8.3, FLOOR_Y, 10.2, 9.3, FLOOR_Y + 0.3, 12.8, "grille")
-    accelerator["pivot"] = [8.8, FLOOR_Y, 12.8]
+    accelerator = box(8.3, DIMS.chassis.floor_y, 10.2, 9.3, DIMS.chassis.floor_y + 0.3, 12.8, "grille")
+    accelerator["pivot"] = [8.8, DIMS.chassis.floor_y, 12.8]
     accelerator["rotation"] = [-25, 0, 0]
     result.append(accelerator)
     return result

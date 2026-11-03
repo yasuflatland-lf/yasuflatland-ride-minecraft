@@ -5,12 +5,10 @@ from typing import NamedTuple
 from tool_loader import load_tool
 
 dims = load_tool("suv_dims")
-globals().update({k: v for k, v in vars(dims).items() if k.isupper()})
+DIMS = dims.DIMS
 suv_cubes = load_tool("suv_cubes")
 box = suv_cubes.box
 round_face = suv_cubes.round_face
-arch_side_z = dims.arch_side_z
-flare_face_z = dims.flare_face_z
 
 
 class LampPart(NamedTuple):
@@ -37,7 +35,7 @@ LAMP_PARTS: tuple[LampPart, ...] = (
 HEADLIGHT_CENTERS = ((10.3, 12.3), (-10.3, 12.3))
 HEADLIGHT_DIAMETER = 5.6
 HEADLIGHT_THICKNESS = 0.1
-HEADLIGHT_FRONT = FRONT + 0.65
+HEADLIGHT_FRONT = DIMS.hood.front_z + 0.65
 BEZEL_SCALE = 1.25
 BEZEL_THICKNESS = 0.05
 BEZEL_FRONT_GAP = 0.05
@@ -65,42 +63,42 @@ def headlight_lens_cubes():
 
 def fog_pocket_cubes():
     # Round fog lamps sit in black pockets on the straight face of the front bumper.
-    return [box(FOG_X - 1.3, FOG_Y - 1.05, FRONT_BUMPER_TIP_Z, FOG_X + 1.3, FOG_Y + 1.05, FRONT_BUMPER_TIP_Z + 0.05, "grille")]
+    return [box(DIMS.lamps.fog_x - 1.3, DIMS.lamps.fog_y - 1.05, DIMS.front_bumper.tip_z, DIMS.lamps.fog_x + 1.3, DIMS.lamps.fog_y + 1.05, DIMS.front_bumper.tip_z + 0.05, "grille")]
 
 
 def fog_lens_cubes():
-    return round_face((FOG_X, FOG_Y, 0), 0.8, FRONT_BUMPER_TIP_Z + 0.05, FRONT_BUMPER_TIP_Z + 0.12, "light")
+    return round_face((DIMS.lamps.fog_x, DIMS.lamps.fog_y, 0), 0.8, DIMS.front_bumper.tip_z + 0.05, DIMS.front_bumper.tip_z + 0.12, "light")
 
 
 def front_strip_cubes():
     # The strip stands a little proud of the front flare's sloping front face.
-    return [box(13.3, LAMP_Y0, flare_face_z(FRONT_AXLE_Z, 1, LAMP_Y1) - 0.2, FLARE_X - 0.2, LAMP_Y1,
-                flare_face_z(FRONT_AXLE_Z, 1, LAMP_Y0) + 0.1, "light")]
+    return [box(13.3, DIMS.lamps.y0, DIMS.arch.flare_face_z(DIMS.wheels.front_axle_z, 1, DIMS.lamps.y1) - 0.2, DIMS.flare.x - 0.2, DIMS.lamps.y1,
+                DIMS.arch.flare_face_z(DIMS.wheels.front_axle_z, 1, DIMS.lamps.y0) + 0.1, "light")]
 
 
 def turn_signal_cubes():
     # On the front flare's outer side, beside the strip
-    return [box(FLARE_X, LAMP_Y0, arch_side_z(FRONT_AXLE_Z, 1, LAMP_Y0) + 0.6, FLARE_X + 0.1, LAMP_Y1,
-                flare_face_z(FRONT_AXLE_Z, 1, LAMP_Y1) - 0.1, "amber")]
+    return [box(DIMS.flare.x, DIMS.lamps.y0, DIMS.arch.side_z(DIMS.wheels.front_axle_z, 1, DIMS.lamps.y0) + 0.6, DIMS.flare.x + 0.1, DIMS.lamps.y1,
+                DIMS.arch.flare_face_z(DIMS.wheels.front_axle_z, 1, DIMS.lamps.y1) - 0.1, "amber")]
 
 
 def third_brake_light_cubes():
     return [
-        box(-1.5, WINDOW_TOP_Y - 0.7, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR,
+        box(-1.5, DIMS.greenhouse.window_top_y - 0.7, DIMS.chassis.rear_z - 0.2, 1.5, DIMS.greenhouse.window_top_y, DIMS.chassis.rear_z,
             suv_cubes.region_faces("tail_lamp", "third_brake", {"north": (0, 0, 12, 3)})),
     ]
 
 
 def tail_light_cubes():
-    return [box(9.6, 10, REAR - 0.3, 12.6, 16, REAR,
+    return [box(9.6, 10, DIMS.chassis.rear_z - 0.3, 12.6, 16, DIMS.chassis.rear_z,
                 suv_cubes.region_faces("tail_lamp", "tail_face", {"north": (0, 0, 12, 24)}))]
 
 
 def tail_resin_cubes():
-    return [box(12.6, 10, REAR - 0.3, 13, 16, REAR, "resin")]
+    return [box(12.6, 10, DIMS.chassis.rear_z - 0.3, 13, 16, DIMS.chassis.rear_z, "resin")]
 
 
 def bumper_reflector_cubes():
     return [
-        box(REFLECTOR_X1 - 2.5, REAR_BUMPER_BOTTOM_Y + 0.8, REAR_BUMPER_TIP_Z - 0.1, REFLECTOR_X1, REAR_BUMPER_TOP_Y - 0.8, REAR_BUMPER_TIP_Z, "tail"),  # reflector
+        box(DIMS.rear_bumper.reflector_x1 - 2.5, DIMS.rear_bumper.bottom_y + 0.8, DIMS.rear_bumper.tip_z - 0.1, DIMS.rear_bumper.reflector_x1, DIMS.rear_bumper.top_y - 0.8, DIMS.rear_bumper.tip_z, "tail"),  # reflector
     ]

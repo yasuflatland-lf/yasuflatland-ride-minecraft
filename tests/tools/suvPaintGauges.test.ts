@@ -60,10 +60,10 @@ assert len(hub) == 16
 assert c.HUB_RADIUS == 1
 half = c.HUB_RADIUS / math.sqrt(2)
 for i, cube in enumerate(hub):
-    assert cube['pivot'] == c.WHEEL_PIVOT
+    assert cube['pivot'] == c.DIMS.steering.pivot
     assert cube['rotation'] == c.tilted_spin(i * 90 / 16)
     assert all(math.isclose(n, half * 2) for n in cube['size'][:2])
-    assert cube['origin'][2] < c.WHEEL_Z - 0.5
+    assert cube['origin'][2] < c.DIMS.steering.z - 0.5
     assert math.isclose(cube['origin'][2] + cube['size'][2], c.HUB_BACK)
 assert hub[0]['origin'][2] < min(cube['origin'][2] for cube in hub[1:])
 for degree in range(3600):
@@ -71,7 +71,7 @@ for degree in range(3600):
     reach = max(half / max(abs(math.cos(angle - math.radians(i * 90 / 16))),
                            abs(math.sin(angle - math.radians(i * 90 / 16)))) for i in range(16))
     assert 0.95 <= reach <= c.HUB_RADIUS + 1e-10
-    assert reach < c.WHEEL_RADIUS - 0.35
+    assert reach < c.DIMS.steering.radius - 0.35
 assert hub[0]['uv']['north'] == a.ATLAS.face(r, (0, 0), (16, 16))`);
 });
 

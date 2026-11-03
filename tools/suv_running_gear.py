@@ -4,7 +4,7 @@ import math
 
 from tool_loader import load_tool
 
-globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
+DIMS = load_tool("suv_dims").DIMS
 suv_cubes = load_tool("suv_cubes")
 box = suv_cubes.box
 disc = suv_cubes.disc
@@ -43,7 +43,7 @@ def round_tire(axis, center, radius, a0, a1, segments=16):
 
 def hub_span(x_out, inner, outer):
     """The x span from HUB_X + inner to HUB_X + outer on the side x_out (+1 = right, -1 = left), low end first."""
-    return sorted((x_out * (HUB_X + inner), x_out * (HUB_X + outer)))
+    return sorted((x_out * (DIMS.wheels.hub_x + inner), x_out * (DIMS.wheels.hub_x + outer)))
 
 
 def around_axle(center, x0, x1, r0, r1, half_width, angles, color):
@@ -70,8 +70,8 @@ def wheel(name, x_out, z_center):
     spokes, a black lip with chrome rivets, black spokes with a machined stripe down each, and a black
     hub with chrome lug nuts and a small center cap. Every turned set is symmetric under reversing its
     angles, so it looks the same whichever way the game turns x rotations. Nothing reaches past
-    HUB_X + 2.5, where the submarine prop mounts (ADR 0042)."""
-    center = (HUB_X * x_out, HUB_Y, z_center)
+    DIMS.wheels.hub_x + 2.5, where the submarine prop mounts (ADR 0042)."""
+    center = (DIMS.wheels.hub_x * x_out, DIMS.wheels.hub_y, z_center)
 
     def span(inner, outer):
         return hub_span(x_out, inner, outer)
@@ -79,9 +79,9 @@ def wheel(name, x_out, z_center):
     rivets = [i * 22.5 for i in range(16)]
     spokes = [22.5 + i * 45 for i in range(8)]
     cubes = [
-        *round_tire("x", center, ROAD_WHEEL_RADIUS, *span(-TIRE_HALF_WIDTH, TIRE_HALF_WIDTH), segments=24),
+        *round_tire("x", center, DIMS.wheels.road_radius, *span(-DIMS.wheels.tire_half_width, DIMS.wheels.tire_half_width), segments=24),
         # Shoulder lugs on every other tread block, standing out of the outer sidewall
-        *around_axle(center, *span(1.8, 2.15), ROAD_WHEEL_RADIUS - 0.9, ROAD_WHEEL_RADIUS, 0.75, [i * 30 for i in range(12)], "tire"),
+        *around_axle(center, *span(1.8, 2.15), DIMS.wheels.road_radius - 0.9, DIMS.wheels.road_radius, 0.75, [i * 30 for i in range(12)], "tire"),
         *disc("x", center, 3.6, *span(1.8, 1.85), (0, 30, 60), "trim"),  # barrel behind the spokes
         *ring(center, *span(1.85, 2.2), 3.25, 3.9, 24, "grille"),  # lip
         *around_axle(center, *span(2.2, 2.3), 3.45, 3.7, 0.12, rivets, "rim"),
@@ -103,7 +103,7 @@ PROP_BLADE = ((0.9, 2.0, 0.55, 0), (1.9, 3.3, 1.05, 14), (3.2, 4.3, 0.8, 30))
 def prop(name, x_out, z_center):
     """A hub and four swept blades mounted on the outer face of the rear wheel's hub cap, in the wheel's
     plane and inside the tire's inner radius, so the tread ring frames the prop."""
-    center = (HUB_X * x_out, HUB_Y, z_center)
+    center = (DIMS.wheels.hub_x * x_out, DIMS.wheels.hub_y, z_center)
     _, cy, cz = center
     x0, x1 = hub_span(x_out, 2.5, 3.1)
     blades = []
@@ -133,36 +133,36 @@ def arm(name, x_out, z_center):
     """A gunmetal arm from inside the wheel arch down and out to the hub of the folded wheel, built from
     overlapping cubes along the diagonal so it needs no rotation. Hidden by scale outside flight."""
     s = x_out
-    ax, ay = ARM_ROOT_X, ARM_ROOT_Y  # inside the wheel arch
+    ax, ay = DIMS.fold.arm_root_x, DIMS.fold.arm_root_y  # inside the wheel arch
     # The hub on top of the folded wheel: the last cube rests on its top face
-    hx, hy = HUB_X + FOLD_OUT, FOLDED_WHEEL_TOP_Y + ARM_THICK / 2
+    hx, hy = DIMS.wheels.hub_x + DIMS.fold.out, DIMS.fold.folded_wheel_top_y + DIMS.fold.arm_thick / 2
     steps = 8
     cubes = []
     for i in range(steps):
         t = i / (steps - 1)
         x, y = ax + t * (hx - ax), ay + t * (hy - ay)
-        cubes.append(box(s * x - 0.8, y - ARM_THICK / 2, z_center - 0.8,
-                         s * x + 0.8, y + ARM_THICK / 2, z_center + 0.8, "arm"))
+        cubes.append(box(s * x - 0.8, y - DIMS.fold.arm_thick / 2, z_center - 0.8,
+                         s * x + 0.8, y + DIMS.fold.arm_thick / 2, z_center + 0.8, "arm"))
     # The hub pin the arm holds the wheel by
-    cubes.append(box(s * hx - 1.2, FOLDED_WHEEL_TOP_Y, z_center - 1.2, s * hx + 1.2, FOLDED_WHEEL_TOP_Y + 0.6, z_center + 1.2, "arm"))
+    cubes.append(box(s * hx - 1.2, DIMS.fold.folded_wheel_top_y, z_center - 1.2, s * hx + 1.2, DIMS.fold.folded_wheel_top_y + 0.6, z_center + 1.2, "arm"))
     return {"name": name, "parent": "root", "pivot": [s * ax, ay, z_center], "cubes": cubes}
 
 
 def sub_arm(name, x_out, z_center):
     """A gunmetal arm from the body to the hub of a rear wheel turned for the submarine (ADR 0040), which
-    sits SUB_OUT px out with its axle along z. The arm lies against the tire's front face, opposite the
+    sits DIMS.fold.sub_out px out with its axle along z. The arm lies against the tire's front face, opposite the
     prop on the rear face. Before turn_around the front is +z. Hidden by scale outside the submarine."""
     s = x_out
-    hx = HUB_X + SUB_OUT
+    hx = DIMS.wheels.hub_x + DIMS.fold.sub_out
     xs = sorted((s * 11, s * (hx + 0.8)))
-    face = z_center + TIRE_HALF_WIDTH  # the tire's front face
+    face = z_center + DIMS.wheels.tire_half_width  # the tire's front face
     return {
         "name": name,
         "parent": "root",
-        "pivot": [s * BODY_HALF_WIDTH, HUB_Y, z_center],
+        "pivot": [s * DIMS.chassis.body_half_width, DIMS.wheels.hub_y, z_center],
         "cubes": [
-            box(xs[0], HUB_Y - ARM_THICK / 2, face, xs[1], HUB_Y + ARM_THICK / 2, face + 1.2, "arm"),
-            box(s * hx - 1.2, HUB_Y - 1.2, face + 1.2, s * hx + 1.2, HUB_Y + 1.2, face + 1.6, "arm"),
+            box(xs[0], DIMS.wheels.hub_y - DIMS.fold.arm_thick / 2, face, xs[1], DIMS.wheels.hub_y + DIMS.fold.arm_thick / 2, face + 1.2, "arm"),
+            box(s * hx - 1.2, DIMS.wheels.hub_y - 1.2, face + 1.2, s * hx + 1.2, DIMS.wheels.hub_y + 1.2, face + 1.6, "arm"),
         ],
     }
 
@@ -174,7 +174,7 @@ GLOW_SEGMENTS = 16
 def glow(name, x_out, z_center):
     # A disc under the folded wheel (ADR 0022, moved out with it by ADR 0043). The render controller hides
     # it while the gear is down: on the ground and under water.
-    x = (HUB_X + FOLD_OUT) * x_out
+    x = (DIMS.wheels.hub_x + DIMS.fold.out) * x_out
     return {
         "name": name,
         "parent": "root",

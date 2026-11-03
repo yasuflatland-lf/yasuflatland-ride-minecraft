@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
@@ -10,15 +10,23 @@ type Bone = { name: string; pivot: Vec; locators?: Record<string, Vec> };
 type Position = Vec | Record<string, Vec>;
 
 const script = [
-  "import contextlib, io, json, sys, tempfile",
+  "import dataclasses, json, sys",
   "sys.path.insert(0, 'tools')",
   "from tool_loader import load_tool",
-  // Loading the generator writes assets; keep them out of the repository.
-  "with tempfile.TemporaryDirectory() as output:",
-  "    sys.argv = ['gen_model.py', output]",
-  "    with contextlib.redirect_stdout(io.StringIO()):",
-  "        g = load_tool('gen_model')",
-  "    print(json.dumps({k: v for k, v in vars(g).items() if k.isupper() and isinstance(v, (int, float))}))",
+  "dims = load_tool('suv_dims')",
+  "def flat(group, prefix, out):",
+  "    for name in dir(type(group)):",
+  "        if isinstance(getattr(type(group), name), property):",
+  "            out[prefix + name] = getattr(group, name)",
+  "    for field in dataclasses.fields(group):",
+  "        value = getattr(group, field.name)",
+  "        if dataclasses.is_dataclass(value):",
+  "            continue",
+  "        out[prefix + field.name] = value",
+  "out = {'SIZE_SCALE': dims.SIZE_SCALE}",
+  "for field in dataclasses.fields(dims.DIMS):",
+  "    flat(getattr(dims.DIMS, field.name), field.name + '.', out)",
+  "print(json.dumps({k: v for k, v in out.items() if isinstance(v, (int, float))}))",
 ].join("\n");
 const d = JSON.parse(
   execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
@@ -61,9 +69,20 @@ const position = (animation: string, name: string): Position => {
 
 it("orders the SUV body heights and longitudinal landmarks consistently", () => {
   for (const names of [
-    ["SILL_Y", "FLOOR_Y", "BELT_Y", "WINDOW_TOP_Y", "ROOF_Y"],
-    ["REAR", "REAR_AXLE_Z", "FRONT_AXLE_Z", "FRONT_BUMPER_TIP_Z"],
-    ["REAR", "CARGO_FRONT", "WINDSHIELD_FOOT_Z"],
+    [
+      "chassis.sill_y",
+      "chassis.floor_y",
+      "greenhouse.belt_y",
+      "greenhouse.window_top_y",
+      "greenhouse.roof_y",
+    ],
+    [
+      "chassis.rear_z",
+      "wheels.rear_axle_z",
+      "wheels.front_axle_z",
+      "front_bumper.tip_z",
+    ],
+    ["chassis.rear_z", "chassis.cargo_front_z", "windshield.foot_z"],
   ]) {
     const ordered = names.map(dimension);
     for (let i = 1; i < ordered.length; i++) {
@@ -76,23 +95,23 @@ it("joins the shortened A-pillars to the roof without protruding above it", () =
   const body = bone("body") as GeometryBone;
   const pillars = (body.cubes ?? []).filter(
     (c) =>
-      c.rotation?.[0] === -constant("WINDSHIELD_LEAN") &&
+      c.rotation?.[0] === -constant("windshield.lean_degrees") &&
       Math.abs(c.size[0] - constant("SIZE_SCALE")) < 1e-10,
   );
   expect(pillars).toHaveLength(2);
   for (const pillar of pillars) {
     const top = Math.max(...turnedCorners(body, pillar).map((p) => p[1]));
-    expect(top).toBeCloseTo(dimension("ROOF_TOP"), 10);
-    expect(top).toBeGreaterThan(dimension("ROOF_Y"));
+    expect(top).toBeCloseTo(dimension("greenhouse.roof_top"), 10);
+    expect(top).toBeGreaterThan(dimension("greenhouse.roof_y"));
   }
 });
 
 it("keeps the steering center ahead of the front riders under the rearward cowl", () => {
   for (const seat of SUV_PROFILE.seats.positions.slice(0, 2)) {
-    expect(dimension("WHEEL_Z")).toBeGreaterThan(seat.z * 16);
+    expect(dimension("steering.z")).toBeGreaterThan(seat.z * 16);
   }
-  expect(dimension("WHEEL_Z")).toBeLessThan(dimension("DASH_FACE_Z"));
-  expect(dimension("DASH_FACE_Z")).toBeLessThan(dimension("WINDSHIELD_FOOT_Z"));
+  expect(dimension("steering.z")).toBeLessThan(dimension("dash.face_z"));
+  expect(dimension("dash.face_z")).toBeLessThan(dimension("windshield.foot_z"));
 });
 
 it("anchors wheel assemblies and hover locators to the exported axles", () => {
@@ -100,18 +119,26 @@ it("anchors wheel assemblies and hover locators to the exported axles", () => {
     // Export turns the generator's x and z axes through 180 degrees (ADR 0009).
     const side = corner.endsWith("l") ? 1 : -1;
     const z = -dimension(
-      corner.startsWith("f") ? "FRONT_AXLE_Z" : "REAR_AXLE_Z",
+      corner.startsWith("f") ? "wheels.front_axle_z" : "wheels.rear_axle_z",
     );
-    const hub: Vec = [side * dimension("HUB_X"), dimension("HUB_Y"), z];
+    const hub: Vec = [
+      side * dimension("wheels.hub_x"),
+      dimension("wheels.hub_y"),
+      z,
+    ];
     expect(bone(`wheel_${corner}`).pivot).toEqual(hub);
     expect(bone(`arm_${corner}`).pivot).toEqual([
-      side * dimension("ARM_ROOT_X"),
-      dimension("ARM_ROOT_Y"),
+      side * dimension("fold.arm_root_x"),
+      dimension("fold.arm_root_y"),
       z,
     ]);
     const glow = bone(`glow_${corner}`);
     expect(glow.pivot).toEqual([
-      Number((side * (dimension("HUB_X") + dimension("FOLD_OUT"))).toFixed(12)),
+      Number(
+        (side * (dimension("wheels.hub_x") + dimension("fold.out"))).toFixed(
+          12,
+        ),
+      ),
       0,
       z,
     ]);
@@ -123,8 +150,8 @@ it("anchors wheel assemblies and hover locators to the exported axles", () => {
     if (corner.startsWith("r")) {
       expect(bone(`prop_${corner}`).pivot).toEqual(hub);
       expect(bone(`sub_arm_${corner}`).pivot).toEqual([
-        side * dimension("BODY_HALF_WIDTH"),
-        dimension("HUB_Y"),
+        side * dimension("chassis.body_half_width"),
+        dimension("wheels.hub_y"),
         z,
       ]);
     }
@@ -136,8 +163,8 @@ it("keeps hover and submarine animation offsets aligned with their assemblies", 
     const name = `wheel_${corner}`;
     const side = corner.endsWith("l") ? 1 : -1;
     const folded: Vec = [
-      side * dimension("FOLD_OUT"),
-      -dimension("FOLD_DROP"),
+      side * dimension("fold.out"),
+      -dimension("fold.drop"),
       0,
     ];
     expect(position("wheels_folded", name)).toEqual(folded);
@@ -152,11 +179,11 @@ it("keeps hover and submarine animation offsets aligned with their assemblies", 
     const hub = bone(name).pivot;
     const glow = bone(`glow_${corner}`).pivot;
     expect(hub[0] + folded[0]).toBeCloseTo(glow[0], 10);
-    expect(hub[1] + folded[1] + dimension("TIRE_HALF_WIDTH")).toBeCloseTo(
-      dimension("FOLDED_WHEEL_TOP_Y"),
-    );
+    expect(
+      hub[1] + folded[1] + dimension("wheels.tire_half_width"),
+    ).toBeCloseTo(dimension("fold.folded_wheel_top_y"));
     if (corner.startsWith("r")) {
-      const submerged: Vec = [side * dimension("SUB_OUT"), 0, 0];
+      const submerged: Vec = [side * dimension("fold.sub_out"), 0, 0];
       for (const member of [name, `prop_${corner}`]) {
         expect(position("submerged", member)).toEqual(submerged);
         expect(position("dive", member)).toEqual({
@@ -203,7 +230,7 @@ it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)"
   ].seats.entries()) {
     expect(Math.abs(position[0])).toBeCloseTo(0.38 * scale, 12);
     expect(position[1]).toBe(0.73);
-    const seatZ = constant(index < 2 ? "FRONT_SEAT_Z" : "REAR_SEAT_Z");
+    const seatZ = constant(index < 2 ? "seats.front_z" : "seats.rear_z");
     expect(position[2]).toBeCloseTo(((seatZ + 5.2) * scale) / 16, 12);
   }
   const clearance = SUV_PROFILE.placement.clearance;
@@ -211,4 +238,19 @@ it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)"
   const depth = Math.ceil(SUV_SPEC.carHeight);
   expect(depth).toBe(3);
   expect(-60 - depth - 1).toBeGreaterThanOrEqual(-64);
+});
+
+it("shares the game body half width with the dimension envelope", () => {
+  expect(constant("envelope.half_width_blocks")).toBe(SUV_SPEC.bodyHalfWidth);
+});
+
+it("reads the SUV dimensions explicitly instead of through globals().update", () => {
+  const offenders = readdirSync("tools")
+    .filter((file) => file.endsWith(".py"))
+    .filter((file) =>
+      /globals\(\)\.update\([^\n]*suv_dims/.test(
+        readFileSync(`tools/${file}`, "utf8"),
+      ),
+    );
+  expect(offenders).toEqual([]);
 });
