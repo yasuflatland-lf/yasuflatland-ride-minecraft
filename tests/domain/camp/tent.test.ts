@@ -15,7 +15,6 @@ import {
   TENT_FLAPS,
   TENT_MATTRESSES,
   type TentFace,
-  type TentLocalCell,
   type TentPose,
   type TentState,
   type TentYaw,
@@ -29,6 +28,10 @@ import {
   tentGroundCells,
   tentPose,
 } from "../../../src/domain/camp/tent";
+import {
+  TRAPEZOID_LAYOUT,
+  tentShellAt,
+} from "../../../src/domain/camp/tentLayout";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import { dot, forward, normalizeYaw } from "../../../src/domain/shared/vec";
@@ -46,25 +49,6 @@ const arbPose: fc.Arbitrary<TentPose> = fc.record({
 
 const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
-
-/** Every local cell of the clear space, keyed by its world cell. */
-function locals(pose: TentPose): Map<string, TentLocalCell> {
-  const map = new Map<string, TentLocalCell>();
-  for (const x of range(-3, 3))
-    for (const depth of range(0, 11))
-      for (const layer of range(-1, 4)) {
-        const local = { x, depth, layer };
-        map.set(cellKey(tentCellAt(pose, local)), local);
-      }
-  return map;
-}
-
-const FACE_STEP: Record<TentFace, { x: number; z: number }> = {
-  0: { x: 0, z: -1 },
-  1: { x: 0, z: 1 },
-  2: { x: -1, z: 0 },
-  3: { x: 1, z: 0 },
-};
 
 // A quarter turn of the yaw turns the world offsets (a, b) into (-b, a).
 const turned = (pose: TentPose, c: Cell): Cell => ({
@@ -100,61 +84,104 @@ describe("tentPose (ADR 0131)", () => {
 });
 
 describe("tentCells (ADR 0130, 0131)", () => {
-  it("lays 141 unique cells in the footprint: 79 walls, 8 flap cells, 34 room and 15 tarp ceiling cells, the lantern, and 4 mattress cells", () => {
+  it("lays unique cells inside the clear box at every yaw and state", () => {
     fc.assert(
-      fc.property(arbPose, (pose) => {
-        const cells = tentCells(pose, PITCHED_STATE);
-        expect(cells).toHaveLength(141);
-        const walls = cells.filter((c) => c.block.type === "wall");
-        const flaps = cells.filter((c) => c.block.type === "flap");
-        const ceilings = cells.filter((c) => c.block.type === "ceiling");
-        expect(walls).toHaveLength(79);
-        expect(new Set(flaps.map(cellKey))).toEqual(
-          new Set(
-            Object.values(TENT_FLAPS)
-              .flat()
-              .map((c) => cellKey(tentCellAt(pose, c))),
-          ),
-        );
-        expect(ceilings).toHaveLength(49);
-        expect(cells.filter((c) => c.block.type === "lantern")).toHaveLength(1);
-        expect(ceilings.filter((c) => c.y === pose.y + 3)).toHaveLength(34);
-        expect(ceilings.filter((c) => c.y === pose.y + 2)).toHaveLength(15);
-        expect(cells.filter((c) => c.block.type === "mattress")).toHaveLength(
-          4,
-        );
-        expect(new Set(cells.map(cellKey)).size).toBe(141);
-        for (const c of cells) expect(inTentFootprint(pose, c)).toBe(true);
+      fc.property(arbPose, arbState, (pose, state) => {
+        const cells = tentCells(pose, state);
+        const clear = new Set(tentClearCells(pose).map(cellKey));
+        expect(new Set(cells.map(cellKey)).size).toBe(cells.length);
+        for (const cell of cells) {
+          expect(clear.has(cellKey(cell))).toBe(true);
+          expect(inTentFootprint(pose, cell)).toBe(true);
+        }
       }),
     );
   });
 
-  it("turns every wall plate toward an open room cell", () => {
+  it("keeps laid centres inside the shell and outer plates within half a block of its edge", () => {
+    fc.assert(
+      fc.property(arbState, (state) => {
+        const pose: TentPose = { x: 0, y: 0, z: 0, yaw: 0 };
+        const localCells = [
+          ...TRAPEZOID_LAYOUT.walls.map(({ cell }) => cell),
+          ...TRAPEZOID_LAYOUT.ceilings,
+          ...TENT_MATTRESSES.flat(),
+        ];
+        expect(tentCells(pose, state)).toHaveLength(localCells.length);
+        for (const cell of localCells) {
+          const shell = tentShellAt(cell.layer + 0.5);
+          const depth = cell.depth + 0.5;
+          const body =
+            Math.abs(cell.x) <= shell.halfWidth &&
+            depth >= shell.front &&
+            depth <= shell.rear &&
+            cell.layer + 0.5 <= shell.top;
+          const tarp =
+            Math.abs(cell.x) <= shell.tarpHalfWidth &&
+            depth >= 0 &&
+            depth <= shell.front &&
+            cell.layer + 0.5 <= shell.tarpTop;
+          expect(body || tarp, JSON.stringify(cell)).toBe(true);
+        }
+        const inner = defined(TENT_FLAPS.bedroom[0], "bedroom flap").depth;
+        for (const { cell, face } of TRAPEZOID_LAYOUT.walls) {
+          if (cell.depth === inner && face === 1) continue;
+          const shell = tentShellAt(cell.layer + 0.5);
+          const distance =
+            face >= 2
+              ? shell.halfWidth - Math.abs(cell.x)
+              : face === 0
+                ? cell.depth + 0.5 - shell.front
+                : shell.rear - cell.depth - 0.5;
+          // The cell centre is inside, and its outer face is at most 0.5 from the shell.
+          expect(distance).toBeGreaterThanOrEqual(0);
+          expect(distance).toBeLessThanOrEqual(1);
+        }
+        for (const cell of TRAPEZOID_LAYOUT.ceilings) {
+          const shell = tentShellAt(cell.layer + 0.5);
+          const top =
+            cell.layer === TENT_SPEC.tarpHeadroom ? shell.tarpTop : shell.top;
+          expect(top - cell.layer - 0.5).toBe(0.5);
+        }
+      }),
+    );
+  });
+
+  it("replaces only wall cells with flaps at any pose", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
-        const byKey = new Map(
-          tentCells(pose, PITCHED_STATE).map((c) => [cellKey(c), c]),
+        const walls = new Set(
+          TRAPEZOID_LAYOUT.walls.map(({ cell }) =>
+            cellKey(tentCellAt(pose, cell)),
+          ),
         );
-        const local = locals(pose);
-        for (const c of byKey.values()) {
-          if (c.block.type !== "wall") continue;
-          const step = FACE_STEP[c.block.face];
-          const n = { x: c.x + step.x, y: c.y, z: c.z + step.z };
-          expect(insideTent(pose, { x: n.x + 0.5, y: n.y, z: n.z + 0.5 })).toBe(
-            true,
-          );
-          const there = byKey.get(cellKey(n))?.block;
-          expect(there?.type).not.toBe("ceiling");
-          if (there?.type === "wall") {
-            const l = defined(local.get(cellKey(n)), "neighbor");
-            expect([Math.abs(l.x), l.depth]).toEqual([2, 8]);
-          }
-          // The rear wall's plates at x ±1 face the mattresses' depth-10 cells.
-          if (there?.type === "mattress") {
-            const l = defined(local.get(cellKey(n)), "neighbor");
-            expect([Math.abs(l.x), l.depth, l.layer]).toEqual([1, 10, 0]);
-          }
-        }
+        for (const id of FLAP_IDS)
+          for (const cell of flapCells(pose, id))
+            expect(walls.has(cellKey(cell))).toBe(true);
+      }),
+    );
+  });
+
+  it("covers every room column and the open entrance with a ceiling above its top", () => {
+    fc.assert(
+      fc.property(arbPose, arbState, (pose, state) => {
+        const roofs = tentCells(pose, state).filter(
+          ({ block }) => block.type === "ceiling" || block.type === "lantern",
+        );
+        const roomCells = tentClearCells(pose).filter((cell) =>
+          insideTent(pose, {
+            x: cell.x + 0.5,
+            y: cell.y + 0.5,
+            z: cell.z + 0.5,
+          }),
+        );
+        for (const cell of [...roomCells, ...flapCells(pose, "front")])
+          expect(
+            roofs.some(
+              (roof) =>
+                roof.x === cell.x && roof.z === cell.z && roof.y > cell.y,
+            ),
+          ).toBe(true);
       }),
     );
   });
@@ -180,20 +207,18 @@ describe("tentCells (ADR 0130, 0131)", () => {
     );
   });
 
-  it("puts the 180-yaw test tent where the in-game tests expect it", () => {
+  it("pins the trapezoid footprint, stepped walls, entrance and anchor", () => {
+    expect(TRAPEZOID_LAYOUT.clear).toEqual({
+      halfWidth: 3,
+      depth: 9,
+      layers: 4,
+    });
+    expect(TRAPEZOID_LAYOUT.anchor).toEqual({ x: 0, depth: 8, layer: 0 });
+    expect(TRAPEZOID_LAYOUT.lantern).toEqual({ x: 0, depth: 4, layer: 3 });
+    expect(TENT_FLAPS.front).toHaveLength(6);
     const pose = tentPose({ x: 110, y: -61, z: 46 }, 0);
-    expect(pose).toEqual({ x: 110, y: -60, z: 46, yaw: 180 });
-    expect(tentEntityLocation(pose)).toEqual({ x: 110.5, y: -60, z: 57.5 });
-    expect(tentBlockAt(pose, { x: 110, y: -60, z: 49 })).toEqual({
-      type: "flap",
-      id: "front",
-      open: false,
-    });
-    expect(tentBlockAt(pose, { x: 111, y: -60, z: 49 })).toEqual({
-      type: "wall",
-      face: 1,
-    });
-    expect(tentBlockAt(pose, { x: 113, y: -60, z: 50 })?.type).toBe("wall");
+    expect(tentEntityLocation(pose)).toEqual({ x: 110.5, y: -60, z: 54.5 });
+    expect(tentCells(pose, PITCHED_STATE)).toHaveLength(107);
   });
 });
 
@@ -230,11 +255,15 @@ describe("the lantern cell", () => {
     );
   });
 
-  it("sits at local x 0, depth 7, layer 3", () => {
+  it("sits one cell in front of the bedroom wall at the body ceiling", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         expect(lanternCell(pose)).toEqual(
-          tentCellAt(pose, { x: 0, depth: 7, layer: 3 }),
+          tentCellAt(pose, {
+            x: 0,
+            depth: defined(TENT_FLAPS.bedroom[0], "bedroom flap").depth - 1,
+            layer: TENT_SPEC.frontRoomHeadroom,
+          }),
         );
       }),
     );
@@ -258,14 +287,19 @@ describe("the lantern cell", () => {
     );
   });
 
-  it("takes no interior cell: the cell below it is not laid", () => {
+  it("takes no room cell: the standing space under it stays free", () => {
     fc.assert(
       fc.property(arbPose, arbState, (pose, state) => {
         const l = lanternCell(pose);
-        const below = cellKey({ x: l.x, y: l.y - 1, z: l.z });
+        const standing = { x: l.x, y: pose.y + 1, z: l.z };
+        const below = cellKey(standing);
         expect(tentCells(pose, state).map(cellKey)).not.toContain(below);
         expect(
-          insideTent(pose, { x: l.x + 0.5, y: l.y - 1, z: l.z + 0.5 }),
+          insideTent(pose, {
+            x: standing.x + 0.5,
+            y: standing.y,
+            z: standing.z + 0.5,
+          }),
         ).toBe(true);
       }),
     );
@@ -311,21 +345,28 @@ describe("tentBlockAt (ADR 0131)", () => {
 });
 
 describe("clear and ground cells (ADR 0131)", () => {
-  it("covers 336 clear cells over 84 ground cells, and the footprint box holds exactly them", () => {
+  it("covers the specified clear and ground cells, and the footprint box holds exactly them", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         const clear = tentClearCells(pose);
         const ground = tentGroundCells(pose);
-        expect(new Set(clear.map(cellKey)).size).toBe(336);
-        expect(new Set(ground.map(cellKey)).size).toBe(84);
+        expect(new Set(clear.map(cellKey)).size).toBe(
+          TENT_SPEC.width * TENT_SPEC.depth * (TENT_SPEC.frontRoomHeadroom + 1),
+        );
+        expect(new Set(ground.map(cellKey)).size).toBe(
+          TENT_SPEC.width * TENT_SPEC.depth,
+        );
         ground.forEach((g, i) => {
-          const base = defined(clear[i * 4], "column base");
+          const base = defined(
+            clear[i * (TENT_SPEC.frontRoomHeadroom + 1)],
+            "column base",
+          );
           expect(g).toEqual({ ...base, y: pose.y - 1 });
         });
         const { min, size } = tentFootprintBox(pose);
         expect([
-          [7, 4, 12],
-          [12, 4, 7],
+          [TENT_SPEC.width, TENT_SPEC.frontRoomHeadroom + 1, TENT_SPEC.depth],
+          [TENT_SPEC.depth, TENT_SPEC.frontRoomHeadroom + 1, TENT_SPEC.width],
         ]).toContainEqual([size.x, size.y, size.z]);
         const keys = new Set(clear.map(cellKey));
         for (let x = min.x - 1; x <= min.x + size.x; x++)
@@ -350,28 +391,39 @@ describe("clear and ground cells (ADR 0131)", () => {
 describe("insideTent (ADR 0131)", () => {
   const frac = fc.double({ min: 0, max: 0.999, noNaN: true });
 
-  it("holds in both rooms and the inner wall, and not in the outer walls, under the tarp, on the roof, or outside", () => {
+  it("holds exactly in sheltered tarp columns and the stepped body interior, including the inner wall", () => {
     fc.assert(
-      fc.property(
-        arbPose,
-        fc.integer({ min: -4, max: 4 }),
-        fc.integer({ min: -1, max: 12 }),
-        fc.integer({ min: -1, max: 4 }),
-        frac,
-        frac,
-        frac,
-        (pose, x, depth, layer, fx, fy, fz) => {
-          const c = tentCellAt(pose, { x, depth, layer });
-          const feet = { x: c.x + fx, y: c.y + fy, z: c.z + fz };
-          const inside =
-            Math.abs(x) <= 2 &&
-            depth >= 4 &&
-            depth <= 10 &&
-            layer >= 0 &&
-            layer <= 2;
-          expect(insideTent(pose, feet)).toBe(inside);
-        },
-      ),
+      fc.property(arbPose, frac, frac, frac, (pose, fx, fy, fz) => {
+        const halfWidth = (TENT_SPEC.width - 1) / 2;
+        const bodyFront = tentShellAt(0).front;
+        for (const x of range(-halfWidth - 1, halfWidth + 1))
+          for (const depth of range(-1, TENT_SPEC.depth))
+            for (const layer of range(-1, TENT_SPEC.frontRoomHeadroom + 1)) {
+              const cell = tentCellAt(pose, { x, depth, layer });
+              const shell = tentShellAt(layer + 0.5);
+              const lower = layer >= 0;
+              const tarp =
+                lower &&
+                layer < TENT_SPEC.tarpHeadroom &&
+                depth >= 0 &&
+                depth < bodyFront &&
+                Math.abs(x) < halfWidth;
+              const body =
+                lower &&
+                layer < TENT_SPEC.frontRoomHeadroom &&
+                Math.abs(x) < Math.floor(shell.halfWidth) &&
+                depth > Math.ceil(shell.front - 0.5) &&
+                depth < Math.floor(shell.rear - 0.5);
+              expect(
+                insideTent(pose, {
+                  x: cell.x + fx,
+                  y: cell.y + fy,
+                  z: cell.z + fz,
+                }),
+                JSON.stringify({ x, depth, layer }),
+              ).toBe(tarp || body);
+            }
+      }),
     );
   });
 });
@@ -425,7 +477,11 @@ describe("tentEntityLocation (ADR 0130)", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         const at = tentEntityLocation(pose);
-        const cell = tentCellAt(pose, { x: 0, depth: 11, layer: 0 });
+        const cell = tentCellAt(pose, {
+          x: 0,
+          depth: TENT_SPEC.depth - 1,
+          layer: 0,
+        });
         expect({
           x: Math.floor(at.x),
           y: Math.floor(at.y),
@@ -440,14 +496,16 @@ describe("tentEntityLocation (ADR 0130)", () => {
 });
 
 describe("flaps and mattresses (ADR 0130)", () => {
-  it("lays four disjoint two-cell flaps as closed flap cells", () => {
+  it("lays four disjoint two-layer flaps as closed flap cells", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         const all = Object.values(TENT_FLAPS).flat();
         for (const flap of Object.values(TENT_FLAPS))
-          expect(flap).toHaveLength(2);
+          expect(new Set(flap.map(({ layer }) => layer))).toEqual(
+            new Set([0, 1]),
+          );
         const keys = all.map((c) => cellKey(tentCellAt(pose, c)));
-        expect(new Set(keys).size).toBe(8);
+        expect(new Set(keys).size).toBe(all.length);
         for (const [id, flap] of Object.entries(TENT_FLAPS))
           for (const c of flap)
             expect(tentBlockAt(pose, tentCellAt(pose, c))).toEqual({
@@ -468,6 +526,11 @@ describe("flaps and mattresses (ADR 0130)", () => {
           for (const local of mattress) {
             const c = tentCellAt(pose, local);
             expect(tentBlockAt(pose, c)).toEqual({ type: "mattress", index });
+            expect(local.depth).toBeGreaterThan(
+              defined(TENT_FLAPS.bedroom[0], "bedroom flap").depth,
+            );
+            expect(local.depth).toBeLessThan(TENT_SPEC.depth - 1);
+            expect(local.x).not.toBe(0);
             expect(
               insideTent(pose, { x: c.x + 0.5, y: c.y, z: c.z + 0.5 }),
             ).toBe(true);
@@ -557,14 +620,17 @@ describe("mattresses (ADR 0092, 0133)", () => {
         for (const mattress of TENT_MATTRESSES) {
           const [a, b] = mattress.map((l) => tentCellAt(pose, l));
           const [la, lb] = mattress;
-          const ca = defined(a, "depth 9");
-          const cb = defined(b, "depth 10");
+          const ca = defined(a, "mattress front");
+          const cb = defined(b, "mattress rear");
           expect(ca.y).toBe(cb.y);
           expect(Math.abs(ca.x - cb.x) + Math.abs(ca.z - cb.z)).toBe(1);
-          expect(defined(la, "depth 9").x).toBe(defined(lb, "depth 10").x);
+          expect(defined(la, "mattress front").x).toBe(
+            defined(lb, "mattress rear").x,
+          );
           expect(
             Math.abs(
-              defined(la, "depth 9").depth - defined(lb, "depth 10").depth,
+              defined(la, "mattress front").depth -
+                defined(lb, "mattress rear").depth,
             ),
           ).toBe(1);
         }
@@ -648,17 +714,21 @@ describe("planPitch (ADR 0131)", () => {
     fc.array(fc.tuple(fc.nat({ max: length - 1 }), value), { maxLength: 4 });
   const arbSurvey: fc.Arbitrary<PitchSurvey> = fc
     .record({
-      clear: edits(clearType, 336),
-      ground: edits(groundReading, 84),
+      clear: edits(clearType, tentClearCells(pose).length),
+      ground: edits(groundReading, tentGroundCells(pose).length),
       vehicleSpace: fc.boolean(),
       campSpace: fc.boolean(),
       occupants: fc.oneof(fc.constant(0), fc.integer({ min: 1, max: 3 })),
       tents: fc.integer({ min: 0, max: TENT_SPEC.maxTents + 1 }),
     })
     .map((r) => {
-      const clear: (string | undefined)[] = Array(336).fill(AIR);
+      const clear: (string | undefined)[] = Array(
+        tentClearCells(pose).length,
+      ).fill(AIR);
       for (const [i, v] of r.clear) clear[i] = v;
-      const ground: (GroundReading | undefined)[] = Array(84).fill(STONE);
+      const ground: (GroundReading | undefined)[] = Array(
+        tentGroundCells(pose).length,
+      ).fill(STONE);
       for (const [i, v] of r.ground) ground[i] = v;
       return { ...r, clear, ground };
     });

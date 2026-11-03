@@ -43,6 +43,8 @@ export interface TentLayout {
 export interface TentLayoutSpec extends Omit<TentLayout, "walls" | "ceilings"> {
   /** Outer side-wall x at each layer; cross-walls exclude the corner columns. */
   readonly wallHalfWidths: readonly number[];
+  /** Front/rear cross-walls step inward by this many cells at each layer; omitted layers use zero. */
+  readonly crossWallInsets?: readonly number[];
   readonly depths: {
     readonly front: number;
     readonly inner: number;
@@ -94,17 +96,37 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
   )
     throw new Error("Invalid tent layout dimensions");
 
+  const insets = spec.crossWallInsets ?? [];
+  if (
+    insets.length > wallHalfWidths.length ||
+    insets.some(
+      (inset) =>
+        !Number.isInteger(inset) ||
+        inset < 0 ||
+        depths.front + inset >= depths.inner ||
+        depths.rear - inset <= depths.inner,
+    )
+  )
+    throw new Error("Invalid tent cross-wall insets");
+
   const walls: { cell: TentLocalCell; face: TentFace }[] = [];
-  const crossWall = (depth: number, face: TentFace) => {
+  const crossWall = (depth: number, face: TentFace, insetDirection = 0) => {
     const halfWidth = Math.max(...wallHalfWidths) - 1;
     for (let x = -halfWidth; x <= halfWidth; x++)
       wallHalfWidths.forEach((width, layer) => {
         if (Math.abs(x) < width)
-          walls.push({ cell: { x, depth, layer }, face });
+          walls.push({
+            cell: {
+              x,
+              depth: depth + insetDirection * (insets[layer] ?? 0),
+              layer,
+            },
+            face,
+          });
       });
   };
   // Preserve the saved-cell order: front, left side, right side, inner, rear.
-  crossWall(depths.front, 0);
+  crossWall(depths.front, 0, 1);
   for (const side of [1, -1])
     for (let depth = depths.front + 1; depth < depths.rear; depth++)
       wallHalfWidths.forEach((width, layer) => {
@@ -114,7 +136,7 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
         });
       });
   crossWall(depths.inner, 1);
-  crossWall(depths.rear, 1);
+  crossWall(depths.rear, 1, -1);
 
   const ceilings: TentLocalCell[] = [];
   for (const strip of spec.ceilings) {
@@ -165,7 +187,10 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
     throw new Error("Tent mattress cell must be inside a room");
   if (!ceilings.some((cell) => key(cell) === key(spec.lantern)))
     throw new Error("Tent lantern cell must be a ceiling cell");
-  if (spec.anchor.depth !== depths.rear || !wallKeys.has(key(spec.anchor)))
+  if (
+    spec.anchor.depth !== depths.rear - (insets[spec.anchor.layer] ?? 0) ||
+    !wallKeys.has(key(spec.anchor))
+  )
     throw new Error("Tent anchor must be a rear wall cell");
 
   return Object.freeze({
@@ -192,15 +217,61 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
   });
 }
 
+// The body starts after the three-column tarp; the bedroom needs two columns.
+const TARP_DEPTH = 3;
+const BEDROOM_DEPTH = 2;
+const FLAP_HEIGHT = 2;
+const ENTRANCE_HALF_WIDTH = 1;
+const MATTRESS_X = 1;
 const halfWidth = (TENT_SPEC.width - 1) / 2;
 const roomHalfWidth = halfWidth - 1;
-const front = 3;
-const inner = 8;
+const front = TARP_DEPTH;
 const rear = TENT_SPEC.depth - 1;
+const inner = rear - BEDROOM_DEPTH - 1;
 const wallLayers = TENT_SPEC.frontRoomHeadroom;
 
-export const TUNNEL_LAYOUT: TentLayout = buildLayout({
-  wallHalfWidths: Array.from({ length: wallLayers }, () => halfWidth),
+/** Horizontal shell surfaces at a height above ground (ADR 0209). The tarp meets the inclined front face. */
+export function tentShellAt(height: number): {
+  halfWidth: number;
+  front: number;
+  rear: number;
+  top: number;
+  tarpHalfWidth: number;
+  tarpTop: number;
+} {
+  const top = wallLayers + 1;
+  const inset = (TENT_SPEC.lean * height) / top;
+  return {
+    halfWidth: TENT_SPEC.width / 2 - inset,
+    front: front + inset,
+    rear: TENT_SPEC.depth - inset,
+    top,
+    tarpHalfWidth: TENT_SPEC.width / 2,
+    tarpTop: TENT_SPEC.tarpHeadroom + 1,
+  };
+}
+
+const wallHalfWidths = Array.from({ length: wallLayers }, (_, layer) =>
+  Math.floor(tentShellAt(layer + 0.5).halfWidth),
+);
+const crossWallInsets = Array.from(
+  { length: wallLayers },
+  (_, layer) => Math.ceil(tentShellAt(layer + 0.5).front - 0.5) - front,
+);
+const flap = (x: number, depth: number): TentLocalCell[] =>
+  Array.from({ length: FLAP_HEIGHT }, (_, layer) => ({ x, depth, layer }));
+const mattress = (x: number): TentLocalCell[] =>
+  Array.from({ length: BEDROOM_DEPTH }, (_, offset) => ({
+    x,
+    depth: inner + 1 + offset,
+    layer: 0,
+  }));
+const upperInset = crossWallInsets[wallLayers - 1] ?? 0;
+const upperHalfWidth = wallHalfWidths[wallLayers - 1] ?? roomHalfWidth;
+
+export const TRAPEZOID_LAYOUT: TentLayout = buildLayout({
+  wallHalfWidths,
+  crossWallInsets,
   depths: { front, inner, rear },
   ceilings: [
     {
@@ -212,47 +283,40 @@ export const TUNNEL_LAYOUT: TentLayout = buildLayout({
     {
       halfWidth: roomHalfWidth,
       depthFrom: 0,
-      depthTo: front - 1,
+      // Bridge the stepped front wall so the open entrance cannot lead onto the roof.
+      depthTo: front,
       layer: TENT_SPEC.tarpHeadroom,
     },
   ],
   flaps: {
-    front: [
-      { x: 0, depth: front, layer: 0 },
-      { x: 0, depth: front, layer: 1 },
-    ],
-    left: [
-      { x: halfWidth, depth: 6, layer: 0 },
-      { x: halfWidth, depth: 6, layer: 1 },
-    ],
-    right: [
-      { x: -halfWidth, depth: 6, layer: 0 },
-      { x: -halfWidth, depth: 6, layer: 1 },
-    ],
-    bedroom: [
-      { x: 0, depth: inner, layer: 0 },
-      { x: 0, depth: inner, layer: 1 },
-    ],
+    front: Array.from({ length: ENTRANCE_HALF_WIDTH * 2 + 1 }, (_, offset) =>
+      flap(offset - ENTRANCE_HALF_WIDTH, front),
+    ).flat(),
+    left: flap(halfWidth, inner - 1),
+    right: flap(-halfWidth, inner - 1),
+    bedroom: flap(0, inner),
   },
-  mattresses: [
-    [
-      { x: 1, depth: 9, layer: 0 },
-      { x: 1, depth: 10, layer: 0 },
-    ],
-    [
-      { x: -1, depth: 9, layer: 0 },
-      { x: -1, depth: 10, layer: 0 },
-    ],
-  ],
-  // The ceiling cell over the lantern bone, in front of the bedroom door.
+  mattresses: [mattress(MATTRESS_X), mattress(-MATTRESS_X)],
   lantern: { x: 0, depth: inner - 1, layer: wallLayers },
   clear: { halfWidth, depth: TENT_SPEC.depth, layers: wallLayers + 1 },
-  // The inner wall counts as inside, including the bedroom doorway.
+  // Outer walls stay outside; the inner wall and its doorway count as inside.
   rooms: [
+    {
+      halfWidth: roomHalfWidth,
+      depthFrom: 0,
+      depthTo: front - 1,
+      layerTo: TENT_SPEC.tarpHeadroom - 1,
+    },
     {
       halfWidth: roomHalfWidth,
       depthFrom: front + 1,
       depthTo: rear - 1,
+      layerTo: TENT_SPEC.tarpHeadroom - 1,
+    },
+    {
+      halfWidth: upperHalfWidth - 1,
+      depthFrom: front + upperInset + 1,
+      depthTo: rear - upperInset - 1,
       layerTo: wallLayers - 1,
     },
   ],

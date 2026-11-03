@@ -16,7 +16,7 @@ import {
   type TentFace,
   type TentLayout,
   type TentLocalCell,
-  TUNNEL_LAYOUT,
+  TRAPEZOID_LAYOUT,
 } from "./tentLayout";
 
 export type { FlapId, TentFace, TentLocalCell } from "./tentLayout";
@@ -58,7 +58,7 @@ export const PITCHED_STATE: TentState = {
   lanternOn: false,
 };
 
-const LAYOUT: TentLayout = TUNNEL_LAYOUT;
+const LAYOUT: TentLayout = TRAPEZOID_LAYOUT;
 const AIR = "minecraft:air";
 
 const range = (from: number, to: number): number[] =>
@@ -237,8 +237,8 @@ export function tentFootprintBox(pose: TentPose): { min: Vec3; size: Vec3 } {
 /**
  * Whether feet stand in either room, the inner wall and the mattresses
  * included. The outer wall cells are outside: their plates sit on the room
- * side, so only a player outside can stand in one. The tarp area and the roof
- * are outside too.
+ * side, so only a player outside can stand in one. Sheltered tarp columns
+ * count as the front room; ceiling-free edge columns and the roof stay outside.
  */
 export function insideTent(pose: TentPose, feet: Vec3): boolean {
   const cell = {

@@ -3,8 +3,12 @@ import { expect, it } from "vitest";
 import { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
 import type { LegacyTentWorld } from "../../../src/application/camp/ports/legacyTent";
 import { legacyTentClearCells } from "../../../src/domain/camp/legacyTent";
+import { TENT_LAYOUT_VERSION } from "../../../src/domain/camp/spec";
 import { asTentId, type TentYaw } from "../../../src/domain/camp/tent";
-import type { TentEntry } from "../../../src/domain/camp/tentRegistry";
+import {
+  parseTents,
+  type TentEntry,
+} from "../../../src/domain/camp/tentRegistry";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import {
   asDimensionId,
@@ -84,7 +88,10 @@ it("folds only older tents, preserves every other block, refunds once, and is id
             const type = types[index] ?? "minecraft:air";
             const at = key(entry.dimensionId, cell);
             world.blocks.set(at, type);
-            if (entry.layout < 2 && type.startsWith("yasu_ride:tent_"))
+            if (
+              entry.layout < TENT_LAYOUT_VERSION &&
+              type.startsWith("yasu_ride:tent_")
+            )
               cleared.add(at);
           });
           world.blocks.set(
@@ -93,11 +100,13 @@ it("folds only older tents, preserves every other block, refunds once, and is id
           );
         }
         const before = new Map(world.blocks);
-        const fold = new FoldLegacyTents(world, 2);
+        const fold = new FoldLegacyTents(world);
         fold.execute();
-        const older = entries.filter((entry) => entry.layout < 2);
+        const older = entries.filter(
+          (entry) => entry.layout < TENT_LAYOUT_VERSION,
+        );
         expect(world.entries).toEqual(
-          entries.filter((entry) => entry.layout >= 2),
+          entries.filter((entry) => entry.layout >= TENT_LAYOUT_VERSION),
         );
         expect(world.refunds).toEqual(older.map((entry) => entry.id));
         for (const [at, type] of before)
@@ -125,16 +134,33 @@ it("folds only older tents, preserves every other block, refunds once, and is id
   );
 });
 
-it("keeps existing layout 1 tents at the shipped version", () => {
-  const world = new FakeLegacyTentWorld([
-    {
-      id: asTentId("current"),
-      layout: 1,
-      dimensionId: asDimensionId("minecraft:overworld"),
-      pose: { x: 0, y: 64, z: 0, yaw: 0 },
-    },
-  ]);
+it("folds unversioned tunnel tents and preserves current and future layouts at the shipped version", () => {
+  const pose = { x: 0, y: 64, z: 0, yaw: 0 };
+  const world = new FakeLegacyTentWorld(
+    parseTents(
+      JSON.stringify([
+        { id: "legacy", dimensionId: "minecraft:overworld", pose },
+        {
+          id: "current",
+          dimensionId: "minecraft:overworld",
+          pose,
+          layout: TENT_LAYOUT_VERSION,
+        },
+        {
+          id: "future",
+          dimensionId: "minecraft:overworld",
+          pose,
+          layout: TENT_LAYOUT_VERSION + 1,
+        },
+      ]),
+    ),
+  );
   new FoldLegacyTents(world).execute();
-  expect(world.entries).toHaveLength(1);
-  expect(world.order).toEqual([]);
+  expect(world.entries.map(({ id }) => id)).toEqual(["current", "future"]);
+  expect(world.refunds).toEqual(["legacy"]);
+  expect(world.order).toEqual([
+    "eject:legacy",
+    "refund:legacy",
+    "remove:legacy",
+  ]);
 });
