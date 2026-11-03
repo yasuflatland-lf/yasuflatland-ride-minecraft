@@ -11,7 +11,15 @@ suv_cubes = load_tool("suv_cubes")
 mirrored = suv_cubes.mirrored
 HANDLE_BOTTOM_Y, HANDLE_TOP_Y = DIMS.greenhouse.belt_y - 4, DIMS.greenhouse.belt_y - 3.3
 HANDLE_REAR_OFFSET, HANDLE_FRONT_OFFSET = 1.5, 4.5
-HANDLE_OUTER_X = 13.35
+HANDLE_OUTER_X = 13.5
+HANDLE_POST_DEPTH = 0.15
+HANDLE_POST_LENGTH = 0.5
+SKIN_INNER_X = DIMS.chassis.door_frame_mid_x
+HINGE_HEIGHT = 1.6
+HINGE_LEAF_DEPTH, HINGE_KNUCKLE_DEPTH = 0.3, 0.5
+HINGE_LEAF_REAR_OFFSET, HINGE_KNUCKLE_REAR_OFFSET = 1.8, 0.5
+HINGE_UPPER_CENTER_Y = DIMS.greenhouse.belt_y - 3.7
+HINGE_LOWER_CENTER_Y = DIMS.chassis.floor_y + 3.4
 
 
 # Doors (ADR 0009). The +x side of this definition becomes the right side in game. The pivot sits on the hinge (front edge)
@@ -34,7 +42,22 @@ def door(name):
     side, z_front, z_back = DOORS[name]
     # Each door's lower corner nearest a wheel follows that wheel's arch
     axle = DIMS.wheels.front_axle_z if z_front > 0 else DIMS.wheels.rear_axle_z
-    panel = arch_cut(DIMS.chassis.cabin_half_width, DIMS.chassis.body_half_width, DIMS.chassis.floor_y, DIMS.greenhouse.belt_y, z_back, z_front, axle, "body")
+    skin = arch_cut(SKIN_INNER_X, DIMS.chassis.body_half_width, DIMS.chassis.floor_y + 1, DIMS.greenhouse.belt_y, z_back, z_front, axle, "body")
+    for bottom_offset, rear_offset in ((0, 0.75), (0.5, 0.25)):
+        skin += arch_cut(SKIN_INNER_X, DIMS.chassis.body_half_width, DIMS.chassis.floor_y + bottom_offset, DIMS.chassis.floor_y + bottom_offset + 0.5, z_back + rear_offset, z_front, axle, "body")
+    # The stepped corner shares the full panel's texture coordinates to keep its seams aligned.
+    for cube in skin:
+        _, bottom, back = cube["origin"]
+        shell.panel_face(cube, "door_front" if z_front > 0 else "door_rear", "east",
+                         (back - z_back, DIMS.greenhouse.belt_y - bottom - cube["size"][1]))
+    frame = arch_cut(DIMS.chassis.cabin_half_width, SKIN_INNER_X, DIMS.chassis.floor_y, DIMS.greenhouse.belt_y, z_back, z_front, axle, "body")
+    hinges = []
+    for center_y in (HINGE_UPPER_CENTER_Y, HINGE_LOWER_CENTER_Y):
+        bottom, top = center_y - HINGE_HEIGHT / 2, center_y + HINGE_HEIGHT / 2
+        hinges += [
+            box(DIMS.chassis.body_half_width, bottom, z_front - HINGE_LEAF_REAR_OFFSET, DIMS.chassis.body_half_width + HINGE_LEAF_DEPTH, top, z_front - HINGE_KNUCKLE_REAR_OFFSET, "body"),
+            box(DIMS.chassis.body_half_width, bottom, z_front - HINGE_KNUCKLE_REAR_OFFSET, DIMS.chassis.body_half_width + HINGE_KNUCKLE_DEPTH, top, z_front, "body"),
+        ]
     card = arch_cut(11.8, DIMS.chassis.cabin_half_width, DIMS.chassis.floor_y + 1, DIMS.greenhouse.belt_y - 1, z_back + 0.6, z_front - 0.6, axle, "trim")
     if z_front > 0:
         front_post = [windshield_part(x0, DIMS.hood.top_y, DIMS.hood.rear_z - 2, x0 + 0.5, DIMS.hood.top_y + DIMS.windshield.front_post_length, DIMS.hood.rear_z - 1, color)
@@ -51,10 +74,14 @@ def door(name):
         top_front = z_front
         side_mirror = []
     cubes = [
-        *panel,
+        *skin,
+        *frame,
         *card,
         *front_post,
-        box(DIMS.chassis.body_half_width, HANDLE_BOTTOM_Y, z_back + HANDLE_REAR_OFFSET, HANDLE_OUTER_X, HANDLE_TOP_Y, z_back + HANDLE_FRONT_OFFSET, "grille"),  # door handle, near the rear edge
+        *hinges,
+        box(DIMS.chassis.body_half_width + HANDLE_POST_DEPTH, HANDLE_BOTTOM_Y, z_back + HANDLE_REAR_OFFSET, HANDLE_OUTER_X, HANDLE_TOP_Y, z_back + HANDLE_FRONT_OFFSET, "grille"),
+        *[box(DIMS.chassis.body_half_width, HANDLE_BOTTOM_Y, z, DIMS.chassis.body_half_width + HANDLE_POST_DEPTH, HANDLE_TOP_Y, z + HANDLE_POST_LENGTH, "grille")
+          for z in (z_back + HANDLE_REAR_OFFSET, z_back + HANDLE_FRONT_OFFSET - HANDLE_POST_LENGTH)],
         *window_frame_piece(DIMS.greenhouse.belt_y, z_back, DIMS.greenhouse.roof_y, z_back + 1),  # rear post
         *window_frame_piece(DIMS.greenhouse.window_top_y, z_back, DIMS.greenhouse.roof_y, top_front),  # top rail
         *side_mirror,
