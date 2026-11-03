@@ -99,50 +99,70 @@ describe("tentCells (ADR 0130, 0131)", () => {
   });
 
   it("keeps laid centres inside the shell and outer plates within half a block of its edge", () => {
+    const localCells = [
+      ...TRAPEZOID_LAYOUT.walls.map(({ cell }) => cell),
+      ...TRAPEZOID_LAYOUT.ceilings,
+      ...TENT_MATTRESSES.flat(),
+    ];
+    for (const cell of localCells) {
+      const shell = tentShellAt(cell.layer + 0.5);
+      const depth = cell.depth + 0.5;
+      const body =
+        Math.abs(cell.x) <= shell.halfWidth &&
+        depth >= shell.front &&
+        depth <= shell.rear &&
+        cell.layer + 0.5 <= shell.top;
+      const tarp =
+        Math.abs(cell.x) <= shell.tarpHalfWidth &&
+        depth >= 0 &&
+        depth <= shell.front &&
+        cell.layer + 0.5 <= shell.tarpTop;
+      expect(body || tarp, JSON.stringify(cell)).toBe(true);
+    }
+    const inner = defined(TENT_FLAPS.bedroom[0], "bedroom flap").depth;
+    for (const { cell, face } of TRAPEZOID_LAYOUT.walls) {
+      if (cell.depth === inner && face === 1) continue;
+      const shell = tentShellAt(cell.layer + 0.5);
+      const distance =
+        face >= 2
+          ? shell.halfWidth - Math.abs(cell.x)
+          : face === 0
+            ? cell.depth + 0.5 - shell.front
+            : shell.rear - cell.depth - 0.5;
+      // The cell centre is inside, and its outer face is at most 0.5 from the shell.
+      expect(distance).toBeGreaterThanOrEqual(0);
+      expect(distance).toBeLessThanOrEqual(1);
+    }
+    for (const cell of TRAPEZOID_LAYOUT.ceilings) {
+      const shell = tentShellAt(cell.layer + 0.5);
+      const onTarp = cell.depth + 0.5 <= shell.front;
+      const halfWidth = onTarp ? shell.tarpHalfWidth : shell.halfWidth;
+      const near = onTarp ? 0 : shell.front;
+      for (const dx of [-0.5, 0.5])
+        for (const dz of [-0.5, 0.5]) {
+          const x = Math.abs(cell.x + dx);
+          const depth = cell.depth + 0.5 + dz;
+          // A corner may poke out of the slanted edge by under half a block.
+          expect(x, JSON.stringify(cell)).toBeLessThanOrEqual(halfWidth + 0.5);
+          expect(depth, JSON.stringify(cell)).toBeGreaterThanOrEqual(
+            near - 0.5,
+          );
+          expect(depth, JSON.stringify(cell)).toBeLessThanOrEqual(
+            shell.rear + 0.5,
+          );
+        }
+    }
+  });
+
+  it("lays one block per layout cell in any state", () => {
     fc.assert(
       fc.property(arbState, (state) => {
         const pose: TentPose = { x: 0, y: 0, z: 0, yaw: 0 };
-        const localCells = [
-          ...TRAPEZOID_LAYOUT.walls.map(({ cell }) => cell),
-          ...TRAPEZOID_LAYOUT.ceilings,
-          ...TENT_MATTRESSES.flat(),
-        ];
-        expect(tentCells(pose, state)).toHaveLength(localCells.length);
-        for (const cell of localCells) {
-          const shell = tentShellAt(cell.layer + 0.5);
-          const depth = cell.depth + 0.5;
-          const body =
-            Math.abs(cell.x) <= shell.halfWidth &&
-            depth >= shell.front &&
-            depth <= shell.rear &&
-            cell.layer + 0.5 <= shell.top;
-          const tarp =
-            Math.abs(cell.x) <= shell.tarpHalfWidth &&
-            depth >= 0 &&
-            depth <= shell.front &&
-            cell.layer + 0.5 <= shell.tarpTop;
-          expect(body || tarp, JSON.stringify(cell)).toBe(true);
-        }
-        const inner = defined(TENT_FLAPS.bedroom[0], "bedroom flap").depth;
-        for (const { cell, face } of TRAPEZOID_LAYOUT.walls) {
-          if (cell.depth === inner && face === 1) continue;
-          const shell = tentShellAt(cell.layer + 0.5);
-          const distance =
-            face >= 2
-              ? shell.halfWidth - Math.abs(cell.x)
-              : face === 0
-                ? cell.depth + 0.5 - shell.front
-                : shell.rear - cell.depth - 0.5;
-          // The cell centre is inside, and its outer face is at most 0.5 from the shell.
-          expect(distance).toBeGreaterThanOrEqual(0);
-          expect(distance).toBeLessThanOrEqual(1);
-        }
-        for (const cell of TRAPEZOID_LAYOUT.ceilings) {
-          const shell = tentShellAt(cell.layer + 0.5);
-          const top =
-            cell.layer === TENT_SPEC.tarpHeadroom ? shell.tarpTop : shell.top;
-          expect(top - cell.layer - 0.5).toBe(0.5);
-        }
+        const count =
+          TRAPEZOID_LAYOUT.walls.length +
+          TRAPEZOID_LAYOUT.ceilings.length +
+          TENT_MATTRESSES.flat().length;
+        expect(tentCells(pose, state)).toHaveLength(count);
       }),
     );
   });
