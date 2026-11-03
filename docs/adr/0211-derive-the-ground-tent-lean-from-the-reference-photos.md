@@ -1,4 +1,4 @@
-# 0210. Derive the ground tent lean from the reference photos
+# 0211. Derive the ground tent lean from the reference photos
 
 - Status: Proposed
 - Acceptance condition: repository checks and CI in-game scenarios pass, and the owner confirms the regenerated tent silhouette
