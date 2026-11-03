@@ -169,20 +169,24 @@ describe("SUV detailed steel body regions", () => {
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 s = load_tool('suv_shell')
+doors = load_tool('suv_doors')
+hood = load_tool('suv_hood')
+rear = load_tool('suv_rear')
+grille = load_tool('suv_grille')
 a = load_tool('suv_atlas')
 r = load_tool('render_preview')
 c = load_tool('suv_cubes')
 from copy import deepcopy
-for cube in s.grille_cubes()[3:]:
+for cube in grille.grille_cubes()[3:]:
     assert cube['uv'] == a.uv('body')
-for cube in s.window_frame_piece(s.DIMS.greenhouse.belt_y, s.DIMS.chassis.cargo_front_z, s.DIMS.greenhouse.roof_y, s.DIMS.chassis.cargo_front_z + 1)[:1]:
+for cube in doors.window_frame_piece(s.DIMS.greenhouse.belt_y, s.DIMS.chassis.cargo_front_z, s.DIMS.greenhouse.roof_y, s.DIMS.chassis.cargo_front_z + 1)[:1]:
     assert cube['uv']['up'] == a.ATLAS.face('body')
-for name in s.DOORS:
-    side, front, back = s.DOORS[name]
+for name in doors.DOORS:
+    side, front, back = doors.DOORS[name]
     face = 'east' if side > 0 else 'west'
     region = a.region('body', 'door_front' if front > 0 else 'door_rear')
     scale_u, scale_v = a.PAINTERS['body'].panel_scale(region.name)
-    cubes = s.door(name)['cubes']
+    cubes = doors.door(name)['cubes']
     strips = [cube for cube in cubes if cube['uv'][face]['uv'][1] >= 4 and region.x <= cube['uv'][face]['uv'][0] < region.x + region.w and cube['origin'][1] < s.DIMS.greenhouse.belt_y]
     assert len(strips) > 1
     for cube in strips:
@@ -194,11 +198,11 @@ for name in s.DOORS:
         assert abs(uv['uv_size'][0] - d * scale_u) < 1e-8
         assert abs(uv['uv_size'][1] - h * scale_v) < 1e-8
 p = a.PAINTERS['body']
-for name, cubes in [('hood_top', s.hood_cubes()), ('tailgate', s.tailgate_cubes())]:
+for name, cubes in [('hood_top', hood.hood_cubes()), ('tailgate', rear.tailgate_cubes())]:
     face = 'up' if name == 'hood_top' else 'north'
     spec = p.SPECS[name]
     assert cubes[0]['uv'][face]['uv_size'] == [spec.w, spec.h]
-for cubes in (s.hood_lower_side_cubes(), s.cargo_lower_side_cubes()):
+for cubes in (hood.hood_lower_side_cubes(), rear.cargo_lower_side_cubes()):
     region = a.region('body', 'flake')
     back = min(cube['origin'][2] for cube in cubes)
     top = max(cube['origin'][1] + cube['size'][1] for cube in cubes)
@@ -211,13 +215,13 @@ for cubes in (s.hood_lower_side_cubes(), s.cargo_lower_side_cubes()):
 # The handle recess is at the rear on both sides, including the exported turn.
 p = a.PAINTERS['body']
 texture = [[(0, 0, 0, 255)] * 512 for _ in range(256)]
-for name in s.DOORS:
-    side, front, back = s.DOORS[name]
+for name in doors.DOORS:
+    side, front, back = doors.DOORS[name]
     region_name = 'door_front' if front > 0 else 'door_rear'
     region = a.region('body', region_name)
     u, v, _, _ = p.recess(region_name)
     texture[region.y + int(v)][region.x + int(u)] = (255, 0, 0, 255)
-    source = s.door(name)['cubes'][0]
+    source = doors.door(name)['cubes'][0]
     for exported in (False, True):
         cube = deepcopy(source)
         face = 'east' if side > 0 else 'west'
@@ -228,7 +232,7 @@ for name in s.DOORS:
         points = [quad for quad, color in patches if color == (255, 0, 0, 255)]
         assert len(points) == 1
         z = sum(point[2] for point in points[0]) / 4
-        expected = back + (s.HANDLE_REAR_OFFSET + s.HANDLE_FRONT_OFFSET) / 2
+        expected = back + (doors.HANDLE_REAR_OFFSET + doors.HANDLE_FRONT_OFFSET) / 2
         assert abs(z - (-expected if exported else expected)) < 0.3
 `,
       ],
