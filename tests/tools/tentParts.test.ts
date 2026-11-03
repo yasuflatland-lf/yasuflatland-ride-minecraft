@@ -55,7 +55,7 @@ for field in fields(dims.DIMS):
 assert dims.DIMS == dims.Dims()`);
 });
 
-it("keeps the body slope linear from ground to ridge without moving flap pivots", async () => {
+it("keeps the body slope linear from ground to ridge and seats the window flap pivots on it", async () => {
   await run(`from math import isclose
 d = dims.DIMS
 body = load_tool('tent_body')
@@ -65,8 +65,8 @@ for y in range(d.ridge_height + 1):
     assert isclose(front-d.front_z, d.rear_z-rear)
     assert isclose(front-d.front_z, d.half_width-body.half_width(d, y))
 bones = {bone['name']: bone for bone in tent.assemble()}
-assert bones['flap_left']['pivot'] == [49.5, 26, -54]
-assert bones['flap_right']['pivot'] == [-49.5, 26, -54]`);
+assert all(isclose(a, b, abs_tol=0.001) for a, b in zip(bones['flap_left']['pivot'], [45.636, 28.334, -64]))
+assert all(isclose(a, b, abs_tol=0.001) for a, b in zip(bones['flap_right']['pivot'], [-45.636, 28.334, -64]))`);
 });
 
 it("keeps the triangular -x screen on its plane with bound seams and an open +x side", async () => {

@@ -33,7 +33,7 @@ def side_band(d: Dims, face, side, y0, y1, z0, z1, color="fly", proud=0, overlap
                  pivot=pivot, rotation=(0, 0, angle))
 
 
-def end_band(d: Dims, face, front, y0, y1, x0, x1, color="fly", proud=0):
+def end_band(d: Dims, face, front, y0, y1, x0, x1, color="fly", proud=0, overlap=True):
     z = ends(d, y0)[0 if front else 1]
     angle = (-1 if front else 1) * math.degrees(math.atan2(d.lean, d.ridge_height))
     thickness = d.shell_thickness
@@ -43,7 +43,7 @@ def end_band(d: Dims, face, front, y0, y1, x0, x1, color="fly", proud=0):
     pivot = (x0, y0, z)
     lo, hi = (-proud, thickness-proud) if front else (-thickness+proud, proud)
     return panel(x0, y0+bottom, z+lo, x1,
-                 y0+min((y1-y0)/math.cos(math.radians(angle))+d.band_overlap,
+                 y0+min((y1-y0)/math.cos(math.radians(angle))+(d.band_overlap if overlap else 0),
                         (d.ridge_height-y0-proud*abs(math.sin(math.radians(angle))))
                         / math.cos(math.radians(angle))), z+hi, face(color),
                  pivot=pivot, rotation=(angle, 0, 0))
@@ -55,8 +55,14 @@ def shell(d: Dims, face):
         y1 = min(y0+d.band_height, d.ridge_height)
         z0, z1 = ends(d, y0)
         for side in (-1, 1):
-            fly.append(side_band(d, face, side, y0, y1, z0, z1,
-                                 "skirt" if y0 < d.skirt_height else "fly"))
+            # Cut the depth-4 apertures so rolled flaps reveal mesh rather than fly fabric.
+            color = "skirt" if y0 < d.skirt_height else "fly"
+            if d.window_bottom <= y0 and y1 <= d.window_top:
+                for start, stop in ((z0, d.window_front_z), (d.window_rear_z, z1)):
+                    fly.append(side_band(d, face, side, y0, y1, start, stop, color))
+            else:
+                fly.append(side_band(d, face, side, y0, y1, z0, z1, color,
+                                     overlap=y1 != d.window_bottom))
         w = half_width(d, y0)
         fly.append(end_band(d, face, False, y0, y1, -w, w,
                             "skirt" if y0 < d.skirt_height else "fly"))

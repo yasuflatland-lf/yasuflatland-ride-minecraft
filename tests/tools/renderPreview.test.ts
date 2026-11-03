@@ -4,6 +4,9 @@ import { describe, expect, it } from "vitest";
 
 type Point = [number, number, number];
 
+// Rasterizing all camping previews can exceed Vitest's 5 s default on CI.
+const CAMPING_PREVIEW_TIMEOUT_MS = 30_000;
+
 // Runs collect_boat from tools/render_preview.py on a geometry and returns the
 // center of every opaque face it draws, in the preview's mirrored frame.
 const faceCenters = (geometry: unknown): Point[] => {
@@ -84,42 +87,49 @@ describe("render_preview.py bone rotations", () => {
 });
 
 describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", () => {
-  it("renders every item of the spec and the low chair and tent into their own 128 px squares and keeps the vehicle frame for the rest", () => {
-    const script = [
-      "import json, sys",
-      "from pathlib import Path",
-      "sys.path.insert(0, 'tools')",
-      "import render_preview",
-      "images = render_preview.render_camping_gear(Path('packs/yasu_ride_rp'))",
-      "names = list(images)",
-      "print(json.dumps({'names': names, 'lengths': sorted({len(render_preview.rasterize_job(v)) for v in images.values()}),",
-      "  'sizes': [render_preview.image_size(n) for n in names + ['camper-side.png']]}))",
-    ].join("\n");
-    const out = JSON.parse(
-      execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
-    );
-    const ids = (
-      JSON.parse(readFileSync("tools/camping_gear.json", "utf8")) as {
-        id: string;
-      }[]
-    ).map((g) => g.id);
-    const names = [
-      ...ids,
-      "noga_chair",
-      "low_chair",
-      "tent",
-      "roof_tent",
-      "camp_table",
-      "fire_pit",
-      "dutch_oven",
-      "gas_lantern",
-    ];
-    expect(out.names).toEqual(
-      names.map((name) => `items/camping-gear/${name}.png`),
-    );
-    expect(out.lengths).toEqual([128 * 128 * 4]);
-    expect(out.sizes).toEqual([...names.map(() => [128, 128]), [800, 600]]);
-  });
+  it(
+    "renders every item of the spec and the low chair and tent into their own 128 px squares and keeps the vehicle frame for the rest",
+    () => {
+      const script = [
+        "import json, sys",
+        "from pathlib import Path",
+        "sys.path.insert(0, 'tools')",
+        "import render_preview",
+        "images = render_preview.render_camping_gear(Path('packs/yasu_ride_rp'))",
+        "names = list(images)",
+        "print(json.dumps({'names': names, 'lengths': sorted({len(render_preview.rasterize_job(v)) for v in images.values()}),",
+        "  'sizes': [render_preview.image_size(n) for n in names + ['camper-side.png']]}))",
+      ].join("\n");
+      const out = JSON.parse(
+        execFileSync("python3", ["-I", "-c", script], {
+          encoding: "utf8",
+          timeout: CAMPING_PREVIEW_TIMEOUT_MS,
+        }),
+      );
+      const ids = (
+        JSON.parse(readFileSync("tools/camping_gear.json", "utf8")) as {
+          id: string;
+        }[]
+      ).map((g) => g.id);
+      const names = [
+        ...ids,
+        "noga_chair",
+        "low_chair",
+        "tent",
+        "roof_tent",
+        "camp_table",
+        "fire_pit",
+        "dutch_oven",
+        "gas_lantern",
+      ];
+      expect(out.names).toEqual(
+        names.map((name) => `items/camping-gear/${name}.png`),
+      );
+      expect(out.lengths).toEqual([128 * 128 * 4]);
+      expect(out.sizes).toEqual([...names.map(() => [128, 128]), [800, 600]]);
+    },
+    CAMPING_PREVIEW_TIMEOUT_MS,
+  );
 });
 
 const previewPython = (body: string) =>
