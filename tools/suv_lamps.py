@@ -32,7 +32,12 @@ LAMP_PARTS: tuple[LampPart, ...] = (
 )
 
 
-HEADLIGHT_CENTERS = ((10.3, DIMS.arch.top_y), (-10.3, DIMS.arch.top_y))
+# The reference's 0.58 target clips the grille top frame; 0.576 puts the lens top at
+# its 21.25 px underside, the highest centre that clears it without moving x or z.
+HEADLIGHT_HEIGHT_FRACTION = 0.576
+HEADLIGHT_CENTER_Y = DIMS.front_bumper.grille_bottom_y + HEADLIGHT_HEIGHT_FRACTION * (
+    DIMS.hood.top_y - DIMS.front_bumper.grille_bottom_y)
+HEADLIGHT_CENTERS = ((10.3, HEADLIGHT_CENTER_Y), (-10.3, HEADLIGHT_CENTER_Y))
 HEADLIGHT_DIAMETER = 5.6
 HEADLIGHT_THICKNESS = 0.1
 HEADLIGHT_FRONT = DIMS.hood.front_z + 0.65
