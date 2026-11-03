@@ -1,10 +1,8 @@
 // Forgets a killed tent, and removes a tent entity the registry does not know with its cells (ADR 0125, 0131).
 import {
-  type Dimension,
   type Entity,
   EntityInitializationCause,
   system,
-  type Vector3,
   world,
 } from "@minecraft/server";
 import {
@@ -12,6 +10,7 @@ import {
   type TentBlock,
   type TentId,
 } from "../../../../domain/camp/tent";
+import { chunkLoadedAt } from "../../../shared/chunkLoadedAt";
 import type { CellLayer } from "../../../shared/laidCells";
 import { TENT_TYPE } from "../../identifiers";
 import type { DynamicPropertyTentRegistry } from "../../persistence/tentRegistry";
@@ -49,14 +48,4 @@ export function registerTentLifecycle(
   world.afterEvents.entitySpawn.subscribe((ev) => {
     if (ev.cause === EntityInitializationCause.Loaded) removeOrphan(ev.entity);
   });
-}
-
-// getBlock returns undefined in an unloaded chunk but can also throw
-// LocationInUnloadedChunkError; both mean the chunk unloaded (ADR 0125).
-function chunkLoadedAt(dimension: Dimension, location: Vector3): boolean {
-  try {
-    return dimension.getBlock(location) !== undefined;
-  } catch {
-    return false;
-  }
 }

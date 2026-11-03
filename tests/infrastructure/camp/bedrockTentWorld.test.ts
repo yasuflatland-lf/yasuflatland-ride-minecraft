@@ -154,9 +154,8 @@ describe("BedrockTentWorld (ADR 0131)", () => {
         ),
         (yaw, types) => {
           const entry = { ...ENTRY, pose: { ...POSE, yaw } };
-          const { dimension, world, registry, tent, blocks, flaps } = fixture([
-            entry,
-          ]);
+          const { dimension, world, registry, tent, blocks, flaps, order } =
+            fixture([entry]);
           const cells = legacyTentClearCells(entry.pose);
           const values = new Map(
             cells.map((cell, index) => [
@@ -169,22 +168,21 @@ describe("BedrockTentWorld (ADR 0131)", () => {
             const at = cellKey(cell);
             return {
               typeId: values.get(at),
-              setType: (type: string) => values.set(at, type),
+              setType: (type: string) => {
+                order.push("clear");
+                values.set(at, type);
+              },
             };
           });
           const forget = vi.spyOn(flaps, "forget");
           const fold = new FoldLegacyTents(world, 2);
-          fold.execute();
+          expect(fold.execute()).toBe(0);
           for (const [cell, type] of original)
             expect(values.get(cell)).toBe(
               type.startsWith("yasu_ride:tent_") ? "minecraft:air" : type,
             );
-          expect(dimension.getBlock).toHaveBeenCalledTimes(
-            336 +
-              [...original.values()].filter((type) =>
-                type.startsWith("yasu_ride:tent_"),
-              ).length,
-          );
+          expect(dimension.getBlock).toHaveBeenCalledTimes(337);
+          expect(dimension.getBlock).toHaveBeenNthCalledWith(1, entry.pose);
           expect(dimension.spawnItem).toHaveBeenCalledExactlyOnceWith(
             { typeId: TENT_ITEM, amount: 1 },
             tent.location,
@@ -192,12 +190,60 @@ describe("BedrockTentWorld (ADR 0131)", () => {
           expect(registry.all()).toEqual([]);
           expect(forget).toHaveBeenCalledWith(TENT);
           expect(tent.remove).toHaveBeenCalledTimes(1);
-          expect(blocks.lay).not.toHaveBeenCalled();
+          expect(blocks.lay).toHaveBeenCalledExactlyOnceWith(TENT, tent, []);
+          expect(order[0]).toBe("lay");
+          expect(order.slice(-2)).toEqual(["forget", "remove"]);
           fold.execute();
           expect(dimension.spawnItem).toHaveBeenCalledTimes(1);
         },
       ),
     );
+  });
+
+  it.each(["undefined", "throwing", "unknown dimension"])(
+    "leaves an unreadable anchor unchanged (%s) and folds when it loads",
+    (unloaded) => {
+      const { dimension, world, registry, tent, blocks, player } = fixture([
+        ENTRY,
+      ]);
+      if (unloaded === "throwing")
+        dimension.getBlock.mockImplementation(() => {
+          throw new Error("LocationInUnloadedChunkError");
+        });
+      if (unloaded === "unknown dimension")
+        game.getDimension.mockImplementation(() => {
+          throw new Error("unknown dimension");
+        });
+      const fold = new FoldLegacyTents(world);
+      expect(fold.execute()).toBe(1);
+      expect(registry.all()).toEqual([ENTRY]);
+      expect(registry.remove).not.toHaveBeenCalled();
+      expect(blocks.lay).not.toHaveBeenCalled();
+      expect(dimension.getPlayers).not.toHaveBeenCalled();
+      expect(dimension.spawnItem).not.toHaveBeenCalled();
+      expect(player.teleport).not.toHaveBeenCalled();
+      expect(tent.remove).not.toHaveBeenCalled();
+
+      game.getDimension.mockReturnValue(dimension);
+      dimension.getBlock.mockReturnValue({ typeId: "minecraft:air" });
+      expect(fold.execute()).toBe(0);
+      expect(registry.all()).toEqual([]);
+      expect(dimension.spawnItem).toHaveBeenCalledTimes(1);
+      expect(blocks.lay).toHaveBeenCalledExactlyOnceWith(TENT, tent, []);
+    },
+  );
+
+  it("uses cell-layer cleanup and drops at the registered pose when the anchor loads before the entity", () => {
+    const { dimension, world, registry, blocks } = fixture([ENTRY]);
+    game.getEntity.mockReturnValue(undefined);
+    dimension.getBlock.mockReturnValue({ typeId: "minecraft:air" });
+    expect(world.foldInto(ENTRY)).toBe("folded");
+    expect(blocks.lay).toHaveBeenCalledExactlyOnceWith(TENT, undefined, []);
+    expect(dimension.spawnItem).toHaveBeenCalledExactlyOnceWith(
+      { typeId: TENT_ITEM, amount: 1 },
+      tentEntityLocation(ENTRY.pose),
+    );
+    expect(registry.all()).toEqual([]);
   });
 
   it("ejects players across the legacy box before clearing, including mattresses and tarp cells at each yaw", () => {
@@ -239,7 +285,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
           );
           expect(outside.teleport).not.toHaveBeenCalled();
           expect(ejectRider).toHaveBeenCalledWith(player);
-          expect(order.slice(0, 3)).toEqual(["eject", "exit", "clear"]);
+          expect(order.slice(0, 4)).toEqual(["eject", "exit", "lay", "clear"]);
         },
       ),
     );

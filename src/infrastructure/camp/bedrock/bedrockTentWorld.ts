@@ -41,6 +41,7 @@ import type { TentEntry } from "../../../domain/camp/tentRegistry";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { chunkLoadedAt } from "../../shared/chunkLoadedAt";
 import { AIR_BLOCK, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
@@ -332,6 +333,10 @@ export class BedrockTentWorld
   }
 
   takeDown(tentId: TentId): void {
+    this.takeDownTent(tentId);
+  }
+
+  private takeDownTent(tentId: TentId, legacy?: TentEntry): void {
     const tent = tentEntityOf(tentId);
     const entry = this.entryOf(tentId);
     // Cells the layer holds in unloaded chunks are left to the loop's clearGone.
@@ -340,7 +345,10 @@ export class BedrockTentWorld
     // restart, and the layer then holds nothing for the tent: clear its loaded
     // cells by pose. Cells in chunks still unloaded are cleared from the
     // entity's saved cells when it loads as an orphan.
-    if (!tent && entry) this.clearByPose(entry);
+    if (legacy) {
+      for (const cell of legacyTentClearCells(legacy.pose))
+        this.clearTentBlock(legacy.dimensionId, cell);
+    } else if (!tent && entry) this.clearByPose(entry);
     this.removeTent(tentId);
   }
 
@@ -348,7 +356,17 @@ export class BedrockTentWorld
     return this.deps.registry.all();
   }
 
-  ejectOccupants(entry: TentEntry): void {
+  foldInto(entry: TentEntry): "folded" | "deferred" {
+    const dimension = dimensionOf(entry.dimensionId);
+    if (!dimension || !chunkLoadedAt(dimension, entry.pose)) return "deferred";
+    this.ejectOccupants(entry);
+    // The playerless refund needs the entity or registry location before removal.
+    this.returnTentItem(entry.id, undefined);
+    this.removeLegacyTent(entry);
+    return "folded";
+  }
+
+  private ejectOccupants(entry: TentEntry): void {
     const dimension = dimensionOf(entry.dimensionId);
     if (!dimension) return;
     const cells = new Set(legacyTentClearCells(entry.pose).map(cellKey));
@@ -377,13 +395,13 @@ export class BedrockTentWorld
     }
   }
 
-  clearTentBlock(dimensionId: DimensionId, cell: Cell): void {
+  private clearTentBlock(dimensionId: DimensionId, cell: Cell): void {
     const block = blockAt(dimensionOf(dimensionId), cell);
     if (isTentBlockTypeId(block?.typeId)) block?.setType(AIR_BLOCK);
   }
 
-  removeLegacyTent(entry: TentEntry): void {
-    this.removeTent(entry.id);
+  private removeLegacyTent(entry: TentEntry): void {
+    this.takeDownTent(entry.id, entry);
   }
 
   private removeTent(tentId: TentId): void {
