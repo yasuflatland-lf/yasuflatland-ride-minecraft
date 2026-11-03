@@ -16,6 +16,7 @@ There are 87 wall cells (8 flap), 50 ceiling cells, 137 laid cells, 336 clear ce
 and 84 ground cells. This generator adds no cell-laying behavior.
 Each paint writes its own texture: tent.png for khaki (variant 0), tent_<paint>.png for the
 others, recoloring only the fly slots 0 and 1 (ADR 0031, 0076).
+Parts are built by tent_body, tent_entrance, tent_tarp, and tent_inner using tent_dims.
 --check compares parsed JSON and decoded pixels, independent of formatting and compression.
 """
 import argparse
@@ -29,6 +30,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 texture_io = load_tool("texture_io")
+DIMS = load_tool("tent_dims").DIMS
+tent_body = load_tool("tent_body")
+tent_entrance = load_tool("tent_entrance")
+tent_tarp = load_tool("tent_tarp")
+tent_inner = load_tool("tent_inner")
 
 GEOMETRY = "models/entity/yasu_ride/tent.geo.json"
 TEXTURE = "textures/entity/yasu_ride/tent.png"
@@ -67,14 +73,9 @@ FLY_PAINTS = {
 }
 # Brightness of each fly slot relative to the khaki base, so seams stay darker in every paint.
 FLY_SHADES = {"fly": 1.0, "fly_dark": 136 / 176}
-# Each flap's opening (the bounds its cubes must stay within), roll pivot, parent bone, and
-# paint. The bedroom D-door has no single paint; parts() builds it from inner and inner_shade.
-FLAPS = {
-    "flap_front": ((-8, 0, -136, 8, 32, -135), (0, 32, -135.5), "fly", "fly"),
-    "flap_left": ((53, 0, -88, 54, 32, -72), (53.5, 32, -80), "fly", "fly"),
-    "flap_right": ((-54, 0, -88, -53, 32, -72), (-53.5, 32, -80), "fly", "fly"),
-    "flap_bedroom": ((-8, 0, -56, 8, 32, -55), (0, 32, -55.5), "inner", None),
-}
+# Each flap's opening, roll pivot, parent bone, and paint. The bedroom D-door uses
+# both inner and inner_shade in tent_inner.
+FLAPS = {**tent_entrance.FLAPS, **tent_inner.FLAPS}
 
 
 def face(color):
@@ -126,116 +127,21 @@ def corners(cube):
     return pts
 
 
-def arch(z0, z1, thickness, color, outward=True):
-    """Chord segments follow the half ellipse; the shell grows outward, poles inward."""
-    result = []
-    for i in range(32):
-        a, b = math.pi * i / 32, math.pi * (i + 1) / 32
-        x0, y0 = 52 * math.cos(a), 32 + 39 * math.sin(a)
-        x1, y1 = 52 * math.cos(b), 32 + 39 * math.sin(b)
-        dx, dy = x0 - x1, y0 - y1
-        length = math.hypot(dx, dy)
-        angle = -math.degrees(math.atan2(dy, dx))
-        low, high = (0, thickness) if outward else (-thickness, 0)
-        result.append(box(x1, y1 + low, z0, x1 + length, y1 + high, z1,
-                          color, pivot=(x1, y1, z0), rotation=(0, 0, angle)))
-    return result
-
-
-def end_panel(z0, z1, door):
-    result = []
-    if door:
-        result += [box(-52, 0, z0, -8, 32, z1, "fly"),
-                   box(8, 0, z0, 52, 32, z1, "fly")]
-    else:
-        result.append(box(-52, 0, z0, 52, 32, z1, "fly"))
-    # Each 1 px strip reaches the arch's inner surface at its inner edge, so no slit stays open
-    # under the shell; its outer corner still ends inside the 1 px shell. Over the door the
-    # strips start above the binding, which would otherwise share their faces.
-    for x in range(-52, 52):
-        top = 32 + 39 * math.sqrt(1 - (min(abs(x), abs(x + 1)) / 52) ** 2)
-        bottom = 33 if door and -8 <= x < 8 else 32
-        result.append(box(x, bottom, z0, x + 1, top, z1, "fly"))
-    return result
-
-
-def parts():
-    fly = arch(-135, 8, 1, "fly")
-    for x0, x1 in ((52, 53), (-53, -52)):
-        fly += [box(x0, 0, -135, x1, 32, -88, "fly"),
-                box(x0, 0, -72, x1, 32, 8, "fly")]
-    fly += end_panel(7, 8, False) + end_panel(-135, -134, True)
-    # x rotation slopes the tarp's top from (y60,z-135) to (y40,z-184).
-    length = math.hypot(49, 20)
-    fly.append(box(-41, 59, -135-length, 41, 60, -135, "fly",
-                   pivot=(0, 60, -135), rotation=(math.degrees(math.atan2(20, 49)), 0, 0)))
-    # Bindings remain in the fly's two paint slots. The side ones stand 0.1 px proud of the
-    # lowest arch segments so their outer faces do not share a plane.
-    fly += [box(-8, 32, -135, 8, 33, -134, "fly_dark"),
-            box(52, 32, -88, 53.1, 33, -72, "fly_dark"),
-            box(-53.1, 32, -88, -52, 33, -72, "fly_dark")]
-    inner = [
-        box(40, 0, -55, 41, 48, -7, "inner"),
-        box(-41, 0, -55, -40, 48, -7, "inner"),
-        box(-40, 0, -8, 40, 48, -7, "inner"),
-        box(-41, 48, -55, 41, 50, -7, "inner_shade"),
-        box(-41, 0, -55, -8, 48, -54, "inner"),
-        box(8, 0, -55, 41, 48, -54, "inner"),
-        box(-8, 32, -55, 8, 48, -54, "inner"),
-    ]
-    # The D-door has a straight edge at -x and a rounded edge at +x (the tent's left; the
-    # right side seen from the front room). Its corner infill belongs to the fixed inner
-    # panel, not to the rolling flap. The shaded rim takes over the row's last 0.5 px, so
-    # the two paints never share a face.
-    bedroom_flap = [box(-8, 0, -56, 0, 32, -55, "inner")]
-    for y in range(32):
-        edge = max(abs(y - 16), abs(y + 1 - 16))
-        width = 8 * math.sqrt(1 - (edge / 16) ** 2)
-        if width:
-            rim = max(0, width - 0.5)
-            if rim:
-                bedroom_flap.append(box(0, y, -56, rim, y+1, -55, "inner"))
-            bedroom_flap.append(box(rim, y, -56, width, y+1, -55, "inner_shade"))
-        if width < 8:
-            inner.append(box(width, y, -55, 8, y+1, -54, "inner"))
-    poles = []
-    for z0, z1 in ((-134, -132.5), (-58, -56.5), (4, 5.5)):
-        poles += arch(z0, z1, 1.5, "pole", outward=False)
-        poles += [box(50.5, 0, z0, 52, 32, z1, "pole"),
-                  box(-52, 0, z0, -50.5, 32, z1, "pole")]
-    poles += [box(40, 0, -184, 41.5, 40, -182.5, "pole_dark"),
-              box(-41.5, 0, -184, -40, 40, -182.5, "pole_dark")]
-    strap = [box(-1, 69, -134, 1, 70, 4, "strap")]
-    for z in range(-132, 5, 24):
-        # Four strips leave the center of each 2 px silver ring open.
-        # The side strips stand 0.05 px outside the strap so their faces do not share its plane.
-        strap += [box(-1.05, 68.75, z-1, -0.6, 69.25, z+1, "ring"),
-                  box(0.6, 68.75, z-1, 1.05, 69.25, z+1, "ring"),
-                  box(-0.6, 68.75, z-1, 0.6, 69.25, z-0.6, "ring"),
-                  box(-0.6, 68.75, z+0.6, 0.6, 69.25, z+1, "ring")]
-    lantern = [box(-0.5, 44, -64.5, 0.5, 69, -63.5, "hook"),
-               box(-3, 44, -67, 3, 45, -61, "hook")]
-    # Stepped circular cross-section gives the milky shade a round silhouette.
-    glass = []
-    for x in range(-4, 4):
-        radius = math.sqrt(16 - max(abs(x), abs(x+1)) ** 2)
-        if radius:
-            glass.append(box(x, 36, -64-radius, x+1, 44, -64+radius, "glass"))
-    def bone(name, cubes, pivot=(0, 0, 0), parent="root"):
-        return {"name": name, "parent": parent, "pivot": list(pivot), "cubes": cubes}
-    result = [{"name": "root", "pivot": [0, 0, 0]},
-              bone("fly", fly), bone("inner", inner), bone("poles", poles), bone("strap", strap),
-              bone("lantern", lantern, (0, 69, -64))]
-    for name, (bounds, pivot, parent, color) in FLAPS.items():
-        cubes = bedroom_flap if name == "flap_bedroom" else [box(*bounds, color)]
-        result.append(bone(name, cubes, pivot, parent))
-    for i, x in enumerate((16, -16)):
-        result.append(bone(f"mattress_{i}", [
-            box(x-7, 0, -39, x+7, 8, -9, "mattress_edge"),
-            box(x-7, 8, -39, x+7, 9, -9, "mattress"),
-        ], (x, 0, -24)))
-    result.append(bone("lantern_glass", glass, (0, 40, -64), "lantern"))
-    return result
+def assemble(d=DIMS):
+    bones = {}
+    for builder in (tent_body, tent_entrance, tent_tarp, tent_inner):
+        for name, contribution in builder.build(d, face)["bones"].items():
+            if name in bones:
+                bone = bones[name]
+                assert bone["parent"] == contribution["parent"], name
+                assert bone["pivot"] == contribution["pivot"], name
+                bone["cubes"].extend(contribution["cubes"])
+            else:
+                bones[name] = {"name": name, **contribution}
+    order = ("fly", "inner", "poles", "strap", "lantern", "flap_front", "flap_left",
+             "flap_right", "flap_bedroom", "mattress_0", "mattress_1", "lantern_glass")
+    assert bones.keys() == set(order)
+    return [{"name": "root", "pivot": [0, 0, 0]}, *(bones[name] for name in order)]
 
 
 def geometry():
@@ -247,7 +153,7 @@ def geometry():
                 "visible_bounds_width": 13, "visible_bounds_height": 5,
                 "visible_bounds_offset": [0, 2.5, -5.5],
             },
-            "bones": parts(),
+            "bones": assemble(),
         }],
     })
 
