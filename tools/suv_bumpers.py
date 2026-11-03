@@ -31,7 +31,7 @@ def rear_bumper_cubes():
     # Rear bumper: the same kind of bar facing backward, with red reflectors at its ends and red tow
     # hooks under it
     return [facing_back(c) for c in chamfered_bar(DIMS.rear_bumper.bottom_y, DIMS.rear_bumper.top_y, -DIMS.rear_bumper.tip_z - DIMS.rear_bumper.length, -DIMS.rear_bumper.tip_z,
-                                                   -DIMS.wheels.rear_axle_z + DIMS.wheels.bumper_end_clearance, DIMS.wheels.bumper_half_width, DIMS.rear_bumper.chamfer)]
+                                                   DIMS.rear_bumper.end_back_z, DIMS.wheels.bumper_half_width, DIMS.rear_bumper.chamfer)]
 
 
 def frame_horn_cubes():

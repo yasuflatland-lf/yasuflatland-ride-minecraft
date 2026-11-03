@@ -20,7 +20,8 @@ from tool_loader import load_tool
 texture_io = load_tool("texture_io")
 tent = load_tool("gen_tent")
 cube_tilt = load_tool("cube_tilt")
-ENVELOPE_HALF_WIDTH = load_tool("suv_dims").DIMS.envelope.half_width_blocks
+suv_dims = load_tool("suv_dims")
+ENVELOPE_HALF_WIDTH = suv_dims.DIMS.envelope.half_width_blocks
 # Share the ground tent's swatches and paint order, including fixed bedding colors.
 box = tent.box
 FLY_PAINTS = {**tent.FLY_PAINTS, "khaki": (86, 94, 64)}
@@ -143,6 +144,9 @@ class Dims:
             length = math.hypot(drop, self.ladder_horizontal_reach)
             object.__setattr__(self, "ladder_bottom", self.ladder_pivot[1]-length)
             object.__setattr__(self, "ladder_tilt", -math.degrees(math.atan2(self.ladder_horizontal_reach, drop)))
+            # Keep the top rung one pixel below the pivot and continue rungs down to the foot.
+            first_rung = self.ladder_pivot[1] - 1 - math.floor((length - 1) / self.ladder_rung_spacing) * self.ladder_rung_spacing
+            object.__setattr__(self, "ladder_first_rung", first_rung)
         # Export the ground-contact corner for mount consumers without duplicating the rotation.
         if self.ladder_foot is None:
             x, _, z = self.ladder_pivot
@@ -163,7 +167,7 @@ SUV_DIMS = Dims(
     half_width=1.2 * ENVELOPE_HALF_WIDTH * 16,
     # Rotation puts the former 32-pixel width along z, enlarged by 1.2.
     half_depth=1.2 * 32 / 2,
-    shell_lift=5, host_roof_height=26.1 * 1.45,
+    shell_lift=5, host_roof_height=suv_dims.DIMS.greenhouse.roof_top * suv_dims.SIZE_SCALE,
     mount_bar_width=2, mount_bar_drop=3.5, mount_foot_drop=5,
     # The left shift moved the +18 px bar past the hardtop edge. Both bars now stay on the
     # hardtop (host x within +-ENVELOPE_HALF_WIDTH blocks) and under the platform (tent x within +-31.5 px).
@@ -184,8 +188,8 @@ SUV_DIMS = Dims(
     # Model +x is vehicle left; +z is the rear half.
     ladder_pivot=(1.2 * ENVELOPE_HALF_WIDTH * 16 + 0.5, 2, 6),
     # Rail length and tilt retain the outward reach while compensating for the shell lift.
-    ladder_first_rung=-39,
-    ladder_rails_z=(1, 12), ladder_lower=(31, -38, 1), ladder_upper_x=42,
+    ladder_rails_z=(1, 12), ladder_lower=(1.2 * ENVELOPE_HALF_WIDTH * 16 - 1,
+                  -math.ceil(suv_dims.DIMS.greenhouse.roof_top * suv_dims.SIZE_SCALE) - 1, 1), ladder_upper_x=42,
     # Eight blocks enclose the widened shell and outward ladder; five enclose its height.
     visible_bounds_width=8, visible_bounds_height=5,
     visible_bounds_offset=(0, -0.45, 0),

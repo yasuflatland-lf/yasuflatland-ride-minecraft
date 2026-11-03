@@ -57,23 +57,26 @@ export function suvBodySize(
   };
 }
 
+const ROOF_TOP_PX = 31.825;
+
 export const SUV_BODY_SIZE: SuvBodySize = Object.freeze(
   suvBodySize(
     {
-      roofTop: 26.1,
+      roofTop: ROOF_TOP_PX,
       seatX: 0.38 * 16,
       frontSeatBackZ: -5.75,
       rearSeatBackZ: -18,
       riderAheadOfSeatBack: 5.2,
       collisionWidth: 1.8 * 16,
-      collisionHeight: 1.6 * 16,
+      // Retain the 0.5 construction-pixel gap below the roof slab (ADR 0194).
+      collisionHeight: ROOF_TOP_PX - 0.5,
     },
     1.45,
     {
-      shellFront: 2.69, // encloses the measured 2.6843125-block fog lamp lenses (ADR 0194)
-      shellHalfWidth: 1.64, // encloses the measured 1.63125-block wheel hub caps (ADR 0194)
-      footprint: 3.4, // the rear hover glow reaches 3.396322 blocks at its farthest corner (ADR 0122, 0194)
-      seatY: 0.73, // observed seat height (ADR 0196)
+      shellFront: 3.1, // encloses the measured 3.092125-block fog lamp lenses
+      shellHalfWidth: 1.58, // encloses the measured 1.57234375-block wheel hub caps
+      footprint: 3.95, // the rear bumper corner reaches radius 3.945698957 blocks
+      seatY: 1.16, // round(0.73 observed + 4.75 hood-rise px * 1.45 / 16, 2) (ADR 0196)
     },
   ),
 );

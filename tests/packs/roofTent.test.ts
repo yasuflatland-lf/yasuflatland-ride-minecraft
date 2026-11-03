@@ -689,6 +689,10 @@ describe("roof tent asset contract", () => {
       3,
     );
     expect(d.ladder_foot[1] + d.host_roof_height).toBeCloseTo(0, 3);
+    expect(d.ladder_first_rung).toBeGreaterThan(d.ladder_bottom);
+    expect(d.ladder_first_rung - d.ladder_bottom).toBeLessThanOrEqual(
+      d.ladder_rung_spacing,
+    );
     expect(SUV_SPEC.roofTentRoofHeight * 16).toBeCloseTo(d.host_roof_height);
     expect(SUV_SPEC.roofTentEntranceX).toBeCloseTo(
       SUV_SPEC.roofTentAnchorX + d.ladder_foot[0] / 16,

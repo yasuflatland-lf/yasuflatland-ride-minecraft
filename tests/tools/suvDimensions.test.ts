@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import { SUV_BODY_SIZE } from "../../src/domain/vehicle/kinds/suv/bodySize";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import { type Bone as GeometryBone, turnedCorners } from "../support/geometry";
@@ -217,7 +218,19 @@ it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)"
   )["minecraft:entity"].components;
   const box = entity["minecraft:collision_box"];
   expect(box.width).toBeCloseTo(1.8 * scale, 12);
-  expect(box.height).toBeCloseTo(1.6 * scale, 12);
+  expect(box.height).toBeCloseTo(SUV_BODY_SIZE.collision.height, 12);
+  expect(SUV_BODY_SIZE.roofTop).toBeCloseTo(
+    dimension("greenhouse.roof_top") / 16,
+    9,
+  );
+  expect(SUV_BODY_SIZE.collision.height).toBeCloseTo(
+    (dimension("greenhouse.roof_top") - 0.5 * scale) / 16,
+    9,
+  );
+  expect(SUV_BODY_SIZE.seats.y).toBe(
+    Math.round((0.73 + (constant("hood.interior_rise") * scale) / 16) * 100) /
+      100,
+  );
   expect(SUV_SPEC.carHeight).toBe(box.height);
   expect(SUV_SPEC.hitboxFront).toBe(box.width / 2);
   expect(SUV_SPEC.floatDraft).toBeCloseTo(box.height * 0.75, 12);
@@ -229,7 +242,7 @@ it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)"
     "minecraft:rideable"
   ].seats.entries()) {
     expect(Math.abs(position[0])).toBeCloseTo(0.38 * scale, 12);
-    expect(position[1]).toBe(0.73);
+    expect(position[1]).toBe(SUV_BODY_SIZE.seats.y);
     const seatZ = constant(index < 2 ? "seats.front_z" : "seats.rear_z");
     expect(position[2]).toBeCloseTo(((seatZ + 5.2) * scale) / 16, 12);
   }

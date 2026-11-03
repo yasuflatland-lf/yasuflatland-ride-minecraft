@@ -74,12 +74,13 @@ def wheel(name, x_out, z_center):
     center = (DIMS.wheels.hub_x * x_out, DIMS.wheels.hub_y, z_center)
 
     def span(inner, outer):
-        return hub_span(x_out, inner, outer)
+        return hub_span(x_out, inner + DIMS.wheels.tire_half_width - 2,
+                        outer + DIMS.wheels.tire_half_width - 2)
 
     rivets = [i * 22.5 for i in range(16)]
     spokes = [22.5 + i * 45 for i in range(8)]
     cubes = [
-        *round_tire("x", center, DIMS.wheels.road_radius, *span(-DIMS.wheels.tire_half_width, DIMS.wheels.tire_half_width), segments=24),
+        *round_tire("x", center, DIMS.wheels.road_radius, *hub_span(x_out, -DIMS.wheels.tire_half_width, DIMS.wheels.tire_half_width), segments=24),
         # Shoulder lugs on every other tread block, standing out of the outer sidewall
         *around_axle(center, *span(1.8, 2.15), DIMS.wheels.road_radius - 0.9, DIMS.wheels.road_radius, 0.75, [i * 30 for i in range(12)], "tire"),
         *disc("x", center, 3.6, *span(1.8, 1.85), (0, 30, 60), "trim"),  # barrel behind the spokes
@@ -105,7 +106,7 @@ def prop(name, x_out, z_center):
     plane and inside the tire's inner radius, so the tread ring frames the prop."""
     center = (DIMS.wheels.hub_x * x_out, DIMS.wheels.hub_y, z_center)
     _, cy, cz = center
-    x0, x1 = hub_span(x_out, 2.5, 3.1)
+    x0, x1 = hub_span(x_out, DIMS.wheels.tire_half_width + 0.5, DIMS.wheels.tire_half_width + 1.1)
     blades = []
     for base in (0, 90, 180, 270):
         for r0, r1, half, sweep in PROP_BLADE:
@@ -154,7 +155,7 @@ def sub_arm(name, x_out, z_center):
     prop on the rear face. Before turn_around the front is +z. Hidden by scale outside the submarine."""
     s = x_out
     hx = DIMS.wheels.hub_x + DIMS.fold.sub_out
-    xs = sorted((s * 11, s * (hx + 0.8)))
+    xs = sorted((s * (DIMS.chassis.cabin_half_width - 1), s * (hx + 0.8)))
     face = z_center + DIMS.wheels.tire_half_width  # the tire's front face
     return {
         "name": name,

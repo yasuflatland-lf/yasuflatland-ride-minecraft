@@ -42,14 +42,6 @@ TARGETS["windshield_rake"] = {"degrees": 24, "tolerance": 3}
 # Rows start pending; the PR that makes the model meet a row removes it:
 # 6/13 massing, 7/13 hood scoop, 8/13 flares, 9/13 bumper, 10/13 steps (ADR 0213).
 PENDING = {
-    "wheelbase",
-    "front_overhang",
-    "overall_height",
-    "windshield_rake",
-    "overall_length",
-    "overall_width",
-    "track_width",
-    "tyre_width",
     "flare_reach",
     "flare_top_height",
     "hood_scoop_height",

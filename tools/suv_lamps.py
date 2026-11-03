@@ -32,7 +32,7 @@ LAMP_PARTS: tuple[LampPart, ...] = (
 )
 
 
-HEADLIGHT_CENTERS = ((10.3, 12.3), (-10.3, 12.3))
+HEADLIGHT_CENTERS = ((10.3, DIMS.arch.top_y), (-10.3, DIMS.arch.top_y))
 HEADLIGHT_DIAMETER = 5.6
 HEADLIGHT_THICKNESS = 0.1
 HEADLIGHT_FRONT = DIMS.hood.front_z + 0.65
@@ -90,12 +90,12 @@ def third_brake_light_cubes():
 
 
 def tail_light_cubes():
-    return [box(9.6, 10, DIMS.chassis.rear_z - 0.3, 12.6, 16, DIMS.chassis.rear_z,
+    return [box(9.6, DIMS.chassis.floor_y + 2, DIMS.chassis.rear_z - 0.3, 12.6, DIMS.greenhouse.belt_y - 2, DIMS.chassis.rear_z,
                 suv_cubes.region_faces("tail_lamp", "tail_face", {"north": (0, 0, 12, 24)}))]
 
 
 def tail_resin_cubes():
-    return [box(12.6, 10, DIMS.chassis.rear_z - 0.3, 13, 16, DIMS.chassis.rear_z, "resin")]
+    return [box(12.6, DIMS.chassis.floor_y + 2, DIMS.chassis.rear_z - 0.3, 13, DIMS.greenhouse.belt_y - 2, DIMS.chassis.rear_z, "resin")]
 
 
 def bumper_reflector_cubes():

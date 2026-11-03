@@ -17,18 +17,22 @@ SIZE_SCALE = 1.45
 @dataclass(frozen=True)
 class Chassis:
     """Chassis and ground clearance: the chassis runs from the sill (its underside, which also sets
-    where the side steps and bumpers hang) up to the cabin floor. The sill sits at the target's
-    clearance (ADR 0170, 4/7). The floor sits only as high as the side steps' thickness needs, and
-    the seats do not follow it: higher seats would take the riders' head room under the lowered roof.
+    where the side steps hang) up to the cabin floor. The floor and interior rise with the hood;
+    the sill follows the reference ground clearance (ADR 0213).
     """
 
-    # The wheelbase and overhang ratios follow the side-view reference (ADR 0170).
-    rear_z: float = -31  # z of the tailgate's outer face
+    hood: "Hood"
+
+    # The cabin width stays anchored to two seated riders while D grows (ADR 0213).
+    rear_z: float = -39.025  # z of the tailgate's outer face
     cargo_front_z: float = -19  # z where the rear doors end and the cargo area's fixed panels begin
-    sill_y: float = 6.875
-    floor_y: float = 8
+    sill_y: float = 8.875
     body_half_width: float = 13
     cabin_half_width: float = 12
+
+    @property
+    def floor_y(self):
+        return 8 + self.hood.interior_rise
 
     @property
     def door_frame_mid_x(self):
@@ -41,8 +45,8 @@ class Greenhouse:
     Roof ribs add 0.3 px above the roof top to the measured overall height.
     """
 
-    belt_y: float = 18.4
-    window_height: float = 6.5
+    belt_y: float = 23
+    window_height: float = 8.125
 
     @property
     def window_bottom_y(self):
@@ -55,7 +59,7 @@ class Greenhouse:
     @property
     def roof_y(self):
         """Underside of the roof."""
-        return self.window_top_y + 1
+        return self.window_top_y + 0.5
 
     @property
     def roof_top(self):
@@ -66,9 +70,14 @@ class Greenhouse:
 class Hood:
     """The target hood stands above the belt line, so its cowl has its own height (ADR 0170)."""
 
-    top_y: float = 19
-    front_z: float = 25  # z of the hood's front face
+    top_y: float = 23.75
+    front_z: float = 28.375  # z of the hood's front face
     rear_z: float = 7.75  # z of the cowl, where the hood meets the windshield frame
+
+    @property
+    def interior_rise(self):
+        """Keep the cabin fittings at the same height relative to the hood (ADR 0213)."""
+        return self.top_y - 19
 
 
 @dataclass(frozen=True)
@@ -81,7 +90,7 @@ class Windshield:
     hood: Hood
     greenhouse: Greenhouse
     rail_height: float = 0.3
-    lean_degrees: float = 35  # degrees back from vertical
+    lean_degrees: float = 24  # degrees back from vertical
 
     @property
     def foot_z(self):
@@ -137,8 +146,11 @@ class Dash:
     """The dashboard follows the cowl."""
 
     hood: Hood
-    bottom_y: float = 13
     gauge_drop: float = 1.25
+
+    @property
+    def bottom_y(self):
+        return self.hood.top_y - 6
 
     @property
     def face_z(self):
@@ -154,15 +166,15 @@ class Wheels:
     """The tires stand out from the body's side, under over-fenders."""
 
     chassis: Chassis
-    road_radius: float = 6
-    tire_half_width: float = 2
+    road_radius: float = 7.5
+    tire_half_width: float = 3
     front_axle_z: float = 21
-    rear_axle_z: float = -21.5
+    rear_axle_z: float = -26.6
 
     @property
     def hub_x(self):
         """Distance of the wheel hubs from the center line."""
-        return self.chassis.body_half_width + 2.5
+        return self.chassis.body_half_width + 0.85
 
     @property
     def hub_y(self):
@@ -171,13 +183,12 @@ class Wheels:
     @property
     def bumper_half_width(self):
         """Both bumper bars reach out over the tires like the reference's."""
-        return self.hub_x + 1
+        return self.chassis.body_half_width + 3.65
 
     @property
     def bumper_end_clearance(self):
-        """The bars only run as far back as the tire's farthest spinning corner (6.07 px from the hub
-        at D=12.05 px, on its inner face) allows: outboard of the body they are shallow end pieces,
-        and only the part between the tires runs back to the body."""
+        """Outboard end pieces stop ahead of the tire's farthest spinning corner; only the
+        center bar runs back to the body."""
         return self.road_radius + 0.2
 
 
@@ -186,26 +197,26 @@ class Flare:
     """Outer face of the flares, over the inner half of the tires."""
 
     chassis: Chassis
-    thickness: float = 1.5
+    thickness: float = 1.875
 
     @property
     def x(self):
-        return self.chassis.body_half_width + 2.75
+        return self.chassis.body_half_width + 3.4375
 
 
 @dataclass(frozen=True)
 class Arch:
     """Wheel arch: the inside of each flare. Its flat top's underside, the top's half length, and the
-    inner lower end of each slope, ahead of and behind the axle. The slope stays over 6.3 px from the
-    hub while the slimmer foot fits behind the target's 8.38 px front overhang (ADR 0170).
+    inner lower end of each slope, ahead of and behind the axle. The opening scales with the road
+    radius while the liner sits inboard of the wider tire (ADR 0213).
     """
 
     flare: Flare
-    top_y: float = 12.3
-    top_half: float = 3.5
-    foot_y: float = 8
-    foot_z: float = 6.2
-    liner_x: float = 11.4  # the arch liners hide the cabin through the arches
+    top_y: float = 15.375
+    top_half: float = 4.375
+    foot_y: float = 10
+    foot_z: float = 7.75
+    liner_x: float = 10.45  # the arch liners hide the cabin through the arches
 
     @property
     def run_per_rise(self):
@@ -229,9 +240,9 @@ class FrontBumper:
 
     hood: Hood
     wheels: Wheels
-    length: float = 4
-    grille_bottom_y: float = 9
-    height: float = 4.2
+    length: float = 4.375
+    grille_bottom_y: float = 11.25
+    height: float = 5.25
 
     @property
     def top_y(self):
@@ -243,7 +254,7 @@ class FrontBumper:
 
     @property
     def tip_z(self):
-        return self.hood.front_z + 4.5
+        return self.hood.front_z + 5.625
 
     @property
     def back_z(self):
@@ -259,15 +270,15 @@ class FrontBumper:
 
     @property
     def end_back_z(self):
-        return self.wheels.front_axle_z + self.wheels.bumper_end_clearance
+        return max(self.back_z, self.wheels.front_axle_z + self.wheels.bumper_end_clearance)
 
 
 @dataclass(frozen=True)
 class RearBumper:
     chassis: Chassis
     wheels: Wheels
-    length: float = 5
-    height: float = 3
+    length: float = 6.25
+    height: float = 3.75
     chamfer: float = 2
 
     @property
@@ -280,7 +291,12 @@ class RearBumper:
 
     @property
     def tip_z(self):
-        return self.chassis.rear_z - 1.5
+        return self.chassis.rear_z - 1.875
+
+    @property
+    def end_back_z(self):
+        return max(-self.tip_z - self.length,
+                   -self.wheels.rear_axle_z + self.wheels.bumper_end_clearance)
 
     @property
     def reflector_x1(self):
@@ -323,6 +339,10 @@ class Seats:
     front_z: float = -5.75
 
     @property
+    def cushion_y(self):
+        return 10 + self.chassis.hood.interior_rise
+
+    @property
     def rear_z(self):
         return self.chassis.cargo_front_z + 1
 
@@ -336,9 +356,12 @@ class Steering:
     """
 
     dash: Dash
-    center: tuple = (6.0, 16.5)  # (x, y)
     radius: float = 2.4
     tilt: float = -20
+
+    @property
+    def center(self):
+        return (6.0, self.dash.hood.top_y - 2.5)
 
     @property
     def z(self):
@@ -366,9 +389,9 @@ class Fold:
 
     chassis: Chassis
     wheels: Wheels
-    out: float = 6
-    drop: float = 4
-    sub_out: float = 6
+    out: float = 7.5
+    drop: float = 5
+    sub_out: float = 7.5
     arm_thick: float = 1.4
 
     @property
@@ -390,8 +413,8 @@ class Lamps:
     corners so they are on its straight face."""
 
     front_bumper: FrontBumper
-    y0: float = 11.4
-    y1: float = 12.2
+    y0: float = 14.25
+    y1: float = 15.25
     fog_x: float = 10.5
 
     @property
@@ -404,17 +427,23 @@ class Spare:
     """Rear spare tire (on the tailgate, axle along z)."""
 
     chassis: Chassis
+    wheels: Wheels
+    half_width: float = 1.875
+
+    @property
+    def radius(self):
+        return self.wheels.road_radius * 5 / 6
 
     @property
     def center(self):
-        return (0, 13.5, self.chassis.rear_z - 1.5)
+        return (0, 16.875, self.chassis.rear_z - self.half_width)
 
 
 @dataclass(frozen=True)
 class Envelope:
     """The rounded game probe shared with SUV_SPEC.bodyHalfWidth, in blocks."""
 
-    half_width_blocks: float = 1.64
+    half_width_blocks: float = 1.58
 
 
 @dataclass(frozen=True)
@@ -440,9 +469,9 @@ class SuvDims:
 
 
 def _build():
-    chassis = Chassis()
-    greenhouse = Greenhouse()
     hood = Hood()
+    chassis = Chassis(hood)
+    greenhouse = Greenhouse()
     dash = Dash(hood)
     wheels = Wheels(chassis)
     flare = Flare(chassis)
@@ -465,7 +494,7 @@ def _build():
         steering=Steering(dash),
         fold=Fold(chassis, wheels),
         lamps=Lamps(front_bumper),
-        spare=Spare(chassis),
+        spare=Spare(chassis, wheels),
         envelope=Envelope(),
     )
 

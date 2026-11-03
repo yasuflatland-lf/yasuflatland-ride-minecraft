@@ -28,7 +28,8 @@ def cargo_lower_side_cubes():
 def cargo_floor_cubes():
     return [
         # Cargo floor
-        box(-DIMS.chassis.cabin_half_width, DIMS.chassis.floor_y, DIMS.chassis.rear_z + 1, DIMS.chassis.cabin_half_width, DIMS.chassis.floor_y + 0.3, DIMS.chassis.cargo_front_z, "hardtop"),
+        box(-DIMS.arch.liner_x, DIMS.chassis.floor_y, DIMS.chassis.rear_z + 1, DIMS.arch.liner_x, DIMS.chassis.floor_y + 0.3, DIMS.chassis.cargo_front_z, "hardtop"),
+        *suv_cubes.both_sides(arch_cut(DIMS.arch.liner_x, DIMS.chassis.cabin_half_width, DIMS.chassis.floor_y, DIMS.chassis.floor_y + 0.3, DIMS.chassis.rear_z + 1, DIMS.chassis.cargo_front_z, DIMS.wheels.rear_axle_z, "hardtop")),
     ]
 
 
@@ -45,15 +46,17 @@ def tailgate_cubes():
 def tailgate_hinge_cubes():
     # The tailgate hinges sit on the right.
     return [
-        box(6.2, 14.2, DIMS.chassis.rear_z - 0.3, 9.0, 15.2, DIMS.chassis.rear_z, "body"),
-        box(6.2, 10.4, DIMS.chassis.rear_z - 0.3, 9.0, 11.4, DIMS.chassis.rear_z, "body"),
+        box(6.2, DIMS.greenhouse.belt_y - 4.2, DIMS.chassis.rear_z - 0.3, 9.0, DIMS.greenhouse.belt_y - 3.2, DIMS.chassis.rear_z, "body"),
+        box(6.2, DIMS.chassis.floor_y + 2.4, DIMS.chassis.rear_z - 0.3, 9.0, DIMS.chassis.floor_y + 3.4, DIMS.chassis.rear_z, "body"),
     ]
 
 
 def spare_rim_cubes():
     result = []
-    result += disc("z", DIMS.spare.center, 2.3, DIMS.chassis.rear_z - 3.3, DIMS.chassis.rear_z - 3, (0, 30, 60), "rim")
-    result += disc("z", DIMS.spare.center, 0.9, DIMS.chassis.rear_z - 3.5, DIMS.chassis.rear_z - 3.3, (0, 45), "trim")
+    face = DIMS.chassis.rear_z - 2 * DIMS.spare.half_width
+    scale = DIMS.spare.radius / 5
+    result += disc("z", DIMS.spare.center, 2.3 * scale, face - 0.3 * scale, face, (0, 30, 60), "rim")
+    result += disc("z", DIMS.spare.center, 0.9 * scale, face - 0.5 * scale, face - 0.3 * scale, (0, 45), "trim")
     return result
 
 
@@ -67,4 +70,4 @@ def exhaust_cubes():
 
 def fuel_door_cubes():
     # Round fuel door on the left side of the cargo area, behind the rear flare and under the belt line
-    return disc("x", (-DIMS.chassis.body_half_width, 14.8, DIMS.chassis.rear_z + 2.7), 1.2, -DIMS.chassis.body_half_width - 0.25, -DIMS.chassis.body_half_width, [i * 11.25 for i in range(8)], "grille")  # 32 sides
+    return disc("x", (-DIMS.chassis.body_half_width, DIMS.greenhouse.belt_y - 3.6, DIMS.chassis.rear_z + 2.7), 1.2, -DIMS.chassis.body_half_width - 0.25, -DIMS.chassis.body_half_width, [i * 11.25 for i in range(8)], "grille")  # 32 sides

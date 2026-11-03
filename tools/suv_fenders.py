@@ -38,6 +38,6 @@ def arch_liner_cubes():
     # Black inner liners behind each arch, so the cabin does not show through it. The front arch sits
     # close enough to the hood's front face that an unclipped liner would stick out ahead of the grille.
     return [
-        box(DIMS.arch.liner_x, DIMS.arch.foot_y - 1, z - DIMS.arch.foot_z - 0.5, 11.6, DIMS.arch.top_y + 0.5, min(z + DIMS.arch.foot_z + 0.5, DIMS.hood.front_z), "grille")
+        box(DIMS.arch.liner_x, DIMS.arch.foot_y - 1, z - DIMS.arch.foot_z - 0.5, DIMS.arch.liner_x + 0.2, DIMS.arch.top_y + 0.5, min(z + DIMS.arch.foot_z + 0.5, DIMS.hood.front_z), "grille")
         for z in (DIMS.wheels.front_axle_z, DIMS.wheels.rear_axle_z)
     ]

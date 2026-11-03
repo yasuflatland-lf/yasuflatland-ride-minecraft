@@ -9,7 +9,7 @@ windshield_part = shell.windshield_part
 arch_cut = shell.arch_cut
 suv_cubes = load_tool("suv_cubes")
 mirrored = suv_cubes.mirrored
-HANDLE_BOTTOM_Y, HANDLE_TOP_Y = 14.4, 15.1
+HANDLE_BOTTOM_Y, HANDLE_TOP_Y = DIMS.greenhouse.belt_y - 4, DIMS.greenhouse.belt_y - 3.3
 HANDLE_REAR_OFFSET, HANDLE_FRONT_OFFSET = 1.5, 4.5
 HANDLE_OUTER_X = 13.35
 
@@ -62,6 +62,6 @@ def door(name):
     return {
         "name": name,
         "parent": "body",
-        "pivot": [DIMS.chassis.door_frame_mid_x * side, 12, z_front],
+        "pivot": [DIMS.chassis.door_frame_mid_x * side, DIMS.chassis.floor_y + 4, z_front],
         "cubes": cubes if side > 0 else [mirrored(c) for c in cubes],
     }

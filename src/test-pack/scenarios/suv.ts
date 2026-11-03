@@ -99,7 +99,7 @@ export async function turnAndHandbrake(a: Arena): Promise<Outcome> {
       let inside = true;
       for (let t = 0; t < 20; t++) {
         await wait(1);
-        inside &&= insideArena(a.local(car.location), SUV_SPEC.bodyHalfWidth);
+        inside &&= insideArena(a.local(car.location), SUV_SPEC.footprint);
         const v = car.getVelocity();
         const speed = length(v);
         maxSpeed = Math.max(maxSpeed, speed);
@@ -571,7 +571,7 @@ export function flightDriverless(a: Arena): Promise<Outcome> {
 
 // Deep enough for a full car height of water. In the flat dev world
 // (gy = -60) a 3-deep pool puts its stone floor at -64, the bottom of the
-// world, so the scaled SUV (carHeight 2.32, ADR 0194) gets no spare block of
+// world, so the taller SUV gets no spare block of
 // water under it; a carHeight above 3 no longer fits and withPool throws
 // instead of filling below the world.
 const DIVE_DEPTH = Math.ceil(SUV_SPEC.carHeight);

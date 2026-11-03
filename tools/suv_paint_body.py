@@ -45,7 +45,7 @@ REGIONS = (
     panel("flake", 2 * DIMS.chassis.body_half_width, 2 * DIMS.chassis.body_half_width),
     panel("hardtop", 2 * DIMS.chassis.body_half_width, DIMS.windshield.roof_front - DIMS.chassis.rear_z, "hardtop", HARDTOP_FLAT_DENSITY),
     *(panel(name, *extent) for name, extent in PANEL_EXTENTS.items()),
-    panel("hardtop_rib", 1, DIMS.cabin.roof_seam_z - DIMS.chassis.rear_z, "hardtop_rib"),
+    panel("hardtop_rib", 1, DIMS.cabin.roof_seam_z - DIMS.chassis.rear_z, "hardtop_rib", HARDTOP_FLAT_DENSITY),
     panel("hardtop_side", DIMS.windshield.roof_front - DIMS.chassis.rear_z, DIMS.greenhouse.roof_y - DIMS.greenhouse.belt_y, "hardtop"),
     panel("hardtop_rib_side", DIMS.windshield.roof_front - DIMS.chassis.rear_z, 1, "hardtop_rib"),
 )

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { defined } from "../support/defined";
@@ -22,6 +23,23 @@ const render = read(`${RP}/render_controllers/yasu_ride/suv.rc.json`)
 const particle = read(
   `${RP}/particles/yasu_ride/hover_glow.particle.json`,
 ).particle_effect;
+const foldDimensions = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      [
+        "import json, sys",
+        "sys.path.insert(0, 'tools')",
+        "from tool_loader import load_tool",
+        "d = load_tool('suv_dims')",
+        "print(json.dumps([d.DIMS.fold.out * d.SIZE_SCALE, d.DIMS.fold.drop * d.SIZE_SCALE]))",
+      ].join("\n"),
+    ],
+    { encoding: "utf8" },
+  ),
+) as [number, number];
 const WHEELS = ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
 const geo = read(`${RP}/models/entity/yasu_ride/suv.geo.json`)[
   "minecraft:geometry"
@@ -97,14 +115,18 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
     }
   });
 
-  it("folds every wheel 90 degrees, lowers it 5.8 px and moves it 8.7 px out, with the two sides turning opposite ways", () => {
+  it("folds every wheel 90 degrees with DIMS offsets and the two sides turning opposite ways", () => {
     const folded = anims["animation.yasu_ride.suv.wheels_folded"].bones;
     for (const w of WHEELS) {
       expect(Math.abs(folded[w].rotation[2]), w).toBe(90);
       // Animation positions run along the model's axes (ADR 0043), so the
       // outward step takes the sign of the wheel's side.
       const outward = Math.sign(geoPivot(w)[0] ?? 0);
-      expect(folded[w].position, w).toEqual([8.7 * outward, -5.8, 0]);
+      expect(folded[w].position, w).toEqual([
+        foldDimensions[0] * outward,
+        -foldDimensions[1],
+        0,
+      ]);
     }
     expect(folded.wheel_fl.rotation[2]).toBe(-folded.wheel_fr.rotation[2]);
     expect(folded.wheel_rl.rotation[2]).toBe(folded.wheel_fl.rotation[2]);

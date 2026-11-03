@@ -31,7 +31,8 @@ def box(x0, y0, z0, x1, y1, z1, color):
         if color == "body":
             name, face_scale = "flake", scale
         elif color == "hardtop_rib":
-            name, face_scale = "hardtop_rib" if face in ("up", "down") else "hardtop_rib_side", scale
+            name = "hardtop_rib" if face in ("up", "down") else "hardtop_rib_side"
+            face_scale = body_paint.HARDTOP_FLAT_DENSITY if face in ("up", "down") else scale
         elif face in ("up", "down"):
             name, face_scale = "hardtop", body_paint.HARDTOP_FLAT_DENSITY
         else:

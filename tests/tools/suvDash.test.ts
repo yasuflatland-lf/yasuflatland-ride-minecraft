@@ -16,6 +16,7 @@ atlas = load_tool('suv_atlas')
 slab, fittings = d.dash_slab_cubes(), d.dash_fittings_cubes()
 assert slab and fittings
 latch = c.box(*d.LATCH_BOUNDS, 'rim')
+c.translate([latch], 1, d.DIMS.hood.interior_rise)
 c.translate([latch], 2, d.DIMS.dash.shift_z)
 assert [cube for cube in slab + fittings if cube['uv'] == c.uv('rim')] == [latch]
 for cube in slab + fittings:

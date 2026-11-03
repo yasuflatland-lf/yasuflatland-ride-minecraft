@@ -1,7 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  SUV_BODY_SIZE,
   type SuvConstructionPx,
   suvBodySize,
 } from "../../../../../src/domain/vehicle/kinds/suv/bodySize";
@@ -23,17 +22,18 @@ const MEASURED = {
 };
 
 describe("suvBodySize", () => {
-  it("gives today's numbers for today's inputs", () => {
-    const b = SUV_BODY_SIZE;
-    expect(b.collision.width).toBeCloseTo(2.61, 9);
-    expect(b.collision.height).toBeCloseTo(2.32, 9);
-    expect(b.roofTop).toBeCloseTo((26.1 * 1.45) / 16, 9);
-    expect(b.seats.x).toBeCloseTo(0.551, 9);
-    expect(b.seats.frontZ).toBeCloseTo(-0.04984375, 9);
-    expect(b.seats.rearZ).toBeCloseTo(-1.16, 9);
-    expect(b.seats.y).toBe(0.73);
-    expect(b.shell).toEqual({ front: 2.69, halfWidth: 1.64 });
-    expect(b.footprint).toBe(3.4);
+  it("keeps measured probes and seat height independent of scale", () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0.1, max: 5, noNaN: true }), (scale) => {
+        const body = suvBodySize(PX, scale, MEASURED);
+        expect(body.shell).toEqual({
+          front: MEASURED.shellFront,
+          halfWidth: MEASURED.shellHalfWidth,
+        });
+        expect(body.footprint).toBe(MEASURED.footprint);
+        expect(body.seats.y).toBe(MEASURED.seatY);
+      }),
+    );
   });
 
   it("scales every derived length linearly with scale", () => {

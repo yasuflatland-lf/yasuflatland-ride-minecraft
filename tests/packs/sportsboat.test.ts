@@ -1078,11 +1078,30 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const suv = read(`${RP}/models/entity/yasu_ride/suv.geo.json`)[
       "minecraft:geometry"
     ][0];
+    const bandHeight = Number(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          [
+            "import sys",
+            "sys.path.insert(0, 'tools')",
+            "from tool_loader import load_tool",
+            "d = load_tool('suv_dims')",
+            "b = d.DIMS.front_bumper",
+            "print((b.band_top_y - b.band_bottom_y) * d.SIZE_SCALE)",
+          ].join("\n"),
+        ],
+        { encoding: "utf8" },
+      ),
+    );
     const corners: Cube[] = suv.bones
       .flatMap((b: { cubes?: Cube[] }) => b.cubes ?? [])
       .filter(
         (cube: Cube) =>
-          cube.rotation?.[1] === 30 && Math.abs(cube.size[1] - 4.205) < 1e-6,
+          cube.rotation?.[1] === 30 &&
+          Math.abs(cube.size[1] - bandHeight) < 1e-6,
       );
     expect(corners).toHaveLength(1);
     const corner = corners[0];

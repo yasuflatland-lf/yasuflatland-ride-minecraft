@@ -44,6 +44,7 @@ def pleated_seat(x0, x1, z_back):
     for i in range(7):
         y = 11.2 + i * (rib + gap)
         cubes.append(box(inner0, y, z_back + 1, inner1, y + rib, z_back + 1.4, "seat_pleat"))
+    suv_cubes.translate(cubes, 1, DIMS.hood.interior_rise)
     return cubes
 
 
@@ -161,6 +162,7 @@ def pedal_cubes():
             box(px - 0.9, 8.2, 11.4, px + 0.9, 9.6, 11.7, "grille"),  # pad
         ]
         result += [box(px - 0.8, y, 11.3, px + 0.8, y + 0.2, 11.4, "trim") for y in (8.45, 8.8, 9.15)]  # ribs
+    suv_cubes.translate(result, 1, DIMS.hood.interior_rise)
     accelerator = box(8.3, DIMS.chassis.floor_y, 10.2, 9.3, DIMS.chassis.floor_y + 0.3, 12.8, "grille")
     accelerator["pivot"] = [8.8, DIMS.chassis.floor_y, 12.8]
     accelerator["rotation"] = [-25, 0, 0]

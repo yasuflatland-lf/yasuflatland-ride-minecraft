@@ -26,6 +26,7 @@ type Result = {
   unchanged: boolean;
   pending: string[];
   bounds: [Vec, Vec];
+  extents: { front: number; halfWidth: number; roofTop: number };
 };
 
 const run = async (cubes: Cubes): Promise<Result> => {
@@ -34,10 +35,13 @@ const run = async (cubes: Cubes): Promise<Result> => {
     "sys.path.insert(0, 'tools')",
     "from tool_loader import load_tool",
     "m = load_tool('suv_proportions')",
+    "d = load_tool('suv_dims')",
+    "D, scale = d.DIMS, d.SIZE_SCALE / 16",
+    "extents = dict(front=(D.front_bumper.tip_z + 0.05) * scale, halfWidth=D.wheels.bumper_half_width * scale, roofTop=(D.greenhouse.roof_top + 0.3) * scale)",
     "cubes = json.load(sys.stdin)",
     "before = copy.deepcopy(cubes)",
     "first = m.measure(cubes)",
-    "print(json.dumps(dict(measures=first, targets=m.TARGETS, repeated=m.measure(cubes), unchanged=cubes == before, pending=sorted(m.PENDING), bounds=m._bounds(cubes['body']))))",
+    "print(json.dumps(dict(measures=first, targets=m.TARGETS, repeated=m.measure(cubes), unchanged=cubes == before, pending=sorted(m.PENDING), bounds=m._bounds(cubes['body']), extents=extents)))",
   ].join("\n");
   return JSON.parse(await python.run(script, JSON.stringify(cubes)));
 };
@@ -105,18 +109,22 @@ const baseline = await run(generated);
 describe("SUV proportions", () => {
   it("preserves the completed proportions of non-pending rows within 0.005", () => {
     const previous = {
-      wheelbase: 3.5264418956676304,
-      front_overhang: 0.705288379133526,
-      rear_overhang: 0.9127261377022102,
-      ground_clearance: 0.5726032154990395,
-      overall_height: 2.192692109920462,
-      belt_height: 1.528891282500673,
-      side_window_height: 0.5393381722785787,
-      hood_height: 1.5786763445571574,
-      hood_length: 1.795549102379232,
-      front_bumper_length: 0.3319004137098946,
-      rear_bumper_length: 0.41487551713736825,
-      bumper_height: 0.3484954343953894,
+      overall_length: 4.976228378189183,
+      overall_width: 2.2123952602630284,
+      track_width: 1.873559950132643,
+      tyre_width: 0.4318489246759638,
+      wheelbase: 3.1624628945501345,
+      front_overhang: 0.863697849351928,
+      rear_overhang: 0.9500676342871203,
+      ground_clearance: 0.5913526571429923,
+      overall_height: 2.136043041560863,
+      belt_height: 1.5297935896119137,
+      side_window_height: 0.5398111558449548,
+      hood_height: 1.5796223116899095,
+      hood_length: 1.7408615361830717,
+      front_bumper_length: 0.290667545454976,
+      rear_bumper_length: 0.4152393506499652,
+      bumper_height: 0.34880105454597077,
     };
     for (const [key, ratio] of Object.entries(previous)) {
       if (baseline.pending.includes(key)) continue;
@@ -271,26 +279,26 @@ describe("SUV proportions", () => {
     const points = cornersOf(
       (name) => name === "body" || name.startsWith("door_"),
     );
+    expect(Math.max(...points.map((p) => -p[2])) / 16).toBeCloseTo(
+      baseline.extents.front,
+      10,
+    );
+    expect(Math.max(...points.map((p) => Math.abs(p[0]))) / 16).toBeCloseTo(
+      baseline.extents.halfWidth,
+      10,
+    );
+    expect(baseline.bounds[1][1] / 16).toBeCloseTo(
+      baseline.extents.roofTop,
+      10,
+    );
     expect(Math.max(...points.map((p) => -p[2])) / 16).toBeLessThanOrEqual(
       SUV_SPEC.bodyFront,
     );
     expect(
       Math.max(...points.map((p) => Math.abs(p[0]))) / 16,
     ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth);
-    expect(Math.max(...points.map((p) => -p[2])) / 16).toBeCloseTo(
-      2.67796875,
-      10,
-    );
-    expect(Math.max(...points.map((p) => Math.abs(p[0]))) / 16).toBeCloseTo(
-      1.4953125,
-      10,
-    );
-    expect(linear(baseline, "overall_height").pixels / 16).toBeCloseTo(
-      2.394847541651231,
-      10,
-    );
-    // ADR 0170 retains the maximum 0.30-block roof allowance after scaling.
-    const heightMargin = 0.3;
+    // Keep the measured pre-growth roof-to-box gap below 0.075 blocks (ADR 0194).
+    const heightMargin = 0.075;
     expect(linear(baseline, "overall_height").pixels / 16).toBeLessThanOrEqual(
       SUV_SPEC.carHeight + heightMargin,
     );
@@ -307,5 +315,17 @@ describe("SUV proportions", () => {
     expect(
       Math.max(...all.map((p) => Math.hypot(p[0], p[2]))) / 16,
     ).toBeLessThanOrEqual(SUV_SPEC.footprint);
+    const roundUp = (value: number) => Math.ceil(value * 100) / 100;
+    expect(SUV_SPEC.bodyFront).toBe(
+      roundUp(Math.max(...points.concat(lamps).map((p) => -p[2])) / 16),
+    );
+    expect(SUV_SPEC.bodyHalfWidth).toBe(
+      roundUp(
+        Math.max(...points.concat(wheels).map((p) => Math.abs(p[0]))) / 16,
+      ),
+    );
+    expect(SUV_SPEC.footprint).toBe(
+      roundUp(Math.max(...all.map((p) => Math.hypot(p[0], p[2]))) / 16),
+    );
   });
 });

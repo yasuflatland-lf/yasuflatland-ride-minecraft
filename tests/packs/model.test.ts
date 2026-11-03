@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { afterAll, describe, expect, it } from "vitest";
+import { SUV_BODY_SIZE } from "../../src/domain/vehicle/kinds/suv/bodySize";
 import { DOOR_BY_SEAT } from "../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
@@ -21,10 +22,18 @@ const dimensions = JSON.parse(
       "from tool_loader import load_tool",
       "d = load_tool('suv_dims')",
       "D = d.DIMS",
-      "print(json.dumps({'SIZE_SCALE': d.SIZE_SCALE, 'HOOD_TOP_Y': D.hood.top_y, 'WINDSHIELD_RAIL_HEIGHT': D.windshield.rail_height, 'WINDSHIELD_LEAN': D.windshield.lean_degrees, 'ROOF_Y': D.greenhouse.roof_y, 'ROOF_TOP': D.greenhouse.roof_top}))",
+      "print(json.dumps({'SIZE_SCALE': d.SIZE_SCALE, 'HOOD_TOP_Y': D.hood.top_y, 'WINDSHIELD_RAIL_HEIGHT': D.windshield.rail_height, 'WINDSHIELD_LEAN': D.windshield.lean_degrees, 'ROOF_Y': D.greenhouse.roof_y, 'ROOF_TOP': D.greenhouse.roof_top, 'DASH_BOTTOM_Y': D.dash.bottom_y, 'FLOOR_Y': D.chassis.floor_y, 'INTERIOR_RISE': D.hood.interior_rise, 'STEERING_Y': D.steering.center[1], 'FOLDED_WHEEL_TOP_Y': D.fold.folded_wheel_top_y, 'HOOD_REAR_Z': D.hood.rear_z, 'DASH_FACE_Z': D.dash.face_z, 'CABIN_HALF_WIDTH': D.chassis.cabin_half_width}))",
     ].join("\n"),
   ),
 ) as {
+  DASH_BOTTOM_Y: number;
+  FLOOR_Y: number;
+  INTERIOR_RISE: number;
+  STEERING_Y: number;
+  FOLDED_WHEEL_TOP_Y: number;
+  HOOD_REAR_Z: number;
+  DASH_FACE_Z: number;
+  CABIN_HALF_WIDTH: number;
   SIZE_SCALE: number;
   HOOD_TOP_Y: number;
   WINDSHIELD_RAIL_HEIGHT: number;
@@ -162,7 +171,7 @@ it("keeps every seated player's head beneath the SUV roof and behind the raked w
   expect(windshield.length).toBeGreaterThanOrEqual(4);
   expect(seats).toHaveLength(4);
   for (const seat of seats) {
-    expect(seat.position[1]).toBe(0.73);
+    expect(seat.position[1]).toBe(SUV_BODY_SIZE.seats.y);
     const top = seat.position[1] * 16 + RIDER_HEAD_PX;
     expect(top + 0.5).toBeLessThanOrEqual(roof.origin[1]);
     // The head box grown by the margin; the model's front is -z (ADR 0009).
@@ -185,7 +194,7 @@ describe("SUV model (ADR 0009)", () => {
       (c) =>
         !c.rotation &&
         c.size[0] > 30 &&
-        c.origin[1] === scaled(13) &&
+        c.origin[1] === scaled(dimensions.DASH_BOTTOM_Y) &&
         c.size[1] > 5 &&
         c.size[2] < 2,
     );
@@ -413,7 +422,7 @@ describe("SUV model (ADR 0009)", () => {
   });
 
   // Each arm runs from inside the wheel arch down and out to the hub on top
-  // of the folded wheel, which sits FOLD_OUT px out and 4 px down (ADR 0043).
+  // of the folded wheel, at the outward and downward offsets from DIMS (ADR 0043).
   it("has an arm from the wheel arch to each folded wheel's hub (ADR 0043)", () => {
     for (const w of ["fl", "fr", "rl", "rr"]) {
       const wheel = pivot(`wheel_${w}`);
@@ -427,7 +436,10 @@ describe("SUV model (ADR 0009)", () => {
       expect(Math.min(...xs.map((x) => x * out))).toBeLessThan(scaled(13));
       expect(Math.max(...xs.map((x) => x * out))).toBeGreaterThan(hubX);
       // The arm rests on the scaled folded tire's top face.
-      expect(Math.min(...ys)).toBeCloseTo(scaled(4), 6);
+      expect(Math.min(...ys)).toBeCloseTo(
+        scaled(dimensions.FOLDED_WHEEL_TOP_Y),
+        6,
+      );
       for (const c of cubes) {
         expect(c.rotation, `arm_${w}`).toBeUndefined();
         // Each arm stays in its own wheel's plane, centered on the axle in z.
@@ -544,16 +556,16 @@ describe("SUV model (ADR 0009)", () => {
         .filter((corners) =>
           corners.every(
             ([x, y, z]) =>
-              Math.abs(x) < scaled(12) &&
-              y >= scaled(13) &&
-              y <= scaled(22) &&
-              z > -scaled(8) &&
+              Math.abs(x) < scaled(dimensions.CABIN_HALF_WIDTH) &&
+              y >= scaled(dimensions.DASH_BOTTOM_Y) &&
+              y <= scaled(22 + dimensions.INTERIOR_RISE) &&
+              z > -scaled(dimensions.HOOD_REAR_Z + 0.25) &&
               z < 0,
           ),
         );
       expect(fittings.length).toBeGreaterThan(20);
       for (const fitting of fittings)
-        expect(separated(glass, fitting)).toBe(true);
+        expect(separated(glass, fitting), JSON.stringify(fitting)).toBe(true);
     });
 
     it("keeps all three floor levers clear of the dashboard", () => {
@@ -561,7 +573,7 @@ describe("SUV model (ADR 0009)", () => {
       if (!body) throw new Error("Missing cabin");
       const levers = (body.cubes ?? []).filter(
         (c) =>
-          c.pivot?.[1] === scaled(8) &&
+          c.pivot?.[1] === scaled(dimensions.FLOOR_Y) &&
           Math.abs(c.pivot[0]) <= scaled(1.1) &&
           c.pivot[2] >= -scaled(8.5) &&
           c.pivot[2] <= -scaled(6.5) &&
@@ -575,18 +587,21 @@ describe("SUV model (ADR 0009)", () => {
         .filter((corners) =>
           corners.every(
             ([x, y, z]) =>
-              Math.abs(x) <= scaled(12) &&
-              y >= scaled(13) &&
-              y <= scaled(19) &&
-              z >= -scaled(7.75) - 1e-8 &&
-              z <= -scaled(6.2) + 1e-8,
+              Math.abs(x) <= scaled(dimensions.CABIN_HALF_WIDTH) &&
+              y >= scaled(dimensions.DASH_BOTTOM_Y) &&
+              y <= scaled(dimensions.HOOD_TOP_Y) &&
+              z >= -scaled(dimensions.HOOD_REAR_Z) - 1e-8 &&
+              z <= -scaled(dimensions.DASH_FACE_Z - 0.8) + 1e-8,
           ),
         );
       expect(levers).toHaveLength(12);
       expect(dash.length).toBeGreaterThan(0);
       for (const lever of levers)
         for (const fitting of dash)
-          expect(separated(turnedCorners(body, lever), fitting)).toBe(true);
+          expect(
+            separated(turnedCorners(body, lever), fitting),
+            JSON.stringify({ lever, fitting }),
+          ).toBe(true);
     });
 
     it("keeps the whole steering wheel ahead of the seated driver's torso", () => {
@@ -594,7 +609,7 @@ describe("SUV model (ADR 0009)", () => {
       const driver = SUV_PROFILE.seats.positions[0];
       if (!body || !driver) throw new Error("Missing cabin");
       const steering = (body.cubes ?? []).filter(
-        (c) => c.rotation && c.pivot?.[1] === scaled(16.5),
+        (c) => c.rotation && c.pivot?.[1] === scaled(dimensions.STEERING_Y),
       );
       expect(steering.length).toBeGreaterThan(16);
       // A player's torso is 4 px deep around the rider's position; the model's front is -z.

@@ -125,7 +125,7 @@ body += greenhouse.roof_rib_cubes()
 body += gauges.gauge_cluster_cubes() + dash.dash_fittings_cubes()
 body += cabin.floor_console_cubes()
 body += cabin.pedal_cubes()
-body += running_gear.round_tire("z", DIMS.spare.center, 5, DIMS.chassis.rear_z - 3, DIMS.chassis.rear_z)
+body += running_gear.round_tire("z", DIMS.spare.center, DIMS.spare.radius, DIMS.chassis.rear_z - 2 * DIMS.spare.half_width, DIMS.chassis.rear_z)
 body += rear.spare_rim_cubes()
 
 geo = {
@@ -169,10 +169,10 @@ geo = {
                 running_gear.sub_arm("sub_arm_rl", -1, DIMS.wheels.rear_axle_z),
                 running_gear.sub_arm("sub_arm_rr", +1, DIMS.wheels.rear_axle_z),
                 *[doors.door(n) for n in doors.DOORS],
-                {"name": "seat_0", "parent": "body", "pivot": [6, 10, DIMS.seats.front_z + 2]},
-                {"name": "seat_1", "parent": "body", "pivot": [-6, 10, DIMS.seats.front_z + 2]},
-                {"name": "seat_2", "parent": "body", "pivot": [6, 10, DIMS.seats.rear_z + 1]},
-                {"name": "seat_3", "parent": "body", "pivot": [-6, 10, DIMS.seats.rear_z + 1]},
+                {"name": "seat_0", "parent": "body", "pivot": [6, DIMS.seats.cushion_y, DIMS.seats.front_z + 2]},
+                {"name": "seat_1", "parent": "body", "pivot": [-6, DIMS.seats.cushion_y, DIMS.seats.front_z + 2]},
+                {"name": "seat_2", "parent": "body", "pivot": [6, DIMS.seats.cushion_y, DIMS.seats.rear_z + 1]},
+                {"name": "seat_3", "parent": "body", "pivot": [-6, DIMS.seats.cushion_y, DIMS.seats.rear_z + 1]},
             ],
         }
     ],

@@ -24,6 +24,7 @@ import {
 import type { VehicleKind } from "../../../../../src/domain/vehicle/kind";
 import {
   createVehicle,
+  profileOf,
   rebuildVehicle,
 } from "../../../../../src/domain/vehicle/kinds/index";
 import { SPORTSBOAT_ATTITUDE } from "../../../../../src/domain/vehicle/kinds/sportsboat/attitude";
@@ -1267,7 +1268,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
 });
 
 describe("a sports boat Vehicle (ADR 0051)", () => {
-  it("rams a target 3.2 blocks ahead at speed and not one 3.6 ahead, while an SUV at the same speed rams neither", () => {
+  it("rams only targets within each kind's body envelope at the same speed", () => {
     const drive = (kind: VehicleKind, heading: number, ticks: number) => {
       const vehicle = createVehicle(kind, asVehicleId(kind), heading);
       const afloat = kind === "sportsboat";
@@ -1282,9 +1283,10 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
         const offset: Vec3 = { x: f.x * blocks, y: 0, z: f.z * blocks };
         return { id, offset };
       };
+      const reach = profileOf(kind).body.front + SPEC.targetHalfWidth;
       const out = sim.step(FULL_THROTTLE, water, () => [
-        ahead("near", 3.2),
-        ahead("far", 3.6),
+        ahead("near", reach - 0.1),
+        ahead("far", reach + 0.1),
       ]);
       return { speed: vehicle.speed, hits: out.hits.map((h) => h.id) };
     };
@@ -1295,7 +1297,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
         expect(boatRun.speed).toBeGreaterThan(SPEC.ramMinSpeed);
         expect(suvRun.speed).toBeCloseTo(boatRun.speed, 9);
         expect(boatRun.hits).toStrictEqual(["near"]);
-        expect(suvRun.hits).toStrictEqual([]);
+        expect(suvRun.hits).toStrictEqual(["near"]);
       }),
     );
   });

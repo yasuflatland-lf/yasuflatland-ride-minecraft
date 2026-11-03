@@ -28,6 +28,7 @@ import {
   SPORTSBOAT_PROFILE,
 } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPORTSBOAT_SPEC } from "../../../src/domain/vehicle/kinds/sportsboat/spec";
+import { SUV_BODY_SIZE } from "../../../src/domain/vehicle/kinds/suv/bodySize";
 import {
   SUV_MOTION,
   SUV_PROFILE,
@@ -86,7 +87,11 @@ describe("vehicle profiles (ADR 0050)", () => {
   it.each([
     {
       kind: "suv",
-      body: { front: 2.69, halfWidth: 1.64, height: 2.32 },
+      body: {
+        front: SUV_BODY_SIZE.shell.front,
+        halfWidth: SUV_BODY_SIZE.shell.halfWidth,
+        height: SUV_BODY_SIZE.collision.height,
+      },
       clearance: { halfX: 1, halfZ: 1, height: 3 },
     },
     {
@@ -140,7 +145,7 @@ describe("vehicle profiles (ADR 0050)", () => {
           z: SUV_SPEC.roofTentEntranceZ,
         },
       },
-      footprint: 3.4,
+      footprint: SUV_BODY_SIZE.footprint,
       seats: {
         positions: [
           { x: -0.551, z: -0.04984375 },
@@ -613,7 +618,7 @@ describe("roof tent mounts", () => {
 
   it("matches the model roofs and keeps the camper anchor between its roof fixtures", () => {
     expect(SUV_PROFILE.roofTent?.roofHeight).toBeCloseTo(
-      (26.1 * 1.45) / 16,
+      SUV_BODY_SIZE.roofTop,
       10,
     );
     expect(

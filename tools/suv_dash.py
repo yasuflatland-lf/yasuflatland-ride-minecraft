@@ -73,7 +73,7 @@ def dash_fittings_cubes():
     # at the end. The north faces face the seats and carry the drawn regions; export's
     # 180-degree turn (suv_export.turn_around) renames them south and mirrors their UV.
     cubes = [
-        box(-DIMS.chassis.cabin_half_width, DIMS.dash.bottom_y, PANEL_Z, DASH_STACK_X0,
+        box(-DIMS.chassis.cabin_half_width, DIMS.dash.bottom_y - DIMS.hood.interior_rise, PANEL_Z, DASH_STACK_X0,
             PASSENGER_TOP_Y, LOCAL_FACE_Z, panel_faces("passenger")),
         box(-DIMS.chassis.cabin_half_width, PAD_BOTTOM_Y, PAD_FRONT_Z, DASH_STACK_X0,
             PASSENGER_TOP_Y, LOCAL_FACE_Z, grain_faces()),
@@ -84,8 +84,8 @@ def dash_fittings_cubes():
               x + HANDLE_POST_HALF, HANDLE_Y1, PANEL_Z, grain_faces())
           for x in HANDLE_POST_X],
         box(*TRAY_BOUNDS, grain_faces()),
-        box(DASH_STACK_X0, DIMS.dash.bottom_y, PANEL_Z, DASH_STACK_X1,
-            DIMS.hood.top_y, LOCAL_FACE_Z, panel_faces("stack")),
+        box(DASH_STACK_X0, DIMS.dash.bottom_y - DIMS.hood.interior_rise, PANEL_Z, DASH_STACK_X1,
+            DIMS.hood.top_y - DIMS.hood.interior_rise, LOCAL_FACE_Z, panel_faces("stack")),
         box(*AUDIO_BOUNDS, panel_faces("audio")),
     ]
     for cx in VENT_CENTERS:
@@ -95,5 +95,6 @@ def dash_fittings_cubes():
             front = KNOB_FRONT_Z + (KNOB_TURNED_SETBACK if angle else 0)
             cubes.extend(suv_cubes.disc("z", (cx, KNOB_Y, LOCAL_FACE_Z), KNOB_RADIUS,
                                        front, KNOB_BACK_Z, (angle,), panel_faces("knob")))
+    translate(cubes, 1, DIMS.hood.interior_rise)
     translate(cubes, 2, DIMS.dash.shift_z)
     return cubes

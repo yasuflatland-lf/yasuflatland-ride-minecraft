@@ -31,11 +31,13 @@ def dial(cx, cy, radius, name):
 
 def gauge_cluster_cubes():
     panel = suv_cubes.region_faces("dash", "grain", {face: (0, 0, 32, 32) for face in ("north", "south", "east", "west", "up", "down")})
-    gauges = [box(1.6, 15.6, 10.5, 10.4, 20.9, 10.9, panel)]
+    # Keep the backing buried below the cowl as the windshield becomes more upright.
+    backing_top = DIMS.hood.top_y - DIMS.hood.interior_rise + DIMS.dash.gauge_drop
+    gauges = [box(1.6, 15.6, 10.5, 10.4, backing_top, 10.9, panel)]
     gauges += dial(3.4, 18.2, 1.25, "tach")
     gauges += dial(6.0, 18.2, 1.0, "fuel_temp")
     gauges += dial(8.6, 18.2, 1.25, "speed")
     # The raked glass requires the cluster to sit lower inside the cabin (ADR 0170).
-    translate(gauges, 1, -DIMS.dash.gauge_drop)
+    translate(gauges, 1, DIMS.hood.interior_rise - DIMS.dash.gauge_drop)
     translate(gauges, 2, DIMS.dash.shift_z)
     return gauges
