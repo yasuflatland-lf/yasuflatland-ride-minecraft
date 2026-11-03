@@ -22,14 +22,18 @@ def door_width(d: Dims, y):
     return d.inner_door_half_width - (d.inner_door_half_width-d.inner_door_top_half_width)*y/d.wall_height
 
 
+def rear_window_edge(d: Dims, row):
+    inset = max(0, d.rear_window_corner-min(row-d.rear_window_bottom, d.rear_window_top-row-1))
+    return d.rear_window_half_width-inset
+
+
 def rear_window(d: Dims, face):
     w, bottom, top = d.rear_window_half_width, d.rear_window_bottom, d.rear_window_top
     z, rim, corner = d.inner_rear_z-d.inner_wall_thickness, d.bedroom_rim_width, d.rear_window_corner
     cubes = []
     # Stepped chamfers round the zip window without changing the atlas or material.
     for y in range(bottom, top):
-        inset = max(0, corner-min(y-bottom, top-y-1))
-        edge = w-inset
+        edge = rear_window_edge(d, y)
         color = "mesh_frame" if y in (bottom, top-1) else "mesh"
         if color == "mesh_frame":
             cubes.append(panel(-edge, y, z-0.3, edge, y+1, z-0.1, face(color)))
@@ -79,8 +83,7 @@ def build(d: Dims, face: Callable[[str], dict]) -> Part:
         # The rear mesh pane needs an aperture too; keep the wall outside its stepped rim.
         if d.rear_window_bottom <= y and top <= d.rear_window_top:
             for row in range(y, top):
-                inset = max(0, d.rear_window_corner-min(row-d.rear_window_bottom, d.rear_window_top-row-1))
-                edge = d.rear_window_half_width-inset
+                edge = rear_window_edge(d, row)
                 for x0, x1 in ((-width, -edge), (edge, width)):
                     inner.append(panel(x0, row, rear-t, x1, row+1, rear, face("inner")))
         else:
