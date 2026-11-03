@@ -38,16 +38,21 @@ export const FIRE_PIT_SPEC = Object.freeze({
   hitResetTicks: 100,
 });
 
+// Bump when the laid cells or clear box change.
+export const TENT_LAYOUT_VERSION = 2;
+
 // Every tuning value of the tent.
 export const TENT_SPEC = Object.freeze({
   /** Footprint across, walls included, in cells (local x -3..3). */
   width: 7,
-  /** Footprint from the tarp's front edge to the rear wall, in cells (depth 0..11). */
-  depth: 12,
-  /** Free layers above the ground in both rooms; their ceiling cells are the next layer. */
+  /** Footprint from the tarp's front edge to the rear wall, in cells (depth 0..8). */
+  depth: 9,
+  /** Maximum free layers in the body; stepped walls narrow the upper room layer. */
   frontRoomHeadroom: 3,
   /** Free layers above the ground under the tarp; the tarp's ceiling cells are the next layer. */
   tarpHeadroom: 2,
+  /** Reference-photo panel lean: ground 7 x 6, ridge about 4.6 x 3.6 blocks. */
+  lean: 1.2,
   /** Hits in a row from outside that take the tent down, as for the Low Chair (ADR 0122). */
   hitsToTakeDown: 3,
   /** A gap longer than this, in ticks, starts the hit count again. */

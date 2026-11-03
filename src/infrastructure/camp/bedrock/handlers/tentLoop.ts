@@ -1,6 +1,7 @@
 // Lays every loaded tent's cells each tick, sends its flaps' swing, and clears
 // those of tents taken down (ADR 0096, 0131, 0132, 0134).
 import { system } from "@minecraft/server";
+import type { FoldLegacyTents } from "../../../../application/camp/foldLegacyTents";
 import {
   type TentBlock,
   type TentId,
@@ -16,8 +17,15 @@ export function registerTentLoop(
   registry: DynamicPropertyTentRegistry,
   blocks: CellLayer<TentId, TentBlock>,
   flaps: TentFlapStore,
+  foldLegacy: FoldLegacyTents,
 ): void {
+  let initialized = false;
   system.runInterval(() => {
+    if (!initialized) {
+      // The registry is lazy: the first tick is outside early execution, before any lay.
+      foldLegacy.execute();
+      initialized = true;
+    }
     const entries = registry.all();
     for (const entry of entries) {
       const entity = tentEntityOf(entry.id);

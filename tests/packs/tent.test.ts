@@ -4,7 +4,6 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { TENT_SPEC } from "../../src/domain/camp/spec";
-import { TENT_MATTRESSES } from "../../src/domain/camp/tent";
 import { PAINTS } from "../../src/domain/shared/paint";
 import {
   FLAP_BLOCKED_HINT,
@@ -790,14 +789,18 @@ describe("tent mattresses (ADR 0092, 0133)", () => {
     );
   });
 
-  it("draws each mattress 9 px high inside its TENT_MATTRESSES cells", () => {
+  it("draws each tunnel-model mattress 9 px high in its original rear-wall frame", () => {
     const bones: Bone[] = geometry().bones;
     for (const index of [0, 1] as const) {
       const bone = bones.find((b) => b.name === `mattress_${index}`);
       const cubes = bone?.cubes ?? [];
       expect(cubes.length).toBeGreaterThan(0);
       expect(Math.max(...cubes.map((c) => bounds(c)[4]))).toBe(9);
-      const cells = TENT_MATTRESSES[index];
+      // The tunnel asset is replaced in #1227/#1228; domain layout 2 already uses the trapezoid.
+      const cells = [9, 10].map((depth) => ({
+        x: index === 0 ? 1 : -1,
+        depth,
+      }));
       const xs = cells.map((c) => 16 * c.x);
       const zs = cells.map((c) => -16 * (11 - c.depth));
       const outer: Bounds = [
