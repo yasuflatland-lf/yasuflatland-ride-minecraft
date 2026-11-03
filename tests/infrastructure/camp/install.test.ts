@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import { EnterRoofTent } from "../../../src/application/camp/enterRoofTent";
 import { FirePitActions } from "../../../src/application/camp/firePit";
+import { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
 import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
 import { GiveStarterRoofTent } from "../../../src/application/camp/giveStarterRoofTent";
@@ -240,7 +241,12 @@ it("wires the tent handlers with the same use cases, registry, and owner lookup 
   expect(vi.mocked(registerTestTent).mock.calls[0]).toEqual([
     pitchTent,
     takeDown,
+    vi.mocked(registerTentLoop).mock.calls[0]?.[0],
+    vi.mocked(registerTentLoop).mock.calls[0]?.[3],
   ]);
+  expect(vi.mocked(registerTentLoop).mock.calls[0]?.[3]).toBeInstanceOf(
+    FoldLegacyTents,
+  );
   const registry = vi.mocked(registerTentLoop).mock.calls[0]?.[0];
   expect(vi.mocked(registerTentLifecycle).mock.calls[0]).toEqual([
     registry,

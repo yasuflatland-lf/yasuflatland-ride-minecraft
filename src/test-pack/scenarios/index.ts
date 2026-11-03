@@ -132,6 +132,7 @@ import {
 import {
   tentEntityContract,
   tentFlapOpensAlone,
+  tentFoldLegacy,
   tentLantern,
   tentMattresses,
   tentPaintEvents,
@@ -244,6 +245,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
   roof_tent_course: roofTentCourse,
   tent_entity_contract: tentEntityContract,
+  tent_fold_legacy: tentFoldLegacy,
   tent_pitch_and_take_down: tentPitchAndTakeDown,
   tent_pitch_on_snow: tentPitchOnSnow,
   tent_refuse_step: tentRefuseStep,

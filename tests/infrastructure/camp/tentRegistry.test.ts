@@ -13,6 +13,7 @@ vi.mock("@minecraft/server", () => ({ world: game }));
 const SAVED =
   '[{"id":"-4294967295","dimensionId":"minecraft:overworld","pose":{"x":110,"y":-60,"z":46,"yaw":180}}]';
 const entry = {
+  layout: 1,
   id: asTentId("7"),
   dimensionId: asDimensionId("minecraft:nether"),
   pose: { x: 1, y: 2, z: 3, yaw: 90 as const },
@@ -33,12 +34,12 @@ it("reads the world property once, on first use, and writes it on add and remove
   expect(registry.all()).toHaveLength(2);
   expect(game.setDynamicProperty).toHaveBeenLastCalledWith(
     TENTS_PROPERTY,
-    `${SAVED.slice(0, -1)},{"id":"7","dimensionId":"minecraft:nether","pose":{"x":1,"y":2,"z":3,"yaw":90}}]`,
+    `${SAVED.slice(0, -2)},"layout":1},{"id":"7","dimensionId":"minecraft:nether","pose":{"x":1,"y":2,"z":3,"yaw":90},"layout":1}]`,
   );
   registry.remove(asTentId("-4294967295"));
   expect(game.setDynamicProperty).toHaveBeenLastCalledWith(
     TENTS_PROPERTY,
-    '[{"id":"7","dimensionId":"minecraft:nether","pose":{"x":1,"y":2,"z":3,"yaw":90}}]',
+    '[{"id":"7","dimensionId":"minecraft:nether","pose":{"x":1,"y":2,"z":3,"yaw":90},"layout":1}]',
   );
   registry.remove(asTentId("unknown"));
   expect(game.setDynamicProperty).toHaveBeenCalledTimes(2);
