@@ -72,7 +72,7 @@ def panel_scale(region):
 @cache
 def recess(region):
     # Handle dimensions are available only after atlas allocation finishes.
-    shell = load_tool("suv_shell")
+    shell = load_tool("suv_doors")
     scale_u, scale_v = panel_scale(region)
     center_z = (shell.HANDLE_REAR_OFFSET + shell.HANDLE_FRONT_OFFSET) / 2
     center_y = (shell.HANDLE_BOTTOM_Y + shell.HANDLE_TOP_Y) / 2
