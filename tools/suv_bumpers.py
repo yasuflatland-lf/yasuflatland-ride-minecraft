@@ -62,10 +62,24 @@ def front_bumper_top_cubes():
 
 
 def rear_bumper_cubes():
-    # Rear bumper: the same kind of bar facing backward, with red reflectors at its ends and red tow
-    # hooks under it
-    return [facing_back(c) for c in chamfered_bar(DIMS.rear_bumper.bottom_y, DIMS.rear_bumper.top_y, -DIMS.rear_bumper.tip_z - DIMS.rear_bumper.length, -DIMS.rear_bumper.tip_z,
-                                                   DIMS.rear_bumper.end_back_z, DIMS.wheels.bumper_half_width, DIMS.rear_bumper.chamfer)]
+    bumper = DIMS.rear_bumper
+    tip_z = -bumper.tip_z
+    bar = chamfered_bar(bumper.bottom_y, bumper.top_y, tip_z - bumper.length, tip_z,
+                        bumper.end_back_z, DIMS.wheels.bumper_half_width, bumper.chamfer)
+    # A separate y band keeps the raised pad out of the bar's proportion landmarks.
+    details = [
+        box(-bumper.step_half_width, bumper.bottom_y + bumper.step_inset_y, tip_z,
+            bumper.step_half_width, bumper.top_y - bumper.step_inset_y,
+            tip_z + bumper.step_proud, "trim"),
+        box(-bumper.step_half_width, bumper.top_y, tip_z - bumper.length,
+            bumper.step_half_width, bumper.top_y + bumper.tread_height, tip_z, "grille"),
+        *suv_cubes.both_sides([
+            box(bumper.reflector_x1 - bumper.recess_width, bumper.bottom_y + bumper.recess_inset_y, tip_z,
+                bumper.reflector_x1, bumper.top_y - bumper.recess_inset_y,
+                tip_z + bumper.recess_proud, "grille"),
+        ]),
+    ]
+    return [facing_back(c) for c in [*bar, *details]]
 
 
 def frame_horn_cubes():

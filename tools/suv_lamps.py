@@ -104,6 +104,12 @@ def tail_resin_cubes():
 
 
 def bumper_reflector_cubes():
+    bumper = DIMS.rear_bumper
+    x1 = bumper.reflector_x1 - bumper.reflector_outer_inset
+    center_y = (bumper.bottom_y + bumper.top_y) / 2
+    plate_z = bumper.tip_z - bumper.recess_proud
     return [
-        box(DIMS.rear_bumper.reflector_x1 - 2.5, DIMS.rear_bumper.bottom_y + 0.8, DIMS.rear_bumper.tip_z - 0.1, DIMS.rear_bumper.reflector_x1, DIMS.rear_bumper.top_y - 0.8, DIMS.rear_bumper.tip_z, "tail"),  # reflector
+        box(x1 - bumper.reflector_width, center_y - bumper.reflector_height / 2,
+            plate_z - bumper.reflector_proud, x1, center_y + bumper.reflector_height / 2,
+            plate_z, "tail"),
     ]

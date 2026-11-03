@@ -328,6 +328,17 @@ class RearBumper:
     length: float = 6.25
     height: float = 3.75
     chamfer: float = 2
+    step_half_width: float = 6
+    step_proud: float = 0.4
+    step_inset_y: float = 0.6
+    tread_height: float = 0.2
+    recess_width: float = 3
+    recess_inset_y: float = 0.6
+    recess_proud: float = 0.05
+    reflector_width: float = 1
+    reflector_height: float = 1.6
+    reflector_outer_inset: float = 0.3
+    reflector_proud: float = 0.05
 
     @property
     def bottom_y(self):
