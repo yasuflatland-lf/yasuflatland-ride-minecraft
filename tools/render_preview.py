@@ -38,6 +38,7 @@ import sys
 import zlib
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import NamedTuple
 
 GEOMETRY = "models/entity/yasu_ride/suv.geo.json"
 TEXTURE = "textures/entity/yasu_ride/suv.png"
@@ -836,13 +837,39 @@ def rasterize(polygons, layers, to_screen, width=WIDTH, height=HEIGHT, backgroun
     return out
 
 
-def render(rp, icon_path=None):
+class Image(NamedTuple):
+    width: int
+    height: int
+    pixels: bytearray
+
+
+def load_suv(rp):
     geo = json.loads((rp / GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / TEXTURE)
     lit_texture = read_png(rp / LIT_TEXTURE)
     animations = json.loads((rp / ANIMATIONS).read_text())
-    folds = folded_wheels(animations)
-    turns = submerged_parts(animations)
+    return geo, texture, lit_texture, folded_wheels(animations), submerged_parts(animations)
+
+
+def render_suv_view(
+    rp: Path, view: tuple[float, float, float], screen_up: tuple | None,
+    size: tuple[int, int], lamps: bool = False,
+) -> Image:
+    width, height = size
+    if width <= 0 or height <= 0:
+        raise ValueError("Image dimensions must be positive")
+    geo, texture, lit_texture, folds, turns = load_suv(rp)
+    pose = {**POSES["suv-front-left.png"], "lamps": lamps, "dusk": False}
+    polygons = collect(geo, texture, folds, turns, pose, lit_texture)
+    points = [p for quad, _, _ in polygons for p in quad]
+    layers = ground_layers(polygons, pose, min(p[1] for p in points))
+    camera = Camera(points, view, screen_up)
+    to_screen = fit(camera, [q for q, _, _ in polygons + layers], width, height)
+    return Image(width, height, rasterize(polygons, layers, to_screen, width, height))
+
+
+def render(rp, icon_path=None):
+    geo, texture, lit_texture, folds, turns = load_suv(rp)
 
     scenes = {name: collect(geo, texture, folds, turns, pose, lit_texture) for name, pose in POSES.items()}
     ground_y = min(p[1] for quad, _, _ in scenes["suv-front-left.png"] for p in quad)
@@ -869,16 +896,16 @@ def render(rp, icon_path=None):
     return images, icon
 
 
-def fit(camera, quads):
+def fit(camera, quads, width=WIDTH, height=HEIGHT):
     """Return a to_screen function that centers the quads in the preview frame with MARGIN around them."""
-    return fit_views([(camera, quads)])[0]
+    return fit_views([(camera, quads)], width, height)[0]
 
 
-def fit_views(views):
+def fit_views(views, width=WIDTH, height=HEIGHT):
     """Return one to_screen function per (camera, quads), each centering its quads in the frame, all
     with the largest scale that keeps every view inside MARGIN, so the vehicle has the same size in
     each."""
-    w, h = WIDTH * SUPERSAMPLE, HEIGHT * SUPERSAMPLE
+    w, h = width * SUPERSAMPLE, height * SUPERSAMPLE
     bounds = []
     for camera, quads in views:
         projected = [camera.project(p) for quad in quads for p in quad]
