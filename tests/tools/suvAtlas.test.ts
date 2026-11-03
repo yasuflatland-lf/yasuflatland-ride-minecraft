@@ -24,7 +24,7 @@ assert (a.ATLAS.width, a.ATLAS.height) == (512, 256)
 assert a.ATLAS.width <= 512 and a.ATLAS.height <= 512
 assert a.TEXELS_PER_PIXEL == 4
 assert [(name, *b.region[1:]) for name, b in a.BLOCKS.items()] == [
-    ('body', 0, 8, 512, 160), ('headlight', 0, 168, 96, 88),
+    ('headlight', 0, 168, 96, 88),
     ('tail_lamp', 96, 168, 96, 88), ('dash', 192, 168, 128, 88),
     ('gauges', 320, 168, 128, 88), ('spare', 448, 168, 64, 88)]
 for i, r in enumerate(a.ATLAS.regions):
@@ -32,7 +32,7 @@ for i, r in enumerate(a.ATLAS.regions):
     for s in a.ATLAS.regions[:i]:
         assert r.x + r.w <= s.x or s.x + s.w <= r.x or r.y + r.h <= s.y or s.y + s.h <= r.y
 original = ['body', 'trim', 'grille', 'tire', 'rim', 'seat', 'seat_pleat', 'light', 'tail', 'glass', 'gauge', 'amber', 'leather', 'spoke', 'glow', 'rear_glass', 'prop', 'prop_hub', 'arm', 'hardtop', 'hardtop_rib']
-assert p.NAMES == original + ['resin', 'chrome']
+assert p.NAMES == original + ['resin', 'chrome', 'vent']
 assert p.PALETTE['resin'] == (24, 24, 24) and p.PALETTE['chrome'] == (200, 202, 205)
 assert p.LIT_SLOTS == (7,)
 for i, name in enumerate(original):
@@ -49,7 +49,6 @@ for x, y in [(191, 168), (0, 0), (0, 167)]:
 
 it("allocates regions in declaration order regardless of module import order", async () => {
   const painters = [
-    "suv_paint_body",
     "suv_paint_headlight",
     "suv_paint_tail",
     "suv_paint_dash",
@@ -59,7 +58,6 @@ it("allocates regions in declaration order regardless of module import order", a
   const table = async (painterOrder: string[], moduleOrder: string[]) =>
     JSON.parse(
       await run(`stubs = {
-    'suv_paint_body': [('panel', 300, 20, 'body'), ('trim', 180, 30, 'trim'), ('roof', 80, 12, 'hardtop')],
     'suv_paint_headlight': [('lens', 60, 12, 'light'), ('rim', 30, 20, 'chrome'), ('indicator', 20, 8, 'amber')],
     'suv_paint_tail': [('lens', 50, 10, 'tail'), ('rim', 40, 16, 'chrome'), ('indicator', 24, 12, 'amber')],
     'suv_paint_dash': [('grain', 80, 16, 'resin'), ('trim', 64, 12, 'trim')],
@@ -73,14 +71,6 @@ a = load_tool('suv_atlas')
 print(json.dumps([(block, list(b.regions)) for block, b in a.BLOCKS.items()]))`),
     );
   const expected = [
-    [
-      "body",
-      [
-        ["body.panel", 0, 8, 300, 20],
-        ["body.trim", 300, 8, 180, 30],
-        ["body.roof", 0, 38, 80, 12],
-      ],
-    ],
     [
       "headlight",
       [

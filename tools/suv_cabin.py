@@ -135,7 +135,7 @@ def steering_cubes():
 
 def floor_console_cubes():
     result = []
-    SHIFT_X, SHIFT_Z = 0, 8.5
+    SHIFT_X, SHIFT_Z = 0, 7.5  # the floor is higher than it was, so the lever starts further back
     SHIFT_LEAN = 22  # Keep the tall rod and knob behind the dashboard's lower edge.
     TUNNEL_TOP_Y = FLOOR_Y + 0.6
     result.append(box(-1.8, FLOOR_Y, 4, 1.8, TUNNEL_TOP_Y, 11, "trim"))  # transmission tunnel

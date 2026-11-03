@@ -27,8 +27,7 @@ out = load_tool("texture_io").Outputs("--check" in sys.argv[2:])
 globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
 palette = load_tool("suv_palette")
 globals().update({k: v for k, v in vars(palette).items() if k.isupper()})
-shell = load_tool("suv_shell")
-lamps = load_tool("suv_lamps")
+body_parts = load_tool("suv_body")
 dash = load_tool("suv_dash")
 gauges = load_tool("suv_gauges")
 cabin = load_tool("suv_cabin")
@@ -36,89 +35,37 @@ running_gear = load_tool("suv_running_gear")
 export = load_tool("suv_export")
 texture = load_tool("suv_texture")
 ATLAS = load_tool("suv_atlas").ATLAS
-both_sides = load_tool("suv_cubes").both_sides
+suv_cubes = load_tool("suv_cubes")
 
 ASSEMBLIES = {
     name: {"owner": "suv", "cubes": count}
-    for part in (shell, lamps, dash, gauges, cabin, running_gear)
+    for part in (body_parts, dash, gauges, cabin, running_gear)
     for name, count in getattr(part, "ASSEMBLIES", {}).items()
 }
 
-part_bones = {p.name: p.bone for p in lamps.LAMP_PARTS}
-lamp_bones = {p.bone: [] for p in lamps.LAMP_PARTS if p.bone != "body"}
-
-
-def lamp_part(name, mirrored=False):
-    """Return a lamp piece's cubes for the body, or move them to their own lamp bone (ADR 0192)."""
-    cubes = getattr(lamps, f"{name}_cubes")()
-    if mirrored:
-        cubes = both_sides(cubes)
-    bone = part_bones[name]
-    if bone == "body":
-        return cubes
-    lamp_bones[bone].extend(cubes)
-    return []
-
-
-body = [
-    *shell.chassis_cubes(),
-    *shell.hood_cubes(),
+bone_cubes = body_parts.build()
+hull_turn_ids = {id(c) for c in compound_cubes([c for cubes in bone_cubes.values() for c in cubes])}
+body = bone_cubes["body"]
+body += [
     *dash.dash_slab_cubes(),
-    *shell.windshield_frame_cubes(),
-    *both_sides(shell.a_pillar_cubes()),
-    *shell.rearview_mirror_cubes(),
-    *shell.roof_cubes(),
-    *both_sides(shell.b_pillar_cubes()),
-    *both_sides(shell.cargo_upper_side_cubes()),
-    *shell.cargo_floor_cubes(),
-    *shell.tailgate_cubes(),
-    *lamp_part("third_brake_light"),
-    *lamp_part("tail_light", mirrored=True),
-    *lamp_part("tail_resin", mirrored=True),
-    *shell.tailgate_hinge_cubes(),
-    *shell.exhaust_cubes(),
-    *both_sides(shell.side_step_cubes()),
+    # The seats stop short of the side windows and the rear wheels' inner faces (ADR 0214); the interior
+    # is refitted in a later pull request.
+    *cabin.pleated_seat(2, SEAT_OUTER_X, FRONT_SEAT_Z),
+    *cabin.pleated_seat(-SEAT_OUTER_X, -2, FRONT_SEAT_Z),
+    *cabin.pleated_seat(-SEAT_OUTER_X, 0, REAR_SEAT_Z),
+    *cabin.pleated_seat(0, SEAT_OUTER_X, REAR_SEAT_Z),
+    *cabin.steering_cubes(),
+    *gauges.gauge_cluster_cubes(),
+    *dash.dash_fittings_cubes(),
+    *suv_cubes.shifted_z([*cabin.floor_console_cubes(), *cabin.pedal_cubes()], INTERIOR_SHIFT_Z),
 ]
-body += shell.hood_dome_and_cowl_cubes()
-body += both_sides(shell.hood_detail_cubes())
-body += both_sides(shell.hood_lower_side_cubes())
-body += both_sides(shell.cowl_side_cubes())
-body += both_sides(shell.cargo_lower_side_cubes())
-body += shell.fuel_door_cubes()
-body += both_sides(shell.arch_liner_cubes())
-body += both_sides([
-    *shell.fender_flare(FRONT_AXLE_Z, SILL_Y + 1, SILL_Y),
-    *shell.fender_flare(REAR_AXLE_Z, SILL_Y, SILL_Y),
-    *lamp_part("turn_signal"),
-])
-body += lamp_part("front_strip", mirrored=True)
-body += shell.front_bumper_lower_cubes()
-body += shell.front_bumper_band_cubes()
-body += shell.front_bumper_top_cubes()
-body += both_sides(shell.frame_horn_cubes())
-body += both_sides(shell.front_tow_hook_cubes())
-body += shell.rear_bumper_cubes()
-body += both_sides([
-    *lamp_part("bumper_reflector"),
-    *shell.rear_tow_hook_cubes(),
-])
-body += cabin.pleated_seat(2, 11, FRONT_SEAT_Z)
-body += cabin.pleated_seat(-11, -2, FRONT_SEAT_Z)
-body += cabin.pleated_seat(-11, 0, REAR_SEAT_Z)
-body += cabin.pleated_seat(0, 11, REAR_SEAT_Z)
-body += cabin.steering_cubes()
-body += lamp_part("headlight_bezel")
-body += lamp_part("headlight_lens")
-body += shell.grille_cubes()
-body += lamp_part("fog_pocket", mirrored=True)
-body += lamp_part("fog_lens", mirrored=True)
-body += both_sides(shell.roof_edge_cubes())
-body += shell.roof_rib_cubes()
-body += gauges.gauge_cluster_cubes() + dash.dash_fittings_cubes()
-body += cabin.floor_console_cubes()
-body += cabin.pedal_cubes()
-body += running_gear.round_tire("z", SPARE, 5, REAR - 3, REAR)
-body += shell.spare_rim_cubes()
+
+def door(name):
+    """A door hinged at its front edge on the body side; the front doors carry the mirrors."""
+    side = 1 if name.endswith("l") else -1
+    hinge = REAR_DOOR_HINGE_Z if name.startswith("door_r") else FRONT_DOOR_HINGE_Z
+    return {"name": name, "parent": "body", "pivot": [-side * DOOR_HINGE_X, FLOOR_Y, hinge], "cubes": bone_cubes[name]}
+
 
 geo = {
     "format_version": "1.12.0",
@@ -135,19 +82,19 @@ geo = {
             "bones": [
                 {"name": "root", "pivot": [0, 12, 0]},
                 {"name": "body", "parent": "root", "pivot": [0, FLOOR_Y, 0], "cubes": body,
-                 "locators": {"exhaust": [9, SILL_Y - 1.4, REAR - 2.6]}},
-                *[{"name": name, "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": lamp_bones[name]}
+                 "locators": {"exhaust": [EXHAUST_X, EXHAUST_Y, EXHAUST_Z]}},
+                *[{"name": name, "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": bone_cubes[name]}
                   for name in ("headlights", "tail_lights")],
-                {"name": "headlight_bezels", "parent": "body", "pivot": [0, 0, 0], "cubes": lamp_bones["headlight_bezels"]},
+                {"name": "headlight_bezels", "parent": "body", "pivot": [0, 0, 0], "cubes": bone_cubes["headlight_bezels"]},
                 # Shown only in flight by the render controller (ADR 0026)
                 {"name": "rear_glass", "parent": "body", "pivot": [0, FLOOR_Y, 0],
-                 "cubes": shell.rear_glass_cubes()},
+                 "cubes": bone_cubes["rear_glass"]},
                 running_gear.wheel("wheel_fl", -1, FRONT_AXLE_Z),
                 running_gear.wheel("wheel_fr", +1, FRONT_AXLE_Z),
                 running_gear.wheel("wheel_rl", -1, REAR_AXLE_Z),
                 running_gear.wheel("wheel_rr", +1, REAR_AXLE_Z),
                 # Hidden until the submarine form shows them (ADR 0040)
-                {"name": "windows_sealed", "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": shell.windows_sealed()},
+                {"name": "windows_sealed", "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": bone_cubes["windows_sealed"]},
                 running_gear.prop("prop_rl", -1, REAR_AXLE_Z),
                 running_gear.prop("prop_rr", +1, REAR_AXLE_Z),
                 running_gear.glow("glow_fl", -1, FRONT_AXLE_Z),
@@ -160,7 +107,7 @@ geo = {
                 running_gear.arm("arm_rr", +1, REAR_AXLE_Z),
                 running_gear.sub_arm("sub_arm_rl", -1, REAR_AXLE_Z),
                 running_gear.sub_arm("sub_arm_rr", +1, REAR_AXLE_Z),
-                *[shell.door(n) for n in shell.DOORS],
+                *[door(n) for n in body_parts.DOORS],
                 {"name": "seat_0", "parent": "body", "pivot": [6, 10, FRONT_SEAT_Z + 2]},
                 {"name": "seat_1", "parent": "body", "pivot": [-6, 10, FRONT_SEAT_Z + 2]},
                 {"name": "seat_2", "parent": "body", "pivot": [6, 10, REAR_SEAT_Z + 1]},
@@ -176,7 +123,9 @@ export.turn_around(geometry["bones"])
 export.sync_animation(out, RP / "animations/yasu_ride/suv.anim.json", export.scaled)
 
 model_cubes = [cube for bone in geometry["bones"] for cube in bone.get("cubes", [])]
-assert_axes(model_cubes, {"arc": compound_cubes(model_cubes)}, ASSEMBLIES)
+hull_turns = [cube for cube in compound_cubes(model_cubes) if id(cube) in hull_turn_ids]
+arcs = [cube for cube in compound_cubes(model_cubes) if id(cube) not in hull_turn_ids]
+assert_axes(model_cubes, {"arc": arcs, "hull_turns": hull_turns}, ASSEMBLIES)
 out.json(MODELS / "suv.geo.json", geo, indent=1)
 
 export.paint_textures(out, ENTITY_TEXTURES)

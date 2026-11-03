@@ -1,46 +1,31 @@
-"""SUV lamp pieces and their bone assignments."""
+"""SUV lamp pieces that carry painted lamp faces: the headlight lens and bezel, the tail lamps and the
+third brake light (ADR 0192).
 
-from typing import NamedTuple
+The plain lamp lenses (fog and marker lenses) are built with the body in suv_front.py. suv_body.py puts
+the headlight lens in `headlights`, the bezel in `headlight_bezels` and the tail faces in `tail_lights`.
+Construction frame: forward is +z, so a tail face looks toward -z (north).
+"""
 
 from tool_loader import load_tool
 
 dims = load_tool("suv_dims")
-globals().update({k: v for k, v in vars(dims).items() if k.isupper()})
+hull = load_tool("suv_hull")
 suv_cubes = load_tool("suv_cubes")
 box = suv_cubes.box
-round_face = suv_cubes.round_face
-arch_side_z = dims.arch_side_z
-flare_face_z = dims.flare_face_z
+D = dims.D
 
 
-class LampPart(NamedTuple):
-    name: str
-    bone: str
-
-
-# The only place that maps a lamp part to its bone: headlights, headlight_bezels,
-# tail_lights, or body.
-LAMP_PARTS: tuple[LampPart, ...] = (
-    LampPart("headlight_bezel", "headlight_bezels"),
-    LampPart("headlight_lens", "headlights"),
-    LampPart("fog_pocket", "body"),
-    LampPart("fog_lens", "headlights"),
-    LampPart("front_strip", "headlights"),
-    LampPart("turn_signal", "body"),
-    LampPart("third_brake_light", "tail_lights"),
-    LampPart("tail_light", "tail_lights"),
-    LampPart("tail_resin", "body"),
-    LampPart("bumper_reflector", "body"),
-)
-
-
-HEADLIGHT_CENTERS = ((10.3, 12.3), (-10.3, 12.3))
-HEADLIGHT_DIAMETER = 5.6
-HEADLIGHT_THICKNESS = 0.1
-HEADLIGHT_FRONT = FRONT + 0.65
+HEADLIGHT_X = 0.589 * D
+HEADLIGHT_Y = 1.31 * D
+HEADLIGHT_CENTERS = ((HEADLIGHT_X, HEADLIGHT_Y), (-HEADLIGHT_X, HEADLIGHT_Y))
+HEADLIGHT_DIAMETER = 0.21 * D
+# The panels keep the proportions ADR 0192 gave them: the lens is 0.1/5.6 of its diameter thick, and the
+# bezel stands 0.05/5.6 of it in front of the lens.
+HEADLIGHT_THICKNESS = HEADLIGHT_DIAMETER * 0.1 / 5.6
+HEADLIGHT_FRONT = dims.z_at(-0.700)
 BEZEL_SCALE = 1.25
-BEZEL_THICKNESS = 0.05
-BEZEL_FRONT_GAP = 0.05
+BEZEL_THICKNESS = HEADLIGHT_DIAMETER * 0.05 / 5.6
+BEZEL_FRONT_GAP = BEZEL_THICKNESS
 
 
 def headlight_panel(region, diameter, front, thickness, faces: tuple[str, ...]):
@@ -63,44 +48,26 @@ def headlight_lens_cubes():
     return headlight_panel("lens", HEADLIGHT_DIAMETER, HEADLIGHT_FRONT, HEADLIGHT_THICKNESS, ("south",))
 
 
-def fog_pocket_cubes():
-    # Round fog lamps sit in black pockets on the straight face of the front bumper.
-    return [box(FOG_X - 1.3, FOG_Y - 1.05, FRONT_BUMPER_TIP_Z, FOG_X + 1.3, FOG_Y + 1.05, FRONT_BUMPER_TIP_Z + 0.05, "grille")]
-
-
-def fog_lens_cubes():
-    return round_face((FOG_X, FOG_Y, 0), 0.8, FRONT_BUMPER_TIP_Z + 0.05, FRONT_BUMPER_TIP_Z + 0.12, "light")
-
-
-def front_strip_cubes():
-    # The strip stands a little proud of the front flare's sloping front face.
-    return [box(13.3, LAMP_Y0, flare_face_z(FRONT_AXLE_Z, 1, LAMP_Y1) - 0.2, FLARE_X - 0.2, LAMP_Y1,
-                flare_face_z(FRONT_AXLE_Z, 1, LAMP_Y0) + 0.1, "light")]
-
-
-def turn_signal_cubes():
-    # On the front flare's outer side, beside the strip
-    return [box(FLARE_X, LAMP_Y0, arch_side_z(FRONT_AXLE_Z, 1, LAMP_Y0) + 0.6, FLARE_X + 0.1, LAMP_Y1,
-                flare_face_z(FRONT_AXLE_Z, 1, LAMP_Y1) - 0.1, "amber")]
+# The tail lamps sit behind the body's widest point, so the widening scale applies to them.
+TAIL_LAMP_X = 0.645 * hull.K_REAR
+TAIL_LAMP_HALF_WIDTH = 0.083 * hull.K_REAR
+TAIL_LAMP_Y = (1.095, 1.33)
+TAIL_LAMP_Z = 3.632  # the outer face of the lamp housing
+THIRD_BRAKE_Y = (2.0, 2.03)
+THIRD_BRAKE_HALF_WIDTH = 0.15
+THIRD_BRAKE_Z = 3.495  # just behind the hardtop's rear cap
 
 
 def third_brake_light_cubes():
     return [
-        box(-1.5, WINDOW_TOP_Y - 0.7, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR,
+        box(-THIRD_BRAKE_HALF_WIDTH * D, THIRD_BRAKE_Y[0] * D, dims.z_at(THIRD_BRAKE_Z + 0.01),
+            THIRD_BRAKE_HALF_WIDTH * D, THIRD_BRAKE_Y[1] * D, dims.z_at(THIRD_BRAKE_Z),
             suv_cubes.region_faces("tail_lamp", "third_brake", {"north": (0, 0, 12, 3)})),
     ]
 
 
 def tail_light_cubes():
-    return [box(9.6, 10, REAR - 0.3, 12.6, 16, REAR,
+    # Built for the +x side; the caller mirrors it.
+    return [box((TAIL_LAMP_X - TAIL_LAMP_HALF_WIDTH) * D, TAIL_LAMP_Y[0] * D, dims.z_at(TAIL_LAMP_Z + 0.01),
+                (TAIL_LAMP_X + TAIL_LAMP_HALF_WIDTH) * D, TAIL_LAMP_Y[1] * D, dims.z_at(TAIL_LAMP_Z),
                 suv_cubes.region_faces("tail_lamp", "tail_face", {"north": (0, 0, 12, 24)}))]
-
-
-def tail_resin_cubes():
-    return [box(12.6, 10, REAR - 0.3, 13, 16, REAR, "resin")]
-
-
-def bumper_reflector_cubes():
-    return [
-        box(REFLECTOR_X1 - 2.5, REAR_BUMPER_BOTTOM_Y + 0.8, REAR_BUMPER_TIP_Z - 0.1, REFLECTOR_X1, REAR_BUMPER_TOP_Y - 0.8, REAR_BUMPER_TIP_Z, "tail"),  # reflector
-    ]

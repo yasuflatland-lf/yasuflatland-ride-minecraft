@@ -12,7 +12,6 @@ ATLAS = load_tool("swatch_atlas").Atlas(
 BLOCKS = {
     name: ATLAS.block(f"block.{name}", *rect)
     for name, rect in (
-        ("body", (0, 8, 512, 160)),
         ("headlight", (0, 168, 96, 88)),
         ("tail_lamp", (96, 168, 96, 88)),
         ("dash", (192, 168, 128, 88)),
@@ -21,7 +20,7 @@ BLOCKS = {
     )
 }
 PAINTERS = {name: load_tool(f"suv_paint_{module}") for name, module in (
-    ("body", "body"), ("headlight", "headlight"), ("tail_lamp", "tail"),
+    ("headlight", "headlight"), ("tail_lamp", "tail"),
     ("dash", "dash"), ("gauges", "gauges"))}
 _REGIONS = {}
 for block, painter in PAINTERS.items():

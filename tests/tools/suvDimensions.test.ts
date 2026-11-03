@@ -72,17 +72,20 @@ it("orders the SUV body heights and longitudinal landmarks consistently", () => 
   }
 });
 
-it("joins the shortened A-pillars to the roof without protruding above it", () => {
+it("joins the leaning A-pillars to the roof without protruding above it", () => {
   const body = bone("body") as GeometryBone;
+  // Each pillar is a long bar leaning back at 34.6 degrees, a little less than the windshield's own lean.
   const pillars = (body.cubes ?? []).filter(
     (c) =>
-      c.rotation?.[0] === -constant("WINDSHIELD_LEAN") &&
-      Math.abs(c.size[0] - constant("SIZE_SCALE")) < 1e-10,
+      c.rotation?.[1] === 0 &&
+      c.rotation[2] === 0 &&
+      Math.abs((c.rotation[0] ?? 0) + 34.6) < 0.05 &&
+      c.size[1] > dimension("D") / 2,
   );
   expect(pillars).toHaveLength(2);
   for (const pillar of pillars) {
     const top = Math.max(...turnedCorners(body, pillar).map((p) => p[1]));
-    expect(top).toBeCloseTo(dimension("ROOF_TOP"), 10);
+    expect(top).toBeLessThanOrEqual(dimension("ROOF_TOP"));
     expect(top).toBeGreaterThan(dimension("ROOF_Y"));
   }
 });
@@ -215,7 +218,7 @@ it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)"
 
 it("keeps the SUV spec values that mirror the model above the generator constants", () => {
   const blocks = (name: string): number => dimension(name) / 16;
-  // The fog lamps and bumper tips are the farthest-forward parts.
+  // The winch plate is the farthest-forward part.
   expect(SUV_SPEC.bodyFront).toBeGreaterThanOrEqual(
     blocks("FRONT_BUMPER_TIP_Z"),
   );

@@ -31,6 +31,7 @@ PALETTE = {
     "hardtop_rib": (46, 47, 52),  # the lit tops of the roof ribs
     "resin": (24, 24, 24),
     "chrome": (200, 202, 205),
+    "vent": (88, 96, 106),  # the grey mesh of the side vents
 }
 NAMES = list(PALETTE)
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
