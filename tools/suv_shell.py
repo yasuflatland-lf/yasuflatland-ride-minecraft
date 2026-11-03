@@ -68,7 +68,7 @@ def windshield_part(x0, y0, z0, x1, y1, z1, color):
 def leaning_top(y):
     """The unturned top of a windshield part whose face 0.5 px off the pivot should end at height y:
     leaning shortens its rise and lifts that face by its depth."""
-    return HOOD_TOP_Y + (y - HOOD_TOP_Y - 0.5 * _LEAN_SIN) / _LEAN_COS
+    return HOOD_TOP_Y + (y - HOOD_TOP_Y - 0.5 * LEAN_SIN) / LEAN_COS
 
 
 def fender_flare(z_center, front_leg_bottom, rear_leg_bottom):
@@ -201,8 +201,8 @@ def door(name):
 # the overlap does not fight the post for the same plane.
 def front_post_back(y):
     """z of the rear face of the front door's leaning post at height y, which starts 1.5 px behind the pivot."""
-    y0, z0 = WINDSHIELD_PIVOT[1] - 1.5 * _LEAN_SIN, WINDSHIELD_PIVOT[2] - 1.5 * _LEAN_COS
-    return z0 - (y - y0) * _LEAN_TAN
+    y0, z0 = WINDSHIELD_PIVOT[1] - 1.5 * LEAN_SIN, WINDSHIELD_PIVOT[2] - 1.5 * LEAN_COS
+    return z0 - (y - y0) * LEAN_TAN
 
 
 def front_side_panes():

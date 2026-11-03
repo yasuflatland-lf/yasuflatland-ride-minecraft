@@ -57,7 +57,7 @@
 - Agreement: Proposed
 - Basis: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Continue applying this one uniform transform at export to every length, pivot, locator and animation translation."; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Use `SIZE_SCALE = 1.45` in `tools/suv_dims.py`, an increase of 1.45/1.30, approximately 11.54 percent."
 - Implementation: `tools/suv_dims.py` (`SIZE_SCALE`); `tools/suv_export.py`
-- Verification: `tests/tools/suvDimensions.test.ts` "keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)" (asserts `SIZE_SCALE`). Not verified: that the 1.45 scale is acceptable on PC or touch (0194 calls it "a first guess, not an accepted client measurement").
+- Verification: `tests/tools/suvDimensions.test.ts` "keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)" (asserts `SIZE_SCALE`), "keeps the SUV spec values that mirror the model above the generator constants" (checks `SUV_SPEC` `bodyFront`, `bodyHalfWidth`, `footprint`, `carHeight` and `roofTentRoofHeight` against `tools/suv_dims.py` constants). Not verified: that the 1.45 scale is acceptable on PC or touch (0194 calls it "a first guess, not an accepted client measurement").
 
 ### Side-view proportion targets
 

@@ -146,7 +146,7 @@ for axis, index in [('x', 0), ('y', 1), ('z', 2)]:
             assert cube['size'][i] == 2 * ${half}
         for signs in product((0, 1), repeat=3):
             delta = [cube['origin'][i] + signs[i] * cube['size'][i] - center[i] for i in range(3)]
-            point = t._apply(t.cube_matrix(cube['rotation']), delta)
+            point = t.apply_matrix(t.cube_matrix(cube['rotation']), delta)
             assert abs(math.hypot(*(point[i] for i in radial)) - math.sqrt(2) * ${half}) < 1e-10
             assert abs(point[index] - delta[index]) < 1e-10`);
       },

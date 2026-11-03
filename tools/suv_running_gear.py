@@ -167,7 +167,6 @@ def sub_arm(name, x_out, z_center):
     }
 
 
-GLOW_RADIUS = 5
 GLOW_SEGMENTS = 16
 
 

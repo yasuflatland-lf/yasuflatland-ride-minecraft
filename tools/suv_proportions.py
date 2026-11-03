@@ -40,7 +40,7 @@ def _bounds(cubes):
         for n in range(8):
             offset = [cube["origin"][i] + cube["size"][i] * ((n >> i) & 1) - pivot[i]
                       for i in range(3)]
-            turned = _cube_tilt._apply(matrix, offset)
+            turned = _cube_tilt.apply_matrix(matrix, offset)
             points.append([pivot[i] + turned[i] for i in range(3)])
     if not points:
         raise ValueError("SUV measurement requires nonempty body and road wheel bones")
@@ -67,7 +67,7 @@ def measure(cubes_by_bone):
     # so follow the frame's tilted front face down to the pivot (hood) height.
     pivot = frame["pivot"]
     matrix = _cube_tilt.cube_matrix(frame["rotation"])
-    face = [_cube_tilt._apply(matrix, [0, frame["origin"][1] + h - pivot[1],
+    face = [_cube_tilt.apply_matrix(matrix, [0, frame["origin"][1] + h - pivot[1],
                                        frame["origin"][2] - pivot[2]])
             for h in (0, frame["size"][1])]
     foot = pivot[2] + face[0][2] - face[0][1] * (
