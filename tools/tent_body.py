@@ -1,4 +1,4 @@
-"""Build the ground tent's fly shell, arch poles, and hanging fixtures."""
+"""Build straight-sloped body panels, outlined ends, and hanging fixtures."""
 import math
 from typing import Callable
 
@@ -9,53 +9,140 @@ Dims, Part = dims.Dims, dims.Part
 panel = load_tool("panels").panel
 
 
-def arch(d: Dims, face, z0, z1, thickness, color, outward=True):
-    """Chord segments follow the half ellipse; the shell grows outward, poles inward."""
+def half_width(d: Dims, y):
+    return d.half_width - d.lean * y / d.ridge_height
+
+
+def ends(d: Dims, y):
+    inset = d.lean * y / d.ridge_height
+    return d.front_z + inset, d.rear_z - inset
+
+
+def side_band(d: Dims, face, side, y0, y1, z0, z1, color="fly", proud=0, overlap=True):
+    x0, x1 = half_width(d, y0), half_width(d, y1)
+    angle = -side * math.degrees(math.atan2(x0-x1, y1-y0))
+    thickness = d.shell_thickness
+    # Inward thickness lowers a rotated corner; lift the first band off the ground.
+    lift = max(0, thickness * abs(math.sin(math.radians(angle))) - y0)
+    pivot = (side*x0, y0+lift, z0)
+    lo, hi = (-thickness+proud, proud) if side > 0 else (-proud, thickness-proud)
+    return panel(pivot[0]+lo, pivot[1], z0, pivot[0]+hi,
+                 pivot[1]+min(math.hypot(x0-x1, y1-y0)+(d.band_overlap if overlap else 0),
+                              (d.ridge_height-pivot[1]-proud*abs(math.sin(math.radians(angle))))
+                              / math.cos(math.radians(angle))), z1, face(color),
+                 pivot=pivot, rotation=(0, 0, angle))
+
+
+def end_band(d: Dims, face, front, y0, y1, x0, x1, color="fly", proud=0):
+    z = ends(d, y0)[0 if front else 1]
+    angle = (-1 if front else 1) * math.degrees(math.atan2(d.lean, d.ridge_height))
+    thickness = d.shell_thickness
+    # Trim only ground and door-head bands; trimming every band leaves slits between them.
+    lift = thickness * abs(math.sin(math.radians(angle)))
+    bottom = lift / math.cos(math.radians(angle)) if y0 == 0 or (front and y0 == d.door_height) else 0
+    pivot = (x0, y0, z)
+    lo, hi = (-proud, thickness-proud) if front else (-thickness+proud, proud)
+    return panel(x0, y0+bottom, z+lo, x1,
+                 y0+min((y1-y0)/math.cos(math.radians(angle))+d.band_overlap,
+                        (d.ridge_height-y0-proud*abs(math.sin(math.radians(angle))))
+                        / math.cos(math.radians(angle))), z+hi, face(color),
+                 pivot=pivot, rotation=(angle, 0, 0))
+
+
+def shell(d: Dims, face):
+    fly = []
+    for y0 in range(0, d.ridge_height, d.band_height):
+        y1 = min(y0+d.band_height, d.ridge_height)
+        z0, z1 = ends(d, y0)
+        for side in (-1, 1):
+            fly.append(side_band(d, face, side, y0, y1, z0, z1,
+                                 "skirt" if y0 < d.skirt_height else "fly"))
+        w = half_width(d, y0)
+        fly.append(end_band(d, face, False, y0, y1, -w, w,
+                            "skirt" if y0 < d.skirt_height else "fly"))
+    w = half_width(d, d.ridge_height)
+    z0, z1 = ends(d, d.ridge_height)
+    fly.append(panel(-w, d.ridge_height-d.shell_thickness, z0,
+                     w, d.ridge_height, z1, face("fly")))
+    return fly
+
+
+def front_division(d: Dims, y):
+    if y <= d.door_height:
+        return d.door_half_width
+    fraction = (y-d.door_height)/(d.ridge_height-d.door_height)
+    return d.door_half_width + (half_width(d, d.ridge_height)-d.door_half_width)*fraction
+
+
+def front_side_panel(d: Dims, face, side):
     result = []
-    for i in range(d.arch_segments):
-        a, b = math.pi * i / d.arch_segments, math.pi * (i + 1) / d.arch_segments
-        x0, y0 = d.half_width * math.cos(a), d.wall_height + d.arch_rise * math.sin(a)
-        x1, y1 = d.half_width * math.cos(b), d.wall_height + d.arch_rise * math.sin(b)
-        dx, dy = x0 - x1, y0 - y1
-        length = math.hypot(dx, dy)
-        angle = -math.degrees(math.atan2(dy, dx))
-        low, high = (0, thickness) if outward else (-thickness, 0)
-        result.append(panel(x1, y1 + low, z0, x1 + length, y1 + high, z1,
-                            face(color), pivot=(x1, y1, z0), rotation=(0, 0, angle)))
+    for y0 in range(0, d.ridge_height, d.band_height):
+        y1 = min(y0+d.band_height, d.ridge_height)
+        outer, jamb = half_width(d, y0), front_division(d, y0)
+        x0, x1 = (jamb, outer) if side > 0 else (-outer, -jamb)
+        color = "skirt" if y0 < d.skirt_height else "fly"
+        result.append(end_band(d, face, True, y0, y1, x0, x1, color))
+        a, b = (jamb, min(jamb+d.seam_width, outer)) if side > 0 else (max(-outer, -jamb-d.seam_width), -jamb)
+        result.append(end_band(d, face, True, y0, y1, a, b, "seam", d.seam_proud))
     return result
 
 
-def end_panel(d: Dims, face, z0, z1, door):
+def left_front_panel(d: Dims, face):
+    return front_side_panel(d, face, -1)
+
+
+def right_front_panel(d: Dims, face):
+    return front_side_panel(d, face, 1)
+
+
+def above_door_panel(d: Dims, face):
     result = []
-    if door:
-        result += [panel(-d.half_width, 0, z0, -d.door_half_width, d.wall_height, z1, face("fly")),
-                   panel(d.door_half_width, 0, z0, d.half_width, d.wall_height, z1, face("fly"))]
-    else:
-        result.append(panel(-d.half_width, 0, z0, d.half_width, d.wall_height, z1, face("fly")))
-    # Each 1 px strip reaches the arch's inner surface at its inner edge, so no slit stays open
-    # under the shell; its outer corner still ends inside the 1 px shell. Over the door the
-    # strips start above the binding, which would otherwise share their faces.
-    for x in range(-d.half_width, d.half_width, d.strip_width):
-        top = d.wall_height + d.arch_rise * math.sqrt(
-            1 - (min(abs(x), abs(x + d.strip_width)) / d.half_width) ** 2)
-        bottom = d.wall_height + (d.binding_height if door and -d.door_half_width <= x < d.door_half_width else 0)
-        result.append(panel(x, bottom, z0, x + d.strip_width, top, z1, face("fly")))
+    for y0 in range(d.door_height, d.ridge_height, d.band_height):
+        w = front_division(d, y0)
+        result.append(end_band(d, face, True, y0, min(y0+d.band_height, d.ridge_height), -w, w))
+    result.append(end_band(d, face, True, d.door_height, d.door_height+d.seam_width,
+                           -d.door_half_width, d.door_half_width, "seam", d.seam_proud))
+    return result
+
+
+def seams(d: Dims, face):
+    result = []
+    # Frames follow the stepped face edges; a small normal offset avoids z-fighting.
+    for y0 in range(0, d.ridge_height, d.band_height):
+        y1 = min(y0+d.band_height, d.ridge_height-d.seam_proud)
+        z0, z1 = ends(d, y0)
+        for side in (-1, 1):
+            for start in (z0, z1-d.seam_width):
+                result.append(side_band(d, face, side, max(y0, d.shell_thickness), y1, start, start+d.seam_width,
+                                        "seam", d.seam_proud))
+        w = half_width(d, y0)
+        for front in (True, False):
+            for x0, x1 in ((-w, -w+d.seam_width), (w-d.seam_width, w)):
+                # Clip at the jamb below the door head to preserve the clear opening.
+                if front and y0 < d.door_height:
+                    a, b = (x0, min(x1, -d.door_half_width)) if x0 < 0 else (max(x0, d.door_half_width), x1)
+                    if a < b:
+                        result.append(end_band(d, face, front, y0, min(y1, d.door_height),
+                                               a, b, "seam", d.seam_proud))
+                if not front or y1 > d.door_height:
+                    result.append(end_band(d, face, front, max(y0, d.door_height) if front else y0,
+                                           y1, x0, x1, "seam", d.seam_proud))
+    for y in (d.ridge_height,):
+        z0, z1 = ends(d, y)
+        for side in (-1, 1):
+            result.append(side_band(d, face, side, y-d.seam_width, y-d.seam_proud,
+                                    z0, z1, "seam", d.seam_proud))
+    w = half_width(d, d.ridge_height)
+    z0, z1 = ends(d, d.ridge_height)
+    for start in (z0, z1-d.seam_width):
+        result.append(panel(-w, d.ridge_height-d.seam_proud, start, w, d.ridge_height,
+                            start+d.seam_width, face("seam")))
     return result
 
 
 def build(d: Dims, face: Callable[[str], dict]) -> Part:
-    fly = arch(d, face, d.front_z, d.rear_z, d.shell_thickness, "fly")
-    for x0, x1 in ((d.half_width, d.half_width + d.shell_thickness),
-                   (-d.half_width - d.shell_thickness, -d.half_width)):
-        fly += [panel(x0, 0, d.front_z, x1, d.wall_height, d.side_gap_front_z, face("fly")),
-                panel(x0, 0, d.side_gap_rear_z, x1, d.wall_height, d.rear_z, face("fly"))]
-    fly += end_panel(d, face, d.rear_z - d.shell_thickness, d.rear_z, False)
-    poles = []
-    for z0 in d.arch_pole_z:
-        z1 = z0 + d.pole_thickness
-        poles += arch(d, face, z0, z1, d.pole_thickness, "pole", outward=False)
-        poles += [panel(d.half_width - d.pole_thickness, 0, z0, d.half_width, d.wall_height, z1, face("pole")),
-                  panel(-d.half_width, 0, z0, -d.half_width + d.pole_thickness, d.wall_height, z1, face("pole"))]
+    fly = (shell(d, face) + left_front_panel(d, face) + right_front_panel(d, face)
+           + above_door_panel(d, face) + seams(d, face))
     strap = [panel(*d.strap_bounds, face("strap"))]
     for z in range(d.ring_first_z, d.ring_stop_z, d.ring_spacing):
         # Four strips leave the center of each 2 px silver ring open.
@@ -79,7 +166,6 @@ def build(d: Dims, face: Callable[[str], dict]) -> Part:
                                x+d.strip_width, d.glass_top_y, d.glass_pivot[2]+radius, face("glass")))
     bones = {
         "fly": {"parent": "root", "pivot": [0, 0, 0], "cubes": fly},
-        "poles": {"parent": "root", "pivot": [0, 0, 0], "cubes": poles},
         "strap": {"parent": "root", "pivot": [0, 0, 0], "cubes": strap},
         "lantern": {"parent": "root", "pivot": list(d.lantern_pivot), "cubes": lantern},
         "lantern_glass": {"parent": "lantern", "pivot": list(d.glass_pivot), "cubes": glass},

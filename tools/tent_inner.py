@@ -10,7 +10,7 @@ panel = load_tool("panels").panel
 
 
 def flaps(d: Dims):
-    w, h, z, t = d.door_half_width, d.wall_height, d.inner_front_z, d.inner_wall_thickness
+    w, h, z, t = d.inner_door_half_width, d.inner_wall_height, d.inner_front_z, d.inner_wall_thickness
     return {"flap_bedroom": ((-w, 0, z-t, w, h, z), (0, h, z-t/2), "inner", None)}
 
 
@@ -19,7 +19,7 @@ FLAPS = flaps(dims.DIMS)
 
 def build(d: Dims, face: Callable[[str], dict]) -> Part:
     w, h, t = d.inner_half_width, d.inner_height, d.inner_wall_thickness
-    z0, z1, door = d.inner_front_z, d.inner_rear_z, d.door_half_width
+    z0, z1, door = d.inner_front_z, d.inner_rear_z, d.inner_door_half_width
     inner = [
         panel(w-t, 0, z0, w, h, z1, face("inner")),
         panel(-w, 0, z0, -w+t, h, z1, face("inner")),
@@ -27,15 +27,15 @@ def build(d: Dims, face: Callable[[str], dict]) -> Part:
         panel(-w, h, z0, w, h+d.inner_roof_thickness, z1, face("inner_shade")),
         panel(-w, 0, z0, -door, h, z0+t, face("inner")),
         panel(door, 0, z0, w, h, z0+t, face("inner")),
-        panel(-door, d.wall_height, z0, door, h, z0+t, face("inner")),
+        panel(-door, d.inner_wall_height, z0, door, h, z0+t, face("inner")),
     ]
     # The D-door has a straight edge at -x and a rounded edge at +x (the tent's left; the
     # right side seen from the front room). Its corner infill belongs to the fixed inner
     # panel, not to the rolling flap. The shaded rim takes over the row's last 0.5 px, so
     # the two paints never share a face.
-    bedroom_flap = [panel(-door, 0, z0-t, 0, d.wall_height, z0, face("inner"))]
-    half_height = d.wall_height / 2
-    for y in range(0, d.wall_height, d.strip_width):
+    bedroom_flap = [panel(-door, 0, z0-t, 0, d.inner_wall_height, z0, face("inner"))]
+    half_height = d.inner_wall_height / 2
+    for y in range(0, d.inner_wall_height, d.strip_width):
         edge = max(abs(y - half_height), abs(y + d.strip_width - half_height))
         width = door * math.sqrt(1 - (edge / half_height) ** 2)
         if width:

@@ -1,22 +1,17 @@
-"""Generate a two-room tunnel tent with no brand logo or product name (ADR 0009, 0130).
+"""Generate a ground tent with a trapezoid body, flat ridge, and left tarp screen.
 
-    python3 -I tools/gen_tent.py <resource pack>
-    python3 -I tools/gen_tent.py <resource pack> --check
+    python3 -I tools/gen_tent.py <resource pack> [--check]
 
-Front is -z. Local cells use x left, z forward, layer 0 on the ground; model pixels
-are (16*x, 16*layer, -16*z), with +/-8 around each cell center. The entity occupies
-(0, 0, 0), the middle rear-wall cell. Frame depth is 11-z; footprint x -3..3, z 0..11.
-Rear/front walls: x -2..2, z 0/8, layers 0..2. Sides: x +/-3, z 1..7, layers 0..2.
-Bedroom: x -2..2, z 1..2; inner panel: z 3; front room: z 4..7, all layers 0..2.
-Flaps: front (0,8), left (3,5), right (-3,5), bedroom (0,3), layers 0..1.
-Mattresses: x +/-1, z 1..2, layer 0, 9 px high. Wall corners at (+/-3,0/8) are unlaid.
-Ceilings: x -2..2, z 1..7, layer 3, and z 9..11, layer 2 over the open tarp.
-The lantern cell (0,4,3) is above its hanging shade; tarp poles have no cells.
-There are 87 wall cells (8 flap), 50 ceiling cells, 137 laid cells, 336 clear cells,
-and 84 ground cells. This generator adds no cell-laying behavior.
-Each paint writes its own texture: tent.png for khaki (variant 0), tent_<paint>.png for the
-others, recoloring only the fly slots 0 and 1 (ADR 0031, 0076).
-Parts are built by tent_body, tent_entrance, tent_tarp, and tent_inner using tent_dims.
+The rear-wall middle cell anchors the entity (ADR 0130). Local cells use x left,
+depth behind the tarp front, and layer above ground. Model pixels are
+(16*x, 16*layer, -16*(8-depth)), with +/-8 around each cell center.
+The footprint is seven by nine cells; the body spans depths 3..8 and the tarp 0..2.
+The ridge is three layers high. The cell-laying changes belong to part 4/6 of #1222;
+this generator changes only assets, with the entrance and inner rebuild left to 6/6.
+Straight body slopes meet a flat ridge; dark seams outline both ends and the door head.
+The caramel tarp joins the ridge with an inverted triangular screen on model -x, two front poles,
+and an open right side. Existing flap and fixture bones remain valid. The sixteen paints
+recolor only fly, fly_dark, seam, and skirt; both tan tarp slots stay fixed (ADR 0031, 0076).
 --check compares parsed JSON and decoded pixels, independent of formatting and compression.
 """
 import argparse
@@ -39,22 +34,34 @@ tent_inner = load_tool("tent_inner")
 GEOMETRY = "models/entity/yasu_ride/tent.geo.json"
 TEXTURE = "textures/entity/yasu_ride/tent.png"
 IDENTIFIER = "geometry.yasu_ride.tent"
-ATLAS_SIZE = 16
+ATLAS_WIDTH = 16
+ATLAS_HEIGHT = 32
 SWATCH = 4
+
+
+def scale(color, factor):
+    return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
+
+
 PALETTE = {
-    "fly": (176, 140, 98, 255), "fly_dark": (136, 104, 68, 255),
+    "fly": (154, 132, 120, 255), "fly_dark": scale((154, 132, 120), 136 / 176) + (255,),
     "inner": (236, 234, 226, 255), "inner_shade": (204, 202, 194, 255),
     "pole": (170, 174, 180, 255), "pole_dark": (120, 124, 130, 255),
     "strap": (24, 24, 24, 255), "ring": (196, 198, 202, 255),
     "hook": (240, 240, 236, 255), "glass": (226, 222, 206, 0),
     "mattress": (64, 86, 120, 255), "mattress_edge": (44, 60, 86, 255),
+    "mesh": (32, 34, 32, 255), "mesh_frame": (76, 70, 60, 255),
+    "zip": (20, 20, 18, 255), "inner_floor": (154, 148, 132, 255),
+    "seam": scale((154, 132, 120), 0.6) + (255,),
+    "tarp_top": (176, 135, 90, 255), "tarp_under": (198, 164, 122, 255),
+    "skirt": scale((154, 132, 120), 1.12) + (255,),
 }
 SLOTS = list(PALETTE)
 # The fly color of each paint, in PAINTS order (src/domain/shared/paint.ts). khaki is the
-# tan-brown fly above; the others copy ACCENT_BASES in tools/gen_camper.py, since tools
+# taupe body fly above; the others copy ACCENT_BASES in tools/gen_camper.py, since tools
 # run with python3 -I and cannot import each other.
 FLY_PAINTS = {
-    "khaki": (176, 140, 98),
+    "khaki": (154, 132, 120),
     "green": (62, 96, 56),
     "red": (128, 22, 26),
     "white": (222, 222, 216),
@@ -72,7 +79,8 @@ FLY_PAINTS = {
     "pink": (214, 132, 162),
 }
 # Brightness of each fly slot relative to the khaki base, so seams stay darker in every paint.
-FLY_SHADES = {"fly": 1.0, "fly_dark": 136 / 176}
+FLY_SHADES = {"fly": 1.0, "fly_dark": 136 / 176, "seam": 0.6, "skirt": 1.12}
+FLY_SLOTS = frozenset(SLOTS.index(key) for key in FLY_SHADES)
 # Each flap's opening, roll pivot, parent bone, and paint. The bedroom D-door uses
 # both inner and inner_shade in tent_inner.
 FLAPS = {**tent_entrance.FLAPS, **tent_inner.FLAPS}
@@ -123,6 +131,7 @@ def corners(cube):
     if "rotation" in cube:
         # Only x and z turns are modeled; a y turn would make every bounds check silently wrong.
         assert cube["rotation"][1] == 0, cube
+        assert not (cube["rotation"][0] and cube["rotation"][2]), cube
         pts = [game_rotate(p, cube["pivot"], cube["rotation"]) for p in pts]
     return pts
 
@@ -149,9 +158,9 @@ def geometry():
         "format_version": "1.12.0",
         "minecraft:geometry": [{
             "description": {
-                "identifier": IDENTIFIER, "texture_width": 16, "texture_height": 16,
-                "visible_bounds_width": 13, "visible_bounds_height": 5,
-                "visible_bounds_offset": [0, 2.5, -5.5],
+                "identifier": IDENTIFIER, "texture_width": 16, "texture_height": ATLAS_HEIGHT,
+                "visible_bounds_width": 10, "visible_bounds_height": 5,
+                "visible_bounds_offset": [0, 2.5, -4],
             },
             "bones": assemble(),
         }],
@@ -161,8 +170,8 @@ def geometry():
 def validate(parts):
     """Reject bounds, interior intrusions, flap bounds, and paint ownership before writing."""
     errors = []
-    rooms = [(-40, 0, -120, 40, 48, -56), (-40, 0, -40, 40, 48, -8),
-             (-40, 0, -184, 40, 32, -136)]
+    rooms = [(-34, 0, -69, 34, 44, -52), (-34, 0, -40, 34, 35, -10),
+             (-46, 0, -136, DIMS.half_width-DIMS.pole_thickness, 32, -90)]
     def inside(b, outer):
         return all(b[i] >= outer[i] - 0.002 and b[i+3] <= outer[i+3] + 0.002 for i in range(3))
     def overlaps(b, room):
@@ -172,14 +181,16 @@ def validate(parts):
         for cube in part.get("cubes", []):
             points = corners(cube)
             b = tuple(min(p[i] for p in points) for i in range(3)) + tuple(max(p[i] for p in points) for i in range(3))
-            if not inside(b, (-56, 0, -184, 56, 72, 8)):
+            if not inside(b, (-56, 0, -136, 56, 64, 8)):
                 errors.append(f"{name} outside model bounds: {b}")
+            if name != "flap_front" and overlaps(b, (-40, 0, -90, 40, 35, -80)):
+                errors.append(f"{name} blocks the entrance: {b}")
             for i, room in enumerate(rooms):
                 if not overlaps(b, room):
                     continue
                 if i == 1 and name in ("mattress_0", "mattress_1"):
                     continue
-                if i == 0 and name in ("lantern", "lantern_glass") and inside(b, (-8, 32, -72, 8, 69, -56)):
+                if i == 0 and name in ("lantern", "lantern_glass") and inside(b, (-8, 32, -72, 8, 48, -56)):
                     continue
                 errors.append(f"{name} intersects interior {i}: {b}")
             if name in FLAPS and not inside(b, FLAPS[name][0]):
@@ -191,7 +202,7 @@ def validate(parts):
                     errors.append(f"{name} has a face wider than one swatch")
                 u, v = face_uv["uv"]
                 slot = int(u // 4 + 4 * (v // 4))
-                if slot in (0, 1) and name not in ("fly", "flap_front", "flap_left", "flap_right"):
+                if slot in FLY_SLOTS and name not in ("fly", "flap_front", "flap_left", "flap_right"):
                     errors.append(f"{name} uses a fly paint slot")
                 if name == "flap_bedroom" and slot not in (2, 3):
                     errors.append("bedroom flap uses a non-inner slot")
@@ -201,12 +212,8 @@ def validate(parts):
         sys.exit("\n".join(errors))
 
 
-def scale(color, factor):
-    return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
-
-
 def paint_palette(paint):
-    """The palette for a paint: khaki keeps PALETTE, so tent.png stays as it was."""
+    """Khaki keeps its fixed palette; other paints replace only fly swatches."""
     colors = dict(PALETTE)
     if paint != "khaki":
         for slot, shade in FLY_SHADES.items():
@@ -223,8 +230,8 @@ def texture_pixels(paint="khaki"):
     slot = lambda x, y: (y // SWATCH) * SWATCH + x // SWATCH  # noqa: E731
     return bytes(
         c
-        for y in range(ATLAS_SIZE)
-        for x in range(ATLAS_SIZE)
+        for y in range(ATLAS_HEIGHT)
+        for x in range(ATLAS_WIDTH)
         for c in (colors[SLOTS[slot(x, y)]] if slot(x, y) < len(SLOTS) else (0, 0, 0, 0))
     )
 
@@ -242,7 +249,7 @@ def main():
 
     out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
     for paint, path in textures.items():
-        out.png(path, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, texture_pixels(paint)), compress_level=9)
+        out.png(path, ATLAS_WIDTH, ATLAS_HEIGHT, texture_io.texel_reader(ATLAS_WIDTH, texture_pixels(paint)), compress_level=9)
     out.finish("Tent outputs are out of date with tools/gen_tent.py. Run `pnpm model` and commit the result:", "tent model and textures are up to date")
 
 
