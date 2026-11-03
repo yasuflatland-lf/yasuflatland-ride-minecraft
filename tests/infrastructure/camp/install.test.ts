@@ -321,7 +321,8 @@ it("returns tent and Gas Lantern targets built on the registered actions", () =>
   expect(vi.mocked(registerTestTentLantern).mock.calls[0]?.[0]).toBe(lantern);
   const here = asDimensionId("minecraft:overworld");
   expect(tentContaining?.(here, { x: 110.5, y: -60, z: 52.5 })).toBe("t");
-  expect(tentContaining?.(here, { x: 110.5, y: -60, z: 47.5 })).toBeUndefined();
+  expect(tentContaining?.(here, { x: 110.5, y: -60, z: 47.5 })).toBe("t");
+  expect(tentContaining?.(here, { x: 113.5, y: -60, z: 47.5 })).toBeUndefined();
   game.getDynamicProperty.mockReset();
   game.getEntity.mockReset();
 });

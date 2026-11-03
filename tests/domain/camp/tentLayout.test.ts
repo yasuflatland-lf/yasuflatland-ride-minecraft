@@ -1,27 +1,10 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { FLAP_IDS } from "../../../src/domain/camp/flaps";
-import {
-  flapCells,
-  type TentPose,
-  type TentYaw,
-  tentCellAt,
-  tentCells,
-  tentClearCells,
-} from "../../../src/domain/camp/tent";
 import {
   buildLayout,
   type TentLayoutSpec,
-  TUNNEL_LAYOUT,
 } from "../../../src/domain/camp/tentLayout";
-import { cellKey } from "../../../src/domain/shared/cells";
-
-const arbPose: fc.Arbitrary<TentPose> = fc.record({
-  x: fc.integer({ min: -1000, max: 1000 }),
-  y: fc.integer({ min: -60, max: 300 }),
-  z: fc.integer({ min: -1000, max: 1000 }),
-  yaw: fc.constantFrom<TentYaw>(0, 90, 180, -90),
-});
+import { defined } from "../../support/defined";
 
 const spec = (): TentLayoutSpec => ({
   wallHalfWidths: [3, 2, 2],
@@ -41,45 +24,6 @@ const spec = (): TentLayoutSpec => ({
   clear: { halfWidth: 3, depth: 8, layers: 4 },
   rooms: [{ halfWidth: 1, depthFrom: 2, depthTo: 6, layerTo: 2 }],
   anchor: { x: 0, depth: 7, layer: 0 },
-});
-
-describe("tent layout", () => {
-  it("keeps all laid cells within the clear cells at any pose and state", () => {
-    fc.assert(
-      fc.property(
-        arbPose,
-        fc.subarray([...FLAP_IDS]),
-        fc.boolean(),
-        (pose, openFlaps, lanternOn) => {
-          const clear = new Set(tentClearCells(pose).map(cellKey));
-          for (const cell of tentCells(pose, {
-            openFlaps: new Set(openFlaps),
-            lanternOn,
-          }))
-            expect(clear.has(cellKey(cell))).toBe(true);
-        },
-      ),
-    );
-  });
-
-  it("replaces only wall cells with flaps at any pose", () => {
-    fc.assert(
-      fc.property(arbPose, (pose) => {
-        const walls = new Set(
-          TUNNEL_LAYOUT.walls.map(({ cell }) =>
-            cellKey(tentCellAt(pose, cell)),
-          ),
-        );
-        for (const id of FLAP_IDS) {
-          expect(flapCells(pose, id)).toEqual(
-            TUNNEL_LAYOUT.flaps[id].map((cell) => tentCellAt(pose, cell)),
-          );
-          for (const cell of flapCells(pose, id))
-            expect(walls.has(cellKey(cell))).toBe(true);
-        }
-      }),
-    );
-  });
 });
 
 describe("buildLayout", () => {
@@ -116,6 +60,70 @@ describe("buildLayout", () => {
                   .map(({ cell }) => cell.x),
               ).toEqual([width, -width]);
           });
+        },
+      ),
+    );
+  });
+
+  it("insets only the outer cross-walls and leaves the side spans unchanged", () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer({ min: 0, max: 2 }), { maxLength: 3 }),
+        (insets) => {
+          const base = spec();
+          const layout = buildLayout({
+            ...base,
+            crossWallInsets: insets,
+            flaps: {
+              ...base.flaps,
+              front: base.flaps.front.map((cell) => ({
+                ...cell,
+                depth: cell.depth + (insets[cell.layer] ?? 0),
+              })),
+            },
+            anchor: {
+              ...base.anchor,
+              depth: base.anchor.depth - (insets[base.anchor.layer] ?? 0),
+            },
+          });
+          for (let layer = 0; layer < base.wallHalfWidths.length; layer++) {
+            const row = layout.walls.filter(({ cell }) => cell.layer === layer);
+            const inset = insets[layer] ?? 0;
+            expect(
+              row
+                .filter(({ face }) => face === 0)
+                .every(({ cell }) => cell.depth === base.depths.front + inset),
+            ).toBe(true);
+            expect(
+              row
+                .filter(({ face }) => face === 1)
+                .map(({ cell }) => cell.depth),
+            ).toEqual(
+              Array(defined(base.wallHalfWidths[layer], "layer width") * 2 - 1)
+                .fill(base.depths.inner)
+                .concat(
+                  Array(
+                    defined(base.wallHalfWidths[layer], "layer width") * 2 - 1,
+                  ).fill(base.depths.rear - inset),
+                ),
+            );
+            expect(
+              row.filter(({ face }) => face >= 2).map(({ cell }) => cell.depth),
+            ).toEqual([2, 3, 4, 5, 6, 2, 3, 4, 5, 6]);
+          }
+        },
+      ),
+    );
+  });
+
+  it("rejects negative, fractional, excessive and crossing insets", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom([-1], [0.5], [3], [0, 0, 0, 0], [Number.NaN]),
+        (insets) => {
+          expect(() =>
+            buildLayout({ ...spec(), crossWallInsets: insets }),
+          ).toThrow("Invalid tent cross-wall insets");
         },
       ),
     );

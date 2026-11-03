@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
 import type { SpaceCheck } from "../../../src/application/shared/ports/space";
 import { legacyTentClearCells } from "../../../src/domain/camp/legacyTent";
+import { TENT_LAYOUT_VERSION } from "../../../src/domain/camp/spec";
 import {
   asTentId,
   flapCells,
@@ -279,8 +280,8 @@ describe("BedrockTentWorld (ADR 0131)", () => {
       typeId: "minecraft:stone",
       liquid: false,
     });
-    expect(survey.clear).toHaveLength(336);
-    expect(survey.ground).toHaveLength(84);
+    expect(survey.clear).toHaveLength(tentClearCells(POSE).length);
+    expect(survey.ground).toHaveLength(tentGroundCells(POSE).length);
   });
 
   it("finds vehicle space on a footprint cell two layers up", () => {
@@ -386,7 +387,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(world.isOccupied(TENT)).toBe(false);
     const tarp = tentCellAt(POSE, { x: 0, depth: 1, layer: 0 });
     player.location = { x: tarp.x + 0.5, y: tarp.y, z: tarp.z + 0.5 };
-    expect(world.isOccupied(TENT)).toBe(false);
+    expect(world.isOccupied(TENT)).toBe(true);
     expect(world.isOccupied(asTentId("other"))).toBe(false);
   });
 
@@ -402,7 +403,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
         y: tarp.y,
         z: tarp.z + 0.5,
       }),
-    ).toBeUndefined();
+    ).toBe(TENT);
     expect(
       world.tentContaining(asDimensionId("minecraft:nether"), feet),
     ).toBeUndefined();
@@ -519,7 +520,10 @@ describe("BedrockTentWorld (ADR 0131)", () => {
       tentEntityLocation(POSE),
     );
     expect(tent.setRotation).toHaveBeenCalledWith({ x: 0, y: 180 });
-    expect(registry.add).toHaveBeenCalledWith(ENTRY);
+    expect(registry.add).toHaveBeenCalledWith({
+      ...ENTRY,
+      layout: TENT_LAYOUT_VERSION,
+    });
     expect(blocks.lay).toHaveBeenCalledWith(
       TENT,
       tent,

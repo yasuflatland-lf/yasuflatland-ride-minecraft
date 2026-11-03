@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { TENT_LAYOUT_VERSION } from "../../../src/domain/camp/spec";
 import { asTentId, type TentYaw } from "../../../src/domain/camp/tent";
 import {
   legacyTents,
@@ -68,7 +69,7 @@ describe("tent registry (ADR 0131)", () => {
           list.filter((entry) => entry.layout < current),
         );
         expect(legacyTents(list)).toEqual(
-          list.filter((entry) => entry.layout < 1),
+          list.filter((entry) => entry.layout < TENT_LAYOUT_VERSION),
         );
       }),
     );
