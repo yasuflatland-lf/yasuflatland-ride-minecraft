@@ -79,6 +79,7 @@ FLY_PAINTS = {
 }
 # Brightness of each fly slot relative to the khaki base, so seams stay darker in every paint.
 FLY_SHADES = {"fly": 1.0, "fly_dark": 136 / 176, "seam": 0.6}
+FLY_SLOTS = frozenset(SLOTS.index(key) for key in FLY_SHADES)
 # Each flap's opening, roll pivot, parent bone, and paint. The bedroom D-door uses
 # both inner and inner_shade in tent_inner.
 FLAPS = {**tent_entrance.FLAPS, **tent_inner.FLAPS}
@@ -199,7 +200,7 @@ def validate(parts):
                     errors.append(f"{name} has a face wider than one swatch")
                 u, v = face_uv["uv"]
                 slot = int(u // 4 + 4 * (v // 4))
-                if slot in (SLOTS.index(key) for key in FLY_SHADES) and name not in ("fly", "flap_front", "flap_left", "flap_right"):
+                if slot in FLY_SLOTS and name not in ("fly", "flap_front", "flap_left", "flap_right"):
                     errors.append(f"{name} uses a fly paint slot")
                 if name == "flap_bedroom" and slot not in (2, 3):
                     errors.append("bedroom flap uses a non-inner slot")

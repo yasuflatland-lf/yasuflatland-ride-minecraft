@@ -107,8 +107,6 @@ def seams(d: Dims, face):
 
 def build(d: Dims, face: Callable[[str], dict]) -> Part:
     fly = shell(d, face) + seams(d, face)
-    # The tarp's straight supports replace the old arch frame in tent_tarp.
-    poles = []
     strap = [panel(*d.strap_bounds, face("strap"))]
     for z in range(d.ring_first_z, d.ring_stop_z, d.ring_spacing):
         # Four strips leave the center of each 2 px silver ring open.
@@ -132,7 +130,6 @@ def build(d: Dims, face: Callable[[str], dict]) -> Part:
                                x+d.strip_width, d.glass_top_y, d.glass_pivot[2]+radius, face("glass")))
     bones = {
         "fly": {"parent": "root", "pivot": [0, 0, 0], "cubes": fly},
-        "poles": {"parent": "root", "pivot": [0, 0, 0], "cubes": poles},
         "strap": {"parent": "root", "pivot": [0, 0, 0], "cubes": strap},
         "lantern": {"parent": "root", "pivot": list(d.lantern_pivot), "cubes": lantern},
         "lantern_glass": {"parent": "lantern", "pivot": list(d.glass_pivot), "cubes": glass},
