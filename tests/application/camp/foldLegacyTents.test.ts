@@ -134,12 +134,18 @@ it("folds only older tents, preserves every other block, refunds once, and is id
   );
 });
 
-it("folds unversioned tunnel tents and preserves current and future layouts at the shipped version", () => {
+it("folds unversioned tunnel and version-2 trapezoid tents and preserves current and future layouts at the shipped version", () => {
   const pose = { x: 0, y: 64, z: 0, yaw: 0 };
   const world = new FakeLegacyTentWorld(
     parseTents(
       JSON.stringify([
         { id: "legacy", dimensionId: "minecraft:overworld", pose },
+        {
+          id: "trapezoid",
+          dimensionId: "minecraft:overworld",
+          pose,
+          layout: 2,
+        },
         {
           id: "current",
           dimensionId: "minecraft:overworld",
@@ -157,10 +163,13 @@ it("folds unversioned tunnel tents and preserves current and future layouts at t
   );
   new FoldLegacyTents(world).execute();
   expect(world.entries.map(({ id }) => id)).toEqual(["current", "future"]);
-  expect(world.refunds).toEqual(["legacy"]);
+  expect(world.refunds).toEqual(["legacy", "trapezoid"]);
   expect(world.order).toEqual([
     "eject:legacy",
     "refund:legacy",
     "remove:legacy",
+    "eject:trapezoid",
+    "refund:trapezoid",
+    "remove:trapezoid",
   ]);
 });

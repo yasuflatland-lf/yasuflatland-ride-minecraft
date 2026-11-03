@@ -28,6 +28,18 @@ import {
 } from "../../src/infrastructure/camp/identifiers";
 import { paintEvent } from "../../src/infrastructure/shared/dyes";
 
+const LEAN_WIDTH = TENT_SPEC.leanWidth * 16;
+const LEAN_DEPTH = TENT_SPEC.leanDepth * 16;
+const MODEL_HALF_WIDTH = TENT_SPEC.width * 8;
+const RIDGE_HEIGHT = TENT_SPEC.frontRoomHeadroom * 16;
+const sideAngle = Math.atan2(LEAN_WIDTH, RIDGE_HEIGHT);
+const flapPivotX =
+  MODEL_HALF_WIDTH -
+  (LEAN_WIDTH * 28) / RIDGE_HEIGHT +
+  0.9 * Math.cos(sideAngle);
+const flapPivotY = 28 + 0.9 * Math.sin(sideAngle);
+const round = (value: number) => Math.round(value * 1000) / 1000;
+
 const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
@@ -106,9 +118,42 @@ const overlaps = (a: Bounds, b: Bounds) =>
       (a[i + 3] ?? 0) > (b[i] ?? 0) + 0.002,
   );
 const openings: Record<string, Bounds> = {
-  flap_front: [-24, 0, -88, 24, 35, -73.5],
-  flap_left: [45.17, 8.148, -70, 53.636, 28.335, -58],
-  flap_right: [-53.636, 8.148, -70, -45.17, 28.335, -58],
+  flap_front: [
+    -24,
+    0,
+    -88,
+    24,
+    35,
+    -88 + (LEAN_DEPTH * 35) / RIDGE_HEIGHT + 0.5,
+  ],
+  flap_left: [
+    MODEL_HALF_WIDTH -
+      (LEAN_WIDTH * 28) / RIDGE_HEIGHT +
+      0.4 * Math.cos(sideAngle),
+    8 + 0.4 * Math.sin(sideAngle),
+    -70,
+    MODEL_HALF_WIDTH -
+      (LEAN_WIDTH * 8) / RIDGE_HEIGHT +
+      0.9 * Math.cos(sideAngle),
+    flapPivotY,
+    -58,
+  ],
+  flap_right: [
+    -(
+      MODEL_HALF_WIDTH -
+      (LEAN_WIDTH * 8) / RIDGE_HEIGHT +
+      0.9 * Math.cos(sideAngle)
+    ),
+    8 + 0.4 * Math.sin(sideAngle),
+    -70,
+    -(
+      MODEL_HALF_WIDTH -
+      (LEAN_WIDTH * 28) / RIDGE_HEIGHT +
+      0.4 * Math.cos(sideAngle)
+    ),
+    flapPivotY,
+    -58,
+  ],
   flap_bedroom: [-8, 0, -42.5, 8, 32, -42],
 };
 describe("tent entity and client", () => {
@@ -290,9 +335,12 @@ describe("tent geometry and texture", () => {
       strap: ["root", [0, 0, 0]],
       lantern: ["root", [0, 47.5, -64]],
       lantern_glass: ["lantern", [0, 40, -64]],
-      flap_front: ["fly", [0, 35, -74]],
-      flap_left: ["fly", [45.636, 28.334, -64]],
-      flap_right: ["fly", [-45.636, 28.334, -64]],
+      flap_front: [
+        "fly",
+        [0, 35, round(-88 + (LEAN_DEPTH * 35) / RIDGE_HEIGHT)],
+      ],
+      flap_left: ["fly", [round(flapPivotX), round(flapPivotY), -64]],
+      flap_right: ["fly", [-round(flapPivotX), round(flapPivotY), -64]],
       flap_bedroom: ["inner", [0, 32, -42.25]],
       mattress_0: ["root", [16, 0, -24]],
       mattress_1: ["root", [-16, 0, -24]],
@@ -306,9 +354,23 @@ describe("tent geometry and texture", () => {
   });
   it("keeps the rooms and tarp clear, with only the mattresses and hanging lantern inside", () => {
     const rooms: Bounds[] = [
-      [-34, 0.5, -69, 34, 44, -52],
-      [-34, 0.5, -40, 34, 35, -10],
-      [-46, 0, -136, 54.5, 32, -90],
+      [
+        -(MODEL_HALF_WIDTH - LEAN_WIDTH - 1),
+        0.5,
+        -67,
+        MODEL_HALF_WIDTH - LEAN_WIDTH - 1,
+        44,
+        -52,
+      ],
+      [
+        -(MODEL_HALF_WIDTH - (LEAN_WIDTH * 40.5) / RIDGE_HEIGHT - 2),
+        0.5,
+        -40,
+        MODEL_HALF_WIDTH - (LEAN_WIDTH * 40.5) / RIDGE_HEIGHT - 2,
+        35,
+        -10,
+      ],
+      [-MODEL_HALF_WIDTH + LEAN_WIDTH / 2, 0, -136, 54.5, 32, -90],
     ];
     const bones: Bone[] = geometry().bones;
     for (const bone of bones) {
@@ -361,8 +423,16 @@ describe("tent geometry and texture", () => {
     expect(Math.max(...extents.map((b) => b[5]))).toBeCloseTo(8, 2);
     expect(Math.max(...extents.map((b) => b[4]))).toBeCloseTo(48, 2);
     const ridge = body.find((c) => !c.rotation && c.origin[1] === 47.5);
-    expect(ridge?.origin).toEqual([-36.8, 47.5, -68.8]);
-    expect(ridge?.size).toEqual([73.6, 0.5, 57.6]);
+    expect(ridge?.origin).toEqual([
+      -round(MODEL_HALF_WIDTH - LEAN_WIDTH),
+      47.5,
+      round(-88 + LEAN_DEPTH),
+    ]);
+    expect(ridge?.size).toEqual([
+      round((MODEL_HALF_WIDTH - LEAN_WIDTH) * 2),
+      0.5,
+      round(96 - LEAN_DEPTH * 2),
+    ]);
     const slopes = new Set(
       body
         .filter(
@@ -374,7 +444,7 @@ describe("tent geometry and texture", () => {
     );
     expect(slopes.size).toBe(1);
     expect([...slopes][0]).toBeCloseTo(
-      (Math.atan2(19.2, 48) * 180) / Math.PI,
+      (Math.atan2(LEAN_WIDTH, 48) * 180) / Math.PI,
       3,
     );
     const seams = body.filter((c) => c.uv.north?.uv[1] === 16);
@@ -389,13 +459,13 @@ describe("tent geometry and texture", () => {
             c.size[0] === 1 &&
             Math.abs(
               Math.abs(c.origin[0] + c.size[0] / 2) -
-                (56 - (19.2 * y) / 48 - 0.5),
+                (56 - (LEAN_WIDTH * y) / 48 - 0.5),
             ) < 0.002,
         );
         expect(edges).toHaveLength(2);
         for (const edge of edges)
           expect(Math.abs(edge.origin[0] + edge.size[0] / 2)).toBeCloseTo(
-            56 - (19.2 * y) / 48 - 0.5,
+            56 - (LEAN_WIDTH * y) / 48 - 0.5,
             2,
           );
       }
@@ -404,7 +474,7 @@ describe("tent geometry and texture", () => {
     expect(doorHead?.origin[0]).toBe(-24);
     expect(doorHead?.size[0]).toBe(48);
     const cubes = (geometry().bones as Bone[]).flatMap((b) => b.cubes ?? []);
-    expect(cubes.length).toBeLessThan(1400);
+    expect(cubes.length).toBeLessThan(1800);
   });
   it("keeps every rotated cube inside the footprint and the entrance clear except for its flap", () => {
     for (const bone of geometry().bones as Bone[]) {
@@ -434,7 +504,7 @@ describe("tent geometry and texture", () => {
           let cubeBounds = bounds(cube);
           if (flap !== "flap_front") {
             const side = flap === "flap_left" ? 1 : -1;
-            const angle = Math.atan(19.2 / 48);
+            const angle = Math.atan(LEAN_WIDTH / 48);
             const [cos, sin] = [Math.cos(angle), Math.sin(angle)];
             const points = corners(cube).map(([x, y, z]) => [
               side * (x - side * 56) * cos + y * sin,
@@ -516,17 +586,40 @@ describe("tent geometry and texture", () => {
         false,
       );
       for (const [x, y, z] of corners(cube)) {
-        const halfWidth = 56 - 0.4 * y;
+        const halfWidth = MODEL_HALF_WIDTH - (LEAN_WIDTH * y) / RIDGE_HEIGHT;
         expect(Math.abs(x)).toBeLessThanOrEqual(halfWidth + 0.002);
-        expect(z).toBeGreaterThanOrEqual(-88 + 0.4 * y - 0.002);
-        expect(z).toBeLessThanOrEqual(8 - 0.4 * y + 0.002);
+        expect(z).toBeGreaterThanOrEqual(
+          -88 + (LEAN_DEPTH * y) / RIDGE_HEIGHT - 0.002,
+        );
+        expect(z).toBeLessThanOrEqual(
+          8 - (LEAN_DEPTH * y) / RIDGE_HEIGHT + 0.002,
+        );
       }
     }
+    for (const bone of bones.filter(({ name }) =>
+      ["strap", "lantern", "lantern_glass"].includes(name),
+    ))
+      for (const cube of bone.cubes ?? [])
+        for (const [x, y, z] of corners(cube)) {
+          expect(Math.abs(x)).toBeLessThanOrEqual(
+            MODEL_HALF_WIDTH - (LEAN_WIDTH * y) / RIDGE_HEIGHT + 0.002,
+          );
+          expect(z).toBeGreaterThanOrEqual(
+            -88 + (LEAN_DEPTH * y) / RIDGE_HEIGHT - 0.002,
+          );
+          expect(z).toBeLessThanOrEqual(
+            8 - (LEAN_DEPTH * y) / RIDGE_HEIGHT + 0.002,
+          );
+          if (bone.name !== "lantern_glass") {
+            expect(z).toBeGreaterThanOrEqual(-88 + LEAN_DEPTH - 0.002);
+            expect(z).toBeLessThanOrEqual(8 - LEAN_DEPTH + 0.002);
+          }
+        }
     const fixtures = bones
       .filter((bone) =>
         ["strap", "lantern", "lantern_glass"].includes(bone.name),
       )
-      .flatMap((bone) => (bone.cubes ?? []).map(bounds));
+      .flatMap((bone) => bone.cubes ?? []);
     const liners = (
       bones.find((bone) => bone.name === "fly")?.cubes ?? []
     ).filter(
@@ -534,8 +627,25 @@ describe("tent geometry and texture", () => {
     );
     expect(liners.length).toBeGreaterThan(0);
     for (const liner of liners)
-      for (const fixture of fixtures)
-        expect(overlaps(bounds(liner), fixture)).toBe(false);
+      for (const fixture of fixtures) {
+        if (!overlaps(bounds(liner), bounds(fixture))) continue;
+        // World-aligned bounds of a sloped liner include empty space near the lantern.
+        const points = corners(liner);
+        const origin = points[0] as [number, number, number];
+        const separated = [1, 2, 4].some((index) => {
+          const edge = points[index] as [number, number, number];
+          const axis = edge.map((value, i) => value - (origin[i] ?? 0));
+          const project = (point: number[]) =>
+            point.reduce((sum, value, i) => sum + value * (axis[i] ?? 0), 0);
+          const a = points.map(project);
+          const b = corners(fixture).map(project);
+          return (
+            Math.max(...a) <= Math.min(...b) + 0.002 ||
+            Math.max(...b) <= Math.min(...a) + 0.002
+          );
+        });
+        expect(separated).toBe(true);
+      }
   });
   it("uses only the twenty palette slots and assigns the new parts their existing swatches", () => {
     const bones: Bone[] = geometry().bones;
@@ -575,17 +685,19 @@ describe("tent geometry and texture", () => {
       (c) =>
         c.rotation?.[0] && c.uv.down?.uv[0] === 8 && c.uv.down?.uv[1] === 16,
     );
-    expect(roof).toHaveLength(68);
+    expect(roof).toHaveLength(Math.ceil(48 + LEAN_DEPTH));
     expect(Math.min(...roof.map((c) => bounds(c)[1]))).toBeCloseTo(43.5, 2);
     expect(Math.max(...roof.map((c) => bounds(c)[4]))).toBeCloseTo(48, 2);
     const rear = roof.at(-1) as Cube;
     expect(
       corners(rear).some(
-        (p) => Math.abs(p[1] - 48) < 0.002 && Math.abs(p[2] + 68.8) < 0.002,
+        (p) =>
+          Math.abs(p[1] - 48) < 0.002 &&
+          Math.abs(p[2] - (-88 + LEAN_DEPTH)) < 0.002,
       ),
     ).toBe(true);
-    expect(bounds(rear)[0]).toBeCloseTo(-36.8, 1);
-    expect(bounds(rear)[3]).toBeCloseTo(36.8, 1);
+    expect(bounds(rear)[0]).toBeCloseTo(-(MODEL_HALF_WIDTH - LEAN_WIDTH), 1);
+    expect(bounds(rear)[3]).toBeCloseTo(MODEL_HALF_WIDTH - LEAN_WIDTH, 1);
     for (const cube of roof) {
       expect(cube.uv.up?.uv).toEqual([4, 16]);
       expect(cube.uv.down?.uv).toEqual([8, 16]);
@@ -597,7 +709,9 @@ describe("tent geometry and texture", () => {
     );
     expect(screens.length).toBeGreaterThan(30);
     for (const cube of screens) {
-      expect(bounds(cube)[3]).toBeLessThan(-35);
+      expect(bounds(cube)[3]).toBeLessThanOrEqual(
+        -MODEL_HALF_WIDTH + LEAN_WIDTH + 0.5,
+      );
       expect(cube.rotation?.[2]).toBeGreaterThan(0);
       expect(cube.uv.west?.uv).toEqual([4, 16]);
     }
@@ -621,7 +735,10 @@ describe("tent geometry and texture", () => {
         c.uv.north?.uv[1] === 16,
     );
     for (let y = 0; y < 48; y++) {
-      const division = y <= 35 ? 24 : 24 + ((36.8 - 24) * (y - 35)) / 13;
+      const division =
+        y <= 35
+          ? 24
+          : 24 + ((MODEL_HALF_WIDTH - LEAN_WIDTH - 24) * (y - 35)) / 13;
       for (const side of [-1, 1]) {
         expect(
           frontSeams.some(
@@ -945,7 +1062,7 @@ describe("tent mattresses (ADR 0092, 0133)", () => {
       const cubes = bone?.cubes ?? [];
       expect(cubes.length).toBeGreaterThan(0);
       expect(Math.max(...cubes.map((c) => bounds(c)[4]))).toBe(9);
-      // The tunnel asset is replaced in #1227/#1228; domain layout 2 already uses the trapezoid.
+      // The hidden collision box follows the entity anchor, independently of the stepped shell.
       const cells = [9, 10].map((depth) => ({
         x: index === 0 ? 1 : -1,
         depth,

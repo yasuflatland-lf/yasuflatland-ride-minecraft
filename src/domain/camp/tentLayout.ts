@@ -234,7 +234,7 @@ const rear = TENT_SPEC.depth - 1;
 const inner = rear - BEDROOM_DEPTH - 1;
 const wallLayers = TENT_SPEC.frontRoomHeadroom;
 
-/** Horizontal shell surfaces at a height above ground (ADR 0209). The tarp meets the inclined front face. */
+/** Horizontal shell surfaces at a height above ground (ADR 0209, 0210). The tarp meets the inclined front face. */
 export function tentShellAt(height: number): {
   halfWidth: number;
   front: number;
@@ -244,9 +244,9 @@ export function tentShellAt(height: number): {
   tarpTop: number;
 } {
   const top = wallLayers + 1;
-  const inset = (TENT_SPEC.lean * height) / top;
+  const inset = (TENT_SPEC.leanDepth * height) / top;
   return {
-    halfWidth: TENT_SPEC.width / 2 - inset,
+    halfWidth: TENT_SPEC.width / 2 - (TENT_SPEC.leanWidth * height) / top,
     front: front + inset,
     rear: TENT_SPEC.depth - inset,
     top,
@@ -279,7 +279,7 @@ export const TRAPEZOID_LAYOUT: TentLayout = buildLayout({
   depths: { front, inner, rear },
   ceilings: [
     {
-      halfWidth: roomHalfWidth,
+      halfWidth: Math.floor(tentShellAt(wallLayers + 0.5).halfWidth),
       depthFrom: front + 1,
       depthTo: rear - 1,
       layer: wallLayers,
@@ -296,8 +296,12 @@ export const TRAPEZOID_LAYOUT: TentLayout = buildLayout({
     front: Array.from({ length: ENTRANCE_HALF_WIDTH * 2 + 1 }, (_, offset) =>
       flap(offset - ENTRANCE_HALF_WIDTH, front),
     ).flat(),
-    left: flap(halfWidth, inner - 1),
-    right: flap(-halfWidth, inner - 1),
+    left: wallHalfWidths
+      .slice(0, FLAP_HEIGHT)
+      .map((x, layer) => ({ x, depth: inner - 1, layer })),
+    right: wallHalfWidths
+      .slice(0, FLAP_HEIGHT)
+      .map((x, layer) => ({ x: -x, depth: inner - 1, layer })),
     bedroom: flap(0, inner),
   },
   mattresses: [mattress(MATTRESS_X), mattress(-MATTRESS_X)],
@@ -311,12 +315,12 @@ export const TRAPEZOID_LAYOUT: TentLayout = buildLayout({
       depthTo: front - 1,
       layerTo: TENT_SPEC.tarpHeadroom - 1,
     },
-    {
-      halfWidth: roomHalfWidth,
+    ...wallHalfWidths.slice(0, TENT_SPEC.tarpHeadroom).map((width, layer) => ({
+      halfWidth: width - 1,
       depthFrom: front + 1,
       depthTo: rear - 1,
-      layerTo: TENT_SPEC.tarpHeadroom - 1,
-    },
+      layerTo: layer,
+    })),
     {
       halfWidth: upperHalfWidth - 1,
       depthFrom: front + upperInset + 1,

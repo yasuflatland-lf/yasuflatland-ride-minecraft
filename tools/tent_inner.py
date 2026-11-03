@@ -60,10 +60,16 @@ def build(d: Dims, face: Callable[[str], dict]) -> Part:
         lo, hi = (-t, 0) if side > 0 else (0, t)
         # Lift the inner thickness off the floor, as for the outer shell's side bands.
         lift = t*math.sin(math.radians(angle))
-        inner.append(panel(x+lo, lift, z0, x+hi, lift+length-t*math.tan(math.radians(angle)), z1-t,
-                           face("inner"), pivot=(x, lift, z0), rotation=(0, 0, -side*angle)))
+        for y in range(0, h, d.band_height):
+            top = min(y+d.band_height, h)
+            rear = min(z1-t, body.ends(d, top)[1]-d.shell_thickness-d.seam_width)
+            start = y/math.cos(math.radians(angle))
+            stop = min(top/math.cos(math.radians(angle)), length-t*math.tan(math.radians(angle)))
+            inner.append(panel(x+lo, lift+start, z0, x+hi, lift+stop, rear,
+                               face("inner"), pivot=(x, lift, z0), rotation=(0, 0, -side*angle)))
     inner += [panel(-w, 0, z0, w, d.inner_floor_thickness, z1, face("inner_floor")),
-              panel(-top_width, h, z0, top_width, h+d.inner_roof_thickness, z1-t, face("inner_shade"))]
+              panel(-top_width, h, z0, top_width, h+d.inner_roof_thickness,
+                    min(z1-t, body.ends(d, h+d.inner_roof_thickness)[1]-d.shell_thickness-d.seam_width), face("inner_shade"))]
     bedroom_flap = []
     for y in range(0, h, d.band_height):
         top = min(y+d.band_height, h)

@@ -169,8 +169,12 @@ def geometry():
 def validate(parts):
     """Reject bounds, interior intrusions, flap bounds, and paint ownership before writing."""
     errors = []
-    rooms = [(-34, 0.5, -69, 34, 44, -52), (-34, 0.5, -40, 34, 35, -10),
-             (-46, 0, -136, DIMS.half_width-DIMS.pole_thickness, 32, -90)]
+    front_width = DIMS.half_width-DIMS.lean_width-2*DIMS.shell_thickness
+    bedroom_width = DIMS.inner_half_width-DIMS.inner_lean-DIMS.shell_thickness
+    rooms = [(-front_width, 0.5, -67, front_width, 44, -52),
+             (-bedroom_width, 0.5, -40, bedroom_width, 35, -10),
+             (-DIMS.half_width+DIMS.lean_width/2, 0, DIMS.tarp_front_z,
+              DIMS.half_width-DIMS.pole_thickness, DIMS.wall_height, DIMS.front_z-2)]
     def inside(b, outer):
         return all(b[i] >= outer[i] - 0.002 and b[i+3] <= outer[i+3] + 0.002 for i in range(3))
     def overlaps(b, room):
