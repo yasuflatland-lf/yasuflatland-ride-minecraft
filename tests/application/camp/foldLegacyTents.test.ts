@@ -11,7 +11,6 @@ import {
 import { asDimensionId } from "../../../src/domain/shared/ids";
 
 class FakeLegacyTentWorld implements LegacyTentWorld {
-  readonly blocks = new Map<TentId, readonly string[]>();
   readonly refunds: TentId[] = [];
   readonly unloaded = new Set<TentId>();
   readonly failing = new Set<TentId>();
@@ -27,7 +26,6 @@ class FakeLegacyTentWorld implements LegacyTentWorld {
     this.attempts.push(entry.id);
     if (this.unloaded.has(entry.id)) return "deferred";
     if (this.failing.has(entry.id)) throw new Error("fold failed");
-    this.blocks.delete(entry.id);
     this.refunds.push(entry.id);
     this.entries = this.entries.filter((tent) => tent.id !== entry.id);
     return "folded";
@@ -42,7 +40,6 @@ it("isolates failures, preserves deferred tents, and converges once every legacy
           layout: fc.nat({ max: TENT_LAYOUT_VERSION + 1 }),
           loaded: fc.boolean(),
           throws: fc.boolean(),
-          blocks: fc.array(fc.string()),
         }),
       ),
       (tents) => {
@@ -57,11 +54,9 @@ it("isolates failures, preserves deferred tents, and converges once every legacy
         const world = new FakeLegacyTentWorld(entries);
         for (const [index, tent] of tents.entries()) {
           const id = asTentId(`${index}`);
-          world.blocks.set(id, tent.blocks);
           if (!tent.loaded) world.unloaded.add(id);
           if (tent.throws) world.failing.add(id);
         }
-        const before = new Map(world.blocks);
         const older = entries.filter((e) => e.layout < TENT_LAYOUT_VERSION);
         const deferred = older.filter(
           (e) => world.unloaded.has(e.id) || world.failing.has(e.id),
@@ -81,7 +76,6 @@ it("isolates failures, preserves deferred tents, and converges once every legacy
         );
         for (const entry of world.entries) {
           expect(entry).toEqual(entries.find((e) => e.id === entry.id));
-          expect(world.blocks.get(entry.id)).toEqual(before.get(entry.id));
           expect(world.refunds).not.toContain(entry.id);
         }
         expect(fold.execute()).toBe(deferred.length);

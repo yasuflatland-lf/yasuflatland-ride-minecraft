@@ -332,11 +332,7 @@ export class BedrockTentWorld
       );
   }
 
-  takeDown(tentId: TentId): void {
-    this.takeDownTent(tentId);
-  }
-
-  private takeDownTent(tentId: TentId, legacy?: TentEntry): void {
+  takeDown(tentId: TentId, legacy?: TentEntry): void {
     const tent = tentEntityOf(tentId);
     const entry = this.entryOf(tentId);
     // Cells the layer holds in unloaded chunks are left to the loop's clearGone.
@@ -362,7 +358,7 @@ export class BedrockTentWorld
     this.ejectOccupants(entry);
     // The playerless refund needs the entity or registry location before removal.
     this.returnTentItem(entry.id, undefined);
-    this.removeLegacyTent(entry);
+    this.takeDown(entry.id, entry);
     return "folded";
   }
 
@@ -398,10 +394,6 @@ export class BedrockTentWorld
   private clearTentBlock(dimensionId: DimensionId, cell: Cell): void {
     const block = blockAt(dimensionOf(dimensionId), cell);
     if (isTentBlockTypeId(block?.typeId)) block?.setType(AIR_BLOCK);
-  }
-
-  private removeLegacyTent(entry: TentEntry): void {
-    this.takeDownTent(entry.id, entry);
   }
 
   private removeTent(tentId: TentId): void {
