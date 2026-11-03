@@ -52,6 +52,7 @@ function corners(cube: Cube): [number, number, number][] {
   if (!cube.rotation || !cube.pivot) return points;
   // Only x and z turns are modeled, so a y turn must not slip past the bounds checks.
   expect(cube.rotation[1]).toBe(0);
+  expect(Boolean(cube.rotation[0] && cube.rotation[2])).toBe(false);
   const [px, py, pz] = cube.pivot;
   const [rx, , rz] = cube.rotation.map((a) => (a * Math.PI) / 180) as [
     number,
@@ -309,7 +310,7 @@ describe("tent geometry and texture", () => {
     const rooms: Bounds[] = [
       [-34, 0, -69, 34, 44, -52],
       [-34, 0, -40, 34, 35, -10],
-      [-48, 0, -136, 46.5, 32, -90],
+      [-46, 0, -136, 54.5, 32, -90],
     ];
     const bones: Bone[] = geometry().bones;
     for (const bone of bones) {
@@ -333,7 +334,7 @@ describe("tent geometry and texture", () => {
           expect(face.uv_size, bone.name).toEqual([4, 4]);
           const slot =
             Math.floor(face.uv[0] / 4) + 4 * Math.floor(face.uv[1] / 4);
-          if ([0, 1, 16].includes(slot))
+          if ([0, 1, 16, 19].includes(slot))
             expect(["fly", "flap_front", "flap_left", "flap_right"]).toContain(
               bone.name,
             );
@@ -360,13 +361,17 @@ describe("tent geometry and texture", () => {
     expect(Math.max(...extents.map((b) => b[3]))).toBeCloseTo(56, 2);
     expect(Math.min(...extents.map((b) => b[2]))).toBeCloseTo(-88, 2);
     expect(Math.max(...extents.map((b) => b[5]))).toBeCloseTo(8, 2);
-    expect(Math.max(...extents.map((b) => b[4]))).toBeCloseTo(48.08, 2);
+    expect(Math.max(...extents.map((b) => b[4]))).toBeCloseTo(48, 2);
     const ridge = body.find((c) => !c.rotation && c.origin[1] === 47.5);
     expect(ridge?.origin).toEqual([-36.8, 47.5, -68.8]);
     expect(ridge?.size).toEqual([73.6, 0.5, 57.6]);
     const slopes = new Set(
       body
-        .filter((c) => c.rotation?.[2])
+        .filter(
+          (c) =>
+            c.rotation?.[2] &&
+            (c.uv.north?.uv[1] === 0 || c.uv.north?.uv[0] === 12),
+        )
         .map((c) => Math.abs(c.rotation?.[2] ?? 0)),
     );
     expect(slopes.size).toBe(1);
@@ -379,9 +384,15 @@ describe("tent geometry and texture", () => {
       const endSeams = seams.filter(
         (c) => (c.rotation?.[0] ?? 0) * (front ? -1 : 1) > 0,
       );
-      for (let y = 0; y < 48; y += 2) {
+      for (let y = 0; y < 48; y += 1) {
         const edges = endSeams.filter(
-          (c) => c.pivot?.[1] === y && c.size[0] === 1,
+          (c) =>
+            c.pivot?.[1] === y &&
+            c.size[0] === 1 &&
+            Math.abs(
+              Math.abs(c.origin[0] + c.size[0] / 2) -
+                (56 - (19.2 * y) / 48 - 0.5),
+            ) < 0.002,
         );
         expect(edges).toHaveLength(2);
         for (const edge of edges)
@@ -391,11 +402,11 @@ describe("tent geometry and texture", () => {
           );
       }
     }
-    const doorHead = seams.find((c) => c.pivot?.[1] === 35 && c.size[0] > 80);
-    expect(doorHead?.origin[0]).toBe(-42);
-    expect(doorHead?.size[0]).toBe(84);
+    const doorHead = seams.find((c) => c.pivot?.[1] === 35 && c.size[0] === 80);
+    expect(doorHead?.origin[0]).toBe(-40);
+    expect(doorHead?.size[0]).toBe(80);
     const cubes = (geometry().bones as Bone[]).flatMap((b) => b.cubes ?? []);
-    expect(cubes.length).toBeLessThan(550);
+    expect(cubes.length).toBeLessThan(1400);
   });
   it("keeps every rotated cube inside the footprint and the entrance clear except for its flap", () => {
     for (const bone of geometry().bones as Bone[]) {
@@ -409,71 +420,86 @@ describe("tent geometry and texture", () => {
       }
     }
   });
-  it("covers the tarp with a tan roof, a tapered inward left screen, and two front poles", () => {
+  it("joins the ridge with a sloping tarp, a model -x triangle, and two corner poles", () => {
     const bones: Bone[] = geometry().bones;
     const fly = bones.find((b) => b.name === "fly")?.cubes ?? [];
-    const roof = fly.find(
-      (c) => c.origin[2] === -136 && c.size[0] === 112 && c.origin[1] === 35,
+    const roof = fly.filter(
+      (c) =>
+        c.rotation?.[0] && c.uv.down?.uv[0] === 8 && c.uv.down?.uv[1] === 16,
     );
-    expect(roof?.size).toEqual([112, 0.5, 48]);
-    const slots = (cube: Cube) =>
-      Object.fromEntries(
-        Object.entries(cube.uv).map(([side, face]) => [
-          side,
-          face.uv[0] / 4 + face.uv[1],
-        ]),
-      );
-    expect(slots(roof as Cube)).toEqual({
-      north: 17,
-      south: 17,
-      east: 17,
-      west: 17,
-      up: 17,
-      down: 18,
-    });
-    const screens = fly.filter((c) => c.rotation?.[2] && slots(c).west === 18);
-    expect(screens.length).toBeGreaterThan(1);
-    const first = screens[0] as Cube;
-    const last = screens.at(-1) as Cube;
-    expect(first.pivot).toEqual([48, 0, -136]);
-    expect(first.size[2]).toBe(16);
-    expect(last.size[2]).toBe(48);
-    expect(bounds(last)[3]).toBeCloseTo(56, 2);
-    for (const [i, screen] of screens.entries()) {
-      expect(screen.origin[2]).toBe(-136);
-      expect(screen.rotation?.[2]).toBeGreaterThan(0);
-      expect(slots(screen)).toEqual({
-        north: 17,
-        south: 17,
-        east: 17,
-        west: 18,
-        up: 17,
-        down: 17,
-      });
-      if (i > 0) {
-        expect(screen.size[2]).toBeGreaterThan(
-          (screens[i - 1] as Cube).size[2],
-        );
-        expect(screen.pivot?.[0]).toBeGreaterThan(
-          (screens[i - 1] as Cube).pivot?.[0] ?? 0,
-        );
-      }
+    expect(roof).toHaveLength(68);
+    expect(Math.min(...roof.map((c) => bounds(c)[1]))).toBeCloseTo(43.5, 2);
+    expect(Math.max(...roof.map((c) => bounds(c)[4]))).toBeCloseTo(48, 2);
+    const rear = roof.at(-1) as Cube;
+    expect(
+      corners(rear).some(
+        (p) => Math.abs(p[1] - 48) < 0.002 && Math.abs(p[2] + 68.8) < 0.002,
+      ),
+    ).toBe(true);
+    expect(bounds(rear)[0]).toBeCloseTo(-36.8, 1);
+    expect(bounds(rear)[3]).toBeCloseTo(36.8, 1);
+    for (const cube of roof) {
+      expect(cube.uv.up?.uv).toEqual([4, 16]);
+      expect(cube.uv.down?.uv).toEqual([8, 16]);
+      expect(bounds(cube)[4]).toBeLessThanOrEqual(48.002);
     }
-    const roofSeams = fly.filter(
-      (c) => !c.rotation && c.origin[2] === -136 && c.origin[1] === 35.5,
+    const screens = fly.filter(
+      (c) =>
+        c.rotation?.[2] && c.uv.east?.uv[0] === 8 && c.uv.east?.uv[1] === 16,
     );
-    expect(roofSeams).toHaveLength(1);
-    expect(roofSeams[0]?.origin[0]).toBe(55);
-    expect(roofSeams[0]?.size[2]).toBe(48);
+    expect(screens.length).toBeGreaterThan(30);
+    for (const cube of screens) {
+      expect(bounds(cube)[3]).toBeLessThan(-35);
+      expect(cube.rotation?.[2]).toBeGreaterThan(0);
+      expect(cube.uv.west?.uv).toEqual([4, 16]);
+    }
+    expect(Math.min(...screens.map((c) => bounds(c)[1]))).toBeCloseTo(0, 2);
+    expect(Math.max(...screens.map((c) => bounds(c)[4]))).toBeCloseTo(48, 2);
     const poles = bones.find((b) => b.name === "poles")?.cubes ?? [];
-    expect(poles).toHaveLength(2);
     expect(poles.map((c) => c.origin)).toEqual([
-      [46.5, 0, -136],
+      [54.5, 0, -136],
       [-56, 0, -136],
     ]);
-    for (const pole of poles) expect(pole.size).toEqual([1.5, 35, 1.5]);
+    for (const pole of poles) expect(pole.size).toEqual([1.5, 44, 1.5]);
   });
-  it("keeps nineteen swatches in a taller atlas, including alpha-zero emissive glass", () => {
+  it("frames each front panel from the ground jamb to the ridge corner and skirts every wall", () => {
+    const fly: Cube[] = geometry().bones.find(
+      (b: Bone) => b.name === "fly",
+    ).cubes;
+    const frontSeams = fly.filter(
+      (c) =>
+        (c.rotation?.[0] ?? 0) < 0 &&
+        c.uv.north?.uv[0] === 0 &&
+        c.uv.north?.uv[1] === 16,
+    );
+    for (let y = 0; y < 48; y++) {
+      const division = y <= 35 ? 40 : 40 + ((36.8 - 40) * (y - 35)) / 13;
+      for (const side of [-1, 1]) {
+        expect(
+          frontSeams.some(
+            (c) =>
+              c.pivot?.[1] === y &&
+              Math.abs(
+                (side < 0 ? c.origin[0] + c.size[0] : c.origin[0]) -
+                  side * division,
+              ) < 0.002,
+          ),
+        ).toBe(true);
+      }
+    }
+    const skirt = fly.filter(
+      (c) => c.uv.north?.uv[0] === 12 && c.uv.north?.uv[1] === 16,
+    );
+    expect(skirt).toHaveLength(15);
+    for (const cube of skirt) {
+      expect(bounds(cube)[1]).toBeGreaterThanOrEqual(-0.002);
+      expect(bounds(cube)[4]).toBeLessThan(3.6);
+    }
+    expect(skirt.filter((c) => (c.rotation?.[0] ?? 0) < 0)).toHaveLength(6);
+    expect(skirt.filter((c) => (c.rotation?.[0] ?? 0) > 0)).toHaveLength(3);
+    expect(skirt.filter((c) => c.rotation?.[2])).toHaveLength(6);
+  });
+  it("keeps twenty swatches in a taller atlas, including alpha-zero emissive glass", () => {
     const { width, height, pixels } = readPng(
       `${RP}/textures/entity/yasu_ride/tent.png`,
     );
@@ -498,6 +524,7 @@ describe("tent geometry and texture", () => {
       [92, 79, 72, 255],
       [176, 135, 90, 255],
       [198, 164, 122, 255],
+      [172, 148, 134, 255],
     ];
     for (let y = 0; y < 32; y++) {
       for (let x = 0; x < 16; x++)
@@ -838,7 +865,7 @@ describe("tent paint textures (ADR 0135)", () => {
       if (FLY_GROUP.includes(bone.name)) continue;
       for (const cube of bone.cubes ?? [])
         for (const face of Object.values(cube.uv))
-          expect([0, 1, 16], bone.name).not.toContain(
+          expect([0, 1, 16, 19], bone.name).not.toContain(
             slotOf(face.uv[0], face.uv[1]),
           );
     }
@@ -854,7 +881,7 @@ describe("tent paint textures (ADR 0135)", () => {
           const a = [...base.subarray(at, at + 4)];
           const b = [...pixels.subarray(at, at + 4)];
           // Slot 9 (glass) keeps alpha 0, which the lantern switch relies on.
-          if ([0, 1, 16].includes(slotOf(x, y)))
+          if ([0, 1, 16, 19].includes(slotOf(x, y)))
             expect(b, `${paint} ${x},${y}`).not.toEqual(a);
           else expect(b, `${paint} ${x},${y}`).toEqual(a);
         }

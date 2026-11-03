@@ -18,7 +18,7 @@ def ends(d: Dims, y):
     return d.front_z + inset, d.rear_z - inset
 
 
-def side_band(d: Dims, face, side, y0, y1, z0, z1, color="fly", proud=0):
+def side_band(d: Dims, face, side, y0, y1, z0, z1, color="fly", proud=0, overlap=True):
     x0, x1 = half_width(d, y0), half_width(d, y1)
     angle = -side * math.degrees(math.atan2(x0-x1, y1-y0))
     thickness = d.shell_thickness
@@ -27,7 +27,9 @@ def side_band(d: Dims, face, side, y0, y1, z0, z1, color="fly", proud=0):
     pivot = (side*x0, y0+lift, z0)
     lo, hi = (-thickness+proud, proud) if side > 0 else (-proud, thickness-proud)
     return panel(pivot[0]+lo, pivot[1], z0, pivot[0]+hi,
-                 pivot[1]+math.hypot(x0-x1, y1-y0), z1, face(color),
+                 pivot[1]+min(math.hypot(x0-x1, y1-y0)+(d.band_overlap if overlap else 0),
+                              (d.ridge_height-pivot[1]-proud*abs(math.sin(math.radians(angle))))
+                              / math.cos(math.radians(angle))), z1, face(color),
                  pivot=pivot, rotation=(0, 0, angle))
 
 
@@ -41,7 +43,9 @@ def end_band(d: Dims, face, front, y0, y1, x0, x1, color="fly", proud=0):
     pivot = (x0, y0, z)
     lo, hi = (-proud, thickness-proud) if front else (-thickness+proud, proud)
     return panel(x0, y0+bottom, z+lo, x1,
-                 y0+(y1-y0)/math.cos(math.radians(angle)), z+hi, face(color),
+                 y0+min((y1-y0)/math.cos(math.radians(angle))+d.band_overlap,
+                        (d.ridge_height-y0-proud*abs(math.sin(math.radians(angle))))
+                        / math.cos(math.radians(angle))), z+hi, face(color),
                  pivot=pivot, rotation=(angle, 0, 0))
 
 
@@ -51,20 +55,54 @@ def shell(d: Dims, face):
         y1 = min(y0+d.band_height, d.ridge_height)
         z0, z1 = ends(d, y0)
         for side in (-1, 1):
-            fly.append(side_band(d, face, side, y0, y1, z0, z1))
+            fly.append(side_band(d, face, side, y0, y1, z0, z1,
+                                 "skirt" if y0 < d.skirt_height else "fly"))
         w = half_width(d, y0)
-        fly.append(end_band(d, face, False, y0, y1, -w, w))
-        # Split the band at the door head so no front material enters the opening.
-        if y0 < d.door_height:
-            for x0, x1 in ((-w, -d.door_half_width), (d.door_half_width, w)):
-                fly.append(end_band(d, face, True, y0, min(y1, d.door_height), x0, x1))
-        if y1 > d.door_height:
-            fly.append(end_band(d, face, True, max(y0, d.door_height), y1, -w, w))
+        fly.append(end_band(d, face, False, y0, y1, -w, w,
+                            "skirt" if y0 < d.skirt_height else "fly"))
     w = half_width(d, d.ridge_height)
     z0, z1 = ends(d, d.ridge_height)
     fly.append(panel(-w, d.ridge_height-d.shell_thickness, z0,
                      w, d.ridge_height, z1, face("fly")))
     return fly
+
+
+def front_division(d: Dims, y):
+    if y <= d.door_height:
+        return d.door_half_width
+    fraction = (y-d.door_height)/(d.ridge_height-d.door_height)
+    return d.door_half_width + (half_width(d, d.ridge_height)-d.door_half_width)*fraction
+
+
+def front_side_panel(d: Dims, face, side):
+    result = []
+    for y0 in range(0, d.ridge_height, d.band_height):
+        y1 = min(y0+d.band_height, d.ridge_height)
+        outer, jamb = half_width(d, y0), front_division(d, y0)
+        x0, x1 = (jamb, outer) if side > 0 else (-outer, -jamb)
+        color = "skirt" if y0 < d.skirt_height else "fly"
+        result.append(end_band(d, face, True, y0, y1, x0, x1, color))
+        a, b = (jamb, min(jamb+d.seam_width, outer)) if side > 0 else (max(-outer, -jamb-d.seam_width), -jamb)
+        result.append(end_band(d, face, True, y0, y1, a, b, "seam", d.seam_proud))
+    return result
+
+
+def left_front_panel(d: Dims, face):
+    return front_side_panel(d, face, -1)
+
+
+def right_front_panel(d: Dims, face):
+    return front_side_panel(d, face, 1)
+
+
+def above_door_panel(d: Dims, face):
+    result = []
+    for y0 in range(d.door_height, d.ridge_height, d.band_height):
+        w = front_division(d, y0)
+        result.append(end_band(d, face, True, y0, min(y0+d.band_height, d.ridge_height), -w, w))
+    result.append(end_band(d, face, True, d.door_height, d.door_height+d.seam_width,
+                           -d.door_half_width, d.door_half_width, "seam", d.seam_proud))
+    return result
 
 
 def seams(d: Dims, face):
@@ -89,9 +127,6 @@ def seams(d: Dims, face):
                 if not front or y1 > d.door_height:
                     result.append(end_band(d, face, front, max(y0, d.door_height) if front else y0,
                                            y1, x0, x1, "seam", d.seam_proud))
-    w = half_width(d, d.door_height)
-    result.append(end_band(d, face, True, d.door_height, d.door_height+d.seam_width,
-                           -w, w, "seam", d.seam_proud))
     for y in (d.ridge_height,):
         z0, z1 = ends(d, y)
         for side in (-1, 1):
@@ -100,13 +135,14 @@ def seams(d: Dims, face):
     w = half_width(d, d.ridge_height)
     z0, z1 = ends(d, d.ridge_height)
     for start in (z0, z1-d.seam_width):
-        result.append(panel(-w, d.ridge_height, start, w, d.ridge_height+d.seam_proud,
+        result.append(panel(-w, d.ridge_height-d.seam_proud, start, w, d.ridge_height,
                             start+d.seam_width, face("seam")))
     return result
 
 
 def build(d: Dims, face: Callable[[str], dict]) -> Part:
-    fly = shell(d, face) + seams(d, face)
+    fly = (shell(d, face) + left_front_panel(d, face) + right_front_panel(d, face)
+           + above_door_panel(d, face) + seams(d, face))
     strap = [panel(*d.strap_bounds, face("strap"))]
     for z in range(d.ring_first_z, d.ring_stop_z, d.ring_spacing):
         # Four strips leave the center of each 2 px silver ring open.

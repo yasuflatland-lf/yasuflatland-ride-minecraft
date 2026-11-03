@@ -34,6 +34,6 @@ def build(d: Dims, face: Callable[[str], dict]) -> Part:
         else:
             side = 1 if name == "flap_left" else -1
             cubes = [body.side_band(d, face, side, d.window_bottom, d.window_top,
-                                    d.window_front_z, d.window_rear_z, color, d.seam_proud)]
+                                    d.window_front_z, d.window_rear_z, color, d.seam_proud, overlap=False)]
         bones[name] = {"parent": parent, "pivot": list(pivot), "cubes": cubes}
     return {"cubes": [cube for bone in bones.values() for cube in bone["cubes"]], "bones": bones}
