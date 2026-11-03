@@ -8,6 +8,7 @@ import type { PitchTent } from "../../../src/application/camp/pitchTent";
 import type { PlaceChair } from "../../../src/application/camp/placeChair";
 import type { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import type { TakeDownTent } from "../../../src/application/camp/takeDownTent";
+import { TENT_LAYOUT_VERSION, TENT_SPEC } from "../../../src/domain/camp/spec";
 import {
   lanternCell,
   PITCHED_STATE,
@@ -719,7 +720,13 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
 const POSE: TentPose = { x: 110, y: -60, z: 46, yaw: 180 };
 const fakeRegistry = (ids: string[]) =>
   ({
-    all: () => ids.map((id) => ({ id, dimensionId: "overworld", pose: POSE })),
+    all: () =>
+      ids.map((id) => ({
+        id,
+        dimensionId: "overworld",
+        pose: POSE,
+        layout: TENT_LAYOUT_VERSION,
+      })),
     remove: vi.fn(),
   }) as unknown as DynamicPropertyTentRegistry & {
     remove: ReturnType<typeof vi.fn>;
@@ -733,15 +740,20 @@ describe("registerTentLoop (ADR 0131, 0132, 0134)", () => {
     getProperty: vi.fn((name: string) => props[name]),
     setProperty: vi.fn(),
   });
-  function run(entity: ReturnType<typeof tentEntity>, ids = ["a", "b", "c"]) {
+  function run(
+    entity: ReturnType<typeof tentEntity>,
+    ids = ["a", "b", "c"],
+    execute = vi.fn(() => 0),
+    registry = fakeRegistry(ids),
+  ) {
     const blocks = { lay: vi.fn(), clearGone: vi.fn() };
     const flaps = new TentFlapStore();
     const forgetGone = vi.spyOn(flaps, "forgetGone");
     registerTentLoop(
-      fakeRegistry(ids),
+      registry,
       blocks as unknown as CellLayer<never, never>,
       flaps,
-      { execute: vi.fn() } as unknown as FoldLegacyTents,
+      { execute } as unknown as FoldLegacyTents,
     );
     const c = { isValid: true, typeId: "minecraft:cow" };
     game.getEntity.mockImplementation((id: string) =>
@@ -757,6 +769,7 @@ describe("registerTentLoop (ADR 0131, 0132, 0134)", () => {
     const fold = {
       execute: vi.fn(() => {
         registry.all();
+        return 0;
       }),
     };
     const blocks = { lay: vi.fn(), clearGone: vi.fn() };
@@ -779,6 +792,83 @@ describe("registerTentLoop (ADR 0131, 0132, 0134)", () => {
       defined(blocks.lay.mock.invocationCallOrder[0], "first lay"),
     );
   });
+
+  it("keeps initialization, laying, and flaps running after a fold exception and retries at the recheck cadence", () => {
+    const execute = vi
+      .fn(() => 0)
+      .mockImplementationOnce(() => {
+        throw new Error("fold failed");
+      });
+    const entity = tentEntity();
+    const { tick, blocks } = run(entity, ["a"], execute);
+    expect(() => tick()).not.toThrow();
+    expect(blocks.lay).toHaveBeenCalledTimes(1);
+    expect(entity.setProperty).toHaveBeenCalledTimes(4);
+    for (let i = 1; i < TENT_SPEC.cellRecheckTicks; i++) tick();
+    expect(execute).toHaveBeenCalledTimes(1);
+    tick();
+    expect(execute).toHaveBeenCalledTimes(2);
+    for (let i = 0; i < TENT_SPEC.cellRecheckTicks * 2; i++) tick();
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(blocks.lay).toHaveBeenCalledTimes(
+      TENT_SPEC.cellRecheckTicks * 3 + 1,
+    );
+  });
+
+  it("never relays deferred legacy entries and keeps their cells live until folding succeeds", () => {
+    const registry = fakeRegistry(["a", "legacy"]);
+    const entries = registry
+      .all()
+      .map((entry) =>
+        entry.id === "legacy"
+          ? { ...entry, layout: TENT_LAYOUT_VERSION - 1 }
+          : entry,
+      );
+    vi.spyOn(registry, "all").mockImplementation(() => entries);
+    const execute = vi.fn(() => 1);
+    const { tick, blocks } = run(tentEntity(), [], execute, registry);
+    const legacy = { ...tentEntity(), id: "legacy" };
+    const current = tentEntity();
+    game.getEntity.mockImplementation((id: string) =>
+      id === "legacy" ? legacy : current,
+    );
+    for (let i = 0; i <= TENT_SPEC.cellRecheckTicks; i++) tick();
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(blocks.lay.mock.calls.every(([id]) => id === "a")).toBe(true);
+    expect(blocks.lay).toHaveBeenCalledTimes(TENT_SPEC.cellRecheckTicks + 1);
+    expect(legacy.setProperty).not.toHaveBeenCalled();
+    expect(blocks.clearGone).toHaveBeenLastCalledWith(new Set(["a", "legacy"]));
+  });
+
+  it.each(["entityLoad", "loaded spawn"])(
+    "retries pending folds on a tent %s and stops after zero deferred",
+    (event) => {
+      const execute = vi.fn(() => 1);
+      const { tick } = run(tentEntity(), ["a"], execute);
+      const load = (typeId: string, cause = "Loaded") => {
+        if (event === "entityLoad")
+          subscribed(game.load)({ entity: { typeId } });
+        else subscribed(game.spawn)({ entity: { typeId }, cause });
+      };
+      load(TENT_TYPE);
+      expect(execute).not.toHaveBeenCalled();
+      tick();
+      load("minecraft:cow");
+      subscribed(game.spawn)({
+        entity: { typeId: TENT_TYPE },
+        cause: "Spawned",
+      });
+      expect(execute).toHaveBeenCalledTimes(1);
+      load(TENT_TYPE);
+      expect(execute).toHaveBeenCalledTimes(2);
+      execute.mockReturnValue(0);
+      load(TENT_TYPE);
+      expect(execute).toHaveBeenCalledTimes(3);
+      load(TENT_TYPE);
+      for (let i = 0; i <= TENT_SPEC.cellRecheckTicks; i++) tick();
+      expect(execute).toHaveBeenCalledTimes(3);
+    },
+  );
 
   it("lays registered, loaded tents with the entity as the holder and clears by the registry", () => {
     const a = tentEntity();
