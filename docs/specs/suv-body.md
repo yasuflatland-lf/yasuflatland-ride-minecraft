@@ -10,6 +10,7 @@
 - Source: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md)
 - Source: [0196](../adr/0196-raise-the-suv-seats-for-first-person-visibility.md)
 - Source: [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md)
+- Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
 - Excluded: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md): rotation assemblies, covered by the model-conventions topic
 - Excluded: [0176](../adr/0176-move-the-sports-boat-front-seats-back.md): sports boat seat positions, not the SUV
 
@@ -81,18 +82,18 @@
 ### Collision box and values derived from it
 
 - Applies to: SUV, all modes.
-- Rule: The collision box is a square seen from above, so the front and back of the body stick out of it. Its width is 1.8 times `SIZE_SCALE` and its height is 1.6 times `SIZE_SCALE` (2.61 wide and 2.32 high, which `tests/packs/behaviorPack.test.ts` asserts). `SUV_SPEC.carHeight` equals the box height, `SUV_SPEC.hitboxFront` equals half the box width, `SUV_SPEC.floatDraft` is 0.75 of the box height, and `SUV_SPEC.gearProbeOffset` is `hitboxFront * (1 - 0.1/0.9)`.
-- Agreement: Proposed
-- Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Make the collision box a 1.8-wide, 1.6-high square, and accept that the front and back of the body stick out and appear to sink into walls"; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "The square engine collision box remains proportional to the original 1.8-wide, 1.6-high envelope: width=1.8*1.45=2.61 and height=1.6*1.45=2.32."; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Set `carHeight=2.32`, `hitboxFront=2.61/2=1.305`, `floatDraft=2.32*0.75=1.74` and `gearProbeOffset=1.305*(1-0.1/0.9)=1.16`."
+- Rule: The square collision box is 2.68 wide and 2.36 high. Its half width is the measured shell half width rounded upward to two decimals; its height is the hardtop flat top rounded downward to two decimals, below `ROOF_TOP`. Wheels protrude slightly sideways and the front and rear overhang remain. `SUV_SPEC.carHeight` equals the box height, `hitboxFront` is half the box width (1.34), `floatDraft` is 0.75 of its height (1.77), and `gearProbeOffset` is `hitboxFront * (1 - 0.1/0.9)` (1.191111111111...).
+- Agreement: Accepted
+- Basis: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md) Decision, "The square collision box is 2.68 blocks wide and 2.36 blocks high."
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json` (`minecraft:collision_box`); `src/domain/vehicle/kinds/suv/spec.ts` (`SUV_SPEC`)
-- Verification: `tests/packs/behaviorPack.test.ts` "scales the square collision envelope with the SUV (ADR 0170)"; `tests/tools/suvDimensions.test.ts` "keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)". Not verified: wall overlap and door clearance on any client (0194 Consequences).
+- Verification: `tests/packs/behaviorPack.test.ts` "derives the square collision envelope from the SUV shell (ADR 0217)"; `tests/tools/suvDimensions.test.ts` "keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)". Not verified: wall overlap and door clearance on any client (0194 Consequences).
 
 ### Enclosing probes and roof margin
 
 - Applies to: SUV, ram and body probes, vehicle footprint.
-- Rule: `SUV_SPEC.bodyFront` and `SUV_SPEC.bodyHalfWidth` enclose the exported shell (`body` plus closed `door_*` bones), the lamp reach (`headlights` bone), and the wheel hub half width. `SUV_SPEC.footprint` encloses the farthest horizontal corner of every bone. Each is rounded up from the measured extent, which is taken from all eight rotated corners of every cube. The visible roof, including ribs, stays within 0.30 blocks above `SUV_SPEC.carHeight`, and that margin must not grow. A change to the body outline re-derives these values and reviews the collision box, seats, and placement clearance.
-- Agreement: Proposed
-- Basis: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Round enclosing probes upward to `bodyFront=2.69`, `bodyHalfWidth=1.64` and `footprint=3.40`."; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "The visible roof remains within the unchanged maximum 0.30-block allowance above `carHeight`."; [0170](../adr/0170-measure-suv-side-view-proportions.md) Decision, "Each PR changing the body outline re-derives `SUV_SPEC.bodyFront`, `bodyHalfWidth`, `footprint` and `carHeight`, documents the measured extents, and reviews collision box, seats and placement clearance."; [0170](../adr/0170-measure-suv-side-view-proportions.md) Decision, "Do not silently increase that margin in subsequent PRs."
+- Rule: `SUV_SPEC.bodyFront` (2.68) and `SUV_SPEC.bodyHalfWidth` (1.43) enclose the exported shell (`body` plus closed `door_*` bones), the lamp reach (`headlights` bone), and the wheel hub half width. `SUV_SPEC.footprint` (3.12) encloses the farthest horizontal corner of every bone. Each is rounded up from the measured extent, which is taken from all eight rotated corners of every cube. The visible roof, including ribs, stays within 0.30 blocks above `SUV_SPEC.carHeight`, and that margin must not grow. A change to the body outline re-derives these values and reviews the collision box, seats, and placement clearance.
+- Agreement: Accepted
+- Basis: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md) Decision, "Round enclosing probes upward to `bodyFront=2.68`, `bodyHalfWidth=1.43` and `footprint=3.12`."; [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md) Decision, "Keep the 0.30-block roof allowance and every seat and grown-head clearance assertion unchanged."
 - Implementation: `src/domain/vehicle/kinds/suv/spec.ts` (`SUV_SPEC.bodyFront`, `bodyHalfWidth`, `footprint`, `carHeight`); `tools/suv_proportions.py`
 - Verification: `tests/tools/suvProportions.test.ts` "keeps the body shell inside game probes and the complete model inside its footprint" (pins shell reach, shell half width, and roof-to-road height); `tests/packs/model.test.ts` "keeps every hover glow round and inside the vehicle footprint". Not verified: the probes against the engine in game.
 
@@ -100,8 +101,8 @@
 
 - Applies to: SUV placement on the top face of a block.
 - Rule: SUV placement clearance is `halfX` 1 and `halfZ` 1 cells, with a height of `ceil(carHeight)` cells, so the 3 by 3 by 3 cells hold the collision box. The visible body, wheels, and folded assemblies may extend outside those cells; the promise covers the collision box only.
-- Agreement: Proposed
-- Basis: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Keep SUV placement `halfX=halfZ=1`: collision half width 1.305 remains below the 1.5-block cell boundary and the placement guard passes."; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Vertical clearance stays `ceil(carHeight)=3`."
+- Agreement: Accepted
+- Basis: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md) Decision, "Keep placement `halfX=halfZ=1` and `height=ceil(carHeight)=3`: collision half width 1.34 is below the 1.5-block cell boundary."
 - Implementation: `src/domain/vehicle/kinds/suv/profile.ts` (`SUV_PROFILE.placement.clearance`); `src/domain/vehicle/placement/placement.ts` (`clearanceHeight`)
 - Verification: `tests/packs/placementClearance.test.ts` "fits every %s collision box inside its placement clearance"; `tests/tools/suvDimensions.test.ts` "keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)" (asserts the clearance). Not verified: nearby walls and doors on any client (0194 Decision).
 
@@ -134,7 +135,6 @@
 
 ## Open issues
 
-- Accepted 0009 Decision says the collision box is 1.8 wide and 1.6 high, and the code is 2.61 wide and 2.32 high: `docs/adr/0009-vehicle-model-conventions.md`, `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json`. Only Proposed ADRs (0170, 0194) supersede the numbers, so the Accepted ADR is not yet marked as superseded for them.
 - Accepted 0029 Decision says all four seats are at y = 0.4 blocks, and the code is 0.73: `docs/adr/0029-raise-the-seats.md`, `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json`. The chain 0170 (0.3, then 0.52), 0194 (0.58), 0196 (0.73) is all Proposed.
 - Accepted 0117 Decision says the front riders are at z = 0.2 blocks and the rear seats at z = -0.8, and the code has z derived from `FRONT_SEAT_Z` and `SIZE_SCALE` (-0.04984375 and -1.16): `docs/adr/0117-move-the-suv-front-seats-back.md`, `src/domain/vehicle/kinds/suv/profile.ts`. The superseding ADRs (0170, 0194) are Proposed.
 - 0196 replaced 0194's seat height of 0.58 (0.4 times scale) with 0.73: `docs/adr/0194-enlarge-the-suv-for-seated-head-clearance.md`, `docs/adr/0196-raise-the-suv-seats-for-first-person-visibility.md`. The seat horizontal rule above cites that 0194 sentence for x and z only.
@@ -142,6 +142,7 @@
 - 0192 Decision point 9 says merging its PR is the owner's approval of the `tail_lights` and `headlight_bezels` bones, and its Status is still Proposed while both bones exist in the model and in tests: `docs/adr/0192-suv-detailed-body.md`, `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`, `tests/packs/headlights.test.ts`.
 - 0194 acceptance condition asks the owner to confirm head clearance, first-person visibility, and wall and door clearance at the 1.45 scale, and 0196 records only a dev BDS check of the horizon and head under the roof at the new seat height: `docs/adr/0194-enlarge-the-suv-for-seated-head-clearance.md`, `docs/adr/0196-raise-the-suv-seats-for-first-person-visibility.md`. Whether that check satisfies 0194 is not stated.
 - 0029 Decision names the test entity `mycar_test:seat_probe`, and the entity is `yasu_ride_test:seat_probe`: `docs/adr/0029-raise-the-seats.md`, `packs/yasu_ride_test_bp/entities/yasu_ride_test/seat_probe.se.json`.
-- 0214 leaves `SUV_SPEC`, the collision box, the seats and the roof tent anchors for the next pull request, so they describe the old body while the model is the Rubicon shape: `docs/adr/0214-replace-the-suv-with-the-rubicon-shape.md`, `src/domain/vehicle/kinds/suv/spec.ts`. The new model's measured extents are 2.680 blocks ahead of and 3.104 behind its centre, 1.337 half width for the shell and 1.425 for the wheels, 2.376 high, and 3.114 for the footprint corner. The existing probes (bodyFront 2.69, bodyHalfWidth 1.64, footprint 3.40, carHeight 2.32) enclose them.
 - The interior (dashboard, gauges, seats, steering, floor console and pedals) is the old SUV's, refitted only enough to build and pass the clearance tests: seats stop at x 9.2 px, the dashboard sits 1.3 px behind the cowl's rear edge, and the floor console and pedals are shifted with it: `tools/gen_model.py`, `tools/suv_dims.py`. The seat positions in `suv.se.json` are unchanged.
 - 0192's painted steel body regions (`body` atlas block) are removed, so the 0192 rules about panel lines, flake and `PBR` body regions no longer have an implementation; the relief maps stay but are flat: `tools/suv_atlas.py`, `tools/suv_material.py`.
+
+- ADR 0217 resolves the dimensions and roof tent mounts deferred by 0214. Seats and interior (#1279), and the flight axle (#1280), remain deferred. The new collision box, ground and water clearance, and tent mounts still need reviewer BDS and client checks.
