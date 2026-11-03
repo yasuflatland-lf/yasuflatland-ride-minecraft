@@ -36,11 +36,14 @@ export interface TentLayout {
     readonly depth: number;
     readonly layers: number;
   };
+  /** The clear box derived from `clear`; every laid cell lies inside it. */
+  readonly clearBox: TentLocalBox;
   readonly rooms: readonly TentLocalBox[];
   readonly anchor: TentLocalCell;
 }
 
-export interface TentLayoutSpec extends Omit<TentLayout, "walls" | "ceilings"> {
+export interface TentLayoutSpec
+  extends Omit<TentLayout, "walls" | "ceilings" | "clearBox"> {
   /** Outer side-wall x at each layer; cross-walls exclude the corner columns. */
   readonly wallHalfWidths: readonly number[];
   /** Front/rear cross-walls step inward by this many cells at each layer; omitted layers use zero. */
@@ -69,7 +72,7 @@ export const inTentLocalBox = (
   cell.layer >= 0 &&
   cell.layer <= box.layerTo;
 
-const key = (cell: TentLocalCell): string =>
+export const tentCellKey = (cell: TentLocalCell): string =>
   `${cell.x},${cell.depth},${cell.layer}`;
 const freezeCell = (cell: TentLocalCell): TentLocalCell =>
   Object.freeze({ ...cell });
@@ -176,8 +179,8 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
     )
   )
     throw new Error("Tent cell outside clear box");
-  const wallKeys = new Set(walls.map(({ cell }) => key(cell)));
-  if (flapCells.some((cell) => !wallKeys.has(key(cell))))
+  const wallKeys = new Set(walls.map(({ cell }) => tentCellKey(cell)));
+  if (flapCells.some((cell) => !wallKeys.has(tentCellKey(cell))))
     throw new Error("Tent flap cell must be a wall cell");
   if (
     spec.mattresses
@@ -185,11 +188,11 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
       .some((cell) => !spec.rooms.some((room) => inTentLocalBox(cell, room)))
   )
     throw new Error("Tent mattress cell must be inside a room");
-  if (!ceilings.some((cell) => key(cell) === key(spec.lantern)))
+  if (!ceilings.some((cell) => tentCellKey(cell) === tentCellKey(spec.lantern)))
     throw new Error("Tent lantern cell must be a ceiling cell");
   if (
     spec.anchor.depth !== depths.rear - (insets[spec.anchor.layer] ?? 0) ||
-    !wallKeys.has(key(spec.anchor))
+    !wallKeys.has(tentCellKey(spec.anchor))
   )
     throw new Error("Tent anchor must be a rear wall cell");
 
@@ -212,6 +215,7 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
     ] as const),
     lantern: freezeCell(spec.lantern),
     clear: Object.freeze({ ...clear }),
+    clearBox: Object.freeze(clearBox),
     rooms: Object.freeze(spec.rooms.map((room) => Object.freeze({ ...room }))),
     anchor: freezeCell(spec.anchor),
   });

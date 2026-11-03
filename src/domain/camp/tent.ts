@@ -16,6 +16,7 @@ import {
   type TentFace,
   type TentLayout,
   type TentLocalCell,
+  tentCellKey,
   TRAPEZOID_LAYOUT,
 } from "./tentLayout";
 
@@ -127,8 +128,6 @@ function faceToward(v: Vec2): TentFace {
 
 const scaled = (v: Vec2, k: number): Vec2 => ({ x: v.x * k, z: v.z * k });
 
-const localKey = (c: TentLocalCell): string => `${c.x},${c.depth},${c.layer}`;
-
 export function lanternCell(pose: TentPose): Cell {
   return tentCellAt(pose, LAYOUT.lantern);
 }
@@ -141,7 +140,7 @@ export function tentCells(
   const cells: LaidCell<TentBlock>[] = [];
   const lay = (local: TentLocalCell, block: TentBlock) => {
     const flap =
-      block.type === "wall" ? FLAP_BY_LOCAL.get(localKey(local)) : undefined;
+      block.type === "wall" ? FLAP_BY_LOCAL.get(tentCellKey(local)) : undefined;
     cells.push({
       ...tentCellAt(pose, local),
       block:
@@ -158,11 +157,11 @@ export function tentCells(
   };
   for (const { cell, face } of LAYOUT.walls)
     lay(cell, { type: "wall", face: faceToward(directions[face]) });
-  const lanternKey = localKey(LAYOUT.lantern);
+  const lanternKey = tentCellKey(LAYOUT.lantern);
   for (const cell of LAYOUT.ceilings)
     lay(
       cell,
-      localKey(cell) === lanternKey
+      tentCellKey(cell) === lanternKey
         ? { type: "lantern", lit: state.lanternOn }
         : { type: "ceiling" },
     );
@@ -211,12 +210,7 @@ export function tentGroundCells(pose: TentPose): Cell[] {
 }
 
 export function inTentFootprint(pose: TentPose, cell: Cell): boolean {
-  return inTentLocalBox(toLocal(pose, cell), {
-    halfWidth: LAYOUT.clear.halfWidth,
-    depthFrom: 0,
-    depthTo: LAYOUT.clear.depth - 1,
-    layerTo: LAYOUT.clear.layers - 1,
-  });
+  return inTentLocalBox(toLocal(pose, cell), LAYOUT.clearBox);
 }
 
 /** The world box of tentClearCells in blocks, from its lowest corner. */
@@ -264,7 +258,7 @@ export const TENT_FLAPS = LAYOUT.flaps;
 
 const FLAP_BY_LOCAL: ReadonlyMap<string, FlapId> = new Map(
   (Object.keys(TENT_FLAPS) as FlapId[]).flatMap((id) =>
-    TENT_FLAPS[id].map((c) => [localKey(c), id] as const),
+    TENT_FLAPS[id].map((c) => [tentCellKey(c), id] as const),
   ),
 );
 
