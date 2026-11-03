@@ -69,36 +69,79 @@ assert all(isclose(a, b, abs_tol=0.001) for a, b in zip(bones['flap_left']['pivo
 assert all(isclose(a, b, abs_tol=0.001) for a, b in zip(bones['flap_right']['pivot'], [-45.636, 28.334, -64]))`);
 });
 
-it("keeps tapered screen bands and diagonal seams within their fabric and footprint", async () => {
+it("keeps the triangular -x screen on its plane with bound seams and an open +x side", async () => {
   await run(`from dataclasses import replace
 from math import isclose
 tarp = load_tool('tent_tarp')
-for height in (1, 2, 3, 4):
-    for foot_x in (48, 50):
-        for foot_depth in (12, 16, 20):
-            d = replace(dims.DIMS, band_height=height, tarp_foot_x=foot_x, tarp_foot_depth=foot_depth)
-            cubes = tarp.screen(d, tent.face)
-            rows = [cubes[i:i+3] for i in range(0, len(cubes), 3)]
-            previous_depth = 0
-            previous_diagonal = d.tarp_front_z
-            for cloth, diagonal, rear in rows:
-                assert cloth['size'][2] > previous_depth
-                previous_depth = cloth['size'][2]
-                for seam in (diagonal, rear):
-                    assert isclose(seam['size'][2], d.seam_width)
-                    assert seam['origin'][2] >= cloth['origin'][2]
-                    assert seam['origin'][2]+seam['size'][2] <= cloth['origin'][2]+cloth['size'][2]+1e-9
-                    assert all(uv == tent.face('seam') for uv in seam['uv'].values())
-                assert diagonal['origin'][2] > previous_diagonal
-                previous_diagonal = diagonal['origin'][2]
-                for cube in (cloth, diagonal, rear):
-                    for x, y, z in tent.corners(cube):
-                        assert d.tarp_foot_x-d.shell_thickness <= x <= d.half_width+1e-9
-                        assert y >= -1e-9
-                        assert d.tarp_front_z <= z <= d.front_z
-                assert cloth['uv']['west'] == tent.face('tarp_under')
-                assert all(uv == tent.face('tarp_top') for side, uv in cloth['uv'].items() if side != 'west')
-            assert rows[0][0]['size'][2] == d.tarp_foot_depth
-            assert rows[-1][0]['size'][2] == d.front_z-d.tarp_front_z
-            assert rows[0][1]['origin'][2] == d.tarp_front_z+d.tarp_foot_depth/2`);
+for height in (40, 44, 46):
+    d = replace(dims.DIMS, tarp_front_height=height)
+    b, c = tarp.screen_plane(d)
+    assert isclose(-d.half_width+b*height+c*(d.tarp_front_z-d.front_z), -d.half_width)
+    assert isclose(-d.half_width+b*d.ridge_height+c*d.lean, -d.half_width+d.lean)
+    assert tarp.screen_limits(d, d.front_z)[0] == 0
+    cubes = tarp.screen(d, tent.face)
+    assert len(tarp.build(d, tent.face)['cubes']) < 460
+    cloth = [cube for cube in cubes if cube['uv']['east'] == tent.face('tarp_under')]
+    seams = [cube for cube in cubes if cube['uv']['east'] == tent.face('seam')]
+    assert 68 < len(cloth) < 130
+    assert len(seams) > 68
+    for cube in cubes:
+        assert cube['rotation'][0:2] == [0, 0]
+        assert cube['rotation'][2] > 0
+        assert cube['size'][2] <= d.tarp_column_depth+d.band_overlap+1e-9
+        for x, y, z in tent.corners(cube):
+            assert -d.half_width-1e-9 <= x < -35
+            assert -1e-9 <= y <= d.ridge_height+1e-9
+            assert d.tarp_front_z <= z <= d.front_z+d.lean+1e-9
+            plane = -d.half_width+b*y+c*(z-d.front_z)
+            assert abs(x-plane) < 1.2
+        if cube in cloth:
+            assert cube['uv']['west'] == tent.face('tarp_top')
+        else:
+            assert all(uv == tent.face('seam') for uv in cube['uv'].values())
+    columns = sorted(set(cube['origin'][2] for cube in cloth))
+    for left, right in zip(columns, columns[1:]):
+        reach = min(right+d.band_overlap, tarp.body.ends(d, d.ridge_height)[0])
+        assert any(cube['origin'][2] == left and cube['origin'][2]+cube['size'][2] >= reach-1e-9 for cube in cloth)`);
+});
+
+it("connects the tarp roof to the ridge without raising any surface above it", async () => {
+  await run(`from math import isclose, sin, radians
+d = dims.DIMS
+tarp = load_tool('tent_tarp')
+roof = tarp.roof(d, tent.face)
+cloth = [cube for cube in roof if cube['uv']['down'] == tent.face('tarp_under')]
+assert len(cloth) == 68
+for cube in roof:
+    assert all(size > 0 for size in cube['size'])
+    assert cube['rotation'][1:] == [0, 0]
+    assert cube['rotation'][0] > 0
+    assert isclose(cube['size'][1], d.shell_thickness)
+    for x, y, z in tent.corners(cube):
+        assert -d.half_width <= x <= d.half_width
+        assert d.tarp_front_z-1e-9 <= z <= d.front_z+d.lean+d.shell_thickness*abs(sin(radians(cube['rotation'][0])))+1e-9
+        assert y <= d.ridge_height+1e-9
+rear = tent.corners(cloth[-1])
+assert isclose(max(p[1] for p in rear), d.ridge_height)
+assert any(isclose(p[1], d.ridge_height) and isclose(p[2], d.front_z+d.lean) for p in rear)
+assert isclose(min(p[0] for p in rear), -d.half_width+d.lean)
+assert isclose(max(p[0] for p in rear), d.half_width-d.lean)
+for previous, following in zip(cloth, cloth[1:]):
+    assert max(p[2] for p in tent.corners(previous)) > min(p[2] for p in tent.corners(following))`);
+});
+
+it("overlaps leaning body bands while keeping their top and ground corners contained", async () => {
+  await run(`from math import isclose
+d = dims.DIMS
+body = load_tool('tent_body')
+assert d.lean == 19.2 and d.band_height == 1
+for builder, sides in ((body.side_band, (-1, 1)), (body.end_band, (True, False))):
+    for side in sides:
+        bands = [builder(d, tent.face, side, y, y+1, -20, 0) for y in range(d.ridge_height)]
+        for band in bands:
+            assert min(p[1] for p in tent.corners(band)) >= -1e-9
+            assert max(p[1] for p in tent.corners(band)) <= d.ridge_height+1e-9
+        for previous, following in zip(bands, bands[1:]):
+            assert max(p[1] for p in tent.corners(previous)) > min(p[1] for p in tent.corners(following))
+tent.validate(tent.assemble())`);
 });

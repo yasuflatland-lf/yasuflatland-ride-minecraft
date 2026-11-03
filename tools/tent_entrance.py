@@ -36,7 +36,7 @@ FLAPS = flaps(dims.DIMS)
 def front_door(d: Dims, face):
     w, h, rim = d.door_half_width, d.door_height, d.entrance_frame_width
     def band(x0, y0, x1, y1, color):
-        return body.end_band(d, face, True, y0, y1, x0, x1, color)
+        return body.end_band(d, face, True, y0, y1, x0, x1, color, overlap=False)
     cubes = [band(-w, 0, -w+rim, h, "fly"), band(w-rim, 0, w, h, "fly"),
              band(-w+rim, 0, w-rim, rim, "fly"), band(-w+rim, h-rim, w-rim, h, "fly")]
     # The entity material ignores alpha; gaps between thin bars make the net see-through.
@@ -74,7 +74,7 @@ def window(d: Dims, face, side):
     y0, y1, z0, z1 = d.window_bottom, d.window_top, d.window_front_z, d.window_rear_z
     rim = d.entrance_frame_width
     def band(bottom, top, front, rear, color):
-        return body.side_band(d, face, side, bottom, top, front, rear, color, d.window_proud)
+        return body.side_band(d, face, side, bottom, top, front, rear, color, d.window_proud, overlap=False)
     cubes = [band(y0, y0+rim, z0, z1, "mesh_frame"),
              band(y1-rim, y1, z0, z1, "mesh_frame"),
              band(y0+rim, y1-rim, z0, z0+rim, "mesh_frame"),
@@ -127,6 +127,6 @@ def build(d: Dims, face: Callable[[str], dict]) -> Part:
         else:
             side = 1 if name == "flap_left" else -1
             cubes = [body.side_band(d, face, side, d.window_bottom, d.window_top,
-                                    d.window_front_z, d.window_rear_z, "fly", d.flap_proud)]
+                                    d.window_front_z, d.window_rear_z, "fly", d.flap_proud, overlap=False)]
         bones[name] = {"parent": parent, "pivot": list(pivot), "cubes": cubes}
     return {"cubes": [cube for bone in bones.values() for cube in bone["cubes"]], "bones": bones}

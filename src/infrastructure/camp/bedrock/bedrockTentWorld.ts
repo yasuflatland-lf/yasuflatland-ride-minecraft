@@ -5,11 +5,16 @@ import {
   ItemStack,
   world,
 } from "@minecraft/server";
+import type { LegacyTentWorld } from "../../../application/camp/ports/legacyTent";
 import type { TentWorld } from "../../../application/camp/ports/tent";
 import type { TentFlapWorld } from "../../../application/camp/ports/tentFlap";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { TentFlaps } from "../../../domain/camp/flaps";
-import { TENT_SPEC } from "../../../domain/camp/spec";
+import {
+  isTentBlockTypeId,
+  legacyTentClearCells,
+} from "../../../domain/camp/legacyTent";
+import { TENT_LAYOUT_VERSION, TENT_SPEC } from "../../../domain/camp/spec";
 import {
   asTentId,
   type FlapId,
@@ -25,6 +30,7 @@ import {
   type TentId,
   type TentPose,
   tentBlockAt,
+  tentCellAt,
   tentCells,
   tentClearCells,
   tentEntityLocation,
@@ -32,7 +38,7 @@ import {
   tentGroundCells,
 } from "../../../domain/camp/tent";
 import type { TentEntry } from "../../../domain/camp/tentRegistry";
-import type { Cell } from "../../../domain/shared/cells";
+import { type Cell, cellKey } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { AIR_BLOCK, NAMESPACE } from "../../shared/identifiers";
@@ -102,7 +108,9 @@ function flapBlockerBox(cell: Vec3): {
   };
 }
 
-export class BedrockTentWorld implements TentWorld, TentFlapWorld {
+export class BedrockTentWorld
+  implements TentWorld, TentFlapWorld, LegacyTentWorld
+{
   constructor(
     private readonly deps: {
       isVehicleSpace: SpaceCheck;
@@ -239,7 +247,12 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
         .spawnEntity(TENT_TYPE, tentEntityLocation(pose));
       entity.setRotation({ x: 0, y: pose.yaw });
       id = asTentId(entity.id);
-      this.deps.registry.add({ id, dimensionId, pose });
+      this.deps.registry.add({
+        id,
+        dimensionId,
+        pose,
+        layout: TENT_LAYOUT_VERSION,
+      });
       this.deps.blocks.lay(id, entity, tentCells(pose, PITCHED_STATE));
       return id;
     } catch (e) {
@@ -328,6 +341,53 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
     // cells by pose. Cells in chunks still unloaded are cleared from the
     // entity's saved cells when it loads as an orphan.
     if (!tent && entry) this.clearByPose(entry);
+    this.removeTent(tentId);
+  }
+
+  listTents(): readonly TentEntry[] {
+    return this.deps.registry.all();
+  }
+
+  ejectOccupants(entry: TentEntry): void {
+    const dimension = dimensionOf(entry.dimensionId);
+    if (!dimension) return;
+    const cells = new Set(legacyTentClearCells(entry.pose).map(cellKey));
+    const exit = tentCellAt(entry.pose, { x: 0, depth: -1, layer: 0 });
+    for (const player of dimension.getPlayers()) {
+      const feet = player.location;
+      if (
+        !cells.has(
+          cellKey({
+            x: Math.floor(feet.x),
+            y: Math.floor(feet.y),
+            z: Math.floor(feet.z),
+          }),
+        )
+      )
+        continue;
+      player
+        .getComponent("minecraft:riding")
+        ?.entityRidingOn?.getComponent("minecraft:rideable")
+        ?.ejectRider(player);
+      // Teleport also moves sleepers off the mattresses before their blocks disappear.
+      player.teleport(
+        { x: exit.x + 0.5, y: exit.y, z: exit.z + 0.5 },
+        { dimension },
+      );
+    }
+  }
+
+  clearTentBlock(dimensionId: DimensionId, cell: Cell): void {
+    const block = blockAt(dimensionOf(dimensionId), cell);
+    if (isTentBlockTypeId(block?.typeId)) block?.setType(AIR_BLOCK);
+  }
+
+  removeLegacyTent(entry: TentEntry): void {
+    this.removeTent(entry.id);
+  }
+
+  private removeTent(tentId: TentId): void {
+    const tent = tentEntityOf(tentId);
     this.deps.registry.remove(tentId);
     this.deps.flaps.forget(tentId);
     tent?.remove();

@@ -16,7 +16,9 @@ class Dims:
     ridge_height: int = 48  # Three layers provide the body's headroom.
     lean: float = 19.2  # Each face leans 1.2 cells over the full ridge height.
     shell_thickness: float = 0.5  # Thin panels follow the roof tent's construction.
-    band_height: int = 2  # Short bands approximate trapezoids without hundreds of cubes.
+    band_height: int = 1  # One-pixel steps soften the leaning panels' diagonal edges.
+    band_overlap: float = 0.4  # Overlap along the slope hides light gaps between rotated bands.
+    skirt_height: int = 3  # The lighter hem stays within the shared body footprint.
     seam_width: int = 1  # Dark frames make each panel boundary visible in previews.
     seam_proud: float = 0.08  # Offset frames prevent coplanar faces from flickering.
     door_half_width: int = 24  # Three front flap cells span the doorway at the floor.
@@ -24,9 +26,8 @@ class Dims:
     strip_width: int = 1
 
     tarp_front_z: int = -136  # Depth 0 includes the front half-cell margin.
-    tarp_underside: int = 35  # The tarp clears the two-layer entrance.
-    tarp_foot_x: int = 48  # An inward foot keeps the screen below the roof's outer edge.
-    tarp_foot_depth: int = 16  # A short front foot leaves the rear approach open.
+    tarp_front_height: int = 44  # The front slopes gently up to the body ridge at 48 px.
+    tarp_column_depth: int = 1  # One-pixel columns keep the screen's free edge from reading as teeth.
     pole_thickness: float = 1.5
     window_bottom: int = 8  # The window stays within the two depth-4 flap cells.
     window_top: int = 28  # Leave clearance below the eave seam.

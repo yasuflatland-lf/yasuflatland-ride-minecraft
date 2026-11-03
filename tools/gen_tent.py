@@ -8,9 +8,10 @@ depth behind the tarp front, and layer above ground. Model pixels are
 The footprint is seven by nine cells; the body spans depths 3..8 and the tarp 0..2.
 The ridge is three layers high. The cell-laying changes belong to part 4/6 of #1222;
 this generator changes only assets, including the mesh entrance and inner bedroom.
-Thin wall and roof panels use dark seam frames. The tarp has a left slanted screen,
-two front poles, and an open right side. Existing flap and fixture bones remain valid.
-The sixteen paints recolor only fly, fly_dark, and seam (ADR 0031, 0076).
+Straight body slopes meet a flat ridge; dark seams outline both ends and the door head.
+The caramel tarp joins the ridge with an inverted triangular screen on model -x, two front poles,
+and an open right side. Existing flap and fixture bones remain valid. The sixteen paints
+recolor only fly, fly_dark, seam, and skirt; both tan tarp slots stay fixed (ADR 0031, 0076).
 --check compares parsed JSON and decoded pixels, independent of formatting and compression.
 """
 import argparse
@@ -53,6 +54,7 @@ PALETTE = {
     "zip": (20, 20, 18, 255), "inner_floor": (154, 148, 132, 255),
     "seam": scale((154, 132, 120), 0.6) + (255,),
     "tarp_top": (176, 135, 90, 255), "tarp_under": (198, 164, 122, 255),
+    "skirt": scale((154, 132, 120), 1.12) + (255,),
 }
 SLOTS = list(PALETTE)
 # The fly color of each paint, in PAINTS order (src/domain/shared/paint.ts). khaki is the
@@ -77,9 +79,9 @@ FLY_PAINTS = {
     "pink": (214, 132, 162),
 }
 # Brightness of each fly slot relative to the khaki base, so seams stay darker in every paint.
-FLY_SHADES = {"fly": 1.0, "fly_dark": 136 / 176, "seam": 0.6}
+FLY_SHADES = {"fly": 1.0, "fly_dark": 136 / 176, "seam": 0.6, "skirt": 1.12}
 FLY_SLOTS = frozenset(SLOTS.index(key) for key in FLY_SHADES)
-# Each flap's opening, roll pivot, parent bone, and paint. The bedroom D-door uses
+# Each flap's opening, roll pivot, parent bone, and paint. The bedroom door uses
 # both inner and inner_shade in tent_inner.
 FLAPS = {**tent_entrance.FLAPS, **tent_inner.FLAPS}
 
@@ -168,7 +170,7 @@ def validate(parts):
     """Reject bounds, interior intrusions, flap bounds, and paint ownership before writing."""
     errors = []
     rooms = [(-34, 0.5, -69, 34, 44, -52), (-34, 0.5, -40, 34, 35, -10),
-             (-48, 0, -136, DIMS.tarp_foot_x-DIMS.pole_thickness, 32, -90)]
+             (-46, 0, -136, DIMS.half_width-DIMS.pole_thickness, 32, -90)]
     def inside(b, outer):
         return all(b[i] >= outer[i] - 0.002 and b[i+3] <= outer[i+3] + 0.002 for i in range(3))
     def overlaps(b, room):
