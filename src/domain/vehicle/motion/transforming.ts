@@ -1,12 +1,12 @@
 import type { Medium } from "./motion";
 
+/** `constant` moves the bank angle by `bankRate` degrees every tick. */
+type BankEasing = "constant";
+
 /**
  * Values a transforming drivetrain reads (ADR 0021, 0026, 0032, 0033, 0040,
  * 0044). Each transforming kind builds one from its own spec.
  */
-/** `constant` moves the bank angle by `bankRate` degrees every tick. */
-type BankEasing = "constant";
-
 export interface TransformingSpec {
   /** Body height in blocks; the vehicle counts as submerged at this water depth. */
   readonly carHeight: number;
