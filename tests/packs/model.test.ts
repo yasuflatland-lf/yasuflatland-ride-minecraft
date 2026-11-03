@@ -78,9 +78,9 @@ const anims = JSON.parse(
   readFileSync("packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json", "utf8"),
 ).animations;
 
-// How far the hover animation moves each folded wheel out (ADR 0043). Read
-// from the hand-written animation, so the generated glow and arms must follow
-// it.
+// How far the hover animation moves each folded wheel out (ADR 0215). The
+// translations are generated from suv_dims.py by sync_animation, so the glow
+// and arms must follow the generated animation.
 const FOLD_OUT = Math.abs(
   anims["animation.yasu_ride.suv.wheels_folded"].bones.wheel_fl.position[0],
 );
