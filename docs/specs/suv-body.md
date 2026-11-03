@@ -9,6 +9,7 @@
 - Source: [0192](../adr/0192-suv-detailed-body.md)
 - Source: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md)
 - Source: [0196](../adr/0196-raise-the-suv-seats-for-first-person-visibility.md)
+- Source: [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md)
 - Excluded: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md): rotation assemblies, covered by the model-conventions topic
 - Excluded: [0176](../adr/0176-move-the-sports-boat-front-seats-back.md): sports boat seat positions, not the SUV
 
@@ -35,10 +36,10 @@
 ### Lamp bones beyond the 0009 list
 
 - Applies to: SUV model, lit lamp parts.
-- Rule: The model also has the bones `headlights`, `tail_lights`, and `headlight_bezels`. Lamp cubes belong to a bone by the part that builds them, not by colour: `headlights` holds the headlight lenses, fog lamp lenses, and the front lamp strip; `tail_lights` holds the lit tail lamp parts and the third brake light; `headlight_bezels` holds the cutout bezel panels and stays in the base pass, so it is not an overlay bone.
+- Rule: The model also has the bones `headlights`, `tail_lights`, and `headlight_bezels`. Lamp cubes belong to a bone by the part that builds them, not by colour: `headlights` holds the headlight lenses, the fog lamp lenses, and the front marker lens; `tail_lights` holds the lit tail lamp faces and the third brake light; `headlight_bezels` holds the cutout bezel panels and stays in the base pass, so it is not an overlay bone.
 - Agreement: Proposed
 - Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Extend 0009 with `tail_lights` for the lit tail lamp parts and the third brake light, and `headlight_bezels` for the cutout panels."; [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlights` keeps the headlight lenses, fog lamp lenses and front lamp strip on the fender flares"; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlight_bezels` stays in the base pass and is not an overlay bone."
-- Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `tools/suv_lamps.py`
+- Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `tools/suv_lamps.py`; `tools/suv_front.py`
 - Verification: `tests/packs/headlights.test.ts` "places both detailed tail faces and the third brake light on the tail bone", "places every light swatch cube on the headlights bone", "keeps two cutout bezels on an origin-pivoted body child in the base pass". Not verified: lamp appearance in game (0192 Decision point 7 and the headlight material result of part 13 are recorded as pending the owner's in-game comparison).
 
 ### Grille and marks
@@ -47,13 +48,22 @@
 - Rule: The grille has eight slots and carries no logo or vehicle name (a seven-slot grille is a Jeep trademark).
 - Agreement: Accepted
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Give the grille eight slots, with no logo or vehicle name."
-- Implementation: `tools/suv_shell.py` (`grille_cubes`, `SLOTS`)
+- Implementation: `tools/suv_front.py` (`grille`, `GRILLE_SLOTS`)
 - Verification: Not verified: no test counts the grille slots or checks for marks on the model; the slot count is checked by reading the generator only.
+
+### Rubicon body, size anchor and wheels
+
+- Applies to: SUV model (`geometry.yasu_ride.suv`), all modes.
+- Rule: The SUV exterior is the Rubicon shape, written in tyre diameters D with D = 12.645 construction pixels (26.1 divided by 2.064, so the roof ribs stay 26.1 px high at `SIZE_SCALE` 1.45). The front axle is at construction z 17.2, and every other length in `tools/suv_dims.py` follows from D. The half width is 0.885 D behind the windshield base and widens as a trapezoid over the hood. Every wheel, the spare included, is the 133-cube road wheel scaled by D / 12 across and 0.43 D along its axle. The spare's front face stands 3.585 D from the front axle, clear of the tailgate, the rear window and the rear bumper. Open window frames, door openings, the eight-slot grille and the bone contract are above; the side windows, windshield and rear window are filled by `windows_sealed` and `rear_glass` in flight and under water.
+- Agreement: Accepted
+- Basis: [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md) Decision, "That makes D = 26.1 / 2.064 = 12.645 px, 1.146 blocks at `SIZE_SCALE` 1.45, which does not change."; [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md) Decision, "Every wheel, the spare included, is the 133-cube construction of the earlier SUV, drawn at radius 6 and half tread 2, then scaled by D / 12 across and by 0.43 D / 4 along the axle."; [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md) Decision, "The spare sits at z 3.80 D, y 1.35 D (front face 3.585 D, bottom 0.85 D), so it clears all three."
+- Implementation: `tools/suv_dims.py`; `tools/suv_kit.py`; `tools/suv_hull.py`; `tools/suv_front.py`; `tools/suv_cab.py`; `tools/suv_rear.py`; `tools/suv_body.py`; `tools/suv_running_gear.py`; `tools/gen_model.py`
+- Verification: `tests/packs/model.test.ts` "keeps spinning road tires clear of flares, steps and bumpers", "has one windshield plate, leaning with the windshield frame", "fills each side window from sill to top rail", "keeps the spare wheel clear of every other body cube and of the rear glass"; `tests/tools/suvDimensions.test.ts` "joins the leaning A-pillars to the roof without protruding above it". Not verified: the model against the 19 photos by the repository's preview renderer at each photo angle, the look in game.
 
 ### Single size scale
 
 - Applies to: SUV model export, all modes.
-- Rule: Construction coordinates stay unscaled. `SIZE_SCALE` in `tools/suv_dims.py` is the one uniform scale that export applies to every length, pivot, locator, and animation translation. Textures, UVs, palette, paint colours, and bone names do not change with it. Its value is 1.45, which `tests/tools/suvDimensions.test.ts` asserts. The camper and the bulldozer keep their own geometry and collision boxes.
+- Rule: Construction coordinates stay unscaled. `SIZE_SCALE` in `tools/suv_dims.py` is the one uniform scale that export applies to every length, pivot, locator, and animation translation. Textures, UVs, palette, paint colours, and bone names do not change with it. Its value is 1.45, which `tests/tools/suvDimensions.test.ts` asserts, and the tyre diameter D that sizes the Rubicon body is derived from the roof height (below). The camper and the bulldozer keep their own geometry and collision boxes.
 - Agreement: Proposed
 - Basis: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Continue applying this one uniform transform at export to every length, pivot, locator and animation translation."; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Use `SIZE_SCALE = 1.45` in `tools/suv_dims.py`, an increase of 1.45/1.30, approximately 11.54 percent."
 - Implementation: `tools/suv_dims.py` (`SIZE_SCALE`); `tools/suv_export.py`
@@ -62,11 +72,11 @@
 ### Side-view proportion targets
 
 - Applies to: SUV model, closed doors, unanimated pose.
-- Rule: The generated model is measured by `tools/suv_proportions.py` against the thirteen rows of `TARGETS` (twelve linear ratios to the road wheel diameter and the windshield rake in degrees). `PENDING` is empty, so every row is asserted within its tolerance. A change to the body outline must keep every row within tolerance and the completed ratios within 0.005 of their recorded values.
-- Agreement: Proposed
-- Basis: [0170](../adr/0170-measure-suv-side-view-proportions.md) Decision, "Keep every table row in `TARGETS` with its tolerance."; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Keep the thirteen proportion targets, completed ratios and tolerances from 0170."
+- Rule: The generated model is measured by `tools/suv_proportions.py` against the thirteen rows of `TARGETS` (twelve linear ratios to the road wheel diameter and the windshield rake in degrees): wheelbase 3.007, front overhang 0.974, rear overhang 0.826, ground clearance 0.679, overall height 2.064, belt 1.495, side window 0.460, hood 1.461, hood length 1.748, front bumper 0.287, rear bumper 0.340, bumper height 0.357, rake 35.78 degrees. `PENDING` is empty, so every row is asserted within its tolerance (0.05, and 3 degrees for the rake). A change to the body outline must keep every row within tolerance and the recorded ratios within 0.005.
+- Agreement: Accepted
+- Basis: [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md) Decision, "The thirteen rows are re-recorded from the model: wheelbase 3.007 D, front overhang 0.974, rear overhang 0.826, ground clearance 0.679, overall height 2.064, belt 1.495, side window 0.460, hood 1.461, hood length 1.748, front bumper 0.287, rear bumper 0.340, bumper height 0.357, rake 35.78 degrees."
 - Implementation: `tools/suv_proportions.py` (`TARGETS`, `PENDING`, `measure`)
-- Verification: `tests/tools/suvProportions.test.ts` "preserves every completed 7/7 proportion within 0.005", "<key> meets the reference tolerance" for each row, "measures every row positively and deterministically without mutating cubes". These are geometry measurements of the exported model. Not verified: the silhouette in game on PC and touch (0170 Consequences makes that the acceptance condition).
+- Verification: `tests/tools/suvProportions.test.ts` "preserves every recorded Rubicon proportion within 0.005 (ADR 0214)", "<key> meets the reference tolerance" for each row, "measures every row positively and deterministically without mutating cubes". These are geometry measurements of the exported model. Not verified: the silhouette in game on PC and touch, and the rows against the 19 owner photos beyond the spike's recorded estimates (wheelbase 2.95 to 3.10, roof 2.00 to 2.10, hood 1.43 to 1.50, rake 34 to 38 degrees).
 
 ### Collision box and values derived from it
 
@@ -132,3 +142,6 @@
 - 0192 Decision point 9 says merging its PR is the owner's approval of the `tail_lights` and `headlight_bezels` bones, and its Status is still Proposed while both bones exist in the model and in tests: `docs/adr/0192-suv-detailed-body.md`, `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`, `tests/packs/headlights.test.ts`.
 - 0194 acceptance condition asks the owner to confirm head clearance, first-person visibility, and wall and door clearance at the 1.45 scale, and 0196 records only a dev BDS check of the horizon and head under the roof at the new seat height: `docs/adr/0194-enlarge-the-suv-for-seated-head-clearance.md`, `docs/adr/0196-raise-the-suv-seats-for-first-person-visibility.md`. Whether that check satisfies 0194 is not stated.
 - 0029 Decision names the test entity `mycar_test:seat_probe`, and the entity is `yasu_ride_test:seat_probe`: `docs/adr/0029-raise-the-seats.md`, `packs/yasu_ride_test_bp/entities/yasu_ride_test/seat_probe.se.json`.
+- 0214 leaves `SUV_SPEC`, the collision box, the seats and the roof tent anchors for the next pull request, so they describe the old body while the model is the Rubicon shape: `docs/adr/0214-replace-the-suv-with-the-rubicon-shape.md`, `src/domain/vehicle/kinds/suv/spec.ts`. The new model's measured extents are 2.680 blocks ahead of and 3.104 behind its centre, 1.337 half width for the shell and 1.425 for the wheels, 2.376 high, and 3.114 for the footprint corner. The existing probes (bodyFront 2.69, bodyHalfWidth 1.64, footprint 3.40, carHeight 2.32) enclose them.
+- The interior (dashboard, gauges, seats, steering, floor console and pedals) is the old SUV's, refitted only enough to build and pass the clearance tests: seats stop at x 9.2 px, the dashboard sits 1.3 px behind the cowl's rear edge, and the floor console and pedals are shifted with it: `tools/gen_model.py`, `tools/suv_dims.py`. The seat positions in `suv.se.json` are unchanged.
+- 0192's painted steel body regions (`body` atlas block) are removed, so the 0192 rules about panel lines, flake and `PBR` body regions no longer have an implementation; the relief maps stay but are flat: `tools/suv_atlas.py`, `tools/suv_material.py`.
