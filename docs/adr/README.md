@@ -48,7 +48,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0040](0040-submarine.md) | Submarine form | Accepted; superseded in part by [0042](0042-bronze-four-blade-propellers.md), [0044](0044-bank-under-water.md), [0045](0045-submarine-preview.md), [0078](0078-wait-for-a-passenger-before-landing.md); extended by [0043](0043-wheel-arms.md) |
 | [0041](0041-sonar-sound-under-water.md) | Sonar sound under water | Accepted |
 | [0042](0042-bronze-four-blade-propellers.md) | Bronze four-blade propellers | Accepted |
-| [0043](0043-wheel-arms.md) | Wheel arms in flight and under water | Accepted |
+| [0043](0043-wheel-arms.md) | Wheel arms in flight and under water | Accepted; superseded in part by [0215](0215-extend-the-wheel-axle-straight-out-in-flight.md) |
 | [0044](0044-bank-under-water.md) | Bank into turns under water | Accepted |
 | [0045](0045-submarine-preview.md) | Add a submarine pose to the README previews | Accepted; extended by [0136](0136-bulldozer.md) |
 | [0046](0046-organize-each-layer-by-feature.md) | Organize each layer by feature | Accepted; extended by [0050](0050-vehicle-kinds-and-per-kind-profiles.md), [0055](0055-kind-neutral-vehicle-core.md), [0065](0065-check-import-rules-with-dependency-cruiser.md), [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md), [0129](0129-share-room-primitives-between-features.md) |
@@ -218,6 +218,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0211](0211-derive-the-ground-tent-lean-from-the-reference-photos.md) | Derive the ground tent lean from the reference photos | Proposed |
 | [0212](0212-close-a-tent-flap-beside-a-neighbouring-body.md) | Close a tent flap beside a neighbouring body | Accepted |
 | [0214](0214-replace-the-suv-with-the-rubicon-shape.md) | Replace the SUV with the Rubicon shape | Accepted |
+| [0215](0215-extend-the-wheel-axle-straight-out-in-flight.md) | Extend the wheel axle straight out in flight | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
