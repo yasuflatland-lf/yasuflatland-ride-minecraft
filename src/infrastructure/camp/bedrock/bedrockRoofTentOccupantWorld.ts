@@ -247,7 +247,12 @@ export class BedrockRoofTentOccupantWorld
     teleport();
     try {
       const rideable = entity?.getComponent("minecraft:rideable");
-      if (rideable && !rideable.addRider(player)) teleport();
+      if (rideable && !rideable.addRider(player)) {
+        console.warn(`[${NAMESPACE}] roof tent rejected its rider`);
+        teleport();
+      } else if (!rideable) {
+        console.warn(`[${NAMESPACE}] roof tent has no rideable component`);
+      }
     } catch (error) {
       console.warn(`[${NAMESPACE}] roof tent seating failed: ${error}`);
       teleport();

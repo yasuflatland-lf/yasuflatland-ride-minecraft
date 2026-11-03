@@ -39,15 +39,28 @@ it("keeps the seated eye at its target between the bed and ridge at any positive
   );
 });
 
-it("keeps ground and camper feet at or above the platform at any tent height", () => {
+it("keeps the seated eye the same distance below each variant's ridge", () => {
   fc.assert(
-    fc.property(coordinate, (height) => {
-      const feet =
-        height + rideSeatY("ground") - ROOF_TENT_SPEC.seatRiderOffset;
-      expect(feet + 1e-10).toBeGreaterThanOrEqual(
-        height + ROOF_TENT_SPEC.groundPlatformTop,
-      );
-      expect(rideSeatY("ground")).not.toBe(rideSeatY("suv"));
-    }),
+    fc.property(
+      coordinate,
+      fc.constantFrom("suv", "ground" as const),
+      (height, variant) => {
+        const ridge =
+          variant === "suv"
+            ? ROOF_TENT_SPEC.shellRidge
+            : ROOF_TENT_SPEC.groundShellRidge;
+        const eye =
+          height +
+          rideSeatY(variant) -
+          ROOF_TENT_SPEC.seatRiderOffset +
+          ROOF_TENT_SPEC.standingEyeHeight;
+        expect(height + ridge - eye).toBeCloseTo(
+          ROOF_TENT_SPEC.eyeBelowRidge,
+          3,
+        );
+      },
+    ),
   );
+  expect(rideSeatY("suv")).toBe(0.155);
+  expect(rideSeatY("ground")).toBe(-0.2825);
 });

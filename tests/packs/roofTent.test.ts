@@ -2,7 +2,6 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { rideSeatY } from "../../src/domain/camp/roofTent/seat";
-import { ROOF_TENT_SPEC } from "../../src/domain/camp/spec";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import {
@@ -146,9 +145,6 @@ describe("roof tent asset contract", () => {
       crouching_skip_interact: true,
       seats: [{ position: [0, rideSeatY("suv"), 0] }],
     });
-    expect(rideSeatY("ground")).toBeGreaterThan(
-      ROOF_TENT_SPEC.groundPlatformTop,
-    );
   });
 
   it("keeps every SUV rack bar on the hardtop and under the platform", () => {

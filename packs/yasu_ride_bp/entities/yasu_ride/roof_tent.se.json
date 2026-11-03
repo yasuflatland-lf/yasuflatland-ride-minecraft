@@ -541,7 +541,7 @@
         "seat_count": 1,
         "family_types": ["player"],
         "crouching_skip_interact": true,
-        "seats": [{ "position": [0, 0.475, 0] }]
+        "seats": [{ "position": [0, -0.2825, 0] }]
       },
       "minecraft:persistent": {}
     }
