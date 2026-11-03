@@ -10,7 +10,7 @@ panel = load_tool("panels").panel
 
 
 def flaps(d: Dims):
-    w, h, z, t = d.door_half_width, d.wall_height, d.inner_front_z, d.inner_wall_thickness
+    w, h, z, t = d.inner_door_half_width, d.wall_height, d.inner_front_z, d.inner_wall_thickness
     return {"flap_bedroom": ((-w, 0, z-t, w, h, z), (0, h, z-t/2), "inner", None)}
 
 
@@ -19,7 +19,7 @@ FLAPS = flaps(dims.DIMS)
 
 def build(d: Dims, face: Callable[[str], dict]) -> Part:
     w, h, t = d.inner_half_width, d.inner_height, d.inner_wall_thickness
-    z0, z1, door = d.inner_front_z, d.inner_rear_z, d.door_half_width
+    z0, z1, door = d.inner_front_z, d.inner_rear_z, d.inner_door_half_width
     inner = [
         panel(w-t, 0, z0, w, h, z1, face("inner")),
         panel(-w, 0, z0, -w+t, h, z1, face("inner")),
