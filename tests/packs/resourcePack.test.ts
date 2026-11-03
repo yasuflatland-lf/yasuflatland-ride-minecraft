@@ -104,22 +104,20 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
       expect(Math.abs(folded[w].rotation[2]), w).toBe(90);
       // Animation positions run along the model's axes (ADR 0043), so the
       // outward step takes the sign of the wheel's side.
-      const outward = Math.sign(geoPivot(w)[0] ?? 0);
+      const [pivotX = 0, pivotY = 0] = geoPivot(w);
+      const outward = Math.sign(pivotX);
       expect(folded[w].position, w).toEqual([
         dimension("FOLD_OUT") * outward,
         -dimension("FOLD_DROP"),
         0,
       ]);
-      const hub =
-        Math.abs(geoPivot(w)[0] ?? 0) + Math.abs(folded[w].position[0]);
+      const hub = Math.abs(pivotX) + Math.abs(folded[w].position[0]);
       expect(hub - dimension("ROAD_WHEEL_RADIUS")).toBeCloseTo(
         dimension("OVERFENDER_HALF_WIDTH") + dimension("FOLD_CLEARANCE"),
         10,
       );
       expect(
-        (geoPivot(w)[1] ?? 0) +
-          folded[w].position[1] +
-          dimension("TIRE_HALF_WIDTH"),
+        pivotY + folded[w].position[1] + dimension("TIRE_HALF_WIDTH"),
       ).toBeCloseTo(dimension("ARM_ROOT_Y") - dimension("ARM_THICK") / 2, 10);
     }
     expect(folded.wheel_fl.rotation[2]).toBe(-folded.wheel_fr.rotation[2]);

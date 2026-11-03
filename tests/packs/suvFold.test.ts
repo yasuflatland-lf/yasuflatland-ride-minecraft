@@ -145,7 +145,7 @@ describe("SUV wheel fold clearance", () => {
         });
         expect(collisions, `${name} at t=${t}`).toEqual([]);
         if (t === 1) {
-          const side = Math.sign(wheel.pivot[0]);
+          const side = Math.sign(pivot[0]);
           const inner = Math.min(...points.flat().map((p) => p[0] * side));
           expect(inner).toBeGreaterThan(dimension("OVERFENDER_HALF_WIDTH"));
         }

@@ -6,7 +6,6 @@ import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import { turnedCorners } from "../support/geometry";
 import { startPythonWorker } from "../support/pythonWorker";
-import { dimension } from "../support/suvDimensions";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const python = startPythonWorker();
@@ -36,7 +35,9 @@ const dimensions = JSON.parse(
   INTERIOR_SHIFT_Z: number;
   HOOD_REAR_Z: number;
   FOLDED_WHEEL_TOP_Y: number;
-  BODY_HALF_WIDTH: number;
+  ARM_ROOT_X: number;
+  ARM_ROOT_Y: number;
+  ARM_THICK: number;
   WINDOW_BOTTOM_Y: number;
   WINDOW_TOP_Y: number;
   D: number;
@@ -488,8 +489,8 @@ describe("SUV model (ADR 0009)", () => {
       const arm = bones.get(`arm_${w}`);
       expect(arm?.parent).toBe("root");
       expect(arm?.pivot).toEqual([
-        out * dimension("ARM_ROOT_X"),
-        dimension("ARM_ROOT_Y"),
+        out * scaled(dimensions.ARM_ROOT_X),
+        scaled(dimensions.ARM_ROOT_Y),
         wheel[2],
       ]);
       expect(arm?.cubes).toHaveLength(1);
@@ -498,15 +499,18 @@ describe("SUV model (ADR 0009)", () => {
       expect(c.rotation).toBeUndefined();
       const xs = [c.origin[0], c.origin[0] + c.size[0]].map((x) => x * out);
       expect(Math.min(...xs)).toBeCloseTo(
-        dimension("ARM_ROOT_X") - 0.2 * SIZE_SCALE,
+        scaled(dimensions.ARM_ROOT_X - 0.2),
         10,
       );
       expect(Math.max(...xs)).toBeCloseTo(Math.abs(wheel[0]) + FOLD_OUT, 10);
       for (const axis of [1, 2] as const) {
         expect(c.origin[axis] + c.size[axis] / 2).toBeCloseTo(wheel[axis], 10);
-        expect(c.size[axis]).toBeCloseTo(dimension("ARM_THICK"), 10);
+        expect(c.size[axis]).toBeCloseTo(scaled(dimensions.ARM_THICK), 10);
       }
-      expect(c.origin[1]).toBeCloseTo(dimension("FOLDED_WHEEL_TOP_Y"), 10);
+      expect(c.origin[1]).toBeCloseTo(
+        scaled(dimensions.FOLDED_WHEEL_TOP_Y),
+        10,
+      );
     }
   });
 
