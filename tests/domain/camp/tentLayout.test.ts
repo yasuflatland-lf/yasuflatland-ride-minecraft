@@ -213,3 +213,82 @@ describe("buildLayout", () => {
     expect(layout.clear).not.toBe(input.clear);
   });
 });
+
+describe("buildLayout dimension validation", () => {
+  const dims = "Invalid tent layout dimensions";
+  const arbBad = fc.constantFrom(0.5, 1.5, Number.NaN);
+
+  it("rejects depths that are not strictly increasing integers", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 20 }),
+        fc.integer({ min: 0, max: 20 }),
+        fc.integer({ min: 0, max: 20 }),
+        (front, inner, rear) => {
+          fc.pre(!(front < inner && inner < rear));
+          expect(() =>
+            buildLayout({ ...spec(), depths: { front, inner, rear } }),
+          ).toThrow(dims);
+        },
+      ),
+    );
+  });
+
+  it("rejects non-integer depths and wall widths", () => {
+    fc.assert(
+      fc.property(arbBad, (bad) => {
+        const base = spec();
+        expect(() =>
+          buildLayout({ ...base, depths: { ...base.depths, inner: bad } }),
+        ).toThrow(dims);
+        expect(() =>
+          buildLayout({ ...base, wallHalfWidths: [3, bad] }),
+        ).toThrow(dims);
+        expect(() =>
+          buildLayout({ ...base, clear: { ...base.clear, depth: bad } }),
+        ).toThrow(dims);
+      }),
+    );
+  });
+
+  it("rejects empty or sub-1 wall widths and non-positive clear sizes", () => {
+    const base = spec();
+    expect(() => buildLayout({ ...base, wallHalfWidths: [] })).toThrow(dims);
+    expect(() => buildLayout({ ...base, wallHalfWidths: [3, 0] })).toThrow(
+      dims,
+    );
+    expect(() =>
+      buildLayout({ ...base, clear: { ...base.clear, layers: 0 } }),
+    ).toThrow(dims);
+    expect(() =>
+      buildLayout({ ...base, clear: { ...base.clear, halfWidth: -1 } }),
+    ).toThrow(dims);
+  });
+
+  it("rejects an invalid ceiling strip", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 5 }),
+        fc.integer({ min: 1, max: 5 }),
+        (from, gap) => {
+          const base = spec();
+          const bad = (strip: Partial<TentLayoutSpec["ceilings"][number]>) =>
+            buildLayout({
+              ...base,
+              ceilings: [
+                { halfWidth: 1, depthFrom: 2, depthTo: 6, layer: 3 },
+                { halfWidth: 1, depthFrom: 0, depthTo: 0, layer: 1, ...strip },
+              ],
+            });
+          const msg = "Invalid tent ceiling strip";
+          expect(() => bad({ depthFrom: from + gap, depthTo: from })).toThrow(
+            msg,
+          );
+          expect(() => bad({ halfWidth: -gap })).toThrow(msg);
+          expect(() => bad({ halfWidth: gap + 0.5 })).toThrow(msg);
+          expect(() => bad({ layer: from + 0.5 })).toThrow(msg);
+        },
+      ),
+    );
+  });
+});
