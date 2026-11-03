@@ -40,10 +40,8 @@ TARGETS = {
 }
 TARGETS["windshield_rake"] = {"degrees": 24, "tolerance": 3}
 # Rows start pending; the PR that makes the model meet a row removes it:
-# 8/13 flares, 9/13 bumper, 10/13 steps (ADR 0213).
+# 9/13 bumper, 10/13 steps (ADR 0213).
 PENDING = {
-    "flare_reach",
-    "flare_top_height",
     "front_bumper_reach",
     "step_height",
     "step_reach",
@@ -84,6 +82,17 @@ def measure(cubes_by_bone):
     frames = [c for c in body if c.get("rotation", [0, 0, 0])[0] < 0
               and c["rotation"][1:] == [0, 0]]
     frame = max(frames, key=lambda c: c["size"][0])
+    epsilon = diameter * 1e-6
+    hood_panels = [c for c in body if not any(c.get("rotation", []))
+                   and abs(c["origin"][0] + c["size"][0] / 2) <= epsilon
+                   and abs(c["origin"][1] + c["size"][1]
+                           - frame["pivot"][1]) <= epsilon]
+    body_side = max(c["size"][0] for c in hood_panels) / 2
+    front_flares = [c for c in body if not any(c.get("rotation", []))
+                    and c["origin"][0] >= body_side - epsilon
+                    and c["origin"][2] - epsilon <= front_axle
+                    <= c["origin"][2] + c["size"][2] + epsilon]
+    _, flare_hi = _bounds(front_flares)
     # The target's foot is the outer (front) A-pillar edge extrapolated to the cowl,
     # so follow the frame's tilted front face down to the pivot (hood) height.
     pivot = frame["pivot"]
@@ -145,6 +154,8 @@ def measure(cubes_by_bone):
     values = {
         "overall_length": rear_hi[2] - front_lo[2],
         "overall_width": 2 * max(abs(body_lo[0]), abs(body_hi[0])),
+        "flare_reach": flare_hi[0] - body_side,
+        "flare_top_height": flare_hi[1] - ground,
         "track_width": (abs(lateral_centers[0] - lateral_centers[1])
                         + abs(lateral_centers[2] - lateral_centers[3])) / 2,
         "tyre_width": sum(hi[0] - lo[0] for lo, hi in wheels) / len(wheels),

@@ -1,6 +1,4 @@
-"""SUV fender flares and arch liners."""
-
-import math
+"""SUV fender flares, side vents and arch liners."""
 
 from tool_loader import load_tool
 
@@ -8,30 +6,61 @@ DIMS = load_tool("suv_dims").DIMS
 shell = load_tool("suv_shell")
 box = shell.box
 suv_cubes = load_tool("suv_cubes")
-turned = suv_cubes.turned
+panels = load_tool("panels")
 
 
-def fender_flare(z_center, front_leg_bottom, rear_leg_bottom):
-    """A black trapezoid flare over a wheel on the +x side, like a Wrangler's: a flat top over the tire,
-    a side sloping down and out at each end, and a leg under each slope that drops toward the bumper or
-    the side step."""
-    length = math.hypot(DIMS.arch.top_y - DIMS.arch.foot_y, DIMS.arch.foot_z - DIMS.arch.top_half) + 0.6  # closes the corner
-    slope = round(math.degrees(math.atan(DIMS.arch.run_per_rise)), 3)
-    x1 = DIMS.flare.x
-    cubes = [box(DIMS.chassis.body_half_width, DIMS.arch.top_y, z_center - DIMS.arch.top_half - 0.8, x1, DIMS.arch.top_y + DIMS.flare.thickness,
-                 z_center + DIMS.arch.top_half + 0.8, "trim")]
-    # Each slope stands on its lower inner end and tips its top toward the wheel's center; a positive x
-    # rotation here tips +y toward -z in game (see WINDSHIELD_LEAN).
-    for side in (1, -1):
-        z0 = z_center + side * DIMS.arch.foot_z
-        z1 = z0 + side * DIMS.flare.thickness
-        cubes.append(turned(box(DIMS.chassis.body_half_width, DIMS.arch.foot_y, min(z0, z1), x1, DIMS.arch.foot_y + length, max(z0, z1), "trim"),
-                            (DIMS.chassis.body_half_width, DIMS.arch.foot_y, z0), (side * slope, 0, 0)))
-    for side, leg_bottom in ((1, front_leg_bottom), (-1, rear_leg_bottom)):
-        z0 = z_center + side * DIMS.arch.foot_z
-        z1 = z0 + side * (DIMS.flare.thickness - 0.1)
-        cubes.append(box(DIMS.chassis.body_half_width, leg_bottom, min(z0, z1), x1, DIMS.arch.foot_y + 0.5, max(z0, z1), "trim"))
+def _piece(x0, y0, z0, x1, y1, z1, color):
+    cube = panels.panel(x0, y0, z0, x1, y1, z1, suv_cubes.uv(color)["north"])
+    # Body paint sizes its flake UVs per face, including narrow panel edges.
+    if color == "body":
+        cube["uv"] = box(x0, y0, z0, x1, y1, z1, color)["uv"]
+    return cube
+
+
+def fender_flare(z_center, crest, front_leg_bottom, rear_leg_bottom):
+    """A flat plate and vertical legs with an abutting rubber rim on the +x side."""
+    flare = DIMS.flare
+    x0, x1 = DIMS.chassis.body_half_width, flare.x
+    plate_bottom = crest - flare.thickness
+    lip_bottom = plate_bottom - flare.lip
+    cubes = [
+        _piece(x0, plate_bottom, z_center - flare.leg_outer,
+               x1, crest, z_center + flare.leg_outer, "body"),
+        _piece(x0, lip_bottom, z_center - flare.leg_body_inner,
+               x1, plate_bottom, z_center + flare.leg_body_inner, "trim"),
+    ]
+    for side, bottom in ((1, front_leg_bottom), (-1, rear_leg_bottom)):
+        body_z = sorted((z_center + side * flare.leg_body_inner,
+                         z_center + side * flare.leg_outer))
+        lip_z = sorted((z_center + side * flare.leg_inner,
+                        z_center + side * flare.leg_body_inner))
+        cubes.extend([
+            _piece(x0, bottom, body_z[0], x1, plate_bottom, body_z[1], "body"),
+            _piece(x0, bottom, lip_z[0], x1, lip_bottom, lip_z[1], "trim"),
+        ])
+    cubes.extend(shell.arch_cut(x0, x0 + flare.inner_panel_depth,
+                                DIMS.arch.foot_y, lip_bottom,
+                                z_center - flare.leg_inner, z_center + flare.leg_inner,
+                                z_center, "trim"))
     return cubes
+
+
+def fender_vent_cubes():
+    """A shallow frame stands proud of the dark centre between the flare and door."""
+    flare = DIMS.flare
+    x = DIMS.chassis.body_half_width
+    frame_x = x + flare.vent_frame_depth
+    y0, y1 = flare.vent_y0, flare.vent_y1
+    z0, z1 = flare.vent_z0, flare.vent_z1
+    rim = flare.vent_frame_width
+    return [
+        _piece(x, y0, z0, frame_x, y0 + rim, z1, "trim"),
+        _piece(x, y1 - rim, z0, frame_x, y1, z1, "trim"),
+        _piece(x, y0 + rim, z0, frame_x, y1 - rim, z0 + rim, "trim"),
+        _piece(x, y0 + rim, z1 - rim, frame_x, y1 - rim, z1, "trim"),
+        _piece(x, y0 + rim, z0 + rim, x + flare.vent_center_depth,
+               y1 - rim, z1 - rim, "grille"),
+    ]
 
 
 def arch_liner_cubes():

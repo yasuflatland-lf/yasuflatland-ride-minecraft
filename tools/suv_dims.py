@@ -227,14 +227,77 @@ class Wheels:
 
 @dataclass(frozen=True)
 class Flare:
-    """Outer face of the flares, over the inner half of the tires."""
+    """Squared body-colour panels with a rubber lip outside the existing arch cut."""
 
     chassis: Chassis
+    arch: "Arch"
+    wheels: Wheels
+    cabin: Cabin
     thickness: float = 1.875
+    lip: float = 0.5
+    reach: float = 3.8125
+    front_crest_y: float = 21.75
+    rear_crest_y: float = 18.5
+    inner_panel_depth: float = 0.1
+    vent_frame_depth: float = 0.15
+    vent_center_depth: float = 0.08
+    vent_frame_width: float = 0.3
+    vent_hinge_gap: float = 0.5
+    vent_leg_gap: float = 0.25
+    vent_bottom_drop: float = 1.5
+    vent_top_drop: float = 2.5
+    strip_inset_y: float = 0.35
+    strip_back_depth: float = 0.05
+    strip_front_depth: float = 0.1
 
     @property
     def x(self):
-        return self.chassis.body_half_width + 3.4375
+        return self.chassis.body_half_width + self.reach
+
+    @property
+    def leg_inner(self):
+        """The lip starts at the existing arch foot to clear the spinning tyre."""
+        return self.arch.foot_z
+
+    @property
+    def leg_body_inner(self):
+        return self.leg_inner + self.lip
+
+    @property
+    def leg_outer(self):
+        return self.leg_body_inner + self.thickness
+
+    @property
+    def vent_z0(self):
+        return self.cabin.front_door_hinge_z + self.vent_hinge_gap
+
+    @property
+    def vent_z1(self):
+        return self.wheels.front_axle_z - self.leg_outer - self.vent_leg_gap
+
+    @property
+    def vent_y0(self):
+        return self.arch.top_y - self.vent_bottom_drop
+
+    @property
+    def vent_y1(self):
+        return self.front_crest_y - self.vent_top_drop
+
+    @property
+    def strip_y0(self):
+        return self.front_crest_y - self.thickness + self.strip_inset_y
+
+    @property
+    def strip_y1(self):
+        return self.front_crest_y - self.strip_inset_y
+
+    @property
+    def strip_z0(self):
+        return self.wheels.front_axle_z + self.leg_outer - self.strip_back_depth
+
+    @property
+    def strip_z1(self):
+        return self.wheels.front_axle_z + self.leg_outer + self.strip_front_depth
 
 
 @dataclass(frozen=True)
@@ -244,7 +307,6 @@ class Arch:
     radius while the liner sits inboard of the wider tire (ADR 0213).
     """
 
-    flare: Flare
     top_y: float = 15.375
     top_half: float = 4.375
     foot_y: float = 10
@@ -258,10 +320,6 @@ class Arch:
     def side_z(self, z_center, side, y):
         """z of the arch's inner edge at height y on its front (side +1) or rear (side -1) slope."""
         return z_center + side * (self.foot_z - (y - self.foot_y) * self.run_per_rise)
-
-    def flare_face_z(self, z_center, side, y):
-        """z of the flare's outer face at height y on its front (side +1) or rear (side -1) slope."""
-        return self.side_z(z_center, side, y) + side * self.flare.thickness * math.hypot(1, self.run_per_rise)
 
 
 @dataclass(frozen=True)
@@ -507,15 +565,16 @@ def _build():
     greenhouse = Greenhouse()
     dash = Dash(hood)
     wheels = Wheels(chassis)
-    flare = Flare(chassis)
-    arch = Arch(flare)
+    arch = Arch()
+    cabin = Cabin(hood)
+    flare = Flare(chassis, arch, wheels, cabin)
     front_bumper = FrontBumper(hood, wheels)
     return SuvDims(
         chassis=chassis,
         greenhouse=greenhouse,
         hood=hood,
         windshield=Windshield(hood, greenhouse),
-        cabin=Cabin(hood),
+        cabin=cabin,
         dash=dash,
         wheels=wheels,
         flare=flare,

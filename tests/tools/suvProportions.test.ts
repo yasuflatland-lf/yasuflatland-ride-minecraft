@@ -37,7 +37,7 @@ const run = async (cubes: Cubes): Promise<Result> => {
     "m = load_tool('suv_proportions')",
     "d = load_tool('suv_dims')",
     "D, scale = d.DIMS, d.SIZE_SCALE / 16",
-    "extents = dict(front=(D.front_bumper.tip_z + 0.05) * scale, halfWidth=D.wheels.bumper_half_width * scale, roofTop=(D.greenhouse.roof_top + 0.3) * scale)",
+    "extents = dict(front=(D.front_bumper.tip_z + 0.05) * scale, halfWidth=max(D.wheels.bumper_half_width, D.flare.x) * scale, roofTop=(D.greenhouse.roof_top + 0.3) * scale)",
     "cubes = json.load(sys.stdin)",
     "before = copy.deepcopy(cubes)",
     "first = m.measure(cubes)",
@@ -110,7 +110,9 @@ describe("SUV proportions", () => {
   it("preserves the completed proportions of non-pending rows within 0.005", () => {
     const previous = {
       overall_length: 4.976228378189183,
-      overall_width: 2.2123952602630284,
+      overall_width: 2.2339877064968126,
+      flare_reach: 0.2532960038964787,
+      flare_top_height: 1.4467457194819207,
       track_width: 1.873559950132643,
       tyre_width: 0.4318489246759638,
       wheelbase: 3.1624628945501345,

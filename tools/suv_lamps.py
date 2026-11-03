@@ -71,15 +71,13 @@ def fog_lens_cubes():
 
 
 def front_strip_cubes():
-    # The strip stands a little proud of the front flare's sloping front face.
-    return [box(13.3, DIMS.lamps.y0, DIMS.arch.flare_face_z(DIMS.wheels.front_axle_z, 1, DIMS.lamps.y1) - 0.2, DIMS.flare.x - 0.2, DIMS.lamps.y1,
-                DIMS.arch.flare_face_z(DIMS.wheels.front_axle_z, 1, DIMS.lamps.y0) + 0.1, "light")]
+    return [box(DIMS.chassis.body_half_width + 0.3, DIMS.flare.strip_y0, DIMS.flare.strip_z0,
+                DIMS.flare.x - 1.5, DIMS.flare.strip_y1, DIMS.flare.strip_z1, "light")]
 
 
 def turn_signal_cubes():
-    # On the front flare's outer side, beside the strip
-    return [box(DIMS.flare.x, DIMS.lamps.y0, DIMS.arch.side_z(DIMS.wheels.front_axle_z, 1, DIMS.lamps.y0) + 0.6, DIMS.flare.x + 0.1, DIMS.lamps.y1,
-                DIMS.arch.flare_face_z(DIMS.wheels.front_axle_z, 1, DIMS.lamps.y1) - 0.1, "amber")]
+    return [box(DIMS.flare.x - 1.5, DIMS.flare.strip_y0, DIMS.flare.strip_z0,
+                DIMS.flare.x - 0.2, DIMS.flare.strip_y1, DIMS.flare.strip_z1, "amber")]
 
 
 def third_brake_light_cubes():
