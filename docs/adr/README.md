@@ -212,8 +212,9 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0205](0205-structured-adr-metadata-and-current-specs.md) | Structured ADR metadata and current specs | Proposed |
 | [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md) | Seat the roof tent occupant on a rideable seat | Proposed |
 | [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md) | Lay a rain ceiling over an occupied roof tent | Proposed |
-| [0208](0208-fold-tents-with-older-layouts-on-load.md) | Fold tents with older layouts on load | Proposed; extended by [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) |
-| [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) | Lay the ground tent as a trapezoid of stepped cells | Proposed |
+| [0208](0208-fold-tents-with-older-layouts-on-load.md) | Fold tents with older layouts on load | Proposed; extended by [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md), [0210](0210-derive-the-ground-tent-lean-from-the-reference-photos.md) |
+| [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) | Lay the ground tent as a trapezoid of stepped cells | Proposed; superseded in part by [0210](0210-derive-the-ground-tent-lean-from-the-reference-photos.md) |
+| [0210](0210-derive-the-ground-tent-lean-from-the-reference-photos.md) | Derive the ground tent lean from the reference photos | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
