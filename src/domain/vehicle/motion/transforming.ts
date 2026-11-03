@@ -1,5 +1,8 @@
 import type { Medium } from "./motion";
 
+/** `constant` moves the bank angle by `bankRate` degrees every tick. */
+type BankEasing = "constant" | "smooth";
+
 /**
  * Values a transforming drivetrain reads (ADR 0021, 0026, 0032, 0033, 0040,
  * 0044). Each transforming kind builds one from its own spec.
@@ -20,6 +23,8 @@ export interface TransformingSpec {
   readonly submarineStepProbeDrop: number;
   readonly maxBank: number;
   readonly bankRate: number;
+  /** How the bank angle approaches its target; per kind (ADR 0050). */
+  readonly bankEasing: BankEasing;
   readonly bankSink: number;
   readonly gearDownHeight: number;
   readonly gearProbeOffset: number;

@@ -1,5 +1,12 @@
 // Tuning values the shared motion functions read (ADR 0055). See docs/adr/0002-0008 for the rationale.
 export const MOTION = Object.freeze({
+  // The positive floor makes smooth banking settle instead of approaching forever (ADR 0213).
+  bankSmooth: Object.freeze({
+    minStep: 0.75,
+    baseRateScale: 0.5,
+    bellRateScale: 1.5,
+    easeOutFraction: 0.5,
+  }),
   mountAlignSpeed: 0.01, // Below this speed, align the vehicle with the driver's view on entry
   // Friction and walls (ADR 0003)
   defaultFriction: 0.69,

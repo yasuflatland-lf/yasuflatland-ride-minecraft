@@ -119,6 +119,7 @@ export const CAMPER_TRANSFORMING: TransformingSpec = Object.freeze({
   submarineStepProbeDrop: CAMPER_SPEC.submarineStepProbeDrop,
   maxBank: CAMPER_SPEC.maxBank,
   bankRate: CAMPER_SPEC.bankRate,
+  bankEasing: "constant",
   bankSink: CAMPER_SPEC.bankSink,
   gearDownHeight: CAMPER_SPEC.gearDownHeight,
   gearProbeOffset: CAMPER_SPEC.gearProbeOffset,
