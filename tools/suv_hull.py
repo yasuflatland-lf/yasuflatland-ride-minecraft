@@ -15,9 +15,9 @@ box, beam, oriented = kit.box, kit.beam, kit.oriented
 rx, ry, rz, mul, matrix = kit_module.rx, kit_module.ry, kit_module.rz, kit_module.mul, kit_module.matrix
 
 REAR_AXLE = 3.02  # z of the rear axle, with the front axle at 0
-BODY_HALF = dims.HULL_BODY_HALF  # half width of the body at the hood front edge
-CABIN_HALF = 0.700  # half width of the upper cabin before widening
-GROW = dims.HULL_GROW  # how much wider the body gets behind the windshield base
+BODY_HALF = dims.BODY_NOSE_HALF_WIDTH / dims.D  # body at the hood front edge
+CABIN_HALF = dims.CABIN_HALF_WIDTH / dims.D  # upper cabin before widening
+GROW = dims.BODY_HALF_WIDTH / dims.D - BODY_HALF
 FENDER = 0.185  # width of the rear overfender
 Z_FRONT = -0.59  # the body starts to widen here
 Z_FULL = 0.80  # ... and has its full width from here back, at the windshield base

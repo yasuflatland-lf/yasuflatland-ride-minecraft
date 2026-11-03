@@ -1,11 +1,13 @@
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
-const ROOF_TENT_SHELL_HALF_WIDTH = 1.2 * 1.64;
-const ROOF_TENT_LEFT_SHIFT = 0.875;
-const ROOF_TENT_ANCHOR_X =
-  ROOF_TENT_SHELL_HALF_WIDTH - 1.64 + ROOF_TENT_LEFT_SHIFT;
-const ROOF_TENT_ANCHOR_Z = -0.605;
+// The tent owns its platform size; changing the vehicle must not resize it.
+const ROOF_TENT_SHELL_HALF_WIDTH = 1.968;
+// Conservative support inside the hardtop's CAB-based flat slab (ADR 0217).
+const HARDTOP_HALF_WIDTH = (0.7 * (26.1 / 2.064) * 1.45) / 16;
+const ROOF_TENT_ANCHOR_X = ROOF_TENT_SHELL_HALF_WIDTH - HARDTOP_HALF_WIDTH;
+const ROOF_TENT_ANCHOR_Z =
+  ((17.2 - ((1.16 + 3.44) / 2) * (26.1 / 2.064)) * 1.45) / 16;
 
 // The SUV's own tuning values (ADR 0055). See docs/adr/0002-0008 for the rationale.
 export const SUV_SPEC = Object.freeze({
@@ -22,17 +24,19 @@ export const SUV_SPEC = Object.freeze({
   handbrakeGrip: 0.04,
   creepSpeed: 0.12, // Below SPEC.ramMinSpeed, so creeping never rams (ADR 0006)
   // Steps (ADR 0004)
-  hitboxFront: 1.305,
-  carHeight: 2.32,
+  hitboxFront: 1.34,
+  carHeight: 2.36,
   // Collisions (ADR 0006)
-  bodyFront: 2.69, // encloses the measured 2.6843125-block fog lamp lenses (ADR 0194)
-  bodyHalfWidth: 1.64, // encloses the measured 1.63125-block wheel hub caps (ADR 0194)
-  footprint: 3.4, // the rear hover glow reaches 3.396322 blocks at its farthest corner (ADR 0122, 0194)
+  bodyFront: 2.68, // encloses the shell and lamps (ADR 0217)
+  bodyHalfWidth: 1.43, // includes protruding wheel hubs in body and ram probes (ADR 0217)
+  footprint: 3.12, // encloses all rotated corners, including folded hover glow (ADR 0217)
   // ROOF_TOP scaled by SIZE_SCALE in tools/suv_dims.py, above the collision box.
   roofTentRoofHeight: (26.1 * 1.45) / 16,
-  // An additional left offset clears the ladder from the SUV body.
+  // Align the platform right edge with the hardtop; the left overhang clears the ladder.
+  roofTentShellHalfWidth: ROOF_TENT_SHELL_HALF_WIDTH,
+  roofTentHardtopHalfWidth: HARDTOP_HALF_WIDTH,
   roofTentAnchorX: ROOF_TENT_ANCHOR_X,
-  roofTentAnchorZ: ROOF_TENT_ANCHOR_Z, // Between the front and rear seats.
+  roofTentAnchorZ: ROOF_TENT_ANCHOR_Z, // Center the platform on the hardtop span.
   roofTentLadder: true,
   // Profile x points left; match the model foot's pivot offset and outward run.
   roofTentEntranceX:
@@ -56,7 +60,7 @@ export const SUV_SPEC = Object.freeze({
   // in-game test measured it (0.833 horizontal, 0.836 vertical).
   waterDrag: 0.83,
   waterVerticalDrag: 0.84,
-  floatDraft: 1.74, // preserves the float line relative to the scaled collision box (ADR 0194).
+  floatDraft: 1.77, // preserves the three-quarter-height float line (ADR 0217).
   // A floating submarine's feet sit fractionally into a shore step, so the
   // step top can be less than the half block above the feet where stepUp.ts
   // probes. Lowering the probe by this much starts it at the feet.
@@ -69,7 +73,7 @@ export const SUV_SPEC = Object.freeze({
   // Landing gear (ADR 0033). Unfolding takes 1 s (ADR 0022), 3 blocks of
   // landing at landingSink, so the wheels come down a block above that.
   gearDownHeight: 4, // blocks of air below the vehicle within which landing unfolds the wheels
-  gearProbeOffset: 1.16, // keeps the probes inside the 2.61-block hitbox (ADR 0194)
+  gearProbeOffset: 1.34 * (1 - 0.1 / 0.9), // keeps the probes inside the collision box (ADR 0217)
   bankSink: 0.03, // blocks/tick of altitude lost at full bank
 } as const);
 

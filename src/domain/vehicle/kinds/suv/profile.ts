@@ -53,7 +53,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
   // On the top face of a block only (ADR 0008).
   placement: Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
-    // 3 × 3 × 3 cells fit the 2.61-wide, 2.32-high collision box (ADR 0194).
+    // 3 × 3 × 3 cells fit the 2.68-wide, 2.36-high collision box (ADR 0217).
     clearance: Object.freeze({
       halfX: 1,
       halfZ: 1,
