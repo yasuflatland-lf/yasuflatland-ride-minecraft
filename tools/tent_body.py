@@ -53,7 +53,12 @@ def shell(d: Dims, face):
         y1 = min(y0+d.band_height, d.ridge_height)
         z0, z1 = ends(d, y0)
         for side in (-1, 1):
-            fly.append(side_band(d, face, side, y0, y1, z0, z1))
+            # Cut the depth-4 apertures so rolled flaps reveal mesh rather than fly fabric.
+            if d.window_bottom <= y0 and y1 <= d.window_top:
+                for start, stop in ((z0, d.window_front_z), (d.window_rear_z, z1)):
+                    fly.append(side_band(d, face, side, y0, y1, start, stop))
+            else:
+                fly.append(side_band(d, face, side, y0, y1, z0, z1))
         w = half_width(d, y0)
         fly.append(end_band(d, face, False, y0, y1, -w, w))
         # Split the band at the door head so no front material enters the opening.

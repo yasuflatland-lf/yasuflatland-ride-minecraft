@@ -7,7 +7,7 @@ depth behind the tarp front, and layer above ground. Model pixels are
 (16*x, 16*layer, -16*(8-depth)), with +/-8 around each cell center.
 The footprint is seven by nine cells; the body spans depths 3..8 and the tarp 0..2.
 The ridge is three layers high. The cell-laying changes belong to part 4/6 of #1222;
-this generator changes only assets, with the entrance and inner rebuild left to 6/6.
+this generator changes only assets, including the mesh entrance and inner bedroom.
 Thin wall and roof panels use dark seam frames. The tarp has a left slanted screen,
 two front poles, and an open right side. Existing flap and fixture bones remain valid.
 The sixteen paints recolor only fly, fly_dark, and seam (ADR 0031, 0076).
@@ -165,7 +165,7 @@ def geometry():
 def validate(parts):
     """Reject bounds, interior intrusions, flap bounds, and paint ownership before writing."""
     errors = []
-    rooms = [(-34, 0, -69, 34, 44, -52), (-34, 0, -40, 34, 35, -10),
+    rooms = [(-34, 0.5, -69, 34, 44, -52), (-34, 0.5, -40, 34, 35, -10),
              (-48, 0, -136, 48, 32, -90)]
     def inside(b, outer):
         return all(b[i] >= outer[i] - 0.002 and b[i+3] <= outer[i+3] + 0.002 for i in range(3))
@@ -178,7 +178,7 @@ def validate(parts):
             b = tuple(min(p[i] for p in points) for i in range(3)) + tuple(max(p[i] for p in points) for i in range(3))
             if not inside(b, (-56, 0, -136, 56, 64, 8)):
                 errors.append(f"{name} outside model bounds: {b}")
-            if name != "flap_front" and overlaps(b, (-40, 0, -90, 40, 35, -80)):
+            if name != "flap_front" and overlaps(b, (-24, 0, -90, 24, 35, -80)):
                 errors.append(f"{name} blocks the entrance: {b}")
             for i, room in enumerate(rooms):
                 if not overlaps(b, room):

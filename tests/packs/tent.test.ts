@@ -107,10 +107,10 @@ const overlaps = (a: Bounds, b: Bounds) =>
       (a[i + 3] ?? 0) > (b[i] ?? 0) + 0.002,
   );
 const openings: Record<string, Bounds> = {
-  flap_front: [-40, 0, -88.5, 40, 35, -88],
-  flap_left: [49, 9.5, -62, 53.58, 26.5, -46],
-  flap_right: [-53.58, 9.5, -62, -49, 26.5, -46],
-  flap_bedroom: [-8, 0, -51, 8, 32, -50],
+  flap_front: [-24, 0, -88, 24, 35, -73.5],
+  flap_left: [49.388, 8.097, -70, 54.874, 28.219, -58],
+  flap_right: [-54.874, 8.097, -70, -49.388, 28.219, -58],
+  flap_bedroom: [-8, 0, -42.5, 8, 32, -42],
 };
 describe("tent entity and client", () => {
   it("declares exactly the spawn-time entity contract", () => {
@@ -291,10 +291,10 @@ describe("tent geometry and texture", () => {
       strap: ["root", [0, 0, 0]],
       lantern: ["root", [0, 47.5, -64]],
       lantern_glass: ["lantern", [0, 40, -64]],
-      flap_front: ["fly", [0, 35, -88.25]],
-      flap_left: ["fly", [49.5, 26, -54]],
-      flap_right: ["fly", [-49.5, 26, -54]],
-      flap_bedroom: ["inner", [0, 32, -50.5]],
+      flap_front: ["fly", [0, 35, -74]],
+      flap_left: ["fly", [49.873, 28.218, -64]],
+      flap_right: ["fly", [-49.873, 28.218, -64]],
+      flap_bedroom: ["inner", [0, 32, -42.25]],
       mattress_0: ["root", [16, 0, -24]],
       mattress_1: ["root", [-16, 0, -24]],
     };
@@ -307,8 +307,8 @@ describe("tent geometry and texture", () => {
   });
   it("keeps the rooms and tarp clear, with only the mattresses and hanging lantern inside", () => {
     const rooms: Bounds[] = [
-      [-34, 0, -69, 34, 44, -52],
-      [-34, 0, -40, 34, 35, -10],
+      [-34, 0.5, -69, 34, 44, -52],
+      [-34, 0.5, -40, 34, 35, -10],
       [-48, 0, -136, 48, 32, -90],
     ];
     const bones: Bone[] = geometry().bones;
@@ -373,7 +373,7 @@ describe("tent geometry and texture", () => {
     const seams = fly.filter((c) => c.uv.north?.uv[1] === 16);
     expect(seams.length).toBeGreaterThan(80);
     const cubes = (geometry().bones as Bone[]).flatMap((b) => b.cubes ?? []);
-    expect(cubes.length).toBeLessThan(400);
+    expect(cubes.length).toBeLessThan(550);
   });
   it("keeps every rotated cube inside the footprint and the entrance clear except for its flap", () => {
     for (const bone of geometry().bones as Bone[]) {
@@ -381,11 +381,161 @@ describe("tent geometry and texture", () => {
         const b = bounds(cube);
         inside(b, [-56, 0, -136, 56, 64, 8]);
         if (bone.name !== "flap_front")
-          expect(overlaps(b, [-40, 0, -90, 40, 35, -80]), bone.name).toBe(
+          expect(overlaps(b, [-24, 0, -90, 24, 35, -80]), bone.name).toBe(
             false,
           );
       }
     }
+  });
+  it("leaves all three outer apertures clear when their flaps roll up", () => {
+    const bones: Bone[] = geometry().bones;
+    const apertures: Record<string, Bounds> = {
+      flap_front: [-24, 0, -90, 24, 35, -73.5],
+      // Side apertures use panel-normal distance and height projected onto the slanted face.
+      flap_left: [-0.5, 8, -70, 1, 28, -58],
+      flap_right: [-0.5, 8, -70, 1, 28, -58],
+    };
+    for (const [flap, opening] of Object.entries(apertures)) {
+      const windowSlots = new Set<number>();
+      for (const bone of bones) {
+        if (bone.name === flap) continue;
+        for (const cube of bone.cubes ?? []) {
+          let cubeBounds = bounds(cube);
+          if (flap !== "flap_front") {
+            const side = flap === "flap_left" ? 1 : -1;
+            const angle = Math.atan(8 / 32);
+            const [cos, sin] = [Math.cos(angle), Math.sin(angle)];
+            const points = corners(cube).map(([x, y, z]) => [
+              side * (x - side * 56) * cos + y * sin,
+              (-side * (x - side * 56) * sin + y * cos) * cos,
+              z,
+            ]);
+            cubeBounds = [
+              ...[0, 1, 2].map((axis) =>
+                Math.min(...points.map((point) => point[axis] ?? 0)),
+              ),
+              ...[0, 1, 2].map((axis) =>
+                Math.max(...points.map((point) => point[axis] ?? 0)),
+              ),
+            ] as Bounds;
+          }
+          if (!overlaps(cubeBounds, opening)) continue;
+          expect(flap, bone.name).not.toBe("flap_front");
+          expect(bone.name).toBe("fly");
+          for (const face of Object.values(cube.uv)) {
+            const slot = face.uv[0] / 4 + face.uv[1];
+            expect([12, 13]).toContain(slot);
+            windowSlots.add(slot);
+          }
+        }
+      }
+      if (flap !== "flap_front")
+        expect([...windowSlots].sort()).toEqual([12, 13]);
+    }
+    const door = bones.find((bone) => bone.name === "flap_front");
+    expect(door?.cubes?.length).toBeLessThan(30);
+    expect(
+      door?.cubes?.some(
+        (cube) => cube.uv.north?.uv[1] === 12 && cube.uv.north?.uv[0] === 8,
+      ),
+    ).toBe(true);
+  });
+  it("encloses the bedroom flap and unchanged mattresses in the tapered inner tent", () => {
+    const bones: Bone[] = geometry().bones;
+    for (const name of ["flap_bedroom", "mattress_0", "mattress_1"]) {
+      const bone = bones.find((bone) => bone.name === name);
+      expect(bone?.cubes?.length).toBeGreaterThan(0);
+      for (const cube of bone?.cubes ?? [])
+        inside(bounds(cube), [-40, 0, -42.5, 40, 40.5, -8.5]);
+    }
+    const flap =
+      bones.find((bone) => bone.name === "flap_bedroom")?.cubes ?? [];
+    expect(
+      Math.max(
+        ...flap
+          .filter((cube) => cube.origin[1] === 0)
+          .map((cube) => bounds(cube)[3]),
+      ),
+    ).toBe(8);
+    expect(
+      Math.max(
+        ...flap
+          .filter((cube) => cube.origin[1] === 30)
+          .map((cube) => bounds(cube)[3]),
+      ),
+    ).toBe(6.125);
+    const inner = bones.find((bone) => bone.name === "inner")?.cubes ?? [];
+    expect(
+      inner.some((cube) => cube.origin[1] === 40 && cube.uv.up?.uv[0] === 12),
+    ).toBe(true);
+    const rearWindow = inner.filter((cube) =>
+      [12, 13, 14].includes(
+        (cube.uv.north?.uv[0] ?? 0) / 4 + (cube.uv.north?.uv[1] ?? 0),
+      ),
+    );
+    expect(rearWindow.length).toBeGreaterThan(0);
+    for (const cube of rearWindow)
+      inside(bounds(cube), [-16, 14, -9.4, 16, 30, -9.1]);
+  });
+  it("fits the inner shell under every outer face and keeps the bedroom doorway and roof fixtures clear", () => {
+    const bones: Bone[] = geometry().bones;
+    const inner = bones.find((bone) => bone.name === "inner")?.cubes ?? [];
+    for (const cube of inner) {
+      expect(overlaps(bounds(cube), [-6, 0.5, -42.5, 6, 32, -41.5])).toBe(
+        false,
+      );
+      for (const [x, y, z] of corners(cube)) {
+        const halfWidth = y <= 32 ? 56 - y / 4 : 48 - (y - 32) * 0.7;
+        expect(Math.abs(x)).toBeLessThanOrEqual(halfWidth + 0.002);
+        expect(z).toBeGreaterThanOrEqual(-88 + 0.4 * y - 0.002);
+        expect(z).toBeLessThanOrEqual(8 - 0.4 * y + 0.002);
+      }
+    }
+    const fixtures = bones
+      .filter((bone) =>
+        ["strap", "lantern", "lantern_glass"].includes(bone.name),
+      )
+      .flatMap((bone) => (bone.cubes ?? []).map(bounds));
+    const liners = (
+      bones.find((bone) => bone.name === "fly")?.cubes ?? []
+    ).filter(
+      (cube) => cube.uv.north?.uv[0] === 4 && cube.uv.north?.uv[1] === 0,
+    );
+    expect(liners.length).toBeGreaterThan(0);
+    for (const liner of liners)
+      for (const fixture of fixtures)
+        expect(overlaps(bounds(liner), fixture)).toBe(false);
+  });
+  it("uses only the seventeen palette slots and assigns the new parts their existing swatches", () => {
+    const bones: Bone[] = geometry().bones;
+    const slots = new Set<number>();
+    for (const bone of bones) {
+      for (const cube of bone.cubes ?? []) {
+        for (const face of Object.values(cube.uv)) {
+          const slot = face.uv[0] / 4 + face.uv[1];
+          expect(Number.isInteger(slot)).toBe(true);
+          expect(slot).toBeGreaterThanOrEqual(0);
+          expect(slot).toBeLessThanOrEqual(16);
+          slots.add(slot);
+        }
+      }
+    }
+    for (const slot of [12, 13, 14, 15]) expect(slots.has(slot)).toBe(true);
+    const inner = bones.find((bone) => bone.name === "inner")?.cubes ?? [];
+    expect(
+      inner.some(
+        (cube) =>
+          cube.uv.north?.uv[0] === 12 &&
+          cube.uv.north?.uv[1] === 12 &&
+          cube.size[1] === 0.5,
+      ),
+    ).toBe(true);
+    const fly = bones.find((bone) => bone.name === "fly")?.cubes ?? [];
+    expect(
+      fly.some(
+        (cube) => cube.uv.north?.uv[0] === 4 && cube.uv.north?.uv[1] === 0,
+      ),
+    ).toBe(true);
   });
   it("covers the tarp with a near-horizontal roof, a slanted left screen, and two front poles", () => {
     const bones: Bone[] = geometry().bones;
