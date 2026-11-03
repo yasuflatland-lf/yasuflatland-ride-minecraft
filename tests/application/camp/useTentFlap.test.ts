@@ -32,10 +32,10 @@ describe("UseTentFlap (ADR 0132)", () => {
     ).toBe(false);
     expect(flaps.isOpen("front")).toBe(true);
     expect(world.hints).toEqual([]);
-    expect(world.blockedChecks).toEqual([]);
+    expect(world.clearChecks).toEqual([]);
   });
 
-  it("does not close on someone: tells the tapper once, and keeps the window free for the next tap", () => {
+  it("refuses when players cannot be cleared: hints once and keeps the tap window free", () => {
     const { world, flaps, use } = setup();
     use.execute({ tentId: TENT, flap: "bedroom", tick: 0 });
     world.blocked.add("bedroom");
@@ -53,11 +53,27 @@ describe("UseTentFlap (ADR 0132)", () => {
     expect(flaps.isOpen("bedroom")).toBe(false);
   });
 
+  it("closes after clearing players and shows no extra hint", () => {
+    const { world, flaps, use } = setup();
+    use.execute({ tentId: TENT, flap: "bedroom", tick: 0 });
+    expect(
+      use.execute({
+        tentId: TENT,
+        flap: "bedroom",
+        tick: WINDOW,
+        playerId: PLAYER,
+      }),
+    ).toBe(true);
+    expect(world.clearChecks).toEqual([{ tentId: TENT, flap: "bedroom" }]);
+    expect(flaps.isOpen("bedroom")).toBe(false);
+    expect(world.hints).toEqual([]);
+  });
+
   it("opens without asking whether someone is in the way", () => {
     const { world, use } = setup();
     world.blocked.add("right");
     expect(use.execute({ tentId: TENT, flap: "right", tick: 0 })).toBe(true);
-    expect(world.blockedChecks).toEqual([]);
+    expect(world.clearChecks).toEqual([]);
   });
 
   it("does nothing for an unknown tent", () => {

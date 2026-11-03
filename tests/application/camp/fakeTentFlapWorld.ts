@@ -7,7 +7,7 @@ import type { PlayerId } from "../../../src/domain/shared/ids";
 export class FakeTentFlapWorld implements TentFlapWorld {
   readonly tents = new Map<TentId, TentFlaps>();
   blocked = new Set<FlapId>();
-  readonly blockedChecks: { tentId: TentId; flap: FlapId }[] = [];
+  readonly clearChecks: { tentId: TentId; flap: FlapId }[] = [];
   readonly hints: PlayerId[] = [];
 
   addTent(tentId: TentId): TentFlaps {
@@ -18,9 +18,9 @@ export class FakeTentFlapWorld implements TentFlapWorld {
   flapsOf(tentId: TentId): TentFlaps | undefined {
     return this.tents.get(tentId);
   }
-  isFlapBlocked(tentId: TentId, flap: FlapId): boolean {
-    this.blockedChecks.push({ tentId, flap });
-    return this.blocked.has(flap);
+  clearPlayersForClose(tentId: TentId, flap: FlapId): boolean {
+    this.clearChecks.push({ tentId, flap });
+    return !this.blocked.has(flap);
   }
   showFlapBlocked(playerId: PlayerId): void {
     this.hints.push(playerId);

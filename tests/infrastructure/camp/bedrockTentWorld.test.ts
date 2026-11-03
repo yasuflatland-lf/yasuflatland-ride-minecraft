@@ -6,6 +6,7 @@ import { legacyTentClearCells } from "../../../src/domain/camp/legacyTent";
 import { TENT_LAYOUT_VERSION } from "../../../src/domain/camp/spec";
 import {
   asTentId,
+  type FlapId,
   flapCells,
   PITCHED_STATE,
   type TentPose,
@@ -29,6 +30,7 @@ import {
   TENT_CEILING_BLOCK,
   TENT_FLAP_BLOCK,
   TENT_ITEM,
+  TENT_OPEN_STATE,
   TENT_TYPE,
   TENT_WALL_BLOCK,
 } from "../../../src/infrastructure/camp/identifiers";
@@ -85,6 +87,7 @@ function fixture(entries: TentEntry[] = []) {
     location: { x: 0, y: 0, z: 0 },
     dimension,
     teleport: vi.fn(),
+    getRotation: vi.fn(() => ({ x: 23, y: -137 })),
     getGameMode: vi.fn(() => "Survival"),
     getComponent: vi.fn(() => ({ container })),
     onScreenDisplay: { setActionBar: vi.fn() },
@@ -665,52 +668,212 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(world.flapAt(DIM, cell)).toBeUndefined();
   });
 
-  it("is blocked by a body that leans into a flap cell from the next cell (ADR 0132)", () => {
-    const { dimension, world } = fixture([ENTRY]);
+  it("ignores a neighbouring body and retains exact unit-cell queries (ADR 0212)", () => {
+    const { dimension, world, player } = fixture([ENTRY]);
     const cell = defined(flapCells(POSE, "left")[0], "left flap cell");
-    // Feet 0.25 past the cell's west edge: a 0.6-wide hitbox still reaches 0.05 into it.
-    const feet = { x: cell.x - 0.25, y: cell.y, z: cell.z + 0.5 };
-    const contains = (q: { location: Vec3; volume: Vec3 }) =>
-      (["x", "y", "z"] as const).every(
+    // Feet outside the cell still have a body overlapping its west edge.
+    player.location = { x: cell.x - 0.25, y: cell.y, z: cell.z + 0.5 };
+    dimension.getPlayers.mockImplementation((q) => {
+      const box = q as { location: Vec3; volume: Vec3 };
+      return (["x", "y", "z"] as const).every(
         (k) =>
-          feet[k] >= q.location[k] && feet[k] <= q.location[k] + q.volume[k],
-      );
-    dimension.getPlayers.mockImplementation((q) =>
-      contains(q as { location: Vec3; volume: Vec3 }) ? [{}] : [],
-    );
-    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
+          player.location[k] >= box.location[k] &&
+          player.location[k] < box.location[k] + box.volume[k],
+      )
+        ? [player]
+        : [];
+    });
+    expect(world.clearPlayersForClose(TENT, "left")).toBe(true);
+    expect(player.teleport).not.toHaveBeenCalled();
+    for (const at of flapCells(POSE, "left")) {
+      const box = { location: at, volume: { x: 1, y: 1, z: 1 } };
+      expect(dimension.getPlayers).toHaveBeenCalledWith(box);
+      expect(dimension.getEntities).toHaveBeenCalledWith({
+        ...box,
+        families: ["mob"],
+      });
+    }
   });
 
-  it("is blocked by a player or a mob in one flap cell, not by an item (ADR 0132)", () => {
-    const { dimension, world } = fixture([ENTRY]);
-    const cell = defined(flapCells(POSE, "left")[1], "left flap cell");
-    const box = {
-      location: { x: cell.x - 0.3, y: cell.y, z: cell.z - 0.3 },
-      volume: { x: 1.6, y: 1, z: 1.6 },
-    };
-    const at = (q: { location: unknown }) =>
-      JSON.stringify(q.location) === JSON.stringify(box.location);
-    expect(world.isFlapBlocked(TENT, "left")).toBe(false);
-    dimension.getPlayers.mockImplementation((q) =>
-      at(q as { location: unknown }) ? [{}] : [],
+  it.each([0, 90, 180, -90] as const)(
+    "moves players in every flap cell to their side at yaw %s without changing height or facing",
+    (yaw) => {
+      const pose = { ...POSE, yaw };
+      for (const flap of ["front", "bedroom", "left", "right"] as const) {
+        for (const cell of flapCells(pose, flap)) {
+          for (const sign of [-1, 1]) {
+            const { dimension, world, player } = fixture([{ ...ENTRY, pose }]);
+            const depth = flap === "front" || flap === "bedroom";
+            const step = tentCellAt(pose, {
+              x: depth ? 0 : 1,
+              depth: depth ? 1 : 0,
+              layer: 0,
+            });
+            const normal = { x: step.x - pose.x, z: step.z - pose.z };
+            player.location = {
+              x: cell.x + 0.5 + sign * normal.x * 0.24,
+              y: cell.y + 0.125,
+              z: cell.z + 0.5 + sign * normal.z * 0.24,
+            };
+            dimension.getPlayers.mockImplementation((q) =>
+              cellKey((q as { location: Vec3 }).location) === cellKey(cell)
+                ? [player]
+                : [],
+            );
+            dimension.getBlock.mockReturnValue({ typeId: "minecraft:air" });
+            expect(world.clearPlayersForClose(TENT, flap)).toBe(true);
+            expect(player.teleport).toHaveBeenCalledExactlyOnceWith(
+              {
+                x: cell.x + sign * normal.x + 0.5,
+                y: player.location.y,
+                z: cell.z + sign * normal.z + 0.5,
+              },
+              { keepVelocity: false, rotation: player.getRotation() },
+            );
+            expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+          }
+        }
+      }
+    },
+  );
+
+  function closingFixture(flap: FlapId = "bedroom") {
+    const f = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, flap)[0], "flap cell");
+    f.player.location = { x: cell.x + 0.5, y: cell.y + 0.125, z: cell.z + 0.5 };
+    f.dimension.getPlayers.mockImplementation((q) =>
+      cellKey((q as { location: Vec3 }).location) === cellKey(cell)
+        ? [f.player]
+        : [],
     );
-    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
-    expect(world.isFlapBlocked(TENT, "right")).toBe(false);
-    expect(dimension.getPlayers).toHaveBeenCalledWith(box);
-    dimension.getPlayers.mockReturnValue([]);
-    // The query asks for mobs only, so an item standing there never matches.
-    dimension.getEntities.mockImplementation((q) => {
-      const query = q as { location: unknown; families?: string[] };
-      return at(query) && query.families?.includes("mob") ? [{}] : [];
-    });
-    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
-    expect(dimension.getEntities).toHaveBeenCalledWith({
-      ...box,
-      families: ["mob"],
-    });
-    dimension.getEntities.mockReturnValue([]);
-    expect(world.isFlapBlocked(TENT, "left")).toBe(false);
-    expect(world.isFlapBlocked(asTentId("other"), "left")).toBe(false);
+    return { ...f, cell };
+  }
+
+  it("moves the live bedroom position farther inside instead of refusing", () => {
+    const pose = { x: 0, y: -60, z: 5, yaw: 180 as const };
+    const { world, dimension, player } = fixture([{ ...ENTRY, pose }]);
+    player.location = { x: 0.67, y: -60, z: 10.74 };
+    dimension.getPlayers.mockImplementation((q) =>
+      cellKey((q as { location: Vec3 }).location) === "0,-60,10"
+        ? [player]
+        : [],
+    );
+    dimension.getBlock.mockReturnValue({ typeId: "minecraft:air" });
+    expect(world.clearPlayersForClose(TENT, "bedroom")).toBe(true);
+    expect(player.teleport).toHaveBeenCalledExactlyOnceWith(
+      { x: 0.5, y: -60, z: 11.5 },
+      { keepVelocity: false, rotation: player.getRotation() },
+    );
+  });
+
+  it.each(["feet", "head"])(
+    "tries the opposite side when preferred %s block is solid",
+    (blocked) => {
+      const { world, dimension, player, cell } = closingFixture();
+      // At yaw 180 depth increases toward +z; a centre tie prefers the bedroom.
+      dimension.getBlock.mockImplementation((at: Vec3) => ({
+        typeId:
+          at.z === cell.z + 1 && at.y === cell.y + (blocked === "head" ? 1 : 0)
+            ? "minecraft:stone"
+            : "minecraft:air",
+      }));
+      expect(world.clearPlayersForClose(TENT, "bedroom")).toBe(true);
+      expect(player.teleport).toHaveBeenCalledExactlyOnceWith(
+        { x: cell.x + 0.5, y: player.location.y, z: cell.z - 0.5 },
+        { keepVelocity: false, rotation: player.getRotation() },
+      );
+    },
+  );
+
+  it.each([true, false])(
+    "accepts a target flap only when its open state is %s",
+    (open) => {
+      const { world, dimension, player, cell } = closingFixture();
+      dimension.getBlock.mockReturnValue({
+        typeId: TENT_FLAP_BLOCK,
+        permutation: {
+          getAllStates: vi.fn(() => ({ [TENT_OPEN_STATE]: open })),
+        },
+      });
+      expect(world.clearPlayersForClose(TENT, "bedroom")).toBe(open);
+      if (open)
+        expect(player.teleport).toHaveBeenCalledExactlyOnceWith(
+          { x: cell.x + 0.5, y: player.location.y, z: cell.z + 1.5 },
+          { keepVelocity: false, rotation: player.getRotation() },
+        );
+      else expect(player.teleport).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["solid", "unloaded", "throwing"])(
+    "refuses with no moves when both exits are %s",
+    (blocked) => {
+      const { world, dimension, player } = closingFixture();
+      dimension.getBlock.mockImplementation(() => {
+        if (blocked === "throwing") throw new Error("unloaded");
+        return blocked === "solid" ? { typeId: "minecraft:stone" } : undefined;
+      });
+      expect(world.clearPlayersForClose(TENT, "bedroom")).toBe(false);
+      expect(player.teleport).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["mob", "blocked player"])(
+    "moves nobody when a later flap cell contains a %s",
+    (blocker) => {
+      const { world, dimension, player, cell } = closingFixture("front");
+      const last = defined(flapCells(POSE, "front").at(-1), "last flap cell");
+      const other = {
+        ...player,
+        id: "other",
+        location: { x: last.x + 0.5, y: last.y, z: last.z + 0.5 },
+        teleport: vi.fn(),
+      };
+      dimension.getBlock.mockImplementation((at: Vec3) => ({
+        typeId:
+          blocker === "blocked player" && at.x === last.x
+            ? "minecraft:stone"
+            : "minecraft:air",
+      }));
+      dimension.getPlayers.mockImplementation((q) => {
+        const key = cellKey((q as { location: Vec3 }).location);
+        return key === cellKey(cell)
+          ? [player]
+          : blocker === "blocked player" && key === cellKey(last)
+            ? [other]
+            : [];
+      });
+      dimension.getEntities.mockImplementation((q) => {
+        const query = q as { location: Vec3; families?: string[] };
+        return blocker === "mob" &&
+          cellKey(query.location) === cellKey(last) &&
+          query.families?.includes("mob")
+          ? [{}]
+          : [];
+      });
+      expect(world.clearPlayersForClose(TENT, "front")).toBe(false);
+      expect(player.teleport).not.toHaveBeenCalled();
+      expect(other.teleport).not.toHaveBeenCalled();
+    },
+  );
+
+  it("clears every player before closing and ignores items", () => {
+    const { world, dimension, player, cell } = closingFixture("front");
+    const other = { ...player, id: "other", teleport: vi.fn() };
+    dimension.getPlayers.mockImplementation((q) =>
+      cellKey((q as { location: Vec3 }).location) === cellKey(cell)
+        ? [player, other]
+        : [],
+    );
+    dimension.getBlock.mockReturnValue({ typeId: "minecraft:air" });
+    // An item does not match the mob-family query.
+    dimension.getEntities.mockImplementation((q) =>
+      (q as { families?: string[] }).families?.includes("mob") ? [] : [{}],
+    );
+    expect(world.clearPlayersForClose(TENT, "front")).toBe(true);
+    expect(player.teleport).toHaveBeenCalledOnce();
+    expect(other.teleport).toHaveBeenCalledOnce();
+    expect(world.clearPlayersForClose(asTentId("gone"), "front")).toBe(true);
   });
 
   it("builds the loaded tent's flaps once, shows the blocked hint, and forgets them on take-down (ADR 0132)", () => {
