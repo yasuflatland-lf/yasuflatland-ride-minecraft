@@ -39,7 +39,7 @@ class Dims:
     inner_rear_z: int = -8
     inner_height: int = 36  # The temporary inner shell stays below all four inclined faces.
     inner_door_half_width: int = 8
-    wall_height: int = 32
+    inner_wall_height: int = 32  # Independent of eave_height: the inner shell has its own walls.
     inner_wall_thickness: int = 1
     inner_roof_thickness: int = 2
     bedroom_rim_width: float = 0.5

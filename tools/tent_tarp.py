@@ -1,4 +1,4 @@
-"""Build the tarp roof, bindings, and poles.
+"""Build the tarp roof and poles.
 
 Keep contributions in fly and poles; a new tarp bone would change the model contract.
 """

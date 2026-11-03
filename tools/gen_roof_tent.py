@@ -531,6 +531,11 @@ def geometry():
     return {"format_version": "1.12.0", "minecraft:geometry": geometries}
 
 
+# The slots the roof tent used before the ground tent gained mesh, zip, and inner floor
+# colours; later tent slots stay transparent here so its texture does not change with them.
+ROOF_TENT_SLOTS = 12
+
+
 def texture_pixel(paint):
     palette = tent.paint_palette(paint)
     if paint == "khaki":
@@ -541,7 +546,7 @@ def texture_pixel(paint):
         slot = (y // 4) * 4 + x // 4
         if slot == tent.SLOTS.index("glass"):
             return (24, 28, 30, 160 if x % 2 == 0 or y % 2 == 0 else 64)
-        return palette[tent.SLOTS[slot]] if slot < len(tent.SLOTS) else (0, 0, 0, 0)
+        return palette[tent.SLOTS[slot]] if slot < ROOF_TENT_SLOTS else (0, 0, 0, 0)
     return pixel
 
 
