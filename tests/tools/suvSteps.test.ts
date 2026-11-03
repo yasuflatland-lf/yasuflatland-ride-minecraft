@@ -31,7 +31,14 @@ const diameter =
 const body = bone("body");
 const rails = (body.cubes ?? []).filter((cube) => {
   const [x, y, z] = cube.rotation ?? [0, 0, 0];
-  return x === 0 && y === 0 && z !== 0 && cube.size[2] > diameter;
+  return (
+    x === 0 &&
+    y === 0 &&
+    z !== 0 &&
+    cube.size[2] > diameter &&
+    extent(turnedCorners(body, cube), 1).max <
+      extent(points(bone("wheel_fl")), 1).max
+  );
 });
 
 describe("SUV rock-rail clearance", () => {

@@ -127,9 +127,9 @@ def measure(cubes_by_bone):
              and c["size"][0] < diameter / 4]
     pane = max(panes, key=lambda c: c["size"][1] * c["size"][2])
     window_lo, window_hi = _bounds([pane])
-    rails = [c for c in body if c.get("rotation", [0, 0, 0])[:2] == [0, 0]
+    rails = [c for c, lo, hi in body_bounds if c.get("rotation", [0, 0, 0])[:2] == [0, 0]
              and c.get("rotation", [0, 0, 0])[2] != 0
-             and c["size"][2] > diameter]
+             and c["size"][2] > diameter and hi[1] < frame["pivot"][1]]
     rail_lo, rail_hi = _bounds(rails)
 
     def bumper(front):
