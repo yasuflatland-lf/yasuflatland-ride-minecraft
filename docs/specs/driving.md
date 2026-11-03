@@ -13,6 +13,7 @@
 - Source: [0081](../adr/0081-slide-along-walls.md)
 - Source: [0082](../adr/0082-learn-strongly-slowing-surfaces.md)
 - Source: [0089](../adr/0089-per-kind-control-mapping.md)
+- Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
 - Excluded: [0005](../adr/0005-touch-throttle-compensation.md): fully superseded by 0018, which keeps its throttle mapping and states it again
 
 ## Rules
@@ -166,8 +167,9 @@
 ### Step jumps for one- and two-block steps
 
 - Applies to: car form on the ground for the SUV and camper; the bulldozer while its blade is raised; not the sports boat beached, which passes no step probe. A kind can turn the probe off (`TransformingOptions.stepUp`, `stepUpEnabled()`); this comes from the implementation, not from an ADR quote.
-- Rule: While driving with forward throttle, non-negative speed, and the vehicle on the ground, the script looks ahead for a step and jumps onto it. `stepHeight` scans from the front edge of the collision box (`hitboxFront`) out to `speed × MOTION.stepLookaheadTicks + MOTION.stepLookaheadMargin` along three lines: the centerline and `±MOTION.stepLaneOffset`. A cell with a solid block half a block above the feet is a step of height 1, or of height 2 if the cell above is solid too. A step needs room for the kind's `carHeight` above it; a step with no room, or a block three or more high, is a wall and the scan returns no jump. When rays at the same distance find both heights, the higher wins. A one-block step jumps at `MOTION.oneStepVelocity`; a two-block step at `MOTION.stepVelocity`. The jump raises the internal speed to at least `MOTION.stepMinSpeed` and then, for `MOTION.stepTicks` ticks, the vehicle keeps full control in the air with no sideways velocity. Nothing is jumped with no forward throttle, so creeping, coasting, and reversing never jump.
+- Rule: While driving with forward throttle, non-negative speed, and the vehicle on the ground, the script looks ahead for a step and jumps onto it. `stepHeight` scans from the front edge of the collision box (`hitboxFront`) out to `speed × MOTION.stepLookaheadTicks + MOTION.stepLookaheadMargin` along three lines: the centerline and `±MOTION.stepLaneOffset`. A cell with a solid block half a block above the feet is a step of height 1, or of height 2 if the cell above is solid too. The SUV uses `hitboxFront=1.34` and `carHeight=2.36`, requiring three vertical clearance cells. A step needs room for the kind's `carHeight` above it; a step with no room, or a block three or more high, is a wall and the scan returns no jump. When rays at the same distance find both heights, the higher wins. A one-block step jumps at `MOTION.oneStepVelocity`; a two-block step at `MOTION.stepVelocity`. The jump raises the internal speed to at least `MOTION.stepMinSpeed` and then, for `MOTION.stepTicks` ticks, the vehicle keeps full control in the air with no sideways velocity. Nothing is jumped with no forward throttle, so creeping, coasting, and reversing never jump.
 - Agreement: Accepted
+- Basis: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md) Decision, "The square collision box is 2.68 blocks wide and 2.36 blocks high."
 - Basis: [0004](../adr/0004-two-block-step-up-by-look-ahead.md) Decision, "The look-ahead distance is \"speed × 4 + 0.3\" blocks, measured from the front edge of the collision box"
 - Basis: [0004](../adr/0004-two-block-step-up-by-look-ahead.md) Decision, "Look ahead along three lines: the centerline and the left and right edges (±0.8 from the center)."
 - Basis: [0004](../adr/0004-two-block-step-up-by-look-ahead.md) Decision, "For 10 ticks after the jump, keep controlling the vehicle in the air and cancel sideways velocity"

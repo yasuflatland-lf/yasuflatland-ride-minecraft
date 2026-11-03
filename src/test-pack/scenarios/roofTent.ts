@@ -96,12 +96,12 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
       rightInset = false;
       footOutside = false;
       if (mount) {
-        const shellHalf = 1.2 * SUV_SPEC.bodyHalfWidth;
+        const shellHalf = SUV_SPEC.roofTentShellHalfWidth;
         leftOverhang =
           mount.anchor.x + shellHalf > SUV_SPEC.bodyHalfWidth + 0.05;
         rightInset =
           Math.abs(
-            mount.anchor.x - shellHalf + SUV_SPEC.bodyHalfWidth - 0.875,
+            mount.anchor.x - shellHalf + SUV_SPEC.roofTentHardtopHalfWidth,
           ) < 0.05;
         const foot = entranceWorld(mount, {
           location: host.location,
