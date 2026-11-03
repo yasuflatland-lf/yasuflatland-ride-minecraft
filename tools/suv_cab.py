@@ -7,6 +7,7 @@ import math
 
 from tool_loader import load_tool
 
+dims = load_tool("suv_dims")
 kit_module = load_tool("suv_kit")
 hull = load_tool("suv_hull")
 kit = kit_module.kit
@@ -50,7 +51,10 @@ def side_window(s, z0, z1, y0, y1, rake=0):
 
 def upper_cabin():
     """The hollow upper shell, the hardtop with its rounded shoulders, caps and ribs, and the pillars."""
-    box(-CAB, CAB, 1.38, 1.46, 0.79, 3.52, "body")
+    # Only the perimeter is visible outside; a full slab cuts through riders' torsos (ADR 0215).
+    for s in (-1, 1):
+        box(min(s * 0.674, s * CAB), max(s * 0.674, s * CAB), 1.38, 1.46, 0.79, 3.52, "body")
+    box(-CAB, CAB, 1.38, 1.46, 3.44, 3.52, "body")
     box(-CAB, CAB, 2.018, 2.060, 1.16, 3.44, "hardtop")
     for s in (-1, 1):
         oriented((s * 0.686, 2.029, 2.29), (0.065, 0.050, 2.32), rz(math.radians(s * 30)), "hardtop")
@@ -88,8 +92,8 @@ def pillars_and_side_windows():
         box(xx - 0.004, xx + 0.004, 1.51, 1.95, 2.44, 2.453, "dark")
 
 
-WINDSHIELD_BOTTOM = (0, 1.47, 0.77)
-WINDSHIELD_TOP = (0, 2.025, 1.17)
+WINDSHIELD_BOTTOM = dims.WINDSHIELD_BOTTOM
+WINDSHIELD_TOP = dims.WINDSHIELD_TOP
 WINDSHIELD_WIDTH = 1.34
 WINDSHIELD_BAND = 0.035
 
@@ -105,7 +109,7 @@ def windshield_turn():
 def windshield_frame():
     """The windshield frame, a plane leaning back by about 36 degrees."""
     mat, centre, height = windshield_turn()
-    kit.plane_frame(centre, WINDSHIELD_WIDTH, height, WINDSHIELD_BAND, 0.018, mat, "dark")
+    kit.plane_frame(centre, WINDSHIELD_WIDTH, height, WINDSHIELD_BAND, dims.WINDSHIELD_FRAME_DEPTH_D, mat, "dark")
 
 
 REAR_WINDOW_CENTRE = (0, 1.735, 3.506)
@@ -137,7 +141,7 @@ DOOR_SEAMS = (
 FRONT_DOOR_SPAN = hull.FRONT_DOOR_SPAN
 REAR_DOOR_SPAN = (1.91, 2.64)  # the skin runs past the wall opening, over the rear arch
 DOOR_SKIN_Y = (0.86, 1.405)
-DOOR_SKIN_X = (0.69, 0.760)  # the door's thickness; its outer face carries the seams
+DOOR_SKIN_X = dims.DOOR_SKIN_X  # the door's thickness; its outer face carries the seams
 
 
 def door_skins():

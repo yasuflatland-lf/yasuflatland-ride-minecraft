@@ -185,7 +185,7 @@ it("keeps hover and submarine animation offsets aligned with their assemblies", 
   }
 });
 
-it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)", () => {
+it("keeps scaled SUV dimensions with cabin-derived seat positions (ADR 0215)", () => {
   const scale = constant("SIZE_SCALE");
   expect(scale).toBe(1.45);
   const entity = JSON.parse(
@@ -204,10 +204,12 @@ it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)"
   for (const [index, { position }] of entity[
     "minecraft:rideable"
   ].seats.entries()) {
-    expect(Math.abs(position[0])).toBeCloseTo(0.38 * scale, 12);
-    expect(position[1]).toBe(0.73);
-    const seatZ = constant(index < 2 ? "FRONT_SEAT_Z" : "REAR_SEAT_Z");
-    expect(position[2]).toBeCloseTo(((seatZ + 5.2) * scale) / 16, 12);
+    expect(Math.abs(position[0])).toBe(
+      Number(((constant("RIDER_X") * scale) / 16).toFixed(3)),
+    );
+    expect(position[1]).toBe(constant("SEAT_Y"));
+    const riderZ = constant(index < 2 ? "FRONT_RIDER_Z" : "REAR_RIDER_Z");
+    expect(position[2]).toBe(Number(((riderZ * scale) / 16).toFixed(3)));
   }
   const clearance = SUV_PROFILE.placement.clearance;
   expect(clearance).toEqual({ halfX: 1, halfZ: 1, height: 3 });

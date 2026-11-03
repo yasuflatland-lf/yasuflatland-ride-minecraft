@@ -36,6 +36,18 @@ KNOB_TURNED_SETBACK = 0.02
 FACES = ("north", "south", "east", "west", "up", "down")
 
 
+def passenger_x(x):
+    return -CABIN_INNER_HALF_WIDTH + (x + 12) * (DASH_STACK_X0 + CABIN_INNER_HALF_WIDTH) / (DASH_STACK_X0 + 12)
+
+
+def passenger_bounds(bounds, keep_width=False):
+    x0, y0, z0, x1, y1, z1 = bounds
+    centre = passenger_x((x0 + x1) / 2)
+    half = (x1 - x0) / 2
+    return (centre - half if keep_width else passenger_x(x0), y0, z0,
+            centre + half if keep_width else passenger_x(x1), y1, z1)
+
+
 def region_rectangle(name):
     spec = suv_cubes.atlas.region_spec("dash", name)
     return (0, 0, spec.w, spec.h)
@@ -51,8 +63,8 @@ def panel_faces(region):
 
 
 def dash_slab_cubes():
-    return [box(-CABIN_HALF_WIDTH, DASH_BOTTOM_Y, DASH_FACE_Z,
-                CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, grain_faces())]
+    return [box(-CABIN_INNER_HALF_WIDTH, DASH_BOTTOM_Y, DASH_FACE_Z,
+                CABIN_INNER_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, grain_faces())]
 
 
 def vent_ring(cx):
@@ -73,17 +85,17 @@ def dash_fittings_cubes():
     # at the end. The north faces face the seats and carry the drawn regions; export's
     # 180-degree turn (suv_export.turn_around) renames them south and mirrors their UV.
     cubes = [
-        box(-CABIN_HALF_WIDTH, DASH_BOTTOM_Y, PANEL_Z, DASH_STACK_X0,
+        box(-CABIN_INNER_HALF_WIDTH, DASH_BOTTOM_Y, PANEL_Z, DASH_STACK_X0,
             PASSENGER_TOP_Y, LOCAL_FACE_Z, panel_faces("passenger")),
-        box(-CABIN_HALF_WIDTH, PAD_BOTTOM_Y, PAD_FRONT_Z, DASH_STACK_X0,
+        box(-CABIN_INNER_HALF_WIDTH, PAD_BOTTOM_Y, PAD_FRONT_Z, DASH_STACK_X0,
             PASSENGER_TOP_Y, LOCAL_FACE_Z, grain_faces()),
-        box(*LATCH_BOUNDS, "rim"),
-        box(HANDLE_X0, HANDLE_Y0, HANDLE_FRONT_Z, HANDLE_X1, HANDLE_Y1,
+        box(*passenger_bounds(LATCH_BOUNDS, keep_width=True), "rim"),
+        box(passenger_x(HANDLE_X0), HANDLE_Y0, HANDLE_FRONT_Z, passenger_x(HANDLE_X1), HANDLE_Y1,
             HANDLE_BACK_Z, grain_faces()),
         *[box(x - HANDLE_POST_HALF, HANDLE_Y0, HANDLE_BACK_Z,
               x + HANDLE_POST_HALF, HANDLE_Y1, PANEL_Z, grain_faces())
-          for x in HANDLE_POST_X],
-        box(*TRAY_BOUNDS, grain_faces()),
+          for x in map(passenger_x, HANDLE_POST_X)],
+        box(*passenger_bounds(TRAY_BOUNDS), grain_faces()),
         box(DASH_STACK_X0, DASH_BOTTOM_Y, PANEL_Z, DASH_STACK_X1,
             HOOD_TOP_Y, LOCAL_FACE_Z, panel_faces("stack")),
         box(*AUDIO_BOUNDS, panel_faces("audio")),
