@@ -35,7 +35,7 @@ def _mul(a, b):
     return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
 
 
-def _apply(m, v):
+def apply_matrix(m, v):
     return [sum(m[i][k] * v[k] for k in range(3)) for i in range(3)]
 
 
@@ -57,7 +57,7 @@ def corners(cube):
         return points
     pivot = cube["pivot"]
     matrix = cube_matrix(cube["rotation"])
-    turned = [_apply(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
+    turned = [apply_matrix(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
     return [[round(pivot[i] + offset[i], 6) for i in range(3)] for offset in turned]
 
 
@@ -134,7 +134,7 @@ def tilt_assembly(cubes, pivot, axis, degrees, assembly=None, assemblies=None):
         old_pivot = cube.get("pivot", cube["origin"])
         rotation = cube.get("rotation", [0, 0, 0])
         offset = [old_pivot[i] - pivot[i] for i in range(3)]
-        new_pivot = [_clean(pivot[i] + v) for i, v in enumerate(_apply(tilt, offset))]
+        new_pivot = [_clean(pivot[i] + v) for i, v in enumerate(apply_matrix(tilt, offset))]
         moved["origin"] = [_clean(new_pivot[i] + cube["origin"][i] - old_pivot[i]) for i in range(3)]
         moved["pivot"] = new_pivot
         moved["rotation"] = _rotation_of(_mul(tilt, cube_matrix(rotation)))
