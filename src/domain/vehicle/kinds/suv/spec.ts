@@ -29,7 +29,7 @@ export const SUV_SPEC = Object.freeze({
   // Collisions (ADR 0006)
   bodyFront: 2.68, // encloses the shell and lamps (ADR 0217)
   bodyHalfWidth: 1.43, // includes protruding wheel hubs in body and ram probes (ADR 0217)
-  footprint: 3.12, // encloses all rotated corners, including folded hover glow (ADR 0217)
+  footprint: 3.18, // encloses all rotated corners, including folded hover glow and the extended axle (ADRs 0217, 0218)
   // ROOF_TOP scaled by SIZE_SCALE in tools/suv_dims.py, above the collision box.
   roofTentRoofHeight: (26.1 * 1.45) / 16,
   // Align the platform right edge with the hardtop; the left overhang clears the ladder.

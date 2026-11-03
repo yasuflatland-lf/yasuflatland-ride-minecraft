@@ -140,7 +140,7 @@ describe("vehicle profiles (ADR 0050)", () => {
           z: SUV_SPEC.roofTentEntranceZ,
         },
       },
-      footprint: 3.12,
+      footprint: 3.18,
       seats: {
         positions: [
           { x: -0.463, z: -0.089 },
