@@ -43,7 +43,7 @@ def scale(color, factor):
 
 
 PALETTE = {
-    "fly": (176, 140, 98, 255), "fly_dark": (136, 104, 68, 255),
+    "fly": (154, 132, 120, 255), "fly_dark": scale((154, 132, 120), 136 / 176) + (255,),
     "inner": (236, 234, 226, 255), "inner_shade": (204, 202, 194, 255),
     "pole": (170, 174, 180, 255), "pole_dark": (120, 124, 130, 255),
     "strap": (24, 24, 24, 255), "ring": (196, 198, 202, 255),
@@ -51,14 +51,15 @@ PALETTE = {
     "mattress": (64, 86, 120, 255), "mattress_edge": (44, 60, 86, 255),
     "mesh": (32, 34, 32, 255), "mesh_frame": (76, 70, 60, 255),
     "zip": (20, 20, 18, 255), "inner_floor": (154, 148, 132, 255),
-    "seam": scale((176, 140, 98), 0.6) + (255,),
+    "seam": scale((154, 132, 120), 0.6) + (255,),
+    "tarp_top": (176, 135, 90, 255), "tarp_under": (198, 164, 122, 255),
 }
 SLOTS = list(PALETTE)
 # The fly color of each paint, in PAINTS order (src/domain/shared/paint.ts). khaki is the
-# tan-brown fly above; the others copy ACCENT_BASES in tools/gen_camper.py, since tools
+# taupe body fly above; the others copy ACCENT_BASES in tools/gen_camper.py, since tools
 # run with python3 -I and cannot import each other.
 FLY_PAINTS = {
-    "khaki": (176, 140, 98),
+    "khaki": (154, 132, 120),
     "green": (62, 96, 56),
     "red": (128, 22, 26),
     "white": (222, 222, 216),
@@ -77,6 +78,7 @@ FLY_PAINTS = {
 }
 # Brightness of each fly slot relative to the khaki base, so seams stay darker in every paint.
 FLY_SHADES = {"fly": 1.0, "fly_dark": 136 / 176, "seam": 0.6}
+FLY_SLOTS = frozenset(SLOTS.index(key) for key in FLY_SHADES)
 # Each flap's opening, roll pivot, parent bone, and paint. The bedroom D-door uses
 # both inner and inner_shade in tent_inner.
 FLAPS = {**tent_entrance.FLAPS, **tent_inner.FLAPS}
@@ -166,7 +168,7 @@ def validate(parts):
     """Reject bounds, interior intrusions, flap bounds, and paint ownership before writing."""
     errors = []
     rooms = [(-34, 0.5, -69, 34, 44, -52), (-34, 0.5, -40, 34, 35, -10),
-             (-48, 0, -136, 48, 32, -90)]
+             (-48, 0, -136, DIMS.tarp_foot_x-DIMS.pole_thickness, 32, -90)]
     def inside(b, outer):
         return all(b[i] >= outer[i] - 0.002 and b[i+3] <= outer[i+3] + 0.002 for i in range(3))
     def overlaps(b, room):
@@ -197,7 +199,7 @@ def validate(parts):
                     errors.append(f"{name} has a face wider than one swatch")
                 u, v = face_uv["uv"]
                 slot = int(u // 4 + 4 * (v // 4))
-                if slot in (SLOTS.index(key) for key in FLY_SHADES) and name not in ("fly", "flap_front", "flap_left", "flap_right"):
+                if slot in FLY_SLOTS and name not in ("fly", "flap_front", "flap_left", "flap_right"):
                     errors.append(f"{name} uses a fly paint slot")
                 if name == "flap_bedroom" and slot not in (2, 3):
                     errors.append("bedroom flap uses a non-inner slot")

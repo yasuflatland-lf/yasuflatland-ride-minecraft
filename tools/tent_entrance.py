@@ -12,7 +12,7 @@ body = load_tool("tent_body")
 
 def flaps(d: Dims):
     w, h, t = d.door_half_width, d.door_height, d.shell_thickness
-    angle = math.atan2(d.eave_lean, d.eave_height)
+    angle = math.atan2(d.lean, d.ridge_height)
     proud = d.flap_proud
     x0 = body.half_width(d, d.window_top) + (proud-t)*math.cos(angle)
     x1 = body.half_width(d, d.window_bottom) + proud*math.cos(angle)
@@ -88,7 +88,7 @@ def window(d: Dims, face, side):
 
 def roof_interior(d: Dims, face):
     cubes = []
-    y0, y1 = d.eave_height+0.5, d.ridge_height-0.6
+    y0, y1 = d.wall_height+0.5, d.ridge_height-0.6
     z0, z1 = body.ends(d, y1)
     # Inset rectangles avoid the shell's tapered corners and leave the strap exposed.
     for side in (-1, 1):
@@ -106,7 +106,7 @@ def roof_interior(d: Dims, face):
     width = body.half_width(d, d.ridge_height)-1
     for x0, x1 in ((-width, -1.25), (1.25, width)):
         cubes.append(panel(x0, d.ridge_height-0.9, z0+1, x1, d.ridge_height-0.7, z1-1, face("fly_dark")))
-    for y in (d.eave_height, d.ridge_height-0.8):
+    for y in (d.wall_height, d.ridge_height-0.8):
         z0, z1 = body.ends(d, y)
         for side in (-1, 1):
             cubes.append(body.side_band(d, face, side, y-0.5, y, z0+1, z1-1, "seam", -0.5))

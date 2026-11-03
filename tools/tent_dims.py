@@ -15,8 +15,6 @@ class Dims:
     rear_z: int = 8  # The anchor is the rear wall's middle cell (ADR 0130).
     ridge_height: int = 48  # Three layers provide the body's headroom.
     lean: float = 19.2  # Each face leans 1.2 cells over the full ridge height.
-    eave_height: int = 32  # Two layers distinguish the walls from the roof.
-    eave_lean: int = 8  # A gentler wall slope leaves a visible roof break.
     shell_thickness: float = 0.5  # Thin panels follow the roof tent's construction.
     band_height: int = 2  # Short bands approximate trapezoids without hundreds of cubes.
     seam_width: int = 1  # Dark frames make each panel boundary visible in previews.
@@ -27,7 +25,8 @@ class Dims:
 
     tarp_front_z: int = -136  # Depth 0 includes the front half-cell margin.
     tarp_underside: int = 35  # The tarp clears the two-layer entrance.
-    tarp_top_x: int = 50  # The left screen leans outward to its ground foot at x 56.
+    tarp_foot_x: int = 48  # An inward foot keeps the screen below the roof's outer edge.
+    tarp_foot_depth: int = 16  # A short front foot leaves the rear approach open.
     pole_thickness: float = 1.5
     window_bottom: int = 8  # The window stays within the two depth-4 flap cells.
     window_top: int = 28  # Leave clearance below the eave seam.
