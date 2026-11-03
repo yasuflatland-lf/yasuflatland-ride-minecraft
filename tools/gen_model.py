@@ -48,12 +48,11 @@ hull_turn_ids = {id(c) for c in compound_cubes([c for cubes in bone_cubes.values
 body = bone_cubes["body"]
 body += [
     *dash.dash_slab_cubes(),
-    # The seats stop short of the side windows and the rear wheels' inner faces (ADR 0214); the interior
-    # is refitted in a later pull request.
+    # Front seats stop inside the door skins and the rear bench inside the rear wheel liners (ADR 0215).
     *cabin.pleated_seat(2, SEAT_OUTER_X, FRONT_SEAT_Z),
     *cabin.pleated_seat(-SEAT_OUTER_X, -2, FRONT_SEAT_Z),
-    *cabin.pleated_seat(-SEAT_OUTER_X, 0, REAR_SEAT_Z),
-    *cabin.pleated_seat(0, SEAT_OUTER_X, REAR_SEAT_Z),
+    *cabin.pleated_seat(-REAR_SEAT_OUTER_X, 0, REAR_SEAT_Z),
+    *cabin.pleated_seat(0, REAR_SEAT_OUTER_X, REAR_SEAT_Z),
     *cabin.steering_cubes(),
     *gauges.gauge_cluster_cubes(),
     *dash.dash_fittings_cubes(),
@@ -108,10 +107,10 @@ geo = {
                 running_gear.sub_arm("sub_arm_rl", -1, REAR_AXLE_Z),
                 running_gear.sub_arm("sub_arm_rr", +1, REAR_AXLE_Z),
                 *[door(n) for n in body_parts.DOORS],
-                {"name": "seat_0", "parent": "body", "pivot": [6, 10, FRONT_SEAT_Z + 2]},
-                {"name": "seat_1", "parent": "body", "pivot": [-6, 10, FRONT_SEAT_Z + 2]},
-                {"name": "seat_2", "parent": "body", "pivot": [6, 10, REAR_SEAT_Z + 1]},
-                {"name": "seat_3", "parent": "body", "pivot": [-6, 10, REAR_SEAT_Z + 1]},
+                {"name": "seat_0", "parent": "body", "pivot": [RIDER_X, CUSHION_TOP_Y, FRONT_SEAT_Z + 2]},
+                {"name": "seat_1", "parent": "body", "pivot": [-RIDER_X, CUSHION_TOP_Y, FRONT_SEAT_Z + 2]},
+                {"name": "seat_2", "parent": "body", "pivot": [RIDER_X, CUSHION_TOP_Y, REAR_SEAT_Z + 1]},
+                {"name": "seat_3", "parent": "body", "pivot": [-RIDER_X, CUSHION_TOP_Y, REAR_SEAT_Z + 1]},
             ],
         }
     ],

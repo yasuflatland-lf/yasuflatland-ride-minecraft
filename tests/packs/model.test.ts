@@ -24,6 +24,7 @@ const dimensions = JSON.parse(
     ].join("\n"),
   ),
 ) as {
+  SEAT_Y: number;
   SIZE_SCALE: number;
   HOOD_TOP_Y: number;
   WINDSHIELD_RAIL_HEIGHT: number;
@@ -176,7 +177,7 @@ it("keeps every seated player's head beneath the SUV roof and behind the raked w
   expect(windshield.length).toBeGreaterThanOrEqual(4);
   expect(seats).toHaveLength(4);
   for (const seat of seats) {
-    expect(seat.position[1]).toBe(0.73);
+    expect(seat.position[1]).toBe(dimensions.SEAT_Y);
     const top = seat.position[1] * 16 + RIDER_HEAD_PX;
     expect(top + 0.5).toBeLessThanOrEqual(roof.origin[1]);
     // The head box grown by the margin; the model's front is -z (ADR 0009).
@@ -194,6 +195,120 @@ it("keeps every seated player's head beneath the SUV roof and behind the raked w
 // swatch rows; the hull's own parts use plain swatches.
 const isPaintedInterior = (cube: Cube) =>
   Object.values(cube.uv ?? {}).some(({ uv: [, v] }) => v >= 168);
+
+const cabinParts = JSON.parse(
+  await python.run(
+    [
+      "import json, sys",
+      "sys.path.insert(0, 'tools')",
+      "from tool_loader import load_tool",
+      "dash = load_tool('suv_dash')",
+      "gauges = load_tool('suv_gauges')",
+      "export = load_tool('suv_export')",
+      "cubes = load_tool('suv_cubes')",
+      "geometry = {'description': {'visible_bounds_width': 1, 'visible_bounds_height': 1, 'visible_bounds_offset': [0, 0, 0]}, 'bones': [{'name': 'body', 'pivot': [0, 0, 0], 'cubes': [*dash.dash_slab_cubes(), *dash.dash_fittings_cubes(), *gauges.gauge_cluster_cubes()]}]}",
+      "export.turn_around(geometry['bones'])",
+      "export.scale_geometry(geometry)",
+      "print(json.dumps({'dashboard': geometry['bones'][0]['cubes'], 'seatUvs': [cubes.uv(name) for name in ('seat', 'seat_pleat')]}))",
+    ].join("\n"),
+  ),
+) as { dashboard: Cube[]; seatUvs: Cube["uv"][] };
+
+const rideableSeats = (): { position: Vec3 }[] =>
+  JSON.parse(
+    readFileSync("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json", "utf8"),
+  )["minecraft:entity"].components["minecraft:rideable"].seats;
+
+it("keeps every rider's eye at least 5 entity pixels below the roof with an unobstructed windshield horizon", () => {
+  const body = bones.get("body");
+  const windows = bones.get("windows_sealed");
+  const glass = windows?.cubes?.find((cube) => cube.rotation?.[0]);
+  const roof = body?.cubes
+    ?.filter(
+      (cube) =>
+        !cube.rotation &&
+        cube.origin[1] > scaled(dimensions.ROOF_Y - 1) &&
+        cube.size[0] > 20 &&
+        cube.size[2] > 30 &&
+        cube.size[1] < 1,
+    )
+    .sort((a, b) => b.size[0] * b.size[2] - a.size[0] * a.size[2])[0];
+  if (!body || !windows || !glass || !roof)
+    throw new Error("Missing cabin shell");
+  const glassYs = turnedCorners(windows, glass).map((point) => point[1]);
+  const dashboard = cabinParts.dashboard.map((expected) => {
+    const cube = body.cubes?.find((candidate) =>
+      (["origin", "size", "pivot", "rotation"] as const).every((key) => {
+        const a = candidate[key];
+        const b = expected[key];
+        return a && b
+          ? a.every(
+              (value, axis) => Math.abs(value - (b[axis] as number)) < 1e-8,
+            )
+          : a === b;
+      }),
+    );
+    if (!cube)
+      throw new Error(`Missing dashboard cube ${JSON.stringify(expected)}`);
+    expect(cube.uv).toEqual(expected.uv);
+    return cube;
+  });
+  for (const {
+    position: [, , seatZ],
+  } of rideableSeats()) {
+    expect(
+      dashboard.every((cube) =>
+        turnedCorners(body, cube).every((point) => point[2] < -seatZ * 16),
+      ),
+    ).toBe(true);
+  }
+  for (const {
+    position: [, seatY],
+  } of rideableSeats()) {
+    const eye = seatY * 16 + (1.62 - 0.4) * 16;
+    expect(roof.origin[1] - eye).toBeGreaterThanOrEqual(5);
+    expect(eye).toBeGreaterThan(Math.min(...glassYs));
+    expect(eye).toBeLessThan(Math.max(...glassYs));
+    expect(eye).toBeGreaterThan(scaled(dimensions.HOOD_TOP_Y));
+    for (const cube of dashboard)
+      expect(eye).toBeGreaterThan(
+        Math.max(...turnedCorners(body, cube).map((point) => point[1])),
+      );
+  }
+});
+
+it("keeps every seated torso clear of the body and doors except seat upholstery", () => {
+  const shell = [...bones.values()].filter(
+    (bone) => bone.name === "body" || bone.name.startsWith("door_"),
+  );
+  const isSeat = (cube: Cube) =>
+    cabinParts.seatUvs.some(
+      (uv) => JSON.stringify(uv) === JSON.stringify(cube.uv),
+    );
+  expect(
+    shell.flatMap((bone) => bone.cubes ?? []).filter(isSeat).length,
+  ).toBeGreaterThan(40);
+  for (const [
+    index,
+    {
+      position: [x, y, z],
+    },
+  ] of rideableSeats().entries()) {
+    const torso: Vec3[] = [];
+    for (const dx of [-4 * 0.9375, 4 * 0.9375])
+      for (const height of [12 * 0.9375, 24 * 0.9375])
+        for (const dz of [-2 * 0.9375, 2 * 0.9375])
+          torso.push([x * 16 + dx, y * 16 - 6.4 + height, -z * 16 + dz]);
+    for (const bone of shell)
+      for (const cube of bone.cubes ?? []) {
+        if (isSeat(cube)) continue;
+        expect(
+          separated(torso, turnedCorners(bone, cube)),
+          `seat ${index}, ${bone.name}: ${JSON.stringify(cube)}`,
+        ).toBe(true);
+      }
+  }
+});
 
 describe("SUV model (ADR 0009)", () => {
   it("keeps every gauge face, ring and hub on the cabin side of the dash slab", () => {

@@ -19,8 +19,7 @@ ROOF_TOP = 26.1
 ROOF_TOP_D = 2.064
 D = ROOF_TOP / ROOF_TOP_D
 
-# Front axle z. The riders sit at the entity's fixed seat positions until the interior is refitted,
-# and this puts the leaning windshield far enough ahead of the front riders' heads (ADR 0170, 0214).
+# Front axle z anchors the D-unit exterior to construction pixels (ADR 0214).
 FRONT_AXLE_Z = 17.2
 WHEELBASE = 3.02 * D
 REAR_AXLE_Z = FRONT_AXLE_Z - WHEELBASE
@@ -57,8 +56,10 @@ WINDSHIELD_FOOT_Z = z_at(0.77)  # the windshield's lower frame, which then leans
 FRONT_BUMPER_TIP_Z = z_at(-1.033 + 0.055)  # the winch plate, the farthest-forward part (see suv_front.BUMPER_SETBACK)
 
 # The windshield leans back about 35.8 degrees from vertical: 0.40 D back over 0.555 D up.
-WINDSHIELD_RUN = 0.40
-WINDSHIELD_RISE = 0.555
+WINDSHIELD_BOTTOM = (0, 1.47, 0.77)
+WINDSHIELD_TOP = (0, 2.025, 1.17)
+WINDSHIELD_RUN = WINDSHIELD_TOP[2] - WINDSHIELD_BOTTOM[2]
+WINDSHIELD_RISE = WINDSHIELD_TOP[1] - WINDSHIELD_BOTTOM[1]
 WINDSHIELD_LEAN = math.degrees(math.atan2(WINDSHIELD_RUN, WINDSHIELD_RISE))
 
 # The door hinges and the dashboard follow the cowl.
@@ -73,10 +74,49 @@ DASH_SHIFT_Z = DASH_FACE_Z - 10
 # The floor console and pedals were built for a dash shift of -3.
 INTERIOR_SHIFT_Z = DASH_SHIFT_Z + 3
 
-# Seats keep the positions the entity file gives them until the interior is refitted (ADR 0170, 0194).
-FRONT_SEAT_Z = -5.75
-REAR_SEAT_Z = -18
-SEAT_OUTER_X = 9.2  # the seats' outer edge, inboard of the side windows and the rear tyres' inner faces
+# Shared shell constraints stay here to avoid a dims -> hull -> kit import cycle (ADR 0215).
+HULL_BODY_HALF = 0.755
+HULL_GROW = 0.13
+K_REAR = (HULL_BODY_HALF + HULL_GROW) / HULL_BODY_HALF
+DOOR_SKIN_X = (0.69, 0.760)
+REAR_ARCH_FRONT_D = 2.34
+REAR_LINER_INNER_D = 0.525
+WINDSHIELD_FRAME_DEPTH_D = 0.018
+
+# Standard Bedrock player at client scale 0.9375; lengths are exported pixels (ADR 0029, 0215).
+RIDER_DROP = 0.4 * 16
+RIDER_HEAD_TOP = (24 + 8 + 0.5) * 0.9375
+RIDER_HEAD_HALF = (4 + 0.5) * 0.9375
+RIDER_TORSO_HALF_DEPTH = 2 * 0.9375
+RIDER_LEG_LENGTH = 12 * 0.9375
+RIDER_SHOULDER_HEIGHT = 24 * 0.9375
+RIDER_EYE_HEIGHT = 1.62 * 16
+HEAD_CLEARANCE = 1.0
+SEAT_Y = math.floor((ROOF_Y * SIZE_SCALE - HEAD_CLEARANCE -
+                     (RIDER_HEAD_TOP - RIDER_DROP)) / 16 * 100) / 100
+EYE_Y = (SEAT_Y * 16 - RIDER_DROP + RIDER_EYE_HEIGHT) / SIZE_SCALE
+CABIN_INNER_HALF_WIDTH = DOOR_SKIN_X[0] * K_REAR * D
+RIDER_X = CABIN_INNER_HALF_WIDTH / 2
+DRIVER_SHIFT_X = RIDER_X - 6.0  # the steering, gauges and pedals were drawn around a driver at x = 6
+
+# At the grown head's top the rear face of the leaning frame is the limiting plane.
+GROWN_HEAD_TOP_Y = (SEAT_Y * 16 - RIDER_DROP + RIDER_HEAD_TOP + 0.5) / SIZE_SCALE
+WINDSHIELD_INNER_Z = (z_at(WINDSHIELD_BOTTOM[2]) -
+    (GROWN_HEAD_TOP_Y - WINDSHIELD_BOTTOM[1] * D) * WINDSHIELD_RUN / WINDSHIELD_RISE -
+    WINDSHIELD_FRAME_DEPTH_D * D / (2 * math.cos(math.radians(WINDSHIELD_LEAN))))
+FRONT_RIDER_Z = math.floor((WINDSHIELD_INNER_Z * SIZE_SCALE -
+                            RIDER_HEAD_HALF - 0.5 - 0.5) / 16 * 1000) / 1000 * 16 / SIZE_SCALE
+REAR_RIDER_Z = math.ceil((z_at(REAR_ARCH_FRONT_D) * SIZE_SCALE +
+                          RIDER_TORSO_HALF_DEPTH + 0.5) / 16 * 1000) / 1000 * 16 / SIZE_SCALE
+FRONT_SEAT_Z = FRONT_RIDER_Z - 5.2
+REAR_SEAT_Z = REAR_RIDER_Z - 5.2
+SEAT_OUTER_X = 2 * RIDER_X - 2
+REAR_SEAT_OUTER_X = REAR_LINER_INNER_D * K_REAR * D - 0.2
+CUSHION_BOTTOM_Y = FLOOR_Y
+CUSHION_TOP_Y = (SEAT_Y * 16 - RIDER_DROP + RIDER_LEG_LENGTH -
+                 RIDER_TORSO_HALF_DEPTH) / SIZE_SCALE + 0.3
+assert CUSHION_TOP_Y > CUSHION_BOTTOM_Y
+BACKREST_TOP_Y = (SEAT_Y * 16 - RIDER_DROP + RIDER_SHOULDER_HEIGHT) / SIZE_SCALE - 0.5
 
 # Wheels: the road wheel is the 133-cube construction of the earlier SUV, drawn at radius 6 and half
 # tread width 2 and then scaled to D (radially) and to a tread of 0.43 D (along the axle).
@@ -118,7 +158,7 @@ SPARE_Z = z_at(3.80)
 # Steering wheel (+x side; shown in game as right-hand drive), tilted 20° with its top away from the
 # driver, toward the dashboard (a negative x rotation tips +y toward +z in game).
 # The wheel follows the dashboard face so its column stays inside the cabin as the cowl moves.
-WHEEL_CENTER = (6.0, 16.5)  # (x, y)
+WHEEL_CENTER = (RIDER_X, 16.5)  # (x, y)
 WHEEL_Z = 8.1 + DASH_SHIFT_Z
 WHEEL_PIVOT = [WHEEL_CENTER[0], WHEEL_CENTER[1], WHEEL_Z]
 WHEEL_RADIUS = 2.4

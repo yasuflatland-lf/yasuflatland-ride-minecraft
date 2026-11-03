@@ -8,8 +8,8 @@ import math
 
 from tool_loader import load_tool
 
-kit_module = load_tool("suv_kit")
 dims = load_tool("suv_dims")
+kit_module = load_tool("suv_kit")
 kit = kit_module.kit
 box, beam, oriented = kit.box, kit.beam, kit.oriented
 rx, ry, rz, mul, matrix = kit_module.rx, kit_module.ry, kit_module.rz, kit_module.mul, kit_module.matrix
@@ -21,7 +21,7 @@ GROW = dims.BODY_HALF_WIDTH / dims.D - BODY_HALF
 FENDER = 0.185  # width of the rear overfender
 Z_FRONT = -0.59  # the body starts to widen here
 Z_FULL = 0.80  # ... and has its full width from here back, at the windshield base
-K_REAR = (BODY_HALF + GROW) / BODY_HALF
+K_REAR = dims.K_REAR
 HOOD_Y = 1.485  # hood top
 INTAKE_TOP_Y = 1.545  # top of the hood air intake
 # The door openings in the side wall: the doors themselves are built in suv_cab.py.
@@ -60,7 +60,7 @@ def chassis():
 # Side outlines of the two wheel arches as (z, y) points: the open arch under each overfender.
 FRONT_ARCH = [(-0.64, 1.11), (-0.54, 1.19), (-0.43, 1.24), (-0.32, 1.255), (0.13, 1.255),
               (0.24, 1.235), (0.33, 1.195), (0.73, 0.77)]
-REAR_ARCH = [(2.34, 0.78), (2.59, 1.14), (2.70, 1.21), (2.81, 1.235), (3.24, 1.235),
+REAR_ARCH = [(dims.REAR_ARCH_FRONT_D, 0.78), (2.59, 1.14), (2.70, 1.21), (2.81, 1.235), (3.24, 1.235),
              (3.34, 1.215), (3.43, 1.16), (3.57, 0.85)]
 
 
@@ -90,7 +90,7 @@ def side_walls():
                 a = z0 + (z1 - z0) * k / count
                 b2 = z0 + (z1 - z0) * (k + 1) / count
                 top = min(y0 + (y1 - y0) * k / count, y0 + (y1 - y0) * (k + 1) / count) - 0.025
-                box(0.525, 0.54, 0.57, top, a, b2 + 0.001, "dark", True)
+                box(dims.REAR_LINER_INNER_D, 0.54, 0.57, top, a, b2 + 0.001, "dark", True)
         for s in (-1, 1):
             for (z0, y0), (z1, y1) in zip(path, path[1:]):
                 n0 = len(kit.cubes)

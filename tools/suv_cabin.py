@@ -26,24 +26,25 @@ def pleated_seat(x0, x1, z_back):
     inner0, inner1 = x0 + bolster, x1 - bolster
     count = int((inner1 - inner0 + gap) // (rib + gap))
     margin = (inner1 - inner0 - (count * rib + (count - 1) * gap)) / 2
+    bottom, top, back_top = CUSHION_BOTTOM_Y, CUSHION_TOP_Y, BACKREST_TOP_Y
     cubes = [
-        # Cushion and backrest
-        box(x0, 7, z_back + 1, x1, 10, z_front, "seat"),
-        box(x0, 10, z_back, x1, 19, z_back + 1, "seat"),
-        # Side bolsters of the cushion and the backrest
-        box(x0, 10, z_back + 1, inner0, 10.8, z_front, "seat"),
-        box(inner1, 10, z_back + 1, x1, 10.8, z_front, "seat"),
-        box(x0, 10.8, z_back + 1, inner0, 19, z_back + 1.8, "seat"),
-        box(inner1, 10.8, z_back + 1, x1, 19, z_back + 1.8, "seat"),
-        # Rolled front edge of the cushion
-        box(x0, 9.4, z_front, x1, 10.4, z_front + 0.4, "seat_pleat"),
+        box(x0, bottom, z_back + 1, x1, top, z_front, "seat"),
+        box(x0, top, z_back, x1, back_top, z_back + 1, "seat"),
+        box(x0, top, z_back + 1, inner0, top + 0.8, z_front, "seat"),
+        box(inner1, top, z_back + 1, x1, top + 0.8, z_front, "seat"),
+        box(x0, top + 0.8, z_back + 1, inner0, back_top, z_back + 1.8, "seat"),
+        box(inner1, top + 0.8, z_back + 1, x1, back_top, z_back + 1.8, "seat"),
+        box(x0, top - 0.6, z_front, x1, top + 0.4, z_front + 0.4, "seat_pleat"),
     ]
     for i in range(count):
         a = inner0 + margin + i * (rib + gap)
-        cubes.append(box(a, 10, z_back + 1.5, a + rib, 10.4, z_front - 0.5, "seat_pleat"))
-    for i in range(7):
-        y = 11.2 + i * (rib + gap)
-        cubes.append(box(inner0, y, z_back + 1, inner1, y + rib, z_back + 1.4, "seat_pleat"))
+        cubes.append(box(a, top, z_back + 1.5, a + rib, top + 0.4, z_front - 0.5, "seat_pleat"))
+    back_start = top + 1.2
+    back_count = max(1, int((back_top - back_start + gap) // (rib + gap)))
+    spacing = (back_top - back_start) / back_count
+    for i in range(back_count):
+        y = back_start + i * spacing
+        cubes.append(box(inner0, y, z_back + 1, inner1, y + spacing * rib / (rib + gap), z_back + 1.4, "seat_pleat"))
     return cubes
 
 
@@ -161,8 +162,10 @@ def pedal_cubes():
             box(px - 0.9, 8.2, 11.4, px + 0.9, 9.6, 11.7, "grille"),  # pad
         ]
         result += [box(px - 0.8, y, 11.3, px + 0.8, y + 0.2, 11.4, "trim") for y in (8.45, 8.8, 9.15)]  # ribs
+    suv_cubes.translate(result, 1, FLOOR_Y - 8)
     accelerator = box(8.3, FLOOR_Y, 10.2, 9.3, FLOOR_Y + 0.3, 12.8, "grille")
     accelerator["pivot"] = [8.8, FLOOR_Y, 12.8]
     accelerator["rotation"] = [-25, 0, 0]
     result.append(accelerator)
+    suv_cubes.translate(result, 0, DRIVER_SHIFT_X)
     return result
