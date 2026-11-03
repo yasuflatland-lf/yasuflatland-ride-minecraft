@@ -20,8 +20,10 @@ export class RoofTentMenu {
     cmd: { playerId: PlayerId; tentId: string },
     choice: (typeof ROOF_TENT_CHOICES)[number],
   ): void {
-    if (this.world.occupantOf(cmd.tentId) !== cmd.playerId) return;
-    if (choice === "sleep") this.sleep.execute(cmd);
-    else this.leave.execute(cmd);
+    const occupant = this.world.occupantOf(cmd.tentId);
+    if (choice === "sleep") {
+      if (occupant === cmd.playerId || occupant === undefined)
+        this.sleep.execute(cmd);
+    } else if (occupant === cmd.playerId) this.leave.execute(cmd);
   }
 }

@@ -3,6 +3,7 @@ import type { VehicleHostLookup } from "../../../application/shared/ports/vehicl
 import { decodeHost } from "../../../domain/camp/hosted";
 import {
   canReachEntrance,
+  canSeeEntryHint,
   canStandAtFoot,
 } from "../../../domain/camp/roofTent/access";
 import { ROOF_TENT_HOST_PROPERTY, ROOF_TENT_TYPE } from "../identifiers";
@@ -39,23 +40,30 @@ export function createHostedTents(
     loadedEntityIds(ROOF_TENT_TYPE)
       .map((id) => world.getEntity(id))
       .filter((tent): tent is Entity => tent?.isValid === true);
+  const atGroundEntrance = (
+    tent: Entity,
+    player: Player,
+    predicate: typeof canStandAtFoot,
+  ): boolean => {
+    if (!tent.isValid || player.dimension.id !== tent.dimension.id)
+      return false;
+    const hostId = hostOf(tent);
+    if (hostId === undefined) return false;
+    const state = lookup(hostId);
+    return (
+      state.status === "present" &&
+      state.mount !== undefined &&
+      state.dimensionId === player.dimension.id &&
+      predicate(state.mount, state, player.location)
+    );
+  };
   return {
     hostOf,
     loadedTents,
     tentOfHost: (hostId) =>
       loadedTents().find((tent) => hostOf(tent) === hostId),
-    atFoot: (tent, player) => {
-      if (!tent.isValid || player.dimension.id !== tent.dimension.id)
-        return false;
-      const hostId = hostOf(tent);
-      if (hostId === undefined) return false;
-      const state = lookup(hostId);
-      return (
-        state.status === "present" &&
-        state.mount !== undefined &&
-        state.dimensionId === player.dimension.id &&
-        canStandAtFoot(state.mount, state, player.location)
-      );
-    },
+    atFoot: (tent, player) => atGroundEntrance(tent, player, canStandAtFoot),
+    canSeeEntryHint: (tent, player) =>
+      atGroundEntrance(tent, player, canSeeEntryHint),
   };
 }

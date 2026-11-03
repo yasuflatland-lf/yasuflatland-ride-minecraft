@@ -1,28 +1,38 @@
-import type { Player } from "@minecraft/server";
+import { Player } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import { EnterRoofTent } from "../../../src/application/camp/enterRoofTent";
 import { LeaveRoofTent } from "../../../src/application/camp/leaveRoofTent";
 import type { RoofTentOccupantWorld } from "../../../src/application/camp/ports/roofTentOccupant";
 import { RoofTentMenu } from "../../../src/application/camp/roofTentMenu";
 import type { SleepInRoofTent } from "../../../src/application/camp/sleepInRoofTent";
+import {
+  canSeeEntryHint,
+  canStandAtFoot,
+  entranceWorld,
+} from "../../../src/domain/camp/roofTent/access";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import {
   asDimensionId,
   asPlayerId,
   type PlayerId,
 } from "../../../src/domain/shared/ids";
+import type { RoofTentMount } from "../../../src/domain/shared/roofTent";
+import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { registerRoofTentEnter } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentEnter";
 import { createRoofTentMenu } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentMenu";
 import { registerRoofTentOccupantCleanup } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup";
 import {
   ROOF_TENT_MENU_BUTTONS,
   ROOF_TENT_MENU_TITLE,
+  ROOF_TENT_SEATED_HINT,
   ROOF_TENT_SNEAK_HINT,
   ROOF_TENT_TYPE,
 } from "../../../src/infrastructure/camp/identifiers";
 
 const game = vi.hoisted(() => ({
   interact: vi.fn(),
+  itemUse: vi.fn(),
+  timeout: vi.fn(),
   left: vi.fn(),
   died: vi.fn(),
   dimensionChanged: vi.fn(),
@@ -38,11 +48,13 @@ const game = vi.hoisted(() => ({
 }));
 vi.mock("@minecraft/server", () => ({
   GameMode: {},
+  Player: class {},
   system: {
     get currentTick() {
       return game.tick;
     },
     run: game.run,
+    runTimeout: game.timeout,
     runInterval: game.interval,
   },
   world: {
@@ -50,6 +62,7 @@ vi.mock("@minecraft/server", () => ({
     getAllPlayers: game.getAllPlayers,
     beforeEvents: { playerInteractWithEntity: { subscribe: game.interact } },
     afterEvents: {
+      itemUse: { subscribe: game.itemUse },
       playerLeave: { subscribe: game.left },
       entityDie: { subscribe: game.died },
       playerDimensionChange: { subscribe: game.dimensionChanged },
@@ -60,6 +73,7 @@ vi.mock("../../../src/infrastructure/shared/dyes", () => ({
   heldDye: game.dye,
 }));
 vi.mock("@minecraft/server-ui", () => ({
+  FormCancelationReason: { UserBusy: "UserBusy", UserClosed: "UserClosed" },
   ActionFormData: class {
     title(key: unknown) {
       game.title(key);
@@ -83,6 +97,7 @@ const player = {
   location: { x: 0, y: 0, z: 0 },
   onScreenDisplay: { setActionBar: vi.fn() },
 };
+Object.setPrototypeOf(player, Player.prototype);
 const target = {
   id: "tent",
   typeId: ROOF_TENT_TYPE,
@@ -103,6 +118,7 @@ const foot = {
   tentOfHost: vi.fn(),
   loadedTents: vi.fn(),
   atFoot: vi.fn(),
+  canSeeEntryHint: vi.fn(),
 };
 function pollFoot() {
   game.interval.mock.calls[1]?.[0]();
@@ -126,6 +142,7 @@ beforeEach(() => {
   foot.tentOfHost.mockReturnValue(undefined);
   foot.loadedTents.mockReturnValue([]);
   foot.atFoot.mockReturnValue(false);
+  foot.canSeeEntryHint.mockImplementation(() => foot.atFoot());
   game.getAllPlayers.mockReturnValue([player]);
   game.dye.mockReturnValue(undefined);
   game.show.mockResolvedValue({ canceled: false, selection: 0 });
@@ -145,7 +162,11 @@ beforeEach(() => {
       if (p) occupied.set(id, p);
       else occupied.delete(id);
     }),
+    syncCeiling: vi.fn(),
+    conceal: vi.fn(),
+    reveal: vi.fn(),
     moveInside: vi.fn(),
+    isSeated: vi.fn(() => true),
     placeOutside: vi.fn(),
     showMessage: vi.fn(),
     spawnCellOf: () => ({ x: 0, y: 0, z: 0 }),
@@ -286,6 +307,7 @@ it.each(["leave", "death", "dimension"])(
       tentId: "tent",
     });
     expect(occupied.has("tent")).toBe(false);
+    expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
   },
 );
 it("waits for the entry sneak to be released before sneak-dismounting", () => {
@@ -301,6 +323,8 @@ it("waits for the entry sneak to be released before sneak-dismounting", () => {
   poll();
   poll();
   expect(leave.execute).toHaveBeenCalledOnce();
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupied.has("tent")).toBe(false);
 });
 it("forgets host-ejected occupants without another exit and ignores unavailable player handles", () => {
   interact();
@@ -334,6 +358,7 @@ it("restores tracking of a persisted occupant after a reload and frees the tent"
   for (let i = 0; i < 20 * 30 + 1; i++) run();
   expect(occupied.has("tent")).toBe(false);
   expect(occupants.placeOutside).toHaveBeenCalledWith(pid, "tent");
+  expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
 });
 it("keeps a restored occupant who is back online within the grace period", () => {
   game.interval.mockClear();
@@ -484,4 +509,335 @@ it("does not enter a loaded tent when the player is away from its foot", () => {
   expect(foot.atFoot).toHaveBeenCalledExactlyOnceWith(target, player);
   expect(occupants.moveInside).not.toHaveBeenCalled();
   expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+});
+
+it("leaves a seated occupant in place on every tick", () => {
+  interact();
+  flush();
+  player.isSneaking = false;
+  for (let i = 0; i < 60; i++) poll();
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupants.placeOutside).not.toHaveBeenCalled();
+  expect(leave.execute).not.toHaveBeenCalled();
+});
+
+it("clears occupancy and places a dismounted occupant outside after entry grace", () => {
+  interact();
+  flush();
+  player.isSneaking = false;
+  for (let i = 0; i < 10; i++) poll();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  poll();
+  poll();
+  expect(leave.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: pid,
+    tentId: "tent",
+  });
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupied.has("tent")).toBe(false);
+});
+
+it("re-seats a dismounted occupant during the entry grace while the sneak is held", () => {
+  interact();
+  flush();
+  vi.mocked(occupants.moveInside).mockClear();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  for (let i = 0; i < 10; i++) poll();
+  expect(occupants.moveInside).toHaveBeenCalledTimes(10);
+  expect(occupants.moveInside).toHaveBeenLastCalledWith(pid, "tent");
+  expect(leave.execute).not.toHaveBeenCalled();
+  expect(occupied.get("tent")).toBe(pid);
+});
+
+it("allows a brief seating delay after the entry sneak is released", () => {
+  interact();
+  flush();
+  player.isSneaking = false;
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  vi.mocked(occupants.moveInside).mockClear();
+  for (let i = 0; i < 10; i++) poll();
+  expect(occupants.moveInside).toHaveBeenCalledTimes(10);
+  expect(leave.execute).not.toHaveBeenCalled();
+  poll();
+  expect(leave.execute).toHaveBeenCalledOnce();
+});
+
+it("leaves after the entry grace when a latched sneak was never released", () => {
+  interact();
+  flush();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  vi.mocked(occupants.moveInside).mockClear();
+  for (let i = 0; i < 10; i++) poll();
+  expect(leave.execute).not.toHaveBeenCalled();
+  poll();
+  expect(leave.execute).toHaveBeenCalledOnce();
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupied.has("tent")).toBe(false);
+});
+
+it("keeps an unloaded tent's occupant without re-seating or leaving", () => {
+  interact();
+  flush();
+  player.isSneaking = false;
+  vi.mocked(occupants.isSeated).mockReturnValue(undefined);
+  vi.mocked(occupants.moveInside).mockClear();
+  for (let i = 0; i < 60; i++) poll();
+  expect(occupants.moveInside).not.toHaveBeenCalled();
+  expect(leave.execute).not.toHaveBeenCalled();
+  expect(occupied.get("tent")).toBe(pid);
+});
+
+it("hints at 1.2 blocks from the ladder without triggering proximity entry", () => {
+  const mount = SUV_PROFILE.roofTent as RoofTentMount;
+  const host = { location: { x: 0, y: 0, z: 0 }, yaw: 0 };
+  const entrance = entranceWorld(mount, host);
+  player.location = { x: entrance.x + 1.2, y: 0, z: entrance.z };
+  player.isSneaking = false;
+  foot.loadedTents.mockReturnValue([target]);
+  foot.atFoot.mockImplementation(() =>
+    canStandAtFoot(mount, host, player.location),
+  );
+  foot.canSeeEntryHint.mockImplementation(() =>
+    canSeeEntryHint(mount, host, player.location),
+  );
+  pollFoot();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledExactlyOnceWith({
+    translate: ROOF_TENT_SNEAK_HINT,
+  });
+  game.tick += 4;
+  player.isSneaking = true;
+  pollFoot();
+  expect(occupants.moveInside).not.toHaveBeenCalled();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledOnce();
+  player.isSneaking = false;
+  game.getAllPlayers.mockReturnValue([{ ...player, getComponent: () => ({}) }]);
+  game.tick += 20;
+  pollFoot();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledOnce();
+});
+
+it("refreshes concealment at the configured interval only for matching seated occupants", () => {
+  interact();
+  flush();
+  vi.mocked(occupants.conceal).mockClear();
+  for (let i = 0; i < ROOF_TENT_SPEC.concealRefreshTicks * 3; i++) {
+    poll();
+    expect(occupants.conceal).toHaveBeenCalledTimes(
+      Math.floor(i / ROOF_TENT_SPEC.concealRefreshTicks) + 1,
+    );
+  }
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  for (let i = 0; i < ROOF_TENT_SPEC.concealRefreshTicks; i++) poll();
+  expect(occupants.conceal).toHaveBeenCalledTimes(3);
+  occupied.set("tent", asPlayerId("other"));
+  poll();
+  expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
+  expect(occupants.conceal).toHaveBeenCalledTimes(3);
+});
+
+it("resumes concealment refresh for a restored seated occupant", () => {
+  game.interval.mockClear();
+  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent"]);
+  occupied.set("tent", pid);
+  for (let i = 0; i < ROOF_TENT_SPEC.concealRefreshTicks + 1; i++) poll();
+  expect(occupants.conceal).toHaveBeenCalledTimes(2);
+});
+
+function useItem(source: unknown = player) {
+  game.itemUse.mock.calls[0]?.[0]({ source });
+}
+async function pollMenu() {
+  const callback = game.timeout.mock.calls.shift()?.[0];
+  expect(callback).toBeDefined();
+  await callback();
+}
+function expectSeatedHint() {
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledExactlyOnceWith({
+    translate: ROOF_TENT_SEATED_HINT,
+  });
+}
+it("opens the menu on item use for a seated occupant of a loaded tent", async () => {
+  occupied.set("tent", pid);
+  foot.loadedTents.mockReturnValue([target]);
+  useItem();
+  await vi.waitFor(() => expect(sleep.execute).toHaveBeenCalledOnce());
+  expect(game.show).toHaveBeenCalledExactlyOnceWith(player);
+});
+it.each([
+  "non-occupant",
+  "unseated",
+  "unknown seating",
+  "non-player",
+  "unloaded",
+  "invalid",
+])("ignores item use when %s", (condition) => {
+  occupied.set(
+    "tent",
+    condition === "non-occupant" ? asPlayerId("other") : pid,
+  );
+  foot.loadedTents.mockReturnValue(condition === "unloaded" ? [] : [target]);
+  if (condition === "unseated")
+    vi.mocked(occupants.isSeated).mockReturnValue(false);
+  if (condition === "unknown seating")
+    vi.mocked(occupants.isSeated).mockReturnValue(undefined);
+  if (condition === "invalid") player.isValid = false;
+  useItem(condition === "non-player" ? { ...player } : player);
+  expect(game.show).not.toHaveBeenCalled();
+  expect(leave.execute).not.toHaveBeenCalled();
+});
+it("auto-opens after seating while sneak stays held, then retries only busy forms", async () => {
+  interact();
+  flush();
+  expect(game.timeout).toHaveBeenLastCalledWith(expect.any(Function), 5);
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  await pollMenu();
+  expect(game.show).not.toHaveBeenCalled();
+  vi.mocked(occupants.isSeated).mockReturnValue(true);
+  game.show
+    .mockResolvedValueOnce({ canceled: true, cancelationReason: "UserBusy" })
+    .mockResolvedValueOnce({ canceled: true, cancelationReason: "UserClosed" });
+  await pollMenu();
+  expect(game.show).toHaveBeenCalledOnce();
+  expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+  await pollMenu();
+  expect(game.show).toHaveBeenCalledTimes(2);
+  expectSeatedHint();
+  expect(player.isSneaking).toBe(true);
+  expect(game.timeout.mock.calls).toHaveLength(0);
+  expect(occupied.get("tent")).toBe(pid);
+  expect(leave.execute).not.toHaveBeenCalled();
+});
+it("gives up after five busy forms with one seated hint", async () => {
+  interact();
+  flush();
+  player.isSneaking = false;
+  game.show.mockResolvedValue({
+    canceled: true,
+    cancelationReason: "UserBusy",
+  });
+  for (let i = 0; i < 5; i++) await pollMenu();
+  expect(game.show).toHaveBeenCalledTimes(5);
+  expect(game.timeout.mock.calls).toHaveLength(0);
+  expectSeatedHint();
+  expect(occupied.get("tent")).toBe(pid);
+});
+it("bounds waiting for seating to twenty polls", async () => {
+  interact();
+  flush();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  for (let i = 0; i < 20; i++) await pollMenu();
+  expect(game.show).not.toHaveBeenCalled();
+  expect(game.timeout.mock.calls).toHaveLength(0);
+  expectSeatedHint();
+});
+it.each(["invalid", "left", "replaced"])(
+  "stops auto-opening when the occupant is %s",
+  async (condition) => {
+    interact();
+    flush();
+    player.isSneaking = false;
+    if (condition === "invalid") player.isValid = false;
+    if (condition === "left") occupied.delete("tent");
+    if (condition === "replaced") occupied.set("tent", asPlayerId("other"));
+    await pollMenu();
+    expect(game.timeout.mock.calls).toHaveLength(0);
+    expect(game.show).not.toHaveBeenCalled();
+    expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+  },
+);
+it("stops busy retries after dismounting", async () => {
+  interact();
+  flush();
+  player.isSneaking = false;
+  game.show.mockResolvedValue({ cancelationReason: "UserBusy" });
+  await pollMenu();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  await pollMenu();
+  expect(game.show).toHaveBeenCalledOnce();
+  expect(game.timeout.mock.calls).toHaveLength(0);
+  expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+});
+it.each([0, 1])(
+  "dispatches auto-opened choice %i without a seated hint",
+  async (selection) => {
+    interact();
+    flush();
+    player.isSneaking = false;
+    game.show.mockResolvedValue({ selection });
+    await pollMenu();
+    expect(game.timeout.mock.calls).toHaveLength(0);
+    expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+    if (selection === 0) {
+      expect(sleep.execute).toHaveBeenCalledOnce();
+      expect(occupied.get("tent")).toBe(pid);
+    } else {
+      expect(leave.execute).toHaveBeenCalledOnce();
+      expect(occupied.has("tent")).toBe(false);
+    }
+  },
+);
+it.each([
+  [{ cancelationReason: "UserBusy" }, "busy"],
+  [{ canceled: true }, "dismissed"],
+  [{ selection: 0 }, "answered"],
+] as const)(
+  "reports the roof tent form outcome %j as %s",
+  async (answer, result) => {
+    occupied.set("tent", pid);
+    game.show.mockResolvedValue(answer);
+    expect(await showMenu(player as unknown as Player, "tent")).toBe(result);
+  },
+);
+
+it("does not stack forms from repeated item use", async () => {
+  occupied.set("tent", pid);
+  foot.loadedTents.mockReturnValue([target]);
+  let close: (answer: unknown) => void = () => {};
+  game.show.mockReturnValue(
+    new Promise((resolve) => {
+      close = resolve;
+    }),
+  );
+  useItem();
+  useItem();
+  expect(game.show).toHaveBeenCalledOnce();
+  close({ canceled: true });
+  await vi.waitFor(() => expect(occupied.get("tent")).toBe(pid));
+  expect(leave.execute).not.toHaveBeenCalled();
+});
+it("gives a fresh entry its own hint and ignores the previous entry's pending poll", async () => {
+  interact();
+  flush();
+  occupied.clear();
+  game.tick++;
+  interact();
+  flush();
+  player.isSneaking = false;
+  game.show.mockResolvedValue({ canceled: true });
+  await pollMenu();
+  expect(game.show).not.toHaveBeenCalled();
+  await pollMenu();
+  expectSeatedHint();
+  occupied.clear();
+  game.tick++;
+  player.isSneaking = true;
+  interact();
+  flush();
+  player.isSneaking = false;
+  await pollMenu();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledTimes(2);
+  expect(game.timeout.mock.calls).toHaveLength(0);
+});
+
+it("syncs ceilings for every loaded tent on each twenty-tick restore scan", () => {
+  game.interval.mockClear();
+  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent", "empty"]);
+  occupied.set("tent", pid);
+  poll();
+  expect(occupants.syncCeiling).toHaveBeenNthCalledWith(1, "tent");
+  expect(occupants.syncCeiling).toHaveBeenNthCalledWith(2, "empty");
+  for (let i = 0; i < 19; i++) poll();
+  expect(occupants.syncCeiling).toHaveBeenCalledTimes(2);
+  poll();
+  expect(occupants.syncCeiling).toHaveBeenCalledTimes(4);
 });

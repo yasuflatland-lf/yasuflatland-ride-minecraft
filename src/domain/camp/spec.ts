@@ -125,6 +125,26 @@ export const GAS_LANTERN_SPEC = Object.freeze({
 });
 
 export const ROOF_TENT_SPEC = Object.freeze({
+  /** SUV shell lift (5 px) plus sleeping-bag rise above its platform (2.4 px), from tools/gen_roof_tent.py. */
+  seatLift: (5 + 2.4) / 16,
+  /** A riding player's feet sit about 0.35 blocks below the seat point (Java ridingOffset convention).
+   * The Bedrock value is unmeasured; the owner tunes it live. */
+  seatRiderOffset: 0.35,
+  /** Standing eye height assumption; tune with the rider offset after live checks. */
+  standingEyeHeight: 1.62,
+  /** SUV shell ridge from tools/gen_roof_tent.py, in blocks above the tent origin. */
+  shellRidge: (5 + 1.2 * 12 + 6.6) / 16,
+  /** Camera clearance below the ridge; tune live for first-person fit. */
+  eyeBelowRidge: 0.2,
+  /** Ground and camper shell ridge (19 px, GROUND_DIMS in tools/gen_roof_tent.py), in blocks above the tent origin. */
+  groundShellRidge: 19 / 16,
+  get occupantEyeHeight(): number {
+    return this.shellRidge - this.eyeBelowRidge;
+  },
+  /** Short expiry bounds invisibility after a crash or lost tracking. */
+  concealTicks: 30,
+  /** Refresh before expiry while the tracked occupant is seated. */
+  concealRefreshTicks: 10,
   // Variant 0 must resolve to the visible fly color for dye comparisons (ADR 0076).
   defaultPaint: TENT_SPEC.defaultPaint,
   /** Matches ground gear recovery so the same three deliberate hits fold it (ADR 0200). */

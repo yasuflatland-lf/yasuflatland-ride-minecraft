@@ -16,6 +16,7 @@ export class EnterRoofTent {
     }
     this.world.setOccupant(cmd.tentId, cmd.playerId);
     this.world.moveInside(cmd.playerId, cmd.tentId);
+    this.world.conceal(cmd.playerId);
     return true;
   }
 }

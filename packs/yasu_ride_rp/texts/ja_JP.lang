@@ -162,5 +162,6 @@ entity.yasu_ride:roof_tent.name=ルーフテント
 yasu_ride.message.roof_tent_menu=Roof tent
 yasu_ride.message.roof_tent_sleep=Sleep
 yasu_ride.message.roof_tent_exit=Get out
-yasu_ride.hint.roof_tent_sneak=Sneak to enter the low tent entrance
+yasu_ride.hint.roof_tent_sneak=スニークするとテントに入れます
+yasu_ride.hint.roof_tent_seated=アイテムを使う操作でメニューを開きます。降車ボタンで外に出られます。
 yasu_ride.message.tent_occupied=Someone is inside the tent

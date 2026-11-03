@@ -136,7 +136,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0128](0128-settle-every-crews-seats-by-rider-list.md) | Settle every crew's seats by the rider list | Accepted |
 | [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted; extended by [0131](0131-pitch-a-tent-in-the-camp.md), [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md), [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) |
 | [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) | A tent entity whose hits land on its blocks | Proposed; extended by [0131](0131-pitch-a-tent-in-the-camp.md), [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) |
-| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md), [0133](0133-sleep-on-the-tent-mattresses.md), [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md), [0135](0135-repaint-the-tent-with-dyes.md), [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) |
+| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md), [0133](0133-sleep-on-the-tent-mattresses.md), [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md), [0135](0135-repaint-the-tent-with-dyes.md), [0200](0200-roof-tent-as-a-host-bound-camp-entity.md), [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md) |
 | [0132](0132-open-and-close-each-tent-flap-alone.md) | Open and close each tent flap alone | Proposed |
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed; extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) |
@@ -204,12 +204,14 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0197](0197-emit-camper-hover-particles-below-the-discs.md) | Emit camper hover particles below the discs | Proposed |
 | [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed; extended by [0201](0201-build-wand-cylinder-and-cube.md), [0202](0202-build-wand-copy-and-continuous-paste.md) |
 | [0199](0199-square-the-camper-front-and-fold-the-grille.md) | Square the camper front and fold the grille | Proposed |
-| [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) | Roof tent as a host-bound camp entity | Proposed |
+| [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) | Roof tent as a host-bound camp entity | Proposed; superseded in part by [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md); extended by [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md) |
 | [0201](0201-build-wand-cylinder-and-cube.md) | Build Wand cylinder and cube | Accepted; extended by [0202](0202-build-wand-copy-and-continuous-paste.md) |
 | [0202](0202-build-wand-copy-and-continuous-paste.md) | Build Wand Copy and continuous Paste | Accepted; superseded in part by [0203](0203-build-wand-paste-aiming.md) |
 | [0203](0203-build-wand-paste-aiming.md) | Build Wand paste aiming | Proposed |
 | [0204](0204-shard-unit-tests-across-ci-jobs.md) | Shard unit tests across CI jobs | Accepted |
 | [0205](0205-structured-adr-metadata-and-current-specs.md) | Structured ADR metadata and current specs | Proposed |
+| [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md) | Seat the roof tent occupant on a rideable seat | Proposed |
+| [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md) | Lay a rain ceiling over an occupied roof tent | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

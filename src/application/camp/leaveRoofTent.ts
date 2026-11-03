@@ -14,6 +14,7 @@ export class LeaveRoofTent implements OccupantEjector {
     const occupant = this.world.occupantOf(tentId);
     if (occupant === undefined) return;
     this.world.placeOutside(occupant, tentId);
+    this.world.reveal(occupant);
     this.world.setOccupant(tentId, undefined);
   }
 }

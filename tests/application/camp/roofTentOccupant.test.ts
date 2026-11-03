@@ -52,6 +52,10 @@ describe("roof tent occupant", () => {
       [playerId, cmd.tentId],
       [playerId, cmd.tentId],
     ]);
+    expect(world.conceal.mock.calls).toEqual([[playerId], [playerId]]);
+    expect(world.moveInside.mock.invocationCallOrder[0]).toBeLessThan(
+      world.conceal.mock.invocationCallOrder[0] ?? 0,
+    );
     expect(world.showMessage).toHaveBeenCalledExactlyOnceWith(
       other,
       "tent_occupied",
@@ -67,6 +71,7 @@ describe("roof tent occupant", () => {
     leave.eject(cmd.tentId);
     expect(world.calls).toEqual([
       ["placeOutside", playerId, cmd.tentId],
+      ["reveal", playerId],
       ["setOccupant", cmd.tentId, undefined],
     ]);
     expect(world.occupantOf(cmd.tentId)).toBeUndefined();
@@ -75,9 +80,10 @@ describe("roof tent occupant", () => {
   it("sets spawn before sleeping or the daytime message and records it while keeping the player inside", () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 23999 }), (time) => {
-        const { world, bed, sleep } = setup(time);
+        const { world, bed, menu, leave } = setup(time);
+        vi.spyOn(leave, "execute");
         world.occupants.set(cmd.tentId, playerId);
-        expect(sleep.execute(cmd)).toBe(canSleep(time));
+        menu.choose(cmd, "sleep");
         expect(bed.setSpawnPoint).toHaveBeenCalledExactlyOnceWith(
           playerId,
           world.dimensionOf(cmd.tentId),
@@ -86,6 +92,7 @@ describe("roof tent occupant", () => {
         expect(world.spawnSetBy(cmd.tentId)).toBe(playerId);
         expect(world.occupantOf(cmd.tentId)).toBe(playerId);
         expect(world.placeOutside).not.toHaveBeenCalled();
+        expect(leave.execute).not.toHaveBeenCalled();
         if (canSleep(time)) {
           expect(bed.sleep).toHaveBeenCalledExactlyOnceWith(playerId);
           expect(bed.showMessage).not.toHaveBeenCalled();
@@ -104,13 +111,43 @@ describe("roof tent occupant", () => {
   });
 
   it("keeps the night-only message and records a daytime spawn", () => {
-    const { world, bed, sleep } = setup(0);
-    expect(sleep.execute(cmd)).toBe(false);
+    const { world, bed, menu, leave } = setup(0);
+    vi.spyOn(leave, "execute");
+    world.occupants.set(cmd.tentId, playerId);
+    menu.choose(cmd, "sleep");
+    expect(bed.setSpawnPoint).toHaveBeenCalledExactlyOnceWith(
+      playerId,
+      world.dimensionOf(cmd.tentId),
+      world.spawnCellOf(cmd.tentId),
+    );
+    expect(bed.sleep).not.toHaveBeenCalled();
+    expect(world.occupantOf(cmd.tentId)).toBe(playerId);
+    expect(world.placeOutside).not.toHaveBeenCalled();
+    expect(leave.execute).not.toHaveBeenCalled();
     expect(bed.showMessage).toHaveBeenCalledExactlyOnceWith(
       playerId,
       SLEEP_MESSAGES.nightOnly,
     );
     expect(world.spawnSetBy(cmd.tentId)).toBe(playerId);
+  });
+
+  it("sleeps after the occupant leaves while the form is open", () => {
+    const { world, bed, menu, leave } = setup();
+    world.occupants.set(cmd.tentId, playerId);
+    leave.execute(cmd);
+    world.placeOutside.mockClear();
+    const leaveSpy = vi.spyOn(leave, "execute");
+    menu.choose(cmd, "sleep");
+    expect(bed.setSpawnPoint).toHaveBeenCalledExactlyOnceWith(
+      playerId,
+      world.dimensionOf(cmd.tentId),
+      world.spawnCellOf(cmd.tentId),
+    );
+    expect(bed.sleep).toHaveBeenCalledExactlyOnceWith(playerId);
+    expect(world.spawnSetBy(cmd.tentId)).toBe(playerId);
+    expect(world.occupantOf(cmd.tentId)).toBeUndefined();
+    expect(world.placeOutside).not.toHaveBeenCalled();
+    expect(leaveSpy).not.toHaveBeenCalled();
   });
 
   it("records nothing outside the overworld", () => {
@@ -183,10 +220,12 @@ describe("roof tent occupant", () => {
     const { world, bed, menu } = setup();
     expect(menu.entries()).toEqual(ROOF_TENT_CHOICES);
     expect(menu.entries()).toEqual(["sleep", "exit"]);
-    for (const choice of menu.entries()) menu.choose(cmd, choice);
+    menu.choose(cmd, "exit");
     world.occupants.set(cmd.tentId, other);
     for (const choice of menu.entries()) menu.choose(cmd, choice);
     expect(bed.sleep).not.toHaveBeenCalled();
+    expect(bed.setSpawnPoint).not.toHaveBeenCalled();
+    expect(world.setSpawnSetBy).not.toHaveBeenCalled();
     expect(world.placeOutside).not.toHaveBeenCalled();
     world.occupants.set(cmd.tentId, playerId);
     menu.choose(cmd, "sleep");
@@ -213,6 +252,7 @@ describe("roof tent occupant", () => {
     ).check();
     expect(world.calls).toEqual([
       ["placeOutside", playerId, cmd.tentId],
+      ["reveal", playerId],
       ["setOccupant", cmd.tentId, undefined],
     ]);
     expect(world.occupantOf(cmd.tentId)).toBeUndefined();

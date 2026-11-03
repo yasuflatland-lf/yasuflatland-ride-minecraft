@@ -6,9 +6,13 @@ import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
 import type { VehicleHostState } from "../../../src/application/shared/ports/vehicleHost";
+import { roofTentCeilingCells } from "../../../src/domain/camp/roofTent/ceiling";
+import { seatPosition } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
+import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PAINTS } from "../../../src/domain/shared/paint";
+import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentOccupantWorld";
 import { BedrockRoofTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentWorld";
 import { registerRoofTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits";
@@ -66,6 +70,7 @@ vi.mock("@minecraft/server", () => ({
     runInterval: game.runInterval,
     afterEvents: game.script,
   },
+  BlockPermutation: { resolve: (typeId: string) => ({ typeId }) },
   Direction: { Up: "Up" },
   ScriptEventSource: { Server: "Server" },
   Player: game.Player,
@@ -109,6 +114,8 @@ function entity(id = "tent", typeId = ids.ROOF_TENT_TYPE) {
     getComponent: vi.fn(),
     triggerEvent: vi.fn(),
     teleport: vi.fn(),
+    addEffect: vi.fn(),
+    removeEffect: vi.fn(),
     remove: vi.fn(() => {
       value.isValid = false;
       game.entities.delete(id);
@@ -170,6 +177,7 @@ beforeEach(() => {
   game.dimension.getBlock.mockImplementation((at: { y: number }) => ({
     isAir: at.y >= 0,
     isLiquid: false,
+    setPermutation: vi.fn(),
   }));
   occupants = new BedrockRoofTentOccupantWorld(host, bed as never, () => false);
   tents = new BedrockRoofTentWorld({
@@ -209,6 +217,28 @@ it("spawns with the host marker, owner, paint and collision bounds selected by l
       );
     }),
   );
+});
+it("places the SUV tent at its shifted left anchor with the model front at -z", () => {
+  state = { ...state, mount: SUV_PROFILE.roofTent } as VehicleHostState;
+  const tent = entity();
+  game.dimension.spawnEntity.mockReturnValue(tent);
+  const place = new PlaceRoofTent(tents, host);
+  expect(
+    place.execute({
+      dimensionId: DIM,
+      target: { entityId: "host" },
+      yaw: 0,
+      slot: 0,
+    }),
+  ).toBe(true);
+  expect(game.dimension.spawnEntity.mock.calls[0]?.[0]).toBe(
+    ids.ROOF_TENT_TYPE,
+  );
+  const location = game.dimension.spawnEntity.mock.calls[0]?.[1];
+  expect(location?.x).toBeCloseTo(1.203, 10);
+  expect(location?.y).toBeCloseTo((26.1 * 1.45) / 16, 10);
+  expect(location?.z).toBeCloseTo(-0.605, 10);
+  expect(tent.triggerEvent).toHaveBeenCalledWith("yasu_ride:suv_bounds");
 });
 it("rolls back a failed spawn so placement can refund the item", () => {
   const tent = entity();
@@ -627,3 +657,303 @@ it("maps roof placement refusals and fold counts to existing localized tent mess
     with: ["2"],
   });
 });
+
+it("teleports entrants near the seat before adding the rider", () => {
+  const tent = spawn();
+  const p = player();
+  const addRider = vi.fn(() => true);
+  tent.getComponent.mockReturnValue({ addRider });
+  occupants.moveInside(PLAYER, "tent");
+  expect(p.teleport).toHaveBeenCalledExactlyOnceWith(
+    seatPosition(tent.location),
+    { dimension: game.dimension },
+  );
+  expect(addRider).toHaveBeenCalledExactlyOnceWith(p);
+  expect(p.teleport.mock.invocationCallOrder[0]).toBeLessThan(
+    addRider.mock.invocationCallOrder[0] ?? 0,
+  );
+  expect(p.setRotation).not.toHaveBeenCalled();
+});
+
+it.each(["unavailable", "false", "throws"])(
+  "falls back to teleporting to the seat when addRider is %s",
+  (failure) => {
+    const tent = spawn();
+    const p = player();
+    const addRider = vi.fn(() => {
+      if (failure === "throws") throw new Error("Cannot seat rider");
+      return false;
+    });
+    if (failure !== "unavailable")
+      tent.getComponent.mockReturnValue({ addRider });
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      expect(() => occupants.moveInside(PLAYER, "tent")).not.toThrow();
+      expect(p.teleport).toHaveBeenLastCalledWith(seatPosition(tent.location), {
+        dimension: game.dimension,
+      });
+      expect(p.teleport).toHaveBeenCalledTimes(
+        failure === "unavailable" ? 1 : 2,
+      );
+    } finally {
+      warning.mockRestore();
+    }
+  },
+);
+
+it("recognizes only the tent's rider and leaves an already seated player in place", () => {
+  const tent = spawn();
+  const p = player();
+  expect(occupants.isSeated(PLAYER, "tent")).toBe(false);
+  p.getComponent.mockReturnValue({ entityRidingOn: { id: "other" } });
+  expect(occupants.isSeated(PLAYER, "tent")).toBe(false);
+  p.getComponent.mockReturnValue({ entityRidingOn: tent });
+  expect(occupants.isSeated(PLAYER, "tent")).toBe(true);
+  occupants.moveInside(PLAYER, "tent");
+  expect(p.teleport).not.toHaveBeenCalled();
+  expect(tent.getComponent).not.toHaveBeenCalled();
+  game.entities.delete("tent");
+  expect(occupants.isSeated(PLAYER, "tent")).toBeUndefined();
+});
+
+it.each([true, false])(
+  "places an occupant outside when still seated is %s",
+  (seated) => {
+    const tent = spawn();
+    const p = player();
+    const ejectRider = vi.fn();
+    tent.getComponent.mockReturnValue({ ejectRider });
+    if (seated) p.getComponent.mockReturnValue({ entityRidingOn: tent });
+    occupants.placeOutside(PLAYER, "tent");
+    expect(ejectRider).toHaveBeenCalledTimes(seated ? 1 : 0);
+    if (seated) {
+      expect(ejectRider).toHaveBeenCalledWith(p);
+      expect(ejectRider.mock.invocationCallOrder[0]).toBeLessThan(
+        p.teleport.mock.invocationCallOrder[0] ?? 0,
+      );
+    }
+    expect(p.teleport).toHaveBeenCalledExactlyOnceWith(
+      { x: 3.5, y: 0, z: 0.5 },
+      { dimension: game.dimension },
+    );
+  },
+);
+
+it("conceals with a short particle-free effect and reveals the occupant", () => {
+  const p = player();
+  occupants.conceal(PLAYER);
+  occupants.conceal(PLAYER);
+  expect(p.addEffect.mock.calls).toEqual(
+    Array.from({ length: 2 }, () => [
+      "invisibility",
+      ROOF_TENT_SPEC.concealTicks,
+      { amplifier: 0, showParticles: false },
+    ]),
+  );
+  occupants.reveal(PLAYER);
+  expect(p.removeEffect).toHaveBeenCalledExactlyOnceWith("invisibility");
+});
+
+it("ignores offline or invalid players and tolerates effect API failures", () => {
+  occupants.conceal(PLAYER);
+  occupants.reveal(PLAYER);
+  const p = player();
+  p.isValid = false;
+  occupants.conceal(PLAYER);
+  occupants.reveal(PLAYER);
+  expect(p.addEffect).not.toHaveBeenCalled();
+  expect(p.removeEffect).not.toHaveBeenCalled();
+  p.isValid = true;
+  p.addEffect.mockImplementation(() => {
+    throw new Error("Invalid player");
+  });
+  p.removeEffect.mockImplementation(() => {
+    throw new Error("Invalid player");
+  });
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    expect(() => occupants.conceal(PLAYER)).not.toThrow();
+    expect(() => occupants.reveal(PLAYER)).not.toThrow();
+    expect(warning).toHaveBeenCalledTimes(2);
+  } finally {
+    warning.mockRestore();
+  }
+});
+
+it("reveals on ejection even when no safe exit exists, and on forgetting an unloaded tent", () => {
+  spawn();
+  const p = player();
+  occupants.setOccupant("tent", PLAYER);
+  game.dimension.getBlock.mockReturnValue(undefined);
+  occupants.eject("tent");
+  expect(p.teleport).not.toHaveBeenCalled();
+  expect(p.removeEffect).toHaveBeenCalledExactlyOnceWith("invisibility");
+  expect(occupants.occupantOf("tent")).toBeUndefined();
+  occupants.setOccupant("tent", PLAYER);
+  occupants.forget("tent");
+  expect(p.removeEffect).toHaveBeenCalledTimes(2);
+});
+
+function ceilingTerrain() {
+  const blocks = new Map<string, string>();
+  const missing = new Set<string>();
+  const throwing = new Set<string>();
+  game.dimension.getBlock.mockImplementation((cell: Cell) => {
+    const key = cellKey(cell);
+    if (throwing.has(key)) throw new Error("Unloaded chunk");
+    if (missing.has(key)) return undefined;
+    const typeId = blocks.get(key) ?? "minecraft:air";
+    return {
+      typeId,
+      isAir: typeId === "minecraft:air",
+      setPermutation: ({ typeId }: { typeId: string }) =>
+        blocks.set(key, typeId),
+    };
+  });
+  return { blocks, missing, throwing };
+}
+function savedCeiling(tent: ReturnType<typeof entity>): Cell[] {
+  return JSON.parse(
+    tent.getDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY) as string,
+  );
+}
+
+it.each([true, false])(
+  "lays and records the rotated ceiling on entry with ladder %s, then clears only its own blocks",
+  (ladder) => {
+    const tent = spawn(ladder);
+    tent.getRotation = () => ({ x: 0, y: 37 });
+    const { blocks } = ceilingTerrain();
+    const cells = roofTentCeilingCells(
+      tent.location,
+      37,
+      ladder ? "suv" : "ground",
+    );
+    occupants.setOccupant("tent", PLAYER);
+    expect(savedCeiling(tent)).toEqual(cells);
+    expect([...blocks.keys()].sort()).toEqual(cells.map(cellKey).sort());
+    occupants.syncCeiling("tent");
+    expect(savedCeiling(tent)).toEqual(cells);
+    const replaced = cells[0] as Cell;
+    blocks.set(cellKey(replaced), "minecraft:stone");
+    occupants.setOccupant("tent", undefined);
+    expect(blocks.get(cellKey(replaced))).toBe("minecraft:stone");
+    for (const cell of cells.slice(1))
+      expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+    expect(
+      tent.getDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY),
+    ).toBeUndefined();
+  },
+);
+
+it("skips occupied, missing, unloaded and vehicle-space cells without losing successful cells", () => {
+  const tent = spawn();
+  const { blocks, missing, throwing } = ceilingTerrain();
+  const cells = roofTentCeilingCells(tent.location, 0, "suv");
+  const [solid, absent, unloaded, vehicle] = cells as [
+    Cell,
+    Cell,
+    Cell,
+    Cell,
+    ...Cell[],
+  ];
+  blocks.set(cellKey(solid), "minecraft:stone");
+  missing.add(cellKey(absent));
+  throwing.add(cellKey(unloaded));
+  const space = vi.fn(
+    (_dimension: unknown, cell: Cell) => cellKey(cell) === cellKey(vehicle),
+  );
+  const adapter = new BedrockRoofTentOccupantWorld(host, bed as never, space);
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    adapter.setOccupant("tent", PLAYER);
+    expect(savedCeiling(tent)).toEqual(cells.slice(4));
+    expect(blocks.get(cellKey(solid))).toBe("minecraft:stone");
+    expect(blocks.has(cellKey(vehicle))).toBe(false);
+    expect(space).toHaveBeenCalledWith(DIM, vehicle);
+    expect(warn).toHaveBeenCalledOnce();
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+it.each(["forget", "removed"] as const)(
+  "clears a saved ceiling through %s after the entity is gone",
+  (method) => {
+    const tent = spawn();
+    const { blocks } = ceilingTerrain();
+    occupants.setOccupant("tent", PLAYER);
+    const cells = savedCeiling(tent);
+    // A fresh adapter must recover the cells from the persisted entity property.
+    const restored = new BedrockRoofTentOccupantWorld(
+      host,
+      bed as never,
+      () => false,
+    );
+    restored.remember(tent as never);
+    tent.remove();
+    if (method === "removed") restored.removed("tent", undefined);
+    else restored.forget("tent");
+    for (const cell of cells)
+      expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+    expect(
+      restored.ceilingOwner(DIM, cells[0] as Cell, ids.TENT_CEILING_BLOCK),
+    ).toBeUndefined();
+  },
+);
+
+it("restores occupied ceilings and clears unoccupied saved ceilings after reload", () => {
+  const tent = spawn();
+  const { blocks } = ceilingTerrain();
+  tent.setDynamicProperty(ids.ROOF_TENT_OCCUPANT_PROPERTY, PLAYER);
+  occupants.syncCeiling("tent");
+  const cells = savedCeiling(tent);
+  const restored = new BedrockRoofTentOccupantWorld(
+    host,
+    bed as never,
+    () => false,
+  );
+  tent.setDynamicProperty(ids.ROOF_TENT_OCCUPANT_PROPERTY, undefined);
+  restored.syncCeiling("tent");
+  for (const cell of cells)
+    expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+  game.dimension.getBlock.mockClear();
+  restored.syncCeiling("tent");
+  expect(game.dimension.getBlock).not.toHaveBeenCalled();
+});
+
+it("guards only recorded ceiling cells in their tent's dimension", () => {
+  const tent = spawn();
+  ceilingTerrain();
+  occupants.setOccupant("tent", PLAYER);
+  const cell = savedCeiling(tent)[0] as Cell;
+  expect(occupants.ceilingOwner(DIM, cell, ids.TENT_CEILING_BLOCK)).toBe(
+    "tent",
+  );
+  expect(occupants.ceilingOwner(DIM, cell, "minecraft:stone")).toBeUndefined();
+  expect(
+    occupants.ceilingOwner(
+      asDimensionId("minecraft:nether"),
+      cell,
+      ids.TENT_CEILING_BLOCK,
+    ),
+  ).toBeUndefined();
+  expect(
+    occupants.ceilingOwner(
+      DIM,
+      { ...cell, y: cell.y + 1 },
+      ids.TENT_CEILING_BLOCK,
+    ),
+  ).toBeUndefined();
+});
+
+it.each(["not json", "null", "{}", '[null, {}, {"x":0,"y":1.5,"z":0}]'])(
+  "ignores malformed saved ceiling cells: %s",
+  (saved) => {
+    const tent = spawn();
+    tent.setDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY, saved);
+    game.dimension.getBlock.mockClear();
+    occupants.syncCeiling("tent");
+    expect(game.dimension.getBlock).not.toHaveBeenCalled();
+  },
+);

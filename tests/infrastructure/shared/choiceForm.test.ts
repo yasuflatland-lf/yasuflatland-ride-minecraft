@@ -1,7 +1,10 @@
 import type { Player, RawMessage } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
-import { chooseFromForm } from "../../../src/infrastructure/shared/choiceForm";
+import {
+  chooseFromForm,
+  chooseFromFormResult,
+} from "../../../src/infrastructure/shared/choiceForm";
 
 type Answer = {
   canceled?: boolean;
@@ -31,7 +34,10 @@ const ui = vi.hoisted(() => {
   }
   return { answers, forms, Form };
 });
-vi.mock("@minecraft/server-ui", () => ({ ActionFormData: ui.Form }));
+vi.mock("@minecraft/server-ui", () => ({
+  ActionFormData: ui.Form,
+  FormCancelationReason: { UserBusy: "UserBusy", UserClosed: "UserClosed" },
+}));
 beforeEach(() => {
   ui.answers.length = 0;
   ui.forms.length = 0;
@@ -88,4 +94,37 @@ it("returns undefined without a selection or for an out-of-range selection", asy
   expect(await chooseFromForm(player, "title", entries)).toBeUndefined();
   ui.answers.push({ selection: 10 });
   expect(await chooseFromForm(player, "title", entries)).toBeUndefined();
+});
+
+it("distinguishes a busy form from user dismissal while preserving legacy cancellation", async () => {
+  ui.answers.push({ canceled: true, cancelationReason: "UserBusy" });
+  expect(await chooseFromFormResult(player, "title", entries)).toEqual({
+    status: "busy",
+  });
+  ui.answers.push({ canceled: true, cancelationReason: "UserBusy" });
+  expect(await chooseFromForm(player, "title", entries)).toBe("cancel");
+  ui.answers.push({ cancelationReason: "UserClosed" });
+  expect(await chooseFromFormResult(player, "title", entries)).toEqual({
+    status: "cancelled",
+  });
+});
+it("reports answered, unanswered, and unavailable forms", async () => {
+  ui.answers.push({ selection: 1 });
+  expect(await chooseFromFormResult(player, "title", entries)).toEqual({
+    status: "answered",
+    choice: "b",
+  });
+  expect(await chooseFromFormResult(player, "title", entries)).toEqual({
+    status: "unanswered",
+  });
+  expect(await chooseFromFormResult(player, "title", [])).toEqual({
+    status: "unavailable",
+  });
+  expect(
+    await chooseFromFormResult(
+      { ...player, isValid: false } as Player,
+      "title",
+      entries,
+    ),
+  ).toEqual({ status: "unavailable" });
 });

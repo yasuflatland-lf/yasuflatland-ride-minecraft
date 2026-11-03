@@ -30,16 +30,32 @@ export function canReachEntrance(
   );
 }
 
+function nearLadderFoot(
+  mount: RoofTentMount,
+  host: { location: Vec3; yaw: number },
+  player: Vec3,
+  radius: number,
+): boolean {
+  const entrance = entranceWorld(mount, host);
+  return (
+    mount.ladder &&
+    Math.hypot(player.x - entrance.x, player.z - entrance.z) <= radius &&
+    Math.abs(player.y - host.location.y) <= ROOF_TENT_SPEC.entranceBand
+  );
+}
+
 export function canStandAtFoot(
   mount: RoofTentMount,
   host: { location: Vec3; yaw: number },
   player: Vec3,
 ): boolean {
-  const entrance = entranceWorld(mount, host);
-  return (
-    mount.ladder &&
-    Math.hypot(player.x - entrance.x, player.z - entrance.z) <=
-      ROOF_TENT_SPEC.footActivation &&
-    Math.abs(player.y - host.location.y) <= ROOF_TENT_SPEC.entranceBand
-  );
+  return nearLadderFoot(mount, host, player, ROOF_TENT_SPEC.footActivation);
+}
+
+export function canSeeEntryHint(
+  mount: RoofTentMount,
+  host: { location: Vec3; yaw: number },
+  player: Vec3,
+): boolean {
+  return nearLadderFoot(mount, host, player, ROOF_TENT_SPEC.entranceReach);
 }

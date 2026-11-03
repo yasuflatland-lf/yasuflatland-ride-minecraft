@@ -194,6 +194,7 @@ export function installCamp(deps: {
   registerTentPlacement(pitchTent);
   registerTentHits(takeDownTent, paintTent, tentBlockOwner);
   registerLaidBlockGuard(tentBlockOwner);
+  registerLaidBlockGuard(roofOccupants.ceilingOwner.bind(roofOccupants));
   registerTentLoop(registry, blocks, flaps);
   registerTentLifecycle(registry, blocks);
   registerTestTent(pitchTent, takeDownTent);

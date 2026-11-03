@@ -167,10 +167,10 @@ describe("vehicle profiles (ADR 0050)", () => {
     expect(SUV_SPEC.roofTentAnchorX).toBeLessThan(SUV_SPEC.bodyHalfWidth);
     const shellHalfWidth = 1.2 * SUV_SPEC.bodyHalfWidth;
     expect(SUV_SPEC.roofTentAnchorX).toBeCloseTo(
-      shellHalfWidth - SUV_SPEC.bodyHalfWidth,
+      shellHalfWidth - SUV_SPEC.bodyHalfWidth + 0.875,
     );
     expect(SUV_SPEC.roofTentAnchorX - shellHalfWidth).toBeCloseTo(
-      -SUV_SPEC.bodyHalfWidth,
+      -SUV_SPEC.bodyHalfWidth + 0.875,
     );
     expect(
       SUV_SPEC.roofTentAnchorX + shellHalfWidth - SUV_SPEC.bodyHalfWidth,

@@ -1,23 +1,33 @@
-import { type Entity, type Player, system, world } from "@minecraft/server";
+import { type Entity, Player, system, world } from "@minecraft/server";
 import type { EnterRoofTent } from "../../../../application/camp/enterRoofTent";
 import type { RoofTentOccupantWorld } from "../../../../application/camp/ports/roofTentOccupant";
 import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { heldDye } from "../../../shared/dyes";
-import { ROOF_TENT_SNEAK_HINT, ROOF_TENT_TYPE } from "../../identifiers";
+import {
+  ROOF_TENT_SEATED_HINT,
+  ROOF_TENT_SNEAK_HINT,
+  ROOF_TENT_TYPE,
+} from "../../identifiers";
+import type { RoofTentMenuResult } from "./roofTentMenu";
+
+const MENU_POLL_TICKS = 5;
+const MAX_SEATING_POLLS = 20;
+const MAX_MENU_ATTEMPTS = 5;
 
 export interface RoofTentFootAccess {
   hostOf(tent: Entity): string | undefined;
   tentOfHost(hostId: string): Entity | undefined;
   loadedTents(): Entity[];
+  canSeeEntryHint(tent: Entity, player: Player): boolean;
   atFoot(tent: Entity, player: Player): boolean;
 }
 
 export function registerRoofTentEnter(
   enter: EnterRoofTent,
   occupants: RoofTentOccupantWorld,
-  showMenu: (player: Player, tentId: string) => Promise<void>,
+  showMenu: (player: Player, tentId: string) => Promise<RoofTentMenuResult>,
   track: (playerId: PlayerId, tentId: string) => void,
   entranceReach: (tent: Entity, player: Player) => boolean,
   foot: RoofTentFootAccess,
@@ -25,10 +35,62 @@ export function registerRoofTentEnter(
   const pressed = new TickScopedSet<PlayerId>();
   const disarmed = new Set<PlayerId>();
   const hintedAt = new Map<PlayerId, number>();
-  const enterAndTrack = (playerId: PlayerId, tentId: string): void => {
+  const entries = new Map<PlayerId, object>();
+  const openAfterSeating = (player: Player, tentId: string): void => {
+    const playerId = asPlayerId(player.id);
+    const entry = {};
+    entries.set(playerId, entry);
+    let polls = 0;
+    let attempts = 0;
+    const current = () =>
+      player.isValid &&
+      entries.get(playerId) === entry &&
+      occupants.occupantOf(tentId) === playerId;
+    const finish = (hint: boolean) => {
+      if (!current()) return;
+      entries.delete(playerId);
+      if (hint)
+        player.onScreenDisplay.setActionBar({
+          translate: ROOF_TENT_SEATED_HINT,
+        });
+    };
+    const poll = async (): Promise<void> => {
+      if (!current()) {
+        if (entries.get(playerId) === entry) entries.delete(playerId);
+        return;
+      }
+      polls++;
+      const seated = occupants.isSeated(playerId, tentId);
+      if (attempts > 0 && seated !== true) {
+        finish(false);
+        return;
+      }
+      if (seated === true) {
+        attempts++;
+        const result = await showMenu(player, tentId);
+        if (!current()) {
+          if (entries.get(playerId) === entry) entries.delete(playerId);
+          return;
+        }
+        if (result !== "busy") {
+          finish(result === "dismissed" || result === "unavailable");
+          return;
+        }
+      }
+      if (polls >= MAX_SEATING_POLLS || attempts >= MAX_MENU_ATTEMPTS) {
+        finish(true);
+        return;
+      }
+      system.runTimeout(poll, MENU_POLL_TICKS);
+    };
+    system.runTimeout(poll, MENU_POLL_TICKS);
+  };
+  const enterAndTrack = (player: Player, tentId: string): void => {
+    const playerId = asPlayerId(player.id);
     if (enter.execute({ playerId, tentId })) {
       disarmed.add(playerId);
       track(playerId, tentId);
+      openAfterSeating(player, tentId);
     }
   };
   const deferEntry = (
@@ -43,7 +105,7 @@ export function registerRoofTentEnter(
       const tentId = target.id;
       if (fromFoot) {
         if (player.isSneaking && foot.atFoot(target, player))
-          enterAndTrack(playerId, tentId);
+          enterAndTrack(player, tentId);
         return;
       }
       if (occupants.occupantOf(tentId) === playerId) {
@@ -66,9 +128,20 @@ export function registerRoofTentEnter(
         });
         return;
       }
-      enterAndTrack(playerId, tentId);
+      enterAndTrack(player, tentId);
     });
   };
+  world.afterEvents.itemUse.subscribe(({ source }) => {
+    if (!(source instanceof Player) || !source.isValid) return;
+    const playerId = asPlayerId(source.id);
+    const tent = foot
+      .loadedTents()
+      .find(
+        (tent) => tent.isValid && occupants.occupantOf(tent.id) === playerId,
+      );
+    if (tent && occupants.isSeated(playerId, tent.id) === true)
+      void showMenu(source, tent.id);
+  });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     const { player, target } = ev;
     if (heldDye(player)) return;
@@ -92,7 +165,7 @@ export function registerRoofTentEnter(
       if (!player.isSneaking) {
         const lastHint = hintedAt.get(playerId);
         if (
-          nearby.length > 0 &&
+          tents.some((tent) => foot.canSeeEntryHint(tent, player)) &&
           (lastHint === undefined || system.currentTick - lastHint >= 20)
         ) {
           player.onScreenDisplay.setActionBar({
@@ -107,7 +180,7 @@ export function registerRoofTentEnter(
         (tent) => occupants.occupantOf(tent.id) === undefined,
       );
       if (tent && pressed.add(system.currentTick, playerId))
-        enterAndTrack(playerId, tent.id);
+        enterAndTrack(player, tent.id);
     }
   }, 4);
 }

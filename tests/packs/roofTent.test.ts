@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { rideSeatY } from "../../src/domain/camp/roofTent/seat";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import {
@@ -9,6 +10,7 @@ import {
   ROOF_TENT_ITEM,
   ROOF_TENT_LADDER_PROPERTY,
   ROOF_TENT_OCCUPIED_PROPERTY,
+  ROOF_TENT_SEATED_HINT,
   ROOF_TENT_TYPE,
 } from "../../src/infrastructure/camp/identifiers";
 import { PACK_STEM_TAGS } from "../../src/test-pack/impact";
@@ -34,7 +36,7 @@ type TexturedBone = Omit<Bone, "cubes"> & {
   })[];
 };
 const geometry = geometries[0];
-const suvDims = JSON.parse(
+const [groundDims, suvDims] = JSON.parse(
   execFileSync(
     "python3",
     [
@@ -46,7 +48,7 @@ from dataclasses import asdict
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 m = load_tool('gen_roof_tent')
-print(json.dumps(m.tent.rounded(json.loads(json.dumps(asdict(m.SUV_DIMS))))))
+print(json.dumps(m.tent.rounded(json.loads(json.dumps([asdict(m.GROUND_DIMS), asdict(m.SUV_DIMS)])))))
 `,
     ],
     { encoding: "utf8" },
@@ -91,7 +93,7 @@ describe("roof tent asset contract", () => {
       entity.component_groups["yasu_ride:suv_bounds"][
         "minecraft:collision_box"
       ];
-    expect(suvBounds).toEqual({ width: 4, height: 1.7 });
+    expect(suvBounds).toEqual({ width: 5.2, height: 1.7 });
     expect(entity.events["yasu_ride:suv_bounds"]).toEqual({
       add: { component_groups: ["yasu_ride:suv_bounds"] },
     });
@@ -108,7 +110,7 @@ describe("roof tent asset contract", () => {
         16,
     );
     expect(SUV_SPEC.roofTentAnchorX - suvDims.half_width / 16).toBeCloseTo(
-      -SUV_SPEC.bodyHalfWidth,
+      -SUV_SPEC.bodyHalfWidth + 0.875,
     );
     expect(
       SUV_SPEC.roofTentAnchorX +
@@ -129,6 +131,67 @@ describe("roof tent asset contract", () => {
       tent.components["minecraft:pushable"],
     );
     expect(entity.components["minecraft:persistent"]).toEqual({});
+    expect(entity.components["minecraft:rideable"]).toEqual({
+      seat_count: 1,
+      family_types: ["player"],
+      crouching_skip_interact: true,
+      seats: [{ position: [0, rideSeatY("ground"), 0] }],
+    });
+    expect(
+      entity.component_groups["yasu_ride:suv_bounds"]["minecraft:rideable"],
+    ).toEqual({
+      seat_count: 1,
+      family_types: ["player"],
+      crouching_skip_interact: true,
+      seats: [{ position: [0, rideSeatY("suv"), 0] }],
+    });
+  });
+
+  it("keeps every SUV rack bar on the hardtop and under the platform", () => {
+    for (const x of suvDims.mount_bar_x as number[]) {
+      for (const edge of [
+        x - suvDims.mount_bar_width / 2,
+        x + suvDims.mount_bar_width / 2,
+      ]) {
+        expect(Math.abs(edge)).toBeLessThanOrEqual(suvDims.half_width);
+        expect(
+          Math.abs(SUV_SPEC.roofTentAnchorX + edge / 16),
+        ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth);
+      }
+    }
+  });
+
+  it("maps the model +x ladder foot to the vehicle-left gameplay entrance", () => {
+    const ladder: TexturedBone = geometries[1].bones.find(
+      (bone: TexturedBone) => bone.name === "ladder",
+    );
+    expect(ladder.pivot?.[0]).toBeGreaterThan(0);
+    const corners = (ladder.cubes ?? []).flatMap((cube) => {
+      expect(cube.origin[0]).toBeGreaterThan(0);
+      expect(cube.rotation?.[2]).toBeLessThan(0);
+      return turnedCorners(ladder, cube);
+    });
+    const foot = corners.reduce((lowest, point) =>
+      point[1] < lowest[1] ? point : lowest,
+    );
+    expect(foot[0]).toBeGreaterThan(ladder.pivot?.[0] ?? 0);
+    expect(SUV_SPEC.roofTentEntranceX).toBeCloseTo(
+      SUV_SPEC.roofTentAnchorX + foot[0] / 16,
+      4,
+    );
+    expect(SUV_SPEC.roofTentEntranceZ).toBeCloseTo(
+      SUV_SPEC.roofTentAnchorZ - (ladder.pivot?.[2] ?? 0) / 16,
+      4,
+    );
+    expect(SUV_SPEC.roofTentRoofHeight + foot[1] / 16).toBeCloseTo(0, 4);
+    const bounds =
+      entity.component_groups["yasu_ride:suv_bounds"][
+        "minecraft:collision_box"
+      ];
+    for (const [x, , z] of corners) {
+      expect(Math.abs(x / 16)).toBeLessThan(bounds.width / 2);
+      expect(Math.abs(z / 16)).toBeLessThan(bounds.width / 2);
+    }
   });
 
   it("switches every paint variant in shared PAINTS order", () => {
@@ -215,6 +278,7 @@ describe("roof tent asset contract", () => {
         "geometry.yasu_ride.roof_tent",
         "geometry.yasu_ride.roof_tent_suv",
       ]);
+      const d = suv ? suvDims : groundDims;
       const bones: TexturedBone[] = geometries[suv ? 1 : 0].bones;
       expect(bones.map((b) => b.name)).toEqual([
         "root",
@@ -226,17 +290,11 @@ describe("roof tent asset contract", () => {
       ]);
       expect(bones.find((b) => b.name === "root")?.parent).toBeUndefined();
       expect(bones.find((b) => b.name === "body")?.parent).toBe("root");
-      expect(bones.find((b) => b.name === "flap")?.pivot).toEqual(
-        suv
-          ? [
-              0,
-              suvDims.shell_lift +
-                suvDims.platform_height +
-                suvDims.panel_thickness,
-              -suvDims.half_depth,
-            ]
-          : [0, 12, -20],
-      );
+      expect(bones.find((b) => b.name === "flap")?.pivot).toEqual([
+        0,
+        d.shell_lift + d.platform_height + d.panel_thickness,
+        -d.half_depth,
+      ]);
       const ladder = bones.find((b) => b.name === "ladder");
       expect(ladder?.pivot).toEqual(
         suv
@@ -245,10 +303,10 @@ describe("roof tent asset contract", () => {
               suvDims.ladder_pivot[1] + suvDims.shell_lift,
               suvDims.ladder_pivot[2],
             ]
-          : [-16, 2, 0],
+          : [16, 2, 0],
       );
       for (const cube of ladder?.cubes ?? []) {
-        expect(cube.origin[0]).toBeLessThan(-16);
+        expect(cube.origin[0]).toBeGreaterThanOrEqual(16);
       }
       assertOneAxis(
         bones.flatMap((b) => b.cubes ?? []),
@@ -257,45 +315,33 @@ describe("roof tent asset contract", () => {
       for (const bone of bones) {
         for (const cube of bone.cubes ?? []) {
           for (const [x, y, z] of turnedCorners(bone, cube)) {
-            expect(x).toBeGreaterThanOrEqual(
+            const lower =
+              bone.name === "ladder" ? d.ladder_lower : d.shell_lower;
+            const upper =
               bone.name === "ladder"
-                ? suv
-                  ? suvDims.ladder_lower[0]
-                  : -27
-                : suv
-                  ? -suvDims.half_width - 1
-                  : -17,
-            );
-            expect(x).toBeLessThanOrEqual(suv ? suvDims.half_width + 1 : 17);
-            expect(y).toBeGreaterThanOrEqual(
-              bone.name === "ladder"
-                ? suv
-                  ? suvDims.ladder_lower[1]
-                  : -33
-                : suv
-                  ? -suvDims.mount_foot_drop
-                  : 0,
-            );
-            expect(y).toBeLessThanOrEqual(
-              suv ? suvDims.ridge_height + suvDims.shell_lift + 1 : 20,
-            );
-            expect(z).toBeGreaterThanOrEqual(
-              suv ? -suvDims.half_depth - 1.5 : -31,
-            );
-            expect(z).toBeLessThanOrEqual(suv ? suvDims.half_depth + 1.5 : 20);
+                ? [d.ladder_upper_x, d.shell_upper[1], d.shell_upper[2]]
+                : d.shell_upper;
+            for (const [axis, value] of [x, y, z].entries()) {
+              expect(value).toBeGreaterThanOrEqual(lower[axis]);
+              expect(value).toBeLessThanOrEqual(upper[axis]);
+            }
+            const bounds = geometries[suv ? 1 : 0].description;
+            for (const [axis, value] of [x, y, z].entries()) {
+              expect(
+                Math.abs(value / 16 - bounds.visible_bounds_offset[axis]),
+              ).toBeLessThan(
+                (axis === 1
+                  ? bounds.visible_bounds_height
+                  : bounds.visible_bounds_width) / 2,
+              );
+            }
             if (bone.name === "sleeping_bag") {
-              expect(Math.abs(x)).toBeLessThan(
-                suv ? suvDims.half_width - suvDims.end_inset : 15,
-              );
+              expect(Math.abs(x)).toBeLessThan(d.half_width - d.end_inset);
               expect(y).toBeGreaterThanOrEqual(
-                suv ? suvDims.platform_height + suvDims.shell_lift : 2,
+                d.platform_height + d.shell_lift,
               );
-              expect(y).toBeLessThanOrEqual(
-                suv ? suvDims.window_bottom + suvDims.shell_lift : 5,
-              );
-              expect(Math.abs(z)).toBeLessThan(
-                suv ? suvDims.half_depth - 1 : 19,
-              );
+              expect(y).toBeLessThanOrEqual(d.window_bottom + d.shell_lift);
+              expect(Math.abs(z)).toBeLessThan(d.half_depth - 1);
             }
           }
           for (const face of Object.values(cube.uv)) {
@@ -308,181 +354,291 @@ describe("roof tent asset contract", () => {
       }
       const shell = bones.find((b) => b.name === "fabric");
       expect(shell?.cubes?.filter((c) => c.rotation?.[2]).length).toBe(
-        suv
-          ? 18 +
-              15 * suvDims.end_window_sides.length +
-              (2 - suvDims.end_window_sides.length) *
-                (4 + 2 * suvDims.zip_chamfer_steps)
-          : 2,
+        18 +
+          15 * d.end_window_sides.length +
+          (2 - d.end_window_sides.length) * (4 + 2 * d.zip_chamfer_steps),
       );
       const mesh = shell?.cubes?.filter((c) =>
         Object.values(c.uv).every((f) => f.uv[0] === 4 && f.uv[1] === 8),
       );
-      expect(mesh).toHaveLength(suv ? 2 + suvDims.end_window_sides.length : 2);
+      expect(mesh).toHaveLength(2 + d.end_window_sides.length);
     },
   );
 
-  it("fits the wide SUV profile with thin window panels and a ground-reaching rear-left ladder", () => {
-    const d = suvDims;
-    expect((d.half_width * 2) / 16).toBeCloseTo(1.2 * 1.64 * 2);
-    expect(d.half_depth * 2).toBeCloseTo(38.4);
-    expect(d.ridge_height - d.wall_height).toBeLessThan(
-      d.ridge_cap_half_depth * 2,
-    );
-    const bones: TexturedBone[] = geometries[1].bones;
-    const shell = bones.find((b) => b.name === "fabric") as TexturedBone;
-    const roofs =
-      shell.cubes?.filter(
-        (c) => c.rotation?.[0] && c.size[1] === d.panel_thickness,
-      ) ?? [];
-    expect(roofs).toHaveLength(2);
-    for (const roof of roofs) {
-      expect(roof.rotation?.slice(1)).toEqual([0, 0]);
-      expect(roof.size[0]).toBeCloseTo(2 * (d.half_width - d.end_inset));
-      expect(roof.size[1]).toBe(d.panel_thickness);
-      for (const [, y, z] of turnedCorners(shell, roof)) {
-        const profile =
-          d.shell_lift +
+  it.each([false, true])(
+    "fits thin sloped panels, real openings, bedding, and flap (SUV: %s)",
+    (suv) => {
+      const d = suv ? suvDims : groundDims;
+      const bones: TexturedBone[] = geometries[suv ? 1 : 0].bones;
+      const shell = bones.find((b) => b.name === "fabric") as TexturedBone;
+      const roofs =
+        shell.cubes?.filter(
+          (c) => c.rotation?.[0] && c.size[1] === d.panel_thickness,
+        ) ?? [];
+      expect(roofs).toHaveLength(2);
+      for (const roof of roofs) {
+        expect(roof.rotation?.slice(1)).toEqual([0, 0]);
+        expect(roof.size[0]).toBeCloseTo(2 * (d.half_width - d.end_inset));
+        expect(roof.size[1]).toBe(d.panel_thickness);
+        for (const [, y, z] of turnedCorners(shell, roof)) {
+          const profile =
+            d.shell_lift +
+            d.ridge_height -
+            (Math.abs(z) * (d.ridge_height - d.wall_height)) / d.half_roof;
+          expect(Math.abs(y - profile)).toBeLessThan(d.panel_thickness + 0.1);
+        }
+      }
+      const endSheets =
+        shell.cubes?.filter(
+          (c) =>
+            c.rotation?.[2] &&
+            c.size[0] === d.panel_thickness &&
+            c.size[2] > d.half_depth &&
+            Object.values(c.uv).every((f) => f.uv[0] === 0 && f.uv[1] === 0),
+        ) ?? [];
+      expect(endSheets).toHaveLength(2 + d.end_window_sides.length);
+      for (const panel of endSheets) {
+        expect(panel.size[0]).toBe(d.panel_thickness);
+        for (const [x, y] of turnedCorners(shell, panel)) {
+          const profile =
+            d.half_width -
+            ((y - d.shell_lift - d.platform_height) * d.end_inset) /
+              (d.wall_height - d.platform_height);
+          expect(Math.abs(Math.abs(x) - profile)).toBeLessThan(
+            d.panel_thickness,
+          );
+        }
+      }
+      const longSides =
+        shell.cubes?.filter(
+          (c) =>
+            !c.rotation?.[0] &&
+            Math.abs(c.origin[2]) >= d.half_depth - d.panel_thickness &&
+            c.origin[1] < d.wall_height + d.shell_lift &&
+            c.size[2] <= d.panel_thickness + d.frame_thickness,
+        ) ?? [];
+      expect(longSides.length).toBeGreaterThan(0);
+      for (const panel of longSides) {
+        for (const [x, y] of turnedCorners(shell, panel)) {
+          const edge =
+            d.half_width -
+            ((y - d.shell_lift - d.platform_height) * d.end_inset) /
+              (d.wall_height - d.platform_height);
+          expect(Math.abs(x)).toBeLessThanOrEqual(
+            edge +
+              d.panel_thickness *
+                Math.max(
+                  0.5,
+                  d.end_inset / (d.wall_height - d.platform_height),
+                ) +
+              d.seam_proud,
+          );
+        }
+      }
+      const gableCourses = Math.ceil(
+        (d.ridge_height - d.wall_height) / d.panel_thickness,
+      );
+      const gables =
+        shell.cubes?.filter(
+          (c) =>
+            !c.rotation &&
+            c.origin[1] >= d.wall_height + d.shell_lift &&
+            c.size[0] === d.panel_thickness &&
+            Object.values(c.uv).every((f) => f.uv[0] === 0 && f.uv[1] === 0),
+        ) ?? [];
+      expect(gables).toHaveLength(2 * gableCourses);
+      for (const strip of gables) {
+        const low = strip.origin[1] - d.shell_lift;
+        const halfZ =
+          (d.half_roof * (d.ridge_height - low)) /
+          (d.ridge_height - d.wall_height);
+        expect(strip.origin[2]).toBeCloseTo(-halfZ, 2);
+        expect(strip.size[2]).toBeCloseTo(2 * halfZ, 2);
+        expect(strip.size[1]).toBeCloseTo(
+          (d.ridge_height - d.wall_height) / gableCourses,
+          3,
+        );
+        expect(Math.abs(strip.origin[0] + strip.size[0] / 2)).toBeCloseTo(
+          d.half_width -
+            ((low - d.platform_height) * d.end_inset) /
+              (d.wall_height - d.platform_height),
+          2,
+        );
+      }
+      const mesh =
+        shell.cubes?.filter((c) =>
+          Object.values(c.uv).every((f) => f.uv[0] === 4 && f.uv[1] === 8),
+        ) ?? [];
+      expect(mesh).toHaveLength(2 + d.end_window_sides.length);
+      for (const window of mesh) {
+        expect(Math.min(...window.size)).toBeLessThan(d.panel_thickness);
+        const endWindow = Boolean(window.rotation?.[2]);
+        if (endWindow) {
+          expect(window.size[1]).toBeCloseTo(
+            d.end_window_top - d.end_window_bottom,
+          );
+          expect(window.size[2]).toBe(2 * d.end_window_half_depth);
+          expect(window.pivot?.[0]).toBeGreaterThan(0);
+        }
+        const [wx, wy, wz] = window.origin;
+        const [ww, wh, wd] = window.size;
+        for (const opaque of shell.cubes?.filter(
+          (c) =>
+            !mesh.includes(c) &&
+            JSON.stringify(c.rotation) === JSON.stringify(window.rotation) &&
+            JSON.stringify(c.pivot) === JSON.stringify(window.pivot),
+        ) ?? []) {
+          const [x, y, z] = opaque.origin;
+          const [w, h, depth] = opaque.size;
+          expect(
+            x < wx + ww - 0.01 &&
+              x + w > wx + 0.01 &&
+              y < wy + wh - 0.01 &&
+              y + h > wy + 0.01 &&
+              z < wz + wd &&
+              z + depth > wz,
+          ).toBe(false);
+        }
+      }
+      const flap = bones.find((b) => b.name === "flap") as TexturedBone;
+      expect(flap.cubes).toHaveLength(1 + 2 + 4 + 1);
+      expect(
+        flap.cubes
+          ?.slice(1)
+          .every((c) =>
+            Object.values(c.uv).every((f) => f.uv[0] === 8 && f.uv[1] === 4),
+          ),
+      ).toBe(true);
+      expect(flap.cubes?.at(-1)?.size[0]).toBe(d.flap_strap_width);
+      const flapCube = flap.cubes?.[0];
+      expect(flap.pivot).toEqual([0, flapCube?.origin[1], -d.half_depth]);
+      expect(flapCube?.size[0]).toBe(2 * d.doorway_half_width);
+      expect(flapCube?.size[2]).toBe(d.panel_thickness);
+      const body = bones.find((b) => b.name === "body") as TexturedBone;
+      const postCount = d.pole_x.length * 2;
+      expect(body.cubes).toHaveLength(
+        1 + postCount + d.mount_bar_x.length * (1 + d.mount_foot_z.length),
+      );
+      for (const post of body.cubes?.slice(1, 1 + postCount) ?? []) {
+        for (const [x, y, z] of turnedCorners(body, post)) {
+          expect(Math.abs(x)).toBeLessThan(
+            d.half_width -
+              ((y - d.shell_lift - d.platform_height) * d.end_inset) /
+                (d.wall_height - d.platform_height),
+          );
+          expect(Math.abs(z)).toBeLessThan(d.half_depth);
+        }
+      }
+    },
+  );
+
+  it("preserves every ground/camper ladder rail and rung while clearing the leaning end", () => {
+    const d = groundDims;
+    expect([d.half_width * 2, d.half_depth * 2]).toEqual([32, 40]);
+    expect([d.platform_height, d.wall_height, d.ridge_height]).toEqual([
+      2, 12, 19,
+    ]);
+    expect([d.shell_lift, d.mount_bar_x.length, d.pole_x.length]).toEqual([
+      0, 0, 0,
+    ]);
+    const bones: TexturedBone[] = geometries[0].bones;
+    const ladder = bones.find((b) => b.name === "ladder") as TexturedBone;
+    expect(ladder.pivot).toEqual([16, 2, 0]);
+    expect(
+      ladder.cubes?.map((c) => [c.origin, c.size, Object.values(c.uv)[0]?.uv]),
+    ).toEqual([
+      [
+        [16, -32, -6],
+        [1, 34, 1],
+        [8, 4],
+      ],
+      [
+        [16, -32, 5],
+        [1, 34, 1],
+        [8, 4],
+      ],
+      [
+        [16, -29, -5],
+        [1, 0.8, 10],
+        [12, 4],
+      ],
+      [
+        [16, -24, -5],
+        [1, 0.8, 10],
+        [12, 4],
+      ],
+      [
+        [16, -19, -5],
+        [1, 0.8, 10],
+        [12, 4],
+      ],
+      [
+        [16, -14, -5],
+        [1, 0.8, 10],
+        [12, 4],
+      ],
+      [
+        [16, -9, -5],
+        [1, 0.8, 10],
+        [12, 4],
+      ],
+      [
+        [16, -4, -5],
+        [1, 0.8, 10],
+        [12, 4],
+      ],
+      [
+        [16, 1, -5],
+        [1, 0.8, 10],
+        [12, 4],
+      ],
+    ]);
+    for (const cube of ladder.cubes ?? []) {
+      expect(cube.pivot).toEqual([16, 2, 0]);
+      expect(cube.rotation).toEqual([0, 0, -15]);
+      expect(
+        new Set(Object.values(cube.uv).map((f) => JSON.stringify(f.uv))).size,
+      ).toBe(1);
+    }
+    const fabric = bones.find((b) => b.name === "fabric") as TexturedBone;
+    const endDetails =
+      fabric.cubes?.filter((c) => c.pivot?.[0] === d.half_width) ?? [];
+    expect(endDetails.length).toBeGreaterThan(0);
+    for (const detail of endDetails) {
+      const points = turnedCorners(fabric, detail);
+      // The skirt touches the platform edge; elevated hood and window hardware clear the rails.
+      for (const [x, y] of points) {
+        if (y > d.end_window_bottom - 1) expect(x).toBeLessThan(16);
+      }
+    }
+    expect(geometries[0].description).toMatchObject({
+      visible_bounds_width: 4,
+      visible_bounds_height: 4,
+      visible_bounds_offset: [0, -0.4, -0.3],
+    });
+    const shellPoints = bones
+      .filter((b) => b.name !== "ladder")
+      .flatMap((b) => (b.cubes ?? []).flatMap((c) => turnedCorners(b, c)));
+    expect(Math.max(...shellPoints.map(([, y]) => y))).toBeLessThanOrEqual(20);
+    const bed = bones.find((b) => b.name === "sleeping_bag") as TexturedBone;
+    for (const cube of bed.cubes ?? []) {
+      for (const [x, y, z] of turnedCorners(bed, cube)) {
+        const roofY =
           d.ridge_height -
           (Math.abs(z) * (d.ridge_height - d.wall_height)) / d.half_roof;
-        expect(Math.abs(y - profile)).toBeLessThan(d.panel_thickness + 0.1);
-      }
-    }
-    const endSheets =
-      shell.cubes?.filter(
-        (c) =>
-          c.rotation?.[2] &&
-          c.size[0] === d.panel_thickness &&
-          c.size[2] > d.half_depth &&
-          Object.values(c.uv).every((f) => f.uv[0] === 0 && f.uv[1] === 0),
-      ) ?? [];
-    expect(endSheets).toHaveLength(2 + d.end_window_sides.length);
-    for (const panel of endSheets) {
-      expect(panel.size[0]).toBe(d.panel_thickness);
-      for (const [x, y] of turnedCorners(shell, panel)) {
-        const profile =
+        const endX =
           d.half_width -
-          ((y - d.shell_lift - d.platform_height) * d.end_inset) /
+          ((y - d.platform_height) * d.end_inset) /
             (d.wall_height - d.platform_height);
-        expect(Math.abs(Math.abs(x) - profile)).toBeLessThan(d.panel_thickness);
+        expect(y).toBeLessThan(roofY);
+        expect(Math.abs(x)).toBeLessThan(endX - d.panel_thickness);
       }
     }
-    const longSides =
-      shell.cubes?.filter(
-        (c) =>
-          !c.rotation?.[0] &&
-          Math.abs(c.origin[2]) >= d.half_depth - d.panel_thickness &&
-          c.origin[1] < d.wall_height + d.shell_lift &&
-          c.size[2] <= d.panel_thickness + d.frame_thickness,
-      ) ?? [];
-    expect(longSides.length).toBeGreaterThan(0);
-    for (const panel of longSides) {
-      for (const [x, y] of turnedCorners(shell, panel)) {
-        const edge =
-          d.half_width -
-          ((y - d.shell_lift - d.platform_height) * d.end_inset) /
-            (d.wall_height - d.platform_height);
-        expect(Math.abs(x)).toBeLessThanOrEqual(
-          edge +
-            d.panel_thickness *
-              Math.max(0.5, d.end_inset / (d.wall_height - d.platform_height)) +
-            d.seam_proud,
-        );
-      }
-    }
-    const gableCourses = Math.ceil(
-      (d.ridge_height - d.wall_height) / d.panel_thickness,
-    );
-    const gables =
-      shell.cubes?.filter(
-        (c) =>
-          !c.rotation &&
-          c.origin[1] >= d.wall_height + d.shell_lift &&
-          c.size[0] === d.panel_thickness &&
-          Object.values(c.uv).every((f) => f.uv[0] === 0 && f.uv[1] === 0),
-      ) ?? [];
-    expect(gables).toHaveLength(2 * gableCourses);
-    for (const strip of gables) {
-      const low = strip.origin[1] - d.shell_lift;
-      const halfZ =
-        (d.half_roof * (d.ridge_height - low)) /
-        (d.ridge_height - d.wall_height);
-      expect(strip.origin[2]).toBeCloseTo(-halfZ, 2);
-      expect(strip.size[2]).toBeCloseTo(2 * halfZ, 2);
-      expect(strip.size[1]).toBeCloseTo(
-        (d.ridge_height - d.wall_height) / gableCourses,
-        3,
-      );
-      expect(Math.abs(strip.origin[0] + strip.size[0] / 2)).toBeCloseTo(
-        d.half_width -
-          ((low - d.platform_height) * d.end_inset) /
-            (d.wall_height - d.platform_height),
-        2,
-      );
-    }
-    const mesh =
-      shell.cubes?.filter((c) =>
-        Object.values(c.uv).every((f) => f.uv[0] === 4 && f.uv[1] === 8),
-      ) ?? [];
-    expect(mesh).toHaveLength(2 + d.end_window_sides.length);
-    for (const window of mesh) {
-      expect(Math.min(...window.size)).toBeLessThan(d.panel_thickness);
-      const endWindow = Boolean(window.rotation?.[2]);
-      if (endWindow) {
-        expect(window.size[1]).toBeCloseTo(
-          d.end_window_top - d.end_window_bottom,
-        );
-        expect(window.size[2]).toBe(2 * d.end_window_half_depth);
-      }
-      const [wx, wy, wz] = window.origin;
-      const [ww, wh, wd] = window.size;
-      for (const opaque of shell.cubes?.filter(
-        (c) =>
-          !mesh.includes(c) &&
-          JSON.stringify(c.rotation) === JSON.stringify(window.rotation) &&
-          JSON.stringify(c.pivot) === JSON.stringify(window.pivot),
-      ) ?? []) {
-        const [x, y, z] = opaque.origin;
-        const [w, h, depth] = opaque.size;
-        expect(
-          x < wx + ww - 0.01 &&
-            x + w > wx + 0.01 &&
-            y < wy + wh - 0.01 &&
-            y + h > wy + 0.01 &&
-            z < wz + wd &&
-            z + depth > wz,
-        ).toBe(false);
-      }
-    }
-    const flap = bones.find((b) => b.name === "flap") as TexturedBone;
-    expect(flap.cubes).toHaveLength(1 + 2 + 4 + 1);
-    expect(
-      flap.cubes
-        ?.slice(1)
-        .every((c) =>
-          Object.values(c.uv).every((f) => f.uv[0] === 8 && f.uv[1] === 4),
-        ),
-    ).toBe(true);
-    expect(flap.cubes?.at(-1)?.size[0]).toBe(d.flap_strap_width);
-    const flapCube = flap.cubes?.[0];
-    expect(flap.pivot).toEqual([0, flapCube?.origin[1], -d.half_depth]);
-    expect(flapCube?.size[0]).toBe(2 * d.doorway_half_width);
-    expect(flapCube?.size[2]).toBe(d.panel_thickness);
-    const body = bones.find((b) => b.name === "body") as TexturedBone;
-    const postCount = d.pole_x.length * 2;
-    expect(body.cubes).toHaveLength(
-      1 + postCount + d.mount_bar_x.length * (1 + d.mount_foot_z.length),
-    );
-    for (const post of body.cubes?.slice(1, 1 + postCount) ?? []) {
-      for (const [x, y, z] of turnedCorners(body, post)) {
-        expect(Math.abs(x)).toBeLessThan(
-          d.half_width -
-            ((y - d.shell_lift - d.platform_height) * d.end_inset) /
-              (d.wall_height - d.platform_height),
-        );
-        expect(Math.abs(z)).toBeLessThan(d.half_depth);
-      }
-    }
+  });
+
+  it("preserves the SUV ground-reaching rear-left ladder", () => {
+    const d = suvDims;
+    const bones: TexturedBone[] = geometries[1].bones;
     const ladder = bones.find((b) => b.name === "ladder") as TexturedBone;
     expect(ladder.pivot).toEqual([
       d.ladder_pivot[0],
@@ -515,19 +671,19 @@ describe("roof tent asset contract", () => {
         ),
     );
     for (const patch of tape) {
-      expect(patch.origin[0] + patch.size[0]).toBeCloseTo(
-        d.ladder_pivot[0] - d.ladder_rail_width,
+      expect(patch.origin[0]).toBeCloseTo(
+        d.ladder_pivot[0] + d.ladder_rail_width,
       );
       expect(patch.size[0]).toBe(d.ladder_tape_thickness);
       expect(patch.size[2]).toBe(d.ladder_tape_length);
     }
     expect(rails.map((c) => c.origin[2])).toEqual(d.ladder_rails_z);
     const corners = rails.flatMap((c) => turnedCorners(ladder, c));
-    expect(Math.max(...corners.map(([x]) => x))).toBeCloseTo(
+    expect(Math.min(...corners.map(([x]) => x))).toBeCloseTo(
       d.ladder_pivot[0],
       3,
     );
-    expect(d.ladder_pivot[0]).toBeLessThan(-d.half_width);
+    expect(d.ladder_pivot[0]).toBeGreaterThan(d.half_width);
     expect(Math.min(...corners.map(([, y]) => y))).toBeCloseTo(
       d.ladder_foot[1],
       3,
@@ -535,7 +691,7 @@ describe("roof tent asset contract", () => {
     expect(d.ladder_foot[1] + d.host_roof_height).toBeCloseTo(0, 3);
     expect(SUV_SPEC.roofTentRoofHeight * 16).toBeCloseTo(d.host_roof_height);
     expect(SUV_SPEC.roofTentEntranceX).toBeCloseTo(
-      SUV_SPEC.roofTentAnchorX - d.ladder_foot[0] / 16,
+      SUV_SPEC.roofTentAnchorX + d.ladder_foot[0] / 16,
     );
     expect(SUV_SPEC.roofTentEntranceZ).toBeCloseTo(
       SUV_SPEC.roofTentAnchorZ - d.ladder_pivot[2] / 16,
@@ -574,148 +730,157 @@ describe("roof tent asset contract", () => {
         }
   });
 
-  it("adds raised piping, a shallow ridge cap, skirt, toggles, and rack hardware", () => {
-    const d = suvDims;
-    const bones: TexturedBone[] = geometries[1].bones;
-    const fabric = bones.find((b) => b.name === "fabric")?.cubes ?? [];
-    const swatch = (cube: (typeof fabric)[number], u: number, v: number) =>
-      Object.values(cube.uv).every(
-        (face) => face.uv[0] === u && face.uv[1] === v,
+  it.each([false, true])(
+    "adds raised piping, ridge cap, skirt, toggles, and configured rack hardware (SUV: %s)",
+    (suv) => {
+      const d = suv ? suvDims : groundDims;
+      const bones: TexturedBone[] = geometries[suv ? 1 : 0].bones;
+      const fabric = bones.find((b) => b.name === "fabric")?.cubes ?? [];
+      const swatch = (cube: (typeof fabric)[number], u: number, v: number) =>
+        Object.values(cube.uv).every(
+          (face) => face.uv[0] === u && face.uv[1] === v,
+        );
+      const seams = fabric.filter((c) => swatch(c, 8, 4));
+      // Include roof outlines, gable edges, toggles, and the static rear flap seams.
+      expect(seams).toHaveLength(
+        2 * (4 + 2 * d.zip_chamfer_steps + 2 + 2 + 8 + 8 + 2) +
+          4 * Math.ceil((d.ridge_height - d.wall_height) / d.panel_thickness) -
+          4 +
+          2 +
+          1 +
+          4 +
+          9 * d.end_window_sides.length +
+          7 +
+          (2 - d.end_window_sides.length) * (4 + 2 * d.zip_chamfer_steps),
       );
-    const seams = fabric.filter((c) => swatch(c, 8, 4));
-    // Include roof outlines, gable edges, toggles, and the static rear flap seams.
-    expect(seams).toHaveLength(
-      2 * (4 + 2 * d.zip_chamfer_steps + 2 + 2 + 8 + 8 + 2) +
-        4 * Math.ceil((d.ridge_height - d.wall_height) / d.panel_thickness) -
-        4 +
-        2 +
-        1 +
-        4 +
-        9 * d.end_window_sides.length +
-        7 +
-        (2 - d.end_window_sides.length) * (4 + 2 * d.zip_chamfer_steps),
-    );
-    expect(seams.filter((c) => c.rotation?.[2])).toHaveLength(
-      2 * (4 + 2) +
-        9 * d.end_window_sides.length +
-        (2 - d.end_window_sides.length) * (4 + 2 * d.zip_chamfer_steps),
-    );
-    for (const seam of seams) {
-      expect(Math.min(...seam.size)).toBeLessThanOrEqual(
-        Math.max(d.frame_thickness, d.panel_thickness),
+      expect(seams.filter((c) => c.rotation?.[2])).toHaveLength(
+        2 * (4 + 2) +
+          9 * d.end_window_sides.length +
+          (2 - d.end_window_sides.length) * (4 + 2 * d.zip_chamfer_steps),
       );
-    }
-    const caps = fabric.filter((c) => c.rotation?.[0] && swatch(c, 4, 0));
-    expect(caps).toHaveLength(2);
-    for (const cap of caps) {
-      expect(cap.size[0]).toBeCloseTo(2 * (d.half_width - d.end_inset));
-      expect(cap.size[1]).toBe(d.ridge_cap_thickness);
-      expect(cap.size[2]).toBeCloseTo(
-        Math.hypot(d.ridge_cap_half_depth, d.ridge_cap_rise),
-        3,
+      for (const seam of seams) {
+        expect(Math.min(...seam.size)).toBeLessThanOrEqual(
+          Math.max(d.frame_thickness, d.panel_thickness),
+        );
+      }
+      const caps = fabric.filter((c) => c.rotation?.[0] && swatch(c, 4, 0));
+      expect(caps).toHaveLength(2);
+      for (const cap of caps) {
+        expect(cap.size[0]).toBeCloseTo(2 * (d.half_width - d.end_inset));
+        expect(cap.size[1]).toBe(d.ridge_cap_thickness);
+        expect(cap.size[2]).toBeCloseTo(
+          Math.hypot(d.ridge_cap_half_depth, d.ridge_cap_rise),
+          3,
+        );
+        expect(Math.abs(cap.rotation?.[0] ?? 0)).toBeCloseTo(
+          (Math.atan2(d.ridge_cap_rise, d.ridge_cap_half_depth) * 180) /
+            Math.PI,
+          3,
+        );
+      }
+      const skirts = fabric.filter(
+        (c) =>
+          !c.rotation &&
+          c.origin[1] === d.platform_height + d.shell_lift &&
+          c.size[0] === 2 * d.half_width,
       );
-      expect(Math.abs(cap.rotation?.[0] ?? 0)).toBeCloseTo(
-        (Math.atan2(d.ridge_cap_rise, d.ridge_cap_half_depth) * 180) / Math.PI,
-        3,
+      expect(skirts).toHaveLength(2);
+      const toggles = fabric.filter(
+        (c) =>
+          swatch(c, 8, 4) &&
+          c.size[0] === d.toggle_length &&
+          c.size[1] === d.toggle_height,
       );
-    }
-    const skirts = fabric.filter(
-      (c) =>
-        !c.rotation &&
-        c.origin[1] === d.platform_height + d.shell_lift &&
-        c.size[0] === 2 * d.half_width,
-    );
-    expect(skirts).toHaveLength(2);
-    const toggles = fabric.filter(
-      (c) =>
-        swatch(c, 8, 4) &&
-        c.size[0] === d.toggle_length &&
-        c.size[1] === d.toggle_height,
-    );
-    expect(toggles).toHaveLength(2 * 4);
-    const hardware =
-      bones
-        .find((b) => b.name === "body")
-        ?.cubes?.slice(1 + 2 * d.pole_x.length) ?? [];
-    expect(hardware).toHaveLength(
-      d.mount_bar_x.length * (1 + d.mount_foot_z.length),
-    );
-    const base = bones.find((b) => b.name === "body")?.cubes?.[0];
-    expect(base && swatch(base, 8, 4)).toBe(true);
-    for (const cube of hardware) {
-      expect(swatch(cube, 8, 4)).toBe(true);
-      expect(cube.origin[1]).toBeGreaterThanOrEqual(0);
-      expect(cube.origin[1] + cube.size[1]).toBeLessThanOrEqual(d.shell_lift);
-    }
-    // Leave room for detail while guarding against accidentally multiplying sheet courses.
-    expect(bones.flatMap((b) => b.cubes ?? []).length).toBeLessThan(
-      400 + 6 * d.zip_chamfer_steps,
-    );
-  });
+      expect(toggles).toHaveLength(2 * 4);
+      const hardware =
+        bones
+          .find((b) => b.name === "body")
+          ?.cubes?.slice(1 + 2 * d.pole_x.length) ?? [];
+      expect(hardware).toHaveLength(
+        d.mount_bar_x.length * (1 + d.mount_foot_z.length),
+      );
+      const base = bones.find((b) => b.name === "body")?.cubes?.[0];
+      expect(base && swatch(base, 8, 4)).toBe(true);
+      for (const cube of hardware) {
+        expect(swatch(cube, 8, 4)).toBe(true);
+        expect(cube.origin[1]).toBeGreaterThanOrEqual(0);
+        expect(cube.origin[1] + cube.size[1]).toBeLessThanOrEqual(d.shell_lift);
+      }
+      // Leave room for detail while guarding against accidentally multiplying sheet courses.
+      expect(bones.flatMap((b) => b.cubes ?? []).length).toBeLessThan(
+        400 + 6 * d.zip_chamfer_steps,
+      );
+    },
+  );
 
-  it("keeps the opposite-end zip door on the sheet with chamfered top corners", () => {
-    const d = suvDims;
-    const fabric: TexturedBone = geometries[1].bones.find(
-      (b: TexturedBone) => b.name === "fabric",
-    );
-    const sheet = fabric.cubes?.find(
-      (c) => c.pivot?.[0] === d.half_width && c.size[2] === 2 * d.half_depth,
-    );
-    expect(sheet).toBeDefined();
-    const face = d.half_width + d.panel_thickness / 2 + d.seam_proud;
-    const outline =
-      fabric.cubes?.filter(
-        (c) => Math.abs(c.origin[0] - (face - d.seam_width / 2)) < 0.001,
-      ) ?? [];
-    expect(outline).toHaveLength(4 + 2 * d.zip_chamfer_steps);
-    const half = d.half_depth * d.end_zip_depth_fraction;
-    const length = Math.hypot(d.wall_height - d.platform_height, d.end_inset);
-    const bottom =
-      d.shell_lift +
-      d.platform_height +
-      (length * (1 - d.end_zip_height_fraction)) / 2;
-    const top = bottom + length * d.end_zip_height_fraction;
-    for (const seam of outline) {
-      expect(seam.pivot).toEqual(sheet?.pivot);
-      expect(seam.rotation).toEqual(sheet?.rotation);
-      expect(seam.size[0]).toBeCloseTo(d.seam_width);
-      expect(seam.origin[1]).toBeGreaterThanOrEqual(bottom - 0.001);
-      expect(Math.abs(seam.origin[2])).toBeLessThanOrEqual(half + 0.001);
-    }
-    const [floor, left, right, ceiling, ...chamfers] = outline;
-    expect(floor?.size[2]).toBeCloseTo(2 * half);
-    expect(floor?.origin[1]).toBeCloseTo(bottom, 3);
-    expect(ceiling?.origin[1]).toBeCloseTo(top - d.seam_width, 3);
-    expect(ceiling?.size[2]).toBeCloseTo(2 * (half - d.zip_chamfer));
-    for (const side of [left, right]) {
-      expect((side?.origin[1] ?? 0) + (side?.size[1] ?? 0)).toBeCloseTo(
-        top - d.zip_chamfer,
-        2,
+  it.each([false, true])(
+    "keeps the opposite-end zip door on the sheet with chamfered top corners (SUV: %s)",
+    (suv) => {
+      const d = suv ? suvDims : groundDims;
+      const fabric: TexturedBone = geometries[suv ? 1 : 0].bones.find(
+        (b: TexturedBone) => b.name === "fabric",
       );
-    }
-    expect(chamfers).toHaveLength(2 * d.zip_chamfer_steps);
-    expect(new Set(chamfers.map((c) => c.origin[1])).size).toBe(
-      d.zip_chamfer_steps,
-    );
-    const ladder: TexturedBone = geometries[1].bones.find(
-      (b: TexturedBone) => b.name === "ladder",
-    );
-    const ladderTop = Math.max(
-      ...(ladder.cubes ?? []).flatMap((c) =>
-        turnedCorners(ladder, c).map(([, y]) => y),
-      ),
-    );
-    const windowBottom = Math.min(
-      ...(fabric.cubes ?? [])
-        .filter(
-          (c) =>
-            c.rotation?.[2] &&
-            Object.values(c.uv).every((f) => f.uv[0] === 4 && f.uv[1] === 8),
-        )
-        .flatMap((c) => turnedCorners(fabric, c).map(([, y]) => y)),
-    );
-    expect(ladderTop).toBeLessThan(windowBottom);
-  });
+      const sheet = fabric.cubes?.find(
+        (c) => c.pivot?.[0] === -d.half_width && c.size[2] === 2 * d.half_depth,
+      );
+      expect(sheet).toBeDefined();
+      const face = -d.half_width - d.panel_thickness / 2 - d.seam_proud;
+      const outline =
+        fabric.cubes?.filter(
+          (c) => Math.abs(c.origin[0] - (face - d.seam_width / 2)) < 0.001,
+        ) ?? [];
+      expect(outline).toHaveLength(4 + 2 * d.zip_chamfer_steps);
+      const half = d.half_depth * d.end_zip_depth_fraction;
+      const length = Math.hypot(d.wall_height - d.platform_height, d.end_inset);
+      const bottom =
+        d.shell_lift +
+        d.platform_height +
+        (length * (1 - d.end_zip_height_fraction)) / 2;
+      const top = bottom + length * d.end_zip_height_fraction;
+      for (const seam of outline) {
+        expect(seam.pivot).toEqual(sheet?.pivot);
+        expect(seam.rotation).toEqual(sheet?.rotation);
+        expect(seam.size[0]).toBeCloseTo(d.seam_width);
+        expect(seam.origin[1]).toBeGreaterThanOrEqual(bottom - 0.001);
+        expect(Math.abs(seam.origin[2])).toBeLessThanOrEqual(half + 0.001);
+      }
+      const [floor, left, right, ceiling, ...chamfers] = outline;
+      expect(floor?.size[2]).toBeCloseTo(2 * half);
+      expect(floor?.origin[1]).toBeCloseTo(bottom, 3);
+      expect(ceiling?.origin[1]).toBeCloseTo(top - d.seam_width, 3);
+      expect(ceiling?.size[2]).toBeCloseTo(2 * (half - d.zip_chamfer));
+      for (const side of [left, right]) {
+        expect((side?.origin[1] ?? 0) + (side?.size[1] ?? 0)).toBeCloseTo(
+          top - d.zip_chamfer,
+          2,
+        );
+      }
+      expect(chamfers).toHaveLength(2 * d.zip_chamfer_steps);
+      expect(new Set(chamfers.map((c) => c.origin[1])).size).toBe(
+        d.zip_chamfer_steps,
+      );
+      const ladder: TexturedBone = geometries[suv ? 1 : 0].bones.find(
+        (b: TexturedBone) => b.name === "ladder",
+      );
+      const ladderTop = Math.max(
+        ...(ladder.cubes ?? []).flatMap((c) =>
+          turnedCorners(ladder, c).map(([, y]) => y),
+        ),
+      );
+      const windowBottom = Math.min(
+        ...(fabric.cubes ?? [])
+          .filter(
+            (c) =>
+              c.rotation?.[2] &&
+              Object.values(c.uv).every((f) => f.uv[0] === 4 && f.uv[1] === 8),
+          )
+          .flatMap((c) => turnedCorners(fabric, c).map(([, y]) => y)),
+      );
+      // The ground/camper ladder is kept unchanged for the camper, so only the
+      // SUV ladder is required to stay below the end window.
+      if (suv) expect(ladderTop).toBeLessThan(windowBottom);
+    },
+  );
 
   it("ships all sixteen paints and recolors only fabric swatches", () => {
     const folder = `${RP}/textures/entity/yasu_ride`;
@@ -796,4 +961,20 @@ describe("roof tent asset contract", () => {
       ]);
     }
   });
+});
+
+it("ships the seated occupant hint in both supported locales", () => {
+  for (const locale of ["en_US", "ja_JP"]) {
+    const lines = readFileSync(`${RP}/texts/${locale}.lang`, "utf8").split(
+      "\n",
+    );
+    const hint = lines.find((line) =>
+      line.startsWith(`${ROOF_TENT_SEATED_HINT}=`),
+    );
+    expect(hint?.slice(ROOF_TENT_SEATED_HINT.length + 1).trim()).toBeTruthy();
+    if (locale === "en_US")
+      expect(hint).toBe(
+        `${ROOF_TENT_SEATED_HINT}=Use any item to open the menu. The dismount button gets you out.`,
+      );
+  }
 });

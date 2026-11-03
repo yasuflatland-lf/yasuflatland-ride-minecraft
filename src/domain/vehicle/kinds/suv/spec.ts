@@ -2,7 +2,9 @@ import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
 const ROOF_TENT_SHELL_HALF_WIDTH = 1.2 * 1.64;
-const ROOF_TENT_ANCHOR_X = ROOF_TENT_SHELL_HALF_WIDTH - 1.64;
+const ROOF_TENT_LEFT_SHIFT = 0.875;
+const ROOF_TENT_ANCHOR_X =
+  ROOF_TENT_SHELL_HALF_WIDTH - 1.64 + ROOF_TENT_LEFT_SHIFT;
 const ROOF_TENT_ANCHOR_Z = -0.605;
 
 // The SUV's own tuning values (ADR 0055). See docs/adr/0002-0008 for the rationale.
@@ -28,7 +30,7 @@ export const SUV_SPEC = Object.freeze({
   footprint: 3.4, // the rear hover glow reaches 3.396322 blocks at its farthest corner (ADR 0122, 0194)
   // ROOF_TOP scaled by SIZE_SCALE in tools/suv_dims.py, above the collision box.
   roofTentRoofHeight: (26.1 * 1.45) / 16,
-  // Keep the right platform edge flush with the body; the rest overhangs left.
+  // An additional left offset clears the ladder from the SUV body.
   roofTentAnchorX: ROOF_TENT_ANCHOR_X,
   roofTentAnchorZ: ROOF_TENT_ANCHOR_Z, // Between the front and rear seats.
   roofTentLadder: true,

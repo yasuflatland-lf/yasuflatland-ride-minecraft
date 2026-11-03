@@ -78,6 +78,7 @@ const ui = vi.hoisted(() => {
   return { answers, forms, Form };
 });
 vi.mock("@minecraft/server-ui", () => ({
+  FormCancelationReason: { UserBusy: "UserBusy", UserClosed: "UserClosed" },
   ActionFormData: ui.Form,
   ModalFormData: ui.Form,
 }));

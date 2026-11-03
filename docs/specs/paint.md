@@ -10,6 +10,7 @@
 - Source: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md)
 - Excluded: [0192](../adr/0192-suv-detailed-body.md): supersedes in part 0031's texture size and paint-dependent regions for SUV body detail, covered by the SUV body topic
 - Excluded: [0136](../adr/0136-bulldozer.md): extends 0031 and 0076 for the bulldozer, covered by the bulldozer topic
+- Excluded: [0207](../adr/0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md): temporary occupied roof tent rain ceilings belong to the camping gear topic.
 
 ## Rules
 
