@@ -1,36 +1,14 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import { type Bone as GeometryBone, turnedCorners } from "../support/geometry";
+import { constant, dimension } from "../support/suvDimensions";
 
 type Vec = [number, number, number];
 type Bone = { name: string; pivot: Vec; locators?: Record<string, Vec> };
 type Position = Vec | Record<string, Vec>;
 
-const script = [
-  "import contextlib, io, json, sys, tempfile",
-  "sys.path.insert(0, 'tools')",
-  "from tool_loader import load_tool",
-  // Loading the generator writes assets; keep them out of the repository.
-  "with tempfile.TemporaryDirectory() as output:",
-  "    sys.argv = ['gen_model.py', output]",
-  "    with contextlib.redirect_stdout(io.StringIO()):",
-  "        g = load_tool('gen_model')",
-  "    print(json.dumps({k: v for k, v in vars(g).items() if k.isupper() and isinstance(v, (int, float))}))",
-].join("\n");
-const d = JSON.parse(
-  execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
-) as Record<string, number>;
-const constant = (name: string): number => {
-  const value = d[name];
-  if (value === undefined) throw new Error(`Missing dimension ${name}`);
-  return value;
-};
-// Construction lengths reach the exported model scaled by SIZE_SCALE (ADR 0170).
-const dimension = (name: string): number =>
-  Number((constant(name) * constant("SIZE_SCALE")).toFixed(12));
 const model = JSON.parse(
   readFileSync(
     "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",

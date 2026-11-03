@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { defined } from "../support/defined";
 import { expectContiguous, speedRanges } from "../support/soundLevels";
+import { dimension } from "../support/suvDimensions";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const RP = "packs/yasu_ride_rp";
@@ -97,14 +98,29 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
     }
   });
 
-  it("folds every wheel 90 degrees, lowers it 5.8 px and moves it 8.7 px out, with the two sides turning opposite ways", () => {
+  it("folds every wheel outside the overfenders with its top face under the shaft", () => {
     const folded = anims["animation.yasu_ride.suv.wheels_folded"].bones;
     for (const w of WHEELS) {
       expect(Math.abs(folded[w].rotation[2]), w).toBe(90);
       // Animation positions run along the model's axes (ADR 0043), so the
       // outward step takes the sign of the wheel's side.
       const outward = Math.sign(geoPivot(w)[0] ?? 0);
-      expect(folded[w].position, w).toEqual([8.7 * outward, -5.8, 0]);
+      expect(folded[w].position, w).toEqual([
+        dimension("FOLD_OUT") * outward,
+        -dimension("FOLD_DROP"),
+        0,
+      ]);
+      const hub =
+        Math.abs(geoPivot(w)[0] ?? 0) + Math.abs(folded[w].position[0]);
+      expect(hub - dimension("ROAD_WHEEL_RADIUS")).toBeCloseTo(
+        dimension("OVERFENDER_HALF_WIDTH") + dimension("FOLD_CLEARANCE"),
+        10,
+      );
+      expect(
+        (geoPivot(w)[1] ?? 0) +
+          folded[w].position[1] +
+          dimension("TIRE_HALF_WIDTH"),
+      ).toBeCloseTo(dimension("ARM_ROOT_Y") - dimension("ARM_THICK") / 2, 10);
     }
     expect(folded.wheel_fl.rotation[2]).toBe(-folded.wheel_fr.rotation[2]);
     expect(folded.wheel_rl.rotation[2]).toBe(folded.wheel_fl.rotation[2]);
@@ -134,13 +150,13 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
       anims[`animation.yasu_ride.suv.${anim}`].bones[b]?.scale;
     for (const b of arms) {
       expect(scaleIn("wheels_deploy", b), b).toEqual({
-        "0.0": [0, 0, 0],
+        "0.0": [0, 1, 1],
         "1.0": [1, 1, 1],
       });
       expect(scaleIn("wheels_folded", b), b).toEqual([1, 1, 1]);
       expect(scaleIn("wheels_retract", b), b).toEqual({
         "0.0": [1, 1, 1],
-        "1.0": [0, 0, 0],
+        "1.0": [0, 1, 1],
       });
       for (const anim of ["wheels", "dive", "submerged", "surface"])
         expect(scaleIn(anim, b), `${anim} ${b}`).toEqual([0, 0, 0]);

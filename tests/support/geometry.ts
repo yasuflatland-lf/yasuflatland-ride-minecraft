@@ -1,4 +1,4 @@
-type Triple = [number, number, number];
+export type Triple = [number, number, number];
 
 interface Cube {
   origin: Triple;
@@ -34,7 +34,7 @@ function corners(cube: Cube): Triple[] {
 
 // As tools/render_preview.py's rotate() with game_turn(): x, then y, then z, with x and
 // z turning the other way in game (ADR 0051, 0058).
-function turn(point: Triple, pivot: Triple, rotation: Triple): Triple {
+export function turn(point: Triple, pivot: Triple, rotation: Triple): Triple {
   let x = point[0] - pivot[0];
   let y = point[1] - pivot[1];
   let z = point[2] - pivot[2];
