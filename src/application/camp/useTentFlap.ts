@@ -23,7 +23,7 @@ export class UseTentFlap {
     // Checked before the toggle, so a refused close does not use up the window.
     if (
       flaps.isOpen(cmd.flap) &&
-      this.world.isFlapBlocked(cmd.tentId, cmd.flap)
+      !this.world.clearPlayersForClose(cmd.tentId, cmd.flap)
     ) {
       if (cmd.playerId !== undefined) this.world.showFlapBlocked(cmd.playerId);
       return false;

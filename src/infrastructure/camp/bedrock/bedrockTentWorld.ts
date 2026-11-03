@@ -3,6 +3,7 @@ import {
   type Dimension,
   type Entity,
   ItemStack,
+  type Player,
   world,
 } from "@minecraft/server";
 import type { LegacyTentWorld } from "../../../application/camp/ports/legacyTent";
@@ -37,6 +38,7 @@ import {
   tentFootprintBox,
   tentGroundCells,
 } from "../../../domain/camp/tent";
+import { tentFlapExitCells } from "../../../domain/camp/tentFlapExit";
 import type { TentEntry } from "../../../domain/camp/tentRegistry";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
@@ -58,6 +60,7 @@ import {
   TENT_HITS_LEFT_HINT,
   TENT_ITEM,
   TENT_OCCUPIED_HINT,
+  TENT_OPEN_STATE,
   TENT_TYPE,
 } from "../identifiers";
 import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
@@ -85,27 +88,14 @@ function blockAt(dimension: Dimension | undefined, at: Vec3) {
   }
 }
 
-// A volume query matches an entity by its location (the feet), but a closed flap fills
-// its whole cell, so the box reaches out by half a player's or a zombie's 0.6 width to
-// catch a body that leans into the cell from the next one (ADR 0132).
-const FLAP_BLOCKER_REACH = 0.3;
-
-/** The query box for the entities whose body can overlap `cell`. */
+// Only feet inside a flap cell need checking; neighbouring bodies add no reach (ADR 0212).
 function flapBlockerBox(cell: Vec3): {
   location: Vec3;
   volume: Vec3;
 } {
   return {
-    location: {
-      x: cell.x - FLAP_BLOCKER_REACH,
-      y: cell.y,
-      z: cell.z - FLAP_BLOCKER_REACH,
-    },
-    volume: {
-      x: 1 + 2 * FLAP_BLOCKER_REACH,
-      y: 1,
-      z: 1 + 2 * FLAP_BLOCKER_REACH,
-    },
+    location: cell,
+    volume: { x: 1, y: 1, z: 1 },
   };
 }
 
@@ -159,16 +149,47 @@ export class BedrockTentWorld
     return tent ? this.deps.flaps.flapsOf(tent) : undefined;
   }
 
-  isFlapBlocked(tentId: TentId, flap: FlapId): boolean {
+  clearPlayersForClose(tentId: TentId, flap: FlapId): boolean {
     const entry = this.entryOf(tentId);
-    if (!entry) return false;
+    if (!entry) return true;
     const dimension = dimensionOf(entry.dimensionId);
-    if (!dimension) return false;
-    return flapCells(entry.pose, flap).some((cell) => {
+    if (!dimension) return true;
+    const cells = flapCells(entry.pose, flap);
+    const moves = new Map<Player, Vec3>();
+    for (const cell of cells) {
       const box = flapBlockerBox(cell);
+      if (dimension.getEntities({ ...box, families: ["mob"] }).length > 0)
+        return false;
+      for (const player of dimension.getPlayers(box)) {
+        const target = tentFlapExitCells(
+          entry.pose,
+          flap,
+          cell,
+          player.location,
+        ).find((at) => this.isFlapExitFree(dimension, at));
+        if (!target) return false;
+        moves.set(player, {
+          x: target.x + 0.5,
+          y: player.location.y,
+          z: target.z + 0.5,
+        });
+      }
+    }
+    for (const [player, target] of moves)
+      player.teleport(target, {
+        keepVelocity: false,
+        rotation: player.getRotation(),
+      });
+    return true;
+  }
+
+  private isFlapExitFree(dimension: Dimension, cell: Cell): boolean {
+    return [cell, { ...cell, y: cell.y + 1 }].every((at) => {
+      const block = blockAt(dimension, at);
       return (
-        dimension.getPlayers(box).length > 0 ||
-        dimension.getEntities({ ...box, families: ["mob"] }).length > 0
+        block?.typeId === AIR_BLOCK ||
+        (block?.typeId === TENT_FLAP_BLOCK &&
+          block.permutation.getAllStates()[TENT_OPEN_STATE] === true)
       );
     });
   }

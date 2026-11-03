@@ -137,7 +137,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted; extended by [0131](0131-pitch-a-tent-in-the-camp.md), [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md), [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) |
 | [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) | A tent entity whose hits land on its blocks | Proposed; superseded in part by [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md); extended by [0131](0131-pitch-a-tent-in-the-camp.md), [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) |
 | [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; superseded in part by [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md); extended by [0132](0132-open-and-close-each-tent-flap-alone.md), [0133](0133-sleep-on-the-tent-mattresses.md), [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md), [0135](0135-repaint-the-tent-with-dyes.md), [0200](0200-roof-tent-as-a-host-bound-camp-entity.md), [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md), [0208](0208-fold-tents-with-older-layouts-on-load.md) |
-| [0132](0132-open-and-close-each-tent-flap-alone.md) | Open and close each tent flap alone | Proposed; extended by [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) |
+| [0132](0132-open-and-close-each-tent-flap-alone.md) | Open and close each tent flap alone | Proposed; superseded in part by [0212](0212-close-a-tent-flap-beside-a-neighbouring-body.md); extended by [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) |
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed; extended by [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed; extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md), [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) |
 | [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed; extended by [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) |
@@ -216,6 +216,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) | Lay the ground tent as a trapezoid of stepped cells | Proposed; superseded in part by [0211](0211-derive-the-ground-tent-lean-from-the-reference-photos.md) |
 | [0210](0210-defer-legacy-tent-folding-in-unloaded-chunks.md) | Defer legacy tent folding in unloaded chunks | Proposed |
 | [0211](0211-derive-the-ground-tent-lean-from-the-reference-photos.md) | Derive the ground tent lean from the reference photos | Proposed |
+| [0212](0212-close-a-tent-flap-beside-a-neighbouring-body.md) | Close a tent flap beside a neighbouring body | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
