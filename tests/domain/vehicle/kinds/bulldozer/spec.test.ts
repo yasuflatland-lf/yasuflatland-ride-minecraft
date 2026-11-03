@@ -42,6 +42,7 @@ it("copies the SUV's flight and water values, with its own body", () => {
     "submarineStepProbeDrop",
     "gearDownHeight",
     "bankRate",
+    "bankEasing",
     "bankSink",
   ] as const)
     expect(T[k]).toBe(SUV_TRANSFORMING[k]);
