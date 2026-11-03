@@ -20,6 +20,8 @@ HARDTOP_GRAIN = 2
 GROOVE_RELIEF = -2
 RECESS_RELIEF = -1
 RECESS_PADDING_TEXELS = 2
+# Just inboard of the tail lamps; a whole number of texels wide so the panel maps onto its region exactly.
+TAILGATE_HALF_WIDTH = 9.5
 
 DETAIL_DELTAS = {"groove": -GROOVE_DARKEN, "highlight": HIGHLIGHT_LIGHTEN,
                  "recess": -GROOVE_DARKEN // 2, "recess_highlight": HIGHLIGHT_LIGHTEN}
@@ -36,7 +38,7 @@ def panel(name, w, h, base="body", scale=REGION_DENSITY):
 
 PANEL_EXTENTS = {
     "hood_top": (2 * DIMS.chassis.body_half_width, DIMS.hood.front_z - DIMS.hood.rear_z),
-    "tailgate": (2 * DIMS.chassis.body_half_width, DIMS.greenhouse.belt_y - DIMS.chassis.floor_y),
+    "tailgate": (2 * TAILGATE_HALF_WIDTH, DIMS.greenhouse.belt_y - DIMS.chassis.floor_y),
     "door_front": (DIMS.cabin.front_door_hinge_z - DIMS.cabin.b_pillar_front_z, DIMS.greenhouse.belt_y - DIMS.chassis.floor_y),
     "door_rear": (DIMS.cabin.b_pillar_rear_z - DIMS.chassis.cargo_front_z, DIMS.greenhouse.belt_y - DIMS.chassis.floor_y),
 }

@@ -10,6 +10,10 @@ leaning_top = shell.leaning_top
 suv_cubes = load_tool("suv_cubes")
 both_sides = suv_cubes.both_sides
 REARVIEW_STAY_LENGTH = 2.5 / 3
+ROOF_PANEL_INSET = 0.3
+ROOF_PANEL_HALF_GAP = 0.2
+ROOF_PANEL_THICKNESS = 0.2
+ROOF_RIB_THICKNESS = 0.1
 
 
 def windshield_frame_cubes():
@@ -37,8 +41,9 @@ def rearview_mirror_cubes():
 
 def roof_cubes():
     return [
-        # Black hardtop roof
         box(-DIMS.chassis.body_half_width, DIMS.greenhouse.roof_y, DIMS.chassis.rear_z, DIMS.chassis.body_half_width, DIMS.greenhouse.roof_top, DIMS.windshield.roof_front, "hardtop"),
+        *both_sides([box(ROOF_PANEL_HALF_GAP, DIMS.greenhouse.roof_top, DIMS.cabin.roof_seam_z + ROOF_PANEL_HALF_GAP, DIMS.chassis.body_half_width - ROOF_PANEL_INSET, DIMS.greenhouse.roof_top + ROOF_PANEL_THICKNESS, DIMS.windshield.roof_front - ROOF_PANEL_INSET, "hardtop")]),
+        box(-DIMS.chassis.body_half_width + ROOF_PANEL_INSET, DIMS.greenhouse.roof_top, DIMS.chassis.rear_z + ROOF_PANEL_INSET, DIMS.chassis.body_half_width - ROOF_PANEL_INSET, DIMS.greenhouse.roof_top + ROOF_PANEL_THICKNESS, DIMS.cabin.roof_seam_z - ROOF_PANEL_HALF_GAP, "hardtop"),
     ]
 
 
@@ -48,14 +53,14 @@ def roof_edge_cubes():
 
 
 def roof_rib_cubes():
-    # Ribs on the hardtop: two front panels split down the middle over the front seats, a seam across,
-    # and long ribs running back over the rear panel
+    rib_bottom = DIMS.greenhouse.roof_top + ROOF_PANEL_THICKNESS
+    rib_top = rib_bottom + ROOF_RIB_THICKNESS
     return [
         box(-0.15, DIMS.greenhouse.roof_top, DIMS.cabin.roof_seam_z, 0.15, DIMS.greenhouse.roof_top + 0.05, DIMS.windshield.roof_front - 0.5, "grille"),
         box(-DIMS.chassis.body_half_width, DIMS.greenhouse.roof_top, DIMS.cabin.roof_seam_z - 0.15, DIMS.chassis.body_half_width, DIMS.greenhouse.roof_top + 0.05, DIMS.cabin.roof_seam_z + 0.15, "grille"),
-        *both_sides([box(x - 0.4, DIMS.greenhouse.roof_top, DIMS.cabin.roof_seam_z + 1.5, x + 0.4, DIMS.greenhouse.roof_top + 0.3, DIMS.windshield.roof_front - 1.5, "hardtop_rib")
+        *both_sides([box(x - 0.4, rib_bottom, DIMS.cabin.roof_seam_z + 1.5, x + 0.4, rib_top, DIMS.windshield.roof_front - 1.5, "hardtop_rib")
                      for x in (3, 6.5, 10)]),
-        *[box(x - 0.4, DIMS.greenhouse.roof_top, DIMS.chassis.rear_z + 2, x + 0.4, DIMS.greenhouse.roof_top + 0.3, DIMS.cabin.roof_seam_z - 1.5, "hardtop_rib")
+        *[box(x - 0.4, rib_bottom, DIMS.chassis.rear_z + 2, x + 0.4, rib_top, DIMS.cabin.roof_seam_z - 1.5, "hardtop_rib")
           for x in (-10.5, -7, -3.5, 0, 3.5, 7, 10.5)],
     ]
 
