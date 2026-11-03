@@ -916,6 +916,16 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "tent_fold_legacy",
+    file: "tent",
+    ticks: 25, // Estimate including the pitch retry window until the first BDS run.
+    features: ["camp"],
+    isolation: "lane",
+    group: "tent",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "tent_pitch_and_take_down",
     file: "tent",
     ticks: 7,

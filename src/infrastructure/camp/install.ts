@@ -4,6 +4,7 @@ import {
 } from "../../application/camp/dutchOven";
 import { EnterRoofTent } from "../../application/camp/enterRoofTent";
 import { FirePitActions } from "../../application/camp/firePit";
+import { FoldLegacyTents } from "../../application/camp/foldLegacyTents";
 import { FoldRoofTent } from "../../application/camp/foldRoofTent";
 import {
   GasLanternActions,
@@ -189,15 +190,16 @@ export function installCamp(deps: {
 
   const pitchTent = new PitchTent(tents);
   const takeDownTent = new TakeDownTent(tents);
+  const foldLegacy = new FoldLegacyTents(tents);
   const paintTent = new PaintTent(new BedrockTentPaintWorld());
   const tentBlockOwner = tents.tentBlockOwner.bind(tents);
   registerTentPlacement(pitchTent);
   registerTentHits(takeDownTent, paintTent, tentBlockOwner);
   registerLaidBlockGuard(tentBlockOwner);
   registerLaidBlockGuard(roofOccupants.ceilingOwner.bind(roofOccupants));
-  registerTentLoop(registry, blocks, flaps);
+  registerTentLoop(registry, blocks, flaps, foldLegacy);
   registerTentLifecycle(registry, blocks);
-  registerTestTent(pitchTent, takeDownTent);
+  registerTestTent(pitchTent, takeDownTent, registry, foldLegacy);
   const useFlap = new UseTentFlap(tents);
   registerTentFlap(useFlap, (d, c) => tents.flapAt(d, c));
   registerTestTentFlap(useFlap);

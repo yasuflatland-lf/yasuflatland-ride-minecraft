@@ -137,6 +137,8 @@ export const TENT_CELLS_PROPERTY = id("tent_cells");
 export const TENTS_PROPERTY = id("tents");
 /** Lets in-game tests hit a tent: the message is the tent's entity id. */
 export const TEST_TENT_HIT_EVENT = id("test_tent_hit");
+/** Lets in-game tests mark a tent as layout 0 and fold it as a reload would: the message is the tent's entity id. */
+export const TEST_TENT_FOLD_LEGACY_EVENT = id("test_tent_fold_legacy");
 /** Lets in-game tests pitch a tent: the message is "<x> <y> <z> <yaw>", the clicked block in the overworld and the player's yaw. */
 export const TEST_TENT_PITCH_EVENT = id("test_tent_pitch");
 /** Lets in-game tests tap a flap without a player: the message is "<tent entity id> <flap id>". */

@@ -1,5 +1,8 @@
+import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
 import type { SpaceCheck } from "../../../src/application/shared/ports/space";
+import { legacyTentClearCells } from "../../../src/domain/camp/legacyTent";
 import {
   asTentId,
   flapCells,
@@ -80,6 +83,7 @@ function fixture(entries: TentEntry[] = []) {
     isValid: true,
     location: { x: 0, y: 0, z: 0 },
     dimension,
+    teleport: vi.fn(),
     getGameMode: vi.fn(() => "Survival"),
     getComponent: vi.fn(() => ({ container })),
     onScreenDisplay: { setActionBar: vi.fn() },
@@ -125,10 +129,120 @@ function fixture(entries: TentEntry[] = []) {
   };
 }
 
-const ENTRY: TentEntry = { id: TENT, dimensionId: DIM, pose: POSE };
+const ENTRY: TentEntry = { id: TENT, dimensionId: DIM, pose: POSE, layout: 1 };
 
 describe("BedrockTentWorld (ADR 0131)", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("folds legacy blocks through the shared refund and removal paths without clearing replacements", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(0 as const, 90 as const, 180 as const, -90 as const),
+        fc.array(
+          fc.oneof(
+            fc.string(),
+            fc.constantFrom(
+              TENT_WALL_BLOCK,
+              TENT_FLAP_BLOCK,
+              "yasu_ride:tent_future",
+              "minecraft:stone",
+              "yasu_ride:roof_tent",
+            ),
+          ),
+          { minLength: 336, maxLength: 336 },
+        ),
+        (yaw, types) => {
+          const entry = { ...ENTRY, pose: { ...POSE, yaw } };
+          const { dimension, world, registry, tent, blocks, flaps } = fixture([
+            entry,
+          ]);
+          const cells = legacyTentClearCells(entry.pose);
+          const values = new Map(
+            cells.map((cell, index) => [
+              cellKey(cell),
+              types[index] ?? "minecraft:air",
+            ]),
+          );
+          const original = new Map(values);
+          dimension.getBlock.mockImplementation((cell: Vec3) => {
+            const at = cellKey(cell);
+            return {
+              typeId: values.get(at),
+              setType: (type: string) => values.set(at, type),
+            };
+          });
+          const forget = vi.spyOn(flaps, "forget");
+          const fold = new FoldLegacyTents(world, 2);
+          fold.execute();
+          for (const [cell, type] of original)
+            expect(values.get(cell)).toBe(
+              type.startsWith("yasu_ride:tent_") ? "minecraft:air" : type,
+            );
+          expect(dimension.getBlock).toHaveBeenCalledTimes(
+            336 +
+              [...original.values()].filter((type) =>
+                type.startsWith("yasu_ride:tent_"),
+              ).length,
+          );
+          expect(dimension.spawnItem).toHaveBeenCalledExactlyOnceWith(
+            { typeId: TENT_ITEM, amount: 1 },
+            tent.location,
+          );
+          expect(registry.all()).toEqual([]);
+          expect(forget).toHaveBeenCalledWith(TENT);
+          expect(tent.remove).toHaveBeenCalledTimes(1);
+          expect(blocks.lay).not.toHaveBeenCalled();
+          fold.execute();
+          expect(dimension.spawnItem).toHaveBeenCalledTimes(1);
+        },
+      ),
+    );
+  });
+
+  it("ejects players across the legacy box before clearing, including mattresses and tarp cells at each yaw", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(0 as const, 90 as const, 180 as const, -90 as const),
+        fc.integer({ min: -3, max: 3 }),
+        fc.integer({ min: 0, max: 11 }),
+        fc.integer({ min: 0, max: 3 }),
+        (yaw, x, depth, layer) => {
+          const entry = { ...ENTRY, pose: { ...POSE, yaw } };
+          const { dimension, world, player, order } = fixture([entry]);
+          const cell = tentCellAt(entry.pose, { x, depth, layer });
+          player.location = { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 };
+          const outside = {
+            ...player,
+            location: tentCellAt(entry.pose, { x: 0, depth: -1, layer: 0 }),
+            teleport: vi.fn(),
+          };
+          dimension.getPlayers.mockReturnValue([player, outside]);
+          const ejectRider = vi.fn(() => order.push("eject"));
+          player.getComponent.mockReturnValue({
+            entityRidingOn: { getComponent: () => ({ ejectRider }) },
+          } as never);
+          player.teleport.mockImplementation(() => {
+            order.push("exit");
+          });
+          dimension.getBlock.mockReturnValue({
+            typeId: TENT_WALL_BLOCK,
+            setType: () => {
+              order.push("clear");
+            },
+          });
+          new FoldLegacyTents(world, 2).execute();
+          const exit = tentCellAt(entry.pose, { x: 0, depth: -1, layer: 0 });
+          expect(player.teleport).toHaveBeenCalledExactlyOnceWith(
+            { x: exit.x + 0.5, y: exit.y, z: exit.z + 0.5 },
+            { dimension },
+          );
+          expect(outside.teleport).not.toHaveBeenCalled();
+          expect(ejectRider).toHaveBeenCalledWith(player);
+          expect(order.slice(0, 3)).toEqual(["eject", "exit", "clear"]);
+        },
+      ),
+    );
+  });
 
   it("surveys a light block as air, and an unloaded or throwing cell as unreadable", () => {
     const { dimension, world } = fixture();
