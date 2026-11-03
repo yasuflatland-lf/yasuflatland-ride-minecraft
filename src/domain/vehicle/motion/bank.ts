@@ -27,23 +27,35 @@ export function stepBank(
   switch (spec.bankEasing) {
     case "constant":
       return approach(prev, target, spec.bankRate);
-    case "smooth": {
-      const tuning = MOTION.bankSmooth;
-      const fraction =
-        spec.maxBank === 0 ? 0 : clamp(Math.abs(prev) / spec.maxBank, 0, 1);
-      const bell = 4 * fraction * (1 - fraction);
-      const distance = Math.abs(target - prev);
-      const step = Math.max(
-        tuning.minStep,
-        Math.min(
-          spec.bankRate * (tuning.baseRateScale + tuning.bellRateScale * bell),
-          distance * tuning.easeOutFraction,
-        ),
-      );
-      if (distance <= step) return target === 0 ? 0 : target; // a negative turn times maxBank 0 is -0
-      return approach(prev, target, step);
-    }
+    case "smooth":
+      return smoothBank(prev, target, spec);
   }
+}
+
+/**
+ * Bell-shaped step that eases away from level and into the target, with a
+ * positive floor so a steady target is reached exactly (ADR 0213).
+ */
+function smoothBank(
+  prev: number,
+  target: number,
+  spec: Pick<TransformingSpec, "maxBank" | "bankRate">,
+): number {
+  const tuning = MOTION.bankSmooth;
+  const fraction =
+    spec.maxBank === 0 ? 0 : clamp(Math.abs(prev) / spec.maxBank, 0, 1);
+  const bell = 4 * fraction * (1 - fraction);
+  const distance = Math.abs(target - prev);
+  const step = Math.max(
+    tuning.minStep,
+    Math.min(
+      spec.bankRate * (tuning.baseRateScale + tuning.bellRateScale * bell),
+      distance * tuning.easeOutFraction,
+    ),
+  );
+  // A negative turn times maxBank 0 is -0; snap to +0 instead.
+  if (distance <= step) return target === 0 ? 0 : target;
+  return approach(prev, target, step);
 }
 
 /** Altitude lost per tick while flying banked, in proportion to the bank angle. */
