@@ -133,6 +133,7 @@ export const BULLDOZER_TRANSFORMING: TransformingSpec = Object.freeze({
   submarineStepProbeDrop: BULLDOZER_SPEC.submarineStepProbeDrop,
   maxBank: BULLDOZER_SPEC.maxBank,
   bankRate: BULLDOZER_SPEC.bankRate,
+  bankEasing: "constant",
   bankSink: BULLDOZER_SPEC.bankSink,
   gearDownHeight: BULLDOZER_SPEC.gearDownHeight,
   gearProbeOffset: BULLDOZER_SPEC.gearProbeOffset,

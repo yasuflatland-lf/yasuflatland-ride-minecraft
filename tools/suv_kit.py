@@ -187,6 +187,7 @@ def to_construction(cubes, scale, z_offset):
         }
         if any(c["rotation"]):
             cube["pivot"] = [-px * scale, py * scale, z_offset - pz * scale]
-            cube["rotation"] = [-rx_ or 0, ry_, -rz_ or 0]
+            # Platform libm implementations differ in the last bits of Euler angles.
+            cube["rotation"] = [round(angle, 10) or 0 for angle in (-rx_, ry_, -rz_)]
         result.append(cube)
     return result

@@ -31,7 +31,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Accepted; extended by [0136](0136-bulldozer.md) |
 | [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Accepted; extended by [0115](0115-camper-ceiling-lights.md), [0129](0129-share-room-primitives-between-features.md), [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md), [0138](0138-raise-and-lower-the-bulldozer-blade.md) |
 | [0025](0025-jump-on-touch-and-a-sticky-driver.md) | Keep a touch rider's Jump from dismounting them, and keep the driver while they ride | Accepted; superseded in part by [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md), [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md), [0128](0128-settle-every-crews-seats-by-rider-list.md); extended by [0136](0136-bulldozer.md) |
-| [0026](0026-bank-into-turns-in-flight.md) | Bank into turns in flight | Accepted; superseded in part by [0044](0044-bank-under-water.md) |
+| [0026](0026-bank-into-turns-in-flight.md) | Bank into turns in flight | Accepted; superseded in part by [0044](0044-bank-under-water.md), [0213](0213-smooth-suv-bank-easing.md) |
 | [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Accepted; superseded in part by [0045](0045-submarine-preview.md); extended by [0136](0136-bulldozer.md) |
 | [0028](0028-third-person-camera-in-flight.md) | Switch riders to the third-person camera in flight | Accepted; superseded in part by [0052](0052-retry-camera-switches-and-break-seat-ties-low.md), [0071](0071-pull-the-camper-chase-camera-back.md); extended by [0040](0040-submarine.md), [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) |
 | [0029](0029-raise-the-seats.md) | Raise the seats so riders' legs stay inside the body | Accepted; superseded in part by [0170](0170-measure-suv-side-view-proportions.md) |
@@ -49,7 +49,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0041](0041-sonar-sound-under-water.md) | Sonar sound under water | Accepted |
 | [0042](0042-bronze-four-blade-propellers.md) | Bronze four-blade propellers | Accepted |
 | [0043](0043-wheel-arms.md) | Wheel arms in flight and under water | Accepted |
-| [0044](0044-bank-under-water.md) | Bank into turns under water | Accepted |
+| [0044](0044-bank-under-water.md) | Bank into turns under water | Accepted; superseded in part by [0213](0213-smooth-suv-bank-easing.md) |
 | [0045](0045-submarine-preview.md) | Add a submarine pose to the README previews | Accepted; extended by [0136](0136-bulldozer.md) |
 | [0046](0046-organize-each-layer-by-feature.md) | Organize each layer by feature | Accepted; extended by [0050](0050-vehicle-kinds-and-per-kind-profiles.md), [0055](0055-kind-neutral-vehicle-core.md), [0065](0065-check-import-rules-with-dependency-cruiser.md), [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md), [0129](0129-share-room-primitives-between-features.md) |
 | [0047](0047-rename-to-yasuflatland-ride.md) | Rename to Yasuflatland Ride | Accepted; extended by [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) |
@@ -217,6 +217,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0210](0210-defer-legacy-tent-folding-in-unloaded-chunks.md) | Defer legacy tent folding in unloaded chunks | Proposed |
 | [0211](0211-derive-the-ground-tent-lean-from-the-reference-photos.md) | Derive the ground tent lean from the reference photos | Proposed |
 | [0212](0212-close-a-tent-flap-beside-a-neighbouring-body.md) | Close a tent flap beside a neighbouring body | Accepted |
+| [0213](0213-smooth-suv-bank-easing.md) | Smooth SUV bank easing | Accepted |
 | [0214](0214-replace-the-suv-with-the-rubicon-shape.md) | Replace the SUV with the Rubicon shape | Accepted; extended by [0217](0217-derive-the-suv-spec-from-the-rubicon-body.md) |
 | [0215](0215-fit-the-suv-interior-to-the-rubicon-cabin.md) | Fit the SUV interior to the Rubicon cabin | Proposed |
 | [0217](0217-derive-the-suv-spec-from-the-rubicon-body.md) | Derive the SUV spec from the Rubicon body | Accepted |
