@@ -1,17 +1,25 @@
 // Lets in-game tests pitch and hit a tent, which a test has no player to do (ADR 0010, 0131).
 import { ScriptEventSource, system } from "@minecraft/server";
+import type { FoldLegacyTents } from "../../../../application/camp/foldLegacyTents";
 import type { PitchTent } from "../../../../application/camp/pitchTent";
 import type { TakeDownTent } from "../../../../application/camp/takeDownTent";
 import { asTentId } from "../../../../domain/camp/tent";
 import { asDimensionId } from "../../../../domain/shared/ids";
 import { NAMESPACE } from "../../../shared/identifiers";
-import { TEST_TENT_HIT_EVENT, TEST_TENT_PITCH_EVENT } from "../../identifiers";
+import {
+  TEST_TENT_FOLD_LEGACY_EVENT,
+  TEST_TENT_HIT_EVENT,
+  TEST_TENT_PITCH_EVENT,
+} from "../../identifiers";
+import type { DynamicPropertyTentRegistry } from "../../persistence/tentRegistry";
 
 const OVERWORLD = asDimensionId("minecraft:overworld");
 
 export function registerTestTent(
   pitchTent: PitchTent,
   takeDown: TakeDownTent,
+  registry: DynamicPropertyTentRegistry,
+  foldLegacy: FoldLegacyTents,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -39,6 +47,14 @@ export function registerTestTent(
           yaw,
           slot: 0,
         });
+      } else if (ev.id === TEST_TENT_FOLD_LEGACY_EVENT) {
+        const entry = registry
+          .all()
+          .find((tent) => tent.id === ev.message.trim());
+        if (!entry) return;
+        // Replacing the entry simulates a reload with an older layout, without reloading the test pack.
+        registry.add({ ...entry, layout: 0 });
+        foldLegacy.execute();
       } else if (ev.id === TEST_TENT_HIT_EVENT) {
         const tentId = ev.message.trim();
         if (tentId === "") {

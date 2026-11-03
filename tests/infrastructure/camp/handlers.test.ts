@@ -1,6 +1,7 @@
 import { Player } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
 import type { HitChair } from "../../../src/application/camp/hitChair";
 import type { PaintTent } from "../../../src/application/camp/paintTent";
 import type { PitchTent } from "../../../src/application/camp/pitchTent";
@@ -39,6 +40,7 @@ import {
   TENT_LANTERN_PROPERTY,
   TENT_TYPE,
   TEST_CHAIR_HIT_EVENT,
+  TEST_TENT_FOLD_LEGACY_EVENT,
   TEST_TENT_HIT_EVENT,
   TEST_TENT_LANTERN_EVENT,
   TEST_TENT_PITCH_EVENT,
@@ -701,6 +703,8 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
     registerTestTent(
       { execute: vi.fn() } as unknown as PitchTent,
       { execute: take } as unknown as TakeDownTent,
+      fakeRegistry([]),
+      { execute: vi.fn() } as unknown as FoldLegacyTents,
     );
     subscribed(game.script)({
       id: TEST_TENT_HIT_EVENT,
@@ -737,6 +741,7 @@ describe("registerTentLoop (ADR 0131, 0132, 0134)", () => {
       fakeRegistry(ids),
       blocks as unknown as CellLayer<never, never>,
       flaps,
+      { execute: vi.fn() } as unknown as FoldLegacyTents,
     );
     const c = { isValid: true, typeId: "minecraft:cow" };
     game.getEntity.mockImplementation((id: string) =>
@@ -745,6 +750,35 @@ describe("registerTentLoop (ADR 0131, 0132, 0134)", () => {
     const tick = defined(game.runInterval.mock.calls[0]?.[0], "loop");
     return { blocks, flaps, forgetGone, tick };
   }
+
+  it("folds once on the first tick before reading entries for the first lay", () => {
+    const registry = fakeRegistry(["a"]);
+    const all = vi.spyOn(registry, "all");
+    const fold = {
+      execute: vi.fn(() => {
+        registry.all();
+      }),
+    };
+    const blocks = { lay: vi.fn(), clearGone: vi.fn() };
+    registerTentLoop(
+      registry,
+      blocks as unknown as CellLayer<never, never>,
+      new TentFlapStore(),
+      fold as unknown as FoldLegacyTents,
+    );
+    expect(all).not.toHaveBeenCalled();
+    expect(fold.execute).not.toHaveBeenCalled();
+    const entity = tentEntity();
+    game.getEntity.mockReturnValue(entity);
+    const tick = defined(game.runInterval.mock.calls[0]?.[0], "loop");
+    tick();
+    tick();
+    expect(fold.execute).toHaveBeenCalledTimes(1);
+    expect(all).toHaveBeenCalledTimes(3);
+    expect(fold.execute.mock.invocationCallOrder[0]).toBeLessThan(
+      defined(blocks.lay.mock.invocationCallOrder[0], "first lay"),
+    );
+  });
 
   it("lays registered, loaded tents with the entity as the holder and clears by the registry", () => {
     const a = tentEntity();
@@ -943,12 +977,57 @@ describe("registerTestTent (ADR 0010, 0131)", () => {
   function setup() {
     const pitch = vi.fn(() => true);
     const take = vi.fn(() => false);
+    const registry = {
+      all: vi.fn(() => [
+        { id: "t", dimensionId: "overworld", pose: POSE, layout: 1 },
+      ]),
+      add: vi.fn(),
+    };
+    const fold = { execute: vi.fn() };
     registerTestTent(
       { execute: pitch } as unknown as PitchTent,
       { execute: take } as unknown as TakeDownTent,
+      registry as unknown as DynamicPropertyTentRegistry,
+      fold as unknown as FoldLegacyTents,
     );
-    return { pitch, take, handler: subscribed(game.script) };
+    return { pitch, take, registry, fold, handler: subscribed(game.script) };
   }
+
+  it("rewrites only a known tent to layout 0 and invokes the load-time fold from a server hook", () => {
+    const { registry, fold, handler } = setup();
+    handler({
+      id: TEST_TENT_FOLD_LEGACY_EVENT,
+      sourceType: "Entity",
+      message: "t",
+    });
+    handler({
+      id: TEST_TENT_FOLD_LEGACY_EVENT,
+      sourceType: "Server",
+      message: "unknown",
+    });
+    handler({
+      id: TEST_TENT_FOLD_LEGACY_EVENT,
+      sourceType: "Server",
+      message: " ",
+    });
+    expect(registry.add).not.toHaveBeenCalled();
+    expect(fold.execute).not.toHaveBeenCalled();
+    handler({
+      id: TEST_TENT_FOLD_LEGACY_EVENT,
+      sourceType: "Server",
+      message: " t ",
+    });
+    expect(registry.add).toHaveBeenCalledExactlyOnceWith({
+      id: "t",
+      dimensionId: "overworld",
+      pose: POSE,
+      layout: 0,
+    });
+    expect(fold.execute).toHaveBeenCalledTimes(1);
+    expect(registry.add.mock.invocationCallOrder[0]).toBeLessThan(
+      defined(fold.execute.mock.invocationCallOrder[0], "fold"),
+    );
+  });
 
   it("listens only in the add-on's namespace", () => {
     setup();

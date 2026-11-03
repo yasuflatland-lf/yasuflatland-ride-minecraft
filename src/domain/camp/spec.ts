@@ -38,6 +38,9 @@ export const FIRE_PIT_SPEC = Object.freeze({
   hitResetTicks: 100,
 });
 
+// Bump when the laid cells or clear box change.
+export const TENT_LAYOUT_VERSION = 1;
+
 // Every tuning value of the tent.
 export const TENT_SPEC = Object.freeze({
   /** Footprint across, walls included, in cells (local x -3..3). */

@@ -29,6 +29,7 @@ import {
   TENT_TYPE,
   TENT_WALL_BLOCK,
   TEST_TENT_FLAP_EVENT,
+  TEST_TENT_FOLD_LEGACY_EVENT,
   TEST_TENT_HIT_EVENT,
   TEST_TENT_LANTERN_EVENT,
   TEST_TENT_PITCH_EVENT,
@@ -185,6 +186,34 @@ function tentItemsNear(a: Arena): Entity[] {
     .filter(
       (e) => e.getComponent("minecraft:item")?.itemStack.typeId === TENT_ITEM,
     );
+}
+
+export async function tentFoldLegacy(a: Arena): Promise<Outcome> {
+  try {
+    const tent = await pitchTestTent(a);
+    const before = tentBlocksInFootprint(a);
+    const id = tent.id;
+    system.sendScriptEvent(TEST_TENT_FOLD_LEGACY_EVENT, id);
+    await wait(2);
+    // Sending it again also checks that a removed registry entry cannot refund twice.
+    system.sendScriptEvent(TEST_TENT_FOLD_LEGACY_EVENT, id);
+    await wait(2);
+    const blocks = tentBlocksInFootprint(a);
+    const entities = tentsInStrip(a).length;
+    const items = tentItemsNear(a);
+    const amount = items[0]?.getComponent("minecraft:item")?.itemStack.amount;
+    return {
+      pass:
+        before > 0 &&
+        blocks === 0 &&
+        entities === 0 &&
+        items.length === 1 &&
+        amount === 1,
+      detail: `before=${before} blocks=${blocks} tents=${entities} items=${items.length} amount=${amount}`,
+    };
+  } finally {
+    clearTentStrip(a);
+  }
 }
 
 export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
