@@ -404,7 +404,8 @@ describe("tent geometry and texture", () => {
     expect(doorHead?.origin[0]).toBe(-24);
     expect(doorHead?.size[0]).toBe(48);
     const cubes = (geometry().bones as Bone[]).flatMap((b) => b.cubes ?? []);
-    expect(cubes.length).toBeLessThan(1400);
+    // The framed shell and tarp plus the mesh entrance and inner tent use 1,574 cubes.
+    expect(cubes.length).toBeLessThan(1600);
   });
   it("keeps every rotated cube inside the footprint and the entrance clear except for its flap", () => {
     for (const bone of geometry().bones as Bone[]) {
