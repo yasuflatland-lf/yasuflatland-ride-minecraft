@@ -39,16 +39,14 @@ TARGETS = {
     }.items()
 }
 TARGETS["windshield_rake"] = {"degrees": 24, "tolerance": 3}
-# Rows start pending; the PR that makes the model meet a row removes it:
-# 6/13 massing, 7/13 hood scoop, 8/13 flares, 9/13 bumper, 10/13 steps (ADR 0213).
+# Remaining rows: 7/13 hood scoop, 8/13 flares, 9/13 bumper (ADR 0213).
+# 6/13 massing and 10/13 steps have completed their rows.
 PENDING = {
     "flare_reach",
     "flare_top_height",
     "hood_scoop_height",
     "hood_scoop_length",
     "front_bumper_reach",
-    "step_height",
-    "step_reach",
 }
 
 
@@ -105,11 +103,10 @@ def measure(cubes_by_bone):
              and c["size"][0] < diameter / 4]
     pane = max(panes, key=lambda c: c["size"][1] * c["size"][2])
     window_lo, window_hi = _bounds([pane])
-    steps = [c for c in body if abs(c["origin"][0]) >= roof["size"][0] / 2
-             and c["size"][0] < diameter / 2
-             and c["size"][2] > diameter and c["size"][1] < diameter / 4
-             and c["origin"][1] < window_lo[1] / 2]
-    sill = _bounds(steps)[0][1]
+    rails = [c for c in body if c.get("rotation", [0, 0, 0])[:2] == [0, 0]
+             and c.get("rotation", [0, 0, 0])[2] != 0
+             and c["size"][2] > diameter]
+    rail_lo, rail_hi = _bounds(rails)
 
     def bumper(front):
         def beyond(c):
@@ -134,7 +131,9 @@ def measure(cubes_by_bone):
         "wheelbase": rear_axle - front_axle,
         "front_overhang": front_axle - front_lo[2],
         "rear_overhang": rear_hi[2] - rear_axle,
-        "ground_clearance": sill - ground,
+        "ground_clearance": rail_lo[1] - ground,
+        "step_height": rail_hi[1] - rail_lo[1],
+        "step_reach": max(abs(rail_lo[0]), abs(rail_hi[0])) - roof["size"][0] / 2,
         "overall_height": body_hi[1] - ground,
         "belt_height": window_lo[1] - ground,
         "side_window_height": window_hi[1] - window_lo[1],

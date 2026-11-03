@@ -117,6 +117,8 @@ describe("SUV proportions", () => {
       front_overhang: 0.863697849351928,
       rear_overhang: 0.9500676342871203,
       ground_clearance: 0.5913526571429923,
+      step_height: 0.12457180519498956,
+      step_reach: 0.05840579178506137,
       overall_height: 2.136043041560863,
       belt_height: 1.5297935896119137,
       side_window_height: 0.5398111558449548,
@@ -152,6 +154,8 @@ describe("SUV proportions", () => {
   });
 
   it("keeps every row without a landmark in PENDING", () => {
+    expect(baseline.pending).not.toContain("step_height");
+    expect(baseline.pending).not.toContain("step_reach");
     for (const [key, row] of Object.entries(baseline.measures)) {
       if (row === null) expect(baseline.pending).toContain(key);
     }
