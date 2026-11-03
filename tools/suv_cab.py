@@ -14,6 +14,7 @@ kit = kit_module.kit
 box, beam, oriented = kit.box, kit.beam, kit.oriented
 rx, rz, apply = kit_module.rx, kit_module.rz, kit_module.apply
 CAB = hull.CABIN_HALF
+MIRROR_X = dims.MIRROR_OUTER_X / dims.D
 
 FRONT_SIDE_WINDOW = (0.90, 1.855)  # z of the front door window
 REAR_SIDE_WINDOW = (1.965, 2.63)  # z of the rear door window
@@ -173,7 +174,7 @@ def seams_and_fittings():
         # Mirror arms and rounded mirror housing, inside the outside-tyre span; the front doors carry them.
         with kit.bone(door_name(s, rear=False)):
             box(min(s * 0.72, s * 0.84), max(s * 0.72, s * 0.84), 1.44, 1.485, 0.85, 0.92, "dark")
-            kit.rounded_rect("z", 0.895, min(s * 0.80, s * dims.MIRROR_OUTER_X / dims.D), max(s * 0.80, s * dims.MIRROR_OUTER_X / dims.D), 1.49, 1.70, 0.027, 0.135, "dark", 4)
+            kit.rounded_rect("z", 0.895, min(s * 0.80, s * MIRROR_X), max(s * 0.80, s * MIRROR_X), 1.49, 1.70, 0.027, 0.135, "dark", 4)
         # Rock rail and the three cross bars under it
         box(min(s * 0.79, s * 0.90), max(s * 0.79, s * 0.90), 0.68, 0.735, 0.77, 2.36, "dark")
         for z in (1.0, 1.8, 2.25):

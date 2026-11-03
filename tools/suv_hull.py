@@ -9,12 +9,12 @@ import math
 from tool_loader import load_tool
 
 kit_module = load_tool("suv_kit")
+dims = load_tool("suv_dims")
 kit = kit_module.kit
 box, beam, oriented = kit.box, kit.beam, kit.oriented
 rx, ry, rz, mul, matrix = kit_module.rx, kit_module.ry, kit_module.rz, kit_module.mul, kit_module.matrix
 
 REAR_AXLE = 3.02  # z of the rear axle, with the front axle at 0
-dims = load_tool("suv_dims")
 BODY_HALF = dims.BODY_NOSE_HALF_WIDTH / dims.D  # body at the hood front edge
 CABIN_HALF = dims.CABIN_HALF_WIDTH / dims.D  # upper cabin before widening
 GROW = dims.BODY_HALF_WIDTH / dims.D - BODY_HALF

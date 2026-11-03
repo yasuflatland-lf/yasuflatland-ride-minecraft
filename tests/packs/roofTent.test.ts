@@ -50,8 +50,8 @@ from tool_loader import load_tool
 m = load_tool('gen_roof_tent')
 d = load_tool('suv_dims')
 print(json.dumps([*m.tent.rounded(json.loads(json.dumps([asdict(m.GROUND_DIMS), asdict(m.SUV_DIMS)]))),
-                  {k: v*d.SIZE_SCALE/16 for k, v in vars(d).items()
-                   if k in ('CABIN_HALF_WIDTH', 'HARDTOP_FRONT_Z', 'HARDTOP_REAR_Z')}]))
+                  {k: getattr(d, k)*d.SIZE_SCALE/16
+                   for k in ('CABIN_HALF_WIDTH', 'HARDTOP_FRONT_Z', 'HARDTOP_REAR_Z')}]))
 `,
     ],
     { encoding: "utf8" },
