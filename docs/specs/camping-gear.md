@@ -231,7 +231,7 @@
 - Agreement: Proposed
 - Basis: [0130](../adr/0130-a-tent-entity-whose-hits-land-on-its-blocks.md) Entity and hit surface, "No stand-ins are needed at any of the four yaws, and taps inside" (the sentence continues on the next line).
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/tent.se.json`; `src/infrastructure/camp/bedrock/handlers/tentHits.ts`; `src/infrastructure/camp/bedrock/bedrockTentWorld.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/infrastructure/shared/laidBlockGuard.ts`
-- Verification: `tests/packs/tent.test.ts` "declares exactly the spawn-time entity contract" "keeps the entity's hidden box and hit test in its base components", and "keeps the tiny hidden boxes whatever the footprint size"; `tests/infrastructure/camp/handlers.test.ts` "counts a player's hit on an owned tent block, and ignores other blocks and hitters". Not verified: hit accessibility at every heading and Creative break visuals on devices; `tent_entity_contract` was not run here.
+- Verification: `tests/packs/tent.test.ts` "declares exactly the spawn-time entity contract", "keeps the entity's hidden box and hit test in its base components", and "keeps the tiny hidden boxes whatever the footprint size"; `tests/infrastructure/camp/handlers.test.ts` "counts a player's hit on an owned tent block, and ignores other blocks and hitters". Not verified: hit accessibility at every heading and Creative break visuals on devices; `tent_entity_contract` was not run here.
 
 ### Tent layout and coordinate frames
 
