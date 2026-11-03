@@ -306,11 +306,38 @@ class RearBumper:
 
 @dataclass(frozen=True)
 class Steps:
-    """The side steps stop short of the flares' legs."""
+    """Reference rock rails between the flare legs, below the doors for clearance (ADR 0213)."""
 
     chassis: Chassis
     wheels: Wheels
     arch: Arch
+    height: float = 1.875
+    reach: float = 0.9
+    bracket_count: int = 3
+    bracket_width: float = 1.0
+    bracket_height: float = 0.75
+    bracket_inset: float = 1.0
+    bracket_end_margin: float = 2.0
+
+    @property
+    def bottom_y(self):
+        return self.chassis.sill_y
+
+    @property
+    def center_y(self):
+        return self.bottom_y + self.height / 2
+
+    @property
+    def radius(self):
+        return self.height / 2
+
+    @property
+    def center_x(self):
+        return self.chassis.body_half_width + self.reach - self.radius
+
+    @property
+    def outer_x(self):
+        return self.center_x + self.radius
 
     @property
     def rear_z(self):
@@ -322,8 +349,8 @@ class Steps:
 
     @property
     def top_y(self):
-        """Flush with the doors' lower edge, so an opening door clears the step."""
-        return self.chassis.floor_y
+        """The rail top stays below the doors' lower edge throughout their swing."""
+        return self.bottom_y + self.height
 
 
 @dataclass(frozen=True)
