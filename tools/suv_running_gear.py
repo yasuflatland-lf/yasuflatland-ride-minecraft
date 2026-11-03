@@ -167,22 +167,18 @@ def prop(name, x_out, z_center):
 
 
 def arm(name, x_out, z_center):
-    """A gunmetal arm from inside the wheel arch down and out to the hub of the folded wheel, built from
-    overlapping cubes along the diagonal so it needs no rotation. Hidden by scale outside flight."""
-    s = x_out
-    ax, ay = ARM_ROOT_X, ARM_ROOT_Y  # inside the wheel arch
-    # The hub on top of the folded wheel: the last cube rests on its top face
-    hx, hy = HUB_X + FOLD_OUT, FOLDED_WHEEL_TOP_Y + ARM_THICK / 2
-    steps = 8
-    cubes = []
-    for i in range(steps):
-        t = i / (steps - 1)
-        x, y = ax + t * (hx - ax), ay + t * (hy - ay)
-        cubes.append(box(s * x - 0.8, y - ARM_THICK / 2, z_center - 0.8,
-                         s * x + 0.8, y + ARM_THICK / 2, z_center + 0.8, "arm"))
-    # The hub pin the arm holds the wheel by
-    cubes.append(box(s * hx - 1.2, FOLDED_WHEEL_TOP_Y, z_center - 1.2, s * hx + 1.2, FOLDED_WHEEL_TOP_Y + 0.6, z_center + 1.2, "arm"))
-    return {"name": name, "parent": "root", "pivot": [s * ax, ay, z_center], "cubes": cubes}
+    """A straight axle extension whose x scale grows from the beam end to the folded hub.
+
+    The 0.2 px overlap hides the seam where the shaft emerges from the solid axle beam.
+    """
+    xs = sorted((x_out * (ARM_ROOT_X - 0.2), x_out * (HUB_X + FOLD_OUT)))
+    return {
+        "name": name,
+        "parent": "root",
+        "pivot": [x_out * ARM_ROOT_X, ARM_ROOT_Y, z_center],
+        "cubes": [box(xs[0], ARM_ROOT_Y - ARM_THICK / 2, z_center - ARM_THICK / 2,
+                      xs[1], ARM_ROOT_Y + ARM_THICK / 2, z_center + ARM_THICK / 2, "arm")],
+    }
 
 
 def sub_arm(name, x_out, z_center):
