@@ -14,7 +14,8 @@ class Dims:
     front_z: int = -88  # Depth 3 starts the body behind the three-cell tarp.
     rear_z: int = 8  # The anchor is the rear wall's middle cell (ADR 0130).
     ridge_height: int = 48  # Three layers provide the body's headroom.
-    lean: float = 19.2  # Each face leans 1.2 cells over the full ridge height.
+    lean_width: float = 32.8  # Measured front ridge/base ratio 0.41 (ADR 0210).
+    lean_depth: float = 20.8  # Measured 0.49, chosen 0.57 to keep standing rooms (ADR 0210).
     shell_thickness: float = 0.5  # Thin panels follow the roof tent's construction.
     band_height: int = 1  # One-pixel steps soften the leaning panels' diagonal edges.
     band_overlap: float = 0.4  # Overlap along the slope hides light gaps between rotated bands.
@@ -41,7 +42,6 @@ class Dims:
     entrance_bundle_half_width: int = 26
 
     inner_half_width: int = 40
-    inner_lean: int = 4
     inner_front_z: int = -42
     inner_rear_z: float = -8.5
     inner_height: int = 40  # The roof clears the bedroom while staying under the outer shell.
@@ -63,9 +63,6 @@ class Dims:
     mattress_edge_height: int = 8
     mattress_height: int = 9
 
-    strap_bounds: tuple = (-1, 46.5, -68, 1, 47.5, -12)
-    ring_first_z: int = -66
-    ring_stop_z: int = -12
     ring_spacing: int = 24
     ring_outer_x: float = 1.05
     ring_inner_half_width: float = 0.6
@@ -79,6 +76,24 @@ class Dims:
     glass_bottom_y: int = 36
     glass_top_y: int = 44
     glass_pivot: tuple = (0, 40, -64)
+
+    @property
+    def inner_lean(self):
+        top = self.half_width-self.lean_width*(self.inner_height+self.inner_roof_thickness)/self.ridge_height
+        return self.inner_half_width-top+self.shell_thickness+self.seam_width
+
+    @property
+    def strap_bounds(self):
+        return (-1, 46.5, self.front_z+self.lean_depth+self.seam_width,
+                1, 47.5, self.rear_z-self.lean_depth-self.seam_width)
+
+    @property
+    def ring_first_z(self):
+        return self.strap_bounds[2]+self.ring_half_depth
+
+    @property
+    def ring_stop_z(self):
+        return self.strap_bounds[5]-self.ring_half_depth
 
 
 DIMS = Dims()

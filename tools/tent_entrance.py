@@ -12,7 +12,7 @@ body = load_tool("tent_body")
 
 def flaps(d: Dims):
     w, h, t = d.door_half_width, d.door_height, d.shell_thickness
-    angle = math.atan2(d.lean, d.ridge_height)
+    angle = math.atan2(d.lean_width, d.ridge_height)
     proud = d.flap_proud
     x0 = body.half_width(d, d.window_top) + (proud-t)*math.cos(angle)
     x1 = body.half_width(d, d.window_bottom) + proud*math.cos(angle)
@@ -54,7 +54,7 @@ def entrance_frame(d: Dims, face):
     bars = [body.end_band(d, face, True, 0, h+4, -w-rim, -w, "mesh_frame", d.seam_proud),
             body.end_band(d, face, True, 0, h+4, w, w+rim, "mesh_frame", d.seam_proud),
             body.end_band(d, face, True, h+0.3, h+rim, -w-rim, w+rim, "mesh_frame", d.seam_proud)]
-    lean = -math.degrees(math.atan2(d.lean, d.ridge_height))
+    lean = -math.degrees(math.atan2(d.lean_depth, d.ridge_height))
     # Keep the crossing extensions above the clear headroom, including rotated corners.
     for side in (-1, 1):
         x, y = side*(w+rim/2), h+3
@@ -92,7 +92,10 @@ def roof_interior(d: Dims, face):
     z0, z1 = body.ends(d, y1)
     # Inset rectangles avoid the shell's tapered corners and leave the strap exposed.
     for side in (-1, 1):
-        cubes.append(body.side_band(d, face, side, y0, y1, z0+1, z1-1, "fly_dark", -0.4))
+        for step in range(math.ceil((y1-y0)/d.band_height)):
+            bottom = y0+step*d.band_height
+            cubes.append(body.side_band(d, face, side, bottom, min(bottom+d.band_height, y1),
+                                        z0+1, z1-1, "fly_dark", -0.4))
     for front in (True, False):
         split = 44.5 if front else 36
         start = d.door_height+0.5 if front else y0
@@ -100,9 +103,12 @@ def roof_interior(d: Dims, face):
             width = body.half_width(d, start)-1
             for x0, x1 in ((-width, -d.door_half_width), (d.door_half_width, width)):
                 cubes.append(body.end_band(d, face, True, y0, start, x0, x1, "fly_dark", -0.4))
-        for bottom, top in ((start, split), (split, y1)):
-            width = body.half_width(d, top)-1
-            cubes.append(body.end_band(d, face, front, bottom, top, -width, width, "fly_dark", -0.4))
+        for begin, end in ((start, split), (split, y1)):
+            for step in range(math.ceil((end-begin)/d.band_height)):
+                bottom = begin+step*d.band_height
+                top = min(bottom+d.band_height, end)
+                width = body.half_width(d, top)-1
+                cubes.append(body.end_band(d, face, front, bottom, top, -width, width, "fly_dark", -0.4))
     width = body.half_width(d, d.ridge_height)-1
     for x0, x1 in ((-width, -1.25), (1.25, width)):
         cubes.append(panel(x0, d.ridge_height-0.9, z0+1, x1, d.ridge_height-0.7, z1-1, face("fly_dark")))

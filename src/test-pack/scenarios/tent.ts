@@ -211,7 +211,7 @@ export async function tentFoldLegacy(a: Arena): Promise<Outcome> {
     const legacyCells = legacyTentClearCells(pitchedPose(a));
     const tail = legacyCells.at(-1);
     if (!tail) throw new Error("legacy clear box is empty");
-    // Plant an old tent block beyond layout 2 to prove cleanup retains the full legacy reach.
+    // Plant an old tent block beyond the current footprint to prove cleanup retains the full legacy reach.
     a.dim.runCommand(
       `setblock ${tail.x} ${tail.y} ${tail.z} ${TENT_WALL_BLOCK}`,
     );

@@ -10,11 +10,11 @@ panel = load_tool("panels").panel
 
 
 def half_width(d: Dims, y):
-    return d.half_width - d.lean * y / d.ridge_height
+    return d.half_width - d.lean_width * y / d.ridge_height
 
 
 def ends(d: Dims, y):
-    inset = d.lean * y / d.ridge_height
+    inset = d.lean_depth * y / d.ridge_height
     return d.front_z + inset, d.rear_z - inset
 
 
@@ -35,7 +35,7 @@ def side_band(d: Dims, face, side, y0, y1, z0, z1, color="fly", proud=0, overlap
 
 def end_band(d: Dims, face, front, y0, y1, x0, x1, color="fly", proud=0, overlap=True):
     z = ends(d, y0)[0 if front else 1]
-    angle = (-1 if front else 1) * math.degrees(math.atan2(d.lean, d.ridge_height))
+    angle = (-1 if front else 1) * math.degrees(math.atan2(d.lean_depth, d.ridge_height))
     thickness = d.shell_thickness
     # Trim only ground and door-head bands; trimming every band leaves slits between them.
     lift = thickness * abs(math.sin(math.radians(angle)))
@@ -150,7 +150,8 @@ def build(d: Dims, face: Callable[[str], dict]) -> Part:
     fly = (shell(d, face) + left_front_panel(d, face) + right_front_panel(d, face)
            + above_door_panel(d, face) + seams(d, face))
     strap = [panel(*d.strap_bounds, face("strap"))]
-    for z in range(d.ring_first_z, d.ring_stop_z, d.ring_spacing):
+    for offset in range(math.ceil((d.ring_stop_z-d.ring_first_z)/d.ring_spacing)):
+        z = d.ring_first_z+offset*d.ring_spacing
         # Four strips leave the center of each 2 px silver ring open.
         # The side strips stand 0.05 px outside the strap so their faces do not share its plane.
         strap += [panel(-d.ring_outer_x, d.ring_bottom_y, z-d.ring_half_depth,

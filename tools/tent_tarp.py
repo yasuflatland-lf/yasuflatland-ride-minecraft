@@ -42,7 +42,7 @@ def roof(d: Dims, face):
     result = []
     for offset in range(math.ceil(depth)):
         z0, z1 = d.tarp_front_z+offset, min(d.tarp_front_z+offset+1, rear)
-        w = d.half_width-d.lean*(depth if z1 == rear else offset)/depth
+        w = d.half_width-d.lean_width*(depth if z1 == rear else offset)/depth
         result.append(band(z0, z1, -w, w))
         for x0, x1 in ((-w, -w+d.seam_width), (w-d.seam_width, w)):
             result.append(band(z0, z1, x0, x1, True))
@@ -53,7 +53,7 @@ def roof(d: Dims, face):
 
 def screen_plane(d: Dims):
     front_run = d.front_z-d.tarp_front_z
-    c = d.lean/(d.ridge_height*front_run/d.tarp_front_height+d.lean)
+    c = d.lean_width/(d.ridge_height*front_run/d.tarp_front_height+d.lean_depth)
     b = c*front_run/d.tarp_front_height
     return b, c
 
@@ -64,7 +64,7 @@ def screen_limits(d: Dims, z):
     if z <= d.front_z:
         bottom = d.tarp_front_height*(d.front_z-z)/(d.front_z-d.tarp_front_z)
     else:
-        bottom = d.ridge_height*(z-d.front_z)/d.lean
+        bottom = d.ridge_height*(z-d.front_z)/d.lean_depth
     return bottom, top
 
 

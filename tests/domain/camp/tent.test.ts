@@ -182,11 +182,14 @@ describe("tentCells (ADR 0130, 0131)", () => {
     );
   });
 
-  it("covers every room column and the open entrance with a ceiling above its top", () => {
+  it("shelters every room column and the open entrance above its top", () => {
     fc.assert(
       fc.property(arbPose, arbState, (pose, state) => {
         const roofs = tentCells(pose, state).filter(
-          ({ block }) => block.type === "ceiling" || block.type === "lantern",
+          ({ block }) =>
+            block.type === "ceiling" ||
+            block.type === "lantern" ||
+            block.type === "wall",
         );
         const roomCells = tentClearCells(pose).filter((cell) =>
           insideTent(pose, {
@@ -202,6 +205,39 @@ describe("tentCells (ADR 0130, 0131)", () => {
                 roof.x === cell.x && roof.z === cell.z && roof.y > cell.y,
             ),
           ).toBe(true);
+      }),
+    );
+  });
+
+  it("preserves standing paths through both rooms and out of the stepped side flaps", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        const cells = tentCells(pose, {
+          ...PITCHED_STATE,
+          openFlaps: new Set(FLAP_IDS),
+        });
+        const blocked = new Set(
+          cells
+            .filter(
+              ({ block }) =>
+                block.type !== "mattress" &&
+                !(block.type === "flap" && block.open),
+            )
+            .map(cellKey),
+        );
+        for (const depth of [0, 1, 2, 3, 4, 5, 6, 7])
+          for (const x of [-1, 0, 1]) {
+            if (depth === 5 && x !== 0) continue;
+            for (const layer of [0, 1])
+              expect(
+                blocked.has(cellKey(tentCellAt(pose, { x, depth, layer }))),
+              ).toBe(false);
+          }
+        for (const id of ["left", "right"] as const)
+          for (const flap of TENT_FLAPS[id]) {
+            const outside = { ...flap, x: flap.x + Math.sign(flap.x) };
+            expect(blocked.has(cellKey(tentCellAt(pose, outside)))).toBe(false);
+          }
       }),
     );
   });
@@ -227,6 +263,12 @@ describe("tentCells (ADR 0130, 0131)", () => {
     );
   });
 
+  it("keeps the depth lean below 4/3 so the standing paths survive (ADR 0210)", () => {
+    // Above 4/3 the layer-1 cross-walls remove the standing front room and a
+    // bedroom column; the standing-path test above checks the layout itself.
+    expect(TENT_SPEC.leanDepth).toBeLessThan(4 / 3);
+  });
+
   it("pins the trapezoid footprint, stepped walls, entrance and anchor", () => {
     expect(TRAPEZOID_LAYOUT.clear).toEqual({
       halfWidth: 3,
@@ -238,7 +280,11 @@ describe("tentCells (ADR 0130, 0131)", () => {
     expect(TENT_FLAPS.front).toHaveLength(6);
     const pose = tentPose({ x: 110, y: -61, z: 46 }, 0);
     expect(tentEntityLocation(pose)).toEqual({ x: 110.5, y: -60, z: 54.5 });
-    expect(tentCells(pose, PITCHED_STATE)).toHaveLength(107);
+    expect(tentCells(pose, PITCHED_STATE)).toHaveLength(
+      TRAPEZOID_LAYOUT.walls.length +
+        TRAPEZOID_LAYOUT.ceilings.length +
+        TENT_MATTRESSES.flat().length,
+    );
   });
 });
 
