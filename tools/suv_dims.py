@@ -243,6 +243,54 @@ class FrontBumper:
     length: float = 4.375
     grille_bottom_y: float = 11.25
     height: float = 5.25
+    winch_half_width: float = 4.5
+    winch_recess: float = 1.0
+    fairlead_width: float = 5.0
+    fairlead_height: float = 1.6
+    fairlead_depth: float = 0.3
+    fairlead_slot_width: float = 2.4
+    fairlead_slot_height: float = 0.4
+    fairlead_slot_depth: float = 0.05
+    winch_hook_width: float = 0.7
+    winch_hook_height: float = 1.1
+    winch_hook_depth: float = 0.3
+    winch_drum_half_width: float = 4.2
+    winch_drum_drop: float = 0.5
+    winch_drum_rise: float = 1.5
+    winch_drum_back_offset: float = 0.4
+    winch_drum_depth: float = 2.0
+    winch_bell_inner_x: float = 3.4
+    winch_bell_outer_x: float = 4.4
+    winch_bell_overhang: float = 0.1
+    shackle_x: float = 6.5
+    shackle_thickness: float = 0.4
+    shackle_height: float = 1.8
+    shackle_rear_offset: float = 2.4
+    shackle_front_offset: float = 1.0
+
+    @property
+    def winch_face_z(self):
+        return self.tip_z - self.winch_recess
+
+    @property
+    def fairlead_front_z(self):
+        return self.winch_face_z + self.fairlead_depth
+
+    @property
+    def winch_drum_bottom_y(self):
+        return self.top_y - self.winch_drum_drop
+
+    @property
+    def winch_drum_top_y(self):
+        return self.top_y + self.winch_drum_rise
+
+    @property
+    def winch_drum_back_z(self):
+        return self.back_z + self.winch_drum_back_offset
+
+    @property
+    def winch_drum_front_z(self):
+        return self.winch_drum_back_z + self.winch_drum_depth
 
     @property
     def top_y(self):
@@ -409,13 +457,16 @@ class Fold:
 
 @dataclass(frozen=True)
 class Lamps:
-    """Round fog lamps sit in black pockets near the front bumper's ends, inboard of the bar's cut
+    """Round fog lamps sit in rectangular black pockets near the front bumper's ends, inboard of the bar's cut
     corners so they are on its straight face."""
 
     front_bumper: FrontBumper
     y0: float = 14.25
     y1: float = 15.25
-    fog_x: float = 10.5
+    fog_x: float = 10.4
+    fog_pocket_width: float = 4.4
+    fog_pocket_height: float = 2.4
+    fog_lens_radius: float = 0.9
 
     @property
     def fog_y(self):

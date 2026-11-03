@@ -62,12 +62,17 @@ def headlight_lens_cubes():
 
 
 def fog_pocket_cubes():
-    # Round fog lamps sit in black pockets on the straight face of the front bumper.
-    return [box(DIMS.lamps.fog_x - 1.3, DIMS.lamps.fog_y - 1.05, DIMS.front_bumper.tip_z, DIMS.lamps.fog_x + 1.3, DIMS.lamps.fog_y + 1.05, DIMS.front_bumper.tip_z + 0.05, "grille")]
+    lamps = DIMS.lamps
+    return [box(lamps.fog_x - lamps.fog_pocket_width / 2, lamps.fog_y - lamps.fog_pocket_height / 2,
+                DIMS.front_bumper.tip_z,
+                lamps.fog_x + lamps.fog_pocket_width / 2, lamps.fog_y + lamps.fog_pocket_height / 2,
+                DIMS.front_bumper.tip_z + 0.05, "grille")]
 
 
 def fog_lens_cubes():
-    return round_face((DIMS.lamps.fog_x, DIMS.lamps.fog_y, 0), 0.8, DIMS.front_bumper.tip_z + 0.05, DIMS.front_bumper.tip_z + 0.12, "light")
+    # The reference keeps round lamps inside its rectangular pockets.
+    return round_face((DIMS.lamps.fog_x, DIMS.lamps.fog_y, 0), DIMS.lamps.fog_lens_radius,
+                      DIMS.front_bumper.tip_z + 0.05, DIMS.front_bumper.tip_z + 0.12, "light")
 
 
 def front_strip_cubes():
