@@ -123,6 +123,7 @@ describe("SUV proportions", () => {
       hood_height: 1.5796223116899095,
       hood_length: 1.7408615361830717,
       front_bumper_length: 0.290667545454976,
+      front_bumper_reach: 0.33385243792257213,
       rear_bumper_length: 0.4152393506499652,
       bumper_height: 0.34880105454597077,
     };
@@ -221,6 +222,56 @@ describe("SUV proportions", () => {
     });
     expect(linear(await run(cubes), "rear_overhang")).toEqual(
       linear(baseline, "rear_overhang"),
+    );
+  });
+
+  it("reduces bumper reach by the distance the grille bars move forward", async () => {
+    const cubes = structuredClone(generated);
+    const wheels = ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"].map(
+      (name) => {
+        const points = (cubes[name] ?? []).flatMap((cube) =>
+          turnedCorners({ name }, cube),
+        );
+        return {
+          diameter:
+            Math.max(...points.map((p) => p[1])) -
+            Math.min(...points.map((p) => p[1])),
+          axle:
+            (Math.min(...points.map((p) => p[2])) +
+              Math.max(...points.map((p) => p[2]))) /
+            2,
+        };
+      },
+    );
+    const diameter = wheels.reduce((sum, wheel) => sum + wheel.diameter, 0) / 4;
+    const frontAxle =
+      wheels.slice(0, 2).reduce((sum, wheel) => sum + wheel.axle, 0) / 2;
+    const groups = new Map<string, Cube[]>();
+    for (const cube of cubes.body ?? []) {
+      const [x, y, z] = cube.size;
+      if (
+        cube.rotation?.some((angle) => angle !== 0) ||
+        cube.origin[2] + z >= frontAxle ||
+        y <= Math.max(x, z)
+      )
+        continue;
+      const key = cube.size
+        .map((v) => Number((v / diameter).toPrecision(6)))
+        .join(",");
+      const group = groups.get(key) ?? [];
+      group.push(cube);
+      groups.set(key, group);
+    }
+    const grille = [...groups.values()]
+      .filter((group) => group.length >= 8)
+      .sort((a, b) => b.length - a.length)[0];
+    expect(grille).toHaveLength(9);
+    if (!grille) throw new Error("Missing grille bars");
+    const shift = 0.5;
+    for (const cube of grille) cube.origin[2] -= shift;
+    expect(linear(await run(cubes), "front_bumper_reach").pixels).toBeCloseTo(
+      linear(baseline, "front_bumper_reach").pixels - shift,
+      10,
     );
   });
 

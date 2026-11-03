@@ -40,13 +40,12 @@ TARGETS = {
 }
 TARGETS["windshield_rake"] = {"degrees": 24, "tolerance": 3}
 # Rows start pending; the PR that makes the model meet a row removes it:
-# 6/13 massing, 7/13 hood scoop, 8/13 flares, 9/13 bumper, 10/13 steps (ADR 0213).
+# Remaining: 7/13 hood scoop, 8/13 flares, 10/13 steps (ADR 0213).
 PENDING = {
     "flare_reach",
     "flare_top_height",
     "hood_scoop_height",
     "hood_scoop_length",
-    "front_bumper_reach",
     "step_height",
     "step_reach",
 }
@@ -124,6 +123,19 @@ def measure(cubes_by_bone):
 
     front_lo, front_hi = bumper(True)
     rear_lo, rear_hi = bumper(False)
+    grille_groups = {}
+    for cube in body:
+        if any(cube.get("rotation", [])) or _bounds([cube])[1][2] >= front_axle:
+            continue
+        x, y, z = cube["size"]
+        if y > max(x, z):
+            size = tuple(float(f"{v / diameter:.6g}") for v in cube["size"])
+            grille_groups.setdefault(size, []).append(cube)
+    candidates = [group for group in grille_groups.values() if len(group) >= 8]
+    if not candidates:
+        raise ValueError("SUV grille landmark requires at least 8 identical upright bars ahead of the front axle")
+    grille = max(candidates, key=len)
+    grille_front = min(_bounds([cube])[0][2] for cube in grille)
     # Bumper tips exclude the spare, exhaust, tow hooks and lamp lenses.
     values = {
         "overall_length": rear_hi[2] - front_lo[2],
@@ -141,6 +153,7 @@ def measure(cubes_by_bone):
         "hood_height": frame["pivot"][1] - ground,
         "hood_length": foot - front_lo[2],
         "front_bumper_length": front_hi[2] - front_lo[2],
+        "front_bumper_reach": grille_front - front_lo[2],
         "rear_bumper_length": rear_hi[2] - rear_lo[2],
         "bumper_height": max(front_hi[1] - front_lo[1], rear_hi[1] - rear_lo[1]),
     }
