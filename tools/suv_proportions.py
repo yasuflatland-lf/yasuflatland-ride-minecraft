@@ -40,12 +40,10 @@ TARGETS = {
 }
 TARGETS["windshield_rake"] = {"degrees": 24, "tolerance": 3}
 # Rows start pending; the PR that makes the model meet a row removes it:
-# 6/13 massing, 7/13 hood scoop, 8/13 flares, 9/13 bumper, 10/13 steps (ADR 0213).
+# 8/13 flares, 9/13 bumper, 10/13 steps (ADR 0213).
 PENDING = {
     "flare_reach",
     "flare_top_height",
-    "hood_scoop_height",
-    "hood_scoop_length",
     "front_bumper_reach",
     "step_height",
     "step_reach",
@@ -95,6 +93,25 @@ def measure(cubes_by_bone):
             for h in (0, frame["size"][1])]
     foot = pivot[2] + face[0][2] - face[0][1] * (
         (face[1][2] - face[0][2]) / (face[1][1] - face[0][1]))
+    eps = diameter * 1e-9
+    body_bounds = [(c, *_bounds([c])) for c in body]
+    # The windshield leans past its foot; only the scoop slopes wholly ahead of it.
+    tops = [c for c, lo, hi in body_bounds
+            if c.get("rotation", [0, 0, 0])[0] != 0
+            and c["rotation"][1:] == [0, 0]
+            and lo[1] >= pivot[1] - eps and hi[2] < foot
+            and lo[0] < 0 < hi[0]]
+    top_lo, top_hi = _bounds(tops)
+    scoop = [c for c, lo, hi in body_bounds
+             if lo[1] >= pivot[1] - eps
+             and all(lo[i] >= top_lo[i] - eps and hi[i] <= top_hi[i] + eps
+                     for i in (0, 2))]
+    scoop_lo, scoop_hi = _bounds(scoop)
+    scoop_ids = {id(c) for c in scoop}
+    center = [(lo + hi) / 2 for lo, hi in zip(scoop_lo, scoop_hi)]
+    surface = max(hi[1] for c, lo, hi in body_bounds
+                  if id(c) not in scoop_ids
+                  and all(lo[i] <= center[i] <= hi[i] for i in (0, 2)))
     roofs = [c for c in body if not any(c.get("rotation", []))
              and c["origin"][1] > frame["pivot"][1]
              and c["size"][1] < min(c["size"][0], c["size"][2])]
@@ -140,6 +157,8 @@ def measure(cubes_by_bone):
         "side_window_height": window_hi[1] - window_lo[1],
         "hood_height": frame["pivot"][1] - ground,
         "hood_length": foot - front_lo[2],
+        "hood_scoop_height": scoop_hi[1] - surface,
+        "hood_scoop_length": scoop_hi[2] - scoop_lo[2],
         "front_bumper_length": front_hi[2] - front_lo[2],
         "rear_bumper_length": rear_hi[2] - rear_lo[2],
         "bumper_height": max(front_hi[1] - front_lo[1], rear_hi[1] - rear_lo[1]),

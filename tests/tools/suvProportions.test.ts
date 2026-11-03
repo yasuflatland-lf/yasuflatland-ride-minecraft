@@ -122,6 +122,8 @@ describe("SUV proportions", () => {
       side_window_height: 0.5398111558449548,
       hood_height: 1.5796223116899095,
       hood_length: 1.7408615361830717,
+      hood_scoop_height: 0.06676667923395445,
+      hood_scoop_length: 0.2218978948443212,
       front_bumper_length: 0.290667545454976,
       rear_bumper_length: 0.4152393506499652,
       bumper_height: 0.34880105454597077,
@@ -219,9 +221,13 @@ describe("SUV proportions", () => {
       pivot: [0, 15, 51.5],
       rotation: [0, 0, 45],
     });
-    expect(linear(await run(cubes), "rear_overhang")).toEqual(
+    const result = await run(cubes);
+    expect(linear(result, "rear_overhang")).toEqual(
       linear(baseline, "rear_overhang"),
     );
+    for (const key of ["hood_scoop_height", "hood_scoop_length"]) {
+      expect(linear(result, key)).toEqual(linear(baseline, key));
+    }
   });
 
   it("turns corners around offset pivots in the game rotation convention", async () => {
@@ -238,6 +244,9 @@ describe("SUV proportions", () => {
           turnedCorners({ name: "body" }, cube),
         );
         const result = await run(cubes);
+        for (const key of ["hood_scoop_height", "hood_scoop_length"]) {
+          expect(linear(result, key)).toEqual(linear(baseline, key));
+        }
         for (const axis of [0, 1, 2] as const) {
           expect(result.bounds[0][axis]).toBeCloseTo(
             Math.min(...points.map((p) => p[axis])),
