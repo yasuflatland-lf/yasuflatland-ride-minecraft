@@ -59,7 +59,7 @@ jobs:
 
       # Install Node and pnpm as pinned in mise.toml. Pinned to a commit
       # because the tag would otherwise feed code into a release build.
-      - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
 
       # Devices keep a cached Resource Pack with the same UUID and version, so a
       # changed Resource Pack needs a new version (ADR 0015). On a tag push the
