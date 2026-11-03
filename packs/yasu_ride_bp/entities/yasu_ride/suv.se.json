@@ -427,7 +427,7 @@
       "minecraft:type_family": {
         "family": ["yasu_ride_vehicle", "inanimate"]
       },
-      "minecraft:collision_box": { "width": 2.61, "height": 2.32 },
+      "minecraft:collision_box": { "width": 2.68, "height": 2.36 },
       "minecraft:health": { "value": 20, "max": 20 },
       "minecraft:physics": {},
       "minecraft:pushable": {

@@ -86,7 +86,7 @@ describe("vehicle profiles (ADR 0050)", () => {
   it.each([
     {
       kind: "suv",
-      body: { front: 2.69, halfWidth: 1.64, height: 2.32 },
+      body: { front: 2.68, halfWidth: 1.43, height: 2.36 },
       clearance: { halfX: 1, halfZ: 1, height: 3 },
     },
     {
@@ -140,7 +140,7 @@ describe("vehicle profiles (ADR 0050)", () => {
           z: SUV_SPEC.roofTentEntranceZ,
         },
       },
-      footprint: 3.4,
+      footprint: 3.12,
       seats: {
         positions: [
           { x: -0.551, z: -0.04984375 },
@@ -165,12 +165,12 @@ describe("vehicle profiles (ADR 0050)", () => {
       SUV_SPEC.bodyHalfWidth + 0.9,
     );
     expect(SUV_SPEC.roofTentAnchorX).toBeLessThan(SUV_SPEC.bodyHalfWidth);
-    const shellHalfWidth = 1.2 * SUV_SPEC.bodyHalfWidth;
+    const shellHalfWidth = SUV_SPEC.roofTentShellHalfWidth;
     expect(SUV_SPEC.roofTentAnchorX).toBeCloseTo(
-      shellHalfWidth - SUV_SPEC.bodyHalfWidth + 0.875,
+      shellHalfWidth - SUV_SPEC.roofTentHardtopHalfWidth,
     );
     expect(SUV_SPEC.roofTentAnchorX - shellHalfWidth).toBeCloseTo(
-      -SUV_SPEC.bodyHalfWidth + 0.875,
+      -SUV_SPEC.roofTentHardtopHalfWidth,
     );
     expect(
       SUV_SPEC.roofTentAnchorX + shellHalfWidth - SUV_SPEC.bodyHalfWidth,

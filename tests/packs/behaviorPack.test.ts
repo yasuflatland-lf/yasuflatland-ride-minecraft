@@ -17,8 +17,8 @@ const recipe = read(
 )["minecraft:recipe_shaped"];
 
 describe("packs/yasu_ride_bp", () => {
-  it("scales the square collision envelope with the SUV (ADR 0170)", () => {
-    expect(c["minecraft:collision_box"]).toEqual({ width: 2.61, height: 2.32 });
+  it("derives the square collision envelope from the SUV shell (ADR 0217)", () => {
+    expect(c["minecraft:collision_box"]).toEqual({ width: 2.68, height: 2.36 });
   });
 
   it("seat positions and order match SUV_PROFILE.seats.positions, with the driver's seat at 0 (ADR 0019)", () => {

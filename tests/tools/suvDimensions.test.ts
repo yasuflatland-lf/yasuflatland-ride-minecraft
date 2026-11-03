@@ -37,6 +37,17 @@ const model = JSON.parse(
     "utf8",
   ),
 ) as { "minecraft:geometry": [{ bones: Bone[] }] };
+const roundUp = (value: number): number => Math.ceil(value * 100) / 100;
+const cornersOf = (accept: (name: string) => boolean): Vec[] =>
+  (model["minecraft:geometry"][0].bones as GeometryBone[])
+    .filter((bone) => accept(bone.name))
+    .flatMap((bone) =>
+      (bone.cubes ?? []).flatMap((cube) =>
+        turnedCorners(bone, cube).map(
+          ([x, y, z]): Vec => [x / 16, y / 16, z / 16],
+        ),
+      ),
+    );
 const bone = (name: string): Bone => {
   const found = model["minecraft:geometry"][0].bones.find(
     (b) => b.name === name,
@@ -192,8 +203,16 @@ it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)"
     readFileSync("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json", "utf8"),
   )["minecraft:entity"].components;
   const box = entity["minecraft:collision_box"];
-  expect(box.width).toBeCloseTo(1.8 * scale, 12);
-  expect(box.height).toBeCloseTo(1.6 * scale, 12);
+  expect(box.width).toBe(2 * roundUp(dimension("SHELL_OUTER_HALF_WIDTH") / 16));
+  const shell = cornersOf(
+    (name) => name === "body" || name.startsWith("door_"),
+  );
+  expect(box.width).toBe(
+    2 * roundUp(Math.max(...shell.map(([x]) => Math.abs(x)))),
+  );
+  expect(box.height).toBe(
+    Math.floor((dimension("HARDTOP_TOP_Y") / 16) * 100) / 100,
+  );
   expect(SUV_SPEC.carHeight).toBe(box.height);
   expect(SUV_SPEC.hitboxFront).toBe(box.width / 2);
   expect(SUV_SPEC.floatDraft).toBeCloseTo(box.height * 0.75, 12);
@@ -222,12 +241,12 @@ it("keeps the SUV spec values that mirror the model above the generator constant
   expect(SUV_SPEC.bodyFront).toBeGreaterThanOrEqual(
     blocks("FRONT_BUMPER_TIP_Z"),
   );
-  // The bumper end pieces reach out over the wheel hubs, the widest parts.
+  // The body probe also covers the bumper end pieces.
   expect(SUV_SPEC.bodyHalfWidth).toBeGreaterThanOrEqual(
     blocks("BUMPER_HALF_WIDTH"),
   );
   expect(SUV_SPEC.bodyHalfWidth).toBeGreaterThanOrEqual(blocks("HUB_X"));
-  // The folded rear wheel's glow disc reaches farthest from the center.
+  // Keep the conservative glow reach bound even though the spare now sets the footprint.
   const glowReach =
     Math.hypot(
       constant("HUB_X") + constant("FOLD_OUT"),
@@ -240,4 +259,26 @@ it("keeps the SUV spec values that mirror the model above the generator constant
   expect(SUV_SPEC.roofTentRoofHeight).toBeCloseTo(blocks("ROOF_TOP"), 12);
   expect(blocks("ROOF_TOP") - SUV_SPEC.carHeight).toBeGreaterThanOrEqual(0);
   expect(blocks("ROOF_TOP") - SUV_SPEC.carHeight).toBeLessThanOrEqual(0.3);
+});
+
+it("rounds enclosing probes upward from every rotated model corner (ADR 0217)", () => {
+  const shellAndLamps = cornersOf(
+    (name) =>
+      name === "body" || name.startsWith("door_") || name === "headlights",
+  );
+  const wheels = cornersOf((name) => name.startsWith("wheel_"));
+  expect(SUV_SPEC.bodyFront).toBe(
+    roundUp(Math.max(...shellAndLamps.map(([, , z]) => -z))),
+  );
+  expect(SUV_SPEC.bodyHalfWidth).toBe(
+    roundUp(
+      Math.max(...[...shellAndLamps, ...wheels].map(([x]) => Math.abs(x))),
+    ),
+  );
+  expect(SUV_SPEC.bodyHalfWidth).toBe(roundUp(dimension("WHEEL_OUTER_X") / 16));
+  expect(SUV_SPEC.footprint).toBe(
+    roundUp(
+      Math.max(...cornersOf(() => true).map(([x, , z]) => Math.hypot(x, z))),
+    ),
+  );
 });
