@@ -95,8 +95,10 @@ describe("SUV tail lights", () => {
         if (
           Object.values(cube.uv).every(({ uv }) => uv[0] === 85 && uv[1] === 1)
         ) {
-          resin.push(cube);
           expect(bone.name).toBe("body");
+          // The hood latches, scoop opening and cowl slats share the swatch; only the
+          // blocks beside the tail lamps (the rear half, +z after export) belong here.
+          if (cube.origin[2] > 0) resin.push(cube);
         }
         if (
           Object.values(cube.uv).every(({ uv }) => uv[0] === 33 && uv[1] === 1)

@@ -88,6 +88,7 @@ body = [
     *both_sides(steps.side_step_cubes()),
 ]
 body += hood.hood_dome_and_cowl_cubes()
+body += hood.hood_scoop_cubes()
 body += both_sides(hood.hood_detail_cubes())
 body += both_sides(hood.hood_lower_side_cubes())
 body += both_sides(hood.cowl_side_cubes())

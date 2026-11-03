@@ -74,6 +74,39 @@ class Hood:
     front_z: float = 28.375  # z of the hood's front face
     rear_z: float = 7.75  # z of the cowl, where the hood meets the windshield frame
 
+    dome_height: float = 0.7
+    dome_half_width: float = 8.0
+    dome_side_run: float = 1.5
+    dome_rear_inset: float = 2.0
+    dome_front_inset: float = 0.9
+    panel_thickness: float = 0.16
+    # Scoop length, opening height and width follow the reference's 0.22 D, 0.07 D and 0.64 D
+    # with D the 15 px road wheel (ADR 0213); the opening starts a quarter of the hood back.
+    scoop_length: float = 3.3
+    scoop_half_width: float = 4.8
+    scoop_height: float = 0.85
+    scoop_slots: int = 3
+
+    @property
+    def dome_top_y(self):
+        return self.top_y + self.dome_height
+
+    @property
+    def dome_front_z(self):
+        return self.front_z - self.dome_front_inset
+
+    @property
+    def dome_rear_z(self):
+        return self.rear_z + self.dome_rear_inset
+
+    @property
+    def scoop_front_z(self):
+        return self.front_z - (self.front_z - self.rear_z) / 4
+
+    @property
+    def scoop_rear_z(self):
+        return self.scoop_front_z - self.scoop_length
+
     @property
     def interior_rise(self):
         """Keep the cabin fittings at the same height relative to the hood (ADR 0213)."""

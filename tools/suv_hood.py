@@ -1,9 +1,12 @@
 """SUV hood, dome, cowl and hood details."""
 
+import math
+
 from tool_loader import load_tool
 
 DIMS = load_tool("suv_dims").DIMS
 shell = load_tool("suv_shell")
+panels = load_tool("panels")
 box = shell.box
 panel_face = shell.panel_face
 arch_cut = shell.arch_cut
@@ -19,24 +22,85 @@ def hood_cubes():
     ]
 
 
+def painted_panel(extents, pivot, rotation):
+    # shell.box preserves the per-face flake UVs on rotated sheet metal.
+    uv = box(*extents, "body")["uv"]
+    cube = panels.panel(*extents, uv["up"], pivot, rotation)
+    cube["uv"] = uv
+    return cube
+
+
 def hood_dome_and_cowl_cubes():
-    # Hood: a raised power dome, a black mesh vent on each side of it, washer nozzles, the cowl's vent
-    # strip with the wipers parked on it, and the latches at the rear corners
+    h = DIMS.hood
+    side_length = math.hypot(h.dome_side_run, h.dome_height)
+    side_angle = math.degrees(math.atan2(h.dome_height, h.dome_side_run))
+    side = painted_panel(
+        (h.dome_half_width, h.dome_top_y - h.panel_thickness, h.dome_rear_z,
+         h.dome_half_width + side_length, h.dome_top_y, h.dome_front_z),
+        (h.dome_half_width, h.dome_top_y, h.dome_rear_z), (0, 0, side_angle))
+    cowl_top = h.top_y + 0.3
+    slat_count, slat_pitch, slat_width = 9, 0.75, 0.3
     return [
-        box(-9.5, DIMS.hood.top_y, DIMS.hood.rear_z + 2, 9.5, DIMS.hood.top_y + 0.4, DIMS.hood.front_z - 0.4, "body"),
-        box(-8.5, DIMS.hood.top_y + 0.4, DIMS.hood.rear_z + 2.6, 8.5, DIMS.hood.top_y + 0.7, DIMS.hood.front_z - 0.9, "body"),
-        box(-DIMS.chassis.body_half_width, DIMS.hood.top_y, DIMS.hood.rear_z, DIMS.chassis.body_half_width, DIMS.hood.top_y + 0.3, DIMS.hood.rear_z + 1.6, "trim"),  # cowl
-        box(-3, DIMS.hood.top_y + 0.3, DIMS.hood.rear_z + 0.4, 3, DIMS.hood.top_y + 0.4, DIMS.hood.rear_z + 1.3, "grille"),  # cowl vent
+        box(-h.dome_half_width, h.top_y, h.dome_rear_z,
+            h.dome_half_width, h.dome_top_y, h.dome_front_z, "body"),
+        *suv_cubes.both_sides([side]),
+        box(-DIMS.chassis.body_half_width, h.top_y, h.rear_z,
+            DIMS.chassis.body_half_width, cowl_top, h.rear_z + 1.6, "trim"),
+        *[box((i - (slat_count - 1) / 2) * slat_pitch - slat_width / 2,
+              cowl_top, h.rear_z + 0.4,
+              (i - (slat_count - 1) / 2) * slat_pitch + slat_width / 2,
+              cowl_top + 0.1, h.rear_z + 1.3, "resin")
+          for i in range(slat_count)],
+    ]
+
+
+def hood_scoop_cubes():
+    h = DIMS.hood
+    top_length = math.hypot(h.scoop_length, h.scoop_height)
+    top_angle = math.degrees(math.atan2(h.scoop_height, h.scoop_length))
+    top = painted_panel(
+        (-h.scoop_half_width, h.dome_top_y, h.scoop_rear_z,
+         h.scoop_half_width, h.dome_top_y + h.panel_thickness,
+         h.scoop_rear_z + top_length),
+        (0, h.dome_top_y, h.scoop_rear_z), (top_angle, 0, 0))
+    # Each cheek turns with the top about the same rear pivot, so its upper edge runs under the top.
+    # It reaches far enough below the top that its front lower corner lands on the dome; the rear
+    # part that dips below the dome surface stays hidden inside the dome.
+    depth = h.scoop_height / math.cos(math.radians(top_angle))
+    cheek = painted_panel(
+        (h.scoop_half_width - h.panel_thickness, h.dome_top_y - depth, h.scoop_rear_z,
+         h.scoop_half_width, h.dome_top_y, h.scoop_rear_z + top_length),
+        (0, h.dome_top_y, h.scoop_rear_z), (top_angle, 0, 0))
+    opening_depth, recess = 0.08, 0.3
+    opening_z = h.scoop_front_z - recess
+    # Body-coloured dividers in front of the recessed dark face split it into the reference's
+    # intake slots.
+    divider_half_width = 0.15
+    slot_width = 2 * h.scoop_half_width / h.scoop_slots
+    dividers = [box(x - divider_half_width, h.dome_top_y, opening_z,
+                    x + divider_half_width, h.dome_top_y + h.scoop_height, h.scoop_front_z, "body")
+                for x in (-h.scoop_half_width + k * slot_width for k in range(1, h.scoop_slots))]
+    return [
+        top,
+        *suv_cubes.both_sides([cheek]),
+        box(-h.scoop_half_width, h.dome_top_y, opening_z - opening_depth,
+            h.scoop_half_width, h.dome_top_y + h.scoop_height, opening_z, "resin"),
+        *dividers,
     ]
 
 
 def hood_detail_cubes():
+    h = DIMS.hood
+    side_x = DIMS.chassis.body_half_width
+    latch_z = h.front_z - 1.8
     return [
-        box(10, DIMS.hood.top_y, DIMS.hood.front_z - 7.5, 12.2, DIMS.hood.top_y + 0.5, DIMS.hood.front_z - 2.5, "grille"),  # vent
-        *[box(10.2, DIMS.hood.top_y + 0.5, z, 12.0, DIMS.hood.top_y + 0.6, z + 0.35, "trim") for z in (DIMS.hood.front_z - d for d in (7, 6.1, 5.2, 4.3, 3.4))],  # vent mesh
-        box(2.4, DIMS.hood.top_y + 0.7, DIMS.hood.front_z - 4, 3.2, DIMS.hood.top_y + 1.1, DIMS.hood.front_z - 3, "grille"),  # washer nozzle
-        box(11.4, DIMS.hood.top_y - 0.8, DIMS.hood.rear_z + 0.8, 12.6, DIMS.hood.top_y + 0.7, DIMS.hood.rear_z + 2.2, "grille"),  # latch
-        turned(box(1, DIMS.hood.top_y + 0.3, DIMS.hood.rear_z + 0.6, 9.5, DIMS.hood.top_y + 0.6, DIMS.hood.rear_z + 0.9, "grille"), (1, DIMS.hood.top_y + 0.3, DIMS.hood.rear_z + 0.75), (0, -8, 0)),  # wiper
+        box(side_x - 0.1, h.top_y - 1.6, latch_z - 0.4,
+            side_x + 0.25, h.top_y - 0.1, latch_z + 0.4, "resin"),
+        box(side_x - 1.5, h.top_y, latch_z - 0.3,
+            side_x - 0.2, h.top_y + 0.2, latch_z + 0.3, "resin"),
+        turned(box(1, h.top_y + 0.3, h.rear_z + 0.6,
+                   9.5, h.top_y + 0.6, h.rear_z + 0.9, "grille"),
+               (1, h.top_y + 0.3, h.rear_z + 0.75), (0, -8, 0)),
     ]
 
 
