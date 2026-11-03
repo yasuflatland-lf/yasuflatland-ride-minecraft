@@ -1,10 +1,14 @@
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
-const ROOF_TENT_SHELL_HALF_WIDTH = 1.2 * 1.64;
+import { SUV_BODY_SIZE } from "./bodySize";
+
+const ROOF_TENT_SHELL_HALF_WIDTH = 1.2 * SUV_BODY_SIZE.shell.halfWidth;
 const ROOF_TENT_LEFT_SHIFT = 0.875;
 const ROOF_TENT_ANCHOR_X =
-  ROOF_TENT_SHELL_HALF_WIDTH - 1.64 + ROOF_TENT_LEFT_SHIFT;
+  ROOF_TENT_SHELL_HALF_WIDTH -
+  SUV_BODY_SIZE.shell.halfWidth +
+  ROOF_TENT_LEFT_SHIFT;
 const ROOF_TENT_ANCHOR_Z = -0.605;
 
 // The SUV's own tuning values (ADR 0055). See docs/adr/0002-0008 for the rationale.
@@ -22,14 +26,14 @@ export const SUV_SPEC = Object.freeze({
   handbrakeGrip: 0.04,
   creepSpeed: 0.12, // Below SPEC.ramMinSpeed, so creeping never rams (ADR 0006)
   // Steps (ADR 0004)
-  hitboxFront: 1.305,
-  carHeight: 2.32,
+  hitboxFront: SUV_BODY_SIZE.collision.width / 2,
+  carHeight: SUV_BODY_SIZE.collision.height,
   // Collisions (ADR 0006)
-  bodyFront: 2.69, // encloses the measured 2.6843125-block fog lamp lenses (ADR 0194)
-  bodyHalfWidth: 1.64, // encloses the measured 1.63125-block wheel hub caps (ADR 0194)
-  footprint: 3.4, // the rear hover glow reaches 3.396322 blocks at its farthest corner (ADR 0122, 0194)
+  bodyFront: SUV_BODY_SIZE.shell.front,
+  bodyHalfWidth: SUV_BODY_SIZE.shell.halfWidth,
+  footprint: SUV_BODY_SIZE.footprint,
   // ROOF_TOP scaled by SIZE_SCALE in tools/suv_dims.py, above the collision box.
-  roofTentRoofHeight: (26.1 * 1.45) / 16,
+  roofTentRoofHeight: SUV_BODY_SIZE.roofTop,
   // An additional left offset clears the ladder from the SUV body.
   roofTentAnchorX: ROOF_TENT_ANCHOR_X,
   roofTentAnchorZ: ROOF_TENT_ANCHOR_Z, // Between the front and rear seats.
@@ -56,7 +60,8 @@ export const SUV_SPEC = Object.freeze({
   // in-game test measured it (0.833 horizontal, 0.836 vertical).
   waterDrag: 0.83,
   waterVerticalDrag: 0.84,
-  floatDraft: 1.74, // preserves the float line relative to the scaled collision box (ADR 0194).
+  // 0.75 of the collision height, preserving the float line (ADR 0194).
+  floatDraft: 0.75 * SUV_BODY_SIZE.collision.height,
   // A floating submarine's feet sit fractionally into a shore step, so the
   // step top can be less than the half block above the feet where stepUp.ts
   // probes. Lowering the probe by this much starts it at the feet.
@@ -69,7 +74,8 @@ export const SUV_SPEC = Object.freeze({
   // Landing gear (ADR 0033). Unfolding takes 1 s (ADR 0022), 3 blocks of
   // landing at landingSink, so the wheels come down a block above that.
   gearDownHeight: 4, // blocks of air below the vehicle within which landing unfolds the wheels
-  gearProbeOffset: 1.16, // keeps the probes inside the 2.61-block hitbox (ADR 0194)
+  // Keeps the probes inside the hitbox (ADR 0194): hitboxFront * 8/9 = 1.16 today.
+  gearProbeOffset: (SUV_BODY_SIZE.collision.width / 2) * (1 - 0.1 / 0.9),
   bankSink: 0.03, // blocks/tick of altitude lost at full bank
 } as const);
 

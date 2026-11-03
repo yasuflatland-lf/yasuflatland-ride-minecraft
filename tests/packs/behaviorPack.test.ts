@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { SUV_BODY_SIZE } from "../../src/domain/vehicle/kinds/suv/bodySize";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import {
   entityEventId,
@@ -18,7 +19,9 @@ const recipe = read(
 
 describe("packs/yasu_ride_bp", () => {
   it("scales the square collision envelope with the SUV (ADR 0170)", () => {
-    expect(c["minecraft:collision_box"]).toEqual({ width: 2.61, height: 2.32 });
+    const box = c["minecraft:collision_box"];
+    expect(box.width).toBeCloseTo(SUV_BODY_SIZE.collision.width, 9);
+    expect(box.height).toBeCloseTo(SUV_BODY_SIZE.collision.height, 9);
   });
 
   it("seat positions and order match SUV_PROFILE.seats.positions, with the driver's seat at 0 (ADR 0019)", () => {
@@ -27,6 +30,10 @@ describe("packs/yasu_ride_bp", () => {
     expect(
       seats.map((s: { position: number[] }) => [s.position[0], s.position[2]]),
     ).toEqual(SUV_PROFILE.seats.positions.map((p) => [p.x, p.z]));
+    for (const s of seats) {
+      expect(Math.abs(s.position[0])).toBeCloseTo(SUV_BODY_SIZE.seats.x, 9);
+      expect(s.position[1]).toBe(SUV_BODY_SIZE.seats.y);
+    }
     expect(seats[0].lock_rider_rotation).toBe(90);
   });
 

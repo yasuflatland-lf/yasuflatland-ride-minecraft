@@ -4,6 +4,7 @@ import {
   type PlacementSurface,
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
+import { SUV_BODY_SIZE } from "./bodySize";
 import { SUV_SPEC } from "./spec";
 
 const body = Object.freeze({
@@ -39,10 +40,10 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
    */
   seats: Object.freeze({
     positions: Object.freeze([
-      { x: -0.551, z: -0.04984375 },
-      { x: 0.551, z: -0.04984375 },
-      { x: -0.551, z: -1.16 },
-      { x: 0.551, z: -1.16 },
+      { x: -SUV_BODY_SIZE.seats.x, z: SUV_BODY_SIZE.seats.frontZ },
+      { x: SUV_BODY_SIZE.seats.x, z: SUV_BODY_SIZE.seats.frontZ },
+      { x: -SUV_BODY_SIZE.seats.x, z: SUV_BODY_SIZE.seats.rearZ },
+      { x: SUV_BODY_SIZE.seats.x, z: SUV_BODY_SIZE.seats.rearZ },
     ]),
   }),
   boarding: Object.freeze({ order: "engine" }),

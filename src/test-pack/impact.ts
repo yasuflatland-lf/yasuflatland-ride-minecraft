@@ -121,6 +121,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/vehicle/kinds/suv/drive.ts",
   "src/domain/vehicle/kinds/suv/entity.ts",
   "src/domain/vehicle/kinds/suv/profile.ts",
+  "src/domain/vehicle/kinds/suv/bodySize.ts",
   "src/domain/vehicle/kinds/suv/spec.ts",
   "src/domain/vehicle/lighting/headlights.ts",
   "src/domain/vehicle/monitor/monitor.ts",
