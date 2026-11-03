@@ -9,6 +9,7 @@
 - Source: [0192](../adr/0192-suv-detailed-body.md)
 - Source: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md)
 - Source: [0196](../adr/0196-raise-the-suv-seats-for-first-person-visibility.md)
+- Source: [0213](../adr/0213-reproduce-the-reference-suv-shape.md)
 - Excluded: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md): rotation assemblies, covered by the model-conventions topic
 - Excluded: [0176](../adr/0176-move-the-sports-boat-front-seats-back.md): sports boat seat positions, not the SUV
 
@@ -62,11 +63,11 @@
 ### Side-view proportion targets
 
 - Applies to: SUV model, closed doors, unanimated pose.
-- Rule: The generated model is measured by `tools/suv_proportions.py` against the thirteen rows of `TARGETS` (twelve linear ratios to the road wheel diameter and the windshield rake in degrees). `PENDING` is empty, so every row is asserted within its tolerance. A change to the body outline must keep every row within tolerance and the completed ratios within 0.005 of their recorded values.
+- Rule: The generated model is measured by `tools/suv_proportions.py` against the 24 rows from 0213: 23 linear ratios to the road wheel diameter and the windshield rake in degrees. `PENDING` lists rows the model does not meet yet and new rows without a landmark; `measure` returns `None` for a pending row without a landmark. Every non-pending row is asserted within tolerance (0.05 D or 3 degrees), and its completed ratio stays within 0.005 of its recorded value. Later PRs of #1245 remove their completed rows from `PENDING`; head clearance and seat comfort take precedence over the reference form.
 - Agreement: Proposed
-- Basis: [0170](../adr/0170-measure-suv-side-view-proportions.md) Decision, "Keep every table row in `TARGETS` with its tolerance."; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Keep the thirteen proportion targets, completed ratios and tolerances from 0170."
+- Basis: [0213](../adr/0213-reproduce-the-reference-suv-shape.md) Decision, "Keep all 24 rows (13 old and 11 new) in `tools/suv_proportions.py`, with 23 linear ratios to road wheel diameter D at tolerance 0.05 D and the windshield rake in degrees at tolerance 3 degrees."; [0213](../adr/0213-reproduce-the-reference-suv-shape.md) Decision, "`PENDING` lists rows the model does not yet meet and new rows without a landmark."; [0213](../adr/0213-reproduce-the-reference-suv-shape.md) Decision, "`measure` returns `None` for a pending row without a landmark."; [0213](../adr/0213-reproduce-the-reference-suv-shape.md) Decision, "Skip pending rows for tolerance assertions and permit missing landmarks only for pending rows; check every non-pending row for positivity and tolerance, and keep its completed ratio within 0.005 of its recorded value."; [0213](../adr/0213-reproduce-the-reference-suv-shape.md) Decision, "Later PRs of #1245 add the landmark selectors for their rows and remove completed rows from `PENDING`."
 - Implementation: `tools/suv_proportions.py` (`TARGETS`, `PENDING`, `measure`)
-- Verification: `tests/tools/suvProportions.test.ts` "preserves every completed 7/7 proportion within 0.005", "<key> meets the reference tolerance" for each row, "measures every row positively and deterministically without mutating cubes". These are geometry measurements of the exported model. Not verified: the silhouette in game on PC and touch (0170 Consequences makes that the acceptance condition).
+- Verification: `tests/tools/suvProportions.test.ts` "preserves the completed proportions of non-pending rows within 0.005", "reports every row deterministically without mutating cubes", "keeps every row without a landmark in PENDING", "preserves ratios and rake under uniform scaling and reversed cube order"; the active tolerance tests are "rear_overhang meets the reference tolerance", "ground_clearance meets the reference tolerance", "belt_height meets the reference tolerance", "side_window_height meets the reference tolerance", "hood_height meets the reference tolerance", "hood_length meets the reference tolerance", "front_bumper_length meets the reference tolerance", "rear_bumper_length meets the reference tolerance", and "bumper_height meets the reference tolerance". Pending rows' tolerance tests are visibly skipped. These are geometry measurements of the exported model. Not verified: the silhouette on the verification branch in game on the owner's iPad with Vibrant Visuals and PC (0213 acceptance condition).
 
 ### Collision box and values derived from it
 
@@ -124,6 +125,9 @@
 
 ## Open issues
 
+- 0170's Decision and table retain the old target values (138 px reference D and rake 34.3 degrees), while 0213 (Proposed) supersedes those targets and rake without replacing the measurement method: `docs/adr/0170-measure-suv-side-view-proportions.md`, `docs/adr/0213-reproduce-the-reference-suv-shape.md`.
+- The four existing massing rows (`wheelbase`, `front_overhang`, `overall_height`, `windshield_rake`) and all eleven new rows, including the new part rows, remain pending until 6-10/13 of #1245. A row that conflicts with head clearance or seat comfort stays pending and is listed in the round 3 residuals: `tools/suv_proportions.py`, `docs/adr/0213-reproduce-the-reference-suv-shape.md`.
+- The 0213 blueprints are perspective renders, with larger measurement uncertainty than 0170's reference. The fitting tolerance remains 0.05 D and 3 degrees; it is not the measurement uncertainty: `docs/adr/0213-reproduce-the-reference-suv-shape.md`.
 - Accepted 0009 Decision says the collision box is 1.8 wide and 1.6 high, and the code is 2.61 wide and 2.32 high: `docs/adr/0009-vehicle-model-conventions.md`, `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json`. Only Proposed ADRs (0170, 0194) supersede the numbers, so the Accepted ADR is not yet marked as superseded for them.
 - Accepted 0029 Decision says all four seats are at y = 0.4 blocks, and the code is 0.73: `docs/adr/0029-raise-the-seats.md`, `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json`. The chain 0170 (0.3, then 0.52), 0194 (0.58), 0196 (0.73) is all Proposed.
 - Accepted 0117 Decision says the front riders are at z = 0.2 blocks and the rear seats at z = -0.8, and the code has z derived from `FRONT_SEAT_Z` and `SIZE_SCALE` (-0.04984375 and -1.16): `docs/adr/0117-move-the-suv-front-seats-back.md`, `src/domain/vehicle/kinds/suv/profile.ts`. The superseding ADRs (0170, 0194) are Proposed.

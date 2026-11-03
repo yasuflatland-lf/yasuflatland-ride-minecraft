@@ -173,8 +173,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md) | Tilted two-axis assemblies on the sports boat helm | Proposed; superseded in part by [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md); extended by [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) |
 | [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) | Compound-rotation assemblies as a vehicle-neutral rule | Proposed |
 | [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed; superseded in part by [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md), [0191](0191-press-camp-gear-without-the-light-tool.md); extended by [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md), [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) |
-| [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed; superseded in part by [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) |
-| [0170](0170-measure-suv-side-view-proportions.md) | Measure SUV side-view proportions against a fixed wheel diameter | Proposed; superseded in part by [0192](0192-suv-detailed-body.md), [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) |
+| [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed; superseded in part by [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md); extended by [0213](0213-reproduce-the-reference-suv-shape.md) |
+| [0170](0170-measure-suv-side-view-proportions.md) | Measure SUV side-view proportions against a fixed wheel diameter | Proposed; superseded in part by [0192](0192-suv-detailed-body.md), [0194](0194-enlarge-the-suv-for-seated-head-clearance.md), [0213](0213-reproduce-the-reference-suv-shape.md) |
 | [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) | Sports Boat Equipment and icebreaker mode | Proposed; superseded in part by [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md), [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md), [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) |
 | [0172](0172-smooth-sports-boat-headlight-lenses.md) | Smooth sports boat headlight lenses | Proposed |
 | [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) | Remove the inside Lantern and add the Gas Lantern | Proposed; superseded in part by [0191](0191-press-camp-gear-without-the-light-tool.md); extended by [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) |
@@ -196,7 +196,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0189](0189-run-only-impacted-in-game-scenarios-locally.md) | Run only impacted in-game scenarios locally | Proposed |
 | [0190](0190-ribbed-camper-shell-atlas.md) | A ribbed camper shell atlas and trim | Proposed; superseded in part by [0197](0197-emit-camper-hover-particles-below-the-discs.md), [0199](0199-square-the-camper-front-and-fold-the-grille.md) |
 | [0191](0191-press-camp-gear-without-the-light-tool.md) | Press camp gear without the light tool | Proposed |
-| [0192](0192-suv-detailed-body.md) | Detail the SUV body, dashboard and lamps | Proposed; extended by [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) |
+| [0192](0192-suv-detailed-body.md) | Detail the SUV body, dashboard and lamps | Proposed; extended by [0194](0194-enlarge-the-suv-for-seated-head-clearance.md), [0213](0213-reproduce-the-reference-suv-shape.md) |
 | [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed |
 | [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) | Enlarge the SUV for seated head clearance | Proposed; superseded in part by [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) |
 | [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) | Cut the body height ahead of a grounded blade | Proposed |
@@ -217,6 +217,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0210](0210-defer-legacy-tent-folding-in-unloaded-chunks.md) | Defer legacy tent folding in unloaded chunks | Proposed |
 | [0211](0211-derive-the-ground-tent-lean-from-the-reference-photos.md) | Derive the ground tent lean from the reference photos | Proposed |
 | [0212](0212-close-a-tent-flap-beside-a-neighbouring-body.md) | Close a tent flap beside a neighbouring body | Accepted |
+| [0213](0213-reproduce-the-reference-suv-shape.md) | Reproduce the reference SUV shape | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
