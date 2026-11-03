@@ -6,7 +6,7 @@ The owner wants the SUV body to match the shape of the reference vehicle (a lift
 
 ## Reference material
 
-19 images in `/Users/yasuflatland/Downloads/suv/` (outside the repository; the owner supplies them). Names: `rubicon_{front,left_front,left_front_top,left_front_top2,left_back_top,left_side,left_side2,right_front,right_front_top,right_back,right_back_side,right_back_tia,front_tia,front_top}.png` plus five blueprints (`rubicon_front_blueprint.png`, `rubicon_left_front_blueprint.png`, `rubicon_left_back_blueprint.pnt.png`, `rubicon_left_side_top_blueprint.png`, `rubicon_right_side_blueprint.png`). Blueprints are the source for dimensions; the renders are the source for form. The photos are not committed; the builder records the measured ratios in the new ADR and in `tools/suv_proportions.py`.
+19 images in the owner's `~/Downloads/suv/` (outside the repository; the owner supplies them). Names: `rubicon_{front,left_front,left_front_top,left_front_top2,left_back_top,left_side,left_side2,right_front,right_front_top,right_back,right_back_side,right_back_tia,front_tia,front_top}.png` plus five blueprints (`rubicon_front_blueprint.png`, `rubicon_left_front_blueprint.png`, `rubicon_left_back_blueprint.pnt.png`, `rubicon_left_side_top_blueprint.png`, `rubicon_right_side_blueprint.png`). Blueprints are the source for dimensions; the renders are the source for form. The photos are not committed; the builder records the measured ratios in the new ADR and in `tools/suv_proportions.py`.
 
 ## Goals
 
