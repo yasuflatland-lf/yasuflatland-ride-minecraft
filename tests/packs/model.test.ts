@@ -20,7 +20,8 @@ const dimensions = JSON.parse(
       "sys.path.insert(0, 'tools')",
       "from tool_loader import load_tool",
       "d = load_tool('suv_dims')",
-      "print(json.dumps({k: v for k, v in vars(d).items() if k.isupper() and isinstance(v, (int, float))}))",
+      "D = d.DIMS",
+      "print(json.dumps({'SIZE_SCALE': d.SIZE_SCALE, 'HOOD_TOP_Y': D.hood.top_y, 'WINDSHIELD_RAIL_HEIGHT': D.windshield.rail_height, 'WINDSHIELD_LEAN': D.windshield.lean_degrees, 'ROOF_Y': D.greenhouse.roof_y, 'ROOF_TOP': D.greenhouse.roof_top}))",
     ].join("\n"),
   ),
 ) as {

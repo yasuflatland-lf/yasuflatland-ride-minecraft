@@ -24,7 +24,7 @@ ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
 ITEM_TEXTURES = RP / "textures/items/yasu_ride"
 out = load_tool("texture_io").Outputs("--check" in sys.argv[2:])
 
-globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
+DIMS = load_tool("suv_dims").DIMS
 palette = load_tool("suv_palette")
 globals().update({k: v for k, v in vars(palette).items() if k.isupper()})
 shell = load_tool("suv_shell")
@@ -87,8 +87,8 @@ body += both_sides(shell.cargo_lower_side_cubes())
 body += shell.fuel_door_cubes()
 body += both_sides(shell.arch_liner_cubes())
 body += both_sides([
-    *shell.fender_flare(FRONT_AXLE_Z, SILL_Y + 1, SILL_Y),
-    *shell.fender_flare(REAR_AXLE_Z, SILL_Y, SILL_Y),
+    *shell.fender_flare(DIMS.wheels.front_axle_z, DIMS.chassis.sill_y + 1, DIMS.chassis.sill_y),
+    *shell.fender_flare(DIMS.wheels.rear_axle_z, DIMS.chassis.sill_y, DIMS.chassis.sill_y),
     *lamp_part("turn_signal"),
 ])
 body += lamp_part("front_strip", mirrored=True)
@@ -102,10 +102,10 @@ body += both_sides([
     *lamp_part("bumper_reflector"),
     *shell.rear_tow_hook_cubes(),
 ])
-body += cabin.pleated_seat(2, 11, FRONT_SEAT_Z)
-body += cabin.pleated_seat(-11, -2, FRONT_SEAT_Z)
-body += cabin.pleated_seat(-11, 0, REAR_SEAT_Z)
-body += cabin.pleated_seat(0, 11, REAR_SEAT_Z)
+body += cabin.pleated_seat(2, 11, DIMS.seats.front_z)
+body += cabin.pleated_seat(-11, -2, DIMS.seats.front_z)
+body += cabin.pleated_seat(-11, 0, DIMS.seats.rear_z)
+body += cabin.pleated_seat(0, 11, DIMS.seats.rear_z)
 body += cabin.steering_cubes()
 body += lamp_part("headlight_bezel")
 body += lamp_part("headlight_lens")
@@ -117,7 +117,7 @@ body += shell.roof_rib_cubes()
 body += gauges.gauge_cluster_cubes() + dash.dash_fittings_cubes()
 body += cabin.floor_console_cubes()
 body += cabin.pedal_cubes()
-body += running_gear.round_tire("z", SPARE, 5, REAR - 3, REAR)
+body += running_gear.round_tire("z", DIMS.spare.center, 5, DIMS.chassis.rear_z - 3, DIMS.chassis.rear_z)
 body += shell.spare_rim_cubes()
 
 geo = {
@@ -134,37 +134,37 @@ geo = {
             },
             "bones": [
                 {"name": "root", "pivot": [0, 12, 0]},
-                {"name": "body", "parent": "root", "pivot": [0, FLOOR_Y, 0], "cubes": body,
-                 "locators": {"exhaust": [9, SILL_Y - 1.4, REAR - 2.6]}},
-                *[{"name": name, "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": lamp_bones[name]}
+                {"name": "body", "parent": "root", "pivot": [0, DIMS.chassis.floor_y, 0], "cubes": body,
+                 "locators": {"exhaust": [9, DIMS.chassis.sill_y - 1.4, DIMS.chassis.rear_z - 2.6]}},
+                *[{"name": name, "parent": "body", "pivot": [0, DIMS.chassis.floor_y, 0], "cubes": lamp_bones[name]}
                   for name in ("headlights", "tail_lights")],
                 {"name": "headlight_bezels", "parent": "body", "pivot": [0, 0, 0], "cubes": lamp_bones["headlight_bezels"]},
                 # Shown only in flight by the render controller (ADR 0026)
-                {"name": "rear_glass", "parent": "body", "pivot": [0, FLOOR_Y, 0],
+                {"name": "rear_glass", "parent": "body", "pivot": [0, DIMS.chassis.floor_y, 0],
                  "cubes": shell.rear_glass_cubes()},
-                running_gear.wheel("wheel_fl", -1, FRONT_AXLE_Z),
-                running_gear.wheel("wheel_fr", +1, FRONT_AXLE_Z),
-                running_gear.wheel("wheel_rl", -1, REAR_AXLE_Z),
-                running_gear.wheel("wheel_rr", +1, REAR_AXLE_Z),
+                running_gear.wheel("wheel_fl", -1, DIMS.wheels.front_axle_z),
+                running_gear.wheel("wheel_fr", +1, DIMS.wheels.front_axle_z),
+                running_gear.wheel("wheel_rl", -1, DIMS.wheels.rear_axle_z),
+                running_gear.wheel("wheel_rr", +1, DIMS.wheels.rear_axle_z),
                 # Hidden until the submarine form shows them (ADR 0040)
-                {"name": "windows_sealed", "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": shell.windows_sealed()},
-                running_gear.prop("prop_rl", -1, REAR_AXLE_Z),
-                running_gear.prop("prop_rr", +1, REAR_AXLE_Z),
-                running_gear.glow("glow_fl", -1, FRONT_AXLE_Z),
-                running_gear.glow("glow_fr", +1, FRONT_AXLE_Z),
-                running_gear.glow("glow_rl", -1, REAR_AXLE_Z),
-                running_gear.glow("glow_rr", +1, REAR_AXLE_Z),
-                running_gear.arm("arm_fl", -1, FRONT_AXLE_Z),
-                running_gear.arm("arm_fr", +1, FRONT_AXLE_Z),
-                running_gear.arm("arm_rl", -1, REAR_AXLE_Z),
-                running_gear.arm("arm_rr", +1, REAR_AXLE_Z),
-                running_gear.sub_arm("sub_arm_rl", -1, REAR_AXLE_Z),
-                running_gear.sub_arm("sub_arm_rr", +1, REAR_AXLE_Z),
+                {"name": "windows_sealed", "parent": "body", "pivot": [0, DIMS.chassis.floor_y, 0], "cubes": shell.windows_sealed()},
+                running_gear.prop("prop_rl", -1, DIMS.wheels.rear_axle_z),
+                running_gear.prop("prop_rr", +1, DIMS.wheels.rear_axle_z),
+                running_gear.glow("glow_fl", -1, DIMS.wheels.front_axle_z),
+                running_gear.glow("glow_fr", +1, DIMS.wheels.front_axle_z),
+                running_gear.glow("glow_rl", -1, DIMS.wheels.rear_axle_z),
+                running_gear.glow("glow_rr", +1, DIMS.wheels.rear_axle_z),
+                running_gear.arm("arm_fl", -1, DIMS.wheels.front_axle_z),
+                running_gear.arm("arm_fr", +1, DIMS.wheels.front_axle_z),
+                running_gear.arm("arm_rl", -1, DIMS.wheels.rear_axle_z),
+                running_gear.arm("arm_rr", +1, DIMS.wheels.rear_axle_z),
+                running_gear.sub_arm("sub_arm_rl", -1, DIMS.wheels.rear_axle_z),
+                running_gear.sub_arm("sub_arm_rr", +1, DIMS.wheels.rear_axle_z),
                 *[shell.door(n) for n in shell.DOORS],
-                {"name": "seat_0", "parent": "body", "pivot": [6, 10, FRONT_SEAT_Z + 2]},
-                {"name": "seat_1", "parent": "body", "pivot": [-6, 10, FRONT_SEAT_Z + 2]},
-                {"name": "seat_2", "parent": "body", "pivot": [6, 10, REAR_SEAT_Z + 1]},
-                {"name": "seat_3", "parent": "body", "pivot": [-6, 10, REAR_SEAT_Z + 1]},
+                {"name": "seat_0", "parent": "body", "pivot": [6, 10, DIMS.seats.front_z + 2]},
+                {"name": "seat_1", "parent": "body", "pivot": [-6, 10, DIMS.seats.front_z + 2]},
+                {"name": "seat_2", "parent": "body", "pivot": [6, 10, DIMS.seats.rear_z + 1]},
+                {"name": "seat_3", "parent": "body", "pivot": [-6, 10, DIMS.seats.rear_z + 1]},
             ],
         }
     ],

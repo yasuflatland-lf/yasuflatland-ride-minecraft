@@ -7,6 +7,7 @@ from tool_loader import load_tool
 
 palette = load_tool("suv_palette")
 dims = load_tool("suv_dims")
+DIMS = dims.DIMS
 material = load_tool("suv_material")
 RegionSpec = load_tool("suv_texture").RegionSpec
 MIN_FLAKE_FACE_PX = 1
@@ -34,19 +35,19 @@ def panel(name, w, h, base="body", scale=REGION_DENSITY):
 
 
 PANEL_EXTENTS = {
-    "hood_top": (2 * dims.BODY_HALF_WIDTH, dims.FRONT - dims.HOOD_REAR_Z),
-    "tailgate": (2 * dims.BODY_HALF_WIDTH, dims.BELT_Y - dims.FLOOR_Y),
-    "door_front": (dims.FRONT_DOOR_HINGE_Z - dims.B_PILLAR_FRONT_Z, dims.BELT_Y - dims.FLOOR_Y),
-    "door_rear": (dims.B_PILLAR_REAR_Z - dims.CARGO_FRONT, dims.BELT_Y - dims.FLOOR_Y),
+    "hood_top": (2 * DIMS.chassis.body_half_width, DIMS.hood.front_z - DIMS.hood.rear_z),
+    "tailgate": (2 * DIMS.chassis.body_half_width, DIMS.greenhouse.belt_y - DIMS.chassis.floor_y),
+    "door_front": (DIMS.cabin.front_door_hinge_z - DIMS.cabin.b_pillar_front_z, DIMS.greenhouse.belt_y - DIMS.chassis.floor_y),
+    "door_rear": (DIMS.cabin.b_pillar_rear_z - DIMS.chassis.cargo_front_z, DIMS.greenhouse.belt_y - DIMS.chassis.floor_y),
 }
 
 REGIONS = (
-    panel("flake", 2 * dims.BODY_HALF_WIDTH, 2 * dims.BODY_HALF_WIDTH),
-    panel("hardtop", 2 * dims.BODY_HALF_WIDTH, dims.ROOF_FRONT - dims.REAR, "hardtop", HARDTOP_FLAT_DENSITY),
+    panel("flake", 2 * DIMS.chassis.body_half_width, 2 * DIMS.chassis.body_half_width),
+    panel("hardtop", 2 * DIMS.chassis.body_half_width, DIMS.windshield.roof_front - DIMS.chassis.rear_z, "hardtop", HARDTOP_FLAT_DENSITY),
     *(panel(name, *extent) for name, extent in PANEL_EXTENTS.items()),
-    panel("hardtop_rib", 1, dims.ROOF_SEAM - dims.REAR, "hardtop_rib"),
-    panel("hardtop_side", dims.ROOF_FRONT - dims.REAR, dims.ROOF_Y - dims.BELT_Y, "hardtop"),
-    panel("hardtop_rib_side", dims.ROOF_FRONT - dims.REAR, 1, "hardtop_rib"),
+    panel("hardtop_rib", 1, DIMS.cabin.roof_seam_z - DIMS.chassis.rear_z, "hardtop_rib"),
+    panel("hardtop_side", DIMS.windshield.roof_front - DIMS.chassis.rear_z, DIMS.greenhouse.roof_y - DIMS.greenhouse.belt_y, "hardtop"),
+    panel("hardtop_rib_side", DIMS.windshield.roof_front - DIMS.chassis.rear_z, 1, "hardtop_rib"),
 )
 SPECS = {spec.name: spec for spec in REGIONS}
 
@@ -75,7 +76,7 @@ def recess(region):
     scale_u, scale_v = panel_scale(region)
     center_z = (shell.HANDLE_REAR_OFFSET + shell.HANDLE_FRONT_OFFSET) / 2
     center_y = (shell.HANDLE_BOTTOM_Y + shell.HANDLE_TOP_Y) / 2
-    return (center_z * scale_u, (dims.BELT_Y - center_y) * scale_v,
+    return (center_z * scale_u, (DIMS.greenhouse.belt_y - center_y) * scale_v,
             (shell.HANDLE_FRONT_OFFSET - shell.HANDLE_REAR_OFFSET) * scale_u / 2 + RECESS_PADDING_TEXELS,
             (shell.HANDLE_TOP_Y - shell.HANDLE_BOTTOM_Y) * scale_v / 2 + RECESS_PADDING_TEXELS)
 

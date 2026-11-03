@@ -175,7 +175,7 @@ c = load_tool('suv_cubes')
 from copy import deepcopy
 for cube in s.grille_cubes()[3:]:
     assert cube['uv'] == a.uv('body')
-for cube in s.window_frame_piece(s.BELT_Y, s.CARGO_FRONT, s.ROOF_Y, s.CARGO_FRONT + 1)[:1]:
+for cube in s.window_frame_piece(s.DIMS.greenhouse.belt_y, s.DIMS.chassis.cargo_front_z, s.DIMS.greenhouse.roof_y, s.DIMS.chassis.cargo_front_z + 1)[:1]:
     assert cube['uv']['up'] == a.ATLAS.face('body')
 for name in s.DOORS:
     side, front, back = s.DOORS[name]
@@ -183,14 +183,14 @@ for name in s.DOORS:
     region = a.region('body', 'door_front' if front > 0 else 'door_rear')
     scale_u, scale_v = a.PAINTERS['body'].panel_scale(region.name)
     cubes = s.door(name)['cubes']
-    strips = [cube for cube in cubes if cube['uv'][face]['uv'][1] >= 4 and region.x <= cube['uv'][face]['uv'][0] < region.x + region.w and cube['origin'][1] < s.BELT_Y]
+    strips = [cube for cube in cubes if cube['uv'][face]['uv'][1] >= 4 and region.x <= cube['uv'][face]['uv'][0] < region.x + region.w and cube['origin'][1] < s.DIMS.greenhouse.belt_y]
     assert len(strips) > 1
     for cube in strips:
         _, y, z = cube['origin']
         _, h, d = cube['size']
         uv = cube['uv'][face]
         assert abs(uv['uv'][0] - region.x - (z - back) * scale_u) < 1e-8
-        assert abs(uv['uv'][1] - region.y - (s.BELT_Y - y - h) * scale_v) < 1e-8
+        assert abs(uv['uv'][1] - region.y - (s.DIMS.greenhouse.belt_y - y - h) * scale_v) < 1e-8
         assert abs(uv['uv_size'][0] - d * scale_u) < 1e-8
         assert abs(uv['uv_size'][1] - h * scale_v) < 1e-8
 p = a.PAINTERS['body']

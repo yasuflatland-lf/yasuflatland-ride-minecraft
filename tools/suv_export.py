@@ -4,7 +4,9 @@ import json
 
 from tool_loader import load_tool
 
-globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
+dims = load_tool("suv_dims")
+DIMS = dims.DIMS
+SIZE_SCALE = dims.SIZE_SCALE
 palette = load_tool("suv_palette")
 PALETTE = palette.PALETTE
 BODY_PAINTS = palette.BODY_PAINTS
@@ -62,8 +64,8 @@ def sync_animation(out, path, scaled):
                     continue
                 side = 1 if member.endswith("l") else -1
                 folded = "wheels_" in name
-                offset = scaled([side * (FOLD_OUT if folded else SUB_OUT),
-                                 -FOLD_DROP if folded else 0, 0])
+                offset = scaled([side * (DIMS.fold.out if folded else DIMS.fold.sub_out),
+                                 -DIMS.fold.drop if folded else 0, 0])
                 position = channels["position"]
                 if isinstance(position, list):
                     channels["position"] = offset
