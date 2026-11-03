@@ -15,7 +15,7 @@ class Dims:
     rear_z: int = 8  # The anchor is the rear wall's middle cell (ADR 0130).
     ridge_height: int = 48  # Three layers provide the body's headroom.
     lean_width: float = 32.8  # Measured front ridge/base ratio 0.41 (ADR 0210).
-    lean_depth: float = 20.8  # Preserve standing domain rooms at side ratio 0.57 (ADR 0210).
+    lean_depth: float = 20.8  # Measured 0.49, chosen 0.57 to keep standing rooms (ADR 0210).
     shell_thickness: float = 0.5  # Thin panels follow the roof tent's construction.
     band_height: int = 1  # One-pixel steps soften the leaning panels' diagonal edges.
     band_overlap: float = 0.4  # Overlap along the slope hides light gaps between rotated bands.
@@ -63,6 +63,20 @@ class Dims:
     mattress_edge_height: int = 8
     mattress_height: int = 9
 
+    ring_spacing: int = 24
+    ring_outer_x: float = 1.05
+    ring_inner_half_width: float = 0.6
+    ring_half_depth: int = 1
+    ring_bottom_y: float = 46.25
+    ring_top_y: float = 46.75
+    lantern_hook_bounds: tuple = (-0.5, 44, -64.5, 0.5, 47.5, -63.5)
+    lantern_cap_bounds: tuple = (-3, 44, -67, 3, 45, -61)
+    lantern_pivot: tuple = (0, 47.5, -64)
+    glass_radius: int = 4
+    glass_bottom_y: int = 36
+    glass_top_y: int = 44
+    glass_pivot: tuple = (0, 40, -64)
+
     @property
     def inner_lean(self):
         top = self.half_width-self.lean_width*(self.inner_height+self.inner_roof_thickness)/self.ridge_height
@@ -80,19 +94,6 @@ class Dims:
     @property
     def ring_stop_z(self):
         return self.strap_bounds[5]-self.ring_half_depth
-    ring_spacing: int = 24
-    ring_outer_x: float = 1.05
-    ring_inner_half_width: float = 0.6
-    ring_half_depth: int = 1
-    ring_bottom_y: float = 46.25
-    ring_top_y: float = 46.75
-    lantern_hook_bounds: tuple = (-0.5, 44, -64.5, 0.5, 47.5, -63.5)
-    lantern_cap_bounds: tuple = (-3, 44, -67, 3, 45, -61)
-    lantern_pivot: tuple = (0, 47.5, -64)
-    glass_radius: int = 4
-    glass_bottom_y: int = 36
-    glass_top_y: int = 44
-    glass_pivot: tuple = (0, 40, -64)
 
 
 DIMS = Dims()

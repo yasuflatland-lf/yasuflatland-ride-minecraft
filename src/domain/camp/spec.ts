@@ -53,7 +53,11 @@ export const TENT_SPEC = Object.freeze({
   tarpHeadroom: 2,
   /** Measured front ridge/base ratio 0.41: 2.9 of 7 blocks (ADR 0210). */
   leanWidth: 2.05,
-  /** Measured side ratio about 0.49; retain standing rooms at 3.4 of 6 blocks (ADR 0210). */
+  /**
+   * Measured side ratio about 0.49 would need about 1.5. Values above 4/3 let layer-1
+   * cross-walls remove the standing front room and a bedroom column, so 1.3 is the
+   * largest round value below 4/3 (ADR 0210).
+   */
   leanDepth: 1.3,
   /** Hits in a row from outside that take the tent down, as for the Low Chair (ADR 0122). */
   hitsToTakeDown: 3,

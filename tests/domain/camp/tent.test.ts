@@ -47,22 +47,6 @@ const arbPose: fc.Arbitrary<TentPose> = fc.record({
   yaw: arbYaw,
 });
 
-// The measured side ratio about 0.49 needs depth lean about 1.5 (ADR 0210).
-// Choose 1.3 as the largest round value below 4/3 with margin: above 4/3,
-// layer-1 cross-walls remove the standing front room and a bedroom column.
-const measuredShellAt = (height: number) => ({
-  halfWidth:
-    TENT_SPEC.width / 2 -
-    (TENT_SPEC.leanWidth * height) / (TENT_SPEC.frontRoomHeadroom + 1),
-  front: 3 + (TENT_SPEC.leanDepth * height) / (TENT_SPEC.frontRoomHeadroom + 1),
-  rear:
-    TENT_SPEC.depth -
-    (TENT_SPEC.leanDepth * height) / (TENT_SPEC.frontRoomHeadroom + 1),
-  top: TENT_SPEC.frontRoomHeadroom + 1,
-  tarpHalfWidth: TENT_SPEC.width / 2,
-  tarpTop: TENT_SPEC.tarpHeadroom + 1,
-});
-
 const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
@@ -121,7 +105,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
       ...TENT_MATTRESSES.flat(),
     ];
     for (const cell of localCells) {
-      const shell = measuredShellAt(cell.layer + 0.5);
+      const shell = tentShellAt(cell.layer + 0.5);
       const depth = cell.depth + 0.5;
       const body =
         Math.abs(cell.x) <= shell.halfWidth &&
@@ -138,7 +122,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
     const inner = defined(TENT_FLAPS.bedroom[0], "bedroom flap").depth;
     for (const { cell, face } of TRAPEZOID_LAYOUT.walls) {
       if (cell.depth === inner && face === 1) continue;
-      const shell = measuredShellAt(cell.layer + 0.5);
+      const shell = tentShellAt(cell.layer + 0.5);
       const distance =
         face >= 2
           ? shell.halfWidth - Math.abs(cell.x)
@@ -150,7 +134,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
       expect(distance).toBeLessThanOrEqual(1);
     }
     for (const cell of TRAPEZOID_LAYOUT.ceilings) {
-      const shell = measuredShellAt(cell.layer + 0.5);
+      const shell = tentShellAt(cell.layer + 0.5);
       const onTarp = cell.depth + 0.5 <= shell.front;
       const halfWidth = onTarp ? shell.tarpHalfWidth : shell.halfWidth;
       const near = onTarp ? 0 : shell.front;
@@ -277,6 +261,12 @@ describe("tentCells (ADR 0130, 0131)", () => {
         expect(sort(mapped)).toEqual(sort(tentCells(next, PITCHED_STATE)));
       }),
     );
+  });
+
+  it("keeps the depth lean below 4/3 so the standing paths survive (ADR 0210)", () => {
+    // Above 4/3 the layer-1 cross-walls remove the standing front room and a
+    // bedroom column; the standing-path test above checks the layout itself.
+    expect(TENT_SPEC.leanDepth).toBeLessThan(4 / 3);
   });
 
   it("pins the trapezoid footprint, stepped walls, entrance and anchor", () => {
@@ -476,7 +466,7 @@ describe("insideTent (ADR 0131)", () => {
           for (const depth of range(-1, TENT_SPEC.depth))
             for (const layer of range(-1, TENT_SPEC.frontRoomHeadroom + 1)) {
               const cell = tentCellAt(pose, { x, depth, layer });
-              const shell = measuredShellAt(layer + 0.5);
+              const shell = tentShellAt(layer + 0.5);
               const lower = layer >= 0;
               const tarp =
                 lower &&
