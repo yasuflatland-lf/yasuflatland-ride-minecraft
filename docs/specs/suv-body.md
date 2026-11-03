@@ -142,6 +142,15 @@ The roof tent generator reads both roof height and shell width from `DIMS`. Its 
 - Implementation: `tests/packs/model.test.ts` (`RIDER_HEAD_PX`, `RIDER_HEAD_HALF_PX`); roof and windshield parts in `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`
 - Verification: `tests/packs/model.test.ts` "keeps every seated player's head beneath the SUV roof and behind the raked windshield with half a pixel to spare" (estimate-based, not an in-game check). Not verified: head clearance and first-person visibility on PC and touch beyond the single dev BDS check recorded in 0196.
 
+### Body panels
+
+- Applies to: SUV model and body texture, every paint.
+- Rule: Each door is an outer skin over a separate inner frame, with a stepped lower rear corner, two exterior hinges on its front edge, and a pull handle on stand-off posts; all of them belong to the door bone. The hardtop is a slab at `roof_y` with two raised front panels and a raised rear section separated by seams; nothing rises more than 0.3 px above `roof_top`. Each rear quarter window is recessed in a hardtop frame. The tailgate is a panel between the tail lamps with two hinges on its right edge. Door and tailgate textures add a sheen band under the belt line and a shade band above the rocker; every paint keeps its base colour on the body swatch.
+- Agreement: Proposed
+- Basis: [0213](../adr/0213-reproduce-the-reference-suv-shape.md) Decision, "Build body surfaces from panels (`tools/panels.py`, 0169) where that reads as sheet metal."; [0213](../adr/0213-reproduce-the-reference-suv-shape.md) Decision, "Keep the palette and paint colours unchanged."
+- Implementation: `tools/suv_doors.py`, `tools/suv_greenhouse.py`, `tools/suv_rear.py`, `tools/suv_paint_body.py`
+- Verification: `tests/tools/suvBodyPanels.test.ts`; `tests/tools/suvPaintBody.test.ts`; `tests/packs/model.test.ts` "swings each door outward from the body", "keeps spinning road tires clear of flares, steps and bumpers" and the head clearance guard. Not verified: the panels and texture bands in game on any device, including the owner's iPad with Vibrant Visuals.
+
 ## Open issues
 
 - 0170's Decision and table retain the old target values (138 px reference D and rake 34.3 degrees), while 0213 (Proposed) supersedes those targets and rake without replacing the measurement method: `docs/adr/0170-measure-suv-side-view-proportions.md`, `docs/adr/0213-reproduce-the-reference-suv-shape.md`.
