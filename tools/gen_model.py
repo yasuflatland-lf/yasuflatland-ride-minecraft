@@ -95,8 +95,9 @@ body += both_sides(rear.cargo_lower_side_cubes())
 body += rear.fuel_door_cubes()
 body += both_sides(fenders.arch_liner_cubes())
 body += both_sides([
-    *fenders.fender_flare(DIMS.wheels.front_axle_z, DIMS.chassis.sill_y + 1, DIMS.chassis.sill_y),
-    *fenders.fender_flare(DIMS.wheels.rear_axle_z, DIMS.chassis.sill_y, DIMS.chassis.sill_y),
+    *fenders.fender_flare(DIMS.wheels.front_axle_z, DIMS.flare.front_crest_y, DIMS.front_bumper.top_y, DIMS.steps.top_y),
+    *fenders.fender_flare(DIMS.wheels.rear_axle_z, DIMS.flare.rear_crest_y, DIMS.steps.top_y, DIMS.chassis.sill_y),
+    *fenders.fender_vent_cubes(),
     *lamp_part("turn_signal"),
 ])
 body += lamp_part("front_strip", mirrored=True)
