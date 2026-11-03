@@ -142,3 +142,11 @@ Placement stays `halfX=halfZ=1` and height 3: the 3x3x3 cells still hold the col
 The hardtop rib panel now uses `HARDTOP_FLAT_DENSITY=2` so its enlarged flat faces fit the atlas; rib sides retain density 4 and paint colours stay unchanged. Resource Pack manifest version rises from 0.1.248 to 0.1.249, with the matching Behavior Pack dependency (0015).
 
 Geometry and pack tests check the measured proportions, enclosing probes, collision box, seat positions, placement, roof tent, and unchanged head-clearance guard. In-game scenarios run in CI through `.github/workflows/integration-test.yml` against BDS in four serial shards and a four-lane full-suite job. This note records no local BDS run or completed CI result. Client checks, including the owner's iPad horizon and the verification-branch silhouette on iPad with Vibrant Visuals and PC, remain pending.
+
+### 2026-11-03: 11/13 (#1256), body panels and panel lines
+
+Each door is an outer skin over a separate inner frame. The skin's lower rear corner steps in twice, so the frame shows as a recessed, rounded corner. Two body-coloured exterior hinges sit on each door's front edge and swing with the door; the hinge pivots and door bone names are unchanged (0009). The pull handle is a black grip on two stand-off posts over the existing painted recess.
+
+The hardtop keeps its 0.2 px slab at `roof_y`, so the head-clearance guard is unchanged. Two front panels split over the front seats and one rear section stand 0.2 px proud of the slab, and the dark seams show in the gaps between them. The ribs sit on the panels, so the roof's highest point stays 0.3 px above `roof_top`. Each rear quarter window is a hardtop frame around glass recessed 0.4 px. The tailgate is a 19 px wide panel between the tail lamps, with two exterior hinges on its right edge. The body corners outboard of it carry the lamps.
+
+The door and tailgate textures add a light band under the belt line and a shaded band above the rocker, next to the existing groove and highlight lines. Every paint keeps its base colour on the body swatch, and the 16 paint colours are pinned in the paint tests. `SUV_BODY_SIZE` is unchanged because the outline does not move. Resource Pack manifest version rises from 0.1.249 to 0.1.250, with the matching Behavior Pack dependency (0015).
