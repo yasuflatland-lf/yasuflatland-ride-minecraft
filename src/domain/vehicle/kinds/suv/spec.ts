@@ -65,7 +65,7 @@ export const SUV_SPEC = Object.freeze({
   floatGain: 0.25, // blocks/tick of buoyancy per block of depth off the float line
   // Banking in flight (ADR 0026) and under water (ADR 0044)
   maxBank: 30, // degrees at the full turn rate
-  bankRate: 3, // degrees/tick; 10 ticks from level to full bank
+  bankRate: 3, // nominal degrees/tick; smooth easing reaches full bank in 11 ticks
   // Landing gear (ADR 0033). Unfolding takes 1 s (ADR 0022), 3 blocks of
   // landing at landingSink, so the wheels come down a block above that.
   gearDownHeight: 4, // blocks of air below the vehicle within which landing unfolds the wheels
@@ -98,7 +98,7 @@ export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({
   submarineStepProbeDrop: SUV_SPEC.submarineStepProbeDrop,
   maxBank: SUV_SPEC.maxBank,
   bankRate: SUV_SPEC.bankRate,
-  bankEasing: "constant",
+  bankEasing: "smooth",
   bankSink: SUV_SPEC.bankSink,
   gearDownHeight: SUV_SPEC.gearDownHeight,
   gearProbeOffset: SUV_SPEC.gearProbeOffset,
