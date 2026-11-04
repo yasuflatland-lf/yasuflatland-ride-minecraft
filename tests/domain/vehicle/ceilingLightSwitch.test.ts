@@ -8,14 +8,12 @@ import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { type RiderView, Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
+import { riderView } from "../../support/riders";
 
 const FEET: Vec3 = { x: 0.5, y: 65, z: 0.5 };
-const driver: RiderView = {
-  id: asPlayerId("d"),
+const driver: RiderView = riderView("d", {
   offset: defined(CAMPER_PROFILE.seats.positions[0], "seat 0"),
-  yaw: 0,
-  raw: { moveX: 0, moveY: 0, jump: false },
-};
+});
 
 function vehicle(
   switchCeilingLights?: (feet: Vec3) => boolean,

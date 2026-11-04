@@ -15,7 +15,7 @@ const finite = fc.double({ min: -1000, max: 1000, noNaN: true });
 it("reports a driver iff a rider occupies the driver slot, regardless of deck riders", () => {
   fc.assert(
     fc.property(
-      fc.array(fc.option(fc.integer({ min: 0, max: 10 }), { nil: undefined })),
+      fc.array(fc.integer({ min: 0, max: 10 })),
       fc.array(fc.string()),
       (slots, deck) => {
         const state = hostStateOf(

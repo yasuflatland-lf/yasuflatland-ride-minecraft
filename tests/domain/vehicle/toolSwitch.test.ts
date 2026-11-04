@@ -7,13 +7,11 @@ import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/p
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { type RiderView, Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
+import { riderView } from "../../support/riders";
 
-const driver: RiderView = {
-  id: asPlayerId("d"),
+const driver: RiderView = riderView("d", {
   offset: defined(BULLDOZER_PROFILE.seats.positions[0], "seat 0"),
-  yaw: 0,
-  raw: { moveX: 0, moveY: 0, jump: false },
-};
+});
 
 function stubDrive(withTool: boolean) {
   let raised = false;
