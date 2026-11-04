@@ -4,6 +4,8 @@ import type { ChairWorld } from "../../../application/camp/ports/chair";
 import type { ChairId, ChairKindId } from "../../../domain/camp/chair";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { safeBlockAt } from "../../shared/blocks";
+import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import { CHAIR_KIND_BY_TYPE, CHAIR_KINDS } from "../identifiers";
@@ -15,17 +17,14 @@ import { CHAIR_KIND_BY_TYPE, CHAIR_KINDS } from "../identifiers";
 const SAME_CELL_DISTANCE = 0.75;
 
 function chairOf(chairId: ChairId) {
-  const entity = world.getEntity(chairId);
-  return entity?.isValid && CHAIR_KIND_BY_TYPE.has(entity.typeId)
-    ? entity
-    : undefined;
+  return entityOfType(world, chairId, CHAIR_KIND_BY_TYPE);
 }
 
 function blockAt(dimensionId: DimensionId, at: Vec3) {
   try {
-    return world.getDimension(dimensionId).getBlock(at);
+    return safeBlockAt(world.getDimension(dimensionId), at);
   } catch {
-    return undefined; // Unknown dimension id, or a cell outside the world
+    return undefined; // Unknown dimension id
   }
 }
 

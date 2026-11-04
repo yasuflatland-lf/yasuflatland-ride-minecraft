@@ -6,7 +6,7 @@ import type { PlayerId } from "../../domain/shared/ids";
 import type { ChairWorld } from "./ports/chair";
 import { handleHit } from "./takeBackByHits";
 
-export interface HitChairCommand {
+interface HitChairCommand {
   kind: ChairKindId;
   chairId: ChairId;
   tick: number;

@@ -3,7 +3,7 @@ import type { FlapId, TentId } from "../../domain/camp/tent";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { TentFlapWorld } from "./ports/tentFlap";
 
-export interface UseTentFlapCommand {
+interface UseTentFlapCommand {
   tentId: TentId;
   flap: FlapId;
   tick: number;

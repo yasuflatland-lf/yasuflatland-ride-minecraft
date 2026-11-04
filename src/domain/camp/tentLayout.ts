@@ -12,7 +12,7 @@ export type TentFace = 0 | 1 | 2 | 3;
 export type FlapId = "front" | "left" | "right" | "bedroom";
 
 /** Inclusive cell bounds, starting at layer 0. */
-export interface TentLocalBox {
+interface TentLocalBox {
   readonly halfWidth: number;
   readonly depthFrom: number;
   readonly depthTo: number;

@@ -1,7 +1,7 @@
 import type { PropertySpec } from "../entityContract";
 
 /** A tool the cab monitor shows: its bare item id and its state names, in screen order (ADR 0139). */
-export interface MonitorTool {
+interface MonitorTool {
   readonly item: string;
   readonly states: readonly string[];
 }

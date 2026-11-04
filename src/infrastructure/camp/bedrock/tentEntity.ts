@@ -1,11 +1,11 @@
 import { type Entity, world } from "@minecraft/server";
 import type { TentId } from "../../../domain/camp/tent";
+import { entityOfType } from "../../shared/entities";
 import { TENT_LANTERN_PROPERTY, TENT_TYPE } from "../identifiers";
 
 /** The tent's entity while it is loaded and still a tent. */
 export function tentEntityOf(tentId: TentId): Entity | undefined {
-  const entity = world.getEntity(tentId);
-  return entity?.isValid && entity.typeId === TENT_TYPE ? entity : undefined;
+  return entityOfType(world, tentId, TENT_TYPE);
 }
 
 // The entity property is the lantern's only saved state: it lives through

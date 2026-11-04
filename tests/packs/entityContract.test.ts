@@ -1,9 +1,5 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import {
-  CORE_EVENT_PREFIXES,
-  CORE_PROPERTY_NAMES,
-} from "../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
 import { entityContractOf } from "../../src/domain/vehicle/kinds/index";
 import {
@@ -12,6 +8,10 @@ import {
   entityEventId,
   entityPropertyId,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import {
+  CORE_EVENT_PREFIXES,
+  CORE_PROPERTY_NAMES,
+} from "../support/coreContract";
 import { expectPackProperty } from "../support/entityContract";
 import { jsonFiles } from "../support/packFiles";
 

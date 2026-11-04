@@ -1,13 +1,13 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import type { Box } from "../box";
+import type { CellBox } from "../box";
 import type {
   HeightedPlacement,
   HeightedVolume,
   HeightStepSpec,
 } from "./geometry";
 
-function* columns(base: Box) {
+function* columns(base: CellBox) {
   const { min, max } = base;
   const widthSquared = (max.x - min.x + 1) ** 2;
   const depthSquared = (max.z - min.z + 1) ** 2;

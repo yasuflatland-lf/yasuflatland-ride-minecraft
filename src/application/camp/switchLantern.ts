@@ -3,7 +3,7 @@ import type { TentId } from "../../domain/camp/tent";
 import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
 import type { LanternWorld } from "./ports/lantern";
 
-export interface SwitchLanternCommand {
+interface SwitchLanternCommand {
   tentId: TentId;
   tick: number;
 }

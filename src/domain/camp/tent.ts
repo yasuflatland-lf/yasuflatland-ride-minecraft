@@ -259,9 +259,6 @@ const FLAP_BY_LOCAL: ReadonlyMap<string, FlapId> = new Map(
   ),
 );
 
-/** The bedroom cells of each mattress, laid last by tentCells whatever the state; x 0 stays free as the walkway from the bedroom flap. */
-export const TENT_MATTRESSES = LAYOUT.mattresses;
-
 export interface GroundReading {
   readonly typeId: string;
   readonly liquid: boolean;
@@ -289,7 +286,7 @@ export type PitchRefusal =
   | "blocked"
   | "ground";
 
-export type PitchPlan =
+type PitchPlan =
   | { readonly ok: true; readonly clearTopFirst: readonly Cell[] }
   | { readonly ok: false; readonly reason: PitchRefusal };
 

@@ -3,12 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asChairId } from "../../../src/domain/camp/chair";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockChairWorld } from "../../../src/infrastructure/camp/bedrock/bedrockChairWorld";
-import {
-  CHAIR_KINDS,
-  HITS_LEFT_HINT,
-  LOW_CHAIR_ITEM,
-  LOW_CHAIR_TYPE,
-} from "../../../src/infrastructure/camp/identifiers";
+import { CHAIR_KINDS } from "../../../src/infrastructure/camp/identifiers";
 
 const game = vi.hoisted(() => ({ getDimension: vi.fn(), getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -34,7 +29,7 @@ function fixture() {
   const riders: unknown[] = [];
   const chair = {
     id: "chair",
-    typeId: LOW_CHAIR_TYPE,
+    typeId: CHAIR_KINDS.low_chair.typeId,
     isValid: true,
     location: { x: 1.5, y: 64, z: 2.5 },
     dimension,
@@ -111,7 +106,7 @@ describe("BedrockChairWorld (ADR 0122)", () => {
       location: { x: number; y: number; z: number };
       maxDistance: number;
     }) =>
-      query.type === LOW_CHAIR_TYPE &&
+      query.type === CHAIR_KINDS.low_chair.typeId &&
       Math.hypot(
         at.x - query.location.x,
         at.y - query.location.y,
@@ -161,11 +156,14 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     const { dimension, chair, chairs } = fixture();
     dimension.spawnEntity.mockReturnValue(chair);
     chairs.spawnChair("low_chair", DIM, { x: 1.5, y: 64, z: 2.5 }, 135);
-    expect(dimension.spawnEntity).toHaveBeenCalledWith(LOW_CHAIR_TYPE, {
-      x: 1.5,
-      y: 64,
-      z: 2.5,
-    });
+    expect(dimension.spawnEntity).toHaveBeenCalledWith(
+      CHAIR_KINDS.low_chair.typeId,
+      {
+        x: 1.5,
+        y: 64,
+        z: 2.5,
+      },
+    );
     expect(chair.setRotation).toHaveBeenCalledWith({ x: 0, y: 135 });
   });
 
@@ -181,7 +179,7 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     chairs.dropChairItem(asChairId("chair"));
     chairs.removeChair(asChairId("chair"));
     expect(dimension.spawnItem).toHaveBeenCalledWith(
-      { typeId: LOW_CHAIR_ITEM, amount: 1 },
+      { typeId: CHAIR_KINDS.low_chair.itemId, amount: 1 },
       chair.location,
     );
     expect(chair.remove).toHaveBeenCalled();
@@ -262,7 +260,7 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     const { player, chairs } = fixture();
     chairs.showHitsLeft("low_chair", asPlayerId("player"), 2);
     expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledWith({
-      translate: HITS_LEFT_HINT,
+      translate: CHAIR_KINDS.low_chair.hitsHint,
       with: ["2"],
     });
   });
