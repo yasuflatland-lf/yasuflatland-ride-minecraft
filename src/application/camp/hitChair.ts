@@ -4,6 +4,7 @@ import { CHAIR_SPEC } from "../../domain/camp/spec";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { ChairWorld } from "./ports/chair";
+import { handleHit } from "./takeBackByHits";
 
 interface HitChairCommand {
   kind: ChairKindId;
@@ -27,16 +28,19 @@ export class HitChair {
   execute(cmd: HitChairCommand): boolean {
     this.hits.forgetStale(cmd.tick);
     if (this.world.kindOf(cmd.chairId) !== cmd.kind) return false;
-    const occupied = this.world.isOccupied(cmd.chairId);
-    const r = this.hits.hit(cmd.chairId, cmd.tick, occupied);
-    if (r.broken) {
-      this.world.dropChairItem(cmd.chairId);
-      this.world.removeChair(cmd.chairId);
-      return true;
-    }
-    if (occupied) return false;
-    if (cmd.playerId !== undefined)
-      this.world.showHitsLeft(cmd.kind, cmd.playerId, r.hitsLeft);
-    return false;
+    if (this.world.isOccupied(cmd.chairId)) return false;
+    let taken = false;
+    handleHit(RULE, this.hits, cmd.chairId, cmd.tick, {
+      drop: () => this.world.dropChairItem(cmd.chairId),
+      remove: () => {
+        this.world.removeChair(cmd.chairId);
+        taken = true;
+      },
+      showRemaining: (left) => {
+        if (cmd.playerId !== undefined)
+          this.world.showHitsLeft(cmd.kind, cmd.playerId, left);
+      },
+    });
+    return taken;
   }
 }
