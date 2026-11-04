@@ -1,3 +1,4 @@
+import type { RoofTentId } from "../../domain/camp/ids";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { LeaveRoofTent } from "./leaveRoofTent";
 import type { RoofTentOccupantWorld } from "./ports/roofTentOccupant";
@@ -17,7 +18,7 @@ export class RoofTentMenu {
   }
 
   choose(
-    cmd: { playerId: PlayerId; tentId: string },
+    cmd: { playerId: PlayerId; tentId: RoofTentId },
     choice: (typeof ROOF_TENT_CHOICES)[number],
   ): void {
     const occupant = this.world.occupantOf(cmd.tentId);

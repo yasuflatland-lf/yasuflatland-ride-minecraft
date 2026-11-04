@@ -1,6 +1,7 @@
 import { type Entity, Player, system, world } from "@minecraft/server";
 import type { EnterRoofTent } from "../../../../application/camp/enterRoofTent";
 import type { RoofTentOccupantWorld } from "../../../../application/camp/ports/roofTentOccupant";
+import { asRoofTentId, type RoofTentId } from "../../../../domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
@@ -27,8 +28,8 @@ export interface RoofTentFootAccess {
 export function registerRoofTentEnter(
   enter: EnterRoofTent,
   occupants: RoofTentOccupantWorld,
-  showMenu: (player: Player, tentId: string) => Promise<RoofTentMenuResult>,
-  track: (playerId: PlayerId, tentId: string) => void,
+  showMenu: (player: Player, tentId: RoofTentId) => Promise<RoofTentMenuResult>,
+  track: (playerId: PlayerId, tentId: RoofTentId) => void,
   entranceReach: (tent: Entity, player: Player) => boolean,
   foot: RoofTentFootAccess,
 ): void {
@@ -36,7 +37,7 @@ export function registerRoofTentEnter(
   const disarmed = new Set<PlayerId>();
   const hintedAt = new Map<PlayerId, number>();
   const entries = new Map<PlayerId, object>();
-  const openAfterSeating = (player: Player, tentId: string): void => {
+  const openAfterSeating = (player: Player, tentId: RoofTentId): void => {
     const playerId = asPlayerId(player.id);
     const entry = {};
     entries.set(playerId, entry);
@@ -85,7 +86,7 @@ export function registerRoofTentEnter(
     };
     system.runTimeout(poll, MENU_POLL_TICKS);
   };
-  const enterAndTrack = (player: Player, tentId: string): void => {
+  const enterAndTrack = (player: Player, tentId: RoofTentId): void => {
     const playerId = asPlayerId(player.id);
     if (enter.execute({ playerId, tentId })) {
       disarmed.add(playerId);
@@ -102,7 +103,7 @@ export function registerRoofTentEnter(
     if (!pressed.add(system.currentTick, playerId)) return;
     system.run(() => {
       if (!player.isValid || !target.isValid || heldDye(player)) return;
-      const tentId = target.id;
+      const tentId = asRoofTentId(target.id);
       if (fromFoot) {
         if (player.isSneaking && foot.atFoot(target, player))
           enterAndTrack(player, tentId);
@@ -137,10 +138,12 @@ export function registerRoofTentEnter(
     const tent = foot
       .loadedTents()
       .find(
-        (tent) => tent.isValid && occupants.occupantOf(tent.id) === playerId,
+        (tent) =>
+          tent.isValid &&
+          occupants.occupantOf(asRoofTentId(tent.id)) === playerId,
       );
-    if (tent && occupants.isSeated(playerId, tent.id) === true)
-      void showMenu(source, tent.id);
+    if (tent && occupants.isSeated(playerId, asRoofTentId(tent.id)) === true)
+      void showMenu(source, asRoofTentId(tent.id));
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     const { player, target } = ev;
@@ -177,10 +180,10 @@ export function registerRoofTentEnter(
       }
       if (disarmed.has(playerId)) continue;
       const tent = nearby.find(
-        (tent) => occupants.occupantOf(tent.id) === undefined,
+        (tent) => occupants.occupantOf(asRoofTentId(tent.id)) === undefined,
       );
       if (tent && pressed.add(system.currentTick, playerId))
-        enterAndTrack(player, tent.id);
+        enterAndTrack(player, asRoofTentId(tent.id));
     }
   }, 4);
 }

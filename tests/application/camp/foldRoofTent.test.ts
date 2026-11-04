@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
+import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import { FakeRoofTentWorld, PLAYER } from "./fakeRoofTentWorld";
 
@@ -23,7 +24,7 @@ describe("FoldRoofTent", () => {
           gaps.forEach((gap, index) => {
             tick += gap;
             const cmd = {
-              tentId: "tent",
+              tentId: asRoofTentId("tent"),
               tick,
               ...(withPlayer ? { playerId: PLAYER } : {}),
             };
@@ -54,12 +55,16 @@ describe("FoldRoofTent", () => {
           const world = new FakeRoofTentWorld();
           const fold = new FoldRoofTent(world);
           for (let i = 0; i < hits - 1; i++)
-            expect(fold.execute({ tentId: "tent", tick: 0 })).toBe(false);
-          expect(fold.execute({ tentId: "other", tick: 0 })).toBe(false);
+            expect(
+              fold.execute({ tentId: asRoofTentId("tent"), tick: 0 }),
+            ).toBe(false);
+          expect(fold.execute({ tentId: asRoofTentId("other"), tick: 0 })).toBe(
+            false,
+          );
           for (let i = 0; i < hits; i++)
-            expect(fold.execute({ tentId: "tent", tick: gap })).toBe(
-              i === hits - 1,
-            );
+            expect(
+              fold.execute({ tentId: asRoofTentId("tent"), tick: gap }),
+            ).toBe(i === hits - 1);
           expect(world.remove).toHaveBeenCalledExactlyOnceWith("tent");
         },
       ),

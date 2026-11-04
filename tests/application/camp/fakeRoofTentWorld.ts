@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import type { RoofTentWorld } from "../../../src/application/camp/ports/roofTent";
 import type { VehicleHostState } from "../../../src/application/shared/ports/vehicleHost";
 import type { Host } from "../../../src/domain/camp/hosted";
+import { asRoofTentId, type RoofTentId } from "../../../src/domain/camp/ids";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Paint } from "../../../src/domain/shared/paint";
 
@@ -23,17 +24,17 @@ export const PRESENT: Extract<VehicleHostState, { status: "present" }> = {
 };
 
 export class FakeRoofTentWorld implements RoofTentWorld {
-  readonly hosts = new Map<string, Host>();
-  readonly paints = new Map<string, Paint>();
+  readonly hosts = new Map<RoofTentId, Host>();
+  readonly paints = new Map<RoofTentId, Paint>();
   readonly calls: string[] = [];
-  spawn = vi.fn<RoofTentWorld["spawn"]>(() => "tent");
-  remove = vi.fn((id: string) => {
+  spawn = vi.fn<RoofTentWorld["spawn"]>(() => asRoofTentId("tent"));
+  remove = vi.fn((id: RoofTentId) => {
     this.calls.push(`remove:${id}`);
     this.hosts.delete(id);
     this.paints.delete(id);
   });
   ownerOf = vi.fn<RoofTentWorld["ownerOf"]>(() => PLAYER);
-  hostOf = (id: string): Host => this.hosts.get(id) ?? { kind: "ground" };
+  hostOf = (id: RoofTentId): Host => this.hosts.get(id) ?? { kind: "ground" };
   returnItem = vi.fn<RoofTentWorld["returnItem"]>((id, owner) => {
     this.calls.push(`return:${id}:${owner ?? "drop"}`);
   });
@@ -43,7 +44,7 @@ export class FakeRoofTentWorld implements RoofTentWorld {
   consumeItem = vi.fn<RoofTentWorld["consumeItem"]>(() => true);
   giveItem = vi.fn<RoofTentWorld["giveItem"]>();
   showMessage = vi.fn<RoofTentWorld["showMessage"]>();
-  paintOf = (id: string) => this.paints.get(id);
+  paintOf = (id: RoofTentId) => this.paints.get(id);
   paint = vi.fn<RoofTentWorld["paint"]>((id, paint) => {
     this.paints.set(id, paint);
   });

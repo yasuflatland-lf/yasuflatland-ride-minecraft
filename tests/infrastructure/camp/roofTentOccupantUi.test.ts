@@ -5,6 +5,7 @@ import { LeaveRoofTent } from "../../../src/application/camp/leaveRoofTent";
 import type { RoofTentOccupantWorld } from "../../../src/application/camp/ports/roofTentOccupant";
 import { RoofTentMenu } from "../../../src/application/camp/roofTentMenu";
 import type { SleepInRoofTent } from "../../../src/application/camp/sleepInRoofTent";
+import { asRoofTentId, type RoofTentId } from "../../../src/domain/camp/ids";
 import {
   canSeeEntryHint,
   canStandAtFoot,
@@ -99,17 +100,17 @@ const player = {
 };
 Object.setPrototypeOf(player, Player.prototype);
 const target = {
-  id: "tent",
+  id: asRoofTentId("tent"),
   typeId: ROOF_TENT_TYPE,
   isValid: true,
   dimension: { id: "overworld" },
   location: { x: 0, y: 0, z: 0 },
 };
-let occupied: Map<string, PlayerId>;
+let occupied: Map<RoofTentId, PlayerId>;
 let occupants: RoofTentOccupantWorld;
 let leave: LeaveRoofTent;
 let sleep: { execute: ReturnType<typeof vi.fn> };
-let track: (playerId: PlayerId, tentId: string) => void;
+let track: (playerId: PlayerId, tentId: RoofTentId) => void;
 let showMenu: ReturnType<typeof createRoofTentMenu>;
 const pid = asPlayerId("p");
 const entranceReach = vi.fn(() => false);
@@ -195,14 +196,17 @@ it("cancels and defers one entry per player per tick, routing the occupant to th
   interact();
   expect(occupants.moveInside).not.toHaveBeenCalled();
   flush();
-  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
   game.tick++;
   interact();
   flush();
   await vi.waitFor(() =>
     expect(sleep.execute).toHaveBeenCalledWith({
       playerId: pid,
-      tentId: "tent",
+      tentId: asRoofTentId("tent"),
     }),
   );
   expect(game.title).toHaveBeenCalledWith({ translate: ROOF_TENT_MENU_TITLE });
@@ -235,14 +239,14 @@ it("requires reach and sneaking, with a hint for standing players", () => {
   expect(occupants.moveInside).not.toHaveBeenCalled();
 });
 it("refuses a second player without replacing the occupant", () => {
-  occupied.set("tent", asPlayerId("other"));
+  occupied.set(asRoofTentId("tent"), asPlayerId("other"));
   interact();
   flush();
   expect(occupants.showMessage).toHaveBeenCalledWith(pid, "tent_occupied");
-  expect(occupied.get("tent")).toBe("other");
+  expect(occupied.get(asRoofTentId("tent"))).toBe("other");
   expect(occupants.moveInside).not.toHaveBeenCalled();
 });
-it.each(["player", "tent"])(
+it.each(["player", asRoofTentId("tent")])(
   "ignores an invalid %s before the deferred interaction",
   (invalid) => {
     interact();
@@ -256,29 +260,29 @@ it.each(["player", "tent"])(
 it.each([{ canceled: true }, { selection: undefined }, { selection: 9 }])(
   "leaves the occupant inside on an unanswered form: %j",
   async (answer) => {
-    occupied.set("tent", pid);
+    occupied.set(asRoofTentId("tent"), pid);
     game.show.mockResolvedValue(answer);
-    await showMenu(player as unknown as Player, "tent");
-    expect(occupied.get("tent")).toBe(pid);
+    await showMenu(player as unknown as Player, asRoofTentId("tent"));
+    expect(occupied.get(asRoofTentId("tent"))).toBe(pid);
     expect(leave.execute).not.toHaveBeenCalled();
     expect(sleep.execute).not.toHaveBeenCalled();
   },
 );
 it("guards concurrent forms and ignores a player invalidated while the form is open", async () => {
-  occupied.set("tent", pid);
+  occupied.set(asRoofTentId("tent"), pid);
   let resolve: (value: unknown) => void = () => {};
   game.show.mockReturnValue(
     new Promise((done) => {
       resolve = done;
     }),
   );
-  const pending = showMenu(player as unknown as Player, "tent");
-  await showMenu(player as unknown as Player, "tent");
+  const pending = showMenu(player as unknown as Player, asRoofTentId("tent"));
+  await showMenu(player as unknown as Player, asRoofTentId("tent"));
   expect(game.show).toHaveBeenCalledOnce();
   player.isValid = false;
   resolve({ selection: 1 });
   await pending;
-  await showMenu(player as unknown as Player, "tent");
+  await showMenu(player as unknown as Player, asRoofTentId("tent"));
   expect(game.show).toHaveBeenCalledOnce();
   expect(leave.execute).not.toHaveBeenCalled();
 });
@@ -286,10 +290,13 @@ it("gets out through the form and does not leave again on disconnect", async () 
   interact();
   flush();
   game.show.mockResolvedValue({ selection: 1 });
-  await showMenu(player as unknown as Player, "tent");
+  await showMenu(player as unknown as Player, asRoofTentId("tent"));
   game.left.mock.calls[0]?.[0]({ playerId: pid });
   expect(leave.execute).toHaveBeenCalledOnce();
-  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
 });
 it.each(["leave", "death", "dimension"])(
   "cleans up once on %s even if another lifecycle event follows",
@@ -304,9 +311,9 @@ it.each(["leave", "death", "dimension"])(
     poll();
     expect(leave.execute).toHaveBeenCalledExactlyOnceWith({
       playerId: pid,
-      tentId: "tent",
+      tentId: asRoofTentId("tent"),
     });
-    expect(occupied.has("tent")).toBe(false);
+    expect(occupied.has(asRoofTentId("tent"))).toBe(false);
     expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
   },
 );
@@ -318,21 +325,24 @@ it("waits for the entry sneak to be released before sneak-dismounting", () => {
   expect(leave.execute).not.toHaveBeenCalled();
   player.isSneaking = false;
   poll();
-  track(pid, "tent");
+  track(pid, asRoofTentId("tent"));
   player.isSneaking = true;
   poll();
   poll();
   expect(leave.execute).toHaveBeenCalledOnce();
-  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
-  expect(occupied.has("tent")).toBe(false);
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
+  expect(occupied.has(asRoofTentId("tent"))).toBe(false);
 });
 it("forgets host-ejected occupants without another exit and ignores unavailable player handles", () => {
   interact();
   flush();
   game.getEntity.mockReturnValue(undefined);
   poll();
-  expect(occupied.get("tent")).toBe(pid);
-  occupied.delete("tent");
+  expect(occupied.get(asRoofTentId("tent"))).toBe(pid);
+  occupied.delete(asRoofTentId("tent"));
   poll();
   game.left.mock.calls[0]?.[0]({ playerId: pid });
   expect(leave.execute).not.toHaveBeenCalled();
@@ -345,32 +355,42 @@ it("enters from a reachable entrance beyond the entity interaction reach", () =>
   expect(entranceReach).not.toHaveBeenCalled();
   flush();
   expect(entranceReach).toHaveBeenCalledExactlyOnceWith(target, player);
-  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
   expect(foot.tentOfHost).not.toHaveBeenCalled();
   expect(foot.atFoot).not.toHaveBeenCalled();
 });
 it("restores tracking of a persisted occupant after a reload and frees the tent", () => {
   game.interval.mockClear();
-  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent"]);
-  occupied.set("tent", pid);
+  registerRoofTentOccupantCleanup(leave, occupants, () => [
+    asRoofTentId("tent"),
+  ]);
+  occupied.set(asRoofTentId("tent"), pid);
   const run = game.interval.mock.calls[0]?.[0];
   player.isValid = false;
   for (let i = 0; i < 20 * 30 + 1; i++) run();
-  expect(occupied.has("tent")).toBe(false);
-  expect(occupants.placeOutside).toHaveBeenCalledWith(pid, "tent");
+  expect(occupied.has(asRoofTentId("tent"))).toBe(false);
+  expect(occupants.placeOutside).toHaveBeenCalledWith(
+    pid,
+    asRoofTentId("tent"),
+  );
   expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
 });
 it("keeps a restored occupant who is back online within the grace period", () => {
   game.interval.mockClear();
-  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent"]);
-  occupied.set("tent", pid);
+  registerRoofTentOccupantCleanup(leave, occupants, () => [
+    asRoofTentId("tent"),
+  ]);
+  occupied.set(asRoofTentId("tent"), pid);
   const run = game.interval.mock.calls[0]?.[0];
   player.isValid = false;
   for (let i = 0; i < 100; i++) run();
   player.isValid = true;
   player.isSneaking = false;
   for (let i = 0; i < 20 * 30 + 1; i++) run();
-  expect(occupied.get("tent")).toBe(pid);
+  expect(occupied.get(asRoofTentId("tent"))).toBe(pid);
 });
 
 it("cancels vehicle-targeted sneak entry at the foot beyond entity reach", () => {
@@ -382,7 +402,10 @@ it("cancels vehicle-targeted sneak entry at the foot beyond entity reach", () =>
   expect(interact().cancel).toBe(true);
   interact();
   flush();
-  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
   expect(entranceReach).not.toHaveBeenCalled();
 });
 it.each(["standing", "away", "dye"])(
@@ -419,7 +442,10 @@ it("enters at the foot once until sneak is released", () => {
   foot.loadedTents.mockReturnValue([target]);
   foot.atFoot.mockReturnValue(true);
   pollFoot();
-  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
   occupied.clear();
   game.tick += 4;
   pollFoot();
@@ -465,7 +491,7 @@ it("hints at the foot no more than once per twenty ticks", () => {
 it("skips occupied tents and riding players in the proximity poll", () => {
   foot.loadedTents.mockReturnValue([target]);
   foot.atFoot.mockReturnValue(true);
-  occupied.set("tent", asPlayerId("other"));
+  occupied.set(asRoofTentId("tent"), asPlayerId("other"));
   pollFoot();
   expect(occupants.moveInside).not.toHaveBeenCalled();
   occupied.clear();
@@ -516,7 +542,10 @@ it("leaves a seated occupant in place on every tick", () => {
   flush();
   player.isSneaking = false;
   for (let i = 0; i < 60; i++) poll();
-  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
   expect(occupants.placeOutside).not.toHaveBeenCalled();
   expect(leave.execute).not.toHaveBeenCalled();
 });
@@ -531,10 +560,13 @@ it("clears occupancy and places a dismounted occupant outside after entry grace"
   poll();
   expect(leave.execute).toHaveBeenCalledExactlyOnceWith({
     playerId: pid,
-    tentId: "tent",
+    tentId: asRoofTentId("tent"),
   });
-  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
-  expect(occupied.has("tent")).toBe(false);
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
+  expect(occupied.has(asRoofTentId("tent"))).toBe(false);
 });
 
 it("re-seats a dismounted occupant during the entry grace while the sneak is held", () => {
@@ -544,9 +576,12 @@ it("re-seats a dismounted occupant during the entry grace while the sneak is hel
   vi.mocked(occupants.isSeated).mockReturnValue(false);
   for (let i = 0; i < 10; i++) poll();
   expect(occupants.moveInside).toHaveBeenCalledTimes(10);
-  expect(occupants.moveInside).toHaveBeenLastCalledWith(pid, "tent");
+  expect(occupants.moveInside).toHaveBeenLastCalledWith(
+    pid,
+    asRoofTentId("tent"),
+  );
   expect(leave.execute).not.toHaveBeenCalled();
-  expect(occupied.get("tent")).toBe(pid);
+  expect(occupied.get(asRoofTentId("tent"))).toBe(pid);
 });
 
 it("allows a brief seating delay after the entry sneak is released", () => {
@@ -571,8 +606,11 @@ it("leaves after the entry grace when a latched sneak was never released", () =>
   expect(leave.execute).not.toHaveBeenCalled();
   poll();
   expect(leave.execute).toHaveBeenCalledOnce();
-  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
-  expect(occupied.has("tent")).toBe(false);
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(
+    pid,
+    asRoofTentId("tent"),
+  );
+  expect(occupied.has(asRoofTentId("tent"))).toBe(false);
 });
 
 it("keeps an unloaded tent's occupant without re-seating or leaving", () => {
@@ -584,7 +622,7 @@ it("keeps an unloaded tent's occupant without re-seating or leaving", () => {
   for (let i = 0; i < 60; i++) poll();
   expect(occupants.moveInside).not.toHaveBeenCalled();
   expect(leave.execute).not.toHaveBeenCalled();
-  expect(occupied.get("tent")).toBe(pid);
+  expect(occupied.get(asRoofTentId("tent"))).toBe(pid);
 });
 
 it("hints at 1.2 blocks from the ladder without triggering proximity entry", () => {
@@ -629,7 +667,7 @@ it("refreshes concealment at the configured interval only for matching seated oc
   vi.mocked(occupants.isSeated).mockReturnValue(false);
   for (let i = 0; i < ROOF_TENT_SPEC.concealRefreshTicks; i++) poll();
   expect(occupants.conceal).toHaveBeenCalledTimes(3);
-  occupied.set("tent", asPlayerId("other"));
+  occupied.set(asRoofTentId("tent"), asPlayerId("other"));
   poll();
   expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
   expect(occupants.conceal).toHaveBeenCalledTimes(3);
@@ -637,8 +675,10 @@ it("refreshes concealment at the configured interval only for matching seated oc
 
 it("resumes concealment refresh for a restored seated occupant", () => {
   game.interval.mockClear();
-  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent"]);
-  occupied.set("tent", pid);
+  registerRoofTentOccupantCleanup(leave, occupants, () => [
+    asRoofTentId("tent"),
+  ]);
+  occupied.set(asRoofTentId("tent"), pid);
   for (let i = 0; i < ROOF_TENT_SPEC.concealRefreshTicks + 1; i++) poll();
   expect(occupants.conceal).toHaveBeenCalledTimes(2);
 });
@@ -657,7 +697,7 @@ function expectSeatedHint() {
   });
 }
 it("opens the menu on item use for a seated occupant of a loaded tent", async () => {
-  occupied.set("tent", pid);
+  occupied.set(asRoofTentId("tent"), pid);
   foot.loadedTents.mockReturnValue([target]);
   useItem();
   await vi.waitFor(() => expect(sleep.execute).toHaveBeenCalledOnce());
@@ -672,7 +712,7 @@ it.each([
   "invalid",
 ])("ignores item use when %s", (condition) => {
   occupied.set(
-    "tent",
+    asRoofTentId("tent"),
     condition === "non-occupant" ? asPlayerId("other") : pid,
   );
   foot.loadedTents.mockReturnValue(condition === "unloaded" ? [] : [target]);
@@ -704,7 +744,7 @@ it("auto-opens after seating while sneak stays held, then retries only busy form
   expectSeatedHint();
   expect(player.isSneaking).toBe(true);
   expect(game.timeout.mock.calls).toHaveLength(0);
-  expect(occupied.get("tent")).toBe(pid);
+  expect(occupied.get(asRoofTentId("tent"))).toBe(pid);
   expect(leave.execute).not.toHaveBeenCalled();
 });
 it("gives up after five busy forms with one seated hint", async () => {
@@ -719,7 +759,7 @@ it("gives up after five busy forms with one seated hint", async () => {
   expect(game.show).toHaveBeenCalledTimes(5);
   expect(game.timeout.mock.calls).toHaveLength(0);
   expectSeatedHint();
-  expect(occupied.get("tent")).toBe(pid);
+  expect(occupied.get(asRoofTentId("tent"))).toBe(pid);
 });
 it("bounds waiting for seating to twenty polls", async () => {
   interact();
@@ -737,8 +777,9 @@ it.each(["invalid", "left", "replaced"])(
     flush();
     player.isSneaking = false;
     if (condition === "invalid") player.isValid = false;
-    if (condition === "left") occupied.delete("tent");
-    if (condition === "replaced") occupied.set("tent", asPlayerId("other"));
+    if (condition === "left") occupied.delete(asRoofTentId("tent"));
+    if (condition === "replaced")
+      occupied.set(asRoofTentId("tent"), asPlayerId("other"));
     await pollMenu();
     expect(game.timeout.mock.calls).toHaveLength(0);
     expect(game.show).not.toHaveBeenCalled();
@@ -769,10 +810,10 @@ it.each([0, 1])(
     expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
     if (selection === 0) {
       expect(sleep.execute).toHaveBeenCalledOnce();
-      expect(occupied.get("tent")).toBe(pid);
+      expect(occupied.get(asRoofTentId("tent"))).toBe(pid);
     } else {
       expect(leave.execute).toHaveBeenCalledOnce();
-      expect(occupied.has("tent")).toBe(false);
+      expect(occupied.has(asRoofTentId("tent"))).toBe(false);
     }
   },
 );
@@ -783,14 +824,16 @@ it.each([
 ] as const)(
   "reports the roof tent form outcome %j as %s",
   async (answer, result) => {
-    occupied.set("tent", pid);
+    occupied.set(asRoofTentId("tent"), pid);
     game.show.mockResolvedValue(answer);
-    expect(await showMenu(player as unknown as Player, "tent")).toBe(result);
+    expect(
+      await showMenu(player as unknown as Player, asRoofTentId("tent")),
+    ).toBe(result);
   },
 );
 
 it("does not stack forms from repeated item use", async () => {
-  occupied.set("tent", pid);
+  occupied.set(asRoofTentId("tent"), pid);
   foot.loadedTents.mockReturnValue([target]);
   let close: (answer: unknown) => void = () => {};
   game.show.mockReturnValue(
@@ -802,7 +845,7 @@ it("does not stack forms from repeated item use", async () => {
   useItem();
   expect(game.show).toHaveBeenCalledOnce();
   close({ canceled: true });
-  await vi.waitFor(() => expect(occupied.get("tent")).toBe(pid));
+  await vi.waitFor(() => expect(occupied.get(asRoofTentId("tent"))).toBe(pid));
   expect(leave.execute).not.toHaveBeenCalled();
 });
 it("gives a fresh entry its own hint and ignores the previous entry's pending poll", async () => {
@@ -831,10 +874,16 @@ it("gives a fresh entry its own hint and ignores the previous entry's pending po
 
 it("syncs ceilings for every loaded tent on each twenty-tick restore scan", () => {
   game.interval.mockClear();
-  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent", "empty"]);
-  occupied.set("tent", pid);
+  registerRoofTentOccupantCleanup(leave, occupants, () => [
+    asRoofTentId("tent"),
+    asRoofTentId("empty"),
+  ]);
+  occupied.set(asRoofTentId("tent"), pid);
   poll();
-  expect(occupants.syncCeiling).toHaveBeenNthCalledWith(1, "tent");
+  expect(occupants.syncCeiling).toHaveBeenNthCalledWith(
+    1,
+    asRoofTentId("tent"),
+  );
   expect(occupants.syncCeiling).toHaveBeenNthCalledWith(2, "empty");
   for (let i = 0; i < 19; i++) poll();
   expect(occupants.syncCeiling).toHaveBeenCalledTimes(2);

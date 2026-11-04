@@ -11,6 +11,7 @@ import { ClearRoofTentSpawn } from "../../../src/application/camp/roofTentRemove
 import { SleepInRoofTent } from "../../../src/application/camp/sleepInRoofTent";
 import type { BedWorld } from "../../../src/application/shared/ports/bed";
 import { SleepInBed } from "../../../src/application/shared/sleepInBed";
+import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { canSleep, SLEEP_MESSAGES } from "../../../src/domain/shared/sleep";
 import { FakeRoofTentOccupantWorld } from "./fakeRoofTentOccupantWorld";
@@ -18,7 +19,7 @@ import { FakeRoofTentWorld } from "./fakeRoofTentWorld";
 
 const playerId = asPlayerId("sleeper");
 const other = asPlayerId("other");
-const cmd = { playerId, tentId: "tent" };
+const cmd = { playerId, tentId: asRoofTentId("tent") };
 
 function setup(time = 13000) {
   const world = new FakeRoofTentOccupantWorld();
@@ -169,18 +170,18 @@ describe("roof tent occupant", () => {
   it("requests clearing only the recorded player's matching spawn and forgets the record", () => {
     const { world, bed } = setup();
     world.spawns.set(cmd.tentId, playerId);
-    world.spawns.set("another-tent", other);
+    world.spawns.set(asRoofTentId("another-tent"), other);
     const removed = new ClearRoofTentSpawn(world, bed);
     removed.removed(cmd.tentId, other);
     removed.removed(cmd.tentId, other);
-    removed.removed("unused", undefined);
+    removed.removed(asRoofTentId("unused"), undefined);
     expect(bed.clearSpawnPoint).toHaveBeenCalledExactlyOnceWith(
       playerId,
       world.dimensionOf(cmd.tentId),
       world.spawnCellOf(cmd.tentId),
     );
     expect(world.spawnSetBy(cmd.tentId)).toBeUndefined();
-    expect(world.spawnSetBy("another-tent")).toBe(other);
+    expect(world.spawnSetBy(asRoofTentId("another-tent"))).toBe(other);
     expect(world.setSpawnSetBy).toHaveBeenCalledExactlyOnceWith(
       cmd.tentId,
       undefined,

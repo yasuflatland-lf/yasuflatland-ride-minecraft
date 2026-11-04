@@ -1,6 +1,7 @@
 import { system, world } from "@minecraft/server";
 import type { LeaveRoofTent } from "../../../../application/camp/leaveRoofTent";
 import type { RoofTentOccupantWorld } from "../../../../application/camp/ports/roofTentOccupant";
+import type { RoofTentId } from "../../../../domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { playerById } from "../../../shared/players";
@@ -13,14 +14,14 @@ const OFFLINE_GRACE_TICKS = 20 * 30;
 export function registerRoofTentOccupantCleanup(
   leave: LeaveRoofTent,
   occupants: RoofTentOccupantWorld,
-  loadedTents: () => readonly string[] = () => [],
-): (playerId: PlayerId, tentId: string) => void {
+  loadedTents: () => readonly RoofTentId[] = () => [],
+): (playerId: PlayerId, tentId: RoofTentId) => void {
   // Occupancy is persisted on the tent, but this map is not, so a script reload or
   // a server restart loses it. The scan below rebuilds it from the loaded tents.
   const tracked = new Map<
     PlayerId,
     {
-      tentId: string;
+      tentId: RoofTentId;
       released: boolean;
       offlineTicks: number;
       trackedTicks: number;

@@ -1,3 +1,4 @@
+import type { RoofTentId } from "../../domain/camp/ids";
 import type { PlayerId } from "../../domain/shared/ids";
 import { SLEEP } from "../../domain/shared/sleep";
 import type { SleepInBed } from "../shared/sleepInBed";
@@ -9,7 +10,7 @@ export class SleepInRoofTent {
     private readonly sleep: SleepInBed,
   ) {}
 
-  execute(cmd: { playerId: PlayerId; tentId: string }): boolean {
+  execute(cmd: { playerId: PlayerId; tentId: RoofTentId }): boolean {
     const dimensionId = this.world.dimensionOf(cmd.tentId);
     const slept = this.sleep.execute({
       playerId: cmd.playerId,
