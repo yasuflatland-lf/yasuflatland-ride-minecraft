@@ -1,6 +1,6 @@
 import type { PlayerId } from "../../domain/shared/ids";
 // Use case: hint players on foot near a vehicle where to hit it and how to drive it (ADR 0086).
-import type { Vec3 } from "../../domain/shared/vec";
+import { distanceSq, type Vec3 } from "../../domain/shared/vec";
 import {
   type Hint,
   type HintState,
@@ -22,8 +22,6 @@ const offset = (a: Vec3, b: Vec3): Vec3 => ({
   y: a.y - b.y,
   z: a.z - b.z,
 });
-const squaredDistance = (a: Vec3, b: Vec3) =>
-  (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 
 export class ShowVehicleHints {
   private readonly states = new Map<PlayerId, HintState>();
@@ -71,8 +69,8 @@ export class ShowVehicleHints {
       .filter(({ view }) => view.dimensionId === player.dimensionId)
       .sort(
         (a, b) =>
-          squaredDistance(a.view.location, player.location) -
-          squaredDistance(b.view.location, player.location),
+          distanceSq(a.view.location, player.location) -
+          distanceSq(b.view.location, player.location),
       );
     for (const { view, vehicle } of near) {
       const hint = vehicle.hint(

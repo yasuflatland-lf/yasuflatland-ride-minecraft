@@ -4,6 +4,8 @@ import {
   approach,
   clampLength,
   degToRad,
+  distanceSq,
+  distanceXZ,
   dot,
   forward,
   leftOf,
@@ -218,4 +220,33 @@ it("converts degrees and computes forward with exact arithmetic", () => {
       });
     }),
   );
+});
+
+describe("distances", () => {
+  const position = fc.record({ x: coord, y: coord, z: coord });
+
+  it("squared distance is symmetric, nonnegative, and zero at the same point", () => {
+    fc.assert(
+      fc.property(position, position, (a, b) => {
+        expect(distanceSq(a, b)).toBe(distanceSq(b, a));
+        expect(distanceSq(a, b)).toBeGreaterThanOrEqual(0);
+        expect(distanceSq(a, a)).toBe(0);
+        expect(distanceSq(a, b)).toBe(
+          (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2,
+        );
+      }),
+    );
+  });
+
+  it("horizontal distance is symmetric and independent of height", () => {
+    fc.assert(
+      fc.property(position, position, (a, b) => {
+        expect(distanceXZ(a, b)).toBe(distanceXZ(b, a));
+        expect(distanceXZ(a, a)).toBe(0);
+        expect(distanceXZ(a, b)).toBe(Math.hypot(a.x - b.x, a.z - b.z));
+        const above = { ...a, y: b.y };
+        expect(distanceXZ(a, above)).toBe(0);
+      }),
+    );
+  });
 });
