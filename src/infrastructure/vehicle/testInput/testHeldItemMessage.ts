@@ -1,6 +1,6 @@
 import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
 
-export interface TestHeldItemMessage {
+interface TestHeldItemMessage {
   readonly vehicleId: VehicleId;
   readonly item: string | undefined;
 }

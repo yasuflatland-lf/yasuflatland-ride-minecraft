@@ -3,7 +3,7 @@ import type { BuildSessionRepository } from "../../domain/build/sessionRepositor
 import type { PlayerId } from "../../domain/shared/ids";
 import type { LeaveBuild } from "./leaveBuild";
 
-export interface BuildModeInput {
+interface BuildModeInput {
   playerId: PlayerId;
   holding: boolean;
 }

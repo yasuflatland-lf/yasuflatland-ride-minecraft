@@ -3,7 +3,7 @@ import { effectivePaint, type Paint } from "../../domain/shared/paint";
 import { TickScopedMap } from "../../domain/shared/tickScoped";
 import type { RepaintWorld } from "./ports/repaint";
 
-export interface RepaintCommand<Id extends string> {
+interface RepaintCommand<Id extends string> {
   playerId: PlayerId;
   entityId: Id;
   paint: Paint;

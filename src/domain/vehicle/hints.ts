@@ -168,7 +168,7 @@ export const NO_HINT: HintState = Object.freeze({
   lastSent: Number.NEGATIVE_INFINITY,
 });
 
-export interface HintTiming {
+interface HintTiming {
   /** Ticks between sends of the same hint. */
   readonly refresh: number;
   /** Ticks after the first send during which the hint is re-sent. */
@@ -180,7 +180,7 @@ export const HINT_TIMING: HintTiming = Object.freeze({
   showFor: SPEC.hintShowTicks,
 });
 
-export type HintAction = { readonly show: Hint } | "clear";
+type HintAction = { readonly show: Hint } | "clear";
 
 /**
  * Decides what to send a player this check. A new hint shows at once, the same one
