@@ -48,12 +48,6 @@ export const CHAIR_KIND_BY_TYPE = chairKindsBy("typeId");
 export const CHAIR_KIND_BY_ITEM = chairKindsBy("itemId");
 export const CHAIR_KIND_BY_TEST_EVENT = chairKindsBy("testHitEvent");
 
-export const LOW_CHAIR_TYPE = CHAIR_KINDS.low_chair.typeId;
-export const LOW_CHAIR_ITEM = CHAIR_KINDS.low_chair.itemId;
-export const CHAIR_FAMILY = CHAIR_KINDS.low_chair.family;
-export const TEST_CHAIR_HIT_EVENT = CHAIR_KINDS.low_chair.testHitEvent;
-export const HITS_LEFT_HINT = CHAIR_KINDS.low_chair.hitsHint;
-
 export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");
 export const TEST_TABLE_HIT_EVENT = "yasu_ride_test:test_table_hit";

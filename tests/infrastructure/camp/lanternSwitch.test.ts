@@ -12,7 +12,7 @@ import { asTentId, type TentId } from "../../../src/domain/camp/tent";
 import type { DimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 import { lanternSwitchTarget } from "../../../src/infrastructure/camp/bedrock/lanternSwitch";
-import { LOW_CHAIR_TYPE } from "../../../src/infrastructure/camp/identifiers";
+import { CHAIR_KINDS } from "../../../src/infrastructure/camp/identifiers";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../src/infrastructure/shared/identifiers";
 import {
   registerSwitchRouter,
@@ -95,7 +95,10 @@ describe("lanternSwitchTarget", () => {
 
   it("claims a use and any block press inside a tent on foot or on a Low Chair", () => {
     const { target, tentContaining } = fixture();
-    for (const p of [player(), player({ mount: LOW_CHAIR_TYPE })]) {
+    for (const p of [
+      player(),
+      player({ mount: CHAIR_KINDS.low_chair.typeId }),
+    ]) {
       expect(target.claimsItemUse(p)).toBe(true);
       expect(target.claimsBlockPress(p, BLOCK)).toBe(true);
     }
@@ -118,10 +121,10 @@ describe("lanternSwitchTarget", () => {
 
   it("never claims an entity press", () => {
     const { target } = fixture();
-    const chair = { typeId: LOW_CHAIR_TYPE } as unknown as Entity;
+    const chair = { typeId: CHAIR_KINDS.low_chair.typeId } as unknown as Entity;
     for (const p of [
       player(),
-      player({ mount: LOW_CHAIR_TYPE }),
+      player({ mount: CHAIR_KINDS.low_chair.typeId }),
       player({ at: OUTSIDE }),
     ])
       expect(target.claimsEntityPress(p, chair)).toBe(false);
@@ -207,7 +210,7 @@ describe("the switch router with the vehicle target first", () => {
     const { execute, entity } = routed(false);
     const ev = {
       player: player(),
-      target: { typeId: LOW_CHAIR_TYPE },
+      target: { typeId: CHAIR_KINDS.low_chair.typeId },
       itemStack: item,
       cancel: false,
     } as unknown as PlayerInteractWithEntityBeforeEvent;
