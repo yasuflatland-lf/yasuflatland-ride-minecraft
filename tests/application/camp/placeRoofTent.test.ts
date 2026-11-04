@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import {
   DIMENSION,
   FakeRoofTentWorld,
@@ -13,7 +14,7 @@ import {
 const cmd = {
   playerId: PLAYER,
   dimensionId: DIMENSION,
-  target: { entityId: "host" },
+  target: { entityId: asVehicleId("host") },
   yaw: 42,
   slot: 3,
 };
@@ -30,12 +31,12 @@ describe("PlaceRoofTent", () => {
           world.hosts.set(asRoofTentId("ground"), { kind: "ground" });
           world.hosts.set(asRoofTentId("other"), {
             kind: "vehicle",
-            id: "another",
+            id: asVehicleId("another"),
           });
           if (roofTaken)
             world.hosts.set(asRoofTentId("existing"), {
               kind: "vehicle",
-              id: "host",
+              id: asVehicleId("host"),
             });
           const hosts = [...world.hosts];
           const place = new PlaceRoofTent(world, () => ({
@@ -43,7 +44,7 @@ describe("PlaceRoofTent", () => {
             driverPresent,
             moving,
           }));
-          expect(place.refusalFor("host")).toBe(
+          expect(place.refusalFor(asVehicleId("host"))).toBe(
             driverPresent || moving
               ? "host_in_use"
               : roofTaken
@@ -67,11 +68,13 @@ describe("PlaceRoofTent", () => {
       new PlaceRoofTent(world, () => ({
         ...PRESENT,
         mount: undefined,
-      })).refusalFor("host"),
+      })).refusalFor(asVehicleId("host")),
     ).toBe("unsupported_vehicle");
     for (const status of ["unknown", "removed"] as const) {
       expect(
-        new PlaceRoofTent(world, () => ({ status })).refusalFor("host"),
+        new PlaceRoofTent(world, () => ({ status })).refusalFor(
+          asVehicleId("host"),
+        ),
       ).toBeUndefined();
     }
     expect(world.showMessage).not.toHaveBeenCalled();
@@ -102,7 +105,10 @@ describe("PlaceRoofTent", () => {
           );
           expect(spawn[1].location.y).toBe(22);
           expect(spawn[1].yaw).toBe(yaw);
-          expect(spawn[0].host).toEqual({ kind: "vehicle", id: "host" });
+          expect(spawn[0].host).toEqual({
+            kind: "vehicle",
+            id: asVehicleId("host"),
+          });
           expect(spawn[0].ladder).toBe(true);
           expect(spawn.slice(2)).toEqual([PLAYER, ROOF_TENT_SPEC.defaultPaint]);
           expect(world.consumeItem).toHaveBeenCalledTimes(creative ? 0 : 1);
@@ -127,7 +133,7 @@ describe("PlaceRoofTent", () => {
       if (taken)
         world.hosts.set(asRoofTentId("existing"), {
           kind: "vehicle",
-          id: "host",
+          id: asVehicleId("host"),
         });
       const lookup = () => ({
         ...PRESENT,
@@ -227,7 +233,10 @@ describe("PlaceRoofTent", () => {
   it("does not spawn if the selected item was moved and ignores unrelated hosts", () => {
     const world = new FakeRoofTentWorld();
     world.hosts.set(asRoofTentId("ground"), { kind: "ground" });
-    world.hosts.set(asRoofTentId("other"), { kind: "vehicle", id: "another" });
+    world.hosts.set(asRoofTentId("other"), {
+      kind: "vehicle",
+      id: asVehicleId("another"),
+    });
     world.consumeItem.mockReturnValue(false);
     const place = new PlaceRoofTent(world, () => PRESENT);
     expect(place.execute(cmd)).toBe(false);

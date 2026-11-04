@@ -10,6 +10,7 @@ import type { HostedItemsGuard } from "../../../../application/camp/hostedItemsG
 import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
 import { DUTCH_OVEN_SPEC, TABLE_SPOTS } from "../../../../domain/camp/spec";
+import { asTableId, type TableId } from "../../../../domain/camp/table";
 import type { LocalPoint } from "../../../../domain/camp/tabletop";
 import {
   asDimensionId,
@@ -39,11 +40,11 @@ import {
 /** Reads `<table> <0|1>` as an old spot, or `<table> <x> <z>` as local pixels. */
 function testTableRequest(
   message: string,
-): { table: string; aim: LocalPoint } | undefined {
+): { table: TableId; aim: LocalPoint } | undefined {
   const [table, spot, ...rest] = message.trim().split(/\s+/);
   if (table && rest.length === 0 && /^[01]$/.test(spot ?? "")) {
     const aim = TABLE_SPOTS[Number(spot)];
-    return aim ? { table, aim } : undefined;
+    return aim ? { table: asTableId(table), aim } : undefined;
   }
   return testTableTopRequest(message);
 }
@@ -86,7 +87,7 @@ export function registerDutchOven(
         const pit = asFirePitId(ev.target.id);
         system.run(() => actions.placeOnFirePit({ player, pit, slot }));
       } else {
-        const table = ev.target.id;
+        const table = asTableId(ev.target.id);
         const aim = tableTopAim(ev.player, ev.target);
         const placer = ev.player;
         system.run(() =>

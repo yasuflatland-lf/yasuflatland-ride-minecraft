@@ -4,7 +4,7 @@ import {
   hostSpotPoint,
   initialSimmering,
 } from "../../domain/camp/dutchOven";
-import { asFirePitId, type FirePitId } from "../../domain/camp/firePit";
+import type { FirePitId } from "../../domain/camp/firePit";
 import { decodeHost, encodeHost, type Host } from "../../domain/camp/hosted";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
@@ -150,7 +150,7 @@ export class DutchOvenActions {
     if (result.broken) {
       const host = decodeHost(this.world.host(id));
       if (host.kind === "fire_pit" && this.world.hostExists(host.id))
-        this.world.setCovered(asFirePitId(host.id), false);
+        this.world.setCovered(host.id, false);
       this.world.dropItem(id);
       this.world.removeDutchOven(id);
       return true;

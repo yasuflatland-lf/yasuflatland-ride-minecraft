@@ -1,3 +1,4 @@
+import type { VehicleId } from "../../shared/ids";
 import type { RoofTentMount } from "../../shared/roofTent";
 import type { Host } from "../hosted";
 import { type Facing4, snapYaw4 } from "./facing";
@@ -17,7 +18,7 @@ export type RoofTentPlan = {
 export type RoofTentTarget =
   | {
       readonly type: "vehicle";
-      readonly id: string;
+      readonly id: VehicleId;
       readonly mount: RoofTentMount | undefined;
       readonly roofTaken: boolean;
       readonly hostInUse?: boolean;

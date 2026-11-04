@@ -1,3 +1,4 @@
+import type { Brand } from "../shared/ids";
 // Where a chair goes when its item is used on a block, and which way it faces (ADR 0122).
 import type { Vec3 } from "../shared/vec";
 import { CHAIR_SPEC } from "./spec";
@@ -5,7 +6,7 @@ import { CHAIR_SPEC } from "./spec";
 export type ChairKindId = "low_chair" | "noga_chair";
 
 /** The Entity.id of a chair. */
-export type ChairId = string & { readonly __brand: "ChairId" };
+export type ChairId = Brand<string, "ChairId">;
 
 /** Brands an id that is known to belong to a chair. Called only in the infrastructure layer and in tests. */
 export function asChairId(raw: string): ChairId {

@@ -8,6 +8,7 @@ import {
 import type { GasLanternActions } from "../../../../application/camp/gasLantern";
 import { asGasLanternId } from "../../../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../../../domain/camp/spec";
+import { asTableId } from "../../../../domain/camp/table";
 import {
   asDimensionId,
   asPlayerId,
@@ -68,7 +69,7 @@ export function registerGasLantern(
     ev.cancel = true;
     const player = asPlayerId(ev.player.id);
     if (!placements.add(system.currentTick, player)) return;
-    const table = ev.target.id;
+    const table = asTableId(ev.target.id);
     const slot = ev.player.selectedSlotIndex;
     const aim = tableTopAim(ev.player, ev.target);
     const placer = ev.player;
