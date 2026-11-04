@@ -64,6 +64,8 @@ export interface VehicleProfile {
    * placed beside vehicles keep out of it (ADR 0122).
    */
   readonly footprint: number;
+  /** Riders of this kind are kept fire-protected while aboard (ADR 0050). */
+  readonly ridersFireProof: boolean;
   readonly seats: SeatLayout;
   /** How a boarding player gets a seat, set per kind (ADR 0050). */
   readonly boarding: SeatBoarding;
