@@ -1,7 +1,7 @@
-import type { Box } from "../box";
+import type { CellBox } from "../box";
 
 export function volumeSize(
-  base: Box,
+  base: CellBox,
   height: number,
 ): { x: number; y: number; z: number } {
   return {

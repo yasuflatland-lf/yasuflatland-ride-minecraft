@@ -6,8 +6,8 @@ import {
   sameBlockState,
 } from "../../../src/domain/build/blockState";
 import {
-  type Box,
   boxOf,
+  type CellBox,
   cellsOf,
   chunksOf,
   contains,
@@ -86,7 +86,7 @@ describe("Box", () => {
   });
 
   it("returns at most maxPoints edge points, all on an edge of the box", () => {
-    const onEdge = (box: Box, c: { x: number; y: number; z: number }) => {
+    const onEdge = (box: CellBox, c: { x: number; y: number; z: number }) => {
       const extremes =
         Number(c.x === box.min.x || c.x === box.max.x) +
         Number(c.y === box.min.y || c.y === box.max.y) +
