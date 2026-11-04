@@ -54,7 +54,8 @@ def upper_cabin():
     """The hollow upper shell, the hardtop with its rounded shoulders, caps and ribs, and the pillars."""
     # Only the perimeter is visible outside; a full slab cuts through riders' torsos (ADR 0215).
     for s in (-1, 1):
-        box(min(s * 0.674, s * CAB), max(s * 0.674, s * CAB), 1.38, 1.46, 0.79, 3.52, "body")
+        # Runs back to the wall's rear face (3.56) so no notch opens between the quarter panel and the rear pillar.
+        box(min(s * 0.674, s * CAB), max(s * 0.674, s * CAB), 1.38, 1.46, 0.79, 3.56, "body")
     box(-CAB, CAB, 1.38, 1.46, 3.44, 3.52, "body")
     box(-CAB, CAB, dims.ROOF_Y / dims.D, dims.HARDTOP_TOP_Y / dims.D,
         (dims.FRONT_AXLE_Z - dims.HARDTOP_FRONT_Z) / dims.D,
