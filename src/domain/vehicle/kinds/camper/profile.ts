@@ -1,6 +1,7 @@
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   clearanceHeight,
+  type PlacementLiquid,
   type PlacementSurface,
 } from "../../placement/placement";
 import type { SeatLayout, VehicleProfile } from "../../profile";
@@ -20,6 +21,7 @@ const body = Object.freeze({
 
 export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   kind: "camper",
+  ridersFireProof: false,
   fleetLimit: 1, // Per player (ADR 0066, 0067).
   body,
   roofTent: Object.freeze({
@@ -65,6 +67,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   // past them, so its ends can stand inside nearby blocks until the drive's end check
   // stops it (ADR 0143, superseding the 9 x 9 of ADR 0067).
   placement: Object.freeze({
+    liquids: Object.freeze(new Set<PlacementLiquid>()),
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
     clearance: Object.freeze({
       halfX: 1,

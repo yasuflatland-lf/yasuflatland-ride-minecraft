@@ -1,21 +1,11 @@
-import {
-  Direction,
-  Player,
-  ScriptEventSource,
-  system,
-  world,
-} from "@minecraft/server";
+import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
 import type { HostedItemsGuard } from "../../../../application/camp/hostedItemsGuard";
 import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
 import { DUTCH_OVEN_SPEC, TABLE_SPOTS } from "../../../../domain/camp/spec";
 import type { LocalPoint } from "../../../../domain/camp/tabletop";
-import {
-  asDimensionId,
-  asPlayerId,
-  type PlayerId,
-} from "../../../../domain/shared/ids";
+import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import {
   CAMP_TABLE_TYPE,
@@ -35,6 +25,7 @@ import {
   tableTopAim,
   testTableTopRequest,
 } from "../tableTopAim";
+import { registerPlaceableEntity } from "./placeable";
 
 /** Reads `<table> <0|1>` as an old spot, or `<table> <x> <z>` as local pixels. */
 function testTableRequest(
@@ -53,24 +44,15 @@ export function registerDutchOven(
   hostedItems: HostedItemsGuard,
 ): void {
   const placements = new TickScopedSet<PlayerId>();
-  world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (!ev.isFirstEvent || ev.itemStack?.typeId !== DUTCH_OVEN_ITEM) return;
-    const dimension = asDimensionId(ev.block.dimension.id);
-    const block = ev.block.location;
-    if (
-      !actions.canUseBlock(
-        dimension,
-        block,
-        ev.blockFace === Direction.Up ? "up" : "other",
-      )
-    )
-      return;
-    ev.cancel = true;
-    const player = asPlayerId(ev.player.id);
-    if (!placements.add(system.currentTick, player)) return;
-    const yaw = ev.player.getRotation().y;
-    const slot = ev.player.selectedSlotIndex;
-    system.run(() => actions.place({ player, dimension, block, yaw, slot }));
+  registerPlaceableEntity({
+    itemId: DUTCH_OVEN_ITEM,
+    entityTypeIds: new Set([DUTCH_OVEN_TYPE]),
+    canUseBlock: (dimension, block, face) =>
+      actions.canUseBlock(dimension, block, face),
+    place: (ctx) => actions.place(ctx),
+    hit: ({ entity, player, tick }) =>
+      actions.hit(asDutchOvenId(entity.id), player, tick),
+    placements,
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (
@@ -102,18 +84,6 @@ export function registerDutchOven(
     ev.cancel = true;
     const id = ev.target.id;
     system.run(() => actions.toggleLid(asDutchOvenId(id), system.currentTick));
-  });
-  world.afterEvents.entityHitEntity.subscribe((ev) => {
-    if (
-      !(ev.damagingEntity instanceof Player) ||
-      ev.hitEntity.typeId !== DUTCH_OVEN_TYPE
-    )
-      return;
-    actions.hit(
-      asDutchOvenId(ev.hitEntity.id),
-      asPlayerId(ev.damagingEntity.id),
-      system.currentTick,
-    );
   });
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
     if (ev.id === TEST_DUTCH_OVEN_ON_TABLE_EVENT) {

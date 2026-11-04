@@ -1,7 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
-import { type Box, boxOf } from "../box";
+import { boxOf, type CellBox } from "../box";
 import { shapeOf } from "../shape/shape";
 import type { HeightStepKind } from "../volume/kind";
 import type { PasteAim } from "./paste";
@@ -24,7 +24,7 @@ export type BuildFlow =
   | {
       readonly kind: "heightStep";
       readonly dimensionId: DimensionId;
-      readonly base: Box;
+      readonly base: CellBox;
       readonly from: Cell;
       readonly heightedKind: HeightStepKind;
       readonly previous: number;
@@ -114,7 +114,7 @@ export function finishHeightStep(flow: BuildFlow, _hollow: boolean): BuildFlow {
   return flow.kind === "heightStep" ? cancel(flow) : flow;
 }
 
-export function copyBoxOf(flow: BuildFlow): Box | undefined {
+export function copyBoxOf(flow: BuildFlow): CellBox | undefined {
   return flow.kind === "endpoint" ? boxOf(flow.from, flow.to) : undefined;
 }
 

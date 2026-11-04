@@ -4,7 +4,7 @@ import type { Vec3 } from "../../shared/vec";
 import type { VehicleBody } from "../profile";
 import { SPEC } from "../spec";
 
-export type IsAir = (dx: number, dy: number, dz: number) => boolean;
+type IsAir = (dx: number, dy: number, dz: number) => boolean;
 
 /**
  * The cells that must be air for a kind to be placed: -halfX..halfX,
@@ -12,7 +12,7 @@ export type IsAir = (dx: number, dy: number, dz: number) => boolean;
  * kind's body height; the half sizes are per kind and checked against the
  * collision boxes by tests/packs/placementClearance.test.ts (ADR 0055).
  */
-export interface Clearance {
+interface Clearance {
   readonly halfX: number;
   readonly halfZ: number;
   readonly height: number;
@@ -63,16 +63,20 @@ export const FACE_OFFSET: Readonly<Record<BlockFace, Vec3>> = Object.freeze({
   west: Object.freeze({ x: -1, y: 0, z: 0 }),
 });
 
+export type PlacementLiquid = "water" | "lava";
+
 /**
  * "top": a click on the top face places on the clicked block. A liquid surface
  * uses the clicked or adjacent cell and climbs to the top of its column.
  */
-export type PlacementSurface = "top" | "water" | "lava";
+export type PlacementSurface = "top" | PlacementLiquid;
 
 /** How a kind of vehicle is placed from its item (ADR 0050, ADR 0055). */
 export interface PlacementRule {
   /** Tried in order; the first that matches gives the placement cell. */
   readonly surfaces: readonly PlacementSurface[];
+  /** Liquids a view ray may place this kind on (ADR 0050). */
+  readonly liquids: ReadonlySet<PlacementLiquid>;
   readonly clearance: Clearance;
 }
 
@@ -85,7 +89,7 @@ export function placementCell(
   rule: PlacementRule,
   clicked: Vec3,
   face: BlockFace,
-  isLiquidAt: (at: Vec3, liquid: "water" | "lava") => boolean,
+  isLiquidAt: (at: Vec3, liquid: PlacementLiquid) => boolean,
   maxClimb: number = SPEC.placementWaterClimb,
 ): Vec3 | undefined {
   for (const surface of rule.surfaces) {
@@ -99,7 +103,7 @@ function cellOnSurface(
   surface: PlacementSurface,
   clicked: Vec3,
   face: BlockFace,
-  isLiquidAt: (at: Vec3, liquid: "water" | "lava") => boolean,
+  isLiquidAt: (at: Vec3, liquid: PlacementLiquid) => boolean,
   maxClimb: number,
 ): Vec3 | undefined {
   switch (surface) {

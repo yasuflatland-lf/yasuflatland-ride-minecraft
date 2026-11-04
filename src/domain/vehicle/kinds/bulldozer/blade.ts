@@ -7,7 +7,7 @@ export type CutReach =
   | { readonly kind: "run" }
   | { readonly kind: "fixed"; readonly grounded: boolean };
 
-export interface ShaftBox {
+interface ShaftBox {
   readonly halfExtent: number;
   readonly bodyHeight: number;
   readonly reach: number;

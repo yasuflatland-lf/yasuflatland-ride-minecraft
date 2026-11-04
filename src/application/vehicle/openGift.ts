@@ -3,7 +3,7 @@ import type { PlayerId } from "../../domain/shared/ids";
 import type { PlacementGift } from "../../domain/vehicle/placement/gift";
 import type { GiftBoxWorld } from "./ports/placement";
 
-export interface OpenGiftCommand {
+interface OpenGiftCommand {
   playerId: PlayerId;
   gift: PlacementGift;
   /** Hotbar slot that held the box when it was used. */

@@ -11,7 +11,6 @@ import {
   lanternCell,
   PITCHED_STATE,
   TENT_FLAPS,
-  TENT_MATTRESSES,
   type TentPose,
   tentCellAt,
   tentCells,
@@ -20,6 +19,7 @@ import {
   tentGroundCells,
   tentPose,
 } from "../../domain/camp/tent";
+import { TRAPEZOID_LAYOUT } from "../../domain/camp/tentLayout";
 import type { Cell } from "../../domain/shared/cells";
 import { PAINTS } from "../../domain/shared/paint";
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/switchCooldown";
@@ -276,7 +276,7 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
             ({ block }) => block.type === "wall" || block.type === "ceiling",
           ).length &&
         flaps === Object.values(TENT_FLAPS).flat().length &&
-        mattresses === TENT_MATTRESSES.flat().length &&
+        mattresses === TRAPEZOID_LAYOUT.mattresses.flat().length &&
         lanterns === 1 &&
         left === 0 &&
         after === 0 &&
@@ -429,9 +429,9 @@ export async function tentFlapOpensAlone(a: Arena): Promise<Outcome> {
 export async function tentMattresses(a: Arena): Promise<Outcome> {
   try {
     const tent = await pitchTestTent(a);
-    const cells = TENT_MATTRESSES.flat().map((cell) =>
-      tentCellAt(pitchedPose(a), cell),
-    );
+    const cells = TRAPEZOID_LAYOUT.mattresses
+      .flat()
+      .map((cell) => tentCellAt(pitchedPose(a), cell));
     const typeAt = (c: { x: number; y: number; z: number }) =>
       a.dim.getBlock(c)?.typeId;
     const laid = cells.map(typeAt);

@@ -1,6 +1,7 @@
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   clearanceHeight,
+  type PlacementLiquid,
   type PlacementSurface,
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
@@ -14,6 +15,7 @@ const body = Object.freeze({
 });
 export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
   kind: "bulldozer",
+  ridersFireProof: false,
   fleetLimit: 1,
   body,
   maxRamHalfWidth: BULLDOZER_WIDE_BLADE.halfWidth,
@@ -29,6 +31,7 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
   // The 2.4-wide collision box fits the same 3 x 3 cells as the SUV's; the blade and tracks
   // are model only. 3 cells high hold the 2.9-high box (ADR 0142).
   placement: Object.freeze({
+    liquids: Object.freeze(new Set<PlacementLiquid>()),
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
     clearance: Object.freeze({
       halfX: 1,

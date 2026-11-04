@@ -175,6 +175,7 @@ function fixture(
     execute: vi.fn(),
     cellFor: placement.cellFor.bind(placement),
     placesOnLiquid: placement.placesOnLiquid.bind(placement),
+    placesOn: placement.placesOn.bind(placement),
   };
   const headlights = { execute: vi.fn() };
   const ceilingLights = { execute: vi.fn() };
