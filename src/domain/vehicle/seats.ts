@@ -1,4 +1,3 @@
-import type { PlayerId } from "../shared/ids";
 // Seat assignment and dismount detection (ADR 0019).
 import {
   distanceXZ,
@@ -44,13 +43,6 @@ export function nearestSeat(
     }
   }
   return best;
-}
-
-export interface RiderPos {
-  id: PlayerId;
-  offset: Vec2;
-  /** The rider's index in the engine's rider list, when known (ADR 0120). */
-  slot?: number;
 }
 
 export function seatWorldPositions(

@@ -33,6 +33,7 @@ it("plays no door when a rider leaves a vehicle whose drive has no doors", () =>
       riders: [
         {
           id: asPlayerId("driver"),
+          slot: 0,
           offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
           yaw: 0,
           raw: { moveX: 0, moveY: 0, jump: false },

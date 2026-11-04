@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import {
   dot,
   forward,
@@ -53,7 +53,6 @@ function seatOffset(
  * does in game.
  */
 class FlightSim {
-  positionOnly = false;
   tick = 0;
   y = 0;
   vy = 0;
@@ -90,19 +89,12 @@ class FlightSim {
     const yaw = this.vehicle.yaw;
     const seats = profileOf(this.vehicle.kind).seats.positions;
     const riders: RiderView[] = this.riders.map((r) =>
-      this.positionOnly
-        ? {
-            id: asPlayerId(r.id),
-            offset: r.offset ?? seatOffset(seats, yaw, r.seat),
-            yaw,
-            raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
-          }
-        : riderView(r.id, {
-            seat: r.seat,
-            offset: r.offset ?? seatOffset(seats, yaw, r.seat),
-            yaw,
-            raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
-          }),
+      riderView(r.id, {
+        seat: r.seat,
+        offset: r.offset ?? seatOffset(seats, yaw, r.seat),
+        yaw,
+        raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
+      }),
     );
     const out = this.vehicle.tick({
       deckSeatInputs: [],
@@ -518,28 +510,6 @@ function riddenFlyingSim(
 }
 
 describe("Driver handover in flight (ADR 0078)", () => {
-  it("keeps the SUV hovering when the new driver's reading lags one tick of motion (ADR 0126)", () => {
-    const sim = riddenFlyingSim("suv");
-    sim.positionOnly = true;
-    sim.riders = [{ id: "Q", seat: 1 }];
-    sim.step(undefined);
-    const f = forward(sim.vehicle.yaw);
-    const seat = seatOffset(SUV_PROFILE.seats.positions, sim.vehicle.yaw, 0);
-    sim.riders = [
-      {
-        id: "Q",
-        seat: 0,
-        offset: { x: seat.x - 0.6 * f.x, z: seat.z - 0.6 * f.z },
-      },
-    ];
-    for (let i = 0; i < SPEC.driverHandoverTicks + 1; i++) {
-      sim.vel = { x: 0.6 * f.x, z: 0.6 * f.z };
-      const out = sim.step(IDLE);
-      expect(out.driverId).toBe("Q");
-    }
-    expect(sim.form).toBe("hover");
-  });
-
   for (const kind of ["suv", "camper"] as const) {
     it(`keeps hovering while a passenger moves up within the handover ticks, and the new driver climbs (${kind})`, () => {
       fc.assert(
