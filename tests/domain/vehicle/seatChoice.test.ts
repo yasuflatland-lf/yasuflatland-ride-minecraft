@@ -27,6 +27,7 @@ import {
   Vehicle,
   type VehicleTickInput,
 } from "../../../src/domain/vehicle/vehicle";
+import { riderView } from "../../support/riders";
 
 const SEATS = SPORTSBOAT_PROFILE.seats.positions;
 const AIM_HEIGHT = SPORTSBOAT_SPEC.seatAimHeight;
@@ -380,13 +381,7 @@ function input(
 
 function rider(id: string, seat: number, slot = seat): RiderView {
   const at = seatAt(0, seat);
-  return {
-    id: asPlayerId(id),
-    offset: { x: at.x, z: at.z },
-    yaw: 0,
-    raw: { moveX: 0, moveY: 0, jump: false },
-    slot,
-  };
+  return riderView(id, { offset: { x: at.x, z: at.z }, slot });
 }
 
 /** The eye and view of a player standing at `stand` and looking at `seat` of a vehicle facing yaw 0. */

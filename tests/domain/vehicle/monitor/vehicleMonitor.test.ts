@@ -20,6 +20,7 @@ import {
   type VehicleTickInput,
 } from "../../../../src/domain/vehicle/vehicle";
 import { defined } from "../../../support/defined";
+import { riderView } from "../../../support/riders";
 import { waterSensors } from "../../../support/waterDepth";
 
 const profile: VehicleProfile = {
@@ -37,14 +38,11 @@ const driveCommand: EngineCommand = {
 
 function rider(seat: number, tool?: string): RiderView {
   const at = defined(profile.seats.positions[seat], "seat");
-  return {
-    id: asPlayerId(`r${seat}`),
+  return riderView(`r${seat}`, {
     offset: { x: at.x, z: -at.z },
-    yaw: 0,
-    raw: { moveX: 0, moveY: 0, jump: false },
     slot: seat,
     held: { tool },
-  };
+  });
 }
 
 function tickInput(
@@ -213,14 +211,12 @@ describe("bulldozer cab monitor", () => {
     const vehicle = createVehicle("bulldozer", asVehicleId("b"), 0);
     const seat = defined(profileOf("bulldozer").seats.positions[0], "seat");
     let tick = 0;
-    const driver = (tool?: string): RiderView => ({
-      id: asPlayerId("d"),
-      offset: { x: seat.x, z: -seat.z },
-      yaw: 0,
-      raw: { moveX: 0, moveY: 0, jump: false },
-      slot: 0,
-      held: { tool },
-    });
+    const driver = (tool?: string): RiderView =>
+      riderView("d", {
+        offset: { x: seat.x, z: -seat.z },
+        slot: 0,
+        held: { tool },
+      });
     return {
       vehicle,
       monitor: (tool?: string) =>

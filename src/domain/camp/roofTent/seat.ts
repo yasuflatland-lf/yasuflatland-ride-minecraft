@@ -13,8 +13,11 @@ const SHELL_RIDGE: Record<RoofTentSeatVariant, number> = {
   ground: ROOF_TENT_SPEC.groundShellRidge,
 };
 
-/** Eye height above the tent origin: the same clearance below the variant's own ridge. */
-function seatedEyeHeight(variant: RoofTentSeatVariant): number {
+/**
+ * Eye height above the tent origin: the same clearance below the variant's own ridge.
+ * This is the single definition of the seated eye height; `rideSeatY` derives the pack seat offset from it.
+ */
+export function seatedEyeHeight(variant: RoofTentSeatVariant): number {
   return SHELL_RIDGE[variant] - ROOF_TENT_SPEC.eyeBelowRidge;
 }
 

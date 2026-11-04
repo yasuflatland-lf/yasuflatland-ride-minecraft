@@ -1,8 +1,9 @@
 import { expect, it, vi } from "vitest";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { rebuildVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { defined } from "../../support/defined";
+import { riderView } from "../../support/riders";
 import { waterSensors } from "../../support/waterDepth";
 
 vi.mock(
@@ -29,12 +30,9 @@ it("emits no seat commands when the drive has no doors", () => {
     asVehicleId("v"),
     0,
     [
-      {
-        id: asPlayerId("driver"),
+      riderView("driver", {
         offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
-        yaw: 0,
-        raw: { moveX: 0, moveY: 0, jump: false },
-      },
+      }),
     ],
     {},
   );

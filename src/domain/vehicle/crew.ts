@@ -2,8 +2,7 @@ import type { PlayerId } from "../shared/ids";
 import type { Vec2 } from "../shared/vec";
 import type { VehicleProfile } from "./profile";
 import { ChosenSeats, type SeatAim, type SeatAssignment } from "./seatChoice";
-import { Seating } from "./seating";
-import type { RiderPos } from "./seats";
+import { type RiderPos, Seating } from "./seating";
 import { SPEC } from "./spec";
 
 export class Crew {
@@ -34,8 +33,8 @@ export class Crew {
     return crew;
   }
 
-  update<R extends RiderPos>(riders: readonly R[], f: Vec2, step: Vec2) {
-    const seated = this.seating.update(riders, f, step);
+  update<R extends RiderPos>(riders: readonly R[], f: Vec2) {
+    const seated = this.seating.update(riders, f);
     this.driverlessTicks = seated.driver ? 0 : this.driverlessTicks + 1;
     const awaitingDriver =
       seated.driver === undefined &&

@@ -6,6 +6,7 @@ import type { VehicleKind } from "../../src/domain/vehicle/kind";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
 import type { RiderView } from "../../src/domain/vehicle/vehicle";
 import { defined } from "./defined";
+import { riderView } from "./riders";
 import { waterDepth } from "./waterDepth";
 
 export interface RiderSample {
@@ -134,12 +135,6 @@ export function tickSamples(
     });
 }
 
-/**
- * Each rider sits exactly on their seat for a vehicle heading `yaw`. Only a kind
- * whose players choose their seat gets the rider's slot (ADR 0120). The engine
- * reports a slot for every kind, but leaving it out keeps the other kinds on the
- * position reading, where the sticky driver applies (ADR 0025, 0128).
- */
 export function riderViews(
   kind: VehicleKind,
   riders: readonly RiderSample[],
@@ -150,12 +145,11 @@ export function riderViews(
   const l = leftOf(f);
   return riders.map(({ seat, yaw: riderYaw, raw }) => {
     const s = defined(profile.seats.positions[seat], `seat ${seat}`);
-    return {
-      id: riderId(seat),
+    return riderView(riderId(seat), {
+      seat,
       offset: { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z },
       yaw: riderYaw,
       raw,
-      ...(profile.boarding.order === "chosen" ? { slot: seat } : {}),
-    };
+    });
   });
 }
