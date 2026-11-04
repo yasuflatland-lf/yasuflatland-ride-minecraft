@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
-import { roomCells } from "../../src/domain/vehicle/kinds/camper/room";
+import { roomCells } from "../../src/domain/vehicle/kinds/camper/roomCells";
 import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_BED_BLOCK,

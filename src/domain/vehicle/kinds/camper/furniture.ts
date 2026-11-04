@@ -22,7 +22,7 @@ type FurnitureKind =
   | "shower_toilet"
   | "wall_cabinet";
 
-/** A cell in room.ts coordinates: x = left (-1..1), z = forward (-3..3), layer = cells above the floor layer. */
+/** A cell in roomGeometry.ts coordinates: x = left (-1..1), z = forward (-3..3), layer = cells above the floor layer. */
 export interface LocalCell {
   readonly x: number;
   readonly z: number;
@@ -147,7 +147,7 @@ const SHOWER_TOILET_CELLS = [
 ] as const satisfies readonly LocalCell[];
 
 const STOVE_CELL = { x: -1, z: -2, layer: 1 } as const satisfies LocalCell;
-// The wall cabinet hangs under the ceiling plate, in the ceiling layer (room.ts CEILING_LAYER),
+// The wall cabinet hangs under the ceiling plate, in the ceiling layer (roomGeometry.ts CEILING_LAYER),
 // one compartment over the sink and one over the stove (ADR 0103, 0114).
 const CABINET_LAYER = 3;
 const SINK_CABINET_CELL = {

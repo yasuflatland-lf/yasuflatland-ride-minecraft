@@ -14,6 +14,11 @@ import {
   DECOR_SLOTS,
 } from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import {
+  decorCells,
+  decorSlotCell,
+  decorSpotOffset,
+} from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
+import {
   nearestFreeSlot,
   slotForPress,
   slotPoint,
@@ -28,13 +33,8 @@ import {
   STORAGE_DOORS,
   type StorageDoorId,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
-import {
-  compartmentCells,
-  decorCells,
-  decorSlotCell,
-  decorSpotOffset,
-  parkPose,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { compartmentCells } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/index";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";

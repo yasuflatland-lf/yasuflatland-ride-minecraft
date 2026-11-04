@@ -46,7 +46,7 @@ import {
 import type { FleetRepository } from "../../../src/domain/vehicle/fleet/fleetRepository";
 import type { Hint } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
-import { parkPose } from "../../../src/domain/vehicle/kinds/camper/room";
+import { parkPose } from "../../../src/domain/vehicle/kinds/camper/parkPose";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import type { LitCell } from "../../../src/domain/vehicle/lighting/headlights";
 import type { Pave } from "../../../src/domain/vehicle/pave";

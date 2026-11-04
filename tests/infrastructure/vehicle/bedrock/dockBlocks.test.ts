@@ -5,7 +5,7 @@ import type { SpaceCheck } from "../../../../src/application/shared/ports/space"
 import { type Cell, cellKey } from "../../../../src/domain/shared/cells";
 import { asDimensionId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
-import { roomCells as camperRoomCells } from "../../../../src/domain/vehicle/kinds/camper/room";
+import { roomCells as camperRoomCells } from "../../../../src/domain/vehicle/kinds/camper/roomCells";
 import {
   DOCK_RECHECK_TICKS,
   DockBlocks,

@@ -8,14 +8,14 @@ import {
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { DECOR_CELLS } from "../../../../src/domain/vehicle/kinds/camper/decor";
 import {
+  decorBlockName,
+  ownSlotBlock,
+} from "../../../../src/domain/vehicle/kinds/camper/decorCells";
+import {
   FRIDGE,
   WALL_CABINET,
 } from "../../../../src/domain/vehicle/kinds/camper/furniture";
-import {
-  decorBlockName,
-  ownPlateBlock,
-  ownSlotBlock,
-} from "../../../../src/domain/vehicle/kinds/camper/room";
+import { ownPlateBlock } from "../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import {
   CAMPING_GEAR_IDS,
   STANDING_GEAR_IDS,

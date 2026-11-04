@@ -4,16 +4,16 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
+import { slotCells } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import { STORAGE_DOORS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { exitCells } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
+import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import {
-  AIR,
   cargoCells,
-  exitCells,
-  parkPose,
-  slotCells,
   storagePlateChecks,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
+} from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
