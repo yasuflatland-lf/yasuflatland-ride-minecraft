@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { forward } from "../../../src/domain/shared/vec";
 import type { Drive } from "../../../src/domain/vehicle/drive";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
@@ -11,6 +11,7 @@ import {
   type VehicleTickInput,
 } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
+import { riderView } from "../../support/riders";
 
 const finite = (min: number, max: number) =>
   fc.double({ min, max, noNaN: true });
@@ -57,13 +58,11 @@ it("places only leaving riders at the configured exit in the post-step frame", (
             };
           },
         };
-        const rider: RiderView = {
-          id: asPlayerId("driver"),
+        const rider: RiderView = riderView("driver", {
           offset: { x: 0, z: 0 },
           slot: 0,
           yaw,
-          raw: { moveX: 0, moveY: 0, jump: false },
-        };
+        });
         const input = (
           tick: number,
           riders: readonly RiderView[],

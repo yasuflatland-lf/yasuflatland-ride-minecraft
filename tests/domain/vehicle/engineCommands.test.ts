@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { it } from "vitest";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   createVehicle,
@@ -8,6 +8,7 @@ import {
   profileOf,
 } from "../../../src/domain/vehicle/kinds/index";
 import { expectDeclaredCommand } from "../../support/entityContract";
+import { riderView } from "../../support/riders";
 import { waterSensors } from "../../support/waterDepth";
 
 const number = (min: number, max: number) =>
@@ -46,12 +47,10 @@ it.each(VEHICLE_KINDS)(
               deckSeatInputs: [],
               riders: s.mounted
                 ? [
-                    {
-                      id: asPlayerId("driver"),
+                    riderView("driver", {
                       offset: { x: 0.38, z: -0.35 },
                       yaw: s.driverYaw,
-                      raw: s.raw ?? { moveX: 0, moveY: 0, jump: false },
-                    },
+                    }),
                   ]
                 : [],
               testInput: s.raw,

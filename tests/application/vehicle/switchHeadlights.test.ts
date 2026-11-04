@@ -4,6 +4,7 @@ import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { rebuildVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import type { RiderView } from "../../../src/domain/vehicle/vehicle";
+import { riderView } from "../../support/riders";
 import {
   FakeClock,
   FakeWorld,
@@ -18,12 +19,8 @@ const SEAT_OFFSETS = [
   { x: 0.38, z: 0.2 },
 ] as const;
 
-const rider = (id: string, seat: 0 | 1): RiderView => ({
-  id: asPlayerId(id),
-  offset: SEAT_OFFSETS[seat],
-  yaw: 0,
-  raw: { moveX: 0, moveY: 0, jump: false },
-});
+const rider = (id: string, seat: 0 | 1): RiderView =>
+  riderView(id, { seat, offset: SEAT_OFFSETS[seat] });
 
 function setup() {
   const world = new FakeWorld();

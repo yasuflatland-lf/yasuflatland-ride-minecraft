@@ -6,6 +6,7 @@ import type { VehicleKind } from "../../src/domain/vehicle/kind";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
 import type { RiderView } from "../../src/domain/vehicle/vehicle";
 import { defined } from "./defined";
+import { riderView } from "./riders";
 import { waterDepth } from "./waterDepth";
 
 export interface RiderSample {
@@ -150,12 +151,19 @@ export function riderViews(
   const l = leftOf(f);
   return riders.map(({ seat, yaw: riderYaw, raw }) => {
     const s = defined(profile.seats.positions[seat], `seat ${seat}`);
+    if (profile.boarding.order === "chosen") {
+      return riderView(riderId(seat), {
+        seat,
+        offset: { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z },
+        yaw: riderYaw,
+        raw,
+      });
+    }
     return {
       id: riderId(seat),
       offset: { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z },
       yaw: riderYaw,
       raw,
-      ...(profile.boarding.order === "chosen" ? { slot: seat } : {}),
     };
   });
 }
