@@ -79,23 +79,22 @@ describe("LimitVehicles (ADR 0038)", () => {
   it("removes a rediscovered vehicle after its eviction falls out of tracking", () => {
     const { world, fleets, uc } = setup();
     const cars = ids(SPEC.maxUnownedVehicles + SPEC.maxEvicted + 3);
-    const oldest = entry(full[0] as string);
+    const oldest = entry(cars[0] as string);
     for (const id of cars) {
       world.loaded = entries([id]);
       uc.spawned(entry(id));
     }
+    const evicted = entries(
+      cars.slice(
+        cars.length - SPEC.maxUnownedVehicles - SPEC.maxEvicted,
+        -SPEC.maxUnownedVehicles,
+      ),
+    );
     expect(world.calls).toEqual([]);
     expect(fleets.state.order).toEqual(
       entries(cars.slice(-SPEC.maxUnownedVehicles)),
     );
-    expect(fleets.state.evicted).toEqual(
-      entries(
-        cars.slice(
-          cars.length - SPEC.maxUnownedVehicles - SPEC.maxEvicted,
-          -SPEC.maxUnownedVehicles,
-        ),
-      ),
-    );
+    expect(fleets.state.evicted).toEqual(evicted);
     expect(fleets.load().knows(oldest.id)).toBe(false);
     const tracked = fleets.state.order;
 
@@ -104,6 +103,9 @@ describe("LimitVehicles (ADR 0038)", () => {
 
     expect(world.calls).toEqual([`remove:${oldest.id}`]);
     expect(fleets.state.order).toEqual(tracked);
+    // Re-evicting it pushes the full list over SPEC.maxEvicted once more, so
+    // the oldest remaining eviction falls out of tracking in its place.
+    expect(fleets.state.evicted).toEqual(evicted.slice(1));
     expect(fleets.load().knows(oldest.id)).toBe(false);
   });
 
