@@ -9,6 +9,7 @@ import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "./groundPlacement";
 import type { FirePitWorld } from "./ports/firePit";
+import { handleHit } from "./takeBackByHits";
 
 const RULE = {
   hits: FIRE_PIT_SPEC.hitsToTakeBack,
@@ -56,13 +57,15 @@ export class FirePitActions {
       this.world.showCoveredHint(player);
       return false;
     }
-    const result = this.hits.hit(id, tick, false);
-    if (result.broken) {
-      this.world.dropItem(id);
-      this.world.removeFirePit(id);
-      return true;
-    }
-    this.world.showHitsLeft(player, result.hitsLeft);
-    return false;
+    let taken = false;
+    handleHit(RULE, this.hits, id, tick, {
+      drop: () => this.world.dropItem(id),
+      remove: () => {
+        this.world.removeFirePit(id);
+        taken = true;
+      },
+      showRemaining: (left) => this.world.showHitsLeft(player, left),
+    });
+    return taken;
   }
 }

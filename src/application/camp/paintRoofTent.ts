@@ -1,3 +1,4 @@
+import type { RoofTentId } from "../../domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../domain/camp/spec";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { Paint } from "../../domain/shared/paint";
@@ -6,17 +7,17 @@ import type { RoofTentWorld } from "./ports/roofTent";
 
 interface PaintRoofTentCommand {
   playerId: PlayerId;
-  tentId: string;
+  tentId: RoofTentId;
   paint: Paint;
   tick: number;
 }
 
 export class PaintRoofTent {
   // One Repaint for the whole session, so its same-tick memory (ADR 0037) holds across hits.
-  private readonly repaint: Repaint<string>;
+  private readonly repaint: Repaint<RoofTentId>;
 
   constructor(world: RoofTentWorld) {
-    this.repaint = new Repaint<string>({
+    this.repaint = new Repaint<RoofTentId>({
       paintOf: (tentId) => world.paintOf(tentId),
       // Repaint reads this as the existence check after a paint earlier in the
       // tick, so a tent that is gone must give undefined, not the constant.

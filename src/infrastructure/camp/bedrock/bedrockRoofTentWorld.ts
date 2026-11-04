@@ -2,6 +2,7 @@ import { type Entity, ItemStack, world } from "@minecraft/server";
 import type { RoofTentWorld } from "../../../application/camp/ports/roofTent";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { decodeHost, encodeHost } from "../../../domain/camp/hosted";
+import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import type { RoofTentPlan } from "../../../domain/camp/roofTent/placement";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import {
@@ -12,6 +13,7 @@ import {
 import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { dyeOf, paintEvent } from "../../shared/dyes";
+import { entityOfType } from "../../shared/entities";
 import { id, messageKey } from "../../shared/identifiers";
 import {
   consumeHeld,
@@ -30,15 +32,8 @@ import {
 } from "../identifiers";
 import { loadedEntityIds } from "./hostedEntities";
 
-export function roofTentEntity(id: string): Entity | undefined {
-  try {
-    const entity = world.getEntity(id);
-    return entity?.isValid && entity.typeId === ROOF_TENT_TYPE
-      ? entity
-      : undefined;
-  } catch {
-    return undefined;
-  }
+export function roofTentEntity(id: RoofTentId): Entity | undefined {
+  return entityOfType(world, id, ROOF_TENT_TYPE);
 }
 
 export class BedrockRoofTentWorld implements RoofTentWorld {
@@ -46,7 +41,7 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     private readonly deps: {
       isVehicleSpace: SpaceCheck;
       isCampSpace: SpaceCheck;
-      beforeRemove(tentId: string): void;
+      beforeRemove(tentId: RoofTentId): void;
       spawned(entity: Entity, yaw: number): void;
     },
   ) {}
@@ -54,9 +49,9 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
   spawn(
     plan: RoofTentPlan,
     at: { dimensionId: DimensionId; location: Vec3; yaw: number },
-    ownerId: string | undefined,
+    ownerId: PlayerId | undefined,
     paint: Paint,
-  ): string | undefined {
+  ): RoofTentId | undefined {
     let entity: Entity | undefined;
     try {
       entity = world
@@ -69,7 +64,7 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
       entity.setDynamicProperty(ROOF_TENT_HOST_PROPERTY, encodeHost(plan.host));
       entity.triggerEvent(paintEvent(paint));
       this.deps.spawned(entity, at.yaw);
-      return entity.id;
+      return asRoofTentId(entity.id);
     } catch {
       try {
         if (entity?.isValid) entity.remove();
@@ -80,25 +75,24 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     }
   }
 
-  remove(id: string): void {
+  remove(id: RoofTentId): void {
     this.deps.beforeRemove(id);
     roofTentEntity(id)?.remove();
   }
-  ownerOf(id: string): string | undefined {
+  ownerOf(id: RoofTentId): PlayerId | undefined {
     const value = roofTentEntity(id)?.getDynamicProperty(
       ROOF_TENT_OWNER_PROPERTY,
     );
-    return typeof value === "string" ? value : undefined;
+    return typeof value === "string" ? asPlayerId(value) : undefined;
   }
-  hostOf(id: string) {
+  hostOf(id: RoofTentId) {
     const value = roofTentEntity(id)?.getDynamicProperty(
       ROOF_TENT_HOST_PROPERTY,
     );
     return decodeHost(typeof value === "string" ? value : "");
   }
-  returnItem(id: string, ownerId: string | undefined): void {
-    const player =
-      ownerId === undefined ? undefined : playerById(asPlayerId(ownerId));
+  returnItem(id: RoofTentId, ownerId: PlayerId | undefined): void {
+    const player = ownerId === undefined ? undefined : playerById(ownerId);
     const item = new ItemStack(ROOF_TENT_ITEM, 1);
     if (player?.isValid) giveOrDrop(player, [item]);
     else {
@@ -140,8 +134,8 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
       return false;
     }
   }
-  loaded(): readonly string[] {
-    return loadedEntityIds(ROOF_TENT_TYPE);
+  loaded(): readonly RoofTentId[] {
+    return loadedEntityIds(ROOF_TENT_TYPE).map(asRoofTentId);
   }
   isCreative(id: PlayerId): boolean {
     return isCreative(playerById(id));
@@ -168,13 +162,13 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
         : { translate: TENT_HITS_LEFT_HINT, with: [hits] },
     );
   }
-  paintOf(id: string): Paint | undefined {
+  paintOf(id: RoofTentId): Paint | undefined {
     const tent = roofTentEntity(id);
     return tent
       ? PAINTS[tent.getComponent("minecraft:variant")?.value ?? 0]
       : undefined;
   }
-  paint(id: string, paint: Paint): void {
+  paint(id: RoofTentId, paint: Paint): void {
     const tent = roofTentEntity(id);
     if (!tent) return;
     tent.triggerEvent(paintEvent(paint));

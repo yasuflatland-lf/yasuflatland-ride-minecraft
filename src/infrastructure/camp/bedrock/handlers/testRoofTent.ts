@@ -2,7 +2,12 @@ import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { FoldRoofTent } from "../../../../application/camp/foldRoofTent";
 import type { PlaceRoofTent } from "../../../../application/camp/placeRoofTent";
 import type { RoofTentHostGuard } from "../../../../application/camp/roofTentHostGuard";
-import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
+import { asRoofTentId } from "../../../../domain/camp/ids";
+import {
+  asDimensionId,
+  asPlayerId,
+  asVehicleId,
+} from "../../../../domain/shared/ids";
 import { NAMESPACE } from "../../../shared/identifiers";
 import {
   TEST_ROOF_TENT_DRIVER_SEAT_EVENT,
@@ -52,7 +57,7 @@ export function registerTestRoofTent(
         ) {
           place.execute({
             dimensionId: asDimensionId("minecraft:overworld"),
-            target: { entityId: id },
+            target: { entityId: asVehicleId(id) },
             yaw: 0,
             slot: 0,
           });
@@ -60,9 +65,9 @@ export function registerTestRoofTent(
       } else if (
         ev.id === TEST_ROOF_TENT_HIT_EVENT &&
         parts.length === 1 &&
-        roofTentEntity(id)
+        roofTentEntity(asRoofTentId(id))
       ) {
-        fold.execute({ tentId: id, tick: system.currentTick });
+        fold.execute({ tentId: asRoofTentId(id), tick: system.currentTick });
       } else if (
         ev.id === TEST_ROOF_TENT_HOST_REMOVE_EVENT &&
         parts.length === 1 &&
@@ -75,12 +80,12 @@ export function registerTestRoofTent(
         ev.id === TEST_ROOF_TENT_OCCUPANT_SEAT_EVENT &&
         parts.length === 2 &&
         riderId &&
-        roofTentEntity(id)
+        roofTentEntity(asRoofTentId(id))
       ) {
         const rider = world.getEntity(riderId);
         if (!rider?.isValid) return;
-        occupants.setOccupant(id, asPlayerId(riderId));
-        occupants.moveInside(asPlayerId(riderId), id);
+        occupants.setOccupant(asRoofTentId(id), asPlayerId(riderId));
+        occupants.moveInside(asPlayerId(riderId), asRoofTentId(id));
       } else if (
         ev.id === TEST_ROOF_TENT_DRIVER_SEAT_EVENT &&
         parts.length === 2 &&

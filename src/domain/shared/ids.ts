@@ -1,8 +1,10 @@
+export type Brand<T, Name extends string> = T & { readonly __brand: Name };
+
 // Branded ids, so one kind of id cannot be passed where another kind of id is
 // expected. The brand exists only at compile time.
 
 /** The Entity.id of a vehicle entity. */
-export type VehicleId = string & { readonly __brand: "VehicleId" };
+export type VehicleId = Brand<string, "VehicleId">;
 
 /**
  * Brands an id that is known to belong to a vehicle entity. Called only where
@@ -14,10 +16,10 @@ export function asVehicleId(raw: string): VehicleId {
 }
 
 /** The Player.id of a player entity. */
-export type PlayerId = string & { readonly __brand: "PlayerId" };
+export type PlayerId = Brand<string, "PlayerId">;
 
 /** The Dimension.id of a dimension, such as "minecraft:overworld". */
-export type DimensionId = string & { readonly __brand: "DimensionId" };
+export type DimensionId = Brand<string, "DimensionId">;
 
 /**
  * Brands an id that is known to belong to a player. Called only in the

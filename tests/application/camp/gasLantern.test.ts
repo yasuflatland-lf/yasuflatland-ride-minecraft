@@ -6,6 +6,7 @@ import {
 } from "../../../src/application/camp/gasLantern";
 import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import type { GasLanternWorld } from "../../../src/application/camp/ports/gasLantern";
+import { asFirePitId } from "../../../src/domain/camp/firePit";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
 import { decodeHost, encodeHost } from "../../../src/domain/camp/hosted";
 import {
@@ -15,6 +16,7 @@ import {
   TABLE_TOP_HALF_PX,
   TABLE_TOP_LIMIT,
 } from "../../../src/domain/camp/spec";
+import { asTableId } from "../../../src/domain/camp/table";
 import type { TopItem } from "../../../src/domain/camp/tabletop";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
@@ -187,7 +189,7 @@ it("clears a lit lantern's light before dropping its item and removing it", () =
   );
 });
 
-const tableCmd = { player, table: "table", slot: 4 };
+const tableCmd = { player, table: asTableId("table"), slot: 4 };
 
 it("stands on a table with the lantern's footprint, the table's yaw, and a marker naming the table", () => {
   const { actions, world } = fixture();
@@ -199,7 +201,7 @@ it("stands on a table with the lantern's footprint, the table's yaw, and a marke
   expect([kind, dim, yaw]).toEqual(["gas_lantern", dimension, 90]);
   expect(decodeHost(String(host))).toEqual({
     kind: "camp_table",
-    id: "table",
+    id: asTableId("table"),
     at: { x: TABLE_TOP_HALF_PX.halfX - GAS_LANTERN_FOOTPRINT_PX.halfX, z: 0 },
   });
   expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(player, 4);
@@ -259,13 +261,17 @@ it("consumes nothing when the lantern would overlap an oven", () => {
 const marker = fc.oneof(
   fc.constant(""),
   fc.constant("not a marker"),
-  fc.constant(encodeHost({ kind: "fire_pit", id: "pit", spot: 0 })),
+  fc.constant(
+    encodeHost({ kind: "fire_pit", id: asFirePitId("pit"), spot: 0 }),
+  ),
   fc
     .record({
       x: fc.integer({ min: -9, max: 9 }),
       z: fc.integer({ min: -1, max: 1 }),
     })
-    .map((at) => encodeHost({ kind: "camp_table", id: "table", at })),
+    .map((at) =>
+      encodeHost({ kind: "camp_table", id: asTableId("table"), at }),
+    ),
 );
 
 it("keeps ground lanterns and removes each hosted one whose host is gone, light first and with no drop", () => {
@@ -307,7 +313,11 @@ it("keeps a hosted lantern whose host still exists", () => {
   const id = asGasLanternId("lantern");
   world.loadedGasLanterns.mockReturnValue([id]);
   world.host.mockReturnValue(
-    encodeHost({ kind: "camp_table", id: "table", at: { x: 0, z: 0 } }),
+    encodeHost({
+      kind: "camp_table",
+      id: asTableId("table"),
+      at: { x: 0, z: 0 },
+    }),
   );
   world.hostExists.mockImplementation((hostId) => hostId === "table");
   new HostedItemsGuard([gasLanternHostedKind(world)]).check();

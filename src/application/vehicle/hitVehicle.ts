@@ -7,7 +7,7 @@ import type { BreakWorld } from "./ports/fleet";
 import type { Clock } from "./ports/shared";
 import { retireVehicle } from "./retireVehicle";
 
-export interface HitVehicleCommand {
+interface HitVehicleCommand {
   /** The player who hit; placed decor goes to them (ADR 0093). */
   playerId: PlayerId;
   vehicleId: VehicleId;

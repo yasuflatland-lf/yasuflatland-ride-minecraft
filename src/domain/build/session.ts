@@ -15,7 +15,7 @@ import {
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
 import { BUILD_SPEC } from "./spec";
 
-export type EditRefusal =
+type EditRefusal =
   | "noSelection"
   | "tooLarge"
   | "busy"

@@ -5,7 +5,7 @@ import {
   type RoofTentTarget,
 } from "../../domain/camp/roofTent/placement";
 import { ROOF_TENT_SPEC } from "../../domain/camp/spec";
-import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import type { DimensionId, PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { RoofTentMount } from "../../domain/shared/roofTent";
 import { forward, localOffset, type Vec3 } from "../../domain/shared/vec";
 import type { VehicleHostLookup } from "../shared/ports/vehicleHost";
@@ -14,7 +14,7 @@ import type { RoofTentWorld } from "./ports/roofTent";
 interface PlaceRoofTentCommand {
   playerId?: PlayerId;
   dimensionId: DimensionId;
-  target: { entityId: string } | { clicked: Vec3 };
+  target: { entityId: VehicleId } | { clicked: Vec3 };
   yaw: number;
   slot: number;
 }
@@ -34,7 +34,7 @@ export class PlaceRoofTent {
     private readonly vehicleHost: VehicleHostLookup,
   ) {}
 
-  refusalFor(entityId: string): RoofTentRefusal | undefined {
+  refusalFor(entityId: VehicleId): RoofTentRefusal | undefined {
     const vehicle = this.vehicleTarget(entityId);
     if (!vehicle) return undefined;
     const plan = planRoofTent({
@@ -44,7 +44,7 @@ export class PlaceRoofTent {
     return typeof plan === "string" ? plan : undefined;
   }
 
-  private vehicleTarget(id: string) {
+  private vehicleTarget(id: VehicleId) {
     const host = this.vehicleHost(id);
     if (host.status !== "present") return undefined;
     const target: RoofTentTarget = {

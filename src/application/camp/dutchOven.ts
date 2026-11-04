@@ -4,7 +4,7 @@ import {
   hostSpotPoint,
   initialSimmering,
 } from "../../domain/camp/dutchOven";
-import { asFirePitId, type FirePitId } from "../../domain/camp/firePit";
+import type { FirePitId } from "../../domain/camp/firePit";
 import { decodeHost, encodeHost, type Host } from "../../domain/camp/hosted";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
@@ -12,6 +12,7 @@ import {
   FIRE_PIT_SPOTS,
   FIRE_PIT_TOP_PX,
 } from "../../domain/camp/spec";
+import { cellOf } from "../../domain/shared/cells";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
@@ -25,6 +26,7 @@ import {
 import type { DutchOvenWorld } from "./ports/dutchOven";
 import type { HostedKindPort } from "./ports/hostedKind";
 import type { HostedItemKind } from "./ports/tableTop";
+import { handleHit } from "./takeBackByHits";
 
 const RULE = {
   hits: DUTCH_OVEN_SPEC.hitsToTakeBack,
@@ -89,11 +91,7 @@ export class DutchOvenActions {
   }): boolean {
     const pit = this.world.firePit(cmd.pit);
     if (!pit || this.world.isCovered(cmd.pit)) return false;
-    const cell = {
-      x: Math.floor(pit.at.x),
-      y: Math.floor(pit.at.y),
-      z: Math.floor(pit.at.z),
-    };
+    const cell = cellOf(pit.at);
     if (
       !hasClearance(this.world, pit.dimension, cell, DUTCH_OVEN_SPEC.clearance)
     )
@@ -149,16 +147,20 @@ export class DutchOvenActions {
   }
 
   hit(id: DutchOvenId, player: PlayerId, tick: number): boolean {
-    const result = this.hits.hit(id, tick, false);
-    if (result.broken) {
-      const host = decodeHost(this.world.host(id));
-      if (host.kind === "fire_pit" && this.world.hostExists(host.id))
-        this.world.setCovered(asFirePitId(host.id), false);
-      this.world.dropItem(id);
-      this.world.removeDutchOven(id);
-      return true;
-    }
-    this.world.showHitsLeft(player, result.hitsLeft);
-    return false;
+    let taken = false;
+    handleHit(RULE, this.hits, id, tick, {
+      drop: () => {
+        const host = decodeHost(this.world.host(id));
+        if (host.kind === "fire_pit" && this.world.hostExists(host.id))
+          this.world.setCovered(host.id, false);
+        this.world.dropItem(id);
+      },
+      remove: () => {
+        this.world.removeDutchOven(id);
+        taken = true;
+      },
+      showRemaining: (left) => this.world.showHitsLeft(player, left),
+    });
+    return taken;
   }
 }

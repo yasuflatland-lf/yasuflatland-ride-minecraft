@@ -3,6 +3,8 @@ import type { TableWorld } from "../../../application/camp/ports/table";
 import type { TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { safeBlockAt } from "../../shared/blocks";
+import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import {
@@ -14,17 +16,14 @@ import {
 import { itemsOnTable } from "./tableItems";
 
 function tableOf(id: TableId) {
-  const entity = world.getEntity(id);
-  return entity?.isValid && entity.typeId === CAMP_TABLE_TYPE
-    ? entity
-    : undefined;
+  return entityOfType(world, id, CAMP_TABLE_TYPE);
 }
 
 function blockAt(dimensionId: DimensionId, at: Vec3) {
   try {
-    return world.getDimension(dimensionId).getBlock(at);
+    return safeBlockAt(world.getDimension(dimensionId), at);
   } catch {
-    return undefined;
+    return undefined; // Unknown dimension id
   }
 }
 

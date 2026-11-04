@@ -1,6 +1,7 @@
 import { Player, system, world } from "@minecraft/server";
 import type { FoldRoofTent } from "../../../../application/camp/foldRoofTent";
 import type { PaintRoofTent } from "../../../../application/camp/paintRoofTent";
+import { asRoofTentId } from "../../../../domain/camp/ids";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { heldDye } from "../../../shared/dyes";
@@ -18,7 +19,7 @@ export function registerRoofTentHits(
     const playerId = asPlayerId(player.id);
     const tick = system.currentTick;
     if (!swung.add(tick, playerId)) return;
-    const cmd = { playerId, tentId: ev.hitEntity.id, tick };
+    const cmd = { playerId, tentId: asRoofTentId(ev.hitEntity.id), tick };
     const dye = heldDye(player);
     if (dye) paint.execute({ ...cmd, paint: dye });
     else fold.execute(cmd);

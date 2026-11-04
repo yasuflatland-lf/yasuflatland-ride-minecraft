@@ -1,6 +1,8 @@
 import type { Block, Dimension } from "@minecraft/server";
+import { cellOf } from "../../../domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { safeBlockAt } from "../../shared/blocks";
 import { isLightBlock } from "../../shared/lightBlocks";
 
 // A player's box is 0.6 wide; the margin keeps a box that only touches a cell
@@ -31,14 +33,6 @@ function ground(block: Block): boolean {
   return !block.isLiquid && !passable(block);
 }
 
-function blockAt(dimension: Dimension, at: Vec3): Block | undefined {
-  try {
-    return dimension.getBlock(at);
-  } catch {
-    return undefined; // Unloaded chunk or outside the world
-  }
-}
-
 function columns(at: Vec3): { x: number; z: number }[] {
   const xs = new Set([
     Math.floor(at.x - HALF_WIDTH),
@@ -54,7 +48,7 @@ function columns(at: Vec3): { x: number; z: number }[] {
 function bodyOpen(dimension: Dimension, at: Vec3, feet: number): boolean {
   return columns(at).every(({ x, z }) =>
     [feet, feet + 1].every((y) => {
-      const block = blockAt(dimension, { x, y, z });
+      const block = safeBlockAt(dimension, { x, y, z });
       return block !== undefined && passable(block);
     }),
   );
@@ -69,11 +63,11 @@ function bodyOpen(dimension: Dimension, at: Vec3, feet: number): boolean {
  * rows above that ground are checked and the player stands on its top.
  */
 export function seatExitSpot(dimension: Dimension, at: Vec3): Vec3 | undefined {
-  const row = Math.floor(at.y);
-  const cell = { x: Math.floor(at.x), z: Math.floor(at.z) };
-  const below = blockAt(dimension, { ...cell, y: row - 1 });
+  const cell = cellOf(at);
+  const row = cell.y;
+  const below = safeBlockAt(dimension, { ...cell, y: row - 1 });
   if (below && ground(below) && bodyOpen(dimension, at, row)) return at;
-  const floor = blockAt(dimension, { ...cell, y: row });
+  const floor = safeBlockAt(dimension, { ...cell, y: row });
   if (
     at.y - row >= RAISED_FLOOR &&
     floor &&

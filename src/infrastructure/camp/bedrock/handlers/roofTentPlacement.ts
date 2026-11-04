@@ -4,6 +4,7 @@ import type { VehicleHostLookup } from "../../../../application/shared/ports/veh
 import {
   asDimensionId,
   asPlayerId,
+  asVehicleId,
   type PlayerId,
 } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
@@ -18,7 +19,7 @@ export function registerRoofTentPlacement(
     if (ev.itemStack?.typeId !== ROOF_TENT_ITEM) return;
     const state = vehicleHost(ev.target.id);
     if (state.status !== "present" || !state.mount) return;
-    const refusal = place.refusalFor(ev.target.id);
+    const refusal = place.refusalFor(asVehicleId(ev.target.id));
     if (refusal === "roof_taken" || refusal === "host_in_use") return;
     ev.cancel = true;
     const playerId = asPlayerId(ev.player.id);
@@ -26,7 +27,7 @@ export function registerRoofTentPlacement(
     const cmd = {
       playerId,
       dimensionId: asDimensionId(ev.player.dimension.id),
-      target: { entityId: ev.target.id },
+      target: { entityId: asVehicleId(ev.target.id) },
       yaw: ev.player.getRotation().y,
       slot: ev.player.selectedSlotIndex,
     };

@@ -11,6 +11,7 @@ import { GAS_LANTERN_SPEC } from "../../../domain/camp/spec";
 import type { TopItem } from "../../../domain/camp/tabletop";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
@@ -31,10 +32,7 @@ import {
 import { itemsOnTable, tableTop } from "./tableItems";
 
 function gasLantern(id: GasLanternId) {
-  const entity = world.getEntity(id);
-  return entity?.isValid && entity.typeId === GAS_LANTERN_TYPE
-    ? entity
-    : undefined;
+  return entityOfType(world, id, GAS_LANTERN_TYPE);
 }
 
 function spawnLantern(dimension: DimensionId, at: Vec3, yaw: number) {

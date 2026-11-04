@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
+import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import {
   effectivePaint,
@@ -9,7 +10,7 @@ import {
 } from "../../../src/domain/shared/paint";
 import { FakeRoofTentWorld, PLAYER } from "./fakeRoofTentWorld";
 
-const TENT = "tent";
+const TENT = asRoofTentId("tent");
 const paintArb = fc.constantFrom(...PAINTS);
 const tickArb = fc.nat({ max: 1_000_000 });
 const sameColor = (a: Paint, b: Paint) =>

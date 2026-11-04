@@ -15,6 +15,7 @@ import type { BedWorld } from "../../../application/shared/ports/bed";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
 import { decodeHost } from "../../../domain/camp/hosted";
+import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import { roofTentCeilingCells } from "../../../domain/camp/roofTent/ceiling";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
 import { snapYaw4 } from "../../../domain/camp/roofTent/facing";
@@ -56,7 +57,7 @@ interface Snapshot {
 export class BedrockRoofTentOccupantWorld
   implements RoofTentOccupantWorld, OccupantEjector, RoofTentRemoved
 {
-  private readonly snapshots = new Map<string, Snapshot>();
+  private readonly snapshots = new Map<RoofTentId, Snapshot>();
   private readonly clearSpawn: ClearRoofTentSpawn;
   constructor(
     private readonly vehicleHost: VehicleHostLookup,
@@ -96,7 +97,7 @@ export class BedrockRoofTentOccupantWorld
     const spawnSetBy = entity.getDynamicProperty(
       ROOF_TENT_SPAWN_SET_BY_PROPERTY,
     );
-    this.snapshots.set(entity.id, {
+    this.snapshots.set(asRoofTentId(entity.id), {
       ceiling: readCeiling(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
       ),
@@ -108,21 +109,21 @@ export class BedrockRoofTentOccupantWorld
         typeof spawnSetBy === "string" ? asPlayerId(spawnSetBy) : undefined,
     });
   }
-  forget(id: string): void {
+  forget(id: RoofTentId): void {
     this.clearCeiling(id);
     const occupant = this.snapshots.get(id)?.occupant;
     if (occupant !== undefined) this.reveal(occupant);
     this.snapshots.delete(id);
   }
-  private snapshot(id: string): Snapshot | undefined {
+  private snapshot(id: RoofTentId): Snapshot | undefined {
     const entity = roofTentEntity(id);
     if (entity) this.remember(entity);
     return this.snapshots.get(id);
   }
-  occupantOf(id: string): PlayerId | undefined {
+  occupantOf(id: RoofTentId): PlayerId | undefined {
     return this.snapshot(id)?.occupant;
   }
-  setOccupant(id: string, playerId: PlayerId | undefined): void {
+  setOccupant(id: RoofTentId, playerId: PlayerId | undefined): void {
     const entity = roofTentEntity(id);
     if (entity) this.remember(entity);
     entity?.setDynamicProperty(ROOF_TENT_OCCUPANT_PROPERTY, playerId);
@@ -132,7 +133,7 @@ export class BedrockRoofTentOccupantWorld
     if (saved) saved.occupant = playerId;
     this.syncCeiling(id);
   }
-  syncCeiling(id: string): void {
+  syncCeiling(id: RoofTentId): void {
     const tent = this.snapshot(id);
     if (!tent) return;
     if (tent.occupant === undefined) {
@@ -141,7 +142,7 @@ export class BedrockRoofTentOccupantWorld
     }
     this.layCeiling(id, tent);
   }
-  private layCeiling(id: string, tent: Snapshot): void {
+  private layCeiling(id: RoofTentId, tent: Snapshot): void {
     let warned = false;
     const warn = (error: unknown) => {
       if (!warned)
@@ -153,7 +154,7 @@ export class BedrockRoofTentOccupantWorld
       if (!entity) return;
       const variant =
         entity.getProperty(ROOF_TENT_LADDER_PROPERTY) === true
-          ? "suv"
+          ? "ladder"
           : "ground";
       const recorded = new Map(
         tent.ceiling.map((cell) => [cellKey(cell), cell]),
@@ -190,7 +191,7 @@ export class BedrockRoofTentOccupantWorld
       warn(error);
     }
   }
-  private clearCeiling(id: string): void {
+  private clearCeiling(id: RoofTentId): void {
     const tent = this.snapshots.get(id);
     if (!tent || tent.ceiling.length === 0) return;
     let warned = false;
@@ -233,7 +234,7 @@ export class BedrockRoofTentOccupantWorld
     }
     return undefined;
   }
-  moveInside(playerId: PlayerId, id: string): void {
+  moveInside(playerId: PlayerId, id: RoofTentId): void {
     const tent = this.snapshot(id);
     const entity = roofTentEntity(id);
     const player = world.getEntity(playerId);
@@ -279,14 +280,14 @@ export class BedrockRoofTentOccupantWorld
       console.warn(`[${NAMESPACE}] roof tent reveal failed: ${error}`);
     }
   }
-  isSeated(playerId: PlayerId, id: string): boolean | undefined {
+  isSeated(playerId: PlayerId, id: RoofTentId): boolean | undefined {
     if (!roofTentEntity(id)) return undefined;
     return (
       world.getEntity(playerId)?.getComponent("minecraft:riding")
         ?.entityRidingOn?.id === id
     );
   }
-  placeOutside(playerId: PlayerId, id: string): void {
+  placeOutside(playerId: PlayerId, id: RoofTentId): void {
     const tent = this.snapshot(id);
     const occupant = world.getEntity(playerId);
     if (!tent || !occupant?.isValid) return;
@@ -335,7 +336,7 @@ export class BedrockRoofTentOccupantWorld
         }
     }
   }
-  spawnCellOf(id: string): Vec3 {
+  spawnCellOf(id: RoofTentId): Vec3 {
     const location = this.snapshot(id)?.location;
     if (!location) throw new Error(`Unknown roof tent: ${id}`);
     return {
@@ -344,10 +345,10 @@ export class BedrockRoofTentOccupantWorld
       z: Math.floor(location.z),
     };
   }
-  spawnSetBy(id: string): PlayerId | undefined {
+  spawnSetBy(id: RoofTentId): PlayerId | undefined {
     return this.snapshot(id)?.spawnSetBy;
   }
-  setSpawnSetBy(id: string, playerId: PlayerId | undefined): void {
+  setSpawnSetBy(id: RoofTentId, playerId: PlayerId | undefined): void {
     roofTentEntity(id)?.setDynamicProperty(
       ROOF_TENT_SPAWN_SET_BY_PROPERTY,
       playerId,
@@ -355,7 +356,7 @@ export class BedrockRoofTentOccupantWorld
     const saved = this.snapshots.get(id);
     if (saved) saved.spawnSetBy = playerId;
   }
-  dimensionOf(id: string) {
+  dimensionOf(id: RoofTentId) {
     const saved = this.snapshot(id);
     if (!saved) throw new Error(`Unknown roof tent: ${id}`);
     return asDimensionId(saved.dimension.id);
@@ -365,10 +366,10 @@ export class BedrockRoofTentOccupantWorld
       translate: messageKey(name),
     });
   }
-  eject(id: string): void {
+  eject(id: RoofTentId): void {
     new LeaveRoofTent(this).eject(id);
   }
-  removed(id: string, ownerId: string | undefined): void {
+  removed(id: RoofTentId, ownerId: PlayerId | undefined): void {
     this.eject(id);
     this.clearCeiling(id);
     this.clearSpawn.removed(id, ownerId);
