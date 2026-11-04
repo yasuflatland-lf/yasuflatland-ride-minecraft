@@ -58,7 +58,6 @@ def build():
     bones.setdefault("body", [])
     bones["body"] += running_gear.spare_wheel()
     both_sides = suv_cubes.both_sides
-    bones["headlight_bezels"] = lamps.headlight_bezel_cubes()
     bones.setdefault("headlights", []).extend(lamps.headlight_lens_cubes())
     bones["tail_lights"] = [*lamps.third_brake_light_cubes(), *both_sides(lamps.tail_light_cubes())]
     bones["windows_sealed"] = convert(cab.sealed_windows())

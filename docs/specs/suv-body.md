@@ -12,6 +12,7 @@
 - Source: [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md)
 - Source: [0215](../adr/0215-fit-the-suv-interior-to-the-rubicon-cabin.md)
 - Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
+- Source: [0219](../adr/0219-remove-the-suv-headlight-bezel-plate.md)
 - Excluded: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md): rotation assemblies, covered by the model-conventions topic
 - Excluded: [0176](../adr/0176-move-the-sports-boat-front-seats-back.md): sports boat seat positions, not the SUV
 
@@ -38,11 +39,11 @@
 ### Lamp bones beyond the 0009 list
 
 - Applies to: SUV model, lit lamp parts.
-- Rule: The model also has the bones `headlights`, `tail_lights`, and `headlight_bezels`. Lamp cubes belong to a bone by the part that builds them, not by colour: `headlights` holds the headlight lenses, the fog lamp lenses, and the front marker lens; `tail_lights` holds the lit tail lamp faces and the third brake light; `headlight_bezels` holds the cutout bezel panels and stays in the base pass, so it is not an overlay bone.
+- Rule: The model also has the bones `headlights` and `tail_lights`. Lamp cubes belong to a bone by the part that builds them, not by colour: `headlights` holds the headlight lenses, the fog lamp lenses, and the front marker lens; `tail_lights` holds the lit tail lamp faces and the third brake light.
 - Agreement: Proposed
-- Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Extend 0009 with `tail_lights` for the lit tail lamp parts and the third brake light, and `headlight_bezels` for the cutout panels."; [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlights` keeps the headlight lenses, fog lamp lenses and front lamp strip on the fender flares"; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlight_bezels` stays in the base pass and is not an overlay bone."
+- Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Extend 0009 with `tail_lights` for the lit tail lamp parts and the third brake light"; [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlights` keeps the headlight lenses, fog lamp lenses and front lamp strip on the fender flares"; [0219](../adr/0219-remove-the-suv-headlight-bezel-plate.md) Decision
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `tools/suv_lamps.py`; `tools/suv_front.py`
-- Verification: `tests/packs/headlights.test.ts` "places both detailed tail faces and the third brake light on the tail bone", "places every light swatch cube on the headlights bone", "keeps two cutout bezels on an origin-pivoted body child in the base pass". Not verified: lamp appearance in game (0192 Decision point 7 and the headlight material result of part 13 are recorded as pending the owner's in-game comparison).
+- Verification: `tests/packs/headlights.test.ts` "places both detailed tail faces and the third brake light on the tail bone", "places every light swatch cube on the headlights bone", "has no bezel bone, cutout material or cutout texels in front of the lens". Not verified: lamp appearance in game (0192 Decision point 7 and the headlight material result of part 13 are recorded as pending the owner's in-game comparison).
 
 ### Grille and marks
 
@@ -149,7 +150,7 @@
 - Accepted 0117 Decision says the front riders are at z = 0.2 blocks and the rear seats at z = -0.8, and the code has z derived from the new cabin constraints in 0215 (-0.089 and -0.974): `docs/adr/0117-move-the-suv-front-seats-back.md`, `src/domain/vehicle/kinds/suv/profile.ts`. The superseding ADRs (0170, 0194, 0215) are Proposed.
 - 0215 replaces 0196's observed seat y 0.73 with roof-derived 0.74 and 0194's horizontal values with x +/-0.463, front z -0.089 and rear z -0.974: `docs/adr/0215-fit-the-suv-interior-to-the-rubicon-cabin.md`. These remain Proposed and need client checks.
 - 0170 Decision keeps the road wheel diameter as the size anchor, 1.8 by 1.6 box, shell reach 29.5/16, and footprint 2.35, while its Size anchor note replaces the wheel anchor with the seated player and 0194 gives different measured extents: `docs/adr/0170-measure-suv-side-view-proportions.md`, `docs/adr/0194-enlarge-the-suv-for-seated-head-clearance.md`, `tools/suv_proportions.py`. The Decision text was not rewritten when later notes and ADRs changed the numbers.
-- 0192 Decision point 9 says merging its PR is the owner's approval of the `tail_lights` and `headlight_bezels` bones, and its Status is still Proposed while both bones exist in the model and in tests: `docs/adr/0192-suv-detailed-body.md`, `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`, `tests/packs/headlights.test.ts`.
+- 0192 Decision point 9 says merging its PR is the owner's approval of the `tail_lights` bone, and its Status is still Proposed while the bone exists in the model and in tests: `docs/adr/0192-suv-detailed-body.md`, `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`, `tests/packs/headlights.test.ts`.
 - 0194 acceptance condition asks the owner to confirm head clearance, first-person visibility, and wall and door clearance at the 1.45 scale, and 0196 records only a dev BDS check of the horizon and head under the roof at the new seat height: `docs/adr/0194-enlarge-the-suv-for-seated-head-clearance.md`, `docs/adr/0196-raise-the-suv-seats-for-first-person-visibility.md`. Whether that check satisfies 0194 is not stated.
 - 0029 Decision names the test entity `mycar_test:seat_probe`, and the entity is `yasu_ride_test:seat_probe`: `docs/adr/0029-raise-the-seats.md`, `packs/yasu_ride_test_bp/entities/yasu_ride_test/seat_probe.se.json`.
 - 0215 refits the interior left for later by 0214, including the hollow belt shell, dashboard, gauges, seats, steering and pedals. Rear straight legs still cross the front backrests by their full 1.8 construction px depth and thighs clear the floor by only 0.100962 construction px; these compromises need PC and touch inspection: `docs/adr/0215-fit-the-suv-interior-to-the-rubicon-cabin.md`.
