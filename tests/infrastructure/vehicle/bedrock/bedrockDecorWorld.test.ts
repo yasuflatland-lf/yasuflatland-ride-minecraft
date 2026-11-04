@@ -11,6 +11,7 @@ import {
   DECOR_PROPERTY,
   PLAYER_TYPE,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { decorItemId, decorSlotId } from "../../../support/decorIds";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -20,8 +21,8 @@ vi.mock("@minecraft/server", () => ({
 
 const decorList = fc.uniqueArray(
   fc.record({
-    slot: fc.string(),
-    item: fc.stringMatching(/^[a-z][a-z0-9_]{0,15}$/),
+    slot: fc.string().map(decorSlotId),
+    item: fc.stringMatching(/^[a-z][a-z0-9_]{0,15}$/).map(decorItemId),
   }),
   { selector: (d) => d.slot, minLength: 0 },
 );
@@ -77,7 +78,7 @@ describe("BedrockDecorWorld (ADR 0093)", () => {
   it("saves nothing for a missing vehicle", () => {
     const { vehicle, world } = fixture();
     world.saveDecor(asVehicleId("missing"), [
-      { slot: "table", item: "potted_plant" },
+      { slot: decorSlotId("table"), item: decorItemId("potted_plant") },
     ]);
     expect(vehicle.setDynamicProperty).not.toHaveBeenCalled();
   });
@@ -99,9 +100,9 @@ describe("BedrockDecorWorld (ADR 0093)", () => {
   it("takes one camping gear item from the hotbar slot", () => {
     const { inventory, world } = fixture();
     inventory.consumeHeld.mockReturnValue(false);
-    expect(world.consumeDecorItem(asPlayerId("p"), 4, "percolator")).toBe(
-      false,
-    );
+    expect(
+      world.consumeDecorItem(asPlayerId("p"), 4, decorItemId("percolator")),
+    ).toBe(false);
     expect(inventory.consumeHeld).toHaveBeenCalledExactlyOnceWith(
       "p",
       "yasu_ride:percolator",
@@ -111,7 +112,10 @@ describe("BedrockDecorWorld (ADR 0093)", () => {
 
   it("gives decor back as camping gear items", () => {
     const { inventory, world } = fixture();
-    world.giveDecorItems(asPlayerId("p"), ["percolator", "mug_pair"]);
+    world.giveDecorItems(asPlayerId("p"), [
+      decorItemId("percolator"),
+      decorItemId("mug_pair"),
+    ]);
     expect(inventory.giveItems).toHaveBeenCalledExactlyOnceWith("p", [
       "yasu_ride:percolator",
       "yasu_ride:mug_pair",

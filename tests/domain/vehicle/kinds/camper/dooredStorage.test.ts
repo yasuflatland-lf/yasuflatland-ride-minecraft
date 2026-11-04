@@ -43,6 +43,7 @@ import {
   storagePressTarget,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
+import { decorItemId } from "../../../../support/decorIds";
 
 const SWING = CAMPER_SPEC.doorSwingTicks;
 
@@ -298,7 +299,7 @@ describe("StorageDoors", () => {
               let taken = false;
               const got = doors.press(id, a.onCompartment, tick, () => {
                 taken = true;
-                return a.item ? "mug_pair" : undefined;
+                return a.item ? decorItemId("mug_pair") : undefined;
               });
               const acts = tick - (last.get(id) ?? Number.NEGATIVE_INFINITY);
               if (acts < SWING) {
@@ -310,7 +311,10 @@ describe("StorageDoors", () => {
               const takes = open.has(id) && a.onCompartment;
               expect(taken).toBe(takes);
               if (takes && a.item)
-                expect(got).toEqual({ kind: "item", item: "mug_pair" });
+                expect(got).toEqual({
+                  kind: "item",
+                  item: "mug_pair",
+                });
               else {
                 expect(got).toEqual({ kind: "door" });
                 if (open.has(id)) open.delete(id);

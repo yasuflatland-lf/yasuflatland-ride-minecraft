@@ -46,6 +46,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { seatSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/seatPress";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
+import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });
@@ -72,7 +73,7 @@ const decor = fc
             fc.constantFrom(...slots),
             fc.constantFrom("potted_plant", "percolator", "cushion"),
           )
-          .map(([s, item]) => ({ slot: s.id, item })),
+          .map(([s, item]) => ({ slot: s.id, item: decorItemId(item) })),
       ),
     ),
   );
@@ -689,22 +690,27 @@ it("lays each decor at its slot's cell, the yaw quarter, the slot height, and th
               }
             : {
                 type: "decor",
-                item,
+                item: item,
                 face: decorFace(p.yaw),
                 height: slot.height,
                 spot: slot.spot ?? 0,
               },
         );
       }
-      expect(decorCells(p, [{ slot: "nowhere", item: "mug_pair" }])).toEqual(
-        [],
-      );
+      expect(
+        decorCells(p, [
+          { slot: decorSlotId("nowhere"), item: decorItemId("mug_pair") },
+        ]),
+      ).toEqual([]);
     }),
   );
 });
 
 it("puts no decor cell on a room cell (ADR 0093)", () => {
-  const all = DECOR_SLOTS.map((s) => ({ slot: s.id, item: "potted_plant" }));
+  const all = DECOR_SLOTS.map((s) => ({
+    slot: s.id,
+    item: decorItemId("potted_plant"),
+  }));
   fc.assert(
     fc.property(pose, (p) => {
       const room = new Set(roomCells(p, false).map(cellKey));
@@ -778,7 +784,9 @@ it("lays the stove's furniture block once, at its burner's height, while the sto
       expect(empty.map((c) => c.block)).toEqual([
         { type: "furniture", height: 15 },
       ]);
-      const held = [{ slot: "stove", item: "saucepan" }];
+      const held = [
+        { slot: decorSlotId("stove"), item: decorItemId("saucepan") },
+      ];
       expect(furnitureCells(p, held).some((c) => cellKey(c) === at)).toBe(
         false,
       );

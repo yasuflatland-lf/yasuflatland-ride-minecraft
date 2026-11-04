@@ -72,6 +72,7 @@ import {
   TEST_INPUT_EVENT,
   TEST_TOOL_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { decorItemId } from "../../../support/decorIds";
 
 describe("identifiers (ADR 0047)", () => {
   it("reserves the property identifiers the core writes (ADR 0055)", () => {
@@ -325,7 +326,9 @@ describe("identifiers (ADR 0047)", () => {
     for (const { cell, slots } of DECOR_CELLS) {
       const [first] = slots;
       if (!first?.pair) continue;
-      const name = decorBlockName(cell, [{ slot: first.id, item: "cushion" }]);
+      const name = decorBlockName(cell, [
+        { slot: first.id, item: decorItemId("cushion") },
+      ]);
       expect(ownSlotBlock(pairDecorBlockId(first.pair.kind), name)).toBe(true);
     }
     expect(isDecorBlock(decorBlockId("percolator"))).toBe(true);

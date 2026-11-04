@@ -7,6 +7,7 @@ import {
   HANGING_GEAR_IDS,
   LEGACY_GEAR_IDS,
 } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
+import { decorItemId } from "../../../../support/decorIds";
 
 const spec: { id: string; hanging: boolean }[] = JSON.parse(
   readFileSync("tools/camping_gear.json", "utf8"),
@@ -22,7 +23,7 @@ it("matches tools/camping_gear.json item for item and in which items hang (ADR 0
 it("reads every current gear id unchanged", () => {
   fc.assert(
     fc.property(fc.constantFrom(...CAMPING_GEAR_IDS), (id) => {
-      expect(currentGearId(id)).toBe(id);
+      expect(currentGearId(decorItemId(id))).toBe(id);
     }),
   );
 });
@@ -34,8 +35,9 @@ it("drops lava_lamp, oil_lamp and lantern", () => {
     lantern: null,
   });
   for (const id of Object.keys(LEGACY_GEAR_IDS))
-    expect(currentGearId(id)).toBeUndefined();
-  for (const id of CAMPING_GEAR_IDS) expect(currentGearId(id)).toBe(id);
+    expect(currentGearId(decorItemId(id))).toBeUndefined();
+  for (const id of CAMPING_GEAR_IDS)
+    expect(currentGearId(decorItemId(id))).toBe(id);
 });
 
 it("drops unknown ids, including inherited object keys", () => {
@@ -52,7 +54,7 @@ it("drops unknown ids, including inherited object keys", () => {
             !Object.hasOwn(LEGACY_GEAR_IDS, id),
         ),
       (id) => {
-        expect(currentGearId(id)).toBeUndefined();
+        expect(currentGearId(decorItemId(id))).toBeUndefined();
       },
     ),
   );
@@ -66,7 +68,7 @@ it("resolves saved ids only to the current catalog", () => {
         fc.constantFrom(...CAMPING_GEAR_IDS, ...Object.keys(LEGACY_GEAR_IDS)),
       ),
       (saved) => {
-        const result = currentGearId(saved);
+        const result = currentGearId(decorItemId(saved));
         expect(result === undefined || CAMPING_GEAR_IDS.includes(result)).toBe(
           true,
         );

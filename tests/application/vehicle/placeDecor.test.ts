@@ -8,11 +8,12 @@ import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
 import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
+import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";
 import { FakeWorld, parkedCamper } from "./fakes";
 
 function slot(id: string) {
-  const s = decorSlot(id);
+  const s = decorSlot(decorSlotId(id));
   if (!s) throw new Error(`no ${id} slot`);
   return s;
 }
@@ -25,7 +26,7 @@ function setup() {
   const cmd: PlaceDecorCommand = {
     playerId: asPlayerId("p"),
     vehicleId: car.id,
-    item: "percolator",
+    item: decorItemId("percolator"),
     point: slotPoint(pose, stove),
     cell: decorSlotCell(pose, stove),
     hotbarSlot: 4,
@@ -70,7 +71,7 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     const hook = slot("ceiling_hook");
     const planter = {
       ...cmd,
-      item: "macrame_planter",
+      item: decorItemId("macrame_planter"),
       point: slotPoint(pose, hook),
       cell: decorSlotCell(pose, hook),
     };
@@ -93,7 +94,7 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     expect(
       place.execute({
         ...cmd,
-        item: "potted_plant",
+        item: decorItemId("potted_plant"),
         point: slotPoint(pose, slot("dashboard_center")),
         cell: decorSlotCell(pose, slot("dashboard_left")),
       }),
@@ -123,9 +124,15 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
       y: Math.floor(point.y),
       z: Math.floor(point.z),
     };
-    expect(place.execute({ ...cmd, item: "saucepan", point, cell, eye })).toBe(
-      true,
-    );
+    expect(
+      place.execute({
+        ...cmd,
+        item: decorItemId("saucepan"),
+        point,
+        cell,
+        eye,
+      }),
+    ).toBe(true);
     expect(world.calls).toEqual(["saveDecor:car:counter=saucepan"]);
   });
 
@@ -134,7 +141,9 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     world.itemInSlot = true;
     expect(place.execute(cmd)).toBe(true);
     world.calls.length = 0;
-    expect(place.execute({ ...cmd, item: "toaster", exact: true })).toBe(false);
+    expect(
+      place.execute({ ...cmd, item: decorItemId("toaster"), exact: true }),
+    ).toBe(false);
     expect(world.messages.at(-1)).toEqual({
       playerId: "p",
       name: "decor_no_slot",

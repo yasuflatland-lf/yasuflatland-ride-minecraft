@@ -28,6 +28,7 @@ import {
   decorBlockId,
   pairDecorBlockId,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { decorItemId } from "../../../support/decorIds";
 import { defined } from "../../../support/defined";
 
 const SIDES = ["North", "South", "East", "West"] as const;
@@ -207,13 +208,29 @@ it("puts the logged Up-face press on the stove top and a saucepan on its burner,
   const point = pressAt(stoveCell, "Up", face, stoveTop);
   expect(point.y).toBe(-59 + 15 / 16);
   expect(
-    slotForPress(pose, "saucepan", [], stoveCell, point, false, loggedEye)?.id,
+    slotForPress(
+      pose,
+      decorItemId("saucepan"),
+      [],
+      stoveCell,
+      point,
+      false,
+      loggedEye,
+    )?.id,
   ).toBe("stove");
   // The reported y alone puts the point 0.875 below the top; with four burners that picked
   // the wrong one (ADR 0111), and with one there is nothing else to pick.
   const raw = { x: point.x, y: -59 + face.y, z: point.z };
   expect(
-    slotForPress(pose, "saucepan", [], stoveCell, raw, false, loggedEye)?.id,
+    slotForPress(
+      pose,
+      decorItemId("saucepan"),
+      [],
+      stoveCell,
+      raw,
+      false,
+      loggedEye,
+    )?.id,
   ).toBe("stove");
 });
 
@@ -227,7 +244,15 @@ it("puts the logged west-face press on the stove on its burner (#434, ADR 0111, 
   );
   expect(point.y).toBeCloseTo(-59 + 0.797, 3);
   expect(
-    slotForPress(pose, "saucepan", [], stoveCell, point, false, loggedEye)?.id,
+    slotForPress(
+      pose,
+      decorItemId("saucepan"),
+      [],
+      stoveCell,
+      point,
+      false,
+      loggedEye,
+    )?.id,
   ).toBe("stove");
 });
 
@@ -240,9 +265,9 @@ it("puts the logged Up-face presses on the table top and the floor top (#434, AD
     pressedShape(CAMPER_FURNITURE_BLOCK, 12),
   );
   expect(onTable.y).toBe(-59 + 0.75);
-  expect(slotForPress(pose, "saucepan", [], table, onTable, false)?.id).toBe(
-    "table",
-  );
+  expect(
+    slotForPress(pose, decorItemId("saucepan"), [], table, onTable, false)?.id,
+  ).toBe("table");
   const floor = { x: 320, y: -60, z: -520 };
   const onFloor = pressAt(
     floor,
@@ -269,7 +294,15 @@ it("puts a saucepan on the stove's burner for any Up-face press on it, from any 
         const point = pressAt(stoveCell, "Up", { x, y, z }, top);
         const eye = { x: point.x + ex, y: point.y + ey, z: point.z + ez };
         expect(
-          slotForPress(pose, "saucepan", [], stoveCell, point, false, eye),
+          slotForPress(
+            pose,
+            decorItemId("saucepan"),
+            [],
+            stoveCell,
+            point,
+            false,
+            eye,
+          ),
         ).toBe(stove);
       },
     ),

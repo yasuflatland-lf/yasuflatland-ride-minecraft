@@ -6,13 +6,14 @@ import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing
 import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
+import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { FakeClock, FakeWorld, parkedCamper } from "./fakes";
 
 function setup() {
   const { car, pose, repo } = parkedCamper();
   const world = new FakeWorld();
   const clock = new FakeClock();
-  const front = decorSlot("cabinet_sink_front");
+  const front = decorSlot(decorSlotId("cabinet_sink_front"));
   if (!front) throw new Error("no cabinet_sink_front slot");
   const press = new PressStorage(world, repo, clock);
   const at = (tick: number) => {
@@ -30,8 +31,12 @@ function setup() {
 describe("PressStorage (ADR 0114)", () => {
   it("opens the door without saving, then takes the pressed item back to the player and saves the rest", () => {
     const { car, world, at } = setup();
-    car.asRoom()?.setDecor("cabinet_sink_front", "toaster");
-    car.asRoom()?.setDecor("cabinet_sink_rear", "mug_pair");
+    car
+      .asRoom()
+      ?.setDecor(decorSlotId("cabinet_sink_front"), decorItemId("toaster"));
+    car
+      .asRoom()
+      ?.setDecor(decorSlotId("cabinet_sink_rear"), decorItemId("mug_pair"));
     expect(at(100)).toBe(true);
     expect(world.calls).toEqual([]);
     expect(at(100 + CAMPER_SPEC.doorSwingTicks)).toBe(true);

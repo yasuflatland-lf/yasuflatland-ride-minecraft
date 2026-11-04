@@ -1,6 +1,6 @@
 // Placing camping gear on the parked camper's furniture (ADR 0093, 0097, 0105, 0110, 0114).
 import { distanceSq, type Vec3 } from "../../../shared/vec";
-import type { DecorPlacement } from "../../dock/decor";
+import type { DecorItemId, DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
@@ -17,7 +17,7 @@ const NO_DOORS: ReadonlySet<StorageDoorId> = new Set();
  * A slot behind a storage door counts only while that door is in `open` (ADR 0114, 0121).
  */
 export function slotsFor(
-  item: string,
+  item: DecorItemId,
   open: ReadonlySet<StorageDoorId> = NO_DOORS,
 ): DecorSlot[] {
   if (!CAMPING_GEAR_IDS.includes(item)) return [];
@@ -91,7 +91,7 @@ export function nearest(
  */
 export function nearestFreeSlot(
   pose: HoldPose,
-  item: string,
+  item: DecorItemId,
   decor: readonly DecorPlacement[],
   point: Vec3,
   eye?: Vec3,
@@ -125,7 +125,7 @@ export function slotsAt(pose: HoldPose, cell: Vec3): DecorSlot[] {
  */
 export function slotForPress(
   pose: HoldPose,
-  item: string,
+  item: DecorItemId,
   decor: readonly DecorPlacement[],
   cell: Vec3,
   point: Vec3,

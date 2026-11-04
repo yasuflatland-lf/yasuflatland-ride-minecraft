@@ -1,12 +1,16 @@
 // The camper's decor slots, flattened from its furniture table (ADR 0093).
-import type { DecorPlacement } from "../../dock/decor";
+import {
+  type DecorPlacement,
+  type DecorSlotId,
+  parseDecorSlotId,
+} from "../../dock/decor";
 import { CAMPER_FURNITURE, type DecorSlot, type LocalCell } from "./furniture";
 
 export const DECOR_SLOTS: readonly DecorSlot[] = CAMPER_FURNITURE.flatMap(
   (f) => f.slots,
 );
 
-export function decorSlot(id: string): DecorSlot | undefined {
+export function decorSlot(id: DecorSlotId): DecorSlot | undefined {
   return DECOR_SLOTS.find((s) => s.id === id);
 }
 
@@ -35,8 +39,9 @@ const RENAMED_SLOTS: ReadonlyMap<string, string> = new Map([
 ]);
 
 /** The slot id that decor saved under `id` loads onto: `id` unless that slot was renamed. */
-export function savedSlotId(id: string): string {
-  return RENAMED_SLOTS.get(id) ?? id;
+export function savedSlotId(id: DecorSlotId): DecorSlotId {
+  const renamed = RENAMED_SLOTS.get(id);
+  return renamed === undefined ? id : (parseDecorSlotId(renamed) ?? id);
 }
 
 function sameCell(a: LocalCell, b: LocalCell): boolean {

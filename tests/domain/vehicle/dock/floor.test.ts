@@ -6,10 +6,11 @@ import {
   type DockCell,
   sameBlock,
 } from "../../../../src/domain/vehicle/dock/floor";
+import { decorItemId } from "../../../support/decorIds";
 
 const decorBlock = fc.record({
   type: fc.constant("decor" as const),
-  item: fc.constantFrom("potted_plant", "percolator"),
+  item: fc.constantFrom("potted_plant", "percolator").map(decorItemId),
   face: fc.constantFrom(0, 1, 2, 3),
   height: fc.integer({ min: 0, max: 15 }),
   spot: fc.integer({ min: 0, max: 4 }),
@@ -28,8 +29,8 @@ const decorPairBlock = fc
   .map(({ end0, end1, ...rest }) => ({
     type: "decorPair" as const,
     ...rest,
-    ...(end0 === undefined ? {} : { end0 }),
-    ...(end1 === undefined ? {} : { end1 }),
+    ...(end0 === undefined ? {} : { end0: decorItemId(end0) }),
+    ...(end1 === undefined ? {} : { end1: decorItemId(end1) }),
   }));
 const furnitureHeight = fc.integer({ min: 0, max: 15 });
 const showerToiletFace = fc.constantFrom(0, 1, 2, 3);
