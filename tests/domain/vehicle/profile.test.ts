@@ -83,6 +83,25 @@ const input = fc.record({
 const velocity = fc.record({ x: number(-5, 5), z: number(-5, 5) });
 
 describe("vehicle profiles (ADR 0050)", () => {
+  it("protects riders from fire only for the sports boat", () => {
+    fc.assert(
+      fc.property(fc.constantFrom(...VEHICLE_KINDS), (kind) => {
+        expect(profileOf(kind).ridersFireProof).toBe(kind === "sportsboat");
+      }),
+    );
+  });
+
+  it("declares exactly the liquid surfaces as view-ray placement liquids", () => {
+    fc.assert(
+      fc.property(fc.constantFrom(...VEHICLE_KINDS), (kind) => {
+        const { surfaces, liquids } = profileOf(kind).placement;
+        expect(liquids).toEqual(
+          new Set(surfaces.filter((surface) => surface !== "top")),
+        );
+      }),
+    );
+  });
+
   it.each([
     {
       kind: "suv",
@@ -125,6 +144,7 @@ describe("vehicle profiles (ADR 0050)", () => {
     });
     expect(SUV_PROFILE).toEqual({
       kind: "suv",
+      ridersFireProof: false,
       fleetLimit: 10,
       body: {
         front: SUV_SPEC.bodyFront,
@@ -153,6 +173,7 @@ describe("vehicle profiles (ADR 0050)", () => {
       beams: { reach: SUV_SPEC.headlightReach, lanes: [0] },
       placement: {
         surfaces: ["top"],
+        liquids: new Set(),
         clearance: { halfX: 1, halfZ: 1, height: 3 },
       },
       chaseCamera: "mid",
@@ -220,6 +241,7 @@ describe("vehicle profiles (ADR 0050)", () => {
     expect("handbrakeGrip" in SPORTSBOAT_SPEC).toBe(false);
     expect(SPORTSBOAT_PROFILE).toStrictEqual({
       kind: "sportsboat",
+      ridersFireProof: true,
       fleetLimit: 1,
       body: { front: 3.0, halfWidth: 1.06, height: 1.2 },
       footprint: 3.5,
@@ -238,6 +260,7 @@ describe("vehicle profiles (ADR 0050)", () => {
       },
       placement: {
         surfaces: ["water", "lava", "top"],
+        liquids: new Set(["water", "lava"]),
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
       monitor: {
