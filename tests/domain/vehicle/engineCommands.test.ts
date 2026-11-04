@@ -50,6 +50,7 @@ it.each(VEHICLE_KINDS)(
                     riderView("driver", {
                       offset: { x: 0.38, z: -0.35 },
                       yaw: s.driverYaw,
+                      raw: s.raw,
                     }),
                   ]
                 : [],
