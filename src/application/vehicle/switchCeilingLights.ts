@@ -4,7 +4,7 @@ import type { Vec3 } from "../../domain/shared/vec";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { Clock } from "./ports/shared";
 
-export interface SwitchCeilingLightsCommand {
+interface SwitchCeilingLightsCommand {
   playerId: PlayerId;
   vehicleId: VehicleId;
   /** The player's feet in world coordinates. */

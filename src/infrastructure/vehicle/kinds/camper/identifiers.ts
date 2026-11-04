@@ -1,4 +1,8 @@
 import {
+  type DecorItemId,
+  isDecorItem,
+} from "../../../../domain/vehicle/dock/decor";
+import {
   CAMPING_GEAR_IDS,
   pairHeights,
   STANDING_GEAR_IDS,
@@ -152,8 +156,11 @@ export function isCamperRoomBlock(typeId: string): boolean {
 /** The camping gear id of an item type, if it is camping gear. */
 export function campingGearOfItem(
   typeId: string | undefined,
-): string | undefined {
-  return CAMPING_GEAR_IDS.find((gear) => campingGearItem(gear) === typeId);
+): DecorItemId | undefined {
+  const item = CAMPING_GEAR_IDS.find(
+    (gear) => campingGearItem(gear) === typeId,
+  );
+  return item !== undefined && isDecorItem(item) ? item : undefined;
 }
 
 /** The camping gear id of a decor block type, if it is one. */

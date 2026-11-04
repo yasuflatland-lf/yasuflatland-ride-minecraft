@@ -1,5 +1,6 @@
 // Kind-neutral hold pose and the cells a stopped vehicle lays (ADR 0063, 0068).
 import type { LaidCell } from "../../shared/laidCells";
+import type { DecorItemId } from "./decor";
 
 export interface HoldPose {
   readonly x: number;
@@ -42,7 +43,7 @@ export type DockBlock =
    */
   | {
       readonly type: "decor";
-      readonly item: string;
+      readonly item: DecorItemId;
       readonly face: Face;
       readonly height: number;
       readonly spot: number;
@@ -59,8 +60,8 @@ export type DockBlock =
       readonly pair: "shelf" | "table";
       readonly face: Face;
       readonly height: number;
-      readonly end0?: string;
-      readonly end1?: string;
+      readonly end0?: DecorItemId;
+      readonly end1?: DecorItemId;
     }
   /**
    * One compartment of the camper's wall cabinet, laid as yasu_ride:cabinet_decor_pair whether
@@ -71,8 +72,8 @@ export type DockBlock =
       readonly type: "cabinet";
       readonly face: Face;
       readonly open: boolean;
-      readonly end0?: string;
-      readonly end1?: string;
+      readonly end0?: DecorItemId;
+      readonly end1?: DecorItemId;
     }
   /** An open cabinet door, a plate on side `face` of its aisle cell under the ceiling (ADR 0114). */
   | { readonly type: "cabinetDoor"; readonly face: Face }
@@ -86,8 +87,8 @@ export type DockBlock =
       readonly face: Face;
       readonly height: number;
       readonly open: boolean;
-      readonly end0?: string;
-      readonly end1?: string;
+      readonly end0?: DecorItemId;
+      readonly end1?: DecorItemId;
     }
   /**
    * An open fridge door, a plate on side `face` of its aisle cell, without collision. `lit`

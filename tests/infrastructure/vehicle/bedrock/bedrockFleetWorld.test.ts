@@ -19,6 +19,7 @@ import { DockBlocks } from "../../../../src/infrastructure/vehicle/kinds/camper/
 import { isStandableRoomBlock } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
+import { decorItemId } from "../../../support/decorIds";
 
 const game = vi.hoisted(() => ({
   getDimension: vi.fn(),
@@ -236,7 +237,7 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
 
   it("gives the decor as camping gear items to the player (ADR 0093)", () => {
     const { fleet, inventory } = fixture();
-    fleet.giveDecorItems(asPlayerId("p"), ["percolator"]);
+    fleet.giveDecorItems(asPlayerId("p"), [decorItemId("percolator")]);
     expect(inventory.giveItems).toHaveBeenCalledExactlyOnceWith("p", [
       "yasu_ride:percolator",
     ]);

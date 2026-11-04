@@ -35,6 +35,7 @@ import {
   Vehicle,
   type VehicleTickInput,
 } from "../../../src/domain/vehicle/vehicle";
+import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";
 import { propertyValue } from "../../support/engineCommands";
 import { engineStep } from "../../support/engineModel";
@@ -1184,7 +1185,9 @@ it("exposes a room only for kinds with the room capability", () => {
         expect(room !== undefined).toBe(kind === "camper");
         if (room) {
           expect(room.decor()).toEqual([]);
-          expect(room.setDecor("stove", "percolator")).toBe(true);
+          expect(
+            room.setDecor(decorSlotId("stove"), decorItemId("percolator")),
+          ).toBe(true);
           expect(vehicle.asRoom()).toBe(room);
           expect(room.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
         }

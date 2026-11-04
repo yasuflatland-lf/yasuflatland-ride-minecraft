@@ -12,7 +12,11 @@ import { SleepInRoofTent } from "../../../src/application/camp/sleepInRoofTent";
 import type { BedWorld } from "../../../src/application/shared/ports/bed";
 import { SleepInBed } from "../../../src/application/shared/sleepInBed";
 import { asRoofTentId } from "../../../src/domain/camp/ids";
-import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import {
+  asDimensionId,
+  asPlayerId,
+  asVehicleId,
+} from "../../../src/domain/shared/ids";
 import { canSleep, SLEEP_MESSAGES } from "../../../src/domain/shared/sleep";
 import { FakeRoofTentOccupantWorld } from "./fakeRoofTentOccupantWorld";
 import { FakeRoofTentWorld } from "./fakeRoofTentWorld";
@@ -242,7 +246,7 @@ describe("roof tent occupant", () => {
   it("ejects through the host guard and clears the recorded spawn on removal", () => {
     const { world, bed, leave, sleep } = setup();
     const tents = new FakeRoofTentWorld();
-    tents.hosts.set(cmd.tentId, { kind: "vehicle", id: "host" });
+    tents.hosts.set(cmd.tentId, { kind: "vehicle", id: asVehicleId("host") });
     world.occupants.set(cmd.tentId, playerId);
     sleep.execute(cmd);
     new RoofTentHostGuard(

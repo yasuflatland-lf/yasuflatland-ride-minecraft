@@ -14,6 +14,7 @@ import {
   type VehicleId,
 } from "../../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../../domain/shared/vec";
+import type { DecorItemId } from "../../../../../domain/vehicle/dock/decor";
 import {
   SeatPresses,
   seatSlotCell,
@@ -92,7 +93,7 @@ export function registerDecor(
 
 function placeGear(
   ev: PlayerInteractWithBlockBeforeEvent,
-  item: string,
+  item: DecorItemId,
   place: PlaceDecor,
   dockCellOwner: DockCellOwner,
 ): void {
@@ -147,7 +148,7 @@ function placeGear(
 
 function placeGearOnSeat(
   ev: PlayerInteractWithEntityBeforeEvent,
-  item: string,
+  item: DecorItemId,
   place: PlaceDecor,
   dockCellOwner: DockCellOwner,
   seatPresses: SeatPresses<PlayerId>,
