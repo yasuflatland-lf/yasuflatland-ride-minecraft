@@ -11,6 +11,7 @@ import type { PlacementGift } from "../../domain/vehicle/placement/gift";
 import {
   type BlockFace,
   canPlaceAt,
+  type PlacementLiquid,
   placementCell,
 } from "../../domain/vehicle/placement/placement";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
@@ -62,9 +63,12 @@ export class PlaceVehicle {
 
   /** Whether a view ray over an open liquid may place this kind (ADR 0051, 0149). */
   placesOnLiquid(kind: VehicleKind): boolean {
-    return profileOf(kind).placement.surfaces.some(
-      (surface) => surface === "water" || surface === "lava",
-    );
+    return profileOf(kind).placement.liquids.size > 0;
+  }
+
+  /** Whether a view ray hit on this liquid may place this kind (ADR 0050, 0051). */
+  placesOn(kind: VehicleKind, liquid: PlacementLiquid): boolean {
+    return profileOf(kind).placement.liquids.has(liquid);
   }
 
   execute(cmd: PlaceVehicleCommand): boolean {
