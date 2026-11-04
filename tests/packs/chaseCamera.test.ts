@@ -14,3 +14,21 @@ describe("far chase camera preset (ADR 0071)", () => {
     expect(preset.radius).toBe(12);
   });
 });
+
+it("uses the existing eight-block mid preset for bulldozer and SUV, keeping camper far", async () => {
+  const { profileOf } = await import("../../src/domain/vehicle/kinds/index");
+  expect(profileOf("bulldozer").chaseCamera).toBe("mid");
+  expect(profileOf("suv").chaseCamera).toBe("mid");
+  expect(profileOf("camper").chaseCamera).toBe("far");
+  const preset = JSON.parse(
+    readFileSync(
+      "packs/yasu_ride_bp/cameras/presets/yasu_ride/mid_chase.json",
+      "utf8",
+    ),
+  )["minecraft:camera_preset"];
+  expect(preset).toMatchObject({
+    identifier: CHASE_CAMERAS.mid,
+    inherit_from: "minecraft:follow_orbit",
+    radius: 8,
+  });
+});

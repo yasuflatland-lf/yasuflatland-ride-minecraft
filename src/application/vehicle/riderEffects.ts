@@ -17,6 +17,10 @@ export class RiderEffects {
     private readonly log: Logger,
   ) {}
 
+  isThirdPerson(playerId: PlayerId): boolean {
+    return this.thirdPerson.has(playerId);
+  }
+
   /**
    * Each drive chooses its riders' view; everyone this use case switched
    * gets their own view back when requested or when they get off. A failed

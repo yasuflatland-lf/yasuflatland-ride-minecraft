@@ -165,3 +165,12 @@ yasu_ride.message.roof_tent_exit=Get out
 yasu_ride.hint.roof_tent_sneak=Sneak to enter the roof tent
 yasu_ride.hint.roof_tent_seated=Use any item to open the menu. The dismount button gets you out.
 yasu_ride.message.tent_occupied=Someone is inside the tent
+
+yasu_ride.message.blade_down=Blade: down
+yasu_ride.message.blade_up=Blade: up
+yasu_ride.message.wide_blade_normal=Wide blade: normal
+yasu_ride.message.wide_blade_wide=Wide blade: wide
+yasu_ride.message.road_paver_off=Road paver: OFF
+yasu_ride.message.road_paver_on=Road paver: ON
+yasu_ride.message.headlights_off=Headlights: OFF
+yasu_ride.message.headlights_on=Headlights: ON

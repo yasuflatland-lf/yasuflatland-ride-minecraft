@@ -600,10 +600,10 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
       world.snapshots = [bulldozer([rider("p")])];
       uc.execute(0);
       uc.execute(1);
-      expect(cameraCalls(world)).toEqual(["camera:p:far"]);
+      expect(cameraCalls(world)).toEqual(["camera:p:mid"]);
       wished = false;
       uc.execute(2);
-      expect(cameraCalls(world)).toEqual(["camera:p:far", "camera:p:own"]);
+      expect(cameraCalls(world)).toEqual(["camera:p:mid", "camera:p:own"]);
     });
 
     it("switches a deck-seat rider to the chase camera when the wish is true", () => {

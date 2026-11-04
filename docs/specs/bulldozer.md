@@ -2,6 +2,7 @@
 
 - Scope: Bulldozer controls, blade lift and cutting, rising shafts, wide blade, road paver, cab monitor, model geometry, and track animation.
 - Verified at: 5ed1f579
+- Source: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md)
 - Source: [0136](../adr/0136-bulldozer.md)
 - Source: [0137](../adr/0137-clear-block-columns-with-the-blade.md)
 - Source: [0138](../adr/0138-raise-and-lower-the-bulldozer-blade.md)
@@ -17,6 +18,16 @@
 - Excluded: [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md): partly supersedes 0138 and 0139 by moving Bulldozer Switches into the yasu_build Building Tools group and relaxing group equality; build tools are covered by the build-tools spec
 
 ## Rules
+
+### Chase camera and switch confirmation
+
+- Applies to: Bulldozer riders in the script-managed third-person chase camera.
+- Rule: The profile uses `mid` (the existing 8-block orbit preset). After a successful driver switch, the action bar shows the new target state: Blade down/up, Wide blade normal/wide, Road paver OFF/ON, or Headlights OFF/ON, translated through `yasu_ride.message.<name>`. Blade feedback reports the target immediately, before easing completes. The shared `RiderEffects` instance gates messages by its last successfully applied camera; first-person and grounded riders receive none under current camera routing. Rejected switches, cooldown repeats and server-only force operations produce no message. Existing interactions remain available in all forms.
+- Agreement: Accepted
+- Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision.
+- Implementation: `src/domain/vehicle/kinds/bulldozer/profile.ts`; `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/switchFeedback.ts`; `src/application/vehicle/switchTool.ts`; `src/application/vehicle/riderEffects.ts`; `src/infrastructure/vehicle/install.ts`
+- Verification: `tests/application/vehicle/switchTool.test.ts`, `switchFeedback.test.ts` and `riderEffects.test.ts` cover both states, successful-switch gating, translations and camera failures. `tests/packs/chaseCamera.test.ts` pins bulldozer/SUV mid and camper far. Client framing and rendering remain unverified.
+
 
 ### Drive and controls
 

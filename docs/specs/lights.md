@@ -2,6 +2,7 @@
 
 - Scope: Switching and saving vehicle headlights, parked camper ceiling lights, and the tent lantern; their world light blocks, lamp bones, render controllers, and lit textures. Outdoor Gas Lanterns and hover displays are separate topics.
 - Verified at: 4e679a0a
+- Source: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md)
 - Source: [0020](../adr/0020-headlights.md)
 - Source: [0024](../adr/0024-item-use-on-mobile-and-longer-headlights.md)
 - Source: [0115](../adr/0115-camper-ceiling-lights.md)
@@ -18,6 +19,16 @@
 - Excluded: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md): camper hover discs, their separate glow pass, and particles are covered by camper-hover-display
 
 ## Rules
+
+### Third-person headlight confirmation
+
+- Applies to: Successful headlight switches by chase-camera drivers, including SUV, camper and bulldozer.
+- Rule: After setting the headlights, show translated Headlights ON/OFF for the new state on the switching player's action bar only when the shared `RiderEffects` tracks that player's chase camera. First-person and grounded riders receive no extra message under current camera routing. Unauthorized, missing-vehicle and cooldown-rejected switches show nothing. Ceiling lights and tent lanterns receive no new feedback. Existing routing and light behavior stay unchanged.
+- Agreement: Accepted
+- Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision.
+- Implementation: `src/application/vehicle/switchHeadlights.ts`; `src/application/vehicle/switchFeedback.ts`; `src/application/vehicle/riderEffects.ts`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleRiders.ts`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
+- Verification: `tests/application/vehicle/switchHeadlights.test.ts` covers vehicle kinds, both states, camera gating and failed switches. `switchFeedback.test.ts` checks message mappings and both locale entries. Actual client rendering remains unverified.
+
 
 ### Headlight switch item and who may switch
 

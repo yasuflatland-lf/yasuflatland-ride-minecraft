@@ -1,4 +1,6 @@
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { SwitchFeedback } from "../../../src/application/vehicle/switchFeedback";
 import { SwitchHeadlights } from "../../../src/application/vehicle/switchHeadlights";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { rebuildVehicle } from "../../../src/domain/vehicle/kinds/index";
@@ -106,4 +108,44 @@ describe("SwitchHeadlights (ADR 0020)", () => {
     ).toBe(false);
     expect(world.calls).toEqual([]);
   });
+});
+
+it("reports the new headlight state only after a successful chase-camera switch", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("suv", "camper", "bulldozer"),
+      fc.boolean(),
+      fc.boolean(),
+      (kind, thirdPerson, on) => {
+        const world = new FakeWorld();
+        const repo = new InMemoryRepo();
+        const id = asVehicleId("a");
+        repo.save(rebuildVehicle(kind, id, 0, [rider("d", 0)], {}));
+        world.headlights.set(id, on);
+        const feedback = new SwitchFeedback(world, {
+          isThirdPerson: () => thirdPerson,
+        });
+        const clock = new FakeClock();
+        const use = new SwitchHeadlights(world, repo, clock, feedback);
+        const cmd = { playerId: asPlayerId("d"), vehicleId: id };
+        expect(use.execute({ ...cmd, playerId: asPlayerId("p") })).toBe(false);
+        expect(use.execute({ ...cmd, vehicleId: asVehicleId("missing") })).toBe(
+          false,
+        );
+        expect(world.messages).toEqual([]);
+        expect(use.execute(cmd)).toBe(true);
+        expect(world.messages).toEqual(
+          thirdPerson
+            ? [{ playerId: "d", name: on ? "headlights_off" : "headlights_on" }]
+            : [],
+        );
+        expect(use.execute(cmd)).toBe(false);
+        expect(world.messages).toHaveLength(thirdPerson ? 1 : 0);
+        clock.tick += SPEC.headlightSwitchCooldown;
+        world.headlights.delete(id);
+        expect(use.execute(cmd)).toBe(false);
+        expect(world.messages).toHaveLength(thirdPerson ? 1 : 0);
+      },
+    ),
+  );
 });

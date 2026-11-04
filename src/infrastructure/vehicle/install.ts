@@ -18,9 +18,11 @@ import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { PressShowerToilet } from "../../application/vehicle/pressShowerToilet";
 import { PressStorage } from "../../application/vehicle/pressStorage";
 import { RemoveDecor } from "../../application/vehicle/removeDecor";
+import { RiderEffects } from "../../application/vehicle/riderEffects";
 import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
+import { SwitchFeedback } from "../../application/vehicle/switchFeedback";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { SwitchTool } from "../../application/vehicle/switchTool";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
@@ -81,9 +83,17 @@ export function installVehicles(deps: {
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
   const log = { warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`) };
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
+  const riders = new RiderEffects(bedrock, log);
+  const feedback = new SwitchFeedback(bedrock, riders);
   registerSubscriptions(
     {
-      drive: new DriveVehicles(bedrock, repo, log, deps.wantsChaseCamera),
+      drive: new DriveVehicles(
+        bedrock,
+        repo,
+        log,
+        deps.wantsChaseCamera,
+        riders,
+      ),
       place: new PlaceVehicle(
         new BedrockPlacementWorld(inventory, index, deps.isCampSpace),
         repo,
@@ -100,9 +110,10 @@ export function installVehicles(deps: {
         new BedrockHeadlightWorld(index),
         repo,
         systemClock,
+        feedback,
       ),
       ceilingLights: new SwitchCeilingLights(repo, systemClock),
-      tool: new SwitchTool(repo, systemClock),
+      tool: new SwitchTool(repo, systemClock, feedback),
       decor: new SetDecor(decorWorld, repo),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),

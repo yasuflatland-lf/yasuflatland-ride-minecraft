@@ -33,7 +33,7 @@ it("gives the bulldozer its body, one seat, beams, fleet limit, and yellow paint
       surfaces: ["top"],
       clearance: { halfX: 1, halfZ: 1, height: 3 },
     },
-    chaseCamera: "far",
+    chaseCamera: "mid",
     defaultPaint: "yellow",
   });
   expect(P.beams.reach).toBe(S.headlightReach);

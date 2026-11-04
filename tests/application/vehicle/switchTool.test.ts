@@ -1,4 +1,6 @@
+import fc from "fast-check";
 import { expect, it } from "vitest";
+import { SwitchFeedback } from "../../../src/application/vehicle/switchFeedback";
 import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
@@ -63,4 +65,53 @@ it("forces the blade for the test hook, and nothing for an unknown vehicle or a 
       state: "up",
     }),
   ).toBe(false);
+});
+
+it("reports the new tool state only for successful chase-camera switches", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(
+        ["blade_switch", "up", "down", "blade_up", "blade_down"],
+        [
+          "wide_blade_switch",
+          "wide",
+          "normal",
+          "wide_blade_wide",
+          "wide_blade_normal",
+        ],
+        ["road_paver_switch", "on", "off", "road_paver_on", "road_paver_off"],
+      ),
+      fc.boolean(),
+      ([item, first, second, firstKey, secondKey], thirdPerson) => {
+        const repo = bulldozerRepo();
+        const clock = new FakeClock();
+        const messages: string[] = [];
+        const feedback = new SwitchFeedback(
+          { showMessage: (_, name) => messages.push(name) },
+          { isThirdPerson: () => thirdPerson },
+        );
+        const use = new SwitchTool(repo, clock, feedback);
+        const cmd = { playerId: driver.id, vehicleId, item };
+        expect(use.execute({ ...cmd, playerId: asPlayerId("passenger") })).toBe(
+          false,
+        );
+        expect(use.execute({ ...cmd, vehicleId: asVehicleId("missing") })).toBe(
+          false,
+        );
+        expect(use.execute({ ...cmd, item: "unsupported" })).toBe(false);
+        expect(messages).toEqual([]);
+        expect(use.execute(cmd)).toBe(true);
+        expect(repo.get(vehicleId)?.toolState(item)).toBe(first);
+        expect(messages).toEqual(thirdPerson ? [firstKey] : []);
+        expect(use.execute(cmd)).toBe(false);
+        expect(messages).toEqual(thirdPerson ? [firstKey] : []);
+        clock.tick += SPEC.toolSwitchCooldown;
+        expect(use.execute(cmd)).toBe(true);
+        expect(repo.get(vehicleId)?.toolState(item)).toBe(second);
+        expect(messages).toEqual(thirdPerson ? [firstKey, secondKey] : []);
+        use.force({ vehicleId, item, state: first });
+        expect(messages).toHaveLength(thirdPerson ? 2 : 0);
+      },
+    ),
+  );
 });
