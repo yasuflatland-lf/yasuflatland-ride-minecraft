@@ -116,7 +116,6 @@ class Sim {
   vel: Vec2 = { x: 0, z: 0 };
   yaw = 0;
   riders: { id: string; seat: number; yaw: number; raw: RawInput }[] = [];
-  positionOnly = false;
   testInput: RawInput | undefined;
   targets: RamTarget[] = [];
   hits: string[] = [];
@@ -128,19 +127,12 @@ class Sim {
   run(v: Vehicle, ticks: number, from = 0) {
     for (let t = from; t < from + ticks; t++) {
       const riders: RiderView[] = this.riders.map((r) =>
-        this.positionOnly
-          ? {
-              id: asPlayerId(r.id),
-              offset: seatOffset(this.yaw, r.seat),
-              yaw: r.yaw,
-              raw: r.raw,
-            }
-          : riderView(r.id, {
-              seat: r.seat,
-              offset: seatOffset(this.yaw, r.seat),
-              yaw: r.yaw,
-              raw: r.raw,
-            }),
+        riderView(r.id, {
+          seat: r.seat,
+          offset: seatOffset(this.yaw, r.seat),
+          yaw: r.yaw,
+          raw: r.raw,
+        }),
       );
       const ctx: VehicleTickInput = {
         deckSeatInputs: [],
@@ -359,40 +351,6 @@ describe("Vehicle (aggregate)", () => {
     );
   });
 
-  it("a rebuilt vehicle is driven by the rider in the driver's seat, whatever order the riders come in (ADR 0019)", () => {
-    fc.assert(
-      fc.property(
-        fc.subarray([1, 2, 3], { minLength: 1 }),
-        fc.nat(),
-        (passengerSeats, at) => {
-          const sim = new Sim();
-          sim.positionOnly = true;
-          const passengers = passengerSeats.map((seat) => ({
-            id: `p${seat}`,
-            seat,
-            yaw: 0,
-            raw: IDLE,
-          }));
-          const i = at % (passengers.length + 1);
-          sim.riders = [
-            ...passengers.slice(0, i),
-            { id: "d", seat: 0, yaw: 0, raw: FORWARD },
-            ...passengers.slice(i),
-          ];
-          const riders: RiderView[] = sim.riders.map((r) => ({
-            id: asPlayerId(r.id),
-            offset: seatOffset(0, r.seat),
-            yaw: r.yaw,
-            raw: r.raw,
-          }));
-          const v = rebuildVehicle("suv", asVehicleId("car"), 0, riders, {});
-          sim.run(v, 40);
-          expect(sim.pos.z).toBeGreaterThan(5);
-        },
-      ),
-    );
-  });
-
   it("does not query nearby targets at exactly ramMinSpeed, as when creeping up a step (ADR 0006)", () => {
     // A step jump raises a slower vehicle to stepMinSpeed, which equals
     // ramMinSpeed, so creeping up a step reaches the threshold exactly.
@@ -485,17 +443,6 @@ describe("Vehicle (aggregate)", () => {
         },
       ),
     );
-  });
-
-  it("keeps the driver while they ride, even when their position reads as another seat for a tick (ADR 0025)", () => {
-    const sim = new Sim();
-    sim.positionOnly = true;
-    const v = createVehicle("suv", asVehicleId("car"), 0);
-    sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
-    sim.run(v, 10);
-    sim.riders = [{ id: "d", seat: 1, yaw: 0, raw: FORWARD }];
-    sim.run(v, 1, 10);
-    expect(v.flipHeadlightSwitch(asPlayerId("d"), 100)).toBe(true);
   });
 
   it("makes the passenger who moved up to the driver's seat the driver once the driver leaves", () => {

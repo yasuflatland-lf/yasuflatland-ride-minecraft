@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { asPlayerId } from "../../../src/domain/shared/ids";
 import { forward } from "../../../src/domain/shared/vec";
 import { Crew } from "../../../src/domain/vehicle/crew";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
@@ -13,7 +12,7 @@ it("delegates seating and waits only within the driver handover window", () => {
     fc.record({
       id: fc.constantFrom("a", "b", "c", "d"),
       seat: fc.integer({ min: 0, max: 3 }),
-      slot: fc.option(fc.integer({ min: 0, max: 3 }), { nil: undefined }),
+      slot: fc.integer({ min: 0, max: 3 }),
     }),
     { selector: (r) => r.id, maxLength: 4 },
   );
@@ -23,10 +22,6 @@ it("delegates seating and waits only within the driver handover window", () => {
         fc.record({
           riders,
           yaw: fc.integer({ min: -180, max: 180 }),
-          step: fc.record({
-            x: fc.double({ min: -1, max: 1, noNaN: true }),
-            z: fc.double({ min: -1, max: 1, noNaN: true }),
-          }),
         }),
         { maxLength: 30 },
       ),
@@ -43,17 +38,10 @@ it("delegates seating and waits only within the driver handover window", () => {
               x: f.z * at.x + f.x * at.z,
               z: -f.x * at.x + f.z * at.z,
             };
-            if (r.slot !== undefined)
-              return riderPos(r.id, { slot: r.slot, offset });
-            return {
-              id: asPlayerId(r.id),
-              slot: r.slot,
-              offset,
-            };
+            return riderPos(r.id, { slot: r.slot, offset });
           });
-          const step = snapshot.step;
-          const expected = seating.update(list, f, step);
-          const actual = crew.update(list, f, step);
+          const expected = seating.update(list, f);
+          const actual = crew.update(list, f);
           if (expected.driver) lastDriver = tick;
           expect(actual).toEqual({
             ...expected,

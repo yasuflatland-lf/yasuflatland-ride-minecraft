@@ -1319,6 +1319,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
           const left = leftOf(f);
           const rider = {
             id: asPlayerId("rider"),
+            slot: seat,
             offset: {
               x: left.x * local.x + f.x * local.z,
               z: left.z * local.x + f.z * local.z,
