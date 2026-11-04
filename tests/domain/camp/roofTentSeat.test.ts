@@ -65,8 +65,3 @@ it("keeps the seated eye the same distance below each variant's ridge", () => {
   expect(rideSeatY("ladder")).toBe(0.155);
   expect(rideSeatY("ground")).toBe(-0.2825);
 });
-
-it("keeps the ride seat offsets unchanged", () => {
-  expect(rideSeatY("ladder")).toBe(0.155);
-  expect(rideSeatY("ground")).toBe(-0.2825);
-});
