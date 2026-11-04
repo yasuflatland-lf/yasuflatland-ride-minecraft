@@ -11,6 +11,6 @@ export class FindBedSpawnCell {
   constructor(private readonly repo: VehicleRepository) {}
 
   execute(cmd: FindBedSpawnCellCommand): Vec3 | undefined {
-    return this.repo.get(cmd.vehicleId)?.bedSpawnCell(cmd.cell);
+    return this.repo.get(cmd.vehicleId)?.asRoom()?.bedSpawnCell(cmd.cell);
   }
 }

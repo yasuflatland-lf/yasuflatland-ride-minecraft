@@ -30,8 +30,8 @@ function setup() {
 describe("PressStorage (ADR 0114)", () => {
   it("opens the door without saving, then takes the pressed item back to the player and saves the rest", () => {
     const { car, world, at } = setup();
-    car.setDecor("cabinet_sink_front", "toaster");
-    car.setDecor("cabinet_sink_rear", "mug_pair");
+    car.asRoom()?.setDecor("cabinet_sink_front", "toaster");
+    car.asRoom()?.setDecor("cabinet_sink_rear", "mug_pair");
     expect(at(100)).toBe(true);
     expect(world.calls).toEqual([]);
     expect(at(100 + CAMPER_SPEC.doorSwingTicks)).toBe(true);

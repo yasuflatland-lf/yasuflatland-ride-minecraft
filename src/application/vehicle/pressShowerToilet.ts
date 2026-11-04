@@ -21,6 +21,7 @@ export class PressShowerToilet {
     return (
       this.repo
         .get(cmd.vehicleId)
+        ?.asRoom()
         ?.pressShowerToilet(cmd.feet, this.clock.now()) ?? false
     );
   }

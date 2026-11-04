@@ -18,9 +18,9 @@ export class SetDecor {
 
   /** Returns whether the decor changed; only then is it saved. */
   execute(cmd: SetDecorCommand): boolean {
-    const vehicle = this.repo.get(cmd.vehicleId);
-    if (!vehicle?.setDecor(cmd.slot, cmd.item)) return false;
-    this.world.saveDecor(cmd.vehicleId, vehicle.decor());
+    const room = this.repo.get(cmd.vehicleId)?.asRoom();
+    if (!room?.setDecor(cmd.slot, cmd.item)) return false;
+    this.world.saveDecor(cmd.vehicleId, room.decor());
     return true;
   }
 }

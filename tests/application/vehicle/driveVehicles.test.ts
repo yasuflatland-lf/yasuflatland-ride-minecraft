@@ -1510,7 +1510,7 @@ it("silently drops saved oil lamps and removed decor, and saves it after the nex
     new DriveVehicles(world, repo, log, () => false).execute(0),
   ).not.toThrow();
   const vehicleId = asVehicleId("car");
-  expect(repo.get(vehicleId)?.decor()).toEqual([]);
+  expect(repo.get(vehicleId)?.asRoom()?.decor()).toEqual([]);
   expect(log.lines).toEqual([]);
   const saveDecor = vi.fn();
   expect(

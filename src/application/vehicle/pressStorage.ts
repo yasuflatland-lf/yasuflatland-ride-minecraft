@@ -27,11 +27,11 @@ export class PressStorage {
 
   /** Returns whether the press did anything; an item taken out is saved and given. */
   execute(cmd: PressStorageCommand): boolean {
-    const vehicle = this.repo.get(cmd.vehicleId);
-    const press = vehicle?.pressStorage(cmd.cell, cmd.point, this.clock.now());
-    if (!vehicle || !press) return false;
+    const room = this.repo.get(cmd.vehicleId)?.asRoom();
+    const press = room?.pressStorage(cmd.cell, cmd.point, this.clock.now());
+    if (!room || !press) return false;
     if (press.kind === "item") {
-      this.world.saveDecor(cmd.vehicleId, vehicle.decor());
+      this.world.saveDecor(cmd.vehicleId, room.decor());
       this.world.giveDecorItems(cmd.playerId, [press.item]);
     }
     return true;

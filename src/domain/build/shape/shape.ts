@@ -1,10 +1,10 @@
 import type { Cell } from "../../shared/cells";
-import { type Box, boxOf, cellsOf, contains, volume } from "../box";
+import { boxOf, type CellBox, cellsOf, contains, volume } from "../box";
 
 export type Shape =
   | { kind: "line"; from: Cell; to: Cell }
-  | { kind: "rect"; box: Box; flat: "x" | "y" | "z" }
-  | { kind: "box"; box: Box };
+  | { kind: "rect"; box: CellBox; flat: "x" | "y" | "z" }
+  | { kind: "box"; box: CellBox };
 
 export type ShapeStyle = "fill" | "frame" | "faces" | "walls";
 
@@ -32,11 +32,11 @@ export function stylesFor(shape: Shape): ShapeStyle[] {
   }
 }
 
-function boundsOf(shape: Shape): Box {
+function boundsOf(shape: Shape): CellBox {
   return shape.kind === "line" ? boxOf(shape.from, shape.to) : shape.box;
 }
 
-function interiorOf(shape: Shape, style: ShapeStyle): Box | undefined {
+function interiorOf(shape: Shape, style: ShapeStyle): CellBox | undefined {
   if (style === "fill" || !stylesFor(shape).includes(style)) return undefined;
   const box = boundsOf(shape);
   const inset = axes.filter((axis) =>

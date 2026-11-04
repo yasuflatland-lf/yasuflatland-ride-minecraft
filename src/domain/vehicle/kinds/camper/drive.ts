@@ -9,6 +9,7 @@ import {
 } from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
+import type { RoomDrive } from "../../dock/roomDrive";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
@@ -85,7 +86,7 @@ const CAMPER_ENDS: BodyEnds = {
 
 // The shared transforming drivetrain with the camper's values, its end check
 // (ADR 0067), and parking (ADR 0068).
-export class CamperDrive extends TransformingDrive {
+export class CamperDrive extends TransformingDrive implements RoomDrive {
   private parked: HoldPose | undefined;
   private restoredDocked: boolean;
   private resendDocked = false;

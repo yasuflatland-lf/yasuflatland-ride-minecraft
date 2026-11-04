@@ -1,6 +1,7 @@
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   clearanceHeight,
+  type PlacementLiquid,
   type PlacementSurface,
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
@@ -16,6 +17,7 @@ const body = Object.freeze({
 // all of them at once and leave RAM_QUERY_RADIUS, computed at load, stale.
 export const SUV_PROFILE: VehicleProfile = Object.freeze({
   kind: "suv",
+  ridersFireProof: false,
   fleetLimit: 10, // Per player (ADR 0066).
   body,
   roofTent: Object.freeze({
@@ -52,6 +54,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
   }),
   // On the top face of a block only (ADR 0008).
   placement: Object.freeze({
+    liquids: Object.freeze(new Set<PlacementLiquid>()),
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
     // 3 × 3 × 3 cells fit the 2.68-wide, 2.36-high collision box (ADR 0217).
     clearance: Object.freeze({

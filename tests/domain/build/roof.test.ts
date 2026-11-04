@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { type Box, cellsOf } from "../../../src/domain/build/box";
+import { type CellBox, cellsOf } from "../../../src/domain/build/box";
 import {
   maxRoofHeight,
   type RoofKind,
@@ -14,7 +14,7 @@ const coord = fc.integer({ min: -10, max: 10 });
 const origin = fc.record({ x: coord, y: coord, z: coord });
 const side = fc.integer({ min: 1, max: 9 });
 const kind = fc.constantFrom<RoofKind>("gable", "hip");
-const baseOf = (min: Cell, sx: number, sz: number): Box => ({
+const baseOf = (min: Cell, sx: number, sz: number): CellBox => ({
   min,
   max: { x: min.x + sx - 1, y: min.y, z: min.z + sz - 1 },
 });

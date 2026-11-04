@@ -107,7 +107,7 @@ describe("HitVehicle (ADR 0008)", () => {
 
   it("gives the placed decor to the hitter when the camper breaks (ADR 0093)", () => {
     const { car, repo } = parkedCamper();
-    car.placeDecor("stove", "percolator");
+    car.asRoom()?.placeDecor("stove", "percolator");
     const world = new FakeWorld();
     const clock = new FakeClock();
     const uc = new HitVehicle(
