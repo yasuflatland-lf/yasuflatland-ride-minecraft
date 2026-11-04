@@ -23,6 +23,7 @@
 - Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
 - Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
 - Source: [0221](../adr/0221-organize-infrastructure-vehicle-code-by-kind.md)
+- Source: [0222](../adr/0222-split-the-drive-world-port-by-role.md)
 - Excluded: [0179](../adr/0179-support-realms-as-a-second-play-environment.md): Realms support belongs to the dev-environment topic.
 - Excluded: [0204](../adr/0204-shard-unit-tests-across-ci-jobs.md): CI sharding belongs to the testing topic, not runtime layering.
 - Excluded: [0207](../adr/0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md): temporary occupied roof tent rain ceilings belong to the camping gear topic.
@@ -46,6 +47,15 @@
 - Basis: [0012](../adr/0012-ddd-layered-architecture.md) Decision, "Dependencies point one way only: infrastructure → application → domain."; [0012](../adr/0012-ddd-layered-architecture.md) Decision, "The entry point `src/main.ts` only calls `bootstrap()`"; [0012](../adr/0012-ddd-layered-architecture.md) Decision, "so it sits outside these three layers"
 - Implementation: `.dependency-cruiser.cjs` (`domain-imports-outer-layer`, `application-imports-infrastructure`, `main-imports-only-bootstrap`); `src/main.ts`; `src/test-pack/runner.ts`
 - Verification: `tests/architecture.test.ts` uses `it.each` title "%s", including "domain importing application", "domain importing infrastructure", "application importing infrastructure", "main importing bootstrap", "main importing past bootstrap", and "test pack excluded". Not verified: these fixtures do not check actual engine-package imports or that main contains only a call; the real import graph is checked by the separate dependency-cruiser command, which was not run.
+
+### Vehicle drive world roles
+
+- Applies to: `src/application/vehicle/ports/drive.ts`, `src/application/vehicle/riderEffects.ts`, and `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`.
+- Rule: `DriveWorld` is the intersection of loaded vehicle, surroundings, impulse, vehicle block, rider and rider effect roles. `DriveVehicles` consumes the intersection; `RiderEffects` consumes only `RiderEffectWorld`. `BedrockVehicleWorld` delegates to six role classes and a vehicle space class, sharing one set of stateful managers and preserving its constructor, public methods and releaser. Each role implementation file is below 300 lines.
+- Agreement: Accepted
+- Basis: [0222](../adr/0222-split-the-drive-world-port-by-role.md) Decision
+- Implementation: `src/application/vehicle/ports/drive.ts`; `src/application/vehicle/riderEffects.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`; `src/infrastructure/vehicle/bedrock/bedrockLoadedVehicles.ts`; `src/infrastructure/vehicle/bedrock/bedrockSurroundings.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleImpulse.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleBlocks.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleRiders.ts`; `src/infrastructure/vehicle/bedrock/bedrockRiderEffects.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleSpace.ts`
+- Verification: `tests/infrastructure/vehicle/bedrock/bedrockVehicleWorld.test.ts` exercises snapshots, movement, blocks, riders, effects, cleanup and space through the composing adapter. Role signatures are checked by `pnpm typecheck`; file sizes are checked manually with `wc -l`.
 
 ### Import checker and its self-test
 
