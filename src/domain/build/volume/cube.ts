@@ -1,4 +1,4 @@
-import { type Box, center, edgePoints } from "../box";
+import { type CellBox, center, edgePoints } from "../box";
 import { cellsOfShape, type ShapeStyle, shapeCount } from "../shape/shape";
 import type {
   HeightedPlacement,
@@ -13,7 +13,7 @@ const STYLES: Record<FillStyle, ShapeStyle> = {
   tube: "walls",
 };
 
-function boundsOf({ base, height }: HeightStepSpec): Box {
+function boundsOf({ base, height }: HeightStepSpec): CellBox {
   return {
     min: base.min,
     max: { ...base.max, y: base.min.y + height - 1 },
