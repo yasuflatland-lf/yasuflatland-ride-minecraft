@@ -25,6 +25,7 @@ import { SPEC } from "../../../src/domain/vehicle/spec";
 import { type SeatExit, Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";
+import { riderView } from "../../support/riders";
 import {
   riderViews,
   type TickSample,
@@ -70,20 +71,16 @@ describe("DriveVehicles", () => {
       snapshot("boat", {
         kind: "sportsboat",
         riders: [
-          {
-            id: asPlayerId("driver"),
+          riderView("driver", {
             slot: 0,
             offset: { x: -0.38, z: 0.35 },
-            yaw: 0,
             raw: FULL_THROTTLE,
-          },
-          {
-            id: asPlayerId("passenger"),
+          }),
+          riderView("passenger", {
             slot: 1,
             offset: { x: 0.38, z: 0.35 },
-            yaw: 0,
             raw: FULL_THROTTLE,
-          },
+          }),
         ],
         deckSeatRiders: [undefined, undefined, asPlayerId("deck")],
       }),
@@ -185,12 +182,10 @@ describe("DriveVehicles", () => {
   });
 
   it("forwards ram hits to the world with the driver as the attacker", () => {
-    const driver = {
-      id: asPlayerId("d"),
+    const driver = riderView("d", {
       offset: { x: -0.38, z: 0.2 },
-      yaw: 0,
       raw: FULL_THROTTLE,
-    };
+    });
     const damage = ramAhead({ riders: [driver] });
     expect(damage.length).toBeGreaterThan(0);
     expect(damage.every((c) => c === "damage:cow:d")).toBe(true);
@@ -214,12 +209,7 @@ describe("DriveVehicles", () => {
   it("keeps the entity's heading when it rebuilds a driven vehicle after a reload", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    const driver = {
-      id: asPlayerId("d"),
-      offset: { x: -0.38, z: 0.2 },
-      yaw: 75,
-      raw: { moveX: 0, moveY: 0, jump: false },
-    };
+    const driver = riderView("d", { offset: { x: -0.38, z: 0.2 }, yaw: 75 });
     world.snapshots = [snapshot("a", { yaw: 10, riders: [driver] })];
     new DriveVehicles(world, repo, logger(), () => false).execute(0);
     expect(repo.get(asVehicleId("a"))?.yaw).toBeCloseTo(10);
@@ -264,17 +254,15 @@ describe("DriveVehicles", () => {
       const world = new FakeWorld();
       const repo = new InMemoryRepo();
       const log = logger();
-      const driver = {
-        id: asPlayerId("driver"),
+      const driver = riderView("driver", {
         offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
-        yaw: 0,
         raw: FULL_THROTTLE,
-      };
-      const passenger = {
-        ...driver,
-        id: asPlayerId("passenger"),
+      });
+      const passenger = riderView("passenger", {
+        seat: 1,
         offset: defined(SUV_PROFILE.seats.positions[1], "passenger seat"),
-      };
+        raw: FULL_THROTTLE,
+      });
       repo.save(
         rebuildVehicle("suv", asVehicleId("bad"), 0, [driver, passenger], {
           form: "submarine",
@@ -320,12 +308,7 @@ describe("DriveVehicles", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
     const uc = new DriveVehicles(world, repo, logger(), () => false);
-    const driver = {
-      id: asPlayerId("d"),
-      offset: { x: -0.38, z: 0.2 },
-      yaw: 0,
-      raw: { moveX: 0, moveY: 0, jump: false },
-    };
+    const driver = riderView("d", { offset: { x: -0.38, z: 0.2 } });
     world.snapshots = [snapshot("a", { riders: [driver] })];
     uc.execute(0);
     world.snapshots = [snapshot("a")];
@@ -489,12 +472,7 @@ describe("DriveVehicles", () => {
 });
 
 describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
-  const rider = (id: string) => ({
-    id: asPlayerId(id),
-    offset: { x: -0.38, z: 0.2 },
-    yaw: 0,
-    raw: { moveX: 0, moveY: 0, jump: false },
-  });
+  const rider = (id: string) => riderView(id, { offset: { x: -0.38, z: 0.2 } });
   const cameraCalls = (world: FakeWorld) =>
     world.calls.filter((c) => c.startsWith("camera:"));
 
@@ -775,12 +753,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
 });
 
 describe("DriveVehicles submarine riders (ADR 0040)", () => {
-  const rider = (id: string) => ({
-    id: asPlayerId(id),
-    offset: { x: -0.38, z: 0.2 },
-    yaw: 0,
-    raw: { moveX: 0, moveY: 0, jump: false },
-  });
+  const rider = (id: string) => riderView(id, { offset: { x: -0.38, z: 0.2 } });
   const breathing = (id: string) =>
     `breathing:${id}:${SPEC.waterBreathingTicks}`;
   const breathingCalls = (world: FakeWorld) =>
@@ -1035,12 +1008,10 @@ describe("DriveVehicles dock ports", () => {
       snapshot("a", {
         riders: driver
           ? [
-              {
-                id: asPlayerId("driver"),
+              riderView("driver", {
                 offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
-                yaw: 0,
                 raw: FULL_THROTTLE,
-              },
+              }),
             ]
           : [],
       }),

@@ -39,6 +39,7 @@ import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";
 import { propertyValue } from "../../support/engineCommands";
 import { engineStep } from "../../support/engineModel";
+import { riderView } from "../../support/riders";
 import { waterSensors } from "../../support/waterDepth";
 
 const FORWARD: RawInput = { moveX: 0, moveY: 1, jump: false };
@@ -115,6 +116,7 @@ class Sim {
   vel: Vec2 = { x: 0, z: 0 };
   yaw = 0;
   riders: { id: string; seat: number; yaw: number; raw: RawInput }[] = [];
+  positionOnly = false;
   testInput: RawInput | undefined;
   targets: RamTarget[] = [];
   hits: string[] = [];
@@ -125,12 +127,21 @@ class Sim {
 
   run(v: Vehicle, ticks: number, from = 0) {
     for (let t = from; t < from + ticks; t++) {
-      const riders: RiderView[] = this.riders.map((r) => ({
-        id: asPlayerId(r.id),
-        offset: seatOffset(this.yaw, r.seat),
-        yaw: r.yaw,
-        raw: r.raw,
-      }));
+      const riders: RiderView[] = this.riders.map((r) =>
+        this.positionOnly
+          ? {
+              id: asPlayerId(r.id),
+              offset: seatOffset(this.yaw, r.seat),
+              yaw: r.yaw,
+              raw: r.raw,
+            }
+          : riderView(r.id, {
+              seat: r.seat,
+              offset: seatOffset(this.yaw, r.seat),
+              yaw: r.yaw,
+              raw: r.raw,
+            }),
+      );
       const ctx: VehicleTickInput = {
         deckSeatInputs: [],
         tick: t,
@@ -183,12 +194,10 @@ describe("Vehicle (aggregate)", () => {
           deckSeatInputs: [],
           tick: 0,
           riders: [
-            {
-              id: asPlayerId("driver"),
+            riderView("driver", {
               offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
-              yaw: 0,
               raw: { ...FORWARD, moveY: throttle },
-            },
+            }),
           ],
           testInput: { ...IDLE, moveY: -1 },
           velocity: { x: 0, y: 0, z: 0 },
@@ -357,6 +366,7 @@ describe("Vehicle (aggregate)", () => {
         fc.nat(),
         (passengerSeats, at) => {
           const sim = new Sim();
+          sim.positionOnly = true;
           const passengers = passengerSeats.map((seat) => ({
             id: `p${seat}`,
             seat,
@@ -479,6 +489,7 @@ describe("Vehicle (aggregate)", () => {
 
   it("keeps the driver while they ride, even when their position reads as another seat for a tick (ADR 0025)", () => {
     const sim = new Sim();
+    sim.positionOnly = true;
     const v = createVehicle("suv", asVehicleId("car"), 0);
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
     sim.run(v, 10);
@@ -566,12 +577,14 @@ describe("Vehicle (aggregate)", () => {
               raw: IDLE,
             })),
           ];
-          const riders: RiderView[] = sim.riders.map((r) => ({
-            id: asPlayerId(r.id),
-            offset: seatOffset(yaw, r.seat),
-            yaw: r.yaw,
-            raw: r.raw,
-          }));
+          const riders: RiderView[] = sim.riders.map((r) =>
+            riderView(r.id, {
+              seat: r.seat,
+              offset: seatOffset(yaw, r.seat),
+              yaw: r.yaw,
+              raw: r.raw,
+            }),
+          );
           const v = rebuildVehicle("suv", asVehicleId("car"), yaw, riders, {});
           sim.run(v, 1);
           const turned = ((((v.yaw - yaw) % 360) + 540) % 360) - 180;
@@ -584,18 +597,11 @@ describe("Vehicle (aggregate)", () => {
 });
 
 describe("Vehicle headlight switch (ADR 0020)", () => {
-  const driver: RiderView = {
-    id: asPlayerId("d"),
-    offset: seatOffset(0, 0),
-    yaw: 0,
-    raw: IDLE,
-  };
-  const passenger: RiderView = {
-    id: asPlayerId("p"),
+  const driver: RiderView = riderView("d", { offset: seatOffset(0, 0) });
+  const passenger: RiderView = riderView("p", {
+    seat: 1,
     offset: seatOffset(0, 1),
-    yaw: 0,
-    raw: IDLE,
-  };
+  });
 
   it("flips only for the driver", () => {
     const v = rebuildVehicle(
@@ -671,12 +677,10 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
           deckSeatInputs: [],
           tick: 0,
           riders: [
-            {
-              id: asPlayerId("d"),
+            riderView("d", {
               offset: { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z },
               yaw: driverYaw,
-              raw: IDLE,
-            },
+            }),
           ],
           testInput: IDLE,
           velocity: { x: 0, y: 0, z: 0 },
@@ -776,12 +780,9 @@ it("concatenates seat commands in seat order when multiple riders leave", () => 
     "suv",
     asVehicleId("v"),
     0,
-    [3, 1, 2, 0].map((seat) => ({
-      id: asPlayerId(`r${seat}`),
-      offset: seatOffset(0, seat),
-      yaw: 0,
-      raw: IDLE,
-    })),
+    [3, 1, 2, 0].map((seat) =>
+      riderView(`r${seat}`, { seat, offset: seatOffset(0, seat) }),
+    ),
     {},
   );
   const out = vehicle.tick({
@@ -910,12 +911,10 @@ it("blanks only the occupied dock seat in the outcome", () => {
   const outcome = vehicle.tick({
     tick: 0,
     riders: [
-      {
-        id: asPlayerId("r"),
+      riderView("r", {
+        seat: 2,
         offset: defined(SPORTSBOAT_PROFILE.seats.positions[2], "seat 2"),
-        yaw: 0,
-        raw: IDLE,
-      },
+      }),
     ],
     deckSeatInputs: [],
     velocity: { x: 0, y: 0, z: 0 },
@@ -967,12 +966,11 @@ describe("seat-taken hook", () => {
     new Vehicle(asVehicleId("v"), SUV_PROFILE, recordingDrive(log, withHook));
   const names = (outcome: TickOutcome) =>
     outcome.finalCommands.map((command) => command.name);
-  const at = (id: string, seat: number) => ({
-    id: asPlayerId(id),
-    offset: defined(SUV_PROFILE.seats.positions[seat], "seat"),
-    yaw: 0,
-    raw: IDLE,
-  });
+  const at = (id: string, seat: number) =>
+    riderView(id, {
+      seat,
+      offset: defined(SUV_PROFILE.seats.positions[seat], "seat"),
+    });
   const input = (
     tick: number,
     riders: readonly RiderView[],
@@ -1095,7 +1093,7 @@ describe("hints (ADR 0086)", () => {
     tick(onDeck, [], [IDLE]);
     expect(onDeck.hint(beside, "other", "touch")).toBeUndefined();
     const aboard = camper(true);
-    tick(aboard, [{ id: asPlayerId("r"), offset: SEAT0, yaw: YAW, raw: IDLE }]);
+    tick(aboard, [riderView("r", { offset: SEAT0, yaw: YAW })]);
     expect(aboard.hint(beside, "other", "touch")).toBeUndefined();
     const other = camper(true);
     tick(other, [], [undefined, IDLE]);
@@ -1106,9 +1104,7 @@ describe("hints (ADR 0086)", () => {
 
   it("drops the pick-up hint while a rider keeps the camper whole, but still offers paint", () => {
     const vehicle = camper(false);
-    tick(vehicle, [
-      { id: asPlayerId("r"), offset: SEAT0, yaw: YAW, raw: IDLE },
-    ]);
+    tick(vehicle, [riderView("r", { offset: SEAT0, yaw: YAW })]);
     const front = { x: 0, y: 0, z: BUMPER.boxZ + BUMPER.boxHalf + 0.5 };
     expect(vehicle.hint(front, "other", "touch")).toBeUndefined();
     expect(vehicle.hint(front, "dye", "touch")?.name).toBe(HINTS.paint);
@@ -1198,20 +1194,8 @@ it("exposes a room only for kinds with the room capability", () => {
 
 it("K5 plays the front-right door after a lagged driver leaves", () => {
   const v = createVehicle("suv", asVehicleId("car"), 0);
-  const d = {
-    id: asPlayerId("d"),
-    offset: seatOffset(0, 0),
-    slot: 0,
-    yaw: 0,
-    raw: IDLE,
-  };
-  const p = {
-    id: asPlayerId("p"),
-    offset: seatOffset(0, 2),
-    slot: 2,
-    yaw: 0,
-    raw: IDLE,
-  };
+  const d = riderView("d", { offset: seatOffset(0, 0), slot: 0 });
+  const p = riderView("p", { offset: seatOffset(0, 2), slot: 2 });
   const tick = (riders: readonly RiderView[], t: number) =>
     v.tick({
       tick: t,

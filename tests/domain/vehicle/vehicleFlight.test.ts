@@ -29,6 +29,7 @@ import {
 import { defined } from "../../support/defined";
 import { propertyValue } from "../../support/engineCommands";
 import { AIR_DRAG, GRAVITY, VERTICAL_DRAG } from "../../support/engineModel";
+import { riderView } from "../../support/riders";
 import { waterSensors } from "../../support/waterDepth";
 
 const GROUND_FRICTION = 0.688;
@@ -52,6 +53,7 @@ function seatOffset(
  * does in game.
  */
 class FlightSim {
+  positionOnly = false;
   tick = 0;
   y = 0;
   vy = 0;
@@ -87,12 +89,21 @@ class FlightSim {
   step(input: RawInput | undefined): TickOutcome {
     const yaw = this.vehicle.yaw;
     const seats = profileOf(this.vehicle.kind).seats.positions;
-    const riders: RiderView[] = this.riders.map((r) => ({
-      id: asPlayerId(r.id),
-      offset: r.offset ?? seatOffset(seats, yaw, r.seat),
-      yaw,
-      raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
-    }));
+    const riders: RiderView[] = this.riders.map((r) =>
+      this.positionOnly
+        ? {
+            id: asPlayerId(r.id),
+            offset: r.offset ?? seatOffset(seats, yaw, r.seat),
+            yaw,
+            raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
+          }
+        : riderView(r.id, {
+            seat: r.seat,
+            offset: r.offset ?? seatOffset(seats, yaw, r.seat),
+            yaw,
+            raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
+          }),
+    );
     const out = this.vehicle.tick({
       deckSeatInputs: [],
       tick: this.tick++,
@@ -509,6 +520,7 @@ function riddenFlyingSim(
 describe("Driver handover in flight (ADR 0078)", () => {
   it("keeps the SUV hovering when the new driver's reading lags one tick of motion (ADR 0126)", () => {
     const sim = riddenFlyingSim("suv");
+    sim.positionOnly = true;
     sim.riders = [{ id: "Q", seat: 1 }];
     sim.step(undefined);
     const f = forward(sim.vehicle.yaw);
@@ -591,12 +603,10 @@ describe("Driver handover in flight (ADR 0078)", () => {
     });
 
     it(`gets no handover ticks when rebuilt in flight with nobody in the driver seat (${kind})`, () => {
-      const q: RiderView = {
-        id: asPlayerId("Q"),
+      const q: RiderView = riderView("Q", {
+        seat: 1,
         offset: seatOffset(profileOf(kind).seats.positions, 0, 1),
-        yaw: 0,
-        raw: IDLE,
-      };
+      });
       const sim = new FlightSim(
         rebuildVehicle(kind, asVehicleId("car"), 0, [q], { form: "hover" }),
         "hover",
