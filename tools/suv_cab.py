@@ -70,6 +70,9 @@ def upper_cabin():
             box(x - 0.011, x + 0.011, 2.060, 2.064, a, b, "hardtop_rib")
 
 
+REAR_PILLAR_SLICES = 20
+
+
 def pillars_and_side_windows():
     """Side pillars, the raked A-pillar and the frames of the three side windows on each side."""
     for s in (-1, 1):
@@ -86,6 +89,15 @@ def pillars_and_side_windows():
         for a, b in ((1.86, 1.94), (2.65, 2.74)):
             box(x - 0.025, x + 0.025, 1.44, 2.025, a, b, "body")
         beam((x, 1.44, 3.54), (x, 2.024, 3.46), 0.08, 0.045, "body")
+        # The raked rear pillar leaves a wedge of daylight against the vertical edge of the cargo window frame;
+        # fill it with thin slices that follow the pillar, as the A-pillar does.
+        for k in range(REAR_PILLAR_SLICES):
+            ya = 1.44 + k * 0.584 / REAR_PILLAR_SLICES
+            yb = ya + 0.584 / REAR_PILLAR_SLICES
+            front = 3.54 - ((ya + yb) / 2 - 1.44) * 0.08 / 0.584
+            if front > CARGO_SIDE_WINDOW[1]:
+                box(min(s * 0.674, s * 0.699), max(s * 0.674, s * 0.699), ya, yb + 0.0001,
+                    CARGO_SIDE_WINDOW[1], front, "body")
         with kit.bone(door_name(s, rear=False)):
             side_window(s, *FRONT_SIDE_WINDOW, *SIDE_WINDOW_Y, rake=FRONT_SIDE_WINDOW_RAKE)
         with kit.bone(door_name(s, rear=True)):
@@ -116,7 +128,8 @@ def windshield_frame():
 
 
 REAR_WINDOW_CENTRE = (0, 1.735, 3.506)
-REAR_WINDOW_WIDTH, REAR_WINDOW_HEIGHT = 1.29, 0.56
+# The width reaches the inner edge of the rear pillars, so no daylight shows between frame and pillar.
+REAR_WINDOW_WIDTH, REAR_WINDOW_HEIGHT = 1.374, 0.56
 
 
 def rear_window_turn():

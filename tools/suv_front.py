@@ -24,7 +24,7 @@ def grille():
 
 
 def headlamps_and_markers():
-    """The headlamp housings (the lens and bezel panels come from suv_lamps.py), and the front overfender block with its marker lamp: the lens bottom edge is level
+    """The headlamp housings (the lens panels come from suv_lamps.py), and the front overfender block with its marker lamp: the lens bottom edge is level
     with the headlamp bottom edge (y 1.181), with an amber turn-signal section at the outboard end that
     wraps the corner."""
     for s in (-1, 1):

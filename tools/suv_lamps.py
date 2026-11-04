@@ -1,8 +1,8 @@
-"""SUV lamp pieces that carry painted lamp faces: the headlight lens and bezel, the tail lamps and the
+"""SUV lamp pieces that carry painted lamp faces: the headlight lens, the tail lamps and the
 third brake light (ADR 0192).
 
 The plain lamp lenses (fog and marker lenses) are built with the body in suv_front.py. suv_body.py puts
-the headlight lens in `headlights`, the bezel in `headlight_bezels` and the tail faces in `tail_lights`.
+the headlight lens in `headlights` and the tail faces in `tail_lights`.
 Construction frame: forward is +z, so a tail face looks toward -z (north).
 """
 
@@ -19,13 +19,9 @@ HEADLIGHT_X = 0.589 * D
 HEADLIGHT_Y = 1.31 * D
 HEADLIGHT_CENTERS = ((HEADLIGHT_X, HEADLIGHT_Y), (-HEADLIGHT_X, HEADLIGHT_Y))
 HEADLIGHT_DIAMETER = 0.21 * D
-# The panels keep the proportions ADR 0192 gave them: the lens is 0.1/5.6 of its diameter thick, and the
-# bezel stands 0.05/5.6 of it in front of the lens.
+# The lens keeps the proportion ADR 0192 gave it: 0.1/5.6 of its diameter thick.
 HEADLIGHT_THICKNESS = HEADLIGHT_DIAMETER * 0.1 / 5.6
 HEADLIGHT_FRONT = dims.z_at(-0.700)
-BEZEL_SCALE = 1.25
-BEZEL_THICKNESS = HEADLIGHT_DIAMETER * 0.05 / 5.6
-BEZEL_FRONT_GAP = BEZEL_THICKNESS
 
 
 def headlight_panel(region, diameter, front, thickness, faces: tuple[str, ...]):
@@ -36,12 +32,6 @@ def headlight_panel(region, diameter, front, thickness, faces: tuple[str, ...]):
     return [box(cx - half, cy - half, front - thickness,
                 cx + half, cy + half, front, uv)
             for cx, cy in HEADLIGHT_CENTERS]
-
-
-def headlight_bezel_cubes():
-    # The back face needs the same hole so the thin panel cannot cover the lens behind it.
-    return headlight_panel("bezel", HEADLIGHT_DIAMETER * BEZEL_SCALE,
-                           HEADLIGHT_FRONT + BEZEL_FRONT_GAP, BEZEL_THICKNESS, ("north", "south"))
 
 
 def headlight_lens_cubes():

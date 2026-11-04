@@ -129,7 +129,7 @@
 ### SUV headlights pose
 
 - Applies to: `suv-headlights.png`.
-- Rule: Lamps are on and the scene is at dusk. The vehicle is dimmed and tinted by `NIGHT_TINT`. The lit parts are the texels of `suv_lit.png` whose alpha is 0 on the bones listed in `SUV_LIT_BONES` (`headlights` and `tail_lights`); they are moved toward white by `LIT_GAIN` and bloom. The bone `headlight_bezels` skips its alpha-0 texels. A widening pool of light, `BEAM_LAYERS` quads long `BEAM_LENGTH` model pixels, lies on the ground ahead of the front (the -z side); it stops far short of the real reach of the headlights.
+- Rule: Lamps are on and the scene is at dusk. The vehicle is dimmed and tinted by `NIGHT_TINT`. The lit parts are the texels of `suv_lit.png` whose alpha is 0 on the bones listed in `SUV_LIT_BONES` (`headlights` and `tail_lights`); they are moved toward white by `LIT_GAIN` and bloom. A widening pool of light, `BEAM_LAYERS` quads long `BEAM_LENGTH` model pixels, lies on the ground ahead of the front (the -z side); it stops far short of the real reach of the headlights.
 - Agreement: Accepted
 - Basis: [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "the rest of the vehicle is dimmed and tinted blue for dusk, and a widening pool of warm light lies on the ground ahead"; [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "The pool stops about 2 blocks out instead of the real 27 (0024), so the vehicle keeps its size"
 - Implementation: `tools/render_preview.py` (`collect`, `ground_layers`, `NIGHT_TINT`, `SUV_LIT_BONES`, `SUV_CUTOUT_BONES`, `LIT_GAIN`, `BEAM_LAYERS`, `BEAM_LENGTH`, `BEAM_SPREAD`)

@@ -84,7 +84,6 @@ geo = {
                  "locators": {"exhaust": [EXHAUST_X, EXHAUST_Y, EXHAUST_Z]}},
                 *[{"name": name, "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": bone_cubes[name]}
                   for name in ("headlights", "tail_lights")],
-                {"name": "headlight_bezels", "parent": "body", "pivot": [0, 0, 0], "cubes": bone_cubes["headlight_bezels"]},
                 # Shown only in flight by the render controller (ADR 0026)
                 {"name": "rear_glass", "parent": "body", "pivot": [0, FLOOR_Y, 0],
                  "cubes": bone_cubes["rear_glass"]},
