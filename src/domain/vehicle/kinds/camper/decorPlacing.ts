@@ -1,5 +1,5 @@
 // Placing camping gear on the parked camper's furniture (ADR 0093, 0097, 0105, 0110, 0114).
-import type { Vec3 } from "../../../shared/vec";
+import { distanceSq, type Vec3 } from "../../../shared/vec";
 import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
@@ -72,8 +72,7 @@ export function nearest(
   for (const slot of slots) {
     const p = slotPoint(pose, slot);
     const point = sightAt(eye, pressed, p.y);
-    const distance =
-      (p.x - point.x) ** 2 + (p.y - point.y) ** 2 + (p.z - point.z) ** 2;
+    const distance = distanceSq(p, point);
     if (distance < bestDistance) {
       best = slot;
       bestDistance = distance;

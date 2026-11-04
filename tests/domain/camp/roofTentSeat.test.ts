@@ -43,10 +43,10 @@ it("keeps the seated eye the same distance below each variant's ridge", () => {
   fc.assert(
     fc.property(
       coordinate,
-      fc.constantFrom("suv", "ground" as const),
+      fc.constantFrom("ladder", "ground" as const),
       (height, variant) => {
         const ridge =
-          variant === "suv"
+          variant === "ladder"
             ? ROOF_TENT_SPEC.shellRidge
             : ROOF_TENT_SPEC.groundShellRidge;
         const eye =
@@ -61,6 +61,6 @@ it("keeps the seated eye the same distance below each variant's ridge", () => {
       },
     ),
   );
-  expect(rideSeatY("suv")).toBe(0.155);
+  expect(rideSeatY("ladder")).toBe(0.155);
   expect(rideSeatY("ground")).toBe(-0.2825);
 });
