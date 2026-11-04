@@ -87,28 +87,21 @@ it("includes the horizontal and vertical entrance reach boundaries", () => {
   }
 });
 
+// Roof fixture bounds from tools/gen_camper.py: profile z = -model z / 16.
+const ROOF_RACK = { front: -22 / 16, rear: -55 / 16, halfWidth: 20 / 16 };
+const ROOF_VENT = { front: 2 / 16, rear: -6 / 16, halfWidth: 4 / 16 };
+
 it("keeps the camper entrance outside roof fixtures and its anchor in their gap", () => {
   const mount = CAMPER_PROFILE.roofTent as RoofTentMount;
-  for (const fixture of [
-    {
-      front: CAMPER_SPEC.roofRackFrontZ,
-      rear: CAMPER_SPEC.roofRackRearZ,
-      halfWidth: CAMPER_SPEC.roofRackHalfWidth,
-    },
-    {
-      front: CAMPER_SPEC.roofVentFrontZ,
-      rear: CAMPER_SPEC.roofVentRearZ,
-      halfWidth: CAMPER_SPEC.roofVentHalfWidth,
-    },
-  ]) {
+  for (const fixture of [ROOF_RACK, ROOF_VENT]) {
     expect(
       Math.abs(mount.entrance.x) > fixture.halfWidth ||
         mount.entrance.z < fixture.rear ||
         mount.entrance.z > fixture.front,
     ).toBe(true);
   }
-  expect(mount.anchor.z).toBeGreaterThan(CAMPER_SPEC.roofRackFrontZ);
-  expect(mount.anchor.z).toBeLessThan(CAMPER_SPEC.roofVentRearZ);
+  expect(mount.anchor.z).toBeGreaterThan(ROOF_RACK.front);
+  expect(mount.anchor.z).toBeLessThan(ROOF_VENT.rear);
 });
 
 it.each(vehicles)(

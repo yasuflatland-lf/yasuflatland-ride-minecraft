@@ -149,9 +149,6 @@ export const ROOF_TENT_SPEC = Object.freeze({
   eyeBelowRidge: 0.2,
   /** Ground and camper shell ridge (19 px, GROUND_DIMS in tools/gen_roof_tent.py), in blocks above the tent origin. */
   groundShellRidge: 19 / 16,
-  get occupantEyeHeight(): number {
-    return this.shellRidge - this.eyeBelowRidge;
-  },
   /** Short expiry bounds invisibility after a crash or lost tracking. */
   concealTicks: 30,
   /** Refresh before expiry while the tracked occupant is seated. */
