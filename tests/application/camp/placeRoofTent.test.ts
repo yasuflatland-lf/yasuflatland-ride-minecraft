@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
+import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import {
   DIMENSION,
@@ -26,10 +27,16 @@ describe("PlaceRoofTent", () => {
         fc.boolean(),
         (roofTaken, driverPresent, moving) => {
           const world = new FakeRoofTentWorld();
-          world.hosts.set("ground", { kind: "ground" });
-          world.hosts.set("other", { kind: "vehicle", id: "another" });
+          world.hosts.set(asRoofTentId("ground"), { kind: "ground" });
+          world.hosts.set(asRoofTentId("other"), {
+            kind: "vehicle",
+            id: "another",
+          });
           if (roofTaken)
-            world.hosts.set("existing", { kind: "vehicle", id: "host" });
+            world.hosts.set(asRoofTentId("existing"), {
+              kind: "vehicle",
+              id: "host",
+            });
           const hosts = [...world.hosts];
           const place = new PlaceRoofTent(world, () => ({
             ...PRESENT,
@@ -117,7 +124,11 @@ describe("PlaceRoofTent", () => {
     }
     for (const taken of [false, true]) {
       const world = new FakeRoofTentWorld();
-      if (taken) world.hosts.set("existing", { kind: "vehicle", id: "host" });
+      if (taken)
+        world.hosts.set(asRoofTentId("existing"), {
+          kind: "vehicle",
+          id: "host",
+        });
       const lookup = () => ({
         ...PRESENT,
         mount: taken ? PRESENT.mount : undefined,
@@ -215,8 +226,8 @@ describe("PlaceRoofTent", () => {
 
   it("does not spawn if the selected item was moved and ignores unrelated hosts", () => {
     const world = new FakeRoofTentWorld();
-    world.hosts.set("ground", { kind: "ground" });
-    world.hosts.set("other", { kind: "vehicle", id: "another" });
+    world.hosts.set(asRoofTentId("ground"), { kind: "ground" });
+    world.hosts.set(asRoofTentId("other"), { kind: "vehicle", id: "another" });
     world.consumeItem.mockReturnValue(false);
     const place = new PlaceRoofTent(world, () => PRESENT);
     expect(place.execute(cmd)).toBe(false);

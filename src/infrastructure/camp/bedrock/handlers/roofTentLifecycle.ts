@@ -1,5 +1,6 @@
 import { system, world } from "@minecraft/server";
 import type { RoofTentHostGuard } from "../../../../application/camp/roofTentHostGuard";
+import { asRoofTentId } from "../../../../domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
 import { ROOF_TENT_TYPE } from "../../identifiers";
 import type { BedrockRoofTentOccupantWorld } from "../bedrockRoofTentOccupantWorld";
@@ -27,19 +28,19 @@ export function registerRoofTentLifecycle(
     const dimension = entity.dimension;
     const location = { ...entity.location };
     system.run(() => {
-      if (isTent && roofTentEntity(id)) return;
+      if (isTent && roofTentEntity(asRoofTentId(id))) return;
       try {
         if (dimension.getBlock(location) === undefined) {
-          if (isTent) occupants.forget(id);
+          if (isTent) occupants.forget(asRoofTentId(id));
           return;
         }
       } catch {
-        if (isTent) occupants.forget(id);
+        if (isTent) occupants.forget(asRoofTentId(id));
         return;
       }
       if (isTent) {
-        occupants.eject(id);
-        occupants.removed(id, undefined);
+        occupants.eject(asRoofTentId(id));
+        occupants.removed(asRoofTentId(id), undefined);
       } else {
         hosts.removed(id);
         guard.check();

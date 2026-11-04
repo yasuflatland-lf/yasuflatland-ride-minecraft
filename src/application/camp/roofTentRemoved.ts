@@ -1,3 +1,5 @@
+import type { RoofTentId } from "../../domain/camp/ids";
+import type { PlayerId } from "../../domain/shared/ids";
 import type { BedWorld } from "../shared/ports/bed";
 import type { RoofTentRemoved } from "./ports/roofTent";
 import type { RoofTentOccupantWorld } from "./ports/roofTentOccupant";
@@ -8,7 +10,7 @@ export class ClearRoofTentSpawn implements RoofTentRemoved {
     private readonly bed: BedWorld,
   ) {}
 
-  removed(tentId: string, _ownerId: string | undefined): void {
+  removed(tentId: RoofTentId, _ownerId: PlayerId | undefined): void {
     const player = this.occupantWorld.spawnSetBy(tentId);
     if (player === undefined) return;
     this.bed.clearSpawnPoint(

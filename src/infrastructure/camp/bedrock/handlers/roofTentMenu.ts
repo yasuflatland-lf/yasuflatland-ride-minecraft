@@ -1,5 +1,6 @@
 import type { Player } from "@minecraft/server";
 import type { RoofTentMenu } from "../../../../application/camp/roofTentMenu";
+import type { RoofTentId } from "../../../../domain/camp/ids";
 import { asPlayerId } from "../../../../domain/shared/ids";
 import { chooseFromFormResult } from "../../../shared/choiceForm";
 import { createExclusiveGuard } from "../../../shared/exclusiveForm";
@@ -16,7 +17,7 @@ export type RoofTentMenuResult =
 
 export function createRoofTentMenu(
   menu: RoofTentMenu,
-): (player: Player, tentId: string) => Promise<RoofTentMenuResult> {
+): (player: Player, tentId: RoofTentId) => Promise<RoofTentMenuResult> {
   const exclusive = createExclusiveGuard("Roof tent menu");
   return async (player, tentId) => {
     let result: RoofTentMenuResult = "unavailable";
