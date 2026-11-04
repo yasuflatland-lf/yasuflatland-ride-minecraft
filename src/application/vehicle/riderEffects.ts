@@ -3,7 +3,7 @@ import type { PlayerId } from "../../domain/shared/ids";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import { SPEC } from "../../domain/vehicle/spec";
 import { forEachIsolated } from "./isolated";
-import type { DriveWorld } from "./ports/drive";
+import type { RiderEffectWorld } from "./ports/drive";
 import type { Logger } from "./ports/shared";
 
 export class RiderEffects {
@@ -13,10 +13,7 @@ export class RiderEffects {
   private readonly cameraFailed = new Set<PlayerId>();
 
   constructor(
-    private readonly world: Pick<
-      DriveWorld,
-      "setChaseCamera" | "giveWaterBreathing" | "protectFromFire"
-    >,
+    private readonly world: RiderEffectWorld,
     private readonly log: Logger,
   ) {}
 

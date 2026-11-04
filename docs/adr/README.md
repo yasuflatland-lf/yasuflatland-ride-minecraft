@@ -17,7 +17,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Accepted; superseded in part by [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), [0170](0170-measure-suv-side-view-proportions.md); extended by [0040](0040-submarine.md), [0043](0043-wheel-arms.md), [0091](0091-alpha-blend-only-the-camper-glass.md), [0093](0093-decorate-the-parked-camper.md), [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md), [0136](0136-bulldozer.md), [0139](0139-show-the-held-tool-on-the-cab-monitor.md), [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md), [0170](0170-measure-suv-side-view-proportions.md), [0192](0192-suv-detailed-body.md), [0214](0214-replace-the-suv-with-the-rubicon-shape.md) |
 | [0010](0010-testing-strategy.md) | Testing strategy | Accepted; extended by [0139](0139-show-the-held-tool-on-the-cab-monitor.md), [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md), [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md), [0205](0205-structured-adr-metadata-and-current-specs.md) |
 | [0011](0011-dev-server-docker-raknet.md) | Run the development server as BDS in Docker with raknet | Accepted; superseded by [0015](0015-dev-server-docker-nethernet.md) |
-| [0012](0012-ddd-layered-architecture.md) | Split the code into domain, application, and infrastructure layers | Accepted; extended by [0065](0065-check-import-rules-with-dependency-cruiser.md) |
+| [0012](0012-ddd-layered-architecture.md) | Split the code into domain, application, and infrastructure layers | Accepted; extended by [0065](0065-check-import-rules-with-dependency-cruiser.md), [0222](0222-split-the-drive-world-port-by-role.md) |
 | [0013](0013-dependency-updates-with-renovate.md) | Keep dependencies up to date with Renovate | Accepted |
 | [0014](0014-opt-in-nethernet-dev-server.md) | Offer NetherNet on the dev server as an opt-in transport | Accepted; superseded by [0015](0015-dev-server-docker-nethernet.md) |
 | [0015](0015-dev-server-docker-nethernet.md) | Run the development server as BDS in Docker with NetherNet | Accepted; extended by [0062](0062-fresh-dev-pack-version-on-every-start.md), [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) |
@@ -225,6 +225,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0219](0219-remove-the-suv-headlight-bezel-plate.md) | Remove the SUV headlight bezel plate | Accepted |
 | [0220](0220-separate-room-capability-from-drive.md) | Separate room capability from Drive | Accepted |
 | [0221](0221-organize-infrastructure-vehicle-code-by-kind.md) | Organize infrastructure vehicle code by kind | Accepted |
+| [0222](0222-split-the-drive-world-port-by-role.md) | Split the DriveWorld port by role | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
