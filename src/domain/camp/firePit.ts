@@ -1,4 +1,5 @@
-export type FirePitId = string & { readonly __brand: "FirePitId" };
+import type { Brand } from "../shared/ids";
+export type FirePitId = Brand<string, "FirePitId">;
 
 export function asFirePitId(value: string): FirePitId {
   return value as FirePitId;

@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { planRoofTent } from "../../../src/domain/camp/roofTent/placement";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import type { RoofTentMount } from "../../../src/domain/shared/roofTent";
 
 const mountArb: fc.Arbitrary<RoofTentMount> = fc.record({
@@ -19,29 +20,39 @@ const yawArb = fc.double({ min: -1e4, max: 1e4, noNaN: true });
 
 it("plans a free roof on a supported vehicle with the mount's ladder", () => {
   fc.assert(
-    fc.property(fc.string(), mountArb, yawArb, (id, mount, yaw) => {
-      const plan = planRoofTent({
-        target: { type: "vehicle", id, mount, roofTaken: false },
-        yaw,
-      });
-      expect(plan).toMatchObject({
-        host: { kind: "vehicle", id },
-        ladder: mount.ladder,
-      });
-    }),
+    fc.property(
+      fc.string().map(asVehicleId),
+      mountArb,
+      yawArb,
+      (id, mount, yaw) => {
+        const plan = planRoofTent({
+          target: { type: "vehicle", id, mount, roofTaken: false },
+          yaw,
+        });
+        expect(plan).toMatchObject({
+          host: { kind: "vehicle", id: asVehicleId(id) },
+          ladder: mount.ladder,
+        });
+      },
+    ),
   );
 });
 
 it("refuses a taken roof", () => {
   fc.assert(
-    fc.property(fc.string(), mountArb, yawArb, (id, mount, yaw) => {
-      expect(
-        planRoofTent({
-          target: { type: "vehicle", id, mount, roofTaken: true },
-          yaw,
-        }),
-      ).toBe("roof_taken");
-    }),
+    fc.property(
+      fc.string().map(asVehicleId),
+      mountArb,
+      yawArb,
+      (id, mount, yaw) => {
+        expect(
+          planRoofTent({
+            target: { type: "vehicle", id, mount, roofTaken: true },
+            yaw,
+          }),
+        ).toBe("roof_taken");
+      },
+    ),
   );
 });
 
@@ -52,7 +63,7 @@ it("refuses a host in use before a taken roof", () => {
         planRoofTent({
           target: {
             type: "vehicle",
-            id: "a",
+            id: asVehicleId("a"),
             mount,
             roofTaken,
             hostInUse: true,
@@ -68,7 +79,12 @@ it("refuses a vehicle without a mount, taken roof or not", () => {
   for (const roofTaken of [false, true]) {
     expect(
       planRoofTent({
-        target: { type: "vehicle", id: "a", mount: undefined, roofTaken },
+        target: {
+          type: "vehicle",
+          id: asVehicleId("a"),
+          mount: undefined,
+          roofTaken,
+        },
         yaw: 0,
       }),
     ).toBe("unsupported_vehicle");

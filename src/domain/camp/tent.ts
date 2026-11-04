@@ -1,6 +1,7 @@
 // Where a pitched tent stands, which cells it lays, and when it may be pitched (ADR 0130, 0131).
 import { type Cell, cellKey, cellOf } from "../shared/cells";
 import { CLEARABLE_DECORATIONS } from "../shared/decorations";
+import type { Brand } from "../shared/ids";
 import type { LaidCell } from "../shared/laidCells";
 import {
   forward,
@@ -23,7 +24,7 @@ import {
 export type { FlapId, TentFace, TentLocalCell } from "./tentLayout";
 
 /** The Entity.id of a pitched tent. */
-export type TentId = string & { readonly __brand: "TentId" };
+export type TentId = Brand<string, "TentId">;
 
 /** Brands an id that is known to belong to a tent. Called only in the infrastructure layer and in tests. */
 export function asTentId(raw: string): TentId {

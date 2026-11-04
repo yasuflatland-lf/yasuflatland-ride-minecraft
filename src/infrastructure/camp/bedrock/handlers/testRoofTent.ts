@@ -3,7 +3,11 @@ import type { FoldRoofTent } from "../../../../application/camp/foldRoofTent";
 import type { PlaceRoofTent } from "../../../../application/camp/placeRoofTent";
 import type { RoofTentHostGuard } from "../../../../application/camp/roofTentHostGuard";
 import { asRoofTentId } from "../../../../domain/camp/ids";
-import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
+import {
+  asDimensionId,
+  asPlayerId,
+  asVehicleId,
+} from "../../../../domain/shared/ids";
 import { NAMESPACE } from "../../../shared/identifiers";
 import {
   TEST_ROOF_TENT_DRIVER_SEAT_EVENT,
@@ -53,7 +57,7 @@ export function registerTestRoofTent(
         ) {
           place.execute({
             dimensionId: asDimensionId("minecraft:overworld"),
-            target: { entityId: id },
+            target: { entityId: asVehicleId(id) },
             yaw: 0,
             slot: 0,
           });

@@ -1,11 +1,14 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { asFirePitId } from "../../../src/domain/camp/firePit";
 import {
   decodeHost,
   encodeHost,
   type Host,
 } from "../../../src/domain/camp/hosted";
 import { TABLE_SPOTS } from "../../../src/domain/camp/spec";
+import { asTableId } from "../../../src/domain/camp/table";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 
 const ids = fc.oneof(
   fc.string({ minLength: 1 }),
@@ -14,15 +17,18 @@ const ids = fc.oneof(
 const coordinate = fc.integer().map((value) => value / 100);
 const hosts: fc.Arbitrary<Host> = fc.oneof(
   fc.constant({ kind: "ground" } as const),
-  fc.record({ kind: fc.constant("vehicle" as const), id: ids }),
+  fc.record({
+    kind: fc.constant("vehicle" as const),
+    id: ids.map(asVehicleId),
+  }),
   fc.record({
     kind: fc.constant("fire_pit" as const),
-    id: ids,
+    id: ids.map(asFirePitId),
     spot: fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }),
   }),
   fc.record({
     kind: fc.constant("camp_table" as const),
-    id: ids,
+    id: ids.map(asTableId),
     at: fc.record({ x: coordinate, z: coordinate }),
   }),
 );
@@ -117,14 +123,18 @@ it("writes finite doubles as decimal coordinates rounded to at most two places",
   );
   fc.assert(
     fc.property(finite, finite, (x, z) => {
-      const encoded = encodeHost({ kind: "camp_table", id: "a", at: { x, z } });
+      const encoded = encodeHost({
+        kind: "camp_table",
+        id: asTableId("a"),
+        at: { x, z },
+      });
       expect(encoded).toMatch(
         /^camp_table:a:@-?[0-9]+(?:\.[0-9]{1,2})?,-?[0-9]+(?:\.[0-9]{1,2})?$/,
       );
       const rounded = (value: number) => Number(value.toFixed(2)) || 0;
       expect(decodeHost(encoded)).toEqual({
         kind: "camp_table",
-        id: "a",
+        id: asTableId("a"),
         at: { x: rounded(x), z: rounded(z) },
       });
       expect(encodeHost(decodeHost(encoded))).toBe(encoded);
@@ -135,12 +145,17 @@ it("writes finite doubles as decimal coordinates rounded to at most two places",
 it("preserves all characters after the vehicle prefix", () => {
   fc.assert(
     fc.property(ids, (id) => {
-      expect(encodeHost({ kind: "vehicle", id })).toBe(`vehicle:${id}`);
-      expect(decodeHost(`vehicle:${id}`)).toEqual({ kind: "vehicle", id });
+      expect(encodeHost({ kind: "vehicle", id: asVehicleId(id) })).toBe(
+        `vehicle:${id}`,
+      );
+      expect(decodeHost(`vehicle:${id}`)).toEqual({
+        kind: "vehicle",
+        id: asVehicleId(id),
+      });
     }),
   );
   expect(decodeHost("vehicle:a:b\nc")).toEqual({
     kind: "vehicle",
-    id: "a:b\nc",
+    id: asVehicleId("a:b\nc"),
   });
 });

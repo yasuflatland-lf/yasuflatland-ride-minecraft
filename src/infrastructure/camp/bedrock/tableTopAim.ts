@@ -2,6 +2,7 @@ import type { Entity, Player } from "@minecraft/server";
 import type { TableTopOutcome } from "../../../application/camp/placeOnTableTop";
 import { aimOnPlane, hostLocalPx } from "../../../domain/camp/dutchOven";
 import { TABLE_TOP_PX } from "../../../domain/camp/spec";
+import { asTableId, type TableId } from "../../../domain/camp/table";
 import type { LocalPoint } from "../../../domain/camp/tabletop";
 import { TABLE_TOP_REFUSAL_HINTS } from "../identifiers";
 
@@ -35,7 +36,7 @@ const PIXELS = /^-?[0-9]+(?:\.[0-9]+)?$/;
 /** Reads a server test hook's `<table> <x> <z>`, a point in the table's local pixels. */
 export function testTableTopRequest(
   message: string,
-): { table: string; aim: LocalPoint } | undefined {
+): { table: TableId; aim: LocalPoint } | undefined {
   const [table, x, z, ...rest] = message.trim().split(/\s+/);
   if (
     !table ||
@@ -44,5 +45,5 @@ export function testTableTopRequest(
     !PIXELS.test(z ?? "")
   )
     return undefined;
-  return { table, aim: { x: Number(x), z: Number(z) } };
+  return { table: asTableId(table), aim: { x: Number(x), z: Number(z) } };
 }

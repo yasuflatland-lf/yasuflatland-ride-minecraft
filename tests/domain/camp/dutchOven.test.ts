@@ -4,7 +4,9 @@ import {
   aimOnPlane,
   initialSimmering,
 } from "../../../src/domain/camp/dutchOven";
+import { asFirePitId } from "../../../src/domain/camp/firePit";
 import type { Host } from "../../../src/domain/camp/hosted";
+import { asTableId } from "../../../src/domain/camp/table";
 
 it("initially simmers exactly on a fire pit", () => {
   fc.assert(
@@ -13,12 +15,12 @@ it("initially simmers exactly on a fire pit", () => {
         fc.constant({ kind: "ground" } as const),
         fc.record({
           kind: fc.constant("fire_pit" as const),
-          id: fc.string({ minLength: 1 }),
+          id: fc.string({ minLength: 1 }).map(asFirePitId),
           spot: fc.nat(),
         }),
         fc.record({
           kind: fc.constant("camp_table" as const),
-          id: fc.string({ minLength: 1 }),
+          id: fc.string({ minLength: 1 }).map(asTableId),
           at: fc.record({ x: fc.integer(), z: fc.integer() }),
         }),
       ),

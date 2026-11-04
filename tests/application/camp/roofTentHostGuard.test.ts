@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
 import type { VehicleHostState } from "../../../src/application/shared/ports/vehicleHost";
 import { asRoofTentId } from "../../../src/domain/camp/ids";
+import { asTableId } from "../../../src/domain/camp/table";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { FakeRoofTentWorld, PLAYER, PRESENT } from "./fakeRoofTentWorld";
 
 describe("RoofTentHostGuard", () => {
@@ -17,7 +19,7 @@ describe("RoofTentHostGuard", () => {
           const world = new FakeRoofTentWorld();
           world.hosts.set(asRoofTentId("tent"), {
             kind: "vehicle",
-            id: "host",
+            id: asVehicleId("host"),
           });
           world.ownerOf.mockReturnValue(owned ? PLAYER : undefined);
           const state: VehicleHostState =
@@ -60,11 +62,17 @@ describe("RoofTentHostGuard", () => {
     world.hosts.set(asRoofTentId("ground"), { kind: "ground" });
     world.hosts.set(asRoofTentId("table"), {
       kind: "camp_table",
-      id: "table",
+      id: asTableId("table"),
       at: { x: 0, z: 0 },
     });
-    world.hosts.set(asRoofTentId("first"), { kind: "vehicle", id: "a" });
-    world.hosts.set(asRoofTentId("second"), { kind: "vehicle", id: "b" });
+    world.hosts.set(asRoofTentId("first"), {
+      kind: "vehicle",
+      id: asVehicleId("a"),
+    });
+    world.hosts.set(asRoofTentId("second"), {
+      kind: "vehicle",
+      id: asVehicleId("b"),
+    });
     const lookup = vi.fn(() => ({ status: "removed" as const }));
     new RoofTentHostGuard(
       world,
