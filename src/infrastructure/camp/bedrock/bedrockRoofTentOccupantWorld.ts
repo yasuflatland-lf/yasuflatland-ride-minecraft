@@ -1,9 +1,4 @@
-import {
-  BlockPermutation,
-  type Dimension,
-  type Entity,
-  world,
-} from "@minecraft/server";
+import type { Entity } from "@minecraft/server";
 import { LeaveRoofTent } from "../../../application/camp/leaveRoofTent";
 import type {
   OccupantEjector,
@@ -14,381 +9,110 @@ import { ClearRoofTentSpawn } from "../../../application/camp/roofTentRemoved";
 import type { BedWorld } from "../../../application/shared/ports/bed";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
-import { decodeHost } from "../../../domain/camp/hosted";
-import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
-import { roofTentCeilingCells } from "../../../domain/camp/roofTent/ceiling";
-import { exitCell } from "../../../domain/camp/roofTent/exitCell";
-import { snapYaw4 } from "../../../domain/camp/roofTent/facing";
-import { seatPosition } from "../../../domain/camp/roofTent/seat";
-import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
-import { type Cell, cellKey } from "../../../domain/shared/cells";
-import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
-import {
-  asDimensionId,
-  asPlayerId,
-  type DimensionId,
-  type PlayerId,
-} from "../../../domain/shared/ids";
-import { forward, type Vec3 } from "../../../domain/shared/vec";
-import { messageKey, NAMESPACE } from "../../shared/identifiers";
-import { playerById } from "../../shared/players";
-import {
-  ROOF_TENT_CEILING_PROPERTY,
-  ROOF_TENT_EXIT_PROPERTY,
-  ROOF_TENT_FLAP_OPEN_PROPERTY,
-  ROOF_TENT_HOST_PROPERTY,
-  ROOF_TENT_LADDER_PROPERTY,
-  ROOF_TENT_OCCUPANT_PROPERTY,
-  ROOF_TENT_OCCUPIED_PROPERTY,
-  ROOF_TENT_SPAWN_SET_BY_PROPERTY,
-  TENT_CEILING_BLOCK,
-} from "../identifiers";
-import { roofTentEntity } from "./bedrockRoofTentWorld";
-
-interface Snapshot {
-  ceiling: Cell[];
-  dimension: Dimension;
-  location: Vec3;
-  exit: Vec3;
-  occupant: PlayerId | undefined;
-  spawnSetBy: PlayerId | undefined;
-}
-
+import type { RoofTentId } from "../../../domain/camp/ids";
+import type { Cell } from "../../../domain/shared/cells";
+import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
+import { RoofTentCeiling } from "./roofTentCeiling";
+import { RoofTentOccupants } from "./roofTentOccupants";
+import { RoofTentSpawn } from "./roofTentSpawn";
 export class BedrockRoofTentOccupantWorld
   implements RoofTentOccupantWorld, OccupantEjector, RoofTentRemoved
 {
-  private readonly snapshots = new Map<RoofTentId, Snapshot>();
+  private readonly occupants: RoofTentOccupants;
+  private readonly ceiling: RoofTentCeiling;
+  private readonly spawn: RoofTentSpawn;
   private readonly clearSpawn: ClearRoofTentSpawn;
   constructor(
-    private readonly vehicleHost: VehicleHostLookup,
+    vehicleHost: VehicleHostLookup,
     bed: BedWorld,
-    private readonly isVehicleSpace: SpaceCheck,
+    isVehicleSpace: SpaceCheck,
   ) {
+    this.occupants = new RoofTentOccupants(vehicleHost, isVehicleSpace, (id) =>
+      this.syncCeiling(id),
+    );
+    this.ceiling = new RoofTentCeiling(this.occupants, isVehicleSpace);
+    this.spawn = new RoofTentSpawn(this.occupants);
     this.clearSpawn = new ClearRoofTentSpawn(this, bed);
   }
 
   remember(entity: Entity, saveExit = false, spawnYaw?: number): void {
-    const hostMarker = entity.getDynamicProperty(ROOF_TENT_HOST_PROPERTY);
-    const host = decodeHost(typeof hostMarker === "string" ? hostMarker : "");
-    const yaw = spawnYaw ?? entity.getRotation().y;
-    const direction = forward(yaw);
-    let exit = {
-      x: Math.floor(entity.location.x + direction.x * 2),
-      y: Math.floor(entity.location.y),
-      z: Math.floor(entity.location.z + direction.z * 2),
-    };
-    const saved = entity.getDynamicProperty(ROOF_TENT_EXIT_PROPERTY);
-    if (typeof saved === "string") {
-      try {
-        const value = JSON.parse(saved) as Vec3;
-        if ([value.x, value.y, value.z].every(Number.isFinite)) exit = value;
-      } catch {
-        /* Ignore a malformed saved exit and derive it from the pose. */
-      }
-    }
-    if (host.kind === "vehicle") {
-      const state = this.vehicleHost(host.id);
-      if (state.status === "present" && state.mount)
-        exit = exitCell(state.mount, state, snapYaw4(yaw));
-    }
-    if (saveExit)
-      entity.setDynamicProperty(ROOF_TENT_EXIT_PROPERTY, JSON.stringify(exit));
-    const occupant = entity.getDynamicProperty(ROOF_TENT_OCCUPANT_PROPERTY);
-    const spawnSetBy = entity.getDynamicProperty(
-      ROOF_TENT_SPAWN_SET_BY_PROPERTY,
-    );
-    this.snapshots.set(asRoofTentId(entity.id), {
-      ceiling: readCeiling(
-        entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
-      ),
-      dimension: entity.dimension,
-      location: { ...entity.location },
-      exit,
-      occupant: typeof occupant === "string" ? asPlayerId(occupant) : undefined,
-      spawnSetBy:
-        typeof spawnSetBy === "string" ? asPlayerId(spawnSetBy) : undefined,
-    });
+    this.occupants.remember(entity, saveExit, spawnYaw);
   }
+
   forget(id: RoofTentId): void {
-    this.clearCeiling(id);
-    const occupant = this.snapshots.get(id)?.occupant;
-    if (occupant !== undefined) this.reveal(occupant);
-    this.snapshots.delete(id);
+    this.ceiling.clearCeiling(id);
+    this.occupants.forget(id);
   }
-  private snapshot(id: RoofTentId): Snapshot | undefined {
-    const entity = roofTentEntity(id);
-    if (entity) this.remember(entity);
-    return this.snapshots.get(id);
-  }
+
   occupantOf(id: RoofTentId): PlayerId | undefined {
-    return this.snapshot(id)?.occupant;
+    return this.occupants.occupantOf(id);
   }
+
   setOccupant(id: RoofTentId, playerId: PlayerId | undefined): void {
-    const entity = roofTentEntity(id);
-    if (entity) this.remember(entity);
-    entity?.setDynamicProperty(ROOF_TENT_OCCUPANT_PROPERTY, playerId);
-    entity?.setProperty(ROOF_TENT_OCCUPIED_PROPERTY, playerId !== undefined);
-    entity?.setProperty(ROOF_TENT_FLAP_OPEN_PROPERTY, playerId !== undefined);
-    const saved = this.snapshots.get(id);
-    if (saved) saved.occupant = playerId;
-    this.syncCeiling(id);
+    this.occupants.setOccupant(id, playerId);
   }
+
   syncCeiling(id: RoofTentId): void {
-    const tent = this.snapshot(id);
-    if (!tent) return;
-    if (tent.occupant === undefined) {
-      if (tent.ceiling.length > 0) this.clearCeiling(id);
-      return;
-    }
-    this.layCeiling(id, tent);
+    this.ceiling.syncCeiling(id);
   }
-  private layCeiling(id: RoofTentId, tent: Snapshot): void {
-    let warned = false;
-    const warn = (error: unknown) => {
-      if (!warned)
-        console.warn(`[${NAMESPACE}] roof tent ceiling lay failed: ${error}`);
-      warned = true;
-    };
-    try {
-      const entity = roofTentEntity(id);
-      if (!entity) return;
-      const variant =
-        entity.getProperty(ROOF_TENT_LADDER_PROPERTY) === true
-          ? "ladder"
-          : "ground";
-      const recorded = new Map(
-        tent.ceiling.map((cell) => [cellKey(cell), cell]),
-      );
-      for (const cell of roofTentCeilingCells(
-        entity.location,
-        entity.getRotation().y,
-        variant,
-      )) {
-        try {
-          if (this.isVehicleSpace(asDimensionId(tent.dimension.id), cell))
-            continue;
-          const block = tent.dimension.getBlock(cell);
-          if (!block) continue;
-          if (
-            block.typeId === TENT_CEILING_BLOCK &&
-            recorded.has(cellKey(cell))
-          )
-            continue;
-          if (!block.isAir) continue;
-          block.setPermutation(BlockPermutation.resolve(TENT_CEILING_BLOCK));
-          recorded.set(cellKey(cell), cell);
-          // Keep the fallback record even if saving the entity property fails.
-          tent.ceiling = [...recorded.values()];
-        } catch (error) {
-          warn(error);
-        }
-      }
-      entity.setDynamicProperty(
-        ROOF_TENT_CEILING_PROPERTY,
-        tent.ceiling.length > 0 ? JSON.stringify(tent.ceiling) : undefined,
-      );
-    } catch (error) {
-      warn(error);
-    }
-  }
-  private clearCeiling(id: RoofTentId): void {
-    const tent = this.snapshots.get(id);
-    if (!tent || tent.ceiling.length === 0) return;
-    let warned = false;
-    const warn = (error: unknown) => {
-      if (!warned)
-        console.warn(`[${NAMESPACE}] roof tent ceiling clear failed: ${error}`);
-      warned = true;
-    };
-    for (const cell of tent.ceiling) {
-      try {
-        const block = tent.dimension.getBlock(cell);
-        if (block?.typeId === TENT_CEILING_BLOCK)
-          block.setPermutation(BlockPermutation.resolve("minecraft:air"));
-      } catch (error) {
-        warn(error);
-      }
-    }
-    tent.ceiling = [];
-    try {
-      roofTentEntity(id)?.setDynamicProperty(
-        ROOF_TENT_CEILING_PROPERTY,
-        undefined,
-      );
-    } catch (error) {
-      warn(error);
-    }
-  }
+
   ceilingOwner(
     dimensionId: DimensionId,
     cell: Cell,
     typeId: string,
   ): string | undefined {
-    if (typeId !== TENT_CEILING_BLOCK) return undefined;
-    for (const [id, tent] of this.snapshots) {
-      if (
-        tent.dimension.id === dimensionId &&
-        tent.ceiling.some((at) => cellKey(at) === cellKey(cell))
-      )
-        return id;
-    }
-    return undefined;
+    return this.ceiling.ceilingOwner(dimensionId, cell, typeId);
   }
+
   moveInside(playerId: PlayerId, id: RoofTentId): void {
-    const tent = this.snapshot(id);
-    const entity = roofTentEntity(id);
-    const player = world.getEntity(playerId);
-    if (!tent || !player?.isValid) return;
-    if (this.isSeated(playerId, id) === true) return;
-    const teleport = () =>
-      player.teleport(seatPosition(tent.location), {
-        dimension: tent.dimension,
-      });
-    // addRider needs a nearby rider in the tent's dimension.
-    teleport();
-    try {
-      const rideable = entity?.getComponent("minecraft:rideable");
-      if (rideable && !rideable.addRider(player)) {
-        console.warn(`[${NAMESPACE}] roof tent rejected its rider`);
-        teleport();
-      } else if (!rideable) {
-        console.warn(`[${NAMESPACE}] roof tent has no rideable component`);
-      }
-    } catch (error) {
-      console.warn(`[${NAMESPACE}] roof tent seating failed: ${error}`);
-      teleport();
-    }
+    this.occupants.moveInside(playerId, id);
   }
+
   conceal(playerId: PlayerId): void {
-    try {
-      const player = playerById(playerId);
-      if (!player?.isValid) return;
-      player.addEffect("invisibility", ROOF_TENT_SPEC.concealTicks, {
-        amplifier: 0,
-        showParticles: false,
-      });
-    } catch (error) {
-      console.warn(`[${NAMESPACE}] roof tent conceal failed: ${error}`);
-    }
+    this.occupants.conceal(playerId);
   }
+
   reveal(playerId: PlayerId): void {
-    try {
-      // Effects have no source attribution, so this also removes potion invisibility.
-      const player = playerById(playerId);
-      if (player?.isValid) player.removeEffect("invisibility");
-    } catch (error) {
-      console.warn(`[${NAMESPACE}] roof tent reveal failed: ${error}`);
-    }
+    this.occupants.reveal(playerId);
   }
+
   isSeated(playerId: PlayerId, id: RoofTentId): boolean | undefined {
-    if (!roofTentEntity(id)) return undefined;
-    return (
-      world.getEntity(playerId)?.getComponent("minecraft:riding")
-        ?.entityRidingOn?.id === id
-    );
+    return this.occupants.isSeated(playerId, id);
   }
+
   placeOutside(playerId: PlayerId, id: RoofTentId): void {
-    const tent = this.snapshot(id);
-    const occupant = world.getEntity(playerId);
-    if (!tent || !occupant?.isValid) return;
-    // Search around the saved entrance at ground height, including when the host
-    // has already disappeared. Never fall back to teleporting onto the roof.
-    for (let radius = 0; radius <= 4; radius++) {
-      for (let dx = -radius; dx <= radius; dx++)
-        for (let dz = -radius; dz <= radius; dz++) {
-          if (Math.max(Math.abs(dx), Math.abs(dz)) !== radius) continue;
-          for (let dy = 4; dy >= -8; dy--) {
-            const feet = {
-              x: tent.exit.x + dx,
-              y: tent.exit.y + dy,
-              z: tent.exit.z + dz,
-            };
-            try {
-              const floor = tent.dimension.getBlock({ ...feet, y: feet.y - 1 });
-              if (this.isVehicleSpace(asDimensionId(tent.dimension.id), feet))
-                continue;
-              if (
-                !floor ||
-                floor.isAir ||
-                floor.isLiquid ||
-                CLEARABLE_DECORATIONS.has(floor.typeId)
-              )
-                continue;
-              if (
-                tent.dimension.getBlock(feet)?.isAir !== true ||
-                tent.dimension.getBlock({ ...feet, y: feet.y + 1 })?.isAir !==
-                  true
-              )
-                continue;
-              occupant
-                .getComponent("minecraft:riding")
-                ?.entityRidingOn?.getComponent("minecraft:rideable")
-                ?.ejectRider(occupant);
-              occupant.teleport(
-                { x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 },
-                { dimension: tent.dimension },
-              );
-              return;
-            } catch {
-              /* Unloaded terrain cannot be a safe exit. */
-            }
-          }
-        }
-    }
+    this.occupants.placeOutside(playerId, id);
   }
+
   spawnCellOf(id: RoofTentId): Vec3 {
-    const location = this.snapshot(id)?.location;
-    if (!location) throw new Error(`Unknown roof tent: ${id}`);
-    return {
-      x: Math.floor(location.x),
-      y: Math.floor(location.y),
-      z: Math.floor(location.z),
-    };
+    return this.spawn.spawnCellOf(id);
   }
+
   spawnSetBy(id: RoofTentId): PlayerId | undefined {
-    return this.snapshot(id)?.spawnSetBy;
+    return this.spawn.spawnSetBy(id);
   }
+
   setSpawnSetBy(id: RoofTentId, playerId: PlayerId | undefined): void {
-    roofTentEntity(id)?.setDynamicProperty(
-      ROOF_TENT_SPAWN_SET_BY_PROPERTY,
-      playerId,
-    );
-    const saved = this.snapshots.get(id);
-    if (saved) saved.spawnSetBy = playerId;
+    this.spawn.setSpawnSetBy(id, playerId);
   }
+
   dimensionOf(id: RoofTentId) {
-    const saved = this.snapshot(id);
-    if (!saved) throw new Error(`Unknown roof tent: ${id}`);
-    return asDimensionId(saved.dimension.id);
+    return this.spawn.dimensionOf(id);
   }
+
   showMessage(playerId: PlayerId, name: string): void {
-    playerById(playerId)?.onScreenDisplay.setActionBar({
-      translate: messageKey(name),
-    });
+    this.occupants.showMessage(playerId, name);
   }
+
   eject(id: RoofTentId): void {
     new LeaveRoofTent(this).eject(id);
   }
+
   removed(id: RoofTentId, ownerId: PlayerId | undefined): void {
     this.eject(id);
-    this.clearCeiling(id);
+    this.ceiling.clearCeiling(id);
     this.clearSpawn.removed(id, ownerId);
     this.forget(id);
-  }
-}
-
-function readCeiling(saved: unknown): Cell[] {
-  if (typeof saved !== "string") return [];
-  try {
-    const value: unknown = JSON.parse(saved);
-    if (!Array.isArray(value)) return [];
-    return value.filter(
-      (cell): cell is Cell =>
-        cell !== null &&
-        typeof cell === "object" &&
-        [cell.x, cell.y, cell.z].every(Number.isSafeInteger),
-    );
-  } catch {
-    return [];
   }
 }
