@@ -5,8 +5,11 @@ import { RemoveDecor } from "../../../src/application/vehicle/removeDecor";
 import { SetDecor } from "../../../src/application/vehicle/setDecor";
 import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { registerDockGuard } from "../../../src/infrastructure/vehicle/bedrock/handlers/dockGuard";
 import { registerSubscriptions } from "../../../src/infrastructure/vehicle/bedrock/subscriptions";
 import { installVehicles } from "../../../src/infrastructure/vehicle/install";
+import { installCamper } from "../../../src/infrastructure/vehicle/kinds/camper/install";
+import { defined } from "../../support/defined";
 
 vi.mock("@minecraft/server", () => ({
   world: {
@@ -22,29 +25,43 @@ vi.mock("../../../src/infrastructure/vehicle/bedrock/subscriptions", () => ({
   registerSubscriptions: vi.fn(),
 }));
 
+vi.mock("../../../src/infrastructure/vehicle/kinds/camper/install", () => ({
+  installCamper: vi.fn(),
+}));
+vi.mock(
+  "../../../src/infrastructure/vehicle/bedrock/handlers/dockGuard",
+  () => ({ registerDockGuard: vi.fn() }),
+);
+
 it("wires the decor use cases and the dock owner lookups into the subscriptions (ADR 0093, 0096)", () => {
   installVehicles({
     isCampSpace: () => false,
     wantsChaseCamera: () => false,
     laterSwitchTargets: () => [],
   });
-  const [useCases, , , dockDoorOwner, dockCellOwner, dockBlockOwner] =
-    vi.mocked(registerSubscriptions).mock.calls[0] ?? [
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    ];
-  expect(useCases?.decor).toBeInstanceOf(SetDecor);
-  expect(useCases?.placeDecor).toBeInstanceOf(PlaceDecor);
-  expect(useCases?.removeDecor).toBeInstanceOf(RemoveDecor);
+  const [useCases, , , dockCellOwner, installKind] = defined(
+    vi.mocked(registerSubscriptions).mock.lastCall,
+    "vehicle subscriptions",
+  );
+  expect(useCases.decor).toBeInstanceOf(SetDecor);
+  installKind();
+  const [camper, dockDoorOwner, camperCellOwner, installGuard] = defined(
+    vi.mocked(installCamper).mock.lastCall,
+    "camper installation",
+  );
+  expect(camper.placeDecor).toBeInstanceOf(PlaceDecor);
+  expect(camper.removeDecor).toBeInstanceOf(RemoveDecor);
+  installGuard();
+  const [dockBlockOwner] = defined(
+    vi.mocked(registerDockGuard).mock.lastCall,
+    "dock guard",
+  );
   const here = asDimensionId("overworld");
   const cell = { x: 0, y: 64, z: 0 };
   // Nothing is laid yet, so no lookup has an owner.
   expect(dockDoorOwner?.(here, cell)).toBeUndefined();
   expect(dockCellOwner?.(here, cell)).toBeUndefined();
+  expect(camperCellOwner(here, cell)).toBeUndefined();
   expect(
     dockBlockOwner?.(here, cell, "yasu_ride:camper_floor"),
   ).toBeUndefined();
@@ -94,7 +111,7 @@ it("hands the later switch targets to the subscriptions (ADR 0134)", () => {
     wantsChaseCamera: () => false,
     laterSwitchTargets,
   });
-  expect(vi.mocked(registerSubscriptions).mock.lastCall?.[6]).toBe(
+  expect(vi.mocked(registerSubscriptions).mock.lastCall?.[5]).toBe(
     laterSwitchTargets,
   );
 });

@@ -1,7 +1,8 @@
+import type { Brand } from "../shared/ids";
 import { degToRad, type Vec3 } from "../shared/vec";
 import type { Host } from "./hosted";
 
-export type DutchOvenId = string & { readonly __brand: "DutchOvenId" };
+export type DutchOvenId = Brand<string, "DutchOvenId">;
 
 export function asDutchOvenId(value: string): DutchOvenId {
   return value as DutchOvenId;

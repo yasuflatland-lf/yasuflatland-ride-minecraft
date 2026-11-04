@@ -1,4 +1,5 @@
 // The camper's furniture in local room cells: what it fills and where decor stands on it (ADR 0093).
+import { type DecorSlotId, parseDecorSlotId } from "../../dock/decor";
 import type { DockBlock } from "../../dock/floor";
 import {
   type DooredStorage,
@@ -65,7 +66,7 @@ interface DecorPairEnd {
 
 /** A place for one decor item. Its id is saved with the decor, so it never changes. */
 export interface DecorSlot {
-  readonly id: string;
+  readonly id: DecorSlotId;
   readonly cell: LocalCell;
   /**
    * The furniture's top above the cell bottom, in pixels (0 to 15). For a hanging slot, the lift
@@ -86,7 +87,7 @@ export interface DecorSlot {
 }
 
 /** A point on a cell's top in pixels from the cell middle: `left` and `forward` as in LocalCell. */
-export interface DecorSpot {
+interface DecorSpot {
   readonly left: number;
   readonly forward: number;
 }
@@ -175,8 +176,8 @@ function compartmentSlots<Id extends StorageDoorId>(
   [rear, front]: readonly [string, string],
 ): StorageSlot<Id>[] {
   return [
-    { id: rear, cell, height, spot: 5, pair: { kind, end: 0 }, door },
-    { id: front, cell, height, spot: 6, pair: { kind, end: 1 }, door },
+    { id: slotId(rear), cell, height, spot: 5, pair: { kind, end: 0 }, door },
+    { id: slotId(front), cell, height, spot: 6, pair: { kind, end: 1 }, door },
   ];
 }
 
@@ -340,8 +341,16 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
       { x: 1, z: 3, layer: 2 },
     ],
     slots: [
-      { id: "dashboard_center", cell: { x: 0, z: 3, layer: 2 }, height: 3 },
-      { id: "dashboard_left", cell: { x: 1, z: 3, layer: 2 }, height: 3 },
+      {
+        id: slotId("dashboard_center"),
+        cell: { x: 0, z: 3, layer: 2 },
+        height: 3,
+      },
+      {
+        id: slotId("dashboard_left"),
+        cell: { x: 1, z: 3, layer: 2 },
+        height: 3,
+      },
     ],
   },
   // Two items across the table, drawn by one pair block. "table" keeps its id for saved
@@ -351,14 +360,14 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     cells: [TABLE_CELL],
     slots: [
       {
-        id: "table",
+        id: slotId("table"),
         cell: TABLE_CELL,
         height: 12,
         spot: 7,
         pair: { kind: "table", end: 0 },
       },
       {
-        id: "table_aisle",
+        id: slotId("table_aisle"),
         cell: TABLE_CELL,
         height: 12,
         spot: 8,
@@ -373,8 +382,16 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
       { x: 1, z: -1, layer: 1 },
     ],
     slots: [
-      { id: "dinette_front", cell: { x: 1, z: 1, layer: 1 }, height: 7 },
-      { id: "dinette_rear", cell: { x: 1, z: -1, layer: 1 }, height: 7 },
+      {
+        id: slotId("dinette_front"),
+        cell: { x: 1, z: 1, layer: 1 },
+        height: 7,
+      },
+      {
+        id: slotId("dinette_rear"),
+        cell: { x: 1, z: -1, layer: 1 },
+        height: 7,
+      },
     ],
   },
   // The model's bed at the rear left, 9 px high (tools/gen_camper.py, ADR 0092).
@@ -406,12 +423,14 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
   {
     kind: "stove",
     cells: [STOVE_CELL],
-    slots: [{ id: "stove", cell: STOVE_CELL, height: 15 }],
+    slots: [{ id: slotId("stove"), cell: STOVE_CELL, height: 15 }],
   },
   {
     kind: "counter",
     cells: [{ x: -1, z: -1, layer: 1 }],
-    slots: [{ id: "counter", cell: { x: -1, z: -1, layer: 1 }, height: 14 }],
+    slots: [
+      { id: slotId("counter"), cell: { x: -1, z: -1, layer: 1 }, height: 14 },
+    ],
   },
   // Height 6 lifts the 10 px hanging planter so its top meets the hook at the top of the cell (ADR 0099, 0102).
   {
@@ -419,7 +438,7 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     cells: [{ x: 1, z: 0, layer: 2 }],
     slots: [
       {
-        id: "ceiling_hook",
+        id: slotId("ceiling_hook"),
         cell: { x: 1, z: 0, layer: 2 },
         height: 6,
         hanging: true,
@@ -440,3 +459,9 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
   { kind: "wall_cabinet", ...storageFurniture(WALL_CABINET) },
   { kind: "fridge", ...storageFurniture(FRIDGE) },
 ];
+
+function slotId(raw: string): DecorSlotId {
+  const id = parseDecorSlotId(raw);
+  if (id === undefined) throw new Error(`Invalid decor slot: ${raw}`);
+  return id;
+}

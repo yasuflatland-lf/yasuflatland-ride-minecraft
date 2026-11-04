@@ -1,13 +1,14 @@
 import type { VehicleId } from "../../domain/shared/ids";
+import type { DecorItemId, DecorSlotId } from "../../domain/vehicle/dock/decor";
 // Use case: put an item in a vehicle's decor slot or empty it, and save the decor (ADR 0093).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DecorWorld } from "./ports/decor";
 
 export interface SetDecorCommand {
   vehicleId: VehicleId;
-  slot: string;
+  slot: DecorSlotId;
   /** A gear id without the namespace; undefined empties the slot. */
-  item: string | undefined;
+  item: DecorItemId | undefined;
 }
 
 export class SetDecor {
@@ -18,9 +19,9 @@ export class SetDecor {
 
   /** Returns whether the decor changed; only then is it saved. */
   execute(cmd: SetDecorCommand): boolean {
-    const vehicle = this.repo.get(cmd.vehicleId);
-    if (!vehicle?.setDecor(cmd.slot, cmd.item)) return false;
-    this.world.saveDecor(cmd.vehicleId, vehicle.decor());
+    const room = this.repo.get(cmd.vehicleId)?.asRoom();
+    if (!room?.setDecor(cmd.slot, cmd.item)) return false;
+    this.world.saveDecor(cmd.vehicleId, room.decor());
     return true;
   }
 }

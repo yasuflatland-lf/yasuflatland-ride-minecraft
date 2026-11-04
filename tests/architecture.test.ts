@@ -89,6 +89,75 @@ function importX(specifier: string): string {
 describe("dependency-cruiser rules (ADR 0065)", () => {
   it.each<[string, Record<string, string>, string[]]>([
     [
+      "infrastructure core importing kind",
+      {
+        "src/infrastructure/vehicle/bedrock/world.ts": importX(
+          "../kinds/camper/dockBlocks",
+        ),
+        "src/infrastructure/vehicle/kinds/camper/dockBlocks.ts": EXPORTS_X,
+      },
+      ["infrastructure-core-imports-kind"],
+    ],
+    [
+      "infrastructure nested core importing kind",
+      {
+        "src/infrastructure/vehicle/bedrock/handlers/drive.ts": importX(
+          "../../kinds/camper/identifiers",
+        ),
+        "src/infrastructure/vehicle/kinds/camper/identifiers.ts": EXPORTS_X,
+      },
+      ["infrastructure-core-imports-kind"],
+    ],
+    [
+      "infrastructure install wiring kind",
+      {
+        "src/infrastructure/vehicle/install.ts": importX(
+          "./kinds/camper/install",
+        ),
+        "src/infrastructure/vehicle/kinds/camper/install.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
+      "infrastructure nested install importing kind",
+      {
+        "src/infrastructure/vehicle/bedrock/install.ts": importX(
+          "../kinds/camper/install",
+        ),
+        "src/infrastructure/vehicle/kinds/camper/install.ts": EXPORTS_X,
+      },
+      ["infrastructure-core-imports-kind"],
+    ],
+    [
+      "infrastructure same kind",
+      {
+        "src/infrastructure/vehicle/kinds/camper/handlers/decor.ts":
+          importX("../identifiers"),
+        "src/infrastructure/vehicle/kinds/camper/identifiers.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
+      "infrastructure other kind",
+      {
+        "src/infrastructure/vehicle/kinds/camper/handlers/decor.ts": importX(
+          "../../sportsboat/identifiers",
+        ),
+        "src/infrastructure/vehicle/kinds/sportsboat/identifiers.ts": EXPORTS_X,
+      },
+      ["infrastructure-kind-imports-other-kind"],
+    ],
+    [
+      "infrastructure kind importing core",
+      {
+        "src/infrastructure/vehicle/kinds/camper/dockBlocks.ts": importX(
+          "../../bedrock/dockLayer",
+        ),
+        "src/infrastructure/vehicle/bedrock/dockLayer.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
       "same kind",
       {
         "src/domain/vehicle/kinds/suv/drive.ts": importX("./spec"),

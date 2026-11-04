@@ -27,6 +27,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
+import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
@@ -168,7 +169,9 @@ it("takes back the item at the pressed end of an open compartment, and shuts the
         const ends = DECOR_SLOTS.filter((s) => s.door === door);
         const heldEnd = defined(ends[held], "held end");
         const emptyEnd = defined(ends[1 - held], "empty end");
-        expect(f.drive.setDecor(heldEnd.id, "mug_pair")).toBe(true);
+        expect(f.drive.setDecor(heldEnd.id, decorItemId("mug_pair"))).toBe(
+          true,
+        );
         f.park();
         // Shut, a press opens the door and takes nothing.
         expect(
@@ -202,15 +205,24 @@ it("places gear behind an open door only, and never takes a cabinet item through
   const sink = slotNamed("cabinet_sink_rear");
   const point = slotPoint(f.pose, sink);
   const cell = f.compartment("sink");
-  const shut = f.drive.decorSlotFor("mug_pair", point, cell, false);
+  const shut = f.drive.decorSlotFor(
+    decorItemId("mug_pair"),
+    point,
+    cell,
+    false,
+  );
   expect(shut).toBeDefined();
   expect(slotNamed(defined(shut, "slot")).door).toBeUndefined();
-  expect(f.drive.decorSlotFor("mug_pair", point, cell, true)).toBeUndefined();
-  expect(f.drive.placeDecor(sink.id, "mug_pair")).toBe(false);
+  expect(
+    f.drive.decorSlotFor(decorItemId("mug_pair"), point, cell, true),
+  ).toBeUndefined();
+  expect(f.drive.placeDecor(sink.id, decorItemId("mug_pair"))).toBe(false);
   f.press("sink", "compartment");
-  expect(f.drive.decorSlotFor("mug_pair", point, cell, false)).toBe(sink.id);
-  expect(f.drive.placeDecor(sink.id, "mug_pair")).toBe(true);
-  expect(f.drive.decorSlotFor("cushion", point, cell, false)).toBe(
+  expect(
+    f.drive.decorSlotFor(decorItemId("mug_pair"), point, cell, false),
+  ).toBe(sink.id);
+  expect(f.drive.placeDecor(sink.id, decorItemId("mug_pair"))).toBe(true);
+  expect(f.drive.decorSlotFor(decorItemId("cushion"), point, cell, false)).toBe(
     "cabinet_sink_front",
   );
   expect(f.drive.removeDecor(cell, point)).toBeUndefined();
@@ -221,11 +233,11 @@ it("places gear behind an open door only, and never takes a cabinet item through
     type: "cabinet",
     face: decorFace(f.pose.yaw),
     open: true,
-    end0: "mug_pair",
+    end0: decorItemId("mug_pair"),
   } satisfies DockBlock);
   // The stove's compartment stays shut, so a press on it sends the item elsewhere.
   const stoveSide = f.drive.decorSlotFor(
-    "cushion",
+    decorItemId("cushion"),
     slotPoint(f.pose, slotNamed("cabinet_stove_rear")),
     f.compartment("stove"),
     false,
@@ -235,7 +247,7 @@ it("places gear behind an open door only, and never takes a cabinet item through
 
 it("shuts both doors at once on departure, keeps their items, and lays them shut on the next park (ADR 0114)", () => {
   const f = fixture();
-  f.drive.setDecor("cabinet_stove_front", "toaster");
+  f.drive.setDecor(decorSlotId("cabinet_stove_front"), decorItemId("toaster"));
   f.park();
   f.press("sink", "compartment");
   f.press("stove", "compartment");

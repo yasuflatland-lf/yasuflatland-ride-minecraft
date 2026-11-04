@@ -1,12 +1,12 @@
 import { system } from "@minecraft/server";
-import type { PressShowerToilet } from "../../../../application/vehicle/pressShowerToilet";
+import type { PressShowerToilet } from "../../../../../application/vehicle/pressShowerToilet";
 import {
   asDimensionId,
   type DimensionId,
   type VehicleId,
-} from "../../../../domain/shared/ids";
-import type { Vec3 } from "../../../../domain/shared/vec";
-import { heldTypeId } from "../../../shared/heldItem";
+} from "../../../../../domain/shared/ids";
+import type { Vec3 } from "../../../../../domain/shared/vec";
+import { heldTypeId } from "../../../../shared/heldItem";
 import { CAMPER_SHOWER_TOILET_COMPONENT } from "../identifiers";
 
 export function registerShowerToilet(

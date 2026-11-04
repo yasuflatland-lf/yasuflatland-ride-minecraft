@@ -1,13 +1,16 @@
+import { asVehicleId, type VehicleId } from "../shared/ids";
+import { asFirePitId, type FirePitId } from "./firePit";
 import { TABLE_SPOTS } from "./spec";
+import { asTableId, type TableId } from "./table";
 import type { LocalPoint } from "./tabletop";
 
 export type Host =
   | { readonly kind: "ground" }
-  | { readonly kind: "vehicle"; readonly id: string }
-  | { readonly kind: "fire_pit"; readonly id: string; readonly spot: number }
+  | { readonly kind: "vehicle"; readonly id: VehicleId }
+  | { readonly kind: "fire_pit"; readonly id: FirePitId; readonly spot: number }
   | {
       readonly kind: "camp_table";
-      readonly id: string;
+      readonly id: TableId;
       readonly at: LocalPoint;
     };
 
@@ -46,7 +49,7 @@ export function encodeHost(host: Host): string {
 
 export function decodeHost(text: string): Host {
   if (text.startsWith("vehicle:") && text.length > "vehicle:".length)
-    return { kind: "vehicle", id: text.slice("vehicle:".length) };
+    return { kind: "vehicle", id: asVehicleId(text.slice("vehicle:".length)) };
 
   const point = TABLE_POINT_MARKER.exec(text);
   if (point) {
@@ -57,7 +60,7 @@ export function decodeHost(text: string): Host {
       return { kind: "ground" };
     return {
       kind: "camp_table",
-      id,
+      id: asTableId(id),
       at: { x: withoutNegativeZero(x), z: withoutNegativeZero(z) },
     };
   }
@@ -67,8 +70,10 @@ export function decodeHost(text: string): Host {
   const [, kind, id, rawSpot] = marker;
   const spot = Number(rawSpot);
   if (!id || !Number.isSafeInteger(spot)) return { kind: "ground" };
-  if (kind === "fire_pit") return { kind, id, spot };
+  if (kind === "fire_pit") return { kind, id: asFirePitId(id), spot };
   // A legacy table marker stores an index into TABLE_SPOTS instead of a point.
   const at = TABLE_SPOTS[spot];
-  return at ? { kind: "camp_table", id, at: { ...at } } : { kind: "ground" };
+  return at
+    ? { kind: "camp_table", id: asTableId(id), at: { ...at } }
+    : { kind: "ground" };
 }

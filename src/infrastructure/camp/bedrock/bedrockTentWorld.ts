@@ -25,6 +25,7 @@ import {
   isCreative,
   playerById,
 } from "../../shared/players";
+import { chunkLoadedAt } from "../chunkLoadedAt";
 import {
   PITCH_REFUSAL_MESSAGE,
   TENT_HITS_LEFT_HINT,

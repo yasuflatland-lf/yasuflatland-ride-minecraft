@@ -7,7 +7,7 @@ import type { BreakWorld } from "./ports/fleet";
 import type { Clock } from "./ports/shared";
 import { retireVehicle } from "./retireVehicle";
 
-export interface HitVehicleCommand {
+interface HitVehicleCommand {
   /** The player who hit; placed decor goes to them (ADR 0093). */
   playerId: PlayerId;
   vehicleId: VehicleId;
@@ -28,7 +28,7 @@ export class HitVehicle {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
     if (!vehicle.receiveHit(this.clock.now())) return false;
-    const decor = vehicle.decor().map((d) => d.item);
+    const decor = (vehicle.asRoom()?.decor() ?? []).map((d) => d.item);
     this.world.dropVehicleItem(cmd.vehicleId);
     if (decor.length > 0) this.world.giveDecorItems(cmd.playerId, decor);
     const fleet = this.fleets.load();

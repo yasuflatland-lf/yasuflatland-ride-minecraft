@@ -1,27 +1,36 @@
 // Persistent blocks that held vehicles lay: decks, and a parked camper's room (ADR 0063, 0068).
 import { BlockPermutation, type Entity } from "@minecraft/server";
-import type { SpaceCheck } from "../../../application/shared/ports/space";
-import { cellKey } from "../../../domain/shared/cells";
+import type { SpaceCheck } from "../../../../application/shared/ports/space";
+import { cellKey } from "../../../../domain/shared/cells";
 import {
   asDimensionId,
   type DimensionId,
   type VehicleId,
-} from "../../../domain/shared/ids";
-import type { Vec3 } from "../../../domain/shared/vec";
-import { isDecorItem } from "../../../domain/vehicle/dock/decor";
+} from "../../../../domain/shared/ids";
+import type { Vec3 } from "../../../../domain/shared/vec";
+import {
+  type DecorItemId,
+  isDecorItem,
+} from "../../../../domain/vehicle/dock/decor";
 import {
   type DockBlock,
   type DockCell,
   type Face,
   sameBlock,
-} from "../../../domain/vehicle/dock/floor";
-import { STANDING_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
+} from "../../../../domain/vehicle/dock/floor";
+import { STANDING_GEAR_IDS } from "../../../../domain/vehicle/kinds/index";
 import {
   type CellCodec,
   CellLayer,
   savedLaidCells,
-} from "../../shared/laidCells";
-import { LIGHT_BLOCK } from "../../shared/lightBlocks";
+} from "../../../shared/laidCells";
+import { LIGHT_BLOCK } from "../../../shared/lightBlocks";
+import type { DockLayer } from "../../bedrock/dockLayer";
+import {
+  DECK_CELLS_PROPERTY,
+  DECK_FLOOR_BLOCK,
+  DECK_FLOOR_HEIGHT_STATE,
+} from "../../bedrock/identifiers";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BUNK_BLOCK,
@@ -34,9 +43,6 @@ import {
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
-  DECK_CELLS_PROPERTY,
-  DECK_FLOOR_BLOCK,
-  DECK_FLOOR_HEIGHT_STATE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
@@ -89,9 +95,10 @@ function isDecorSpot(v: unknown): v is number {
   );
 }
 
-function isPairEnd(v: unknown): boolean {
+function isPairEnd(v: unknown): v is DecorItemId | undefined {
   return (
-    v === undefined || (typeof v === "string" && STANDING_GEAR_IDS.includes(v))
+    v === undefined ||
+    (typeof v === "string" && isDecorItem(v) && STANDING_GEAR_IDS.includes(v))
   );
 }
 
@@ -330,7 +337,11 @@ export function savedDock(vehicle: Entity): {
   };
 }
 
-export class DockBlocks {
+export class DockBlocks implements DockLayer {
+  saved(vehicle: Entity): ReturnType<DockLayer["saved"]> {
+    return savedDock(vehicle);
+  }
+
   private readonly layer = new CellLayer<VehicleId, DockBlock>(
     DOCK_CODEC,
     DOCK_RECHECK_TICKS,

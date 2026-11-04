@@ -35,6 +35,7 @@ import {
   Vehicle,
   type VehicleTickInput,
 } from "../../../src/domain/vehicle/vehicle";
+import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";
 import { propertyValue } from "../../support/engineCommands";
 import { engineStep } from "../../support/engineModel";
@@ -1173,19 +1174,26 @@ describe("hints (ADR 0086)", () => {
   });
 });
 
-it("has no hand-placed decor for a kind without decor (ADR 0093)", () => {
-  const suv = createVehicle("suv", asVehicleId("a"), 0);
-  expect(
-    suv.decorSlotFor(
-      "percolator",
-      { x: 0, y: 0, z: 0 },
-      { x: 0, y: 0, z: 0 },
-      false,
+it("exposes a room only for kinds with the room capability", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(...VEHICLE_KINDS),
+      fc.integer(),
+      (kind, yaw) => {
+        const vehicle = createVehicle(kind, asVehicleId("a"), yaw);
+        const room = vehicle.asRoom();
+        expect(room !== undefined).toBe(kind === "camper");
+        if (room) {
+          expect(room.decor()).toEqual([]);
+          expect(
+            room.setDecor(decorSlotId("stove"), decorItemId("percolator")),
+          ).toBe(true);
+          expect(vehicle.asRoom()).toBe(room);
+          expect(room.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
+        }
+      },
     ),
-  ).toBeUndefined();
-  expect(suv.placeDecor("stove", "percolator")).toBe(false);
-  expect(suv.removeDecor({ x: 0, y: 0, z: 0 })).toBeUndefined();
-  expect(suv.decor()).toEqual([]);
+  );
 });
 
 it("K5 plays the front-right door after a lagged driver leaves", () => {

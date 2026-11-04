@@ -1,4 +1,4 @@
-// Architecture rules (ADR 0012, 0046, 0055, 0065, 0072, 0090), checked by `pnpm lint:deps`.
+// Architecture rules (ADR 0012, 0046, 0055, 0065, 0072, 0090, 0221), checked by `pnpm lint:deps`.
 const LAYER = "(?:domain|application|infrastructure)";
 const KINDS = "^src/domain/vehicle/kinds/";
 
@@ -54,6 +54,26 @@ module.exports = {
       severity: "error",
       from: { path: "^src/domain/vehicle/", pathNot: KINDS },
       to: { path: KINDS },
+    },
+    {
+      name: "infrastructure-core-imports-kind",
+      comment: "Only install.ts wires infrastructure kinds (ADR 0221).",
+      severity: "error",
+      from: {
+        path: "^src/infrastructure/vehicle/",
+        pathNot: "^src/infrastructure/vehicle/(?:kinds/|install\\.ts$)",
+      },
+      to: { path: "^src/infrastructure/vehicle/kinds/" },
+    },
+    {
+      name: "infrastructure-kind-imports-other-kind",
+      comment: "Infrastructure kinds never import each other (ADR 0221).",
+      severity: "error",
+      from: { path: "^src/infrastructure/vehicle/kinds/([^/]+)/" },
+      to: {
+        path: "^src/infrastructure/vehicle/kinds/",
+        pathNot: "^src/infrastructure/vehicle/kinds/$1/",
+      },
     },
     {
       name: "core-imports-motion",

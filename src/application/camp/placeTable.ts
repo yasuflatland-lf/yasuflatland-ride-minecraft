@@ -5,7 +5,7 @@ import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop } from "./groundPlacement";
 import type { TableWorld } from "./ports/table";
 
-export interface PlaceTableCommand {
+interface PlaceTableCommand {
   playerId: PlayerId;
   dimensionId: DimensionId;
   blockLocation: Vec3;

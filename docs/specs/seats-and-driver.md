@@ -15,6 +15,7 @@
 - Source: [0136](../adr/0136-bulldozer.md)
 - Source: [0141](../adr/0141-put-a-bulldozer-driver-out-beside-the-left-door.md)
 - Source: [0154](../adr/0154-keep-camper-passengers-in-their-seats-on-departure.md)
+- Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
 - Excluded: [0117](../adr/0117-move-the-suv-front-seats-back.md): SUV seat coordinates, covered by suv-body
 - Excluded: [0138](../adr/0138-raise-and-lower-the-bulldozer-blade.md): bulldozer blade lift, not seating
 - Excluded: [0155](../adr/0155-cut-under-water-and-dig-a-shaft-when-rising.md): bulldozer cutting, not seating
@@ -165,11 +166,11 @@
 ### Pressing a taken dinette seat with camping gear
 
 - Applies to: parked camper, a player holding camping gear who presses a dinette deck seat.
-- Rule: A press from a dinette deck seat names one slot (`PlaceDecorCommand.exact` is `true`; a press on a furniture or decor block has it `false`). The handler cancels every recognized gear press, while `SeatPresses` admits placement requests only after its idle interval. An admitted request is deferred with `system.run`; `slotForPress` considers accepting free slots in the pressed cell and chooses the nearest one there, with no fallback to another cell when `exact`. Placement also requires the vehicle to remain known, successful consumption outside Creative, and `vehicle.placeDecor` to succeed. When no slot is offered, the player sees "No free spot for this item", keeps the item, and nothing is saved. Other refusal paths do not necessarily show this message; a failed placement after consumption is not refunded by this use case. The press stays cancelled in both cases, so a refused press does not seat the player. With an empty hand or any non-gear item, this handler does not intervene in seating.
+- Rule: A press from a dinette deck seat names one slot (`PlaceDecorCommand.exact` is `true`; a press on a furniture or decor block has it `false`). The handler cancels every recognized gear press, while `SeatPresses` admits placement requests only after its idle interval. An admitted request is deferred with `system.run`; `slotForPress` considers accepting free slots in the pressed cell and chooses the nearest one there, with no fallback to another cell when `exact`. Placement also requires the vehicle to remain known, successful consumption outside Creative, and `vehicle.asRoom()?.placeDecor` to succeed (0220). When no slot is offered, the player sees "No free spot for this item", keeps the item, and nothing is saved. Other refusal paths do not necessarily show this message; a failed placement after consumption is not refunded by this use case. The press stays cancelled in both cases, so a refused press does not seat the player. With an empty hand or any non-gear item, this handler does not intervene in seating.
 - Agreement: Accepted
 - Basis: [0104](../adr/0104-refuse-a-press-on-a-taken-seat.md) Decision, "With `exact`, the item goes on the pressed slot when that slot accepts it and is free."
 - Basis: [0104](../adr/0104-refuse-a-press-on-a-taken-seat.md) Decision, "The seat press stays cancelled in both cases, so a refused press does not seat the player either."
-- Implementation: `src/domain/vehicle/kinds/camper/decorPlacing.ts` (`slotForPress`); `src/application/vehicle/placeDecor.ts` (`PlaceDecorCommand.exact`); `src/infrastructure/vehicle/bedrock/handlers/decor.ts` (`placeGearOnSeat`); `src/domain/vehicle/kinds/camper/seatPress.ts` (`SeatPresses`, `seatSlotCell`)
+- Implementation: `src/domain/vehicle/kinds/camper/decorPlacing.ts` (`slotForPress`); `src/application/vehicle/placeDecor.ts` (`PlaceDecorCommand.exact`); `src/infrastructure/vehicle/kinds/camper/handlers/decor.ts` (`placeGearOnSeat`); `src/domain/vehicle/kinds/camper/seatPress.ts` (`SeatPresses`, `seatSlotCell`)
 - Verification: `tests/domain/vehicle/kinds/camper/decorPlacing.test.ts` "with an exact press returns the pressed slot when it accepts the item and is free, else nothing, never another slot (ADR 0104)"; `tests/application/vehicle/placeDecor.test.ts` "refuses an exact press on a taken slot with the no-slot message, consuming and saving nothing (ADR 0104)". Not verified: on a device, and that an empty-handed press seats the player (no test found).
 
 ## Open issues

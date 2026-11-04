@@ -25,7 +25,7 @@ import {
 } from "../../identifiers";
 import type { MenuChoices } from "../menuChoices";
 
-export interface LastMessage {
+interface LastMessage {
   message: BuildMessage;
   count?: number;
 }

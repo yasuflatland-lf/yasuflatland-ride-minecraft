@@ -4,7 +4,7 @@ import type { Vec3 } from "../../domain/shared/vec";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DecorPlacingWorld } from "./ports/decor";
 
-export interface RemoveDecorCommand {
+interface RemoveDecorCommand {
   playerId: PlayerId;
   vehicleId: VehicleId;
   /** The world cell of the decor block. */
@@ -25,10 +25,10 @@ export class RemoveDecor {
 
   /** Returns whether decor was taken out; only then is the decor saved and the item given. */
   execute(cmd: RemoveDecorCommand): boolean {
-    const vehicle = this.repo.get(cmd.vehicleId);
-    const item = vehicle?.removeDecor(cmd.cell, cmd.point, cmd.eye);
-    if (!vehicle || item === undefined) return false;
-    this.world.saveDecor(cmd.vehicleId, vehicle.decor());
+    const room = this.repo.get(cmd.vehicleId)?.asRoom();
+    const item = room?.removeDecor(cmd.cell, cmd.point, cmd.eye);
+    if (!room || item === undefined) return false;
+    this.world.saveDecor(cmd.vehicleId, room.decor());
     this.world.giveDecorItems(cmd.playerId, [item]);
     return true;
   }

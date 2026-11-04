@@ -5,6 +5,7 @@ import { asVehicleId, type VehicleId } from "../../../src/domain/shared/ids";
 import type { DecorPlacement } from "../../../src/domain/vehicle/dock/decor";
 import { DECOR_SLOTS } from "../../../src/domain/vehicle/kinds/camper/decor";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
+import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { InMemoryRepo } from "./fakes";
 
 class FakeDecorWorld implements DecorWorld {
@@ -25,27 +26,35 @@ function setup(kind: "camper" | "suv") {
 it("saves the camper's whole decor after each change and nothing otherwise", () => {
   const { world, decor } = setup("camper");
   const vehicleId = asVehicleId("car");
-  const plant = { vehicleId, slot: "table", item: "potted_plant" };
+  const plant = {
+    vehicleId,
+    slot: decorSlotId("table"),
+    item: decorItemId("potted_plant"),
+  };
   expect(decor.execute(plant)).toBe(true);
   expect(world.saves).toEqual([
     ["car", [{ slot: "table", item: "potted_plant" }]],
   ]);
   expect(decor.execute(plant)).toBe(false);
   expect(world.saves).toHaveLength(1);
-  expect(decor.execute({ vehicleId, slot: "stove", item: "percolator" })).toBe(
-    true,
-  );
-  const slotIndex = (p: DecorPlacement) =>
+  expect(
+    decor.execute({
+      vehicleId,
+      slot: decorSlotId("stove"),
+      item: decorItemId("percolator"),
+    }),
+  ).toBe(true);
+  const slotIndex = (p: Pick<DecorPlacement, "slot">) =>
     DECOR_SLOTS.findIndex((s) => s.id === p.slot);
   expect(world.saves.at(-1)?.[1]).toEqual(
     [
-      { slot: "table", item: "potted_plant" },
-      { slot: "stove", item: "percolator" },
+      { slot: decorSlotId("table"), item: "potted_plant" },
+      { slot: decorSlotId("stove"), item: "percolator" },
     ].sort((a, b) => slotIndex(a) - slotIndex(b)),
   );
-  expect(decor.execute({ vehicleId, slot: "table", item: undefined })).toBe(
-    true,
-  );
+  expect(
+    decor.execute({ vehicleId, slot: decorSlotId("table"), item: undefined }),
+  ).toBe(true);
   expect(world.saves.at(-1)?.[1]).toEqual([
     { slot: "stove", item: "percolator" },
   ]);
@@ -53,12 +62,16 @@ it("saves the camper's whole decor after each change and nothing otherwise", () 
   expect(
     decor.execute({
       vehicleId: asVehicleId("unknown"),
-      slot: "table",
-      item: "potted_plant",
+      slot: decorSlotId("table"),
+      item: decorItemId("potted_plant"),
     }),
   ).toBe(false);
   expect(
-    decor.execute({ vehicleId, slot: "nowhere", item: "potted_plant" }),
+    decor.execute({
+      vehicleId,
+      slot: decorSlotId("nowhere"),
+      item: decorItemId("potted_plant"),
+    }),
   ).toBe(false);
   expect(world.saves).toHaveLength(before);
 });
@@ -68,10 +81,10 @@ it("refuses decor for a kind without a room", () => {
   expect(
     decor.execute({
       vehicleId: vehicle.id,
-      slot: "table",
-      item: "potted_plant",
+      slot: decorSlotId("table"),
+      item: decorItemId("potted_plant"),
     }),
   ).toBe(false);
   expect(world.saves).toEqual([]);
-  expect(vehicle.decor()).toEqual([]);
+  expect(vehicle.asRoom()).toBeUndefined();
 });

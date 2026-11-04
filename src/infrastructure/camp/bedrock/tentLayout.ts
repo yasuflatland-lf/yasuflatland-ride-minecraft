@@ -33,7 +33,7 @@ import { type Cell, cellKey } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
-import { chunkLoadedAt } from "../../shared/chunkLoadedAt";
+import { chunkLoadedAt } from "../chunkLoadedAt";
 import { AIR_BLOCK, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";

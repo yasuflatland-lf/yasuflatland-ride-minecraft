@@ -23,6 +23,7 @@ import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { type SeatExit, Vehicle } from "../../../src/domain/vehicle/vehicle";
+import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";
 import {
   riderViews,
@@ -1510,14 +1511,14 @@ it("silently drops saved oil lamps and removed decor, and saves it after the nex
     new DriveVehicles(world, repo, log, () => false).execute(0),
   ).not.toThrow();
   const vehicleId = asVehicleId("car");
-  expect(repo.get(vehicleId)?.decor()).toEqual([]);
+  expect(repo.get(vehicleId)?.asRoom()?.decor()).toEqual([]);
   expect(log.lines).toEqual([]);
   const saveDecor = vi.fn();
   expect(
     new SetDecor({ saveDecor }, repo).execute({
       vehicleId,
-      slot: "stove",
-      item: "toaster",
+      slot: decorSlotId("stove"),
+      item: decorItemId("toaster"),
     }),
   ).toBe(true);
   expect(saveDecor).toHaveBeenCalledWith(vehicleId, [

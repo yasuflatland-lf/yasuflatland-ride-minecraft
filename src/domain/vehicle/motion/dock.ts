@@ -23,7 +23,7 @@ export function pushesStick(input: RawInput | undefined): boolean {
 }
 
 /** What a kind adds to its held step; both are computed by the kind, which owns their side effects. */
-export interface HeldStepExtras {
+interface HeldStepExtras {
   readonly commands?: readonly EngineCommand[];
   /** Present only for a kind that clears blocks while held; the key is left out otherwise. */
   readonly clear?: readonly ClearCell[];

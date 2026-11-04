@@ -3,7 +3,7 @@ import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 
-export interface BoardVehicleCommand {
+interface BoardVehicleCommand {
   playerId: PlayerId;
   vehicleId: VehicleId;
   /** The player's eye, as an offset from the vehicle's feet. */

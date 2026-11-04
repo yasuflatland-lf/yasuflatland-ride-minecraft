@@ -26,8 +26,11 @@
 - Source: [0121](../adr/0121-doored-storage-in-the-camper.md)
 - Source: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md)
 - Source: [0182](../adr/0182-a-bunk-bed-in-the-parked-camper.md)
+- Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
 
 ## Rules
+
+Room use cases obtain the required door, bed, shower, decor and storage methods from `Vehicle.asRoom()`, which returns `RoomDrive` or undefined. Unsupported vehicles retain false or undefined results and no effects; decor reads for pickup use an empty list (0220).
 
 ### Furniture table
 
@@ -43,7 +46,7 @@
 ### Bed and bunk sleeping
 
 - Applies to: A player interacting with a camper sleeping block.
-- Rule: `yasu_ride:camper_bed` and `yasu_ride:camper_bunk` share the `yasu_ride:camper_bed` component. The lower bed has mattress-height collision and selection; the bunk has selection without collision, leaving the lower bed usable as a standing surface. Aim chooses the level. Owner lookup, `FindBedSpawnCell` and `Drive.bedSpawnCell` obtain the sleepable furniture row's `spawn`: the lower bed uses its adjacent aisle cell, and the bunk the aisle cell farther back. Missing owner or answer falls back to the pressed cell. `SleepInBed` does nothing outside `SLEEP.dimension` (the Overworld); inside it sets spawn even during daytime, then sleeps only in the inclusive `SLEEP.nightStart` to `SLEEP.nightEnd` window. Sleeping fades the pressing player's camera using `SLEEP` timings and sets world time to `SLEEP.wakeTime` after `SLEEP.wakeDelayTicks`; otherwise it shows "You can sleep only at night". One player skips the night for everyone without reading the sleeping-percentage rule or clearing weather.
+- Rule: `yasu_ride:camper_bed` and `yasu_ride:camper_bunk` share the `yasu_ride:camper_bed` component. The lower bed has mattress-height collision and selection; the bunk has selection without collision, leaving the lower bed usable as a standing surface. Aim chooses the level. Owner lookup, `FindBedSpawnCell` and `RoomDrive.bedSpawnCell` through `Vehicle.asRoom()` (0220) obtain the sleepable furniture row's `spawn`: the lower bed uses its adjacent aisle cell, and the bunk the aisle cell farther back. Missing owner or answer falls back to the pressed cell. `SleepInBed` does nothing outside `SLEEP.dimension` (the Overworld); inside it sets spawn even during daytime, then sleeps only in the inclusive `SLEEP.nightStart` to `SLEEP.nightEnd` window. Sleeping fades the pressing player's camera using `SLEEP` timings and sets world time to `SLEEP.wakeTime` after `SLEEP.wakeDelayTicks`; otherwise it shows "You can sleep only at night". One player skips the night for everyone without reading the sleeping-percentage rule or clearing weather.
 - Agreement: Proposed
 - Basis: [0092](../adr/0092-a-bed-in-the-parked-camper.md) Decision, "Outside the overworld the bed does nothing"
 - Basis: [0092](../adr/0092-a-bed-in-the-parked-camper.md) Decision, "One player's sleep skips the night for everyone."
@@ -89,8 +92,8 @@
 - Basis: [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md) Decision / Slots, "Its item is taken only by its own end:"
 - Basis: [0110](../adr/0110-pick-decor-slots-along-the-line-of-sight.md) Decision, "For each candidate slot, the ray from the eye through the hit point is intersected with the horizontal plane at the height of that slot's point."
 - Basis: [0111](../adr/0111-correct-the-inverted-face-location-height.md) Decision, "x and z are used as reported"
-- Implementation: `src/domain/vehicle/kinds/camper/decorPlacing.ts`; `src/domain/vehicle/kinds/camper/decor.ts`; `src/infrastructure/vehicle/bedrock/handlers/decor.ts`; `src/infrastructure/vehicle/bedrock/faceHeight.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/decorPlacing.test.ts` "prefers the pressed cell's free slot nearest the hit point when it accepts the item", "picks the slot the line of sight is aimed at", and "measures from the pressed point as before when the line of sight does not descend" check choice. `tests/infrastructure/vehicle/bedrock/faceHeight.test.ts` "keeps each room block's box top and bottom in step with its block file" and "puts the logged Up-face presses on the table top and the floor top" check correction. Not verified: current PC side-face reporting; C111 in `docs/manual-test.md` has no owner check recorded.
+- Implementation: `src/domain/vehicle/kinds/camper/decorPlacing.ts`; `src/domain/vehicle/kinds/camper/decor.ts`; `src/infrastructure/vehicle/kinds/camper/handlers/decor.ts`; `src/infrastructure/vehicle/kinds/camper/faceHeight.ts`
+- Verification: `tests/domain/vehicle/kinds/camper/decorPlacing.test.ts` "prefers the pressed cell's free slot nearest the hit point when it accepts the item", "picks the slot the line of sight is aimed at", and "measures from the pressed point as before when the line of sight does not descend" check choice. `tests/infrastructure/vehicle/kinds/camper/faceHeight.test.ts` "keeps each room block's box top and bottom in step with its block file" and "puts the logged Up-face presses on the table top and the floor top" check correction. Not verified: current PC side-face reporting; C111 in `docs/manual-test.md` has no owner check recorded.
 
 ### Placing gear
 
@@ -100,7 +103,7 @@
 - Basis: [0093](../adr/0093-decorate-the-parked-camper.md) Decision / Placing and removing, "Decor is placed only in a parked camper."
 - Basis: [0093](../adr/0093-decorate-the-parked-camper.md) Decision / Placing and removing, "Placing takes one item from the hand, except in Creative mode"
 - Basis: [0097](../adr/0097-press-the-camper-furniture-to-place-decor.md) Decision / Choosing the slot, ""No free spot for this item" shows only when every slot of the item's kind is taken"
-- Implementation: `src/infrastructure/vehicle/bedrock/handlers/decor.ts`; `src/application/vehicle/placeDecor.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/infrastructure/vehicle/bedrock/bedrockDecorWorld.ts`
+- Implementation: `src/infrastructure/vehicle/kinds/camper/handlers/decor.ts`; `src/application/vehicle/placeDecor.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/infrastructure/vehicle/bedrock/bedrockDecorWorld.ts`
 - Verification: `tests/application/vehicle/placeDecor.test.ts` "places without taking the item in Creative", "shows the no-slot message, keeps the item, and saves nothing", "places and saves nothing when the hotbar slot no longer holds the item", and "saves nothing when the vehicle refuses the slot it offered" check outcomes. Not verified: first-event and repeat handling with real touch/PC input; handler timing is read from code, not a recorded device result.
 
 ### Taking decor back
@@ -112,7 +115,7 @@
 - Basis: [0107](../adr/0107-stand-stove-gear-on-a-burner.md) Decision / Burner slots, "An empty-hand press on the cell takes back the item of whichever of its slots holds one"
 - Basis: [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md) Decision / Pressing, "An empty-hand press on a pair block takes back the end nearest the pressed x and z"
 - Basis: [0114](../adr/0114-open-the-camper-wall-cabinet.md) Decision / Slots and presses, "`removeDecor`, behind the decor blocks' component, never takes a cabinet item"
-- Implementation: `src/infrastructure/vehicle/bedrock/handlers/decor.ts`; `src/application/vehicle/removeDecor.ts`; `src/application/vehicle/hitVehicle.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/infrastructure/vehicle/bedrock/bedrockDecorWorld.ts`; `src/infrastructure/vehicle/bedrock/bedrockInventory.ts`; `src/infrastructure/shared/players.ts`
+- Implementation: `src/infrastructure/vehicle/kinds/camper/handlers/decor.ts`; `src/application/vehicle/removeDecor.ts`; `src/application/vehicle/hitVehicle.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/infrastructure/vehicle/bedrock/bedrockDecorWorld.ts`; `src/infrastructure/vehicle/bedrock/bedrockInventory.ts`; `src/infrastructure/shared/players.ts`
 - Verification: `tests/application/vehicle/removeDecor.test.ts` "takes back the end of the table nearest the pressed point" checks return; `tests/application/vehicle/hitVehicle.test.ts` "gives back stowed decor when the camper breaks" checks stowed items. `tests/infrastructure/vehicle/bedrock/bedrockDecorWorld.test.ts` "gives decor back as camping gear items" checks inventory delegation. Not verified: taking the visually intended table end on devices or overflow drops inside the camper.
 
 ### Saved decor on load
@@ -125,7 +128,7 @@
 - Basis: [0112](../adr/0112-one-burner-on-the-camper-stove.md) Decision, "maps the three old ids to `stove` before restoring"
 - Basis: [0114](../adr/0114-open-the-camper-wall-cabinet.md) Decision / Slots and presses, "Saved decor whose slot no longer exists may move into a cabinet compartment, shut or not"
 - Basis: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md) Decision / The fridge is a doored storage unit, "`shelf_low` loads as `fridge_bottom_rear`"
-- Implementation: `src/domain/vehicle/dock/decor.ts`; `src/domain/vehicle/kinds/camper/decor.ts`; `src/domain/vehicle/kinds/camper/campingGear.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/infrastructure/vehicle/bedrock/bedrockDecorWorld.ts`; `src/infrastructure/vehicle/bedrock/identifiers.ts`
+- Implementation: `src/domain/vehicle/dock/decor.ts`; `src/domain/vehicle/kinds/camper/decor.ts`; `src/domain/vehicle/kinds/camper/campingGear.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/infrastructure/vehicle/bedrock/bedrockDecorWorld.ts`; `src/infrastructure/vehicle/bedrock/identifiers.ts`; `src/infrastructure/vehicle/kinds/camper/identifiers.ts`
 - Verification: `tests/domain/vehicle/kinds/camper/parking.test.ts` "restores saved decor and moves an entry of a removed slot", "stows an entry of a removed slot", and "loads decor saved on a removed stove burner slot onto the stove" check migration and stowing. `tests/domain/vehicle/kinds/camper/fridge.test.ts` "loads decor saved on the shelf boards at the same end of the fridge compartment" checks shelf migration. `tests/domain/vehicle/kinds/camper/campingGear.test.ts` "drops lava_lamp, oil_lamp and lantern" checks legacy ids. Not verified: upgrade migration in a player world; C157 has no owner check recorded. The seed ADRs do not establish legacy-id deletion; see Open issues.
 
 ### Leaving with decor
@@ -148,7 +151,7 @@
 - Basis: [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md) Decision / The pair blocks, "Every face uses `*` with `opaque`, the sugar pot's glass too"
 - Basis: [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md) Decision / Pressing, "With one end taken, a press anywhere on the block sends the item to the other end"
 - Basis: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md) Decision / Blocks, "The shelf's pair block stays defined, with its old heights, though no slot lays it:"
-- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/decor.ts`; `src/infrastructure/vehicle/bedrock/identifiers.ts`; `tools/gen_camping_gear.py`; `packs/yasu_ride_bp/blocks/yasu_ride/table_decor_pair.block.json`; `packs/yasu_ride_bp/blocks/yasu_ride/shelf_decor_pair.block.json`
+- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/decor.ts`; `src/infrastructure/vehicle/kinds/camper/identifiers.ts`; `tools/gen_camping_gear.py`; `packs/yasu_ride_bp/blocks/yasu_ride/table_decor_pair.block.json`; `packs/yasu_ride_bp/blocks/yasu_ride/shelf_decor_pair.block.json`
 - Verification: `tests/packs/campingGear.test.ts` "shows exactly the bone of the item that each end's states name" checks encoding and visibility, and "draws each end's item at its slot's spot" checks offsets and material. `tests/packs/blockGeometry.test.ts` "keeps both items of a pair block over its own cell in every permutation" checks geometry. Not verified: actual Molang visibility, glass appearance or end selection on devices.
 
 ### Shower-toilet block and press
@@ -159,7 +162,7 @@
 - Basis: [0098](../adr/0098-a-block-for-the-camper-shower-toilet.md) Decision, "A press with any item in hand does nothing to the door or the shower."
 - Basis: [0098](../adr/0098-a-block-for-the-camper-shower-toilet.md) Decision, "The floor-tap path of 0094 is removed:"
 - Basis: [0118](../adr/0118-close-the-camper-shower-door-from-either-side.md) Decision, "If the door is shut and the player's feet are inside the column, the shower runs"
-- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/application/vehicle/pressShowerToilet.ts`; `src/infrastructure/vehicle/bedrock/handlers/showerToilet.ts`; `src/infrastructure/vehicle/bedrock/handlers/decor.ts`; `packs/yasu_ride_bp/blocks/yasu_ride/camper_shower_toilet.block.json`; `packs/yasu_ride_bp/blocks/yasu_ride/camper_shower_door.block.json`
+- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/application/vehicle/pressShowerToilet.ts`; `src/infrastructure/vehicle/kinds/camper/handlers/showerToilet.ts`; `src/infrastructure/vehicle/kinds/camper/handlers/decor.ts`; `packs/yasu_ride_bp/blocks/yasu_ride/camper_shower_toilet.block.json`; `packs/yasu_ride_bp/blocks/yasu_ride/camper_shower_door.block.json`
 - Verification: `tests/domain/vehicle/kinds/camper/showerToilet.test.ts` "closes an open shower door from either side, opens a shut one from outside" checks routing and echoes. `tests/packs/camperRoom.test.ts` "gives the shower-toilet no collision and a selectable 2 px plate on each face" and "makes the wall behind the open shower door the wall's plate, selectable on each face" check assets. Not verified: phone/PC presses at the model door's bottom or diagonal edge, or held-block behavior.
 
 ### Shower door and shower effects
@@ -202,7 +205,7 @@
 - Basis: [0109](../adr/0109-stand-up-inside-the-parked-camper.md) Decision, "The remembered riders live in script memory only."
 - Basis: [0109](../adr/0109-stand-up-inside-the-parked-camper.md) Decision, "a player who rode a deck seat that is still kept, is the same entity, and still has a `stand` point"
 - Basis: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md) Decision / Riders and presses, "`isStandableRoomBlock` names, only `yasu_ride:camper_fridge_door`"
-- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/infrastructure/vehicle/bedrock/deckSeats.ts`; `src/infrastructure/vehicle/bedrock/standUp.ts`; `src/infrastructure/vehicle/bedrock/identifiers.ts`
+- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/infrastructure/vehicle/bedrock/deckSeats.ts`; `src/infrastructure/vehicle/bedrock/standUp.ts`; `src/infrastructure/vehicle/kinds/camper/identifiers.ts`
 - Verification: `tests/infrastructure/vehicle/bedrock/deckSeats.test.ts` "stands up exactly the players who left a kept deck seat for nothing", "moves nobody after a reload, for a seat without a stand spot, or onto a replaced seat", and "leaves the engine's spot when the stand cells are blocked or the player is gone" check memory, guards, light blocks and fridge plates. Not verified: actual dismount flicker or device behavior; C92-C95 and C156 in `docs/manual-test.md` have no owner check recorded.
 
 ### Storage with doors
@@ -213,7 +216,7 @@
 - Basis: [0121](../adr/0121-doored-storage-in-the-camper.md) Decision / A definition per unit, "A unit of storage with doors is a `DooredStorage`"
 - Basis: [0121](../adr/0121-doored-storage-in-the-camper.md) Decision / Shared code, "It also restores the swing from the saved property, rounded and clamped, only for a docked camper."
 - Basis: [0114](../adr/0114-open-the-camper-wall-cabinet.md) Decision / Slots and presses, "When that end is empty, the door shuts"
-- Implementation: `src/domain/vehicle/kinds/camper/dooredStorage.ts`; `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/infrastructure/vehicle/bedrock/handlers/storage.ts`; `src/application/vehicle/pressStorage.ts`
+- Implementation: `src/domain/vehicle/kinds/camper/dooredStorage.ts`; `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/infrastructure/vehicle/kinds/camper/handlers/storage.ts`; `src/application/vehicle/pressStorage.ts`
 - Verification: `tests/domain/vehicle/kinds/camper/dooredStorage.test.ts` "uses a slot behind a door only while that door is open", "restores each door's saved swing, rounded and clamped", and "routes a press on any compartment or plate cell to its own door" check shared behavior. `tests/domain/vehicle/kinds/camper/cabinet.test.ts` "takes back the item at the pressed end of an open compartment, and shuts the door from an empty end" checks outcomes. Not verified: client visibility during a swing and actual plate presses.
 
 ### Wall cabinet
@@ -291,10 +294,10 @@
 - ADR 0107 says saved entries restore entry by entry, moving an unavailable entry immediately, and 0103 says an unknown slot moves in saved order to the first accepting free slot; the implementation reserves all existing free known slots first, then relocates homeless entries in saved order (`src/domain/vehicle/kinds/camper/drive.ts`, constructor); the ADRs need an edit or a superseding ADR. An unknown-slot entry before a later valid dashboard entry cannot displace that dashboard entry. Existing slots are reserved without checking standing/hanging compatibility; only relocated entries use `slotsFor`.
 - ADR 0093 drops unknown-slot entries, and 0103/0114 preserve displaced current items without defining removed catalog ids; the implementation additionally drops legacy `lava_lamp`, `oil_lamp` and `lantern` through `currentGearId` (`src/domain/vehicle/kinds/camper/campingGear.ts`, `src/domain/vehicle/kinds/camper/drive.ts`); the ADRs need an edit or a superseding ADR. Later catalog decisions are outside this seed set and are not Basis here.
 - ADR 0108 says its pair geometries have 36 bones and 142 cubes, from eighteen standing items and nineteen codes, with 6,080 combinations for the individual decor blocks; the implementation's `table_decor_pair.geo.json` has 32 bones and 122 cubes, from the 16 standing items of `STANDING_GEAR_IDS` (`packs/yasu_ride_rp/models/blocks/yasu_ride/table_decor_pair.geo.json`, `src/domain/vehicle/kinds/camper/campingGear.ts`, `tools/gen_camping_gear.py`); the ADR needs an edit or a superseding ADR.
-- ADR 0109 says stand cells must hold air or a light block; the implementation also accepts `isStandableRoomBlock`, currently the fridge door plate (`src/infrastructure/vehicle/bedrock/standUp.ts`, `src/infrastructure/vehicle/bedrock/identifiers.ts`); the ADR needs an edit or a superseding ADR. Proposed 0123 describes this addition, so the standing-up rule cites it and has Proposed agreement.
+- ADR 0109 says stand cells must hold air or a light block; the implementation also accepts `isStandableRoomBlock`, currently the fridge door plate (`src/infrastructure/vehicle/bedrock/standUp.ts`, `src/infrastructure/vehicle/kinds/camper/identifiers.ts`); the ADR needs an edit or a superseding ADR. Proposed 0123 describes this addition, so the standing-up rule cites it and has Proposed agreement.
 - ADR 0121 says a `DooredStorage` is defined in `furniture.ts`; the implementation defines the type in `dooredStorage.ts` and keeps only the units `WALL_CABINET` and `FRIDGE` in `furniture.ts` (`src/domain/vehicle/kinds/camper/dooredStorage.ts`, `src/domain/vehicle/kinds/camper/furniture.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0113 centers the counter window between the door and "the rear right window (z 38 to 50)"; the implementation has no window at that place, because `right_windows` holds the cab window, the window ahead of the door, the counter window and one small upper opening (`tools/gen_camper.py`); 0146 and 0157 extend 0113 but do not restate its window layout; the ADR needs an edit or a superseding ADR.
-- The player page `docs/vehicles/camper.md` says an empty-hand press on the table takes back "the item nearest the point you look at"; the implementation uses the pressed x and z from the block's face location, without the eye (`src/infrastructure/vehicle/bedrock/handlers/decor.ts`, `src/domain/vehicle/kinds/camper/drive.ts` `removeDecor`); the player page needs a correction if the wording is meant literally.
+- The player page `docs/vehicles/camper.md` says an empty-hand press on the table takes back "the item nearest the point you look at"; the implementation uses the pressed x and z from the block's face location, without the eye (`src/infrastructure/vehicle/kinds/camper/handlers/decor.ts`, `src/domain/vehicle/kinds/camper/drive.ts` `removeDecor`); the player page needs a correction if the wording is meant literally.
 - Proposed ADRs 0123 and 0182 both have the acceptance condition "owner decision pending (see #1193)"; every rule citing either is Proposed: `docs/adr/0123-a-fridge-in-place-of-the-camper-shelf.md`, `docs/adr/0182-a-bunk-bed-in-the-parked-camper.md`.
 
 - The camper rows of `docs/manual-test.md` that cover these rules (C30, C40, C47, C55 to C57, C69, C79, C86 to C88, C92 to C95, C111, C131, C143, C145, C152 to C158) have empty result cells, and C196 (the driving bunk) says unverified; no owner check of the bed, bunk, decor presses, shower, toilet, stand-up, cabinet or fridge on a device is recorded: `docs/manual-test.md`.

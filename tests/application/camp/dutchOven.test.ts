@@ -14,6 +14,7 @@ import {
   DUTCH_OVEN_SPEC,
   FIRE_PIT_TOP_PX,
 } from "../../../src/domain/camp/spec";
+import { asTableId } from "../../../src/domain/camp/table";
 import type { TopItem } from "../../../src/domain/camp/tabletop";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
@@ -265,7 +266,7 @@ it("leaves ground ovens alone and takes back ovens even if their host is gone", 
   expect(hosted.world.setCovered).not.toHaveBeenCalled();
 });
 
-const onTable = { player, table: "table", slot: 1 };
+const onTable = { player, table: asTableId("table"), slot: 1 };
 it("stands a lidded oven at the aimed point with the table's yaw and consumes outside Creative", () => {
   fc.assert(
     fc.property(

@@ -1,8 +1,9 @@
+import type { Brand } from "../shared/ids";
 import type { LaidCell } from "../shared/laidCells";
 import type { Vec3 } from "../shared/vec";
 import { GAS_LANTERN_SPEC } from "./spec";
 
-export type GasLanternId = string & { readonly __brand: "GasLanternId" };
+export type GasLanternId = Brand<string, "GasLanternId">;
 
 export function asGasLanternId(value: string): GasLanternId {
   return value as GasLanternId;

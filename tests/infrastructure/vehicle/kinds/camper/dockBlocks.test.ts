@@ -1,16 +1,24 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
-import { type Cell, cellKey } from "../../../../src/domain/shared/cells";
-import { asDimensionId, asVehicleId } from "../../../../src/domain/shared/ids";
-import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
-import { roomCells as camperRoomCells } from "../../../../src/domain/vehicle/kinds/camper/room";
+import type { SpaceCheck } from "../../../../../src/application/shared/ports/space";
+import { type Cell, cellKey } from "../../../../../src/domain/shared/cells";
+import {
+  asDimensionId,
+  asVehicleId,
+} from "../../../../../src/domain/shared/ids";
+import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
+import { roomCells as camperRoomCells } from "../../../../../src/domain/vehicle/kinds/camper/room";
+import {
+  DECK_CELLS_PROPERTY,
+  DECK_FLOOR_BLOCK,
+  DECK_FLOOR_HEIGHT_STATE,
+} from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import {
   DOCK_RECHECK_TICKS,
   DockBlocks,
   savedDock,
-} from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
+} from "../../../../../src/infrastructure/vehicle/kinds/camper/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BUNK_BLOCK,
@@ -23,9 +31,6 @@ import {
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
-  DECK_CELLS_PROPERTY,
-  DECK_FLOOR_BLOCK,
-  DECK_FLOOR_HEIGHT_STATE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
@@ -36,8 +41,9 @@ import {
   ROOM_FACE_STATE,
   ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
-} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
-import { defined } from "../../../support/defined";
+} from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { decorItemId } from "../../../../support/decorIds";
+import { defined } from "../../../../support/defined";
 
 vi.mock("@minecraft/server", () => ({
   BlockPermutation: {
@@ -156,7 +162,7 @@ describe("DockBlocks (ADR 0063)", () => {
         z: 0,
         block: {
           type: "decor",
-          item: "potted_plant",
+          item: decorItemId("potted_plant"),
           face: 2,
           height: 3,
           spot: 0,
@@ -396,7 +402,7 @@ const roomCells: DockCell[] = [
     z: 0,
     block: {
       type: "decor",
-      item: "potted_plant",
+      item: decorItemId("potted_plant"),
       face: 1,
       height: 15,
       spot: 3,
@@ -409,7 +415,12 @@ const roomCells: DockCell[] = [
     x: 10,
     y: 64,
     z: 0,
-    block: { type: "cabinet", face: 2, open: true, end1: "toaster" },
+    block: {
+      type: "cabinet",
+      face: 2,
+      open: true,
+      end1: decorItemId("toaster"),
+    },
   },
   { x: 11, y: 64, z: 0, block: { type: "fridgeDoor", face: 0, lit: true } },
   {
@@ -421,7 +432,7 @@ const roomCells: DockCell[] = [
       face: 1,
       height: 4,
       open: false,
-      end0: "mug_pair",
+      end0: decorItemId("mug_pair"),
     },
   },
   { x: 13, y: 64, z: 0, block: { type: "bunk" } },
@@ -541,7 +552,13 @@ it("replaces a decor item in place and clears it", () => {
   };
   const decorAt = (item: string): DockCell => ({
     ...position,
-    block: { type: "decor", item, face: 2, height: 7, spot: 0 },
+    block: {
+      type: "decor",
+      item: decorItemId(item),
+      face: 2,
+      height: 7,
+      spot: 0,
+    },
   });
   docks.lay(asVehicleId(f.car.id), f.car, [decorAt("potted_plant")]);
   expect(f.at(position)).toEqual({
@@ -567,8 +584,8 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
       face: 3,
       height: 3,
       open: true,
-      ...(end0 === undefined ? {} : { end0 }),
-      ...(end1 === undefined ? {} : { end1 }),
+      ...(end0 === undefined ? {} : { end0: decorItemId(end0) }),
+      ...(end1 === undefined ? {} : { end1: decorItemId(end1) }),
     },
   });
   const [end0, end1] = PAIR_END_STATES;
@@ -608,7 +625,7 @@ it("lays the table's pair block without a height state, since its one height can
         pair: "table",
         face: 1,
         height: 12,
-        end0: "potted_plant",
+        end0: decorItemId("potted_plant"),
       },
     },
   ]);
@@ -633,7 +650,13 @@ it("clears a decor block that an early ADR 0108 build laid at spot 6 (ADR 0108)"
     JSON.stringify([
       {
         ...position,
-        block: { type: "decor", item: "toaster", face: 3, height: 10, spot: 6 },
+        block: {
+          type: "decor",
+          item: decorItemId("toaster"),
+          face: 3,
+          height: 10,
+          spot: 6,
+        },
       },
     ]),
   );
@@ -653,7 +676,7 @@ it("switches a slot between furniture and decor in place and clears it (ADR 0097
     ...position,
     block: {
       type: "decor",
-      item: "potted_plant",
+      item: decorItemId("potted_plant"),
       face: 1,
       height: 12,
       spot: 0,
@@ -775,13 +798,24 @@ it("clears saved deck cells from the legacy height-only format", () => {
 it("reads a saved decor cell from before the spot state as standing in the cell middle (ADR 0107)", () => {
   const f = fixture();
   const position = { x: 0, y: 64, z: 0 };
-  const block = { type: "decor", item: "percolator", face: 2, height: 14 };
+  const block = {
+    type: "decor",
+    item: decorItemId("percolator"),
+    face: 2,
+    height: 14,
+  };
   f.saved.set(DECK_CELLS_PROPERTY, JSON.stringify([{ ...position, block }]));
   f.blocks.set(cellKey(position), { typeId: decorBlockId("percolator") });
   const docks = new DockBlocks(noCampSpace);
   const moved: DockCell = {
     ...position,
-    block: { type: "decor", item: "percolator", face: 2, height: 15, spot: 1 },
+    block: {
+      type: "decor",
+      item: decorItemId("percolator"),
+      face: 2,
+      height: 15,
+      spot: 1,
+    },
   };
   docks.lay(asVehicleId(f.car.id), f.car, [moved]);
   expect(f.at(position)).toEqual({
@@ -808,7 +842,12 @@ it.each([
   { block: { type: "door", face: 0, open: "true" }, seed: CAMPER_DOOR_BLOCK },
   { block: { type: "door", face: 4, open: true }, seed: CAMPER_DOOR_BLOCK },
   {
-    block: { type: "decor", item: "Potted Plant", face: 0, height: 0 },
+    block: {
+      type: "decor",
+      item: decorItemId("Potted Plant"),
+      face: 0,
+      height: 0,
+    },
     seed: decorBlockId("potted_plant"),
   },
   {
@@ -816,29 +855,55 @@ it.each([
     seed: decorBlockId("potted_plant"),
   },
   {
-    block: { type: "decor", item: "potted_plant", face: 4, height: 0 },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: { type: "decor", item: "potted_plant", face: 0, height: 16 },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: { type: "decor", item: "potted_plant", face: 0, height: -1 },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: { type: "decor", item: "potted_plant", face: 0, height: 1.5 },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: { type: "decor", item: "potted_plant", face: 0, height: 0, spot: 9 },
+    block: {
+      type: "decor",
+      item: decorItemId("potted_plant"),
+      face: 4,
+      height: 0,
+    },
     seed: decorBlockId("potted_plant"),
   },
   {
     block: {
       type: "decor",
-      item: "potted_plant",
+      item: decorItemId("potted_plant"),
+      face: 0,
+      height: 16,
+    },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: {
+      type: "decor",
+      item: decorItemId("potted_plant"),
+      face: 0,
+      height: -1,
+    },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: {
+      type: "decor",
+      item: decorItemId("potted_plant"),
+      face: 0,
+      height: 1.5,
+    },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: {
+      type: "decor",
+      item: decorItemId("potted_plant"),
+      face: 0,
+      height: 0,
+      spot: 9,
+    },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: {
+      type: "decor",
+      item: decorItemId("potted_plant"),
       face: 0,
       height: 0,
       spot: -1,
@@ -848,7 +913,7 @@ it.each([
   {
     block: {
       type: "decor",
-      item: "potted_plant",
+      item: decorItemId("potted_plant"),
       face: 0,
       height: 0,
       spot: 0.5,
@@ -861,7 +926,7 @@ it.each([
       pair: "bed",
       face: 0,
       height: 4,
-      end0: "cushion",
+      end0: decorItemId("cushion"),
     },
     seed: pairDecorBlockId("shelf"),
   },
@@ -871,7 +936,7 @@ it.each([
       pair: "shelf",
       face: 4,
       height: 4,
-      end0: "cushion",
+      end0: decorItemId("cushion"),
     },
     seed: pairDecorBlockId("shelf"),
   },
@@ -881,7 +946,7 @@ it.each([
       pair: "shelf",
       face: 0,
       height: 16,
-      end0: "cushion",
+      end0: decorItemId("cushion"),
     },
     seed: pairDecorBlockId("shelf"),
   },
@@ -895,7 +960,7 @@ it.each([
       pair: "table",
       face: 0,
       height: 12,
-      end1: "macrame_planter",
+      end1: decorItemId("macrame_planter"),
     },
     seed: pairDecorBlockId("table"),
   },
@@ -1170,13 +1235,13 @@ it("restores saved storage cells, empty ones too, and a shelf pair block an olde
         pair: "shelf",
         face: 0,
         height: 10,
-        end0: "cushion",
+        end0: decorItemId("cushion"),
       },
       pairDecorBlockId("shelf"),
     ],
     [{ type: "cabinet", face: 3, open: false }, pairDecorBlockId("cabinet")],
     [
-      { type: "cabinet", face: 0, open: true, end0: "cushion" },
+      { type: "cabinet", face: 0, open: true, end0: decorItemId("cushion") },
       pairDecorBlockId("cabinet"),
     ],
     [{ type: "cabinetDoor", face: 2 }, CAMPER_CABINET_DOOR_BLOCK],
@@ -1191,7 +1256,12 @@ it("restores saved storage cells, empty ones too, and a shelf pair block an olde
   for (const block of [
     { type: "cabinet", face: 0 },
     { type: "cabinet", face: 0, open: "yes" },
-    { type: "cabinet", face: 0, open: true, end0: "macrame_planter" },
+    {
+      type: "cabinet",
+      face: 0,
+      open: true,
+      end0: decorItemId("macrame_planter"),
+    },
     { type: "cabinetDoor", face: 5 },
     { type: "fridge", face: 0, open: true },
     { type: "fridge", face: 0, height: 3.5, open: true },

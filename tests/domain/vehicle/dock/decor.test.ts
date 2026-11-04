@@ -1,22 +1,41 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import {
+  type DecorItemId,
+  type DecorSlotId,
   decorFace,
   isDecorItem,
   parseDecor,
+  parseDecorSlotId,
   serializeDecor,
 } from "../../../../src/domain/vehicle/dock/decor";
+import { decorItemId, decorSlotId } from "../../../support/decorIds";
 
 const decorList = (minLength: number) =>
   fc.uniqueArray(
     fc.record({
-      slot: fc.string(),
-      item: fc.stringMatching(/^[a-z][a-z0-9_]{0,15}$/),
+      slot: fc.string().map(decorSlotId),
+      item: fc.stringMatching(/^[a-z][a-z0-9_]{0,15}$/).map(decorItemId),
     }),
     { selector: (d) => d.slot, minLength },
   );
 
 describe("decor (ADR 0093)", () => {
+  it("preserves every saved slot string while keeping slot and item types distinct", () => {
+    fc.assert(
+      fc.property(fc.string(), (raw) => {
+        const slot = parseDecorSlotId(raw);
+        expect(slot).toBe(raw);
+        expectTypeOf(slot).toEqualTypeOf<DecorSlotId | undefined>();
+        if (isDecorItem(raw)) expectTypeOf(raw).toEqualTypeOf<DecorItemId>();
+      }),
+    );
+    expectTypeOf<string>().not.toExtend<DecorSlotId>();
+    expectTypeOf<string>().not.toExtend<DecorItemId>();
+    expectTypeOf<DecorSlotId>().not.toExtend<DecorItemId>();
+    expectTypeOf<DecorItemId>().not.toExtend<DecorSlotId>();
+  });
+
   it("round-trips any decor with distinct slots through the saved string", () => {
     fc.assert(
       fc.property(decorList(1), (d) => {

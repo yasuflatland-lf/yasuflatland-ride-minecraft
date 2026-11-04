@@ -4,7 +4,7 @@
 
 import { SyncedValue } from "../../../shared/syncedValue";
 import { TapToggle } from "../../../shared/tapToggle";
-import type { StoragePress } from "../../dock/decor";
+import type { DecorItemId, StoragePress } from "../../dock/decor";
 import type { Face } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
@@ -42,8 +42,8 @@ export interface CompartmentLook {
   readonly open: boolean;
   /** The height of the compartment's first slot, its floor above the cell bottom in pixels. */
   readonly height: number;
-  readonly end0?: string;
-  readonly end1?: string;
+  readonly end0?: DecorItemId;
+  readonly end1?: DecorItemId;
 }
 
 /** How an open door's plate looks this tick. */
@@ -204,7 +204,7 @@ export class StorageDoors<Id extends string> {
     id: Id,
     onCompartment: boolean,
     tick: number,
-    take: () => string | undefined,
+    take: () => DecorItemId | undefined,
   ): StoragePress | undefined {
     const door = this.states.get(id);
     if (!door?.toggle.tryToggle(tick)) return undefined;

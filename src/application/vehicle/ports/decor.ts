@@ -1,5 +1,8 @@
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
-import type { DecorPlacement } from "../../../domain/vehicle/dock/decor";
+import type {
+  DecorItemId,
+  DecorPlacement,
+} from "../../../domain/vehicle/dock/decor";
 // Port for saving a vehicle's decor; implemented in the infrastructure layer (ADR 0012, 0093).
 
 export interface DecorWorld {
@@ -14,10 +17,10 @@ export interface DecorPlacingWorld extends DecorWorld {
   consumeDecorItem(
     playerId: PlayerId,
     hotbarSlot: number,
-    item: string,
+    item: DecorItemId,
   ): boolean;
   /** Puts one of each item (camping gear ids) into the player's inventory and drops what does not fit at the player's feet; does nothing for a missing player. */
-  giveDecorItems(playerId: PlayerId, items: readonly string[]): void;
+  giveDecorItems(playerId: PlayerId, items: readonly DecorItemId[]): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: PlayerId, name: string): void;
 }

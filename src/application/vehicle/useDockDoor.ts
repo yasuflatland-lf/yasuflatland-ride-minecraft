@@ -3,7 +3,7 @@ import type { VehicleId } from "../../domain/shared/ids";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { Clock } from "./ports/shared";
 
-export interface UseDockDoorCommand {
+interface UseDockDoorCommand {
   vehicleId: VehicleId;
 }
 
@@ -15,6 +15,9 @@ export class UseDockDoor {
 
   /** Returns whether the door opened or closed. */
   execute(cmd: UseDockDoorCommand): boolean {
-    return this.repo.get(cmd.vehicleId)?.useDockDoor(this.clock.now()) ?? false;
+    return (
+      this.repo.get(cmd.vehicleId)?.asRoom()?.useDockDoor(this.clock.now()) ??
+      false
+    );
   }
 }

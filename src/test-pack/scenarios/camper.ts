@@ -1,6 +1,10 @@
 import { BlockPermutation, type Entity } from "@minecraft/server";
 import { forward, length, type Vec3 } from "../../domain/shared/vec";
-import type { DecorPlacement } from "../../domain/vehicle/dock/decor";
+import {
+  type DecorPlacement,
+  isDecorItem,
+  parseDecorSlotId,
+} from "../../domain/vehicle/dock/decor";
 import type {
   DockBlock,
   DockCell,
@@ -28,7 +32,13 @@ import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../domain/vehicle/motion/dock";
 import { AIR_BLOCK } from "../../infrastructure/shared/identifiers";
 import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
-import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/bedrock/dockBlocks";
+import {
+  DECK_FLOOR_BLOCK,
+  DECK_SEAT_TYPE,
+  STAND_IN_FAMILY,
+  standInType,
+} from "../../infrastructure/vehicle/bedrock/identifiers";
+import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/kinds/camper/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BUNK_BLOCK,
@@ -41,8 +51,6 @@ import {
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
-  DECK_FLOOR_BLOCK,
-  DECK_SEAT_TYPE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
@@ -53,9 +61,7 @@ import {
   ROOM_FACE_STATE,
   ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
-  STAND_IN_FAMILY,
-  standInType,
-} from "../../infrastructure/vehicle/bedrock/identifiers";
+} from "../../infrastructure/vehicle/kinds/camper/identifiers";
 import { type Arena, drive, setDecor, wait, withCamper } from "../arena";
 import { type Outcome, runCourse, type Step, type StepSink } from "../outcome";
 import { settledAt } from "../settle";
@@ -363,10 +369,10 @@ async function camperDepart(a: Arena, car: Entity): Promise<Outcome> {
   const decor = [
     ...PAIRED_DECOR,
     ...DECOR.slice(1),
-    { slot: "cabinet_sink_rear", item: "toaster" },
-    { slot: "cabinet_stove_front", item: "mug_pair" },
-    { slot: "fridge_bottom_rear", item: "toaster" },
-    { slot: "fridge_top_front", item: "mug_pair" },
+    decorPlacement("cabinet_sink_rear", "toaster"),
+    decorPlacement("cabinet_stove_front", "mug_pair"),
+    decorPlacement("fridge_bottom_rear", "toaster"),
+    decorPlacement("fridge_top_front", "mug_pair"),
   ] satisfies readonly DecorPlacement[];
   for (const d of decor) setDecor(car, d.slot, d.item);
   await wait(3);
@@ -506,9 +512,9 @@ async function camperShowerToiletBlock(
 // The table comes first: camperDecor empties it with DECOR.slice(0, 1). The saucepan stands
 // on the stove's one burner (ADR 0112).
 const DECOR: readonly DecorPlacement[] = [
-  { slot: "table", item: "potted_plant" },
-  { slot: "dashboard_center", item: "transistor_radio" },
-  { slot: "stove", item: "saucepan" },
+  decorPlacement("table", "potted_plant"),
+  decorPlacement("dashboard_center", "transistor_radio"),
+  decorPlacement("stove", "saucepan"),
 ];
 
 // A decor block counts only with its item's block, the yaw quarter, the slot height, and the
@@ -588,8 +594,8 @@ async function camperDecor(a: Arena, car: Entity): Promise<Outcome> {
 // Both ends of the table: its cell lays one pair block that draws its two items (ADR 0108).
 // The shelf boards' pair blocks left with the shelf (ADR 0123).
 const PAIRED_DECOR: readonly DecorPlacement[] = [
-  { slot: "table", item: "fruit_bowl" },
-  { slot: "table_aisle", item: "mug_pair" },
+  decorPlacement("table", "fruit_bowl"),
+  decorPlacement("table_aisle", "mug_pair"),
 ];
 
 async function camperDecorPairs(a: Arena, car: Entity): Promise<Outcome> {
@@ -740,8 +746,8 @@ function camperCabinet(a: Arena, car: Entity): Promise<Outcome> {
   return camperStorage(a, car, {
     unit: WALL_CABINET,
     decor: [
-      { slot: "cabinet_sink_rear", item: "toaster" },
-      { slot: "cabinet_stove_front", item: "mug_pair" },
+      decorPlacement("cabinet_sink_rear", "toaster"),
+      decorPlacement("cabinet_stove_front", "mug_pair"),
     ],
     shutPlate: CAMPER_CEILING_BLOCK,
     plateBlock: CAMPER_CABINET_DOOR_BLOCK,
@@ -755,8 +761,8 @@ function camperFridge(a: Arena, car: Entity): Promise<Outcome> {
   return camperStorage(a, car, {
     unit: FRIDGE,
     decor: [
-      { slot: "fridge_bottom_rear", item: "toaster" },
-      { slot: "fridge_top_front", item: "mug_pair" },
+      decorPlacement("fridge_bottom_rear", "toaster"),
+      decorPlacement("fridge_top_front", "mug_pair"),
     ],
     shutPlate: AIR_BLOCK,
     plateBlock: CAMPER_FRIDGE_DOOR_BLOCK,
@@ -777,7 +783,7 @@ async function camperRelay(a: Arena, car: Entity): Promise<Outcome> {
     const wall = room.find((c) => c.block.type === "wall");
     if (!wall) throw new Error("room has no wall");
     const decor = decorCells(pose, [
-      { slot: "table", item: "potted_plant" },
+      decorPlacement("table", "potted_plant"),
     ])[0];
     if (!decor) throw new Error("camper has no table slot");
     const lost = [floor, wall, decor];
@@ -999,4 +1005,11 @@ export function camperParkCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
       lines: [...(park.lines ?? []), ...(rest.lines ?? [])],
     };
   });
+}
+
+function decorPlacement(rawSlot: string, item: string): DecorPlacement {
+  const slot = parseDecorSlotId(rawSlot);
+  if (slot === undefined || !isDecorItem(item))
+    throw new Error(`Invalid decor fixture: ${rawSlot},${item}`);
+  return { slot, item };
 }

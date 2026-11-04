@@ -11,6 +11,7 @@ import {
   TABLE_TOP_LIMIT,
   TABLE_TOP_PX,
 } from "../../../src/domain/camp/spec";
+import { asTableId } from "../../../src/domain/camp/table";
 import type { TopItem } from "../../../src/domain/camp/tabletop";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
@@ -23,7 +24,7 @@ const kind: HostedItemKind = {
   footprint: { halfX: 4, halfZ: 3 },
   clearance: 2,
 };
-const command = { player, table: "table", slot: 2 };
+const command = { player, table: asTableId("table"), slot: 2 };
 
 function fixture(
   overrides: Partial<Omit<TableTopWorld, "spawnHostedOnTable">> = {},
@@ -152,7 +153,7 @@ it("pays only on success, and Creative or the test hook pays nothing", () => {
   fc.assert(
     fc.property(fc.boolean(), fc.boolean(), (creative, hook) => {
       const world = fixture({ isCreative: () => creative });
-      const cmd = hook ? { table: "table", slot: 2 } : command;
+      const cmd = hook ? { table: asTableId("table"), slot: 2 } : command;
       expect(placeOnTableTop(world, kind, cmd)).toBe("placed");
       expect(world.consumeItem).toHaveBeenCalledTimes(creative || hook ? 0 : 1);
       if (!creative && !hook)

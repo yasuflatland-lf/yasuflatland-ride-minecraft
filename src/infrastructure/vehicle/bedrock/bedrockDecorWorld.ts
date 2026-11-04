@@ -3,6 +3,7 @@ import type { Entity } from "@minecraft/server";
 import type { DecorPlacingWorld } from "../../../application/vehicle/ports/decor";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import {
+  type DecorItemId,
   type DecorPlacement,
   serializeDecor,
 } from "../../../domain/vehicle/dock/decor";
@@ -42,7 +43,7 @@ export class BedrockDecorWorld implements DecorPlacingWorld {
   consumeDecorItem(
     playerId: PlayerId,
     hotbarSlot: number,
-    item: string,
+    item: DecorItemId,
   ): boolean {
     return this.inventory.consumeHeld(
       playerId,
@@ -51,7 +52,7 @@ export class BedrockDecorWorld implements DecorPlacingWorld {
     );
   }
 
-  giveDecorItems(playerId: PlayerId, items: readonly string[]): void {
+  giveDecorItems(playerId: PlayerId, items: readonly DecorItemId[]): void {
     this.inventory.giveItems(playerId, items.map(campingGearItem));
   }
 
