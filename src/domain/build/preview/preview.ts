@@ -1,6 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import { type Box, boxOf, center, edgePoints } from "../box";
+import { boxOf, type CellBox, center, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import type { BuildFlow } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
@@ -21,10 +21,10 @@ export interface PreviewAim {
   blink: boolean;
   end?: Cell;
   height?: number;
-  pasteBox?: Box;
+  pasteBox?: CellBox;
 }
 
-function outline(box: Box): Vec3[] {
+function outline(box: CellBox): Vec3[] {
   return edgePoints(box, BUILD_SPEC.outlineMaxPoints).map(center);
 }
 

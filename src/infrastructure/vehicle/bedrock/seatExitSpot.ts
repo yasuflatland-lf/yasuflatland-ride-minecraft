@@ -1,4 +1,5 @@
 import type { Block, Dimension } from "@minecraft/server";
+import { cellOf } from "../../../domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { isLightBlock } from "../../shared/lightBlocks";
@@ -69,8 +70,8 @@ function bodyOpen(dimension: Dimension, at: Vec3, feet: number): boolean {
  * rows above that ground are checked and the player stands on its top.
  */
 export function seatExitSpot(dimension: Dimension, at: Vec3): Vec3 | undefined {
-  const row = Math.floor(at.y);
-  const cell = { x: Math.floor(at.x), z: Math.floor(at.z) };
+  const cell = cellOf(at);
+  const row = cell.y;
   const below = blockAt(dimension, { ...cell, y: row - 1 });
   if (below && ground(below) && bodyOpen(dimension, at, row)) return at;
   const floor = blockAt(dimension, { ...cell, y: row });

@@ -8,6 +8,14 @@ export interface Vec3 {
   readonly z: number;
 }
 
+export function distanceSq(a: Vec3, b: Vec3): number {
+  return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
+}
+
+export function distanceXZ(a: Vec2, b: Vec2): number {
+  return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
 export function degToRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }

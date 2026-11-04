@@ -10,11 +10,11 @@ import {
 } from "../../../shared/vec";
 import { type DecorPlacement, decorFace } from "../../dock/decor";
 import {
-  type Box,
   type ClearCell,
   type DeckSeatSpot,
   type Departure,
   inBox,
+  type WorldBox,
 } from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { seatWorldPositions } from "../../seats";
@@ -627,7 +627,7 @@ function bumperCells(pose: HoldPose): Vec3[] {
  * floor cells, the door step and the exit's feet, where natural ground may rise, and `bumper`
  * the wall feet in the bumper's row, whose plants are cleared even without an upper half.
  */
-export interface ParkGround {
+interface ParkGround {
   readonly ground: ReadonlySet<string>;
   readonly bumper: ReadonlySet<string>;
 }
@@ -716,7 +716,7 @@ function standingBox(
   [low, high]: readonly [number, number],
   halfX = STAND_HALF_X,
   halfZ = STAND_HALF_Z,
-): Box {
+): WorldBox {
   const { f, l } = axes(pose.yaw);
   const hx = Math.abs(f.x) * halfZ + Math.abs(l.x) * halfX;
   const hz = Math.abs(f.z) * halfZ + Math.abs(l.z) * halfX;

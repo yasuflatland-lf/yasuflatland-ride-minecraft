@@ -1,5 +1,5 @@
 // Action-bar hints for players on foot near a vehicle (ADR 0086).
-import { forward, type Vec2, type Vec3 } from "../shared/vec";
+import { distanceXZ, forward, type Vec2, type Vec3 } from "../shared/vec";
 import type { VehicleKind } from "./kind";
 import { DRIVER_SEAT, toLocal } from "./seats";
 import { SPEC } from "./spec";
@@ -100,8 +100,7 @@ export function hintAt(
   const local = toLocal(view.offset, forward(view.yaw));
   const seat = zones.driverSeat;
   const toDriverSeat =
-    seats[DRIVER_SEAT] &&
-    Math.hypot(local.x - seats[DRIVER_SEAT].x, local.z - seats[DRIVER_SEAT].z);
+    seats[DRIVER_SEAT] && distanceXZ(local, seats[DRIVER_SEAT]);
   if (
     seat &&
     toDriverSeat !== undefined &&
@@ -110,9 +109,7 @@ export function hintAt(
     within(view.offset.y, seat.feet) &&
     toDriverSeat <= seat.reach + margin &&
     // Next to another seat a long-press takes that seat, which does not drive.
-    seats.every(
-      (s) => toDriverSeat <= Math.hypot(local.x - s.x, local.z - s.z) + margin,
-    )
+    seats.every((s) => toDriverSeat <= distanceXZ(local, s) + margin)
   )
     return { name: DRIVE_HINT[view.controls] };
   const bumper = zones.bumper;
@@ -171,7 +168,7 @@ export const NO_HINT: HintState = Object.freeze({
   lastSent: Number.NEGATIVE_INFINITY,
 });
 
-export interface HintTiming {
+interface HintTiming {
   /** Ticks between sends of the same hint. */
   readonly refresh: number;
   /** Ticks after the first send during which the hint is re-sent. */
@@ -183,7 +180,7 @@ export const HINT_TIMING: HintTiming = Object.freeze({
   showFor: SPEC.hintShowTicks,
 });
 
-export type HintAction = { readonly show: Hint } | "clear";
+type HintAction = { readonly show: Hint } | "clear";
 
 /**
  * Decides what to send a player this check. A new hint shows at once, the same one

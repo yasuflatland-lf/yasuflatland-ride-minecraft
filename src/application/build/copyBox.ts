@@ -1,4 +1,4 @@
-import { type Box, volume } from "../../domain/build/box";
+import { type CellBox, volume } from "../../domain/build/box";
 import { clipboardOf } from "../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
@@ -13,7 +13,7 @@ export class CopyBox {
     private readonly feedback: BuildFeedback,
   ) {}
 
-  execute(playerId: PlayerId, dimensionId: DimensionId, box: Box): boolean {
+  execute(playerId: PlayerId, dimensionId: DimensionId, box: CellBox): boolean {
     const count = volume(box);
     if (count > BUILD_SPEC.maxCopyVolume) {
       this.feedback.showMessage(playerId, "tooLarge", count);

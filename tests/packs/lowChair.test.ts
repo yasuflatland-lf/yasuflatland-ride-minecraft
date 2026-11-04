@@ -1,13 +1,10 @@
 // The low chair's pack files (ADR 0122); tests/packs/layout.test.ts covers their paths and ids.
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import {
-  LOW_CHAIR_TYPE as CHAIR,
-  CHAIR_FAMILY,
-  HITS_LEFT_HINT,
-  LOW_CHAIR_ITEM as ITEM,
-} from "../../src/infrastructure/camp/identifiers";
+import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
 
+const CHAIR = CHAIR_KINDS.low_chair.typeId;
+const ITEM = CHAIR_KINDS.low_chair.itemId;
 const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
 
@@ -87,7 +84,7 @@ describe("low chair entity (ADR 0122)", () => {
     const c = entity.components;
     // inanimate keeps vehicle rams off it (ADR 0006)
     expect(c["minecraft:type_family"].family).toEqual([
-      CHAIR_FAMILY,
+      CHAIR_KINDS.low_chair.family,
       "inanimate",
     ]);
     // It settles through short grass, carpet, or a slab's empty half onto what holds it (ADR 0122).
@@ -227,10 +224,10 @@ describe("low chair item (ADR 0122)", () => {
       for (const key of [
         `item.${ITEM}.name`,
         `entity.${CHAIR}.name`,
-        HITS_LEFT_HINT,
+        CHAIR_KINDS.low_chair.hitsHint,
       ])
         expect(langValue(locale, key), key).toBeTruthy();
-      expect(langValue(locale, HITS_LEFT_HINT)).toContain("%s");
+      expect(langValue(locale, CHAIR_KINDS.low_chair.hitsHint)).toContain("%s");
     },
   );
 });
