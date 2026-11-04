@@ -1,4 +1,3 @@
-import type { PlayerId } from "../shared/ids";
 // Seat assignment and dismount detection (ADR 0019).
 import {
   distanceXZ,
@@ -44,30 +43,6 @@ export function nearestSeat(
     }
   }
   return best;
-}
-
-export interface RiderPos {
-  id: PlayerId;
-  offset: Vec2;
-  /** The rider's index in the engine's rider list, when known (ADR 0120). */
-  slot?: number;
-}
-
-export function occupiedSeats(
-  riders: readonly RiderPos[],
-  f: Vec2,
-  positions: SeatLayout["positions"],
-): Map<PlayerId, number> {
-  return new Map(
-    riders.map((r) => [r.id, nearestSeat(toLocal(r.offset, f), positions)]),
-  );
-}
-
-export function vacatedSeats(
-  prev: ReadonlyMap<PlayerId, number>,
-  now: ReadonlyMap<PlayerId, number>,
-): number[] {
-  return [...prev].filter(([id]) => !now.has(id)).map(([, seat]) => seat);
 }
 
 export function seatWorldPositions(

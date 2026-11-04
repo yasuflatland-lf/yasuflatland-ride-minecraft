@@ -42,7 +42,6 @@ it.each(VEHICLE_KINDS)(
         (yaw, samples) => {
           const vehicle = createVehicle(kind, asVehicleId("v"), yaw);
           let lastRiders = new Set<PlayerId>();
-          let lastDriver: PlayerId | undefined;
           samples.forEach((s, tick) => {
             const riders = riderViews(kind, s.riders, vehicle.yaw);
             const ids = new Set(riders.map((r) => r.id));
@@ -77,13 +76,9 @@ it.each(VEHICLE_KINDS)(
             if (ids.size === 0) expect(out.driverId).toBeUndefined();
             if (out.driverId !== undefined)
               expect(ids.has(out.driverId)).toBe(true);
-            // Position-only riders keep the sticky driver (ADR 0025, 0128); riders with a slot follow seat 0 (ADR 0120, 0128).
-            if (chosen)
-              expect(out.driverId).toBe(
-                ids.has(riderId(0)) ? riderId(0) : undefined,
-              );
-            else if (lastDriver !== undefined && ids.has(lastDriver))
-              expect(out.driverId).toBe(lastDriver);
+            expect(out.driverId).toBe(
+              ids.has(riderId(0)) ? riderId(0) : undefined,
+            );
 
             // Only a departing rider vacates a seat (ADR 0128).
             if ([...lastRiders].every((id) => ids.has(id)))
@@ -96,7 +91,6 @@ it.each(VEHICLE_KINDS)(
             expect(typeof out.riders.underwater).toBe("boolean");
 
             lastRiders = ids;
-            lastDriver = out.driverId;
           });
         },
       ),

@@ -79,6 +79,7 @@ it("lets only the boat driver toggle through off, on and off", () => {
         .slice(0, 2)
         .map((offset, i) => ({
           id: asPlayerId(`rider_${i}`),
+          slot: i,
           offset,
           yaw: 0,
           raw: { moveX: 0, moveY: 0, jump: false },
