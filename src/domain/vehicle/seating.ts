@@ -1,6 +1,6 @@
 import type { PlayerId } from "../shared/ids";
 // Which rider sits where and who drives (ADR 0019, ADR 0025, ADR 0128).
-import { add, type Vec2 } from "../shared/vec";
+import { add, distanceXZ, type Vec2 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
 import { DRIVER_SEAT, nearestSeat, type RiderPos, toLocal } from "./seats";
 
@@ -97,7 +97,7 @@ export class Seating {
     for (const seat of free) {
       const at = this.positions[seat];
       if (!at) continue;
-      const distance = Math.hypot(local.x - at.x, local.z - at.z);
+      const distance = distanceXZ(local, at);
       if (distance < bestDistance) {
         nearest = seat;
         bestDistance = distance;
@@ -139,7 +139,7 @@ export class Seating {
     let bestDistance = Number.POSITIVE_INFINITY;
     for (const rider of riders) {
       const local = toLocal(rider.offset, f);
-      const distance = Math.hypot(local.x - seat.x, local.z - seat.z);
+      const distance = distanceXZ(local, seat);
       if (distance < bestDistance) {
         candidate = rider;
         bestDistance = distance;
