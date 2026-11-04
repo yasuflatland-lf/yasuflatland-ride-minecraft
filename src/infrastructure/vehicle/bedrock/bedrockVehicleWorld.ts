@@ -22,7 +22,7 @@ import {
   type PlayerId,
   type VehicleId,
 } from "../../../domain/shared/ids";
-import type { Vec3 } from "../../../domain/shared/vec";
+import { distanceSq, type Vec3 } from "../../../domain/shared/vec";
 import type { CutColumn } from "../../../domain/vehicle/cut";
 import {
   type ClearCell,
@@ -115,10 +115,6 @@ function groundGap(cell: Vec3, point: Vec3): number {
   const dx = Math.max(cell.x - point.x, 0, point.x - (cell.x + 1));
   const dz = Math.max(cell.z - point.z, 0, point.z - (cell.z + 1));
   return Math.hypot(dx, dz);
-}
-
-function distanceSq(a: Vec3, b: Vec3): number {
-  return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 }
 
 export class BedrockVehicleWorld implements DriveWorld {
