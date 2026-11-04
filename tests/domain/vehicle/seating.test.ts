@@ -6,8 +6,9 @@ import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { Seating, type SeatLeaver } from "../../../src/domain/vehicle/seating";
 import {
-  occupiedSeats,
+  nearestSeat,
   type RiderPos,
+  toLocal,
 } from "../../../src/domain/vehicle/seats";
 import { defined } from "../../support/defined";
 
@@ -130,7 +131,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const riders = place(list, y);
         const out = new Seating(P).update(riders, f, AT_REST);
         const expected = riders.find(
-          (r) => occupiedSeats(riders, f, P).get(r.id) === 0,
+          (r) => nearestSeat(toLocal(r.offset, f), P) === 0,
         )?.id;
         expect(out.driver?.id).toBe(expected);
         expect(out.mounted).toBe(expected !== undefined);
@@ -315,7 +316,7 @@ describe("Choosing a driver with position lag (ADR 0126)", () => {
             offset: worldOffset(y, r.seat, positions),
           }));
           const expected = riders.find(
-            (r) => occupiedSeats(riders, f, positions).get(r.id) === 0,
+            (r) => nearestSeat(toLocal(r.offset, f), positions) === 0,
           );
           const out = new Seating(positions).update(riders, f, AT_REST);
           expect(out.driver).toBe(expected);
