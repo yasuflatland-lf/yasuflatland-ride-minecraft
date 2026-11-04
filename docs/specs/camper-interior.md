@@ -26,8 +26,11 @@
 - Source: [0121](../adr/0121-doored-storage-in-the-camper.md)
 - Source: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md)
 - Source: [0182](../adr/0182-a-bunk-bed-in-the-parked-camper.md)
+- Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
 
 ## Rules
+
+Room use cases obtain the required door, bed, shower, decor and storage methods from `Vehicle.asRoom()`, which returns `RoomDrive` or undefined. Unsupported vehicles retain false or undefined results and no effects; decor reads for pickup use an empty list (0220).
 
 ### Furniture table
 
@@ -43,7 +46,7 @@
 ### Bed and bunk sleeping
 
 - Applies to: A player interacting with a camper sleeping block.
-- Rule: `yasu_ride:camper_bed` and `yasu_ride:camper_bunk` share the `yasu_ride:camper_bed` component. The lower bed has mattress-height collision and selection; the bunk has selection without collision, leaving the lower bed usable as a standing surface. Aim chooses the level. Owner lookup, `FindBedSpawnCell` and `Drive.bedSpawnCell` obtain the sleepable furniture row's `spawn`: the lower bed uses its adjacent aisle cell, and the bunk the aisle cell farther back. Missing owner or answer falls back to the pressed cell. `SleepInBed` does nothing outside `SLEEP.dimension` (the Overworld); inside it sets spawn even during daytime, then sleeps only in the inclusive `SLEEP.nightStart` to `SLEEP.nightEnd` window. Sleeping fades the pressing player's camera using `SLEEP` timings and sets world time to `SLEEP.wakeTime` after `SLEEP.wakeDelayTicks`; otherwise it shows "You can sleep only at night". One player skips the night for everyone without reading the sleeping-percentage rule or clearing weather.
+- Rule: `yasu_ride:camper_bed` and `yasu_ride:camper_bunk` share the `yasu_ride:camper_bed` component. The lower bed has mattress-height collision and selection; the bunk has selection without collision, leaving the lower bed usable as a standing surface. Aim chooses the level. Owner lookup, `FindBedSpawnCell` and `RoomDrive.bedSpawnCell` through `Vehicle.asRoom()` (0220) obtain the sleepable furniture row's `spawn`: the lower bed uses its adjacent aisle cell, and the bunk the aisle cell farther back. Missing owner or answer falls back to the pressed cell. `SleepInBed` does nothing outside `SLEEP.dimension` (the Overworld); inside it sets spawn even during daytime, then sleeps only in the inclusive `SLEEP.nightStart` to `SLEEP.nightEnd` window. Sleeping fades the pressing player's camera using `SLEEP` timings and sets world time to `SLEEP.wakeTime` after `SLEEP.wakeDelayTicks`; otherwise it shows "You can sleep only at night". One player skips the night for everyone without reading the sleeping-percentage rule or clearing weather.
 - Agreement: Proposed
 - Basis: [0092](../adr/0092-a-bed-in-the-parked-camper.md) Decision, "Outside the overworld the bed does nothing"
 - Basis: [0092](../adr/0092-a-bed-in-the-parked-camper.md) Decision, "One player's sleep skips the night for everyone."
