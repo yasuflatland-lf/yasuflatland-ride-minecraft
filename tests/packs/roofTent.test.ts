@@ -146,7 +146,7 @@ describe("roof tent asset contract", () => {
       seat_count: 1,
       family_types: ["player"],
       crouching_skip_interact: true,
-      seats: [{ position: [0, rideSeatY("suv"), 0] }],
+      seats: [{ position: [0, rideSeatY("ladder"), 0] }],
     });
   });
 
