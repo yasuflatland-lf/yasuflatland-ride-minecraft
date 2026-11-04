@@ -1,6 +1,7 @@
 import type { MotionLimits } from "../../motion/limits";
 import {
   clearanceHeight,
+  type PlacementLiquid,
   type PlacementSurface,
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
@@ -16,6 +17,7 @@ const body = Object.freeze({
 /** The sports boat's own values (ADR 0051), written out even where they equal the SUV's today. */
 export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   kind: "sportsboat",
+  ridersFireProof: true,
   fleetLimit: 1, // Per player (ADR 0066).
   body,
   footprint: SPORTSBOAT_SPEC.footprint,
@@ -43,6 +45,7 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   }),
   // At the water surface from the bed, the water, or the side of a shore; on land from a top face (ADR 0051).
   placement: Object.freeze({
+    liquids: Object.freeze(new Set<PlacementLiquid>(["water", "lava"])),
     surfaces: Object.freeze<PlacementSurface[]>(["water", "lava", "top"]),
     // 3 × 2 × 3 cells fit the 2.2-wide, 1.2-high collision box (ADR 0051).
     clearance: Object.freeze({

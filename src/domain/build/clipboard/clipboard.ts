@@ -1,7 +1,7 @@
 // Clipboard cells are relative to the minimum corner.
 import type { Cell } from "../../shared/cells";
 import type { BlockState } from "../blockState";
-import { type Box, boxOf, cellsOf } from "../box";
+import { boxOf, type CellBox, cellsOf } from "../box";
 import { isKeptState } from "../edit/guard";
 
 interface ClipboardCell {
@@ -17,7 +17,7 @@ export interface Clipboard {
 
 /** A cell that reads undefined or is kept is left out, so a paste leaves that target cell as it is. */
 export function clipboardOf(
-  box: Box,
+  box: CellBox,
   read: (cell: Cell) => BlockState | undefined,
 ): Clipboard {
   const cells: ClipboardCell[] = [];
@@ -61,7 +61,7 @@ function anchorCell(block: Cell, face: Face): Cell {
     z: block.z + offset.z,
   };
 }
-function pasteBox(clipboard: Clipboard, anchor: Cell): Box {
+function pasteBox(clipboard: Clipboard, anchor: Cell): CellBox {
   return boxOf(anchor, {
     x: anchor.x + clipboard.size.x - 1,
     y: anchor.y + clipboard.size.y - 1,
@@ -69,7 +69,7 @@ function pasteBox(clipboard: Clipboard, anchor: Cell): Box {
   });
 }
 
-export type PasteTarget = { anchor: Cell; box: Box };
+export type PasteTarget = { anchor: Cell; box: CellBox };
 
 export function pasteTarget(
   clipboard: Clipboard,

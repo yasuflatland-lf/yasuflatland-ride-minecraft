@@ -342,6 +342,18 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
     );
   });
 
+  it("accepts view-ray liquids exactly as declared by each kind's profile", () => {
+    const placement = new PlaceVehicle(new FakeWorld(), new InMemoryRepo());
+    fc.assert(
+      fc.property(fc.constantFrom(...VEHICLE_KINDS), (kind) => {
+        const { liquids } = profileOf(kind).placement;
+        expect(placement.placesOnLiquid(kind)).toBe(liquids.size > 0);
+        for (const liquid of ["water", "lava"] as const)
+          expect(placement.placesOn(kind, liquid)).toBe(liquids.has(liquid));
+      }),
+    );
+  });
+
   it("places the sports boat on the top lava cell without allowing other kinds there", () => {
     const world = new FakeWorld();
     const placement = new PlaceVehicle(world, new InMemoryRepo());

@@ -4,7 +4,7 @@ import type { SpaceCheck } from "../../src/application/shared/ports/space";
 import { asDimensionId, asPlayerId } from "../../src/domain/shared/ids";
 import { bootstrap } from "../../src/infrastructure/bootstrap";
 import { installBuild } from "../../src/infrastructure/build/install";
-import { LOW_CHAIR_ITEM } from "../../src/infrastructure/camp/identifiers";
+import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../src/infrastructure/camp/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
@@ -123,7 +123,7 @@ it("lets the vehicles see a registered tent, and the chair stand on its floor bu
     game.getBlock.mockReturnValue({ typeId });
     const ev = {
       isFirstEvent: true,
-      itemStack: { typeId: LOW_CHAIR_ITEM },
+      itemStack: { typeId: CHAIR_KINDS.low_chair.itemId },
       block: { dimension: { id: dim }, location: { x: 110, y, z } },
       blockFace: "Up",
       player: { id: "p", selectedSlotIndex: 0, getRotation: () => ({ y: 0 }) },

@@ -129,7 +129,7 @@ export function isAfloat(depth: number, below: () => boolean): boolean {
 }
 
 /** What a sports boat drive carries from one tick to the next. */
-export interface SportsboatDriveState {
+interface SportsboatDriveState {
   readonly motion: MotionState;
   /** The water drag estimate (ADR 0053): undefined until the boat first floats, kept while beached. */
   readonly waterDrag?: number;
