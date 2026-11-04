@@ -73,5 +73,5 @@ it("refuses decor for a kind without a room", () => {
     }),
   ).toBe(false);
   expect(world.saves).toEqual([]);
-  expect(vehicle.decor()).toEqual([]);
+  expect(vehicle.asRoom()).toBeUndefined();
 });

@@ -15,6 +15,9 @@ export class UseDockDoor {
 
   /** Returns whether the door opened or closed. */
   execute(cmd: UseDockDoorCommand): boolean {
-    return this.repo.get(cmd.vehicleId)?.useDockDoor(this.clock.now()) ?? false;
+    return (
+      this.repo.get(cmd.vehicleId)?.asRoom()?.useDockDoor(this.clock.now()) ??
+      false
+    );
   }
 }

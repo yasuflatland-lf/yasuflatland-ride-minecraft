@@ -223,6 +223,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0217](0217-derive-the-suv-spec-from-the-rubicon-body.md) | Derive the SUV spec from the Rubicon body | Accepted |
 | [0218](0218-extend-the-wheel-axle-straight-out-in-flight.md) | Extend the wheel axle straight out in flight | Accepted |
 | [0219](0219-remove-the-suv-headlight-bezel-plate.md) | Remove the SUV headlight bezel plate | Accepted |
+| [0220](0220-separate-room-capability-from-drive.md) | Separate room capability from Drive | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
