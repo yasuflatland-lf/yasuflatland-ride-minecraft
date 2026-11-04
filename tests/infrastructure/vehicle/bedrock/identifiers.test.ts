@@ -1,10 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PAINTS, paintEventName } from "../../../../src/domain/shared/paint";
-import {
-  CORE_PROPERTY_NAMES,
-  HEADLIGHTS_PROPERTY_NAME,
-} from "../../../../src/domain/vehicle/entityContract";
+import { HEADLIGHTS_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { DECOR_CELLS } from "../../../../src/domain/vehicle/kinds/camper/decor";
 import {
@@ -72,6 +69,7 @@ import {
   TEST_INPUT_EVENT,
   TEST_TOOL_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { CORE_PROPERTY_NAMES } from "../../../support/coreContract";
 import { decorItemId } from "../../../support/decorIds";
 
 describe("identifiers (ADR 0047)", () => {

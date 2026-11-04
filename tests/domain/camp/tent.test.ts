@@ -13,7 +13,6 @@ import {
   type PitchSurvey,
   planPitch,
   TENT_FLAPS,
-  TENT_MATTRESSES,
   type TentFace,
   type TentPose,
   type TentState,
@@ -102,7 +101,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
     const localCells = [
       ...TRAPEZOID_LAYOUT.walls.map(({ cell }) => cell),
       ...TRAPEZOID_LAYOUT.ceilings,
-      ...TENT_MATTRESSES.flat(),
+      ...TRAPEZOID_LAYOUT.mattresses.flat(),
     ];
     for (const cell of localCells) {
       const shell = tentShellAt(cell.layer + 0.5);
@@ -161,7 +160,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
         const count =
           TRAPEZOID_LAYOUT.walls.length +
           TRAPEZOID_LAYOUT.ceilings.length +
-          TENT_MATTRESSES.flat().length;
+          TRAPEZOID_LAYOUT.mattresses.flat().length;
         expect(tentCells(pose, state)).toHaveLength(count);
       }),
     );
@@ -283,7 +282,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
     expect(tentCells(pose, PITCHED_STATE)).toHaveLength(
       TRAPEZOID_LAYOUT.walls.length +
         TRAPEZOID_LAYOUT.ceilings.length +
-        TENT_MATTRESSES.flat().length,
+        TRAPEZOID_LAYOUT.mattresses.flat().length,
     );
   });
 });
@@ -587,7 +586,7 @@ describe("flaps and mattresses (ADR 0130)", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         for (const index of [0, 1] as const) {
-          const mattress = TENT_MATTRESSES[index];
+          const mattress = TRAPEZOID_LAYOUT.mattresses[index];
           expect(mattress).toHaveLength(2);
           for (const local of mattress) {
             const c = tentCellAt(pose, local);
@@ -658,7 +657,7 @@ describe("mattresses (ADR 0092, 0133)", () => {
       fc.property(arbPose, (pose) => {
         const cells = tentCells(pose, PITCHED_STATE);
         const expected = ([0, 1] as const).flatMap((index) =>
-          TENT_MATTRESSES[index].map((local) => ({
+          TRAPEZOID_LAYOUT.mattresses[index].map((local) => ({
             ...tentCellAt(pose, local),
             block: { type: "mattress", index },
           })),
@@ -683,7 +682,7 @@ describe("mattresses (ADR 0092, 0133)", () => {
   it("puts each mattress's two cells next to each other along the depth at one height", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
-        for (const mattress of TENT_MATTRESSES) {
+        for (const mattress of TRAPEZOID_LAYOUT.mattresses) {
           const [a, b] = mattress.map((l) => tentCellAt(pose, l));
           const [la, lb] = mattress;
           const ca = defined(a, "mattress front");

@@ -6,7 +6,7 @@ import type { Paint } from "../../domain/shared/paint";
 import { Repaint } from "../shared/repaint";
 import type { TentPaintWorld } from "./ports/tentPaint";
 
-export interface PaintTentCommand {
+interface PaintTentCommand {
   playerId: PlayerId;
   tentId: TentId;
   paint: Paint;

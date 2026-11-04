@@ -4,7 +4,7 @@ import type { Vec3 } from "../../shared/vec";
 import type { VehicleBody } from "../profile";
 import { SPEC } from "../spec";
 
-export type IsAir = (dx: number, dy: number, dz: number) => boolean;
+type IsAir = (dx: number, dy: number, dz: number) => boolean;
 
 /**
  * The cells that must be air for a kind to be placed: -halfX..halfX,
@@ -12,7 +12,7 @@ export type IsAir = (dx: number, dy: number, dz: number) => boolean;
  * kind's body height; the half sizes are per kind and checked against the
  * collision boxes by tests/packs/placementClearance.test.ts (ADR 0055).
  */
-export interface Clearance {
+interface Clearance {
   readonly halfX: number;
   readonly halfZ: number;
   readonly height: number;

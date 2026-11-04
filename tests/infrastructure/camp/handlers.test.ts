@@ -34,13 +34,10 @@ import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBl
 import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
   CHAIR_KINDS,
-  LOW_CHAIR_ITEM,
-  LOW_CHAIR_TYPE,
   TENT_FLAP_PROPERTY,
   TENT_ITEM,
   TENT_LANTERN_PROPERTY,
   TENT_TYPE,
-  TEST_CHAIR_HIT_EVENT,
   TEST_TENT_FOLD_LEGACY_EVENT,
   TEST_TENT_HIT_EVENT,
   TEST_TENT_LANTERN_EVENT,
@@ -138,7 +135,7 @@ describe("registerChairHits (ADR 0122)", () => {
     registerChairHits(hitChair);
     subscribed(game.hit)({
       damagingEntity: playerWithId("p"),
-      hitEntity: { id: "chair", typeId: LOW_CHAIR_TYPE },
+      hitEntity: { id: "chair", typeId: CHAIR_KINDS.low_chair.typeId },
     });
     expect(execute).toHaveBeenCalledWith({
       kind: "low_chair",
@@ -154,7 +151,7 @@ describe("registerChairHits (ADR 0122)", () => {
     const handler = subscribed(game.hit);
     handler({
       damagingEntity: { id: "zombie" },
-      hitEntity: { id: "chair", typeId: LOW_CHAIR_TYPE },
+      hitEntity: { id: "chair", typeId: CHAIR_KINDS.low_chair.typeId },
     });
     handler({
       damagingEntity: playerWithId("p"),
@@ -182,7 +179,7 @@ describe("registerChairPlacement (ADR 0122)", () => {
     const press = (over: Record<string, unknown> = {}) => {
       const ev = {
         isFirstEvent: true,
-        itemStack: { typeId: LOW_CHAIR_ITEM },
+        itemStack: { typeId: CHAIR_KINDS.low_chair.itemId },
         block: {
           dimension: { id: "overworld" },
           location: { x: 1, y: 2, z: 3 },
@@ -294,7 +291,7 @@ describe("registerTestChairHit (ADR 0010, 0122)", () => {
           const { execute, hitChair } = fakeHitChair();
           registerTestChairHit(hitChair);
           subscribed(game.script)({
-            id: TEST_CHAIR_HIT_EVENT,
+            id: CHAIR_KINDS.low_chair.testHitEvent,
             sourceType: "Server",
             message: `${pad}${id}${pad}`,
           });
@@ -315,11 +312,15 @@ describe("registerTestChairHit (ADR 0010, 0122)", () => {
     const handler = subscribed(game.script);
     handler({ id: "yasu_ride:other", sourceType: "Server", message: "chair" });
     handler({
-      id: TEST_CHAIR_HIT_EVENT,
+      id: CHAIR_KINDS.low_chair.testHitEvent,
       sourceType: "Entity",
       message: "chair",
     });
-    handler({ id: TEST_CHAIR_HIT_EVENT, sourceType: "Server", message: "  " });
+    handler({
+      id: CHAIR_KINDS.low_chair.testHitEvent,
+      sourceType: "Server",
+      message: "  ",
+    });
     expect(execute).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
@@ -378,7 +379,7 @@ describe("registerTentPlacement (ADR 0131)", () => {
     const { accept, press } = setup();
     for (const over of [
       { isFirstEvent: false },
-      { itemStack: { typeId: LOW_CHAIR_ITEM } },
+      { itemStack: { typeId: CHAIR_KINDS.low_chair.itemId } },
       { itemStack: undefined },
       { blockFace: "North" },
     ])
@@ -521,7 +522,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
     const handler = subscribed(game.hit);
     handler({
       damagingEntity: playerWithId("p"),
-      hitEntity: { id: "chair", typeId: LOW_CHAIR_TYPE },
+      hitEntity: { id: "chair", typeId: CHAIR_KINDS.low_chair.typeId },
     });
     handler({
       damagingEntity: playerWithId("p"),
