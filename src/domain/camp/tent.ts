@@ -292,7 +292,7 @@ export type PitchRefusal =
   | "blocked"
   | "ground";
 
-export type PitchPlan =
+type PitchPlan =
   | { readonly ok: true; readonly clearTopFirst: readonly Cell[] }
   | { readonly ok: false; readonly reason: PitchRefusal };
 

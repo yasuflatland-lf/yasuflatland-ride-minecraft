@@ -16,7 +16,7 @@ export const ROOF_TENT_CEILING_SHAPE = Object.freeze({
   { across: number; along: number; ridge: number }
 >);
 
-export interface CeilingCell {
+interface CeilingCell {
   readonly x: number;
   readonly y: number;
   readonly z: number;

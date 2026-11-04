@@ -7,7 +7,7 @@ import { Repaint } from "../shared/repaint";
 import type { PaintWorld } from "./ports/paint";
 import type { Clock } from "./ports/shared";
 
-export interface PaintVehicleCommand {
+interface PaintVehicleCommand {
   playerId: PlayerId;
   vehicleId: VehicleId;
   paint: Paint;
