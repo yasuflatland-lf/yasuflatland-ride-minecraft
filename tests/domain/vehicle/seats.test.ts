@@ -1,15 +1,12 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asPlayerId } from "../../../src/domain/shared/ids";
 import { forward, leftOf, type Vec2 } from "../../../src/domain/shared/vec";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import {
   DRIVER_SEAT,
   nearestSeat,
-  occupiedSeats,
   seatWorldPositions,
   toLocal,
-  vacatedSeats,
 } from "../../../src/domain/vehicle/seats";
 import { defined } from "../../support/defined";
 
@@ -39,23 +36,6 @@ describe("seats (ADR 0019)", () => {
     );
   });
 
-  it("assigns the occupant in the driver's seat to seat 0 regardless of getRiders order", () => {
-    fc.assert(
-      fc.property(
-        yaw,
-        fc.shuffledSubarray([0, 1, 2, 3], { minLength: 1 }),
-        (y, seats) => {
-          const riders = seats.map((i) => ({
-            id: asPlayerId(`p${i}`),
-            offset: worldOffset(y, i),
-          }));
-          const map = occupiedSeats(riders, forward(y), SEATS);
-          for (const i of seats) expect(map.get(asPlayerId(`p${i}`))).toBe(i);
-        },
-      ),
-    );
-  });
-
   it("assigns seats using a supplied layout for any facing", () => {
     const positions = fc.uniqueArray(
       fc.record({
@@ -68,17 +48,13 @@ describe("seats (ADR 0019)", () => {
       fc.property(positions, yaw, (layout, heading) => {
         const f = forward(heading);
         const left = leftOf(f);
-        const riders = layout.map((position, i) => ({
-          id: asPlayerId(`r${i}`),
-          offset: {
-            x: left.x * position.x + f.x * position.z,
-            z: left.z * position.x + f.z * position.z,
-          },
-        }));
-        const seats = occupiedSeats(riders, f, layout);
         for (const [i, position] of layout.entries()) {
           expect(nearestSeat(position, layout)).toBe(i);
-          expect(seats.get(asPlayerId(`r${i}`))).toBe(i);
+          const offset = {
+            x: left.x * position.x + f.x * position.z,
+            z: left.z * position.x + f.z * position.z,
+          };
+          expect(nearestSeat(toLocal(offset, f), layout)).toBe(i);
         }
       }),
     );
@@ -92,15 +68,6 @@ describe("seats (ADR 0019)", () => {
     );
     expect(nearestSeat({ x: 0, z: 0.075 }, SEATS)).toBe(0);
     expect(nearestSeat({ x: 0, z: -0.8 }, SEATS)).toBe(2);
-  });
-
-  it("returns the seats of occupants who left", () => {
-    const prev = new Map([
-      [asPlayerId("a"), 0],
-      [asPlayerId("b"), 2],
-    ]);
-    expect(vacatedSeats(prev, new Map([[asPlayerId("b"), 2]]))).toEqual([0]);
-    expect(vacatedSeats(prev, prev)).toEqual([]);
   });
 });
 

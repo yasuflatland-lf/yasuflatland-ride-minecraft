@@ -74,6 +74,7 @@ import type {
   VehicleTickInput,
 } from "../../../../../src/domain/vehicle/vehicle";
 import { type Body, engineStep } from "../../../../support/engineModel";
+import { riderView } from "../../../../support/riders";
 import { waterSensors } from "../../../../support/waterDepth";
 
 const number = (min: number, max: number) =>
@@ -559,15 +560,14 @@ describe("sports boat docking (ADR 0063)", () => {
           if (seat === undefined) throw new Error("no driver seat");
           const f = forward(heading);
           const left = leftOf(f);
-          const driver = {
-            id: asPlayerId("driver"),
+          const driver = riderView("driver", {
             offset: {
               x: left.x * seat.x + f.x * seat.z,
               z: left.z * seat.x + f.z * seat.z,
             },
             yaw: driverYaw,
             raw: { moveX, moveY, jump: false },
-          };
+          });
           let hold: HoldPose | undefined;
           for (let tick = 0; tick < DOCK.ticks; tick++) {
             const out = vehicle.tick({
@@ -1319,6 +1319,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
           const left = leftOf(f);
           const rider = {
             id: asPlayerId("rider"),
+            slot: seat,
             offset: {
               x: left.x * local.x + f.x * local.z,
               z: left.z * local.x + f.z * local.z,
@@ -1566,15 +1567,14 @@ it("keeps deck seats only at empty boat seats and ignores the deck driver while 
         const riders = taken.map((seat) => {
           const at = SPORTSBOAT_PROFILE.seats.positions[seat];
           if (at === undefined) throw new Error(`no seat ${seat}`);
-          return {
-            id: asPlayerId(`rider${seat}`),
+          return riderView(`rider${seat}`, {
+            seat,
             offset: {
               x: left.x * at.x + f.x * at.z,
               z: left.z * at.x + f.z * at.z,
             },
             yaw: heading,
-            raw: { moveX: 0, moveY: 0, jump: false },
-          };
+          });
         });
         const out = vehicle.tick({
           ...context(0, undefined, { x: 0, z: 0 }, AFLOAT),

@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
   rideSeatY,
+  seatedEyeHeight,
   seatPosition,
 } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
@@ -29,7 +30,7 @@ it("keeps the seated eye at its target between the bed and ridge at any positive
         rideSeatY() -
         ROOF_TENT_SPEC.seatRiderOffset +
         ROOF_TENT_SPEC.standingEyeHeight;
-      expect(eye - offset).toBeCloseTo(ROOF_TENT_SPEC.occupantEyeHeight, 10);
+      expect(eye - offset).toBeCloseTo(seatedEyeHeight("ladder"), 10);
       expect(eye).toBeGreaterThan(offset + ROOF_TENT_SPEC.seatLift);
       expect(eye).toBeLessThan(offset + ROOF_TENT_SPEC.shellRidge);
       expect(rideSeatY()).toBeLessThan(
