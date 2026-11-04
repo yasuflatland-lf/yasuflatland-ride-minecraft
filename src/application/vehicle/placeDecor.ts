@@ -32,7 +32,8 @@ export class PlaceDecor {
   execute(cmd: PlaceDecorCommand): boolean {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
-    const slot = vehicle.decorSlotFor(
+    const room = vehicle.asRoom();
+    const slot = room?.decorSlotFor(
       cmd.item,
       cmd.point,
       cmd.cell,
@@ -49,8 +50,8 @@ export class PlaceDecor {
       !this.world.consumeDecorItem(cmd.playerId, cmd.hotbarSlot, cmd.item)
     )
       return false;
-    if (!vehicle.placeDecor(slot, cmd.item)) return false;
-    this.world.saveDecor(cmd.vehicleId, vehicle.decor());
+    if (!room?.placeDecor(slot, cmd.item)) return false;
+    this.world.saveDecor(cmd.vehicleId, room.decor());
     return true;
   }
 }

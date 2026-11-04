@@ -17,8 +17,8 @@ function setup() {
 describe("RemoveDecor (ADR 0093)", () => {
   it("takes the decor at the cell back to the player and saves the rest (ADR 0093)", () => {
     const { car, pose, world, remove, stove } = setup();
-    car.placeDecor("stove", "percolator");
-    car.placeDecor("table", "mug_pair");
+    car.asRoom()?.placeDecor("stove", "percolator");
+    car.asRoom()?.placeDecor("table", "mug_pair");
     expect(
       remove.execute({
         playerId: asPlayerId("p"),
@@ -30,13 +30,15 @@ describe("RemoveDecor (ADR 0093)", () => {
       "saveDecor:car:table=mug_pair",
       "giveDecor:p:percolator",
     ]);
-    expect(car.decor()).toEqual([{ slot: "table", item: "mug_pair" }]);
+    expect(car.asRoom()?.decor()).toEqual([
+      { slot: "table", item: "mug_pair" },
+    ]);
   });
 
   it("takes back the end of the table nearest the pressed point (ADR 0108)", () => {
     const { car, pose, world, remove } = setup();
-    car.placeDecor("table", "fruit_bowl");
-    car.placeDecor("table_aisle", "mug_pair");
+    car.asRoom()?.placeDecor("table", "fruit_bowl");
+    car.asRoom()?.placeDecor("table_aisle", "mug_pair");
     const aisle = decorSlot("table_aisle");
     if (!aisle) throw new Error("no table_aisle slot");
     expect(
@@ -60,7 +62,7 @@ describe("RemoveDecor (ADR 0093)", () => {
     expect(
       remove.execute({ playerId: asPlayerId("p"), vehicleId: car.id, cell }),
     ).toBe(false);
-    car.placeDecor("stove", "percolator");
+    car.asRoom()?.placeDecor("stove", "percolator");
     expect(
       remove.execute({
         playerId: asPlayerId("p"),

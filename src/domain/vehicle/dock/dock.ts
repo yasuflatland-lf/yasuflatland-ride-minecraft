@@ -42,19 +42,19 @@ export interface ClearCell extends Cell {
   readonly typeId: string;
 }
 
-/** An axis-aligned box in world coordinates: min inclusive, max exclusive. */
-export interface Box {
+/** An axis-aligned box in world coordinates: min inclusive, max exclusive (unlike build CellBox, whose corners are both inclusive). */
+export interface WorldBox {
   readonly min: Vec3;
   readonly max: Vec3;
 }
 
 /** Where standing players are looked for when a vehicle departs, and where those without a seat go. */
 export interface Departure {
-  readonly boxes: readonly Box[];
+  readonly boxes: readonly WorldBox[];
   readonly exit?: HoldPose;
 }
 
-export function inBox(box: Box, at: Vec3): boolean {
+export function inBox(box: WorldBox, at: Vec3): boolean {
   return (
     at.x >= box.min.x &&
     at.x < box.max.x &&

@@ -31,7 +31,9 @@ it("returns the vehicle's spawn override for the pressed cell (ADR 0182)", () =>
   const { car, repo } = parkedCamper();
   const cell = { x: 1, y: 65, z: -2 };
   const spawn = { x: 0, y: 65, z: -2 };
-  const answer = vi.spyOn(car, "bedSpawnCell").mockReturnValue(spawn);
+  const answer = vi
+    .spyOn(defined(car.asRoom(), "room"), "bedSpawnCell")
+    .mockReturnValue(spawn);
   expect(
     new FindBedSpawnCell(repo).execute({ vehicleId: car.id, cell }),
   ).toEqual(spawn);

@@ -11,8 +11,8 @@ import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns } from "./cooldowns";
 import { Crew } from "./crew";
 import type { CutColumn } from "./cut";
-import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
+import { isRoomDrive, type RoomDrive } from "./dock/roomDrive";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
 import { MONITOR_PROPERTY_NAME } from "./entityContract";
@@ -276,59 +276,8 @@ export class Vehicle {
     });
   }
 
-  /** A player tapped the door of this vehicle's room at `tick`. Returns whether it opened or closed (ADR 0068, 0105). */
-  useDockDoor(tick: number): boolean {
-    return this.drive.useDockDoor?.(tick) ?? false;
-  }
-
-  /** The spawn cell for a press on bed block `cell`; undefined when it is none of this vehicle's beds (ADR 0182). */
-  bedSpawnCell(cell: Vec3): Vec3 | undefined {
-    return this.drive.bedSpawnCell?.(cell);
-  }
-
-  /** A player with feet at `feet` pressed the shower-toilet at `tick`. Returns whether its door swung or its shower ran (ADR 0094, 0098, 0105, 0118). */
-  pressShowerToilet(feet: Vec3, tick: number): boolean {
-    return this.drive.pressShowerToilet?.(feet, tick) ?? false;
-  }
-
-  /** The decor of this vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0093, 0103). */
-  decor(): readonly DecorPlacement[] {
-    return this.drive.decor?.() ?? [];
-  }
-
-  /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
-  setDecor(slot: string, item: string | undefined): boolean {
-    return this.drive.setDecor?.(slot, item) ?? false;
-  }
-
-  /** The free decor slot that accepts `item`: the slot of the pressed `cell` when it can take it, else the one nearest `point` unless `exact`, measured along the line of sight from `eye` when given; undefined for a kind without decor (ADR 0093, 0097, 0104, 0110). */
-  decorSlotFor(
-    item: string,
-    point: Vec3,
-    cell: Vec3,
-    exact: boolean,
-    eye?: Vec3,
-  ): string | undefined {
-    return this.drive.decorSlotFor?.(item, point, cell, exact, eye);
-  }
-
-  /** A player puts `item` in `slot`. Returns whether it was placed (ADR 0093). */
-  placeDecor(slot: string, item: string): boolean {
-    return this.drive.placeDecor?.(slot, item) ?? false;
-  }
-
-  /** A player takes the decor at world `cell` out, the one nearest the pressed `point` (seen from `eye`) when the cell holds two. Returns its item, if any (ADR 0093, 0108). */
-  removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined {
-    return this.drive.removeDecor?.(cell, point, eye);
-  }
-
-  /** A player pressed storage with doors, such as the wall cabinet, at world `cell` at `tick`. Returns what the press did, if anything (ADR 0114, 0121). */
-  pressStorage(
-    cell: Vec3,
-    point: Vec3 | undefined,
-    tick: number,
-  ): StoragePress | undefined {
-    return this.drive.pressStorage?.(cell, point, tick);
+  asRoom(): RoomDrive | undefined {
+    return isRoomDrive(this.drive) ? this.drive : undefined;
   }
 
   /** Called by the application when this tick's step commands may not have reached the entity (ADR 0055, 0127). */
