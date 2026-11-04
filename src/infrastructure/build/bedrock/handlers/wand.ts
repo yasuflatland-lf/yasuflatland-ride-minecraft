@@ -6,6 +6,7 @@ import type { PressPasteAim } from "../../../../application/build/pressPasteAim"
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
 import { virtualEndPoint } from "../../../../domain/build/aim/aim";
+import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import type { Cell } from "../../../../domain/shared/cells";
 import {
@@ -13,7 +14,6 @@ import {
   asPlayerId,
   type PlayerId,
 } from "../../../../domain/shared/ids";
-import type { PressDebounces } from "../../../../domain/shared/pressDebounce";
 import { heldTypeId } from "../../../shared/heldItem";
 import { SELECTION_WAND_TYPE } from "../../identifiers";
 import type { BuildMenus } from "../buildMenus";
