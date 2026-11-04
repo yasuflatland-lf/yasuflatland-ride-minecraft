@@ -1,29 +1,21 @@
 // Connects game events to the use cases.
 
-import type { SleepInBed } from "../../../application/shared/sleepInBed";
 import type { BoardVehicle } from "../../../application/vehicle/boardVehicle";
 import type { DriveVehicles } from "../../../application/vehicle/driveVehicles";
-import type { FindBedSpawnCell } from "../../../application/vehicle/findBedSpawnCell";
 import type { GiveStarterVehicle } from "../../../application/vehicle/giveStarterVehicle";
 import type { HitVehicle } from "../../../application/vehicle/hitVehicle";
 import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
 import type { OpenGift } from "../../../application/vehicle/openGift";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
-import type { PlaceDecor } from "../../../application/vehicle/placeDecor";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
-import type { PressShowerToilet } from "../../../application/vehicle/pressShowerToilet";
-import type { PressStorage } from "../../../application/vehicle/pressStorage";
-import type { RemoveDecor } from "../../../application/vehicle/removeDecor";
 import type { SetDecor } from "../../../application/vehicle/setDecor";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SwitchCeilingLights } from "../../../application/vehicle/switchCeilingLights";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
 import type { SwitchTool } from "../../../application/vehicle/switchTool";
-import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { RawInput } from "../../../domain/vehicle/driveInput";
-import { registerBedBlock } from "../../shared/bedBlock";
 import { HEADLIGHT_SWITCH_TYPE } from "../../shared/identifiers";
 import {
   registerSwitchRouter,
@@ -32,25 +24,20 @@ import {
 } from "../../shared/switchRouter";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { registerBoarding } from "./handlers/boarding";
-import { registerDecor } from "./handlers/decor";
-import { registerDockDoor } from "./handlers/dockDoor";
-import { registerDockGuard } from "./handlers/dockGuard";
 import { registerDrive } from "./handlers/drive";
 import { registerFleet } from "./handlers/fleet";
 import { registerGifts } from "./handlers/gift";
 import { vehicleSwitchTarget } from "./handlers/headlights";
 import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
-import { registerShowerToilet } from "./handlers/showerToilet";
 import { registerStandIns } from "./handlers/standIn";
 import { registerStarter } from "./handlers/starter";
-import { registerStorage } from "./handlers/storage";
 import { registerTestDecor } from "./handlers/testDecor";
 import { registerTestHeldItem } from "./handlers/testHeldItem";
 import { registerTestInput } from "./handlers/testInput";
 import { registerTestTool } from "./handlers/testTool";
 import { toolSwitchTarget } from "./handlers/toolSwitch";
-import { CAMPER_BED_COMPONENT, MONITOR_TOOL_TYPES } from "./identifiers";
+import { MONITOR_TOOL_TYPES } from "./identifiers";
 
 export function registerSubscriptions(
   useCases: {
@@ -64,46 +51,21 @@ export function registerSubscriptions(
     headlights: SwitchHeadlights;
     ceilingLights: SwitchCeilingLights;
     tool: SwitchTool;
-    door: UseDockDoor;
-    bed: SleepInBed;
-    bedSpawnCell: FindBedSpawnCell;
-    showerToilet: PressShowerToilet;
     decor: SetDecor;
-    placeDecor: PlaceDecor;
-    removeDecor: RemoveDecor;
-    storage: PressStorage;
     hints: ShowVehicleHints;
     board: BoardVehicle;
   },
   testInputs: VehicleTestStore<RawInput>,
   testHeldItems: VehicleTestStore<string>,
-  dockDoorOwner: (
-    dimensionId: DimensionId,
-    cell: Vec3,
-  ) => VehicleId | undefined,
   dockCellOwner: (
     dimensionId: DimensionId,
     cell: Vec3,
   ) => VehicleId | undefined,
-  dockBlockOwner: (
-    dimensionId: DimensionId,
-    cell: Vec3,
-    typeId: string,
-  ) => VehicleId | undefined,
+  installKind: () => void,
   /** Other features' switch targets, asked after the vehicle's; read on every press. */
   laterSwitchTargets: () => readonly SwitchTarget[],
 ): void {
-  registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
-  registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed, (dim, cell) => {
-    const id = dockCellOwner(dim, cell);
-    return id === undefined
-      ? undefined
-      : useCases.bedSpawnCell.execute({ vehicleId: id, cell });
-  });
-  registerDockDoor(useCases.door, dockDoorOwner);
-  registerDockGuard(dockBlockOwner);
-  registerShowerToilet(useCases.showerToilet, dockCellOwner);
-  registerStorage(useCases.storage, dockCellOwner);
+  installKind();
   registerDrive(useCases.drive, useCases.hints);
   registerFleet(useCases.limit);
   registerTestTool(useCases.tool);

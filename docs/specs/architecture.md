@@ -22,6 +22,7 @@
 - Source: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md)
 - Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
 - Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
+- Source: [0221](../adr/0221-organize-infrastructure-vehicle-code-by-kind.md)
 - Excluded: [0179](../adr/0179-support-realms-as-a-second-play-environment.md): Realms support belongs to the dev-environment topic.
 - Excluded: [0204](../adr/0204-shard-unit-tests-across-ci-jobs.md): CI sharding belongs to the testing topic, not runtime layering.
 - Excluded: [0207](../adr/0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md): temporary occupied roof tent rain ceilings belong to the camping gear topic.
@@ -79,7 +80,7 @@
 - Rule: Domain shared primitives include `cells.ts`, `laidCells.ts` (`relayCells`), `sleep.ts`, `paint.ts`, `switchCooldown.ts`, `tapToggle.ts`, and `syncedValue.ts`; application shared contains `sleepInBed.ts`, `repaint.ts`, and `ports/`. Infrastructure shared contains `identifiers.ts` (`AIR_BLOCK`, `messageKey`, `HEADLIGHT_SWITCH_TYPE`), `lightBlocks.ts`, `laidCells.ts` (`CellLayer`), `laidBlockGuard.ts`, `bedrockBedWorld.ts`, `dyes.ts` (`PAINT_VARIANT`, `paintEvent`), and `switchRouter.ts`; all these paths exist. `DockBlocks` and `createTentBlocks` construct separate `CellLayer` instances, while each feature retains its own block union, IDs, saved keys and policies such as camper door behavior and `PaintVehicle`. Dock laying rejects new camp cells but keeps cells it already owns, including saved cells recovered after reload.
 - Agreement: Accepted
 - Basis: [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "`shared/` holds kind-neutral primitives and parameterized engines only."; [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "Each feature keeps its own owner registry, a `CellLayer` instance per feature"; [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "Room laying keeps cells the vehicle already owns if a later camp answer claims them."
-- Implementation: `src/domain/shared`; `src/application/shared`; `src/infrastructure/shared`; `src/infrastructure/vehicle/bedrock/dockBlocks.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/application/vehicle/paintVehicle.ts`
+- Implementation: `src/domain/shared`; `src/application/shared`; `src/infrastructure/shared`; `src/infrastructure/vehicle/kinds/camper/dockBlocks.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/application/vehicle/paintVehicle.ts`
 - Verification: `tests/infrastructure/shared/laidCells.test.ts` "reports held keys from the save before the first lay, then from the laid cells in the holder's dimension only" checks saved ownership in the primitive. Not verified: that test does not establish separate feature registries, complete module placement, or the dock's camp-filter policy; those are checked here by reading code only.
 
 ### Saved paint order
@@ -208,6 +209,15 @@
 - Basis: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md) Decision, "Features exchange host state through `VehicleHostLookup` next to `SpaceCheck`."
 - Implementation: `src/application/shared/ports/vehicleHost.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`; `src/infrastructure/bootstrap.ts`
 - Verification: `tests/infrastructure/vehicle/install.test.ts` "returns the vehicles' space check for other features (ADR 0122)". Not verified: this space-check test does not exercise the complete host-state lifecycle or roof tent integration.
+
+### Infrastructure vehicle kinds
+
+- Applies to: `src/infrastructure/vehicle/`.
+- Rule: Kind-specific adapters, handlers and identifiers live in `kinds/<kind>/`. Only the root `install.ts` imports kinds from the core. Kinds may import core contracts but never another kind. The world adapter receives `DockLayer` and the standable-room predicate; camper installation preserves handler order through callbacks.
+- Agreement: Accepted
+- Basis: [0221](../adr/0221-organize-infrastructure-vehicle-code-by-kind.md) Decision.
+- Implementation: `.dependency-cruiser.cjs`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/dockLayer.ts`; `src/infrastructure/vehicle/kinds/camper/install.ts`
+- Verification: `tests/architecture.test.ts`; `tests/infrastructure/vehicle/install.test.ts`; `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts`
 
 ## Open issues
 

@@ -1,18 +1,18 @@
 import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { DECOR_SLOTS } from "../../../../src/domain/vehicle/kinds/camper/decor";
-import { slotForPress } from "../../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
+import { slotForPress } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
   decorSlotCell,
   parkPose,
-} from "../../../../src/domain/vehicle/kinds/camper/room";
-import { CAMPING_GEAR_IDS } from "../../../../src/domain/vehicle/kinds/index";
+} from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/index";
 import {
   type PressedShape,
   pressedHeight,
   pressedShape,
-} from "../../../../src/infrastructure/vehicle/bedrock/faceHeight";
+} from "../../../../../src/infrastructure/vehicle/kinds/camper/faceHeight";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BUNK_BLOCK,
@@ -27,8 +27,8 @@ import {
   CAMPER_WALL_BLOCK,
   decorBlockId,
   pairDecorBlockId,
-} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
-import { defined } from "../../../support/defined";
+} from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { defined } from "../../../../support/defined";
 
 const SIDES = ["North", "South", "East", "West"] as const;
 const FACES = ["Up", "Down", ...SIDES] as const;

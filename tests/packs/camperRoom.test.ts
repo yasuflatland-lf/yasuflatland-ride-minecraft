@@ -22,7 +22,7 @@ import {
   ROOM_FACE_STATE,
   ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
-} from "../../src/infrastructure/vehicle/bedrock/identifiers";
+} from "../../src/infrastructure/vehicle/kinds/camper/identifiers";
 
 const BP = "packs/yasu_ride_bp";
 const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));

@@ -6,7 +6,7 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
-} from "../../infrastructure/vehicle/bedrock/identifiers";
+} from "../../infrastructure/vehicle/kinds/camper/identifiers";
 import type { Arena } from "../arena";
 import type { Outcome } from "../outcome";
 

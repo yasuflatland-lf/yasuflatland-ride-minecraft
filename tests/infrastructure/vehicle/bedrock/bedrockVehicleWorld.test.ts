@@ -20,10 +20,8 @@ import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedroc
 import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { BladeCuts } from "../../../../src/infrastructure/vehicle/bedrock/bladeCuts";
-import { DockBlocks } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
-  CAMPER_FLOOR_BLOCK,
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
@@ -40,6 +38,11 @@ import {
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { RoadPaver } from "../../../../src/infrastructure/vehicle/bedrock/roadPaver";
 import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
+import { DockBlocks } from "../../../../src/infrastructure/vehicle/kinds/camper/dockBlocks";
+import {
+  CAMPER_FLOOR_BLOCK,
+  isStandableRoomBlock,
+} from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
 
@@ -154,7 +157,14 @@ function fixture() {
     entities,
     dimension,
     car,
-    world: new BedrockVehicleWorld(index, inputs, testHeldItems, noCampSpace),
+    world: new BedrockVehicleWorld(
+      index,
+      inputs,
+      testHeldItems,
+      noCampSpace,
+      new DockBlocks(noCampSpace),
+      isStandableRoomBlock,
+    ),
   };
 }
 

@@ -28,7 +28,13 @@ import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../domain/vehicle/motion/dock";
 import { AIR_BLOCK } from "../../infrastructure/shared/identifiers";
 import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
-import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/bedrock/dockBlocks";
+import {
+  DECK_FLOOR_BLOCK,
+  DECK_SEAT_TYPE,
+  STAND_IN_FAMILY,
+  standInType,
+} from "../../infrastructure/vehicle/bedrock/identifiers";
+import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/kinds/camper/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BUNK_BLOCK,
@@ -41,8 +47,6 @@ import {
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
-  DECK_FLOOR_BLOCK,
-  DECK_SEAT_TYPE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
@@ -53,9 +57,7 @@ import {
   ROOM_FACE_STATE,
   ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
-  STAND_IN_FAMILY,
-  standInType,
-} from "../../infrastructure/vehicle/bedrock/identifiers";
+} from "../../infrastructure/vehicle/kinds/camper/identifiers";
 import { type Arena, drive, setDecor, wait, withCamper } from "../arena";
 import { type Outcome, runCourse, type Step, type StepSink } from "../outcome";
 import { settledAt } from "../settle";

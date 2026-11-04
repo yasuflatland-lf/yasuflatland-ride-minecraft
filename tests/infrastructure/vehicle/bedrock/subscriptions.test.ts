@@ -27,6 +27,25 @@ import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRe
 import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../../src/infrastructure/shared/identifiers";
 import type { SwitchTarget } from "../../../../src/infrastructure/shared/switchRouter";
+import { registerDockGuard } from "../../../../src/infrastructure/vehicle/bedrock/handlers/dockGuard";
+import {
+  DECK_FLOOR_BLOCK,
+  DECK_SEAT_OF_PROPERTY,
+  DECK_SEAT_TYPE,
+  ENTITY_TYPE,
+  GIFT_ITEM,
+  ITEM_TYPE,
+  MONITOR_TOOL_TYPES,
+  OWNER_PROPERTY,
+  STAND_IN_OF_PROPERTY,
+  STAND_IN_PROPERTY,
+  standInType,
+  TEST_DECOR_EVENT,
+  TEST_HELD_ITEM_EVENT,
+  TEST_INPUT_EVENT,
+  TEST_TOOL_EVENT,
+} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { registerSubscriptions as registerCoreSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
 import {
   CAMPER_BED_COMPONENT,
   CAMPER_CABINET_COMPONENT,
@@ -37,27 +56,35 @@ import {
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_SHOWER_TOILET_COMPONENT,
   CAMPER_WALL_BLOCK,
-  DECK_FLOOR_BLOCK,
-  DECK_SEAT_OF_PROPERTY,
-  DECK_SEAT_TYPE,
   decorBlockId,
-  ENTITY_TYPE,
-  GIFT_ITEM,
-  ITEM_TYPE,
-  MONITOR_TOOL_TYPES,
-  OWNER_PROPERTY,
   pairDecorBlockId,
-  STAND_IN_OF_PROPERTY,
-  STAND_IN_PROPERTY,
-  standInType,
-  TEST_DECOR_EVENT,
-  TEST_HELD_ITEM_EVENT,
-  TEST_INPUT_EVENT,
-  TEST_TOOL_EVENT,
-} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
-import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
+} from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { installCamper } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { defined } from "../../../support/defined";
+
+function registerSubscriptions(
+  useCases: Parameters<typeof registerCoreSubscriptions>[0] &
+    Parameters<typeof installCamper>[0],
+  testInputs: VehicleTestStore<RawInput>,
+  testHeldItems: VehicleTestStore<string>,
+  doorOwner: Parameters<typeof installCamper>[1],
+  cellOwner: Parameters<typeof installCamper>[2],
+  blockOwner: Parameters<typeof registerDockGuard>[0],
+  laterSwitchTargets: () => readonly SwitchTarget[],
+): void {
+  registerCoreSubscriptions(
+    useCases,
+    testInputs,
+    testHeldItems,
+    cellOwner,
+    () =>
+      installCamper(useCases, doorOwner, cellOwner, () =>
+        registerDockGuard(blockOwner),
+      ),
+    laterSwitchTargets,
+  );
+}
 
 const game = vi.hoisted(() => ({
   before:

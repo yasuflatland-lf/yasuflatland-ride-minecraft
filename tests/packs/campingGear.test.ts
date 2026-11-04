@@ -23,7 +23,7 @@ import {
   pairEndStates,
   pairHeightStates,
   ROOM_OPEN_STATE,
-} from "../../src/infrastructure/vehicle/bedrock/identifiers";
+} from "../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { defined } from "../support/defined";
 import { readTableRows } from "../support/markdown";
 

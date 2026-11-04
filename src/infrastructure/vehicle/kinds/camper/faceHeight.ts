@@ -1,7 +1,7 @@
 // The engine reports PlayerInteractWithBlockBeforeEvent.faceLocation.y as 1 minus the real
 // height within the block, while x and z are right (measured on the dev BDS, ADR 0111).
 // Every correction of that report lives here, so it can be removed if the engine changes.
-import { pairHeights } from "../../../domain/vehicle/kinds/index";
+import { pairHeights } from "../../../../domain/vehicle/kinds/index";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BUNK_BLOCK,

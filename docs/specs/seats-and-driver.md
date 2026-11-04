@@ -170,7 +170,7 @@
 - Agreement: Accepted
 - Basis: [0104](../adr/0104-refuse-a-press-on-a-taken-seat.md) Decision, "With `exact`, the item goes on the pressed slot when that slot accepts it and is free."
 - Basis: [0104](../adr/0104-refuse-a-press-on-a-taken-seat.md) Decision, "The seat press stays cancelled in both cases, so a refused press does not seat the player either."
-- Implementation: `src/domain/vehicle/kinds/camper/decorPlacing.ts` (`slotForPress`); `src/application/vehicle/placeDecor.ts` (`PlaceDecorCommand.exact`); `src/infrastructure/vehicle/bedrock/handlers/decor.ts` (`placeGearOnSeat`); `src/domain/vehicle/kinds/camper/seatPress.ts` (`SeatPresses`, `seatSlotCell`)
+- Implementation: `src/domain/vehicle/kinds/camper/decorPlacing.ts` (`slotForPress`); `src/application/vehicle/placeDecor.ts` (`PlaceDecorCommand.exact`); `src/infrastructure/vehicle/kinds/camper/handlers/decor.ts` (`placeGearOnSeat`); `src/domain/vehicle/kinds/camper/seatPress.ts` (`SeatPresses`, `seatSlotCell`)
 - Verification: `tests/domain/vehicle/kinds/camper/decorPlacing.test.ts` "with an exact press returns the pressed slot when it accepts the item and is free, else nothing, never another slot (ADR 0104)"; `tests/application/vehicle/placeDecor.test.ts` "refuses an exact press on a taken slot with the no-slot message, consuming and saving nothing (ADR 0104)". Not verified: on a device, and that an empty-handed press seats the player (no test found).
 
 ## Open issues

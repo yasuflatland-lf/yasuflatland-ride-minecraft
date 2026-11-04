@@ -39,8 +39,12 @@ import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "./bedrock/entityIndex";
 import { registerCutDrops } from "./bedrock/handlers/cutDrops";
+import { registerDockGuard } from "./bedrock/handlers/dockGuard";
 import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
+import { DockBlocks } from "./kinds/camper/dockBlocks";
+import { isStandableRoomBlock } from "./kinds/camper/identifiers";
+import { installCamper } from "./kinds/camper/install";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
 import { InMemoryVehicleRepository } from "./persistence/inMemoryVehicleRepository";
 import { VehicleTestStore } from "./testInput/vehicleTestStore";
@@ -71,6 +75,8 @@ export function installVehicles(deps: {
     testInputs,
     testHeldItems,
     deps.isCampSpace,
+    new DockBlocks(deps.isCampSpace),
+    isStandableRoomBlock,
   );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
   const log = { warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`) };
@@ -97,14 +103,7 @@ export function installVehicles(deps: {
       ),
       ceilingLights: new SwitchCeilingLights(repo, systemClock),
       tool: new SwitchTool(repo, systemClock),
-      door: new UseDockDoor(repo, systemClock),
-      bedSpawnCell: new FindBedSpawnCell(repo),
-      bed: new SleepInBed(new BedrockBedWorld(index)),
-      showerToilet: new PressShowerToilet(repo, systemClock),
       decor: new SetDecor(decorWorld, repo),
-      placeDecor: new PlaceDecor(decorWorld, repo),
-      removeDecor: new RemoveDecor(decorWorld, repo),
-      storage: new PressStorage(decorWorld, repo, systemClock),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),
         repo,
@@ -114,10 +113,25 @@ export function installVehicles(deps: {
     },
     testInputs,
     testHeldItems,
-    (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
-    (dimensionId, cell, typeId) =>
-      bedrock.dockBlockOwner(dimensionId, cell, typeId),
+    () =>
+      installCamper(
+        {
+          door: new UseDockDoor(repo, systemClock),
+          bedSpawnCell: new FindBedSpawnCell(repo),
+          bed: new SleepInBed(new BedrockBedWorld(index)),
+          showerToilet: new PressShowerToilet(repo, systemClock),
+          placeDecor: new PlaceDecor(decorWorld, repo),
+          removeDecor: new RemoveDecor(decorWorld, repo),
+          storage: new PressStorage(decorWorld, repo, systemClock),
+        },
+        (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
+        (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
+        () =>
+          registerDockGuard((dimensionId, cell, typeId) =>
+            bedrock.dockBlockOwner(dimensionId, cell, typeId),
+          ),
+      ),
     deps.laterSwitchTargets,
   );
   registerCutDrops((entity) => bedrock.sweepCutDrop(entity));

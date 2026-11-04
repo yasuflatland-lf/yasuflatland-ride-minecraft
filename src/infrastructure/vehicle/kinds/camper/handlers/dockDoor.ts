@@ -1,11 +1,11 @@
 import { system } from "@minecraft/server";
-import type { UseDockDoor } from "../../../../application/vehicle/useDockDoor";
+import type { UseDockDoor } from "../../../../../application/vehicle/useDockDoor";
 import {
   asDimensionId,
   type DimensionId,
   type VehicleId,
-} from "../../../../domain/shared/ids";
-import type { Vec3 } from "../../../../domain/shared/vec";
+} from "../../../../../domain/shared/ids";
+import type { Vec3 } from "../../../../../domain/shared/vec";
 import { CAMPER_DOOR_COMPONENT } from "../identifiers";
 
 export function registerDockDoor(
