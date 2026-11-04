@@ -1,13 +1,13 @@
-// An axis-aligned box of block cells, both corners inclusive.
+// An axis-aligned box of block cells, both corners inclusive (unlike dock WorldBox, whose max is exclusive).
 import type { Cell } from "../shared/cells";
 import type { Vec3 } from "../shared/vec";
 
-export interface Box {
+export interface CellBox {
   readonly min: Cell;
   readonly max: Cell;
 }
 
-export function boxOf(a: Cell, b: Cell): Box {
+export function boxOf(a: Cell, b: Cell): CellBox {
   return {
     min: {
       x: Math.min(a.x, b.x),
@@ -22,15 +22,15 @@ export function boxOf(a: Cell, b: Cell): Box {
   };
 }
 
-const sizeX = (box: Box) => box.max.x - box.min.x + 1;
-const sizeY = (box: Box) => box.max.y - box.min.y + 1;
-const sizeZ = (box: Box) => box.max.z - box.min.z + 1;
+const sizeX = (box: CellBox) => box.max.x - box.min.x + 1;
+const sizeY = (box: CellBox) => box.max.y - box.min.y + 1;
+const sizeZ = (box: CellBox) => box.max.z - box.min.z + 1;
 
-export function volume(box: Box): number {
+export function volume(box: CellBox): number {
   return sizeX(box) * sizeY(box) * sizeZ(box);
 }
 
-export function contains(box: Box, cell: Cell): boolean {
+export function contains(box: CellBox, cell: Cell): boolean {
   return (
     cell.x >= box.min.x &&
     cell.x <= box.max.x &&
@@ -42,7 +42,7 @@ export function contains(box: Box, cell: Cell): boolean {
 }
 
 /** Cells with y outermost, then z, then x. */
-export function* cellsOf(box: Box): Generator<Cell> {
+export function* cellsOf(box: CellBox): Generator<Cell> {
   for (let y = box.min.y; y <= box.max.y; y++) {
     for (let z = box.min.z; z <= box.max.z; z++) {
       for (let x = box.min.x; x <= box.max.x; x++) {
@@ -56,7 +56,7 @@ export function* cellsOf(box: Box): Generator<Cell> {
  * Splits a box into disjoint sub-boxes that cover it, each holding at most
  * maxCells cells, by halving the longest side until a piece fits.
  */
-export function chunksOf(box: Box, maxCells: number): Box[] {
+export function chunksOf(box: CellBox, maxCells: number): CellBox[] {
   if (volume(box) <= maxCells || volume(box) === 1) return [box];
   const axis = longestAxis(box);
   const mid = Math.floor((box.min[axis] + box.max[axis]) / 2);
@@ -66,7 +66,7 @@ export function chunksOf(box: Box, maxCells: number): Box[] {
 }
 
 /** Ties go to y, then z. */
-function longestAxis(box: Box): "x" | "y" | "z" {
+function longestAxis(box: CellBox): "x" | "y" | "z" {
   const sx = sizeX(box);
   const sy = sizeY(box);
   const sz = sizeZ(box);
@@ -75,7 +75,7 @@ function longestAxis(box: Box): "x" | "y" | "z" {
   return "x";
 }
 
-export function translate(box: Box, by: Cell): Box {
+export function translate(box: CellBox, by: Cell): CellBox {
   return {
     min: { x: box.min.x + by.x, y: box.min.y + by.y, z: box.min.z + by.z },
     max: { x: box.max.x + by.x, y: box.max.y + by.y, z: box.max.z + by.z },
@@ -86,7 +86,7 @@ export function translate(box: Box, by: Cell): Box {
  * Distinct cells along the 12 edges, evenly thinned to at most maxPoints.
  * Cells are picked by index, so the cost follows maxPoints, not the edge length.
  */
-export function edgePoints(box: Box, maxPoints: number): Cell[] {
+export function edgePoints(box: CellBox, maxPoints: number): Cell[] {
   if (maxPoints <= 0) return [];
   const { min, max } = box;
   const unique = (a: number, b: number) => (a === b ? [a] : [a, b]);
