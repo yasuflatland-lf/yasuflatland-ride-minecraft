@@ -4,7 +4,7 @@ import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { HeadlightWorld } from "./ports/headlights";
 import type { Clock } from "./ports/shared";
 
-export interface SwitchHeadlightsCommand {
+interface SwitchHeadlightsCommand {
   playerId: PlayerId;
   vehicleId: VehicleId;
 }

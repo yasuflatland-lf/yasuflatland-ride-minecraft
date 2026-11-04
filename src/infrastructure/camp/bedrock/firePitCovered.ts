@@ -1,12 +1,10 @@
 import { world } from "@minecraft/server";
 import type { FirePitId } from "../../../domain/camp/firePit";
+import { entityOfType } from "../../shared/entities";
 import { FIRE_PIT_COVERED_PROPERTY, FIRE_PIT_TYPE } from "../identifiers";
 
 export function firePitEntity(id: FirePitId) {
-  const entity = world.getEntity(id);
-  return entity?.isValid && entity.typeId === FIRE_PIT_TYPE
-    ? entity
-    : undefined;
+  return entityOfType(world, id, FIRE_PIT_TYPE);
 }
 
 export function isFirePitCovered(id: FirePitId): boolean {

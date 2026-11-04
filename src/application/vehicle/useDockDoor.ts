@@ -3,7 +3,7 @@ import type { VehicleId } from "../../domain/shared/ids";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { Clock } from "./ports/shared";
 
-export interface UseDockDoorCommand {
+interface UseDockDoorCommand {
   vehicleId: VehicleId;
 }
 

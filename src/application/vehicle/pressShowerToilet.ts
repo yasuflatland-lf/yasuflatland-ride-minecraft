@@ -4,7 +4,7 @@ import type { Vec3 } from "../../domain/shared/vec";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { Clock } from "./ports/shared";
 
-export interface PressShowerToiletCommand {
+interface PressShowerToiletCommand {
   vehicleId: VehicleId;
   /** The pressing player's feet in world coordinates. */
   feet: Vec3;

@@ -5,7 +5,7 @@ import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { TentWorld } from "./ports/tent";
 
-export interface TakeDownTentCommand {
+interface TakeDownTentCommand {
   tentId: TentId;
   tick: number;
   /** The player who hit, who is told how many hits are left; none for a test event. */
