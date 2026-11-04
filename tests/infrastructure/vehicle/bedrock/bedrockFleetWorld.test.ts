@@ -15,6 +15,8 @@ import {
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import type { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
+import { DockBlocks } from "../../../../src/infrastructure/vehicle/kinds/camper/dockBlocks";
+import { isStandableRoomBlock } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
 import { decorItemId } from "../../../support/decorIds";
@@ -97,6 +99,8 @@ function fixture() {
     inputs,
     new VehicleTestStore<string>(),
     noCampSpace,
+    new DockBlocks(noCampSpace),
+    isStandableRoomBlock,
   );
   const inventory = { giveItems: vi.fn() };
   return {

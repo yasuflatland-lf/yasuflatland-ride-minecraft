@@ -298,6 +298,11 @@ const IMPACT_RULES: readonly ImpactRule[] = [
   },
   { rule: "harness-import", test: exactPaths(HARNESS_IMPORTS), impact: "all" },
   {
+    rule: "camper-identifiers",
+    test: /^src\/infrastructure\/vehicle\/kinds\/camper\/identifiers\.ts$/,
+    impact: "all",
+  },
+  {
     rule: "entry",
     test: /^src\/(?:main|infrastructure\/bootstrap)\.ts$/,
     impact: "all",

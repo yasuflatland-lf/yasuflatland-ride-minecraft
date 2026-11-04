@@ -39,7 +39,7 @@ The measurement was made on a touch client only. The PC (mouse) client has not b
 
 ## Consequences
 
-- An Up-face press on the stove picks the burner under the pressed x and z. The ray from the eye crosses the burner plane at the pressed point itself, so the eye no longer moves the choice. `tests/infrastructure/vehicle/bedrock/faceHeight.test.ts` replays the logged presses and checks this for any press on the stove top
+- An Up-face press on the stove picks the burner under the pressed x and z. The ray from the eye crosses the burner plane at the pressed point itself, so the eye no longer moves the choice. `tests/infrastructure/vehicle/kinds/camper/faceHeight.test.ts` replays the logged presses and checks this for any press on the stove top
 - If the PC client turns out to report the real y, the Up and Down rules still give the right height, since they ignore the report. Only side faces and decor tops would then be off, by the same inversion as before. Manual test C111 checks side-face presses on PC so this shows up
 - Only scripts change. A `/reload` is enough
 - The stove still holds one item at a time on four burners (0107). If burner choice stays unreliable, one burner in the middle of the stove is an accepted fallback

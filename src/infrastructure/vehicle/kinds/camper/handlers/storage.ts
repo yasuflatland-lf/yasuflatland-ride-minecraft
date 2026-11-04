@@ -1,13 +1,13 @@
 import { system } from "@minecraft/server";
-import type { PressStorage } from "../../../../application/vehicle/pressStorage";
+import type { PressStorage } from "../../../../../application/vehicle/pressStorage";
 import {
   asDimensionId,
   asPlayerId,
   type DimensionId,
   type VehicleId,
-} from "../../../../domain/shared/ids";
-import type { Vec3 } from "../../../../domain/shared/vec";
-import { heldTypeId } from "../../../shared/heldItem";
+} from "../../../../../domain/shared/ids";
+import type { Vec3 } from "../../../../../domain/shared/vec";
+import { heldTypeId } from "../../../../shared/heldItem";
 import { CAMPER_CABINET_COMPONENT } from "../identifiers";
 
 export function registerStorage(

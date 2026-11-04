@@ -8,8 +8,8 @@ import {
 import { KEPT_BLOCKS } from "../../domain/shared/keptBlocks";
 import { id, LAID_BLOCK_TAG } from "../../infrastructure/shared/identifiers";
 import { BladeCuts } from "../../infrastructure/vehicle/bedrock/bladeCuts";
-import { decorBlockId } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { systemClock } from "../../infrastructure/vehicle/bedrock/systemClock";
+import { decorBlockId } from "../../infrastructure/vehicle/kinds/camper/identifiers";
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 

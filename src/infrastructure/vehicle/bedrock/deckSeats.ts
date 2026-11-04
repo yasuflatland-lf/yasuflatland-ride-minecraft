@@ -13,7 +13,7 @@ import {
   isVehicleEntity,
   PLAYER_TYPE,
 } from "./identifiers";
-import { standUp } from "./standUp";
+import { openCellSpot, standUp } from "./standUp";
 
 // Under a pixel (1/16 block): a seat this close to its spot is left alone, so a
 // seated player is not teleported every tick for drift nobody can see.
@@ -87,6 +87,10 @@ export function deckSeatRide(
 }
 
 export class DeckSeats {
+  constructor(
+    private readonly isStandableRoomBlock: (typeId: string) => boolean,
+  ) {}
+
   private readonly kept = new Map<VehicleId, (string | null)[]>();
   // Script memory only: after a /reload nobody is known to have been seated, so
   // the first tick moves nobody (ADR 0109).
@@ -121,7 +125,9 @@ export class DeckSeats {
       // remove theirs, and their riders keep the engine's dismount (ADR 0109).
       const was = wasSeated[index];
       if (seat && at.stand && was?.seatId === seat.id)
-        standUp(was.player, seat, at.stand);
+        standUp(was.player, seat, at.stand, (dimension, at) =>
+          openCellSpot(dimension, at, this.isStandableRoomBlock),
+        );
       if (seat && seat.dimension.id !== vehicle.dimension.id) {
         seat.remove();
         seat = undefined;
