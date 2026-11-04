@@ -76,6 +76,37 @@ describe("LimitVehicles (ADR 0038)", () => {
     expect(fleets.state.evicted).toEqual([]);
   });
 
+  it("removes a rediscovered vehicle after its eviction falls out of tracking", () => {
+    const { world, fleets, uc } = setup();
+    const cars = ids(SPEC.maxUnownedVehicles + SPEC.maxEvicted + 3);
+    const oldest = entry(full[0] as string);
+    for (const id of cars) {
+      world.loaded = entries([id]);
+      uc.spawned(entry(id));
+    }
+    expect(world.calls).toEqual([]);
+    expect(fleets.state.order).toEqual(
+      entries(cars.slice(-SPEC.maxUnownedVehicles)),
+    );
+    expect(fleets.state.evicted).toEqual(
+      entries(
+        cars.slice(
+          cars.length - SPEC.maxUnownedVehicles - SPEC.maxEvicted,
+          -SPEC.maxUnownedVehicles,
+        ),
+      ),
+    );
+    expect(fleets.load().knows(oldest.id)).toBe(false);
+    const tracked = fleets.state.order;
+
+    world.loaded = [...tracked, oldest];
+    uc.found([oldest]);
+
+    expect(world.calls).toEqual([`remove:${oldest.id}`]);
+    expect(fleets.state.order).toEqual(tracked);
+    expect(fleets.load().knows(oldest.id)).toBe(false);
+  });
+
   it("trims a world that already has more vehicles than the limit", () => {
     const { world, repo, fleets, uc } = setup();
     world.loaded = entries(ids(SPEC.maxUnownedVehicles + 3));
