@@ -14,6 +14,7 @@ import { FakeClock, InMemoryRepo } from "./fakes";
 const vehicleId = asVehicleId("b");
 const driver: RiderView = {
   id: asPlayerId("d"),
+  slot: 0,
   offset: defined(BULLDOZER_PROFILE.seats.positions[0], "seat 0"),
   yaw: 0,
   raw: { moveX: 0, moveY: 0, jump: false },
