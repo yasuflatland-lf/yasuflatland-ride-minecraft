@@ -43,6 +43,7 @@ import type { TentEntry } from "../../../domain/camp/tentRegistry";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { safeBlockAt } from "../../shared/blocks";
 import { AIR_BLOCK, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
@@ -77,14 +78,6 @@ function dimensionOf(dimensionId: DimensionId): Dimension | undefined {
     return world.getDimension(dimensionId);
   } catch {
     return undefined; // Unknown dimension id
-  }
-}
-
-function blockAt(dimension: Dimension | undefined, at: Vec3) {
-  try {
-    return dimension?.getBlock(at);
-  } catch {
-    return undefined; // Unloaded chunk, or a cell outside the world
   }
 }
 
@@ -185,7 +178,7 @@ export class BedrockTentWorld
 
   private isFlapExitFree(dimension: Dimension, cell: Cell): boolean {
     return [cell, { ...cell, y: cell.y + 1 }].every((at) => {
-      const block = blockAt(dimension, at);
+      const block = safeBlockAt(dimension, at);
       return (
         block?.typeId === AIR_BLOCK ||
         (block?.typeId === TENT_FLAP_BLOCK &&
@@ -205,19 +198,19 @@ export class BedrockTentWorld
   }
 
   typeIdAt(dimensionId: DimensionId, at: Vec3): string | undefined {
-    return blockAt(dimensionOf(dimensionId), at)?.typeId;
+    return safeBlockAt(dimensionOf(dimensionId), at)?.typeId;
   }
 
   survey(dimensionId: DimensionId, pose: TentPose): PitchSurvey {
     const dimension = dimensionOf(dimensionId);
     const clearCells = tentClearCells(pose);
     const clear = clearCells.map((c) => {
-      const b = blockAt(dimension, c);
+      const b = safeBlockAt(dimension, c);
       if (!b) return undefined;
       return isLightBlock(b) ? AIR_BLOCK : b.typeId;
     });
     const ground = tentGroundCells(pose).map((c): GroundReading | undefined => {
-      const b = blockAt(dimension, c);
+      const b = safeBlockAt(dimension, c);
       return b ? { typeId: b.typeId, liquid: b.isLiquid } : undefined;
     });
     // Every layer is asked: the clear rule reads a camper's light-block cells
@@ -253,7 +246,7 @@ export class BedrockTentWorld
     const dimension = dimensionOf(dimensionId);
     for (const c of cells) {
       try {
-        blockAt(dimension, c)?.setType(AIR_BLOCK);
+        safeBlockAt(dimension, c)?.setType(AIR_BLOCK);
       } catch {
         // The cell unloaded since the survey; the lay skips a cell it cannot take.
       }
@@ -413,7 +406,7 @@ export class BedrockTentWorld
   }
 
   private clearTentBlock(dimensionId: DimensionId, cell: Cell): void {
-    const block = blockAt(dimensionOf(dimensionId), cell);
+    const block = safeBlockAt(dimensionOf(dimensionId), cell);
     if (isTentBlockTypeId(block?.typeId)) block?.setType(AIR_BLOCK);
   }
 
@@ -430,7 +423,7 @@ export class BedrockTentWorld
     // id, so the pitched state finds it.
     for (const c of tentCells(entry.pose, PITCHED_STATE)) {
       try {
-        const b = blockAt(dimension, c);
+        const b = safeBlockAt(dimension, c);
         // A replacement block belongs to the player, not the tent.
         if (b?.typeId === TENT_CELL_CODEC.blockIdOf(c.block))
           b.setType(AIR_BLOCK);

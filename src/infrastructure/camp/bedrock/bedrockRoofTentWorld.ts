@@ -13,6 +13,7 @@ import {
 import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { dyeOf, paintEvent } from "../../shared/dyes";
+import { entityOfType } from "../../shared/entities";
 import { id, messageKey } from "../../shared/identifiers";
 import {
   consumeHeld,
@@ -32,14 +33,7 @@ import {
 import { loadedEntityIds } from "./hostedEntities";
 
 export function roofTentEntity(id: RoofTentId): Entity | undefined {
-  try {
-    const entity = world.getEntity(id);
-    return entity?.isValid && entity.typeId === ROOF_TENT_TYPE
-      ? entity
-      : undefined;
-  } catch {
-    return undefined;
-  }
+  return entityOfType(world, id, ROOF_TENT_TYPE);
 }
 
 export class BedrockRoofTentWorld implements RoofTentWorld {
