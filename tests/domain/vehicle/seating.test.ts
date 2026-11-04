@@ -6,10 +6,12 @@ import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { Seating, type SeatLeaver } from "../../../src/domain/vehicle/seating";
 import {
-  occupiedSeats,
+  nearestSeat,
   type RiderPos,
+  toLocal,
 } from "../../../src/domain/vehicle/seats";
 import { defined } from "../../support/defined";
+import { riderPos } from "../../support/riders";
 
 const P = SUV_PROFILE.seats.positions;
 const yaw = fc.double({ min: -180, max: 180, noNaN: true });
@@ -130,7 +132,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const riders = place(list, y);
         const out = new Seating(P).update(riders, f, AT_REST);
         const expected = riders.find(
-          (r) => occupiedSeats(riders, f, P).get(r.id) === 0,
+          (r) => nearestSeat(toLocal(r.offset, f), P) === 0,
         )?.id;
         expect(out.driver?.id).toBe(expected);
         expect(out.mounted).toBe(expected !== undefined);
@@ -212,11 +214,12 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
           const f = forward(y);
           // A rider's position may lag anywhere, even at the driver's seat (stands).
           const laid = (list: readonly Spec[]) =>
-            list.map((r, i) => ({
-              id: asPlayerId(r.id),
-              offset: worldOffset(y, stands[i] ?? 0),
-              slot: r.seat,
-            }));
+            list.map((r, i) =>
+              riderPos(r.id, {
+                offset: worldOffset(y, stands[i] ?? 0),
+                slot: r.seat,
+              }),
+            );
           const s = new Seating(P);
           s.update(laid(prev), f, AT_REST);
           const out = s.update(laid(now), f, AT_REST);
@@ -233,11 +236,9 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
     fc.assert(
       fc.property(distinctSlots, yaw, (list, y) => {
         const f = forward(y);
-        const riders = list.map((r) => ({
-          id: asPlayerId(r.id),
-          offset: { x: 0, z: 0 },
-          slot: r.seat,
-        }));
+        const riders = list.map((r) =>
+          riderPos(r.id, { offset: { x: 0, z: 0 }, slot: r.seat }),
+        );
         const s = Seating.restore(P, riders, f);
         const out = s.update(riders, f, AT_REST);
         expect(out.mounted).toBe(false);
@@ -251,11 +252,9 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
     fc.assert(
       fc.property(distinctSlots, distinctSlots, yaw, (prev, now, y) => {
         const laid = (list: readonly Spec[]) =>
-          list.map((r) => ({
-            id: asPlayerId(r.id),
-            offset: { x: 0, z: 0 },
-            slot: r.seat,
-          }));
+          list.map((r) =>
+            riderPos(r.id, { offset: { x: 0, z: 0 }, slot: r.seat }),
+          );
         const s = new Seating(P);
         const f = forward(y);
         s.update(laid(prev), f, AT_REST);
@@ -315,7 +314,7 @@ describe("Choosing a driver with position lag (ADR 0126)", () => {
             offset: worldOffset(y, r.seat, positions),
           }));
           const expected = riders.find(
-            (r) => occupiedSeats(riders, f, positions).get(r.id) === 0,
+            (r) => nearestSeat(toLocal(r.offset, f), positions) === 0,
           );
           const out = new Seating(positions).update(riders, f, AT_REST);
           expect(out.driver).toBe(expected);
@@ -373,8 +372,8 @@ describe("Choosing a driver with position lag (ADR 0126)", () => {
 
 it("K5 keeps the lagged driver's seat taken and vacates the front seat", () => {
   const s = new Seating(P);
-  const d = { id: asPlayerId("d"), offset: worldOffset(0, 0), slot: 0 };
-  const p = { id: asPlayerId("p"), offset: worldOffset(0, 2), slot: 2 };
+  const d = riderPos("d", { offset: worldOffset(0, 0), slot: 0 });
+  const p = riderPos("p", { offset: worldOffset(0, 2), slot: 2 });
   s.update([d, p], forward(0), AT_REST);
   s.update([{ ...d, offset: worldOffset(0, 2) }, p], forward(0), AT_REST);
   expect(s.taken()).toEqual(new Set([0, 2]));
@@ -450,14 +449,13 @@ for (const profile of [SUV_PROFILE, CAMPER_PROFILE]) {
           const makeRiders = (list: readonly number[], lagged: boolean) =>
             list.map((slot) => {
               const at = worldOffset(y, slot, positions);
-              return {
-                id: asPlayerId(`r${slot}`),
+              return riderPos(`r${slot}`, {
                 slot,
                 offset: {
                   x: at.x + (lagged ? l.x : 0),
                   z: at.z + (lagged ? l.z : 0),
                 },
-              };
+              });
             });
           for (const [tick, lagged] of lagTicks.entries()) {
             const out = seating.update(makeRiders(aboard, lagged), f, AT_REST);

@@ -53,23 +53,6 @@ export interface RiderPos {
   slot?: number;
 }
 
-export function occupiedSeats(
-  riders: readonly RiderPos[],
-  f: Vec2,
-  positions: SeatLayout["positions"],
-): Map<PlayerId, number> {
-  return new Map(
-    riders.map((r) => [r.id, nearestSeat(toLocal(r.offset, f), positions)]),
-  );
-}
-
-export function vacatedSeats(
-  prev: ReadonlyMap<PlayerId, number>,
-  now: ReadonlyMap<PlayerId, number>,
-): number[] {
-  return [...prev].filter(([id]) => !now.has(id)).map(([, seat]) => seat);
-}
-
 export function seatWorldPositions(
   pose: HoldPose,
   positions: SeatLayout["positions"],

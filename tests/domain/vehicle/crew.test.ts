@@ -6,6 +6,7 @@ import { Crew } from "../../../src/domain/vehicle/crew";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { Seating } from "../../../src/domain/vehicle/seating";
 import { SPEC } from "../../../src/domain/vehicle/spec";
+import { riderPos } from "../../support/riders";
 
 it("delegates seating and waits only within the driver handover window", () => {
   const riders = fc.uniqueArray(
@@ -38,13 +39,16 @@ it("delegates seating and waits only within the driver handover window", () => {
           const list = snapshot.riders.map((r) => {
             const at = SUV_PROFILE.seats.positions[r.seat];
             if (!at) throw new Error("Missing seat");
+            const offset = {
+              x: f.z * at.x + f.x * at.z,
+              z: -f.x * at.x + f.z * at.z,
+            };
+            if (r.slot !== undefined)
+              return riderPos(r.id, { slot: r.slot, offset });
             return {
               id: asPlayerId(r.id),
               slot: r.slot,
-              offset: {
-                x: f.z * at.x + f.x * at.z,
-                z: -f.x * at.x + f.z * at.z,
-              },
+              offset,
             };
           });
           const step = snapshot.step;
