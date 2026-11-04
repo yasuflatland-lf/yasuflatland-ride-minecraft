@@ -1,18 +1,8 @@
-import {
-  Direction,
-  Player,
-  ScriptEventSource,
-  system,
-  world,
-} from "@minecraft/server";
+import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { GasLanternActions } from "../../../../application/camp/gasLantern";
 import { asGasLanternId } from "../../../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../../../domain/camp/spec";
-import {
-  asDimensionId,
-  asPlayerId,
-  type PlayerId,
-} from "../../../../domain/shared/ids";
+import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { heldTypeId } from "../../../shared/heldItem";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../shared/identifiers";
@@ -30,6 +20,7 @@ import {
   tableTopAim,
   testTableTopRequest,
 } from "../tableTopAim";
+import { registerPlaceableEntity } from "./placeable";
 
 export function registerGasLantern(
   actions: GasLanternActions,
@@ -40,24 +31,20 @@ export function registerGasLantern(
     GAS_LANTERN_SPEC.lightTicks,
   );
   const placements = new TickScopedSet<PlayerId>();
-  world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (!ev.isFirstEvent || ev.itemStack?.typeId !== GAS_LANTERN_ITEM) return;
-    const dimension = asDimensionId(ev.block.dimension.id);
-    const block = ev.block.location;
-    if (
-      !actions.canUseBlock(
-        dimension,
-        block,
-        ev.blockFace === Direction.Up ? "up" : "other",
-      )
-    )
-      return;
-    ev.cancel = true;
-    const player = asPlayerId(ev.player.id);
-    if (!placements.add(system.currentTick, player)) return;
-    const yaw = ev.player.getRotation().y;
-    const slot = ev.player.selectedSlotIndex;
-    system.run(() => actions.place({ player, dimension, block, yaw, slot }));
+  registerPlaceableEntity({
+    itemId: GAS_LANTERN_ITEM,
+    entityTypeIds: new Set([GAS_LANTERN_TYPE]),
+    canUseBlock: (dimension, block, face) =>
+      actions.canUseBlock(dimension, block, face),
+    place: (ctx) => actions.place(ctx),
+    hit: ({ entity, attacker, player, tick }) => {
+      if (attacker && heldTypeId(attacker) === HEADLIGHT_SWITCH_TYPE) {
+        actions.switch(asGasLanternId(entity.id), tick);
+        return;
+      }
+      actions.hit(asGasLanternId(entity.id), player, tick);
+    },
+    placements,
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (
@@ -88,22 +75,6 @@ export function registerGasLantern(
     ev.cancel = true;
     const id = ev.target.id;
     system.run(() => actions.switch(asGasLanternId(id), system.currentTick));
-  });
-  world.afterEvents.entityHitEntity.subscribe((ev) => {
-    if (
-      !(ev.damagingEntity instanceof Player) ||
-      ev.hitEntity.typeId !== GAS_LANTERN_TYPE
-    )
-      return;
-    if (heldTypeId(ev.damagingEntity) === HEADLIGHT_SWITCH_TYPE) {
-      actions.switch(asGasLanternId(ev.hitEntity.id), system.currentTick);
-      return;
-    }
-    actions.hit(
-      asGasLanternId(ev.hitEntity.id),
-      asPlayerId(ev.damagingEntity.id),
-      system.currentTick,
-    );
   });
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
     if (ev.id === TEST_GAS_LANTERN_ON_TABLE_EVENT) {
