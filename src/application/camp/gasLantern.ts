@@ -20,6 +20,7 @@ import {
 import type { GasLanternWorld } from "./ports/gasLantern";
 import type { HostedKindPort } from "./ports/hostedKind";
 import type { HostedItemKind } from "./ports/tableTop";
+import { handleHit } from "./takeBackByHits";
 
 const RULE = {
   hits: GAS_LANTERN_SPEC.hitsToTakeBack,
@@ -89,14 +90,18 @@ export class GasLanternActions {
   }
 
   hit(id: GasLanternId, player: PlayerId, tick: number): boolean {
-    const result = this.hits.hit(id, tick, false);
-    if (result.broken) {
-      this.world.clearLight(id);
-      this.world.dropItem(id);
-      this.world.removeGasLantern(id);
-      return true;
-    }
-    this.world.showHitsLeft(player, result.hitsLeft);
-    return false;
+    let taken = false;
+    handleHit(RULE, this.hits, id, tick, {
+      drop: () => {
+        this.world.clearLight(id);
+        this.world.dropItem(id);
+      },
+      remove: () => {
+        this.world.removeGasLantern(id);
+        taken = true;
+      },
+      showRemaining: (left) => this.world.showHitsLeft(player, left),
+    });
+    return taken;
   }
 }
