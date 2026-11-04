@@ -3,6 +3,7 @@ import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { HeadlightWorld } from "./ports/headlights";
 import type { Clock } from "./ports/shared";
+import type { SwitchFeedback } from "./switchFeedback";
 
 interface SwitchHeadlightsCommand {
   playerId: PlayerId;
@@ -14,6 +15,7 @@ export class SwitchHeadlights {
     private readonly world: HeadlightWorld,
     private readonly repo: VehicleRepository,
     private readonly clock: Clock,
+    private readonly feedback?: SwitchFeedback,
   ) {}
 
   execute(cmd: SwitchHeadlightsCommand): boolean {
@@ -23,6 +25,7 @@ export class SwitchHeadlights {
     const on = this.world.headlightsOn(cmd.vehicleId);
     if (on === undefined) return false;
     this.world.setHeadlights(cmd.vehicleId, !on);
+    this.feedback?.show(cmd.playerId, "headlight_switch", on ? "off" : "on");
     return true;
   }
 }

@@ -2,6 +2,7 @@
 
 - Scope: SUV and camper flight and submarine forms, motion, gravity, landing gear, rider effects, and the SUV transformation model.
 - Verified at: 5ed1f579
+- Source: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md)
 - Source: [0021](../adr/0021-flight-mode.md)
 - Source: [0022](../adr/0022-fold-wheels-and-glow-in-flight.md)
 - Source: [0026](../adr/0026-bank-into-turns-in-flight.md)
@@ -30,6 +31,16 @@
 - Excluded: [0215](../adr/0215-fit-the-suv-interior-to-the-rubicon-cabin.md): SUV cabin and seat derivation, covered by the SUV body topic
 
 ## Rules
+
+### Switch feedback in the chase camera
+
+- Applies to: Successful tool and headlight switches while the script-managed chase camera is active.
+- Rule: The camera state used for feedback comes from `RiderEffects.isThirdPerson`, shared with the driving use case. It reflects successful camera application, including retry behavior, rather than a separate flight condition. The switching player receives a localized action-bar message with the new supported tool or headlight state. First-person and grounded riders receive no message under current routing. The bulldozer selects the existing 8-block `mid` preset; SUV remains mid and camper remains 12-block far.
+- Agreement: Accepted
+- Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision.
+- Implementation: `src/application/vehicle/riderEffects.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/switchFeedback.ts`; `src/infrastructure/vehicle/install.ts`; `src/domain/vehicle/kinds/bulldozer/profile.ts`
+- Verification: `tests/application/vehicle/riderEffects.test.ts` covers successful sets, clears and failures; switch use-case property tests cover gating and new states. `tests/packs/chaseCamera.test.ts` checks profile choices and existing preset radii. Visible framing and feedback require a client check.
+
 
 ### Forms and transition priority
 
@@ -125,7 +136,7 @@
 ### Rider camera selection
 
 - Applies to: Player riders of loaded vehicles; form-forced chase view for SUV and camper in every non-car form.
-- Rule: `TransformingDrive` reports `riders.thirdPerson` whenever the resulting form is not car. `DriveVehicles` collects those vehicle riders and uses their profile camera: SUV `mid`, camper `far`; sports boat declares `near` and bulldozer `far`. The sports boat reports no form-forced third person. `CHASE_CAMERAS` maps near to `minecraft:third_person`, mid to `yasu_ride:mid_chase`, and far to `yasu_ride:far_chase`. Mid and far inherit `minecraft:follow_orbit`; their preset radius definitions are 8 and 12 blocks respectively. Another feature can request a profile camera for ordinary or deck-seat riders, but bootstrap currently supplies `wantsChaseCamera: () => false`. A changed desired preset switches again; leaving the desired set (landing, getting off, or disappearance) clears only a camera this use case tracked. Tracking is in memory across ticks, not reloads.
+- Rule: `TransformingDrive` reports `riders.thirdPerson` whenever the resulting form is not car. `DriveVehicles` collects those vehicle riders and uses their profile camera: SUV `mid`, camper `far`; sports boat declares `near` and bulldozer `mid`. The sports boat reports no form-forced third person. `CHASE_CAMERAS` maps near to `minecraft:third_person`, mid to `yasu_ride:mid_chase`, and far to `yasu_ride:far_chase`. Mid and far inherit `minecraft:follow_orbit`; their preset radius definitions are 8 and 12 blocks respectively. Another feature can request a profile camera for ordinary or deck-seat riders, but bootstrap currently supplies `wantsChaseCamera: () => false`. A changed desired preset switches again; leaving the desired set (landing, getting off, or disappearance) clears only a camera this use case tracked. Tracking is in memory across ticks, not reloads.
 - Agreement: Proposed
 - Basis: [0028](../adr/0028-third-person-camera-in-flight.md) Decision, "The use case remembers the players it switched, so each switch is one call, and it only clears players it switched itself."; [0071](../adr/0071-pull-the-camper-chase-camera-back.md) Decision, "`DriveVehicles` remembers which chase camera it set for each player and switches a rider again when the camera their vehicle wants changes, for example a rider who moves from a flying SUV to a flying camper."; [0170](../adr/0170-measure-suv-side-view-proportions.md) Notes, "Add a `mid` chase camera between `near` and `far` (ADR 0071): the pack's `yasu_ride:mid_chase` preset inherits from `minecraft:follow_orbit` with a radius of 8 blocks, and the SUV profile uses it."
 - Implementation: `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/riderEffects.ts`; `src/domain/vehicle/profile.ts`; `src/domain/vehicle/kinds/suv/profile.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/sportsboat/profile.ts`; `src/domain/vehicle/kinds/bulldozer/profile.ts`; `src/infrastructure/vehicle/bedrock/identifiers.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`; `src/infrastructure/bootstrap.ts`; `packs/yasu_ride_bp/cameras/presets/yasu_ride/mid_chase.json`; `packs/yasu_ride_bp/cameras/presets/yasu_ride/far_chase.json`

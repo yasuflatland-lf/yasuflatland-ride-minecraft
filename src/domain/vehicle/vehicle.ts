@@ -500,6 +500,10 @@ export class Vehicle {
     );
   }
 
+  toolState(item: string): string | undefined {
+    return this.drive.toolState?.(item);
+  }
+
   /** Bypasses role and cooldown checks for the server-only test hook (ADR 0171). */
   forceTool(item: string, state: string): boolean {
     return this.drive.setToolState?.(item, state) ?? false;

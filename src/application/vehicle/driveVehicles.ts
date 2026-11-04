@@ -11,16 +11,13 @@ import type { Logger } from "./ports/shared";
 import { RiderEffects } from "./riderEffects";
 
 export class DriveVehicles {
-  private readonly riders: RiderEffects;
-
   constructor(
     private readonly world: DriveWorld,
     private readonly repo: VehicleRepository,
     private readonly log: Logger,
     private readonly wantsChaseCamera: ChaseCameraWish,
-  ) {
-    this.riders = new RiderEffects(world, log);
-  }
+    private readonly riders = new RiderEffects(world, log),
+  ) {}
 
   execute(tick: number): void {
     const seen = new Set<VehicleId>();

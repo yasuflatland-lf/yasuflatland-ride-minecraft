@@ -165,3 +165,12 @@ yasu_ride.message.roof_tent_exit=Get out
 yasu_ride.hint.roof_tent_sneak=スニークするとテントに入れます
 yasu_ride.hint.roof_tent_seated=アイテムを使う操作でメニューを開きます。降車ボタンで外に出られます。
 yasu_ride.message.tent_occupied=Someone is inside the tent
+
+yasu_ride.message.blade_down=ブレード: 下
+yasu_ride.message.blade_up=ブレード: 上
+yasu_ride.message.wide_blade_normal=ワイドブレード: 通常
+yasu_ride.message.wide_blade_wide=ワイドブレード: ワイド
+yasu_ride.message.road_paver_off=ロードペーバー: OFF
+yasu_ride.message.road_paver_on=ロードペーバー: ON
+yasu_ride.message.headlights_off=ヘッドライト: OFF
+yasu_ride.message.headlights_on=ヘッドライト: ON

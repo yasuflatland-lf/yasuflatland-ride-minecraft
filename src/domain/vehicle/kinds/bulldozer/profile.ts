@@ -39,7 +39,7 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
       height: clearanceHeight(body),
     }),
   }),
-  chaseCamera: "far",
+  chaseCamera: "mid",
   defaultPaint: "yellow",
   monitor: BULLDOZER_MONITOR,
 });

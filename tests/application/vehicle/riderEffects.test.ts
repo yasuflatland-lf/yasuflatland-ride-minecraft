@@ -102,3 +102,31 @@ describe("RiderEffects fire protection", () => {
     expect(log.lines).toEqual(["fire protection bad: Error: fire"]);
   });
 });
+
+it("tracks successful camera changes for feedback, including failed sets and clears", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom<ChaseCamera>("near", "mid", "far"),
+      fc.boolean(),
+      (camera, fail) => {
+        const { world, riders } = setup();
+        const playerId = asPlayerId("p");
+        const desired = new Map([[playerId, camera]]);
+        expect(riders.isThirdPerson(playerId)).toBe(false);
+        world.failCameraOn = fail ? "p" : undefined;
+        riders.syncCameras(desired);
+        expect(riders.isThirdPerson(playerId)).toBe(!fail);
+        world.failCameraOn = undefined;
+        riders.syncCameras(desired);
+        expect(riders.isThirdPerson(playerId)).toBe(true);
+        expect(riders.isThirdPerson(asPlayerId("other"))).toBe(false);
+        world.failCameraOn = fail ? "p" : undefined;
+        riders.syncCameras(new Map());
+        expect(riders.isThirdPerson(playerId)).toBe(fail);
+        world.failCameraOn = undefined;
+        riders.syncCameras(new Map());
+        expect(riders.isThirdPerson(playerId)).toBe(false);
+      },
+    ),
+  );
+});
