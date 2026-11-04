@@ -5,7 +5,7 @@ import type { RoofTentSeatVariant } from "./seat";
 
 /** Shell footprint half extents and ridge height per variant, from tools/gen_roof_tent.py. */
 export const ROOF_TENT_CEILING_SHAPE = Object.freeze({
-  suv: {
+  ladder: {
     across: 1.2 * 1.64,
     along: (1.2 * 32) / 2 / 16,
     ridge: ROOF_TENT_SPEC.shellRidge,

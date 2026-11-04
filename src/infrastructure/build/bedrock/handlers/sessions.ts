@@ -1,8 +1,8 @@
 import { world } from "@minecraft/server";
 import type { EndPasting } from "../../../../application/build/endPasting";
+import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
-import type { PressDebounces } from "../../../../domain/shared/pressDebounce";
 
 export function registerSessions(
   repo: BuildSessionRepository,

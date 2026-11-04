@@ -314,7 +314,11 @@ describe("placementCell (ADR 0050, ADR 0051)", () => {
         const clearance = SUV_PROFILE.placement.clearance;
         expect(
           placementCell(
-            { surfaces: ["top", "water"], clearance },
+            {
+              surfaces: ["top", "water"],
+              liquids: new Set(["water"]),
+              clearance,
+            },
             clicked,
             "up",
             () => true,
@@ -322,7 +326,11 @@ describe("placementCell (ADR 0050, ADR 0051)", () => {
         ).toEqual(clicked);
         expect(
           placementCell(
-            { surfaces: ["water", "top"], clearance },
+            {
+              surfaces: ["water", "top"],
+              liquids: new Set(["water"]),
+              clearance,
+            },
             clicked,
             "up",
             () => true,
@@ -330,14 +338,19 @@ describe("placementCell (ADR 0050, ADR 0051)", () => {
         ).toEqual({ ...clicked, y: clicked.y + 16 });
         expect(
           placementCell(
-            { surfaces: ["water"], clearance },
+            { surfaces: ["water"], liquids: new Set(["water"]), clearance },
             clicked,
             "up",
             () => false,
           ),
         ).toBeUndefined();
         expect(
-          placementCell({ surfaces: [], clearance }, clicked, "up", () => true),
+          placementCell(
+            { surfaces: [], liquids: new Set(), clearance },
+            clicked,
+            "up",
+            () => true,
+          ),
         ).toBeUndefined();
       }),
     );
@@ -433,6 +446,7 @@ it("uses the SPEC water climb limit when placement omits maxClimb", () => {
       (start, depth, face) => {
         const rule = {
           surfaces: ["water"] as const,
+          liquids: SPORTSBOAT_PROFILE.placement.liquids,
           clearance: SPORTSBOAT_PROFILE.placement.clearance,
         };
         const isWater = (at: Vec3) =>

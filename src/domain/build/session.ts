@@ -1,7 +1,7 @@
 // Everything one player has in the build feature. Every change to the
 // selection, clipboard, history, mode, or running edit goes through here.
 import type { DimensionId, PlayerId } from "../shared/ids";
-import type { Box } from "./box";
+import type { CellBox } from "./box";
 import type { Clipboard } from "./clipboard/clipboard";
 import type { EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
@@ -22,7 +22,7 @@ type EditRefusal =
   | "noClipboard"
   | "nothingToUndo";
 
-/** Tells a refusal from a Box or an EditRecord. */
+/** Tells a refusal from a CellBox or an EditRecord. */
 export function isEditRefusal(value: unknown): value is EditRefusal {
   return typeof value === "string";
 }
@@ -30,7 +30,7 @@ export function isEditRefusal(value: unknown): value is EditRefusal {
 export class BuildSession {
   private currentFlow: BuildFlow = { kind: "idle" };
   private currentConfirmedBox:
-    | { dimensionId: DimensionId; box: Box }
+    | { dimensionId: DimensionId; box: CellBox }
     | undefined;
   private currentClipboard: Clipboard | undefined;
   private currentMode: BuildMode = MODE_OFF;
@@ -42,7 +42,7 @@ export class BuildSession {
   get flow(): BuildFlow {
     return this.currentFlow;
   }
-  get confirmedBox(): { dimensionId: DimensionId; box: Box } | undefined {
+  get confirmedBox(): { dimensionId: DimensionId; box: CellBox } | undefined {
     return this.currentConfirmedBox;
   }
   get hasHistory(): boolean {
@@ -51,12 +51,16 @@ export class BuildSession {
   setFlow(flow: BuildFlow): void {
     this.currentFlow = flow;
   }
-  confirmBox(dimensionId: DimensionId, box: Box): void {
+  confirmBox(dimensionId: DimensionId, box: CellBox): void {
     this.currentConfirmedBox = { dimensionId, box };
     this.currentFlow = cancel(this.currentFlow);
   }
 
-  completeCopy(dimensionId: DimensionId, box: Box, clipboard: Clipboard): void {
+  completeCopy(
+    dimensionId: DimensionId,
+    box: CellBox,
+    clipboard: Clipboard,
+  ): void {
     this.currentClipboard = clipboard;
     this.confirmBox(dimensionId, box);
     this.currentFlow = beginPasteAim(false);
