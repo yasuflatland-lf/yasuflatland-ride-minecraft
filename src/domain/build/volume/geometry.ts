@@ -1,6 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import type { Box } from "../box";
+import type { CellBox } from "../box";
 import { roofPlacement, roofVolume } from "../roof/geometry";
 import { copyVolume } from "./copy";
 import { cubePlacement, cubeVolume } from "./cube";
@@ -8,7 +8,7 @@ import { cylinderPlacement, cylinderVolume } from "./cylinder";
 import type { FillStyle, HeightedKind, HeightStepKind } from "./kind";
 
 export interface HeightStepSpec {
-  readonly base: Box;
+  readonly base: CellBox;
   readonly kind: HeightStepKind;
   readonly height: number;
 }
@@ -18,7 +18,7 @@ export interface HeightedSpec extends HeightStepSpec {
 }
 
 export interface HeightedVolume {
-  maxHeight(base: Box, worldTopY: number): number;
+  maxHeight(base: CellBox, worldTopY: number): number;
   wireframe(spec: HeightStepSpec, maxPoints: number): Vec3[];
 }
 

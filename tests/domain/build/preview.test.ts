@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import { type Box, boxOf } from "../../../src/domain/build/box";
+import { boxOf, type CellBox } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import {
   type BuildFlow,
@@ -19,7 +19,7 @@ const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimensionId = asDimensionId("minecraft:overworld");
 const material = blockStateOf("minecraft:stone");
 
-function onEdge(box: Box, point: Vec3) {
+function onEdge(box: CellBox, point: Vec3) {
   const axes = ["x", "y", "z"] as const;
   expect(
     axes.every(

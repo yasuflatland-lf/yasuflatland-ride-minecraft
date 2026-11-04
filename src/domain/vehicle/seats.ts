@@ -1,6 +1,7 @@
 import type { PlayerId } from "../shared/ids";
 // Seat assignment and dismount detection (ADR 0019).
 import {
+  distanceXZ,
   dot,
   forward,
   leftOf,
@@ -36,7 +37,7 @@ export function nearestSeat(
   let best = 0;
   let bestDist = Number.POSITIVE_INFINITY;
   for (const [i, seat] of positions.entries()) {
-    const dist = Math.hypot(local.x - seat.x, local.z - seat.z);
+    const dist = distanceXZ(local, seat);
     if (dist < bestDist) {
       best = i;
       bestDist = dist;

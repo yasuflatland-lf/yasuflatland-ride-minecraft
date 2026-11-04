@@ -1,6 +1,6 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 // Use case: every tick, move all loaded vehicles.
-import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
+import { profileOf, rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import type { TickOutcome } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
@@ -122,7 +122,7 @@ export class DriveVehicles {
         this.wishCamera(rider, camera, thirdPersonRiders);
     if (out.riders.underwater)
       for (const rider of snap.riders) underwater.add(rider.id);
-    if (snap.kind === "sportsboat") {
+    if (profileOf(snap.kind).ridersFireProof) {
       for (const rider of snap.riders) fireProtected.add(rider.id);
       for (const rider of snap.deckSeatRiders)
         if (rider !== undefined) fireProtected.add(rider);

@@ -827,7 +827,7 @@ it.each([true, false])(
     const cells = roofTentCeilingCells(
       tent.location,
       37,
-      ladder ? "suv" : "ground",
+      ladder ? "ladder" : "ground",
     );
     occupants.setOccupant("tent", PLAYER);
     expect(savedCeiling(tent)).toEqual(cells);
@@ -849,7 +849,7 @@ it.each([true, false])(
 it("skips occupied, missing, unloaded and vehicle-space cells without losing successful cells", () => {
   const tent = spawn();
   const { blocks, missing, throwing } = ceilingTerrain();
-  const cells = roofTentCeilingCells(tent.location, 0, "suv");
+  const cells = roofTentCeilingCells(tent.location, 0, "ladder");
   const [solid, absent, unloaded, vehicle] = cells as [
     Cell,
     Cell,
