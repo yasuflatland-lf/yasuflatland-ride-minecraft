@@ -16,35 +16,43 @@ import {
   DECOR_SLOTS,
 } from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import {
-  STORAGE_DOORS,
-  type StorageDoorId,
-} from "../../../../../src/domain/vehicle/kinds/camper/furniture";
-import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
-import {
-  AIR,
-  bedSpawnCell,
-  cargoCells,
-  compartmentCells,
-  deckSeats,
   decorBlockName,
   decorCells,
   decorSlotCell,
+  furnitureCells,
+  ownSlotBlock,
+  slotCells,
+} from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
+import {
+  STORAGE_DOORS,
+  type StorageDoorId,
+} from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  parkCheckCells,
+  planPark,
+  wallFootCells,
+} from "../../../../../src/domain/vehicle/kinds/camper/groundCheck";
+import {
+  localCellAt,
+  parkPose,
+  snapYaw,
+} from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
+import {
+  bedSpawnCell,
+  deckSeats,
   departure,
   exitCells,
-  furnitureCells,
-  holdsCargo,
-  localCellAt,
-  ownSlotBlock,
-  parkCheckCells,
-  parkPose,
-  planPark,
   roomCells,
-  slotCells,
-  snapYaw,
-  storagePlateChecks,
-  wallFootCells,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
+} from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
+import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { seatSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/seatPress";
+import {
+  cargoCells,
+  compartmentCells,
+  holdsCargo,
+  storagePlateChecks,
+} from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";

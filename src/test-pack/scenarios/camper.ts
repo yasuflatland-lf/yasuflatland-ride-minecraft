@@ -10,25 +10,31 @@ import type {
   DockCell,
   HoldPose,
 } from "../../domain/vehicle/dock/floor";
+import {
+  decorCells,
+  furnitureCells,
+} from "../../domain/vehicle/kinds/camper/decorCells";
 import { storageDoors } from "../../domain/vehicle/kinds/camper/dooredStorage";
 import {
   type CAMPER_STORAGE,
   FRIDGE,
   WALL_CABINET,
 } from "../../domain/vehicle/kinds/camper/furniture";
+import {
+  localCellAt,
+  parkPose,
+} from "../../domain/vehicle/kinds/camper/parkPose";
 import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import {
   bedSpawnCell,
+  deckSeats,
+  roomCells,
+} from "../../domain/vehicle/kinds/camper/roomCells";
+import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
+import {
   cargoCells,
   compartmentCells,
-  deckSeats,
-  decorCells,
-  furnitureCells,
-  localCellAt,
-  parkPose,
-  roomCells,
-} from "../../domain/vehicle/kinds/camper/room";
-import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
+} from "../../domain/vehicle/kinds/camper/storagePlates";
 import { DOCK } from "../../domain/vehicle/motion/dock";
 import { AIR_BLOCK } from "../../infrastructure/shared/identifiers";
 import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";

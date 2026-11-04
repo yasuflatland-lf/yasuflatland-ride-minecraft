@@ -298,7 +298,12 @@ describe("selectionOf", () => {
 
   it.each([
     ["docs/adr/0001-x.md", "none"],
-    ["src/domain/vehicle/kinds/camper/room.ts", "all"],
+    ["src/domain/vehicle/kinds/camper/parkPose.ts", "all"],
+    ["src/domain/vehicle/kinds/camper/roomGeometry.ts", "all"],
+    ["src/domain/vehicle/kinds/camper/roomCells.ts", "all"],
+    ["src/domain/vehicle/kinds/camper/decorCells.ts", "all"],
+    ["src/domain/vehicle/kinds/camper/storagePlates.ts", "all"],
+    ["src/domain/vehicle/kinds/camper/groundCheck.ts", "all"],
     ["src/domain/vehicle/motion/pivot.ts", "all"],
     ["src/domain/shared/vec.ts", "all"],
     ["packs/yasu_ride_bp/entities/yasu_ride/tent.se.json", ["camp"]],

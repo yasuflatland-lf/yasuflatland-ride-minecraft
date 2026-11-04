@@ -5,8 +5,8 @@ import {
 } from "../../../src/application/vehicle/placeDecor";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
+import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/decorCells";
 import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
-import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";

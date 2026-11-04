@@ -18,10 +18,10 @@ import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/deco
 import { slotPoint } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
-  AIR,
   localCellAt,
   parkPose,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
+} from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { decorItemId } from "../../../../support/decorIds";

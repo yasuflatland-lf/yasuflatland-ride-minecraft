@@ -65,7 +65,7 @@ export interface DooredStorage<
   readonly plateBlock: (look: PlateLook) => StoragePlateBlock;
   /**
    * The namespace-free name of the block plateBlock lays: a plate in the room's inside layers
-   * lets the camper park and leave while its cell holds it (room.ts ownPlateBlock).
+   * lets the camper park and leave while its cell holds it (storagePlates.ts ownPlateBlock).
    */
   readonly plateBlockName: string;
 }

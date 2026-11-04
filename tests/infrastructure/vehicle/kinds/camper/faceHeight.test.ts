@@ -2,11 +2,9 @@ import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
+import { decorSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
 import { slotForPress } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
-import {
-  decorSlotCell,
-  parkPose,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/index";
 import {
   type PressedShape,

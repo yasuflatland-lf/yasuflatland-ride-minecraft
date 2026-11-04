@@ -3,11 +3,9 @@ import { expect, it, vi } from "vitest";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
-import {
-  AIR,
-  parkPose,
-  roomCells,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { roomCells } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
+import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";

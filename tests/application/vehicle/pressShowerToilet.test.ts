@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { PressShowerToilet } from "../../../src/application/vehicle/pressShowerToilet";
 import { asVehicleId } from "../../../src/domain/shared/ids";
-import { roomCells } from "../../../src/domain/vehicle/kinds/camper/room";
+import { roomCells } from "../../../src/domain/vehicle/kinds/camper/roomCells";
 import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { defined } from "../../support/defined";

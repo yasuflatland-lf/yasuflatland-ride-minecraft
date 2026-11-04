@@ -10,25 +10,27 @@ import type {
   TickContext,
 } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
+import { slotCells } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import { SWITCH_CLICK } from "../../../../../src/domain/vehicle/kinds/camper/entity";
 import {
   CEILING_LIGHTS,
   STORAGE_DOORS,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
 import {
-  AIR,
-  cargoCells,
   ceilingLightCells,
-  compartmentCells,
   deckSeats,
   exitCells,
   insideRoom,
-  parkPose,
   roomCells,
-  slotCells,
+} from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
+import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
+import {
+  cargoCells,
+  compartmentCells,
   storagePlateChecks,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
+} from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 
 const PUSH: RawInput = { moveX: 0, moveY: 1, jump: false };

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { RemoveDecor } from "../../../src/application/vehicle/removeDecor";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
+import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/decorCells";
 import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
-import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
 import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { FakeWorld, parkedCamper } from "./fakes";
 
