@@ -63,7 +63,7 @@ export interface RiderView {
   readonly yaw: number;
   readonly raw: RawInput;
   /** The rider's index in the engine's rider list, which is the seat it puts them in (ADR 0019). */
-  readonly slot?: number;
+  readonly slot: number;
   /** Read only for kinds with a cab monitor (ADR 0139); its block feeds TickContext.heldBlock (ADR 0181). */
   readonly held?: RiderHeld;
 }
@@ -289,11 +289,7 @@ export class Vehicle {
   tick(input: VehicleTickInput): TickOutcome {
     const { riders, testInput, testHeld, deckSeatRiders, targets, ...sensors } =
       input;
-    const seated = this.crew.update(
-      riders,
-      forward(this.drive.yaw),
-      sensors.velocity,
-    );
+    const seated = this.crew.update(riders, forward(this.drive.yaw));
     const vacatedCommands = seated.left.flatMap(({ seat }) =>
       this.drive.onSeatVacated(seat),
     );

@@ -2,7 +2,7 @@ import { asPlayerId } from "../../src/domain/shared/ids";
 import type { Vec2 } from "../../src/domain/shared/vec";
 import type { RawInput } from "../../src/domain/vehicle/driveInput";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
-import type { RiderPos } from "../../src/domain/vehicle/seats";
+import type { RiderPos } from "../../src/domain/vehicle/seating";
 import type { RiderHeld, RiderView } from "../../src/domain/vehicle/vehicle";
 import { defined } from "./defined";
 
