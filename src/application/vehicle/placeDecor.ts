@@ -1,5 +1,6 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+import type { DecorItemId } from "../../domain/vehicle/dock/decor";
 // Use case: a player long-pressed a parked vehicle's room holding a camping gear item (ADR 0093, 0097).
 import { DECOR_MESSAGES } from "../../domain/vehicle/dock/decorMessages";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
@@ -9,7 +10,7 @@ export interface PlaceDecorCommand {
   playerId: PlayerId;
   vehicleId: VehicleId;
   /** The camping gear id of the held item. */
-  item: string;
+  item: DecorItemId;
   /** The world point the player pressed. */
   point: Vec3;
   /** The world cell of the block the player pressed (ADR 0097). */

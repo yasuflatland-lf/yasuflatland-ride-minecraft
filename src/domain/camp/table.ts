@@ -1,6 +1,7 @@
+import type { Brand } from "../shared/ids";
 import type { Vec3 } from "../shared/vec";
 
-export type TableId = string & { readonly __brand: "TableId" };
+export type TableId = Brand<string, "TableId">;
 
 export function asTableId(raw: string): TableId {
   return raw as TableId;

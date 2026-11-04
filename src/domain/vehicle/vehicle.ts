@@ -1,3 +1,4 @@
+// Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import {
   EMPTY_COUNTER,
   type HitCounter,
@@ -6,7 +7,6 @@ import {
 import type { PlayerId, VehicleId } from "../shared/ids";
 import { SwitchCooldown } from "../shared/switchCooldown";
 import { SyncedValue } from "../shared/syncedValue";
-// Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns } from "./cooldowns";
 import { Crew } from "./crew";

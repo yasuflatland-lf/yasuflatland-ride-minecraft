@@ -8,7 +8,11 @@ import {
   type Vec2,
   type Vec3,
 } from "../../../shared/vec";
-import { type DecorPlacement, decorFace } from "../../dock/decor";
+import {
+  type DecorItemId,
+  type DecorPlacement,
+  decorFace,
+} from "../../dock/decor";
 import {
   type ClearCell,
   type DeckSeatSpot,
@@ -343,7 +347,7 @@ type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
 function pairItems(
   slot: Pick<DecorSlot, "cell">,
   decor: readonly DecorPlacement[],
-): { end0?: string; end1?: string } {
+): { end0?: DecorItemId; end1?: DecorItemId } {
   const itemAt = (end: 0 | 1) =>
     decor.find((d) => {
       const s = decorSlot(d.slot);
@@ -627,7 +631,7 @@ function bumperCells(pose: HoldPose): Vec3[] {
  * floor cells, the door step and the exit's feet, where natural ground may rise, and `bumper`
  * the wall feet in the bumper's row, whose plants are cleared even without an upper half.
  */
-export interface ParkGround {
+interface ParkGround {
   readonly ground: ReadonlySet<string>;
   readonly bumper: ReadonlySet<string>;
 }

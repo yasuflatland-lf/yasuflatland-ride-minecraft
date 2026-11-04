@@ -3,6 +3,7 @@ import type { TableId } from "../../domain/camp/table";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { TableWorld } from "./ports/table";
+import { handleHit } from "./takeBackByHits";
 
 const RULE = {
   hits: TABLE_SPEC.hitsToTakeBack,
@@ -23,13 +24,15 @@ export class HitTable {
       this.world.showOvenOnTop(cmd.playerId);
       return false;
     }
-    const result = this.hits.hit(cmd.tableId, cmd.tick, false);
-    if (result.broken) {
-      this.world.dropItem(cmd.tableId);
-      this.world.removeTable(cmd.tableId);
-      return true;
-    }
-    this.world.showHitsLeft(cmd.playerId, result.hitsLeft);
-    return false;
+    let taken = false;
+    handleHit(RULE, this.hits, cmd.tableId, cmd.tick, {
+      drop: () => this.world.dropItem(cmd.tableId),
+      remove: () => {
+        this.world.removeTable(cmd.tableId);
+        taken = true;
+      },
+      showRemaining: (left) => this.world.showHitsLeft(cmd.playerId, left),
+    });
+    return taken;
   }
 }

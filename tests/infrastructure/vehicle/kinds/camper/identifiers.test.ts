@@ -44,6 +44,7 @@ import {
   pairDecorBlockId,
   pairEndStates,
 } from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { decorItemId } from "../../../../support/decorIds";
 
 describe("camper identifiers", () => {
   it("names an item's decor block", () => {
@@ -132,7 +133,9 @@ describe("camper identifiers", () => {
     for (const { cell, slots } of DECOR_CELLS) {
       const [first] = slots;
       if (!first?.pair) continue;
-      const name = decorBlockName(cell, [{ slot: first.id, item: "cushion" }]);
+      const name = decorBlockName(cell, [
+        { slot: first.id, item: decorItemId("cushion") },
+      ]);
       expect(ownSlotBlock(pairDecorBlockId(first.pair.kind), name)).toBe(true);
     }
     expect(isDecorBlock(decorBlockId("percolator"))).toBe(true);

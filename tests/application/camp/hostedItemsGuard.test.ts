@@ -2,7 +2,10 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import type { HostedKindPort } from "../../../src/application/camp/ports/hostedKind";
+import { asFirePitId } from "../../../src/domain/camp/firePit";
 import type { Host } from "../../../src/domain/camp/hosted";
+import { asTableId } from "../../../src/domain/camp/table";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 
 interface FakeItem {
   host: Host;
@@ -39,15 +42,18 @@ class FakeKind implements HostedKindPort {
 const hostId = fc.constantFrom("table", "pit", "gone");
 const host: fc.Arbitrary<Host> = fc.oneof(
   fc.constant({ kind: "ground" } as const),
-  fc.record({ kind: fc.constant("vehicle" as const), id: hostId }),
+  fc.record({
+    kind: fc.constant("vehicle" as const),
+    id: hostId.map(asVehicleId),
+  }),
   fc.record({
     kind: fc.constant("fire_pit" as const),
-    id: hostId,
+    id: hostId.map(asFirePitId),
     spot: fc.constant(0),
   }),
   fc.record({
     kind: fc.constant("camp_table" as const),
-    id: hostId,
+    id: hostId.map(asTableId),
     at: fc.record({
       x: fc.integer({ min: -9, max: 9 }),
       z: fc.integer({ min: -1, max: 1 }),
@@ -116,14 +122,17 @@ it("removes nothing more on a second pass", () => {
 it("keeps an item in an unloaded area, on the ground, or on an existing host", () => {
   const table = {
     kind: "camp_table",
-    id: "table",
+    id: asTableId("table"),
     at: { x: 0, z: 0 },
   } as const;
   const kind = kindOf(
     [
       { host: table, areaLoaded: false },
       { host: { kind: "ground" }, areaLoaded: true },
-      { host: { kind: "fire_pit", id: "pit", spot: 0 }, areaLoaded: true },
+      {
+        host: { kind: "fire_pit", id: asFirePitId("pit"), spot: 0 },
+        areaLoaded: true,
+      },
       { host: table, areaLoaded: true },
     ],
     new Set(["pit"]),
@@ -134,7 +143,7 @@ it("keeps an item in an unloaded area, on the ground, or on an existing host", (
 
 it("skips vehicle hosts without querying ordinary hosted-item presence", () => {
   const kind = kindOf(
-    [{ host: { kind: "vehicle", id: "gone" }, areaLoaded: true }],
+    [{ host: { kind: "vehicle", id: asVehicleId("gone") }, areaLoaded: true }],
     new Set(),
   );
   kind.isHostAreaLoaded = () => {

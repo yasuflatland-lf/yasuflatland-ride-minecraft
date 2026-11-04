@@ -2,7 +2,7 @@ import type { VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 
-export interface FindBedSpawnCellCommand {
+interface FindBedSpawnCellCommand {
   vehicleId: VehicleId;
   cell: Vec3;
 }

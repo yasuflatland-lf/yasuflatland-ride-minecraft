@@ -5,6 +5,7 @@ import {
   TABLE_TOP_LIMIT,
   TABLE_TOP_PX,
 } from "../../domain/camp/spec";
+import type { TableId } from "../../domain/camp/table";
 import {
   type LocalPoint,
   placeOnTop,
@@ -23,7 +24,7 @@ export type TableTopOutcome = "placed" | "refused" | TableTopRefusal;
 export interface TableTopRequest {
   /** Omitted only by the server test hook, which pays nothing (ADR 0010). */
   player?: PlayerId;
-  table: string;
+  table: TableId;
   slot: number;
   aim?: LocalPoint;
 }

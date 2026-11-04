@@ -11,7 +11,11 @@ import { roofTentCeilingCells } from "../../../src/domain/camp/roofTent/ceiling"
 import { seatPosition } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
-import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import {
+  asDimensionId,
+  asPlayerId,
+  asVehicleId,
+} from "../../../src/domain/shared/ids";
 import { PAINTS } from "../../../src/domain/shared/paint";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentOccupantWorld";
@@ -148,7 +152,9 @@ function spawn(hosted = true) {
   game.dimension.spawnEntity.mockReturnValue(tent);
   tents.spawn(
     {
-      host: hosted ? { kind: "vehicle", id: "host" } : { kind: "ground" },
+      host: hosted
+        ? { kind: "vehicle", id: asVehicleId("host") }
+        : { kind: "ground" },
       facing: 0,
       ladder: hosted,
     },
@@ -199,7 +205,11 @@ it("spawns with the host marker, owner, paint and collision bounds selected by l
       game.dimension.spawnEntity.mockReturnValue(tent);
       expect(
         tents.spawn(
-          { host: { kind: "vehicle", id: "host" }, facing: 90, ladder },
+          {
+            host: { kind: "vehicle", id: asVehicleId("host") },
+            facing: 90,
+            ladder,
+          },
           { dimensionId: DIM, location: tent.location, yaw: 37 },
           asPlayerId("owner"),
           paint,
@@ -227,7 +237,7 @@ it("places the SUV tent at its shifted left anchor with the model front at -z", 
   expect(
     place.execute({
       dimensionId: DIM,
-      target: { entityId: "host" },
+      target: { entityId: asVehicleId("host") },
       yaw: 0,
       slot: 0,
     }),
@@ -317,7 +327,7 @@ it("defers and deduplicates placement, leaving unsupported vehicle interactions 
   expect(execute).not.toHaveBeenCalled();
   game.run.mock.calls[0]?.[0]();
   expect(execute).toHaveBeenCalledWith(
-    expect.objectContaining({ target: { entityId: "host" } }),
+    expect.objectContaining({ target: { entityId: asVehicleId("host") } }),
   );
   state = { ...state, mount: undefined } as VehicleHostState;
   const unsupported = event();
@@ -550,7 +560,7 @@ it("consumes and refunds only the captured roof tent slot on a failed Survival p
     place.execute({
       playerId: PLAYER,
       dimensionId: DIM,
-      target: { entityId: "host" },
+      target: { entityId: asVehicleId("host") },
       yaw: 0,
       slot: 3,
     }),
@@ -592,7 +602,7 @@ it("keeps Creative items and dyes and ignores painting the existing color", () =
     new PlaceRoofTent(tents, host).execute({
       playerId: PLAYER,
       dimensionId: DIM,
-      target: { entityId: "host" },
+      target: { entityId: asVehicleId("host") },
       yaw: 0,
       slot: 0,
     }),

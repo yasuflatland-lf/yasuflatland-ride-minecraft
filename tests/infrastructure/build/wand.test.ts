@@ -15,13 +15,13 @@ import {
   aimedPasteTarget,
   clipboardOf,
 } from "../../../src/domain/build/clipboard/clipboard";
+import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
   asDimensionId,
   asPlayerId,
   type PlayerId,
 } from "../../../src/domain/shared/ids";
-import { PressDebounces } from "../../../src/domain/shared/pressDebounce";
 import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers/wand";
 import { SELECTION_WAND_TYPE } from "../../../src/infrastructure/build/identifiers";
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
