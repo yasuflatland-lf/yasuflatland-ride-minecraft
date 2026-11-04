@@ -9,8 +9,8 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
-import { PressDebounces } from "../../../src/domain/shared/pressDebounce";
 import { registerSessions } from "../../../src/infrastructure/build/bedrock/handlers/sessions";
 import { FakeSessions, overworld } from "../../application/build/fakes";
 
