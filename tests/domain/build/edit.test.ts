@@ -13,7 +13,6 @@ import {
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type AppliedChange,
-  invertChange,
   undoPlan,
 } from "../../../src/domain/build/edit/change";
 import {
@@ -77,8 +76,6 @@ describe("edit planning", () => {
             before: (pairs[i] as [BlockState, BlockState])[0],
             after: (pairs[i] as [BlockState, BlockState])[1],
           }));
-          for (const c of changes)
-            expect(invertChange(invertChange(c))).toEqual(c);
           const world = new Map(changes.map((c) => [cellKey(c.cell), c.after]));
           const record = { dimensionId: asDimensionId("overworld"), changes };
           for (const p of undoPlan(record)) world.set(cellKey(p.cell), p.after);

@@ -19,10 +19,6 @@ export interface EditRecord {
   readonly changes: readonly AppliedChange[];
 }
 
-export function invertChange(c: AppliedChange): AppliedChange {
-  return { cell: c.cell, before: c.after, after: c.before };
-}
-
 /** Puts every cell back to its `before`, last change first. */
 export function undoPlan(record: EditRecord): PlannedChange[] {
   return record.changes
