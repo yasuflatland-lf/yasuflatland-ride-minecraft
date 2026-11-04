@@ -4,8 +4,8 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward } from "../../src/domain/shared/vec";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
+import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/decorCells";
 import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
-import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/room";
 import {
   CAMPING_GEAR_IDS,
   STANDING_GEAR_IDS,

@@ -8,7 +8,7 @@ import {
   asVehicleId,
 } from "../../../../../src/domain/shared/ids";
 import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
-import { roomCells as camperRoomCells } from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { roomCells as camperRoomCells } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
 import {
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,

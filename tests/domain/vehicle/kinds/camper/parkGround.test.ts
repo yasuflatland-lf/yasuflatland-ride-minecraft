@@ -4,17 +4,19 @@ import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import {
-  AIR,
-  exitCells,
   isPassable,
   NATURAL_GROUND,
   parkCheckCells,
   parkGround,
-  parkPose,
   planPark,
-  roomCells,
   wallFootCells,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
+} from "../../../../../src/domain/vehicle/kinds/camper/groundCheck";
+import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import {
+  exitCells,
+  roomCells,
+} from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
+import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { defined } from "../../../../support/defined";
 
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });

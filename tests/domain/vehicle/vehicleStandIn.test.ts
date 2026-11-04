@@ -4,12 +4,12 @@ import { asVehicleId } from "../../../src/domain/shared/ids";
 import { forward, leftOf, type Vec3 } from "../../../src/domain/shared/vec";
 import type { Drive } from "../../../src/domain/vehicle/drive";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
-import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import {
-  AIR,
   localCellAt,
   parkPose,
-} from "../../../src/domain/vehicle/kinds/camper/room";
+} from "../../../src/domain/vehicle/kinds/camper/parkPose";
+import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
+import { AIR } from "../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { DOCK } from "../../../src/domain/vehicle/motion/dock";

@@ -1,10 +1,8 @@
 import { expect, it, vi } from "vitest";
 import { FindBedSpawnCell } from "../../../src/application/vehicle/findBedSpawnCell";
 import { asVehicleId } from "../../../src/domain/shared/ids";
-import {
-  localCellAt,
-  roomCells,
-} from "../../../src/domain/vehicle/kinds/camper/room";
+import { localCellAt } from "../../../src/domain/vehicle/kinds/camper/parkPose";
+import { roomCells } from "../../../src/domain/vehicle/kinds/camper/roomCells";
 import { defined } from "../../support/defined";
 import { parkedCamper } from "./fakes";
 

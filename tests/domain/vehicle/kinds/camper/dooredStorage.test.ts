@@ -29,20 +29,22 @@ import {
   STORAGE_DOORS,
   WALL_CABINET,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import { parkCheckCells } from "../../../../../src/domain/vehicle/kinds/camper/groundCheck";
+import { localCellAt } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
 import {
-  AIR,
-  cargoCells,
   ceilingLightCells,
-  compartmentCells,
-  localCellAt,
-  ownPlateBlock,
-  parkCheckCells,
   roomCells,
+} from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
+import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
+import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
+import {
+  cargoCells,
+  compartmentCells,
+  ownPlateBlock,
   storagePlateCells,
   storagePlateChecks,
   storagePressTarget,
-} from "../../../../../src/domain/vehicle/kinds/camper/room";
-import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
+} from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { decorItemId } from "../../../../support/decorIds";
 
 const SWING = CAMPER_SPEC.doorSwingTicks;

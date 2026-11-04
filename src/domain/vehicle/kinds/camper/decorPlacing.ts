@@ -4,9 +4,9 @@ import type { DecorItemId, DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
+import { decorSlotCell, decorSpotOffset } from "./decorCells";
 import { usableBehindDoor } from "./dooredStorage";
 import type { DecorSlot, StorageDoorId } from "./furniture";
-import { decorSlotCell, decorSpotOffset } from "./room";
 
 const PX_PER_BLOCK = 16;
 const NO_DOORS: ReadonlySet<StorageDoorId> = new Set();
