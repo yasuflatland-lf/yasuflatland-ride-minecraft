@@ -5,7 +5,7 @@ import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { ChairWorld } from "./ports/chair";
 
-export interface HitChairCommand {
+interface HitChairCommand {
   kind: ChairKindId;
   chairId: ChairId;
   tick: number;

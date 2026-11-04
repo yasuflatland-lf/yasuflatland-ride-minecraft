@@ -12,6 +12,7 @@ import {
   FIRE_PIT_SPOTS,
   FIRE_PIT_TOP_PX,
 } from "../../domain/camp/spec";
+import { cellOf } from "../../domain/shared/cells";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
@@ -89,11 +90,7 @@ export class DutchOvenActions {
   }): boolean {
     const pit = this.world.firePit(cmd.pit);
     if (!pit || this.world.isCovered(cmd.pit)) return false;
-    const cell = {
-      x: Math.floor(pit.at.x),
-      y: Math.floor(pit.at.y),
-      z: Math.floor(pit.at.z),
-    };
+    const cell = cellOf(pit.at);
     if (
       !hasClearance(this.world, pit.dimension, cell, DUTCH_OVEN_SPEC.clearance)
     )

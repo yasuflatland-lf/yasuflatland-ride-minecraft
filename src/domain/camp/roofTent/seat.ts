@@ -6,10 +6,10 @@ export function seatPosition(tentLocation: Vec3): Vec3 {
   return { ...tentLocation, y: tentLocation.y + ROOF_TENT_SPEC.seatLift };
 }
 
-export type RoofTentSeatVariant = "suv" | "ground";
+export type RoofTentSeatVariant = "ladder" | "ground";
 
 const SHELL_RIDGE: Record<RoofTentSeatVariant, number> = {
-  suv: ROOF_TENT_SPEC.shellRidge,
+  ladder: ROOF_TENT_SPEC.shellRidge,
   ground: ROOF_TENT_SPEC.groundShellRidge,
 };
 
@@ -18,7 +18,7 @@ function seatedEyeHeight(variant: RoofTentSeatVariant): number {
   return SHELL_RIDGE[variant] - ROOF_TENT_SPEC.eyeBelowRidge;
 }
 
-export function rideSeatY(variant: RoofTentSeatVariant = "suv"): number {
+export function rideSeatY(variant: RoofTentSeatVariant = "ladder"): number {
   return Number(
     (
       seatedEyeHeight(variant) -

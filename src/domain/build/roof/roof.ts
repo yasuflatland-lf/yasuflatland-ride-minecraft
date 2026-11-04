@@ -1,5 +1,5 @@
 import type { Cell } from "../../shared/cells";
-import type { Box } from "../box";
+import type { CellBox } from "../box";
 
 export type RoofKind = "gable" | "hip";
 
@@ -8,7 +8,7 @@ export function isRoofKind(kind: string): kind is RoofKind {
 }
 
 export interface RoofSpec {
-  readonly base: Box;
+  readonly base: CellBox;
   readonly kind: RoofKind;
   readonly height: number;
 }
@@ -20,7 +20,7 @@ interface Rectangle {
   readonly maxZ: number;
 }
 
-export function maxRoofHeight(base: Box, worldTopY?: number): number {
+export function maxRoofHeight(base: CellBox, worldTopY?: number): number {
   const limit =
     3 * Math.max(base.max.x - base.min.x + 1, base.max.z - base.min.z + 1);
   return Math.max(

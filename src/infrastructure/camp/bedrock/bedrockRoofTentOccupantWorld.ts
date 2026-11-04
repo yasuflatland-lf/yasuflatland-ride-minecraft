@@ -153,7 +153,7 @@ export class BedrockRoofTentOccupantWorld
       if (!entity) return;
       const variant =
         entity.getProperty(ROOF_TENT_LADDER_PROPERTY) === true
-          ? "suv"
+          ? "ladder"
           : "ground";
       const recorded = new Map(
         tent.ceiling.map((cell) => [cellKey(cell), cell]),

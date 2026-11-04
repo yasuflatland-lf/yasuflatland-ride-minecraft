@@ -1,5 +1,5 @@
 // Where a pitched tent stands, which cells it lays, and when it may be pitched (ADR 0130, 0131).
-import { type Cell, cellKey } from "../shared/cells";
+import { type Cell, cellKey, cellOf } from "../shared/cells";
 import { CLEARABLE_DECORATIONS } from "../shared/decorations";
 import type { LaidCell } from "../shared/laidCells";
 import {
@@ -235,11 +235,7 @@ export function tentFootprintBox(pose: TentPose): { min: Vec3; size: Vec3 } {
  * count as the front room; ceiling-free edge columns and the roof stay outside.
  */
 export function insideTent(pose: TentPose, feet: Vec3): boolean {
-  const cell = {
-    x: Math.floor(feet.x),
-    y: Math.floor(feet.y),
-    z: Math.floor(feet.z),
-  };
+  const cell = cellOf(feet);
   const local = toLocal(pose, cell);
   return LAYOUT.rooms.some((room) => inTentLocalBox(local, room));
 }
@@ -289,7 +285,7 @@ export type PitchRefusal =
   | "blocked"
   | "ground";
 
-export type PitchPlan =
+type PitchPlan =
   | { readonly ok: true; readonly clearTopFirst: readonly Cell[] }
   | { readonly ok: false; readonly reason: PitchRefusal };
 

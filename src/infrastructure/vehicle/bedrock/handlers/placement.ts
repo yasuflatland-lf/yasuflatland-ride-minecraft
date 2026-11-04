@@ -102,8 +102,9 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
     if (
       !hit ||
       !(
-        isWaterAt(hit.block.dimension, hit.block.location) ||
-        (kind === "sportsboat" &&
+        (placeVehicle.placesOn(kind, "water") &&
+          isWaterAt(hit.block.dimension, hit.block.location)) ||
+        (placeVehicle.placesOn(kind, "lava") &&
           isLavaAt(hit.block.dimension, hit.block.location))
       )
     )

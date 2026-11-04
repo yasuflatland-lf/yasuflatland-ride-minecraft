@@ -1,5 +1,5 @@
-import type { VehicleId } from "../../shared/ids";
 // The only way to build a vehicle: every caller names the kind, so none falls back to SUV values (ADR 0055).
+import type { VehicleId } from "../../shared/ids";
 import type { Drive, RestoredValues } from "../drive";
 import type { EntityContract } from "../entityContract";
 import type { FleetLimitOf } from "../fleet/fleet";
