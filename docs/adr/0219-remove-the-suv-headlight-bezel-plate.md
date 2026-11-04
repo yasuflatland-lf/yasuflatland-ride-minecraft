@@ -1,4 +1,4 @@
-# 0218. Remove the SUV headlight bezel plate
+# 0219. Remove the SUV headlight bezel plate
 
 - Status: Accepted
 - Date: 2026-11-04
@@ -20,3 +20,5 @@
 - The lens corners are flat body colour and are shaded like the lens slab, so a faint slab edge can remain visible. If that shows on a device, make the lens a disc instead.
 - The screws that ringed the lens are gone.
 - Appearance on a device is unverified.
+
+Integration with main uses Resource Pack 0.1.252 and the matching Behavior Pack dependency because main already uses 0.1.251.

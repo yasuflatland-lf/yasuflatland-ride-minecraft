@@ -12,7 +12,7 @@
 - Source: [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md)
 - Source: [0215](../adr/0215-fit-the-suv-interior-to-the-rubicon-cabin.md)
 - Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
-- Source: [0218](../adr/0218-remove-the-suv-headlight-bezel-plate.md)
+- Source: [0219](../adr/0219-remove-the-suv-headlight-bezel-plate.md)
 - Excluded: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md): rotation assemblies, covered by the model-conventions topic
 - Excluded: [0176](../adr/0176-move-the-sports-boat-front-seats-back.md): sports boat seat positions, not the SUV
 
@@ -41,7 +41,7 @@
 - Applies to: SUV model, lit lamp parts.
 - Rule: The model also has the bones `headlights` and `tail_lights`. Lamp cubes belong to a bone by the part that builds them, not by colour: `headlights` holds the headlight lenses, the fog lamp lenses, and the front marker lens; `tail_lights` holds the lit tail lamp faces and the third brake light.
 - Agreement: Proposed
-- Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Extend 0009 with `tail_lights` for the lit tail lamp parts and the third brake light"; [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlights` keeps the headlight lenses, fog lamp lenses and front lamp strip on the fender flares"; [0218](../adr/0218-remove-the-suv-headlight-bezel-plate.md) Decision
+- Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Extend 0009 with `tail_lights` for the lit tail lamp parts and the third brake light"; [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlights` keeps the headlight lenses, fog lamp lenses and front lamp strip on the fender flares"; [0219](../adr/0219-remove-the-suv-headlight-bezel-plate.md) Decision
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `tools/suv_lamps.py`; `tools/suv_front.py`
 - Verification: `tests/packs/headlights.test.ts` "places both detailed tail faces and the third brake light on the tail bone", "places every light swatch cube on the headlights bone", "has no bezel bone, cutout material or cutout texels in front of the lens". Not verified: lamp appearance in game (0192 Decision point 7 and the headlight material result of part 13 are recorded as pending the owner's in-game comparison).
 
@@ -93,7 +93,7 @@
 ### Enclosing probes and roof margin
 
 - Applies to: SUV, ram and body probes, vehicle footprint.
-- Rule: `SUV_SPEC.bodyFront` (2.68) and `SUV_SPEC.bodyHalfWidth` (1.43) enclose the exported shell (`body` plus closed `door_*` bones), the lamp reach (`headlights` bone), and the wheel hub half width. `SUV_SPEC.footprint` (3.12) encloses the farthest horizontal corner of every bone. Each is rounded up from the measured extent, which is taken from all eight rotated corners of every cube. The visible roof, including ribs, stays within 0.30 blocks above `SUV_SPEC.carHeight`, and that margin must not grow. A change to the body outline re-derives these values and reviews the collision box, seats, and placement clearance.
+- Rule: `SUV_SPEC.bodyFront` (2.68) and `SUV_SPEC.bodyHalfWidth` (1.43) enclose the exported shell (`body` plus closed `door_*` bones), the lamp reach (`headlights` bone), and the wheel hub half width. `SUV_SPEC.footprint` (3.18) encloses the farthest horizontal corner of every bone. Each is rounded up from the measured extent, which is taken from all eight rotated corners of every cube. The visible roof, including ribs, stays within 0.30 blocks above `SUV_SPEC.carHeight`, and that margin must not grow. A change to the body outline re-derives these values and reviews the collision box, seats, and placement clearance.
 - Agreement: Accepted
 - Basis: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md) Decision, "Round enclosing probes upward to `bodyFront=2.68`, `bodyHalfWidth=1.43` and `footprint=3.12`."; [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md) Decision, "Keep the 0.30-block roof allowance and every seat and grown-head clearance assertion unchanged."
 - Implementation: `src/domain/vehicle/kinds/suv/spec.ts` (`SUV_SPEC.bodyFront`, `bodyHalfWidth`, `footprint`, `carHeight`); `tools/suv_proportions.py`

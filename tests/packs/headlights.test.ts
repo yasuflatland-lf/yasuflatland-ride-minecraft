@@ -1,9 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HEADLIGHT_SWITCH_TYPE } from "../../src/infrastructure/shared/identifiers";
 import { HEADLIGHTS_PROPERTY } from "../../src/infrastructure/vehicle/bedrock/identifiers";
-import { readRgbaPng } from "../support/png";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 describe.each(["suv", "sportsboat", "camper", "bulldozer"])(

@@ -12,7 +12,7 @@
 - Source: [0192](../adr/0192-suv-detailed-body.md)
 - Source: [0193](../adr/0193-shared-texture-tooling.md)
 - Source: [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md)
-- Source: [0218](../adr/0218-remove-the-suv-headlight-bezel-plate.md)
+- Source: [0219](../adr/0219-remove-the-suv-headlight-bezel-plate.md)
 - Excluded: [0172](../adr/0172-smooth-sports-boat-headlight-lenses.md): sports boat lens subdivision and hull fit; the switched bone and material contract is covered here
 - Excluded: [0173](../adr/0173-remove-the-inside-lantern-and-add-the-gas-lantern.md): removal of Lantern decor and the separate outdoor Gas Lantern, neither of which removes the tent lantern
 - Excluded: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md): camper hover discs, their separate glow pass, and particles are covered by camper-hover-display
@@ -103,9 +103,9 @@
 ### SUV lamp bones and detail regions
 
 - Applies to: SUV headlights, fog lamps, front marker lenses, tail lamps, and third brake light.
-- Rule: `headlights` and `tail_lights` are body-child lamp bones hidden in the base and shown in `.lit` by `yasu_ride:headlights`. The former carries the round lens faces, fog lenses, and front marker lenses; the latter carries the detailed tail faces and third brake light. Their lit mask includes the `light` swatch and the region painters' lit texels in the headlight and tail-lamp detail blocks: the lens circles, red LED bars, white reverse lamp, and complete third brake region. Tail lamps have no independent brake or reverse state. There is no bezel plate in front of the lens (0218); the lens face outside its circle takes the paint's body colour. Lamp parts are assigned by their builders rather than extracting every lamp by swatch color.
+- Rule: `headlights` and `tail_lights` are body-child lamp bones hidden in the base and shown in `.lit` by `yasu_ride:headlights`. The former carries the round lens faces, fog lenses, and front marker lenses; the latter carries the detailed tail faces and third brake light. Their lit mask includes the `light` swatch and the region painters' lit texels in the headlight and tail-lamp detail blocks: the lens circles, red LED bars, white reverse lamp, and complete third brake region. Tail lamps have no independent brake or reverse state. There is no bezel plate in front of the lens (0219); the lens face outside its circle takes the paint's body colour. Lamp parts are assigned by their builders rather than extracting every lamp by swatch color.
 - Agreement: Proposed
-- Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."; [0218](../adr/0218-remove-the-suv-headlight-bezel-plate.md) Decision; [0192](../adr/0192-suv-detailed-body.md) Decision, "There is no separate brake or reverse state."
+- Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."; [0219](../adr/0219-remove-the-suv-headlight-bezel-plate.md) Decision; [0192](../adr/0192-suv-detailed-body.md) Decision, "There is no separate brake or reverse state."
 - Implementation: `tools/suv_texture.py` (`is_lit`); `tools/suv_palette.py` (`LIT_SLOTS`); `tools/suv_lamps.py`; `tools/suv_front.py`; `tools/suv_paint_headlight.py`; `tools/suv_paint_tail.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json` (`headlights`, `tail_lights`); `packs/yasu_ride_rp/render_controllers/yasu_ride/suv.rc.json`; `packs/yasu_ride_rp/entity/yasu_ride/suv.ce.json`
 - Verification: `tests/packs/headlights.test.ts` "places both detailed tail faces and the third brake light on the tail bone", "places every light swatch cube on the headlights bone", "has no bezel bone, cutout material or cutout texels in front of the lens"; `tests/packs/litTextures.test.ts` "lights exactly the painter's LED, reverse and complete third brake regions", "marks exactly the lens circle as full-bright and emissive inside the headlight block". Not verified: owner approval recorded as Accepted for 0192, or its lamp material result on devices; L1 and L6-L8 remain unrecorded.
 

@@ -131,17 +131,22 @@ HUB_X = 0.975 * D  # the wheel's centre, from the centre line
 HUB_CAP_OUT = 2.5 * AXIAL_SCALE  # the hub cap's outer face, beyond HUB_X
 WHEEL_OUTER_X = HUB_X + HUB_CAP_OUT
 
-# The folded wheels hang out from the body on arms in flight, like a hovering DeLorean (ADR 0043): the
-# hover animation moves each wheel FOLD_OUT outward and FOLD_DROP down. The dive and submerged
-# animations move each rear wheel SUB_OUT out, which the submarine arms reach to (ADR 0040); it equals
-# FOLD_OUT but is set by a different animation. Timing and angles in suv.anim.json stay hand-authored;
-# export rebuilds its translations from these lengths to keep the assemblies attached.
-FOLD_OUT = 6
-FOLD_DROP = 4
-SUB_OUT = 8
+# The folded tyre must clear the overfenders and mirrors (ADR 0214), rather than just the
+# side wall. At each wheel well the shaft continues the axle beam from the tyre's inner
+# face, at axle height. The drop hangs the folded tyre's top face directly under that
+# shaft, which keeps the old model's ground gap (hub cap about 0.5 px below the ground).
+# A wheel that would hit the body gets a longer axle (more FOLD_OUT), never a deeper drop.
+# Timing and angles stay hand-authored; export rebuilds translations from these lengths.
+OVERFENDER_HALF_WIDTH = 1.16 * D
+FOLD_CLEARANCE = 0.5
+FOLD_OUT = OVERFENDER_HALF_WIDTH + FOLD_CLEARANCE + ROAD_WHEEL_RADIUS - HUB_X
 ARM_THICK = 1.4
-ARM_ROOT_X, ARM_ROOT_Y = CABIN_HALF_WIDTH, FLOOR_Y + 2
+ARM_ROOT_X = HUB_X - TIRE_HALF_WIDTH
+ARM_ROOT_Y = HUB_Y
+FOLD_DROP = TIRE_HALF_WIDTH + ARM_THICK / 2
 FOLDED_WHEEL_TOP_Y = HUB_Y - FOLD_DROP + TIRE_HALF_WIDTH
+# Submarine wheels already clear the larger overfenders with this independent offset (ADR 0214).
+SUB_OUT = 8
 # Radius of the disc under each folded wheel; it sets how far the hover glow reaches (ADR 0122).
 GLOW_RADIUS = 5
 

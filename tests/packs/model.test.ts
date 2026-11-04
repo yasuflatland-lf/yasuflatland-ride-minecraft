@@ -36,7 +36,9 @@ const dimensions = JSON.parse(
   INTERIOR_SHIFT_Z: number;
   HOOD_REAR_Z: number;
   FOLDED_WHEEL_TOP_Y: number;
-  BODY_HALF_WIDTH: number;
+  ARM_ROOT_X: number;
+  ARM_ROOT_Y: number;
+  ARM_THICK: number;
   WINDOW_BOTTOM_Y: number;
   WINDOW_TOP_Y: number;
   D: number;
@@ -77,9 +79,9 @@ const anims = JSON.parse(
   readFileSync("packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json", "utf8"),
 ).animations;
 
-// How far the hover animation moves each folded wheel out (ADR 0043). Read
-// from the hand-written animation, so the generated glow and arms must follow
-// it.
+// How far the hover animation moves each folded wheel out (ADR 0218). The
+// translations are generated from suv_dims.py by sync_animation, so the glow
+// and arms must follow the generated animation.
 const FOLD_OUT = Math.abs(
   anims["animation.yasu_ride.suv.wheels_folded"].bones.wheel_fl.position[0],
 );
@@ -592,33 +594,38 @@ describe("SUV model (ADR 0009)", () => {
     }
   });
 
-  // Each arm runs from inside the wheel arch down and out to the hub on top
-  // of the folded wheel, which sits FOLD_OUT px out and 4 px down (ADR 0043).
-  it("has an arm from the wheel arch to each folded wheel's hub (ADR 0043)", () => {
+  // Each arm is the axle carried straight out along x, from the axle beam's
+  // end at the tyre's inner face to the hub on top of the folded wheel, at
+  // axle height (ADR 0218).
+  it("extends one straight shaft from each axle beam end to the folded hub", () => {
     for (const w of ["fl", "fr", "rl", "rr"]) {
       const wheel = pivot(`wheel_${w}`);
       const out = Math.sign(wheel[0]);
       const arm = bones.get(`arm_${w}`);
-      const cubes = arm?.cubes ?? [];
       expect(arm?.parent).toBe("root");
-      const xs = cubes.flatMap((c) => [c.origin[0], c.origin[0] + c.size[0]]);
-      const ys = cubes.flatMap((c) => [c.origin[1], c.origin[1] + c.size[1]]);
-      const hubX = Math.abs(wheel[0]) + FOLD_OUT;
-      expect(Math.min(...xs.map((x) => x * out))).toBeLessThan(
-        scaled(dimensions.BODY_HALF_WIDTH),
+      expect(arm?.pivot).toEqual([
+        out * scaled(dimensions.ARM_ROOT_X),
+        scaled(dimensions.ARM_ROOT_Y),
+        wheel[2],
+      ]);
+      expect(arm?.cubes).toHaveLength(1);
+      const c = arm?.cubes?.[0];
+      if (!c) throw new Error(`Missing shaft ${w}`);
+      expect(c.rotation).toBeUndefined();
+      const xs = [c.origin[0], c.origin[0] + c.size[0]].map((x) => x * out);
+      expect(Math.min(...xs)).toBeCloseTo(
+        scaled(dimensions.ARM_ROOT_X - 0.2),
+        10,
       );
-      expect(Math.max(...xs.map((x) => x * out))).toBeGreaterThan(hubX);
-      // The arm rests on the scaled folded tire's top face.
-      expect(Math.min(...ys)).toBeCloseTo(
-        scaled(dimensions.FOLDED_WHEEL_TOP_Y),
-        6,
-      );
-      for (const c of cubes) {
-        expect(c.rotation, `arm_${w}`).toBeUndefined();
-        // Each arm stays in its own wheel's plane, centered on the axle in z.
-        expect(c.origin[2], `arm_${w}`).toBeLessThan(wheel[2]);
-        expect(c.origin[2] + c.size[2], `arm_${w}`).toBeGreaterThan(wheel[2]);
+      expect(Math.max(...xs)).toBeCloseTo(Math.abs(wheel[0]) + FOLD_OUT, 10);
+      for (const axis of [1, 2] as const) {
+        expect(c.origin[axis] + c.size[axis] / 2).toBeCloseTo(wheel[axis], 10);
+        expect(c.size[axis]).toBeCloseTo(scaled(dimensions.ARM_THICK), 10);
       }
+      expect(c.origin[1]).toBeCloseTo(
+        scaled(dimensions.FOLDED_WHEEL_TOP_Y),
+        10,
+      );
     }
   });
 
