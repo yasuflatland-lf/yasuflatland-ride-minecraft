@@ -29,6 +29,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
+import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
@@ -191,7 +192,7 @@ it("takes back the item at the pressed end of an open compartment, and shuts the
         const ends = DECOR_SLOTS.filter((s) => s.door === door);
         const heldEnd = defined(ends[held], "held end");
         const emptyEnd = defined(ends[1 - held], "empty end");
-        expect(f.drive.setDecor(heldEnd.id, "toaster")).toBe(true);
+        expect(f.drive.setDecor(heldEnd.id, decorItemId("toaster"))).toBe(true);
         f.park();
         expect(
           f.press(door, "compartment", slotPoint(f.pose, heldEnd)),
@@ -226,11 +227,15 @@ it("places gear behind an open fridge door only, and lays it in the open compart
   );
   const point = slotPoint(f.pose, top);
   const cell = f.compartment("fridge_top");
-  expect(f.drive.decorSlotFor("mug_pair", point, cell, true)).toBeUndefined();
-  expect(f.drive.placeDecor(top.id, "mug_pair")).toBe(false);
+  expect(
+    f.drive.decorSlotFor(decorItemId("mug_pair"), point, cell, true),
+  ).toBeUndefined();
+  expect(f.drive.placeDecor(top.id, decorItemId("mug_pair"))).toBe(false);
   f.press("fridge_top", "compartment");
-  expect(f.drive.decorSlotFor("mug_pair", point, cell, false)).toBe(top.id);
-  expect(f.drive.placeDecor(top.id, "mug_pair")).toBe(true);
+  expect(
+    f.drive.decorSlotFor(decorItemId("mug_pair"), point, cell, false),
+  ).toBe(top.id);
+  expect(f.drive.placeDecor(top.id, decorItemId("mug_pair"))).toBe(true);
   expect(f.drive.removeDecor(cell, point)).toBeUndefined();
   f.step();
   expect(blockAt(f.step().dock?.cells, cell)).toEqual({
@@ -274,7 +279,7 @@ it("lights the top door's plate in place of the front ceiling light while the li
 
 it("shuts both fridge doors on departure past their own plates, keeps their items, and lays them shut on the next park (ADR 0114, 0121, 0123)", () => {
   const f = fixture();
-  f.drive.setDecor("fridge_bottom_front", "toaster");
+  f.drive.setDecor(decorSlotId("fridge_bottom_front"), decorItemId("toaster"));
   f.park();
   for (const door of DOORS) f.press(door, "compartment");
   f.settle();

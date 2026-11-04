@@ -24,6 +24,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
+import { decorItemId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 
 const SWING = CAMPER_SPEC.doorSwingTicks;
@@ -84,7 +85,7 @@ it("matches a reference model of the cabinet doors over any press and tick seque
         const pose = parkPose(ctx.location, drive.yaw);
         const decor = new Map<string, string>();
         for (const [slot, item] of initial) {
-          drive.setDecor(slot.id, item);
+          drive.setDecor(slot.id, decorItemId(item));
           decor.set(slot.id, item);
         }
         const step = () => drive.step(undefined, { ...ctx, tick: ctx.tick++ });
@@ -119,8 +120,8 @@ it("matches a reference model of the cabinet doors over any press and tick seque
               type: "cabinet",
               face: decorFace(pose.yaw),
               open: d.step > 0,
-              ...(end0 === undefined ? {} : { end0 }),
-              ...(end1 === undefined ? {} : { end1 }),
+              ...(end0 === undefined ? {} : { end0: decorItemId(end0) }),
+              ...(end1 === undefined ? {} : { end1: decorItemId(end1) }),
             } satisfies DockBlock);
             expect(blockAt(out.dock?.cells, plate(id))?.type).toBe(
               d.open ? "cabinetDoor" : "ceiling",
@@ -151,7 +152,7 @@ it("matches a reference model of the cabinet doors over any press and tick seque
               const item = taken && decor.get(taken.id);
               if (taken && item !== undefined) {
                 decor.delete(taken.id);
-                want = { kind: "item", item };
+                want = { kind: "item", item: decorItemId(item) };
               } else {
                 d.open = !d.open;
                 want = { kind: "door" };
@@ -162,7 +163,7 @@ it("matches a reference model of the cabinet doors over any press and tick seque
           expect(drive.decor()).toEqual(
             DECOR_SLOTS.flatMap(({ id }) => {
               const item = decor.get(id);
-              return item === undefined ? [] : [{ slot: id, item }];
+              return item === undefined ? [] : [{ slot: id, item: item }];
             }),
           );
         }

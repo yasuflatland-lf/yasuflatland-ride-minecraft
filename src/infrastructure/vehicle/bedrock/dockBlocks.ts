@@ -8,7 +8,10 @@ import {
   type VehicleId,
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { isDecorItem } from "../../../domain/vehicle/dock/decor";
+import {
+  type DecorItemId,
+  isDecorItem,
+} from "../../../domain/vehicle/dock/decor";
 import {
   type DockBlock,
   type DockCell,
@@ -89,9 +92,10 @@ function isDecorSpot(v: unknown): v is number {
   );
 }
 
-function isPairEnd(v: unknown): boolean {
+function isPairEnd(v: unknown): v is DecorItemId | undefined {
   return (
-    v === undefined || (typeof v === "string" && STANDING_GEAR_IDS.includes(v))
+    v === undefined ||
+    (typeof v === "string" && isDecorItem(v) && STANDING_GEAR_IDS.includes(v))
   );
 }
 

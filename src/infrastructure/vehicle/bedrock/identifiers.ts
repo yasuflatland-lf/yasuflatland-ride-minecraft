@@ -1,4 +1,8 @@
 import { asPlayerId, asVehicleId } from "../../../domain/shared/ids";
+import {
+  type DecorItemId,
+  isDecorItem,
+} from "../../../domain/vehicle/dock/decor";
 import { HEADLIGHTS_PROPERTY_NAME } from "../../../domain/vehicle/entityContract";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
@@ -360,8 +364,11 @@ export function campingGearItem(gear: string): string {
 /** The camping gear id of an item type, if it is camping gear. */
 export function campingGearOfItem(
   typeId: string | undefined,
-): string | undefined {
-  return CAMPING_GEAR_IDS.find((gear) => campingGearItem(gear) === typeId);
+): DecorItemId | undefined {
+  const item = CAMPING_GEAR_IDS.find(
+    (gear) => campingGearItem(gear) === typeId,
+  );
+  return item !== undefined && isDecorItem(item) ? item : undefined;
 }
 
 /** The camping gear id of a decor block type, if it is one. */
