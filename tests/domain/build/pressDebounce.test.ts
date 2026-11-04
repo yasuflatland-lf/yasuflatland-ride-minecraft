@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import {
   PressDebounce,
   PressDebounces,
-} from "../../../src/domain/shared/pressDebounce";
+} from "../../../src/domain/build/pressDebounce";
 
 it("accepts the first use at tick zero and a new press at the exact boundary", () => {
   const debounce = new PressDebounce(10);

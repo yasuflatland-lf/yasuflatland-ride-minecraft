@@ -13,7 +13,7 @@ import { DRIVER_SEAT } from "./seats";
 export type SeatAssignment = readonly (PlayerId | undefined)[];
 
 /** A player riding the vehicle, with their index in the engine's rider list when known. */
-export interface AboardRider {
+interface AboardRider {
   readonly id: PlayerId;
   readonly slot?: number;
 }
@@ -29,7 +29,7 @@ export interface SeatAim {
 }
 
 /** The seats an aim is measured against: each is a ball of `radius` at `height` above the feet. */
-export interface SeatTargets {
+interface SeatTargets {
   readonly positions: SeatLayout["positions"];
   readonly height: number;
   readonly radius: number;
@@ -99,7 +99,7 @@ function closer(
 }
 
 /** The seats after a settle, and the players seated by a request who are not aboard yet. */
-export interface SettledSeats {
+interface SettledSeats {
   readonly seats: SeatAssignment;
   readonly boarding: ReadonlySet<PlayerId>;
 }

@@ -1,18 +1,8 @@
-import {
-  Direction,
-  Player,
-  ScriptEventSource,
-  system,
-  world,
-} from "@minecraft/server";
+import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { FirePitActions } from "../../../../application/camp/firePit";
 import type { FirePitWorld } from "../../../../application/camp/ports/firePit";
 import { asFirePitId } from "../../../../domain/camp/firePit";
-import {
-  asDimensionId,
-  asPlayerId,
-  type PlayerId,
-} from "../../../../domain/shared/ids";
+import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import {
   FIRE_PIT_ITEM,
@@ -22,31 +12,21 @@ import {
   TEST_FIRE_PIT_EVENT,
   TEST_FIRE_PIT_HIT_EVENT,
 } from "../../identifiers";
+import { registerPlaceableEntity } from "./placeable";
 
 export function registerFirePit(
   actions: FirePitActions,
   firePitWorld: FirePitWorld,
 ): void {
-  const placements = new TickScopedSet<PlayerId>();
   const interactions = new TickScopedSet<PlayerId>();
-  world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (!ev.isFirstEvent || ev.itemStack?.typeId !== FIRE_PIT_ITEM) return;
-    const dimension = asDimensionId(ev.block.dimension.id);
-    const block = ev.block.location;
-    if (
-      !actions.canUseBlock(
-        dimension,
-        block,
-        ev.blockFace === Direction.Up ? "up" : "other",
-      )
-    )
-      return;
-    ev.cancel = true;
-    const player = asPlayerId(ev.player.id);
-    if (!placements.add(system.currentTick, player)) return;
-    const yaw = ev.player.getRotation().y;
-    const slot = ev.player.selectedSlotIndex;
-    system.run(() => actions.place({ player, dimension, block, yaw, slot }));
+  registerPlaceableEntity({
+    itemId: FIRE_PIT_ITEM,
+    entityTypeIds: new Set([FIRE_PIT_TYPE]),
+    canUseBlock: (dimension, block, face) =>
+      actions.canUseBlock(dimension, block, face),
+    place: (ctx) => actions.place(ctx),
+    hit: ({ entity, player, tick }) =>
+      actions.hit(asFirePitId(entity.id), player, tick),
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (ev.cancel || ev.target.typeId !== FIRE_PIT_TYPE) return;
@@ -57,18 +37,6 @@ export function registerFirePit(
     const held = ev.itemStack?.typeId;
     const slot = ev.player.selectedSlotIndex;
     system.run(() => actions.toggle(id, player, held, slot));
-  });
-  world.afterEvents.entityHitEntity.subscribe((ev) => {
-    if (
-      !(ev.damagingEntity instanceof Player) ||
-      ev.hitEntity.typeId !== FIRE_PIT_TYPE
-    )
-      return;
-    actions.hit(
-      asFirePitId(ev.hitEntity.id),
-      asPlayerId(ev.damagingEntity.id),
-      system.currentTick,
-    );
   });
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
     if (

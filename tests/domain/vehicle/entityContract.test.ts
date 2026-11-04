@@ -1,8 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { PAINTS, paintEventName } from "../../../src/domain/shared/paint";
 import {
-  CORE_EVENT_PREFIXES,
-  CORE_PROPERTY_NAMES,
   commandsFor,
   HEADLIGHTS_PROPERTY_NAME,
   MONITOR_PROPERTY_NAME,
@@ -15,6 +13,10 @@ import {
   TRANSFORMING_EVENTS,
   transformingProperties,
 } from "../../../src/domain/vehicle/motion/transformingEntity";
+import {
+  CORE_EVENT_PREFIXES,
+  CORE_PROPERTY_NAMES,
+} from "../../support/coreContract";
 
 const TRACKS = {
   properties: { phase: { type: "int", range: [0, 2] } },

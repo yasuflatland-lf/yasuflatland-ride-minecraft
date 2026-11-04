@@ -6,7 +6,7 @@ import type { Entity } from "@minecraft/server";
 import type { VehicleId } from "../../../domain/shared/ids";
 import type { HoldPose } from "../../../domain/vehicle/dock/floor";
 import type { DeckSeats } from "./deckSeats";
-import type { DockBlocks } from "./dockBlocks";
+import type { DockLayer } from "./dockLayer";
 import type { HeadlightBlocks } from "./headlightBlocks";
 import type { SeatFillers } from "./seatFillers";
 import type { StandIns } from "./standIns";
@@ -14,7 +14,7 @@ import type { StandIns } from "./standIns";
 export class VehicleReleaser {
   constructor(
     private readonly headlightBlocks: Pick<HeadlightBlocks, "shine">,
-    private readonly dockBlocks: Pick<DockBlocks, "lay">,
+    private readonly dockBlocks: Pick<DockLayer, "lay">,
     private readonly deckSeats: Pick<DeckSeats, "keep">,
     private readonly standIns: Pick<StandIns, "keep">,
     private readonly holds: Map<VehicleId, HoldPose>,

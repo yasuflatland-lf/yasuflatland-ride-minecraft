@@ -87,7 +87,7 @@ export interface DecorSlot {
 }
 
 /** A point on a cell's top in pixels from the cell middle: `left` and `forward` as in LocalCell. */
-export interface DecorSpot {
+interface DecorSpot {
   readonly left: number;
   readonly forward: number;
 }

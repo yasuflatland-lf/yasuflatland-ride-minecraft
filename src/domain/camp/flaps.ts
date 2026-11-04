@@ -18,7 +18,7 @@ export function isFlapId(v: unknown): v is FlapId {
 }
 
 /** One flap's swing to send to the tent entity: 0 closed, 1 open. */
-export interface FlapSwing {
+interface FlapSwing {
   readonly flap: FlapId;
   readonly open: number;
 }

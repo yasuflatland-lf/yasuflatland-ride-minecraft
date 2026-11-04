@@ -1,16 +1,24 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
-import { type Cell, cellKey } from "../../../../src/domain/shared/cells";
-import { asDimensionId, asVehicleId } from "../../../../src/domain/shared/ids";
-import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
-import { roomCells as camperRoomCells } from "../../../../src/domain/vehicle/kinds/camper/roomCells";
+import type { SpaceCheck } from "../../../../../src/application/shared/ports/space";
+import { type Cell, cellKey } from "../../../../../src/domain/shared/cells";
+import {
+  asDimensionId,
+  asVehicleId,
+} from "../../../../../src/domain/shared/ids";
+import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
+import { roomCells as camperRoomCells } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
+import {
+  DECK_CELLS_PROPERTY,
+  DECK_FLOOR_BLOCK,
+  DECK_FLOOR_HEIGHT_STATE,
+} from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import {
   DOCK_RECHECK_TICKS,
   DockBlocks,
   savedDock,
-} from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
+} from "../../../../../src/infrastructure/vehicle/kinds/camper/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BUNK_BLOCK,
@@ -23,9 +31,6 @@ import {
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
-  DECK_CELLS_PROPERTY,
-  DECK_FLOOR_BLOCK,
-  DECK_FLOOR_HEIGHT_STATE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
@@ -36,9 +41,9 @@ import {
   ROOM_FACE_STATE,
   ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
-} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
-import { decorItemId } from "../../../support/decorIds";
-import { defined } from "../../../support/defined";
+} from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { decorItemId } from "../../../../support/decorIds";
+import { defined } from "../../../../support/defined";
 
 vi.mock("@minecraft/server", () => ({
   BlockPermutation: {

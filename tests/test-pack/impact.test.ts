@@ -61,6 +61,30 @@ describe("impact reach", () => {
     );
   });
 
+  it.each([
+    "dockBlocks.ts",
+    "faceHeight.ts",
+    "handlers/decor.ts",
+    "handlers/dockDoor.ts",
+    "handlers/showerToilet.ts",
+    "handlers/storage.ts",
+  ])("preserves vehicle impact after moving camper %s", (file) => {
+    expect(
+      impactOfPath(`src/infrastructure/vehicle/kinds/camper/${file}`).impact,
+    ).toEqual(
+      impactOfPath(`src/infrastructure/vehicle/bedrock/${file}`).impact,
+    );
+  });
+
+  it("preserves full impact for the extracted camper identifiers", () => {
+    expect(
+      impactOfPath("src/infrastructure/vehicle/kinds/camper/identifiers.ts")
+        .impact,
+    ).toEqual(
+      impactOfPath("src/infrastructure/vehicle/bedrock/identifiers.ts").impact,
+    );
+  });
+
   it("lists every tracked pack stem explicitly", () => {
     const paths = tracked.filter((p) =>
       /^packs\/yasu_ride_bp\/[^/]+\/yasu_ride\/|^packs\/yasu_ride_rp\/models\/blocks\//.test(

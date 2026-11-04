@@ -120,7 +120,7 @@ export function steerYaw(
   return normalizeYaw(yaw - steer * limits.turnRate * factor);
 }
 
-export interface BlockedAxes {
+interface BlockedAxes {
   readonly x: boolean;
   readonly z: boolean;
 }

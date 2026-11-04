@@ -2,7 +2,7 @@ import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { Clock } from "./ports/shared";
 
-export interface SwitchToolCommand {
+interface SwitchToolCommand {
   playerId: PlayerId;
   item: string;
   vehicleId: VehicleId;

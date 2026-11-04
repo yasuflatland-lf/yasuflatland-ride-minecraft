@@ -70,7 +70,7 @@ function bumperCells(pose: HoldPose): Vec3[] {
  * floor cells, the door step and the exit's feet, where natural ground may rise, and `bumper`
  * the wall feet in the bumper's row, whose plants are cleared even without an upper half.
  */
-export interface ParkGround {
+interface ParkGround {
   readonly ground: ReadonlySet<string>;
   readonly bumper: ReadonlySet<string>;
 }

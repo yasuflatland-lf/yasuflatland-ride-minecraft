@@ -4,28 +4,28 @@ import {
   system,
   world,
 } from "@minecraft/server";
-import type { PlaceDecor } from "../../../../application/vehicle/placeDecor";
-import type { RemoveDecor } from "../../../../application/vehicle/removeDecor";
+import type { PlaceDecor } from "../../../../../application/vehicle/placeDecor";
+import type { RemoveDecor } from "../../../../../application/vehicle/removeDecor";
 import {
   asDimensionId,
   asPlayerId,
   type DimensionId,
   type PlayerId,
   type VehicleId,
-} from "../../../../domain/shared/ids";
-import type { Vec3 } from "../../../../domain/shared/vec";
-import type { DecorItemId } from "../../../../domain/vehicle/dock/decor";
+} from "../../../../../domain/shared/ids";
+import type { Vec3 } from "../../../../../domain/shared/vec";
+import type { DecorItemId } from "../../../../../domain/vehicle/dock/decor";
 import {
   SeatPresses,
   seatSlotCell,
-} from "../../../../domain/vehicle/kinds/index";
-import { heldTypeId } from "../../../shared/heldItem";
+} from "../../../../../domain/vehicle/kinds/index";
+import { heldTypeId } from "../../../../shared/heldItem";
+import { DECK_SEAT_TYPE } from "../../../bedrock/identifiers";
 import { pressedHeight, pressedShape } from "../faceHeight";
 import {
   CAMPER_DECOR_COMPONENT,
   CAMPER_FURNITURE_BLOCK,
   campingGearOfItem,
-  DECK_SEAT_TYPE,
   DECOR_HEIGHT_STATE,
   isCamperRoomBlock,
   isDecorBlock,

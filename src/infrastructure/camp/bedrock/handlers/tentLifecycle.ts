@@ -10,8 +10,8 @@ import {
   type TentBlock,
   type TentId,
 } from "../../../../domain/camp/tent";
-import { chunkLoadedAt } from "../../../shared/chunkLoadedAt";
 import type { CellLayer } from "../../../shared/laidCells";
+import { chunkLoadedAt } from "../../chunkLoadedAt";
 import { TENT_TYPE } from "../../identifiers";
 import type { DynamicPropertyTentRegistry } from "../../persistence/tentRegistry";
 

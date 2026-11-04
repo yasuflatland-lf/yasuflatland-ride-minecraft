@@ -55,7 +55,7 @@ import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { savedDecor } from "./bedrockDecorWorld";
 import { BladeCuts } from "./bladeCuts";
 import { DeckSeats } from "./deckSeats";
-import { DockBlocks, savedDock } from "./dockBlocks";
+import type { DockLayer } from "./dockLayer";
 import { DropSweep } from "./dropSweep";
 import {
   type EntityIndex,
@@ -121,10 +121,9 @@ export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks: HeadlightBlocks;
   private readonly bladeCuts: BladeCuts;
   private readonly roadPaver: RoadPaver;
-  private readonly deckSeats = new DeckSeats();
+  private readonly deckSeats: DeckSeats;
   private readonly standIns = new StandIns();
   private readonly seatFillers = new SeatFillers();
-  private readonly dockBlocks: DockBlocks;
   private readonly holds = new Map<VehicleId, HoldPose>();
   /** Shared with BedrockFleetWorld so a removed vehicle releases the same blocks, seats, stand-in and hold. */
   readonly releaser: VehicleReleaser;
@@ -134,12 +133,14 @@ export class BedrockVehicleWorld implements DriveWorld {
     private readonly testInputs: VehicleTestStore<RawInput>,
     private readonly testHeldItems: VehicleTestStore<string>,
     campSpace: SpaceCheck,
+    private readonly dockBlocks: DockLayer,
+    isStandableRoomBlock: (typeId: string) => boolean,
   ) {
     const drops = new DropSweep(systemClock);
     this.bladeCuts = new BladeCuts(systemClock, drops);
     this.roadPaver = new RoadPaver(drops, campSpace);
     this.headlightBlocks = new HeadlightBlocks(campSpace);
-    this.dockBlocks = new DockBlocks(campSpace);
+    this.deckSeats = new DeckSeats(isStandableRoomBlock);
     this.releaser = new VehicleReleaser(
       this.headlightBlocks,
       this.dockBlocks,
@@ -248,7 +249,7 @@ export class BedrockVehicleWorld implements DriveWorld {
           player ? asPlayerId(player.id) : undefined,
         ),
         restored: () => {
-          const dock = savedDock(vehicle);
+          const dock = this.dockBlocks.saved(vehicle);
           return {
             [DOCK_RESTORED.laid]: dock.laid,
             [DOCK_RESTORED.doorOpen]: dock.doorOpen,

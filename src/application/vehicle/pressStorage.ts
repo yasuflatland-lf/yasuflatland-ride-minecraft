@@ -6,7 +6,7 @@ import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DecorPlacingWorld } from "./ports/decor";
 import type { Clock } from "./ports/shared";
 
-export interface PressStorageCommand {
+interface PressStorageCommand {
   playerId: PlayerId;
   vehicleId: VehicleId;
   /** The world cell of the pressed block: a compartment or an open door's plate. */

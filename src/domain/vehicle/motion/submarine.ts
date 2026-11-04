@@ -1,7 +1,7 @@
 import { clamp } from "../../shared/vec";
 import type { TransformingSpec } from "./transforming";
 
-export interface DiveInput {
+interface DiveInput {
   /** Climb command from climbInput(raw), from -1 to 1. */
   climb: number;
   /** Whether a driver or test input controls the vehicle. */

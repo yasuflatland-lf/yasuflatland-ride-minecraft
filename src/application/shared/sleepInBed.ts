@@ -5,7 +5,7 @@ import { canSleep, SLEEP, SLEEP_MESSAGES } from "../../domain/shared/sleep";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { BedWorld } from "./ports/bed";
 
-export interface SleepInBedCommand {
+interface SleepInBedCommand {
   playerId: PlayerId;
   dimensionId: DimensionId;
   cell: Vec3;

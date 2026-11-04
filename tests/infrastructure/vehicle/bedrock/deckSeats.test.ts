@@ -17,6 +17,7 @@ import {
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { isStandableRoomBlock } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 
 it("resolves a rider's deck seat to its vehicle and seat index", () => {
   const { car, dimension } = fixture();
@@ -156,7 +157,7 @@ const STAND = { x: 4.5, y: 1, z: 2.5 } as const;
 /** Keeps one deck seat with a stand spot and seats a player on it. */
 function seatedOnce(spot: DeckSeatSpot = { x: 0, y: 0, z: 0, stand: STAND }) {
   const f = fixture();
-  const seats = new DeckSeats();
+  const seats = new DeckSeats(isStandableRoomBlock);
   const vehicleId = asVehicleId(f.car.id);
   seats.keep(vehicleId, f.car, [spot], 0);
   const [id] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
@@ -186,7 +187,12 @@ it("restores seat ownership, replaces missing seats, moves drifted seats and cle
       fc.integer({ min: -180, max: 180 }),
       (positions, yaw) => {
         const f = fixture();
-        new DeckSeats().keep(asVehicleId(f.car.id), f.car, positions, yaw);
+        new DeckSeats(isStandableRoomBlock).keep(
+          asVehicleId(f.car.id),
+          f.car,
+          positions,
+          yaw,
+        );
         const ids: string[] = JSON.parse(
           String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
         );
@@ -197,7 +203,7 @@ it("restores seat ownership, replaces missing seats, moves drifted seats and cle
           expect(seat?.saved.get(DECK_SEAT_OF_PROPERTY)).toBe(f.car.id);
           expect(seat?.setRotation).toHaveBeenCalledWith({ x: 0, y: yaw });
         });
-        const reloaded = new DeckSeats();
+        const reloaded = new DeckSeats(isStandableRoomBlock);
         reloaded.keep(asVehicleId(f.car.id), f.car, positions, yaw);
         expect(f.dimension.spawnEntity).toHaveBeenCalledTimes(4);
         for (const id of ids)
@@ -229,7 +235,7 @@ it("boards occupied deck seats in index order across gaps", () => {
   fc.assert(
     fc.property(fc.subarray([0, 1, 2, 3]), (occupied) => {
       const f = fixture();
-      const seats = new DeckSeats();
+      const seats = new DeckSeats(isStandableRoomBlock);
       seats.keep(
         asVehicleId(f.car.id),
         f.car,
@@ -264,7 +270,12 @@ it("boards occupied deck seats in index order across gaps", () => {
 
 it("removes a loaded orphan and preserves a seat with a nearby loaded owner", () => {
   const f = fixture();
-  new DeckSeats().keep(asVehicleId(f.car.id), f.car, [{ x: 0, y: 0, z: 0 }], 0);
+  new DeckSeats(isStandableRoomBlock).keep(
+    asVehicleId(f.car.id),
+    f.car,
+    [{ x: 0, y: 0, z: 0 }],
+    0,
+  );
   const seat = f.dimension
     .getEntities()
     .find((e) => e.typeId === DECK_SEAT_TYPE);
@@ -287,7 +298,7 @@ it("removes only the deck seats whose boat seat is taken and keeps the others in
       fc.subarray([0, 1, 2, 3]),
       (positions, taken) => {
         const f = fixture();
-        const seats = new DeckSeats();
+        const seats = new DeckSeats(isStandableRoomBlock);
         seats.keep(asVehicleId(f.car.id), f.car, positions, 0);
         const ids: string[] = JSON.parse(
           String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
@@ -318,7 +329,7 @@ it("treats a corrupt saved seat list as no seats and drops entries that are not 
   ] as const) {
     const f = fixture();
     f.boat.saved.set(DECK_SEATS_PROPERTY, raw);
-    expect(new DeckSeats().riders(f.car)).toEqual(expected);
+    expect(new DeckSeats(isStandableRoomBlock).riders(f.car)).toEqual(expected);
   }
 });
 
@@ -335,7 +346,7 @@ it("leaves a non-seat or removed entity alone when checking for orphans", () => 
 
 it("ignores a vehicle it never kept seats for once the vehicle is gone", () => {
   const f = fixture();
-  new DeckSeats().keep(
+  new DeckSeats(isStandableRoomBlock).keep(
     asVehicleId("unknown"),
     undefined,
     [{ x: 0, y: 0, z: 0 }],
@@ -346,7 +357,7 @@ it("ignores a vehicle it never kept seats for once the vehicle is gone", () => {
 
 it("replaces a seat left in another dimension by one beside the boat", () => {
   const f = fixture();
-  const seats = new DeckSeats();
+  const seats = new DeckSeats(isStandableRoomBlock);
   const at = [{ x: 1, y: 2, z: 3 }];
   seats.keep(asVehicleId(f.car.id), f.car, at, 0);
   const [first] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
@@ -362,7 +373,7 @@ it("replaces a seat left in another dimension by one beside the boat", () => {
 
 it("boards nobody without a rideable boat, and keeps a refused rider on the deck seat", () => {
   const f = fixture();
-  const seats = new DeckSeats();
+  const seats = new DeckSeats(isStandableRoomBlock);
   seats.keep(asVehicleId(f.car.id), f.car, [{ x: 0, y: 0, z: 0 }], 0);
   const [id] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
   const seat = f.entities.get(id);
@@ -383,7 +394,7 @@ it("triggers the compact event once on each newly spawned compact seat only (ADR
       fc.array(fc.boolean(), { minLength: 1, maxLength: 6 }),
       (flags) => {
         const f = fixture();
-        const seats = new DeckSeats();
+        const seats = new DeckSeats(isStandableRoomBlock);
         const spots = flags.map((compact, x) => ({ x, y: 0, z: 0, compact }));
         seats.keep(asVehicleId(f.car.id), f.car, spots, 0);
         const ids: string[] = JSON.parse(
@@ -416,7 +427,7 @@ it("triggers the driver event once on each newly spawned driver seat only (ADR 0
       }),
       (flags) => {
         const f = fixture();
-        const seats = new DeckSeats();
+        const seats = new DeckSeats(isStandableRoomBlock);
         const spots = flags.map(({ compact, driver }, x) => ({
           x,
           y: 0,
@@ -453,7 +464,7 @@ it("ejects every deck seat rider in seat order and returns them (ADR 0095)", () 
   fc.assert(
     fc.property(fc.subarray([0, 1, 2, 3, 4]), (occupied) => {
       const f = fixture();
-      const seats = new DeckSeats();
+      const seats = new DeckSeats(isStandableRoomBlock);
       seats.keep(
         asVehicleId(f.car.id),
         f.car,
@@ -485,7 +496,7 @@ it("stands up exactly the players who left a kept deck seat for nothing, at thei
       fc.subarray([0, 1, 2, 3, 4]),
       (occupied, leaving) => {
         const f = fixture();
-        const seats = new DeckSeats();
+        const seats = new DeckSeats(isStandableRoomBlock);
         const vehicleId = asVehicleId(f.car.id);
         const spots = Array.from({ length: 5 }, (_, i) => ({
           x: i,
@@ -560,7 +571,7 @@ it("moves nobody after a reload, for a seat without a stand spot, or onto a repl
   {
     const { f, player, vehicleId, spot, standUp } = seatedOnce();
     standUp();
-    new DeckSeats().keep(vehicleId, f.car, [spot], 0);
+    new DeckSeats(isStandableRoomBlock).keep(vehicleId, f.car, [spot], 0);
     expect(player.teleport).not.toHaveBeenCalled();
   }
   {
