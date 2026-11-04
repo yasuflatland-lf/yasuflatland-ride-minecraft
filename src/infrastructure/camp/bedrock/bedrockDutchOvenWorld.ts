@@ -14,6 +14,7 @@ import {
   type PlayerId,
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import {
@@ -39,10 +40,7 @@ import {
 import { itemsOnTable, tableTop } from "./tableItems";
 
 function dutchOven(id: DutchOvenId) {
-  const entity = world.getEntity(id);
-  return entity?.isValid && entity.typeId === DUTCH_OVEN_TYPE
-    ? entity
-    : undefined;
+  return entityOfType(world, id, DUTCH_OVEN_TYPE);
 }
 
 export function setOvenHost(
