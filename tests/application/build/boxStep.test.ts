@@ -46,7 +46,7 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const actions = {
     copy: new CopyBox(repo, world, feedback),
-    cut: new CutBox(repo, feedback, new EditJobs(repo, world, feedback)),
+    cut: new CutBox(repo, world, feedback, new EditJobs(repo, world, feedback)),
   };
   return {
     repo,

@@ -126,9 +126,7 @@ it("identifies box steps among all height-step kinds and supplies their limit", 
     fc.property(heightStepKind, (kind) => {
       expect(isBoxStepKind(kind)).toBe(kind === "copy" || kind === "cut");
       if (isBoxStepKind(kind))
-        expect(boxStepLimit(kind)).toBe(
-          kind === "cut" ? BUILD_SPEC.maxVolume : BUILD_SPEC.maxCopyVolume,
-        );
+        expect(boxStepLimit(kind)).toBe(BUILD_SPEC.maxCopyVolume);
     }),
   );
 });

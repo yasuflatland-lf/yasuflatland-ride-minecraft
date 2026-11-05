@@ -54,7 +54,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const jobs = new EditJobs(repo, blocks, feedback);
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, blocks, feedback);
-  const cutBox = new CutBox(repo, feedback, jobs);
+  const cutBox = new CutBox(repo, blocks, feedback, jobs);
   const actions = { copy: copyBox, cut: cutBox };
   const cases = {
     chooseBoxStep: new ChooseBoxStep(repo, actions, feedback),
