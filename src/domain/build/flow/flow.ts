@@ -71,6 +71,15 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
   });
 }
 
+export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
+  return sneaking || flow.kind === "idle";
+}
+
+/** True when a plain air press in this flow opens a menu that offers Undo (ADR 0229, 0203). */
+export function airPressOffersUndo(flow: BuildFlow): boolean {
+  return opensUtilityMenu(flow, false) || flow.kind === "pasteAim";
+}
+
 export function cancel(_flow: BuildFlow): BuildFlow {
   return Object.freeze({ kind: "idle" });
 }

@@ -6,6 +6,7 @@ import type {
   PlannedChange,
 } from "../../domain/build/edit/change";
 import { isKeptState } from "../../domain/build/edit/guard";
+import { airPressOffersUndo } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -72,11 +73,22 @@ export class EditJobs {
           { dimensionId: job.dimensionId, changes: job.applied },
           job.undo,
         );
+        // The job may finish after the player left the states where an air press offers Undo,
+        // and an empty edit with no earlier history leaves nothing to undo.
+        const promisesUndo =
+          airPressOffersUndo(session.flow) && session.hasHistory;
         this.feedback.showMessage(
           job.playerId,
-          job.undo ? "undoDone" : "editDone",
+          job.undo ? "undoDone" : promisesUndo ? "editDone" : "editDoneCount",
           job.applied.length,
         );
+        if (
+          !job.undo &&
+          promisesUndo &&
+          job.applied.length > 0 &&
+          session.takeUndoHint()
+        )
+          this.feedback.showUndoHint(job.playerId);
         this.drop(job);
         return used;
       }

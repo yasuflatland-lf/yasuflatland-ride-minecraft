@@ -83,6 +83,127 @@ function snapshot(world: FakeWorld, size: number, y = 64) {
 }
 
 describe("EditJobs properties", () => {
+  it("shows one undo hint across several nonempty edits per player", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 2, max: 10 }), (edits) => {
+        const env = setup();
+        for (let i = 0; i < edits; i++) {
+          select(env, alex, 2, 64 + i);
+          env.fill.execute({ playerId: alex, style: "fill" });
+          runAll(env);
+          expect(env.feedback.messages.at(-1)).toEqual({
+            message: "editDone",
+            count: 4,
+          });
+          expect(env.feedback.undoHints).toEqual([alex]);
+        }
+        select(env, blake, 2, 80);
+        env.fill.execute({ playerId: blake, style: "fill" });
+        runAll(env);
+        expect(env.feedback.undoHints).toEqual([alex, blake]);
+      }),
+    );
+  });
+
+  it("does not show or consume the hint for an empty edit", () => {
+    const env = setup();
+    env.world.put({ x: 0, y: 64, z: 0 }, stone);
+    select(env, alex, 1);
+    env.fill.execute({ playerId: alex, style: "fill" });
+    runAll(env);
+    expect(env.feedback.messages.at(-1)).toEqual({
+      message: "editDoneCount",
+      count: 0,
+    });
+    expect(env.feedback.undoHints).toEqual([]);
+    select(env, alex, 2);
+    env.fill.execute({ playerId: alex, style: "fill" });
+    runAll(env);
+    expect(env.feedback.undoHints).toEqual([alex]);
+  });
+
+  it("promises the gesture only when the flow at completion offers Undo", () => {
+    const cell = { x: 0, y: 64, z: 0 };
+    const flows = {
+      point1: tapBlock({ kind: "idle" }, overworld, cell, stone),
+      endpoint: tapBlock(
+        tapBlock({ kind: "idle" }, overworld, cell, stone),
+        overworld,
+        { x: 1, y: 64, z: 1 },
+        stone,
+      ),
+      heightStep: {
+        kind: "heightStep",
+        dimensionId: overworld,
+        base: boxOf(cell, cell),
+        from: cell,
+        heightedKind: "cylinder",
+        previous: 1,
+        heightLocked: false,
+        material: stone,
+      },
+      idle: { kind: "idle" },
+      pasteAim: beginPasteAim(false),
+    } as const;
+    for (const [name, flow] of Object.entries(flows)) {
+      const promises = name === "idle" || name === "pasteAim";
+      const env = setup();
+      select(env, alex, 2);
+      env.fill.execute({ playerId: alex, style: "fill" });
+      env.repo.getOrCreate(alex).setFlow(flow);
+      runAll(env);
+      expect(env.feedback.messages.at(-1), name).toEqual({
+        message: promises ? "editDone" : "editDoneCount",
+        count: 4,
+      });
+      expect(env.feedback.undoHints, name).toEqual(promises ? [alex] : []);
+      if (!promises) {
+        env.repo.getOrCreate(alex).setFlow({ kind: "idle" });
+        select(env, alex, 2, 70);
+        env.fill.execute({ playerId: alex, style: "fill" });
+        runAll(env);
+        expect(env.feedback.undoHints, name).toEqual([alex]);
+      }
+    }
+  });
+
+  it("does not show or consume the hint for an undo", () => {
+    const env = setup();
+    const cell = { x: 0, y: 64, z: 0 };
+    env.world.put(cell, stone);
+    env.repo.getOrCreate(alex).finishEdit(
+      {
+        dimensionId: overworld,
+        changes: [{ cell, before: dirt, after: stone }],
+      },
+      false,
+    );
+    env.undo.execute({ playerId: alex });
+    runAll(env);
+    expect(env.feedback.messages.at(-1)).toEqual({
+      message: "undoDone",
+      count: 1,
+    });
+    expect(env.feedback.undoHints).toEqual([]);
+    select(env, alex, 1);
+    env.fill.execute({ playerId: alex, style: "fill" });
+    runAll(env);
+    expect(env.feedback.undoHints).toEqual([alex]);
+  });
+
+  it("shows a new hint after the session is removed", () => {
+    const env = setup();
+    select(env, alex, 1);
+    env.fill.execute({ playerId: alex, style: "fill" });
+    runAll(env);
+    expect(env.feedback.undoHints).toEqual([alex]);
+    env.repo.remove(alex);
+    select(env, alex, 2);
+    env.fill.execute({ playerId: alex, style: "fill" });
+    runAll(env);
+    expect(env.feedback.undoHints).toEqual([alex, alex]);
+  });
+
   it("fill then undo restores every cell", () => {
     fc.assert(
       fc.property(
