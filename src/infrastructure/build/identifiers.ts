@@ -24,6 +24,7 @@ export const BUILD_MESSAGE: Readonly<
   pasteBlocked: "yasu_build.message.paste_blocked",
   copied: "yasu_build.message.copied",
   editDone: "yasu_build.message.edit_done",
+  editDoneCount: "yasu_build.message.edit_done_count",
   undoDone: "yasu_build.message.undo_done",
   undoHint: "yasu_build.message.undo_hint",
 };
