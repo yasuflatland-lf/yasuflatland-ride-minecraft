@@ -1184,6 +1184,8 @@ export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
 export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(3, 1, 1);
+    // The select helper places the first corner itself, so place the blocks afterwards.
+    await f.select(f.cell(2));
     const types = [
       "minecraft:gold_block",
       "minecraft:oak_log",
@@ -1193,7 +1195,6 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
       f.block(cell).setType(types[i] ?? "minecraft:stone");
     });
     const before = snapshot(f, cells);
-    await f.select(f.cell(2));
     check(
       (await f.menu("shape", "cut")).message === "editDone",
       "Cut with clipboard failed",

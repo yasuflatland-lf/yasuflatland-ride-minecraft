@@ -590,7 +590,7 @@ These scenarios require one connected player, run exclusively without vehicles, 
 | `build_paste_blocked`       | Laid-block overlap refuses the whole paste without ending aiming; a following clean paste succeeds and undoes exactly             |
 | `build_block_states`        | Engine block-permutation round trip                                                                                               |
 
-The Cut scenario tick budgets are estimates based on `build_shapes` (160), `build_copy_shapes` (260), and `build_paste_undo_repeat` (80), not live measurements. The new scenarios remain unverified in game. `build_undo_hint_once` resets the test player's in-memory build session to check the first edit independently of scenario order; it records calls to the chat feedback adapter, not rendered chat. Menu commands do not simulate gestures; BT3 and BT13-BT19 remain unverified on both PC and iPad.
+The Cut scenario tick budgets are estimates based on `build_shapes` (160), `build_copy_shapes` (260), and `build_paste_undo_repeat` (80). The six new scenarios passed on the dev BDS with a connected player (measured 17 to 34 ticks each, within their budgets). `build_undo_hint_once` resets the test player's in-memory build session to check the first edit independently of scenario order; it records calls to the chat feedback adapter, not rendered chat. Menu commands do not simulate gestures; BT3 and BT13-BT20 remain unverified on both PC and iPad.
 
 Remaining manual checks are BW1-BW4 (real taps, debounce and break prevention), BWM1-BWM10 (forms and dismissal), BT5/BT9 (camera and hotbar feel), and the live preview rows above. Also check:
 
