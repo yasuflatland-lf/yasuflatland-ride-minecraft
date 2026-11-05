@@ -15,6 +15,7 @@ import { isRoofKind } from "../../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import { volumeOf } from "../../../domain/build/volume/geometry";
+import { isBoxStepKind } from "../../../domain/build/volume/kind";
 import { asPlayerId } from "../../../domain/shared/ids";
 import { chooseFromForm } from "../../shared/choiceForm";
 import { createExclusiveGuard } from "../../shared/exclusiveForm";
@@ -70,7 +71,7 @@ export class BedrockBuildMenus implements BuildMenus {
       const offered = this.choices.choose(playerId, "shape", id);
       const flow = this.repo.get(playerId)?.flow;
       if (offered && flow?.kind === "heightStep") {
-        if (flow.heightedKind === "copy") {
+        if (isBoxStepKind(flow.heightedKind)) {
           if (!flow.heightLocked && this.heightSliderFallback)
             await this.heightSlider(player);
         } else if (flow.heightLocked) await this.contents(player);
@@ -127,7 +128,7 @@ export class BedrockBuildMenus implements BuildMenus {
     const session = this.repo.get(playerId);
     if (
       session?.flow.kind !== "heightStep" ||
-      session.flow.heightedKind === "copy"
+      isBoxStepKind(session.flow.heightedKind)
     )
       return;
     const id = await chooseFromForm(
@@ -149,7 +150,7 @@ export class BedrockBuildMenus implements BuildMenus {
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "heightStep") return;
     if (flow.heightLocked) {
-      if (flow.heightedKind !== "copy") await this.contents(player);
+      if (!isBoxStepKind(flow.heightedKind)) await this.contents(player);
       return;
     }
     // A modal cannot update the preview while the player adjusts its slider.
@@ -179,8 +180,8 @@ export class BedrockBuildMenus implements BuildMenus {
     const height = answer.formValues?.[0];
     if (typeof height !== "number") return;
     this.cases.setHeight.execute({ playerId, height });
-    if (flow.heightedKind === "copy")
-      this.cases.confirmCopyHeight.execute({ playerId });
+    if (isBoxStepKind(flow.heightedKind))
+      this.cases.confirmBoxStep.execute({ playerId });
     else await this.contents(player);
   }
 }

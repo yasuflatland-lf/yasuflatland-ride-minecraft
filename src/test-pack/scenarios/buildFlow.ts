@@ -368,7 +368,7 @@ async function startPasteStep(
       (await f.edit(`height ${height}`)).flow.previous === height,
       "Copy height not applied",
     );
-    copied = await f.edit("confirmcopy");
+    copied = await f.edit("confirmbox");
   }
   check(
     copied.message === "copied" &&
@@ -520,7 +520,7 @@ export function buildNewCopyReplaces(a: Arena): Promise<Outcome> {
     await checkState(f, "heightStep", true);
     await f.edit("height 2");
     const expected = snapshot(f, source);
-    await f.edit("confirmcopy");
+    await f.edit("confirmbox");
     await checkState(f, "pasteAim", true);
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 2, 2);
     await pasteInto(f, target);

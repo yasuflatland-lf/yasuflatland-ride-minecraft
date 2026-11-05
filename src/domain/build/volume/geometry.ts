@@ -2,7 +2,7 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { CellBox } from "../box";
 import { roofPlacement, roofVolume } from "../roof/geometry";
-import { copyVolume } from "./copy";
+import { boxStepVolume } from "./boxStep";
 import { cubePlacement, cubeVolume } from "./cube";
 import { cylinderPlacement, cylinderVolume } from "./cylinder";
 import type { FillStyle, HeightedKind, HeightStepKind } from "./kind";
@@ -28,7 +28,7 @@ export interface HeightedPlacement {
 }
 
 const VOLUMES: Record<HeightStepKind, HeightedVolume> = {
-  copy: copyVolume,
+  copy: boxStepVolume,
   gable: roofVolume,
   hip: roofVolume,
   cube: cubeVolume,
