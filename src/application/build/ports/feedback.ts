@@ -16,9 +16,12 @@ export type BuildMessage =
   | "pasteBlocked"
   | "copied"
   | "editDone"
+  | "editDoneCount"
   | "undoDone";
 
 export interface BuildFeedback {
+  /** Chat message so the undo gesture stays visible beyond the action bar. */
+  showUndoHint(playerId: PlayerId): void;
   /** Action bar message; `count` is shown where the message has one (volume, blocks changed). */
   showMessage(
     playerId: PlayerId,

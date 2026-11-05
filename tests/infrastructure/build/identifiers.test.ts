@@ -44,6 +44,10 @@ it("defines every feedback message in both locales", () => {
     expect(entries.get(BUILD_MESSAGE.pasteHint)?.match(/%s/g)).toHaveLength(4);
     expect(entries.get(BUILD_MESSAGE.copied)?.match(/%s/g)).toHaveLength(1);
     expect(entries.get(BUILD_MESSAGE.heightSize)?.match(/%s/g)).toHaveLength(3);
+    expect(entries.get(BUILD_MESSAGE.undoHint)).toContain(
+      entries.get(BUILD_FORM.undo),
+    );
+    expect(entries.get(BUILD_MESSAGE.undoHint)).not.toContain("%s");
     for (const key of Object.values(BUILD_MESSAGE))
       expect(entries.get(key)).toBeTruthy();
     for (const key of Object.values(BUILD_FORM))
@@ -53,6 +57,7 @@ it("defines every feedback message in both locales", () => {
       "tooLarge",
       "copied",
       "editDone",
+      "editDoneCount",
       "undoDone",
     ] as const)
       expect(entries.get(BUILD_MESSAGE[message])).toContain("%s");

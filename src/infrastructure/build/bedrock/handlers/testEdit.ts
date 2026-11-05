@@ -47,6 +47,7 @@ export function recordMessages(feedback: BuildFeedback): {
         latest.set(id, { message, count });
         feedback.showMessage(id, message, count);
       },
+      showUndoHint: (id) => feedback.showUndoHint(id),
       showSize: (id, size) => feedback.showSize(id, size),
       showPasteHint: (id, size, count) =>
         feedback.showPasteHint(id, size, count),
