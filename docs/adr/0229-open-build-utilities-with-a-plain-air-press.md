@@ -1,4 +1,4 @@
-# 0228. Open Build Wand utilities with a plain air press
+# 0229. Open Build Wand utilities with a plain air press
 
 - Status: Proposed
 - Acceptance condition: the iPad gesture check of the Build Wand series passes (#1038)

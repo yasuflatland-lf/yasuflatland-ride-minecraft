@@ -8,7 +8,7 @@
 - Source: [0201](../adr/0201-build-wand-cylinder-and-cube.md)
 - Source: [0202](../adr/0202-build-wand-copy-and-continuous-paste.md)
 - Source: [0203](../adr/0203-build-wand-paste-aiming.md)
-- Source: [0228](../adr/0228-open-build-utilities-with-a-plain-air-press.md)
+- Source: [0229](../adr/0229-open-build-utilities-with-a-plain-air-press.md)
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): defines the documentation format and checks, not build behavior
 - Excluded: [0180](../adr/0180-a-wide-bulldozer-blade.md): extends the Building Tools group with Wide Blade; switch behavior belongs to the bulldozer spec
 - Excluded: [0181](../adr/0181-a-road-paver-on-the-bulldozer.md): extends the Building Tools group with Road Paver; paving and switch behavior belong to the bulldozer spec
@@ -57,7 +57,7 @@
 - Agreement: Proposed
 - Basis: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md) Decision 3, "Debounce a held press, which can repeat `itemUse` every 0.2 seconds, so it counts once."
 - Basis: [0203](../adr/0203-build-wand-paste-aiming.md) Decision 3, "`playerInteractWithBlock` never pastes."
-- Basis: [0228](../adr/0228-open-build-utilities-with-a-plain-air-press.md) Decision 1, "An air press in `idle` opens the utility menu without sneaking."
+- Basis: [0229](../adr/0229-open-build-utilities-with-a-plain-air-press.md) Decision 1, "An air press in `idle` opens the utility menu without sneaking."
 - Implementation: `src/infrastructure/build/bedrock/handlers/wand.ts`; `src/domain/build/pressDebounce.ts`; `src/infrastructure/build/install.ts`; `src/application/build/pressPasteAim.ts`
 - Verification: `tests/infrastructure/build/wand.test.ts` checks before-event cancellation, deferred calls, virtual endpoints, repeat suppression, height routing, duplicate block/item events, and paste item-use routing. Tests were inspected, not run for this spec. Not verified: actual PC event order or iPad short-tap/long-press events and duration; BW1-BW4 and BW8 remain unverified. No engine-hook scenario simulates a client gesture.
 
@@ -166,7 +166,7 @@
 - Agreement: Proposed
 - Basis: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md) Decision 6, "Use stable `@minecraft/server-ui` ActionForms and offer only actions that apply"
 - Basis: [0203](../adr/0203-build-wand-paste-aiming.md) Decision 9, "The normal selection utility menu keeps Copy of the confirmed box, Undo, and Clear selection."
-- Basis: [0228](../adr/0228-open-build-utilities-with-a-plain-air-press.md) Consequences, "An idle session with no history and no confirmed box has an empty utility menu, so the press opens no form."
+- Basis: [0229](../adr/0229-open-build-utilities-with-a-plain-air-press.md) Consequences, "An idle session with no history and no confirmed box has an empty utility menu, so the press opens no form."
 - Implementation: `src/infrastructure/build/bedrock/buildMenus.ts`; `src/infrastructure/build/bedrock/menuChoices.ts`; `src/domain/build/flow/menu.ts`; `src/domain/build/spec.ts`; `src/infrastructure/build/identifiers.ts`; `packs/yasu_ride_bp/manifest.json`; `packs/yasu_ride_rp/manifest.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/infrastructure/build/buildMenus.test.ts` inspects applicable entries, stale responses, dismissal, nested locks, independent players and the optional slider. `tests/infrastructure/build/identifiers.test.ts` checks exact locale key sets and placeholder counts. Manifest versions were compared by reading both files; the server-ui dependency agrees with 0178 and 0198. Tests were inspected, not run for this spec. Not verified: actual form display, translation rendering, slider usability, RP cache refresh, historical version bump relative to the pre-feature pack, or BWM1-BWM10; the current main RP manifest has the same version as this snapshot.
 
