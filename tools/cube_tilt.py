@@ -83,6 +83,19 @@ def _rotation_of(m):
     return [_clean(-x), _clean(y), _clean(-z)]
 
 
+def panel_matrix(lean, yaw):
+    """The turn of a flat panel: lean about x first, then yaw about the vertical, so its rows stay level."""
+    return _mul(_ry(yaw), _rx(-lean))
+
+
+def rotation_of(matrix, inner_z=0):
+    """The build-frame `rotation` of `matrix` applied after a math-sense z turn of `inner_z` degrees.
+
+    The camper's build frame turns z in the math sense; mirror_x keeps that value for the game."""
+    rx, ry, rz = _rotation_of(_mul(matrix, _rz(inner_z)))
+    return [rx, ry, _clean(-rz)]
+
+
 def _clean(value):
     value = round(value, 10)
     return 0 if value == 0 else value

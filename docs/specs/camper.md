@@ -14,6 +14,8 @@
 - Source: [0157](../adr/0157-an-aluminium-rimmed-louvred-camper-vent-lid.md)
 - Source: [0190](../adr/0190-ribbed-camper-shell-atlas.md)
 - Source: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md)
+- Source: [0226](../adr/0226-lean-and-fold-the-camper-front-panels.md)
+- Source: [0227](../adr/0227-camper-door-trim-and-thin-panel-step.md)
 - Excluded: [0084](../adr/0084-camper-hitbox-spans-the-bumper.md): bumper hitbox coverage is a separate topic
 - Excluded: [0116](../adr/0116-a-bumper-stand-in-takes-the-camper-hits.md): stand-in entities and their lifecycle are a separate topic; only the lift from 0119 is specified here
 - Excluded: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md): hover discs, particles, and emissive overlay are covered by Camper hover display
@@ -140,11 +142,20 @@
 ### Squared front and folded grille
 
 - Applies to: Camper front model and geometry regression fixture.
-- Rule: The generated front has no 45-degree corner chamfers or corner glass. The windshield and grille span the front, with a black light surround extending to its edge. Upper and lower grilles use paired thin crease panels rolled by `GRILLE_ROLL`; the outer trim uses `EDGE_INSET`. Lower louvres start below the upper frame’s bottom edge. The front property test caps a dark run below that frame at 0.5 px. Every non-glow cube’s bone, origin, and size is compared with the golden fixture, including the squared front.
+- Rule: The generated front has no 45-degree corner chamfers or corner glass. The windshield and grille span the front, with a black light surround extending to its edge. The face from the bumper to the sill is two flat panels, each leaning by `FRONT_LEAN_SLOPE` and yawed by `FRONT_YAW`, so they meet on the windshield's centre line seen from above with the nose forward. Rows stay level and start on the nose; strips close the sill above them up to an upright windshield folded by the same angle (`WS_YAW`), so the sill's short edges are parallel. The cab-over's upper face is one flat panel down to a V, lowest and furthest forward on the centre line, with two lower panels from the V to the windshield header and a chevron on each side wall. The right wall behind the door carries a water fill, a placard, and an oval lamp in place of the former plain square. The outer trim uses `EDGE_INSET`. Every non-glow cube’s bone, origin, and size is compared with the golden fixture, including the squared front.
 - Agreement: Proposed
-- Basis: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md) Decision, "Generate the front with `tools/gen_camper.py` without 45-degree corners."
+- Basis: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md) Decision, "Generate the front with `tools/gen_camper.py` without 45-degree corners."; [0226](../adr/0226-lean-and-fold-the-camper-front-panels.md) Decision, "Build the front from the bumper top (y = 8) to the sill (y = 31.5) as two flat panels."
 - Implementation: `tools/gen_camper.py`; `tests/packs/fixtures/camper-cubes.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "closes the front grilles without a black wedge below the upper frame or body colour at the crease", "keeps every cube's bone, origin, and size equal to the snapshot in tests/packs/fixtures/camper-cubes.json". The snapshot checks bone, origin, and size, not UVs or rotations. Not verified: client shimmer or z-fighting; 0199’s owner check is pending.
+- Verification: `tests/packs/camper.test.ts` "leans both panels at one slope and folds them like the windshield, nose forward", "keeps every face cube on one plane per side, from the bumper to the sill", "drops the sill from the windshield base to the panels' top edge", "stands the windshield panes upright, parallel to the panels' top edge", "runs the cab-over's upper panel flat down to a V on the centre line", "replaces the plain square behind the door with the water fill, placard, and lamp", "paints the wall below the entry door like the skirt beside it", "starts every grille row exactly on the nose so the panels leave no gap", "mirrors the left panel onto the right one", "keeps every cube's bone, origin, and size equal to the snapshot in tests/packs/fixtures/camper-cubes.json". The snapshot checks bone, origin, and size, not UVs or rotations. Not verified: client shimmer or z-fighting; the owner checks in 0199 and 0226 are pending.
+
+### Door trim, fold-out step, and storage hatch
+
+- Applies to: Camper entry door surround, latch plate, window corners, step, and rear storage hatch model.
+- Rule: A fixed aluminium surround on the `body` bone has one latch-side strip, two hinge-side strips, a riveted threshold, a head rail, a riveted drip cap, three hinges, and a catch. The door carries a latch plate with a dark recess and rounded window corners. The step is thin black panels, open at the back: a tread with a front lip and grip lines, two slanted side plates, and a thin rod. Each rear corner has a storage hatch with a rounded aluminium rail, 22 louver rows in five columns, screws, a label, and three latch knobs.
+- Agreement: Proposed
+- Basis: [0227](../adr/0227-camper-door-trim-and-thin-panel-step.md) Decision, "Add a fixed surround to the `body` bone, so it stays when the door swings."
+- Implementation: `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
+- Verification: `tests/packs/camper.test.ts` "frames the entry door in riveted aluminium with three hinges and a latch plate", "builds the fold-out step from thin panels, open at the back", "builds the rear storage hatches with a rounded rail, five louver columns, and latch knobs". Not verified: the metal look on a client; 0227's owner check is pending.
 
 ### Automatic parking and pose snap
 
