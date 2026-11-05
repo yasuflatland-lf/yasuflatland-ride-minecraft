@@ -10,6 +10,7 @@ import {
   cancel,
   chooseHeighted,
   finishHeightStep,
+  opensUtilityMenu,
   setHeight,
   tapAir,
   tapBlock,
@@ -417,5 +418,24 @@ it("offers each heighted kind's fill styles followed by Cancel", () => {
         ]);
       },
     ),
+  );
+});
+
+it("opens the utility menu when sneaking or idle, never otherwise", () => {
+  const flows: BuildFlow[] = [
+    { kind: "idle" },
+    {
+      kind: "point1",
+      dimensionId: dim,
+      cell: { x: 0, y: 0, z: 0 },
+      material: stone,
+    },
+  ];
+  fc.assert(
+    fc.property(fc.constantFrom(...flows), fc.boolean(), (flow, sneaking) => {
+      expect(opensUtilityMenu(flow, sneaking)).toBe(
+        sneaking || flow.kind === "idle",
+      );
+    }),
   );
 });

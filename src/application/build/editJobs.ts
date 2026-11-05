@@ -77,6 +77,8 @@ export class EditJobs {
           job.undo ? "undoDone" : "editDone",
           job.applied.length,
         );
+        if (!job.undo && job.applied.length > 0 && session.takeUndoHint())
+          this.feedback.showUndoHint(job.playerId);
         this.drop(job);
         return used;
       }

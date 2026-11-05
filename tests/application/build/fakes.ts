@@ -38,6 +38,10 @@ export class FakeSessions implements BuildSessionRepository {
 }
 
 export class FakeFeedback implements BuildFeedback {
+  undoHints: PlayerId[] = [];
+  showUndoHint(playerId: PlayerId) {
+    this.undoHints.push(playerId);
+  }
   messages: { message: BuildMessage; count?: number; material?: BlockState }[] =
     [];
   sizes: { playerId: PlayerId; size: { x: number; y: number; z: number } }[] =

@@ -7,7 +7,7 @@ export const SELECTION_WAND_TYPE = buildId("selection_wand");
 export const LAID_BLOCK_TAG = "yasu_ride:laid";
 
 export const BUILD_MESSAGE: Readonly<
-  Record<BuildMessage | "heightSize" | "pasteHint", string>
+  Record<BuildMessage | "heightSize" | "pasteHint" | "undoHint", string>
 > = {
   cutting: "yasu_build.message.cutting",
   building: "yasu_build.message.building",
@@ -26,6 +26,7 @@ export const BUILD_MESSAGE: Readonly<
   copied: "yasu_build.message.copied",
   editDone: "yasu_build.message.edit_done",
   undoDone: "yasu_build.message.undo_done",
+  undoHint: "yasu_build.message.undo_hint",
 };
 
 export const TEST_TAP_EVENT = buildId("test_tap");

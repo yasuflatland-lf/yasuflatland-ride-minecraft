@@ -36,6 +36,12 @@ function viewerIn(
 }
 
 export class BedrockFeedback implements BuildFeedback {
+  showUndoHint(playerId: PlayerId): void {
+    const player = playerById(playerId);
+    if (!player?.isValid) return;
+    player.sendMessage({ translate: BUILD_MESSAGE.undoHint });
+  }
+
   showMessage(
     playerId: PlayerId,
     message: BuildMessage,
