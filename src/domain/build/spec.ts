@@ -14,4 +14,5 @@ export const BUILD_SPEC = Object.freeze({
   modeLeaveTicks: 6, // ticks to leave build mode (ADR 0178 Decision 3)
   outlineInterval: 10, // ticks between outline redraws
   outlineMaxPoints: 512, // particles per outline
+  denseOutlinePerBlock: 4, // particles per block on the horizontal edges of a height-step outline
 });
