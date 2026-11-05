@@ -119,6 +119,17 @@ describe("build mode", () => {
 describe("BuildSession", () => {
   const session = () => new BuildSession(asPlayerId("p1"));
 
+  it("takes the undo hint only once per session", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 1, max: 100 }), (calls) => {
+        const s = session();
+        expect(s.takeUndoHint()).toBe(true);
+        for (let i = 0; i < calls; i++) expect(s.takeUndoHint()).toBe(false);
+        expect(session().takeUndoHint()).toBe(true);
+      }),
+    );
+  });
+
   it("refuses busy on a second beginEdit without finishEdit", () => {
     const s = session();
     expect(s.beginEdit()).toBeUndefined();

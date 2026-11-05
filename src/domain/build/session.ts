@@ -36,8 +36,15 @@ export class BuildSession {
   private currentMode: BuildMode = MODE_OFF;
   private history: UndoHistory = EMPTY_HISTORY;
   private editing = false;
+  private undoHintTaken = false;
 
   constructor(readonly playerId: PlayerId) {}
+
+  takeUndoHint(): boolean {
+    if (this.undoHintTaken) return false;
+    this.undoHintTaken = true;
+    return true;
+  }
 
   get flow(): BuildFlow {
     return this.currentFlow;

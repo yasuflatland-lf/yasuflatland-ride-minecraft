@@ -68,6 +68,7 @@ export function registerTestTap(
           count = volume;
           feedback.showMessage(id, name, volume);
         },
+        showUndoHint: (id) => feedback.showUndoHint(id),
         showSize: (id, size) => feedback.showSize(id, size),
         showPasteHint: (id, size, count) =>
           feedback.showPasteHint(id, size, count),
