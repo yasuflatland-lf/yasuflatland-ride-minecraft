@@ -43,7 +43,12 @@ function setup(from: { x: number; y: number; z: number }, skipAir: boolean) {
     repo,
     {
       copy: new CopyBox(repo, world, feedback),
-      cut: new CutBox(repo, feedback, new EditJobs(repo, world, feedback)),
+      cut: new CutBox(
+        repo,
+        world,
+        feedback,
+        new EditJobs(repo, world, feedback),
+      ),
     },
     feedback,
   );

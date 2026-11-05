@@ -1062,15 +1062,16 @@ export function buildCutShapes(a: Arena): Promise<Outcome> {
       check(
         cut.offered === true &&
           cut.message === "editDone" &&
-          cut.flow.kind === "idle",
+          cut.flow.kind === "pasteAim",
         "Cut did not finish",
       );
       check(
         f.count(cells, "minecraft:air") === cells.length,
         "Cut left selected cells",
       );
-      await f.menu("utility", "undo");
+      await f.menu("paste", "undo");
       check(unchanged(f, cells, before), "Cut undo lost blocks");
+      await f.menu("paste", "endPaste");
     }
   });
 }
@@ -1106,7 +1107,8 @@ export function buildCutHeight(a: Arena): Promise<Outcome> {
       unchanged(f, outside, before),
       "Cut changed cells outside height box",
     );
-    await f.menu("utility", "undo");
+    await f.menu("paste", "undo");
+    await f.menu("paste", "endPaste");
   });
 }
 
@@ -1125,10 +1127,11 @@ export function buildCutUndo(a: Arena): Promise<Outcome> {
       "Mixed Cut left blocks",
     );
     check(
-      (await f.menu("utility", "undo")).message === "undoDone",
+      (await f.menu("paste", "undo")).message === "undoDone",
       "Cut Undo failed",
     );
     check(unchanged(f, cells, before), "Cut Undo lost exact block states");
+    await f.menu("paste", "endPaste");
   });
 }
 
@@ -1163,7 +1166,7 @@ export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
         f.count(cells, "minecraft:air") === 26,
         "Cut left surrounding blocks",
       );
-      const undo = await f.menu("utility", "undo");
+      const undo = await f.menu("paste", "undo");
       check(
         undo.message === "undoDone" && undo.count === 26,
         "Undo restored more than changed cells",
@@ -1178,29 +1181,42 @@ export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
   });
 }
 
-export function buildCutKeepsClipboard(a: Arena): Promise<Outcome> {
+export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
-    await copyLine(f);
-    const expected = JSON.stringify((await f.state()).clipboard);
-    check(
-      expected?.includes("oak_log") === true,
-      "Copy did not record the source blocks",
-    );
-    await f.menu("paste", "newCopy");
-    await checkState(f, "idle", true);
+    const cells = f.region(3, 1, 1);
+    const types = [
+      "minecraft:gold_block",
+      "minecraft:oak_log",
+      "minecraft:stone",
+    ];
+    cells.forEach((cell, i) => {
+      f.block(cell).setType(types[i] ?? "minecraft:stone");
+    });
+    const before = snapshot(f, cells);
     await f.select(f.cell(2));
-    const cut = f.region(3, 1, 1);
-    for (const c of cut) f.block(c).setType("minecraft:gold_block");
     check(
       (await f.menu("shape", "cut")).message === "editDone",
       "Cut with clipboard failed",
     );
-    const after = await checkState(f, "idle", true);
-    check(f.count(cut, "minecraft:air") === 3, "Cut kept source blocks");
+    const after = await checkState(f, "pasteAim", true);
+    check(f.count(cells, "minecraft:air") === 3, "Cut kept source blocks");
     const held = JSON.stringify(after.clipboard);
-    check(!held.includes("gold_block"), "Cut replaced the clipboard");
-    check(held === expected, "Cut changed clipboard contents");
-    await f.menu("utility", "undo");
+    check(
+      held.includes("gold_block") &&
+        held.includes("oak_log") &&
+        held.includes("stone"),
+      "Cut did not store the cut blocks",
+    );
+    const target = pasteTarget(f, f.cell(12, 0, 12), 3, 1, 1);
+    await pasteInto(f, target);
+    check(
+      unchanged(f, target.cells, before),
+      "Pasting the cut did not restore the blocks",
+    );
+    await f.menu("paste", "undo");
+    await f.menu("paste", "undo");
+    check(unchanged(f, cells, before), "Undo did not restore the cut cells");
+    await f.menu("paste", "endPaste");
   });
 }
 
@@ -1220,11 +1236,12 @@ export function buildUndoHintOnce(a: Arena): Promise<Outcome> {
         result.undoHints === expectedHints,
         "Undo hint was missing or repeated",
       );
-      const undo = await f.menu("utility", "undo");
+      const undo = await f.menu("paste", "undo");
       check(
         undo.message === "undoDone" && undo.undoHints === 0,
         "Undo emitted first-edit hint",
       );
+      await f.menu("paste", "endPaste");
     }
   });
 }

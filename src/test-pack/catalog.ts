@@ -1124,9 +1124,9 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
-    name: "build_cut_keeps_clipboard",
+    name: "build_cut_sets_clipboard",
     file: "buildFlow",
-    ticks: 100,
+    ticks: 160,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,

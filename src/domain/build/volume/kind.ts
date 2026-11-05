@@ -8,7 +8,7 @@ export type HeightStepKind = HeightedKind | BoxStepKind;
 
 const BOX_STEP_LIMITS: Readonly<Record<BoxStepKind, number>> = {
   copy: BUILD_SPEC.maxCopyVolume,
-  cut: BUILD_SPEC.maxVolume,
+  cut: BUILD_SPEC.maxCopyVolume,
 };
 
 export function isBoxStepKind(kind: HeightStepKind): kind is BoxStepKind {

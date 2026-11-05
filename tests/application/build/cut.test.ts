@@ -35,7 +35,7 @@ function setup() {
   const world = new FakeWorld();
   const jobs = new EditJobs(repo, world, feedback);
   const session = repo.getOrCreate(playerId);
-  const cut = new CutBox(repo, feedback, jobs);
+  const cut = new CutBox(repo, world, feedback, jobs);
   const actions = { copy: new CopyBox(repo, world, feedback), cut };
   const drain = () => {
     while (session.isEditing) jobs.step();
@@ -53,7 +53,7 @@ function setup() {
   };
 }
 
-it("cuts every selected cell including fluids and Undo restores exact before states", () => {
+it("copies every selected cell to the clipboard, empties the box including fluids, and Undo restores the before states", () => {
   fc.assert(
     fc.property(
       fc.integer({ min: 1, max: 6 }),
@@ -75,11 +75,14 @@ it("cuts every selected cell including fluids and Undo restores exact before sta
         const before = cells.map((cell) => e.world.stateAt(overworld, cell));
         const outside = { ...box.max, x: box.max.x + 1 };
         e.world.put(outside, stone);
-        const clipboard = clipboardOf(boxOf(origin, origin), () => stone);
-        e.session.setClipboard(clipboard);
+        const expected = clipboardOf(box, (cell) =>
+          e.world.stateAt(overworld, cell),
+        );
+        e.session.setClipboard(clipboardOf(boxOf(origin, origin), () => stone));
         expect(e.cut.execute(playerId, overworld, box)).toBe(true);
         expect(e.feedback.messages.at(-1)?.message).toBe("cutting");
-        expect(e.session.flow).toEqual({ kind: "idle" });
+        expect(e.session.flow.kind).toBe("pasteAim");
+        expect(e.session.clipboard).toEqual(expected);
         expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
         e.drain();
         expect(cells.map((cell) => e.world.stateAt(overworld, cell))).toEqual(
@@ -90,22 +93,22 @@ it("cuts every selected cell including fluids and Undo restores exact before sta
           before.filter((state) => state !== AIR).length,
         );
         expect(e.session.hasHistory).toBe(true);
-        expect(e.session.clipboard).toBe(clipboard);
+        expect(e.session.clipboard).toEqual(expected);
         e.undo.execute({ playerId });
         e.drain();
         expect(cells.map((cell) => e.world.stateAt(overworld, cell))).toEqual(
           before,
         );
         expect(e.session.hasHistory).toBe(false);
-        expect(e.session.clipboard).toBe(clipboard);
-        expect(e.session.flow).toEqual({ kind: "idle" });
+        expect(e.session.clipboard).toEqual(expected);
+        expect(e.session.flow.kind).toBe("pasteAim");
       },
     ),
   );
 });
 
 it.each(["direct", "height"] as const)(
-  "refuses oversized and busy %s cuts without changing selection or clipboard",
+  "refuses oversized and busy %s cuts without changing selection or the old clipboard",
   (path) => {
     for (const refusal of ["tooLarge", "busy"] as const) {
       const e = setup();
@@ -121,11 +124,11 @@ it.each(["direct", "height"] as const)(
         path === "height"
           ? setHeight(
               chooseHeighted(endpoint, "cut"),
-              refusal === "tooLarge" ? BUILD_SPEC.maxVolume : 1,
+              refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
             )
           : tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), {
               ...origin,
-              x: refusal === "tooLarge" ? BUILD_SPEC.maxVolume : 1,
+              x: refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
             });
       e.session.setFlow(flow);
       const confirmed = e.session.confirmedBox;
@@ -218,7 +221,7 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
           });
           expect(e.session.isEditing).toBe(false);
         } else {
-          expect(e.session.flow).toEqual({ kind: "idle" });
+          expect(e.session.flow.kind).toBe("pasteAim");
           expect(e.session.isEditing).toBe(true);
           e.drain();
           expect(e.world.stateAt(overworld, origin)).toEqual(AIR);
@@ -227,16 +230,37 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
             box,
           });
         }
-        expect(e.session.clipboard).toBeUndefined();
+        if (!(shape.kind === "rect" && shape.flat === "y"))
+          expect(e.session.clipboard?.cells.length).toBeGreaterThan(0);
       },
     ),
   );
 });
 
-it("accepts the full edit limit above the copy limit and leaves no history for an empty cut", () => {
+it("keeps protected cells but still stores them in the clipboard", () => {
+  const e = setup();
+  const box = boxOf(origin, { ...origin, x: 1 });
+  e.world.put(origin, stone);
+  e.world.put({ ...origin, x: 1 }, stone);
+  e.world.protectedCells.add(cellKey({ ...origin, x: 1 }));
+  e.cut.execute(playerId, overworld, box);
+  e.drain();
+  expect(e.world.stateAt(overworld, { ...origin, x: 1 })).toEqual(stone);
+  expect(e.session.clipboard?.cells).toHaveLength(2);
+});
+
+it("refuses a box above the copy limit even though the edit limit is larger", () => {
   const e = setup();
   expect(BUILD_SPEC.maxVolume).toBeGreaterThan(BUILD_SPEC.maxCopyVolume);
-  const box = boxOf(origin, { ...origin, x: BUILD_SPEC.maxVolume - 1 });
+  const box = boxOf(origin, { ...origin, x: BUILD_SPEC.maxCopyVolume });
+  expect(e.cut.execute(playerId, overworld, box)).toBe(false);
+  expect(e.feedback.messages.at(-1)?.message).toBe("tooLarge");
+  expect(e.session.clipboard).toBeUndefined();
+});
+
+it("leaves no history for a cut of only air", () => {
+  const e = setup();
+  const box = boxOf(origin, { ...origin, x: 9 });
   expect(e.cut.execute(playerId, overworld, box)).toBe(true);
   e.drain();
   expect(e.world.writes).toBe(0);

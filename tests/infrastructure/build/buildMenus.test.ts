@@ -118,6 +118,7 @@ function setup(fallback?: boolean) {
             copy: new CopyBox(repo, new FakeWorld(), new FakeFeedback()),
             cut: new CutBox(
               repo,
+              new FakeWorld(),
               new FakeFeedback(),
               new EditJobs(repo, new FakeWorld(), new FakeFeedback()),
             ),
