@@ -398,6 +398,51 @@ it("opens the utility menu once for a held sneak air press without clearing the 
   expect(session.flow.kind).toBe("point1");
 });
 
+it("opens the utility menu on a plain air press when idle", () => {
+  const { player, use, menus, execute, session } = setupAir();
+  session.setFlow({ kind: "idle" });
+  use();
+  expect(menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(player);
+  expect(execute).not.toHaveBeenCalled();
+  expect(session.flow.kind).toBe("idle");
+});
+
+it("still fixes the virtual end point on a plain air press during point1 and endpoint", () => {
+  const { use, menus, execute, session } = setupAir();
+  use();
+  expect(session.flow.kind).toBe("endpoint");
+  engine.tick = 10;
+  use();
+  expect(execute).toHaveBeenCalledTimes(2);
+  expect(menus.showUtilityMenu).not.toHaveBeenCalled();
+});
+
+it("opens the utility menu on a sneak air press in point1 and endpoint", () => {
+  const { player, use, menus, session } = setupAir();
+  player.isSneaking = true;
+  use();
+  expect(session.flow.kind).toBe("point1");
+  expect(menus.showUtilityMenu).toHaveBeenCalledTimes(1);
+  session.setFlow({
+    kind: "endpoint",
+    dimensionId: asDimensionId("minecraft:overworld"),
+    from: { x: 10, y: 0, z: 0 },
+    to: { x: 12, y: 0, z: 0 },
+    material: blockStateOf("minecraft:stone"),
+  });
+  engine.tick = 10;
+  use();
+  expect(menus.showUtilityMenu).toHaveBeenCalledTimes(2);
+});
+
+it("does nothing on an air press without a session", () => {
+  const { repo, id, use, menus } = setupAir();
+  repo.remove(id);
+  use();
+  expect(menus.showUtilityMenu).not.toHaveBeenCalled();
+  expect(repo.get(id)).toBeUndefined();
+});
+
 it("ignores itemUse for an aimed block, even before the deferred interact callback", () => {
   const { aim, use, execute, menus, player } = setupAir();
   aim.aim = () => ({

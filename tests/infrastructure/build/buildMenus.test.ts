@@ -295,6 +295,15 @@ it.each(["shape", "contents"] as const)(
   },
 );
 
+it("opens no form for an idle session without history or a confirmed box", async () => {
+  const { session, menus, player } = setup();
+  session.setFlow({ kind: "idle" });
+  expect(utilityMenu(session)).toEqual([]);
+  ui.forms.length = 0;
+  await menus.showUtilityMenu(player);
+  expect(ui.forms).toHaveLength(0);
+});
+
 it.each(["copy", "undo", "clear"] as const)("routes utility %s", async (id) => {
   const { session, menus, player, cases } = setup();
   session.confirmBox(overworld, boxOf(from, to));
