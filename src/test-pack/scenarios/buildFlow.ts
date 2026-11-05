@@ -1182,23 +1182,24 @@ export function buildCutKeepsClipboard(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     await copyLine(f);
     const expected = JSON.stringify((await f.state()).clipboard);
-    check(expected !== undefined, "Copy did not record clipboard");
+    check(
+      expected?.includes("oak_log") === true,
+      "Copy did not record the source blocks",
+    );
     await f.menu("paste", "newCopy");
     await checkState(f, "idle", true);
-    await f.select(f.cell(1));
+    await f.select(f.cell(2));
+    const cut = f.region(3, 1, 1);
+    for (const c of cut) f.block(c).setType("minecraft:gold_block");
     check(
       (await f.menu("shape", "cut")).message === "editDone",
       "Cut with clipboard failed",
     );
     const after = await checkState(f, "idle", true);
-    check(
-      f.count(f.region(2, 1, 1), "minecraft:air") === 2,
-      "Cut kept source blocks",
-    );
-    check(
-      JSON.stringify(after.clipboard) === expected,
-      "Cut changed clipboard contents",
-    );
+    check(f.count(cut, "minecraft:air") === 3, "Cut kept source blocks");
+    const held = JSON.stringify(after.clipboard);
+    check(!held.includes("gold_block"), "Cut replaced the clipboard");
+    check(held === expected, "Cut changed clipboard contents");
     await f.menu("utility", "undo");
   });
 }

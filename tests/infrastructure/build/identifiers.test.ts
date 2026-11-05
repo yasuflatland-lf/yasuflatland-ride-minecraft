@@ -61,6 +61,7 @@ it("defines every feedback message in both locales", () => {
       "tooLarge",
       "copied",
       "editDone",
+      "editDoneCount",
       "undoDone",
     ] as const)
       expect(entries.get(BUILD_MESSAGE[message])).toContain("%s");

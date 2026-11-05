@@ -17,6 +17,7 @@ export type BuildMessage =
   | "pasteBlocked"
   | "copied"
   | "editDone"
+  | "editDoneCount"
   | "undoDone";
 
 export interface BuildFeedback {

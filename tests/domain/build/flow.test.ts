@@ -5,6 +5,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import {
+  airPressOffersUndo,
   type BuildFlow,
   backToAiming,
   cancel,
@@ -435,6 +436,45 @@ it("opens the utility menu when sneaking or idle, never otherwise", () => {
     fc.property(fc.constantFrom(...flows), fc.boolean(), (flow, sneaking) => {
       expect(opensUtilityMenu(flow, sneaking)).toBe(
         sneaking || flow.kind === "idle",
+      );
+    }),
+  );
+});
+
+it("offers Undo on a plain air press only when idle or aiming a paste", () => {
+  const cell = { x: 0, y: 0, z: 0 };
+  const flows: BuildFlow[] = [
+    { kind: "idle" },
+    { kind: "point1", dimensionId: dim, cell, material: stone },
+    {
+      kind: "endpoint",
+      dimensionId: dim,
+      from: cell,
+      to: cell,
+      material: stone,
+    },
+    {
+      kind: "heightStep",
+      dimensionId: dim,
+      base: boxOf(cell, cell),
+      from: cell,
+      heightedKind: "cylinder",
+      previous: 1,
+      heightLocked: false,
+      material: stone,
+    },
+    beginPasteAim(false),
+    beginPasteAim(true),
+  ];
+  fc.assert(
+    fc.property(fc.constantFrom(...flows), (flow) => {
+      expect(airPressOffersUndo(flow)).toBe(
+        flow.kind === "idle" || flow.kind === "pasteAim",
+      );
+      if (flow.kind === "idle" || flow.kind === "pasteAim")
+        expect(airPressOffersUndo(flow)).toBe(true);
+      expect(airPressOffersUndo(flow)).toBe(
+        opensUtilityMenu(flow, false) || flow.kind === "pasteAim",
       );
     }),
   );

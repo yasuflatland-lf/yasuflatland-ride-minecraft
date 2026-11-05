@@ -122,6 +122,7 @@ yasu_build.message.paste_blocked=The paste overlaps protected blocks.
 yasu_build.message.paste_hint=Pasting %sx%sx%s (%s blocks). Long-press a block to paste; long-press the air for the menu.
 yasu_build.message.copied=Copied %s blocks. Aim at a block and long-press to paste.
 yasu_build.message.edit_done=Changed %s blocks. Long-press the air to undo.
+yasu_build.message.edit_done_count=Changed %s blocks.
 yasu_build.message.undo_hint=Made a mistake? Long-press the air with the wand and choose Undo.
 yasu_build.message.undo_done=Restored %s blocks.
 yasu_build.form.title=Build utilities

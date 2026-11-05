@@ -3,7 +3,7 @@
 - Status: Proposed
 - Acceptance condition: the iPad gesture check of the Build Wand series passes (#1038)
 - Date: 2026-11-05
-- Related: [0198](0198-one-build-wand-without-a-bulldozer.md): Decision 3 and the utility menu
+- Extends: [0198](0198-one-build-wand-without-a-bulldozer.md): Decision 10, the utility menu gesture
 - Related: [0203](0203-build-wand-paste-aiming.md): Decision 4, the paste menu opens without sneaking
 
 ## Context
@@ -13,7 +13,7 @@ A player on iPad made a mistake and could not work out how to undo. Outside past
 ## Decision
 
 1. An air press in `idle` opens the utility menu without sneaking. Sneaking plus an air press still opens it in every flow that reaches that check. During `point1` and `endpoint`, a plain air press keeps fixing the virtual end point. `opensUtilityMenu(flow, sneaking)` in the domain returns `sneaking || flow.kind === "idle"`.
-2. The undo hint names this gesture in a short action bar message, plus one chat line the first time per session. The hint is implemented separately from this decision's gesture change.
+2. The undo hint names this gesture in a short action bar message, plus one chat line the first time per session. The hint is implemented separately from this decision's gesture change. It names the gesture only when it is true at the moment the edit finishes: `airPressOffersUndo(flow)` (idle, or paste aiming) holds for the session flow. Otherwise the action bar shows the count only, and the chat line and its once-per-session flag are left for a later edit.
 
 ## Consequences
 
