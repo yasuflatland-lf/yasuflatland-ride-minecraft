@@ -8,6 +8,7 @@
 - Source: [0201](../adr/0201-build-wand-cylinder-and-cube.md)
 - Source: [0202](../adr/0202-build-wand-copy-and-continuous-paste.md)
 - Source: [0203](../adr/0203-build-wand-paste-aiming.md)
+- Source: [0228](../adr/0228-dense-horizontal-edges-in-the-height-step-outline.md)
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): defines the documentation format and checks, not build behavior
 - Excluded: [0180](../adr/0180-a-wide-bulldozer-blade.md): extends the Building Tools group with Wide Blade; switch behavior belongs to the bulldozer spec
 - Excluded: [0181](../adr/0181-a-road-paver-on-the-bulldozer.md): extends the Building Tools group with Road Paver; paving and switch behavior belong to the bulldozer spec
@@ -106,6 +107,15 @@
 - Basis: [0202](../adr/0202-build-wand-copy-and-continuous-paste.md) Decision 10, "The preview, height aim, and slider use the volume; the edit plan and confirm use the placement."
 - Implementation: `src/domain/build/volume/`; `src/domain/build/flow/flow.ts`; `src/domain/build/flow/menu.ts`; `src/application/build/chooseHeighted.ts`; `src/application/build/confirmHeighted.ts`; `src/application/build/showPreview.ts`
 - Verification: Property tests in `tests/domain/build/cylinder.test.ts` check symmetry, count, closed walls by flood reachability, and caps; `tests/domain/build/cube.test.ts` checks shell nesting and equivalence to box faces/walls. `tests/domain/build/volumeGeometry.test.ts` and `tests/domain/build/volumeKind.test.ts` inspect the registry. Scenarios `build_cylinder_rect`, `build_cylinder_box`, `build_cube_rect`, and `build_solid_cancel_undo` exist in `src/test-pack/scenarios/buildFlow.ts` and `src/test-pack/catalog.ts`. Tests were inspected, not run for this spec. Not verified: rendered roundness, solid-height aiming and size readability on devices.
+
+### Height-step outline
+
+- Applies to: The particle outline drawn while aiming the height of a roof, Cube, Cylinder, or Copy.
+- Rule: The outline samples its horizontal top and bottom curves (Cube and Copy edges, both Cylinder ellipses, roof eaves and ridge) `BUILD_SPEC.denseOutlinePerBlock` times per block and every other curve (vertical edges, Cylinder side lines, roof hips) once per block. When the dense curves alone exceed `BUILD_SPEC.outlineMaxPoints` they share it in proportion to their length and the other curves get none; otherwise the other curves share what is left. The start-point and end-point outline is unchanged.
+- Agreement: Proposed
+- Basis: [0228](../adr/0228-dense-horizontal-edges-in-the-height-step-outline.md) Decision 1, "Sample the horizontal curves at the top and bottom of the shape four times per block, so the top reads as a continuous ring."
+- Implementation: `src/domain/build/wireframe.ts`; `src/domain/build/volume/cube.ts`; `src/domain/build/volume/cylinder.ts`; `src/domain/build/roof/geometry.ts`
+- Verification: Property and example tests in `tests/domain/build/cube.test.ts` and `tests/domain/build/cylinder.test.ts` check the budget, edge placement, density, and that vertical samples are dropped first. Not verified: how the height reads on a client, or particle load on mobile.
 
 ### Copy
 
