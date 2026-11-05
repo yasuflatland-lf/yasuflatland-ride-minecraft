@@ -38,25 +38,32 @@ interface LastMessage {
 export function recordMessages(feedback: BuildFeedback): {
   feedback: BuildFeedback;
   last(playerId: PlayerId): LastMessage | undefined;
+  hints(playerId: PlayerId): number;
   forget(playerId: PlayerId): void;
 } {
   const latest = new Map<PlayerId, LastMessage>();
+  const hints = new Map<PlayerId, number>();
   return {
     feedback: {
       showMessage: (id, message, count) => {
         latest.set(id, { message, count });
         feedback.showMessage(id, message, count);
       },
-      showUndoHint: (id) => feedback.showUndoHint(id),
+      showUndoHint: (id) => {
+        hints.set(id, (hints.get(id) ?? 0) + 1);
+        feedback.showUndoHint(id);
+      },
       showSize: (id, size) => feedback.showSize(id, size),
       showPasteHint: (id, size, count) =>
         feedback.showPasteHint(id, size, count),
       drawPreview: (id, dimension, set) =>
         feedback.drawPreview(id, dimension, set),
     },
+    hints: (playerId) => hints.get(playerId) ?? 0,
     last: (playerId) => latest.get(playerId),
     forget: (playerId) => {
       latest.delete(playerId);
+      hints.delete(playerId);
     },
   };
 }
@@ -68,7 +75,10 @@ export function registerTestEdit(
   paste: PasteAt,
   undo: UndoEdit,
   describe: DescribeBuild,
-  messages: Pick<ReturnType<typeof recordMessages>, "last" | "forget">,
+  messages: Pick<
+    ReturnType<typeof recordMessages>,
+    "last" | "hints" | "forget"
+  >,
   repo: BuildSessionRepository,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
@@ -85,17 +95,22 @@ export function registerTestEdit(
       let offered: boolean | undefined;
       messages.forget(playerId);
       try {
-        if (command === "state" && args.length === 0) {
+        // A fresh session makes the first-edit check independent of scenario order.
+        if (command === "reset" && args.length === 0) {
+          if (describe.editStatus(playerId).isEditing) return;
+          repo.remove(playerId);
+          repo.getOrCreate(playerId);
+        } else if (command === "state" && args.length === 0) {
           system.sendScriptEvent(
             TEST_RESULT_EVENT,
             JSON.stringify({
               player: player.name,
               ...describe.execute(playerId),
+              clipboard: repo.get(playerId)?.clipboard,
             }),
           );
           return;
-        }
-        if (
+        } else if (
           command === "menu" &&
           (args[0] === "shape" ||
             args[0] === "contents" ||
@@ -188,6 +203,7 @@ export function registerTestEdit(
             timedOut: describe.editStatus(playerId).isEditing,
             message: last?.message,
             count: last?.count,
+            undoHints: messages.hints(playerId),
             ticks: system.currentTick - started,
           }),
         );

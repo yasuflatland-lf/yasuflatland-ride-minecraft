@@ -21,6 +21,7 @@ import type { Outcome } from "../outcome";
 interface BuildState {
   flow: string;
   clipboardHeld: boolean;
+  clipboard?: unknown;
   pasteMenu: string[];
 }
 
@@ -29,6 +30,7 @@ interface Reply {
   message?: string;
   count?: number;
   offered?: boolean;
+  undoHints?: number;
   timedOut?: boolean;
   flow: { kind: string; previous?: number; skipAir?: boolean };
   mode?: boolean;
@@ -1040,6 +1042,187 @@ export function buildPasteSkipAir(a: Arena): Promise<Outcome> {
         snapshot(f, target)[1]?.typeId ===
           (skipAir ? "minecraft:gold_block" : "minecraft:air"),
         "paste ignored skip-air setting",
+      );
+    }
+  });
+}
+
+export function buildCutShapes(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const [sx, sy, sz] of [
+      [5, 1, 1],
+      [3, 3, 1],
+      [3, 3, 3],
+    ] as const) {
+      const cells = f.region(sx, sy, sz);
+      for (const cell of cells) f.block(cell).setType("minecraft:stone");
+      await f.select(f.cell(sx - 1, sy - 1, sz - 1));
+      const before = snapshot(f, cells);
+      const cut = await f.menu("shape", "cut");
+      check(
+        cut.offered === true &&
+          cut.message === "editDone" &&
+          cut.flow.kind === "idle",
+        "Cut did not finish",
+      );
+      check(
+        f.count(cells, "minecraft:air") === cells.length,
+        "Cut left selected cells",
+      );
+      await f.menu("utility", "undo");
+      check(unchanged(f, cells, before), "Cut undo lost blocks");
+    }
+  });
+}
+
+export function buildCutHeight(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const surround = f.region(5, 5, 5, f.cell(-1, -1, -1));
+    for (const cell of surround) f.block(cell).setType("minecraft:stone");
+    const cells = f.region(3, 3, 3);
+    const outside = surround.filter(
+      (c) => !cells.some((s) => s.x === c.x && s.y === c.y && s.z === c.z),
+    );
+    const before = snapshot(f, outside);
+    await f.select(f.cell(2, 0, 2));
+    check(
+      (await f.menu("shape", "cut")).flow.kind === "heightStep",
+      "Cut height step missing",
+    );
+    check(
+      (await f.edit("height 3")).flow.previous === 3,
+      "Cut height not applied",
+    );
+    check(f.count(cells) === cells.length, "Cut wrote before confirmation");
+    check(
+      (await f.edit("confirmbox")).message === "editDone",
+      "Height Cut did not finish",
+    );
+    check(
+      f.count(cells, "minecraft:air") === cells.length,
+      "Cut height layers wrong",
+    );
+    check(
+      unchanged(f, outside, before),
+      "Cut changed cells outside height box",
+    );
+    await f.menu("utility", "undo");
+  });
+}
+
+export function buildCutUndo(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 3, 3);
+    mixedSource(f, cells);
+    await f.select(f.cell(2, 2, 2));
+    const before = snapshot(f, cells);
+    check(
+      (await f.menu("shape", "cut")).message === "editDone",
+      "Mixed Cut failed",
+    );
+    check(
+      f.count(cells, "minecraft:air") === cells.length,
+      "Mixed Cut left blocks",
+    );
+    check(
+      (await f.menu("utility", "undo")).message === "undoDone",
+      "Cut Undo failed",
+    );
+    check(unchanged(f, cells, before), "Cut Undo lost exact block states");
+  });
+}
+
+export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 3, 3);
+    for (const cell of cells) f.block(cell).setType("minecraft:stone");
+    await f.select(f.cell(2, 2, 2));
+    const chest = f.block(f.cell(1, 1, 1));
+    chest.setType("minecraft:chest");
+    const inventory = chest.getComponent("minecraft:inventory")?.container;
+    check(inventory !== undefined, "Chest inventory missing");
+    inventory.setItem(0, new ItemStack("minecraft:diamond", 7));
+    const before = snapshot(f, cells);
+    const contentsIntact = () => {
+      const item = chest
+        .getComponent("minecraft:inventory")
+        ?.container?.getItem(0);
+      return item?.typeId === "minecraft:diamond" && item.amount === 7;
+    };
+    try {
+      const cut = await f.menu("shape", "cut");
+      check(
+        cut.message === "editDone" && cut.count === 26,
+        "Cut changed-cell count wrong",
+      );
+      check(
+        chest.typeId === "minecraft:chest" && contentsIntact(),
+        "Cut changed chest or contents",
+      );
+      check(
+        f.count(cells, "minecraft:air") === 26,
+        "Cut left surrounding blocks",
+      );
+      const undo = await f.menu("utility", "undo");
+      check(
+        undo.message === "undoDone" && undo.count === 26,
+        "Undo restored more than changed cells",
+      );
+      check(
+        unchanged(f, cells, before) && contentsIntact(),
+        "Undo changed chest contents or lost states",
+      );
+    } finally {
+      chest.getComponent("minecraft:inventory")?.container?.clearAll();
+    }
+  });
+}
+
+export function buildCutKeepsClipboard(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    const expected = JSON.stringify((await f.state()).clipboard);
+    check(expected !== undefined, "Copy did not record clipboard");
+    await f.menu("paste", "newCopy");
+    await checkState(f, "idle", true);
+    await f.select(f.cell(1));
+    check(
+      (await f.menu("shape", "cut")).message === "editDone",
+      "Cut with clipboard failed",
+    );
+    const after = await checkState(f, "idle", true);
+    check(
+      f.count(f.region(2, 1, 1), "minecraft:air") === 2,
+      "Cut kept source blocks",
+    );
+    check(
+      JSON.stringify(after.clipboard) === expected,
+      "Cut changed clipboard contents",
+    );
+    await f.menu("utility", "undo");
+  });
+}
+
+export function buildUndoHintOnce(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await f.edit("reset");
+    const cells = f.region(2, 1, 1);
+    for (const expectedHints of [1, 0]) {
+      for (const cell of cells) f.block(cell).setType("minecraft:stone");
+      await f.select(f.cell(1));
+      const result = await f.menu("shape", "cut");
+      check(
+        result.message === "editDone" && result.count === 2,
+        "Edit feedback missing",
+      );
+      check(
+        result.undoHints === expectedHints,
+        "Undo hint was missing or repeated",
+      );
+      const undo = await f.menu("utility", "undo");
+      check(
+        undo.message === "undoDone" && undo.undoHints === 0,
+        "Undo emitted first-edit hint",
       );
     }
   });
