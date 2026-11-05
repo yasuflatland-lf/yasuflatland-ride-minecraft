@@ -16,7 +16,7 @@ TARGETS = {
     for name, ratio in {
         "wheelbase": 3.007,
         "front_overhang": 0.974,
-        "rear_overhang": 0.826,
+        "rear_overhang": 0.722,
         "ground_clearance": 0.679,
         "overall_height": 2.064,
         "belt_height": 1.495,
@@ -24,8 +24,8 @@ TARGETS = {
         "hood_height": 1.461,
         "hood_length": 1.748,
         "front_bumper_length": 0.287,
-        "rear_bumper_length": 0.340,
-        "bumper_height": 0.357,
+        "rear_bumper_length": 0.316,
+        "bumper_height": 0.241,
     }.items()
 }
 TARGETS["windshield_rake"] = {"degrees": 35.78, "tolerance": 3}

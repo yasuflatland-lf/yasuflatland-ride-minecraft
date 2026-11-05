@@ -29,6 +29,7 @@
 - Excluded: [0192](../adr/0192-suv-detailed-body.md): SUV body and lamp detail, covered by SUV body and seats; no replacement of the chase-camera paragraph used here
 - Excluded: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md): SUV scale, collision dimensions, float draft and probes, covered by SUV body and seats; current values are named here and ADR differences are recorded below
 - Excluded: [0215](../adr/0215-fit-the-suv-interior-to-the-rubicon-cabin.md): SUV cabin and seat derivation, covered by the SUV body topic
+- Excluded: [0225](../adr/0225-match-the-suv-rear-corner-to-the-rubicon.md): rear bumper, overfender, fuel door, and spare shape; no flight or submarine rule changes
 
 ## Rules
 

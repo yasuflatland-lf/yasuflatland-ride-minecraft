@@ -152,7 +152,7 @@ GLOW_RADIUS = 5
 
 # The spare is the road wheel turned to face rearward, on the tailgate. Its front face clears the
 # tailgate, the rear window and the rear bumper (ADR 0214).
-SPARE_Y = 1.35 * D
+SPARE_Y = 1.28 * D  # its lower edge sits in the rear bumper's notch, as on the photos (ADR 0225)
 SPARE_Z = z_at(3.80)
 
 # Steering wheel (+x side; shown in game as right-hand drive), tilted 20° with its top away from the

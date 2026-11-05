@@ -17,6 +17,7 @@
 - Excluded: [0172](../adr/0172-smooth-sports-boat-headlight-lenses.md): sports boat lens subdivision and hull fit; the switched bone and material contract is covered here
 - Excluded: [0173](../adr/0173-remove-the-inside-lantern-and-add-the-gas-lantern.md): removal of Lantern decor and the separate outdoor Gas Lantern, neither of which removes the tent lantern
 - Excluded: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md): camper hover discs, their separate glow pass, and particles are covered by camper-hover-display
+- Excluded: [0225](../adr/0225-match-the-suv-rear-corner-to-the-rubicon.md): rear bumper, overfender, fuel door, and spare shape; no lamp changes
 
 ## Rules
 

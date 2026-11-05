@@ -60,8 +60,9 @@ def chassis():
 # Side outlines of the two wheel arches as (z, y) points: the open arch under each overfender.
 FRONT_ARCH = [(-0.64, 1.11), (-0.54, 1.19), (-0.43, 1.24), (-0.32, 1.255), (0.13, 1.255),
               (0.24, 1.235), (0.33, 1.195), (0.73, 0.77)]
-REAR_ARCH = [(dims.REAR_ARCH_FRONT_D, 0.78), (2.59, 1.14), (2.70, 1.21), (2.81, 1.235), (3.24, 1.235),
-             (3.34, 1.215), (3.43, 1.16), (3.57, 0.85)]
+# The rear one ends short of the body's rear edge, just above the bumper corner that receives it (ADR 0225).
+REAR_ARCH = [(dims.REAR_ARCH_FRONT_D, 0.78), (2.59, 1.14), (2.70, 1.21), (2.81, 1.235), (3.20, 1.235),
+             (3.28, 1.20), (3.35, 1.10), (3.41, 0.94)]
 
 
 def side_walls():
@@ -73,7 +74,7 @@ def side_walls():
         box(x0, x1, 0.76, DOOR_OPENING_Y[0], 0.75, 2.38, "body")
         for z0, z1 in ((0.75, FRONT_DOOR_SPAN[0]), (FRONT_DOOR_SPAN[1], REAR_DOOR_SPAN[0]), (2.34, 2.38)):
             box(x0, x1, DOOR_OPENING_Y[0], DOOR_OPENING_Y[1], z0, z1, "body")
-        box(x0, x1, 0.82, 1.405, 3.53, 3.56, "body")
+        box(x0, x1, 0.82, 1.405, 3.41, 3.56, "body")
     for path in (FRONT_ARCH, REAR_ARCH):
         # The side skin above the arch, in rectangular panels of at most 0.025 D steps
         for (z0, y0), (z1, y1) in zip(path, path[1:]):

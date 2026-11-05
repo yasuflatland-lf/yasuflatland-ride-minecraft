@@ -93,7 +93,7 @@ describe("SUV proportions", () => {
     const previous = {
       wheelbase: 3.007017748211538,
       front_overhang: 0.9737958138248144,
-      rear_overhang: 0.8260262082995267,
+      rear_overhang: 0.721883399818974,
       ground_clearance: 0.6792262234033082,
       overall_height: 2.064410771843314,
       belt_height: 1.4947055498455246,
@@ -101,8 +101,8 @@ describe("SUV proportions", () => {
       hood_height: 1.460590617289932,
       hood_length: 1.7477556959102472,
       front_bumper_length: 0.2867619574453579,
-      rear_bumper_length: 0.3403,
-      bumper_height: 0.3568,
+      rear_bumper_length: 0.31613514405870263,
+      bumper_height: 0.24145755097389848,
     };
     for (const [key, ratio] of Object.entries(previous)) {
       expect(Math.abs(linear(baseline, key).ratio - ratio)).toBeLessThanOrEqual(
