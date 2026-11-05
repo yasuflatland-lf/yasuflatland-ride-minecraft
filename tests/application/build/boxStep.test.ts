@@ -44,27 +44,17 @@ function setup() {
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const session = repo.getOrCreate(playerId);
+  const actions = {
+    copy: new CopyBox(repo, world, feedback),
+    cut: new CutBox(repo, feedback, new EditJobs(repo, world, feedback)),
+  };
   return {
     repo,
     world,
     feedback,
     session,
-    choose: new ChooseBoxStep(
-      repo,
-      {
-        copy: new CopyBox(repo, world, feedback),
-        cut: new CutBox(repo, feedback, new EditJobs(repo, world, feedback)),
-      },
-      feedback,
-    ),
-    confirm: new ConfirmBoxStep(
-      repo,
-      {
-        copy: new CopyBox(repo, world, feedback),
-        cut: new CutBox(repo, feedback, new EditJobs(repo, world, feedback)),
-      },
-      feedback,
-    ),
+    choose: new ChooseBoxStep(repo, actions, feedback),
+    confirm: new ConfirmBoxStep(repo, actions, feedback),
   };
 }
 function endpoint(
