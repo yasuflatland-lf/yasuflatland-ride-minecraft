@@ -112,7 +112,7 @@ describe("EditJobs properties", () => {
     env.fill.execute({ playerId: alex, style: "fill" });
     runAll(env);
     expect(env.feedback.messages.at(-1)).toEqual({
-      message: "editDone",
+      message: "editDoneCount",
       count: 0,
     });
     expect(env.feedback.undoHints).toEqual([]);
