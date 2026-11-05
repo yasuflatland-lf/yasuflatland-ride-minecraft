@@ -182,7 +182,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) | Keep the icebreaker cut above the hull floor | Proposed |
 | [0176](0176-move-the-sports-boat-front-seats-back.md) | Move the sports boat's front seats back | Accepted |
 | [0177](0177-drive-text-on-the-sports-boat-driver-deck-seat.md) | Drive text on the sports boat driver deck seat | Accepted |
-| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; superseded in part by [0198](0198-one-build-wand-without-a-bulldozer.md); extended by [0180](0180-a-wide-bulldozer-blade.md), [0181](0181-a-road-paver-on-the-bulldozer.md), [0183](0183-mark-a-lone-selection-corner.md) |
+| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; superseded in part by [0198](0198-one-build-wand-without-a-bulldozer.md); extended by [0180](0180-a-wide-bulldozer-blade.md), [0181](0181-a-road-paver-on-the-bulldozer.md), [0183](0183-mark-a-lone-selection-corner.md), [0229](0229-cut-a-selection-with-the-build-wand.md) |
 | [0179](0179-support-realms-as-a-second-play-environment.md) | Support Realms as a second play environment | Proposed |
 | [0180](0180-a-wide-bulldozer-blade.md) | A wide bulldozer blade switched from the cab | Proposed; extended by [0181](0181-a-road-paver-on-the-bulldozer.md) |
 | [0181](0181-a-road-paver-on-the-bulldozer.md) | Lay a road behind the bulldozer from the driver's held block | Proposed |
@@ -202,11 +202,11 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) | Cut the body height ahead of a grounded blade | Proposed |
 | [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) | Raise the SUV seats for first-person visibility | Proposed; superseded in part by [0215](0215-fit-the-suv-interior-to-the-rubicon-cabin.md) |
 | [0197](0197-emit-camper-hover-particles-below-the-discs.md) | Emit camper hover particles below the discs | Proposed |
-| [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed; extended by [0201](0201-build-wand-cylinder-and-cube.md), [0202](0202-build-wand-copy-and-continuous-paste.md) |
+| [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed; extended by [0201](0201-build-wand-cylinder-and-cube.md), [0202](0202-build-wand-copy-and-continuous-paste.md), [0229](0229-cut-a-selection-with-the-build-wand.md) |
 | [0199](0199-square-the-camper-front-and-fold-the-grille.md) | Square the camper front and fold the grille | Proposed; superseded in part by [0226](0226-lean-and-fold-the-camper-front-panels.md) |
 | [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) | Roof tent as a host-bound camp entity | Proposed; superseded in part by [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md); extended by [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md) |
 | [0201](0201-build-wand-cylinder-and-cube.md) | Build Wand cylinder and cube | Accepted; extended by [0202](0202-build-wand-copy-and-continuous-paste.md) |
-| [0202](0202-build-wand-copy-and-continuous-paste.md) | Build Wand Copy and continuous Paste | Accepted; superseded in part by [0203](0203-build-wand-paste-aiming.md) |
+| [0202](0202-build-wand-copy-and-continuous-paste.md) | Build Wand Copy and continuous Paste | Accepted; superseded in part by [0203](0203-build-wand-paste-aiming.md), [0229](0229-cut-a-selection-with-the-build-wand.md) |
 | [0203](0203-build-wand-paste-aiming.md) | Build Wand paste aiming | Proposed |
 | [0204](0204-shard-unit-tests-across-ci-jobs.md) | Shard unit tests across CI jobs | Accepted |
 | [0205](0205-structured-adr-metadata-and-current-specs.md) | Structured ADR metadata and current specs | Proposed |
@@ -231,6 +231,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0225](0225-match-the-suv-rear-corner-to-the-rubicon.md) | Match the SUV rear corner to the Rubicon | Accepted |
 | [0226](0226-lean-and-fold-the-camper-front-panels.md) | Lean and fold the camper front panels | Proposed |
 | [0227](0227-camper-door-trim-and-thin-panel-step.md) | Camper door trim, a thin-panel step, and a storage hatch | Proposed |
+| [0229](0229-cut-a-selection-with-the-build-wand.md) | Cut a selection with the Build Wand | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

@@ -4,6 +4,8 @@ import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { CopyBox } from "../../../src/application/build/copyBox";
+import { CutBox } from "../../../src/application/build/cutBox";
+import { EditJobs } from "../../../src/application/build/editJobs";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -63,7 +65,14 @@ it("starts a normal selection with the old clipboard, then replaces it and reset
         expect(e.session.flow).toEqual(tapBlock(first, overworld, to, stone));
         new ChooseBoxStep(
           e.repo,
-          { copy: new CopyBox(e.repo, e.world, e.feedback) },
+          {
+            copy: new CopyBox(e.repo, e.world, e.feedback),
+            cut: new CutBox(
+              e.repo,
+              e.feedback,
+              new EditJobs(e.repo, e.world, e.feedback),
+            ),
+          },
           e.feedback,
         ).execute({ playerId, kind: "copy" });
         expect(e.session.clipboard).not.toBe(e.old);
@@ -92,7 +101,14 @@ it("keeps the old clipboard and selection on an oversized new copy, and keeps it
         e.session.setFlow(selected);
         new ChooseBoxStep(
           e.repo,
-          { copy: new CopyBox(e.repo, e.world, e.feedback) },
+          {
+            copy: new CopyBox(e.repo, e.world, e.feedback),
+            cut: new CutBox(
+              e.repo,
+              e.feedback,
+              new EditJobs(e.repo, e.world, e.feedback),
+            ),
+          },
           e.feedback,
         ).execute({ playerId, kind: "copy" });
         expect(e.feedback.messages.at(-1)?.message).toBe("tooLarge");

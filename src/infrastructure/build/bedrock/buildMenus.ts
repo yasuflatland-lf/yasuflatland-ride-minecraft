@@ -157,11 +157,13 @@ export class BedrockBuildMenus implements BuildMenus {
     const answer = await new ModalFormData()
       .title({
         translate:
-          flow.heightedKind === "copy"
-            ? BUILD_FORM.copyTitle
-            : isRoofKind(flow.heightedKind)
-              ? BUILD_FORM.roofTitle
-              : BUILD_FORM.solidTitle,
+          flow.heightedKind === "cut"
+            ? BUILD_FORM.cutTitle
+            : flow.heightedKind === "copy"
+              ? BUILD_FORM.copyTitle
+              : isRoofKind(flow.heightedKind)
+                ? BUILD_FORM.roofTitle
+                : BUILD_FORM.solidTitle,
       })
       .slider(
         { translate: BUILD_FORM.height },

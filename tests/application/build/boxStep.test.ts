@@ -5,6 +5,7 @@ import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
+import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
@@ -50,12 +51,18 @@ function setup() {
     session,
     choose: new ChooseBoxStep(
       repo,
-      { copy: new CopyBox(repo, world, feedback) },
+      {
+        copy: new CopyBox(repo, world, feedback),
+        cut: new CutBox(repo, feedback, new EditJobs(repo, world, feedback)),
+      },
       feedback,
     ),
     confirm: new ConfirmBoxStep(
       repo,
-      { copy: new CopyBox(repo, world, feedback) },
+      {
+        copy: new CopyBox(repo, world, feedback),
+        cut: new CutBox(repo, feedback, new EditJobs(repo, world, feedback)),
+      },
       feedback,
     ),
   };

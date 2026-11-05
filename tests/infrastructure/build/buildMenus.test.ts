@@ -5,6 +5,8 @@ import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { CopyBox } from "../../../src/application/build/copyBox";
+import { CutBox } from "../../../src/application/build/cutBox";
+import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
@@ -112,7 +114,14 @@ function setup(fallback?: boolean) {
       execute: vi.fn((cmd) =>
         new ChooseBoxStep(
           repo,
-          { copy: new CopyBox(repo, new FakeWorld(), new FakeFeedback()) },
+          {
+            copy: new CopyBox(repo, new FakeWorld(), new FakeFeedback()),
+            cut: new CutBox(
+              repo,
+              new FakeFeedback(),
+              new EditJobs(repo, new FakeWorld(), new FakeFeedback()),
+            ),
+          },
           new FakeFeedback(),
         ).execute(cmd),
       ),
@@ -700,6 +709,45 @@ it("confirms Copy after the fallback slider without opening contents", async () 
   await menus.showShapeMenu(player);
   expect(ui.forms).toHaveLength(2);
   expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.copyTitle });
+  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
+  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
+});
+
+it.each([
+  ["line", { x: 4, y: 60, z: 0 }],
+  ["horizontal rectangle", to],
+  ["x-flat rectangle", { x: 0, y: 64, z: 6 }],
+  ["z-flat rectangle", { x: 4, y: 64, z: 0 }],
+  ["box", { x: 4, y: 64, z: 6 }],
+] as const)("routes Cut on a %s to ChooseBoxStep", async (_shape, end) => {
+  const { session, menus, player, cases } = setup();
+  session.setFlow({ ...endpoint, to: end });
+  ui.answers.push({
+    selection: shapeMenu(session.flow).findIndex((e) => e.id === "cut"),
+  });
+  await menus.showShapeMenu(player);
+  expect(cases.chooseBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+    kind: "cut",
+  });
+  expect(cases.copy.execute).not.toHaveBeenCalled();
+  expect(ui.forms).toHaveLength(1);
+});
+
+it("confirms Cut after the fallback slider without opening contents", async () => {
+  const { menus, player, cases, session } = setup(true);
+  ui.answers.push(
+    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "cut") },
+    { formValues: [7] },
+  );
+  cases.confirmBoxStep.execute.mockImplementation(() => {
+    expect(session.flow).toMatchObject({ heightedKind: "cut", previous: 7 });
+  });
+  await menus.showShapeMenu(player);
+  expect(ui.forms).toHaveLength(2);
+  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.cutTitle });
   expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
     playerId,
   });

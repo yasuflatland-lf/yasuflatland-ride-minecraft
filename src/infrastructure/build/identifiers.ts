@@ -9,6 +9,7 @@ export const LAID_BLOCK_TAG = "yasu_ride:laid";
 export const BUILD_MESSAGE: Readonly<
   Record<BuildMessage | "heightSize" | "pasteHint", string>
 > = {
+  cutting: "yasu_build.message.cutting",
   building: "yasu_build.message.building",
   pasteHint: "yasu_build.message.paste_hint",
   heightSize: "yasu_build.message.height_size",
@@ -46,6 +47,8 @@ export const BUILD_FORM = {
   cylinder: "yasu_build.form.cylinder",
   cube: "yasu_build.form.cube",
   tube: "yasu_build.form.tube",
+  cut: "yasu_build.form.cut",
+  cutTitle: "yasu_build.form.cut_title",
   copyTitle: "yasu_build.form.copy_title",
   solidTitle: "yasu_build.form.solid_title",
   hollow: "yasu_build.form.hollow",
