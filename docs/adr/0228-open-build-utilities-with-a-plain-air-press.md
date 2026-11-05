@@ -3,7 +3,7 @@
 - Status: Proposed
 - Acceptance condition: the iPad gesture check of the Build Wand series passes (#1038)
 - Date: 2026-11-05
-- Related: [0198](0198-one-build-wand-without-a-bulldozer.md): Decision 3 and the utility menu
+- Extends: [0198](0198-one-build-wand-without-a-bulldozer.md): Decision 10, the utility menu gesture
 - Related: [0203](0203-build-wand-paste-aiming.md): Decision 4, the paste menu opens without sneaking
 
 ## Context
