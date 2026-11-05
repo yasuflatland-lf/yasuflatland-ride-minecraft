@@ -1,10 +1,14 @@
 import { planHeighted } from "../../domain/build/edit/plan";
-import { finishHeightStep } from "../../domain/build/flow/flow";
+import { finishHeightStep, heightStepBox } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import { BUILD_SPEC } from "../../domain/build/spec";
 import { placementOf } from "../../domain/build/volume/geometry";
-import { type FillStyle, fillStylesFor } from "../../domain/build/volume/kind";
+import {
+  type FillStyle,
+  fillStylesFor,
+  isBoxStepKind,
+} from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
+import { beginCheckedEdit } from "./beginCheckedEdit";
 import type { EditJobs } from "./editJobs";
 import type { BuildFeedback } from "./ports/feedback";
 
@@ -19,7 +23,7 @@ export class ConfirmHeighted {
     const flow = session.flow;
     if (
       flow.kind !== "heightStep" ||
-      flow.heightedKind === "copy" ||
+      isBoxStepKind(flow.heightedKind) ||
       !fillStylesFor(flow.heightedKind).includes(cmd.fill)
     ) {
       this.feedback.showMessage(cmd.playerId, "noSelection");
@@ -32,20 +36,9 @@ export class ConfirmHeighted {
       height: flow.previous,
     };
     const count = placementOf(spec.kind).count(spec, cmd.fill);
-    if (count > BUILD_SPEC.maxVolume) {
-      this.feedback.showMessage(cmd.playerId, "tooLarge", count);
-      return;
-    }
-    const busy = session.beginEdit();
-    if (busy) {
-      this.feedback.showMessage(cmd.playerId, busy);
-      return;
-    }
+    if (!beginCheckedEdit(session, this.feedback, cmd.playerId, count)) return;
     session.setFlow(finishHeightStep(flow, hollow));
-    session.confirmBox(flow.dimensionId, {
-      min: flow.base.min,
-      max: { ...flow.base.max, y: flow.base.min.y + flow.previous - 1 },
-    });
+    session.confirmBox(flow.dimensionId, heightStepBox(flow));
     this.jobs.start(
       cmd.playerId,
       flow.dimensionId,

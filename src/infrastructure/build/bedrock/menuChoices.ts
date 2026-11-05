@@ -1,8 +1,8 @@
 import type { CancelFlow } from "../../../application/build/cancelFlow";
-import type { ChooseCopy } from "../../../application/build/chooseCopy";
+import type { ChooseBoxStep } from "../../../application/build/chooseBoxStep";
 import type { ChooseHeighted } from "../../../application/build/chooseHeighted";
 import type { ClearSelection } from "../../../application/build/clearSelection";
-import type { ConfirmCopyHeight } from "../../../application/build/confirmCopyHeight";
+import type { ConfirmBoxStep } from "../../../application/build/confirmBoxStep";
 import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
 import type { CopySelection } from "../../../application/build/copySelection";
@@ -29,8 +29,8 @@ function isOffered<Id extends string>(
 }
 
 export interface MenuCases {
-  chooseCopy: Pick<ChooseCopy, "execute">;
-  confirmCopyHeight: Pick<ConfirmCopyHeight, "execute">;
+  chooseBoxStep: Pick<ChooseBoxStep, "execute">;
+  confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   confirmShape: Pick<ConfirmShape, "execute">;
   chooseHeighted: Pick<ChooseHeighted, "execute">;
   confirmHeighted: Pick<ConfirmHeighted, "execute">;
@@ -76,7 +76,7 @@ export class MenuChoices {
           this.cases.chooseHeighted.execute({ playerId, kind: entryId });
           break;
         case "copy":
-          this.cases.chooseCopy.execute({ playerId });
+          this.cases.chooseBoxStep.execute({ playerId, kind: "copy" });
           break;
         case "cancel":
           this.cases.cancel.backToAiming({ playerId });

@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { ChooseCopy } from "../../../src/application/build/chooseCopy";
-import { ConfirmCopyHeight } from "../../../src/application/build/confirmCopyHeight";
+import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
+import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
@@ -18,7 +18,7 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { copyVolume } from "../../../src/domain/build/volume/copy";
+import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   FakeFeedback,
@@ -48,10 +48,14 @@ function setup() {
     world,
     feedback,
     session,
-    choose: new ChooseCopy(repo, new CopyBox(repo, world, feedback), feedback),
-    confirm: new ConfirmCopyHeight(
+    choose: new ChooseBoxStep(
       repo,
-      new CopyBox(repo, world, feedback),
+      { copy: new CopyBox(repo, world, feedback) },
+      feedback,
+    ),
+    confirm: new ConfirmBoxStep(
+      repo,
+      { copy: new CopyBox(repo, world, feedback) },
       feedback,
     ),
   };
@@ -77,11 +81,11 @@ it("copies a base grown through any allowed height without beginning an edit", (
         const to = { x: from.x + dx, y: from.y, z: from.z + dz };
         const base = boxOf(from, to);
         const height =
-          1 + (seed % copyVolume.maxHeight(base, BUILD_SPEC.worldTopY));
+          1 + (seed % boxStepVolume.maxHeight(base, BUILD_SPEC.worldTopY));
         e.session.setFlow(
           endpoint(reverse ? to : from, reverse ? from : to, nether),
         );
-        e.choose.execute({ playerId });
+        e.choose.execute({ playerId, kind: "copy" });
         expect(e.session.flow).toEqual(
           chooseHeighted(
             endpoint(reverse ? to : from, reverse ? from : to, nether),
@@ -135,7 +139,7 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
       fc.pre(shape.kind !== "rect" || shape.flat !== "y");
       e.session.setFlow(endpoint(reverse ? to : from, reverse ? from : to));
       const begin = vi.spyOn(e.session, "beginEdit");
-      e.choose.execute({ playerId });
+      e.choose.execute({ playerId, kind: "copy" });
       const box = boxOf(from, to);
       expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
       expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
@@ -182,7 +186,8 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         const confirmed = e.session.confirmedBox;
         const read = vi.spyOn(e.world, "stateAt");
         if (path === "height") e.confirm.execute({ playerId });
-        else if (path === "direct") e.choose.execute({ playerId });
+        else if (path === "direct")
+          e.choose.execute({ playerId, kind: "copy" });
         else
           new CopySelection(
             e.repo,
@@ -230,7 +235,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
           )
             continue;
           e.session.setFlow(flow);
-          useCase.execute({ playerId });
+          useCase.execute({ playerId, kind: "copy" });
           expect(e.feedback.messages.at(-1)?.message).toBe("noSelection");
           expect(e.session.flow).toBe(flow);
           expect(e.session.clipboard).toBeUndefined();
