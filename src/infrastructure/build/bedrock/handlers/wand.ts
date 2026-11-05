@@ -6,6 +6,7 @@ import type { PressPasteAim } from "../../../../application/build/pressPasteAim"
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
 import { virtualEndPoint } from "../../../../domain/build/aim/aim";
+import { opensUtilityMenu } from "../../../../domain/build/flow/flow";
 import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import type { Cell } from "../../../../domain/shared/cells";
@@ -103,7 +104,7 @@ export function registerWand({
       else void menus.showContentsMenu(source);
       return;
     }
-    if (source.isSneaking) {
+    if (flow && opensUtilityMenu(flow, source.isSneaking)) {
       void menus.showUtilityMenu(source);
       return;
     }

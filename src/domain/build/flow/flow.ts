@@ -62,6 +62,10 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
   });
 }
 
+export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
+  return sneaking || flow.kind === "idle";
+}
+
 export function cancel(_flow: BuildFlow): BuildFlow {
   return Object.freeze({ kind: "idle" });
 }
