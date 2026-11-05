@@ -39,7 +39,15 @@ function setup(from: { x: number; y: number; z: number }, skipAir: boolean) {
     lastPaste: { anchor: from, tick: 10 },
   });
   const newCopy = new NewCopy(repo);
-  return { repo, session, world, feedback, old, newCopy };
+  const chooseBoxStep = new ChooseBoxStep(
+    repo,
+    {
+      copy: new CopyBox(repo, world, feedback),
+      cut: new CutBox(repo, feedback, new EditJobs(repo, world, feedback)),
+    },
+    feedback,
+  );
+  return { repo, session, world, feedback, old, newCopy, chooseBoxStep };
 }
 
 it("starts a normal selection with the old clipboard, then replaces it and resets paste settings on Copy", () => {
@@ -63,18 +71,7 @@ it("starts a normal selection with the old clipboard, then replaces it and reset
         expect(e.session.clipboard).toBe(e.old);
         points.execute({ playerId, dimensionId: overworld, cell: to });
         expect(e.session.flow).toEqual(tapBlock(first, overworld, to, stone));
-        new ChooseBoxStep(
-          e.repo,
-          {
-            copy: new CopyBox(e.repo, e.world, e.feedback),
-            cut: new CutBox(
-              e.repo,
-              e.feedback,
-              new EditJobs(e.repo, e.world, e.feedback),
-            ),
-          },
-          e.feedback,
-        ).execute({ playerId, kind: "copy" });
+        e.chooseBoxStep.execute({ playerId, kind: "copy" });
         expect(e.session.clipboard).not.toBe(e.old);
         expect(e.session.clipboard).toEqual(
           clipboardOf(boxOf(from, to), (at) => e.world.stateAt(overworld, at)),
@@ -99,18 +96,7 @@ it("keeps the old clipboard and selection on an oversized new copy, and keeps it
           { ...from, x: from.x + BUILD_SPEC.maxCopyVolume + extra },
         );
         e.session.setFlow(selected);
-        new ChooseBoxStep(
-          e.repo,
-          {
-            copy: new CopyBox(e.repo, e.world, e.feedback),
-            cut: new CutBox(
-              e.repo,
-              e.feedback,
-              new EditJobs(e.repo, e.world, e.feedback),
-            ),
-          },
-          e.feedback,
-        ).execute({ playerId, kind: "copy" });
+        e.chooseBoxStep.execute({ playerId, kind: "copy" });
         expect(e.feedback.messages.at(-1)?.message).toBe("tooLarge");
         expect(e.session.flow).toBe(selected);
         expect(e.session.clipboard).toBe(e.old);
