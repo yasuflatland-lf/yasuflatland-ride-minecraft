@@ -449,6 +449,26 @@ describe("SUV model (ADR 0009)", () => {
       }
   });
 
+  it("puts the fuel door on the vehicle's left only (ADR 0225)", () => {
+    const body = bones.get("body");
+    if (!body) throw new Error("Missing SUV body");
+    const unit = scaled(dimensions.D);
+    const bars = (body.cubes ?? []).filter((cube) => {
+      const [x, y] = cube.origin;
+      const centerY = y + cube.size[1] / 2;
+      const centerZ = cube.origin[2] + cube.size[2] / 2;
+      const doorZ = 3.39 * unit - scaled(dimensions.FRONT_AXLE_Z);
+      return (
+        cube.size[0] < 0.03 * unit &&
+        Math.abs(Math.abs(x) - 0.886 * unit) < 0.03 * unit &&
+        Math.abs(centerY - 1.3 * unit) < 0.03 * unit &&
+        Math.abs(centerZ - doorZ) < 0.03 * unit
+      );
+    });
+    expect(bars).toHaveLength(36);
+    expect(bars.every((cube) => cube.origin[0] > 0)).toBe(true);
+  });
+
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = [...bones.values()].flatMap((bone) => bone.cubes ?? []);
     // The steering wheel's 30 arc cubes (ADR 0167) and the hood's 4 shoulder strips (ADR 0214).

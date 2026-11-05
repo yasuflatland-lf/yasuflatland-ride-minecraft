@@ -218,7 +218,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0211](0211-derive-the-ground-tent-lean-from-the-reference-photos.md) | Derive the ground tent lean from the reference photos | Proposed |
 | [0212](0212-close-a-tent-flap-beside-a-neighbouring-body.md) | Close a tent flap beside a neighbouring body | Accepted |
 | [0213](0213-smooth-suv-bank-easing.md) | Smooth SUV bank easing | Accepted |
-| [0214](0214-replace-the-suv-with-the-rubicon-shape.md) | Replace the SUV with the Rubicon shape | Accepted; extended by [0217](0217-derive-the-suv-spec-from-the-rubicon-body.md) |
+| [0214](0214-replace-the-suv-with-the-rubicon-shape.md) | Replace the SUV with the Rubicon shape | Accepted; superseded in part by [0225](0225-match-the-suv-rear-corner-to-the-rubicon.md); extended by [0217](0217-derive-the-suv-spec-from-the-rubicon-body.md) |
 | [0215](0215-fit-the-suv-interior-to-the-rubicon-cabin.md) | Fit the SUV interior to the Rubicon cabin | Proposed |
 | [0217](0217-derive-the-suv-spec-from-the-rubicon-body.md) | Derive the SUV spec from the Rubicon body | Accepted |
 | [0218](0218-extend-the-wheel-axle-straight-out-in-flight.md) | Extend the wheel axle straight out in flight | Accepted |
@@ -228,6 +228,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0222](0222-split-the-drive-world-port-by-role.md) | Split the DriveWorld port by role | Accepted |
 | [0223](0223-require-a-rider-list-slot-on-every-rider.md) | Require a rider-list slot on every rider | Accepted |
 | [0224](0224-third-person-switch-feedback-and-bulldozer-camera.md) | Show third-person switch feedback and bring the bulldozer camera closer | Accepted |
+| [0225](0225-match-the-suv-rear-corner-to-the-rubicon.md) | Match the SUV rear corner to the Rubicon | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
