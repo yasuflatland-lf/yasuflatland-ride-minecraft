@@ -73,8 +73,10 @@ export class EditJobs {
           { dimensionId: job.dimensionId, changes: job.applied },
           job.undo,
         );
-        // The job may finish after the player left the states where an air press offers Undo.
-        const promisesUndo = airPressOffersUndo(session.flow);
+        // The job may finish after the player left the states where an air press offers Undo,
+        // and an empty edit with no earlier history leaves nothing to undo.
+        const promisesUndo =
+          airPressOffersUndo(session.flow) && session.hasHistory;
         this.feedback.showMessage(
           job.playerId,
           job.undo ? "undoDone" : promisesUndo ? "editDone" : "editDoneCount",
