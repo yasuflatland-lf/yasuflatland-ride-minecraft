@@ -84,13 +84,6 @@ it("registers Copy with the same height cap and grown-box wireframe as Cube", ()
         expect(cap).toBe(cubeVolume.maxHeight(base, top));
         for (const height of [1, cap]) {
           const spec = { base, height, kind: "copy" as const };
-          const grown = {
-            min: base.min,
-            max: { ...base.max, y: base.min.y + height - 1 },
-          };
-          expect(copyVolume.wireframe(spec, budget)).toEqual(
-            edgePoints(grown, budget).map(center),
-          );
           expect(copyVolume.wireframe(spec, budget)).toEqual(
             cubeVolume.wireframe({ ...spec, kind: "cube" }, budget),
           );

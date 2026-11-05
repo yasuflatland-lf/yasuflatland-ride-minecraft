@@ -1,6 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { CellBox } from "../box";
+import { ellipse, line, outlinePoints } from "../wireframe";
 import type {
   HeightedPlacement,
   HeightedVolume,
@@ -65,31 +66,29 @@ function cylinderWireframe(
   { base: { min, max }, height }: HeightStepSpec,
   maxPoints: number,
 ): Vec3[] {
-  const budget = Math.max(0, Math.floor(maxPoints));
   const cx = (min.x + max.x + 1) / 2;
   const cz = (min.z + max.z + 1) / 2;
   const rx = (max.x - min.x + 1) / 2;
   const rz = (max.z - min.z + 1) / 2;
   const bottom = min.y + 0.5;
   const top = min.y + height - 0.5;
-  const points: Vec3[] = [];
-  for (let curve = 0; curve < 6; curve++) {
-    const count = Math.floor(budget / 6) + (curve < budget % 6 ? 1 : 0);
-    for (let i = 0; i < count; i++) {
-      const angle =
-        curve < 2 ? (2 * Math.PI * i) / count : ((curve - 2) * Math.PI) / 2;
-      const t = count === 1 ? 0.5 : i / (count - 1);
-      points.push({
-        x: cx + rx * Math.cos(angle),
-        y:
-          curve < 2
-            ? curve === 0
-              ? bottom
-              : top
-            : bottom + t * (top - bottom),
-        z: cz + rz * Math.sin(angle),
-      });
-    }
-  }
-  return points;
+  const rings =
+    height === 1
+      ? [ellipse(cx, bottom, cz, rx, rz)]
+      : [ellipse(cx, bottom, cz, rx, rz), ellipse(cx, top, cz, rx, rz)];
+  const sides =
+    height === 1
+      ? []
+      : [
+          [rx, 0],
+          [0, rz],
+          [-rx, 0],
+          [0, -rz],
+        ].map(([dx, dz]) =>
+          line(
+            { x: cx + (dx as number), y: bottom, z: cz + (dz as number) },
+            { x: cx + (dx as number), y: top, z: cz + (dz as number) },
+          ),
+        );
+  return outlinePoints(rings, sides, maxPoints);
 }
