@@ -280,14 +280,14 @@ it("uses only the Copy layer and warns exactly above the copy volume limit", () 
         });
         const height = heightLocked ? previous : (aimed ?? previous);
         const over = width * depth * height > BUILD_SPEC.maxCopyVolume;
-        expect(set.copyOver.length > 0).toBe(over);
-        expect(set.copy.length > 0).toBe(!over);
+        expect(set.boxStepOver.length > 0).toBe(over);
+        expect(set.boxStep.length > 0).toBe(!over);
         expect(set.roof).toEqual([]);
         expect(set.shape).toEqual([]);
         expect(set.marker).toEqual([]);
         expect(set.endCube).toEqual([]);
         expect(set.paste).toEqual([]);
-        const points = over ? set.copyOver : set.copy;
+        const points = over ? set.boxStepOver : set.boxStep;
         expect(points).toEqual(
           volumeOf("copy").wireframe(
             { base, kind: "copy", height },

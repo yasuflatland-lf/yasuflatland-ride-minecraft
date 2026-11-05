@@ -1,6 +1,6 @@
 import { system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
-import type { ConfirmCopyHeight } from "../../../../application/build/confirmCopyHeight";
+import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { SetPoint } from "../../../../application/build/setPoint";
@@ -9,6 +9,7 @@ import { virtualEndPoint } from "../../../../domain/build/aim/aim";
 import { opensUtilityMenu } from "../../../../domain/build/flow/flow";
 import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
+import { isBoxStepKind } from "../../../../domain/build/volume/kind";
 import type { Cell } from "../../../../domain/shared/cells";
 import {
   asDimensionId,
@@ -24,7 +25,7 @@ export function registerWand({
   tapAir,
   pressPasteAim,
   aimHeight,
-  confirmCopyHeight,
+  confirmBoxStep,
   repo,
   menus,
   aim,
@@ -35,7 +36,7 @@ export function registerWand({
   tapAir: TapAir;
   pressPasteAim: PressPasteAim;
   aimHeight: AimHeight;
-  confirmCopyHeight: Pick<ConfirmCopyHeight, "execute">;
+  confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
@@ -65,8 +66,8 @@ export function registerWand({
         const target = aim.aim(command.playerId);
         if (!target) return;
         aimHeight.execute({ playerId: command.playerId, ray: target.ray });
-        if (flow.heightedKind === "copy")
-          confirmCopyHeight.execute({ playerId: command.playerId });
+        if (isBoxStepKind(flow.heightedKind))
+          confirmBoxStep.execute({ playerId: command.playerId });
         else void menus.showContentsMenu(player);
       } else {
         const before = repo.get(command.playerId)?.flow.kind;
@@ -100,7 +101,8 @@ export function registerWand({
     if (target.block) return;
     if (flow?.kind === "heightStep") {
       aimHeight.execute({ playerId, ray: target.ray });
-      if (flow.heightedKind === "copy") confirmCopyHeight.execute({ playerId });
+      if (isBoxStepKind(flow.heightedKind))
+        confirmBoxStep.execute({ playerId });
       else void menus.showContentsMenu(source);
       return;
     }

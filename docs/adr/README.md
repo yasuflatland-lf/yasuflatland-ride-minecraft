@@ -231,6 +231,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0225](0225-match-the-suv-rear-corner-to-the-rubicon.md) | Match the SUV rear corner to the Rubicon | Accepted |
 | [0226](0226-lean-and-fold-the-camper-front-panels.md) | Lean and fold the camper front panels | Proposed |
 | [0227](0227-camper-door-trim-and-thin-panel-step.md) | Camper door trim, a thin-panel step, and a storage hatch | Proposed |
+| [0228](0228-dense-horizontal-edges-in-the-height-step-outline.md) | Dense horizontal edges in the height-step outline | Proposed |
 | [0229](0229-open-build-utilities-with-a-plain-air-press.md) | Open Build Wand utilities with a plain air press | Proposed |
 <!-- adr-index:end -->
 

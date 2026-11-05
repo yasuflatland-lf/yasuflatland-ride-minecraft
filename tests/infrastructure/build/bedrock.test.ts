@@ -41,8 +41,8 @@ function preview(part: Partial<PreviewSet>): PreviewSet {
     endCube: [],
     roof: [],
     paste: [],
-    copy: [],
-    copyOver: [],
+    boxStep: [],
+    boxStepOver: [],
     ...part,
   };
 }

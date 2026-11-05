@@ -1,5 +1,7 @@
-import { type CellBox, center, edgePoints } from "../box";
+import type { Vec3 } from "../../shared/vec";
+import type { CellBox } from "../box";
 import { cellsOfShape, type ShapeStyle, shapeCount } from "../shape/shape";
+import { type Curve, line, outlinePoints } from "../wireframe";
 import type {
   HeightedPlacement,
   HeightedVolume,
@@ -34,6 +36,36 @@ export const cubeVolume: HeightedVolume = {
     return Math.max(1, worldTopY - base.min.y + 1);
   },
   wireframe(spec, maxPoints) {
-    return edgePoints(boundsOf(spec), maxPoints).map(center);
+    return boxOutline(boundsOf(spec), maxPoints);
   },
 };
+
+function boxOutline({ min, max }: CellBox, maxPoints: number): Vec3[] {
+  const x0 = min.x + 0.5;
+  const x1 = max.x + 0.5;
+  const z0 = min.z + 0.5;
+  const z1 = max.z + 0.5;
+  const ys = min.y === max.y ? [min.y + 0.5] : [min.y + 0.5, max.y + 0.5];
+  const horizontal: Curve[] = ys.flatMap((y) => [
+    line({ x: x0, y, z: z0 }, { x: x1, y, z: z0 }),
+    line({ x: x0, y, z: z1 }, { x: x1, y, z: z1 }),
+    line({ x: x0, y, z: z0 }, { x: x0, y, z: z1 }),
+    line({ x: x1, y, z: z0 }, { x: x1, y, z: z1 }),
+  ]);
+  const [yLow, yHigh] = [min.y + 0.5, max.y + 0.5];
+  const vertical: Curve[] =
+    min.y === max.y
+      ? []
+      : [
+          [x0, z0],
+          [x1, z0],
+          [x0, z1],
+          [x1, z1],
+        ].map(([x, z]) =>
+          line(
+            { x: x as number, y: yLow, z: z as number },
+            { x: x as number, y: yHigh, z: z as number },
+          ),
+        );
+  return outlinePoints(horizontal, vertical, maxPoints);
+}
