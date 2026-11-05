@@ -7,8 +7,8 @@ import {
   shapeOf,
   stylesFor,
 } from "../../domain/build/shape/shape";
-import { BUILD_SPEC } from "../../domain/build/spec";
 import type { PlayerId } from "../../domain/shared/ids";
+import { beginCheckedEdit } from "./beginCheckedEdit";
 import type { EditJobs } from "./editJobs";
 import type { BuildFeedback } from "./ports/feedback";
 
@@ -28,15 +28,7 @@ export class ConfirmShape {
     const shape = shapeOf(flow.from, flow.to);
     if (!stylesFor(shape).includes(cmd.style)) return;
     const count = shapeCount(shape, cmd.style);
-    if (count > BUILD_SPEC.maxVolume) {
-      this.feedback.showMessage(cmd.playerId, "tooLarge", count);
-      return;
-    }
-    const busy = session.beginEdit();
-    if (busy) {
-      this.feedback.showMessage(cmd.playerId, busy);
-      return;
-    }
+    if (!beginCheckedEdit(session, this.feedback, cmd.playerId, count)) return;
     session.confirmBox(flow.dimensionId, boxOf(flow.from, flow.to));
     this.feedback.showMessage(
       cmd.playerId,

@@ -94,7 +94,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
         registerWand({
-          confirmCopyHeight: { execute: vi.fn() },
+          confirmBoxStep: { execute: vi.fn() },
           aimHeight: new AimHeight(repo),
           repo,
           pressPasteAim: new PressPasteAim(
@@ -201,7 +201,7 @@ function setupAir() {
   const setPoint = new SetPoint(repo, blocks, feedback);
   const tapAir = new TapAir(repo, feedback);
   const aimHeight = new AimHeight(repo);
-  const confirmCopyHeight = { execute: vi.fn() };
+  const confirmBoxStep = { execute: vi.fn() };
   const roofExecute = vi.spyOn(aimHeight, "execute");
   const pointExecute = vi.spyOn(setPoint, "execute");
   const execute = vi.spyOn(tapAir, "execute");
@@ -246,7 +246,7 @@ function setupAir() {
     new EditJobs(repo, blocks, feedback),
   );
   registerWand({
-    confirmCopyHeight,
+    confirmBoxStep,
     aimHeight,
     repo,
     pressPasteAim: new PressPasteAim(repo, paste, feedback),
@@ -273,7 +273,7 @@ function setupAir() {
     menus,
     aim,
     debounce,
-    confirmCopyHeight,
+    confirmBoxStep,
     roofExecute,
     pointExecute,
     paste,
@@ -520,7 +520,7 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
     execute({ ...cmd, end: to }),
   );
   registerWand({
-    confirmCopyHeight: { execute: vi.fn() },
+    confirmBoxStep: { execute: vi.fn() },
     aimHeight: new AimHeight(repo),
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: air,
@@ -562,7 +562,7 @@ it.each(["block", "air"])(
     const e = setupRoof("gable");
     if (e.flow.kind !== "heightStep") throw new Error("Expected height step");
     e.session.setFlow({ ...e.flow, heightedKind: "copy" });
-    e.confirmCopyHeight.execute.mockImplementation(() => {
+    e.confirmBoxStep.execute.mockImplementation(() => {
       expect(e.session.flow).toMatchObject({
         heightedKind: "copy",
         previous: 5,
@@ -581,11 +581,11 @@ it.each(["block", "air"])(
       });
       for (const callback of engine.scheduled.splice(0)) callback();
     }
-    expect(e.confirmCopyHeight.execute).toHaveBeenCalledExactlyOnceWith({
+    expect(e.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
       playerId: e.id,
     });
     expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
-      e.confirmCopyHeight.execute.mock.invocationCallOrder[0] as number,
+      e.confirmBoxStep.execute.mock.invocationCallOrder[0] as number,
     );
     expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
   },
