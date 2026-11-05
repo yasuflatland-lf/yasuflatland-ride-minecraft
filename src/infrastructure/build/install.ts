@@ -1,9 +1,9 @@
 import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
-import { ChooseCopy } from "../../application/build/chooseCopy";
+import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ClearSelection } from "../../application/build/clearSelection";
-import { ConfirmCopyHeight } from "../../application/build/confirmCopyHeight";
+import { ConfirmBoxStep } from "../../application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopyBox } from "../../application/build/copyBox";
@@ -53,9 +53,10 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const jobs = new EditJobs(repo, blocks, feedback);
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, blocks, feedback);
+  const actions = { copy: copyBox };
   const cases = {
-    chooseCopy: new ChooseCopy(repo, copyBox, feedback),
-    confirmCopyHeight: new ConfirmCopyHeight(repo, copyBox, feedback),
+    chooseBoxStep: new ChooseBoxStep(repo, actions, feedback),
+    confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback),
     toggleSkipAir: new ToggleSkipAir(repo),
@@ -80,7 +81,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     tapAir: new TapAir(repo, feedback),
     pressPasteAim: new PressPasteAim(repo, cases.pasteAt, feedback),
     aimHeight: cases.aimHeight,
-    confirmCopyHeight: cases.confirmCopyHeight,
+    confirmBoxStep: cases.confirmBoxStep,
     repo,
     menus,
     aim,
@@ -99,7 +100,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerTestEdit(
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
-    menuCases.confirmCopyHeight,
+    menuCases.confirmBoxStep,
     cases.pasteAt,
     cases.undo,
     new DescribeBuild(repo),

@@ -1,6 +1,6 @@
 import type { BuildSession } from "../session";
 import { shapeOf, stylesFor } from "../shape/shape";
-import { type FillStyle, fillStylesFor } from "../volume/kind";
+import { type FillStyle, fillStylesFor, isBoxStepKind } from "../volume/kind";
 import type { BuildFlow } from "./flow";
 
 export type ShapeEntryId =
@@ -56,7 +56,7 @@ export function utilityMenu(
 }
 
 export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
-  return flow.kind === "heightStep" && flow.heightedKind !== "copy"
+  return flow.kind === "heightStep" && !isBoxStepKind(flow.heightedKind)
     ? [
         ...fillStylesFor(flow.heightedKind).map((id) => ({ id })),
         { id: "cancel" },

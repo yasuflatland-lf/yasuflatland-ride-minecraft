@@ -1,18 +1,19 @@
-import { chooseHeighted, copyBoxOf } from "../../domain/build/flow/flow";
+import { chooseHeighted, selectionBoxOf } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { shapeOf } from "../../domain/build/shape/shape";
+import type { BoxStepKind } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
-import type { CopyBox } from "./copyBox";
+import type { BoxActions } from "./boxAction";
 import type { BuildFeedback } from "./ports/feedback";
 
-export class ChooseCopy {
+export class ChooseBoxStep {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly copy: CopyBox,
+    private readonly actions: BoxActions,
     private readonly feedback: BuildFeedback,
   ) {}
 
-  execute({ playerId }: { playerId: PlayerId }): void {
+  execute({ playerId, kind }: { playerId: PlayerId; kind: BoxStepKind }): void {
     const session = this.repo.getOrCreate(playerId);
     const flow = session.flow;
     if (flow.kind !== "endpoint") {
@@ -21,10 +22,10 @@ export class ChooseCopy {
     }
     const shape = shapeOf(flow.from, flow.to);
     if (shape.kind === "rect" && shape.flat === "y") {
-      session.setFlow(chooseHeighted(flow, "copy"));
+      session.setFlow(chooseHeighted(flow, kind));
       return;
     }
-    const box = copyBoxOf(flow);
-    if (box) this.copy.execute(playerId, flow.dimensionId, box);
+    const box = selectionBoxOf(flow);
+    if (box) this.actions[kind].execute(playerId, flow.dimensionId, box);
   }
 }

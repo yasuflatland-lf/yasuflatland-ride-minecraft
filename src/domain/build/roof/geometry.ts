@@ -5,6 +5,7 @@ import type {
   HeightedVolume,
   HeightStepSpec,
 } from "../volume/geometry";
+import { type Curve, line, outlinePoints } from "../wireframe";
 import {
   isRoofKind,
   maxRoofHeight,
@@ -64,31 +65,17 @@ function roofWireframe(spec: RoofSpec, maxPoints: number): Vec3[] {
   const b = alongX
     ? { x: max.x + 0.5 - inset, y, z: middleZ }
     : { x: middleX, y, z: max.z + 0.5 - inset };
-  const segments: [Vec3, Vec3][] = [[a, b]];
+  const eaves: Curve[] = [];
+  const hips: Curve[] = [];
   for (let i = 0; i < corners.length; i++) {
     const corner = corners[i] as Vec3;
-    segments.push([corner, corners[(i + 1) % corners.length] as Vec3]);
-    segments.push([
-      corner,
-      (alongX ? corner.x === min.x + 0.5 : corner.z === min.z + 0.5) ? a : b,
-    ]);
-  }
-  const perSegment = Math.floor(maxPoints / segments.length);
-  return segments.flatMap(([from, to]) => {
-    const count = Math.min(
-      perSegment,
-      Math.max(
-        2,
-        Math.ceil(Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z)) + 1,
+    eaves.push(line(corner, corners[(i + 1) % corners.length] as Vec3));
+    hips.push(
+      line(
+        corner,
+        (alongX ? corner.x === min.x + 0.5 : corner.z === min.z + 0.5) ? a : b,
       ),
     );
-    return Array.from({ length: count }, (_, i) => {
-      const t = i / (count - 1);
-      return {
-        x: from.x + t * (to.x - from.x),
-        y: from.y + t * (to.y - from.y),
-        z: from.z + t * (to.z - from.z),
-      };
-    });
-  });
+  }
+  return outlinePoints([line(a, b), ...eaves], hips, maxPoints);
 }

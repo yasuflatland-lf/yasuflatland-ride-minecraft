@@ -5,6 +5,7 @@ import { cornerMarkerPoints } from "../cornerMarker";
 import type { BuildFlow } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
 import { volumeOf } from "../volume/geometry";
+import { boxStepLimit, isBoxStepKind } from "../volume/kind";
 import { volumeSize } from "../volume/size";
 
 export interface PreviewSet {
@@ -13,8 +14,8 @@ export interface PreviewSet {
   endCube: Vec3[];
   roof: Vec3[];
   paste: Vec3[];
-  copy: Vec3[];
-  copyOver: Vec3[];
+  boxStep: Vec3[];
+  boxStepOver: Vec3[];
 }
 
 export interface PreviewAim {
@@ -35,8 +36,8 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
     endCube: [],
     roof: [],
     paste: [],
-    copy: [],
-    copyOver: [],
+    boxStep: [],
+    boxStepOver: [],
   };
   switch (flow.kind) {
     case "idle":
@@ -64,11 +65,11 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         },
         BUILD_SPEC.outlineMaxPoints,
       );
-      if (flow.heightedKind === "copy") {
+      if (isBoxStepKind(flow.heightedKind)) {
         const size = volumeSize(flow.base, height);
-        if (size.x * size.y * size.z > BUILD_SPEC.maxCopyVolume)
-          set.copyOver = wireframe;
-        else set.copy = wireframe;
+        if (size.x * size.y * size.z > boxStepLimit(flow.heightedKind))
+          set.boxStepOver = wireframe;
+        else set.boxStep = wireframe;
       } else set.roof = wireframe;
       break;
     }

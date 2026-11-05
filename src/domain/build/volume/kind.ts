@@ -1,8 +1,23 @@
 import type { RoofKind } from "../roof/roof";
+import { BUILD_SPEC } from "../spec";
 
 export type SolidKind = "cylinder" | "cube";
 export type HeightedKind = RoofKind | SolidKind;
-export type HeightStepKind = HeightedKind | "copy";
+export type BoxStepKind = "copy";
+export type HeightStepKind = HeightedKind | BoxStepKind;
+
+const BOX_STEP_LIMITS: Readonly<Record<BoxStepKind, number>> = {
+  copy: BUILD_SPEC.maxCopyVolume,
+};
+
+export function isBoxStepKind(kind: HeightStepKind): kind is BoxStepKind {
+  return Object.hasOwn(BOX_STEP_LIMITS, kind);
+}
+
+export function boxStepLimit(kind: BoxStepKind): number {
+  return BOX_STEP_LIMITS[kind];
+}
+
 export type FillStyle = "fill" | "hollow" | "tube";
 
 const ROOF_FILLS: readonly FillStyle[] = Object.freeze(["fill", "hollow"]);

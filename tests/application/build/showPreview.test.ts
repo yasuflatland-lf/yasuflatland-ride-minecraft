@@ -460,8 +460,8 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
             "shape",
             "endCube",
             "roof",
-            "copy",
-            "copyOver",
+            "boxStep",
+            "boxStepOver",
           ] as const)
             expect(set?.[layer]).toEqual([]);
         } else expect(feedback.previews).toEqual([]);
