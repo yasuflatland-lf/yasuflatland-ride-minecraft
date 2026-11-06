@@ -94,7 +94,7 @@ describe("roof tent occupant", () => {
           world.dimensionOf(cmd.tentId),
           world.spawnCellOf(cmd.tentId),
         );
-        expect(world.spawnSetBy(cmd.tentId)).toBe(playerId);
+        expect(world.spawnSetters(cmd.tentId)).toEqual([playerId]);
         expect(world.occupantOf(cmd.tentId)).toBe(playerId);
         expect(world.placeOutside).not.toHaveBeenCalled();
         expect(leave.execute).not.toHaveBeenCalled();
@@ -110,7 +110,7 @@ describe("roof tent occupant", () => {
         }
         expect(
           vi.mocked(bed.setSpawnPoint).mock.invocationCallOrder[0],
-        ).toBeLessThan(world.setSpawnSetBy.mock.invocationCallOrder[0] ?? 0);
+        ).toBeLessThan(world.addSpawnSetter.mock.invocationCallOrder[0] ?? 0);
       }),
     );
   });
@@ -133,7 +133,7 @@ describe("roof tent occupant", () => {
       playerId,
       SLEEP_MESSAGES.nightOnly,
     );
-    expect(world.spawnSetBy(cmd.tentId)).toBe(playerId);
+    expect(world.spawnSetters(cmd.tentId)).toEqual([playerId]);
   });
 
   it("sleeps after the occupant leaves while the form is open", () => {
@@ -149,7 +149,7 @@ describe("roof tent occupant", () => {
       world.spawnCellOf(cmd.tentId),
     );
     expect(bed.sleep).toHaveBeenCalledExactlyOnceWith(playerId);
-    expect(world.spawnSetBy(cmd.tentId)).toBe(playerId);
+    expect(world.spawnSetters(cmd.tentId)).toEqual([playerId]);
     expect(world.occupantOf(cmd.tentId)).toBeUndefined();
     expect(world.placeOutside).not.toHaveBeenCalled();
     expect(leaveSpy).not.toHaveBeenCalled();
@@ -165,17 +165,17 @@ describe("roof tent occupant", () => {
           expect(sleep.execute(cmd)).toBe(false);
           expect(bed.setSpawnPoint).not.toHaveBeenCalled();
           expect(bed.sleep).not.toHaveBeenCalled();
-          expect(world.setSpawnSetBy).not.toHaveBeenCalled();
+          expect(world.addSpawnSetter).not.toHaveBeenCalled();
         },
       ),
     );
   });
 
-  it("requests clearing only the recorded player's matching spawn and forgets the record", () => {
+  it("requests clearing the recorded setters and forgets only this tent", () => {
     const { world, bed } = setup();
-    world.spawns.set(cmd.tentId, playerId);
-    world.spawns.set(asRoofTentId("another-tent"), other);
-    const removed = new ClearRoofTentSpawn(world, bed);
+    world.spawns.set(cmd.tentId, [playerId]);
+    world.spawns.set(asRoofTentId("another-tent"), [other]);
+    const removed = new ClearRoofTentSpawn(world, bed, { warn: vi.fn() });
     removed.removed(cmd.tentId, other);
     removed.removed(cmd.tentId, other);
     removed.removed(asRoofTentId("unused"), undefined);
@@ -184,41 +184,90 @@ describe("roof tent occupant", () => {
       world.dimensionOf(cmd.tentId),
       world.spawnCellOf(cmd.tentId),
     );
-    expect(world.spawnSetBy(cmd.tentId)).toBeUndefined();
-    expect(world.spawnSetBy(asRoofTentId("another-tent"))).toBe(other);
-    expect(world.setSpawnSetBy).toHaveBeenCalledExactlyOnceWith(
-      cmd.tentId,
-      undefined,
+    expect(world.spawnSetters(cmd.tentId)).toEqual([]);
+    expect(world.spawnSetters(asRoofTentId("another-tent"))).toEqual([other]);
+    expect(world.clearSpawnSetters).toHaveBeenCalledWith(cmd.tentId);
+  });
+
+  it("releases every matching setter and preserves overwritten spawn points", () => {
+    fc.assert(
+      fc.property(
+        fc
+          .uniqueArray(fc.string())
+          .chain((ids) => fc.tuple(fc.constant(ids), fc.subarray(ids))),
+        ([ids, overwritten]) => {
+          const { world, bed } = setup();
+          const setters = ids.map(asPlayerId);
+          const dimension = world.dimensionOf(cmd.tentId);
+          const cell = world.spawnCellOf(cmd.tentId);
+          const elsewhere = { x: cell.x + 1, y: cell.y, z: cell.z };
+          const current = new Map(
+            setters.map((id) => [
+              id,
+              {
+                dimension,
+                cell: overwritten.includes(id) ? elsewhere : cell,
+              },
+            ]),
+          );
+          world.spawns.set(cmd.tentId, setters);
+          vi.mocked(bed.clearSpawnPoint).mockImplementation(
+            (id, dimension, cell) => {
+              const spawn = current.get(id);
+              if (
+                spawn?.dimension === dimension &&
+                spawn.cell.x === cell.x &&
+                spawn.cell.y === cell.y &&
+                spawn.cell.z === cell.z
+              )
+                current.delete(id);
+            },
+          );
+          new ClearRoofTentSpawn(world, bed, { warn: vi.fn() }).removed(
+            cmd.tentId,
+            undefined,
+          );
+          for (const id of setters) {
+            expect(current.get(id)).toEqual(
+              overwritten.includes(id)
+                ? { dimension, cell: elsewhere }
+                : undefined,
+            );
+          }
+          expect(bed.clearSpawnPoint).toHaveBeenCalledTimes(setters.length);
+          expect(world.spawnSetters(cmd.tentId)).toEqual([]);
+          expect(world.clearSpawnSetters).toHaveBeenCalledTimes(
+            setters.length === 0 ? 0 : 1,
+          );
+        },
+      ),
     );
   });
 
-  it("preserves a later spawn elsewhere when removing the tent", () => {
-    const { world, bed, sleep } = setup();
-    const laterCell = { x: 100, y: 70, z: 200 };
-    let spawn = world.spawnCellOf(cmd.tentId);
-    vi.mocked(bed.setSpawnPoint).mockImplementation(
-      (_player, _dimension, cell) => {
-        spawn = cell;
-      },
+  it("continues clearing after a failure, logs a warning, and forgets all setters", () => {
+    const { world, bed } = setup();
+    const log = { warn: vi.fn() };
+    world.spawns.set(cmd.tentId, [playerId, other]);
+    vi.mocked(bed.clearSpawnPoint).mockImplementationOnce(() => {
+      throw new Error("unavailable");
+    });
+    new ClearRoofTentSpawn(world, bed, log).removed(cmd.tentId, undefined);
+    expect(vi.mocked(bed.clearSpawnPoint).mock.calls.map(([id]) => id)).toEqual(
+      [playerId, other],
     );
-    vi.mocked(bed.clearSpawnPoint).mockImplementation(
-      (player, dimension, cell) => {
-        if (
-          player === playerId &&
-          dimension === world.dimensionOf(cmd.tentId) &&
-          spawn.x === cell.x &&
-          spawn.y === cell.y &&
-          spawn.z === cell.z
-        ) {
-          spawn = { x: 0, y: 0, z: 0 };
-        }
-      },
+    expect(log.warn).toHaveBeenCalledExactlyOnceWith(
+      `Roof tent ${cmd.tentId} spawn cleanup for ${playerId}: Error: unavailable`,
     );
+    expect(world.clearSpawnSetters).toHaveBeenCalledExactlyOnceWith(cmd.tentId);
+    expect(world.spawnSetters(cmd.tentId)).toEqual([]);
+  });
+
+  it("adds every sleeper while ignoring duplicate sleep requests", () => {
+    const { world, sleep } = setup();
     sleep.execute(cmd);
-    spawn = laterCell;
-    new ClearRoofTentSpawn(world, bed).removed(cmd.tentId, undefined);
-    expect(spawn).toEqual(laterCell);
-    expect(world.spawnSetBy(cmd.tentId)).toBeUndefined();
+    sleep.execute({ ...cmd, playerId: other });
+    sleep.execute(cmd);
+    expect(world.spawnSetters(cmd.tentId)).toEqual([playerId, other]);
   });
 
   it("dispatches the occupant's menu choices and ignores other players", () => {
@@ -230,7 +279,7 @@ describe("roof tent occupant", () => {
     for (const choice of menu.entries()) menu.choose(cmd, choice);
     expect(bed.sleep).not.toHaveBeenCalled();
     expect(bed.setSpawnPoint).not.toHaveBeenCalled();
-    expect(world.setSpawnSetBy).not.toHaveBeenCalled();
+    expect(world.addSpawnSetter).not.toHaveBeenCalled();
     expect(world.placeOutside).not.toHaveBeenCalled();
     world.occupants.set(cmd.tentId, playerId);
     menu.choose(cmd, "sleep");
@@ -253,7 +302,7 @@ describe("roof tent occupant", () => {
       tents,
       () => ({ status: "removed" }),
       leave,
-      new ClearRoofTentSpawn(world, bed),
+      new ClearRoofTentSpawn(world, bed, { warn: vi.fn() }),
     ).check();
     expect(world.calls).toEqual([
       ["placeOutside", playerId, cmd.tentId],

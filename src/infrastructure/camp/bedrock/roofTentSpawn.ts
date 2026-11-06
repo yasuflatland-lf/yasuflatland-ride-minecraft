@@ -1,7 +1,10 @@
 import type { RoofTentId } from "../../../domain/camp/ids";
 import { asDimensionId, type PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { ROOF_TENT_SPAWN_SET_BY_PROPERTY } from "../identifiers";
+import {
+  ROOF_TENT_SPAWN_SET_BY_PROPERTY,
+  ROOF_TENT_SPAWN_SETTERS_PROPERTY,
+} from "../identifiers";
 import { roofTentEntity } from "./bedrockRoofTentWorld";
 import type { RoofTentOccupants } from "./roofTentOccupants";
 export class RoofTentSpawn {
@@ -17,17 +20,29 @@ export class RoofTentSpawn {
     };
   }
 
-  spawnSetBy(id: RoofTentId): PlayerId | undefined {
-    return this.occupants.snapshot(id)?.spawnSetBy;
+  spawnSetters(id: RoofTentId): readonly PlayerId[] {
+    return this.occupants.snapshot(id)?.spawnSetters ?? [];
   }
 
-  setSpawnSetBy(id: RoofTentId, playerId: PlayerId | undefined): void {
-    roofTentEntity(id)?.setDynamicProperty(
-      ROOF_TENT_SPAWN_SET_BY_PROPERTY,
-      playerId,
+  addSpawnSetter(id: RoofTentId, playerId: PlayerId): void {
+    const setters = [...new Set([...this.spawnSetters(id), playerId])];
+    const entity = roofTentEntity(id);
+    entity?.setDynamicProperty(
+      ROOF_TENT_SPAWN_SETTERS_PROPERTY,
+      JSON.stringify(setters),
     );
+    // Keep the latest sleeper visible to packs that predate ADR 0231.
+    entity?.setDynamicProperty(ROOF_TENT_SPAWN_SET_BY_PROPERTY, playerId);
     const saved = this.occupants.snapshots.get(id);
-    if (saved) saved.spawnSetBy = playerId;
+    if (saved) saved.spawnSetters = setters;
+  }
+
+  clearSpawnSetters(id: RoofTentId): void {
+    const entity = roofTentEntity(id);
+    entity?.setDynamicProperty(ROOF_TENT_SPAWN_SETTERS_PROPERTY, undefined);
+    entity?.setDynamicProperty(ROOF_TENT_SPAWN_SET_BY_PROPERTY, undefined);
+    const saved = this.occupants.snapshots.get(id);
+    if (saved) saved.spawnSetters = [];
   }
 
   dimensionOf(id: RoofTentId) {

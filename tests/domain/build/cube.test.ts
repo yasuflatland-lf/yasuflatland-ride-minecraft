@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { boxOf, contains } from "../../../src/domain/build/box";
+import { boxOf } from "../../../src/domain/build/box";
 import { cellsOfShape } from "../../../src/domain/build/shape/shape";
 import {
   cubePlacement,

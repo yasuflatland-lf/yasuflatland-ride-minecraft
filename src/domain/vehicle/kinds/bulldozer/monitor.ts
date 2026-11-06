@@ -10,15 +10,15 @@ export const BULLDOZER_MONITOR: MonitorRule = Object.freeze({
   tools: Object.freeze([
     Object.freeze({
       item: BLADE_SWITCH_ITEM,
-      states: Object.freeze(["down", "up"]),
+      states: Object.freeze<[string, ...string[]]>(["down", "up"]),
     }),
     Object.freeze({
       item: WIDE_BLADE_SWITCH_ITEM,
-      states: Object.freeze(["normal", "wide"]),
+      states: Object.freeze<[string, ...string[]]>(["normal", "wide"]),
     }),
     Object.freeze({
       item: ROAD_PAVER_SWITCH_ITEM,
-      states: Object.freeze(["off", "on"]),
+      states: Object.freeze<[string, ...string[]]>(["off", "on"]),
     }),
   ]),
 });

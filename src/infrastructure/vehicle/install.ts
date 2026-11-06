@@ -29,7 +29,7 @@ import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
-import { NAMESPACE } from "../shared/identifiers";
+import { consoleLogger as log } from "../shared/consoleLogger";
 import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockDecorWorld } from "./bedrock/bedrockDecorWorld";
 import { BedrockFleetWorld } from "./bedrock/bedrockFleetWorld";
@@ -81,7 +81,6 @@ export function installVehicles(deps: {
     isStandableRoomBlock,
   );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
-  const log = { warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`) };
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
   const riders = new RiderEffects(bedrock, log);
   const feedback = new SwitchFeedback(bedrock, riders);
@@ -97,6 +96,7 @@ export function installVehicles(deps: {
       place: new PlaceVehicle(
         new BedrockPlacementWorld(inventory, index, deps.isCampSpace),
         repo,
+        log,
       ),
       starter: new GiveStarterVehicle(inventory),
       gift: new OpenGift(inventory),

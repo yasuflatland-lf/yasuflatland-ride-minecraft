@@ -66,16 +66,39 @@ describe("BedrockPaintWorld", () => {
     expect(paint.paintOf(asVehicleId(vehicle.id))).toBeUndefined();
   });
 
-  it.each(PAINTS)("paints the vehicle %s with the dye sound", (color) => {
+  it.each(PAINTS)("paints the vehicle %s without the dye sound", (color) => {
     const { dimension, vehicle, paint } = fixture();
     paint.paint(asVehicleId(vehicle.id), color);
     expect(vehicle.triggerEvent).toHaveBeenCalledExactlyOnceWith(
       paintEvent(color),
     );
+    expect(dimension.playSound).not.toHaveBeenCalled();
+  });
+
+  it("plays the dye sound at the vehicle", () => {
+    const { dimension, vehicle, paint } = fixture();
+    paint.playPaintSound(asVehicleId(vehicle.id));
     expect(dimension.playSound).toHaveBeenCalledExactlyOnceWith(
       "dye.use",
       vehicle.location,
     );
+  });
+
+  it("logs and swallows a failing dye sound", () => {
+    const { dimension, vehicle, paint } = fixture();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    dimension.playSound.mockImplementation(() => {
+      throw new Error("boom");
+    });
+    expect(() => paint.playPaintSound(asVehicleId(vehicle.id))).not.toThrow();
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
+  });
+
+  it("plays no dye sound for a missing vehicle", () => {
+    const { dimension, paint } = fixture();
+    paint.playPaintSound(asVehicleId("missing"));
+    expect(dimension.playSound).not.toHaveBeenCalled();
   });
 
   it("does not paint a missing vehicle", () => {

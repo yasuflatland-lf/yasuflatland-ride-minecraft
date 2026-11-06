@@ -3,18 +3,22 @@ import { describe, expect, it } from "vitest";
 import {
   BLANK_SCREEN,
   type MonitorRule,
-  monitorPropertySpec,
   monitorScreen,
-  monitorScreens,
   monitorTool,
   nextToolState,
 } from "../../../../src/domain/vehicle/monitor/monitor";
+import {
+  monitorPropertySpec,
+  monitorScreens,
+} from "../../../support/monitorContract";
 
 const ruleArbitrary = fc
   .uniqueArray(
     fc.record({
       item: fc.string({ minLength: 1 }),
-      states: fc.uniqueArray(fc.string(), { minLength: 1, maxLength: 5 }),
+      states: fc
+        .uniqueArray(fc.string(), { minLength: 1, maxLength: 5 })
+        .map((states) => states as [string, ...string[]]),
     }),
     { selector: (tool) => tool.item, minLength: 1, maxLength: 5 },
   )
@@ -81,7 +85,7 @@ describe("cab monitor screens", () => {
           const item = rule.tools.map((tool) => tool.item).join("") + suffix;
           const extended = {
             ...rule,
-            tools: [...rule.tools, { item, states: ["new"] }],
+            tools: [...rule.tools, { item, states: ["new"] as [string] }],
           };
           for (const tool of rule.tools)
             for (const state of tool.states)
@@ -94,7 +98,7 @@ describe("cab monitor screens", () => {
   });
 
   it("maps a bulldozer-shaped blade switch to down then up", () => {
-    const rule = {
+    const rule: MonitorRule = {
       group: "tools",
       tools: [{ item: "blade_switch", states: ["down", "up"] }],
     };

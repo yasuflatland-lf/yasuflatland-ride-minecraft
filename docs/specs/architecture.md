@@ -14,6 +14,7 @@
 - Source: [0087](../adr/0087-sports-boat-spec-table.md)
 - Source: [0089](../adr/0089-per-kind-control-mapping.md)
 - Source: [0090](../adr/0090-group-the-vehicle-core-by-subcontext.md)
+- Source: [0120](../adr/0120-choose-a-sports-boat-seat-by-aiming-at-it.md)
 - Source: [0127](../adr/0127-resend-every-synced-entity-value-after-a-failed-send.md)
 - Source: [0129](../adr/0129-share-room-primitives-between-features.md)
 - Source: [0156](../adr/0156-resend-the-docked-property-after-a-failed-send.md)
@@ -24,6 +25,7 @@
 - Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
 - Source: [0221](../adr/0221-organize-infrastructure-vehicle-code-by-kind.md)
 - Source: [0222](../adr/0222-split-the-drive-world-port-by-role.md)
+- Excluded: [0154](../adr/0154-keep-camper-passengers-in-their-seats-on-departure.md): camper seat choice and departure belong to the seating topic; vehicle release remains based on 0120.
 - Excluded: [0179](../adr/0179-support-realms-as-a-second-play-environment.md): Realms support belongs to the dev-environment topic.
 - Excluded: [0204](../adr/0204-shard-unit-tests-across-ci-jobs.md): CI sharding belongs to the testing topic, not runtime layering.
 - Excluded: [0207](../adr/0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md): temporary occupied roof tent rain ceilings belong to the camping gear topic.
@@ -167,6 +169,15 @@
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`DriveVehicles` runs the step's commands first, in order, and the seat commands last, through `DriveWorld.run(vehicleId, commands)`."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "A throw skips the rest of that vehicle's tick"
 - Implementation: `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/isolated.ts`
 - Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` "still writes a vehicle form change when moving the vehicle throws on that tick", "stands each leaving rider at their exit after the final commands", and "keeps moving the other vehicles and logs the error when one vehicle throws". Not verified: every possible failure position in every world operation.
+
+### Release of vehicles that are no longer loaded
+
+- Applies to: Application cleanup of vehicles missing from the loaded vehicles.
+- Rule: A vehicle id missing from the loaded vehicles is removed from the repository and queued for release. Each driving cycle retries every queued release in isolation. A successful release leaves the queue; a vehicle loaded again leaves it without a release. Only the first failure per id is logged. The warning flag is cleared after a successful release or when the vehicle is loaded again. There is no retry limit.
+- Agreement: Proposed
+- Basis: [0120](../adr/0120-choose-a-sports-boat-seat-by-aiming-at-it.md) Decision, "Fillers are removed when the boat is released (broken, removed by the vehicle limit, or no longer loaded)." The retry itself has no ADR (issue #1372).
+- Implementation: `src/application/vehicle/driveVehicles.ts`; `src/infrastructure/vehicle/bedrock/vehicleReleaser.ts`
+- Verification: `tests/application/vehicle/driveVehicles.test.ts` "retries a failed release on the next cycle and stops after success", "warns only once per vehicle across repeated release failures", "cancels a pending release when the vehicle is loaded again and resets its warning", and "releases every gone vehicle exactly once successfully across arbitrary failure counts". The existing test "releases each vehicle that is no longer loaded once, and logs a failed release without skipping the others" checks release isolation.
 
 ### Placement contract
 

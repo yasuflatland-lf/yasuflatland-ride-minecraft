@@ -13,6 +13,7 @@ import type { RoofTentId } from "../../../domain/camp/ids";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { NAMESPACE } from "../../shared/identifiers";
 import { RoofTentCeiling } from "./roofTentCeiling";
 import { RoofTentOccupants } from "./roofTentOccupants";
 import { RoofTentSpawn } from "./roofTentSpawn";
@@ -33,7 +34,9 @@ export class BedrockRoofTentOccupantWorld
     );
     this.ceiling = new RoofTentCeiling(this.occupants, isVehicleSpace);
     this.spawn = new RoofTentSpawn(this.occupants);
-    this.clearSpawn = new ClearRoofTentSpawn(this, bed);
+    this.clearSpawn = new ClearRoofTentSpawn(this, bed, {
+      warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`),
+    });
   }
 
   remember(entity: Entity, saveExit = false, spawnYaw?: number): void {
@@ -89,12 +92,16 @@ export class BedrockRoofTentOccupantWorld
     return this.spawn.spawnCellOf(id);
   }
 
-  spawnSetBy(id: RoofTentId): PlayerId | undefined {
-    return this.spawn.spawnSetBy(id);
+  spawnSetters(id: RoofTentId): readonly PlayerId[] {
+    return this.spawn.spawnSetters(id);
   }
 
-  setSpawnSetBy(id: RoofTentId, playerId: PlayerId | undefined): void {
-    this.spawn.setSpawnSetBy(id, playerId);
+  addSpawnSetter(id: RoofTentId, playerId: PlayerId): void {
+    this.spawn.addSpawnSetter(id, playerId);
+  }
+
+  clearSpawnSetters(id: RoofTentId): void {
+    this.spawn.clearSpawnSetters(id);
   }
 
   dimensionOf(id: RoofTentId) {

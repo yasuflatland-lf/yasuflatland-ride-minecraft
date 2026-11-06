@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   PlaceVehicle,
   type PlaceVehicleCommand,
@@ -16,6 +16,8 @@ import {
   placementCell,
 } from "../../../src/domain/vehicle/placement/placement";
 import { FakeWorld, InMemoryRepo } from "./fakes";
+
+const log = { warn: () => {} };
 
 const cmd: PlaceVehicleCommand = {
   kind: "suv",
@@ -35,7 +37,7 @@ describe("PlaceVehicle (ADR 0008)", () => {
         fc.boolean(),
         (playerIds, kind, creative) => {
           const world = new FakeWorld();
-          const placement = new PlaceVehicle(world, new InMemoryRepo());
+          const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
           if (creative)
             for (const playerId of playerIds)
               world.creativePlayers.add(playerId);
@@ -50,7 +52,7 @@ describe("PlaceVehicle (ADR 0008)", () => {
   it("consumes one item of the command's kind from the slot it was used from, then places a vehicle on the block and saves the aggregate", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    expect(new PlaceVehicle(world, repo).execute(cmd)).toBe(true);
+    expect(new PlaceVehicle(world, repo, log).execute(cmd)).toBe(true);
     expect(world.calls).toEqual([
       "consume:p:2:suv",
       "spawn:minecraft:overworld:10.5,65,-2.5:45:suv",
@@ -62,14 +64,14 @@ describe("PlaceVehicle (ADR 0008)", () => {
   it("does not consume the item in creative mode", () => {
     const world = new FakeWorld();
     world.creativePlayers.add("p");
-    new PlaceVehicle(world, new InMemoryRepo()).execute(cmd);
+    new PlaceVehicle(world, new InMemoryRepo(), log).execute(cmd);
     expect(world.calls.some((c) => c.startsWith("consume"))).toBe(false);
   });
 
   it("does not place the vehicle or consume the item when there is no room, such as under a low ceiling", () => {
     const world = new FakeWorld();
     world.air = (at) => !(at.y === 66 && at.x === 10 && at.z === -3);
-    expect(new PlaceVehicle(world, new InMemoryRepo()).execute(cmd)).toBe(
+    expect(new PlaceVehicle(world, new InMemoryRepo(), log).execute(cmd)).toBe(
       false,
     );
     expect(world.calls).toEqual([]);
@@ -80,7 +82,7 @@ describe("PlaceVehicle (ADR 0008)", () => {
     const world = new FakeWorld();
     world.itemInSlot = false;
     const repo = new InMemoryRepo();
-    expect(new PlaceVehicle(world, repo).execute(cmd)).toBe(false);
+    expect(new PlaceVehicle(world, repo, log).execute(cmd)).toBe(false);
     expect(world.calls).toEqual([]);
     expect(repo.get(asVehicleId("v1"))).toBeUndefined();
     expect(world.owners.size).toBe(0);
@@ -90,7 +92,9 @@ describe("PlaceVehicle (ADR 0008)", () => {
     const world = new FakeWorld();
     world.creativePlayers.add("p");
     world.itemInSlot = false;
-    expect(new PlaceVehicle(world, new InMemoryRepo()).execute(cmd)).toBe(true);
+    expect(new PlaceVehicle(world, new InMemoryRepo(), log).execute(cmd)).toBe(
+      true,
+    );
   });
 });
 
@@ -106,7 +110,7 @@ describe("PlaceVehicle placement gift (ADR 0093)", () => {
         (kind, creative) => {
           const world = new FakeWorld();
           if (creative) world.creativePlayers.add("p");
-          const placement = new PlaceVehicle(world, new InMemoryRepo());
+          const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
           placement.execute({ ...cmd, kind });
           placement.execute({ ...cmd, kind });
           const gift = profileOf(kind).placementGift;
@@ -130,7 +134,7 @@ describe("PlaceVehicle placement gift (ADR 0093)", () => {
   it("gives the box with the camper, after consuming the item and spawning", () => {
     const world = new FakeWorld();
     expect(
-      new PlaceVehicle(world, new InMemoryRepo()).execute({
+      new PlaceVehicle(world, new InMemoryRepo(), log).execute({
         ...cmd,
         kind: "camper",
       }),
@@ -145,7 +149,7 @@ describe("PlaceVehicle placement gift (ADR 0093)", () => {
 
   it("gives each player their own box", () => {
     const world = new FakeWorld();
-    const placement = new PlaceVehicle(world, new InMemoryRepo());
+    const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
     for (const playerId of ["p", "q"].map(asPlayerId)) {
       placement.execute({ ...cmd, kind: "camper", playerId });
       placement.execute({ ...cmd, kind: "camper", playerId });
@@ -173,7 +177,7 @@ describe("PlaceVehicle placement gift (ADR 0093)", () => {
     const world = new FakeWorld();
     setUp(world);
     expect(
-      new PlaceVehicle(world, new InMemoryRepo()).execute({
+      new PlaceVehicle(world, new InMemoryRepo(), log).execute({
         ...cmd,
         kind: "camper",
       }),
@@ -189,7 +193,7 @@ describe("PlaceVehicle placement gift (ADR 0093)", () => {
     const world = new FakeWorld();
     world.absentPlayers.add("p");
     expect(
-      new PlaceVehicle(world, new InMemoryRepo()).execute({
+      new PlaceVehicle(world, new InMemoryRepo(), log).execute({
         ...cmd,
         kind: "camper",
       }),
@@ -228,7 +232,7 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
         fc.string({ minLength: 1 }).map(asDimensionId),
         (kind, clicked, face, depth, dimensionId) => {
           const world = new FakeWorld();
-          const placement = new PlaceVehicle(world, new InMemoryRepo());
+          const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
           world.water = (at) =>
             at.x === clicked.x &&
             at.z === clicked.z &&
@@ -265,7 +269,7 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
         fc.boolean(),
         (kind, clicked, face, wet) => {
           const world = new FakeWorld();
-          const placement = new PlaceVehicle(world, new InMemoryRepo());
+          const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
           world.water = () => wet;
           expect(
             placement.cellFor(kind, asDimensionId("overworld"), clicked, face),
@@ -282,7 +286,7 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
         fc.integer({ min: 0, max: 16 }),
         (clicked, depth) => {
           const world = new FakeWorld();
-          const placement = new PlaceVehicle(world, new InMemoryRepo());
+          const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
           world.water = (at) =>
             at.x === clicked.x &&
             at.z === clicked.z &&
@@ -303,7 +307,7 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
 
   it("places the sports boat on the water beside a shore whose side is clicked", () => {
     const world = new FakeWorld();
-    const placement = new PlaceVehicle(world, new InMemoryRepo());
+    const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
     const clicked = { x: 2, y: 5, z: 3 };
     world.water = (at) => at.x === 3 && at.y >= 4 && at.y <= 6;
     expect(
@@ -326,14 +330,14 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
 
   it("places on water or lava only the sports boat", () => {
     const world = new FakeWorld();
-    const placement = new PlaceVehicle(world, new InMemoryRepo());
+    const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
     expect(placement.placesOnLiquid("suv")).toBe(false);
     expect(placement.placesOnLiquid("sportsboat")).toBe(true);
     expect(placement.placesOnLiquid("camper")).toBe(false);
     fc.assert(
       fc.property(fc.constantFrom(...VEHICLE_KINDS), (kind) => {
         const world = new FakeWorld();
-        const placement = new PlaceVehicle(world, new InMemoryRepo());
+        const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
         expect(placement.placesOnLiquid(kind)).toBe(
           profileOf(kind).placement.surfaces.includes("water") ||
             profileOf(kind).placement.surfaces.includes("lava"),
@@ -343,7 +347,11 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
   });
 
   it("accepts view-ray liquids exactly as declared by each kind's profile", () => {
-    const placement = new PlaceVehicle(new FakeWorld(), new InMemoryRepo());
+    const placement = new PlaceVehicle(
+      new FakeWorld(),
+      new InMemoryRepo(),
+      log,
+    );
     fc.assert(
       fc.property(fc.constantFrom(...VEHICLE_KINDS), (kind) => {
         const { liquids } = profileOf(kind).placement;
@@ -356,7 +364,7 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
 
   it("places the sports boat on the top lava cell without allowing other kinds there", () => {
     const world = new FakeWorld();
-    const placement = new PlaceVehicle(world, new InMemoryRepo());
+    const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
     world.lava = (at) => at.x === 3 && at.z === 4 && at.y >= 5 && at.y <= 7;
     expect(
       placement.cellFor(
@@ -386,7 +394,10 @@ it("consumes the item unless the placing player is in creative mode", () => {
         const world = new FakeWorld();
         if (creative) world.creativePlayers.add("p");
         expect(
-          new PlaceVehicle(world, new InMemoryRepo()).execute({ ...cmd, kind }),
+          new PlaceVehicle(world, new InMemoryRepo(), log).execute({
+            ...cmd,
+            kind,
+          }),
         ).toBe(true);
         expect(world.calls.some((c) => c.startsWith("consume"))).toBe(
           !creative,
@@ -427,9 +438,9 @@ describe("PlaceVehicle and camp space (ADR 0129)", () => {
           expect(matches(at)).toBe(false);
           return true;
         };
-        expect(new PlaceVehicle(world, repo).execute({ ...cmd, kind })).toBe(
-          false,
-        );
+        expect(
+          new PlaceVehicle(world, repo, log).execute({ ...cmd, kind }),
+        ).toBe(false);
         expect(world.calls).toEqual([]);
         expect(repo.ids()).toEqual([]);
       }),
@@ -466,7 +477,7 @@ describe("PlaceVehicle and camp space (ADR 0129)", () => {
                 at.z === cmd.blockLocation.z + c.z,
             );
           expect(
-            new PlaceVehicle(world, new InMemoryRepo()).execute({
+            new PlaceVehicle(world, new InMemoryRepo(), log).execute({
               ...cmd,
               kind,
             }),
@@ -483,7 +494,104 @@ describe("PlaceVehicle and camp space (ADR 0129)", () => {
       dimensions.push(dim);
       return false;
     };
-    new PlaceVehicle(world, new InMemoryRepo()).execute(cmd);
+    new PlaceVehicle(world, new InMemoryRepo(), log).execute(cmd);
     expect(new Set(dimensions)).toEqual(new Set([cmd.dimensionId]));
+  });
+});
+
+describe("PlaceVehicle spawn failures", () => {
+  it("conserves the item or entity at every failure point outside Creative", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(
+          "consume",
+          "spawn",
+          "initialization",
+          "cleanup",
+          "success",
+        ),
+        fc.constantFrom(...VEHICLE_KINDS),
+        fc.integer({ min: 0, max: 8 }),
+        (failure, kind, slot) => {
+          const world = new FakeWorld();
+          const repo = new InMemoryRepo();
+          world.itemInSlot = failure !== "consume";
+          if (failure !== "success" && failure !== "consume")
+            world.spawnFailure = {
+              status: "failed",
+              cleaned: failure !== "cleanup",
+            };
+          const spawn = vi.spyOn(world, "spawnVehicle");
+          const result = new PlaceVehicle(world, repo, log).execute({
+            ...cmd,
+            kind,
+            slot,
+          });
+          const consumed = world.calls.filter((c) =>
+            c.startsWith("consume:"),
+          ).length;
+          const refunded = world.calls.filter((c) =>
+            c.startsWith("refund:"),
+          ).length;
+          const items = 1 - consumed + refunded;
+          const entities =
+            world.owners.size +
+            (failure === "cleanup" && spawn.mock.calls.length > 0 ? 1 : 0);
+          expect(items + entities).toBe(1);
+          expect(result).toBe(failure === "success");
+          expect(repo.ids()).toHaveLength(result ? 1 : 0);
+          expect(refunded).toBe(
+            failure === "spawn" || failure === "initialization" ? 1 : 0,
+          );
+          if (refunded)
+            expect(world.calls).toContain(`refund:p:${slot}:${kind}`);
+          if (!result) {
+            expect(
+              world.calls.some(
+                (c) => c.startsWith("gift:") || c.startsWith("markGift:"),
+              ),
+            ).toBe(false);
+            expect(world.giftsReceived.size).toBe(0);
+          }
+        },
+      ),
+    );
+  });
+
+  it("withholds the refund and warns when cleanup is unconfirmed", () => {
+    const world = new FakeWorld();
+    world.spawnFailure = { status: "failed", cleaned: false };
+    const repo = new InMemoryRepo();
+    const save = vi.spyOn(repo, "save");
+    const logger = { warn: vi.fn() };
+    expect(
+      new PlaceVehicle(world, repo, logger).execute({ ...cmd, kind: "camper" }),
+    ).toBe(false);
+    expect(world.calls).toEqual(["consume:p:2:camper"]);
+    expect(save).not.toHaveBeenCalled();
+    expect(world.giftsReceived.size).toBe(0);
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
+      "p: camper placement failed; cleanup unconfirmed, item not refunded",
+    );
+  });
+
+  it("never consumes or refunds a Creative player's item on spawn failure", () => {
+    fc.assert(
+      fc.property(
+        fc.boolean(),
+        fc.constantFrom(...VEHICLE_KINDS),
+        (cleaned, kind) => {
+          const world = new FakeWorld();
+          world.creativePlayers.add("p");
+          world.spawnFailure = { status: "failed", cleaned };
+          const repo = new InMemoryRepo();
+          expect(
+            new PlaceVehicle(world, repo, log).execute({ ...cmd, kind }),
+          ).toBe(false);
+          expect(world.calls).toEqual([]);
+          expect(repo.ids()).toEqual([]);
+        },
+      ),
+    );
   });
 });
