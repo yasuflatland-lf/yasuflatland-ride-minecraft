@@ -121,10 +121,6 @@ export class BuildSession {
     return this.currentMode.active !== was;
   }
 
-  setClipboard(clipboard: Clipboard): void {
-    this.currentClipboard = clipboard;
-  }
-
   /** Marks an edit as running; "busy" if one already is. */
   beginEdit(): EditRefusal | undefined {
     if (this.editing) return "busy";

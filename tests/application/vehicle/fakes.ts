@@ -16,6 +16,7 @@ import type {
   GiftBoxWorld,
   PlacementWorld,
   StarterWorld,
+  VehicleSpawnResult,
 } from "../../../src/application/vehicle/ports/placement";
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
 import { cellKey } from "../../../src/domain/shared/cells";
@@ -343,17 +344,24 @@ export class FakeWorld
   isLavaAt(_dim: string, at: Vec3) {
     return this.lava(at);
   }
+  spawnFailure: { status: "failed"; cleaned: boolean } | undefined;
+
+  refundVehicleItem(playerId: string, slot: number, kind: VehicleKind) {
+    this.calls.push(`refund:${playerId}:${slot}:${kind}`);
+  }
+
   spawnVehicle(
     dim: string,
     at: Vec3,
     yaw: number,
     kind: VehicleKind,
     ownerId: string,
-  ) {
+  ): VehicleSpawnResult {
+    if (this.spawnFailure) return this.spawnFailure;
     const id = asVehicleId(`v${this.nextId++}`);
     this.owners.set(id, ownerId);
     this.calls.push(`spawn:${dim}:${at.x},${at.y},${at.z}:${yaw}:${kind}`);
-    return id;
+    return { status: "spawned", id };
   }
   consumeVehicleItem(playerId: string, slot: number, kind: VehicleKind) {
     if (!this.itemInSlot) return false;
