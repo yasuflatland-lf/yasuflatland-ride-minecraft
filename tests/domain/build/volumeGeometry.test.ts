@@ -57,7 +57,7 @@ describe("heighted geometry", () => {
     },
   );
 
-  it.each(["gable", "hip", "cube", "cylinder"] as const)(
+  it.each(["gable", "hip", "cube", "cylinder", "sphere"] as const)(
     "counts exactly the cells inside the %s footprint and height",
     (kind) => {
       fc.assert(
@@ -83,7 +83,7 @@ describe("heighted geometry", () => {
     },
   );
 
-  it.each(["cylinder", "cube"] as const)(
+  it.each(["cylinder", "cube", "sphere"] as const)(
     "rejects non-roof %s specs in roof geometry",
     (kind) => {
       const spec = {

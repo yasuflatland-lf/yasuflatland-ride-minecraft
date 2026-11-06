@@ -1,7 +1,7 @@
 import type { RoofKind } from "../roof/roof";
 import { BUILD_SPEC } from "../spec";
 
-export type SolidKind = "cylinder" | "cube";
+export type SolidKind = "cylinder" | "cube" | "sphere";
 export type HeightedKind = RoofKind | SolidKind;
 export type BoxStepKind = "copy" | "cut";
 export type HeightStepKind = HeightedKind | BoxStepKind;
@@ -21,7 +21,7 @@ export function boxStepLimit(kind: BoxStepKind): number {
 
 export type FillStyle = "fill" | "hollow" | "tube";
 
-const ROOF_FILLS: readonly FillStyle[] = Object.freeze(["fill", "hollow"]);
+const CLOSED_FILLS: readonly FillStyle[] = Object.freeze(["fill", "hollow"]);
 const SOLID_FILLS: readonly FillStyle[] = Object.freeze([
   "fill",
   "hollow",
@@ -34,10 +34,11 @@ interface HeightedTraits {
 }
 
 const HEIGHTED_TRAITS: Readonly<Record<HeightedKind, HeightedTraits>> = {
-  gable: { fills: ROOF_FILLS, locksBoxHeight: false },
-  hip: { fills: ROOF_FILLS, locksBoxHeight: false },
+  gable: { fills: CLOSED_FILLS, locksBoxHeight: false },
+  hip: { fills: CLOSED_FILLS, locksBoxHeight: false },
   cylinder: { fills: SOLID_FILLS, locksBoxHeight: true },
   cube: { fills: SOLID_FILLS, locksBoxHeight: false },
+  sphere: { fills: CLOSED_FILLS, locksBoxHeight: true },
 };
 
 export function fillStylesFor(kind: HeightedKind): readonly FillStyle[] {

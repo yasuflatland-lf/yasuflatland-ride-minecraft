@@ -51,7 +51,7 @@ it.each([
   ]);
 });
 
-it.each(["gable", "hip", "cylinder", "cube"] as const)(
+it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "shows the material when choosing %s",
   (kind) => {
     const e = setup();
