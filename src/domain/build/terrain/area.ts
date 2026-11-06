@@ -3,7 +3,7 @@ import type { Cell } from "../../shared/cells";
 import type { CellBox } from "../box";
 import { BUILD_SPEC } from "../spec";
 
-export type TerrainOp = "removeAbove";
+export type TerrainOp = "removeAbove" | "fillBelow";
 
 export interface TerrainArea {
   readonly minX: number;

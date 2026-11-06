@@ -8,6 +8,7 @@ import { SetPoint } from "../../../src/application/build/setPoint";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf, volume } from "../../../src/domain/build/box";
+import { SCAN_STEP } from "../../../src/domain/build/edit/change";
 import {
   type BuildFlow,
   tapAir,
@@ -18,6 +19,7 @@ import type { Cell } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -33,7 +35,8 @@ function setup() {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
+  const players = new FakeBuildPlayers();
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
   const session = repo.getOrCreate(playerId);
   const select = (from: Cell, to: Cell) => {
     session.setFlow(
@@ -42,12 +45,14 @@ function setup() {
   };
   return {
     repo,
+    players,
+    jobs,
     feedback,
     world,
     session,
     select,
     choose: new ChooseTerrain(repo, feedback),
-    confirm: new ConfirmTerrain(repo, feedback, jobs),
+    confirm: new ConfirmTerrain(repo, feedback, jobs, world),
     fill: new ConfirmShape(repo, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),
     setPoint: new SetPoint(repo, world, feedback),
@@ -268,4 +273,163 @@ it("ignores a block tap during the confirmation", () => {
   });
   expect(e.session.flow).toBe(flow);
   expect(e.feedback.messages).toEqual([]);
+});
+
+const fillBelow = (e: ReturnType<typeof setup>) => {
+  e.choose.execute({ playerId, op: "fillBelow" });
+  e.confirm.execute({ playerId });
+};
+
+it("fills air and liquids but treats protected, unreadable, and solid cells as barriers", () => {
+  for (const barrier of ["protected", "unreadable", "solid"] as const) {
+    const e = setup();
+    const top = { x: 0, y: -61, z: 0 };
+    const wall = { x: 0, y: -62, z: 0 };
+    e.select(top, top);
+    e.world.put(top, blockStateOf("minecraft:water"));
+    if (barrier === "protected") e.world.protectedCells.add(cellKey(wall));
+    if (barrier === "unreadable") e.world.unreadableCells.add(cellKey(wall));
+    if (barrier === "solid") e.world.put(wall, dirt);
+    fillBelow(e);
+    e.drain();
+    expect(e.world.stateAt(overworld, top)).toEqual(stone);
+    expect(e.world.stateAt(overworld, { x: 0, y: -63, z: 0 })).toEqual(AIR);
+    expect(e.world.writes).toBe(1);
+  }
+});
+
+it("refuses an unstable material at menu choice without changing flow", () => {
+  const e = setup();
+  e.session.setFlow(
+    tapAir(
+      tapBlock(
+        { kind: "idle" },
+        overworld,
+        { x: 0, y: 0, z: 0 },
+        blockStateOf("minecraft:sand"),
+      ),
+      { x: 1, y: 0, z: 1 },
+    ),
+  );
+  const flow = e.session.flow;
+  e.choose.execute({ playerId, op: "fillBelow" });
+  expect(e.session.flow).toBe(flow);
+  expect(e.feedback.messages.at(-1)?.message).toBe("fillMaterialRefused");
+  expect(e.world.writes).toBe(0);
+});
+
+it("keeps earlier history and moves its buried owner above the inclusive top layer", () => {
+  const e = setup();
+  const old = { x: 10, y: 0, z: 10 };
+  e.select(old, old);
+  e.fill.execute({ playerId, style: "fill" });
+  e.drain();
+  const feet = { x: 0, y: -63, z: 0 };
+  e.players.occupants.set(playerId, { dimensionId: overworld, feet });
+  e.select({ x: 0, y: -64, z: 0 }, { x: 0, y: -61, z: 0 });
+  fillBelow(e);
+  expect(e.session.confirmedBox?.box.max.y).toBe(-61);
+  expect(e.session.flow.kind).toBe("idle");
+  e.drain();
+  expect(e.feedback.messages.at(-1)).toMatchObject({
+    message: "editDoneCount",
+    count: 4,
+  });
+  expect(e.players.moves).toEqual([{ playerId, cell: { x: 0, y: -60, z: 0 } }]);
+  expect(e.feedback.undoHints).toHaveLength(1);
+  e.undo.execute({ playerId });
+  e.drain();
+  expect(e.world.stateAt(overworld, old)).toEqual(AIR);
+  expect(e.world.stateAt(overworld, feet)).toEqual(stone);
+  expect(e.session.hasHistory).toBe(false);
+});
+
+it("charges scan steps even when no writes are planned", () => {
+  const e = setup();
+  let reads = 0;
+  function* scans(): Iterable<typeof SCAN_STEP> {
+    for (let i = 0; i < BUILD_SPEC.blocksPerTick + 1; i++) {
+      reads++;
+      yield SCAN_STEP;
+    }
+  }
+  e.session.beginEdit();
+  e.jobs.start(playerId, overworld, scans(), "irreversible");
+  e.jobs.step();
+  expect(reads).toBe(BUILD_SPEC.blocksPerTick);
+  expect(e.world.writes).toBe(0);
+  expect(e.session.isEditing).toBe(true);
+  e.jobs.step();
+  expect(reads).toBe(BUILD_SPEC.blocksPerTick + 1);
+  expect(e.session.isEditing).toBe(false);
+});
+
+it("fills fluids but treats solid, protected and unreadable cells as barriers", () => {
+  const e = setup();
+  const y = BUILD_SPEC.worldBottomY + 2;
+  for (let x = 0; x < 4; x++) e.world.put({ x, y: y + 1, z: 0 }, dirt);
+  e.world.put({ x: 0, y, z: 0 }, blockStateOf("minecraft:water"));
+  e.world.put({ x: 1, y, z: 0 }, blockStateOf("minecraft:lava"));
+  e.world.protectedCells.add(cellKey({ x: 2, y, z: 0 }));
+  e.world.unreadableCells.add(cellKey({ x: 3, y, z: 0 }));
+  // A solid layer below prevents the search from reaching behind these barriers.
+  for (let x = 0; x < 4; x++) e.world.put({ x, y: y - 1, z: 0 }, dirt);
+  e.select({ x: 0, y: y - 1, z: 0 }, { x: 3, y, z: 0 });
+  fillBelow(e);
+  e.drain();
+  expect(e.world.writes).toBe(2);
+  expect(e.feedback.messages.at(-1)).toMatchObject({
+    message: "editDoneCount",
+    count: 2,
+  });
+  expect(e.session.hasHistory).toBe(false);
+  expect(e.feedback.undoHints).toEqual([]);
+  expect(e.session.confirmedBox?.box).toEqual(
+    boxOf({ x: 0, y: y - 1, z: 0 }, { x: 3, y, z: 0 }),
+  );
+});
+
+it("budgets scans and writes together on a maximum-size fill", () => {
+  const e = setup();
+  e.select({ x: 0, y: top, z: 0 }, { x: 31, y: top, z: 31 });
+  fillBelow(e);
+  e.jobs.step();
+  expect(e.world.writes).toBe(BUILD_SPEC.blocksPerTick / 2);
+  expect(e.session.isEditing).toBe(true);
+  e.drain();
+  expect(e.world.writes).toBe(32 * 32 * (top - BUILD_SPEC.worldBottomY + 1));
+});
+
+it("refuses either oversized Fill below side without writes", () => {
+  for (const to of [
+    { x: 32, y: 0, z: 0 },
+    { x: 0, y: 0, z: 32 },
+  ]) {
+    const e = setup();
+    e.select({ x: 0, y: 0, z: 0 }, to);
+    const flow = e.session.flow;
+    e.choose.execute({ playerId, op: "fillBelow" });
+    expect(e.session.flow).toBe(flow);
+    expect(e.feedback.messages.at(-1)).toMatchObject({
+      message: "tooLarge",
+      count: 33 * (1 - BUILD_SPEC.worldBottomY),
+    });
+    expect(e.world.writes).toBe(0);
+  }
+});
+
+it("reports the entire Fill below prism at the world ceiling and across unequal endpoints", () => {
+  for (const lowerY of [BUILD_SPEC.worldBottomY, 0, top]) {
+    for (const reversed of [false, true]) {
+      const e = setup();
+      const low = { x: 0, y: lowerY, z: 0 };
+      const high = { x: 32, y: top, z: 0 };
+      e.select(reversed ? high : low, reversed ? low : high);
+      e.choose.execute({ playerId, op: "fillBelow" });
+      expect(e.feedback.messages.at(-1)).toMatchObject({
+        message: "tooLarge",
+        count: 33 * (top - BUILD_SPEC.worldBottomY + 1),
+      });
+    }
+  }
 });

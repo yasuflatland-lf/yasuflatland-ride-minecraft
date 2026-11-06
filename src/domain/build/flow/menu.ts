@@ -13,6 +13,7 @@ export type ShapeEntryId =
   | "hip"
   | "cylinder"
   | "cube"
+  | "fillBelow"
   | "removeAbove"
   | "cut"
   | "copy"
@@ -42,6 +43,7 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
       id: shape.kind === "line" ? "place" : style,
     })),
     ...extraEntries,
+    { id: "fillBelow" },
     { id: "removeAbove" },
     { id: "cut" },
     { id: "copy" },

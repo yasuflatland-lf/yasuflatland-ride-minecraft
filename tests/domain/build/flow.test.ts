@@ -127,6 +127,7 @@ it("offers only supported shape styles followed by Cancel", () => {
           : shape.kind === "box"
             ? ["cylinder"]
             : []),
+        "fillBelow",
         "removeAbove",
         "cut",
         "copy",
@@ -135,7 +136,10 @@ it("offers only supported shape styles followed by Cancel", () => {
     }),
   );
   for (const [to, ids] of [
-    [{ x: 3, y: 0, z: 0 }, ["place", "removeAbove", "cut", "copy", "cancel"]],
+    [
+      { x: 3, y: 0, z: 0 },
+      ["place", "fillBelow", "removeAbove", "cut", "copy", "cancel"],
+    ],
     [
       { x: 3, y: 0, z: 3 },
       [
@@ -145,6 +149,7 @@ it("offers only supported shape styles followed by Cancel", () => {
         "hip",
         "cylinder",
         "cube",
+        "fillBelow",
         "removeAbove",
         "cut",
         "copy",
@@ -158,6 +163,7 @@ it("offers only supported shape styles followed by Cancel", () => {
         "faces",
         "walls",
         "cylinder",
+        "fillBelow",
         "removeAbove",
         "cut",
         "copy",
@@ -255,6 +261,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "hip",
               "cylinder",
               "cube",
+              "fillBelow",
               "removeAbove",
               "cut",
               "copy",
@@ -268,6 +275,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "faces",
               "walls",
               "cylinder",
+              "fillBelow",
               "removeAbove",
               "cut",
               "copy",
@@ -276,23 +284,39 @@ it("accepts every heighted kind only on its supported shapes", () => {
           ],
           [
             { x: dx, y: dy, z: 0 },
-            ["fill", "frame", "removeAbove", "cut", "copy", "cancel"],
+            [
+              "fill",
+              "frame",
+              "fillBelow",
+              "removeAbove",
+              "cut",
+              "copy",
+              "cancel",
+            ],
           ],
           [
             { x: 0, y: dy, z: dz },
-            ["fill", "frame", "removeAbove", "cut", "copy", "cancel"],
+            [
+              "fill",
+              "frame",
+              "fillBelow",
+              "removeAbove",
+              "cut",
+              "copy",
+              "cancel",
+            ],
           ],
           [
             { x: dx, y: 0, z: 0 },
-            ["place", "removeAbove", "cut", "copy", "cancel"],
+            ["place", "fillBelow", "removeAbove", "cut", "copy", "cancel"],
           ],
           [
             { x: 0, y: dy, z: 0 },
-            ["place", "removeAbove", "cut", "copy", "cancel"],
+            ["place", "fillBelow", "removeAbove", "cut", "copy", "cancel"],
           ],
           [
             { x: 0, y: 0, z: dz },
-            ["place", "removeAbove", "cut", "copy", "cancel"],
+            ["place", "fillBelow", "removeAbove", "cut", "copy", "cancel"],
           ],
         ] as const) {
           const end = {

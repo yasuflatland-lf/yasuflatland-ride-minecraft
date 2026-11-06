@@ -1,10 +1,12 @@
 // Applies queued edit plans in chunks, one shared budget per tick (ADR 0178).
 
 import { sameBlockState } from "../../domain/build/blockState";
-import type {
-  AppliedChange,
-  EditKind,
-  PlannedChange,
+import {
+  type AppliedChange,
+  type EditKind,
+  type PlannedChange,
+  type PlanStep,
+  SCAN_STEP,
 } from "../../domain/build/edit/change";
 import { completionMessage } from "../../domain/build/edit/completion";
 import { isKeptState } from "../../domain/build/edit/guard";
@@ -24,7 +26,7 @@ import type { BuildPlayers } from "./ports/players";
 interface Job {
   readonly playerId: PlayerId;
   readonly dimensionId: DimensionId;
-  readonly plan: Iterator<PlannedChange>;
+  readonly plan: Iterator<PlanStep>;
   readonly kind: EditKind;
   readonly applied: AppliedChange[];
   buriedOwner: boolean;
@@ -47,7 +49,7 @@ export class EditJobs {
   start(
     playerId: PlayerId,
     dimensionId: DimensionId,
-    plan: Iterable<PlannedChange>,
+    plan: Iterable<PlanStep>,
     kind: EditKind,
   ): void {
     this.jobs.push({
@@ -62,7 +64,7 @@ export class EditJobs {
     });
   }
 
-  /** Applies at most BUILD_SPEC.blocksPerTick planned changes across all jobs, round robin, oldest job first. */
+  /** Applies at most BUILD_SPEC.blocksPerTick plan steps (scans or writes) across all jobs, round robin, oldest job first. */
   step(): void {
     let budget = BUILD_SPEC.blocksPerTick;
     while (budget > 0 && this.jobs.length > 0) {
@@ -98,7 +100,7 @@ export class EditJobs {
     }
   }
 
-  /** Runs up to `limit` planned changes of one job and returns how many it consumed. */
+  /** Runs up to `limit` plan steps of one job and returns how many it consumed. */
   private run(job: Job, limit: number): number {
     const session = this.repo.get(job.playerId);
     if (!session) {
@@ -154,7 +156,7 @@ export class EditJobs {
         return used;
       }
       used++;
-      this.apply(job, next.value, occupiedCells);
+      if (next.value !== SCAN_STEP) this.apply(job, next.value, occupiedCells);
     }
     return used;
   }

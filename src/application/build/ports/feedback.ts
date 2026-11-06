@@ -9,6 +9,7 @@ export type BuildMessage =
   | "pointSet"
   | "endSet"
   | "materialRefused"
+  | "fillMaterialRefused"
   | "selectionCleared"
   | "noSelection"
   | "tooLarge"
