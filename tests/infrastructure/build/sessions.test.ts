@@ -13,6 +13,7 @@ import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerSessions } from "../../../src/infrastructure/build/bedrock/handlers/sessions";
 import { FakeSessions, overworld } from "../../application/build/fakes";
+import { holdClipboard } from "../../support/buildClipboard";
 
 const engine = vi.hoisted(() => {
   const handlers = new Map<string, (event: unknown) => void>();
@@ -89,7 +90,7 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
   const clipboard = clipboardOf(boxOf(at, at), () =>
     blockStateOf("minecraft:stone"),
   );
-  session.setClipboard(clipboard);
+  holdClipboard(session, clipboard);
   session.setFlow({ kind: "pasteAim", skipAir: false });
   registerSessions(repo, new EndPasting(repo), debounce);
   engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });

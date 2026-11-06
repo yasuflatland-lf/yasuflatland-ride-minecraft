@@ -28,6 +28,7 @@ export class PaintVehicle {
       },
       setPaint: (vehicleId, paint) => world.paint(vehicleId, paint),
       consumeDye: (playerId, paint) => world.consumeDye(playerId, paint),
+      playPaintSound: (vehicleId) => world.playPaintSound(vehicleId),
       isCreative: (playerId) => world.isCreative(playerId),
     });
   }

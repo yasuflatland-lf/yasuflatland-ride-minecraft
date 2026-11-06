@@ -97,6 +97,7 @@ export function installVehicles(deps: {
       place: new PlaceVehicle(
         new BedrockPlacementWorld(inventory, index, deps.isCampSpace),
         repo,
+        log,
       ),
       starter: new GiveStarterVehicle(inventory),
       gift: new OpenGift(inventory),

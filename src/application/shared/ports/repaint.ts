@@ -8,6 +8,8 @@ export interface RepaintWorld<Id extends string> {
   defaultPaintOf(entityId: Id): Paint | undefined;
   setPaint(entityId: Id, paint: Paint): void;
   consumeDye(playerId: PlayerId, paint: Paint): void;
+  /** Must not throw: the sound is cosmetic and the dye is already paid for. */
+  playPaintSound(entityId: Id): void;
   /** false when the player is not in the world. */
   isCreative(playerId: PlayerId): boolean;
 }
