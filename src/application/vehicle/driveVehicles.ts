@@ -4,10 +4,10 @@ import { profileOf, rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import type { TickOutcome } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
+import { forEachIsolated } from "../shared/isolated";
 import type { ChaseCameraWish } from "../shared/ports/chaseCamera";
-import { forEachIsolated } from "./isolated";
+import type { Logger } from "../shared/ports/logger";
 import type { DriveWorld, VehicleSnapshot } from "./ports/drive";
-import type { Logger } from "./ports/shared";
 import { RiderEffects } from "./riderEffects";
 
 export class DriveVehicles {

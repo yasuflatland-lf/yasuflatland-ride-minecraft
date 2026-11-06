@@ -26,6 +26,7 @@ import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers
 import { SELECTION_WAND_TYPE } from "../../../src/infrastructure/build/identifiers";
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
 import { FakeFeedback, FakeWorld, nether } from "../../application/build/fakes";
+import { holdClipboard } from "../../support/buildClipboard";
 
 const menus = {
   showShapeMenu: vi.fn(),
@@ -492,7 +493,7 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
         const clipboard = clipboardOf(boxOf(block, block), () =>
           blockStateOf("minecraft:stone"),
         );
-        e.session.setClipboard(clipboard);
+        holdClipboard(e.session, clipboard);
         e.session.setFlow({ kind: "pasteAim", skipAir: false });
         const flow = e.session.flow;
         const target = {
