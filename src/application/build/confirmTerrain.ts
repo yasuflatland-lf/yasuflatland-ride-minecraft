@@ -23,6 +23,12 @@ export class ConfirmTerrain {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
+    if (session.isEditing) {
+      // The form has closed and taps do nothing in terrainConfirm, so do not stay there.
+      session.setFlow(backToAiming(flow));
+      this.feedback.showMessage(playerId, "busy");
+      return;
+    }
     const selection = boxOf(flow.from, flow.to);
     const box = removeAboveBox(terrainAreaOf(flow.from, flow.to));
     if (!box) {
@@ -31,13 +37,7 @@ export class ConfirmTerrain {
       return;
     }
     // beginCheckedEdit applies maxVolume, which terrain operations replace with a side limit (ADR 0233).
-    const refusal = session.beginEdit();
-    if (refusal) {
-      // The form has closed and taps do nothing in terrainConfirm, so do not stay there.
-      session.setFlow(backToAiming(flow));
-      this.feedback.showMessage(playerId, refusal);
-      return;
-    }
+    session.beginEdit();
     session.confirmBox(flow.dimensionId, selection);
     this.feedback.showMessage(playerId, "removing");
     this.jobs.start(

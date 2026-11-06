@@ -17,6 +17,7 @@ import { isRoofKind } from "../../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import {
+  removeAboveBox,
   terrainAreaOf,
   terrainSides,
 } from "../../../domain/build/terrain/area";
@@ -176,6 +177,10 @@ export class BedrockBuildMenus implements BuildMenus {
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "terrainConfirm") return;
     const area = terrainAreaOf(flow.from, flow.to);
+    if (!removeAboveBox(area)) {
+      this.choices.choose(playerId, "terrain", "confirm");
+      return;
+    }
     const sides = terrainSides(area);
     const id = await chooseFromForm(
       player,

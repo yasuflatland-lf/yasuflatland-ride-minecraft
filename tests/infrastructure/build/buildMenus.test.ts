@@ -815,6 +815,22 @@ it("opens the confirmation with the area and height after Remove above", async (
   expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
 });
 
+it("confirms an empty Remove above range without opening a confirmation form", async () => {
+  const { menus, player, cases, session } = setup();
+  session.setFlow({
+    ...endpoint,
+    from: { ...from, y: BUILD_SPEC.worldTopY },
+    to: { ...to, y: BUILD_SPEC.worldTopY },
+  });
+  ui.answers.push(removeAboveAnswer());
+  await menus.showShapeMenu(player);
+  expect(ui.forms).toHaveLength(1);
+  expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
+  expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+});
+
 it.each([
   ["Cancel", { selection: 1 }],
   ["closing the form", { canceled: true, cancelationReason: "UserClosed" }],

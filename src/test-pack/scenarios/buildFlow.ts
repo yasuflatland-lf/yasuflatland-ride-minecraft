@@ -1305,6 +1305,7 @@ export function buildRemoveAboveTooLarge(a: Arena): Promise<Outcome> {
 
 export function buildRemoveAboveNoUndo(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
+    await f.edit("reset");
     const columns = columnRegion(f, 3, 1, -1);
     for (const cell of columns) f.block(cell).setType("minecraft:air");
     const line = f.region(6, 1, 1);

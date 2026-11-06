@@ -205,18 +205,21 @@ it("accepts a footprint at the limit even though its column exceeds maxVolume", 
   expect(e.feedback.messages.at(-1)?.message).toBe("editDoneCount");
 });
 
-it("refuses while another edit runs, leaves the running edit alone, and returns to aiming", () => {
-  const e = setup();
-  const from = { x: 0, y: 60, z: 0 };
-  e.select(from, { x: 1, y: 60, z: 1 });
-  e.choose.execute({ playerId, op: "removeAbove" });
-  expect(e.session.beginEdit()).toBeUndefined();
-  e.confirm.execute({ playerId });
-  expect(e.feedback.messages.at(-1)?.message).toBe("busy");
-  expect(e.session.flow).toMatchObject({ kind: "point1", cell: from });
-  expect(e.session.confirmedBox).toBeUndefined();
-  expect(e.session.isEditing).toBe(true);
-});
+it.each([60, top])(
+  "refuses while another edit runs with a floor at y=%s and returns to aiming",
+  (y) => {
+    const e = setup();
+    const from = { x: 0, y, z: 0 };
+    e.select(from, { x: 1, y, z: 1 });
+    e.choose.execute({ playerId, op: "removeAbove" });
+    expect(e.session.beginEdit()).toBeUndefined();
+    e.confirm.execute({ playerId });
+    expect(e.feedback.messages.at(-1)?.message).toBe("busy");
+    expect(e.session.flow).toMatchObject({ kind: "point1", cell: from });
+    expect(e.session.confirmedBox).toBeUndefined();
+    expect(e.session.isEditing).toBe(true);
+  },
+);
 
 it("starts no edit when the floor is the world top", () => {
   const e = setup();
