@@ -177,7 +177,11 @@ export class BedrockBuildMenus implements BuildMenus {
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "terrainConfirm") return;
     const area = terrainAreaOf(flow.from, flow.to);
-    if (flow.op === "removeAbove" && !removeAboveBox(area)) {
+    const topY = player.dimension.heightRange.max - 1;
+    if (
+      flow.op === "removeAbove" &&
+      (!removeAboveBox(area) || area.lowerY >= topY)
+    ) {
       this.choices.choose(playerId, "terrain", "confirm");
       return;
     }
@@ -202,7 +206,7 @@ export class BedrockBuildMenus implements BuildMenus {
           String(
             flow.op === "fillBelow" ? BUILD_SPEC.worldBottomY : area.lowerY + 1,
           ),
-          String(flow.op === "fillBelow" ? area.higherY : BUILD_SPEC.worldTopY),
+          String(flow.op === "fillBelow" ? area.higherY : topY),
         ],
       },
     );
