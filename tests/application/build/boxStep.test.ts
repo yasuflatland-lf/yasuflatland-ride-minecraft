@@ -23,6 +23,7 @@ import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { holdClipboard } from "../../support/buildClipboard";
 import {
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -51,7 +52,13 @@ function setup() {
       repo,
       world,
       feedback,
-      new EditJobs(repo, world, feedback, { warn: () => {} }),
+      new EditJobs(
+        repo,
+        world,
+        feedback,
+        { warn: () => {} },
+        new FakeBuildPlayers(),
+      ),
     ),
   };
   return {
@@ -245,9 +252,15 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         }
       }
       e.session.setFlow(copy);
-      const jobs = new EditJobs(e.repo, e.world, e.feedback, {
-        warn: () => {},
-      });
+      const jobs = new EditJobs(
+        e.repo,
+        e.world,
+        e.feedback,
+        {
+          warn: () => {},
+        },
+        new FakeBuildPlayers(),
+      );
       const start = vi.spyOn(jobs, "start");
       const begin = vi.spyOn(e.session, "beginEdit");
       new ConfirmHeighted(e.repo, e.feedback, jobs).execute({
