@@ -29,6 +29,7 @@ interface Reply {
   player: string;
   message?: string;
   count?: number;
+  skippedCount?: number;
   offered?: boolean;
   undoHints?: number;
   timedOut?: boolean;
@@ -1131,6 +1132,38 @@ export function buildCutUndo(a: Arena): Promise<Outcome> {
       "Cut Undo failed",
     );
     check(unchanged(f, cells, before), "Cut Undo lost exact block states");
+    await f.menu("paste", "endPaste");
+  });
+}
+
+export function buildUndoConflict(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 3, 3);
+    for (const cell of cells) f.block(cell).setType("minecraft:stone");
+    await f.select(f.cell(2, 2, 2));
+    check(
+      (await f.menu("shape", "cut")).count === cells.length,
+      "Cut count wrong",
+    );
+    const conflict = f.cell(1, 1, 1);
+    const reverted = f.cell(2, 1, 1);
+    f.block(conflict).setType("minecraft:gold_block");
+    f.block(reverted).setType("minecraft:stone");
+    const undo = await f.menu("paste", "undo");
+    check(
+      undo.message === "undoDonePartial" &&
+        undo.count === cells.length - 2 &&
+        undo.skippedCount === 1,
+      "Partial Undo counts wrong",
+    );
+    check(
+      f.block(conflict).typeId === "minecraft:gold_block",
+      "Undo overwrote a later edit",
+    );
+    check(
+      f.count(cells) === cells.length - 1,
+      "Undo did not restore the other cells",
+    );
     await f.menu("paste", "endPaste");
   });
 }

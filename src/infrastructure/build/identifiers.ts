@@ -27,6 +27,7 @@ export const BUILD_MESSAGE: Readonly<
   editDone: "yasu_build.message.edit_done",
   editDoneCount: "yasu_build.message.edit_done_count",
   undoDone: "yasu_build.message.undo_done",
+  undoDonePartial: "yasu_build.message.undo_done_partial",
   undoHint: "yasu_build.message.undo_hint",
 };
 

@@ -11,7 +11,13 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { playerById } from "../../shared/players";
 import { BUILD_MESSAGE } from "../identifiers";
 
-function messageArgs(message: BuildMessage, count?: number): string[] {
+function messageArgs(
+  message: BuildMessage,
+  count?: number,
+  skippedCount?: number,
+): string[] {
+  if (message === "undoDonePartial")
+    return [String(count ?? 0), String(skippedCount ?? 0)];
   if (message === "tooLarge")
     return [
       String(count ?? 0),
@@ -47,6 +53,7 @@ export class BedrockFeedback implements BuildFeedback {
     message: BuildMessage,
     count?: number,
     material?: BlockState,
+    skippedCount?: number,
   ): void {
     const player = playerById(playerId);
     if (!player?.isValid) return;
@@ -61,7 +68,7 @@ export class BedrockFeedback implements BuildFeedback {
                 },
               ],
             }
-          : messageArgs(message, count),
+          : messageArgs(message, count, skippedCount),
     });
   }
 

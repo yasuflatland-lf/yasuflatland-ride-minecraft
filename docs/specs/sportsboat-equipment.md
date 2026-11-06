@@ -8,6 +8,8 @@
 - Source: [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md)
 - Excluded: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md): supersedes the build tools and build-mode interaction in 0178, not the Sports Boat Equipment group's position or its monitor rules
 
+- Excluded: [0232](../adr/0232-undo-skips-conflicting-cells.md): conditional build Undo belongs to the build tools spec.
+
 ## Rules
 
 ### Group and creative-menu placement

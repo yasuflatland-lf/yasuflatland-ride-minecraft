@@ -78,6 +78,13 @@ describe("edit planning", () => {
           }));
           const world = new Map(changes.map((c) => [cellKey(c.cell), c.after]));
           const record = { dimensionId: asDimensionId("overworld"), changes };
+          expect(undoPlan(record)).toEqual(
+            [...changes].reverse().map((c) => ({
+              cell: c.cell,
+              after: c.before,
+              expected: c.after,
+            })),
+          );
           for (const p of undoPlan(record)) world.set(cellKey(p.cell), p.after);
           for (const c of changes)
             expect(world.get(cellKey(c.cell))).toBe(c.before);

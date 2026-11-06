@@ -18,17 +18,19 @@ export type BuildMessage =
   | "copied"
   | "editDone"
   | "editDoneCount"
-  | "undoDone";
+  | "undoDone"
+  | "undoDonePartial";
 
 export interface BuildFeedback {
   /** Chat message so the undo gesture stays visible beyond the action bar. */
   showUndoHint(playerId: PlayerId): void;
-  /** Action bar message; `count` is shown where the message has one (volume, blocks changed). */
+  /** Action bar message; partial Undo shows restored `count` then `skippedCount`. */
   showMessage(
     playerId: PlayerId,
     message: BuildMessage,
     count?: number,
     material?: BlockState,
+    skippedCount?: number,
   ): void;
   showSize(playerId: PlayerId, size: { x: number; y: number; z: number }): void;
   showPasteHint(

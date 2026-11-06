@@ -42,8 +42,12 @@ export class FakeFeedback implements BuildFeedback {
   showUndoHint(playerId: PlayerId) {
     this.undoHints.push(playerId);
   }
-  messages: { message: BuildMessage; count?: number; material?: BlockState }[] =
-    [];
+  messages: {
+    message: BuildMessage;
+    count?: number;
+    material?: BlockState;
+    skippedCount?: number;
+  }[] = [];
   sizes: { playerId: PlayerId; size: { x: number; y: number; z: number } }[] =
     [];
   showSize(playerId: PlayerId, size: { x: number; y: number; z: number }) {
@@ -71,7 +75,12 @@ export class FakeFeedback implements BuildFeedback {
     message: BuildMessage,
     count?: number,
     material?: BlockState,
+    skippedCount?: number,
   ) {
+    if (skippedCount !== undefined) {
+      this.messages.push({ message, count, skippedCount });
+      return;
+    }
     this.messages.push(
       material === undefined
         ? { message, count }

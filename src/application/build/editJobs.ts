@@ -21,6 +21,7 @@ interface Job {
   readonly plan: Iterator<PlannedChange>;
   readonly undo: boolean;
   readonly applied: AppliedChange[];
+  skipped: number;
 }
 
 export class EditJobs {
@@ -46,6 +47,7 @@ export class EditJobs {
       plan: plan[Symbol.iterator](),
       undo,
       applied: [],
+      skipped: 0,
     });
   }
 
@@ -107,15 +109,24 @@ export class EditJobs {
             // and an empty edit with no earlier history leaves nothing to undo.
             const promisesUndo =
               airPressOffersUndo(session.flow) && session.hasHistory;
-            this.feedback.showMessage(
-              job.playerId,
-              job.undo
-                ? "undoDone"
-                : promisesUndo
-                  ? "editDone"
-                  : "editDoneCount",
-              job.applied.length,
-            );
+            if (job.undo && job.skipped > 0) {
+              this.feedback.showMessage(
+                job.playerId,
+                "undoDonePartial",
+                job.applied.length,
+                undefined,
+                job.skipped,
+              );
+            } else
+              this.feedback.showMessage(
+                job.playerId,
+                job.undo
+                  ? "undoDone"
+                  : promisesUndo
+                    ? "editDone"
+                    : "editDoneCount",
+                job.applied.length,
+              );
             if (
               !job.undo &&
               promisesUndo &&
@@ -138,17 +149,22 @@ export class EditJobs {
   private apply(job: Job, change: PlannedChange): void {
     const { dimensionId } = job;
     const before = this.world.stateAt(dimensionId, change.cell);
-    if (
-      !before ||
-      isKeptState(before) ||
-      !this.world.mayEdit(dimensionId, change.cell) ||
-      sameBlockState(before, change.after)
-    ) {
+    if (!before) {
+      if (job.undo) job.skipped++;
+      return;
+    }
+    if (change.expected && !sameBlockState(before, change.expected)) {
+      if (!sameBlockState(before, change.after)) job.skipped++;
+      return;
+    }
+    if (sameBlockState(before, change.after)) return;
+    if (isKeptState(before) || !this.world.mayEdit(dimensionId, change.cell)) {
+      if (job.undo) job.skipped++;
       return;
     }
     if (this.world.setState(dimensionId, change.cell, change.after)) {
       job.applied.push({ cell: change.cell, before, after: change.after });
-    }
+    } else if (job.undo) job.skipped++;
   }
 
   private drop(job: Job): void {

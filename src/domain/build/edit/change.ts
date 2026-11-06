@@ -6,6 +6,8 @@ import type { BlockState } from "../blockState";
 export interface PlannedChange {
   readonly cell: Cell;
   readonly after: BlockState;
+  /** Required current state before writing; absent means unconditional. */
+  readonly expected?: BlockState;
 }
 
 export interface AppliedChange {
@@ -19,9 +21,9 @@ export interface EditRecord {
   readonly changes: readonly AppliedChange[];
 }
 
-/** Puts every cell back to its `before`, last change first. */
+/** Requires the recorded `after` before restoring `before`, last change first. */
 export function undoPlan(record: EditRecord): PlannedChange[] {
   return record.changes
-    .map((c) => ({ cell: c.cell, after: c.before }))
+    .map((c) => ({ cell: c.cell, after: c.before, expected: c.after }))
     .reverse();
 }
