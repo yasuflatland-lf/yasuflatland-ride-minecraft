@@ -1297,12 +1297,16 @@ function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
       await f.select(at(6, axis === "x" ? 4 : 0, 4));
       f.block(f.cell()).setType("minecraft:air");
       f.look(axis === "x" ? -90 : 0);
+      // Teleport rotation is only readable on a later tick.
+      await wait(1);
       const step = await f.menu("shape", "sideCylinder");
       check(
         step.offered === true && step.flow.kind === "heightStep",
         "sideways cylinder step missing",
       );
       f.look(axis === "x" ? 0 : -90);
+      // Teleport rotation is only readable on a later tick.
+      await wait(1);
       check(
         (await f.edit("height 5")).flow.previous === 5,
         "sideways cylinder height incorrect",
