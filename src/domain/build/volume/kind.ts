@@ -28,6 +28,22 @@ const SOLID_FILLS: readonly FillStyle[] = Object.freeze([
   "tube",
 ]);
 
+interface HeightedTraits {
+  readonly fills: readonly FillStyle[];
+  readonly locksBoxHeight: boolean;
+}
+
+const HEIGHTED_TRAITS: Readonly<Record<HeightedKind, HeightedTraits>> = {
+  gable: { fills: ROOF_FILLS, locksBoxHeight: false },
+  hip: { fills: ROOF_FILLS, locksBoxHeight: false },
+  cylinder: { fills: SOLID_FILLS, locksBoxHeight: true },
+  cube: { fills: SOLID_FILLS, locksBoxHeight: false },
+};
+
 export function fillStylesFor(kind: HeightedKind): readonly FillStyle[] {
-  return kind === "cylinder" || kind === "cube" ? SOLID_FILLS : ROOF_FILLS;
+  return HEIGHTED_TRAITS[kind].fills;
+}
+
+export function locksBoxHeight(kind: HeightStepKind): boolean {
+  return !isBoxStepKind(kind) && HEIGHTED_TRAITS[kind].locksBoxHeight;
 }

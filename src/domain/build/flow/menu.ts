@@ -1,6 +1,11 @@
 import type { BuildSession } from "../session";
 import { shapeOf, stylesFor } from "../shape/shape";
-import { type FillStyle, fillStylesFor, isBoxStepKind } from "../volume/kind";
+import {
+  type FillStyle,
+  fillStylesFor,
+  type HeightedKind,
+  isBoxStepKind,
+} from "../volume/kind";
 import type { BuildFlow } from "./flow";
 
 export type ShapeEntryId =
@@ -9,10 +14,7 @@ export type ShapeEntryId =
   | "frame"
   | "faces"
   | "walls"
-  | "gable"
-  | "hip"
-  | "cylinder"
-  | "cube"
+  | HeightedKind
   | "cut"
   | "copy"
   | "cancel";
@@ -26,20 +28,28 @@ export interface MenuEntry<Id extends string = string> {
   on?: boolean;
 }
 
+const RECT_SOLID_ENTRIES: readonly ShapeEntryId[] = [
+  "gable",
+  "hip",
+  "cylinder",
+  "cube",
+];
+const BOX_SOLID_ENTRIES: readonly ShapeEntryId[] = ["cylinder"];
+
 export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
   if (flow.kind !== "endpoint") return [];
   const shape = shapeOf(flow.from, flow.to);
-  const extraEntries: MenuEntry<ShapeEntryId>[] =
+  const extraEntries: readonly ShapeEntryId[] =
     shape.kind === "rect" && shape.flat === "y"
-      ? [{ id: "gable" }, { id: "hip" }, { id: "cylinder" }, { id: "cube" }]
+      ? RECT_SOLID_ENTRIES
       : shape.kind === "box"
-        ? [{ id: "cylinder" }]
+        ? BOX_SOLID_ENTRIES
         : [];
   return [
     ...stylesFor(shape).map<MenuEntry<ShapeEntryId>>((style) => ({
       id: shape.kind === "line" ? "place" : style,
     })),
-    ...extraEntries,
+    ...extraEntries.map((id) => ({ id })),
     { id: "cut" },
     { id: "copy" },
     { id: "cancel" },
