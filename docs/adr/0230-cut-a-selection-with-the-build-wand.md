@@ -1,4 +1,4 @@
-# 0229. Cut a selection with the Build Wand
+# 0230. Cut a selection with the Build Wand
 
 - Status: Proposed
 - Acceptance condition: issue #1358 is implemented and reviewed

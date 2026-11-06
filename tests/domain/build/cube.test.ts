@@ -130,27 +130,54 @@ describe("cube geometry", () => {
     );
   });
 
-  it("bounds the wireframe budget and places points at block centres on edges", () => {
+  it("bounds the wireframe budget and keeps points on the box edges between block centres", () => {
     fc.assert(
-      fc.property(spec, fc.integer({ min: 0, max: 200 }), (spec, maxPoints) => {
+      fc.property(spec, fc.integer({ min: 0, max: 600 }), (spec, maxPoints) => {
         const points = cubeVolume.wireframe(spec, maxPoints);
-        const box = {
-          min: spec.base.min,
-          max: { ...spec.base.max, y: spec.base.min.y + spec.height - 1 },
+        const { min } = spec.base;
+        const max = {
+          ...spec.base.max,
+          y: spec.base.min.y + spec.height - 1,
         };
         expect(points.length).toBeLessThanOrEqual(maxPoints);
-        for (const point of points) {
-          const cell = { x: point.x - 0.5, y: point.y - 0.5, z: point.z - 0.5 };
-          expect(Object.values(cell).every(Number.isInteger)).toBe(true);
-          expect(contains(box, cell)).toBe(true);
-          expect(
-            (["x", "y", "z"] as const).filter(
-              (axis) =>
-                cell[axis] === box.min[axis] || cell[axis] === box.max[axis],
-            ).length,
-          ).toBeGreaterThanOrEqual(2);
+        for (const p of points) {
+          const onExtreme = (["x", "y", "z"] as const).filter(
+            (axis) =>
+              p[axis] === min[axis] + 0.5 || p[axis] === max[axis] + 0.5,
+          );
+          expect(onExtreme.length).toBeGreaterThanOrEqual(2);
+          for (const axis of ["x", "y", "z"] as const) {
+            expect(p[axis]).toBeGreaterThanOrEqual(min[axis] + 0.5);
+            expect(p[axis]).toBeLessThanOrEqual(max[axis] + 0.5);
+          }
         }
       }),
     );
+  });
+
+  it("samples the top and bottom edges four times per block and the vertical edges once per block", () => {
+    const spec = {
+      base: boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 2 }),
+      kind: "cube" as const,
+      height: 6,
+    };
+    const points = cubeVolume.wireframe(spec, 512);
+    // The top edge along x from x=0.5 to x=4.5 at z=0.5.
+    const topEdge = points.filter((p) => p.y === 5.5 && p.z === 0.5);
+    expect(topEdge.length).toBeGreaterThanOrEqual(4 * 4 + 1);
+    const vertical = points.filter(
+      (p) => p.x === 0.5 && p.z === 0.5 && p.y > 0.5 && p.y < 5.5,
+    );
+    expect(vertical.length).toBe(4);
+  });
+
+  it("gives up the vertical edges before the horizontal ones under a tight budget", () => {
+    const spec = {
+      base: boxOf({ x: 0, y: 0, z: 0 }, { x: 9, y: 0, z: 9 }),
+      kind: "cube" as const,
+      height: 10,
+    };
+    const points = cubeVolume.wireframe(spec, 200);
+    expect(points.every((p) => p.y === 0.5 || p.y === 9.5)).toBe(true);
   });
 });

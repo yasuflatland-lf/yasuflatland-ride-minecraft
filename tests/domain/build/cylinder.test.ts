@@ -273,7 +273,7 @@ describe("cylinder geometry", () => {
       kind: "cylinder",
       height: 5,
     };
-    const points = cylinderVolume.wireframe(spec, 96);
+    const points = cylinderVolume.wireframe(spec, 512);
     for (const y of [7.5, 11.5]) {
       expect(
         points.filter((point) => point.y === y).length,
@@ -295,5 +295,16 @@ describe("cylinder geometry", () => {
         ),
       ).toBe(true);
     }
+  });
+
+  it("keeps both ellipses dense and drops the vertical lines first under a tight budget", () => {
+    const spec: HeightedSpec = {
+      base: boxOf({ x: 0, y: 0, z: 0 }, { x: 15, y: 0, z: 15 }),
+      kind: "cylinder",
+      height: 8,
+    };
+    const points = cylinderVolume.wireframe(spec, 100);
+    expect(points.every((p) => p.y === 0.5 || p.y === 7.5)).toBe(true);
+    expect(points.length).toBe(100);
   });
 });

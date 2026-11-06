@@ -8,8 +8,9 @@
 - Source: [0201](../adr/0201-build-wand-cylinder-and-cube.md)
 - Source: [0202](../adr/0202-build-wand-copy-and-continuous-paste.md)
 - Source: [0203](../adr/0203-build-wand-paste-aiming.md)
-- Source: [0229](../adr/0229-cut-a-selection-with-the-build-wand.md)
-- Source: [0228](../adr/0228-open-build-utilities-with-a-plain-air-press.md)
+- Source: [0228](../adr/0228-dense-horizontal-edges-in-the-height-step-outline.md)
+- Source: [0229](../adr/0229-open-build-utilities-with-a-plain-air-press.md)
+- Source: [0230](../adr/0230-cut-a-selection-with-the-build-wand.md)
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): defines the documentation format and checks, not build behavior
 - Excluded: [0180](../adr/0180-a-wide-bulldozer-blade.md): extends the Building Tools group with Wide Blade; switch behavior belongs to the bulldozer spec
 - Excluded: [0181](../adr/0181-a-road-paver-on-the-bulldozer.md): extends the Building Tools group with Road Paver; paving and switch behavior belong to the bulldozer spec
@@ -58,7 +59,7 @@
 - Agreement: Proposed
 - Basis: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md) Decision 3, "Debounce a held press, which can repeat `itemUse` every 0.2 seconds, so it counts once."
 - Basis: [0203](../adr/0203-build-wand-paste-aiming.md) Decision 3, "`playerInteractWithBlock` never pastes."
-- Basis: [0228](../adr/0228-open-build-utilities-with-a-plain-air-press.md) Decision 1, "An air press in `idle` opens the utility menu without sneaking."
+- Basis: [0229](../adr/0229-open-build-utilities-with-a-plain-air-press.md) Decision 1, "An air press in `idle` opens the utility menu without sneaking."
 - Implementation: `src/infrastructure/build/bedrock/handlers/wand.ts`; `src/domain/build/pressDebounce.ts`; `src/infrastructure/build/install.ts`; `src/application/build/pressPasteAim.ts`
 - Verification: `tests/infrastructure/build/wand.test.ts` covers idle utility routing; manual BT3 and BT13-BT15 cover plain idle air use, sneaking, point-1 long press, and empty-history behavior on PC/iPad (unverified). `tests/infrastructure/build/wand.test.ts` checks before-event cancellation, deferred calls, virtual endpoints, repeat suppression, height routing, duplicate block/item events, and paste item-use routing. Tests were inspected, not run for this spec. Not verified: actual PC event order or iPad short-tap/long-press events and duration; BW1-BW4 and BW8 remain unverified. No engine-hook scenario simulates a client gesture.
 
@@ -88,7 +89,7 @@
 - Agreement: Proposed
 - Basis: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md) Decision 6, "Each menu also offers Cancel, which returns to end-point selection and its preview."
 - Basis: [0202](../adr/0202-build-wand-copy-and-continuous-paste.md) Decision 1, "Copy is an entry of the shape menu shown after the end point, before Cancel, for every shape (line, rectangle of any flat axis, box)."
-- Basis: [0229](../adr/0229-cut-a-selection-with-the-build-wand.md) Decisions 1 and 2: Cut is offered directly before Copy for every shape, with a shared height step only for horizontal rectangles.
+- Basis: [0230](../adr/0230-cut-a-selection-with-the-build-wand.md) Decisions 1 and 2: Cut is offered directly before Copy for every shape, with a shared height step only for horizontal rectangles.
 - Implementation: `src/application/build/cutBox.ts`; `src/application/build/chooseBoxStep.ts`; `src/application/build/confirmBoxStep.ts`; `src/domain/build/volume/kind.ts`; `src/domain/build/shape/shape.ts`; `src/domain/build/flow/menu.ts`; `src/domain/build/flow/flow.ts`; `src/application/build/confirmShape.ts`; `src/application/build/confirmHeighted.ts`; `src/infrastructure/build/bedrock/menuChoices.ts`
 - Verification: Scenarios `build_cut_shapes` and `build_cut_height` cover Cut menu choices and height confirmation; BT17-BT18 cover device input (unverified). `tests/domain/build/boxStep.test.ts` checks Cut directly before Copy for every generated shape. `tests/infrastructure/build/buildMenus.test.ts` checks Cut dispatch. `tests/domain/build/shape.test.ts`, `tests/domain/build/flow.test.ts`, and `tests/domain/build/boxStep.test.ts` inspect geometry and menu properties. `tests/infrastructure/build/buildMenus.test.ts` checks dispatch against currently offered entries. Scenarios `build_shapes`, `build_flow_cancel`, and `build_refusals` in `src/test-pack/scenarios/buildFlow.ts` check real permutations, cancellation and absent entries. Tests were inspected, not run for this spec. Not verified: actual forms, Back/Escape, and BWM1/BWM2 on devices.
 
@@ -111,6 +112,15 @@
 - Implementation: `src/domain/build/volume/`; `src/domain/build/flow/flow.ts`; `src/domain/build/flow/menu.ts`; `src/application/build/chooseHeighted.ts`; `src/application/build/confirmHeighted.ts`; `src/application/build/showPreview.ts`
 - Verification: Property tests in `tests/domain/build/cylinder.test.ts` check symmetry, count, closed walls by flood reachability, and caps; `tests/domain/build/cube.test.ts` checks shell nesting and equivalence to box faces/walls. `tests/domain/build/volumeGeometry.test.ts` and `tests/domain/build/volumeKind.test.ts` inspect the registry. Scenarios `build_cylinder_rect`, `build_cylinder_box`, `build_cube_rect`, and `build_solid_cancel_undo` exist in `src/test-pack/scenarios/buildFlow.ts` and `src/test-pack/catalog.ts`. Tests were inspected, not run for this spec. Not verified: rendered roundness, solid-height aiming and size readability on devices.
 
+### Height-step outline
+
+- Applies to: The particle outline drawn while aiming the height of a roof, Cube, Cylinder, or Copy.
+- Rule: The outline samples its horizontal top and bottom curves (Cube and Copy edges, both Cylinder ellipses, roof eaves and ridge) `BUILD_SPEC.denseOutlinePerBlock` times per block and every other curve (vertical edges, Cylinder side lines, roof hips) once per block. When the dense curves alone exceed `BUILD_SPEC.outlineMaxPoints` they share it in proportion to their length and the other curves get none; otherwise the other curves share what is left. The start-point and end-point outline is unchanged.
+- Agreement: Proposed
+- Basis: [0228](../adr/0228-dense-horizontal-edges-in-the-height-step-outline.md) Decision 1, "Sample the horizontal curves at the top and bottom of the shape four times per block, so the top reads as a continuous ring."
+- Implementation: `src/domain/build/wireframe.ts`; `src/domain/build/volume/cube.ts`; `src/domain/build/volume/cylinder.ts`; `src/domain/build/roof/geometry.ts`
+- Verification: Property and example tests in `tests/domain/build/cube.test.ts` and `tests/domain/build/cylinder.test.ts` check the budget, edge placement, density, and that vertical samples are dropped first. Not verified: how the height reads on a client, or particle load on mobile.
+
 ### Copy
 
 - Applies to: Shape-menu Copy and Cut, plus selection-utility Copy of a confirmed box.
@@ -118,7 +128,7 @@
 - Agreement: Proposed
 - Basis: [0202](../adr/0202-build-wand-copy-and-continuous-paste.md) Decision 4, "During the Copy height step the outline uses its own particle layer, distinct from the build outline and the paste outline."
 - Basis: [0203](../adr/0203-build-wand-paste-aiming.md) Decision 1, "Completing Copy from the shape menu, Copy height step, or utility menu stores the clipboard and immediately enters paste aiming while the player holds the wand."
-- Basis: [0229](../adr/0229-cut-a-selection-with-the-build-wand.md) Decisions 2, 4 and 5: shared height selection, the clipboard filled by Cut, and the shared preview limit.
+- Basis: [0230](../adr/0230-cut-a-selection-with-the-build-wand.md) Decisions 2, 4 and 5: shared height selection, the clipboard filled by Cut, and the shared preview limit.
 - Implementation: `src/application/build/cutBox.ts`; `src/application/build/chooseBoxStep.ts`; `src/application/build/confirmBoxStep.ts`; `src/domain/build/volume/kind.ts`; `src/application/build/copySelection.ts`; `src/application/build/copyBox.ts`; `src/domain/build/clipboard/clipboard.ts`; `src/domain/build/volume/boxStep.ts`; `src/domain/build/session.ts`; `src/domain/build/preview/preview.ts`; `src/infrastructure/build/bedrock/bedrockFeedback.ts`
 - Verification: Scenario `build_cut_sets_clipboard` cuts a region, compares the clipboard with its earlier contents, pastes it elsewhere, and undoes both, and `build_cut_height` checks the shared height step at height 3. BT17-BT18 remain unverified on devices. `tests/application/build/cut.test.ts`, `tests/domain/build/boxStep.test.ts`, `tests/domain/build/preview.test.ts`, and `tests/infrastructure/build/wand.test.ts` check shared Cut height selection, preview limits, immediate confirmation, and the clipboard filled by Cut. Cut forms and particles remain unverified on devices. `tests/domain/build/boxStep.test.ts`, `tests/application/build/boxStep.test.ts`, and `tests/domain/build/preview.test.ts` inspect supported shapes, caps, refused-copy preservation, and distinct outline layers. Scenarios `build_copy_shapes`, `build_copy_enters_paste_aim`, and `build_new_copy_replaces` in `src/test-pack/scenarios/buildFlow.ts` exercise real permutations and paste entry. Tests were inspected, not run for this spec. Not verified: Copy height touch input, visible over-limit color, material/size text readability, or BW7/BWM7/BWM8.
 
@@ -139,7 +149,7 @@
 - Agreement: Proposed
 - Basis: [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md) Decision 6, "Edits never touch cells that `isVehicleSpace` or `isCampSpace` claims (passed in through bootstrap), blocks tagged `yasu_ride:laid`, or blocks that hold data"
 - Basis: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md) Decision 11, "Fill, hollow, roof, and paste take no inventory blocks, and undo returns none, in every game mode."
-- Basis: [0229](../adr/0229-cut-a-selection-with-the-build-wand.md) Decisions 3, 5 and 6: deletion, volume limit, protections, and exact changed-cell history, and the Copy limit on Cut.
+- Basis: [0230](../adr/0230-cut-a-selection-with-the-build-wand.md) Decisions 3, 5 and 6: deletion, volume limit, protections, and exact changed-cell history, and the Copy limit on Cut.
 - Implementation: `src/application/build/cutBox.ts`; `src/application/build/chooseBoxStep.ts`; `src/application/build/confirmBoxStep.ts`; `src/domain/build/volume/kind.ts`; `src/domain/shared/keptBlocks.ts`; `src/domain/build/edit/guard.ts`; `src/domain/build/edit/plan.ts`; `src/application/build/confirmShape.ts`; `src/application/build/confirmHeighted.ts`; `src/application/build/pasteAt.ts`; `src/application/build/editJobs.ts`; `src/infrastructure/build/bedrock/bedrockBlockWorld.ts`; `src/infrastructure/bootstrap.ts`
 - Verification: Scenarios `build_cut_shapes`, `build_cut_height`, `build_cut_undo`, and `build_cut_keeps_protected` check air replacement, bounds, exact Undo, and chest contents; BT17-BT19 remain unverified on devices. `tests/application/build/cut.test.ts` checks the clipboard filled before the clear, deletion including fluids, exact Undo, changed-cell history, the copy-limit and busy refusals, and kept/protected cells. Live fluid flow, drops, and inventory are unverified for Cut. `tests/domain/build/edit.test.ts`, `tests/domain/build/keptBlocks.test.ts`, `tests/application/build/edits.test.ts`, and `tests/infrastructure/build/bedrock.test.ts` inspect filtering, unreadable cells, budgets and engine write failure. Scenario `build_refusals` checks chest material and laid protection; `build_paste_blocked` checks whole-box refusal, retained aiming, a subsequent clean paste and exact undo. `build_block_states` in `src/test-pack/scenarios/buildTools.ts` checks permutation round trip. Tests were inspected, not run for this spec. Not verified: real vehicle/camp overlap during a concurrent edit, all kept IDs resolving in the engine, Survival inventory behavior on devices, or actual unloaded-chunk failures.
 
@@ -150,7 +160,7 @@
 - Agreement: Proposed
 - Basis: [0203](../adr/0203-build-wand-paste-aiming.md) Decision 7, "A second press on the same anchor within `BUILD_SPEC.pasteRepeatTicks` (10) is ignored; a refused paste does not start that window."
 - Basis: [0203](../adr/0203-build-wand-paste-aiming.md) Decision 4, "Undo reverts the last paste, keeps the clipboard and paste aiming, and clears the same-anchor repeat window."
-- Basis: [0228](../adr/0228-open-build-utilities-with-a-plain-air-press.md) Decision 2, "The undo hint names this gesture in a short action bar message, plus one chat line the first time per session."
+- Basis: [0229](../adr/0229-open-build-utilities-with-a-plain-air-press.md) Decision 2, "The undo hint names this gesture in a short action bar message, plus one chat line the first time per session."
 - Implementation: `src/application/build/pasteAt.ts`; `src/application/build/editJobs.ts`; `src/application/build/undoEdit.ts`; `src/domain/build/edit/change.ts`; `src/domain/build/history/history.ts`; `src/domain/build/flow/paste.ts`; `src/domain/build/flow/flow.ts`; `src/domain/build/session.ts`
 - Verification: Scenarios `build_cut_undo` and `build_undo_hint_once` check exact restoration and one chat-feedback call across two edits, with completion feedback on each edit. BT16 and BT19 cover rendered feedback and Cut Undo on PC/iPad (unverified). `tests/application/build/continuousPaste.test.ts`, `tests/application/build/pressPasteAim.test.ts`, `tests/application/build/edits.test.ts`, and `tests/domain/build/session.test.ts` inspect repeat windows, busy refusals, partial writes, bounded history and running-job survival; `tests/application/build/edits.test.ts` and `tests/domain/build/flow.test.ts` check that the gesture message and chat hint are used only when the flow at completion offers Undo. Scenarios `build_continuous_paste` and `build_paste_undo_repeat` in `src/test-pack/scenarios/buildFlow.ts` check repeated placement and exact destination restoration; all four scenarios are registered in `src/test-pack/catalog.ts`. Tests were inspected, not run for this spec. Not verified: undo after later external world changes or protection changes on a live server, BW15 on iPad, or whether the declared ticks of the Cut and undo-hint scenarios suffice on a live server (estimated from existing scenarios, never run).
 
@@ -171,7 +181,7 @@
 - Agreement: Proposed
 - Basis: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md) Decision 6, "Use stable `@minecraft/server-ui` ActionForms and offer only actions that apply"
 - Basis: [0203](../adr/0203-build-wand-paste-aiming.md) Decision 9, "The normal selection utility menu keeps Copy of the confirmed box, Undo, and Clear selection."
-- Basis: [0228](../adr/0228-open-build-utilities-with-a-plain-air-press.md) Consequences, "An idle session with no history and no confirmed box has an empty utility menu, so the press opens no form."
+- Basis: [0229](../adr/0229-open-build-utilities-with-a-plain-air-press.md) Consequences, "An idle session with no history and no confirmed box has an empty utility menu, so the press opens no form."
 - Implementation: `src/infrastructure/build/bedrock/buildMenus.ts`; `src/infrastructure/build/bedrock/menuChoices.ts`; `src/domain/build/flow/menu.ts`; `src/domain/build/spec.ts`; `src/infrastructure/build/identifiers.ts`; `packs/yasu_ride_bp/manifest.json`; `packs/yasu_ride_rp/manifest.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: Manual BT3 and BT13-BT15 cover idle utilities and unchanged selection gestures on PC/iPad (unverified); scenario menu commands do not simulate gestures. `tests/infrastructure/build/buildMenus.test.ts` inspects applicable entries, stale responses, dismissal, nested locks, independent players and the optional slider. `tests/infrastructure/build/identifiers.test.ts` checks exact locale key sets and placeholder counts. Manifest versions were compared by reading both files; the server-ui dependency agrees with 0178 and 0198. Tests were inspected, not run for this spec. Not verified: actual form display, translation rendering, slider usability, RP cache refresh, historical version bump relative to the pre-feature pack, or BWM1-BWM10; the current main RP manifest has the same version as this snapshot.
 

@@ -12,7 +12,7 @@ import type { EditJobs } from "./editJobs";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 
-/** Copies the box into the clipboard, then empties it (ADR 0229). */
+/** Copies the box into the clipboard, then empties it (ADR 0230). */
 export class CutBox implements BoxAction {
   constructor(
     private readonly repo: BuildSessionRepository,
