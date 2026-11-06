@@ -2,6 +2,7 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { CellBox } from "../box";
 import { ellipse, line, outlinePoints } from "../wireframe";
+import { ellipseCells } from "./ellipse";
 import type {
   HeightedPlacement,
   HeightedVolume,
@@ -9,24 +10,13 @@ import type {
 } from "./geometry";
 
 function* columns(base: CellBox) {
-  const { min, max } = base;
-  const widthSquared = (max.x - min.x + 1) ** 2;
-  const depthSquared = (max.z - min.z + 1) ** 2;
-  const inside = (x: number, z: number): boolean =>
-    (2 * x - min.x - max.x) ** 2 * depthSquared +
-      (2 * z - min.z - max.z) ** 2 * widthSquared <=
-    widthSquared * depthSquared;
-
-  for (let z = min.z; z <= max.z; z++) {
-    for (let x = min.x; x <= max.x; x++) {
-      if (!inside(x, z)) continue;
-      const wall =
-        !inside(x - 1, z) ||
-        !inside(x + 1, z) ||
-        !inside(x, z - 1) ||
-        !inside(x, z + 1);
-      yield { x, z, wall };
-    }
+  for (const { u, v, wall } of ellipseCells({
+    uMin: base.min.x,
+    uMax: base.max.x,
+    vMin: base.min.z,
+    vMax: base.max.z,
+  })) {
+    yield { x: u, z: v, wall };
   }
 }
 
