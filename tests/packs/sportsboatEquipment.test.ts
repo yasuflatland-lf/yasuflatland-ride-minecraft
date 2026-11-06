@@ -160,9 +160,9 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     },
   );
 
-  it("ships RP 0.1.261 and matches the BP dependency", () => {
+  it("ships RP 0.1.262 and matches the BP dependency", () => {
     const rp = read(`${RP}/manifest.json`);
-    expect(rp.header.version).toEqual([0, 1, 261]);
+    expect(rp.header.version).toEqual([0, 1, 262]);
     expect(rp.modules[0].version).toEqual(rp.header.version);
     expect(
       read(`${BP}/manifest.json`).dependencies.find(
