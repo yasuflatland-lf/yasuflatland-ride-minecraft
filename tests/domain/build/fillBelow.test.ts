@@ -247,6 +247,7 @@ it.each([
   "flower_pot",
   "frog_spawn",
   "turtle_egg",
+  "sniffer_egg",
   "bell",
   "sulfur_spike",
   "shelf_mushroom",

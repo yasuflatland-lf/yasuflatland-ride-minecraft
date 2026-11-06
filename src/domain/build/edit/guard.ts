@@ -272,6 +272,7 @@ export const UNSTABLE_MATERIALS: ReadonlySet<string> = new Set(
     "flower_pot",
     "frog_spawn",
     "turtle_egg",
+    "sniffer_egg",
     "bell",
     "fire",
     "soul_fire",
