@@ -31,6 +31,7 @@
 - Excluded: [0207](../adr/0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md): temporary occupied roof tent rain ceilings belong to the camping gear topic.
 
 - Excluded: [0232](../adr/0232-undo-skips-conflicting-cells.md): conditional build Undo belongs to the build tools spec.
+- Excluded: [0233](../adr/0233-round-shapes-and-terrain-operations.md): round shapes and terrain operations belong to the build tools spec.
 
 ## Rules
 
