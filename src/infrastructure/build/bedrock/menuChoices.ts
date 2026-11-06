@@ -86,6 +86,7 @@ export class MenuChoices {
         case "sideCylinder":
           this.cases.chooseSideCylinder.execute({ playerId });
           break;
+        case "fillBelow":
         case "removeAbove":
           this.cases.chooseTerrain.execute({ playerId, op: entryId });
           break;

@@ -1088,6 +1088,47 @@ it("labels New copy and dispatches it through the paste menu with or without his
   );
 });
 
+it.each([
+  [-64, 320, 64],
+  [-64, 320, BUILD_SPEC.worldTopY],
+  [0, 128, 64],
+  [0, 256, 64],
+  [-32, 256, 64],
+])(
+  "shows Fill below's dimension bottom %i, ceiling %i and inclusive top %i",
+  async (bottom, ceiling, y) => {
+    const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.min = bottom;
+    player.dimension.heightRange.max = ceiling;
+    const area: BuildFlow = {
+      ...endpoint,
+      from: { x: 0, y, z: 0 },
+      to: { x: 4, y: 60, z: 6 },
+    };
+    session.setFlow(area);
+    ui.answers.push(
+      { selection: shapeMenu(area).findIndex((e) => e.id === "fillBelow") },
+      { selection: 0 },
+    );
+    await menus.showShapeMenu(player);
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.heading).toEqual({
+      translate: BUILD_FORM.fillBelowTitle,
+    });
+    expect(ui.forms[1]?.message).toEqual({
+      translate: BUILD_FORM.fillBelowBody,
+      with: ["5", "7", String(bottom), String(y)],
+    });
+    expect(cases.chooseTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      op: "fillBelow",
+    });
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+  },
+);
+
 it.each([false, true])(
   "routes a sideways box directly to contents with fallback=%s",
   async (fallback) => {
@@ -1119,6 +1160,17 @@ it.each([false, true])(
     });
   },
 );
+
+it("returns to aiming when Fill below confirmation is dismissed", async () => {
+  const { menus, player, cases, session } = setup();
+  ui.answers.push(
+    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "fillBelow") },
+    { canceled: true, cancelationReason: "UserClosed" },
+  );
+  await menus.showShapeMenu(player);
+  expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+  expect(session.flow.kind).toBe("point1");
+});
 
 it.each([false, true])(
   "routes a sideways rectangle through the shared height step with fallback=%s",

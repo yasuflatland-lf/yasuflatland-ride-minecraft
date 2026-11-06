@@ -12,6 +12,9 @@ export interface PlannedChange {
   readonly expected?: BlockState;
 }
 
+export const SCAN_STEP = Symbol("scan");
+export type PlanStep = PlannedChange | typeof SCAN_STEP;
+
 export interface AppliedChange {
   readonly cell: Cell;
   readonly before: BlockState;

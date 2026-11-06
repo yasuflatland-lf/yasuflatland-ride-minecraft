@@ -16,6 +16,7 @@ export type ShapeEntryId =
   | "walls"
   | Exclude<HeightedKind, "sideCylinderX" | "sideCylinderZ">
   | "sideCylinder"
+  | "fillBelow"
   | "removeAbove"
   | "cut"
   | "copy"
@@ -59,6 +60,7 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
       id: shape.kind === "line" ? "place" : style,
     })),
     ...extraEntries.map((id) => ({ id })),
+    { id: "fillBelow" },
     { id: "removeAbove" },
     { id: "cut" },
     { id: "copy" },
