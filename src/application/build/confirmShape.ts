@@ -40,7 +40,7 @@ export class ConfirmShape {
       cmd.playerId,
       flow.dimensionId,
       planShape(shape, cmd.style, { state: flow.material }),
-      false,
+      "undoable",
     );
   }
 }

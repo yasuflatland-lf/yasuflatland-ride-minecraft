@@ -3,8 +3,10 @@
 import { sameBlockState } from "../../domain/build/blockState";
 import type {
   AppliedChange,
+  EditKind,
   PlannedChange,
 } from "../../domain/build/edit/change";
+import { completionMessage } from "../../domain/build/edit/completion";
 import { isKeptState } from "../../domain/build/edit/guard";
 import { airPressOffersUndo } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -19,8 +21,9 @@ interface Job {
   readonly playerId: PlayerId;
   readonly dimensionId: DimensionId;
   readonly plan: Iterator<PlannedChange>;
-  readonly undo: boolean;
+  readonly kind: EditKind;
   readonly applied: AppliedChange[];
+  changed: number;
   skipped: number;
 }
 
@@ -39,14 +42,15 @@ export class EditJobs {
     playerId: PlayerId,
     dimensionId: DimensionId,
     plan: Iterable<PlannedChange>,
-    undo: boolean,
+    kind: EditKind,
   ): void {
     this.jobs.push({
       playerId,
       dimensionId,
       plan: plan[Symbol.iterator](),
-      undo,
+      kind,
       applied: [],
+      changed: 0,
       skipped: 0,
     });
   }
@@ -76,7 +80,7 @@ export class EditJobs {
                 .get(job.playerId)
                 ?.finishEdit(
                   { dimensionId: job.dimensionId, changes: job.applied },
-                  job.undo,
+                  job.kind,
                 );
             },
             this.log,
@@ -101,38 +105,29 @@ export class EditJobs {
         this.drop(job);
         session.finishEdit(
           { dimensionId: job.dimensionId, changes: job.applied },
-          job.undo,
+          job.kind,
         );
         attempt(
           () => {
             // The job may finish after the player left the states where an air press offers Undo,
             // and an empty edit with no earlier history leaves nothing to undo.
-            const promisesUndo =
-              airPressOffersUndo(session.flow) && session.hasHistory;
-            if (job.undo && job.skipped > 0) {
+            const { message, takesUndoHint } = completionMessage({
+              kind: job.kind,
+              skipped: job.skipped,
+              flowOffersUndo:
+                airPressOffersUndo(session.flow) && session.hasHistory,
+            });
+            if (message === "undoDonePartial") {
               this.feedback.showMessage(
                 job.playerId,
-                "undoDonePartial",
-                job.applied.length,
+                message,
+                job.changed,
                 undefined,
                 job.skipped,
               );
             } else
-              this.feedback.showMessage(
-                job.playerId,
-                job.undo
-                  ? "undoDone"
-                  : promisesUndo
-                    ? "editDone"
-                    : "editDoneCount",
-                job.applied.length,
-              );
-            if (
-              !job.undo &&
-              promisesUndo &&
-              job.applied.length > 0 &&
-              session.takeUndoHint()
-            )
+              this.feedback.showMessage(job.playerId, message, job.changed);
+            if (takesUndoHint && job.changed > 0 && session.takeUndoHint())
               this.feedback.showUndoHint(job.playerId);
           },
           this.log,
@@ -150,7 +145,7 @@ export class EditJobs {
     const { dimensionId } = job;
     const before = this.world.stateAt(dimensionId, change.cell);
     if (!before) {
-      if (job.undo) job.skipped++;
+      if (job.kind === "undo") job.skipped++;
       return;
     }
     if (change.expected && !sameBlockState(before, change.expected)) {
@@ -159,12 +154,14 @@ export class EditJobs {
     }
     if (sameBlockState(before, change.after)) return;
     if (isKeptState(before) || !this.world.mayEdit(dimensionId, change.cell)) {
-      if (job.undo) job.skipped++;
+      if (job.kind === "undo") job.skipped++;
       return;
     }
     if (this.world.setState(dimensionId, change.cell, change.after)) {
-      job.applied.push({ cell: change.cell, before, after: change.after });
-    } else if (job.undo) job.skipped++;
+      job.changed++;
+      if (job.kind === "undoable")
+        job.applied.push({ cell: change.cell, before, after: change.after });
+    } else if (job.kind === "undo") job.skipped++;
   }
 
   private drop(job: Job): void {

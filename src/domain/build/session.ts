@@ -3,7 +3,7 @@
 import type { DimensionId, PlayerId } from "../shared/ids";
 import type { CellBox } from "./box";
 import type { Clipboard } from "./clipboard/clipboard";
-import type { EditRecord } from "./edit/change";
+import type { EditKind, EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
 import { beginPasteAim } from "./flow/paste";
 import {
@@ -128,10 +128,10 @@ export class BuildSession {
     return undefined;
   }
 
-  /** Ends the running edit; `record` goes to the history unless `undo` is true. */
-  finishEdit(record: EditRecord, undo: boolean): void {
+  /** Ends the running edit; only undoable edits add their record to history. */
+  finishEdit(record: EditRecord, kind: EditKind): void {
     this.editing = false;
-    if (undo) return;
+    if (kind !== "undoable") return;
     this.history = withRecord(this.history, record, BUILD_SPEC.undoDepth);
   }
 

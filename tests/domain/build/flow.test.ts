@@ -183,7 +183,7 @@ it("offers utility entries exactly when their prerequisites exist", () => {
               dimensionId: dim,
               changes: [{ cell: at, before: dirt, after: stone }],
             },
-            false,
+            "undoable",
           );
         if (aiming) session.setFlow(tapBlock(idle, dim, at, stone));
         expect(utilityMenu(session).map((e) => e.id)).toEqual([
