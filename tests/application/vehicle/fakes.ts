@@ -407,8 +407,12 @@ export class FakeWorld
     this.paints.set(id, paint);
     this.calls.push(`paint:${id}:${paint}`);
   }
+  readonly sounds: string[] = [];
   consumeDye(playerId: string, paint: Paint) {
     this.calls.push(`dye:${playerId}:${paint}`);
+  }
+  playPaintSound(id: string) {
+    this.sounds.push(id);
   }
 }
 
