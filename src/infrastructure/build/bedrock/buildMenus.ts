@@ -8,12 +8,19 @@ import {
   pasteMenu,
   type ShapeEntryId,
   shapeMenu,
+  type TerrainEntryId,
+  terrainMenu,
   type UtilityEntryId,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import { isRoofKind } from "../../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
+import {
+  removeAboveBox,
+  terrainAreaOf,
+  terrainSides,
+} from "../../../domain/build/terrain/area";
 import { volumeOf } from "../../../domain/build/volume/geometry";
 import {
   type HeightStepKind,
@@ -28,7 +35,11 @@ import { type MenuCases, MenuChoices } from "./menuChoices";
 
 function menuLabel(
   entry: MenuEntry<
-    ShapeEntryId | ContentsEntryId | UtilityEntryId | PasteEntryId
+    | ShapeEntryId
+    | ContentsEntryId
+    | TerrainEntryId
+    | UtilityEntryId
+    | PasteEntryId
   >,
 ): string {
   if (entry.id === "skipAir")
@@ -84,6 +95,8 @@ export class BedrockBuildMenus implements BuildMenus {
       if (!player.isValid) return;
       const offered = this.choices.choose(playerId, "shape", id);
       const flow = this.repo.get(playerId)?.flow;
+      if (offered && flow?.kind === "terrainConfirm")
+        await this.terrainConfirm(player);
       if (offered && flow?.kind === "heightStep") {
         if (isBoxStepKind(flow.heightedKind)) {
           if (!flow.heightLocked && this.heightSliderFallback)
@@ -157,6 +170,48 @@ export class BedrockBuildMenus implements BuildMenus {
     );
     if (!player.isValid) return;
     this.choices.choose(playerId, "contents", id);
+  }
+
+  private async terrainConfirm(player: Player): Promise<void> {
+    const playerId = asPlayerId(player.id);
+    const flow = this.repo.get(playerId)?.flow;
+    if (flow?.kind !== "terrainConfirm") return;
+    const area = terrainAreaOf(flow.from, flow.to);
+    const bottomY = player.dimension.heightRange.min;
+    const topY = player.dimension.heightRange.max - 1;
+    if (
+      flow.op === "removeAbove" &&
+      (!removeAboveBox(area) || area.lowerY >= topY)
+    ) {
+      this.choices.choose(playerId, "terrain", "confirm");
+      return;
+    }
+    const sides = terrainSides(area);
+    const id = await chooseFromForm(
+      player,
+      flow.op === "fillBelow"
+        ? BUILD_FORM.fillBelowTitle
+        : BUILD_FORM.removeAboveTitle,
+      terrainMenu(flow).map((entry) => ({
+        id: entry.id,
+        textKey: menuLabel(entry),
+      })),
+      {
+        translate:
+          flow.op === "fillBelow"
+            ? BUILD_FORM.fillBelowBody
+            : BUILD_FORM.removeAboveBody,
+        with: [
+          String(sides.x),
+          String(sides.z),
+          String(flow.op === "fillBelow" ? bottomY : area.lowerY + 1),
+          String(flow.op === "fillBelow" ? area.higherY : topY),
+        ],
+      },
+    );
+    if (!player.isValid) return;
+    // An unanswered form must not leave the flow here, since taps do nothing in this state.
+    this.choices.choose(playerId, "terrain", id ?? "cancel");
   }
 
   private async heightSlider(player: Player): Promise<void> {

@@ -1,6 +1,7 @@
 import {
   type BlockPermutation,
   ItemStack,
+  type Player,
   system,
   world,
 } from "@minecraft/server";
@@ -112,7 +113,10 @@ async function withBuilder(
     return cells;
   };
   const f = {
+    player,
     cell,
+    look: (yaw: number) =>
+      player.teleport(player.location, { rotation: { x: 25, y: yaw } }),
     block,
     tap,
     edit,
@@ -164,6 +168,8 @@ async function withBuilder(
   }
 }
 type Fixture = {
+  player: Player;
+  look(yaw: number): void;
   cell(x?: number, y?: number, z?: number): Cell;
   block(cell: Cell): NonNullable<ReturnType<Arena["dim"]["getBlock"]>>;
   tap(tap: "block" | "air" | "clear", cell?: Cell): Promise<Reply>;
@@ -965,6 +971,89 @@ export function buildCylinderBox(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildSphereBox(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const [size, end, counts] of [
+      [[5, 5, 5], f.cell(4, 4, 4), { fill: 81, hollow: 54 }],
+      [[5, 3, 7], f.cell(4, 2, 6), { fill: 61, hollow: 46 }],
+    ] as const) {
+      const cells = f.region(size[0], size[1], size[2]);
+      for (const fill of ["fill", "hollow"] as const) {
+        for (const c of cells) f.block(c).setType("minecraft:air");
+        await f.select(end);
+        f.block(f.cell()).setType("minecraft:air");
+        const step = await f.menu("shape", "sphere");
+        check(
+          step.flow.kind === "heightStep" && step.flow.previous === size[1],
+          "box sphere did not lock the height to the box",
+        );
+        check(
+          (await f.edit("height 2")).flow.previous === size[1],
+          "locked sphere height changed",
+        );
+        const done = await f.menu("contents", fill);
+        check(done.message === "editDone", `box sphere ${fill} failed`);
+        check(
+          f.count(cells) === counts[fill],
+          `box sphere ${fill}: expected ${counts[fill]}, got ${f.count(cells)}`,
+        );
+        await f.edit("undo");
+        check(f.count(cells) === 0, `box sphere ${fill} undo left blocks`);
+      }
+    }
+  });
+}
+
+export function buildSphereRect(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(5, 5, 5);
+    for (const c of cells) f.block(c).setType("minecraft:air");
+    await placeSolid(f, f.cell(4, 0, 4), "sphere", "fill", 5);
+    check(
+      f.count(cells) === 81,
+      `rect sphere: expected 81, got ${f.count(cells)}`,
+    );
+    await f.edit("undo");
+    check(f.count(cells) === 0, "rect sphere undo left blocks");
+    for (const end of [f.cell(4), f.cell(4, 4)]) {
+      await f.select(end);
+      check(
+        (await f.menu("shape", "sphere")).offered === false,
+        "sphere offered on a line or vertical rectangle",
+      );
+    }
+  });
+}
+
+export function buildSphereHollow(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(7, 7, 7);
+    for (const c of cells) f.block(c).setType("minecraft:air");
+    await f.select(f.cell(6, 6, 6));
+    f.block(f.cell()).setType("minecraft:air");
+    await f.menu("shape", "sphere");
+    check(
+      (await f.menu("contents", "tube")).offered === false,
+      "tube offered on a sphere",
+    );
+    await f.menu("contents", "hollow");
+    check(
+      f.count(cells) === 98,
+      `hollow sphere: expected 98, got ${f.count(cells)}`,
+    );
+    const stone = (x: number, y: number, z: number) =>
+      f.block(f.cell(x, y, z)).typeId === "minecraft:stone";
+    check(
+      stone(0, 3, 3) && stone(6, 3, 3) && stone(3, 0, 3) && stone(3, 6, 3),
+      "hollow sphere misses an end of the x or y axis",
+    );
+    check(stone(3, 3, 0) && stone(3, 3, 6), "hollow sphere misses a z end");
+    check(!stone(3, 3, 3) && !stone(2, 3, 3), "hollow sphere is not empty");
+    await f.edit("undo");
+    check(f.count(cells) === 0, "hollow sphere undo left blocks");
+  });
+}
+
 export function buildCubeRect(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(4, 3, 4);
@@ -1214,6 +1303,165 @@ export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
   });
 }
 
+/** Footprint columns from a layer below the fixture's origin up to the world top. */
+function columnRegion(f: Fixture, sx: number, sz: number, bottom: number) {
+  const offset = f.cell(0, bottom, 0);
+  return f.region(sx, BUILD_SPEC.worldTopY - offset.y + 1, sz, offset);
+}
+
+export function buildRemoveAbove(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = columnRegion(f, 3, 3, -3);
+    for (const cell of cells) f.block(cell).setType("minecraft:air");
+    const ceiling = f.block({ ...f.cell(1, 0, 1), y: BUILD_SPEC.worldTopY });
+    const floor = f.region(3, 1, 3, f.cell(0, -3, 0));
+    for (const cell of floor) f.block(cell).setType("minecraft:stone");
+    const below = f.block(f.cell(1, -4, 1));
+    const beside = f.block(f.cell(3, 2, 1));
+    below.setType("minecraft:stone");
+    beside.setType("minecraft:stone");
+    // The first point sits above the end point, so the end point's layer is the floor.
+    await f.select(f.cell(2, -3, 2));
+    const firstPoint = f.block(f.cell());
+    const raised = f.block(f.cell(2, 2, 2));
+    raised.setType("minecraft:stone");
+    ceiling.setType("minecraft:stone");
+    const chest = f.block(f.cell(1, 1, 1));
+    chest.setType("minecraft:chest");
+    const inventory = chest.getComponent("minecraft:inventory")?.container;
+    check(inventory !== undefined, "Chest inventory missing");
+    inventory.setItem(0, new ItemStack("minecraft:diamond", 7));
+    try {
+      const chosen = await f.menu("shape", "removeAbove");
+      check(
+        chosen.offered === true && chosen.flow.kind === "terrainConfirm",
+        "Remove above did not ask for confirmation",
+      );
+      check(f.count([f.cell(2, 2, 2)]) === 1, "Wrote before confirmation");
+      const done = await f.menu("terrain", "confirm");
+      check(
+        done.message === "editDoneCount" && done.flow.kind === "idle",
+        `Remove above did not finish: ${done.message}`,
+      );
+      check(done.count === 3, `Changed-cell count wrong: ${done.count}`);
+      check(f.count(floor) === floor.length, "Remove above changed the floor");
+      check(
+        firstPoint.typeId === "minecraft:air" &&
+          raised.typeId === "minecraft:air" &&
+          ceiling.typeId === "minecraft:air",
+        "Remove above left a block over the floor",
+      );
+      check(
+        chest.typeId === "minecraft:chest" &&
+          chest.getComponent("minecraft:inventory")?.container?.getItem(0)
+            ?.amount === 7,
+        "Remove above changed the chest",
+      );
+      check(
+        below.typeId === "minecraft:stone" &&
+          beside.typeId === "minecraft:stone",
+        "Remove above wrote outside its columns",
+      );
+    } finally {
+      chest.getComponent("minecraft:inventory")?.container?.clearAll();
+    }
+  });
+}
+
+export function buildRemoveAboveTooLarge(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const side = BUILD_SPEC.maxTerrainSide;
+    const cells = f.region(1, 2, 1, f.cell(0, 1, 0));
+    for (const cell of cells) f.block(cell).setType("minecraft:stone");
+    await f.select(f.cell(side, 0, 0));
+    const before = snapshot(f, cells);
+    const refused = await f.menu("shape", "removeAbove");
+    check(
+      refused.message === "tooLarge" && refused.flow.kind === "endpoint",
+      "Over-limit Remove above was accepted",
+    );
+    check(unchanged(f, cells, before), "Over-limit Remove above wrote blocks");
+    await f.select(f.cell(side - 1, 0, side - 1));
+    const accepted = await f.menu("shape", "removeAbove");
+    check(
+      accepted.flow.kind === "terrainConfirm",
+      "Remove above refused a footprint at the limit",
+    );
+    await f.menu("terrain", "cancel");
+    check(unchanged(f, cells, before), "Cancel wrote blocks");
+  });
+}
+
+export function buildRemoveAboveNoUndo(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await f.edit("reset");
+    const columns = columnRegion(f, 3, 1, -1);
+    for (const cell of columns) f.block(cell).setType("minecraft:air");
+    const line = f.region(6, 1, 1);
+    await f.select(f.cell(5));
+    // The select helper places the first corner itself, so place the blocks afterwards.
+    for (const cell of line) f.block(cell).setType("minecraft:dirt");
+    check(
+      (await f.menu("shape", "place")).message === "editDone",
+      "Earlier edit did not finish",
+    );
+    check(f.count(line) === line.length, "Earlier edit left dirt behind");
+    await f.select(f.cell(2, -1, 0));
+    await f.menu("shape", "removeAbove");
+    const removed = await f.menu("terrain", "confirm");
+    check(
+      removed.message === "editDoneCount" && removed.count === 3,
+      `Remove above reported ${removed.message} ${removed.count}`,
+    );
+    const undo = await f.edit("undo");
+    check(
+      undo.message === "undoDonePartial" &&
+        undo.count === 3 &&
+        undo.skippedCount === 3,
+      `Undo reported ${undo.message} ${undo.count}/${undo.skippedCount}`,
+    );
+    check(
+      f.count(line.slice(0, 3), "minecraft:air") === 3 &&
+        f.count(line.slice(3), "minecraft:dirt") === 3,
+      "Undo restored the wrong cells",
+    );
+    check(
+      (await f.edit("undo")).message === "nothingToUndo",
+      "Remove above added an Undo record",
+    );
+  });
+}
+
+export function buildRemoveAboveCancel(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 3, 3, f.cell(0, 1, 0));
+    for (const cell of cells) f.block(cell).setType("minecraft:stone");
+    await f.select(f.cell(2, 0, 2));
+    const before = snapshot(f, cells);
+    await f.menu("shape", "removeAbove");
+    for (const tap of ["block", "air"] as const)
+      check(
+        (await f.tap(tap, f.cell(1, 0, 1))).flow.kind === "terrainConfirm",
+        `A ${tap} tap changed the confirmation`,
+      );
+    check(
+      (await f.menu("shape", "cut")).offered === false,
+      "Shape entries were offered during the confirmation",
+    );
+    const cancelled = await f.menu("terrain", "cancel");
+    check(
+      cancelled.offered === true && cancelled.flow.kind === "point1",
+      "Cancel did not return to aiming",
+    );
+    check(unchanged(f, cells, before), "Cancel wrote blocks");
+    check(
+      (await f.menu("terrain", "confirm")).offered === false,
+      "Confirm was offered after Cancel",
+    );
+    check(unchanged(f, cells, before), "A stale confirm wrote blocks");
+  });
+}
+
 export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(3, 1, 1);
@@ -1278,4 +1526,279 @@ export function buildUndoHintOnce(a: Arena): Promise<Outcome> {
       await f.menu("paste", "endPaste");
     }
   });
+}
+
+export function buildUnstuckFill(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 6, 3);
+    for (const cell of cells) f.block(cell).setType("minecraft:air");
+    for (const cell of f.region(3, 1, 3))
+      f.block(cell).setType("minecraft:stone");
+    await f.select(f.cell(2, 3, 2));
+    const feet = f.cell(1, 1, 1);
+    f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
+    const rotation = f.player.getRotation();
+    const result = await f.menu("shape", "fill");
+    check(result.message === "editDone", "Fill did not complete");
+    const actual = f.player.location;
+    check(
+      Math.abs(actual.x - (feet.x + 0.5)) < 0.01 &&
+        Math.abs(actual.z - (feet.z + 0.5)) < 0.01 &&
+        Math.abs(actual.y - f.cell(1, 4, 1).y) < 0.01,
+      `Owner did not escape to the first free pair: ${JSON.stringify(actual)}`,
+    );
+    const after = f.player.getRotation();
+    check(
+      Math.abs(after.x - rotation.x) < 0.01 &&
+        Math.abs(after.y - rotation.y) < 0.01,
+      "Unstuck changed rotation",
+    );
+    check(
+      f.count(f.region(3, 4, 3)) === 36,
+      "Fill missed cells around the owner",
+    );
+    await f.menu("utility", "undo");
+  });
+}
+
+export function buildUnstuckNotTouched(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const cell of f.region(3, 4, 3))
+      f.block(cell).setType("minecraft:air");
+    const feet = f.cell(5, 1, 1);
+    for (const cell of f.region(1, 3, 1, f.cell(5, 0, 1)))
+      f.block(cell).setType("minecraft:air");
+    f.block(f.cell(5, 0, 1)).setType("minecraft:grass_block");
+    f.block(feet).setType("minecraft:tall_grass");
+    f.block({ ...feet, y: feet.y + 1 }).setPermutation(
+      f.block(feet).permutation.withState("upper_block_bit", true),
+    );
+    await f.select(f.cell(2, 3, 2));
+    f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
+    const result = await f.menu("shape", "fill");
+    check(result.message === "editDone", "Remote Fill did not complete");
+    const actual = f.player.location;
+    check(
+      Math.abs(actual.x - (feet.x + 0.5)) < 0.01 &&
+        Math.abs(actual.z - (feet.z + 0.5)) < 0.01 &&
+        Math.abs(actual.y - feet.y) < 0.01,
+      `Untouched owner moved: ${JSON.stringify(actual)}`,
+    );
+    check(
+      f.block(feet).typeId === "minecraft:tall_grass",
+      "Remote Fill touched the owner's grass",
+    );
+    await f.menu("utility", "undo");
+  });
+}
+
+/** A stone floor bounds every fixture so the scan cannot alter the arena below it. */
+async function fillBelowPit(f: Fixture, water = false) {
+  for (const cell of f.region(5, 7, 5, f.cell(0, -5, 0)))
+    f.block(cell).setType("minecraft:stone");
+  const pit = f.region(3, 5, 3, f.cell(1, -4, 1));
+  for (const cell of pit)
+    f.block(cell).setType(water ? "minecraft:water" : "minecraft:air");
+  for (const cell of f.region(5, 2, 5, f.cell(0, 1, 0)))
+    f.block(cell).setType("minecraft:air");
+  await f.select(f.cell(4, 0, 4));
+  return pit;
+}
+
+export function buildFillBelowPit(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const pit = await fillBelowPit(f);
+    await f.menu("shape", "fillBelow");
+    check(
+      f.count(pit, "minecraft:air") === pit.length,
+      "Fill wrote before confirmation",
+    );
+    const done = await f.menu("terrain", "confirm");
+    check(
+      done.message === "editDoneCount" && done.count === pit.length,
+      "Wrong fill completion count",
+    );
+    check(f.count(pit) === pit.length, "Fill left a hole in the pit");
+  });
+}
+
+export function buildFillBelowOverhang(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await fillBelowPit(f);
+    const ceiling = f.region(2, 1, 3, f.cell(2, 0, 1));
+    const ledge = f.region(1, 3, 3, f.cell(2, -3, 1));
+    for (const cell of [...ceiling, ...ledge])
+      f.block(cell).setType("minecraft:dirt");
+    // The only entrance into the far pocket is below the ledge.
+    const pocket = f.region(1, 4, 3, f.cell(3, -4, 1));
+    await f.menu("shape", "fillBelow");
+    await f.menu("terrain", "confirm");
+    check(
+      f.count(pocket) === pocket.length,
+      "Fill did not climb behind the overhang",
+    );
+    check(
+      f.count([...ceiling, ...ledge], "minecraft:dirt") ===
+        ceiling.length + ledge.length,
+      "Fill changed solid terrain",
+    );
+  });
+}
+
+export function buildFillBelowStaysInside(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await fillBelowPit(f);
+    const tunnel = f.region(7, 1, 1, f.cell(3, -2, 2));
+    for (const cell of tunnel) f.block(cell).setType("minecraft:air");
+    const outside = tunnel.filter((c) => c.x > f.cell(4).x);
+    const above = f.region(5, 1, 5, f.cell(0, 1, 0));
+    const sealed = f.cell(0, -3, 0);
+    f.block(sealed).setType("minecraft:air");
+    await f.menu("shape", "fillBelow");
+    await f.menu("terrain", "confirm");
+    check(
+      f.count(outside, "minecraft:air") === outside.length,
+      "Fill escaped through the side passage",
+    );
+    check(
+      f.count(above, "minecraft:air") === above.length,
+      "Fill wrote above the top layer",
+    );
+    check(
+      f.block(sealed).typeId === "minecraft:air",
+      "Fill entered a disconnected cavity",
+    );
+  });
+}
+
+export function buildFillBelowWater(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const pit = await fillBelowPit(f, true);
+    await f.menu("shape", "fillBelow");
+    await f.menu("terrain", "confirm");
+    check(f.count(pit) === pit.length, "Fill left water in the pit");
+  });
+}
+
+export function buildFillBelowMaterialRefused(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const pit = await fillBelowPit(f);
+    await f.tap("clear");
+    f.block(f.cell()).setType("minecraft:sand");
+    await f.tap("block");
+    await f.tap("air", f.cell(4, 0, 4));
+    const refused = await f.menu("shape", "fillBelow");
+    check(
+      refused.message === "fillMaterialRefused" &&
+        refused.flow.kind === "endpoint",
+      "Unstable fill material was accepted",
+    );
+    check(
+      f.count(pit, "minecraft:air") === pit.length,
+      "Refused fill wrote blocks",
+    );
+  });
+}
+
+export function buildFillBelowNoUndo(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await f.edit("reset");
+    const old = f.cell(1);
+    await f.select(old);
+    f.block(old).setType("minecraft:dirt");
+    await f.menu("shape", "place");
+    const pit = await fillBelowPit(f);
+    await f.menu("shape", "fillBelow");
+    const done = await f.menu("terrain", "confirm");
+    check(done.message === "editDoneCount", "Fill promised Undo");
+    await f.edit("undo");
+    check(f.block(old).typeId === "minecraft:dirt", "Earlier history was lost");
+    check(f.count(pit) === pit.length, "Undo reverted Fill below");
+    check(
+      (await f.edit("undo")).message === "nothingToUndo",
+      "Fill added history",
+    );
+  });
+}
+
+export function buildFillBelowUnstuck(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await fillBelowPit(f);
+    const feet = f.cell(2, -4, 2);
+    f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
+    await f.menu("shape", "fillBelow");
+    await f.menu("terrain", "confirm");
+    const position = f.player.location;
+    check(
+      Math.abs(position.x - feet.x - 0.5) < 0.01 &&
+        Math.abs(position.z - feet.z - 0.5) < 0.01 &&
+        position.y >= f.cell(0, 1).y,
+      "Filled player did not escape upward in the same column",
+    );
+  });
+}
+
+function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = axis === "x" ? f.region(7, 5, 5) : f.region(5, 5, 7);
+    const at = (along: number, y: number, across: number) =>
+      axis === "x" ? f.cell(along, y, across) : f.cell(across, y, along);
+    for (const [fill, expected] of [
+      ["fill", 147],
+      ["hollow", 102],
+      ["tube", 84],
+    ] as const) {
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+      await f.select(at(6, axis === "x" ? 4 : 0, 4));
+      f.block(f.cell()).setType("minecraft:air");
+      f.look(axis === "x" ? -90 : 0);
+      // Teleport rotation is only readable on a later tick.
+      await wait(1);
+      const step = await f.menu("shape", "sideCylinder");
+      check(
+        step.offered === true && step.flow.kind === "heightStep",
+        "sideways cylinder step missing",
+      );
+      f.look(axis === "x" ? 0 : -90);
+      // Teleport rotation is only readable on a later tick.
+      await wait(1);
+      check(
+        (await f.edit("height 5")).flow.previous === 5,
+        "sideways cylinder height incorrect",
+      );
+      if (axis === "x")
+        check(
+          (await f.edit("height 2")).flow.previous === 5,
+          "box height was not locked",
+        );
+      const done = await f.menu("contents", fill);
+      check(
+        done.message === "editDone" && f.count(cells) === expected,
+        `sideways ${axis} ${fill} count incorrect`,
+      );
+      const stone = (along: number, y: number, across: number) =>
+        f.block(at(along, y, across)).typeId === "minecraft:stone";
+      check(stone(3, 2, 0) && stone(3, 0, 2), "sideways wall missing");
+      check(!stone(3, 0, 0), "sideways ellipse filled a corner");
+      check(
+        stone(0, 2, 2) === (fill !== "tube") &&
+          stone(6, 2, 2) === (fill !== "tube"),
+        "sideways end caps incorrect",
+      );
+      check(
+        stone(3, 2, 2) === (fill === "fill"),
+        "sideways interior incorrect",
+      );
+      await f.edit("undo");
+      check(f.count(cells) === 0, "sideways cylinder Undo left blocks");
+    }
+  });
+}
+
+export function buildSideCylinderX(a: Arena): Promise<Outcome> {
+  return buildSideCylinder(a, "x");
+}
+
+export function buildSideCylinderZ(a: Arena): Promise<Outcome> {
+  return buildSideCylinder(a, "z");
 }

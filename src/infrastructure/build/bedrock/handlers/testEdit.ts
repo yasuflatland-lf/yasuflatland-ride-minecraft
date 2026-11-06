@@ -115,6 +115,7 @@ export function registerTestEdit(
           command === "menu" &&
           (args[0] === "shape" ||
             args[0] === "contents" ||
+            args[0] === "terrain" ||
             args[0] === "utility" ||
             args[0] === "paste") &&
           args.length === 2

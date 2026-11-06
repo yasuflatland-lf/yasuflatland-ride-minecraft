@@ -980,7 +980,7 @@ for sx in (1, -1):
     body.append(box(x0, 60.4, -51.8, x1, 61.8, -49.2, "amber"))
     # West-coast mirrors, as on the owner's photo: a chrome rod standing off the front pillar on
     # two brackets, carrying a tall rectangular housing strapped twice across its back. All of it
-    # sits in the mirror bone, so one pass can draw it with the PBR texture set (ADR 0233).
+    # sits in the mirror bone, so one pass can draw it with the PBR texture set (ADR 0234).
     def xs(a, b):
         return min(sx * a, sx * b), max(sx * a, sx * b)
     mz = WS_Z + 3

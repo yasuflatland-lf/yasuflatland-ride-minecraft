@@ -4,6 +4,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
+import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
@@ -17,11 +19,13 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
+  chooseTerrain,
 } from "../../../src/domain/build/flow/flow";
 import {
   contentsMenu,
   pasteMenu,
   shapeMenu,
+  terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -31,6 +35,7 @@ import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/bui
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import {
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -52,11 +57,16 @@ const ui = vi.hoisted(() => {
     toggles: unknown[] = [];
     sliders: unknown[] = [];
     heading: RawMessage | undefined;
+    message: RawMessage | undefined;
     constructor() {
       forms.push(this);
     }
     title(label: RawMessage) {
       this.heading = label;
+      return this;
+    }
+    body(label: RawMessage) {
+      this.message = label;
       return this;
     }
     submitButton() {
@@ -121,9 +131,15 @@ function setup(fallback?: boolean) {
               repo,
               new FakeWorld(),
               new FakeFeedback(),
-              new EditJobs(repo, new FakeWorld(), new FakeFeedback(), {
-                warn: () => {},
-              }),
+              new EditJobs(
+                repo,
+                new FakeWorld(),
+                new FakeFeedback(),
+                {
+                  warn: () => {},
+                },
+                new FakeBuildPlayers(),
+              ),
             ),
           },
           new FakeFeedback(),
@@ -137,7 +153,23 @@ function setup(fallback?: boolean) {
         new ChooseHeighted(repo, new FakeFeedback()).execute(cmd),
       ),
     },
+    chooseSideCylinder: {
+      execute: vi.fn((cmd) =>
+        new ChooseSideCylinder(
+          repo,
+          new FakeFeedback(),
+          { aim: () => undefined },
+          new ChooseHeighted(repo, new FakeFeedback()),
+        ).execute(cmd),
+      ),
+    },
     confirmHeighted: { execute: vi.fn() },
+    chooseTerrain: {
+      execute: vi.fn((cmd) =>
+        new ChooseTerrain(repo, new FakeFeedback()).execute(cmd),
+      ),
+    },
+    confirmTerrain: { execute: vi.fn() },
     cancel: {
       backToAiming: vi.fn((cmd) => new CancelFlow(repo).backToAiming(cmd)),
     },
@@ -153,7 +185,11 @@ function setup(fallback?: boolean) {
       execute: vi.fn((cmd) => new SetHeightTo(repo).execute(cmd)),
     },
   };
-  const player = { id: playerId, isValid: true } as unknown as Player;
+  const player = {
+    id: playerId,
+    isValid: true,
+    dimension: { heightRange: { min: -64, max: 320 } },
+  } as unknown as Player;
   const menus = new BedrockBuildMenus(repo, cases, fallback);
   return {
     repo,
@@ -224,7 +260,7 @@ it("shows exactly the applicable utility entries", async () => {
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         if (aiming) session.setFlow(endpoint);
         ui.forms.length = 0;
@@ -257,7 +293,7 @@ it.each([
   });
 });
 
-it.each(["gable", "hip", "cylinder", "cube"] as const)(
+it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "chooses %s without a slider by default",
   async (kind) => {
     const { menus, player, cases } = setup();
@@ -329,7 +365,7 @@ it.each(["copy", "undo", "clear"] as const)("routes utility %s", async (id) => {
       dimensionId: overworld,
       changes: [{ cell: from, before: stone, after: stone }],
     },
-    false,
+    "undoable",
   );
   ui.answers.push({
     selection: utilityMenu(session).findIndex((e) => e.id === id),
@@ -356,6 +392,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
         "gable" as const,
         "hip" as const,
         "cylinder" as const,
+        "sphere" as const,
         "cube" as const,
       ),
       async (y, requested, kind) => {
@@ -372,7 +409,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
         ui.answers.push({ formValues: [max] }, { selection: 1 });
         await menus.showHeightSlider(player);
         const title =
-          kind === "cylinder" || kind === "cube"
+          kind === "cylinder" || kind === "sphere" || kind === "cube"
             ? BUILD_FORM.solidTitle
             : BUILD_FORM.roofTitle;
         expect(ui.forms[0]?.heading).toEqual({ translate: title });
@@ -402,7 +439,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
   );
 });
 
-it.each(["gable", "hip", "cylinder", "cube"] as const)(
+it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "chains %s through the enabled slider to the roof menu",
   async (kind) => {
     const { menus, player, cases } = setup(true);
@@ -524,6 +561,8 @@ it("dispatches only entries offered by the current flow, including stale choices
         "gable",
         "hip",
         "cylinder",
+        "sideCylinder",
+        "sphere",
         "cube",
         "cancel",
         "invalid",
@@ -541,10 +580,15 @@ it("dispatches only entries offered by the current flow, including stale choices
           expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
             playerId,
           });
+        } else if (id === "sideCylinder") {
+          expect(
+            cases.chooseSideCylinder.execute,
+          ).toHaveBeenCalledExactlyOnceWith({ playerId });
         } else if (
           id === "gable" ||
           id === "hip" ||
           id === "cylinder" ||
+          id === "sphere" ||
           id === "cube"
         ) {
           expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
@@ -587,7 +631,7 @@ it("validates utility availability before dispatching", () => {
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         for (const [id, offered] of [
           ["copy", confirmed],
@@ -653,6 +697,32 @@ it.each([false, true])(
     expect(ui.forms).toHaveLength(3);
     expect(ui.forms[2]?.sliders).toEqual([]);
     expect(cases.setHeight.execute).not.toHaveBeenCalled();
+  },
+);
+
+it.each([false, true])(
+  "opens locked sphere contents directly with fallback=%s",
+  async (fallback) => {
+    const { session, menus, player, cases } = setup(fallback);
+    session.setFlow({ ...endpoint, to: { ...to, y: 71 } });
+    ui.answers.push(
+      {
+        selection: shapeMenu(session.flow).findIndex((e) => e.id === "sphere"),
+      },
+      { selection: 1 },
+    );
+    await menus.showShapeMenu(player);
+    expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      kind: "sphere",
+    });
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.buttons).toEqual(labels(contentsMenu(session.flow)));
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      fill: "hollow",
+    });
   },
 );
 
@@ -760,6 +830,121 @@ it.each([
   expect(ui.forms).toHaveLength(1);
 });
 
+function removeAboveAnswer() {
+  return {
+    selection: shapeMenu(endpoint).findIndex((e) => e.id === "removeAbove"),
+  };
+}
+
+it.each([320, 128, 256])(
+  "shows the dimension top for Remove above with exclusive ceiling %i",
+  async (ceiling) => {
+    const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.max = ceiling;
+    const area: BuildFlow = {
+      ...endpoint,
+      from: { x: 0, y: 64, z: 0 },
+      to: { x: 4, y: 60, z: 6 },
+    };
+    session.setFlow(area);
+    ui.answers.push(
+      { selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove") },
+      { selection: 0 },
+    );
+    await menus.showShapeMenu(player);
+    expect(cases.chooseTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      op: "removeAbove",
+    });
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.heading).toEqual({
+      translate: BUILD_FORM.removeAboveTitle,
+    });
+    expect(ui.forms[1]?.message).toEqual({
+      translate: BUILD_FORM.removeAboveBody,
+      with: ["5", "7", "61", String(ceiling - 1)],
+    });
+    expect(ui.forms[1]?.buttons).toEqual([
+      { translate: BUILD_FORM.confirm },
+      { translate: BUILD_FORM.cancel },
+    ]);
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  [320, BUILD_SPEC.worldTopY],
+  [512, BUILD_SPEC.worldTopY],
+  [128, 127],
+  [128, 128],
+  [256, 255],
+  [256, 256],
+])(
+  "confirms without a form for ceiling %i and floor %i",
+  async (ceiling, floor) => {
+    const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.max = ceiling;
+    session.setFlow({
+      ...endpoint,
+      from: { ...from, y: floor },
+      to: { ...to, y: floor },
+    });
+    ui.answers.push(removeAboveAnswer());
+    await menus.showShapeMenu(player);
+    expect(ui.forms).toHaveLength(1);
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  ["Cancel", { selection: 1 }],
+  ["closing the form", { canceled: true, cancelationReason: "UserClosed" }],
+  ["an unanswered form", {}],
+] as const)(
+  "returns to aiming after %s without confirming",
+  async (_, answer) => {
+    const { menus, player, cases, session } = setup();
+    ui.answers.push(removeAboveAnswer(), answer);
+    await menus.showShapeMenu(player);
+    expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+    expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+  },
+);
+
+it("opens no confirmation when the area is too large", async () => {
+  const { menus, player, cases, session } = setup();
+  const area: BuildFlow = { ...endpoint, to: { x: 32, y: 60, z: 0 } };
+  session.setFlow(area);
+  ui.answers.push({
+    selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove"),
+  });
+  await menus.showShapeMenu(player);
+  expect(ui.forms).toHaveLength(1);
+  expect(session.flow).toBe(area);
+  expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+});
+
+it("offers terrain entries only during the confirmation", () => {
+  const { session, cases, choices } = setup();
+  for (const id of ["confirm", "cancel"]) {
+    expect(choices.choose(playerId, "terrain", id)).toBe(false);
+  }
+  expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+  session.setFlow(chooseTerrain(endpoint, "removeAbove"));
+  expect(terrainMenu(session.flow)).toHaveLength(2);
+  expect(choices.choose(playerId, "terrain", "invalid")).toBe(false);
+  expect(choices.choose(playerId, "terrain", "confirm")).toBe(true);
+  expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
+});
+
 it("confirms Cut after the fallback slider without opening contents", async () => {
   const { menus, player, cases, session } = setup(true);
   ui.answers.push(
@@ -817,7 +1002,7 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         const offered =
           aiming &&
@@ -887,7 +1072,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
             dimensionId: overworld,
             changes: [{ cell: from, before: stone, after: stone }],
           },
-          false,
+          "undoable",
         );
       const index = history ? 2 : 1;
       ui.answers.push({ selection: index });
@@ -902,3 +1087,117 @@ it("labels New copy and dispatches it through the paste menu with or without his
     }),
   );
 });
+
+it.each([
+  [-64, 320, 64],
+  [-64, 320, BUILD_SPEC.worldTopY],
+  [0, 128, 64],
+  [0, 256, 64],
+  [-32, 256, 64],
+])(
+  "shows Fill below's dimension bottom %i, ceiling %i and inclusive top %i",
+  async (bottom, ceiling, y) => {
+    const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.min = bottom;
+    player.dimension.heightRange.max = ceiling;
+    const area: BuildFlow = {
+      ...endpoint,
+      from: { x: 0, y, z: 0 },
+      to: { x: 4, y: 60, z: 6 },
+    };
+    session.setFlow(area);
+    ui.answers.push(
+      { selection: shapeMenu(area).findIndex((e) => e.id === "fillBelow") },
+      { selection: 0 },
+    );
+    await menus.showShapeMenu(player);
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.heading).toEqual({
+      translate: BUILD_FORM.fillBelowTitle,
+    });
+    expect(ui.forms[1]?.message).toEqual({
+      translate: BUILD_FORM.fillBelowBody,
+      with: ["5", "7", String(bottom), String(y)],
+    });
+    expect(cases.chooseTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      op: "fillBelow",
+    });
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+  },
+);
+
+it.each([false, true])(
+  "routes a sideways box directly to contents with fallback=%s",
+  async (fallback) => {
+    const { session, menus, player, cases } = setup(fallback);
+    session.setFlow({ ...endpoint, to: { ...to, y: 64 } });
+    ui.answers.push(
+      {
+        selection: shapeMenu(session.flow).findIndex(
+          ({ id }) => id === "sideCylinder",
+        ),
+      },
+      { selection: 2 },
+    );
+    await menus.showShapeMenu(player);
+    expect(cases.chooseSideCylinder.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    expect(session.flow).toMatchObject({
+      heightedKind: "sideCylinderX",
+      heightLocked: true,
+      previous: 5,
+    });
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.buttons).toEqual(labels(contentsMenu(session.flow)));
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      fill: "tube",
+    });
+  },
+);
+
+it("returns to aiming when Fill below confirmation is dismissed", async () => {
+  const { menus, player, cases, session } = setup();
+  ui.answers.push(
+    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "fillBelow") },
+    { canceled: true, cancelationReason: "UserClosed" },
+  );
+  await menus.showShapeMenu(player);
+  expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+  expect(session.flow.kind).toBe("point1");
+});
+
+it.each([false, true])(
+  "routes a sideways rectangle through the shared height step with fallback=%s",
+  async (fallback) => {
+    const { session, menus, player, cases } = setup(fallback);
+    ui.answers.push({
+      selection: shapeMenu(session.flow).findIndex(
+        ({ id }) => id === "sideCylinder",
+      ),
+    });
+    if (fallback) ui.answers.push({ formValues: [7] }, { selection: 0 });
+    await menus.showShapeMenu(player);
+    expect(session.flow).toMatchObject({
+      heightedKind: "sideCylinderX",
+      heightLocked: false,
+      previous: fallback ? 7 : 1,
+    });
+    expect(ui.forms).toHaveLength(fallback ? 3 : 1);
+    if (fallback) {
+      expect(cases.setHeight.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+        height: 7,
+      });
+      expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+        fill: "fill",
+      });
+    } else expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
+  },
+);

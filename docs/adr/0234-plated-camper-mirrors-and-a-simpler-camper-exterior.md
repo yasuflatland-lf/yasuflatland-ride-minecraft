@@ -1,4 +1,4 @@
-# 0233. Plated camper mirrors and a simpler camper exterior
+# 0234. Plated camper mirrors and a simpler camper exterior
 
 - Status: Proposed
 - Acceptance condition: the owner compares the camper's mirrors, water inlet, front roof edge, and rear hatches with the reference photos on a client, with Vibrant Visuals on and off
@@ -16,7 +16,7 @@ The owner compared the camper with photos and asked for four changes. The left r
 - Remove the aluminium roof lip across the front. The side rails and every amber lamp stay. The bolt region shrinks to the side rails' length.
 - Move both mirrors, brackets, rods, housings, and straps into a new `mirror` bone (parent `body`) after `body`, drawn by an always-on `controller.render.yasu_ride.camper.mirror` pass with `camper_mirror.png` and `camper_mirror_mer.png`. The base pass hides the bone. MER is metalness 255, emissive 0, roughness 26 on a new 16 x 32 `mirror_chrome` tile and `(0, 0, 255)` elsewhere. The tile bakes a sky, horizon, and ground gradient with narrow dark streaks, so devices without PBR still show a bright plated look.
 - Make the inlet's ring and lamp true circles, add the thin plate above the lamp and a metal cap in the ring, as on the photo.
-- Raise the Resource Pack and the Behavior Pack's dependency to 0.1.263 (0015).
+- Raise the Resource Pack and the Behavior Pack's dependency to 0.1.268 (0015).
 
 ## Consequences
 

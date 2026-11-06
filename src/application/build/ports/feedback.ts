@@ -5,9 +5,11 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 export type BuildMessage =
   | "building"
   | "cutting"
+  | "removing"
   | "pointSet"
   | "endSet"
   | "materialRefused"
+  | "fillMaterialRefused"
   | "selectionCleared"
   | "noSelection"
   | "tooLarge"

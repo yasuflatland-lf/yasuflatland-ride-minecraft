@@ -8,7 +8,13 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
+import {
+  FakeBuildPlayers,
+  FakeFeedback,
+  FakeSessions,
+  FakeWorld,
+  overworld,
+} from "./fakes";
 
 const playerId = asPlayerId("p");
 const material = blockStateOf("minecraft:oak_planks", { example: true });
@@ -44,14 +50,20 @@ it.each([
   new ConfirmShape(
     e.repo,
     e.feedback,
-    new EditJobs(e.repo, e.world, e.feedback, { warn: () => {} }),
+    new EditJobs(
+      e.repo,
+      e.world,
+      e.feedback,
+      { warn: () => {} },
+      new FakeBuildPlayers(),
+    ),
   ).execute({ playerId, style });
   expect(e.feedback.messages).toEqual([
     { message: "building", count: undefined, material },
   ]);
 });
 
-it.each(["gable", "hip", "cylinder", "cube"] as const)(
+it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "shows the material when choosing %s",
   (kind) => {
     const e = setup();
@@ -83,13 +95,25 @@ it("does not announce a rejected or busy build", () => {
   new ConfirmShape(
     e.repo,
     e.feedback,
-    new EditJobs(e.repo, e.world, e.feedback, { warn: () => {} }),
+    new EditJobs(
+      e.repo,
+      e.world,
+      e.feedback,
+      { warn: () => {} },
+      new FakeBuildPlayers(),
+    ),
   ).execute({ playerId, style: "walls" });
   e.session.beginEdit();
   new ConfirmShape(
     e.repo,
     e.feedback,
-    new EditJobs(e.repo, e.world, e.feedback, { warn: () => {} }),
+    new EditJobs(
+      e.repo,
+      e.world,
+      e.feedback,
+      { warn: () => {} },
+      new FakeBuildPlayers(),
+    ),
   ).execute({ playerId, style: "fill" });
   expect(
     e.feedback.messages.some(({ message }) => message === "building"),

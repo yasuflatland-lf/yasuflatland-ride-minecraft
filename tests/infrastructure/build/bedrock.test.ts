@@ -17,15 +17,23 @@ const engine = vi.hoisted(() => ({
   getEntity: vi.fn(),
   getBlock: vi.fn(),
   resolve: vi.fn(),
+  heightRange: { min: -64, max: 320 },
+  getDimension: vi.fn(),
 }));
 vi.mock("@minecraft/server", () => ({
   world: {
     getEntity: engine.getEntity,
-    getDimension: () => ({ getBlock: engine.getBlock }),
+    getDimension: engine.getDimension,
   },
   BlockPermutation: { resolve: engine.resolve },
 }));
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  engine.getDimension.mockReturnValue({
+    getBlock: engine.getBlock,
+    heightRange: engine.heightRange,
+  });
+});
 const dimension = asDimensionId("minecraft:overworld");
 const playerId = asPlayerId("player");
 const cell = fc.record({
@@ -328,4 +336,19 @@ it("draws every preview style in the viewer dimension when no dimension is fixed
     ["minecraft:villager_happy", point],
     ["minecraft:blue_flame_particle", point],
   ]);
+});
+
+it("converts each dimension's exclusive height maximum to the highest block Y", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: -63, max: 1024 }), (max) => {
+      const blocks = new BedrockBlockWorld({ isProtected: () => false });
+      engine.getDimension.mockImplementation((id: string) => ({
+        heightRange: { min: -64, max: id === "minecraft:nether" ? max : 320 },
+      }));
+      expect(blocks.topY(asDimensionId("minecraft:nether"))).toBe(max - 1);
+      expect(engine.getDimension).toHaveBeenLastCalledWith("minecraft:nether");
+      expect(blocks.topY(dimension)).toBe(319);
+      expect(engine.getDimension).toHaveBeenLastCalledWith(dimension);
+    }),
+  );
 });

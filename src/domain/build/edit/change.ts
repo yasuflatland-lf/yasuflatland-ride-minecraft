@@ -3,12 +3,17 @@ import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 
+export type EditKind = "undoable" | "undo" | "irreversible";
+
 export interface PlannedChange {
   readonly cell: Cell;
   readonly after: BlockState;
   /** Required current state before writing; absent means unconditional. */
   readonly expected?: BlockState;
 }
+
+export const SCAN_STEP = Symbol("scan");
+export type PlanStep = PlannedChange | typeof SCAN_STEP;
 
 export interface AppliedChange {
   readonly cell: Cell;

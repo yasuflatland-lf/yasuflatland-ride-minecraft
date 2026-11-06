@@ -1,4 +1,4 @@
-import type { Player } from "@minecraft/server";
+import type { Player, RawMessage } from "@minecraft/server";
 import { ActionFormData, FormCancelationReason } from "@minecraft/server-ui";
 
 type ChoiceEntry<Id extends string = string> = Readonly<{
@@ -15,8 +15,9 @@ export async function chooseFromForm<Id extends string>(
   player: Player,
   titleKey: string,
   entries: readonly ChoiceEntry<Id>[],
+  body?: RawMessage,
 ): Promise<Id | typeof CANCELLED | undefined> {
-  const result = await chooseFromFormResult(player, titleKey, entries);
+  const result = await chooseFromFormResult(player, titleKey, entries, body);
   if (result.status === "answered") return result.choice;
   if (result.status === "busy" || result.status === "cancelled")
     return CANCELLED;
@@ -27,9 +28,11 @@ export async function chooseFromFormResult<Id extends string>(
   player: Player,
   titleKey: string,
   entries: readonly ChoiceEntry<Id>[],
+  body?: RawMessage,
 ): Promise<ChoiceFormResult<Id>> {
   if (entries.length === 0) return { status: "unavailable" };
   const form = new ActionFormData().title({ translate: titleKey });
+  if (body) form.body(body);
   for (const entry of entries) form.button({ translate: entry.textKey });
   const answer = await form.show(player);
   if (!player.isValid) return { status: "unavailable" };

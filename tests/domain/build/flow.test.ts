@@ -10,6 +10,7 @@ import {
   backToAiming,
   cancel,
   chooseHeighted,
+  chooseTerrain,
   finishHeightStep,
   opensUtilityMenu,
   setHeight,
@@ -19,6 +20,7 @@ import {
 import {
   contentsMenu,
   shapeMenu,
+  terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
@@ -121,10 +123,12 @@ it("offers only supported shape styles followed by Cancel", () => {
           shape.kind === "line" ? "place" : style,
         ),
         ...(shape.kind === "rect" && shape.flat === "y"
-          ? ["gable", "hip", "cylinder", "cube"]
+          ? ["gable", "hip", "cylinder", "sideCylinder", "sphere", "cube"]
           : shape.kind === "box"
-            ? ["cylinder"]
+            ? ["cylinder", "sideCylinder", "sphere"]
             : []),
+        "fillBelow",
+        "removeAbove",
         "cut",
         "copy",
         "cancel",
@@ -132,7 +136,10 @@ it("offers only supported shape styles followed by Cancel", () => {
     }),
   );
   for (const [to, ids] of [
-    [{ x: 3, y: 0, z: 0 }, ["place", "cut", "copy", "cancel"]],
+    [
+      { x: 3, y: 0, z: 0 },
+      ["place", "fillBelow", "removeAbove", "cut", "copy", "cancel"],
+    ],
     [
       { x: 3, y: 0, z: 3 },
       [
@@ -141,7 +148,11 @@ it("offers only supported shape styles followed by Cancel", () => {
         "gable",
         "hip",
         "cylinder",
+        "sideCylinder",
+        "sphere",
         "cube",
+        "fillBelow",
+        "removeAbove",
         "cut",
         "copy",
         "cancel",
@@ -149,7 +160,19 @@ it("offers only supported shape styles followed by Cancel", () => {
     ],
     [
       { x: 3, y: 3, z: 3 },
-      ["fill", "faces", "walls", "cylinder", "cut", "copy", "cancel"],
+      [
+        "fill",
+        "faces",
+        "walls",
+        "cylinder",
+        "sideCylinder",
+        "sphere",
+        "fillBelow",
+        "removeAbove",
+        "cut",
+        "copy",
+        "cancel",
+      ],
     ],
   ] as const)
     expect(
@@ -182,7 +205,7 @@ it("offers utility entries exactly when their prerequisites exist", () => {
               dimensionId: dim,
               changes: [{ cell: at, before: dirt, after: stone }],
             },
-            false,
+            "undoable",
           );
         if (aiming) session.setFlow(tapBlock(idle, dim, at, stone));
         expect(utilityMenu(session).map((e) => e.id)).toEqual([
@@ -241,7 +264,11 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "gable",
               "hip",
               "cylinder",
+              "sideCylinder",
+              "sphere",
               "cube",
+              "fillBelow",
+              "removeAbove",
               "cut",
               "copy",
               "cancel",
@@ -249,13 +276,56 @@ it("accepts every heighted kind only on its supported shapes", () => {
           ],
           [
             { x: dx, y: dy, z: dz },
-            ["fill", "faces", "walls", "cylinder", "cut", "copy", "cancel"],
+            [
+              "fill",
+              "faces",
+              "walls",
+              "cylinder",
+              "sideCylinder",
+              "sphere",
+              "fillBelow",
+              "removeAbove",
+              "cut",
+              "copy",
+              "cancel",
+            ],
           ],
-          [{ x: dx, y: dy, z: 0 }, ["fill", "frame", "cut", "copy", "cancel"]],
-          [{ x: 0, y: dy, z: dz }, ["fill", "frame", "cut", "copy", "cancel"]],
-          [{ x: dx, y: 0, z: 0 }, ["place", "cut", "copy", "cancel"]],
-          [{ x: 0, y: dy, z: 0 }, ["place", "cut", "copy", "cancel"]],
-          [{ x: 0, y: 0, z: dz }, ["place", "cut", "copy", "cancel"]],
+          [
+            { x: dx, y: dy, z: 0 },
+            [
+              "fill",
+              "frame",
+              "fillBelow",
+              "removeAbove",
+              "cut",
+              "copy",
+              "cancel",
+            ],
+          ],
+          [
+            { x: 0, y: dy, z: dz },
+            [
+              "fill",
+              "frame",
+              "fillBelow",
+              "removeAbove",
+              "cut",
+              "copy",
+              "cancel",
+            ],
+          ],
+          [
+            { x: dx, y: 0, z: 0 },
+            ["place", "fillBelow", "removeAbove", "cut", "copy", "cancel"],
+          ],
+          [
+            { x: 0, y: dy, z: 0 },
+            ["place", "fillBelow", "removeAbove", "cut", "copy", "cancel"],
+          ],
+          [
+            { x: 0, y: 0, z: dz },
+            ["place", "fillBelow", "removeAbove", "cut", "copy", "cancel"],
+          ],
         ] as const) {
           const end = {
             x: origin.x + offset.x,
@@ -266,7 +336,13 @@ it("accepts every heighted kind only on its supported shapes", () => {
           const to = reverse ? origin : end;
           const flow = tapAir(tapBlock(idle, dim, from, stone), to);
           expect(shapeMenu(flow).map((e) => e.id)).toEqual(ids);
-          for (const kind of ["gable", "hip", "cylinder", "cube"] as const) {
+          for (const kind of [
+            "gable",
+            "hip",
+            "cylinder",
+            "sphere",
+            "cube",
+          ] as const) {
             const chosen = chooseHeighted(flow, kind);
             if (!(ids as readonly string[]).includes(kind)) {
               expect(chosen).toBe(flow);
@@ -404,7 +480,13 @@ it("roof Cancel preserves the original first point for either selection directio
 it("offers each heighted kind's fill styles followed by Cancel", () => {
   fc.assert(
     fc.property(
-      fc.constantFrom<HeightedKind>("gable", "hip", "cylinder", "cube"),
+      fc.constantFrom<HeightedKind>(
+        "gable",
+        "hip",
+        "cylinder",
+        "sphere",
+        "cube",
+      ),
       cell,
       cell,
       (kind, from, to) => {
@@ -481,6 +563,50 @@ it("offers Undo on a plain air press only when idle or aiming a paste", () => {
       expect(airPressOffersUndo(flow)).toBe(
         opensUtilityMenu(flow, false) || flow.kind === "pasteAim",
       );
+    }),
+  );
+});
+
+it("enters the terrain confirmation only from an end point, keeps the points, and returns to aiming on Cancel", () => {
+  fc.assert(
+    fc.property(cell, cell, cell, (a, b, c) => {
+      const first = tapBlock(idle, dim, a, stone);
+      const endpoint = tapAir(first, b);
+      for (const flow of [idle, first, beginPasteAim(false)])
+        expect(chooseTerrain(flow, "removeAbove")).toBe(flow);
+      const confirming = chooseTerrain(endpoint, "removeAbove");
+      expect(confirming).toEqual({
+        kind: "terrainConfirm",
+        dimensionId: dim,
+        from: a,
+        to: b,
+        material: stone,
+        op: "removeAbove",
+      });
+      expect(chooseTerrain(confirming, "removeAbove")).toBe(confirming);
+      expect(tapBlock(confirming, dim, c, stone)).toBe(confirming);
+      expect(tapAir(confirming, c)).toBe(confirming);
+      expect(backToAiming(confirming)).toEqual(first);
+      expect(cancel(confirming)).toEqual(idle);
+      expect(opensUtilityMenu(confirming, false)).toBe(false);
+      expect(airPressOffersUndo(confirming)).toBe(false);
+    }),
+  );
+});
+
+it("offers Remove above directly before Cut for every shape and the confirmation only in its state", () => {
+  fc.assert(
+    fc.property(cell, cell, (a, b) => {
+      const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
+      const ids = shapeMenu(endpoint).map((entry) => entry.id);
+      expect(ids.indexOf("removeAbove")).toBe(ids.indexOf("cut") - 1);
+      expect(terrainMenu(endpoint)).toEqual([]);
+      const confirming = chooseTerrain(endpoint, "removeAbove");
+      expect(shapeMenu(confirming)).toEqual([]);
+      expect(terrainMenu(confirming).map((entry) => entry.id)).toEqual([
+        "confirm",
+        "cancel",
+      ]);
     }),
   );
 });

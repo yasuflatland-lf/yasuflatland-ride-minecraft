@@ -2,10 +2,19 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import type { PlannedChange } from "../../../src/domain/build/edit/change";
+import type {
+  EditKind,
+  PlannedChange,
+} from "../../../src/domain/build/edit/change";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
-import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
+import {
+  FakeBuildPlayers,
+  FakeFeedback,
+  FakeSessions,
+  FakeWorld,
+  overworld,
+} from "./fakes";
 
 const alex = asPlayerId("alex");
 const blake = asPlayerId("blake");
@@ -23,17 +32,82 @@ function setup() {
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const log = { warn: vi.fn<(message: string) => void>() };
-  const jobs = new EditJobs(repo, world, feedback, log);
-  function start(player: PlayerId, changes: PlannedChange[], undo = false) {
+  const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
+  function start(
+    player: PlayerId,
+    changes: PlannedChange[],
+    kind: EditKind = "undoable",
+  ) {
     const session = repo.getOrCreate(player);
     expect(session.beginEdit()).toBeUndefined();
-    jobs.start(player, overworld, changes, undo);
+    jobs.start(player, overworld, changes, kind);
     return session;
   }
   return { repo, world, feedback, log, jobs, start };
 }
 
 describe("EditJobs failure isolation", () => {
+  it.each(["undo", "irreversible"] as const)(
+    "counts changed cells without retaining per-cell records for %s",
+    (kind) => {
+      fc.assert(
+        fc.property(fc.integer({ min: 1, max: 20 }), (length) => {
+          const e = setup();
+          const session = e.start(alex, plan(length), kind);
+          const finish = vi.spyOn(session, "finishEdit");
+          e.jobs.step();
+          expect(e.world.writes).toBe(length);
+          expect(finish).toHaveBeenCalledExactlyOnceWith(
+            { dimensionId: overworld, changes: [] },
+            kind,
+          );
+          expect(session.hasHistory).toBe(false);
+          expect(session.isEditing).toBe(false);
+          expect(e.feedback.messages).toEqual([
+            {
+              message: kind === "undo" ? "undoDone" : "editDoneCount",
+              count: length,
+            },
+          ]);
+        }),
+      );
+    },
+  );
+
+  it("preserves earlier history and the unused hint after an irreversible edit", () => {
+    fc.assert(
+      fc.property(
+        fc.boolean(),
+        fc.integer({ min: 0, max: 20 }),
+        (hasHistory, length) => {
+          const e = setup();
+          const session = e.repo.getOrCreate(alex);
+          const earlier = {
+            dimensionId: overworld,
+            changes: [
+              { cell: { x: 0, y: 60, z: 0 }, before: AIR, after: stone },
+            ],
+          };
+          if (hasHistory) session.finishEdit(earlier, "undoable");
+          e.start(alex, plan(length), "irreversible");
+          e.jobs.step();
+          expect(session.isEditing).toBe(false);
+          expect(e.feedback.messages).toEqual([
+            { message: "editDoneCount", count: length },
+          ]);
+          expect(e.feedback.undoHints).toEqual([]);
+          expect(session.takeUndo()).toEqual(
+            hasHistory ? earlier : "nothingToUndo",
+          );
+          expect(session.takeUndo()).toBe("nothingToUndo");
+          e.start(alex, plan(1, 1));
+          e.jobs.step();
+          expect(e.feedback.undoHints).toEqual([alex]);
+        },
+      ),
+    );
+  });
+
   it("commits once when completion feedback always throws", () => {
     fc.assert(
       fc.property(

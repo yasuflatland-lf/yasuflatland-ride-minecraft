@@ -1,5 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
+import { dominantHorizontalAxis } from "../axis";
 import { BUILD_SPEC } from "../spec";
 
 const PLANE_PARALLEL_EPSILON = 1e-6;
@@ -12,7 +13,7 @@ export interface Ray {
 
 export function virtualEndPoint(point1: Cell, ray: Ray): Cell | undefined {
   const { origin, direction } = ray;
-  const axis = Math.abs(direction.x) >= Math.abs(direction.z) ? "x" : "z";
+  const axis = dominantHorizontalAxis(direction);
   if (Math.abs(direction[axis]) < PLANE_PARALLEL_EPSILON) return undefined;
   const t = (point1[axis] + 0.5 - origin[axis]) / direction[axis];
   if (

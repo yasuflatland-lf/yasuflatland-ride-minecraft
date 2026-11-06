@@ -150,7 +150,9 @@ yasu_build.form.faces=Faces only
 yasu_build.form.walls=Walls only
 yasu_build.form.gable=Gable roof
 yasu_build.form.hip=Hip roof
+yasu_build.form.side_cylinder=Sideways cylinder
 yasu_build.form.cylinder=Cylinder
+yasu_build.form.sphere=Sphere
 yasu_build.form.cube=Cube
 yasu_build.form.tube=Tube
 yasu_build.form.solid_title=Build solid
@@ -180,3 +182,13 @@ yasu_ride.message.headlights_on=Headlights: ON
 yasu_build.form.cut=Cut
 yasu_build.form.cut_title=Cut
 yasu_build.message.cutting=Cutting.
+yasu_build.form.remove_above=Remove above
+yasu_build.form.remove_above_title=Remove above
+yasu_build.form.remove_above_body=Remove above: clears an area of %s x %s blocks from y %s to y %s. This cannot be undone. Things above can fall.
+yasu_build.form.confirm=Confirm
+yasu_build.message.removing=Removing.
+
+yasu_build.form.fill_below=Fill below
+yasu_build.form.fill_below_title=Fill below?
+yasu_build.form.fill_below_body=Fill connected air and liquids in %s x %s blocks from Y=%s through the top layer Y=%s. This cannot be undone.
+yasu_build.message.fill_material_refused=Fill below needs a material that does not fall or require support.

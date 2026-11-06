@@ -6,6 +6,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -21,7 +22,13 @@ function setup() {
   const repo = new FakeSessions();
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    new FakeBuildPlayers(),
+  );
   const session = repo.getOrCreate(playerId);
   return {
     repo,
@@ -37,7 +44,7 @@ function oneCell() {
   const e = setup();
   e.world.put(cell, before);
   e.session.beginEdit();
-  e.jobs.start(playerId, overworld, [{ cell, after }], false);
+  e.jobs.start(playerId, overworld, [{ cell, after }], "undoable");
   e.jobs.step();
   return e;
 }
@@ -73,7 +80,7 @@ describe("Undo conflicts", () => {
           }));
           for (const c of changes) e.world.put(c.cell, c.before);
           e.session.beginEdit();
-          e.jobs.start(playerId, overworld, changes, false);
+          e.jobs.start(playerId, overworld, changes, "undoable");
           e.jobs.step();
           let restored = 0;
           let skipped = 0;

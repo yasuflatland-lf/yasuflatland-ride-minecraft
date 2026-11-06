@@ -27,6 +27,16 @@ export function ellipse(
   rx: number,
   rz: number,
 ): Curve {
+  return ellipseOn(
+    { x: cx, y, z: cz },
+    { x: rx, y: 0, z: 0 },
+    { x: 0, y: 0, z: rz },
+  );
+}
+
+export function ellipseOn(center: Vec3, a: Vec3, b: Vec3): Curve {
+  const rx = Math.hypot(a.x, a.y, a.z);
+  const rz = Math.hypot(b.x, b.y, b.z);
   // Ramanujan's approximation; the outline only needs a sampling density.
   const h = ((rx - rz) / (rx + rz)) ** 2;
   const length =
@@ -37,9 +47,18 @@ export function ellipse(
     length,
     closed: true,
     at: (t) => ({
-      x: cx + rx * Math.cos(2 * Math.PI * t),
-      y,
-      z: cz + rz * Math.sin(2 * Math.PI * t),
+      x:
+        center.x +
+        a.x * Math.cos(2 * Math.PI * t) +
+        b.x * Math.sin(2 * Math.PI * t),
+      y:
+        center.y +
+        a.y * Math.cos(2 * Math.PI * t) +
+        b.y * Math.sin(2 * Math.PI * t),
+      z:
+        center.z +
+        a.z * Math.cos(2 * Math.PI * t) +
+        b.z * Math.sin(2 * Math.PI * t),
     }),
   };
 }

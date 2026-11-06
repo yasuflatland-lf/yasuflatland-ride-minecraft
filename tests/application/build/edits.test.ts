@@ -18,6 +18,7 @@ import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -34,7 +35,13 @@ function setup() {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    new FakeBuildPlayers(),
+  );
   return {
     repo,
     feedback,
@@ -176,7 +183,7 @@ describe("EditJobs properties", () => {
         dimensionId: overworld,
         changes: [{ cell, before: dirt, after: stone }],
       },
-      false,
+      "undoable",
     );
     env.undo.execute({ playerId: alex });
     runAll(env);

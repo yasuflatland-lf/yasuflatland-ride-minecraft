@@ -26,6 +26,7 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -41,7 +42,13 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    new FakeBuildPlayers(),
+  );
   const at = { x: 0, y: 0, z: 0 };
   holdClipboard(
     session,
@@ -308,7 +315,7 @@ it("EndPasting lets a running paste finish with its undo record and keeps older 
         dimensionId: overworld,
         changes: [{ cell: block, before: stone, after: AIR }],
       };
-      e.session.finishEdit(older, false);
+      e.session.finishEdit(older, "undoable");
       const target = e.target(block);
       e.paste.execute({ playerId, dimensionId: overworld, target, tick: 0 });
       expect(e.session.isEditing).toBe(true);
