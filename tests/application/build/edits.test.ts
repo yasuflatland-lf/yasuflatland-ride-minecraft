@@ -34,7 +34,7 @@ function setup() {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
-  const jobs = new EditJobs(repo, world, feedback);
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
   return {
     repo,
     feedback,

@@ -120,7 +120,9 @@ function setup(fallback?: boolean) {
               repo,
               new FakeWorld(),
               new FakeFeedback(),
-              new EditJobs(repo, new FakeWorld(), new FakeFeedback()),
+              new EditJobs(repo, new FakeWorld(), new FakeFeedback(), {
+                warn: () => {},
+              }),
             ),
           },
           new FakeFeedback(),

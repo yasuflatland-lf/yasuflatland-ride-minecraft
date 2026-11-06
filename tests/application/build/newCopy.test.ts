@@ -47,7 +47,7 @@ function setup(from: { x: number; y: number; z: number }, skipAir: boolean) {
         repo,
         world,
         feedback,
-        new EditJobs(repo, world, feedback),
+        new EditJobs(repo, world, feedback, { warn: () => {} }),
       ),
     },
     feedback,

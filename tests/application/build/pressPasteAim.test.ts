@@ -51,7 +51,7 @@ function setup(
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback);
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
   const paste = new PasteAt(repo, world, feedback, jobs);
   const press = new PressPasteAim(repo, paste, feedback);
   const clipboard = clipboardOf(

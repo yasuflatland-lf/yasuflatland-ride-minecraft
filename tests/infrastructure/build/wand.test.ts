@@ -104,7 +104,7 @@ it("preserves blocks and defers point taps out of before events", () => {
               repo,
               blocks,
               feedback,
-              new EditJobs(repo, blocks, feedback),
+              new EditJobs(repo, blocks, feedback, { warn: () => {} }),
             ),
             feedback,
           ),
@@ -245,7 +245,7 @@ function setupAir() {
     repo,
     blocks,
     feedback,
-    new EditJobs(repo, blocks, feedback),
+    new EditJobs(repo, blocks, feedback, { warn: () => {} }),
   );
   registerWand({
     confirmBoxStep,
@@ -574,7 +574,12 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
     repo,
     pressPasteAim: new PressPasteAim(
       repo,
-      new PasteAt(repo, blocks, feedback, new EditJobs(repo, blocks, feedback)),
+      new PasteAt(
+        repo,
+        blocks,
+        feedback,
+        new EditJobs(repo, blocks, feedback, { warn: () => {} }),
+      ),
       feedback,
     ),
     menus,

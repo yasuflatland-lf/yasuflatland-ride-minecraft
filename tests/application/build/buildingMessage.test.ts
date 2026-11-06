@@ -44,7 +44,7 @@ it.each([
   new ConfirmShape(
     e.repo,
     e.feedback,
-    new EditJobs(e.repo, e.world, e.feedback),
+    new EditJobs(e.repo, e.world, e.feedback, { warn: () => {} }),
   ).execute({ playerId, style });
   expect(e.feedback.messages).toEqual([
     { message: "building", count: undefined, material },
@@ -83,13 +83,13 @@ it("does not announce a rejected or busy build", () => {
   new ConfirmShape(
     e.repo,
     e.feedback,
-    new EditJobs(e.repo, e.world, e.feedback),
+    new EditJobs(e.repo, e.world, e.feedback, { warn: () => {} }),
   ).execute({ playerId, style: "walls" });
   e.session.beginEdit();
   new ConfirmShape(
     e.repo,
     e.feedback,
-    new EditJobs(e.repo, e.world, e.feedback),
+    new EditJobs(e.repo, e.world, e.feedback, { warn: () => {} }),
   ).execute({ playerId, style: "fill" });
   expect(
     e.feedback.messages.some(({ message }) => message === "building"),
