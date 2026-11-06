@@ -89,7 +89,7 @@ it.each(["minecraft:tall_grass", "minecraft:water", "minecraft:lava"])(
   },
 );
 
-it.each(["unchanged", "refused", "protected", "unreadable", "conflict"])(
+it.each(["unchanged", "refused", "protected", "conflict"])(
   "ignores a %s write at the owner",
   (reason) => {
     const e = setup();
@@ -97,7 +97,6 @@ it.each(["unchanged", "refused", "protected", "unreadable", "conflict"])(
     const key = cellKey(feet);
     if (reason === "refused") e.world.refusedCells.add(key);
     if (reason === "protected") e.world.protectedCells.add(key);
-    if (reason === "unreadable") e.world.unreadableCells.add(key);
     e.start([
       {
         cell: feet,
@@ -110,18 +109,40 @@ it.each(["unchanged", "refused", "protected", "unreadable", "conflict"])(
   },
 );
 
-it.each(["riding or disconnected", "different dimension"])(
-  "does not track an owner who is %s",
-  (condition) => {
-    const e = setup();
-    if (condition === "different dimension")
-      e.players.occupants.set(owner, { dimensionId: nether, feet });
-    else e.players.occupants.delete(owner);
-    e.start([{ cell: feet, after: stone }]);
-    e.jobs.step();
-    expect(e.players.moves).toEqual([]);
-  },
-);
+it("ignores an unreadable write even when the owner cell becomes readable at completion", () => {
+  const e = setup();
+  e.world.put(feet, stone);
+  vi.spyOn(e.world, "stateAt").mockReturnValueOnce(undefined);
+  const write = vi.spyOn(e.world, "setState");
+  e.start([{ cell: feet, after: blockStateOf("minecraft:dirt") }]);
+  e.jobs.step();
+  expect(write).not.toHaveBeenCalled();
+  expect(e.world.stateAt(overworld, feet)).toEqual(stone);
+  expect(e.players.moves).toEqual([]);
+  expect(e.repo.get(owner)?.isEditing).toBe(false);
+  expect(e.log.warn).not.toHaveBeenCalled();
+});
+
+it("does not track an owner who is riding or disconnected", () => {
+  const e = setup();
+  e.players.occupants.delete(owner);
+  e.start([{ cell: feet, after: stone }]);
+  e.jobs.step();
+  expect(e.players.moves).toEqual([]);
+});
+
+it("does not track an owner in a different dimension even if they return at completion", () => {
+  const e = setup();
+  vi.spyOn(e.players, "occupantOf").mockReturnValueOnce({
+    dimensionId: nether,
+    feet,
+  });
+  e.start([{ cell: feet, after: stone }]);
+  e.jobs.step();
+  expect(e.world.stateAt(overworld, feet)).toEqual(stone);
+  expect(e.players.moves).toEqual([]);
+  expect(e.log.warn).not.toHaveBeenCalled();
+});
 
 it.each(["absent", "dimension", "open", "unreadable"])(
   "rechecks the owner at completion: %s",
