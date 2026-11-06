@@ -545,12 +545,13 @@ Setup: use `/give @s yasu_build:selection_wand`, or craft it. Test on foot and w
 
 Precondition: hold the wand in first person on the iPad. A block tap selects the block under the view ray; aim the view at the intended block before tapping. No bulldozer is required. Leave at least half a second between separate taps.
 
-| #   | Action                                                                           | Expected                                                                                               | PC         | Mobile     |
-| --- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------- | ---------- |
-| BW1 | In first person, aim at a solid block and tap it once with the wand              | Point 1 selects the view-ray block and its material exactly once                                       | unverified | unverified |
-| BW2 | After setting point 1, aim at air and tap; repeat with a held touch              | The air tap fixes the virtual endpoint on the vertical plane through point 1; a held touch counts once | unverified | unverified |
-| BW3 | Sneak, aim at air, and tap or hold with the wand                                 | The utility menu opens once and the selection remains                                                  | unverified | unverified |
-| BW4 | In Survival and Creative, tap and long-press solid blocks while holding the wand | No block breaks; a block tap does not also trigger an air tap                                          | unverified | unverified |
+| #   | Action                                                                                             | Expected                                                                                                  | PC         | Mobile     |
+| --- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------- | ---------- |
+| BW1 | In first person, aim at a solid block and tap it once with the wand                                | Point 1 selects the view-ray block and its material exactly once                                          | unverified | unverified |
+| BW2 | After setting point 1, aim at air and tap; repeat with a held touch                                | The air tap fixes the virtual endpoint on the vertical plane through point 1; a held touch counts once    | unverified | unverified |
+| BW3 | Sneak, aim at air, and tap or hold with the wand                                                   | The utility menu opens once and the selection remains                                                     | unverified | unverified |
+| BW4 | In Survival and Creative, tap and long-press solid blocks while holding the wand                   | No block breaks; a block tap does not also trigger an air tap                                             | unverified | unverified |
+| BW5 | Aim at air after selecting point 1, looking mostly along x, mostly along z, and equally along both | The virtual endpoint stays on the plane through point 1 facing the dominant horizontal axis; x wins a tie | unverified | unverified |
 
 ### Build Wand menus
 
@@ -566,6 +567,7 @@ Precondition: hold the wand in first person on the iPad. A block tap selects the
 | BWM8  | Choose Copy on a box containing several block types                                                              | The box copies immediately without a height or contents menu; the action bar reports the block count and how to paste                                                                                       | unverified | unverified |
 | BWM9  | While pasting, use the wand on air without sneaking, including with a ray through the drawn box into the sky     | The menu opens in order: Undo when history exists, Skip air with its state, New copy, End pasting; on iPad use a long press of about one second                                                             | unverified | unverified |
 | BWM10 | Choose End pasting, then hold the wand and open the selection utility menu                                       | Paste aiming ends, the clipboard and confirmed box are discarded, and another paste requires a new copy                                                                                                     | unverified | unverified |
+| BWM11 | Build an upright Cylinder on a non-square footprint with Fill, Hollow, and Tube, and inspect its height preview  | The preview shows elliptical rings and vertical sides; the builds retain their filled, capped hollow, and open tube shapes, respectively                                                                    | unverified | unverified |
 
 ### Build Wand in-game scenarios
 
