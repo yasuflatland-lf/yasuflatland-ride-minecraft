@@ -11,6 +11,7 @@ import {
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import { FakeSessions, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
@@ -32,7 +33,10 @@ it("reports every flow, clipboard presence and domain paste entries without chan
         const session = repo.getOrCreate(playerId);
         const describe = new DescribeBuild(repo);
         if (clipboard)
-          session.setClipboard(clipboardOf(boxOf(cell, cell), () => stone));
+          holdClipboard(
+            session,
+            clipboardOf(boxOf(cell, cell), () => stone),
+          );
         if (history)
           session.finishEdit(
             {

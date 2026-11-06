@@ -36,6 +36,7 @@ import {
   FakeWorld,
   overworld,
 } from "../../application/build/fakes";
+import { holdClipboard } from "../../support/buildClipboard";
 
 type Answer = {
   canceled?: boolean;
@@ -210,7 +211,11 @@ it("shows exactly the applicable utility entries", async () => {
         session.setFlow({ kind: "idle" });
         const box = boxOf(from, to);
         if (confirmed) session.confirmBox(overworld, box);
-        if (clipboard) session.setClipboard(clipboardOf(box, () => stone));
+        if (clipboard)
+          holdClipboard(
+            session,
+            clipboardOf(box, () => stone),
+          );
         if (history)
           session.finishEdit(
             {
@@ -452,7 +457,10 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
     if (stage === "roof" || stage === "slider")
       session.setFlow(chooseHeighted(endpoint, "hip"));
     if (stage === "paste") {
-      session.setClipboard(clipboardOf(boxOf(from, from), () => stone));
+      holdClipboard(
+        session,
+        clipboardOf(boxOf(from, from), () => stone),
+      );
       session.setFlow({ kind: "pasteAim", skipAir: false });
     }
     ui.answers.push(
@@ -566,7 +574,11 @@ it("validates utility availability before dispatching", () => {
         session.setFlow({ kind: "idle" });
         const box = boxOf(from, to);
         if (confirmed) session.confirmBox(overworld, box);
-        if (clipboard) session.setClipboard(clipboardOf(box, () => stone));
+        if (clipboard)
+          holdClipboard(
+            session,
+            clipboardOf(box, () => stone),
+          );
         if (history)
           session.finishEdit(
             {
