@@ -93,6 +93,29 @@ const COLORS = [
 // Stable Script APIs expose no falling/support requirement flag (ADR 0233).
 export const UNSTABLE_MATERIALS: ReadonlySet<string> = new Set(
   [
+    "portal",
+    "bubble_column",
+    "ice",
+    "frosted_ice",
+    "piston_arm_collision",
+    "sticky_piston_arm_collision",
+    // Copied natural leaves retain their decay state and need nearby logs.
+    ...[
+      "oak",
+      "spruce",
+      "birch",
+      "jungle",
+      "acacia",
+      "dark_oak",
+      "mangrove",
+      "cherry",
+      "pale_oak",
+      "azalea",
+      "orange_poplar",
+      "red_poplar",
+      "yellow_poplar",
+    ].map((wood) => `${wood}_leaves`),
+    "azalea_leaves_flowered",
     "bed",
     "straw_bed",
     "cake",

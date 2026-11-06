@@ -1043,10 +1043,18 @@ it("labels New copy and dispatches it through the paste menu with or without his
   );
 });
 
-it.each([64, BUILD_SPEC.worldTopY])(
-  "shows Fill below's inclusive top y=%s and always requires confirmation",
-  async (y) => {
+it.each([
+  [-64, 320, 64],
+  [-64, 320, BUILD_SPEC.worldTopY],
+  [0, 128, 64],
+  [0, 256, 64],
+  [-32, 256, 64],
+])(
+  "shows Fill below's dimension bottom %i, ceiling %i and inclusive top %i",
+  async (bottom, ceiling, y) => {
     const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.min = bottom;
+    player.dimension.heightRange.max = ceiling;
     const area: BuildFlow = {
       ...endpoint,
       from: { x: 0, y, z: 0 },
@@ -1064,7 +1072,7 @@ it.each([64, BUILD_SPEC.worldTopY])(
     });
     expect(ui.forms[1]?.message).toEqual({
       translate: BUILD_FORM.fillBelowBody,
-      with: ["5", "7", "-64", String(y)],
+      with: ["5", "7", String(bottom), String(y)],
     });
     expect(cases.chooseTerrain.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,

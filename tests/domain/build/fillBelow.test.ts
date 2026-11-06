@@ -195,6 +195,8 @@ it("refuses falling and supported materials while accepting stable full blocks",
     "oak_planks",
     "tube_coral_block",
     "sea_lantern",
+    "packed_ice",
+    "blue_ice",
   ])
     expect(isFillMaterial(blockStateOf(`minecraft:${name}`))).toBe(true);
 });
@@ -206,7 +208,7 @@ it("uses only vanilla block IDs in the unstable material list", () => {
 
 it("refuses vanilla support-dependent families and Bedrock-specific IDs", () => {
   const ids = Object.values(MinecraftBlockTypes).filter((id) =>
-    /(?:_candle(?:_cake)?|:candle(?:_cake)?|:cake|:bed|:straw_bed|_banner|:cave_vines.*|:chorus_.*|_coral(?:_wall)?_fan|_coral|copper_(?:torch|lantern)|:colored_torch_.*|:poplar_(?:door|button|pressure_plate|sapling)|:wooden_(?:door|button|pressure_plate)|:trip_wire)$/.test(
+    /(?:_candle(?:_cake)?|:candle(?:_cake)?|:cake|:bed|:straw_bed|_banner|:cave_vines.*|:chorus_.*|_coral(?:_wall)?_fan|_coral|copper_(?:torch|lantern)|:colored_torch_.*|:poplar_(?:door|button|pressure_plate|sapling)|:wooden_(?:door|button|pressure_plate)|:trip_wire|:portal|:bubble_column|:(?:frosted_)?ice|:(?:sticky_)?piston_arm_collision|_leaves(?:_flowered)?)$/.test(
       id,
     ),
   );
@@ -215,6 +217,14 @@ it("refuses vanilla support-dependent families and Bedrock-specific IDs", () => 
 });
 
 it.each([
+  "portal",
+  "bubble_column",
+  "ice",
+  "frosted_ice",
+  "piston_arm_collision",
+  "sticky_piston_arm_collision",
+  "oak_leaves",
+  "azalea_leaves_flowered",
   "wooden_button",
   "wooden_pressure_plate",
   "trip_wire",
