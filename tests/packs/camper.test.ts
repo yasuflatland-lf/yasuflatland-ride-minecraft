@@ -12,9 +12,9 @@ import {
   type DecorSlot,
 } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
-import { SEAT_FILLER_FAMILY } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { defined } from "../support/defined";
+import { SEAT_FILLER_FAMILY } from "../support/packIdentifiers";
 import { readRgbaPng } from "../support/png";
 import { startPythonWorker } from "../support/pythonWorker";
 import { assertOneAxis, multipleAxes } from "./oneAxis";

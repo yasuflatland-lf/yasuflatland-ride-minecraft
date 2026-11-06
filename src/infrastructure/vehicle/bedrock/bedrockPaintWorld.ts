@@ -4,7 +4,7 @@ import type { PaintWorld } from "../../../application/vehicle/ports/paint";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
-import { dyeOf, paintEvent } from "../../shared/dyes";
+import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
 import { kindOfEntity } from "./identifiers";
@@ -30,7 +30,11 @@ export class BedrockPaintWorld implements PaintWorld {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return;
     vehicle.triggerEvent(paintEvent(paint));
-    vehicle.dimension.playSound("dye.use", vehicle.location);
+  }
+
+  playPaintSound(vehicleId: VehicleId): void {
+    const vehicle = this.index.entity(vehicleId);
+    if (vehicle) playPaintSound(vehicle);
   }
 
   consumeDye(playerId: PlayerId, paint: Paint): void {

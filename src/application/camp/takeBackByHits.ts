@@ -9,7 +9,6 @@ export interface TakeBackEffects {
 
 /** Registers one hit; on the last one drops and removes the item, otherwise shows the hits left. */
 export function handleHit<Id>(
-  rule: { hits: number; resetTicks: number },
   counters: HitCounters<Id>,
   id: Id,
   now: number,

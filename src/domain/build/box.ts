@@ -53,36 +53,6 @@ export function* cellsOf(box: CellBox): Generator<Cell> {
 }
 
 /**
- * Splits a box into disjoint sub-boxes that cover it, each holding at most
- * maxCells cells, by halving the longest side until a piece fits.
- */
-export function chunksOf(box: CellBox, maxCells: number): CellBox[] {
-  if (volume(box) <= maxCells || volume(box) === 1) return [box];
-  const axis = longestAxis(box);
-  const mid = Math.floor((box.min[axis] + box.max[axis]) / 2);
-  const low = boxOf(box.min, { ...box.max, [axis]: mid });
-  const high = boxOf({ ...box.min, [axis]: mid + 1 }, box.max);
-  return [...chunksOf(low, maxCells), ...chunksOf(high, maxCells)];
-}
-
-/** Ties go to y, then z. */
-function longestAxis(box: CellBox): "x" | "y" | "z" {
-  const sx = sizeX(box);
-  const sy = sizeY(box);
-  const sz = sizeZ(box);
-  if (sy >= sx && sy >= sz) return "y";
-  if (sz >= sx) return "z";
-  return "x";
-}
-
-export function translate(box: CellBox, by: Cell): CellBox {
-  return {
-    min: { x: box.min.x + by.x, y: box.min.y + by.y, z: box.min.z + by.z },
-    max: { x: box.max.x + by.x, y: box.max.y + by.y, z: box.max.z + by.z },
-  };
-}
-
-/**
  * Distinct cells along the 12 edges, evenly thinned to at most maxPoints.
  * Cells are picked by index, so the cost follows maxPoints, not the edge length.
  */

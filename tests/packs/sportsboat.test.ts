@@ -11,10 +11,10 @@ import {
 } from "../../src/infrastructure/shared/dyes";
 import {
   HEADLIGHTS_PROPERTY,
-  SEAT_FILLER_FAMILY,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { turnedCorners } from "../support/geometry";
+import { SEAT_FILLER_FAMILY } from "../support/packIdentifiers";
 import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 

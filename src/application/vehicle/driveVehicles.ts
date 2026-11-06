@@ -4,13 +4,16 @@ import { profileOf, rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import type { TickOutcome } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
+import { forEachIsolated } from "../shared/isolated";
 import type { ChaseCameraWish } from "../shared/ports/chaseCamera";
-import { forEachIsolated } from "./isolated";
+import type { Logger } from "../shared/ports/logger";
 import type { DriveWorld, VehicleSnapshot } from "./ports/drive";
-import type { Logger } from "./ports/shared";
 import { RiderEffects } from "./riderEffects";
 
 export class DriveVehicles {
+  private readonly pendingRelease = new Set<VehicleId>();
+  private readonly warnedRelease = new Set<VehicleId>();
+
   constructor(
     private readonly world: DriveWorld,
     private readonly repo: VehicleRepository,
@@ -143,11 +146,29 @@ export class DriveVehicles {
 
   private releaseGone(seen: ReadonlySet<VehicleId>): void {
     const gone = this.repo.ids().filter((id) => !seen.has(id));
-    for (const id of gone) this.repo.remove(id);
+    for (const id of gone) {
+      this.repo.remove(id);
+      this.pendingRelease.add(id);
+    }
+    for (const id of seen) {
+      this.pendingRelease.delete(id);
+      this.warnedRelease.delete(id);
+    }
     // One failed release must not skip the other vehicles.
     forEachIsolated(
-      gone,
-      (id) => this.world.releaseVehicle(id),
+      this.pendingRelease,
+      (id) => {
+        try {
+          this.world.releaseVehicle(id);
+        } catch (error) {
+          // Rethrowing lets forEachIsolated log it; every retry after that stays silent.
+          if (this.warnedRelease.has(id)) return;
+          this.warnedRelease.add(id);
+          throw error;
+        }
+        this.pendingRelease.delete(id);
+        this.warnedRelease.delete(id);
+      },
       this.log,
       (id) => id,
     );
