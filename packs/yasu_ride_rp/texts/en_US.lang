@@ -151,6 +151,7 @@ yasu_build.form.walls=Walls only
 yasu_build.form.gable=Gable roof
 yasu_build.form.hip=Hip roof
 yasu_build.form.cylinder=Cylinder
+yasu_build.form.sphere=Sphere
 yasu_build.form.cube=Cube
 yasu_build.form.tube=Tube
 yasu_build.form.solid_title=Build solid

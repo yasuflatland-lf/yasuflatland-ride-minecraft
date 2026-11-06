@@ -190,6 +190,7 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
       "copy" as const,
       "cube" as const,
       "cylinder" as const,
+      "sphere" as const,
       "gable" as const,
       "hip" as const,
     ),

@@ -32,9 +32,10 @@ const RECT_SOLID_ENTRIES: readonly ShapeEntryId[] = [
   "gable",
   "hip",
   "cylinder",
+  "sphere",
   "cube",
 ];
-const BOX_SOLID_ENTRIES: readonly ShapeEntryId[] = ["cylinder"];
+const BOX_SOLID_ENTRIES: readonly ShapeEntryId[] = ["cylinder", "sphere"];
 
 export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
   if (flow.kind !== "endpoint") return [];

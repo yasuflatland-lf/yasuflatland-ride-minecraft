@@ -121,9 +121,9 @@ it("offers only supported shape styles followed by Cancel", () => {
           shape.kind === "line" ? "place" : style,
         ),
         ...(shape.kind === "rect" && shape.flat === "y"
-          ? ["gable", "hip", "cylinder", "cube"]
+          ? ["gable", "hip", "cylinder", "sphere", "cube"]
           : shape.kind === "box"
-            ? ["cylinder"]
+            ? ["cylinder", "sphere"]
             : []),
         "cut",
         "copy",
@@ -141,6 +141,7 @@ it("offers only supported shape styles followed by Cancel", () => {
         "gable",
         "hip",
         "cylinder",
+        "sphere",
         "cube",
         "cut",
         "copy",
@@ -149,7 +150,7 @@ it("offers only supported shape styles followed by Cancel", () => {
     ],
     [
       { x: 3, y: 3, z: 3 },
-      ["fill", "faces", "walls", "cylinder", "cut", "copy", "cancel"],
+      ["fill", "faces", "walls", "cylinder", "sphere", "cut", "copy", "cancel"],
     ],
   ] as const)
     expect(
@@ -241,6 +242,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "gable",
               "hip",
               "cylinder",
+              "sphere",
               "cube",
               "cut",
               "copy",
@@ -249,7 +251,16 @@ it("accepts every heighted kind only on its supported shapes", () => {
           ],
           [
             { x: dx, y: dy, z: dz },
-            ["fill", "faces", "walls", "cylinder", "cut", "copy", "cancel"],
+            [
+              "fill",
+              "faces",
+              "walls",
+              "cylinder",
+              "sphere",
+              "cut",
+              "copy",
+              "cancel",
+            ],
           ],
           [{ x: dx, y: dy, z: 0 }, ["fill", "frame", "cut", "copy", "cancel"]],
           [{ x: 0, y: dy, z: dz }, ["fill", "frame", "cut", "copy", "cancel"]],
@@ -266,7 +277,13 @@ it("accepts every heighted kind only on its supported shapes", () => {
           const to = reverse ? origin : end;
           const flow = tapAir(tapBlock(idle, dim, from, stone), to);
           expect(shapeMenu(flow).map((e) => e.id)).toEqual(ids);
-          for (const kind of ["gable", "hip", "cylinder", "cube"] as const) {
+          for (const kind of [
+            "gable",
+            "hip",
+            "cylinder",
+            "sphere",
+            "cube",
+          ] as const) {
             const chosen = chooseHeighted(flow, kind);
             if (!(ids as readonly string[]).includes(kind)) {
               expect(chosen).toBe(flow);
@@ -404,7 +421,13 @@ it("roof Cancel preserves the original first point for either selection directio
 it("offers each heighted kind's fill styles followed by Cancel", () => {
   fc.assert(
     fc.property(
-      fc.constantFrom<HeightedKind>("gable", "hip", "cylinder", "cube"),
+      fc.constantFrom<HeightedKind>(
+        "gable",
+        "hip",
+        "cylinder",
+        "sphere",
+        "cube",
+      ),
       cell,
       cell,
       (kind, from, to) => {

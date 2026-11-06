@@ -6,6 +6,7 @@ import { boxStepVolume } from "./boxStep";
 import { cubePlacement, cubeVolume } from "./cube";
 import { cylinderPlacement, cylinderVolume } from "./cylinder";
 import type { FillStyle, HeightedKind, HeightStepKind } from "./kind";
+import { spherePlacement, sphereVolume } from "./sphere";
 
 export interface HeightStepSpec {
   readonly base: CellBox;
@@ -34,6 +35,7 @@ const VOLUMES: Record<HeightStepKind, HeightedVolume> = {
   hip: roofVolume,
   cube: cubeVolume,
   cylinder: cylinderVolume,
+  sphere: sphereVolume,
 };
 
 const PLACEMENTS: Record<HeightedKind, HeightedPlacement> = {
@@ -41,6 +43,7 @@ const PLACEMENTS: Record<HeightedKind, HeightedPlacement> = {
   hip: roofPlacement,
   cube: cubePlacement,
   cylinder: cylinderPlacement,
+  sphere: spherePlacement,
 };
 
 export function volumeOf(kind: HeightStepKind): HeightedVolume {
