@@ -150,6 +150,7 @@ yasu_build.form.faces=Faces only
 yasu_build.form.walls=Walls only
 yasu_build.form.gable=Gable roof
 yasu_build.form.hip=Hip roof
+yasu_build.form.side_cylinder=Sideways cylinder
 yasu_build.form.cylinder=Cylinder
 yasu_build.form.cube=Cube
 yasu_build.form.tube=Tube
