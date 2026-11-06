@@ -176,7 +176,7 @@ describe("EditJobs properties", () => {
         dimensionId: overworld,
         changes: [{ cell, before: dirt, after: stone }],
       },
-      false,
+      "undoable",
     );
     env.undo.execute({ playerId: alex });
     runAll(env);
