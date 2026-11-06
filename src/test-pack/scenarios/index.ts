@@ -30,6 +30,8 @@ import {
   buildSolidCancelUndo,
   buildUndoConflict,
   buildUndoHintOnce,
+  buildUnstuckFill,
+  buildUnstuckNotTouched,
 } from "./buildFlow";
 import { buildBlockStates } from "./buildTools";
 import {
@@ -270,6 +272,8 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_new_copy_item_switch: buildNewCopyItemSwitch,
   build_paste_toggle_next: buildPasteToggleNext,
   build_paste_undo_repeat: buildPasteUndoRepeat,
+  build_unstuck_fill: buildUnstuckFill,
+  build_unstuck_not_touched: buildUnstuckNotTouched,
   build_cut_shapes: buildCutShapes,
   build_cut_height: buildCutHeight,
   build_cut_undo: buildCutUndo,
