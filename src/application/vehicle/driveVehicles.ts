@@ -11,6 +11,9 @@ import type { Logger } from "./ports/shared";
 import { RiderEffects } from "./riderEffects";
 
 export class DriveVehicles {
+  private readonly pendingRelease = new Set<VehicleId>();
+  private readonly warnedRelease = new Set<VehicleId>();
+
   constructor(
     private readonly world: DriveWorld,
     private readonly repo: VehicleRepository,
@@ -143,13 +146,26 @@ export class DriveVehicles {
 
   private releaseGone(seen: ReadonlySet<VehicleId>): void {
     const gone = this.repo.ids().filter((id) => !seen.has(id));
-    for (const id of gone) this.repo.remove(id);
+    for (const id of gone) {
+      this.repo.remove(id);
+      this.pendingRelease.add(id);
+    }
+    for (const id of seen) {
+      this.pendingRelease.delete(id);
+      this.warnedRelease.delete(id);
+    }
     // One failed release must not skip the other vehicles.
-    forEachIsolated(
-      gone,
-      (id) => this.world.releaseVehicle(id),
-      this.log,
-      (id) => id,
-    );
+    for (const id of [...this.pendingRelease]) {
+      try {
+        this.world.releaseVehicle(id);
+        this.pendingRelease.delete(id);
+        this.warnedRelease.delete(id);
+      } catch (error) {
+        if (!this.warnedRelease.has(id)) {
+          this.warnedRelease.add(id);
+          this.log.warn(`${id}: ${error}`);
+        }
+      }
+    }
   }
 }
