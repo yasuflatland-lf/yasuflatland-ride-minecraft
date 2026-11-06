@@ -41,6 +41,7 @@ it("defines every feedback message in both locales", () => {
         .filter((key) => key.startsWith("yasu_build.form."))
         .sort(),
     ).toEqual(Object.values(BUILD_FORM).sort());
+    expect(entries.get(BUILD_FORM.fillBelowBody)?.match(/%s/g)).toHaveLength(4);
     expect(entries.get(BUILD_MESSAGE.pasteHint)?.match(/%s/g)).toHaveLength(4);
     expect(entries.get(BUILD_MESSAGE.copied)?.match(/%s/g)).toHaveLength(1);
     expect(
@@ -50,6 +51,7 @@ it("defines every feedback message in both locales", () => {
     expect(entries.get(BUILD_FORM.removeAboveBody)?.match(/%s/g)).toHaveLength(
       4,
     );
+    expect(entries.get(BUILD_FORM.fillBelowBody)?.match(/%s/g)).toHaveLength(4);
     expect(entries.get(BUILD_MESSAGE.undoHint)).toContain(
       entries.get(BUILD_FORM.undo),
     );

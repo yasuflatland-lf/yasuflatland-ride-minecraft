@@ -80,6 +80,7 @@ export class MenuChoices {
         case "cube":
           this.cases.chooseHeighted.execute({ playerId, kind: entryId });
           break;
+        case "fillBelow":
         case "removeAbove":
           this.cases.chooseTerrain.execute({ playerId, op: entryId });
           break;

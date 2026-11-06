@@ -79,7 +79,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     aimHeight: new AimHeight(repo),
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     chooseTerrain: new ChooseTerrain(repo, feedback),
-    confirmTerrain: new ConfirmTerrain(repo, feedback, jobs),
+    confirmTerrain: new ConfirmTerrain(repo, feedback, jobs, blocks),
     undo: new UndoEdit(repo, feedback, jobs),
     clear,
   };

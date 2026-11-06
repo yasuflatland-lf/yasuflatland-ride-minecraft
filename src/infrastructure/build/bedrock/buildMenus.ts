@@ -177,25 +177,32 @@ export class BedrockBuildMenus implements BuildMenus {
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "terrainConfirm") return;
     const area = terrainAreaOf(flow.from, flow.to);
-    if (!removeAboveBox(area)) {
+    if (flow.op === "removeAbove" && !removeAboveBox(area)) {
       this.choices.choose(playerId, "terrain", "confirm");
       return;
     }
     const sides = terrainSides(area);
     const id = await chooseFromForm(
       player,
-      BUILD_FORM.removeAboveTitle,
+      flow.op === "fillBelow"
+        ? BUILD_FORM.fillBelowTitle
+        : BUILD_FORM.removeAboveTitle,
       terrainMenu(flow).map((entry) => ({
         id: entry.id,
         textKey: menuLabel(entry),
       })),
       {
-        translate: BUILD_FORM.removeAboveBody,
+        translate:
+          flow.op === "fillBelow"
+            ? BUILD_FORM.fillBelowBody
+            : BUILD_FORM.removeAboveBody,
         with: [
           String(sides.x),
           String(sides.z),
-          String(area.lowerY + 1),
-          String(BUILD_SPEC.worldTopY),
+          String(
+            flow.op === "fillBelow" ? BUILD_SPEC.worldBottomY : area.lowerY + 1,
+          ),
+          String(flow.op === "fillBelow" ? area.higherY : BUILD_SPEC.worldTopY),
         ],
       },
     );

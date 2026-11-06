@@ -1023,3 +1023,47 @@ it("labels New copy and dispatches it through the paste menu with or without his
     }),
   );
 });
+
+it.each([64, BUILD_SPEC.worldTopY])(
+  "shows Fill below's inclusive top y=%s and always requires confirmation",
+  async (y) => {
+    const { menus, player, cases, session } = setup();
+    const area: BuildFlow = {
+      ...endpoint,
+      from: { x: 0, y, z: 0 },
+      to: { x: 4, y: 60, z: 6 },
+    };
+    session.setFlow(area);
+    ui.answers.push(
+      { selection: shapeMenu(area).findIndex((e) => e.id === "fillBelow") },
+      { selection: 0 },
+    );
+    await menus.showShapeMenu(player);
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.heading).toEqual({
+      translate: BUILD_FORM.fillBelowTitle,
+    });
+    expect(ui.forms[1]?.message).toEqual({
+      translate: BUILD_FORM.fillBelowBody,
+      with: ["5", "7", "-64", String(y)],
+    });
+    expect(cases.chooseTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      op: "fillBelow",
+    });
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+  },
+);
+
+it("returns to aiming when Fill below confirmation is dismissed", async () => {
+  const { menus, player, cases, session } = setup();
+  ui.answers.push(
+    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "fillBelow") },
+    { canceled: true, cancelationReason: "UserClosed" },
+  );
+  await menus.showShapeMenu(player);
+  expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+  expect(session.flow.kind).toBe("point1");
+});
