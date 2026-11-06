@@ -11,6 +11,10 @@ import { stateOfPermutation } from "./blockStates";
 export class BedrockBlockWorld implements BuildBlockWorld {
   constructor(private readonly deps: { isProtected: SpaceCheck }) {}
 
+  topY(dimensionId: DimensionId): number {
+    return world.getDimension(dimensionId).heightRange.max - 1;
+  }
+
   materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused" {
     const state = this.stateAt(dimensionId, cell);
     return isUsableMaterial(state) ? state : "refused";

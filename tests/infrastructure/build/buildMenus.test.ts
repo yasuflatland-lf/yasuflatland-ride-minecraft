@@ -32,6 +32,7 @@ import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/bui
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import {
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -122,9 +123,15 @@ function setup(fallback?: boolean) {
               repo,
               new FakeWorld(),
               new FakeFeedback(),
-              new EditJobs(repo, new FakeWorld(), new FakeFeedback(), {
-                warn: () => {},
-              }),
+              new EditJobs(
+                repo,
+                new FakeWorld(),
+                new FakeFeedback(),
+                {
+                  warn: () => {},
+                },
+                new FakeBuildPlayers(),
+              ),
             ),
           },
           new FakeFeedback(),

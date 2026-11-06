@@ -1,6 +1,7 @@
 import {
   type BlockPermutation,
   ItemStack,
+  type Player,
   system,
   world,
 } from "@minecraft/server";
@@ -112,6 +113,7 @@ async function withBuilder(
     return cells;
   };
   const f = {
+    player,
     cell,
     look: (yaw: number) =>
       player.teleport(player.location, { rotation: { x: 25, y: yaw } }),
@@ -166,6 +168,7 @@ async function withBuilder(
   }
 }
 type Fixture = {
+  player: Player;
   look(yaw: number): void;
   cell(x?: number, y?: number, z?: number): Cell;
   block(cell: Cell): NonNullable<ReturnType<Arena["dim"]["getBlock"]>>;
@@ -1363,6 +1366,70 @@ export function buildUndoHintOnce(a: Arena): Promise<Outcome> {
       );
       await f.menu("paste", "endPaste");
     }
+  });
+}
+
+export function buildUnstuckFill(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 6, 3);
+    for (const cell of cells) f.block(cell).setType("minecraft:air");
+    for (const cell of f.region(3, 1, 3))
+      f.block(cell).setType("minecraft:stone");
+    await f.select(f.cell(2, 3, 2));
+    const feet = f.cell(1, 1, 1);
+    f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
+    const rotation = f.player.getRotation();
+    const result = await f.menu("shape", "fill");
+    check(result.message === "editDone", "Fill did not complete");
+    const actual = f.player.location;
+    check(
+      Math.abs(actual.x - (feet.x + 0.5)) < 0.01 &&
+        Math.abs(actual.z - (feet.z + 0.5)) < 0.01 &&
+        Math.abs(actual.y - f.cell(1, 4, 1).y) < 0.01,
+      `Owner did not escape to the first free pair: ${JSON.stringify(actual)}`,
+    );
+    const after = f.player.getRotation();
+    check(
+      Math.abs(after.x - rotation.x) < 0.01 &&
+        Math.abs(after.y - rotation.y) < 0.01,
+      "Unstuck changed rotation",
+    );
+    check(
+      f.count(f.region(3, 4, 3)) === 36,
+      "Fill missed cells around the owner",
+    );
+    await f.menu("utility", "undo");
+  });
+}
+
+export function buildUnstuckNotTouched(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const cell of f.region(3, 4, 3))
+      f.block(cell).setType("minecraft:air");
+    const feet = f.cell(5, 1, 1);
+    for (const cell of f.region(1, 3, 1, f.cell(5, 0, 1)))
+      f.block(cell).setType("minecraft:air");
+    f.block(f.cell(5, 0, 1)).setType("minecraft:grass_block");
+    f.block(feet).setType("minecraft:tall_grass");
+    f.block({ ...feet, y: feet.y + 1 }).setPermutation(
+      f.block(feet).permutation.withState("upper_block_bit", true),
+    );
+    await f.select(f.cell(2, 3, 2));
+    f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
+    const result = await f.menu("shape", "fill");
+    check(result.message === "editDone", "Remote Fill did not complete");
+    const actual = f.player.location;
+    check(
+      Math.abs(actual.x - (feet.x + 0.5)) < 0.01 &&
+        Math.abs(actual.z - (feet.z + 0.5)) < 0.01 &&
+        Math.abs(actual.y - feet.y) < 0.01,
+      `Untouched owner moved: ${JSON.stringify(actual)}`,
+    );
+    check(
+      f.block(feet).typeId === "minecraft:tall_grass",
+      "Remote Fill touched the owner's grass",
+    );
+    await f.menu("utility", "undo");
   });
 }
 

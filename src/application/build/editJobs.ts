@@ -9,13 +9,17 @@ import type {
 import { completionMessage } from "../../domain/build/edit/completion";
 import { isKeptState } from "../../domain/build/edit/guard";
 import { airPressOffersUndo } from "../../domain/build/flow/flow";
+import { freeCellAbove } from "../../domain/build/freeCell";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
+import { cellKey } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import { isOpenBlock } from "../../domain/shared/keptBlocks";
 import { attempt } from "../shared/isolated";
 import type { Logger } from "../shared/ports/logger";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
+import type { BuildPlayers } from "./ports/players";
 
 interface Job {
   readonly playerId: PlayerId;
@@ -23,6 +27,7 @@ interface Job {
   readonly plan: Iterator<PlannedChange>;
   readonly kind: EditKind;
   readonly applied: AppliedChange[];
+  buriedOwner: boolean;
   changed: number;
   skipped: number;
 }
@@ -35,6 +40,7 @@ export class EditJobs {
     private readonly world: BuildBlockWorld,
     private readonly feedback: BuildFeedback,
     private readonly log: Logger,
+    private readonly players: BuildPlayers,
   ) {}
 
   /** Queues a plan for the player's running edit (BuildSession.beginEdit already succeeded). */
@@ -50,6 +56,7 @@ export class EditJobs {
       plan: plan[Symbol.iterator](),
       kind,
       applied: [],
+      buriedOwner: false,
       changed: 0,
       skipped: 0,
     });
@@ -98,6 +105,12 @@ export class EditJobs {
       this.drop(job);
       return 0;
     }
+    const occupant = this.players.occupantOf(job.playerId);
+    const feet =
+      occupant?.dimensionId === job.dimensionId ? occupant.feet : undefined;
+    const occupiedCells = feet
+      ? [cellKey(feet), cellKey({ ...feet, y: feet.y + 1 })]
+      : [];
     let used = 0;
     while (used < limit) {
       const next = job.plan.next();
@@ -106,6 +119,11 @@ export class EditJobs {
         session.finishEdit(
           { dimensionId: job.dimensionId, changes: job.applied },
           job.kind,
+        );
+        attempt(
+          () => this.unstuck(job),
+          this.log,
+          () => `build edit unstuck for ${job.playerId} failed`,
         );
         attempt(
           () => {
@@ -136,12 +154,16 @@ export class EditJobs {
         return used;
       }
       used++;
-      this.apply(job, next.value);
+      this.apply(job, next.value, occupiedCells);
     }
     return used;
   }
 
-  private apply(job: Job, change: PlannedChange): void {
+  private apply(
+    job: Job,
+    change: PlannedChange,
+    occupiedCells: readonly string[],
+  ): void {
     const { dimensionId } = job;
     const before = this.world.stateAt(dimensionId, change.cell);
     if (!before) {
@@ -159,9 +181,30 @@ export class EditJobs {
     }
     if (this.world.setState(dimensionId, change.cell, change.after)) {
       job.changed++;
+      if (occupiedCells.includes(cellKey(change.cell))) job.buriedOwner = true;
       if (job.kind === "undoable")
         job.applied.push({ cell: change.cell, before, after: change.after });
     } else if (job.kind === "undo") job.skipped++;
+  }
+
+  private unstuck(job: Job): void {
+    if (!job.buriedOwner) return;
+    const occupant = this.players.occupantOf(job.playerId);
+    if (!occupant || occupant.dimensionId !== job.dimensionId) return;
+    const { feet } = occupant;
+    const head = { ...feet, y: feet.y + 1 };
+    const buried = [feet, head].some((cell) => {
+      const state = this.world.stateAt(job.dimensionId, cell);
+      return state !== undefined && !isOpenBlock(state.typeId);
+    });
+    if (!buried) return;
+    const destination = freeCellAbove(
+      feet,
+      (cell) =>
+        this.world.stateAt(job.dimensionId, cell)?.typeId === "minecraft:air",
+      this.world.topY(job.dimensionId),
+    );
+    if (destination) this.players.moveTo(job.playerId, destination);
   }
 
   private drop(job: Job): void {

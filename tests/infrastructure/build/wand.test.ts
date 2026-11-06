@@ -25,7 +25,12 @@ import {
 import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers/wand";
 import { SELECTION_WAND_TYPE } from "../../../src/infrastructure/build/identifiers";
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
-import { FakeFeedback, FakeWorld, nether } from "../../application/build/fakes";
+import {
+  FakeBuildPlayers,
+  FakeFeedback,
+  FakeWorld,
+  nether,
+} from "../../application/build/fakes";
 import { holdClipboard } from "../../support/buildClipboard";
 
 const menus = {
@@ -105,7 +110,13 @@ it("preserves blocks and defers point taps out of before events", () => {
               repo,
               blocks,
               feedback,
-              new EditJobs(repo, blocks, feedback, { warn: () => {} }),
+              new EditJobs(
+                repo,
+                blocks,
+                feedback,
+                { warn: () => {} },
+                new FakeBuildPlayers(),
+              ),
             ),
             feedback,
           ),
@@ -246,7 +257,13 @@ function setupAir() {
     repo,
     blocks,
     feedback,
-    new EditJobs(repo, blocks, feedback, { warn: () => {} }),
+    new EditJobs(
+      repo,
+      blocks,
+      feedback,
+      { warn: () => {} },
+      new FakeBuildPlayers(),
+    ),
   );
   registerWand({
     confirmBoxStep,
@@ -579,7 +596,13 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
         repo,
         blocks,
         feedback,
-        new EditJobs(repo, blocks, feedback, { warn: () => {} }),
+        new EditJobs(
+          repo,
+          blocks,
+          feedback,
+          { warn: () => {} },
+          new FakeBuildPlayers(),
+        ),
       ),
       feedback,
     ),
