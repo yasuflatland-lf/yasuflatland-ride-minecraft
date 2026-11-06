@@ -5,7 +5,7 @@ import { asDimensionId, type PlayerId } from "../../../src/domain/shared/ids";
 
 export class FakeRoofTentOccupantWorld implements RoofTentOccupantWorld {
   readonly occupants = new Map<RoofTentId, PlayerId>();
-  readonly spawns = new Map<RoofTentId, PlayerId>();
+  readonly spawns = new Map<RoofTentId, readonly PlayerId[]>();
   readonly calls: unknown[][] = [];
   occupantOf = (id: RoofTentId) => this.occupants.get(id);
   setOccupant = vi.fn<RoofTentOccupantWorld["setOccupant"]>((id, player) => {
@@ -28,11 +28,15 @@ export class FakeRoofTentOccupantWorld implements RoofTentOccupantWorld {
     y: 64,
     z: 5,
   }));
-  spawnSetBy = (id: RoofTentId) => this.spawns.get(id);
-  setSpawnSetBy = vi.fn<RoofTentOccupantWorld["setSpawnSetBy"]>(
+  spawnSetters = (id: RoofTentId) => this.spawns.get(id) ?? [];
+  addSpawnSetter = vi.fn<RoofTentOccupantWorld["addSpawnSetter"]>(
     (id, player) => {
-      if (player === undefined) this.spawns.delete(id);
-      else this.spawns.set(id, player);
+      this.spawns.set(id, [...new Set([...this.spawnSetters(id), player])]);
+    },
+  );
+  clearSpawnSetters = vi.fn<RoofTentOccupantWorld["clearSpawnSetters"]>(
+    (id) => {
+      this.spawns.delete(id);
     },
   );
   dimensionOf = vi.fn<RoofTentOccupantWorld["dimensionOf"]>(() =>

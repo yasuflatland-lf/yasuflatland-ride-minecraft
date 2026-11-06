@@ -25,6 +25,7 @@ import {
   ROOF_TENT_OCCUPANT_PROPERTY,
   ROOF_TENT_OCCUPIED_PROPERTY,
   ROOF_TENT_SPAWN_SET_BY_PROPERTY,
+  ROOF_TENT_SPAWN_SETTERS_PROPERTY,
 } from "../identifiers";
 import { roofTentEntity } from "./bedrockRoofTentWorld";
 import { readCeiling } from "./roofTentCeiling";
@@ -35,7 +36,7 @@ export interface RoofTentSnapshot {
   location: Vec3;
   exit: Vec3;
   occupant: PlayerId | undefined;
-  spawnSetBy: PlayerId | undefined;
+  spawnSetters: readonly PlayerId[];
 }
 
 export class RoofTentOccupants {
@@ -73,9 +74,27 @@ export class RoofTentOccupants {
     if (saveExit)
       entity.setDynamicProperty(ROOF_TENT_EXIT_PROPERTY, JSON.stringify(exit));
     const occupant = entity.getDynamicProperty(ROOF_TENT_OCCUPANT_PROPERTY);
-    const spawnSetBy = entity.getDynamicProperty(
-      ROOF_TENT_SPAWN_SET_BY_PROPERTY,
+    const legacy = entity.getDynamicProperty(ROOF_TENT_SPAWN_SET_BY_PROPERTY);
+    let stored: PlayerId[] = [];
+    const savedSetters = entity.getDynamicProperty(
+      ROOF_TENT_SPAWN_SETTERS_PROPERTY,
     );
+    if (typeof savedSetters === "string") {
+      try {
+        const value: unknown = JSON.parse(savedSetters);
+        if (Array.isArray(value) && value.every((id) => typeof id === "string"))
+          stored = value.map(asPlayerId);
+      } catch {
+        /* A malformed array still leaves the legacy setter below. */
+      }
+    }
+    // The legacy key is merged rather than used as a fallback only, because an
+    // older pack may have written a newer sleeper there without updating the array.
+    const spawnSetters = [
+      ...new Set(
+        typeof legacy === "string" ? [...stored, asPlayerId(legacy)] : stored,
+      ),
+    ];
     this.snapshots.set(asRoofTentId(entity.id), {
       ceiling: readCeiling(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
@@ -84,8 +103,7 @@ export class RoofTentOccupants {
       location: { ...entity.location },
       exit,
       occupant: typeof occupant === "string" ? asPlayerId(occupant) : undefined,
-      spawnSetBy:
-        typeof spawnSetBy === "string" ? asPlayerId(spawnSetBy) : undefined,
+      spawnSetters,
     });
   }
 

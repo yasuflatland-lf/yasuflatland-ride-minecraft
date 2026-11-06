@@ -18,7 +18,7 @@ export class SleepInRoofTent {
       cell: this.world.spawnCellOf(cmd.tentId),
     });
     if (dimensionId === SLEEP.dimension)
-      this.world.setSpawnSetBy(cmd.tentId, cmd.playerId);
+      this.world.addSpawnSetter(cmd.tentId, cmd.playerId);
     return slept;
   }
 }
