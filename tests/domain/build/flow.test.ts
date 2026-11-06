@@ -10,6 +10,7 @@ import {
   backToAiming,
   cancel,
   chooseHeighted,
+  chooseTerrain,
   finishHeightStep,
   opensUtilityMenu,
   setHeight,
@@ -19,6 +20,7 @@ import {
 import {
   contentsMenu,
   shapeMenu,
+  terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
@@ -125,6 +127,7 @@ it("offers only supported shape styles followed by Cancel", () => {
           : shape.kind === "box"
             ? ["cylinder"]
             : []),
+        "removeAbove",
         "cut",
         "copy",
         "cancel",
@@ -132,7 +135,7 @@ it("offers only supported shape styles followed by Cancel", () => {
     }),
   );
   for (const [to, ids] of [
-    [{ x: 3, y: 0, z: 0 }, ["place", "cut", "copy", "cancel"]],
+    [{ x: 3, y: 0, z: 0 }, ["place", "removeAbove", "cut", "copy", "cancel"]],
     [
       { x: 3, y: 0, z: 3 },
       [
@@ -142,6 +145,7 @@ it("offers only supported shape styles followed by Cancel", () => {
         "hip",
         "cylinder",
         "cube",
+        "removeAbove",
         "cut",
         "copy",
         "cancel",
@@ -149,7 +153,16 @@ it("offers only supported shape styles followed by Cancel", () => {
     ],
     [
       { x: 3, y: 3, z: 3 },
-      ["fill", "faces", "walls", "cylinder", "cut", "copy", "cancel"],
+      [
+        "fill",
+        "faces",
+        "walls",
+        "cylinder",
+        "removeAbove",
+        "cut",
+        "copy",
+        "cancel",
+      ],
     ],
   ] as const)
     expect(
@@ -242,6 +255,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "hip",
               "cylinder",
               "cube",
+              "removeAbove",
               "cut",
               "copy",
               "cancel",
@@ -249,13 +263,37 @@ it("accepts every heighted kind only on its supported shapes", () => {
           ],
           [
             { x: dx, y: dy, z: dz },
-            ["fill", "faces", "walls", "cylinder", "cut", "copy", "cancel"],
+            [
+              "fill",
+              "faces",
+              "walls",
+              "cylinder",
+              "removeAbove",
+              "cut",
+              "copy",
+              "cancel",
+            ],
           ],
-          [{ x: dx, y: dy, z: 0 }, ["fill", "frame", "cut", "copy", "cancel"]],
-          [{ x: 0, y: dy, z: dz }, ["fill", "frame", "cut", "copy", "cancel"]],
-          [{ x: dx, y: 0, z: 0 }, ["place", "cut", "copy", "cancel"]],
-          [{ x: 0, y: dy, z: 0 }, ["place", "cut", "copy", "cancel"]],
-          [{ x: 0, y: 0, z: dz }, ["place", "cut", "copy", "cancel"]],
+          [
+            { x: dx, y: dy, z: 0 },
+            ["fill", "frame", "removeAbove", "cut", "copy", "cancel"],
+          ],
+          [
+            { x: 0, y: dy, z: dz },
+            ["fill", "frame", "removeAbove", "cut", "copy", "cancel"],
+          ],
+          [
+            { x: dx, y: 0, z: 0 },
+            ["place", "removeAbove", "cut", "copy", "cancel"],
+          ],
+          [
+            { x: 0, y: dy, z: 0 },
+            ["place", "removeAbove", "cut", "copy", "cancel"],
+          ],
+          [
+            { x: 0, y: 0, z: dz },
+            ["place", "removeAbove", "cut", "copy", "cancel"],
+          ],
         ] as const) {
           const end = {
             x: origin.x + offset.x,
@@ -481,6 +519,50 @@ it("offers Undo on a plain air press only when idle or aiming a paste", () => {
       expect(airPressOffersUndo(flow)).toBe(
         opensUtilityMenu(flow, false) || flow.kind === "pasteAim",
       );
+    }),
+  );
+});
+
+it("enters the terrain confirmation only from an end point, keeps the points, and returns to aiming on Cancel", () => {
+  fc.assert(
+    fc.property(cell, cell, cell, (a, b, c) => {
+      const first = tapBlock(idle, dim, a, stone);
+      const endpoint = tapAir(first, b);
+      for (const flow of [idle, first, beginPasteAim(false)])
+        expect(chooseTerrain(flow, "removeAbove")).toBe(flow);
+      const confirming = chooseTerrain(endpoint, "removeAbove");
+      expect(confirming).toEqual({
+        kind: "terrainConfirm",
+        dimensionId: dim,
+        from: a,
+        to: b,
+        material: stone,
+        op: "removeAbove",
+      });
+      expect(chooseTerrain(confirming, "removeAbove")).toBe(confirming);
+      expect(tapBlock(confirming, dim, c, stone)).toBe(confirming);
+      expect(tapAir(confirming, c)).toBe(confirming);
+      expect(backToAiming(confirming)).toEqual(first);
+      expect(cancel(confirming)).toEqual(idle);
+      expect(opensUtilityMenu(confirming, false)).toBe(false);
+      expect(airPressOffersUndo(confirming)).toBe(false);
+    }),
+  );
+});
+
+it("offers Remove above directly before Cut for every shape and the confirmation only in its state", () => {
+  fc.assert(
+    fc.property(cell, cell, (a, b) => {
+      const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
+      const ids = shapeMenu(endpoint).map((entry) => entry.id);
+      expect(ids.indexOf("removeAbove")).toBe(ids.indexOf("cut") - 1);
+      expect(terrainMenu(endpoint)).toEqual([]);
+      const confirming = chooseTerrain(endpoint, "removeAbove");
+      expect(shapeMenu(confirming)).toEqual([]);
+      expect(terrainMenu(confirming).map((entry) => entry.id)).toEqual([
+        "confirm",
+        "cancel",
+      ]);
     }),
   );
 });

@@ -3,6 +3,7 @@ import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, type CellBox } from "../box";
 import { shapeOf } from "../shape/shape";
+import type { TerrainOp } from "../terrain/area";
 import type { HeightStepKind } from "../volume/kind";
 import type { PasteAim } from "./paste";
 
@@ -31,6 +32,14 @@ export type BuildFlow =
       readonly heightLocked: boolean;
       readonly material: BlockState;
     }
+  | {
+      readonly kind: "terrainConfirm";
+      readonly dimensionId: DimensionId;
+      readonly from: Cell;
+      readonly to: Cell;
+      readonly material: BlockState;
+      readonly op: TerrainOp;
+    }
   | PasteAim;
 
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
@@ -48,7 +57,12 @@ export function tapBlock(
   cell: Cell,
   material: BlockState,
 ): BuildFlow {
-  if (flow.kind === "heightStep" || flow.kind === "pasteAim") return flow;
+  if (
+    flow.kind === "heightStep" ||
+    flow.kind === "pasteAim" ||
+    flow.kind === "terrainConfirm"
+  )
+    return flow;
   if (flow.kind === "idle" || flow.dimensionId !== dimensionId)
     return Object.freeze({
       kind: "point1",
@@ -92,7 +106,7 @@ export function backToAiming(flow: BuildFlow): BuildFlow {
       cell: flow.from,
       material: flow.material,
     });
-  return flow.kind === "endpoint"
+  return flow.kind === "endpoint" || flow.kind === "terrainConfirm"
     ? Object.freeze({
         kind: "point1",
         dimensionId: flow.dimensionId,
@@ -123,6 +137,19 @@ export function chooseHeighted(
     material: flow.material,
   });
 }
+
+export function chooseTerrain(flow: BuildFlow, op: TerrainOp): BuildFlow {
+  if (flow.kind !== "endpoint") return flow;
+  return Object.freeze({
+    kind: "terrainConfirm",
+    dimensionId: flow.dimensionId,
+    from: flow.from,
+    to: flow.to,
+    material: flow.material,
+    op,
+  });
+}
+
 export function setHeight(flow: BuildFlow, height: number): BuildFlow {
   return flow.kind === "heightStep" && !flow.heightLocked
     ? Object.freeze({ ...flow, previous: height })
