@@ -33,7 +33,7 @@ function setup() {
   const repo = new FakeSessions();
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback);
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
   const session = repo.getOrCreate(playerId);
   const point = new SetPoint(repo, world, feedback);
   const air = new TapAir(repo, feedback);

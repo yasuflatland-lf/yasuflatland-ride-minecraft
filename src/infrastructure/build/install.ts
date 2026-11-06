@@ -27,6 +27,7 @@ import type { SpaceCheck } from "../../application/shared/ports/space";
 import { PressDebounces } from "../../domain/build/pressDebounce";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { PlayerId } from "../../domain/shared/ids";
+import { consoleLogger } from "../shared/consoleLogger";
 import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
@@ -51,7 +52,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
-  const jobs = new EditJobs(repo, blocks, feedback);
+  const jobs = new EditJobs(repo, blocks, feedback, consoleLogger);
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, blocks, feedback);
   const cutBox = new CutBox(repo, blocks, feedback, jobs);

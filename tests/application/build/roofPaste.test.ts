@@ -59,7 +59,7 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback);
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
   return { repo, session, world, feedback, jobs };
 }
 function roof(

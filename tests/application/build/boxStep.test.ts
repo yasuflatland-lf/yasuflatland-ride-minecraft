@@ -47,7 +47,12 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const actions = {
     copy: new CopyBox(repo, world, feedback),
-    cut: new CutBox(repo, world, feedback, new EditJobs(repo, world, feedback)),
+    cut: new CutBox(
+      repo,
+      world,
+      feedback,
+      new EditJobs(repo, world, feedback, { warn: () => {} }),
+    ),
   };
   return {
     repo,
@@ -240,7 +245,9 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         }
       }
       e.session.setFlow(copy);
-      const jobs = new EditJobs(e.repo, e.world, e.feedback);
+      const jobs = new EditJobs(e.repo, e.world, e.feedback, {
+        warn: () => {},
+      });
       const start = vi.spyOn(jobs, "start");
       const begin = vi.spyOn(e.session, "beginEdit");
       new ConfirmHeighted(e.repo, e.feedback, jobs).execute({

@@ -41,7 +41,7 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback);
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
   const at = { x: 0, y: 0, z: 0 };
   holdClipboard(
     session,

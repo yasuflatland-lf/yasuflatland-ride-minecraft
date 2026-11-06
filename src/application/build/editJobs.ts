@@ -10,6 +10,8 @@ import { airPressOffersUndo } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import { attempt } from "../shared/isolated";
+import type { Logger } from "../shared/ports/logger";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 
@@ -28,6 +30,7 @@ export class EditJobs {
     private readonly repo: BuildSessionRepository,
     private readonly world: BuildBlockWorld,
     private readonly feedback: BuildFeedback,
+    private readonly log: Logger,
   ) {}
 
   /** Queues a plan for the player's running edit (BuildSession.beginEdit already succeeded). */
@@ -53,7 +56,31 @@ export class EditJobs {
       const share = Math.max(1, Math.ceil(budget / this.jobs.length));
       for (const job of [...this.jobs]) {
         if (budget <= 0) break;
-        budget -= this.run(job, Math.min(share, budget));
+        let used = 0;
+        const succeeded = attempt(
+          () => {
+            used = this.run(job, Math.min(share, budget));
+          },
+          this.log,
+          () => `build edit job for ${job.playerId} failed`,
+        );
+        if (succeeded) {
+          budget -= used;
+        } else if (this.jobs.includes(job)) {
+          this.drop(job);
+          attempt(
+            () => {
+              this.repo
+                .get(job.playerId)
+                ?.finishEdit(
+                  { dimensionId: job.dimensionId, changes: job.applied },
+                  job.undo,
+                );
+            },
+            this.log,
+            () => `build edit history for ${job.playerId} failed`,
+          );
+        }
       }
     }
   }
@@ -69,27 +96,37 @@ export class EditJobs {
     while (used < limit) {
       const next = job.plan.next();
       if (next.done) {
+        this.drop(job);
         session.finishEdit(
           { dimensionId: job.dimensionId, changes: job.applied },
           job.undo,
         );
-        // The job may finish after the player left the states where an air press offers Undo,
-        // and an empty edit with no earlier history leaves nothing to undo.
-        const promisesUndo =
-          airPressOffersUndo(session.flow) && session.hasHistory;
-        this.feedback.showMessage(
-          job.playerId,
-          job.undo ? "undoDone" : promisesUndo ? "editDone" : "editDoneCount",
-          job.applied.length,
+        attempt(
+          () => {
+            // The job may finish after the player left the states where an air press offers Undo,
+            // and an empty edit with no earlier history leaves nothing to undo.
+            const promisesUndo =
+              airPressOffersUndo(session.flow) && session.hasHistory;
+            this.feedback.showMessage(
+              job.playerId,
+              job.undo
+                ? "undoDone"
+                : promisesUndo
+                  ? "editDone"
+                  : "editDoneCount",
+              job.applied.length,
+            );
+            if (
+              !job.undo &&
+              promisesUndo &&
+              job.applied.length > 0 &&
+              session.takeUndoHint()
+            )
+              this.feedback.showUndoHint(job.playerId);
+          },
+          this.log,
+          () => `build edit feedback for ${job.playerId} failed`,
         );
-        if (
-          !job.undo &&
-          promisesUndo &&
-          job.applied.length > 0 &&
-          session.takeUndoHint()
-        )
-          this.feedback.showUndoHint(job.playerId);
-        this.drop(job);
         return used;
       }
       used++;
