@@ -21,10 +21,12 @@ export interface RoofTentOccupantWorld {
   placeOutside(playerId: PlayerId, tentId: RoofTentId): void;
   /** The respawn cell associated with this tent. */
   spawnCellOf(tentId: RoofTentId): Vec3;
-  /** The player whose spawn point was last set by this tent, if any. */
-  spawnSetBy(tentId: RoofTentId): PlayerId | undefined;
-  /** Records or forgets which player's spawn point this tent set. */
-  setSpawnSetBy(tentId: RoofTentId, playerId: PlayerId | undefined): void;
+  /** Every player whose spawn point this tent set, without duplicates (ADR 0231). */
+  spawnSetters(tentId: RoofTentId): readonly PlayerId[];
+  /** Records a player whose spawn point this tent set; a duplicate is ignored. */
+  addSpawnSetter(tentId: RoofTentId, playerId: PlayerId): void;
+  /** Forgets every recorded spawn setter of this tent. */
+  clearSpawnSetters(tentId: RoofTentId): void;
   /** The dimension containing the tent and its spawn cell. */
   dimensionOf(tentId: RoofTentId): DimensionId;
   /** Shows the lang key yasu_ride.message.<name> on the player's action bar. */

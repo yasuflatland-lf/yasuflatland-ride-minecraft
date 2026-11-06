@@ -410,7 +410,7 @@ it("keeps unknown hosts and ejects, returns and clears spawn before removing a m
   const tent = spawn();
   const cow = entity("cow", "minecraft:cow");
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
-  occupants.setSpawnSetBy(asRoofTentId("tent"), PLAYER);
+  occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   expect(tent.getProperty(ids.ROOF_TENT_OCCUPIED_PROPERTY)).toBe(true);
   const guard = new RoofTentHostGuard(tents, host, occupants, occupants);
   state = { status: "unknown" };
@@ -445,7 +445,7 @@ it("runs the host guard at the specified interval and preserves unload bookkeepi
   game.runInterval.mock.calls[0]?.[0]();
   expect(check).toHaveBeenCalledOnce();
   const tent = spawn();
-  occupants.setSpawnSetBy(asRoofTentId("tent"), PLAYER);
+  occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   fire("before:entityRemove", { removedEntity: tent });
   tent.remove();
   game.dimension.getBlock.mockReturnValue(undefined);
@@ -456,7 +456,7 @@ it("cleans occupancy and spawn after an external removal in a loaded chunk", () 
   const tent = spawn();
   const cow = entity("cow", "minecraft:cow");
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
-  occupants.setSpawnSetBy(asRoofTentId("tent"), PLAYER);
+  occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   registerRoofTentLifecycle(
     occupants,
     new RoofTentHostGuard(tents, host, occupants, occupants),
@@ -613,7 +613,7 @@ it("folding also ejects occupants and clears the matching sleeper spawn", () => 
   const tent = spawn(false);
   const cow = entity("cow", "minecraft:cow");
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
-  occupants.setSpawnSetBy(asRoofTentId("tent"), PLAYER);
+  occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   const fold = new FoldRoofTent(tents);
   for (const tick of [1, 2, 3])
     fold.execute({ tentId: asRoofTentId("tent"), tick });
@@ -637,12 +637,12 @@ it("rebuilds saved occupant state and rejects vehicle-space exit candidates", ()
   const tent = spawn();
   const cow = entity("cow", "minecraft:cow");
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
-  occupants.setSpawnSetBy(asRoofTentId("tent"), PLAYER);
+  occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   const space = vi.fn((_d: unknown, cell: { x: number }) => cell.x === 3);
   const restored = new BedrockRoofTentOccupantWorld(host, bed as never, space);
   restored.remember(tent as never);
   expect(restored.occupantOf(asRoofTentId("tent"))).toBe("cow");
-  expect(restored.spawnSetBy(asRoofTentId("tent"))).toBe(PLAYER);
+  expect(restored.spawnSetters(asRoofTentId("tent"))).toEqual([PLAYER]);
   restored.eject(asRoofTentId("tent"));
   expect(cow.teleport).toHaveBeenCalledWith(
     expect.objectContaining({ x: 2.5 }),
@@ -976,3 +976,53 @@ it.each(["not json", "null", "{}", '[null, {}, {"x":0,"y":1.5,"z":0}]'])(
     expect(game.dimension.getBlock).not.toHaveBeenCalled();
   },
 );
+
+it.each([
+  [undefined, [PLAYER]],
+  [JSON.stringify(["first", "second", "first"]), ["first", "second", PLAYER]],
+  [JSON.stringify(["first", PLAYER]), ["first", PLAYER]],
+  ["{malformed", [PLAYER]],
+  [JSON.stringify({ id: "wrong shape" }), [PLAYER]],
+  [JSON.stringify(["first", 42]), [PLAYER]],
+  [JSON.stringify([]), [PLAYER]],
+])(
+  "reads saved spawn setters merged with the legacy id: %s",
+  (stored, expected) => {
+    const tent = spawn();
+    tent.setDynamicProperty(ids.ROOF_TENT_SPAWN_SET_BY_PROPERTY, PLAYER);
+    tent.setDynamicProperty(ids.ROOF_TENT_SPAWN_SETTERS_PROPERTY, stored);
+    const restored = new BedrockRoofTentOccupantWorld(
+      host,
+      bed as never,
+      () => false,
+    );
+    restored.remember(tent as never);
+    expect(restored.spawnSetters(asRoofTentId("tent"))).toEqual(expected);
+  },
+);
+
+it("merges legacy setters, writes the latest legacy id, and clears both properties", () => {
+  const tent = spawn();
+  const id = asRoofTentId("tent");
+  const next = asPlayerId("next");
+  tent.setDynamicProperty(ids.ROOF_TENT_SPAWN_SET_BY_PROPERTY, PLAYER);
+  occupants.addSpawnSetter(id, next);
+  occupants.addSpawnSetter(id, PLAYER);
+  expect(tent.getDynamicProperty(ids.ROOF_TENT_SPAWN_SETTERS_PROPERTY)).toBe(
+    JSON.stringify([PLAYER, next]),
+  );
+  expect(tent.getDynamicProperty(ids.ROOF_TENT_SPAWN_SET_BY_PROPERTY)).toBe(
+    PLAYER,
+  );
+  expect(occupants.spawnSetters(id)).toEqual([PLAYER, next]);
+  occupants.clearSpawnSetters(id);
+  expect(
+    tent.getDynamicProperty(ids.ROOF_TENT_SPAWN_SETTERS_PROPERTY),
+  ).toBeUndefined();
+  expect(
+    tent.getDynamicProperty(ids.ROOF_TENT_SPAWN_SET_BY_PROPERTY),
+  ).toBeUndefined();
+  expect(occupants.spawnSetters(id)).toEqual([]);
+  tent.remove();
+  expect(occupants.spawnSetters(id)).toEqual([]);
+});

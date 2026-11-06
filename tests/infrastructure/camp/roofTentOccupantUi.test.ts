@@ -172,8 +172,9 @@ beforeEach(() => {
     showMessage: vi.fn(),
     spawnCellOf: () => ({ x: 0, y: 0, z: 0 }),
     dimensionOf: () => asDimensionId("overworld"),
-    spawnSetBy: () => undefined,
-    setSpawnSetBy: vi.fn(),
+    spawnSetters: () => [],
+    clearSpawnSetters: vi.fn(),
+    addSpawnSetter: vi.fn(),
   };
   leave = new LeaveRoofTent(occupants);
   vi.spyOn(leave, "execute");
