@@ -15,7 +15,10 @@ import { isRoofKind } from "../../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import { volumeOf } from "../../../domain/build/volume/geometry";
-import { isBoxStepKind } from "../../../domain/build/volume/kind";
+import {
+  type HeightStepKind,
+  isBoxStepKind,
+} from "../../../domain/build/volume/kind";
 import { asPlayerId } from "../../../domain/shared/ids";
 import { chooseFromForm } from "../../shared/choiceForm";
 import { createExclusiveGuard } from "../../shared/exclusiveForm";
@@ -31,6 +34,17 @@ function menuLabel(
   if (entry.id === "skipAir")
     return entry.on ? BUILD_FORM.skipAirOn : BUILD_FORM.skipAirOff;
   return BUILD_FORM[entry.id];
+}
+
+function heightSliderTitle(kind: HeightStepKind): string {
+  switch (kind) {
+    case "cut":
+      return BUILD_FORM.cutTitle;
+    case "copy":
+      return BUILD_FORM.copyTitle;
+    default:
+      return isRoofKind(kind) ? BUILD_FORM.roofTitle : BUILD_FORM.solidTitle;
+  }
 }
 
 export interface BuildMenus {
@@ -156,12 +170,7 @@ export class BedrockBuildMenus implements BuildMenus {
     // A modal cannot update the preview while the player adjusts its slider.
     const answer = await new ModalFormData()
       .title({
-        translate:
-          flow.heightedKind === "copy"
-            ? BUILD_FORM.copyTitle
-            : isRoofKind(flow.heightedKind)
-              ? BUILD_FORM.roofTitle
-              : BUILD_FORM.solidTitle,
+        translate: heightSliderTitle(flow.heightedKind),
       })
       .slider(
         { translate: BUILD_FORM.height },

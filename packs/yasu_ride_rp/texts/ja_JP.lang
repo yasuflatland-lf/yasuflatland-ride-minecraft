@@ -176,3 +176,6 @@ yasu_ride.message.road_paver_off=ロードペーバー: OFF
 yasu_ride.message.road_paver_on=ロードペーバー: ON
 yasu_ride.message.headlights_off=ヘッドライト: OFF
 yasu_ride.message.headlights_on=ヘッドライト: ON
+yasu_build.form.cut=カット
+yasu_build.form.cut_title=カット
+yasu_build.message.cutting=カットしています。

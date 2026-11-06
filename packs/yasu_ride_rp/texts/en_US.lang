@@ -176,3 +176,6 @@ yasu_ride.message.road_paver_off=Road paver: OFF
 yasu_ride.message.road_paver_on=Road paver: ON
 yasu_ride.message.headlights_off=Headlights: OFF
 yasu_ride.message.headlights_on=Headlights: ON
+yasu_build.form.cut=Cut
+yasu_build.form.cut_title=Cut
+yasu_build.message.cutting=Cutting.

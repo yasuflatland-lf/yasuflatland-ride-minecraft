@@ -8,6 +8,7 @@ import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopyBox } from "../../application/build/copyBox";
 import { CopySelection } from "../../application/build/copySelection";
+import { CutBox } from "../../application/build/cutBox";
 import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndPasting } from "../../application/build/endPasting";
@@ -53,7 +54,8 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const jobs = new EditJobs(repo, blocks, feedback);
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, blocks, feedback);
-  const actions = { copy: copyBox };
+  const cutBox = new CutBox(repo, blocks, feedback, jobs);
+  const actions = { copy: copyBox, cut: cutBox };
   const cases = {
     chooseBoxStep: new ChooseBoxStep(repo, actions, feedback),
     confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback),

@@ -5,6 +5,7 @@ import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
+import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
@@ -43,21 +44,17 @@ function setup() {
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const session = repo.getOrCreate(playerId);
+  const actions = {
+    copy: new CopyBox(repo, world, feedback),
+    cut: new CutBox(repo, world, feedback, new EditJobs(repo, world, feedback)),
+  };
   return {
     repo,
     world,
     feedback,
     session,
-    choose: new ChooseBoxStep(
-      repo,
-      { copy: new CopyBox(repo, world, feedback) },
-      feedback,
-    ),
-    confirm: new ConfirmBoxStep(
-      repo,
-      { copy: new CopyBox(repo, world, feedback) },
-      feedback,
-    ),
+    choose: new ChooseBoxStep(repo, actions, feedback),
+    confirm: new ConfirmBoxStep(repo, actions, feedback),
   };
 }
 function endpoint(

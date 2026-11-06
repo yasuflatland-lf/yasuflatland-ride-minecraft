@@ -637,3 +637,37 @@ it.each(["block", "air"])(
     expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
   },
 );
+it.each(["block", "air"])(
+  "confirms Cut after aiming from a %s tap without contents",
+  (tap) => {
+    const e = setupRoof("gable");
+    if (e.flow.kind !== "heightStep") throw new Error("Expected height step");
+    e.session.setFlow({ ...e.flow, heightedKind: "cut" });
+    e.confirmBoxStep.execute.mockImplementation(() => {
+      expect(e.session.flow).toMatchObject({
+        heightedKind: "cut",
+        previous: 5,
+      });
+    });
+    if (tap === "air") e.use();
+    else {
+      engine.handlers.get("interact")?.({
+        player: e.player,
+        block: {
+          dimension: { id: "minecraft:nether" },
+          location: { x: 0, y: 0, z: 0 },
+        },
+        isFirstEvent: true,
+        cancel: false,
+      });
+      for (const callback of engine.scheduled.splice(0)) callback();
+    }
+    expect(e.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: e.id,
+    });
+    expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
+      e.confirmBoxStep.execute.mock.invocationCallOrder[0] as number,
+    );
+    expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
+  },
+);
