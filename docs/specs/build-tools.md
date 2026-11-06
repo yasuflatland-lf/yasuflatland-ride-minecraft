@@ -12,6 +12,7 @@
 - Source: [0229](../adr/0229-open-build-utilities-with-a-plain-air-press.md)
 - Source: [0230](../adr/0230-cut-a-selection-with-the-build-wand.md)
 - Source: [0232](../adr/0232-undo-skips-conflicting-cells.md)
+- Source: [0233](../adr/0233-round-shapes-and-terrain-operations.md)
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): defines the documentation format and checks, not build behavior
 - Excluded: [0180](../adr/0180-a-wide-bulldozer-blade.md): extends the Building Tools group with Wide Blade; switch behavior belongs to the bulldozer spec
 - Excluded: [0181](../adr/0181-a-road-paver-on-the-bulldozer.md): extends the Building Tools group with Road Paver; paving and switch behavior belong to the bulldozer spec
@@ -189,6 +190,7 @@
 
 ## Open issues
 
+- ADR 0233 Decisions 1-6 say to offer Sphere, Sideways cylinder, Remove above and Fill below, limit terrain operations with `BUILD_SPEC.maxTerrainSide`, and automatically unstuck the player; the implementation does not do this yet (`src/domain/build/spec.ts`, `src/domain/build/volume/`, `src/application/build/editJobs.ts`); implementation PRs remove parts of this as each feature lands.
 - ADR 0198 Decision 4 says to name the material in the action bar when point 1 is set; the implementation emits only `pointSet` there and names the material when a shape build starts or a roof/solid is chosen (`src/application/build/setPoint.ts`, `src/application/build/confirmShape.ts`, `src/application/build/chooseHeighted.ts`, `packs/yasu_ride_rp/texts/en_US.lang`); the ADR needs an edit or a superseding ADR.
 - ADR 0198 Decision 3 says to ignore long press as a build input outside the later paste redesign; the implementation has no duration distinction and routes a debounced air `itemUse` into endpoint confirmation, height confirmation or utilities, including an event produced by long press (`src/infrastructure/build/bedrock/handlers/wand.ts`, `src/domain/build/pressDebounce.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0198 Decision 8 says roof height is capped by the edit limit as well as footprint and world height; the implementation's height cap considers only footprint and world top, then rejects an oversized placement at contents confirmation (`src/domain/build/roof/roof.ts`, `src/application/build/confirmHeighted.ts`); the ADR needs an edit or a superseding ADR.
