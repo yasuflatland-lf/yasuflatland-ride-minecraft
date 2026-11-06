@@ -17,6 +17,7 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -33,7 +34,13 @@ function setup() {
   const repo = new FakeSessions();
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    new FakeBuildPlayers(),
+  );
   const session = repo.getOrCreate(playerId);
   const point = new SetPoint(repo, world, feedback);
   const air = new TapAir(repo, feedback);

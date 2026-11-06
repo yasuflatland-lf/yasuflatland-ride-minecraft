@@ -80,3 +80,7 @@ export const KEPT_BLOCKS: readonly string[] = [
   ...OPEN_BLOCKS,
   ...PLACE_KEPT_BLOCKS,
 ];
+
+export function isOpenBlock(typeId: string): boolean {
+  return OPEN_BLOCKS.includes(typeId);
+}

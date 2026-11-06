@@ -8,7 +8,13 @@ import type {
 } from "../../../src/domain/build/edit/change";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
-import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
+import {
+  FakeBuildPlayers,
+  FakeFeedback,
+  FakeSessions,
+  FakeWorld,
+  overworld,
+} from "./fakes";
 
 const alex = asPlayerId("alex");
 const blake = asPlayerId("blake");
@@ -26,7 +32,7 @@ function setup() {
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const log = { warn: vi.fn<(message: string) => void>() };
-  const jobs = new EditJobs(repo, world, feedback, log);
+  const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
   function start(
     player: PlayerId,
     changes: PlannedChange[],

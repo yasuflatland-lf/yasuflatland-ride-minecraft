@@ -4,11 +4,13 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../src/application/build/ports/feedback";
+import type { BuildPlayers } from "../../../src/application/build/ports/players";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import type { PreviewSet } from "../../../src/domain/build/preview/preview";
 import { BuildSession } from "../../../src/domain/build/session";
 import type { BuildSessionRepository } from "../../../src/domain/build/sessionRepository";
+import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { Cell } from "../../../src/domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../src/domain/shared/ids";
 import { asDimensionId } from "../../../src/domain/shared/ids";
@@ -98,10 +100,14 @@ export class FakeFeedback implements BuildFeedback {
 
 export class FakeWorld implements BuildBlockWorld {
   private readonly blocks = new Map<string, BlockState>();
+  readonly topYs = new Map<DimensionId, number>();
   readonly protectedCells = new Set<string>();
   readonly refusedCells = new Set<string>();
   readonly unreadableCells = new Set<string>();
   writes = 0;
+  topY(dimensionId: DimensionId): number {
+    return this.topYs.get(dimensionId) ?? BUILD_SPEC.worldTopY;
+  }
   materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused" {
     const state = this.stateAt(dimensionId, cell);
     return isUsableMaterial(state) ? state : "refused";
@@ -132,5 +138,16 @@ export class FakeAimReader implements AimReader {
   target: ReturnType<AimReader["aim"]>;
   aim(_playerId: PlayerId) {
     return this.target;
+  }
+}
+
+export class FakeBuildPlayers implements BuildPlayers {
+  occupants = new Map<PlayerId, { dimensionId: DimensionId; feet: Cell }>();
+  moves: { playerId: PlayerId; cell: Cell }[] = [];
+  occupantOf(playerId: PlayerId) {
+    return this.occupants.get(playerId);
+  }
+  moveTo(playerId: PlayerId, cell: Cell) {
+    this.moves.push({ playerId, cell });
   }
 }

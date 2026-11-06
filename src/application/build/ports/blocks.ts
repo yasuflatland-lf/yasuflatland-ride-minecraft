@@ -3,6 +3,8 @@ import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
 
 export interface BuildBlockWorld {
+  /** The highest block-cell Y in the dimension, inclusive. */
+  topY(dimensionId: DimensionId): number;
   materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused";
   /** The block state at `cell`; undefined when unreadable (unloaded, outside the world). */
   stateAt(dimensionId: DimensionId, cell: Cell): BlockState | undefined;
