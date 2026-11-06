@@ -167,7 +167,11 @@ function setup(fallback?: boolean) {
       execute: vi.fn((cmd) => new SetHeightTo(repo).execute(cmd)),
     },
   };
-  const player = { id: playerId, isValid: true } as unknown as Player;
+  const player = {
+    id: playerId,
+    isValid: true,
+    dimension: { heightRange: { min: -64, max: 320 } },
+  } as unknown as Player;
   const menus = new BedrockBuildMenus(repo, cases, fallback);
   return {
     repo,
@@ -780,56 +784,71 @@ function removeAboveAnswer() {
   };
 }
 
-it("opens the confirmation with the area and height after Remove above", async () => {
-  const { menus, player, cases, session } = setup();
-  const area: BuildFlow = {
-    ...endpoint,
-    from: { x: 0, y: 64, z: 0 },
-    to: { x: 4, y: 60, z: 6 },
-  };
-  session.setFlow(area);
-  ui.answers.push(
-    { selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove") },
-    { selection: 0 },
-  );
-  await menus.showShapeMenu(player);
-  expect(cases.chooseTerrain.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-    op: "removeAbove",
-  });
-  expect(ui.forms).toHaveLength(2);
-  expect(ui.forms[1]?.heading).toEqual({
-    translate: BUILD_FORM.removeAboveTitle,
-  });
-  expect(ui.forms[1]?.message).toEqual({
-    translate: BUILD_FORM.removeAboveBody,
-    with: ["5", "7", "61", "319"],
-  });
-  expect(ui.forms[1]?.buttons).toEqual([
-    { translate: BUILD_FORM.confirm },
-    { translate: BUILD_FORM.cancel },
-  ]);
-  expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
-});
+it.each([320, 128, 256])(
+  "shows the dimension top for Remove above with exclusive ceiling %i",
+  async (ceiling) => {
+    const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.max = ceiling;
+    const area: BuildFlow = {
+      ...endpoint,
+      from: { x: 0, y: 64, z: 0 },
+      to: { x: 4, y: 60, z: 6 },
+    };
+    session.setFlow(area);
+    ui.answers.push(
+      { selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove") },
+      { selection: 0 },
+    );
+    await menus.showShapeMenu(player);
+    expect(cases.chooseTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      op: "removeAbove",
+    });
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.heading).toEqual({
+      translate: BUILD_FORM.removeAboveTitle,
+    });
+    expect(ui.forms[1]?.message).toEqual({
+      translate: BUILD_FORM.removeAboveBody,
+      with: ["5", "7", "61", String(ceiling - 1)],
+    });
+    expect(ui.forms[1]?.buttons).toEqual([
+      { translate: BUILD_FORM.confirm },
+      { translate: BUILD_FORM.cancel },
+    ]);
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+  },
+);
 
-it("confirms an empty Remove above range without opening a confirmation form", async () => {
-  const { menus, player, cases, session } = setup();
-  session.setFlow({
-    ...endpoint,
-    from: { ...from, y: BUILD_SPEC.worldTopY },
-    to: { ...to, y: BUILD_SPEC.worldTopY },
-  });
-  ui.answers.push(removeAboveAnswer());
-  await menus.showShapeMenu(player);
-  expect(ui.forms).toHaveLength(1);
-  expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
-});
+it.each([
+  [320, BUILD_SPEC.worldTopY],
+  [512, BUILD_SPEC.worldTopY],
+  [128, 127],
+  [128, 128],
+  [256, 255],
+  [256, 256],
+])(
+  "confirms without a form for ceiling %i and floor %i",
+  async (ceiling, floor) => {
+    const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.max = ceiling;
+    session.setFlow({
+      ...endpoint,
+      from: { ...from, y: floor },
+      to: { ...to, y: floor },
+    });
+    ui.answers.push(removeAboveAnswer());
+    await menus.showShapeMenu(player);
+    expect(ui.forms).toHaveLength(1);
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+  },
+);
 
 it.each([
   ["Cancel", { selection: 1 }],
