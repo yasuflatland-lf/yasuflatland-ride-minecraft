@@ -8,6 +8,7 @@ export const BUILD_SPEC = Object.freeze({
   pasteRepeatTicks: 10,
   maxVolume: 100_000, // largest selection an edit accepts
   maxCopyVolume: 32_768, // largest selection copy accepts; copy reads in one tick
+  maxTerrainSide: 32, // longest x or z side a terrain operation accepts (ADR 0233)
   blocksPerTick: 4_096, // changes applied per tick across all edit jobs
   undoDepth: 10, // edits kept per player
   modeEnterTicks: 6, // ticks to enter build mode (ADR 0178 Decision 3)

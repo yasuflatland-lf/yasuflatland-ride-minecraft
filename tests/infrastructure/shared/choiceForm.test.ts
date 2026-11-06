@@ -17,11 +17,16 @@ const ui = vi.hoisted(() => {
   class Form {
     heading?: RawMessage;
     buttons: RawMessage[] = [];
+    message?: RawMessage;
     constructor() {
       forms.push(this);
     }
     title(value: RawMessage) {
       this.heading = value;
+      return this;
+    }
+    body(value: RawMessage) {
+      this.message = value;
       return this;
     }
     button(value: RawMessage) {
@@ -127,4 +132,12 @@ it("reports answered, unanswered, and unavailable forms", async () => {
       entries,
     ),
   ).toEqual({ status: "unavailable" });
+});
+it("shows a body only when one is given", async () => {
+  ui.answers.push({ selection: 0 }, { selection: 0 });
+  const body = { translate: "body", with: ["1"] };
+  expect(await chooseFromForm(player, "title", entries, body)).toBe("a");
+  expect(ui.forms.at(-1)?.message).toEqual(body);
+  expect(await chooseFromForm(player, "title", entries)).toBe("a");
+  expect(ui.forms.at(-1)?.message).toBeUndefined();
 });

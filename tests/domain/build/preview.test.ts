@@ -84,6 +84,18 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
   );
 });
 
+it("draws the terrain confirmation like its end point", () => {
+  const from = { x: 0, y: 60, z: 0 };
+  const to = { x: 3, y: 62, z: 3 };
+  const common = { dimensionId, from, to, material };
+  expect(
+    previewPoints(
+      { ...common, kind: "terrainConfirm", op: "removeAbove" },
+      { blink: true },
+    ),
+  ).toEqual(previewPoints({ ...common, kind: "endpoint" }, { blink: true }));
+});
+
 it("alternates the first-point marker with blink and removes it at the endpoint step", () => {
   fc.assert(
     fc.property(cell, cell, (a, b) => {

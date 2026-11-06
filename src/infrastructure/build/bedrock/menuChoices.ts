@@ -1,10 +1,12 @@
 import type { CancelFlow } from "../../../application/build/cancelFlow";
 import type { ChooseBoxStep } from "../../../application/build/chooseBoxStep";
 import type { ChooseHeighted } from "../../../application/build/chooseHeighted";
+import type { ChooseTerrain } from "../../../application/build/chooseTerrain";
 import type { ClearSelection } from "../../../application/build/clearSelection";
 import type { ConfirmBoxStep } from "../../../application/build/confirmBoxStep";
 import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
+import type { ConfirmTerrain } from "../../../application/build/confirmTerrain";
 import type { CopySelection } from "../../../application/build/copySelection";
 import type { EndPasting } from "../../../application/build/endPasting";
 import type { NewCopy } from "../../../application/build/newCopy";
@@ -16,6 +18,7 @@ import {
   type MenuEntry,
   pasteMenu,
   shapeMenu,
+  terrainMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
@@ -34,6 +37,8 @@ export interface MenuCases {
   confirmShape: Pick<ConfirmShape, "execute">;
   chooseHeighted: Pick<ChooseHeighted, "execute">;
   confirmHeighted: Pick<ConfirmHeighted, "execute">;
+  chooseTerrain: Pick<ChooseTerrain, "execute">;
+  confirmTerrain: Pick<ConfirmTerrain, "execute">;
   cancel: Pick<CancelFlow, "backToAiming">;
   copy: Pick<CopySelection, "execute">;
   toggleSkipAir: Pick<ToggleSkipAir, "execute">;
@@ -51,7 +56,7 @@ export class MenuChoices {
   ) {}
   choose(
     playerId: PlayerId,
-    menu: "shape" | "contents" | "utility" | "paste",
+    menu: "shape" | "contents" | "terrain" | "utility" | "paste",
     entryId: string | undefined,
   ): boolean {
     const session = this.repo.get(playerId);
@@ -75,6 +80,9 @@ export class MenuChoices {
         case "cube":
           this.cases.chooseHeighted.execute({ playerId, kind: entryId });
           break;
+        case "removeAbove":
+          this.cases.chooseTerrain.execute({ playerId, op: entryId });
+          break;
         case "cut":
         case "copy":
           this.cases.chooseBoxStep.execute({ playerId, kind: entryId });
@@ -97,6 +105,20 @@ export class MenuChoices {
         case "hollow":
         case "tube":
           this.cases.confirmHeighted.execute({ playerId, fill: entryId });
+          break;
+        default: {
+          const exhaustive: never = entryId;
+          return exhaustive;
+        }
+      }
+    } else if (menu === "terrain") {
+      if (!isOffered(terrainMenu(session.flow), entryId)) return false;
+      switch (entryId) {
+        case "confirm":
+          this.cases.confirmTerrain.execute({ playerId });
+          break;
+        case "cancel":
+          this.cases.cancel.backToAiming({ playerId });
           break;
         default: {
           const exhaustive: never = entryId;
