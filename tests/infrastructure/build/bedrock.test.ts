@@ -156,6 +156,11 @@ it("sends translated counts and bounded player-only particles at block centers",
           translate: BUILD_MESSAGE.undoDonePartial,
           with: [String(count), "2"],
         });
+        feedback.showMessage(playerId, "undoDonePartial");
+        expect(setActionBar).toHaveBeenLastCalledWith({
+          translate: BUILD_MESSAGE.undoDonePartial,
+          with: ["0", "0"],
+        });
         feedback.showMessage(playerId, "tooLarge", count);
         expect(setActionBar).toHaveBeenLastCalledWith({
           translate: BUILD_MESSAGE.tooLarge,
