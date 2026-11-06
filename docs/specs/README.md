@@ -5,7 +5,7 @@ The specs in this folder state the rules that apply now, one topic per file, so 
 ## Topics
 
 - [Architecture and layering](architecture.md): Stable Script APIs, layer and feature boundaries, shared primitives, vehicle core and kind contracts, command delivery, and pack identifiers and layout.
-- [Build tools](build-tools.md): Build Wand items, creative catalog, build mode, selection and previews, shape and height menus, roofs and solids, Cut, Remove above, Copy, continuous Paste, edit protection, undo, and per-player session lifetime.
+- [Build tools](build-tools.md): Build Wand items, creative catalog, build mode, selection and previews, shape and height menus, roofs and solids, Cut, Fill below, Remove above, Copy, continuous Paste, edit protection, undo, and per-player session lifetime.
 - [Bulldozer](bulldozer.md): Bulldozer controls, blade lift and cutting, rising shafts, wide blade, road paver, cab monitor, model geometry, and track animation.
 - [Camper hover display](camper-hover-display.md): What the camper shows in hover form: the four glow discs under the folded wheels, the particles that leave them, and the emissive overlay that makes the discs bright.
 - [Camper interior](camper-interior.md): The parked camper's furniture, bed and bunk, decor slots and gear placement and take-back, shower-toilet, toilet seat and standing up, entry and shower door taps, wall cabinet, fridge, and interior dashboard, stove, counter window, and hook.
