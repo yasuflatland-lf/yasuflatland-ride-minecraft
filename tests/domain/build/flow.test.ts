@@ -30,6 +30,7 @@ import {
 } from "../../../src/domain/build/volume/kind";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
+import { holdClipboard } from "../../support/buildClipboard";
 
 const coord = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
@@ -170,7 +171,11 @@ it("offers utility entries exactly when their prerequisites exist", () => {
         const session = new BuildSession(asPlayerId("p"));
         const box = boxOf(at, at);
         if (confirmed) session.confirmBox(dim, box);
-        if (clipboard) session.setClipboard(clipboardOf(box, () => stone));
+        if (clipboard)
+          holdClipboard(
+            session,
+            clipboardOf(box, () => stone),
+          );
         if (history)
           session.finishEdit(
             {

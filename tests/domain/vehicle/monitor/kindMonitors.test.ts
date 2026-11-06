@@ -8,11 +8,9 @@ import {
   KINDS,
   profileOf,
 } from "../../../../src/domain/vehicle/kinds/index";
-import {
-  monitorPropertySpec,
-  monitorScreen,
-} from "../../../../src/domain/vehicle/monitor/monitor";
+import { monitorScreen } from "../../../../src/domain/vehicle/monitor/monitor";
 import { defined } from "../../../support/defined";
+import { monitorPropertySpec } from "../../../support/monitorContract";
 import { riderViews, tickSamples } from "../../../support/vehicleFuzz";
 import { waterSensors } from "../../../support/waterDepth";
 

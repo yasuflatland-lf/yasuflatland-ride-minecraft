@@ -4,8 +4,8 @@ import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import {
   entityEventId,
   entityPropertyId,
-  SEAT_FILLER_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { SEAT_FILLER_FAMILY } from "../support/packIdentifiers";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json")[

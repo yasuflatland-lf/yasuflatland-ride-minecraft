@@ -1,9 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import {
-  SEAT_FILLER_FAMILY,
-  SEAT_FILLER_TYPE,
-} from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { SEAT_FILLER_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { SEAT_FILLER_FAMILY } from "../support/packIdentifiers";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 

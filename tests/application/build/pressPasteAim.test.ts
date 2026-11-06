@@ -18,6 +18,7 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeAimReader,
@@ -58,7 +59,7 @@ function setup(
     boxOf(block, { ...block, x: block.x + 1 }),
     () => stone,
   );
-  session.setClipboard(clipboard);
+  holdClipboard(session, clipboard);
   session.setFlow({ kind: "pasteAim", skipAir });
   const aim = new FakeAimReader();
   aim.target = {

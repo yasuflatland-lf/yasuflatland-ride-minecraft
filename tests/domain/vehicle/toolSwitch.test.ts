@@ -119,7 +119,9 @@ describe("Vehicle.switchTool (ADR 0024, 0138)", () => {
 it("cycles a tool's declared states and shares its cooldown with other tools", () => {
   fc.assert(
     fc.property(
-      fc.uniqueArray(fc.string(), { minLength: 1, maxLength: 6 }),
+      fc
+        .uniqueArray(fc.string(), { minLength: 1, maxLength: 6 })
+        .map((states) => states as [string, ...string[]]),
       fc.integer({ min: 1, max: 20 }),
       (states, cycles) => {
         const stub = stubDrive(true);

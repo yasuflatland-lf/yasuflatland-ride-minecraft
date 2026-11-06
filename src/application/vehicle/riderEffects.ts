@@ -2,9 +2,9 @@ import type { PlayerId } from "../../domain/shared/ids";
 // The effects a drive puts on its riders: the chase camera (ADR 0028) and water breathing.
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import { SPEC } from "../../domain/vehicle/spec";
-import { forEachIsolated } from "./isolated";
+import { forEachIsolated } from "../shared/isolated";
+import type { Logger } from "../shared/ports/logger";
 import type { RiderEffectWorld } from "./ports/drive";
-import type { Logger } from "./ports/shared";
 
 export class RiderEffects {
   /** Players this use case switched to a third-person camera, and which one (ADR 0028). */
