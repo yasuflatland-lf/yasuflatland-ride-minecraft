@@ -60,7 +60,7 @@ The owner wants a filling player to end up standing free rather than buried, wit
 
 - They have no Undo.
 - The owner wants to clear an area of about 30 by 30. The maximum side of 32 below was proposed and not objected to.
-- Removing what holds something up is accepted, as with Cut: a vehicle falls, a tent floats, a player falls, and an attached block may pop off. The confirmation form warns that things above can fall.
+- Removing what holds something up is accepted, as with Cut: a vehicle falls, a tent floats, a player falls, and an attached block may pop off. The Remove above confirmation form warns that things above can fall. Fill below removes nothing, so its confirmation does not include that warning.
 
 ## The builder's calls so far (the owner can overrule these)
 
@@ -89,7 +89,7 @@ These were proposed in conversation or decided while writing this document.
 
 - The entries Remove above and Fill below appear in the shape menu on every shape: line, either kind of rectangle, and box. Uneven cave floors rarely give two points at one height, and the area is taken from the x and z extents of the two points.
 - The first tapped block's existing material rule stays. It supplies the fill material and is ignored by Remove above. The first tap is therefore still refused on a chest or other unusable material.
-- Selecting an entry opens a confirmation form that names the operation, shows the area's size and the affected height, and says it cannot be undone and that things above can fall. Confirming starts the job. Cancel or dismissing returns to end-point aiming, the same as shape menu Cancel.
+- Selecting an entry opens a confirmation form that names the operation, shows the area's size and the affected height, and says it cannot be undone. Remove above also warns that things above can fall; Fill below does not. Confirming starts the job. Cancel or dismissing returns to end-point aiming, the same as shape menu Cancel.
 - The limit is geometric: each side of the x and z extents may be at most `BUILD_SPEC.maxTerrainSide` (32). Over that reports the existing too-large message and changes nothing. `BUILD_SPEC.maxVolume` does not apply to them.
 - They run through `EditJobs` under the shared `BUILD_SPEC.blocksPerTick` budget, one edit per player, with the existing protections: kept types and `mayEdit` skip cells, and nothing is rolled back. At 4,096 per tick, the worst case for Remove above (32 x 32 x 384 = 393,216 planned cells) takes about 5 seconds.
 - A job for these operations keeps no per-cell history and adds no history record. It finishes with the count-only `editDoneCount` message. It must not use the Undo-promising message or take the Undo hint, even when the session holds earlier history. Today `promisesUndo` tests only `hasHistory`, so a job needs an explicit "no history" mode instead of the `undo` boolean alone.
