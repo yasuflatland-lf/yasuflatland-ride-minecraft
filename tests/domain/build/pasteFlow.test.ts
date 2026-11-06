@@ -18,6 +18,7 @@ import {
 } from "../../../src/domain/build/flow/paste";
 import { BuildSession } from "../../../src/domain/build/session";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -76,7 +77,11 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
         const session = new BuildSession(asPlayerId("p"));
         const box = boxOf(at, at);
         if (confirmed) session.confirmBox(dimensionId, box);
-        if (clipboard) session.setClipboard(clipboardOf(box, () => stone));
+        if (clipboard)
+          holdClipboard(
+            session,
+            clipboardOf(box, () => stone),
+          );
         if (history)
           session.finishEdit(
             {
