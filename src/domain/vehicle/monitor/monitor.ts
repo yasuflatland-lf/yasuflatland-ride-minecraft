@@ -1,9 +1,7 @@
-import type { PropertySpec } from "../entityContract";
-
 /** A tool the cab monitor shows: its bare item id and its state names, in screen order (ADR 0139). */
 interface MonitorTool {
   readonly item: string;
-  readonly states: readonly string[];
+  readonly states: readonly [string, ...string[]];
 }
 
 /** What a kind's cab monitor shows (ADR 0139). */
@@ -15,22 +13,6 @@ export interface MonitorRule {
 
 /** The property value that draws nothing over the console's plain screen. */
 export const BLANK_SCREEN = 0;
-
-/** The non-blank screens in property order: screen k is value k + 1. */
-export function monitorScreens(
-  rule: MonitorRule,
-): readonly { readonly item: string; readonly state: string }[] {
-  return rule.tools.flatMap(({ item, states }) =>
-    states.map((state) => ({ item, state })),
-  );
-}
-
-/** The spec of the core `monitor` property for this rule: int in [0, number of screens]. */
-export function monitorPropertySpec(
-  rule: MonitorRule,
-): Extract<PropertySpec, { type: "int" }> {
-  return { type: "int", range: [BLANK_SCREEN, monitorScreens(rule).length] };
-}
 
 /**
  * The property value for `held` in the state `stateOf` reports; BLANK_SCREEN when nothing is held,
@@ -59,10 +41,8 @@ export function nextToolState(
   current: string | undefined,
 ): string {
   const index = current === undefined ? -1 : tool.states.indexOf(current);
-  const next = tool.states[(index + 1) % tool.states.length];
-  if (next === undefined)
-    throw new Error("A monitor tool must have at least one state");
-  return next;
+  // The tuple type guarantees at least one state, so the index is always in range.
+  return tool.states[(index + 1) % tool.states.length] as string;
 }
 
 export function monitorTool(
