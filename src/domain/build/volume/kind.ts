@@ -1,7 +1,7 @@
 import type { RoofKind } from "../roof/roof";
 import { BUILD_SPEC } from "../spec";
 
-export type SolidKind = "cylinder" | "cube";
+export type SolidKind = "cylinder" | "cube" | "sideCylinderX" | "sideCylinderZ";
 export type HeightedKind = RoofKind | SolidKind;
 export type BoxStepKind = "copy" | "cut";
 export type HeightStepKind = HeightedKind | BoxStepKind;
@@ -37,6 +37,8 @@ const HEIGHTED_TRAITS: Readonly<Record<HeightedKind, HeightedTraits>> = {
   gable: { fills: ROOF_FILLS, locksBoxHeight: false },
   hip: { fills: ROOF_FILLS, locksBoxHeight: false },
   cylinder: { fills: SOLID_FILLS, locksBoxHeight: true },
+  sideCylinderX: { fills: SOLID_FILLS, locksBoxHeight: true },
+  sideCylinderZ: { fills: SOLID_FILLS, locksBoxHeight: true },
   cube: { fills: SOLID_FILLS, locksBoxHeight: false },
 };
 

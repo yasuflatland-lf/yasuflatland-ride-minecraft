@@ -12,6 +12,8 @@ it.each<[HeightedKind, string[]]>([
   ["hip", ["fill", "hollow"]],
   ["cylinder", ["fill", "hollow", "tube"]],
   ["cube", ["fill", "hollow", "tube"]],
+  ["sideCylinderX", ["fill", "hollow", "tube"]],
+  ["sideCylinderZ", ["fill", "hollow", "tube"]],
 ])("offers the fill styles of %s", (kind, styles) => {
   expect(fillStylesFor(kind)).toEqual(styles);
 });
@@ -20,6 +22,8 @@ it.each<[HeightStepKind, boolean]>([
   ["gable", false],
   ["hip", false],
   ["cylinder", true],
+  ["sideCylinderX", true],
+  ["sideCylinderZ", true],
   ["cube", false],
   ["copy", false],
   ["cut", false],
@@ -28,7 +32,12 @@ it.each<[HeightStepKind, boolean]>([
 });
 
 it("treats every solid kind as a heighted kind", () => {
-  const solids: SolidKind[] = ["cylinder", "cube"];
+  const solids: SolidKind[] = [
+    "cylinder",
+    "cube",
+    "sideCylinderX",
+    "sideCylinderZ",
+  ];
   for (const solid of solids) {
     const kind: HeightedKind = solid;
     expect(fillStylesFor(kind)).toContain("tube");

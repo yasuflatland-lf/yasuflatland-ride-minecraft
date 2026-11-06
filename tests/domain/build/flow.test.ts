@@ -121,9 +121,9 @@ it("offers only supported shape styles followed by Cancel", () => {
           shape.kind === "line" ? "place" : style,
         ),
         ...(shape.kind === "rect" && shape.flat === "y"
-          ? ["gable", "hip", "cylinder", "cube"]
+          ? ["gable", "hip", "cylinder", "sideCylinder", "cube"]
           : shape.kind === "box"
-            ? ["cylinder"]
+            ? ["cylinder", "sideCylinder"]
             : []),
         "cut",
         "copy",
@@ -141,6 +141,7 @@ it("offers only supported shape styles followed by Cancel", () => {
         "gable",
         "hip",
         "cylinder",
+        "sideCylinder",
         "cube",
         "cut",
         "copy",
@@ -149,7 +150,16 @@ it("offers only supported shape styles followed by Cancel", () => {
     ],
     [
       { x: 3, y: 3, z: 3 },
-      ["fill", "faces", "walls", "cylinder", "cut", "copy", "cancel"],
+      [
+        "fill",
+        "faces",
+        "walls",
+        "cylinder",
+        "sideCylinder",
+        "cut",
+        "copy",
+        "cancel",
+      ],
     ],
   ] as const)
     expect(
@@ -241,6 +251,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "gable",
               "hip",
               "cylinder",
+              "sideCylinder",
               "cube",
               "cut",
               "copy",
@@ -249,7 +260,16 @@ it("accepts every heighted kind only on its supported shapes", () => {
           ],
           [
             { x: dx, y: dy, z: dz },
-            ["fill", "faces", "walls", "cylinder", "cut", "copy", "cancel"],
+            [
+              "fill",
+              "faces",
+              "walls",
+              "cylinder",
+              "sideCylinder",
+              "cut",
+              "copy",
+              "cancel",
+            ],
           ],
           [{ x: dx, y: dy, z: 0 }, ["fill", "frame", "cut", "copy", "cancel"]],
           [{ x: 0, y: dy, z: dz }, ["fill", "frame", "cut", "copy", "cancel"]],

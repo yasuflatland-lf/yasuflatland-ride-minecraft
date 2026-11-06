@@ -14,7 +14,8 @@ export type ShapeEntryId =
   | "frame"
   | "faces"
   | "walls"
-  | HeightedKind
+  | Exclude<HeightedKind, "sideCylinderX" | "sideCylinderZ">
+  | "sideCylinder"
   | "cut"
   | "copy"
   | "cancel";
@@ -32,9 +33,10 @@ const RECT_SOLID_ENTRIES: readonly ShapeEntryId[] = [
   "gable",
   "hip",
   "cylinder",
+  "sideCylinder",
   "cube",
 ];
-const BOX_SOLID_ENTRIES: readonly ShapeEntryId[] = ["cylinder"];
+const BOX_SOLID_ENTRIES: readonly ShapeEntryId[] = ["cylinder", "sideCylinder"];
 
 export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
   if (flow.kind !== "endpoint") return [];
