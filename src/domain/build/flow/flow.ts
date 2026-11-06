@@ -3,7 +3,7 @@ import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, type CellBox } from "../box";
 import { shapeOf } from "../shape/shape";
-import type { HeightStepKind } from "../volume/kind";
+import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
 import type { PasteAim } from "./paste";
 
 export type BuildFlow =
@@ -108,7 +108,7 @@ export function chooseHeighted(
 ): BuildFlow {
   if (flow.kind !== "endpoint") return flow;
   const shape = shapeOf(flow.from, flow.to);
-  const locked = shape.kind === "box" && kind === "cylinder";
+  const locked = shape.kind === "box" && locksBoxHeight(kind);
   if (!locked && (shape.kind !== "rect" || shape.flat !== "y")) return flow;
   return Object.freeze({
     kind: "heightStep",
