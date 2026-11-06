@@ -12,6 +12,7 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   FakeAimReader,
   FakeFeedback,
@@ -85,7 +86,10 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
     to: end,
     material,
   });
-  session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  holdClipboard(
+    session,
+    clipboardOf(boxOf(cell, end), () => material),
+  );
   aim.mockReturnValue({ ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews[0]?.set).toEqual(
@@ -149,7 +153,10 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
   aim.mockReturnValue({ ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
-  session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  holdClipboard(
+    session,
+    clipboardOf(boxOf(cell, end), () => material),
+  );
   for (const face of [
     "up",
     "down",
@@ -340,7 +347,7 @@ it("refreshes the paste hint each interval without requiring an aimed block", ()
   const clipboard = clipboardOf(boxOf(cell, end), (at) =>
     at.y === cell.y ? material : undefined,
   );
-  session.setClipboard(clipboard);
+  holdClipboard(session, clipboard);
   for (let tick = 1; tick <= 3 * interval; tick++) preview.execute(tick);
   expect(feedback.pasteHints).toEqual(
     Array.from({ length: 3 }, () => ({
@@ -353,7 +360,10 @@ it("refreshes the paste hint each interval without requiring an aimed block", ()
 
 it("never shows paste hints in other flows or outside build mode", () => {
   const { session, preview, feedback } = setup();
-  session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  holdClipboard(
+    session,
+    clipboardOf(boxOf(cell, end), () => material),
+  );
   for (const flow of [
     { kind: "idle" } as const,
     { kind: "point1", dimensionId: overworld, cell, material } as const,
@@ -381,7 +391,10 @@ it("never shows paste hints in other flows or outside build mode", () => {
   }
   expect(feedback.pasteHints).toEqual([]);
   const inactive = setup(false);
-  inactive.session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  holdClipboard(
+    inactive.session,
+    clipboardOf(boxOf(cell, end), () => material),
+  );
   inactive.session.setFlow({ kind: "pasteAim", skipAir: false });
   inactive.preview.execute(0);
   expect(inactive.feedback.pasteHints).toEqual([]);
@@ -390,7 +403,10 @@ it("never shows paste hints in other flows or outside build mode", () => {
 it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed block", () => {
   const { repo, session, feedback } = setup();
   session.setFlow({ kind: "pasteAim", skipAir: false });
-  session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  holdClipboard(
+    session,
+    clipboardOf(boxOf(cell, end), () => material),
+  );
   const aim = new FakeAimReader();
   const preview = new ShowPreview(repo, feedback, aim);
   for (const target of [{ ray }, undefined]) {

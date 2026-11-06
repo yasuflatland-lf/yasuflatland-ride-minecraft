@@ -49,4 +49,6 @@ export class FakeRoofTentWorld implements RoofTentWorld {
     this.paints.set(id, paint);
   });
   consumeDye = vi.fn<RoofTentWorld["consumeDye"]>();
+  readonly sounds: RoofTentId[] = [];
+  playPaintSound = vi.fn<RoofTentWorld["playPaintSound"]>();
 }

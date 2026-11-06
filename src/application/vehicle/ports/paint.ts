@@ -11,6 +11,7 @@ export interface PaintWorld {
   kindOf(vehicleId: VehicleId): VehicleKind | undefined;
   paint(vehicleId: VehicleId, paint: Paint): void;
   consumeDye(playerId: PlayerId, paint: Paint): void;
+  playPaintSound(vehicleId: VehicleId): void;
   /** Whether the player is in creative mode; false when the player is not in the world. */
   isCreative(playerId: PlayerId): boolean;
 }
