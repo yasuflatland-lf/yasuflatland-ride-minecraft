@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { it } from "vitest";
 import {
   asDimensionId,
   asPlayerId,
@@ -12,7 +12,7 @@ it("a plain string is not a VehicleId", () => {
   const raw: string = "v";
   // @ts-expect-error a plain string must be branded first
   const id: VehicleId = raw;
-  expect(id).toBe(raw);
+  void id;
 });
 
 it("keeps player, dimension and vehicle ids apart at compile time", () => {
@@ -28,11 +28,5 @@ it("keeps player, dimension and vehicle ids apart at compile time", () => {
   // @ts-expect-error a player id is not a dimension id
   const toDimension: DimensionId = p;
   const asString: string = p;
-  expect([
-    fromString,
-    fromDimension,
-    fromVehicle,
-    toDimension,
-    asString,
-  ]).toHaveLength(5);
+  void [fromString, fromDimension, fromVehicle, toDimension, asString];
 });
