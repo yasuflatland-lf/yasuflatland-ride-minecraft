@@ -3,10 +3,12 @@ import { CancelFlow } from "../../application/build/cancelFlow";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
+import { ChooseTerrain } from "../../application/build/chooseTerrain";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { ConfirmBoxStep } from "../../application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
+import { ConfirmTerrain } from "../../application/build/confirmTerrain";
 import { CopyBox } from "../../application/build/copyBox";
 import { CopySelection } from "../../application/build/copySelection";
 import { CutBox } from "../../application/build/cutBox";
@@ -84,6 +86,8 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     ),
     aimHeight: new AimHeight(repo),
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
+    chooseTerrain: new ChooseTerrain(repo, feedback),
+    confirmTerrain: new ConfirmTerrain(repo, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),
     clear,
   };

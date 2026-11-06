@@ -1303,6 +1303,165 @@ export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
   });
 }
 
+/** Footprint columns from a layer below the fixture's origin up to the world top. */
+function columnRegion(f: Fixture, sx: number, sz: number, bottom: number) {
+  const offset = f.cell(0, bottom, 0);
+  return f.region(sx, BUILD_SPEC.worldTopY - offset.y + 1, sz, offset);
+}
+
+export function buildRemoveAbove(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = columnRegion(f, 3, 3, -3);
+    for (const cell of cells) f.block(cell).setType("minecraft:air");
+    const ceiling = f.block({ ...f.cell(1, 0, 1), y: BUILD_SPEC.worldTopY });
+    const floor = f.region(3, 1, 3, f.cell(0, -3, 0));
+    for (const cell of floor) f.block(cell).setType("minecraft:stone");
+    const below = f.block(f.cell(1, -4, 1));
+    const beside = f.block(f.cell(3, 2, 1));
+    below.setType("minecraft:stone");
+    beside.setType("minecraft:stone");
+    // The first point sits above the end point, so the end point's layer is the floor.
+    await f.select(f.cell(2, -3, 2));
+    const firstPoint = f.block(f.cell());
+    const raised = f.block(f.cell(2, 2, 2));
+    raised.setType("minecraft:stone");
+    ceiling.setType("minecraft:stone");
+    const chest = f.block(f.cell(1, 1, 1));
+    chest.setType("minecraft:chest");
+    const inventory = chest.getComponent("minecraft:inventory")?.container;
+    check(inventory !== undefined, "Chest inventory missing");
+    inventory.setItem(0, new ItemStack("minecraft:diamond", 7));
+    try {
+      const chosen = await f.menu("shape", "removeAbove");
+      check(
+        chosen.offered === true && chosen.flow.kind === "terrainConfirm",
+        "Remove above did not ask for confirmation",
+      );
+      check(f.count([f.cell(2, 2, 2)]) === 1, "Wrote before confirmation");
+      const done = await f.menu("terrain", "confirm");
+      check(
+        done.message === "editDoneCount" && done.flow.kind === "idle",
+        `Remove above did not finish: ${done.message}`,
+      );
+      check(done.count === 3, `Changed-cell count wrong: ${done.count}`);
+      check(f.count(floor) === floor.length, "Remove above changed the floor");
+      check(
+        firstPoint.typeId === "minecraft:air" &&
+          raised.typeId === "minecraft:air" &&
+          ceiling.typeId === "minecraft:air",
+        "Remove above left a block over the floor",
+      );
+      check(
+        chest.typeId === "minecraft:chest" &&
+          chest.getComponent("minecraft:inventory")?.container?.getItem(0)
+            ?.amount === 7,
+        "Remove above changed the chest",
+      );
+      check(
+        below.typeId === "minecraft:stone" &&
+          beside.typeId === "minecraft:stone",
+        "Remove above wrote outside its columns",
+      );
+    } finally {
+      chest.getComponent("minecraft:inventory")?.container?.clearAll();
+    }
+  });
+}
+
+export function buildRemoveAboveTooLarge(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const side = BUILD_SPEC.maxTerrainSide;
+    const cells = f.region(1, 2, 1, f.cell(0, 1, 0));
+    for (const cell of cells) f.block(cell).setType("minecraft:stone");
+    await f.select(f.cell(side, 0, 0));
+    const before = snapshot(f, cells);
+    const refused = await f.menu("shape", "removeAbove");
+    check(
+      refused.message === "tooLarge" && refused.flow.kind === "endpoint",
+      "Over-limit Remove above was accepted",
+    );
+    check(unchanged(f, cells, before), "Over-limit Remove above wrote blocks");
+    await f.select(f.cell(side - 1, 0, side - 1));
+    const accepted = await f.menu("shape", "removeAbove");
+    check(
+      accepted.flow.kind === "terrainConfirm",
+      "Remove above refused a footprint at the limit",
+    );
+    await f.menu("terrain", "cancel");
+    check(unchanged(f, cells, before), "Cancel wrote blocks");
+  });
+}
+
+export function buildRemoveAboveNoUndo(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await f.edit("reset");
+    const columns = columnRegion(f, 3, 1, -1);
+    for (const cell of columns) f.block(cell).setType("minecraft:air");
+    const line = f.region(6, 1, 1);
+    await f.select(f.cell(5));
+    // The select helper places the first corner itself, so place the blocks afterwards.
+    for (const cell of line) f.block(cell).setType("minecraft:dirt");
+    check(
+      (await f.menu("shape", "place")).message === "editDone",
+      "Earlier edit did not finish",
+    );
+    check(f.count(line) === line.length, "Earlier edit left dirt behind");
+    await f.select(f.cell(2, -1, 0));
+    await f.menu("shape", "removeAbove");
+    const removed = await f.menu("terrain", "confirm");
+    check(
+      removed.message === "editDoneCount" && removed.count === 3,
+      `Remove above reported ${removed.message} ${removed.count}`,
+    );
+    const undo = await f.edit("undo");
+    check(
+      undo.message === "undoDonePartial" &&
+        undo.count === 3 &&
+        undo.skippedCount === 3,
+      `Undo reported ${undo.message} ${undo.count}/${undo.skippedCount}`,
+    );
+    check(
+      f.count(line.slice(0, 3), "minecraft:air") === 3 &&
+        f.count(line.slice(3), "minecraft:dirt") === 3,
+      "Undo restored the wrong cells",
+    );
+    check(
+      (await f.edit("undo")).message === "nothingToUndo",
+      "Remove above added an Undo record",
+    );
+  });
+}
+
+export function buildRemoveAboveCancel(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 3, 3, f.cell(0, 1, 0));
+    for (const cell of cells) f.block(cell).setType("minecraft:stone");
+    await f.select(f.cell(2, 0, 2));
+    const before = snapshot(f, cells);
+    await f.menu("shape", "removeAbove");
+    for (const tap of ["block", "air"] as const)
+      check(
+        (await f.tap(tap, f.cell(1, 0, 1))).flow.kind === "terrainConfirm",
+        `A ${tap} tap changed the confirmation`,
+      );
+    check(
+      (await f.menu("shape", "cut")).offered === false,
+      "Shape entries were offered during the confirmation",
+    );
+    const cancelled = await f.menu("terrain", "cancel");
+    check(
+      cancelled.offered === true && cancelled.flow.kind === "point1",
+      "Cancel did not return to aiming",
+    );
+    check(unchanged(f, cells, before), "Cancel wrote blocks");
+    check(
+      (await f.menu("terrain", "confirm")).offered === false,
+      "Confirm was offered after Cancel",
+    );
+    check(unchanged(f, cells, before), "A stale confirm wrote blocks");
+  });
+}
+
 export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(3, 1, 1);

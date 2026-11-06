@@ -5,6 +5,7 @@ import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
+import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
@@ -18,11 +19,13 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
+  chooseTerrain,
 } from "../../../src/domain/build/flow/flow";
 import {
   contentsMenu,
   pasteMenu,
   shapeMenu,
+  terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -54,11 +57,16 @@ const ui = vi.hoisted(() => {
     toggles: unknown[] = [];
     sliders: unknown[] = [];
     heading: RawMessage | undefined;
+    message: RawMessage | undefined;
     constructor() {
       forms.push(this);
     }
     title(label: RawMessage) {
       this.heading = label;
+      return this;
+    }
+    body(label: RawMessage) {
+      this.message = label;
       return this;
     }
     submitButton() {
@@ -156,6 +164,12 @@ function setup(fallback?: boolean) {
       ),
     },
     confirmHeighted: { execute: vi.fn() },
+    chooseTerrain: {
+      execute: vi.fn((cmd) =>
+        new ChooseTerrain(repo, new FakeFeedback()).execute(cmd),
+      ),
+    },
+    confirmTerrain: { execute: vi.fn() },
     cancel: {
       backToAiming: vi.fn((cmd) => new CancelFlow(repo).backToAiming(cmd)),
     },
@@ -171,7 +185,11 @@ function setup(fallback?: boolean) {
       execute: vi.fn((cmd) => new SetHeightTo(repo).execute(cmd)),
     },
   };
-  const player = { id: playerId, isValid: true } as unknown as Player;
+  const player = {
+    id: playerId,
+    isValid: true,
+    dimension: { heightRange: { min: -64, max: 320 } },
+  } as unknown as Player;
   const menus = new BedrockBuildMenus(repo, cases, fallback);
   return {
     repo,
@@ -810,6 +828,121 @@ it.each([
   });
   expect(cases.copy.execute).not.toHaveBeenCalled();
   expect(ui.forms).toHaveLength(1);
+});
+
+function removeAboveAnswer() {
+  return {
+    selection: shapeMenu(endpoint).findIndex((e) => e.id === "removeAbove"),
+  };
+}
+
+it.each([320, 128, 256])(
+  "shows the dimension top for Remove above with exclusive ceiling %i",
+  async (ceiling) => {
+    const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.max = ceiling;
+    const area: BuildFlow = {
+      ...endpoint,
+      from: { x: 0, y: 64, z: 0 },
+      to: { x: 4, y: 60, z: 6 },
+    };
+    session.setFlow(area);
+    ui.answers.push(
+      { selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove") },
+      { selection: 0 },
+    );
+    await menus.showShapeMenu(player);
+    expect(cases.chooseTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      op: "removeAbove",
+    });
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.heading).toEqual({
+      translate: BUILD_FORM.removeAboveTitle,
+    });
+    expect(ui.forms[1]?.message).toEqual({
+      translate: BUILD_FORM.removeAboveBody,
+      with: ["5", "7", "61", String(ceiling - 1)],
+    });
+    expect(ui.forms[1]?.buttons).toEqual([
+      { translate: BUILD_FORM.confirm },
+      { translate: BUILD_FORM.cancel },
+    ]);
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  [320, BUILD_SPEC.worldTopY],
+  [512, BUILD_SPEC.worldTopY],
+  [128, 127],
+  [128, 128],
+  [256, 255],
+  [256, 256],
+])(
+  "confirms without a form for ceiling %i and floor %i",
+  async (ceiling, floor) => {
+    const { menus, player, cases, session } = setup();
+    player.dimension.heightRange.max = ceiling;
+    session.setFlow({
+      ...endpoint,
+      from: { ...from, y: floor },
+      to: { ...to, y: floor },
+    });
+    ui.answers.push(removeAboveAnswer());
+    await menus.showShapeMenu(player);
+    expect(ui.forms).toHaveLength(1);
+    expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  ["Cancel", { selection: 1 }],
+  ["closing the form", { canceled: true, cancelationReason: "UserClosed" }],
+  ["an unanswered form", {}],
+] as const)(
+  "returns to aiming after %s without confirming",
+  async (_, answer) => {
+    const { menus, player, cases, session } = setup();
+    ui.answers.push(removeAboveAnswer(), answer);
+    await menus.showShapeMenu(player);
+    expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+    expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+  },
+);
+
+it("opens no confirmation when the area is too large", async () => {
+  const { menus, player, cases, session } = setup();
+  const area: BuildFlow = { ...endpoint, to: { x: 32, y: 60, z: 0 } };
+  session.setFlow(area);
+  ui.answers.push({
+    selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove"),
+  });
+  await menus.showShapeMenu(player);
+  expect(ui.forms).toHaveLength(1);
+  expect(session.flow).toBe(area);
+  expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+});
+
+it("offers terrain entries only during the confirmation", () => {
+  const { session, cases, choices } = setup();
+  for (const id of ["confirm", "cancel"]) {
+    expect(choices.choose(playerId, "terrain", id)).toBe(false);
+  }
+  expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
+  session.setFlow(chooseTerrain(endpoint, "removeAbove"));
+  expect(terrainMenu(session.flow)).toHaveLength(2);
+  expect(choices.choose(playerId, "terrain", "invalid")).toBe(false);
+  expect(choices.choose(playerId, "terrain", "confirm")).toBe(true);
+  expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
 });
 
 it("confirms Cut after the fallback slider without opening contents", async () => {

@@ -16,10 +16,12 @@ export type ShapeEntryId =
   | "walls"
   | Exclude<HeightedKind, "sideCylinderX" | "sideCylinderZ">
   | "sideCylinder"
+  | "removeAbove"
   | "cut"
   | "copy"
   | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
+export type TerrainEntryId = "confirm" | "cancel";
 export type UtilityEntryId = "copy" | "undo" | "clear";
 
 export type PasteEntryId = "undo" | "skipAir" | "newCopy" | "endPaste";
@@ -57,6 +59,7 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
       id: shape.kind === "line" ? "place" : style,
     })),
     ...extraEntries.map((id) => ({ id })),
+    { id: "removeAbove" },
     { id: "cut" },
     { id: "copy" },
     { id: "cancel" },
@@ -80,6 +83,12 @@ export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
         ...fillStylesFor(flow.heightedKind).map((id) => ({ id })),
         { id: "cancel" },
       ]
+    : [];
+}
+
+export function terrainMenu(flow: BuildFlow): MenuEntry<TerrainEntryId>[] {
+  return flow.kind === "terrainConfirm"
+    ? [{ id: "confirm" }, { id: "cancel" }]
     : [];
 }
 

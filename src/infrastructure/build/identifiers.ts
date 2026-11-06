@@ -10,6 +10,7 @@ export const BUILD_MESSAGE: Readonly<
   Record<BuildMessage | "heightSize" | "pasteHint" | "undoHint", string>
 > = {
   cutting: "yasu_build.message.cutting",
+  removing: "yasu_build.message.removing",
   building: "yasu_build.message.building",
   pasteHint: "yasu_build.message.paste_hint",
   heightSize: "yasu_build.message.height_size",
@@ -52,6 +53,10 @@ export const BUILD_FORM = {
   sphere: "yasu_build.form.sphere",
   cube: "yasu_build.form.cube",
   tube: "yasu_build.form.tube",
+  removeAbove: "yasu_build.form.remove_above",
+  removeAboveTitle: "yasu_build.form.remove_above_title",
+  removeAboveBody: "yasu_build.form.remove_above_body",
+  confirm: "yasu_build.form.confirm",
   cut: "yasu_build.form.cut",
   cutTitle: "yasu_build.form.cut_title",
   copyTitle: "yasu_build.form.copy_title",

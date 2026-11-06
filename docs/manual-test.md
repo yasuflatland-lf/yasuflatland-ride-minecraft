@@ -535,6 +535,8 @@ Setup: use `/give @s yasu_build:selection_wand`, or craft it. Test on foot and w
 | BT22 | On foot, Fill a box containing your feet and head, then repeat with a solid, Paste and Undo that restore a block at your position    | On completion, only the builder moves straight up to the first two-air-cell gap, centered in the same column; view direction stays unchanged. Survival suffocation damage during the edit is accepted                                                                                                                                                                                                | unverified | unverified |
 | BT23 | Stand in tall grass, water, or lava outside a Fill selection and complete the edit; also try riding a vehicle inside the selection   | The edit never teleports an untouched player or a rider                                                                                                                                                                                                                                                                                                                                              | unverified | unverified |
 | BT24 | During a multi-tick edit, leave the server or change dimension before completion; have another player stand inside the edit          | No teleport of the absent builder, builder in another dimension, or the other player                                                                                                                                                                                                                                                                                                                 | unverified | unverified |
+| BT25 | Select a 3 x 3 cave floor at two heights, choose Remove above, read the form and Cancel; choose it again and Confirm                 | Form names size, height, no Undo, falling; Cancel keeps blocks; Confirm keeps the lower layer and clears above                                                                                                                                                                                                                                                                                       | unverified | unverified |
+| BT26 | Choose Remove above on a 32 x 32 area under open terrain on iPad and PC and time it; then try a 33-block side                        | About 5 seconds with no server stall; record duration and load; the 33-block side reports too large with no form                                                                                                                                                                                                                                                                                     | unverified | unverified |
 
 ### Build Wand live preview
 
@@ -578,29 +580,33 @@ Precondition: hold the wand in first person on the iPad. A block tap selects the
 
 These scenarios require one connected player, run exclusively without vehicles, and restore changed blocks, inventory and player position. Hooks exercise the real tap use cases and menu dispatch; they do not simulate client input or forms.
 
-| Scenario                    | Coverage                                                                                                                          |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `build_shapes`              | Box fill/faces/walls (125/98/80), rectangle frame (16), line (5), absent menu entries and exact permutation undo                  |
-| `build_roofs`               | Gable solid/hollow (45/42), hip solid/hollow (35/34), explicit height, roof menu availability and undo                            |
-| `build_flow_cancel`         | Wand mode on foot, item-switch cancellation of point 1, preserved endpoint, shape/roof Cancel returning to aiming                 |
-| `build_refusals`            | Over-limit air endpoint, refused chest material and laid-block protection                                                         |
-| `build_aimed_paste`         | Copy, all six aimed faces, block states and exact destination undo                                                                |
-| `build_unstuck_fill`        | Fill a box around the initiating player and verify escape to the first two-air-cell gap with rotation preserved                   |
-| `build_unstuck_not_touched` | Fill elsewhere while the initiating player stands in tall grass and verify no movement                                            |
-| `build_cut_shapes`          | Cut a line, vertical rectangle and box to air, ending in paste aiming                                                             |
-| `build_cut_height`          | Cut exactly three layers with unchanged surrounding cells                                                                         |
-| `build_cut_undo`            | Exact mixed block states restored by Undo                                                                                         |
-| `build_cut_keeps_protected` | Chest and contents survive Cut and Undo; only changed cells restored                                                              |
-| `build_cut_sets_clipboard`  | Cut blocks fill the clipboard, paste back exactly, and two Undos restore the original cells                                       |
-| `build_undo_hint_once`      | Two edits report completion, but only the first emits the chat hint                                                               |
-| `build_copy_shapes`         | Shape-menu Copy of a box, vertical rectangle and height-confirmed horizontal rectangle; pasted source permutations and exact undo |
-| `build_continuous_paste`    | Three anchors, three exact undos, ending paste aiming and item-switch cancellation                                                |
-| `build_paste_skip_air`      | Skip air toggle and destination blocks with the toggle on and off                                                                 |
-| `build_paste_blocked`       | Laid-block overlap refuses the whole paste without ending aiming; a following clean paste succeeds and undoes exactly             |
-| `build_block_states`        | Engine block-permutation round trip                                                                                               |
-| `build_sphere_box`          | Box Sphere locks the height; Fill/Hollow on 5x5x5 (81/54) and 5x3x7 (61/46) and undo                                              |
-| `build_sphere_rect`         | Rectangle Sphere with an explicit height of 5 (81) and undo; Sphere absent on a line and a vertical rectangle                     |
-| `build_sphere_hollow`       | 7x7x7 Hollow (98), axis ends present, empty center, Tube absent and undo                                                          |
+| Scenario                       | Coverage                                                                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `build_shapes`                 | Box fill/faces/walls (125/98/80), rectangle frame (16), line (5), absent menu entries and exact permutation undo                  |
+| `build_roofs`                  | Gable solid/hollow (45/42), hip solid/hollow (35/34), explicit height, roof menu availability and undo                            |
+| `build_flow_cancel`            | Wand mode on foot, item-switch cancellation of point 1, preserved endpoint, shape/roof Cancel returning to aiming                 |
+| `build_refusals`               | Over-limit air endpoint, refused chest material and laid-block protection                                                         |
+| `build_aimed_paste`            | Copy, all six aimed faces, block states and exact destination undo                                                                |
+| `build_unstuck_fill`           | Fill a box around the initiating player and verify escape to the first two-air-cell gap with rotation preserved                   |
+| `build_unstuck_not_touched`    | Fill elsewhere while the initiating player stands in tall grass and verify no movement                                            |
+| `build_cut_shapes`             | Cut a line, vertical rectangle and box to air, ending in paste aiming                                                             |
+| `build_cut_height`             | Cut exactly three layers with unchanged surrounding cells                                                                         |
+| `build_cut_undo`               | Exact mixed block states restored by Undo                                                                                         |
+| `build_cut_keeps_protected`    | Chest and contents survive Cut and Undo; only changed cells restored                                                              |
+| `build_cut_sets_clipboard`     | Cut blocks fill the clipboard, paste back exactly, and two Undos restore the original cells                                       |
+| `build_undo_hint_once`         | Two edits report completion, but only the first emits the chat hint                                                               |
+| `build_copy_shapes`            | Shape-menu Copy of a box, vertical rectangle and height-confirmed horizontal rectangle; pasted source permutations and exact undo |
+| `build_continuous_paste`       | Three anchors, three exact undos, ending paste aiming and item-switch cancellation                                                |
+| `build_paste_skip_air`         | Skip air toggle and destination blocks with the toggle on and off                                                                 |
+| `build_paste_blocked`          | Laid-block overlap refuses the whole paste without ending aiming; a following clean paste succeeds and undoes exactly             |
+| `build_block_states`           | Engine block-permutation round trip                                                                                               |
+| `build_sphere_box`             | Box Sphere locks the height; Fill/Hollow on 5x5x5 (81/54) and 5x3x7 (61/46) and undo                                              |
+| `build_sphere_rect`            | Rectangle Sphere with an explicit height of 5 (81) and undo; Sphere absent on a line and a vertical rectangle                     |
+| `build_sphere_hollow`          | 7x7x7 Hollow (98), axis ends present, empty center, Tube absent and undo                                                          |
+| `build_remove_above`           | Floor kept and blocks cleared to the world top, with points at different heights; chest and contents kept                         |
+| `build_remove_above_too_large` | A 33-block side reports too large without writes; a 32 x 32 footprint reaches the confirmation                                    |
+| `build_remove_above_no_undo`   | Undo restores only the earlier edit, skips overlapping cells, and finds no Remove above record                                    |
+| `build_remove_above_cancel`    | Taps ignored during the confirmation; Cancel returns to aiming with no writes                                                     |
 
 The `build_unstuck_fill` and `build_unstuck_not_touched` budgets are estimates; these scenarios and device rows BT22-BT24 remain unverified.
 

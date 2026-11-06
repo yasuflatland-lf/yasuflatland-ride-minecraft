@@ -47,6 +47,9 @@ it("defines every feedback message in both locales", () => {
       entries.get(BUILD_MESSAGE.undoDonePartial)?.match(/%s/g),
     ).toHaveLength(2);
     expect(entries.get(BUILD_MESSAGE.heightSize)?.match(/%s/g)).toHaveLength(3);
+    expect(entries.get(BUILD_FORM.removeAboveBody)?.match(/%s/g)).toHaveLength(
+      4,
+    );
     expect(entries.get(BUILD_MESSAGE.undoHint)).toContain(
       entries.get(BUILD_FORM.undo),
     );

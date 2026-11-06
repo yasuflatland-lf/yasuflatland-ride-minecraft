@@ -19,7 +19,12 @@ export class SetPoint {
   }): void {
     const session = this.repo.getOrCreate(cmd.playerId);
     const flow = session.flow;
-    if (flow.kind === "heightStep" || flow.kind === "pasteAim") return;
+    if (
+      flow.kind === "heightStep" ||
+      flow.kind === "pasteAim" ||
+      flow.kind === "terrainConfirm"
+    )
+      return;
     const starting =
       flow.kind === "idle" || flow.dimensionId !== cmd.dimensionId;
     const material = starting
