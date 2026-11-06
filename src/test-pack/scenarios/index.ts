@@ -30,6 +30,9 @@ import {
   buildSideCylinderX,
   buildSideCylinderZ,
   buildSolidCancelUndo,
+  buildSphereBox,
+  buildSphereHollow,
+  buildSphereRect,
   buildUndoConflict,
   buildUndoHintOnce,
 } from "./buildFlow";
@@ -292,6 +295,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_side_cylinder_z: buildSideCylinderZ,
   build_cylinder_rect: buildCylinderRect,
   build_cylinder_box: buildCylinderBox,
+  build_sphere_box: buildSphereBox,
+  build_sphere_rect: buildSphereRect,
+  build_sphere_hollow: buildSphereHollow,
   build_cube_rect: buildCubeRect,
   build_solid_cancel_undo: buildSolidCancelUndo,
 };

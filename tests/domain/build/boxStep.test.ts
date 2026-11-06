@@ -112,6 +112,7 @@ const heightStepKind = fc.constantFrom<HeightStepKind>(
   "hip",
   "cube",
   "cylinder",
+  "sphere",
 );
 
 it("identifies box steps among all height-step kinds and supplies their limit", () => {

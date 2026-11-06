@@ -14,6 +14,7 @@ it.each<[HeightedKind, string[]]>([
   ["cube", ["fill", "hollow", "tube"]],
   ["sideCylinderX", ["fill", "hollow", "tube"]],
   ["sideCylinderZ", ["fill", "hollow", "tube"]],
+  ["sphere", ["fill", "hollow"]],
 ])("offers the fill styles of %s", (kind, styles) => {
   expect(fillStylesFor(kind)).toEqual(styles);
 });
@@ -25,21 +26,23 @@ it.each<[HeightStepKind, boolean]>([
   ["sideCylinderX", true],
   ["sideCylinderZ", true],
   ["cube", false],
+  ["sphere", true],
   ["copy", false],
   ["cut", false],
 ])("reports whether %s locks a box height", (kind, locked) => {
   expect(locksBoxHeight(kind)).toBe(locked);
 });
 
-it("treats every solid kind as a heighted kind", () => {
+it("treats every solid kind as a heighted kind that can be filled", () => {
   const solids: SolidKind[] = [
     "cylinder",
     "cube",
     "sideCylinderX",
     "sideCylinderZ",
+    "sphere",
   ];
   for (const solid of solids) {
     const kind: HeightedKind = solid;
-    expect(fillStylesFor(kind)).toContain("tube");
+    expect(fillStylesFor(kind)).toContain("fill");
   }
 });

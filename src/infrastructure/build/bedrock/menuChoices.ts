@@ -74,6 +74,7 @@ export class MenuChoices {
         case "gable":
         case "hip":
         case "cylinder":
+        case "sphere":
         case "cube":
           this.cases.chooseHeighted.execute({ playerId, kind: entryId });
           break;

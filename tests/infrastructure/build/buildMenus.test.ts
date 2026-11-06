@@ -235,7 +235,7 @@ it("shows exactly the applicable utility entries", async () => {
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         if (aiming) session.setFlow(endpoint);
         ui.forms.length = 0;
@@ -268,7 +268,7 @@ it.each([
   });
 });
 
-it.each(["gable", "hip", "cylinder", "cube"] as const)(
+it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "chooses %s without a slider by default",
   async (kind) => {
     const { menus, player, cases } = setup();
@@ -340,7 +340,7 @@ it.each(["copy", "undo", "clear"] as const)("routes utility %s", async (id) => {
       dimensionId: overworld,
       changes: [{ cell: from, before: stone, after: stone }],
     },
-    false,
+    "undoable",
   );
   ui.answers.push({
     selection: utilityMenu(session).findIndex((e) => e.id === id),
@@ -367,6 +367,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
         "gable" as const,
         "hip" as const,
         "cylinder" as const,
+        "sphere" as const,
         "cube" as const,
       ),
       async (y, requested, kind) => {
@@ -383,7 +384,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
         ui.answers.push({ formValues: [max] }, { selection: 1 });
         await menus.showHeightSlider(player);
         const title =
-          kind === "cylinder" || kind === "cube"
+          kind === "cylinder" || kind === "sphere" || kind === "cube"
             ? BUILD_FORM.solidTitle
             : BUILD_FORM.roofTitle;
         expect(ui.forms[0]?.heading).toEqual({ translate: title });
@@ -413,7 +414,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
   );
 });
 
-it.each(["gable", "hip", "cylinder", "cube"] as const)(
+it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "chains %s through the enabled slider to the roof menu",
   async (kind) => {
     const { menus, player, cases } = setup(true);
@@ -536,6 +537,7 @@ it("dispatches only entries offered by the current flow, including stale choices
         "hip",
         "cylinder",
         "sideCylinder",
+        "sphere",
         "cube",
         "cancel",
         "invalid",
@@ -561,6 +563,7 @@ it("dispatches only entries offered by the current flow, including stale choices
           id === "gable" ||
           id === "hip" ||
           id === "cylinder" ||
+          id === "sphere" ||
           id === "cube"
         ) {
           expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
@@ -603,7 +606,7 @@ it("validates utility availability before dispatching", () => {
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         for (const [id, offered] of [
           ["copy", confirmed],
@@ -669,6 +672,32 @@ it.each([false, true])(
     expect(ui.forms).toHaveLength(3);
     expect(ui.forms[2]?.sliders).toEqual([]);
     expect(cases.setHeight.execute).not.toHaveBeenCalled();
+  },
+);
+
+it.each([false, true])(
+  "opens locked sphere contents directly with fallback=%s",
+  async (fallback) => {
+    const { session, menus, player, cases } = setup(fallback);
+    session.setFlow({ ...endpoint, to: { ...to, y: 71 } });
+    ui.answers.push(
+      {
+        selection: shapeMenu(session.flow).findIndex((e) => e.id === "sphere"),
+      },
+      { selection: 1 },
+    );
+    await menus.showShapeMenu(player);
+    expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      kind: "sphere",
+    });
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.buttons).toEqual(labels(contentsMenu(session.flow)));
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      fill: "hollow",
+    });
   },
 );
 
@@ -833,7 +862,7 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         const offered =
           aiming &&
@@ -903,7 +932,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
             dimensionId: overworld,
             changes: [{ cell: from, before: stone, after: stone }],
           },
-          false,
+          "undoable",
         );
       const index = history ? 2 : 1;
       ui.answers.push({ selection: index });

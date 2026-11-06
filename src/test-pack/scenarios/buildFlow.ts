@@ -968,6 +968,89 @@ export function buildCylinderBox(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildSphereBox(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const [size, end, counts] of [
+      [[5, 5, 5], f.cell(4, 4, 4), { fill: 81, hollow: 54 }],
+      [[5, 3, 7], f.cell(4, 2, 6), { fill: 61, hollow: 46 }],
+    ] as const) {
+      const cells = f.region(size[0], size[1], size[2]);
+      for (const fill of ["fill", "hollow"] as const) {
+        for (const c of cells) f.block(c).setType("minecraft:air");
+        await f.select(end);
+        f.block(f.cell()).setType("minecraft:air");
+        const step = await f.menu("shape", "sphere");
+        check(
+          step.flow.kind === "heightStep" && step.flow.previous === size[1],
+          "box sphere did not lock the height to the box",
+        );
+        check(
+          (await f.edit("height 2")).flow.previous === size[1],
+          "locked sphere height changed",
+        );
+        const done = await f.menu("contents", fill);
+        check(done.message === "editDone", `box sphere ${fill} failed`);
+        check(
+          f.count(cells) === counts[fill],
+          `box sphere ${fill}: expected ${counts[fill]}, got ${f.count(cells)}`,
+        );
+        await f.edit("undo");
+        check(f.count(cells) === 0, `box sphere ${fill} undo left blocks`);
+      }
+    }
+  });
+}
+
+export function buildSphereRect(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(5, 5, 5);
+    for (const c of cells) f.block(c).setType("minecraft:air");
+    await placeSolid(f, f.cell(4, 0, 4), "sphere", "fill", 5);
+    check(
+      f.count(cells) === 81,
+      `rect sphere: expected 81, got ${f.count(cells)}`,
+    );
+    await f.edit("undo");
+    check(f.count(cells) === 0, "rect sphere undo left blocks");
+    for (const end of [f.cell(4), f.cell(4, 4)]) {
+      await f.select(end);
+      check(
+        (await f.menu("shape", "sphere")).offered === false,
+        "sphere offered on a line or vertical rectangle",
+      );
+    }
+  });
+}
+
+export function buildSphereHollow(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(7, 7, 7);
+    for (const c of cells) f.block(c).setType("minecraft:air");
+    await f.select(f.cell(6, 6, 6));
+    f.block(f.cell()).setType("minecraft:air");
+    await f.menu("shape", "sphere");
+    check(
+      (await f.menu("contents", "tube")).offered === false,
+      "tube offered on a sphere",
+    );
+    await f.menu("contents", "hollow");
+    check(
+      f.count(cells) === 98,
+      `hollow sphere: expected 98, got ${f.count(cells)}`,
+    );
+    const stone = (x: number, y: number, z: number) =>
+      f.block(f.cell(x, y, z)).typeId === "minecraft:stone";
+    check(
+      stone(0, 3, 3) && stone(6, 3, 3) && stone(3, 0, 3) && stone(3, 6, 3),
+      "hollow sphere misses an end of the x or y axis",
+    );
+    check(stone(3, 3, 0) && stone(3, 3, 6), "hollow sphere misses a z end");
+    check(!stone(3, 3, 3) && !stone(2, 3, 3), "hollow sphere is not empty");
+    await f.edit("undo");
+    check(f.count(cells) === 0, "hollow sphere undo left blocks");
+  });
+}
+
 export function buildCubeRect(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(4, 3, 4);
