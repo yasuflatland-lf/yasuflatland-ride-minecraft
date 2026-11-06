@@ -181,6 +181,128 @@ describe("DriveVehicles", () => {
     expect(repo.ids()).toEqual(["a"]);
   });
 
+  it("retries a failed release on the next cycle and stops after success", () => {
+    const world = new FakeWorld();
+    const repo = new InMemoryRepo();
+    const log = logger();
+    const id = asVehicleId("gone");
+    repo.save(createVehicle("suv", id, 0));
+    world.failReleaseOn = id;
+    const release = vi.spyOn(world, "releaseVehicle");
+    const uc = new DriveVehicles(world, repo, log, () => false);
+
+    uc.execute(0);
+    expect(repo.ids()).toEqual([]);
+    expect(world.calls).not.toContain("release:gone");
+    world.failReleaseOn = undefined;
+    uc.execute(1);
+    uc.execute(2);
+
+    expect(release.mock.calls).toEqual([[id], [id]]);
+    expect(world.calls.filter((call) => call.startsWith("release:"))).toEqual([
+      "release:gone",
+    ]);
+    expect(log.lines).toEqual(["gone: Error: release"]);
+
+    repo.save(createVehicle("suv", id, 0));
+    world.failReleaseOn = id;
+    uc.execute(3);
+    expect(log.lines).toEqual(["gone: Error: release", "gone: Error: release"]);
+  });
+
+  it("warns only once per vehicle across repeated release failures", () => {
+    const world = new FakeWorld();
+    const repo = new InMemoryRepo();
+    const log = logger();
+    repo.save(createVehicle("suv", asVehicleId("stuck"), 0));
+    world.failReleaseOn = "stuck";
+    const release = vi.spyOn(world, "releaseVehicle");
+    const uc = new DriveVehicles(world, repo, log, () => false);
+
+    for (let tick = 0; tick < 5; tick++) uc.execute(tick);
+
+    expect(release).toHaveBeenCalledTimes(5);
+    expect(log.lines).toEqual(["stuck: Error: release"]);
+  });
+
+  it("cancels a pending release when the vehicle is loaded again and resets its warning", () => {
+    const world = new FakeWorld();
+    const repo = new InMemoryRepo();
+    const log = logger();
+    const id = asVehicleId("returning");
+    repo.save(createVehicle("suv", id, 0));
+    world.failReleaseOn = id;
+    const release = vi.spyOn(world, "releaseVehicle");
+    const uc = new DriveVehicles(world, repo, log, () => false);
+
+    uc.execute(0);
+    world.snapshots = [snapshot(id)];
+    world.failReleaseOn = undefined;
+    uc.execute(1);
+    uc.execute(2);
+    expect(release.mock.calls).toEqual([[id]]);
+    expect(world.calls).not.toContain("release:returning");
+    expect(repo.ids()).toEqual([id]);
+
+    world.snapshots = [];
+    world.failReleaseOn = id;
+    uc.execute(3);
+    expect(release.mock.calls).toEqual([[id], [id]]);
+    expect(log.lines).toEqual([
+      "returning: Error: release",
+      "returning: Error: release",
+    ]);
+  });
+
+  it("releases every gone vehicle exactly once successfully across arbitrary failure counts", () => {
+    const maxFailures = 5;
+    fc.assert(
+      fc.property(
+        fc.uniqueArray(
+          fc.record({
+            id: fc.string({ minLength: 1, maxLength: 12 }),
+            failures: fc.integer({ min: 0, max: maxFailures }),
+          }),
+          { selector: ({ id }) => id, maxLength: 8 },
+        ),
+        (vehicles) => {
+          const world = new FakeWorld();
+          const repo = new InMemoryRepo();
+          const attempts = new Map<string, number>();
+          for (const { id } of vehicles)
+            repo.save(createVehicle("suv", asVehicleId(id), 0));
+          const release = world.releaseVehicle.bind(world);
+          vi.spyOn(world, "releaseVehicle").mockImplementation((id) => {
+            const attempt = (attempts.get(id) ?? 0) + 1;
+            attempts.set(id, attempt);
+            const failures = defined(
+              vehicles.find((vehicle) => vehicle.id === id),
+              "gone vehicle",
+            ).failures;
+            world.failReleaseOn = attempt <= failures ? id : undefined;
+            release(id);
+          });
+          const uc = new DriveVehicles(world, repo, logger(), () => false);
+
+          for (let tick = 0; tick <= maxFailures; tick++) {
+            uc.execute(tick);
+            for (const { id, failures } of vehicles)
+              expect(attempts.get(id)).toBe(Math.min(tick + 1, failures + 1));
+          }
+          const successfulReleases = vehicles.map(({ id }) => `release:${id}`);
+          expect(
+            world.calls.filter((call) => call.startsWith("release:")).sort(),
+          ).toEqual(successfulReleases.sort());
+          expect(repo.ids()).toEqual([]);
+
+          uc.execute(maxFailures + 1);
+          for (const { id, failures } of vehicles)
+            expect(attempts.get(id)).toBe(failures + 1);
+        },
+      ),
+    );
+  });
+
   it("forwards ram hits to the world with the driver as the attacker", () => {
     const driver = riderView("d", {
       offset: { x: -0.38, z: 0.2 },
