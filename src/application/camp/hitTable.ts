@@ -25,7 +25,7 @@ export class HitTable {
       return false;
     }
     let taken = false;
-    handleHit(RULE, this.hits, cmd.tableId, cmd.tick, {
+    handleHit(this.hits, cmd.tableId, cmd.tick, {
       drop: () => this.world.dropItem(cmd.tableId),
       remove: () => {
         this.world.removeTable(cmd.tableId);

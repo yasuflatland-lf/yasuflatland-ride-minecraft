@@ -148,7 +148,7 @@ export class DutchOvenActions {
 
   hit(id: DutchOvenId, player: PlayerId, tick: number): boolean {
     let taken = false;
-    handleHit(RULE, this.hits, id, tick, {
+    handleHit(this.hits, id, tick, {
       drop: () => {
         const host = decodeHost(this.world.host(id));
         if (host.kind === "fire_pit" && this.world.hostExists(host.id))
