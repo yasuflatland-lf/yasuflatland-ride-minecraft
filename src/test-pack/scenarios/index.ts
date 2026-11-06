@@ -28,6 +28,9 @@ import {
   buildRoofs,
   buildShapes,
   buildSolidCancelUndo,
+  buildSphereBox,
+  buildSphereHollow,
+  buildSphereRect,
   buildUndoConflict,
   buildUndoHintOnce,
 } from "./buildFlow";
@@ -288,6 +291,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_copy_shapes: buildCopyShapes,
   build_cylinder_rect: buildCylinderRect,
   build_cylinder_box: buildCylinderBox,
+  build_sphere_box: buildSphereBox,
+  build_sphere_rect: buildSphereRect,
+  build_sphere_hollow: buildSphereHollow,
   build_cube_rect: buildCubeRect,
   build_solid_cancel_undo: buildSolidCancelUndo,
 };
