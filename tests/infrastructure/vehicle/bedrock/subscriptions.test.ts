@@ -191,13 +191,16 @@ function fixture(
     },
     isLavaAt: () => false,
     spawnVehicle: notUsed,
+    refundVehicleItem: notUsed,
     consumeVehicleItem: notUsed,
     receivedGift: notUsed,
     giveGift: notUsed,
     markGiftReceived: notUsed,
   };
   // cellFor and placesOnWater never touch the repository.
-  const placement = new PlaceVehicle(placementWorld, {} as VehicleRepository);
+  const placement = new PlaceVehicle(placementWorld, {} as VehicleRepository, {
+    warn: notUsed,
+  });
   const place = {
     execute: vi.fn(),
     cellFor: placement.cellFor.bind(placement),

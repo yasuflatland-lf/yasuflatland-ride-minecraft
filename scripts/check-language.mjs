@@ -12,6 +12,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { listRepoFiles } from "./repo-files.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -165,9 +166,7 @@ if (args[0] === "--hook") {
 const relPaths =
   args.length > 0
     ? args.map((p) => path.relative(root, path.resolve(p)))
-    : git(["ls-files", "-z", "--cached", "--others", "--exclude-standard"])
-        .split("\0")
-        .filter(Boolean);
+    : listRepoFiles();
 
 const lines = report(relPaths);
 if (lines.length > 0) {

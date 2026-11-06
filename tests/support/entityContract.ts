@@ -5,8 +5,8 @@ import {
   MONITOR_PROPERTY_NAME,
   type PropertySpec,
 } from "../../src/domain/vehicle/entityContract";
-import { monitorPropertySpec } from "../../src/domain/vehicle/monitor/monitor";
 import type { VehicleProfile } from "../../src/domain/vehicle/profile";
+import { monitorPropertySpec } from "./monitorContract";
 
 function expectInRange(
   value: unknown,

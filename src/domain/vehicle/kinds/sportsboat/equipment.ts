@@ -12,7 +12,7 @@ export const SPORTSBOAT_MONITOR: MonitorRule = Object.freeze({
   tools: Object.freeze([
     Object.freeze({
       item: ICEBREAKER_SWITCH_ITEM,
-      states: Object.freeze(["off", "on"]),
+      states: Object.freeze<[string, ...string[]]>(["off", "on"]),
     }),
   ]),
 });

@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { MONITOR_PROPERTY_NAME } from "../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
+import { entityPropertyId } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { expectPackProperty } from "../support/entityContract";
 import {
   monitorPropertySpec,
   monitorScreens,
-} from "../../src/domain/vehicle/monitor/monitor";
-import { entityPropertyId } from "../../src/infrastructure/vehicle/bedrock/identifiers";
-import { expectPackProperty } from "../support/entityContract";
+} from "../support/monitorContract";
 
 const screens: Record<string, { item: string; state: string }[]> = JSON.parse(
   readFileSync("tools/monitor_screens.json", "utf8"),
