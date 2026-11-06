@@ -188,5 +188,5 @@ yasu_build.message.removing=削除しています。
 
 yasu_build.form.fill_below=下を埋める
 yasu_build.form.fill_below_title=下を埋めますか？
-yasu_build.form.fill_below_body=%s x %s ブロックの範囲で、Y=%s から上端 Y=%s までつながった空気と液体を埋めます。元に戻せません。上にあるものが落ちる場合があります。
+yasu_build.form.fill_below_body=%s x %s ブロックの範囲で、Y=%s から上端 Y=%s までつながった空気と液体を埋めます。元に戻せません。
 yasu_build.message.fill_material_refused=下を埋めるには、落下せず支えも不要な素材を選んでください。

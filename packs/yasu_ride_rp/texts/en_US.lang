@@ -188,5 +188,5 @@ yasu_build.message.removing=Removing.
 
 yasu_build.form.fill_below=Fill below
 yasu_build.form.fill_below_title=Fill below?
-yasu_build.form.fill_below_body=Fill connected air and liquids in %s x %s blocks from Y=%s through the top layer Y=%s. This cannot be undone. Things above can fall.
+yasu_build.form.fill_below_body=Fill connected air and liquids in %s x %s blocks from Y=%s through the top layer Y=%s. This cannot be undone.
 yasu_build.message.fill_material_refused=Fill below needs a material that does not fall or require support.
