@@ -28,6 +28,7 @@ import type { MenuChoices } from "../menuChoices";
 interface LastMessage {
   message: BuildMessage;
   count?: number;
+  skippedCount?: number;
 }
 
 /**
@@ -45,9 +46,9 @@ export function recordMessages(feedback: BuildFeedback): {
   const hints = new Map<PlayerId, number>();
   return {
     feedback: {
-      showMessage: (id, message, count) => {
-        latest.set(id, { message, count });
-        feedback.showMessage(id, message, count);
+      showMessage: (id, message, count, material, skippedCount) => {
+        latest.set(id, { message, count, skippedCount });
+        feedback.showMessage(id, message, count, material, skippedCount);
       },
       showUndoHint: (id) => {
         hints.set(id, (hints.get(id) ?? 0) + 1);
@@ -203,6 +204,7 @@ export function registerTestEdit(
             timedOut: describe.editStatus(playerId).isEditing,
             message: last?.message,
             count: last?.count,
+            skippedCount: last?.skippedCount,
             undoHints: messages.hints(playerId),
             ticks: system.currentTick - started,
           }),
