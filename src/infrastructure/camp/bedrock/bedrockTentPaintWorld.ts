@@ -4,7 +4,7 @@ import type { TentPaintWorld } from "../../../application/camp/ports/tentPaint";
 import type { TentId } from "../../../domain/camp/tent";
 import type { PlayerId } from "../../../domain/shared/ids";
 import { PAINTS, type Paint } from "../../../domain/shared/paint";
-import { dyeOf, paintEvent } from "../../shared/dyes";
+import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
 import { consumeHeld, isCreative } from "../../shared/players";
 import { TENT_TYPE } from "../identifiers";
 
@@ -19,7 +19,11 @@ export class BedrockTentPaintWorld implements TentPaintWorld {
     const tent = this.tent(tentId);
     if (!tent) return;
     tent.triggerEvent(paintEvent(paint));
-    tent.dimension.playSound("dye.use", tent.location);
+  }
+
+  playPaintSound(tentId: TentId): void {
+    const tent = this.tent(tentId);
+    if (tent) playPaintSound(tent);
   }
 
   consumeDye(playerId: PlayerId, paint: Paint): void {

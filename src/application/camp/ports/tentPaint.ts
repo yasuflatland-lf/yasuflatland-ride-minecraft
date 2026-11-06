@@ -7,6 +7,7 @@ export interface TentPaintWorld {
   paintOf(tentId: TentId): Paint | undefined;
   paint(tentId: TentId, paint: Paint): void;
   consumeDye(playerId: PlayerId, paint: Paint): void;
+  playPaintSound(tentId: TentId): void;
   /** false when the player is not in the world. */
   isCreative(playerId: PlayerId): boolean;
 }
