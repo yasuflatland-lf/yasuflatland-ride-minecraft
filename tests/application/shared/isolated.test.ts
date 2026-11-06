@@ -1,6 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import { forEachIsolated } from "../../../src/application/vehicle/isolated";
+import {
+  attempt,
+  forEachIsolated,
+} from "../../../src/application/shared/isolated";
 
 const logger = () => {
   const lines: string[] = [];
@@ -70,5 +73,28 @@ describe("forEachIsolated", () => {
     );
     expect(called).toEqual(["a", "b"]);
     expect(log.lines).toEqual([]);
+  });
+});
+
+describe("attempt", () => {
+  it("returns true and logs nothing when fn succeeds", () => {
+    const log = logger();
+    const fn = vi.fn();
+    expect(attempt(fn, log, "label")).toBe(true);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(log.lines).toEqual([]);
+  });
+
+  it("returns false and warns with `${label}: ${error}` when fn throws", () => {
+    const log = logger();
+    const result = attempt(
+      () => {
+        throw new Error("boom");
+      },
+      log,
+      "job 7",
+    );
+    expect(result).toBe(false);
+    expect(log.lines).toEqual(["job 7: Error: boom"]);
   });
 });
