@@ -7,6 +7,11 @@ import {
   buildCopyEntersPasteAim,
   buildCopyShapes,
   buildCubeRect,
+  buildCutHeight,
+  buildCutKeepsProtected,
+  buildCutSetsClipboard,
+  buildCutShapes,
+  buildCutUndo,
   buildCylinderBox,
   buildCylinderRect,
   buildEndPastingDiscards,
@@ -23,6 +28,7 @@ import {
   buildRoofs,
   buildShapes,
   buildSolidCancelUndo,
+  buildUndoHintOnce,
 } from "./buildFlow";
 import { buildBlockStates } from "./buildTools";
 import {
@@ -263,6 +269,12 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_new_copy_item_switch: buildNewCopyItemSwitch,
   build_paste_toggle_next: buildPasteToggleNext,
   build_paste_undo_repeat: buildPasteUndoRepeat,
+  build_cut_shapes: buildCutShapes,
+  build_cut_height: buildCutHeight,
+  build_cut_undo: buildCutUndo,
+  build_cut_keeps_protected: buildCutKeepsProtected,
+  build_cut_sets_clipboard: buildCutSetsClipboard,
+  build_undo_hint_once: buildUndoHintOnce,
   build_shapes: buildShapes,
   build_roofs: buildRoofs,
   build_flow_cancel: buildFlowCancel,
