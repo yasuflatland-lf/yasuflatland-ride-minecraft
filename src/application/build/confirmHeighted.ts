@@ -43,7 +43,7 @@ export class ConfirmHeighted {
       cmd.playerId,
       flow.dimensionId,
       planHeighted(spec, cmd.fill, { state: flow.material }),
-      false,
+      "undoable",
     );
   }
 }

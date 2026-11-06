@@ -27,7 +27,7 @@ export class UndoEdit {
       this.feedback.showMessage(playerId, busy);
       return;
     }
-    this.jobs.start(playerId, record.dimensionId, undoPlan(record), true);
+    this.jobs.start(playerId, record.dimensionId, undoPlan(record), "undo");
     // ADR 0203: undo must allow an immediate paste at the same anchor.
     session.setFlow(clearLastPaste(session.flow));
   }

@@ -224,7 +224,7 @@ it("shows exactly the applicable utility entries", async () => {
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         if (aiming) session.setFlow(endpoint);
         ui.forms.length = 0;
@@ -329,7 +329,7 @@ it.each(["copy", "undo", "clear"] as const)("routes utility %s", async (id) => {
       dimensionId: overworld,
       changes: [{ cell: from, before: stone, after: stone }],
     },
-    false,
+    "undoable",
   );
   ui.answers.push({
     selection: utilityMenu(session).findIndex((e) => e.id === id),
@@ -587,7 +587,7 @@ it("validates utility availability before dispatching", () => {
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         for (const [id, offered] of [
           ["copy", confirmed],
@@ -817,7 +817,7 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
               dimensionId: overworld,
               changes: [{ cell: from, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         const offered =
           aiming &&
@@ -887,7 +887,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
             dimensionId: overworld,
             changes: [{ cell: from, before: stone, after: stone }],
           },
-          false,
+          "undoable",
         );
       const index = history ? 2 : 1;
       ui.answers.push({ selection: index });

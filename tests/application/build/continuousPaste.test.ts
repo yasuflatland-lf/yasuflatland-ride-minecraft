@@ -308,7 +308,7 @@ it("EndPasting lets a running paste finish with its undo record and keeps older 
         dimensionId: overworld,
         changes: [{ cell: block, before: stone, after: AIR }],
       };
-      e.session.finishEdit(older, false);
+      e.session.finishEdit(older, "undoable");
       const target = e.target(block);
       e.paste.execute({ playerId, dimensionId: overworld, target, tick: 0 });
       expect(e.session.isEditing).toBe(true);

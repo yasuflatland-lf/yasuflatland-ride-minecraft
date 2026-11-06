@@ -50,7 +50,7 @@ export class PasteAt {
       playerId,
       cmd.dimensionId,
       planPaste(clipboard, anchor, flow.skipAir),
-      false,
+      "undoable",
     );
     session.setFlow(recordPaste(flow, anchor, cmd.tick));
     return "pasted";
