@@ -531,6 +531,8 @@ Setup: use `/give @s yasu_build:selection_wand`, or craft it. Test on foot and w
 | BT18 | Select a horizontal rectangle, choose Cut, aim height 3, and confirm                                                                 | Only the three upward layers are removed; adjacent cells stay                                                                                                                                                                                                                                                                                                                                        | unverified | unverified |
 | BT19 | Cut mixed blocks including oriented logs around a chest with items, then Undo                                                        | Cut preserves the chest and contents; Undo (paste menu) restores exact states of changed cells                                                                                                                                                                                                                                                                                                       | unverified | unverified |
 | BT20 | Cut a built structure, move to another spot, and aim a paste there                                                                   | The cut content pastes exactly where aimed; Undo twice restores the original structure                                                                                                                                                                                                                                                                                                               | unverified | unverified |
+| BT21 | Select a 3 x 3 cave floor at two heights, choose Remove above, read the form and Cancel; choose it again and Confirm                 | Form names size, height, no Undo, falling; Cancel keeps blocks; Confirm keeps the lower layer and clears above                                                                                                                                                                                                                                                                                       | unverified | unverified |
+| BT22 | Choose Remove above on a 32 x 32 area under open terrain on iPad and PC and time it; then try a 33-block side                        | About 5 seconds with no server stall; record duration and load; the 33-block side reports too large with no form                                                                                                                                                                                                                                                                                     | unverified | unverified |
 
 ### Build Wand live preview
 
@@ -571,24 +573,28 @@ Precondition: hold the wand in first person on the iPad. A block tap selects the
 
 These scenarios require one connected player, run exclusively without vehicles, and restore changed blocks, inventory and player position. Hooks exercise the real tap use cases and menu dispatch; they do not simulate client input or forms.
 
-| Scenario                    | Coverage                                                                                                                          |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `build_shapes`              | Box fill/faces/walls (125/98/80), rectangle frame (16), line (5), absent menu entries and exact permutation undo                  |
-| `build_roofs`               | Gable solid/hollow (45/42), hip solid/hollow (35/34), explicit height, roof menu availability and undo                            |
-| `build_flow_cancel`         | Wand mode on foot, item-switch cancellation of point 1, preserved endpoint, shape/roof Cancel returning to aiming                 |
-| `build_refusals`            | Over-limit air endpoint, refused chest material and laid-block protection                                                         |
-| `build_aimed_paste`         | Copy, all six aimed faces, block states and exact destination undo                                                                |
-| `build_cut_shapes`          | Cut a line, vertical rectangle and box to air, ending in paste aiming                                                             |
-| `build_cut_height`          | Cut exactly three layers with unchanged surrounding cells                                                                         |
-| `build_cut_undo`            | Exact mixed block states restored by Undo                                                                                         |
-| `build_cut_keeps_protected` | Chest and contents survive Cut and Undo; only changed cells restored                                                              |
-| `build_cut_sets_clipboard`  | Cut blocks fill the clipboard, paste back exactly, and two Undos restore the original cells                                       |
-| `build_undo_hint_once`      | Two edits report completion, but only the first emits the chat hint                                                               |
-| `build_copy_shapes`         | Shape-menu Copy of a box, vertical rectangle and height-confirmed horizontal rectangle; pasted source permutations and exact undo |
-| `build_continuous_paste`    | Three anchors, three exact undos, ending paste aiming and item-switch cancellation                                                |
-| `build_paste_skip_air`      | Skip air toggle and destination blocks with the toggle on and off                                                                 |
-| `build_paste_blocked`       | Laid-block overlap refuses the whole paste without ending aiming; a following clean paste succeeds and undoes exactly             |
-| `build_block_states`        | Engine block-permutation round trip                                                                                               |
+| Scenario                       | Coverage                                                                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `build_shapes`                 | Box fill/faces/walls (125/98/80), rectangle frame (16), line (5), absent menu entries and exact permutation undo                  |
+| `build_roofs`                  | Gable solid/hollow (45/42), hip solid/hollow (35/34), explicit height, roof menu availability and undo                            |
+| `build_flow_cancel`            | Wand mode on foot, item-switch cancellation of point 1, preserved endpoint, shape/roof Cancel returning to aiming                 |
+| `build_refusals`               | Over-limit air endpoint, refused chest material and laid-block protection                                                         |
+| `build_aimed_paste`            | Copy, all six aimed faces, block states and exact destination undo                                                                |
+| `build_cut_shapes`             | Cut a line, vertical rectangle and box to air, ending in paste aiming                                                             |
+| `build_cut_height`             | Cut exactly three layers with unchanged surrounding cells                                                                         |
+| `build_cut_undo`               | Exact mixed block states restored by Undo                                                                                         |
+| `build_cut_keeps_protected`    | Chest and contents survive Cut and Undo; only changed cells restored                                                              |
+| `build_cut_sets_clipboard`     | Cut blocks fill the clipboard, paste back exactly, and two Undos restore the original cells                                       |
+| `build_remove_above`           | Floor kept and blocks cleared to the world top, with points at different heights; chest and contents kept                         |
+| `build_remove_above_too_large` | A 33-block side reports too large without writes; a 32 x 32 footprint reaches the confirmation                                    |
+| `build_remove_above_no_undo`   | Undo restores only the earlier edit, skips overlapping cells, and finds no Remove above record                                    |
+| `build_remove_above_cancel`    | Taps ignored during the confirmation; Cancel returns to aiming with no writes                                                     |
+| `build_undo_hint_once`         | Two edits report completion, but only the first emits the chat hint                                                               |
+| `build_copy_shapes`            | Shape-menu Copy of a box, vertical rectangle and height-confirmed horizontal rectangle; pasted source permutations and exact undo |
+| `build_continuous_paste`       | Three anchors, three exact undos, ending paste aiming and item-switch cancellation                                                |
+| `build_paste_skip_air`         | Skip air toggle and destination blocks with the toggle on and off                                                                 |
+| `build_paste_blocked`          | Laid-block overlap refuses the whole paste without ending aiming; a following clean paste succeeds and undoes exactly             |
+| `build_block_states`           | Engine block-permutation round trip                                                                                               |
 
 The Cut scenario tick budgets are estimates based on `build_shapes` (160), `build_copy_shapes` (260), and `build_paste_undo_repeat` (80). The six new scenarios passed on the dev BDS with a connected player (measured 17 to 34 ticks each, within their budgets). `build_undo_hint_once` resets the test player's in-memory build session to check the first edit independently of scenario order; it records calls to the chat feedback adapter, not rendered chat. Menu commands do not simulate gestures; BT3 and BT13-BT20 remain unverified on both PC and iPad.
 
