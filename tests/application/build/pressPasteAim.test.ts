@@ -191,7 +191,7 @@ it("refuses protected volumes and busy jobs without opening the repeat window or
       e.jobs.step();
       expect(e.world.writes).toBe(0);
       if (busy)
-        e.session.finishEdit({ dimensionId: nether, changes: [] }, true);
+        e.session.finishEdit({ dimensionId: nether, changes: [] }, "undo");
       else e.world.protectedCells.clear();
       expect(e.execute()).toBe("pasted");
       expect(e.start).toHaveBeenCalledTimes(1);

@@ -37,7 +37,7 @@ function oneCell() {
   const e = setup();
   e.world.put(cell, before);
   e.session.beginEdit();
-  e.jobs.start(playerId, overworld, [{ cell, after }], false);
+  e.jobs.start(playerId, overworld, [{ cell, after }], "undoable");
   e.jobs.step();
   return e;
 }
@@ -73,7 +73,7 @@ describe("Undo conflicts", () => {
           }));
           for (const c of changes) e.world.put(c.cell, c.before);
           e.session.beginEdit();
-          e.jobs.start(playerId, overworld, changes, false);
+          e.jobs.start(playerId, overworld, changes, "undoable");
           e.jobs.step();
           let restored = 0;
           let skipped = 0;

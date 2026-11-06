@@ -43,7 +43,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
               dimensionId: overworld,
               changes: [{ cell, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         const idle: BuildFlow = { kind: "idle" };
         const first = tapBlock(idle, overworld, cell, stone);

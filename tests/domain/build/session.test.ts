@@ -136,19 +136,23 @@ describe("BuildSession", () => {
     expect(s.beginEdit()).toBeUndefined();
     expect(s.beginEdit()).toBe("busy");
     expect(s.takeUndo()).toBe("busy");
-    s.finishEdit(recordAt(1), false);
+    s.finishEdit(recordAt(1), "undoable");
     expect(s.beginEdit()).toBeUndefined();
   });
 
-  it("leaves the history unchanged when finishing an undo", () => {
-    const s = session();
-    s.beginEdit();
-    s.finishEdit(recordAt(1), false);
-    s.beginEdit();
-    s.finishEdit(recordAt(2), true);
-    expect(s.takeUndo()).toEqual(recordAt(1));
-    expect(s.takeUndo()).toBe("nothingToUndo");
-  });
+  it.each(["undo", "irreversible"] as const)(
+    "leaves the history unchanged when finishing an %s edit",
+    (kind) => {
+      const s = session();
+      s.beginEdit();
+      s.finishEdit(recordAt(1), "undoable");
+      s.beginEdit();
+      s.finishEdit(recordAt(2), kind);
+      expect(s.isEditing).toBe(false);
+      expect(s.takeUndo()).toEqual(recordAt(1));
+      expect(s.takeUndo()).toBe("nothingToUndo");
+    },
+  );
 
   it("reports when build mode turns on", () => {
     const s = session();
@@ -225,7 +229,7 @@ it("completeCopy replaces the clipboard and box and enters paste aiming from any
           clipboardOf(box, () => AIR),
         );
         session.setFlow(flow);
-        for (const record of records) session.finishEdit(record, false);
+        for (const record of records) session.finishEdit(record, "undoable");
         session.completeCopy(dimensionId, box, clipboard);
         expect(session.flow).toEqual({ kind: "pasteAim", skipAir: false });
         expect(session.clipboard).toBe(clipboard);
@@ -278,7 +282,7 @@ it("endPasting clears every flow, clipboard and confirmed box without changing h
         if (box) session.confirmBox(dimensionId, box);
         if (clipboard) holdClipboard(session, clipboard);
         session.setFlow(flow);
-        session.finishEdit(record, false);
+        session.finishEdit(record, "undoable");
         session.endPasting();
         expect(session.flow).toEqual({ kind: "idle" });
         expect(session.clipboard).toBeUndefined();
@@ -301,7 +305,7 @@ it("startNewCopy idles any paste aiming, clears the box and repeat window, and k
       (clipboard, box, skipAir, anchor, tick, record) => {
         const session = new BuildSession(asPlayerId("p1"));
         session.completeCopy(dim, box, clipboard);
-        session.finishEdit(record, false);
+        session.finishEdit(record, "undoable");
         session.setFlow({
           kind: "pasteAim",
           skipAir,

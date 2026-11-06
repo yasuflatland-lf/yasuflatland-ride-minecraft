@@ -40,7 +40,7 @@ export class CutBox implements BoxAction {
       playerId,
       dimensionId,
       planShape(shapeOf(box.min, box.max), "fill", { state: AIR }),
-      false,
+      "undoable",
     );
     return true;
   }
