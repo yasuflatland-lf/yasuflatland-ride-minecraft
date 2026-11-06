@@ -155,17 +155,22 @@ export class DriveVehicles {
       this.warnedRelease.delete(id);
     }
     // One failed release must not skip the other vehicles.
-    for (const id of [...this.pendingRelease]) {
-      try {
-        this.world.releaseVehicle(id);
+    forEachIsolated(
+      this.pendingRelease,
+      (id) => {
+        try {
+          this.world.releaseVehicle(id);
+        } catch (error) {
+          // Rethrowing lets forEachIsolated log it; every retry after that stays silent.
+          if (this.warnedRelease.has(id)) return;
+          this.warnedRelease.add(id);
+          throw error;
+        }
         this.pendingRelease.delete(id);
         this.warnedRelease.delete(id);
-      } catch (error) {
-        if (!this.warnedRelease.has(id)) {
-          this.warnedRelease.add(id);
-          this.log.warn(`${id}: ${error}`);
-        }
-      }
-    }
+      },
+      this.log,
+      (id) => id,
+    );
   }
 }
