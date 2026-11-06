@@ -115,6 +115,8 @@ async function withBuilder(
   const f = {
     player,
     cell,
+    look: (yaw: number) =>
+      player.teleport(player.location, { rotation: { x: 25, y: yaw } }),
     block,
     tap,
     edit,
@@ -167,6 +169,7 @@ async function withBuilder(
 }
 type Fixture = {
   player: Player;
+  look(yaw: number): void;
   cell(x?: number, y?: number, z?: number): Cell;
   block(cell: Cell): NonNullable<ReturnType<Arena["dim"]["getBlock"]>>;
   tap(tap: "block" | "air" | "clear", cell?: Cell): Promise<Reply>;
@@ -968,6 +971,89 @@ export function buildCylinderBox(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildSphereBox(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const [size, end, counts] of [
+      [[5, 5, 5], f.cell(4, 4, 4), { fill: 81, hollow: 54 }],
+      [[5, 3, 7], f.cell(4, 2, 6), { fill: 61, hollow: 46 }],
+    ] as const) {
+      const cells = f.region(size[0], size[1], size[2]);
+      for (const fill of ["fill", "hollow"] as const) {
+        for (const c of cells) f.block(c).setType("minecraft:air");
+        await f.select(end);
+        f.block(f.cell()).setType("minecraft:air");
+        const step = await f.menu("shape", "sphere");
+        check(
+          step.flow.kind === "heightStep" && step.flow.previous === size[1],
+          "box sphere did not lock the height to the box",
+        );
+        check(
+          (await f.edit("height 2")).flow.previous === size[1],
+          "locked sphere height changed",
+        );
+        const done = await f.menu("contents", fill);
+        check(done.message === "editDone", `box sphere ${fill} failed`);
+        check(
+          f.count(cells) === counts[fill],
+          `box sphere ${fill}: expected ${counts[fill]}, got ${f.count(cells)}`,
+        );
+        await f.edit("undo");
+        check(f.count(cells) === 0, `box sphere ${fill} undo left blocks`);
+      }
+    }
+  });
+}
+
+export function buildSphereRect(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(5, 5, 5);
+    for (const c of cells) f.block(c).setType("minecraft:air");
+    await placeSolid(f, f.cell(4, 0, 4), "sphere", "fill", 5);
+    check(
+      f.count(cells) === 81,
+      `rect sphere: expected 81, got ${f.count(cells)}`,
+    );
+    await f.edit("undo");
+    check(f.count(cells) === 0, "rect sphere undo left blocks");
+    for (const end of [f.cell(4), f.cell(4, 4)]) {
+      await f.select(end);
+      check(
+        (await f.menu("shape", "sphere")).offered === false,
+        "sphere offered on a line or vertical rectangle",
+      );
+    }
+  });
+}
+
+export function buildSphereHollow(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(7, 7, 7);
+    for (const c of cells) f.block(c).setType("minecraft:air");
+    await f.select(f.cell(6, 6, 6));
+    f.block(f.cell()).setType("minecraft:air");
+    await f.menu("shape", "sphere");
+    check(
+      (await f.menu("contents", "tube")).offered === false,
+      "tube offered on a sphere",
+    );
+    await f.menu("contents", "hollow");
+    check(
+      f.count(cells) === 98,
+      `hollow sphere: expected 98, got ${f.count(cells)}`,
+    );
+    const stone = (x: number, y: number, z: number) =>
+      f.block(f.cell(x, y, z)).typeId === "minecraft:stone";
+    check(
+      stone(0, 3, 3) && stone(6, 3, 3) && stone(3, 0, 3) && stone(3, 6, 3),
+      "hollow sphere misses an end of the x or y axis",
+    );
+    check(stone(3, 3, 0) && stone(3, 3, 6), "hollow sphere misses a z end");
+    check(!stone(3, 3, 3) && !stone(2, 3, 3), "hollow sphere is not empty");
+    await f.edit("undo");
+    check(f.count(cells) === 0, "hollow sphere undo left blocks");
+  });
+}
+
 export function buildCubeRect(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(4, 3, 4);
@@ -1345,4 +1431,69 @@ export function buildUnstuckNotTouched(a: Arena): Promise<Outcome> {
     );
     await f.menu("utility", "undo");
   });
+}
+
+function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = axis === "x" ? f.region(7, 5, 5) : f.region(5, 5, 7);
+    const at = (along: number, y: number, across: number) =>
+      axis === "x" ? f.cell(along, y, across) : f.cell(across, y, along);
+    for (const [fill, expected] of [
+      ["fill", 147],
+      ["hollow", 102],
+      ["tube", 84],
+    ] as const) {
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+      await f.select(at(6, axis === "x" ? 4 : 0, 4));
+      f.block(f.cell()).setType("minecraft:air");
+      f.look(axis === "x" ? -90 : 0);
+      // Teleport rotation is only readable on a later tick.
+      await wait(1);
+      const step = await f.menu("shape", "sideCylinder");
+      check(
+        step.offered === true && step.flow.kind === "heightStep",
+        "sideways cylinder step missing",
+      );
+      f.look(axis === "x" ? 0 : -90);
+      // Teleport rotation is only readable on a later tick.
+      await wait(1);
+      check(
+        (await f.edit("height 5")).flow.previous === 5,
+        "sideways cylinder height incorrect",
+      );
+      if (axis === "x")
+        check(
+          (await f.edit("height 2")).flow.previous === 5,
+          "box height was not locked",
+        );
+      const done = await f.menu("contents", fill);
+      check(
+        done.message === "editDone" && f.count(cells) === expected,
+        `sideways ${axis} ${fill} count incorrect`,
+      );
+      const stone = (along: number, y: number, across: number) =>
+        f.block(at(along, y, across)).typeId === "minecraft:stone";
+      check(stone(3, 2, 0) && stone(3, 0, 2), "sideways wall missing");
+      check(!stone(3, 0, 0), "sideways ellipse filled a corner");
+      check(
+        stone(0, 2, 2) === (fill !== "tube") &&
+          stone(6, 2, 2) === (fill !== "tube"),
+        "sideways end caps incorrect",
+      );
+      check(
+        stone(3, 2, 2) === (fill === "fill"),
+        "sideways interior incorrect",
+      );
+      await f.edit("undo");
+      check(f.count(cells) === 0, "sideways cylinder Undo left blocks");
+    }
+  });
+}
+
+export function buildSideCylinderX(a: Arena): Promise<Outcome> {
+  return buildSideCylinder(a, "x");
+}
+
+export function buildSideCylinderZ(a: Arena): Promise<Outcome> {
+  return buildSideCylinder(a, "z");
 }

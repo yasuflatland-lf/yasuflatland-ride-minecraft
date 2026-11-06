@@ -215,7 +215,7 @@ it("keeps concurrent players and their aim targets separate", () => {
   ]);
 });
 
-it.each(["gable", "hip", "cylinder", "cube"] as const)(
+it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "reports %s size only when it changes and resets after leaving the height step",
   (heightedKind) => {
     const { session, preview, feedback, aim } = setup();
