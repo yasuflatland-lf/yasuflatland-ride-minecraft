@@ -185,7 +185,7 @@ describe("BedrockPlacementWorld (ADR 0066)", () => {
           kind,
           ownerId,
         ),
-      ).toBe(car.id);
+      ).toEqual({ status: "spawned", id: car.id });
       expect(dimension.spawnEntity).toHaveBeenCalledExactlyOnceWith(
         ENTITY_TYPE[kind],
         car.location,

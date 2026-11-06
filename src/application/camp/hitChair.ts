@@ -30,7 +30,7 @@ export class HitChair {
     if (this.world.kindOf(cmd.chairId) !== cmd.kind) return false;
     if (this.world.isOccupied(cmd.chairId)) return false;
     let taken = false;
-    handleHit(RULE, this.hits, cmd.chairId, cmd.tick, {
+    handleHit(this.hits, cmd.chairId, cmd.tick, {
       drop: () => this.world.dropChairItem(cmd.chairId),
       remove: () => {
         this.world.removeChair(cmd.chairId);

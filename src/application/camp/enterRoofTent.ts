@@ -8,10 +8,7 @@ export class EnterRoofTent {
 
   execute(cmd: { playerId: PlayerId; tentId: RoofTentId }): boolean {
     const occupant = this.world.occupantOf(cmd.tentId);
-    if (
-      enter({ occupant }, cmd.playerId) === undefined &&
-      occupant !== cmd.playerId
-    ) {
+    if (enter({ occupant }, cmd.playerId) === undefined) {
       this.world.showMessage(cmd.playerId, "tent_occupied");
       return false;
     }

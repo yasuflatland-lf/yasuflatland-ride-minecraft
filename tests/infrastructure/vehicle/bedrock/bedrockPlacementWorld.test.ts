@@ -11,17 +11,19 @@ const game = vi.hoisted(() => ({ getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
 
 function fixture(campSpace: SpaceCheck = noCampSpace) {
-  const dimension = { getBlock: vi.fn() };
+  const dimension = { getBlock: vi.fn(), spawnEntity: vi.fn() };
   game.getDimension.mockImplementation((id: string) => {
     if (id !== "overworld") throw new Error(`unknown dimension ${id}`);
     return dimension;
   });
   const consumeHeld = vi.fn();
+  const giveVehicleItem = vi.fn();
   const receivedGift = vi.fn();
   const giveGift = vi.fn();
   const markGiftReceived = vi.fn();
   const inventory = {
     consumeHeld,
+    giveVehicleItem,
     receivedGift,
     giveGift,
     markGiftReceived,
@@ -29,6 +31,7 @@ function fixture(campSpace: SpaceCheck = noCampSpace) {
   return {
     dimension,
     consumeHeld,
+    giveVehicleItem,
     receivedGift,
     giveGift,
     markGiftReceived,
@@ -116,3 +119,63 @@ it.each([true, false])(
     expect(check).toHaveBeenCalledExactlyOnceWith(dim, at);
   },
 );
+
+it.each(VEHICLE_KINDS)(
+  "refunds a %s through the inventory-or-feet helper",
+  (kind) => {
+    const { placement, giveVehicleItem } = fixture();
+    placement.refundVehicleItem(asPlayerId("player"), 4, kind);
+    expect(giveVehicleItem).toHaveBeenCalledExactlyOnceWith("player", kind);
+  },
+);
+
+describe("BedrockPlacementWorld spawn result", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  const spawn = (placement: BedrockPlacementWorld) =>
+    placement.spawnVehicle(
+      asDimensionId("overworld"),
+      { x: 0, y: 64, z: 0 },
+      45,
+      "suv",
+      asPlayerId("player"),
+    );
+
+  it("reports a failure with no entity when spawnEntity throws", () => {
+    const { placement, dimension } = fixture();
+    dimension.spawnEntity.mockImplementation(() => {
+      throw new Error("spawn failed");
+    });
+    expect(spawn(placement)).toEqual({ status: "failed", cleaned: true });
+  });
+
+  it.each(["setRotation", "setDynamicProperty"] as const)(
+    "removes the incomplete entity when %s throws, and reports whether removal succeeded",
+    (initialization) => {
+      for (const removeFails of [false, true]) {
+        const { placement, dimension } = fixture();
+        const entity = {
+          id: "vehicle",
+          setRotation: vi.fn(),
+          setDynamicProperty: vi.fn(),
+          remove: vi.fn(),
+        };
+        entity[initialization].mockImplementation(() => {
+          throw new Error("initialization failed");
+        });
+        if (removeFails)
+          entity.remove.mockImplementation(() => {
+            throw new Error("remove failed");
+          });
+        dimension.spawnEntity.mockReturnValue(entity);
+        expect(spawn(placement)).toEqual({
+          status: "failed",
+          cleaned: !removeFails,
+        });
+        expect(entity.remove).toHaveBeenCalledOnce();
+        if (initialization === "setRotation")
+          expect(entity.setDynamicProperty).not.toHaveBeenCalled();
+      }
+    },
+  );
+});

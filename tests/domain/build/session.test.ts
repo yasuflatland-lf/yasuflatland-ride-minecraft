@@ -20,6 +20,7 @@ import {
 import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 
 const dim = asDimensionId("minecraft:overworld");
 const stone = blockStateOf("minecraft:stone", {});
@@ -219,7 +220,10 @@ it("completeCopy replaces the clipboard and box and enters paste aiming from any
           dim,
           boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
         );
-        session.setClipboard(clipboardOf(box, () => AIR));
+        holdClipboard(
+          session,
+          clipboardOf(box, () => AIR),
+        );
         session.setFlow(flow);
         for (const record of records) session.finishEdit(record, false);
         session.completeCopy(dimensionId, box, clipboard);
@@ -244,7 +248,7 @@ it("leaveBuildMode discards the clipboard in every flow and is idempotent", () =
       (flow, dimensionId, box, clipboard) => {
         const session = new BuildSession(asPlayerId("p1"));
         if (box) session.confirmBox(dimensionId, box);
-        if (clipboard) session.setClipboard(clipboard);
+        if (clipboard) holdClipboard(session, clipboard);
         const confirmed = session.confirmedBox;
         session.setFlow(flow);
         session.leaveBuildMode();
@@ -272,7 +276,7 @@ it("endPasting clears every flow, clipboard and confirmed box without changing h
       (flow, dimensionId, box, clipboard, record) => {
         const session = new BuildSession(asPlayerId("p1"));
         if (box) session.confirmBox(dimensionId, box);
-        if (clipboard) session.setClipboard(clipboard);
+        if (clipboard) holdClipboard(session, clipboard);
         session.setFlow(flow);
         session.finishEdit(record, false);
         session.endPasting();

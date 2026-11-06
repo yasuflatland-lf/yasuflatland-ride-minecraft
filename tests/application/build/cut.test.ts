@@ -18,6 +18,7 @@ import {
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeFeedback,
@@ -78,7 +79,10 @@ it("copies every selected cell to the clipboard, empties the box including fluid
         const expected = clipboardOf(box, (cell) =>
           e.world.stateAt(overworld, cell),
         );
-        e.session.setClipboard(clipboardOf(boxOf(origin, origin), () => stone));
+        holdClipboard(
+          e.session,
+          clipboardOf(boxOf(origin, origin), () => stone),
+        );
         expect(e.cut.execute(playerId, overworld, box)).toBe(true);
         expect(e.feedback.messages.at(-1)?.message).toBe("cutting");
         expect(e.session.flow.kind).toBe("pasteAim");

@@ -19,7 +19,7 @@ describe("handleHit", () => {
             showRemaining: (n: number) => log.push(`left${n}`),
           };
           for (let i = 0; i < hits; i++)
-            handleHit(rule, counters, "a", start + i, effects);
+            handleHit(counters, "a", start + i, effects);
           const expected = [
             ...Array.from(
               { length: hits - 1 },
@@ -43,8 +43,8 @@ describe("handleHit", () => {
       remove: () => {},
       showRemaining: (n: number) => log.push(n),
     };
-    handleHit(rule, counters, "a", 0, effects);
-    handleHit(rule, counters, "a", 100, effects);
+    handleHit(counters, "a", 0, effects);
+    handleHit(counters, "a", 100, effects);
     expect(log).toEqual([2, 2]);
   });
 });

@@ -15,6 +15,7 @@ class FakeWorld implements RepaintWorld<string> {
   readonly creative = new Set<PlayerId>();
   readonly creativeReads: PlayerId[] = [];
   readonly calls: string[] = [];
+  soundThrows = false;
   private readonly pending = new Map<string, Paint>();
 
   constructor(private readonly lag = false) {}
@@ -30,6 +31,10 @@ class FakeWorld implements RepaintWorld<string> {
   }
   consumeDye(player: PlayerId, paint: Paint) {
     this.calls.push(`dye:${player}:${paint}`);
+  }
+  playPaintSound(id: string) {
+    this.calls.push(`sound:${id}`);
+    if (this.soundThrows) throw new Error("sound failed");
   }
   isCreative(player: PlayerId) {
     this.creativeReads.push(player);
@@ -76,10 +81,27 @@ describe("Repaint", () => {
           if (creative) world.creative.add(p);
           expect(repaint.execute(command(to))).toBe(true);
           expect(world.calls).toEqual(
-            creative ? [`paint:a:${to}`] : [`paint:a:${to}`, `dye:p:${to}`],
+            creative
+              ? [`paint:a:${to}`, "sound:a"]
+              : [`paint:a:${to}`, `dye:p:${to}`, "sound:a"],
           );
         },
       ),
+    );
+  });
+  it("plays the sound after the dye, so a throwing sound still leaves the dye used", () => {
+    fc.assert(
+      fc.property(paint, paint, paint, (from, to, def) => {
+        fc.pre(effectivePaint(from, def) !== effectivePaint(to, def));
+        const { world, repaint } = setup(from, def);
+        world.soundThrows = true;
+        expect(() => repaint.execute(command(to))).toThrow("sound failed");
+        expect(world.calls).toEqual([
+          `paint:a:${to}`,
+          `dye:p:${to}`,
+          "sound:a",
+        ]);
+      }),
     );
   });
   it("keeps the dye when the shown colors are equal, including variant zero", () => {
@@ -120,7 +142,11 @@ describe("Repaint", () => {
         expect(repaint.execute(command(to, at, q))).toBe(false);
         world.nextTick();
         expect(repaint.execute(command(to, at + 1))).toBe(false);
-        expect(world.calls).toEqual([`paint:a:${to}`, `dye:p:${to}`]);
+        expect(world.calls).toEqual([
+          `paint:a:${to}`,
+          `dye:p:${to}`,
+          "sound:a",
+        ]);
       }),
     );
   });
@@ -141,8 +167,10 @@ describe("Repaint", () => {
           expect(world.calls).toEqual([
             `paint:a:${to}`,
             `dye:p:${to}`,
+            "sound:a",
             `paint:a:${to}`,
             `dye:q:${to}`,
+            "sound:a",
           ]);
         },
       ),
@@ -165,8 +193,10 @@ describe("Repaint", () => {
           expect(world.calls).toEqual([
             `paint:a:${first}`,
             `dye:p:${first}`,
+            "sound:a",
             `paint:a:${second}`,
             `dye:q:${second}`,
+            "sound:a",
           ]);
         },
       ),
@@ -188,7 +218,11 @@ describe("Repaint", () => {
           expect(repaint.execute(command(next, at))).toBe(false);
           world.nextTick();
           expect(repaint.execute(command(next, at + 1))).toBe(false);
-          expect(world.calls).toEqual([`paint:a:${to}`, `dye:p:${to}`]);
+          expect(world.calls).toEqual([
+            `paint:a:${to}`,
+            `dye:p:${to}`,
+            "sound:a",
+          ]);
         },
       ),
     );
@@ -206,7 +240,11 @@ describe("Repaint", () => {
           if (otherCreative) world.creative.add(q);
           expect(repaint.execute(command(to))).toBe(true);
           expect(world.creativeReads).toEqual([p]);
-          expect(world.calls).toEqual([`paint:a:${to}`, `dye:p:${to}`]);
+          expect(world.calls).toEqual([
+            `paint:a:${to}`,
+            `dye:p:${to}`,
+            "sound:a",
+          ]);
         },
       ),
     );

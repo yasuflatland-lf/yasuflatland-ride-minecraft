@@ -30,6 +30,7 @@ import {
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeFeedback,
@@ -201,7 +202,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         });
         let i = 0;
         const clip = clipboardOf(sourceBox, () => (solids[i++] ? stone : AIR));
-        e.session.setClipboard(clip);
+        holdClipboard(e.session, clip);
         e.session.setFlow(beginPasteAim(skipAir));
         const { anchor, box } = pasteTarget(clip, block, face);
         const delta = {
@@ -271,7 +272,8 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
   paste.execute(cmd);
   expect(e.feedback.messages.at(-1)?.message).toBe("noClipboard");
   expect(e.session.flow).toBe(flow);
-  e.session.setClipboard(
+  holdClipboard(
+    e.session,
     clipboardOf(
       boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
       () => undefined,

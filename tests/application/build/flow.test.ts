@@ -14,6 +14,7 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeFeedback,
@@ -211,7 +212,7 @@ it("CancelFlow cancels or returns to aiming without clearing the confirmed box, 
   expect(e.session.confirmedBox).toBe(box);
   e.endpoint();
   const clip = clipboardOf(boxOf(from, to), () => stone);
-  e.session.setClipboard(clip);
+  holdClipboard(e.session, clip);
   new ClearSelection(e.repo, e.feedback).execute({ playerId });
   expect(e.session.flow.kind).toBe("idle");
   expect(e.session.confirmedBox).toBeUndefined();

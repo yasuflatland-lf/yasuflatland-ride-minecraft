@@ -91,7 +91,7 @@ export class GasLanternActions {
 
   hit(id: GasLanternId, player: PlayerId, tick: number): boolean {
     let taken = false;
-    handleHit(RULE, this.hits, id, tick, {
+    handleHit(this.hits, id, tick, {
       drop: () => {
         this.world.clearLight(id);
         this.world.dropItem(id);

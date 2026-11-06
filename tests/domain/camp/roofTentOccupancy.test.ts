@@ -18,7 +18,7 @@ it("enters only empty occupancy and leaves the previous value unchanged", () => 
       expect(empty.occupant).toBeUndefined();
       expect(Object.isFrozen(occupied)).toBe(true);
       if (!occupied) throw new Error("Empty occupancy must accept entry");
-      expect(enter(occupied, next)).toBeUndefined();
+      expect(enter(occupied, next)).toBe(first === next ? occupied : undefined);
       expect(occupied.occupant).toBe(first);
       expect(leave(occupied, first)).toEqual(empty);
       expect(occupied.occupant).toBe(first);
@@ -53,7 +53,9 @@ it("matches a single-occupant model across sequences without mutating prior stat
           const before = occupant;
           if (action.entering) {
             const result = enter(state, action.player);
-            expect(result !== undefined).toBe(occupant === undefined);
+            expect(result !== undefined).toBe(
+              occupant === undefined || occupant === action.player,
+            );
             if (occupant === undefined) occupant = action.player;
             state = result ?? state;
           } else {
@@ -65,5 +67,20 @@ it("matches a single-occupant model across sequences without mutating prior stat
         }
       },
     ),
+  );
+});
+
+it("makes own reentry idempotent, always refuses others, and always admits into empty", () => {
+  fc.assert(
+    fc.property(players, players, (owner, other) => {
+      const occupied: Occupancy = Object.freeze({ occupant: owner });
+      expect(enter(occupied, owner)).toEqual(occupied);
+      const again = enter(occupied, owner);
+      if (again) expect(enter(again, owner)).toEqual(again);
+      if (other !== owner) expect(enter(occupied, other)).toBeUndefined();
+      expect(enter({ occupant: undefined }, other)).toEqual({
+        occupant: other,
+      });
+    }),
   );
 });
