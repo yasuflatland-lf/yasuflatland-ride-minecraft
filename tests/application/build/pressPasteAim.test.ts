@@ -22,6 +22,7 @@ import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeAimReader,
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -52,7 +53,13 @@ function setup(
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    new FakeBuildPlayers(),
+  );
   const paste = new PasteAt(repo, world, feedback, jobs);
   const press = new PressPasteAim(repo, paste, feedback);
   const clipboard = clipboardOf(

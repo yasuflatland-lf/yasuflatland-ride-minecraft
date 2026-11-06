@@ -18,7 +18,13 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
+import {
+  FakeBuildPlayers,
+  FakeFeedback,
+  FakeSessions,
+  FakeWorld,
+  overworld,
+} from "./fakes";
 
 const playerId = asPlayerId("builder");
 const stone = blockStateOf("minecraft:stone");
@@ -47,7 +53,13 @@ function setup(from: { x: number; y: number; z: number }, skipAir: boolean) {
         repo,
         world,
         feedback,
-        new EditJobs(repo, world, feedback, { warn: () => {} }),
+        new EditJobs(
+          repo,
+          world,
+          feedback,
+          { warn: () => {} },
+          new FakeBuildPlayers(),
+        ),
       ),
     },
     feedback,
