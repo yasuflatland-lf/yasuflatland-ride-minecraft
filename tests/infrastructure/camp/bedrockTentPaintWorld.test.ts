@@ -82,7 +82,7 @@ describe("BedrockTentPaintWorld (ADR 0031)", () => {
     }
   });
 
-  it("triggers the paint event and plays dye.use at the tent", () => {
+  it("triggers the paint event without playing a sound", () => {
     fc.assert(
       fc.property(fc.constantFrom(...PAINTS), (paint) => {
         const tent = fakeTent();
@@ -91,12 +91,28 @@ describe("BedrockTentPaintWorld (ADR 0031)", () => {
         expect(tent.triggerEvent).toHaveBeenCalledExactlyOnceWith(
           paintEvent(paint),
         );
-        expect(tent.dimension.playSound).toHaveBeenCalledWith(
-          "dye.use",
-          tent.location,
-        );
+        expect(tent.dimension.playSound).not.toHaveBeenCalled();
       }),
     );
+  });
+
+  it("plays dye.use at the tent and swallows a failing sound", () => {
+    const tent = fakeTent();
+    game.getEntity.mockReturnValue(tent);
+    new BedrockTentPaintWorld().playPaintSound(TENT);
+    expect(tent.dimension.playSound).toHaveBeenCalledExactlyOnceWith(
+      "dye.use",
+      tent.location,
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    tent.dimension.playSound.mockImplementation(() => {
+      throw new Error("boom");
+    });
+    expect(() =>
+      new BedrockTentPaintWorld().playPaintSound(TENT),
+    ).not.toThrow();
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
 
   it("does nothing when painting a missing tent", () => {

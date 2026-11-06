@@ -21,6 +21,7 @@ import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   FakeFeedback,
   FakeSessions,
@@ -46,7 +47,12 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const actions = {
     copy: new CopyBox(repo, world, feedback),
-    cut: new CutBox(repo, world, feedback, new EditJobs(repo, world, feedback)),
+    cut: new CutBox(
+      repo,
+      world,
+      feedback,
+      new EditJobs(repo, world, feedback, { warn: () => {} }),
+    ),
   };
   return {
     repo,
@@ -160,7 +166,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         const e = setup();
         const previous = boxOf(from, from);
         const clip = clipboardOf(previous, () => stone);
-        e.session.setClipboard(clip);
+        holdClipboard(e.session, clip);
         e.session.confirmBox(nether, previous);
         const size = BUILD_SPEC.maxCopyVolume + extra;
         if (path === "height") {
@@ -239,7 +245,9 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         }
       }
       e.session.setFlow(copy);
-      const jobs = new EditJobs(e.repo, e.world, e.feedback);
+      const jobs = new EditJobs(e.repo, e.world, e.feedback, {
+        warn: () => {},
+      });
       const start = vi.spyOn(jobs, "start");
       const begin = vi.spyOn(e.session, "beginEdit");
       new ConfirmHeighted(e.repo, e.feedback, jobs).execute({
@@ -276,7 +284,7 @@ it("utility Copy resets paste settings in every prior flow and an oversized copy
       const old = clipboardOf(boxOf(from, from), () => stone);
       for (const flow of flows) {
         e.session.confirmBox(overworld, box);
-        e.session.setClipboard(old);
+        holdClipboard(e.session, old);
         e.session.setFlow(flow);
         copy.execute({ playerId });
         expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });

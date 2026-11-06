@@ -1,8 +1,8 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
+import { listRepoFiles } from "../scripts/repo-files.mjs";
 
 // Resolved from this file rather than cwd so a different vitest --root cannot
 // empty the file list and make the check pass vacuously.
@@ -15,15 +15,7 @@ it("limits the former namespace to historical documents and citations", () => {
   const staleNamespace = new RegExp(`${oldNamespace}(?!-ride|-lf)`);
   const staleDisplayName = ["Yasuflatland", "Add-on"].join(" ");
   const currentAdrs = /^docs\/adr\/004[67]-/;
-  // Untracked files that are not ignored count too, so a file added before its
-  // first commit is checked like the rest (ADR 0047).
-  const files = execFileSync(
-    "git",
-    ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
-    { cwd: REPO_ROOT, encoding: "utf8" },
-  )
-    .split("\0")
-    .filter(Boolean);
+  const files = listRepoFiles();
   expect(files.length).toBeGreaterThan(0);
   const violations: string[] = [];
   for (const file of new Set(files)) {

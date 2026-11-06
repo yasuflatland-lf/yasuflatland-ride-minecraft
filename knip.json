@@ -6,6 +6,7 @@
     "src/test-pack/runner.ts",
     "scripts/check-rp-version.d.mts",
     "scripts/dev-pack-version.d.mts",
-    "scripts/docs.d.mts"
+    "scripts/docs.d.mts",
+    "scripts/repo-files.d.mts"
   ]
 }

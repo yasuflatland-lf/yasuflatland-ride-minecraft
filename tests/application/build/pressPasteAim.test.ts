@@ -18,6 +18,7 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeAimReader,
@@ -51,14 +52,14 @@ function setup(
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback);
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
   const paste = new PasteAt(repo, world, feedback, jobs);
   const press = new PressPasteAim(repo, paste, feedback);
   const clipboard = clipboardOf(
     boxOf(block, { ...block, x: block.x + 1 }),
     () => stone,
   );
-  session.setClipboard(clipboard);
+  holdClipboard(session, clipboard);
   session.setFlow({ kind: "pasteAim", skipAir });
   const aim = new FakeAimReader();
   aim.target = {

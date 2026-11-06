@@ -1,11 +1,8 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import {
-  rideSeatY,
-  seatedEyeHeight,
-  seatPosition,
-} from "../../../src/domain/camp/roofTent/seat";
+import { seatPosition } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
+import { rideSeatY, seatedEyeHeight } from "../../support/roofTentSeatContract";
 
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });
 const position = fc.record({ x: coordinate, y: coordinate, z: coordinate });

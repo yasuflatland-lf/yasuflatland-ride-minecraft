@@ -28,6 +28,7 @@ export class PaintTent {
           : TENT_SPEC.defaultPaint,
       setPaint: (tentId, paint) => world.paint(tentId, paint),
       consumeDye: (playerId, paint) => world.consumeDye(playerId, paint),
+      playPaintSound: (tentId) => world.playPaintSound(tentId),
       isCreative: (playerId) => world.isCreative(playerId),
     });
   }

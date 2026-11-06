@@ -23,6 +23,7 @@ import {
 } from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeFeedback,
@@ -40,9 +41,12 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(repo, world, feedback);
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} });
   const at = { x: 0, y: 0, z: 0 };
-  session.setClipboard(clipboardOf(boxOf(at, at), () => stone));
+  holdClipboard(
+    session,
+    clipboardOf(boxOf(at, at), () => stone),
+  );
   session.setFlow(beginPasteAim(false));
   const paste = new PasteAt(repo, world, feedback, jobs);
   const target = (block: { x: number; y: number; z: number }) => {
@@ -340,7 +344,8 @@ it("uses the toggled setting for subsequent pastes while a running job keeps its
     fc.property(cell, fc.boolean(), (block, skipAir) => {
       const e = setup();
       const source = { x: 0, y: 0, z: 0 };
-      e.session.setClipboard(
+      holdClipboard(
+        e.session,
         clipboardOf(boxOf(source, { ...source, x: 1 }), (c) =>
           c.x === 0 ? AIR : stone,
         ),
