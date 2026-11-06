@@ -4,6 +4,7 @@ import type { Logger } from "./ports/logger";
 /**
  * Runs `fn`. When it throws, logs `${label}: ${error}` as a warning and
  * returns false; returns true on success.
+ * A label thunk lets `forEachIsolated` build labels only for failing items.
  */
 export function attempt(
   fn: () => void,

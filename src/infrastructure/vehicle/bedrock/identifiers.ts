@@ -124,8 +124,6 @@ export const DECK_SEAT_TYPE = id("deck_seat");
  * 0120). Its entity file also lists "inanimate", so the ram query skips it.
  */
 export const SEAT_FILLER_TYPE = id("seat_filler");
-/** The family a vehicle's minecraft:rideable lets ride besides players, for its seat fillers (ADR 0120). */
-export const SEAT_FILLER_FAMILY = "yasu_ride_seat_filler";
 /** Maps the type of the entity a ram target rides to the domain's mount (ADR 0006, 0063, 0068). */
 export function ramMountOf(typeId: string | undefined): RamMount | undefined {
   if (isVehicleEntity(typeId)) return "vehicle";

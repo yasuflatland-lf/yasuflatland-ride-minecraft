@@ -21,6 +21,7 @@ import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   FakeFeedback,
   FakeSessions,
@@ -165,7 +166,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         const e = setup();
         const previous = boxOf(from, from);
         const clip = clipboardOf(previous, () => stone);
-        e.session.setClipboard(clip);
+        holdClipboard(e.session, clip);
         e.session.confirmBox(nether, previous);
         const size = BUILD_SPEC.maxCopyVolume + extra;
         if (path === "height") {
@@ -283,7 +284,7 @@ it("utility Copy resets paste settings in every prior flow and an oversized copy
       const old = clipboardOf(boxOf(from, from), () => stone);
       for (const flow of flows) {
         e.session.confirmBox(overworld, box);
-        e.session.setClipboard(old);
+        holdClipboard(e.session, old);
         e.session.setFlow(flow);
         copy.execute({ playerId });
         expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });

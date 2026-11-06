@@ -8,6 +8,7 @@ export function enter(
   occupancy: Occupancy,
   playerId: PlayerId,
 ): Occupancy | undefined {
+  if (occupancy.occupant === playerId) return occupancy;
   return occupancy.occupant === undefined
     ? Object.freeze({ occupant: playerId })
     : undefined;

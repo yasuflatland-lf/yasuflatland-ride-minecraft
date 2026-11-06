@@ -26,6 +26,7 @@ export interface RoofTentWorld {
   paintOf(tentId: RoofTentId): Paint | undefined;
   paint(tentId: RoofTentId, paint: Paint): void;
   consumeDye(playerId: PlayerId, paint: Paint): void;
+  playPaintSound(tentId: RoofTentId): void;
 }
 
 export interface OccupantEjector {

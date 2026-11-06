@@ -166,6 +166,7 @@ function spawn(hosted = true) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  game.dimension.playSound.mockReset();
   game.handlers.clear();
   game.entities.clear();
   game.tick = 1;
@@ -279,6 +280,51 @@ it("reads every paint variant and rejects invalid or unrelated entities", () => 
   expect(tents.paintOf(asRoofTentId("tent"))).toBeUndefined();
   entity("other", "minecraft:cow");
   expect(tents.paintOf(asRoofTentId("other"))).toBeUndefined();
+});
+it.each(PAINTS)(
+  "triggers the %s paint event without playing a sound",
+  (paint) => {
+    const tent = entity();
+    tents.paint(asRoofTentId(tent.id), paint);
+    expect(tent.triggerEvent).toHaveBeenCalledExactlyOnceWith(
+      paintEvent(paint),
+    );
+    expect(game.dimension.playSound).not.toHaveBeenCalled();
+  },
+);
+it("plays dye.use at the tent", () => {
+  const tent = entity();
+  tents.playPaintSound(asRoofTentId(tent.id));
+  expect(game.dimension.playSound).toHaveBeenCalledExactlyOnceWith(
+    "dye.use",
+    tent.location,
+  );
+});
+it("warns once without throwing when the paint sound fails", () => {
+  const tent = entity();
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  game.dimension.playSound.mockImplementation(() => {
+    throw new Error("boom");
+  });
+  try {
+    expect(() => tents.playPaintSound(asRoofTentId(tent.id))).not.toThrow();
+    expect(game.dimension.playSound).toHaveBeenCalledExactlyOnceWith(
+      "dye.use",
+      tent.location,
+    );
+    expect(warn).toHaveBeenCalledOnce();
+  } finally {
+    warn.mockRestore();
+    game.dimension.playSound.mockReset();
+  }
+});
+it("does nothing when painting or playing a paint sound for a missing tent", () => {
+  const tent = entity();
+  const missing = asRoofTentId("missing");
+  expect(() => tents.paint(missing, "red")).not.toThrow();
+  expect(() => tents.playPaintSound(missing)).not.toThrow();
+  expect(tent.triggerEvent).not.toHaveBeenCalled();
+  expect(game.dimension.playSound).not.toHaveBeenCalled();
 });
 it("returns an item to an online owner and drops it at the tent when offline", () => {
   const tent = spawn();

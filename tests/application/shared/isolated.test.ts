@@ -85,7 +85,7 @@ describe("attempt", () => {
     expect(log.lines).toEqual([]);
   });
 
-  it("returns false and warns with `${label}: ${error}` when fn throws", () => {
+  it("returns false and warns with the label and the error when fn throws", () => {
     const log = logger();
     const result = attempt(
       () => {

@@ -12,7 +12,7 @@ import {
 } from "../../../domain/shared/ids";
 import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { dyeOf, paintEvent } from "../../shared/dyes";
+import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
 import { entityOfType } from "../../shared/entities";
 import { id, messageKey } from "../../shared/identifiers";
 import {
@@ -172,7 +172,10 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     const tent = roofTentEntity(id);
     if (!tent) return;
     tent.triggerEvent(paintEvent(paint));
-    tent.dimension.playSound("dye.use", tent.location);
+  }
+  playPaintSound(id: RoofTentId): void {
+    const tent = roofTentEntity(id);
+    if (tent) playPaintSound(tent);
   }
   consumeDye(id: PlayerId, paint: Paint): void {
     const player = playerById(id);

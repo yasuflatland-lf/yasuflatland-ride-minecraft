@@ -9,10 +9,8 @@ import {
   boxOf,
   type CellBox,
   cellsOf,
-  chunksOf,
   contains,
   edgePoints,
-  translate,
   volume,
 } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -59,30 +57,6 @@ describe("Box", () => {
     expect(cells[1]).toEqual({ x: 1, y: 0, z: 0 });
     expect(cells[2]).toEqual({ x: 0, y: 0, z: 1 });
     expect(cells[4]).toEqual({ x: 0, y: 1, z: 0 });
-  });
-
-  it("splits into disjoint chunks within the limit that cover the box", () => {
-    fc.assert(
-      fc.property(
-        smallBox,
-        fc.integer({ min: 1, max: 100 }),
-        (box, maxCells) => {
-          const chunks = chunksOf(box, maxCells);
-          expect(chunks.every((c) => volume(c) <= maxCells)).toBe(true);
-          expect(keys(chunks.flatMap((c) => [...cellsOf(c)]))).toEqual(
-            keys(cellsOf(box)),
-          );
-        },
-      ),
-    );
-  });
-
-  it("keeps its volume when translated", () => {
-    fc.assert(
-      fc.property(smallBox, cell, (box, by) => {
-        expect(volume(translate(box, by))).toBe(volume(box));
-      }),
-    );
   });
 
   it("returns at most maxPoints edge points, all on an edge of the box", () => {

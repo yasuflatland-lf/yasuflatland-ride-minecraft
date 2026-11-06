@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { rideSeatY } from "../../src/domain/camp/roofTent/seat";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import {
@@ -16,6 +15,7 @@ import {
 import { PACK_STEM_TAGS } from "../../src/test-pack/impact";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
+import { rideSeatY } from "../support/roofTentSeatContract";
 import { assertOneAxis } from "./oneAxis";
 
 const BP = "packs/yasu_ride_bp";

@@ -1,10 +1,10 @@
 // The vanilla dye for each paint, the paint each dye gives, and the variant index
 // and entity event that apply a paint to every painted entity (ADR 0031, 0135).
 
-import type { Player } from "@minecraft/server";
+import type { Entity, Player } from "@minecraft/server";
 import { PAINTS, type Paint, paintEventName } from "../../domain/shared/paint";
 import { heldTypeId } from "./heldItem";
-import { id } from "./identifiers";
+import { id, NAMESPACE } from "./identifiers";
 
 /** The vanilla dye that paints an entity with a paint (ADR 0031); brown dye restores variant 0 (ADR 0076). */
 export function dyeOf(paint: Paint): string {
@@ -36,4 +36,18 @@ export const PAINT_VARIANT: Readonly<Record<Paint, number>> =
  */
 export function paintEvent(paint: Paint): string {
   return id(paintEventName(paint));
+}
+
+const PAINT_SOUND = "dye.use";
+
+/**
+ * The dye sound at a painted entity. The dye is used up before it plays, so a
+ * failing sound is only logged and never rethrown.
+ */
+export function playPaintSound(entity: Entity): void {
+  try {
+    entity.dimension.playSound(PAINT_SOUND, entity.location);
+  } catch (error) {
+    console.warn(`[${NAMESPACE}] paint sound failed: ${error}`);
+  }
 }
