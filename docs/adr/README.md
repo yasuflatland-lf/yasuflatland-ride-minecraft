@@ -164,7 +164,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0156](0156-resend-the-docked-property-after-a-failed-send.md) | Resend the docked property after a failed send | Proposed |
 | [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) | An aluminium-rimmed louvred camper vent lid | Proposed |
 | [0158](0158-a-slanted-pane-sports-boat-windshield.md) | A slanted-pane sports boat windshield | Proposed; extended by [0161](0161-smooth-sports-boat-hull-planking.md) |
-| [0159](0159-a-pbr-rear-view-mirror-on-the-sports-boat.md) | A PBR rear-view mirror on the sports boat | Proposed; extended by [0163](0163-a-glossy-clear-coat-sports-boat-hull.md) |
+| [0159](0159-a-pbr-rear-view-mirror-on-the-sports-boat.md) | A PBR rear-view mirror on the sports boat | Proposed; extended by [0163](0163-a-glossy-clear-coat-sports-boat-hull.md), [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) |
 | [0161](0161-smooth-sports-boat-hull-planking.md) | Smooth sports boat hull planking | Proposed; superseded in part by [0172](0172-smooth-sports-boat-headlight-lenses.md); extended by [0162](0162-smooth-the-sports-boat-bows-inner-outline.md) |
 | [0162](0162-smooth-the-sports-boat-bows-inner-outline.md) | Smooth the sports boat bow's inner outline | Proposed |
 | [0163](0163-a-glossy-clear-coat-sports-boat-hull.md) | A glossy clear-coat sports boat hull | Proposed |
@@ -237,6 +237,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0231](0231-release-every-roof-tent-spawn-setter.md) | Release every roof tent spawn setter | Proposed |
 | [0232](0232-undo-skips-conflicting-cells.md) | Undo skips conflicting cells | Accepted |
 | [0233](0233-round-shapes-and-terrain-operations.md) | Add round shapes and terrain operations to the Build Wand | Accepted |
+| [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) | Plated camper mirrors and a simpler camper exterior | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

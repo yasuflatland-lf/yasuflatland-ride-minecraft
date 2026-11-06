@@ -21,7 +21,9 @@ cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}, "front_panels": {"owner": "camper", "cubes": 518}}
 
-outputs = load_tool("texture_io").Outputs("--check" in sys.argv[2:])
+texture_io = load_tool("texture_io")
+mer = load_tool("mer")
+outputs = texture_io.Outputs("--check" in sys.argv[2:])
 build_lit_textures = load_tool("lit_textures").build_lit_textures
 
 RP = Path(sys.argv[1])
@@ -448,18 +450,6 @@ body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "aluminium"))  #
 body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "aluminium"))
 
 
-def oval_rows(z, y, half_z, half_y, x0, x1, color, row=0.2):
-    """An upright oval on the right wall as level rows, thinner than a texel step at this size."""
-    rows = []
-    count = math.ceil(2 * half_y / row)
-    for i in range(count):
-        y0 = y - half_y + i * row
-        mid = y0 + row / 2 - y
-        half = half_z * math.sqrt(max(0, 1 - (mid / half_y) ** 2))
-        rows.append(box(x0, y0, z - half, x1, y0 + row, z + half, color))
-    return rows
-
-
 def water_fill(z, y):
     """The fresh water fill behind the door, measured on the owner's close-up photo: the frame's
     width of 195 photo px is 3.6 px here, and its centre sits 0.9 px under the skirt's top."""
@@ -477,15 +467,9 @@ def water_fill(z, y):
     spots += [(sz * 1.5, 0) for sz in (-1, 1)]
     for dz, dy in spots:
         parts.append(box(out + 0.18, y + dy - 0.11, z + dz - 0.11, out + 0.22, y + dy + 0.11, z + dz + 0.11, "slat"))
-    # The filler's oval ring leans toward the front at the top; bars stay straight, unlike stair steps.
-    tilt = math.radians(-20)
-    long_axis, short_axis, bars = 1.5, 0.68, 16
-    points = []
-    for i in range(bars):
-        t = 2 * math.pi * i / bars
-        along, across = long_axis * math.sin(t), short_axis * math.cos(t)
-        points.append((across * math.cos(tilt) + along * math.sin(tilt),
-                       along * math.cos(tilt) - across * math.sin(tilt)))
+    # The filler's round ring; bars stay straight, unlike stair steps.
+    radius, bars = 1.0, 24
+    points = [(radius * math.cos(2 * math.pi * i / bars), radius * math.sin(2 * math.pi * i / bars)) for i in range(bars)]
     for (z0, y0), (z1, y1) in zip(points, points[1:] + points[:1]):
         mid_z, mid_y = z + (z0 + z1) / 2, y + (y0 + y1) / 2
         half = math.hypot(z1 - z0, y1 - y0) / 2 + 0.05
@@ -495,11 +479,13 @@ def water_fill(z, y):
     plate_y = y + 4.6
     parts.append(box(HW, plate_y - 0.8, z - 1.15, HW + 0.08, plate_y + 0.8, z + 1.15, "chrome"))
     parts.append(box(HW + 0.08, plate_y - 0.7, z - 1.05, HW + 0.12, plate_y + 0.7, z + 1.05, "slat"))
-    # The small oval lamp at the top with its bright lower spot.
+    # The small round lamp at the top with its bright lower spot.
     lamp_y = y + 9.35
-    parts += oval_rows(z, lamp_y, 0.7, 1.25, HW, HW + 0.08, "chrome")
-    parts += oval_rows(z, lamp_y, 0.58, 1.1, HW + 0.08, HW + 0.14, "grille")
-    parts.append(box(HW + 0.14, lamp_y - 0.95, z - 0.1, HW + 0.18, lamp_y - 0.75, z + 0.1, "panel"))
+    parts += disc("x", HW, lamp_y, z, 0.95, 0.08, "chrome")
+    parts += disc("x", HW + 0.08, lamp_y, z, 0.78, 0.06, "slat")
+    # A thin plate above the lamp, then the filler cap: a metal disc in the ring, as on the photo.
+    parts.append(box(HW, lamp_y + 2.2, z - 1.0, HW + 0.08, lamp_y + 2.6, z + 1.0, "chrome"))
+    parts += disc("x", out + 0.04, y, z, 0.62, 0.2, "slat")
     return parts
 
 
@@ -507,16 +493,14 @@ body += water_fill(WATER_FILL_Z, WATER_FILL_Y)
 body += vent_cover(*VENT_COVER)
 
 
-def storage_hatch(wall):
-    """The louvred storage hatch low at the rear corner, measured on the owner's close-up photo: an
+def storage_hatch():
+    """The louvred storage hatch low at the right rear corner, measured on the owner's close-up photo: an
     aluminium rail with rounded top corners around a panel with five columns of 22 louvers."""
-    sign = 1 if wall > 0 else -1
     Z0, Z1, Y0, Y1 = 42.6, 55.4, 8.2, 24
     RAIL, CORNER = 0.45, 1.6
 
     def on_wall(a, b, y0, y1, z0, z1, color):
-        x0, x1 = sorted((wall + sign * a, wall + sign * b))
-        return box(x0, y0, z0, x1, y1, z1, color)
+        return box(HW + a, y0, z0, HW + b, y1, z1, color)
 
     def rounded(depth0, depth1, inset, color):
         """A plate inset from the hatch's outline, with level rows cutting its top corners."""
@@ -571,8 +555,7 @@ def storage_hatch(wall):
     return parts
 
 
-for wall in (HW, -HW):
-    body += storage_hatch(wall)
+body += storage_hatch()
 body.append(box(-HW - 0.3, 16, 13, -HW, 22, 19, "panel"))  # left side service hatch
 body.append(box(-HW - 0.4, 19, 14, -HW - 0.3, 20, 15.5, "chrome"))
 
@@ -923,7 +906,7 @@ CREASE = 56
 CAP_POINT_Y = 52
 CAP_LEAN = 0.75  # forward per px of drop below the roof, which puts the wall point at z = -59
 TOP_FRONT = WS_Z + 0.5
-BOLT_REGION = ATLAS.allocate("bolt", math.ceil(max(2 * HW + 0.4, REAR_OUT - TOP_FRONT)), 1)
+BOLT_REGION = ATLAS.allocate("bolt", math.ceil(REAR_OUT - TOP_FRONT), 1)
 BOT_C = WS_Z - 0.5
 CAP_BACK = WS_Z + 6
 
@@ -980,10 +963,11 @@ for i in range(round((ROOF - CAP_Y0) / 0.25)):
         molding(sx, y0, y0 + 0.25, wall_z)
 for sx in (-1, 1):
     body.append(ws_piece(sx, 0, HW, 49.2, 49.7, -0.8, 1.7, "chrome"))
-roof_lip = box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "aluminium")
-roof_lip["uv"]["north"] = ATLAS.face(BOLT_REGION, uv_size=(roof_lip["size"][0], 1))
-body.append(roof_lip)
-# Roof-lip lamps: a clearance dome near each corner and three identification lamps at the centre,
+# A polished-plate tile: the mirror parts' every face maps onto it, thin parts onto its corner.
+MIRROR_CHROME_REGION = ATLAS.allocate("mirror_chrome", 16, 32)
+MIRROR_THIN_UV = (4, 8)
+mirror = []
+# Roof-edge lamps: a clearance dome near each corner and three identification lamps at the centre,
 # the middle one a flat lens.
 for x, half, dome in ((-21.5, 0.7, True), (-6, 0.7, True), (0, 1.2, False), (6, 0.7, True), (21.5, 0.7, True)):
     body.append(box(x - half - 0.2, ROOF - 0.1, TOP_FRONT - 0.1, x + half + 0.2, ROOF + 0.1, TOP_FRONT + 1.1, "chrome"))
@@ -994,25 +978,23 @@ for sx in (1, -1):
     # Rectangular side marker high on the wall, just behind the upper leg of the molding
     x0, x1 = sorted((sx * HW, sx * (HW + 0.25)))
     body.append(box(x0, 60.4, -51.8, x1, 61.8, -49.2, "amber"))
-    # West-coast mirrors, as on the close-up: a chrome rod standing off the front pillar on
-    # two brackets, carrying a tall mirror with rounded corners that faces the rear.
+    # West-coast mirrors, as on the owner's photo: a chrome rod standing off the front pillar on
+    # two brackets, carrying a tall rectangular housing strapped twice across its back. All of it
+    # sits in the mirror bone, so one pass can draw it with the PBR texture set (ADR 0234).
     def xs(a, b):
         return min(sx * a, sx * b), max(sx * a, sx * b)
     mz = WS_Z + 3
+    MY0, MY1, MX0, MX1 = 37, 47.5, HW + 0.8, HW + 6.2
     for by in (35.5, 49.5):  # brackets from the pillar out to the rod
         x0, x1 = xs(HW, HW + 3)
-        body.append(box(x0, by - 0.3, mz - 0.3, x1, by + 0.3, mz + 0.3, "chrome"))
+        mirror.append(box(x0, by - 0.3, mz - 0.3, x1, by + 0.3, mz + 0.3, MIRROR_CHROME_REGION, uv_size=MIRROR_THIN_UV))
     x0, x1 = xs(HW + 2.6, HW + 3.4)
-    body.append(box(x0, 35.2, mz - 0.4, x1, 49.8, mz + 0.4, "chrome"))  # rod
-    MY0, MY1, MX0, MX1 = 37, 47.5, HW + 0.8, HW + 6.2
-    for inset, rise in ((1.8, 0), (0.9, 0.4), (0.35, 1.0), (0, 1.8)):  # rounded ends
-        x0, x1 = xs(MX0 + inset, MX1 - inset)
-        body.append(box(x0, MY0 + rise, mz + 0.4, x1, MY1 - rise, mz + 1.2, "chrome"))
-    for ry in [MY0 + 1.6 + i * 1.3 for i in range(6)]:  # ribs across its back, facing forward
-        x0, x1 = xs(MX0 + 0.5, MX1 - 0.5)
-        body.append(box(x0, ry, mz + 0.15, x1, ry + 0.45, mz + 0.4, "slat"))
-    x0, x1 = xs(MX0 + 0.4, MX1 - 0.4)
-    body.append(box(x0, MY0 + 0.4, mz + 1.2, x1, MY1 - 0.4, mz + 1.3, "glass"))
+    mirror.append(box(x0, 35.2, mz - 0.4, x1, 49.8, mz + 0.4, MIRROR_CHROME_REGION, uv_size=MIRROR_THIN_UV))  # rod
+    x0, x1 = xs(MX0, MX1)
+    mirror.append(box(x0, MY0, mz + 0.4, x1, MY1, mz + 1.2, MIRROR_CHROME_REGION))
+    x0, x1 = xs(MX0 - 0.1, MX1 + 0.1)
+    for strap_y in (MY0 + 3.3, MY1 - 3.3):
+        mirror.append(box(x0, strap_y - 0.15, mz + 0.3, x1, strap_y + 0.15, mz + 1.3, MIRROR_CHROME_REGION, uv_size=MIRROR_THIN_UV))
 
 # --- Rear -------------------------------------------------------------------
 # Static amber turn signals outside the tail lights, clear of the ladder (ADR 0145).
@@ -1671,6 +1653,7 @@ camper_bones = [
     {"name": "cabinet_stove_door", "parent": "body", "pivot": CABINET_STOVE_HINGE, "cubes": cabinet_stove_door},
     {"name": "fridge_top_door", "parent": "body", "pivot": FRIDGE_HINGE, "cubes": fridge_top_door},
     {"name": "fridge_bottom_door", "parent": "body", "pivot": FRIDGE_HINGE, "cubes": fridge_bottom_door},
+    {"name": "mirror", "parent": "body", "pivot": [0, 0, 0], "cubes": mirror},
     {"name": "glass", "parent": "body", "pivot": [0, 0, 0], "cubes": glass},
     {"name": "door_glass", "parent": "door_entry", "pivot": DOOR_HINGE, "cubes": door_glass},
 ]
@@ -1734,7 +1717,26 @@ def scale(color, factor):
     return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
 
 
+# Baked streaks for devices without PBR, as on the owner's photo of the plated housing: the sky's
+# light from the top, a dark horizon, the ground's warmer light below, and narrow dark reflections.
+MIRROR_STREAKS = (0.9, 1.0, 1.0, 0.45, 0.8, 1.0, 0.95, 0.35, 0.6, 1.0, 1.0, 0.85, 0.4, 0.95, 1.0, 0.75)
+MIRROR_SKY, MIRROR_GROUND = (236, 244, 252), (250, 240, 224)
+MIRROR_HORIZON = (58, 62, 70)
+
+
+def mirror_chrome_pixel(x, y):
+    wobble = round(math.sin(y * 0.45) * 1.2)
+    streak = MIRROR_STREAKS[(x + wobble) % len(MIRROR_STREAKS)]
+    light = MIRROR_SKY if y < 19 else MIRROR_GROUND
+    fade = 0.72 + 0.28 * abs(y - 19) / 19
+    if y in (18, 19):
+        return (*MIRROR_HORIZON, 255)
+    return (*scale(light, streak * fade), 255)
+
+
 def region_pixel(region, x, y):
+    if region.name == "mirror_chrome":
+        return mirror_chrome_pixel(x, y)
     if region.name == "rib":
         phase = y % RIB_PERIOD_TEXELS
         factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
@@ -1764,6 +1766,16 @@ for paint, base in ACCENT_BASES.items():
 build_lit_textures(outputs, ENTITY_TEXTURES, "camper", ATLAS.width, ATLAS.height,
                    lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel),
                    lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
+
+# Polished plate, not a perfect mirror: Vibrant Visuals keeps a soft highlight along the housing.
+MER_MIRROR_CHROME = mer.Mer(255, 0, 26)
+outputs.png(ENTITY_TEXTURES / "camper_mirror.png", ATLAS.width, ATLAS.height,
+            lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel))
+outputs.png(ENTITY_TEXTURES / "camper_mirror_mer.png", ATLAS.width, ATLAS.height, mer.mer_painter(
+    lambda x, y: MER_MIRROR_CHROME if (MIRROR_CHROME_REGION.x <= x < MIRROR_CHROME_REGION.x + MIRROR_CHROME_REGION.w
+                                       and MIRROR_CHROME_REGION.y <= y < MIRROR_CHROME_REGION.y + MIRROR_CHROME_REGION.h)
+    else None))
+texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "camper_mirror", "camper_mirror_mer")
 
 ICON = [
     "................",
