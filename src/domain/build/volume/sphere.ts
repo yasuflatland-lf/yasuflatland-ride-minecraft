@@ -1,6 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import { ellipse, ellipseOn, outlinePoints } from "../wireframe";
+import { type Curve, ellipse, ellipseOn, outlinePoints } from "../wireframe";
 import type {
   HeightedPlacement,
   HeightedSpec,
@@ -140,12 +140,37 @@ function sphereWireframe(
   const ry = height / 2;
   const rz = (max.z - min.z + 1) / 2;
   const equator = ellipse(center.x, center.y, center.z, rx, rz);
-  const meridians =
-    height === 1
-      ? []
-      : [
-          ellipseOn(center, { x: rx, y: 0, z: 0 }, { x: 0, y: ry, z: 0 }),
-          ellipseOn(center, { x: 0, y: 0, z: rz }, { x: 0, y: ry, z: 0 }),
-        ];
-  return outlinePoints([equator], meridians, maxPoints);
+  const budget = Math.max(0, Math.floor(maxPoints));
+  if (height === 1) return outlinePoints([equator], [], budget);
+
+  // The equator alone cannot show height when a large footprint exhausts the budget.
+  const equatorPoints = outlinePoints([equator], [], Math.floor(budget / 2));
+  const xy = ellipseOn(center, { x: rx, y: 0, z: 0 }, { x: 0, y: ry, z: 0 });
+  const zy = ellipseOn(center, { x: 0, y: 0, z: rz }, { x: 0, y: ry, z: 0 });
+  const remaining = budget - equatorPoints.length;
+  // Four samples include both poles; a proportional split can leave a thin
+  // meridian with only two equatorial points and hide its height entirely.
+  const minimum = Math.min(4, Math.floor(remaining / 2));
+  const xyBudget = Math.max(
+    minimum,
+    Math.min(
+      remaining - minimum,
+      Math.round(
+        (remaining * Math.ceil(xy.length)) /
+          (Math.ceil(xy.length) + Math.ceil(zy.length)),
+      ),
+    ),
+  );
+  return [
+    ...equatorPoints,
+    ...meridianPoints(xy, xyBudget),
+    ...meridianPoints(zy, remaining - xyBudget),
+  ];
+}
+
+function meridianPoints(curve: Curve, budget: number): Vec3[] {
+  const capped = Math.min(Math.ceil(curve.length), budget);
+  // Quarter turns reach both poles only when the sample count is divisible by four.
+  const count = capped >= 4 ? Math.floor(capped / 4) * 4 : capped;
+  return Array.from({ length: count }, (_, i) => curve.at(i / count));
 }

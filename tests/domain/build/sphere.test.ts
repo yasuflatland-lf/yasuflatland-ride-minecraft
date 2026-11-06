@@ -258,6 +258,83 @@ describe("sphere outline", () => {
     expect(points.some((point) => point.z === 4 && point.y !== 4)).toBe(true);
   });
 
+  it.each([
+    [1, 326, 8],
+    [326, 1, 8],
+    [1, 479, 12],
+    [479, 1, 12],
+  ])(
+    "reaches both poles on a %ix%i footprint at height %i",
+    (width, depth, height) => {
+      const points = sphereVolume.wireframe(
+        specOf({ x: 0, y: 0, z: 0 }, width, height, depth),
+        BUILD_SPEC.outlineMaxPoints,
+      );
+      expect(points.length).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
+      for (const [axis, center] of [
+        ["x", width / 2],
+        ["z", depth / 2],
+      ] as const) {
+        const ys = points
+          .filter((point) => point[axis] === center && point.y !== height / 2)
+          .map((point) => point.y);
+        expect(Math.min(...ys)).toBe(0);
+        expect(Math.max(...ys)).toBe(height);
+      }
+    },
+  );
+
+  it("keeps both vertical ellipses reaching the top and bottom on large spheres", () => {
+    const largeSide = fc.integer({ min: 41, max: 512 });
+    const thinSide = fc.integer({ min: 1, max: 4 });
+    const footprint = fc.oneof(
+      fc.tuple(largeSide, largeSide),
+      fc.tuple(thinSide, largeSide),
+      fc.tuple(largeSide, thinSide),
+    );
+    fc.assert(
+      fc.property(
+        origin,
+        footprint,
+        fc.oneof(
+          fc.integer({ min: 2, max: 4 }),
+          fc.integer({ min: 2, max: 384 }),
+        ),
+        (min, [width, depth], height) => {
+          const points = sphereVolume.wireframe(
+            specOf(min, width, height, depth),
+            BUILD_SPEC.outlineMaxPoints,
+          );
+          expect(points.length).toBeLessThanOrEqual(
+            BUILD_SPEC.outlineMaxPoints,
+          );
+          const centerY = min.y + height / 2;
+          for (const [axis, center] of [
+            ["x", min.x + width / 2],
+            ["z", min.z + depth / 2],
+          ] as const) {
+            const ys = points
+              .filter((point) => point[axis] === center && point.y !== centerY)
+              .map((point) => point.y);
+            expect(ys.length).toBeGreaterThan(0);
+            expect(Math.min(...ys)).toBeCloseTo(min.y, 0);
+            expect(Math.max(...ys)).toBeCloseTo(min.y + height, 0);
+          }
+        },
+      ),
+      {
+        examples: [
+          [{ x: 0, y: 0, z: 0 }, [2, 355], 2],
+          [{ x: 0, y: 0, z: 0 }, [512, 2], 2],
+          [{ x: 0, y: 0, z: 0 }, [1, 254], 2],
+          [{ x: 0, y: 0, z: 0 }, [2, 406], 3],
+          [{ x: 0, y: 0, z: 0 }, [406, 3], 2],
+          [{ x: 0, y: 0, z: 0 }, [4, 508], 2],
+        ],
+      },
+    );
+  });
+
   it("offers the same height range as the other solids", () => {
     const base = boxOf({ x: 0, y: 300, z: 0 }, { x: 3, y: 300, z: 3 });
     expect(sphereVolume.maxHeight(base, BUILD_SPEC.worldTopY)).toBe(20);
