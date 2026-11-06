@@ -15,8 +15,8 @@ import {
   placementCell,
 } from "../../domain/vehicle/placement/placement";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
+import type { Logger } from "../shared/ports/logger";
 import type { PlacementWorld } from "./ports/placement";
-import type { Logger } from "./ports/shared";
 
 export interface PlaceVehicleCommand {
   kind: VehicleKind;
