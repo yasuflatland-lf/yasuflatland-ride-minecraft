@@ -99,6 +99,7 @@ describe("camper model assets (ADR 0067)", () => {
         "cabinet_stove_door",
         "fridge_top_door",
         "fridge_bottom_door",
+        "mirror",
         "glass",
         "door_glass",
       ].sort(),
@@ -753,7 +754,10 @@ describe("camper model assets (ADR 0067)", () => {
       (name) =>
         /^camper(?:_\w+)?\.png$/.test(name) && !name.startsWith("camper_lit"),
     );
-    expect(files).toHaveLength(PAINTS.length);
+    // camper_mirror.png is the PBR mirror pass's copy of the default atlas.
+    expect(
+      files.filter((name) => !name.startsWith("camper_mirror")),
+    ).toHaveLength(PAINTS.length);
     const khaki = readPng("textures/entity/yasu_ride/camper");
     expect([khaki.width, khaki.height]).toEqual([
       geometry.description.texture_width,
@@ -2141,7 +2145,8 @@ describe("camper front panels (ADR 0226)", () => {
     expect(Math.min(...frameY)).toBeLessThan(15);
     expect(Math.max(...frameY)).toBeGreaterThan(15);
     const ring = parts.filter((cube) => cube.rotation);
-    expect(ring).toHaveLength(16);
+    // A 24-bar ring, the round lamp's two 16-bar discs, and the filler cap disc.
+    expect(ring).toHaveLength(24 + 3 * 16);
     expect(
       body.some(
         (cube) =>
@@ -2216,7 +2221,8 @@ describe("camper front panels (ADR 0226)", () => {
   it("builds the rear storage hatches with a rounded rail, five louver columns, and latch knobs", () => {
     const body = bone("body").cubes ?? [];
     const colour = (cube: Cube) => slots[cube.uv.north?.uv[0] ?? -1];
-    for (const outer of [-1, 1]) {
+    // The hatch is on the right side only; the left rear wall stays plain.
+    for (const outer of [-1]) {
       const hatch = body.filter((cube) => {
         const x = outer < 0 ? (cube.origin[0] ?? 0) : end(cube, 0);
         return (
@@ -2243,6 +2249,25 @@ describe("camper front panels (ADR 0226)", () => {
       const widths = rail.map((cube) => cube.size[2] ?? 0);
       expect(Math.min(...widths)).toBeLessThan(Math.max(...widths));
     }
+  });
+
+  it("leaves the left rear wall without a hatch and puts every mirror part in the PBR mirror bone", () => {
+    const body = bone("body").cubes ?? [];
+    expect(
+      body.filter(
+        (c) =>
+          slots[c.uv.north?.uv[0] ?? -1] === "aluminium" &&
+          end(c, 0) >= 24 &&
+          (c.origin[2] ?? 0) >= 42 &&
+          end(c, 2) <= 56 &&
+          (c.origin[1] ?? 0) >= 8 &&
+          end(c, 1) <= 28,
+      ),
+    ).toEqual([]);
+    const mirror = bone("mirror");
+    expect(mirror.parent).toBe("body");
+    expect(mirror.cubes).toHaveLength(2 * 6);
+    expect(regions.some(([name]) => name === "mirror_chrome")).toBe(true);
   });
 
   it("paints the wall below the entry door like the skirt beside it", () => {
@@ -2341,6 +2366,7 @@ describe("camper rib atlas (ADR 0190)", () => {
       "door_latch",
       "vent_screws",
       "bolt",
+      "mirror_chrome",
     ]);
     for (const [i, [, x, y, w, h]] of regions.entries()) {
       expect(x).toBeGreaterThanOrEqual(0);
@@ -2645,29 +2671,15 @@ describe("camper aluminium roof edges", () => {
     const edges = cubes.filter((c) =>
       Object.values(c.uv).some((f) => f.uv[1] === boltY),
     );
-    expect(edges).toHaveLength(3);
-    const front = defined(
-      edges.find((c) => c.size[0] === 48.4),
-      "front roof edge",
-    );
-    expect(front.origin[0]).toBe(-24.2);
-    expect(front.origin[1]).toBe(63.4);
-    expect(front.size).toEqual([48.4, 0.7, 1]);
-    function edgeWidth(c: Cube): number {
-      return defined(c.size[c === front ? 0 : 2], "edge width");
-    }
-    function outerFace(c: Cube): string {
-      if (c === front) return "north";
-      return defined(c.origin[0], "edge x") < 0 ? "west" : "east";
-    }
+    expect(edges).toHaveLength(2);
+    // No rail crosses the front: only the two side rails carry bolts.
+    expect(edges.every((c) => c.size[0] === 0.4)).toBe(true);
     for (const c of edges) {
-      const outer = outerFace(c);
-      const width = edgeWidth(c);
-      if (c !== front) {
-        expect(c.origin[1]).toBe(63.4);
-        expect(c.size.slice(0, 2)).toEqual([0.4, 0.6]);
-        expect(c.origin[0]).toBe(outer === "west" ? -24.4 : 24);
-      }
+      const outer = defined(c.origin[0], "edge x") < 0 ? "west" : "east";
+      const width = defined(c.size[2], "edge width");
+      expect(c.origin[1]).toBe(63.4);
+      expect(c.size.slice(0, 2)).toEqual([0.4, 0.6]);
+      expect(c.origin[0]).toBe(outer === "west" ? -24.4 : 24);
       for (const [face, uv] of Object.entries(c.uv))
         expect(uv).toEqual(
           face === outer
@@ -2698,7 +2710,9 @@ describe("camper aluminium roof edges", () => {
     const texture = readPng("textures/entity/yasu_ride/camper");
     expect(texture.height).toBeGreaterThanOrEqual(boltY + boltHeight);
     expect(boltWidth).toBe(texture.width);
-    expect(texture.width).toBe(Math.ceil(Math.max(...edges.map(edgeWidth))));
+    expect(texture.width).toBe(
+      Math.ceil(Math.max(...edges.map((c) => c.size[2] ?? 0))),
+    );
     for (let x = 0; x < texture.width; x++) {
       const offset = (boltY * texture.width + x) * 4;
       expect([...texture.pixels.subarray(offset, offset + 4)]).toEqual(

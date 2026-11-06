@@ -51,10 +51,30 @@
           "glow_*": false
         },
         {
+          "mirror": false
+        },
+        {
           "headlights": "!query.property('yasu_ride:headlights')"
         },
         {
           "ceiling_lights": "!query.property('yasu_ride:ceiling_lights')"
+        }
+      ]
+    },
+    "controller.render.yasu_ride.camper.mirror": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": ["Texture.mirror"],
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "mirror": true
         }
       ]
     },

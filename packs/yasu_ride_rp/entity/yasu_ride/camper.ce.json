@@ -26,13 +26,15 @@
         "purple": "textures/entity/yasu_ride/camper_purple",
         "magenta": "textures/entity/yasu_ride/camper_magenta",
         "pink": "textures/entity/yasu_ride/camper_pink",
-        "lit": "textures/entity/yasu_ride/camper_lit"
+        "lit": "textures/entity/yasu_ride/camper_lit",
+        "mirror": "textures/entity/yasu_ride/camper_mirror"
       },
       "geometry": {
         "default": "geometry.yasu_ride.camper"
       },
       "render_controllers": [
         "controller.render.yasu_ride.camper",
+        "controller.render.yasu_ride.camper.mirror",
         {
           "controller.render.yasu_ride.camper.glow": "!query.property('yasu_ride:gear_down')"
         },
