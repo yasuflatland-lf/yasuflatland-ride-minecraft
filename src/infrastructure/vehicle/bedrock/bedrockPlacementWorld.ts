@@ -1,12 +1,14 @@
 // Implements PlacementWorld with @minecraft/server (ADR 0012).
-import { world } from "@minecraft/server";
+import { type Entity, world } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import type { PlacementWorld } from "../../../application/vehicle/ports/placement";
+import type {
+  PlacementWorld,
+  VehicleSpawnResult,
+} from "../../../application/vehicle/ports/placement";
 import {
   asVehicleId,
   type DimensionId,
   type PlayerId,
-  type VehicleId,
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
@@ -68,13 +70,35 @@ export class BedrockPlacementWorld implements PlacementWorld {
     yaw: number,
     kind: VehicleKind,
     ownerId: PlayerId,
-  ): VehicleId {
-    const vehicle = world
-      .getDimension(dimensionId)
-      .spawnEntity(ENTITY_TYPE[kind], at);
-    vehicle.setRotation({ x: 0, y: yaw });
-    vehicle.setDynamicProperty(OWNER_PROPERTY, ownerId);
-    return asVehicleId(vehicle.id);
+  ): VehicleSpawnResult {
+    let vehicle: Entity;
+    try {
+      vehicle = world
+        .getDimension(dimensionId)
+        .spawnEntity(ENTITY_TYPE[kind], at);
+    } catch {
+      return { status: "failed", cleaned: true };
+    }
+    try {
+      vehicle.setRotation({ x: 0, y: yaw });
+      vehicle.setDynamicProperty(OWNER_PROPERTY, ownerId);
+      return { status: "spawned", id: asVehicleId(vehicle.id) };
+    } catch {
+      try {
+        vehicle.remove();
+        return { status: "failed", cleaned: true };
+      } catch {
+        return { status: "failed", cleaned: false };
+      }
+    }
+  }
+
+  refundVehicleItem(
+    playerId: PlayerId,
+    _slot: number,
+    kind: VehicleKind,
+  ): void {
+    this.inventory.giveVehicleItem(playerId, kind);
   }
 
   consumeVehicleItem(

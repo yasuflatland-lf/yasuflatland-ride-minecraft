@@ -28,6 +28,9 @@ function setup(current: Paint, creative = false, lag = false) {
   world.consumeDye.mockImplementation((id, paint) => {
     world.calls.push(`dye:${id}:${paint}`);
   });
+  world.playPaintSound.mockImplementation((id) => {
+    world.sounds.push(id);
+  });
   world.paints.set(TENT, current);
   world.isCreative.mockReturnValue(creative);
   return { world, paintRoofTent: new PaintRoofTent(world) };

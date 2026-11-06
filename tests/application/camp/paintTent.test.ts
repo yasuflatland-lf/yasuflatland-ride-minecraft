@@ -15,6 +15,7 @@ class FakeTentPaintWorld implements TentPaintWorld {
   readonly paints = new Map<TentId, Paint>();
   readonly creative = new Set<PlayerId>();
   readonly calls: string[] = [];
+  readonly sounds: TentId[] = [];
   private readonly pending = new Map<TentId, Paint>();
 
   constructor(private readonly lag = false) {}
@@ -27,6 +28,9 @@ class FakeTentPaintWorld implements TentPaintWorld {
   }
   consumeDye(player: PlayerId, paint: Paint) {
     this.calls.push(`dye:${player}:${paint}`);
+  }
+  playPaintSound(id: TentId) {
+    this.sounds.push(id);
   }
   isCreative(player: PlayerId) {
     return this.creative.has(player);

@@ -9,6 +9,11 @@ import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
 import type { StarterKind } from "../../../domain/vehicle/placement/starter";
 
+/** A failed spawn is cleaned only when no entity remains in the world. */
+export type VehicleSpawnResult =
+  | { status: "spawned"; id: VehicleId }
+  | { status: "failed"; cleaned: boolean };
+
 export interface PlacementWorld {
   /** Whether another feature holds `at`, such as a pitched tent's cell (ADR 0129). */
   isCampSpace(dimensionId: DimensionId, at: Vec3): boolean;
@@ -22,13 +27,15 @@ export interface PlacementWorld {
     yaw: number,
     kind: VehicleKind,
     ownerId: PlayerId,
-  ): VehicleId;
+  ): VehicleSpawnResult;
   /** Takes one vehicle item from `slot`. False when that slot no longer holds one. */
   consumeVehicleItem(
     playerId: PlayerId,
     slot: number,
     kind: VehicleKind,
   ): boolean;
+  /** Returns one item to inventory, or drops it at the player's feet when full. */
+  refundVehicleItem(playerId: PlayerId, slot: number, kind: VehicleKind): void;
   /** Whether the player is in creative mode; false when the player is not in the world. */
   isCreative(playerId: PlayerId): boolean;
   /** Whether the player has received `gift`; undefined when the player is no longer in the world. */

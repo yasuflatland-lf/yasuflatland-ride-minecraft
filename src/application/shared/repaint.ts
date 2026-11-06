@@ -35,6 +35,8 @@ export class Repaint<Id extends string> {
     this.painted.set(cmd.tick, cmd.entityId, cmd.paint);
     if (!this.world.isCreative(cmd.playerId))
       this.world.consumeDye(cmd.playerId, cmd.paint);
+    // Last, so a failing sound cannot stop the dye from being used up.
+    this.world.playPaintSound(cmd.entityId);
     return true;
   }
 }

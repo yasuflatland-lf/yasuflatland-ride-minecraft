@@ -4,9 +4,9 @@ import type { VehicleId } from "../../domain/shared/ids";
 import type { Fleet, FleetEntry } from "../../domain/vehicle/fleet/fleet";
 import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import { forEachIsolated } from "./isolated";
+import { forEachIsolated } from "../shared/isolated";
+import type { Logger } from "../shared/ports/logger";
 import type { LimitWorld } from "./ports/fleet";
-import type { Logger } from "./ports/shared";
 import { retireVehicle } from "./retireVehicle";
 
 export class LimitVehicles {
