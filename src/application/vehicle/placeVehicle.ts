@@ -16,6 +16,7 @@ import {
 } from "../../domain/vehicle/placement/placement";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { PlacementWorld } from "./ports/placement";
+import type { Logger } from "./ports/shared";
 
 export interface PlaceVehicleCommand {
   kind: VehicleKind;
@@ -36,6 +37,7 @@ export class PlaceVehicle {
   constructor(
     private readonly world: PlacementWorld,
     private readonly repo: VehicleRepository,
+    private readonly log: Logger,
   ) {}
 
   /**
@@ -83,19 +85,30 @@ export class PlaceVehicle {
       return false;
     // Taking the item first means a player who moved or dropped it in the
     // meantime gets no vehicle, instead of a vehicle and the item (ADR 0024).
+    const creative = this.world.isCreative(cmd.playerId);
     if (
-      !this.world.isCreative(cmd.playerId) &&
+      !creative &&
       !this.world.consumeVehicleItem(cmd.playerId, cmd.slot, cmd.kind)
     )
       return false;
-    const id = this.world.spawnVehicle(
+    const result = this.world.spawnVehicle(
       cmd.dimensionId,
       { x: block.x + 0.5, y: block.y + 1, z: block.z + 0.5 },
       cmd.yaw,
       cmd.kind,
       cmd.playerId,
     );
-    this.repo.save(createVehicle(cmd.kind, id, cmd.yaw));
+    if (result.status === "failed") {
+      if (!result.cleaned) {
+        this.log.warn(
+          `${cmd.playerId}: ${cmd.kind} placement failed; cleanup unconfirmed, item not refunded`,
+        );
+      } else if (!creative) {
+        this.world.refundVehicleItem(cmd.playerId, cmd.slot, cmd.kind);
+      }
+      return false;
+    }
+    this.repo.save(createVehicle(cmd.kind, result.id, cmd.yaw));
     this.giveGift(cmd.playerId, profileOf(cmd.kind).placementGift);
     return true;
   }
