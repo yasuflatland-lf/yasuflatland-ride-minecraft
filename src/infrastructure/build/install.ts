@@ -2,6 +2,7 @@ import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
+import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { ConfirmBoxStep } from "../../application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
@@ -57,6 +58,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const copyBox = new CopyBox(repo, blocks, feedback);
   const cutBox = new CutBox(repo, blocks, feedback, jobs);
   const actions = { copy: copyBox, cut: cutBox };
+  const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
     chooseBoxStep: new ChooseBoxStep(repo, actions, feedback),
     confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback),
@@ -66,7 +68,13 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     endPasting: new EndPasting(repo),
     newCopy: new NewCopy(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
-    chooseHeighted: new ChooseHeighted(repo, feedback),
+    chooseHeighted,
+    chooseSideCylinder: new ChooseSideCylinder(
+      repo,
+      feedback,
+      aim,
+      chooseHeighted,
+    ),
     aimHeight: new AimHeight(repo),
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),

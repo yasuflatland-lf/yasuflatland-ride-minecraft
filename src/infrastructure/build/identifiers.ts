@@ -47,6 +47,7 @@ export const BUILD_FORM = {
   walls: "yasu_build.form.walls",
   gable: "yasu_build.form.gable",
   hip: "yasu_build.form.hip",
+  sideCylinder: "yasu_build.form.side_cylinder",
   cylinder: "yasu_build.form.cylinder",
   sphere: "yasu_build.form.sphere",
   cube: "yasu_build.form.cube",

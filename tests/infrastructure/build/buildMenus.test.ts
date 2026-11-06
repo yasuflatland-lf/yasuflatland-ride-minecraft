@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
@@ -135,6 +136,16 @@ function setup(fallback?: boolean) {
     chooseHeighted: {
       execute: vi.fn((cmd) =>
         new ChooseHeighted(repo, new FakeFeedback()).execute(cmd),
+      ),
+    },
+    chooseSideCylinder: {
+      execute: vi.fn((cmd) =>
+        new ChooseSideCylinder(
+          repo,
+          new FakeFeedback(),
+          { aim: () => undefined },
+          new ChooseHeighted(repo, new FakeFeedback()),
+        ).execute(cmd),
       ),
     },
     confirmHeighted: { execute: vi.fn() },
@@ -525,6 +536,7 @@ it("dispatches only entries offered by the current flow, including stale choices
         "gable",
         "hip",
         "cylinder",
+        "sideCylinder",
         "sphere",
         "cube",
         "cancel",
@@ -543,6 +555,10 @@ it("dispatches only entries offered by the current flow, including stale choices
           expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
             playerId,
           });
+        } else if (id === "sideCylinder") {
+          expect(
+            cases.chooseSideCylinder.execute,
+          ).toHaveBeenCalledExactlyOnceWith({ playerId });
         } else if (
           id === "gable" ||
           id === "hip" ||
@@ -931,3 +947,65 @@ it("labels New copy and dispatches it through the paste menu with or without his
     }),
   );
 });
+
+it.each([false, true])(
+  "routes a sideways box directly to contents with fallback=%s",
+  async (fallback) => {
+    const { session, menus, player, cases } = setup(fallback);
+    session.setFlow({ ...endpoint, to: { ...to, y: 64 } });
+    ui.answers.push(
+      {
+        selection: shapeMenu(session.flow).findIndex(
+          ({ id }) => id === "sideCylinder",
+        ),
+      },
+      { selection: 2 },
+    );
+    await menus.showShapeMenu(player);
+    expect(cases.chooseSideCylinder.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    expect(session.flow).toMatchObject({
+      heightedKind: "sideCylinderX",
+      heightLocked: true,
+      previous: 5,
+    });
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.buttons).toEqual(labels(contentsMenu(session.flow)));
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      fill: "tube",
+    });
+  },
+);
+
+it.each([false, true])(
+  "routes a sideways rectangle through the shared height step with fallback=%s",
+  async (fallback) => {
+    const { session, menus, player, cases } = setup(fallback);
+    ui.answers.push({
+      selection: shapeMenu(session.flow).findIndex(
+        ({ id }) => id === "sideCylinder",
+      ),
+    });
+    if (fallback) ui.answers.push({ formValues: [7] }, { selection: 0 });
+    await menus.showShapeMenu(player);
+    expect(session.flow).toMatchObject({
+      heightedKind: "sideCylinderX",
+      heightLocked: false,
+      previous: fallback ? 7 : 1,
+    });
+    expect(ui.forms).toHaveLength(fallback ? 3 : 1);
+    if (fallback) {
+      expect(cases.setHeight.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+        height: 7,
+      });
+      expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+        fill: "fill",
+      });
+    } else expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
+  },
+);
