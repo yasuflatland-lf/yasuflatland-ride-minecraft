@@ -88,7 +88,7 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
               dimensionId,
               changes: [{ cell: at, before: stone, after: stone }],
             },
-            false,
+            "undoable",
           );
         const idle: BuildFlow = { kind: "idle" };
         const first = tapBlock(idle, dimensionId, at, stone);
