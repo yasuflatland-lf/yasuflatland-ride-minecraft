@@ -1,4 +1,3 @@
-import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { SPORTSBOAT_ATTITUDE } from "../../../../../src/domain/vehicle/kinds/sportsboat/attitude";
 import {
@@ -31,16 +30,11 @@ describe("SPORTSBOAT_SPEC (ADR 0087)", () => {
   });
 
   it("reads every motion limit from the spec", () => {
-    fc.assert(
-      fc.property(
-        fc.constantFrom(
-          ...(Object.keys(
-            SPORTSBOAT_MOTION,
-          ) as (keyof typeof SPORTSBOAT_MOTION)[]),
-        ),
-        (key) => SPORTSBOAT_MOTION[key] === SPORTSBOAT_SPEC[key],
-      ),
-    );
+    for (const key of Object.keys(
+      SPORTSBOAT_MOTION,
+    ) as (keyof typeof SPORTSBOAT_MOTION)[]) {
+      expect(SPORTSBOAT_MOTION[key]).toBe(SPORTSBOAT_SPEC[key]);
+    }
   });
 
   it("reads the ram reach, water drag, attitude and deck from the spec", () => {
