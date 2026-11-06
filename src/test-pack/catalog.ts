@@ -1268,4 +1268,22 @@ export const CATALOG: readonly ScenarioSpec[] = [
     needsPlayer: true,
     vehicles: 0,
   },
+  {
+    name: "build_side_cylinder_x",
+    file: "buildFlow",
+    ticks: 260,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
+    name: "build_side_cylinder_z",
+    file: "buildFlow",
+    ticks: 260,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
 ];
