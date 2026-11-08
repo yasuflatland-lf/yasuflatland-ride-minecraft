@@ -238,6 +238,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0232](0232-undo-skips-conflicting-cells.md) | Undo skips conflicting cells | Accepted |
 | [0233](0233-round-shapes-and-terrain-operations.md) | Add round shapes and terrain operations to the Build Wand | Accepted |
 | [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) | Plated camper mirrors and a simpler camper exterior | Proposed |
+| [0235](0235-a-beach-parasol-in-a-new-resort-gear-group.md) | A beach parasol in a new Resort Gear group | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

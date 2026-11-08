@@ -25,6 +25,7 @@
 - Source: [0212](../adr/0212-close-a-tent-flap-beside-a-neighbouring-body.md)
 - Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
 - Source: [0231](../adr/0231-release-every-roof-tent-spawn-setter.md)
+- Source: [0235](../adr/0235-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Excluded: [0134](../adr/0134-switch-the-tent-lantern-with-the-headlight-switch.md): tent lantern switching is specified in the lights spec; the shelter's ceiling contract is included here
 - Excluded: [0135](../adr/0135-repaint-the-tent-with-dyes.md): tent paint is specified in the paint spec; differences from the earlier entity contract are recorded below
 - Excluded: [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md): replaces 0144's separate Bulldozer Switches group; build tools and their behavior belong to another spec
@@ -394,6 +395,7 @@
 
 ## Open issues
 
+- The invisible `yasu_ride:parasol_ceiling` block has no collision box (option A, ADR 0235). That rain stops under it and snow does not settle there is unverified in game; the fallback is a 3 px collision box as on the tent ceiling.
 - No live in-game scenario has been added for ADR 0212 player relocation before flap closure. The unit and property tests do not establish PC/mobile facing preservation, multiplayer displacement, or safe footing on edited terrain in Bedrock; the existing flap scenario in `src/test-pack/scenarios/tent.ts` covers toggles only. No server restart or in-game run was performed for this change.
 
 - [0211](../adr/0211-derive-the-ground-tent-lean-from-the-reference-photos.md) records the measured lean compromise: front ridge/base width 0.41 gives `leanWidth = 2.05`, while side measurements around 0.49 would need `leanDepth` about 1.5. Keep `leanDepth = 1.3` (ridge/base depth 0.57) because values above 4/3 remove the two-layer standing front room and the second bedroom column. The domain shell uses H = 4 while the model leans over 3 blocks: layer-2 side-wall centres at x +/-2 sit about 0.2 block outside the visible panels at height 2.5, and layer-3 ceiling cells sit above the visible ridge. The photos have a near-vertical entrance face and a strongly leaning rear wedge; symmetric depth lean cannot reproduce both. The fixed 3/7 height/base ratio 0.43 also differs from measured peak/eave ratios 0.41/0.32. Owner visual acceptance and CI movement checks remain pending. The 0.5-block outer-face gap rule still holds against the domain shell.
