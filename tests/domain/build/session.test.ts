@@ -142,6 +142,25 @@ describe("undo history", () => {
     );
   });
 
+  it("discardHistory returns only held snapshots and empties mixed history", () => {
+    fc.assert(
+      fc.property(stepsArb, (steps) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        let expected: readonly StructureHandle[] = [];
+        for (const { entry } of steps) {
+          if (entry.kind === "snapshot") {
+            session.recordSnapshot(entry.snapshot);
+            expected = [entry.snapshot.handle];
+          } else session.finishEdit(entry.record, "undoable");
+        }
+        expect(session.discardHistory()).toEqual(expected);
+        expect(session.hasHistory).toBe(false);
+        expect(session.takeUndo()).toBe("nothingToUndo");
+        expect(session.discardHistory()).toEqual([]);
+      }),
+    );
+  });
+
   it("session.recordSnapshot returns the replaced handle", () => {
     const s = new BuildSession(asPlayerId("p1"));
     const first = snapshotAt(1);

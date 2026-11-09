@@ -14,6 +14,7 @@ import { CopySelection } from "../../application/build/copySelection";
 import { CutBox } from "../../application/build/cutBox";
 import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
+import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
@@ -49,16 +50,17 @@ import { InMemorySessionRepository } from "./persistence/inMemorySessionReposito
 
 export function installBuild(deps: {
   isProtected: SpaceCheck;
-  isFleetEntityType: (typeId: string) => boolean;
+  isExcludedEntityType: (typeId: string) => boolean;
 }): void {
   const repo = new InMemorySessionRepository();
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
   const ports = {
     blocks: new BedrockBlockWorld(deps),
-    structures: new BedrockStructureStore(deps.isFleetEntityType),
+    structures: new BedrockStructureStore(deps.isExcludedEntityType),
   };
   const { blocks } = ports;
+  const endSession = new EndBuildSession(repo, ports.structures);
   const aim = new BedrockAimReader();
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
@@ -123,7 +125,7 @@ export function installBuild(deps: {
   });
   registerModeTick(modes);
   registerOutlineTick(new ShowPreview(repo, feedback, aim));
-  registerSessions(repo, cases.endPasting, debounce);
+  registerSessions(endSession, cases.endPasting, debounce);
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
@@ -137,5 +139,6 @@ export function installBuild(deps: {
     recorded,
     repo,
     ports.structures,
+    endSession,
   );
 }

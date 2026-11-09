@@ -6,7 +6,7 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 export type CaptureRefusal = "tooLarge" | "unreadable";
 
 export interface BuildStructureStore {
-  /** Saves the blocks and entities inside `box` as one structure. Players and this addon's vehicles are not saved. Never throws. */
+  /** Saves the blocks and entities inside `box` as one structure. Players and this add-on's entities are not saved. Never throws. */
   capture(
     dimensionId: DimensionId,
     box: CellBox,
@@ -18,7 +18,7 @@ export interface BuildStructureStore {
     dimensionId: DimensionId,
     anchor: Cell,
   ): boolean;
-  /** Removes entities inside `box`, except players and this addon's vehicles. */
+  /** Removes entities inside `box`, except players and this add-on's entities. */
   clearEntities(dimensionId: DimensionId, box: CellBox): void;
   /** Sets every block inside `box` to air without drops, containers included. */
   clearBlocks(dimensionId: DimensionId, box: CellBox): boolean;

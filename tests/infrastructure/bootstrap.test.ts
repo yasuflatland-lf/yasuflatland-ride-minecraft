@@ -184,9 +184,13 @@ it("installs build last and passes both space checks without requesting a camera
   });
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
-  expect(vi.mocked(installBuild).mock.lastCall?.[0].isFleetEntityType).toBe(
-    isFleetEntityType,
-  );
+  const excluded =
+    vi.mocked(installBuild).mock.lastCall?.[0].isExcludedEntityType;
+  expect(excluded?.("yasu_ride:camp_table")).toBe(true);
+  expect(excluded?.("yasu_build:bulldozer")).toBe(true);
+  isFleetEntityType.mockReturnValueOnce(true);
+  expect(excluded?.("minecraft:armor_stand")).toBe(true);
+  expect(excluded?.("minecraft:cow")).toBe(false);
   expect(installResort).toHaveBeenCalledExactlyOnceWith({
     topHosts: vi.mocked(installCamp).mock.lastCall?.[0].topHosts,
     isVehicleSpace,

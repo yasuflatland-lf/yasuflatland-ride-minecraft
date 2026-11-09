@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
+import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
@@ -60,7 +61,11 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           );
           session.setFlow(flow);
           expect(debounce.press(id, 0)).toBe(true);
-          registerSessions(repo, new EndPasting(repo), debounce);
+          registerSessions(
+            new EndBuildSession(repo, { discard: vi.fn() }),
+            new EndPasting(repo),
+            debounce,
+          );
           engine.handlers.get(event)?.({
             player: { id },
             deadEntity: { id, typeId: "minecraft:player" },
@@ -87,7 +92,11 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
   );
   holdClipboard(session, clipboard);
   session.setFlow({ kind: "pasteAim" });
-  registerSessions(repo, new EndPasting(repo), debounce);
+  registerSessions(
+    new EndBuildSession(repo, { discard: vi.fn() }),
+    new EndPasting(repo),
+    debounce,
+  );
   engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
   expect(session.flow.kind).toBe("pasteAim");
   expect(session.clipboard).toBe(clipboard);

@@ -153,6 +153,14 @@ export class BuildSession {
     return dropped;
   }
 
+  discardHistory(): readonly StructureHandle[] {
+    const handles = this.history.entries.flatMap((entry) =>
+      entry.kind === "snapshot" ? [entry.snapshot.handle] : [],
+    );
+    this.history = EMPTY_HISTORY;
+    return handles;
+  }
+
   /** The last entry, removed from the history, or a refusal ("busy" while editing). */
   takeUndo(): UndoEntry | EditRefusal {
     if (this.editing) return "busy";

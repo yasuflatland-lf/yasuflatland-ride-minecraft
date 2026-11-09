@@ -1,6 +1,7 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
 import type { DescribeBuild } from "../../../../application/build/describeBuild";
+import type { EndBuildSession } from "../../../../application/build/endBuildSession";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type {
   BuildFeedback,
@@ -84,6 +85,7 @@ export function registerTestEdit(
   >,
   repo: BuildSessionRepository,
   structures: BuildStructureStore,
+  endSession: EndBuildSession,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -102,7 +104,7 @@ export function registerTestEdit(
         // A fresh session makes the first-edit check independent of scenario order.
         if (command === "reset" && args.length === 0) {
           if (describe.editStatus(playerId).isEditing) return;
-          repo.remove(playerId);
+          endSession.execute(playerId);
           repo.getOrCreate(playerId);
         } else if (
           command === "structure" &&
