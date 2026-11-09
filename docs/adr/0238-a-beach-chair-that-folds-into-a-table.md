@@ -1,0 +1,33 @@
+# 0238. A beach chair that folds into a table
+
+- Status: Proposed
+- Acceptance condition: the owner approves the four chair previews and one table preview against the reference photos before merge; later work verifies the player pose and table behavior in game
+- Date: 2026-11-09
+- Extends: [0236](0236-a-beach-parasol-in-a-new-resort-gear-group.md): the second Resort Gear item
+- Related: [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md): hosting lanterns and ovens
+- Related: [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md): a script-controlled occupant
+
+## Context
+
+The owner wants the photographed teak lounger beside the Beach Parasol. One item must serve as a reclining chair and a low table. The reference photos remain outside the repository. The design document in the main checkout is `docs/designs/2026-11-09-beach-chair-design.md`.
+
+Issue #1444 supplies assets only. Placement, menus, player animation, hosting, table blocks, and recovery belong to later issues. The player definition override and its compatibility with vanilla animations still require a separate implementation and verification.
+
+## Decision
+
+- Keep both forms within a 1 by 2 block footprint, with the origin at ground level at the center of the boundary between the cells. Model -z is the foot end and +z is the backrest end. Shorten the rear frame to fit these cells; folding keeps the footprint unchanged.
+- Generate unpainted teak slats with visible gaps, a 4.5 px long lighter interlocking foot zone of lengthwise segments with open gaps, and an inset foot-end stub frame with its own two legs in chair form. All eight chair legs use the minimum whole-pixel square section, 2 by 2 px, and rise 6.2 px to the underside of the slats. Main side rails remain deep at 1.6 px, with 4.6 px clear height beneath them (2.875 times their depth); inset foot rails are 1.1 px deep. Rear side rails are 1 px wide and 1.1 px deep, with their tops at 6.2 px, short 0.5 px wide posts directly below the hinge ends, and one unchanged 2 by 2 px leg at each far corner. The open rear rectangle stays inside the footprint. Twelve aligned bed and backrest slats meet directly at the hinge without pins, added blocks, or a lower crossbar. Backrest slats are 0.765 px wide and 0.06 px thick, separated by 0.18 px gaps visible from both sides. Only the outward/downward head-end crossbar remains. Each side has one bright steel strip, 0.25 px wide and 0.12 px thick, attached to the backrest underside at 40 percent of its 12.8 px length. Its rear endpoint is at y=5.65, z=15.4 px, halfway up the rear rail and 0.6 px before its end. These attachment and footprint constraints give a 27.91 degree downward slope (9.364 px length), rather than the photograph's approximate 20 degrees; a 20 degree strip from the same attachment would extend beyond the footprint. The strips have no connecting crossbar and stow flat before the chair group is hidden.
+- The table is one plain rectangle filling x [-6, 6], z [-16, 16] px, with exactly four 2 by 2 px legs at its corners. It has no foot-end stub frame, lighter band, or extra legs. Its continuous slatted top has edge-to-edge joints without grooves, black gaps, or a dark strip. Nine true 0.36 px square holes form one row across z=0, one between each pair of neighboring slat lines, with wood between holes.
+- Retain the required `root`, `frame`, `backrest`, and `prop` bones. Parent the chair geometry under `chair_form`; put the separate rectangular table frame under `table_form` with a `table_top` child. Static animations set the visible group's scale to one and the other group's scale to zero. The fold/unfold animations rotate the backrest flush and stow the prop, then switch groups using discontinuous pre/post scale keys at 0.5 seconds. This removes every chair-only part from the table without stretching the footprint or leaving dark overlapping surfaces. The preview renderer applies the same rotations and hides zero-scaled groups including descendants.
+- Use one client-synchronized boolean property, `yasu_ride:folded`, default false. Fold and unfold over 0.5 seconds (10 ticks). An initial controller state selects the current static chair or table pose without playing a transition on load.
+- The generated top is 7 px above the origin; top half extents are 6 px across x and 16 px along z. The bed outline is x [-6, 6], z [-16, 16] px. The reclining hip seat is `seatOffset = [0, 0.4375, 0.125]` blocks. The backrest hinge is [0, 7, 3] px and the chair backrest angle is 37 degrees above the bed. These values are the handoff to #1445.
+- Define one script-controlled player seat without interaction text, persistence, immunity to damage, gravity, no pushing, and the `inanimate` family. Three overlapping 0.75-block square custom hit boxes cover the 0.75 by 2 model outline; the engine's physics collision box remains square.
+- Put Beach Chair immediately after Beach Parasol in Resort Gear. Craft one from planks, sticks, and an iron ingot using rows `P P`, `PPP`, `SIS`. Do not grant a starter chair or add paint.
+- Subsequent behavior opens a two-choice menu on a chair: lie down in the player's own skin with straight legs and a reclined upper body, or fold into a table. Refuse folding while occupied. A table press unfolds without a menu unless anything is on top.
+- In table form only, lay two invisible solid table blocks, with collision and selection matching the top, to support ordinary blocks flush with the visible surface. Record laid cells, restore them after reload, and clear only matching blocks when unfolding or recovering. Lay only into air outside vehicle space. Table blocks forward interactions to the chair.
+- Host Gas Lanterns and Dutch Ovens using shared tabletop placement rules. Hosted gear and ordinary blocks cannot overlap. Anything on top means hosted gear or a non-air block directly above a table block; it prevents unfolding and recovery.
+- Three non-dye hits within the shared hit window return one chair item in either form. Table-block hits count toward the same chair. Refuse recovery while occupied or supporting anything, without changing the counter; recovery clears the table blocks.
+
+## Consequences
+
+The asset contract allows later work to use measured seat and tabletop dimensions without changing the model. This issue provides no scripted interaction, placement, or recovery. Static previews and pack tests cannot establish engine behavior, multiplayer pose synchronization, or compatibility of a future player animation override. Owner visual approval remains pending and is required before merge.
