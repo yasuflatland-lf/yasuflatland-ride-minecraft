@@ -18,42 +18,45 @@ TOP_PX = 7
 HALF = (6, 16)
 BED_OUTLINE = (-6, 6, -16, 16)
 SEAT_OFFSET = (0, TOP_PX / 16, 2 / 16)
-HINGE = (0, TOP_PX, 3)
+HINGE = (0, TOP_PX, 5.5)
 BACKREST_ANGLE = 37
-BACKREST_LENGTH = 12.8
-SLAT_COUNT = 10
-SLAT_WIDTH = 0.66
-SLAT_GAP = 0.46
+# The flat backrest ends at the head edge during the fold, so it stays inside z = 16.
+BACKREST_LENGTH = 10.5
+SLAT_COUNT = 13
+SLAT_WIDTH = 0.52
+SLAT_GAP = 0.36
 BACKREST_SLAT_COUNT = SLAT_COUNT
 BACKREST_SLAT_WIDTH = SLAT_WIDTH
 BACKREST_SLAT_GAP = SLAT_GAP
 BACKREST_THICKNESS = 0.06
-LEG_SIZE = 1.2
-MAIN_RAIL_THICKNESS = LEG_SIZE
-MAIN_RAIL_BOTTOM = 5.6
-MAIN_RAIL_START = -7.8
+LEG_SIZE = 1.15
+MAIN_RAIL_THICKNESS = 0.4
+MAIN_RAIL_BOTTOM = 5.65
+MAIN_RAIL_START = -9
+# The main rails run past the hinge; the short open rear frame starts where they end.
+MAIN_RAIL_END = 10.5
 # The sliding stub and rear frame do not contribute to the folded tabletop.
 TABLE_Z_MIN = MAIN_RAIL_START
 TABLE_Z_MAX = HINGE[2]
 TABLE_Z_CENTER = (TABLE_Z_MIN + TABLE_Z_MAX) / 2
 EXTENSION_HALF_WIDTH = 5.3
-EXTENSION_RAIL_THICKNESS = LEG_SIZE
-EXTENSION_RAIL_BOTTOM = 5.6
-EXTENSION_RAIL_TOP = 6.8
+EXTENSION_RAIL_THICKNESS = 0.4
+EXTENSION_RAIL_BOTTOM = 5.65
+EXTENSION_RAIL_TOP = 6.82
 EXTENSION_END_START = -15.6
 EXTENSION_END_DEPTH = 0.5
 EXTENSION_LEG_SIZE = LEG_SIZE
-REAR_RAIL_BOTTOM = 5.5
-REAR_RAIL_TOP = 6.6
-REAR_RAIL_WIDTH = LEG_SIZE
+REAR_RAIL_BOTTOM = 5.65
+REAR_RAIL_TOP = 6.82
+REAR_RAIL_WIDTH = 0.4
 REAR_LEG_SIZE = LEG_SIZE
 REAR_END_START = 15.4
 PAD_HEIGHT = 0.2
 PAD_INSET = 0.08
 PAD_SLOT = 5
 JOINT_SEAM = 0.018
-TABLE_RAIL_BOTTOM = 5.6
-TABLE_RAIL_THICKNESS = LEG_SIZE
+TABLE_RAIL_BOTTOM = 5.65
+TABLE_RAIL_THICKNESS = 0.4
 PROP_ATTACHMENT = 0.4
 PROP_PIVOT = (0, (REAR_RAIL_BOTTOM + REAR_RAIL_TOP) / 2, REAR_END_START)
 PROP_START = (0,
@@ -63,15 +66,15 @@ PROP_START = (0,
               + BACKREST_THICKNESS * math.sin(math.radians(BACKREST_ANGLE)))
 PROP_ANGLE = math.degrees(math.atan2(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2] - PROP_START[2]))
 PROP_LENGTH = math.hypot(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2] - PROP_START[2])
-PROP_WIDTH = 0.25
-PROP_THICKNESS = 0.12
-PALETTE = ((166, 119, 74), (190, 148, 100), (211, 179, 132), (238, 242, 240), (190, 148, 100), (38, 33, 29))
+PROP_WIDTH = 0.12
+PROP_THICKNESS = 0.08
+PALETTE = ((176, 148, 113), (210, 184, 148), (217, 194, 160), (225, 230, 229), (210, 184, 148), (38, 33, 29))
 TEXTURE_WIDTH = len(PALETTE) * 16
-SLAT_BOTTOM = TOP_PX - 0.2
-BAND_START = -12.3
-BAND_END = -7.8
-FINGER_WIDTH = 0.18
-PALE_SLAT_WIDTH = 0.5
+SLAT_BOTTOM = TOP_PX - 0.18
+BAND_START = -11.5
+BAND_END = -9
+FINGER_WIDTH = 0.16
+PALE_SLAT_WIDTH = 0.4
 BACKREST_BOTTOM = TOP_PX - BACKREST_THICKNESS
 NOTCH_SIZE = 0.36
 GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
@@ -93,14 +96,14 @@ def geometry():
     frame = []
     # The extension clears the main rails while its slat tips overhang the end rail.
     for half, thickness, start, end, bottom, top in (
-            (EXTENSION_HALF_WIDTH, EXTENSION_RAIL_THICKNESS, -HALF[1], BAND_END,
+            (EXTENSION_HALF_WIDTH, EXTENSION_RAIL_THICKNESS, -HALF[1], BAND_END + LEG_SIZE,
              EXTENSION_RAIL_BOTTOM, EXTENSION_RAIL_TOP),
-            (HALF[0], MAIN_RAIL_THICKNESS, MAIN_RAIL_START, HINGE[2], MAIN_RAIL_BOTTOM, TOP_PX),
-            (HALF[0], REAR_RAIL_WIDTH, HINGE[2], HALF[1], REAR_RAIL_BOTTOM, REAR_RAIL_TOP)):
+            (HALF[0], MAIN_RAIL_THICKNESS, MAIN_RAIL_START, MAIN_RAIL_END, MAIN_RAIL_BOTTOM, TOP_PX),
+            (HALF[0], REAR_RAIL_WIDTH, MAIN_RAIL_END, HALF[1], REAR_RAIL_BOTTOM, REAR_RAIL_TOP)):
         for x in (-half, half - thickness):
             frame.append(box((x, bottom, start), (x + thickness, top, end)))
     for half, size, starts, top in (
-            (HALF[0], LEG_SIZE, (MAIN_RAIL_START, HINGE[2] - LEG_SIZE), MAIN_RAIL_BOTTOM),
+            (HALF[0], LEG_SIZE, (MAIN_RAIL_START, MAIN_RAIL_END - LEG_SIZE), MAIN_RAIL_BOTTOM),
             (EXTENSION_HALF_WIDTH, EXTENSION_LEG_SIZE, (EXTENSION_END_START,), EXTENSION_RAIL_BOTTOM),
             (HALF[0], REAR_LEG_SIZE, (HALF[1] - REAR_LEG_SIZE,), REAR_RAIL_BOTTOM)):
         for z in starts:
@@ -108,6 +111,9 @@ def geometry():
                 frame.extend(leg(x, z, size, top))
     frame.append(box((-EXTENSION_HALF_WIDTH, EXTENSION_RAIL_BOTTOM, EXTENSION_END_START),
                      (EXTENSION_HALF_WIDTH, EXTENSION_RAIL_TOP, EXTENSION_END_START + EXTENSION_END_DEPTH)))
+    # The main frame's end grain closes the inset slider joint below the flush slats.
+    frame.append(box((-HALF[0], MAIN_RAIL_BOTTOM, MAIN_RAIL_START),
+                     (HALF[0], SLAT_BOTTOM, MAIN_RAIL_START + MAIN_RAIL_THICKNESS)))
     frame.append(box((-HALF[0], REAR_RAIL_BOTTOM, REAR_END_START),
                      (HALF[0], REAR_RAIL_TOP, HALF[1])))
     backrest = []
@@ -132,8 +138,9 @@ def geometry():
         backrest.append(box((x, BACKREST_BOTTOM, HINGE[2]),
                             (x + BACKREST_SLAT_WIDTH, TOP_PX, HINGE[2] + BACKREST_LENGTH), 1))
     # Only the head crossbar remains; its hooked ends lean down toward +z.
-    crossbar = box((-5.8, 6.35, 15), (5.8, BACKREST_BOTTOM, 15.65))
-    backrest.extend(tilt.tilt_assembly([crossbar], (0, BACKREST_BOTTOM, 15), "x", -20))
+    crossbar_z = HINGE[2] + BACKREST_LENGTH - 0.8
+    crossbar = box((-5.8, 6.35, crossbar_z), (5.8, BACKREST_BOTTOM, crossbar_z + 0.65))
+    backrest.extend(tilt.tilt_assembly([crossbar], (0, BACKREST_BOTTOM, crossbar_z), "x", -20))
     # A separate flat strip on each side joins the underside to the rail midpoint.
     prop = [box((x, PROP_PIVOT[1] - PROP_THICKNESS / 2, PROP_PIVOT[2] - PROP_LENGTH),
                 (x + PROP_WIDTH, PROP_PIVOT[1] + PROP_THICKNESS / 2, PROP_PIVOT[2]), 3)
@@ -150,7 +157,7 @@ def geometry():
         table_frame.append(box((-HALF[0], TABLE_RAIL_BOTTOM, z),
                                (HALF[0], SLAT_BOTTOM, z + TABLE_RAIL_THICKNESS)))
     # Adjacent slats share edges: wood grain marks joints without grooves or air gaps.
-    # Nine true square holes sit between the ten slat centre lines at the table midpoint.
+    # True square holes sit between the slat centre lines at the table midpoint.
     centres = [-slats_half + k * (SLAT_WIDTH + SLAT_GAP) + SLAT_WIDTH / 2
                for k in range(SLAT_COUNT)]
     joints = [(a + b) / 2 for a, b in zip(centres, centres[1:])]
