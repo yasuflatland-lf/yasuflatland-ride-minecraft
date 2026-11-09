@@ -1,8 +1,14 @@
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopLifecycle",
+  () => ({ registerFurnitureTopLifecycle: vi.fn() }),
+);
+
 import { PlaceFurniture } from "../../../src/application/resort/placeFurniture";
 import { TakeBackFurniture } from "../../../src/application/resort/takeBackFurniture";
 import { BedrockFurnitureWorld } from "../../../src/infrastructure/resort/bedrock/bedrockFurnitureWorld";
 import { registerFurnitureHits } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits";
 import { registerFurniturePlacement } from "../../../src/infrastructure/resort/bedrock/handlers/furniturePlacement";
+import { registerFurnitureTopLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopLifecycle";
 import { registerTestFurniture } from "../../../src/infrastructure/resort/bedrock/handlers/testFurniture";
 
 vi.mock(
@@ -124,6 +130,10 @@ it("registers folded chair hosting, the lifecycle, and the parasol starter with 
   );
   expect(registerFurnitureHits).toHaveBeenCalledExactlyOnceWith(
     expect.any(TakeBackFurniture),
+    expect.any(BedrockFurnitureWorld),
+  );
+  expect(registerFurnitureTopLifecycle).toHaveBeenCalledExactlyOnceWith(
+    vi.mocked(registerFurnitureHits).mock.calls[0]?.[1],
   );
   expect(registerTestFurniture).toHaveBeenCalledExactlyOnceWith(
     expect.any(BedrockFurnitureWorld),

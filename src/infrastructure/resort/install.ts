@@ -29,6 +29,7 @@ import { registerBeachChairLifecycle } from "./bedrock/handlers/beachChairLifecy
 import { registerBeachChairPlacement } from "./bedrock/handlers/beachChairPlacement";
 import { registerFurnitureHits } from "./bedrock/handlers/furnitureHits";
 import { registerFurniturePlacement } from "./bedrock/handlers/furniturePlacement";
+import { registerFurnitureTopLifecycle } from "./bedrock/handlers/furnitureTopLifecycle";
 import { registerParasolHits } from "./bedrock/handlers/hits";
 import { registerParasolLifecycle } from "./bedrock/handlers/lifecycle";
 import { registerParasolPlacement } from "./bedrock/handlers/placement";
@@ -74,7 +75,8 @@ export function installResort(deps: {
   const furniture = new BedrockFurnitureWorld(deps);
   const takeFurniture = new TakeBackFurniture(furniture);
   registerFurniturePlacement(new PlaceFurniture(furniture));
-  registerFurnitureHits(takeFurniture);
+  registerFurnitureHits(takeFurniture, furniture);
+  registerFurnitureTopLifecycle(furniture);
   registerTestFurniture(furniture, takeFurniture, deps);
   const chair = new BedrockBeachChairWorld(deps);
   const takeChair = new TakeBackBeachChair(chair);

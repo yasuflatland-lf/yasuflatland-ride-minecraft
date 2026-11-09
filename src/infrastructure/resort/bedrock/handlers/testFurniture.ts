@@ -31,6 +31,9 @@ export function registerTestFurniture(
   },
 ): void {
   class TestWorld extends BedrockFurnitureWorld {
+    override layTop(id: FurnitureId): void {
+      adapter.layTop(id);
+    }
     override spawn(
       dimensionId: DimensionId,
       pose: FurniturePose,

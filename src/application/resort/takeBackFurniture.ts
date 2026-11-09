@@ -18,7 +18,7 @@ export class TakeBackFurniture {
       this.world.showRefused(cmd.player, "occupied");
       return;
     }
-    if (this.world.somethingOnTop(cmd.id)) {
+    if (this.world.somethingOnTop(cmd.id) || this.world.blockAboveTop(cmd.id)) {
       this.world.showRefused(cmd.player, "somethingOnTop");
       return;
     }
@@ -34,6 +34,7 @@ export class TakeBackFurniture {
     handleHit(counters, cmd.id, cmd.now, {
       drop: () => this.world.dropItem(cmd.id, cmd.player),
       remove: () => {
+        this.world.clearTop(cmd.id);
         this.world.remove(cmd.id);
         this.world.showTaken(cmd.player);
       },

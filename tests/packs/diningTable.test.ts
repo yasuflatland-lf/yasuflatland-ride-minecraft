@@ -31,8 +31,8 @@ it("ships a persistent, damage-immune table with whole-model hits and no seats",
   ]);
   expect(c["minecraft:persistent"]).toEqual({});
   expect(c["minecraft:physics"]).toEqual({
-    has_collision: true,
-    has_gravity: true,
+    has_collision: false,
+    has_gravity: false,
   });
   expect(c["minecraft:pushable"]).toEqual({
     is_pushable: false,
@@ -260,4 +260,30 @@ it("links the client, render controller, item icon, recipe and translations", ()
         "item.yasu_ride:dining_table_item.name=Dining Table",
       );
   }
+});
+
+it("lays an invisible, protected tabletop with collision matching the model height", () => {
+  const block = read(`${BP}blocks/yasu_ride/dining_table_top.block.json`)[
+    "minecraft:block"
+  ];
+  expect(block.description).toEqual({
+    identifier: "yasu_ride:dining_table_top",
+    menu_category: { category: "none" },
+  });
+  const c = block.components;
+  for (const name of ["collision_box", "selection_box"])
+    expect(c[`minecraft:${name}`]).toEqual({
+      origin: [-8, 0, -8],
+      size: [16, top.topPx, 16],
+    });
+  expect(c["minecraft:geometry"].bone_visibility).toEqual({ root: false });
+  expect(c["minecraft:material_instances"]["*"]).toEqual({
+    texture: "glass",
+    render_method: "alpha_test",
+  });
+  expect(c["minecraft:light_dampening"]).toBe(0);
+  expect(c["minecraft:destructible_by_mining"]).toBe(false);
+  expect(c["minecraft:destructible_by_explosion"]).toBe(false);
+  expect(c["tag:yasu_ride:laid"]).toEqual({});
+  expect(top.clearanceBase).toBe(1);
 });

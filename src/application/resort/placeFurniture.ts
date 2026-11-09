@@ -1,4 +1,5 @@
 import {
+  FURNITURE_SPEC,
   type FurnitureKind,
   furnitureClearCells,
   furniturePose,
@@ -44,6 +45,7 @@ export class PlaceFurniture {
       if (paid) this.world.refund(player, kind, slot);
       return blocked();
     }
+    if (FURNITURE_SPEC[kind].top) this.world.layTop(id);
     return true;
   }
 }
