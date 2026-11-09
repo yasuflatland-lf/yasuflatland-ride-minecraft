@@ -1,6 +1,6 @@
 # Resort gear
 
-- Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement, form switching, lying down and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
+- Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement, form switching, lying down and recovery, Sofa (Single) placement, sitting and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
 - Verified at: 732f6c1c
 - Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
@@ -13,12 +13,12 @@
 
 ### Furniture domain groundwork
 
-- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; placement and recovery are installed; assets remain future work.
+- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; placement and recovery are installed; Sofa (Single) assets are included.
 - Rule: A deeply frozen per-kind table defines footprint offsets, two clearance layers, seats, recovery parameters, and an optional tabletop surface. Shared geometry faces the player and centres the origin over the occupied floor cells. The double sofa extends from the pressed column to the player's right. Existing Beach Chair behavior is unchanged.
 - Agreement: Proposed
 - Basis: [0240](../adr/0240-resort-furniture-family.md) Decision, furniture family and placement geometry.
 - Implementation: `src/domain/resort/furniture.ts`; `src/domain/resort/ids.ts`
-- Verification: `tests/domain/resort/furniture.test.ts` checks every kind and quarter turn, support and clearance cells, origin centring, player-facing orientation, rightward sofa placement, and deep freezing. Assets and in-game integration remain future work.
+- Verification: `tests/domain/resort/furniture.test.ts` checks every kind and quarter turn, support and clearance cells, origin centring, player-facing orientation, rightward sofa placement, and deep freezing. Sofa (Single) pack tests pin its seat; other furniture assets remain future work.
 
 ### Furniture placement and recovery
 
@@ -27,7 +27,16 @@
 - Agreement: Proposed
 - Basis: [0240](../adr/0240-resort-furniture-family.md); Dining set design, Placing and Taking back.
 - Implementation: `src/application/resort/placeFurniture.ts`; `src/application/resort/takeBackFurniture.ts`; `src/infrastructure/resort/bedrock/bedrockFurnitureWorld.ts`; `src/infrastructure/resort/install.ts`
-- Verification: Property tests run the same placement and recovery checks for all four kinds; handler tests cover deferred execution, deduplication, and dye exclusion. Server-only hooks `yasu_ride_test:test_furniture_place` accept `kind x y z yaw`; `yasu_ride_test:test_furniture_hit` accepts an entity id. No furniture assets or live-game verification are included.
+- Verification: Property tests run the same placement and recovery checks for all four kinds; handler tests cover deferred execution, deduplication, and dye exclusion. Server-only hooks `yasu_ride_test:test_furniture_place` accept `kind x y z yaw`; `yasu_ride_test:test_furniture_hit` accepts an entity id. Sofa (Single) assets are included. Live-game verification remains pending.
+
+### Sofa (Single)
+
+- Applies to: `yasu_ride:sofa_single_item` and `yasu_ride:sofa_single`.
+- Rule: A 0.95 by 0.95 block amber woven box frame has thick arms, a low back, a front base rail, beige seat and reclined back cushions, one angled square throw cushion against the left arm, and four silver feet. The front faces model -z. Cushion tops stay below 0.8 blocks; the seat cushion top is 0.4 blocks. The single vanilla rideable anchor is `(0, 0.16, -0.1)`, allowing the same 0.24-block rider offset as the Low Chair. Collision is 1.0 wide by 0.8 high; the hit box covers the complete model. Placement and three-hit recovery use the shared furniture pipeline, including occupied-seat refusal. The unstackable item follows Beach Chair in Resort Gear until Dining Chair is merged. Its crafting-table recipe is `PWP / WWW / SPS`, with planks P, wool W and sticks S, yielding one item.
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md); [Dining set design](../designs/2026-11-09-dining-set-design.md).
+- Implementation: `tools/gen_sofa.py` exposes `build_frame(width_cells)`, `build_cushions(width_cells)` and `build_feet(width_cells)` for one or two cells. Only the single sofa is emitted here. The power-of-two atlas uses `PALETTE_AMBER` weave at fixed physical pitch and solid beige and metal swatches; side faces use the transposed weave. `tools/cube_tilt.py` builds the named throw-cushion assembly. `tools/render_preview.py` writes the preview and icon with texture mapping enabled.
+- Verification: `tests/tools/sofa.test.ts` checks rotated bounds at both widths, reusable components, UV bounds and stale-file detection. `tests/packs/sofaSingle.test.ts` checks the seat against `FURNITURE_SPEC`, collision and hit box coverage, names, assets, recipe uniqueness and catalog order. `sofa_single_place_take_back` checks support, clearance, placement and three-hit recovery at every quarter turn; not yet run. Manual PC/mobile sitting, dismounting and occupied recovery refusal remain unverified in `docs/manual-test.md`.
 
 ### Feature installation and placement
 

@@ -221,3 +221,5 @@ yasu_ride.furniture.hits_left=Hit %s more times to take back the furniture
 yasu_ride.furniture.taken=Took back the furniture
 yasu_ride.furniture.occupied=Someone is sitting on this furniture
 yasu_ride.furniture.something_on_top=Take everything off the top first
+item.yasu_ride:sofa_single_item.name=Sofa (Single)
+entity.yasu_ride:sofa_single.name=Sofa (Single)
