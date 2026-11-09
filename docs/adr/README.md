@@ -240,11 +240,12 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) | Plated camper mirrors and a simpler camper exterior | Proposed |
 | [0235](0235-share-convex-rain-ceiling-geometry-and-placement.md) | Share convex rain ceiling geometry and placement | Proposed |
 | [0236](0236-a-beach-parasol-in-a-new-resort-gear-group.md) | A beach parasol in a new Resort Gear group | Proposed; extended by [0239](0239-a-beach-chair-that-folds-into-a-table.md) |
-| [0237](0237-register-tabletop-hosts-across-features.md) | Register tabletop hosts across features | Proposed; extended by [0240](0240-resort-furniture-family.md) |
+| [0237](0237-register-tabletop-hosts-across-features.md) | Register tabletop hosts across features | Proposed; extended by [0240](0240-resort-furniture-family.md), [0242](0242-dining-table-top-interactions.md) |
 | [0238](0238-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Accepted |
 | [0239](0239-a-beach-chair-that-folds-into-a-table.md) | A beach chair that folds into a table | Proposed |
 | [0240](0240-resort-furniture-family.md) | Resort furniture family | Proposed; superseded in part by [0241](0241-dining-table-top-blocks.md); extended by [0241](0241-dining-table-top-blocks.md) |
-| [0241](0241-dining-table-top-blocks.md) | Dining Table top blocks | Proposed |
+| [0241](0241-dining-table-top-blocks.md) | Dining Table top blocks | Proposed; extended by [0242](0242-dining-table-top-interactions.md) |
+| [0242](0242-dining-table-top-interactions.md) | Dining Table top interactions | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
