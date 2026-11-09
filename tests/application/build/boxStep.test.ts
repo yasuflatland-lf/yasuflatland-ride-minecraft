@@ -21,7 +21,7 @@ import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -119,8 +119,8 @@ it("copies a base grown through any allowed height without beginning an edit", (
           y: height,
           z: dz + 1,
         });
-        expect(e.session.clipboard?.cells).toHaveLength(volume(box));
-        expect(e.session.clipboard?.cells[0]?.state).toEqual(stone);
+        expect(clipboardCells(e.session.clipboard)).toHaveLength(volume(box));
+        expect(clipboardCells(e.session.clipboard)[0]?.state).toEqual(stone);
         expect(
           read.mock.calls.every(([dimensionId]) => dimensionId === nether),
         ).toBe(true);
@@ -153,7 +153,7 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
       const box = boxOf(from, to);
       expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
       expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
-      expect(e.session.clipboard?.cells).toHaveLength(volume(box));
+      expect(clipboardCells(e.session.clipboard)).toHaveLength(volume(box));
       expect(e.feedback.messages.at(-1)).toEqual({
         message: "copied",
         count: volume(box),

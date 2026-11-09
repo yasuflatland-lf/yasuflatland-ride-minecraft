@@ -18,7 +18,7 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeAimReader,
@@ -113,7 +113,7 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
           lastPaste: { anchor: e.target.anchor, tick },
         });
         e.jobs.step();
-        for (const { at } of e.clipboard.cells) {
+        for (const { at } of clipboardCells(e.clipboard)) {
           expect(
             e.world.stateAt(nether, {
               x: e.target.anchor.x + at.x,

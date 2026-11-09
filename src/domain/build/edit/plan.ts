@@ -11,6 +11,10 @@ import type { FillStyle } from "../volume/kind";
 import { type PlannedChange, type PlanStep, SCAN_STEP } from "./change";
 import type { Pattern } from "./pattern";
 
+function assertNever(contents: never): never {
+  throw new Error(`Unhandled clipboard contents: ${JSON.stringify(contents)}`);
+}
+
 export function* planShape(
   shape: Shape,
   style: ShapeStyle,
@@ -25,12 +29,25 @@ export function* planPaste(
   anchor: Cell,
   skipAir: boolean,
 ): Iterable<PlannedChange> {
-  for (const { at, state } of clipboard.cells) {
-    if (skipAir && state.typeId === "minecraft:air") continue;
-    yield {
-      cell: { x: anchor.x + at.x, y: anchor.y + at.y, z: anchor.z + at.z },
-      after: state,
-    };
+  const { contents } = clipboard;
+  switch (contents.kind) {
+    case "cells":
+      for (const { at, state } of contents.cells) {
+        if (skipAir && state.typeId === "minecraft:air") continue;
+        yield {
+          cell: {
+            x: anchor.x + at.x,
+            y: anchor.y + at.y,
+            z: anchor.z + at.z,
+          },
+          after: state,
+        };
+      }
+      return;
+    case "structure":
+      throw new Error("A structure clipboard cannot be planned as cells yet");
+    default:
+      return assertNever(contents);
   }
 }
 
