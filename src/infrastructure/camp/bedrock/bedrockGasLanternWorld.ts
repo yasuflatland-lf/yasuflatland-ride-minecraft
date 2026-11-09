@@ -13,7 +13,11 @@ import {
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import type { TopItem } from "../../../domain/shared/tableTop";
+import type {
+  LocalPoint,
+  TopItem,
+  TopRect,
+} from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
@@ -108,6 +112,8 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
     const host = this.vehicles.topHosts.host(hostType, id);
     return host
       ? {
+          blockedAt: (at: LocalPoint, footprint: TopRect) =>
+            host.type.blockedAt?.(host.entity, at, footprint) ?? false,
           dimension: asDimensionId(host.entity.dimension.id),
           at: host.entity.location,
           yaw: host.entity.getRotation().y,
