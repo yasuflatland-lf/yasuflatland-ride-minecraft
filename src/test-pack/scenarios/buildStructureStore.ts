@@ -64,16 +64,23 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
     sign.setText("Store front", SignSide.Front);
     sign.setText("Store back", SignSide.Back);
     block(26).setType("minecraft:frame");
-    a.dim.runCommand(
-      `replaceitem block ${a.xyz(26, a.gy + 1, 22)} slot.container 0 minecraft:diamond 1`,
-    );
-    if (
-      block(26).getComponent("minecraft:inventory")?.container?.getItem(0)
-        ?.typeId !== "minecraft:diamond"
-    )
-      throw new Error(
-        "cannot observe populated frame with stable inventory API",
+    try {
+      a.dim.runCommand(
+        `replaceitem block ${a.xyz(26, a.gy + 1, 22)} slot.container 0 minecraft:diamond 1`,
       );
+    } catch {
+      // The observation below records the failed fixture.
+    }
+    // A failed frame fixture is recorded, not thrown, so the rest of the
+    // round trip still reports; it never lets an empty frame pass (ADR 0243).
+    const framed =
+      block(26).getComponent("minecraft:inventory")?.container?.getItem(0)
+        ?.typeId === "minecraft:diamond";
+    record(
+      "item_frame_fixture",
+      framed,
+      framed || "cannot observe populated frame with stable inventory API",
+    );
     const cow = summon("minecraft:cow", 27.5);
     const excluded = summon("minecraft:armor_stand", 23.5);
     const handle = store.capture(dim, box, owner);
@@ -120,7 +127,8 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
     );
     record(
       "item_frame",
-      block(26).typeId === "minecraft:frame" &&
+      framed &&
+        block(26).typeId === "minecraft:frame" &&
         block(26).getComponent("minecraft:inventory")?.container?.getItem(0)
           ?.typeId === "minecraft:diamond",
     );
