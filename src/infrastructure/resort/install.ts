@@ -9,6 +9,7 @@ import {
   BedrockStarterItemWorld,
   registerStarterItem,
 } from "../shared/starterItem";
+import type { TopHostRegistry } from "../shared/tableTop/registry";
 import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
 import { BedrockParasolWorld } from "./bedrock/bedrockParasolWorld";
 import { registerParasolHits } from "./bedrock/handlers/hits";
@@ -21,6 +22,7 @@ import {
 } from "./identifiers";
 
 export function installResort(deps: {
+  topHosts: TopHostRegistry;
   isVehicleSpace: SpaceCheck;
   isCampSpace: SpaceCheck;
 }): void {

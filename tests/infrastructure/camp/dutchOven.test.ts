@@ -28,6 +28,7 @@ import {
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
+import { campTopHosts } from "../../support/campTopHosts";
 import { defined } from "../../support/defined";
 
 const game = vi.hoisted(() => ({
@@ -80,9 +81,18 @@ function handlers() {
       toggleLid,
       placeOnFirePit,
       placeOnTable,
+      placeOnTop: (
+        _surface: unknown,
+        {
+          host,
+          hostType: _hostType,
+          ...cmd
+        }: import("../../../src/application/shared/placeOnTop").TopRequest,
+      ) => placeOnTable({ ...cmd, table: host }),
       uncoverEmptyFirePits,
     } as unknown as DutchOvenActions,
     { check: checkHostedItems } as unknown as HostedItemsGuard,
+    campTopHosts(),
   );
   registerFirePit({ toggle } as unknown as FirePitActions, {} as FirePitWorld);
   const press = (held: string | undefined = DUTCH_OVEN_ITEM) => {
@@ -201,7 +211,10 @@ it("shares the covered property and returns the host's actual position and yaw",
     },
   };
   game.entity.mockReturnValue(pit);
-  const ovens = new BedrockDutchOvenWorld({ isVehicleSpace: () => false });
+  const ovens = new BedrockDutchOvenWorld({
+    isVehicleSpace: () => false,
+    topHosts: campTopHosts(),
+  });
   const pits = new BedrockFirePitWorld({ isVehicleSpace: () => false });
   const id = asFirePitId("pit");
   expect(ovens.firePit(id)).toEqual({
@@ -228,7 +241,10 @@ it("switches physics with the host and defers cleanup in unloaded blocks", () =>
     getDynamicProperty: () => "fire_pit:pit:0",
   };
   game.entity.mockReturnValue(entity);
-  const ovens = new BedrockDutchOvenWorld({ isVehicleSpace: () => false });
+  const ovens = new BedrockDutchOvenWorld({
+    isVehicleSpace: () => false,
+    topHosts: campTopHosts(),
+  });
   const id = asDutchOvenId("oven");
   ovens.setHost(id, "fire_pit:pit:0", true);
   expect(entity.setDynamicProperty).toHaveBeenCalledWith(
@@ -446,7 +462,10 @@ it("reads every oven hosted by this table, at its point or its legacy spot", () 
     },
   };
   game.entity.mockReturnValue(table);
-  const ovens = new BedrockDutchOvenWorld({ isVehicleSpace: () => false });
+  const ovens = new BedrockDutchOvenWorld({
+    isVehicleSpace: () => false,
+    topHosts: campTopHosts(),
+  });
   expect(ovens.topHost("camp_table", "table")).toEqual({
     dimension: "overworld",
     at: table.location,
@@ -528,7 +547,10 @@ it("reads the persisted lid property and writes it with sound without changing t
     triggerEvent: vi.fn(),
   };
   game.entity.mockReturnValue(entity);
-  const world = new BedrockDutchOvenWorld({ isVehicleSpace: () => false });
+  const world = new BedrockDutchOvenWorld({
+    isVehicleSpace: () => false,
+    topHosts: campTopHosts(),
+  });
   const id = asDutchOvenId("oven");
   expect(world.simmering(id)).toBe(true);
   world.setSimmering(id, false);

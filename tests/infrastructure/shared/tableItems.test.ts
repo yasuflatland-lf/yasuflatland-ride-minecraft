@@ -4,9 +4,7 @@ import {
   GAS_LANTERN_FOOTPRINT_PX,
 } from "../../../src/domain/camp/spec";
 import { asDimensionId } from "../../../src/domain/shared/ids";
-import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { createGasLanternLight } from "../../../src/infrastructure/camp/bedrock/gasLanternLight";
-import { itemsOnTable } from "../../../src/infrastructure/camp/bedrock/tableItems";
 import {
   CAMP_TABLE_TYPE,
   DUTCH_OVEN_HOST_PROPERTY,
@@ -15,6 +13,8 @@ import {
   GAS_LANTERN_HOSTED_EVENT,
   GAS_LANTERN_TYPE,
 } from "../../../src/infrastructure/camp/identifiers";
+import { BedrockGasLanternWorld } from "../../support/campTopAdapters";
+import { itemsOnTable } from "../../support/campTopHosts";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({

@@ -10,6 +10,7 @@ import {
   GAS_LANTERN_TYPE,
   SWITCH_CLICK_SOUND,
 } from "../../../src/infrastructure/camp/identifiers";
+import { campTopHosts } from "../../support/campTopHosts";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -59,7 +60,7 @@ function fixture() {
   );
   const makeWorld = () =>
     new BedrockGasLanternWorld(
-      { isVehicleSpace: () => false },
+      { isVehicleSpace: () => false, topHosts: campTopHosts() },
       createGasLanternLight(),
     );
   const id = asGasLanternId(entity.id);
