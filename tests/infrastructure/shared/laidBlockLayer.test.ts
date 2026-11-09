@@ -2,10 +2,10 @@ import type { Dimension } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import {
-  RainCeilingLayer,
+  LaidBlockLayer,
   readCeilingCells,
   writeCeilingCells,
-} from "../../../src/infrastructure/shared/rainCeiling";
+} from "../../../src/infrastructure/shared/laidBlockLayer";
 
 vi.mock("@minecraft/server", () => ({
   BlockPermutation: { resolve: (id: string) => id },
@@ -33,11 +33,7 @@ it("shares one warning across block failures and persistence failures for each o
       throw new Error("unloaded");
     }),
   } as unknown as Dimension;
-  const layer = new RainCeilingLayer(
-    "test:ceiling",
-    () => false,
-    "test shelter",
-  );
+  const layer = new LaidBlockLayer("test:ceiling", () => false, "test shelter");
   const cells = [
     { x: 0, y: 1, z: 0 },
     { x: 1, y: 1, z: 0 },
@@ -70,11 +66,7 @@ it("uses the configured block and preserves replacements and unrecorded ceilings
     getBlock: ({ x }: { x: number }) => blocks.get(x),
   } as unknown as Dimension;
   const cells = [0, 1, 2].map((x) => ({ x, y: 4, z: 0 }));
-  const layer = new RainCeilingLayer(
-    "test:ceiling",
-    () => false,
-    "test shelter",
-  );
+  const layer = new LaidBlockLayer("test:ceiling", () => false, "test shelter");
   expect(layer.lay(dimension, cells, [])).toEqual([cells[0]]);
   expect(blocks.get(0)?.setPermutation).toHaveBeenCalledWith("test:ceiling");
   layer.clear(dimension, cells.slice(1));
