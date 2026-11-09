@@ -173,7 +173,7 @@ describe("furniture spec", () => {
       half: { halfX: 6, halfZ: 6 },
       topPx: 12,
       limit: 1,
-      clearanceBase: 0,
+      clearanceBase: 1,
     });
     for (const kind of kinds) {
       const spec = FURNITURE_SPEC[kind];

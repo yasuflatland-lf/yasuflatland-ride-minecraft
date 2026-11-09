@@ -47,7 +47,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
         half: Object.freeze({ halfX: 6, halfZ: 6 }),
         topPx: 12,
         limit: 1,
-        clearanceBase: 0,
+        clearanceBase: 1,
       }),
     }),
     dining_chair: Object.freeze({
