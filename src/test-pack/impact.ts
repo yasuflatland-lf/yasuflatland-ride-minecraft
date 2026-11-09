@@ -250,6 +250,9 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   roof_tent_item: ["camp", "vehicle:suv", "vehicle:camper"],
   tent: ["camp"],
   tent_ceiling: ["camp"],
+  beach_parasol: ["resort"],
+  beach_parasol_item: ["resort"],
+  parasol_ceiling: ["resort"],
   tent_flap: ["camp"],
   tent_item: ["camp"],
   tent_lantern: ["camp"],
@@ -345,6 +348,11 @@ const IMPACT_RULES: readonly ImpactRule[] = [
     rule: "build",
     test: /^src\/(?:domain|application|infrastructure)\/build\//,
     impact: ["build"],
+  },
+  {
+    rule: "resort",
+    test: /^src\/(?:domain|application|infrastructure)\/resort\//,
+    impact: ["resort"],
   },
   {
     rule: "camp",

@@ -19,6 +19,24 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "parasol_place_take_back",
+    file: "parasol",
+    ticks: 10, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "parasol_rain_ceiling",
+    file: "parasol",
+    ticks: 32, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "roof_tent_course",
     file: "roofTent",
     ticks: 80, // Estimate until the first BDS run.
