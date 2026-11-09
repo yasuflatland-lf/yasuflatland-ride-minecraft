@@ -108,6 +108,11 @@ import {
   camperWall,
 } from "./camper";
 import { campingGearBlocks } from "./campingGear";
+import {
+  diningTableLantern,
+  diningTableOven,
+  diningTablePlaceTakeBack,
+} from "./diningTable";
 import { fleetForget } from "./fleetRemove";
 import {
   parasolPaint,
@@ -276,6 +281,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dutch_oven_simmer_take_back: dutchOvenSimmerAndTakeBack,
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
+  dining_table_place_take_back: diningTablePlaceTakeBack,
+  dining_table_lantern: diningTableLantern,
+  dining_table_oven: diningTableOven,
   beach_chair_lantern: beachChairLantern,
   beach_chair_oven: beachChairOven,
   beach_chair_empty_refresh: beachChairEmptyRefresh,

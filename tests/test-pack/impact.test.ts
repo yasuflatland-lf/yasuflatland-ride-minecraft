@@ -23,10 +23,14 @@ import { planOf } from "../../src/test-pack/plan";
 import { WHOLE_RUN } from "../../src/test-pack/protocol";
 
 const root = new URL("../../", import.meta.url);
-const tracked = execFileSync("git", ["ls-files", "-z"], {
-  cwd: fileURLToPath(root),
-  encoding: "utf8",
-})
+const tracked = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+  {
+    cwd: fileURLToPath(root),
+    encoding: "utf8",
+  },
+)
   .split("\0")
   .filter(Boolean);
 
@@ -317,6 +321,8 @@ describe("selectionOf", () => {
     "parasol_ceiling",
     "beach_chair",
     "beach_chair_item",
+    "dining_table",
+    "dining_table_item",
   ])("selects resort scenarios for the %s pack stem", (stem) => {
     expect(PACK_STEM_TAGS[stem]).toEqual(["resort"]);
     const paths = tracked.filter(
@@ -333,6 +339,9 @@ describe("selectionOf", () => {
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
     ).toEqual([
+      "dining_table_place_take_back",
+      "dining_table_lantern",
+      "dining_table_oven",
       "beach_chair_lantern",
       "beach_chair_oven",
       "beach_chair_empty_refresh",
