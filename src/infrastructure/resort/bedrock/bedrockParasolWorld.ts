@@ -84,19 +84,20 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
   isSolidTop(dimension: DimensionId, cell: Cell): boolean {
     try {
       // Stable 2.x has no solidity flag; a non-passable ray must meet the top at full height.
+      // A ray that ends exactly on the face misses it on BDS, so it starts half a block above.
       const hit = world.getDimension(dimension).getBlockFromRay(
-        { x: cell.x + 0.5, y: cell.y + 2, z: cell.z + 0.5 },
+        { x: cell.x + 0.5, y: cell.y + 1.5, z: cell.z + 0.5 },
         { x: 0, y: -1, z: 0 },
         {
-          maxDistance: 2,
+          maxDistance: 1,
           includeLiquidBlocks: false,
           includePassableBlocks: false,
         },
       );
       return (
         hit?.face === Direction.Up &&
-        // BDS reports the Up face of a full block at y=0 in block-local space; slab tops report a fraction.
-        hit.faceLocation.y % 1 === 0 &&
+        // The engine reports faceLocation.y inverted, so a full top reads 0 (ADR 0111).
+        hit.faceLocation.y === 0 &&
         cellKey(hit.block.location) === cellKey(cell)
       );
     } catch {
