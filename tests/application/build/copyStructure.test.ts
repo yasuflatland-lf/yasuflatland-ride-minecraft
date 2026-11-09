@@ -2,28 +2,19 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
-import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { NewCopy } from "../../../src/application/build/newCopy";
-import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
 import {
   type Clipboard,
-  clipboardOf,
   structureOf,
 } from "../../../src/domain/build/clipboard/clipboard";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { StructureHandle } from "../../../src/domain/build/structure/handle";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import {
-  FakeBuildPlayers,
-  FakeFeedback,
-  FakeSessions,
-  FakeWorld,
-  overworld,
-} from "./fakes";
+import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("builder");
@@ -79,22 +70,19 @@ it("keeps the old structure live during New copy and discards it only after succ
       expect(e.structures.live).toEqual(new Set([old]));
       if (cut) {
         const world = new FakeWorld();
-        const jobs = new EditJobs(
-          e.repo,
-          world,
-          e.feedback,
-          { warn: () => {} },
-          new FakeBuildPlayers(),
-        );
         expect(
-          new CutBox(e.repo, world, e.structures, e.feedback, { warn: () => {} }).execute(
-            playerId,
-            overworld,
-            box,
-          ),
+          new CutBox(e.repo, world, e.structures, e.feedback, {
+            warn: () => {},
+          }).execute(playerId, overworld, box),
         ).toBe(true);
-        expect(session.clipboard?.contents.kind).toBe("cells");
-        expect(e.structures.live.size).toBe(0);
+        expect(session.clipboard?.contents.kind).toBe("structure");
+        const entry = session.takeUndo();
+        if (typeof entry === "string" || entry.kind !== "snapshot")
+          throw new Error("Expected snapshot");
+        expect(e.structures.live).toEqual(
+          new Set([structureOf(session.clipboard), entry.snapshot.handle]),
+        );
+        session.putBackUndo(entry);
       } else {
         e.copy.execute(playerId, overworld, box);
         expect(e.structures.live).toEqual(
@@ -113,17 +101,10 @@ it("discards cleared structures once through every exit and leaves no live clipb
     fc.property(
       boxArb,
       fc.constantFrom("clear", "end", "leave", "disconnect"),
-      fc.boolean(),
-      (box, exit, cells) => {
+      (box, exit) => {
         const e = setup();
         const session = e.repo.getOrCreate(playerId);
-        if (cells)
-          session.completeCopy(
-            overworld,
-            box,
-            clipboardOf(box, () => AIR),
-          );
-        else e.copy.execute(playerId, overworld, box);
+        e.copy.execute(playerId, overworld, box);
         const old = structureOf(session.clipboard);
         const clear = () => {
           if (exit === "clear") {
@@ -141,7 +122,7 @@ it("discards cleared structures once through every exit and leaves no live clipb
         expect(e.structures.live.size).toBe(0);
         expect(
           e.structures.calls.filter((call) => call.kind === "discard"),
-        ).toEqual(cells ? [] : [{ kind: "discard", handle: old }]);
+        ).toEqual([{ kind: "discard", handle: old }]);
         expect(e.repo.get(playerId)).toBe(
           exit === "disconnect" ? undefined : session,
         );
@@ -205,21 +186,6 @@ it("refuses without changing a present session or creating an absent one, preser
   );
 });
 
-it("replaces a cells clipboard without discarding a structure", () => {
-  fc.assert(
-    fc.property(boxArb, (box) => {
-      const e = setup();
-      e.repo.getOrCreate(playerId).completeCopy(
-        overworld,
-        box,
-        clipboardOf(box, () => AIR),
-      );
-      e.copy.execute(playerId, overworld, box);
-      expect(e.structures.calls.map((call) => call.kind)).toEqual(["capture"]);
-    }),
-  );
-});
-
 const lifecycleOperation = fc.constantFrom(
   "copy",
   "precheckTooLarge",
@@ -232,8 +198,8 @@ const lifecycleOperation = fc.constantFrom(
   "endSession",
 );
 
-it.each(["absent", "structure", "cells"] as const)(
-  "owns exactly the current clipboard handle throughout arbitrary operations starting with %s",
+it.each(["absent", "structure"] as const)(
+  "owns the clipboard and history handles throughout arbitrary operations starting with %s",
   (initial) => {
     fc.assert(
       fc.property(
@@ -245,35 +211,23 @@ it.each(["absent", "structure", "cells"] as const)(
         }),
         (initialBox, operations) => {
           const e = setup();
-          const world = new FakeWorld();
-          const jobs = new EditJobs(
+          const cut = new CutBox(
             e.repo,
-            world,
+            new FakeWorld(),
+            e.structures,
             e.feedback,
             { warn: () => {} },
-            new FakeBuildPlayers(),
           );
-          const cut = new CutBox(e.repo, world, e.structures, e.feedback, { warn: () => {} });
           const captured = new Set<StructureHandle>();
           const discarded = new Set<StructureHandle>();
-          let expectedClipboard: Clipboard | undefined;
-          let replacement: Clipboard | undefined;
-          let sessionExists = false;
+          const captures: StructureHandle[] = [];
           const capture = e.structures.capture.bind(e.structures);
           e.structures.capture = (dimensionId, box, ownerId) => {
             const result = capture(dimensionId, box, ownerId);
             if (result !== "tooLarge" && result !== "unreadable") {
               expect(captured.has(result)).toBe(false);
               captured.add(result);
-              replacement = {
-                size: {
-                  x: box.max.x - box.min.x + 1,
-                  y: box.max.y - box.min.y + 1,
-                  z: box.max.z - box.min.z + 1,
-                },
-                blockCount: volume(box),
-                contents: { kind: "structure", handle: result },
-              };
+              captures.push(result);
             }
             return result;
           };
@@ -282,43 +236,42 @@ it.each(["absent", "structure", "cells"] as const)(
             expect(captured.has(handle)).toBe(true);
             expect(discarded.has(handle)).toBe(false);
             expect(e.structures.live.has(handle)).toBe(true);
-            const session = e.repo.get(playerId);
-            expect(structureOf(session?.clipboard)).not.toBe(handle);
-            // Observe storage at the port call: final-state checks cannot detect early disposal.
-            expect(session?.clipboard).toEqual(replacement);
+            expect(structureOf(e.repo.get(playerId)?.clipboard)).not.toBe(
+              handle,
+            );
             discarded.add(handle);
             discard(handle);
           };
-
+          let clipboardHandle: StructureHandle | undefined;
+          let snapshotHandle: StructureHandle | undefined;
+          let expectedClipboard: Clipboard | undefined;
+          let sessionExists = false;
           const prefix =
-            initial === "absent"
-              ? []
-              : [
-                  {
-                    operation: initial === "structure" ? "copy" : "cut",
-                    box: initialBox,
-                  } as const,
-                ];
+            initial === "structure"
+              ? [{ operation: "copy" as const, box: initialBox }]
+              : [];
           for (const { operation, box } of [...prefix, ...operations]) {
             const before = e.repo.get(playerId);
+            const state = structuredClone(before);
             const flow = before?.flow;
-            const confirmedBox = before?.confirmedBox;
+            const confirmed = before?.confirmedBox;
             const clipboard = before?.clipboard;
-            const snapshot = structuredClone({ flow, confirmedBox, clipboard });
             const callCount = e.structures.calls.length;
-            const oldHandle = structureOf(expectedClipboard);
-            replacement = undefined;
-            e.structures.captureRefusal = undefined;
+            const oldLive = new Set(
+              [clipboardHandle, snapshotHandle].filter((h) => h !== undefined),
+            );
+            captures.length = 0;
+            e.structures.captureRefusal =
+              operation === "storeTooLarge"
+                ? "tooLarge"
+                : operation === "storeUnreadable"
+                  ? "unreadable"
+                  : undefined;
             const refused =
               operation === "precheckTooLarge" ||
               operation === "storeTooLarge" ||
               operation === "storeUnreadable";
-
-            if (operation === "copy" || refused) {
-              if (operation === "storeTooLarge")
-                e.structures.captureRefusal = "tooLarge";
-              if (operation === "storeUnreadable")
-                e.structures.captureRefusal = "unreadable";
+            if (operation === "copy" || refused || operation === "cut") {
               const target =
                 operation === "precheckTooLarge"
                   ? boxOf(box.min, {
@@ -326,59 +279,75 @@ it.each(["absent", "structure", "cells"] as const)(
                       x: box.min.x + BUILD_SPEC.maxCopyVolume,
                     })
                   : box;
-              expect(e.copy.execute(playerId, overworld, target)).toBe(
-                !refused,
-              );
+              expect(
+                (operation === "cut" ? cut : e.copy).execute(
+                  playerId,
+                  overworld,
+                  target,
+                ),
+              ).toBe(!refused);
               if (!refused) {
-                expect(replacement).toBeDefined();
-                expectedClipboard = replacement;
+                clipboardHandle = captures[0];
+                if (clipboardHandle === undefined)
+                  throw new Error("Expected captured clipboard");
+                if (operation === "cut") snapshotHandle = captures[1];
+                expectedClipboard = {
+                  size: {
+                    x: box.max.x - box.min.x + 1,
+                    y: box.max.y - box.min.y + 1,
+                    z: box.max.z - box.min.z + 1,
+                  },
+                  blockCount: volume(box),
+                  contents: { kind: "structure", handle: clipboardHandle },
+                };
                 sessionExists = true;
               }
-            } else if (operation === "cut") {
-              replacement = clipboardOf(box, () => AIR);
-              expect(cut.execute(playerId, overworld, box)).toBe(true);
-              expectedClipboard = replacement;
-              sessionExists = true;
-              jobs.step();
-            } else if (operation === "newCopy") {
+            } else if (operation === "newCopy")
               new NewCopy(e.repo).execute(playerId);
-            } else {
+            else {
               if (operation === "endPasting")
                 new EndPasting(e.repo, e.structures).execute(playerId);
               else if (operation === "leaveBuild")
                 new LeaveBuild(e.repo, e.structures).execute(playerId);
               else {
                 new EndBuildSession(e.repo, e.structures).execute(playerId);
+                snapshotHandle = undefined;
                 sessionExists = false;
               }
+              clipboardHandle = undefined;
               expectedClipboard = undefined;
             }
-
             const session = e.repo.get(playerId);
             expect(session !== undefined).toBe(sessionExists);
             expect(session?.clipboard).toEqual(expectedClipboard);
-            const handle = structureOf(expectedClipboard);
-            const expectedLive = new Set(handle === undefined ? [] : [handle]);
-            expect(e.structures.live).toEqual(expectedLive);
-            expect(
-              new Set([...captured].filter((value) => !discarded.has(value))),
-            ).toEqual(expectedLive);
-            const calls = e.structures.calls.slice(callCount);
-            expect(calls.filter((call) => call.kind === "discard")).toEqual(
-              oldHandle !== undefined && oldHandle !== handle
-                ? [{ kind: "discard", handle: oldHandle }]
-                : [],
+            expect(structureOf(session?.clipboard)).toBe(clipboardHandle);
+            if (snapshotHandle !== undefined) {
+              const entry = session?.takeUndo();
+              expect(entry).toMatchObject({
+                kind: "snapshot",
+                snapshot: { handle: snapshotHandle },
+              });
+              if (!entry || typeof entry === "string")
+                throw new Error("Expected snapshot");
+              session?.putBackUndo(entry);
+            } else expect(session?.hasHistory ?? false).toBe(false);
+            const live = new Set(
+              [clipboardHandle, snapshotHandle].filter((h) => h !== undefined),
             );
+            expect(e.structures.live).toEqual(live);
+            expect(
+              new Set([...captured].filter((h) => !discarded.has(h))),
+            ).toEqual(live);
+            const calls = e.structures.calls.slice(callCount);
+            expect(
+              calls.filter((c) => c.kind === "discard").map((c) => c.handle),
+            ).toEqual([...oldLive].filter((h) => !live.has(h)));
             if (refused) {
               expect(session).toBe(before);
+              expect(session).toEqual(state);
               expect(session?.flow).toBe(flow);
-              expect(session?.confirmedBox).toBe(confirmedBox);
+              expect(session?.confirmedBox).toBe(confirmed);
               expect(session?.clipboard).toBe(clipboard);
-              expect({
-                flow: session?.flow,
-                confirmedBox: session?.confirmedBox,
-                clipboard: session?.clipboard,
-              }).toEqual(snapshot);
               expect(calls).toEqual(
                 operation === "precheckTooLarge"
                   ? []
@@ -393,7 +362,6 @@ it.each(["absent", "structure", "cells"] as const)(
               );
             }
           }
-          replacement = undefined;
           new EndBuildSession(e.repo, e.structures).execute(playerId);
           expect(e.structures.live.size).toBe(0);
           expect(discarded).toEqual(captured);

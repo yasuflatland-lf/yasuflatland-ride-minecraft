@@ -41,53 +41,49 @@ vi.mock("@minecraft/server", () => ({
 // Kept separate so the death/dimension assumption can be reverted (ADR 0203, Decision 5).
 it("discards the clipboard and confirmed box on death and dimension change in every flow", () => {
   fc.assert(
-    fc.property(
-      fc.string(),
-      fc.integer({ min: -100, max: 100 }),
-      (name, x) => {
-        const id = asPlayerId(name);
-        const at = { x, y: 10, z: 0 };
-        const stone = blockStateOf("minecraft:stone");
-        const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-        const endpoint = tapAir(first, { ...at, x: x + 2, z: 2 });
-        for (const flow of [
-          { kind: "idle" } as const,
-          first,
-          endpoint,
-          chooseHeighted(endpoint, "copy"),
-          { kind: "pasteAim" } as const,
-        ]) {
-          for (const event of ["dimension", "die"]) {
-            const repo = new FakeSessions();
-            const structures = new FakeStructureStore();
-            const session = repo.getOrCreate(id);
-            const debounce = new PressDebounces<PlayerId>(10);
-            new CopyBox(repo, structures, new FakeFeedback()).execute(
-              id,
-              overworld,
-              boxOf(at, at),
-            );
-            session.setFlow(flow);
-            expect(debounce.press(id, 0)).toBe(true);
-            registerSessions(
-              new EndBuildSession(repo, structures),
-              new EndPasting(repo, structures),
-              debounce,
-            );
-            engine.handlers.get(event)?.({
-              player: { id },
-              deadEntity: { id, typeId: "minecraft:player" },
-            });
-            expect(session.flow).toEqual({ kind: "idle" });
-            expect(session.clipboard).toBeUndefined();
-            expect(structures.live.size).toBe(0);
-            expect(session.confirmedBox).toBeUndefined();
-            expect(repo.get(id)).toBe(session);
-            expect(debounce.press(id, 0)).toBe(false);
-          }
+    fc.property(fc.string(), fc.integer({ min: -100, max: 100 }), (name, x) => {
+      const id = asPlayerId(name);
+      const at = { x, y: 10, z: 0 };
+      const stone = blockStateOf("minecraft:stone");
+      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
+      const endpoint = tapAir(first, { ...at, x: x + 2, z: 2 });
+      for (const flow of [
+        { kind: "idle" } as const,
+        first,
+        endpoint,
+        chooseHeighted(endpoint, "copy"),
+        { kind: "pasteAim" } as const,
+      ]) {
+        for (const event of ["dimension", "die"]) {
+          const repo = new FakeSessions();
+          const structures = new FakeStructureStore();
+          const session = repo.getOrCreate(id);
+          const debounce = new PressDebounces<PlayerId>(10);
+          new CopyBox(repo, structures, new FakeFeedback()).execute(
+            id,
+            overworld,
+            boxOf(at, at),
+          );
+          session.setFlow(flow);
+          expect(debounce.press(id, 0)).toBe(true);
+          registerSessions(
+            new EndBuildSession(repo, structures),
+            new EndPasting(repo, structures),
+            debounce,
+          );
+          engine.handlers.get(event)?.({
+            player: { id },
+            deadEntity: { id, typeId: "minecraft:player" },
+          });
+          expect(session.flow).toEqual({ kind: "idle" });
+          expect(session.clipboard).toBeUndefined();
+          expect(structures.live.size).toBe(0);
+          expect(session.confirmedBox).toBeUndefined();
+          expect(repo.get(id)).toBe(session);
+          expect(debounce.press(id, 0)).toBe(false);
         }
-      },
-    ),
+      }
+    }),
   );
 });
 

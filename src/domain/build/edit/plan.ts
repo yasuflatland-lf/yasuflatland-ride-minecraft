@@ -3,17 +3,12 @@
 // treat protected cells as barriers.
 import type { Cell } from "../../shared/cells";
 import type { BlockState } from "../blockState";
-import type { Clipboard } from "../clipboard/clipboard";
 import { cellsOfShape, type Shape, type ShapeStyle } from "../shape/shape";
 import type { TerrainArea } from "../terrain/area";
 import { type HeightedSpec, placementOf } from "../volume/geometry";
 import type { FillStyle } from "../volume/kind";
 import { type PlannedChange, type PlanStep, SCAN_STEP } from "./change";
 import type { Pattern } from "./pattern";
-
-function assertNever(contents: never): never {
-  throw new Error(`Unhandled clipboard contents: ${JSON.stringify(contents)}`);
-}
 
 export function* planShape(
   shape: Shape,
@@ -22,31 +17,6 @@ export function* planShape(
 ): Iterable<PlannedChange> {
   for (const cell of cellsOfShape(shape, style))
     yield { cell, after: pattern.state };
-}
-
-export function* planPaste(
-  clipboard: Clipboard,
-  anchor: Cell,
-): Iterable<PlannedChange> {
-  const { contents } = clipboard;
-  switch (contents.kind) {
-    case "cells":
-      for (const { at, state } of contents.cells) {
-        yield {
-          cell: {
-            x: anchor.x + at.x,
-            y: anchor.y + at.y,
-            z: anchor.z + at.z,
-          },
-          after: state,
-        };
-      }
-      return;
-    case "structure":
-      throw new Error("A structure clipboard cannot be planned as cells yet");
-    default:
-      return assertNever(contents);
-  }
 }
 
 export function* planHeighted(

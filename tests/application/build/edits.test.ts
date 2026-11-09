@@ -8,14 +8,12 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  clipboardOf,
-  pasteTarget,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { structureClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -58,7 +56,6 @@ function setup() {
       repo,
       world,
       feedback,
-      jobs,
       new FakeStructureStore(),
       new FakeBuildPlayers(),
     ),
@@ -336,7 +333,7 @@ describe("edit use cases", () => {
       dimensionId: overworld,
       target: pasteTarget(
         env.repo.get(alex)?.clipboard ??
-          clipboardOf(
+          structureClipboard(
             boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
             () => stone,
           ),
@@ -400,7 +397,7 @@ describe("edit use cases", () => {
       dimensionId: overworld,
       target: pasteTarget(
         env.repo.get(alex)?.clipboard ??
-          clipboardOf(
+          structureClipboard(
             boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
             () => stone,
           ),

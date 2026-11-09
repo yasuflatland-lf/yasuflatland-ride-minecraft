@@ -3,7 +3,6 @@ import { expect, it } from "vitest";
 import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
@@ -11,7 +10,10 @@ import {
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import { FakeSessions, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
@@ -34,7 +36,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
         if (clipboard)
           holdClipboard(
             session,
-            clipboardOf(boxOf(cell, cell), () => stone),
+            structureClipboard(boxOf(cell, cell), () => stone),
           );
         if (history)
           session.finishEdit(

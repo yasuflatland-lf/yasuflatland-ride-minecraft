@@ -46,7 +46,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
   });
   const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
   const start = vi.spyOn(jobs, "start");
-  const paste = new PasteAt(repo, world, feedback, jobs, store, players);
+  const paste = new PasteAt(repo, world, feedback, store, players);
   const cmd = {
     playerId,
     dimensionId: overworld,

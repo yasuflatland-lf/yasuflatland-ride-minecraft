@@ -9,7 +9,6 @@ import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   tapAir,
@@ -17,6 +16,7 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { structureClipboard } from "../../support/buildClipboard";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
@@ -31,7 +31,7 @@ function setup(from: { x: number; y: number; z: number }) {
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const box = boxOf(from, from);
-  const old = clipboardOf(box, () => stone);
+  const old = structureClipboard(box, () => stone);
   session.completeCopy(overworld, box, old);
   session.setFlow({
     kind: "pasteAim",
@@ -53,34 +53,30 @@ function setup(from: { x: number; y: number; z: number }) {
 
 it("starts a normal selection with the old clipboard, then replaces it on Copy", () => {
   fc.assert(
-    fc.property(
-      cellArb,
-      fc.integer({ min: 1, max: 8 }),
-      (from, length) => {
-        const e = setup(from);
-        e.newCopy.execute(playerId);
-        expect(e.session.flow).toEqual({ kind: "idle" });
-        expect(e.session.confirmedBox).toBeUndefined();
-        expect(e.session.clipboard).toBe(e.old);
-        const to = { ...from, x: from.x + length };
-        e.world.put(from, stone);
-        const points = new SetPoint(e.repo, e.world, e.feedback);
-        points.execute({ playerId, dimensionId: overworld, cell: from });
-        const first = tapBlock({ kind: "idle" }, overworld, from, stone);
-        expect(e.session.flow).toEqual(first);
-        expect(e.session.clipboard).toBe(e.old);
-        points.execute({ playerId, dimensionId: overworld, cell: to });
-        expect(e.session.flow).toEqual(tapBlock(first, overworld, to, stone));
-        e.chooseBoxStep.execute({ playerId, kind: "copy" });
-        expect(e.session.clipboard).not.toBe(e.old);
-        expect(e.session.clipboard).toMatchObject({
-          size: { x: length + 1, y: 1, z: 1 },
-          blockCount: length + 1,
-          contents: { kind: "structure" },
-        });
-        expect(e.session.flow).toEqual({ kind: "pasteAim" });
-      },
-    ),
+    fc.property(cellArb, fc.integer({ min: 1, max: 8 }), (from, length) => {
+      const e = setup(from);
+      e.newCopy.execute(playerId);
+      expect(e.session.flow).toEqual({ kind: "idle" });
+      expect(e.session.confirmedBox).toBeUndefined();
+      expect(e.session.clipboard).toBe(e.old);
+      const to = { ...from, x: from.x + length };
+      e.world.put(from, stone);
+      const points = new SetPoint(e.repo, e.world, e.feedback);
+      points.execute({ playerId, dimensionId: overworld, cell: from });
+      const first = tapBlock({ kind: "idle" }, overworld, from, stone);
+      expect(e.session.flow).toEqual(first);
+      expect(e.session.clipboard).toBe(e.old);
+      points.execute({ playerId, dimensionId: overworld, cell: to });
+      expect(e.session.flow).toEqual(tapBlock(first, overworld, to, stone));
+      e.chooseBoxStep.execute({ playerId, kind: "copy" });
+      expect(e.session.clipboard).not.toBe(e.old);
+      expect(e.session.clipboard).toMatchObject({
+        size: { x: length + 1, y: 1, z: 1 },
+        blockCount: length + 1,
+        contents: { kind: "structure" },
+      });
+      expect(e.session.flow).toEqual({ kind: "pasteAim" });
+    }),
   );
 });
 

@@ -144,15 +144,17 @@ export function registerTestEdit(
           const handle = structures.capture(dimensionId, box, playerId);
           if (handle === "tooLarge" || handle === "unreadable")
             throw new Error(handle);
-          const previous = repo.getOrCreate(playerId).completeCopy(dimensionId, box, {
-            size: {
-              x: box.max.x - box.min.x + 1,
-              y: box.max.y - box.min.y + 1,
-              z: box.max.z - box.min.z + 1,
-            },
-            blockCount: volume(box),
-            contents: { kind: "structure", handle },
-          });
+          const previous = repo
+            .getOrCreate(playerId)
+            .completeCopy(dimensionId, box, {
+              size: {
+                x: box.max.x - box.min.x + 1,
+                y: box.max.y - box.min.y + 1,
+                z: box.max.z - box.min.z + 1,
+              },
+              blockCount: volume(box),
+              contents: { kind: "structure", handle },
+            });
           if (previous) structures.discard(previous);
         } else if (command === "releaseStructures" && args.length === 0) {
           const session = repo.getOrCreate(playerId);

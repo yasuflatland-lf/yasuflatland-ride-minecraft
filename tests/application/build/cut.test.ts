@@ -6,7 +6,6 @@ import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   setHeight,
@@ -16,6 +15,7 @@ import {
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { structureClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeFeedback,
@@ -36,7 +36,10 @@ function setup() {
   const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
   const cut = new CutBox(repo, world, structures, feedback, log);
-  const actions = { copy: new CopyBox(repo, new FakeStructureStore(), feedback), cut };
+  const actions = {
+    copy: new CopyBox(repo, new FakeStructureStore(), feedback),
+    cut,
+  };
   return {
     repo,
     feedback,
@@ -119,7 +122,7 @@ it.each(["tooLarge", "unreadable"] as const)(
     for (const second of [false, true]) {
       const e = setup();
       const box = boxOf(origin, origin);
-      const clipboard = clipboardOf(box, () => stone);
+      const clipboard = structureClipboard(box, () => stone);
       e.session.completeCopy(overworld, box, clipboard);
       e.session.beginEdit();
       const record = {
@@ -296,7 +299,7 @@ it.each(["direct", "height"] as const)(
         end,
       );
       const box = boxOf(origin, origin);
-      const clipboard = clipboardOf(box, () => stone);
+      const clipboard = structureClipboard(box, () => stone);
       e.session.completeCopy(overworld, box, clipboard);
       const flow =
         path === "height"

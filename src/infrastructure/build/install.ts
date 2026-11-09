@@ -88,14 +88,7 @@ export function installBuild(deps: {
     copy: new CopySelection(repo, copyBox, feedback),
     endPasting: new EndPasting(repo, ports.structures),
     newCopy: new NewCopy(repo),
-    pasteAt: new PasteAt(
-      repo,
-      blocks,
-      feedback,
-      jobs,
-      ports.structures,
-      players,
-    ),
+    pasteAt: new PasteAt(repo, blocks, feedback, ports.structures, players),
     chooseHeighted,
     chooseSideCylinder: new ChooseSideCylinder(
       repo,

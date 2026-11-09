@@ -11,8 +11,6 @@ import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Cell } from "../../domain/shared/cells";
-import { asDimensionId } from "../../domain/shared/ids";
-import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
 import {
   LAID_BLOCK_TAG,
   SELECTION_WAND_TYPE,
@@ -21,7 +19,6 @@ import {
   TEST_RESULT_EVENT,
   TEST_TAP_EVENT,
 } from "../../infrastructure/build/identifiers";
-import { isFleetEntityType } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, wait } from "../arena";
 import type { Outcome, StepSink } from "../outcome";
 
@@ -1114,8 +1111,8 @@ export function buildCutShapes(a: Arena): Promise<Outcome> {
         f.count(cells, "minecraft:air") === cells.length,
         "Cut left selected cells",
       );
-      await placeCutClipboard(f, f.cell());
-      check(unchanged(f, cells, before), "Cut snapshot round trip lost blocks");
+      await undoCut(f, cells.length);
+      check(unchanged(f, cells, before), "Cut Undo lost blocks");
       await f.menu("paste", "endPaste");
     }
   });
@@ -1152,7 +1149,8 @@ export function buildCutHeight(a: Arena): Promise<Outcome> {
       unchanged(f, outside, before),
       "Cut changed cells outside height box",
     );
-    await placeCutClipboard(f, f.cell());
+    await undoCut(f, cells.length);
+    check(unchanged(f, outside, before), "Cut Undo changed outside cells");
     await f.menu("paste", "endPaste");
   });
 }
@@ -1171,11 +1169,8 @@ export function buildCutUndo(a: Arena): Promise<Outcome> {
       f.count(cells, "minecraft:air") === cells.length,
       "Mixed Cut left blocks",
     );
-    await placeCutClipboard(f, f.cell());
-    check(
-      unchanged(f, cells, before),
-      "Cut round trip lost exact block states",
-    );
+    await undoCut(f, cells.length);
+    check(unchanged(f, cells, before), "Cut Undo lost exact block states");
     await f.menu("paste", "endPaste");
   });
 }
@@ -1227,21 +1222,23 @@ export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
   });
 }
 
-// Paste and snapshot Undo routes depend on #1491 and #1490; use the store meanwhile.
-async function placeCutClipboard(f: Fixture, anchor: Cell) {
-  const clipboard = (await f.state()).clipboard;
+async function undoCut(f: Fixture, volume: number): Promise<void> {
+  const undo = await f.menu("paste", "undo");
   check(
-    clipboard?.contents.kind === "structure",
-    "Cut did not capture a structure",
+    undo.message === "undoDone" && undo.count === volume,
+    `Cut Undo reported ${undo.message} ${undo.count}`,
   );
-  const store = new BedrockStructureStore(isFleetEntityType);
+}
+
+async function pasteCutClipboard(
+  f: Fixture,
+  anchor: Cell,
+  volume: number,
+): Promise<void> {
+  const pasted = await pasteStep(f, anchor.x, anchor.y - 1, anchor.z, "up");
   check(
-    store.place(
-      clipboard.contents.handle,
-      asDimensionId(f.player.dimension.id),
-      anchor,
-    ),
-    "Cut structure placement failed",
+    pasted.message === "editDone" && pasted.count === volume,
+    `Cut clipboard paste reported ${pasted.message} ${pasted.count}`,
   );
 }
 
@@ -1302,7 +1299,7 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
         "Cut left source blocks or frame",
       );
       check(entities().length === 0, "Cut left entities or dropped items");
-      await placeCutClipboard(f, f.cell(12));
+      await pasteCutClipboard(f, f.cell(12), source.length);
       await wait(2);
       const restored = f
         .block(f.cell(13, 1, 1))
@@ -1525,7 +1522,7 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
       "Cut clipboard is not a structure",
     );
     const target = f.region(3, 1, 1, f.cell(12, 0, 12));
-    await placeCutClipboard(f, f.cell(12, 0, 12));
+    await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length);
     check(unchanged(f, target, before), "Cut payload lost block states");
     await f.menu("paste", "endPaste");
   });

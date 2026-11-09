@@ -1,16 +1,11 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  AIR,
   type BlockState,
   blockStateOf,
   type StateValue,
 } from "../../../src/domain/build/blockState";
-import { boxOf, cellsOf, contains } from "../../../src/domain/build/box";
-import {
-  clipboardOf,
-  pasteTarget,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import {
   type AppliedChange,
   undoPlan,
@@ -19,16 +14,11 @@ import {
   BUILD_KEPT_BLOCKS,
   isKeptState,
 } from "../../../src/domain/build/edit/guard";
-import {
-  planHeighted,
-  planPaste,
-  planShape,
-} from "../../../src/domain/build/edit/plan";
+import { planHeighted, planShape } from "../../../src/domain/build/edit/plan";
 import { roofCount } from "../../../src/domain/build/roof/roof";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
-import { clipboardCells } from "../../support/buildClipboard";
 
 const smallCell = fc.record({
   x: fc.integer({ min: -5, max: 5 }),
@@ -47,10 +37,6 @@ const stateArb: fc.Arbitrary<BlockState> = fc
   )
   .map(([id, states]) => blockStateOf(id, states));
 const keys = (cells: Iterable<Cell>) => [...cells].map(cellKey).sort();
-
-// A deterministic world: the state at a cell comes from a hash of its key.
-const worldRead = (states: readonly BlockState[]) => (c: Cell) =>
-  states[Math.abs(c.x * 31 + c.y * 17 + c.z * 7) % states.length];
 
 describe("edit planning", () => {
   it("fill yields exactly the box cells with the pattern", () => {
@@ -95,68 +81,6 @@ describe("edit planning", () => {
         },
       ),
     );
-  });
-});
-
-describe("clipboard", () => {
-  const states = [
-    blockStateOf("minecraft:stone"),
-    blockStateOf("minecraft:chest"),
-    AIR,
-    blockStateOf("minecraft:oak_stairs", { facing: "north" }),
-  ];
-  const read = worldRead(states);
-
-  it("counts the cells it holds in blockCount, in the cells variant", () => {
-    fc.assert(
-      fc.property(smallBox, (box) => {
-        const clip = clipboardOf(box, read);
-        expect(clip.contents.kind).toBe("cells");
-        expect(clip.blockCount).toBe(clipboardCells(clip).length);
-      }),
-    );
-  });
-
-  it("pastes one change per clipboard cell inside the paste box", () => {
-    fc.assert(
-      fc.property(smallBox, smallCell, (box, target) => {
-        const clip = clipboardOf(box, read);
-        const all = [...planPaste(clip, target)];
-        expect(all).toHaveLength(clip.blockCount);
-        const into = pasteTarget(
-          clip,
-          { ...target, y: target.y - 1 },
-          "up",
-        ).box;
-        expect(all.every((c) => contains(into, c.cell))).toBe(true);
-      }),
-    );
-  });
-
-  it("copy then paste at the box minimum reproduces every non-kept cell", () => {
-    fc.assert(
-      fc.property(smallBox, (box) => {
-        const clip = clipboardOf(box, read);
-        const plan = new Map(
-          [...planPaste(clip, box.min)].map((c) => [cellKey(c.cell), c.after]),
-        );
-        for (const cell of cellsOf(box)) {
-          const state = read(cell) as BlockState;
-          if (isKeptState(state)) expect(plan.has(cellKey(cell))).toBe(false);
-          else expect(plan.get(cellKey(cell))).toBe(state);
-        }
-      }),
-    );
-  });
-
-  it("leaves out cells that read undefined", () => {
-    const clip = clipboardOf(
-      boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
-      () => undefined,
-    );
-    expect(clip.blockCount).toBe(0);
-    expect(clipboardCells(clip)).toEqual([]);
-    expect(clip.size).toEqual({ x: 2, y: 1, z: 1 });
   });
 });
 

@@ -9,7 +9,6 @@ import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
@@ -21,7 +20,10 @@ import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -166,7 +168,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
       (from, extra, path) => {
         const e = setup();
         const previous = boxOf(from, from);
-        const clip = clipboardOf(previous, () => stone);
+        const clip = structureClipboard(previous, () => stone);
         holdClipboard(e.session, clip);
         e.session.confirmBox(nether, previous);
         const size = BUILD_SPEC.maxCopyVolume + extra;
@@ -288,7 +290,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
         e.feedback,
       );
-      const old = clipboardOf(boxOf(from, from), () => stone);
+      const old = structureClipboard(boxOf(from, from), () => stone);
       for (const flow of flows) {
         e.session.confirmBox(overworld, box);
         holdClipboard(e.session, old);

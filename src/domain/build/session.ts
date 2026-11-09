@@ -158,6 +158,14 @@ export class BuildSession {
     return dropped;
   }
 
+  clearHistory(): readonly StructureHandle[] {
+    const handles = this.history.entries.flatMap((entry) =>
+      entry.kind === "snapshot" ? [entry.snapshot.handle] : [],
+    );
+    this.history = EMPTY_HISTORY;
+    return handles;
+  }
+
   putBackUndo(entry: UndoEntry): void {
     this.history = withPutBack(this.history, entry);
   }

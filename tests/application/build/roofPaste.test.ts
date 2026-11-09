@@ -11,7 +11,6 @@ import { TapAir } from "../../../src/application/build/tapAir";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import {
-  clipboardOf,
   type Face,
   pasteTarget,
 } from "../../../src/domain/build/clipboard/clipboard";
@@ -30,7 +29,10 @@ import {
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -68,7 +70,8 @@ function setup() {
     { warn: () => {} },
     new FakeBuildPlayers(),
   );
-  return { repo, session, world, feedback, jobs };
+  const structures = new FakeStructureStore(world);
+  return { repo, session, world, feedback, jobs, structures };
 }
 function roof(
   e: ReturnType<typeof setup>,
@@ -208,7 +211,15 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           z: source.z + size - 1,
         });
         let i = 0;
-        const clip = clipboardOf(sourceBox, () => (solids[i++] ? stone : AIR));
+        const expected = [...cellsOf(sourceBox)].map(() =>
+          solids[i++] ? stone : AIR,
+        );
+        i = 0;
+        const clip = structureClipboard(
+          sourceBox,
+          () => expected[i++],
+          e.structures,
+        );
         holdClipboard(e.session, clip);
         e.session.setFlow(beginPasteAim());
         const { anchor, box } = pasteTarget(clip, block, face);
@@ -232,8 +243,7 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           e.repo,
           e.world,
           e.feedback,
-          e.jobs,
-          new FakeStructureStore(),
+          e.structures,
           new FakeBuildPlayers(),
         ).execute({
           tick: 0,
@@ -249,14 +259,8 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           lastPaste: { anchor, tick: 0 },
         });
         e.jobs.step();
-        for (const { at, state } of clipboardCells(clip))
-          expect(
-            e.world.stateAt(nether, {
-              x: anchor.x + at.x,
-              y: anchor.y + at.y,
-              z: anchor.z + at.z,
-            }),
-          ).toEqual(state);
+        for (const [index, at] of [...cellsOf(box)].entries())
+          expect(e.world.stateAt(nether, at)).toEqual(expected[index]);
       },
     ),
   );
@@ -268,15 +272,14 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
     e.repo,
     e.world,
     e.feedback,
-    e.jobs,
-    new FakeStructureStore(),
+    e.structures,
     new FakeBuildPlayers(),
   );
   const cmd = {
     playerId,
     dimensionId: overworld,
     target: pasteTarget(
-      clipboardOf(
+      structureClipboard(
         boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
         () => undefined,
       ),
@@ -294,7 +297,7 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
   expect(e.session.flow).toBe(flow);
   holdClipboard(
     e.session,
-    clipboardOf(
+    structureClipboard(
       boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
       () => undefined,
     ),
