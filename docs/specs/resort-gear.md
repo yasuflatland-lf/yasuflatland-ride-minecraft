@@ -88,7 +88,7 @@
 - Agreement: Proposed
 - Basis: [0238](../adr/0238-a-beach-chair-that-folds-into-a-table.md) Decision, folded surface and hosted gear; [0237](../adr/0237-register-tabletop-hosts-across-features.md) Decision, shared host registration.
 - Implementation: `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/bedrock/bedrockBeachChairWorld.ts`; `src/infrastructure/shared/tableTop/registry.ts`; `src/application/shared/hostedItemsGuard.ts`
-- Verification: `tests/infrastructure/resort/install.test.ts` checks the registered surface and folded-only availability. `tests/infrastructure/resort/bedrockBeachChairWorld.test.ts` checks registry-reported occupancy. Application tests cover refusal without advancing hit counters. `beach_chair_lantern` and `beach_chair_oven` check height, unfolding and recovery refusals, and host-loss cleanup; they have not been run on BDS.
+- Verification: `tests/infrastructure/resort/install.test.ts` checks the registered 16 by 21 px surface at 9 px with a limit of four and folded-only availability. `tests/domain/resort/beachChair.test.ts` property-tests that every hosted item stays on the top with its centre over the middle cell. `tests/infrastructure/resort/bedrockBeachChairWorld.test.ts` checks registry-reported occupancy. Application tests cover refusal without advancing hit counters. `beach_chair_lantern` and `beach_chair_oven` host two items at both ends of the top and check height, the middle cell, unfolding and recovery refusals, and host-loss cleanup; they have not been run on BDS.
 
 ## Open issues
 
