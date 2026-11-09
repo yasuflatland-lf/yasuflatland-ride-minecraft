@@ -211,7 +211,9 @@ BEACH_PARASOL_GEOMETRY = "models/entity/yasu_ride/beach_parasol.geo.json"
 BEACH_PARASOL_TEXTURE = "textures/entity/yasu_ride/beach_parasol.png"
 BEACH_PARASOL_PREVIEW = "beach_parasol"
 BEACH_PARASOL_ICON = "beach_parasol_item"
-ICON_NAMES = {BEACH_PARASOL_PREVIEW: BEACH_PARASOL_ICON, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
+BEACH_CHAIR_GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
+BEACH_CHAIR_TEXTURE = "textures/entity/yasu_ride/beach_chair.png"
+ICON_NAMES = {"beach_chair": "beach_chair_item", BEACH_PARASOL_PREVIEW: BEACH_PARASOL_ICON, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -973,18 +975,44 @@ def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False)
     return {name: images[name] for name in poses}
 
 
-def render_gear(geo_path, texture, size, name):
+def static_pose(geo, animation):
+    """Apply constant rotations and zero-scale visual groups to the bind pose."""
+    import copy
+    posed = copy.deepcopy(geo)
+    hidden = set()
+    for bone in posed["bones"]:
+        scale = animation.get("bones", {}).get(bone["name"], {}).get("scale", [1, 1, 1])
+        if scale == [0, 0, 0]:
+            hidden.add(bone["name"])
+        elif scale != [1, 1, 1]:
+            raise ValueError("Static previews support only unit or zero group scales")
+    for _ in posed["bones"]:
+        hidden.update(b["name"] for b in posed["bones"] if b.get("parent") in hidden)
+    for bone in posed["bones"]:
+        if bone["name"] in hidden:
+            bone.pop("cubes", None)
+        rotation = animation.get("bones", {}).get(bone["name"], {}).get("rotation", [0, 0, 0])
+        bone["rotation"] = [a + b for a, b in zip(bone.get("rotation", [0, 0, 0]), rotation)]
+    return posed
+
+
+def render_gear(geo_path, texture, size, name, animation=None, view=None):
     """Draw one small model in a size-pixel square on transparency, seen like the vehicles."""
     geometries = json.loads(geo_path.read_text())["minecraft:geometry"]
     roof_tent = geo_path.name == "roof_tent.geo.json"
     geo = (next(g for g in geometries
                 if g["description"]["identifier"] == "geometry.yasu_ride.roof_tent_suv")
            if roof_tent else geometries[0])
-    parasol = geo_path.name == Path(BEACH_PARASOL_GEOMETRY).name
+    if geo_path.name == "beach_chair.geo.json" and animation is None:
+        animations = json.loads((geo_path.parents[3] / "animations/yasu_ride/beach_chair.anim.json").read_text())["animations"]
+        animation = animations["animation.yasu_ride.beach_chair.chair"]
+    if animation is not None:
+        geo = static_pose(geo, animation)
+    parasol = geo_path.name in (Path(BEACH_PARASOL_GEOMETRY).name, "beach_chair.geo.json")
     polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": parasol}, texture_mapping=parasol)
     quads = [quad for quad, _, _ in polygons + glass]
     # Look from the ladder end so the SUV tent's vehicle-left ladder stays visible.
-    view = ROOF_TENT_VIEW if roof_tent else VIEW_DIRECTION
+    view = view if view is not None else (ROOF_TENT_VIEW if roof_tent else VIEW_DIRECTION)
     camera = Camera([p for quad in quads for p in quad], view=view)
     return RasterJob(name, polygons, [], fit_square(camera, quads, size), size, size, None, {}, glass)
 
@@ -995,6 +1023,7 @@ def small_models(rp):
     models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
     return models + [
         (BEACH_PARASOL_PREVIEW, rp / BEACH_PARASOL_GEOMETRY, read_png(rp / BEACH_PARASOL_TEXTURE)),
+        ("beach_chair", rp / BEACH_CHAIR_GEOMETRY, read_png(rp / BEACH_CHAIR_TEXTURE)),
         (NOGA_CHAIR_PREVIEW, rp / NOGA_CHAIR_GEOMETRY, read_png(rp / NOGA_CHAIR_TEXTURE)),
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
@@ -1125,6 +1154,10 @@ def main():
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--icons", nargs="+", type=Path, default=[])
     parser.add_argument("--jobs", type=int, default=None, help="number of workers (default: CPU count)")
+    parser.add_argument("--beach-chair-form", choices=("chair", "table"),
+                        help="render only the Beach Chair in its shipped static pose")
+    parser.add_argument("--view", type=float, nargs=3, default=None,
+                        help="camera direction for the Beach Chair reference preview")
     args = parser.parse_args()
     # A mistyped pack dir would otherwise get a fresh pack_icon.png that no manifest uses
     for pack in args.icons:
@@ -1135,7 +1168,15 @@ def main():
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
     pack_icon = str(args.icons[0] / "pack_icon.png") if args.icons else None
     targets = []
-    jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
+    if args.beach_chair_form:
+        animations = json.loads((args.resource_pack / "animations/yasu_ride/beach_chair.anim.json").read_text())["animations"]
+        animation = animations[f"animation.yasu_ride.beach_chair.{args.beach_chair_form}"]
+        name = str(args.output_dir / f"beach-chair-{args.beach_chair_form}.png")
+        jobs = [render_gear(args.resource_pack / BEACH_CHAIR_GEOMETRY,
+                            read_png(args.resource_pack / BEACH_CHAIR_TEXTURE), 800, name,
+                            animation=animation, view=args.view)]
+    else:
+        jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
     for job, rgba in zip(jobs, rasterize_all(jobs, args.jobs)):
         if job.name == pack_icon:
             for pack in args.icons:
