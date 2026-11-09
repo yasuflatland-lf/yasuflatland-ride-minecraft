@@ -123,6 +123,7 @@ import {
   bulldozerPaveWide,
 } from "./roadPaver";
 import { roofTentCourse } from "./roofTent";
+import { sofaDoublePlaceTakeBack } from "./sofaDouble";
 import { sofaSinglePlaceTakeBack } from "./sofaSingle";
 import {
   boatCruise,
@@ -278,6 +279,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
   sofa_single_place_take_back: sofaSinglePlaceTakeBack,
+  sofa_double_place_take_back: sofaDoublePlaceTakeBack,
   beach_chair_lantern: beachChairLantern,
   beach_chair_oven: beachChairOven,
   beach_chair_empty_refresh: beachChairEmptyRefresh,
