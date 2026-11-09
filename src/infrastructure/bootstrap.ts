@@ -30,6 +30,7 @@ export function bootstrap(): void {
     isCampSpace: camp.isCampSpace,
   });
   installBuild({
+    isFleetEntityType: vehicles.isFleetEntityType,
     isProtected: (d, c) =>
       vehicles.isVehicleSpace(d, c) || camp.isCampSpace(d, c),
   });
