@@ -32,7 +32,7 @@ export class UndoEdit {
     if (entry.kind === "snapshot") {
       const { dimensionId, box, handle } = entry.snapshot;
       for (const cell of cellsOf(box)) {
-        if (!this.world.mayEdit(dimensionId, cell)) {
+        if (!this.world.mayRestore(dimensionId, cell)) {
           session.putBackUndo(entry);
           this.feedback.showMessage(playerId, "pasteBlocked");
           return;

@@ -60,9 +60,9 @@ it("restores any snapshot in order, discards it and clears the paste repeat mark
   fc.assert(
     fc.property(boxArb, (box) => {
       const e = setup(box);
-      const mayEdit = vi.spyOn(e.world, "mayEdit");
+      const mayRestore = vi.spyOn(e.world, "mayRestore");
       e.undo.execute({ playerId });
-      expect(mayEdit.mock.calls).toEqual(
+      expect(mayRestore.mock.calls).toEqual(
         [...cellsOf(box)].map((cell) => [overworld, cell]),
       );
       expect(e.structures.calls).toEqual([
@@ -84,6 +84,50 @@ it("restores any snapshot in order, discards it and clears the paste repeat mark
       expect(e.session.isEditing).toBe(false);
       expect(e.world.writes).toBe(0);
       expect(e.log.warn).not.toHaveBeenCalled();
+    }),
+  );
+});
+
+it("restores snapshots containing laid cells while retaining space protection", () => {
+  fc.assert(
+    fc.property(boxArb, fc.nat(), fc.boolean(), (box, index, protectedCell) => {
+      const e = setup(box);
+      const cells = [...cellsOf(box)];
+      const laidCells = cells.slice(index % cells.length);
+      for (const cell of laidCells) {
+        e.world.laidCells.add(cellKey(cell));
+        expect(e.world.mayEdit(overworld, cell)).toBe(false);
+      }
+      const blocked = laidCells[0];
+      if (!blocked) throw new Error("Empty box");
+      if (protectedCell) {
+        e.world.protectedCells.add(cellKey(blocked));
+        e.undo.execute({ playerId });
+        expect(e.structures.calls).toEqual([]);
+        expect(e.feedback.messages).toEqual([
+          { message: "pasteBlocked", count: undefined },
+        ]);
+        expect(e.structures.live.has(e.handle)).toBe(true);
+        expect(e.session.hasHistory).toBe(true);
+        e.world.protectedCells.clear();
+      }
+      e.undo.execute({ playerId });
+      expect(e.structures.calls).toEqual([
+        { kind: "clearEntities", dimensionId: overworld, box },
+        {
+          kind: "place",
+          handle: e.handle,
+          dimensionId: overworld,
+          anchor: box.min,
+        },
+        { kind: "discard", handle: e.handle },
+      ]);
+      expect(e.feedback.messages.at(-1)).toEqual({
+        message: "undoDone",
+        count: volume(box),
+      });
+      expect(e.structures.live.size).toBe(0);
+      expect(e.session.takeUndo()).toBe("nothingToUndo");
     }),
   );
 });
