@@ -43,8 +43,17 @@
 - Implementation: `tools/gen_item_catalog.py`; `packs/yasu_ride_bp/entities/yasu_ride/beach_parasol.se.json`; `packs/yasu_ride_bp/blocks/yasu_ride/parasol_ceiling.block.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/packs/campingGear.test.ts` checks catalog ordering. Pack contract tests cover the previously supplied parasol assets; rain occlusion is not established by these tests.
 
+### Beach parasol starter item
+
+- Applies to: Players joining the world for the first time.
+- Rule: `installResort` registers the shared first-join hand-out for the Beach Parasol item with its own dynamic property `yasu_ride:beach_parasol_starter_received`, separate from the roof tent flag. Creative players receive nothing and are not marked. A failed hand-out leaves the player unmarked so the next join retries. A full inventory drops the item at the player's feet. Respawns do not hand out.
+- Agreement: Proposed
+- Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, first hand-out follows the design document.
+- Implementation: `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/identifiers.ts`; `src/application/shared/giveStarterItem.ts`; `src/infrastructure/shared/starterItem.ts`
+- Verification: `tests/infrastructure/resort/install.test.ts` checks the registration and the separate flag. A new Survival player receiving both items on the dev BDS has not been verified.
+
 ## Open issues
 
 - ADR 0236 says the rain block is laid under the canopy; the implementation lays it in the first cell above the canopy top, following the linked design (`src/domain/resort/parasolPose.ts`); the ADR needs an edit or a superseding ADR.
-- ADR 0236 includes painting and the first hand-out; the implementation has neither in this stage (`src/infrastructure/resort/install.ts`); these belong to the later issues, and the ADR needs an edit or a superseding ADR if they are not delivered.
+- ADR 0236 includes painting; the implementation has none in this stage (`src/infrastructure/resort/install.ts`); it belongs to a later issue, and the ADR needs an edit or a superseding ADR if they are not delivered.
 - Canopies may overlap. Shared ceiling cells are not jointly owned, so taking one parasol back can leave a temporary hole until the other parasol's next scan. Actual rain and snow occlusion with collision disabled still require the owner's in-game check, as required by ADR 0236.
