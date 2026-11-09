@@ -355,6 +355,11 @@ const IMPACT_RULES: readonly ImpactRule[] = [
     impact: ["camp"],
   },
   {
+    rule: "resort",
+    test: /^src\/domain\/resort\//,
+    impact: "all",
+  },
+  {
     rule: "kind-registry",
     test: /^src\/domain\/vehicle\/kinds\/index\.ts$/,
     impact: ["vehicle"],
