@@ -12,7 +12,7 @@ import {
   type TopPlacement,
 } from "../../domain/camp/tabletop";
 import type { PlayerId } from "../../domain/shared/ids";
-import { hasClearance } from "./groundPlacement";
+import { hasClearance } from "../shared/groundPlacement";
 import type { HostedItemKind, TableTopWorld } from "./ports/tableTop";
 
 /** A refusal of the table top rule, which the player sees as a hint. */

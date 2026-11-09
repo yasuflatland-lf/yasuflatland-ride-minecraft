@@ -4,11 +4,11 @@ import type { VehicleHostLookup } from "../../../application/shared/ports/vehicl
 import { decodeHost } from "../../../domain/camp/hosted";
 import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
-import { snapYaw4 } from "../../../domain/camp/roofTent/facing";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
 import type { Cell } from "../../../domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
+import { snapYaw4 } from "../../../domain/shared/facing";
 import {
   asDimensionId,
   asPlayerId,
@@ -17,6 +17,7 @@ import {
 import { forward, type Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
 import { playerById } from "../../shared/players";
+import { readCeilingCells } from "../../shared/rainCeiling";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_EXIT_PROPERTY,
@@ -28,7 +29,6 @@ import {
   ROOF_TENT_SPAWN_SETTERS_PROPERTY,
 } from "../identifiers";
 import { roofTentEntity } from "./bedrockRoofTentWorld";
-import { readCeiling } from "./roofTentCeiling";
 
 export interface RoofTentSnapshot {
   ceiling: Cell[];
@@ -96,7 +96,7 @@ export class RoofTentOccupants {
       ),
     ];
     this.snapshots.set(asRoofTentId(entity.id), {
-      ceiling: readCeiling(
+      ceiling: readCeilingCells(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
       ),
       dimension: entity.dimension,

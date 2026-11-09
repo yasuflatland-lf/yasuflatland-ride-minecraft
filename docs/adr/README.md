@@ -211,7 +211,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0204](0204-shard-unit-tests-across-ci-jobs.md) | Shard unit tests across CI jobs | Accepted |
 | [0205](0205-structured-adr-metadata-and-current-specs.md) | Structured ADR metadata and current specs | Proposed |
 | [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md) | Seat the roof tent occupant on a rideable seat | Proposed |
-| [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md) | Lay a rain ceiling over an occupied roof tent | Proposed |
+| [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md) | Lay a rain ceiling over an occupied roof tent | Proposed; extended by [0235](0235-share-convex-rain-ceiling-geometry-and-placement.md) |
 | [0208](0208-fold-tents-with-older-layouts-on-load.md) | Fold tents with older layouts on load | Proposed; extended by [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md), [0210](0210-defer-legacy-tent-folding-in-unloaded-chunks.md), [0211](0211-derive-the-ground-tent-lean-from-the-reference-photos.md) |
 | [0209](0209-lay-the-ground-tent-as-a-trapezoid-of-stepped-cells.md) | Lay the ground tent as a trapezoid of stepped cells | Proposed; superseded in part by [0211](0211-derive-the-ground-tent-lean-from-the-reference-photos.md) |
 | [0210](0210-defer-legacy-tent-folding-in-unloaded-chunks.md) | Defer legacy tent folding in unloaded chunks | Proposed |
@@ -238,6 +238,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0232](0232-undo-skips-conflicting-cells.md) | Undo skips conflicting cells | Accepted |
 | [0233](0233-round-shapes-and-terrain-operations.md) | Add round shapes and terrain operations to the Build Wand | Accepted |
 | [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) | Plated camper mirrors and a simpler camper exterior | Proposed |
+| [0235](0235-share-convex-rain-ceiling-geometry-and-placement.md) | Share convex rain ceiling geometry and placement | Proposed |
+| [0236](0236-a-beach-parasol-in-a-new-resort-gear-group.md) | A beach parasol in a new Resort Gear group | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

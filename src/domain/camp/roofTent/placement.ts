@@ -1,7 +1,7 @@
+import { type Facing4, snapYaw4 } from "../../shared/facing";
 import type { VehicleId } from "../../shared/ids";
 import type { RoofTentMount } from "../../shared/roofTent";
 import type { Host } from "../hosted";
-import { type Facing4, snapYaw4 } from "./facing";
 
 export type RoofTentRefusal =
   | "unsupported_vehicle"

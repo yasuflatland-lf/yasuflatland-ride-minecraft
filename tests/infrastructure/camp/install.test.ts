@@ -6,7 +6,6 @@ import { FirePitActions } from "../../../src/application/camp/firePit";
 import { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
 import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
-import { GiveStarterRoofTent } from "../../../src/application/camp/giveStarterRoofTent";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
 import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
@@ -22,6 +21,7 @@ import { RoofTentMenu } from "../../../src/application/camp/roofTentMenu";
 import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
+import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
 import { SleepInBed } from "../../../src/application/shared/sleepInBed";
 import {
   asTentId,
@@ -44,7 +44,6 @@ import { registerRoofTentLifecycle } from "../../../src/infrastructure/camp/bedr
 import { createRoofTentMenu } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentMenu";
 import { registerRoofTentOccupantCleanup } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup";
 import { registerRoofTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentPlacement";
-import { registerRoofTentStarter } from "../../../src/infrastructure/camp/bedrock/handlers/starter";
 import { registerTable } from "../../../src/infrastructure/camp/bedrock/handlers/table";
 import { registerTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/tentFlap";
 import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/tentHits";
@@ -68,6 +67,7 @@ import {
 import { installCamp } from "../../../src/infrastructure/camp/install";
 import { registerBedBlock } from "../../../src/infrastructure/shared/bedBlock";
 import { registerLaidBlockGuard } from "../../../src/infrastructure/shared/laidBlockGuard";
+import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
 import { defined } from "../../support/defined";
 
 const game = vi.hoisted(() => ({
@@ -453,8 +453,9 @@ it("wires roof tent entry, menu and cleanup to the same occupant adapter", () =>
   );
 });
 
-vi.mock("../../../src/infrastructure/camp/bedrock/handlers/starter", () => ({
-  registerRoofTentStarter: vi.fn(),
+vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
+  registerStarterItem: vi.fn(),
+  BedrockStarterItemWorld: class {},
 }));
 
 it("registers the roof tent starter with its camp use case", () => {
@@ -462,7 +463,7 @@ it("registers the roof tent starter with its camp use case", () => {
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
-  expect(registerRoofTentStarter).toHaveBeenCalledExactlyOnceWith(
-    expect.any(GiveStarterRoofTent),
+  expect(registerStarterItem).toHaveBeenCalledExactlyOnceWith(
+    expect.any(GiveStarterItem),
   );
 });
