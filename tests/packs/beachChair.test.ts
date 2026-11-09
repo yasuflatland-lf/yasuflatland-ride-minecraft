@@ -49,7 +49,15 @@ describe("Beach Chair assets", () => {
       seat_count: 1,
       family_types: ["player"],
       crouching_skip_interact: true,
-      seats: [{ position: [0, 0.5625, 0.3125] }],
+      seats: [
+        {
+          position: [
+            BEACH_CHAIR_SPEC.seatOffset.x,
+            BEACH_CHAIR_SPEC.seatOffset.y,
+            BEACH_CHAIR_SPEC.seatOffset.z,
+          ],
+        },
+      ],
     });
     expect(c["minecraft:type_family"].family).toContain("inanimate");
     expect(c["minecraft:persistent"]).toEqual({});
