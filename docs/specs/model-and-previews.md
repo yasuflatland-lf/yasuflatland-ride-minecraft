@@ -192,12 +192,12 @@
 
 ### Sofa generation and preview
 
-- Applies to: Sofa (Single), with shared components for the later double sofa.
-- Rule: `tools/gen_sofa.py` builds frame, cushions and feet from a width in cells. The amber weave keeps its physical pitch when widened, with horizontal strands on the arm tops and fronts and vertical strands on the sides. Beige cushions and silver feet use solid palette swatches. The angled throw cushion is a registered three-cube assembly built with `cube_tilt`. The atlas is a 1024 by 1024 RGBA PNG. `pnpm model` generates and formats the model, and renders a transparent 128-pixel preview and 32-pixel item icon with per-face texture mapping. `pnpm model:check` checks these outputs.
+- Applies to: Sofa (Single) and Sofa (Double).
+- Rule: `tools/gen_sofa.py` builds frame, cushions and feet from a width in cells. The amber weave keeps its physical pitch when widened, with horizontal strands on the arm tops and fronts and vertical strands on the sides. Beige cushions and silver feet use solid palette swatches. The single has one angled throw cushion; the double has two, each a registered three-cube assembly built with `cube_tilt`. Both widths have one continuous seat pad, with one back pad per cell. The atlas is a 1024 by 1024 RGBA PNG. `pnpm model` emits and formats both models and their identical texture pixels, and renders a transparent 128-pixel preview and 32-pixel item icon with per-face texture mapping. `pnpm model:check` checks these outputs.
 - Agreement: Proposed
 - Basis: [0240](../adr/0240-resort-furniture-family.md); [Dining set design](../designs/2026-11-09-dining-set-design.md).
 - Implementation: `tools/gen_sofa.py`; `tools/render_preview.py` (`small_models`, `ICON_NAMES`, `render_gear`); `package.json`.
-- Verification: `tests/tools/sofa.test.ts`; `tests/packs/sofaSingle.test.ts`; `tests/tools/renderPreview.test.ts`. Owner review against the reference photos and PC/mobile checks remain pending.
+- Verification: `tests/tools/sofa.test.ts`; `tests/packs/sofaSingle.test.ts`; `tests/packs/sofaDouble.test.ts`; `tests/tools/renderPreview.test.ts`. Owner review against the reference photos and PC/mobile checks remain pending.
 
 ## Open issues
 
