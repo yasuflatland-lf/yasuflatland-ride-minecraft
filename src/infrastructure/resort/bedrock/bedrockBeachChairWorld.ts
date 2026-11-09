@@ -177,6 +177,7 @@ export class BedrockBeachChairWorld
     entity.setProperty(BEACH_CHAIR_FOLDED, form === "table");
     if (form === "table") {
       entity.triggerEvent(BEACH_CHAIR_FOLD_EVENT);
+      this.hold(entity);
       this.layTop(id);
     } else {
       this.clearTop(id);
@@ -184,9 +185,29 @@ export class BedrockBeachChairWorld
     }
   }
   syncTop(id: BeachChairId): void {
-    if (this.entity(id)?.getProperty(BEACH_CHAIR_FOLDED) === true)
+    const entity = this.entity(id);
+    if (entity?.getProperty(BEACH_CHAIR_FOLDED) === true) {
+      this.hold(entity);
       this.layTop(id);
-    else this.clearTop(id);
+    } else this.clearTop(id);
+  }
+  /**
+   * Without gravity or collision the table keeps the downward velocity it had
+   * resting on the floor and sinks through it, so it is pinned to its pose
+   * origin, as the docked boat is (ADR 0063). Support cells have a full top,
+   * so the origin sits at an integer height.
+   */
+  private hold(entity: Entity): void {
+    try {
+      const pose = beachChairPoseAt(
+        entity.location,
+        snapYaw4(entity.getRotation().y),
+      );
+      entity.clearVelocity();
+      entity.teleport(beachChairOrigin(pose));
+    } catch (error) {
+      this.layer.warning("lay")(error);
+    }
   }
   remember(entity: Entity): { dimension: Dimension; cells: Cell[] } {
     const id = asBeachChairId(entity.id);

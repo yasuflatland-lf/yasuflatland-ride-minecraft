@@ -41,13 +41,15 @@ export function registerTestBeachChair(
       const dimension = world.getDimension(dimensionId);
       const at = beachChairOrigin(pose);
       dimension.runCommand(`summon ${BEACH_CHAIR} ${at.x} ${at.y} ${at.z}`);
+      // summon centres integer x and z on the block, but the origin sits on a cell
+      // boundary, so the chair lands half a block off and is moved back.
       const entity = dimension.getEntities({
         type: BEACH_CHAIR,
         location: at,
-        maxDistance: 0.5,
+        maxDistance: 1,
       })[0];
       if (!entity) return undefined;
-      entity.setRotation({ x: 0, y: pose.yaw });
+      entity.teleport(at, { rotation: { x: 0, y: pose.yaw } });
       return asBeachChairId(entity.id);
     }
     override isCreative(): boolean {
