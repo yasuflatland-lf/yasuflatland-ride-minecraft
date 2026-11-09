@@ -277,6 +277,10 @@ export class BedrockBeachChairWorld
     entity.setProperty(BEACH_CHAIR_FOLDED, form === "table");
     if (form === "table") {
       entity.triggerEvent(BEACH_CHAIR_FOLD_EVENT);
+      // Without collision the velocity left over from resting on the floor
+      // carries the table down through it (measured on BDS: about 2 blocks in
+      // 30 ticks), moving the pose that locates the tabletop cells.
+      entity.clearVelocity();
       this.layTop(id);
     } else {
       this.clearTop(id);

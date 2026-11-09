@@ -40,7 +40,10 @@ export function registerTestBeachChair(
       // Summon keeps entities spawned far from players alive in the test arena (ADR 0010).
       const dimension = world.getDimension(dimensionId);
       const at = beachChairOrigin(pose);
-      dimension.runCommand(`summon ${BEACH_CHAIR} ${at.x} ${at.y} ${at.z}`);
+      // Commands centre a bare integer x or z on its block, but the chair's origin
+      // sits on a cell boundary, so every coordinate keeps a decimal point.
+      const coords = [at.x, at.y, at.z].map((n) => n.toFixed(3)).join(" ");
+      dimension.runCommand(`summon ${BEACH_CHAIR} ${coords}`);
       const entity = dimension.getEntities({
         type: BEACH_CHAIR,
         location: at,

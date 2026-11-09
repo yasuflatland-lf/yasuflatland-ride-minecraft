@@ -91,6 +91,7 @@ function fixture(yaw = 0) {
     ),
     remove: vi.fn(),
     triggerEvent: vi.fn(),
+    clearVelocity: vi.fn(),
     setRotation: vi.fn(),
   };
   game.getDimension.mockReturnValue(dimension);
