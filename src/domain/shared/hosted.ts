@@ -1,24 +1,27 @@
-import { asVehicleId, type VehicleId } from "../shared/ids";
-import { asFirePitId, type FirePitId } from "./firePit";
-import { TABLE_SPOTS } from "./spec";
-import { asTableId, type TableId } from "./table";
-import type { LocalPoint } from "./tabletop";
+import { asVehicleId, type VehicleId } from "./ids";
+import type { LocalPoint } from "./tableTop";
 
 export type Host =
   | { readonly kind: "ground" }
   | { readonly kind: "vehicle"; readonly id: VehicleId }
-  | { readonly kind: "fire_pit"; readonly id: FirePitId; readonly spot: number }
   | {
-      readonly kind: "camp_table";
-      readonly id: TableId;
+      readonly kind: "spot";
+      readonly hostType: "fire_pit";
+      readonly id: string;
+      readonly spot: number;
+    }
+  | {
+      readonly kind: "top";
+      readonly hostType: string;
+      readonly id: string;
       readonly at: LocalPoint;
     };
 
 // The `s` flag lets `.+` cross newlines, so an id may hold any character and
 // the last colon always separates it from the position.
-const TABLE_POINT_MARKER =
-  /^camp_table:(.+):@(-?[0-9]+(?:\.[0-9]+)?),(-?[0-9]+(?:\.[0-9]+)?)$/s;
-const SPOT_MARKER = /^(fire_pit|camp_table):(.+):(0|[1-9][0-9]*)$/s;
+const TOP_POINT_MARKER =
+  /^([a-z_]+):(.+):@(-?[0-9]+(?:\.[0-9]+)?),(-?[0-9]+(?:\.[0-9]+)?)$/s;
+const SPOT_MARKER = /^([a-z_]+):(.+):(0|[1-9][0-9]*)$/s;
 
 // Number#toString switches to exponent notation from 1e21, which the decoder
 // does not accept, so the exponent is expanded back into plain digits.
@@ -40,27 +43,38 @@ export function encodeHost(host: Host): string {
       return "";
     case "vehicle":
       return `vehicle:${host.id}`;
-    case "fire_pit":
+    case "spot":
       return `fire_pit:${host.id}:${host.spot}`;
-    case "camp_table":
-      return `camp_table:${host.id}:@${encodeCoordinate(host.at.x)},${encodeCoordinate(host.at.z)}`;
+    case "top":
+      return `${host.hostType}:${host.id}:@${encodeCoordinate(host.at.x)},${encodeCoordinate(host.at.z)}`;
   }
 }
 
-export function decodeHost(text: string): Host {
+export function decodeHost(
+  text: string,
+  legacySpot?: (hostType: string, spot: number) => LocalPoint | undefined,
+): Host {
   if (text.startsWith("vehicle:") && text.length > "vehicle:".length)
     return { kind: "vehicle", id: asVehicleId(text.slice("vehicle:".length)) };
 
-  const point = TABLE_POINT_MARKER.exec(text);
+  const point = TOP_POINT_MARKER.exec(text);
   if (point) {
-    const [, id, rawX, rawZ] = point;
+    const [, hostType, id, rawX, rawZ] = point;
     const x = Number(rawX);
     const z = Number(rawZ);
-    if (!id || !Number.isFinite(x) || !Number.isFinite(z))
+    if (
+      !hostType ||
+      hostType === "vehicle" ||
+      hostType === "fire_pit" ||
+      !id ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(z)
+    )
       return { kind: "ground" };
     return {
-      kind: "camp_table",
-      id: asTableId(id),
+      kind: "top",
+      hostType,
+      id,
       at: { x: withoutNegativeZero(x), z: withoutNegativeZero(z) },
     };
   }
@@ -69,11 +83,10 @@ export function decodeHost(text: string): Host {
   if (!marker) return { kind: "ground" };
   const [, kind, id, rawSpot] = marker;
   const spot = Number(rawSpot);
-  if (!id || !Number.isSafeInteger(spot)) return { kind: "ground" };
-  if (kind === "fire_pit") return { kind, id: asFirePitId(id), spot };
-  // A legacy table marker stores an index into TABLE_SPOTS instead of a point.
-  const at = TABLE_SPOTS[spot];
+  if (!kind || !id || !Number.isSafeInteger(spot)) return { kind: "ground" };
+  if (kind === "fire_pit") return { kind: "spot", hostType: kind, id, spot };
+  const at = legacySpot?.(kind, spot);
   return at
-    ? { kind: "camp_table", id: asTableId(id), at: { ...at } }
+    ? { kind: "top", hostType: kind, id, at: { ...at } }
     : { kind: "ground" };
 }

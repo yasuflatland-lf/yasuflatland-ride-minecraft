@@ -1,8 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import type { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import type { FirePitActions } from "../../../src/application/camp/firePit";
-import type { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import type { FirePitWorld } from "../../../src/application/camp/ports/firePit";
+import type { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
 import {
@@ -447,23 +447,23 @@ it("reads every oven hosted by this table, at its point or its legacy spot", () 
   };
   game.entity.mockReturnValue(table);
   const ovens = new BedrockDutchOvenWorld({ isVehicleSpace: () => false });
-  expect(ovens.table("table")).toEqual({
+  expect(ovens.topHost("camp_table", "table")).toEqual({
     dimension: "overworld",
     at: table.location,
     yaw: 90,
   });
   const footprint = DUTCH_OVEN_FOOTPRINT_PX;
-  expect(ovens.itemsOnTable("table")).toEqual([
+  expect(ovens.itemsOnTop("camp_table", "table")).toEqual([
     { at: { x: 3.5, z: -2 }, footprint },
     { at: { x: 7.5, z: 0 }, footprint },
   ]);
   hosts.shift();
-  expect(ovens.itemsOnTable("table")).toEqual([
+  expect(ovens.itemsOnTop("camp_table", "table")).toEqual([
     { at: { x: 7.5, z: 0 }, footprint },
   ]);
   table.isValid = false;
-  expect(ovens.table("table")).toBeUndefined();
-  expect(ovens.itemsOnTable("table")).toEqual([]);
+  expect(ovens.topHost("camp_table", "table")).toBeUndefined();
+  expect(ovens.itemsOnTop("camp_table", "table")).toEqual([]);
 });
 
 it.each([

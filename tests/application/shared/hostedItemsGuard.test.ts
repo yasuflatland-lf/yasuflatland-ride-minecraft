@@ -1,10 +1,10 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
-import type { HostedKindPort } from "../../../src/application/camp/ports/hostedKind";
+import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
+import type { HostedKindPort } from "../../../src/application/shared/ports/hostedKind";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
-import type { Host } from "../../../src/domain/camp/hosted";
 import { asTableId } from "../../../src/domain/camp/table";
+import type { Host } from "../../../src/domain/shared/hosted";
 import { asVehicleId } from "../../../src/domain/shared/ids";
 
 interface FakeItem {
@@ -47,12 +47,14 @@ const host: fc.Arbitrary<Host> = fc.oneof(
     id: hostId.map(asVehicleId),
   }),
   fc.record({
-    kind: fc.constant("fire_pit" as const),
+    kind: fc.constant("spot" as const),
+    hostType: fc.constant("fire_pit" as const),
     id: hostId.map(asFirePitId),
     spot: fc.constant(0),
   }),
   fc.record({
-    kind: fc.constant("camp_table" as const),
+    kind: fc.constant("top" as const),
+    hostType: fc.constant("camp_table" as const),
     id: hostId.map(asTableId),
     at: fc.record({
       x: fc.integer({ min: -9, max: 9 }),
@@ -121,7 +123,8 @@ it("removes nothing more on a second pass", () => {
 
 it("keeps an item in an unloaded area, on the ground, or on an existing host", () => {
   const table = {
-    kind: "camp_table",
+    kind: "top",
+    hostType: "camp_table",
     id: asTableId("table"),
     at: { x: 0, z: 0 },
   } as const;
@@ -130,7 +133,12 @@ it("keeps an item in an unloaded area, on the ground, or on an existing host", (
       { host: table, areaLoaded: false },
       { host: { kind: "ground" }, areaLoaded: true },
       {
-        host: { kind: "fire_pit", id: asFirePitId("pit"), spot: 0 },
+        host: {
+          kind: "spot",
+          hostType: "fire_pit",
+          id: asFirePitId("pit"),
+          spot: 0,
+        },
         areaLoaded: true,
       },
       { host: table, areaLoaded: true },

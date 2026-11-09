@@ -2,25 +2,25 @@ import {
   asGasLanternId,
   type GasLanternId,
 } from "../../domain/camp/gasLantern";
-import { decodeHost } from "../../domain/camp/hosted";
 import {
+  CAMP_TABLE_TOP,
   GAS_LANTERN_FOOTPRINT_PX,
   GAS_LANTERN_SPEC,
+  TABLE_SPOTS,
 } from "../../domain/camp/spec";
+import type { TableId } from "../../domain/camp/table";
 import { HitCounters } from "../../domain/shared/hitCounter";
+import { decodeHost } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
+import type { LocalPoint } from "../../domain/shared/tableTop";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
+import { placeOnTop, type TopOutcome } from "../shared/placeOnTop";
+import type { HostedItemKind } from "../shared/ports/hostedItem";
+import type { HostedKindPort } from "../shared/ports/hostedKind";
 import { handleHit } from "../shared/takeBackByHits";
-import {
-  placeOnTableTop,
-  type TableTopOutcome,
-  type TableTopRequest,
-} from "./placeOnTableTop";
 import type { GasLanternWorld } from "./ports/gasLantern";
-import type { HostedKindPort } from "./ports/hostedKind";
-import type { HostedItemKind } from "./ports/tableTop";
 
 const RULE = {
   hits: GAS_LANTERN_SPEC.hitsToTakeBack,
@@ -41,7 +41,10 @@ const ON_TABLE: HostedItemKind = {
 export function gasLanternHostedKind(world: GasLanternWorld): HostedKindPort {
   return {
     loaded: () => world.loadedGasLanterns(),
-    host: (id) => decodeHost(world.host(asGasLanternId(id))),
+    host: (id) =>
+      decodeHost(world.host(asGasLanternId(id)), (type, spot) =>
+        type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
+      ),
     isHostAreaLoaded: (id) => world.isHostAreaLoaded(asGasLanternId(id)),
     hostExists: (hostId) => world.hostExists(hostId),
     remove: (id) => {
@@ -76,8 +79,17 @@ export class GasLanternActions {
     });
   }
 
-  placeOnTable(cmd: TableTopRequest): TableTopOutcome {
-    return placeOnTableTop(this.world, ON_TABLE, cmd);
+  placeOnTable(cmd: {
+    player?: PlayerId;
+    table: TableId;
+    slot: number;
+    aim?: LocalPoint;
+  }): TopOutcome {
+    return placeOnTop(this.world, CAMP_TABLE_TOP, ON_TABLE, {
+      ...cmd,
+      hostType: "camp_table",
+      host: cmd.table,
+    });
   }
 
   switch(id: GasLanternId, tick: number): boolean {

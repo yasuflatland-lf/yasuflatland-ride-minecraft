@@ -1,6 +1,6 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { GasLanternWorld } from "../../../application/camp/ports/gasLantern";
-import type { HostedKindId } from "../../../application/camp/ports/tableTop";
+import type { HostedKindId } from "../../../application/shared/ports/hostedItem";
 import {
   asGasLanternId,
   type GasLanternId,
@@ -8,8 +8,8 @@ import {
   gasLanternLightCells,
 } from "../../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../../domain/camp/spec";
-import type { TopItem } from "../../../domain/camp/tabletop";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import type { TopItem } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
@@ -99,15 +99,15 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
     spawnLantern(dimension, at, yaw);
   }
 
-  table(id: string) {
-    return tableTop(id);
+  topHost(hostType: string, id: string) {
+    return hostType === "camp_table" ? tableTop(id) : undefined;
   }
 
-  itemsOnTable(id: string): readonly TopItem[] {
-    return itemsOnTable(id);
+  itemsOnTop(hostType: string, id: string): readonly TopItem[] {
+    return hostType === "camp_table" ? itemsOnTable(id) : [];
   }
 
-  spawnHostedOnTable(
+  spawnHosted(
     _kind: HostedKindId,
     dimension: DimensionId,
     at: Vec3,
