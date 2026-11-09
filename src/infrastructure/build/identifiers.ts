@@ -24,6 +24,7 @@ export const BUILD_MESSAGE: Readonly<
   busy: "yasu_build.message.busy",
   noClipboard: "yasu_build.message.no_clipboard",
   nothingToUndo: "yasu_build.message.nothing_to_undo",
+  pasteFailed: "yasu_build.message.paste_failed",
   pasteBlocked: "yasu_build.message.paste_blocked",
   copied: "yasu_build.message.copied",
   editDone: "yasu_build.message.edit_done",

@@ -63,13 +63,8 @@ export function installBuild(deps: {
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
-  const jobs = new EditJobs(
-    repo,
-    blocks,
-    feedback,
-    consoleLogger,
-    new BedrockBuildPlayers(),
-  );
+  const players = new BedrockBuildPlayers();
+  const jobs = new EditJobs(repo, blocks, feedback, consoleLogger, players);
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, blocks, feedback);
   const cutBox = new CutBox(repo, blocks, feedback, jobs);
@@ -82,7 +77,14 @@ export function installBuild(deps: {
     copy: new CopySelection(repo, copyBox, feedback),
     endPasting: new EndPasting(repo),
     newCopy: new NewCopy(repo),
-    pasteAt: new PasteAt(repo, blocks, feedback, jobs),
+    pasteAt: new PasteAt(
+      repo,
+      blocks,
+      feedback,
+      jobs,
+      ports.structures,
+      players,
+    ),
     chooseHeighted,
     chooseSideCylinder: new ChooseSideCylinder(
       repo,
@@ -134,5 +136,6 @@ export function installBuild(deps: {
     new DescribeBuild(repo),
     recorded,
     repo,
+    ports.structures,
   );
 }

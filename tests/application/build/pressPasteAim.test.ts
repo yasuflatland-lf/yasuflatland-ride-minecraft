@@ -29,6 +29,7 @@ import {
   FakeWorld,
   nether,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
@@ -60,7 +61,14 @@ function setup(
     { warn: () => {} },
     new FakeBuildPlayers(),
   );
-  const paste = new PasteAt(repo, world, feedback, jobs);
+  const paste = new PasteAt(
+    repo,
+    world,
+    feedback,
+    jobs,
+    new FakeStructureStore(),
+    new FakeBuildPlayers(),
+  );
   const press = new PressPasteAim(repo, paste, feedback);
   const clipboard = clipboardOf(
     boxOf(block, { ...block, x: block.x + 1 }),
@@ -213,7 +221,14 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         const flow = e.session.flow;
         const press = new PressPasteAim(
           e.repo,
-          new PasteAt(e.repo, e.world, e.feedback, e.jobs),
+          new PasteAt(
+            e.repo,
+            e.world,
+            e.feedback,
+            e.jobs,
+            new FakeStructureStore(),
+            new FakeBuildPlayers(),
+          ),
           e.feedback,
         );
         if (!e.aim.target) throw new Error("Expected aim");

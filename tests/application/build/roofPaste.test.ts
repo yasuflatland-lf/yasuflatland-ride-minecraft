@@ -40,6 +40,7 @@ import {
   nether,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
@@ -227,7 +228,14 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
         expect(box.min).toEqual(anchor);
         for (const at of cellsOf(box)) e.world.put(at, dirt);
         const read = vi.spyOn(e.world, "mayEdit");
-        new PasteAt(e.repo, e.world, e.feedback, e.jobs).execute({
+        new PasteAt(
+          e.repo,
+          e.world,
+          e.feedback,
+          e.jobs,
+          new FakeStructureStore(),
+          new FakeBuildPlayers(),
+        ).execute({
           tick: 0,
           playerId,
           dimensionId: nether,
@@ -256,7 +264,14 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
 
 it("preserves paste aiming on missing clipboard, busy jobs and protected holes", () => {
   const e = setup();
-  const paste = new PasteAt(e.repo, e.world, e.feedback, e.jobs);
+  const paste = new PasteAt(
+    e.repo,
+    e.world,
+    e.feedback,
+    e.jobs,
+    new FakeStructureStore(),
+    new FakeBuildPlayers(),
+  );
   const cmd = {
     playerId,
     dimensionId: overworld,

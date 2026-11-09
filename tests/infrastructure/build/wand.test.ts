@@ -31,6 +31,7 @@ import {
   FakeWorld,
   nether,
 } from "../../application/build/fakes";
+import { FakeStructureStore } from "../../application/build/fakes/structureStore";
 import { holdClipboard } from "../../support/buildClipboard";
 
 const menus = {
@@ -117,6 +118,8 @@ it("preserves blocks and defers point taps out of before events", () => {
                 { warn: () => {} },
                 new FakeBuildPlayers(),
               ),
+              new FakeStructureStore(),
+              new FakeBuildPlayers(),
             ),
             feedback,
           ),
@@ -264,6 +267,8 @@ function setupAir() {
       { warn: () => {} },
       new FakeBuildPlayers(),
     ),
+    new FakeStructureStore(),
+    new FakeBuildPlayers(),
   );
   registerWand({
     confirmBoxStep,
@@ -603,6 +608,8 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
           { warn: () => {} },
           new FakeBuildPlayers(),
         ),
+        new FakeStructureStore(),
+        new FakeBuildPlayers(),
       ),
       feedback,
     ),

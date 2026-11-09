@@ -213,3 +213,5 @@ yasu_ride.beach_chair.menu.fold=テーブルにする
 yasu_ride.beach_chair_top_full=ビーチチェアの天板がいっぱいです。
 yasu_ride.beach_chair_top_overlap=ビーチチェアの天板で何かと重なっています。
 yasu_ride.beach_chair_top_too_big=このアイテムはビーチチェアの天板には大きすぎます。
+
+yasu_build.message.paste_failed=貼り付けに失敗しました。もう一度お試しください。

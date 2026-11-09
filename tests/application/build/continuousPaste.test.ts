@@ -32,6 +32,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
@@ -55,7 +56,14 @@ function setup() {
     clipboardOf(boxOf(at, at), () => stone),
   );
   session.setFlow(beginPasteAim());
-  const paste = new PasteAt(repo, world, feedback, jobs);
+  const paste = new PasteAt(
+    repo,
+    world,
+    feedback,
+    jobs,
+    new FakeStructureStore(),
+    new FakeBuildPlayers(),
+  );
   const target = (block: { x: number; y: number; z: number }) => {
     if (!session.clipboard) throw new Error("Expected clipboard");
     return pasteTarget(session.clipboard, block, "up");
