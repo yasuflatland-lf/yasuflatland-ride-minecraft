@@ -22,16 +22,16 @@ import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import {
+  LaidBlockLayer,
+  readCeilingCells,
+  writeCeilingCells,
+} from "../../shared/laidBlockLayer";
+import {
   consumeHeld,
   giveOrDrop,
   isCreative,
   playerById,
 } from "../../shared/players";
-import {
-  RainCeilingLayer,
-  readCeilingCells,
-  writeCeilingCells,
-} from "../../shared/rainCeiling";
 import {
   BEACH_PARASOL,
   BEACH_PARASOL_ITEM,
@@ -45,7 +45,7 @@ interface CeilingRecord {
 }
 
 export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
-  private readonly layer: RainCeilingLayer;
+  private readonly layer: LaidBlockLayer;
   private readonly ceilings = new Map<ParasolId, CeilingRecord>();
   constructor(
     private readonly deps: {
@@ -53,7 +53,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
       isCampSpace: SpaceCheck;
     },
   ) {
-    this.layer = new RainCeilingLayer(
+    this.layer = new LaidBlockLayer(
       PARASOL_CEILING_BLOCK,
       deps.isVehicleSpace,
       "parasol ceiling",

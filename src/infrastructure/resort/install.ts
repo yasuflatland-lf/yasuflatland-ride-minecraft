@@ -15,6 +15,7 @@ import {
   BedrockStarterItemWorld,
   registerStarterItem,
 } from "../shared/starterItem";
+import type { PlaceHostedOnTop } from "../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../shared/tableTop/registry";
 import { BedrockBeachChairWorld } from "./bedrock/bedrockBeachChairWorld";
 import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
@@ -40,6 +41,7 @@ export function installResort(deps: {
   topHosts: TopHostRegistry;
   isVehicleSpace: SpaceCheck;
   isCampSpace: SpaceCheck;
+  placeHostedOnTop: PlaceHostedOnTop;
 }): void {
   deps.topHosts.registerHost({
     hostType: "beach_chair",
