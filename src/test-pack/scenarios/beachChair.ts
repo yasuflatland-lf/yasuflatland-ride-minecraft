@@ -18,7 +18,8 @@ import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
 export async function beachChairPlace(a: Arena): Promise<Outcome> {
-  const block = a.at(100, a.gy - 1, 30);
+  // The three-cell footprint at every heading stays clear of the parasol and blade-cut strips.
+  const block = a.at(110, a.gy - 1, 15);
   const failures: string[] = [];
   for (const yaw of [0, 90, 180, 270]) {
     const pose = beachChairPose(block, yaw);
@@ -85,7 +86,7 @@ export async function beachChairPlace(a: Arena): Promise<Outcome> {
 }
 
 export async function beachChairTakeBack(a: Arena): Promise<Outcome> {
-  const block = a.at(100, a.gy - 1, 30);
+  const block = a.at(110, a.gy - 1, 15);
   const pose = beachChairPose(block, 0);
   const near = (type: string) =>
     a.dim.getEntities({

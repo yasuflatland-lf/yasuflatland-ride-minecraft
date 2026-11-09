@@ -64,8 +64,9 @@ describe("beachChairPose", () => {
           z: middle.z + dz,
         });
         const toFoot = forward(pose.yaw);
-        expect(dx).toBe(-Math.round(toFoot.x));
-        expect(dz).toBe(-Math.round(toFoot.z));
+        // 0 - n keeps a zero step +0, which unary minus would make -0 for Object.is.
+        expect(dx).toBe(0 - Math.round(toFoot.x));
+        expect(dz).toBe(0 - Math.round(toFoot.z));
         const facing = forward(yaw);
         expect(dx * facing.x + dz * facing.z).toBeGreaterThanOrEqual(-1e-9);
       }),

@@ -38,8 +38,8 @@ export function registerTestBeachChair(
       const dimension = world.getDimension(dimensionId);
       const at = beachChairOrigin(pose);
       dimension.runCommand(`summon ${BEACH_CHAIR} ${at.x} ${at.y} ${at.z}`);
-      // summon centres an integer x or z on its block, but the origin sits on a
-      // cell boundary, so the chair lands half a block off and is moved back.
+      // The origin is the middle cell's centre (x.5, z.5); teleport also sets
+      // the quarter-turn rotation that summon does not receive above.
       const entity = dimension.getEntities({
         type: BEACH_CHAIR,
         location: at,

@@ -78,7 +78,7 @@ it("does not spawn when the held item changed before payment", () => {
   );
 });
 
-it("rejects an obstruction in any translated foot cell before charging", () => {
+it("rejects an obstruction over any of the three footprint cells before charging", () => {
   fc.assert(
     fc.property(command, fc.nat(), (cmd, index) => {
       const cells = beachChairClearCells(beachChairPose(cmd.block, cmd.yaw));
@@ -98,20 +98,56 @@ it("rejects an obstruction in any translated foot cell before charging", () => {
     }),
   );
 });
-it("requires solid support below both cells", () => {
+it("requires solid support below all three cells", () => {
   fc.assert(
-    fc.property(command, fc.integer({ min: 0, max: 1 }), (cmd, index) => {
-      const world = fakeBeachChairWorld();
-      const support = beachChairSupportCells(
+    fc.property(command, (cmd) => {
+      for (const support of beachChairSupportCells(
         beachChairPose(cmd.block, cmd.yaw),
-      )[index];
-      if (!support) throw Error("missing support");
-      world.isSolidTop.mockImplementation(
-        (_dimension, cell) => cellKey(cell) !== cellKey(support),
-      );
-      expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
-      expect(world.consumeItem).not.toHaveBeenCalled();
-      expect(world.spawn).not.toHaveBeenCalled();
+      )) {
+        const world = fakeBeachChairWorld();
+        world.isSolidTop.mockImplementation(
+          (_dimension, cell) => cellKey(cell) !== cellKey(support),
+        );
+        expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
+        expect(world.consumeItem).not.toHaveBeenCalled();
+        expect(world.spawn).not.toHaveBeenCalled();
+      }
     }),
   );
+});
+
+it("queries exactly three support cells and six clearance cells", () => {
+  const world = fakeBeachChairWorld();
+  const dimension = asDimensionId("overworld");
+  expect(
+    new PlaceBeachChair(world).execute({
+      player: asPlayerId("p"),
+      dimension,
+      block: { x: 10, y: 20, z: 30 },
+      face: "up",
+      yaw: 0,
+      slot: 0,
+    }),
+  ).toBe(true);
+  expect(world.isSolidTop.mock.calls).toEqual([
+    [dimension, { x: 10, y: 20, z: 30 }],
+    [dimension, { x: 10, y: 20, z: 31 }],
+    [dimension, { x: 10, y: 20, z: 32 }],
+  ]);
+  const clearance = [
+    [dimension, { x: 10, y: 21, z: 30 }],
+    [dimension, { x: 10, y: 21, z: 31 }],
+    [dimension, { x: 10, y: 21, z: 32 }],
+    [dimension, { x: 10, y: 22, z: 30 }],
+    [dimension, { x: 10, y: 22, z: 31 }],
+    [dimension, { x: 10, y: 22, z: 32 }],
+  ];
+  for (const check of [world.isAir, world.isVehicleSpace, world.isCampSpace])
+    expect(check.mock.calls).toEqual(clearance);
+  expect(world.spawn).toHaveBeenCalledExactlyOnceWith(dimension, {
+    foot: { x: 10, y: 21, z: 30 },
+    middle: { x: 10, y: 21, z: 31 },
+    head: { x: 10, y: 21, z: 32 },
+    yaw: 180,
+  });
 });

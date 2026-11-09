@@ -1,6 +1,6 @@
 # Resort gear
 
-- Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair assets, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
+- Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
 - Verified at: 732f6c1c
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0238](../adr/0238-a-beach-chair-that-folds-into-a-table.md)
@@ -62,7 +62,18 @@
 - Implementation: `tools/gen_beach_chair.py`; `packs/yasu_ride_bp/entities/yasu_ride/beach_chair.se.json`; `packs/yasu_ride_bp/items/yasu_ride/beach_chair_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/beach_chair_item.recipe.json`; `packs/yasu_ride_rp/animation_controllers/yasu_ride/beach_chair.ac.json`
 - Verification: `tests/packs/beachChair.test.ts` checks geometry bounds, orientation, seat, property, animations, catalog, and recipe. `tests/tools/renderPreview.test.ts` checks static table posing. Owner visual approval and in-game verification remain pending.
 
+### Beach Chair placement and recovery
+
+- Applies to: Using `yasu_ride:beach_chair_item` on a block and hitting a Beach Chair entity.
+- Rule: A top-face press outside add-on blocks places the chair form over 1 by 3 cells: the cell above the pressed block is the foot cell, and the middle and head cells follow along the player's quarter-turn heading, with the backrest at the far end. All three cells require solid full-height support and two layers of air outside vehicle and camp space. The entity spawns at floor height at the centre of the middle cell, facing so its foot end points toward the player, and its three hit boxes cover the whole 16 by 46 px bed. Validation precedes payment; Survival consumes one matching item, Creative consumes none, and a failed spawn refunds payment. Block presses and hits are deduplicated per player per tick and deferred. Dye hits do not count. Three hits within `BEACH_CHAIR_SPEC.hitResetTicks` return one item to the hitter (dropping overflow), remove the entity, and show a recovery hint; earlier hits show the remaining count. A longer gap restarts counting. Refused recovery leaves the counter unchanged. Action-bar hints use the localized keys `yasu_ride.beach_chair.blocked`, `yasu_ride.beach_chair.hits_left` (with the remaining count), `yasu_ride.beach_chair.taken`, `yasu_ride.beach_chair.occupied`, and `yasu_ride.beach_chair.something_on_top` in both English and Japanese. Interacting with the chair does nothing at this stage.
+- Agreement: Proposed
+- Basis: [0238](../adr/0238-a-beach-chair-that-folds-into-a-table.md) Decision, placement and recovery follow the design.
+- Implementation: `src/application/resort/placeBeachChair.ts`; `src/application/resort/takeBackBeachChair.ts`; `src/application/resort/ports/beachChairWorld.ts`; `src/infrastructure/resort/bedrock/bedrockBeachChairWorld.ts`; `src/infrastructure/resort/bedrock/handlers/beachChairPlacement.ts`; `src/infrastructure/resort/bedrock/handlers/beachChairHits.ts`; `src/infrastructure/resort/install.ts`
+- Verification: `tests/application/resort/placeBeachChair.test.ts` covers support below all three cells, the six clearance cells, vehicle and camp exclusions, payment, and refunds. `tests/application/resort/takeBackBeachChair.test.ts` covers the third hit, hints, reset gaps, and refusal without advancing the counter. `beach_chair_place` and `beach_chair_take_back` are registered for later BDS verification and have not been run with the three-cell footprint.
+
 ## Open issues
+
+- Beach Chair occupancy and tabletop contents are always reported as false by the adapter in this stage; only the folded property is read. The application already refuses an occupied chair and a table with a hosted lantern or oven on it when those states are supplied. Menus, occupancy detection, and hosting remain for later issues; the folded table takes no blocks, so its taps and hits reach the chair entity through its own hit box.
 
 - ADR 0236 says the rain block is laid under the canopy; the implementation lays it in the first cell above the canopy top, following the linked design (`src/domain/resort/parasolPose.ts`); the ADR needs an edit or a superseding ADR.
 - Canopies may overlap. Shared ceiling cells are not jointly owned, so taking one parasol back can leave a temporary hole until the other parasol's next scan. The rain and snow acceptance check and fallback from ADR 0236 are recorded in [Camping gear](camping-gear.md#open-issues).
