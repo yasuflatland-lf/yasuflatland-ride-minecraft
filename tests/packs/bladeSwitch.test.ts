@@ -81,10 +81,11 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
     ).toEqual([
       "yasu_ride:camping_gear_inside",
       "yasu_ride:camping_gear_outside",
+      "yasu_ride:resort_gear",
       "yasu_ride:sportsboat_equipment",
       "yasu_build:building_tools",
     ]);
-    expect(groups[3].items).toEqual([
+    expect(groups[4].items).toEqual([
       "yasu_build:selection_wand",
       TYPE,
       "yasu_ride:wide_blade_switch",

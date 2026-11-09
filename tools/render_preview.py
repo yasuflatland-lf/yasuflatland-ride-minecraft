@@ -207,7 +207,11 @@ GAS_LANTERN_GEOMETRY = "models/entity/yasu_ride/gas_lantern.geo.json"
 GAS_LANTERN_TEXTURE = "textures/entity/yasu_ride/gas_lantern.png"
 GAS_LANTERN_PREVIEW = "gas_lantern"
 GAS_LANTERN_ICON = "gas_lantern_item"
-ICON_NAMES = {ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
+BEACH_PARASOL_GEOMETRY = "models/entity/yasu_ride/beach_parasol.geo.json"
+BEACH_PARASOL_TEXTURE = "textures/entity/yasu_ride/beach_parasol.png"
+BEACH_PARASOL_PREVIEW = "beach_parasol"
+BEACH_PARASOL_ICON = "beach_parasol_item"
+ICON_NAMES = {BEACH_PARASOL_PREVIEW: BEACH_PARASOL_ICON, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -585,6 +589,9 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
                 if color is not None:
                     polygons.append((quad, color, "lamp"))
                     continue
+                # Mirroring x reverses winding. The parasol opts into outward normals for its pale fabric.
+                if pose.get("outward_normals", False):
+                    normal = tuple(-component for component in normal)
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
@@ -973,7 +980,8 @@ def render_gear(geo_path, texture, size, name):
     geo = (next(g for g in geometries
                 if g["description"]["identifier"] == "geometry.yasu_ride.roof_tent_suv")
            if roof_tent else geometries[0])
-    polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False})
+    parasol = geo_path.name == Path(BEACH_PARASOL_GEOMETRY).name
+    polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": parasol}, texture_mapping=parasol)
     quads = [quad for quad, _, _ in polygons + glass]
     # Look from the ladder end so the SUV tent's vehicle-left ladder stays visible.
     view = ROOF_TENT_VIEW if roof_tent else VIEW_DIRECTION
@@ -986,6 +994,7 @@ def small_models(rp):
     texture = read_png(rp / GEAR_TEXTURE)
     models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
     return models + [
+        (BEACH_PARASOL_PREVIEW, rp / BEACH_PARASOL_GEOMETRY, read_png(rp / BEACH_PARASOL_TEXTURE)),
         (NOGA_CHAIR_PREVIEW, rp / NOGA_CHAIR_GEOMETRY, read_png(rp / NOGA_CHAIR_TEXTURE)),
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),

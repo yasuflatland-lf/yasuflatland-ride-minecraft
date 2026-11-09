@@ -192,3 +192,6 @@ yasu_build.form.fill_below=Fill below
 yasu_build.form.fill_below_title=Fill below?
 yasu_build.form.fill_below_body=Fill connected air and liquids in %s x %s blocks from Y=%s through the top layer Y=%s. This cannot be undone.
 yasu_build.message.fill_material_refused=Fill below needs a material that does not fall or require support.
+entity.yasu_ride:beach_parasol.name=Beach Parasol
+item.yasu_ride:beach_parasol_item.name=Beach Parasol
+yasu_ride:resort_gear=Resort Gear
