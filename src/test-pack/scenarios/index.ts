@@ -49,6 +49,7 @@ import {
   buildSphereRect,
   buildUndoConflict,
   buildUndoHintOnce,
+  buildUndoSnapshot,
   buildUnstuckFill,
   buildUnstuckNotTouched,
 } from "./buildFlow";
@@ -318,6 +319,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_cut_shapes: buildCutShapes,
   build_cut_height: buildCutHeight,
   build_cut_undo: buildCutUndo,
+  build_undo_snapshot: buildUndoSnapshot,
   build_undo_conflict: buildUndoConflict,
   build_cut_keeps_protected: buildCutKeepsProtected,
   build_cut_sets_clipboard: buildCutSetsClipboard,

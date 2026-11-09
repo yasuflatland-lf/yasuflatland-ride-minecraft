@@ -1256,6 +1256,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_undo_snapshot",
+    file: "buildFlow",
+    ticks: 80, // Estimate until the first BDS run.
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "build_undo_conflict",
     file: "buildFlow",
     ticks: 80,

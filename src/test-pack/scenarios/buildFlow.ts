@@ -1802,3 +1802,105 @@ export function buildSideCylinderX(a: Arena): Promise<Outcome> {
 export function buildSideCylinderZ(a: Arena): Promise<Outcome> {
   return buildSideCylinder(a, "z");
 }
+
+export function buildUndoSnapshot(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 3, 3);
+    const min = f.cell();
+    const max = f.cell(2, 2, 2);
+    const pigTag = `undo_snapshot_pig_${a.lane.index}`;
+    const cowTag = `undo_snapshot_cow_${a.lane.index}`;
+    const inside = () =>
+      a.dim.getEntities().filter((entity) => {
+        const p = entity.location;
+        return (
+          p.x >= min.x &&
+          p.x < max.x + 1 &&
+          p.y >= min.y &&
+          p.y < max.y + 1 &&
+          p.z >= min.z &&
+          p.z < max.z + 1
+        );
+      });
+    const tagged = (tag: string) =>
+      inside().filter((entity) => entity.hasTag(tag));
+    const summon = (type: string, tag: string) => {
+      const before = new Set(inside().map((entity) => entity.id));
+      a.dim.runCommand(
+        `summon ${type} ${min.x + 1.5} ${min.y + 1} ${min.z + 1.5}`,
+      );
+      const entity = inside().find(
+        (entity) => entity.typeId === type && !before.has(entity.id),
+      );
+      check(entity !== undefined, `Missing summoned ${type}`);
+      entity.addTag(tag);
+    };
+    const chestCell = f.cell(0, 1, 0);
+    try {
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+      const floor = f.region(3, 1, 3);
+      for (const cell of floor) f.block(cell).setType("minecraft:stone");
+      f.block(chestCell).setType("minecraft:chest");
+      const inventory = f
+        .block(chestCell)
+        .getComponent("minecraft:inventory")?.container;
+      check(inventory !== undefined, "Chest inventory missing");
+      inventory.setItem(0, new ItemStack("minecraft:diamond", 5));
+      const before = snapshot(f, cells);
+      summon("minecraft:pig", pigTag);
+      await f.edit("reset");
+      await f.edit(
+        `snapshot ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
+      );
+      for (const pig of tagged(pigTag)) pig.remove();
+      a.dim.runCommand(
+        `fill ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z} minecraft:dirt`,
+      );
+      summon("minecraft:cow", cowTag);
+      check(tagged(cowTag).length === 1, "Cow fixture missing before Undo");
+      const undo = await f.edit("undo");
+      check(
+        undo.message === "undoDone" && undo.count === 27,
+        `Snapshot Undo reported ${undo.message} ${undo.count}`,
+      );
+      check(
+        unchanged(f, cells, before),
+        "Snapshot Undo did not restore every cell",
+      );
+      check(
+        f.count(floor) === floor.length,
+        "Snapshot Undo did not restore stone",
+      );
+      check(
+        f.block(chestCell).typeId === "minecraft:chest",
+        "Snapshot Undo did not restore chest",
+      );
+      const item = f
+        .block(chestCell)
+        .getComponent("minecraft:inventory")
+        ?.container?.getItem(0);
+      check(
+        item?.typeId === "minecraft:diamond" && item.amount === 5,
+        "Snapshot Undo lost chest contents",
+      );
+      check(
+        tagged(pigTag).filter((entity) => entity.typeId === "minecraft:pig")
+          .length === 1,
+        "Snapshot Undo did not restore exactly one pig",
+      );
+      check(tagged(cowTag).length === 0, "Snapshot Undo left the cow");
+      check(
+        (await f.edit("undo")).message === "nothingToUndo",
+        "Snapshot Undo kept history",
+      );
+    } finally {
+      for (const entity of a.dim.getEntities()) {
+        if (entity.hasTag(pigTag) || entity.hasTag(cowTag)) entity.remove();
+      }
+      f.block(chestCell)
+        .getComponent("minecraft:inventory")
+        ?.container?.clearAll();
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+    }
+  });
+}

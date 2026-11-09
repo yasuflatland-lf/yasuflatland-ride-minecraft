@@ -6,8 +6,10 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
+import type { BuildStructureStore } from "../../../../application/build/ports/structures";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
+import { boxOf } from "../../../../domain/build/box";
 import {
   parseFace,
   pasteTarget,
@@ -81,6 +83,7 @@ export function registerTestEdit(
     "last" | "hints" | "forget"
   >,
   repo: BuildSessionRepository,
+  structures: BuildStructureStore,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -101,6 +104,31 @@ export function registerTestEdit(
           if (describe.editStatus(playerId).isEditing) return;
           repo.remove(playerId);
           repo.getOrCreate(playerId);
+        } else if (
+          command === "snapshot" &&
+          args.length === 6 &&
+          args.every((value) => Number.isInteger(Number(value)))
+        ) {
+          const box = boxOf(
+            { x: Number(args[0]), y: Number(args[1]), z: Number(args[2]) },
+            { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
+          );
+          const dimensionId = asDimensionId(player.dimension.id);
+          const handle = structures.capture(dimensionId, box, playerId);
+          if (handle === "tooLarge" || handle === "unreadable") {
+            system.sendScriptEvent(
+              TEST_RESULT_EVENT,
+              JSON.stringify({
+                player: player.name,
+                error: `Snapshot capture refused: ${handle}`,
+              }),
+            );
+            return;
+          }
+          for (const dropped of repo
+            .getOrCreate(playerId)
+            .recordSnapshot({ dimensionId, box, handle }))
+            structures.discard(dropped);
         } else if (command === "state" && args.length === 0) {
           system.sendScriptEvent(
             TEST_RESULT_EVENT,
