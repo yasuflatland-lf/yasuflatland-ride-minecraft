@@ -1,15 +1,26 @@
-import { ScriptEventSource, system, world } from "@minecraft/server";
+import {
+  type Entity,
+  type Player,
+  ScriptEventSource,
+  system,
+  world,
+} from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
-import type { HostedItemsGuard } from "../../../../application/camp/hostedItemsGuard";
+import type { HostedItemsGuard } from "../../../../application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
 import { DUTCH_OVEN_SPEC, TABLE_SPOTS } from "../../../../domain/camp/spec";
 import { asTableId, type TableId } from "../../../../domain/camp/table";
-import type { LocalPoint } from "../../../../domain/camp/tabletop";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
+import type { LocalPoint } from "../../../../domain/shared/tableTop";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
+import { heldTypeId } from "../../../shared/heldItem";
+import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
+import type {
+  PlaceHostedOnTop,
+  TopHostRegistry,
+} from "../../../shared/tableTop/registry";
 import {
-  CAMP_TABLE_TYPE,
   DUTCH_OVEN_ITEM,
   DUTCH_OVEN_SIMMERING_PROPERTY,
   DUTCH_OVEN_TYPE,
@@ -21,11 +32,7 @@ import {
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../identifiers";
 import { setOvenHost } from "../bedrockDutchOvenWorld";
-import {
-  showTableTopRefusal,
-  tableTopAim,
-  testTableTopRequest,
-} from "../tableTopAim";
+import { testTableTopRequest } from "../tableTopAim";
 import { registerPlaceableEntity } from "./placeable";
 
 /** Reads `<table> <0|1>` as an old spot, or `<table> <x> <z>` as local pixels. */
@@ -43,8 +50,37 @@ function testTableRequest(
 export function registerDutchOven(
   actions: DutchOvenActions,
   hostedItems: HostedItemsGuard,
-): void {
+  registry: TopHostRegistry,
+): PlaceHostedOnTop {
   const placements = new TickScopedSet<PlayerId>();
+  const place = (
+    placer: Player,
+    host: Entity,
+    held: string | undefined,
+  ): boolean => {
+    if (held !== DUTCH_OVEN_ITEM) return false;
+    const type = registry.hostTypeOf(host);
+    if (!type) return false;
+    const player = asPlayerId(placer.id);
+    if (!placements.add(system.currentTick, player)) return true;
+    const slot = placer.selectedSlotIndex;
+    const aim = topAim(placer, host, type.surface);
+    const id = host.id;
+    system.run(() =>
+      showTopRefusal(
+        placer,
+        type,
+        actions.placeOnTop(type.surface, {
+          player,
+          hostType: type.hostType,
+          host: id,
+          slot,
+          aim,
+        }),
+      ),
+    );
+    return true;
+  };
   registerPlaceableEntity({
     itemId: DUTCH_OVEN_ITEM,
     entityTypeIds: new Set([DUTCH_OVEN_TYPE]),
@@ -57,28 +93,19 @@ export function registerDutchOven(
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (
-      (ev.target.typeId === FIRE_PIT_TYPE ||
-        ev.target.typeId === CAMP_TABLE_TYPE) &&
+      ev.target.typeId === FIRE_PIT_TYPE &&
       ev.itemStack?.typeId === DUTCH_OVEN_ITEM
     ) {
       ev.cancel = true;
       const player = asPlayerId(ev.player.id);
       if (!placements.add(system.currentTick, player)) return;
       const slot = ev.player.selectedSlotIndex;
-      if (ev.target.typeId === FIRE_PIT_TYPE) {
-        const pit = asFirePitId(ev.target.id);
-        system.run(() => actions.placeOnFirePit({ player, pit, slot }));
-      } else {
-        const table = asTableId(ev.target.id);
-        const aim = tableTopAim(ev.player, ev.target);
-        const placer = ev.player;
-        system.run(() =>
-          showTableTopRefusal(
-            placer,
-            actions.placeOnTable({ player, table, slot, aim }),
-          ),
-        );
-      }
+      const pit = asFirePitId(ev.target.id);
+      system.run(() => actions.placeOnFirePit({ player, pit, slot }));
+      return;
+    }
+    if (place(ev.player, ev.target, ev.itemStack?.typeId)) {
+      ev.cancel = true;
       return;
     }
     if (ev.target.typeId !== DUTCH_OVEN_TYPE) return;
@@ -153,4 +180,5 @@ export function registerDutchOven(
       }
     }
   }, 4);
+  return (player, host) => place(player, host, heldTypeId(player));
 }

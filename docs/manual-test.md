@@ -663,7 +663,7 @@ teleport, with no climbable blocks placed. Repeat hosted checks at several yaws.
 
 ## Beach Chair lying down
 
-Run these checks on both PC and mobile, with a second player observing. Visual acceptance of ADR 0237 remains pending until these checks pass.
+Run these checks on both PC and mobile, with a second player observing. Visual acceptance of ADR 0238 remains pending until these checks pass.
 
 | ID  | Action                                                                                                      | Expected                                                                                                                                                                           | PC  | Touch |
 | --- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ----- |

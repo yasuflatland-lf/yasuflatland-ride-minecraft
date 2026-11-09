@@ -136,7 +136,7 @@ describe.each(PACKS)("$folder pack layout and identifiers", (pack) => {
   it("namespaces every definition identifier", () => {
     const offenders = collectDefinitions().filter(
       ({ identifier, dotted, namespace, kind, path }) => {
-        // ADR 0237 preserves the vanilla identifier for this one player override.
+        // ADR 0238 preserves the vanilla identifier for this one player override.
         if (
           pack.folder === "yasu_ride_rp" &&
           path === "entity/yasu_ride/player.ce.json" &&

@@ -53,7 +53,7 @@ interface ClientEntity {
   render_controllers?: (string | Json)[];
 }
 
-// ADR 0237: vanilla supplies this override's references and server entity.
+// ADR 0238: vanilla supplies this override's references and server entity.
 // playerOverride.test.ts pins its full definition and checks the added animation.
 const clientEntities: ClientEntity[] = jsonFileEntries(join(RP, "entity"))
   .filter(

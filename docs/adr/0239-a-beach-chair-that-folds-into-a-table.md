@@ -1,4 +1,4 @@
-# 0238. A beach chair that folds into a table
+# 0239. A beach chair that folds into a table
 
 - Status: Proposed
 - Acceptance condition: the owner approves the four chair previews and one table preview against the reference photos before merge; later work verifies the player pose and table behavior in game
