@@ -25,7 +25,7 @@ Tap or right-click a block to set point 1 and choose that block's material. A bl
 
 On the iPad a short tap on air sends nothing to the add-on, so every air action (an end point in the air, confirming a roof height while looking at the sky, the utility menu) needs a long press of about one second. A tap on a block works as usual.
 
-Every shape also offers Copy. On a horizontal rectangle, aim to choose the copy height and tap to copy; other shapes copy immediately. Copy enters paste aiming automatically ([ADR 0203](../adr/0203-build-wand-paste-aiming.md), Proposed).
+Every shape also offers Copy and Cut. On a horizontal rectangle, aim to choose the height and tap to confirm; other shapes act immediately. Copy and Cut enter paste aiming automatically ([ADR 0203](../adr/0203-build-wand-paste-aiming.md), Proposed). Cut empties the box to air without dropping items and removes the animals and other entities in it.
 
 Cancel returns to end-point selection. For a roof, aim to choose its height, tap to confirm, then choose Fill or Hollow. Roofs use full blocks of the selected material.
 
@@ -35,19 +35,19 @@ Cylinder and Cube grow upward from a horizontal rectangle: aim to choose the hei
 
 In selection, sneak and use the wand on air for applicable Copy, Undo, and Clear selection actions. After Copy, aim at a solid block and use the wand to paste at its viewed face; repeat as needed. On iPad, use a long press of about one second; on PC, right click. A block tap never pastes. The outline follows the aim, and the action bar shows the clipboard size and count.
 
-While pasting, use the wand on air without sneaking for Undo (when available), New copy, and End pasting. End pasting, switching items, death, or a dimension change discards the clipboard. Protected overlaps are refused, and each paste has one Undo entry. See [ADR 0203](../adr/0203-build-wand-paste-aiming.md) for the proposed interaction.
+While pasting, use the wand on air without sneaking for Undo (when available), New copy, and End pasting. End pasting, switching items, death, or a dimension change discards the clipboard. Protected overlaps are refused. Undo after a paste or a cut restores the whole box as it was, including chest contents and animals; only the newest paste or cut can be undone this way. See [ADR 0203](../adr/0203-build-wand-paste-aiming.md) for the proposed interaction.
 
-Air in a copied selection replaces destination blocks. Kept blocks, such as chests and signs, are not copied; their destination cells remain untouched.
+Copy takes everything in the box: blocks and air, chest and other container contents, sign text, item frames, paintings, and animals and other entities, but not players or this add-on's vehicles. A paste replaces the whole destination box, including chests already there, and removes the animals and other entities in it first. Copying a chest with items and pasting it duplicates those items ([ADR 0243](../adr/0243-copy-the-build-wand-box-as-an-engine-structure.md), Proposed).
 
 ## What is never edited
 
-Vehicles and their space, tents and their space, blocks laid by the add-on, containers, signs, hanging signs, spawners, vaults, command blocks, structure blocks, and jigsaws are kept by every edit.
+Vehicles and their space, tents and their space, and blocks laid by the add-on are kept by every edit; a paste or cut that overlaps them is refused as a whole. Shapes, roofs, Remove above, and Fill below also keep containers, signs, hanging signs, spawners, vaults, command blocks, structure blocks, and jigsaws. Paste and Cut do not: they replace or empty the whole box.
 
 ## Limits
 
 - An edit covers at most 100,000 blocks.
-- A copy covers at most 32,768 blocks.
-- Each player keeps the last 10 edits for Undo.
+- A copy or cut covers at most 32,768 blocks, and at most 64 blocks along X and Z.
+- Each player keeps the last 10 shape and roof edits for Undo, plus the newest paste or cut.
 - Roof height is capped at 300 percent of the long side, world height, and the edit limit. Cylinder and Cube heights are capped by the world height and the edit limit only.
 
 ## Survival and reload
