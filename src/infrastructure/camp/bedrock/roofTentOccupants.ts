@@ -1,7 +1,6 @@
 import { type Dimension, type Entity, world } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
-import { decodeHost } from "../../../domain/camp/hosted";
 import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
@@ -9,6 +8,7 @@ import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
 import type { Cell } from "../../../domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import { snapYaw4 } from "../../../domain/shared/facing";
+import { decodeHost } from "../../../domain/shared/hosted";
 import {
   asDimensionId,
   asPlayerId,
@@ -16,8 +16,8 @@ import {
 } from "../../../domain/shared/ids";
 import { forward, type Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
+import { readLaidCells } from "../../shared/laidBlockLayer";
 import { playerById } from "../../shared/players";
-import { readCeilingCells } from "../../shared/rainCeiling";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_EXIT_PROPERTY,
@@ -96,7 +96,7 @@ export class RoofTentOccupants {
       ),
     ];
     this.snapshots.set(asRoofTentId(entity.id), {
-      ceiling: readCeilingCells(
+      ceiling: readLaidCells(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
       ),
       dimension: entity.dimension,

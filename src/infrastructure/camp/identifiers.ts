@@ -1,5 +1,5 @@
 // Camping entity, item, and block ids (ADR 0047, 0122, 0130, 0131, 0132, 0133, 0134).
-import type { TableTopRefusal } from "../../application/camp/placeOnTableTop";
+import type { TopRefusal } from "../../application/shared/placeOnTop";
 import type { ChairKindId } from "../../domain/camp/chair";
 import type { PitchRefusal } from "../../domain/camp/tent";
 import { id } from "../shared/identifiers";
@@ -59,9 +59,7 @@ export const TEST_DUTCH_OVEN_ON_TABLE_EVENT =
   "yasu_ride_test:test_dutch_oven_on_table";
 export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
 /** Action bar hint for each refusal of the table top rule (ADR 0185). */
-export const TABLE_TOP_REFUSAL_HINTS: Readonly<
-  Record<TableTopRefusal, string>
-> = {
+export const TABLE_TOP_REFUSAL_HINTS: Readonly<Record<TopRefusal, string>> = {
   full: "yasu_ride.hint.camp_table_full",
   overlap: "yasu_ride.hint.camp_table_overlap",
   tooBig: "yasu_ride.hint.camp_table_too_big",

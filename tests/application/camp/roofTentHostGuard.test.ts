@@ -61,7 +61,8 @@ describe("RoofTentHostGuard", () => {
     const world = new FakeRoofTentWorld();
     world.hosts.set(asRoofTentId("ground"), { kind: "ground" });
     world.hosts.set(asRoofTentId("table"), {
-      kind: "camp_table",
+      kind: "top",
+      hostType: "camp_table",
       id: asTableId("table"),
       at: { x: 0, z: 0 },
     });

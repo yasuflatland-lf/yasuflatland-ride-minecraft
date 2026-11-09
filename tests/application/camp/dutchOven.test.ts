@@ -4,21 +4,21 @@ import {
   DutchOvenActions,
   dutchOvenHostedKind,
 } from "../../../src/application/camp/dutchOven";
-import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import type { DutchOvenWorld } from "../../../src/application/camp/ports/dutchOven";
+import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
-import { decodeHost } from "../../../src/domain/camp/hosted";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
   DUTCH_OVEN_SPEC,
   FIRE_PIT_TOP_PX,
+  TABLE_SPOTS,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
-import type { TopItem } from "../../../src/domain/camp/tabletop";
+import { decodeHost as decodeSharedHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/switchCooldown";
+import type { TopItem } from "../../../src/domain/shared/tableTop";
 
 const oven = asDutchOvenId("oven");
 const player = asPlayerId("player");
@@ -28,9 +28,9 @@ const command = { player, dimension, block, yaw: 47, slot: 1 };
 
 function fixture(overrides: Partial<DutchOvenWorld> = {}) {
   const world = {
-    table: () => ({ dimension, at: { x: 4.5, y: 61, z: 5.5 }, yaw: 90 }),
-    itemsOnTable: (): readonly TopItem[] => [],
-    spawnHostedOnTable: vi.fn(),
+    topHost: () => ({ dimension, at: { x: 4.5, y: 61, z: 5.5 }, yaw: 90 }),
+    itemsOnTop: (): readonly TopItem[] => [],
+    spawnHosted: vi.fn(),
     isAir: vi.fn(() => true),
     isOwnBlock: () => false,
     isVehicleSpace: () => false,
@@ -276,14 +276,14 @@ it("stands a lidded oven at the aimed point with the table's yaw and consumes ou
       fc.integer({ min: -1, max: 1 }),
       (yaw, creative, x, z) => {
         const { actions, world } = fixture({
-          table: () => ({ dimension, at: { x: 4, y: 61, z: 5 }, yaw }),
+          topHost: () => ({ dimension, at: { x: 4, y: 61, z: 5 }, yaw }),
           isCreative: () => creative,
         });
         expect(actions.placeOnTable({ ...onTable, aim: { x, z } })).toBe(
           "placed",
         );
         const angle = (yaw * Math.PI) / 180;
-        expect(world.spawnHostedOnTable).toHaveBeenCalledExactlyOnceWith(
+        expect(world.spawnHosted).toHaveBeenCalledExactlyOnceWith(
           "dutch_oven",
           dimension,
           {
@@ -302,29 +302,29 @@ it("stands a lidded oven at the aimed point with the table's yaw and consumes ou
 it("refuses next to an oven already there, on a missing table, and for a changed inventory slot", () => {
   const legacy = { at: { x: -7.5, z: 0 }, footprint: DUTCH_OVEN_FOOTPRINT_PX };
   for (const [overrides, outcome] of [
-    [{ itemsOnTable: () => [legacy] }, "overlap"],
-    [{ table: () => undefined }, "refused"],
+    [{ itemsOnTop: () => [legacy] }, "overlap"],
+    [{ topHost: () => undefined }, "refused"],
     [{ consumeItem: () => false }, "refused"],
   ] as const) {
     const { actions, world } = fixture(overrides);
     expect(actions.placeOnTable({ ...onTable, aim: { x: -5, z: 0 } })).toBe(
       outcome,
     );
-    expect(world.spawnHostedOnTable).not.toHaveBeenCalled();
+    expect(world.spawnHosted).not.toHaveBeenCalled();
   }
 });
 it("taking back an oven frees its place for a replacement", () => {
   const hosts = new Map<string, string>();
   let serial = 0;
   const { actions, world } = fixture({
-    spawnHostedOnTable: (_kind, _dimension, _at, _yaw, host) => {
+    spawnHosted: (_kind, _dimension, _at, _yaw, host) => {
       hosts.set(`oven${serial++}`, host);
     },
     host: (id) => hosts.get(id) ?? "",
-    itemsOnTable: () =>
+    itemsOnTop: () =>
       [...hosts.values()].flatMap((text) => {
         const host = decodeHost(text);
-        return host.kind === "camp_table"
+        return host.kind === "top" && host.hostType === "camp_table"
           ? [{ at: host.at, footprint: DUTCH_OVEN_FOOTPRINT_PX }]
           : [];
       }),
@@ -400,3 +400,9 @@ it("ignores missing ovens without starting their cooldown", () => {
   expect(actions.toggleLid(oven, 1)).toBe(true);
   expect(world.setSimmering).toHaveBeenCalledExactlyOnceWith(oven, true);
 });
+
+function decodeHost(text: string) {
+  return decodeSharedHost(text, (type, spot) =>
+    type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
+  );
+}
