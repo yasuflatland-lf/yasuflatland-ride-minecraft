@@ -44,7 +44,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       hitsToTakeBack: 3,
       hitResetTicks: 100,
       top: Object.freeze({
-        half: Object.freeze({ halfX: 0.4, halfZ: 0.4 }),
+        half: Object.freeze({ halfX: 7.5, halfZ: 7.5 }),
         topPx: 12,
         limit: 4,
         clearanceBase: 0,

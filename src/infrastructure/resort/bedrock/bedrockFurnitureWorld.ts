@@ -19,6 +19,7 @@ import {
   isCreative,
   playerById,
 } from "../../shared/players";
+import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import { FURNITURE_IDS, furnitureKindOf } from "../identifiers";
 
 export class BedrockFurnitureWorld
@@ -26,6 +27,7 @@ export class BedrockFurnitureWorld
 {
   constructor(
     private readonly deps: {
+      topHosts: TopHostRegistry;
       isVehicleSpace: SpaceCheck;
       isCampSpace: SpaceCheck;
     },
@@ -51,9 +53,13 @@ export class BedrockFurnitureWorld
         .length ?? 0) > 0
     );
   }
-  somethingOnTop(_id: FurnitureId): boolean {
-    // Table hosting and laid-block checks are added with the table assets.
-    return false;
+  somethingOnTop(id: FurnitureId): boolean {
+    const entity = this.entity(id);
+    const host = entity && this.deps.topHosts.hostTypeOf(entity);
+    return (
+      host !== undefined &&
+      this.deps.topHosts.itemsOnTop(host.hostType, id).length > 0
+    );
   }
   showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void {
     this.show(player, reason === "occupied" ? "occupied" : "something_on_top");

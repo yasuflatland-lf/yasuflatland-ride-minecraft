@@ -53,3 +53,9 @@ export function furnitureKindOf(
     (kind) => FURNITURE_IDS[kind][field] === typeId,
   );
 }
+
+export const DINING_TABLE_TOP_REFUSAL_HINTS = {
+  full: "yasu_ride.dining_table_top_full",
+  overlap: "yasu_ride.dining_table_top_overlap",
+  tooBig: "yasu_ride.dining_table_top_too_big",
+} as const;

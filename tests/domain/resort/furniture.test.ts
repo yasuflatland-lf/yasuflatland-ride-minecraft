@@ -157,7 +157,7 @@ describe("furniture spec", () => {
     expectFrozen(FURNITURE_SPEC);
   });
 
-  it("provides the initial seat and tabletop dimensions", () => {
+  it("provides per-kind seats and the finalized Dining Table surface", () => {
     const seats: readonly (readonly SeatOffset[])[] = [
       [],
       [{ x: 0, y: 0.45, z: 0.05 }],
@@ -169,7 +169,7 @@ describe("furniture spec", () => {
     ];
     expect(kinds.map((kind) => FURNITURE_SPEC[kind].seats)).toEqual(seats);
     expect(FURNITURE_SPEC.dining_table.top).toEqual({
-      half: { halfX: 0.4, halfZ: 0.4 },
+      half: { halfX: 7.5, halfZ: 7.5 },
       topPx: 12,
       limit: 4,
       clearanceBase: 0,
