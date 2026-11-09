@@ -1,14 +1,23 @@
-import { ScriptEventSource, system, world } from "@minecraft/server";
+import {
+  type Entity,
+  type Player,
+  ScriptEventSource,
+  system,
+  world,
+} from "@minecraft/server";
 import type { GasLanternActions } from "../../../../application/camp/gasLantern";
 import { asGasLanternId } from "../../../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../../../domain/camp/spec";
-import { asTableId } from "../../../../domain/camp/table";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { heldTypeId } from "../../../shared/heldItem";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../shared/identifiers";
+import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
+import type {
+  PlaceHostedOnTop,
+  TopHostRegistry,
+} from "../../../shared/tableTop/registry";
 import {
-  CAMP_TABLE_TYPE,
   GAS_LANTERN_ITEM,
   GAS_LANTERN_TYPE,
   TEST_GAS_LANTERN_EVENT,
@@ -16,22 +25,47 @@ import {
   TEST_GAS_LANTERN_ON_TABLE_EVENT,
 } from "../../identifiers";
 import type { BedrockGasLanternWorld } from "../bedrockGasLanternWorld";
-import {
-  showTableTopRefusal,
-  tableTopAim,
-  testTableTopRequest,
-} from "../tableTopAim";
+import { testTableTopRequest } from "../tableTopAim";
 import { registerPlaceableEntity } from "./placeable";
 
 export function registerGasLantern(
   actions: GasLanternActions,
   lanternWorld: BedrockGasLanternWorld,
-): void {
+  registry: TopHostRegistry,
+): PlaceHostedOnTop {
   system.runInterval(
     () => lanternWorld.relayLoaded(),
     GAS_LANTERN_SPEC.lightTicks,
   );
   const placements = new TickScopedSet<PlayerId>();
+  const place = (
+    placer: Player,
+    host: Entity,
+    held: string | undefined,
+  ): boolean => {
+    if (held !== GAS_LANTERN_ITEM) return false;
+    const type = registry.hostTypeOf(host);
+    if (!type) return false;
+    const player = asPlayerId(placer.id);
+    if (!placements.add(system.currentTick, player)) return true;
+    const slot = placer.selectedSlotIndex;
+    const aim = topAim(placer, host, type.surface);
+    const id = host.id;
+    system.run(() =>
+      showTopRefusal(
+        placer,
+        type,
+        actions.placeOnTop(type.surface, {
+          player,
+          hostType: type.hostType,
+          host: id,
+          slot,
+          aim,
+        }),
+      ),
+    );
+    return true;
+  };
   registerPlaceableEntity({
     itemId: GAS_LANTERN_ITEM,
     entityTypeIds: new Set([GAS_LANTERN_TYPE]),
@@ -48,24 +82,7 @@ export function registerGasLantern(
     placements,
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
-    if (
-      ev.target.typeId !== CAMP_TABLE_TYPE ||
-      ev.itemStack?.typeId !== GAS_LANTERN_ITEM
-    )
-      return;
-    ev.cancel = true;
-    const player = asPlayerId(ev.player.id);
-    if (!placements.add(system.currentTick, player)) return;
-    const table = asTableId(ev.target.id);
-    const slot = ev.player.selectedSlotIndex;
-    const aim = tableTopAim(ev.player, ev.target);
-    const placer = ev.player;
-    system.run(() =>
-      showTableTopRefusal(
-        placer,
-        actions.placeOnTable({ player, table, slot, aim }),
-      ),
-    );
+    if (place(ev.player, ev.target, ev.itemStack?.typeId)) ev.cancel = true;
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (
@@ -103,4 +120,5 @@ export function registerGasLantern(
       system.currentTick,
     );
   });
+  return (player, host) => place(player, host, heldTypeId(player));
 }

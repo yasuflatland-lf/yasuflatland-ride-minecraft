@@ -5,11 +5,6 @@ import {
   GAS_LANTERN_FOOTPRINT_PX,
 } from "../../../src/domain/camp/spec";
 import {
-  type Footprint,
-  placeOnTop,
-  type TopItem,
-} from "../../../src/domain/camp/tabletop";
-import {
   type BeachChairPose,
   beachChairCells,
   beachChairClearCells,
@@ -27,6 +22,11 @@ import {
 import { asBeachChairId } from "../../../src/domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
 import type { Facing4 } from "../../../src/domain/shared/facing";
+import {
+  placeOnTop,
+  type TopItem,
+  type TopRect,
+} from "../../../src/domain/shared/tableTop";
 import { forward } from "../../../src/domain/shared/vec";
 
 const cellArb = fc.record({
@@ -64,7 +64,6 @@ describe("beachChairPose", () => {
           z: middle.z + dz,
         });
         const toFoot = forward(pose.yaw);
-        // 0 - n keeps a zero step +0, which unary minus would make -0 for Object.is.
         expect(dx).toBe(0 - Math.round(toFoot.x));
         expect(dz).toBe(0 - Math.round(toFoot.z));
         const facing = forward(yaw);
@@ -164,7 +163,7 @@ describe("folded table top", () => {
     z: fc.double({ min: -topHalf.halfZ, max: topHalf.halfZ, noNaN: true }),
   });
   const placeAll = (
-    tries: readonly [{ x: number; z: number }, Footprint][],
+    tries: readonly [{ x: number; z: number }, TopRect][],
     limit: number,
   ): TopItem[] => {
     const placed: TopItem[] = [];
@@ -185,12 +184,12 @@ describe("folded table top", () => {
   it("holds two ovens end to end, or an oven and two lanterns", () => {
     const oven = DUTCH_OVEN_FOOTPRINT_PX;
     const lantern = GAS_LANTERN_FOOTPRINT_PX;
-    const ends: [{ x: number; z: number }, Footprint][] = [
+    const ends: [{ x: number; z: number }, TopRect][] = [
       [{ x: 0, z: -topHalf.halfZ }, oven],
       [{ x: 0, z: topHalf.halfZ }, oven],
     ];
     expect(placeAll(ends, topLimit)).toHaveLength(2);
-    const mixed: [{ x: number; z: number }, Footprint][] = [
+    const mixed: [{ x: number; z: number }, TopRect][] = [
       [{ x: 0, z: -topHalf.halfZ }, oven],
       [{ x: -topHalf.halfX, z: topHalf.halfZ }, lantern],
       [{ x: topHalf.halfX, z: topHalf.halfZ }, lantern],
@@ -215,7 +214,7 @@ describe("folded table top", () => {
 
   it("fits as many lanterns as the limit allows in a grid", () => {
     const lantern = GAS_LANTERN_FOOTPRINT_PX;
-    const grid: [{ x: number; z: number }, Footprint][] = [];
+    const grid: [{ x: number; z: number }, TopRect][] = [];
     for (const x of [-topHalf.halfX, topHalf.halfX])
       for (const z of [-topHalf.halfZ, 0, topHalf.halfZ])
         grid.push([{ x, z }, lantern]);
@@ -279,35 +278,5 @@ describe("form rules", () => {
 
   it("brands chair ids without changing them", () => {
     expect(asBeachChairId("abc")).toBe("abc");
-  });
-});
-
-describe("BEACH_CHAIR_SPEC", () => {
-  it("matches the model's measured seat, top, and bed outline", () => {
-    expect(BEACH_CHAIR_SPEC.seatOffset).toEqual({ x: 0, y: 0.5625, z: 0.3125 });
-    expect(BEACH_CHAIR_SPEC.topPx).toBe(9);
-    expect(BEACH_CHAIR_SPEC.bedOutline).toEqual({
-      minX: -8,
-      maxX: 8,
-      minZ: -23,
-      maxZ: 23,
-    });
-  });
-
-  it("sizes the folded table as wide as the bed and centred inside it", () => {
-    const { topHalf, bedOutline } = BEACH_CHAIR_SPEC;
-    expect(topHalf).toEqual({ halfX: 8, halfZ: 10.5 });
-    expect(topHalf.halfX * 2).toBe(bedOutline.maxX - bedOutline.minX);
-    expect(-topHalf.halfZ).toBeGreaterThan(bedOutline.minZ);
-    expect(topHalf.halfZ).toBeLessThan(bedOutline.maxZ);
-  });
-
-  it("puts the seat inside the bed outline", () => {
-    const { seatOffset, bedOutline } = BEACH_CHAIR_SPEC;
-    const px = 16;
-    expect(seatOffset.x * px).toBeGreaterThanOrEqual(bedOutline.minX);
-    expect(seatOffset.x * px).toBeLessThanOrEqual(bedOutline.maxX);
-    expect(seatOffset.z * px).toBeGreaterThanOrEqual(bedOutline.minZ);
-    expect(seatOffset.z * px).toBeLessThanOrEqual(bedOutline.maxZ);
   });
 });

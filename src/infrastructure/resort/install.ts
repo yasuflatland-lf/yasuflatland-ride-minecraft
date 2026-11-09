@@ -13,6 +13,7 @@ import {
   BedrockStarterItemWorld,
   registerStarterItem,
 } from "../shared/starterItem";
+import type { TopHostRegistry } from "../shared/tableTop/registry";
 import { BedrockBeachChairWorld } from "./bedrock/bedrockBeachChairWorld";
 import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
 import { BedrockParasolWorld } from "./bedrock/bedrockParasolWorld";
@@ -30,6 +31,7 @@ import {
 } from "./identifiers";
 
 export function installResort(deps: {
+  topHosts: TopHostRegistry;
   isVehicleSpace: SpaceCheck;
   isCampSpace: SpaceCheck;
 }): void {

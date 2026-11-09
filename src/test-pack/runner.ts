@@ -2,6 +2,7 @@
 // main Behavior Pack, so they drive the vehicle through script events.
 import { system, world } from "@minecraft/server";
 import "./inputProbe";
+import "./loungeProbe";
 import { type Arena, prepareRun, removeVehicles } from "./arena";
 import { CATALOG, type ScenarioSpec } from "./catalog";
 import { isFeatureTag } from "./features";
