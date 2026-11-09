@@ -19,6 +19,15 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "sofa_single_place_take_back",
+    file: "sofaSingle",
+    ticks: 56, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "beach_chair_lantern",
     file: "beachChairHosting",
     ticks: 44, // Estimate until the first BDS run.

@@ -312,6 +312,13 @@ describe("selectionOf", () => {
   });
 
   it.each([
+    "packs/yasu_ride_bp/entities/yasu_ride/sofa_single.se.json",
+    "packs/yasu_ride_bp/items/yasu_ride/sofa_single_item.item.json",
+  ])("selects resort for the new sofa asset %s", (path) => {
+    expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
+  });
+
+  it.each([
     "beach_parasol",
     "beach_parasol_item",
     "parasol_ceiling",
@@ -333,6 +340,7 @@ describe("selectionOf", () => {
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
     ).toEqual([
+      "sofa_single_place_take_back",
       "beach_chair_lantern",
       "beach_chair_oven",
       "beach_chair_empty_refresh",

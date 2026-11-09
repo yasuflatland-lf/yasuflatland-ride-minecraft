@@ -164,6 +164,8 @@ export const HARNESS_IMPORTS: readonly string[] = [
 ];
 
 export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
+  sofa_single: ["resort"],
+  sofa_single_item: ["resort"],
   beach_chair: ["resort"],
   beach_chair_item: ["resort"],
   beach_parasol: ["resort"],
