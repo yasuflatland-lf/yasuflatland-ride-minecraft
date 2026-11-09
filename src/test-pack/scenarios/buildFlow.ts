@@ -780,7 +780,7 @@ export function buildCopyStructure(a: Arena): Promise<Outcome> {
       sign.setText("Copy front", SignSide.Front);
       sign.setText("Copy back", SignSide.Back);
       // The frame stays empty: whether a populated frame survives is the
-      // build_structure_probe's question (ADR 0243), not this scenario's.
+      // player-gated build_structure_store_decor's question (ADR 0244).
       f.block(f.cell(0, 1, 1)).setType("minecraft:frame");
       const copied = await startPasteStep(f);
       check(
