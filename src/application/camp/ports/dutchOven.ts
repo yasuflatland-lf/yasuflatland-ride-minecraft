@@ -2,9 +2,9 @@ import type { DutchOvenId } from "../../../domain/camp/dutchOven";
 import type { FirePitId } from "../../../domain/camp/firePit";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import type { TableTopWorld } from "./tableTop";
+import type { TopHostWorld } from "../../shared/placeOnTop";
 
-export interface DutchOvenWorld extends TableTopWorld {
+export interface DutchOvenWorld extends TopHostWorld {
   hasDutchOvenNear(dimension: DimensionId, at: Vec3): boolean;
   spawnDutchOven(dimension: DimensionId, at: Vec3, yaw: number): DutchOvenId;
   firePit(

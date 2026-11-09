@@ -4,11 +4,10 @@ import {
   GasLanternActions,
   gasLanternHostedKind,
 } from "../../../src/application/camp/gasLantern";
-import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import type { GasLanternWorld } from "../../../src/application/camp/ports/gasLantern";
+import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
-import { decodeHost, encodeHost } from "../../../src/domain/camp/hosted";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
   GAS_LANTERN_FOOTPRINT_PX,
@@ -17,8 +16,9 @@ import {
   TABLE_TOP_LIMIT,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
-import type { TopItem } from "../../../src/domain/camp/tabletop";
+import { decodeHost, encodeHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import type { TopItem } from "../../../src/domain/shared/tableTop";
 
 const player = asPlayerId("player");
 const dimension = asDimensionId("overworld");
@@ -45,9 +45,9 @@ function fixture() {
     dropItem: vi.fn(),
     removeGasLantern: vi.fn(),
     showHitsLeft: vi.fn(),
-    table: () => ({ dimension, at: { x: 10.5, y: 64, z: 20.5 }, yaw: 90 }),
-    itemsOnTable: vi.fn((): readonly TopItem[] => []),
-    spawnHostedOnTable: vi.fn<GasLanternWorld["spawnHostedOnTable"]>(),
+    topHost: () => ({ dimension, at: { x: 10.5, y: 64, z: 20.5 }, yaw: 90 }),
+    itemsOnTop: vi.fn((): readonly TopItem[] => []),
+    spawnHosted: vi.fn<GasLanternWorld["spawnHosted"]>(),
     loadedGasLanterns: vi.fn<GasLanternWorld["loadedGasLanterns"]>(() => []),
     host: vi.fn<GasLanternWorld["host"]>(() => ""),
     isHostAreaLoaded: vi.fn<GasLanternWorld["isHostAreaLoaded"]>(() => true),
@@ -197,10 +197,11 @@ it("stands on a table with the lantern's footprint, the table's yaw, and a marke
   expect(actions.placeOnTable({ ...tableCmd, aim: { x: far, z: 0 } })).toBe(
     "placed",
   );
-  const [kind, dim, , yaw, host] = world.spawnHostedOnTable.mock.calls[0] ?? [];
+  const [kind, dim, , yaw, host] = world.spawnHosted.mock.calls[0] ?? [];
   expect([kind, dim, yaw]).toEqual(["gas_lantern", dimension, 90]);
   expect(decodeHost(String(host))).toEqual({
-    kind: "camp_table",
+    kind: "top",
+    hostType: "camp_table",
     id: asTableId("table"),
     at: { x: TABLE_TOP_HALF_PX.halfX - GAS_LANTERN_FOOTPRINT_PX.halfX, z: 0 },
   });
@@ -229,7 +230,7 @@ it("shares the limit of 4 with ovens and consumes nothing when the top is full",
       ),
       (footprints) => {
         const { actions, world } = fixture();
-        world.itemsOnTable.mockReturnValue(
+        world.itemsOnTop.mockReturnValue(
           footprints.map((footprint) => ({
             at: { x: -9.25, z: 0 },
             footprint,
@@ -240,7 +241,7 @@ it("shares the limit of 4 with ovens and consumes nothing when the top is full",
           actions.placeOnTable({ ...tableCmd, aim: { x: 15, z: 0 } }),
         ).toBe(full ? "full" : "placed");
         expect(world.consumeItem).toHaveBeenCalledTimes(full ? 0 : 1);
-        expect(world.spawnHostedOnTable).toHaveBeenCalledTimes(full ? 0 : 1);
+        expect(world.spawnHosted).toHaveBeenCalledTimes(full ? 0 : 1);
       },
     ),
   );
@@ -248,21 +249,26 @@ it("shares the limit of 4 with ovens and consumes nothing when the top is full",
 
 it("consumes nothing when the lantern would overlap an oven", () => {
   const { actions, world } = fixture();
-  world.itemsOnTable.mockReturnValue([
+  world.itemsOnTop.mockReturnValue([
     { at: { x: 2, z: 1 }, footprint: DUTCH_OVEN_FOOTPRINT_PX },
   ]);
   expect(actions.placeOnTable({ ...tableCmd, aim: { x: 0, z: 0 } })).toBe(
     "overlap",
   );
   expect(world.consumeItem).not.toHaveBeenCalled();
-  expect(world.spawnHostedOnTable).not.toHaveBeenCalled();
+  expect(world.spawnHosted).not.toHaveBeenCalled();
 });
 
 const marker = fc.oneof(
   fc.constant(""),
   fc.constant("not a marker"),
   fc.constant(
-    encodeHost({ kind: "fire_pit", id: asFirePitId("pit"), spot: 0 }),
+    encodeHost({
+      kind: "spot",
+      hostType: "fire_pit",
+      id: asFirePitId("pit"),
+      spot: 0,
+    }),
   ),
   fc
     .record({
@@ -270,7 +276,12 @@ const marker = fc.oneof(
       z: fc.integer({ min: -1, max: 1 }),
     })
     .map((at) =>
-      encodeHost({ kind: "camp_table", id: asTableId("table"), at }),
+      encodeHost({
+        kind: "top",
+        hostType: "camp_table",
+        id: asTableId("table"),
+        at,
+      }),
     ),
 );
 
@@ -314,7 +325,8 @@ it("keeps a hosted lantern whose host still exists", () => {
   world.loadedGasLanterns.mockReturnValue([id]);
   world.host.mockReturnValue(
     encodeHost({
-      kind: "camp_table",
+      kind: "top",
+      hostType: "camp_table",
       id: asTableId("table"),
       at: { x: 0, z: 0 },
     }),

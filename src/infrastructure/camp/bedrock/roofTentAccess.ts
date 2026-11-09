@@ -1,11 +1,11 @@
 import { type Entity, type Player, world } from "@minecraft/server";
 import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
-import { decodeHost } from "../../../domain/camp/hosted";
 import {
   canReachEntrance,
   canSeeEntryHint,
   canStandAtFoot,
 } from "../../../domain/camp/roofTent/access";
+import { decodeHost } from "../../../domain/shared/hosted";
 import { ROOF_TENT_HOST_PROPERTY, ROOF_TENT_TYPE } from "../identifiers";
 import type { RoofTentFootAccess } from "./handlers/roofTentEnter";
 import { loadedEntityIds } from "./hostedEntities";
