@@ -15,6 +15,9 @@ panels = load_tool("panels")
 tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 TOP_PX = 7
+TABLE_TOP_PX = 16
+TABLE_SLAT_BOTTOM = TABLE_TOP_PX - 0.8
+TABLE_RAIL_BOTTOM = TABLE_SLAT_BOTTOM - 1.6
 HALF = (6, 16)
 BED_OUTLINE = (-6, 6, -16, 16)
 SEAT_OFFSET = (0, TOP_PX / 16, 2 / 16)
@@ -111,12 +114,12 @@ def geometry():
     table_frame = []
     for x in (-6, 6 - LEG_SIZE):
         for z in (-16, 16 - LEG_SIZE):
-            table_frame.append(box((x, 0, z), (x + LEG_SIZE, SLAT_BOTTOM, z + LEG_SIZE)))
+            table_frame.append(box((x, 0, z), (x + LEG_SIZE, TABLE_SLAT_BOTTOM, z + LEG_SIZE)))
     for x in (-6, 6 - RAIL_WIDTH):
-        table_frame.append(box((x, MAIN_RAIL_BOTTOM, -16),
-                               (x + RAIL_WIDTH, SLAT_BOTTOM, 16)))
+        table_frame.append(box((x, TABLE_RAIL_BOTTOM, -16),
+                               (x + RAIL_WIDTH, TABLE_SLAT_BOTTOM, 16)))
     for z in (-16, 15):
-        table_frame.append(box((-6, MAIN_RAIL_BOTTOM, z), (6, SLAT_BOTTOM, z + 1)))
+        table_frame.append(box((-6, TABLE_RAIL_BOTTOM, z), (6, TABLE_SLAT_BOTTOM, z + 1)))
     # Adjacent slats share edges: wood grain marks joints without grooves or air gaps.
     # Nine true square holes sit between the ten slat centre lines at z=0.
     centres = [-slats_half + k * (SLAT_WIDTH + SLAT_GAP) + SLAT_WIDTH / 2
@@ -125,14 +128,14 @@ def geometry():
     edges = [-6] + joints + [6]
     table_top = []
     for left, right in zip(edges, edges[1:]):
-        table_top.extend([box((left, SLAT_BOTTOM, -16), (right, TOP_PX, -NOTCH_SIZE / 2), 4),
-                          box((left, SLAT_BOTTOM, NOTCH_SIZE / 2), (right, TOP_PX, 16), 4)])
+        table_top.extend([box((left, TABLE_SLAT_BOTTOM, -16), (right, TABLE_TOP_PX, -NOTCH_SIZE / 2), 4),
+                          box((left, TABLE_SLAT_BOTTOM, NOTCH_SIZE / 2), (right, TABLE_TOP_PX, 16), 4)])
     cursor = -6
     for x in joints:
-        table_top.append(box((cursor, SLAT_BOTTOM, -NOTCH_SIZE / 2),
-                             (x - NOTCH_SIZE / 2, TOP_PX, NOTCH_SIZE / 2), 4))
+        table_top.append(box((cursor, TABLE_SLAT_BOTTOM, -NOTCH_SIZE / 2),
+                             (x - NOTCH_SIZE / 2, TABLE_TOP_PX, NOTCH_SIZE / 2), 4))
         cursor = x + NOTCH_SIZE / 2
-    table_top.append(box((cursor, SLAT_BOTTOM, -NOTCH_SIZE / 2), (6, TOP_PX, NOTCH_SIZE / 2), 4))
+    table_top.append(box((cursor, TABLE_SLAT_BOTTOM, -NOTCH_SIZE / 2), (6, TABLE_TOP_PX, NOTCH_SIZE / 2), 4))
     bones = [{"name": "root", "pivot": [0, 0, 0]},
              {"name": "chair_form", "parent": "root", "pivot": [0, 0, 0]},
              {"name": "frame", "parent": "chair_form", "pivot": [0, 0, 0], "cubes": frame},

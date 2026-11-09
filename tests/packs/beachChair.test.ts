@@ -76,6 +76,7 @@ r = load_tool('render_preview')
 g = json.loads(Path('${RP}models/entity/yasu_ride/beach_chair.geo.json').read_text())['minecraft:geometry'][0]
 assert [b['name'] for b in g['bones']] == ['root', 'chair_form', 'frame', 'backrest', 'prop', 'table_form', 'table_top']
 assert m.SEAT_OFFSET == (0, 0.4375, 0.125)
+assert m.TABLE_TOP_PX == ${BEACH_CHAIR_SPEC.topPx} == 16
 assert m.TOP_PX == 7 and m.HALF == (6,16) and m.BED_OUTLINE == (-6,6,-16,16)
 back = next(b for b in g['bones'] if b['name']=='backrest')
 assert back['pivot'] == [0,7,3] and back['rotation'] == [37,0,0]
@@ -181,15 +182,21 @@ for step in range(11):
             if step == 0: assert max(p[1] for p in points) > 14
             if step == 10: assert abs(max(p[1] for p in points)-m.TOP_PX)<0.00001
         all_points.extend(points)
-    if step == 10: assert abs(max(p[1] for p in all_points)-m.TOP_PX)<0.00001
+    if step == 10: assert abs(max(p[1] for p in all_points)-m.TABLE_TOP_PX)<0.00001
 table = r.static_pose(g, animations['animation.yasu_ride.beach_chair.table'])
 assert all(not b.get('cubes') for b in table['bones'] if b['name'] in ['frame','backrest','prop'])
 base = next(b for b in table['bones'] if b['name']=='table_form')['cubes']
 legs = [c for c in base if c['origin'][1] == 0]
 assert len(legs) == 4
 assert {(c['origin'][0], c['origin'][2]) for c in legs} == {(-6,-16),(-6,14),(4,-16),(4,14)}
-assert all(c['size'] == [2,6.2,2] for c in legs)
+assert all(c['size'] == [2,15.2,2] for c in legs)
+rails = [c for c in base if c['origin'][1] != 0]
+assert len(rails) == 4
+assert all(abs(c['origin'][1]-13.6) < 1e-6 and abs(c['size'][1]-1.6) < 1e-6 for c in rails)
 top = next(b for b in table['bones'] if b['name']=='table_top')['cubes']
+assert all(abs(c['origin'][1]-m.TABLE_SLAT_BOTTOM) < 1e-6 for c in top)
+assert all(abs(c['origin'][1]+c['size'][1]-m.TABLE_TOP_PX) < 1e-6 for c in top)
+assert all(abs(c['origin'][1]+c['size'][1]-m.TOP_PX) < 1e-6 for c in bed)
 def filled(x,z):
     return any(c['origin'][0] <= x <= c['origin'][0]+c['size'][0] and
                c['origin'][2] <= z <= c['origin'][2]+c['size'][2] for c in top)

@@ -173,7 +173,7 @@ describe("form rules", () => {
 describe("BEACH_CHAIR_SPEC", () => {
   it("matches the model's measured seat, top, and bed outline", () => {
     expect(BEACH_CHAIR_SPEC.seatOffset).toEqual({ x: 0, y: 0.4375, z: 0.125 });
-    expect(BEACH_CHAIR_SPEC.topPx).toBe(7);
+    expect(BEACH_CHAIR_SPEC.topPx).toBe(16);
     expect(BEACH_CHAIR_SPEC.bedOutlinePx).toEqual({
       minX: -6,
       maxX: 6,

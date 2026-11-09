@@ -46,8 +46,8 @@ export const PARASOL_SPEC = Object.freeze({
 export const BEACH_CHAIR_SPEC = Object.freeze({
   /** The lying player's seat, local to the entity origin, in blocks. */
   seatOffset: Object.freeze({ x: 0, y: 0.4375, z: 0.125 }),
-  /** From the origin to the top of the table, in pixels (16 px per block). */
-  topPx: 7,
+  /** Table height from TABLE_TOP_PX in tools/gen_beach_chair.py; the chair bed stays at 7 px. */
+  topPx: 16,
   /** Half the table top's size, in pixels. */
   topHalf: Object.freeze({ halfX: 6, halfZ: 16 }),
   /** The bed's outline around the origin, in pixels. */
