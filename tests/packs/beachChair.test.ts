@@ -65,8 +65,8 @@ describe("Beach Chair assets", () => {
     const texture = readRgbaPng(
       `${RP}textures/entity/yasu_ride/beach_chair.png`,
     );
-    expect([texture.width, texture.height]).toEqual([128, 16]);
-    for (let y = 0; y < 16; y++) {
+    expect([texture.width, texture.height]).toEqual([144, 32]);
+    for (let y = 0; y < 32; y++) {
       for (let x = 80; x < 96; x++) {
         const offset = (y * texture.width + x) * 4;
         expect([...texture.pixels.slice(offset, offset + 4)]).toEqual([
@@ -86,7 +86,7 @@ m = load_tool('gen_beach_chair')
 r = load_tool('render_preview')
 g = json.loads(Path('${RP}models/entity/yasu_ride/beach_chair.geo.json').read_text())['minecraft:geometry'][0]
 assert [b['name'] for b in g['bones']] == ['root', 'chair_form', 'frame', 'backrest', 'prop', 'table_form', 'table_top']
-assert g['description']['texture_width'] == 128 and g['description']['texture_height'] == 16
+assert g['description']['texture_width'] == 144 and g['description']['texture_height'] == 32
 assert m.SEAT_OFFSET == (0, 0.4375, 0.125)
 assert m.TOP_PX == 7 and m.HALF == (6,16) and m.BED_OUTLINE == (-6,6,-16,16)
 back = next(b for b in g['bones'] if b['name']=='backrest')
@@ -255,9 +255,9 @@ assert all(close(c['origin'][1],15.82) and close(c['origin'][1]+c['size'][1],16)
 assert close(m.TOP_PX - m.SLAT_BOTTOM, 0.55)
 inner = [c for c in bed if abs(c['origin'][0]) < 5]
 assert len(inner) == 11
-assert all(c['uv'][side]['uv'] == [m.GAP_SLOT*16,0] for c in inner for side in ('east','west','down'))
+assert all(c['uv'][side]['uv'][0] == m.GAP_SLOT*16 for c in inner for side in ('east','west','down'))
 assert all(c['uv']['up']['uv'] == [16,0] and c['uv']['north']['uv'] == [m.END_GRAIN_SLOT*16,0] for c in inner)
-assert all(c['uv']['east']['uv'] == [0,0] for c in bed if c not in inner)
+assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in inner)
 
 `,
     ]);

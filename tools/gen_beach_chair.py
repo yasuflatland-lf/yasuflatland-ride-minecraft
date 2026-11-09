@@ -74,15 +74,20 @@ PROP_ANGLE = math.degrees(math.atan2(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2
 PROP_LENGTH = math.hypot(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2] - PROP_START[2])
 PROP_WIDTH = 0.12
 PROP_THICKNESS = 0.08
-# Mean colours sampled from the studio reference photo, before face shading:
-# honey-brown frame and legs, yellow-tan slat tops, the blonde junction band,
-# steel, the table top, near-black pads, the dark slat walls seen down the gaps,
-# and darker end grain.
-PALETTE = ((226, 170, 122), (232, 204, 160), (246, 232, 200), (206, 210, 210), (230, 200, 154),
-           (34, 26, 21), (92, 58, 34), (178, 128, 86))
+# Colours sampled from the studio reference photo and divided by the preview's face
+# shading (1.0 up, 0.6 to 0.8 sides), so rendered faces match the photo means:
+# honey-brown legs, yellow-tan slat tops, the cream junction band, steel, the
+# mid-brown table top, near-black pads, the dark slat walls seen down the gaps,
+# darker end grain, and the lighter, less red apron rails.
+PALETTE = ((236, 172, 126), (240, 212, 178), (252, 240, 214), (206, 210, 210), (196, 156, 116),
+           (34, 26, 21), (70, 44, 26), (190, 138, 96), (255, 202, 158))
 GAP_SLOT = 6
 END_GRAIN_SLOT = 7
+RAIL_SLOT = 8
 TEXTURE_WIDTH = len(PALETTE) * 16
+# Rows 0-15 hold grain running along v and rows 16-31 grain running along u, so
+# each face picks the copy whose lines follow its longer side.
+TEXTURE_HEIGHT = 32
 # Deep slats make the gaps between them read as dark slots rather than hairlines.
 SLAT_BOTTOM = TOP_PX - 0.55
 BAND_START = -11.5
@@ -95,8 +100,11 @@ GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
 TEXTURE = "textures/entity/yasu_ride/beach_chair.png"
 
 
-def face(slot):
-    return {"uv": [slot * 16, 0], "uv_size": [16, 16]}
+def face(slot, across=False):
+    return {"uv": [slot * 16, 16 if across else 0], "uv_size": [16, 16]}
+
+
+FACE_AXES = {"north": (0, 1), "south": (0, 1), "east": (2, 1), "west": (2, 1), "up": (0, 2), "down": (0, 2)}
 
 
 def box(lo, hi, slot=0, sides=None, ends=END_GRAIN_SLOT):
@@ -112,13 +120,24 @@ def box(lo, hi, slot=0, sides=None, ends=END_GRAIN_SLOT):
     if ends is not None:
         for side in ("north", "south") if size[2] >= size[0] else ("east", "west"):
             cube["uv"][side] = face(ends)
+    rail = max(size[0], size[2]) > size[1]
+    for side, (u_axis, v_axis) in FACE_AXES.items():
+        slot_of_face = cube["uv"][side]["uv"][0] // 16
+        # Rail tops face the light like slat tops, so they share the slat-top tone;
+        # the brighter rail slot only offsets the darker side shading.
+        if slot_of_face == 0 and rail:
+            slot_of_face = 1 if side == "up" else RAIL_SLOT
+        cube["uv"][side] = face(slot_of_face, size[u_axis] > size[v_axis])
     return cube
 
 
 def slat(lo, hi, slot):
     # The outermost slats show their outer side beside the rails, so it matches the frame.
     outer = max(abs(lo[0]), abs(hi[0])) > SLATS_HALF - SLAT_WIDTH / 2
-    return box(lo, hi, slot, 0 if outer else GAP_SLOT)
+    # The band's interleaved fingers sit close, so their sides keep the band colour
+    # rather than the dark gap wall, and the band reads as a clean pale stripe.
+    inner = 2 if slot == 2 else GAP_SLOT
+    return box(lo, hi, slot, 0 if outer else inner)
 
 
 def leg(x, z, size, top):
@@ -145,13 +164,18 @@ def geometry():
         for z in starts:
             for x in (-half, half - size):
                 frame.extend(leg(x, z, size, top))
-    frame.append(box((-EXTENSION_HALF_WIDTH, EXTENSION_RAIL_BOTTOM, EXTENSION_END_START),
-                     (EXTENSION_HALF_WIDTH, EXTENSION_RAIL_TOP, EXTENSION_END_START + EXTENSION_END_DEPTH)))
+    # Cross rails stop at the side rails' inner faces: a cross rail reaching the outer
+    # face would z-fight with the side rail and speckle the leg joint.
+    stub_inner = EXTENSION_HALF_WIDTH - EXTENSION_RAIL_THICKNESS
+    frame.append(box((-stub_inner, EXTENSION_RAIL_BOTTOM, EXTENSION_END_START),
+                     (stub_inner, EXTENSION_RAIL_TOP, EXTENSION_END_START + EXTENSION_END_DEPTH)))
     # The main frame's end grain closes the inset slider joint below the flush slats.
-    frame.append(box((-HALF[0], MAIN_RAIL_BOTTOM, MAIN_RAIL_START),
-                     (HALF[0], SLAT_BOTTOM, MAIN_RAIL_START + MAIN_RAIL_THICKNESS)))
-    frame.append(box((-HALF[0], REAR_RAIL_BOTTOM, REAR_END_START),
-                     (HALF[0], REAR_RAIL_TOP, HALF[1])))
+    main_inner = HALF[0] - MAIN_RAIL_THICKNESS
+    frame.append(box((-main_inner, MAIN_RAIL_BOTTOM, MAIN_RAIL_START),
+                     (main_inner, SLAT_BOTTOM, MAIN_RAIL_START + MAIN_RAIL_THICKNESS)))
+    rear_inner = HALF[0] - REAR_RAIL_WIDTH
+    frame.append(box((-rear_inner, REAR_RAIL_BOTTOM, REAR_END_START),
+                     (rear_inner, REAR_RAIL_TOP, HALF[1])))
     backrest = []
     slats_half = SLATS_HALF
     for k in range(SLAT_COUNT):
@@ -190,8 +214,8 @@ def geometry():
         table_frame.append(box((x, TABLE_RAIL_BOTTOM, TABLE_Z_MIN),
                                (x + TABLE_RAIL_THICKNESS, TABLE_SLAT_BOTTOM, TABLE_Z_MAX)))
     for z in (TABLE_Z_MIN, TABLE_Z_MAX - TABLE_RAIL_THICKNESS):
-        table_frame.append(box((-HALF[0], TABLE_RAIL_BOTTOM, z),
-                               (HALF[0], TABLE_SLAT_BOTTOM, z + TABLE_RAIL_THICKNESS)))
+        table_frame.append(box((-HALF[0] + TABLE_RAIL_THICKNESS, TABLE_RAIL_BOTTOM, z),
+                               (HALF[0] - TABLE_RAIL_THICKNESS, TABLE_SLAT_BOTTOM, z + TABLE_RAIL_THICKNESS)))
     # Adjacent slats share edges: wood grain marks joints without grooves or air gaps.
     # True square holes sit between the slat centre lines at the table midpoint.
     centres = [-slats_half + k * (SLAT_WIDTH + SLAT_GAP) + SLAT_WIDTH / 2
@@ -220,25 +244,28 @@ def geometry():
         tilt.assert_axes(bone.get("cubes", []), {})
     return {"format_version": "1.12.0", "minecraft:geometry": [{
         "description": {"identifier": "geometry.yasu_ride.beach_chair", "texture_width": TEXTURE_WIDTH,
-                        "texture_height": 16, "visible_bounds_width": 2.5,
+                        "texture_height": TEXTURE_HEIGHT, "visible_bounds_width": 2.5,
                         "visible_bounds_height": 2, "visible_bounds_offset": [0, 1, 0]},
         "bones": bones}]}
 
 
 def pixel(x, y):
     slot, u = divmod(x, 16)
+    across, v = divmod(y, 16)
     color = PALETTE[slot]
     if slot in (3, PAD_SLOT):
         return color + (255,)
-    # Deterministic grain runs along v: each texel column keeps its own tone, with
-    # occasional darker figure lines and a slow wave down the board.
-    column = ((u * 37 + slot * 11) % 13) - 6
-    figure = -12 if (u * 7 + slot * 3) % 11 == 0 else 0
-    wave = ((y + u * 3) // 4 % 3 - 1) * 3
-    # Darker arrises outline every board face so slats and rails separate in the render.
-    edge = -14 if u in (0, 15) or y in (0, 15) else 0
-    shift = column + figure + wave + edge
-    if slot == GAP_SLOT:
+    # Lines run along the board: a is the texel across the grain, b along it.
+    a, b = (v, u) if across else (u, v)
+    # Fine, low-contrast grain: each line keeps its own tone with an occasional
+    # darker figure line and a one-texel flicker, never multi-texel patches.
+    line = ((a * 37 + slot * 11) % 13 - 6) // 2
+    figure = -8 if (a * 7 + slot * 3) % 11 == 0 else 0
+    flicker = -2 if (a * 13 + b * 5 + slot) % 7 == 0 else 0
+    # Darker arrises along each board separate slats and rails; board ends darken less.
+    edge = -10 if a in (0, 15) else -4 if b in (0, 15) else 0
+    shift = line + figure + flicker + edge
+    if slot in (2, GAP_SLOT):
         shift //= 2
     return tuple(max(0, min(255, c + shift)) for c in color) + (255,)
 
@@ -250,7 +277,7 @@ def main():
     args = parser.parse_args()
     out = texture_io.Outputs(args.check, report_writes=True)
     out.json(args.resource_pack / GEOMETRY, geometry(), separators=(",", ":"))
-    out.png(args.resource_pack / TEXTURE, TEXTURE_WIDTH, 16, pixel, compress_level=9)
+    out.png(args.resource_pack / TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT, pixel, compress_level=9)
     out.finish("Beach Chair outputs are stale. Run pnpm model:", "Beach Chair model and texture are up to date")
 
 
