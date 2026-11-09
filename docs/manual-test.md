@@ -663,7 +663,7 @@ teleport, with no climbable blocks placed. Repeat hosted checks at several yaws.
 
 ## Beach Chair lying down
 
-Run these checks on both PC and mobile, with a second player observing. Visual acceptance of ADR 0238 remains pending until these checks pass.
+Run these checks on both PC and mobile, with a second player observing. ADR 0238 records the owner's acceptance of the lounge pose spike; these checks cover the chair integration.
 
 | ID  | Action                                                                                                      | Expected                                                                                                                                                                           | PC  | Touch |
 | --- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ----- |
