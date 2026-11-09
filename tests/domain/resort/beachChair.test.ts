@@ -1,6 +1,11 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  DUTCH_OVEN_FOOTPRINT_PX,
+  GAS_LANTERN_FOOTPRINT_PX,
+} from "../../../src/domain/camp/spec";
+import { placeOnTop, type TopItem } from "../../../src/domain/camp/tabletop";
+import {
   type BeachChairPose,
   beachChairCells,
   beachChairClearCells,
@@ -13,7 +18,6 @@ import {
   type ChairState,
   canTakeBack,
   fold,
-  tableBlockCells,
   unfold,
 } from "../../../src/domain/resort/beachChair";
 import { asBeachChairId } from "../../../src/domain/resort/ids";
@@ -99,15 +103,71 @@ describe("beach chair cells", () => {
     );
   });
 
-  it("supports lie directly below the floor cells and table blocks fill them", () => {
+  it("supports lie directly below the floor cells", () => {
     fc.assert(
       fc.property(poseArb, (pose) => {
         const floor = beachChairCells(pose);
         expect(beachChairSupportCells(pose)).toEqual(
           floor.map((c) => ({ ...c, y: c.y - 1 })),
         );
-        expect(tableBlockCells(pose)).toEqual(floor);
       }),
+    );
+  });
+});
+
+describe("folded table top", () => {
+  const { topHalf, topLimit } = BEACH_CHAIR_SPEC;
+  const items = [GAS_LANTERN_FOOTPRINT_PX, DUTCH_OVEN_FOOTPRINT_PX];
+  const aimArb = fc.record({
+    x: fc.double({ min: -topHalf.halfX, max: topHalf.halfX, noNaN: true }),
+    z: fc.double({ min: -topHalf.halfZ, max: topHalf.halfZ, noNaN: true }),
+  });
+
+  it("holds an oven or a lantern, and two lanterns end to end", () => {
+    for (const footprint of items)
+      expect(
+        placeOnTop(topHalf, topLimit, [], { x: 0, z: 0 }, footprint).ok,
+      ).toBe(true);
+    const first = placeOnTop(
+      topHalf,
+      topLimit,
+      [],
+      { x: 0, z: -topHalf.halfZ },
+      GAS_LANTERN_FOOTPRINT_PX,
+    );
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const second = placeOnTop(
+      topHalf,
+      topLimit,
+      [{ at: first.at, footprint: GAS_LANTERN_FOOTPRINT_PX }],
+      { x: 0, z: topHalf.halfZ },
+      GAS_LANTERN_FOOTPRINT_PX,
+    );
+    expect(second.ok).toBe(true);
+  });
+
+  it("never fits more items than the limit, whatever the aims", () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.tuple(aimArb, fc.constantFrom(...items)), {
+          maxLength: 6,
+        }),
+        (tries) => {
+          const placed: TopItem[] = [];
+          for (const [aim, footprint] of tries) {
+            const result = placeOnTop(
+              topHalf,
+              Number.POSITIVE_INFINITY,
+              placed,
+              aim,
+              footprint,
+            );
+            if (result.ok) placed.push({ at: result.at, footprint });
+          }
+          expect(placed.length).toBeLessThanOrEqual(topLimit);
+        },
+      ),
     );
   });
 });
@@ -182,10 +242,12 @@ describe("BEACH_CHAIR_SPEC", () => {
     });
   });
 
-  it("covers the whole bed outline with the table top", () => {
+  it("sizes the folded table as wide as the bed and centred inside it", () => {
     const { topHalf, bedOutlinePx } = BEACH_CHAIR_SPEC;
+    expect(topHalf).toEqual({ halfX: 6, halfZ: 7.25 });
     expect(topHalf.halfX * 2).toBe(bedOutlinePx.maxX - bedOutlinePx.minX);
-    expect(topHalf.halfZ * 2).toBe(bedOutlinePx.maxZ - bedOutlinePx.minZ);
+    expect(-topHalf.halfZ).toBeGreaterThan(bedOutlinePx.minZ);
+    expect(topHalf.halfZ).toBeLessThan(bedOutlinePx.maxZ);
   });
 
   it("puts the seat inside the bed outline", () => {

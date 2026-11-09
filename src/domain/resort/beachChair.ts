@@ -78,18 +78,13 @@ export function beachChairClearCells(pose: BeachChairPose): Cell[] {
   return cells;
 }
 
-/** The cells that get the invisible table block: the two floor cells. */
-export function tableBlockCells(pose: BeachChairPose): readonly [Cell, Cell] {
-  return beachChairCells(pose);
-}
-
 export type ChairForm = "chair" | "table";
 
 export interface ChairState {
   readonly form: ChairForm;
   /** Someone is lying on the chair. */
   readonly occupied: boolean;
-  /** A lantern, an oven, or a block sits on the table top. */
+  /** A lantern or an oven stands on the table top. */
   readonly somethingOnTop: boolean;
 }
 
@@ -107,7 +102,7 @@ export function fold(state: ChairState): FormChange {
   return { ok: true, to: "table" };
 }
 
-/** table to chair; refused while anything is on the top. */
+/** table to chair; refused while a lantern or an oven stands on the top. */
 export function unfold(state: ChairState): FormChange {
   if (state.form !== "table") return { ok: false, reason: "wrongForm" };
   if (state.somethingOnTop) return { ok: false, reason: "somethingOnTop" };
@@ -118,7 +113,7 @@ export type TakeBack =
   | { readonly ok: true }
   | { readonly ok: false; readonly reason: "occupied" | "somethingOnTop" };
 
-/** Either form can be taken back unless someone lies on it or anything is on top. */
+/** Either form can be taken back unless someone lies on it or a lantern or an oven stands on top. */
 export function canTakeBack(state: ChairState): TakeBack {
   if (state.occupied) return { ok: false, reason: "occupied" };
   if (state.somethingOnTop) return { ok: false, reason: "somethingOnTop" };
