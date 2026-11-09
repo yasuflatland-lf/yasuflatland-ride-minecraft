@@ -215,3 +215,9 @@ yasu_ride.beach_chair.menu.fold=テーブルにする
 yasu_ride.beach_chair_top_full=ビーチチェアの天板がいっぱいです。
 yasu_ride.beach_chair_top_overlap=ビーチチェアの天板で何かと重なっています。
 yasu_ride.beach_chair_top_too_big=このアイテムはビーチチェアの天板には大きすぎます。
+
+yasu_ride.furniture.blocked=ここには家具を置けません。
+yasu_ride.furniture.hits_left=あと%s回たたくと回収できます。
+yasu_ride.furniture.taken=家具を回収しました。
+yasu_ride.furniture.occupied=誰かが座っています。
+yasu_ride.furniture.something_on_top=先に上の物を取り除いてください。
