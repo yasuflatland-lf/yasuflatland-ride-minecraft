@@ -19,9 +19,18 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "parasol_paint",
+    file: "parasol",
+    ticks: 20, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "parasol_place_take_back",
     file: "parasol",
-    ticks: 10, // Estimate until the first BDS run.
+    ticks: 10,
     features: ["resort"],
     isolation: "lane",
     needsPlayer: false,
@@ -30,7 +39,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "parasol_rain_ceiling",
     file: "parasol",
-    ticks: 32, // Estimate until the first BDS run.
+    ticks: 32,
     features: ["resort"],
     isolation: "lane",
     needsPlayer: false,

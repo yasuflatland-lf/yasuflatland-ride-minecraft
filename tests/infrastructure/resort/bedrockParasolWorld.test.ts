@@ -28,8 +28,8 @@ vi.mock("@minecraft/server", () => ({
 beforeEach(() => vi.clearAllMocks());
 const id = asParasolId("parasol");
 const dimensionId = asDimensionId("overworld");
-function fixture() {
-  const pose = parasolPose({ x: 10, y: 63, z: 20 }, 0);
+function fixture(yaw = 0) {
+  const pose = parasolPose({ x: 10, y: 63, z: 20 }, yaw);
   const wanted = parasolCeilingCells(pose);
   const blocks = new Map<
     string,
@@ -53,7 +53,9 @@ function fixture() {
     getBlock: vi.fn((cell: { x: number; y: number; z: number }) =>
       blocks.get(key(cell)),
     ),
-    getEntities: vi.fn(() => []),
+    getEntities: vi.fn<
+      () => { location: { x: number; y: number; z: number } }[]
+    >(() => []),
     getBlockFromRay: vi.fn(),
     spawnEntity: vi.fn(),
     spawnItem: vi.fn(),
@@ -93,6 +95,24 @@ function fixture() {
     adapter: new BedrockParasolWorld(deps),
   };
 }
+it.each([0, 90, 180, 270])(
+  "preserves the model's fractional base offset when restoring a ceiling at yaw %i",
+  (yaw) => {
+    const f = fixture(yaw);
+    f.adapter.layCeiling(id);
+    const restored = new BedrockParasolWorld(f.deps);
+    restored.layCeiling(id);
+    expect(JSON.parse(String(f.saved.get(PARASOL_CEILING_PROPERTY)))).toEqual(
+      f.wanted,
+    );
+    expect(f.adapter.baseCellsNear(dimensionId, f.pose.base, 2)).toEqual([]);
+    f.dimension.getEntities.mockReturnValue([f.entity]);
+    expect(f.adapter.baseCellsNear(dimensionId, f.pose.base, 2)).toEqual([
+      f.pose.base,
+    ]);
+  },
+);
+
 it("saves laid cells, restores them in a fresh adapter, and preserves replacement blocks", () => {
   const f = fixture();
   f.adapter.layCeiling(id);

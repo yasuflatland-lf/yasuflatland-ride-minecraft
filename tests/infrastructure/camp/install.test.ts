@@ -58,6 +58,8 @@ import { registerTestTentLantern } from "../../../src/infrastructure/camp/bedroc
 import { lanternSwitchTarget } from "../../../src/infrastructure/camp/bedrock/lanternSwitch";
 import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
+  ROOF_TENT_ITEM,
+  ROOF_TENT_STARTER_RECEIVED_PROPERTY,
   TENT_FLAP_PROPERTY,
   TENT_MATTRESS_COMPONENT,
   TENT_TYPE,
@@ -453,12 +455,18 @@ it("wires roof tent entry, menu and cleanup to the same occupant adapter", () =>
   );
 });
 
+const starterArgs = vi.hoisted(() => [] as unknown[][]);
 vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
   registerStarterItem: vi.fn(),
-  BedrockStarterItemWorld: class {},
+  BedrockStarterItemWorld: class {
+    constructor(...args: unknown[]) {
+      starterArgs.push(args);
+    }
+  },
 }));
 
 it("registers the roof tent starter with its camp use case", () => {
+  starterArgs.length = 0;
   installCamp({
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
@@ -466,4 +474,7 @@ it("registers the roof tent starter with its camp use case", () => {
   expect(registerStarterItem).toHaveBeenCalledExactlyOnceWith(
     expect.any(GiveStarterItem),
   );
+  expect(starterArgs).toEqual([
+    [ROOF_TENT_ITEM, ROOF_TENT_STARTER_RECEIVED_PROPERTY],
+  ]);
 });

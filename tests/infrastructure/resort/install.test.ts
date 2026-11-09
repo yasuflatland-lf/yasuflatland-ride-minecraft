@@ -6,10 +6,7 @@ import {
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
 } from "../../../src/infrastructure/resort/identifiers";
 import { installResort } from "../../../src/infrastructure/resort/install";
-import {
-  BedrockStarterItemWorld,
-  registerStarterItem,
-} from "../../../src/infrastructure/shared/starterItem";
+import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
 
 const world = vi.hoisted(() => ({ args: [] as unknown[][] }));
 vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
@@ -20,6 +17,12 @@ vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
     }
   },
 }));
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/bedrockParasolPaintWorld",
+  () => ({
+    BedrockParasolPaintWorld: class {},
+  }),
+);
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/bedrockParasolWorld",
   () => ({
@@ -59,5 +62,4 @@ it("registers the parasol starter with its own received flag", () => {
   expect(BEACH_PARASOL_STARTER_RECEIVED_PROPERTY).not.toBe(
     ROOF_TENT_STARTER_RECEIVED_PROPERTY,
   );
-  expect(BedrockStarterItemWorld).toBeDefined();
 });
