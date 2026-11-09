@@ -13,12 +13,21 @@
 
 ### Furniture domain groundwork
 
-- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; no in-game behavior is installed yet.
+- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; placement and recovery are installed; assets remain future work.
 - Rule: A deeply frozen per-kind table defines footprint offsets, two clearance layers, seats, recovery parameters, and an optional tabletop surface. Shared geometry faces the player and centres the origin over the occupied floor cells. The double sofa extends from the pressed column to the player's right. Existing Beach Chair behavior is unchanged.
 - Agreement: Proposed
 - Basis: [0240](../adr/0240-resort-furniture-family.md) Decision, furniture family and placement geometry.
 - Implementation: `src/domain/resort/furniture.ts`; `src/domain/resort/ids.ts`
 - Verification: `tests/domain/resort/furniture.test.ts` checks every kind and quarter turn, support and clearance cells, origin centring, player-facing orientation, rightward sofa placement, and deep freezing. Assets and in-game integration remain future work.
+
+### Furniture placement and recovery
+
+- Applies to: Dining Table, Dining Chair, single sofa, and double sofa items and entities once their assets exist.
+- Rule: One kind-table-driven pipeline accepts top faces outside add-on blocks, requires solid support below every footprint cell, and checks all clearance cells for air outside vehicle and camp space. Validation precedes payment. Survival consumes one matching item; Creative consumes none; failed spawns refund payment. Placement and non-dye hits are deferred and deduplicated per player per tick. Three hits within the per-kind reset window return an item to the hitter (dropping overflow), remove the entity, and show feedback, in order. Occupied or obstructed-top refusals leave counters unchanged. The adapter's top obstruction check remains false until tabletop integration.
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md); Dining set design, Placing and Taking back.
+- Implementation: `src/application/resort/placeFurniture.ts`; `src/application/resort/takeBackFurniture.ts`; `src/infrastructure/resort/bedrock/bedrockFurnitureWorld.ts`; `src/infrastructure/resort/install.ts`
+- Verification: Property tests run the same placement and recovery checks for all four kinds; handler tests cover deferred execution, deduplication, and dye exclusion. Server-only hooks `yasu_ride_test:test_furniture_place` accept `kind x y z yaw`; `yasu_ride_test:test_furniture_hit` accepts an entity id. No furniture assets or live-game verification are included.
 
 ### Feature installation and placement
 
