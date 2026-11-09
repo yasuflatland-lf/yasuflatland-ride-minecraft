@@ -18,18 +18,24 @@ ATLAS_SIZE = 1024
 # The photo's strands are orange and the gaps between them stay warm and light, so all four colors of
 # the shared amber palette are replaced (strand, light, dark, gap); only the weave geometry is inherited.
 SOFA_WEAVE = dataclasses.replace(
-    wicker.PALETTE_AMBER, strand=(184, 138, 88), light=(212, 176, 130),
-    dark=(150, 108, 68), gap=(104, 72, 46))
+    wicker.PALETTE_BLACK, columns=4, strand=(206, 150, 88), light=(226, 172, 110),
+    dark=(178, 122, 70), gap=(150, 102, 58))
 TEXELS_PER_PIXEL = 16
-SEAT_TOP = 6.4
+SEAT_TOP = 7.8
 SEAT_POSITION = (0, SEAT_TOP / 16 - 0.24, -0.1)
+FOOT = 1.0
+ARM = 3.0
+Z0, Z1 = -6.6, 6.6
+RAIL_TOP = 4.4
+ARM_TOP = 11.8
+BACK_TOP = 10.6
 PALETTE = {
-    "beige": (230, 200, 170, 255),
-    "piping": (214, 182, 152, 255),
+    "beige": (222, 190, 160, 255),
+    "piping": (204, 170, 140, 255),
     "metal": (196, 200, 201, 255),
     "metal_dark": (142, 148, 150, 255),
 }
-ASSEMBLIES = {"throw_cushion": {"owner": "sofa", "cubes": 3}}
+ASSEMBLIES = {"throw_cushion": {"owner": "sofa", "cubes": 6}}
 
 
 def half_width(width_cells):
@@ -44,9 +50,9 @@ def box(origin, size, material):
         if material == "wicker":
             a, b = {"north": (0, 1), "south": (0, 1), "east": (2, 1),
                     "west": (2, 1), "up": (0, 2), "down": (0, 2)}[side]
-            # Separate transposed weave fields keep the same physical pitch on
-            # every face, including the narrow arm fronts and wide double base.
-            faces[side] = {"uv": [512 if side in ("east", "west") else 0, 0],
+            # Strand rows run horizontally on every face, as in the photo, and the
+            # same physical pitch holds on narrow arm fronts and the wide double base.
+            faces[side] = {"uv": [0, 0],
                            "uv_size": [size[a] * TEXELS_PER_PIXEL, size[b] * TEXELS_PER_PIXEL]}
         else:
             faces[side] = {"uv": [list(PALETTE).index(material) * 4, 512], "uv_size": [4, 4]}
@@ -55,34 +61,40 @@ def box(origin, size, material):
 
 def build_frame(width_cells):
     h = half_width(width_cells)
+    depth = Z1 - Z0
     return [
-        box((-h, 0.6, -7.6), (2.4, 10.2, 15.2), "wicker"),
-        box((h - 2.4, 0.6, -7.6), (2.4, 10.2, 15.2), "wicker"),
-        box((-h + 2.4, 0.6, -7.6), (2*h - 4.8, 3.4, 15.2), "wicker"),
-        box((-h + 2.4, 4, 5.6), (2*h - 4.8, 6.8, 2), "wicker"),
+        box((-h, FOOT, Z0), (ARM, ARM_TOP - FOOT, depth), "wicker"),
+        box((h - ARM, FOOT, Z0), (ARM, ARM_TOP - FOOT, depth), "wicker"),
+        box((-h + ARM, FOOT, Z0), (2*h - 2*ARM, RAIL_TOP - FOOT, depth), "wicker"),
+        box((-h + ARM, RAIL_TOP, Z1 - 2.2), (2*h - 2*ARM, BACK_TOP - RAIL_TOP, 2.2), "wicker"),
     ]
 
 
 def pillow(origin, size, edge=0.25):
-    """Inset broad faces soften the silhouette and leave a fine sewn edge."""
+    """Round all twelve edges in two steps, so the pad reads as stuffed fabric rather than a board."""
     x, y, z = origin
     w, h, d = size
-    return [box((x+edge, y, z+edge), (w-2*edge, h, d-2*edge), "piping"),
-            box((x, y+edge, z+edge), (w, h-2*edge, d-2*edge), "beige"),
-            box((x+edge, y+edge, z), (w-2*edge, h-2*edge, d), "beige")]
+    near, far = edge / 2, edge
+    insets = ([(0, 0, far), (0, far, 0), (far, 0, 0)] * 1
+              + [(0, near, near), (near, 0, near), (near, near, 0)])
+    parts = []
+    for k, (ix, iy, iz) in enumerate(insets):
+        parts.append(box((x+ix, y+iy, z+iz), (w-2*ix, h-2*iy, d-2*iz), "beige" if k < 3 else "piping"))
+    return parts
 
 
 def build_cushions(width_cells, throw_cushions=0):
     h = half_width(width_cells)
     parts = []
     # Separate seat and back pads preserve the reference's proportions at both widths.
-    inner = 2*h - 4.8
+    inner = 2*h - 2*ARM
     for i in range(width_cells):
-        x = -h + 2.45 + i * inner / width_cells
+        x = -h + ARM + 0.05 + i * inner / width_cells
         w = inner / width_cells - 0.1
-        parts += pillow((x, 4, -7.2), (w, SEAT_TOP-4, 12.5), edge=0.5)
-        back = pillow((x, 6.2, 2.4), (w, 6.0, 3.3), edge=0.6)
-        parts += tilt.tilt_assembly(back, (0, 6.2, 2.4), "x", -12)
+        # The seat sits in the opening and overhangs the front rail like the photo's thick cushion.
+        parts += pillow((x, RAIL_TOP - 0.2, Z0 - 0.6), (w, SEAT_TOP - RAIL_TOP + 0.2, 11.4), edge=0.9)
+        back = pillow((x, SEAT_TOP - 1.0, 0.8), (w, 6.0, 4.4), edge=1.0)
+        parts += tilt.tilt_assembly(back, (0, SEAT_TOP - 1.0, 0.8), "x", -12)
     # The single sofa has no throw cushion; the double sofa keeps its two.
     throws = []
     for k in range(throw_cushions):
@@ -103,8 +115,8 @@ def build_cushions(width_cells, throw_cushions=0):
 
 def build_feet(width_cells):
     h = half_width(width_cells)
-    return [box((x, 0, z), (1.25, 0.6, 1.25), "metal")
-            for x in (-h+0.5, h-1.75) for z in (-7.1, 5.85)]
+    return [box((x, 0, z), (2.0, FOOT, 2.0), "metal")
+            for x in (-h+0.3, h-2.3) for z in (Z0+0.3, Z1-2.3)]
 
 
 def cubes(width_cells=1, throw_cushions=0):
@@ -131,11 +143,9 @@ def geometry(width_cells=1):
 
 def texture_pixels():
     horizontal = wicker.weave_tile(SOFA_WEAVE)
-    vertical = wicker.weave_tile(SOFA_WEAVE, direction="vertical")
     def pixel(x, y):
         if y < 512:
-            tile = horizontal if x < 512 else vertical
-            return tile[y % 16][x % 16]
+            return horizontal[y % 16][x % 16]
         return list(PALETTE.values())[x // 4] if y < 516 and x < 16 else (0, 0, 0, 0)
     return pixel
 
