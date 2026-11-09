@@ -1,4 +1,5 @@
 import { BeachChairMenu } from "../../application/resort/beachChairMenu";
+import { LieOnBeachChair } from "../../application/resort/lieOnBeachChair";
 import { PaintParasol } from "../../application/resort/paintParasol";
 import { PlaceBeachChair } from "../../application/resort/placeBeachChair";
 import { PlaceParasol } from "../../application/resort/placeParasol";
@@ -19,6 +20,7 @@ import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
 import { BedrockParasolWorld } from "./bedrock/bedrockParasolWorld";
 import { registerBeachChairHits } from "./bedrock/handlers/beachChairHits";
 import { registerBeachChairInteraction } from "./bedrock/handlers/beachChairInteraction";
+import { registerBeachChairLifecycle } from "./bedrock/handlers/beachChairLifecycle";
 import { registerBeachChairPlacement } from "./bedrock/handlers/beachChairPlacement";
 import { registerParasolHits } from "./bedrock/handlers/hits";
 import { registerParasolLifecycle } from "./bedrock/handlers/lifecycle";
@@ -40,7 +42,14 @@ export function installResort(deps: {
   registerBeachChairPlacement(new PlaceBeachChair(chair));
   const form = new SwitchBeachChairForm(chair);
   registerBeachChairHits(takeChair);
-  registerBeachChairInteraction(form, new BeachChairMenu(form, () => {}));
+  const lie = new LieOnBeachChair(chair);
+  registerBeachChairInteraction(
+    form,
+    new BeachChairMenu(form, (cmd) => {
+      lie.execute(cmd);
+    }),
+  );
+  registerBeachChairLifecycle(lie);
   registerTestBeachChair(chair, takeChair, deps, form);
   registerStarterItem(
     new GiveStarterItem(

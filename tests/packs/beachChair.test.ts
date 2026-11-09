@@ -49,7 +49,15 @@ describe("Beach Chair assets", () => {
       seat_count: 1,
       family_types: ["player"],
       crouching_skip_interact: true,
-      seats: [{ position: [0, 0.5625, 0.3125] }],
+      seats: [
+        {
+          position: [
+            BEACH_CHAIR_SPEC.seatOffset.x,
+            BEACH_CHAIR_SPEC.seatOffset.y,
+            BEACH_CHAIR_SPEC.seatOffset.z,
+          ],
+        },
+      ],
     });
     expect(c["minecraft:type_family"].family).toContain("inanimate");
     expect(c["minecraft:persistent"]).toEqual({});
@@ -426,3 +434,22 @@ it("keeps the folded entity fixed at its pose", () => {
     add: { component_groups: ["yasu_ride:beach_chair_lounger"] },
   });
 });
+
+it.each(["en_US", "ja_JP"])(
+  "localizes every Beach Chair hint in %s",
+  (locale) => {
+    const lang = readFileSync(`${RP}texts/${locale}.lang`, "utf8");
+    for (const key of [
+      "blocked",
+      "hits_left",
+      "taken",
+      "occupied",
+      "folded",
+      "something_on_top",
+    ]) {
+      expect(lang).toMatch(
+        new RegExp(`^yasu_ride\\.beach_chair\\.${key}=.+$`, "m"),
+      );
+    }
+  },
+);
