@@ -1,4 +1,4 @@
-import type { Host } from "../../../domain/camp/hosted";
+import type { Host } from "../../../domain/shared/hosted";
 
 /** One kind of item that can stand on a table or a Fire Pit (ADR 0185). */
 export interface HostedKindPort {

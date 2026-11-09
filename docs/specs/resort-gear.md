@@ -4,7 +4,7 @@
 - Verified at: 732f6c1c
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0235](../adr/0235-share-convex-rain-ceiling-geometry-and-placement.md)
-- Source: [0237](../adr/0237-lounge-pose-by-overriding-the-player-client-entity.md)
+- Source: [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md)
 
 ## Rules
 
@@ -23,7 +23,7 @@
 - Rule: A parasol lays invisible `yasu_ride:parasol_ceiling` blocks in every column overlapping its octagonal canopy, in the first cell above the canopy top (`PARASOL_SPEC.canopyTop`, 4.1875 blocks). Only air outside vehicle space is filled. The entity dynamic property `yasu_ride:parasol_ceiling` records cells as JSON. Every `PARASOL_SPEC.ceilingSyncTicks` ticks, loaded parasols restore their saved record and missing cells, preserving the fractional base position when rebuilding the canopy. Nearby-base queries preserve that position for spacing checks. Taking back or removing a parasol clears only its recorded cells still holding the ceiling block; replacements remain. Removal is checked on the next tick, and an unloaded base chunk preserves the ceiling. Unloaded recorded cells remain pending for later cleanup after a confirmed removal. A shared laid-block guard cancels Creative breaks of recorded ceilings.
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, rain shelter follows the design document; [0235](../adr/0235-share-convex-rain-ceiling-geometry-and-placement.md) Decision, shared footprint geometry and rain ceiling layer.
-- Implementation: `src/application/resort/syncParasolCeilings.ts`; `src/domain/resort/parasolPose.ts`; `src/infrastructure/resort/bedrock/bedrockParasolWorld.ts`; `src/infrastructure/resort/bedrock/handlers/lifecycle.ts`; `src/infrastructure/shared/rainCeiling.ts`; `src/infrastructure/shared/laidBlockGuard.ts`
+- Implementation: `src/application/resort/syncParasolCeilings.ts`; `src/domain/resort/parasolPose.ts`; `src/infrastructure/resort/bedrock/bedrockParasolWorld.ts`; `src/infrastructure/resort/bedrock/handlers/lifecycle.ts`; `src/infrastructure/shared/laidBlockLayer.ts`; `src/infrastructure/shared/laidBlockGuard.ts`
 - Verification: `tests/infrastructure/resort/bedrockParasolWorld.test.ts` checks saving, fresh-adapter restoration, replacement preservation, and unloaded-cell retry. `parasol_rain_ceiling` verifies ceiling placement, periodic repair, and cleanup on the dev BDS. The block's ability to stop actual rain and snow remains unverified.
 
 ### Taking the parasol back
@@ -58,9 +58,9 @@
 - Applies to: A player running `scriptevent yasu_ride_test:lounge` with the test pack enabled.
 - Rule: Keep an existing ride, or mount the nearest rideable within four blocks. Report a missing rideable or failed mount in chat. Play the looping lounge animation until dismount, with straight forward legs and a 55-degree backward waist rotation. The player client definition preserves vanilla content and adds only the lounge animation mapping. Normal chair interactions do not trigger the spike.
 - Agreement: Accepted
-- Basis: [0237](../adr/0237-lounge-pose-by-overriding-the-player-client-entity.md) Decision.
+- Basis: [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md) Decision.
 - Implementation: `src/test-pack/loungeProbe.ts`; `packs/yasu_ride_rp/entity/yasu_ride/player.ce.json`; `packs/yasu_ride_rp/animations/yasu_ride/player.anim.json`
-- Verification: `tests/packs/playerOverride.test.ts` pins the vanilla definition and pose. The owner checked the lounge pose on the dev BDS on 2026-11-09 and reported it as OK (ADR 0237).
+- Verification: `tests/packs/playerOverride.test.ts` pins the vanilla definition and pose. The owner checked the lounge pose on the dev BDS on 2026-11-09 and reported it as OK (ADR 0238).
 
 ## Open issues
 

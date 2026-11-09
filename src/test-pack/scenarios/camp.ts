@@ -1,6 +1,5 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
 import { type Entity, system, type Vector3 } from "@minecraft/server";
-import { hostLocalPx, hostSpotPoint } from "../../domain/camp/dutchOven";
 import {
   DUTCH_OVEN_SPEC,
   FIRE_PIT_TOP_PX,
@@ -8,6 +7,7 @@ import {
   TABLE_TOP_PX,
 } from "../../domain/camp/spec";
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/switchCooldown";
+import { hostLocalPx, hostSpotPoint } from "../../domain/shared/tableTop";
 import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,

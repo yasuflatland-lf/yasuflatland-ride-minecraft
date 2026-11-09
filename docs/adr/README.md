@@ -189,7 +189,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0182](0182-a-bunk-bed-in-the-parked-camper.md) | A bunk bed in the parked camper | Proposed |
 | [0183](0183-mark-a-lone-selection-corner.md) | Mark a lone selection corner | Proposed; extended by [0198](0198-one-build-wand-without-a-bulldozer.md) |
 | [0184](0184-light-the-camper-roof-and-tail-lamps.md) | Light the camper's roof and tail lamps with the headlights | Accepted; extended by [0197](0197-emit-camper-hover-particles-below-the-discs.md) |
-| [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) | Put things on the camp table instead of sitting at it | Proposed |
+| [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) | Put things on the camp table instead of sitting at it | Proposed; superseded in part by [0237](0237-register-tabletop-hosts-across-features.md) |
 | [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md) | Stream in-game results and bound runs by progress | Proposed |
 | [0187](0187-run-in-game-scenarios-in-concurrent-lanes.md) | Run in-game scenarios in concurrent lanes | Proposed |
 | [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) | Fuse in-game scenarios and keep only engine facts in game | Proposed |
@@ -240,7 +240,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) | Plated camper mirrors and a simpler camper exterior | Proposed |
 | [0235](0235-share-convex-rain-ceiling-geometry-and-placement.md) | Share convex rain ceiling geometry and placement | Proposed |
 | [0236](0236-a-beach-parasol-in-a-new-resort-gear-group.md) | A beach parasol in a new Resort Gear group | Proposed |
-| [0237](0237-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Accepted |
+| [0237](0237-register-tabletop-hosts-across-features.md) | Register tabletop hosts across features | Proposed |
+| [0238](0238-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

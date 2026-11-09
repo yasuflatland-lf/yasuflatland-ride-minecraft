@@ -1,4 +1,4 @@
-# 0237. Lounge pose by overriding the player client entity
+# 0238. Lounge pose by overriding the player client entity
 
 - Status: Accepted
 - Decided in: #1443

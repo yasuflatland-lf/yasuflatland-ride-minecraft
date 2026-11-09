@@ -8,7 +8,7 @@ const vanillaDescription = vanilla["minecraft:client_entity"].description;
 const description = override["minecraft:client_entity"].description;
 const animationId = "animation.yasu_ride.player.lounge";
 
-describe("vanilla player override (ADR 0237)", () => {
+describe("vanilla player override (ADR 0238)", () => {
   it("preserves the entire vanilla definition with only the lounge animation added", () => {
     expect(override.format_version).toBe(vanilla.format_version);
     expect(Object.keys(description).sort()).toEqual(

@@ -8,6 +8,7 @@ import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../src/infrastructure/camp/install";
 import { installResort } from "../../src/infrastructure/resort/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
+import { TopHostRegistry } from "../../src/infrastructure/shared/tableTop/registry";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
 
 vi.mock("@minecraft/server-ui", () => ({
@@ -77,10 +78,15 @@ it("wires space both ways through a late-bound camp reference (ADR 0129)", () =>
     expect(deps.isCampSpace(dim, at)).toBe(false);
     return { isVehicleSpace, vehicleHost };
   });
-  vi.mocked(installCamp).mockReturnValue({ isCampSpace, switchTargets: [] });
+  vi.mocked(installCamp).mockReturnValue({
+    isCampSpace,
+    switchTargets: [],
+    placeHostedOnTop: () => false,
+  });
   bootstrap();
   expect(installVehicles).toHaveBeenCalledTimes(1);
   expect(installCamp).toHaveBeenCalledExactlyOnceWith({
+    topHosts: expect.any(TopHostRegistry),
     isVehicleSpace,
     vehicleHost,
   });
@@ -154,6 +160,7 @@ it("hands the vehicles the camp's switch targets once camp is installed", () => 
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace: () => false,
     switchTargets,
+    placeHostedOnTop: () => false,
   });
   bootstrap();
   expect(before).toEqual([]);
@@ -171,10 +178,15 @@ it("installs build last and passes both space checks without requesting a camera
     expect(deps.wantsChaseCamera(playerId)).toBe(false);
     return { isVehicleSpace, vehicleHost };
   });
-  vi.mocked(installCamp).mockReturnValue({ isCampSpace, switchTargets: [] });
+  vi.mocked(installCamp).mockReturnValue({
+    isCampSpace,
+    switchTargets: [],
+    placeHostedOnTop: () => false,
+  });
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
   expect(installResort).toHaveBeenCalledExactlyOnceWith({
+    topHosts: vi.mocked(installCamp).mock.lastCall?.[0].topHosts,
     isVehicleSpace,
     isCampSpace,
   });
