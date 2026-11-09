@@ -1,0 +1,77 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "yasu_ride:beach_chair",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "properties": {
+        "yasu_ride:folded": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        }
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": ["beach_chair", "inanimate"]
+      },
+      "minecraft:collision_box": {
+        "width": 0.75,
+        "height": 0.4375
+      },
+      "minecraft:physics": {
+        "has_collision": true,
+        "has_gravity": true
+      },
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:health": {
+        "value": 20,
+        "max": 20
+      },
+      "minecraft:damage_sensor": {
+        "triggers": {
+          "cause": "all",
+          "deals_damage": "no"
+        }
+      },
+      "minecraft:persistent": {},
+      "minecraft:rideable": {
+        "seat_count": 1,
+        "family_types": ["player"],
+        "crouching_skip_interact": true,
+        "seats": [
+          {
+            "position": [0, 0.4375, 0.125]
+          }
+        ]
+      },
+      "minecraft:custom_hit_test": {
+        "hitboxes": [
+          {
+            "width": 0.75,
+            "height": 0.875,
+            "pivot": [0, 0.4375, -0.625]
+          },
+          {
+            "width": 0.75,
+            "height": 0.875,
+            "pivot": [0, 0.4375, 0]
+          },
+          {
+            "width": 0.75,
+            "height": 0.875,
+            "pivot": [0, 0.4375, 0.625]
+          }
+        ]
+      }
+    }
+  }
+}
