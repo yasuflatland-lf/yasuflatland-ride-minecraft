@@ -1,6 +1,6 @@
 """Generate the teak Beach Chair, with a hinged backrest and folding steel prop.
 
-The origin is ground level at the boundary between the two occupied cells.
+The origin is ground level at the center of the middle of three occupied cells.
 -z is the foot end; +z is the head end. Dimensions are model pixels (16 per block).
 """
 import argparse
@@ -14,58 +14,58 @@ from tool_loader import load_tool
 panels = load_tool("panels")
 tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
-TOP_PX = 7
+TOP_PX = 9
 # The folded table is a low coffee table at bed height: only hosted lanterns and
 # ovens stand on it, so it does not need to reach a block top (ADR 0238).
 TABLE_TOP_PX = TOP_PX
-HALF = (6, 16)
-BED_OUTLINE = (-6, 6, -16, 16)
-SEAT_OFFSET = (0, TOP_PX / 16, 2 / 16)
-HINGE = (0, TOP_PX, 5.5)
+HALF = (8, 23)
+BED_OUTLINE = (-HALF[0], HALF[0], -HALF[1], HALF[1])
+SEAT_OFFSET = (0, TOP_PX / 16, 5 / 16)
+HINGE = (0, TOP_PX, 9.5)
 BACKREST_ANGLE = 37
-# The flat backrest ends at the head edge during the fold, so it stays inside z = 16.
-BACKREST_LENGTH = 10.5
+# The flat backrest ends at the head edge during the fold, so it stays inside z = 23.
+BACKREST_LENGTH = 13.5
 SLAT_COUNT = 13
-SLAT_WIDTH = 0.52
-SLAT_GAP = 0.36
+SLAT_WIDTH = 0.7
+SLAT_GAP = 0.48
 SLATS_HALF = (SLAT_COUNT * SLAT_WIDTH + (SLAT_COUNT - 1) * SLAT_GAP) / 2
 BACKREST_SLAT_COUNT = SLAT_COUNT
 BACKREST_SLAT_WIDTH = SLAT_WIDTH
 BACKREST_SLAT_GAP = SLAT_GAP
-BACKREST_THICKNESS = 0.06
-LEG_SIZE = 1.15
-MAIN_RAIL_THICKNESS = 0.4
-MAIN_RAIL_BOTTOM = 5.65
-MAIN_RAIL_START = -9
+BACKREST_THICKNESS = 0.08
+LEG_SIZE = 1.55
+MAIN_RAIL_THICKNESS = 0.55
+MAIN_RAIL_BOTTOM = 7.2
+MAIN_RAIL_START = -11.5
 # The main rails run past the hinge; the short open rear frame starts where they end.
-MAIN_RAIL_END = 10.5
+MAIN_RAIL_END = 14.5
 # The folded table is as long as the main bed but centred on the entity origin,
 # so the tabletop host needs no centre offset.
 TABLE_LENGTH = HINGE[2] - MAIN_RAIL_START
 TABLE_Z_MIN = -TABLE_LENGTH / 2
 TABLE_Z_MAX = TABLE_LENGTH / 2
 TABLE_Z_CENTER = 0
-EXTENSION_HALF_WIDTH = 5.3
-EXTENSION_RAIL_THICKNESS = 0.4
-EXTENSION_RAIL_BOTTOM = 5.65
-EXTENSION_RAIL_TOP = 6.82
-EXTENSION_END_START = -15.6
-EXTENSION_END_DEPTH = 0.5
+EXTENSION_HALF_WIDTH = 7.05
+EXTENSION_RAIL_THICKNESS = 0.55
+EXTENSION_RAIL_BOTTOM = 7.2
+EXTENSION_RAIL_TOP = 8.76
+EXTENSION_END_START = -22.5
+EXTENSION_END_DEPTH = 0.65
 EXTENSION_LEG_SIZE = LEG_SIZE
-REAR_RAIL_BOTTOM = 5.65
-REAR_RAIL_TOP = 6.82
-REAR_RAIL_WIDTH = 0.4
+REAR_RAIL_BOTTOM = 7.2
+REAR_RAIL_TOP = 8.76
+REAR_RAIL_WIDTH = 0.55
 REAR_LEG_SIZE = LEG_SIZE
-REAR_END_START = 15.4
-PAD_HEIGHT = 0.2
-PAD_INSET = 0.08
+REAR_END_START = 22.2
+PAD_HEIGHT = 0.27
+PAD_INSET = 0.11
 PAD_SLOT = 5
-JOINT_SEAM = 0.018
-TABLE_SLAT_THICKNESS = 0.18
+JOINT_SEAM = 0.024
+TABLE_SLAT_THICKNESS = 0.24
 TABLE_SLAT_BOTTOM = TABLE_TOP_PX - TABLE_SLAT_THICKNESS
-TABLE_APRON_DEPTH = 1.6
+TABLE_APRON_DEPTH = 2.13
 TABLE_RAIL_BOTTOM = TABLE_SLAT_BOTTOM - TABLE_APRON_DEPTH
-TABLE_RAIL_THICKNESS = 0.4
+TABLE_RAIL_THICKNESS = 0.55
 PROP_ATTACHMENT = 0.4
 PROP_PIVOT = (0, (REAR_RAIL_BOTTOM + REAR_RAIL_TOP) / 2, REAR_END_START)
 PROP_START = (0,
@@ -75,8 +75,8 @@ PROP_START = (0,
               + BACKREST_THICKNESS * math.sin(math.radians(BACKREST_ANGLE)))
 PROP_ANGLE = math.degrees(math.atan2(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2] - PROP_START[2]))
 PROP_LENGTH = math.hypot(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2] - PROP_START[2])
-PROP_WIDTH = 0.12
-PROP_THICKNESS = 0.08
+PROP_WIDTH = 0.16
+PROP_THICKNESS = 0.11
 # Colours sampled from the studio reference photo and divided by the preview's face
 # shading (1.0 up, 0.6 to 0.8 sides), so rendered faces match the photo means:
 # honey-brown legs, yellow-tan slat tops, the cream junction band, steel, the
@@ -92,13 +92,18 @@ TEXTURE_WIDTH = len(PALETTE) * 16
 # each face picks the copy whose lines follow its longer side.
 TEXTURE_HEIGHT = 32
 # Deep slats make the gaps between them read as dark slots rather than hairlines.
-SLAT_BOTTOM = TOP_PX - 0.55
-BAND_START = -11.5
-BAND_END = -9
-FINGER_WIDTH = 0.16
-PALE_SLAT_WIDTH = 0.4
+SLAT_BOTTOM = TOP_PX - 0.73
+BAND_START = -15
+BAND_END = MAIN_RAIL_START
+FINGER_WIDTH = 0.21
+PALE_SLAT_WIDTH = 0.53
 BACKREST_BOTTOM = TOP_PX - BACKREST_THICKNESS
-NOTCH_SIZE = 0.36
+NOTCH_SIZE = 0.48
+HEAD_CROSSBAR_HALF_WIDTH = HALF[0] - 0.27
+HEAD_CROSSBAR_DEPTH = 0.87
+HEAD_CROSSBAR_END_OFFSET = 1.07
+HEAD_CROSSBAR_BOTTOM = TOP_PX - 0.87
+HEAD_CROSSBAR_ANGLE = -20
 GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
 TEXTURE = "textures/entity/yasu_ride/beach_chair.png"
 
@@ -190,7 +195,7 @@ def geometry():
     # Offset foot fingers interleave without closing the lengthwise air gaps.
     for k in range(SLAT_COUNT - 1):
         x = -slats_half + (k + 0.5) * (SLAT_WIDTH + SLAT_GAP)
-        frame.append(slat((x, SLAT_BOTTOM, -16), (x + SLAT_WIDTH, TOP_PX, BAND_START), 1))
+        frame.append(slat((x, SLAT_BOTTOM, -HALF[1]), (x + SLAT_WIDTH, TOP_PX, BAND_START), 1))
         finger_x = x + (SLAT_WIDTH - FINGER_WIDTH) / 2
         frame.append(slat((finger_x, SLAT_BOTTOM, BAND_START),
                          (finger_x + FINGER_WIDTH, TOP_PX, BAND_END), 2))
@@ -201,9 +206,10 @@ def geometry():
         backrest.append(slat((x, BACKREST_BOTTOM, HINGE[2]),
                             (x + BACKREST_SLAT_WIDTH, TOP_PX, HINGE[2] + BACKREST_LENGTH), 1))
     # Only the head crossbar remains; its hooked ends lean down toward +z.
-    crossbar_z = HINGE[2] + BACKREST_LENGTH - 0.8
-    crossbar = box((-5.8, 6.35, crossbar_z), (5.8, BACKREST_BOTTOM, crossbar_z + 0.65))
-    backrest.extend(tilt.tilt_assembly([crossbar], (0, BACKREST_BOTTOM, crossbar_z), "x", -20))
+    crossbar_z = HINGE[2] + BACKREST_LENGTH - HEAD_CROSSBAR_END_OFFSET
+    crossbar = box((-HEAD_CROSSBAR_HALF_WIDTH, HEAD_CROSSBAR_BOTTOM, crossbar_z),
+                   (HEAD_CROSSBAR_HALF_WIDTH, BACKREST_BOTTOM, crossbar_z + HEAD_CROSSBAR_DEPTH))
+    backrest.extend(tilt.tilt_assembly([crossbar], (0, BACKREST_BOTTOM, crossbar_z), "x", HEAD_CROSSBAR_ANGLE))
     # A separate flat strip on each side joins the underside to the rail midpoint.
     prop = [box((x, PROP_PIVOT[1] - PROP_THICKNESS / 2, PROP_PIVOT[2] - PROP_LENGTH),
                 (x + PROP_WIDTH, PROP_PIVOT[1] + PROP_THICKNESS / 2, PROP_PIVOT[2]), 3)
@@ -224,17 +230,17 @@ def geometry():
     centres = [-slats_half + k * (SLAT_WIDTH + SLAT_GAP) + SLAT_WIDTH / 2
                for k in range(SLAT_COUNT)]
     joints = [(a + b) / 2 for a, b in zip(centres, centres[1:])]
-    edges = [-6] + joints + [6]
+    edges = [-HALF[0]] + joints + [HALF[0]]
     table_top = []
     for left, right in zip(edges, edges[1:]):
         table_top.extend([box((left, TABLE_SLAT_BOTTOM, TABLE_Z_MIN), (right, TABLE_TOP_PX, TABLE_Z_CENTER - NOTCH_SIZE / 2), 4),
                           box((left, TABLE_SLAT_BOTTOM, TABLE_Z_CENTER + NOTCH_SIZE / 2), (right, TABLE_TOP_PX, TABLE_Z_MAX), 4)])
-    cursor = -6
+    cursor = -HALF[0]
     for x in joints:
         table_top.append(box((cursor, TABLE_SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2),
                              (x - NOTCH_SIZE / 2, TABLE_TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
         cursor = x + NOTCH_SIZE / 2
-    table_top.append(box((cursor, TABLE_SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2), (6, TABLE_TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
+    table_top.append(box((cursor, TABLE_SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2), (HALF[0], TABLE_TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
     bones = [{"name": "root", "pivot": [0, 0, 0]},
              {"name": "chair_form", "parent": "root", "pivot": [0, 0, 0]},
              {"name": "frame", "parent": "chair_form", "pivot": [0, 0, 0], "cubes": frame},
@@ -247,8 +253,8 @@ def geometry():
         tilt.assert_axes(bone.get("cubes", []), {})
     return {"format_version": "1.12.0", "minecraft:geometry": [{
         "description": {"identifier": "geometry.yasu_ride.beach_chair", "texture_width": TEXTURE_WIDTH,
-                        "texture_height": TEXTURE_HEIGHT, "visible_bounds_width": 2.5,
-                        "visible_bounds_height": 2, "visible_bounds_offset": [0, 1, 0]},
+                        "texture_height": TEXTURE_HEIGHT, "visible_bounds_width": 3.5,
+                        "visible_bounds_height": 2.5, "visible_bounds_offset": [0, 1, 0]},
         "bones": bones}]}
 
 
