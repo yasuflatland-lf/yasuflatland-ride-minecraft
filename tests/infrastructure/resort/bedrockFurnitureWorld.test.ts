@@ -197,9 +197,9 @@ describe("furniture top blocks", () => {
       hostType: "dining_table",
       entityTypeId: FURNITURE_IDS.dining_table.entity,
       surface: {
-        half: { halfX: 7.5, halfZ: 7.5 },
+        half: { halfX: 6, halfZ: 6 },
         topPx: 12,
-        limit: 4,
+        limit: 1,
         clearanceBase: 1,
       },
       isTopNow: () => true,
