@@ -246,6 +246,7 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   suv: ["vehicle:suv"],
   suv_item: ["vehicle:suv"],
   table_decor_pair: ["vehicle:camper"],
+  parasol_ceiling: ["camp"],
   roof_tent: ["camp", "vehicle:suv", "vehicle:camper"],
   roof_tent_item: ["camp", "vehicle:suv", "vehicle:camper"],
   tent: ["camp"],

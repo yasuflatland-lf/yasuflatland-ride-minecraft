@@ -1,4 +1,4 @@
-# 0235. A beach parasol in a new Resort Gear group
+# 0236. A beach parasol in a new Resort Gear group
 
 - Status: Proposed
 - Acceptance condition: the owner confirms in game that rain does not fall under a row of `yasu_ride:parasol_ceiling` blocks, that snow does not settle there, and that nothing blocks the way through them
