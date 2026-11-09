@@ -11,7 +11,7 @@
         "family": ["yasu_ride_dining_table", "inanimate"]
       },
       "minecraft:collision_box": {
-        "width": 0.9375,
+        "width": 0.75,
         "height": 0.75
       },
       "minecraft:physics": {
@@ -39,7 +39,7 @@
       "minecraft:custom_hit_test": {
         "hitboxes": [
           {
-            "width": 1,
+            "width": 0.75,
             "height": 0.75,
             "pivot": [0, 0.375, 0]
           }

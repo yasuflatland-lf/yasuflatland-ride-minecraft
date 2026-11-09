@@ -11,69 +11,72 @@ panels = load_tool("panels")
 tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 wicker = load_tool("wicker")
-TOP_PX = 12
-# The whole visible top, rim included, is usable: either one Dutch Oven or up to
-# four Gas Lanterns in a two-by-two grid fit inside +-7.5 px (ADR 0240).
-TOP_HALF = 7.5
-TOP_LIMIT = 4
-# The whole-photo frame is about 9 px deep against a 280 px front leg;
-# retain the established tabletop and hosting surface dimensions.
-PANEL_HALF = 7.1
-PANEL_BOTTOM = 11.65
-RIM_BOTTOM = 11.65
-# Whole-photo top corners (34,83), (284,66), (410,107), (136,128).
-# A perspective square fit gives azimuth 23.62 degrees, not the leg-derived
-# azimuth: the bent legs are not reliable camera calibration landmarks.
+# daining_table_whole.png outer top corners, clockwise from the left.
+REF_TOP_CORNERS = ((34, 83), (284, 66), (410, 107), (136, 128))
+# Square pinhole fit with the established azimuth: corner RMS error 0.081 px.
 REF_VIEW_AZIMUTH = 23.62
-DIAGONAL_PROJECTION = math.cos(math.radians(REF_VIEW_AZIMUTH)) + math.sin(math.radians(REF_VIEW_AZIMUTH))
-# Measured on daining_table_whole.png: the outer legs meet the top 55..90 px
-# inside its 348 px projected corners; the midpoint sets the leg tops.
+REF_VIEW_ELEVATION = 9.42954
+REF_CAMERA_DISTANCE_WIDTHS = 8.00566
+# daining_table_whole.png floor contacts, in the same order as the corners.
+REF_FLOOR_CONTACTS = ((80, 354), (270, 333), (358, 385), (154, 410))
+# Joint fit of height and square foot spread through the calibrated camera.
+# Coordinate RMS error is 1.74 image px; hand-picked edges limit precision.
+REF_WIDTH_HEIGHT_RATIO = 1 / 0.995573
+REF_FOOT_TOP_RATIO = 0.759703
+TOP_PX = 12
+# Round the fitted 6.027 px half-size to a model pixel; width/height error <0.5%.
+TOP_HALF = round(TOP_PX * REF_WIDTH_HEIGHT_RATIO) / 2
+# A 12 px square fits one 11.5 by 10 px oven or one 7.5 by 6.5 px lantern.
+TOP_LIMIT = 1
+# daining_table_whole.png front rim spans y=128..137; calibrated vertical
+# projection at that corner gives approximately 0.030 of the table height.
+REF_FRONT_RIM_Y = (128, 137)
+REF_RIM_HEIGHT_RATIO = 0.030
+RIM_DEPTH = TOP_PX * REF_RIM_HEIGHT_RATIO
+RIM_BOTTOM = TOP_PX - RIM_DEPTH
+PANEL_BOTTOM = RIM_BOTTOM
+# daining_table_zoom.png front steel strip is approximately as wide as deep.
+REF_RIM_WIDTH_DEPTH_RATIO = 1.0
+PANEL_HALF = TOP_HALF - RIM_DEPTH * REF_RIM_WIDTH_DEPTH_RATIO
+# daining_table_whole.png upper attachments sit 55..90 px inside the
+# 348 px underside span; retain their mean normalized plan inset.
 REF_TOP_SPAN = 348
 REF_TOP_OVERHANG = (55 + 90) / 2
 LEG_TOP_OFFSET = TOP_HALF * (1 - 2 * REF_TOP_OVERHANG / REF_TOP_SPAN)
-# Ring outer width and foot spread on daining_table_whole.png, as fractions
-# of the projected tabletop width.
-REF_RING_TOP_RATIO = 0.49
-REF_FOOT_TOP_RATIO = 0.81
 LEG_FOOT_OFFSET = TOP_HALF * REF_FOOT_TOP_RATIO
-RING_OUTER_RADIUS = TOP_HALF * DIAGONAL_PROJECTION * REF_RING_TOP_RATIO
-# Perpendicular dark-pixel runs (RGB < 115) on ref_table_legs.png, at its
-# native 924 by 828 resolution; the foreground tube spans rows 373..404.
-REF_TOP_UNDERSIDE_Y = 65
-REF_RING_CONTACT_Y = 385
-REF_FOOT_Y = 807
-REF_RING_OUTER_WIDTH = 677 - 215
-REF_RING_OUTER_HEIGHT = 404 - 276
-REF_TOP_DIAMETER = 24.1  # Normal to the axis through (342, 80), slope (14, 300).
-REF_WAIST_DIAMETER = 32.1  # Same normal through (357, 330).
-REF_FOOT_DIAMETER = 25.4  # Normal to the lower leg through (282, 800).
-REF_RING_TUBE = 32.0  # Vertical normal through (450, 389).
-REF_CAP_HEIGHT = 10  # Black run below the front tube, rows 802..811.
-# Whole-photo front leg landmarks, not the more distant left leg used before.
-REF_WHOLE_FRONT_TOP_Y = 130
-REF_WHOLE_FRONT_RING_Y = 250
-REF_WHOLE_FRONT_FOOT_Y = 410
-PANEL_LEG_Y = RIM_BOTTOM
-# Scale from the nearest leg's vertical span, not the ring's projected width:
-# the fixed 15 by 15 by 12 model is wider than the photographed table.
-# About 0.9 model px of the upper leg is hidden by the top in the matched view.
-CLOSEUP_OCCLUDED_HEIGHT = 0.9
-CLOSEUP_SCALE = (PANEL_LEG_Y - CLOSEUP_OCCLUDED_HEIGHT) / (REF_FOOT_Y - REF_TOP_UNDERSIDE_Y)
-LEG_TOP_WIDTH = REF_TOP_DIAMETER * CLOSEUP_SCALE
-LEG_WAIST_WIDTH = REF_WAIST_DIAMETER * CLOSEUP_SCALE
-LEG_FOOT_WIDTH = REF_FOOT_DIAMETER * CLOSEUP_SCALE
+# daining_table_whole.png ring centerline bounds x=133..299, y=217..253.
+# Fitting a horizontal circle through the same camera gives radius/width
+# 0.293337 and a drop below the top of 0.501818 tabletop widths.
+REF_RING_CENTERLINE_BOUNDS = (133, 299, 217, 253)
+REF_RING_DIAMETER_TOP_RATIO = 2 * 0.293337
+REF_RING_DROP_TOP_RATIO = 0.501818
+RING_RADIUS = TOP_HALF * REF_RING_DIAMETER_TOP_RATIO
+RING_Y = TOP_PX - 2 * TOP_HALF * REF_RING_DROP_TOP_RATIO
+# ref_table_legs.png perpendicular dark runs: upper tube through (342,80),
+# waist through (357,330), foot through (282,800), ring through (450,389).
+REF_TOP_DIAMETER = 24.1
+REF_WAIST_DIAMETER = 32.1
+REF_FOOT_DIAMETER = 25.4
+REF_RING_TUBE = 32.0
+# ref_table_legs.png front tabletop upper edge near y=40 and cap at y=811
+# give the local vertical height scale for those perpendicular tube samples.
+REF_CLOSEUP_TOP_Y = 40
+REF_CLOSEUP_FLOOR_Y = 811
+REF_CLOSEUP_HEIGHT = REF_CLOSEUP_FLOOR_Y - REF_CLOSEUP_TOP_Y
+REF_LEG_HEIGHT_RATIO = REF_TOP_DIAMETER / REF_CLOSEUP_HEIGHT
+LEG_TOP_WIDTH = TOP_PX * REF_LEG_HEIGHT_RATIO
+LEG_WAIST_WIDTH = TOP_PX * REF_WAIST_DIAMETER / REF_CLOSEUP_HEIGHT
+LEG_FOOT_WIDTH = TOP_PX * REF_FOOT_DIAMETER / REF_CLOSEUP_HEIGHT
+RING_HALF = TOP_PX * REF_RING_TUBE / REF_CLOSEUP_HEIGHT / 2
+RING_OUTER_RADIUS = RING_RADIUS + RING_HALF
 FOOT_Y = LEG_FOOT_WIDTH / 2
-# The close-up foreground waist is 320/742 down the exposed leg. With
-# the wider ring and top occlusion, y=5.60 approximates that projected fraction;
-# the ring is about 45 percent of the physical leg height above the floor.
-RING_Y = 5.60
-RING_HALF = REF_RING_TUBE * CLOSEUP_SCALE / 2
-RING_RADIUS = RING_OUTER_RADIUS - RING_HALF
-# Each kink meets the ring centerline at a diagonal of its circular plan.
+PANEL_LEG_Y = RIM_BOTTOM
 LEG_WAIST = RING_RADIUS / math.sqrt(2)
-# The close-up black tip is about 20 px across versus a 25.4 px tube end.
-FOOT_CAP_WIDTH_RATIO = 20 / REF_FOOT_DIAMETER
-FOOT_CAP_HEIGHT = REF_CAP_HEIGHT * CLOSEUP_SCALE
+# ref_table_legs.png black cap is 20 px wide and rows 802..811 (10 px) tall.
+REF_CAP_WIDTH = 20
+REF_CAP_HEIGHT = 10
+FOOT_CAP_WIDTH_RATIO = REF_CAP_WIDTH / REF_FOOT_DIAMETER
+FOOT_CAP_HEIGHT = TOP_PX * REF_CAP_HEIGHT / REF_CLOSEUP_HEIGHT
 TAPER_STEPS = 4
 RING_SEGMENTS = 48
 # Four overlapping rectangular prisms form an eight-sided tube cross-section.
@@ -91,8 +94,9 @@ FOOT_BLACK = (10, 10, 10, 255)
 TABLE_PALETTE = wicker.WeavePalette((55, 59, 59), (76, 81, 81), (39, 43, 43), (25, 29, 29),
                                     columns=4, rows=4)
 # The whole photo has a 2..4 px apron lip below its roughly 9 px rim.
-APRON_DEPTH = (2 / 9) * (TOP_PX - RIM_BOTTOM)
-APRON_CORNER_DROP = (2 / 9) * (TOP_PX - RIM_BOTTOM)
+REF_APRON_RIM_RATIO = 2 / 9
+APRON_DEPTH = REF_APRON_RIM_RATIO * (TOP_PX - RIM_BOTTOM)
+APRON_CORNER_DROP = REF_APRON_RIM_RATIO * (TOP_PX - RIM_BOTTOM)
 APRON_SEGMENTS = 6
 # The top zoom shows the recessed lip at roughly one third of the rim width.
 APRON_THICKNESS = (TOP_HALF - PANEL_HALF) / 3

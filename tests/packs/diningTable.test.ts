@@ -45,11 +45,15 @@ it("ships a persistent, damage-immune table with whole-model hits and no seats",
   expect(c["minecraft:knockback_resistance"].value).toBe(1);
   expect(c["minecraft:rideable"]).toBeUndefined();
   expect(c["minecraft:collision_box"]).toEqual({
-    width: 15 / 16,
+    width: (2 * top.half.halfX) / 16,
     height: top.topPx / 16,
   });
   expect(c["minecraft:custom_hit_test"].hitboxes).toEqual([
-    { width: 1, height: top.topPx / 16, pivot: [0, top.topPx / 32, 0] },
+    {
+      width: (2 * top.half.halfX) / 16,
+      height: top.topPx / 16,
+      pivot: [0, top.topPx / 32, 0],
+    },
   ]);
 });
 
@@ -90,6 +94,8 @@ assert all(-8 <= lo[i] <= hi[i] <= 8 for i in (0, 2)), (lo, hi)
 assert lo[1] >= 0 and hi[1] == m.TOP_PX, (lo, hi)
 top_lo, top_hi = m.tilt.bounds(top)
 assert top_lo[0] == top_lo[2] == -m.TOP_HALF and top_hi[0] == top_hi[2] == m.TOP_HALF
+assert abs(2 * m.TOP_HALF / m.TOP_PX - m.REF_WIDTH_HEIGHT_RATIO) < 0.005
+assert abs(m.RIM_DEPTH / m.TOP_PX - m.REF_RIM_HEIGHT_RATIO) < 1e-9
 assert m.LEG_TOP_OFFSET > m.LEG_WAIST < m.LEG_FOOT_OFFSET
 assert m.LEG_WAIST_WIDTH > m.LEG_FOOT_WIDTH
 # Check the transformed segment axes, including both sides of each bend.
@@ -137,54 +143,43 @@ print(json.dumps([m.TOP_HALF, m.TOP_PX, m.TOP_LIMIT, m.TEXTURE_WIDTH, m.TEXTURE_
   ]).toEqual([textureWidth, textureHeight]);
 });
 
-it("holds one Dutch Oven or up to four Gas Lanterns in the corners", () => {
+it("fits either item alone and limits the smaller top to one item", () => {
+  expect(top.limit).toBe(1);
   for (const footprint of [GAS_LANTERN_FOOTPRINT_PX, DUTCH_OVEN_FOOTPRINT_PX]) {
-    expect(
-      placeOnTop(top.half, top.limit, [], { x: 0, z: 0 }, footprint),
-    ).toEqual({ ok: true, at: { x: 0, z: 0 } });
-  }
-  const lanterns: TopItem[] = [];
-  for (const [x, z] of [
-    [-8, -8],
-    [8, -8],
-    [-8, 8],
-    [8, 8],
-  ] as const) {
     const placement = placeOnTop(
       top.half,
       top.limit,
-      lanterns,
-      { x, z },
-      GAS_LANTERN_FOOTPRINT_PX,
-    );
-    expect(placement.ok).toBe(true);
-    if (placement.ok)
-      lanterns.push({ at: placement.at, footprint: GAS_LANTERN_FOOTPRINT_PX });
-  }
-  expect(lanterns).toHaveLength(top.limit);
-  expect(
-    placeOnTop(
-      top.half,
-      top.limit,
-      lanterns,
+      [],
       { x: 0, z: 0 },
-      GAS_LANTERN_FOOTPRINT_PX,
-    ),
-  ).toEqual({ ok: false, reason: "full" });
-  const oven = placeOnTop(
+      footprint,
+    );
+    expect(placement).toEqual({ ok: true, at: { x: 0, z: 0 } });
+    const contents: TopItem[] = [{ at: { x: 0, z: 0 }, footprint }];
+    expect(
+      placeOnTop(
+        top.half,
+        top.limit,
+        contents,
+        { x: 8, z: 8 },
+        GAS_LANTERN_FOOTPRINT_PX,
+      ),
+    ).toEqual({ ok: false, reason: "full" });
+  }
+  // Even with the count limit lifted, opposite corners cannot fit two lanterns.
+  const first = placeOnTop(
     top.half,
-    top.limit,
+    4,
     [],
     { x: -8, z: -8 },
-    DUTCH_OVEN_FOOTPRINT_PX,
+    GAS_LANTERN_FOOTPRINT_PX,
   );
-  expect(oven.ok).toBe(true);
-  if (!oven.ok) return;
+  expect(first.ok).toBe(true);
+  if (!first.ok) return;
   expect(
     placeOnTop(
       top.half,
-      top.limit,
-      [{ at: oven.at, footprint: DUTCH_OVEN_FOOTPRINT_PX }],
+      4,
+      [{ at: first.at, footprint: GAS_LANTERN_FOOTPRINT_PX }],
       { x: 8, z: 8 },
       GAS_LANTERN_FOOTPRINT_PX,
     ),

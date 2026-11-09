@@ -169,9 +169,9 @@ describe("furniture spec", () => {
     ];
     expect(kinds.map((kind) => FURNITURE_SPEC[kind].seats)).toEqual(seats);
     expect(FURNITURE_SPEC.dining_table.top).toEqual({
-      half: { halfX: 7.5, halfZ: 7.5 },
+      half: { halfX: 6, halfZ: 6 },
       topPx: 12,
-      limit: 4,
+      limit: 1,
       clearanceBase: 0,
     });
     for (const kind of kinds) {
