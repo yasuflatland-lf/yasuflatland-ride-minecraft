@@ -2,6 +2,7 @@
 
 - Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement, form switching, lying down and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
 - Verified at: 732f6c1c
+- Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0237](../adr/0237-register-tabletop-hosts-across-features.md)
 - Source: [0239](../adr/0239-a-beach-chair-that-folds-into-a-table.md)
@@ -9,6 +10,15 @@
 - Source: [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md)
 
 ## Rules
+
+### Furniture domain groundwork
+
+- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; no in-game behavior is installed yet.
+- Rule: A deeply frozen per-kind table defines footprint offsets, two clearance layers, seats, recovery parameters, and an optional tabletop surface. Shared geometry faces the player and centres the origin over the occupied floor cells. The double sofa extends from the pressed column to the player's right. Existing Beach Chair behavior is unchanged.
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md) Decision, furniture family and placement geometry.
+- Implementation: `src/domain/resort/furniture.ts`; `src/domain/resort/ids.ts`
+- Verification: `tests/domain/resort/furniture.test.ts` checks every kind and quarter turn, support and clearance cells, origin centring, player-facing orientation, rightward sofa placement, and deep freezing. Assets and in-game integration remain future work.
 
 ### Feature installation and placement
 
@@ -25,7 +35,7 @@
 - Rule: A parasol lays invisible `yasu_ride:parasol_ceiling` blocks in every column overlapping its octagonal canopy, in the first cell above the canopy top (`PARASOL_SPEC.canopyTop`, 4.1875 blocks). Only air outside vehicle space is filled. The entity dynamic property `yasu_ride:parasol_ceiling` records cells as JSON. Every `PARASOL_SPEC.ceilingSyncTicks` ticks, loaded parasols restore their saved record and missing cells, preserving the fractional base position when rebuilding the canopy. Nearby-base queries preserve that position for spacing checks. Taking back or removing a parasol clears only its recorded cells still holding the ceiling block; replacements remain. Removal is checked on the next tick, and an unloaded base chunk preserves the ceiling. Unloaded recorded cells remain pending for later cleanup after a confirmed removal. A shared laid-block guard cancels Creative breaks of recorded ceilings.
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, rain shelter follows the design document; [0235](../adr/0235-share-convex-rain-ceiling-geometry-and-placement.md) Decision, shared footprint geometry and rain ceiling layer.
-- Implementation: `src/application/resort/syncParasolCeilings.ts`; `src/domain/resort/parasolPose.ts`; `src/infrastructure/resort/bedrock/bedrockParasolWorld.ts`; `src/infrastructure/resort/bedrock/handlers/lifecycle.ts`; `src/infrastructure/shared/rainCeiling.ts`; `src/infrastructure/shared/laidBlockGuard.ts`
+- Implementation: `src/application/resort/syncParasolCeilings.ts`; `src/domain/resort/parasolPose.ts`; `src/infrastructure/resort/bedrock/bedrockParasolWorld.ts`; `src/infrastructure/resort/bedrock/handlers/lifecycle.ts`; `src/infrastructure/shared/laidBlockLayer.ts`; `src/infrastructure/shared/laidBlockGuard.ts`
 - Verification: `tests/infrastructure/resort/bedrockParasolWorld.test.ts` checks saving, fresh-adapter restoration, replacement preservation, and unloaded-cell retry. `parasol_rain_ceiling` verifies ceiling placement, periodic repair, and cleanup on the dev BDS. The block's ability to stop actual rain and snow remains unverified.
 
 ### Taking the parasol back

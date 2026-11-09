@@ -232,7 +232,7 @@ it("shares the hit and server switch cooldown, rejects non-server switches, and 
 
 function tableHandlers() {
   const placeOnTable = vi.fn<GasLanternActions["placeOnTable"]>();
-  registerGasLantern(
+  const placeHostedOnTop = registerGasLantern(
     {
       placeOnTable,
       placeOnTop: (
@@ -257,7 +257,7 @@ function tableHandlers() {
     for (const [callback] of game.run.mock.calls) callback();
     game.run.mockClear();
   };
-  return { placeOnTable, interact, script, flush };
+  return { placeOnTable, placeHostedOnTop, interact, script, flush };
 }
 
 function tableEvent(held: string | undefined, typeId = CAMP_TABLE_TYPE) {
@@ -332,4 +332,28 @@ it("accepts only server table test requests with a local point", () => {
     slot: 0,
     aim: { x: -3.25, z: 4 },
   });
+});
+
+it("places the held lantern on a given host once per tick and declines other items", () => {
+  const { placeOnTable, placeHostedOnTop, flush } = tableHandlers();
+  placeOnTable.mockReturnValue("full");
+  const { target, player } = tableEvent(GAS_LANTERN_ITEM);
+  const holder = Object.assign(new game.Player(), {
+    ...player,
+    id: "p",
+    held: GAS_LANTERN_ITEM,
+  });
+  const host = target as unknown as Parameters<typeof placeHostedOnTop>[1];
+  const asPlayer = holder as unknown as Parameters<typeof placeHostedOnTop>[0];
+  expect(placeHostedOnTop(asPlayer, host)).toBe(true);
+  expect(placeHostedOnTop(asPlayer, host)).toBe(true);
+  flush();
+  expect(placeOnTable).toHaveBeenCalledOnce();
+  holder.held = "minecraft:stick";
+  game.tick++;
+  expect(placeHostedOnTop(asPlayer, host)).toBe(false);
+  holder.held = "";
+  expect(placeHostedOnTop(asPlayer, host)).toBe(false);
+  flush();
+  expect(placeOnTable).toHaveBeenCalledOnce();
 });
