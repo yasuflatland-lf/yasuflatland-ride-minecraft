@@ -1,7 +1,7 @@
 # 0237. Lounge pose by overriding the player client entity
 
-- Status: Proposed
-- Acceptance condition: the owner verifies the five manual spike checks on the dev BDS and resolves any late-join resend requirement
+- Status: Accepted
+- Decided in: #1443
 - Date: 2026-11-09
 - Related: [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md): separate roof tent pose decision
 
@@ -29,8 +29,8 @@ This is a separate judgment from the roof tent's statement that overriding is fr
 
 ## Spike results
 
-1. PC: the player lounges in first person and third person, and other players see the pose. **Not yet checked (manual, on the dev BDS)**.
-2. Mobile: the same pose and visibility checks. **Not yet checked (manual, on the dev BDS)**.
-3. Dismounting restores the normal pose. **Not yet checked (manual, on the dev BDS)**.
-4. A player joining while the animation is playing sees the pose. **Not yet checked (manual, on the dev BDS)**. If late joiners do not see it, 9/10 (#1448) must resend the animation on an interval.
-5. Walking, swimming, sleeping, arm swings, and other ordinary animations remain intact. **Not yet checked (manual, on the dev BDS)**.
+1. PC: the player lounges in first person and third person, and other players see the pose. **Checked by the owner on the dev BDS on 2026-11-09: OK**.
+2. Mobile: the same pose and visibility checks. **Checked by the owner on the dev BDS on 2026-11-09: OK**.
+3. Dismounting restores the normal pose. **Checked by the owner on the dev BDS on 2026-11-09: OK**.
+4. A player joining while the animation is playing sees the pose. **Checked by the owner on the dev BDS on 2026-11-09: OK**. 9/10 (#1448) resends the animation on an interval in any case, so a late joiner sees the pose either way.
+5. Walking, swimming, sleeping, arm swings, and other ordinary animations remain intact. **Checked by the owner on the dev BDS on 2026-11-09: OK**.

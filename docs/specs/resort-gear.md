@@ -57,10 +57,10 @@
 
 - Applies to: A player running `scriptevent yasu_ride_test:lounge` with the test pack enabled.
 - Rule: Keep an existing ride, or mount the nearest rideable within four blocks. Report a missing rideable or failed mount in chat. Play the looping lounge animation until dismount, with straight forward legs and a 55-degree backward waist rotation. The player client definition preserves vanilla content and adds only the lounge animation mapping. Normal chair interactions do not trigger the spike.
-- Agreement: Proposed
+- Agreement: Accepted
 - Basis: [0237](../adr/0237-lounge-pose-by-overriding-the-player-client-entity.md) Decision.
 - Implementation: `src/test-pack/loungeProbe.ts`; `packs/yasu_ride_rp/entity/yasu_ride/player.ce.json`; `packs/yasu_ride_rp/animations/yasu_ride/player.anim.json`
-- Verification: `tests/packs/playerOverride.test.ts` pins the vanilla definition and pose. All five device checks remain pending in ADR 0237; runtime feasibility is not established.
+- Verification: `tests/packs/playerOverride.test.ts` pins the vanilla definition and pose. The owner checked the lounge pose on the dev BDS on 2026-11-09 and reported it as OK (ADR 0237).
 
 ## Open issues
 
