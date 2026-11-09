@@ -1,7 +1,6 @@
 import {
   type Block,
   type Entity,
-  EquipmentSlot,
   ItemStack,
   SignSide,
   StructureSaveMode,
@@ -92,7 +91,17 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
   };
   const summon = (type: string, x: number, z: number): Entity => {
     const before = new Set(entities().map((entity) => entity.id));
-    a.dim.runCommand(`summon ${type} ${a.xyz(x, bottom + 1, z)}`);
+    try {
+      a.dim.runCommand(`summon ${type} ${a.xyz(x, bottom + 1, z)}`);
+    } catch (error) {
+      // The painting is not summonable by command; try the script spawn as
+      // the other stable mechanism and report both errors if it fails too.
+      try {
+        a.dim.spawnEntity(type, a.at(x, bottom + 1, z));
+      } catch (spawnError) {
+        throw new Error(`${errorText(error)} / ${errorText(spawnError)}`);
+      }
+    }
     const entity = entities().find(
       (e) => e.typeId === type && !before.has(e.id),
     );
@@ -119,17 +128,16 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
       );
     });
 
-    // 2.11.0 declares no numeric maximum. These are candidate axis limits,
-    // not a volume limit; each oversized capture remains in loaded lane chunks.
-    const maxStartY = Math.max(
-      a.dim.heightRange.min,
-      a.dim.heightRange.max - 257,
-    );
+    // 2.11.0 declares no numeric maximum. The dev BDS rejected 65 on x and z
+    // with "exceeds the maximum of 64x384x64" and accepted 64 x 257 x 64, so
+    // the probe asserts that reported limit. Each oversized capture remains in
+    // loaded lane chunks.
+    const maxStartY = a.dim.heightRange.min;
     for (const [name, x, y, z, accepted] of [
-      ["max_candidate", 64, 256, 64, true],
-      ["oversize_x", 65, 256, 64, false],
-      ["oversize_y", 64, 257, 64, false],
-      ["oversize_z", 64, 256, 65, false],
+      ["max_candidate", 64, 384, 64, true],
+      ["oversize_x", 65, 384, 64, false],
+      ["oversize_y", 64, 385, 64, false],
+      ["oversize_z", 64, 384, 65, false],
     ] as const) {
       await check(name, () => {
         try {
@@ -290,7 +298,8 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
           ?.container?.getItem(0);
         record(
           name,
-          restored.typeId === type &&
+          // setType("minecraft:skull") yields minecraft:skeleton_skull.
+          restored.typeId === before.type.id &&
             Object.entries(before.getAllStates()).every(
               ([key, value]) =>
                 restored.permutation.getAllStates()[key] === value,
@@ -317,14 +326,21 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
         const tag = `${prefix}_${name}`;
         entity.addTag(tag);
         entity.setDynamicProperty("yasu_build:probe_value", "round_trip");
+        // An armor stand has no stable equippable component, so its helmet
+        // is set and read through commands (verified on the dev BDS).
+        const helmet = `@e[type=${type},tag="${tag}",hasitem={item=minecraft:diamond_helmet,location=slot.armor.head}]`;
+        const helmets = () => {
+          try {
+            return a.dim.runCommand(`testfor ${helmet}`).successCount;
+          } catch {
+            return 0;
+          }
+        };
         if (name === "armor_stand") {
-          const equipment = entity.getComponent("minecraft:equippable");
-          if (
-            !equipment?.setEquipment(
-              EquipmentSlot.Head,
-              new ItemStack("minecraft:diamond_helmet"),
-            )
-          )
+          a.dim.runCommand(
+            `replaceitem entity @e[type=${type},tag="${tag}"] slot.armor.head 0 minecraft:diamond_helmet`,
+          );
+          if (helmets() !== 1)
             throw new Error("armor fixture could not be equipped");
         }
         const structure = capture(name);
@@ -345,13 +361,7 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
               "round_trip",
         );
         if (name === "armor_stand")
-          record(
-            "armor_equipment",
-            first[0]
-              ?.getComponent("minecraft:equippable")
-              ?.getEquipment(EquipmentSlot.Head)?.typeId ===
-              "minecraft:diamond_helmet",
-          );
+          record("armor_equipment", first.length === 1 && helmets() === 1);
         manager.place(structure, a.dim, from, { includeEntities: true });
         const second = entities().filter((e) => e.typeId === type);
         for (const e of second) spawned.add(e.id);
