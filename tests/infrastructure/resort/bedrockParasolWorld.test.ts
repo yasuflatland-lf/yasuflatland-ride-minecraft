@@ -160,14 +160,20 @@ it("skips vehicle space and never claims an unrelated ceiling", () => {
 it("requires a ray to meet the requested block's full top face", () => {
   const f = fixture();
   const cell = { x: 1, y: 2, z: 3 };
-  for (const height of [0.5, 1]) {
+  // faceLocation.y is inverted: a full top reads 0 and a bottom slab 0.5 (ADR 0111).
+  for (const reported of [0.5, 0]) {
     f.dimension.getBlockFromRay.mockReturnValue({
       face: "Up",
-      faceLocation: { y: height },
+      faceLocation: { y: reported },
       block: { location: cell },
     });
-    expect(f.adapter.isSolidTop(dimensionId, cell)).toBe(height === 1);
+    expect(f.adapter.isSolidTop(dimensionId, cell)).toBe(reported === 0);
   }
+  expect(f.dimension.getBlockFromRay).toHaveBeenCalledWith(
+    { x: 1.5, y: 3.5, z: 3.5 },
+    { x: 0, y: -1, z: 0 },
+    expect.objectContaining({ maxDistance: 1 }),
+  );
   f.dimension.getBlockFromRay.mockReturnValue(undefined);
   expect(f.adapter.isSolidTop(dimensionId, cell)).toBe(false);
 });
