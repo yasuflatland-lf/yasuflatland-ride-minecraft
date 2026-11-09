@@ -2,6 +2,7 @@ import {
   type BlockPermutation,
   ItemStack,
   type Player,
+  type PlayerInteractWithBlockAfterEvent,
   SignSide,
   system,
   world,
@@ -18,7 +19,7 @@ import {
   TEST_TAP_EVENT,
 } from "../../infrastructure/build/identifiers";
 import { type Arena, wait } from "../arena";
-import type { Outcome } from "../outcome";
+import type { Outcome, StepSink } from "../outcome";
 
 interface BuildState {
   flow: string;
@@ -1751,9 +1752,6 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
       for (const offset of [0, 12]) {
         const c = f.cell(offset + 5, 1, 1);
         f.block(c).setType("minecraft:frame");
-        a.dim.runCommand(
-          `replaceitem block ${c.x} ${c.y} ${c.z} slot.container 0 minecraft:${offset === 0 ? "diamond" : "emerald"} 1`,
-        );
         const cow = f.cell(offset + 6.5, 1, 2.5);
         a.dim.runCommand(`summon minecraft:cow ${cow.x} ${cow.y} ${cow.z}`);
       }
@@ -1788,11 +1786,7 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
       );
       check(
         target.filter((c) => f.block(c).typeId === "minecraft:frame").length ===
-          1 &&
-          f
-            .block(f.cell(17, 1, 1))
-            .getComponent("minecraft:inventory")
-            ?.container?.getItem(0)?.typeId === "minecraft:diamond",
+          1 && f.block(f.cell(17, 1, 1)).typeId === "minecraft:frame",
         "frame was not replaced",
       );
       check(
@@ -1824,4 +1818,256 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
       for (const entity of [...inside(0), ...inside(12)]) entity.remove();
     }
   });
+}
+
+export async function buildPasteStructureDecor(
+  a: Arena,
+  onStep?: StepSink,
+): Promise<Outcome> {
+  const results: { name: string; pass: boolean; value: string }[] = [];
+  const record = (name: string, pass: boolean, value: unknown = pass) =>
+    results.push({ name, pass, value: String(value) });
+  const cleanup = (name: string, run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      record(name, false, error);
+    }
+  };
+  let phase = "setup";
+  try {
+    const outcome = await withBuilder(a, async (f) => {
+      const source = f.region(8, 6, 8);
+      const target = f.region(8, 6, 8, f.cell(12));
+      const inventory = f.player.getComponent("minecraft:inventory")?.container;
+      check(!!inventory, "player inventory missing");
+      const savedItems = Array.from({ length: inventory.size }, (_, slot) =>
+        inventory.getItem(slot),
+      );
+      const wandSlot = f.player.selectedSlotIndex;
+      const restoreInventory = () => {
+        savedItems.forEach((item, slot) => {
+          inventory.setItem(slot, item);
+        });
+        f.player.selectedSlotIndex = wandSlot;
+      };
+      const inside = (p: Cell, offset: number, margin = 0) => {
+        const min = f.cell(offset);
+        return (
+          p.x >= min.x - margin &&
+          p.x < min.x + 8 + margin &&
+          p.y >= min.y - margin &&
+          p.y < min.y + 6 + margin &&
+          p.z >= min.z - margin &&
+          p.z < min.z + 8 + margin
+        );
+      };
+      const entities = (offset: number, margin = 0) =>
+        a.dim
+          .getEntities()
+          .filter(
+            (e) =>
+              e.typeId !== "minecraft:player" &&
+              inside(e.location, offset, margin),
+          );
+      const paintings = (offset: number) =>
+        entities(offset).filter((e) => e.typeId === "minecraft:painting");
+      const items = (offset: number) =>
+        entities(offset, 1).filter((e) => e.typeId === "minecraft:item");
+      const removeItems = () => {
+        for (const offset of [0, 12])
+          for (const entity of items(offset)) entity.remove();
+      };
+      const drops = (offset: number) =>
+        items(offset).map(
+          (e) => e.getComponent("minecraft:item")?.itemStack.typeId,
+        );
+      const frames = (cells: Cell[]) =>
+        cells.filter((c) => f.block(c).typeId === "minecraft:frame");
+      const interacted = new Set<string>();
+      const listener = (event: PlayerInteractWithBlockAfterEvent) => {
+        if (
+          event.player.id === f.player.id &&
+          event.block.dimension.id === a.dim.id &&
+          event.block.typeId === "minecraft:frame" &&
+          inside(event.block.location, 0) &&
+          event.beforeItemStack?.typeId === "minecraft:diamond"
+        )
+          interacted.add(JSON.stringify(event.block.location));
+      };
+      const setupState = () => {
+        const allFrames = frames(source);
+        const frame = allFrames.find((c) => interacted.has(JSON.stringify(c)));
+        return {
+          frame,
+          missing: [
+            ...(allFrames.length === 0 ? ["item frame"] : []),
+            ...(!frame ? ["diamond interaction with the frame"] : []),
+            ...(paintings(0).length === 0 ? ["painting"] : []),
+          ],
+        };
+      };
+      const breakFrame = (c: Cell) =>
+        a.dim.runCommand(`setblock ${c.x} ${c.y} ${c.z} air destroy`);
+      world.afterEvents.playerInteractWithBlock.subscribe(listener);
+      try {
+        for (const offset of [0, 12])
+          for (const entity of entities(offset)) entity.remove();
+        for (const c of [...source, ...target])
+          f.block(c).setType(
+            c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
+          );
+        for (const offset of [0, 12])
+          for (const c of f.region(1, 4, 6, f.cell(offset + 1, 1, 1)))
+            f.block(c).setType("minecraft:stone");
+        inventory.clearAll();
+        // Stable APIs cannot populate a frame or create a painting (ADR 0243).
+        for (const type of [
+          "minecraft:frame",
+          "minecraft:diamond",
+          "minecraft:painting",
+        ])
+          inventory.addItem(new ItemStack(type, 1));
+        f.player.selectedSlotIndex = 0;
+        f.player.teleport(f.cell(4.5, 1, 3.5), {
+          dimension: a.dim,
+          facingLocation: f.cell(1, 2, 3.5),
+        });
+        const prompt =
+          "Structure paste decor check: within 60 seconds, place the item frame on the stone wall, put the diamond into it, and hang the painting on the wall.";
+        f.player.sendMessage(prompt);
+        f.player.onScreenDisplay.setActionBar(prompt);
+        let setup = setupState();
+        for (
+          let ticks = 0;
+          ticks < 1200 && setup.missing.length > 0;
+          ticks += 10
+        ) {
+          await wait(10);
+          setup = setupState();
+          // The player setup window exceeds the runner's 60-second stall watch.
+          if ((ticks + 10) % 200 === 0)
+            onStep?.({
+              name: `setup_wait_${ticks + 10}`,
+              pass: true,
+              detail: `polled setup after ${ticks + 10} ticks; missing: ${setup.missing.join(", ") || "none"}`,
+            });
+        }
+        const cell = setup.frame;
+        if (!cell || setup.missing.length > 0) {
+          record(
+            "setup",
+            false,
+            `fixture incomplete; missing: ${setup.missing.join(", ")}`,
+          );
+          return;
+        }
+        record(
+          "setup",
+          true,
+          "player placed frame, interacted with diamond, and hung painting",
+        );
+        const originalPaintings = paintings(0).length;
+        record("painting_setup", originalPaintings === 1, originalPaintings);
+        const permutation = f.block(cell).permutation;
+        restoreInventory();
+        f.player.teleport(a.at(45, a.gy, 45), { dimension: a.dim });
+        await wait(BUILD_SPEC.modeEnterTicks + 2);
+        removeItems();
+        const min = f.cell();
+        const max = f.cell(7, 5, 7);
+        await f.edit(
+          `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
+        );
+        // Capture before breaking the original so the clipboard retains its contents.
+        breakFrame(cell);
+        await wait(2);
+        const originalDrops = drops(0);
+        const observed = originalDrops.includes("minecraft:diamond");
+        record(
+          "frame_setup_observed",
+          observed,
+          observed
+            ? originalDrops.join(",")
+            : `fixture failure: destroy-drop observation produced no diamond; drops=${originalDrops.join(",")}`,
+        );
+        removeItems();
+        if (!observed || originalPaintings !== 1) return;
+        phase = "paste";
+        const mirrored = { ...cell, x: cell.x + 12 };
+        f.block(mirrored).setPermutation(permutation);
+        const anchor = f.cell(12, -1);
+        const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
+        record(
+          "paste",
+          pasted.message === "editDone" && pasted.count === source.length,
+          pasted.message,
+        );
+        await wait(2);
+        record(
+          "item_frame_block",
+          frames(target).length === 1 &&
+            f.block(mirrored).typeId === "minecraft:frame",
+        );
+        const firstPaintings = paintings(12);
+        record("painting", firstPaintings.length === 1, firstPaintings.length);
+        breakFrame(mirrored);
+        await wait(2);
+        const pastedDrops = drops(12);
+        record(
+          "item_frame",
+          pastedDrops.includes("minecraft:diamond"),
+          pastedDrops.join(","),
+        );
+        removeItems();
+        await wait(BUILD_SPEC.pasteRepeatTicks);
+        f.block(mirrored).setPermutation(permutation);
+        const repeated = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
+        record(
+          "paste_repeat",
+          repeated.message === "editDone" && repeated.count === source.length,
+          repeated.message,
+        );
+        await wait(2);
+        const repeatedPaintings = paintings(12);
+        record(
+          "painting_replaced",
+          repeatedPaintings.length === 1 &&
+            firstPaintings.every((e) => !e.isValid),
+          repeatedPaintings.length,
+        );
+      } finally {
+        cleanup("cleanup_listener", () =>
+          world.afterEvents.playerInteractWithBlock.unsubscribe(listener),
+        );
+        try {
+          await f.edit("releaseStructures");
+        } finally {
+          for (const offset of [0, 12])
+            cleanup("cleanup_entities", () => {
+              for (const entity of entities(offset))
+                cleanup("cleanup_entity", () => entity.remove());
+            });
+          cleanup("cleanup_drops", removeItems);
+          if (f.player.isValid) cleanup("restore_inventory", restoreInventory);
+        }
+      }
+    });
+    if (!outcome.pass) record("fixture", false, outcome.detail);
+  } catch (error) {
+    record(
+      phase,
+      false,
+      `${phase === "setup" ? "fixture failure: " : ""}${error instanceof Error ? `${error.name}:${error.message}` : error}`,
+    );
+  }
+  return {
+    pass: results.length > 0 && results.every((r) => r.pass),
+    detail: results
+      .map(
+        ({ name, pass, value }) =>
+          `${name}=${pass ? "PASS" : "FAIL"}(${value})`,
+      )
+      .join("; "),
+  };
 }
