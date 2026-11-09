@@ -11,7 +11,7 @@
 
 The owner wants the photographed teak lounger beside the Beach Parasol. One item must serve as a reclining chair and a low table. The reference photos remain outside the repository. The design document in the main checkout is `docs/designs/2026-11-09-beach-chair-design.md`.
 
-Issue #1444 supplies assets only. Placement, menus, player animation, hosting, and recovery belong to later issues. The player definition override and its compatibility with vanilla animations still require a separate implementation and verification.
+Issue #1444 supplied the assets. Scripted placement, recovery, the chair menu, and form switching are now implemented. Player poses (#1448) and lantern and oven hosting (#1449) remain pending. The player definition override and its compatibility with vanilla animations still require a separate implementation and verification.
 
 ## Decision
 
@@ -30,4 +30,4 @@ Issue #1444 supplies assets only. Placement, menus, player animation, hosting, a
 
 ## Consequences
 
-The asset contract allows later work to use measured seat and tabletop dimensions without changing the model. This issue provides no scripted interaction, placement, or recovery. Static previews and pack tests cannot establish engine behavior, multiplayer pose synchronization, or compatibility of a future player animation override. Owner visual approval remains pending and is required before merge.
+The asset contract allows later work to use measured seat and tabletop dimensions without changing the model. The folded table lays no invisible blocks, so nothing tracks or restores table cells, and only hosted gear can stand on it. Static previews and pack tests cannot establish engine behavior, multiplayer pose synchronization, or compatibility of a future player animation override. Owner visual approval remains pending and is required before merge.
