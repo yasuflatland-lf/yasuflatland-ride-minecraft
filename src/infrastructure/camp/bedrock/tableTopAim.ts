@@ -1,9 +1,9 @@
 import type { Entity, Player } from "@minecraft/server";
-import type { TableTopOutcome } from "../../../application/camp/placeOnTableTop";
-import { aimOnPlane, hostLocalPx } from "../../../domain/camp/dutchOven";
+import type { TopOutcome } from "../../../application/shared/placeOnTop";
 import { TABLE_TOP_PX } from "../../../domain/camp/spec";
 import { asTableId, type TableId } from "../../../domain/camp/table";
-import type { LocalPoint } from "../../../domain/camp/tabletop";
+import type { LocalPoint } from "../../../domain/shared/tableTop";
+import { aimOnPlane, hostLocalPx } from "../../../domain/shared/tableTop";
 import { TABLE_TOP_REFUSAL_HINTS } from "../identifiers";
 
 /** Where the player's view ray meets the table top, in the table's local pixels. */
@@ -21,10 +21,7 @@ export function tableTopAim(
 }
 
 /** Tells the player why the table top refused the item, when the rule did. */
-export function showTableTopRefusal(
-  player: Player,
-  outcome: TableTopOutcome,
-): void {
+export function showTableTopRefusal(player: Player, outcome: TopOutcome): void {
   if (outcome === "placed" || outcome === "refused" || !player.isValid) return;
   player.onScreenDisplay.setActionBar({
     translate: TABLE_TOP_REFUSAL_HINTS[outcome],

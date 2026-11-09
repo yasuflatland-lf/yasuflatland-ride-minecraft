@@ -1,18 +1,18 @@
 import { type Entity, ItemStack, world } from "@minecraft/server";
 import type { DutchOvenWorld } from "../../../application/camp/ports/dutchOven";
-import type { HostedKindId } from "../../../application/camp/ports/tableTop";
+import type { HostedKindId } from "../../../application/shared/ports/hostedItem";
 import {
   asDutchOvenId,
   type DutchOvenId,
 } from "../../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../../domain/camp/firePit";
 import { DUTCH_OVEN_SPEC } from "../../../domain/camp/spec";
-import type { TopItem } from "../../../domain/camp/tabletop";
 import {
   asDimensionId,
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
+import type { TopItem } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
@@ -113,15 +113,15 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
     return asDutchOvenId(oven.id);
   }
 
-  table(id: string) {
-    return tableTop(id);
+  topHost(hostType: string, id: string) {
+    return hostType === "camp_table" ? tableTop(id) : undefined;
   }
 
-  itemsOnTable(id: string): readonly TopItem[] {
-    return itemsOnTable(id);
+  itemsOnTop(hostType: string, id: string): readonly TopItem[] {
+    return hostType === "camp_table" ? itemsOnTable(id) : [];
   }
 
-  spawnHostedOnTable(
+  spawnHosted(
     _kind: HostedKindId,
     dimension: DimensionId,
     at: Vec3,

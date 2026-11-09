@@ -1,12 +1,12 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
-import type { HostedItemsGuard } from "../../../../application/camp/hostedItemsGuard";
+import type { HostedItemsGuard } from "../../../../application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
 import { DUTCH_OVEN_SPEC, TABLE_SPOTS } from "../../../../domain/camp/spec";
 import { asTableId, type TableId } from "../../../../domain/camp/table";
-import type { LocalPoint } from "../../../../domain/camp/tabletop";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
+import type { LocalPoint } from "../../../../domain/shared/tableTop";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import {
   CAMP_TABLE_TYPE,

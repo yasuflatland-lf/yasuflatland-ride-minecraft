@@ -66,7 +66,7 @@ it("spawns a hosted lantern at the table's yaw, marks its host, and stops its fa
     createGasLanternLight(),
   );
   const at = { x: 1, y: 64.75, z: 2 };
-  lanterns.spawnHostedOnTable(
+  lanterns.spawnHosted(
     "gas_lantern",
     asDimensionId("overworld"),
     at,

@@ -8,7 +8,6 @@ import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
-import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import { LeaveRoofTent } from "../../../src/application/camp/leaveRoofTent";
 import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
 import { PaintTent } from "../../../src/application/camp/paintTent";
@@ -22,6 +21,7 @@ import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
 import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
+import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { SleepInBed } from "../../../src/application/shared/sleepInBed";
 import {
   asTentId,

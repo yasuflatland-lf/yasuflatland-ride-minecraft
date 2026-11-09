@@ -86,13 +86,13 @@ function fixture() {
     dropItem: vi.fn(),
     removeGasLantern: vi.fn(),
     showHitsLeft: vi.fn(),
-    table: () => ({
+    topHost: () => ({
       dimension: asDimensionId("overworld"),
       at: { x: 4, y: 60, z: 5 },
       yaw: 0,
     }),
-    itemsOnTable: () => [],
-    spawnHostedOnTable: vi.fn(),
+    itemsOnTop: () => [],
+    spawnHosted: vi.fn(),
     loadedGasLanterns: () => [],
     host: () => "",
     isHostAreaLoaded: () => true,

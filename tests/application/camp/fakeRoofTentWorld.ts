@@ -1,8 +1,8 @@
 import { vi } from "vitest";
 import type { RoofTentWorld } from "../../../src/application/camp/ports/roofTent";
 import type { VehicleHostState } from "../../../src/application/shared/ports/vehicleHost";
-import type { Host } from "../../../src/domain/camp/hosted";
 import { asRoofTentId, type RoofTentId } from "../../../src/domain/camp/ids";
+import type { Host } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Paint } from "../../../src/domain/shared/paint";
 
