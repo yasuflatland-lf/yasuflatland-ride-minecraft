@@ -101,7 +101,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     expect(bluish).toEqual([]);
   });
 
-  it("lists only the Icebreaker Switch in a group after the outside camping gear, with the switch as its icon", () => {
+  it("lists only the Icebreaker Switch in a group after Resort Gear, with the switch as its icon", () => {
     const categories = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
       "minecraft:crafting_items_catalog"
     ].categories;
@@ -111,9 +111,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     const names = groups.map(
       (g: { group_identifier: { name: string } }) => g.group_identifier.name,
     );
-    expect(names.indexOf(GROUP)).toBe(
-      names.indexOf(id("camping_gear_outside")) + 1,
-    );
+    expect(names.indexOf(GROUP)).toBe(names.indexOf(id("resort_gear")) + 1);
     expect(groups[names.indexOf(GROUP)]).toEqual({
       group_identifier: { icon: SWITCH, name: GROUP },
       items: [SWITCH],
@@ -160,9 +158,9 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     },
   );
 
-  it("ships RP 0.1.268 and matches the BP dependency", () => {
+  it("ships RP 0.1.269 and matches the BP dependency", () => {
     const rp = read(`${RP}/manifest.json`);
-    expect(rp.header.version).toEqual([0, 1, 268]);
+    expect(rp.header.version).toEqual([0, 1, 269]);
     expect(rp.modules[0].version).toEqual(rp.header.version);
     expect(
       read(`${BP}/manifest.json`).dependencies.find(

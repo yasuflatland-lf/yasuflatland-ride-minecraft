@@ -49,6 +49,13 @@
           },
           {
             "group_identifier": {
+              "icon": "yasu_ride:beach_parasol_item",
+              "name": "yasu_ride:resort_gear"
+            },
+            "items": ["yasu_ride:beach_parasol_item"]
+          },
+          {
+            "group_identifier": {
               "icon": "yasu_ride:icebreaker_switch",
               "name": "yasu_ride:sportsboat_equipment"
             },
