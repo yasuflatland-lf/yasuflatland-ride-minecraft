@@ -6,6 +6,11 @@ import {
   beachChairFold,
   beachChairTopRestore,
 } from "./beachChairForm";
+import {
+  beachChairLantern,
+  beachChairOven,
+  beachChairTopOverlap,
+} from "./beachChairHosting";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
   buildAimedPaste,
@@ -279,6 +284,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dutch_oven_simmer_take_back: dutchOvenSimmerAndTakeBack,
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
+  beach_chair_lantern: beachChairLantern,
+  beach_chair_oven: beachChairOven,
+  beach_chair_top_overlap: beachChairTopOverlap,
   beach_chair_fold: beachChairFold,
   beach_chair_block_on_top: beachChairBlockOnTop,
   beach_chair_top_restore: beachChairTopRestore,

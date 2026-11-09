@@ -11,7 +11,7 @@ import { GAS_LANTERN_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { heldTypeId } from "../../../shared/heldItem";
-import { HEADLIGHT_SWITCH_TYPE } from "../../../shared/identifiers";
+import { HEADLIGHT_SWITCH_TYPE, id } from "../../../shared/identifiers";
 import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
 import type {
   PlaceHostedOnTop,
@@ -95,6 +95,21 @@ export function registerGasLantern(
     system.run(() => actions.switch(asGasLanternId(id), system.currentTick));
   });
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
+    if (ev.id === id("test_gas_lantern_on_top")) {
+      if (ev.sourceType !== ScriptEventSource.Server) return;
+      const [hostType, ...parts] = ev.message.trim().split(/\s+/);
+      const request = testTableTopRequest(parts.join(" "));
+      if (!hostType || !request) return;
+      const host = registry.host(hostType, request.table);
+      if (host)
+        actions.placeOnTop(host.type.surface, {
+          hostType,
+          host: request.table,
+          aim: request.aim,
+          slot: 0,
+        });
+      return;
+    }
     if (ev.id === TEST_GAS_LANTERN_ON_TABLE_EVENT) {
       if (ev.sourceType !== ScriptEventSource.Server) return;
       const request = testTableTopRequest(ev.message);

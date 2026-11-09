@@ -338,6 +338,9 @@ describe("selectionOf", () => {
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
     ).toEqual([
+      "beach_chair_lantern",
+      "beach_chair_oven",
+      "beach_chair_top_overlap",
       "beach_chair_fold",
       "beach_chair_block_on_top",
       "beach_chair_top_restore",
