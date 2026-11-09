@@ -2,7 +2,7 @@
 // selection, clipboard, history, mode, or running edit goes through here.
 import type { DimensionId, PlayerId } from "../shared/ids";
 import type { CellBox } from "./box";
-import type { Clipboard } from "./clipboard/clipboard";
+import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
 import { beginPasteAim } from "./flow/paste";
@@ -14,6 +14,7 @@ import {
 } from "./history/history";
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
 import { BUILD_SPEC } from "./spec";
+import type { StructureHandle } from "./structure/handle";
 
 type EditRefusal =
   | "noSelection"
@@ -67,30 +68,34 @@ export class BuildSession {
     dimensionId: DimensionId,
     box: CellBox,
     clipboard: Clipboard,
-  ): void {
+  ): StructureHandle | undefined {
+    const previous = structureOf(this.currentClipboard);
     this.currentClipboard = clipboard;
     this.confirmBox(dimensionId, box);
     this.currentFlow = beginPasteAim(false);
+    return previous !== structureOf(clipboard) ? previous : undefined;
   }
 
   startNewCopy(): void {
     this.clearSelection();
   }
 
-  clearClipboard(): void {
+  clearClipboard(): StructureHandle | undefined {
+    const previous = structureOf(this.currentClipboard);
     this.currentClipboard = undefined;
+    return previous;
   }
 
   /** Ending paste also discards the copied selection (ADR 0203). */
-  endPasting(): void {
+  endPasting(): StructureHandle | undefined {
     this.clearSelection();
-    this.clearClipboard();
+    return this.clearClipboard();
   }
 
   /** A held clipboard is discarded even when the flow is idle (ADR 0203). */
-  leaveBuildMode(): void {
+  leaveBuildMode(): StructureHandle | undefined {
     if (this.currentClipboard || this.currentFlow.kind !== "idle")
-      this.endPasting();
+      return this.endPasting();
   }
 
   get clipboard(): Clipboard | undefined {

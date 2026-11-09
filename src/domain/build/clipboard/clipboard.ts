@@ -23,6 +23,14 @@ export interface Clipboard {
   readonly contents: ClipboardContents;
 }
 
+export function structureOf(
+  clipboard: Clipboard | undefined,
+): StructureHandle | undefined {
+  return clipboard?.contents.kind === "structure"
+    ? clipboard.contents.handle
+    : undefined;
+}
+
 /** A cell that reads undefined or is kept is left out, so a paste leaves that target cell as it is. */
 export function clipboardOf(
   box: CellBox,
