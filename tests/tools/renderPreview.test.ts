@@ -113,6 +113,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
       ).map((g) => g.id);
       const names = [
         ...ids,
+        "beach_parasol",
         "noga_chair",
         "low_chair",
         "tent",
