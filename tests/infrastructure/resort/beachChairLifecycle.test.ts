@@ -4,6 +4,7 @@ import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
 import { BedrockBeachChairWorld } from "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld";
 import { registerBeachChairLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairLifecycle";
 import { BEACH_CHAIR } from "../../../src/infrastructure/resort/identifiers";
+import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
 const game = vi.hoisted(() => ({
   interval: vi.fn(),
@@ -24,6 +25,7 @@ function fixture() {
   game.getDimension.mockReturnValue(dimension);
   const riders = new LieOnBeachChair(
     new BedrockBeachChairWorld({
+      topHosts: new TopHostRegistry(),
       isVehicleSpace: () => false,
       isCampSpace: () => false,
     }),
