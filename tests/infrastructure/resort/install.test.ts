@@ -96,12 +96,19 @@ it("registers folded chair hosting and the parasol starter with its own flag", (
     entityTypeId: BEACH_CHAIR,
     surface: {
       half: BEACH_CHAIR_SPEC.topHalf,
-      topPx: 7,
-      limit: 2,
+      topPx: BEACH_CHAIR_SPEC.topPx,
+      limit: BEACH_CHAIR_SPEC.topLimit,
       clearanceBase: 0,
     },
     isTopNow: expect.any(Function),
     refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
+  });
+  // The 16 by 21 px folded top at the 9 px bed height, from the one-block-wide bed.
+  expect(register.mock.calls[0]?.[0].surface).toEqual({
+    half: { halfX: 8, halfZ: 10.5 },
+    topPx: 9,
+    limit: 4,
+    clearanceBase: 0,
   });
   const host = register.mock.calls[0]?.[0];
   for (const folded of [true, false, undefined]) {
