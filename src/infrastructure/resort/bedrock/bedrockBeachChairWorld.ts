@@ -99,7 +99,7 @@ export class BedrockBeachChairWorld
       reason === "occupied"
         ? "occupied"
         : reason === "wrongForm"
-          ? "blocked"
+          ? "folded"
           : "something_on_top",
     );
   }

@@ -383,3 +383,22 @@ it("keeps the folded entity fixed while its support blocks occupy its cells", ()
     remove: { component_groups: ["yasu_ride:beach_chair_table"] },
   });
 });
+
+it.each(["en_US", "ja_JP"])(
+  "localizes every Beach Chair hint in %s",
+  (locale) => {
+    const lang = readFileSync(`${RP}texts/${locale}.lang`, "utf8");
+    for (const key of [
+      "blocked",
+      "hits_left",
+      "taken",
+      "occupied",
+      "folded",
+      "something_on_top",
+    ]) {
+      expect(lang).toMatch(
+        new RegExp(`^yasu_ride\\.beach_chair\\.${key}=.+$`, "m"),
+      );
+    }
+  },
+);

@@ -297,3 +297,27 @@ it("places a dismounted player on supported clear ground outside the bed", () =>
   f.adapter.placeBeside(id, playerId);
   expect(player.teleport).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["occupied", "occupied"],
+  ["wrongForm", "folded"],
+  ["somethingOnTop", "something_on_top"],
+] as const)("shows the %s refusal hint", (reason, key) => {
+  const f = fixture();
+  const playerId = asPlayerId("player");
+  const setActionBar = vi.fn();
+  game.getEntity.mockImplementation((query: string) =>
+    query === playerId
+      ? {
+          typeId: "minecraft:player",
+          isValid: true,
+          onScreenDisplay: { setActionBar },
+        }
+      : f.entity,
+  );
+  f.adapter.showRefused(playerId, reason);
+  expect(setActionBar).toHaveBeenCalledExactlyOnceWith({
+    translate: `yasu_ride.beach_chair.${key}`,
+    with: [],
+  });
+});
