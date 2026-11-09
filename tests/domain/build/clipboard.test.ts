@@ -16,7 +16,8 @@ const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimension = fc.integer({ min: 1, max: 32 });
 const clipboard: fc.Arbitrary<Clipboard> = fc.record({
   size: fc.record({ x: dimension, y: dimension, z: dimension }),
-  cells: fc.constant([]),
+  blockCount: fc.constant(0),
+  contents: fc.constant({ kind: "cells" as const, cells: [] }),
 });
 
 it("pasteTarget anchors next to the face and its box preserves the clipboard size", () => {

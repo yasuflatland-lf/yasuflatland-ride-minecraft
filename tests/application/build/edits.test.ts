@@ -367,7 +367,7 @@ describe("edit use cases", () => {
     select(env, alex, 2);
     confirmForCopy(env);
     env.copy.execute({ playerId: alex });
-    expect(env.repo.get(alex)?.clipboard?.cells.length).toBe(3);
+    expect(env.repo.get(alex)?.clipboard?.blockCount).toBe(3);
     expect(env.world.writes).toBe(0);
   });
 

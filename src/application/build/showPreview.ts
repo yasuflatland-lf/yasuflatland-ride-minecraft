@@ -56,7 +56,7 @@ export class ShowPreview {
         this.feedback.showPasteHint(
           id,
           session.clipboard.size,
-          session.clipboard.cells.length,
+          session.clipboard.blockCount,
         );
       if (flow.kind === "pasteAim" && aim && session.clipboard)
         preview.pasteBox = aimedPasteTarget(session.clipboard, aim)?.box;
