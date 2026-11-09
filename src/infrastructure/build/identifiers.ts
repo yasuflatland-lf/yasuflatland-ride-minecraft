@@ -74,7 +74,5 @@ export const BUILD_FORM = {
   newCopy: "yasu_build.form.new_copy",
   undo: "yasu_build.form.undo",
   clear: "yasu_build.form.clear_selection",
-  skipAirOn: "yasu_build.form.skip_air_on",
-  skipAirOff: "yasu_build.form.skip_air_off",
   submit: "yasu_build.form.submit",
 } as const;

@@ -149,7 +149,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
 
 it("anchors paste on each typed face in the viewer dimension and ignores absent targets", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({ kind: "pasteAim", skipAir: false });
+  session.setFlow({ kind: "pasteAim" });
   aim.mockReturnValue({ ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
@@ -290,7 +290,7 @@ it("does not report sizes outside the height step", () => {
     material,
   });
   preview.execute(2 * interval);
-  session.setFlow({ kind: "pasteAim", skipAir: false });
+  session.setFlow({ kind: "pasteAim" });
   preview.execute(3 * interval);
   expect(feedback.sizes).toEqual([]);
 });
@@ -341,7 +341,7 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
 
 it("refreshes the paste hint each interval without requiring an aimed block", () => {
   const { session, preview, feedback } = setup();
-  session.setFlow({ kind: "pasteAim", skipAir: false });
+  session.setFlow({ kind: "pasteAim" });
   preview.execute(0);
   expect(feedback.pasteHints).toEqual([]);
   const clipboard = clipboardOf(boxOf(cell, end), (at) =>
@@ -395,14 +395,14 @@ it("never shows paste hints in other flows or outside build mode", () => {
     inactive.session,
     clipboardOf(boxOf(cell, end), () => material),
   );
-  inactive.session.setFlow({ kind: "pasteAim", skipAir: false });
+  inactive.session.setFlow({ kind: "pasteAim" });
   inactive.preview.execute(0);
   expect(inactive.feedback.pasteHints).toEqual([]);
 });
 
 it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed block", () => {
   const { repo, session, feedback } = setup();
-  session.setFlow({ kind: "pasteAim", skipAir: false });
+  session.setFlow({ kind: "pasteAim" });
   holdClipboard(
     session,
     clipboardOf(boxOf(cell, end), () => material),
@@ -419,27 +419,20 @@ it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed
 
 it("idle after New copy draws no paste layers or hints with a held clipboard", () => {
   fc.assert(
-    fc.property(
-      fc.boolean(),
-      fc.boolean(),
-      fc.nat({ max: 100 }),
-      (skipAir, hit, redraw) => {
-        const { session, feedback, aim, preview } = setup();
-        session.completeCopy(
-          overworld,
-          boxOf(cell, end),
-          clipboardOf(boxOf(cell, end), () => material),
-        );
-        session.setFlow({ kind: "pasteAim", skipAir });
-        session.startNewCopy();
-        aim.mockReturnValue(
-          hit ? { ray, block: { cell, face: "up" } } : { ray },
-        );
-        preview.execute(redraw * interval);
-        expect(feedback.previews).toEqual([]);
-        expect(feedback.pasteHints).toEqual([]);
-      },
-    ),
+    fc.property(fc.boolean(), fc.nat({ max: 100 }), (hit, redraw) => {
+      const { session, feedback, aim, preview } = setup();
+      session.completeCopy(
+        overworld,
+        boxOf(cell, end),
+        clipboardOf(boxOf(cell, end), () => material),
+      );
+      session.setFlow({ kind: "pasteAim" });
+      session.startNewCopy();
+      aim.mockReturnValue(hit ? { ray, block: { cell, face: "up" } } : { ray });
+      preview.execute(redraw * interval);
+      expect(feedback.previews).toEqual([]);
+      expect(feedback.pasteHints).toEqual([]);
+    }),
   );
 });
 

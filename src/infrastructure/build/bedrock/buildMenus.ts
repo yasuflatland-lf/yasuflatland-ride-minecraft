@@ -42,8 +42,6 @@ function menuLabel(
     | PasteEntryId
   >,
 ): string {
-  if (entry.id === "skipAir")
-    return entry.on ? BUILD_FORM.skipAirOn : BUILD_FORM.skipAirOff;
   return BUILD_FORM[entry.id];
 }
 
@@ -143,7 +141,6 @@ export class BedrockBuildMenus implements BuildMenus {
         BUILD_FORM.utilityTitle,
         pasteMenu({
           hasHistory: session.hasHistory,
-          skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
         }).map((entry) => ({ id: entry.id, textKey: menuLabel(entry) })),
       );
       if (player.isValid) this.choices.choose(playerId, "paste", id);

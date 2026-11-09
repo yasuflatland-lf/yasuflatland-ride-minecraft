@@ -23,7 +23,6 @@ import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
 import { TapAir } from "../../application/build/tapAir";
-import { ToggleSkipAir } from "../../application/build/toggleSkipAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
@@ -73,7 +72,6 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback),
-    toggleSkipAir: new ToggleSkipAir(repo),
     endPasting: new EndPasting(repo),
     newCopy: new NewCopy(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),

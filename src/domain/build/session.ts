@@ -73,7 +73,7 @@ export class BuildSession {
   ): void {
     this.currentClipboard = clipboard;
     this.confirmBox(dimensionId, box);
-    this.currentFlow = beginPasteAim(false);
+    this.currentFlow = beginPasteAim();
   }
 
   startNewCopy(): void {

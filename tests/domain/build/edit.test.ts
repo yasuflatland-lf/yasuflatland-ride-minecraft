@@ -117,11 +117,11 @@ describe("clipboard", () => {
     );
   });
 
-  it("pastes one change per clipboard cell inside the paste box, and skipAir drops air", () => {
+  it("pastes one change per clipboard cell inside the paste box", () => {
     fc.assert(
       fc.property(smallBox, smallCell, (box, target) => {
         const clip = clipboardOf(box, read);
-        const all = [...planPaste(clip, target, false)];
+        const all = [...planPaste(clip, target)];
         expect(all).toHaveLength(clip.blockCount);
         const into = pasteTarget(
           clip,
@@ -129,11 +129,6 @@ describe("clipboard", () => {
           "up",
         ).box;
         expect(all.every((c) => contains(into, c.cell))).toBe(true);
-        const noAir = [...planPaste(clip, target, true)];
-        expect(noAir.some((c) => c.after.typeId === AIR.typeId)).toBe(false);
-        expect(noAir).toHaveLength(
-          all.filter((c) => c.after.typeId !== AIR.typeId).length,
-        );
       }),
     );
   });
@@ -143,10 +138,7 @@ describe("clipboard", () => {
       fc.property(smallBox, (box) => {
         const clip = clipboardOf(box, read);
         const plan = new Map(
-          [...planPaste(clip, box.min, false)].map((c) => [
-            cellKey(c.cell),
-            c.after,
-          ]),
+          [...planPaste(clip, box.min)].map((c) => [cellKey(c.cell), c.after]),
         );
         for (const cell of cellsOf(box)) {
           const state = read(cell) as BlockState;

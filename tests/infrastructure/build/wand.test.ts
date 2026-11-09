@@ -511,7 +511,7 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
           blockStateOf("minecraft:stone"),
         );
         holdClipboard(e.session, clipboard);
-        e.session.setFlow({ kind: "pasteAim", skipAir: false });
+        e.session.setFlow({ kind: "pasteAim" });
         const flow = e.session.flow;
         const target = {
           ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },

@@ -48,7 +48,6 @@ function setup(
   block: { x: number; y: number; z: number },
   face: Face,
   tick: number,
-  skipAir = false,
 ) {
   const repo = new FakeSessions();
   const session = repo.getOrCreate(playerId);
@@ -68,7 +67,7 @@ function setup(
     () => stone,
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim", skipAir });
+  session.setFlow({ kind: "pasteAim" });
   const aim = new FakeAimReader();
   aim.target = {
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
@@ -98,38 +97,31 @@ function setup(
 
 it("pastes at the live aimed anchor and creates one undo record", () => {
   fc.assert(
-    fc.property(
-      cell,
-      face,
-      tick,
-      fc.boolean(),
-      (block, face, tick, skipAir) => {
-        const e = setup(block, face, tick, skipAir);
-        expect(e.execute()).toBe("pasted");
-        expect(e.start).toHaveBeenCalledTimes(1);
-        expect(e.start.mock.calls[0]?.slice(0, 2)).toEqual([playerId, nether]);
-        expect(e.session.flow).toEqual({
-          kind: "pasteAim",
-          skipAir,
-          lastPaste: { anchor: e.target.anchor, tick },
-        });
-        e.jobs.step();
-        for (const { at } of clipboardCells(e.clipboard)) {
-          expect(
-            e.world.stateAt(nether, {
-              x: e.target.anchor.x + at.x,
-              y: e.target.anchor.y + at.y,
-              z: e.target.anchor.z + at.z,
-            }),
-          ).toEqual(stone);
-        }
-        expect(undoRecord(e.session.takeUndo())).toMatchObject({
-          dimensionId: nether,
-          changes: expect.any(Array),
-        });
-        expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
-      },
-    ),
+    fc.property(cell, face, tick, (block, face, tick) => {
+      const e = setup(block, face, tick);
+      expect(e.execute()).toBe("pasted");
+      expect(e.start).toHaveBeenCalledTimes(1);
+      expect(e.start.mock.calls[0]?.slice(0, 2)).toEqual([playerId, nether]);
+      expect(e.session.flow).toEqual({
+        kind: "pasteAim",
+        lastPaste: { anchor: e.target.anchor, tick },
+      });
+      e.jobs.step();
+      for (const { at } of clipboardCells(e.clipboard)) {
+        expect(
+          e.world.stateAt(nether, {
+            x: e.target.anchor.x + at.x,
+            y: e.target.anchor.y + at.y,
+            z: e.target.anchor.z + at.z,
+          }),
+        ).toEqual(stone);
+      }
+      expect(undoRecord(e.session.takeUndo())).toMatchObject({
+        dimensionId: nether,
+        changes: expect.any(Array),
+      });
+      expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
+    }),
   );
 });
 
@@ -172,7 +164,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
       expect(e.execute()).toBe("ignored");
       expect(e.repo.get(playerId)).toBeUndefined();
       const empty = e.repo.getOrCreate(playerId);
-      empty.setFlow({ kind: "pasteAim", skipAir: false });
+      empty.setFlow({ kind: "pasteAim" });
       expect(e.execute()).toBe("ignored");
       expect(e.feedback.messages).toEqual([{ message: "noClipboard" }]);
       expect(e.start).not.toHaveBeenCalled();
@@ -213,10 +205,9 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
       cell,
       face,
       tick,
-      fc.boolean(),
       fc.integer({ min: 0, max: BUILD_SPEC.pasteRepeatTicks - 1 }),
-      (block, face, tick, skipAir, delta) => {
-        const e = setup(block, face, tick, skipAir);
+      (block, face, tick, delta) => {
+        const e = setup(block, face, tick);
         expect(e.execute()).toBe("pasted");
         e.jobs.step();
         const flow = e.session.flow;
@@ -237,7 +228,7 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         expect(e.session.flow).toBe(flow);
         expect(e.start).toHaveBeenCalledTimes(1);
         new UndoEdit(e.repo, e.feedback, e.jobs).execute({ playerId });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir });
+        expect(e.session.flow).toEqual({ kind: "pasteAim" });
         expect(e.session.clipboard).toBe(e.clipboard);
         e.jobs.step();
         expect(e.world.stateAt(nether, e.target.anchor)).toBe(AIR);

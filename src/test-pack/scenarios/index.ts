@@ -31,8 +31,6 @@ import {
   buildPasteBlocked,
   buildPasteItemSwitch,
   buildPasteMenu,
-  buildPasteSkipAir,
-  buildPasteToggleNext,
   buildPasteUndoRepeat,
   buildRefusals,
   buildRemoveAbove,
@@ -52,6 +50,7 @@ import {
   buildUnstuckFill,
   buildUnstuckNotTouched,
 } from "./buildFlow";
+import { buildStructureProbe } from "./buildStructure";
 import { buildBlockStates } from "./buildTools";
 import {
   bulldozerClearHill,
@@ -303,7 +302,6 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_new_copy_replaces: buildNewCopyReplaces,
   build_paste_item_switch: buildPasteItemSwitch,
   build_new_copy_item_switch: buildNewCopyItemSwitch,
-  build_paste_toggle_next: buildPasteToggleNext,
   build_paste_undo_repeat: buildPasteUndoRepeat,
   build_unstuck_fill: buildUnstuckFill,
   build_unstuck_not_touched: buildUnstuckNotTouched,
@@ -326,11 +324,11 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_remove_above_cancel: buildRemoveAboveCancel,
   build_undo_hint_once: buildUndoHintOnce,
   build_shapes: buildShapes,
+  build_structure_probe: buildStructureProbe,
   build_roofs: buildRoofs,
   build_flow_cancel: buildFlowCancel,
   build_refusals: buildRefusals,
   build_aimed_paste: buildAimedPaste,
-  build_paste_skip_air: buildPasteSkipAir,
   build_paste_blocked: buildPasteBlocked,
   build_continuous_paste: buildContinuousPaste,
   build_copy_shapes: buildCopyShapes,

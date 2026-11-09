@@ -133,8 +133,6 @@ yasu_build.form.new_copy=新しくコピー
 yasu_build.form.end_paste=貼り付けを終了
 yasu_build.form.undo=元に戻す
 yasu_build.form.clear_selection=選択を解除
-yasu_build.form.skip_air_on=空気をスキップ：オン
-yasu_build.form.skip_air_off=空気をスキップ：オフ
 yasu_build.form.submit=実行
 
 yasu_build.message.point_set=始点を設定しました。

@@ -19,6 +19,16 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "build_structure_probe",
+    file: "buildStructure",
+    ticks: 100, // Estimate until the first BDS run.
+    features: ["build"],
+    // Candidate maximum captures span 256 vertical blocks, above other tests.
+    isolation: "exclusive",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "beach_chair_lantern",
     file: "beachChairHosting",
     ticks: 44, // Estimate until the first BDS run.
@@ -1152,15 +1162,6 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
-    name: "build_paste_toggle_next",
-    file: "buildFlow",
-    ticks: 140,
-    features: ["build"],
-    isolation: "exclusive",
-    needsPlayer: true,
-    vehicles: 0,
-  },
-  {
     name: "build_paste_undo_repeat",
     file: "buildFlow",
     ticks: 80,
@@ -1407,15 +1408,6 @@ export const CATALOG: readonly ScenarioSpec[] = [
     name: "build_paste_blocked",
     file: "buildFlow",
     ticks: 260,
-    features: ["build"],
-    isolation: "exclusive",
-    needsPlayer: true,
-    vehicles: 0,
-  },
-  {
-    name: "build_paste_skip_air",
-    file: "buildFlow",
-    ticks: 220,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
