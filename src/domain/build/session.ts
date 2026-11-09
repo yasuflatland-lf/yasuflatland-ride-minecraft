@@ -8,12 +8,15 @@ import { type BuildFlow, cancel } from "./flow/flow";
 import { beginPasteAim } from "./flow/paste";
 import {
   EMPTY_HISTORY,
+  type SnapshotRecord,
   takeLast,
+  type UndoEntry,
   type UndoHistory,
-  withRecord,
+  withEntry,
 } from "./history/history";
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
 import { BUILD_SPEC } from "./spec";
+import type { StructureHandle } from "./structure/handle";
 
 type EditRefusal =
   | "noSelection"
@@ -53,7 +56,7 @@ export class BuildSession {
     return this.currentConfirmedBox;
   }
   get hasHistory(): boolean {
-    return this.history.records.length > 0;
+    return this.history.entries.length > 0;
   }
   setFlow(flow: BuildFlow): void {
     this.currentFlow = flow;
@@ -132,15 +135,30 @@ export class BuildSession {
   finishEdit(record: EditRecord, kind: EditKind): void {
     this.editing = false;
     if (kind !== "undoable") return;
-    this.history = withRecord(this.history, record, BUILD_SPEC.undoDepth);
+    this.history = withEntry(
+      this.history,
+      { kind: "cells", record },
+      BUILD_SPEC.undoDepth,
+    ).history;
   }
 
-  /** The last record, removed from the history, or a refusal ("busy" while editing). */
-  takeUndo(): EditRecord | EditRefusal {
+  /** Adds the snapshot; returns the handles of older snapshots it replaced. */
+  recordSnapshot(snapshot: SnapshotRecord): readonly StructureHandle[] {
+    const { history, dropped } = withEntry(
+      this.history,
+      { kind: "snapshot", snapshot },
+      BUILD_SPEC.undoDepth,
+    );
+    this.history = history;
+    return dropped;
+  }
+
+  /** The last entry, removed from the history, or a refusal ("busy" while editing). */
+  takeUndo(): UndoEntry | EditRefusal {
     if (this.editing) return "busy";
-    const { record, rest } = takeLast(this.history);
-    if (!record) return "nothingToUndo";
+    const { entry, rest } = takeLast(this.history);
+    if (!entry) return "nothingToUndo";
     this.history = rest;
-    return record;
+    return entry;
   }
 }
