@@ -12,6 +12,13 @@ import {
 } from "../../../src/infrastructure/resort/identifiers";
 import { installResort } from "../../../src/infrastructure/resort/install";
 
+vi.mock("../../../src/infrastructure/shared/dyes", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("../../../src/infrastructure/shared/dyes")
+  >()),
+  heldDye: () => undefined,
+}));
+
 const game = vi.hoisted(() => {
   const handlers = new Map<string, (ev: unknown) => void>();
   const events = new Proxy(

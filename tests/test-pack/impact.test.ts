@@ -328,7 +328,11 @@ describe("selectionOf", () => {
           playerConnected: false,
           features: ["resort"],
         }).runs.map((scenario) => scenario.name),
-      ).toEqual(["parasol_place_take_back", "parasol_rain_ceiling"]);
+      ).toEqual([
+        "parasol_paint",
+        "parasol_place_take_back",
+        "parasol_rain_ceiling",
+      ]);
     },
   );
 

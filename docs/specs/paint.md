@@ -1,12 +1,13 @@
 # Paint
 
-- Scope: Paint order, dyes, repaint cost and hit routing, variant textures, and plain returned items for the SUV, camper, sports boat, bulldozer, ground tent, and roof tent.
+- Scope: Paint order, dyes, repaint cost and hit routing, variant textures, and plain returned items for the SUV, camper, sports boat, bulldozer, ground tent, roof tent, and beach parasol.
 - Verified at: 5ed1f579
 - Source: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md)
 - Source: [0036](../adr/0036-paint-by-hitting-with-a-dye.md)
 - Source: [0037](../adr/0037-one-dye-per-repaint-within-a-tick.md)
 - Source: [0076](../adr/0076-per-kind-default-paint.md)
 - Source: [0135](../adr/0135-repaint-the-tent-with-dyes.md)
+- Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md)
 - Excluded: [0192](../adr/0192-suv-detailed-body.md): supersedes in part 0031's texture size and paint-dependent regions for SUV body detail, covered by the SUV body topic
 - Excluded: [0136](../adr/0136-bulldozer.md): extends 0031 and 0076 for the bulldozer, covered by the bulldozer topic
@@ -103,6 +104,15 @@
 - Basis: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md) Decision, "Roof tent paint follows the shared palette and dye behavior of 0135"
 - Implementation: `src/application/camp/paintRoofTent.ts`; `src/infrastructure/camp/bedrock/bedrockRoofTentWorld.ts`; `src/infrastructure/camp/bedrock/handlers/roofTentHits.ts`; `packs/yasu_ride_bp/entities/yasu_ride/roof_tent.se.json`; `packs/yasu_ride_rp/render_controllers/yasu_ride/roof_tent.rc.json`.
 - Verification: `tests/infrastructure/camp/roofTent.test.ts` checks paint mapping and dye-first hit routing; `tests/packs/roofTent.test.ts` checks entity/render contracts. Client recoloring remains unverified.
+
+### Beach parasol paint
+
+- Applies to: Beach parasol entity hits and returned items.
+- Rule: A dye hit after the per-player swing check repaints the canopy and never counts toward recovery, even when the color is unchanged. The shared dye mapping, Creative exemption, no-op, and tick memory apply. Variant 0 shows white; white dye restores the default. Taking back a painted parasol returns a plain item.
+- Agreement: Proposed
+- Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision and [beach parasol design](../designs/2026-11-09-beach-parasol-design.md) Paint.
+- Implementation: `src/application/resort/paintParasol.ts`; `src/infrastructure/resort/bedrock/bedrockParasolPaintWorld.ts`; `src/infrastructure/resort/bedrock/handlers/hits.ts`; `src/domain/resort/spec.ts`.
+- Verification: `tests/application/resort/paintParasol.test.ts` and `tests/infrastructure/resort/hits.test.ts` check repaint and hit routing. Scenario `parasol_paint` checks each paint event; in-game execution remains unverified.
 
 ## Open issues
 

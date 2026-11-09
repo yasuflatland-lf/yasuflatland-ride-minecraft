@@ -5,6 +5,7 @@ import {
 } from "../../domain/resort/parasolPose";
 import { PARASOL_SPEC } from "../../domain/resort/spec";
 import { snapYaw4 } from "../../domain/shared/facing";
+import { PAINTS } from "../../domain/shared/paint";
 import {
   BEACH_PARASOL,
   BEACH_PARASOL_ITEM,
@@ -12,6 +13,7 @@ import {
   TEST_PARASOL_HIT,
   TEST_PARASOL_PLACE,
 } from "../../infrastructure/resort/identifiers";
+import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
@@ -87,4 +89,39 @@ export function parasolPlaceTakeBack(a: Arena): Promise<Outcome> {
 }
 export function parasolRainCeiling(a: Arena): Promise<Outcome> {
   return course(a, true);
+}
+
+export async function parasolPaint(a: Arena): Promise<Outcome> {
+  const block = a.at(100, a.gy - 1, 30);
+  const pose = parasolPose(block, 0);
+  const cells = parasolCeilingCells(pose);
+  const near = () =>
+    a.dim.getEntities({
+      type: BEACH_PARASOL,
+      location: { x: pose.base.x + 0.5, y: pose.base.y, z: pose.base.z + 0.5 },
+      maxDistance: 2,
+    });
+  try {
+    system.sendScriptEvent(
+      TEST_PARASOL_PLACE,
+      `${block.x} ${block.y} ${block.z} 0`,
+    );
+    await wait(2);
+    const entity = near()[0];
+    if (!entity) return { pass: false, detail: "parasol not placed" };
+    const wrong: string[] = [];
+    for (const paint of [...PAINTS.slice(1), PAINTS[0]]) {
+      entity.triggerEvent(paintEvent(paint));
+      await wait(1);
+      const variant = entity.getComponent("minecraft:variant")?.value;
+      if (variant !== PAINT_VARIANT[paint]) wrong.push(`${paint}=${variant}`);
+    }
+    return { pass: wrong.length === 0, detail: `wrong=[${wrong.join(",")}]` };
+  } finally {
+    for (const entity of near()) entity.remove();
+    await wait(2);
+    for (const cell of cells)
+      if (a.dim.getBlock(cell)?.typeId === PARASOL_CEILING_BLOCK)
+        a.dim.getBlock(cell)?.setType("minecraft:air");
+  }
 }
