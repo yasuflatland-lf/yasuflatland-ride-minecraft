@@ -47,6 +47,15 @@ export class CutBox implements BoxAction {
       this.feedback.showMessage(playerId, "tooLarge", count);
       return false;
     }
+    this.structures.clearEntities(dimensionId, box);
+    const cleared = this.structures.clearBlocks(dimensionId, box);
+    if (!cleared && this.structures.place(snapshot, dimensionId, box.min)) {
+      this.structures.discard(handle);
+      this.structures.discard(snapshot);
+      this.log.warn(`build cut for ${playerId} failed; area restored`);
+      this.feedback.showMessage(playerId, "cutRestored");
+      return false;
+    }
     const previous = session.clipboard;
     if (previous?.contents.kind === "structure")
       this.structures.discard(previous.contents.handle);
@@ -65,11 +74,13 @@ export class CutBox implements BoxAction {
       blockCount: count,
       contents: { kind: "structure", handle },
     });
-    this.structures.clearEntities(dimensionId, box);
-    if (!this.structures.clearBlocks(dimensionId, box))
+    if (!cleared) {
       this.log.warn(
         `build cut for ${playerId} could not clear all blocks; snapshot retained for undo`,
       );
+      this.feedback.showMessage(playerId, "cutIncomplete");
+      return true;
+    }
     const completion = completionMessage({
       kind: "undoable",
       skipped: 0,

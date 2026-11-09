@@ -63,7 +63,8 @@ it("defines every feedback message in both locales", () => {
     expect(entries.get(BUILD_FORM.cut)).toEqual(
       entries.get(BUILD_FORM.cutTitle),
     );
-    expect(entries.get(BUILD_MESSAGE.cutting)).toBeTruthy();
+    expect(entries.get(BUILD_MESSAGE.cutRestored)).toBeTruthy();
+    expect(entries.get(BUILD_MESSAGE.cutIncomplete)).toBeTruthy();
     expect(entries.get(BUILD_MESSAGE.endSet)).toContain("%s");
     for (const message of [
       "tooLarge",

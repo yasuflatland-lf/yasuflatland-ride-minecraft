@@ -90,7 +90,7 @@ it("captures the whole box twice before removing anything and records a snapshot
   );
 });
 
-it("discards the old clipboard and snapshot only after both new captures", () => {
+it("discards the old clipboard and snapshot only after clearing succeeds", () => {
   const e = setup();
   const box = boxOf(origin, origin);
   e.cut.execute(playerId, overworld, box);
@@ -100,12 +100,12 @@ it("discards the old clipboard and snapshot only after both new captures", () =>
   expect(e.structures.calls.map((c) => c.kind)).toEqual([
     "capture",
     "capture",
-    "discard",
-    "discard",
     "clearEntities",
     "clearBlocks",
+    "discard",
+    "discard",
   ]);
-  expect(e.structures.calls.slice(2, 4)).toEqual([
+  expect(e.structures.calls.slice(4, 6)).toEqual([
     { kind: "discard", handle: clipboard },
     { kind: "discard", handle: snapshot },
   ]);
@@ -167,14 +167,123 @@ it("refuses the entire box when any cell is protected", () => {
   );
 });
 
-it("keeps the snapshot and completes even if clearing blocks fails", () => {
-  const e = setup();
-  e.structures.clearBlocksSucceeds = false;
-  expect(e.cut.execute(playerId, overworld, boxOf(origin, origin))).toBe(true);
-  expect(e.session.hasHistory).toBe(true);
-  expect(e.session.flow.kind).toBe("pasteAim");
-  expect(e.log.warn).toHaveBeenCalledOnce();
+it("restores failed cuts without changing the session or discarding prior handles", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.integer({ min: -20, max: 20 }),
+      (previousCut, x) => {
+        const e = setup();
+        const oldBox = boxOf(origin, origin);
+        if (previousCut) e.cut.execute(playerId, overworld, oldBox);
+        const previousHandles = [...e.structures.live];
+        const clipboard = e.session.clipboard;
+        const confirmed = e.session.confirmedBox;
+        const flow = tapAir(
+          tapBlock({ kind: "idle" }, overworld, origin, stone),
+          { x, y: 65, z: 1 },
+        );
+        e.session.setFlow(flow);
+        const before = structuredClone(e.session);
+        e.structures.calls.length = 0;
+        e.feedback.messages.length = 0;
+        e.feedback.undoHints.length = 0;
+        e.structures.clearBlocksSucceeds = false;
+        const box = boxOf({ x, y: 65, z: 1 }, { x: x + 1, y: 66, z: 2 });
+        expect(e.cut.execute(playerId, overworld, box)).toBe(false);
+        expect(e.session).toEqual(before);
+        expect(e.session.clipboard).toBe(clipboard);
+        expect(e.session.confirmedBox).toBe(confirmed);
+        expect(e.session.flow).toBe(flow);
+        expect([...e.structures.live]).toEqual(previousHandles);
+        const rollback = e.structures.calls[4];
+        expect(rollback).toMatchObject({
+          kind: "place",
+          dimensionId: overworld,
+          anchor: box.min,
+        });
+        if (rollback?.kind !== "place") throw new Error("missing rollback");
+        expect(e.structures.calls.map((c) => c.kind)).toEqual([
+          "capture",
+          "capture",
+          "clearEntities",
+          "clearBlocks",
+          "place",
+          "discard",
+          "discard",
+        ]);
+        expect(e.structures.calls[6]).toEqual({
+          kind: "discard",
+          handle: rollback.handle,
+        });
+        expect(e.structures.calls[5]).not.toEqual(e.structures.calls[6]);
+        expect(e.session.takeUndo()).toEqual(
+          previousCut
+            ? {
+                kind: "snapshot",
+                snapshot: {
+                  dimensionId: overworld,
+                  box: oldBox,
+                  handle: previousHandles[1],
+                },
+              }
+            : "nothingToUndo",
+        );
+        expect(e.feedback.messages).toEqual([
+          { message: "cutRestored", count: undefined },
+        ]);
+        expect(e.feedback.undoHints).toEqual([]);
+        expect(e.log.warn).toHaveBeenCalledOnce();
+      },
+    ),
+  );
 });
+
+it.each([false, true])(
+  "keeps a failed rollback recoverable with previous cut %s",
+  (previousCut) => {
+    const e = setup();
+    const box = boxOf(origin, origin);
+    if (previousCut) e.cut.execute(playerId, overworld, box);
+    const previousHandles = [...e.structures.live];
+    e.structures.calls.length = 0;
+    e.feedback.messages.length = 0;
+    e.feedback.undoHints.length = 0;
+    e.structures.clearBlocksSucceeds = false;
+    e.structures.placeSucceeds = false;
+    expect(e.cut.execute(playerId, overworld, box)).toBe(true);
+    const [clipboard, snapshot] = [...e.structures.live];
+    expect(e.structures.calls).toEqual([
+      { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+      { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+      { kind: "clearEntities", dimensionId: overworld, box },
+      { kind: "clearBlocks", dimensionId: overworld, box },
+      {
+        kind: "place",
+        handle: snapshot,
+        dimensionId: overworld,
+        anchor: box.min,
+      },
+      ...previousHandles.map((handle) => ({ kind: "discard", handle })),
+    ]);
+    expect(e.session.clipboard?.contents).toEqual({
+      kind: "structure",
+      handle: clipboard,
+    });
+    expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
+    expect(e.session.takeUndo()).toEqual({
+      kind: "snapshot",
+      snapshot: { dimensionId: overworld, box, handle: snapshot },
+    });
+    expect(e.session.flow.kind).toBe("pasteAim");
+    expect(e.feedback.messages).toEqual([
+      { message: "cutIncomplete", count: undefined },
+    ]);
+    expect(e.feedback.undoHints).toEqual([]);
+    expect(e.session.takeUndoHint()).toBe(!previousCut);
+    expect(e.log.warn).toHaveBeenCalledOnce();
+  },
+);
 
 it.each(["direct", "height"] as const)(
   "refuses oversized and busy %s cuts without changing selection or the old clipboard",
