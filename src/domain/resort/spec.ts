@@ -40,3 +40,24 @@ export const PARASOL_SPEC = Object.freeze({
   ceilingSyncTicks: 20,
   defaultPaint: "white" satisfies Paint,
 } as const);
+
+// Every tuning value of the beach chair. seatOffset, topPx and topHalf are the
+// design document's approximate values until the model's measured ones land.
+export const BEACH_CHAIR_SPEC = Object.freeze({
+  /** The lying player's seat, local to the entity origin, in blocks. */
+  seatOffset: Object.freeze({ x: 0, y: 0.45, z: 0.15 }),
+  /** From the origin to the top of the table, in pixels (16 px per block). */
+  topPx: 7,
+  /** Half the table top's size, in pixels. */
+  topHalf: Object.freeze({ halfX: 6, halfZ: 15 }),
+  /** Lanterns and ovens that fit on the table top. */
+  topLimit: 4,
+  /** Layers of air needed above the floor so a lying player fits. */
+  headroom: 2,
+  /** Hits in a row that take the chair back, as for camp gear (ADR 0008). */
+  hitsToTakeBack: 3,
+  /** A gap longer than this, in ticks, starts the hit count again. */
+  hitResetTicks: 100,
+  /** How often, in ticks, the leaning pose is sent again for late viewers. */
+  poseRefreshTicks: 20,
+} as const);
