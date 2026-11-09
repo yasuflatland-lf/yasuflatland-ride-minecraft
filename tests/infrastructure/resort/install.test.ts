@@ -1,4 +1,8 @@
 vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopInteraction",
+  () => ({ registerFurnitureTopInteraction: vi.fn() }),
+);
+vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopLifecycle",
   () => ({ registerFurnitureTopLifecycle: vi.fn() }),
 );
@@ -160,6 +164,7 @@ it("registers folded chair hosting, the lifecycle, and the parasol starter with 
     surface: FURNITURE_SPEC.dining_table.top,
     isTopNow: expect.any(Function),
     refusalHints: DINING_TABLE_TOP_REFUSAL_HINTS,
+    blockedAt: expect.any(Function),
   });
   expect(
     topHosts.hostTypeOf({ typeId: FURNITURE_IDS.dining_table.entity } as never)

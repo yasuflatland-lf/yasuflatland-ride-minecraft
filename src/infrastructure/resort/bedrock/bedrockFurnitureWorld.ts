@@ -21,6 +21,12 @@ import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import {
+  hostLocalPx,
+  type LocalPoint,
+  overlaps,
+  type TopRect,
+} from "../../../domain/shared/tableTop";
 import { safeBlockAt } from "../../shared/blocks";
 import { NAMESPACE } from "../../shared/identifiers";
 import {
@@ -258,6 +264,44 @@ export class BedrockFurnitureWorld
       origin: entity.location,
       yaw: snapYaw4(entity.getRotation().y),
     });
+  }
+  private cellOverlaps(
+    entity: Entity,
+    cell: Cell,
+    at: LocalPoint,
+    footprint: TopRect,
+  ): boolean {
+    const centre = hostLocalPx(
+      { at: entity.location, yaw: entity.getRotation().y },
+      { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 },
+    );
+    return overlaps(
+      { at, footprint },
+      { at: centre, footprint: { halfX: 8, halfZ: 8 } },
+    );
+  }
+  blockedAt(entity: Entity, at: LocalPoint, footprint: TopRect): boolean {
+    return this.topCells(entity).some(
+      (cell) =>
+        this.cellOverlaps(entity, cell, at, footprint) &&
+        safeBlockAt(entity.dimension, { ...cell, y: cell.y + 1 })?.isAir !==
+          true,
+    );
+  }
+  hostedAbove(dimension: DimensionId, destination: Cell): boolean {
+    const cell = { ...destination, y: destination.y - 1 };
+    const id = this.ownerAt(dimension, cell);
+    const entity = id && this.entity(id);
+    const host = entity && this.deps.topHosts.hostTypeOf(entity);
+    return !!(
+      entity &&
+      host &&
+      this.deps.topHosts
+        .itemsOnTop(host.hostType, entity.id)
+        .some((item) =>
+          this.cellOverlaps(entity, cell, item.at, item.footprint),
+        )
+    );
   }
   blockAboveTop(id: FurnitureId): boolean {
     const entity = this.entity(id);

@@ -152,7 +152,7 @@ it("wires the scan interval, shared block guard and both space checks", () => {
   const deps = setup();
   // Furniture and Beach Chair register before the parasol scan.
   expect(game.runInterval).toHaveBeenCalledTimes(3);
-  expect(game.handlers.has("startup")).toBe(false);
+  expect(game.handlers.has("startup")).toBe(true);
   const loaded = { id: "p" };
   game.getDimension.mockReturnValue({ getEntities: () => [loaded] });
   expect(game.runInterval).toHaveBeenCalledWith(

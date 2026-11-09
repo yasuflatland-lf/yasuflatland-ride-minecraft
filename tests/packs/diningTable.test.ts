@@ -271,6 +271,9 @@ it("lays an invisible, protected tabletop with collision matching the model heig
     menu_category: { category: "none" },
   });
   const c = block.components;
+  expect(c["minecraft:custom_components"]).toEqual([
+    "yasu_ride:dining_table_top",
+  ]);
   for (const name of ["collision_box", "selection_box"])
     expect(c[`minecraft:${name}`]).toEqual({
       origin: [-8, 0, -8],

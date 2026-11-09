@@ -227,3 +227,5 @@ entity.yasu_ride:dining_table.name=ダイニングテーブル
 yasu_ride.dining_table_top_full=テーブルの上はいっぱいです。
 yasu_ride.dining_table_top_overlap=テーブルのこの位置には置けません。
 yasu_ride.dining_table_top_too_big=このアイテムはテーブルには大きすぎます。
+
+yasu_ride.dining_table.top_occupied=テーブルのこの場所には物が置かれています。
