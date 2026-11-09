@@ -78,16 +78,61 @@
         "minecraft:physics": {
           "has_collision": false,
           "has_gravity": false
+        },
+        "minecraft:custom_hit_test": {
+          "hitboxes": [
+            {
+              "width": 1.0,
+              "height": 0.5625,
+              "pivot": [0, 0.28125, -0.15625]
+            },
+            {
+              "width": 1.0,
+              "height": 0.5625,
+              "pivot": [0, 0.28125, 0.15625]
+            }
+          ]
+        }
+      },
+      "yasu_ride:beach_chair_lounger": {
+        "minecraft:physics": {
+          "has_collision": true,
+          "has_gravity": true
+        },
+        "minecraft:custom_hit_test": {
+          "hitboxes": [
+            {
+              "width": 1.0,
+              "height": 1.125,
+              "pivot": [0, 0.5625, -0.9375]
+            },
+            {
+              "width": 1.0,
+              "height": 1.125,
+              "pivot": [0, 0.5625, 0]
+            },
+            {
+              "width": 1.0,
+              "height": 1.125,
+              "pivot": [0, 0.5625, 0.9375]
+            }
+          ]
         }
       }
     },
     "events": {
       "yasu_ride:beach_chair_fold": {
+        "remove": {
+          "component_groups": ["yasu_ride:beach_chair_lounger"]
+        },
         "add": {
           "component_groups": ["yasu_ride:beach_chair_table"]
         }
       },
       "yasu_ride:beach_chair_unfold": {
+        "add": {
+          "component_groups": ["yasu_ride:beach_chair_lounger"]
+        },
         "remove": {
           "component_groups": ["yasu_ride:beach_chair_table"]
         }

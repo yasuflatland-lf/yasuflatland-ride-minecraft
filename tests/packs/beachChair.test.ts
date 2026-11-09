@@ -16,6 +16,23 @@ const animations = read(
 const states = read(`${RP}animation_controllers/yasu_ride/beach_chair.ac.json`)
   .animation_controllers["controller.animation.yasu_ride.beach_chair.form"];
 const folded = "query.property('yasu_ride:folded')";
+const { bedOutline, topHalf, topPx } = BEACH_CHAIR_SPEC;
+const chairWidth = (bedOutline.maxX - bedOutline.minX) / 16;
+const chairHitboxes = [
+  bedOutline.minZ / 16 + chairWidth / 2,
+  (bedOutline.minZ + bedOutline.maxZ) / 32,
+  bedOutline.maxZ / 16 - chairWidth / 2,
+].map((z) => ({
+  width: chairWidth,
+  height: (2 * topPx) / 16,
+  pivot: [(bedOutline.minX + bedOutline.maxX) / 32, topPx / 16, z],
+}));
+const tableWidth = (2 * topHalf.halfX) / 16;
+const tableHitboxes = [-1, 1].map((sign) => ({
+  width: tableWidth,
+  height: topPx / 16,
+  pivot: [0, topPx / 32, sign * (topHalf.halfZ / 16 - tableWidth / 2)],
+}));
 
 describe("Beach Chair assets", () => {
   it("provides one script-controlled hip seat and a persistent, unpushable, damage-immune entity with gravity", () => {
@@ -53,13 +70,7 @@ describe("Beach Chair assets", () => {
       width: 1.0,
       height: 0.5625,
     });
-    expect(c["minecraft:custom_hit_test"].hitboxes).toEqual(
-      [-0.9375, 0, 0.9375].map((z) => ({
-        width: 1.0,
-        height: 1.125,
-        pivot: [0, 0.5625, z],
-      })),
-    );
+    expect(c["minecraft:custom_hit_test"].hitboxes).toEqual(chairHitboxes);
   });
 
   it("keeps the foot at -z, the raised backrest at +z, and both forms and transitions within three cells", () => {
@@ -400,11 +411,18 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
 it("keeps the folded entity fixed at its pose", () => {
   expect(entity.component_groups["yasu_ride:beach_chair_table"]).toEqual({
     "minecraft:physics": { has_collision: false, has_gravity: false },
+    "minecraft:custom_hit_test": { hitboxes: tableHitboxes },
+  });
+  expect(entity.component_groups["yasu_ride:beach_chair_lounger"]).toEqual({
+    "minecraft:physics": { has_collision: true, has_gravity: true },
+    "minecraft:custom_hit_test": { hitboxes: chairHitboxes },
   });
   expect(entity.events["yasu_ride:beach_chair_fold"]).toEqual({
     add: { component_groups: ["yasu_ride:beach_chair_table"] },
+    remove: { component_groups: ["yasu_ride:beach_chair_lounger"] },
   });
   expect(entity.events["yasu_ride:beach_chair_unfold"]).toEqual({
     remove: { component_groups: ["yasu_ride:beach_chair_table"] },
+    add: { component_groups: ["yasu_ride:beach_chair_lounger"] },
   });
 });
