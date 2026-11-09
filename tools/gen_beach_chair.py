@@ -21,38 +21,54 @@ SEAT_OFFSET = (0, TOP_PX / 16, 2 / 16)
 HINGE = (0, TOP_PX, 3)
 BACKREST_ANGLE = 37
 BACKREST_LENGTH = 12.8
-BACKREST_SLAT_COUNT = 12
-BACKREST_SLAT_GAP = 0.18
-BACKREST_SLAT_WIDTH = (11.16 - (BACKREST_SLAT_COUNT - 1) * BACKREST_SLAT_GAP) / BACKREST_SLAT_COUNT
-REAR_RAIL_BOTTOM = 5.1
-REAR_RAIL_TOP = 6.2
-REAR_RAIL_WIDTH = 1
+SLAT_COUNT = 10
+SLAT_WIDTH = 0.66
+SLAT_GAP = 0.46
+BACKREST_SLAT_COUNT = SLAT_COUNT
+BACKREST_SLAT_WIDTH = SLAT_WIDTH
+BACKREST_SLAT_GAP = SLAT_GAP
+BACKREST_THICKNESS = 0.06
+MAIN_RAIL_THICKNESS = 0.6
+MAIN_RAIL_BOTTOM = 5.3
+MAIN_RAIL_START = -7.4
+LEG_SIZE = 1.45
+EXTENSION_HALF_WIDTH = 5.3
+EXTENSION_RAIL_THICKNESS = 0.5
+EXTENSION_RAIL_BOTTOM = 5.0
+EXTENSION_RAIL_TOP = 6.2
+EXTENSION_END_START = -15.6
+EXTENSION_END_DEPTH = 0.5
+EXTENSION_LEG_SIZE = 1.1
+REAR_RAIL_BOTTOM = 5.5
+REAR_RAIL_TOP = 6.6
+REAR_RAIL_WIDTH = 0.6
+REAR_LEG_SIZE = 1.1
+REAR_END_START = 15.4
+PAD_HEIGHT = 0.2
+PAD_INSET = 0.08
+PAD_SLOT = 5
+TABLE_RAIL_BOTTOM = 5.0
+TABLE_RAIL_THICKNESS = 0.6
 PROP_ATTACHMENT = 0.4
-PROP_PIVOT = (0, (REAR_RAIL_BOTTOM + REAR_RAIL_TOP) / 2, 15.4)
+PROP_PIVOT = (0, (REAR_RAIL_BOTTOM + REAR_RAIL_TOP) / 2, REAR_END_START)
 PROP_START = (0,
-              TOP_PX - 0.06 * math.cos(math.radians(BACKREST_ANGLE))
+              TOP_PX - BACKREST_THICKNESS * math.cos(math.radians(BACKREST_ANGLE))
               + BACKREST_LENGTH * PROP_ATTACHMENT * math.sin(math.radians(BACKREST_ANGLE)),
               HINGE[2] + BACKREST_LENGTH * PROP_ATTACHMENT * math.cos(math.radians(BACKREST_ANGLE))
-              + 0.06 * math.sin(math.radians(BACKREST_ANGLE)))
+              + BACKREST_THICKNESS * math.sin(math.radians(BACKREST_ANGLE)))
 PROP_ANGLE = math.degrees(math.atan2(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2] - PROP_START[2]))
 PROP_LENGTH = math.hypot(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2] - PROP_START[2])
 PROP_WIDTH = 0.25
 PROP_THICKNESS = 0.12
-PALETTE = ((166, 119, 74), (190, 148, 100), (211, 179, 132), (238, 242, 240), (190, 148, 100))
-SLAT_COUNT = 10
-SLAT_WIDTH = 0.72
-SLAT_GAP = 0.44
+PALETTE = ((166, 119, 74), (190, 148, 100), (211, 179, 132), (238, 242, 240), (190, 148, 100), (38, 33, 29))
+TEXTURE_WIDTH = len(PALETTE) * 16
 SLAT_BOTTOM = TOP_PX - 0.8
-LEG_SIZE = 2
-RAIL_WIDTH = 1.5
 BAND_START = -12.3
 BAND_END = -7.8
 FINGER_WIDTH = 0.18
 PALE_SLAT_WIDTH = 0.5
-BACKREST_BOTTOM = TOP_PX - 0.06
+BACKREST_BOTTOM = TOP_PX - BACKREST_THICKNESS
 NOTCH_SIZE = 0.36
-MAIN_RAIL_BOTTOM = 4.6
-FOOT_RAIL_BOTTOM = 5.1
 GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
 TEXTURE = "textures/entity/yasu_ride/beach_chair.png"
 
@@ -61,24 +77,33 @@ def box(lo, hi, slot=0):
     return panels.panel(*lo, *hi, {"uv": [slot * 16, 0], "uv_size": [16, 16]})
 
 
+def leg(x, z, size, top):
+    return [box((x, PAD_HEIGHT, z), (x + size, top, z + size)),
+            box((x + PAD_INSET, 0, z + PAD_INSET),
+                (x + size - PAD_INSET, PAD_HEIGHT, z + size - PAD_INSET), PAD_SLOT)]
+
+
 def geometry():
     frame = []
-    # The foot extension nests one pixel inside the main rails, leaving their
-    # end grain exposed beyond the pale interlocking fingers.
-    for x, start, end, bottom in ((-5, -16, -7.8, FOOT_RAIL_BOTTOM),
-                                   (3.5, -16, -7.8, FOOT_RAIL_BOTTOM),
-                                   (-6, -7.4, 3, MAIN_RAIL_BOTTOM),
-                                   (4.5, -7.4, 3, MAIN_RAIL_BOTTOM)):
-        frame.append(box((x, bottom, start), (x + RAIL_WIDTH, SLAT_BOTTOM, end)))
-    for half, start in ((5, -16), (6, -7.4), (6, 1), (6, 14)):
-        for x in (-half, half - LEG_SIZE):
-            frame.append(box((x, 0, start), (x + LEG_SIZE, SLAT_BOTTOM, start + LEG_SIZE)))
-    frame.append(box((-5, FOOT_RAIL_BOTTOM, -16), (5, SLAT_BOTTOM, -15)))
-    for x in (-6, 6 - REAR_RAIL_WIDTH):
-        frame.append(box((x, REAR_RAIL_BOTTOM, 3), (x + REAR_RAIL_WIDTH, REAR_RAIL_TOP, 16)))
-    for x in (-5.58, 5.08):
-        frame.append(box((x, SLAT_BOTTOM, 2), (x + 0.5, BACKREST_BOTTOM, 3)))
-    frame.append(box((-6, REAR_RAIL_BOTTOM, 15), (6, REAR_RAIL_TOP, 16)))
+    # The extension clears the main rails while its slat tips overhang the end rail.
+    for half, thickness, start, end, bottom, top in (
+            (EXTENSION_HALF_WIDTH, EXTENSION_RAIL_THICKNESS, -HALF[1], BAND_END,
+             EXTENSION_RAIL_BOTTOM, EXTENSION_RAIL_TOP),
+            (HALF[0], MAIN_RAIL_THICKNESS, MAIN_RAIL_START, HINGE[2], MAIN_RAIL_BOTTOM, TOP_PX),
+            (HALF[0], REAR_RAIL_WIDTH, HINGE[2], HALF[1], REAR_RAIL_BOTTOM, REAR_RAIL_TOP)):
+        for x in (-half, half - thickness):
+            frame.append(box((x, bottom, start), (x + thickness, top, end)))
+    for half, size, starts, top in (
+            (HALF[0], LEG_SIZE, (MAIN_RAIL_START, HINGE[2] - LEG_SIZE), MAIN_RAIL_BOTTOM),
+            (EXTENSION_HALF_WIDTH, EXTENSION_LEG_SIZE, (EXTENSION_END_START,), EXTENSION_RAIL_BOTTOM),
+            (HALF[0], REAR_LEG_SIZE, (HALF[1] - REAR_LEG_SIZE,), REAR_RAIL_BOTTOM)):
+        for z in starts:
+            for x in (-half, half - size):
+                frame.extend(leg(x, z, size, top))
+    frame.append(box((-EXTENSION_HALF_WIDTH, EXTENSION_RAIL_BOTTOM, EXTENSION_END_START),
+                     (EXTENSION_HALF_WIDTH, EXTENSION_RAIL_TOP, EXTENSION_END_START + EXTENSION_END_DEPTH)))
+    frame.append(box((-HALF[0], REAR_RAIL_BOTTOM, REAR_END_START),
+                     (HALF[0], REAR_RAIL_TOP, HALF[1])))
     backrest = []
     slats_half = (SLAT_COUNT * SLAT_WIDTH + (SLAT_COUNT - 1) * SLAT_GAP) / 2
     for k in range(SLAT_COUNT):
@@ -106,17 +131,18 @@ def geometry():
     # A separate flat strip on each side joins the underside to the rail midpoint.
     prop = [box((x, PROP_PIVOT[1] - PROP_THICKNESS / 2, PROP_PIVOT[2] - PROP_LENGTH),
                 (x + PROP_WIDTH, PROP_PIVOT[1] + PROP_THICKNESS / 2, PROP_PIVOT[2]), 3)
-            for x in (-5.3, 5.05)]
+            for x in (-HALF[0] + REAR_LEG_SIZE, HALF[0] - REAR_LEG_SIZE - PROP_WIDTH)]
     prop = tilt.tilt_assembly(prop, PROP_PIVOT, "x", -PROP_ANGLE)
     table_frame = []
-    for x in (-6, 6 - LEG_SIZE):
-        for z in (-16, 16 - LEG_SIZE):
-            table_frame.append(box((x, 0, z), (x + LEG_SIZE, SLAT_BOTTOM, z + LEG_SIZE)))
-    for x in (-6, 6 - RAIL_WIDTH):
-        table_frame.append(box((x, MAIN_RAIL_BOTTOM, -16),
-                               (x + RAIL_WIDTH, SLAT_BOTTOM, 16)))
-    for z in (-16, 15):
-        table_frame.append(box((-6, MAIN_RAIL_BOTTOM, z), (6, SLAT_BOTTOM, z + 1)))
+    for x in (-HALF[0], HALF[0] - LEG_SIZE):
+        for z in (-HALF[1], HALF[1] - LEG_SIZE):
+            table_frame.extend(leg(x, z, LEG_SIZE, TABLE_RAIL_BOTTOM))
+    for x in (-HALF[0], HALF[0] - TABLE_RAIL_THICKNESS):
+        table_frame.append(box((x, TABLE_RAIL_BOTTOM, -HALF[1]),
+                               (x + TABLE_RAIL_THICKNESS, SLAT_BOTTOM, HALF[1])))
+    for z in (-HALF[1], HALF[1] - TABLE_RAIL_THICKNESS):
+        table_frame.append(box((-HALF[0], TABLE_RAIL_BOTTOM, z),
+                               (HALF[0], SLAT_BOTTOM, z + TABLE_RAIL_THICKNESS)))
     # Adjacent slats share edges: wood grain marks joints without grooves or air gaps.
     # Nine true square holes sit between the ten slat centre lines at z=0.
     centres = [-slats_half + k * (SLAT_WIDTH + SLAT_GAP) + SLAT_WIDTH / 2
@@ -144,7 +170,7 @@ def geometry():
     for bone in bones:
         tilt.assert_axes(bone.get("cubes", []), {})
     return {"format_version": "1.12.0", "minecraft:geometry": [{
-        "description": {"identifier": "geometry.yasu_ride.beach_chair", "texture_width": 80,
+        "description": {"identifier": "geometry.yasu_ride.beach_chair", "texture_width": TEXTURE_WIDTH,
                         "texture_height": 16, "visible_bounds_width": 2.5,
                         "visible_bounds_height": 2, "visible_bounds_offset": [0, 1, 0]},
         "bones": bones}]}
@@ -167,7 +193,7 @@ def main():
     args = parser.parse_args()
     out = texture_io.Outputs(args.check, report_writes=True)
     out.json(args.resource_pack / GEOMETRY, geometry(), separators=(",", ":"))
-    out.png(args.resource_pack / TEXTURE, 80, 16, pixel, compress_level=9)
+    out.png(args.resource_pack / TEXTURE, TEXTURE_WIDTH, 16, pixel, compress_level=9)
     out.finish("Beach Chair outputs are stale. Run pnpm model:", "Beach Chair model and texture are up to date")
 
 
