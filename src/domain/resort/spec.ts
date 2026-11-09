@@ -41,19 +41,24 @@ export const PARASOL_SPEC = Object.freeze({
   defaultPaint: "white" satisfies Paint,
 } as const);
 
-// Every tuning value of the beach chair. seatOffset, topPx, topHalf and
-// bedOutlinePx are measured from the model in tools/gen_beach_chair.py.
+// Every tuning value of the beach chair. The folded table is a low table the
+// height of the chair bed, centred on the entity origin, so the tabletop host
+// needs no centre offset. Only lanterns and ovens stand on it; it takes no blocks.
+// The sizes are measured from the model in tools/gen_beach_chair.py.
 export const BEACH_CHAIR_SPEC = Object.freeze({
   /** The lying player's seat, local to the entity origin, in blocks. */
   seatOffset: Object.freeze({ x: 0, y: 0.4375, z: 0.125 }),
-  /** Table height from TABLE_TOP_PX in tools/gen_beach_chair.py; the chair bed stays at 7 px. */
-  topPx: 16,
-  /** Half the table top's size, in pixels. */
-  topHalf: Object.freeze({ halfX: 6, halfZ: 16 }),
-  /** The bed's outline around the origin, in pixels. */
+  /** From the origin to the top of the folded table, in pixels (16 px per block). */
+  topPx: 7,
+  /** Half the folded table top, in pixels: 12 px wide, as long as the 14.5 px main bed. */
+  topHalf: Object.freeze({ halfX: 6, halfZ: 7.25 }),
+  /** The chair bed's outline around the origin, in pixels. */
   bedOutlinePx: Object.freeze({ minX: -6, maxX: 6, minZ: -16, maxZ: 16 }),
+  // Two lanterns fit end to end (2 x 6.5 <= 14.5 px) but not side by side
+  // (2 x 7.5 > 12 px), and an oven leaves no room for anything else, so two is
+  // the most the top can hold.
   /** Lanterns and ovens that fit on the table top. */
-  topLimit: 4,
+  topLimit: 2,
   /** Layers of air needed above the floor so a lying player fits. */
   headroom: 2,
   /** Hits in a row that take the chair back, as for camp gear (ADR 0008). */
@@ -62,6 +67,4 @@ export const BEACH_CHAIR_SPEC = Object.freeze({
   hitResetTicks: 100,
   /** How often, in ticks, the leaning pose is sent again for late viewers. */
   poseRefreshTicks: 20,
-  /** How often loaded chairs repair or clear their tabletop blocks, in ticks. */
-  topSyncTicks: 20,
 } as const);
