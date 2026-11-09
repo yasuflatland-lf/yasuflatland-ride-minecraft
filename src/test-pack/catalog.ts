@@ -36,7 +36,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     needsPlayer: false,
     vehicles: 0,
   },
-
+  {
+    name: "beach_chair_empty_refresh",
+    file: "beachChairForm",
+    ticks: 68, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
   {
     name: "beach_chair_fold",
     file: "beachChairForm",

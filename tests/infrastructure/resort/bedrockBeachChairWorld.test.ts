@@ -5,12 +5,15 @@ import {
   beachChairPose,
 } from "../../../src/domain/resort/beachChair";
 import { asBeachChairId } from "../../../src/domain/resort/ids";
-import { asDimensionId } from "../../../src/domain/shared/ids";
+import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
+import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBeachChairWorld } from "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLD_EVENT,
   BEACH_CHAIR_FOLDED,
+  BEACH_CHAIR_LOUNGE_ANIMATION,
+  BEACH_CHAIR_LOUNGE_CONTROLLER,
   BEACH_CHAIR_UNFOLD_EVENT,
 } from "../../../src/infrastructure/resort/identifiers";
 import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
@@ -45,6 +48,7 @@ function fixture(yaw = 0) {
     spawnItem: vi.fn(),
   };
   let riders: unknown[] = [];
+  const addRider = vi.fn(() => true);
   const entity = {
     id,
     typeId: BEACH_CHAIR,
@@ -55,7 +59,7 @@ function fixture(yaw = 0) {
     setProperty: vi.fn((_name: string, value: boolean) => {
       folded = value;
     }),
-    getComponent: () => ({ getRiders: () => riders }),
+    getComponent: () => ({ getRiders: () => riders, addRider }),
     getRotation: () => ({ y: pose.yaw }),
     clearVelocity: vi.fn(),
     teleport: vi.fn(),
@@ -74,6 +78,7 @@ function fixture(yaw = 0) {
     isCampSpace: vi.fn(() => false),
   };
   return {
+    addRider,
     pose,
     dimension,
     setRiders: (value: unknown[]) => {
@@ -89,7 +94,7 @@ it.each([true, false])(
   (folded) => {
     const f = fixture();
     f.entity.setProperty(BEACH_CHAIR_FOLDED, folded);
-    for (const riders of [[], [{}]]) {
+    for (const riders of [[], [{ id: "p", typeId: "minecraft:player" }]]) {
       f.setRiders(riders);
       expect(f.adapter.state(id)).toEqual({
         form: folded ? "table" : "chair",
@@ -176,3 +181,115 @@ it.each([false, true])(
     expect(items).toHaveBeenCalledExactlyOnceWith("beach_chair", id);
   },
 );
+
+it.each([0, 90, 180, 270])(
+  "seats from the middle-cell origin toward the head and sends the lounge animation at yaw %i",
+  (yaw) => {
+    const f = fixture(yaw);
+    const playerId = asPlayerId("rider");
+    const player = {
+      id: playerId,
+      typeId: "minecraft:player",
+      isValid: true,
+      dimension: f.dimension,
+      teleport: vi.fn(),
+      playAnimation: vi.fn(),
+      getComponent: vi.fn(() => undefined),
+    };
+    game.getEntity.mockImplementation((query: string) =>
+      query === id ? f.entity : query === playerId ? player : undefined,
+    );
+    f.adapter.setForm(id, "chair");
+    expect(f.adapter.seat(id, playerId)).toBe(true);
+    const origin = beachChairOrigin(f.pose);
+    const offset = BEACH_CHAIR_SPEC.seatOffset;
+    expect(player.teleport).toHaveBeenCalledExactlyOnceWith(
+      {
+        x: origin.x + (f.pose.head.x - f.pose.middle.x) * offset.z,
+        y: origin.y + offset.y,
+        z: origin.z + (f.pose.head.z - f.pose.middle.z) * offset.z,
+      },
+      { dimension: f.dimension },
+    );
+    expect(player.teleport).toHaveBeenCalledBefore(f.addRider);
+    expect(f.addRider).toHaveBeenCalledExactlyOnceWith(player);
+    f.setRiders([player]);
+    expect(f.adapter.riderOf(id)).toBe(playerId);
+    expect(f.adapter.state(id)?.occupied).toBe(true);
+    f.adapter.playLounge(playerId);
+    expect(player.playAnimation).toHaveBeenCalledExactlyOnceWith(
+      BEACH_CHAIR_LOUNGE_ANIMATION,
+      {
+        controller: BEACH_CHAIR_LOUNGE_CONTROLLER,
+        stopExpression: "!query.is_riding",
+      },
+    );
+  },
+);
+it.each([
+  [0, { x: 11.5, y: 64, z: 21.5 }],
+  [90, { x: 9.5, y: 64, z: 21.5 }],
+  [180, { x: 9.5, y: 64, z: 19.5 }],
+  [270, { x: 11.5, y: 64, z: 19.5 }],
+])(
+  "places a dismounted player beside the middle of the three-cell bed at yaw %i",
+  (yaw, expected) => {
+    const f = fixture(yaw);
+    const playerId = asPlayerId("rider");
+    const player = {
+      id: playerId,
+      typeId: "minecraft:player",
+      isValid: true,
+      dimension: f.dimension,
+      teleport:
+        vi.fn<
+          (at: { x: number; y: number; z: number }, options: unknown) => void
+        >(),
+      getComponent: vi.fn(() => undefined as unknown),
+    };
+    game.getEntity.mockImplementation((query: string) =>
+      query === id ? f.entity : player,
+    );
+    f.dimension.getBlock.mockImplementation((cell) => ({
+      typeId: cell.y === 63 ? "minecraft:stone" : "minecraft:air",
+      isAir: cell.y !== 63,
+      isLiquid: false,
+      setPermutation: vi.fn(),
+    }));
+    f.adapter.placeBeside(id, playerId);
+    const at = player.teleport.mock.calls[0]?.[0];
+    expect(at).toEqual(expected);
+    f.deps.isVehicleSpace.mockReturnValue(true);
+    player.teleport.mockClear();
+    f.adapter.placeBeside(id, playerId);
+    expect(player.teleport).not.toHaveBeenCalled();
+    f.deps.isVehicleSpace.mockReturnValue(false);
+    player.getComponent.mockReturnValue({ entityRidingOn: { id: "other" } });
+    f.adapter.placeBeside(id, playerId);
+    expect(player.teleport).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  ["occupied", "occupied"],
+  ["wrongForm", "folded"],
+  ["somethingOnTop", "something_on_top"],
+] as const)("shows the %s refusal hint", (reason, key) => {
+  const f = fixture();
+  const playerId = asPlayerId("player");
+  const setActionBar = vi.fn();
+  game.getEntity.mockImplementation((query: string) =>
+    query === playerId
+      ? {
+          typeId: "minecraft:player",
+          isValid: true,
+          onScreenDisplay: { setActionBar },
+        }
+      : f.entity,
+  );
+  f.adapter.showRefused(playerId, reason);
+  expect(setActionBar).toHaveBeenCalledExactlyOnceWith({
+    translate: `yasu_ride.beach_chair.${key}`,
+    with: [],
+  });
+});

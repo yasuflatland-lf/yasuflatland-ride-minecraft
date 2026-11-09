@@ -1,7 +1,7 @@
 import type { Arena } from "../arena";
 import type { Outcome, StepSink } from "../outcome";
 import { beachChairPlace, beachChairTakeBack } from "./beachChair";
-import { beachChairFold } from "./beachChairForm";
+import { beachChairEmptyRefresh, beachChairFold } from "./beachChairForm";
 import { beachChairLantern, beachChairOven } from "./beachChairHosting";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
@@ -278,6 +278,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
   beach_chair_lantern: beachChairLantern,
   beach_chair_oven: beachChairOven,
+  beach_chair_empty_refresh: beachChairEmptyRefresh,
   beach_chair_fold: beachChairFold,
   beach_chair_place: beachChairPlace,
   beach_chair_take_back: beachChairTakeBack,

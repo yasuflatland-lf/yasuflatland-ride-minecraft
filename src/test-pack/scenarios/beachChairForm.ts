@@ -17,7 +17,7 @@ import {
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
-export async function beachChairFold(a: Arena): Promise<Outcome> {
+async function course(a: Arena, mode: "fold" | "empty"): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);
   const pose = beachChairPose(block, 0);
   const saved = [
@@ -52,23 +52,28 @@ export async function beachChairFold(a: Arena): Promise<Outcome> {
     await wait(2);
     const entity = near(BEACH_CHAIR)[0];
     if (!entity) return { pass: false, detail: "chair not placed" };
-    await form(entity, "fold");
-    await wait(6);
-    if (entity.getProperty(BEACH_CHAIR_FOLDED) !== true)
-      failures.push("chair did not fold");
-    const origin = {
-      x: pose.middle.x + 0.5,
-      y: pose.middle.y,
-      z: pose.middle.z + 0.5,
-    };
-    if (
+    const origin = beachChairOrigin(pose);
+    const atOrigin = () =>
       Math.hypot(
         entity.location.x - origin.x,
         entity.location.y - origin.y,
         entity.location.z - origin.z,
-      ) > 0.01
-    )
-      failures.push("table moved from its pose origin");
+      ) <= 0.01;
+    if (mode === "empty") {
+      if (!atOrigin())
+        failures.push("idle chair did not start at its middle-cell origin");
+      for (let refresh = 0; refresh < 2; refresh++) {
+        await wait(BEACH_CHAIR_SPEC.poseRefreshTicks + 1);
+        if (entity.getComponent("minecraft:rideable")?.getRiders().length !== 0)
+          failures.push("empty chair acquired a rider");
+        if (!atOrigin()) failures.push("idle chair moved during pose refresh");
+      }
+    }
+    await form(entity, "fold");
+    await wait(6);
+    if (entity.getProperty(BEACH_CHAIR_FOLDED) !== true)
+      failures.push("chair did not fold");
+    if (!atOrigin()) failures.push("table moved from its pose origin");
     if (
       beachChairClearCells(pose).some((cell) =>
         a.dim.getBlock(cell)?.typeId.startsWith("yasu_ride:"),
@@ -123,4 +128,12 @@ export async function beachChairFold(a: Arena): Promise<Outcome> {
     for (const { cell, permutation } of saved)
       if (permutation) a.dim.getBlock(cell)?.setPermutation(permutation);
   }
+}
+
+export function beachChairFold(a: Arena): Promise<Outcome> {
+  return course(a, "fold");
+}
+
+export function beachChairEmptyRefresh(a: Arena): Promise<Outcome> {
+  return course(a, "empty");
 }

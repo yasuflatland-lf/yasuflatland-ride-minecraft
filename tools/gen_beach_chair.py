@@ -16,7 +16,7 @@ tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 TOP_PX = 9
 # The folded table is a low coffee table at bed height: only hosted lanterns and
-# ovens stand on it, so it does not need to reach a block top (ADR 0238).
+# ovens stand on it, so it does not need to reach a block top (ADR 0239).
 TABLE_TOP_PX = TOP_PX
 HALF = (8, 23)
 BED_OUTLINE = (-HALF[0], HALF[0], -HALF[1], HALF[1])

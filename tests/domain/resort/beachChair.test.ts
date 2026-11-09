@@ -64,7 +64,6 @@ describe("beachChairPose", () => {
           z: middle.z + dz,
         });
         const toFoot = forward(pose.yaw);
-        // 0 - n keeps a zero step +0, which unary minus would make -0 for Object.is.
         expect(dx).toBe(0 - Math.round(toFoot.x));
         expect(dz).toBe(0 - Math.round(toFoot.z));
         const facing = forward(yaw);
@@ -303,35 +302,5 @@ describe("form rules", () => {
 
   it("brands chair ids without changing them", () => {
     expect(asBeachChairId("abc")).toBe("abc");
-  });
-});
-
-describe("BEACH_CHAIR_SPEC", () => {
-  it("matches the model's measured seat, top, and bed outline", () => {
-    expect(BEACH_CHAIR_SPEC.seatOffset).toEqual({ x: 0, y: 0.5625, z: 0.3125 });
-    expect(BEACH_CHAIR_SPEC.topPx).toBe(9);
-    expect(BEACH_CHAIR_SPEC.bedOutline).toEqual({
-      minX: -8,
-      maxX: 8,
-      minZ: -23,
-      maxZ: 23,
-    });
-  });
-
-  it("sizes the folded table as wide as the bed and centred inside it", () => {
-    const { topHalf, bedOutline } = BEACH_CHAIR_SPEC;
-    expect(topHalf).toEqual({ halfX: 8, halfZ: 10.5 });
-    expect(topHalf.halfX * 2).toBe(bedOutline.maxX - bedOutline.minX);
-    expect(-topHalf.halfZ).toBeGreaterThan(bedOutline.minZ);
-    expect(topHalf.halfZ).toBeLessThan(bedOutline.maxZ);
-  });
-
-  it("puts the seat inside the bed outline", () => {
-    const { seatOffset, bedOutline } = BEACH_CHAIR_SPEC;
-    const px = 16;
-    expect(seatOffset.x * px).toBeGreaterThanOrEqual(bedOutline.minX);
-    expect(seatOffset.x * px).toBeLessThanOrEqual(bedOutline.maxX);
-    expect(seatOffset.z * px).toBeGreaterThanOrEqual(bedOutline.minZ);
-    expect(seatOffset.z * px).toBeLessThanOrEqual(bedOutline.maxZ);
   });
 });

@@ -74,4 +74,12 @@ export const BEACH_CHAIR_SPEC = Object.freeze({
   hitResetTicks: 100,
   /** How often, in ticks, the leaning pose is sent again for late viewers. */
   poseRefreshTicks: 20,
+  /** Cells to the right of the middle cell; one clears the one-cell-wide bed. */
+  exitSideOffset: 1,
+  /** Chebyshev radius from the side cell; four reaches beyond either end of the three-cell bed. */
+  exitSearchRadius: 4,
+  /** Maximum rise above the chair floor, in blocks, to allow nearby raised terrain. */
+  exitSearchUp: 4,
+  /** Maximum drop below the chair floor, in blocks, to bound searches down slopes. */
+  exitSearchDown: 8,
 } as const);

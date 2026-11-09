@@ -27,3 +27,6 @@ export const BEACH_CHAIR_TOP_REFUSAL_HINTS = {
   overlap: "yasu_ride.beach_chair_top_overlap",
   tooBig: "yasu_ride.beach_chair_top_too_big",
 } as const;
+
+export const BEACH_CHAIR_LOUNGE_ANIMATION = "animation.yasu_ride.player.lounge";
+export const BEACH_CHAIR_LOUNGE_CONTROLLER = "yasu_ride.lounge";

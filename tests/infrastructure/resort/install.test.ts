@@ -4,6 +4,10 @@ vi.mock(
   () => ({ registerBeachChairInteraction: vi.fn() }),
 );
 vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/beachChairLifecycle",
+  () => ({ registerBeachChairLifecycle: vi.fn() }),
+);
+vi.mock(
   "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld",
   () => ({ BedrockBeachChairWorld: class {} }),
 );
@@ -22,6 +26,7 @@ vi.mock(
 
 import { expect, it, vi } from "vitest";
 import { BeachChairMenu } from "../../../src/application/resort/beachChairMenu";
+import { LieOnBeachChair } from "../../../src/application/resort/lieOnBeachChair";
 import { SwitchBeachChairForm } from "../../../src/application/resort/switchBeachChairForm";
 import { TakeBackBeachChair } from "../../../src/application/resort/takeBackBeachChair";
 import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
@@ -29,6 +34,7 @@ import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
 import { ROOF_TENT_STARTER_RECEIVED_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
 import { registerBeachChairHits } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairHits";
 import { registerBeachChairInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction";
+import { registerBeachChairLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairLifecycle";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLDED,
@@ -83,7 +89,7 @@ vi.mock(
   }),
 );
 
-it("registers folded chair hosting and the parasol starter with its own flag", () => {
+it("registers folded chair hosting, the lifecycle, and the parasol starter with its own flag", () => {
   const topHosts = new TopHostRegistry();
   const register = vi.spyOn(topHosts, "registerHost");
   installResort({
@@ -122,6 +128,9 @@ it("registers folded chair hosting and the parasol starter with its own flag", (
   expect(registerBeachChairInteraction).toHaveBeenCalledExactlyOnceWith(
     expect.any(SwitchBeachChairForm),
     expect.any(BeachChairMenu),
+  );
+  expect(registerBeachChairLifecycle).toHaveBeenCalledExactlyOnceWith(
+    expect.any(LieOnBeachChair),
   );
   expect(registerStarterItem).toHaveBeenCalledExactlyOnceWith(
     expect.any(GiveStarterItem),
