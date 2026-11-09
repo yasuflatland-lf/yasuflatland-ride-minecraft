@@ -1207,6 +1207,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_cut_structure",
+    file: "buildFlow",
+    ticks: 120,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "build_cut_shapes",
     file: "buildFlow",
     ticks: 120,
