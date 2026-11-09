@@ -225,11 +225,11 @@ for step in range(11):
 table = r.static_pose(g, animations['animation.yasu_ride.beach_chair.table'])
 assert all(not b.get('cubes') for b in table['bones'] if b['name'] in ['frame','backrest','prop'])
 base = next(b for b in table['bones'] if b['name']=='table_form')['cubes']
-assert m.TABLE_TOP_PX == 16 and close(m.TABLE_RAIL_BOTTOM, 14.65)
-check_legs(base, [(x,z,1.15,14.65) for x in (-6,4.85) for z in (-9,4.35)])
-aprons = [c for c in base if close(c['origin'][1],14.65)]
+assert m.TABLE_TOP_PX == m.TOP_PX == 7 and close(m.TABLE_RAIL_BOTTOM, 5.22)
+check_legs(base, [(x,z,1.15,5.22) for x in (-6,4.85) for z in (-7.25,6.1)])
+aprons = [c for c in base if close(c['origin'][1],5.22)]
 assert len(aprons) == 4
-assert all(close(c['size'][1],1.17) for c in aprons)
+assert all(close(c['size'][1],1.6) for c in aprons)
 assert all(close(min(c['size'][0],c['size'][2]),0.4) for c in aprons)
 top = next(b for b in table['bones'] if b['name']=='table_top')['cubes']
 def filled(x,z):
@@ -241,16 +241,16 @@ holes = [(a+b)/2 for a,b in zip(centres,centres[1:])]
 for ix in range(240):
     x = -6+(ix+0.5)/20
     for iz in range(290):
-        z = -9+(iz+0.5)/20
+        z = -7.25+(iz+0.5)/20
         hole = abs(z-m.TABLE_Z_CENTER)<0.18 and any(abs(x-h)<0.18 for h in holes)
         assert filled(x,z) != hole, (x,z)
-assert m.TABLE_Z_MIN == m.MAIN_RAIL_START and m.TABLE_Z_MAX == m.HINGE[2]
-assert m.TABLE_Z_CENTER == -1.75
+assert m.TABLE_Z_MAX - m.TABLE_Z_MIN == m.HINGE[2] - m.MAIN_RAIL_START
+assert m.TABLE_Z_MIN == -7.25 and m.TABLE_Z_MAX == 7.25 and m.TABLE_Z_CENTER == 0
 assert min(c['origin'][0] for c in top) == -6
 assert max(c['origin'][0]+c['size'][0] for c in top) == 6
-assert min(c['origin'][2] for c in top) == -9
-assert max(c['origin'][2]+c['size'][2] for c in top) == 5.5
-assert all(close(c['origin'][1],15.82) and close(c['origin'][1]+c['size'][1],16) for c in top)
+assert min(c['origin'][2] for c in top) == -7.25
+assert max(c['origin'][2]+c['size'][2] for c in top) == 7.25
+assert all(close(c['origin'][1],6.82) and close(c['origin'][1]+c['size'][1],7) for c in top)
 # Deep slats with dark inner walls make the bed gaps read as dark slots.
 assert close(m.TOP_PX - m.SLAT_BOTTOM, 0.55)
 inner = [c for c in bed if abs(c['origin'][0]) < 5]

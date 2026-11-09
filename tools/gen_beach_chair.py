@@ -15,8 +15,9 @@ panels = load_tool("panels")
 tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 TOP_PX = 7
-# The folded table top sits one block high so vanilla blocks rest flush on it.
-TABLE_TOP_PX = 16
+# The folded table is a low coffee table at bed height: only hosted lanterns and
+# ovens stand on it, so it does not need to reach a block top (ADR 0238).
+TABLE_TOP_PX = TOP_PX
 HALF = (6, 16)
 BED_OUTLINE = (-6, 6, -16, 16)
 SEAT_OFFSET = (0, TOP_PX / 16, 2 / 16)
@@ -38,10 +39,12 @@ MAIN_RAIL_BOTTOM = 5.65
 MAIN_RAIL_START = -9
 # The main rails run past the hinge; the short open rear frame starts where they end.
 MAIN_RAIL_END = 10.5
-# The sliding stub and rear frame do not contribute to the folded tabletop.
-TABLE_Z_MIN = MAIN_RAIL_START
-TABLE_Z_MAX = HINGE[2]
-TABLE_Z_CENTER = (TABLE_Z_MIN + TABLE_Z_MAX) / 2
+# The folded table is as long as the main bed but centred on the entity origin,
+# so the tabletop host needs no centre offset.
+TABLE_LENGTH = HINGE[2] - MAIN_RAIL_START
+TABLE_Z_MIN = -TABLE_LENGTH / 2
+TABLE_Z_MAX = TABLE_LENGTH / 2
+TABLE_Z_CENTER = 0
 EXTENSION_HALF_WIDTH = 5.3
 EXTENSION_RAIL_THICKNESS = 0.4
 EXTENSION_RAIL_BOTTOM = 5.65
@@ -60,7 +63,7 @@ PAD_SLOT = 5
 JOINT_SEAM = 0.018
 TABLE_SLAT_THICKNESS = 0.18
 TABLE_SLAT_BOTTOM = TABLE_TOP_PX - TABLE_SLAT_THICKNESS
-TABLE_APRON_DEPTH = 1.17
+TABLE_APRON_DEPTH = 1.6
 TABLE_RAIL_BOTTOM = TABLE_SLAT_BOTTOM - TABLE_APRON_DEPTH
 TABLE_RAIL_THICKNESS = 0.4
 PROP_ATTACHMENT = 0.4
