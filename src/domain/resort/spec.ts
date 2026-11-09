@@ -41,21 +41,31 @@ export const PARASOL_SPEC = Object.freeze({
   defaultPaint: "white" satisfies Paint,
 } as const);
 
-// Every tuning value of the beach chair. The folded table is a low table the
-// height of the chair bed, centred on the entity origin, so the tabletop host
-// needs no centre offset. Only lanterns and ovens stand on it; it takes no blocks.
+// Every tuning value of the beach chair. The numbers come from the model in
+// tools/gen_beach_chair.py: the bed is one block wide and, at the photographed
+// lounger's 2.86 to 1 length to width ratio, 46 px long, so the chair lies over
+// three cells. The folded table is a low table the height of the chair bed,
+// centred on the entity origin, so the tabletop host needs no centre offset.
+// Only lanterns and ovens stand on it; it takes no blocks.
 export const BEACH_CHAIR_SPEC = Object.freeze({
-  /** The lying player's seat, local to the entity origin, in blocks. */
-  seatOffset: Object.freeze({ x: 0, y: 0.4375, z: 0.125 }),
-  /** From the origin to the top of the folded table, in pixels (16 px per block). */
-  topPx: 7,
-  /** Half the folded table top, in pixels: 12 px wide, as long as the 14.5 px main bed. */
-  topHalf: Object.freeze({ halfX: 6, halfZ: 7.25 }),
-  // Two lanterns fit end to end (2 x 6.5 <= 14.5 px) but not side by side
-  // (2 x 7.5 > 12 px), and an oven leaves no room for anything else, so two is
-  // the most the top can hold.
-  /** Lanterns and ovens that fit on the table top. */
-  topLimit: 2,
+  /**
+   * The bed outline local to the entity origin, in pixels (16 px per block).
+   * -z is the foot end and +z the head end; it leaves 1 px of the three cells free at each end.
+   */
+  bedOutline: Object.freeze({ minX: -8, maxX: 8, minZ: -23, maxZ: 23 }),
+  /** The lying player's seat (hips 4.5 px ahead of the backrest hinge), local to the entity origin, in blocks. */
+  seatOffset: Object.freeze({ x: 0, y: 0.5625, z: 0.3125 }),
+  // round(7 x 16/12) from the 12 px wide bed. The photos put the seat at 0.18
+  // to 0.2 of the length, 8.3 to 9.2 px on 46 px, so 9 px also matches them.
+  /** From the origin to the bed top and the folded table top, in pixels. */
+  topPx: 9,
+  /** Half the folded table top, in pixels: 16 px wide, as long as the 21 px main bed. */
+  topHalf: Object.freeze({ halfX: 8, halfZ: 10.5 }),
+  // Two ovens fit end to end (2 x 10 <= 21 px), or one oven and two lanterns,
+  // or up to six lanterns in a 2 x 3 grid (2 x 7.5 <= 16, 3 x 6.5 <= 21 px).
+  // The limit caps the lanterns at four, as on the Camp Table.
+  /** Lanterns and ovens allowed on the table top. */
+  topLimit: 4,
   /** Layers of air needed above the floor so a lying player fits. */
   headroom: 2,
   /** Hits in a row that take the chair back, as for camp gear (ADR 0008). */
