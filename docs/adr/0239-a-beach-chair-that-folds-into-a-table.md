@@ -11,7 +11,7 @@
 
 The owner wants the photographed teak lounger beside the Beach Parasol. One item must serve as a reclining chair and a low table. The reference photos remain outside the repository. The design document in the main checkout is `docs/designs/2026-11-09-beach-chair-design.md`.
 
-Issue #1444 supplies assets only. Placement, menus, player animation, hosting, and recovery belong to later issues. The player definition override and its compatibility with vanilla animations still require a separate implementation and verification.
+Issue #1444 supplied the assets. Scripted placement, recovery, the chair menu, and form switching are now implemented. Player poses (#1448) and lantern and oven hosting (#1449) remain pending. The player definition override and its compatibility with vanilla animations still require a separate implementation and verification.
 
 ## Decision
 
@@ -29,6 +29,24 @@ Issue #1444 supplies assets only. Placement, menus, player animation, hosting, a
 - Host Gas Lanterns and Dutch Ovens through the shared tabletop host registry, with a top surface of half extents 8 by 10.5 px at y=9 px, no clearance base, and a limit of four items, like the Camp Table. The 16 by 21 px top fits two Dutch Ovens (11.5 by 10 px each) end to end, one oven and two Gas Lanterns, or up to six lanterns (7.5 by 6.5 px each) in a two by three grid; the overlap check refuses what does not fit, and the limit of four caps the lanterns. Anything on top means a hosted lantern or oven; it prevents unfolding and recovery.
 - Three non-dye hits within the shared hit window return one chair item in either form. Refuse recovery while someone lies on it or something stands on the table, without changing the counter.
 
+## Form hit boxes and pose hold
+
+The folded table overrides `minecraft:custom_hit_test` in the
+`yasu_ride:beach_chair_table` component group alongside disabled collision and
+gravity. Bedrock uses the same width along x and z, so two boxes of width 1.0
+and height 0.5625 blocks, at pivots [0, 0.28125, -0.15625] and
+[0, 0.28125, 0.15625], cover exactly the 16 by 21 px table, 9 px high.
+The chair retains its three base boxes covering 16 by 46 px.
+
+The `yasu_ride:beach_chair_lounger` group explicitly restores the chair's
+collision, gravity, and three hit boxes on unfolding; this avoids depending on
+the engine to restore a base component after an overriding group is removed.
+Folding removes the lounger group and adds the table group; unfolding does the
+reverse. Fresh chairs use the unchanged base components without either group.
+After folding, the hold rebuilds the placed pose from the entity position and
+quarter-turn yaw, clears velocity, and teleports to the middle cell's centre
+at floor height. The low table lays no blocks and receives taps and hits itself.
+
 ## Consequences
 
-The asset contract allows later work to use measured seat and tabletop dimensions without changing the model. This issue provides no scripted interaction, placement, or recovery. Static previews and pack tests cannot establish engine behavior, multiplayer pose synchronization, or compatibility of a future player animation override. Owner visual approval remains pending and is required before merge.
+The asset contract allows later work to use measured seat and tabletop dimensions without changing the model. The folded table lays no invisible blocks, so nothing tracks or restores table cells, and only hosted gear can stand on it. Static previews and pack tests cannot establish engine behavior, multiplayer pose synchronization, or compatibility of a future player animation override. Owner visual approval remains pending and is required before merge.

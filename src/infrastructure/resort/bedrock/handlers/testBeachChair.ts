@@ -1,5 +1,6 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import { PlaceBeachChair } from "../../../../application/resort/placeBeachChair";
+import type { SwitchBeachChairForm } from "../../../../application/resort/switchBeachChairForm";
 import type { TakeBackBeachChair } from "../../../../application/resort/takeBackBeachChair";
 import type { SpaceCheck } from "../../../../application/shared/ports/space";
 import {
@@ -18,6 +19,7 @@ import {
 import { NAMESPACE } from "../../../shared/identifiers";
 import {
   BEACH_CHAIR,
+  TEST_BEACH_CHAIR_FORM,
   TEST_BEACH_CHAIR_HIT,
   TEST_BEACH_CHAIR_PLACE,
 } from "../../identifiers";
@@ -28,6 +30,7 @@ export function registerTestBeachChair(
   adapter: BedrockBeachChairWorld,
   takeBack: TakeBackBeachChair,
   deps: { isVehicleSpace: SpaceCheck; isCampSpace: SpaceCheck },
+  form: SwitchBeachChairForm,
 ): void {
   class TestWorld extends BedrockBeachChairWorld {
     override spawn(
@@ -77,6 +80,13 @@ export function registerTestBeachChair(
           face: "up",
           yaw,
           slot: 0,
+        });
+      } else if (ev.id === TEST_BEACH_CHAIR_FORM) {
+        const [operation, rawId] = ev.message.trim().split(/\s+/);
+        if (!rawId || (operation !== "fold" && operation !== "unfold")) return;
+        form[operation]({
+          id: asBeachChairId(rawId),
+          player: asPlayerId("test-beach-chair"),
         });
       } else if (ev.id === TEST_BEACH_CHAIR_HIT) {
         const id = asBeachChairId(ev.message.trim());

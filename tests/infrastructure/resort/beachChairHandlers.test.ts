@@ -25,6 +25,9 @@ const game = vi.hoisted(() => {
   class Player {
     id = "p";
     selectedSlotIndex = 2;
+    getGameMode() {
+      return "Creative";
+    }
     getRotation() {
       return { y: 90 };
     }
@@ -43,6 +46,7 @@ const game = vi.hoisted(() => {
 });
 vi.mock("@minecraft/server", () => ({
   Direction: { Up: "Up" },
+  GameMode: { Creative: "Creative" },
   Player: game.Player,
   world: {
     beforeEvents: game.events,

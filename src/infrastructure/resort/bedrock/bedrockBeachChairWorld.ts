@@ -1,4 +1,5 @@
 import { Direction, type Entity, ItemStack, world } from "@minecraft/server";
+import type { BeachChairFormWorld } from "../../../application/resort/ports/beachChairForm";
 import type {
   BeachChairTakeBackWorld,
   BeachChairWorld,
@@ -7,10 +8,13 @@ import type { SpaceCheck } from "../../../application/shared/ports/space";
 import {
   type BeachChairPose,
   beachChairOrigin,
+  beachChairPoseAt,
+  type ChairForm,
   type ChairState,
 } from "../../../domain/resort/beachChair";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
+import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
@@ -23,11 +27,13 @@ import {
 } from "../../shared/players";
 import {
   BEACH_CHAIR,
+  BEACH_CHAIR_FOLD_EVENT,
   BEACH_CHAIR_FOLDED,
   BEACH_CHAIR_ITEM,
+  BEACH_CHAIR_UNFOLD_EVENT,
 } from "../identifiers";
 export class BedrockBeachChairWorld
-  implements BeachChairWorld, BeachChairTakeBackWorld
+  implements BeachChairWorld, BeachChairTakeBackWorld, BeachChairFormWorld
 {
   constructor(
     private readonly deps: {
@@ -40,7 +46,10 @@ export class BedrockBeachChairWorld
     if (!entity) return undefined;
     return {
       form: entity.getProperty(BEACH_CHAIR_FOLDED) === true ? "table" : "chair",
-      occupied: false,
+      occupied:
+        (entity.getComponent("minecraft:rideable")?.getRiders().length ?? 0) >
+        0,
+      // Hosted lanterns and ovens are wired in #1449.
       somethingOnTop: false,
     };
   }
@@ -127,6 +136,34 @@ export class BedrockBeachChairWorld
         // A chunk can unload between a failed spawn setter and its rollback.
       }
       return undefined;
+    }
+  }
+  setForm(id: BeachChairId, form: ChairForm): void {
+    const entity = this.entity(id);
+    if (!entity) return;
+    entity.setProperty(BEACH_CHAIR_FOLDED, form === "table");
+    if (form === "table") {
+      entity.triggerEvent(BEACH_CHAIR_FOLD_EVENT);
+      this.hold(entity);
+    } else {
+      entity.triggerEvent(BEACH_CHAIR_UNFOLD_EVENT);
+    }
+  }
+  /**
+   * Without gravity or collision the table keeps the downward velocity it had
+   * resting on the floor and sinks through it, so it is pinned to its
+   * placement pose origin, as the docked boat is (ADR 0063).
+   */
+  private hold(entity: Entity): void {
+    try {
+      const pose = beachChairPoseAt(
+        entity.location,
+        snapYaw4(entity.getRotation().y),
+      );
+      entity.clearVelocity();
+      entity.teleport(beachChairOrigin(pose));
+    } catch {
+      // The entity can unload between lookup and holding its pose.
     }
   }
   dropItem(id: BeachChairId, player: PlayerId | undefined): void {

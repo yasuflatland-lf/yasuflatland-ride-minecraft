@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { BEACH_CHAIR_SPEC } from "../../src/domain/resort/spec";
 import { readRgbaPng } from "../support/png";
 
 const BP = "packs/yasu_ride_bp/";
@@ -15,6 +16,23 @@ const animations = read(
 const states = read(`${RP}animation_controllers/yasu_ride/beach_chair.ac.json`)
   .animation_controllers["controller.animation.yasu_ride.beach_chair.form"];
 const folded = "query.property('yasu_ride:folded')";
+const { bedOutline, topHalf, topPx } = BEACH_CHAIR_SPEC;
+const chairWidth = (bedOutline.maxX - bedOutline.minX) / 16;
+const chairHitboxes = [
+  bedOutline.minZ / 16 + chairWidth / 2,
+  (bedOutline.minZ + bedOutline.maxZ) / 32,
+  bedOutline.maxZ / 16 - chairWidth / 2,
+].map((z) => ({
+  width: chairWidth,
+  height: (2 * topPx) / 16,
+  pivot: [(bedOutline.minX + bedOutline.maxX) / 32, topPx / 16, z],
+}));
+const tableWidth = (2 * topHalf.halfX) / 16;
+const tableHitboxes = [-1, 1].map((sign) => ({
+  width: tableWidth,
+  height: topPx / 16,
+  pivot: [0, topPx / 32, sign * (topHalf.halfZ / 16 - tableWidth / 2)],
+}));
 
 describe("Beach Chair assets", () => {
   it("provides one script-controlled hip seat and a persistent, unpushable, damage-immune entity with gravity", () => {
@@ -52,13 +70,7 @@ describe("Beach Chair assets", () => {
       width: 1.0,
       height: 0.5625,
     });
-    expect(c["minecraft:custom_hit_test"].hitboxes).toEqual(
-      [-0.9375, 0, 0.9375].map((z) => ({
-        width: 1.0,
-        height: 1.125,
-        pivot: [0, 0.5625, z],
-      })),
-    );
+    expect(c["minecraft:custom_hit_test"].hitboxes).toEqual(chairHitboxes);
   });
 
   it("keeps the foot at -z, the raised backrest at +z, and both forms and transitions within three cells", () => {
@@ -90,6 +102,7 @@ assert g['description']['visible_bounds_width'] == 3.5 and g['description']['vis
 assert g['description']['texture_width'] == 144 and g['description']['texture_height'] == 32
 assert m.SEAT_OFFSET == (0, 0.5625, 0.3125)
 assert m.TOP_PX == 9 and m.HALF == (8,23) and m.BED_OUTLINE == (-8,8,-23,23)
+assert m.TABLE_TOP_PX == ${BEACH_CHAIR_SPEC.topPx} == 9
 back = next(b for b in g['bones'] if b['name']=='backrest')
 assert back['pivot'] == [0,9,9.5] and back['rotation'] == [37,0,0]
 assert len([c for c in back['cubes'] if c['size'][2] > 13]) == 13
@@ -233,6 +246,9 @@ assert len(aprons) == 4
 assert all(close(c['size'][1],2.13) for c in aprons)
 assert all(close(min(c['size'][0],c['size'][2]),0.55) for c in aprons)
 top = next(b for b in table['bones'] if b['name']=='table_top')['cubes']
+assert all(abs(c['origin'][1]-m.TABLE_SLAT_BOTTOM) < 1e-6 for c in top)
+assert all(abs(c['origin'][1]+c['size'][1]-m.TABLE_TOP_PX) < 1e-6 for c in top)
+assert all(abs(c['origin'][1]+c['size'][1]-m.TOP_PX) < 1e-6 for c in bed)
 def filled(x,z):
     return any(c['origin'][0] <= x <= c['origin'][0]+c['size'][0] and
                c['origin'][2] <= z <= c['origin'][2]+c['size'][2] for c in top)
@@ -389,5 +405,24 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
         `item.yasu_ride:beach_chair_item.name=${name}\n`,
       );
     }
+  });
+});
+
+it("keeps the folded entity fixed at its pose", () => {
+  expect(entity.component_groups["yasu_ride:beach_chair_table"]).toEqual({
+    "minecraft:physics": { has_collision: false, has_gravity: false },
+    "minecraft:custom_hit_test": { hitboxes: tableHitboxes },
+  });
+  expect(entity.component_groups["yasu_ride:beach_chair_lounger"]).toEqual({
+    "minecraft:physics": { has_collision: true, has_gravity: true },
+    "minecraft:custom_hit_test": { hitboxes: chairHitboxes },
+  });
+  expect(entity.events["yasu_ride:beach_chair_fold"]).toEqual({
+    add: { component_groups: ["yasu_ride:beach_chair_table"] },
+    remove: { component_groups: ["yasu_ride:beach_chair_lounger"] },
+  });
+  expect(entity.events["yasu_ride:beach_chair_unfold"]).toEqual({
+    remove: { component_groups: ["yasu_ride:beach_chair_table"] },
+    add: { component_groups: ["yasu_ride:beach_chair_lounger"] },
   });
 });

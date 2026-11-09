@@ -206,3 +206,7 @@ yasu_ride.beach_chair.occupied=誰かが寝ているので片付けられませ�
 yasu_ride.beach_chair.something_on_top=テーブルの上を空にしてください
 item.yasu_ride:beach_chair_item.name=ビーチチェア
 entity.yasu_ride:beach_chair.name=ビーチチェア
+
+yasu_ride.beach_chair.menu.title=ビーチチェア
+yasu_ride.beach_chair.menu.lie_down=寝転ぶ
+yasu_ride.beach_chair.menu.fold=テーブルにする
