@@ -4,11 +4,11 @@ import type { VehicleHostLookup } from "../../../application/shared/ports/vehicl
 import { decodeHost } from "../../../domain/camp/hosted";
 import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
-import { snapYaw4 } from "../../../domain/camp/roofTent/facing";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
 import type { Cell } from "../../../domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
+import { snapYaw4 } from "../../../domain/shared/facing";
 import {
   asDimensionId,
   asPlayerId,

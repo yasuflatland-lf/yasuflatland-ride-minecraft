@@ -4,8 +4,8 @@ import {
   canUseBlockTop,
   hasClearance,
   placeOnGround,
-} from "../../../src/application/camp/groundPlacement";
-import type { GroundCellsWorld } from "../../../src/application/camp/ports/groundCells";
+} from "../../../src/application/shared/groundPlacement";
+import type { GroundCellsWorld } from "../../../src/application/shared/ports/groundCells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 

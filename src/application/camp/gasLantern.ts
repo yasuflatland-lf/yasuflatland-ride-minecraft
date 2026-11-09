@@ -11,7 +11,8 @@ import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
 import type { Vec3 } from "../../domain/shared/vec";
-import { canUseBlockTop, placeOnGround } from "./groundPlacement";
+import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
+import { handleHit } from "../shared/takeBackByHits";
 import {
   placeOnTableTop,
   type TableTopOutcome,
@@ -20,7 +21,6 @@ import {
 import type { GasLanternWorld } from "./ports/gasLantern";
 import type { HostedKindPort } from "./ports/hostedKind";
 import type { HostedItemKind } from "./ports/tableTop";
-import { handleHit } from "./takeBackByHits";
 
 const RULE = {
   hits: GAS_LANTERN_SPEC.hitsToTakeBack,

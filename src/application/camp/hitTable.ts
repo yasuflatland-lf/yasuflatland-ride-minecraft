@@ -2,8 +2,8 @@ import { TABLE_SPEC } from "../../domain/camp/spec";
 import type { TableId } from "../../domain/camp/table";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
+import { handleHit } from "../shared/takeBackByHits";
 import type { TableWorld } from "./ports/table";
-import { handleHit } from "./takeBackByHits";
 
 const RULE = {
   hits: TABLE_SPEC.hitsToTakeBack,

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { handleHit } from "../../../src/application/camp/takeBackByHits";
+import { handleHit } from "../../../src/application/shared/takeBackByHits";
 import { HitCounters } from "../../../src/domain/shared/hitCounter";
 
 describe("handleHit", () => {
