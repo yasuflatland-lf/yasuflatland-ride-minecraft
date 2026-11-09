@@ -355,6 +355,7 @@ describe("camping gear docs (ADR 0093)", () => {
       [
         ...SPEC.map((g) => `${g.id}.png`),
         "low_chair.png",
+        "beach_parasol.png",
         "noga_chair.png",
         "tent.png",
         "roof_tent.png",
@@ -1029,7 +1030,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists the exact inside, outside, bulldozer, and sports boat groups in order", () => {
+  it("lists the inside, outside, resort, sports boat, and building groups in order", () => {
     const items = [
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
@@ -1064,6 +1065,13 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   "yasu_ride:dutch_oven_item",
                   "yasu_ride:gas_lantern_item",
                 ],
+              },
+              {
+                group_identifier: {
+                  icon: "yasu_ride:beach_parasol_item",
+                  name: "yasu_ride:resort_gear",
+                },
+                items: ["yasu_ride:beach_parasol_item"],
               },
               {
                 group_identifier: {
