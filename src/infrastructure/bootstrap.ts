@@ -2,6 +2,7 @@
 // Only here may one feature's output reach another, in both directions (ADR 0122, 0129).
 import { installBuild } from "./build/install";
 import { installCamp } from "./camp/install";
+import { installResort } from "./resort/install";
 import { NAMESPACE } from "./shared/identifiers";
 import { installVehicles } from "./vehicle/install";
 
@@ -19,6 +20,10 @@ export function bootstrap(): void {
   camp = installCamp({
     isVehicleSpace: vehicles.isVehicleSpace,
     vehicleHost: vehicles.vehicleHost,
+  });
+  installResort({
+    isVehicleSpace: vehicles.isVehicleSpace,
+    isCampSpace: camp.isCampSpace,
   });
   installBuild({
     isProtected: (d, c) =>

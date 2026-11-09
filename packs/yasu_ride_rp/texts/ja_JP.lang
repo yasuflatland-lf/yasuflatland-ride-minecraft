@@ -195,3 +195,7 @@ yasu_build.message.fill_material_refused=下を埋めるには、落下せず支
 entity.yasu_ride:beach_parasol.name=ビーチパラソル
 item.yasu_ride:beach_parasol_item.name=ビーチパラソル
 yasu_ride:resort_gear=リゾート用品
+
+yasu_ride.parasol.blocked=ここにはパラソルを置けません
+yasu_ride.parasol.hits_left=あと %s 回叩くとパラソルを片付けます
+yasu_ride.parasol.taken=パラソルを片付けました

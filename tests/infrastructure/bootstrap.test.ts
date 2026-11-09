@@ -6,6 +6,7 @@ import { bootstrap } from "../../src/infrastructure/bootstrap";
 import { installBuild } from "../../src/infrastructure/build/install";
 import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../src/infrastructure/camp/install";
+import { installResort } from "../../src/infrastructure/resort/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
 
@@ -60,6 +61,9 @@ vi.mock("../../src/infrastructure/camp/install", () => ({
 }));
 vi.mock("../../src/infrastructure/build/install", () => ({
   installBuild: vi.fn(),
+}));
+vi.mock("../../src/infrastructure/resort/install", () => ({
+  installResort: vi.fn(),
 }));
 afterEach(() => vi.restoreAllMocks());
 
@@ -170,6 +174,13 @@ it("installs build last and passes both space checks without requesting a camera
   vi.mocked(installCamp).mockReturnValue({ isCampSpace, switchTargets: [] });
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
+  expect(installResort).toHaveBeenCalledExactlyOnceWith({
+    isVehicleSpace,
+    isCampSpace,
+  });
+  expect(vi.mocked(installCamp).mock.invocationCallOrder[0]).toBeLessThan(
+    vi.mocked(installResort).mock.invocationCallOrder[0] ?? 0,
+  );
   expect(vi.mocked(installCamp).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(installBuild).mock.invocationCallOrder[0] ?? 0,
   );
