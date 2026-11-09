@@ -108,6 +108,7 @@ import {
   camperWall,
 } from "./camper";
 import { campingGearBlocks } from "./campingGear";
+import { diningChairPlaceTakeBack } from "./diningChair";
 import { fleetForget } from "./fleetRemove";
 import {
   parasolPaint,
@@ -280,6 +281,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   beach_chair_oven: beachChairOven,
   beach_chair_empty_refresh: beachChairEmptyRefresh,
   beach_chair_fold: beachChairFold,
+  dining_chair_place_take_back: diningChairPlaceTakeBack,
   beach_chair_place: beachChairPlace,
   beach_chair_take_back: beachChairTakeBack,
   parasol_paint: parasolPaint,
