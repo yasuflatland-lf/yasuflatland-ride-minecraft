@@ -8,7 +8,7 @@
 
 ## Context
 
-The [Beach Chair design](../designs/2026-11-09-beach-chair-design.md#table-form) needs resort hosts to accept camp items without imports between features. The shared domain and application placement rules already accept a host type and surface, but infrastructure still recognizes only Camp Tables.
+The [Beach Chair design](../designs/2026-11-09-beach-chair-design.md#table-form) needs resort hosts to accept camp items without imports between features. The shared domain and application placement rules already accept a host type and surface, and infrastructure now recognizes Camp Tables and folded Beach Chairs through the shared registry.
 
 ## Decision
 
@@ -20,4 +20,4 @@ Fire Pit placement and the hosted-items guard retain their existing rules. The g
 
 ## Consequences
 
-Only Camp Tables accept items after this refactor. Camp owns its identifiers and legacy marker migration; shared code imports no feature. Future hosts can register their own surfaces without changing camp handlers. Registry wiring is explicit at installation, and no global registry is created by adapters.
+Camp Tables and folded Beach Chairs accept items through the registry. Camp owns its identifiers and legacy marker migration; shared code imports no feature. Hosts register their own surfaces without changing camp handlers; the later Beach Chair integration uses entity interactions and removes the unused forwarding callback. Registry wiring is explicit at installation, and no global registry is created by adapters.

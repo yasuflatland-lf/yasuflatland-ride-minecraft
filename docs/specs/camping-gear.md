@@ -136,11 +136,11 @@
 ### Tabletop host registration
 
 - Applies to: Tabletop infrastructure wiring.
-- Rule: Bootstrap supplies one `TopHostRegistry` to camp and resort. Camp registers only the Camp Table host and the oven and lantern hosted kinds. Resort accepts the registry without registering hosts. Registry lookup requires a matching registered entity type and a true `isTopNow` predicate. Host scans use registered dynamic properties and footprints. Both camp handlers expose a `placeHostedOnTop` callback through `installCamp`, sharing tick deduplication, aim capture, and deferred placement with entity interactions. The hosted-items guard continues to check host existence without restricting the host type.
+- Rule: Bootstrap supplies one `TopHostRegistry` to camp and resort. Camp registers only the Camp Table host and the oven and lantern hosted kinds. Resort registers the folded Beach Chair as described in [Resort gear](resort-gear.md#beach-chair-tabletop-hosting). Registry lookup requires a matching registered entity type and a true `isTopNow` predicate. Host scans use registered dynamic properties and footprints. Both camp handlers capture aim, deduplicate per player per tick, and defer placement from entity interactions. The hosted-items guard continues to check host existence without restricting the host type.
 - Agreement: Proposed
 - Basis: [0237](../adr/0237-register-tabletop-hosts-across-features.md) Decision
 - Implementation: `src/infrastructure/shared/tableTop/registry.ts`; `src/infrastructure/shared/tableTop/aim.ts`; `src/infrastructure/camp/bedrock/topHosts.ts`; `src/infrastructure/bootstrap.ts`
-- Verification: `tests/infrastructure/shared/topHostRegistry.test.ts` covers unregistered types, unavailable hosts, marker matching, and legacy spots. `tests/infrastructure/camp/hostedPlacement.test.ts` verifies callback and entity deduplication and registered surface placement. In-game scenarios were not run for this refactor.
+- Verification: `tests/infrastructure/shared/topHostRegistry.test.ts` covers unregistered types, unavailable hosts, marker matching, and legacy spots. `tests/infrastructure/camp/hostedPlacement.test.ts` verifies entity interaction deduplication and registered surface placement. In-game scenarios were not run for this refactor.
 
 ### Hosted marker codec and saved spots
 

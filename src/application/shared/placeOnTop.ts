@@ -78,7 +78,13 @@ export interface TopHostWorld extends GroundCellsWorld {
   topHost(
     hostType: string,
     id: string,
-  ): { dimension: DimensionId; at: Vec3; yaw: number } | undefined;
+  ):
+    | {
+        dimension: DimensionId;
+        at: Vec3;
+        yaw: number;
+      }
+    | undefined;
   itemsOnTop(hostType: string, id: string): readonly TopItem[];
   spawnHosted(
     kind: HostedKindId,

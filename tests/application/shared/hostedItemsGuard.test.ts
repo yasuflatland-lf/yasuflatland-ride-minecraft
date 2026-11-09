@@ -54,7 +54,7 @@ const host: fc.Arbitrary<Host> = fc.oneof(
   }),
   fc.record({
     kind: fc.constant("top" as const),
-    hostType: fc.constant("camp_table" as const),
+    hostType: fc.constantFrom("camp_table", "beach_chair"),
     id: hostId.map(asTableId),
     at: fc.record({
       x: fc.integer({ min: -9, max: 9 }),

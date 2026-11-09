@@ -211,3 +211,7 @@ entity.yasu_ride:beach_chair.name=ビーチチェア
 yasu_ride.beach_chair.menu.title=ビーチチェア
 yasu_ride.beach_chair.menu.lie_down=寝転ぶ
 yasu_ride.beach_chair.menu.fold=テーブルにする
+
+yasu_ride.beach_chair_top_full=ビーチチェアの天板がいっぱいです。
+yasu_ride.beach_chair_top_overlap=ビーチチェアの天板で何かと重なっています。
+yasu_ride.beach_chair_top_too_big=このアイテムはビーチチェアの天板には大きすぎます。

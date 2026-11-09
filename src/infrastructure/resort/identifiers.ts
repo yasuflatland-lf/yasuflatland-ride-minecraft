@@ -22,5 +22,11 @@ export const TEST_BEACH_CHAIR_FORM = id("test_beach_chair_form");
 export const BEACH_CHAIR_FOLD_EVENT = id("beach_chair_fold");
 export const BEACH_CHAIR_UNFOLD_EVENT = id("beach_chair_unfold");
 
+export const BEACH_CHAIR_TOP_REFUSAL_HINTS = {
+  full: "yasu_ride.beach_chair_top_full",
+  overlap: "yasu_ride.beach_chair_top_overlap",
+  tooBig: "yasu_ride.beach_chair_top_too_big",
+} as const;
+
 export const BEACH_CHAIR_LOUNGE_ANIMATION = "animation.yasu_ride.player.lounge";
 export const BEACH_CHAIR_LOUNGE_CONTROLLER = "yasu_ride.lounge";

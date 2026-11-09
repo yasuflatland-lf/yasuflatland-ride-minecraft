@@ -17,6 +17,7 @@ import {
   type DimensionId,
 } from "../../../../domain/shared/ids";
 import { NAMESPACE } from "../../../shared/identifiers";
+import type { TopHostRegistry } from "../../../shared/tableTop/registry";
 import {
   BEACH_CHAIR,
   TEST_BEACH_CHAIR_FORM,
@@ -29,7 +30,11 @@ import { BedrockBeachChairWorld } from "../bedrockBeachChairWorld";
 export function registerTestBeachChair(
   adapter: BedrockBeachChairWorld,
   takeBack: TakeBackBeachChair,
-  deps: { isVehicleSpace: SpaceCheck; isCampSpace: SpaceCheck },
+  deps: {
+    topHosts: TopHostRegistry;
+    isVehicleSpace: SpaceCheck;
+    isCampSpace: SpaceCheck;
+  },
   form: SwitchBeachChairForm,
 ): void {
   class TestWorld extends BedrockBeachChairWorld {

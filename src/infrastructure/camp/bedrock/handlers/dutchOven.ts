@@ -14,12 +14,9 @@ import { asTableId, type TableId } from "../../../../domain/camp/table";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import type { LocalPoint } from "../../../../domain/shared/tableTop";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
-import { heldTypeId } from "../../../shared/heldItem";
+import { id } from "../../../shared/identifiers";
 import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
-import type {
-  PlaceHostedOnTop,
-  TopHostRegistry,
-} from "../../../shared/tableTop/registry";
+import type { TopHostRegistry } from "../../../shared/tableTop/registry";
 import {
   DUTCH_OVEN_ITEM,
   DUTCH_OVEN_SIMMERING_PROPERTY,
@@ -51,7 +48,7 @@ export function registerDutchOven(
   actions: DutchOvenActions,
   hostedItems: HostedItemsGuard,
   registry: TopHostRegistry,
-): PlaceHostedOnTop {
+): void {
   const placements = new TickScopedSet<PlayerId>();
   const place = (
     placer: Player,
@@ -114,6 +111,21 @@ export function registerDutchOven(
     system.run(() => actions.toggleLid(asDutchOvenId(id), system.currentTick));
   });
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
+    if (ev.id === id("test_dutch_oven_on_top")) {
+      if (ev.sourceType !== ScriptEventSource.Server) return;
+      const [hostType, ...parts] = ev.message.trim().split(/\s+/);
+      const request = testTableTopRequest(parts.join(" "));
+      if (!hostType || !request) return;
+      const host = registry.host(hostType, request.table);
+      if (host)
+        actions.placeOnTop(host.type.surface, {
+          hostType,
+          host: request.table,
+          aim: request.aim,
+          slot: 0,
+        });
+      return;
+    }
     if (ev.id === TEST_DUTCH_OVEN_ON_TABLE_EVENT) {
       if (ev.sourceType !== ScriptEventSource.Server) return;
       const request = testTableRequest(ev.message);
@@ -180,5 +192,4 @@ export function registerDutchOven(
       }
     }
   }, 4);
-  return (player, host) => place(player, host, heldTypeId(player));
 }

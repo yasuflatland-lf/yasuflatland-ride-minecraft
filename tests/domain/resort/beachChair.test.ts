@@ -212,6 +212,30 @@ describe("folded table top", () => {
     );
   });
 
+  // The origin is the middle cell's centre, so a centre within 8 px of it
+  // stands over the middle cell whatever the facing.
+  it("keeps every hosted item on the top with its centre over the middle cell", () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.tuple(aimArb, fc.constantFrom(...items)), {
+          maxLength: 8,
+        }),
+        (tries) => {
+          for (const { at, footprint } of placeAll(tries, topLimit)) {
+            expect(Math.abs(at.x) + footprint.halfX).toBeLessThanOrEqual(
+              topHalf.halfX,
+            );
+            expect(Math.abs(at.z) + footprint.halfZ).toBeLessThanOrEqual(
+              topHalf.halfZ,
+            );
+            expect(Math.abs(at.x)).toBeLessThan(8);
+            expect(Math.abs(at.z)).toBeLessThan(8);
+          }
+        },
+      ),
+    );
+  });
+
   it("fits as many lanterns as the limit allows in a grid", () => {
     const lantern = GAS_LANTERN_FOOTPRINT_PX;
     const grid: [{ x: number; z: number }, TopRect][] = [];

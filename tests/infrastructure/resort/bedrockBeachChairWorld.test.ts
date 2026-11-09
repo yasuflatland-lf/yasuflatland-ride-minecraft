@@ -16,6 +16,7 @@ import {
   BEACH_CHAIR_LOUNGE_CONTROLLER,
   BEACH_CHAIR_UNFOLD_EVENT,
 } from "../../../src/infrastructure/resort/identifiers";
+import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -70,7 +71,9 @@ function fixture(yaw = 0) {
   game.getEntity.mockImplementation((query: string) =>
     query === id ? entity : undefined,
   );
+  const topHosts = new TopHostRegistry();
   const deps = {
+    topHosts,
     isVehicleSpace: vi.fn(() => false),
     isCampSpace: vi.fn(() => false),
   };
@@ -165,6 +168,19 @@ it("tolerates an entity unloading while holding its pose", () => {
   });
   expect(() => f.adapter.setForm(id, "table")).not.toThrow();
 });
+
+it.each([false, true])(
+  "reports hosted occupancy when items are present: %s",
+  (occupied) => {
+    const f = fixture();
+    const item = { at: { x: 0, z: 0 }, footprint: { halfX: 2, halfZ: 3 } };
+    const items = vi
+      .spyOn(f.deps.topHosts, "itemsOnTop")
+      .mockReturnValue(occupied ? [item] : []);
+    expect(f.adapter.state(id)?.somethingOnTop).toBe(occupied);
+    expect(items).toHaveBeenCalledExactlyOnceWith("beach_chair", id);
+  },
+);
 
 it.each([0, 90, 180, 270])(
   "seats from the middle-cell origin toward the head and sends the lounge animation at yaw %i",

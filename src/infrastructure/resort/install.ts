@@ -10,6 +10,7 @@ import { TakeBackParasol } from "../../application/resort/takeBackParasol";
 import { GiveStarterItem } from "../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import { Repaint } from "../../application/shared/repaint";
+import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
 import {
   BedrockStarterItemWorld,
   registerStarterItem,
@@ -28,6 +29,9 @@ import { registerParasolPlacement } from "./bedrock/handlers/placement";
 import { registerTestBeachChair } from "./bedrock/handlers/testBeachChair";
 import { registerTestParasol } from "./bedrock/handlers/testParasol";
 import {
+  BEACH_CHAIR,
+  BEACH_CHAIR_FOLDED,
+  BEACH_CHAIR_TOP_REFUSAL_HINTS,
   BEACH_PARASOL_ITEM,
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
 } from "./identifiers";
@@ -37,6 +41,18 @@ export function installResort(deps: {
   isVehicleSpace: SpaceCheck;
   isCampSpace: SpaceCheck;
 }): void {
+  deps.topHosts.registerHost({
+    hostType: "beach_chair",
+    entityTypeId: BEACH_CHAIR,
+    surface: {
+      half: BEACH_CHAIR_SPEC.topHalf,
+      topPx: BEACH_CHAIR_SPEC.topPx,
+      limit: BEACH_CHAIR_SPEC.topLimit,
+      clearanceBase: 0,
+    },
+    isTopNow: (entity) => entity.getProperty(BEACH_CHAIR_FOLDED) === true,
+    refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
+  });
   const chair = new BedrockBeachChairWorld(deps);
   const takeChair = new TakeBackBeachChair(chair);
   registerBeachChairPlacement(new PlaceBeachChair(chair));

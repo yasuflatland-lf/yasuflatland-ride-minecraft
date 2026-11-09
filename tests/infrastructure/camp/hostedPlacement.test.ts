@@ -38,7 +38,7 @@ beforeEach(() => {
 });
 
 it.each(["lantern", "oven"] as const)(
-  "places a %s on a registered non-camp host through either entry point once per tick",
+  "places a %s on a registered non-camp host through entity interactions once per tick",
   (kind) => {
     const registry = new TopHostRegistry();
     let available = true;
@@ -73,26 +73,25 @@ it.each(["lantern", "oven"] as const)(
       spawnHosted: vi.fn(),
       relayLoaded: vi.fn(),
     };
-    const callback =
-      kind === "lantern"
-        ? registerGasLantern(
-            new GasLanternActions(
-              world as unknown as ConstructorParameters<
-                typeof GasLanternActions
-              >[0],
-            ),
-            world as unknown as BedrockGasLanternWorld,
-            registry,
-          )
-        : registerDutchOven(
-            new DutchOvenActions(
-              world as unknown as ConstructorParameters<
-                typeof DutchOvenActions
-              >[0],
-            ),
-            new HostedItemsGuard([]),
-            registry,
-          );
+    kind === "lantern"
+      ? registerGasLantern(
+          new GasLanternActions(
+            world as unknown as ConstructorParameters<
+              typeof GasLanternActions
+            >[0],
+          ),
+          world as unknown as BedrockGasLanternWorld,
+          registry,
+        )
+      : registerDutchOven(
+          new DutchOvenActions(
+            world as unknown as ConstructorParameters<
+              typeof DutchOvenActions
+            >[0],
+          ),
+          new HostedItemsGuard([]),
+          registry,
+        );
     const item = kind === "lantern" ? GAS_LANTERN_ITEM : DUTCH_OVEN_ITEM;
     let held = item;
     const player = {
@@ -110,13 +109,13 @@ it.each(["lantern", "oven"] as const)(
       location: { x: 0, y: 60, z: 0 },
       getRotation: () => ({ y: 0 }),
     } as unknown as Entity;
-    expect(callback(player, host)).toBe(true);
     const event = {
       player,
       target: host,
-      itemStack: { typeId: item },
+      itemStack: { typeId: held },
       cancel: false,
     };
+    game.interact.mock.calls[0]?.[0](event);
     game.interact.mock.calls[0]?.[0](event);
     expect(event.cancel).toBe(true);
     expect(game.run).toHaveBeenCalledOnce();
@@ -133,13 +132,17 @@ it.each(["lantern", "oven"] as const)(
     expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith("player", 3);
     game.tick++;
     game.interact.mock.calls[0]?.[0](event);
-    expect(callback(player, host)).toBe(true);
     expect(game.run).toHaveBeenCalledTimes(2);
     available = false;
-    expect(callback(player, host)).toBe(false);
+    event.cancel = false;
+    game.interact.mock.calls[0]?.[0](event);
+    expect(event.cancel).toBe(false);
     available = true;
     held = "minecraft:stick";
-    expect(callback(player, host)).toBe(false);
+    event.itemStack.typeId = held;
+    event.cancel = false;
+    game.interact.mock.calls[0]?.[0](event);
+    expect(event.cancel).toBe(false);
     expect(game.run).toHaveBeenCalledTimes(2);
   },
 );
