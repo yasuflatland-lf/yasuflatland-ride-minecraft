@@ -674,3 +674,16 @@ Run these checks on both PC and mobile, with a second player observing. ADR 0238
 | BL5 | Dismount with sneak on PC or the dismount button on touch. Wait for the refresh interval.                   | The normal pose returns and the player is placed beside the middle cell of the 1 by 3 footprint once (searching outward if blocked), without further teleports while walking away. |     |       |
 | BL6 | Reload scripts or restart the server while seated, then observe again.                                      | The loaded rider receives the lounge pose again without reseating.                                                                                                                 |     |       |
 | BL7 | Walk, swim, sleep and swing an arm after getting up.                                                        | Ordinary player animations remain intact.                                                                                                                                          |     |       |
+
+## Dining Chair sitting and recovery
+
+Run on both PC (keyboard and mouse) and mobile (touch). Record each device separately.
+
+| ID  | Action                                                                                      | Expected                                                                                                                                                       | PC  | Mobile | Notes |
+| --- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ------ | ----- |
+| DC1 | Place a Dining Chair on a clear solid floor from each quarter-turn heading.                 | It faces the player, consumes one item in Survival, and shows four black legs, woven seat and reclined wrap-around back with a gap above the seat.             |     |        |       |
+| DC2 | Use Sit on PC; long-press and use the Sit button on mobile. Inspect first and third person. | One player sits at cushion height with the vanilla sitting pose; the back and arms surround the player without an obvious offset. A second player cannot join. |     |        |       |
+| DC3 | Look around, then dismount with the device's normal riding control.                         | The chair stays fixed; the player dismounts and can sit again.                                                                                                 |     |        |       |
+| DC4 | Hit the occupied chair, dismount, then hit the empty chair three times within five seconds. | Occupied hits do not recover it. The empty chair remains through two hits, then disappears and returns one Dining Chair item. Mobile short taps count as hits. |     |        |       |
+
+Owner visual approval and the in-game checks above remain pending.
