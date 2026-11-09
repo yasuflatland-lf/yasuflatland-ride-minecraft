@@ -1,8 +1,8 @@
 import type { PlayerId } from "../../domain/shared/ids";
-import type { RoofTentStarterWorld } from "./ports/roofTentStarter";
+import type { StarterItemWorld } from "./ports/starterItem";
 
-export class GiveStarterRoofTent {
-  constructor(private readonly world: RoofTentStarterWorld) {}
+export class GiveStarterItem {
+  constructor(private readonly world: StarterItemWorld) {}
 
   execute(playerId: PlayerId): boolean {
     if (

@@ -1,9 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import {
-  type Facing4,
-  snapYaw4,
-} from "../../../src/domain/camp/roofTent/facing";
+import { type Facing4, snapYaw4 } from "../../../src/domain/shared/facing";
 
 const facings: readonly Facing4[] = [0, 90, 180, 270];
 

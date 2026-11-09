@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { exitCell } from "../../../src/domain/camp/roofTent/exitCell";
-import type { Facing4 } from "../../../src/domain/camp/roofTent/facing";
+import type { Facing4 } from "../../../src/domain/shared/facing";
 import { forward, leftOf } from "../../../src/domain/shared/vec";
 
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });

@@ -1,12 +1,14 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { GiveStarterRoofTent } from "../../../src/application/camp/giveStarterRoofTent";
+import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { BedrockRoofTentStarterWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentStarterWorld";
-import { registerRoofTentStarter } from "../../../src/infrastructure/camp/bedrock/handlers/starter";
 import {
   ROOF_TENT_ITEM,
   ROOF_TENT_STARTER_RECEIVED_PROPERTY,
 } from "../../../src/infrastructure/camp/identifiers";
+import {
+  BedrockStarterItemWorld,
+  registerStarterItem,
+} from "../../../src/infrastructure/shared/starterItem";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), subscribe: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -40,10 +42,13 @@ it("reads the player flag, gives one item with overflow dropped, and marks recei
     location: { x: 1, y: 64, z: 2 },
   };
   game.getEntity.mockReturnValue(player);
-  const world = new BedrockRoofTentStarterWorld();
+  const world = new BedrockStarterItemWorld(
+    ROOF_TENT_ITEM,
+    ROOF_TENT_STARTER_RECEIVED_PROPERTY,
+  );
   expect(world.received(id)).toBe(false);
   expect(world.isCreative(id)).toBe(false);
-  expect(new GiveStarterRoofTent(world).execute(id)).toBe(true);
+  expect(new GiveStarterItem(world).execute(id)).toBe(true);
   expect(addItem).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ typeId: ROOF_TENT_ITEM, amount: 1 }),
   );
@@ -61,7 +66,10 @@ it("reads the player flag, gives one item with overflow dropped, and marks recei
 });
 
 it("returns undefined for a missing player and safely skips adapter writes", () => {
-  const world = new BedrockRoofTentStarterWorld();
+  const world = new BedrockStarterItemWorld(
+    ROOF_TENT_ITEM,
+    ROOF_TENT_STARTER_RECEIVED_PROPERTY,
+  );
   expect(world.received(id)).toBeUndefined();
   expect(world.isCreative(id)).toBe(false);
   expect(() => {
@@ -71,9 +79,14 @@ it("returns undefined for a missing player and safely skips adapter writes", () 
 });
 
 it("runs the starter on joins but not respawns", () => {
-  const starter = new GiveStarterRoofTent(new BedrockRoofTentStarterWorld());
+  const starter = new GiveStarterItem(
+    new BedrockStarterItemWorld(
+      ROOF_TENT_ITEM,
+      ROOF_TENT_STARTER_RECEIVED_PROPERTY,
+    ),
+  );
   const execute = vi.spyOn(starter, "execute").mockReturnValue(false);
-  registerRoofTentStarter(starter);
+  registerStarterItem(starter);
   expect(game.subscribe).toHaveBeenCalledTimes(1);
   const onSpawn = game.subscribe.mock.calls[0]?.[0];
   onSpawn({ initialSpawn: false, player: { id: "p" } });

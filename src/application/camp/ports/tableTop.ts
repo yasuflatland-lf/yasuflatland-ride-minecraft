@@ -1,7 +1,7 @@
 import type { Footprint, TopItem } from "../../../domain/camp/tabletop";
 import type { DimensionId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import type { GroundCellsWorld } from "./groundCells";
+import type { GroundCellsWorld } from "../../shared/ports/groundCells";
 
 /** The kinds of item a table top can hold (ADR 0185). */
 export type HostedKindId = "dutch_oven" | "gas_lantern";
