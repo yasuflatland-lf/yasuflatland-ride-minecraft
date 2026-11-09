@@ -4,6 +4,7 @@
 - Verified at: 732f6c1c
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0235](../adr/0235-share-convex-rain-ceiling-geometry-and-placement.md)
+- Source: [0237](../adr/0237-lounge-pose-by-overriding-the-player-client-entity.md)
 
 ## Rules
 
@@ -51,6 +52,15 @@
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, first hand-out follows the design document.
 - Implementation: `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/identifiers.ts`; `src/application/shared/giveStarterItem.ts`; `src/infrastructure/shared/starterItem.ts`
 - Verification: `tests/infrastructure/resort/install.test.ts` checks the registration and the separate flag. A new Survival player receiving both items on the dev BDS has not been verified.
+
+### Manual lounge pose spike
+
+- Applies to: A player running `scriptevent yasu_ride_test:lounge` with the test pack enabled.
+- Rule: Keep an existing ride, or mount the nearest rideable within four blocks. Report a missing rideable or failed mount in chat. Play the looping lounge animation until dismount, with straight forward legs and a 55-degree backward waist rotation. The player client definition preserves vanilla content and adds only the lounge animation mapping. Normal chair interactions do not trigger the spike.
+- Agreement: Proposed
+- Basis: [0237](../adr/0237-lounge-pose-by-overriding-the-player-client-entity.md) Decision.
+- Implementation: `src/test-pack/loungeProbe.ts`; `packs/yasu_ride_rp/entity/yasu_ride/player.ce.json`; `packs/yasu_ride_rp/animations/yasu_ride/player.anim.json`
+- Verification: `tests/packs/playerOverride.test.ts` pins the vanilla definition and pose. All five device checks remain pending in ADR 0237; runtime feasibility is not established.
 
 ## Open issues
 

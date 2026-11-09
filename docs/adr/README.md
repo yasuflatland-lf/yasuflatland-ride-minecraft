@@ -240,6 +240,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) | Plated camper mirrors and a simpler camper exterior | Proposed |
 | [0235](0235-share-convex-rain-ceiling-geometry-and-placement.md) | Share convex rain ceiling geometry and placement | Proposed |
 | [0236](0236-a-beach-parasol-in-a-new-resort-gear-group.md) | A beach parasol in a new Resort Gear group | Proposed |
+| [0237](0237-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
