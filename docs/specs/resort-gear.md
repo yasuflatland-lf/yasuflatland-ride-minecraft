@@ -2,6 +2,7 @@
 
 - Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement, form switching, lying down and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
 - Verified at: 732f6c1c
+- Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0237](../adr/0237-register-tabletop-hosts-across-features.md)
 - Source: [0239](../adr/0239-a-beach-chair-that-folds-into-a-table.md)
@@ -9,6 +10,15 @@
 - Source: [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md)
 
 ## Rules
+
+### Furniture domain groundwork
+
+- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; no in-game behavior is installed yet.
+- Rule: A deeply frozen per-kind table defines footprint offsets, two clearance layers, seats, recovery parameters, and an optional tabletop surface. Shared geometry faces the player and centres the origin over the occupied floor cells. The double sofa extends from the pressed column to the player's right. Existing Beach Chair behavior is unchanged.
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md) Decision, furniture family and placement geometry.
+- Implementation: `src/domain/resort/furniture.ts`; `src/domain/resort/ids.ts`
+- Verification: `tests/domain/resort/furniture.test.ts` checks every kind and quarter turn, support and clearance cells, origin centring, player-facing orientation, rightward sofa placement, and deep freezing. Assets and in-game integration remain future work.
 
 ### Feature installation and placement
 
