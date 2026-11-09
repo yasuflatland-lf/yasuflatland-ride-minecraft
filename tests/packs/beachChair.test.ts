@@ -65,12 +65,12 @@ describe("Beach Chair assets", () => {
     const texture = readRgbaPng(
       `${RP}textures/entity/yasu_ride/beach_chair.png`,
     );
-    expect([texture.width, texture.height]).toEqual([96, 16]);
+    expect([texture.width, texture.height]).toEqual([128, 16]);
     for (let y = 0; y < 16; y++) {
       for (let x = 80; x < 96; x++) {
         const offset = (y * texture.width + x) * 4;
         expect([...texture.pixels.slice(offset, offset + 4)]).toEqual([
-          38, 33, 29, 255,
+          34, 26, 21, 255,
         ]);
       }
     }
@@ -86,7 +86,7 @@ m = load_tool('gen_beach_chair')
 r = load_tool('render_preview')
 g = json.loads(Path('${RP}models/entity/yasu_ride/beach_chair.geo.json').read_text())['minecraft:geometry'][0]
 assert [b['name'] for b in g['bones']] == ['root', 'chair_form', 'frame', 'backrest', 'prop', 'table_form', 'table_top']
-assert g['description']['texture_width'] == 96 and g['description']['texture_height'] == 16
+assert g['description']['texture_width'] == 128 and g['description']['texture_height'] == 16
 assert m.SEAT_OFFSET == (0, 0.4375, 0.125)
 assert m.TOP_PX == 7 and m.HALF == (6,16) and m.BED_OUTLINE == (-6,6,-16,16)
 back = next(b for b in g['bones'] if b['name']=='backrest')
@@ -221,12 +221,13 @@ for step in range(11):
             if step == 0: assert max(p[1] for p in points) > 13
             if step == 10: assert abs(max(p[1] for p in points)-m.TOP_PX)<0.00001
         all_points.extend(points)
-    if step == 10: assert abs(max(p[1] for p in all_points)-m.TOP_PX)<0.00001
+    if step == 10: assert abs(max(p[1] for p in all_points)-m.TABLE_TOP_PX)<0.00001
 table = r.static_pose(g, animations['animation.yasu_ride.beach_chair.table'])
 assert all(not b.get('cubes') for b in table['bones'] if b['name'] in ['frame','backrest','prop'])
 base = next(b for b in table['bones'] if b['name']=='table_form')['cubes']
-check_legs(base, [(x,z,1.15,5.65) for x in (-6,4.85) for z in (-9,4.35)])
-aprons = [c for c in base if close(c['origin'][1],5.65)]
+assert m.TABLE_TOP_PX == 16 and close(m.TABLE_RAIL_BOTTOM, 14.65)
+check_legs(base, [(x,z,1.15,14.65) for x in (-6,4.85) for z in (-9,4.35)])
+aprons = [c for c in base if close(c['origin'][1],14.65)]
 assert len(aprons) == 4
 assert all(close(c['size'][1],1.17) for c in aprons)
 assert all(close(min(c['size'][0],c['size'][2]),0.4) for c in aprons)
@@ -249,6 +250,14 @@ assert min(c['origin'][0] for c in top) == -6
 assert max(c['origin'][0]+c['size'][0] for c in top) == 6
 assert min(c['origin'][2] for c in top) == -9
 assert max(c['origin'][2]+c['size'][2] for c in top) == 5.5
+assert all(close(c['origin'][1],15.82) and close(c['origin'][1]+c['size'][1],16) for c in top)
+# Deep slats with dark inner walls make the bed gaps read as dark slots.
+assert close(m.TOP_PX - m.SLAT_BOTTOM, 0.55)
+inner = [c for c in bed if abs(c['origin'][0]) < 5]
+assert len(inner) == 11
+assert all(c['uv'][side]['uv'] == [m.GAP_SLOT*16,0] for c in inner for side in ('east','west','down'))
+assert all(c['uv']['up']['uv'] == [16,0] and c['uv']['north']['uv'] == [m.END_GRAIN_SLOT*16,0] for c in inner)
+assert all(c['uv']['east']['uv'] == [0,0] for c in bed if c not in inner)
 
 `,
     ]);

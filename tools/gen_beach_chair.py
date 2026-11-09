@@ -15,6 +15,8 @@ panels = load_tool("panels")
 tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 TOP_PX = 7
+# The folded table top sits one block high so vanilla blocks rest flush on it.
+TABLE_TOP_PX = 16
 HALF = (6, 16)
 BED_OUTLINE = (-6, 6, -16, 16)
 SEAT_OFFSET = (0, TOP_PX / 16, 2 / 16)
@@ -25,6 +27,7 @@ BACKREST_LENGTH = 10.5
 SLAT_COUNT = 13
 SLAT_WIDTH = 0.52
 SLAT_GAP = 0.36
+SLATS_HALF = (SLAT_COUNT * SLAT_WIDTH + (SLAT_COUNT - 1) * SLAT_GAP) / 2
 BACKREST_SLAT_COUNT = SLAT_COUNT
 BACKREST_SLAT_WIDTH = SLAT_WIDTH
 BACKREST_SLAT_GAP = SLAT_GAP
@@ -55,7 +58,10 @@ PAD_HEIGHT = 0.2
 PAD_INSET = 0.08
 PAD_SLOT = 5
 JOINT_SEAM = 0.018
-TABLE_RAIL_BOTTOM = 5.65
+TABLE_SLAT_THICKNESS = 0.18
+TABLE_SLAT_BOTTOM = TABLE_TOP_PX - TABLE_SLAT_THICKNESS
+TABLE_APRON_DEPTH = 1.17
+TABLE_RAIL_BOTTOM = TABLE_SLAT_BOTTOM - TABLE_APRON_DEPTH
 TABLE_RAIL_THICKNESS = 0.4
 PROP_ATTACHMENT = 0.4
 PROP_PIVOT = (0, (REAR_RAIL_BOTTOM + REAR_RAIL_TOP) / 2, REAR_END_START)
@@ -68,9 +74,17 @@ PROP_ANGLE = math.degrees(math.atan2(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2
 PROP_LENGTH = math.hypot(PROP_START[1] - PROP_PIVOT[1], PROP_PIVOT[2] - PROP_START[2])
 PROP_WIDTH = 0.12
 PROP_THICKNESS = 0.08
-PALETTE = ((176, 148, 113), (210, 184, 148), (217, 194, 160), (225, 230, 229), (210, 184, 148), (38, 33, 29))
+# Mean colours sampled from the studio reference photo, before face shading:
+# honey-brown frame and legs, yellow-tan slat tops, the blonde junction band,
+# steel, the table top, near-black pads, the dark slat walls seen down the gaps,
+# and darker end grain.
+PALETTE = ((226, 170, 122), (232, 204, 160), (246, 232, 200), (206, 210, 210), (230, 200, 154),
+           (34, 26, 21), (92, 58, 34), (178, 128, 86))
+GAP_SLOT = 6
+END_GRAIN_SLOT = 7
 TEXTURE_WIDTH = len(PALETTE) * 16
-SLAT_BOTTOM = TOP_PX - 0.18
+# Deep slats make the gaps between them read as dark slots rather than hairlines.
+SLAT_BOTTOM = TOP_PX - 0.55
 BAND_START = -11.5
 BAND_END = -9
 FINGER_WIDTH = 0.16
@@ -81,12 +95,34 @@ GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
 TEXTURE = "textures/entity/yasu_ride/beach_chair.png"
 
 
-def box(lo, hi, slot=0):
-    return panels.panel(*lo, *hi, {"uv": [slot * 16, 0], "uv_size": [16, 16]})
+def face(slot):
+    return {"uv": [slot * 16, 0], "uv_size": [16, 16]}
+
+
+def box(lo, hi, slot=0, sides=None, ends=END_GRAIN_SLOT):
+    """A cube whose long faces use slot; sides recolours the east, west, and down faces,
+    and ends the two faces across its longer horizontal axis (end grain)."""
+    cube = panels.panel(*lo, *hi, face(slot))
+    if slot in (3, PAD_SLOT):
+        return cube
+    if sides is not None:
+        for side in ("east", "west", "down"):
+            cube["uv"][side] = face(sides)
+    size = cube["size"]
+    if ends is not None:
+        for side in ("north", "south") if size[2] >= size[0] else ("east", "west"):
+            cube["uv"][side] = face(ends)
+    return cube
+
+
+def slat(lo, hi, slot):
+    # The outermost slats show their outer side beside the rails, so it matches the frame.
+    outer = max(abs(lo[0]), abs(hi[0])) > SLATS_HALF - SLAT_WIDTH / 2
+    return box(lo, hi, slot, 0 if outer else GAP_SLOT)
 
 
 def leg(x, z, size, top):
-    return [box((x, PAD_HEIGHT, z), (x + size, top - JOINT_SEAM, z + size)),
+    return [box((x, PAD_HEIGHT, z), (x + size, top - JOINT_SEAM, z + size), ends=None),
             box((x, top - JOINT_SEAM, z), (x + size, top, z + size), PAD_SLOT),
             box((x + PAD_INSET, 0, z + PAD_INSET),
                 (x + size - PAD_INSET, PAD_HEIGHT, z + size - PAD_INSET), PAD_SLOT)]
@@ -117,25 +153,25 @@ def geometry():
     frame.append(box((-HALF[0], REAR_RAIL_BOTTOM, REAR_END_START),
                      (HALF[0], REAR_RAIL_TOP, HALF[1])))
     backrest = []
-    slats_half = (SLAT_COUNT * SLAT_WIDTH + (SLAT_COUNT - 1) * SLAT_GAP) / 2
+    slats_half = SLATS_HALF
     for k in range(SLAT_COUNT):
         x = -slats_half + k * (SLAT_WIDTH + SLAT_GAP)
         pale_inset = (SLAT_WIDTH - PALE_SLAT_WIDTH) / 2
-        frame.append(box((x + pale_inset, SLAT_BOTTOM, BAND_START),
+        frame.append(slat((x + pale_inset, SLAT_BOTTOM, BAND_START),
                          (x + pale_inset + PALE_SLAT_WIDTH, TOP_PX, BAND_END), 2))
 
     # Offset foot fingers interleave without closing the lengthwise air gaps.
     for k in range(SLAT_COUNT - 1):
         x = -slats_half + (k + 0.5) * (SLAT_WIDTH + SLAT_GAP)
-        frame.append(box((x, SLAT_BOTTOM, -16), (x + SLAT_WIDTH, TOP_PX, BAND_START), 1))
+        frame.append(slat((x, SLAT_BOTTOM, -16), (x + SLAT_WIDTH, TOP_PX, BAND_START), 1))
         finger_x = x + (SLAT_WIDTH - FINGER_WIDTH) / 2
-        frame.append(box((finger_x, SLAT_BOTTOM, BAND_START),
+        frame.append(slat((finger_x, SLAT_BOTTOM, BAND_START),
                          (finger_x + FINGER_WIDTH, TOP_PX, BAND_END), 2))
     for k in range(BACKREST_SLAT_COUNT):
         x = -slats_half + k * (BACKREST_SLAT_WIDTH + BACKREST_SLAT_GAP)
-        frame.append(box((x, SLAT_BOTTOM, BAND_END),
+        frame.append(slat((x, SLAT_BOTTOM, BAND_END),
                          (x + BACKREST_SLAT_WIDTH, TOP_PX, HINGE[2]), 1))
-        backrest.append(box((x, BACKREST_BOTTOM, HINGE[2]),
+        backrest.append(slat((x, BACKREST_BOTTOM, HINGE[2]),
                             (x + BACKREST_SLAT_WIDTH, TOP_PX, HINGE[2] + BACKREST_LENGTH), 1))
     # Only the head crossbar remains; its hooked ends lean down toward +z.
     crossbar_z = HINGE[2] + BACKREST_LENGTH - 0.8
@@ -152,10 +188,10 @@ def geometry():
             table_frame.extend(leg(x, z, LEG_SIZE, TABLE_RAIL_BOTTOM))
     for x in (-HALF[0], HALF[0] - TABLE_RAIL_THICKNESS):
         table_frame.append(box((x, TABLE_RAIL_BOTTOM, TABLE_Z_MIN),
-                               (x + TABLE_RAIL_THICKNESS, SLAT_BOTTOM, TABLE_Z_MAX)))
+                               (x + TABLE_RAIL_THICKNESS, TABLE_SLAT_BOTTOM, TABLE_Z_MAX)))
     for z in (TABLE_Z_MIN, TABLE_Z_MAX - TABLE_RAIL_THICKNESS):
         table_frame.append(box((-HALF[0], TABLE_RAIL_BOTTOM, z),
-                               (HALF[0], SLAT_BOTTOM, z + TABLE_RAIL_THICKNESS)))
+                               (HALF[0], TABLE_SLAT_BOTTOM, z + TABLE_RAIL_THICKNESS)))
     # Adjacent slats share edges: wood grain marks joints without grooves or air gaps.
     # True square holes sit between the slat centre lines at the table midpoint.
     centres = [-slats_half + k * (SLAT_WIDTH + SLAT_GAP) + SLAT_WIDTH / 2
@@ -164,14 +200,14 @@ def geometry():
     edges = [-6] + joints + [6]
     table_top = []
     for left, right in zip(edges, edges[1:]):
-        table_top.extend([box((left, SLAT_BOTTOM, TABLE_Z_MIN), (right, TOP_PX, TABLE_Z_CENTER - NOTCH_SIZE / 2), 4),
-                          box((left, SLAT_BOTTOM, TABLE_Z_CENTER + NOTCH_SIZE / 2), (right, TOP_PX, TABLE_Z_MAX), 4)])
+        table_top.extend([box((left, TABLE_SLAT_BOTTOM, TABLE_Z_MIN), (right, TABLE_TOP_PX, TABLE_Z_CENTER - NOTCH_SIZE / 2), 4),
+                          box((left, TABLE_SLAT_BOTTOM, TABLE_Z_CENTER + NOTCH_SIZE / 2), (right, TABLE_TOP_PX, TABLE_Z_MAX), 4)])
     cursor = -6
     for x in joints:
-        table_top.append(box((cursor, SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2),
-                             (x - NOTCH_SIZE / 2, TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
+        table_top.append(box((cursor, TABLE_SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2),
+                             (x - NOTCH_SIZE / 2, TABLE_TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
         cursor = x + NOTCH_SIZE / 2
-    table_top.append(box((cursor, SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2), (6, TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
+    table_top.append(box((cursor, TABLE_SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2), (6, TABLE_TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
     bones = [{"name": "root", "pivot": [0, 0, 0]},
              {"name": "chair_form", "parent": "root", "pivot": [0, 0, 0]},
              {"name": "frame", "parent": "chair_form", "pivot": [0, 0, 0], "cubes": frame},
@@ -190,13 +226,21 @@ def geometry():
 
 
 def pixel(x, y):
-    slot = x // 16
+    slot, u = divmod(x, 16)
     color = PALETTE[slot]
-    # Fine, deterministic grain follows the long axis on the slat faces.
-    grain = ((x * 13 + (y // 6) * 7) % 9 - 4) if slot < 3 or slot == 4 else 0
-    # A narrow wood-coloured edge marks each closed table slat joint.
-    joint = -10 if slot == 4 and x % 16 == 0 else 0
-    return tuple(c + grain + joint for c in color) + (255,)
+    if slot in (3, PAD_SLOT):
+        return color + (255,)
+    # Deterministic grain runs along v: each texel column keeps its own tone, with
+    # occasional darker figure lines and a slow wave down the board.
+    column = ((u * 37 + slot * 11) % 13) - 6
+    figure = -12 if (u * 7 + slot * 3) % 11 == 0 else 0
+    wave = ((y + u * 3) // 4 % 3 - 1) * 3
+    # Darker arrises outline every board face so slats and rails separate in the render.
+    edge = -14 if u in (0, 15) or y in (0, 15) else 0
+    shift = column + figure + wave + edge
+    if slot == GAP_SLOT:
+        shift //= 2
+    return tuple(max(0, min(255, c + shift)) for c in color) + (255,)
 
 
 def main():
