@@ -23,48 +23,48 @@ TOP_LIMIT = 4
 PANEL_HALF = 7.1
 PANEL_BOTTOM = 11.6
 RIM_BOTTOM = 11.3
-# Dark-pixel runs (RGB < 115) in ref_table_legs.png, the owner's close-up.
-# The nearest leg is unobscured at these rows; ring contact is interpolated
-# across the foreground brace. Coordinates are image pixels, x right / y down.
+# Leg and ring placement from daining_table_whole.png: centers of the dark-pixel
+# runs (RGB < 100), in image pixels. The top's left and right corners span
+# x 35..410, so every horizontal offset is a fraction of that half diagonal,
+# which is TOP_HALF * (cos + sin) of the camera azimuth. Outer legs stand on
+# that same diagonal, so their offsets need no azimuth at all.
+REF_WHOLE_TOP_HALF_SPAN = (410 - 35) / 2
+REF_WHOLE_LEG_TOP_HALF_SPAN = (313 - 125) / 2  # Row 140, just under the top.
+REF_WHOLE_LEG_BEND_HALF_SPAN = (290 - 142) / 2  # Narrowest point, rows 225..235.
+REF_WHOLE_LEG_FOOT_HALF_SPAN = (357 - 81) / 2  # Left foot row 350, right foot row 383.
+REF_WHOLE_INNER_LEG_TOP_SPAN = 250 - 177  # Front and back legs at row 140.
+REF_WHOLE_RING_HALF_SPAN = (301 - 136) / 2  # Outer edge of the ring, row 220.
+# The inner pair of legs projects by cos - sin and the outer pair by cos + sin.
+REF_VIEW_AZIMUTH = 45 - math.degrees(math.atan(REF_WHOLE_INNER_LEG_TOP_SPAN / (2 * REF_WHOLE_LEG_TOP_HALF_SPAN)))
+DIAGONAL_PROJECTION = math.cos(math.radians(REF_VIEW_AZIMUTH)) + math.sin(math.radians(REF_VIEW_AZIMUTH))
+LEG_TOP_OFFSET = TOP_HALF * REF_WHOLE_LEG_TOP_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+LEG_WAIST = TOP_HALF * REF_WHOLE_LEG_BEND_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+LEG_FOOT_OFFSET = TOP_HALF * REF_WHOLE_LEG_FOOT_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+RING_OUTER_RADIUS = TOP_HALF * DIAGONAL_PROJECTION * REF_WHOLE_RING_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+# Heights and tube diameters from ref_table_legs.png, the owner's close-up,
+# along the nearest leg (dark runs, RGB < 115). The bend sits 57 percent of the
+# way up from the foot in both photos (whole: rows 352, 228, 133 on the left
+# leg). Diameters are scaled by the ring's outer width there, which lies at the
+# same depth as the bends.
 REF_TOP_UNDERSIDE_Y = 65
-REF_UPPER_START_X = 342
-REF_RING_CONTACT_X = 359
 REF_RING_CONTACT_Y = 385
-REF_FOOT_X = 279
 REF_FOOT_Y = 807
+REF_RING_OUTER_WIDTH = 677 - 215  # Row 360.
 REF_TOP_DIAMETER = 24  # Row 80: x 330..353.
-REF_WAIST_DIAMETER = 32  # Row 330: x 342..373.
+REF_WAIST_DIAMETER = 32  # Row 345: x 343..374, just above the ring.
 REF_FOOT_DIAMETER = 24  # Row 800: x 270..293.
-REF_RING_CENTER_Y = 340  # Ellipse outer y bounds 275..405.
-REF_RING_RADIUS = 231  # Outer x bounds 215..677.
 REF_RING_TUBE = 32  # Column x 450: foreground tube y 373..404.
-# daining_table_whole.png: top x 34..411, ring x 131..297.
-# Top edge slopes give a camera azimuth of approximately 20 degrees.
-REF_WHOLE_TOP_WIDTH = 377
-REF_WHOLE_RING_WIDTH = 166
-REF_VIEW_AZIMUTH = 20
+REF_CAP_HEIGHT = 10  # The black cap under the nearest foot.
 PANEL_LEG_Y = 11.5
-PHOTO_VERTICAL_SCALE = PANEL_LEG_Y / (REF_FOOT_Y - REF_TOP_UNDERSIDE_Y)
-PHOTO_HORIZONTAL_SCALE = (2 * TOP_HALF *
-                          (math.cos(math.radians(REF_VIEW_AZIMUTH)) +
-                           math.sin(math.radians(REF_VIEW_AZIMUTH)))) / REF_WHOLE_TOP_WIDTH
-RING_HALF = REF_RING_TUBE * PHOTO_VERTICAL_SCALE / 2
-RING_RADIUS = REF_WHOLE_RING_WIDTH * PHOTO_HORIZONTAL_SCALE / 2 - RING_HALF
-RING_Y = (REF_FOOT_Y - REF_RING_CONTACT_Y) * PHOTO_VERTICAL_SCALE
-LEG_WAIST = RING_RADIUS / math.sqrt(2)
-# The near leg's projected x is radial distance times sin(45 - azimuth).
-PHOTO_RADIAL_SCALE = PHOTO_HORIZONTAL_SCALE * REF_WHOLE_RING_WIDTH / (2 * REF_RING_RADIUS)
-LEG_TOP_OFFSET = LEG_WAIST + ((REF_RING_CONTACT_X - REF_UPPER_START_X) *
-    PHOTO_RADIAL_SCALE / math.sin(math.radians(45 - REF_VIEW_AZIMUTH)) / math.sqrt(2))
-LEG_FOOT_OFFSET = LEG_WAIST + ((REF_RING_CONTACT_X - REF_FOOT_X) *
-    PHOTO_RADIAL_SCALE / math.sin(math.radians(45 - REF_VIEW_AZIMUTH)) / math.sqrt(2))
-LEG_TOP_WIDTH = REF_TOP_DIAMETER * PHOTO_VERTICAL_SCALE
-LEG_WAIST_WIDTH = REF_WAIST_DIAMETER * PHOTO_VERTICAL_SCALE
-LEG_FOOT_WIDTH = REF_FOOT_DIAMETER * PHOTO_VERTICAL_SCALE
-# Black cap occupies the last approximately 10 image pixels of the nearest foot.
-REF_CAP_HEIGHT = 10
-FOOT_CAP_HEIGHT = REF_CAP_HEIGHT * PHOTO_VERTICAL_SCALE
+CLOSEUP_SCALE = 2 * RING_OUTER_RADIUS / REF_RING_OUTER_WIDTH
+RING_HALF = REF_RING_TUBE * CLOSEUP_SCALE / 2
+RING_RADIUS = RING_OUTER_RADIUS - RING_HALF
+LEG_TOP_WIDTH = REF_TOP_DIAMETER * CLOSEUP_SCALE
+LEG_WAIST_WIDTH = REF_WAIST_DIAMETER * CLOSEUP_SCALE
+LEG_FOOT_WIDTH = REF_FOOT_DIAMETER * CLOSEUP_SCALE
 FOOT_Y = LEG_FOOT_WIDTH / 2
+RING_Y = FOOT_Y + (PANEL_LEG_Y - FOOT_Y) * (REF_FOOT_Y - REF_RING_CONTACT_Y) / (REF_FOOT_Y - REF_TOP_UNDERSIDE_Y)
+FOOT_CAP_HEIGHT = (PANEL_LEG_Y - FOOT_Y) * REF_CAP_HEIGHT / (REF_FOOT_Y - REF_TOP_UNDERSIDE_Y)
 TAPER_STEPS = 4
 RING_SEGMENTS = 32
 # Four overlapping rectangular prisms form an eight-sided tube cross-section.
