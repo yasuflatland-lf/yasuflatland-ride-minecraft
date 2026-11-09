@@ -82,6 +82,7 @@ function setup() {
     topHosts: campTopHosts(),
     isVehicleSpace: vi.fn(() => true),
     isCampSpace: vi.fn(() => false),
+    placeHostedOnTop: vi.fn(() => false),
   };
   installResort(deps);
   return deps;
