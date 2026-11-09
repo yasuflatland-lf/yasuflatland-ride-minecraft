@@ -6,10 +6,12 @@ import {
   parasolCeilingCells,
   parasolFootCells,
   parasolPose,
+  parasolPoseAt,
   parasolSupportCell,
   tooCloseToOtherBase,
 } from "../../../src/domain/resort/parasolPose";
 import { PARASOL_SPEC } from "../../../src/domain/resort/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { snapYaw4 } from "../../../src/domain/shared/facing";
 
 const cellArb = fc.record({
@@ -75,35 +77,52 @@ describe("parasolPose", () => {
     );
   });
 
-  it("keeps every foot cell centre more than 2 blocks from the canopy centre along the facing axis", () => {
-    fc.assert(
-      fc.property(cellArb, yawArb, (pressed, yaw) => {
-        const pose = parasolPose(pressed, yaw);
-        for (const cell of parasolFootCells(pose)) {
-          const dx = Math.abs(cell.x + 0.5 - pose.canopyCenter.x);
-          const dz = Math.abs(cell.z + 0.5 - pose.canopyCenter.z);
-          // These are centre distances, not nearest-edge clearances: the nearest
-          // centre is 2.25 blocks away along the facing axis; its edge is 1.75.
-          const alongFacing = pose.yaw === 0 || pose.yaw === 180 ? dz : dx;
-          expect(alongFacing).toBeGreaterThan(2);
-        }
-      }),
-    );
-  });
-
-  it("lists the foot cells above the base and the support below it", () => {
+  it("returns unique integer clearance cells around the fractional base", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
         const pose = parasolPose(pressed, yaw);
         const cells = parasolFootCells(pose);
-        expect(cells).toHaveLength(PARASOL_SPEC.footCells.length);
-        expect(cells).toContainEqual(pose.base);
+        expect(cells.length).toBeGreaterThan(PARASOL_SPEC.footCells.length);
+        expect(new Set(cells.map((c) => JSON.stringify(c))).size).toBe(
+          cells.length,
+        );
+        for (const cell of cells) {
+          expect(cellOf(cell)).toEqual(cell);
+          expect(cell.y).toBeGreaterThanOrEqual(pose.base.y);
+        }
+        const centre = cellOf({
+          x: pose.base.x + 0.5,
+          y: pose.base.y,
+          z: pose.base.z + 0.5,
+        });
+        expect(cells).toContainEqual(centre);
         expect(parasolSupportCell(pose)).toEqual({
-          ...pose.base,
-          y: pose.base.y - 1,
+          ...centre,
+          y: centre.y - 1,
         });
       }),
     );
+  });
+
+  it.each([
+    [0, { x: 10, y: 63, z: 23 }],
+    [90, { x: 7, y: 63, z: 20 }],
+    [180, { x: 10, y: 63, z: 17 }],
+    [270, { x: 13, y: 63, z: 20 }],
+  ])("checks the block below the base centre at yaw %i", (yaw, support) => {
+    expect(
+      parasolSupportCell(parasolPose({ x: 10, y: 63, z: 20 }, yaw)),
+    ).toEqual(support);
+  });
+
+  it("checks both columns overlapped by the shifted base and bent pole", () => {
+    const cells = parasolFootCells(parasolPose({ x: 10, y: 63, z: 20 }, 0));
+    expect(cells).toContainEqual({ x: 10, y: 64, z: 22 });
+    expect(cells).toContainEqual({ x: 10, y: 64, z: 25 });
+    expect(cells).toContainEqual({ x: 10, y: 66, z: 24 });
+    expect(cells).toContainEqual({ x: 10, y: 66, z: 25 });
+    expect(cells).not.toContainEqual({ x: 10, y: 64, z: 21 });
+    expect(cells).not.toContainEqual({ x: 10, y: 64, z: 26 });
   });
 
   it.each([0, 90, 180, 270])(
@@ -169,6 +188,17 @@ describe("tooCloseToOtherBase", () => {
         expect(tooCloseToOtherBase(a, [b])).toBe(
           d < PARASOL_SPEC.minBaseDistance,
         );
+      }),
+    );
+  });
+});
+
+describe("parasolPoseAt", () => {
+  it("rebuilds the placed pose from its base and facing", () => {
+    fc.assert(
+      fc.property(cellArb, yawArb, (pressed, yaw) => {
+        const placed = parasolPose(pressed, yaw);
+        expect(parasolPoseAt(placed.base, placed.yaw)).toEqual(placed);
       }),
     );
   });

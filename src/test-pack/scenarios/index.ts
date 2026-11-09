@@ -106,6 +106,7 @@ import {
 } from "./camper";
 import { campingGearBlocks } from "./campingGear";
 import { fleetForget } from "./fleetRemove";
+import { parasolPlaceTakeBack, parasolRainCeiling } from "./parasol";
 import {
   bulldozerPaveCourse,
   bulldozerPaveFlight,
@@ -268,6 +269,8 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dutch_oven_simmer_take_back: dutchOvenSimmerAndTakeBack,
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
+  parasol_place_take_back: parasolPlaceTakeBack,
+  parasol_rain_ceiling: parasolRainCeiling,
   roof_tent_course: roofTentCourse,
   tent_entity_contract: tentEntityContract,
   tent_fold_legacy: tentFoldLegacy,
