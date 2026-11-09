@@ -21,8 +21,8 @@ TOP_LIMIT = 4
 # out to feet just inside the top's outline, joined by a ring a little above
 # mid height.
 PANEL_HALF = 7.1
-PANEL_BOTTOM = 11.6
-RIM_BOTTOM = 11.3
+PANEL_BOTTOM = 11.65
+RIM_BOTTOM = 11.65
 # Leg and ring placement from daining_table_whole.png: centers of the dark-pixel
 # runs (RGB < 100), in image pixels. The top's left and right corners span
 # x 35..410, so every horizontal offset is a fraction of that half diagonal,
@@ -37,48 +37,63 @@ REF_WHOLE_RING_HALF_SPAN = (301 - 136) / 2  # Outer edge of the ring, row 220.
 # The inner pair of legs projects by cos - sin and the outer pair by cos + sin.
 REF_VIEW_AZIMUTH = 45 - math.degrees(math.atan(REF_WHOLE_INNER_LEG_TOP_SPAN / (2 * REF_WHOLE_LEG_TOP_HALF_SPAN)))
 DIAGONAL_PROJECTION = math.cos(math.radians(REF_VIEW_AZIMUTH)) + math.sin(math.radians(REF_VIEW_AZIMUTH))
-LEG_TOP_OFFSET = TOP_HALF * REF_WHOLE_LEG_TOP_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
-LEG_WAIST = TOP_HALF * REF_WHOLE_LEG_BEND_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
-LEG_FOOT_OFFSET = TOP_HALF * REF_WHOLE_LEG_FOOT_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
-RING_OUTER_RADIUS = TOP_HALF * DIAGONAL_PROJECTION * REF_WHOLE_RING_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
-# Heights and tube diameters from ref_table_legs.png, the owner's close-up,
-# along the nearest leg (dark runs, RGB < 115). The bend sits 57 percent of the
-# way up from the foot in both photos (whole: rows 352, 228, 133 on the left
-# leg). Diameters are scaled by the ring's outer width there, which lies at the
-# same depth as the bends.
+# A simultaneous fit to the close-up leg span and ring width contracts the
+# whole-photo horizontal estimates; preserve the fixed host surface above.
+LEG_PLAN_SCALE = 0.86
+LEG_TOP_OFFSET = LEG_PLAN_SCALE * TOP_HALF * REF_WHOLE_LEG_TOP_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+LEG_WAIST = LEG_PLAN_SCALE * TOP_HALF * REF_WHOLE_LEG_BEND_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+LEG_FOOT_OFFSET = LEG_PLAN_SCALE * TOP_HALF * REF_WHOLE_LEG_FOOT_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+RING_OUTER_RADIUS = LEG_PLAN_SCALE * TOP_HALF * DIAGONAL_PROJECTION * REF_WHOLE_RING_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+# Perpendicular dark-pixel runs (RGB < 115) on ref_table_legs.png, at its
+# native 924 by 828 resolution; the foreground tube spans rows 373..404.
 REF_TOP_UNDERSIDE_Y = 65
 REF_RING_CONTACT_Y = 385
 REF_FOOT_Y = 807
-REF_RING_OUTER_WIDTH = 677 - 215  # Row 360.
-REF_TOP_DIAMETER = 24  # Row 80: x 330..353.
-REF_WAIST_DIAMETER = 32  # Row 345: x 343..374, just above the ring.
-REF_FOOT_DIAMETER = 24  # Row 800: x 270..293.
-REF_RING_TUBE = 32  # Column x 450: foreground tube y 373..404.
-REF_CAP_HEIGHT = 10  # The black cap under the nearest foot.
-PANEL_LEG_Y = 11.5
-CLOSEUP_SCALE = 2 * RING_OUTER_RADIUS / REF_RING_OUTER_WIDTH
-RING_HALF = REF_RING_TUBE * CLOSEUP_SCALE / 2
-RING_RADIUS = RING_OUTER_RADIUS - RING_HALF
+REF_RING_OUTER_WIDTH = 677 - 215
+REF_RING_OUTER_HEIGHT = 404 - 276
+REF_TOP_DIAMETER = 24.1  # Normal to the axis through (342, 80), slope (14, 300).
+REF_WAIST_DIAMETER = 32.1  # Same normal through (357, 330).
+REF_FOOT_DIAMETER = 25.4  # Normal to the lower leg through (282, 800).
+REF_RING_TUBE = 32.0  # Vertical normal through (450, 389).
+REF_CAP_HEIGHT = 10  # Black run below the front tube, rows 802..811.
+# Whole-photo front leg landmarks, not the more distant left leg used before.
+REF_WHOLE_FRONT_TOP_Y = 130
+REF_WHOLE_FRONT_RING_Y = 250
+REF_WHOLE_FRONT_FOOT_Y = 410
+PANEL_LEG_Y = RIM_BOTTOM
+# Scale from the nearest leg's vertical span, not the ring's projected width:
+# the fixed 15 by 15 by 12 model is wider than the photographed table.
+# About 0.9 model px of the upper leg is hidden by the top in the matched view.
+CLOSEUP_OCCLUDED_HEIGHT = 0.9
+CLOSEUP_SCALE = (PANEL_LEG_Y - CLOSEUP_OCCLUDED_HEIGHT) / (REF_FOOT_Y - REF_TOP_UNDERSIDE_Y)
 LEG_TOP_WIDTH = REF_TOP_DIAMETER * CLOSEUP_SCALE
 LEG_WAIST_WIDTH = REF_WAIST_DIAMETER * CLOSEUP_SCALE
 LEG_FOOT_WIDTH = REF_FOOT_DIAMETER * CLOSEUP_SCALE
 FOOT_Y = LEG_FOOT_WIDTH / 2
-RING_Y = FOOT_Y + (PANEL_LEG_Y - FOOT_Y) * (REF_FOOT_Y - REF_RING_CONTACT_Y) / (REF_FOOT_Y - REF_TOP_UNDERSIDE_Y)
-FOOT_CAP_HEIGHT = (PANEL_LEG_Y - FOOT_Y) * REF_CAP_HEIGHT / (REF_FOOT_Y - REF_TOP_UNDERSIDE_Y)
-TAPER_STEPS = 4
-RING_SEGMENTS = 32
+# Camera projection includes the front foot's greater depth. Fitting both
+# front-leg ratios (whole 120/280, close-up 320/742), including top occlusion,
+# gives y=5.95: rendered ratios are 0.432 and 0.421 respectively.
+RING_Y = 5.95
+RING_HALF = REF_RING_TUBE * CLOSEUP_SCALE / 2
+RING_RADIUS = RING_OUTER_RADIUS - RING_HALF
+FOOT_CAP_HEIGHT = 1.5 * REF_CAP_HEIGHT * CLOSEUP_SCALE
+TAPER_STEPS = 2
+RING_SEGMENTS = 48
 # Four overlapping rectangular prisms form an eight-sided tube cross-section.
 TUBE_BARS = 4
-# Eight weave repeats across the top keep the strands as fine as the photo's.
-WEAVE_SIZE = 128
+# Sixteen repeats give the whole-photo top its fine square weave.
+WEAVE_SIZE = 256
 WEAVE_TILE = 16
 TEXTURE_WIDTH = WEAVE_SIZE
 TEXTURE_HEIGHT = WEAVE_SIZE + 8
 STEEL = (64, 65, 68, 255)
 STEEL_DARK = (52, 53, 56, 255)
-FOOT_BLACK = (24, 25, 26, 255)
+FOOT_BLACK = (10, 10, 10, 255)
+# Table-only neutral charcoal; other furniture retains PALETTE_BLACK.
+TABLE_PALETTE = wicker.WeavePalette((40, 40, 40), (66, 66, 66), (25, 25, 25), (12, 12, 12),
+                                    columns=4, rows=4)
 ASSEMBLIES = {
-    "legs": {"owner": "dining_table", "cubes": 4 * (2 * TAPER_STEPS + 1) * TUBE_BARS},
+    "legs": {"owner": "dining_table", "cubes": 4 * (TAPER_STEPS + 2) * TUBE_BARS},
     "ring": {"owner": "dining_table", "cubes": RING_SEGMENTS * TUBE_BARS},
 }
 GEOMETRY = "models/entity/yasu_ride/dining_table.geo.json"
@@ -106,7 +121,10 @@ def tube(start, end, width, assembly, swatch=None):
     cubes = []
     for bar in range(TUBE_BARS):
         hx, hz = half, narrow
-        cube = box((-hx, -0.008, -hz), (hx, length + 0.008, hz), swatch)
+        # Tangent segments must overlap at their outer edge too, otherwise the
+        # ring shows a dark end face at every polygon corner.
+        overlap = half * math.tan(math.pi / RING_SEGMENTS) if assembly == "ring" else 0.008
+        cube = box((-hx, -overlap, -hz), (hx, length + overlap, hz), swatch)
         cube.update(pivot=[0, 0, 0], rotation=[0, bar * 45, math.degrees(math.atan2(dx, math.hypot(dy, dz)))])
         cube = tilt.tilt_assembly([cube], (0, 0, 0), "x", -math.degrees(math.atan2(dz, dy)),
                                   assembly=assembly, assemblies=ASSEMBLIES)[0]
@@ -121,16 +139,17 @@ def leg(sx, sz):
     waist = (sx * LEG_WAIST, RING_Y, sz * LEG_WAIST)
     top = (sx * LEG_TOP_OFFSET, PANEL_LEG_Y, sz * LEG_TOP_OFFSET)
     cubes = []
-    for start, end, w0, w1 in ((foot, waist, LEG_FOOT_WIDTH, LEG_WAIST_WIDTH),
-                               (waist, top, LEG_WAIST_WIDTH, LEG_TOP_WIDTH)):
-        for i in range(TAPER_STEPS):
-            a, b = i / TAPER_STEPS, (i + 1) / TAPER_STEPS
-            p = tuple(start[j] + (end[j] - start[j]) * a for j in range(3))
-            q = tuple(start[j] + (end[j] - start[j]) * b for j in range(3))
-            cubes.extend(tube(p, q, w0 + (w1 - w0) * (a + b) / 2, "legs"))
     cap_end = tuple(foot[j] + (waist[j] - foot[j]) * FOOT_CAP_HEIGHT / (RING_Y - FOOT_Y)
                     for j in range(3))
-    cubes.extend(tube(foot, cap_end, LEG_FOOT_WIDTH + 0.015, "legs", face(16)))
+    for i in range(TAPER_STEPS):
+        a, b = i / TAPER_STEPS, (i + 1) / TAPER_STEPS
+        p = tuple(cap_end[j] + (waist[j] - cap_end[j]) * a for j in range(3))
+        q = tuple(cap_end[j] + (waist[j] - cap_end[j]) * b for j in range(3))
+        width = LEG_FOOT_WIDTH + (LEG_WAIST_WIDTH - LEG_FOOT_WIDTH) * (a + b) / 2
+        cubes.extend(tube(p, q, width, "legs"))
+    # One unbroken upper tube avoids the old four visible sleeve joints.
+    cubes.extend(tube(waist, top, LEG_TOP_WIDTH, "legs"))
+    cubes.extend(tube(foot, cap_end, LEG_FOOT_WIDTH * 0.92, "legs", face(16)))
     return cubes
 
 
@@ -169,7 +188,7 @@ def main():
     parser.add_argument("resource_pack", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    tile = wicker.weave_tile(wicker.PALETTE_BLACK, WEAVE_TILE)
+    tile = wicker.weave_tile(TABLE_PALETTE, WEAVE_TILE)
 
     def pixel(x, y):
         if y < WEAVE_SIZE:

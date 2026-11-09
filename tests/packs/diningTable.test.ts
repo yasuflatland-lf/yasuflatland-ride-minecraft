@@ -96,7 +96,7 @@ assert m.LEG_WAIST_WIDTH > m.LEG_FOOT_WIDTH
 for sx in (-1, 1):
     for sz in (-1, 1):
         cubes = m.leg(sx, sz)
-        for i in range(2 * m.TAPER_STEPS):
+        for i in range(m.TAPER_STEPS + 1):
             cube = cubes[i * m.TUBE_BARS]
             axis = m.tilt.apply_matrix(m.tilt.cube_matrix(cube["rotation"]), [0, 1, 0])
             direction = -1 if i < m.TAPER_STEPS else 1
