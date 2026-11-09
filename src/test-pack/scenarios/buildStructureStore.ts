@@ -1,11 +1,18 @@
-import { BlockPermutation, ItemStack, SignSide } from "@minecraft/server";
+import {
+  type Block,
+  ItemStack,
+  type PlayerInteractWithBlockAfterEvent,
+  SignSide,
+  type Vector3,
+  world,
+} from "@minecraft/server";
 import { cellsOf } from "../../domain/build/box";
 import type { StructureHandle } from "../../domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
 import { isFleetEntityType } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, wait } from "../arena";
-import type { Outcome } from "../outcome";
+import type { Outcome, StepSink } from "../outcome";
 
 export async function buildStructureStore(a: Arena): Promise<Outcome> {
   // Real fleet spawns can evict owned vehicles before cleanup (ADR 0038, 0066).
@@ -63,13 +70,6 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
     if (!sign) throw new Error("missing sign component");
     sign.setText("Store front", SignSide.Front);
     sign.setText("Store back", SignSide.Back);
-    // Stable APIs can neither populate nor read frame contents (ADR 0243), so
-    // only the frame block is checked; its contents need a manual check.
-    // Facing up rests the frame on the stone floor; the default hangs it from air.
-    block(26).setPermutation(
-      BlockPermutation.resolve("minecraft:frame", { facing_direction: 1 }),
-    );
-    record("item_frame_setup", block(26).typeId === "minecraft:frame");
     const cow = summon("minecraft:cow", 27.5);
     const excluded = summon("minecraft:armor_stand", 23.5);
     const handle = store.capture(dim, box, owner);
@@ -115,11 +115,6 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
         restoredSign.getText(SignSide.Back) === "Store back",
     );
     record(
-      "item_frame",
-      block(26).typeId === "minecraft:frame",
-      `${block(26).typeId};contents=unverified`,
-    );
-    record(
       "cow",
       entities().filter((e) => e.typeId === "minecraft:cow").length === 1,
     );
@@ -160,6 +155,273 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
   }
   return {
     pass: results.every((r) => r.pass),
+    detail: results
+      .map(
+        ({ name, pass, value }) =>
+          `${name}=${pass ? "PASS" : "FAIL"}(${value})`,
+      )
+      .join("; "),
+  };
+}
+
+function errorText(error: unknown): string {
+  return error instanceof Error
+    ? `${error.name}:${error.message}`
+    : String(error);
+}
+
+export async function buildStructureStoreDecor(
+  a: Arena,
+  onStep?: StepSink,
+): Promise<Outcome> {
+  const player = world.getAllPlayers()[0];
+  if (!player?.isValid)
+    return { pass: false, detail: "a connected player is required" };
+  const inventory = player.getComponent("minecraft:inventory")?.container;
+  if (!inventory) return { pass: false, detail: "player inventory missing" };
+  const savedItems = Array.from({ length: inventory.size }, (_, slot) =>
+    inventory.getItem(slot)?.clone(),
+  );
+  const location = player.location;
+  const dimension = player.dimension;
+  const rotation = player.getRotation();
+  const selectedSlot = player.selectedSlotIndex;
+  const bottom = a.gy;
+  const from = a.at(20, bottom, 20);
+  const to = a.at(31, bottom + 5, 31);
+  const box = { min: from, max: to };
+  const store = new BedrockStructureStore(
+    (type) => isFleetEntityType(type) || type === "minecraft:armor_stand",
+  );
+  const dim = asDimensionId(a.dim.id);
+  const owner = asPlayerId(`store_decor_${a.lane.index}`);
+  const handles: StructureHandle[] = [];
+  const results: { name: string; pass: boolean; value: string }[] = [];
+  const record = (name: string, pass: boolean, value: unknown = pass) =>
+    results.push({ name, pass, value: String(value) });
+  const inside = (p: Vector3, margin = 0) =>
+    p.x >= from.x - margin &&
+    p.x < to.x + 1 + margin &&
+    p.y >= from.y - margin &&
+    p.y < to.y + 1 + margin &&
+    p.z >= from.z - margin &&
+    p.z < to.z + 1 + margin;
+  const entities = (margin = 0) =>
+    a.dim
+      .getEntities()
+      .filter(
+        (entity) =>
+          entity.typeId !== "minecraft:player" &&
+          inside(entity.location, margin),
+      );
+  const paintings = () =>
+    entities().filter((e) => e.typeId === "minecraft:painting");
+  const items = () => entities(1).filter((e) => e.typeId === "minecraft:item");
+  const drops = () =>
+    items().map(
+      (entity) =>
+        entity.getComponent("minecraft:item")?.itemStack.typeId ?? "unknown",
+    );
+  const removeItems = () => {
+    for (const entity of items()) entity.remove();
+  };
+  const clear = () => {
+    if (!store.clearBlocks(dim, box)) throw new Error("fixture clear failed");
+  };
+  const removeEntities = () => {
+    for (const entity of entities()) entity.remove();
+    removeItems();
+  };
+  const frames = () => {
+    const found: Block[] = [];
+    for (let x = from.x; x <= to.x; x++)
+      for (let y = from.y; y <= to.y; y++)
+        for (let z = from.z; z <= to.z; z++) {
+          const block = a.dim.getBlock({ x, y, z });
+          if (block?.typeId === "minecraft:frame") found.push(block);
+        }
+    return found;
+  };
+  const interacted = new Set<string>();
+  const listener = (event: PlayerInteractWithBlockAfterEvent) => {
+    if (
+      event.player.id === player.id &&
+      event.block.dimension.id === a.dim.id &&
+      event.block.typeId === "minecraft:frame" &&
+      inside(event.block.location) &&
+      event.beforeItemStack?.typeId === "minecraft:diamond"
+    )
+      interacted.add(JSON.stringify(event.block.location));
+  };
+  const setupState = () => {
+    const allFrames = frames();
+    const frame = allFrames.find((block) =>
+      interacted.has(JSON.stringify(block.location)),
+    );
+    const missing = [
+      ...(allFrames.length === 0 ? ["item frame"] : []),
+      ...(!frame ? ["diamond interaction with the frame"] : []),
+      ...(paintings().length === 0 ? ["painting"] : []),
+    ];
+    return { frame, missing };
+  };
+  const cleanup = (name: string, run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      record(name, false, errorText(error));
+    }
+  };
+  let phase = "setup";
+  world.afterEvents.playerInteractWithBlock.subscribe(listener);
+  try {
+    removeEntities();
+    clear();
+    a.dim.runCommand(`fill ${a.box(20, bottom, 20, 31, bottom, 31)} stone`);
+    a.dim.runCommand(
+      `fill ${a.box(21, bottom + 1, 21, 21, bottom + 4, 26)} stone`,
+    );
+    inventory.clearAll();
+    // Stable APIs cannot populate a frame or create a painting (ADR 0243).
+    for (const type of [
+      "minecraft:frame",
+      "minecraft:diamond",
+      "minecraft:painting",
+    ])
+      inventory.addItem(new ItemStack(type, 1));
+    player.selectedSlotIndex = 0;
+    player.teleport(a.at(24.5, bottom + 1, 23.5), {
+      dimension: a.dim,
+      facingLocation: a.at(21, bottom + 2, 23.5),
+    });
+    const prompt =
+      "Structure store decor check: within 60 seconds, place the item frame on the stone wall, put the diamond into it, and hang the painting on the wall.";
+    player.sendMessage(prompt);
+    player.onScreenDisplay.setActionBar(prompt);
+    let setup = setupState();
+    for (let ticks = 0; ticks < 1200 && setup.missing.length > 0; ticks += 10) {
+      await wait(10);
+      setup = setupState();
+      // The player setup window exceeds the runner's 60-second stall watch.
+      if ((ticks + 10) % 200 === 0)
+        onStep?.({
+          name: `setup_wait_${ticks + 10}`,
+          pass: true,
+          detail: `polled setup after ${ticks + 10} ticks; missing: ${setup.missing.join(", ") || "none"}`,
+        });
+    }
+    const frame = setup.frame;
+    if (!frame || setup.missing.length > 0) {
+      record(
+        "setup",
+        false,
+        `fixture incomplete; missing: ${setup.missing.join(", ")}`,
+      );
+    } else {
+      record(
+        "setup",
+        true,
+        "player placed frame, interacted with diamond, and hung painting",
+      );
+      const cell = frame.location;
+      const states = frame.permutation.getAllStates();
+      player.teleport(a.at(16.5, bottom, 23.5), { dimension: a.dim });
+      removeItems();
+      const handle = store.capture(dim, box, owner);
+      if (handle === "tooLarge" || handle === "unreadable") {
+        record("capture", false, handle);
+      } else {
+        handles.push(handle);
+        const originalPaintings = paintings();
+        record(
+          "painting_setup",
+          originalPaintings.length === 1,
+          originalPaintings.length,
+        );
+        const breakFrame = () =>
+          a.dim.runCommand(
+            `setblock ${cell.x} ${cell.y} ${cell.z} air destroy`,
+          );
+        // A diamond drop must be observable on the original before testing preservation.
+        breakFrame();
+        await wait(2);
+        const originalDrops = drops();
+        const observed = originalDrops.includes("minecraft:diamond");
+        record(
+          "frame_setup_observed",
+          observed,
+          observed
+            ? originalDrops.join(",")
+            : `fixture failure: destroy-drop observation produced no diamond; drops=${originalDrops.join(",")}`,
+        );
+        removeItems();
+        if (observed && originalPaintings.length === 1) {
+          phase = "round_trip";
+          store.clearEntities(dim, box);
+          record("clear_entities", paintings().length === 0);
+          record("clear_blocks", store.clearBlocks(dim, box));
+          await wait(5);
+          const itemCount = entities().filter(
+            (e) => e.typeId === "minecraft:item",
+          ).length;
+          record("clear_drops", itemCount === 0, itemCount);
+          record("place", store.place(handle, dim, box.min));
+          await wait(2);
+          const count = paintings().length;
+          record("painting", count === 1, count);
+          const restored = a.dim.getBlock(cell);
+          const restoredStates = restored?.permutation.getAllStates();
+          record(
+            "item_frame_block",
+            restored?.typeId === "minecraft:frame" &&
+              restoredStates !== undefined &&
+              Object.keys(states).length ===
+                Object.keys(restoredStates).length &&
+              Object.entries(states).every(
+                ([key, value]) => restoredStates[key] === value,
+              ),
+            `${restored?.typeId};states=${JSON.stringify(restoredStates)}`,
+          );
+          breakFrame();
+          await wait(2);
+          const restoredDrops = drops();
+          record(
+            "item_frame",
+            restoredDrops.includes("minecraft:diamond"),
+            restoredDrops.join(","),
+          );
+        }
+      }
+    }
+  } catch (error) {
+    record(
+      phase,
+      false,
+      `${phase === "setup" ? "fixture failure: " : ""}${errorText(error)}`,
+    );
+  } finally {
+    cleanup("cleanup_listener", () =>
+      world.afterEvents.playerInteractWithBlock.unsubscribe(listener),
+    );
+    for (const handle of handles)
+      cleanup("cleanup_structure", () => store.discard(handle));
+    cleanup("cleanup_entities", removeEntities);
+    cleanup("cleanup_blocks", clear);
+    cleanup("cleanup_drops", removeItems);
+    if (player.isValid) {
+      cleanup("restore_inventory", () => {
+        savedItems.forEach((item, slot) => {
+          inventory.setItem(slot, item);
+        });
+        player.selectedSlotIndex = selectedSlot;
+      });
+      cleanup("restore_location", () =>
+        player.teleport(location, { dimension, rotation }),
+      );
+    }
+  }
+  return {
+    pass: results.length > 0 && results.every((result) => result.pass),
     detail: results
       .map(
         ({ name, pass, value }) =>

@@ -28,6 +28,17 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_structure_store_decor",
+    file: "buildStructureStore",
+    ticks: 1300, // Estimate including up to 1,200 ticks of player setup time.
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    skipNote:
+      "a player hangs a painting and puts a diamond in an item frame when prompted",
+    vehicles: 0,
+  },
+  {
     name: "build_structure_probe",
     file: "buildStructure",
     ticks: 30,
@@ -35,6 +46,17 @@ export const CATALOG: readonly ScenarioSpec[] = [
     // Full-world-height captures could include entities from other scenarios.
     isolation: "exclusive",
     needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "build_structure_decor_probe",
+    file: "buildStructure",
+    ticks: 1300, // Estimate including up to 1,200 ticks of player setup time.
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    skipNote:
+      "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,
   },
   {
