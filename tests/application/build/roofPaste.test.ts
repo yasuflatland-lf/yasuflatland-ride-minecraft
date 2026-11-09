@@ -30,7 +30,7 @@ import {
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -243,7 +243,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
           lastPaste: { anchor, tick: 0 },
         });
         e.jobs.step();
-        for (const { at, state } of clip.cells)
+        for (const { at, state } of clipboardCells(clip))
           expect(
             e.world.stateAt(nether, {
               x: anchor.x + at.x,

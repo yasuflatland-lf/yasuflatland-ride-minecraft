@@ -3,6 +3,13 @@ import type { Clipboard } from "../../src/domain/build/clipboard/clipboard";
 import type { BuildSession } from "../../src/domain/build/session";
 import { asDimensionId } from "../../src/domain/shared/ids";
 
+/** The cells of a clipboard that holds the `cells` variant. */
+export function clipboardCells(clipboard: Clipboard | undefined) {
+  if (clipboard?.contents.kind !== "cells")
+    throw new Error("Expected a clipboard with cells contents");
+  return clipboard.contents.cells;
+}
+
 const COPY_DIMENSION = asDimensionId("minecraft:overworld");
 const ORIGIN = { x: 0, y: 0, z: 0 };
 

@@ -14,7 +14,7 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -161,7 +161,7 @@ it("confirms the chosen shape with the captured material, retaining its box only
     "minecraft:air",
   );
   e.copy.execute({ playerId });
-  expect(e.session.clipboard?.cells).toHaveLength(9);
+  expect(clipboardCells(e.session.clipboard)).toHaveLength(9);
 });
 
 it("refuses oversized shapes with their count, unsupported styles, and busy jobs without changing the flow", () => {
@@ -244,7 +244,7 @@ it("Copy refuses an unconfirmed endpoint and enforces the confirmed copy limit",
             count: size,
           });
           expect(e.session.clipboard).toBeUndefined();
-        } else expect(e.session.clipboard?.cells).toHaveLength(size);
+        } else expect(clipboardCells(e.session.clipboard)).toHaveLength(size);
       },
     ),
     { numRuns: 4 },

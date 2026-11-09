@@ -25,7 +25,7 @@ export class CopyBox implements BoxAction {
     );
     const session = this.repo.getOrCreate(playerId);
     session.completeCopy(dimensionId, box, clipboard);
-    this.feedback.showMessage(playerId, "copied", clipboard.cells.length);
+    this.feedback.showMessage(playerId, "copied", clipboard.blockCount);
     return true;
   }
 }

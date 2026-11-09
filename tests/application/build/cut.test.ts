@@ -18,7 +18,7 @@ import {
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
 import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
@@ -243,7 +243,7 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
           });
         }
         if (!(shape.kind === "rect" && shape.flat === "y"))
-          expect(e.session.clipboard?.cells.length).toBeGreaterThan(0);
+          expect(clipboardCells(e.session.clipboard).length).toBeGreaterThan(0);
       },
     ),
   );
@@ -258,7 +258,7 @@ it("keeps protected cells but still stores them in the clipboard", () => {
   e.cut.execute(playerId, overworld, box);
   e.drain();
   expect(e.world.stateAt(overworld, { ...origin, x: 1 })).toEqual(stone);
-  expect(e.session.clipboard?.cells).toHaveLength(2);
+  expect(clipboardCells(e.session.clipboard)).toHaveLength(2);
 });
 
 it("refuses a box above the copy limit even though the edit limit is larger", () => {
