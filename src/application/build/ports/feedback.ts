@@ -16,6 +16,7 @@ export type BuildMessage =
   | "busy"
   | "noClipboard"
   | "nothingToUndo"
+  | "pasteFailed"
   | "pasteBlocked"
   | "copyUnreadable"
   | "copied"

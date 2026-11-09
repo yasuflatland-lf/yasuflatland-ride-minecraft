@@ -2,12 +2,11 @@ import type { Cell } from "../../shared/cells";
 
 export type PasteAim = {
   readonly kind: "pasteAim";
-  readonly skipAir: boolean;
   readonly lastPaste?: { readonly anchor: Cell; readonly tick: number };
 };
 
-export function beginPasteAim(skipAir: boolean): PasteAim {
-  return Object.freeze({ kind: "pasteAim", skipAir });
+export function beginPasteAim(): PasteAim {
+  return Object.freeze({ kind: "pasteAim" });
 }
 
 export function recordPaste(
@@ -38,8 +37,4 @@ export function isRepeat(
     last.anchor.z === anchor.z &&
     tick - last.tick < window
   );
-}
-
-export function toggleSkipAir(aim: PasteAim): PasteAim {
-  return Object.freeze({ ...aim, skipAir: !aim.skipAir });
 }

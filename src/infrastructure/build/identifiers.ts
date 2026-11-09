@@ -24,6 +24,7 @@ export const BUILD_MESSAGE: Readonly<
   busy: "yasu_build.message.busy",
   noClipboard: "yasu_build.message.no_clipboard",
   nothingToUndo: "yasu_build.message.nothing_to_undo",
+  pasteFailed: "yasu_build.message.paste_failed",
   pasteBlocked: "yasu_build.message.paste_blocked",
   copyUnreadable: "yasu_build.message.copy_unreadable",
   copied: "yasu_build.message.copied",
@@ -76,7 +77,5 @@ export const BUILD_FORM = {
   newCopy: "yasu_build.form.new_copy",
   undo: "yasu_build.form.undo",
   clear: "yasu_build.form.clear_selection",
-  skipAirOn: "yasu_build.form.skip_air_on",
-  skipAirOff: "yasu_build.form.skip_air_off",
   submit: "yasu_build.form.submit",
 } as const;

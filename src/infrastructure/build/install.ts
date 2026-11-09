@@ -24,7 +24,6 @@ import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
 import { TapAir } from "../../application/build/tapAir";
-import { ToggleSkipAir } from "../../application/build/toggleSkipAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
@@ -69,13 +68,8 @@ export function installBuild(deps: {
     repo,
     new LeaveBuild(repo, ports.structures),
   );
-  const jobs = new EditJobs(
-    repo,
-    blocks,
-    feedback,
-    consoleLogger,
-    new BedrockBuildPlayers(),
-  );
+  const players = new BedrockBuildPlayers();
+  const jobs = new EditJobs(repo, blocks, feedback, consoleLogger, players);
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, ports.structures, feedback);
   const cutBox = new CutBox(repo, blocks, feedback, jobs, ports.structures);
@@ -86,10 +80,16 @@ export function installBuild(deps: {
     confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback),
-    toggleSkipAir: new ToggleSkipAir(repo),
     endPasting: new EndPasting(repo, ports.structures),
     newCopy: new NewCopy(repo),
-    pasteAt: new PasteAt(repo, blocks, feedback, jobs),
+    pasteAt: new PasteAt(
+      repo,
+      blocks,
+      feedback,
+      jobs,
+      ports.structures,
+      players,
+    ),
     chooseHeighted,
     chooseSideCylinder: new ChooseSideCylinder(
       repo,

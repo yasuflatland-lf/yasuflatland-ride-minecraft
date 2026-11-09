@@ -40,6 +40,7 @@ import {
   nether,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
@@ -191,16 +192,15 @@ it("refuses oversized and busy roofs without consuming the height stage", () => 
   expect(e.world.writes).toBe(0);
 });
 
-it("pastes clipboard-relative cells at the hit face with either air policy", () => {
+it("pastes clipboard-relative cells at the hit face including air", () => {
   fc.assert(
     fc.property(
       cell,
       cell,
       face,
-      fc.boolean(),
       fc.integer({ min: 1, max: 4 }),
       fc.array(fc.boolean(), { minLength: 64, maxLength: 64 }),
-      (source, block, face, skipAir, size, solids) => {
+      (source, block, face, size, solids) => {
         const e = setup();
         const sourceBox = boxOf(source, {
           x: source.x + size - 1,
@@ -210,7 +210,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         let i = 0;
         const clip = clipboardOf(sourceBox, () => (solids[i++] ? stone : AIR));
         holdClipboard(e.session, clip);
-        e.session.setFlow(beginPasteAim(skipAir));
+        e.session.setFlow(beginPasteAim());
         const { anchor, box } = pasteTarget(clip, block, face);
         const delta = {
           up: [0, 1, 0],
@@ -228,7 +228,14 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         expect(box.min).toEqual(anchor);
         for (const at of cellsOf(box)) e.world.put(at, dirt);
         const read = vi.spyOn(e.world, "mayEdit");
-        new PasteAt(e.repo, e.world, e.feedback, e.jobs).execute({
+        new PasteAt(
+          e.repo,
+          e.world,
+          e.feedback,
+          e.jobs,
+          new FakeStructureStore(),
+          new FakeBuildPlayers(),
+        ).execute({
           tick: 0,
           playerId,
           dimensionId: nether,
@@ -239,7 +246,6 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         );
         expect(e.session.flow).toEqual({
           kind: "pasteAim",
-          skipAir,
           lastPaste: { anchor, tick: 0 },
         });
         e.jobs.step();
@@ -250,7 +256,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
               y: anchor.y + at.y,
               z: anchor.z + at.z,
             }),
-          ).toEqual(skipAir && state === AIR ? dirt : state);
+          ).toEqual(state);
       },
     ),
   );
@@ -258,7 +264,14 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
 
 it("preserves paste aiming on missing clipboard, busy jobs and protected holes", () => {
   const e = setup();
-  const paste = new PasteAt(e.repo, e.world, e.feedback, e.jobs);
+  const paste = new PasteAt(
+    e.repo,
+    e.world,
+    e.feedback,
+    e.jobs,
+    new FakeStructureStore(),
+    new FakeBuildPlayers(),
+  );
   const cmd = {
     playerId,
     dimensionId: overworld,
@@ -274,7 +287,7 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
   };
   paste.execute(cmd);
   expect(e.feedback.messages).toEqual([]);
-  e.session.setFlow(beginPasteAim(true));
+  e.session.setFlow(beginPasteAim());
   const flow = e.session.flow;
   paste.execute(cmd);
   expect(e.feedback.messages.at(-1)?.message).toBe("noClipboard");

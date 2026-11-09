@@ -4,7 +4,6 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { PasteAt } from "../../../src/application/build/pasteAt";
-import { ToggleSkipAir } from "../../../src/application/build/toggleSkipAir";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
@@ -56,8 +55,15 @@ function setup() {
     session,
     clipboardOf(boxOf(at, at), () => stone),
   );
-  session.setFlow(beginPasteAim(false));
-  const paste = new PasteAt(repo, world, feedback, jobs);
+  session.setFlow(beginPasteAim());
+  const paste = new PasteAt(
+    repo,
+    world,
+    feedback,
+    jobs,
+    new FakeStructureStore(),
+    new FakeBuildPlayers(),
+  );
   const target = (block: { x: number; y: number; z: number }) => {
     if (!session.clipboard) throw new Error("Expected clipboard");
     return pasteTarget(session.clipboard, block, "up");
@@ -83,7 +89,7 @@ it("keeps aiming through successive pastes with one job and bounded undo record 
           });
           expect(e.session.flow).toEqual(
             recordPaste(
-              beginPasteAim(false),
+              beginPasteAim(),
               { ...block, y: block.y + 1 },
               i * BUILD_SPEC.pasteRepeatTicks,
             ),
@@ -186,63 +192,58 @@ it("allows the same anchor again once the repeat window ends", () => {
 
 it("leaves any flow after the exact grace delay and does not re-trigger", () => {
   fc.assert(
-    fc.property(
-      cell,
-      fc.boolean(),
-      fc.nat({ max: 30 }),
-      (at, skipAir, extraTicks) => {
-        const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-        const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
-        const height = chooseHeighted(endpoint, "gable");
-        for (const flow of [
-          { kind: "idle" } as const,
-          first,
-          endpoint,
-          height,
-          beginPasteAim(skipAir),
-        ]) {
-          const e = setup();
-          const leave = new LeaveBuild(e.repo, new FakeStructureStore());
-          const execute = vi.spyOn(leave, "execute");
-          const modes = new UpdateBuildModes(e.repo, leave);
-          for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-            modes.execute([{ playerId, holding: true }]);
-          e.session.confirmBox(overworld, boxOf(at, at));
-          e.session.setFlow(flow);
-          const clipboard = e.session.clipboard;
-          const box = e.session.confirmedBox;
-          // A one-tick item flicker must keep the copy (ADR 0203, Decision 5).
-          modes.execute([{ playerId, holding: false }]);
+    fc.property(cell, fc.nat({ max: 30 }), (at, extraTicks) => {
+      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
+      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+      const height = chooseHeighted(endpoint, "gable");
+      for (const flow of [
+        { kind: "idle" } as const,
+        first,
+        endpoint,
+        height,
+        beginPasteAim(),
+      ]) {
+        const e = setup();
+        const leave = new LeaveBuild(e.repo, new FakeStructureStore());
+        const execute = vi.spyOn(leave, "execute");
+        const modes = new UpdateBuildModes(e.repo, leave);
+        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           modes.execute([{ playerId, holding: true }]);
-          expect(e.session.clipboard).toBe(clipboard);
-          expect(e.session.confirmedBox).toBe(box);
-          expect(e.session.flow).toBe(flow);
-          for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
-            modes.execute([{ playerId, holding: false }]);
-          expect(e.session.flow).toBe(flow);
-          expect(e.session.clipboard).toBe(clipboard);
-          expect(e.session.confirmedBox).toBe(box);
-          expect(execute).not.toHaveBeenCalled();
+        e.session.confirmBox(overworld, boxOf(at, at));
+        e.session.setFlow(flow);
+        const clipboard = e.session.clipboard;
+        const box = e.session.confirmedBox;
+        // A one-tick item flicker must keep the copy (ADR 0203, Decision 5).
+        modes.execute([{ playerId, holding: false }]);
+        modes.execute([{ playerId, holding: true }]);
+        expect(e.session.clipboard).toBe(clipboard);
+        expect(e.session.confirmedBox).toBe(box);
+        expect(e.session.flow).toBe(flow);
+        for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
           modes.execute([{ playerId, holding: false }]);
-          expect(e.session.flow).toEqual({ kind: "idle" });
-          expect(e.session.clipboard).toBeUndefined();
-          expect(e.session.confirmedBox).toBeUndefined();
-          expect(e.session.mode).toEqual({ active: false, streak: 0 });
-          const idle = e.session.flow;
-          for (let i = 0; i < extraTicks + BUILD_SPEC.modeLeaveTicks; i++)
-            modes.execute([{ playerId, holding: false }]);
-          expect(execute).toHaveBeenCalledExactlyOnceWith(playerId);
-          expect(e.session.flow).toBe(idle);
-          expect(e.session.mode).toEqual({ active: false, streak: 0 });
-        }
-      },
-    ),
+        expect(e.session.flow).toBe(flow);
+        expect(e.session.clipboard).toBe(clipboard);
+        expect(e.session.confirmedBox).toBe(box);
+        expect(execute).not.toHaveBeenCalled();
+        modes.execute([{ playerId, holding: false }]);
+        expect(e.session.flow).toEqual({ kind: "idle" });
+        expect(e.session.clipboard).toBeUndefined();
+        expect(e.session.confirmedBox).toBeUndefined();
+        expect(e.session.mode).toEqual({ active: false, streak: 0 });
+        const idle = e.session.flow;
+        for (let i = 0; i < extraTicks + BUILD_SPEC.modeLeaveTicks; i++)
+          modes.execute([{ playerId, holding: false }]);
+        expect(execute).toHaveBeenCalledExactlyOnceWith(playerId);
+        expect(e.session.flow).toBe(idle);
+        expect(e.session.mode).toEqual({ active: false, streak: 0 });
+      }
+    }),
   );
 });
 
 it("LeaveBuild twice has the same effect as once in every flow", () => {
   fc.assert(
-    fc.property(cell, fc.boolean(), (at, skipAir) => {
+    fc.property(cell, (at) => {
       const first = tapBlock({ kind: "idle" }, overworld, at, stone);
       const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
       for (const flow of [
@@ -250,7 +251,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         first,
         endpoint,
         chooseHeighted(endpoint, "copy"),
-        beginPasteAim(skipAir),
+        beginPasteAim(),
       ]) {
         const e = setup();
         e.session.confirmBox(overworld, boxOf(at, at));
@@ -264,32 +265,6 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         expect(e.session.clipboard).toBeUndefined();
         expect(e.session.confirmedBox).toBeUndefined();
         expect(end).toHaveBeenCalledTimes(1);
-      }
-    }),
-  );
-});
-
-it("ToggleSkipAir flips only a paste aim and ignores unknown players", () => {
-  fc.assert(
-    fc.property(cell, fc.boolean(), (at, skipAir) => {
-      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
-      for (const flow of [
-        { kind: "idle" } as const,
-        first,
-        endpoint,
-        chooseHeighted(endpoint, "gable"),
-        beginPasteAim(skipAir),
-      ]) {
-        const e = setup();
-        const toggle = new ToggleSkipAir(e.repo);
-        toggle.execute({ playerId: asPlayerId("absent") });
-        expect(e.repo.get(asPlayerId("absent"))).toBeUndefined();
-        e.session.setFlow(flow);
-        toggle.execute({ playerId });
-        if (flow.kind === "pasteAim")
-          expect(e.session.flow).toEqual({ ...flow, skipAir: !skipAir });
-        else expect(e.session.flow).toBe(flow);
       }
     }),
   );
@@ -344,52 +319,6 @@ it("EndPasting lets a running paste finish with its undo record and keeps older 
       });
       expect(start).not.toHaveBeenCalled();
       expect(e.world.writes).toBe(1);
-    }),
-  );
-});
-
-it("uses the toggled setting for subsequent pastes while a running job keeps its plan", () => {
-  fc.assert(
-    fc.property(cell, fc.boolean(), (block, skipAir) => {
-      const e = setup();
-      const source = { x: 0, y: 0, z: 0 };
-      holdClipboard(
-        e.session,
-        clipboardOf(boxOf(source, { ...source, x: 1 }), (c) =>
-          c.x === 0 ? AIR : stone,
-        ),
-      );
-      e.session.setFlow(beginPasteAim(skipAir));
-      const toggle = new ToggleSkipAir(e.repo);
-      for (let i = 0; i < 2; i++) {
-        const target = e.target({ ...block, x: block.x + i * 3 });
-        e.world.put(target.anchor, stone);
-        expect(
-          e.paste.execute({
-            playerId,
-            dimensionId: overworld,
-            target,
-            tick: i * BUILD_SPEC.pasteRepeatTicks,
-          }),
-        ).toBe("pasted");
-        expect(e.session.isEditing).toBe(true);
-        const before = e.session.flow;
-        toggle.execute({ playerId });
-        expect(e.session.flow).toMatchObject({
-          lastPaste: before.kind === "pasteAim" ? before.lastPaste : undefined,
-        });
-        e.jobs.step();
-        const plannedSkipAir = i === 0 ? skipAir : !skipAir;
-        expect(e.world.stateAt(overworld, target.anchor)).toEqual(
-          plannedSkipAir ? stone : AIR,
-        );
-        expect(
-          e.world.stateAt(overworld, {
-            ...target.anchor,
-            x: target.anchor.x + 1,
-          }),
-        ).toEqual(stone);
-      }
     }),
   );
 });

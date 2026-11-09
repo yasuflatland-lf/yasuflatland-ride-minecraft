@@ -2,6 +2,7 @@ import {
   type BlockPermutation,
   ItemStack,
   type Player,
+  type PlayerInteractWithBlockAfterEvent,
   SignSide,
   system,
   world,
@@ -19,7 +20,7 @@ import {
   TEST_TAP_EVENT,
 } from "../../infrastructure/build/identifiers";
 import { type Arena, wait } from "../arena";
-import type { Outcome } from "../outcome";
+import type { Outcome, StepSink } from "../outcome";
 
 interface BuildState {
   flow: string;
@@ -36,7 +37,7 @@ interface Reply {
   offered?: boolean;
   undoHints?: number;
   timedOut?: boolean;
-  flow: { kind: string; previous?: number; skipAir?: boolean };
+  flow: { kind: string; previous?: number };
   mode?: boolean;
 }
 function check(ok: boolean, detail: string): asserts ok {
@@ -364,10 +365,8 @@ export function buildRefusals(a: Arena): Promise<Outcome> {
 async function startPasteStep(
   f: Fixture,
   {
-    skipAir = false,
     height,
   }: {
-    skipAir?: boolean;
     height?: number;
   } = {},
 ): Promise<Reply> {
@@ -382,18 +381,9 @@ async function startPasteStep(
     copied = await f.edit("confirmbox");
   }
   check(
-    copied.message === "copied" &&
-      copied.flow.kind === "pasteAim" &&
-      copied.flow.skipAir === false,
-    "Copy did not enter paste aiming with Skip air off",
+    copied.message === "copied" && copied.flow.kind === "pasteAim",
+    "Copy did not enter paste aiming",
   );
-  if (skipAir) {
-    const toggled = await f.menu("paste", "skipAir");
-    check(
-      toggled.offered === true && toggled.flow.skipAir === true,
-      "Skip air toggle failed",
-    );
-  }
   return copied;
 }
 
@@ -479,14 +469,14 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
     await copyLine(f);
     const withoutHistory = await checkState(f, "pasteAim", true);
     check(
-      withoutHistory.pasteMenu.join() === "skipAir,newCopy,endPaste",
+      withoutHistory.pasteMenu.join() === "newCopy,endPaste",
       "Paste menu without history has unexpected entries",
     );
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
     await pasteInto(f, target);
     const withHistory = await checkState(f, "pasteAim", true);
     check(
-      withHistory.pasteMenu.join() === "undo,skipAir,newCopy,endPaste",
+      withHistory.pasteMenu.join() === "undo,newCopy,endPaste",
       "Paste menu with history must have exactly four ordered entries",
     );
     await f.menu("paste", "undo");
@@ -495,7 +485,7 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
       "menu Undo did not restore blocks",
     );
     check(
-      (await f.state()).pasteMenu.join() === "skipAir,newCopy,endPaste",
+      (await f.state()).pasteMenu.join() === "newCopy,endPaste",
       "Undo remained in the menu without history",
     );
   });
@@ -580,51 +570,6 @@ export function buildNewCopyItemSwitch(a: Arena): Promise<Outcome> {
   });
 }
 
-export function buildPasteToggleNext(a: Arena): Promise<Outcome> {
-  return withBuilder(a, async (f) => {
-    await copyLine(f);
-    f.block(f.cell(1)).setType("minecraft:air");
-    await f.menu("paste", "newCopy");
-    await f.select(f.cell(1));
-    await f.menu("shape", "copy");
-    await checkState(f, "pasteAim", true);
-    const first = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
-    const second = pasteTarget(f, f.cell(16, 0, 12), 2, 1, 1);
-    const third = pasteTarget(f, f.cell(20, 0, 12), 2, 1, 1);
-    await pasteInto(f, first);
-    check(
-      f.block(first.cells[1] as Cell).typeId === "minecraft:air",
-      "Skip air was not off by default",
-    );
-    const beforeToggle = snapshot(f, first.cells);
-    await f.menu("paste", "skipAir");
-    await pasteInto(f, second);
-    check(
-      f.block(second.cells[0] as Cell).typeId === "minecraft:stone" &&
-        f.block(second.cells[1] as Cell).typeId === "minecraft:gold_block",
-      "Skip air did not apply to the next Paste",
-    );
-    check(
-      unchanged(f, first.cells, beforeToggle),
-      "toggle changed the previous Paste",
-    );
-    await f.menu("paste", "skipAir");
-    await pasteInto(f, third);
-    check(
-      f.block(third.cells[1] as Cell).typeId === "minecraft:air",
-      "Skip air did not toggle off",
-    );
-    await checkState(f, "pasteAim", true);
-    for (const target of [third, second, first]) {
-      await f.menu("paste", "undo");
-      check(
-        unchanged(f, target.cells, target.before),
-        "toggle Paste Undo lost blocks",
-      );
-    }
-  });
-}
-
 export function buildPasteUndoRepeat(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     await copyLine(f);
@@ -670,36 +615,33 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       ["north", 0, 0, -1],
       ["south", 0, 0, 1],
     ] as const) {
-      for (const skipAir of [false, true]) {
-        await f.select(f.cell(2));
-        await startPasteStep(f, { skipAir });
-        const anchor = f.cell(10, 2, 10);
-        f.block(anchor).setType("minecraft:gold_block");
-        const target = f.region(3, 1, 1, {
-          x: anchor.x + dx,
-          y: anchor.y + dy,
-          z: anchor.z + dz,
-        });
-        for (const c of target) f.block(c).setType("minecraft:gold_block");
-        const before = snapshot(f, target);
-        const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, face);
-        check(pasted.message === "editDone", "aimed paste failed");
-        const actual = snapshot(f, target);
-        check(
-          actual[0]?.typeId === "minecraft:stone" &&
-            actual[1]?.typeId ===
-              (skipAir ? "minecraft:gold_block" : "minecraft:air") &&
-            actual[2]?.typeId === "minecraft:oak_log" &&
-            actual[2]?.states.pillar_axis === "z",
-          `paste anchor/states/skipAir wrong for ${face} ${skipAir}`,
-        );
-        await f.edit("undo");
-        check(
-          unchanged(f, target, before),
-          "paste undo did not restore destination",
-        );
-        await endPasteStep(f);
-      }
+      await f.select(f.cell(2));
+      await startPasteStep(f);
+      const anchor = f.cell(10, 2, 10);
+      f.block(anchor).setType("minecraft:gold_block");
+      const target = f.region(3, 1, 1, {
+        x: anchor.x + dx,
+        y: anchor.y + dy,
+        z: anchor.z + dz,
+      });
+      for (const c of target) f.block(c).setType("minecraft:gold_block");
+      const before = snapshot(f, target);
+      const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, face);
+      check(pasted.message === "editDone", "aimed paste failed");
+      const actual = snapshot(f, target);
+      check(
+        actual[0]?.typeId === "minecraft:stone" &&
+          actual[1]?.typeId === "minecraft:air" &&
+          actual[2]?.typeId === "minecraft:oak_log" &&
+          actual[2]?.states.pillar_axis === "z",
+        `paste anchor/states wrong for ${face}`,
+      );
+      await f.edit("undo");
+      check(
+        unchanged(f, target, before),
+        "paste undo did not restore destination",
+      );
+      await endPasteStep(f);
     }
     await f.edit("undo");
   });
@@ -1144,37 +1086,6 @@ export function buildSolidCancelUndo(a: Arena): Promise<Outcome> {
     check(f.count(cells) > 0, "cylinder was not built");
     check((await f.menu("utility", "undo")).offered === true, "undo absent");
     check(f.count(cells) === 0, "undo did not remove the cylinder");
-  });
-}
-
-export function buildPasteSkipAir(a: Arena): Promise<Outcome> {
-  return withBuilder(a, async (f) => {
-    await f.select(f.cell(1));
-    f.block(f.cell(1)).setType("minecraft:air");
-    await startPasteStep(f);
-    for (const skipAir of [true, false]) {
-      const toggled = await f.menu("paste", "skipAir");
-      check(
-        toggled.offered === true && toggled.flow.skipAir === skipAir,
-        "skip-air toggle failed",
-      );
-      const anchor = f.cell(skipAir ? 10 : 14, 0, 10);
-      const target = f.region(2, 1, 1, { ...anchor, y: anchor.y + 1 });
-      for (const cell of target) f.block(cell).setType("minecraft:gold_block");
-      const pasted = await f.edit(
-        `pasteat ${anchor.x} ${anchor.y} ${anchor.z} up`,
-      );
-      check(pasted.message === "editDone", "paste after toggle failed");
-      check(
-        snapshot(f, target)[0]?.typeId === "minecraft:stone",
-        "solid cell was not pasted",
-      );
-      check(
-        snapshot(f, target)[1]?.typeId ===
-          (skipAir ? "minecraft:gold_block" : "minecraft:air"),
-        "paste ignored skip-air setting",
-      );
-    }
   });
 }
 
@@ -1944,4 +1855,361 @@ export function buildUndoSnapshot(a: Arena): Promise<Outcome> {
       for (const cell of cells) f.block(cell).setType("minecraft:air");
     }
   });
+}
+
+export function buildPasteStructure(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(8, 4, 4);
+    const target = f.region(8, 4, 4, f.cell(12));
+    const inside = (offset: number) =>
+      a.dim.getEntities().filter((e) => {
+        const p = e.location;
+        const min = f.cell(offset);
+        return (
+          e.typeId !== "minecraft:player" &&
+          p.x >= min.x &&
+          p.x < min.x + 8 &&
+          p.y >= min.y &&
+          p.y < min.y + 4 &&
+          p.z >= min.z &&
+          p.z < min.z + 4
+        );
+      });
+    try {
+      for (const c of [...source, ...target])
+        f.block(c).setType(
+          c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
+        );
+      const chest = f.block(f.cell(1, 1, 1));
+      chest.setType("minecraft:chest");
+      chest
+        .getComponent("minecraft:inventory")
+        ?.container?.setItem(0, new ItemStack("minecraft:diamond", 7));
+      const sign = f.block(f.cell(3, 1, 1));
+      sign.setType("minecraft:standing_sign");
+      sign
+        .getComponent("minecraft:sign")
+        ?.setText("Paste front", SignSide.Front);
+      sign.getComponent("minecraft:sign")?.setText("Paste back", SignSide.Back);
+      for (const offset of [0, 12]) {
+        const c = f.cell(offset + 5, 1, 1);
+        f.block(c).setType("minecraft:frame");
+        const cow = f.cell(offset + 6.5, 1, 2.5);
+        a.dim.runCommand(`summon minecraft:cow ${cow.x} ${cow.y} ${cow.z}`);
+      }
+      const oldCow = inside(12).find((e) => e.typeId === "minecraft:cow");
+      check(!!oldCow, "missing target cow");
+      const min = f.cell();
+      const max = f.cell(7, 3, 3);
+      await f.edit(
+        `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
+      );
+      const anchor = f.cell(12, -1);
+      const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
+      check(
+        pasted.message === "editDone" && pasted.count === source.length,
+        "structure paste failed",
+      );
+      const item = f
+        .block(f.cell(13, 1, 1))
+        .getComponent("minecraft:inventory")
+        ?.container?.getItem(0);
+      check(
+        item?.typeId === "minecraft:diamond" && item.amount === 7,
+        "chest payload lost",
+      );
+      const copiedSign = f
+        .block(f.cell(15, 1, 1))
+        .getComponent("minecraft:sign");
+      check(
+        copiedSign?.getText(SignSide.Front) === "Paste front" &&
+          copiedSign.getText(SignSide.Back) === "Paste back",
+        "sign text lost",
+      );
+      check(
+        target.filter((c) => f.block(c).typeId === "minecraft:frame").length ===
+          1 && f.block(f.cell(17, 1, 1)).typeId === "minecraft:frame",
+        "frame was not replaced",
+      );
+      check(
+        !oldCow.isValid &&
+          inside(12).filter((e) => e.typeId === "minecraft:cow").length === 1,
+        "animal replacement failed",
+      );
+      f.block(f.cell(19, 3, 3)).setType("yasu_ride:camper_bed");
+      const before = snapshot(f, target);
+      const cowIds = inside(12)
+        .map((e) => e.id)
+        .sort()
+        .join(",");
+      await wait(BUILD_SPEC.pasteRepeatTicks);
+      const refused = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
+      check(
+        refused.message === "pasteBlocked" && unchanged(f, target, before),
+        "protected structure paste changed blocks",
+      );
+      check(
+        inside(12)
+          .map((e) => e.id)
+          .sort()
+          .join(",") === cowIds,
+        "protected paste changed entities",
+      );
+    } finally {
+      await f.edit("releaseStructures");
+      for (const entity of [...inside(0), ...inside(12)]) entity.remove();
+    }
+  });
+}
+
+export async function buildPasteStructureDecor(
+  a: Arena,
+  onStep?: StepSink,
+): Promise<Outcome> {
+  const results: { name: string; pass: boolean; value: string }[] = [];
+  const record = (name: string, pass: boolean, value: unknown = pass) =>
+    results.push({ name, pass, value: String(value) });
+  const cleanup = (name: string, run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      record(name, false, error);
+    }
+  };
+  let phase = "setup";
+  try {
+    const outcome = await withBuilder(a, async (f) => {
+      const source = f.region(8, 6, 8);
+      const target = f.region(8, 6, 8, f.cell(12));
+      const inventory = f.player.getComponent("minecraft:inventory")?.container;
+      check(!!inventory, "player inventory missing");
+      const savedItems = Array.from({ length: inventory.size }, (_, slot) =>
+        inventory.getItem(slot),
+      );
+      const wandSlot = f.player.selectedSlotIndex;
+      const restoreInventory = () => {
+        savedItems.forEach((item, slot) => {
+          inventory.setItem(slot, item);
+        });
+        f.player.selectedSlotIndex = wandSlot;
+      };
+      const inside = (p: Cell, offset: number, margin = 0) => {
+        const min = f.cell(offset);
+        return (
+          p.x >= min.x - margin &&
+          p.x < min.x + 8 + margin &&
+          p.y >= min.y - margin &&
+          p.y < min.y + 6 + margin &&
+          p.z >= min.z - margin &&
+          p.z < min.z + 8 + margin
+        );
+      };
+      const entities = (offset: number, margin = 0) =>
+        a.dim
+          .getEntities()
+          .filter(
+            (e) =>
+              e.typeId !== "minecraft:player" &&
+              inside(e.location, offset, margin),
+          );
+      const paintings = (offset: number) =>
+        entities(offset).filter((e) => e.typeId === "minecraft:painting");
+      const items = (offset: number) =>
+        entities(offset, 1).filter((e) => e.typeId === "minecraft:item");
+      const removeItems = () => {
+        for (const offset of [0, 12])
+          for (const entity of items(offset)) entity.remove();
+      };
+      const drops = (offset: number) =>
+        items(offset).map(
+          (e) => e.getComponent("minecraft:item")?.itemStack.typeId,
+        );
+      const frames = (cells: Cell[]) =>
+        cells.filter((c) => f.block(c).typeId === "minecraft:frame");
+      const interacted = new Set<string>();
+      const listener = (event: PlayerInteractWithBlockAfterEvent) => {
+        if (
+          event.player.id === f.player.id &&
+          event.block.dimension.id === a.dim.id &&
+          event.block.typeId === "minecraft:frame" &&
+          inside(event.block.location, 0) &&
+          event.beforeItemStack?.typeId === "minecraft:diamond"
+        )
+          interacted.add(JSON.stringify(event.block.location));
+      };
+      const setupState = () => {
+        const allFrames = frames(source);
+        const frame = allFrames.find((c) => interacted.has(JSON.stringify(c)));
+        return {
+          frame,
+          missing: [
+            ...(allFrames.length === 0 ? ["item frame"] : []),
+            ...(!frame ? ["diamond interaction with the frame"] : []),
+            ...(paintings(0).length === 0 ? ["painting"] : []),
+          ],
+        };
+      };
+      const breakFrame = (c: Cell) =>
+        a.dim.runCommand(`setblock ${c.x} ${c.y} ${c.z} air destroy`);
+      world.afterEvents.playerInteractWithBlock.subscribe(listener);
+      try {
+        for (const offset of [0, 12])
+          for (const entity of entities(offset)) entity.remove();
+        for (const c of [...source, ...target])
+          f.block(c).setType(
+            c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
+          );
+        for (const offset of [0, 12])
+          for (const c of f.region(1, 4, 6, f.cell(offset + 1, 1, 1)))
+            f.block(c).setType("minecraft:stone");
+        inventory.clearAll();
+        // Stable APIs cannot populate a frame or create a painting (ADR 0243).
+        for (const type of [
+          "minecraft:frame",
+          "minecraft:diamond",
+          "minecraft:painting",
+        ])
+          inventory.addItem(new ItemStack(type, 1));
+        f.player.selectedSlotIndex = 0;
+        f.player.teleport(f.cell(4.5, 1, 3.5), {
+          dimension: a.dim,
+          facingLocation: f.cell(1, 2, 3.5),
+        });
+        const prompt =
+          "Structure paste decor check: within 60 seconds, place the item frame on the stone wall, put the diamond into it, and hang the painting on the wall.";
+        f.player.sendMessage(prompt);
+        f.player.onScreenDisplay.setActionBar(prompt);
+        let setup = setupState();
+        for (
+          let ticks = 0;
+          ticks < 1200 && setup.missing.length > 0;
+          ticks += 10
+        ) {
+          await wait(10);
+          setup = setupState();
+          // The player setup window exceeds the runner's 60-second stall watch.
+          if ((ticks + 10) % 200 === 0)
+            onStep?.({
+              name: `setup_wait_${ticks + 10}`,
+              pass: true,
+              detail: `polled setup after ${ticks + 10} ticks; missing: ${setup.missing.join(", ") || "none"}`,
+            });
+        }
+        const cell = setup.frame;
+        if (!cell || setup.missing.length > 0) {
+          record(
+            "setup",
+            false,
+            `fixture incomplete; missing: ${setup.missing.join(", ")}`,
+          );
+          return;
+        }
+        record(
+          "setup",
+          true,
+          "player placed frame, interacted with diamond, and hung painting",
+        );
+        const originalPaintings = paintings(0).length;
+        record("painting_setup", originalPaintings === 1, originalPaintings);
+        const permutation = f.block(cell).permutation;
+        restoreInventory();
+        f.player.teleport(a.at(45, a.gy, 45), { dimension: a.dim });
+        await wait(BUILD_SPEC.modeEnterTicks + 2);
+        removeItems();
+        const min = f.cell();
+        const max = f.cell(7, 5, 7);
+        await f.edit(
+          `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
+        );
+        // Capture before breaking the original so the clipboard retains its contents.
+        breakFrame(cell);
+        await wait(2);
+        const originalDrops = drops(0);
+        const observed = originalDrops.includes("minecraft:diamond");
+        record(
+          "frame_setup_observed",
+          observed,
+          observed
+            ? originalDrops.join(",")
+            : `fixture failure: destroy-drop observation produced no diamond; drops=${originalDrops.join(",")}`,
+        );
+        removeItems();
+        if (!observed || originalPaintings !== 1) return;
+        phase = "paste";
+        const mirrored = { ...cell, x: cell.x + 12 };
+        f.block(mirrored).setPermutation(permutation);
+        const anchor = f.cell(12, -1);
+        const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
+        record(
+          "paste",
+          pasted.message === "editDone" && pasted.count === source.length,
+          pasted.message,
+        );
+        await wait(2);
+        record(
+          "item_frame_block",
+          frames(target).length === 1 &&
+            f.block(mirrored).typeId === "minecraft:frame",
+        );
+        const firstPaintings = paintings(12);
+        record("painting", firstPaintings.length === 1, firstPaintings.length);
+        breakFrame(mirrored);
+        await wait(2);
+        const pastedDrops = drops(12);
+        record(
+          "item_frame",
+          pastedDrops.includes("minecraft:diamond"),
+          pastedDrops.join(","),
+        );
+        removeItems();
+        await wait(BUILD_SPEC.pasteRepeatTicks);
+        f.block(mirrored).setPermutation(permutation);
+        const repeated = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
+        record(
+          "paste_repeat",
+          repeated.message === "editDone" && repeated.count === source.length,
+          repeated.message,
+        );
+        await wait(2);
+        const repeatedPaintings = paintings(12);
+        record(
+          "painting_replaced",
+          repeatedPaintings.length === 1 &&
+            firstPaintings.every((e) => !e.isValid),
+          repeatedPaintings.length,
+        );
+      } finally {
+        cleanup("cleanup_listener", () =>
+          world.afterEvents.playerInteractWithBlock.unsubscribe(listener),
+        );
+        try {
+          await f.edit("releaseStructures");
+        } finally {
+          for (const offset of [0, 12])
+            cleanup("cleanup_entities", () => {
+              for (const entity of entities(offset))
+                cleanup("cleanup_entity", () => entity.remove());
+            });
+          cleanup("cleanup_drops", removeItems);
+          if (f.player.isValid) cleanup("restore_inventory", restoreInventory);
+        }
+      }
+    });
+    if (!outcome.pass) record("fixture", false, outcome.detail);
+  } catch (error) {
+    record(
+      phase,
+      false,
+      `${phase === "setup" ? "fixture failure: " : ""}${error instanceof Error ? `${error.name}:${error.message}` : error}`,
+    );
+  }
+  return {
+    pass: results.length > 0 && results.every((r) => r.pass),
+    detail: results
+      .map(
+        ({ name, pass, value }) =>
+          `${name}=${pass ? "PASS" : "FAIL"}(${value})`,
+      )
+      .join("; "),
+  };
 }

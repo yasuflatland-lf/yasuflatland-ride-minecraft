@@ -54,7 +54,14 @@ function setup() {
       new CopyBox(repo, new FakeStructureStore(), feedback),
       feedback,
     ),
-    paste: new PasteAt(repo, world, feedback, jobs),
+    paste: new PasteAt(
+      repo,
+      world,
+      feedback,
+      jobs,
+      new FakeStructureStore(),
+      new FakeBuildPlayers(),
+    ),
     undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
       warn: () => {},
     }),
@@ -157,7 +164,7 @@ describe("EditJobs properties", () => {
         material: stone,
       },
       idle: { kind: "idle" },
-      pasteAim: beginPasteAim(false),
+      pasteAim: beginPasteAim(),
     } as const;
     for (const [name, flow] of Object.entries(flows)) {
       const promises = name === "idle" || name === "pasteAim";
@@ -322,7 +329,7 @@ describe("edit use cases", () => {
     const env = setup();
     env.fill.execute({ playerId: alex, style: "fill" });
     env.copy.execute({ playerId: alex });
-    env.repo.getOrCreate(alex).setFlow(beginPasteAim(false));
+    env.repo.getOrCreate(alex).setFlow(beginPasteAim());
     env.paste.execute({
       tick: 0,
       playerId: alex,
@@ -386,7 +393,7 @@ describe("edit use cases", () => {
     env.copy.execute({ playerId: alex });
     expect(env.feedback.messages.at(-1)?.message).toBe("copied");
     env.world.protectedCells.add(cellKey({ x: 1, y: 64, z: 1 }));
-    env.repo.getOrCreate(alex).setFlow(beginPasteAim(false));
+    env.repo.getOrCreate(alex).setFlow(beginPasteAim());
     env.paste.execute({
       tick: 0,
       playerId: alex,
@@ -404,42 +411,6 @@ describe("edit use cases", () => {
     expect(env.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
     expect(env.repo.get(alex)?.isEditing).toBe(false);
     expect(env.world.writes).toBe(0);
-  });
-
-  it("leaves air cells untouched when pasting with skip air", () => {
-    const env = setup();
-    env.world.put({ x: 0, y: 64, z: 0 }, dirt);
-    select(env, alex, 2);
-    confirmForCopy(env);
-    const session = env.repo.getOrCreate(alex);
-    const box = session.confirmedBox?.box;
-    if (!box) throw new Error("Expected confirmed box");
-    session.completeCopy(
-      overworld,
-      box,
-      clipboardOf(box, (cell) => env.world.stateAt(overworld, cell)),
-    );
-    env.world.put({ x: 11, y: 64, z: 10 }, stone);
-    env.repo.getOrCreate(alex).setFlow(beginPasteAim(true));
-    env.paste.execute({
-      tick: 0,
-      playerId: alex,
-      dimensionId: overworld,
-      target: pasteTarget(
-        env.repo.get(alex)?.clipboard ??
-          clipboardOf(
-            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
-            () => stone,
-          ),
-        { x: 10, y: 63, z: 10 },
-        "up",
-      ),
-    });
-    runAll(env);
-    expect(env.world.stateAt(overworld, { x: 10, y: 64, z: 10 })).toEqual(dirt);
-    expect(env.world.stateAt(overworld, { x: 11, y: 64, z: 10 })).toEqual(
-      stone,
-    );
   });
 
   it("drops a job whose session was removed", () => {

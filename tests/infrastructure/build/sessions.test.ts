@@ -44,8 +44,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
     fc.property(
       fc.string(),
       fc.integer({ min: -100, max: 100 }),
-      fc.boolean(),
-      (name, x, skipAir) => {
+      (name, x) => {
         const id = asPlayerId(name);
         const at = { x, y: 10, z: 0 };
         const stone = blockStateOf("minecraft:stone");
@@ -56,7 +55,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           first,
           endpoint,
           chooseHeighted(endpoint, "copy"),
-          { kind: "pasteAim", skipAir } as const,
+          { kind: "pasteAim" } as const,
         ]) {
           for (const event of ["dimension", "die"]) {
             const repo = new FakeSessions();
@@ -105,7 +104,7 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
     boxOf(at, at),
   );
   const clipboard = session.clipboard;
-  session.setFlow({ kind: "pasteAim", skipAir: false });
+  session.setFlow({ kind: "pasteAim" });
   registerSessions(
     new EndBuildSession(repo, structures),
     new EndPasting(repo, structures),

@@ -27,13 +27,11 @@ export function* planShape(
 export function* planPaste(
   clipboard: Clipboard,
   anchor: Cell,
-  skipAir: boolean,
 ): Iterable<PlannedChange> {
   const { contents } = clipboard;
   switch (contents.kind) {
     case "cells":
       for (const { at, state } of contents.cells) {
-        if (skipAir && state.typeId === "minecraft:air") continue;
         yield {
           cell: {
             x: anchor.x + at.x,

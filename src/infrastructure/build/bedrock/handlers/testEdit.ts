@@ -10,7 +10,7 @@ import type {
 import type { BuildStructureStore } from "../../../../application/build/ports/structures";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
-import { boxOf } from "../../../../domain/build/box";
+import { boxOf, volume } from "../../../../domain/build/box";
 import {
   parseFace,
   pasteTarget,
@@ -131,6 +131,40 @@ export function registerTestEdit(
             .getOrCreate(playerId)
             .recordSnapshot({ dimensionId, box, handle }))
             structures.discard(dropped);
+        } else if (
+          command === "structure" &&
+          args.length === 6 &&
+          args.every((v) => Number.isInteger(Number(v)))
+        ) {
+          const box = boxOf(
+            { x: Number(args[0]), y: Number(args[1]), z: Number(args[2]) },
+            { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
+          );
+          const dimensionId = asDimensionId(player.dimension.id);
+          const handle = structures.capture(dimensionId, box, playerId);
+          if (handle === "tooLarge" || handle === "unreadable")
+            throw new Error(handle);
+          const previous = repo.getOrCreate(playerId).completeCopy(dimensionId, box, {
+            size: {
+              x: box.max.x - box.min.x + 1,
+              y: box.max.y - box.min.y + 1,
+              z: box.max.z - box.min.z + 1,
+            },
+            blockCount: volume(box),
+            contents: { kind: "structure", handle },
+          });
+          if (previous) structures.discard(previous);
+        } else if (command === "releaseStructures" && args.length === 0) {
+          const session = repo.getOrCreate(playerId);
+          const clipboard = session.clipboard;
+          if (clipboard?.contents.kind === "structure")
+            structures.discard(clipboard.contents.handle);
+          while (session.hasHistory && !session.isEditing) {
+            const entry = session.takeUndo();
+            if (typeof entry !== "string" && entry.kind === "snapshot")
+              structures.discard(entry.snapshot.handle);
+          }
+          session.endPasting();
         } else if (command === "state" && args.length === 0) {
           system.sendScriptEvent(
             TEST_RESULT_EVENT,

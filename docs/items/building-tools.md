@@ -35,9 +35,9 @@ Cylinder and Cube grow upward from a horizontal rectangle: aim to choose the hei
 
 In selection, sneak and use the wand on air for applicable Copy, Undo, and Clear selection actions. After Copy, aim at a solid block and use the wand to paste at its viewed face; repeat as needed. On iPad, use a long press of about one second; on PC, right click. A block tap never pastes. The outline follows the aim, and the action bar shows the clipboard size and count.
 
-While pasting, use the wand on air without sneaking for Undo (when available), Skip air, New copy, and End pasting. Skip air starts off and persists until paste aiming is entered again. End pasting, switching items, death, or a dimension change discards the clipboard. Protected overlaps are refused, and each paste has one Undo entry. See [ADR 0203](../adr/0203-build-wand-paste-aiming.md) for the proposed interaction.
+While pasting, use the wand on air without sneaking for Undo (when available), New copy, and End pasting. End pasting, switching items, death, or a dimension change discards the clipboard. Protected overlaps are refused, and each paste has one Undo entry. See [ADR 0203](../adr/0203-build-wand-paste-aiming.md) for the proposed interaction.
 
-Air in a copied selection replaces destination blocks unless Skip air is on. Kept blocks, such as chests and signs, are not copied; their destination cells remain untouched.
+Air in a copied selection replaces destination blocks. Kept blocks, such as chests and signs, are not copied; their destination cells remain untouched.
 
 ## What is never edited
 

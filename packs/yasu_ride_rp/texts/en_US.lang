@@ -134,8 +134,6 @@ yasu_build.form.new_copy=New copy
 yasu_build.form.end_paste=End pasting
 yasu_build.form.undo=Undo
 yasu_build.form.clear_selection=Clear selection
-yasu_build.form.skip_air_on=Skip air: on
-yasu_build.form.skip_air_off=Skip air: off
 yasu_build.form.submit=Apply
 
 yasu_build.message.point_set=Point 1 set.
@@ -218,3 +216,4 @@ yasu_ride.beach_chair_top_overlap=Something is in the way on the Beach Chair tab
 yasu_ride.beach_chair_top_too_big=That item is too big for the Beach Chair tabletop.
 
 yasu_build.message.copy_unreadable=The box could not be copied. Stay close so it is loaded, then try again.
+yasu_build.message.paste_failed=Paste failed. Please try again.

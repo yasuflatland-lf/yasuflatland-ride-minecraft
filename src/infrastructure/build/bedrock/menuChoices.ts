@@ -12,7 +12,6 @@ import type { CopySelection } from "../../../application/build/copySelection";
 import type { EndPasting } from "../../../application/build/endPasting";
 import type { NewCopy } from "../../../application/build/newCopy";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
-import type { ToggleSkipAir } from "../../../application/build/toggleSkipAir";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import {
   contentsMenu,
@@ -43,7 +42,6 @@ export interface MenuCases {
   confirmTerrain: Pick<ConfirmTerrain, "execute">;
   cancel: Pick<CancelFlow, "backToAiming">;
   copy: Pick<CopySelection, "execute">;
-  toggleSkipAir: Pick<ToggleSkipAir, "execute">;
   endPasting: Pick<EndPasting, "execute">;
   newCopy: Pick<NewCopy, "execute">;
   undo: Pick<UndoEdit, "execute">;
@@ -138,7 +136,6 @@ export class MenuChoices {
         !isOffered(
           pasteMenu({
             hasHistory: session.hasHistory,
-            skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
           }),
           entryId,
         )
@@ -146,8 +143,6 @@ export class MenuChoices {
         return false;
       if (entryId === "endPaste") this.cases.endPasting.execute(playerId);
       else if (entryId === "newCopy") this.cases.newCopy.execute(playerId);
-      else if (entryId === "skipAir")
-        this.cases.toggleSkipAir.execute({ playerId });
       else this.cases.undo.execute({ playerId });
     } else {
       if (!isOffered(utilityMenu(session), entryId)) return false;

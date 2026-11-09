@@ -75,7 +75,7 @@ export class BuildSession {
     const previous = structureOf(this.currentClipboard);
     this.currentClipboard = clipboard;
     this.confirmBox(dimensionId, box);
-    this.currentFlow = beginPasteAim(false);
+    this.currentFlow = beginPasteAim();
     return previous !== structureOf(clipboard) ? previous : undefined;
   }
 
