@@ -1,10 +1,4 @@
-import {
-  type Dimension,
-  Direction,
-  type Entity,
-  ItemStack,
-  world,
-} from "@minecraft/server";
+import { Direction, type Entity, ItemStack, world } from "@minecraft/server";
 import type { BeachChairFormWorld } from "../../../application/resort/ports/beachChairForm";
 import type {
   BeachChairTakeBackWorld,
@@ -17,59 +11,36 @@ import {
   beachChairPoseAt,
   type ChairForm,
   type ChairState,
-  tableBlockCells,
 } from "../../../domain/resort/beachChair";
-import { beachChairItemCells } from "../../../domain/resort/beachChairTop";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
-import type { LocalPoint, TopRect } from "../../../domain/shared/tableTop";
 import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
-import {
-  LaidBlockLayer,
-  readLaidCells,
-  writeLaidCells,
-} from "../../shared/laidBlockLayer";
 import {
   consumeHeld,
   giveOrDrop,
   isCreative,
   playerById,
 } from "../../shared/players";
-import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLD_EVENT,
   BEACH_CHAIR_FOLDED,
   BEACH_CHAIR_ITEM,
-  BEACH_CHAIR_TOP,
-  BEACH_CHAIR_TOP_CELLS,
   BEACH_CHAIR_UNFOLD_EVENT,
 } from "../identifiers";
 export class BedrockBeachChairWorld
   implements BeachChairWorld, BeachChairTakeBackWorld, BeachChairFormWorld
 {
-  private readonly layer: LaidBlockLayer;
-  private readonly tops = new Map<
-    BeachChairId,
-    { dimension: Dimension; cells: Cell[] }
-  >();
   constructor(
     private readonly deps: {
-      topHosts: TopHostRegistry;
       isVehicleSpace: SpaceCheck;
       isCampSpace: SpaceCheck;
     },
-  ) {
-    this.layer = new LaidBlockLayer(
-      BEACH_CHAIR_TOP,
-      deps.isVehicleSpace,
-      "beach chair top",
-    );
-  }
+  ) {}
   state(id: BeachChairId): ChairState | undefined {
     const entity = this.entity(id);
     if (!entity) return undefined;
@@ -78,45 +49,9 @@ export class BedrockBeachChairWorld
       occupied:
         (entity.getComponent("minecraft:rideable")?.getRiders().length ?? 0) >
         0,
-      somethingOnTop:
-        this.deps.topHosts.itemsOnTop("beach_chair", id).length > 0 ||
-        this.topCells(entity).some((cell) => {
-          const above = safeBlockAt(entity.dimension, {
-            ...cell,
-            y: cell.y + 1,
-          });
-          return above?.isAir !== true;
-        }),
+      // Hosted lanterns and ovens are wired in #1449.
+      somethingOnTop: false,
     };
-  }
-  blockedAt(entity: Entity, at: LocalPoint, footprint: TopRect): boolean {
-    return beachChairItemCells(
-      entity.location,
-      snapYaw4(entity.getRotation().y),
-      at,
-      footprint,
-    ).some((cell) => safeBlockAt(entity.dimension, cell)?.isAir !== true);
-  }
-  hasHostedItemAt(id: string, cell: Cell): boolean {
-    const entity = this.entity(asBeachChairId(id));
-    if (!entity) return false;
-    return this.deps.topHosts
-      .itemsOnTop("beach_chair", id)
-      .some((item) =>
-        beachChairItemCells(
-          entity.location,
-          snapYaw4(entity.getRotation().y),
-          item.at,
-          item.footprint,
-        ).some((at) => cellKey(at) === cellKey(cell)),
-      );
-  }
-  hostedItemBlocksPlacement(dimension: DimensionId, cell: Cell): boolean {
-    const below = { ...cell, y: cell.y - 1 };
-    const block = this.block(dimension, below);
-    if (block?.typeId !== BEACH_CHAIR_TOP) return false;
-    const owner = this.topOwner(dimension, below, block.typeId);
-    return owner !== undefined && this.hasHostedItemAt(owner, cell);
   }
   showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void {
     this.show(player, reason === "occupied" ? "occupied" : "something_on_top");
@@ -203,12 +138,6 @@ export class BedrockBeachChairWorld
       return undefined;
     }
   }
-  private topCells(entity: Entity): readonly Cell[] {
-    if (entity.getProperty(BEACH_CHAIR_FOLDED) !== true) return [];
-    return tableBlockCells(
-      beachChairPoseAt(entity.location, snapYaw4(entity.getRotation().y)),
-    );
-  }
   setForm(id: BeachChairId, form: ChairForm): void {
     const entity = this.entity(id);
     if (!entity) return;
@@ -216,24 +145,14 @@ export class BedrockBeachChairWorld
     if (form === "table") {
       entity.triggerEvent(BEACH_CHAIR_FOLD_EVENT);
       this.hold(entity);
-      this.layTop(id);
     } else {
-      this.clearTop(id);
       entity.triggerEvent(BEACH_CHAIR_UNFOLD_EVENT);
     }
   }
-  syncTop(id: BeachChairId): void {
-    const entity = this.entity(id);
-    if (entity?.getProperty(BEACH_CHAIR_FOLDED) === true) {
-      this.hold(entity);
-      this.layTop(id);
-    } else this.clearTop(id);
-  }
   /**
    * Without gravity or collision the table keeps the downward velocity it had
-   * resting on the floor and sinks through it, so it is pinned to its pose
-   * origin, as the docked boat is (ADR 0063). Support cells have a full top,
-   * so the origin sits at an integer height.
+   * resting on the floor and sinks through it, so it is pinned to its
+   * placement pose origin, as the docked boat is (ADR 0063).
    */
   private hold(entity: Entity): void {
     try {
@@ -243,94 +162,9 @@ export class BedrockBeachChairWorld
       );
       entity.clearVelocity();
       entity.teleport(beachChairOrigin(pose));
-    } catch (error) {
-      this.layer.warning("lay")(error);
+    } catch {
+      // The entity can unload between lookup and holding its pose.
     }
-  }
-  remember(entity: Entity): { dimension: Dimension; cells: Cell[] } {
-    const id = asBeachChairId(entity.id);
-    let record = this.tops.get(id);
-    if (!record) {
-      record = {
-        dimension: entity.dimension,
-        cells: readLaidCells(entity.getDynamicProperty(BEACH_CHAIR_TOP_CELLS)),
-      };
-      this.tops.set(id, record);
-    }
-    return record;
-  }
-  layTop(id: BeachChairId): void {
-    const entity = this.entity(id);
-    if (!entity) return;
-    const record = this.remember(entity);
-    const pose = beachChairPoseAt(
-      entity.location,
-      snapYaw4(entity.getRotation().y),
-    );
-    const warn = this.layer.warning("lay");
-    try {
-      const wanted = tableBlockCells(pose);
-      const keys = new Set(wanted.map(cellKey));
-      const stale = record.cells.filter((cell) => !keys.has(cellKey(cell)));
-      this.layer.clear(record.dimension, stale, warn);
-      record.cells = record.cells.filter(
-        (cell) =>
-          keys.has(cellKey(cell)) ||
-          safeBlockAt(record.dimension, cell) === undefined ||
-          safeBlockAt(record.dimension, cell)?.typeId === BEACH_CHAIR_TOP,
-      );
-      record.cells = this.layer.lay(
-        record.dimension,
-        wanted,
-        record.cells,
-        warn,
-      );
-      entity.setDynamicProperty(
-        BEACH_CHAIR_TOP_CELLS,
-        writeLaidCells(record.cells),
-      );
-    } catch (error) {
-      warn(error);
-    }
-  }
-  clearTop(id: BeachChairId): boolean {
-    const entity = this.entity(id);
-    const record =
-      this.tops.get(id) ?? (entity ? this.remember(entity) : undefined);
-    if (!record) return true;
-    const warn = this.layer.warning("clear");
-    this.layer.clear(record.dimension, record.cells, warn);
-    // Keep unloaded cells for later cleanup rather than losing their only record.
-    record.cells = record.cells.filter(
-      (cell) =>
-        safeBlockAt(record.dimension, cell) === undefined ||
-        safeBlockAt(record.dimension, cell)?.typeId === BEACH_CHAIR_TOP,
-    );
-    try {
-      entity?.setDynamicProperty(
-        BEACH_CHAIR_TOP_CELLS,
-        writeLaidCells(record.cells),
-      );
-    } catch (error) {
-      warn(error);
-    }
-    if (record.cells.length === 0) this.tops.delete(id);
-    return record.cells.length === 0;
-  }
-  topOwner(
-    dimension: DimensionId,
-    cell: Cell,
-    typeId: string,
-  ): string | undefined {
-    if (typeId !== BEACH_CHAIR_TOP) return undefined;
-    for (const [id, record] of this.tops) {
-      if (
-        record.dimension.id === dimension &&
-        record.cells.some((at) => cellKey(at) === cellKey(cell))
-      )
-        return id;
-    }
-    return undefined;
   }
   dropItem(id: BeachChairId, player: PlayerId | undefined): void {
     const entity = this.entity(id);
@@ -341,7 +175,6 @@ export class BedrockBeachChairWorld
     else entity.dimension.spawnItem(item, entity.location);
   }
   remove(id: BeachChairId): void {
-    this.clearTop(id);
     this.entity(id)?.remove();
   }
   showBlocked(player: PlayerId): void {

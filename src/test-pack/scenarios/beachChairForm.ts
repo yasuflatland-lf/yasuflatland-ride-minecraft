@@ -4,14 +4,12 @@ import {
   beachChairOrigin,
   beachChairPose,
   beachChairSupportCells,
-  tableBlockCells,
 } from "../../domain/resort/beachChair";
 import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLDED,
   BEACH_CHAIR_ITEM,
-  BEACH_CHAIR_TOP,
   TEST_BEACH_CHAIR_FORM,
   TEST_BEACH_CHAIR_HIT,
   TEST_BEACH_CHAIR_PLACE,
@@ -19,13 +17,9 @@ import {
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
-async function course(
-  a: Arena,
-  mode: "fold" | "block" | "restore",
-): Promise<Outcome> {
+export async function beachChairFold(a: Arena): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);
   const pose = beachChairPose(block, 0);
-  const cells = tableBlockCells(pose);
   const saved = [
     ...beachChairSupportCells(pose),
     ...beachChairClearCells(pose),
@@ -59,53 +53,42 @@ async function course(
     const entity = near(BEACH_CHAIR)[0];
     if (!entity) return { pass: false, detail: "chair not placed" };
     await form(entity, "fold");
+    await wait(6);
+    if (entity.getProperty(BEACH_CHAIR_FOLDED) !== true)
+      failures.push("chair did not fold");
+    const origin = beachChairOrigin(pose);
     if (
-      entity.getProperty(BEACH_CHAIR_FOLDED) !== true ||
-      !cells.every((c) => a.dim.getBlock(c)?.typeId === BEACH_CHAIR_TOP)
+      Math.hypot(
+        entity.location.x - origin.x,
+        entity.location.y - origin.y,
+        entity.location.z - origin.z,
+      ) > 0.01
     )
-      failures.push("table not laid");
-    if (mode === "block") {
-      const above = { ...cells[0], y: cells[0].y + 1 };
-      a.dim.getBlock(above)?.setType("minecraft:stone");
-      await form(entity, "unfold");
-      if (entity.getProperty(BEACH_CHAIR_FOLDED) !== true)
-        failures.push("loaded table unfolded");
-      for (let hit = 0; hit < BEACH_CHAIR_SPEC.hitsToTakeBack; hit++) {
-        system.sendScriptEvent(TEST_BEACH_CHAIR_HIT, entity.id);
-        await wait(2);
-      }
-      if (!entity.isValid || drops().length)
-        failures.push("loaded table recovered");
-      a.dim.getBlock(above)?.setType("minecraft:air");
-      // Refused hits must leave the counter unchanged.
-      for (let hit = 0; hit < BEACH_CHAIR_SPEC.hitsToTakeBack - 1; hit++) {
-        system.sendScriptEvent(TEST_BEACH_CHAIR_HIT, entity.id);
-        await wait(2);
-      }
-      if (!entity.isValid || drops().length)
-        failures.push("refused hits advanced counter");
-    }
-    if (mode === "restore") {
-      for (const cell of cells) a.dim.getBlock(cell)?.setType("minecraft:air");
-      await wait(BEACH_CHAIR_SPEC.topSyncTicks + 2);
-      if (!cells.every((c) => a.dim.getBlock(c)?.typeId === BEACH_CHAIR_TOP))
-        failures.push("table not restored");
-    }
+      failures.push("table moved from its pose origin");
+    if (
+      beachChairClearCells(pose).some((cell) =>
+        a.dim.getBlock(cell)?.typeId.startsWith("yasu_ride:"),
+      )
+    )
+      failures.push("folding placed an add-on block");
     await form(entity, "unfold");
-    if (
-      entity.getProperty(BEACH_CHAIR_FOLDED) !== false ||
-      !cells.every((c) => a.dim.getBlock(c)?.isAir)
-    )
-      failures.push("chair retained top blocks");
+    if (entity.getProperty(BEACH_CHAIR_FOLDED) !== false)
+      failures.push("table did not unfold");
     await form(entity, "fold");
-    entity.remove();
-    await wait(2);
-    if (!cells.every((c) => a.dim.getBlock(c)?.isAir))
-      failures.push("removed table retained blocks");
+    for (let hit = 0; hit < BEACH_CHAIR_SPEC.hitsToTakeBack; hit++) {
+      system.sendScriptEvent(TEST_BEACH_CHAIR_HIT, entity.id);
+      await wait(2);
+    }
+    if (
+      entity.isValid ||
+      drops().length !== 1 ||
+      drops()[0]?.getComponent("minecraft:item")?.itemStack.amount !== 1
+    )
+      failures.push("table recovery did not drop one item");
     return {
       pass: failures.length === 0,
       detail:
-        failures.join(", ") || `${mode}: form, tabletop and cleanup verified`,
+        failures.join(", ") || "fold, pose, unfold and table recovery verified",
     };
   } finally {
     for (const entity of [...near(BEACH_CHAIR), ...drops()]) entity.remove();
@@ -113,13 +96,4 @@ async function course(
     for (const { cell, permutation } of saved)
       if (permutation) a.dim.getBlock(cell)?.setPermutation(permutation);
   }
-}
-export function beachChairFold(a: Arena): Promise<Outcome> {
-  return course(a, "fold");
-}
-export function beachChairBlockOnTop(a: Arena): Promise<Outcome> {
-  return course(a, "block");
-}
-export function beachChairTopRestore(a: Arena): Promise<Outcome> {
-  return course(a, "restore");
 }
