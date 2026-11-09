@@ -243,7 +243,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0237](0237-register-tabletop-hosts-across-features.md) | Register tabletop hosts across features | Proposed; extended by [0240](0240-resort-furniture-family.md) |
 | [0238](0238-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Accepted |
 | [0239](0239-a-beach-chair-that-folds-into-a-table.md) | A beach chair that folds into a table | Proposed |
-| [0240](0240-resort-furniture-family.md) | Resort furniture family | Proposed |
+| [0240](0240-resort-furniture-family.md) | Resort furniture family | Proposed; superseded in part by [0241](0241-dining-table-top-blocks.md); extended by [0241](0241-dining-table-top-blocks.md) |
+| [0241](0241-dining-table-top-blocks.md) | Dining Table top blocks | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
