@@ -28,7 +28,6 @@
 - Implementation: `src/domain/vehicle/kinds/bulldozer/profile.ts`; `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/switchFeedback.ts`; `src/application/vehicle/switchTool.ts`; `src/application/vehicle/riderEffects.ts`; `src/infrastructure/vehicle/install.ts`
 - Verification: `tests/application/vehicle/switchTool.test.ts`, `switchFeedback.test.ts` and `riderEffects.test.ts` cover both states, successful-switch gating, translations and camera failures. `tests/packs/chaseCamera.test.ts` pins bulldozer/SUV mid and camper far. Client framing and rendering remain unverified.
 
-
 ### Drive and controls
 
 - Applies to: Bulldozer in car, takeoff, hover, landing, and submarine forms.

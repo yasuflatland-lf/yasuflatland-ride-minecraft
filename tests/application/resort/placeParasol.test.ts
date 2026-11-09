@@ -1,7 +1,12 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { PlaceParasol } from "../../../src/application/resort/placeParasol";
-import { parasolPose } from "../../../src/domain/resort/parasolPose";
+import {
+  parasolFootCells,
+  parasolPose,
+  parasolSupportCell,
+} from "../../../src/domain/resort/parasolPose";
+import { cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { fakeParasolWorld } from "./fakeParasolWorld";
 
@@ -79,6 +84,49 @@ it("does not spawn when the held item changed before payment", () => {
       expect(new PlaceParasol(world).execute(cmd)).toBe(false);
       expect(world.spawn).not.toHaveBeenCalled();
       expect(world.refund).not.toHaveBeenCalled();
+    }),
+  );
+});
+
+it("rejects an obstruction in any translated foot cell before charging", () => {
+  fc.assert(
+    fc.property(command, fc.nat(), (cmd, index) => {
+      const cells = parasolFootCells(parasolPose(cmd.block, cmd.yaw));
+      const obstruction = cells[index % cells.length];
+      if (!obstruction) throw Error("empty footprint");
+      for (const check of ["isAir", "isVehicleSpace", "isCampSpace"] as const) {
+        const world = fakeParasolWorld();
+        world[check].mockImplementation((_dimension, cell) =>
+          check === "isAir"
+            ? cellKey(cell) !== cellKey(obstruction)
+            : cellKey(cell) === cellKey(obstruction),
+        );
+        expect(new PlaceParasol(world).execute(cmd)).toBe(false);
+        expect(world.consumeItem).not.toHaveBeenCalled();
+        expect(world.spawn).not.toHaveBeenCalled();
+      }
+    }),
+  );
+});
+it("requires solid support below the actual base centre", () => {
+  fc.assert(
+    fc.property(command, (cmd) => {
+      const world = fakeParasolWorld();
+      const support = parasolSupportCell(parasolPose(cmd.block, cmd.yaw));
+      world.isSolidTop.mockImplementation(
+        (_dimension, cell) =>
+          cellKey(cell) === cellKey(cmd.block) ||
+          cellKey(cell) === cellKey(support),
+      );
+      expect(new PlaceParasol(world).execute(cmd)).toBe(true);
+      world.isSolidTop.mockImplementation(
+        (_dimension, cell) => cellKey(cell) === cellKey(cmd.block),
+      );
+      world.spawn.mockClear();
+      world.consumeItem.mockClear();
+      expect(new PlaceParasol(world).execute(cmd)).toBe(false);
+      expect(world.consumeItem).not.toHaveBeenCalled();
+      expect(world.spawn).not.toHaveBeenCalled();
     }),
   );
 });

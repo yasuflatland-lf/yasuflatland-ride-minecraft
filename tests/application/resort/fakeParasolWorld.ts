@@ -8,11 +8,11 @@ import type { Cell } from "../../../src/domain/shared/cells";
 
 export function fakeParasolWorld() {
   return {
-    isAir: vi.fn(() => true),
+    isAir: vi.fn<ParasolWorld["isAir"]>(() => true),
     isOwnBlock: vi.fn(() => false),
-    isSolidTop: vi.fn(() => true),
-    isVehicleSpace: vi.fn(() => false),
-    isCampSpace: vi.fn(() => false),
+    isSolidTop: vi.fn<ParasolWorld["isSolidTop"]>(() => true),
+    isVehicleSpace: vi.fn<ParasolWorld["isVehicleSpace"]>(() => false),
+    isCampSpace: vi.fn<ParasolWorld["isCampSpace"]>(() => false),
     baseCellsNear: vi.fn((): Cell[] => []),
     isCreative: vi.fn(() => false),
     consumeItem: vi.fn(() => true),
