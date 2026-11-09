@@ -15,8 +15,8 @@ tilt = load_tool("cube_tilt")
 wicker = load_tool("wicker")
 texture_io = load_tool("texture_io")
 ATLAS_SIZE = 1024
-# The photo's strands are orange and the gaps between them stay warm and light, so the shared amber
-# palette's near-black gaps are lifted; the strand and light colors are unchanged.
+# The photo's strands are orange and the gaps between them stay warm and light, so all four colors of
+# the shared amber palette are replaced (strand, light, dark, gap); only the weave geometry is inherited.
 SOFA_WEAVE = dataclasses.replace(
     wicker.PALETTE_AMBER, strand=(184, 138, 88), light=(212, 176, 130),
     dark=(150, 108, 68), gap=(104, 72, 46))
