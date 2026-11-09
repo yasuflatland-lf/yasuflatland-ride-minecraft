@@ -12,11 +12,14 @@ import {
   asPlayerId,
   type DimensionId,
 } from "../../../../domain/shared/ids";
+import { id } from "../../../shared/identifiers";
 import type { TopHostRegistry } from "../../../shared/tableTop/registry";
 import {
   FURNITURE_IDS,
+  TEST_FURNITURE_BLOCK,
   TEST_FURNITURE_HIT,
   TEST_FURNITURE_PLACE,
+  TEST_FURNITURE_TOP,
 } from "../../identifiers";
 import { BedrockFurnitureWorld } from "../bedrockFurnitureWorld";
 
@@ -67,7 +70,43 @@ export function registerTestFurniture(
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
       if (ev.sourceType !== ScriptEventSource.Server) return;
-      if (ev.id === TEST_FURNITURE_PLACE) {
+      if (ev.id === TEST_FURNITURE_BLOCK) {
+        const parts = ev.message.trim().split(/\s+/).map(Number);
+        const [x, y, z] = parts;
+        if (
+          parts.length !== 3 ||
+          x === undefined ||
+          y === undefined ||
+          z === undefined ||
+          !parts.every(Number.isSafeInteger)
+        )
+          return;
+        const dimension = world.getDimension("overworld");
+        const at = { x, y, z };
+        if (!adapter.hostedAbove(asDimensionId(dimension.id), at))
+          dimension.getBlock(at)?.setType("minecraft:stone");
+      } else if (ev.id === TEST_FURNITURE_TOP) {
+        const [kind, ...coordinates] = ev.message.trim().split(/\s+/);
+        const [x, y, z] = coordinates.map(Number);
+        if (
+          (kind !== "gas_lantern" && kind !== "dutch_oven") ||
+          coordinates.length !== 3 ||
+          x === undefined ||
+          y === undefined ||
+          z === undefined ||
+          ![x, y, z].every(Number.isSafeInteger)
+        )
+          return;
+        const owner = adapter.ownerAt(
+          asDimensionId(world.getDimension("overworld").id),
+          { x, y, z },
+        );
+        if (owner)
+          system.sendScriptEvent(
+            id(`test_${kind}_on_top`),
+            `dining_table ${owner} 0 0`,
+          );
+      } else if (ev.id === TEST_FURNITURE_PLACE) {
         const [kindName, ...coordinates] = ev.message.trim().split(/\s+/);
         const kind = (Object.keys(FURNITURE_IDS) as FurnitureKind[]).find(
           (key) => key === kindName,

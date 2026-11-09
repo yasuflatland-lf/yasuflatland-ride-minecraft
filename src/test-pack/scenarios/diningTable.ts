@@ -10,8 +10,10 @@ import { snapYaw4 } from "../../domain/shared/facing";
 import {
   DINING_TABLE_TOP,
   FURNITURE_IDS,
+  TEST_FURNITURE_BLOCK,
   TEST_FURNITURE_HIT,
   TEST_FURNITURE_PLACE,
+  TEST_FURNITURE_TOP,
 } from "../../infrastructure/resort/identifiers";
 import { id } from "../../infrastructure/shared/identifiers";
 import { type Arena, wait } from "../arena";
@@ -84,8 +86,8 @@ async function course(
         failures.push(`pose yaw=${yaw}`);
       if (kind) {
         system.sendScriptEvent(
-          id(`test_${kind}_on_top`),
-          `dining_table ${table.id} 0 0`,
+          TEST_FURNITURE_TOP,
+          `${kind} ${block.x} ${block.y + 1} ${block.z}`,
         );
         await wait(2);
         const hosted = near(id(kind));
@@ -219,4 +221,92 @@ export function diningTableBlockOnTop(a: Arena): Promise<Outcome> {
 }
 export function diningTableTopRestore(a: Arena): Promise<Outcome> {
   return topCourse(a, "restore");
+}
+
+export async function diningTableTopOverlap(a: Arena): Promise<Outcome> {
+  const support = a.at(110, a.gy - 1, 15);
+  const cells = [0, 2].map((dx) => ({
+    x: support.x + dx,
+    y: support.y + 1,
+    z: support.z,
+  }));
+  const saved = cells.flatMap((cell) =>
+    [-1, 0, 1, 2].map((dy) => {
+      const at = { ...cell, y: cell.y + dy };
+      return { at, permutation: a.dim.getBlock(at)?.permutation };
+    }),
+  );
+  const near = (type: string) =>
+    a.dim.getEntities({ type, location: cells[0], maxDistance: 4 });
+  const failures: string[] = [];
+  const event = async (name: string, value: string) => {
+    system.sendScriptEvent(name, value);
+    await wait(3);
+  };
+  try {
+    for (const cell of cells) {
+      a.dim.getBlock({ ...cell, y: cell.y - 1 })?.setType("minecraft:stone");
+      for (const dy of [0, 1, 2])
+        a.dim.getBlock({ ...cell, y: cell.y + dy })?.setType("minecraft:air");
+      await event(
+        TEST_FURNITURE_PLACE,
+        `dining_table ${cell.x} ${cell.y - 1} ${cell.z} 0`,
+      );
+    }
+    if (near(FURNITURE_IDS.dining_table.entity).length !== 2)
+      return { pass: false, detail: "tables not placed" };
+    for (const kind of ["gas_lantern", "dutch_oven"]) {
+      const first = cells[0];
+      const second = cells[1];
+      if (!first || !second) throw Error("missing cells");
+      const above = { ...first, y: first.y + 1 };
+      a.dim.getBlock(above)?.setType("minecraft:stone");
+      await event(
+        TEST_FURNITURE_TOP,
+        `${kind} ${first.x} ${first.y} ${first.z}`,
+      );
+      if (near(id(kind)).length !== 0) failures.push(`${kind} overlaps block`);
+      await event(
+        TEST_FURNITURE_TOP,
+        `${kind} ${second.x} ${second.y} ${second.z}`,
+      );
+      if (near(id(kind)).length !== 1)
+        failures.push(`${kind} refused on separate table`);
+      await event(
+        TEST_FURNITURE_BLOCK,
+        `${second.x} ${second.y + 1} ${second.z}`,
+      );
+      if (a.dim.getBlock({ ...second, y: second.y + 1 })?.isAir !== true)
+        failures.push(`block overlaps ${kind}`);
+      for (const entity of near(id(kind))) entity.remove();
+      await event(
+        TEST_FURNITURE_BLOCK,
+        `${second.x} ${second.y + 1} ${second.z}`,
+      );
+      if (
+        a.dim.getBlock({ ...second, y: second.y + 1 })?.typeId !==
+        "minecraft:stone"
+      )
+        failures.push("empty top refused block");
+      for (const cell of cells)
+        a.dim.getBlock({ ...cell, y: cell.y + 1 })?.setType("minecraft:air");
+    }
+  } finally {
+    for (const type of [
+      FURNITURE_IDS.dining_table.entity,
+      id("gas_lantern"),
+      id("dutch_oven"),
+      "minecraft:item",
+    ])
+      for (const entity of near(type)) entity.remove();
+    await wait(2);
+    for (const { at, permutation } of saved)
+      if (permutation) a.dim.getBlock(at)?.setPermutation(permutation);
+  }
+  return {
+    pass: failures.length === 0,
+    detail:
+      failures.join(", ") ||
+      "both placement orders and separate tables verified",
+  };
 }

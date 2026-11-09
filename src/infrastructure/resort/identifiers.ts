@@ -44,6 +44,8 @@ export const FURNITURE_IDS: Record<
 
 export const TEST_FURNITURE_PLACE = "yasu_ride_test:test_furniture_place";
 export const TEST_FURNITURE_HIT = "yasu_ride_test:test_furniture_hit";
+export const TEST_FURNITURE_TOP = "yasu_ride_test:test_furniture_top";
+export const TEST_FURNITURE_BLOCK = "yasu_ride_test:test_furniture_block";
 
 export function furnitureKindOf(
   typeId: string,

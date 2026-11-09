@@ -340,6 +340,7 @@ describe("selectionOf", () => {
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
     ).toEqual([
+      "dining_table_top_overlap",
       "dining_table_top_lay_clear",
       "dining_table_block_on_top",
       "dining_table_top_restore",
