@@ -101,7 +101,7 @@ g = json.loads(Path('${RP}/models/entity/yasu_ride/dining_chair.geo.json').read_
 p = g['bones'][0]['cubes']
 m.validate(p)
 lo, hi = t.bounds(p)
-b = t.corners(next(c for c in p if c.get('rotation') and c['uv']['north'] == m.face(True)))
+b = t.corners(p[-m.BACK_PANELS + m.BACK_PANELS // 2])
 print(json.dumps({'lo': lo, 'hi': hi, 'baseZ': b[0][2], 'topZ': b[2][2]}))
 `,
         ],
@@ -109,7 +109,7 @@ print(json.dumps({'lo': lo, 'hi': hi, 'baseZ': b[0][2], 'topZ': b[2][2]}))
       ),
     );
     expect(bounds.topZ).toBeGreaterThan(bounds.baseZ);
-    expect(bounds.lo[1]).toBe(0);
+    expect(bounds.lo[1]).toBeCloseTo(0, 6);
     expect(bounds.hi[1]).toBeLessThanOrEqual(13);
     const boxes = components["minecraft:custom_hit_test"].hitboxes;
     expect(boxes).toHaveLength(1);

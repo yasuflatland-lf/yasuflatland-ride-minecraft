@@ -49,7 +49,7 @@ from tool_loader import load_tool
 m = load_tool('gen_dining_chair')
 t = load_tool('cube_tilt')
 parts = m.cubes()
-assert len(t.compound_cubes(parts)) == 2
+assert len(t.compound_cubes(parts)) == m.BACK_PANELS + 1
 try:
     t.assert_axes(parts, {})
 except ValueError:
