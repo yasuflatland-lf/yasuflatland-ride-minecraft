@@ -49,7 +49,7 @@ from tool_loader import load_tool
 m = load_tool('gen_dining_chair')
 t = load_tool('cube_tilt')
 parts = m.cubes()
-assert len(t.compound_cubes(parts)) == m.BACK_PANELS + 1
+assert len(t.compound_cubes(parts)) == m.BACK_PANELS + 7
 try:
     t.assert_axes(parts, {})
 except ValueError:
@@ -65,7 +65,7 @@ for axis in range(3):
         pass
     else:
         raise AssertionError('out-of-bounds chair accepted')
-m.BACK_RECLINE = 10
+m.BACK_LEAN = -10
 try:
     m.validate(m.cubes())
 except ValueError:
