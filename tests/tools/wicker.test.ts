@@ -41,7 +41,7 @@ describe("wicker tiles", { timeout: 30_000 }, () => {
           second: Tile;
           palette: Palette;
         }>(
-          `{'first': ${tileCall}, 'second': ${tileCall}, 'palette': list(vars(getattr(wicker, args['palette'])).values())}`,
+          `{'first': ${tileCall}, 'second': ${tileCall}, 'palette': [getattr(getattr(wicker, args['palette']), f) for f in ('strand','light','dark','gap')]}`,
           args,
         );
         expect(first).toEqual(second);
@@ -60,10 +60,28 @@ describe("wicker tiles", { timeout: 30_000 }, () => {
     await fc.assert(
       fc.asyncProperty(options, async (args) => {
         const tile = await run<Tile>(tileCall, args);
-        expect(tile[0]).toEqual(tile[args.size - 1]);
-        for (const row of tile) expect(row[0]).toEqual(row[args.size - 1]);
+        // Sampling x + size must land on the same texel as x, so the last
+        // column and row are followed by the first instead of repeating it.
+        const wrapped = await run<boolean>(
+          `(lambda p, t: all(p(x + 3 * args['size'], y + 2 * args['size']) == p(x, y) == tuple(t[y][x]) for x in range(args['size']) for y in range(args['size'])))(wicker.weave_sampler(getattr(wicker, args['palette']), args['size'], args['seed']), wicker.weave_tile(getattr(wicker, args['palette']), args['size'], seed=args['seed']))`,
+          args,
+        );
+        expect(wrapped).toBe(true);
       }),
     );
+  });
+
+  it("gives amber a finer, banded weave than black", async () => {
+    const [black, amber] = await run<[string[], string[]]>(
+      `[[''.join('sLd.'[[tuple(c) for c in (p.strand,p.light,p.dark,p.gap)].index(tuple(px[:3]))] for px in row) for row in wicker.weave_tile(p, 32)] for p in (wicker.PALETTE_BLACK, wicker.PALETTE_AMBER)]`,
+    );
+    expect(amber).not.toEqual(black);
+    const [blackSpec, amberSpec] = await run<[number[], number[]]>(
+      "[[p.columns, p.rows, p.bands] for p in (wicker.PALETTE_BLACK, wicker.PALETTE_AMBER)]",
+    );
+    expect(amberSpec[0]).toBeGreaterThan(blackSpec[0] as number);
+    expect(blackSpec[2]).toBe(0);
+    expect(amberSpec[2]).toBeGreaterThan(0);
   });
 
   it("transposes the entire weave when the strand direction changes", async () => {
