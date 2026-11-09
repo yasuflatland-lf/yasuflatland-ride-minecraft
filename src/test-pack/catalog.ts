@@ -23,7 +23,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     file: "buildStructure",
     ticks: 100, // Estimate until the first BDS run.
     features: ["build"],
-    // Candidate maximum captures span 256 vertical blocks, above other tests.
+    // Full-world-height captures could include entities from other scenarios.
     isolation: "exclusive",
     needsPlayer: false,
     vehicles: 0,
