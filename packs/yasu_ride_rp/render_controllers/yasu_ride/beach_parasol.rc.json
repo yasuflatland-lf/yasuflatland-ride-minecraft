@@ -1,0 +1,36 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.yasu_ride.beach_parasol": {
+      "arrays": {
+        "textures": {
+          "Array.paints": [
+            "Texture.khaki",
+            "Texture.green",
+            "Texture.red",
+            "Texture.white",
+            "Texture.light_gray",
+            "Texture.gray",
+            "Texture.black",
+            "Texture.orange",
+            "Texture.yellow",
+            "Texture.lime",
+            "Texture.cyan",
+            "Texture.light_blue",
+            "Texture.blue",
+            "Texture.purple",
+            "Texture.magenta",
+            "Texture.pink"
+          ]
+        }
+      },
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": ["Array.paints[query.variant]"]
+    }
+  }
+}

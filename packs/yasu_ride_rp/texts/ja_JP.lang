@@ -192,3 +192,6 @@ yasu_build.form.fill_below=下を埋める
 yasu_build.form.fill_below_title=下を埋めますか？
 yasu_build.form.fill_below_body=%s x %s ブロックの範囲で、Y=%s から上端 Y=%s までつながった空気と液体を埋めます。元に戻せません。
 yasu_build.message.fill_material_refused=下を埋めるには、落下せず支えも不要な素材を選んでください。
+entity.yasu_ride:beach_parasol.name=ビーチパラソル
+item.yasu_ride:beach_parasol_item.name=ビーチパラソル
+yasu_ride:resort_gear=リゾート用品
