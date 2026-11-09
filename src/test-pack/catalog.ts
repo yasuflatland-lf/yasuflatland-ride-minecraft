@@ -19,6 +19,24 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "beach_chair_place",
+    file: "beachChair",
+    ticks: 56, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "beach_chair_take_back",
+    file: "beachChair",
+    ticks: 8, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "parasol_paint",
     file: "parasol",
     ticks: 20, // Estimate until the first BDS run.
