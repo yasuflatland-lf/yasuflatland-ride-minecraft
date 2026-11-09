@@ -1,4 +1,4 @@
-// The invisible block that keeps rain off a beach parasol (ADR 0235). It
+// The invisible block that keeps rain off a beach parasol (ADR 0236). It
 // takes option A: no collision box, so players and vehicles pass through it.
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
