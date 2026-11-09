@@ -356,6 +356,7 @@ describe("camping gear docs (ADR 0093)", () => {
         ...SPEC.map((g) => `${g.id}.png`),
         "low_chair.png",
         "beach_parasol.png",
+        "beach_chair.png",
         "noga_chair.png",
         "tent.png",
         "roof_tent.png",
@@ -1071,7 +1072,10 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   icon: "yasu_ride:beach_parasol_item",
                   name: "yasu_ride:resort_gear",
                 },
-                items: ["yasu_ride:beach_parasol_item"],
+                items: [
+                  "yasu_ride:beach_parasol_item",
+                  "yasu_ride:beach_chair_item",
+                ],
               },
               {
                 group_identifier: {
