@@ -56,7 +56,10 @@ import {
   buildStructureDecorProbe,
   buildStructureProbe,
 } from "./buildStructure";
-import { buildStructureStore } from "./buildStructureStore";
+import {
+  buildStructureStore,
+  buildStructureStoreDecor,
+} from "./buildStructureStore";
 import { buildBlockStates } from "./buildTools";
 import {
   bulldozerClearHill,
@@ -333,6 +336,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_shapes: buildShapes,
   build_structure_probe: buildStructureProbe,
   build_structure_store: buildStructureStore,
+  build_structure_store_decor: buildStructureStoreDecor,
   build_structure_decor_probe: buildStructureDecorProbe,
   build_roofs: buildRoofs,
   build_flow_cancel: buildFlowCancel,
