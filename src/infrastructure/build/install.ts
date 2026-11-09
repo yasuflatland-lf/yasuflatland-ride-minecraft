@@ -34,6 +34,7 @@ import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockBuildPlayers } from "./bedrock/bedrockBuildPlayers";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
+import { BedrockStructureStore } from "./bedrock/bedrockStructureStore";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
 import { registerEditTick } from "./bedrock/handlers/editTick";
 import { registerModeTick } from "./bedrock/handlers/modeTick";
@@ -46,11 +47,18 @@ import { registerWand } from "./bedrock/handlers/wand";
 import { MenuChoices } from "./bedrock/menuChoices";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
-export function installBuild(deps: { isProtected: SpaceCheck }): void {
+export function installBuild(deps: {
+  isProtected: SpaceCheck;
+  isFleetEntityType: (typeId: string) => boolean;
+}): void {
   const repo = new InMemorySessionRepository();
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
-  const blocks = new BedrockBlockWorld(deps);
+  const ports = {
+    blocks: new BedrockBlockWorld(deps),
+    structures: new BedrockStructureStore(deps.isFleetEntityType),
+  };
+  const { blocks } = ports;
   const aim = new BedrockAimReader();
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
