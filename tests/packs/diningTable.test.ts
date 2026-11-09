@@ -45,11 +45,15 @@ it("ships a persistent, damage-immune table with whole-model hits and no seats",
   expect(c["minecraft:knockback_resistance"].value).toBe(1);
   expect(c["minecraft:rideable"]).toBeUndefined();
   expect(c["minecraft:collision_box"]).toEqual({
-    width: 15 / 16,
+    width: (2 * top.half.halfX) / 16,
     height: top.topPx / 16,
   });
   expect(c["minecraft:custom_hit_test"].hitboxes).toEqual([
-    { width: 1, height: top.topPx / 16, pivot: [0, top.topPx / 32, 0] },
+    {
+      width: (2 * top.half.halfX) / 16,
+      height: top.topPx / 16,
+      pivot: [0, top.topPx / 32, 0],
+    },
   ]);
 });
 
@@ -82,21 +86,33 @@ g = m.geometry()["minecraft:geometry"][0]
 top = g["bones"][1]["cubes"]
 legs = g["bones"][2]["cubes"]
 ring = g["bones"][3]["cubes"]
-assert len(legs) == 4 and len(ring) == 8
-m.tilt.assert_axes(legs + ring, {"legs": legs}, m.ASSEMBLIES)
+assert len(legs) == m.ASSEMBLIES["legs"]["cubes"]
+assert m.RING_SEGMENTS >= 16 and len(ring) == m.RING_SEGMENTS * m.TUBE_BARS
+m.tilt.assert_axes(legs + ring, {"legs": legs, "ring": ring}, m.ASSEMBLIES)
 lo, hi = m.tilt.bounds([c for b in g["bones"] for c in b.get("cubes", [])])
 assert all(-8 <= lo[i] <= hi[i] <= 8 for i in (0, 2)), (lo, hi)
 assert lo[1] >= 0 and hi[1] == m.TOP_PX, (lo, hi)
 top_lo, top_hi = m.tilt.bounds(top)
 assert top_lo[0] == top_lo[2] == -m.TOP_HALF and top_hi[0] == top_hi[2] == m.TOP_HALF
-for leg in legs:
-    # Splayed: the foot end of every leg lies farther out than its top end.
-    corners = m.tilt.corners(leg)
-    low = min(corners, key=lambda p: p[1])
-    high = max(corners, key=lambda p: p[1])
-    assert abs(low[0]) > abs(high[0]) and abs(low[2]) > abs(high[2])
+assert abs(2 * m.TOP_HALF / m.TOP_PX - m.REF_WIDTH_HEIGHT_RATIO) < 0.005
+assert abs(m.RIM_DEPTH / m.TOP_PX - m.REF_RIM_HEIGHT_RATIO) < 1e-9
+assert m.LEG_TOP_OFFSET > m.LEG_WAIST < m.LEG_FOOT_OFFSET
+assert m.LEG_WAIST_WIDTH > m.LEG_FOOT_WIDTH
+# Check the transformed segment axes, including both sides of each bend.
+for sx in (-1, 1):
+    for sz in (-1, 1):
+        cubes = m.leg(sx, sz)
+        for i in range(m.TAPER_STEPS + 1):
+            cube = cubes[i * m.TUBE_BARS]
+            axis = m.tilt.apply_matrix(m.tilt.cube_matrix(cube["rotation"]), [0, 1, 0])
+            direction = -1 if i < m.TAPER_STEPS else 1
+            assert axis[0] * sx * direction > 0 and axis[2] * sz * direction > 0
+            assert axis[1] > 0
+        assert cubes[-1]["uv"]["up"]["uv"] == [16, m.WEAVE_SIZE]
 ring_lo, ring_hi = m.tilt.bounds(ring)
-assert ring_lo[1] == m.RING_Y - m.RING_HALF and ring_hi[1] == m.RING_Y + m.RING_HALF
+assert abs(ring_lo[1] - (m.RING_Y - m.RING_HALF)) < 0.001
+assert abs(ring_hi[1] - (m.RING_Y + m.RING_HALF)) < 0.001
+assert all(-m.TOP_HALF <= lo[i] <= hi[i] <= m.TOP_HALF for i in (0, 2))
 print(json.dumps([m.TOP_HALF, m.TOP_PX, m.TOP_LIMIT, m.TEXTURE_WIDTH, m.TEXTURE_HEIGHT]))
 `,
       ],
@@ -127,54 +143,43 @@ print(json.dumps([m.TOP_HALF, m.TOP_PX, m.TOP_LIMIT, m.TEXTURE_WIDTH, m.TEXTURE_
   ]).toEqual([textureWidth, textureHeight]);
 });
 
-it("holds one Dutch Oven or up to four Gas Lanterns in the corners", () => {
+it("fits either item alone and limits the smaller top to one item", () => {
+  expect(top.limit).toBe(1);
   for (const footprint of [GAS_LANTERN_FOOTPRINT_PX, DUTCH_OVEN_FOOTPRINT_PX]) {
-    expect(
-      placeOnTop(top.half, top.limit, [], { x: 0, z: 0 }, footprint),
-    ).toEqual({ ok: true, at: { x: 0, z: 0 } });
-  }
-  const lanterns: TopItem[] = [];
-  for (const [x, z] of [
-    [-8, -8],
-    [8, -8],
-    [-8, 8],
-    [8, 8],
-  ] as const) {
     const placement = placeOnTop(
       top.half,
       top.limit,
-      lanterns,
-      { x, z },
-      GAS_LANTERN_FOOTPRINT_PX,
-    );
-    expect(placement.ok).toBe(true);
-    if (placement.ok)
-      lanterns.push({ at: placement.at, footprint: GAS_LANTERN_FOOTPRINT_PX });
-  }
-  expect(lanterns).toHaveLength(top.limit);
-  expect(
-    placeOnTop(
-      top.half,
-      top.limit,
-      lanterns,
+      [],
       { x: 0, z: 0 },
-      GAS_LANTERN_FOOTPRINT_PX,
-    ),
-  ).toEqual({ ok: false, reason: "full" });
-  const oven = placeOnTop(
+      footprint,
+    );
+    expect(placement).toEqual({ ok: true, at: { x: 0, z: 0 } });
+    const contents: TopItem[] = [{ at: { x: 0, z: 0 }, footprint }];
+    expect(
+      placeOnTop(
+        top.half,
+        top.limit,
+        contents,
+        { x: 8, z: 8 },
+        GAS_LANTERN_FOOTPRINT_PX,
+      ),
+    ).toEqual({ ok: false, reason: "full" });
+  }
+  // Even with the count limit lifted, opposite corners cannot fit two lanterns.
+  const first = placeOnTop(
     top.half,
-    top.limit,
+    4,
     [],
     { x: -8, z: -8 },
-    DUTCH_OVEN_FOOTPRINT_PX,
+    GAS_LANTERN_FOOTPRINT_PX,
   );
-  expect(oven.ok).toBe(true);
-  if (!oven.ok) return;
+  expect(first.ok).toBe(true);
+  if (!first.ok) return;
   expect(
     placeOnTop(
       top.half,
-      top.limit,
-      [{ at: oven.at, footprint: DUTCH_OVEN_FOOTPRINT_PX }],
+      4,
+      [{ at: first.at, footprint: GAS_LANTERN_FOOTPRINT_PX }],
       { x: 8, z: 8 },
       GAS_LANTERN_FOOTPRINT_PX,
     ),
