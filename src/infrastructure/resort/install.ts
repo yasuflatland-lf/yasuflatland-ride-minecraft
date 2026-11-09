@@ -9,11 +9,15 @@ import { TakeBackParasol } from "../../application/resort/takeBackParasol";
 import { GiveStarterItem } from "../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import { Repaint } from "../../application/shared/repaint";
+import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
 import {
   BedrockStarterItemWorld,
   registerStarterItem,
 } from "../shared/starterItem";
-import type { TopHostRegistry } from "../shared/tableTop/registry";
+import type {
+  PlaceHostedOnTop,
+  TopHostRegistry,
+} from "../shared/tableTop/registry";
 import { BedrockBeachChairWorld } from "./bedrock/bedrockBeachChairWorld";
 import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
 import { BedrockParasolWorld } from "./bedrock/bedrockParasolWorld";
@@ -27,16 +31,34 @@ import { registerParasolPlacement } from "./bedrock/handlers/placement";
 import { registerTestBeachChair } from "./bedrock/handlers/testBeachChair";
 import { registerTestParasol } from "./bedrock/handlers/testParasol";
 import {
+  BEACH_CHAIR,
+  BEACH_CHAIR_FOLDED,
+  BEACH_CHAIR_TOP_REFUSAL_HINTS,
   BEACH_PARASOL_ITEM,
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
 } from "./identifiers";
 
 export function installResort(deps: {
   topHosts: TopHostRegistry;
+  placeHostedOnTop: PlaceHostedOnTop;
   isVehicleSpace: SpaceCheck;
   isCampSpace: SpaceCheck;
 }): void {
   const chair = new BedrockBeachChairWorld(deps);
+  deps.topHosts.registerHost({
+    hostType: "beach_chair",
+    entityTypeId: BEACH_CHAIR,
+    surface: {
+      half: BEACH_CHAIR_SPEC.topHalf,
+      topPx: BEACH_CHAIR_SPEC.topPx,
+      limit: BEACH_CHAIR_SPEC.topLimit,
+      clearanceBase: 1,
+    },
+    isTopNow: (entity) => entity.getProperty(BEACH_CHAIR_FOLDED) === true,
+    blockedAt: (entity, at, footprint) =>
+      chair.blockedAt(entity, at, footprint),
+    refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
+  });
   const takeChair = new TakeBackBeachChair(chair);
   registerBeachChairPlacement(new PlaceBeachChair(chair));
   const form = new SwitchBeachChairForm(chair);
@@ -47,6 +69,7 @@ export function installResort(deps: {
     chair,
     form,
     new BeachChairMenu(form, () => {}),
+    deps.placeHostedOnTop,
   );
   registerBeachChairLifecycle(chair);
   registerTestBeachChair(chair, takeChair, deps, form);

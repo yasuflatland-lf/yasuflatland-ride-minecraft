@@ -19,10 +19,12 @@ import {
   type ChairState,
   tableBlockCells,
 } from "../../../domain/resort/beachChair";
+import { beachChairItemCells } from "../../../domain/resort/beachChairTop";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import type { LocalPoint, TopRect } from "../../../domain/shared/tableTop";
 import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
@@ -37,6 +39,7 @@ import {
   isCreative,
   playerById,
 } from "../../shared/players";
+import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLD_EVENT,
@@ -56,6 +59,7 @@ export class BedrockBeachChairWorld
   >();
   constructor(
     private readonly deps: {
+      topHosts: TopHostRegistry;
       isVehicleSpace: SpaceCheck;
       isCampSpace: SpaceCheck;
     },
@@ -74,11 +78,45 @@ export class BedrockBeachChairWorld
       occupied:
         (entity.getComponent("minecraft:rideable")?.getRiders().length ?? 0) >
         0,
-      somethingOnTop: this.topCells(entity).some((cell) => {
-        const above = safeBlockAt(entity.dimension, { ...cell, y: cell.y + 1 });
-        return above?.isAir !== true;
-      }),
+      somethingOnTop:
+        this.deps.topHosts.itemsOnTop("beach_chair", id).length > 0 ||
+        this.topCells(entity).some((cell) => {
+          const above = safeBlockAt(entity.dimension, {
+            ...cell,
+            y: cell.y + 1,
+          });
+          return above?.isAir !== true;
+        }),
     };
+  }
+  blockedAt(entity: Entity, at: LocalPoint, footprint: TopRect): boolean {
+    return beachChairItemCells(
+      entity.location,
+      snapYaw4(entity.getRotation().y),
+      at,
+      footprint,
+    ).some((cell) => safeBlockAt(entity.dimension, cell)?.isAir !== true);
+  }
+  hasHostedItemAt(id: string, cell: Cell): boolean {
+    const entity = this.entity(asBeachChairId(id));
+    if (!entity) return false;
+    return this.deps.topHosts
+      .itemsOnTop("beach_chair", id)
+      .some((item) =>
+        beachChairItemCells(
+          entity.location,
+          snapYaw4(entity.getRotation().y),
+          item.at,
+          item.footprint,
+        ).some((at) => cellKey(at) === cellKey(cell)),
+      );
+  }
+  hostedItemBlocksPlacement(dimension: DimensionId, cell: Cell): boolean {
+    const below = { ...cell, y: cell.y - 1 };
+    const block = this.block(dimension, below);
+    if (block?.typeId !== BEACH_CHAIR_TOP) return false;
+    const owner = this.topOwner(dimension, below, block.typeId);
+    return owner !== undefined && this.hasHostedItemAt(owner, cell);
   }
   showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void {
     this.show(player, reason === "occupied" ? "occupied" : "something_on_top");

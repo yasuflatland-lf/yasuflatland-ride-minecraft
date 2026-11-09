@@ -6,6 +6,7 @@ import {
   BEACH_CHAIR,
   BEACH_CHAIR_TOP,
 } from "../../../src/infrastructure/resort/identifiers";
+import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
 const game = vi.hoisted(() => {
   const handlers = new Map<string, (ev: unknown) => void>();
@@ -42,6 +43,7 @@ beforeEach(() => {
 });
 function fixture() {
   const adapter = new BedrockBeachChairWorld({
+    topHosts: new TopHostRegistry(),
     isVehicleSpace: () => false,
     isCampSpace: () => false,
   });

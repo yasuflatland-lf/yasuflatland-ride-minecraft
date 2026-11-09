@@ -12,6 +12,7 @@ import {
   BEACH_CHAIR_TOP,
   BEACH_CHAIR_TOP_CELLS,
 } from "../../../src/infrastructure/resort/identifiers";
+import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -93,7 +94,9 @@ function fixture(yaw = 0) {
   game.getEntity.mockImplementation((query: string) =>
     query === id ? entity : undefined,
   );
+  const topHosts = new TopHostRegistry();
   const deps = {
+    topHosts,
     isVehicleSpace: vi.fn(() => false),
     isCampSpace: vi.fn(() => false),
   };
@@ -224,3 +227,33 @@ it("lays and clears on form changes, refuses contents, and clears stale chair-fo
   f.adapter.setForm(id, "chair");
   expect(f.wanted.every((c) => f.blocks.get(f.key(c))?.isAir)).toBe(true);
 });
+
+it.each([0, 90, 180, 270])(
+  "checks both footprint cells and hosted occupancy at yaw %i",
+  (yaw) => {
+    const f = fixture(yaw);
+    const item = { at: { x: 0, z: 0 }, footprint: { halfX: 2, halfZ: 3 } };
+    const items = vi.spyOn(f.deps.topHosts, "itemsOnTop").mockReturnValue([]);
+    expect(f.adapter.state(id)?.somethingOnTop).toBe(false);
+    expect(
+      f.adapter.blockedAt(f.entity as never, item.at, item.footprint),
+    ).toBe(false);
+    for (const cell of f.wanted) {
+      const above = { ...cell, y: cell.y + 1 };
+      const block = f.blocks.get(f.key(above));
+      if (!block) throw Error("missing above cell");
+      block.isAir = false;
+      expect(
+        f.adapter.blockedAt(f.entity as never, item.at, item.footprint),
+      ).toBe(true);
+      block.isAir = true;
+      items.mockReturnValue([item]);
+      expect(f.adapter.hasHostedItemAt(id, above)).toBe(true);
+      expect(f.adapter.hasHostedItemAt(id, { ...above, y: above.y + 1 })).toBe(
+        false,
+      );
+    }
+    expect(f.adapter.state(id)?.somethingOnTop).toBe(true);
+    expect(items).toHaveBeenCalledWith("beach_chair", id);
+  },
+);

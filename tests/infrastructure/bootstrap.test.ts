@@ -186,6 +186,7 @@ it("installs build last and passes both space checks without requesting a camera
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
   expect(installResort).toHaveBeenCalledExactlyOnceWith({
+    placeHostedOnTop: expect.any(Function),
     topHosts: vi.mocked(installCamp).mock.lastCall?.[0].topHosts,
     isVehicleSpace,
     isCampSpace,
