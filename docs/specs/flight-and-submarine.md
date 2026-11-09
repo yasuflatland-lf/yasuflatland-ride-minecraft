@@ -42,7 +42,6 @@
 - Implementation: `src/application/vehicle/riderEffects.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/switchFeedback.ts`; `src/infrastructure/vehicle/install.ts`; `src/domain/vehicle/kinds/bulldozer/profile.ts`
 - Verification: `tests/application/vehicle/riderEffects.test.ts` covers successful sets, clears and failures; switch use-case property tests cover gating and new states. `tests/packs/chaseCamera.test.ts` checks profile choices and existing preset radii. Visible framing and feedback require a client check.
 
-
 ### Forms and transition priority
 
 - Applies to: SUV and camper transforming drives; the camper supplies its own `CAMPER_SPEC` through `CAMPER_TRANSFORMING`.
