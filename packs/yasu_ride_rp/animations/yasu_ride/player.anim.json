@@ -1,0 +1,19 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.yasu_ride.player.lounge": {
+      "loop": true,
+      "bones": {
+        "leftleg": {
+          "rotation": ["-90.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-90.0 - this", "-this", "-this"]
+        },
+        "waist": {
+          "rotation": [-55.0, 0.0, 0.0]
+        }
+      }
+    }
+  }
+}

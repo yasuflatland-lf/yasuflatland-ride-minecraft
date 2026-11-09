@@ -12,7 +12,6 @@ import {
 } from "../../application/camp/gasLantern";
 import { HitChair } from "../../application/camp/hitChair";
 import { HitTable } from "../../application/camp/hitTable";
-import { HostedItemsGuard } from "../../application/camp/hostedItemsGuard";
 import { LeaveRoofTent } from "../../application/camp/leaveRoofTent";
 import { PaintRoofTent } from "../../application/camp/paintRoofTent";
 import { PaintTent } from "../../application/camp/paintTent";
@@ -27,6 +26,7 @@ import { SwitchLantern } from "../../application/camp/switchLantern";
 import { TakeDownTent } from "../../application/camp/takeDownTent";
 import { UseTentFlap } from "../../application/camp/useTentFlap";
 import { GiveStarterItem } from "../../application/shared/giveStarterItem";
+import { HostedItemsGuard } from "../../application/shared/hostedItemsGuard";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHost";
 import { SleepInBed } from "../../application/shared/sleepInBed";
@@ -39,6 +39,10 @@ import {
   registerStarterItem,
 } from "../shared/starterItem";
 import type { SwitchTarget } from "../shared/switchRouter";
+import type {
+  PlaceHostedOnTop,
+  TopHostRegistry,
+} from "../shared/tableTop/registry";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
 import { BedrockDutchOvenWorld } from "./bedrock/bedrockDutchOvenWorld";
 import { BedrockFirePitWorld } from "./bedrock/bedrockFirePitWorld";
@@ -81,6 +85,7 @@ import {
 import { RoofTentHosts } from "./bedrock/roofTentHosts";
 import { createTentBlocks } from "./bedrock/tentBlocks";
 import { TentFlapStore } from "./bedrock/tentFlapStore";
+import { registerCampTopHosts } from "./bedrock/topHosts";
 import {
   ROOF_TENT_ITEM,
   ROOF_TENT_STARTER_RECEIVED_PROPERTY,
@@ -94,12 +99,15 @@ import { DynamicPropertyTentRegistry } from "./persistence/tentRegistry";
  * switch router (ADR 0046).
  */
 export function installCamp(deps: {
+  topHosts: TopHostRegistry;
   isVehicleSpace: SpaceCheck;
   vehicleHost: VehicleHostLookup;
 }): {
   isCampSpace: SpaceCheck;
   switchTargets: readonly SwitchTarget[];
+  placeHostedOnTop: PlaceHostedOnTop;
 } {
+  registerCampTopHosts(deps.topHosts);
   registerStarterItem(
     new GiveStarterItem(
       new BedrockStarterItemWorld(
@@ -121,16 +129,21 @@ export function installCamp(deps: {
     deps,
     createGasLanternLight(),
   );
-  registerDutchOven(
+  const placeOven = registerDutchOven(
     new DutchOvenActions(ovens),
     new HostedItemsGuard([
       dutchOvenHostedKind(ovens),
       gasLanternHostedKind(gasLanternWorld),
     ]),
+    deps.topHosts,
   );
   registerFirePit(new FirePitActions(firePits), firePits);
   const gasLanterns = new GasLanternActions(gasLanternWorld);
-  registerGasLantern(gasLanterns, gasLanternWorld);
+  const placeLantern = registerGasLantern(
+    gasLanterns,
+    gasLanternWorld,
+    deps.topHosts,
+  );
 
   // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
   registerBedBlock(
@@ -217,6 +230,8 @@ export function installCamp(deps: {
   const lantern = new SwitchLantern(new BedrockLanternWorld());
   registerTestTentLantern(lantern);
   return {
+    placeHostedOnTop: (player, host) =>
+      placeLantern(player, host) || placeOven(player, host),
     // The chair claims no space; the tents claim their footprints (ADR 0129).
     isCampSpace: (d, c) => tents.isCampSpace(d, c),
     switchTargets: [

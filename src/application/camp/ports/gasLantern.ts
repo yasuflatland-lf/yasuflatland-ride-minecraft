@@ -1,9 +1,9 @@
 import type { GasLanternId } from "../../../domain/camp/gasLantern";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import type { TableTopWorld } from "./tableTop";
+import type { TopHostWorld } from "../../shared/placeOnTop";
 
-export interface GasLanternWorld extends TableTopWorld {
+export interface GasLanternWorld extends TopHostWorld {
   hasGasLanternNear(dimension: DimensionId, at: Vec3): boolean;
   spawnGasLantern(dimension: DimensionId, at: Vec3, yaw: number): void;
   isLit(id: GasLanternId): boolean | undefined;

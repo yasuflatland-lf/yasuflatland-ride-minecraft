@@ -1,6 +1,6 @@
-import type { Host } from "../../../domain/camp/hosted";
 import type { RoofTentId } from "../../../domain/camp/ids";
 import type { RoofTentPlan } from "../../../domain/camp/roofTent/placement";
+import type { Host } from "../../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";

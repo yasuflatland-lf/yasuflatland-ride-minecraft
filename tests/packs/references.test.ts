@@ -15,7 +15,7 @@ import {
   MONITOR_TOOL_TYPES,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
-import { type Json, jsonFiles } from "../support/packFiles";
+import { type Json, jsonFileEntries, jsonFiles } from "../support/packFiles";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RP = join(REPO_ROOT, "packs/yasu_ride_rp");
@@ -53,10 +53,22 @@ interface ClientEntity {
   render_controllers?: (string | Json)[];
 }
 
-const clientEntities: ClientEntity[] = jsonFiles(join(RP, "entity")).map(
-  (f) =>
-    (f["minecraft:client_entity"] as { description: ClientEntity }).description,
-);
+// ADR 0238: vanilla supplies this override's references and server entity.
+// playerOverride.test.ts pins its full definition and checks the added animation.
+const clientEntities: ClientEntity[] = jsonFileEntries(join(RP, "entity"))
+  .filter(
+    ({ path, json }) =>
+      !(
+        path === "yasu_ride/player.ce.json" &&
+        (json["minecraft:client_entity"] as { description: ClientEntity })
+          .description.identifier === "minecraft:player"
+      ),
+  )
+  .map(
+    ({ json }) =>
+      (json["minecraft:client_entity"] as { description: ClientEntity })
+        .description,
+  );
 const geometries = new Set(
   jsonFiles(join(RP, "models")).flatMap((f) =>
     (

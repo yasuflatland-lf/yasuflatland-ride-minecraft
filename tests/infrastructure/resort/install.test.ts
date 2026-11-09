@@ -24,6 +24,9 @@ import {
 } from "../../../src/infrastructure/resort/identifiers";
 import { installResort } from "../../../src/infrastructure/resort/install";
 import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
+import { campTopHosts } from "../../support/campTopHosts";
+
+vi.mock("@minecraft/server", () => ({ world: {} }));
 
 const world = vi.hoisted(() => ({ args: [] as unknown[][] }));
 vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
@@ -69,7 +72,11 @@ vi.mock(
 );
 
 it("registers the parasol starter with its own received flag", () => {
-  installResort({ isVehicleSpace: () => true, isCampSpace: () => false });
+  installResort({
+    topHosts: campTopHosts(),
+    isVehicleSpace: () => true,
+    isCampSpace: () => false,
+  });
   expect(registerStarterItem).toHaveBeenCalledExactlyOnceWith(
     expect.any(GiveStarterItem),
   );
