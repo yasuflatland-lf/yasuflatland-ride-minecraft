@@ -28,27 +28,32 @@ BACKREST_SLAT_COUNT = SLAT_COUNT
 BACKREST_SLAT_WIDTH = SLAT_WIDTH
 BACKREST_SLAT_GAP = SLAT_GAP
 BACKREST_THICKNESS = 0.06
-MAIN_RAIL_THICKNESS = 0.6
-MAIN_RAIL_BOTTOM = 5.3
-MAIN_RAIL_START = -7.4
-LEG_SIZE = 1.45
+LEG_SIZE = 1.2
+MAIN_RAIL_THICKNESS = LEG_SIZE
+MAIN_RAIL_BOTTOM = 5.6
+MAIN_RAIL_START = -7.8
+# The sliding stub and rear frame do not contribute to the folded tabletop.
+TABLE_Z_MIN = MAIN_RAIL_START
+TABLE_Z_MAX = HINGE[2]
+TABLE_Z_CENTER = (TABLE_Z_MIN + TABLE_Z_MAX) / 2
 EXTENSION_HALF_WIDTH = 5.3
-EXTENSION_RAIL_THICKNESS = 0.5
-EXTENSION_RAIL_BOTTOM = 5.0
-EXTENSION_RAIL_TOP = 6.2
+EXTENSION_RAIL_THICKNESS = LEG_SIZE
+EXTENSION_RAIL_BOTTOM = 5.6
+EXTENSION_RAIL_TOP = 6.8
 EXTENSION_END_START = -15.6
 EXTENSION_END_DEPTH = 0.5
-EXTENSION_LEG_SIZE = 1.1
+EXTENSION_LEG_SIZE = LEG_SIZE
 REAR_RAIL_BOTTOM = 5.5
 REAR_RAIL_TOP = 6.6
-REAR_RAIL_WIDTH = 0.6
-REAR_LEG_SIZE = 1.1
+REAR_RAIL_WIDTH = LEG_SIZE
+REAR_LEG_SIZE = LEG_SIZE
 REAR_END_START = 15.4
 PAD_HEIGHT = 0.2
 PAD_INSET = 0.08
 PAD_SLOT = 5
-TABLE_RAIL_BOTTOM = 5.0
-TABLE_RAIL_THICKNESS = 0.6
+JOINT_SEAM = 0.018
+TABLE_RAIL_BOTTOM = 5.6
+TABLE_RAIL_THICKNESS = LEG_SIZE
 PROP_ATTACHMENT = 0.4
 PROP_PIVOT = (0, (REAR_RAIL_BOTTOM + REAR_RAIL_TOP) / 2, REAR_END_START)
 PROP_START = (0,
@@ -62,7 +67,7 @@ PROP_WIDTH = 0.25
 PROP_THICKNESS = 0.12
 PALETTE = ((166, 119, 74), (190, 148, 100), (211, 179, 132), (238, 242, 240), (190, 148, 100), (38, 33, 29))
 TEXTURE_WIDTH = len(PALETTE) * 16
-SLAT_BOTTOM = TOP_PX - 0.8
+SLAT_BOTTOM = TOP_PX - 0.2
 BAND_START = -12.3
 BAND_END = -7.8
 FINGER_WIDTH = 0.18
@@ -78,7 +83,8 @@ def box(lo, hi, slot=0):
 
 
 def leg(x, z, size, top):
-    return [box((x, PAD_HEIGHT, z), (x + size, top, z + size)),
+    return [box((x, PAD_HEIGHT, z), (x + size, top - JOINT_SEAM, z + size)),
+            box((x, top - JOINT_SEAM, z), (x + size, top, z + size), PAD_SLOT),
             box((x + PAD_INSET, 0, z + PAD_INSET),
                 (x + size - PAD_INSET, PAD_HEIGHT, z + size - PAD_INSET), PAD_SLOT)]
 
@@ -109,7 +115,7 @@ def geometry():
     for k in range(SLAT_COUNT):
         x = -slats_half + k * (SLAT_WIDTH + SLAT_GAP)
         pale_inset = (SLAT_WIDTH - PALE_SLAT_WIDTH) / 2
-        frame.append(box((x + pale_inset, BACKREST_BOTTOM, BAND_START),
+        frame.append(box((x + pale_inset, SLAT_BOTTOM, BAND_START),
                          (x + pale_inset + PALE_SLAT_WIDTH, TOP_PX, BAND_END), 2))
 
     # Offset foot fingers interleave without closing the lengthwise air gaps.
@@ -117,7 +123,7 @@ def geometry():
         x = -slats_half + (k + 0.5) * (SLAT_WIDTH + SLAT_GAP)
         frame.append(box((x, SLAT_BOTTOM, -16), (x + SLAT_WIDTH, TOP_PX, BAND_START), 1))
         finger_x = x + (SLAT_WIDTH - FINGER_WIDTH) / 2
-        frame.append(box((finger_x, BACKREST_BOTTOM, BAND_START),
+        frame.append(box((finger_x, SLAT_BOTTOM, BAND_START),
                          (finger_x + FINGER_WIDTH, TOP_PX, BAND_END), 2))
     for k in range(BACKREST_SLAT_COUNT):
         x = -slats_half + k * (BACKREST_SLAT_WIDTH + BACKREST_SLAT_GAP)
@@ -135,30 +141,30 @@ def geometry():
     prop = tilt.tilt_assembly(prop, PROP_PIVOT, "x", -PROP_ANGLE)
     table_frame = []
     for x in (-HALF[0], HALF[0] - LEG_SIZE):
-        for z in (-HALF[1], HALF[1] - LEG_SIZE):
+        for z in (TABLE_Z_MIN, TABLE_Z_MAX - LEG_SIZE):
             table_frame.extend(leg(x, z, LEG_SIZE, TABLE_RAIL_BOTTOM))
     for x in (-HALF[0], HALF[0] - TABLE_RAIL_THICKNESS):
-        table_frame.append(box((x, TABLE_RAIL_BOTTOM, -HALF[1]),
-                               (x + TABLE_RAIL_THICKNESS, SLAT_BOTTOM, HALF[1])))
-    for z in (-HALF[1], HALF[1] - TABLE_RAIL_THICKNESS):
+        table_frame.append(box((x, TABLE_RAIL_BOTTOM, TABLE_Z_MIN),
+                               (x + TABLE_RAIL_THICKNESS, SLAT_BOTTOM, TABLE_Z_MAX)))
+    for z in (TABLE_Z_MIN, TABLE_Z_MAX - TABLE_RAIL_THICKNESS):
         table_frame.append(box((-HALF[0], TABLE_RAIL_BOTTOM, z),
                                (HALF[0], SLAT_BOTTOM, z + TABLE_RAIL_THICKNESS)))
     # Adjacent slats share edges: wood grain marks joints without grooves or air gaps.
-    # Nine true square holes sit between the ten slat centre lines at z=0.
+    # Nine true square holes sit between the ten slat centre lines at the table midpoint.
     centres = [-slats_half + k * (SLAT_WIDTH + SLAT_GAP) + SLAT_WIDTH / 2
                for k in range(SLAT_COUNT)]
     joints = [(a + b) / 2 for a, b in zip(centres, centres[1:])]
     edges = [-6] + joints + [6]
     table_top = []
     for left, right in zip(edges, edges[1:]):
-        table_top.extend([box((left, SLAT_BOTTOM, -16), (right, TOP_PX, -NOTCH_SIZE / 2), 4),
-                          box((left, SLAT_BOTTOM, NOTCH_SIZE / 2), (right, TOP_PX, 16), 4)])
+        table_top.extend([box((left, SLAT_BOTTOM, TABLE_Z_MIN), (right, TOP_PX, TABLE_Z_CENTER - NOTCH_SIZE / 2), 4),
+                          box((left, SLAT_BOTTOM, TABLE_Z_CENTER + NOTCH_SIZE / 2), (right, TOP_PX, TABLE_Z_MAX), 4)])
     cursor = -6
     for x in joints:
-        table_top.append(box((cursor, SLAT_BOTTOM, -NOTCH_SIZE / 2),
-                             (x - NOTCH_SIZE / 2, TOP_PX, NOTCH_SIZE / 2), 4))
+        table_top.append(box((cursor, SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2),
+                             (x - NOTCH_SIZE / 2, TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
         cursor = x + NOTCH_SIZE / 2
-    table_top.append(box((cursor, SLAT_BOTTOM, -NOTCH_SIZE / 2), (6, TOP_PX, NOTCH_SIZE / 2), 4))
+    table_top.append(box((cursor, SLAT_BOTTOM, TABLE_Z_CENTER - NOTCH_SIZE / 2), (6, TOP_PX, TABLE_Z_CENTER + NOTCH_SIZE / 2), 4))
     bones = [{"name": "root", "pivot": [0, 0, 0]},
              {"name": "chair_form", "parent": "root", "pivot": [0, 0, 0]},
              {"name": "frame", "parent": "chair_form", "pivot": [0, 0, 0], "cubes": frame},
