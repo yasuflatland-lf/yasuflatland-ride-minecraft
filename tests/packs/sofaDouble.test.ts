@@ -50,8 +50,9 @@ describe("Sofa (Double) pack contract", () => {
     );
     // Vanilla riders sit about 0.24 blocks above the rideable anchor, as on the Low Chair.
     const seat = model.bones[0].cubes.find(
-      (c: { origin: number[]; size: number[] }) =>
-        c.origin[1] === 4 && Math.abs((c.size[1] ?? 0) - 2.4) < 1e-6,
+      (c: { origin: number[]; size: number[]; rotation?: number[] }) =>
+        Math.abs((c.origin[1] ?? 0) + (c.size[1] ?? 0) - 7.8) < 1e-6 &&
+        !c.rotation,
     );
     expect(seat).toBeDefined();
     for (const anchor of FURNITURE_SPEC.sofa_double.seats)

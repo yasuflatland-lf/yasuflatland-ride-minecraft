@@ -37,14 +37,14 @@ for build in (m.build_frame, m.build_cushions, m.build_feet):
     if build is not m.build_cushions:
         assert a[0][1:] == b[0][1:] and a[1][1:] == b[1][1:]
 assert len(m.build_feet(1)) == len(m.build_feet(2)) == 4
-assert len(m.build_cushions(1)) == 6
-assert len(m.build_cushions(2)) == 9
+assert len(m.build_cushions(1)) == 12
+assert len(m.build_cushions(2)) == 18
 for width in (1, 2):
     assert not m.tilt.compound_cubes(m.cubes(width))
 assert len(m.tilt.compound_cubes(m.cubes(1, 1))) == m.ASSEMBLIES['throw_cushion']['cubes']
-seat = m.build_cushions(2)[:3]
+seat = m.build_cushions(2)[:6]
 assert m.tilt.bounds(seat)[1][0] - m.tilt.bounds(seat)[0][0] > 26
-assert len(m.build_cushions(2)[3:]) == 6
+assert len(m.build_cushions(2)[6:]) == 12
 assert m.SEAT_POSITION[1] == m.SEAT_TOP/16-0.24
 `);
   });

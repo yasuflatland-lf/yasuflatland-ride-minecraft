@@ -71,8 +71,8 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       ]),
       clearance: 2,
       seats: Object.freeze([
-        Object.freeze({ x: -0.5, y: 0.16, z: -0.1 }),
-        Object.freeze({ x: 0.5, y: 0.16, z: -0.1 }),
+        Object.freeze({ x: -0.5, y: 0.2475, z: -0.1 }),
+        Object.freeze({ x: 0.5, y: 0.2475, z: -0.1 }),
       ]),
       hitsToTakeBack: 3,
       hitResetTicks: 100,

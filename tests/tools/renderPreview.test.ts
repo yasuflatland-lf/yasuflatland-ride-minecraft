@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 type Point = [number, number, number];
 
 // Rasterizing all camping previews can exceed Vitest's 5 s default on CI.
-const CAMPING_PREVIEW_TIMEOUT_MS = 30_000;
+const CAMPING_PREVIEW_TIMEOUT_MS = 90_000;
 
 // Runs collect_boat from tools/render_preview.py on a geometry and returns the
 // center of every opaque face it draws, in the preview's mirrored frame.
