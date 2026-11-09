@@ -1,12 +1,7 @@
 import type { Arena } from "../arena";
 import type { Outcome, StepSink } from "../outcome";
 import { beachChairPlace, beachChairTakeBack } from "./beachChair";
-import {
-  beachChairBlockOnTop,
-  beachChairEmptyRefresh,
-  beachChairFold,
-  beachChairTopRestore,
-} from "./beachChairForm";
+import { beachChairEmptyRefresh, beachChairFold } from "./beachChairForm";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
   buildAimedPaste,
@@ -282,8 +277,6 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
   beach_chair_empty_refresh: beachChairEmptyRefresh,
   beach_chair_fold: beachChairFold,
-  beach_chair_block_on_top: beachChairBlockOnTop,
-  beach_chair_top_restore: beachChairTopRestore,
   beach_chair_place: beachChairPlace,
   beach_chair_take_back: beachChairTakeBack,
   parasol_paint: parasolPaint,

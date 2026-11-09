@@ -1,12 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { BeachChairMenu } from "../../../src/application/resort/beachChairMenu";
 import { SwitchBeachChairForm } from "../../../src/application/resort/switchBeachChairForm";
-import { BedrockBeachChairWorld } from "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld";
 import { registerBeachChairInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction";
-import {
-  BEACH_CHAIR,
-  BEACH_CHAIR_TOP,
-} from "../../../src/infrastructure/resort/identifiers";
+import { BEACH_CHAIR } from "../../../src/infrastructure/resort/identifiers";
 import { fakeBeachChairWorld } from "../../application/resort/fakeBeachChairWorld";
 
 const game = vi.hoisted(() => {
@@ -37,9 +33,6 @@ vi.mock("@minecraft/server", () => ({
       return game.tick;
     },
   },
-  BlockTypes: {
-    get: (type: string) => (type === "minecraft:stone" ? {} : undefined),
-  },
 }));
 vi.mock("../../../src/infrastructure/shared/dyes", () => ({
   heldDye: () => (game.dye ? "red" : undefined),
@@ -60,17 +53,7 @@ function fixture() {
   const menu = new BeachChairMenu(form, vi.fn());
   const choose = vi.spyOn(menu, "choose");
   const unfold = vi.spyOn(form, "unfold");
-  const owner = vi
-    .spyOn(BedrockBeachChairWorld.prototype, "topOwner")
-    .mockReturnValue("chair");
-  registerBeachChairInteraction(
-    new BedrockBeachChairWorld({
-      isVehicleSpace: () => false,
-      isCampSpace: () => false,
-    }),
-    form,
-    menu,
-  );
+  registerBeachChairInteraction(form, menu);
   let held: string | undefined;
   const player = {
     id: "p",
@@ -84,7 +67,7 @@ function fixture() {
     player,
     choose,
     unfold,
-    owner,
+    world,
     hold: (item: string | undefined) => {
       held = item;
     },
@@ -148,43 +131,56 @@ it.each(["cancelled", "busy", "unanswered", "unavailable"])(
     expect(f.choose).not.toHaveBeenCalled();
   },
 );
-it("leaves blocks and future hosted items to their placement handlers and unfolds for other items", () => {
+it.each(["yasu_ride:gas_lantern_item", "yasu_ride:dutch_oven_item"])(
+  "leaves folded presses with %s to tabletop hosting",
+  (item) => {
+    const f = fixture();
+    f.hold(item);
+    const ev = {
+      player: f.player,
+      target: { typeId: BEACH_CHAIR, id: "chair", getProperty: () => true },
+      cancel: false,
+    };
+    game.callbacks.get("playerInteractWithEntity")?.(ev);
+    expect(ev.cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+  },
+);
+it.each([undefined, "minecraft:stick", "minecraft:stone"])(
+  "cancels folded presses with %s and unfolds without a menu",
+  (item) => {
+    const f = fixture();
+    f.hold(item);
+    const ev = {
+      player: f.player,
+      target: { typeId: BEACH_CHAIR, id: "chair", getProperty: () => true },
+      cancel: false,
+    };
+    const press = game.callbacks.get("playerInteractWithEntity");
+    press?.(ev);
+    press?.(ev);
+    expect(ev.cancel).toBe(true);
+    expect(game.run).toHaveBeenCalledTimes(1);
+    game.run.mock.calls[0]?.[0]();
+    expect(f.unfold).toHaveBeenCalledExactlyOnceWith({
+      id: "chair",
+      player: "p",
+    });
+    expect(game.choose).not.toHaveBeenCalled();
+  },
+);
+it("refuses unfolding a table with a hosted item", () => {
   const f = fixture();
-  let interact: ((ev: unknown) => void) | undefined;
-  game.callbacks.get("startup")?.({
-    blockComponentRegistry: {
-      registerCustomComponent: (
-        id: string,
-        component: { onPlayerInteract: (ev: unknown) => void },
-      ) => {
-        expect(id).toBe(BEACH_CHAIR_TOP);
-        interact = component.onPlayerInteract;
-      },
-    },
+  f.world.state.mockReturnValue({
+    form: "table",
+    occupied: false,
+    somethingOnTop: true,
   });
-  const ev = {
+  game.callbacks.get("playerInteractWithEntity")?.({
     player: f.player,
-    dimension: { id: "overworld" },
-    block: { typeId: BEACH_CHAIR_TOP, location: { x: 0, y: 64, z: 0 } },
-  };
-  for (const type of [
-    "minecraft:stone",
-    "yasu_ride:gas_lantern_item",
-    "yasu_ride:dutch_oven_item",
-  ]) {
-    f.hold(type);
-    interact?.(ev);
-  }
-  expect(f.unfold).not.toHaveBeenCalled();
-  for (const type of [undefined, "minecraft:stick", "minecraft:red_dye"]) {
-    f.hold(type);
-    game.tick++;
-    interact?.(ev);
-    interact?.(ev);
-  }
-  expect(f.unfold).toHaveBeenCalledTimes(3);
-  f.owner.mockReturnValue(undefined);
-  game.tick++;
-  interact?.(ev);
-  expect(f.unfold).toHaveBeenCalledTimes(3);
+    target: { typeId: BEACH_CHAIR, id: "chair", getProperty: () => true },
+  });
+  game.run.mock.calls[0]?.[0]();
+  expect(f.world.setForm).not.toHaveBeenCalled();
+  expect(f.world.showRefused).toHaveBeenCalledWith("p", "somethingOnTop");
 });

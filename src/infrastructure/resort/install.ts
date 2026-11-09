@@ -39,18 +39,15 @@ export function installResort(deps: {
   const takeChair = new TakeBackBeachChair(chair);
   registerBeachChairPlacement(new PlaceBeachChair(chair));
   const form = new SwitchBeachChairForm(chair);
-  registerBeachChairHits(takeChair, (dimension, cell, typeId) =>
-    chair.topOwner(dimension, cell, typeId),
-  );
+  registerBeachChairHits(takeChair);
   const lie = new LieOnBeachChair(chair);
   registerBeachChairInteraction(
-    chair,
     form,
     new BeachChairMenu(form, (cmd) => {
       lie.execute(cmd);
     }),
   );
-  registerBeachChairLifecycle(chair, lie);
+  registerBeachChairLifecycle(lie);
   registerTestBeachChair(chair, takeChair, deps, form);
   registerStarterItem(
     new GiveStarterItem(
