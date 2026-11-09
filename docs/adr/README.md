@@ -190,7 +190,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0183](0183-mark-a-lone-selection-corner.md) | Mark a lone selection corner | Proposed; extended by [0198](0198-one-build-wand-without-a-bulldozer.md) |
 | [0184](0184-light-the-camper-roof-and-tail-lamps.md) | Light the camper's roof and tail lamps with the headlights | Accepted; extended by [0197](0197-emit-camper-hover-particles-below-the-discs.md) |
 | [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) | Put things on the camp table instead of sitting at it | Proposed; superseded in part by [0237](0237-register-tabletop-hosts-across-features.md) |
-| [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md) | Stream in-game results and bound runs by progress | Proposed |
+| [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md) | Stream in-game results and bound runs by progress | Proposed; superseded in part by [0244](0244-gate-structure-decor-checks-on-a-player.md) |
 | [0187](0187-run-in-game-scenarios-in-concurrent-lanes.md) | Run in-game scenarios in concurrent lanes | Proposed |
 | [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) | Fuse in-game scenarios and keep only engine facts in game | Proposed |
 | [0189](0189-run-only-impacted-in-game-scenarios-locally.md) | Run only impacted in-game scenarios locally | Proposed |
@@ -244,6 +244,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0238](0238-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Accepted |
 | [0239](0239-a-beach-chair-that-folds-into-a-table.md) | A beach chair that folds into a table | Proposed |
 | [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) | Copy the Build Wand box as an engine structure | Proposed |
+| [0244](0244-gate-structure-decor-checks-on-a-player.md) | Gate structure decor checks on a player | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
