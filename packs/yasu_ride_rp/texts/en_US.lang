@@ -215,3 +215,15 @@ yasu_ride.beach_chair.menu.fold=Fold into a table
 yasu_ride.beach_chair_top_full=The Beach Chair tabletop is full.
 yasu_ride.beach_chair_top_overlap=Something is in the way on the Beach Chair tabletop.
 yasu_ride.beach_chair_top_too_big=That item is too big for the Beach Chair tabletop.
+
+yasu_ride.furniture.blocked=The furniture cannot be placed here
+yasu_ride.furniture.hits_left=Hit %s more times to take back the furniture
+yasu_ride.furniture.taken=Took back the furniture
+yasu_ride.furniture.occupied=Someone is sitting on this furniture
+yasu_ride.furniture.something_on_top=Take everything off the top first
+
+item.yasu_ride:dining_table_item.name=Dining Table
+entity.yasu_ride:dining_table.name=Dining Table
+yasu_ride.dining_table_top_full=The dining table is full.
+yasu_ride.dining_table_top_overlap=There is not enough room here on the dining table.
+yasu_ride.dining_table_top_too_big=This item is too big for the dining table.

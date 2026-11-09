@@ -2,6 +2,7 @@
 
 - Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement, form switching, lying down and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
 - Verified at: 732f6c1c
+- Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0237](../adr/0237-register-tabletop-hosts-across-features.md)
 - Source: [0239](../adr/0239-a-beach-chair-that-folds-into-a-table.md)
@@ -9,6 +10,24 @@
 - Source: [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md)
 
 ## Rules
+
+### Furniture domain groundwork
+
+- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; placement and recovery are installed; Dining Table assets and hosting are installed; other furniture assets remain future work.
+- Rule: A deeply frozen per-kind table defines footprint offsets, two clearance layers, seats, recovery parameters, and an optional tabletop surface. Shared geometry faces the player and centres the origin over the occupied floor cells. The double sofa extends from the pressed column to the player's right. Existing Beach Chair behavior is unchanged.
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md) Decision, furniture family and placement geometry.
+- Implementation: `src/domain/resort/furniture.ts`; `src/domain/resort/ids.ts`
+- Verification: `tests/domain/resort/furniture.test.ts` checks every kind and quarter turn, support and clearance cells, origin centring, player-facing orientation, rightward sofa placement, and deep freezing. Dining Table assets and hosting are covered below; other furniture assets and live-game verification remain future work.
+
+### Furniture placement and recovery
+
+- Applies to: Dining Table, Dining Chair, single sofa, and double sofa items and entities once their assets exist.
+- Rule: One kind-table-driven pipeline accepts top faces outside add-on blocks, requires solid support below every footprint cell, and checks all clearance cells for air outside vehicle and camp space. Validation precedes payment. Survival consumes one matching item; Creative consumes none; failed spawns refund payment. Placement and non-dye hits are deferred and deduplicated per player per tick. Three hits within the per-kind reset window return an item to the hitter (dropping overflow), remove the entity, and show feedback, in order. Occupied or obstructed-top refusals leave counters unchanged. The adapter checks the shared host registry and refuses recovery while a registered furniture top holds hosted contents. Kinds without a registered top remain unobstructed. Ordinary-block checks follow in later work.
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md); Dining set design, Placing and Taking back.
+- Implementation: `src/application/resort/placeFurniture.ts`; `src/application/resort/takeBackFurniture.ts`; `src/infrastructure/resort/bedrock/bedrockFurnitureWorld.ts`; `src/infrastructure/resort/install.ts`
+- Verification: Property tests run the same placement and recovery checks for all four kinds; handler tests cover deferred execution, deduplication, and dye exclusion. Server-only hooks `yasu_ride_test:test_furniture_place` accept `kind x y z yaw`; `yasu_ride_test:test_furniture_hit` accepts an entity id. Dining Table assets and authored game scenarios are included; live-game verification remains pending.
 
 ### Feature installation and placement
 
@@ -40,7 +59,7 @@
 ### Resort catalog and invisible block
 
 - Applies to: Beach Parasol pack assets.
-- Rule: Resort Gear follows Camping Gear (Outside) in the creative catalog and contains the Beach Parasol item as its first member and icon, followed by Beach Chair. Its entity uses a base hit box without physics collision. The ceiling has no collision or selection box, visible geometry, light emission, or light dampening, and carries the laid tag. Both locales include placement and recovery messages. The item and recipe are defined in the packs.
+- Rule: Resort Gear follows Camping Gear (Outside) in the creative catalog and contains the Beach Parasol item as its first member and icon, followed by Beach Chair and Dining Table. Its entity uses a base hit box without physics collision. The ceiling has no collision or selection box, visible geometry, light emission, or light dampening, and carries the laid tag. Both locales include placement and recovery messages. The item and recipe are defined in the packs.
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, new group and option A ceiling block.
 - Implementation: `tools/gen_item_catalog.py`; `packs/yasu_ride_bp/entities/yasu_ride/beach_parasol.se.json`; `packs/yasu_ride_bp/blocks/yasu_ride/parasol_ceiling.block.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
@@ -109,9 +128,20 @@
 - Implementation: `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/bedrock/bedrockBeachChairWorld.ts`; `src/infrastructure/shared/tableTop/registry.ts`; `src/application/shared/hostedItemsGuard.ts`
 - Verification: `tests/infrastructure/resort/install.test.ts` checks the registered 16 by 21 px surface at 9 px with a limit of four and folded-only availability. `tests/domain/resort/beachChair.test.ts` property-tests that every hosted item stays on the top with its centre over the middle cell. `tests/infrastructure/resort/bedrockBeachChairWorld.test.ts` checks registry-reported occupancy. Application tests cover refusal without advancing hit counters. `beach_chair_lantern` and `beach_chair_oven` host two items at both ends of the top and check height, the middle cell, unfolding and recovery refusals, and host-loss cleanup; they have not been run on BDS.
 
+### Dining Table assets and hosting
+
+- Applies to: Dining Table placement, recovery, model and tabletop hosting.
+- Rule: Resort Gear lists Dining Table directly after Beach Chair. Following the owner's photos, a 0.4 px steel frame (x and z within +-7.5 px, y [11.3, 12]) encloses a 0.4 px woven panel (+-7.1 px, y [11.6, 12]) whose top face repeats the `wicker.PALETTE_BLACK` weave eight times across a 128 px wide atlas. Four straight 0.5 px square steel legs splay from (+-2.8, 11.5, +-2.8) px under the top to feet at (+-6.0, 0.15, +-6.0) px, and an octagonal 0.4 px tube ring at y=6.3 px touches the legs' inner edges. All geometry stays within one cell. The entity is persistent, damage immune, unpushable, gravity-enabled, and has no seat; its 15/16 block wide collision box reaches the 0.75 block top and its custom hit box covers the full model. A shaped planks/sticks/iron recipe produces one item. Model generation also writes the icon and item preview. `installResort` registers an always-active `dining_table` host from `FURNITURE_SPEC.dining_table.top`: half extents 7.5 px on each axis (the whole visible top), height 12 px, limit four, clearance base zero. Up to four Gas Lanterns fit in a two-by-two grid, or one Dutch Oven alone; an oven and a lantern cannot share the one-cell top, because their footprints need 9.5 px of separation on x or 8.25 px on z and the top allows at most 5.5 and 6.75. Existing entity-tap handlers place either kind. Recovery refuses while the registry reports hosted contents and resumes after removal. The shared hosted-items guard removes orphan contents when the missing host area is loaded. There is no invisible top block or ordinary-block hosting in this increment.
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md), which permits model work to refine initial dimensions. Its initial half extent of 0.4 was not in the pixel units of the shared surface API and is replaced by 7.5 px, the whole visible top; the initial limit of four is kept. Ordinary-block integration remains deferred as planned.
+- Implementation: `tools/gen_dining_table.py`; `src/domain/resort/furniture.ts`; `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/bedrock/bedrockFurnitureWorld.ts`
+- Verification: `tests/packs/diningTable.test.ts` pins generator constants, bounds, hosting capacity and pack contracts; resort adapter and installation tests cover recovery obstruction and registration; shared guard tests cover table loss. `dining_table_place_take_back`, `dining_table_lantern`, and `dining_table_oven` are authored but have not been run. Owner visual approval remains pending.
+
 ## Open issues
 
 - Beach Chair tabletop contents are reported by the shared host registry, and hosted lanterns and ovens prevent unfolding and recovery. The hosting scenarios await BDS verification. Device menu behavior and the folded table's resting height need manual verification in game.
 
 - ADR 0236 says the rain block is laid under the canopy; the implementation lays it in the first cell above the canopy top, following the linked design (`src/domain/resort/parasolPose.ts`); the ADR needs an edit or a superseding ADR.
 - Canopies may overlap. Shared ceiling cells are not jointly owned, so taking one parasol back can leave a temporary hole until the other parasol's next scan. The rain and snow acceptance check and fallback from ADR 0236 are recorded in [Camping gear](camping-gear.md#open-issues).
+
+- The Dining Table's model awaits the owner's visual approval against the product photos. Its top holds one Dutch Oven or up to four Gas Lanterns, never an oven with a lantern.
