@@ -17,6 +17,7 @@ import {
 import { forward, type Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
 import { playerById } from "../../shared/players";
+import { readCeilingCells } from "../../shared/rainCeiling";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_EXIT_PROPERTY,
@@ -28,7 +29,6 @@ import {
   ROOF_TENT_SPAWN_SETTERS_PROPERTY,
 } from "../identifiers";
 import { roofTentEntity } from "./bedrockRoofTentWorld";
-import { readCeiling } from "./roofTentCeiling";
 
 export interface RoofTentSnapshot {
   ceiling: Cell[];
@@ -96,7 +96,7 @@ export class RoofTentOccupants {
       ),
     ];
     this.snapshots.set(asRoofTentId(entity.id), {
-      ceiling: readCeiling(
+      ceiling: readCeilingCells(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
       ),
       dimension: entity.dimension,
