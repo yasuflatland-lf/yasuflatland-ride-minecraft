@@ -30,7 +30,6 @@
 - Implementation: `src/application/vehicle/switchHeadlights.ts`; `src/application/vehicle/switchFeedback.ts`; `src/application/vehicle/riderEffects.ts`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleRiders.ts`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/application/vehicle/switchHeadlights.test.ts` covers vehicle kinds, both states, camera gating and failed switches. `switchFeedback.test.ts` checks message mappings and both locale entries. Actual client rendering remains unverified.
 
-
 ### Headlight switch item and who may switch
 
 - Applies to: SUV, camper, sports boat, and bulldozer, including a parked camper's wheel deck seat.
