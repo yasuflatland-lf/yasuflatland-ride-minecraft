@@ -17,6 +17,7 @@ export type BuildMessage =
   | "noClipboard"
   | "nothingToUndo"
   | "pasteBlocked"
+  | "copyUnreadable"
   | "copied"
   | "editDone"
   | "editDoneCount"

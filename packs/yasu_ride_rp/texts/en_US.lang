@@ -215,3 +215,5 @@ yasu_ride.beach_chair.menu.fold=Fold into a table
 yasu_ride.beach_chair_top_full=The Beach Chair tabletop is full.
 yasu_ride.beach_chair_top_overlap=Something is in the way on the Beach Chair tabletop.
 yasu_ride.beach_chair_top_too_big=That item is too big for the Beach Chair tabletop.
+
+yasu_build.message.copy_unreadable=The box could not be copied. Stay close so it is loaded, then try again.
