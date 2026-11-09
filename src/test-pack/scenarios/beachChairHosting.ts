@@ -96,7 +96,11 @@ async function course(
           `${above.x} ${above.y} ${above.z}`,
         );
         await wait(2);
-        const occupied = cell.z < origin.z;
+        // The chair faces the player, so local -z lands in the cell on +z.
+        const occupied =
+          item !== undefined &&
+          Math.floor(item.location.x) === cell.x &&
+          Math.floor(item.location.z) === cell.z;
         if ((a.dim.getBlock(above)?.typeId === "minecraft:stone") === occupied)
           failures.push("block placement ignored hosted footprint");
         if (!occupied) a.dim.getBlock(above)?.setType("minecraft:air");
