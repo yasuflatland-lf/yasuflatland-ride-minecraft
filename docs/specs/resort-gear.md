@@ -1,8 +1,9 @@
 # Resort gear
 
-- Scope: Beach Parasol placement, rain ceiling persistence, recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
+- Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair assets, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
 - Verified at: 732f6c1c
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
+- Source: [0238](../adr/0238-a-beach-chair-that-folds-into-a-table.md)
 - Source: [0235](../adr/0235-share-convex-rain-ceiling-geometry-and-placement.md)
 
 ## Rules
@@ -37,7 +38,7 @@
 ### Resort catalog and invisible block
 
 - Applies to: Beach Parasol pack assets.
-- Rule: Resort Gear follows Camping Gear (Outside) in the creative catalog and contains the Beach Parasol item as its only member and icon. Its entity uses a base hit box without physics collision. The ceiling has no collision or selection box, visible geometry, light emission, or light dampening, and carries the laid tag. Both locales include placement and recovery messages. The item and recipe are defined in the packs.
+- Rule: Resort Gear follows Camping Gear (Outside) in the creative catalog and contains the Beach Parasol item as its first member and icon, followed by Beach Chair. Its entity uses a base hit box without physics collision. The ceiling has no collision or selection box, visible geometry, light emission, or light dampening, and carries the laid tag. Both locales include placement and recovery messages. The item and recipe are defined in the packs.
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, new group and option A ceiling block.
 - Implementation: `tools/gen_item_catalog.py`; `packs/yasu_ride_bp/entities/yasu_ride/beach_parasol.se.json`; `packs/yasu_ride_bp/blocks/yasu_ride/parasol_ceiling.block.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
@@ -51,6 +52,15 @@
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, first hand-out follows the design document.
 - Implementation: `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/identifiers.ts`; `src/application/shared/giveStarterItem.ts`; `src/infrastructure/shared/starterItem.ts`
 - Verification: `tests/infrastructure/resort/install.test.ts` checks the registration and the separate flag. A new Survival player receiving both items on the dev BDS has not been verified.
+
+### Beach Chair assets
+
+- Applies to: Beach Chair pack assets; scripted behavior is not implemented yet.
+- Rule: Resort Gear lists Beach Chair immediately after Beach Parasol. The unpainted teak entity has a 1 by 2 footprint, one player seat at [0, 0.4375, 0.125] blocks without interaction text, and client-synchronized `yasu_ride:folded` (default false). The controller selects the saved static form on load and animates later changes over 10 ticks. The table top is 7 px high with half extents [6, 16] px and bed outline x [-6, 6], z [-16, 16] px. Chair form has eight 2 by 2 px legs rising 6.2 px to the slat underside. Main side rails are 1.5 px wide and 1.6 px deep, leaving 4.6 px clear below them (2.875 times rail depth); inset foot rails are 1.1 px deep. The open rear frame has 1 px wide, 1.1 px deep rails with tops at 6.2 px, 0.5 px wide short posts below the hinge ends, and one 2 by 2 px leg at each far corner. Twelve main bed slats meet twelve aligned backrest slats directly at [0, 7, 3] px, without hinge pins, extra blocks, or a lower crossbar. The backrest rises 37 degrees above the bed; its slats are 0.765 px wide with 0.18 px gaps and are 0.06 px thick. Nine inset foot slats retain their 0.72 px width and 0.44 px gaps. Interleaved pale lengthwise segments (0.5 px main fingers and 0.18 px foot fingers) occupy a 4.5 px foot overlap zone with 0.24 px air gaps. The foot-end stub frame and its two legs remain in chair form. Only the outward/downward head-end crossbar remains behind the backrest ends. A separate bright steel strip on each side is 0.25 px wide and 0.12 px thick, from the backrest underside at 40 percent of its 12.8 px length to y=5.65, z=15.4 px on the rear rail. The required endpoints within the footprint give a 27.91 degree downward slope and about 9.364 px length, rather than the photograph's approximate 20 degrees. There is no steel crossbar; the strips stow flat and hide with the chair group. Table form is one plain rectangle filling the same outline, with exactly four corner legs, no stub frame or pale band, and a continuous slatted surface with thin edge-to-edge joints and one middle row of nine 0.36 px square holes separated by wood. It has no grooves, black gaps, or dark strip. The required root/frame/backrest/prop bones remain; chair parts descend from `chair_form`, while `table_form` carries the rectangular frame and a `table_top` child. Static poses use complementary zero/one group scales; fold/unfold rotate the backrest and prop, then switch group scales with pre/post keys at the end of the 10-tick transition. The renderer hides scaled-out descendants too. The shaped recipe uses planks, sticks, and iron. The item, recipe, and entity exist without scripted placement, menus, player poses, table support blocks, hosting, or recovery.
+- Agreement: Proposed
+- Basis: [0238](../adr/0238-a-beach-chair-that-folds-into-a-table.md) Decision.
+- Implementation: `tools/gen_beach_chair.py`; `packs/yasu_ride_bp/entities/yasu_ride/beach_chair.se.json`; `packs/yasu_ride_bp/items/yasu_ride/beach_chair_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/beach_chair_item.recipe.json`; `packs/yasu_ride_rp/animation_controllers/yasu_ride/beach_chair.ac.json`
+- Verification: `tests/packs/beachChair.test.ts` checks geometry bounds, orientation, seat, property, animations, catalog, and recipe. `tests/tools/renderPreview.test.ts` checks static table posing. Owner visual approval and in-game verification remain pending.
 
 ## Open issues
 
