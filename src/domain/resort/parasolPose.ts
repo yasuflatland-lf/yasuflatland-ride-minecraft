@@ -39,6 +39,21 @@ export function parasolPose(pressed: Cell, playerYaw: number): ParasolPose {
   };
 }
 
+/** Rebuilds the pose of a placed parasol from its base cell and facing. */
+export function parasolPoseAt(base: Cell, yaw: number): ParasolPose {
+  const facing = snapYaw4(yaw);
+  const toCanopy = quarterStep(facing);
+  return {
+    yaw: facing,
+    base,
+    canopyCenter: {
+      x: base.x + 0.5 + toCanopy.x * PARASOL_SPEC.baseOffset,
+      y: base.y,
+      z: base.z + 0.5 + toCanopy.z * PARASOL_SPEC.baseOffset,
+    },
+  };
+}
+
 /** The cells the base and pole occupy. All must be air and outside vehicle and camp space. */
 export function parasolFootCells(pose: ParasolPose): Cell[] {
   const ahead = quarterStep(pose.yaw);

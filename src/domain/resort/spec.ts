@@ -25,5 +25,7 @@ export const PARASOL_SPEC = Object.freeze({
   hitsToTakeBack: 3,
   /** A gap longer than this, in ticks, starts the hit count again. */
   hitResetTicks: 100,
+  /** How often, in ticks, loaded parasols lay their rain ceiling again. */
+  ceilingSyncTicks: 20,
   defaultPaint: "white" satisfies Paint,
 } as const);

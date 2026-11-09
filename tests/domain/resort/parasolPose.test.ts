@@ -6,6 +6,7 @@ import {
   parasolCeilingCells,
   parasolFootCells,
   parasolPose,
+  parasolPoseAt,
   parasolSupportCell,
   tooCloseToOtherBase,
 } from "../../../src/domain/resort/parasolPose";
@@ -163,6 +164,17 @@ describe("tooCloseToOtherBase", () => {
         expect(tooCloseToOtherBase(a, [b])).toBe(
           d < PARASOL_SPEC.minBaseDistance,
         );
+      }),
+    );
+  });
+});
+
+describe("parasolPoseAt", () => {
+  it("rebuilds the placed pose from its base and facing", () => {
+    fc.assert(
+      fc.property(cellArb, yawArb, (pressed, yaw) => {
+        const placed = parasolPose(pressed, yaw);
+        expect(parasolPoseAt(placed.base, placed.yaw)).toEqual(placed);
       }),
     );
   });
