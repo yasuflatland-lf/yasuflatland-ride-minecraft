@@ -14,6 +14,11 @@ export interface TopHostType {
   readonly entityTypeId: string;
   readonly surface: TopSurface;
   readonly isTopNow: (entity: Entity) => boolean;
+  readonly blockedAt?: (
+    entity: Entity,
+    at: LocalPoint,
+    footprint: TopRect,
+  ) => boolean;
   readonly refusalHints: Readonly<Record<TopRefusal, string>>;
   /** Saved fixed-spot markers predate free placement (ADR 0185). */
   readonly legacySpot?: (spot: number) => LocalPoint | undefined;

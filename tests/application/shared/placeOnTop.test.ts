@@ -293,3 +293,47 @@ it("uses the supplied surface and host type for placement and clearance", () => 
     ),
   );
 });
+
+it("checks an optional host obstruction at the clamped footprint before clearance or payment", () => {
+  fc.assert(
+    fc.property(pixels, pixels, fc.boolean(), (x, z, blocked) => {
+      const blockedAt = vi.fn(() => blocked);
+      const world = fixture({
+        topHost: () => ({
+          dimension,
+          at: { x: 0, y: 64, z: 0 },
+          yaw: 0,
+          blockedAt,
+        }),
+      });
+      const outcome = placeOnTop(world, CAMP_TABLE_TOP, kind, {
+        ...command,
+        aim: { x, z },
+      });
+      expect(blockedAt).toHaveBeenCalledExactlyOnceWith(
+        {
+          x: Math.max(
+            -TABLE_TOP_HALF_PX.halfX + kind.footprint.halfX,
+            Math.min(x, TABLE_TOP_HALF_PX.halfX - kind.footprint.halfX),
+          ),
+          z: Math.max(
+            -TABLE_TOP_HALF_PX.halfZ + kind.footprint.halfZ,
+            Math.min(z, TABLE_TOP_HALF_PX.halfZ - kind.footprint.halfZ),
+          ),
+        },
+        kind.footprint,
+      );
+      expect(outcome).toBe(blocked ? "overlap" : "placed");
+      expect(world.consumeItem).toHaveBeenCalledTimes(blocked ? 0 : 1);
+      expect(world.spawnHosted).toHaveBeenCalledTimes(blocked ? 0 : 1);
+      if (blocked) expect(world.isAir).not.toHaveBeenCalled();
+      const original = fixture();
+      expect(
+        placeOnTop(original, CAMP_TABLE_TOP, kind, {
+          ...command,
+          aim: { x, z },
+        }),
+      ).toBe("placed");
+    }),
+  );
+});

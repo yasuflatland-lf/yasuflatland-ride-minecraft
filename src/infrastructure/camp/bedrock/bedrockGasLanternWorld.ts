@@ -111,6 +111,7 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
           dimension: asDimensionId(host.entity.dimension.id),
           at: host.entity.location,
           yaw: host.entity.getRotation().y,
+          blockedAt: host.type.blockedAt?.bind(undefined, host.entity),
         }
       : undefined;
   }

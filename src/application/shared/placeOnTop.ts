@@ -6,6 +6,7 @@ import {
   type LocalPoint,
   type TopItem,
   type TopPlacement,
+  type TopRect,
   type TopSurface,
 } from "../../domain/shared/tableTop";
 import type { Vec3 } from "../../domain/shared/vec";
@@ -45,6 +46,7 @@ export function placeOnTop(
     kind.footprint,
   );
   if (!placement.ok) return placement.reason;
+  if (host.blockedAt?.(placement.at, kind.footprint)) return "overlap";
   const at = hostSpotPoint(host, placement.at, surface.topPx);
   const cell = {
     x: Math.floor(at.x),
@@ -78,7 +80,14 @@ export interface TopHostWorld extends GroundCellsWorld {
   topHost(
     hostType: string,
     id: string,
-  ): { dimension: DimensionId; at: Vec3; yaw: number } | undefined;
+  ):
+    | {
+        dimension: DimensionId;
+        at: Vec3;
+        yaw: number;
+        blockedAt?: (at: LocalPoint, footprint: TopRect) => boolean;
+      }
+    | undefined;
   itemsOnTop(hostType: string, id: string): readonly TopItem[];
   spawnHosted(
     kind: HostedKindId,
