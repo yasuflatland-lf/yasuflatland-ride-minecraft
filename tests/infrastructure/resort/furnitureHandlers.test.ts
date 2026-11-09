@@ -2,9 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlaceFurniture } from "../../../src/application/resort/placeFurniture";
 import { TakeBackFurniture } from "../../../src/application/resort/takeBackFurniture";
 import type { FurnitureKind } from "../../../src/domain/resort/furniture";
+import { asFurnitureId } from "../../../src/domain/resort/ids";
 import { registerFurnitureHits } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits";
 import { registerFurniturePlacement } from "../../../src/infrastructure/resort/bedrock/handlers/furniturePlacement";
-import { FURNITURE_IDS } from "../../../src/infrastructure/resort/identifiers";
+import {
+  DINING_TABLE_TOP,
+  FURNITURE_IDS,
+} from "../../../src/infrastructure/resort/identifiers";
 import { fakeFurnitureWorld } from "../../application/resort/fakeFurnitureWorld";
 
 vi.mock("../../../src/infrastructure/shared/dyes", () => ({
@@ -72,7 +76,9 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
   function setup() {
     const world = fakeFurnitureWorld(kind);
     registerFurniturePlacement(new PlaceFurniture(world));
-    registerFurnitureHits(new TakeBackFurniture(world));
+    registerFurnitureHits(new TakeBackFurniture(world), {
+      ownerAt: () => undefined,
+    });
   }
   it("defers placement, captures the command, cancels duplicates and ignores unrelated presses", () => {
     const execute = vi
@@ -148,4 +154,66 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
     });
     expect(game.run).not.toHaveBeenCalled();
   });
+});
+
+it("forwards owned block hits and Creative breaks with shared deduplication and dye exclusion", () => {
+  const world = fakeFurnitureWorld("dining_table");
+  const take = new TakeBackFurniture(world);
+  const hit = vi.spyOn(take, "hit").mockImplementation(() => {});
+  const ownerAt = vi.fn(
+    () =>
+      asFurnitureId("table") as ReturnType<
+        import("../../../src/application/resort/ports/furnitureTopBlocks").FurnitureTopBlocksWorld["ownerAt"]
+      >,
+  );
+  registerFurnitureHits(take, { ownerAt });
+  const player = new game.Player();
+  const block = {
+    typeId: DINING_TABLE_TOP,
+    dimension: { id: "overworld" },
+    location: { x: 1, y: 2, z: 3 },
+  };
+  const swing = () =>
+    game.handlers.get("entityHitBlock")?.({
+      damagingEntity: player,
+      hitBlock: block,
+    });
+  const breakEvent = {
+    player,
+    block,
+    dimension: block.dimension,
+    cancel: false,
+  };
+  const breaking = () => game.handlers.get("playerBreakBlock")?.(breakEvent);
+  game.dye = true;
+  swing();
+  breaking();
+  expect(game.run).not.toHaveBeenCalled();
+  game.dye = false;
+  ownerAt.mockReturnValue(undefined);
+  swing();
+  breaking();
+  expect(game.run).not.toHaveBeenCalled();
+  ownerAt.mockReturnValue(asFurnitureId("table"));
+  swing();
+  breaking();
+  game.handlers.get("entityHitEntity")?.({
+    damagingEntity: player,
+    hitEntity: { typeId: FURNITURE_IDS.dining_table.entity, id: "table" },
+  });
+  expect(game.run).toHaveBeenCalledTimes(1);
+  expect(hit).not.toHaveBeenCalled();
+  game.run.mock.calls[0]?.[0]();
+  expect(hit).toHaveBeenCalledWith({ player: "p", id: "table", now: 10 });
+  expect(breakEvent.cancel).toBe(false);
+  game.tick++;
+  breaking();
+  expect(game.run).toHaveBeenCalledTimes(2);
+  game.tick++;
+  vi.spyOn(player, "getGameMode").mockReturnValue("Survival");
+  breaking();
+  expect(game.run).toHaveBeenCalledTimes(2);
+  block.typeId = "minecraft:stone";
+  swing();
+  expect(game.run).toHaveBeenCalledTimes(2);
 });

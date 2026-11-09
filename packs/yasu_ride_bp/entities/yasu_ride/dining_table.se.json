@@ -15,8 +15,8 @@
         "height": 0.75
       },
       "minecraft:physics": {
-        "has_collision": true,
-        "has_gravity": true
+        "has_collision": false,
+        "has_gravity": false
       },
       "minecraft:pushable": {
         "is_pushable": false,

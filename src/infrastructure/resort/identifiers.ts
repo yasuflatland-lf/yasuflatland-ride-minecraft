@@ -59,3 +59,6 @@ export const DINING_TABLE_TOP_REFUSAL_HINTS = {
   overlap: "yasu_ride.dining_table_top_overlap",
   tooBig: "yasu_ride.dining_table_top_too_big",
 } as const;
+
+export const DINING_TABLE_TOP = id("dining_table_top");
+export const FURNITURE_TOP_CELLS = id("top_cells");

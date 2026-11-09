@@ -321,6 +321,7 @@ describe("selectionOf", () => {
     "parasol_ceiling",
     "beach_chair",
     "beach_chair_item",
+    "dining_table_top",
     "dining_table",
     "dining_table_item",
   ])("selects resort scenarios for the %s pack stem", (stem) => {
@@ -339,6 +340,9 @@ describe("selectionOf", () => {
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
     ).toEqual([
+      "dining_table_top_lay_clear",
+      "dining_table_block_on_top",
+      "dining_table_top_restore",
       "dining_table_place_take_back",
       "dining_table_lantern",
       "dining_table_oven",

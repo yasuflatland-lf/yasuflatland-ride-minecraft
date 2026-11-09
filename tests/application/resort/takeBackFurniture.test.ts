@@ -30,9 +30,14 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
           ]);
           take.hit({ id, player, now: now + gap * 2 });
           expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id, player);
-          const effects = [world.dropItem, world.remove, world.showTaken];
+          const effects = [
+            world.dropItem,
+            world.clearTop,
+            world.remove,
+            world.showTaken,
+          ];
           expect(effects.map((effect) => effect.mock.calls.length)).toEqual([
-            1, 1, 1,
+            1, 1, 1, 1,
           ]);
           const order = effects.map(
             (effect) => effect.mock.invocationCallOrder[0],
@@ -67,7 +72,11 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
   it("refused hits leave the counter unchanged for either reason", () => {
     fc.assert(
       fc.property(
-        fc.constantFrom("occupied" as const, "somethingOnTop" as const),
+        fc.constantFrom(
+          "occupied" as const,
+          "somethingOnTop" as const,
+          "blockAboveTop" as const,
+        ),
         fc.integer({ min: 1, max: 10 }),
         (reason, refusedHits) => {
           const world = fakeFurnitureWorld(kind);
@@ -80,17 +89,19 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
           take.hit(cmd);
           world.isOccupied.mockReturnValue(reason === "occupied");
           world.somethingOnTop.mockReturnValue(reason === "somethingOnTop");
+          world.blockAboveTop.mockReturnValue(reason === "blockAboveTop");
           for (let now = 1; now <= refusedHits; now++)
             take.hit({ ...cmd, now });
           expect(world.showRefused).toHaveBeenCalledTimes(refusedHits);
           expect(world.showRefused).toHaveBeenLastCalledWith(
             cmd.player,
-            reason,
+            reason === "blockAboveTop" ? "somethingOnTop" : reason,
           );
           expect(world.showHitsLeft).toHaveBeenCalledTimes(1);
           expect(world.dropItem).not.toHaveBeenCalled();
           world.isOccupied.mockReturnValue(false);
           world.somethingOnTop.mockReturnValue(false);
+          world.blockAboveTop.mockReturnValue(false);
           take.hit({ ...cmd, now: refusedHits + 1 });
           expect(world.showHitsLeft).toHaveBeenLastCalledWith(cmd.player, 1);
           take.hit({ ...cmd, now: refusedHits + 2 });
