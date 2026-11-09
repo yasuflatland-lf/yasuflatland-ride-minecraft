@@ -82,21 +82,31 @@ g = m.geometry()["minecraft:geometry"][0]
 top = g["bones"][1]["cubes"]
 legs = g["bones"][2]["cubes"]
 ring = g["bones"][3]["cubes"]
-assert len(legs) == 4 and len(ring) == 8
-m.tilt.assert_axes(legs + ring, {"legs": legs}, m.ASSEMBLIES)
+assert len(legs) == m.ASSEMBLIES["legs"]["cubes"]
+assert m.RING_SEGMENTS >= 16 and len(ring) == m.RING_SEGMENTS * m.TUBE_BARS
+m.tilt.assert_axes(legs + ring, {"legs": legs, "ring": ring}, m.ASSEMBLIES)
 lo, hi = m.tilt.bounds([c for b in g["bones"] for c in b.get("cubes", [])])
 assert all(-8 <= lo[i] <= hi[i] <= 8 for i in (0, 2)), (lo, hi)
 assert lo[1] >= 0 and hi[1] == m.TOP_PX, (lo, hi)
 top_lo, top_hi = m.tilt.bounds(top)
 assert top_lo[0] == top_lo[2] == -m.TOP_HALF and top_hi[0] == top_hi[2] == m.TOP_HALF
-for leg in legs:
-    # Splayed: the foot end of every leg lies farther out than its top end.
-    corners = m.tilt.corners(leg)
-    low = min(corners, key=lambda p: p[1])
-    high = max(corners, key=lambda p: p[1])
-    assert abs(low[0]) > abs(high[0]) and abs(low[2]) > abs(high[2])
+assert m.LEG_TOP_OFFSET > m.LEG_WAIST < m.LEG_FOOT_OFFSET
+assert m.LEG_WAIST_WIDTH > m.LEG_FOOT_WIDTH
+# Check the transformed segment axes, including both sides of each bend.
+for sx in (-1, 1):
+    for sz in (-1, 1):
+        cubes = m.leg(sx, sz)
+        for i in range(2 * m.TAPER_STEPS):
+            cube = cubes[i * m.TUBE_BARS]
+            axis = m.tilt.apply_matrix(m.tilt.cube_matrix(cube["rotation"]), [0, 1, 0])
+            direction = -1 if i < m.TAPER_STEPS else 1
+            assert axis[0] * sx * direction > 0 and axis[2] * sz * direction > 0
+            assert axis[1] > 0
+        assert cubes[-1]["uv"]["up"]["uv"] == [16, m.WEAVE_SIZE]
 ring_lo, ring_hi = m.tilt.bounds(ring)
-assert ring_lo[1] == m.RING_Y - m.RING_HALF and ring_hi[1] == m.RING_Y + m.RING_HALF
+assert abs(ring_lo[1] - (m.RING_Y - m.RING_HALF)) < 0.001
+assert abs(ring_hi[1] - (m.RING_Y + m.RING_HALF)) < 0.001
+assert all(-m.TOP_HALF <= lo[i] <= hi[i] <= m.TOP_HALF for i in (0, 2))
 print(json.dumps([m.TOP_HALF, m.TOP_PX, m.TOP_LIMIT, m.TEXTURE_WIDTH, m.TEXTURE_HEIGHT]))
 `,
       ],

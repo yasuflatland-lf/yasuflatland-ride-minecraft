@@ -1,4 +1,4 @@
-"""Generate the black woven Dining Table with splayed steel legs and an octagonal brace."""
+"""Generate the black woven Dining Table with waisted tubular legs and a round brace."""
 import argparse
 import math
 import sys
@@ -23,11 +23,52 @@ TOP_LIMIT = 4
 PANEL_HALF = 7.1
 PANEL_BOTTOM = 11.6
 RIM_BOTTOM = 11.3
-LEG_HALF = 0.25
-LEG_TOP = (2.8, 11.5)
-LEG_FOOT = (6.0, 0.15)
-RING_Y = 6.3
-RING_HALF = 0.2
+# Dark-pixel runs (RGB < 115) in ref_table_legs.png, the owner's close-up.
+# The nearest leg is unobscured at these rows; ring contact is interpolated
+# across the foreground brace. Coordinates are image pixels, x right / y down.
+REF_TOP_UNDERSIDE_Y = 65
+REF_UPPER_START_X = 342
+REF_RING_CONTACT_X = 359
+REF_RING_CONTACT_Y = 385
+REF_FOOT_X = 279
+REF_FOOT_Y = 807
+REF_TOP_DIAMETER = 24  # Row 80: x 330..353.
+REF_WAIST_DIAMETER = 32  # Row 330: x 342..373.
+REF_FOOT_DIAMETER = 24  # Row 800: x 270..293.
+REF_RING_CENTER_Y = 340  # Ellipse outer y bounds 275..405.
+REF_RING_RADIUS = 231  # Outer x bounds 215..677.
+REF_RING_TUBE = 32  # Column x 450: foreground tube y 373..404.
+# daining_table_whole.png: top x 34..411, ring x 131..297.
+# Top edge slopes give a camera azimuth of approximately 20 degrees.
+REF_WHOLE_TOP_WIDTH = 377
+REF_WHOLE_RING_WIDTH = 166
+REF_VIEW_AZIMUTH = 20
+PANEL_LEG_Y = 11.5
+PHOTO_VERTICAL_SCALE = PANEL_LEG_Y / (REF_FOOT_Y - REF_TOP_UNDERSIDE_Y)
+PHOTO_HORIZONTAL_SCALE = (2 * TOP_HALF *
+                          (math.cos(math.radians(REF_VIEW_AZIMUTH)) +
+                           math.sin(math.radians(REF_VIEW_AZIMUTH)))) / REF_WHOLE_TOP_WIDTH
+RING_HALF = REF_RING_TUBE * PHOTO_VERTICAL_SCALE / 2
+RING_RADIUS = REF_WHOLE_RING_WIDTH * PHOTO_HORIZONTAL_SCALE / 2 - RING_HALF
+RING_Y = (REF_FOOT_Y - REF_RING_CONTACT_Y) * PHOTO_VERTICAL_SCALE
+LEG_WAIST = RING_RADIUS / math.sqrt(2)
+# The near leg's projected x is radial distance times sin(45 - azimuth).
+PHOTO_RADIAL_SCALE = PHOTO_HORIZONTAL_SCALE * REF_WHOLE_RING_WIDTH / (2 * REF_RING_RADIUS)
+LEG_TOP_OFFSET = LEG_WAIST + ((REF_RING_CONTACT_X - REF_UPPER_START_X) *
+    PHOTO_RADIAL_SCALE / math.sin(math.radians(45 - REF_VIEW_AZIMUTH)) / math.sqrt(2))
+LEG_FOOT_OFFSET = LEG_WAIST + ((REF_RING_CONTACT_X - REF_FOOT_X) *
+    PHOTO_RADIAL_SCALE / math.sin(math.radians(45 - REF_VIEW_AZIMUTH)) / math.sqrt(2))
+LEG_TOP_WIDTH = REF_TOP_DIAMETER * PHOTO_VERTICAL_SCALE
+LEG_WAIST_WIDTH = REF_WAIST_DIAMETER * PHOTO_VERTICAL_SCALE
+LEG_FOOT_WIDTH = REF_FOOT_DIAMETER * PHOTO_VERTICAL_SCALE
+# Black cap occupies the last approximately 10 image pixels of the nearest foot.
+REF_CAP_HEIGHT = 10
+FOOT_CAP_HEIGHT = REF_CAP_HEIGHT * PHOTO_VERTICAL_SCALE
+FOOT_Y = LEG_FOOT_WIDTH / 2
+TAPER_STEPS = 4
+RING_SEGMENTS = 32
+# Four overlapping rectangular prisms form an eight-sided tube cross-section.
+TUBE_BARS = 4
 # Eight weave repeats across the top keep the strands as fine as the photo's.
 WEAVE_SIZE = 128
 WEAVE_TILE = 16
@@ -35,7 +76,11 @@ TEXTURE_WIDTH = WEAVE_SIZE
 TEXTURE_HEIGHT = WEAVE_SIZE + 8
 STEEL = (64, 65, 68, 255)
 STEEL_DARK = (52, 53, 56, 255)
-ASSEMBLIES = {"legs": {"owner": "dining_table", "cubes": 4}}
+FOOT_BLACK = (24, 25, 26, 255)
+ASSEMBLIES = {
+    "legs": {"owner": "dining_table", "cubes": 4 * (2 * TAPER_STEPS + 1) * TUBE_BARS},
+    "ring": {"owner": "dining_table", "cubes": RING_SEGMENTS * TUBE_BARS},
+}
 GEOMETRY = "models/entity/yasu_ride/dining_table.geo.json"
 TEXTURE = "textures/entity/yasu_ride/dining_table.png"
 
@@ -52,42 +97,51 @@ def r4(value):
     return round(value, 4)
 
 
-def leg(sx, sz):
-    """One straight splayed leg from its foot to the underside of the top."""
-    start = (sx * LEG_FOOT[0], LEG_FOOT[1], sz * LEG_FOOT[0])
-    end = (sx * LEG_TOP[0], LEG_TOP[1], sz * LEG_TOP[0])
+def tube(start, end, width, assembly, swatch=None):
+    """Eight-sided tube, aligned along the measured axis without square corners."""
     dx, dy, dz = [end[i] - start[i] for i in range(3)]
     length = math.sqrt(dx * dx + dy * dy + dz * dz)
-    cube = box((-LEG_HALF, 0, -LEG_HALF), (LEG_HALF, length, LEG_HALF))
-    cube.update(pivot=[0, 0, 0], rotation=[0, 0, math.degrees(math.atan2(dx, math.hypot(dy, dz)))])
-    cube = tilt.tilt_assembly([cube], (0, 0, 0), "x", -math.degrees(math.atan2(dz, dy)),
-                              assembly="legs", assemblies=ASSEMBLIES)[0]
-    for key in ("origin", "pivot"):
-        cube[key] = [r4(cube[key][i] + start[i]) for i in range(3)]
-    return cube
+    half = width / 2
+    narrow = half * math.tan(math.pi / 8)
+    cubes = []
+    for bar in range(TUBE_BARS):
+        hx, hz = half, narrow
+        cube = box((-hx, -0.008, -hz), (hx, length + 0.008, hz), swatch)
+        cube.update(pivot=[0, 0, 0], rotation=[0, bar * 45, math.degrees(math.atan2(dx, math.hypot(dy, dz)))])
+        cube = tilt.tilt_assembly([cube], (0, 0, 0), "x", -math.degrees(math.atan2(dz, dy)),
+                                  assembly=assembly, assemblies=ASSEMBLIES)[0]
+        for key in ("origin", "pivot"):
+            cube[key] = [r4(cube[key][i] + start[i]) for i in range(3)]
+        cubes.append(cube)
+    return cubes
 
 
-def leg_offset_at(y):
-    """Distance of a leg's axis from the centre along x and z at height y."""
-    t = (y - LEG_FOOT[1]) / (LEG_TOP[1] - LEG_FOOT[1])
-    return LEG_FOOT[0] + (LEG_TOP[0] - LEG_FOOT[0]) * t
+def leg(sx, sz):
+    foot = (sx * LEG_FOOT_OFFSET, FOOT_Y, sz * LEG_FOOT_OFFSET)
+    waist = (sx * LEG_WAIST, RING_Y, sz * LEG_WAIST)
+    top = (sx * LEG_TOP_OFFSET, PANEL_LEG_Y, sz * LEG_TOP_OFFSET)
+    cubes = []
+    for start, end, w0, w1 in ((foot, waist, LEG_FOOT_WIDTH, LEG_WAIST_WIDTH),
+                               (waist, top, LEG_WAIST_WIDTH, LEG_TOP_WIDTH)):
+        for i in range(TAPER_STEPS):
+            a, b = i / TAPER_STEPS, (i + 1) / TAPER_STEPS
+            p = tuple(start[j] + (end[j] - start[j]) * a for j in range(3))
+            q = tuple(start[j] + (end[j] - start[j]) * b for j in range(3))
+            cubes.extend(tube(p, q, w0 + (w1 - w0) * (a + b) / 2, "legs"))
+    cap_end = tuple(foot[j] + (waist[j] - foot[j]) * FOOT_CAP_HEIGHT / (RING_Y - FOOT_Y)
+                    for j in range(3))
+    cubes.extend(tube(foot, cap_end, LEG_FOOT_WIDTH + 0.015, "legs", face(16)))
+    return cubes
 
 
 def ring():
-    """An octagon of tube whose corners touch the inner edges of the legs at RING_Y."""
-    radius = leg_offset_at(RING_Y) * math.sqrt(2) - LEG_HALF
-    tubes = []
-    for k in range(8):
-        a, b = math.pi / 4 + k * math.pi / 4, math.pi / 2 + k * math.pi / 4
-        x0, z0 = radius * math.cos(a), radius * math.sin(a)
-        x1, z1 = radius * math.cos(b), radius * math.sin(b)
-        half = math.hypot(x1 - x0, z1 - z0) / 2 + RING_HALF
-        cx, cz = r4((x0 + x1) / 2), r4((z0 + z1) / 2)
-        tube = box((r4(cx - half), RING_Y - RING_HALF, r4(cz - RING_HALF)),
-                   (r4(cx + half), RING_Y + RING_HALF, r4(cz + RING_HALF)))
-        tube.update(pivot=[cx, RING_Y, cz], rotation=[0, r4(-math.degrees(math.atan2(z1 - z0, x1 - x0))), 0])
-        tubes.append(tube)
-    return tubes
+    cubes = []
+    for k in range(RING_SEGMENTS):
+        a, b = k * math.tau / RING_SEGMENTS, (k + 1) * math.tau / RING_SEGMENTS
+        start = (RING_RADIUS * math.cos(a), RING_Y, RING_RADIUS * math.sin(a))
+        end = (RING_RADIUS * math.cos(b), RING_Y, RING_RADIUS * math.sin(b))
+        cubes.extend(tube(start, end, 2 * RING_HALF, "ring"))
+    return cubes
 
 
 def geometry():
@@ -97,9 +151,9 @@ def geometry():
            for z0, z1 in ((-TOP_HALF, -PANEL_HALF), (PANEL_HALF, TOP_HALF))]
     rim += [box((x0, RIM_BOTTOM, -PANEL_HALF), (x1, TOP_PX, PANEL_HALF))
             for x0, x1 in ((-TOP_HALF, -PANEL_HALF), (PANEL_HALF, TOP_HALF))]
-    legs = [leg(sx, sz) for sx in (-1, 1) for sz in (-1, 1)]
+    legs = [cube for sx in (-1, 1) for sz in (-1, 1) for cube in leg(sx, sz)]
     tubes = ring()
-    tilt.assert_axes([panel, *rim, *legs, *tubes], {"legs": legs}, ASSEMBLIES)
+    tilt.assert_axes([panel, *rim, *legs, *tubes], {"legs": legs, "ring": tubes}, ASSEMBLIES)
     return {"format_version": "1.12.0", "minecraft:geometry": [{
         "description": {"identifier": "geometry.yasu_ride.dining_table", "texture_width": TEXTURE_WIDTH,
                         "texture_height": TEXTURE_HEIGHT, "visible_bounds_width": 1.5,
@@ -120,7 +174,7 @@ def main():
     def pixel(x, y):
         if y < WEAVE_SIZE:
             return tile[y % WEAVE_TILE][x % WEAVE_TILE]
-        return STEEL if x < 8 else STEEL_DARK
+        return STEEL if x < 8 else STEEL_DARK if x < 16 else FOOT_BLACK
     out = texture_io.Outputs(args.check, report_writes=True)
     out.json(args.resource_pack / GEOMETRY, geometry(), separators=(",", ":"))
     out.png(args.resource_pack / TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT, pixel, compress_level=9)
