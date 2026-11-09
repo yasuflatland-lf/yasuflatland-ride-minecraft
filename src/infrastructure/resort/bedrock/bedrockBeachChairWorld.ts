@@ -6,6 +6,7 @@ import {
   world,
 } from "@minecraft/server";
 import type { BeachChairFormWorld } from "../../../application/resort/ports/beachChairForm";
+import type { BeachChairRiderWorld } from "../../../application/resort/ports/beachChairRider";
 import type {
   BeachChairTakeBackWorld,
   BeachChairWorld,
@@ -19,10 +20,15 @@ import {
   type ChairState,
   tableBlockCells,
 } from "../../../domain/resort/beachChair";
+import { beachChairExit } from "../../../domain/resort/beachChairExit";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
+import { BEACH_CHAIR_SPEC } from "../../../domain/resort/spec";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
+import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import { asDimensionId, asPlayerId } from "../../../domain/shared/ids";
+import { forward, rightOf } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
@@ -42,12 +48,18 @@ import {
   BEACH_CHAIR_FOLD_EVENT,
   BEACH_CHAIR_FOLDED,
   BEACH_CHAIR_ITEM,
+  BEACH_CHAIR_LOUNGE_ANIMATION,
+  BEACH_CHAIR_LOUNGE_CONTROLLER,
   BEACH_CHAIR_TOP,
   BEACH_CHAIR_TOP_CELLS,
   BEACH_CHAIR_UNFOLD_EVENT,
 } from "../identifiers";
 export class BedrockBeachChairWorld
-  implements BeachChairWorld, BeachChairTakeBackWorld, BeachChairFormWorld
+  implements
+    BeachChairWorld,
+    BeachChairTakeBackWorld,
+    BeachChairFormWorld,
+    BeachChairRiderWorld
 {
   private readonly layer: LaidBlockLayer;
   private readonly tops = new Map<
@@ -71,17 +83,105 @@ export class BedrockBeachChairWorld
     if (!entity) return undefined;
     return {
       form: entity.getProperty(BEACH_CHAIR_FOLDED) === true ? "table" : "chair",
-      occupied:
-        (entity.getComponent("minecraft:rideable")?.getRiders().length ?? 0) >
-        0,
+      occupied: this.riderOf(id) !== undefined,
       somethingOnTop: this.topCells(entity).some((cell) => {
         const above = safeBlockAt(entity.dimension, { ...cell, y: cell.y + 1 });
         return above?.isAir !== true;
       }),
     };
   }
-  showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void {
-    this.show(player, reason === "occupied" ? "occupied" : "something_on_top");
+  showRefused(
+    player: PlayerId,
+    reason: "occupied" | "somethingOnTop" | "wrongForm",
+  ): void {
+    this.show(
+      player,
+      reason === "occupied"
+        ? "occupied"
+        : reason === "wrongForm"
+          ? "blocked"
+          : "something_on_top",
+    );
+  }
+  riderOf(id: BeachChairId): PlayerId | undefined {
+    const rider = this.entity(id)
+      ?.getComponent("minecraft:rideable")
+      ?.getRiders()
+      .find((entity) => entity.typeId === "minecraft:player");
+    return rider ? asPlayerId(rider.id) : undefined;
+  }
+  seat(id: BeachChairId, playerId: PlayerId): boolean {
+    const chair = this.entity(id);
+    const player = playerById(playerId);
+    if (!chair || !player?.isValid || player.getComponent("minecraft:riding"))
+      return false;
+    try {
+      const offset = BEACH_CHAIR_SPEC.seatOffset;
+      const facing = forward(chair.getRotation().y);
+      const right = rightOf(facing);
+      // addRider requires a nearby player in the chair's dimension.
+      player.teleport(
+        {
+          x: chair.location.x + right.x * offset.x - facing.x * offset.z,
+          y: chair.location.y + offset.y,
+          z: chair.location.z + right.z * offset.x - facing.z * offset.z,
+        },
+        { dimension: chair.dimension },
+      );
+      return (
+        chair.getComponent("minecraft:rideable")?.addRider(player) === true
+      );
+    } catch (error) {
+      console.warn(`[${NAMESPACE}] beach chair seating failed: ${error}`);
+      return false;
+    }
+  }
+  playLounge(playerId: PlayerId): void {
+    try {
+      playerById(playerId)?.playAnimation(BEACH_CHAIR_LOUNGE_ANIMATION, {
+        stopExpression: "!query.is_riding",
+        controller: BEACH_CHAIR_LOUNGE_CONTROLLER,
+      });
+    } catch (error) {
+      console.warn(`[${NAMESPACE}] beach chair pose failed: ${error}`);
+    }
+  }
+  placeBeside(id: BeachChairId, playerId: PlayerId): void {
+    const chair = this.entity(id);
+    const player = playerById(playerId);
+    // Do not pull a player out of a new ride or back after a dimension change.
+    if (
+      !chair ||
+      !player?.isValid ||
+      player.dimension.id !== chair.dimension.id ||
+      player.getComponent("minecraft:riding")
+    )
+      return;
+    const dimension = chair.dimension;
+    const dimensionId = asDimensionId(dimension.id);
+    const feet = beachChairExit(
+      beachChairPoseAt(chair.location, snapYaw4(chair.getRotation().y)),
+      (cell) => {
+        const floor = safeBlockAt(dimension, { ...cell, y: cell.y - 1 });
+        return (
+          floor !== undefined &&
+          !floor.isAir &&
+          !floor.isLiquid &&
+          !CLEARABLE_DECORATIONS.has(floor.typeId) &&
+          [cell, { ...cell, y: cell.y + 1 }].every(
+            (at) =>
+              safeBlockAt(dimension, at)?.isAir === true &&
+              !this.deps.isVehicleSpace(dimensionId, at) &&
+              !this.deps.isCampSpace(dimensionId, at),
+          )
+        );
+      },
+    );
+    if (feet)
+      player.teleport(
+        { x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 },
+        { dimension },
+      );
   }
   entity(id: BeachChairId): Entity | undefined {
     try {

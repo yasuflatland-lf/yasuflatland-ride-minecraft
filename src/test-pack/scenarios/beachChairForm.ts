@@ -21,7 +21,7 @@ import type { Outcome } from "../outcome";
 
 async function course(
   a: Arena,
-  mode: "fold" | "block" | "restore",
+  mode: "fold" | "block" | "restore" | "empty",
 ): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);
   const pose = beachChairPose(block, 0);
@@ -58,6 +58,14 @@ async function course(
     await wait(2);
     const entity = near(BEACH_CHAIR)[0];
     if (!entity) return { pass: false, detail: "chair not placed" };
+    if (mode === "empty") {
+      const before = { ...entity.location };
+      await wait(BEACH_CHAIR_SPEC.poseRefreshTicks * 2 + 2);
+      if (entity.getComponent("minecraft:rideable")?.getRiders().length !== 0)
+        failures.push("empty chair acquired a rider");
+      if (entity.location.x !== before.x || entity.location.z !== before.z)
+        failures.push("idle chair moved during pose refresh");
+    }
     await form(entity, "fold");
     if (
       entity.getProperty(BEACH_CHAIR_FOLDED) !== true ||
@@ -122,4 +130,8 @@ export function beachChairBlockOnTop(a: Arena): Promise<Outcome> {
 }
 export function beachChairTopRestore(a: Arena): Promise<Outcome> {
   return course(a, "restore");
+}
+
+export function beachChairEmptyRefresh(a: Arena): Promise<Outcome> {
+  return course(a, "empty");
 }

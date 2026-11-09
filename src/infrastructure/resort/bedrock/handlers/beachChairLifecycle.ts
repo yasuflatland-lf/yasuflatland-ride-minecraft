@@ -1,4 +1,5 @@
 import { system, world } from "@minecraft/server";
+import type { LieOnBeachChair } from "../../../../application/resort/lieOnBeachChair";
 import {
   asBeachChairId,
   type BeachChairId,
@@ -10,6 +11,7 @@ import type { BedrockBeachChairWorld } from "../bedrockBeachChairWorld";
 
 export function registerBeachChairLifecycle(
   adapter: BedrockBeachChairWorld,
+  riders: LieOnBeachChair,
 ): void {
   const removed = new Set<BeachChairId>();
   world.afterEvents.entityLoad.subscribe(({ entity }) => {
@@ -42,6 +44,15 @@ export function registerBeachChairLifecycle(
     for (const id of loaded) adapter.syncTop(id);
     for (const id of removed) if (adapter.clearTop(id)) removed.delete(id);
   }, BEACH_CHAIR_SPEC.topSyncTicks);
+  system.runInterval(() => {
+    const loaded: BeachChairId[] = [];
+    for (const name of ["overworld", "nether", "the_end"])
+      for (const entity of world
+        .getDimension(name)
+        .getEntities({ type: BEACH_CHAIR }))
+        loaded.push(asBeachChairId(entity.id));
+    riders.refresh(loaded);
+  }, BEACH_CHAIR_SPEC.poseRefreshTicks);
   registerLaidBlockGuard((dimension, cell, typeId) =>
     adapter.topOwner(dimension, cell, typeId),
   );

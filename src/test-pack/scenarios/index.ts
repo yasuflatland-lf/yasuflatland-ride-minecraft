@@ -3,6 +3,7 @@ import type { Outcome, StepSink } from "../outcome";
 import { beachChairPlace, beachChairTakeBack } from "./beachChair";
 import {
   beachChairBlockOnTop,
+  beachChairEmptyRefresh,
   beachChairFold,
   beachChairTopRestore,
 } from "./beachChairForm";
@@ -279,6 +280,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dutch_oven_simmer_take_back: dutchOvenSimmerAndTakeBack,
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
+  beach_chair_empty_refresh: beachChairEmptyRefresh,
   beach_chair_fold: beachChairFold,
   beach_chair_block_on_top: beachChairBlockOnTop,
   beach_chair_top_restore: beachChairTopRestore,

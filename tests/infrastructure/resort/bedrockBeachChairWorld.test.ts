@@ -5,10 +5,12 @@ import {
   tableBlockCells,
 } from "../../../src/domain/resort/beachChair";
 import { asBeachChairId } from "../../../src/domain/resort/ids";
-import { asDimensionId } from "../../../src/domain/shared/ids";
+import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBeachChairWorld } from "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld";
 import {
   BEACH_CHAIR,
+  BEACH_CHAIR_LOUNGE_ANIMATION,
+  BEACH_CHAIR_LOUNGE_CONTROLLER,
   BEACH_CHAIR_TOP,
   BEACH_CHAIR_TOP_CELLS,
 } from "../../../src/infrastructure/resort/identifiers";
@@ -69,6 +71,8 @@ function fixture(yaw = 0) {
     spawnItem: vi.fn(),
   };
   const saved = new Map<string, unknown>();
+  const riders: { id: string; typeId: string }[] = [];
+  const addRider = vi.fn(() => true);
   const entity = {
     id,
     typeId: BEACH_CHAIR,
@@ -79,7 +83,7 @@ function fixture(yaw = 0) {
     setProperty: (_name: string, value: boolean) => {
       folded = value;
     },
-    getComponent: () => ({ getRiders: () => [] }),
+    getComponent: () => ({ getRiders: () => riders, addRider }),
     getRotation: () => ({ y: pose.yaw }),
     getDynamicProperty: (name: string) => saved.get(name),
     setDynamicProperty: vi.fn((name: string, value: unknown) =>
@@ -98,6 +102,8 @@ function fixture(yaw = 0) {
     isCampSpace: vi.fn(() => false),
   };
   return {
+    riders,
+    addRider,
     pose,
     wanted,
     blocks,
@@ -223,4 +229,71 @@ it("lays and clears on form changes, refuses contents, and clears stale chair-fo
   f.adapter.setForm(id, "table");
   f.adapter.setForm(id, "chair");
   expect(f.wanted.every((c) => f.blocks.get(f.key(c))?.isAir)).toBe(true);
+});
+
+it("uses player riders for occupancy and sends the existing lounge animation", () => {
+  const f = fixture();
+  const playerId = asPlayerId("rider");
+  const player = {
+    id: playerId,
+    typeId: "minecraft:player",
+    isValid: true,
+    dimension: f.dimension,
+    teleport: vi.fn(),
+    playAnimation: vi.fn(),
+    getComponent: vi.fn(() => undefined),
+  };
+  game.getEntity.mockImplementation((query: string) =>
+    query === id ? f.entity : query === playerId ? player : undefined,
+  );
+  f.adapter.setForm(id, "chair");
+  expect(f.adapter.seat(id, playerId)).toBe(true);
+  expect(player.teleport).toHaveBeenCalledBefore(f.addRider);
+  expect(f.addRider).toHaveBeenCalledExactlyOnceWith(player);
+  f.riders.push(player);
+  expect(f.adapter.riderOf(id)).toBe(playerId);
+  expect(f.adapter.state(id)?.occupied).toBe(true);
+  f.adapter.playLounge(playerId);
+  expect(player.playAnimation).toHaveBeenCalledExactlyOnceWith(
+    BEACH_CHAIR_LOUNGE_ANIMATION,
+    {
+      controller: BEACH_CHAIR_LOUNGE_CONTROLLER,
+      stopExpression: "!query.is_riding",
+    },
+  );
+});
+it("places a dismounted player on supported clear ground outside the bed", () => {
+  const f = fixture();
+  const playerId = asPlayerId("rider");
+  const player = {
+    id: playerId,
+    typeId: "minecraft:player",
+    isValid: true,
+    dimension: f.dimension,
+    teleport:
+      vi.fn<
+        (at: { x: number; y: number; z: number }, options: unknown) => void
+      >(),
+    getComponent: vi.fn(() => undefined as unknown),
+  };
+  game.getEntity.mockImplementation((query: string) =>
+    query === id ? f.entity : player,
+  );
+  f.dimension.getBlock.mockImplementation((cell) => ({
+    typeId: cell.y === 63 ? "minecraft:stone" : "minecraft:air",
+    isAir: cell.y !== 63,
+    isLiquid: false,
+    setPermutation: vi.fn(),
+  }));
+  f.adapter.placeBeside(id, playerId);
+  const at = player.teleport.mock.calls[0]?.[0];
+  expect(at).toEqual({ x: 11.5, y: 64, z: 21.5 });
+  f.deps.isVehicleSpace.mockReturnValue(true);
+  player.teleport.mockClear();
+  f.adapter.placeBeside(id, playerId);
+  expect(player.teleport).not.toHaveBeenCalled();
+  f.deps.isVehicleSpace.mockReturnValue(false);
+  player.getComponent.mockReturnValue({ entityRidingOn: { id: "other" } });
+  f.adapter.placeBeside(id, playerId);
+  expect(player.teleport).not.toHaveBeenCalled();
 });

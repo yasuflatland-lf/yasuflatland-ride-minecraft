@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import { LieOnBeachChair } from "../../../src/application/resort/lieOnBeachChair";
 import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
 import { BedrockBeachChairWorld } from "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld";
 import { registerBeachChairLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairLifecycle";
@@ -57,8 +58,11 @@ function fixture() {
   };
   game.getDimension.mockReturnValue(dimension);
   game.getEntity.mockReturnValue(undefined);
-  registerBeachChairLifecycle(adapter);
+  const riders = new LieOnBeachChair(adapter);
+  const refresh = vi.spyOn(riders, "refresh").mockImplementation(() => {});
+  registerBeachChairLifecycle(adapter, riders);
   return {
+    refresh,
     remember,
     clear,
     sync,
@@ -127,4 +131,20 @@ it("distinguishes chunk unloads from removals and retries unavailable cells afte
   expect(f.clear).toHaveBeenCalledTimes(2);
   game.interval.mock.calls[0]?.[0]();
   expect(f.clear).toHaveBeenCalledTimes(2);
+});
+
+it("scans all loaded dimensions at the pose interval after reload", () => {
+  const f = fixture();
+  expect(game.interval.mock.calls[1]?.[1]).toBe(
+    BEACH_CHAIR_SPEC.poseRefreshTicks,
+  );
+  game.interval.mock.calls[1]?.[0]();
+  expect(f.refresh).toHaveBeenCalledExactlyOnceWith([
+    "chair",
+    "chair",
+    "chair",
+  ]);
+  f.dimension.getEntities.mockReturnValue([]);
+  game.interval.mock.calls[1]?.[0]();
+  expect(f.refresh).toHaveBeenLastCalledWith([]);
 });

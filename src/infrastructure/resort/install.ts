@@ -1,4 +1,5 @@
 import { BeachChairMenu } from "../../application/resort/beachChairMenu";
+import { LieOnBeachChair } from "../../application/resort/lieOnBeachChair";
 import { PaintParasol } from "../../application/resort/paintParasol";
 import { PlaceBeachChair } from "../../application/resort/placeBeachChair";
 import { PlaceParasol } from "../../application/resort/placeParasol";
@@ -41,12 +42,15 @@ export function installResort(deps: {
   registerBeachChairHits(takeChair, (dimension, cell, typeId) =>
     chair.topOwner(dimension, cell, typeId),
   );
+  const lie = new LieOnBeachChair(chair);
   registerBeachChairInteraction(
     chair,
     form,
-    new BeachChairMenu(form, () => {}),
+    new BeachChairMenu(form, (cmd) => {
+      lie.execute(cmd);
+    }),
   );
-  registerBeachChairLifecycle(chair);
+  registerBeachChairLifecycle(chair, lie);
   registerTestBeachChair(chair, takeChair, deps, form);
   registerStarterItem(
     new GiveStarterItem(
