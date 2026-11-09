@@ -67,13 +67,14 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
     a.dim.runCommand(
       `replaceitem block ${a.xyz(26, a.gy + 1, 22)} slot.container 0 minecraft:diamond 1`,
     );
-    if (
+    // An unobservable frame fails item_frame_setup and item_frame but lets the
+    // other round-trip checks report (ADR 0243 forbids an empty-frame pass).
+    record(
+      "item_frame_setup",
       block(26).getComponent("minecraft:inventory")?.container?.getItem(0)
-        ?.typeId !== "minecraft:diamond"
-    )
-      throw new Error(
-        "cannot observe populated frame with stable inventory API",
-      );
+        ?.typeId === "minecraft:diamond",
+      "populated frame observable with stable inventory API",
+    );
     const cow = summon("minecraft:cow", 27.5);
     const excluded = summon("minecraft:armor_stand", 23.5);
     const handle = store.capture(dim, box, owner);
