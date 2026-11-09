@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:beach_chair",
+      "materials": {
+        "default": "entity"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/beach_chair"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.beach_chair"
+      },
+      "animations": {
+        "form": "controller.animation.yasu_ride.beach_chair.form",
+        "chair": "animation.yasu_ride.beach_chair.chair",
+        "table": "animation.yasu_ride.beach_chair.table",
+        "fold": "animation.yasu_ride.beach_chair.fold",
+        "unfold": "animation.yasu_ride.beach_chair.unfold"
+      },
+      "scripts": {
+        "animate": ["form"]
+      },
+      "render_controllers": ["controller.render.yasu_ride.beach_chair"]
+    }
+  }
+}

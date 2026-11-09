@@ -199,3 +199,5 @@ yasu_ride:resort_gear=Resort Gear
 yasu_ride.parasol.blocked=Cannot place a parasol here
 yasu_ride.parasol.hits_left=Hit %s more times to take back the parasol
 yasu_ride.parasol.taken=Parasol taken back
+item.yasu_ride:beach_chair_item.name=Beach Chair
+entity.yasu_ride:beach_chair.name=Beach Chair
