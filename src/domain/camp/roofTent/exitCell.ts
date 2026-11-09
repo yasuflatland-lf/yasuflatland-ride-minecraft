@@ -1,7 +1,7 @@
+import type { Facing4 } from "../../shared/facing";
 import type { RoofTentMount } from "../../shared/roofTent";
 import { forward, leftOf, type Vec3 } from "../../shared/vec";
 import { entranceWorld } from "./access";
-import type { Facing4 } from "./facing";
 
 const EXIT_STEP = 1;
 const CELL_ROUNDING_MARGIN = 2 * EXIT_STEP;

@@ -1,7 +1,7 @@
 import type { FirePitId } from "../../../domain/camp/firePit";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import type { GroundCellsWorld } from "./groundCells";
+import type { GroundCellsWorld } from "../../shared/ports/groundCells";
 
 export interface FirePitWorld extends GroundCellsWorld {
   hasFirePitNear(dimension: DimensionId, at: Vec3): boolean;

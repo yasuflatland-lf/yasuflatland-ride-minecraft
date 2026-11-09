@@ -2,7 +2,7 @@ import { TABLE_SPEC } from "../../domain/camp/spec";
 import { tableCells, tableYaw } from "../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
-import { canUseBlockTop } from "./groundPlacement";
+import { canUseBlockTop } from "../shared/groundPlacement";
 import type { TableWorld } from "./ports/table";
 
 interface PlaceTableCommand {
