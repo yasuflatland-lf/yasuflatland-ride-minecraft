@@ -114,6 +114,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
       const names = [
         ...ids,
         "beach_parasol",
+        "beach_chair",
         "noga_chair",
         "low_chair",
         "tent",
@@ -348,4 +349,18 @@ print(json.dumps(result))
   ];
   expect(result.up).toEqual(expected);
   expect(result.down).toEqual(expected);
+});
+
+it("applies the Beach Chair table animation relative to its bind pose without mutating it", () => {
+  expect(
+    previewPython(`
+g = json.loads(Path('packs/yasu_ride_rp/models/entity/yasu_ride/beach_chair.geo.json').read_text())['minecraft:geometry'][0]
+a = json.loads(Path('packs/yasu_ride_rp/animations/yasu_ride/beach_chair.anim.json').read_text())['animations']['animation.yasu_ride.beach_chair.table']
+p = r.static_pose(g, a)
+print(json.dumps([[b.get('rotation', [0,0,0]) for b in p['bones'] if b['name']=='backrest'][0], [b['rotation'] for b in g['bones'] if b['name']=='backrest'][0]]))
+`),
+  ).toEqual([
+    [0, 0, 0],
+    [37, 0, 0],
+  ]);
 });

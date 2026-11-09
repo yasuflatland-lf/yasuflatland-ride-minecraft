@@ -58,6 +58,9 @@
     "yasu_ride_beach_parasol": {
       "textures": "textures/items/yasu_ride/beach_parasol_item"
     },
+    "yasu_ride_beach_chair": {
+      "textures": "textures/items/yasu_ride/beach_chair_item"
+    },
     "yasu_ride_camping_gear_box": {
       "textures": "textures/items/yasu_ride/camping_gear_box"
     },

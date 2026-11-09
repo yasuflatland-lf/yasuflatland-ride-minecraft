@@ -5,3 +5,9 @@ export type ParasolId = Brand<string, "ParasolId">;
 export function asParasolId(raw: string): ParasolId {
   return raw as ParasolId;
 }
+
+export type BeachChairId = Brand<string, "BeachChairId">;
+
+export function asBeachChairId(raw: string): BeachChairId {
+  return raw as BeachChairId;
+}

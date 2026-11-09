@@ -1,3 +1,7 @@
+vi.mock("../../../src/infrastructure/shared/choiceForm", () => ({
+  chooseFromFormResult: vi.fn(),
+}));
+
 import { beforeEach, expect, it, vi } from "vitest";
 import { PlaceParasol } from "../../../src/application/resort/placeParasol";
 import { SyncParasolCeilings } from "../../../src/application/resort/syncParasolCeilings";
@@ -62,6 +66,7 @@ vi.mock("@minecraft/server", () => ({
     },
     run: game.run,
     runInterval: game.runInterval,
+    beforeEvents: game.events,
     afterEvents: game.events,
   },
 }));
@@ -148,7 +153,7 @@ it("wires the scan interval, shared block guard and both space checks", () => {
     expect.any(Function),
     PARASOL_SPEC.ceilingSyncTicks,
   );
-  game.runInterval.mock.calls[0]?.[0]();
+  game.runInterval.mock.lastCall?.[0]();
   expect(sync).toHaveBeenCalledWith(["p", "p", "p"]);
   const ev = {
     dimension: { id: "overworld" },

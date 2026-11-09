@@ -40,3 +40,28 @@ export const PARASOL_SPEC = Object.freeze({
   ceilingSyncTicks: 20,
   defaultPaint: "white" satisfies Paint,
 } as const);
+
+// Every tuning value of the beach chair. seatOffset, topPx, topHalf and
+// bedOutlinePx are measured from the model in tools/gen_beach_chair.py.
+export const BEACH_CHAIR_SPEC = Object.freeze({
+  /** The lying player's seat, local to the entity origin, in blocks. */
+  seatOffset: Object.freeze({ x: 0, y: 0.4375, z: 0.125 }),
+  /** Table height from TABLE_TOP_PX in tools/gen_beach_chair.py; the chair bed stays at 7 px. */
+  topPx: 16,
+  /** Half the table top's size, in pixels. */
+  topHalf: Object.freeze({ halfX: 6, halfZ: 16 }),
+  /** The bed's outline around the origin, in pixels. */
+  bedOutlinePx: Object.freeze({ minX: -6, maxX: 6, minZ: -16, maxZ: 16 }),
+  /** Lanterns and ovens that fit on the table top. */
+  topLimit: 4,
+  /** Layers of air needed above the floor so a lying player fits. */
+  headroom: 2,
+  /** Hits in a row that take the chair back, as for camp gear (ADR 0008). */
+  hitsToTakeBack: 3,
+  /** A gap longer than this, in ticks, starts the hit count again. */
+  hitResetTicks: 100,
+  /** How often, in ticks, the leaning pose is sent again for late viewers. */
+  poseRefreshTicks: 20,
+  /** How often loaded chairs repair or clear their tabletop blocks, in ticks. */
+  topSyncTicks: 20,
+} as const);
