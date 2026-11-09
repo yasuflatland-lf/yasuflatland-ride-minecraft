@@ -88,14 +88,15 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
         { x: cell.x + 0.5, y: cell.y + 2, z: cell.z + 0.5 },
         { x: 0, y: -1, z: 0 },
         {
-          maxDistance: 1,
+          maxDistance: 2,
           includeLiquidBlocks: false,
           includePassableBlocks: false,
         },
       );
       return (
         hit?.face === Direction.Up &&
-        hit.faceLocation.y === 1 &&
+        // BDS reports the Up face of a full block at y=0 in block-local space; slab tops report a fraction.
+        hit.faceLocation.y % 1 === 0 &&
         cellKey(hit.block.location) === cellKey(cell)
       );
     } catch {
