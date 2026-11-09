@@ -18,8 +18,8 @@
         "family": ["beach_chair", "inanimate"]
       },
       "minecraft:collision_box": {
-        "width": 0.75,
-        "height": 0.4375
+        "width": 1.0,
+        "height": 0.5625
       },
       "minecraft:physics": {
         "has_collision": true,
@@ -49,26 +49,26 @@
         "crouching_skip_interact": true,
         "seats": [
           {
-            "position": [0, 0.4375, 0.125]
+            "position": [0, 0.5625, 0.3125]
           }
         ]
       },
       "minecraft:custom_hit_test": {
         "hitboxes": [
           {
-            "width": 0.75,
-            "height": 0.875,
-            "pivot": [0, 0.4375, -0.625]
+            "width": 1.0,
+            "height": 1.125,
+            "pivot": [0, 0.5625, -0.9375]
           },
           {
-            "width": 0.75,
-            "height": 0.875,
-            "pivot": [0, 0.4375, 0]
+            "width": 1.0,
+            "height": 1.125,
+            "pivot": [0, 0.5625, 0]
           },
           {
-            "width": 0.75,
-            "height": 0.875,
-            "pivot": [0, 0.4375, 0.625]
+            "width": 1.0,
+            "height": 1.125,
+            "pivot": [0, 0.5625, 0.9375]
           }
         ]
       }
