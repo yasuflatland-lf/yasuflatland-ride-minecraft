@@ -52,21 +52,17 @@ export const MOTION_TAGS: Readonly<Record<string, readonly FeatureTag[]>> = {
 
 export const HARNESS_IMPORTS: readonly string[] = [
   "src/application/shared/groundPlacement.ts",
-  "src/application/camp/placeOnTableTop.ts",
+  "src/application/shared/placeOnTop.ts",
   "src/application/shared/ports/groundCells.ts",
-  "src/application/camp/ports/tableTop.ts",
+  "src/application/shared/ports/hostedItem.ts",
   "src/domain/camp/chair.ts",
-  "src/domain/camp/dutchOven.ts",
-  "src/domain/camp/firePit.ts",
-  "src/domain/camp/hosted.ts",
   "src/domain/camp/spec.ts",
-  "src/domain/camp/table.ts",
-  "src/domain/camp/tabletop.ts",
   "src/domain/camp/tent.ts",
   "src/domain/camp/tentLayout.ts",
   "src/domain/shared/cells.ts",
   "src/domain/shared/decorations.ts",
   "src/domain/shared/hitCounter.ts",
+  "src/domain/shared/hosted.ts",
   "src/domain/shared/ids.ts",
   "src/domain/shared/keptBlocks.ts",
   "src/domain/shared/laidCells.ts",
@@ -74,6 +70,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/shared/roofTent.ts",
   "src/domain/shared/switchCooldown.ts",
   "src/domain/shared/syncedValue.ts",
+  "src/domain/shared/tableTop.ts",
   "src/domain/shared/tapToggle.ts",
   "src/domain/shared/vec.ts",
   "src/domain/vehicle/cooldowns.ts",
@@ -167,6 +164,8 @@ export const HARNESS_IMPORTS: readonly string[] = [
 ];
 
 export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
+  beach_chair: ["resort"],
+  beach_chair_item: ["resort"],
   beach_parasol: ["resort"],
   beach_parasol_item: ["resort"],
   blade_switch: ["vehicle:bulldozer"],

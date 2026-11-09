@@ -1,10 +1,10 @@
 import { type Entity, ItemStack, world } from "@minecraft/server";
 import type { RoofTentWorld } from "../../../application/camp/ports/roofTent";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import { decodeHost, encodeHost } from "../../../domain/camp/hosted";
 import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import type { RoofTentPlan } from "../../../domain/camp/roofTent/placement";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
+import { decodeHost, encodeHost } from "../../../domain/shared/hosted";
 import {
   asPlayerId,
   type DimensionId,

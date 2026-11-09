@@ -11,6 +11,7 @@ import {
   PARASOL_CEILING_BLOCK,
 } from "../../../src/infrastructure/resort/identifiers";
 import { installResort } from "../../../src/infrastructure/resort/install";
+import { campTopHosts } from "../../support/campTopHosts";
 
 vi.mock("../../../src/infrastructure/shared/dyes", async (importOriginal) => ({
   ...(await importOriginal<
@@ -73,6 +74,7 @@ beforeEach(() => {
 });
 function setup() {
   const deps = {
+    topHosts: campTopHosts(),
     isVehicleSpace: vi.fn(() => true),
     isCampSpace: vi.fn(() => false),
   };

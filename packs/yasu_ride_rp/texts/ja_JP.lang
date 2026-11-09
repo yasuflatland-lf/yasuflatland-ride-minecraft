@@ -199,3 +199,5 @@ yasu_ride:resort_gear=リゾート用品
 yasu_ride.parasol.blocked=ここにはパラソルを置けません
 yasu_ride.parasol.hits_left=あと %s 回叩くとパラソルを片付けます
 yasu_ride.parasol.taken=パラソルを片付けました
+item.yasu_ride:beach_chair_item.name=ビーチチェア
+entity.yasu_ride:beach_chair.name=ビーチチェア

@@ -4,7 +4,7 @@ import { type Cell, cellKey } from "../../domain/shared/cells";
 import { asDimensionId } from "../../domain/shared/ids";
 import { NAMESPACE } from "./identifiers";
 
-export class RainCeilingLayer {
+export class LaidBlockLayer {
   constructor(
     private readonly blockId: string,
     private readonly isVehicleSpace: SpaceCheck,
@@ -63,7 +63,7 @@ export class RainCeilingLayer {
   }
 }
 
-export function readCeilingCells(saved: unknown): Cell[] {
+export function readLaidCells(saved: unknown): Cell[] {
   if (typeof saved !== "string") return [];
   try {
     const value: unknown = JSON.parse(saved);
@@ -79,6 +79,6 @@ export function readCeilingCells(saved: unknown): Cell[] {
   }
 }
 
-export function writeCeilingCells(cells: readonly Cell[]): string | undefined {
+export function writeLaidCells(cells: readonly Cell[]): string | undefined {
   return cells.length > 0 ? JSON.stringify(cells) : undefined;
 }

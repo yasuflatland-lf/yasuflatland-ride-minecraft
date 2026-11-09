@@ -8,11 +8,12 @@ import {
   TABLE_TOP_LIMIT,
 } from "../../../src/domain/camp/spec";
 import {
-  type Footprint,
+  aimOnPlane,
   type LocalPoint,
   placeOnTop,
   type TopItem,
-} from "../../../src/domain/camp/tabletop";
+  type TopRect,
+} from "../../../src/domain/shared/tableTop";
 
 const coordinate = fc.double({ min: -40, max: 40, noNaN: true });
 const point = fc.record({ x: coordinate, z: coordinate });
@@ -96,7 +97,7 @@ function nearlyTouches(a: TopItem, b: TopItem): boolean {
   );
 }
 
-function clampInside(top: Footprint, shape: Footprint, aim: LocalPoint) {
+function clampInside(top: TopRect, shape: TopRect, aim: LocalPoint) {
   const limitTo = (value: number, half: number) =>
     Math.min(Math.max(value, -half), half);
   return {
@@ -213,7 +214,7 @@ it("refuses a footprint larger than the top on either axis before overlap", () =
   fc.assert(
     fc.property(footprint, point, size, (top, aim, excess) => {
       for (const axis of ["halfX", "halfZ"] as const) {
-        const shape: Footprint = { ...top, [axis]: top[axis] + excess };
+        const shape: TopRect = { ...top, [axis]: top[axis] + excess };
         expect(
           placeOnTop(top, 2, [{ at: aim, footprint: top }], aim, shape),
         ).toEqual({ ok: false, reason: "tooBig" });
@@ -273,4 +274,31 @@ it("checks overlap at the clamped point", () => {
       DUTCH_OVEN_FOOTPRINT_PX,
     ),
   ).toEqual({ ok: false, reason: "overlap" });
+});
+
+const rayCoordinate = fc.integer({ min: -1000, max: 1000 });
+it("intersects the forward ray with the plane", () => {
+  fc.assert(
+    fc.property(
+      fc.record({ x: rayCoordinate, y: rayCoordinate, z: rayCoordinate }),
+      fc.record({
+        x: rayCoordinate,
+        y: fc.integer({ min: 1, max: 100 }),
+        z: rayCoordinate,
+      }),
+      fc.integer({ min: 0, max: 100 }),
+      fc.boolean(),
+      (head, direction, t, downward) => {
+        const dir = { ...direction, y: direction.y * (downward ? -1 : 1) };
+        const planeY = head.y + dir.y * t;
+        expect(aimOnPlane(head, dir, planeY)).toEqual({
+          x: head.x + dir.x * t,
+          y: planeY,
+          z: head.z + dir.z * t,
+        });
+        expect(aimOnPlane(head, { ...dir, y: 0 }, planeY)).toBeUndefined();
+        expect(aimOnPlane(head, dir, head.y - dir.y * (t + 1))).toBeUndefined();
+      },
+    ),
+  );
 });
