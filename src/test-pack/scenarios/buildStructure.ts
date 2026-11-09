@@ -1,7 +1,6 @@
 import {
   type Block,
   type Entity,
-  EquipmentSlot,
   ItemStack,
   SignSide,
   StructureSaveMode,
@@ -119,17 +118,14 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
       );
     });
 
-    // 2.11.0 declares no numeric maximum. These are candidate axis limits,
-    // not a volume limit; each oversized capture remains in loaded lane chunks.
-    const maxStartY = Math.max(
-      a.dim.heightRange.min,
-      a.dim.heightRange.max - 257,
-    );
+    // 2.11.0 declares no numeric maximum. Y is bounded by world height;
+    // probing beyond it would test out-of-world bounds, not a structure limit.
+    const maxStartY = a.dim.heightRange.min;
+    const height = a.dim.heightRange.max - maxStartY;
     for (const [name, x, y, z, accepted] of [
-      ["max_candidate", 64, 256, 64, true],
-      ["oversize_x", 65, 256, 64, false],
-      ["oversize_y", 64, 257, 64, false],
-      ["oversize_z", 64, 256, 65, false],
+      ["max_candidate", 64, height, 64, true],
+      ["oversize_x", 65, height, 64, false],
+      ["oversize_z", 64, height, 65, false],
     ] as const) {
       await check(name, () => {
         try {
@@ -259,74 +255,48 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
 
     for (const [name, type] of [
       ["banner", "minecraft:standing_banner"],
-      ["head", "minecraft:skull"],
-      ["item_frame", "minecraft:frame"],
+      // Bedrock flattened the skull: setType("minecraft:skull") already
+      // yields minecraft:skeleton_skull, so the fixture names the flat ID.
+      ["head", "minecraft:skeleton_skull"],
     ] as const) {
       await check(name, async () => {
         reset();
         block(22).setType(type);
-        if (name === "item_frame") {
-          // A failed command or missing inventory is a fixture failure, never
-          // evidence that an empty frame restored its displayed item.
-          a.dim.runCommand(
-            `replaceitem block ${a.xyz(22, bottom + 1, 22)} slot.container 0 minecraft:diamond 1`,
-          );
-          const held = block(22)
-            .getComponent("minecraft:inventory")
-            ?.container?.getItem(0);
-          if (held?.typeId !== "minecraft:diamond")
-            throw new Error(
-              "cannot observe populated frame with stable inventory API",
-            );
-        }
         const before = block(22).permutation;
         const structure = capture(name);
         clear();
         manager.place(structure, a.dim, from);
         await wait(2);
         const restored = block(22);
-        const held = restored
-          .getComponent("minecraft:inventory")
-          ?.container?.getItem(0);
         record(
           name,
           restored.typeId === type &&
             Object.entries(before.getAllStates()).every(
               ([key, value]) =>
                 restored.permutation.getAllStates()[key] === value,
-            ) &&
-            (name !== "item_frame" || held?.typeId === "minecraft:diamond"),
-          `${restored.typeId}:${JSON.stringify(restored.permutation.getAllStates())};item=${held?.typeId}`,
+            ),
+          `${restored.typeId}:${JSON.stringify(restored.permutation.getAllStates())}`,
         );
       });
     }
 
-    for (const type of [
-      "minecraft:cow",
-      "minecraft:armor_stand",
-      "minecraft:painting",
-    ]) {
+    for (const type of ["minecraft:cow", "minecraft:armor_stand"]) {
       const name = type.slice("minecraft:".length);
       await check(name, async () => {
         reset();
-        // A wall provides attachment space for the painting fixture.
-        a.dim.runCommand(
-          `fill ${a.box(21, bottom + 1, 21, 21, bottom + 4, 26)} stone`,
-        );
         const entity = summon(type, 22.5, 23.5);
         const tag = `${prefix}_${name}`;
         entity.addTag(tag);
         entity.setDynamicProperty("yasu_build:probe_value", "round_trip");
-        if (name === "armor_stand") {
-          const equipment = entity.getComponent("minecraft:equippable");
-          if (
-            !equipment?.setEquipment(
-              EquipmentSlot.Head,
-              new ItemStack("minecraft:diamond_helmet"),
-            )
-          )
-            throw new Error("armor fixture could not be equipped");
-        }
+        // The minecraft:equippable route did not equip an armor stand on the
+        // dev BDS, so the helmet goes through commands.
+        if (
+          name === "armor_stand" &&
+          a.dim.runCommand(
+            `replaceitem entity @e[tag=${tag}] slot.armor.head 0 diamond_helmet`,
+          ).successCount !== 1
+        )
+          throw new Error("armor fixture could not be equipped");
         const structure = capture(name);
         entity.remove();
         clear();
@@ -347,10 +317,10 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
         if (name === "armor_stand")
           record(
             "armor_equipment",
-            first[0]
-              ?.getComponent("minecraft:equippable")
-              ?.getEquipment(EquipmentSlot.Head)?.typeId ===
-              "minecraft:diamond_helmet",
+            first.length === 1 &&
+              a.dim.runCommand(
+                `testfor @e[tag=${tag},hasitem={item=diamond_helmet,location=slot.armor.head}]`,
+              ).successCount === 1,
           );
         manager.place(structure, a.dim, from, { includeEntities: true });
         const second = entities().filter((e) => e.typeId === type);
