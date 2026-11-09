@@ -48,6 +48,22 @@ assert len(m.build_cushions(2)[3:]) == 6
 assert m.SEAT_POSITION[1] == m.SEAT_TOP/16-0.24
 `);
   });
+  it("builds a rear wall as thick as the arms and as tall as them, between the arms, at both widths", async () => {
+    await run(`
+for w in (1, 2):
+    h = m.half_width(w)
+    frame = m.build_frame(w)
+    arms = [c for c in frame if abs(c['size'][0]-m.ARM) < 1e-9]
+    assert len(arms) == 2
+    walls = [c for c in frame if abs(c['origin'][2]+c['size'][2]-m.Z1) < 1e-9 and c['size'][0] > m.ARM+1]
+    tall = [c for c in walls if abs(c['origin'][1]+c['size'][1]-m.ARM_TOP) < 1e-9]
+    assert len(tall) == 1
+    wall = tall[0]
+    assert abs(wall['size'][2]-m.ARM) < 1e-9
+    assert abs(wall['origin'][0]-(-h+m.ARM)) < 1e-9 and abs(wall['size'][0]-(2*h-2*m.ARM)) < 1e-9
+    assert abs(wall['origin'][1]+wall['size'][1]-m.ARM_TOP) < 1e-9
+`);
+  });
   it("rejects widths outside the supported single and double variants", async () => {
     await run(`
 for width in (0, 3, -1, True, 1.5):

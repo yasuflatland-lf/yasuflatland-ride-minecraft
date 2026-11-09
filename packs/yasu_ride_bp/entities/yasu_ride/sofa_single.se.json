@@ -43,7 +43,7 @@
         "crouching_skip_interact": true,
         "seats": [
           {
-            "position": [0, 0.16, -0.1]
+            "position": [0, 0.2475, -0.1]
           }
         ]
       },
