@@ -3,10 +3,6 @@ vi.mock(
   () => ({ registerBeachChairInteraction: vi.fn() }),
 );
 vi.mock(
-  "../../../src/infrastructure/resort/bedrock/handlers/beachChairLifecycle",
-  () => ({ registerBeachChairLifecycle: vi.fn() }),
-);
-vi.mock(
   "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld",
   () => ({ BedrockBeachChairWorld: class {} }),
 );
@@ -24,8 +20,13 @@ vi.mock(
 );
 
 import { expect, it, vi } from "vitest";
+import { BeachChairMenu } from "../../../src/application/resort/beachChairMenu";
+import { SwitchBeachChairForm } from "../../../src/application/resort/switchBeachChairForm";
+import { TakeBackBeachChair } from "../../../src/application/resort/takeBackBeachChair";
 import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
 import { ROOF_TENT_STARTER_RECEIVED_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
+import { registerBeachChairHits } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairHits";
+import { registerBeachChairInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction";
 import {
   BEACH_PARASOL_ITEM,
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
@@ -78,6 +79,13 @@ vi.mock(
 
 it("registers the parasol starter with its own received flag", () => {
   installResort({ isVehicleSpace: () => true, isCampSpace: () => false });
+  expect(registerBeachChairHits).toHaveBeenCalledExactlyOnceWith(
+    expect.any(TakeBackBeachChair),
+  );
+  expect(registerBeachChairInteraction).toHaveBeenCalledExactlyOnceWith(
+    expect.any(SwitchBeachChairForm),
+    expect.any(BeachChairMenu),
+  );
   expect(registerStarterItem).toHaveBeenCalledExactlyOnceWith(
     expect.any(GiveStarterItem),
   );

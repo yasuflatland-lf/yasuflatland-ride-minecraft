@@ -17,8 +17,6 @@ export const BEACH_CHAIR_FOLDED = id("folded");
 export const TEST_BEACH_CHAIR_PLACE = id("test_beach_chair_place");
 export const TEST_BEACH_CHAIR_HIT = id("test_beach_chair_hit");
 
-export const BEACH_CHAIR_TOP = id("beach_chair_top");
-export const BEACH_CHAIR_TOP_CELLS = id("top_cells");
 export const TEST_BEACH_CHAIR_FORM = id("test_beach_chair_form");
 
 export const BEACH_CHAIR_FOLD_EVENT = id("beach_chair_fold");

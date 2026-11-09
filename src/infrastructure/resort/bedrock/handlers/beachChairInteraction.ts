@@ -1,27 +1,17 @@
-import { BlockTypes, type Player, system, world } from "@minecraft/server";
+import { type Player, system, world } from "@minecraft/server";
 import type { BeachChairMenu } from "../../../../application/resort/beachChairMenu";
 import type { SwitchBeachChairForm } from "../../../../application/resort/switchBeachChairForm";
 import { CHAIR_MENU_CHOICES } from "../../../../domain/resort/beachChair";
 import { asBeachChairId } from "../../../../domain/resort/ids";
-import {
-  asDimensionId,
-  asPlayerId,
-  type PlayerId,
-} from "../../../../domain/shared/ids";
+import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { chooseFromFormResult } from "../../../shared/choiceForm";
 import { heldDye } from "../../../shared/dyes";
 import { createExclusiveGuard } from "../../../shared/exclusiveForm";
 import { id } from "../../../shared/identifiers";
-import {
-  BEACH_CHAIR,
-  BEACH_CHAIR_FOLDED,
-  BEACH_CHAIR_TOP,
-} from "../../identifiers";
-import type { BedrockBeachChairWorld } from "../bedrockBeachChairWorld";
+import { BEACH_CHAIR, BEACH_CHAIR_FOLDED } from "../../identifiers";
 
 export function registerBeachChairInteraction(
-  adapter: BedrockBeachChairWorld,
   form: SwitchBeachChairForm,
   menu: BeachChairMenu,
 ): void {
@@ -46,41 +36,24 @@ export function registerBeachChairInteraction(
   };
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (ev.target.typeId !== BEACH_CHAIR || heldDye(ev.player)) return;
+    const folded = ev.target.getProperty(BEACH_CHAIR_FOLDED) === true;
+    if (folded) {
+      const item = ev.player
+        .getComponent("minecraft:inventory")
+        ?.container?.getItem(ev.player.selectedSlotIndex);
+      if (
+        item?.typeId === id("gas_lantern_item") ||
+        item?.typeId === id("dutch_oven_item")
+      )
+        return;
+    }
     ev.cancel = true;
     const player = asPlayerId(ev.player.id);
     if (!requested.add(system.currentTick, player)) return;
     const chair = asBeachChairId(ev.target.id);
-    const folded = ev.target.getProperty(BEACH_CHAIR_FOLDED) === true;
     system.run(() => {
       if (folded) form.unfold({ id: chair, player });
       else void show(ev.player, chair);
-    });
-  });
-  system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
-    blockComponentRegistry.registerCustomComponent(BEACH_CHAIR_TOP, {
-      onPlayerInteract: (ev) => {
-        const player = ev.player;
-        if (!player) return;
-        const item = player
-          .getComponent("minecraft:inventory")
-          ?.container?.getItem(player.selectedSlotIndex);
-        if (
-          item &&
-          (item.typeId === id("gas_lantern_item") ||
-            item.typeId === id("dutch_oven_item") ||
-            BlockTypes.get(item.typeId))
-        )
-          return;
-        const owner = adapter.topOwner(
-          asDimensionId(ev.dimension.id),
-          ev.block.location,
-          ev.block.typeId,
-        );
-        if (owner === undefined) return;
-        const playerId = asPlayerId(player.id);
-        if (!requested.add(system.currentTick, playerId)) return;
-        form.unfold({ id: asBeachChairId(owner), player: playerId });
-      },
     });
   });
 }

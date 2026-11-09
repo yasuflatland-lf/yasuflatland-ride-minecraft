@@ -396,33 +396,7 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
   });
 });
 
-it("defines invisible, protected tabletop support with boxes matching the measured top", () => {
-  const block = JSON.parse(
-    readFileSync(
-      "packs/yasu_ride_bp/blocks/yasu_ride/beach_chair_top.block.json",
-      "utf8",
-    ),
-  )["minecraft:block"];
-  expect(block.description.identifier).toBe("yasu_ride:beach_chair_top");
-  const components = block.components;
-  expect(components["minecraft:geometry"].bone_visibility).toEqual({
-    root: false,
-  });
-  expect(components["minecraft:collision_box"]).toEqual({
-    origin: [-8, 0, -8],
-    size: [16, BEACH_CHAIR_SPEC.topPx, 16],
-  });
-  expect(components["minecraft:selection_box"]).toEqual(
-    components["minecraft:collision_box"],
-  );
-  expect(components["minecraft:destructible_by_mining"]).toBe(false);
-  expect(components["minecraft:destructible_by_explosion"]).toBe(false);
-  expect(components["minecraft:light_dampening"]).toBe(0);
-  expect(components["yasu_ride:beach_chair_top"]).toEqual({});
-  expect(components["tag:yasu_ride:laid"]).toEqual({});
-});
-
-it("keeps the folded entity fixed while its support blocks occupy its cells", () => {
+it("keeps the folded entity fixed at its pose", () => {
   expect(entity.component_groups["yasu_ride:beach_chair_table"]).toEqual({
     "minecraft:physics": { has_collision: false, has_gravity: false },
   });

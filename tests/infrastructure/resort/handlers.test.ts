@@ -147,6 +147,8 @@ it("wires the scan interval, shared block guard and both space checks", () => {
     .spyOn(BedrockParasolWorld.prototype, "ceilingOwner")
     .mockReturnValue("p");
   const deps = setup();
+  expect(game.runInterval).toHaveBeenCalledTimes(1);
+  expect(game.handlers.has("startup")).toBe(false);
   const loaded = { id: "p" };
   game.getDimension.mockReturnValue({ getEntities: () => [loaded] });
   expect(game.runInterval).toHaveBeenCalledWith(

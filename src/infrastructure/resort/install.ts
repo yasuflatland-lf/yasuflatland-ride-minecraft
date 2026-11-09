@@ -18,7 +18,6 @@ import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
 import { BedrockParasolWorld } from "./bedrock/bedrockParasolWorld";
 import { registerBeachChairHits } from "./bedrock/handlers/beachChairHits";
 import { registerBeachChairInteraction } from "./bedrock/handlers/beachChairInteraction";
-import { registerBeachChairLifecycle } from "./bedrock/handlers/beachChairLifecycle";
 import { registerBeachChairPlacement } from "./bedrock/handlers/beachChairPlacement";
 import { registerParasolHits } from "./bedrock/handlers/hits";
 import { registerParasolLifecycle } from "./bedrock/handlers/lifecycle";
@@ -38,15 +37,8 @@ export function installResort(deps: {
   const takeChair = new TakeBackBeachChair(chair);
   registerBeachChairPlacement(new PlaceBeachChair(chair));
   const form = new SwitchBeachChairForm(chair);
-  registerBeachChairHits(takeChair, (dimension, cell, typeId) =>
-    chair.topOwner(dimension, cell, typeId),
-  );
-  registerBeachChairInteraction(
-    chair,
-    form,
-    new BeachChairMenu(form, () => {}),
-  );
-  registerBeachChairLifecycle(chair);
+  registerBeachChairHits(takeChair);
+  registerBeachChairInteraction(form, new BeachChairMenu(form, () => {}));
   registerTestBeachChair(chair, takeChair, deps, form);
   registerStarterItem(
     new GiveStarterItem(
