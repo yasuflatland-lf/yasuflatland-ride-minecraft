@@ -29,8 +29,7 @@ PALETTE = {
     "metal": (196, 200, 201, 255),
     "metal_dark": (142, 148, 150, 255),
 }
-ASSEMBLIES = {name: {"owner": "sofa", "cubes": 3}
-              for name in ("throw_cushion", "throw_cushion_2")}
+ASSEMBLIES = {"throw_cushion": {"owner": "sofa", "cubes": 3}}
 
 
 def half_width(width_cells):
@@ -64,22 +63,22 @@ def build_frame(width_cells):
     ]
 
 
-def pillow(origin, size):
+def pillow(origin, size, edge=0.25):
     """Inset broad faces soften the silhouette and leave a fine sewn edge."""
     x, y, z = origin
     w, h, d = size
-    edge = 0.25
     return [box((x+edge, y, z+edge), (w-2*edge, h, d-2*edge), "piping"),
             box((x, y+edge, z+edge), (w, h-2*edge, d-2*edge), "beige"),
             box((x+edge, y+edge, z), (w-2*edge, h-2*edge, d), "beige")]
 
 
-def build_cushions(width_cells):
+def build_cushions(width_cells, throw_cushions=0):
     h = half_width(width_cells)
     parts = []
-    # The double reference has one continuous seat beneath two separate back pads.
     inner = 2*h - 4.8
-    parts += pillow((-h + 2.45, 4, -7.2), (inner - 0.1, SEAT_TOP-4, 12.5))
+    if width_cells == 2:
+        # The double reference has one continuous seat beneath two separate back pads.
+        parts += pillow((-h + 2.45, 4, -7.2), (inner - 0.1, SEAT_TOP-4, 12.5))
     for i in range(width_cells):
         x = -h + 2.45 + i * inner / width_cells
         w = inner / width_cells - 0.1
@@ -87,29 +86,26 @@ def build_cushions(width_cells):
             # Keep pad corners within the two independently selectable halves.
             x += 0.35 * i
             w -= 0.35
-        back = pillow((x, 6.2, 3.4), (w, 5.8, 2.1))
-        parts += tilt.tilt_assembly(back, (0, 6.2, 3.4), "x", -12)
-    # A square pad rests against the left arm, tilted sideways and back together.
-    throw = pillow((-h+2.55, 5.6, -0.2), (6.5, 6.5, 1.7))
-    pivot = (-h+5.8, 8.85, 0.65)
-    for cube in throw:
-        cube["pivot"] = list(pivot)
-        cube["rotation"] = [0, 0, -13]
-    throw = tilt.tilt_assembly(throw, pivot, "x", -15,
-                               assembly="throw_cushion", assemblies=ASSEMBLIES)
-    parts += throw
-    assemblies = {"throw_cushion": throw}
-    if width_cells == 2:
-        front = pillow((-h+8.0, 4.8, -2.4), (6.5, 6.5, 1.7))
-        front_pivot = (-h+11.25, 8.05, -1.55)
-        for cube in front:
-            cube["pivot"] = list(front_pivot)
-            cube["rotation"] = [0, 0, 7]
-        front = tilt.tilt_assembly(front, front_pivot, "x", -15,
-                                   assembly="throw_cushion_2", assemblies=ASSEMBLIES)
-        parts += front
-        assemblies["throw_cushion_2"] = front
-    tilt.assert_axes(parts, assemblies, {name: ASSEMBLIES[name] for name in assemblies})
+            back = pillow((x, 6.2, 3.4), (w, 5.8, 2.1))
+        else:
+            parts += pillow((x, 4, -7.2), (w, SEAT_TOP-4, 12.5), edge=0.5)
+            back = pillow((x, 6.2, 2.4), (w, 6.0, 3.3), edge=0.6)
+        parts += tilt.tilt_assembly(back, (0, 6.2, 3.4 if width_cells == 2 else 2.4), "x", -12)
+    # Neither sofa has a throw cushion by default; callers can ask for them.
+    throws = []
+    for k in range(throw_cushions):
+        sign = -1 if k == 0 else 1
+        throw = pillow((sign*(h-2.55-6.5) if sign > 0 else -h+2.55, 5.6, -0.2), (6.5, 6.5, 1.7))
+        pivot = (throw[1]["origin"][0] + 3.25, 8.85, 0.65)
+        for cube in throw:
+            cube["pivot"] = list(pivot)
+            cube["rotation"] = [0, 0, 13*sign]
+        throw = tilt.tilt_assembly(throw, pivot, "x", -15,
+                                   assembly="throw_cushion", assemblies=ASSEMBLIES)
+        parts += throw
+        throws.append(throw)
+    if throws:
+        tilt.assert_axes(parts, {"throw_cushion": throws[0]}, ASSEMBLIES)
     return parts
 
 
@@ -119,8 +115,8 @@ def build_feet(width_cells):
             for x in (-h+0.5, h-1.75) for z in (-7.1, 5.85)]
 
 
-def cubes(width_cells=1):
-    return build_frame(width_cells) + build_cushions(width_cells) + build_feet(width_cells)
+def cubes(width_cells=1, throw_cushions=0):
+    return build_frame(width_cells) + build_cushions(width_cells, throw_cushions) + build_feet(width_cells)
 
 
 def validate(parts, width_cells=1):
