@@ -16,8 +16,8 @@ import {
 } from "../../../domain/shared/ids";
 import { forward, type Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
+import { readLaidCells } from "../../shared/laidBlockLayer";
 import { playerById } from "../../shared/players";
-import { readCeilingCells } from "../../shared/rainCeiling";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_EXIT_PROPERTY,
@@ -96,7 +96,7 @@ export class RoofTentOccupants {
       ),
     ];
     this.snapshots.set(asRoofTentId(entity.id), {
-      ceiling: readCeilingCells(
+      ceiling: readLaidCells(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
       ),
       dimension: entity.dimension,
