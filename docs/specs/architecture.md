@@ -33,6 +33,8 @@
 - Excluded: [0232](../adr/0232-undo-skips-conflicting-cells.md): conditional build Undo belongs to the build tools spec.
 - Excluded: [0233](../adr/0233-round-shapes-and-terrain-operations.md): round shapes and terrain operations belong to the build tools spec.
 
+- Excluded: [0243](../adr/0243-copy-the-build-wand-box-as-an-engine-structure.md): proposed structure copy and undo belong to build tools; the namespace and layer rules are unchanged.
+
 ## Rules
 
 ### Stable APIs and script bundles

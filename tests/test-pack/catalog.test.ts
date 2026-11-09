@@ -5,6 +5,10 @@ import { MAX_SCENARIO_TICKS } from "../../src/test-pack/deadline";
 import { isFeatureTag } from "../../src/test-pack/features";
 import { coverageGaps } from "../../src/test-pack/plan";
 
+const playerDecorScenarios = new Set([
+  "build_structure_decor_probe",
+  "build_structure_store_decor",
+]);
 const scenarios = new URL("../../src/test-pack/scenarios/", import.meta.url);
 const registry = readFileSync(new URL("index.ts", scenarios), "utf8");
 const entries = [
@@ -35,7 +39,12 @@ describe("scenario catalog", () => {
       expect(Number.isInteger(count)).toBe(true);
       expect(count).toBeGreaterThanOrEqual(0);
     }
-    expect(spec.ticks).toBeLessThanOrEqual(MAX_SCENARIO_TICKS);
+    // Player-driven decor setup needs up to 1,200 ticks and streams progress (0244).
+    const budget =
+      playerDecorScenarios.has(spec.name) && spec.needsPlayer
+        ? 1300
+        : MAX_SCENARIO_TICKS;
+    expect(spec.ticks).toBeLessThanOrEqual(budget);
     expect(spec.features.length).toBeGreaterThan(0);
     expect(new Set(spec.features).size).toBe(spec.features.length);
     expect(spec.features.every(isFeatureTag)).toBe(true);
