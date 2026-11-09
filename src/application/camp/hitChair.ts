@@ -3,8 +3,8 @@ import type { ChairId, ChairKindId } from "../../domain/camp/chair";
 import { CHAIR_SPEC } from "../../domain/camp/spec";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
+import { handleHit } from "../shared/takeBackByHits";
 import type { ChairWorld } from "./ports/chair";
-import { handleHit } from "./takeBackByHits";
 
 interface HitChairCommand {
   kind: ChairKindId;

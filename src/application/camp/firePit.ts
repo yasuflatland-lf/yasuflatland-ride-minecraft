@@ -7,9 +7,9 @@ import { FIRE_PIT_SPEC } from "../../domain/camp/spec";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
-import { canUseBlockTop, placeOnGround } from "./groundPlacement";
+import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
+import { handleHit } from "../shared/takeBackByHits";
 import type { FirePitWorld } from "./ports/firePit";
-import { handleHit } from "./takeBackByHits";
 
 const RULE = {
   hits: FIRE_PIT_SPEC.hitsToTakeBack,

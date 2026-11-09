@@ -1,7 +1,7 @@
 import type { TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import type { GroundCellsWorld } from "./groundCells";
+import type { GroundCellsWorld } from "../../shared/ports/groundCells";
 
 export interface TableWorld extends GroundCellsWorld {
   /** How many items of any kind stand on the table. */
