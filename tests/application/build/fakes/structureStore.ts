@@ -34,6 +34,7 @@ export class FakeStructureStore implements BuildStructureStore {
   readonly live = new Set<StructureHandle>();
   /** When set, every capture returns this refusal. */
   captureRefusal: CaptureRefusal | undefined;
+  captureRefusals: (CaptureRefusal | undefined)[] = [];
   placeSucceeds = true;
   clearBlocksSucceeds = true;
   private counter = 0;
@@ -44,7 +45,11 @@ export class FakeStructureStore implements BuildStructureStore {
     ownerId: PlayerId,
   ): StructureHandle | CaptureRefusal {
     this.calls.push({ kind: "capture", dimensionId, box, ownerId });
-    if (this.captureRefusal !== undefined) return this.captureRefusal;
+    const refusal =
+      this.captureRefusals.length > 0
+        ? this.captureRefusals.shift()
+        : this.captureRefusal;
+    if (refusal !== undefined) return refusal;
     this.counter += 1;
     const handle = structureHandle(`fake_${ownerId}_${this.counter}`);
     this.live.add(handle);

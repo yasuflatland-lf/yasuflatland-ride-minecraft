@@ -30,6 +30,7 @@ import {
   nether,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone");
@@ -48,18 +49,9 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const actions = {
     copy: new CopyBox(repo, world, feedback),
-    cut: new CutBox(
-      repo,
-      world,
-      feedback,
-      new EditJobs(
-        repo,
-        world,
-        feedback,
-        { warn: () => {} },
-        new FakeBuildPlayers(),
-      ),
-    ),
+    cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
+      warn: () => {},
+    }),
   };
   return {
     repo,

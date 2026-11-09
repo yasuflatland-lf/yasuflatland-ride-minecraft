@@ -73,7 +73,13 @@ export function installBuild(deps: {
   );
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, blocks, feedback);
-  const cutBox = new CutBox(repo, blocks, feedback, jobs);
+  const cutBox = new CutBox(
+    repo,
+    blocks,
+    ports.structures,
+    feedback,
+    consoleLogger,
+  );
   const actions = { copy: copyBox, cut: cutBox };
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {

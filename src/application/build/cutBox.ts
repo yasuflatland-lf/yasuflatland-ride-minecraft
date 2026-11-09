@@ -1,24 +1,22 @@
-import { AIR } from "../../domain/build/blockState";
-import { type CellBox, volume } from "../../domain/build/box";
-import { clipboardOf } from "../../domain/build/clipboard/clipboard";
-import { planShape } from "../../domain/build/edit/plan";
+import { type CellBox, cellsOf, volume } from "../../domain/build/box";
+import { completionMessage } from "../../domain/build/edit/completion";
+import { airPressOffersUndo } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import { shapeOf } from "../../domain/build/shape/shape";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import { beginCheckedEdit } from "./beginCheckedEdit";
+import type { Logger } from "../shared/ports/logger";
 import type { BoxAction } from "./boxAction";
-import type { EditJobs } from "./editJobs";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
+import type { BuildStructureStore } from "./ports/structures";
 
-/** Copies the box into the clipboard, then empties it (ADR 0230). */
 export class CutBox implements BoxAction {
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly world: BuildBlockWorld,
+    private readonly structures: BuildStructureStore,
     private readonly feedback: BuildFeedback,
-    private readonly jobs: EditJobs,
+    private readonly log: Logger,
   ) {}
 
   execute(playerId: PlayerId, dimensionId: DimensionId, box: CellBox): boolean {
@@ -28,20 +26,58 @@ export class CutBox implements BoxAction {
       return false;
     }
     const session = this.repo.getOrCreate(playerId);
-    if (!beginCheckedEdit(session, this.feedback, playerId, count))
+    if (session.isEditing) {
+      this.feedback.showMessage(playerId, "busy");
       return false;
-    // The clipboard is read before the first write, so it holds the cells as they were.
-    const clipboard = clipboardOf(box, (cell) =>
-      this.world.stateAt(dimensionId, cell),
-    );
-    session.completeCopy(dimensionId, box, clipboard);
-    this.feedback.showMessage(playerId, "cutting");
-    this.jobs.start(
-      playerId,
+    }
+    for (const cell of cellsOf(box)) {
+      if (!this.world.mayEdit(dimensionId, cell)) {
+        this.feedback.showMessage(playerId, "pasteBlocked");
+        return false;
+      }
+    }
+    const handle = this.structures.capture(dimensionId, box, playerId);
+    if (handle === "tooLarge" || handle === "unreadable") {
+      this.feedback.showMessage(playerId, "tooLarge", count);
+      return false;
+    }
+    const snapshot = this.structures.capture(dimensionId, box, playerId);
+    if (snapshot === "tooLarge" || snapshot === "unreadable") {
+      this.structures.discard(handle);
+      this.feedback.showMessage(playerId, "tooLarge", count);
+      return false;
+    }
+    const previous = session.clipboard;
+    if (previous?.contents.kind === "structure")
+      this.structures.discard(previous.contents.handle);
+    for (const dropped of session.recordSnapshot({
       dimensionId,
-      planShape(shapeOf(box.min, box.max), "fill", { state: AIR }),
-      "undoable",
-    );
+      box,
+      handle: snapshot,
+    }))
+      this.structures.discard(dropped);
+    session.completeCopy(dimensionId, box, {
+      size: {
+        x: box.max.x - box.min.x + 1,
+        y: box.max.y - box.min.y + 1,
+        z: box.max.z - box.min.z + 1,
+      },
+      blockCount: count,
+      contents: { kind: "structure", handle },
+    });
+    this.structures.clearEntities(dimensionId, box);
+    if (!this.structures.clearBlocks(dimensionId, box))
+      this.log.warn(
+        `build cut for ${playerId} could not clear all blocks; snapshot retained for undo`,
+      );
+    const completion = completionMessage({
+      kind: "undoable",
+      skipped: 0,
+      flowOffersUndo: airPressOffersUndo(session.flow) && session.hasHistory,
+    });
+    this.feedback.showMessage(playerId, completion.message, count);
+    if (completion.takesUndoHint && session.takeUndoHint())
+      this.feedback.showUndoHint(playerId);
     return true;
   }
 }
