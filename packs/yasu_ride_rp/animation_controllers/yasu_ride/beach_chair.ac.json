@@ -1,0 +1,58 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.yasu_ride.beach_chair.form": {
+      "initial_state": "initial",
+      "states": {
+        "initial": {
+          "transitions": [
+            {
+              "table": "query.property('yasu_ride:folded')"
+            },
+            {
+              "chair": "!query.property('yasu_ride:folded')"
+            }
+          ]
+        },
+        "chair": {
+          "animations": ["chair"],
+          "transitions": [
+            {
+              "fold": "query.property('yasu_ride:folded')"
+            }
+          ]
+        },
+        "table": {
+          "animations": ["table"],
+          "transitions": [
+            {
+              "unfold": "!query.property('yasu_ride:folded')"
+            }
+          ]
+        },
+        "fold": {
+          "animations": ["fold"],
+          "transitions": [
+            {
+              "unfold": "!query.property('yasu_ride:folded')"
+            },
+            {
+              "table": "query.all_animations_finished"
+            }
+          ]
+        },
+        "unfold": {
+          "animations": ["unfold"],
+          "transitions": [
+            {
+              "fold": "query.property('yasu_ride:folded')"
+            },
+            {
+              "chair": "query.all_animations_finished"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

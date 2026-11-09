@@ -239,8 +239,9 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0233](0233-round-shapes-and-terrain-operations.md) | Add round shapes and terrain operations to the Build Wand | Accepted |
 | [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) | Plated camper mirrors and a simpler camper exterior | Proposed |
 | [0235](0235-share-convex-rain-ceiling-geometry-and-placement.md) | Share convex rain ceiling geometry and placement | Proposed |
-| [0236](0236-a-beach-parasol-in-a-new-resort-gear-group.md) | A beach parasol in a new Resort Gear group | Proposed |
+| [0236](0236-a-beach-parasol-in-a-new-resort-gear-group.md) | A beach parasol in a new Resort Gear group | Proposed; extended by [0238](0238-a-beach-chair-that-folds-into-a-table.md) |
 | [0237](0237-register-tabletop-hosts-across-features.md) | Register tabletop hosts across features | Proposed |
+| [0238](0238-a-beach-chair-that-folds-into-a-table.md) | A beach chair that folds into a table | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

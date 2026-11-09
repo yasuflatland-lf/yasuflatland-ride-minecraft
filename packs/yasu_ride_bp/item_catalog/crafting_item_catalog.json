@@ -52,7 +52,10 @@
               "icon": "yasu_ride:beach_parasol_item",
               "name": "yasu_ride:resort_gear"
             },
-            "items": ["yasu_ride:beach_parasol_item"]
+            "items": [
+              "yasu_ride:beach_parasol_item",
+              "yasu_ride:beach_chair_item"
+            ]
           },
           {
             "group_identifier": {

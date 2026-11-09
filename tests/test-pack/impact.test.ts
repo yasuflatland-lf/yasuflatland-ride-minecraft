@@ -23,10 +23,14 @@ import { planOf } from "../../src/test-pack/plan";
 import { WHOLE_RUN } from "../../src/test-pack/protocol";
 
 const root = new URL("../../", import.meta.url);
-const tracked = execFileSync("git", ["ls-files", "-z"], {
-  cwd: fileURLToPath(root),
-  encoding: "utf8",
-})
+const tracked = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+  {
+    cwd: fileURLToPath(root),
+    encoding: "utf8",
+  },
+)
   .split("\0")
   .filter(Boolean);
 
@@ -311,30 +315,39 @@ describe("selectionOf", () => {
     expect(impactOfPath(path).impact).toEqual(impact);
   });
 
-  it.each(["beach_parasol", "beach_parasol_item", "parasol_ceiling"])(
-    "selects resort scenarios for the %s pack stem",
-    (stem) => {
-      expect(PACK_STEM_TAGS[stem]).toEqual(["resort"]);
-      const paths = tracked.filter(
-        (path) =>
-          path.startsWith("packs/") &&
-          posix.basename(path).split(".")[0] === stem,
-      );
-      expect(paths.length).toBeGreaterThan(0);
-      expect(selectionOf(paths)).toEqual({ all: false, features: ["resort"] });
-      expect(
-        planOf(CATALOG, {
-          shard: WHOLE_RUN,
-          playerConnected: false,
-          features: ["resort"],
-        }).runs.map((scenario) => scenario.name),
-      ).toEqual([
-        "parasol_paint",
-        "parasol_place_take_back",
-        "parasol_rain_ceiling",
-      ]);
-    },
-  );
+  it.each([
+    "beach_parasol",
+    "beach_parasol_item",
+    "parasol_ceiling",
+    "beach_chair_top",
+    "beach_chair",
+    "beach_chair_item",
+  ])("selects resort scenarios for the %s pack stem", (stem) => {
+    expect(PACK_STEM_TAGS[stem]).toEqual(["resort"]);
+    const paths = tracked.filter(
+      (path) =>
+        path.startsWith("packs/") &&
+        posix.basename(path).split(".")[0] === stem,
+    );
+    expect(paths.length).toBeGreaterThan(0);
+    expect(selectionOf(paths)).toEqual({ all: false, features: ["resort"] });
+    expect(
+      planOf(CATALOG, {
+        shard: WHOLE_RUN,
+        playerConnected: false,
+        features: ["resort"],
+      }).runs.map((scenario) => scenario.name),
+    ).toEqual([
+      "beach_chair_fold",
+      "beach_chair_block_on_top",
+      "beach_chair_top_restore",
+      "beach_chair_place",
+      "beach_chair_take_back",
+      "parasol_paint",
+      "parasol_place_take_back",
+      "parasol_rain_ceiling",
+    ]);
+  });
 
   it.each(["domain", "application", "infrastructure"])(
     "selects resort for the %s resort layer",

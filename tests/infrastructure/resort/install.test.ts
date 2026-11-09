@@ -1,3 +1,28 @@
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction",
+  () => ({ registerBeachChairInteraction: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/beachChairLifecycle",
+  () => ({ registerBeachChairLifecycle: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld",
+  () => ({ BedrockBeachChairWorld: class {} }),
+);
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/beachChairPlacement",
+  () => ({ registerBeachChairPlacement: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/beachChairHits",
+  () => ({ registerBeachChairHits: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/testBeachChair",
+  () => ({ registerTestBeachChair: vi.fn() }),
+);
+
 import { expect, it, vi } from "vitest";
 import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
 import { ROOF_TENT_STARTER_RECEIVED_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
