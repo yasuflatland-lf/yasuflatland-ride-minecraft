@@ -73,7 +73,7 @@
 
 ## Open issues
 
-- Beach Chair occupancy and tabletop contents are always reported as false by the adapter in this stage; only the folded property is read. The application already refuses occupied chairs and tables supporting anything when those states are supplied. Menus, occupancy detection, table blocks, their forwarded hits and cleanup, and hosting remain for later issues.
+- Beach Chair occupancy and tabletop contents are always reported as false by the adapter in this stage; only the folded property is read. The application already refuses an occupied chair and a table with a hosted lantern or oven on it when those states are supplied. Menus, occupancy detection, and hosting remain for later issues; the folded table takes no blocks, so its taps and hits reach the chair entity through its own hit box.
 
 - ADR 0236 says the rain block is laid under the canopy; the implementation lays it in the first cell above the canopy top, following the linked design (`src/domain/resort/parasolPose.ts`); the ADR needs an edit or a superseding ADR.
 - Canopies may overlap. Shared ceiling cells are not jointly owned, so taking one parasol back can leave a temporary hole until the other parasol's next scan. The rain and snow acceptance check and fallback from ADR 0236 are recorded in [Camping gear](camping-gear.md#open-issues).
