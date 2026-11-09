@@ -13,6 +13,7 @@ import {
   type UndoEntry,
   type UndoHistory,
   withEntry,
+  withPutBack,
 } from "./history/history";
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
 import { BUILD_SPEC } from "./spec";
@@ -151,6 +152,10 @@ export class BuildSession {
     );
     this.history = history;
     return dropped;
+  }
+
+  putBackUndo(entry: UndoEntry): void {
+    this.history = withPutBack(this.history, entry);
   }
 
   /** The last entry, removed from the history, or a refusal ("busy" while editing). */
