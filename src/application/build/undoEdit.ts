@@ -17,11 +17,16 @@ export class UndoEdit {
   execute(cmd: { playerId: PlayerId }): void {
     const { playerId } = cmd;
     const session = this.repo.getOrCreate(playerId);
-    const record = session.takeUndo();
-    if (isEditRefusal(record)) {
-      this.feedback.showMessage(playerId, record);
+    const entry = session.takeUndo();
+    if (isEditRefusal(entry)) {
+      this.feedback.showMessage(playerId, entry);
       return;
     }
+    if (entry.kind === "snapshot") {
+      // Nothing records a snapshot yet; undoing one lands with paste and cut.
+      throw new Error("Snapshot undo entries are not handled yet");
+    }
+    const record = entry.record;
     const busy = session.beginEdit();
     if (busy) {
       this.feedback.showMessage(playerId, busy);
