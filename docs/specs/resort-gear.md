@@ -1,6 +1,6 @@
 # Resort gear
 
-- Scope: Beach Parasol placement, rain ceiling persistence, recovery, and Resort Gear assets. Dye painting and starter grants are follow-up work.
+- Scope: Beach Parasol placement, rain ceiling persistence, recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are follow-up work.
 - Verified at: 732f6c1c
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0235](../adr/0235-share-convex-rain-ceiling-geometry-and-placement.md)
@@ -46,5 +46,5 @@
 ## Open issues
 
 - ADR 0236 says the rain block is laid under the canopy; the implementation lays it in the first cell above the canopy top, following the linked design (`src/domain/resort/parasolPose.ts`); the ADR needs an edit or a superseding ADR.
-- ADR 0236 includes painting and the first hand-out; the implementation has neither in this stage (`src/infrastructure/resort/install.ts`); these belong to the later issues, and the ADR needs an edit or a superseding ADR if they are not delivered.
+- ADR 0236 includes the first hand-out; the implementation does not yet provide it (`src/infrastructure/resort/install.ts`); this belongs to a later issue, and the ADR needs an edit or a superseding ADR if they are not delivered.
 - Canopies may overlap. Shared ceiling cells are not jointly owned, so taking one parasol back can leave a temporary hole until the other parasol's next scan. Actual rain and snow occlusion with collision disabled still require the owner's in-game check, as required by ADR 0236.
