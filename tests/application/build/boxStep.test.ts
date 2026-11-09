@@ -113,7 +113,7 @@ it("copies a base grown through any allowed height without beginning an edit", (
           max: { ...base.max, y: base.min.y + height - 1 },
         };
         expect(e.session.confirmedBox).toEqual({ dimensionId: nether, box });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
+        expect(e.session.flow).toEqual({ kind: "pasteAim" });
         expect(e.session.clipboard?.size).toEqual({
           x: dx + 1,
           y: height,
@@ -151,7 +151,7 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
       const begin = vi.spyOn(e.session, "beginEdit");
       e.choose.execute({ playerId, kind: "copy" });
       const box = boxOf(from, to);
-      expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
+      expect(e.session.flow).toEqual({ kind: "pasteAim" });
       expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
       expect(e.session.clipboard?.cells).toHaveLength(volume(box));
       expect(e.feedback.messages.at(-1)).toEqual({
@@ -235,7 +235,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         horizontal,
         copy,
         roof,
-        { kind: "pasteAim", skipAir: false },
+        { kind: "pasteAim" },
       ] as BuildFlow[]) {
         for (const useCase of [e.choose, e.confirm]) {
           if (
@@ -275,9 +275,9 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
   );
 });
 
-it("utility Copy resets paste settings in every prior flow and an oversized copy preserves them", () => {
+it("utility Copy enters paste aiming from every prior flow and an oversized copy preserves them", () => {
   fc.assert(
-    fc.property(cell, fc.boolean(), fc.nat(), (from, skipAir, tick) => {
+    fc.property(cell, fc.nat(), (from, tick) => {
       const e = setup();
       const box = boxOf(from, { ...from, x: from.x + 1, z: from.z + 1 });
       const selected = endpoint(box.min, box.max);
@@ -287,7 +287,7 @@ it("utility Copy resets paste settings in every prior flow and an oversized copy
         selected,
         chooseHeighted(selected, "copy"),
         chooseHeighted(selected, "hip"),
-        { kind: "pasteAim", skipAir, lastPaste: { anchor: from, tick } },
+        { kind: "pasteAim", lastPaste: { anchor: from, tick } },
       ];
       const copy = new CopySelection(
         e.repo,
@@ -300,7 +300,7 @@ it("utility Copy resets paste settings in every prior flow and an oversized copy
         holdClipboard(e.session, old);
         e.session.setFlow(flow);
         copy.execute({ playerId });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
+        expect(e.session.flow).toEqual({ kind: "pasteAim" });
         expect(e.session.clipboard).not.toBe(old);
         expect(e.session.clipboard).toEqual(
           clipboardOf(box, (at) => e.world.stateAt(overworld, at)),

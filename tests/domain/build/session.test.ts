@@ -204,7 +204,6 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
   }),
   fc.record({
     kind: fc.constant("pasteAim" as const),
-    skipAir: fc.boolean(),
     lastPaste: fc.option(fc.record({ anchor: cellArb, tick: fc.nat() }), {
       nil: undefined,
     }),
@@ -232,7 +231,7 @@ it("completeCopy replaces the clipboard and box and enters paste aiming from any
         session.setFlow(flow);
         for (const record of records) session.finishEdit(record, "undoable");
         session.completeCopy(dimensionId, box, clipboard);
-        expect(session.flow).toEqual({ kind: "pasteAim", skipAir: false });
+        expect(session.flow).toEqual({ kind: "pasteAim" });
         expect(session.clipboard).toBe(clipboard);
         expect(session.confirmedBox).toEqual({ dimensionId, box });
         for (const record of [...records].reverse())
@@ -299,17 +298,15 @@ it("startNewCopy idles any paste aiming, clears the box and repeat window, and k
     fc.property(
       clipboardArb,
       boxArb,
-      fc.boolean(),
       cellArb,
       fc.nat(),
       recordArb,
-      (clipboard, box, skipAir, anchor, tick, record) => {
+      (clipboard, box, anchor, tick, record) => {
         const session = new BuildSession(asPlayerId("p1"));
         session.completeCopy(dim, box, clipboard);
         session.finishEdit(record, "undoable");
         session.setFlow({
           kind: "pasteAim",
-          skipAir,
           lastPaste: { anchor, tick },
         });
         session.startNewCopy();

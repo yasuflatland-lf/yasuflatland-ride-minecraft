@@ -49,7 +49,7 @@ export class PasteAt {
     this.jobs.start(
       playerId,
       cmd.dimensionId,
-      planPaste(clipboard, anchor, flow.skipAir),
+      planPaste(clipboard, anchor),
       "undoable",
     );
     session.setFlow(recordPaste(flow, anchor, cmd.tick));

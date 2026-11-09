@@ -34,7 +34,7 @@ interface Reply {
   offered?: boolean;
   undoHints?: number;
   timedOut?: boolean;
-  flow: { kind: string; previous?: number; skipAir?: boolean };
+  flow: { kind: string; previous?: number };
   mode?: boolean;
 }
 function check(ok: boolean, detail: string): asserts ok {
@@ -362,10 +362,8 @@ export function buildRefusals(a: Arena): Promise<Outcome> {
 async function startPasteStep(
   f: Fixture,
   {
-    skipAir = false,
     height,
   }: {
-    skipAir?: boolean;
     height?: number;
   } = {},
 ): Promise<Reply> {
@@ -380,18 +378,9 @@ async function startPasteStep(
     copied = await f.edit("confirmbox");
   }
   check(
-    copied.message === "copied" &&
-      copied.flow.kind === "pasteAim" &&
-      copied.flow.skipAir === false,
-    "Copy did not enter paste aiming with Skip air off",
+    copied.message === "copied" && copied.flow.kind === "pasteAim",
+    "Copy did not enter paste aiming",
   );
-  if (skipAir) {
-    const toggled = await f.menu("paste", "skipAir");
-    check(
-      toggled.offered === true && toggled.flow.skipAir === true,
-      "Skip air toggle failed",
-    );
-  }
   return copied;
 }
 
@@ -477,14 +466,14 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
     await copyLine(f);
     const withoutHistory = await checkState(f, "pasteAim", true);
     check(
-      withoutHistory.pasteMenu.join() === "skipAir,newCopy,endPaste",
+      withoutHistory.pasteMenu.join() === "newCopy,endPaste",
       "Paste menu without history has unexpected entries",
     );
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
     await pasteInto(f, target);
     const withHistory = await checkState(f, "pasteAim", true);
     check(
-      withHistory.pasteMenu.join() === "undo,skipAir,newCopy,endPaste",
+      withHistory.pasteMenu.join() === "undo,newCopy,endPaste",
       "Paste menu with history must have exactly four ordered entries",
     );
     await f.menu("paste", "undo");
@@ -493,7 +482,7 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
       "menu Undo did not restore blocks",
     );
     check(
-      (await f.state()).pasteMenu.join() === "skipAir,newCopy,endPaste",
+      (await f.state()).pasteMenu.join() === "newCopy,endPaste",
       "Undo remained in the menu without history",
     );
   });
@@ -578,51 +567,6 @@ export function buildNewCopyItemSwitch(a: Arena): Promise<Outcome> {
   });
 }
 
-export function buildPasteToggleNext(a: Arena): Promise<Outcome> {
-  return withBuilder(a, async (f) => {
-    await copyLine(f);
-    f.block(f.cell(1)).setType("minecraft:air");
-    await f.menu("paste", "newCopy");
-    await f.select(f.cell(1));
-    await f.menu("shape", "copy");
-    await checkState(f, "pasteAim", true);
-    const first = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
-    const second = pasteTarget(f, f.cell(16, 0, 12), 2, 1, 1);
-    const third = pasteTarget(f, f.cell(20, 0, 12), 2, 1, 1);
-    await pasteInto(f, first);
-    check(
-      f.block(first.cells[1] as Cell).typeId === "minecraft:air",
-      "Skip air was not off by default",
-    );
-    const beforeToggle = snapshot(f, first.cells);
-    await f.menu("paste", "skipAir");
-    await pasteInto(f, second);
-    check(
-      f.block(second.cells[0] as Cell).typeId === "minecraft:stone" &&
-        f.block(second.cells[1] as Cell).typeId === "minecraft:gold_block",
-      "Skip air did not apply to the next Paste",
-    );
-    check(
-      unchanged(f, first.cells, beforeToggle),
-      "toggle changed the previous Paste",
-    );
-    await f.menu("paste", "skipAir");
-    await pasteInto(f, third);
-    check(
-      f.block(third.cells[1] as Cell).typeId === "minecraft:air",
-      "Skip air did not toggle off",
-    );
-    await checkState(f, "pasteAim", true);
-    for (const target of [third, second, first]) {
-      await f.menu("paste", "undo");
-      check(
-        unchanged(f, target.cells, target.before),
-        "toggle Paste Undo lost blocks",
-      );
-    }
-  });
-}
-
 export function buildPasteUndoRepeat(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     await copyLine(f);
@@ -668,36 +612,33 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       ["north", 0, 0, -1],
       ["south", 0, 0, 1],
     ] as const) {
-      for (const skipAir of [false, true]) {
-        await f.select(f.cell(2));
-        await startPasteStep(f, { skipAir });
-        const anchor = f.cell(10, 2, 10);
-        f.block(anchor).setType("minecraft:gold_block");
-        const target = f.region(3, 1, 1, {
-          x: anchor.x + dx,
-          y: anchor.y + dy,
-          z: anchor.z + dz,
-        });
-        for (const c of target) f.block(c).setType("minecraft:gold_block");
-        const before = snapshot(f, target);
-        const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, face);
-        check(pasted.message === "editDone", "aimed paste failed");
-        const actual = snapshot(f, target);
-        check(
-          actual[0]?.typeId === "minecraft:stone" &&
-            actual[1]?.typeId ===
-              (skipAir ? "minecraft:gold_block" : "minecraft:air") &&
-            actual[2]?.typeId === "minecraft:oak_log" &&
-            actual[2]?.states.pillar_axis === "z",
-          `paste anchor/states/skipAir wrong for ${face} ${skipAir}`,
-        );
-        await f.edit("undo");
-        check(
-          unchanged(f, target, before),
-          "paste undo did not restore destination",
-        );
-        await endPasteStep(f);
-      }
+      await f.select(f.cell(2));
+      await startPasteStep(f);
+      const anchor = f.cell(10, 2, 10);
+      f.block(anchor).setType("minecraft:gold_block");
+      const target = f.region(3, 1, 1, {
+        x: anchor.x + dx,
+        y: anchor.y + dy,
+        z: anchor.z + dz,
+      });
+      for (const c of target) f.block(c).setType("minecraft:gold_block");
+      const before = snapshot(f, target);
+      const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, face);
+      check(pasted.message === "editDone", "aimed paste failed");
+      const actual = snapshot(f, target);
+      check(
+        actual[0]?.typeId === "minecraft:stone" &&
+          actual[1]?.typeId === "minecraft:air" &&
+          actual[2]?.typeId === "minecraft:oak_log" &&
+          actual[2]?.states.pillar_axis === "z",
+        `paste anchor/states wrong for ${face}`,
+      );
+      await f.edit("undo");
+      check(
+        unchanged(f, target, before),
+        "paste undo did not restore destination",
+      );
+      await endPasteStep(f);
     }
     await f.edit("undo");
   });
@@ -1103,37 +1044,6 @@ export function buildSolidCancelUndo(a: Arena): Promise<Outcome> {
     check(f.count(cells) > 0, "cylinder was not built");
     check((await f.menu("utility", "undo")).offered === true, "undo absent");
     check(f.count(cells) === 0, "undo did not remove the cylinder");
-  });
-}
-
-export function buildPasteSkipAir(a: Arena): Promise<Outcome> {
-  return withBuilder(a, async (f) => {
-    await f.select(f.cell(1));
-    f.block(f.cell(1)).setType("minecraft:air");
-    await startPasteStep(f);
-    for (const skipAir of [true, false]) {
-      const toggled = await f.menu("paste", "skipAir");
-      check(
-        toggled.offered === true && toggled.flow.skipAir === skipAir,
-        "skip-air toggle failed",
-      );
-      const anchor = f.cell(skipAir ? 10 : 14, 0, 10);
-      const target = f.region(2, 1, 1, { ...anchor, y: anchor.y + 1 });
-      for (const cell of target) f.block(cell).setType("minecraft:gold_block");
-      const pasted = await f.edit(
-        `pasteat ${anchor.x} ${anchor.y} ${anchor.z} up`,
-      );
-      check(pasted.message === "editDone", "paste after toggle failed");
-      check(
-        snapshot(f, target)[0]?.typeId === "minecraft:stone",
-        "solid cell was not pasted",
-      );
-      check(
-        snapshot(f, target)[1]?.typeId ===
-          (skipAir ? "minecraft:gold_block" : "minecraft:air"),
-        "paste ignored skip-air setting",
-      );
-    }
   });
 }
 
