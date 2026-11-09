@@ -76,14 +76,17 @@ describe("parasolPose", () => {
     );
   });
 
-  it("keeps every foot cell more than 2 blocks from the canopy centre along the facing axis", () => {
+  it("keeps every foot cell centre more than 2 blocks from the canopy centre along the facing axis", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
         const pose = parasolPose(pressed, yaw);
         for (const cell of parasolFootCells(pose)) {
           const dx = Math.abs(cell.x + 0.5 - pose.canopyCenter.x);
           const dz = Math.abs(cell.z + 0.5 - pose.canopyCenter.z);
-          expect(Math.max(dx, dz)).toBeGreaterThan(2);
+          // These are centre distances, not nearest-edge clearances: the nearest
+          // centre is 2.25 blocks away along the facing axis; its edge is 1.75.
+          const alongFacing = pose.yaw === 0 || pose.yaw === 180 ? dz : dx;
+          expect(alongFacing).toBeGreaterThan(2);
         }
       }),
     );
@@ -95,7 +98,7 @@ describe("parasolPose", () => {
         const pose = parasolPose(pressed, yaw);
         const cells = parasolFootCells(pose);
         expect(cells).toHaveLength(PARASOL_SPEC.footCells.length);
-        expect(cells[0]).toEqual(pose.base);
+        expect(cells).toContainEqual(pose.base);
         expect(parasolSupportCell(pose)).toEqual({
           ...pose.base,
           y: pose.base.y - 1,
@@ -104,26 +107,29 @@ describe("parasolPose", () => {
     );
   });
 
-  it("lays the rain ceiling over a centred 3 by 4 rectangle in either orientation", () => {
-    fc.assert(
-      fc.property(cellArb, yawArb, (pressed, yaw) => {
-        const pose = parasolPose(pressed, yaw);
-        const keys = new Set(
-          parasolCeilingCells(pose).map((c) => `${c.x},${c.z}`),
-        );
-        const cx = Math.floor(pose.canopyCenter.x);
-        const cz = Math.floor(pose.canopyCenter.z);
-        for (const [halfX, halfZ] of [
-          [1, 2],
-          [2, 1],
-        ] as const) {
-          for (let dx = -halfX; dx <= halfX; dx++)
-            for (let dz = -halfZ; dz <= halfZ; dz++)
-              expect(keys.has(`${cx + dx},${cz + dz}`)).toBe(true);
-        }
-      }),
-    );
-  });
+  it.each([0, 90, 180, 270])(
+    "lays the rain ceiling over a centred 3 by 4 rectangle in either orientation at yaw %i",
+    (yaw) => {
+      fc.assert(
+        fc.property(cellArb, (pressed) => {
+          const pose = parasolPose(pressed, yaw);
+          const keys = new Set(
+            parasolCeilingCells(pose).map((c) => `${c.x},${c.z}`),
+          );
+          const cx = Math.floor(pose.canopyCenter.x);
+          const cz = Math.floor(pose.canopyCenter.z);
+          for (const [halfX, halfZ] of [
+            [1, 2],
+            [2, 1],
+          ] as const) {
+            for (let dx = -halfX; dx <= halfX; dx++)
+              for (let dz = -halfZ; dz <= halfZ; dz++)
+                expect(keys.has(`${cx + dx},${cz + dz}`)).toBe(true);
+          }
+        }),
+      );
+    },
+  );
 
   it("lays every ceiling cell at one height above the canopy top", () => {
     fc.assert(

@@ -23,9 +23,23 @@ it("preserves the original roof tent columns for both variants", () => {
   fc.assert(
     fc.property(origin, yaw, (at, angle) => {
       for (const variant of ["ground", "ladder"] as const) {
-        expect(
-          new Set(roofTentCeilingCells(at, angle, variant).map(cellKey)),
-        ).toEqual(new Set(legacyCells(at, angle, variant).map(cellKey)));
+        const actual = new Set(
+          roofTentCeilingCells(at, angle, variant).map(cellKey),
+        );
+        const expected = new Set(legacyCells(at, angle, variant).map(cellKey));
+        // Equivalent SAT calculations can round differently at a touching boundary.
+        const nearby = [-1e-9, 1e-9].flatMap((dx) =>
+          [-1e-9, 1e-9].map((dz) => ({ ...at, x: at.x + dx, z: at.z + dz })),
+        );
+        const legacyNearby = nearby.map(
+          (point) => new Set(legacyCells(point, angle, variant).map(cellKey)),
+        );
+        for (const key of new Set([...actual, ...expected])) {
+          if (actual.has(key) !== expected.has(key)) {
+            expect(legacyNearby.some((cells) => cells.has(key))).toBe(true);
+            expect(legacyNearby.some((cells) => !cells.has(key))).toBe(true);
+          }
+        }
       }
     }),
     { numRuns: 1000 },

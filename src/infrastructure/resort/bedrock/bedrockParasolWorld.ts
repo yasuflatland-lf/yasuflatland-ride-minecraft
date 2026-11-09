@@ -120,9 +120,9 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
         volume: { x: radius * 2 + 1, y: radius * 2 + 1, z: radius * 2 + 1 },
       })
       .map((entity) => ({
-        x: Math.floor(entity.location.x),
+        x: entity.location.x - 0.5,
         y: Math.floor(entity.location.y),
-        z: Math.floor(entity.location.z),
+        z: entity.location.z - 0.5,
       }));
   }
   isCreative(player: PlayerId): boolean {
@@ -177,9 +177,9 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
     const record = this.remember(entity);
     const pose = parasolPoseAt(
       {
-        x: Math.floor(entity.location.x),
+        x: entity.location.x - 0.5,
         y: Math.floor(entity.location.y),
-        z: Math.floor(entity.location.z),
+        z: entity.location.z - 0.5,
       },
       entity.getRotation().y,
     );

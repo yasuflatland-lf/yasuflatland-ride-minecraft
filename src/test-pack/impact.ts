@@ -167,6 +167,8 @@ export const HARNESS_IMPORTS: readonly string[] = [
 ];
 
 export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
+  beach_parasol: ["resort"],
+  beach_parasol_item: ["resort"],
   blade_switch: ["vehicle:bulldozer"],
   book_stack: ["vehicle:camper"],
   book_stack_decor: ["vehicle:camper"],
@@ -246,13 +248,11 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   suv: ["vehicle:suv"],
   suv_item: ["vehicle:suv"],
   table_decor_pair: ["vehicle:camper"],
+  parasol_ceiling: ["resort"],
   roof_tent: ["camp", "vehicle:suv", "vehicle:camper"],
   roof_tent_item: ["camp", "vehicle:suv", "vehicle:camper"],
   tent: ["camp"],
   tent_ceiling: ["camp"],
-  beach_parasol: ["resort"],
-  beach_parasol_item: ["resort"],
-  parasol_ceiling: ["resort"],
   tent_flap: ["camp"],
   tent_item: ["camp"],
   tent_lantern: ["camp"],
