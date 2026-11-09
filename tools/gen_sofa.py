@@ -18,17 +18,17 @@ ATLAS_SIZE = 1024
 # The photo's strands are orange and the gaps between them stay warm and light, so all four colors of
 # the shared amber palette are replaced (strand, light, dark, gap); only the weave geometry is inherited.
 SOFA_WEAVE = dataclasses.replace(
-    wicker.PALETTE_BLACK, columns=4, strand=(206, 150, 88), light=(226, 172, 110),
-    dark=(178, 122, 70), gap=(150, 102, 58))
-TEXELS_PER_PIXEL = 16
+    wicker.PALETTE_BLACK, columns=4, strand=(190, 136, 86), light=(208, 156, 102),
+    dark=(160, 110, 68), gap=(126, 86, 52))
+TEXELS_PER_PIXEL = 32
 SEAT_TOP = 7.8
 SEAT_POSITION = (0, SEAT_TOP / 16 - 0.24, -0.1)
-FOOT = 1.0
-ARM = 3.0
+FOOT = 0.7
+ARM = 2.3
 Z0, Z1 = -6.6, 6.6
 RAIL_TOP = 4.4
 ARM_TOP = 11.8
-BACK_TOP = 10.6
+WALL = ARM
 PALETTE = {
     "beige": (222, 190, 160, 255),
     "piping": (204, 170, 140, 255),
@@ -66,7 +66,8 @@ def build_frame(width_cells):
         box((-h, FOOT, Z0), (ARM, ARM_TOP - FOOT, depth), "wicker"),
         box((h - ARM, FOOT, Z0), (ARM, ARM_TOP - FOOT, depth), "wicker"),
         box((-h + ARM, FOOT, Z0), (2*h - 2*ARM, RAIL_TOP - FOOT, depth), "wicker"),
-        box((-h + ARM, RAIL_TOP, Z1 - 2.2), (2*h - 2*ARM, BACK_TOP - RAIL_TOP, 2.2), "wicker"),
+        # Rear wall between the arms, as tall as the arms: the back cushion stands against it.
+        box((-h + ARM, RAIL_TOP, Z1 - WALL), (2*h - 2*ARM, ARM_TOP - RAIL_TOP, WALL), "wicker"),
     ]
 
 
@@ -92,9 +93,12 @@ def build_cushions(width_cells, throw_cushions=0):
         x = -h + ARM + 0.05 + i * inner / width_cells
         w = inner / width_cells - 0.1
         # The seat sits in the opening and overhangs the front rail like the photo's thick cushion.
-        parts += pillow((x, RAIL_TOP - 0.2, Z0 - 0.6), (w, SEAT_TOP - RAIL_TOP + 0.2, 11.4), edge=0.9)
-        back = pillow((x, SEAT_TOP - 1.0, 0.8), (w, 6.0, 4.4), edge=1.0)
-        parts += tilt.tilt_assembly(back, (0, SEAT_TOP - 1.0, 0.8), "x", -12)
+        # One thick pad resting on the straight front band, its front nearly flush with the frame.
+        parts += pillow((x, RAIL_TOP, Z0 - 0.3), (w, SEAT_TOP - RAIL_TOP, Z1 - WALL - Z0 + 0.3), edge=0.5)
+        # A plump pad filling the width, leaning against the rear wall and rising above it.
+        back_z = Z1 - WALL - 3.5
+        back = pillow((x, SEAT_TOP - 0.4, back_z), (w, 4.9, 3.5), edge=0.9)
+        parts += tilt.tilt_assembly(back, (0, SEAT_TOP - 0.4, back_z), "x", -8)
     # The single sofa has no throw cushion; the double sofa keeps its two.
     throws = []
     for k in range(throw_cushions):
