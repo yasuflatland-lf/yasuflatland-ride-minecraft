@@ -11,7 +11,7 @@
 
 The owner wants the photographed teak lounger beside the Beach Parasol. One item must serve as a reclining chair and a low table. The reference photos remain outside the repository. The design document in the main checkout is `docs/designs/2026-11-09-beach-chair-design.md`.
 
-Issue #1444 supplied the assets. Scripted placement, recovery, the chair menu, and form switching are now implemented. Player poses (#1448) and lantern and oven hosting (#1449) remain pending. The player definition override and its compatibility with vanilla animations still require a separate implementation and verification.
+Issue #1444 supplied the assets. Scripted placement, recovery, the chair menu, form switching, and lying down (#1448) are now implemented. Lantern and oven hosting (#1449) remains pending. The player definition override and its compatibility with vanilla animations still require a separate implementation and verification.
 
 ## Decision
 
