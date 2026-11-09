@@ -19,6 +19,7 @@ import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
+import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -61,7 +62,9 @@ function setup() {
     drain,
     choose: new ChooseBoxStep(repo, actions, feedback),
     confirm: new ConfirmBoxStep(repo, actions, feedback),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
+      warn: () => {},
+    }),
   };
 }
 
@@ -179,7 +182,7 @@ it("skips kept and protected cells and records only changes", () => {
     AIR,
   ]);
   expect(e.world.writes).toBe(1);
-  const record = e.session.takeUndo();
+  const record = undoRecord(e.session.takeUndo());
   expect(record).toEqual({
     dimensionId: overworld,
     changes: [{ cell: { ...origin, x: 3 }, before: stone, after: AIR }],

@@ -55,7 +55,9 @@ function setup() {
       feedback,
     ),
     paste: new PasteAt(repo, world, feedback, jobs),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
+      warn: () => {},
+    }),
   };
 }
 

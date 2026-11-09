@@ -8,6 +8,7 @@ import type {
 } from "../../../src/domain/build/edit/change";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
+import { undoRecord } from "../../support/undoRecord";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -96,10 +97,10 @@ describe("EditJobs failure isolation", () => {
             { message: "editDoneCount", count: length },
           ]);
           expect(e.feedback.undoHints).toEqual([]);
-          expect(session.takeUndo()).toEqual(
+          expect(undoRecord(session.takeUndo())).toEqual(
             hasHistory ? earlier : "nothingToUndo",
           );
-          expect(session.takeUndo()).toBe("nothingToUndo");
+          expect(undoRecord(session.takeUndo())).toBe("nothingToUndo");
           e.start(alex, plan(1, 1));
           e.jobs.step();
           expect(e.feedback.undoHints).toEqual([alex]);
@@ -128,11 +129,11 @@ describe("EditJobs failure isolation", () => {
           expect(finish).toHaveBeenCalledTimes(1);
           expect(feedback).toHaveBeenCalledTimes(1);
           expect(e.world.writes).toBe(length);
-          expect(session.takeUndo()).toEqual({
+          expect(undoRecord(session.takeUndo())).toEqual({
             dimensionId: overworld,
             changes: plan(length).map((change) => ({ ...change, before: AIR })),
           });
-          expect(session.takeUndo()).toBe("nothingToUndo");
+          expect(undoRecord(session.takeUndo())).toBe("nothingToUndo");
           expect(e.log.warn).toHaveBeenCalledExactlyOnceWith(
             `build edit feedback for ${alex} failed: Error: feedback unavailable`,
           );
@@ -190,14 +191,14 @@ describe("EditJobs failure isolation", () => {
           const b = e.start(blake, plan(BUILD_SPEC.blocksPerTick + 1, 1));
           e.jobs.step();
           expect(a.isEditing).toBe(false);
-          expect(a.takeUndo()).toEqual({
+          expect(undoRecord(a.takeUndo())).toEqual({
             dimensionId: overworld,
             changes: changes.slice(0, applied).map((change) => ({
               ...change,
               before: AIR,
             })),
           });
-          expect(a.takeUndo()).toBe("nothingToUndo");
+          expect(undoRecord(a.takeUndo())).toBe("nothingToUndo");
           expect(b.isEditing).toBe(true);
           expect(e.world.writes).toBe(applied + BUILD_SPEC.blocksPerTick);
           expect(e.log.warn).toHaveBeenCalledExactlyOnceWith(
@@ -253,10 +254,10 @@ describe("EditJobs failure isolation", () => {
     expect(finish).toHaveBeenCalledTimes(1);
     expect(a.isEditing).toBe(false);
     expect(b.isEditing).toBe(false);
-    expect(a.takeUndo()).toMatchObject({
+    expect(undoRecord(a.takeUndo())).toMatchObject({
       changes: [{ before: AIR, after: stone }],
     });
-    expect(a.takeUndo()).toBe("nothingToUndo");
+    expect(undoRecord(a.takeUndo())).toBe("nothingToUndo");
     expect(e.log.warn).toHaveBeenCalledExactlyOnceWith(
       `build edit job for ${alex} failed: Error: history unavailable`,
     );

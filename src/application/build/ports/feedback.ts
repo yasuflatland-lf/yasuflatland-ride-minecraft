@@ -21,6 +21,7 @@ export type BuildMessage =
   | "copied"
   | "editDone"
   | "editDoneCount"
+  | "undoFailed"
   | "undoDone"
   | "undoDonePartial";
 

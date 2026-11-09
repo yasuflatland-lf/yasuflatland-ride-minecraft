@@ -29,6 +29,7 @@ export const BUILD_MESSAGE: Readonly<
   copied: "yasu_build.message.copied",
   editDone: "yasu_build.message.edit_done",
   editDoneCount: "yasu_build.message.edit_done_count",
+  undoFailed: "yasu_build.message.undo_failed",
   undoDone: "yasu_build.message.undo_done",
   undoDonePartial: "yasu_build.message.undo_done_partial",
   undoHint: "yasu_build.message.undo_hint",

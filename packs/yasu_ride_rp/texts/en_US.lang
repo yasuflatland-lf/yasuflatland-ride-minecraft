@@ -125,6 +125,7 @@ yasu_build.message.edit_done=Changed %s blocks. Long-press the air to undo.
 yasu_build.message.edit_done_count=Changed %s blocks.
 yasu_build.message.undo_hint=Made a mistake? Long-press the air with the wand and choose Undo.
 yasu_build.message.undo_done=Restored %s blocks.
+yasu_build.message.undo_failed=Undo failed; the area could not be restored.
 yasu_build.message.undo_done_partial=Restored %s blocks; skipped %s blocks.
 yasu_build.form.title=Build utilities
 yasu_build.form.fill=Fill

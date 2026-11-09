@@ -19,6 +19,7 @@ import {
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
+import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
   FakeAimReader,
@@ -28,6 +29,7 @@ import {
   FakeWorld,
   nether,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
@@ -122,11 +124,11 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
             }),
           ).toEqual(stone);
         }
-        expect(e.session.takeUndo()).toMatchObject({
+        expect(undoRecord(e.session.takeUndo())).toMatchObject({
           dimensionId: nether,
           changes: expect.any(Array),
         });
-        expect(e.session.takeUndo()).toBe("nothingToUndo");
+        expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
       },
     ),
   );
@@ -235,7 +237,14 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         ).toBe("ignored");
         expect(e.session.flow).toBe(flow);
         expect(e.start).toHaveBeenCalledTimes(1);
-        new UndoEdit(e.repo, e.feedback, e.jobs).execute({ playerId });
+        new UndoEdit(
+          e.repo,
+          e.feedback,
+          e.jobs,
+          e.world,
+          new FakeStructureStore(),
+          { warn: () => {} },
+        ).execute({ playerId });
         expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir });
         expect(e.session.clipboard).toBe(e.clipboard);
         e.jobs.step();
@@ -244,8 +253,10 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         expect(e.execute()).toBe("pasted");
         e.jobs.step();
         expect(e.start).toHaveBeenCalledTimes(3);
-        expect(e.session.takeUndo()).toMatchObject({ dimensionId: nether });
-        expect(e.session.takeUndo()).toBe("nothingToUndo");
+        expect(undoRecord(e.session.takeUndo())).toMatchObject({
+          dimensionId: nether,
+        });
+        expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
       },
     ),
   );
