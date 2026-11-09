@@ -2,6 +2,9 @@ import { id } from "../shared/identifiers";
 
 export const BEACH_PARASOL = id("beach_parasol");
 export const BEACH_PARASOL_ITEM = id("beach_parasol_item");
+export const BEACH_PARASOL_STARTER_RECEIVED_PROPERTY = id(
+  "beach_parasol_starter_received",
+);
 export const PARASOL_CEILING_BLOCK = id("parasol_ceiling");
 export const PARASOL_CEILING_PROPERTY = id("parasol_ceiling");
 
