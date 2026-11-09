@@ -135,7 +135,15 @@ describe.each(PACKS)("$folder pack layout and identifiers", (pack) => {
 
   it("namespaces every definition identifier", () => {
     const offenders = collectDefinitions().filter(
-      ({ identifier, dotted, namespace }) => {
+      ({ identifier, dotted, namespace, kind, path }) => {
+        // ADR 0237 preserves the vanilla identifier for this one player override.
+        if (
+          pack.folder === "yasu_ride_rp" &&
+          path === "entity/yasu_ride/player.ce.json" &&
+          kind === "minecraft:client_entity" &&
+          identifier === "minecraft:player"
+        )
+          return false;
         if (!dotted) return !identifier.startsWith(`${namespace}:`);
         const segments = identifier.split(".");
         const namespaceIndex = identifier.startsWith("controller.") ? 2 : 1;
