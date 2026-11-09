@@ -78,6 +78,20 @@
         "minecraft:physics": {
           "has_collision": false,
           "has_gravity": false
+        },
+        "minecraft:custom_hit_test": {
+          "hitboxes": [
+            {
+              "width": 0.75,
+              "height": 0.4375,
+              "pivot": [0, 0.21875, -0.078125]
+            },
+            {
+              "width": 0.75,
+              "height": 0.4375,
+              "pivot": [0, 0.21875, 0.078125]
+            }
+          ]
         }
       }
     },

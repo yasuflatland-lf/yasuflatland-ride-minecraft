@@ -399,6 +399,7 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
 it("keeps the folded entity fixed at its pose", () => {
   expect(entity.component_groups["yasu_ride:beach_chair_table"]).toEqual({
     "minecraft:physics": { has_collision: false, has_gravity: false },
+    "minecraft:custom_hit_test": expect.anything(),
   });
   expect(entity.events["yasu_ride:beach_chair_fold"]).toEqual({
     add: { component_groups: ["yasu_ride:beach_chair_table"] },
@@ -406,4 +407,35 @@ it("keeps the folded entity fixed at its pose", () => {
   expect(entity.events["yasu_ride:beach_chair_unfold"]).toEqual({
     remove: { component_groups: ["yasu_ride:beach_chair_table"] },
   });
+});
+
+it("shrinks the folded hit boxes to the table so hosted items above its top stay reachable", () => {
+  const boxes =
+    entity.component_groups["yasu_ride:beach_chair_table"][
+      "minecraft:custom_hit_test"
+    ].hitboxes;
+  const top = BEACH_CHAIR_SPEC.topPx / 16;
+  const halfX = BEACH_CHAIR_SPEC.topHalf.halfX / 16;
+  const halfZ = BEACH_CHAIR_SPEC.topHalf.halfZ / 16;
+  const bounds = (b: {
+    width: number;
+    height: number;
+    pivot: [number, number, number];
+  }) => ({
+    minX: b.pivot[0] - b.width / 2,
+    maxX: b.pivot[0] + b.width / 2,
+    minY: b.pivot[1] - b.height / 2,
+    maxY: b.pivot[1] + b.height / 2,
+    minZ: b.pivot[2] - b.width / 2,
+    maxZ: b.pivot[2] + b.width / 2,
+  });
+  const all: ReturnType<typeof bounds>[] = boxes.map(bounds);
+  for (const b of all) {
+    expect(b.minY).toBeCloseTo(0);
+    expect(b.maxY).toBeCloseTo(top);
+    expect(b.minX).toBeCloseTo(-halfX);
+    expect(b.maxX).toBeCloseTo(halfX);
+  }
+  expect(Math.min(...all.map((b) => b.minZ))).toBeCloseTo(-halfZ);
+  expect(Math.max(...all.map((b) => b.maxZ))).toBeCloseTo(halfZ);
 });
