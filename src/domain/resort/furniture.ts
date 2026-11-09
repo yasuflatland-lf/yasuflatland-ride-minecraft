@@ -4,10 +4,7 @@ import type { TopSurface } from "../shared/tableTop";
 import { forward, localOffset, type Vec2, type Vec3 } from "../shared/vec";
 
 export type FurnitureKind =
-  | "dining_table"
-  | "dining_chair"
-  | "sofa_single"
-  | "sofa_double";
+  "dining_table" | "dining_chair" | "sofa_single" | "sofa_double";
 
 /** A cell relative to the pressed column, seen by the placing player: `ahead` is away from them, `left` to their left. */
 export interface CellOffset {
@@ -34,7 +31,7 @@ export interface FurnitureSpec {
   readonly top?: TopSurface;
 }
 
-// Sofa (Single) is finalized against its model; remaining pieces settle their initial values in their asset issues (ADR 0240).
+// Both sofas are finalized against their models; remaining pieces settle their initial values in their asset issues (ADR 0240).
 export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
   Object.freeze({
     dining_table: Object.freeze({
@@ -71,8 +68,8 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       ]),
       clearance: 2,
       seats: Object.freeze([
-        Object.freeze({ x: -0.5, y: 0.4, z: 0.05 }),
-        Object.freeze({ x: 0.5, y: 0.4, z: 0.05 }),
+        Object.freeze({ x: -0.5, y: 0.16, z: -0.1 }),
+        Object.freeze({ x: 0.5, y: 0.16, z: -0.1 }),
       ]),
       hitsToTakeBack: 3,
       hitResetTicks: 100,

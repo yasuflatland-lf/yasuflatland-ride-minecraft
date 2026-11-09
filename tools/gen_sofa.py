@@ -4,6 +4,7 @@ Units are model pixels, sixteen per cell; the front is -z. The shared
 components also build the later two-cell sofa without stretching the weave.
 """
 import argparse
+import copy
 import dataclasses
 import sys
 from pathlib import Path
@@ -29,7 +30,8 @@ PALETTE = {
     "metal": (196, 200, 201, 255),
     "metal_dark": (142, 148, 150, 255),
 }
-ASSEMBLIES = {"throw_cushion": {"owner": "sofa", "cubes": 3}}
+ASSEMBLIES = {"throw_cushion": {"owner": "sofa", "cubes": 3},
+              "throw_cushion_right": {"owner": "sofa", "cubes": 3}}
 
 
 def half_width(width_cells):
@@ -76,12 +78,15 @@ def pillow(origin, size):
 def build_cushions(width_cells):
     h = half_width(width_cells)
     parts = []
-    # Separate seat and back pads preserve the reference's proportions at both widths.
+    # The double reference has one continuous seat below two separate back cushions.
     inner = 2*h - 4.8
+    if width_cells == 2:
+        parts += pillow((-h + 2.45, 4, -7.2), (inner - 0.1, SEAT_TOP-4, 12.5))
     for i in range(width_cells):
         x = -h + 2.45 + i * inner / width_cells
         w = inner / width_cells - 0.1
-        parts += pillow((x, 4, -7.2), (w, SEAT_TOP-4, 12.5))
+        if width_cells == 1:
+            parts += pillow((x, 4, -7.2), (w, SEAT_TOP-4, 12.5))
         back = pillow((x, 6.2, 3.4), (w, 5.8, 2.1))
         parts += tilt.tilt_assembly(back, (0, 6.2, 3.4), "x", -12)
     # A square pad rests against the left arm, tilted sideways and back together.
@@ -93,7 +98,17 @@ def build_cushions(width_cells):
     throw = tilt.tilt_assembly(throw, pivot, "x", -15,
                                assembly="throw_cushion", assemblies=ASSEMBLIES)
     parts += throw
-    tilt.assert_axes(parts, {"throw_cushion": throw}, ASSEMBLIES)
+    assemblies = {"throw_cushion": throw}
+    if width_cells == 2:
+        mirrored = copy.deepcopy(throw)
+        for cube in mirrored:
+            cube["origin"][0] = -cube["origin"][0] - cube["size"][0]
+            cube["pivot"][0] *= -1
+            cube["rotation"][1] *= -1
+            cube["rotation"][2] *= -1
+        parts += mirrored
+        assemblies["throw_cushion_right"] = mirrored
+    tilt.assert_axes(parts, assemblies, {name: ASSEMBLIES[name] for name in assemblies})
     return parts
 
 
@@ -144,6 +159,8 @@ def main():
     out = texture_io.Outputs(args.check, report_writes=True)
     out.json(args.resource_pack / "models/entity/yasu_ride/sofa_single.geo.json", geometry())
     out.png(args.resource_pack / "textures/entity/yasu_ride/sofa_single.png", ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
+    out.json(args.resource_pack / "models/entity/yasu_ride/sofa_double.geo.json", geometry(2))
+    out.png(args.resource_pack / "textures/entity/yasu_ride/sofa_double.png", ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
     out.finish("Sofa assets are stale; run pnpm model.", "sofa model and texture are up to date")
 
 

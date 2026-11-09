@@ -683,3 +683,12 @@ Run these checks on both PC and mobile, with a second player observing. ADR 0238
 | SS2 | Sit with an empty hand using right-click on PC or the Sit interaction on mobile; check first and third person, then dismount in open space and beside a wall | One player sits on the beige cushion without sinking or hovering; vanilla dismount leaves the player outside the frame and wall                         | unverified | unverified |
 | SS3 | Have another player hit the occupied sofa; dismount and hit three times within five seconds                                                                  | Occupied recovery is refused; after dismount the third hit returns exactly one item                                                                     | unverified | unverified |
 | SS4 | Compare the model with the issue's whole-sofa, top-down and weave photos                                                                                     | Amber woven box frame, thick arms, low back, base rail, beige seat and back cushions, one tilted square left cushion, small silver corner feet; no logo | unverified | unverified |
+
+## Sofa (Double)
+
+| #   | Steps | Pass condition | PC | Mobile |
+| --- | ----- | -------------- | -- | ------ |
+| SD1 | Craft `PWP / WWW / SSS` from planks P, wool W and sticks S; place at each heading, including with one of the two support blocks removed | One Sofa (Double) covers the pressed cell and the cell to the player's right; Survival consumes one item; an unsupported half or blocked clearance refuses placement | unverified | unverified |
+| SD2 | Have two players sit, one on each cushion half, then dismount | Each player takes a seat on their own half; both dismount in open space | unverified | unverified |
+| SD3 | Hit the empty sofa three times within five seconds, once on each half | Hits on either half count toward recovery; the item returns after the third | unverified | unverified |
+| SD4 | Compare the model with the whole double-sofa photo | One continuous seat cushion, two long back cushions, two angled square cushions, thick arms, small metal feet | unverified | unverified |
