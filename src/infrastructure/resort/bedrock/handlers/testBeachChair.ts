@@ -23,7 +23,6 @@ import {
   TEST_BEACH_CHAIR_FORM,
   TEST_BEACH_CHAIR_HIT,
   TEST_BEACH_CHAIR_PLACE,
-  TEST_BEACH_CHAIR_TOP_BLOCK,
 } from "../../identifiers";
 import { BedrockBeachChairWorld } from "../bedrockBeachChairWorld";
 
@@ -87,25 +86,6 @@ export function registerTestBeachChair(
           yaw,
           slot: 0,
         });
-      } else if (ev.id === TEST_BEACH_CHAIR_TOP_BLOCK) {
-        const parts = ev.message.trim().split(/\s+/).map(Number);
-        const [x, y, z] = parts;
-        if (
-          parts.length !== 3 ||
-          x === undefined ||
-          y === undefined ||
-          z === undefined ||
-          !parts.every(Number.isSafeInteger)
-        )
-          return;
-        const cell = { x, y, z };
-        const dimension = asDimensionId("minecraft:overworld");
-        // Exercise the same pre-placement guard without a connected player (ADR 0010).
-        if (!adapter.hostedItemBlocksPlacement(dimension, cell))
-          world
-            .getDimension(dimension)
-            .getBlock(cell)
-            ?.setType("minecraft:stone");
       } else if (ev.id === TEST_BEACH_CHAIR_FORM) {
         const [operation, rawId] = ev.message.trim().split(/\s+/);
         if (!rawId || (operation !== "fold" && operation !== "unfold")) return;

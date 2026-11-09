@@ -121,7 +121,6 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
           dimension: asDimensionId(host.entity.dimension.id),
           at: host.entity.location,
           yaw: host.entity.getRotation().y,
-          blockedAt: host.type.blockedAt?.bind(undefined, host.entity),
         }
       : undefined;
   }

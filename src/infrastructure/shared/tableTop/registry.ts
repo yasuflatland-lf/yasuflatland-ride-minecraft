@@ -1,4 +1,4 @@
-import { type Entity, type Player, world } from "@minecraft/server";
+import { type Entity, world } from "@minecraft/server";
 import type { TopRefusal } from "../../../application/shared/placeOnTop";
 import type { HostedKindId } from "../../../application/shared/ports/hostedItem";
 import { decodeHost } from "../../../domain/shared/hosted";
@@ -14,11 +14,6 @@ export interface TopHostType {
   readonly entityTypeId: string;
   readonly surface: TopSurface;
   readonly isTopNow: (entity: Entity) => boolean;
-  readonly blockedAt?: (
-    entity: Entity,
-    at: LocalPoint,
-    footprint: TopRect,
-  ) => boolean;
   readonly refusalHints: Readonly<Record<TopRefusal, string>>;
   /** Saved fixed-spot markers predate free placement (ADR 0185). */
   readonly legacySpot?: (spot: number) => LocalPoint | undefined;
@@ -30,8 +25,6 @@ export interface HostedEntityKind {
   readonly hostProperty: string;
   readonly footprint: TopRect;
 }
-
-export type PlaceHostedOnTop = (player: Player, host: Entity) => boolean;
 
 export class TopHostRegistry {
   private readonly hosts = new Map<string, TopHostType>();

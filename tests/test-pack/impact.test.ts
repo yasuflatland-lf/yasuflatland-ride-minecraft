@@ -335,7 +335,6 @@ describe("selectionOf", () => {
     ).toEqual([
       "beach_chair_lantern",
       "beach_chair_oven",
-      "beach_chair_top_overlap",
       "beach_chair_fold",
       "beach_chair_place",
       "beach_chair_take_back",

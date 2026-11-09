@@ -4,7 +4,6 @@ import {
   DUTCH_OVEN_FOOTPRINT_PX,
   GAS_LANTERN_FOOTPRINT_PX,
 } from "../../../src/domain/camp/spec";
-import { placeOnTop, type TopItem } from "../../../src/domain/camp/tabletop";
 import {
   type BeachChairPose,
   beachChairCells,
@@ -22,6 +21,7 @@ import {
 } from "../../../src/domain/resort/beachChair";
 import { asBeachChairId } from "../../../src/domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
+import { placeOnTop, type TopItem } from "../../../src/domain/shared/tableTop";
 import { forward } from "../../../src/domain/shared/vec";
 
 const cellArb = fc.record({

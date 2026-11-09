@@ -36,15 +36,6 @@ export const CATALOG: readonly ScenarioSpec[] = [
     needsPlayer: false,
     vehicles: 0,
   },
-  {
-    name: "beach_chair_top_overlap",
-    file: "beachChairHosting",
-    ticks: 52, // Estimate until the first BDS run.
-    features: ["resort", "camp"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 0,
-  },
 
   {
     name: "beach_chair_fold",

@@ -6,7 +6,6 @@ import {
   beachChairOrigin,
   beachChairPose,
   beachChairSupportCells,
-  tableBlockCells,
 } from "../../domain/resort/beachChair";
 import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
 import {
@@ -15,7 +14,6 @@ import {
   TEST_BEACH_CHAIR_FORM,
   TEST_BEACH_CHAIR_HIT,
   TEST_BEACH_CHAIR_PLACE,
-  TEST_BEACH_CHAIR_TOP_BLOCK,
 } from "../../infrastructure/resort/identifiers";
 import { id } from "../../infrastructure/shared/identifiers";
 import { type Arena, wait } from "../arena";
@@ -24,12 +22,10 @@ import type { Outcome } from "../outcome";
 async function course(
   a: Arena,
   kind: "gas_lantern" | "dutch_oven",
-  overlap = false,
 ): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);
   const pose = beachChairPose(block, 0);
   const origin = beachChairOrigin(pose);
-  const cells = tableBlockCells(pose);
   const saved = [
     ...beachChairSupportCells(pose),
     ...beachChairClearCells(pose),
@@ -40,10 +36,10 @@ async function course(
   const items = () => near(id(kind));
   const failures: string[] = [];
   let chairId = "";
-  const place = async (z = -8) => {
+  const place = async () => {
     system.sendScriptEvent(
       id(`test_${kind}_on_top`),
-      `beach_chair ${chairId} 0 ${z}`,
+      `beach_chair ${chairId} 0 0`,
     );
     await wait(2);
   };
@@ -67,54 +63,27 @@ async function course(
     await place();
     if (items().length) failures.push("chair form accepted hosted item");
     await form("fold");
-    if (overlap) {
-      // A centered footprint spans both tabletop cells, even though its centre lies in only one.
-      for (const cell of cells) {
-        const above = { ...cell, y: cell.y + 1 };
-        a.dim.getBlock(above)?.setType("minecraft:stone");
-        await place(0);
-        if (items().length) failures.push("block overlapped hosted footprint");
-        a.dim.getBlock(above)?.setType("minecraft:air");
-      }
-    }
+    if (chair.getProperty(BEACH_CHAIR_FOLDED) !== true)
+      failures.push("chair did not fold");
     await place();
     const item = items()[0];
     if (
+      items().length !== 1 ||
       !item ||
-      Math.abs(item.location.y - origin.y - BEACH_CHAIR_SPEC.topPx / 16) > 0.01
+      Math.abs(
+        item.location.y - chair.location.y - BEACH_CHAIR_SPEC.topPx / 16,
+      ) > 0.01
     )
       failures.push("item not on tabletop");
     const lightCells =
       item && kind === "gas_lantern"
         ? gasLanternLightCells(true, item.location)
         : [];
-    if (overlap) {
-      for (const cell of cells) {
-        const above = { ...cell, y: cell.y + 1 };
-        system.sendScriptEvent(
-          TEST_BEACH_CHAIR_TOP_BLOCK,
-          `${above.x} ${above.y} ${above.z}`,
-        );
-        await wait(2);
-        // The chair faces the player, so local -z lands in the cell on +z.
-        const occupied =
-          item !== undefined &&
-          Math.floor(item.location.x) === cell.x &&
-          Math.floor(item.location.z) === cell.z;
-        if ((a.dim.getBlock(above)?.typeId === "minecraft:stone") === occupied)
-          failures.push("block placement ignored hosted footprint");
-        if (!occupied) a.dim.getBlock(above)?.setType("minecraft:air");
-      }
-    }
     if (kind === "gas_lantern" && item) {
       system.sendScriptEvent(id("test_gas_lantern"), item.id);
       await wait(2);
       if (lightCells.some((cell) => a.dim.getBlock(cell)?.isAir !== false))
         failures.push("hosted lantern did not light");
-    }
-    if (overlap) {
-      await place();
-      if (items().length !== 1) failures.push("hosted items overlapped");
     }
     await form("unfold");
     if (chair.getProperty(BEACH_CHAIR_FOLDED) !== true)
@@ -149,7 +118,4 @@ export function beachChairLantern(a: Arena): Promise<Outcome> {
 }
 export function beachChairOven(a: Arena): Promise<Outcome> {
   return course(a, "dutch_oven");
-}
-export function beachChairTopOverlap(a: Arena): Promise<Outcome> {
-  return course(a, "gas_lantern", true);
 }
