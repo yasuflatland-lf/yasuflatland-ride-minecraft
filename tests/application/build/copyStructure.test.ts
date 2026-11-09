@@ -87,7 +87,7 @@ it("keeps the old structure live during New copy and discards it only after succ
           new FakeBuildPlayers(),
         );
         expect(
-          new CutBox(e.repo, world, e.feedback, jobs, e.structures).execute(
+          new CutBox(e.repo, world, e.structures, e.feedback, { warn: () => {} }).execute(
             playerId,
             overworld,
             box,
@@ -253,7 +253,7 @@ it.each(["absent", "structure", "cells"] as const)(
             { warn: () => {} },
             new FakeBuildPlayers(),
           );
-          const cut = new CutBox(e.repo, world, e.feedback, jobs, e.structures);
+          const cut = new CutBox(e.repo, world, e.structures, e.feedback, { warn: () => {} });
           const captured = new Set<StructureHandle>();
           const discarded = new Set<StructureHandle>();
           let expectedClipboard: Clipboard | undefined;

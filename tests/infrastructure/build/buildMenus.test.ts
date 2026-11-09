@@ -8,7 +8,6 @@ import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCyl
 import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
-import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
@@ -34,13 +33,12 @@ import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/bui
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import {
-  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
   overworld,
 } from "../../application/build/fakes";
-import { FakeStructureStore } from "./../../application/build/fakes/structureStore";
+import { FakeStructureStore } from "../../application/build/fakes/structureStore";
 import { holdClipboard } from "../../support/buildClipboard";
 
 type Answer = {
@@ -134,17 +132,9 @@ function setup(fallback?: boolean) {
             cut: new CutBox(
               repo,
               new FakeWorld(),
-              new FakeFeedback(),
-              new EditJobs(
-                repo,
-                new FakeWorld(),
-                new FakeFeedback(),
-                {
-                  warn: () => {},
-                },
-                new FakeBuildPlayers(),
-              ),
               new FakeStructureStore(),
+              new FakeFeedback(),
+              { warn: () => {} },
             ),
           },
           new FakeFeedback(),

@@ -5,7 +5,6 @@ import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
-import { EditJobs } from "../../../src/application/build/editJobs";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -18,13 +17,7 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import {
-  FakeBuildPlayers,
-  FakeFeedback,
-  FakeSessions,
-  FakeWorld,
-  overworld,
-} from "./fakes";
+import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("builder");
@@ -49,19 +42,9 @@ function setup(from: { x: number; y: number; z: number }) {
     repo,
     {
       copy: new CopyBox(repo, new FakeStructureStore(), feedback),
-      cut: new CutBox(
-        repo,
-        world,
-        feedback,
-        new EditJobs(
-          repo,
-          world,
-          feedback,
-          { warn: () => {} },
-          new FakeBuildPlayers(),
-        ),
-        new FakeStructureStore(),
-      ),
+      cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
+        warn: () => {},
+      }),
     },
     feedback,
   );

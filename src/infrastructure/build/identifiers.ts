@@ -9,7 +9,8 @@ export const LAID_BLOCK_TAG = "yasu_ride:laid";
 export const BUILD_MESSAGE: Readonly<
   Record<BuildMessage | "heightSize" | "pasteHint" | "undoHint", string>
 > = {
-  cutting: "yasu_build.message.cutting",
+  cutRestored: "yasu_build.message.cut_restored",
+  cutIncomplete: "yasu_build.message.cut_incomplete",
   removing: "yasu_build.message.removing",
   building: "yasu_build.message.building",
   pasteHint: "yasu_build.message.paste_hint",

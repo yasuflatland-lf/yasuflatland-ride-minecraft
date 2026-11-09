@@ -4,7 +4,8 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type BuildMessage =
   | "building"
-  | "cutting"
+  | "cutRestored"
+  | "cutIncomplete"
   | "removing"
   | "pointSet"
   | "endSet"

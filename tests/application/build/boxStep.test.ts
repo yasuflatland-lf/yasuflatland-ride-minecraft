@@ -49,19 +49,9 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const actions = {
     copy: new CopyBox(repo, new FakeStructureStore(), feedback),
-    cut: new CutBox(
-      repo,
-      world,
-      feedback,
-      new EditJobs(
-        repo,
-        world,
-        feedback,
-        { warn: () => {} },
-        new FakeBuildPlayers(),
-      ),
-      new FakeStructureStore(),
-    ),
+    cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
+      warn: () => {},
+    }),
   };
   return {
     repo,
