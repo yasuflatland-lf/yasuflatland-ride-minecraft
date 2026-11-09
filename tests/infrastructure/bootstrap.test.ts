@@ -16,6 +16,7 @@ vi.mock("@minecraft/server-ui", () => ({
   ActionFormData: vi.fn(),
 }));
 
+const isFleetEntityType = vi.fn(() => false);
 const vehicleHost = () => ({ status: "unknown" as const });
 
 const game = vi.hoisted(() => {
@@ -76,7 +77,7 @@ it("wires space both ways through a late-bound camp reference (ADR 0129)", () =>
   const isCampSpace = vi.fn<SpaceCheck>();
   vi.mocked(installVehicles).mockImplementation((deps) => {
     expect(deps.isCampSpace(dim, at)).toBe(false);
-    return { isVehicleSpace, vehicleHost };
+    return { isVehicleSpace, vehicleHost, isFleetEntityType };
   });
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace,
@@ -109,6 +110,7 @@ it("lets the vehicles see a registered tent, and the chair stand on its floor bu
   vi.mocked(installVehicles).mockReturnValue({
     isVehicleSpace: () => false,
     vehicleHost,
+    isFleetEntityType,
   });
   game.getDynamicProperty.mockReturnValue(
     JSON.stringify([
@@ -154,7 +156,7 @@ it("hands the vehicles the camp's switch targets once camp is installed", () => 
   let before: readonly SwitchTarget[] | undefined;
   vi.mocked(installVehicles).mockImplementation((deps) => {
     before = deps.laterSwitchTargets();
-    return { isVehicleSpace: () => false, vehicleHost };
+    return { isVehicleSpace: () => false, vehicleHost, isFleetEntityType };
   });
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace: () => false,
@@ -174,7 +176,7 @@ it("installs build last and passes both space checks without requesting a camera
   const playerId = asPlayerId("builder");
   vi.mocked(installVehicles).mockImplementation((deps) => {
     expect(deps.wantsChaseCamera(playerId)).toBe(false);
-    return { isVehicleSpace, vehicleHost };
+    return { isVehicleSpace, vehicleHost, isFleetEntityType };
   });
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace,
@@ -182,6 +184,9 @@ it("installs build last and passes both space checks without requesting a camera
   });
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(installBuild).mock.lastCall?.[0].isFleetEntityType).toBe(
+    isFleetEntityType,
+  );
   expect(installResort).toHaveBeenCalledExactlyOnceWith({
     topHosts: vi.mocked(installCamp).mock.lastCall?.[0].topHosts,
     isVehicleSpace,

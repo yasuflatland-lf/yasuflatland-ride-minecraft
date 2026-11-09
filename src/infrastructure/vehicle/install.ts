@@ -42,6 +42,7 @@ import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "./bedrock/entityIndex";
 import { registerCutDrops } from "./bedrock/handlers/cutDrops";
 import { registerDockGuard } from "./bedrock/handlers/dockGuard";
+import { isFleetEntityType } from "./bedrock/identifiers";
 import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
 import { DockBlocks } from "./kinds/camper/dockBlocks";
@@ -65,6 +66,7 @@ export function installVehicles(deps: {
 }): {
   isVehicleSpace: SpaceCheck;
   vehicleHost: VehicleHostLookup;
+  isFleetEntityType: (typeId: string) => boolean;
 } {
   const repo = new InMemoryVehicleRepository();
   const testInputs = new VehicleTestStore<RawInput>();
@@ -147,6 +149,7 @@ export function installVehicles(deps: {
   );
   registerCutDrops((entity) => bedrock.sweepCutDrop(entity));
   return {
+    isFleetEntityType,
     vehicleHost: (vehicleId) => bedrock.hostState(vehicleId),
     isVehicleSpace: (dimensionId, cell) =>
       bedrock.isVehicleSpace(dimensionId, cell),

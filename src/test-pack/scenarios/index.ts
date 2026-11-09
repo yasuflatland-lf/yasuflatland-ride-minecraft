@@ -52,6 +52,8 @@ import {
   buildUnstuckFill,
   buildUnstuckNotTouched,
 } from "./buildFlow";
+import { buildStructureProbe } from "./buildStructure";
+import { buildStructureStore } from "./buildStructureStore";
 import { buildBlockStates } from "./buildTools";
 import {
   bulldozerClearHill,
@@ -326,6 +328,8 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_remove_above_cancel: buildRemoveAboveCancel,
   build_undo_hint_once: buildUndoHintOnce,
   build_shapes: buildShapes,
+  build_structure_probe: buildStructureProbe,
+  build_structure_store: buildStructureStore,
   build_roofs: buildRoofs,
   build_flow_cancel: buildFlowCancel,
   build_refusals: buildRefusals,

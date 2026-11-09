@@ -19,6 +19,25 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "build_structure_store",
+    file: "buildStructureStore",
+    ticks: 20, // Estimate until the first BDS run.
+    features: ["build"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "build_structure_probe",
+    file: "buildStructure",
+    ticks: 100, // Estimate until the first BDS run.
+    features: ["build"],
+    // Candidate maximum captures span 256 vertical blocks, above other tests.
+    isolation: "exclusive",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "beach_chair_lantern",
     file: "beachChairHosting",
     ticks: 44, // Estimate until the first BDS run.
