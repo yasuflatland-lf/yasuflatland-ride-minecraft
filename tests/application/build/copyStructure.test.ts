@@ -10,10 +10,12 @@ import { NewCopy } from "../../../src/application/build/newCopy";
 import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
 import {
+  type Clipboard,
   clipboardOf,
   structureOf,
 } from "../../../src/domain/build/clipboard/clipboard";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import type { StructureHandle } from "../../../src/domain/build/structure/handle";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   FakeBuildPlayers,
@@ -217,3 +219,187 @@ it("replaces a cells clipboard without discarding a structure", () => {
     }),
   );
 });
+
+const lifecycleOperation = fc.constantFrom(
+  "copy",
+  "precheckTooLarge",
+  "storeTooLarge",
+  "storeUnreadable",
+  "cut",
+  "newCopy",
+  "endPasting",
+  "leaveBuild",
+  "endSession",
+);
+
+it.each(["absent", "structure", "cells"] as const)(
+  "owns exactly the current clipboard handle throughout arbitrary operations starting with %s",
+  (initial) => {
+    fc.assert(
+      fc.property(
+        boxArb,
+        fc.array(fc.record({ operation: lifecycleOperation, box: boxArb }), {
+          minLength: 1,
+          maxLength: 40,
+          size: "large",
+        }),
+        (initialBox, operations) => {
+          const e = setup();
+          const world = new FakeWorld();
+          const jobs = new EditJobs(
+            e.repo,
+            world,
+            e.feedback,
+            { warn: () => {} },
+            new FakeBuildPlayers(),
+          );
+          const cut = new CutBox(e.repo, world, e.feedback, jobs, e.structures);
+          const captured = new Set<StructureHandle>();
+          const discarded = new Set<StructureHandle>();
+          let expectedClipboard: Clipboard | undefined;
+          let replacement: Clipboard | undefined;
+          let sessionExists = false;
+          const capture = e.structures.capture.bind(e.structures);
+          e.structures.capture = (dimensionId, box, ownerId) => {
+            const result = capture(dimensionId, box, ownerId);
+            if (result !== "tooLarge" && result !== "unreadable") {
+              expect(captured.has(result)).toBe(false);
+              captured.add(result);
+              replacement = {
+                size: {
+                  x: box.max.x - box.min.x + 1,
+                  y: box.max.y - box.min.y + 1,
+                  z: box.max.z - box.min.z + 1,
+                },
+                blockCount: volume(box),
+                contents: { kind: "structure", handle: result },
+              };
+            }
+            return result;
+          };
+          const discard = e.structures.discard.bind(e.structures);
+          e.structures.discard = (handle) => {
+            expect(captured.has(handle)).toBe(true);
+            expect(discarded.has(handle)).toBe(false);
+            expect(e.structures.live.has(handle)).toBe(true);
+            const session = e.repo.get(playerId);
+            expect(structureOf(session?.clipboard)).not.toBe(handle);
+            // Observe storage at the port call: final-state checks cannot detect early disposal.
+            expect(session?.clipboard).toEqual(replacement);
+            discarded.add(handle);
+            discard(handle);
+          };
+
+          const prefix =
+            initial === "absent"
+              ? []
+              : [
+                  {
+                    operation: initial === "structure" ? "copy" : "cut",
+                    box: initialBox,
+                  } as const,
+                ];
+          for (const { operation, box } of [...prefix, ...operations]) {
+            const before = e.repo.get(playerId);
+            const flow = before?.flow;
+            const confirmedBox = before?.confirmedBox;
+            const clipboard = before?.clipboard;
+            const snapshot = structuredClone({ flow, confirmedBox, clipboard });
+            const callCount = e.structures.calls.length;
+            const oldHandle = structureOf(expectedClipboard);
+            replacement = undefined;
+            e.structures.captureRefusal = undefined;
+            const refused =
+              operation === "precheckTooLarge" ||
+              operation === "storeTooLarge" ||
+              operation === "storeUnreadable";
+
+            if (operation === "copy" || refused) {
+              if (operation === "storeTooLarge")
+                e.structures.captureRefusal = "tooLarge";
+              if (operation === "storeUnreadable")
+                e.structures.captureRefusal = "unreadable";
+              const target =
+                operation === "precheckTooLarge"
+                  ? boxOf(box.min, {
+                      ...box.min,
+                      x: box.min.x + BUILD_SPEC.maxCopyVolume,
+                    })
+                  : box;
+              expect(e.copy.execute(playerId, overworld, target)).toBe(
+                !refused,
+              );
+              if (!refused) {
+                expect(replacement).toBeDefined();
+                expectedClipboard = replacement;
+                sessionExists = true;
+              }
+            } else if (operation === "cut") {
+              replacement = clipboardOf(box, () => AIR);
+              expect(cut.execute(playerId, overworld, box)).toBe(true);
+              expectedClipboard = replacement;
+              sessionExists = true;
+              jobs.step();
+            } else if (operation === "newCopy") {
+              new NewCopy(e.repo).execute(playerId);
+            } else {
+              if (operation === "endPasting")
+                new EndPasting(e.repo, e.structures).execute(playerId);
+              else if (operation === "leaveBuild")
+                new LeaveBuild(e.repo, e.structures).execute(playerId);
+              else {
+                new EndBuildSession(e.repo, e.structures).execute(playerId);
+                sessionExists = false;
+              }
+              expectedClipboard = undefined;
+            }
+
+            const session = e.repo.get(playerId);
+            expect(session !== undefined).toBe(sessionExists);
+            expect(session?.clipboard).toEqual(expectedClipboard);
+            const handle = structureOf(expectedClipboard);
+            const expectedLive = new Set(handle === undefined ? [] : [handle]);
+            expect(e.structures.live).toEqual(expectedLive);
+            expect(
+              new Set([...captured].filter((value) => !discarded.has(value))),
+            ).toEqual(expectedLive);
+            const calls = e.structures.calls.slice(callCount);
+            expect(calls.filter((call) => call.kind === "discard")).toEqual(
+              oldHandle !== undefined && oldHandle !== handle
+                ? [{ kind: "discard", handle: oldHandle }]
+                : [],
+            );
+            if (refused) {
+              expect(session).toBe(before);
+              expect(session?.flow).toBe(flow);
+              expect(session?.confirmedBox).toBe(confirmedBox);
+              expect(session?.clipboard).toBe(clipboard);
+              expect({
+                flow: session?.flow,
+                confirmedBox: session?.confirmedBox,
+                clipboard: session?.clipboard,
+              }).toEqual(snapshot);
+              expect(calls).toEqual(
+                operation === "precheckTooLarge"
+                  ? []
+                  : [
+                      {
+                        kind: "capture",
+                        dimensionId: overworld,
+                        box,
+                        ownerId: playerId,
+                      },
+                    ],
+              );
+            }
+          }
+          replacement = undefined;
+          new EndBuildSession(e.repo, e.structures).execute(playerId);
+          expect(e.structures.live.size).toBe(0);
+          expect(discarded).toEqual(captured);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  },
+);
