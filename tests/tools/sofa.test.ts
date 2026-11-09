@@ -37,7 +37,14 @@ for build in (m.build_frame, m.build_cushions, m.build_feet):
     assert a[0][1:] == b[0][1:] and a[1][1:] == b[1][1:]
 assert len(m.build_feet(1)) == len(m.build_feet(2)) == 4
 assert len(m.build_cushions(2)) == len(m.build_cushions(1))+6
-assert len(m.tilt.compound_cubes(m.cubes())) == m.ASSEMBLIES['throw_cushion']['cubes']
+assert len(m.build_cushions(1)) == 9
+assert len(m.build_cushions(2)) == 15
+for width in (1, 2):
+    assert len(m.tilt.compound_cubes(m.cubes(width))) == 3 * width
+assert set(m.ASSEMBLIES) == {'throw_cushion', 'throw_cushion_2'}
+assert all(entry['cubes'] == 3 for entry in m.ASSEMBLIES.values())
+seat = m.build_cushions(2)[:3]
+assert m.tilt.bounds(seat)[1][0] - m.tilt.bounds(seat)[0][0] > 26
 assert m.SEAT_POSITION[1] == m.SEAT_TOP/16-0.24
 `);
   });
@@ -62,15 +69,18 @@ with tempfile.TemporaryDirectory() as folder:
     subprocess.run(cmd, check=True, capture_output=True)
     subprocess.run(cmd+['--check'], check=True, capture_output=True)
     root = Path(folder)
-    geo = root/'models/entity/yasu_ride/sofa_single.geo.json'
-    geo.write_text('{}')
-    result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
-    assert result.returncode and str(geo) in result.stderr
-    subprocess.run(cmd, check=True, capture_output=True)
-    texture = root/'textures/entity/yasu_ride/sofa_single.png'
-    m.texture_io.Outputs(False).png(texture, 1, 1, lambda x,y: (0,0,0,0))
-    result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
-    assert result.returncode and str(texture) in result.stderr
+    for kind in ('sofa_single', 'sofa_double'):
+        geo = root/f'models/entity/yasu_ride/{kind}.geo.json'
+        assert json.loads(geo.read_text()) == m.geometry(1 if kind == 'sofa_single' else 2)
+        geo.write_text('{}')
+        result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
+        assert result.returncode and str(geo) in result.stderr
+        subprocess.run(cmd, check=True, capture_output=True)
+        texture = root/f'textures/entity/yasu_ride/{kind}.png'
+        m.texture_io.Outputs(False).png(texture, 1, 1, lambda x,y: (0,0,0,0))
+        result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
+        assert result.returncode and str(texture) in result.stderr
+        subprocess.run(cmd, check=True, capture_output=True)
 `);
   }, 30000);
 });

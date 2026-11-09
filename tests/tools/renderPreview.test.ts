@@ -116,6 +116,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
         "beach_parasol",
         "beach_chair",
         "sofa_single",
+        "sofa_double",
         "noga_chair",
         "low_chair",
         "tent",

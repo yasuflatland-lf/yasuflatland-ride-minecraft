@@ -29,7 +29,8 @@ PALETTE = {
     "metal": (196, 200, 201, 255),
     "metal_dark": (142, 148, 150, 255),
 }
-ASSEMBLIES = {"throw_cushion": {"owner": "sofa", "cubes": 3}}
+ASSEMBLIES = {name: {"owner": "sofa", "cubes": 3}
+              for name in ("throw_cushion", "throw_cushion_2")}
 
 
 def half_width(width_cells):
@@ -76,12 +77,16 @@ def pillow(origin, size):
 def build_cushions(width_cells):
     h = half_width(width_cells)
     parts = []
-    # Separate seat and back pads preserve the reference's proportions at both widths.
+    # The double reference has one continuous seat beneath two separate back pads.
     inner = 2*h - 4.8
+    parts += pillow((-h + 2.45, 4, -7.2), (inner - 0.1, SEAT_TOP-4, 12.5))
     for i in range(width_cells):
         x = -h + 2.45 + i * inner / width_cells
         w = inner / width_cells - 0.1
-        parts += pillow((x, 4, -7.2), (w, SEAT_TOP-4, 12.5))
+        if width_cells == 2:
+            # Keep pad corners within the two independently selectable halves.
+            x += 0.35 * i
+            w -= 0.35
         back = pillow((x, 6.2, 3.4), (w, 5.8, 2.1))
         parts += tilt.tilt_assembly(back, (0, 6.2, 3.4), "x", -12)
     # A square pad rests against the left arm, tilted sideways and back together.
@@ -93,7 +98,18 @@ def build_cushions(width_cells):
     throw = tilt.tilt_assembly(throw, pivot, "x", -15,
                                assembly="throw_cushion", assemblies=ASSEMBLIES)
     parts += throw
-    tilt.assert_axes(parts, {"throw_cushion": throw}, ASSEMBLIES)
+    assemblies = {"throw_cushion": throw}
+    if width_cells == 2:
+        front = pillow((-h+8.0, 4.8, -2.4), (6.5, 6.5, 1.7))
+        front_pivot = (-h+11.25, 8.05, -1.55)
+        for cube in front:
+            cube["pivot"] = list(front_pivot)
+            cube["rotation"] = [0, 0, 7]
+        front = tilt.tilt_assembly(front, front_pivot, "x", -15,
+                                   assembly="throw_cushion_2", assemblies=ASSEMBLIES)
+        parts += front
+        assemblies["throw_cushion_2"] = front
+    tilt.assert_axes(parts, assemblies, {name: ASSEMBLIES[name] for name in assemblies})
     return parts
 
 
@@ -144,6 +160,8 @@ def main():
     out = texture_io.Outputs(args.check, report_writes=True)
     out.json(args.resource_pack / "models/entity/yasu_ride/sofa_single.geo.json", geometry())
     out.png(args.resource_pack / "textures/entity/yasu_ride/sofa_single.png", ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
+    out.json(args.resource_pack / "models/entity/yasu_ride/sofa_double.geo.json", geometry(2))
+    out.png(args.resource_pack / "textures/entity/yasu_ride/sofa_double.png", ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
     out.finish("Sofa assets are stale; run pnpm model.", "sofa model and texture are up to date")
 
 

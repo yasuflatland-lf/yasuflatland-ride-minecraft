@@ -1,0 +1,69 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "yasu_ride:sofa_double",
+      "is_spawnable": false,
+      "is_summonable": true
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": ["yasu_ride_sofa_double", "inanimate"]
+      },
+      "minecraft:collision_box": {
+        "width": 2.0,
+        "height": 0.8
+      },
+      "minecraft:physics": {
+        "has_collision": true,
+        "has_gravity": true
+      },
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:health": {
+        "value": 20,
+        "max": 20
+      },
+      "minecraft:damage_sensor": {
+        "triggers": {
+          "cause": "all",
+          "deals_damage": "no"
+        }
+      },
+      "minecraft:persistent": {},
+      "minecraft:rideable": {
+        "seat_count": 2,
+        "family_types": ["player"],
+        "interact_text": "action.interact.yasu_ride.sit",
+        "crouching_skip_interact": true,
+        "seats": [
+          {
+            "position": [-0.5, 0.16, -0.1]
+          },
+          {
+            "position": [0.5, 0.16, -0.1]
+          }
+        ]
+      },
+      "minecraft:custom_hit_test": {
+        "hitboxes": [
+          {
+            "width": 0.95,
+            "height": 0.8,
+            "pivot": [-0.5, 0.4, 0]
+          },
+          {
+            "width": 0.95,
+            "height": 0.8,
+            "pivot": [0.5, 0.4, 0]
+          }
+        ]
+      }
+    }
+  }
+}

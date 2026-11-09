@@ -64,6 +64,9 @@
     "yasu_ride_sofa_single": {
       "textures": "textures/items/yasu_ride/sofa_single_item"
     },
+    "yasu_ride_sofa_double": {
+      "textures": "textures/items/yasu_ride/sofa_double_item"
+    },
     "yasu_ride_camping_gear_box": {
       "textures": "textures/items/yasu_ride/camping_gear_box"
     },

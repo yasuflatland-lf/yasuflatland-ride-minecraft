@@ -222,4 +222,6 @@ yasu_ride.furniture.taken=Took back the furniture
 yasu_ride.furniture.occupied=Someone is sitting on this furniture
 yasu_ride.furniture.something_on_top=Take everything off the top first
 item.yasu_ride:sofa_single_item.name=Sofa (Single)
+item.yasu_ride:sofa_double_item.name=Sofa (Double)
 entity.yasu_ride:sofa_single.name=Sofa (Single)
+entity.yasu_ride:sofa_double.name=Sofa (Double)
