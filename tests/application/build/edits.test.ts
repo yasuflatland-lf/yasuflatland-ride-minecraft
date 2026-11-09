@@ -24,6 +24,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const alex = asPlayerId("alex");
 const blake = asPlayerId("blake");
@@ -50,7 +51,9 @@ function setup() {
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, new CopyBox(repo, world, feedback), feedback),
     paste: new PasteAt(repo, world, feedback, jobs),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
+      warn: () => {},
+    }),
   };
 }
 

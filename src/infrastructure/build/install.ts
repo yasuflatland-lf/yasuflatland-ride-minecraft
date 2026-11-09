@@ -96,7 +96,14 @@ export function installBuild(deps: {
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     chooseTerrain: new ChooseTerrain(repo, feedback),
     confirmTerrain: new ConfirmTerrain(repo, feedback, jobs, blocks),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(
+      repo,
+      feedback,
+      jobs,
+      blocks,
+      ports.structures,
+      consoleLogger,
+    ),
     clear,
   };
   const menuCases = {
@@ -136,5 +143,6 @@ export function installBuild(deps: {
     new DescribeBuild(repo),
     recorded,
     repo,
+    ports.structures,
   );
 }

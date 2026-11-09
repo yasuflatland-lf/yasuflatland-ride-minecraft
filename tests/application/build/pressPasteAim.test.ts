@@ -29,6 +29,7 @@ import {
   FakeWorld,
   nether,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
@@ -236,7 +237,14 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         ).toBe("ignored");
         expect(e.session.flow).toBe(flow);
         expect(e.start).toHaveBeenCalledTimes(1);
-        new UndoEdit(e.repo, e.feedback, e.jobs).execute({ playerId });
+        new UndoEdit(
+          e.repo,
+          e.feedback,
+          e.jobs,
+          e.world,
+          new FakeStructureStore(),
+          { warn: () => {} },
+        ).execute({ playerId });
         expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir });
         expect(e.session.clipboard).toBe(e.clipboard);
         e.jobs.step();

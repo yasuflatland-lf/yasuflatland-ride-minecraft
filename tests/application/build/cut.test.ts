@@ -28,6 +28,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone", { stone_type: "granite" });
@@ -58,7 +59,9 @@ function setup() {
     drain,
     choose: new ChooseBoxStep(repo, actions, feedback),
     confirm: new ConfirmBoxStep(repo, actions, feedback),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
+      warn: () => {},
+    }),
   };
 }
 
