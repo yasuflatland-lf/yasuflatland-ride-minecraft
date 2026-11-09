@@ -21,7 +21,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "beach_chair_lantern",
     file: "beachChairHosting",
-    ticks: 42, // Estimate until the first BDS run.
+    ticks: 44, // Estimate until the first BDS run.
     features: ["resort", "camp"],
     isolation: "lane",
     needsPlayer: false,
@@ -30,7 +30,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "beach_chair_oven",
     file: "beachChairHosting",
-    ticks: 40, // Estimate until the first BDS run.
+    ticks: 42, // Estimate until the first BDS run.
     features: ["resort", "camp"],
     isolation: "lane",
     needsPlayer: false,

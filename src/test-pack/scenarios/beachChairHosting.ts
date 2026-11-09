@@ -36,10 +36,11 @@ async function course(
   const items = () => near(id(kind));
   const failures: string[] = [];
   let chairId = "";
-  const place = async () => {
+  // Local aim in pixels; the host clamps it inside the 16 by 21 px top.
+  const place = async (z = 0) => {
     system.sendScriptEvent(
       id(`test_${kind}_on_top`),
-      `beach_chair ${chairId} 0 0`,
+      `beach_chair ${chairId} 0 ${z}`,
     );
     await wait(2);
   };
@@ -65,7 +66,8 @@ async function course(
     await form("fold");
     if (chair.getProperty(BEACH_CHAIR_FOLDED) !== true)
       failures.push("chair did not fold");
-    await place();
+    const { halfZ } = BEACH_CHAIR_SPEC.topHalf;
+    await place(-halfZ);
     const item = items()[0];
     if (
       items().length !== 1 ||
@@ -75,6 +77,16 @@ async function course(
       ) > 0.01
     )
       failures.push("item not on tabletop");
+    // The table is centred on the middle cell, so an item at either end still stands over it.
+    if (
+      item &&
+      (Math.floor(item.location.x) !== pose.middle.x ||
+        Math.floor(item.location.z) !== pose.middle.z)
+    )
+      failures.push("item not over the middle cell");
+    // The 21 px top fits two ovens end to end, or two lanterns.
+    await place(halfZ);
+    if (items().length !== 2) failures.push("second item not hosted");
     const lightCells =
       item && kind === "gas_lantern"
         ? gasLanternLightCells(true, item.location)
