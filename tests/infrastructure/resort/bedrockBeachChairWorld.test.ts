@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import {
   beachChairOrigin,
@@ -99,28 +100,48 @@ it.each([true, false])(
     }
   },
 );
-it.each([0, 90, 180, 270])(
-  "folds and holds the placement pose at yaw %i",
-  (yaw) => {
-    const f = fixture(yaw);
-    f.entity.location = { ...f.entity.location, y: f.entity.location.y - 0.01 };
-    f.adapter.setForm(id, "table");
-    expect(f.entity.setProperty).toHaveBeenCalledWith(BEACH_CHAIR_FOLDED, true);
-    expect(f.entity.triggerEvent).toHaveBeenCalledExactlyOnceWith(
-      BEACH_CHAIR_FOLD_EVENT,
-    );
-    expect(f.entity.clearVelocity).toHaveBeenCalledOnce();
-    expect(f.entity.teleport).toHaveBeenCalledExactlyOnceWith(
-      beachChairOrigin(f.pose),
-    );
-    expect(f.entity.triggerEvent.mock.invocationCallOrder[0]).toBeLessThan(
-      f.entity.clearVelocity.mock.invocationCallOrder[0] ?? 0,
-    );
-    expect(f.entity.clearVelocity.mock.invocationCallOrder[0]).toBeLessThan(
-      f.entity.teleport.mock.invocationCallOrder[0] ?? 0,
-    );
-  },
-);
+it("folds and holds the middle-cell centre at floor height despite drift at every quarter turn", () => {
+  fc.assert(
+    fc.property(
+      fc.record({
+        x: fc.double({ min: -0.5, max: 0.5 - 1e-10, noNaN: true }),
+        y: fc.double({ min: -0.1, max: 0.1, noNaN: true }),
+        z: fc.double({ min: -0.5, max: 0.5 - 1e-10, noNaN: true }),
+      }),
+      (drift) => {
+        for (const yaw of [0, 90, 180, 270]) {
+          const f = fixture(yaw);
+          const origin = beachChairOrigin(f.pose);
+          f.entity.location = {
+            x: origin.x + drift.x,
+            y: origin.y + drift.y,
+            z: origin.z + drift.z,
+          };
+          f.adapter.setForm(id, "table");
+          expect(f.entity.setProperty).toHaveBeenCalledWith(
+            BEACH_CHAIR_FOLDED,
+            true,
+          );
+          expect(f.entity.triggerEvent).toHaveBeenCalledExactlyOnceWith(
+            BEACH_CHAIR_FOLD_EVENT,
+          );
+          expect(f.entity.clearVelocity).toHaveBeenCalledOnce();
+          expect(f.entity.teleport).toHaveBeenCalledExactlyOnceWith(
+            beachChairOrigin(f.pose),
+          );
+          expect(
+            f.entity.triggerEvent.mock.invocationCallOrder[0],
+          ).toBeLessThan(
+            f.entity.clearVelocity.mock.invocationCallOrder[0] ?? 0,
+          );
+          expect(
+            f.entity.clearVelocity.mock.invocationCallOrder[0],
+          ).toBeLessThan(f.entity.teleport.mock.invocationCallOrder[0] ?? 0);
+        }
+      },
+    ),
+  );
+});
 it("unfolds without holding the entity", () => {
   const f = fixture();
   f.adapter.setForm(id, "chair");

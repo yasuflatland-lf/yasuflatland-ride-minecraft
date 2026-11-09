@@ -64,7 +64,11 @@ async function course(a: Arena, mode: "fold" | "empty"): Promise<Outcome> {
     await wait(6);
     if (entity.getProperty(BEACH_CHAIR_FOLDED) !== true)
       failures.push("chair did not fold");
-    const origin = beachChairOrigin(pose);
+    const origin = {
+      x: pose.middle.x + 0.5,
+      y: pose.middle.y,
+      z: pose.middle.z + 0.5,
+    };
     if (
       Math.hypot(
         entity.location.x - origin.x,
@@ -79,9 +83,31 @@ async function course(a: Arena, mode: "fold" | "empty"): Promise<Outcome> {
       )
     )
       failures.push("folding placed an add-on block");
+    const tableLocation = entity.location;
+    await form(entity, "fold");
+    if (
+      entity.getProperty(BEACH_CHAIR_FOLDED) !== true ||
+      Math.hypot(
+        entity.location.x - tableLocation.x,
+        entity.location.y - tableLocation.y,
+        entity.location.z - tableLocation.z,
+      ) > 0.01
+    )
+      failures.push("folding a table changed its form or position");
     await form(entity, "unfold");
     if (entity.getProperty(BEACH_CHAIR_FOLDED) !== false)
       failures.push("table did not unfold");
+    const chairLocation = entity.location;
+    await form(entity, "unfold");
+    if (
+      entity.getProperty(BEACH_CHAIR_FOLDED) !== false ||
+      Math.hypot(
+        entity.location.x - chairLocation.x,
+        entity.location.y - chairLocation.y,
+        entity.location.z - chairLocation.z,
+      ) > 0.01
+    )
+      failures.push("unfolding a chair changed its form or position");
     await form(entity, "fold");
     for (let hit = 0; hit < BEACH_CHAIR_SPEC.hitsToTakeBack; hit++) {
       system.sendScriptEvent(TEST_BEACH_CHAIR_HIT, entity.id);
@@ -96,7 +122,8 @@ async function course(a: Arena, mode: "fold" | "empty"): Promise<Outcome> {
     return {
       pass: failures.length === 0,
       detail:
-        failures.join(", ") || "fold, pose, unfold and table recovery verified",
+        failures.join(", ") ||
+        "fold, middle-cell hold, wrong-form refusals, unfold and table recovery verified",
     };
   } finally {
     for (const entity of [...near(BEACH_CHAIR), ...drops()]) entity.remove();

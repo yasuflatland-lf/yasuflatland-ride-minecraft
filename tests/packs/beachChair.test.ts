@@ -16,6 +16,23 @@ const animations = read(
 const states = read(`${RP}animation_controllers/yasu_ride/beach_chair.ac.json`)
   .animation_controllers["controller.animation.yasu_ride.beach_chair.form"];
 const folded = "query.property('yasu_ride:folded')";
+const { bedOutline, topHalf, topPx } = BEACH_CHAIR_SPEC;
+const chairWidth = (bedOutline.maxX - bedOutline.minX) / 16;
+const chairHitboxes = [
+  bedOutline.minZ / 16 + chairWidth / 2,
+  (bedOutline.minZ + bedOutline.maxZ) / 32,
+  bedOutline.maxZ / 16 - chairWidth / 2,
+].map((z) => ({
+  width: chairWidth,
+  height: (2 * topPx) / 16,
+  pivot: [(bedOutline.minX + bedOutline.maxX) / 32, topPx / 16, z],
+}));
+const tableWidth = (2 * topHalf.halfX) / 16;
+const tableHitboxes = [-1, 1].map((sign) => ({
+  width: tableWidth,
+  height: topPx / 16,
+  pivot: [0, topPx / 32, sign * (topHalf.halfZ / 16 - tableWidth / 2)],
+}));
 
 describe("Beach Chair assets", () => {
   it("provides one script-controlled hip seat and a persistent, unpushable, damage-immune entity with gravity", () => {
@@ -32,7 +49,7 @@ describe("Beach Chair assets", () => {
       seat_count: 1,
       family_types: ["player"],
       crouching_skip_interact: true,
-      seats: [{ position: [0, 0.4375, 0.125] }],
+      seats: [{ position: [0, 0.5625, 0.3125] }],
     });
     expect(c["minecraft:type_family"].family).toContain("inanimate");
     expect(c["minecraft:persistent"]).toEqual({});
@@ -50,19 +67,13 @@ describe("Beach Chair assets", () => {
       deals_damage: "no",
     });
     expect(c["minecraft:collision_box"]).toEqual({
-      width: 0.75,
-      height: 0.4375,
+      width: 1.0,
+      height: 0.5625,
     });
-    expect(c["minecraft:custom_hit_test"].hitboxes).toEqual(
-      [-0.625, 0, 0.625].map((z) => ({
-        width: 0.75,
-        height: 0.875,
-        pivot: [0, 0.4375, z],
-      })),
-    );
+    expect(c["minecraft:custom_hit_test"].hitboxes).toEqual(chairHitboxes);
   });
 
-  it("keeps the foot at -z, the raised backrest at +z, and both forms and transitions within two cells", () => {
+  it("keeps the foot at -z, the raised backrest at +z, and both forms and transitions within three cells", () => {
     const texture = readRgbaPng(
       `${RP}textures/entity/yasu_ride/beach_chair.png`,
     );
@@ -87,58 +98,59 @@ m = load_tool('gen_beach_chair')
 r = load_tool('render_preview')
 g = json.loads(Path('${RP}models/entity/yasu_ride/beach_chair.geo.json').read_text())['minecraft:geometry'][0]
 assert [b['name'] for b in g['bones']] == ['root', 'chair_form', 'frame', 'backrest', 'prop', 'table_form', 'table_top']
+assert g['description']['visible_bounds_width'] == 3.5 and g['description']['visible_bounds_height'] == 2.5
 assert g['description']['texture_width'] == 144 and g['description']['texture_height'] == 32
-assert m.SEAT_OFFSET == (0, 0.4375, 0.125)
-assert m.TABLE_TOP_PX == ${BEACH_CHAIR_SPEC.topPx} == 7
-assert m.TOP_PX == 7 and m.HALF == (6,16) and m.BED_OUTLINE == (-6,6,-16,16)
+assert m.SEAT_OFFSET == (0, 0.5625, 0.3125)
+assert m.TOP_PX == 9 and m.HALF == (8,23) and m.BED_OUTLINE == (-8,8,-23,23)
+assert m.TABLE_TOP_PX == ${BEACH_CHAIR_SPEC.topPx} == 9
 back = next(b for b in g['bones'] if b['name']=='backrest')
-assert back['pivot'] == [0,7,5.5] and back['rotation'] == [37,0,0]
-assert len([c for c in back['cubes'] if c['size'][2] > 10]) == 13
+assert back['pivot'] == [0,9,9.5] and back['rotation'] == [37,0,0]
+assert len([c for c in back['cubes'] if c['size'][2] > 13]) == 13
 frame = next(b for b in g['bones'] if b['name']=='frame')
-assert min(c['origin'][2] for c in frame['cubes']) == -16
+assert min(c['origin'][2] for c in frame['cubes']) == -23
 def close(a,b):
     return abs(a-b) < 1e-6
 
 def check_legs(cubes, expected):
-    legs = [c for c in cubes if close(c['origin'][1], 0.2)]
+    legs = [c for c in cubes if close(c['origin'][1], 0.27)]
     pads = [c for c in cubes if c['origin'][1] == 0]
     assert len(legs) == len(pads) == len(expected)
     for x,z,size,top in expected:
         leg = next(c for c in legs if close(c['origin'][0], x) and close(c['origin'][2], z))
-        assert all(close(a,b) for a,b in zip(leg['size'], [size,top-0.2-m.JOINT_SEAM,size]))
-        pad = next(c for c in pads if close(c['origin'][0], x+0.08) and close(c['origin'][2], z+0.08))
-        assert all(close(a,b) for a,b in zip(pad['size'], [size-0.16,0.2,size-0.16]))
+        assert all(close(a,b) for a,b in zip(leg['size'], [size,top-0.27-m.JOINT_SEAM,size]))
+        pad = next(c for c in pads if close(c['origin'][0], x+0.11) and close(c['origin'][2], z+0.11))
+        assert all(close(a,b) for a,b in zip(pad['size'], [size-0.22,0.27,size-0.22]))
         assert pad['uv']['up']['uv'] == [80,0]
     return legs
 legs = check_legs(frame['cubes'],
-    [(x,z,1.15,5.65) for x in (-6,4.85) for z in (-9,9.35)] +
-    [(x,-15.6,1.15,5.65) for x in (-5.3,4.15)] +
-    [(x,14.85,1.15,5.65) for x in (-6,4.85)])
-foot_slats = [c for c in frame['cubes'] if c['origin'][2] == -16 and c['origin'][1] == m.SLAT_BOTTOM]
+    [(x,z,1.55,7.2) for x in (-8,6.45) for z in (-11.5,12.95)] +
+    [(x,-22.5,1.55,7.2) for x in (-7.05,5.5)] +
+    [(x,21.45,1.55,7.2) for x in (-8,6.45)])
+foot_slats = [c for c in frame['cubes'] if c['origin'][2] == -23 and c['origin'][1] == m.SLAT_BOTTOM]
 assert len(foot_slats) == 12
-assert abs(min(c['origin'][0] for c in foot_slats)+5.10) < 1e-6
-assert abs(max(c['origin'][0]+c['size'][0] for c in foot_slats)-5.10) < 1e-6
+assert abs(min(c['origin'][0] for c in foot_slats)+6.84) < 1e-6
+assert abs(max(c['origin'][0]+c['size'][0] for c in foot_slats)-6.84) < 1e-6
 fingers = [c for c in frame['cubes'] if c['origin'][2] == m.BAND_START and abs(c['size'][0]-m.FINGER_WIDTH) < 1e-6]
 assert len(fingers) == 12
-assert m.MAIN_RAIL_BOTTOM == m.EXTENSION_RAIL_BOTTOM == m.REAR_RAIL_BOTTOM == 5.65
+assert m.MAIN_RAIL_BOTTOM == m.EXTENSION_RAIL_BOTTOM == m.REAR_RAIL_BOTTOM == 7.2
 assert m.MAIN_RAIL_BOTTOM > m.SLAT_BOTTOM - m.MAIN_RAIL_BOTTOM
-slats = sorted([c for c in back['cubes'] if c['size'][2] > 10], key=lambda c:c['origin'][0])
+slats = sorted([c for c in back['cubes'] if c['size'][2] > 13], key=lambda c:c['origin'][0])
 for left, right in zip(slats, slats[1:]):
     gap = right['origin'][0] - left['origin'][0] - left['size'][0]
-    assert abs(gap - 0.36) < 1e-6
+    assert abs(gap - 0.48) < 1e-6
 prop = next(b for b in g['bones'] if b['name']=='prop')
 assert len(prop['cubes']) == 2
-assert close(m.PROP_ANGLE, 26.493846881381685)
-assert close(m.PROP_LENGTH, 7.27346467207446)
+assert close(m.PROP_ANGLE, 26.76422011152607)
+assert close(m.PROP_LENGTH, 9.339824532327768)
 assert m.PROP_ATTACHMENT == 0.4
 assert abs(m.PROP_PIVOT[1] - (m.REAR_RAIL_BOTTOM + m.REAR_RAIL_TOP)/2) < 1e-6
-assert m.PROP_PIVOT[2] < 16
+assert m.PROP_PIVOT[2] < 23
 import math
 assert abs(m.PROP_PIVOT[1] + m.PROP_LENGTH*math.sin(math.radians(m.PROP_ANGLE)) - m.PROP_START[1]) < 1e-6
 assert abs(m.PROP_PIVOT[2] - m.PROP_LENGTH*math.cos(math.radians(m.PROP_ANGLE)) - m.PROP_START[2]) < 1e-6
 for c in prop['cubes']:
-    assert abs(c['size'][0] - 0.12) < 1e-6
-    assert abs(c['size'][1] - 0.08) < 1e-6
+    assert abs(c['size'][0] - 0.16) < 1e-6
+    assert abs(c['size'][1] - 0.11) < 1e-6
     assert abs(c['rotation'][0] + m.PROP_ANGLE) < 1e-6
 # The thirteen bed slats meet the backrest at the hinge without added hardware.
 bed = sorted([c for c in frame['cubes'] if c['origin'][2] == m.BAND_END and close(c['size'][0],m.SLAT_WIDTH)], key=lambda c:c['origin'][0])
@@ -146,33 +158,33 @@ assert len(bed) == len(slats) == 13
 for a,b in zip(bed,slats):
     assert a['origin'][0] == b['origin'][0] and a['size'][0] == b['size'][0]
     assert abs(a['origin'][2] + a['size'][2] - b['origin'][2]) < 1e-6
-rear = [c for c in frame['cubes'] if c['origin'][2] == m.MAIN_RAIL_END and close(c['size'][2], 5.5)]
+rear = [c for c in frame['cubes'] if c['origin'][2] == m.MAIN_RAIL_END and close(c['size'][2], 8.5)]
 assert len(rear) == 2
-assert all(close(c['size'][0], 0.4) and abs(c['size'][1]-1.17)<1e-6 and close(c['size'][2], 5.5) for c in rear)
+assert all(close(c['size'][0], 0.55) and abs(c['size'][1]-1.56)<1e-6 and close(c['size'][2], 8.5) for c in rear)
 assert all(abs(c['origin'][1] + c['size'][1] - m.REAR_RAIL_TOP) < 1e-6 for c in rear)
 assert len(back['cubes']) == 14
 assert not any(c['uv']['up']['uv'] == [48,0] for c in frame['cubes'])
 assert not any(c['uv']['up']['uv'] == [64, 0] for b in g['bones'][:5] for c in b.get('cubes', []))
-assert abs(m.BAND_END - m.BAND_START - 2.5) < 1e-6
+assert abs(m.BAND_END - m.BAND_START - 3.5) < 1e-6
 assert m.MAIN_RAIL_START == m.BAND_END
-assert all(close(c['origin'][1]+c['size'][1],7) for c in foot_slats+bed)
-assert m.LEG_SIZE == m.EXTENSION_LEG_SIZE == m.REAR_LEG_SIZE == 1.15
+assert all(close(c['origin'][1]+c['size'][1],9) for c in foot_slats+bed)
+assert m.LEG_SIZE == m.EXTENSION_LEG_SIZE == m.REAR_LEG_SIZE == 1.55
 band = sorted([c for c in frame['cubes'] if c['origin'][2] == m.BAND_START], key=lambda c:c['origin'][0])
 assert len(band) == 25
-assert all(close(c['origin'][1],m.SLAT_BOTTOM) and close(c['origin'][1]+c['size'][1],7) for c in band)
+assert all(close(c['origin'][1],m.SLAT_BOTTOM) and close(c['origin'][1]+c['size'][1],9) for c in band)
 for left, right in zip(band, band[1:]):
-    assert right['origin'][0] - left['origin'][0] - left['size'][0] >= 0.15999
+    assert right['origin'][0] - left['origin'][0] - left['size'][0] >= 0.21999
 rails = [c for c in frame['cubes'] if c['size'][2] > 5 and c['origin'][1] < m.SLAT_BOTTOM]
 assert len(rails) == 6
 for rail in rails:
-    extension = rail['origin'][2] == -16
+    extension = rail['origin'][2] == -23
     rear_rail = rail['origin'][2] == m.MAIN_RAIL_END
-    assert close(rail['size'][0], 0.4)
-    assert close(rail['size'][1], 1.17 if extension or rear_rail else 1.35)
-    assert close(rail['origin'][1], 5.65)
-assert close(m.MAIN_RAIL_BOTTOM / (m.TOP_PX - m.MAIN_RAIL_BOTTOM), 5.65/1.35)
+    assert close(rail['size'][0], 0.55)
+    assert close(rail['size'][1], 1.56 if extension or rear_rail else 1.8)
+    assert close(rail['origin'][1], 7.2)
+assert close(m.MAIN_RAIL_BOTTOM / (m.TOP_PX - m.MAIN_RAIL_BOTTOM), 7.2/1.8)
 for c in prop['cubes']:
-    assert close(abs(c['origin'][0] + c['size'][0]/2), 4.79)
+    assert close(abs(c['origin'][0] + c['size'][0]/2), 6.37)
 # Oblique views must leave air between the raised slats on both faces.
 animations = json.loads(Path('${RP}animations/yasu_ride/beach_chair.anim.json').read_text())['animations']
 # The stowed prop must lie flat, so every stowed key uses the generated slope.
@@ -188,13 +200,13 @@ def world(point):
 points = [world(p) for slat in slats for p in m.tilt.corners(slat)]
 for view in [(-1.5,1.1,-2.5), (2.2,1.1,-1.7), (-3,1,-1.3)]:
     camera = r.Camera(points, view=view)
-    start, end = [camera.project(world((0,7,z))) for z in (8,9)]
+    start, end = [camera.project(world((0,9,z))) for z in (13,14)]
     across = (end[1]-start[1], start[0]-end[0])
     edges = []
     for slat in slats:
-        section = [camera.project(world((x,y,8)))
+        section = [camera.project(world((x,y,13)))
                    for x in (slat['origin'][0], slat['origin'][0]+slat['size'][0])
-                   for y in (slat['origin'][1], 7)]
+                   for y in (slat['origin'][1], 9)]
         projected = [p[0]*across[0]+p[1]*across[1] for p in section]
         edges.append((min(projected), max(projected)))
     edges.sort()
@@ -214,25 +226,25 @@ for step in range(11):
             for point in m.tilt.corners(cube):
                 for pivot, rotation in turns[bone['name']]:
                     point = r.rotate(point, pivot, rotation)
-                assert -6.00001 <= point[0] <= 6.00001, point
-                assert -16.00001 <= point[2] <= 16.00001, point
+                assert -8.00001 <= point[0] <= 8.00001, point
+                assert -23.00001 <= point[2] <= 23.00001, point
                 assert point[1] >= -0.00001, point
                 points.append(point)
         if bone['name'] == 'backrest' and points:
-            assert min(p[2] for p in points) > 2
-            if step == 0: assert max(p[1] for p in points) > 13
+            assert min(p[2] for p in points) > 5
+            if step == 0: assert max(p[1] for p in points) > 17
             if step == 10: assert abs(max(p[1] for p in points)-m.TOP_PX)<0.00001
         all_points.extend(points)
     if step == 10: assert abs(max(p[1] for p in all_points)-m.TABLE_TOP_PX)<0.00001
 table = r.static_pose(g, animations['animation.yasu_ride.beach_chair.table'])
 assert all(not b.get('cubes') for b in table['bones'] if b['name'] in ['frame','backrest','prop'])
 base = next(b for b in table['bones'] if b['name']=='table_form')['cubes']
-assert m.TABLE_TOP_PX == m.TOP_PX == 7 and close(m.TABLE_RAIL_BOTTOM, 5.22)
-check_legs(base, [(x,z,1.15,5.22) for x in (-6,4.85) for z in (-7.25,6.1)])
-aprons = [c for c in base if close(c['origin'][1],5.22)]
+assert m.TABLE_TOP_PX == m.TOP_PX == 9 and close(m.TABLE_RAIL_BOTTOM, 6.63)
+check_legs(base, [(x,z,1.55,6.63) for x in (-8,6.45) for z in (-10.5,8.95)])
+aprons = [c for c in base if close(c['origin'][1],6.63)]
 assert len(aprons) == 4
-assert all(close(c['size'][1],1.6) for c in aprons)
-assert all(close(min(c['size'][0],c['size'][2]),0.4) for c in aprons)
+assert all(close(c['size'][1],2.13) for c in aprons)
+assert all(close(min(c['size'][0],c['size'][2]),0.55) for c in aprons)
 top = next(b for b in table['bones'] if b['name']=='table_top')['cubes']
 assert all(abs(c['origin'][1]-m.TABLE_SLAT_BOTTOM) < 1e-6 for c in top)
 assert all(abs(c['origin'][1]+c['size'][1]-m.TABLE_TOP_PX) < 1e-6 for c in top)
@@ -241,24 +253,24 @@ def filled(x,z):
     return any(c['origin'][0] <= x <= c['origin'][0]+c['size'][0] and
                c['origin'][2] <= z <= c['origin'][2]+c['size'][2] for c in top)
 # The only uncovered surface is twelve isolated square holes across the middle.
-centres = [-5.54 + k*0.88 + 0.26 for k in range(13)]
+centres = [-7.43 + k*1.18 + 0.35 for k in range(13)]
 holes = [(a+b)/2 for a,b in zip(centres,centres[1:])]
-for ix in range(240):
-    x = -6+(ix+0.5)/20
-    for iz in range(290):
-        z = -7.25+(iz+0.5)/20
-        hole = abs(z-m.TABLE_Z_CENTER)<0.18 and any(abs(x-h)<0.18 for h in holes)
+for ix in range(320):
+    x = -8+(ix+0.5)/20
+    for iz in range(420):
+        z = -10.5+(iz+0.5)/20
+        hole = abs(z-m.TABLE_Z_CENTER)<0.24 and any(abs(x-h)<0.24 for h in holes)
         assert filled(x,z) != hole, (x,z)
 assert m.TABLE_Z_MAX - m.TABLE_Z_MIN == m.HINGE[2] - m.MAIN_RAIL_START
-assert m.TABLE_Z_MIN == -7.25 and m.TABLE_Z_MAX == 7.25 and m.TABLE_Z_CENTER == 0
-assert min(c['origin'][0] for c in top) == -6
-assert max(c['origin'][0]+c['size'][0] for c in top) == 6
-assert min(c['origin'][2] for c in top) == -7.25
-assert max(c['origin'][2]+c['size'][2] for c in top) == 7.25
-assert all(close(c['origin'][1],6.82) and close(c['origin'][1]+c['size'][1],7) for c in top)
+assert m.TABLE_Z_MIN == -10.5 and m.TABLE_Z_MAX == 10.5 and m.TABLE_Z_CENTER == 0
+assert min(c['origin'][0] for c in top) == -8
+assert max(c['origin'][0]+c['size'][0] for c in top) == 8
+assert min(c['origin'][2] for c in top) == -10.5
+assert max(c['origin'][2]+c['size'][2] for c in top) == 10.5
+assert all(close(c['origin'][1],8.76) and close(c['origin'][1]+c['size'][1],9) for c in top)
 # Deep slats with dark inner walls make the bed gaps read as dark slots.
-assert close(m.TOP_PX - m.SLAT_BOTTOM, 0.55)
-inner = [c for c in bed if abs(c['origin'][0]) < 5]
+assert close(m.TOP_PX - m.SLAT_BOTTOM, 0.73)
+inner = [c for c in bed if abs(c['origin'][0]) < 6.7]
 assert len(inner) == 11
 assert all(c['uv'][side]['uv'][0] == m.GAP_SLOT*16 for c in inner for side in ('east','west','down'))
 assert all(c['uv']['up']['uv'] == [16,0] and c['uv']['north']['uv'] == [m.END_GRAIN_SLOT*16,0] for c in inner)
@@ -399,12 +411,19 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
 it("keeps the folded entity fixed at its pose", () => {
   expect(entity.component_groups["yasu_ride:beach_chair_table"]).toEqual({
     "minecraft:physics": { has_collision: false, has_gravity: false },
+    "minecraft:custom_hit_test": { hitboxes: tableHitboxes },
+  });
+  expect(entity.component_groups["yasu_ride:beach_chair_lounger"]).toEqual({
+    "minecraft:physics": { has_collision: true, has_gravity: true },
+    "minecraft:custom_hit_test": { hitboxes: chairHitboxes },
   });
   expect(entity.events["yasu_ride:beach_chair_fold"]).toEqual({
     add: { component_groups: ["yasu_ride:beach_chair_table"] },
+    remove: { component_groups: ["yasu_ride:beach_chair_lounger"] },
   });
   expect(entity.events["yasu_ride:beach_chair_unfold"]).toEqual({
     remove: { component_groups: ["yasu_ride:beach_chair_table"] },
+    add: { component_groups: ["yasu_ride:beach_chair_lounger"] },
   });
 });
 
