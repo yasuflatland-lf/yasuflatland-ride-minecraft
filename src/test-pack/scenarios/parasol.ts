@@ -40,7 +40,9 @@ async function course(a: Arena, rain: boolean): Promise<Outcome> {
     const entity = near(BEACH_PARASOL)[0];
     if (!entity) return { pass: false, detail: "parasol not placed" };
     const placed =
-      Math.floor(entity.location.z) === pose.base.z &&
+      entity.location.x === pose.base.x + 0.5 &&
+      entity.location.y === pose.base.y &&
+      entity.location.z === pose.base.z + 0.5 &&
       snapYaw4(entity.getRotation().y) === pose.yaw;
     const covered = cells.every(
       (cell) => a.dim.getBlock(cell)?.typeId === PARASOL_CEILING_BLOCK,

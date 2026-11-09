@@ -10,11 +10,11 @@
 ### Feature installation and placement
 
 - Applies to: Using `yasu_ride:beach_parasol_item` on a block.
-- Rule: Bootstrap installs resort after camp, supplying vehicle and camp space checks. Resort imports shared helpers without importing camp. First block interactions are cancelled, deduplicated per player per tick, and deferred. Only a top face outside the add-on's blocks is accepted. The canopy centers over the pressed cell; the base lies `PARASOL_SPEC.baseOffset` (3.25 blocks) farther along the player's quarter-turn heading. A solid top must support the base. All base and pole cells must be air outside vehicle and camp space. Another base at a Chebyshev distance below `PARASOL_SPEC.minBaseDistance` refuses placement. Refusal shows an action-bar hint before payment. Survival consumes one matching held item; Creative pays nothing. Failed spawn refunds a paid item. Successful spawn lays its ceiling. All parasol tuning lives in `src/domain/resort/spec.ts`.
+- Rule: Bootstrap installs resort after camp, supplying vehicle and camp space checks. Resort imports shared helpers without importing camp. First block interactions are cancelled, deduplicated per player per tick, and deferred. Only a top face outside the add-on's blocks is accepted. The canopy centers over the pressed cell; the base lies `PARASOL_SPEC.baseOffset` (3.25 blocks) farther along the player's quarter-turn heading. A solid top must support the block below the base centre; support is not required below every tray cell. The fractional base position is preserved for spawning and spacing. Model foot cells translate with that position, and every integer world cell overlapped by a translated cell must be air outside vehicle and camp space. Another base at a Chebyshev distance below `PARASOL_SPEC.minBaseDistance` refuses placement. Refusal shows an action-bar hint before payment. Survival consumes one matching held item; Creative pays nothing. Failed spawn refunds a paid item. Successful spawn lays its ceiling. All parasol tuning lives in `src/domain/resort/spec.ts`.
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, placement follows the design document.
 - Implementation: `src/application/resort/placeParasol.ts`; `src/application/resort/ports/parasolWorld.ts`; `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/bedrock/handlers/placement.ts`; `src/infrastructure/resort/bedrock/bedrockParasolWorld.ts`; `src/infrastructure/bootstrap.ts`
-- Verification: `tests/application/resort/placeParasol.test.ts` checks arbitrary placement obstructions, Creative exclusion, payment failure, spawn refunds, and ceiling order. `tests/infrastructure/resort/handlers.test.ts` checks deferred deduplication. Live device placement has not been run.
+- Verification: `tests/domain/resort/parasolPose.test.ts` checks integer clearance coverage and centre support for fractional bases at all quarter turns. `tests/application/resort/placeParasol.test.ts` checks individual footprint obstructions, missing centre support, Creative exclusion, payment failure, spawn refunds, and ceiling order. `tests/infrastructure/resort/handlers.test.ts` checks deferred deduplication. Live device placement has not been run.
 
 ### Rain ceiling and recovery
 
@@ -23,7 +23,7 @@
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, rain shelter follows the design document; [0235](../adr/0235-share-convex-rain-ceiling-geometry-and-placement.md) Decision, shared footprint geometry and rain ceiling layer.
 - Implementation: `src/application/resort/syncParasolCeilings.ts`; `src/domain/resort/parasolPose.ts`; `src/infrastructure/resort/bedrock/bedrockParasolWorld.ts`; `src/infrastructure/resort/bedrock/handlers/lifecycle.ts`; `src/infrastructure/shared/rainCeiling.ts`; `src/infrastructure/shared/laidBlockGuard.ts`
-- Verification: `tests/infrastructure/resort/bedrockParasolWorld.test.ts` checks saving, fresh-adapter restoration, replacement preservation, and unloaded-cell retry. `parasol_rain_ceiling` is registered in `src/test-pack/catalog.ts` but has not been run. The block's ability to stop actual rain and snow remains unverified.
+- Verification: `tests/infrastructure/resort/bedrockParasolWorld.test.ts` checks saving, fresh-adapter restoration, replacement preservation, and unloaded-cell retry. `parasol_rain_ceiling` verifies ceiling placement, periodic repair, and cleanup on the dev BDS. The block's ability to stop actual rain and snow remains unverified.
 
 ### Taking the parasol back
 
@@ -32,7 +32,7 @@
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, pick-up follows the design document.
 - Implementation: `src/application/resort/takeBackParasol.ts`; `src/infrastructure/resort/bedrock/handlers/hits.ts`; `src/infrastructure/resort/bedrock/handlers/testParasol.ts`
-- Verification: `tests/application/resort/takeBackParasol.test.ts` checks effect order, reset gaps, and loaded-ceiling synchronization. `parasol_place_take_back` is registered but has not been run in game.
+- Verification: `tests/application/resort/takeBackParasol.test.ts` checks effect order, reset gaps, and loaded-ceiling synchronization. `parasol_place_take_back` verifies fractional spawn position, hit counting, item return, and ceiling cleanup on the dev BDS.
 
 ### Resort catalog and invisible block
 
