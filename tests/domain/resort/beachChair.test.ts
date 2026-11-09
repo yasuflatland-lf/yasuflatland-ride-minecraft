@@ -169,3 +169,31 @@ describe("form rules", () => {
     expect(asBeachChairId("abc")).toBe("abc");
   });
 });
+
+describe("BEACH_CHAIR_SPEC", () => {
+  it("matches the model's measured seat, top, and bed outline", () => {
+    expect(BEACH_CHAIR_SPEC.seatOffset).toEqual({ x: 0, y: 0.4375, z: 0.125 });
+    expect(BEACH_CHAIR_SPEC.topPx).toBe(7);
+    expect(BEACH_CHAIR_SPEC.bedOutlinePx).toEqual({
+      minX: -6,
+      maxX: 6,
+      minZ: -16,
+      maxZ: 16,
+    });
+  });
+
+  it("covers the whole bed outline with the table top", () => {
+    const { topHalf, bedOutlinePx } = BEACH_CHAIR_SPEC;
+    expect(topHalf.halfX * 2).toBe(bedOutlinePx.maxX - bedOutlinePx.minX);
+    expect(topHalf.halfZ * 2).toBe(bedOutlinePx.maxZ - bedOutlinePx.minZ);
+  });
+
+  it("puts the seat inside the bed outline", () => {
+    const { seatOffset, bedOutlinePx } = BEACH_CHAIR_SPEC;
+    const px = 16;
+    expect(seatOffset.x * px).toBeGreaterThanOrEqual(bedOutlinePx.minX);
+    expect(seatOffset.x * px).toBeLessThanOrEqual(bedOutlinePx.maxX);
+    expect(seatOffset.z * px).toBeGreaterThanOrEqual(bedOutlinePx.minZ);
+    expect(seatOffset.z * px).toBeLessThanOrEqual(bedOutlinePx.maxZ);
+  });
+});

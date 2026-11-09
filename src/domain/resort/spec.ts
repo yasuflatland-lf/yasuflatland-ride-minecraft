@@ -41,15 +41,17 @@ export const PARASOL_SPEC = Object.freeze({
   defaultPaint: "white" satisfies Paint,
 } as const);
 
-// Every tuning value of the beach chair. seatOffset, topPx and topHalf are the
-// design document's approximate values until the model's measured ones land.
+// Every tuning value of the beach chair. seatOffset, topPx, topHalf and
+// bedOutlinePx are measured from the model in tools/gen_beach_chair.py.
 export const BEACH_CHAIR_SPEC = Object.freeze({
   /** The lying player's seat, local to the entity origin, in blocks. */
-  seatOffset: Object.freeze({ x: 0, y: 0.45, z: 0.15 }),
+  seatOffset: Object.freeze({ x: 0, y: 0.4375, z: 0.125 }),
   /** From the origin to the top of the table, in pixels (16 px per block). */
   topPx: 7,
   /** Half the table top's size, in pixels. */
-  topHalf: Object.freeze({ halfX: 6, halfZ: 15 }),
+  topHalf: Object.freeze({ halfX: 6, halfZ: 16 }),
+  /** The bed's outline around the origin, in pixels. */
+  bedOutlinePx: Object.freeze({ minX: -6, maxX: 6, minZ: -16, maxZ: 16 }),
   /** Lanterns and ovens that fit on the table top. */
   topLimit: 4,
   /** Layers of air needed above the floor so a lying player fits. */
