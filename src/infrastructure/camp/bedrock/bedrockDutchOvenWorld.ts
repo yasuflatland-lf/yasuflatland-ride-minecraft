@@ -17,6 +17,7 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
+import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DUTCH_OVEN_GROUND_EVENT,
   DUTCH_OVEN_HITS_LEFT_HINT,
@@ -37,7 +38,6 @@ import {
   isHostAreaLoaded,
   loadedEntityIds,
 } from "./hostedEntities";
-import { itemsOnTable, tableTop } from "./tableItems";
 
 function dutchOven(id: DutchOvenId) {
   return entityOfType(world, id, DUTCH_OVEN_TYPE);
@@ -60,6 +60,7 @@ export function setOvenHost(
 export class BedrockDutchOvenWorld implements DutchOvenWorld {
   constructor(
     private readonly vehicles: {
+      topHosts: TopHostRegistry;
       isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
     },
   ) {}
@@ -114,11 +115,18 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
   }
 
   topHost(hostType: string, id: string) {
-    return hostType === "camp_table" ? tableTop(id) : undefined;
+    const host = this.vehicles.topHosts.host(hostType, id);
+    return host
+      ? {
+          dimension: asDimensionId(host.entity.dimension.id),
+          at: host.entity.location,
+          yaw: host.entity.getRotation().y,
+        }
+      : undefined;
   }
 
   itemsOnTop(hostType: string, id: string): readonly TopItem[] {
-    return hostType === "camp_table" ? itemsOnTable(id) : [];
+    return this.vehicles.topHosts.itemsOnTop(hostType, id);
   }
 
   spawnHosted(

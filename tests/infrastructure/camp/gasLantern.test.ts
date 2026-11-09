@@ -16,6 +16,7 @@ import {
   TEST_GAS_LANTERN_ON_TABLE_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../src/infrastructure/shared/identifiers";
+import { campTopHosts } from "../../support/campTopHosts";
 import { defined } from "../../support/defined";
 
 const game = vi.hoisted(() => ({
@@ -101,6 +102,7 @@ function fixture() {
   registerGasLantern(
     new GasLanternActions(world),
     world as unknown as BedrockGasLanternWorld,
+    campTopHosts(),
   );
   return world;
 }
@@ -231,8 +233,23 @@ it("shares the hit and server switch cooldown, rejects non-server switches, and 
 function tableHandlers() {
   const placeOnTable = vi.fn<GasLanternActions["placeOnTable"]>();
   registerGasLantern(
-    { placeOnTable } as unknown as GasLanternActions,
+    {
+      placeOnTable,
+      placeOnTop: (
+        _surface: unknown,
+        {
+          host,
+          hostType: _hostType,
+          ...cmd
+        }: import("../../../src/application/shared/placeOnTop").TopRequest,
+      ) =>
+        placeOnTable({
+          ...cmd,
+          table: host as import("../../../src/domain/camp/table").TableId,
+        }),
+    } as unknown as GasLanternActions,
     { relayLoaded: vi.fn() } as unknown as BedrockGasLanternWorld,
+    campTopHosts(),
   );
   const interact = defined(game.interact.mock.calls[0]?.[0], "interact");
   const script = defined(game.script.mock.calls[0]?.[0], "script handler");

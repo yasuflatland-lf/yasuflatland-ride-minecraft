@@ -13,10 +13,14 @@ import { HitCounters } from "../../domain/shared/hitCounter";
 import { decodeHost } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
-import type { LocalPoint } from "../../domain/shared/tableTop";
+import type { LocalPoint, TopSurface } from "../../domain/shared/tableTop";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
-import { placeOnTop, type TopOutcome } from "../shared/placeOnTop";
+import {
+  placeOnTop,
+  type TopOutcome,
+  type TopRequest,
+} from "../shared/placeOnTop";
 import type { HostedItemKind } from "../shared/ports/hostedItem";
 import type { HostedKindPort } from "../shared/ports/hostedKind";
 import { handleHit } from "../shared/takeBackByHits";
@@ -79,13 +83,17 @@ export class GasLanternActions {
     });
   }
 
+  placeOnTop(surface: TopSurface, cmd: TopRequest): TopOutcome {
+    return placeOnTop(this.world, surface, ON_TABLE, cmd);
+  }
+
   placeOnTable(cmd: {
     player?: PlayerId;
     table: TableId;
     slot: number;
     aim?: LocalPoint;
   }): TopOutcome {
-    return placeOnTop(this.world, CAMP_TABLE_TOP, ON_TABLE, {
+    return this.placeOnTop(CAMP_TABLE_TOP, {
       ...cmd,
       hostType: "camp_table",
       host: cmd.table,

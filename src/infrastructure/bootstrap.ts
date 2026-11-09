@@ -4,9 +4,11 @@ import { installBuild } from "./build/install";
 import { installCamp } from "./camp/install";
 import { installResort } from "./resort/install";
 import { NAMESPACE } from "./shared/identifiers";
+import { TopHostRegistry } from "./shared/tableTop/registry";
 import { installVehicles } from "./vehicle/install";
 
 export function bootstrap(): void {
+  const topHosts = new TopHostRegistry();
   // Camp installs second, so the vehicles read its space through this reference.
   // No event or tick runs before bootstrap returns, so nothing reads it unset (ADR 0129).
   let camp: ReturnType<typeof installCamp> | undefined;
@@ -18,10 +20,12 @@ export function bootstrap(): void {
     laterSwitchTargets: () => camp?.switchTargets ?? [],
   });
   camp = installCamp({
+    topHosts,
     isVehicleSpace: vehicles.isVehicleSpace,
     vehicleHost: vehicles.vehicleHost,
   });
   installResort({
+    topHosts,
     isVehicleSpace: vehicles.isVehicleSpace,
     isCampSpace: camp.isCampSpace,
   });

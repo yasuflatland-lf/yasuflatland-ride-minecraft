@@ -7,13 +7,13 @@ import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
+import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
   DUTCH_OVEN_ON_TOP_HINT,
   TABLE_HITS_LEFT_HINT,
 } from "../identifiers";
-import { itemsOnTable } from "./tableItems";
 
 function tableOf(id: TableId) {
   return entityOfType(world, id, CAMP_TABLE_TYPE);
@@ -30,6 +30,7 @@ function blockAt(dimensionId: DimensionId, at: Vec3) {
 export class BedrockTableWorld implements TableWorld {
   constructor(
     private readonly vehicles: {
+      topHosts: TopHostRegistry;
       isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
     },
   ) {}
@@ -75,7 +76,7 @@ export class BedrockTableWorld implements TableWorld {
   }
 
   itemsOnTable(id: TableId): number {
-    return itemsOnTable(id).length;
+    return this.vehicles.topHosts.hostedOn("camp_table", id).length;
   }
 
   showOvenOnTop(player: PlayerId): void {

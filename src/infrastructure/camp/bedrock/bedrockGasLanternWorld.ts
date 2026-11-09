@@ -8,13 +8,18 @@ import {
   gasLanternLightCells,
 } from "../../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../../domain/camp/spec";
-import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import {
+  asDimensionId,
+  type DimensionId,
+  type PlayerId,
+} from "../../../domain/shared/ids";
 import type { TopItem } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
+import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   GAS_LANTERN_HITS_LEFT_HINT,
   GAS_LANTERN_HOST_PROPERTY,
@@ -29,7 +34,6 @@ import {
   isHostAreaLoaded,
   loadedEntityIds,
 } from "./hostedEntities";
-import { itemsOnTable, tableTop } from "./tableItems";
 
 function gasLantern(id: GasLanternId) {
   return entityOfType(world, id, GAS_LANTERN_TYPE);
@@ -46,6 +50,7 @@ function spawnLantern(dimension: DimensionId, at: Vec3, yaw: number) {
 export class BedrockGasLanternWorld implements GasLanternWorld {
   constructor(
     private readonly vehicles: {
+      topHosts: TopHostRegistry;
       isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
     },
     private readonly light: CellLayer<GasLanternId, GasLanternLight>,
@@ -100,11 +105,18 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
   }
 
   topHost(hostType: string, id: string) {
-    return hostType === "camp_table" ? tableTop(id) : undefined;
+    const host = this.vehicles.topHosts.host(hostType, id);
+    return host
+      ? {
+          dimension: asDimensionId(host.entity.dimension.id),
+          at: host.entity.location,
+          yaw: host.entity.getRotation().y,
+        }
+      : undefined;
   }
 
   itemsOnTop(hostType: string, id: string): readonly TopItem[] {
-    return hostType === "camp_table" ? itemsOnTable(id) : [];
+    return this.vehicles.topHosts.itemsOnTop(hostType, id);
   }
 
   spawnHosted(

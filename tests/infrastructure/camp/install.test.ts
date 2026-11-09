@@ -70,6 +70,8 @@ import { installCamp } from "../../../src/infrastructure/camp/install";
 import { registerBedBlock } from "../../../src/infrastructure/shared/bedBlock";
 import { registerLaidBlockGuard } from "../../../src/infrastructure/shared/laidBlockGuard";
 import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
+import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
+import { campTopHosts } from "../../support/campTopHosts";
 import { defined } from "../../support/defined";
 
 const game = vi.hoisted(() => ({
@@ -154,7 +156,11 @@ vi.mock("../../../src/infrastructure/camp/bedrock/handlers/dutchOven", () => ({
 
 it("wires one hit use case into both hit handlers and asks the vehicles for their space (ADR 0122)", () => {
   const isVehicleSpace = vi.fn(() => true);
-  installCamp({ vehicleHost: () => ({ status: "unknown" }), isVehicleSpace });
+  installCamp({
+    topHosts: campTopHosts(),
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace,
+  });
   const hitChair = vi.mocked(registerChairHits).mock.calls[0]?.[0];
   expect(hitChair).toBeInstanceOf(HitChair);
   expect(vi.mocked(registerTestChairHit).mock.calls[0]?.[0]).toBe(hitChair);
@@ -180,6 +186,7 @@ it("wires one hit use case into both hit handlers and asks the vehicles for thei
 
 it("registers the tent mattress as a bed with its own SleepInBed (ADR 0092, 0133)", () => {
   installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
@@ -191,6 +198,7 @@ it("registers the tent mattress as a bed with its own SleepInBed (ADR 0092, 0133
 
 it("claims no camp space for any dimension and integer cell without a tent (ADR 0129)", () => {
   const { isCampSpace } = installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
@@ -215,6 +223,7 @@ beforeEach(() => vi.clearAllMocks());
 it("claims each registered tent's footprint as camp space (ADR 0131)", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
   const { isCampSpace } = installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
@@ -231,6 +240,7 @@ it("claims each registered tent's footprint as camp space (ADR 0131)", () => {
 it("wires the tent handlers with the same use cases, registry, and owner lookup (ADR 0131)", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
   installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
@@ -269,6 +279,7 @@ it("wires the tent handlers with the same use cases, registry, and owner lookup 
 it("shares one flap store between the tent world and the loop, and one flap use case between both flap handlers (ADR 0132)", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
   installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
@@ -309,6 +320,7 @@ it("returns tent and Gas Lantern targets built on the registered actions", () =>
     id === "t" ? { isValid: true, typeId: TENT_TYPE } : undefined,
   );
   const { switchTargets } = installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
@@ -331,6 +343,7 @@ it("returns tent and Gas Lantern targets built on the registered actions", () =>
 
 it("registers oven interactions before fire pit interactions", () => {
   installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
@@ -344,12 +357,14 @@ vi.mock("../../../src/infrastructure/camp/bedrock/handlers/gasLantern", () => ({
 }));
 it("registers one Gas Lantern use case after the Fire Pit", () => {
   installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
   expect(registerGasLantern).toHaveBeenCalledExactlyOnceWith(
     expect.any(GasLanternActions),
     expect.any(BedrockGasLanternWorld),
+    expect.any(TopHostRegistry),
   );
   expect(vi.mocked(registerFirePit).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(registerGasLantern).mock.invocationCallOrder[0] ?? 0,
@@ -379,7 +394,11 @@ it("shares roof tent actions, occupant adapters and the vehicle host lookup acro
     "ceilingOwner",
   );
   const vehicleHost = vi.fn(() => ({ status: "unknown" as const }));
-  installCamp({ isVehicleSpace: () => false, vehicleHost });
+  installCamp({
+    topHosts: campTopHosts(),
+    isVehicleSpace: () => false,
+    vehicleHost,
+  });
   const [place, lookup] =
     vi.mocked(registerRoofTentPlacement).mock.calls[0] ?? [];
   const [fold, paint] = vi.mocked(registerRoofTentHits).mock.calls[0] ?? [];
@@ -431,6 +450,7 @@ vi.mock(
 
 it("wires roof tent entry, menu and cleanup to the same occupant adapter", () => {
   installCamp({
+    topHosts: campTopHosts(),
     isVehicleSpace: () => false,
     vehicleHost: () => ({ status: "unknown" }),
   });
@@ -468,6 +488,7 @@ vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
 it("registers the roof tent starter with its camp use case", () => {
   starterArgs.length = 0;
   installCamp({
+    topHosts: campTopHosts(),
     vehicleHost: () => ({ status: "unknown" }),
     isVehicleSpace: () => false,
   });
