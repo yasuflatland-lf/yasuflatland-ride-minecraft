@@ -18,7 +18,7 @@ import {
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -27,6 +27,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone", { stone_type: "granite" });
@@ -43,8 +44,11 @@ function setup() {
     new FakeBuildPlayers(),
   );
   const session = repo.getOrCreate(playerId);
-  const cut = new CutBox(repo, world, feedback, jobs);
-  const actions = { copy: new CopyBox(repo, world, feedback), cut };
+  const cut = new CutBox(repo, world, feedback, jobs, new FakeStructureStore());
+  const actions = {
+    copy: new CopyBox(repo, new FakeStructureStore(), feedback),
+    cut,
+  };
   const drain = () => {
     while (session.isEditing) jobs.step();
   };
@@ -242,7 +246,7 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
           });
         }
         if (!(shape.kind === "rect" && shape.flat === "y"))
-          expect(e.session.clipboard?.cells.length).toBeGreaterThan(0);
+          expect(clipboardCells(e.session.clipboard).length).toBeGreaterThan(0);
       },
     ),
   );
@@ -257,7 +261,7 @@ it("keeps protected cells but still stores them in the clipboard", () => {
   e.cut.execute(playerId, overworld, box);
   e.drain();
   expect(e.world.stateAt(overworld, { ...origin, x: 1 })).toEqual(stone);
-  expect(e.session.clipboard?.cells).toHaveLength(2);
+  expect(clipboardCells(e.session.clipboard)).toHaveLength(2);
 });
 
 it("refuses a box above the copy limit even though the edit limit is larger", () => {

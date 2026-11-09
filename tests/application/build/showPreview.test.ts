@@ -20,6 +20,7 @@ import {
   nether,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const alex = asPlayerId("alex");
 const material = blockStateOf("minecraft:stone");
@@ -35,7 +36,10 @@ function setup(active = true) {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const session = repo.getOrCreate(alex);
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, new FakeStructureStore()),
+  );
   if (active)
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
       modes.execute([{ playerId: alex, holding: true }]);
@@ -104,7 +108,10 @@ it("draws only in build mode and on the interval, and clears the preview with th
   session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
   preview.execute(0);
   expect(aim).not.toHaveBeenCalled();
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, new FakeStructureStore()),
+  );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([{ playerId: alex, holding: true }]);
   preview.execute(1);
@@ -190,7 +197,10 @@ it("keeps concurrent players and their aim targets separate", () => {
   const other = repo.getOrCreate(bob);
   session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
   other.setFlow({ kind: "point1", dimensionId: nether, cell: end, material });
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, new FakeStructureStore()),
+  );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
       { playerId: alex, holding: true },
@@ -299,7 +309,10 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
   const { session, repo, preview, feedback } = setup();
   const bob = asPlayerId("bob");
   const other = repo.getOrCreate(bob);
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, new FakeStructureStore()),
+  );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
       { playerId: alex, holding: true },

@@ -19,6 +19,7 @@ import {
 } from "../../../src/domain/build/mode";
 import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { structureHandle } from "../../../src/domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { holdClipboard } from "../../support/buildClipboard";
 
@@ -320,6 +321,47 @@ it("startNewCopy idles any paste aiming, clears the box and repeat window, and k
         session.leaveBuildMode();
         expect(session.flow).toEqual({ kind: "idle" });
         expect(session.clipboard).toBeUndefined();
+      },
+    ),
+  );
+});
+
+it("returns only replaced or cleared structure handles and retains identical handles", () => {
+  fc.assert(
+    fc.property(
+      fc.uuid(),
+      fc.uuid(),
+      fc.constantFrom("clearClipboard", "endPasting", "leaveBuildMode"),
+      (first, second, exit) => {
+        const session = new BuildSession(asPlayerId("builder"));
+        const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+        const clipboard = (raw: string) => ({
+          size: { x: 1, y: 1, z: 1 },
+          blockCount: 1,
+          contents: {
+            kind: "structure" as const,
+            handle: structureHandle(raw),
+          },
+        });
+        const a = clipboard(first);
+        const b = clipboard(second);
+        expect(session.completeCopy(dim, box, a)).toBeUndefined();
+        expect(
+          session.completeCopy(dim, box, clipboard(first)),
+        ).toBeUndefined();
+        expect(session.completeCopy(dim, box, b)).toBe(
+          first === second ? undefined : a.contents.handle,
+        );
+        expect(session[exit]()).toBe(b.contents.handle);
+        expect(session[exit]()).toBeUndefined();
+        expect(
+          session.completeCopy(
+            dim,
+            box,
+            clipboardOf(box, () => stone),
+          ),
+        ).toBeUndefined();
+        expect(session[exit]()).toBeUndefined();
       },
     ),
   );

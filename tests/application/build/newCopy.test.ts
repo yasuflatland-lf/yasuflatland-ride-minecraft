@@ -25,6 +25,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("builder");
 const stone = blockStateOf("minecraft:stone");
@@ -48,7 +49,7 @@ function setup(from: { x: number; y: number; z: number }, skipAir: boolean) {
   const chooseBoxStep = new ChooseBoxStep(
     repo,
     {
-      copy: new CopyBox(repo, world, feedback),
+      copy: new CopyBox(repo, new FakeStructureStore(), feedback),
       cut: new CutBox(
         repo,
         world,
@@ -60,6 +61,7 @@ function setup(from: { x: number; y: number; z: number }, skipAir: boolean) {
           { warn: () => {} },
           new FakeBuildPlayers(),
         ),
+        new FakeStructureStore(),
       ),
     },
     feedback,
@@ -90,9 +92,11 @@ it("starts a normal selection with the old clipboard, then replaces it and reset
         expect(e.session.flow).toEqual(tapBlock(first, overworld, to, stone));
         e.chooseBoxStep.execute({ playerId, kind: "copy" });
         expect(e.session.clipboard).not.toBe(e.old);
-        expect(e.session.clipboard).toEqual(
-          clipboardOf(boxOf(from, to), (at) => e.world.stateAt(overworld, at)),
-        );
+        expect(e.session.clipboard).toMatchObject({
+          size: { x: length + 1, y: 1, z: 1 },
+          blockCount: length + 1,
+          contents: { kind: "structure" },
+        });
         expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
       },
     ),

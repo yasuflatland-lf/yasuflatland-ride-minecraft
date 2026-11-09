@@ -3,6 +3,7 @@ import type { Cell } from "../../shared/cells";
 import type { BlockState } from "../blockState";
 import { boxOf, type CellBox, cellsOf } from "../box";
 import { isKeptState } from "../edit/guard";
+import type { StructureHandle } from "../structure/handle";
 
 interface ClipboardCell {
   /** Relative to the box min. */
@@ -10,9 +11,24 @@ interface ClipboardCell {
   readonly state: BlockState;
 }
 
+type ClipboardContents =
+  | { readonly kind: "cells"; readonly cells: readonly ClipboardCell[] }
+  | { readonly kind: "structure"; readonly handle: StructureHandle };
+
 export interface Clipboard {
+  /** Box dimensions. */
   readonly size: Cell;
-  readonly cells: readonly ClipboardCell[];
+  /** What the "copied" and paste hint messages show. */
+  readonly blockCount: number;
+  readonly contents: ClipboardContents;
+}
+
+export function structureOf(
+  clipboard: Clipboard | undefined,
+): StructureHandle | undefined {
+  return clipboard?.contents.kind === "structure"
+    ? clipboard.contents.handle
+    : undefined;
 }
 
 /** A cell that reads undefined or is kept is left out, so a paste leaves that target cell as it is. */
@@ -39,7 +55,8 @@ export function clipboardOf(
       y: box.max.y - box.min.y + 1,
       z: box.max.z - box.min.z + 1,
     },
-    cells,
+    blockCount: cells.length,
+    contents: { kind: "cells", cells },
   };
 }
 

@@ -32,6 +32,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
@@ -200,7 +201,7 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
           beginPasteAim(skipAir),
         ]) {
           const e = setup();
-          const leave = new LeaveBuild(e.repo);
+          const leave = new LeaveBuild(e.repo, new FakeStructureStore());
           const execute = vi.spyOn(leave, "execute");
           const modes = new UpdateBuildModes(e.repo, leave);
           for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
@@ -253,7 +254,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         const e = setup();
         e.session.confirmBox(overworld, boxOf(at, at));
         e.session.setFlow(flow);
-        const leave = new LeaveBuild(e.repo);
+        const leave = new LeaveBuild(e.repo, new FakeStructureStore());
         const end = vi.spyOn(e.session, "endPasting");
         leave.execute(playerId);
         const idle = e.session.flow;
@@ -299,7 +300,7 @@ it("EndPasting without a session does not create one", () => {
       const repo = new FakeSessions();
       const create = vi.spyOn(repo, "getOrCreate");
       const remove = vi.spyOn(repo, "remove");
-      new EndPasting(repo).execute(asPlayerId(id));
+      new EndPasting(repo, new FakeStructureStore()).execute(asPlayerId(id));
       expect(repo.get(asPlayerId(id))).toBeUndefined();
       expect(create).not.toHaveBeenCalled();
       expect(remove).not.toHaveBeenCalled();
@@ -319,7 +320,7 @@ it("EndPasting lets a running paste finish with its undo record and keeps older 
       const target = e.target(block);
       e.paste.execute({ playerId, dimensionId: overworld, target, tick: 0 });
       expect(e.session.isEditing).toBe(true);
-      new EndPasting(e.repo).execute(playerId);
+      new EndPasting(e.repo, new FakeStructureStore()).execute(playerId);
       expect(e.session.flow.kind).toBe("idle");
       expect(e.session.clipboard).toBeUndefined();
       expect(e.session.isEditing).toBe(true);

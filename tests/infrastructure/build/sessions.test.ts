@@ -1,9 +1,10 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
+import { CopyBox } from "../../../src/application/build/copyBox";
+import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   tapAir,
@@ -12,8 +13,12 @@ import {
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerSessions } from "../../../src/infrastructure/build/bedrock/handlers/sessions";
-import { FakeSessions, overworld } from "../../application/build/fakes";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  FakeFeedback,
+  FakeSessions,
+  overworld,
+} from "../../application/build/fakes";
+import { FakeStructureStore } from "./../../application/build/fakes/structureStore";
 
 const engine = vi.hoisted(() => {
   const handlers = new Map<string, (event: unknown) => void>();
@@ -55,22 +60,28 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
         ]) {
           for (const event of ["dimension", "die"]) {
             const repo = new FakeSessions();
+            const structures = new FakeStructureStore();
             const session = repo.getOrCreate(id);
             const debounce = new PressDebounces<PlayerId>(10);
-            session.completeCopy(
+            new CopyBox(repo, structures, new FakeFeedback()).execute(
+              id,
               overworld,
               boxOf(at, at),
-              clipboardOf(boxOf(at, at), () => stone),
             );
             session.setFlow(flow);
             expect(debounce.press(id, 0)).toBe(true);
-            registerSessions(repo, new EndPasting(repo), debounce);
+            registerSessions(
+              new EndBuildSession(repo, structures),
+              new EndPasting(repo, structures),
+              debounce,
+            );
             engine.handlers.get(event)?.({
               player: { id },
               deadEntity: { id, typeId: "minecraft:player" },
             });
             expect(session.flow).toEqual({ kind: "idle" });
             expect(session.clipboard).toBeUndefined();
+            expect(structures.live.size).toBe(0);
             expect(session.confirmedBox).toBeUndefined();
             expect(repo.get(id)).toBe(session);
             expect(debounce.press(id, 0)).toBe(false);
@@ -87,17 +98,25 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
   const session = repo.getOrCreate(id);
   const debounce = new PressDebounces<PlayerId>(10);
   const at = { x: 0, y: 0, z: 0 };
-  const clipboard = clipboardOf(boxOf(at, at), () =>
-    blockStateOf("minecraft:stone"),
+  const structures = new FakeStructureStore();
+  new CopyBox(repo, structures, new FakeFeedback()).execute(
+    id,
+    overworld,
+    boxOf(at, at),
   );
-  holdClipboard(session, clipboard);
+  const clipboard = session.clipboard;
   session.setFlow({ kind: "pasteAim", skipAir: false });
-  registerSessions(repo, new EndPasting(repo), debounce);
+  registerSessions(
+    new EndBuildSession(repo, structures),
+    new EndPasting(repo, structures),
+    debounce,
+  );
   engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
   expect(session.flow.kind).toBe("pasteAim");
   expect(session.clipboard).toBe(clipboard);
   expect(debounce.press(id, 0)).toBe(true);
   engine.handlers.get("leave")?.({ playerId: id });
   expect(repo.get(id)).toBeUndefined();
+  expect(structures.live.size).toBe(0);
   expect(debounce.press(id, 0)).toBe(true);
 });

@@ -28,6 +28,7 @@ import { roofCount } from "../../../src/domain/build/roof/roof";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
+import { clipboardCells } from "../../support/buildClipboard";
 
 const smallCell = fc.record({
   x: fc.integer({ min: -5, max: 5 }),
@@ -106,12 +107,22 @@ describe("clipboard", () => {
   ];
   const read = worldRead(states);
 
+  it("counts the cells it holds in blockCount, in the cells variant", () => {
+    fc.assert(
+      fc.property(smallBox, (box) => {
+        const clip = clipboardOf(box, read);
+        expect(clip.contents.kind).toBe("cells");
+        expect(clip.blockCount).toBe(clipboardCells(clip).length);
+      }),
+    );
+  });
+
   it("pastes one change per clipboard cell inside the paste box, and skipAir drops air", () => {
     fc.assert(
       fc.property(smallBox, smallCell, (box, target) => {
         const clip = clipboardOf(box, read);
         const all = [...planPaste(clip, target, false)];
-        expect(all).toHaveLength(clip.cells.length);
+        expect(all).toHaveLength(clip.blockCount);
         const into = pasteTarget(
           clip,
           { ...target, y: target.y - 1 },
@@ -151,7 +162,8 @@ describe("clipboard", () => {
       boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
       () => undefined,
     );
-    expect(clip.cells).toEqual([]);
+    expect(clip.blockCount).toBe(0);
+    expect(clipboardCells(clip)).toEqual([]);
     expect(clip.size).toEqual({ x: 2, y: 1, z: 1 });
   });
 });

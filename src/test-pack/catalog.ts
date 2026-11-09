@@ -19,6 +19,47 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "build_structure_store",
+    file: "buildStructureStore",
+    ticks: 20, // Estimate until the first BDS run.
+    features: ["build"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "build_structure_store_decor",
+    file: "buildStructureStore",
+    ticks: 1300, // Estimate including up to 1,200 ticks of player setup time.
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    skipNote:
+      "a player hangs a painting and puts a diamond in an item frame when prompted",
+    vehicles: 0,
+  },
+  {
+    name: "build_structure_probe",
+    file: "buildStructure",
+    ticks: 30,
+    features: ["build"],
+    // Full-world-height captures could include entities from other scenarios.
+    isolation: "exclusive",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "build_structure_decor_probe",
+    file: "buildStructure",
+    ticks: 1300, // Estimate including up to 1,200 ticks of player setup time.
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    skipNote:
+      "a player hangs a painting and puts a diamond in an item frame when prompted",
+    vehicles: 0,
+  },
+  {
     name: "beach_chair_lantern",
     file: "beachChairHosting",
     ticks: 44, // Estimate until the first BDS run.
@@ -1380,6 +1421,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     name: "build_refusals",
     file: "buildFlow",
     ticks: 80,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
+    name: "build_copy_structure",
+    file: "buildFlow",
+    ticks: 100,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,

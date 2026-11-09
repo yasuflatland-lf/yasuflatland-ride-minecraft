@@ -11,6 +11,7 @@ import type { BoxAction } from "./boxAction";
 import type { EditJobs } from "./editJobs";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
+import type { BuildStructureStore } from "./ports/structures";
 
 /** Copies the box into the clipboard, then empties it (ADR 0230). */
 export class CutBox implements BoxAction {
@@ -19,6 +20,7 @@ export class CutBox implements BoxAction {
     private readonly world: BuildBlockWorld,
     private readonly feedback: BuildFeedback,
     private readonly jobs: EditJobs,
+    private readonly structures: Pick<BuildStructureStore, "discard">,
   ) {}
 
   execute(playerId: PlayerId, dimensionId: DimensionId, box: CellBox): boolean {
@@ -34,7 +36,8 @@ export class CutBox implements BoxAction {
     const clipboard = clipboardOf(box, (cell) =>
       this.world.stateAt(dimensionId, cell),
     );
-    session.completeCopy(dimensionId, box, clipboard);
+    const previous = session.completeCopy(dimensionId, box, clipboard);
+    if (previous !== undefined) this.structures.discard(previous);
     this.feedback.showMessage(playerId, "cutting");
     this.jobs.start(
       playerId,

@@ -9,6 +9,7 @@ import {
   buildContinuousPaste,
   buildCopyEntersPasteAim,
   buildCopyShapes,
+  buildCopyStructure,
   buildCubeRect,
   buildCutHeight,
   buildCutKeepsProtected,
@@ -52,6 +53,14 @@ import {
   buildUnstuckFill,
   buildUnstuckNotTouched,
 } from "./buildFlow";
+import {
+  buildStructureDecorProbe,
+  buildStructureProbe,
+} from "./buildStructure";
+import {
+  buildStructureStore,
+  buildStructureStoreDecor,
+} from "./buildStructureStore";
 import { buildBlockStates } from "./buildTools";
 import {
   bulldozerClearHill,
@@ -326,6 +335,10 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_remove_above_cancel: buildRemoveAboveCancel,
   build_undo_hint_once: buildUndoHintOnce,
   build_shapes: buildShapes,
+  build_structure_probe: buildStructureProbe,
+  build_structure_store: buildStructureStore,
+  build_structure_store_decor: buildStructureStoreDecor,
+  build_structure_decor_probe: buildStructureDecorProbe,
   build_roofs: buildRoofs,
   build_flow_cancel: buildFlowCancel,
   build_refusals: buildRefusals,
@@ -334,6 +347,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_paste_blocked: buildPasteBlocked,
   build_continuous_paste: buildContinuousPaste,
   build_copy_shapes: buildCopyShapes,
+  build_copy_structure: buildCopyStructure,
   build_side_cylinder_x: buildSideCylinderX,
   build_side_cylinder_z: buildSideCylinderZ,
   build_cylinder_rect: buildCylinderRect,
