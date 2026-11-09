@@ -2,6 +2,7 @@ import {
   type BlockPermutation,
   ItemStack,
   type Player,
+  SignSide,
   system,
   world,
 } from "@minecraft/server";
@@ -1711,4 +1712,116 @@ export function buildSideCylinderX(a: Arena): Promise<Outcome> {
 
 export function buildSideCylinderZ(a: Arena): Promise<Outcome> {
   return buildSideCylinder(a, "z");
+}
+
+export function buildPasteStructure(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(8, 4, 4);
+    const target = f.region(8, 4, 4, f.cell(12));
+    const inside = (offset: number) =>
+      a.dim.getEntities().filter((e) => {
+        const p = e.location;
+        const min = f.cell(offset);
+        return (
+          e.typeId !== "minecraft:player" &&
+          p.x >= min.x &&
+          p.x < min.x + 8 &&
+          p.y >= min.y &&
+          p.y < min.y + 4 &&
+          p.z >= min.z &&
+          p.z < min.z + 4
+        );
+      });
+    try {
+      for (const c of [...source, ...target])
+        f.block(c).setType(
+          c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
+        );
+      const chest = f.block(f.cell(1, 1, 1));
+      chest.setType("minecraft:chest");
+      chest
+        .getComponent("minecraft:inventory")
+        ?.container?.setItem(0, new ItemStack("minecraft:diamond", 7));
+      const sign = f.block(f.cell(3, 1, 1));
+      sign.setType("minecraft:standing_sign");
+      sign
+        .getComponent("minecraft:sign")
+        ?.setText("Paste front", SignSide.Front);
+      sign.getComponent("minecraft:sign")?.setText("Paste back", SignSide.Back);
+      for (const offset of [0, 12]) {
+        const c = f.cell(offset + 5, 1, 1);
+        f.block(c).setType("minecraft:frame");
+        a.dim.runCommand(
+          `replaceitem block ${c.x} ${c.y} ${c.z} slot.container 0 minecraft:${offset === 0 ? "diamond" : "emerald"} 1`,
+        );
+        const cow = f.cell(offset + 6.5, 1, 2.5);
+        a.dim.runCommand(`summon minecraft:cow ${cow.x} ${cow.y} ${cow.z}`);
+      }
+      const oldCow = inside(12).find((e) => e.typeId === "minecraft:cow");
+      check(!!oldCow, "missing target cow");
+      const min = f.cell();
+      const max = f.cell(7, 3, 3);
+      await f.edit(
+        `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
+      );
+      const anchor = f.cell(12, -1);
+      const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
+      check(
+        pasted.message === "editDone" && pasted.count === source.length,
+        "structure paste failed",
+      );
+      const item = f
+        .block(f.cell(13, 1, 1))
+        .getComponent("minecraft:inventory")
+        ?.container?.getItem(0);
+      check(
+        item?.typeId === "minecraft:diamond" && item.amount === 7,
+        "chest payload lost",
+      );
+      const copiedSign = f
+        .block(f.cell(15, 1, 1))
+        .getComponent("minecraft:sign");
+      check(
+        copiedSign?.getText(SignSide.Front) === "Paste front" &&
+          copiedSign.getText(SignSide.Back) === "Paste back",
+        "sign text lost",
+      );
+      check(
+        target.filter((c) => f.block(c).typeId === "minecraft:frame").length ===
+          1 &&
+          f
+            .block(f.cell(17, 1, 1))
+            .getComponent("minecraft:inventory")
+            ?.container?.getItem(0)?.typeId === "minecraft:diamond",
+        "frame was not replaced",
+      );
+      check(
+        !oldCow.isValid &&
+          inside(12).filter((e) => e.typeId === "minecraft:cow").length === 1,
+        "animal replacement failed",
+      );
+      f.block(f.cell(19, 3, 3)).setType("yasu_ride:camper_bed");
+      const before = snapshot(f, target);
+      const cowIds = inside(12)
+        .map((e) => e.id)
+        .sort()
+        .join(",");
+      await wait(BUILD_SPEC.pasteRepeatTicks);
+      const refused = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
+      check(
+        refused.message === "pasteBlocked" && unchanged(f, target, before),
+        "protected structure paste changed blocks",
+      );
+      check(
+        inside(12)
+          .map((e) => e.id)
+          .sort()
+          .join(",") === cowIds,
+        "protected paste changed entities",
+      );
+    } finally {
+      await f.edit("releaseStructures");
+      for (const entity of [...inside(0), ...inside(12)]) entity.remove();
+    }
+  });
 }
