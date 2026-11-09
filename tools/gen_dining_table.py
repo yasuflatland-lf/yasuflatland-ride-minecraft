@@ -16,34 +16,27 @@ TOP_PX = 12
 # four Gas Lanterns in a two-by-two grid fit inside +-7.5 px (ADR 0240).
 TOP_HALF = 7.5
 TOP_LIMIT = 4
-# Proportions measured on daining_table_whole.png: a thin woven panel in a slim
-# steel frame, legs meeting the underside well inside the corners and splaying
-# out to feet just inside the top's outline, joined by a ring a little above
-# mid height.
+# The whole-photo frame is about 9 px deep against a 280 px front leg;
+# retain the established tabletop and hosting surface dimensions.
 PANEL_HALF = 7.1
 PANEL_BOTTOM = 11.65
 RIM_BOTTOM = 11.65
-# Leg and ring placement from daining_table_whole.png: centers of the dark-pixel
-# runs (RGB < 100), in image pixels. The top's left and right corners span
-# x 35..410, so every horizontal offset is a fraction of that half diagonal,
-# which is TOP_HALF * (cos + sin) of the camera azimuth. Outer legs stand on
-# that same diagonal, so their offsets need no azimuth at all.
-REF_WHOLE_TOP_HALF_SPAN = (410 - 35) / 2
-REF_WHOLE_LEG_TOP_HALF_SPAN = (313 - 125) / 2  # Row 140, just under the top.
-REF_WHOLE_LEG_BEND_HALF_SPAN = (290 - 142) / 2  # Narrowest point, rows 225..235.
-REF_WHOLE_LEG_FOOT_HALF_SPAN = (357 - 81) / 2  # Left foot row 350, right foot row 383.
-REF_WHOLE_INNER_LEG_TOP_SPAN = 250 - 177  # Front and back legs at row 140.
-REF_WHOLE_RING_HALF_SPAN = (301 - 136) / 2  # Outer edge of the ring, row 220.
-# The inner pair of legs projects by cos - sin and the outer pair by cos + sin.
-REF_VIEW_AZIMUTH = 45 - math.degrees(math.atan(REF_WHOLE_INNER_LEG_TOP_SPAN / (2 * REF_WHOLE_LEG_TOP_HALF_SPAN)))
+# Whole-photo top corners (34,83), (284,66), (410,107), (136,128).
+# A perspective square fit gives azimuth 23.62 degrees, not the leg-derived
+# azimuth: the bent legs are not reliable camera calibration landmarks.
+REF_VIEW_AZIMUTH = 23.62
 DIAGONAL_PROJECTION = math.cos(math.radians(REF_VIEW_AZIMUTH)) + math.sin(math.radians(REF_VIEW_AZIMUTH))
-# A simultaneous fit to the close-up leg span and ring width contracts the
-# whole-photo horizontal estimates; preserve the fixed host surface above.
-LEG_PLAN_SCALE = 0.86
-LEG_TOP_OFFSET = LEG_PLAN_SCALE * TOP_HALF * REF_WHOLE_LEG_TOP_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
-LEG_WAIST = LEG_PLAN_SCALE * TOP_HALF * REF_WHOLE_LEG_BEND_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
-LEG_FOOT_OFFSET = LEG_PLAN_SCALE * TOP_HALF * REF_WHOLE_LEG_FOOT_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
-RING_OUTER_RADIUS = LEG_PLAN_SCALE * TOP_HALF * DIAGONAL_PROJECTION * REF_WHOLE_RING_HALF_SPAN / REF_WHOLE_TOP_HALF_SPAN
+# Measured on daining_table_whole.png: the outer legs meet the top 55..90 px
+# inside its 348 px projected corners; the midpoint sets the leg tops.
+REF_TOP_SPAN = 348
+REF_TOP_OVERHANG = (55 + 90) / 2
+LEG_TOP_OFFSET = TOP_HALF * (1 - 2 * REF_TOP_OVERHANG / REF_TOP_SPAN)
+# Ring outer width and foot spread on daining_table_whole.png, as fractions
+# of the projected tabletop width.
+REF_RING_TOP_RATIO = 0.49
+REF_FOOT_TOP_RATIO = 0.81
+LEG_FOOT_OFFSET = TOP_HALF * REF_FOOT_TOP_RATIO
+RING_OUTER_RADIUS = TOP_HALF * DIAGONAL_PROJECTION * REF_RING_TOP_RATIO
 # Perpendicular dark-pixel runs (RGB < 115) on ref_table_legs.png, at its
 # native 924 by 828 resolution; the foreground tube spans rows 373..404.
 REF_TOP_UNDERSIDE_Y = 65
@@ -70,28 +63,40 @@ LEG_TOP_WIDTH = REF_TOP_DIAMETER * CLOSEUP_SCALE
 LEG_WAIST_WIDTH = REF_WAIST_DIAMETER * CLOSEUP_SCALE
 LEG_FOOT_WIDTH = REF_FOOT_DIAMETER * CLOSEUP_SCALE
 FOOT_Y = LEG_FOOT_WIDTH / 2
-# Camera projection includes the front foot's greater depth. Fitting both
-# front-leg ratios (whole 120/280, close-up 320/742), including top occlusion,
-# gives y=5.95: rendered ratios are 0.432 and 0.421 respectively.
-RING_Y = 5.95
+# The close-up foreground waist is 320/742 down the exposed leg. With
+# the wider ring and top occlusion, y=5.60 approximates that projected fraction;
+# the ring is about 45 percent of the physical leg height above the floor.
+RING_Y = 5.60
 RING_HALF = REF_RING_TUBE * CLOSEUP_SCALE / 2
 RING_RADIUS = RING_OUTER_RADIUS - RING_HALF
-FOOT_CAP_HEIGHT = 1.5 * REF_CAP_HEIGHT * CLOSEUP_SCALE
-TAPER_STEPS = 2
+# Each kink meets the ring centerline at a diagonal of its circular plan.
+LEG_WAIST = RING_RADIUS / math.sqrt(2)
+# The close-up black tip is about 20 px across versus a 25.4 px tube end.
+FOOT_CAP_WIDTH_RATIO = 20 / REF_FOOT_DIAMETER
+FOOT_CAP_HEIGHT = REF_CAP_HEIGHT * CLOSEUP_SCALE
+TAPER_STEPS = 4
 RING_SEGMENTS = 48
 # Four overlapping rectangular prisms form an eight-sided tube cross-section.
 TUBE_BARS = 4
-# Sixteen repeats give the whole-photo top its fine square weave.
-WEAVE_SIZE = 256
-WEAVE_TILE = 16
+# Twelve repeats resolve the checker visible in daining_table_zoom.png.
+WEAVE_SIZE = 288
+WEAVE_TILE = 24
 TEXTURE_WIDTH = WEAVE_SIZE
 TEXTURE_HEIGHT = WEAVE_SIZE + 8
 STEEL = (64, 65, 68, 255)
 STEEL_DARK = (52, 53, 56, 255)
 FOOT_BLACK = (10, 10, 10, 255)
-# Table-only neutral charcoal; other furniture retains PALETTE_BLACK.
-TABLE_PALETTE = wicker.WeavePalette((40, 40, 40), (66, 66, 66), (25, 25, 25), (12, 12, 12),
+# Charcoal strand highlights and shaded gaps from daining_table_texture_closeup.png;
+# slightly lifted for preview face lighting, without changing the shared palette.
+TABLE_PALETTE = wicker.WeavePalette((55, 59, 59), (76, 81, 81), (39, 43, 43), (25, 29, 29),
                                     columns=4, rows=4)
+# The whole photo has a 2..4 px apron lip below its roughly 9 px rim.
+APRON_DEPTH = (2 / 9) * (TOP_PX - RIM_BOTTOM)
+APRON_CORNER_DROP = (2 / 9) * (TOP_PX - RIM_BOTTOM)
+APRON_SEGMENTS = 6
+# The top zoom shows the recessed lip at roughly one third of the rim width.
+APRON_THICKNESS = (TOP_HALF - PANEL_HALF) / 3
+
 ASSEMBLIES = {
     "legs": {"owner": "dining_table", "cubes": 4 * (TAPER_STEPS + 2) * TUBE_BARS},
     "ring": {"owner": "dining_table", "cubes": RING_SEGMENTS * TUBE_BARS},
@@ -149,7 +154,7 @@ def leg(sx, sz):
         cubes.extend(tube(p, q, width, "legs"))
     # One unbroken upper tube avoids the old four visible sleeve joints.
     cubes.extend(tube(waist, top, LEG_TOP_WIDTH, "legs"))
-    cubes.extend(tube(foot, cap_end, LEG_FOOT_WIDTH * 0.92, "legs", face(16)))
+    cubes.extend(tube(foot, cap_end, LEG_FOOT_WIDTH * FOOT_CAP_WIDTH_RATIO, "legs", face(16)))
     return cubes
 
 
@@ -163,6 +168,21 @@ def ring():
     return cubes
 
 
+def apron():
+    cubes = []
+    for i in range(APRON_SEGMENTS):
+        a = -TOP_HALF + 2 * TOP_HALF * i / APRON_SEGMENTS
+        b = -TOP_HALF + 2 * TOP_HALF * (i + 1) / APRON_SEGMENTS
+        depth = APRON_DEPTH + APRON_CORNER_DROP * (abs((a + b) / 2) / TOP_HALF) ** 2
+        for side in (-1, 1):
+            edge = side * (TOP_HALF - APRON_THICKNESS / 2)
+            cubes.append(box((a, RIM_BOTTOM - depth, edge - APRON_THICKNESS / 2),
+                             (b, RIM_BOTTOM, edge + APRON_THICKNESS / 2)))
+            cubes.append(box((edge - APRON_THICKNESS / 2, RIM_BOTTOM - depth, a),
+                             (edge + APRON_THICKNESS / 2, RIM_BOTTOM, b)))
+    return cubes
+
+
 def geometry():
     panel = box((-PANEL_HALF, PANEL_BOTTOM, -PANEL_HALF), (PANEL_HALF, TOP_PX, PANEL_HALF), face(8))
     panel["uv"]["up"] = face(0, 0, WEAVE_SIZE)
@@ -170,6 +190,7 @@ def geometry():
            for z0, z1 in ((-TOP_HALF, -PANEL_HALF), (PANEL_HALF, TOP_HALF))]
     rim += [box((x0, RIM_BOTTOM, -PANEL_HALF), (x1, TOP_PX, PANEL_HALF))
             for x0, x1 in ((-TOP_HALF, -PANEL_HALF), (PANEL_HALF, TOP_HALF))]
+    rim += apron()
     legs = [cube for sx in (-1, 1) for sz in (-1, 1) for cube in leg(sx, sz)]
     tubes = ring()
     tilt.assert_axes([panel, *rim, *legs, *tubes], {"legs": legs, "ring": tubes}, ASSEMBLIES)
