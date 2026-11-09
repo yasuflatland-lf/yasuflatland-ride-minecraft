@@ -8,21 +8,19 @@ export function registerFurnitureTopInteraction(
   adapter: BedrockFurnitureWorld,
   placeHostedOnTop: PlaceHostedOnTop,
 ): void {
-  system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
-    blockComponentRegistry.registerCustomComponent(DINING_TABLE_TOP, {
-      onPlayerInteract: ({ player, block, dimension }) => {
-        if (!player) return;
-        const owner = adapter.ownerAt(
-          asDimensionId(dimension.id),
-          block.location,
-        );
-        const table = owner && adapter.entity(owner);
-        if (table) placeHostedOnTop(player, table);
-      },
-    });
-  });
   // Stable Script API 2.2 has no cancellable playerPlaceBlock event (ADR 0242).
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
+    if (ev.isFirstEvent && ev.block.typeId === DINING_TABLE_TOP) {
+      const owner = adapter.ownerAt(
+        asDimensionId(ev.block.dimension.id),
+        ev.block.location,
+      );
+      const table = owner && adapter.entity(owner);
+      if (table && placeHostedOnTop(ev.player, table)) {
+        ev.cancel = true;
+        return;
+      }
+    }
     if (!ev.itemStack || !BlockTypes.get(ev.itemStack.typeId)) return;
     const offsets = {
       [Direction.Up]: { x: 0, y: 1, z: 0 },

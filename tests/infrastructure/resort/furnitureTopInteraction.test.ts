@@ -2,7 +2,6 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { registerFurnitureTopInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopInteraction";
 
 const game = vi.hoisted(() => ({
-  startup: vi.fn(),
   interact: vi.fn(),
   run: vi.fn(),
 }));
@@ -19,7 +18,6 @@ vi.mock("@minecraft/server", () => ({
     West: "West",
   },
   system: {
-    beforeEvents: { startup: { subscribe: game.startup } },
     run: game.run,
   },
   world: {
@@ -36,35 +34,88 @@ function fixture() {
   };
   const place = vi.fn(() => false);
   registerFurnitureTopInteraction(adapter as never, place);
-  const registerCustomComponent = vi.fn();
-  game.startup.mock.calls[0]?.[0]({
-    blockComponentRegistry: { registerCustomComponent },
-  });
   return {
     adapter,
     table,
     place,
-    tap: registerCustomComponent.mock.calls[0]?.[1].onPlayerInteract,
     interact: game.interact.mock.calls[0]?.[0],
   };
 }
-it("forwards owned block taps and leaves missing players and orphan blocks alone", () => {
-  const f = fixture();
-  const event = {
+function tabletopEvent(itemId?: string) {
+  return {
     player: {},
-    dimension: { id: "overworld" },
-    block: { location: { x: 1, y: 2, z: 3 } },
+    isFirstEvent: true,
+    blockFace: "Up",
+    block: {
+      typeId: "yasu_ride:dining_table_top",
+      dimension: { id: "overworld" },
+      location: { x: 1, y: 2, z: 3 },
+    },
+    itemStack: itemId ? { typeId: itemId } : undefined,
+    cancel: false,
   };
-  f.tap(event);
-  expect(f.place).toHaveBeenCalledExactlyOnceWith(event.player, f.table);
-  expect(f.adapter.ownerAt).toHaveBeenCalledWith(
-    "overworld",
-    event.block.location,
-  );
-  f.adapter.entity.mockReturnValue(undefined as never);
-  f.tap(event);
-  f.tap({ ...event, player: undefined });
+}
+it.each(["yasu_ride:gas_lantern_item", "yasu_ride:dutch_oven_item"])(
+  "forwards first tabletop taps with %s and cancels handled interactions",
+  (itemId) => {
+    const f = fixture();
+    f.place.mockReturnValue(true);
+    const event = tabletopEvent(itemId);
+    f.interact(event);
+    expect(f.place).toHaveBeenCalledExactlyOnceWith(event.player, f.table);
+    expect(f.adapter.ownerAt).toHaveBeenCalledExactlyOnceWith(
+      "overworld",
+      event.block.location,
+    );
+    expect(event.cancel).toBe(true);
+    expect(f.adapter.hostedAbove).not.toHaveBeenCalled();
+  },
+);
+it.each([undefined, "minecraft:stick", "minecraft:stone"])(
+  "leaves unhandled %s taps uncancelled",
+  (itemId) => {
+    const f = fixture();
+    f.adapter.hostedAbove.mockReturnValue(false);
+    const event = tabletopEvent(itemId);
+    f.interact(event);
+    expect(f.place).toHaveBeenCalledExactlyOnceWith(event.player, f.table);
+    expect(event.cancel).toBe(false);
+  },
+);
+it("falls through to the overlap guard for unhandled tabletop block placement", () => {
+  const f = fixture();
+  const event = tabletopEvent("minecraft:stone");
+  f.interact(event);
   expect(f.place).toHaveBeenCalledOnce();
+  expect(f.adapter.hostedAbove).toHaveBeenCalledWith("overworld", {
+    x: 1,
+    y: 3,
+    z: 3,
+  });
+  expect(event.cancel).toBe(true);
+});
+it("ignores non-first taps and other block types for forwarding", () => {
+  const f = fixture();
+  const repeated = { ...tabletopEvent(), isFirstEvent: false };
+  const other = tabletopEvent();
+  other.block.typeId = "minecraft:stone";
+  f.interact(repeated);
+  f.interact(other);
+  expect(f.adapter.ownerAt).not.toHaveBeenCalled();
+  expect(f.place).not.toHaveBeenCalled();
+  expect(repeated.cancel).toBe(false);
+  expect(other.cancel).toBe(false);
+});
+it("ignores orphan blocks and missing table entities", () => {
+  const f = fixture();
+  const event = tabletopEvent();
+  f.adapter.ownerAt.mockReturnValueOnce(undefined as never);
+  f.interact(event);
+  expect(f.adapter.entity).not.toHaveBeenCalled();
+  f.adapter.entity.mockReturnValue(undefined as never);
+  f.interact(event);
+  expect(f.place).not.toHaveBeenCalled();
+  expect(event.cancel).toBe(false);
 });
 it.each([
   ["Up", { x: 1, y: 3, z: 3 }],

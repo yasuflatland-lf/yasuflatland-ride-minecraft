@@ -3,6 +3,7 @@
 - Status: Proposed
 - Acceptance condition: review of issue #1470 and mobile verification of lantern, oven, and block placement
 - Date: 2026-11-09
+- Extends: [0094](0094-the-camper-shower-toilet-door-and-shower.md)
 - Extends: [0241](0241-dining-table-top-blocks.md)
 - Extends: [0237](0237-register-tabletop-hosts-across-features.md)
 
@@ -14,8 +15,15 @@ Stable Script API 2.2 exposes playerPlaceBlock only as an after event.
 
 ## Decision
 
-Register a tabletop custom interaction component that resolves its owner and
-calls the injected PlaceHostedOnTop action. Other held items do nothing there.
+Keep the tabletop block free of custom components. The
+playerInteractWithBlock before-event first resolves the owner of a tabletop
+block on the first event of a tap and calls the injected PlaceHostedOnTop action.
+Cancel and return only when that action handles a Gas Lantern or Dutch Oven;
+otherwise continue to the block-placement overlap guard. Empty hands and other
+non-block items do nothing. Ordinary blocks use a plain tap without sneaking
+unless the overlap guard refuses placement. A block custom component with
+onPlayerInteract would make players sneak to place a held block on the table,
+as [0094](0094-the-camper-shower-toilet-door-and-shower.md) found.
 An optional host blockedAt callback checks the clamped hosted footprint before
 clearance, payment, and spawning; obstruction returns the overlap hint.
 
