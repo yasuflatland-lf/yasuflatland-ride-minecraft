@@ -1,7 +1,6 @@
 import {
   type Block,
   type Entity,
-  EquipmentSlot,
   ItemStack,
   SignSide,
   StructureSaveMode,
@@ -256,7 +255,9 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
 
     for (const [name, type] of [
       ["banner", "minecraft:standing_banner"],
-      ["head", "minecraft:skull"],
+      // Bedrock flattened the skull: setType("minecraft:skull") already
+      // yields minecraft:skeleton_skull, so the fixture names the flat ID.
+      ["head", "minecraft:skeleton_skull"],
     ] as const) {
       await check(name, async () => {
         reset();
@@ -287,16 +288,15 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
         const tag = `${prefix}_${name}`;
         entity.addTag(tag);
         entity.setDynamicProperty("yasu_build:probe_value", "round_trip");
-        if (name === "armor_stand") {
-          const equipment = entity.getComponent("minecraft:equippable");
-          if (
-            !equipment?.setEquipment(
-              EquipmentSlot.Head,
-              new ItemStack("minecraft:diamond_helmet"),
-            )
-          )
-            throw new Error("armor fixture could not be equipped");
-        }
+        // The minecraft:equippable route did not equip an armor stand on the
+        // dev BDS, so the helmet goes through commands.
+        if (
+          name === "armor_stand" &&
+          a.dim.runCommand(
+            `replaceitem entity @e[tag=${tag}] slot.armor.head 0 diamond_helmet`,
+          ).successCount !== 1
+        )
+          throw new Error("armor fixture could not be equipped");
         const structure = capture(name);
         entity.remove();
         clear();
@@ -317,10 +317,10 @@ export async function buildStructureProbe(a: Arena): Promise<Outcome> {
         if (name === "armor_stand")
           record(
             "armor_equipment",
-            first[0]
-              ?.getComponent("minecraft:equippable")
-              ?.getEquipment(EquipmentSlot.Head)?.typeId ===
-              "minecraft:diamond_helmet",
+            first.length === 1 &&
+              a.dim.runCommand(
+                `testfor @e[tag=${tag},hasitem={item=diamond_helmet,location=slot.armor.head}]`,
+              ).successCount === 1,
           );
         manager.place(structure, a.dim, from, { includeEntities: true });
         const second = entities().filter((e) => e.typeId === type);
