@@ -18,6 +18,7 @@ const HIDDEN_CUBE_REFERENCE = {
   bone_visibility: { root: false },
 };
 const INVISIBLE_BLOCKS = [
+  "beach_chair_top",
   "camper_bed",
   "camper_bunk",
   "camper_cabinet_door",

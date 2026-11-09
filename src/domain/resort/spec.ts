@@ -62,4 +62,6 @@ export const BEACH_CHAIR_SPEC = Object.freeze({
   hitResetTicks: 100,
   /** How often, in ticks, the leaning pose is sent again for late viewers. */
   poseRefreshTicks: 20,
+  /** How often loaded chairs repair or clear their tabletop blocks, in ticks. */
+  topSyncTicks: 20,
 } as const);

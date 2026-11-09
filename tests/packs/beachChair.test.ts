@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { BEACH_CHAIR_SPEC } from "../../src/domain/resort/spec";
 import { readRgbaPng } from "../support/png";
 
 const BP = "packs/yasu_ride_bp/";
@@ -335,5 +336,43 @@ assert max(c['origin'][2]+c['size'][2] for c in top) == 16
         `item.yasu_ride:beach_chair_item.name=${name}\n`,
       );
     }
+  });
+});
+
+it("defines invisible, protected tabletop support with boxes matching the measured top", () => {
+  const block = JSON.parse(
+    readFileSync(
+      "packs/yasu_ride_bp/blocks/yasu_ride/beach_chair_top.block.json",
+      "utf8",
+    ),
+  )["minecraft:block"];
+  expect(block.description.identifier).toBe("yasu_ride:beach_chair_top");
+  const components = block.components;
+  expect(components["minecraft:geometry"].bone_visibility).toEqual({
+    root: false,
+  });
+  expect(components["minecraft:collision_box"]).toEqual({
+    origin: [-8, 0, -8],
+    size: [16, BEACH_CHAIR_SPEC.topPx, 16],
+  });
+  expect(components["minecraft:selection_box"]).toEqual(
+    components["minecraft:collision_box"],
+  );
+  expect(components["minecraft:destructible_by_mining"]).toBe(false);
+  expect(components["minecraft:destructible_by_explosion"]).toBe(false);
+  expect(components["minecraft:light_dampening"]).toBe(0);
+  expect(components["yasu_ride:beach_chair_top"]).toEqual({});
+  expect(components["tag:yasu_ride:laid"]).toEqual({});
+});
+
+it("keeps the folded entity fixed while its support blocks occupy its cells", () => {
+  expect(entity.component_groups["yasu_ride:beach_chair_table"]).toEqual({
+    "minecraft:physics": { has_collision: false, has_gravity: false },
+  });
+  expect(entity.events["yasu_ride:beach_chair_fold"]).toEqual({
+    add: { component_groups: ["yasu_ride:beach_chair_table"] },
+  });
+  expect(entity.events["yasu_ride:beach_chair_unfold"]).toEqual({
+    remove: { component_groups: ["yasu_ride:beach_chair_table"] },
   });
 });

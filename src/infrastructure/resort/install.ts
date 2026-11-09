@@ -1,6 +1,8 @@
+import { BeachChairMenu } from "../../application/resort/beachChairMenu";
 import { PaintParasol } from "../../application/resort/paintParasol";
 import { PlaceBeachChair } from "../../application/resort/placeBeachChair";
 import { PlaceParasol } from "../../application/resort/placeParasol";
+import { SwitchBeachChairForm } from "../../application/resort/switchBeachChairForm";
 import { SyncParasolCeilings } from "../../application/resort/syncParasolCeilings";
 import { TakeBackBeachChair } from "../../application/resort/takeBackBeachChair";
 import { TakeBackParasol } from "../../application/resort/takeBackParasol";
@@ -15,6 +17,8 @@ import { BedrockBeachChairWorld } from "./bedrock/bedrockBeachChairWorld";
 import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
 import { BedrockParasolWorld } from "./bedrock/bedrockParasolWorld";
 import { registerBeachChairHits } from "./bedrock/handlers/beachChairHits";
+import { registerBeachChairInteraction } from "./bedrock/handlers/beachChairInteraction";
+import { registerBeachChairLifecycle } from "./bedrock/handlers/beachChairLifecycle";
 import { registerBeachChairPlacement } from "./bedrock/handlers/beachChairPlacement";
 import { registerParasolHits } from "./bedrock/handlers/hits";
 import { registerParasolLifecycle } from "./bedrock/handlers/lifecycle";
@@ -33,8 +37,17 @@ export function installResort(deps: {
   const chair = new BedrockBeachChairWorld(deps);
   const takeChair = new TakeBackBeachChair(chair);
   registerBeachChairPlacement(new PlaceBeachChair(chair));
-  registerBeachChairHits(takeChair);
-  registerTestBeachChair(chair, takeChair, deps);
+  const form = new SwitchBeachChairForm(chair);
+  registerBeachChairHits(takeChair, (dimension, cell, typeId) =>
+    chair.topOwner(dimension, cell, typeId),
+  );
+  registerBeachChairInteraction(
+    chair,
+    form,
+    new BeachChairMenu(form, () => {}),
+  );
+  registerBeachChairLifecycle(chair);
+  registerTestBeachChair(chair, takeChair, deps, form);
   registerStarterItem(
     new GiveStarterItem(
       new BedrockStarterItemWorld(

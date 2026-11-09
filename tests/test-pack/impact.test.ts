@@ -23,10 +23,14 @@ import { planOf } from "../../src/test-pack/plan";
 import { WHOLE_RUN } from "../../src/test-pack/protocol";
 
 const root = new URL("../../", import.meta.url);
-const tracked = execFileSync("git", ["ls-files", "-z"], {
-  cwd: fileURLToPath(root),
-  encoding: "utf8",
-})
+const tracked = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+  {
+    cwd: fileURLToPath(root),
+    encoding: "utf8",
+  },
+)
   .split("\0")
   .filter(Boolean);
 
@@ -315,6 +319,7 @@ describe("selectionOf", () => {
     "beach_parasol",
     "beach_parasol_item",
     "parasol_ceiling",
+    "beach_chair_top",
     "beach_chair",
     "beach_chair_item",
   ])("selects resort scenarios for the %s pack stem", (stem) => {
@@ -333,6 +338,9 @@ describe("selectionOf", () => {
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
     ).toEqual([
+      "beach_chair_fold",
+      "beach_chair_block_on_top",
+      "beach_chair_top_restore",
       "beach_chair_place",
       "beach_chair_take_back",
       "parasol_paint",

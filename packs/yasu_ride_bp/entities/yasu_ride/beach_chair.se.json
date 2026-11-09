@@ -72,6 +72,26 @@
           }
         ]
       }
+    },
+    "component_groups": {
+      "yasu_ride:beach_chair_table": {
+        "minecraft:physics": {
+          "has_collision": false,
+          "has_gravity": false
+        }
+      }
+    },
+    "events": {
+      "yasu_ride:beach_chair_fold": {
+        "add": {
+          "component_groups": ["yasu_ride:beach_chair_table"]
+        }
+      },
+      "yasu_ride:beach_chair_unfold": {
+        "remove": {
+          "component_groups": ["yasu_ride:beach_chair_table"]
+        }
+      }
     }
   }
 }

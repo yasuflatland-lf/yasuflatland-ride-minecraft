@@ -206,3 +206,7 @@ yasu_ride.beach_chair.occupied=Cannot take back the chair while someone is lying
 yasu_ride.beach_chair.something_on_top=Remove everything from the table first
 item.yasu_ride:beach_chair_item.name=Beach Chair
 entity.yasu_ride:beach_chair.name=Beach Chair
+
+yasu_ride.beach_chair.menu.title=Beach Chair
+yasu_ride.beach_chair.menu.lie_down=Lie down
+yasu_ride.beach_chair.menu.fold=Fold into a table

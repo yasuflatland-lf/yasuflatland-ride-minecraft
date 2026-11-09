@@ -1,4 +1,12 @@
 vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction",
+  () => ({ registerBeachChairInteraction: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/beachChairLifecycle",
+  () => ({ registerBeachChairLifecycle: vi.fn() }),
+);
+vi.mock(
   "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld",
   () => ({ BedrockBeachChairWorld: class {} }),
 );
