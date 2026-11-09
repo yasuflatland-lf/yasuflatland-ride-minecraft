@@ -25,6 +25,7 @@ import {
   isCreative,
   playerById,
 } from "../../shared/players";
+import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLD_EVENT,
@@ -37,6 +38,7 @@ export class BedrockBeachChairWorld
 {
   constructor(
     private readonly deps: {
+      topHosts: TopHostRegistry;
       isVehicleSpace: SpaceCheck;
       isCampSpace: SpaceCheck;
     },
@@ -49,8 +51,8 @@ export class BedrockBeachChairWorld
       occupied:
         (entity.getComponent("minecraft:rideable")?.getRiders().length ?? 0) >
         0,
-      // Hosted lanterns and ovens are wired in #1449.
-      somethingOnTop: false,
+      somethingOnTop:
+        this.deps.topHosts.itemsOnTop("beach_chair", id).length > 0,
     };
   }
   showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void {

@@ -1,3 +1,4 @@
+vi.mock("@minecraft/server", () => ({ world: {} }));
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction",
   () => ({ registerBeachChairInteraction: vi.fn() }),
@@ -24,15 +25,20 @@ import { BeachChairMenu } from "../../../src/application/resort/beachChairMenu";
 import { SwitchBeachChairForm } from "../../../src/application/resort/switchBeachChairForm";
 import { TakeBackBeachChair } from "../../../src/application/resort/takeBackBeachChair";
 import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
+import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
 import { ROOF_TENT_STARTER_RECEIVED_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
 import { registerBeachChairHits } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairHits";
 import { registerBeachChairInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction";
 import {
+  BEACH_CHAIR,
+  BEACH_CHAIR_FOLDED,
+  BEACH_CHAIR_TOP_REFUSAL_HINTS,
   BEACH_PARASOL_ITEM,
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
 } from "../../../src/infrastructure/resort/identifiers";
 import { installResort } from "../../../src/infrastructure/resort/install";
 import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
+import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
 const world = vi.hoisted(() => ({ args: [] as unknown[][] }));
 vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
@@ -77,8 +83,32 @@ vi.mock(
   }),
 );
 
-it("registers the parasol starter with its own received flag", () => {
-  installResort({ isVehicleSpace: () => true, isCampSpace: () => false });
+it("registers folded chair hosting and the parasol starter with its own flag", () => {
+  const topHosts = new TopHostRegistry();
+  const register = vi.spyOn(topHosts, "registerHost");
+  installResort({
+    topHosts,
+    isVehicleSpace: () => true,
+    isCampSpace: () => false,
+  });
+  expect(register).toHaveBeenCalledExactlyOnceWith({
+    hostType: "beach_chair",
+    entityTypeId: BEACH_CHAIR,
+    surface: {
+      half: BEACH_CHAIR_SPEC.topHalf,
+      topPx: 7,
+      limit: 2,
+      clearanceBase: 0,
+    },
+    isTopNow: expect.any(Function),
+    refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
+  });
+  const host = register.mock.calls[0]?.[0];
+  for (const folded of [true, false, undefined]) {
+    const getProperty = vi.fn(() => folded);
+    expect(host?.isTopNow({ getProperty } as never)).toBe(folded === true);
+    expect(getProperty).toHaveBeenCalledExactlyOnceWith(BEACH_CHAIR_FOLDED);
+  }
   expect(registerBeachChairHits).toHaveBeenCalledExactlyOnceWith(
     expect.any(TakeBackBeachChair),
   );

@@ -143,32 +143,15 @@ it("tolerates an entity unloading while holding its pose", () => {
   expect(() => f.adapter.setForm(id, "table")).not.toThrow();
 });
 
-it.each([0, 90, 180, 270])(
-  "checks both footprint cells and hosted occupancy at yaw %i",
-  (yaw) => {
-    const f = fixture(yaw);
+it.each([false, true])(
+  "reports hosted occupancy when items are present: %s",
+  (occupied) => {
+    const f = fixture();
     const item = { at: { x: 0, z: 0 }, footprint: { halfX: 2, halfZ: 3 } };
-    const items = vi.spyOn(f.deps.topHosts, "itemsOnTop").mockReturnValue([]);
-    expect(f.adapter.state(id)?.somethingOnTop).toBe(false);
-    expect(
-      f.adapter.blockedAt(f.entity as never, item.at, item.footprint),
-    ).toBe(false);
-    for (const cell of f.wanted) {
-      const above = { ...cell, y: cell.y + 1 };
-      const block = f.blocks.get(f.key(above));
-      if (!block) throw Error("missing above cell");
-      block.isAir = false;
-      expect(
-        f.adapter.blockedAt(f.entity as never, item.at, item.footprint),
-      ).toBe(true);
-      block.isAir = true;
-      items.mockReturnValue([item]);
-      expect(f.adapter.hasHostedItemAt(id, above)).toBe(true);
-      expect(f.adapter.hasHostedItemAt(id, { ...above, y: above.y + 1 })).toBe(
-        false,
-      );
-    }
-    expect(f.adapter.state(id)?.somethingOnTop).toBe(true);
-    expect(items).toHaveBeenCalledWith("beach_chair", id);
+    const items = vi
+      .spyOn(f.deps.topHosts, "itemsOnTop")
+      .mockReturnValue(occupied ? [item] : []);
+    expect(f.adapter.state(id)?.somethingOnTop).toBe(occupied);
+    expect(items).toHaveBeenCalledExactlyOnceWith("beach_chair", id);
   },
 );

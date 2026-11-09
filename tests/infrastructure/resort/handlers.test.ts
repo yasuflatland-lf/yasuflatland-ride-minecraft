@@ -80,7 +80,6 @@ beforeEach(() => {
 function setup() {
   const deps = {
     topHosts: campTopHosts(),
-    placeHostedOnTop: () => false,
     isVehicleSpace: vi.fn(() => true),
     isCampSpace: vi.fn(() => false),
   };

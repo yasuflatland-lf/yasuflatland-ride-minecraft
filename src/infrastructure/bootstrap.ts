@@ -26,7 +26,6 @@ export function bootstrap(): void {
   });
   installResort({
     topHosts,
-    placeHostedOnTop: camp.placeHostedOnTop,
     isVehicleSpace: vehicles.isVehicleSpace,
     isCampSpace: camp.isCampSpace,
   });
