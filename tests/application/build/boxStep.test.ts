@@ -21,7 +21,7 @@ import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -30,6 +30,7 @@ import {
   nether,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone");
@@ -47,7 +48,7 @@ function setup() {
   const feedback = new FakeFeedback();
   const session = repo.getOrCreate(playerId);
   const actions = {
-    copy: new CopyBox(repo, world, feedback),
+    copy: new CopyBox(repo, new FakeStructureStore(), feedback),
     cut: new CutBox(
       repo,
       world,
@@ -59,6 +60,7 @@ function setup() {
         { warn: () => {} },
         new FakeBuildPlayers(),
       ),
+      new FakeStructureStore(),
     ),
   };
   return {
@@ -119,8 +121,9 @@ it("copies a base grown through any allowed height without beginning an edit", (
           y: height,
           z: dz + 1,
         });
-        expect(clipboardCells(e.session.clipboard)).toHaveLength(volume(box));
-        expect(clipboardCells(e.session.clipboard)[0]?.state).toEqual(stone);
+        expect(e.session.clipboard?.blockCount).toBe(volume(box));
+        expect(e.session.clipboard?.contents.kind).toBe("structure");
+        expect(read).not.toHaveBeenCalled();
         expect(
           read.mock.calls.every(([dimensionId]) => dimensionId === nether),
         ).toBe(true);
@@ -153,7 +156,8 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
       const box = boxOf(from, to);
       expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
       expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
-      expect(clipboardCells(e.session.clipboard)).toHaveLength(volume(box));
+      expect(e.session.clipboard?.blockCount).toBe(volume(box));
+      expect(e.session.clipboard?.contents.kind).toBe("structure");
       expect(e.feedback.messages.at(-1)).toEqual({
         message: "copied",
         count: volume(box),
@@ -201,7 +205,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         else
           new CopySelection(
             e.repo,
-            new CopyBox(e.repo, e.world, e.feedback),
+            new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
             e.feedback,
           ).execute({ playerId });
         expect(e.session.clipboard).toBe(clip);
@@ -291,7 +295,7 @@ it("utility Copy resets paste settings in every prior flow and an oversized copy
       ];
       const copy = new CopySelection(
         e.repo,
-        new CopyBox(e.repo, e.world, e.feedback),
+        new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
         e.feedback,
       );
       const old = clipboardOf(boxOf(from, from), () => stone);
@@ -302,9 +306,11 @@ it("utility Copy resets paste settings in every prior flow and an oversized copy
         copy.execute({ playerId });
         expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
         expect(e.session.clipboard).not.toBe(old);
-        expect(e.session.clipboard).toEqual(
-          clipboardOf(box, (at) => e.world.stateAt(overworld, at)),
-        );
+        expect(e.session.clipboard).toMatchObject({
+          size: { x: 2, y: 1, z: 2 },
+          blockCount: volume(box),
+          contents: { kind: "structure" },
+        });
         const oversized = boxOf(from, {
           ...from,
           x: from.x + BUILD_SPEC.maxCopyVolume,

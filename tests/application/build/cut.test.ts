@@ -27,6 +27,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone", { stone_type: "granite" });
@@ -43,8 +44,11 @@ function setup() {
     new FakeBuildPlayers(),
   );
   const session = repo.getOrCreate(playerId);
-  const cut = new CutBox(repo, world, feedback, jobs);
-  const actions = { copy: new CopyBox(repo, world, feedback), cut };
+  const cut = new CutBox(repo, world, feedback, jobs, new FakeStructureStore());
+  const actions = {
+    copy: new CopyBox(repo, new FakeStructureStore(), feedback),
+    cut,
+  };
   const drain = () => {
     while (session.isEditing) jobs.step();
   };

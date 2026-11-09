@@ -14,7 +14,7 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
+import { holdClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -24,6 +24,7 @@ import {
   nether,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const from = { x: 0, y: 64, z: 0 };
@@ -47,7 +48,7 @@ function setup() {
   const confirm = new ConfirmShape(repo, feedback, jobs);
   const copy = new CopySelection(
     repo,
-    new CopyBox(repo, world, feedback),
+    new CopyBox(repo, new FakeStructureStore(), feedback),
     feedback,
   );
   const endpoint = () =>
@@ -161,7 +162,8 @@ it("confirms the chosen shape with the captured material, retaining its box only
     "minecraft:air",
   );
   e.copy.execute({ playerId });
-  expect(clipboardCells(e.session.clipboard)).toHaveLength(9);
+  expect(e.session.clipboard?.blockCount).toBe(9);
+  expect(e.session.clipboard?.contents.kind).toBe("structure");
 });
 
 it("refuses oversized shapes with their count, unsupported styles, and busy jobs without changing the flow", () => {
@@ -244,7 +246,10 @@ it("Copy refuses an unconfirmed endpoint and enforces the confirmed copy limit",
             count: size,
           });
           expect(e.session.clipboard).toBeUndefined();
-        } else expect(clipboardCells(e.session.clipboard)).toHaveLength(size);
+        } else {
+          expect(e.session.clipboard?.blockCount).toBe(size);
+          expect(e.session.clipboard?.contents.kind).toBe("structure");
+        }
       },
     ),
     { numRuns: 4 },

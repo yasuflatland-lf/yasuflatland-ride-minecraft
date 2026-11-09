@@ -24,6 +24,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const alex = asPlayerId("alex");
 const blake = asPlayerId("blake");
@@ -48,7 +49,11 @@ function setup() {
     world,
     jobs,
     fill: new ConfirmShape(repo, feedback, jobs),
-    copy: new CopySelection(repo, new CopyBox(repo, world, feedback), feedback),
+    copy: new CopySelection(
+      repo,
+      new CopyBox(repo, new FakeStructureStore(), feedback),
+      feedback,
+    ),
     paste: new PasteAt(repo, world, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),
   };
@@ -360,14 +365,14 @@ describe("edit use cases", () => {
     expect(env.feedback.messages.at(-1)?.message).toBe("tooLarge");
   });
 
-  it("skips unreadable cells when copying the confirmed box", () => {
+  it("captures the full confirmed box without reading cells", () => {
     const env = setup();
     env.world.put({ x: 0, y: 64, z: 0 }, dirt);
     env.world.unreadableCells.add(cellKey({ x: 1, y: 64, z: 0 }));
     select(env, alex, 2);
     confirmForCopy(env);
     env.copy.execute({ playerId: alex });
-    expect(env.repo.get(alex)?.clipboard?.blockCount).toBe(3);
+    expect(env.repo.get(alex)?.clipboard?.blockCount).toBe(4);
     expect(env.world.writes).toBe(0);
   });
 
@@ -404,7 +409,14 @@ describe("edit use cases", () => {
     env.world.put({ x: 0, y: 64, z: 0 }, dirt);
     select(env, alex, 2);
     confirmForCopy(env);
-    env.copy.execute({ playerId: alex });
+    const session = env.repo.getOrCreate(alex);
+    const box = session.confirmedBox?.box;
+    if (!box) throw new Error("Expected confirmed box");
+    session.completeCopy(
+      overworld,
+      box,
+      clipboardOf(box, (cell) => env.world.stateAt(overworld, cell)),
+    );
     env.world.put({ x: 11, y: 64, z: 10 }, stone);
     env.repo.getOrCreate(alex).setFlow(beginPasteAim(true));
     env.paste.execute({

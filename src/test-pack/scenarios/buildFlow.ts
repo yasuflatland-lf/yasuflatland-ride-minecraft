@@ -2,10 +2,12 @@ import {
   type BlockPermutation,
   ItemStack,
   type Player,
+  SignSide,
   system,
   world,
 } from "@minecraft/server";
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
+import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Cell } from "../../domain/shared/cells";
 import {
@@ -22,7 +24,7 @@ import type { Outcome } from "../outcome";
 interface BuildState {
   flow: string;
   clipboardHeld: boolean;
-  clipboard?: unknown;
+  clipboard?: Clipboard;
   pasteMenu: string[];
 }
 
@@ -738,37 +740,76 @@ export function buildCopyShapes(a: Arena): Promise<Outcome> {
       const source = f.region(3, sy, sz);
       mixedSource(f, source);
       await f.select(f.cell(2, heightStep ? 0 : sy - 1, sz - 1));
-      const expected = snapshot(f, source);
+      // Kept blocks and air both count toward the inclusive box volume.
+      f.block(f.cell(1)).setType("minecraft:chest");
       const copied = await startPasteStep(f, {
         height: heightStep ? 3 : undefined,
       });
+      check(copied.count === source.length, "Copy count wrong");
+      const clipboard = (await f.state()).clipboard;
       check(
-        copied.message === "copied" && copied.count === source.length,
-        "Copy count wrong",
+        clipboard?.contents.kind === "structure" &&
+          clipboard.size.x === 3 &&
+          clipboard.size.y === sy &&
+          clipboard.size.z === sz,
+        "Copy clipboard size or kind wrong",
       );
-      const target = pasteTarget(f, f.cell(12, 0, 12), 3, sy, sz);
+      await f.menu("paste", "endPaste");
+      await checkState(f, "idle", false);
+    }
+  });
+}
+
+export function buildCopyStructure(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(4, 3, 3);
+    try {
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+      for (const cell of f.region(4, 1, 3))
+        f.block(cell).setType("minecraft:stone");
+      await f.select(f.cell(3, 2, 2));
+      const chest = f.block(f.cell(1, 1, 1));
+      chest.setType("minecraft:chest");
+      const inventory = chest.getComponent("minecraft:inventory")?.container;
+      check(inventory !== undefined, "Chest inventory missing");
+      inventory.setItem(0, new ItemStack("minecraft:diamond", 7));
+      const signBlock = f.block(f.cell(2, 1, 1));
+      signBlock.setType("minecraft:standing_sign");
+      const sign = signBlock.getComponent("minecraft:sign");
+      check(sign !== undefined, "Sign component missing");
+      sign.setText("Copy front", SignSide.Front);
+      sign.setText("Copy back", SignSide.Back);
+      // The frame stays empty: whether a populated frame survives is the
+      // build_structure_probe's question (ADR 0243), not this scenario's.
+      f.block(f.cell(0, 1, 1)).setType("minecraft:frame");
+      const copied = await startPasteStep(f);
       check(
-        (
-          await pasteStep(
-            f,
-            target.anchor.x,
-            target.anchor.y,
-            target.anchor.z,
-            "up",
-          )
-        ).message === "editDone",
-        "shape copy paste failed",
+        copied.count === cells.length,
+        "Copy did not report the box volume",
+      );
+      const clipboard = (await f.state()).clipboard;
+      check(
+        clipboard?.contents.kind === "structure",
+        "Copy did not save a structure",
       );
       check(
-        unchanged(f, target.cells, expected),
-        "shape Copy lost source block states",
+        clipboard.size.x === 4 &&
+          clipboard.size.y === 3 &&
+          clipboard.size.z === 3 &&
+          clipboard.blockCount === cells.length,
+        "Structure clipboard dimensions or count wrong",
       );
-      await f.menu("paste", "undo");
-      check(
-        unchanged(f, target.cells, target.before),
-        "shape copy undo lost destination states",
-      );
-      await endPasteStep(f);
+    } finally {
+      try {
+        await f.menu("paste", "endPaste");
+      } finally {
+        // Clear inventories before removing their blocks so fixture items cannot drop.
+        for (const cell of cells)
+          f.block(cell)
+            .getComponent("minecraft:inventory")
+            ?.container?.clearAll();
+        for (const cell of cells) f.block(cell).setType("minecraft:air");
+      }
     }
   });
 }

@@ -14,6 +14,7 @@ import { CopySelection } from "../../application/build/copySelection";
 import { CutBox } from "../../application/build/cutBox";
 import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
+import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
@@ -63,7 +64,11 @@ export function installBuild(deps: {
   const aim = new BedrockAimReader();
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const endSession = new EndBuildSession(repo, ports.structures);
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, ports.structures),
+  );
   const jobs = new EditJobs(
     repo,
     blocks,
@@ -72,8 +77,8 @@ export function installBuild(deps: {
     new BedrockBuildPlayers(),
   );
   const clear = new ClearSelection(repo, feedback);
-  const copyBox = new CopyBox(repo, blocks, feedback);
-  const cutBox = new CutBox(repo, blocks, feedback, jobs);
+  const copyBox = new CopyBox(repo, ports.structures, feedback);
+  const cutBox = new CutBox(repo, blocks, feedback, jobs, ports.structures);
   const actions = { copy: copyBox, cut: cutBox };
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
@@ -82,7 +87,7 @@ export function installBuild(deps: {
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback),
     toggleSkipAir: new ToggleSkipAir(repo),
-    endPasting: new EndPasting(repo),
+    endPasting: new EndPasting(repo, ports.structures),
     newCopy: new NewCopy(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
     chooseHeighted,
@@ -123,7 +128,7 @@ export function installBuild(deps: {
   });
   registerModeTick(modes);
   registerOutlineTick(new ShowPreview(repo, feedback, aim));
-  registerSessions(repo, cases.endPasting, debounce);
+  registerSessions(endSession, cases.endPasting, debounce);
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
@@ -136,5 +141,6 @@ export function installBuild(deps: {
     new DescribeBuild(repo),
     recorded,
     repo,
+    endSession,
   );
 }

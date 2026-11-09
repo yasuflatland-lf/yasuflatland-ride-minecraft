@@ -41,6 +41,7 @@ import {
   FakeWorld,
   overworld,
 } from "../../application/build/fakes";
+import { FakeStructureStore } from "./../../application/build/fakes/structureStore";
 import { holdClipboard } from "../../support/buildClipboard";
 
 type Answer = {
@@ -126,7 +127,11 @@ function setup(fallback?: boolean) {
         new ChooseBoxStep(
           repo,
           {
-            copy: new CopyBox(repo, new FakeWorld(), new FakeFeedback()),
+            copy: new CopyBox(
+              repo,
+              new FakeStructureStore(),
+              new FakeFeedback(),
+            ),
             cut: new CutBox(
               repo,
               new FakeWorld(),
@@ -140,6 +145,7 @@ function setup(fallback?: boolean) {
                 },
                 new FakeBuildPlayers(),
               ),
+              new FakeStructureStore(),
             ),
           },
           new FakeFeedback(),
@@ -178,7 +184,11 @@ function setup(fallback?: boolean) {
       execute: vi.fn((cmd) => new ToggleSkipAir(repo).execute(cmd)),
     },
     newCopy: { execute: vi.fn((id) => new NewCopy(repo).execute(id)) },
-    endPasting: { execute: vi.fn((cmd) => new EndPasting(repo).execute(cmd)) },
+    endPasting: {
+      execute: vi.fn((cmd) =>
+        new EndPasting(repo, new FakeStructureStore()).execute(cmd),
+      ),
+    },
     undo: { execute: vi.fn() },
     clear: { execute: vi.fn() },
     setHeight: {
