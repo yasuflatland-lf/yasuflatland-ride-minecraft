@@ -18,6 +18,9 @@ export function fakeFurnitureWorld(kind: FurnitureKind) {
     spawn: vi.fn(
       () => asFurnitureId("chair") as ReturnType<FurnitureWorld["spawn"]>,
     ),
+    layTop: vi.fn(),
+    clearTop: vi.fn(),
+    blockAboveTop: vi.fn(() => false),
     refund: vi.fn(),
     showBlocked: vi.fn(),
     kindOf: vi.fn<FurnitureTakeBackWorld["kindOf"]>(() => kind),

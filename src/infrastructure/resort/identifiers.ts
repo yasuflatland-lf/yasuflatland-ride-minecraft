@@ -44,6 +44,8 @@ export const FURNITURE_IDS: Record<
 
 export const TEST_FURNITURE_PLACE = "yasu_ride_test:test_furniture_place";
 export const TEST_FURNITURE_HIT = "yasu_ride_test:test_furniture_hit";
+export const TEST_FURNITURE_TOP = "yasu_ride_test:test_furniture_top";
+export const TEST_FURNITURE_BLOCK = "yasu_ride_test:test_furniture_block";
 
 export function furnitureKindOf(
   typeId: string,
@@ -53,3 +55,12 @@ export function furnitureKindOf(
     (kind) => FURNITURE_IDS[kind][field] === typeId,
   );
 }
+
+export const DINING_TABLE_TOP_REFUSAL_HINTS = {
+  full: "yasu_ride.dining_table_top_full",
+  overlap: "yasu_ride.dining_table_top_overlap",
+  tooBig: "yasu_ride.dining_table_top_too_big",
+} as const;
+
+export const DINING_TABLE_TOP = id("dining_table_top");
+export const FURNITURE_TOP_CELLS = id("top_cells");

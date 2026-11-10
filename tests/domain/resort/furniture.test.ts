@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   type CellOffset,
+  diningTableTopCells,
   FURNITURE_SPEC,
   type FurnitureKind,
   furnitureCells,
@@ -157,22 +158,22 @@ describe("furniture spec", () => {
     expectFrozen(FURNITURE_SPEC);
   });
 
-  it("provides the per-kind seat and tabletop dimensions", () => {
+  it("provides per-kind seats and the finalized Dining Table surface", () => {
     const seats: readonly (readonly SeatOffset[])[] = [
       [],
       [{ x: 0, y: 0.21, z: -0.00625 }],
       [{ x: 0, y: 0.2475, z: -0.1 }],
       [
-        { x: -0.5, y: 0.4, z: 0.05 },
-        { x: 0.5, y: 0.4, z: 0.05 },
+        { x: -0.5, y: 0.2475, z: -0.1 },
+        { x: 0.5, y: 0.2475, z: -0.1 },
       ],
     ];
     expect(kinds.map((kind) => FURNITURE_SPEC[kind].seats)).toEqual(seats);
     expect(FURNITURE_SPEC.dining_table.top).toEqual({
-      half: { halfX: 0.4, halfZ: 0.4 },
+      half: { halfX: 6, halfZ: 6 },
       topPx: 12,
-      limit: 4,
-      clearanceBase: 0,
+      limit: 1,
+      clearanceBase: 1,
     });
     for (const kind of kinds) {
       const spec = FURNITURE_SPEC[kind];
@@ -196,4 +197,18 @@ describe("furniture spec", () => {
       }),
     );
   });
+});
+
+it("uses the footprint cells for tabletop blocks at every pose", () => {
+  fc.assert(
+    fc.property(
+      cellArb,
+      yawArb,
+      fc.constantFrom(...kinds),
+      (block, yaw, kind) => {
+        const pose = furniturePose(block, yaw, kind);
+        expect(diningTableTopCells(pose)).toEqual(furnitureCells(pose));
+      },
+    ),
+  );
 });

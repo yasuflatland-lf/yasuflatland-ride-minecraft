@@ -467,6 +467,7 @@ it("reads every oven hosted by this table, at its point or its legacy spot", () 
     topHosts: campTopHosts(),
   });
   expect(ovens.topHost("camp_table", "table")).toEqual({
+    blockedAt: expect.any(Function),
     dimension: "overworld",
     at: table.location,
     yaw: 90,

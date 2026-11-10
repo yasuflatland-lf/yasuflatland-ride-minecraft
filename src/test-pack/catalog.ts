@@ -19,6 +19,51 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "dining_table_top_overlap",
+    file: "diningTable",
+    ticks: 32, // Estimate until the first BDS run.
+    features: ["resort", "camp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_top_lay_clear",
+    file: "diningTable",
+    ticks: 32, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_block_on_top",
+    file: "diningTable",
+    ticks: 38, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_top_restore",
+    file: "diningTable",
+    ticks: 54, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_place_take_back",
+    file: "diningTable",
+    ticks: 64, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "build_structure_probe",
     file: "buildStructure",
     ticks: 30,
@@ -49,9 +94,36 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "dining_table_lantern",
+    file: "diningTable",
+    ticks: 20, // Estimate until the first BDS run.
+    features: ["resort", "camp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_oven",
+    file: "diningTable",
+    ticks: 20, // Estimate until the first BDS run.
+    features: ["resort", "camp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "sofa_single_place_take_back",
     file: "sofaSingle",
     ticks: 56, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "sofa_double_place_take_back",
+    file: "sofaDouble",
+    ticks: 80, // Estimate until the first BDS run.
     features: ["resort"],
     isolation: "lane",
     needsPlayer: false,

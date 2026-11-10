@@ -12,6 +12,7 @@ import { TakeBackParasol } from "../../application/resort/takeBackParasol";
 import { GiveStarterItem } from "../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import { Repaint } from "../../application/shared/repaint";
+import { FURNITURE_SPEC } from "../../domain/resort/furniture";
 import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
 import {
   BedrockStarterItemWorld,
@@ -29,6 +30,8 @@ import { registerBeachChairLifecycle } from "./bedrock/handlers/beachChairLifecy
 import { registerBeachChairPlacement } from "./bedrock/handlers/beachChairPlacement";
 import { registerFurnitureHits } from "./bedrock/handlers/furnitureHits";
 import { registerFurniturePlacement } from "./bedrock/handlers/furniturePlacement";
+import { registerFurnitureTopInteraction } from "./bedrock/handlers/furnitureTopInteraction";
+import { registerFurnitureTopLifecycle } from "./bedrock/handlers/furnitureTopLifecycle";
 import { registerParasolHits } from "./bedrock/handlers/hits";
 import { registerParasolLifecycle } from "./bedrock/handlers/lifecycle";
 import { registerParasolPlacement } from "./bedrock/handlers/placement";
@@ -41,6 +44,8 @@ import {
   BEACH_CHAIR_TOP_REFUSAL_HINTS,
   BEACH_PARASOL_ITEM,
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
+  DINING_TABLE_TOP_REFUSAL_HINTS,
+  FURNITURE_IDS,
 } from "./identifiers";
 
 export function installResort(deps: {
@@ -62,9 +67,22 @@ export function installResort(deps: {
     refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
   });
   const furniture = new BedrockFurnitureWorld(deps);
+  const diningTop = FURNITURE_SPEC.dining_table.top;
+  if (diningTop)
+    deps.topHosts.registerHost({
+      hostType: "dining_table",
+      entityTypeId: FURNITURE_IDS.dining_table.entity,
+      surface: diningTop,
+      isTopNow: () => true,
+      refusalHints: DINING_TABLE_TOP_REFUSAL_HINTS,
+      blockedAt: (entity, at, footprint) =>
+        furniture.blockedAt(entity, at, footprint),
+    });
+  registerFurnitureTopInteraction(furniture, deps.placeHostedOnTop);
   const takeFurniture = new TakeBackFurniture(furniture);
   registerFurniturePlacement(new PlaceFurniture(furniture));
-  registerFurnitureHits(takeFurniture);
+  registerFurnitureHits(takeFurniture, furniture);
+  registerFurnitureTopLifecycle(furniture);
   registerTestFurniture(furniture, takeFurniture, deps);
   const chair = new BedrockBeachChairWorld(deps);
   const takeChair = new TakeBackBeachChair(chair);

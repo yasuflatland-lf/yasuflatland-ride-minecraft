@@ -222,8 +222,17 @@ yasu_ride.furniture.taken=Took back the furniture
 yasu_ride.furniture.occupied=Someone is sitting on this furniture
 yasu_ride.furniture.something_on_top=Take everything off the top first
 
+item.yasu_ride:dining_table_item.name=Dining Table
+entity.yasu_ride:dining_table.name=Dining Table
+yasu_ride.dining_table_top_full=The dining table is full.
+yasu_ride.dining_table_top_overlap=There is not enough room here on the dining table.
+yasu_ride.dining_table_top_too_big=This item is too big for the dining table.
+
+yasu_ride.dining_table.top_occupied=This space on the table is occupied.
 item.yasu_ride:dining_chair_item.name=Dining Chair
 entity.yasu_ride:dining_chair.name=Dining Chair
 
 item.yasu_ride:sofa_single_item.name=Sofa (Single)
+item.yasu_ride:sofa_double_item.name=Sofa (Double)
 entity.yasu_ride:sofa_single.name=Sofa (Single)
+entity.yasu_ride:sofa_double.name=Sofa (Double)

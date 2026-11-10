@@ -34,7 +34,7 @@ export interface FurnitureSpec {
   readonly top?: TopSurface;
 }
 
-// Dining Chair and Sofa (Single) are finalized against their models; remaining pieces settle their initial values in their asset issues (ADR 0240).
+// Dining Chair and both sofas have seat offsets finalized against their models (ADR 0240).
 export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
   Object.freeze({
     dining_table: Object.freeze({
@@ -44,10 +44,10 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       hitsToTakeBack: 3,
       hitResetTicks: 100,
       top: Object.freeze({
-        half: Object.freeze({ halfX: 0.4, halfZ: 0.4 }),
+        half: Object.freeze({ halfX: 6, halfZ: 6 }),
         topPx: 12,
-        limit: 4,
-        clearanceBase: 0,
+        limit: 1,
+        clearanceBase: 1,
       }),
     }),
     dining_chair: Object.freeze({
@@ -71,8 +71,8 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       ]),
       clearance: 2,
       seats: Object.freeze([
-        Object.freeze({ x: -0.5, y: 0.4, z: 0.05 }),
-        Object.freeze({ x: 0.5, y: 0.4, z: 0.05 }),
+        Object.freeze({ x: -0.5, y: 0.2475, z: -0.1 }),
+        Object.freeze({ x: 0.5, y: 0.2475, z: -0.1 }),
       ]),
       hitsToTakeBack: 3,
       hitResetTicks: 100,
@@ -145,4 +145,10 @@ export function furnitureClearCells(pose: FurniturePose): Cell[] {
   for (let up = 0; up < FURNITURE_SPEC[pose.kind].clearance; up++)
     for (const cell of floor) cells.push({ ...cell, y: cell.y + up });
   return cells;
+}
+
+export const FURNITURE_TOP_SYNC_TICKS = 20;
+
+export function diningTableTopCells(pose: FurniturePose): Cell[] {
+  return furnitureCells(pose);
 }
