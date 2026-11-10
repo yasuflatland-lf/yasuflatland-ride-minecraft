@@ -1,7 +1,6 @@
 # 0244. Gate structure decor checks on a player
 
-- Status: Proposed
-- Acceptance condition: build_structure_decor_probe runs with a logged-in player and the owner agrees with its results
+- Status: Accepted
 - Date: 2026-11-10
 - Supersedes in part: [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md): the 300-tick declared budget for the player-driven structure decor probe only
 - Related: [0001](0001-bedrock-addon-with-stable-script-api.md): stable API only
@@ -19,4 +18,4 @@ Allow only this player-gated scenario a declared budget of 1,300 ticks. Stream s
 
 ## Consequences
 
-CI cannot establish preservation of item-frame contents or paintings. The decor checks remain unverified until run with a logged-in player; manual row BT32 records that verification. A failed original observation establishes a fixture failure rather than evidence of structure data loss. The longer budget applies only to this interactive fixture and does not relax the headless scenario limit.
+CI cannot establish preservation of item-frame contents or paintings. The decor checks passed on the dev BDS with a logged-in player on 2026-11-10; manual row BT32 records that verification. A failed original observation establishes a fixture failure rather than evidence of structure data loss. The longer budget applies only to this interactive fixture and does not relax the headless scenario limit.

@@ -588,7 +588,7 @@ These scenarios require one connected player, run exclusively without vehicles, 
 
 | Scenario                            | Coverage                                                                                                                                                                           |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `build_structure_decor_probe`       | Player-driven item frame with diamond and painting, Memory structure round trip, verified by breaking the frame for the diamond drop; unverified until run with a logged-in player |
+| `build_structure_decor_probe`       | Player-driven item frame with diamond and painting, Memory structure round trip, verified by breaking the frame for the diamond drop; passed with a logged-in player on 2026-11-10 |
 | `build_shapes`                      | Box fill/faces/walls (125/98/80), rectangle frame (16), line (5), absent menu entries and exact permutation undo                                                                   |
 | `build_roofs`                       | Gable solid/hollow (45/42), hip solid/hollow (35/34), explicit height, roof menu availability and undo                                                                             |
 | `build_flow_cancel`                 | Wand mode on foot, item-switch cancellation of point 1, preserved endpoint, shape/roof Cancel returning to aiming                                                                  |
