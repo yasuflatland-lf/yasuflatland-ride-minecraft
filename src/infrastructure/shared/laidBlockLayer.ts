@@ -4,7 +4,7 @@ import { type Cell, cellKey } from "../../domain/shared/cells";
 import { asDimensionId } from "../../domain/shared/ids";
 import { NAMESPACE } from "./identifiers";
 
-export class RainCeilingLayer {
+export class LaidBlockLayer {
   constructor(
     private readonly blockId: string,
     private readonly isVehicleSpace: SpaceCheck,
