@@ -6,6 +6,10 @@ import { AIR, type BlockState } from "../../../../src/domain/build/blockState";
 import type { CellBox } from "../../../../src/domain/build/box";
 import { cellsOf } from "../../../../src/domain/build/box";
 import {
+  NO_TURN,
+  type QuarterTurn,
+} from "../../../../src/domain/build/rotation/quarterTurn";
+import {
   type StructureHandle,
   structureHandle,
 } from "../../../../src/domain/build/structure/handle";
@@ -25,6 +29,7 @@ export type StructureCall =
       handle: StructureHandle;
       dimensionId: DimensionId;
       anchor: Cell;
+      turn: QuarterTurn;
     }
   | { kind: "clearEntities"; dimensionId: DimensionId; box: CellBox }
   | { kind: "clearBlocks"; dimensionId: DimensionId; box: CellBox }
@@ -100,14 +105,30 @@ export class FakeStructureStore implements BuildStructureStore {
     handle: StructureHandle,
     dimensionId: DimensionId,
     anchor: Cell,
+    turn: QuarterTurn = NO_TURN,
   ): boolean {
-    this.calls.push({ kind: "place", handle, dimensionId, anchor });
+    this.calls.push({ kind: "place", handle, dimensionId, anchor, turn });
     if (!this.placeSucceeds || !this.live.has(handle)) return false;
+    const blocks = this.blocks.get(handle) ?? [];
+    const { sx, sz } = blocks.reduce(
+      (size, { at }) => ({
+        sx: Math.max(size.sx, at.x + 1),
+        sz: Math.max(size.sz, at.z + 1),
+      }),
+      { sx: 0, sz: 0 },
+    );
     if (this.world)
-      for (const { at, state } of this.blocks.get(handle) ?? []) {
+      for (const { at, state } of blocks) {
+        let { x, z } = at;
+        let width = sx;
+        let depth = sz;
+        for (let step = 0; step < turn; step++) {
+          [x, z] = [depth - 1 - z, x];
+          [width, depth] = [depth, width];
+        }
         this.world.setState(
           dimensionId,
-          { x: anchor.x + at.x, y: anchor.y + at.y, z: anchor.z + at.z },
+          { x: anchor.x + x, y: anchor.y + at.y, z: anchor.z + z },
           state,
         );
       }

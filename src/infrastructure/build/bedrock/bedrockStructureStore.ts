@@ -1,6 +1,7 @@
 import {
   type Dimension,
   type Entity,
+  StructureRotation,
   StructureSaveMode,
   world,
 } from "@minecraft/server";
@@ -9,6 +10,11 @@ import type {
   CaptureRefusal,
 } from "../../../application/build/ports/structures";
 import type { CellBox } from "../../../domain/build/box";
+import {
+  NO_TURN,
+  type QuarterTurn,
+  rotatedSize,
+} from "../../../domain/build/rotation/quarterTurn";
 import {
   type StructureHandle,
   structureHandle,
@@ -81,12 +87,13 @@ export class BedrockStructureStore implements BuildStructureStore {
     handle: StructureHandle,
     dimensionId: DimensionId,
     anchor: Cell,
+    turn: QuarterTurn = NO_TURN,
   ): boolean {
     try {
       const structure = world.structureManager.get(handle);
       if (!structure) return false;
       const dimension = world.getDimension(dimensionId);
-      const size = structure.size;
+      const size = rotatedSize(structure.size, turn);
       const box = {
         min: anchor,
         max: {
@@ -99,6 +106,12 @@ export class BedrockStructureStore implements BuildStructureStore {
         entitiesInside(dimension, box).map((entity) => entity.id),
       );
       world.structureManager.place(structure, dimension, anchor, {
+        rotation: [
+          StructureRotation.None,
+          StructureRotation.Rotate90,
+          StructureRotation.Rotate180,
+          StructureRotation.Rotate270,
+        ][turn],
         includeBlocks: true,
         includeEntities: true,
       });

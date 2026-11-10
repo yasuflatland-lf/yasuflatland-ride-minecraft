@@ -45,3 +45,21 @@ it("records clears and reports the configured result", () => {
     "clearBlocks",
   ]);
 });
+
+it.each([undefined, 0, 1, 2, 3] as const)(
+  "records turn %s with a zero default",
+  (turn) => {
+    const store = new FakeStructureStore();
+    const handle = store.capture(dim, box, owner);
+    if (handle === "tooLarge" || handle === "unreadable")
+      throw new Error(handle);
+    expect(store.place(handle, dim, anchor, turn)).toBe(true);
+    expect(store.calls.at(-1)).toEqual({
+      kind: "place",
+      handle,
+      dimensionId: dim,
+      anchor,
+      turn: turn ?? 0,
+    });
+  },
+);

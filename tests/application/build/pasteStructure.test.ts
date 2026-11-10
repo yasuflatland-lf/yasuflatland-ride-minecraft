@@ -87,6 +87,7 @@ it("captures before replacement, records only after place, discards older snapsh
       });
       expect(e.store.calls[2]).toEqual({
         kind: "place",
+        turn: 0,
         handle,
         dimensionId: overworld,
         anchor,
@@ -181,6 +182,7 @@ it.each(["tooLarge", "unreadable", "place"] as const)(
     if (failure === "place")
       expect(e.store.calls[4]).toEqual({
         kind: "place",
+        turn: 0,
         handle: structureHandle("fake_paste_1"),
         dimensionId: overworld,
         anchor: e.cmd.target.box.min,
