@@ -10,6 +10,7 @@ import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
+import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
@@ -31,6 +32,7 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
+import { chooseFromForm } from "../../../src/infrastructure/shared/choiceForm";
 import {
   FakeFeedback,
   FakeSessions,
@@ -188,10 +190,15 @@ function setup(fallback?: boolean) {
     isValid: true,
     dimension: { heightRange: { min: -64, max: 320 } },
   } as unknown as Player;
-  const menus = new BedrockBuildMenus(repo, cases, fallback);
+  const rotate = new RotatePasteAim(repo);
+  const rotateCall = vi.spyOn(rotate, "execute");
+  const form = vi.fn(chooseFromForm<"rotate" | "done">);
+  const menus = new BedrockBuildMenus(repo, cases, fallback, form, rotate);
   return {
     repo,
     session,
+    rotateCall,
+    form,
     cases,
     player,
     menus,
@@ -218,7 +225,7 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
         } as const,
         end,
         chooseHeighted(end, "hip"),
-        { kind: "pasteAim" } as const,
+        { kind: "pasteAim", turn: 0 } as const,
       ]) {
         session.setFlow(flow);
         for (const [model, show] of [
@@ -498,7 +505,7 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
         session,
         structureClipboard(boxOf(from, from), () => stone),
       );
-      session.setFlow({ kind: "pasteAim" });
+      session.setFlow({ kind: "pasteAim", turn: 0 });
     }
     ui.answers.push(
       new Promise((resolve) => {
@@ -746,7 +753,7 @@ it("accepts EndPasting only in paste aiming and exposes its own label", async ()
     boxOf(from, to),
     structureClipboard(boxOf(from, to), () => stone),
   );
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", turn: 0 });
   expect(choices.choose(playerId, "paste", "endPaste")).toBe(true);
   expect(cases.endPasting.execute).toHaveBeenCalledExactlyOnceWith(playerId);
   expect(session.flow.kind).toBe("idle");
@@ -754,7 +761,7 @@ it("accepts EndPasting only in paste aiming and exposes its own label", async ()
   expect(session.confirmedBox).toBeUndefined();
   expect(choices.choose(playerId, "utility", "paste")).toBe(false);
   expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", turn: 0 });
   ui.answers.push({
     selection: pasteMenu({
       hasHistory: session.hasHistory,
@@ -989,7 +996,9 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
       ),
       (history, aiming, entryId) => {
         const { session, choices, cases } = setup();
-        session.setFlow(aiming ? { kind: "pasteAim" } : { kind: "idle" });
+        session.setFlow(
+          aiming ? { kind: "pasteAim", turn: 0 } : { kind: "idle" },
+        );
         if (history)
           session.finishEdit(
             {
@@ -1034,7 +1043,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
         structureClipboard(boxOf(from, from), () => stone),
       );
       const clipboard = session.clipboard;
-      session.setFlow({ kind: "pasteAim" });
+      session.setFlow({ kind: "pasteAim", turn: 0 });
       if (history)
         session.finishEdit(
           {
@@ -1043,7 +1052,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
           },
           "undoable",
         );
-      const index = history ? 1 : 0;
+      const index = history ? 2 : 1;
       ui.answers.push({ selection: index });
       await menus.showPasteMenu(player);
       expect(ui.forms[0]?.buttons[index]).toEqual({
@@ -1170,3 +1179,86 @@ it.each([false, true])(
     } else expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
   },
 );
+
+it.each([
+  ["Done", { selection: 1 }],
+  ["Escape", { canceled: true, cancelationReason: "UserClosed" }],
+  ["busy cancellation", { cancelationReason: "UserBusy" }],
+] as const)(
+  "rotates twice then exits once on %s and keeps the turn",
+  async (_, answer) => {
+    const { session, menus, player, rotateCall, form } = setup();
+    holdClipboard(
+      session,
+      structureClipboard(boxOf(from, to), () => stone),
+    );
+    session.setFlow({ kind: "pasteAim", turn: 0 });
+    ui.answers.push(
+      { selection: 0 },
+      { selection: 0 },
+      { selection: 0 },
+      answer,
+    );
+    const exited = vi.fn();
+    await menus.showPasteMenu(player).then(exited);
+    expect(exited).toHaveBeenCalledTimes(1);
+    expect(rotateCall).toHaveBeenCalledTimes(2);
+    expect(rotateCall).toHaveBeenNthCalledWith(1, { playerId });
+    expect(rotateCall).toHaveBeenNthCalledWith(2, { playerId });
+    expect(form).toHaveBeenCalledTimes(3);
+    expect(ui.forms.slice(1).map((f) => f.message)).toEqual(
+      [0, 90, 180].map((degrees) => ({
+        translate: BUILD_FORM.rotateBody,
+        with: [String(degrees)],
+      })),
+    );
+    expect(ui.forms[1]?.buttons).toEqual([
+      { translate: BUILD_FORM.rotate },
+      { translate: BUILD_FORM.done },
+    ]);
+    expect(session.flow).toEqual({ kind: "pasteAim", turn: 2 });
+  },
+);
+
+it.each(["leave aim", "disconnect"] as const)(
+  "stops rotation after %s while the form is open",
+  async (reason) => {
+    const { session, menus, player, rotateCall } = setup();
+    holdClipboard(
+      session,
+      structureClipboard(boxOf(from, to), () => stone),
+    );
+    session.setFlow({ kind: "pasteAim", turn: 1 });
+    let close!: (answer: Answer) => void;
+    ui.answers.push(
+      new Promise((resolve) => {
+        close = resolve;
+      }),
+    );
+    const pending = menus.showRotateMenu(player);
+    await vi.waitFor(() => expect(ui.forms).toHaveLength(1));
+    await menus.showPasteMenu(player);
+    expect(ui.forms).toHaveLength(1);
+    if (reason === "leave aim") session.setFlow({ kind: "idle" });
+    else Object.assign(player, { isValid: false });
+    close({ selection: 0 });
+    await pending;
+    expect(rotateCall).not.toHaveBeenCalled();
+    expect(ui.forms).toHaveLength(1);
+  },
+);
+
+it("opens no rotation form outside paste aiming", async () => {
+  const { menus, player } = setup();
+  await menus.showRotateMenu(player);
+  expect(ui.forms).toHaveLength(0);
+});
+
+it("dispatches Rotate only while paste aiming", () => {
+  const { session, choices } = setup();
+  const showRotate = vi.fn();
+  expect(choices.choose(playerId, "paste", "rotate", showRotate)).toBe(false);
+  session.setFlow({ kind: "pasteAim", turn: 0 });
+  expect(choices.choose(playerId, "paste", "rotate", showRotate)).toBe(true);
+  expect(showRotate).toHaveBeenCalledTimes(1);
+});

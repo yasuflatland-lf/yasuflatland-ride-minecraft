@@ -27,6 +27,7 @@ interface BuildState {
   clipboardHeld: boolean;
   clipboard?: Clipboard;
   pasteMenu: string[];
+  pasteTurn: import("../../domain/build/rotation/quarterTurn").QuarterTurn;
 }
 
 interface Reply {
@@ -469,14 +470,14 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
     await copyLine(f);
     const withoutHistory = await checkState(f, "pasteAim", true);
     check(
-      withoutHistory.pasteMenu.join() === "newCopy,endPaste",
+      withoutHistory.pasteMenu.join() === "rotate,newCopy,endPaste",
       "Paste menu without history has unexpected entries",
     );
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
     await pasteInto(f, target);
     const withHistory = await checkState(f, "pasteAim", true);
     check(
-      withHistory.pasteMenu.join() === "undo,newCopy,endPaste",
+      withHistory.pasteMenu.join() === "undo,rotate,newCopy,endPaste",
       "Paste menu with history must have exactly four ordered entries",
     );
     await f.menu("paste", "undo");
@@ -485,7 +486,7 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
       "menu Undo did not restore blocks",
     );
     check(
-      (await f.state()).pasteMenu.join() === "newCopy,endPaste",
+      (await f.state()).pasteMenu.join() === "rotate,newCopy,endPaste",
       "Undo remained in the menu without history",
     );
   });
@@ -1941,6 +1942,91 @@ export function buildUndoSnapshot(a: Arena): Promise<Outcome> {
         .getComponent("minecraft:inventory")
         ?.container?.clearAll();
       for (const cell of cells) f.block(cell).setType("minecraft:air");
+    }
+  });
+}
+
+export function buildPasteRotate(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(5, 3, 3);
+    const surround = f.region(5, 3, 7, f.cell(11, 0, -1));
+    const target = f.region(3, 3, 5, f.cell(12));
+    try {
+      for (const c of source)
+        f.block(c).setType(
+          c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
+        );
+      for (const c of surround) f.block(c).setType("minecraft:gold_block");
+      const chest = f.block(f.cell(1, 1, 1));
+      chest.setType("minecraft:chest");
+      chest
+        .getComponent("minecraft:inventory")
+        ?.container?.setItem(0, new ItemStack("minecraft:diamond", 7));
+      const sign = f.block(f.cell(3, 1, 1));
+      sign.setType("minecraft:standing_sign");
+      sign
+        .getComponent("minecraft:sign")
+        ?.setText("Rotate front", SignSide.Front);
+      sign
+        .getComponent("minecraft:sign")
+        ?.setText("Rotate back", SignSide.Back);
+      await f.select(f.cell(4, 2, 2));
+      check(
+        (await f.menu("shape", "copy")).flow.kind === "pasteAim",
+        "Copy did not start paste aiming",
+      );
+      await f.edit("rotate");
+      check((await f.state()).pasteTurn === 1, "Rotate did not set the turn");
+      const anchor = f.cell(12, -1);
+      check(
+        (await pasteStep(f, anchor.x, anchor.y, anchor.z, "up")).message ===
+          "editDone",
+        "Rotated paste failed",
+      );
+      for (const c of target) {
+        const x = c.x - f.cell(12).x;
+        const y = c.y - f.cell().y;
+        const z = c.z - f.cell().z;
+        const expected =
+          y === 0
+            ? "minecraft:stone"
+            : y === 1 && x === 1 && z === 1
+              ? "minecraft:chest"
+              : y === 1 && x === 1 && z === 3
+                ? "minecraft:standing_sign"
+                : "minecraft:air";
+        check(f.block(c).typeId === expected, "Rotated footprint mismatch");
+      }
+      const outside = surround.filter(
+        (c) => !target.some((t) => t.x === c.x && t.y === c.y && t.z === c.z),
+      );
+      check(
+        f.count(outside, "minecraft:gold_block") === outside.length,
+        "Paste changed cells outside the rotated footprint",
+      );
+      const item = f
+        .block(f.cell(13, 1, 1))
+        .getComponent("minecraft:inventory")
+        ?.container?.getItem(0);
+      check(
+        item?.typeId === "minecraft:diamond" && item.amount === 7,
+        "Rotated chest lost items",
+      );
+      const pastedSign = f
+        .block(f.cell(13, 1, 3))
+        .getComponent("minecraft:sign");
+      check(
+        pastedSign?.getText(SignSide.Front) === "Rotate front" &&
+          pastedSign.getText(SignSide.Back) === "Rotate back",
+        "Rotated sign lost text",
+      );
+      check((await f.state()).pasteTurn === 1, "Paste lost the turn");
+    } finally {
+      await f.edit("releaseStructures");
+      for (const c of [...source, ...surround]) {
+        f.block(c).getComponent("minecraft:inventory")?.container?.clearAll();
+        f.block(c).setType("minecraft:air");
+      }
     }
   });
 }

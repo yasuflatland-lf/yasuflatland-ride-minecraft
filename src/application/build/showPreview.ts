@@ -59,7 +59,11 @@ export class ShowPreview {
           session.clipboard.blockCount,
         );
       if (flow.kind === "pasteAim" && aim && session.clipboard)
-        preview.pasteBox = aimedPasteTarget(session.clipboard, aim)?.box;
+        preview.pasteBox = aimedPasteTarget(
+          session.clipboard,
+          aim,
+          session.pasteTurn,
+        )?.box;
       const set = previewPoints(flow, preview);
       if (Object.values(set).some((points) => points.length > 0))
         this.feedback.drawPreview(

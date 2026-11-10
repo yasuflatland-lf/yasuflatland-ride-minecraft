@@ -1,5 +1,9 @@
 import type { BuildFlow } from "../../domain/build/flow/flow";
 import { pasteMenu } from "../../domain/build/flow/menu";
+import {
+  NO_TURN,
+  type QuarterTurn,
+} from "../../domain/build/rotation/quarterTurn";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 
@@ -9,12 +13,14 @@ export class DescribeBuild {
   execute(playerId: PlayerId): {
     flow: BuildFlow["kind"];
     clipboardHeld: boolean;
+    pasteTurn: QuarterTurn;
     pasteMenu: string[];
   } {
     const session = this.repo.get(playerId);
     return {
       flow: session?.flow.kind ?? "idle",
       clipboardHeld: session?.clipboard !== undefined,
+      pasteTurn: session?.pasteTurn ?? NO_TURN,
       pasteMenu: pasteMenu({
         hasHistory: session?.hasHistory ?? false,
       }).map((entry) => entry.id),

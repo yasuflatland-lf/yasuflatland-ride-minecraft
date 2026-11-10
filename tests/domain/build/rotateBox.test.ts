@@ -71,26 +71,17 @@ it("keeps a square footprint in the same box", () => {
   );
 });
 
-// Flooring the half cell shifts the center by half a cell per turn in the
-// worst case, and the shifts of two consecutive turns do not cancel. The
-// design asks for a total drift of one cell; that does not hold for floor (see
-// the pull request notes), so this bounds the center shift by n half cells.
-it("shifts the center by at most half a cell per turn", () => {
+it("returns the original box after two turns and after four", () => {
   fc.assert(
-    fc.property(cell, size, fc.integer({ min: 1, max: 12 }), (min, size, n) => {
+    fc.property(cell, size, (min, size) => {
       const source = boxAt(min, size);
-      let target = source;
-      for (let i = 0; i < n; i++) {
-        target = planRotationAboutCenter(target).target;
-      }
-      for (const axis of ["x", "y", "z"] as const) {
-        const doubledShift =
-          target.min[axis] +
-          target.max[axis] -
-          source.min[axis] -
-          source.max[axis];
-        expect(Math.abs(doubledShift)).toBeLessThanOrEqual(n);
-      }
+      const once = planRotationAboutCenter(source).target;
+      const twice = planRotationAboutCenter(once).target;
+      expect(twice).toEqual(source);
+      const fourth = planRotationAboutCenter(
+        planRotationAboutCenter(twice).target,
+      ).target;
+      expect(fourth).toEqual(source);
     }),
   );
 });
@@ -98,18 +89,40 @@ it("shifts the center by at most half a cell per turn", () => {
 it.each([
   { size: { x: 5, y: 3, z: 3 }, offset: { x: 1, z: -1 } },
   { size: { x: 4, y: 2, z: 2 }, offset: { x: 1, z: -1 } },
-  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: -1 } },
-  { size: { x: 1, y: 4, z: 2 }, offset: { x: -1, z: 0 } },
+  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 4, z: 2 }, offset: { x: 0, z: 0 } },
+  { size: { x: 2, y: 4, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 1, z: 4 }, offset: { x: -1, z: 1 } },
+  { size: { x: 3, y: 1, z: 6 }, offset: { x: -1, z: 1 } },
+  { size: { x: 6, y: 1, z: 3 }, offset: { x: 1, z: -1 } },
 ])(
-  "rotates $size about its center, flooring the half cell",
+  "rotates $size about its center, rounding the half cell toward zero",
   ({ size, offset }) => {
-    const min = { x: -10, y: -5, z: 7 };
-    expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
-      boxAt(
-        { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
-        { x: size.z, y: size.y, z: size.x },
-      ),
-    );
+    for (const min of [
+      { x: -10, y: -5, z: 7 },
+      { x: 4, y: 0, z: -9 },
+    ]) {
+      expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
+        boxAt(
+          { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
+          { x: size.z, y: size.y, z: size.x },
+        ),
+      );
+    }
+  },
+);
+
+it.each([{ size: { x: 1, y: 1, z: 2 } }, { size: { x: 2, y: 1, z: 1 } }])(
+  "never produces negative zero for $size",
+  ({ size }) => {
+    const plan = planRotationAboutCenter(boxAt({ x: 0, y: 0, z: 0 }, size));
+    for (const box of [plan.source, plan.target, plan.union]) {
+      for (const corner of [box.min, box.max]) {
+        for (const value of [corner.x, corner.y, corner.z]) {
+          expect(Object.is(value, -0)).toBe(false);
+        }
+      }
+    }
   },
 );
 

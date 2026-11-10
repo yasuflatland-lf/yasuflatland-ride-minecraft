@@ -5,7 +5,7 @@ import type { CellBox } from "./box";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
-import { beginPasteAim } from "./flow/paste";
+import { beginPasteAim, rotatePasteAim } from "./flow/paste";
 import {
   EMPTY_HISTORY,
   type SnapshotRecord,
@@ -16,6 +16,7 @@ import {
   withPutBack,
 } from "./history/history";
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
+import { NO_TURN, type QuarterTurn } from "./rotation/quarterTurn";
 import { BUILD_SPEC } from "./spec";
 import type { StructureHandle } from "./structure/handle";
 
@@ -95,6 +96,18 @@ export class BuildSession {
     this.confirmBox(dimensionId, box);
     this.currentFlow = beginPasteAim();
     return previous !== structureOf(clipboard) ? previous : undefined;
+  }
+
+  rotatePaste(): boolean {
+    if (this.currentFlow.kind !== "pasteAim") return false;
+    this.currentFlow = rotatePasteAim(this.currentFlow);
+    return true;
+  }
+
+  get pasteTurn(): QuarterTurn {
+    return this.currentFlow.kind === "pasteAim"
+      ? this.currentFlow.turn
+      : NO_TURN;
   }
 
   startNewCopy(): void {

@@ -51,7 +51,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
   const cmd = {
     playerId,
     dimensionId: overworld,
-    target: { anchor, box },
+    target: { anchor, box, turn: 0 as const },
     tick: 100,
   };
   return { repo, session, world, players, feedback, store, start, paste, cmd };

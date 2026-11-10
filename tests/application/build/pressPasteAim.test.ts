@@ -78,7 +78,7 @@ function setup(
     structures,
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", turn: 0 });
   const aim = new FakeAimReader();
   aim.target = {
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
@@ -117,9 +117,11 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
         e.clipboard.contents.handle,
         nether,
         e.target.anchor,
+        0,
       ]);
       expect(e.session.flow).toEqual({
         kind: "pasteAim",
+        turn: 0,
         lastPaste: { anchor: e.target.anchor, tick },
       });
       e.jobs.step();
@@ -173,7 +175,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
       expect(e.execute()).toBe("ignored");
       expect(e.repo.get(playerId)).toBeUndefined();
       const empty = e.repo.getOrCreate(playerId);
-      empty.setFlow({ kind: "pasteAim" });
+      empty.setFlow({ kind: "pasteAim", turn: 0 });
       expect(e.execute()).toBe("ignored");
       expect(e.feedback.messages).toEqual([{ message: "noClipboard" }]);
       expect(e.start).not.toHaveBeenCalled();
@@ -245,7 +247,7 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         new UndoEdit(e.repo, e.feedback, e.jobs, e.world, e.structures, {
           warn: () => {},
         }).execute({ playerId });
-        expect(e.session.flow).toEqual({ kind: "pasteAim" });
+        expect(e.session.flow).toEqual({ kind: "pasteAim", turn: 0 });
         expect(e.session.clipboard).toBe(e.clipboard);
         e.jobs.step();
         expect(e.world.stateAt(nether, e.target.anchor)).toBe(AIR);

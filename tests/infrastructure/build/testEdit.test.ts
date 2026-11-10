@@ -4,6 +4,7 @@ import { expect, it, vi } from "vitest";
 import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
+import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -138,6 +139,7 @@ function snapshotHook() {
     repo,
     new EndBuildSession(repo, structures),
     structures,
+    new RotatePasteAim(repo),
   );
   const callback = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)

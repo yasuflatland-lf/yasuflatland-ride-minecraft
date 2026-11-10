@@ -1,5 +1,10 @@
 import type { Cell } from "../../shared/cells";
 import { boxOf, type CellBox } from "../box";
+import {
+  NO_TURN,
+  type QuarterTurn,
+  rotatedSize,
+} from "../rotation/quarterTurn";
 import type { StructureHandle } from "../structure/handle";
 
 export interface Clipboard {
@@ -37,31 +42,37 @@ function anchorCell(block: Cell, face: Face): Cell {
     z: block.z + offset.z,
   };
 }
-function pasteBox(clipboard: Clipboard, anchor: Cell): CellBox {
+function pasteBox(size: Cell, anchor: Cell): CellBox {
   return boxOf(anchor, {
-    x: anchor.x + clipboard.size.x - 1,
-    y: anchor.y + clipboard.size.y - 1,
-    z: anchor.z + clipboard.size.z - 1,
+    x: anchor.x + size.x - 1,
+    y: anchor.y + size.y - 1,
+    z: anchor.z + size.z - 1,
   });
 }
 
-export type PasteTarget = { anchor: Cell; box: CellBox };
+export type PasteTarget = { anchor: Cell; box: CellBox; turn: QuarterTurn };
 
 export function pasteTarget(
   clipboard: Clipboard,
   block: Cell,
   face: Face,
+  turn: QuarterTurn = NO_TURN,
 ): PasteTarget {
   const anchor = anchorCell(block, face);
-  return { anchor, box: pasteBox(clipboard, anchor) };
+  return {
+    anchor,
+    box: pasteBox(rotatedSize(clipboard.size, turn), anchor),
+    turn,
+  };
 }
 
 export function aimedPasteTarget(
   clipboard: Clipboard,
   aim: { block?: { cell: Cell; face: Face } },
+  turn: QuarterTurn = NO_TURN,
 ): PasteTarget | undefined {
   return aim.block
-    ? pasteTarget(clipboard, aim.block.cell, aim.block.face)
+    ? pasteTarget(clipboard, aim.block.cell, aim.block.face, turn)
     : undefined;
 }
 

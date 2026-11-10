@@ -13,6 +13,7 @@ import {
   beginPasteAim,
   isRepeat,
   recordPaste,
+  rotatePasteAim,
 } from "../../../src/domain/build/flow/paste";
 import { BuildSession } from "../../../src/domain/build/session";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -25,6 +26,29 @@ const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimensionId = asDimensionId("minecraft:overworld");
 const stone = blockStateOf("minecraft:stone");
+
+it("four turns restore any aim and recording a paste preserves its turn", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.nat(),
+      fc.constantFrom(0, 1, 2, 3),
+      (anchor, tick, steps) => {
+        let aim = recordPaste(beginPasteAim(), anchor, tick);
+        for (let i = 0; i < steps; i++) aim = rotatePasteAim(aim);
+        const initial = aim;
+        for (let i = 0; i < 4; i++) {
+          const next = rotatePasteAim(aim);
+          expect(next.lastPaste).toBe(aim.lastPaste);
+          expect(Object.isFrozen(next)).toBe(true);
+          aim = next;
+        }
+        expect(aim).toEqual(initial);
+        expect(recordPaste(aim, anchor, tick + 1).turn).toBe(initial.turn);
+      },
+    ),
+  );
+});
 
 it("records an immutable paste and suppresses only the same anchor within the window", () => {
   fc.assert(
@@ -39,9 +63,10 @@ it("records an immutable paste and suppresses only the same anchor within the wi
         const flow = recordPaste(initial, anchor, tick);
         expect(flow).toEqual({
           kind: "pasteAim",
+          turn: 0,
           lastPaste: { anchor, tick },
         });
-        expect(initial).toEqual({ kind: "pasteAim" });
+        expect(initial).toEqual({ kind: "pasteAim", turn: 0 });
         expect(Object.isFrozen(flow)).toBe(true);
         expect(Object.isFrozen(flow.lastPaste)).toBe(true);
         expect(Object.isFrozen(flow.lastPaste?.anchor)).toBe(true);
@@ -102,7 +127,12 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
             pasteMenu({
               hasHistory: session.hasHistory,
             }).map(({ id }) => id),
-          ).toEqual([...(history ? ["undo"] : []), "newCopy", "endPaste"]);
+          ).toEqual([
+            ...(history ? ["undo"] : []),
+            "rotate",
+            "newCopy",
+            "endPaste",
+          ]);
         }
       },
     ),
