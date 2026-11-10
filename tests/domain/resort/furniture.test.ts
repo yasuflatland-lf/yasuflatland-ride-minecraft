@@ -161,11 +161,11 @@ describe("furniture spec", () => {
   it("provides per-kind seats and the finalized Dining Table surface", () => {
     const seats: readonly (readonly SeatOffset[])[] = [
       [],
-      [{ x: 0, y: 0.45, z: 0.05 }],
-      [{ x: 0, y: 0.4, z: 0.05 }],
+      [{ x: 0, y: 0.21, z: -0.00625 }],
+      [{ x: 0, y: 0.2475, z: -0.1 }],
       [
-        { x: -0.5, y: 0.4, z: 0.05 },
-        { x: 0.5, y: 0.4, z: 0.05 },
+        { x: -0.5, y: 0.2475, z: -0.1 },
+        { x: 0.5, y: 0.2475, z: -0.1 },
       ],
     ];
     expect(kinds.map((kind) => FURNITURE_SPEC[kind].seats)).toEqual(seats);

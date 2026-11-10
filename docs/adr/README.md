@@ -182,7 +182,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) | Keep the icebreaker cut above the hull floor | Proposed |
 | [0176](0176-move-the-sports-boat-front-seats-back.md) | Move the sports boat's front seats back | Accepted |
 | [0177](0177-drive-text-on-the-sports-boat-driver-deck-seat.md) | Drive text on the sports boat driver deck seat | Accepted |
-| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; superseded in part by [0198](0198-one-build-wand-without-a-bulldozer.md), [0232](0232-undo-skips-conflicting-cells.md); extended by [0180](0180-a-wide-bulldozer-blade.md), [0181](0181-a-road-paver-on-the-bulldozer.md), [0183](0183-mark-a-lone-selection-corner.md), [0230](0230-cut-a-selection-with-the-build-wand.md) |
+| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; superseded in part by [0198](0198-one-build-wand-without-a-bulldozer.md), [0232](0232-undo-skips-conflicting-cells.md), [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md); extended by [0180](0180-a-wide-bulldozer-blade.md), [0181](0181-a-road-paver-on-the-bulldozer.md), [0183](0183-mark-a-lone-selection-corner.md), [0230](0230-cut-a-selection-with-the-build-wand.md) |
 | [0179](0179-support-realms-as-a-second-play-environment.md) | Support Realms as a second play environment | Proposed |
 | [0180](0180-a-wide-bulldozer-blade.md) | A wide bulldozer blade switched from the cab | Proposed; extended by [0181](0181-a-road-paver-on-the-bulldozer.md) |
 | [0181](0181-a-road-paver-on-the-bulldozer.md) | Lay a road behind the bulldozer from the driver's held block | Proposed |
@@ -190,7 +190,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0183](0183-mark-a-lone-selection-corner.md) | Mark a lone selection corner | Proposed; extended by [0198](0198-one-build-wand-without-a-bulldozer.md) |
 | [0184](0184-light-the-camper-roof-and-tail-lamps.md) | Light the camper's roof and tail lamps with the headlights | Accepted; extended by [0197](0197-emit-camper-hover-particles-below-the-discs.md) |
 | [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) | Put things on the camp table instead of sitting at it | Proposed; superseded in part by [0237](0237-register-tabletop-hosts-across-features.md) |
-| [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md) | Stream in-game results and bound runs by progress | Proposed |
+| [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md) | Stream in-game results and bound runs by progress | Proposed; superseded in part by [0244](0244-gate-structure-decor-checks-on-a-player.md) |
 | [0187](0187-run-in-game-scenarios-in-concurrent-lanes.md) | Run in-game scenarios in concurrent lanes | Proposed |
 | [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) | Fuse in-game scenarios and keep only engine facts in game | Proposed |
 | [0189](0189-run-only-impacted-in-game-scenarios-locally.md) | Run only impacted in-game scenarios locally | Proposed |
@@ -206,8 +206,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0199](0199-square-the-camper-front-and-fold-the-grille.md) | Square the camper front and fold the grille | Proposed; superseded in part by [0226](0226-lean-and-fold-the-camper-front-panels.md) |
 | [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) | Roof tent as a host-bound camp entity | Proposed; superseded in part by [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md); extended by [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md), [0231](0231-release-every-roof-tent-spawn-setter.md) |
 | [0201](0201-build-wand-cylinder-and-cube.md) | Build Wand cylinder and cube | Accepted; superseded in part by [0233](0233-round-shapes-and-terrain-operations.md); extended by [0202](0202-build-wand-copy-and-continuous-paste.md) |
-| [0202](0202-build-wand-copy-and-continuous-paste.md) | Build Wand Copy and continuous Paste | Accepted; superseded in part by [0203](0203-build-wand-paste-aiming.md), [0230](0230-cut-a-selection-with-the-build-wand.md) |
-| [0203](0203-build-wand-paste-aiming.md) | Build Wand paste aiming | Proposed; superseded in part by [0232](0232-undo-skips-conflicting-cells.md) |
+| [0202](0202-build-wand-copy-and-continuous-paste.md) | Build Wand Copy and continuous Paste | Accepted; superseded in part by [0203](0203-build-wand-paste-aiming.md), [0230](0230-cut-a-selection-with-the-build-wand.md), [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) |
+| [0203](0203-build-wand-paste-aiming.md) | Build Wand paste aiming | Proposed; superseded in part by [0232](0232-undo-skips-conflicting-cells.md), [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) |
 | [0204](0204-shard-unit-tests-across-ci-jobs.md) | Shard unit tests across CI jobs | Accepted |
 | [0205](0205-structured-adr-metadata-and-current-specs.md) | Structured ADR metadata and current specs | Proposed |
 | [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md) | Seat the roof tent occupant on a rideable seat | Proposed |
@@ -233,9 +233,9 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0227](0227-camper-door-trim-and-thin-panel-step.md) | Camper door trim, a thin-panel step, and a storage hatch | Proposed |
 | [0228](0228-dense-horizontal-edges-in-the-height-step-outline.md) | Dense horizontal edges in the height-step outline | Proposed |
 | [0229](0229-open-build-utilities-with-a-plain-air-press.md) | Open Build Wand utilities with a plain air press | Proposed |
-| [0230](0230-cut-a-selection-with-the-build-wand.md) | Cut a selection with the Build Wand | Proposed; extended by [0233](0233-round-shapes-and-terrain-operations.md) |
+| [0230](0230-cut-a-selection-with-the-build-wand.md) | Cut a selection with the Build Wand | Proposed; superseded in part by [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md); extended by [0233](0233-round-shapes-and-terrain-operations.md) |
 | [0231](0231-release-every-roof-tent-spawn-setter.md) | Release every roof tent spawn setter | Proposed |
-| [0232](0232-undo-skips-conflicting-cells.md) | Undo skips conflicting cells | Accepted |
+| [0232](0232-undo-skips-conflicting-cells.md) | Undo skips conflicting cells | Accepted; superseded in part by [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) |
 | [0233](0233-round-shapes-and-terrain-operations.md) | Add round shapes and terrain operations to the Build Wand | Accepted |
 | [0234](0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) | Plated camper mirrors and a simpler camper exterior | Proposed |
 | [0235](0235-share-convex-rain-ceiling-geometry-and-placement.md) | Share convex rain ceiling geometry and placement | Proposed |
@@ -246,6 +246,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0240](0240-resort-furniture-family.md) | Resort furniture family | Proposed; superseded in part by [0241](0241-dining-table-top-blocks.md); extended by [0241](0241-dining-table-top-blocks.md) |
 | [0241](0241-dining-table-top-blocks.md) | Dining Table top blocks | Proposed; extended by [0242](0242-dining-table-top-interactions.md) |
 | [0242](0242-dining-table-top-interactions.md) | Dining Table top interactions | Proposed |
+| [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) | Copy the Build Wand box as an engine structure | Accepted |
+| [0244](0244-gate-structure-decor-checks-on-a-player.md) | Gate structure decor checks on a player | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

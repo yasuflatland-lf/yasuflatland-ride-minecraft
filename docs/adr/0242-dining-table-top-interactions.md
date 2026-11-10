@@ -42,4 +42,5 @@ Footprint checks support future multi-cell tops. Commands and non-player block
 changes bypass the interaction guard. Items whose block identifier differs from
 their item identifier and replacement of replaceable vegetation require device
 verification; the guard recognizes items registered under their block identifier.
-Mobile interactions and the authored game scenario remain unverified.
+The dining_table_top_overlap scenario passed on the dev BDS on 2026-11-10.
+Mobile interactions remain unverified.

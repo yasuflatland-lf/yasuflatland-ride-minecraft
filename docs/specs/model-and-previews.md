@@ -11,6 +11,8 @@
 - Source: [0101](../adr/0101-give-invisible-blocks-a-hidden-cube.md)
 - Source: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md)
 - Source: [0193](../adr/0193-shared-texture-tooling.md)
+- Source: [0240](../adr/0240-resort-furniture-family.md)
+- Excluded: [0241](../adr/0241-dining-table-top-blocks.md): Dining Table physics and hosted-item clearance belong to the resort gear topic
 - Excluded: [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md): the model job's path filter belongs to the testing-and-ci topic; only the part 0193 amends is stated here (see Model freshness check)
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
@@ -188,6 +190,15 @@
 - Basis: [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Extend `tools/render_preview.py` with `--icons <pack dir> ...`, using the same model, flying pose, camera, and supersampled rasterizer as the previews."; [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Render a 256 by 256 RGB icon with the headlights on and the vehicle occupying 80% of its width, without text, logos, or badges (0009)"; [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Use charcoal `#16181C`, an orange `#F28C28` diagonal band 18% of the image height, and cyan `#5AD7FF` discs beneath the folded wheels."; [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Disc alpha falls linearly from 0.9 at the center to zero at 1.6 times the wheel radius; composite them behind the vehicle."; [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Give the release packs identical icons and the test pack a grayscale copy. `pnpm model` writes all three; `pnpm model:check` compares decoded pixels alongside the previews"
 - Implementation: `tools/render_preview.py` (`render_icon`, `main`, `grayscale`, `ICON_SIZE`, `ICON_FILL`, `ICON_BACKGROUND`, `ICON_BAND_COLOR`, `ICON_BAND_HEIGHT`, `GLOW_DISC_COLOR`, `GLOW_DISC_ALPHA`, `GLOW_DISC_REACH`, `ICON_GRAYSCALE_PACK`); `packs/yasu_ride_bp/pack_icon.png`; `packs/yasu_ride_rp/pack_icon.png`; `packs/yasu_ride_test_bp/pack_icon.png`
 - Verification: `tests/packs/icons.test.ts` "contains a 256 by 256 RGB PNG at the pack root", "gives both release packs the same icon", "gives the test pack a grayscale icon"; `pnpm model:check` in CI. Not verified: the colors, the band, the disc falloff and the 80 percent width have no test; the icon in a client pack list.
+
+### Sofa generation and preview
+
+- Applies to: Sofa (Single) and Sofa (Double).
+- Rule: `tools/gen_sofa.py` builds frame, cushions and feet from a width in cells. The amber weave keeps its physical pitch when widened, with horizontal strands on the arm tops and fronts and vertical strands on the sides. Beige cushions and silver feet use solid palette swatches. Neither sofa has a throw cushion (the `throw_cushions` count is 0). The double has one continuous seat pad with one back pad per cell. The atlas is a 1024 by 1024 RGBA PNG. Sofa previews merge adjacent equal-color texels into rectangles and share corner coordinates; item icons reuse their preview geometry to limit renderer memory without changing the output pixels. `pnpm model` emits and formats both models and their identical texture pixels, and renders a transparent 128-pixel preview and 32-pixel item icon with per-face texture mapping. `pnpm model:check` checks these outputs.
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md); [Dining set design](../designs/2026-11-09-dining-set-design.md).
+- Implementation: `tools/gen_sofa.py`; `tools/render_preview.py` (`small_models`, `ICON_NAMES`, `render_gear`); `package.json`.
+- Verification: `tests/tools/sofa.test.ts`; `tests/packs/sofaSingle.test.ts`; `tests/packs/sofaDouble.test.ts`; `tests/tools/renderPreview.test.ts`. Owner review against the reference photos and PC/mobile checks remain pending.
 
 ## Open issues
 

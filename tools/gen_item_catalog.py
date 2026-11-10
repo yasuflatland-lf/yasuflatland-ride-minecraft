@@ -34,7 +34,7 @@ GROUPS = [
         "icon": "low_chair_item",
         "items": OUTSIDE_IDS,
     },
-    {"name": "resort_gear", "icon": "beach_parasol_item", "items": ["beach_parasol_item", "beach_chair_item", "dining_table_item"]},
+    {"name": "resort_gear", "icon": "beach_parasol_item", "items": ["beach_parasol_item", "beach_chair_item", "dining_table_item", "dining_chair_item", "sofa_single_item", "sofa_double_item"]},
     # The sports boat's equipment; the Icebreaker Switch is its only item and its icon; the
     # equipment box is a hidden placement gift (ADR 0174).
     {"name": "sportsboat_equipment", "icon": "icebreaker_switch", "items": ["icebreaker_switch"]},

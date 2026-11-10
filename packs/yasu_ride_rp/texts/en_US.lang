@@ -229,3 +229,10 @@ yasu_ride.dining_table_top_overlap=There is not enough room here on the dining t
 yasu_ride.dining_table_top_too_big=This item is too big for the dining table.
 
 yasu_ride.dining_table.top_occupied=This space on the table is occupied.
+item.yasu_ride:dining_chair_item.name=Dining Chair
+entity.yasu_ride:dining_chair.name=Dining Chair
+
+item.yasu_ride:sofa_single_item.name=Sofa (Single)
+item.yasu_ride:sofa_double_item.name=Sofa (Double)
+entity.yasu_ride:sofa_single.name=Sofa (Single)
+entity.yasu_ride:sofa_double.name=Sofa (Double)
