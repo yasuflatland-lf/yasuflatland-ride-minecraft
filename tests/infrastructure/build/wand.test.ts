@@ -38,6 +38,7 @@ const menus = {
   showContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
   showPasteMenu: vi.fn(),
+  showRotateMenu: vi.fn(),
   showHeightSlider: vi.fn(),
 };
 
@@ -219,6 +220,7 @@ function setupAir() {
     showContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
     showPasteMenu: vi.fn(),
+    showRotateMenu: vi.fn(),
     showHeightSlider: vi.fn(),
   };
   const aim: AimReader = {

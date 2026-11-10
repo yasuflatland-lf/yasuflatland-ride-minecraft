@@ -20,6 +20,7 @@ import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
+import { RotatePasteAim } from "../../application/build/rotatePasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -116,7 +117,14 @@ export function installBuild(deps: {
     cancel,
     setHeight: new SetHeightTo(repo),
   };
-  const menus = new BedrockBuildMenus(repo, menuCases);
+  const rotate = new RotatePasteAim(repo);
+  const menus = new BedrockBuildMenus(
+    repo,
+    menuCases,
+    undefined,
+    undefined,
+    rotate,
+  );
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
@@ -149,5 +157,6 @@ export function installBuild(deps: {
     repo,
     endSession,
     ports.structures,
+    rotate,
   );
 }
