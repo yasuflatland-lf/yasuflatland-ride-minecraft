@@ -15,6 +15,7 @@
 - Source: [0233](../adr/0233-round-shapes-and-terrain-operations.md)
 - Source: [0244](../adr/0244-gate-structure-decor-checks-on-a-player.md)
 - Source: [0243](../adr/0243-copy-the-build-wand-box-as-an-engine-structure.md)
+- Source: [0245](../adr/0245-rotate-build-wand-boxes-with-the-engine-structure.md)
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): defines the documentation format and checks, not build behavior
 - Excluded: [0180](../adr/0180-a-wide-bulldozer-blade.md): extends the Building Tools group with Wide Blade; switch behavior belongs to the bulldozer spec
 - Excluded: [0181](../adr/0181-a-road-paver-on-the-bulldozer.md): extends the Building Tools group with Road Paver; paving and switch behavior belong to the bulldozer spec
