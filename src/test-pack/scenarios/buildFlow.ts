@@ -756,6 +756,18 @@ export function buildCopyStructure(a: Arena): Promise<Outcome> {
   });
 }
 
+const cellKey = (p: { x: number; y: number; z: number }): string =>
+  `${p.x},${p.y},${p.z}`;
+
+// A frame with no supporting block pops off on the next neighbor update, which
+// a structure place triggers, so fixtures put one stone behind it.
+function placeSupportedFrame(f: Fixture, c: Cell): void {
+  f.block({ ...c, x: c.x - 1 }).setType("minecraft:stone");
+  const frame = f.block(c);
+  frame.setType("minecraft:frame");
+  frame.setPermutation(frame.permutation.withState("facing_direction", 5));
+}
+
 export function buildContinuousPaste(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const source = f.region(2, 2, 2);
@@ -783,19 +795,25 @@ export function buildContinuousPaste(a: Arena): Promise<Outcome> {
         "continuous Paste lost source states",
       );
     }
-    for (const target of [...targets].reverse()) {
-      const undone = await f.menu("paste", "undo");
+    // A player keeps one structure snapshot, so only the last paste undoes.
+    const last = targets[targets.length - 1];
+    if (!last) throw new Error("no paste targets");
+    const undone = await f.menu("paste", "undo");
+    check(
+      undone.offered === true &&
+        undone.message === "undoDone" &&
+        undone.flow.kind === "pasteAim",
+      `Undo unavailable while pasting: ${undone.offered} ${undone.message} ${undone.flow.kind}`,
+    );
+    check(
+      unchanged(f, last.cells, last.before),
+      "continuous Paste undo lost destination states",
+    );
+    for (const target of targets.slice(0, -1))
       check(
-        undone.offered === true &&
-          undone.message === "undoDone" &&
-          undone.flow.kind === "pasteAim",
-        "Undo unavailable while pasting",
+        unchanged(f, target.cells, expected),
+        "earlier continuous Paste changed after Undo",
       );
-      check(
-        unchanged(f, target.cells, target.before),
-        "continuous Paste undo lost destination states",
-      );
-    }
     await endPasteStep(f);
     await f.select(f.cell(1, 1, 1));
     await startPasteStep(f);
@@ -1279,8 +1297,7 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
       check(sign !== undefined, "Sign component missing");
       sign.setText("Cut front", SignSide.Front);
       sign.setText("Cut back", SignSide.Back);
-      const frame = f.block(f.cell(5, 1, 1));
-      frame.setType("minecraft:frame");
+      placeSupportedFrame(f, f.cell(5, 1, 1));
       const cowAt = f.cell(4, 1, 5);
       a.dim.runCommand(
         `summon minecraft:cow ${cowAt.x + 0.5} ${cowAt.y} ${cowAt.z + 0.5}`,
@@ -1967,7 +1984,7 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
       sign.getComponent("minecraft:sign")?.setText("Paste back", SignSide.Back);
       for (const offset of [0, 12]) {
         const c = f.cell(offset + 5, 1, 1);
-        f.block(c).setType("minecraft:frame");
+        placeSupportedFrame(f, c);
         const cow = f.cell(offset + 6.5, 1, 2.5);
         a.dim.runCommand(`summon minecraft:cow ${cow.x} ${cow.y} ${cow.z}`);
       }
@@ -2109,11 +2126,11 @@ export async function buildPasteStructureDecor(
           inside(event.block.location, 0) &&
           event.beforeItemStack?.typeId === "minecraft:diamond"
         )
-          interacted.add(JSON.stringify(event.block.location));
+          interacted.add(cellKey(event.block.location));
       };
       const setupState = () => {
         const allFrames = frames(source);
-        const frame = allFrames.find((c) => interacted.has(JSON.stringify(c)));
+        const frame = allFrames.find((c) => interacted.has(cellKey(c)));
         return {
           frame,
           missing: [
