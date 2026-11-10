@@ -56,7 +56,12 @@ export class PasteAt {
     }
     this.structures.clearEntities(cmd.dimensionId, box);
     if (
-      !this.structures.place(clipboard.contents.handle, cmd.dimensionId, anchor)
+      !this.structures.place(
+        clipboard.contents.handle,
+        cmd.dimensionId,
+        anchor,
+        cmd.target.turn,
+      )
     ) {
       // A refused engine placement may already have placed some entities.
       this.structures.clearEntities(cmd.dimensionId, box);

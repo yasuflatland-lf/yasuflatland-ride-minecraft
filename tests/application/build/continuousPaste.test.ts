@@ -145,6 +145,7 @@ it("silently ignores repeats, refuses busy and blocked taps, and records only su
         expect(start).toHaveBeenCalledTimes(2);
         expect(e.session.flow).toMatchObject({
           kind: "pasteAim",
+          turn: 0,
           lastPaste: { anchor, tick: 200 },
         });
       },
@@ -166,6 +167,7 @@ it("allows the same anchor again once the repeat window ends", () => {
   expect(start).toHaveBeenCalledTimes(2);
   expect(e.session.flow).toMatchObject({
     kind: "pasteAim",
+    turn: 0,
     lastPaste: { tick: BUILD_SPEC.pasteRepeatTicks },
   });
 });

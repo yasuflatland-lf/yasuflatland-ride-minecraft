@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { boxOf } from "../../../src/domain/build/box";
+import { boxOf, volume } from "../../../src/domain/build/box";
 import {
   aimedPasteTarget,
   type Clipboard,
@@ -25,6 +25,31 @@ const clipboard: fc.Arbitrary<Clipboard> = fc
       ),
     ),
   );
+
+it("every turn preserves volume and minimum corner and swaps horizontal extents on odd turns", () => {
+  fc.assert(
+    fc.property(clipboard, cell, face, (clip, block, face) => {
+      const original = pasteTarget(clip, block, face);
+      for (const turn of [0, 1, 2, 3] as const) {
+        const target = pasteTarget(clip, block, face, turn);
+        expect(volume(target.box)).toBe(volume(original.box));
+        expect(target.anchor).toEqual(original.anchor);
+        expect(target.box.min).toEqual(original.box.min);
+        expect(target.turn).toBe(turn);
+        expect(target.box.max.x - target.box.min.x + 1).toBe(
+          turn % 2 ? clip.size.z : clip.size.x,
+        );
+        expect(target.box.max.z - target.box.min.z + 1).toBe(
+          turn % 2 ? clip.size.x : clip.size.z,
+        );
+        expect(target.box.max.y - target.box.min.y + 1).toBe(clip.size.y);
+        expect(
+          aimedPasteTarget(clip, { block: { cell: block, face } }, turn),
+        ).toEqual(target);
+      }
+    }),
+  );
+});
 
 it("pasteTarget anchors next to the face and its box preserves the clipboard size", () => {
   fc.assert(

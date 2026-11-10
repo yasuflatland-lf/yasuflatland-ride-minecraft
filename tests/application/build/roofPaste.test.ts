@@ -256,6 +256,7 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
         );
         expect(e.session.flow).toEqual({
           kind: "pasteAim",
+          turn: 0,
           lastPaste: { anchor, tick: 0 },
         });
         e.jobs.step();
