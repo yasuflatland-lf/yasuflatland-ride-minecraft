@@ -61,6 +61,9 @@
     "yasu_ride_beach_chair": {
       "textures": "textures/items/yasu_ride/beach_chair_item"
     },
+    "yasu_ride_dining_chair": {
+      "textures": "textures/items/yasu_ride/dining_chair_item"
+    },
     "yasu_ride_sofa_single": {
       "textures": "textures/items/yasu_ride/sofa_single_item"
     },
