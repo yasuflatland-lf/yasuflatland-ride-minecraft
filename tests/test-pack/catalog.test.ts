@@ -35,7 +35,12 @@ describe("scenario catalog", () => {
       expect(Number.isInteger(count)).toBe(true);
       expect(count).toBeGreaterThanOrEqual(0);
     }
-    expect(spec.ticks).toBeLessThanOrEqual(MAX_SCENARIO_TICKS);
+    // Player-driven decor setup needs up to 1,200 ticks and streams progress (0244).
+    const budget =
+      spec.name === "build_structure_decor_probe" && spec.needsPlayer
+        ? 1300
+        : MAX_SCENARIO_TICKS;
+    expect(spec.ticks).toBeLessThanOrEqual(budget);
     expect(spec.features.length).toBeGreaterThan(0);
     expect(new Set(spec.features).size).toBe(spec.features.length);
     expect(spec.features.every(isFeatureTag)).toBe(true);
