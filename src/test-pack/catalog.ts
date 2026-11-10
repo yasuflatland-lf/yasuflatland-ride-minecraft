@@ -19,6 +19,15 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "build_structure_store_hosted",
+    file: "buildStructureStore",
+    ticks: 20, // Estimate until the first BDS run.
+    features: ["build"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "dining_table_top_overlap",
     file: "diningTable",
     ticks: 32, // Estimate until the first BDS run.

@@ -208,6 +208,15 @@
 - Implementation: `src/infrastructure/build/persistence/inMemorySessionRepository.ts`; `src/infrastructure/build/bedrock/handlers/sessions.ts`; `src/application/build/endBuildSession.ts`; `src/application/build/updateBuildModes.ts`; `src/application/build/leaveBuild.ts`; `src/application/build/editJobs.ts`; `src/domain/build/session.ts`
 - Verification: `tests/infrastructure/build/sessions.test.ts` checks every flow on mocked death/dimension events and disconnect cleanup. `tests/domain/build/session.test.ts` and `tests/application/build/continuousPaste.test.ts` inspect idempotent exits, preserved history and running jobs. Scenarios `build_paste_item_switch` and `build_new_copy_item_switch` check real selected-slot timing in `src/test-pack/scenarios/buildFlow.ts`. Tests were inspected, not run for this spec. Not verified: real death, disconnect, reload or dimension transition during an edit, and BW12/BW13 on devices.
 
+### Structure entity exclusion and snapshot cleanup
+
+- Applies to: Structure clipboard paste, structure-store clearing and placement, and session removal.
+- Rule: The effective structure payload excludes every `yasu_ride:` and `yasu_build:` entity, as well as fleet types including vanilla stand-ins. Capture includes entities internally; place synchronously removes only newly placed excluded copies. Entity clearing preserves players and excluded originals. Hosted items store their host's entity ID, so pasted boxes do not carry camp or resort gear, and those entities stay in place in pasted or cut target boxes. Player leave and test reset discard all snapshot handles held by history before removing the session; `clearHistory` also empties cell entries.
+- Agreement: Accepted
+- Basis: [0243](../adr/0243-copy-the-build-wand-box-as-an-engine-structure.md) Decisions 4 and 5 and Consequences: exclude add-on entities to preserve host links and release snapshots when sessions end.
+- Implementation: `src/infrastructure/build/excludedEntityType.ts`; `src/infrastructure/bootstrap.ts`; `src/infrastructure/build/bedrock/bedrockStructureStore.ts`; `src/application/build/endBuildSession.ts`; `src/domain/build/session.ts`; `src/infrastructure/build/bedrock/handlers/sessions.ts`; `src/infrastructure/build/bedrock/handlers/testEdit.ts`
+- Verification: `tests/infrastructure/build/excludedEntityType.test.ts` checks both namespaces and fleet stand-ins. `tests/domain/build/session.test.ts` checks snapshot handles and empty history after disposal; `tests/application/build/pasteStructure.test.ts` checks paste followed by session end discards the snapshot before repository removal. The headless `build_structure_store_hosted` scenario in `src/test-pack/scenarios/buildStructureStore.ts` passed on the dev BDS on 2026-11-10. It checks a camp table and hosted oven survive clearing with a test-pack host marker unchanged, and no copies appear at the destination immediately or after two ticks. Production-pack host metadata is not directly readable from the test pack.
+
 ### Menus via server-ui
 
 - Applies to: Shape, contents, normal utilities, paste utilities, and optional height slider forms.

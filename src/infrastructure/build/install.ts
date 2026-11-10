@@ -50,14 +50,14 @@ import { InMemorySessionRepository } from "./persistence/inMemorySessionReposito
 
 export function installBuild(deps: {
   isProtected: SpaceCheck;
-  isFleetEntityType: (typeId: string) => boolean;
+  isExcludedEntityType: (typeId: string) => boolean;
 }): void {
   const repo = new InMemorySessionRepository();
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
   const ports = {
     blocks: new BedrockBlockWorld(deps),
-    structures: new BedrockStructureStore(deps.isFleetEntityType),
+    structures: new BedrockStructureStore(deps.isExcludedEntityType),
   };
   const { blocks } = ports;
   const aim = new BedrockAimReader();

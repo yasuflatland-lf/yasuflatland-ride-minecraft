@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
+import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
@@ -53,7 +54,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
     target: { anchor, box },
     tick: 100,
   };
-  return { session, world, players, feedback, store, start, paste, cmd };
+  return { repo, session, world, players, feedback, store, start, paste, cmd };
 }
 
 it("captures before replacement, records only after place, discards older snapshots and counts the clipboard", () => {
@@ -271,4 +272,29 @@ it("restores blocks and entities after a partially failed placement", () => {
   expect(e.world.stateAt(overworld, e.cmd.target.anchor)).toEqual(before);
   expect(entities).toEqual(savedEntities);
   expect(e.session.hasHistory).toBe(false);
+});
+
+it("discards the clipboard and paste snapshot before removing the session, and tolerates repeated end", () => {
+  fc.assert(
+    fc.property(origin, (anchor) => {
+      const e = setup(anchor);
+      expect(e.paste.execute(e.cmd)).toBe("pasted");
+      const snapshot = structureHandle("fake_paste_1");
+      expect(e.store.live.has(snapshot)).toBe(true);
+      const discard = vi.spyOn(e.store, "discard");
+      const remove = vi.spyOn(e.repo, "remove");
+      const end = new EndBuildSession(e.repo, e.store);
+      end.execute(playerId);
+      expect(discard.mock.calls).toEqual([[handle], [snapshot]]);
+      expect(discard.mock.invocationCallOrder[1]).toBeLessThan(
+        remove.mock.invocationCallOrder[0] ?? 0,
+      );
+      expect(e.store.live.has(snapshot)).toBe(false);
+      expect(e.session.hasHistory).toBe(false);
+      expect(e.repo.get(playerId)).toBeUndefined();
+      end.execute(playerId);
+      expect(discard).toHaveBeenCalledTimes(2);
+      expect(e.store.live.size).toBe(0);
+    }),
+  );
 });
