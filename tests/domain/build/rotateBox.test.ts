@@ -112,6 +112,20 @@ it.each([
   },
 );
 
+it.each([{ size: { x: 1, y: 1, z: 2 } }, { size: { x: 2, y: 1, z: 1 } }])(
+  "never produces negative zero for $size",
+  ({ size }) => {
+    const plan = planRotationAboutCenter(boxAt({ x: 0, y: 0, z: 0 }, size));
+    for (const box of [plan.source, plan.target, plan.union]) {
+      for (const corner of [box.min, box.max]) {
+        for (const value of [corner.x, corner.y, corner.z]) {
+          expect(Object.is(value, -0)).toBe(false);
+        }
+      }
+    }
+  },
+);
+
 it("does not freeze or retain mutable input corners", () => {
   const source = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 2 } };
   const before = structuredClone(source);
