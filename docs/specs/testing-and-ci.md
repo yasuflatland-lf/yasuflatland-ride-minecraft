@@ -14,6 +14,7 @@
 - Source: [0189](../adr/0189-run-only-impacted-in-game-scenarios-locally.md)
 - Source: [0193](../adr/0193-shared-texture-tooling.md)
 - Source: [0204](../adr/0204-shard-unit-tests-across-ci-jobs.md)
+- Source: [0244](../adr/0244-gate-structure-decor-checks-on-a-player.md)
 - Excluded: [0139](../adr/0139-show-the-held-tool-on-the-cab-monitor.md): the monitor and its held-item test hook belong to the vehicle monitor specification; this spec covers the driving-input receiver only
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): ADR metadata, spec structure, and documentation checks belong to the documentation specification
 
@@ -130,9 +131,9 @@
 ### Catalog and declared scenario budgets
 
 - Applies to: every registered in-game scenario.
-- Rule: The pure `CATALOG` holds name, file, declared ticks, feature tags, isolation, player requirement, peak vehicle count, and optional group and skip note. `SCENARIOS` maps names to executable functions. Catalog tests require unique names, nonnegative integer ticks and vehicle counts, ticks at most `MAX_SCENARIO_TICKS` from deadline.ts, nonempty unique valid tags, exclusive isolation for player scenarios, lane isolation for grouped scenarios, existing files, and exact registry correspondence. The runner also rejects a catalog/registry mismatch before setup. These tick values estimate work; the runner measures actual elapsed ticks for result lines and does not stop a scenario at its declared budget.
+- Rule: The pure `CATALOG` holds name, file, declared ticks, feature tags, isolation, player requirement, peak vehicle count, and optional group and skip note. `SCENARIOS` maps names to executable functions. Catalog tests require unique names, nonnegative integer ticks and vehicle counts, ticks at most `MAX_SCENARIO_TICKS` from deadline.ts except the player-gated `build_structure_decor_probe` budget of 1,300 ticks (including up to 1,200 ticks of player setup), nonempty unique valid tags, exclusive isolation for player scenarios, lane isolation for grouped scenarios, existing files, and exact registry correspondence. The runner also rejects a catalog/registry mismatch before setup. These tick values estimate work; the runner measures actual elapsed ticks for result lines and does not stop a scenario at its declared budget.
 - Agreement: Proposed
-- Basis: [0187](../adr/0187-run-in-game-scenarios-in-concurrent-lanes.md) Decision, "Scenario metadata lives in a pure catalog."; [0186](../adr/0186-stream-in-game-results-and-bound-runs-by-progress.md) Decision, "A scenario declares at most 300 ticks."; [0054](../adr/0054-shard-in-game-tests-in-ci.md) Decision, "Every result line carries `ticks=`."
+- Basis: [0244](../adr/0244-gate-structure-decor-checks-on-a-player.md) Decision, "Allow only this player-gated scenario a declared budget of 1,300 ticks."; [0187](../adr/0187-run-in-game-scenarios-in-concurrent-lanes.md) Decision, "Scenario metadata lives in a pure catalog."; [0186](../adr/0186-stream-in-game-results-and-bound-runs-by-progress.md) Decision, "A scenario declares at most 300 ticks."; [0054](../adr/0054-shard-in-game-tests-in-ci.md) Decision, "Every result line carries `ticks=`."
 - Implementation: `src/test-pack/catalog.ts`, `src/test-pack/scenarios/index.ts`, `src/test-pack/deadline.ts` (`MAX_SCENARIO_TICKS`), `src/test-pack/runner.ts`
 - Verification: `tests/test-pack/catalog.test.ts` validates metadata and correspondence; `tests/test-pack/runner.test.ts` checks elapsed ticks in results. Not verified: catalog tests do not measure live ticks, enforce a runtime per-scenario timeout, prove peak vehicles, or classify each assertion as an engine fact.
 
@@ -184,7 +185,7 @@
 ### Progress watchdog
 
 - Applies to: the Node command waiting for a run.
-- Rule: The command polls logs and counts any new run-prefixed line as progress. Failed log retrieval adds no progress. The first observed PLAN fixes a deadline at observation time plus `deadlineMsOf(ticks)`: the ceiling in milliseconds of ticks divided by `TPS`, multiplied by `DEADLINE_FACTOR`, plus `SETUP_MARGIN_MS`. Later plans and progress do not extend it. A gap strictly greater than `STALL_MS` is stalled; otherwise passing the deadline is overdue. Either verdict sends `CANCEL_EVENT` and exits with failure; SIGINT also attempts cancellation. `MAX_SCENARIO_TICKS` is derived from the stall window and `TPS` for declared catalog budgets.
+- Rule: The command polls logs and counts any new run-prefixed line as progress. Failed log retrieval adds no progress. The first observed PLAN fixes a deadline at observation time plus `deadlineMsOf(ticks)`: the ceiling in milliseconds of ticks divided by `TPS`, multiplied by `DEADLINE_FACTOR`, plus `SETUP_MARGIN_MS`. Later plans and progress do not extend it. A gap strictly greater than `STALL_MS` is stalled; otherwise passing the deadline is overdue. Either verdict sends `CANCEL_EVENT` and exits with failure; SIGINT also attempts cancellation. `MAX_SCENARIO_TICKS` is derived from the stall window and `TPS` for declared catalog budgets. The player-gated decor probe streams setup progress through the existing step callback every 200 ticks during its longer setup window (0244).
 - Agreement: Proposed
 - Basis: [0186](../adr/0186-stream-in-game-results-and-bound-runs-by-progress.md) Decision, "Any new line of the run counts as progress, including PLAN, SKIP, READY, and step lines."; [0186](../adr/0186-stream-in-game-results-and-bound-runs-by-progress.md) Decision, "On either condition, the command sends the cancel event and exits 1."
 - Implementation: `src/test-pack/deadline.ts` (`TPS`, `DEADLINE_FACTOR`, `SETUP_MARGIN_MS`, `STALL_MS`, `deadlineMsOf`, `MAX_SCENARIO_TICKS`), `scripts/game-test.mjs`
