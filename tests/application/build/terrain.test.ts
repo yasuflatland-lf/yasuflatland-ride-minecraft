@@ -25,6 +25,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone");
@@ -54,7 +55,9 @@ function setup() {
     choose: new ChooseTerrain(repo, feedback),
     confirm: new ConfirmTerrain(repo, feedback, jobs, world),
     fill: new ConfirmShape(repo, feedback, jobs),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
+      warn: () => {},
+    }),
     setPoint: new SetPoint(repo, world, feedback),
     drain: () => {
       while (session.isEditing) jobs.step();

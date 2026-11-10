@@ -1,46 +1,22 @@
-// Clipboard cells are relative to the minimum corner.
 import type { Cell } from "../../shared/cells";
-import type { BlockState } from "../blockState";
-import { boxOf, type CellBox, cellsOf } from "../box";
-import { isKeptState } from "../edit/guard";
-
-interface ClipboardCell {
-  /** Relative to the box min. */
-  readonly at: Cell;
-  readonly state: BlockState;
-}
+import { boxOf, type CellBox } from "../box";
+import type { StructureHandle } from "../structure/handle";
 
 export interface Clipboard {
+  /** Box dimensions. */
   readonly size: Cell;
-  readonly cells: readonly ClipboardCell[];
+  /** What the "copied" and paste hint messages show. */
+  readonly blockCount: number;
+  readonly contents: {
+    readonly kind: "structure";
+    readonly handle: StructureHandle;
+  };
 }
 
-/** A cell that reads undefined or is kept is left out, so a paste leaves that target cell as it is. */
-export function clipboardOf(
-  box: CellBox,
-  read: (cell: Cell) => BlockState | undefined,
-): Clipboard {
-  const cells: ClipboardCell[] = [];
-  for (const cell of cellsOf(box)) {
-    const state = read(cell);
-    if (!state || isKeptState(state)) continue;
-    cells.push({
-      at: {
-        x: cell.x - box.min.x,
-        y: cell.y - box.min.y,
-        z: cell.z - box.min.z,
-      },
-      state,
-    });
-  }
-  return {
-    size: {
-      x: box.max.x - box.min.x + 1,
-      y: box.max.y - box.min.y + 1,
-      z: box.max.z - box.min.z + 1,
-    },
-    cells,
-  };
+export function structureOf(
+  clipboard: Clipboard | undefined,
+): StructureHandle | undefined {
+  return clipboard?.contents.handle;
 }
 
 export type Face = "up" | "down" | "north" | "south" | "east" | "west";

@@ -212,3 +212,12 @@ export function campingGearItem(gear: string): string {
 
 /** Action bar hints for players on foot near a vehicle (ADR 0086). */
 export const hintKey = (name: string): string => `${NAMESPACE}.hint.${name}`;
+
+export function isFleetEntityType(typeId: string): boolean {
+  return (
+    isVehicleEntity(typeId) ||
+    typeId === DECK_SEAT_TYPE ||
+    typeId === SEAT_FILLER_TYPE ||
+    isStandInEntity(typeId)
+  );
+}

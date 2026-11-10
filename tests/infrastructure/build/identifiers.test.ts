@@ -25,6 +25,11 @@ it("defines every feedback message in both locales", () => {
       `packs/yasu_ride_rp/texts/${locale}.lang`,
       "utf8",
     );
+    const messageKeys = lang
+      .split("\n")
+      .filter((line) => line.startsWith("yasu_build.message."))
+      .map((line) => line.slice(0, line.indexOf("=")));
+    expect(messageKeys.sort()).toEqual(Object.values(BUILD_MESSAGE).sort());
     const entries = new Map(
       lang.split("\n").map((line) => {
         const split = line.indexOf("=");
@@ -63,7 +68,8 @@ it("defines every feedback message in both locales", () => {
     expect(entries.get(BUILD_FORM.cut)).toEqual(
       entries.get(BUILD_FORM.cutTitle),
     );
-    expect(entries.get(BUILD_MESSAGE.cutting)).toBeTruthy();
+    expect(entries.get(BUILD_MESSAGE.cutRestored)).toBeTruthy();
+    expect(entries.get(BUILD_MESSAGE.cutIncomplete)).toBeTruthy();
     expect(entries.get(BUILD_MESSAGE.endSet)).toContain("%s");
     for (const message of [
       "tooLarge",

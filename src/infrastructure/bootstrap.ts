@@ -31,6 +31,7 @@ export function bootstrap(): void {
     placeHostedOnTop: camp.placeHostedOnTop,
   });
   installBuild({
+    isFleetEntityType: vehicles.isFleetEntityType,
     isProtected: (d, c) =>
       vehicles.isVehicleSpace(d, c) || camp.isCampSpace(d, c),
   });

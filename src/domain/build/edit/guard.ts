@@ -1,4 +1,4 @@
-// Blocks the build tools never edit or copy (ADR 0137, 0178).
+// Blocks cell-based build edits preserve (ADR 0137, 0178).
 import { PLACE_KEPT_BLOCKS } from "../../shared/keptBlocks";
 import type { BlockState } from "../blockState";
 
@@ -33,7 +33,7 @@ const SIGNS: readonly string[] = [
   ...WOODS.map((wood) => `minecraft:${wood}_hanging_sign`),
 ];
 
-/** Data-holding blocks the build tools never edit or copy, on top of PLACE_KEPT_BLOCKS (ADR 0137, 0178, 0181). */
+/** Data-holding blocks cell-based build edits preserve, on top of PLACE_KEPT_BLOCKS (ADR 0137, 0178, 0181). */
 export const BUILD_KEPT_BLOCKS: readonly string[] = [
   ...SIGNS,
   "minecraft:mob_spawner",

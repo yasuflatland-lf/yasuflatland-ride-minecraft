@@ -12,6 +12,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const cell = { x: 0, y: 64, z: 0 };
@@ -36,7 +37,9 @@ function setup() {
     feedback,
     jobs,
     session,
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
+      warn: () => {},
+    }),
   };
 }
 

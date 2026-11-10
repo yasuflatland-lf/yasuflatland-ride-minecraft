@@ -9,7 +9,8 @@ export const LAID_BLOCK_TAG = "yasu_ride:laid";
 export const BUILD_MESSAGE: Readonly<
   Record<BuildMessage | "heightSize" | "pasteHint" | "undoHint", string>
 > = {
-  cutting: "yasu_build.message.cutting",
+  cutRestored: "yasu_build.message.cut_restored",
+  cutIncomplete: "yasu_build.message.cut_incomplete",
   removing: "yasu_build.message.removing",
   building: "yasu_build.message.building",
   pasteHint: "yasu_build.message.paste_hint",
@@ -24,10 +25,13 @@ export const BUILD_MESSAGE: Readonly<
   busy: "yasu_build.message.busy",
   noClipboard: "yasu_build.message.no_clipboard",
   nothingToUndo: "yasu_build.message.nothing_to_undo",
+  pasteFailed: "yasu_build.message.paste_failed",
   pasteBlocked: "yasu_build.message.paste_blocked",
+  copyUnreadable: "yasu_build.message.copy_unreadable",
   copied: "yasu_build.message.copied",
   editDone: "yasu_build.message.edit_done",
   editDoneCount: "yasu_build.message.edit_done_count",
+  undoFailed: "yasu_build.message.undo_failed",
   undoDone: "yasu_build.message.undo_done",
   undoDonePartial: "yasu_build.message.undo_done_partial",
   undoHint: "yasu_build.message.undo_hint",
@@ -74,7 +78,5 @@ export const BUILD_FORM = {
   newCopy: "yasu_build.form.new_copy",
   undo: "yasu_build.form.undo",
   clear: "yasu_build.form.clear_selection",
-  skipAirOn: "yasu_build.form.skip_air_on",
-  skipAirOff: "yasu_build.form.skip_air_off",
   submit: "yasu_build.form.submit",
 } as const;

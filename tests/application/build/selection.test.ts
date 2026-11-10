@@ -8,6 +8,7 @@ import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, overworld } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const alex = asPlayerId("alex");
 const coordinate = fc.integer({ min: -1000, max: 1000 });
@@ -25,7 +26,10 @@ function setup() {
 describe("UpdateBuildModes", () => {
   it("turns on after the enter ticks and off after the leave ticks", () => {
     const { repo } = setup();
-    const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+    const modes = new UpdateBuildModes(
+      repo,
+      new LeaveBuild(repo, new FakeStructureStore()),
+    );
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks - 1; i++) {
       modes.execute([{ playerId: alex, holding: true }]);
     }
@@ -39,7 +43,10 @@ describe("UpdateBuildModes", () => {
 
   it("creates a session only for a player who holds the tool", () => {
     const { repo } = setup();
-    const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+    const modes = new UpdateBuildModes(
+      repo,
+      new LeaveBuild(repo, new FakeStructureStore()),
+    );
     modes.execute([{ playerId: alex, holding: false }]);
     expect(repo.get(alex)).toBeUndefined();
     expect(modes.isInBuildMode(asPlayerId("nobody"))).toBe(false);
@@ -49,7 +56,10 @@ it("cancels in-progress selections when build mode leaves after its grace delay"
   fc.assert(
     fc.property(cell, cell, fc.boolean(), (a, b, endpoint) => {
       const { repo } = setup();
-      const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+      const modes = new UpdateBuildModes(
+        repo,
+        new LeaveBuild(repo, new FakeStructureStore()),
+      );
       enterBuildMode(modes);
       const session = repo.getOrCreate(alex);
       const material = blockStateOf("minecraft:stone");
