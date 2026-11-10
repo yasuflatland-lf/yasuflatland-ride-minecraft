@@ -1,0 +1,60 @@
+import type { Cell } from "../../shared/cells";
+import type { CellBox } from "../box";
+import { rotatedSize } from "./quarterTurn";
+
+export type RotationPlan = {
+  readonly source: CellBox;
+  readonly target: CellBox;
+  readonly union: CellBox;
+};
+
+function frozenBox(min: Cell, max: Cell): CellBox {
+  return Object.freeze({
+    min: Object.freeze({ ...min }),
+    max: Object.freeze({ ...max }),
+  });
+}
+
+// Math.trunc yields -0 for a -1 / 2 difference, and toEqual tells -0 from 0.
+function halfTowardZero(difference: number): number {
+  return Math.trunc(difference / 2) + 0;
+}
+
+// An odd size difference leaves a half cell, which is rounded toward zero. A
+// turn swaps the sizes, so the offsets of two consecutive turns are exact
+// negatives and two turns return the box exactly (issue #1520).
+export function planRotationAboutCenter(source: CellBox): RotationPlan {
+  const size: Cell = {
+    x: source.max.x - source.min.x + 1,
+    y: source.max.y - source.min.y + 1,
+    z: source.max.z - source.min.z + 1,
+  };
+  const turned = rotatedSize(size, 1);
+  const min: Cell = {
+    x: source.min.x + halfTowardZero(size.x - size.z),
+    y: source.min.y,
+    z: source.min.z + halfTowardZero(size.z - size.x),
+  };
+  const target = frozenBox(min, {
+    x: min.x + turned.x - 1,
+    y: min.y + turned.y - 1,
+    z: min.z + turned.z - 1,
+  });
+  const union = frozenBox(
+    {
+      x: Math.min(source.min.x, target.min.x),
+      y: source.min.y,
+      z: Math.min(source.min.z, target.min.z),
+    },
+    {
+      x: Math.max(source.max.x, target.max.x),
+      y: source.max.y,
+      z: Math.max(source.max.z, target.max.z),
+    },
+  );
+  return Object.freeze({
+    source: frozenBox(source.min, source.max),
+    target,
+    union,
+  });
+}

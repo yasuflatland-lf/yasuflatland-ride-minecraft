@@ -1,0 +1,139 @@
+import fc from "fast-check";
+import { expect, it } from "vitest";
+import { type CellBox, contains, volume } from "../../../src/domain/build/box";
+import {
+  planRotationAboutCenter,
+  type RotationPlan,
+} from "../../../src/domain/build/rotation/rotateBox";
+import type { Cell } from "../../../src/domain/shared/cells";
+
+const coordinate = fc.integer({ min: -10000, max: 10000 });
+const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+const dimension = fc.integer({ min: 1, max: 1024 });
+const size = fc.record({ x: dimension, y: dimension, z: dimension });
+
+function boxAt(min: Cell, size: Cell): CellBox {
+  return Object.freeze({
+    min: Object.freeze({ ...min }),
+    max: Object.freeze({
+      x: min.x + size.x - 1,
+      y: min.y + size.y - 1,
+      z: min.z + size.z - 1,
+    }),
+  });
+}
+
+it("preserves volume and height with the smallest union containing both boxes", () => {
+  fc.assert(
+    fc.property(cell, size, (min, size) => {
+      const source = boxAt(min, size);
+      const before = structuredClone(source);
+      const plan: RotationPlan = planRotationAboutCenter(source);
+      expect(plan.source).toEqual(source);
+      expect(volume(plan.target)).toBe(volume(source));
+      expect(plan.target.max.x - plan.target.min.x + 1).toBe(size.z);
+      expect(plan.target.max.z - plan.target.min.z + 1).toBe(size.x);
+      expect(plan.target.min.y).toBe(source.min.y);
+      expect(plan.target.max.y).toBe(source.max.y);
+      expect(Object.isFrozen(plan)).toBe(true);
+      for (const box of [plan.source, plan.target, plan.union]) {
+        expect(Object.isFrozen(box)).toBe(true);
+        expect(Object.isFrozen(box.min)).toBe(true);
+        expect(Object.isFrozen(box.max)).toBe(true);
+        expect(contains(plan.union, box.min)).toBe(true);
+        expect(contains(plan.union, box.max)).toBe(true);
+      }
+      for (const axis of ["x", "y", "z"] as const) {
+        expect(plan.union.min[axis]).toBe(
+          Math.min(source.min[axis], plan.target.min[axis]),
+        );
+        expect(plan.union.max[axis]).toBe(
+          Math.max(source.max[axis], plan.target.max[axis]),
+        );
+        const centerShift =
+          plan.target.min[axis] +
+          plan.target.max[axis] -
+          source.min[axis] -
+          source.max[axis];
+        expect(Math.abs(centerShift)).toBeLessThanOrEqual(1);
+      }
+      expect(source).toEqual(before);
+    }),
+  );
+});
+
+it("keeps a square footprint in the same box", () => {
+  fc.assert(
+    fc.property(cell, dimension, dimension, (min, side, height) => {
+      const source = boxAt(min, { x: side, y: height, z: side });
+      expect(planRotationAboutCenter(source).target).toEqual(source);
+    }),
+  );
+});
+
+it("returns the original box after two turns and after four", () => {
+  fc.assert(
+    fc.property(cell, size, (min, size) => {
+      const source = boxAt(min, size);
+      const once = planRotationAboutCenter(source).target;
+      const twice = planRotationAboutCenter(once).target;
+      expect(twice).toEqual(source);
+      const fourth = planRotationAboutCenter(
+        planRotationAboutCenter(twice).target,
+      ).target;
+      expect(fourth).toEqual(source);
+    }),
+  );
+});
+
+it.each([
+  { size: { x: 5, y: 3, z: 3 }, offset: { x: 1, z: -1 } },
+  { size: { x: 4, y: 2, z: 2 }, offset: { x: 1, z: -1 } },
+  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 4, z: 2 }, offset: { x: 0, z: 0 } },
+  { size: { x: 2, y: 4, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 1, z: 4 }, offset: { x: -1, z: 1 } },
+  { size: { x: 3, y: 1, z: 6 }, offset: { x: -1, z: 1 } },
+  { size: { x: 6, y: 1, z: 3 }, offset: { x: 1, z: -1 } },
+])(
+  "rotates $size about its center, rounding the half cell toward zero",
+  ({ size, offset }) => {
+    for (const min of [
+      { x: -10, y: -5, z: 7 },
+      { x: 4, y: 0, z: -9 },
+    ]) {
+      expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
+        boxAt(
+          { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
+          { x: size.z, y: size.y, z: size.x },
+        ),
+      );
+    }
+  },
+);
+
+it.each([{ size: { x: 1, y: 1, z: 2 } }, { size: { x: 2, y: 1, z: 1 } }])(
+  "never produces negative zero for $size",
+  ({ size }) => {
+    const plan = planRotationAboutCenter(boxAt({ x: 0, y: 0, z: 0 }, size));
+    for (const box of [plan.source, plan.target, plan.union]) {
+      for (const corner of [box.min, box.max]) {
+        for (const value of [corner.x, corner.y, corner.z]) {
+          expect(Object.is(value, -0)).toBe(false);
+        }
+      }
+    }
+  },
+);
+
+it("does not freeze or retain mutable input corners", () => {
+  const source = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 2 } };
+  const before = structuredClone(source);
+  const plan = planRotationAboutCenter(source);
+  expect(Object.isFrozen(source)).toBe(false);
+  expect(Object.isFrozen(source.min)).toBe(false);
+  expect(Object.isFrozen(source.max)).toBe(false);
+  source.min.x = 100;
+  source.max.z = 100;
+  expect(plan.source).toEqual(before);
+});
