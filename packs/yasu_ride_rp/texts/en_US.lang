@@ -224,3 +224,6 @@ yasu_ride.furniture.something_on_top=Take everything off the top first
 
 item.yasu_ride:dining_chair_item.name=Dining Chair
 entity.yasu_ride:dining_chair.name=Dining Chair
+
+item.yasu_ride:sofa_single_item.name=Sofa (Single)
+entity.yasu_ride:sofa_single.name=Sofa (Single)

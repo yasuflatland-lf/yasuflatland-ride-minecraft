@@ -213,7 +213,7 @@ BEACH_PARASOL_PREVIEW = "beach_parasol"
 BEACH_PARASOL_ICON = "beach_parasol_item"
 BEACH_CHAIR_GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
 BEACH_CHAIR_TEXTURE = "textures/entity/yasu_ride/beach_chair.png"
-ICON_NAMES = {"dining_chair": "dining_chair_item", "beach_chair": "beach_chair_item", BEACH_PARASOL_PREVIEW: BEACH_PARASOL_ICON, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
+ICON_NAMES = {"sofa_single": "sofa_single_item", "dining_chair": "dining_chair_item", "beach_chair": "beach_chair_item", BEACH_PARASOL_PREVIEW: BEACH_PARASOL_ICON, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -591,7 +591,7 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
                 if color is not None:
                     polygons.append((quad, color, "lamp"))
                     continue
-                # Mirroring x reverses winding. The parasol opts into outward normals for its pale fabric.
+                # Mirroring x reverses winding; textured gear opts into outward normals.
                 if pose.get("outward_normals", False):
                     normal = tuple(-component for component in normal)
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
@@ -1008,8 +1008,8 @@ def render_gear(geo_path, texture, size, name, animation=None, view=None):
         animation = animations["animation.yasu_ride.beach_chair.chair"]
     if animation is not None:
         geo = static_pose(geo, animation)
-    parasol = geo_path.name in (Path(BEACH_PARASOL_GEOMETRY).name, "beach_chair.geo.json", "dining_chair.geo.json")
-    polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": parasol}, texture_mapping=parasol)
+    textured = geo_path.name in (Path(BEACH_PARASOL_GEOMETRY).name, "beach_chair.geo.json", "dining_chair.geo.json", "sofa_single.geo.json")
+    polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured}, texture_mapping=textured)
     quads = [quad for quad, _, _ in polygons + glass]
     # Look from the ladder end so the SUV tent's vehicle-left ladder stays visible.
     view = view if view is not None else (ROOF_TENT_VIEW if roof_tent else VIEW_DIRECTION)
@@ -1025,6 +1025,7 @@ def small_models(rp):
         (BEACH_PARASOL_PREVIEW, rp / BEACH_PARASOL_GEOMETRY, read_png(rp / BEACH_PARASOL_TEXTURE)),
         ("beach_chair", rp / BEACH_CHAIR_GEOMETRY, read_png(rp / BEACH_CHAIR_TEXTURE)),
         ("dining_chair", rp / "models/entity/yasu_ride/dining_chair.geo.json", read_png(rp / "textures/entity/yasu_ride/dining_chair.png")),
+        ("sofa_single", rp / "models/entity/yasu_ride/sofa_single.geo.json", read_png(rp / "textures/entity/yasu_ride/sofa_single.png")),
         (NOGA_CHAIR_PREVIEW, rp / NOGA_CHAIR_GEOMETRY, read_png(rp / NOGA_CHAIR_TEXTURE)),
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
