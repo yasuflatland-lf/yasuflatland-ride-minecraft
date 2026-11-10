@@ -30,6 +30,7 @@ const INVISIBLE_BLOCKS = [
   "camper_shower_toilet",
   "camper_wall",
   "deck_floor",
+  "dining_table_top",
   "parasol_ceiling",
   "tent_ceiling",
   "tent_flap",

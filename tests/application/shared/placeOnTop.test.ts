@@ -293,3 +293,38 @@ it("uses the supplied surface and host type for placement and clearance", () => 
     ),
   );
 });
+
+it("checks host obstruction at the clamped footprint before payment or clearance", () => {
+  fc.assert(
+    fc.property(pixels, pixels, fc.boolean(), (x, z, blocked) => {
+      const blockedAt = vi.fn(() => blocked);
+      const world = fixture({
+        topHost: () => ({
+          dimension,
+          at: { x: 0, y: 64, z: 0 },
+          yaw: 0,
+          blockedAt,
+        }),
+      });
+      expect(
+        placeOnTop(world, CAMP_TABLE_TOP, kind, { ...command, aim: { x, z } }),
+      ).toBe(blocked ? "overlap" : "placed");
+      expect(blockedAt).toHaveBeenCalledWith(
+        {
+          x: Math.min(
+            TABLE_TOP_HALF_PX.halfX - kind.footprint.halfX,
+            Math.max(-TABLE_TOP_HALF_PX.halfX + kind.footprint.halfX, x),
+          ),
+          z: Math.min(
+            TABLE_TOP_HALF_PX.halfZ - kind.footprint.halfZ,
+            Math.max(-TABLE_TOP_HALF_PX.halfZ + kind.footprint.halfZ, z),
+          ),
+        },
+        kind.footprint,
+      );
+      expect(world.consumeItem).toHaveBeenCalledTimes(blocked ? 0 : 1);
+      expect(world.spawnHosted).toHaveBeenCalledTimes(blocked ? 0 : 1);
+      if (blocked) expect(world.isAir).not.toHaveBeenCalled();
+    }),
+  );
+});
