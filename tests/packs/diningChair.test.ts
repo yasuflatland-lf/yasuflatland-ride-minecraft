@@ -123,10 +123,10 @@ print(json.dumps({'lo': lo, 'hi': hi, 'baseZ': b[0][2], 'topZ': b[2][2]}))
     }
   });
 
-  it("lists the third Resort Gear item and supplies distinct ingredients, both names, preview and icon", () => {
+  it("lists the fourth Resort Gear item and supplies distinct ingredients, both names, preview and icon", () => {
     const catalog = read(`${BP}/item_catalog/crafting_item_catalog.json`);
     expect(JSON.stringify(catalog)).toContain(
-      '"items":["yasu_ride:beach_parasol_item","yasu_ride:beach_chair_item","yasu_ride:dining_chair_item","yasu_ride:sofa_single_item"]',
+      '"items":["yasu_ride:beach_parasol_item","yasu_ride:beach_chair_item","yasu_ride:dining_table_item","yasu_ride:dining_chair_item","yasu_ride:sofa_single_item"]',
     );
     const item = read(`${BP}/items/yasu_ride/dining_chair_item.item.json`)[
       "minecraft:item"

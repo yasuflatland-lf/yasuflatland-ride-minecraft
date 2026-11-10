@@ -355,7 +355,7 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
   it("lists the chair after the parasol and supplies its plank-stick-iron recipe, names, preview, and icon", () => {
     const catalog = read(`${BP}item_catalog/crafting_item_catalog.json`);
     expect(JSON.stringify(catalog)).toContain(
-      '"items":["yasu_ride:beach_parasol_item","yasu_ride:beach_chair_item","yasu_ride:dining_chair_item","yasu_ride:sofa_single_item"]',
+      '"items":["yasu_ride:beach_parasol_item","yasu_ride:beach_chair_item","yasu_ride:dining_table_item","yasu_ride:dining_chair_item","yasu_ride:sofa_single_item"]',
     );
     const item = read(`${BP}items/yasu_ride/beach_chair_item.item.json`)[
       "minecraft:item"

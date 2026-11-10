@@ -357,6 +357,7 @@ describe("camping gear docs (ADR 0093)", () => {
         "low_chair.png",
         "beach_parasol.png",
         "beach_chair.png",
+        "dining_table.png",
         "dining_chair.png",
         "sofa_single.png",
         "noga_chair.png",
@@ -1077,6 +1078,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                 items: [
                   "yasu_ride:beach_parasol_item",
                   "yasu_ride:beach_chair_item",
+                  "yasu_ride:dining_table_item",
                   "yasu_ride:dining_chair_item",
                   "yasu_ride:sofa_single_item",
                 ],

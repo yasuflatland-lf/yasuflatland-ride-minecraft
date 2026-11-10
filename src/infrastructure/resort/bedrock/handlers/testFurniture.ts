@@ -12,6 +12,7 @@ import {
   asPlayerId,
   type DimensionId,
 } from "../../../../domain/shared/ids";
+import type { TopHostRegistry } from "../../../shared/tableTop/registry";
 import {
   FURNITURE_IDS,
   TEST_FURNITURE_HIT,
@@ -24,6 +25,7 @@ export function registerTestFurniture(
   adapter: BedrockFurnitureWorld,
   takeBack: TakeBackFurniture,
   deps: {
+    topHosts: TopHostRegistry;
     isVehicleSpace: SpaceCheck;
     isCampSpace: SpaceCheck;
   },
