@@ -39,7 +39,7 @@ Hold Road Paver and use it to turn the paver on or off; the cab monitor shows OF
 
 ## Build mode
 
-The Selection Wand selects, builds shapes and roofs, copies, pastes, and undoes blocks on foot or while riding. Choose Copy in the shape menu; a horizontal rectangle adds a height step, while other shapes copy immediately. After a copy the wand aims the paste at the block you look at; a long press pastes there as often as you like until End pasting or an item switch (ADR 0203). Holding it does not change the camera. See [Building tools](../items/building-tools.md).
+The Selection Wand selects, builds shapes and roofs, copies, cuts, pastes, and undoes on foot or while riding. Choose Copy or Cut in the shape menu; a horizontal rectangle adds a height step, while other shapes act immediately. Copy takes everything in the box, including chest contents, signs, and animals, but not vehicles. After a copy the wand aims the paste at the block you look at; a long press pastes there as often as you like until End pasting or an item switch (ADR 0203). Holding it does not change the camera. See [Building tools](../items/building-tools.md).
 
 ## Headlights
 

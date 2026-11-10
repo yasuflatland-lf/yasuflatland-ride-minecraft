@@ -14,6 +14,7 @@ import { CopySelection } from "../../application/build/copySelection";
 import { CutBox } from "../../application/build/cutBox";
 import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
+import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
@@ -23,7 +24,6 @@ import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
 import { TapAir } from "../../application/build/tapAir";
-import { ToggleSkipAir } from "../../application/build/toggleSkipAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
@@ -35,6 +35,7 @@ import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockBuildPlayers } from "./bedrock/bedrockBuildPlayers";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
+import { BedrockStructureStore } from "./bedrock/bedrockStructureStore";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
 import { registerEditTick } from "./bedrock/handlers/editTick";
 import { registerModeTick } from "./bedrock/handlers/modeTick";
@@ -47,25 +48,37 @@ import { registerWand } from "./bedrock/handlers/wand";
 import { MenuChoices } from "./bedrock/menuChoices";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
-export function installBuild(deps: { isProtected: SpaceCheck }): void {
+export function installBuild(deps: {
+  isProtected: SpaceCheck;
+  isFleetEntityType: (typeId: string) => boolean;
+}): void {
   const repo = new InMemorySessionRepository();
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
-  const blocks = new BedrockBlockWorld(deps);
+  const ports = {
+    blocks: new BedrockBlockWorld(deps),
+    structures: new BedrockStructureStore(deps.isFleetEntityType),
+  };
+  const { blocks } = ports;
   const aim = new BedrockAimReader();
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
-  const jobs = new EditJobs(
+  const endSession = new EndBuildSession(repo, ports.structures);
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, ports.structures),
+  );
+  const players = new BedrockBuildPlayers();
+  const jobs = new EditJobs(repo, blocks, feedback, consoleLogger, players);
+  const clear = new ClearSelection(repo, feedback);
+  const copyBox = new CopyBox(repo, ports.structures, feedback);
+  const cutBox = new CutBox(
     repo,
     blocks,
+    ports.structures,
     feedback,
     consoleLogger,
-    new BedrockBuildPlayers(),
   );
-  const clear = new ClearSelection(repo, feedback);
-  const copyBox = new CopyBox(repo, blocks, feedback);
-  const cutBox = new CutBox(repo, blocks, feedback, jobs);
   const actions = { copy: copyBox, cut: cutBox };
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
@@ -73,10 +86,9 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback),
-    toggleSkipAir: new ToggleSkipAir(repo),
-    endPasting: new EndPasting(repo),
+    endPasting: new EndPasting(repo, ports.structures),
     newCopy: new NewCopy(repo),
-    pasteAt: new PasteAt(repo, blocks, feedback, jobs),
+    pasteAt: new PasteAt(repo, blocks, feedback, ports.structures, players),
     chooseHeighted,
     chooseSideCylinder: new ChooseSideCylinder(
       repo,
@@ -88,7 +100,14 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     chooseTerrain: new ChooseTerrain(repo, feedback),
     confirmTerrain: new ConfirmTerrain(repo, feedback, jobs, blocks),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(
+      repo,
+      feedback,
+      jobs,
+      blocks,
+      ports.structures,
+      consoleLogger,
+    ),
     clear,
   };
   const menuCases = {
@@ -115,7 +134,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   });
   registerModeTick(modes);
   registerOutlineTick(new ShowPreview(repo, feedback, aim));
-  registerSessions(repo, cases.endPasting, debounce);
+  registerSessions(endSession, cases.endPasting, debounce);
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
@@ -128,5 +147,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     new DescribeBuild(repo),
     recorded,
     repo,
+    endSession,
+    ports.structures,
   );
 }

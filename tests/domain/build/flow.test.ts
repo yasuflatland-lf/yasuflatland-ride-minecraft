@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import {
   airPressOffersUndo,
@@ -32,7 +31,10 @@ import {
 } from "../../../src/domain/build/volume/kind";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 
 const coord = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
@@ -197,7 +199,7 @@ it("offers utility entries exactly when their prerequisites exist", () => {
         if (clipboard)
           holdClipboard(
             session,
-            clipboardOf(box, () => stone),
+            structureClipboard(box, () => stone),
           );
         if (history)
           session.finishEdit(
@@ -410,7 +412,7 @@ it("roof and paste stages accept only their own transitions and ignore selection
           }),
           kind,
         );
-        const paste = beginPasteAim(hollow);
+        const paste = beginPasteAim();
         for (const flow of [
           idle,
           tapBlock(idle, dim, a, stone),
@@ -550,8 +552,8 @@ it("offers Undo on a plain air press only when idle or aiming a paste", () => {
       heightLocked: false,
       material: stone,
     },
-    beginPasteAim(false),
-    beginPasteAim(true),
+    beginPasteAim(),
+    beginPasteAim(),
   ];
   fc.assert(
     fc.property(fc.constantFrom(...flows), (flow) => {
@@ -572,7 +574,7 @@ it("enters the terrain confirmation only from an end point, keeps the points, an
     fc.property(cell, cell, cell, (a, b, c) => {
       const first = tapBlock(idle, dim, a, stone);
       const endpoint = tapAir(first, b);
-      for (const flow of [idle, first, beginPasteAim(false)])
+      for (const flow of [idle, first, beginPasteAim()])
         expect(chooseTerrain(flow, "removeAbove")).toBe(flow);
       const confirming = chooseTerrain(endpoint, "removeAbove");
       expect(confirming).toEqual({

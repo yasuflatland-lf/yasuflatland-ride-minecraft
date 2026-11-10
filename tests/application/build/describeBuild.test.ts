@@ -3,7 +3,6 @@ import { expect, it } from "vitest";
 import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
@@ -11,7 +10,10 @@ import {
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import { FakeSessions, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
@@ -27,15 +29,14 @@ it("reports every flow, clipboard presence and domain paste entries without chan
       }),
       fc.boolean(),
       fc.boolean(),
-      fc.boolean(),
-      (cell, clipboard, history, skipAir) => {
+      (cell, clipboard, history) => {
         const repo = new FakeSessions();
         const session = repo.getOrCreate(playerId);
         const describe = new DescribeBuild(repo);
         if (clipboard)
           holdClipboard(
             session,
-            clipboardOf(boxOf(cell, cell), () => stone),
+            structureClipboard(boxOf(cell, cell), () => stone),
           );
         if (history)
           session.finishEdit(
@@ -57,19 +58,14 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           first,
           endpoint,
           chooseHeighted(endpoint, "copy"),
-          { kind: "pasteAim", skipAir },
+          { kind: "pasteAim" },
         ];
         for (const flow of flows) {
           session.setFlow(flow);
           expect(describe.execute(playerId)).toEqual({
             flow: flow.kind,
             clipboardHeld: clipboard,
-            pasteMenu: [
-              ...(history ? ["undo"] : []),
-              "skipAir",
-              "newCopy",
-              "endPaste",
-            ],
+            pasteMenu: [...(history ? ["undo"] : []), "newCopy", "endPaste"],
           });
           expect(session.flow).toBe(flow);
           expect(session.hasHistory).toBe(history);
@@ -92,7 +88,7 @@ it("describes a missing session as idle without creating it", () => {
   expect(describe.execute(playerId)).toEqual({
     flow: "idle",
     clipboardHeld: false,
-    pasteMenu: ["skipAir", "newCopy", "endPaste"],
+    pasteMenu: ["newCopy", "endPaste"],
   });
   expect(describe.editStatus(playerId)).toEqual({
     flow: { kind: "idle" },

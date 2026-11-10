@@ -17,12 +17,11 @@ export class DescribeBuild {
       clipboardHeld: session?.clipboard !== undefined,
       pasteMenu: pasteMenu({
         hasHistory: session?.hasHistory ?? false,
-        skipAir: session?.flow.kind === "pasteAim" && session.flow.skipAir,
       }).map((entry) => entry.id),
     };
   }
 
-  // Existing edit replies include height and Skip air details used by scenarios.
+  // Existing edit replies include height details used by scenarios.
   editStatus(playerId: PlayerId): { flow: BuildFlow; isEditing: boolean } {
     const session = this.repo.get(playerId);
     return {
