@@ -778,9 +778,6 @@ export function buildCopyShapes(a: Arena): Promise<Outcome> {
   });
 }
 
-const cellKey = (p: { x: number; y: number; z: number }): string =>
-  `${p.x},${p.y},${p.z}`;
-
 // A frame with no supporting block pops off on the next neighbor update, which
 // a structure place triggers, so fixtures put one stone behind it.
 function placeSupportedFrame(f: Fixture, c: Cell): void {
