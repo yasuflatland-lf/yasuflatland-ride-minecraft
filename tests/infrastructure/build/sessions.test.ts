@@ -52,7 +52,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
         first,
         endpoint,
         chooseHeighted(endpoint, "copy"),
-        { kind: "pasteAim" } as const,
+        { kind: "pasteAim", turn: 0 } as const,
       ]) {
         for (const event of ["dimension", "die"]) {
           const repo = new FakeSessions();
@@ -100,7 +100,7 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
     boxOf(at, at),
   );
   const clipboard = session.clipboard;
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", turn: 0 });
   registerSessions(
     new EndBuildSession(repo, structures),
     new EndPasting(repo, structures),

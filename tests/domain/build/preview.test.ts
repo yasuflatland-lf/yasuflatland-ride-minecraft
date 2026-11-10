@@ -62,7 +62,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
             dimensionId,
             material,
           },
-          { kind: "pasteAim" },
+          { kind: "pasteAim", turn: 0 },
         ];
         for (const flow of flows) {
           const set = previewPoints(flow, {
@@ -117,7 +117,7 @@ it("alternates the first-point marker with blink and removes it at the endpoint 
 it("leaves idle and unaimed paste empty", () => {
   for (const flow of [
     { kind: "idle" } as const,
-    { kind: "pasteAim" } as const,
+    { kind: "pasteAim", turn: 0 } as const,
   ]) {
     expect(
       Object.values(previewPoints(flow, { blink: true })).every(

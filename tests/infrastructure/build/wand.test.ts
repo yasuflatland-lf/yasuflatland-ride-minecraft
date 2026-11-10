@@ -505,7 +505,7 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
           e.structures,
         );
         holdClipboard(e.session, clipboard);
-        e.session.setFlow({ kind: "pasteAim" });
+        e.session.setFlow({ kind: "pasteAim", turn: 0 });
         const flow = e.session.flow;
         const target = {
           ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
