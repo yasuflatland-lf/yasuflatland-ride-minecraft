@@ -94,6 +94,19 @@ it("preserves permutation states and refuses protected or laid cells", () => {
   );
 });
 
+it("checks only space protection for snapshot restoration without reading blocks", () => {
+  fc.assert(
+    fc.property(cell, fc.boolean(), (at, protectedCell) => {
+      const isProtected = vi.fn(() => protectedCell);
+      const blocks = new BedrockBlockWorld({ isProtected });
+      expect(blocks.mayRestore(dimension, at)).toBe(!protectedCell);
+      expect(isProtected).toHaveBeenCalledExactlyOnceWith(dimension, at);
+      expect(engine.getDimension).not.toHaveBeenCalled();
+      expect(engine.getBlock).not.toHaveBeenCalled();
+    }),
+  );
+});
+
 it("fails closed for unreadable blocks and rejected permutations", () => {
   const blocks = new BedrockBlockWorld({ isProtected: () => false });
   const at = { x: 0, y: 0, z: 0 };

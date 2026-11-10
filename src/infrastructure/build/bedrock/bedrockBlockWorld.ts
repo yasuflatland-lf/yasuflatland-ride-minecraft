@@ -43,6 +43,10 @@ export class BedrockBlockWorld implements BuildBlockWorld {
     }
   }
 
+  mayRestore(dimensionId: DimensionId, cell: Cell): boolean {
+    return !this.deps.isProtected(dimensionId, cell);
+  }
+
   mayEdit(dimensionId: DimensionId, cell: Cell): boolean {
     if (this.deps.isProtected(dimensionId, cell)) return false;
     try {
