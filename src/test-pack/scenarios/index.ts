@@ -119,6 +119,7 @@ import {
   diningTableOven,
   diningTablePlaceTakeBack,
   diningTableTopLayClear,
+  diningTableTopOverlap,
   diningTableTopRestore,
 } from "./diningTable";
 import { fleetForget } from "./fleetRemove";
@@ -295,6 +296,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dining_table_top_lay_clear: diningTableTopLayClear,
   dining_table_block_on_top: diningTableBlockOnTop,
   dining_table_top_restore: diningTableTopRestore,
+  dining_table_top_overlap: diningTableTopOverlap,
   dining_table_lantern: diningTableLantern,
   dining_table_oven: diningTableOven,
   sofa_single_place_take_back: sofaSinglePlaceTakeBack,

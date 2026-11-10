@@ -30,6 +30,7 @@ import { registerBeachChairLifecycle } from "./bedrock/handlers/beachChairLifecy
 import { registerBeachChairPlacement } from "./bedrock/handlers/beachChairPlacement";
 import { registerFurnitureHits } from "./bedrock/handlers/furnitureHits";
 import { registerFurniturePlacement } from "./bedrock/handlers/furniturePlacement";
+import { registerFurnitureTopInteraction } from "./bedrock/handlers/furnitureTopInteraction";
 import { registerFurnitureTopLifecycle } from "./bedrock/handlers/furnitureTopLifecycle";
 import { registerParasolHits } from "./bedrock/handlers/hits";
 import { registerParasolLifecycle } from "./bedrock/handlers/lifecycle";
@@ -65,6 +66,7 @@ export function installResort(deps: {
     isTopNow: (entity) => entity.getProperty(BEACH_CHAIR_FOLDED) === true,
     refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
   });
+  const furniture = new BedrockFurnitureWorld(deps);
   const diningTop = FURNITURE_SPEC.dining_table.top;
   if (diningTop)
     deps.topHosts.registerHost({
@@ -73,8 +75,10 @@ export function installResort(deps: {
       surface: diningTop,
       isTopNow: () => true,
       refusalHints: DINING_TABLE_TOP_REFUSAL_HINTS,
+      blockedAt: (entity, at, footprint) =>
+        furniture.blockedAt(entity, at, footprint),
     });
-  const furniture = new BedrockFurnitureWorld(deps);
+  registerFurnitureTopInteraction(furniture, deps.placeHostedOnTop);
   const takeFurniture = new TakeBackFurniture(furniture);
   registerFurniturePlacement(new PlaceFurniture(furniture));
   registerFurnitureHits(takeFurniture, furniture);

@@ -192,14 +192,29 @@ describe("furniture top blocks", () => {
     game.getEntity.mockReturnValue(entity);
     game.getDimension.mockReturnValue(dimension);
     const isVehicleSpace = vi.fn(() => false);
+    const topHosts = new TopHostRegistry();
+    topHosts.registerHost({
+      hostType: "dining_table",
+      entityTypeId: FURNITURE_IDS.dining_table.entity,
+      surface: {
+        half: { halfX: 6, halfZ: 6 },
+        topPx: 12,
+        limit: 1,
+        clearanceBase: 1,
+      },
+      isTopNow: () => true,
+      refusalHints: { full: "full", overlap: "overlap", tooBig: "tooBig" },
+    });
+    const itemsOnTop = vi.spyOn(topHosts, "itemsOnTop").mockReturnValue([]);
     const create = () =>
       new BedrockFurnitureWorld({
-        topHosts: new TopHostRegistry(),
+        topHosts,
         isVehicleSpace,
         isCampSpace: () => false,
       });
     return {
       adapter: create(),
+      itemsOnTop,
       create,
       entity,
       blocks,
@@ -209,6 +224,46 @@ describe("furniture top blocks", () => {
       isVehicleSpace,
     };
   }
+  it("blocks only owned destination cells overlapping hosted gear", () => {
+    const f = fixture();
+    f.adapter.layTop(id);
+    const above = { ...cell, y: cell.y + 1 };
+    const footprint = { halfX: 2, halfZ: 3 };
+    expect(f.adapter.hostedAbove(dimensionId, above)).toBe(false);
+    f.itemsOnTop.mockReturnValue([{ at: { x: 0, z: 0 }, footprint }]);
+    expect(f.adapter.hostedAbove(dimensionId, above)).toBe(true);
+    expect(
+      f.adapter.hostedAbove(dimensionId, { ...above, x: above.x + 1 }),
+    ).toBe(false);
+    expect(
+      f.adapter.hostedAbove(dimensionId, { ...above, y: above.y + 1 }),
+    ).toBe(false);
+    f.itemsOnTop.mockReturnValue([{ at: { x: 20, z: 0 }, footprint }]);
+    expect(f.adapter.hostedAbove(dimensionId, above)).toBe(false);
+    f.itemsOnTop.mockReturnValue([{ at: { x: 0, z: 0 }, footprint }]);
+    f.entity.isValid = false;
+    expect(f.adapter.hostedAbove(dimensionId, above)).toBe(false);
+  });
+  it("checks only cells overlapping the hosted footprint, including unavailable blocks", () => {
+    const f = fixture();
+    const footprint = { halfX: 2, halfZ: 3 };
+    const above = { ...cell, y: cell.y + 1 };
+    expect(
+      f.adapter.blockedAt(f.entity as never, { x: 0, z: 0 }, footprint),
+    ).toBe(false);
+    f.blocks.set(f.key(above), "minecraft:stone");
+    expect(
+      f.adapter.blockedAt(f.entity as never, { x: 0, z: 0 }, footprint),
+    ).toBe(true);
+    expect(
+      f.adapter.blockedAt(f.entity as never, { x: 20, z: 0 }, footprint),
+    ).toBe(false);
+    f.blocks.clear();
+    f.unavailable.add(f.key(above));
+    expect(
+      f.adapter.blockedAt(f.entity as never, { x: 0, z: 0 }, footprint),
+    ).toBe(true);
+  });
   it("persists, remembers on reload, repairs and clears recorded blocks", () => {
     const f = fixture();
     f.adapter.layTop(id);
