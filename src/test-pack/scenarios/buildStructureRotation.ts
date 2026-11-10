@@ -248,15 +248,15 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
         );
       }
       const standing = block(target(0, 1, 2, turn)).permutation.getAllStates();
-      record(`standing_heading_${turn}`, true, standing);
+      record(
+        `standing_heading_${turn}`,
+        standing.ground_sign_direction === [4, 8, 12, 0][turn],
+        standing,
+      );
       const wall = block(target(4, 1, 2, turn)).permutation.getAllStates();
       record(
         `wall_heading_${turn}`,
-        turn === 0
-          ? wall.facing_direction === 5
-          : turn === 1
-            ? wall.facing_direction === 3
-            : true,
+        wall.facing_direction === [5, 3, 4, 2][turn],
         wall,
       );
       const log = block(target(4, 1, 4, turn)).permutation.getAllStates();
