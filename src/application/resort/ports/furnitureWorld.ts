@@ -7,7 +7,11 @@ import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
 
-export interface FurnitureWorld extends Omit<GroundCellsWorld, "consumeItem"> {
+import type { FurnitureTopBlocksWorld } from "./furnitureTopBlocks";
+
+export interface FurnitureWorld
+  extends Omit<GroundCellsWorld, "consumeItem">,
+    Pick<FurnitureTopBlocksWorld, "layTop"> {
   isCampSpace(dimension: DimensionId, cell: Cell): boolean;
   isSolidTop(dimension: DimensionId, cell: Cell): boolean;
   spawn(dimension: DimensionId, pose: FurniturePose): FurnitureId | undefined;
@@ -15,7 +19,8 @@ export interface FurnitureWorld extends Omit<GroundCellsWorld, "consumeItem"> {
   consumeItem(player: PlayerId, kind: FurnitureKind, slot: number): boolean;
   showBlocked(player: PlayerId): void;
 }
-export interface FurnitureTakeBackWorld {
+export interface FurnitureTakeBackWorld
+  extends Pick<FurnitureTopBlocksWorld, "clearTop" | "blockAboveTop"> {
   kindOf(id: FurnitureId): FurnitureKind | undefined;
   isOccupied(id: FurnitureId): boolean;
   somethingOnTop(id: FurnitureId): boolean;

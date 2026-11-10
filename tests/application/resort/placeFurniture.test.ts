@@ -50,6 +50,17 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
         world.isCreative.mockReturnValue(creative);
         expect(new PlaceFurniture(world).execute(cmd)).toBe(true);
         expect(world.consumeItem).toHaveBeenCalledTimes(creative ? 0 : 1);
+        expect(world.layTop).toHaveBeenCalledTimes(
+          FURNITURE_SPEC[kind].top ? 1 : 0,
+        );
+        if (FURNITURE_SPEC[kind].top) {
+          expect(world.layTop).toHaveBeenCalledWith(
+            world.spawn.mock.results[0]?.value,
+          );
+          expect(world.spawn.mock.invocationCallOrder[0]).toBeLessThan(
+            world.layTop.mock.invocationCallOrder[0] ?? 0,
+          );
+        }
         expect(world.spawn).toHaveBeenCalledExactlyOnceWith(
           cmd.dimension,
           furniturePose(cmd.block, cmd.yaw, kind),
@@ -65,6 +76,7 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
         world.spawn.mockReturnValue(undefined);
         expect(new PlaceFurniture(world).execute(cmd)).toBe(false);
         expect(world.refund).toHaveBeenCalledTimes(creative ? 0 : 1);
+        expect(world.layTop).not.toHaveBeenCalled();
         if (!creative)
           expect(world.refund).toHaveBeenCalledWith(cmd.player, kind, cmd.slot);
       }),

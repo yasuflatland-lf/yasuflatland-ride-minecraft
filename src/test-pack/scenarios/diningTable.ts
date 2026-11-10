@@ -1,12 +1,14 @@
 import { system } from "@minecraft/server";
 import {
   FURNITURE_SPEC,
+  FURNITURE_TOP_SYNC_TICKS,
   furnitureClearCells,
   furniturePose,
   furnitureSupportCells,
 } from "../../domain/resort/furniture";
 import { snapYaw4 } from "../../domain/shared/facing";
 import {
+  DINING_TABLE_TOP,
   FURNITURE_IDS,
   TEST_FURNITURE_HIT,
   TEST_FURNITURE_PLACE,
@@ -141,4 +143,80 @@ export function diningTableLantern(a: Arena): Promise<Outcome> {
 }
 export function diningTableOven(a: Arena): Promise<Outcome> {
   return course(a, "dutch_oven");
+}
+
+async function topCourse(
+  a: Arena,
+  mode: "clear" | "above" | "restore",
+): Promise<Outcome> {
+  const support = a.at(110, a.gy - 1, 15);
+  const cell = { ...support, y: support.y + 1 };
+  const above = { ...cell, y: cell.y + 1 };
+  const saved = [support, cell, above].map((at) => ({
+    at,
+    permutation: a.dim.getBlock(at)?.permutation,
+  }));
+  const near = (type: string) =>
+    a.dim.getEntities({ type, location: cell, maxDistance: 3 });
+  const failures: string[] = [];
+  try {
+    a.dim.getBlock(support)?.setType("minecraft:stone");
+    for (const at of [cell, above])
+      a.dim.getBlock(at)?.setType("minecraft:air");
+    system.sendScriptEvent(
+      TEST_FURNITURE_PLACE,
+      `dining_table ${support.x} ${support.y} ${support.z} 0`,
+    );
+    await wait(2);
+    const table = near(FURNITURE_IDS.dining_table.entity)[0];
+    if (!table) return { pass: false, detail: "table not placed" };
+    if (a.dim.getBlock(cell)?.typeId !== DINING_TABLE_TOP)
+      failures.push("top not laid");
+    const recover = async () => {
+      for (let n = 0; n < FURNITURE_SPEC.dining_table.hitsToTakeBack; n++) {
+        system.sendScriptEvent(TEST_FURNITURE_HIT, table.id);
+        await wait(2);
+      }
+    };
+    if (mode === "restore") {
+      a.dim.getBlock(cell)?.setType("minecraft:air");
+      await wait(FURNITURE_TOP_SYNC_TICKS + 2);
+      if (a.dim.getBlock(cell)?.typeId !== DINING_TABLE_TOP)
+        failures.push("top not restored");
+    }
+    if (mode === "above") {
+      a.dim.getBlock(above)?.setType("minecraft:stone");
+      await recover();
+      if (!table.isValid || near("minecraft:item").length)
+        return { pass: false, detail: "recovered with block above" };
+      if (a.dim.getBlock(above)?.typeId !== "minecraft:stone")
+        failures.push("block above lost");
+      a.dim.getBlock(above)?.setType("minecraft:air");
+    }
+    await recover();
+    if (table.isValid) failures.push("table not recovered");
+    if (a.dim.getBlock(cell)?.isAir !== true) failures.push("top not cleared");
+    await wait(FURNITURE_TOP_SYNC_TICKS + 2);
+    if (a.dim.getBlock(cell)?.isAir !== true)
+      failures.push("top returned after recovery");
+  } finally {
+    for (const type of [FURNITURE_IDS.dining_table.entity, "minecraft:item"])
+      for (const entity of near(type)) entity.remove();
+    await wait(2);
+    for (const { at, permutation } of saved)
+      if (permutation) a.dim.getBlock(at)?.setPermutation(permutation);
+  }
+  return {
+    pass: failures.length === 0,
+    detail: failures.join(", ") || `top ${mode} verified`,
+  };
+}
+export function diningTableTopLayClear(a: Arena): Promise<Outcome> {
+  return topCourse(a, "clear");
+}
+export function diningTableBlockOnTop(a: Arena): Promise<Outcome> {
+  return topCourse(a, "above");
+}
+export function diningTableTopRestore(a: Arena): Promise<Outcome> {
+  return topCourse(a, "restore");
 }

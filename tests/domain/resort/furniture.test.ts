@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   type CellOffset,
+  diningTableTopCells,
   FURNITURE_SPEC,
   type FurnitureKind,
   furnitureCells,
@@ -172,7 +173,7 @@ describe("furniture spec", () => {
       half: { halfX: 6, halfZ: 6 },
       topPx: 12,
       limit: 1,
-      clearanceBase: 0,
+      clearanceBase: 1,
     });
     for (const kind of kinds) {
       const spec = FURNITURE_SPEC[kind];
@@ -196,4 +197,18 @@ describe("furniture spec", () => {
       }),
     );
   });
+});
+
+it("uses the footprint cells for tabletop blocks at every pose", () => {
+  fc.assert(
+    fc.property(
+      cellArb,
+      yawArb,
+      fc.constantFrom(...kinds),
+      (block, yaw, kind) => {
+        const pose = furniturePose(block, yaw, kind);
+        expect(diningTableTopCells(pose)).toEqual(furnitureCells(pose));
+      },
+    ),
+  );
 });

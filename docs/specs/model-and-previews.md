@@ -12,6 +12,7 @@
 - Source: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md)
 - Source: [0193](../adr/0193-shared-texture-tooling.md)
 - Source: [0240](../adr/0240-resort-furniture-family.md)
+- Excluded: [0241](../adr/0241-dining-table-top-blocks.md): Dining Table physics and hosted-item clearance belong to the resort gear topic
 - Excluded: [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md): the model job's path filter belongs to the testing-and-ci topic; only the part 0193 amends is stated here (see Model freshness check)
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states

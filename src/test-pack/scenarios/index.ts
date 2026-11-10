@@ -114,9 +114,12 @@ import {
 import { campingGearBlocks } from "./campingGear";
 import { diningChairPlaceTakeBack } from "./diningChair";
 import {
+  diningTableBlockOnTop,
   diningTableLantern,
   diningTableOven,
   diningTablePlaceTakeBack,
+  diningTableTopLayClear,
+  diningTableTopRestore,
 } from "./diningTable";
 import { fleetForget } from "./fleetRemove";
 import {
@@ -289,6 +292,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
   dining_table_place_take_back: diningTablePlaceTakeBack,
+  dining_table_top_lay_clear: diningTableTopLayClear,
+  dining_table_block_on_top: diningTableBlockOnTop,
+  dining_table_top_restore: diningTableTopRestore,
   dining_table_lantern: diningTableLantern,
   dining_table_oven: diningTableOven,
   sofa_single_place_take_back: sofaSinglePlaceTakeBack,

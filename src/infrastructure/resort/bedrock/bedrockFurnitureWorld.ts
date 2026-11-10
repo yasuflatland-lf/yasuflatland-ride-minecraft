@@ -1,18 +1,33 @@
-import { Direction, type Entity, ItemStack, world } from "@minecraft/server";
+import {
+  type Dimension,
+  Direction,
+  type Entity,
+  ItemStack,
+  world,
+} from "@minecraft/server";
+import type { FurnitureTopBlocksWorld } from "../../../application/resort/ports/furnitureTopBlocks";
 import type {
   FurnitureTakeBackWorld,
   FurnitureWorld,
 } from "../../../application/resort/ports/furnitureWorld";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import type {
-  FurnitureKind,
-  FurniturePose,
+import {
+  diningTableTopCells,
+  FURNITURE_SPEC,
+  type FurnitureKind,
+  type FurniturePose,
 } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
+import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import { safeBlockAt } from "../../shared/blocks";
 import { NAMESPACE } from "../../shared/identifiers";
+import {
+  LaidBlockLayer,
+  readCeilingCells,
+  writeCeilingCells,
+} from "../../shared/laidBlockLayer";
 import {
   consumeHeld,
   giveOrDrop,
@@ -20,18 +35,34 @@ import {
   playerById,
 } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
-import { FURNITURE_IDS, furnitureKindOf } from "../identifiers";
+import {
+  DINING_TABLE_TOP,
+  FURNITURE_IDS,
+  FURNITURE_TOP_CELLS,
+  furnitureKindOf,
+} from "../identifiers";
 
 export class BedrockFurnitureWorld
-  implements FurnitureWorld, FurnitureTakeBackWorld
+  implements FurnitureWorld, FurnitureTakeBackWorld, FurnitureTopBlocksWorld
 {
+  private readonly layer: LaidBlockLayer;
+  private readonly tops = new Map<
+    FurnitureId,
+    { dimension: Dimension; cells: Cell[] }
+  >();
   constructor(
     private readonly deps: {
       topHosts: TopHostRegistry;
       isVehicleSpace: SpaceCheck;
       isCampSpace: SpaceCheck;
     },
-  ) {}
+  ) {
+    this.layer = new LaidBlockLayer(
+      DINING_TABLE_TOP,
+      deps.isVehicleSpace,
+      "furniture top",
+    );
+  }
   entity(id: FurnitureId): Entity | undefined {
     try {
       const entity = world.getEntity(id);
@@ -139,6 +170,108 @@ export class BedrockFurnitureWorld
       }
       return undefined;
     }
+  }
+  remember(entity: Entity): { dimension: Dimension; cells: Cell[] } {
+    const id = asFurnitureId(entity.id);
+    let record = this.tops.get(id);
+    if (!record) {
+      record = {
+        dimension: entity.dimension,
+        cells: readCeilingCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS)),
+      };
+      this.tops.set(id, record);
+    }
+    return record;
+  }
+  layTop(id: FurnitureId): void {
+    const entity = this.entity(id);
+    if (!entity) return;
+    const warn = this.layer.warning("lay");
+    try {
+      const wanted = this.topCells(entity);
+      if (wanted.length === 0) return;
+      const record = this.remember(entity);
+      const keys = new Set(wanted.map(cellKey));
+      const stale = record.cells.filter((cell) => !keys.has(cellKey(cell)));
+      this.layer.clear(record.dimension, stale, warn);
+      record.cells = record.cells.filter(
+        (cell) =>
+          keys.has(cellKey(cell)) ||
+          safeBlockAt(record.dimension, cell) === undefined ||
+          safeBlockAt(record.dimension, cell)?.typeId === DINING_TABLE_TOP,
+      );
+      record.cells = this.layer.lay(
+        record.dimension,
+        wanted,
+        record.cells,
+        warn,
+      );
+      entity.setDynamicProperty(
+        FURNITURE_TOP_CELLS,
+        writeCeilingCells(record.cells),
+      );
+    } catch (error) {
+      warn(error);
+    }
+  }
+  clearTop(id: FurnitureId): boolean {
+    const entity = this.entity(id);
+    const record =
+      this.tops.get(id) ?? (entity ? this.remember(entity) : undefined);
+    if (!record) return true;
+    const warn = this.layer.warning("clear");
+    this.layer.clear(record.dimension, record.cells, warn);
+    // Keep unloaded cells for later cleanup rather than losing their only record.
+    record.cells = record.cells.filter(
+      (cell) =>
+        safeBlockAt(record.dimension, cell) === undefined ||
+        safeBlockAt(record.dimension, cell)?.typeId === DINING_TABLE_TOP,
+    );
+    try {
+      entity?.setDynamicProperty(
+        FURNITURE_TOP_CELLS,
+        writeCeilingCells(record.cells),
+      );
+    } catch (error) {
+      warn(error);
+    }
+    if (record.cells.length === 0) this.tops.delete(id);
+    return record.cells.length === 0;
+  }
+  ownerAt(dimension: DimensionId, cell: Cell): FurnitureId | undefined {
+    if (this.block(dimension, cell)?.typeId !== DINING_TABLE_TOP)
+      return undefined;
+    for (const [id, record] of this.tops) {
+      if (
+        record.dimension.id === dimension &&
+        record.cells.some((at) => cellKey(at) === cellKey(cell))
+      )
+        return id;
+    }
+    return undefined;
+  }
+  private topCells(entity: Entity): Cell[] {
+    const kind = furnitureKindOf(entity.typeId, "entity");
+    if (kind === undefined || !FURNITURE_SPEC[kind].top) return [];
+    return diningTableTopCells({
+      kind,
+      origin: entity.location,
+      yaw: snapYaw4(entity.getRotation().y),
+    });
+  }
+  blockAboveTop(id: FurnitureId): boolean {
+    const entity = this.entity(id);
+    if (!entity) return false;
+    const cells = [
+      ...this.topCells(entity),
+      ...(this.tops.get(id)?.cells ??
+        readCeilingCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS))),
+    ];
+    return cells.some(
+      (cell) =>
+        safeBlockAt(entity.dimension, { ...cell, y: cell.y + 1 })?.isAir !==
+        true,
+    );
   }
   dropItem(id: FurnitureId, player: PlayerId): void {
     const entity = this.entity(id);

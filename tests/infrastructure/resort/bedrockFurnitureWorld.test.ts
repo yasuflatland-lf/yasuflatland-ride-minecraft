@@ -7,7 +7,11 @@ import {
 import { asFurnitureId } from "../../../src/domain/resort/ids";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockFurnitureWorld } from "../../../src/infrastructure/resort/bedrock/bedrockFurnitureWorld";
-import { FURNITURE_IDS } from "../../../src/infrastructure/resort/identifiers";
+import {
+  DINING_TABLE_TOP,
+  FURNITURE_IDS,
+  FURNITURE_TOP_CELLS,
+} from "../../../src/infrastructure/resort/identifiers";
 
 import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
@@ -20,6 +24,7 @@ const game = vi.hoisted(() => ({
 }));
 vi.mock("@minecraft/server", () => ({
   world: game,
+  BlockPermutation: { resolve: (typeId: string) => ({ typeId }) },
   Direction: { Up: "Up" },
   ItemStack: class {
     constructor(
@@ -147,5 +152,175 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
       { typeId: FURNITURE_IDS[kind].item, amount: 1 },
       f.entity.location,
     );
+  });
+});
+
+describe("furniture top blocks", () => {
+  const id = asFurnitureId("table");
+  const dimensionId = asDimensionId("overworld");
+  const cell = { x: -2, y: 64, z: 3 };
+  function fixture() {
+    const blocks = new Map<string, string>();
+    const unavailable = new Set<string>();
+    const key = (at: { x: number; y: number; z: number }) =>
+      `${at.x},${at.y},${at.z}`;
+    const dimension = {
+      id: dimensionId,
+      getBlock: vi.fn((at: typeof cell) => {
+        if (unavailable.has(key(at))) return undefined;
+        return {
+          typeId: blocks.get(key(at)) ?? "minecraft:air",
+          isAir:
+            !blocks.has(key(at)) || blocks.get(key(at)) === "minecraft:air",
+          setPermutation: ({ typeId }: { typeId: string }) =>
+            blocks.set(key(at), typeId),
+        };
+      }),
+    };
+    const properties = new Map<string, unknown>();
+    const entity = {
+      id,
+      typeId: FURNITURE_IDS.dining_table.entity,
+      isValid: true,
+      dimension,
+      location: { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 },
+      getRotation: () => ({ y: 90 }),
+      getDynamicProperty: (name: string) => properties.get(name),
+      setDynamicProperty: (name: string, value: unknown) =>
+        properties.set(name, value),
+    };
+    game.getEntity.mockReturnValue(entity);
+    game.getDimension.mockReturnValue(dimension);
+    const isVehicleSpace = vi.fn(() => false);
+    const create = () =>
+      new BedrockFurnitureWorld({
+        topHosts: new TopHostRegistry(),
+        isVehicleSpace,
+        isCampSpace: () => false,
+      });
+    return {
+      adapter: create(),
+      create,
+      entity,
+      blocks,
+      properties,
+      unavailable,
+      key,
+      isVehicleSpace,
+    };
+  }
+  it("persists, remembers on reload, repairs and clears recorded blocks", () => {
+    const f = fixture();
+    f.adapter.layTop(id);
+    expect(f.blocks.get(f.key(cell))).toBe(DINING_TABLE_TOP);
+    expect(f.properties.get(FURNITURE_TOP_CELLS)).toBe(JSON.stringify([cell]));
+    const reloaded = f.create();
+    reloaded.remember(f.entity as never);
+    expect(reloaded.ownerAt(dimensionId, cell)).toBe(id);
+    expect(reloaded.ownerAt(asDimensionId("nether"), cell)).toBeUndefined();
+    f.blocks.set(f.key(cell), "minecraft:air");
+    expect(reloaded.ownerAt(dimensionId, cell)).toBeUndefined();
+    reloaded.layTop(id);
+    expect(f.blocks.get(f.key(cell))).toBe(DINING_TABLE_TOP);
+    expect(reloaded.clearTop(id)).toBe(true);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:air");
+    expect(f.properties.get(FURNITURE_TOP_CELLS)).toBeUndefined();
+    expect(reloaded.ownerAt(dimensionId, cell)).toBeUndefined();
+  });
+  it("skips non-air, vehicle space and cells owned by another table", () => {
+    const f = fixture();
+    for (const type of ["minecraft:stone", DINING_TABLE_TOP]) {
+      f.blocks.set(f.key(cell), type);
+      f.adapter.layTop(id);
+      expect(f.blocks.get(f.key(cell))).toBe(type);
+      expect(f.properties.get(FURNITURE_TOP_CELLS)).toBeUndefined();
+      expect(f.adapter.ownerAt(dimensionId, cell)).toBeUndefined();
+    }
+    f.blocks.clear();
+    f.isVehicleSpace.mockReturnValue(true);
+    f.adapter.layTop(id);
+    expect(f.blocks.size).toBe(0);
+    expect(f.properties.get(FURNITURE_TOP_CELLS)).toBeUndefined();
+  });
+  it("preserves replacement blocks and retries unloaded cells after entity removal", () => {
+    const f = fixture();
+    f.adapter.layTop(id);
+    f.blocks.set(f.key(cell), "minecraft:stone");
+    expect(f.adapter.clearTop(id)).toBe(true);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:stone");
+    f.blocks.clear();
+    f.adapter.layTop(id);
+    f.unavailable.add(f.key(cell));
+    f.entity.isValid = false;
+    expect(f.adapter.clearTop(id)).toBe(false);
+    f.unavailable.clear();
+    expect(f.adapter.clearTop(id)).toBe(true);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:air");
+  });
+  it("clears stale cells when the loaded pose changes", () => {
+    const f = fixture();
+    f.adapter.layTop(id);
+    f.entity.location.x++;
+    f.adapter.layTop(id);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:air");
+    expect(f.blocks.get(f.key({ ...cell, x: cell.x + 1 }))).toBe(
+      DINING_TABLE_TOP,
+    );
+    expect(JSON.parse(String(f.properties.get(FURNITURE_TOP_CELLS)))).toEqual([
+      { ...cell, x: cell.x + 1 },
+    ]);
+  });
+  it("retains cleanup ownership when persistence fails after laying or clearing", () => {
+    const f = fixture();
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(f.entity, "setDynamicProperty").mockImplementation(() => {
+      throw Error("entity unloaded during persistence");
+    });
+    f.adapter.layTop(id);
+    expect(f.adapter.ownerAt(dimensionId, cell)).toBe(id);
+    expect(warning).toHaveBeenCalledTimes(1);
+    expect(f.adapter.clearTop(id)).toBe(true);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:air");
+    expect(f.adapter.ownerAt(dimensionId, cell)).toBeUndefined();
+    expect(warning).toHaveBeenCalledTimes(2);
+    warning.mockRestore();
+  });
+  it("keeps unavailable stale cells owned until they can be cleared", () => {
+    const f = fixture();
+    f.adapter.layTop(id);
+    f.unavailable.add(f.key(cell));
+    f.entity.location.x++;
+    f.adapter.layTop(id);
+    const moved = { ...cell, x: cell.x + 1 };
+    expect(JSON.parse(String(f.properties.get(FURNITURE_TOP_CELLS)))).toEqual([
+      cell,
+      moved,
+    ]);
+    f.unavailable.clear();
+    f.adapter.layTop(id);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:air");
+    expect(f.adapter.ownerAt(dimensionId, moved)).toBe(id);
+    expect(JSON.parse(String(f.properties.get(FURNITURE_TOP_CELLS)))).toEqual([
+      moved,
+    ]);
+  });
+  it("checks wanted and persisted cells above the top, conservatively refusing unloaded cells", () => {
+    const f = fixture();
+    const above = { ...cell, y: cell.y + 1 };
+    expect(f.adapter.blockAboveTop(id)).toBe(false);
+    f.blocks.set(f.key(above), "minecraft:stone");
+    expect(f.adapter.blockAboveTop(id)).toBe(true);
+    f.blocks.clear();
+    f.unavailable.add(f.key(above));
+    expect(f.adapter.blockAboveTop(id)).toBe(true);
+    f.unavailable.clear();
+    f.properties.set(FURNITURE_TOP_CELLS, JSON.stringify([{ ...cell, x: 10 }]));
+    f.blocks.set(f.key({ ...above, x: 10 }), "minecraft:stone");
+    expect(f.adapter.blockAboveTop(id)).toBe(true);
+    f.entity.typeId = FURNITURE_IDS.dining_chair.entity;
+    f.properties.clear();
+    expect(f.adapter.blockAboveTop(id)).toBe(false);
+    f.adapter.layTop(id);
+    expect(f.properties.size).toBe(0);
   });
 });

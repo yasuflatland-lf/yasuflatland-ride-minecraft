@@ -19,6 +19,33 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "dining_table_top_lay_clear",
+    file: "diningTable",
+    ticks: 32, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_block_on_top",
+    file: "diningTable",
+    ticks: 38, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_top_restore",
+    file: "diningTable",
+    ticks: 54, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "dining_table_place_take_back",
     file: "diningTable",
     ticks: 64, // Estimate until the first BDS run.

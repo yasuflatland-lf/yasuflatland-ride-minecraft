@@ -47,7 +47,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
         half: Object.freeze({ halfX: 6, halfZ: 6 }),
         topPx: 12,
         limit: 1,
-        clearanceBase: 0,
+        clearanceBase: 1,
       }),
     }),
     dining_chair: Object.freeze({
@@ -145,4 +145,10 @@ export function furnitureClearCells(pose: FurniturePose): Cell[] {
   for (let up = 0; up < FURNITURE_SPEC[pose.kind].clearance; up++)
     for (const cell of floor) cells.push({ ...cell, y: cell.y + up });
   return cells;
+}
+
+export const FURNITURE_TOP_SYNC_TICKS = 20;
+
+export function diningTableTopCells(pose: FurniturePose): Cell[] {
+  return furnitureCells(pose);
 }
