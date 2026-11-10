@@ -137,6 +137,9 @@ def tube(start, end, width, assembly, swatch=None):
         cube.update(pivot=[0, 0, 0], rotation=[0, bar * 45, math.degrees(math.atan2(dx, math.hypot(dy, dz)))])
         cube = tilt.tilt_assembly([cube], (0, 0, 0), "x", -math.degrees(math.atan2(dz, dy)),
                                   assembly=assembly, assemblies=ASSEMBLIES)[0]
+        # Match the shared tilt precision so libm rounding differences across
+        # platforms do not make the generated geometry stale.
+        cube["size"] = [round(value, 10) for value in cube["size"]]
         for key in ("origin", "pivot"):
             cube[key] = [r4(cube[key][i] + start[i]) for i in range(3)]
         cubes.append(cube)
