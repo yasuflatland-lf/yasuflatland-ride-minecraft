@@ -8,6 +8,7 @@ import { coverageGaps } from "../../src/test-pack/plan";
 const playerDecorScenarios = new Set([
   "build_structure_decor_probe",
   "build_structure_store_decor",
+  "build_structure_rotation_decor",
   "build_paste_structure_decor",
 ]);
 const scenarios = new URL("../../src/test-pack/scenarios/", import.meta.url);

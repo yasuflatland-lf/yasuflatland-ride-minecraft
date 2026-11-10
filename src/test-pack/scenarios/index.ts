@@ -59,6 +59,8 @@ import {
   buildStructureDecorProbe,
   buildStructureProbe,
 } from "./buildStructure";
+import { buildStructureRotation } from "./buildStructureRotation";
+import { buildStructureRotationDecor } from "./buildStructureRotationDecor";
 import {
   buildStructureStore,
   buildStructureStoreDecor,
@@ -363,6 +365,8 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_shapes: buildShapes,
   build_structure_probe: buildStructureProbe,
   build_structure_store: buildStructureStore,
+  build_structure_rotation: buildStructureRotation,
+  build_structure_rotation_decor: buildStructureRotationDecor,
   build_structure_store_hosted: buildStructureStoreHosted,
   build_structure_store_decor: buildStructureStoreDecor,
   build_structure_decor_probe: buildStructureDecorProbe,
