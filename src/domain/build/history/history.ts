@@ -63,3 +63,10 @@ export function takeLast(history: UndoHistory): {
   if (!entry) return { rest: history };
   return { entry, rest: { entries: history.entries.slice(0, -1) } };
 }
+
+export function withPutBack(
+  history: UndoHistory,
+  entry: UndoEntry,
+): UndoHistory {
+  return { entries: [...history.entries, entry] };
+}

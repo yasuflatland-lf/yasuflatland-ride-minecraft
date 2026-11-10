@@ -56,16 +56,7 @@ export class CutBox implements BoxAction {
       this.feedback.showMessage(playerId, "cutRestored");
       return false;
     }
-    const previous = session.clipboard;
-    if (previous?.contents.kind === "structure")
-      this.structures.discard(previous.contents.handle);
-    for (const dropped of session.recordSnapshot({
-      dimensionId,
-      box,
-      handle: snapshot,
-    }))
-      this.structures.discard(dropped);
-    session.completeCopy(dimensionId, box, {
+    const previous = session.completeCopy(dimensionId, box, {
       size: {
         x: box.max.x - box.min.x + 1,
         y: box.max.y - box.min.y + 1,
@@ -74,6 +65,13 @@ export class CutBox implements BoxAction {
       blockCount: count,
       contents: { kind: "structure", handle },
     });
+    if (previous !== undefined) this.structures.discard(previous);
+    for (const dropped of session.recordSnapshot({
+      dimensionId,
+      box,
+      handle: snapshot,
+    }))
+      this.structures.discard(dropped);
     if (!cleared) {
       this.log.warn(
         `build cut for ${playerId} could not clear all blocks; snapshot retained for undo`,

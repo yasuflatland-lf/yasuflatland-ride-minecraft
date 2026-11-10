@@ -12,4 +12,10 @@ export interface BuildBlockWorld {
   setState(dimensionId: DimensionId, cell: Cell, state: BlockState): boolean;
   /** False for a cell a vehicle or a tent claims or a block tagged yasu_ride:laid (ADR 0178, Decision 6). */
   mayEdit(dimensionId: DimensionId, cell: Cell): boolean;
+  /**
+   * False only for a cell a vehicle or a tent claims (space protection).
+   * Ignores yasu_ride:laid so snapshot Undo can remove blocks a structure paste
+   * placed (ADR 0243, issue #1490).
+   */
+  mayRestore(dimensionId: DimensionId, cell: Cell): boolean;
 }

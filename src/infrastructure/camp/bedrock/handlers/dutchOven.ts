@@ -14,8 +14,10 @@ import { asTableId, type TableId } from "../../../../domain/camp/table";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import type { LocalPoint } from "../../../../domain/shared/tableTop";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
+import { heldTypeId } from "../../../shared/heldItem";
 import { id } from "../../../shared/identifiers";
 import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
+import type { PlaceHostedOnTop } from "../../../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../../../shared/tableTop/registry";
 import {
   DUTCH_OVEN_ITEM,
@@ -48,7 +50,7 @@ export function registerDutchOven(
   actions: DutchOvenActions,
   hostedItems: HostedItemsGuard,
   registry: TopHostRegistry,
-): void {
+): PlaceHostedOnTop {
   const placements = new TickScopedSet<PlayerId>();
   const place = (
     placer: Player,
@@ -192,4 +194,5 @@ export function registerDutchOven(
       }
     }
   }, 4);
+  return (player, host) => place(player, host, heldTypeId(player));
 }

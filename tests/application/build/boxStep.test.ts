@@ -9,7 +9,6 @@ import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
@@ -21,7 +20,10 @@ import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -48,7 +50,7 @@ function setup() {
   const feedback = new FakeFeedback();
   const session = repo.getOrCreate(playerId);
   const actions = {
-    copy: new CopyBox(repo, world, feedback),
+    copy: new CopyBox(repo, new FakeStructureStore(), feedback),
     cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
       warn: () => {},
     }),
@@ -105,14 +107,15 @@ it("copies a base grown through any allowed height without beginning an edit", (
           max: { ...base.max, y: base.min.y + height - 1 },
         };
         expect(e.session.confirmedBox).toEqual({ dimensionId: nether, box });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
+        expect(e.session.flow).toEqual({ kind: "pasteAim" });
         expect(e.session.clipboard?.size).toEqual({
           x: dx + 1,
           y: height,
           z: dz + 1,
         });
-        expect(clipboardCells(e.session.clipboard)).toHaveLength(volume(box));
-        expect(clipboardCells(e.session.clipboard)[0]?.state).toEqual(stone);
+        expect(e.session.clipboard?.blockCount).toBe(volume(box));
+        expect(e.session.clipboard?.contents.kind).toBe("structure");
+        expect(read).not.toHaveBeenCalled();
         expect(
           read.mock.calls.every(([dimensionId]) => dimensionId === nether),
         ).toBe(true);
@@ -143,9 +146,10 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
       const begin = vi.spyOn(e.session, "beginEdit");
       e.choose.execute({ playerId, kind: "copy" });
       const box = boxOf(from, to);
-      expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
+      expect(e.session.flow).toEqual({ kind: "pasteAim" });
       expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
-      expect(clipboardCells(e.session.clipboard)).toHaveLength(volume(box));
+      expect(e.session.clipboard?.blockCount).toBe(volume(box));
+      expect(e.session.clipboard?.contents.kind).toBe("structure");
       expect(e.feedback.messages.at(-1)).toEqual({
         message: "copied",
         count: volume(box),
@@ -164,7 +168,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
       (from, extra, path) => {
         const e = setup();
         const previous = boxOf(from, from);
-        const clip = clipboardOf(previous, () => stone);
+        const clip = structureClipboard(previous, () => stone);
         holdClipboard(e.session, clip);
         e.session.confirmBox(nether, previous);
         const size = BUILD_SPEC.maxCopyVolume + extra;
@@ -193,7 +197,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         else
           new CopySelection(
             e.repo,
-            new CopyBox(e.repo, e.world, e.feedback),
+            new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
             e.feedback,
           ).execute({ playerId });
         expect(e.session.clipboard).toBe(clip);
@@ -227,7 +231,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         horizontal,
         copy,
         roof,
-        { kind: "pasteAim", skipAir: false },
+        { kind: "pasteAim" },
       ] as BuildFlow[]) {
         for (const useCase of [e.choose, e.confirm]) {
           if (
@@ -267,9 +271,9 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
   );
 });
 
-it("utility Copy resets paste settings in every prior flow and an oversized copy preserves them", () => {
+it("utility Copy enters paste aiming from every prior flow and an oversized copy preserves them", () => {
   fc.assert(
-    fc.property(cell, fc.boolean(), fc.nat(), (from, skipAir, tick) => {
+    fc.property(cell, fc.nat(), (from, tick) => {
       const e = setup();
       const box = boxOf(from, { ...from, x: from.x + 1, z: from.z + 1 });
       const selected = endpoint(box.min, box.max);
@@ -279,24 +283,26 @@ it("utility Copy resets paste settings in every prior flow and an oversized copy
         selected,
         chooseHeighted(selected, "copy"),
         chooseHeighted(selected, "hip"),
-        { kind: "pasteAim", skipAir, lastPaste: { anchor: from, tick } },
+        { kind: "pasteAim", lastPaste: { anchor: from, tick } },
       ];
       const copy = new CopySelection(
         e.repo,
-        new CopyBox(e.repo, e.world, e.feedback),
+        new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
         e.feedback,
       );
-      const old = clipboardOf(boxOf(from, from), () => stone);
+      const old = structureClipboard(boxOf(from, from), () => stone);
       for (const flow of flows) {
         e.session.confirmBox(overworld, box);
         holdClipboard(e.session, old);
         e.session.setFlow(flow);
         copy.execute({ playerId });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
+        expect(e.session.flow).toEqual({ kind: "pasteAim" });
         expect(e.session.clipboard).not.toBe(old);
-        expect(e.session.clipboard).toEqual(
-          clipboardOf(box, (at) => e.world.stateAt(overworld, at)),
-        );
+        expect(e.session.clipboard).toMatchObject({
+          size: { x: 2, y: 1, z: 2 },
+          blockCount: volume(box),
+          contents: { kind: "structure" },
+        });
         const oversized = boxOf(from, {
           ...from,
           x: from.x + BUILD_SPEC.maxCopyVolume,

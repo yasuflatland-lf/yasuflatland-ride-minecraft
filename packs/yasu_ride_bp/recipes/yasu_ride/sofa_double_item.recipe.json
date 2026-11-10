@@ -1,0 +1,28 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "yasu_ride:sofa_double_item"
+    },
+    "tags": ["crafting_table"],
+    "unlock": {
+      "context": "AlwaysUnlocked"
+    },
+    "pattern": ["WWW", "WWW", "SPS"],
+    "key": {
+      "P": {
+        "tag": "minecraft:planks"
+      },
+      "W": {
+        "tag": "minecraft:wool"
+      },
+      "S": {
+        "item": "minecraft:stick"
+      }
+    },
+    "result": {
+      "item": "yasu_ride:sofa_double_item",
+      "count": 1
+    }
+  }
+}

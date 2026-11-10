@@ -13,6 +13,7 @@ import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { heldTypeId } from "../../../shared/heldItem";
 import { HEADLIGHT_SWITCH_TYPE, id } from "../../../shared/identifiers";
 import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
+import type { PlaceHostedOnTop } from "../../../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../../../shared/tableTop/registry";
 import {
   GAS_LANTERN_ITEM,
@@ -29,7 +30,7 @@ export function registerGasLantern(
   actions: GasLanternActions,
   lanternWorld: BedrockGasLanternWorld,
   registry: TopHostRegistry,
-): void {
+): PlaceHostedOnTop {
   system.runInterval(
     () => lanternWorld.relayLoaded(),
     GAS_LANTERN_SPEC.lightTicks,
@@ -132,4 +133,5 @@ export function registerGasLantern(
       system.currentTick,
     );
   });
+  return (player, host) => place(player, host, heldTypeId(player));
 }

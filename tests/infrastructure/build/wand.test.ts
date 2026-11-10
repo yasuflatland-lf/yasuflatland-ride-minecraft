@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
-import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
@@ -11,10 +10,7 @@ import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  aimedPasteTarget,
-  clipboardOf,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
@@ -31,7 +27,11 @@ import {
   FakeWorld,
   nether,
 } from "../../application/build/fakes";
-import { holdClipboard } from "../../support/buildClipboard";
+import { FakeStructureStore } from "../../application/build/fakes/structureStore";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 
 const menus = {
   showShapeMenu: vi.fn(),
@@ -110,13 +110,8 @@ it("preserves blocks and defers point taps out of before events", () => {
               repo,
               blocks,
               feedback,
-              new EditJobs(
-                repo,
-                blocks,
-                feedback,
-                { warn: () => {} },
-                new FakeBuildPlayers(),
-              ),
+              new FakeStructureStore(),
+              new FakeBuildPlayers(),
             ),
             feedback,
           ),
@@ -253,17 +248,13 @@ function setupAir() {
     cell: { x: 10, y: 0, z: 0 },
     material: blockStateOf("minecraft:stone"),
   });
+  const structures = new FakeStructureStore();
   const paste = new PasteAt(
     repo,
     blocks,
     feedback,
-    new EditJobs(
-      repo,
-      blocks,
-      feedback,
-      { warn: () => {} },
-      new FakeBuildPlayers(),
-    ),
+    structures,
+    new FakeBuildPlayers(),
   );
   registerWand({
     confirmBoxStep,
@@ -297,6 +288,7 @@ function setupAir() {
     roofExecute,
     pointExecute,
     paste,
+    structures,
     feedback,
   };
 }
@@ -507,11 +499,13 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
       (face, block, hasBlock, sneaking) => {
         const e = setupAir();
         e.player.isSneaking = sneaking;
-        const clipboard = clipboardOf(boxOf(block, block), () =>
-          blockStateOf("minecraft:stone"),
+        const clipboard = structureClipboard(
+          boxOf(block, block),
+          () => blockStateOf("minecraft:stone"),
+          e.structures,
         );
         holdClipboard(e.session, clipboard);
-        e.session.setFlow({ kind: "pasteAim", skipAir: false });
+        e.session.setFlow({ kind: "pasteAim" });
         const flow = e.session.flow;
         const target = {
           ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
@@ -544,7 +538,11 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
             target: aimedPasteTarget(clipboard, target),
             tick: 0,
           });
-          expect(e.session.isEditing).toBe(true);
+          expect(e.session.isEditing).toBe(false);
+          expect(e.structures.calls.at(-1)).toMatchObject({
+            kind: "place",
+            handle: clipboard.contents.handle,
+          });
           expect(e.menus.showPasteMenu).not.toHaveBeenCalled();
         } else {
           expect(pasteCall).not.toHaveBeenCalled();
@@ -596,13 +594,8 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
         repo,
         blocks,
         feedback,
-        new EditJobs(
-          repo,
-          blocks,
-          feedback,
-          { warn: () => {} },
-          new FakeBuildPlayers(),
-        ),
+        new FakeStructureStore(),
+        new FakeBuildPlayers(),
       ),
       feedback,
     ),

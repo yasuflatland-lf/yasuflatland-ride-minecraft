@@ -3,13 +3,23 @@ import {
   ItemStack,
   type PlayerInteractWithBlockAfterEvent,
   SignSide,
+  system,
   type Vector3,
   world,
 } from "@minecraft/server";
 import { cellsOf } from "../../domain/build/box";
 import type { StructureHandle } from "../../domain/build/structure/handle";
+import { TABLE_TOP_PX } from "../../domain/camp/spec";
+import { encodeHost } from "../../domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
+import { excludedEntityType } from "../../infrastructure/build/excludedEntityType";
+import {
+  CAMP_TABLE_TYPE,
+  DUTCH_OVEN_HOST_PROPERTY,
+  DUTCH_OVEN_TYPE,
+  TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+} from "../../infrastructure/camp/identifiers";
 import { isFleetEntityType } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, wait } from "../arena";
 import type { Outcome, StepSink } from "../outcome";
@@ -429,4 +439,103 @@ export async function buildStructureStoreDecor(
       )
       .join("; "),
   };
+}
+
+export async function buildStructureStoreHosted(a: Arena): Promise<Outcome> {
+  const store = new BedrockStructureStore(
+    excludedEntityType(isFleetEntityType),
+  );
+  const dim = asDimensionId(a.dim.id);
+  const source = { min: a.at(20, a.gy, 20), max: a.at(25, a.gy + 4, 25) };
+  const destination = { min: a.at(30, a.gy, 20), max: a.at(35, a.gy + 4, 25) };
+  const handles: StructureHandle[] = [];
+  const entities = (box: typeof source) =>
+    a.dim.getEntities().filter((entity) => {
+      const p = entity.location;
+      return (
+        p.x >= box.min.x &&
+        p.x < box.max.x + 1 &&
+        p.y >= box.min.y &&
+        p.y < box.max.y + 1 &&
+        p.z >= box.min.z &&
+        p.z < box.max.z + 1
+      );
+    });
+  const results: string[] = [];
+  const check = (name: string, pass: boolean) => {
+    if (!pass) throw new Error(name);
+    results.push(name);
+  };
+  try {
+    check(
+      "fixture_clear",
+      store.clearBlocks(dim, source) && store.clearBlocks(dim, destination),
+    );
+    a.dim.runCommand(`fill ${a.box(20, a.gy, 20, 25, a.gy, 25)} stone`);
+    const before = new Set(entities(source).map((e) => e.id));
+    a.dim.runCommand(
+      `summon ${CAMP_TABLE_TYPE} ${a.xyz(22.5, a.gy + 1, 22.5)}`,
+    );
+    const table = entities(source).find(
+      (e) => e.typeId === CAMP_TABLE_TYPE && !before.has(e.id),
+    );
+    if (!table) throw new Error("missing camp table fixture");
+    system.sendScriptEvent(TEST_DUTCH_OVEN_ON_TABLE_EVENT, `${table.id} 0 0`);
+    await wait(2);
+    const oven = entities(source).find(
+      (e) => e.typeId === DUTCH_OVEN_TYPE && !before.has(e.id),
+    );
+    if (!oven) throw new Error("missing hosted oven fixture");
+    check(
+      "on_table",
+      Math.abs(oven.location.y - table.location.y - TABLE_TOP_PX / 16) < 0.05,
+    );
+    const marker = encodeHost({
+      kind: "top",
+      hostType: "camp_table",
+      id: table.id,
+      at: { x: 0, z: 0 },
+    });
+    // Dynamic properties are pack-scoped: mirror the production host marker
+    // to test preservation without claiming access to the Behavior Pack's value.
+    oven.setDynamicProperty(DUTCH_OVEN_HOST_PROPERTY, marker);
+    const handle = store.capture(
+      dim,
+      source,
+      asPlayerId(`hosted_store_${a.lane.index}`),
+    );
+    if (handle === "tooLarge" || handle === "unreadable")
+      throw new Error(`capture: ${handle}`);
+    handles.push(handle);
+    store.clearEntities(dim, source);
+    check("originals_survive", table.isValid && oven.isValid);
+    check(
+      "host_unchanged",
+      oven.getDynamicProperty(DUTCH_OVEN_HOST_PROPERTY) === marker,
+    );
+    check("place", store.place(handle, dim, destination.min));
+    const noCopies = () =>
+      entities(destination).every(
+        (e) => e.typeId !== CAMP_TABLE_TYPE && e.typeId !== DUTCH_OVEN_TYPE,
+      );
+    check("no_copies_immediate", noCopies());
+    await wait(2);
+    check("no_copies_after_ticks", noCopies());
+    check(
+      "originals_still_linked",
+      table.isValid &&
+        oven.isValid &&
+        oven.getDynamicProperty(DUTCH_OVEN_HOST_PROPERTY) === marker,
+    );
+    return { pass: true, detail: results.join(", ") };
+  } catch (error) {
+    return { pass: false, detail: `${results.join(", ")}; ${String(error)}` };
+  } finally {
+    for (const handle of handles) store.discard(handle);
+    for (const box of [source, destination]) {
+      for (const entity of entities(box))
+        if (entity.typeId !== "minecraft:player") entity.remove();
+      store.clearBlocks(dim, box);
+    }
+  }
 }

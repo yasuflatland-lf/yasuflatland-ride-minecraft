@@ -82,6 +82,7 @@ function setup() {
     topHosts: campTopHosts(),
     isVehicleSpace: vi.fn(() => true),
     isCampSpace: vi.fn(() => false),
+    placeHostedOnTop: vi.fn(() => false),
   };
   installResort(deps);
   return deps;
@@ -149,8 +150,8 @@ it("wires the scan interval, shared block guard and both space checks", () => {
     .spyOn(BedrockParasolWorld.prototype, "ceilingOwner")
     .mockReturnValue("p");
   const deps = setup();
-  // The Beach Chair pose refresh registers first; the parasol scan is last.
-  expect(game.runInterval).toHaveBeenCalledTimes(2);
+  // Furniture and Beach Chair register before the parasol scan.
+  expect(game.runInterval).toHaveBeenCalledTimes(3);
   expect(game.handlers.has("startup")).toBe(false);
   const loaded = { id: "p" };
   game.getDimension.mockReturnValue({ getEntities: () => [loaded] });
