@@ -313,10 +313,9 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
             b.type === "minecraft:wooden_door" &&
             b.states.upper_block_bit === (i === 1) &&
             b.states.door_hinge_bit === doorStates[i]?.door_hinge_bit &&
-            (i !== 0 ||
-              (b.states.direction === [0, 1, 2, 3][turn] &&
-                b.states["minecraft:cardinal_direction"] ===
-                  ["south", "west", "north", "east"][turn])),
+            b.states.direction === [0, 1, 2, 3][turn] &&
+            b.states["minecraft:cardinal_direction"] ===
+              ["south", "west", "north", "east"][turn],
         ),
         doors,
       );
