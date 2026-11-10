@@ -19,6 +19,7 @@ import {
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { clipboardCells, holdClipboard } from "../../support/buildClipboard";
+import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
   FakeAimReader,
@@ -122,11 +123,11 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
             }),
           ).toEqual(stone);
         }
-        expect(e.session.takeUndo()).toMatchObject({
+        expect(undoRecord(e.session.takeUndo())).toMatchObject({
           dimensionId: nether,
           changes: expect.any(Array),
         });
-        expect(e.session.takeUndo()).toBe("nothingToUndo");
+        expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
       },
     ),
   );
@@ -244,8 +245,10 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         expect(e.execute()).toBe("pasted");
         e.jobs.step();
         expect(e.start).toHaveBeenCalledTimes(3);
-        expect(e.session.takeUndo()).toMatchObject({ dimensionId: nether });
-        expect(e.session.takeUndo()).toBe("nothingToUndo");
+        expect(undoRecord(e.session.takeUndo())).toMatchObject({
+          dimensionId: nether,
+        });
+        expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
       },
     ),
   );

@@ -24,6 +24,7 @@ import {
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { holdClipboard } from "../../support/buildClipboard";
+import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -103,7 +104,7 @@ it("keeps aiming through successive pastes with one job and bounded undo record 
           i >= Math.max(0, count - BUILD_SPEC.undoDepth);
           i--
         )
-          expect(e.session.takeUndo()).toEqual({
+          expect(undoRecord(e.session.takeUndo())).toEqual({
             dimensionId: overworld,
             changes: [
               {
@@ -113,7 +114,7 @@ it("keeps aiming through successive pastes with one job and bounded undo record 
               },
             ],
           });
-        expect(e.session.takeUndo()).toBe("nothingToUndo");
+        expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
       },
     ),
   );
@@ -323,16 +324,16 @@ it("EndPasting lets a running paste finish with its undo record and keeps older 
       expect(e.session.flow.kind).toBe("idle");
       expect(e.session.clipboard).toBeUndefined();
       expect(e.session.isEditing).toBe(true);
-      expect(e.session.takeUndo()).toBe("busy");
+      expect(undoRecord(e.session.takeUndo())).toBe("busy");
       e.jobs.step();
       expect(e.session.isEditing).toBe(false);
       expect(e.world.writes).toBe(1);
-      expect(e.session.takeUndo()).toEqual({
+      expect(undoRecord(e.session.takeUndo())).toEqual({
         dimensionId: overworld,
         changes: [{ cell: target.anchor, before: AIR, after: stone }],
       });
-      expect(e.session.takeUndo()).toBe(older);
-      expect(e.session.takeUndo()).toBe("nothingToUndo");
+      expect(undoRecord(e.session.takeUndo())).toBe(older);
+      expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
       const start = vi.spyOn(e.jobs, "start");
       e.paste.execute({
         playerId,

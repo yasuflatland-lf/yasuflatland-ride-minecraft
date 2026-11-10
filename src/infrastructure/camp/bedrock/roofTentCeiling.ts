@@ -3,7 +3,7 @@ import type { RoofTentId } from "../../../domain/camp/ids";
 import { roofTentCeilingCells } from "../../../domain/camp/roofTent/ceiling";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
-import { RainCeilingLayer, writeCeilingCells } from "../../shared/rainCeiling";
+import { LaidBlockLayer, writeCeilingCells } from "../../shared/laidBlockLayer";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_LADDER_PROPERTY,
@@ -12,13 +12,13 @@ import {
 import { roofTentEntity } from "./bedrockRoofTentWorld";
 import type { RoofTentOccupants, RoofTentSnapshot } from "./roofTentOccupants";
 export class RoofTentCeiling {
-  private readonly layer: RainCeilingLayer;
+  private readonly layer: LaidBlockLayer;
 
   constructor(
     private readonly occupants: RoofTentOccupants,
     isVehicleSpace: SpaceCheck,
   ) {
-    this.layer = new RainCeilingLayer(
+    this.layer = new LaidBlockLayer(
       TENT_CEILING_BLOCK,
       isVehicleSpace,
       "roof tent ceiling",

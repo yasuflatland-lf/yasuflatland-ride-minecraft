@@ -1,0 +1,18 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:dining_table",
+      "materials": {
+        "default": "entity"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/dining_table"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.dining_table"
+      },
+      "render_controllers": ["controller.render.yasu_ride.dining_table"]
+    }
+  }
+}

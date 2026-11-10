@@ -41,7 +41,7 @@ export function placeOnTop(
 }
 
 // Strict comparisons let footprints touch along an edge without overlapping.
-function overlaps(a: TopItem, b: TopItem): boolean {
+export function overlaps(a: TopItem, b: TopItem): boolean {
   return (
     Math.abs(a.at.x - b.at.x) < a.footprint.halfX + b.footprint.halfX &&
     Math.abs(a.at.z - b.at.z) < a.footprint.halfZ + b.footprint.halfZ

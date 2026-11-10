@@ -52,6 +52,10 @@ import {
   buildUnstuckFill,
   buildUnstuckNotTouched,
 } from "./buildFlow";
+import {
+  buildStructureDecorProbe,
+  buildStructureProbe,
+} from "./buildStructure";
 import { buildBlockStates } from "./buildTools";
 import {
   bulldozerClearHill,
@@ -108,6 +112,16 @@ import {
   camperWall,
 } from "./camper";
 import { campingGearBlocks } from "./campingGear";
+import { diningChairPlaceTakeBack } from "./diningChair";
+import {
+  diningTableBlockOnTop,
+  diningTableLantern,
+  diningTableOven,
+  diningTablePlaceTakeBack,
+  diningTableTopLayClear,
+  diningTableTopOverlap,
+  diningTableTopRestore,
+} from "./diningTable";
 import { fleetForget } from "./fleetRemove";
 import {
   parasolPaint,
@@ -123,6 +137,8 @@ import {
   bulldozerPaveWide,
 } from "./roadPaver";
 import { roofTentCourse } from "./roofTent";
+import { sofaDoublePlaceTakeBack } from "./sofaDouble";
+import { sofaSinglePlaceTakeBack } from "./sofaSingle";
 import {
   boatCruise,
   boatDock,
@@ -276,10 +292,20 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dutch_oven_simmer_take_back: dutchOvenSimmerAndTakeBack,
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
+  dining_table_place_take_back: diningTablePlaceTakeBack,
+  dining_table_top_lay_clear: diningTableTopLayClear,
+  dining_table_block_on_top: diningTableBlockOnTop,
+  dining_table_top_restore: diningTableTopRestore,
+  dining_table_top_overlap: diningTableTopOverlap,
+  dining_table_lantern: diningTableLantern,
+  dining_table_oven: diningTableOven,
+  sofa_single_place_take_back: sofaSinglePlaceTakeBack,
+  sofa_double_place_take_back: sofaDoublePlaceTakeBack,
   beach_chair_lantern: beachChairLantern,
   beach_chair_oven: beachChairOven,
   beach_chair_empty_refresh: beachChairEmptyRefresh,
   beach_chair_fold: beachChairFold,
+  dining_chair_place_take_back: diningChairPlaceTakeBack,
   beach_chair_place: beachChairPlace,
   beach_chair_take_back: beachChairTakeBack,
   parasol_paint: parasolPaint,
@@ -326,6 +352,8 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_remove_above_cancel: buildRemoveAboveCancel,
   build_undo_hint_once: buildUndoHintOnce,
   build_shapes: buildShapes,
+  build_structure_probe: buildStructureProbe,
+  build_structure_decor_probe: buildStructureDecorProbe,
   build_roofs: buildRoofs,
   build_flow_cancel: buildFlowCancel,
   build_refusals: buildRefusals,
