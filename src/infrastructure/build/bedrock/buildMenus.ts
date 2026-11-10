@@ -50,6 +50,8 @@ function menuLabel(
 
 function heightSliderTitle(kind: HeightStepKind): string {
   switch (kind) {
+    case "rotate":
+      return BUILD_FORM.rotateTitle;
     case "cut":
       return BUILD_FORM.cutTitle;
     case "copy":

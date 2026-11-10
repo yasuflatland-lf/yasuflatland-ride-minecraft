@@ -20,6 +20,7 @@ export type ShapeEntryId =
   | "removeAbove"
   | "cut"
   | "copy"
+  | "rotate"
   | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
 export type TerrainEntryId = "confirm" | "cancel";
@@ -64,6 +65,7 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
     { id: "removeAbove" },
     { id: "cut" },
     { id: "copy" },
+    { id: "rotate" },
     { id: "cancel" },
   ];
 }

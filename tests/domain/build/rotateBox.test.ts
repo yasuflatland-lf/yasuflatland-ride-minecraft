@@ -137,3 +137,24 @@ it("does not freeze or retain mutable input corners", () => {
   source.max.z = 100;
   expect(plan.source).toEqual(before);
 });
+
+it("keeps the center within half a cell and returns the box after four turns", () => {
+  fc.assert(
+    fc.property(cell, size, fc.integer({ min: 1, max: 12 }), (min, size, n) => {
+      const source = boxAt(min, size);
+      let target = source;
+      for (let i = 0; i < n; i++) {
+        target = planRotationAboutCenter(target).target;
+      }
+      for (const axis of ["x", "y", "z"] as const) {
+        const doubledShift =
+          target.min[axis] +
+          target.max[axis] -
+          source.min[axis] -
+          source.max[axis];
+        expect(Math.abs(doubledShift)).toBeLessThanOrEqual(1);
+      }
+      if (n % 4 === 0) expect(target).toEqual(source);
+    }),
+  );
+});

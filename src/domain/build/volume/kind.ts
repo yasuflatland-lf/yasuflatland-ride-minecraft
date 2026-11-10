@@ -1,4 +1,6 @@
+import { type CellBox, volume } from "../box";
 import type { RoofKind } from "../roof/roof";
+import { planRotationAboutCenter } from "../rotation/rotateBox";
 import { BUILD_SPEC } from "../spec";
 
 export type SolidKind =
@@ -8,12 +10,13 @@ export type SolidKind =
   | "sideCylinderZ"
   | "sphere";
 export type HeightedKind = RoofKind | SolidKind;
-export type BoxStepKind = "copy" | "cut";
+export type BoxStepKind = "copy" | "cut" | "rotate";
 export type HeightStepKind = HeightedKind | BoxStepKind;
 
 const BOX_STEP_LIMITS: Readonly<Record<BoxStepKind, number>> = {
   copy: BUILD_SPEC.maxCopyVolume,
   cut: BUILD_SPEC.maxCopyVolume,
+  rotate: BUILD_SPEC.maxCopyVolume,
 };
 
 export function isBoxStepKind(kind: HeightStepKind): kind is BoxStepKind {
@@ -22,6 +25,13 @@ export function isBoxStepKind(kind: HeightStepKind): kind is BoxStepKind {
 
 export function boxStepLimit(kind: BoxStepKind): number {
   return BOX_STEP_LIMITS[kind];
+}
+
+// Rotation is refused on the union of the old and new boxes, which is larger
+// than the box itself for a non-square footprint, so the preview must measure
+// the same volume the use case checks.
+export function boxStepVolume(kind: BoxStepKind, box: CellBox): number {
+  return volume(kind === "rotate" ? planRotationAboutCenter(box).union : box);
 }
 
 export type FillStyle = "fill" | "hollow" | "tube";

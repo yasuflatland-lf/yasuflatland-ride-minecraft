@@ -128,6 +128,7 @@ function setup(fallback?: boolean) {
         new ChooseBoxStep(
           repo,
           {
+            rotate: { execute: vi.fn(() => true) },
             copy: new CopyBox(
               repo,
               new FakeStructureStore(),
@@ -834,6 +835,27 @@ it.each([
   expect(ui.forms).toHaveLength(1);
 });
 
+it.each([
+  ["line", { x: 4, y: 60, z: 0 }],
+  ["horizontal rectangle", to],
+  ["x-flat rectangle", { x: 0, y: 64, z: 6 }],
+  ["z-flat rectangle", { x: 4, y: 64, z: 0 }],
+  ["box", { x: 4, y: 64, z: 6 }],
+] as const)("routes Rotate on a %s to ChooseBoxStep", async (_shape, end) => {
+  const { session, menus, player, cases } = setup();
+  session.setFlow({ ...endpoint, to: end });
+  ui.answers.push({
+    selection: shapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
+  });
+  await menus.showShapeMenu(player);
+  expect(cases.chooseBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+    kind: "rotate",
+  });
+  expect(cases.copy.execute).not.toHaveBeenCalled();
+  expect(ui.forms).toHaveLength(1);
+});
+
 function removeAboveAnswer() {
   return {
     selection: shapeMenu(endpoint).findIndex((e) => e.id === "removeAbove"),
@@ -1179,6 +1201,24 @@ it.each([false, true])(
     } else expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
   },
 );
+
+it("confirms Rotate after the fallback slider without opening contents", async () => {
+  const { menus, player, cases, session } = setup(true);
+  ui.answers.push(
+    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "rotate") },
+    { formValues: [7] },
+  );
+  cases.confirmBoxStep.execute.mockImplementation(() => {
+    expect(session.flow).toMatchObject({ heightedKind: "rotate", previous: 7 });
+  });
+  await menus.showShapeMenu(player);
+  expect(ui.forms).toHaveLength(2);
+  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.rotateTitle });
+  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
+  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
+});
 
 it.each([
   ["Done", { selection: 1 }],
