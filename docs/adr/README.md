@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory records design decisions and the reasons behind them, using Michael Nygard's Context, Decision, and Consequences sections. Structured metadata records agreement and outgoing relations; the index derives inverse relations. Status states agreement only. To replace or extend a decision, add an outgoing relation on the newer ADR and keep the original Decision unchanged. Never edit the index by hand; run `pnpm run docs`.
+This directory records design decisions and the reasons behind them, using Michael Nygard's Context, Decision, and Consequences sections. Structured metadata records agreement and outgoing relations; the index derives inverse relations. Status states agreement only. Update existing ADR text, including Accepted Decisions, to reflect the current specification; Git preserves earlier revisions. When a distinct decision warrants a separate ADR, record any supersession or extension as an outgoing relation on the newer ADR. Never edit the index by hand; run `pnpm run docs`.
 
 <!-- biome-ignore format: Generated ADR index uses unpadded columns. -->
 <!-- adr-index:start -->
@@ -251,6 +251,12 @@ This directory records design decisions and the reasons behind them, using Micha
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
+
+## Updating an existing ADR
+
+Update the ADR that covers the changed subject, including its Decision, rationale, and consequences. Keep the affected topic spec, Basis references, and Open issues consistent with the revision. Preserve the ADR's identity, original date, and existing relations unless their scope changes. Do not silently present a new design choice as already accepted; Status still records agreement.
+
+Value, dimension, and threshold tuning, typo fixes, and implementation details that preserve the design approach do not require a new ADR. A change to an Accepted Decision does not by itself require one either. Create a separate ADR when a distinct design decision needs its own context, alternatives, and tradeoffs, such as a new architectural boundary, platform constraint, or design approach. Use supersession and extension relations when that separate record is warranted.
 
 ## Writing a new ADR
 

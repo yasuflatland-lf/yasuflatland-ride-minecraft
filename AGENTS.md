@@ -64,7 +64,7 @@ velocity = velocity.scale(friction);
 
 ## Architecture rules
 
-Design decisions live in [docs/adr](docs/adr/README.md). Read the spec for the area in [docs/specs](docs/specs/README.md) first, then the ADRs it lists; the implementation takes precedence over specs and ADRs, and differences go in the spec's Open issues. A pull request that changes behavior updates that spec in the same pull request. The rules that are easiest to break:
+Design decisions live in [docs/adr](docs/adr/README.md). Read the spec for the area in [docs/specs](docs/specs/README.md) first, then the ADRs it lists; the implementation takes precedence over specs and ADRs. Keep the affected spec and ADR text aligned with the current implementation; record unresolved differences in the spec's Open issues. A pull request that changes behavior updates that spec in the same pull request. The rules that are easiest to break:
 
 - **Stable APIs only (0001).** Do not use beta Script APIs, experimental toggles, or `@minecraft/server-gametest`.
 - **Three layers with one-way dependencies (0012):** `src/infrastructure` → `src/application` → `src/domain`. Only `src/infrastructure` may import `@minecraft/server`. `src/main.ts` only calls `bootstrap()`. `pnpm lint:deps` (`.dependency-cruiser.cjs`) checks the import graph (0065). `src/test-pack/` sits outside the layers.
@@ -78,8 +78,9 @@ Design decisions live in [docs/adr](docs/adr/README.md). Read the spec for the a
 
 ## Changing a decision
 
-- When a change goes against an Accepted ADR, or makes a design choice that is not recorded yet, add a new ADR. Follow "Writing a new ADR" in [docs/adr/README.md](docs/adr/README.md) and run `pnpm run docs` to regenerate the index.
-- Do not rewrite the Decision of an Accepted ADR. Supersede it with a new ADR instead. Fixing typos and adding links is fine.
+- Update an existing ADR, including an Accepted ADR's Decision, when its subject changes. Keep its applicable rules, rationale, and consequences consistent with the current specification; Git preserves the revision history. Update affected spec references and remove resolved Open issues in the same change.
+- Do not create an ADR solely for tuning values, dimensions, thresholds, typo fixes, or implementation details that preserve the design approach. Update the existing ADR and spec where they describe those details.
+- Add a new ADR when a distinct design decision needs its own context, alternatives, and tradeoffs, such as a new architectural boundary, platform constraint, or design approach. Reversing an Accepted decision does not by itself require a new ADR. Use supersession or extension relations only when a separate ADR is warranted. Follow "Writing a new ADR" in [docs/adr/README.md](docs/adr/README.md) and run `pnpm run docs` when index inputs change.
 
 ## Bedrock gotchas
 
