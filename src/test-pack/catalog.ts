@@ -28,6 +28,51 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "dining_table_top_overlap",
+    file: "diningTable",
+    ticks: 32, // Estimate until the first BDS run.
+    features: ["resort", "camp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_top_lay_clear",
+    file: "diningTable",
+    ticks: 32, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_block_on_top",
+    file: "diningTable",
+    ticks: 38, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_top_restore",
+    file: "diningTable",
+    ticks: 54, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_place_take_back",
+    file: "diningTable",
+    ticks: 64, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "build_structure_store",
     file: "buildStructureStore",
     ticks: 20, // Estimate until the first BDS run.
@@ -77,6 +122,51 @@ export const CATALOG: readonly ScenarioSpec[] = [
     needsPlayer: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
+    vehicles: 0,
+  },
+  {
+    name: "dining_chair_place_take_back",
+    file: "diningChair",
+    ticks: 8, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_lantern",
+    file: "diningTable",
+    ticks: 20, // Estimate until the first BDS run.
+    features: ["resort", "camp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "dining_table_oven",
+    file: "diningTable",
+    ticks: 20, // Estimate until the first BDS run.
+    features: ["resort", "camp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "sofa_single_place_take_back",
+    file: "sofaSingle",
+    ticks: 56, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "sofa_double_place_take_back",
+    file: "sofaDouble",
+    ticks: 80, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
     vehicles: 0,
   },
   {
@@ -1240,6 +1330,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_cut_structure",
+    file: "buildFlow",
+    ticks: 120,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "build_cut_shapes",
     file: "buildFlow",
     ticks: 120,
@@ -1261,6 +1360,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     name: "build_cut_undo",
     file: "buildFlow",
     ticks: 80,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
+    name: "build_undo_snapshot",
+    file: "buildFlow",
+    ticks: 80, // Estimate until the first BDS run.
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
@@ -1432,6 +1540,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     name: "build_refusals",
     file: "buildFlow",
     ticks: 80,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
+    name: "build_copy_structure",
+    file: "buildFlow",
+    ticks: 100,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,

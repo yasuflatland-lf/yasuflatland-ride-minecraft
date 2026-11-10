@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
 import type { BuildFlow } from "../../../src/domain/build/flow/flow";
 import {
@@ -20,9 +19,15 @@ import {
 } from "../../../src/domain/build/mode";
 import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import type { StructureHandle } from "../../../src/domain/build/structure/handle";
+import {
+  type StructureHandle,
+  structureHandle,
+} from "../../../src/domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import { undoRecord } from "../../support/undoRecord";
 
 const dim = asDimensionId("minecraft:overworld");
@@ -142,7 +147,7 @@ describe("undo history", () => {
     );
   });
 
-  it("discardHistory returns only held snapshots and empties mixed history", () => {
+  it("clearHistory returns only held snapshots and empties mixed history", () => {
     fc.assert(
       fc.property(stepsArb, (steps) => {
         const session = new BuildSession(asPlayerId("p1"));
@@ -153,10 +158,10 @@ describe("undo history", () => {
             expected = [entry.snapshot.handle];
           } else session.finishEdit(entry.record, "undoable");
         }
-        expect(session.discardHistory()).toEqual(expected);
+        expect(session.clearHistory()).toEqual(expected);
         expect(session.hasHistory).toBe(false);
         expect(session.takeUndo()).toBe("nothingToUndo");
-        expect(session.discardHistory()).toEqual([]);
+        expect(session.clearHistory()).toEqual([]);
       }),
     );
   });
@@ -271,7 +276,7 @@ const coordinate = fc.integer({ min: -10, max: 10 });
 const cellArb = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const boxArb = fc.tuple(cellArb, cellArb).map(([a, b]) => boxOf(a, b));
 const dimensionArb = fc.string().map(asDimensionId);
-const clipboardArb = boxArb.map((box) => clipboardOf(box, () => stone));
+const clipboardArb = boxArb.map((box) => structureClipboard(box, () => stone));
 const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
   fc.constant({ kind: "idle" } as const),
   fc.record({
@@ -328,7 +333,7 @@ it("completeCopy replaces the clipboard and box and enters paste aiming from any
         );
         holdClipboard(
           session,
-          clipboardOf(box, () => AIR),
+          structureClipboard(box, () => AIR),
         );
         session.setFlow(flow);
         for (const record of records) session.finishEdit(record, "undoable");
@@ -419,6 +424,43 @@ it("startNewCopy idles any paste aiming, clears the box and repeat window, and k
         session.leaveBuildMode();
         expect(session.flow).toEqual({ kind: "idle" });
         expect(session.clipboard).toBeUndefined();
+      },
+    ),
+  );
+});
+
+it("returns only replaced or cleared structure handles and retains identical handles", () => {
+  fc.assert(
+    fc.property(
+      fc.uuid(),
+      fc.uuid(),
+      fc.constantFrom("clearClipboard", "endPasting", "leaveBuildMode"),
+      (first, second, exit) => {
+        const session = new BuildSession(asPlayerId("builder"));
+        const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+        const clipboard = (raw: string) => ({
+          size: { x: 1, y: 1, z: 1 },
+          blockCount: 1,
+          contents: {
+            kind: "structure" as const,
+            handle: structureHandle(raw),
+          },
+        });
+        const a = clipboard(first);
+        const b = clipboard(second);
+        expect(session.completeCopy(dim, box, a)).toBeUndefined();
+        expect(
+          session.completeCopy(dim, box, clipboard(first)),
+        ).toBeUndefined();
+        expect(session.completeCopy(dim, box, b)).toBe(
+          first === second ? undefined : a.contents.handle,
+        );
+        expect(session[exit]()).toBe(b.contents.handle);
+        expect(session[exit]()).toBeUndefined();
+        const next = structureClipboard(box, () => stone);
+        expect(session.completeCopy(dim, box, next)).toBeUndefined();
+        expect(session[exit]()).toBe(next.contents.handle);
+        expect(session[exit]()).toBeUndefined();
       },
     ),
   );

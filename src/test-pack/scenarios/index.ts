@@ -9,11 +9,13 @@ import {
   buildContinuousPaste,
   buildCopyEntersPasteAim,
   buildCopyShapes,
+  buildCopyStructure,
   buildCubeRect,
   buildCutHeight,
   buildCutKeepsProtected,
   buildCutSetsClipboard,
   buildCutShapes,
+  buildCutStructure,
   buildCutUndo,
   buildCylinderBox,
   buildCylinderRect,
@@ -49,6 +51,7 @@ import {
   buildSphereRect,
   buildUndoConflict,
   buildUndoHintOnce,
+  buildUndoSnapshot,
   buildUnstuckFill,
   buildUnstuckNotTouched,
 } from "./buildFlow";
@@ -117,6 +120,16 @@ import {
   camperWall,
 } from "./camper";
 import { campingGearBlocks } from "./campingGear";
+import { diningChairPlaceTakeBack } from "./diningChair";
+import {
+  diningTableBlockOnTop,
+  diningTableLantern,
+  diningTableOven,
+  diningTablePlaceTakeBack,
+  diningTableTopLayClear,
+  diningTableTopOverlap,
+  diningTableTopRestore,
+} from "./diningTable";
 import { fleetForget } from "./fleetRemove";
 import {
   parasolPaint,
@@ -132,6 +145,8 @@ import {
   bulldozerPaveWide,
 } from "./roadPaver";
 import { roofTentCourse } from "./roofTent";
+import { sofaDoublePlaceTakeBack } from "./sofaDouble";
+import { sofaSinglePlaceTakeBack } from "./sofaSingle";
 import {
   boatCruise,
   boatDock,
@@ -285,10 +300,20 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dutch_oven_simmer_take_back: dutchOvenSimmerAndTakeBack,
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
+  dining_table_place_take_back: diningTablePlaceTakeBack,
+  dining_table_top_lay_clear: diningTableTopLayClear,
+  dining_table_block_on_top: diningTableBlockOnTop,
+  dining_table_top_restore: diningTableTopRestore,
+  dining_table_top_overlap: diningTableTopOverlap,
+  dining_table_lantern: diningTableLantern,
+  dining_table_oven: diningTableOven,
+  sofa_single_place_take_back: sofaSinglePlaceTakeBack,
+  sofa_double_place_take_back: sofaDoublePlaceTakeBack,
   beach_chair_lantern: beachChairLantern,
   beach_chair_oven: beachChairOven,
   beach_chair_empty_refresh: beachChairEmptyRefresh,
   beach_chair_fold: beachChairFold,
+  dining_chair_place_take_back: diningChairPlaceTakeBack,
   beach_chair_place: beachChairPlace,
   beach_chair_take_back: beachChairTakeBack,
   parasol_paint: parasolPaint,
@@ -315,9 +340,11 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_paste_undo_repeat: buildPasteUndoRepeat,
   build_unstuck_fill: buildUnstuckFill,
   build_unstuck_not_touched: buildUnstuckNotTouched,
+  build_cut_structure: buildCutStructure,
   build_cut_shapes: buildCutShapes,
   build_cut_height: buildCutHeight,
   build_cut_undo: buildCutUndo,
+  build_undo_snapshot: buildUndoSnapshot,
   build_undo_conflict: buildUndoConflict,
   build_cut_keeps_protected: buildCutKeepsProtected,
   build_cut_sets_clipboard: buildCutSetsClipboard,
@@ -348,6 +375,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_paste_structure_decor: buildPasteStructureDecor,
   build_continuous_paste: buildContinuousPaste,
   build_copy_shapes: buildCopyShapes,
+  build_copy_structure: buildCopyStructure,
   build_side_cylinder_x: buildSideCylinderX,
   build_side_cylinder_z: buildSideCylinderZ,
   build_cylinder_rect: buildCylinderRect,

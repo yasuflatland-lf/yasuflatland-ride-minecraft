@@ -60,16 +60,25 @@ export function installBuild(deps: {
     structures: new BedrockStructureStore(deps.isExcludedEntityType),
   };
   const { blocks } = ports;
-  const endSession = new EndBuildSession(repo, ports.structures);
   const aim = new BedrockAimReader();
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const endSession = new EndBuildSession(repo, ports.structures);
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, ports.structures),
+  );
   const players = new BedrockBuildPlayers();
   const jobs = new EditJobs(repo, blocks, feedback, consoleLogger, players);
   const clear = new ClearSelection(repo, feedback);
-  const copyBox = new CopyBox(repo, blocks, feedback);
-  const cutBox = new CutBox(repo, blocks, feedback, jobs);
+  const copyBox = new CopyBox(repo, ports.structures, feedback);
+  const cutBox = new CutBox(
+    repo,
+    blocks,
+    ports.structures,
+    feedback,
+    consoleLogger,
+  );
   const actions = { copy: copyBox, cut: cutBox };
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
@@ -77,16 +86,9 @@ export function installBuild(deps: {
     confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback),
-    endPasting: new EndPasting(repo),
+    endPasting: new EndPasting(repo, ports.structures),
     newCopy: new NewCopy(repo),
-    pasteAt: new PasteAt(
-      repo,
-      blocks,
-      feedback,
-      jobs,
-      ports.structures,
-      players,
-    ),
+    pasteAt: new PasteAt(repo, blocks, feedback, ports.structures, players),
     chooseHeighted,
     chooseSideCylinder: new ChooseSideCylinder(
       repo,
@@ -98,7 +100,14 @@ export function installBuild(deps: {
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     chooseTerrain: new ChooseTerrain(repo, feedback),
     confirmTerrain: new ConfirmTerrain(repo, feedback, jobs, blocks),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(
+      repo,
+      feedback,
+      jobs,
+      blocks,
+      ports.structures,
+      consoleLogger,
+    ),
     clear,
   };
   const menuCases = {
@@ -138,7 +147,7 @@ export function installBuild(deps: {
     new DescribeBuild(repo),
     recorded,
     repo,
-    ports.structures,
     endSession,
+    ports.structures,
   );
 }

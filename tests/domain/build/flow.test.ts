@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import {
   airPressOffersUndo,
@@ -32,7 +31,10 @@ import {
 } from "../../../src/domain/build/volume/kind";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 
 const coord = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
@@ -197,7 +199,7 @@ it("offers utility entries exactly when their prerequisites exist", () => {
         if (clipboard)
           holdClipboard(
             session,
-            clipboardOf(box, () => stone),
+            structureClipboard(box, () => stone),
           );
         if (history)
           session.finishEdit(

@@ -8,14 +8,12 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  clipboardOf,
-  pasteTarget,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { structureClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -49,16 +47,21 @@ function setup() {
     world,
     jobs,
     fill: new ConfirmShape(repo, feedback, jobs),
-    copy: new CopySelection(repo, new CopyBox(repo, world, feedback), feedback),
+    copy: new CopySelection(
+      repo,
+      new CopyBox(repo, new FakeStructureStore(), feedback),
+      feedback,
+    ),
     paste: new PasteAt(
       repo,
       world,
       feedback,
-      jobs,
       new FakeStructureStore(),
       new FakeBuildPlayers(),
     ),
-    undo: new UndoEdit(repo, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
+      warn: () => {},
+    }),
   };
 }
 
@@ -330,7 +333,7 @@ describe("edit use cases", () => {
       dimensionId: overworld,
       target: pasteTarget(
         env.repo.get(alex)?.clipboard ??
-          clipboardOf(
+          structureClipboard(
             boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
             () => stone,
           ),
@@ -368,14 +371,14 @@ describe("edit use cases", () => {
     expect(env.feedback.messages.at(-1)?.message).toBe("tooLarge");
   });
 
-  it("skips unreadable cells when copying the confirmed box", () => {
+  it("captures the full confirmed box without reading cells", () => {
     const env = setup();
     env.world.put({ x: 0, y: 64, z: 0 }, dirt);
     env.world.unreadableCells.add(cellKey({ x: 1, y: 64, z: 0 }));
     select(env, alex, 2);
     confirmForCopy(env);
     env.copy.execute({ playerId: alex });
-    expect(env.repo.get(alex)?.clipboard?.blockCount).toBe(3);
+    expect(env.repo.get(alex)?.clipboard?.blockCount).toBe(4);
     expect(env.world.writes).toBe(0);
   });
 
@@ -394,7 +397,7 @@ describe("edit use cases", () => {
       dimensionId: overworld,
       target: pasteTarget(
         env.repo.get(alex)?.clipboard ??
-          clipboardOf(
+          structureClipboard(
             boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
             () => stone,
           ),

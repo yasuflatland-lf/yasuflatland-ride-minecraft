@@ -82,6 +82,7 @@ it("wires space both ways through a late-bound camp reference (ADR 0129)", () =>
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace,
     switchTargets: [],
+    placeHostedOnTop: () => false,
   });
   bootstrap();
   expect(installVehicles).toHaveBeenCalledTimes(1);
@@ -161,6 +162,7 @@ it("hands the vehicles the camp's switch targets once camp is installed", () => 
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace: () => false,
     switchTargets,
+    placeHostedOnTop: () => false,
   });
   bootstrap();
   expect(before).toEqual([]);
@@ -181,6 +183,7 @@ it("installs build last and passes both space checks without requesting a camera
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace,
     switchTargets: [],
+    placeHostedOnTop: () => false,
   });
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
@@ -195,6 +198,8 @@ it("installs build last and passes both space checks without requesting a camera
     topHosts: vi.mocked(installCamp).mock.lastCall?.[0].topHosts,
     isVehicleSpace,
     isCampSpace,
+    placeHostedOnTop:
+      vi.mocked(installCamp).mock.results[0]?.value.placeHostedOnTop,
   });
   expect(vi.mocked(installCamp).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(installResort).mock.invocationCallOrder[0] ?? 0,

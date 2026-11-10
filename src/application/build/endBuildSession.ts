@@ -9,7 +9,10 @@ export class EndBuildSession {
   ) {}
 
   execute(playerId: PlayerId): void {
-    for (const handle of this.repo.get(playerId)?.discardHistory() ?? [])
+    const session = this.repo.get(playerId);
+    const previous = session?.clearClipboard();
+    if (previous !== undefined) this.structures.discard(previous);
+    for (const handle of session?.clearHistory() ?? [])
       this.structures.discard(handle);
     this.repo.remove(playerId);
   }

@@ -102,6 +102,7 @@ export class FakeWorld implements BuildBlockWorld {
   private readonly blocks = new Map<string, BlockState>();
   readonly topYs = new Map<DimensionId, number>();
   readonly protectedCells = new Set<string>();
+  readonly laidCells = new Set<string>();
   readonly refusedCells = new Set<string>();
   readonly unreadableCells = new Set<string>();
   writes = 0;
@@ -123,6 +124,12 @@ export class FakeWorld implements BuildBlockWorld {
     return true;
   }
   mayEdit(_d: DimensionId, cell: Cell) {
+    return (
+      !this.protectedCells.has(cellKey(cell)) &&
+      !this.laidCells.has(cellKey(cell))
+    );
+  }
+  mayRestore(_d: DimensionId, cell: Cell) {
     return !this.protectedCells.has(cellKey(cell));
   }
   put(cell: Cell, state: BlockState) {

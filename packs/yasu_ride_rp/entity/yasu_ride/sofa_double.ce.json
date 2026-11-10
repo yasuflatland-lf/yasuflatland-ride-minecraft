@@ -1,0 +1,18 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:sofa_double",
+      "materials": {
+        "default": "entity"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/sofa_double"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.sofa_double"
+      },
+      "render_controllers": ["controller.render.yasu_ride.sofa_double"]
+    }
+  }
+}

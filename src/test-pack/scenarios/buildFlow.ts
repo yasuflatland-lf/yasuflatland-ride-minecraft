@@ -8,6 +8,7 @@ import {
   world,
 } from "@minecraft/server";
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
+import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Cell } from "../../domain/shared/cells";
 import {
@@ -24,7 +25,7 @@ import type { Outcome, StepSink } from "../outcome";
 interface BuildState {
   flow: string;
   clipboardHeld: boolean;
-  clipboard?: unknown;
+  clipboard?: Clipboard;
   pasteMenu: string[];
 }
 
@@ -681,37 +682,76 @@ export function buildCopyShapes(a: Arena): Promise<Outcome> {
       const source = f.region(3, sy, sz);
       mixedSource(f, source);
       await f.select(f.cell(2, heightStep ? 0 : sy - 1, sz - 1));
-      const expected = snapshot(f, source);
+      // Kept blocks and air both count toward the inclusive box volume.
+      f.block(f.cell(1)).setType("minecraft:chest");
       const copied = await startPasteStep(f, {
         height: heightStep ? 3 : undefined,
       });
+      check(copied.count === source.length, "Copy count wrong");
+      const clipboard = (await f.state()).clipboard;
       check(
-        copied.message === "copied" && copied.count === source.length,
-        "Copy count wrong",
+        clipboard?.contents.kind === "structure" &&
+          clipboard.size.x === 3 &&
+          clipboard.size.y === sy &&
+          clipboard.size.z === sz,
+        "Copy clipboard size or kind wrong",
       );
-      const target = pasteTarget(f, f.cell(12, 0, 12), 3, sy, sz);
+      await f.menu("paste", "endPaste");
+      await checkState(f, "idle", false);
+    }
+  });
+}
+
+export function buildCopyStructure(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(4, 3, 3);
+    try {
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+      for (const cell of f.region(4, 1, 3))
+        f.block(cell).setType("minecraft:stone");
+      await f.select(f.cell(3, 2, 2));
+      const chest = f.block(f.cell(1, 1, 1));
+      chest.setType("minecraft:chest");
+      const inventory = chest.getComponent("minecraft:inventory")?.container;
+      check(inventory !== undefined, "Chest inventory missing");
+      inventory.setItem(0, new ItemStack("minecraft:diamond", 7));
+      const signBlock = f.block(f.cell(2, 1, 1));
+      signBlock.setType("minecraft:standing_sign");
+      const sign = signBlock.getComponent("minecraft:sign");
+      check(sign !== undefined, "Sign component missing");
+      sign.setText("Copy front", SignSide.Front);
+      sign.setText("Copy back", SignSide.Back);
+      // The frame stays empty: whether a populated frame survives is the
+      // player-gated build_structure_store_decor's question (ADR 0244).
+      f.block(f.cell(0, 1, 1)).setType("minecraft:frame");
+      const copied = await startPasteStep(f);
       check(
-        (
-          await pasteStep(
-            f,
-            target.anchor.x,
-            target.anchor.y,
-            target.anchor.z,
-            "up",
-          )
-        ).message === "editDone",
-        "shape copy paste failed",
+        copied.count === cells.length,
+        "Copy did not report the box volume",
+      );
+      const clipboard = (await f.state()).clipboard;
+      check(
+        clipboard?.contents.kind === "structure",
+        "Copy did not save a structure",
       );
       check(
-        unchanged(f, target.cells, expected),
-        "shape Copy lost source block states",
+        clipboard.size.x === 4 &&
+          clipboard.size.y === 3 &&
+          clipboard.size.z === 3 &&
+          clipboard.blockCount === cells.length,
+        "Structure clipboard dimensions or count wrong",
       );
-      await f.menu("paste", "undo");
-      check(
-        unchanged(f, target.cells, target.before),
-        "shape copy undo lost destination states",
-      );
-      await endPasteStep(f);
+    } finally {
+      try {
+        await f.menu("paste", "endPaste");
+      } finally {
+        // Clear inventories before removing their blocks so fixture items cannot drop.
+        for (const cell of cells)
+          f.block(cell)
+            .getComponent("minecraft:inventory")
+            ?.container?.clearAll();
+        for (const cell of cells) f.block(cell).setType("minecraft:air");
+      }
     }
   });
 }
@@ -1086,8 +1126,8 @@ export function buildCutShapes(a: Arena): Promise<Outcome> {
         f.count(cells, "minecraft:air") === cells.length,
         "Cut left selected cells",
       );
-      await f.menu("paste", "undo");
-      check(unchanged(f, cells, before), "Cut undo lost blocks");
+      await undoCut(f, cells.length);
+      check(unchanged(f, cells, before), "Cut Undo lost blocks");
       await f.menu("paste", "endPaste");
     }
   });
@@ -1124,7 +1164,8 @@ export function buildCutHeight(a: Arena): Promise<Outcome> {
       unchanged(f, outside, before),
       "Cut changed cells outside height box",
     );
-    await f.menu("paste", "undo");
+    await undoCut(f, cells.length);
+    check(unchanged(f, outside, before), "Cut Undo changed outside cells");
     await f.menu("paste", "endPaste");
   });
 }
@@ -1143,10 +1184,7 @@ export function buildCutUndo(a: Arena): Promise<Outcome> {
       f.count(cells, "minecraft:air") === cells.length,
       "Mixed Cut left blocks",
     );
-    check(
-      (await f.menu("paste", "undo")).message === "undoDone",
-      "Cut Undo failed",
-    );
+    await undoCut(f, cells.length);
     check(unchanged(f, cells, before), "Cut Undo lost exact block states");
     await f.menu("paste", "endPaste");
   });
@@ -1155,17 +1193,18 @@ export function buildCutUndo(a: Arena): Promise<Outcome> {
 export function buildUndoConflict(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(3, 3, 3);
-    for (const cell of cells) f.block(cell).setType("minecraft:stone");
+    for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
     await f.select(f.cell(2, 2, 2));
+    f.block(f.cell()).setType("minecraft:gold_block");
     check(
-      (await f.menu("shape", "cut")).count === cells.length,
-      "Cut count wrong",
+      (await f.menu("shape", "fill")).count === cells.length,
+      "Fill count wrong",
     );
     const conflict = f.cell(1, 1, 1);
     const reverted = f.cell(2, 1, 1);
-    f.block(conflict).setType("minecraft:gold_block");
-    f.block(reverted).setType("minecraft:stone");
-    const undo = await f.menu("paste", "undo");
+    f.block(conflict).setType("minecraft:diamond_block");
+    f.block(reverted).setType("minecraft:gold_block");
+    const undo = await f.menu("utility", "undo");
     check(
       undo.message === "undoDonePartial" &&
         undo.count === cells.length - 2 &&
@@ -1173,14 +1212,13 @@ export function buildUndoConflict(a: Arena): Promise<Outcome> {
       "Partial Undo counts wrong",
     );
     check(
-      f.block(conflict).typeId === "minecraft:gold_block",
+      f.block(conflict).typeId === "minecraft:diamond_block",
       "Undo overwrote a later edit",
     );
     check(
-      f.count(cells) === cells.length - 1,
+      f.count(cells, "minecraft:gold_block") === cells.length - 1,
       "Undo did not restore the other cells",
     );
-    await f.menu("paste", "endPaste");
   });
 }
 
@@ -1189,43 +1227,127 @@ export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
     const cells = f.region(3, 3, 3);
     for (const cell of cells) f.block(cell).setType("minecraft:stone");
     await f.select(f.cell(2, 2, 2));
-    const chest = f.block(f.cell(1, 1, 1));
-    chest.setType("minecraft:chest");
-    const inventory = chest.getComponent("minecraft:inventory")?.container;
-    check(inventory !== undefined, "Chest inventory missing");
-    inventory.setItem(0, new ItemStack("minecraft:diamond", 7));
+    const protectedBlock = f.block(f.cell(1, 1, 1));
+    protectedBlock.setType("yasu_ride:camper_bed");
+    check(protectedBlock.hasTag(LAID_BLOCK_TAG), "fixture lacks laid tag");
     const before = snapshot(f, cells);
-    const contentsIntact = () => {
-      const item = chest
+    const cut = await f.menu("shape", "cut");
+    check(cut.message === "pasteBlocked", "Protected cut was accepted");
+    check(unchanged(f, cells, before), "Refused cut changed blocks");
+  });
+}
+
+async function undoCut(f: Fixture, volume: number): Promise<void> {
+  const undo = await f.menu("paste", "undo");
+  check(
+    undo.message === "undoDone" && undo.count === volume,
+    `Cut Undo reported ${undo.message} ${undo.count}`,
+  );
+}
+
+async function pasteCutClipboard(
+  f: Fixture,
+  anchor: Cell,
+  volume: number,
+): Promise<void> {
+  const pasted = await pasteStep(f, anchor.x, anchor.y - 1, anchor.z, "up");
+  check(
+    pasted.message === "editDone" && pasted.count === volume,
+    `Cut clipboard paste reported ${pasted.message} ${pasted.count}`,
+  );
+}
+
+export function buildCutStructure(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(8, 4, 8);
+    const target = f.region(8, 4, 8, f.cell(12));
+    const entities = () =>
+      a.dim.getEntities().filter((e) => {
+        const p = e.location;
+        return (
+          e.typeId !== "minecraft:player" &&
+          [f.cell(), f.cell(12)].some(
+            (min) =>
+              p.x >= min.x &&
+              p.x < min.x + 8 &&
+              p.y >= min.y - 2 &&
+              p.y < min.y + 4 &&
+              p.z >= min.z &&
+              p.z < min.z + 8,
+          )
+        );
+      });
+    try {
+      for (const cell of [...source, ...target])
+        f.block(cell).setType("minecraft:air");
+      for (const cell of f.region(8, 1, 8))
+        f.block(cell).setType("minecraft:stone");
+      await f.select(f.cell(7, 3, 7));
+      const chest = f.block(f.cell(1, 1, 1));
+      chest.setType("minecraft:chest");
+      const inventory = chest.getComponent("minecraft:inventory")?.container;
+      check(inventory !== undefined, "Chest inventory missing");
+      inventory.setItem(0, new ItemStack("minecraft:diamond", 7));
+      const signBlock = f.block(f.cell(3, 1, 1));
+      signBlock.setType("minecraft:standing_sign");
+      const sign = signBlock.getComponent("minecraft:sign");
+      check(sign !== undefined, "Sign component missing");
+      sign.setText("Cut front", SignSide.Front);
+      sign.setText("Cut back", SignSide.Back);
+      placeSupportedFrame(f, f.cell(5, 1, 1));
+      const cowAt = f.cell(4, 1, 5);
+      a.dim.runCommand(
+        `summon minecraft:cow ${cowAt.x + 0.5} ${cowAt.y} ${cowAt.z + 0.5}`,
+      );
+      check(
+        entities().some((e) => e.typeId === "minecraft:cow"),
+        "Cow fixture missing",
+      );
+      check(
+        (await f.menu("shape", "cut")).message === "editDone",
+        "Structure cut failed",
+      );
+      await wait(5);
+      check(
+        source.every((c) => f.block(c).isAir),
+        "Cut left source blocks or frame",
+      );
+      check(entities().length === 0, "Cut left entities or dropped items");
+      await pasteCutClipboard(f, f.cell(12), source.length);
+      await wait(2);
+      const restored = f
+        .block(f.cell(13, 1, 1))
         .getComponent("minecraft:inventory")
         ?.container?.getItem(0);
-      return item?.typeId === "minecraft:diamond" && item.amount === 7;
-    };
-    try {
-      const cut = await f.menu("shape", "cut");
       check(
-        cut.message === "editDone" && cut.count === 26,
-        "Cut changed-cell count wrong",
+        restored?.typeId === "minecraft:diamond" && restored.amount === 7,
+        "Chest contents lost",
+      );
+      const restoredSign = f
+        .block(f.cell(15, 1, 1))
+        .getComponent("minecraft:sign");
+      check(
+        restoredSign?.getText(SignSide.Front) === "Cut front" &&
+          restoredSign.getText(SignSide.Back) === "Cut back",
+        "Sign text lost",
       );
       check(
-        chest.typeId === "minecraft:chest" && contentsIntact(),
-        "Cut changed chest or contents",
+        f.block(f.cell(17, 1, 1)).typeId === "minecraft:frame",
+        "Frame lost",
       );
       check(
-        f.count(cells, "minecraft:air") === 26,
-        "Cut left surrounding blocks",
-      );
-      const undo = await f.menu("paste", "undo");
-      check(
-        undo.message === "undoDone" && undo.count === 26,
-        "Undo restored more than changed cells",
+        entities().filter((e) => e.typeId === "minecraft:cow").length === 1,
+        "Animal lost or duplicated",
       );
       check(
-        unchanged(f, cells, before) && contentsIntact(),
-        "Undo changed chest contents or lost states",
+        source.every((c) => f.block(c).isAir),
+        "Placement changed source",
       );
     } finally {
-      chest.getComponent("minecraft:inventory")?.container?.clearAll();
+      for (const entity of entities()) entity.remove();
+      for (const cell of [...source, ...target])
+        f.block(cell).setType("minecraft:air");
+      await f.menu("paste", "endPaste");
     }
   });
 }
@@ -1409,22 +1531,13 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
     );
     const after = await checkState(f, "pasteAim", true);
     check(f.count(cells, "minecraft:air") === 3, "Cut kept source blocks");
-    const held = JSON.stringify(after.clipboard);
     check(
-      held.includes("gold_block") &&
-        held.includes("oak_log") &&
-        held.includes("stone"),
-      "Cut did not store the cut blocks",
+      after.clipboard?.contents.kind === "structure",
+      "Cut clipboard is not a structure",
     );
-    const target = pasteTarget(f, f.cell(12, 0, 12), 3, 1, 1);
-    await pasteInto(f, target);
-    check(
-      unchanged(f, target.cells, before),
-      "Pasting the cut did not restore the blocks",
-    );
-    await f.menu("paste", "undo");
-    await f.menu("paste", "undo");
-    check(unchanged(f, cells, before), "Undo did not restore the cut cells");
+    const target = f.region(3, 1, 1, f.cell(12, 0, 12));
+    await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length);
+    check(unchanged(f, target, before), "Cut payload lost block states");
     await f.menu("paste", "endPaste");
   });
 }
@@ -1434,9 +1547,10 @@ export function buildUndoHintOnce(a: Arena): Promise<Outcome> {
     await f.edit("reset");
     const cells = f.region(2, 1, 1);
     for (const expectedHints of [1, 0]) {
-      for (const cell of cells) f.block(cell).setType("minecraft:stone");
+      for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
       await f.select(f.cell(1));
-      const result = await f.menu("shape", "cut");
+      f.block(f.cell()).setType("minecraft:gold_block");
+      const result = await f.menu("shape", "place");
       check(
         result.message === "editDone" && result.count === 2,
         "Edit feedback missing",
@@ -1445,12 +1559,11 @@ export function buildUndoHintOnce(a: Arena): Promise<Outcome> {
         result.undoHints === expectedHints,
         "Undo hint was missing or repeated",
       );
-      const undo = await f.menu("paste", "undo");
+      const undo = await f.menu("utility", "undo");
       check(
         undo.message === "undoDone" && undo.undoHints === 0,
         "Undo emitted first-edit hint",
       );
-      await f.menu("paste", "endPaste");
     }
   });
 }
@@ -1728,6 +1841,108 @@ export function buildSideCylinderX(a: Arena): Promise<Outcome> {
 
 export function buildSideCylinderZ(a: Arena): Promise<Outcome> {
   return buildSideCylinder(a, "z");
+}
+
+export function buildUndoSnapshot(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 3, 3);
+    const min = f.cell();
+    const max = f.cell(2, 2, 2);
+    const pigTag = `undo_snapshot_pig_${a.lane.index}`;
+    const cowTag = `undo_snapshot_cow_${a.lane.index}`;
+    const inside = () =>
+      a.dim.getEntities().filter((entity) => {
+        const p = entity.location;
+        return (
+          p.x >= min.x &&
+          p.x < max.x + 1 &&
+          p.y >= min.y &&
+          p.y < max.y + 1 &&
+          p.z >= min.z &&
+          p.z < max.z + 1
+        );
+      });
+    const tagged = (tag: string) =>
+      inside().filter((entity) => entity.hasTag(tag));
+    const summon = (type: string, tag: string) => {
+      const before = new Set(inside().map((entity) => entity.id));
+      a.dim.runCommand(
+        `summon ${type} ${min.x + 1.5} ${min.y + 1} ${min.z + 1.5}`,
+      );
+      const entity = inside().find(
+        (entity) => entity.typeId === type && !before.has(entity.id),
+      );
+      check(entity !== undefined, `Missing summoned ${type}`);
+      entity.addTag(tag);
+    };
+    const chestCell = f.cell(0, 1, 0);
+    try {
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+      const floor = f.region(3, 1, 3);
+      for (const cell of floor) f.block(cell).setType("minecraft:stone");
+      f.block(chestCell).setType("minecraft:chest");
+      const inventory = f
+        .block(chestCell)
+        .getComponent("minecraft:inventory")?.container;
+      check(inventory !== undefined, "Chest inventory missing");
+      inventory.setItem(0, new ItemStack("minecraft:diamond", 5));
+      const before = snapshot(f, cells);
+      summon("minecraft:pig", pigTag);
+      await f.edit("reset");
+      await f.edit(
+        `snapshot ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
+      );
+      for (const pig of tagged(pigTag)) pig.remove();
+      a.dim.runCommand(
+        `fill ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z} minecraft:dirt`,
+      );
+      summon("minecraft:cow", cowTag);
+      check(tagged(cowTag).length === 1, "Cow fixture missing before Undo");
+      const undo = await f.edit("undo");
+      check(
+        undo.message === "undoDone" && undo.count === 27,
+        `Snapshot Undo reported ${undo.message} ${undo.count}`,
+      );
+      check(
+        unchanged(f, cells, before),
+        "Snapshot Undo did not restore every cell",
+      );
+      check(
+        f.count(floor) === floor.length,
+        "Snapshot Undo did not restore stone",
+      );
+      check(
+        f.block(chestCell).typeId === "minecraft:chest",
+        "Snapshot Undo did not restore chest",
+      );
+      const item = f
+        .block(chestCell)
+        .getComponent("minecraft:inventory")
+        ?.container?.getItem(0);
+      check(
+        item?.typeId === "minecraft:diamond" && item.amount === 5,
+        "Snapshot Undo lost chest contents",
+      );
+      check(
+        tagged(pigTag).filter((entity) => entity.typeId === "minecraft:pig")
+          .length === 1,
+        "Snapshot Undo did not restore exactly one pig",
+      );
+      check(tagged(cowTag).length === 0, "Snapshot Undo left the cow");
+      check(
+        (await f.edit("undo")).message === "nothingToUndo",
+        "Snapshot Undo kept history",
+      );
+    } finally {
+      for (const entity of a.dim.getEntities()) {
+        if (entity.hasTag(pigTag) || entity.hasTag(cowTag)) entity.remove();
+      }
+      f.block(chestCell)
+        .getComponent("minecraft:inventory")
+        ?.container?.clearAll();
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+    }
+  });
 }
 
 export function buildPasteStructure(a: Arena): Promise<Outcome> {

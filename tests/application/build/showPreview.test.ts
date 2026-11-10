@@ -8,11 +8,13 @@ import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import {
   FakeAimReader,
   FakeFeedback,
@@ -20,6 +22,7 @@ import {
   nether,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const alex = asPlayerId("alex");
 const material = blockStateOf("minecraft:stone");
@@ -35,7 +38,10 @@ function setup(active = true) {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const session = repo.getOrCreate(alex);
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, new FakeStructureStore()),
+  );
   if (active)
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
       modes.execute([{ playerId: alex, holding: true }]);
@@ -88,7 +94,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   });
   holdClipboard(
     session,
-    clipboardOf(boxOf(cell, end), () => material),
+    structureClipboard(boxOf(cell, end), () => material),
   );
   aim.mockReturnValue({ ray, block: { cell, face: "up" } });
   preview.execute(0);
@@ -104,7 +110,10 @@ it("draws only in build mode and on the interval, and clears the preview with th
   session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
   preview.execute(0);
   expect(aim).not.toHaveBeenCalled();
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, new FakeStructureStore()),
+  );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([{ playerId: alex, holding: true }]);
   preview.execute(1);
@@ -155,7 +164,7 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
   expect(feedback.previews).toEqual([]);
   holdClipboard(
     session,
-    clipboardOf(boxOf(cell, end), () => material),
+    structureClipboard(boxOf(cell, end), () => material),
   );
   for (const face of [
     "up",
@@ -190,7 +199,10 @@ it("keeps concurrent players and their aim targets separate", () => {
   const other = repo.getOrCreate(bob);
   session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
   other.setFlow({ kind: "point1", dimensionId: nether, cell: end, material });
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, new FakeStructureStore()),
+  );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
       { playerId: alex, holding: true },
@@ -299,7 +311,10 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
   const { session, repo, preview, feedback } = setup();
   const bob = asPlayerId("bob");
   const other = repo.getOrCreate(bob);
-  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
+  const modes = new UpdateBuildModes(
+    repo,
+    new LeaveBuild(repo, new FakeStructureStore()),
+  );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
       { playerId: alex, holding: true },
@@ -344,7 +359,7 @@ it("refreshes the paste hint each interval without requiring an aimed block", ()
   session.setFlow({ kind: "pasteAim" });
   preview.execute(0);
   expect(feedback.pasteHints).toEqual([]);
-  const clipboard = clipboardOf(boxOf(cell, end), (at) =>
+  const clipboard = structureClipboard(boxOf(cell, end), (at) =>
     at.y === cell.y ? material : undefined,
   );
   holdClipboard(session, clipboard);
@@ -353,7 +368,7 @@ it("refreshes the paste hint each interval without requiring an aimed block", ()
     Array.from({ length: 3 }, () => ({
       playerId: alex,
       size: { x: 1, y: 3, z: 4 },
-      count: 4,
+      count: 12,
     })),
   );
 });
@@ -362,7 +377,7 @@ it("never shows paste hints in other flows or outside build mode", () => {
   const { session, preview, feedback } = setup();
   holdClipboard(
     session,
-    clipboardOf(boxOf(cell, end), () => material),
+    structureClipboard(boxOf(cell, end), () => material),
   );
   for (const flow of [
     { kind: "idle" } as const,
@@ -393,7 +408,7 @@ it("never shows paste hints in other flows or outside build mode", () => {
   const inactive = setup(false);
   holdClipboard(
     inactive.session,
-    clipboardOf(boxOf(cell, end), () => material),
+    structureClipboard(boxOf(cell, end), () => material),
   );
   inactive.session.setFlow({ kind: "pasteAim" });
   inactive.preview.execute(0);
@@ -405,7 +420,7 @@ it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed
   session.setFlow({ kind: "pasteAim" });
   holdClipboard(
     session,
-    clipboardOf(boxOf(cell, end), () => material),
+    structureClipboard(boxOf(cell, end), () => material),
   );
   const aim = new FakeAimReader();
   const preview = new ShowPreview(repo, feedback, aim);
@@ -424,7 +439,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
       session.completeCopy(
         overworld,
         boxOf(cell, end),
-        clipboardOf(boxOf(cell, end), () => material),
+        structureClipboard(boxOf(cell, end), () => material),
       );
       session.setFlow({ kind: "pasteAim" });
       session.startNewCopy();
@@ -450,7 +465,7 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           y: cell.y + y - 1,
           z: cell.z + z - 1,
         });
-        const clipboard = clipboardOf(box, () => material);
+        const clipboard = structureClipboard(box, () => material);
         session.completeCopy(overworld, box, clipboard);
         aim.mockReturnValue(
           hit ? { ray, block: { cell: end, face: "up" } } : { ray },

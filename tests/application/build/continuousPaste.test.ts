@@ -1,16 +1,12 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  clipboardOf,
-  pasteTarget,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   tapAir,
@@ -22,7 +18,10 @@ import {
 } from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
@@ -43,98 +42,78 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const jobs = new EditJobs(
-    repo,
-    world,
-    feedback,
-    { warn: () => {} },
-    new FakeBuildPlayers(),
-  );
+  const structures = new FakeStructureStore(world);
   const at = { x: 0, y: 0, z: 0 };
   holdClipboard(
     session,
-    clipboardOf(boxOf(at, at), () => stone),
+    structureClipboard(boxOf(at, at), () => stone, structures),
   );
   session.setFlow(beginPasteAim());
   const paste = new PasteAt(
     repo,
     world,
     feedback,
-    jobs,
-    new FakeStructureStore(),
+    structures,
     new FakeBuildPlayers(),
   );
   const target = (block: { x: number; y: number; z: number }) => {
     if (!session.clipboard) throw new Error("Expected clipboard");
     return pasteTarget(session.clipboard, block, "up");
   };
-  return { repo, session, world, feedback, jobs, paste, target };
+  return { repo, session, world, feedback, paste, target, structures };
 }
 
-it("keeps aiming through successive pastes with one job and bounded undo record per paste", () => {
+it("keeps aiming through successive synchronous pastes with only the newest snapshot", () => {
   fc.assert(
-    fc.property(
-      cell,
-      fc.integer({ min: 1, max: BUILD_SPEC.undoDepth * 3 }),
-      (origin, count) => {
-        const e = setup();
-        const start = vi.spyOn(e.jobs, "start");
-        for (let i = 0; i < count; i++) {
-          const block = { ...origin, x: origin.x + i };
-          e.paste.execute({
-            playerId,
-            dimensionId: overworld,
-            target: e.target(block),
-            tick: i * BUILD_SPEC.pasteRepeatTicks,
-          });
-          expect(e.session.flow).toEqual(
-            recordPaste(
-              beginPasteAim(),
-              { ...block, y: block.y + 1 },
-              i * BUILD_SPEC.pasteRepeatTicks,
-            ),
-          );
-          expect(e.session.isEditing).toBe(true);
-          e.jobs.step();
-          expect(e.session.isEditing).toBe(false);
-        }
-        expect(start).toHaveBeenCalledTimes(count);
-        expect(e.world.writes).toBe(count);
-        expect(e.feedback.messages).toEqual(
-          Array.from({ length: count }, () => ({
-            message: "editDone",
-            count: 1,
-          })),
+    fc.property(cell, fc.integer({ min: 1, max: 30 }), (origin, count) => {
+      const e = setup();
+      const start = vi.spyOn(e.structures, "place");
+      for (let i = 0; i < count; i++) {
+        const block = { ...origin, x: origin.x + i };
+        e.paste.execute({
+          playerId,
+          dimensionId: overworld,
+          target: e.target(block),
+          tick: i * BUILD_SPEC.pasteRepeatTicks,
+        });
+        expect(e.session.flow).toEqual(
+          recordPaste(
+            beginPasteAim(),
+            { ...block, y: block.y + 1 },
+            i * BUILD_SPEC.pasteRepeatTicks,
+          ),
         );
-        for (
-          let i = count - 1;
-          i >= Math.max(0, count - BUILD_SPEC.undoDepth);
-          i--
-        )
-          expect(undoRecord(e.session.takeUndo())).toEqual({
-            dimensionId: overworld,
-            changes: [
-              {
-                cell: { ...origin, x: origin.x + i, y: origin.y + 1 },
-                before: AIR,
-                after: stone,
-              },
-            ],
-          });
-        expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
-      },
-    ),
+        expect(e.session.isEditing).toBe(false);
+      }
+      expect(start).toHaveBeenCalledTimes(count);
+      expect(e.world.writes).toBe(count);
+      expect(e.feedback.messages).toEqual(
+        Array.from({ length: count }, () => ({
+          message: "editDone",
+          count: 1,
+        })),
+      );
+      const last = { ...origin, x: origin.x + count - 1, y: origin.y + 1 };
+      expect(e.session.takeUndo()).toMatchObject({
+        kind: "snapshot",
+        snapshot: { dimensionId: overworld, box: boxOf(last, last) },
+      });
+      expect(
+        e.structures.calls.filter((c) => c.kind === "discard"),
+      ).toHaveLength(count - 1);
+      expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
+    }),
   );
 });
 
-it("silently ignores repeats, refuses busy and blocked taps, and records only successful starts", () => {
+it("silently ignores repeats, refuses busy and blocked taps, and records only successful placements", () => {
   fc.assert(
     fc.property(
       cell,
       fc.integer({ min: 0, max: BUILD_SPEC.pasteRepeatTicks - 1 }),
       (block, delta) => {
         const e = setup();
-        const start = vi.spyOn(e.jobs, "start");
+        const start = vi.spyOn(e.structures, "place");
         const cmd = {
           playerId,
           dimensionId: overworld,
@@ -143,15 +122,17 @@ it("silently ignores repeats, refuses busy and blocked taps, and records only su
         };
         e.paste.execute(cmd);
         const flow = e.session.flow;
+        e.feedback.messages.length = 0;
         const mayEdit = vi.spyOn(e.world, "mayEdit");
         e.paste.execute({ ...cmd, tick: cmd.tick + delta });
         expect(e.feedback.messages).toEqual([]);
         expect(mayEdit).not.toHaveBeenCalled();
         const other = { ...block, x: block.x + 1 };
+        e.session.beginEdit();
         e.paste.execute({ ...cmd, target: e.target(other) });
         expect(e.feedback.messages.at(-1)?.message).toBe("busy");
         expect(e.session.flow).toBe(flow);
-        e.jobs.step();
+        e.session.finishEdit({ dimensionId: overworld, changes: [] }, "undo");
         const anchor = { ...other, y: other.y + 1 };
         e.world.protectedCells.add(cellKey(anchor));
         e.paste.execute({ ...cmd, target: e.target(other), tick: 200 });
@@ -179,9 +160,8 @@ it("allows the same anchor again once the repeat window ends", () => {
     target: e.target({ x: 0, y: 0, z: 0 }),
     tick: 0,
   };
-  const start = vi.spyOn(e.jobs, "start");
+  const start = vi.spyOn(e.structures, "place");
   e.paste.execute(cmd);
-  e.jobs.step();
   e.paste.execute({ ...cmd, tick: BUILD_SPEC.pasteRepeatTicks });
   expect(start).toHaveBeenCalledTimes(2);
   expect(e.session.flow).toMatchObject({
@@ -204,7 +184,7 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
         beginPasteAim(),
       ]) {
         const e = setup();
-        const leave = new LeaveBuild(e.repo);
+        const leave = new LeaveBuild(e.repo, e.structures);
         const execute = vi.spyOn(leave, "execute");
         const modes = new UpdateBuildModes(e.repo, leave);
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
@@ -256,7 +236,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         const e = setup();
         e.session.confirmBox(overworld, boxOf(at, at));
         e.session.setFlow(flow);
-        const leave = new LeaveBuild(e.repo);
+        const leave = new LeaveBuild(e.repo, e.structures);
         const end = vi.spyOn(e.session, "endPasting");
         leave.execute(playerId);
         const idle = e.session.flow;
@@ -276,7 +256,7 @@ it("EndPasting without a session does not create one", () => {
       const repo = new FakeSessions();
       const create = vi.spyOn(repo, "getOrCreate");
       const remove = vi.spyOn(repo, "remove");
-      new EndPasting(repo).execute(asPlayerId(id));
+      new EndPasting(repo, new FakeStructureStore()).execute(asPlayerId(id));
       expect(repo.get(asPlayerId(id))).toBeUndefined();
       expect(create).not.toHaveBeenCalled();
       expect(remove).not.toHaveBeenCalled();
@@ -284,7 +264,7 @@ it("EndPasting without a session does not create one", () => {
   );
 });
 
-it("EndPasting lets a running paste finish with its undo record and keeps older history", () => {
+it("EndPasting preserves the completed snapshot and older cell history", () => {
   fc.assert(
     fc.property(cell, (block) => {
       const e = setup();
@@ -295,22 +275,19 @@ it("EndPasting lets a running paste finish with its undo record and keeps older 
       e.session.finishEdit(older, "undoable");
       const target = e.target(block);
       e.paste.execute({ playerId, dimensionId: overworld, target, tick: 0 });
-      expect(e.session.isEditing).toBe(true);
-      new EndPasting(e.repo).execute(playerId);
+      expect(e.session.isEditing).toBe(false);
+      new EndPasting(e.repo, e.structures).execute(playerId);
       expect(e.session.flow.kind).toBe("idle");
       expect(e.session.clipboard).toBeUndefined();
-      expect(e.session.isEditing).toBe(true);
-      expect(undoRecord(e.session.takeUndo())).toBe("busy");
-      e.jobs.step();
       expect(e.session.isEditing).toBe(false);
       expect(e.world.writes).toBe(1);
-      expect(undoRecord(e.session.takeUndo())).toEqual({
-        dimensionId: overworld,
-        changes: [{ cell: target.anchor, before: AIR, after: stone }],
+      expect(e.session.takeUndo()).toMatchObject({
+        kind: "snapshot",
+        snapshot: { dimensionId: overworld, box: target.box },
       });
       expect(undoRecord(e.session.takeUndo())).toBe(older);
       expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
-      const start = vi.spyOn(e.jobs, "start");
+      const start = vi.spyOn(e.structures, "place");
       e.paste.execute({
         playerId,
         dimensionId: overworld,

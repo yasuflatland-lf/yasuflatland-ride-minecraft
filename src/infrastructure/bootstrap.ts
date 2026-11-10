@@ -29,6 +29,7 @@ export function bootstrap(): void {
     topHosts,
     isVehicleSpace: vehicles.isVehicleSpace,
     isCampSpace: camp.isCampSpace,
+    placeHostedOnTop: camp.placeHostedOnTop,
   });
   installBuild({
     isExcludedEntityType: excludedEntityType(vehicles.isFleetEntityType),

@@ -84,8 +84,8 @@ export function registerTestEdit(
     "last" | "hints" | "forget"
   >,
   repo: BuildSessionRepository,
-  structures: BuildStructureStore,
   endSession: EndBuildSession,
+  structures: BuildStructureStore,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -107,6 +107,31 @@ export function registerTestEdit(
           endSession.execute(playerId);
           repo.getOrCreate(playerId);
         } else if (
+          command === "snapshot" &&
+          args.length === 6 &&
+          args.every((value) => Number.isInteger(Number(value)))
+        ) {
+          const box = boxOf(
+            { x: Number(args[0]), y: Number(args[1]), z: Number(args[2]) },
+            { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
+          );
+          const dimensionId = asDimensionId(player.dimension.id);
+          const handle = structures.capture(dimensionId, box, playerId);
+          if (handle === "tooLarge" || handle === "unreadable") {
+            system.sendScriptEvent(
+              TEST_RESULT_EVENT,
+              JSON.stringify({
+                player: player.name,
+                error: `Snapshot capture refused: ${handle}`,
+              }),
+            );
+            return;
+          }
+          for (const dropped of repo
+            .getOrCreate(playerId)
+            .recordSnapshot({ dimensionId, box, handle }))
+            structures.discard(dropped);
+        } else if (
           command === "structure" &&
           args.length === 6 &&
           args.every((v) => Number.isInteger(Number(v)))
@@ -119,15 +144,18 @@ export function registerTestEdit(
           const handle = structures.capture(dimensionId, box, playerId);
           if (handle === "tooLarge" || handle === "unreadable")
             throw new Error(handle);
-          repo.getOrCreate(playerId).completeCopy(dimensionId, box, {
-            size: {
-              x: box.max.x - box.min.x + 1,
-              y: box.max.y - box.min.y + 1,
-              z: box.max.z - box.min.z + 1,
-            },
-            blockCount: volume(box),
-            contents: { kind: "structure", handle },
-          });
+          const previous = repo
+            .getOrCreate(playerId)
+            .completeCopy(dimensionId, box, {
+              size: {
+                x: box.max.x - box.min.x + 1,
+                y: box.max.y - box.min.y + 1,
+                z: box.max.z - box.min.z + 1,
+              },
+              blockCount: volume(box),
+              contents: { kind: "structure", handle },
+            });
+          if (previous) structures.discard(previous);
         } else if (command === "releaseStructures" && args.length === 0) {
           const session = repo.getOrCreate(playerId);
           const clipboard = session.clipboard;

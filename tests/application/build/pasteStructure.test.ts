@@ -47,7 +47,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
   });
   const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
   const start = vi.spyOn(jobs, "start");
-  const paste = new PasteAt(repo, world, feedback, jobs, store, players);
+  const paste = new PasteAt(repo, world, feedback, store, players);
   const cmd = {
     playerId,
     dimensionId: overworld,
@@ -274,7 +274,7 @@ it("restores blocks and entities after a partially failed placement", () => {
   expect(e.session.hasHistory).toBe(false);
 });
 
-it("discards the paste snapshot before removing the session, and tolerates repeated end", () => {
+it("discards the clipboard and paste snapshot before removing the session, and tolerates repeated end", () => {
   fc.assert(
     fc.property(origin, (anchor) => {
       const e = setup(anchor);
@@ -285,15 +285,16 @@ it("discards the paste snapshot before removing the session, and tolerates repea
       const remove = vi.spyOn(e.repo, "remove");
       const end = new EndBuildSession(e.repo, e.store);
       end.execute(playerId);
-      expect(discard).toHaveBeenCalledExactlyOnceWith(snapshot);
-      expect(discard.mock.invocationCallOrder[0]).toBeLessThan(
+      expect(discard.mock.calls).toEqual([[handle], [snapshot]]);
+      expect(discard.mock.invocationCallOrder[1]).toBeLessThan(
         remove.mock.invocationCallOrder[0] ?? 0,
       );
       expect(e.store.live.has(snapshot)).toBe(false);
       expect(e.session.hasHistory).toBe(false);
       expect(e.repo.get(playerId)).toBeUndefined();
       end.execute(playerId);
-      expect(discard).toHaveBeenCalledTimes(1);
+      expect(discard).toHaveBeenCalledTimes(2);
+      expect(e.store.live.size).toBe(0);
     }),
   );
 });

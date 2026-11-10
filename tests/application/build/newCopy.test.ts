@@ -5,12 +5,10 @@ import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
-import { EditJobs } from "../../../src/application/build/editJobs";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   tapAir,
@@ -18,13 +16,9 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import {
-  FakeBuildPlayers,
-  FakeFeedback,
-  FakeSessions,
-  FakeWorld,
-  overworld,
-} from "./fakes";
+import { structureClipboard } from "../../support/buildClipboard";
+import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("builder");
 const stone = blockStateOf("minecraft:stone");
@@ -37,7 +31,7 @@ function setup(from: { x: number; y: number; z: number }) {
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const box = boxOf(from, from);
-  const old = clipboardOf(box, () => stone);
+  const old = structureClipboard(box, () => stone);
   session.completeCopy(overworld, box, old);
   session.setFlow({
     kind: "pasteAim",
@@ -47,19 +41,10 @@ function setup(from: { x: number; y: number; z: number }) {
   const chooseBoxStep = new ChooseBoxStep(
     repo,
     {
-      copy: new CopyBox(repo, world, feedback),
-      cut: new CutBox(
-        repo,
-        world,
-        feedback,
-        new EditJobs(
-          repo,
-          world,
-          feedback,
-          { warn: () => {} },
-          new FakeBuildPlayers(),
-        ),
-      ),
+      copy: new CopyBox(repo, new FakeStructureStore(), feedback),
+      cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
+        warn: () => {},
+      }),
     },
     feedback,
   );
@@ -85,9 +70,11 @@ it("starts a normal selection with the old clipboard, then replaces it on Copy",
       expect(e.session.flow).toEqual(tapBlock(first, overworld, to, stone));
       e.chooseBoxStep.execute({ playerId, kind: "copy" });
       expect(e.session.clipboard).not.toBe(e.old);
-      expect(e.session.clipboard).toEqual(
-        clipboardOf(boxOf(from, to), (at) => e.world.stateAt(overworld, at)),
-      );
+      expect(e.session.clipboard).toMatchObject({
+        size: { x: length + 1, y: 1, z: 1 },
+        blockCount: length + 1,
+        contents: { kind: "structure" },
+      });
       expect(e.session.flow).toEqual({ kind: "pasteAim" });
     }),
   );

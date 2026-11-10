@@ -125,6 +125,7 @@ yasu_build.message.edit_done=%s ブロックを変更しました。元に戻す
 yasu_build.message.edit_done_count=%s ブロックを変更しました。
 yasu_build.message.undo_hint=間違えたときは、ワンドで空中を長押しして「元に戻す」を選びます。
 yasu_build.message.undo_done=%s ブロックを復元しました。
+yasu_build.message.undo_failed=範囲を元に戻せませんでした。
 yasu_build.message.undo_done_partial=%s 個のブロックを元に戻し、%s 個をスキップしました。
 yasu_build.form.title=建築ユーティリティ
 yasu_build.form.fill=塗りつぶし
@@ -179,7 +180,8 @@ yasu_ride.message.headlights_off=ヘッドライト: OFF
 yasu_ride.message.headlights_on=ヘッドライト: ON
 yasu_build.form.cut=カット
 yasu_build.form.cut_title=カット
-yasu_build.message.cutting=カットしています。
+yasu_build.message.cut_restored=カットに失敗したため、元に戻しました。
+yasu_build.message.cut_incomplete=カットで一部のブロックを消せませんでした。元に戻すで復元できます。
 yasu_build.form.remove_above=上を削除
 yasu_build.form.remove_above_title=上を削除
 yasu_build.form.remove_above_body=上を削除: %s x %s ブロックの範囲を y %s から y %s まで消します。元に戻せません。上にあるものが落ちる場合があります。
@@ -214,4 +216,26 @@ yasu_ride.beach_chair_top_full=ビーチチェアの天板がいっぱいです�
 yasu_ride.beach_chair_top_overlap=ビーチチェアの天板で何かと重なっています。
 yasu_ride.beach_chair_top_too_big=このアイテムはビーチチェアの天板には大きすぎます。
 
+yasu_build.message.copy_unreadable=範囲をコピーできませんでした。近くで読み込みを待ってから、もう一度試してください。
 yasu_build.message.paste_failed=貼り付けに失敗しました。もう一度お試しください。
+
+yasu_ride.furniture.blocked=ここには家具を置けません。
+yasu_ride.furniture.hits_left=あと%s回たたくと回収できます。
+yasu_ride.furniture.taken=家具を回収しました。
+yasu_ride.furniture.occupied=誰かが座っています。
+yasu_ride.furniture.something_on_top=先に上の物を取り除いてください。
+
+item.yasu_ride:dining_table_item.name=ダイニングテーブル
+entity.yasu_ride:dining_table.name=ダイニングテーブル
+yasu_ride.dining_table_top_full=テーブルの上はいっぱいです。
+yasu_ride.dining_table_top_overlap=テーブルのこの位置には置けません。
+yasu_ride.dining_table_top_too_big=このアイテムはテーブルには大きすぎます。
+
+yasu_ride.dining_table.top_occupied=テーブルのこの場所には物が置かれています。
+item.yasu_ride:dining_chair_item.name=ダイニングチェアー
+entity.yasu_ride:dining_chair.name=ダイニングチェアー
+
+item.yasu_ride:sofa_single_item.name=ソファ（1人掛け）
+item.yasu_ride:sofa_double_item.name=ソファ（2人掛け）
+entity.yasu_ride:sofa_single.name=ソファ（1人掛け）
+entity.yasu_ride:sofa_double.name=ソファ（2人掛け）

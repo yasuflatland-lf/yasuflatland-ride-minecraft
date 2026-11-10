@@ -8,13 +8,11 @@ import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCyl
 import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
-import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
@@ -34,13 +32,16 @@ import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/bui
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import {
-  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
   overworld,
 } from "../../application/build/fakes";
-import { holdClipboard } from "../../support/buildClipboard";
+import { FakeStructureStore } from "../../application/build/fakes/structureStore";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 
 type Answer = {
   canceled?: boolean;
@@ -125,20 +126,17 @@ function setup(fallback?: boolean) {
         new ChooseBoxStep(
           repo,
           {
-            copy: new CopyBox(repo, new FakeWorld(), new FakeFeedback()),
+            copy: new CopyBox(
+              repo,
+              new FakeStructureStore(),
+              new FakeFeedback(),
+            ),
             cut: new CutBox(
               repo,
               new FakeWorld(),
+              new FakeStructureStore(),
               new FakeFeedback(),
-              new EditJobs(
-                repo,
-                new FakeWorld(),
-                new FakeFeedback(),
-                {
-                  warn: () => {},
-                },
-                new FakeBuildPlayers(),
-              ),
+              { warn: () => {} },
             ),
           },
           new FakeFeedback(),
@@ -174,7 +172,11 @@ function setup(fallback?: boolean) {
     },
     copy: { execute: vi.fn() },
     newCopy: { execute: vi.fn((id) => new NewCopy(repo).execute(id)) },
-    endPasting: { execute: vi.fn((cmd) => new EndPasting(repo).execute(cmd)) },
+    endPasting: {
+      execute: vi.fn((cmd) =>
+        new EndPasting(repo, new FakeStructureStore()).execute(cmd),
+      ),
+    },
     undo: { execute: vi.fn() },
     clear: { execute: vi.fn() },
     setHeight: {
@@ -248,7 +250,7 @@ it("shows exactly the applicable utility entries", async () => {
         if (clipboard)
           holdClipboard(
             session,
-            clipboardOf(box, () => stone),
+            structureClipboard(box, () => stone),
           );
         if (history)
           session.finishEdit(
@@ -494,7 +496,7 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
     if (stage === "paste") {
       holdClipboard(
         session,
-        clipboardOf(boxOf(from, from), () => stone),
+        structureClipboard(boxOf(from, from), () => stone),
       );
       session.setFlow({ kind: "pasteAim" });
     }
@@ -619,7 +621,7 @@ it("validates utility availability before dispatching", () => {
         if (clipboard)
           holdClipboard(
             session,
-            clipboardOf(box, () => stone),
+            structureClipboard(box, () => stone),
           );
         if (history)
           session.finishEdit(
@@ -742,7 +744,7 @@ it("accepts EndPasting only in paste aiming and exposes its own label", async ()
   session.completeCopy(
     overworld,
     boxOf(from, to),
-    clipboardOf(boxOf(from, to), () => stone),
+    structureClipboard(boxOf(from, to), () => stone),
   );
   session.setFlow({ kind: "pasteAim" });
   expect(choices.choose(playerId, "paste", "endPaste")).toBe(true);
@@ -1029,7 +1031,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
       session.completeCopy(
         overworld,
         boxOf(from, from),
-        clipboardOf(boxOf(from, from), () => stone),
+        structureClipboard(boxOf(from, from), () => stone),
       );
       const clipboard = session.clipboard;
       session.setFlow({ kind: "pasteAim" });
