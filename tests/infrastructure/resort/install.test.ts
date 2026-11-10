@@ -124,6 +124,7 @@ it("registers folded chair hosting, the lifecycle, and the parasol starter with 
     topHosts,
     isVehicleSpace: () => true,
     isCampSpace: () => false,
+    placeHostedOnTop: () => false,
   });
   expect(registerFurniturePlacement).toHaveBeenCalledExactlyOnceWith(
     expect.any(PlaceFurniture),

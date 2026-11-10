@@ -59,7 +59,6 @@ describe("wicker tiles", { timeout: 30_000 }, () => {
   it("joins at every pixel of both opposite edges for arbitrary sizes", async () => {
     await fc.assert(
       fc.asyncProperty(options, async (args) => {
-        const tile = await run<Tile>(tileCall, args);
         // Sampling x + size must land on the same texel as x, so the last
         // column and row are followed by the first instead of repeating it.
         const wrapped = await run<boolean>(

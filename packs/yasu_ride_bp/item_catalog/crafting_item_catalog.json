@@ -55,7 +55,10 @@
             "items": [
               "yasu_ride:beach_parasol_item",
               "yasu_ride:beach_chair_item",
-              "yasu_ride:dining_table_item"
+              "yasu_ride:dining_table_item",
+              "yasu_ride:dining_chair_item",
+              "yasu_ride:sofa_single_item",
+              "yasu_ride:sofa_double_item"
             ]
           },
           {

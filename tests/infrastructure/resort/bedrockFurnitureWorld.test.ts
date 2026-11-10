@@ -270,6 +270,40 @@ describe("furniture top blocks", () => {
       { ...cell, x: cell.x + 1 },
     ]);
   });
+  it("retains cleanup ownership when persistence fails after laying or clearing", () => {
+    const f = fixture();
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(f.entity, "setDynamicProperty").mockImplementation(() => {
+      throw Error("entity unloaded during persistence");
+    });
+    f.adapter.layTop(id);
+    expect(f.adapter.ownerAt(dimensionId, cell)).toBe(id);
+    expect(warning).toHaveBeenCalledTimes(1);
+    expect(f.adapter.clearTop(id)).toBe(true);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:air");
+    expect(f.adapter.ownerAt(dimensionId, cell)).toBeUndefined();
+    expect(warning).toHaveBeenCalledTimes(2);
+    warning.mockRestore();
+  });
+  it("keeps unavailable stale cells owned until they can be cleared", () => {
+    const f = fixture();
+    f.adapter.layTop(id);
+    f.unavailable.add(f.key(cell));
+    f.entity.location.x++;
+    f.adapter.layTop(id);
+    const moved = { ...cell, x: cell.x + 1 };
+    expect(JSON.parse(String(f.properties.get(FURNITURE_TOP_CELLS)))).toEqual([
+      cell,
+      moved,
+    ]);
+    f.unavailable.clear();
+    f.adapter.layTop(id);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:air");
+    expect(f.adapter.ownerAt(dimensionId, moved)).toBe(id);
+    expect(JSON.parse(String(f.properties.get(FURNITURE_TOP_CELLS)))).toEqual([
+      moved,
+    ]);
+  });
   it("checks wanted and persisted cells above the top, conservatively refusing unloaded cells", () => {
     const f = fixture();
     const above = { ...cell, y: cell.y + 1 };

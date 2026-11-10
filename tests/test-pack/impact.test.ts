@@ -315,6 +315,28 @@ describe("selectionOf", () => {
     expect(impactOfPath(path).impact).toEqual(impact);
   });
 
+  it("selects resort for Dining Chair pack files and its registered scenario", () => {
+    const paths = [
+      "packs/yasu_ride_bp/entities/yasu_ride/dining_chair.se.json",
+      "packs/yasu_ride_bp/items/yasu_ride/dining_chair_item.item.json",
+      "packs/yasu_ride_bp/recipes/yasu_ride/dining_chair_item.recipe.json",
+      "src/test-pack/scenarios/diningChair.ts",
+    ];
+    for (const path of paths) {
+      expect(existsSync(new URL(path, root)), path).toBe(true);
+      expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
+    }
+  });
+
+  it.each([
+    "packs/yasu_ride_bp/entities/yasu_ride/sofa_single.se.json",
+    "packs/yasu_ride_bp/entities/yasu_ride/sofa_double.se.json",
+    "packs/yasu_ride_bp/items/yasu_ride/sofa_single_item.item.json",
+    "packs/yasu_ride_bp/items/yasu_ride/sofa_double_item.item.json",
+  ])("selects resort for the new sofa asset %s", (path) => {
+    expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
+  });
+
   it.each([
     "beach_parasol",
     "beach_parasol_item",
@@ -344,8 +366,11 @@ describe("selectionOf", () => {
       "dining_table_block_on_top",
       "dining_table_top_restore",
       "dining_table_place_take_back",
+      "dining_chair_place_take_back",
       "dining_table_lantern",
       "dining_table_oven",
+      "sofa_single_place_take_back",
+      "sofa_double_place_take_back",
       "beach_chair_lantern",
       "beach_chair_oven",
       "beach_chair_empty_refresh",
