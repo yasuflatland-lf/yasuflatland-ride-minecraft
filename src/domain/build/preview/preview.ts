@@ -5,8 +5,7 @@ import { cornerMarkerPoints } from "../cornerMarker";
 import type { BuildFlow } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
 import { volumeOf } from "../volume/geometry";
-import { boxStepLimit, isBoxStepKind } from "../volume/kind";
-import { volumeSize } from "../volume/size";
+import { boxStepLimit, boxStepVolume, isBoxStepKind } from "../volume/kind";
 
 export interface PreviewSet {
   marker: Vec3[];
@@ -67,8 +66,14 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         BUILD_SPEC.outlineMaxPoints,
       );
       if (isBoxStepKind(flow.heightedKind)) {
-        const size = volumeSize(flow.base, height);
-        if (size.x * size.y * size.z > boxStepLimit(flow.heightedKind))
+        const box = {
+          min: flow.base.min,
+          max: { ...flow.base.max, y: flow.base.min.y + height - 1 },
+        };
+        if (
+          boxStepVolume(flow.heightedKind, box) >
+          boxStepLimit(flow.heightedKind)
+        )
           set.boxStepOver = wireframe;
         else set.boxStep = wireframe;
       } else set.roof = wireframe;

@@ -264,6 +264,26 @@ it("draws a locked cylinder at the box height even when another height is aimed"
   );
 });
 
+it("measures the rotate limit on the union of the old and new boxes", () => {
+  const base = boxOf({ x: 0, y: 0, z: 0 }, { x: 39, y: 0, z: 1 });
+  const at = (height: number) =>
+    previewPoints(
+      {
+        kind: "heightStep",
+        heightedKind: "rotate",
+        base,
+        from: base.min,
+        previous: height,
+        heightLocked: false,
+        dimensionId: asDimensionId("overworld"),
+        material: blockStateOf("minecraft:stone"),
+      },
+      { blink: false },
+    );
+  expect(at(20).boxStepOver).toEqual([]);
+  expect(at(21).boxStepOver.length).toBeGreaterThan(0);
+});
+
 it.each(["copy", "cut"] as const)(
   "uses the box-step layers and %s volume limit",
   (kind) => {
