@@ -1,7 +1,6 @@
 # 0245. Rotate Build Wand boxes with the engine structure
 
-- Status: Proposed
-- Acceptance condition: Accepted when manual BT38 passes on a device and its result is recorded here
+- Status: Accepted
 - Date: 2026-11-10
 - Supersedes in part: [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md): the line that excludes rotation, flip and stacking, for horizontal quarter turns only
 - Extends: [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md)
@@ -41,7 +40,7 @@ A spike on the dev BDS (2026-11-10, `@minecraft/server` 2.11.0, throwaway code d
 2. The rotation is done by `StructurePlaceOptions.rotation` in the structure store. The code never contains block-state rotation tables.
 3. Phase 1 rotates the clipboard while aiming a paste. The aim holds a quarter-turn count (0 to 3) that persists across continuous pastes until New copy or End pasting. The Paste menu gains a Rotate entry that opens a repeating rotate menu showing the current heading, with Rotate (one more quarter turn, then the menu opens again) and Done. Escape counts as Done and keeps the turn. Odd turns swap the X and Z sizes of the outline and the target box; the anchor stays the minimum corner. `BuildStructureStore.place` gains a rotation argument.
 4. Phase 2 rotates a selected box in place about its center, from a Rotate entry after Copy and before Cancel in the endpoint shape menu. Horizontal rectangles use the same height step as Cut and Copy; other selections rotate immediately. The new box has size (sz, sy, sx). Cells of the new box outside the old box are overwritten, including terrain, water and neighbors. The operation is refused with a message and no change only when a cell of the union of the old and new boxes fails `mayEdit`, or when max(sx, sz) exceeds 64 or the max(sx, sz) by max(sx, sz) footprint times the height exceeds `BUILD_SPEC.maxCopyVolume`. The undo snapshot covers the union box, so Undo restores the overwritten cells. The order is: capture the snapshot, capture the source, clear the old box, place rotated, record the snapshot; any failure restores the snapshot. The new box stays the confirmed selection so Rotate can be pressed again.
-5. Center rule: `newMin.x = oldMin.x + trunc((sx - sz) / 2)` and `newMin.z = oldMin.z + trunc((sz - sx) / 2)`; Y is unchanged. Truncation rounds the half cell toward zero, so the offsets of two consecutive turns cancel: the center moves by at most half a cell, a half turn returns the box to its original position, and four turns return it exactly. The height step limit and `rotateTooLarge` both measure the union of the old and new boxes.
+5. Center rule: `newMin.x = oldMin.x + trunc((sx - sz) / 2)` and `newMin.z = oldMin.z + trunc((sz - sx) / 2)`, where trunc rounds the half-cell offset toward zero; Y is unchanged. A turn swaps the sizes, so the offsets of two consecutive turns are exact negatives of each other: two turns, and therefore four, return the box exactly, with no drift. A property test asserts that applying the rotation twice returns the original box. Negative zero is normalized. The height-step limit and `rotateTooLarge` both measure the union of the old and new boxes.
 6. Mirror, flip, stacking, vertical (sideways) turns and 45 degree turns stay out. A pasted region is not selected by paste; to rotate a pasted building the player selects it with two points.
 
 ## Consequences

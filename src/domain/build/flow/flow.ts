@@ -164,5 +164,7 @@ export function selectionBoxOf(flow: BuildFlow): CellBox | undefined {
 }
 
 export function clearLastPaste(flow: BuildFlow): BuildFlow {
-  return flow.kind === "pasteAim" ? Object.freeze({ kind: "pasteAim" }) : flow;
+  return flow.kind === "pasteAim"
+    ? Object.freeze({ kind: "pasteAim", turn: flow.turn })
+    : flow;
 }

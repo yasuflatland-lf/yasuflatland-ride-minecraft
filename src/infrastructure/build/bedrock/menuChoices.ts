@@ -58,6 +58,7 @@ export class MenuChoices {
     playerId: PlayerId,
     menu: "shape" | "contents" | "terrain" | "utility" | "paste",
     entryId: string | undefined,
+    showRotateMenu?: () => void,
   ): boolean {
     const session = this.repo.get(playerId);
     if (!session) return false;
@@ -142,9 +143,25 @@ export class MenuChoices {
         )
       )
         return false;
-      if (entryId === "endPaste") this.cases.endPasting.execute(playerId);
-      else if (entryId === "newCopy") this.cases.newCopy.execute(playerId);
-      else this.cases.undo.execute({ playerId });
+      switch (entryId) {
+        case "rotate":
+          if (!showRotateMenu) return false;
+          showRotateMenu();
+          break;
+        case "endPaste":
+          this.cases.endPasting.execute(playerId);
+          break;
+        case "newCopy":
+          this.cases.newCopy.execute(playerId);
+          break;
+        case "undo":
+          this.cases.undo.execute({ playerId });
+          break;
+        default: {
+          const exhaustive: never = entryId;
+          return exhaustive;
+        }
+      }
     } else {
       if (!isOffered(utilityMenu(session), entryId)) return false;
       switch (entryId) {

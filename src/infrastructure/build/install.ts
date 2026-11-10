@@ -22,6 +22,7 @@ import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
+import { RotatePasteAim } from "../../application/build/rotatePasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -81,7 +82,7 @@ export function installBuild(deps: {
     feedback,
     consoleLogger,
   );
-  const rotate = new RotateBox(
+  const rotateBox = new RotateBox(
     repo,
     blocks,
     players,
@@ -92,7 +93,7 @@ export function installBuild(deps: {
   const actions = {
     copy: copyBox,
     cut: cutBox,
-    rotate: new RotateBoxAction(repo, rotate),
+    rotate: new RotateBoxAction(repo, rotateBox),
   };
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
@@ -130,7 +131,14 @@ export function installBuild(deps: {
     cancel,
     setHeight: new SetHeightTo(repo),
   };
-  const menus = new BedrockBuildMenus(repo, menuCases);
+  const rotate = new RotatePasteAim(repo);
+  const menus = new BedrockBuildMenus(
+    repo,
+    menuCases,
+    undefined,
+    undefined,
+    rotate,
+  );
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
@@ -163,5 +171,6 @@ export function installBuild(deps: {
     repo,
     endSession,
     ports.structures,
+    rotate,
   );
 }

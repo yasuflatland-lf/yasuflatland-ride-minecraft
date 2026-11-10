@@ -71,6 +71,73 @@ it("keeps a square footprint in the same box", () => {
   );
 });
 
+it("returns the original box after two turns and after four", () => {
+  fc.assert(
+    fc.property(cell, size, (min, size) => {
+      const source = boxAt(min, size);
+      const once = planRotationAboutCenter(source).target;
+      const twice = planRotationAboutCenter(once).target;
+      expect(twice).toEqual(source);
+      const fourth = planRotationAboutCenter(
+        planRotationAboutCenter(twice).target,
+      ).target;
+      expect(fourth).toEqual(source);
+    }),
+  );
+});
+
+it.each([
+  { size: { x: 5, y: 3, z: 3 }, offset: { x: 1, z: -1 } },
+  { size: { x: 4, y: 2, z: 2 }, offset: { x: 1, z: -1 } },
+  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 4, z: 2 }, offset: { x: 0, z: 0 } },
+  { size: { x: 2, y: 4, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 1, z: 4 }, offset: { x: -1, z: 1 } },
+  { size: { x: 3, y: 1, z: 6 }, offset: { x: -1, z: 1 } },
+  { size: { x: 6, y: 1, z: 3 }, offset: { x: 1, z: -1 } },
+])(
+  "rotates $size about its center, rounding the half cell toward zero",
+  ({ size, offset }) => {
+    for (const min of [
+      { x: -10, y: -5, z: 7 },
+      { x: 4, y: 0, z: -9 },
+    ]) {
+      expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
+        boxAt(
+          { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
+          { x: size.z, y: size.y, z: size.x },
+        ),
+      );
+    }
+  },
+);
+
+it.each([{ size: { x: 1, y: 1, z: 2 } }, { size: { x: 2, y: 1, z: 1 } }])(
+  "never produces negative zero for $size",
+  ({ size }) => {
+    const plan = planRotationAboutCenter(boxAt({ x: 0, y: 0, z: 0 }, size));
+    for (const box of [plan.source, plan.target, plan.union]) {
+      for (const corner of [box.min, box.max]) {
+        for (const value of [corner.x, corner.y, corner.z]) {
+          expect(Object.is(value, -0)).toBe(false);
+        }
+      }
+    }
+  },
+);
+
+it("does not freeze or retain mutable input corners", () => {
+  const source = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 2 } };
+  const before = structuredClone(source);
+  const plan = planRotationAboutCenter(source);
+  expect(Object.isFrozen(source)).toBe(false);
+  expect(Object.isFrozen(source.min)).toBe(false);
+  expect(Object.isFrozen(source.max)).toBe(false);
+  source.min.x = 100;
+  source.max.z = 100;
+  expect(plan.source).toEqual(before);
+});
+
 it("keeps the center within half a cell and returns the box after four turns", () => {
   fc.assert(
     fc.property(cell, size, fc.integer({ min: 1, max: 12 }), (min, size, n) => {
@@ -90,34 +157,4 @@ it("keeps the center within half a cell and returns the box after four turns", (
       if (n % 4 === 0) expect(target).toEqual(source);
     }),
   );
-});
-
-it.each([
-  { size: { x: 5, y: 3, z: 3 }, offset: { x: 1, z: -1 } },
-  { size: { x: 4, y: 2, z: 2 }, offset: { x: 1, z: -1 } },
-  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: 0 } },
-  { size: { x: 1, y: 4, z: 2 }, offset: { x: 0, z: 0 } },
-])(
-  "rotates $size about its center, rounding the half cell toward zero",
-  ({ size, offset }) => {
-    const min = { x: -10, y: -5, z: 7 };
-    expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
-      boxAt(
-        { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
-        { x: size.z, y: size.y, z: size.x },
-      ),
-    );
-  },
-);
-
-it("does not freeze or retain mutable input corners", () => {
-  const source = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 2 } };
-  const before = structuredClone(source);
-  const plan = planRotationAboutCenter(source);
-  expect(Object.isFrozen(source)).toBe(false);
-  expect(Object.isFrozen(source.min)).toBe(false);
-  expect(Object.isFrozen(source.max)).toBe(false);
-  source.min.x = 100;
-  source.max.z = 100;
-  expect(plan.source).toEqual(before);
 });

@@ -248,7 +248,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0242](0242-dining-table-top-interactions.md) | Dining Table top interactions | Proposed |
 | [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) | Copy the Build Wand box as an engine structure | Accepted; superseded in part by [0245](0245-rotate-build-wand-boxes-with-the-engine-structure.md); extended by [0245](0245-rotate-build-wand-boxes-with-the-engine-structure.md) |
 | [0244](0244-gate-structure-decor-checks-on-a-player.md) | Gate structure decor checks on a player | Accepted |
-| [0245](0245-rotate-build-wand-boxes-with-the-engine-structure.md) | Rotate Build Wand boxes with the engine structure | Proposed |
+| [0245](0245-rotate-build-wand-boxes-with-the-engine-structure.md) | Rotate Build Wand boxes with the engine structure | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

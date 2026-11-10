@@ -35,7 +35,7 @@ it("sets only a roof flow's height and leaves other players and missing sessions
           { kind: "idle" } as const,
           endpoint,
           chooseHeighted(endpoint, kind),
-          { kind: "pasteAim" } as const,
+          { kind: "pasteAim", turn: 0 } as const,
         ]) {
           session.setFlow(flow);
           set.execute({ playerId, height });

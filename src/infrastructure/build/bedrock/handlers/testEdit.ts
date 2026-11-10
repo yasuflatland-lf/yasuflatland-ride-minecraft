@@ -8,6 +8,7 @@ import type {
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
 import type { BuildStructureStore } from "../../../../application/build/ports/structures";
+import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import { boxOf, volume } from "../../../../domain/build/box";
@@ -86,6 +87,7 @@ export function registerTestEdit(
   repo: BuildSessionRepository,
   endSession: EndBuildSession,
   structures: BuildStructureStore,
+  rotate: RotatePasteAim,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -167,6 +169,8 @@ export function registerTestEdit(
               structures.discard(entry.snapshot.handle);
           }
           session.endPasting();
+        } else if (command === "rotate" && args.length === 0) {
+          rotate.execute({ playerId });
         } else if (command === "state" && args.length === 0) {
           system.sendScriptEvent(
             TEST_RESULT_EVENT,
@@ -233,6 +237,7 @@ export function registerTestEdit(
                 z: Number(args[2]),
               },
               face,
+              describe.execute(playerId).pasteTurn,
             ),
             tick: system.currentTick,
           });

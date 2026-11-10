@@ -26,7 +26,7 @@ export type ContentsEntryId = FillStyle | "cancel";
 export type TerrainEntryId = "confirm" | "cancel";
 export type UtilityEntryId = "copy" | "undo" | "clear";
 
-export type PasteEntryId = "undo" | "newCopy" | "endPaste";
+export type PasteEntryId = "undo" | "rotate" | "newCopy" | "endPaste";
 
 export interface MenuEntry<Id extends string = string> {
   id: Id;
@@ -101,6 +101,7 @@ export function pasteMenu(input: {
 }): MenuEntry<PasteEntryId>[] {
   return [
     ...(input.hasHistory ? [{ id: "undo" as const }] : []),
+    { id: "rotate" },
     { id: "newCopy" },
     { id: "endPaste" },
   ];

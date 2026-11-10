@@ -58,14 +58,20 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           first,
           endpoint,
           chooseHeighted(endpoint, "copy"),
-          { kind: "pasteAim" },
+          { kind: "pasteAim", turn: 0 },
         ];
         for (const flow of flows) {
           session.setFlow(flow);
           expect(describe.execute(playerId)).toEqual({
             flow: flow.kind,
             clipboardHeld: clipboard,
-            pasteMenu: [...(history ? ["undo"] : []), "newCopy", "endPaste"],
+            pasteTurn: flow.kind === "pasteAim" ? flow.turn : 0,
+            pasteMenu: [
+              ...(history ? ["undo"] : []),
+              "rotate",
+              "newCopy",
+              "endPaste",
+            ],
           });
           expect(session.flow).toBe(flow);
           expect(session.hasHistory).toBe(history);
@@ -88,7 +94,8 @@ it("describes a missing session as idle without creating it", () => {
   expect(describe.execute(playerId)).toEqual({
     flow: "idle",
     clipboardHeld: false,
-    pasteMenu: ["newCopy", "endPaste"],
+    pasteTurn: 0,
+    pasteMenu: ["rotate", "newCopy", "endPaste"],
   });
   expect(describe.editStatus(playerId)).toEqual({
     flow: { kind: "idle" },
