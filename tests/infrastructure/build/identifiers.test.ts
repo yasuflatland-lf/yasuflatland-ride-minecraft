@@ -73,6 +73,8 @@ it("defines every feedback message in both locales", () => {
     expect(entries.get(BUILD_MESSAGE.endSet)).toContain("%s");
     for (const message of [
       "tooLarge",
+      "rotateTooLarge",
+      "rotateDone",
       "copied",
       "editDone",
       "editDoneCount",
