@@ -87,19 +87,25 @@ def pillow(origin, size, edge=0.25):
 def build_cushions(width_cells, throw_cushions=0):
     h = half_width(width_cells)
     parts = []
-    # Separate seat and back pads preserve the reference's proportions at both widths.
     inner = 2*h - 2*ARM
+    if width_cells == 2:
+        # The double reference has one continuous seat beneath two separate back pads.
+        parts += pillow((-h + ARM + 0.05, RAIL_TOP, Z0 - 0.3), (inner - 0.1, SEAT_TOP - RAIL_TOP, Z1 - WALL - Z0 + 0.3), edge=0.5)
     for i in range(width_cells):
         x = -h + ARM + 0.05 + i * inner / width_cells
         w = inner / width_cells - 0.1
-        # The seat sits in the opening and overhangs the front rail like the photo's thick cushion.
-        # One thick pad resting on the straight front band, its front nearly flush with the frame.
-        parts += pillow((x, RAIL_TOP, Z0 - 0.3), (w, SEAT_TOP - RAIL_TOP, Z1 - WALL - Z0 + 0.3), edge=0.5)
+        if width_cells == 1:
+            # One thick pad resting on the straight front band, its front nearly flush with the frame.
+            parts += pillow((x, RAIL_TOP, Z0 - 0.3), (w, SEAT_TOP - RAIL_TOP, Z1 - WALL - Z0 + 0.3), edge=0.5)
+        else:
+            # Keep pad corners within the two independently selectable halves.
+            x += 0.35 * i
+            w -= 0.35
         # A plump pad filling the width, leaning against the rear wall and rising above it.
         back_z = Z1 - WALL - 3.5
         back = pillow((x, SEAT_TOP - 0.4, back_z), (w, 4.9, 3.5), edge=0.9)
         parts += tilt.tilt_assembly(back, (0, SEAT_TOP - 0.4, back_z), "x", -8)
-    # The single sofa has no throw cushion; the double sofa keeps its two.
+    # Neither sofa has a throw cushion by default; callers can ask for them.
     throws = []
     for k in range(throw_cushions):
         sign = -1 if k == 0 else 1
@@ -162,6 +168,8 @@ def main():
     out = texture_io.Outputs(args.check, report_writes=True)
     out.json(args.resource_pack / "models/entity/yasu_ride/sofa_single.geo.json", geometry())
     out.png(args.resource_pack / "textures/entity/yasu_ride/sofa_single.png", ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
+    out.json(args.resource_pack / "models/entity/yasu_ride/sofa_double.geo.json", geometry(2))
+    out.png(args.resource_pack / "textures/entity/yasu_ride/sofa_double.png", ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
     out.finish("Sofa assets are stale; run pnpm model.", "sofa model and texture are up to date")
 
 

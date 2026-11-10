@@ -231,4 +231,6 @@ item.yasu_ride:dining_chair_item.name=ダイニングチェアー
 entity.yasu_ride:dining_chair.name=ダイニングチェアー
 
 item.yasu_ride:sofa_single_item.name=ソファ（1人掛け）
+item.yasu_ride:sofa_double_item.name=ソファ（2人掛け）
 entity.yasu_ride:sofa_single.name=ソファ（1人掛け）
+entity.yasu_ride:sofa_double.name=ソファ（2人掛け）

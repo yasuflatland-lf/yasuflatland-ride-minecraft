@@ -85,6 +85,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "sofa_double_place_take_back",
+    file: "sofaDouble",
+    ticks: 80, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "beach_chair_lantern",
     file: "beachChairHosting",
     ticks: 44, // Estimate until the first BDS run.

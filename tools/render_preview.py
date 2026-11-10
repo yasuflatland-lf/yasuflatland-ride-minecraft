@@ -213,7 +213,7 @@ BEACH_PARASOL_PREVIEW = "beach_parasol"
 BEACH_PARASOL_ICON = "beach_parasol_item"
 BEACH_CHAIR_GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
 BEACH_CHAIR_TEXTURE = "textures/entity/yasu_ride/beach_chair.png"
-ICON_NAMES = {"dining_table": "dining_table_item", "sofa_single": "sofa_single_item", "dining_chair": "dining_chair_item", "beach_chair": "beach_chair_item", BEACH_PARASOL_PREVIEW: BEACH_PARASOL_ICON, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
+ICON_NAMES = {"sofa_double": "sofa_double_item", "dining_table": "dining_table_item", "sofa_single": "sofa_single_item", "dining_chair": "dining_chair_item", "beach_chair": "beach_chair_item", BEACH_PARASOL_PREVIEW: BEACH_PARASOL_ICON, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -319,7 +319,7 @@ def face_color(texture, face, tex_w, tex_h):
     return texture[y][x]
 
 
-def textured_face(texture, face, quad, name, tex_w, tex_h):
+def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
     """Split nonuniform UV rectangles at texel boundaries, preserving uniform quads exactly."""
     (u, v), (du, dv) = face["uv"], face["uv_size"]
     u, du = u * len(texture[0]) / tex_w, du * len(texture[0]) / tex_w
@@ -332,12 +332,39 @@ def textured_face(texture, face, quad, name, tex_w, tex_h):
         return sorted([0, 1, *[(n - start) / length for n in range(math.floor(lo) + 1, math.ceil(hi))]])
 
     us, vs = breaks(u, du), breaks(v, dv)
-    cells = []
-    for a, b in zip(us, us[1:]):
-        for c, d in zip(vs, vs[1:]):
+    if merge:
+        # Merge equal texels before creating geometry: furniture atlases can otherwise
+        # expand one face into hundreds of thousands of Python polygon objects.
+        cells = []
+        active = {}
+        for a, b in zip(us, us[1:]):
             x = max(0, min(len(texture[0]) - 1, int(u + du * (a + b) / 2)))
-            y = max(0, min(len(texture) - 1, int(v + dv * (c + d) / 2)))
-            cells.append((a, b, c, d, texture[y][x]))
+            runs = []
+            for c, d in zip(vs, vs[1:]):
+                y = max(0, min(len(texture) - 1, int(v + dv * (c + d) / 2)))
+                color = texture[y][x]
+                if runs and runs[-1][2] == color:
+                    runs[-1] = (runs[-1][0], d, color)
+                else:
+                    runs.append((c, d, color))
+            next_active = {}
+            for c, d, color in runs:
+                key = (c, d, color)
+                if key in active:
+                    index = active[key]
+                    cells[index] = (cells[index][0], b, c, d, color)
+                else:
+                    index = len(cells)
+                    cells.append((a, b, c, d, color))
+                next_active[key] = index
+            active = next_active
+    else:
+        cells = []
+        for a, b in zip(us, us[1:]):
+            for c, d in zip(vs, vs[1:]):
+                x = max(0, min(len(texture[0]) - 1, int(u + du * (a + b) / 2)))
+                y = max(0, min(len(texture) - 1, int(v + dv * (c + d) / 2)))
+                cells.append((a, b, c, d, texture[y][x]))
     if len({color for *_, color in cells}) == 1:
         yield quad, face_color(texture, face, tex_w, tex_h)
         return
@@ -346,9 +373,17 @@ def textured_face(texture, face, quad, name, tex_w, tex_h):
     order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
     tl, tr, br, bl = [quad[i] for i in order]
 
+    points = {}
+
     def point(a, b):
-        return tuple((1 - b) * ((1 - a) * tl[i] + a * tr[i]) +
-                     b * ((1 - a) * bl[i] + a * br[i]) for i in range(3))
+        key = (a, b)
+        if merge and key in points:
+            return points[key]
+        result = tuple((1 - b) * ((1 - a) * tl[i] + a * tr[i]) +
+                       b * ((1 - a) * bl[i] + a * br[i]) for i in range(3))
+        if merge:
+            points[key] = result
+        return result
 
     for a, b, c, d, color in cells:
         corners = [point(a, c), point(b, c), point(b, d), point(a, d)]
@@ -598,7 +633,7 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
                 if texture_mapping:
-                    patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"])
+                    patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False))
                 else:
                     patches = [(quad, face_color(texture, uv, desc["texture_width"], desc["texture_height"]))]
                 for patch, (r, g, b, a) in patches:
@@ -1008,8 +1043,9 @@ def render_gear(geo_path, texture, size, name, animation=None, view=None):
         animation = animations["animation.yasu_ride.beach_chair.chair"]
     if animation is not None:
         geo = static_pose(geo, animation)
-    textured = geo_path.name in (Path(BEACH_PARASOL_GEOMETRY).name, "beach_chair.geo.json", "dining_table.geo.json", "dining_chair.geo.json", "sofa_single.geo.json")
-    polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured}, texture_mapping=textured)
+    textured = geo_path.name in (Path(BEACH_PARASOL_GEOMETRY).name, "beach_chair.geo.json", "dining_table.geo.json", "dining_chair.geo.json", "sofa_single.geo.json", "sofa_double.geo.json")
+    polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured,
+                                           "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json")}, texture_mapping=textured)
     quads = [quad for quad, _, _ in polygons + glass]
     # Look from the ladder end so the SUV tent's vehicle-left ladder stays visible.
     view = view if view is not None else (ROOF_TENT_VIEW if roof_tent else VIEW_DIRECTION)
@@ -1027,6 +1063,7 @@ def small_models(rp):
         ("dining_table", rp / "models/entity/yasu_ride/dining_table.geo.json", read_png(rp / "textures/entity/yasu_ride/dining_table.png")),
         ("dining_chair", rp / "models/entity/yasu_ride/dining_chair.geo.json", read_png(rp / "textures/entity/yasu_ride/dining_chair.png")),
         ("sofa_single", rp / "models/entity/yasu_ride/sofa_single.geo.json", read_png(rp / "textures/entity/yasu_ride/sofa_single.png")),
+        ("sofa_double", rp / "models/entity/yasu_ride/sofa_double.geo.json", read_png(rp / "textures/entity/yasu_ride/sofa_double.png")),
         (NOGA_CHAIR_PREVIEW, rp / NOGA_CHAIR_GEOMETRY, read_png(rp / NOGA_CHAIR_TEXTURE)),
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
@@ -1127,10 +1164,20 @@ def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path]) -> list[Rast
         jobs.append(icon)
     for pack in icon_packs:
         if pack.name == GEAR_ICON_PACK:
-            for name, geo, texture in small_models(rp):
+            # Icons use the same scene as the preview; share its geometry instead
+            # of expanding the furniture atlas into another set of polygons.
+            for preview in images.values():
+                if not preview.name.startswith(f"{GEAR_DIR}/"):
+                    continue
+                name = Path(preview.name).stem
                 icon_name = ICON_NAMES.get(name, name)
                 target = pack / GEAR_ICON_DIR / f"{icon_name}.png"
-                jobs.append(render_gear(geo, texture, GEAR_ICON_SIZE, str(target)))
+                jobs.append(replace(preview, name=str(target), width=GEAR_ICON_SIZE,
+                                    height=GEAR_ICON_SIZE,
+                                    to_screen=replace(preview.to_screen,
+                                                      scale=preview.to_screen.scale * GEAR_ICON_SIZE / GEAR_SIZE,
+                                                      off_x=preview.to_screen.off_x * GEAR_ICON_SIZE / GEAR_SIZE,
+                                                      off_y=preview.to_screen.off_y * GEAR_ICON_SIZE / GEAR_SIZE)))
     return jobs
 
 

@@ -118,6 +118,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
         "dining_table",
         "dining_chair",
         "sofa_single",
+        "sofa_double",
         "noga_chair",
         "low_chair",
         "tent",
@@ -315,6 +316,19 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
 });
 
 describe("render_preview.py textured faces", () => {
+  it("merges adjacent equal texels into rectangles without changing their UV coverage", () => {
+    const result = previewPython(`
+quad = dict(r.cube_faces({"origin": [0, 0, 0], "size": [4, 1, 4]}))["east"]
+texture = [[(v, v, v, 255)] * 4 for v in (10, 10, 20, 20)]
+patches = list(r.textured_face(texture, {"uv": [0, 0], "uv_size": [4, 4]}, quad, "east", 4, 4, merge=True))
+print(json.dumps([[min(p[1] for p in q), max(p[1] for p in q), min(p[2] for p in q), max(p[2] for p in q), color[0]] for q, color in patches]))
+`);
+    expect(result).toEqual([
+      [0.5, 1, 0, 4, 10],
+      [0, 0.5, 0, 4, 20],
+    ]);
+  });
+
   it("maps fractional UV rows to matching strips and preserves uniform faces", () => {
     const result = previewPython(`
 cube = {"origin": [0, 0, 0], "size": [1, 1, 1]}
