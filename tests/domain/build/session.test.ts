@@ -467,3 +467,70 @@ it("returns only replaced or cleared structure handles and retains identical han
     ),
   );
 });
+
+it("replaceSelection preserves the flow state and replaces frozen endpoint corners and same-dimension confirmation", () => {
+  fc.assert(
+    fc.property(
+      flowArb,
+      boxArb,
+      dimensionArb,
+      fc.boolean(),
+      (flow, box, confirmedDimension, confirmed) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        if (confirmed)
+          session.confirmBox(
+            confirmedDimension,
+            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+          );
+        const previous = session.confirmedBox;
+        session.setFlow(flow);
+        session.replaceSelection(box);
+        expect(session.flow.kind).toBe(flow.kind);
+        if (flow.kind === "endpoint") {
+          expect(session.flow).toEqual({ ...flow, from: box.min, to: box.max });
+          if (session.flow.kind !== "endpoint")
+            throw new Error("Missing endpoint flow");
+          expect(session.flow.from).not.toBe(box.min);
+          expect(session.flow.to).not.toBe(box.max);
+          expect(Object.isFrozen(session.flow.from)).toBe(true);
+          expect(Object.isFrozen(session.flow.to)).toBe(true);
+        } else expect(session.flow).toBe(flow);
+        if (
+          flow.kind === "endpoint" &&
+          previous?.dimensionId === flow.dimensionId
+        )
+          expect(session.confirmedBox).toEqual({
+            dimensionId: flow.dimensionId,
+            box,
+          });
+        else expect(session.confirmedBox).toBe(previous);
+      },
+    ),
+  );
+});
+
+it("replaceSelection updates an existing confirmation in the endpoint dimension", () => {
+  fc.assert(
+    fc.property(boxArb, boxArb, dimensionArb, (before, after, dimensionId) => {
+      const session = new BuildSession(asPlayerId("p1"));
+      session.confirmBox(dimensionId, before);
+      session.setFlow({
+        kind: "endpoint",
+        dimensionId,
+        from: before.max,
+        to: before.min,
+        material: stone,
+      });
+      session.replaceSelection(after);
+      expect(session.flow).toEqual({
+        kind: "endpoint",
+        dimensionId,
+        from: after.min,
+        to: after.max,
+        material: stone,
+      });
+      expect(session.confirmedBox).toEqual({ dimensionId, box: after });
+      expect(session.confirmedBox?.box).not.toBe(after);
+    }),
+  );
+});
