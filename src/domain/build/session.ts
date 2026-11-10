@@ -62,6 +62,24 @@ export class BuildSession {
   setFlow(flow: BuildFlow): void {
     this.currentFlow = flow;
   }
+  replaceSelection(box: CellBox): void {
+    const flow = this.currentFlow;
+    if (flow.kind !== "endpoint") return;
+    const selection = Object.freeze({
+      min: Object.freeze({ ...box.min }),
+      max: Object.freeze({ ...box.max }),
+    });
+    this.currentFlow = Object.freeze({
+      ...flow,
+      from: selection.min,
+      to: selection.max,
+    });
+    if (this.currentConfirmedBox?.dimensionId === flow.dimensionId)
+      this.currentConfirmedBox = {
+        dimensionId: flow.dimensionId,
+        box: selection,
+      };
+  }
   confirmBox(dimensionId: DimensionId, box: CellBox): void {
     this.currentConfirmedBox = { dimensionId, box };
     this.currentFlow = cancel(this.currentFlow);
