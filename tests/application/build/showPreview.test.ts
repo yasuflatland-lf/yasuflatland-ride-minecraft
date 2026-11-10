@@ -158,7 +158,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
 
 it("anchors paste on each typed face in the viewer dimension and ignores absent targets", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", turn: 0 });
   aim.mockReturnValue({ ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
@@ -302,7 +302,7 @@ it("does not report sizes outside the height step", () => {
     material,
   });
   preview.execute(2 * interval);
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", turn: 0 });
   preview.execute(3 * interval);
   expect(feedback.sizes).toEqual([]);
 });
@@ -356,7 +356,7 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
 
 it("refreshes the paste hint each interval without requiring an aimed block", () => {
   const { session, preview, feedback } = setup();
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", turn: 0 });
   preview.execute(0);
   expect(feedback.pasteHints).toEqual([]);
   const clipboard = structureClipboard(boxOf(cell, end), (at) =>
@@ -410,14 +410,14 @@ it("never shows paste hints in other flows or outside build mode", () => {
     inactive.session,
     structureClipboard(boxOf(cell, end), () => material),
   );
-  inactive.session.setFlow({ kind: "pasteAim" });
+  inactive.session.setFlow({ kind: "pasteAim", turn: 0 });
   inactive.preview.execute(0);
   expect(inactive.feedback.pasteHints).toEqual([]);
 });
 
 it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed block", () => {
   const { repo, session, feedback } = setup();
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", turn: 0 });
   holdClipboard(
     session,
     structureClipboard(boxOf(cell, end), () => material),
@@ -441,7 +441,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
         boxOf(cell, end),
         structureClipboard(boxOf(cell, end), () => material),
       );
-      session.setFlow({ kind: "pasteAim" });
+      session.setFlow({ kind: "pasteAim", turn: 0 });
       session.startNewCopy();
       aim.mockReturnValue(hit ? { ray, block: { cell, face: "up" } } : { ray });
       preview.execute(redraw * interval);
@@ -491,5 +491,29 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
         } else expect(feedback.previews).toEqual([]);
       },
     ),
+  );
+});
+
+it("outlines the rotated paste box at each heading", () => {
+  fc.assert(
+    fc.property(fc.constantFrom(0, 1, 2, 3), (turn) => {
+      const { session, preview, feedback, aim } = setup();
+      session.completeCopy(
+        overworld,
+        boxOf(cell, end),
+        structureClipboard(boxOf(cell, end)),
+      );
+      for (let i = 0; i < turn; i++) session.rotatePaste();
+      aim.mockReturnValue({ ray, block: { cell, face: "up" } });
+      preview.execute(0);
+      const anchor = { x: 0, y: 65, z: 0 };
+      const max = turn % 2 ? { x: 3, y: 67, z: 0 } : { x: 0, y: 67, z: 3 };
+      expect(feedback.previews[0]?.set).toEqual(
+        previewPoints(session.flow, {
+          blink: true,
+          pasteBox: boxOf(anchor, max),
+        }),
+      );
+    }),
   );
 });

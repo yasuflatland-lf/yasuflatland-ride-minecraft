@@ -25,7 +25,11 @@ export class PressPasteAim {
       return "ignored";
     }
     // ADR 0203: use the live gaze target shared with the outline at press time.
-    const target = aimedPasteTarget(session.clipboard, cmd.aim);
+    const target = aimedPasteTarget(
+      session.clipboard,
+      cmd.aim,
+      session.pasteTurn,
+    );
     if (!target) return "menu";
     return this.paste.execute({
       playerId: cmd.playerId,
