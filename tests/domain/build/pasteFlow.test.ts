@@ -127,7 +127,12 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
             pasteMenu({
               hasHistory: session.hasHistory,
             }).map(({ id }) => id),
-          ).toEqual([...(history ? ["undo"] : []), "newCopy", "endPaste"]);
+          ).toEqual([
+            ...(history ? ["undo"] : []),
+            "rotate",
+            "newCopy",
+            "endPaste",
+          ]);
         }
       },
     ),
