@@ -1,7 +1,7 @@
 # 0245. Rotate Build Wand boxes with the engine structure
 
 - Status: Proposed
-- Acceptance condition: Accepted when build_rotate_box and manual BT38 pass on the dev BDS and the findings below are recorded
+- Acceptance condition: Accepted when manual BT38 passes on a device and its result is recorded here
 - Date: 2026-11-10
 - Supersedes in part: [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md): the line that excludes rotation, flip and stacking, for horizontal quarter turns only
 - Extends: [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md)
@@ -51,4 +51,4 @@ A spike on the dev BDS (2026-11-10, `@minecraft/server` 2.11.0, throwaway code d
 - Phase 2 overwrites blocks outside the old box by design. This is acceptable only because the undo snapshot covers the union box.
 - Revisit if the engine raises or changes the structure size limit, if placement over existing blocks does not write air, or if a faster input for rotating while aiming a paste is wanted.
 
-`build_rotate_box` covers in-place rotation, furniture payloads, overwritten neighbors, snapshot Undo, repeated turns and union protection. It is registered but has not been run for this change; manual BT38 and decoration rotation remain unverified.
+`build_rotate_box` covers in-place rotation, furniture payloads, overwritten neighbors, snapshot Undo, repeated turns and union protection. It passed on the dev BDS on 2026-11-10. Manual BT38 and decoration rotation remain unverified.
