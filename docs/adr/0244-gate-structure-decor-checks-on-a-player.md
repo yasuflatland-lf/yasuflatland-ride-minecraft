@@ -1,7 +1,6 @@
 # 0244. Gate structure decor checks on a player
 
-- Status: Proposed
-- Acceptance condition: build_structure_decor_probe, build_structure_store_decor, and build_paste_structure_decor run with a logged-in player and the owner agrees with its results
+- Status: Accepted
 - Date: 2026-11-10
 - Supersedes in part: [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md): the 300-tick declared budget for the three player-driven structure decor scenarios only
 - Related: [0001](0001-bedrock-addon-with-stable-script-api.md): stable API only
@@ -19,8 +18,8 @@ Allow only these three player-gated scenarios a declared budget of 1,300 ticks. 
 
 ## Consequences
 
-CI cannot establish preservation of item-frame contents or paintings. The decor checks remain unverified until run with a logged-in player; manual row BT32 records engine Memory structure verification, BT33 records the store adapter round trip, and BT35 records Build Wand paste decor replacement. The store's item-frame contents and painting checks remain unverified until that player-driven run. A failed original observation establishes a fixture failure rather than evidence of structure data loss. The longer budget applies only to these three interactive fixtures and does not relax the headless scenario limit.
+CI cannot establish preservation of item-frame contents or paintings. The decor checks passed on the dev BDS with a logged-in player on 2026-11-10; manual row BT32 records engine Memory structure verification, BT33 records the store adapter round trip, and BT35 records Build Wand paste decor replacement. A failed original observation establishes a fixture failure rather than evidence of structure data loss. The longer budget applies only to these three interactive fixtures and does not relax the headless scenario limit.
 
 | Manual row                | Check                                                                                                                                                                                 | Status                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| [BT35](../manual-test.md) | With a logged-in player, set up a frame with a diamond and a painting for `build_paste_structure_decor`; verify frame contents after paste and painting replacement on repeated paste | Unverified until run with a logged-in player; skipped in CI |
+| [BT35](../manual-test.md) | With a logged-in player, set up a frame with a diamond and a painting for `build_paste_structure_decor`; verify frame contents after paste and painting replacement on repeated paste | verified on the dev BDS with a logged-in player (2026-11-10); skipped in CI |

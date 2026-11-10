@@ -243,8 +243,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0237](0237-register-tabletop-hosts-across-features.md) | Register tabletop hosts across features | Proposed |
 | [0238](0238-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Accepted |
 | [0239](0239-a-beach-chair-that-folds-into-a-table.md) | A beach chair that folds into a table | Proposed |
-| [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) | Copy the Build Wand box as an engine structure | Proposed |
-| [0244](0244-gate-structure-decor-checks-on-a-player.md) | Gate structure decor checks on a player | Proposed |
+| [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) | Copy the Build Wand box as an engine structure | Accepted |
+| [0244](0244-gate-structure-decor-checks-on-a-player.md) | Gate structure decor checks on a player | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
