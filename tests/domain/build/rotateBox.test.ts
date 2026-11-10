@@ -71,11 +71,7 @@ it("keeps a square footprint in the same box", () => {
   );
 });
 
-// Flooring the half cell shifts the center by half a cell per turn in the
-// worst case, and the shifts of two consecutive turns do not cancel. The
-// design asks for a total drift of one cell; that does not hold for floor (see
-// the pull request notes), so this bounds the center shift by n half cells.
-it("shifts the center by at most half a cell per turn", () => {
+it("keeps the center within half a cell and returns the box after four turns", () => {
   fc.assert(
     fc.property(cell, size, fc.integer({ min: 1, max: 12 }), (min, size, n) => {
       const source = boxAt(min, size);
@@ -89,8 +85,9 @@ it("shifts the center by at most half a cell per turn", () => {
           target.max[axis] -
           source.min[axis] -
           source.max[axis];
-        expect(Math.abs(doubledShift)).toBeLessThanOrEqual(n);
+        expect(Math.abs(doubledShift)).toBeLessThanOrEqual(1);
       }
+      if (n % 4 === 0) expect(target).toEqual(source);
     }),
   );
 });
@@ -98,10 +95,10 @@ it("shifts the center by at most half a cell per turn", () => {
 it.each([
   { size: { x: 5, y: 3, z: 3 }, offset: { x: 1, z: -1 } },
   { size: { x: 4, y: 2, z: 2 }, offset: { x: 1, z: -1 } },
-  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: -1 } },
-  { size: { x: 1, y: 4, z: 2 }, offset: { x: -1, z: 0 } },
+  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 4, z: 2 }, offset: { x: 0, z: 0 } },
 ])(
-  "rotates $size about its center, flooring the half cell",
+  "rotates $size about its center, rounding the half cell toward zero",
   ({ size, offset }) => {
     const min = { x: -10, y: -5, z: 7 };
     expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
