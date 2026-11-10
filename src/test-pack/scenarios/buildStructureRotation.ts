@@ -76,8 +76,8 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
     set(0, 1, 2, 'standing_sign ["ground_sign_direction"=4]');
     set(3, 1, 2, "stone");
     set(4, 1, 2, 'wall_sign ["facing_direction"=5]');
-    set(0, 1, 4, 'bed ["direction"=0,"head_piece_bit"=false]');
-    set(0, 1, 5, 'bed ["direction"=0,"head_piece_bit"=true]');
+    // Setting both halves separately leaves one half; the engine adds the head.
+    set(0, 1, 4, 'bed ["direction"=0]');
     set(2, 1, 4, 'oak_stairs ["weirdo_direction"=2]');
     set(4, 1, 4, 'oak_log ["pillar_axis"="x"]');
     set(2, 1, 6, "mob_spawner");
@@ -128,8 +128,6 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
       ["wall_sign", 4, 1, 2],
       ["stairs", 2, 1, 4],
       ["log", 4, 1, 4],
-      ["bed_foot", 0, 1, 4],
-      ["bed_head", 0, 1, 5],
       ["door_lower", 4, 1, 6],
       ["door_upper", 4, 2, 6],
     ] as const) {
@@ -151,6 +149,20 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
       { types: doorTypes, states: doorStates },
     );
     if (!results.at(-1)?.pass) throw new Error("door fixture incomplete");
+    const beds = fixtures
+      .filter(({ type }) => type === "minecraft:bed")
+      .map(({ at }) => ({
+        at,
+        head: block(sourceCell(at.x, at.y, at.z)).permutation.getState(
+          "head_piece_bit",
+        ),
+      }));
+    record(
+      "fixture_bed_halves",
+      beds.length === 2 && beds[0]?.head !== beds[1]?.head,
+      beds,
+    );
+    if (!results.at(-1)?.pass) throw new Error("bed fixture incomplete");
     a.dim.runCommand(`summon minecraft:cow ${a.xyz(21.5, a.gy + 1, 23.5)}`);
     for (const e of a.dim.getEntities({
       type: "minecraft:cow",
@@ -263,16 +275,21 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
       );
       const spawner = block(target(2, 1, 6, turn)).typeId;
       record(`spawner_${turn}`, spawner === "minecraft:mob_spawner", spawner);
-      const beds = [4, 5].map((z) => {
-        const b = block(target(0, 1, z, turn));
-        return { type: b.typeId, states: b.permutation.getAllStates() };
+      const placedBeds = beds.map(({ at, head }) => {
+        const b = block(target(at.x, at.y, at.z, turn));
+        return {
+          head,
+          type: b.typeId,
+          states: b.permutation.getAllStates(),
+        };
       });
       record(
         `bed_${turn}`,
-        beds.every((b) => b.type === "minecraft:bed") &&
-          beds[0]?.states.head_piece_bit === false &&
-          beds[1]?.states.head_piece_bit === true,
-        beds,
+        placedBeds.every(
+          (b) =>
+            b.type === "minecraft:bed" && b.states.head_piece_bit === b.head,
+        ),
+        placedBeds,
       );
       const doors = [1, 2].map((y) => {
         const b = block(target(4, y, 6, turn));
