@@ -112,3 +112,23 @@ Creative players find the 17 decor items above in the **Camping Gear (Inside)** 
 ## Getting the gear
 
 The first time you place a camper, you get one Camping Gear Box. Use it (tap or right-click, in the air or on a block) to unpack all 17 items into your inventory, each marked "Camping gear" under its name; what does not fit drops at your feet. Each player gets one box, however many campers they place. In Creative, the Camping Gear (Inside) group near the end of the Items tab holds the box first, then the 17 decor items.
+
+## Resort Gear
+
+Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items are Beach Parasol, Beach Chair, and Dining Chair, in that order.
+
+| Item          | Preview                                                          | Use                                                                                                                |
+| ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Beach Parasol | ![Beach Parasol](../images/items/camping-gear/beach_parasol.png) | Place a shade canopy and recover it with three hits.                                                               |
+| Beach Chair   | ![Beach Chair](../images/items/camping-gear/beach_chair.png)     | Lie down or fold it into a low table.                                                                              |
+| Dining Chair  | ![Dining Chair](../images/items/camping-gear/dining_chair.png)   | Place on a clear solid floor, sit with the normal riding interaction, and recover the empty chair with three hits. |
+
+Craft one Dining Chair at a crafting table with planks (`P`), sticks (`S`), and an iron ingot (`I`):
+
+```text
+P..
+PPP
+SIS
+```
+
+Dots are empty slots. The chair occupies one floor cell and needs two clear air layers. Its seat is 0.45 blocks above the ground; it seats one player. See [Resort gear](../specs/resort-gear.md) and the [PC/mobile checks](../manual-test.md#dining-chair-sitting-and-recovery). Owner visual approval and in-game verification are pending.
