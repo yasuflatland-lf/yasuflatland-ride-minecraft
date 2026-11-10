@@ -53,7 +53,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
     dining_chair: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
       clearance: 2,
-      seats: Object.freeze([Object.freeze({ x: 0, y: 0.45, z: 0.05 })]),
+      seats: Object.freeze([Object.freeze({ x: 0, y: 0.21, z: -0.00625 })]),
       hitsToTakeBack: 3,
       hitResetTicks: 100,
     }),

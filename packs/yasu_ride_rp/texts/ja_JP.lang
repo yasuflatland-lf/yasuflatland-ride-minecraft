@@ -221,3 +221,6 @@ yasu_ride.furniture.hits_left=あと%s回たたくと回収できます。
 yasu_ride.furniture.taken=家具を回収しました。
 yasu_ride.furniture.occupied=誰かが座っています。
 yasu_ride.furniture.something_on_top=先に上の物を取り除いてください。
+
+item.yasu_ride:dining_chair_item.name=ダイニングチェアー
+entity.yasu_ride:dining_chair.name=ダイニングチェアー

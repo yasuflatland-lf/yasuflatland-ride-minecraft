@@ -1,7 +1,8 @@
 # Resort gear
 
-- Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement, form switching, lying down and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
+- Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement, form switching, lying down and recovery, Dining Chair sitting and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
 - Verified at: 732f6c1c
+- Source: [0122](../adr/0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
 - Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0237](../adr/0237-register-tabletop-hosts-across-features.md)
@@ -13,12 +14,12 @@
 
 ### Furniture domain groundwork
 
-- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; placement and recovery are installed; assets remain future work.
+- Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, and double sofa; placement and recovery are installed; Dining Chair assets are implemented, and the other furniture assets remain future work.
 - Rule: A deeply frozen per-kind table defines footprint offsets, two clearance layers, seats, recovery parameters, and an optional tabletop surface. Shared geometry faces the player and centres the origin over the occupied floor cells. The double sofa extends from the pressed column to the player's right. Existing Beach Chair behavior is unchanged.
 - Agreement: Proposed
 - Basis: [0240](../adr/0240-resort-furniture-family.md) Decision, furniture family and placement geometry.
 - Implementation: `src/domain/resort/furniture.ts`; `src/domain/resort/ids.ts`
-- Verification: `tests/domain/resort/furniture.test.ts` checks every kind and quarter turn, support and clearance cells, origin centring, player-facing orientation, rightward sofa placement, and deep freezing. Assets and in-game integration remain future work.
+- Verification: `tests/domain/resort/furniture.test.ts` checks every kind and quarter turn, support and clearance cells, origin centring, player-facing orientation, rightward sofa placement, and deep freezing. Dining Chair assets and a registered in-game scenario are covered below; live-game verification remains pending.
 
 ### Furniture placement and recovery
 
@@ -27,7 +28,7 @@
 - Agreement: Proposed
 - Basis: [0240](../adr/0240-resort-furniture-family.md); Dining set design, Placing and Taking back.
 - Implementation: `src/application/resort/placeFurniture.ts`; `src/application/resort/takeBackFurniture.ts`; `src/infrastructure/resort/bedrock/bedrockFurnitureWorld.ts`; `src/infrastructure/resort/install.ts`
-- Verification: Property tests run the same placement and recovery checks for all four kinds; handler tests cover deferred execution, deduplication, and dye exclusion. Server-only hooks `yasu_ride_test:test_furniture_place` accept `kind x y z yaw`; `yasu_ride_test:test_furniture_hit` accepts an entity id. No furniture assets or live-game verification are included.
+- Verification: Property tests run the same placement and recovery checks for all four kinds; handler tests cover deferred execution, deduplication, and dye exclusion. Server-only hooks `yasu_ride_test:test_furniture_place` accept `kind x y z yaw`; `yasu_ride_test:test_furniture_hit` accepts an entity id. Dining Chair assets and its scenario are included; live-game verification remains pending.
 
 ### Feature installation and placement
 
@@ -59,7 +60,7 @@
 ### Resort catalog and invisible block
 
 - Applies to: Beach Parasol pack assets.
-- Rule: Resort Gear follows Camping Gear (Outside) in the creative catalog and contains the Beach Parasol item as its first member and icon, followed by Beach Chair. Its entity uses a base hit box without physics collision. The ceiling has no collision or selection box, visible geometry, light emission, or light dampening, and carries the laid tag. Both locales include placement and recovery messages. The item and recipe are defined in the packs.
+- Rule: Resort Gear follows Camping Gear (Outside) in the creative catalog and contains the Beach Parasol item as its first member and icon, followed by Beach Chair and Dining Chair. Its entity uses a base hit box without physics collision. The ceiling has no collision or selection box, visible geometry, light emission, or light dampening, and carries the laid tag. Both locales include placement and recovery messages. The item and recipe are defined in the packs.
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, new group and option A ceiling block.
 - Implementation: `tools/gen_item_catalog.py`; `packs/yasu_ride_bp/entities/yasu_ride/beach_parasol.se.json`; `packs/yasu_ride_bp/blocks/yasu_ride/parasol_ceiling.block.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
@@ -73,6 +74,15 @@
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, first hand-out follows the design document.
 - Implementation: `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/identifiers.ts`; `src/application/shared/giveStarterItem.ts`; `src/infrastructure/shared/starterItem.ts`
 - Verification: `tests/infrastructure/resort/install.test.ts` checks the registration and the separate flag. A new Survival player receiving both items on the dev BDS has not been verified.
+
+### Dining Chair assets and sitting
+
+- Applies to: `yasu_ride:dining_chair_item` and `yasu_ride:dining_chair`.
+- Rule: The third Resort Gear item is a one-seat black woven dining chair with four steel tube legs, continuous 0.33 px sloping arm tubes joined to the backrest top sides through outward-splayed front posts to the front legs, backward-splayed rear legs, a 0.95 to 1.15 px seat-to-back gap, and an arched 49-panel wedge back whose lower edge stands on the seat's rear edge (z=4.2 px), with its centre leaning 22 degrees toward +z and its side edges nearly upright, so its top centre overhangs the seat by about 1.9 px. Front is -z and the origin is the ground footprint centre. The 0.3 px thick woven seat has rounded front corners and a rear edge that follows the back's curved lower edge, no apron, and a maximum width of 8.4 px. It spans z [-4.4, 4.2] px, with its top at y=7.2 px (0.45 blocks). The model stays within x +-5.4, z [-6.4, 6.4] and y [0, 13] px. The atlas contains a coarse 16-column, 28-row neutral charcoal weave and (38, 38, 38) steel. Normal vanilla sitting uses one player seat at [0, 0.21, -0.00625] blocks: the cushion top minus 0.24, centered along the seat depth. The persistent, unpushable, damage-immune entity has gravity, a 0.6 by 0.85 collision box, and a 0.8 by 0.85 whole-model custom hitbox. Placement and recovery use the existing furniture pipeline. The crafting-table recipe is `P  ` / `PPP` / `SIS`, where P is any plank, S a stick, and I an iron ingot; it returns one item. The item uses `yasu_ride_dining_chair`, and both locales name the item and entity. The Resource Pack and its Behavior Pack dependency advance to 0.1.285 (0015).
+- Agreement: Proposed
+- Basis: [0240](../adr/0240-resort-furniture-family.md), furniture seating and per-kind dimensions; [0122](../adr/0122-a-low-chair-to-sit-on-outside-the-vehicles.md), seat offset convention.
+- Implementation: `tools/gen_dining_chair.py`; `tools/render_preview.py`; `tools/gen_item_catalog.py`; `src/domain/resort/furniture.ts`; `packs/yasu_ride_bp/entities/yasu_ride/dining_chair.se.json`; `packs/yasu_ride_bp/items/yasu_ride/dining_chair_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/dining_chair_item.recipe.json`; `packs/yasu_ride_rp/entity/yasu_ride/dining_chair.ce.json`; `packs/yasu_ride_rp/render_controllers/yasu_ride/dining_chair.rc.json`.
+- Verification: `tests/packs/diningChair.test.ts` checks the entity, domain seat, rotated bounds, +z recline, hitbox coverage, catalog order, distinct recipe including mirrored grids, both locale keys, texture binding, preview and icon. `tests/tools/diningChair.test.ts` checks output freshness and stale-file detection. `dining_chair_place_take_back` is registered with the resort tag and checks the seat offset and family, three-hit removal, and exactly one returned item; it has not been run. See [manual PC/mobile checks](../manual-test.md#dining-chair-sitting-and-recovery).
 
 ### Beach Chair assets
 
@@ -129,6 +139,8 @@
 - Verification: `tests/infrastructure/resort/install.test.ts` checks the registered 16 by 21 px surface at 9 px with a limit of four and folded-only availability. `tests/domain/resort/beachChair.test.ts` property-tests that every hosted item stays on the top with its centre over the middle cell. `tests/infrastructure/resort/bedrockBeachChairWorld.test.ts` checks registry-reported occupancy. Application tests cover refusal without advancing hit counters. `beach_chair_lantern` and `beach_chair_oven` host two items at both ends of the top and check height, the middle cell, unfolding and recovery refusals, and host-loss cleanup; they have not been run on BDS.
 
 ## Open issues
+
+- Dining Chair owner visual approval and in-game verification (including PC/mobile sitting and dismounting and `dining_chair_place_take_back`) remain pending.
 
 - Beach Chair tabletop contents are reported by the shared host registry, and hosted lanterns and ovens prevent unfolding and recovery. The hosting scenarios await BDS verification. Device menu behavior and the folded table's resting height need manual verification in game.
 

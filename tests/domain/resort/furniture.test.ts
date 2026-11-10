@@ -157,10 +157,10 @@ describe("furniture spec", () => {
     expectFrozen(FURNITURE_SPEC);
   });
 
-  it("provides the initial seat and tabletop dimensions", () => {
+  it("provides the per-kind seat and tabletop dimensions", () => {
     const seats: readonly (readonly SeatOffset[])[] = [
       [],
-      [{ x: 0, y: 0.45, z: 0.05 }],
+      [{ x: 0, y: 0.21, z: -0.00625 }],
       [{ x: 0, y: 0.4, z: 0.05 }],
       [
         { x: -0.5, y: 0.4, z: 0.05 },

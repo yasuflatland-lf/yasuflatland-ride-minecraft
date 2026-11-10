@@ -311,6 +311,19 @@ describe("selectionOf", () => {
     expect(impactOfPath(path).impact).toEqual(impact);
   });
 
+  it("selects resort for Dining Chair pack files and its registered scenario", () => {
+    const paths = [
+      "packs/yasu_ride_bp/entities/yasu_ride/dining_chair.se.json",
+      "packs/yasu_ride_bp/items/yasu_ride/dining_chair_item.item.json",
+      "packs/yasu_ride_bp/recipes/yasu_ride/dining_chair_item.recipe.json",
+      "src/test-pack/scenarios/diningChair.ts",
+    ];
+    for (const path of paths) {
+      expect(existsSync(new URL(path, root)), path).toBe(true);
+      expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
+    }
+  });
+
   it.each([
     "beach_parasol",
     "beach_parasol_item",
@@ -333,6 +346,7 @@ describe("selectionOf", () => {
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
     ).toEqual([
+      "dining_chair_place_take_back",
       "beach_chair_lantern",
       "beach_chair_oven",
       "beach_chair_empty_refresh",
