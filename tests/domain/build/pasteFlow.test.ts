@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
@@ -14,11 +13,13 @@ import {
   beginPasteAim,
   isRepeat,
   recordPaste,
-  toggleSkipAir,
 } from "../../../src/domain/build/flow/paste";
 import { BuildSession } from "../../../src/domain/build/session";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -31,18 +32,16 @@ it("records an immutable paste and suppresses only the same anchor within the wi
       cell,
       fc.nat({ max: 10000 }),
       fc.integer({ min: 1, max: 100 }),
-      fc.boolean(),
-      (anchor, tick, window, skipAir) => {
-        const initial = beginPasteAim(skipAir);
+      (anchor, tick, window) => {
+        const initial = beginPasteAim();
         expect(Object.isFrozen(initial)).toBe(true);
         expect(isRepeat(initial, anchor, tick, window)).toBe(false);
         const flow = recordPaste(initial, anchor, tick);
         expect(flow).toEqual({
           kind: "pasteAim",
-          skipAir,
           lastPaste: { anchor, tick },
         });
-        expect(initial).toEqual({ kind: "pasteAim", skipAir });
+        expect(initial).toEqual({ kind: "pasteAim" });
         expect(Object.isFrozen(flow)).toBe(true);
         expect(Object.isFrozen(flow.lastPaste)).toBe(true);
         expect(Object.isFrozen(flow.lastPaste?.anchor)).toBe(true);
@@ -80,7 +79,7 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
         if (clipboard)
           holdClipboard(
             session,
-            clipboardOf(box, () => stone),
+            structureClipboard(box, () => stone),
           );
         if (history)
           session.finishEdit(
@@ -94,13 +93,7 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
         const first = tapBlock(idle, dimensionId, at, stone);
         const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
         const height = chooseHeighted(endpoint, "gable");
-        for (const flow of [
-          idle,
-          first,
-          endpoint,
-          height,
-          beginPasteAim(false),
-        ]) {
+        for (const flow of [idle, first, endpoint, height, beginPasteAim()]) {
           session.setFlow(flow);
           const entries = utilityMenu(session).map(({ id }) => id);
           expect(entries).not.toContain("endPaste");
@@ -108,44 +101,9 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
           expect(
             pasteMenu({
               hasHistory: session.hasHistory,
-              skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
             }).map(({ id }) => id),
-          ).toEqual([
-            ...(history ? ["undo"] : []),
-            "skipAir",
-            "newCopy",
-            "endPaste",
-          ]);
+          ).toEqual([...(history ? ["undo"] : []), "newCopy", "endPaste"]);
         }
-      },
-    ),
-  );
-});
-
-it("toggles immutably, preserves the repeat record, and toggles twice to identity", () => {
-  fc.assert(
-    fc.property(
-      cell,
-      fc.nat(),
-      fc.boolean(),
-      fc.boolean(),
-      (anchor, tick, skipAir, history) => {
-        const initial = beginPasteAim(skipAir);
-        const flow = history ? recordPaste(initial, anchor, tick) : initial;
-        const toggled = toggleSkipAir(flow);
-        expect(toggled.skipAir).toBe(!skipAir);
-        expect(toggled.lastPaste).toBe(flow.lastPaste);
-        expect(Object.isFrozen(toggled)).toBe(true);
-        expect(flow.skipAir).toBe(skipAir);
-        expect(toggleSkipAir(toggled)).toEqual(flow);
-        expect(
-          pasteMenu({ hasHistory: history, skipAir: toggled.skipAir }),
-        ).toEqual([
-          ...(history ? [{ id: "undo" }] : []),
-          { id: "skipAir", on: !skipAir },
-          { id: "newCopy" },
-          { id: "endPaste" },
-        ]);
       },
     ),
   );

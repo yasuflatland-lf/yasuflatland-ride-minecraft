@@ -3,7 +3,6 @@
 // treat protected cells as barriers.
 import type { Cell } from "../../shared/cells";
 import type { BlockState } from "../blockState";
-import type { Clipboard } from "../clipboard/clipboard";
 import { cellsOfShape, type Shape, type ShapeStyle } from "../shape/shape";
 import type { TerrainArea } from "../terrain/area";
 import { type HeightedSpec, placementOf } from "../volume/geometry";
@@ -18,20 +17,6 @@ export function* planShape(
 ): Iterable<PlannedChange> {
   for (const cell of cellsOfShape(shape, style))
     yield { cell, after: pattern.state };
-}
-
-export function* planPaste(
-  clipboard: Clipboard,
-  anchor: Cell,
-  skipAir: boolean,
-): Iterable<PlannedChange> {
-  for (const { at, state } of clipboard.cells) {
-    if (skipAir && state.typeId === "minecraft:air") continue;
-    yield {
-      cell: { x: anchor.x + at.x, y: anchor.y + at.y, z: anchor.z + at.z },
-      after: state,
-    };
-  }
 }
 
 export function* planHeighted(

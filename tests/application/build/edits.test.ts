@@ -8,14 +8,12 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  clipboardOf,
-  pasteTarget,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { structureClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -24,6 +22,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const alex = asPlayerId("alex");
 const blake = asPlayerId("blake");
@@ -48,9 +47,21 @@ function setup() {
     world,
     jobs,
     fill: new ConfirmShape(repo, feedback, jobs),
-    copy: new CopySelection(repo, new CopyBox(repo, world, feedback), feedback),
-    paste: new PasteAt(repo, world, feedback, jobs),
-    undo: new UndoEdit(repo, feedback, jobs),
+    copy: new CopySelection(
+      repo,
+      new CopyBox(repo, new FakeStructureStore(), feedback),
+      feedback,
+    ),
+    paste: new PasteAt(
+      repo,
+      world,
+      feedback,
+      new FakeStructureStore(),
+      new FakeBuildPlayers(),
+    ),
+    undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
+      warn: () => {},
+    }),
   };
 }
 
@@ -150,7 +161,7 @@ describe("EditJobs properties", () => {
         material: stone,
       },
       idle: { kind: "idle" },
-      pasteAim: beginPasteAim(false),
+      pasteAim: beginPasteAim(),
     } as const;
     for (const [name, flow] of Object.entries(flows)) {
       const promises = name === "idle" || name === "pasteAim";
@@ -315,14 +326,14 @@ describe("edit use cases", () => {
     const env = setup();
     env.fill.execute({ playerId: alex, style: "fill" });
     env.copy.execute({ playerId: alex });
-    env.repo.getOrCreate(alex).setFlow(beginPasteAim(false));
+    env.repo.getOrCreate(alex).setFlow(beginPasteAim());
     env.paste.execute({
       tick: 0,
       playerId: alex,
       dimensionId: overworld,
       target: pasteTarget(
         env.repo.get(alex)?.clipboard ??
-          clipboardOf(
+          structureClipboard(
             boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
             () => stone,
           ),
@@ -360,14 +371,14 @@ describe("edit use cases", () => {
     expect(env.feedback.messages.at(-1)?.message).toBe("tooLarge");
   });
 
-  it("skips unreadable cells when copying the confirmed box", () => {
+  it("captures the full confirmed box without reading cells", () => {
     const env = setup();
     env.world.put({ x: 0, y: 64, z: 0 }, dirt);
     env.world.unreadableCells.add(cellKey({ x: 1, y: 64, z: 0 }));
     select(env, alex, 2);
     confirmForCopy(env);
     env.copy.execute({ playerId: alex });
-    expect(env.repo.get(alex)?.clipboard?.cells.length).toBe(3);
+    expect(env.repo.get(alex)?.clipboard?.blockCount).toBe(4);
     expect(env.world.writes).toBe(0);
   });
 
@@ -379,14 +390,14 @@ describe("edit use cases", () => {
     env.copy.execute({ playerId: alex });
     expect(env.feedback.messages.at(-1)?.message).toBe("copied");
     env.world.protectedCells.add(cellKey({ x: 1, y: 64, z: 1 }));
-    env.repo.getOrCreate(alex).setFlow(beginPasteAim(false));
+    env.repo.getOrCreate(alex).setFlow(beginPasteAim());
     env.paste.execute({
       tick: 0,
       playerId: alex,
       dimensionId: overworld,
       target: pasteTarget(
         env.repo.get(alex)?.clipboard ??
-          clipboardOf(
+          structureClipboard(
             boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
             () => stone,
           ),
@@ -397,35 +408,6 @@ describe("edit use cases", () => {
     expect(env.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
     expect(env.repo.get(alex)?.isEditing).toBe(false);
     expect(env.world.writes).toBe(0);
-  });
-
-  it("leaves air cells untouched when pasting with skip air", () => {
-    const env = setup();
-    env.world.put({ x: 0, y: 64, z: 0 }, dirt);
-    select(env, alex, 2);
-    confirmForCopy(env);
-    env.copy.execute({ playerId: alex });
-    env.world.put({ x: 11, y: 64, z: 10 }, stone);
-    env.repo.getOrCreate(alex).setFlow(beginPasteAim(true));
-    env.paste.execute({
-      tick: 0,
-      playerId: alex,
-      dimensionId: overworld,
-      target: pasteTarget(
-        env.repo.get(alex)?.clipboard ??
-          clipboardOf(
-            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
-            () => stone,
-          ),
-        { x: 10, y: 63, z: 10 },
-        "up",
-      ),
-    });
-    runAll(env);
-    expect(env.world.stateAt(overworld, { x: 10, y: 64, z: 10 })).toEqual(dirt);
-    expect(env.world.stateAt(overworld, { x: 11, y: 64, z: 10 })).toEqual(
-      stone,
-    );
   });
 
   it("drops a job whose session was removed", () => {

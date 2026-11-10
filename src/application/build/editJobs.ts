@@ -11,17 +11,16 @@ import {
 import { completionMessage } from "../../domain/build/edit/completion";
 import { isKeptState } from "../../domain/build/edit/guard";
 import { airPressOffersUndo } from "../../domain/build/flow/flow";
-import { freeCellAbove } from "../../domain/build/freeCell";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { cellKey } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import { isOpenBlock } from "../../domain/shared/keptBlocks";
 import { attempt } from "../shared/isolated";
 import type { Logger } from "../shared/ports/logger";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildPlayers } from "./ports/players";
+import { unstuck } from "./unstuck";
 
 interface Job {
   readonly playerId: PlayerId;
@@ -123,7 +122,10 @@ export class EditJobs {
           job.kind,
         );
         attempt(
-          () => this.unstuck(job),
+          () => {
+            if (job.buriedOwner)
+              unstuck(this.world, this.players, job.playerId, job.dimensionId);
+          },
           this.log,
           () => `build edit unstuck for ${job.playerId} failed`,
         );
@@ -187,26 +189,6 @@ export class EditJobs {
       if (job.kind === "undoable")
         job.applied.push({ cell: change.cell, before, after: change.after });
     } else if (job.kind === "undo") job.skipped++;
-  }
-
-  private unstuck(job: Job): void {
-    if (!job.buriedOwner) return;
-    const occupant = this.players.occupantOf(job.playerId);
-    if (!occupant || occupant.dimensionId !== job.dimensionId) return;
-    const { feet } = occupant;
-    const head = { ...feet, y: feet.y + 1 };
-    const buried = [feet, head].some((cell) => {
-      const state = this.world.stateAt(job.dimensionId, cell);
-      return state !== undefined && !isOpenBlock(state.typeId);
-    });
-    if (!buried) return;
-    const destination = freeCellAbove(
-      feet,
-      (cell) =>
-        this.world.stateAt(job.dimensionId, cell)?.typeId === "minecraft:air",
-      this.world.topY(job.dimensionId),
-    );
-    if (destination) this.players.moveTo(job.playerId, destination);
   }
 
   private drop(job: Job): void {

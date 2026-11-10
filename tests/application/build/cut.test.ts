@@ -1,14 +1,11 @@
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
-import { EditJobs } from "../../../src/application/build/editJobs";
-import { UndoEdit } from "../../../src/application/build/undoEdit";
-import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
+import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   setHeight,
@@ -18,16 +15,15 @@ import {
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
-import { undoRecord } from "../../support/undoRecord";
+import { structureClipboard } from "../../support/buildClipboard";
 import {
   cellKey,
-  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone", { stone_type: "granite" });
@@ -36,18 +32,13 @@ function setup() {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
-  const jobs = new EditJobs(
-    repo,
-    world,
-    feedback,
-    { warn: () => {} },
-    new FakeBuildPlayers(),
-  );
+  const structures = new FakeStructureStore();
+  const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
-  const cut = new CutBox(repo, world, feedback, jobs);
-  const actions = { copy: new CopyBox(repo, world, feedback), cut };
-  const drain = () => {
-    while (session.isEditing) jobs.step();
+  const cut = new CutBox(repo, world, structures, feedback, log);
+  const actions = {
+    copy: new CopyBox(repo, new FakeStructureStore(), feedback),
+    cut,
   };
   return {
     repo,
@@ -55,14 +46,14 @@ function setup() {
     world,
     session,
     cut,
-    drain,
+    structures,
+    log,
     choose: new ChooseBoxStep(repo, actions, feedback),
     confirm: new ConfirmBoxStep(repo, actions, feedback),
-    undo: new UndoEdit(repo, feedback, jobs),
   };
 }
 
-it("copies every selected cell to the clipboard, empties the box including fluids, and Undo restores the before states", () => {
+it("captures the whole box twice before removing anything and records a snapshot", () => {
   fc.assert(
     fc.property(
       fc.integer({ min: 1, max: 6 }),
@@ -71,53 +62,231 @@ it("copies every selected cell to the clipboard, empties the box including fluid
       (x, y, z) => {
         const e = setup();
         const box = boxOf(origin, { x: x - 1, y: 63 + y, z: z - 1 });
-        const cells = [...cellsOf(box)];
-        const states = [
-          stone,
-          blockStateOf("minecraft:water", { liquid_depth: 3 }),
-          blockStateOf("minecraft:lava"),
-          AIR,
-        ];
-        cells.forEach((cell, i) => {
-          e.world.put(cell, states[i % states.length] ?? AIR);
-        });
-        const before = cells.map((cell) => e.world.stateAt(overworld, cell));
-        const outside = { ...box.max, x: box.max.x + 1 };
-        e.world.put(outside, stone);
-        const expected = clipboardOf(box, (cell) =>
-          e.world.stateAt(overworld, cell),
-        );
-        holdClipboard(
-          e.session,
-          clipboardOf(boxOf(origin, origin), () => stone),
-        );
+        e.world.put(origin, blockStateOf("minecraft:chest"));
         expect(e.cut.execute(playerId, overworld, box)).toBe(true);
-        expect(e.feedback.messages.at(-1)?.message).toBe("cutting");
-        expect(e.session.flow.kind).toBe("pasteAim");
-        expect(e.session.clipboard).toEqual(expected);
+        const [clipboard, snapshot] = [...e.structures.live];
+        expect(e.structures.calls).toEqual([
+          { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+          { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+          { kind: "clearEntities", dimensionId: overworld, box },
+          { kind: "clearBlocks", dimensionId: overworld, box },
+        ]);
+        expect(e.session.clipboard).toEqual({
+          size: { x, y, z },
+          blockCount: x * y * z,
+          contents: { kind: "structure", handle: clipboard },
+        });
         expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
-        e.drain();
-        expect(cells.map((cell) => e.world.stateAt(overworld, cell))).toEqual(
-          cells.map(() => AIR),
-        );
-        expect(e.world.stateAt(overworld, outside)).toEqual(stone);
-        expect(e.world.writes).toBe(
-          before.filter((state) => state !== AIR).length,
-        );
-        expect(e.session.hasHistory).toBe(true);
-        expect(e.session.clipboard).toEqual(expected);
-        e.undo.execute({ playerId });
-        e.drain();
-        expect(cells.map((cell) => e.world.stateAt(overworld, cell))).toEqual(
-          before,
-        );
-        expect(e.session.hasHistory).toBe(false);
-        expect(e.session.clipboard).toEqual(expected);
+        expect(e.feedback.undoHints).toEqual([playerId]);
         expect(e.session.flow.kind).toBe("pasteAim");
+        expect(e.session.isEditing).toBe(false);
+        expect(e.session.takeUndo()).toEqual({
+          kind: "snapshot",
+          snapshot: { dimensionId: overworld, box, handle: snapshot },
+        });
+        expect(e.feedback.messages.at(-1)).toMatchObject({
+          message: "editDone",
+          count: x * y * z,
+        });
       },
     ),
   );
 });
+
+it("discards the old clipboard and snapshot only after clearing succeeds", () => {
+  const e = setup();
+  const box = boxOf(origin, origin);
+  e.cut.execute(playerId, overworld, box);
+  const [clipboard, snapshot] = [...e.structures.live];
+  e.structures.calls.length = 0;
+  e.cut.execute(playerId, overworld, box);
+  expect(e.structures.calls.map((c) => c.kind)).toEqual([
+    "capture",
+    "capture",
+    "clearEntities",
+    "clearBlocks",
+    "discard",
+    "discard",
+  ]);
+  expect(e.structures.calls.slice(4, 6)).toEqual([
+    { kind: "discard", handle: clipboard },
+    { kind: "discard", handle: snapshot },
+  ]);
+  expect(e.structures.live.size).toBe(2);
+  expect(e.feedback.undoHints).toEqual([playerId]);
+});
+
+it.each(["tooLarge", "unreadable"] as const)(
+  "rolls back either capture refusal: %s",
+  (refusal) => {
+    for (const second of [false, true]) {
+      const e = setup();
+      const box = boxOf(origin, origin);
+      const clipboard = structureClipboard(box, () => stone);
+      e.session.completeCopy(overworld, box, clipboard);
+      e.session.beginEdit();
+      const record = {
+        dimensionId: overworld,
+        changes: [
+          { cell: origin, before: blockStateOf("minecraft:air"), after: stone },
+        ],
+      };
+      e.session.finishEdit(record, "undoable");
+      const flow = e.session.flow;
+      const confirmed = e.session.confirmedBox;
+      e.structures.captureRefusals = second ? [undefined, refusal] : [refusal];
+      expect(e.cut.execute(playerId, overworld, box)).toBe(false);
+      expect(e.session.flow).toBe(flow);
+      expect(e.session.confirmedBox).toBe(confirmed);
+      expect(e.session.clipboard).toBe(clipboard);
+      expect(e.session.takeUndo()).toEqual({ kind: "cells", record });
+      expect(e.structures.live.size).toBe(0);
+      expect(e.structures.calls.map((c) => c.kind)).toEqual(
+        second ? ["capture", "capture", "discard"] : ["capture"],
+      );
+      expect(e.feedback.messages.at(-1)).toMatchObject({
+        message: "tooLarge",
+        count: 1,
+      });
+    }
+  },
+);
+
+it("refuses the entire box when any cell is protected", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 0, max: 26 }), (index) => {
+      const e = setup();
+      const box = boxOf(origin, { x: 2, y: 66, z: 2 });
+      const cell = [...cellsOf(box)][index];
+      if (!cell) throw new Error("missing cell");
+      e.world.protectedCells.add(cellKey(cell));
+      const flow = e.session.flow;
+      expect(e.cut.execute(playerId, overworld, box)).toBe(false);
+      expect(e.structures.calls).toEqual([]);
+      expect(e.session.flow).toBe(flow);
+      expect(e.session.hasHistory).toBe(false);
+      expect(e.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
+    }),
+  );
+});
+
+it("restores failed cuts without changing the session or discarding prior handles", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.integer({ min: -20, max: 20 }),
+      (previousCut, x) => {
+        const e = setup();
+        const oldBox = boxOf(origin, origin);
+        if (previousCut) e.cut.execute(playerId, overworld, oldBox);
+        const previousHandles = [...e.structures.live];
+        const clipboard = e.session.clipboard;
+        const confirmed = e.session.confirmedBox;
+        const flow = tapAir(
+          tapBlock({ kind: "idle" }, overworld, origin, stone),
+          { x, y: 65, z: 1 },
+        );
+        e.session.setFlow(flow);
+        const before = structuredClone(e.session);
+        e.structures.calls.length = 0;
+        e.feedback.messages.length = 0;
+        e.feedback.undoHints.length = 0;
+        e.structures.clearBlocksSucceeds = false;
+        const box = boxOf({ x, y: 65, z: 1 }, { x: x + 1, y: 66, z: 2 });
+        expect(e.cut.execute(playerId, overworld, box)).toBe(false);
+        expect(e.session).toEqual(before);
+        expect(e.session.clipboard).toBe(clipboard);
+        expect(e.session.confirmedBox).toBe(confirmed);
+        expect(e.session.flow).toBe(flow);
+        expect([...e.structures.live]).toEqual(previousHandles);
+        const rollback = e.structures.calls[4];
+        expect(rollback).toMatchObject({
+          kind: "place",
+          dimensionId: overworld,
+          anchor: box.min,
+        });
+        if (rollback?.kind !== "place") throw new Error("missing rollback");
+        expect(e.structures.calls.map((c) => c.kind)).toEqual([
+          "capture",
+          "capture",
+          "clearEntities",
+          "clearBlocks",
+          "place",
+          "discard",
+          "discard",
+        ]);
+        expect(e.structures.calls[6]).toEqual({
+          kind: "discard",
+          handle: rollback.handle,
+        });
+        expect(e.structures.calls[5]).not.toEqual(e.structures.calls[6]);
+        expect(e.session.takeUndo()).toEqual(
+          previousCut
+            ? {
+                kind: "snapshot",
+                snapshot: {
+                  dimensionId: overworld,
+                  box: oldBox,
+                  handle: previousHandles[1],
+                },
+              }
+            : "nothingToUndo",
+        );
+        expect(e.feedback.messages).toEqual([
+          { message: "cutRestored", count: undefined },
+        ]);
+        expect(e.feedback.undoHints).toEqual([]);
+        expect(e.log.warn).toHaveBeenCalledOnce();
+      },
+    ),
+  );
+});
+
+it.each([false, true])(
+  "keeps a failed rollback recoverable with previous cut %s",
+  (previousCut) => {
+    const e = setup();
+    const box = boxOf(origin, origin);
+    if (previousCut) e.cut.execute(playerId, overworld, box);
+    const previousHandles = [...e.structures.live];
+    e.structures.calls.length = 0;
+    e.feedback.messages.length = 0;
+    e.feedback.undoHints.length = 0;
+    e.structures.clearBlocksSucceeds = false;
+    e.structures.placeSucceeds = false;
+    expect(e.cut.execute(playerId, overworld, box)).toBe(true);
+    const [clipboard, snapshot] = [...e.structures.live];
+    expect(e.structures.calls).toEqual([
+      { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+      { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+      { kind: "clearEntities", dimensionId: overworld, box },
+      { kind: "clearBlocks", dimensionId: overworld, box },
+      {
+        kind: "place",
+        handle: snapshot,
+        dimensionId: overworld,
+        anchor: box.min,
+      },
+      ...previousHandles.map((handle) => ({ kind: "discard", handle })),
+    ]);
+    expect(e.session.clipboard?.contents).toEqual({
+      kind: "structure",
+      handle: clipboard,
+    });
+    expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
+    expect(e.session.takeUndo()).toEqual({
+      kind: "snapshot",
+      snapshot: { dimensionId: overworld, box, handle: snapshot },
+    });
+    expect(e.session.flow.kind).toBe("pasteAim");
+    expect(e.feedback.messages).toEqual([
+      { message: "cutIncomplete", count: undefined },
+    ]);
+    expect(e.feedback.undoHints).toEqual([]);
+    expect(e.session.takeUndoHint()).toBe(!previousCut);
+    expect(e.log.warn).toHaveBeenCalledOnce();
+  },
+);
 
 it.each(["direct", "height"] as const)(
   "refuses oversized and busy %s cuts without changing selection or the old clipboard",
@@ -130,7 +299,7 @@ it.each(["direct", "height"] as const)(
         end,
       );
       const box = boxOf(origin, origin);
-      const clipboard = clipboardOf(box, () => stone);
+      const clipboard = structureClipboard(box, () => stone);
       e.session.completeCopy(overworld, box, clipboard);
       const flow =
         path === "height"
@@ -152,36 +321,10 @@ it.each(["direct", "height"] as const)(
       expect(e.session.confirmedBox).toBe(confirmed);
       expect(e.session.clipboard).toBe(clipboard);
       expect(e.world.writes).toBe(0);
+      expect(e.structures.calls).toEqual([]);
     }
   },
 );
-
-it("skips kept and protected cells and records only changes", () => {
-  const e = setup();
-  const box = boxOf(origin, { ...origin, x: 3 });
-  const cells = [...cellsOf(box)];
-  const sign = blockStateOf("minecraft:standing_sign");
-  cells.forEach((cell) => {
-    e.world.put(cell, stone);
-  });
-  e.world.put(origin, sign);
-  e.world.protectedCells.add(cellKey({ ...origin, x: 1 }));
-  e.world.put({ ...origin, x: 2 }, AIR);
-  e.cut.execute(playerId, overworld, box);
-  e.drain();
-  expect(cells.map((cell) => e.world.stateAt(overworld, cell))).toEqual([
-    sign,
-    stone,
-    AIR,
-    AIR,
-  ]);
-  expect(e.world.writes).toBe(1);
-  const record = undoRecord(e.session.takeUndo());
-  expect(record).toEqual({
-    dimensionId: overworld,
-    changes: [{ cell: { ...origin, x: 3 }, before: stone, after: AIR }],
-  });
-});
 
 it("shares the upward height step and cuts immediately on confirmation", () => {
   const e = setup();
@@ -199,8 +342,7 @@ it("shares the upward height step and cuts immediately on confirmation", () => {
   expect(e.session.isEditing).toBe(false);
   e.session.setFlow(setHeight(e.session.flow, 3));
   e.confirm.execute({ playerId });
-  e.drain();
-  expect(e.world.stateAt(overworld, { ...origin, y: 66 })).toEqual(AIR);
+  expect(e.structures.calls.at(-1)?.kind).toBe("clearBlocks");
   expect(e.session.confirmedBox?.box.max.y).toBe(66);
 });
 
@@ -234,47 +376,24 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
           expect(e.session.isEditing).toBe(false);
         } else {
           expect(e.session.flow.kind).toBe("pasteAim");
-          expect(e.session.isEditing).toBe(true);
-          e.drain();
-          expect(e.world.stateAt(overworld, origin)).toEqual(AIR);
+          expect(e.session.isEditing).toBe(false);
+          expect(e.structures.calls.at(-1)?.kind).toBe("clearBlocks");
           expect(e.session.confirmedBox).toEqual({
             dimensionId: overworld,
             box,
           });
         }
         if (!(shape.kind === "rect" && shape.flat === "y"))
-          expect(e.session.clipboard?.cells.length).toBeGreaterThan(0);
+          expect(e.session.clipboard?.contents.kind).toBe("structure");
       },
     ),
   );
 });
 
-it("keeps protected cells but still stores them in the clipboard", () => {
+it("accepts the copy-volume boundary even when the entire box is air", () => {
   const e = setup();
-  const box = boxOf(origin, { ...origin, x: 1 });
-  e.world.put(origin, stone);
-  e.world.put({ ...origin, x: 1 }, stone);
-  e.world.protectedCells.add(cellKey({ ...origin, x: 1 }));
-  e.cut.execute(playerId, overworld, box);
-  e.drain();
-  expect(e.world.stateAt(overworld, { ...origin, x: 1 })).toEqual(stone);
-  expect(e.session.clipboard?.cells).toHaveLength(2);
-});
-
-it("refuses a box above the copy limit even though the edit limit is larger", () => {
-  const e = setup();
-  expect(BUILD_SPEC.maxVolume).toBeGreaterThan(BUILD_SPEC.maxCopyVolume);
-  const box = boxOf(origin, { ...origin, x: BUILD_SPEC.maxCopyVolume });
-  expect(e.cut.execute(playerId, overworld, box)).toBe(false);
-  expect(e.feedback.messages.at(-1)?.message).toBe("tooLarge");
-  expect(e.session.clipboard).toBeUndefined();
-});
-
-it("leaves no history for a cut of only air", () => {
-  const e = setup();
-  const box = boxOf(origin, { ...origin, x: 9 });
+  const box = boxOf(origin, { x: 31, y: 95, z: 31 });
   expect(e.cut.execute(playerId, overworld, box)).toBe(true);
-  e.drain();
-  expect(e.world.writes).toBe(0);
-  expect(e.session.hasHistory).toBe(false);
+  expect(e.session.clipboard?.blockCount).toBe(BUILD_SPEC.maxCopyVolume);
+  expect(e.session.hasHistory).toBe(true);
 });
