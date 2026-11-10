@@ -8,12 +8,13 @@ export type SolidKind =
   | "sideCylinderZ"
   | "sphere";
 export type HeightedKind = RoofKind | SolidKind;
-export type BoxStepKind = "copy" | "cut";
+export type BoxStepKind = "copy" | "cut" | "rotate";
 export type HeightStepKind = HeightedKind | BoxStepKind;
 
 const BOX_STEP_LIMITS: Readonly<Record<BoxStepKind, number>> = {
   copy: BUILD_SPEC.maxCopyVolume,
   cut: BUILD_SPEC.maxCopyVolume,
+  rotate: BUILD_SPEC.maxCopyVolume,
 };
 
 export function isBoxStepKind(kind: HeightStepKind): kind is BoxStepKind {

@@ -41,6 +41,7 @@ function setup(from: { x: number; y: number; z: number }) {
   const chooseBoxStep = new ChooseBoxStep(
     repo,
     {
+      rotate: { execute: () => false },
       copy: new CopyBox(repo, new FakeStructureStore(), feedback),
       cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
         warn: () => {},

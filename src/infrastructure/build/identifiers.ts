@@ -71,6 +71,8 @@ export const BUILD_FORM = {
   confirm: "yasu_build.form.confirm",
   cut: "yasu_build.form.cut",
   cutTitle: "yasu_build.form.cut_title",
+  rotate: "yasu_build.form.rotate",
+  rotateTitle: "yasu_build.form.rotate_title",
   copyTitle: "yasu_build.form.copy_title",
   solidTitle: "yasu_build.form.solid_title",
   hollow: "yasu_build.form.hollow",

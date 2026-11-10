@@ -20,6 +20,8 @@ import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
+import { RotateBox } from "../../application/build/rotateBox";
+import { RotateBoxAction } from "../../application/build/rotateBoxAction";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -79,7 +81,19 @@ export function installBuild(deps: {
     feedback,
     consoleLogger,
   );
-  const actions = { copy: copyBox, cut: cutBox };
+  const rotate = new RotateBox(
+    repo,
+    blocks,
+    players,
+    ports.structures,
+    feedback,
+    consoleLogger,
+  );
+  const actions = {
+    copy: copyBox,
+    cut: cutBox,
+    rotate: new RotateBoxAction(repo, rotate),
+  };
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
     chooseBoxStep: new ChooseBoxStep(repo, actions, feedback),
