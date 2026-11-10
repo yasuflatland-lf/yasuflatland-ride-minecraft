@@ -55,8 +55,7 @@ it("preserves volume and height with the smallest union containing both boxes", 
           plan.target.max[axis] -
           source.min[axis] -
           source.max[axis];
-        expect(centerShift).toBeGreaterThanOrEqual(-1);
-        expect(centerShift).toBeLessThanOrEqual(0);
+        expect(Math.abs(centerShift)).toBeLessThanOrEqual(1);
       }
       expect(source).toEqual(before);
     }),
@@ -72,7 +71,7 @@ it("keeps a square footprint in the same box", () => {
   );
 });
 
-it("returns after four turns with zero drift for equal parity and two cells otherwise", () => {
+it("returns to the original box after four turns", () => {
   fc.assert(
     fc.property(cell, size, (min, size) => {
       const source = boxAt(min, size);
@@ -80,12 +79,7 @@ it("returns after four turns with zero drift for equal parity and two cells othe
       for (let i = 0; i < 4; i++) {
         target = planRotationAboutCenter(target).target;
       }
-      // Flooring both offsets loses half a cell per turn for mixed parity;
-      // issue #1520's one-cell four-turn bound conflicts with its formula.
-      const drift = size.x % 2 === size.z % 2 ? 0 : -2;
-      expect(target).toEqual(
-        boxAt({ x: min.x + drift, y: min.y, z: min.z + drift }, size),
-      );
+      expect(target).toEqual(source);
     }),
   );
 });
@@ -93,17 +87,20 @@ it("returns after four turns with zero drift for equal parity and two cells othe
 it.each([
   { size: { x: 5, y: 3, z: 3 }, offset: { x: 1, z: -1 } },
   { size: { x: 4, y: 2, z: 2 }, offset: { x: 1, z: -1 } },
-  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: -1 } },
-  { size: { x: 1, y: 4, z: 2 }, offset: { x: -1, z: 0 } },
-])("rotates $size about its floored center", ({ size, offset }) => {
-  const min = { x: -10, y: -5, z: 7 };
-  expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
-    boxAt(
-      { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
-      { x: size.z, y: size.y, z: size.x },
-    ),
-  );
-});
+  { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 4, z: 2 }, offset: { x: 0, z: 0 } },
+])(
+  "rotates $size about its center, rounding toward zero",
+  ({ size, offset }) => {
+    const min = { x: -10, y: -5, z: 7 };
+    expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
+      boxAt(
+        { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
+        { x: size.z, y: size.y, z: size.x },
+      ),
+    );
+  },
+);
 
 it("does not freeze or retain mutable input corners", () => {
   const source = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 2 } };
