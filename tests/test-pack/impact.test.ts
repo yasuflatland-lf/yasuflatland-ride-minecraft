@@ -23,10 +23,14 @@ import { planOf } from "../../src/test-pack/plan";
 import { WHOLE_RUN } from "../../src/test-pack/protocol";
 
 const root = new URL("../../", import.meta.url);
-const tracked = execFileSync("git", ["ls-files", "-z"], {
-  cwd: fileURLToPath(root),
-  encoding: "utf8",
-})
+const tracked = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+  {
+    cwd: fileURLToPath(root),
+    encoding: "utf8",
+  },
+)
   .split("\0")
   .filter(Boolean);
 
@@ -311,6 +315,19 @@ describe("selectionOf", () => {
     expect(impactOfPath(path).impact).toEqual(impact);
   });
 
+  it("selects resort for Dining Chair pack files and its registered scenario", () => {
+    const paths = [
+      "packs/yasu_ride_bp/entities/yasu_ride/dining_chair.se.json",
+      "packs/yasu_ride_bp/items/yasu_ride/dining_chair_item.item.json",
+      "packs/yasu_ride_bp/recipes/yasu_ride/dining_chair_item.recipe.json",
+      "src/test-pack/scenarios/diningChair.ts",
+    ];
+    for (const path of paths) {
+      expect(existsSync(new URL(path, root)), path).toBe(true);
+      expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
+    }
+  });
+
   it.each([
     "packs/yasu_ride_bp/entities/yasu_ride/sofa_single.se.json",
     "packs/yasu_ride_bp/entities/yasu_ride/sofa_double.se.json",
@@ -326,6 +343,8 @@ describe("selectionOf", () => {
     "parasol_ceiling",
     "beach_chair",
     "beach_chair_item",
+    "dining_table",
+    "dining_table_item",
   ])("selects resort scenarios for the %s pack stem", (stem) => {
     expect(PACK_STEM_TAGS[stem]).toEqual(["resort"]);
     const paths = tracked.filter(
@@ -342,6 +361,10 @@ describe("selectionOf", () => {
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
     ).toEqual([
+      "dining_table_place_take_back",
+      "dining_chair_place_take_back",
+      "dining_table_lantern",
+      "dining_table_oven",
       "sofa_single_place_take_back",
       "sofa_double_place_take_back",
       "beach_chair_lantern",

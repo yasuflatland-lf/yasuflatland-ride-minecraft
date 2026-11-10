@@ -34,7 +34,7 @@ export interface FurnitureSpec {
   readonly top?: TopSurface;
 }
 
-// Both sofas are finalized against their models; remaining pieces settle their initial values in their asset issues (ADR 0240).
+// Dining Chair and both sofas have seat offsets finalized against their models (ADR 0240).
 export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
   Object.freeze({
     dining_table: Object.freeze({
@@ -44,16 +44,16 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       hitsToTakeBack: 3,
       hitResetTicks: 100,
       top: Object.freeze({
-        half: Object.freeze({ halfX: 0.4, halfZ: 0.4 }),
+        half: Object.freeze({ halfX: 6, halfZ: 6 }),
         topPx: 12,
-        limit: 4,
+        limit: 1,
         clearanceBase: 0,
       }),
     }),
     dining_chair: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
       clearance: 2,
-      seats: Object.freeze([Object.freeze({ x: 0, y: 0.45, z: 0.05 })]),
+      seats: Object.freeze([Object.freeze({ x: 0, y: 0.21, z: -0.00625 })]),
       hitsToTakeBack: 3,
       hitResetTicks: 100,
     }),

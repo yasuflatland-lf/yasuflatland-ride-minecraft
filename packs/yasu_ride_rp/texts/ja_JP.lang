@@ -221,6 +221,15 @@ yasu_ride.furniture.hits_left=あと%s回たたくと回収できます。
 yasu_ride.furniture.taken=家具を回収しました。
 yasu_ride.furniture.occupied=誰かが座っています。
 yasu_ride.furniture.something_on_top=先に上の物を取り除いてください。
+
+item.yasu_ride:dining_table_item.name=ダイニングテーブル
+entity.yasu_ride:dining_table.name=ダイニングテーブル
+yasu_ride.dining_table_top_full=テーブルの上はいっぱいです。
+yasu_ride.dining_table_top_overlap=テーブルのこの位置には置けません。
+yasu_ride.dining_table_top_too_big=このアイテムはテーブルには大きすぎます。
+item.yasu_ride:dining_chair_item.name=ダイニングチェアー
+entity.yasu_ride:dining_chair.name=ダイニングチェアー
+
 item.yasu_ride:sofa_single_item.name=ソファ（1人掛け）
 item.yasu_ride:sofa_double_item.name=ソファ（2人掛け）
 entity.yasu_ride:sofa_single.name=ソファ（1人掛け）

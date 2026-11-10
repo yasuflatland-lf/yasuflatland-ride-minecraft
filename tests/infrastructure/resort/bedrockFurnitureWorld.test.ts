@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  FURNITURE_SPEC,
   type FurnitureKind,
   furniturePose,
 } from "../../../src/domain/resort/furniture";
@@ -7,6 +8,8 @@ import { asFurnitureId } from "../../../src/domain/resort/ids";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockFurnitureWorld } from "../../../src/infrastructure/resort/bedrock/bedrockFurnitureWorld";
 import { FURNITURE_IDS } from "../../../src/infrastructure/resort/identifiers";
+
+import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
 const game = vi.hoisted(() => ({
   getEntity: vi.fn(),
@@ -48,11 +51,23 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
     game.getEntity.mockReturnValue(entity);
     game.getDimension.mockReturnValue(dimension);
     dimension.spawnEntity.mockReturnValue(entity);
+    const topHosts = new TopHostRegistry();
+    const surface = FURNITURE_SPEC.dining_table.top;
+    if (surface)
+      topHosts.registerHost({
+        hostType: "dining_table",
+        entityTypeId: FURNITURE_IDS.dining_table.entity,
+        surface,
+        isTopNow: () => true,
+        refusalHints: { full: "full", overlap: "overlap", tooBig: "tooBig" },
+      });
+    const itemsOnTop = vi.spyOn(topHosts, "itemsOnTop").mockReturnValue([]);
     const adapter = new BedrockFurnitureWorld({
+      topHosts,
       isVehicleSpace: () => false,
       isCampSpace: () => false,
     });
-    return { dimension, entity, adapter };
+    return { dimension, entity, adapter, itemsOnTop };
   }
   const id = asFurnitureId("furniture");
   const player = asPlayerId("player");
@@ -89,6 +104,20 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
     f.entity.typeId = FURNITURE_IDS[kind].entity;
     f.entity.isValid = false;
     expect(f.adapter.kindOf(id)).toBeUndefined();
+  });
+  it("blocks recovery only for a registered top with hosted contents", () => {
+    const f = fixture();
+    f.itemsOnTop.mockReturnValue([
+      { at: { x: 0, z: 0 }, footprint: { halfX: 1, halfZ: 1 } },
+    ]);
+    expect(f.adapter.somethingOnTop(id)).toBe(kind === "dining_table");
+    if (kind === "dining_table")
+      expect(f.itemsOnTop).toHaveBeenCalledWith("dining_table", id);
+    else expect(f.itemsOnTop).not.toHaveBeenCalled();
+    f.itemsOnTop.mockReturnValue([]);
+    expect(f.adapter.somethingOnTop(id)).toBe(false);
+    f.entity.isValid = false;
+    expect(f.adapter.somethingOnTop(id)).toBe(false);
   });
   it("charges and returns the matching item, with a fallback drop for server test hooks", () => {
     const f = fixture();

@@ -12,11 +12,13 @@ import { TakeBackParasol } from "../../application/resort/takeBackParasol";
 import { GiveStarterItem } from "../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import { Repaint } from "../../application/shared/repaint";
+import { FURNITURE_SPEC } from "../../domain/resort/furniture";
 import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
 import {
   BedrockStarterItemWorld,
   registerStarterItem,
 } from "../shared/starterItem";
+import type { PlaceHostedOnTop } from "../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../shared/tableTop/registry";
 import { BedrockBeachChairWorld } from "./bedrock/bedrockBeachChairWorld";
 import { BedrockFurnitureWorld } from "./bedrock/bedrockFurnitureWorld";
@@ -40,12 +42,15 @@ import {
   BEACH_CHAIR_TOP_REFUSAL_HINTS,
   BEACH_PARASOL_ITEM,
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
+  DINING_TABLE_TOP_REFUSAL_HINTS,
+  FURNITURE_IDS,
 } from "./identifiers";
 
 export function installResort(deps: {
   topHosts: TopHostRegistry;
   isVehicleSpace: SpaceCheck;
   isCampSpace: SpaceCheck;
+  placeHostedOnTop: PlaceHostedOnTop;
 }): void {
   deps.topHosts.registerHost({
     hostType: "beach_chair",
@@ -59,6 +64,15 @@ export function installResort(deps: {
     isTopNow: (entity) => entity.getProperty(BEACH_CHAIR_FOLDED) === true,
     refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
   });
+  const diningTop = FURNITURE_SPEC.dining_table.top;
+  if (diningTop)
+    deps.topHosts.registerHost({
+      hostType: "dining_table",
+      entityTypeId: FURNITURE_IDS.dining_table.entity,
+      surface: diningTop,
+      isTopNow: () => true,
+      refusalHints: DINING_TABLE_TOP_REFUSAL_HINTS,
+    });
   const furniture = new BedrockFurnitureWorld(deps);
   const takeFurniture = new TakeBackFurniture(furniture);
   registerFurniturePlacement(new PlaceFurniture(furniture));

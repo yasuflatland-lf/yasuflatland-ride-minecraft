@@ -173,7 +173,7 @@ describe("Sofa (Single) pack contract", () => {
         g.group_identifier.name === "yasu_ride:resort_gear",
     );
     expect(group.items.indexOf(ids.item)).toBe(
-      group.items.indexOf("yasu_ride:beach_chair_item") + 1,
+      group.items.indexOf("yasu_ride:dining_chair_item") + 1,
     );
     expect(
       read(`${RP}/textures/item_texture.json`).texture_data

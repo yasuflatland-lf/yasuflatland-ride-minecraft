@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 
 type Point = [number, number, number];
 
-// Rasterizing all camping previews can exceed Vitest's 5 s default on CI.
-const CAMPING_PREVIEW_TIMEOUT_MS = 90_000;
+// The full furniture preview set, including the curved chair back, exceeds 30 s locally.
+const CAMPING_PREVIEW_TIMEOUT_MS = 240_000;
 
 // Runs collect_boat from tools/render_preview.py on a geometry and returns the
 // center of every opaque face it draws, in the preview's mirrored frame.
@@ -115,6 +115,8 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
         ...ids,
         "beach_parasol",
         "beach_chair",
+        "dining_table",
+        "dining_chair",
         "sofa_single",
         "sofa_double",
         "noga_chair",

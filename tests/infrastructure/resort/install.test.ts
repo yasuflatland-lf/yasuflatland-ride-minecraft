@@ -49,6 +49,7 @@ import { LieOnBeachChair } from "../../../src/application/resort/lieOnBeachChair
 import { SwitchBeachChairForm } from "../../../src/application/resort/switchBeachChairForm";
 import { TakeBackBeachChair } from "../../../src/application/resort/takeBackBeachChair";
 import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
+import { FURNITURE_SPEC } from "../../../src/domain/resort/furniture";
 import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
 import { ROOF_TENT_STARTER_RECEIVED_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
 import { registerBeachChairHits } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairHits";
@@ -60,6 +61,8 @@ import {
   BEACH_CHAIR_TOP_REFUSAL_HINTS,
   BEACH_PARASOL_ITEM,
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
+  DINING_TABLE_TOP_REFUSAL_HINTS,
+  FURNITURE_IDS,
 } from "../../../src/infrastructure/resort/identifiers";
 import { installResort } from "../../../src/infrastructure/resort/install";
 import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
@@ -115,6 +118,7 @@ it("registers folded chair hosting, the lifecycle, and the parasol starter with 
     topHosts,
     isVehicleSpace: () => true,
     isCampSpace: () => false,
+    placeHostedOnTop: () => false,
   });
   expect(registerFurniturePlacement).toHaveBeenCalledExactlyOnceWith(
     expect.any(PlaceFurniture),
@@ -127,7 +131,7 @@ it("registers folded chair hosting, the lifecycle, and the parasol starter with 
     vi.mocked(registerFurnitureHits).mock.calls[0]?.[0],
     expect.objectContaining({ topHosts }),
   );
-  expect(register).toHaveBeenCalledExactlyOnceWith({
+  expect(register).toHaveBeenCalledWith({
     hostType: "beach_chair",
     entityTypeId: BEACH_CHAIR,
     surface: {
@@ -139,6 +143,21 @@ it("registers folded chair hosting, the lifecycle, and the parasol starter with 
     isTopNow: expect.any(Function),
     refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
   });
+  expect(register).toHaveBeenCalledTimes(2);
+  expect(register).toHaveBeenCalledWith({
+    hostType: "dining_table",
+    entityTypeId: FURNITURE_IDS.dining_table.entity,
+    surface: FURNITURE_SPEC.dining_table.top,
+    isTopNow: expect.any(Function),
+    refusalHints: DINING_TABLE_TOP_REFUSAL_HINTS,
+  });
+  expect(
+    topHosts.hostTypeOf({ typeId: FURNITURE_IDS.dining_table.entity } as never)
+      ?.hostType,
+  ).toBe("dining_table");
+  expect(
+    topHosts.hostTypeOf({ typeId: FURNITURE_IDS.dining_chair.entity } as never),
+  ).toBeUndefined();
   // The 16 by 21 px folded top at the 9 px bed height, from the one-block-wide bed.
   expect(register.mock.calls[0]?.[0].surface).toEqual({
     half: { halfX: 8, halfZ: 10.5 },
