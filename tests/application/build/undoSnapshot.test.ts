@@ -68,6 +68,7 @@ it("restores any snapshot in order, discards it and clears the paste repeat mark
         { kind: "clearEntities", dimensionId: overworld, box },
         {
           kind: "place",
+          turn: 0,
           handle: e.handle,
           dimensionId: overworld,
           anchor: box.min,
@@ -115,6 +116,7 @@ it("restores snapshots containing laid cells while retaining space protection", 
         { kind: "clearEntities", dimensionId: overworld, box },
         {
           kind: "place",
+          turn: 0,
           handle: e.handle,
           dimensionId: overworld,
           anchor: box.min,
@@ -152,6 +154,7 @@ it("keeps a snapshot refused at any protected cell so the next Undo retries it",
       e.undo.execute({ playerId });
       expect(e.structures.calls[1]).toEqual({
         kind: "place",
+        turn: 0,
         handle: e.handle,
         dimensionId: overworld,
         anchor: box.min,
@@ -176,6 +179,7 @@ it("discards a failed placement, consumes history and warns once without changin
     { kind: "clearEntities", dimensionId: overworld, box },
     {
       kind: "place",
+      turn: 0,
       handle: e.handle,
       dimensionId: overworld,
       anchor: box.min,

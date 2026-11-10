@@ -202,6 +202,7 @@ it("restores failed cuts without changing the session or discarding prior handle
         const rollback = e.structures.calls[4];
         expect(rollback).toMatchObject({
           kind: "place",
+          turn: 0,
           dimensionId: overworld,
           anchor: box.min,
         });
@@ -263,6 +264,7 @@ it.each([false, true])(
       { kind: "clearBlocks", dimensionId: overworld, box },
       {
         kind: "place",
+        turn: 0,
         handle: snapshot,
         dimensionId: overworld,
         anchor: box.min,

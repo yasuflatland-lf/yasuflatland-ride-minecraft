@@ -1,4 +1,5 @@
 import type { CellBox } from "../../../domain/build/box";
+import type { QuarterTurn } from "../../../domain/build/rotation/quarterTurn";
 import type { StructureHandle } from "../../../domain/build/structure/handle";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
@@ -12,11 +13,12 @@ export interface BuildStructureStore {
     box: CellBox,
     ownerId: PlayerId,
   ): StructureHandle | CaptureRefusal;
-  /** Places the structure with its minimum corner at `anchor`. False when the engine refuses. */
+  /** Places the structure with the minimum corner of its rotated box at `anchor`. False when the engine refuses. */
   place(
     handle: StructureHandle,
     dimensionId: DimensionId,
     anchor: Cell,
+    turn?: QuarterTurn,
   ): boolean;
   /** Removes entities inside `box`, except players and this add-on's entities. */
   clearEntities(dimensionId: DimensionId, box: CellBox): void;

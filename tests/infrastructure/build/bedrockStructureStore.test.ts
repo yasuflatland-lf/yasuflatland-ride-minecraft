@@ -1,5 +1,7 @@
+import { StructureRotation } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockStructureStore } from "../../../src/infrastructure/build/bedrock/bedrockStructureStore";
@@ -22,6 +24,12 @@ const engine = vi.hoisted(() => ({
   runCommand: vi.fn(),
 }));
 vi.mock("@minecraft/server", () => ({
+  StructureRotation: {
+    None: "None",
+    Rotate90: "Rotate90",
+    Rotate180: "Rotate180",
+    Rotate270: "Rotate270",
+  },
   StructureSaveMode: { Memory: "Memory" },
   world: { getDimension: engine.getDimension, structureManager: engine },
 }));
@@ -128,6 +136,7 @@ it("synchronously removes only new fleet entities inside destination bounds", ()
     .mockReturnValueOnce([...originals, ...copies, ...kept]);
   expect(store().place(handle, dim, box.min)).toBe(true);
   expect(engine.place).toHaveBeenCalledWith(structure, dimension, box.min, {
+    rotation: StructureRotation.None,
     includeBlocks: true,
     includeEntities: true,
   });
@@ -210,3 +219,41 @@ it("discards repeatedly, ignoring missing handles and deletion errors", () => {
   expect(engine.delete).toHaveBeenCalledTimes(3);
   expect(engine.delete).toHaveBeenLastCalledWith(handle);
 });
+
+it.each([
+  [undefined, StructureRotation.None],
+  [0, StructureRotation.None],
+  [1, StructureRotation.Rotate90],
+  [2, StructureRotation.Rotate180],
+  [3, StructureRotation.Rotate270],
+] as const)("maps turn %s to %s", (turn, rotation) => {
+  const structure = { size: { x: 3, y: 4, z: 5 } };
+  engine.get.mockReturnValue(structure);
+  expect(store().place(handle, dim, box.min, turn)).toBe(true);
+  expect(engine.place).toHaveBeenCalledWith(structure, dimension, box.min, {
+    rotation,
+    includeBlocks: true,
+    includeEntities: true,
+  });
+});
+
+it.each([1, 3] as const)(
+  "uses the rotated footprint for entity bookkeeping at turn %s",
+  (turn: QuarterTurn) => {
+    engine.get.mockReturnValue({ size: { x: 3, y: 4, z: 5 } });
+    const original = entity("original", ENTITY_TYPE.suv, {
+      x: 14,
+      y: 64,
+      z: -3,
+    });
+    const copy = entity("copy", ENTITY_TYPE.suv, original.location);
+    const outside = entity("outside", ENTITY_TYPE.suv, { x: 10, y: 64, z: -2 });
+    engine.getEntities
+      .mockReturnValueOnce([original])
+      .mockReturnValueOnce([original, copy, outside]);
+    expect(store().place(handle, dim, box.min, turn)).toBe(true);
+    expect(copy.remove).toHaveBeenCalledOnce();
+    expect(original.remove).not.toHaveBeenCalled();
+    expect(outside.remove).not.toHaveBeenCalled();
+  },
+);
