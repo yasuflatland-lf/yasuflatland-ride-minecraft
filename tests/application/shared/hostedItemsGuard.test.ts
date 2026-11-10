@@ -54,7 +54,7 @@ const host: fc.Arbitrary<Host> = fc.oneof(
   }),
   fc.record({
     kind: fc.constant("top" as const),
-    hostType: fc.constantFrom("camp_table", "beach_chair"),
+    hostType: fc.constantFrom("camp_table", "beach_chair", "dining_table"),
     id: hostId.map(asTableId),
     at: fc.record({
       x: fc.integer({ min: -9, max: 9 }),
@@ -162,4 +162,29 @@ it("skips vehicle hosts without querying ordinary hosted-item presence", () => {
   };
   new HostedItemsGuard([kind]).check();
   expect(kind.removed).toEqual([]);
+});
+
+it("removes lanterns and ovens after a dining table is lost, but waits for its area to load", () => {
+  const hosts = new Set(["dining"]);
+  const item: FakeItem = {
+    host: {
+      kind: "top",
+      hostType: "dining_table",
+      id: "dining",
+      at: { x: 0, z: 0 },
+    },
+    areaLoaded: true,
+  };
+  const lanterns = kindOf([item], hosts);
+  const ovens = kindOf([{ ...item, areaLoaded: false }], hosts);
+  const guard = new HostedItemsGuard([lanterns, ovens]);
+  guard.check();
+  expect(lanterns.removed).toEqual([]);
+  hosts.clear();
+  guard.check();
+  expect(lanterns.removed).toEqual(["item0"]);
+  expect(ovens.removed).toEqual([]);
+  ovens.items.set("item0", item);
+  guard.check();
+  expect(ovens.removed).toEqual(["item0"]);
 });

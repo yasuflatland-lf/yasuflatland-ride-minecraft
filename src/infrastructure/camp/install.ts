@@ -39,6 +39,7 @@ import {
   registerStarterItem,
 } from "../shared/starterItem";
 import type { SwitchTarget } from "../shared/switchRouter";
+import type { PlaceHostedOnTop } from "../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../shared/tableTop/registry";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
 import { BedrockDutchOvenWorld } from "./bedrock/bedrockDutchOvenWorld";
@@ -102,6 +103,7 @@ export function installCamp(deps: {
 }): {
   isCampSpace: SpaceCheck;
   switchTargets: readonly SwitchTarget[];
+  placeHostedOnTop: PlaceHostedOnTop;
 } {
   registerCampTopHosts(deps.topHosts);
   registerStarterItem(
@@ -125,7 +127,7 @@ export function installCamp(deps: {
     deps,
     createGasLanternLight(),
   );
-  registerDutchOven(
+  const placeOvenOnTop = registerDutchOven(
     new DutchOvenActions(ovens),
     new HostedItemsGuard([
       dutchOvenHostedKind(ovens),
@@ -135,7 +137,11 @@ export function installCamp(deps: {
   );
   registerFirePit(new FirePitActions(firePits), firePits);
   const gasLanterns = new GasLanternActions(gasLanternWorld);
-  registerGasLantern(gasLanterns, gasLanternWorld, deps.topHosts);
+  const placeLanternOnTop = registerGasLantern(
+    gasLanterns,
+    gasLanternWorld,
+    deps.topHosts,
+  );
 
   // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
   registerBedBlock(
@@ -224,6 +230,8 @@ export function installCamp(deps: {
   return {
     // The chair claims no space; the tents claim their footprints (ADR 0129).
     isCampSpace: (d, c) => tents.isCampSpace(d, c),
+    placeHostedOnTop: (player, host) =>
+      placeLanternOnTop(player, host) || placeOvenOnTop(player, host),
     switchTargets: [
       lanternSwitchTarget(lantern, (d, feet) => tents.tentContaining(d, feet)),
       gasLanternSwitchTarget(gasLanterns),

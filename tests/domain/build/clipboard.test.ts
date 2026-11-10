@@ -8,16 +8,23 @@ import {
   parseFace,
   pasteTarget,
 } from "../../../src/domain/build/clipboard/clipboard";
+import { structureClipboard } from "../../support/buildClipboard";
 
 const faces: readonly Face[] = ["up", "down", "north", "south", "east", "west"];
 const face = fc.constantFrom(...faces);
 const coordinate = fc.integer();
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimension = fc.integer({ min: 1, max: 32 });
-const clipboard: fc.Arbitrary<Clipboard> = fc.record({
-  size: fc.record({ x: dimension, y: dimension, z: dimension }),
-  cells: fc.constant([]),
-});
+const clipboard: fc.Arbitrary<Clipboard> = fc
+  .record({ x: dimension, y: dimension, z: dimension })
+  .map((size) =>
+    structureClipboard(
+      boxOf(
+        { x: 0, y: 0, z: 0 },
+        { x: size.x - 1, y: size.y - 1, z: size.z - 1 },
+      ),
+    ),
+  );
 
 it("pasteTarget anchors next to the face and its box preserves the clipboard size", () => {
   fc.assert(

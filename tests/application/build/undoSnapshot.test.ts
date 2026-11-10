@@ -39,7 +39,6 @@ function setup(box: CellBox) {
   session.recordSnapshot({ dimensionId: overworld, box, handle });
   session.setFlow({
     kind: "pasteAim",
-    skipAir: true,
     lastPaste: { anchor: box.min, tick: 12 },
   });
   structures.calls.length = 0;
@@ -79,7 +78,7 @@ it("restores any snapshot in order, discards it and clears the paste repeat mark
       expect(e.feedback.messages).toEqual([
         { message: "undoDone", count: volume(box) },
       ]);
-      expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: true });
+      expect(e.session.flow).toEqual({ kind: "pasteAim" });
       expect(e.session.takeUndo()).toBe("nothingToUndo");
       expect(e.session.isEditing).toBe(false);
       expect(e.world.writes).toBe(0);
@@ -216,7 +215,7 @@ it("still sends cell records through edit jobs and keeps busy and empty refusals
   expect(e.world.stateAt(overworld, cell)).toEqual(after);
   e.jobs.step();
   expect(e.world.stateAt(overworld, cell)).toEqual(AIR);
-  expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: true });
+  expect(e.session.flow).toEqual({ kind: "pasteAim" });
   expect(e.structures.calls).toEqual([]);
   e.undo.execute({ playerId });
   expect(e.feedback.messages.at(-1)?.message).toBe("nothingToUndo");

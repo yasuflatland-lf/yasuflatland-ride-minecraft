@@ -2,6 +2,7 @@ import { ScriptEventSource, system, world } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { DescribeBuild } from "../../../src/application/build/describeBuild";
+import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -135,6 +136,7 @@ function snapshotHook() {
     new DescribeBuild(repo),
     messages,
     repo,
+    new EndBuildSession(repo, structures),
     structures,
   );
   const callback = vi

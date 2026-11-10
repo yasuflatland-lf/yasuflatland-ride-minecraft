@@ -5,10 +5,9 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf } from "../../../src/domain/build/box";
+import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import {
   aimedPasteTarget,
-  clipboardOf,
   type Face,
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
@@ -18,7 +17,10 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { holdClipboard } from "../../support/buildClipboard";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
 import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
@@ -49,7 +51,6 @@ function setup(
   block: { x: number; y: number; z: number },
   face: Face,
   tick: number,
-  skipAir = false,
 ) {
   const repo = new FakeSessions();
   const session = repo.getOrCreate(playerId);
@@ -62,14 +63,22 @@ function setup(
     { warn: () => {} },
     new FakeBuildPlayers(),
   );
-  const paste = new PasteAt(repo, world, feedback, jobs);
+  const structures = new FakeStructureStore(world);
+  const paste = new PasteAt(
+    repo,
+    world,
+    feedback,
+    structures,
+    new FakeBuildPlayers(),
+  );
   const press = new PressPasteAim(repo, paste, feedback);
-  const clipboard = clipboardOf(
+  const clipboard = structureClipboard(
     boxOf(block, { ...block, x: block.x + 1 }),
     () => stone,
+    structures,
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim", skipAir });
+  session.setFlow({ kind: "pasteAim" });
   const aim = new FakeAimReader();
   aim.target = {
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
@@ -77,7 +86,7 @@ function setup(
   };
   const target = aimedPasteTarget(clipboard, aim.target);
   if (!target) throw new Error("Expected paste target");
-  const start = vi.spyOn(jobs, "start");
+  const start = vi.spyOn(structures, "place");
   const execute = () => {
     const target = aim.aim(playerId);
     if (!target) throw new Error("Expected aim");
@@ -85,6 +94,7 @@ function setup(
   };
   return {
     repo,
+    structures,
     session,
     world,
     feedback,
@@ -99,38 +109,28 @@ function setup(
 
 it("pastes at the live aimed anchor and creates one undo record", () => {
   fc.assert(
-    fc.property(
-      cell,
-      face,
-      tick,
-      fc.boolean(),
-      (block, face, tick, skipAir) => {
-        const e = setup(block, face, tick, skipAir);
-        expect(e.execute()).toBe("pasted");
-        expect(e.start).toHaveBeenCalledTimes(1);
-        expect(e.start.mock.calls[0]?.slice(0, 2)).toEqual([playerId, nether]);
-        expect(e.session.flow).toEqual({
-          kind: "pasteAim",
-          skipAir,
-          lastPaste: { anchor: e.target.anchor, tick },
-        });
-        e.jobs.step();
-        for (const { at } of e.clipboard.cells) {
-          expect(
-            e.world.stateAt(nether, {
-              x: e.target.anchor.x + at.x,
-              y: e.target.anchor.y + at.y,
-              z: e.target.anchor.z + at.z,
-            }),
-          ).toEqual(stone);
-        }
-        expect(undoRecord(e.session.takeUndo())).toMatchObject({
-          dimensionId: nether,
-          changes: expect.any(Array),
-        });
-        expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
-      },
-    ),
+    fc.property(cell, face, tick, (block, face, tick) => {
+      const e = setup(block, face, tick);
+      expect(e.execute()).toBe("pasted");
+      expect(e.start).toHaveBeenCalledTimes(1);
+      expect(e.start.mock.calls[0]).toEqual([
+        e.clipboard.contents.handle,
+        nether,
+        e.target.anchor,
+      ]);
+      expect(e.session.flow).toEqual({
+        kind: "pasteAim",
+        lastPaste: { anchor: e.target.anchor, tick },
+      });
+      e.jobs.step();
+      for (const at of cellsOf(e.target.box))
+        expect(e.world.stateAt(nether, at)).toEqual(stone);
+      expect(e.session.takeUndo()).toMatchObject({
+        kind: "snapshot",
+        snapshot: { dimensionId: nether, box: e.target.box },
+      });
+      expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
+    }),
   );
 });
 
@@ -173,7 +173,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
       expect(e.execute()).toBe("ignored");
       expect(e.repo.get(playerId)).toBeUndefined();
       const empty = e.repo.getOrCreate(playerId);
-      empty.setFlow({ kind: "pasteAim", skipAir: false });
+      empty.setFlow({ kind: "pasteAim" });
       expect(e.execute()).toBe("ignored");
       expect(e.feedback.messages).toEqual([{ message: "noClipboard" }]);
       expect(e.start).not.toHaveBeenCalled();
@@ -214,16 +214,21 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
       cell,
       face,
       tick,
-      fc.boolean(),
       fc.integer({ min: 0, max: BUILD_SPEC.pasteRepeatTicks - 1 }),
-      (block, face, tick, skipAir, delta) => {
-        const e = setup(block, face, tick, skipAir);
+      (block, face, tick, delta) => {
+        const e = setup(block, face, tick);
         expect(e.execute()).toBe("pasted");
         e.jobs.step();
         const flow = e.session.flow;
         const press = new PressPasteAim(
           e.repo,
-          new PasteAt(e.repo, e.world, e.feedback, e.jobs),
+          new PasteAt(
+            e.repo,
+            e.world,
+            e.feedback,
+            e.structures,
+            new FakeBuildPlayers(),
+          ),
           e.feedback,
         );
         if (!e.aim.target) throw new Error("Expected aim");
@@ -237,15 +242,10 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         ).toBe("ignored");
         expect(e.session.flow).toBe(flow);
         expect(e.start).toHaveBeenCalledTimes(1);
-        new UndoEdit(
-          e.repo,
-          e.feedback,
-          e.jobs,
-          e.world,
-          new FakeStructureStore(),
-          { warn: () => {} },
-        ).execute({ playerId });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir });
+        new UndoEdit(e.repo, e.feedback, e.jobs, e.world, e.structures, {
+          warn: () => {},
+        }).execute({ playerId });
+        expect(e.session.flow).toEqual({ kind: "pasteAim" });
         expect(e.session.clipboard).toBe(e.clipboard);
         e.jobs.step();
         expect(e.world.stateAt(nether, e.target.anchor)).toBe(AIR);
@@ -253,8 +253,9 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         expect(e.execute()).toBe("pasted");
         e.jobs.step();
         expect(e.start).toHaveBeenCalledTimes(3);
-        expect(undoRecord(e.session.takeUndo())).toMatchObject({
-          dimensionId: nether,
+        expect(e.session.takeUndo()).toMatchObject({
+          kind: "snapshot",
+          snapshot: { dimensionId: nether },
         });
         expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
       },

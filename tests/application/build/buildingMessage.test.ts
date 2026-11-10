@@ -15,6 +15,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const material = blockStateOf("minecraft:oak_planks", { example: true });
@@ -81,7 +82,7 @@ it("does not announce building when copying or cancelling", () => {
   e.session.confirmBox(overworld, boxOf(from, flat));
   new CopySelection(
     e.repo,
-    new CopyBox(e.repo, e.world, e.feedback),
+    new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
     e.feedback,
   ).execute({ playerId });
   new CancelFlow(e.repo).execute({ playerId });

@@ -134,8 +134,6 @@ yasu_build.form.new_copy=New copy
 yasu_build.form.end_paste=End pasting
 yasu_build.form.undo=Undo
 yasu_build.form.clear_selection=Clear selection
-yasu_build.form.skip_air_on=Skip air: on
-yasu_build.form.skip_air_off=Skip air: off
 yasu_build.form.submit=Apply
 
 yasu_build.message.point_set=Point 1 set.
@@ -182,7 +180,8 @@ yasu_ride.message.headlights_off=Headlights: OFF
 yasu_ride.message.headlights_on=Headlights: ON
 yasu_build.form.cut=Cut
 yasu_build.form.cut_title=Cut
-yasu_build.message.cutting=Cutting.
+yasu_build.message.cut_restored=Cut failed; the area was restored.
+yasu_build.message.cut_incomplete=Cut could not clear every block. Undo restores the area.
 yasu_build.form.remove_above=Remove above
 yasu_build.form.remove_above_title=Remove above
 yasu_build.form.remove_above_body=Remove above: clears an area of %s x %s blocks from y %s to y %s. This cannot be undone. Things above can fall.
@@ -216,3 +215,27 @@ yasu_ride.beach_chair.menu.fold=Fold into a table
 yasu_ride.beach_chair_top_full=The Beach Chair tabletop is full.
 yasu_ride.beach_chair_top_overlap=Something is in the way on the Beach Chair tabletop.
 yasu_ride.beach_chair_top_too_big=That item is too big for the Beach Chair tabletop.
+
+yasu_build.message.copy_unreadable=The box could not be copied. Stay close so it is loaded, then try again.
+yasu_build.message.paste_failed=Paste failed. Please try again.
+
+yasu_ride.furniture.blocked=The furniture cannot be placed here
+yasu_ride.furniture.hits_left=Hit %s more times to take back the furniture
+yasu_ride.furniture.taken=Took back the furniture
+yasu_ride.furniture.occupied=Someone is sitting on this furniture
+yasu_ride.furniture.something_on_top=Take everything off the top first
+
+item.yasu_ride:dining_table_item.name=Dining Table
+entity.yasu_ride:dining_table.name=Dining Table
+yasu_ride.dining_table_top_full=The dining table is full.
+yasu_ride.dining_table_top_overlap=There is not enough room here on the dining table.
+yasu_ride.dining_table_top_too_big=This item is too big for the dining table.
+
+yasu_ride.dining_table.top_occupied=This space on the table is occupied.
+item.yasu_ride:dining_chair_item.name=Dining Chair
+entity.yasu_ride:dining_chair.name=Dining Chair
+
+item.yasu_ride:sofa_single_item.name=Sofa (Single)
+item.yasu_ride:sofa_double_item.name=Sofa (Double)
+entity.yasu_ride:sofa_single.name=Sofa (Single)
+entity.yasu_ride:sofa_double.name=Sofa (Double)
