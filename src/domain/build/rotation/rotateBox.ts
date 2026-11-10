@@ -15,8 +15,8 @@ function frozenBox(min: Cell, max: Cell): CellBox {
   });
 }
 
-// Rounding the half-cell offset toward zero makes consecutive turns cancel:
-// the swapped size negates the offset, so four turns return the original box.
+// An odd size difference leaves a half cell; flooring it is the fixed center
+// rule of issue #1520, so repeated turns may drift by at most one cell per axis.
 export function planRotationAboutCenter(source: CellBox): RotationPlan {
   const size: Cell = {
     x: source.max.x - source.min.x + 1,
@@ -25,9 +25,9 @@ export function planRotationAboutCenter(source: CellBox): RotationPlan {
   };
   const turned = rotatedSize(size, 1);
   const min: Cell = {
-    x: source.min.x + Math.trunc((size.x - size.z) / 2),
+    x: source.min.x + Math.floor((size.x - size.z) / 2),
     y: source.min.y,
-    z: source.min.z + Math.trunc((size.z - size.x) / 2),
+    z: source.min.z + Math.floor((size.z - size.x) / 2),
   };
   const target = frozenBox(min, {
     x: min.x + turned.x - 1,
