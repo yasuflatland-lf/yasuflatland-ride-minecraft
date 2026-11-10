@@ -4,7 +4,7 @@ import type { GroundCellsWorld } from "./ports/groundCells";
 
 /** Accept only block tops outside the add-on's laid blocks. */
 export function canUseBlockTop(
-  world: GroundCellsWorld,
+  world: Pick<GroundCellsWorld, "isOwnBlock">,
   dimension: DimensionId,
   block: Vec3,
   face: string,

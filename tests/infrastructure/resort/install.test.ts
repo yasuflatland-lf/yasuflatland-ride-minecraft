@@ -1,3 +1,22 @@
+import { PlaceFurniture } from "../../../src/application/resort/placeFurniture";
+import { TakeBackFurniture } from "../../../src/application/resort/takeBackFurniture";
+import { BedrockFurnitureWorld } from "../../../src/infrastructure/resort/bedrock/bedrockFurnitureWorld";
+import { registerFurnitureHits } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits";
+import { registerFurniturePlacement } from "../../../src/infrastructure/resort/bedrock/handlers/furniturePlacement";
+import { registerTestFurniture } from "../../../src/infrastructure/resort/bedrock/handlers/testFurniture";
+
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/furniturePlacement",
+  () => ({ registerFurniturePlacement: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits",
+  () => ({ registerFurnitureHits: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/testFurniture",
+  () => ({ registerTestFurniture: vi.fn() }),
+);
 vi.mock("@minecraft/server", () => ({ world: {} }));
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction",
@@ -96,7 +115,19 @@ it("registers folded chair hosting, the lifecycle, and the parasol starter with 
     topHosts,
     isVehicleSpace: () => true,
     isCampSpace: () => false,
+    placeHostedOnTop: () => false,
   });
+  expect(registerFurniturePlacement).toHaveBeenCalledExactlyOnceWith(
+    expect.any(PlaceFurniture),
+  );
+  expect(registerFurnitureHits).toHaveBeenCalledExactlyOnceWith(
+    expect.any(TakeBackFurniture),
+  );
+  expect(registerTestFurniture).toHaveBeenCalledExactlyOnceWith(
+    expect.any(BedrockFurnitureWorld),
+    vi.mocked(registerFurnitureHits).mock.calls[0]?.[0],
+    expect.objectContaining({ topHosts }),
+  );
   expect(register).toHaveBeenCalledExactlyOnceWith({
     hostType: "beach_chair",
     entityTypeId: BEACH_CHAIR,
