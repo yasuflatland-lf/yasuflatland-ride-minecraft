@@ -22,6 +22,16 @@ function mapped(cell: Vector3, turn: QuarterTurn): Vector3 {
   return { x, y: cell.y, z };
 }
 
+function mappedPoint(point: Vector3, turn: QuarterTurn): Vector3 {
+  let { x, z } = point;
+  let { x: sx, z: sz } = SIZE;
+  for (let step = 0; step < turn; step++) {
+    [x, z] = [sz - z, x];
+    [sx, sz] = [sz, sx];
+  }
+  return { x, y: point.y, z };
+}
+
 export async function buildStructureRotation(a: Arena): Promise<Outcome> {
   const store = new BedrockStructureStore(() => false);
   const dim = asDimensionId(a.dim.id);
@@ -163,16 +173,17 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
       beds,
     );
     if (!results.at(-1)?.pass) throw new Error("bed fixture incomplete");
-    a.dim.runCommand(`summon minecraft:cow ${a.xyz(21.5, a.gy + 1, 23.5)}`);
-    for (const e of a.dim.getEntities({
+    a.dim.runCommand(`summon minecraft:cow ${a.xyz(21.5, a.gy + 1, 23.5)} 0 0`);
+    const sourceCows = a.dim.getEntities({
       type: "minecraft:cow",
       location: source.min,
       maxDistance: 10,
-    }))
-      spawned.add(e.id);
+    });
+    for (const e of sourceCows) spawned.add(e.id);
+    const baseYaw = sourceCows[0]?.getRotation().y;
+    if (baseYaw === undefined) throw new Error("missing cow fixture");
     const handle = capture(source);
     store.clearEntities(dim, source);
-    const stairDirections: unknown[] = [];
     for (const turn of [0, 1, 2, 3] as const) {
       clear(destination);
       const placed = store.place(handle, dim, anchor, turn);
@@ -266,11 +277,9 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
         log,
       );
       const stairs = block(target(2, 1, 4, turn)).permutation.getAllStates();
-      stairDirections.push(stairs.weirdo_direction);
       record(
         `stairs_${turn}`,
-        typeof stairs.weirdo_direction === "number" &&
-          new Set(stairDirections).size === stairDirections.length,
+        stairs.weirdo_direction === [2, 1, 3, 0][turn],
         stairs,
       );
       const spawner = block(target(2, 1, 6, turn)).typeId;
@@ -287,7 +296,9 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
         `bed_${turn}`,
         placedBeds.every(
           (b) =>
-            b.type === "minecraft:bed" && b.states.head_piece_bit === b.head,
+            b.type === "minecraft:bed" &&
+            b.states.head_piece_bit === b.head &&
+            b.states.direction === [0, 1, 2, 3][turn],
         ),
         placedBeds,
       );
@@ -301,7 +312,10 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
           (b, i) =>
             b.type === "minecraft:wooden_door" &&
             b.states.upper_block_bit === (i === 1) &&
-            b.states.door_hinge_bit === doorStates[i]?.door_hinge_bit,
+            b.states.door_hinge_bit === doorStates[i]?.door_hinge_bit &&
+            b.states.direction === [0, 1, 2, 3][turn] &&
+            b.states["minecraft:cardinal_direction"] ===
+              ["south", "west", "north", "east"][turn],
         ),
         doors,
       );
@@ -311,13 +325,35 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
         maxDistance: 12,
       });
       for (const cow of cows) spawned.add(cow.id);
-      record(`cow_${turn}`, true, {
-        count: cows.length,
-        entities: cows.map((e) => ({
-          position: e.location,
-          rotation: e.getRotation(),
-        })),
-      });
+      const point = mappedPoint({ x: 1.5, y: 1, z: 3.5 }, turn);
+      const expectedPosition = {
+        x: anchor.x + point.x,
+        y: anchor.y + point.y,
+        z: anchor.z + point.z,
+      };
+      const entities = cows.map((e) => ({
+        position: e.location,
+        rotation: e.getRotation(),
+      }));
+      record(
+        `cow_${turn}`,
+        cows.length === 1 &&
+          entities.every(({ position, rotation }) => {
+            const yawDelta = (((rotation.y - baseYaw) % 360) + 360) % 360;
+            const yawError = Math.abs(yawDelta - 90 * turn);
+            return (
+              Math.min(yawError, 360 - yawError) <= 1 &&
+              Math.abs(position.x - expectedPosition.x) < 0.6 &&
+              Math.abs(position.z - expectedPosition.z) < 0.6
+            );
+          }),
+        {
+          count: cows.length,
+          baseYaw,
+          expectedPosition,
+          entities,
+        },
+      );
       for (const cow of cows) cow.remove();
       store.clearEntities(dim, destination);
       await wait(1);
@@ -329,29 +365,39 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
     const airTypes = airCells.map(
       ({ at }) => block(target(at.x, at.y, at.z, 1)).typeId,
     );
-    record("air_write", true, {
-      placed: airPlaced,
-      sampled: airTypes.length,
-      air: airTypes.filter((t) => t === "minecraft:air").length,
-      types: [...new Set(airTypes)],
-    });
+    record(
+      "air_write",
+      airPlaced === true &&
+        airTypes.length > 0 &&
+        airTypes.every((t) => t === "minecraft:air"),
+      {
+        placed: airPlaced,
+        sampled: airTypes.length,
+        air: airTypes.filter((t) => t === "minecraft:air").length,
+        types: [...new Set(airTypes)],
+      },
+    );
     clear(source);
     clear(destination);
     const large = { min: a.at(8, a.gy, 8), max: a.at(71, a.gy + 63, 71) };
     const startCapture = Date.now();
     const largeHandle = store.capture(dim, large, owner);
     const captureMs = Date.now() - startCapture;
-    record("capture_64", true, {
-      milliseconds: captureMs,
-      result: largeHandle,
-    });
+    record(
+      "capture_64",
+      largeHandle !== "tooLarge" && largeHandle !== "unreadable",
+      {
+        milliseconds: captureMs,
+        result: largeHandle,
+      },
+    );
     if (largeHandle !== "tooLarge" && largeHandle !== "unreadable") {
       handles.push(largeHandle);
       // Placing at the captured corner preserves the arena floor and terrain.
       const before = new Set(a.dim.getEntities().map((entity) => entity.id));
       const startPlace = Date.now();
       const placed = store.place(largeHandle, dim, large.min);
-      record("place_64", true, {
+      record("place_64", placed === true, {
         milliseconds: Date.now() - startPlace,
         placed,
       });
@@ -360,7 +406,7 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
           spawned.add(entity.id);
           entity.remove();
         }
-    } else record("place_64", true, { skipped: largeHandle });
+    } else record("place_64", false, { skipped: largeHandle });
   } catch (error) {
     record(
       "rotation",

@@ -15,8 +15,9 @@ function frozenBox(min: Cell, max: Cell): CellBox {
   });
 }
 
-// Rounding the half-cell offset toward zero makes consecutive turns cancel:
-// the swapped size negates the offset, so four turns return the original box.
+// An odd size difference leaves a half cell, which is rounded toward zero. A
+// turn swaps the sizes, so the offsets of two consecutive turns are exact
+// negatives and two turns return the box exactly (issue #1520).
 export function planRotationAboutCenter(source: CellBox): RotationPlan {
   const size: Cell = {
     x: source.max.x - source.min.x + 1,

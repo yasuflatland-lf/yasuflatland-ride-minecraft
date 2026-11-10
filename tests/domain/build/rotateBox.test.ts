@@ -71,15 +71,17 @@ it("keeps a square footprint in the same box", () => {
   );
 });
 
-it("returns to the original box after four turns", () => {
+it("returns the original box after two turns and after four", () => {
   fc.assert(
     fc.property(cell, size, (min, size) => {
       const source = boxAt(min, size);
-      let target = source;
-      for (let i = 0; i < 4; i++) {
-        target = planRotationAboutCenter(target).target;
-      }
-      expect(target).toEqual(source);
+      const once = planRotationAboutCenter(source).target;
+      const twice = planRotationAboutCenter(once).target;
+      expect(twice).toEqual(source);
+      const fourth = planRotationAboutCenter(
+        planRotationAboutCenter(twice).target,
+      ).target;
+      expect(fourth).toEqual(source);
     }),
   );
 });
@@ -89,16 +91,24 @@ it.each([
   { size: { x: 4, y: 2, z: 2 }, offset: { x: 1, z: -1 } },
   { size: { x: 2, y: 1, z: 1 }, offset: { x: 0, z: 0 } },
   { size: { x: 1, y: 4, z: 2 }, offset: { x: 0, z: 0 } },
+  { size: { x: 2, y: 4, z: 1 }, offset: { x: 0, z: 0 } },
+  { size: { x: 1, y: 1, z: 4 }, offset: { x: -1, z: 1 } },
+  { size: { x: 3, y: 1, z: 6 }, offset: { x: -1, z: 1 } },
+  { size: { x: 6, y: 1, z: 3 }, offset: { x: 1, z: -1 } },
 ])(
-  "rotates $size about its center, rounding toward zero",
+  "rotates $size about its center, rounding the half cell toward zero",
   ({ size, offset }) => {
-    const min = { x: -10, y: -5, z: 7 };
-    expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
-      boxAt(
-        { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
-        { x: size.z, y: size.y, z: size.x },
-      ),
-    );
+    for (const min of [
+      { x: -10, y: -5, z: 7 },
+      { x: 4, y: 0, z: -9 },
+    ]) {
+      expect(planRotationAboutCenter(boxAt(min, size)).target).toEqual(
+        boxAt(
+          { x: min.x + offset.x, y: min.y, z: min.z + offset.z },
+          { x: size.z, y: size.y, z: size.x },
+        ),
+      );
+    }
   },
 );
 
