@@ -243,3 +243,6 @@ item.yasu_ride:sofa_single_item.name=ソファ（1人掛け）
 item.yasu_ride:sofa_double_item.name=ソファ（2人掛け）
 entity.yasu_ride:sofa_single.name=ソファ（1人掛け）
 entity.yasu_ride:sofa_double.name=ソファ（2人掛け）
+
+yasu_build.form.rotate=Rotate
+yasu_build.form.rotate_title=Rotate

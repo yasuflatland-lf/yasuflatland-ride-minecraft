@@ -243,3 +243,6 @@ item.yasu_ride:sofa_single_item.name=Sofa (Single)
 item.yasu_ride:sofa_double_item.name=Sofa (Double)
 entity.yasu_ride:sofa_single.name=Sofa (Single)
 entity.yasu_ride:sofa_double.name=Sofa (Double)
+
+yasu_build.form.rotate=Rotate
+yasu_build.form.rotate_title=Rotate
