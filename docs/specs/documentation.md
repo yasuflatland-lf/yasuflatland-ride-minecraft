@@ -16,6 +16,15 @@
 - Implementation: `scripts/docs.mjs` (`parseAdr`, `parseAdrs`, `checkAdrIdentity`), `docs/adr/README.md` (Writing a new ADR)
 - Verification: Read `checkAdrIdentity` and `tests/scripts/docs.test.ts`, which includes duplicate-number and invalid-filename fixtures. Not verified: tests were not run; no check of required ADR body sections is implemented.
 
+### Updating design decisions
+
+- Applies to: changes to existing ADRs and their affected topic specs.
+- Rule: Update existing ADR text, including Accepted Decisions, to reflect the current specification, keeping the applicable rules, rationale, consequences, spec references, and Open issues consistent. Git preserves earlier revisions. Value, dimension, and threshold tuning, typo fixes, and implementation details that preserve the design approach do not require a new ADR. A separate ADR is warranted when a distinct decision needs its own context, alternatives, and tradeoffs, such as a new architectural boundary, platform constraint, or design approach. Reversing an Accepted decision alone does not require a new ADR. Status continues to record agreement.
+- Agreement: Proposed
+- Basis: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md) Decision, "Update existing ADR text, including Accepted Decisions, to reflect the current specification; Git preserves earlier revisions."; "Do not create an ADR solely for tuning values, dimensions, thresholds, typo fixes, or implementation details that preserve the design approach."
+- Implementation: `AGENTS.md` (Changing a decision), `docs/adr/README.md` (Updating an existing ADR), `docs/specs/README.md`
+- Verification: Read the repository guidance and ADR 0205 for consistent editing and new-ADR criteria. This is a contributor workflow rule; the documentation checker does not enforce the choice between editing an ADR and adding one.
+
 ### ADR metadata
 
 - Applies to: the metadata block after an ADR's title and before the first line beginning `## `, or the remainder of the file when there is no such heading.
@@ -87,5 +96,4 @@
 - ADR 0205 Decision says "Part 2/4 fills this field" for Decided in; the repository has no ADR metadata line beginning `- Decided in:` (a repository-wide metadata search found zero), and the implementation never requires that field (`docs/adr/`, `scripts/docs.mjs`, `checkMetadata`); the ADR needs an edit or a superseding ADR.
 - ADR 0205 Decision names ADR and relative Markdown link checks for CI and describes topic specs only in its final bullet; the implementation additionally enforces spec format, ADR and implementation links, derived agreement, Basis sources, supersession closure, live ADR coverage and the spec index (`scripts/docs.mjs`, `checkSpecFormat`, `checkSpecLinks`, `checkSpecAgreement`, `checkSpecBasisSources`, `checkSpecClosure`, `checkSpecCoverage`, `checkSpecIndex`), with some of these documented in `docs/specs/README.md`; the ADR needs an edit or a superseding ADR.
 - ADR 0205 Decision says spike findings belong in `docs/spikes/`, committed design notes in `docs/designs/`, and owner-local drafts stay uncommitted; the implementation has these directories but no check enforcing those boundaries or the draft restriction (`docs/spikes/`, `docs/designs/`, `scripts/docs.mjs`, `main`); the ADR needs an edit or a superseding ADR.
-- ADR 0205 Decision says "Keep existing Decision text unchanged; a new ADR records a change to an Accepted decision"; the implementation validates current documents without comparing Decision text to an earlier revision or requiring a new ADR for a changed Accepted decision (`scripts/docs.mjs`, `loadFiles`, `main`); the ADR needs an edit or a superseding ADR.
 - ADR 0205 Decision says "existing dates stay unchanged"; the implementation validates calendar dates but does not compare them with earlier revisions (`scripts/docs.mjs`, `checkMetadata`); the ADR needs an edit or a superseding ADR.

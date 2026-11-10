@@ -13,7 +13,8 @@ Design and spike notes are spread across three places: files directly under `doc
 
 ## Decision
 
-- Give every ADR a title of `# NNNN. Title` in `NNNN-short-kebab-title.md`, followed by metadata and the Context, Decision, and Consequences sections. Keep existing Decision text unchanged; a new ADR records a change to an Accepted decision.
+- Give every ADR a title of `# NNNN. Title` in `NNNN-short-kebab-title.md`, followed by metadata and the Context, Decision, and Consequences sections. Update existing ADR text, including Accepted Decisions, to reflect the current specification; Git preserves earlier revisions. Update affected spec references and remove resolved Open issues in the same change. Status still records agreement; do not silently present a new design choice as already accepted.
+- Do not create an ADR solely for tuning values, dimensions, thresholds, typo fixes, or implementation details that preserve the design approach. Add a separate ADR when a distinct design decision needs its own context, alternatives, and tradeoffs, such as a new architectural boundary, platform constraint, or design approach. Reversing an Accepted decision does not by itself require a new ADR. Use supersession or extension relations only when a separate record is warranted.
 - Use only these metadata fields, in this order, omitting optional fields with no entries:
   - `Status`: exactly one of `Proposed`, `Accepted`, or `Rejected`. It states agreement only, without relations or parentheses.
   - `Acceptance condition: <text>`: optional and only with `Proposed`.
@@ -34,4 +35,4 @@ Design and spike notes are spread across three places: files directly under `doc
 
 Inverse relations exist only in the generated index, so an older ADR needs no metadata edit when a newer ADR replaces or extends it. A relation has one stored kind and scope. Metadata, index, and link errors fail CI rather than waiting for a reader to find them.
 
-A topic spec can go stale. The PR that changes behavior updates the affected spec as well as recording any new decision in an ADR. Specs provide the current rules, while ADRs preserve their reasons and history; the implementation takes precedence, and each difference from an ADR is listed under Open issues for a person to fix by editing the ADR or adding a superseding ADR.
+A topic spec can go stale. The PR that changes behavior updates the affected spec and the ADR text that describes the changed rules, adding a separate ADR only when the decision warrants its own record. Specs provide the current rules, ADRs explain their reasons, and Git preserves revision history. The implementation takes precedence; unresolved differences from ADRs are listed under Open issues until the affected documents are reconciled.
