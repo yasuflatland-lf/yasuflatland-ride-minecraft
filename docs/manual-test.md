@@ -674,3 +674,25 @@ Run these checks on both PC and mobile, with a second player observing. ADR 0238
 | BL5 | Dismount with sneak on PC or the dismount button on touch. Wait for the refresh interval.                   | The normal pose returns and the player is placed beside the middle cell of the 1 by 3 footprint once (searching outward if blocked), without further teleports while walking away. |     |       |
 | BL6 | Reload scripts or restart the server while seated, then observe again.                                      | The loaded rider receives the lounge pose again without reseating.                                                                                                                 |     |       |
 | BL7 | Walk, swim, sleep and swing an arm after getting up.                                                        | Ordinary player animations remain intact.                                                                                                                                          |     |       |
+
+## Dining Chair sitting and recovery
+
+Run on both PC (keyboard and mouse) and mobile (touch). Record each device separately.
+
+| ID  | Action                                                                                      | Expected                                                                                                                                                       | PC  | Mobile | Notes |
+| --- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ------ | ----- |
+| DC1 | Place a Dining Chair on a clear solid floor from each quarter-turn heading.                 | It faces the player, consumes one item in Survival, and shows four black legs, woven seat and reclined wrap-around back with a gap above the seat.             |     |        |       |
+| DC2 | Use Sit on PC; long-press and use the Sit button on mobile. Inspect first and third person. | One player sits at cushion height with the vanilla sitting pose; the back and arms surround the player without an obvious offset. A second player cannot join. |     |        |       |
+| DC3 | Look around, then dismount with the device's normal riding control.                         | The chair stays fixed; the player dismounts and can sit again.                                                                                                 |     |        |       |
+| DC4 | Hit the occupied chair, dismount, then hit the empty chair three times within five seconds. | Occupied hits do not recover it. The empty chair remains through two hits, then disappears and returns one Dining Chair item. Mobile short taps count as hits. |     |        |       |
+
+Owner visual approval and the in-game checks above remain pending.
+
+## Sofa (Single)
+
+| #   | Steps                                                                                                                                                        | Pass condition                                                                                                                            | PC         | Mobile     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------- |
+| SS1 | Craft `PWP / WWW / SPS` from planks P, wool W and sticks S; place on a clear block top at each heading                                                       | One Sofa (Single) faces the player within one cell; Survival consumes one item; blocked support or clearance refuses placement            | unverified | unverified |
+| SS2 | Sit with an empty hand using right-click on PC or the Sit interaction on mobile; check first and third person, then dismount in open space and beside a wall | One player sits on the beige cushion without sinking or hovering; vanilla dismount leaves the player outside the frame and wall           | unverified | unverified |
+| SS3 | Have another player hit the occupied sofa; dismount and hit three times within five seconds                                                                  | Occupied recovery is refused; after dismount the third hit returns exactly one item                                                       | unverified | unverified |
+| SS4 | Compare the model with the issue's whole-sofa, top-down and weave photos                                                                                     | Amber woven box frame, thick arms, low back, base rail, beige seat and back cushions, no throw cushion, small silver corner feet; no logo | unverified | unverified |

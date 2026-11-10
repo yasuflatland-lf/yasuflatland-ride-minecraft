@@ -108,6 +108,7 @@ import {
   camperWall,
 } from "./camper";
 import { campingGearBlocks } from "./campingGear";
+import { diningChairPlaceTakeBack } from "./diningChair";
 import {
   diningTableLantern,
   diningTableOven,
@@ -128,6 +129,7 @@ import {
   bulldozerPaveWide,
 } from "./roadPaver";
 import { roofTentCourse } from "./roofTent";
+import { sofaSinglePlaceTakeBack } from "./sofaSingle";
 import {
   boatCruise,
   boatDock,
@@ -284,10 +286,12 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dining_table_place_take_back: diningTablePlaceTakeBack,
   dining_table_lantern: diningTableLantern,
   dining_table_oven: diningTableOven,
+  sofa_single_place_take_back: sofaSinglePlaceTakeBack,
   beach_chair_lantern: beachChairLantern,
   beach_chair_oven: beachChairOven,
   beach_chair_empty_refresh: beachChairEmptyRefresh,
   beach_chair_fold: beachChairFold,
+  dining_chair_place_take_back: diningChairPlaceTakeBack,
   beach_chair_place: beachChairPlace,
   beach_chair_take_back: beachChairTakeBack,
   parasol_paint: parasolPaint,

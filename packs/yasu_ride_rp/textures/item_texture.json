@@ -64,6 +64,12 @@
     "yasu_ride_dining_table": {
       "textures": "textures/items/yasu_ride/dining_table_item"
     },
+    "yasu_ride_dining_chair": {
+      "textures": "textures/items/yasu_ride/dining_chair_item"
+    },
+    "yasu_ride_sofa_single": {
+      "textures": "textures/items/yasu_ride/sofa_single_item"
+    },
     "yasu_ride_camping_gear_box": {
       "textures": "textures/items/yasu_ride/camping_gear_box"
     },

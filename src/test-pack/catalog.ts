@@ -28,6 +28,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "dining_chair_place_take_back",
+    file: "diningChair",
+    ticks: 8, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "dining_table_lantern",
     file: "diningTable",
     ticks: 20, // Estimate until the first BDS run.
@@ -41,6 +50,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     file: "diningTable",
     ticks: 20, // Estimate until the first BDS run.
     features: ["resort", "camp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "sofa_single_place_take_back",
+    file: "sofaSingle",
+    ticks: 56, // Estimate until the first BDS run.
+    features: ["resort"],
     isolation: "lane",
     needsPlayer: false,
     vehicles: 0,
