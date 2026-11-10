@@ -84,7 +84,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_structure_rotation",
     file: "buildStructureRotation",
-    ticks: 40, // Estimate until the first BDS run.
+    ticks: 6,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: false,
