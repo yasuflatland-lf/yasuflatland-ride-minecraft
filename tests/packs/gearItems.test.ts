@@ -4,7 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds every registered gear item in catalog order with named swatches", async () => {
+it("builds every registered gear item in catalog order with requested swatches or item tiles", async () => {
   const output = await python.run(
     [
       "import json, sys",
@@ -28,8 +28,8 @@ it("builds every registered gear item in catalog order with named swatches", asy
       "    assert registry.build(item_id) == model",
       "    assert isinstance(model.texture_request, tuple)",
       "    assert model.texture_request",
-      "    assert all(name in atlas.PALETTE for name in model.texture_request)",
-      "    requested = [atlas.face(name) for name in model.texture_request]",
+      "    assert all(name in atlas.PALETTE or (name == item_id and name in atlas.GEAR_TILES) for name in model.texture_request)",
+      "    requested = [atlas.face(name) for name in model.texture_request if name in atlas.PALETTE]",
       "    regions = validation.allowed_regions(item_id, atlas.GEAR_TILES)[len(atlas.PALETTE):]",
       "    def own(face):",
       "        u, v, x, y = validation.face_rect(face)",

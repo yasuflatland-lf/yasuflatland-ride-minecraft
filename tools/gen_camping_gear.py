@@ -144,11 +144,23 @@ def rounded(value):
     return value
 
 
+def collect_assemblies(item_tables):
+    table = {}
+    for item_id, entries in item_tables.items():
+        for name, entry in entries.items():
+            if not name.startswith(f"{item_id}_") or name in table:
+                raise ValueError(f"{item_id}: invalid or duplicate assembly {name!r}")
+            table[name] = entry
+    return table
+
+
 MODELS_BY_ID = gear_registry.models()
+ITEM_ASSEMBLIES = {item_id: getattr(load_tool_in("gear_items", item_id), "ASSEMBLIES", {})
+                   for item_id in gear_registry.IDS}
+ASSEMBLIES = collect_assemblies(ITEM_ASSEMBLIES)
 SHAPES = {item_id: list(model.cubes) for item_id, model in MODELS_BY_ID.items()}
+
 ATLAS_PIXELS = atlas_pixels()
-ASSEMBLIES = {name: entry for item_id in gear_registry.IDS
-              for name, entry in getattr(load_tool_in("gear_items", item_id), "ASSEMBLIES", {}).items()}
 
 
 def has_cutouts(item_id):
@@ -246,10 +258,8 @@ def validate(spec):
         if not cubes:
             continue
         try:
-            model = MODELS_BY_ID[item["id"]]
-            table = {name: entry for name, entry in ASSEMBLIES.items()
-                     if name.startswith(item["id"] + "_")}
-            cube_tilt.assert_axes(cubes, model.assemblies, table)
+            cube_tilt.assert_axes(cubes, MODELS_BY_ID[item["id"]].assemblies,
+                                  ITEM_ASSEMBLIES[item["id"]])
         except ValueError as error:
             errors.append(f"{item['id']}: {error}")
             continue
@@ -270,6 +280,14 @@ def validate(spec):
         errors.extend(gear_validate.pair_budget_errors(kind, counts))
         for end, (left, ahead) in enumerate(pair["ends"]):
             for item in standing(spec):
+                model = MODELS_BY_ID[item["id"]]
+                try:
+                    cube_tilt.assert_axes(
+                        [moved(c, left, ahead) for c in model.cubes],
+                        {name: tuple(moved(c, left, ahead) for c in members)
+                         for name, members in model.assemblies.items()}, ITEM_ASSEMBLIES[item["id"]])
+                except ValueError as error:
+                    errors.append(f"{kind} end {end}: {item['id']}: {error}")
                 (x0, _, z0), (x1, _, z1) = cube_tilt.bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
                 if x0 - left < -8 or x1 - left > 8 or z0 - ahead < -8 or z1 - ahead > 8:
                     errors.append(f"{kind} end {end}: {item['id']} leaves the cell")
