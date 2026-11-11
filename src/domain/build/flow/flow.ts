@@ -1,7 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
-import { boxOf, boxWithHeight, type CellBox } from "../box";
+import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
 import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
@@ -129,7 +129,7 @@ export function chooseHeighted(
       : shape.box,
     from: flow.from,
     heightedKind: kind,
-    previous: locked ? shape.box.max.y - shape.box.min.y + 1 : 1,
+    previous: locked ? sizeOf(shape.box).y : 1,
     heightLocked: locked,
     material: flow.material,
   });
