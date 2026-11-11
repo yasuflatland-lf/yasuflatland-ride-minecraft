@@ -12,11 +12,9 @@ import type { BuildStructureStore } from "../../../../application/build/ports/st
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
-import { boxOf, volume } from "../../../../domain/build/box";
-import {
-  parseFace,
-  pasteTarget,
-} from "../../../../domain/build/clipboard/clipboard";
+import { parseFace } from "../../../../domain/build/aim/face";
+import { boxOf, sizeOf, volume } from "../../../../domain/build/box";
+import { pasteTarget } from "../../../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
@@ -152,11 +150,7 @@ export function registerTestEdit(
           const previous = repo
             .getOrCreate(playerId)
             .completeCopy(dimensionId, box, {
-              size: {
-                x: box.max.x - box.min.x + 1,
-                y: box.max.y - box.min.y + 1,
-                z: box.max.z - box.min.z + 1,
-              },
+              size: sizeOf(box),
               blockCount: volume(box),
               contents: { kind: "structure", handle },
             });

@@ -1,6 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import { boxOf, type CellBox, center, edgePoints } from "../box";
+import { boxOf, boxWithHeight, type CellBox, center, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import type { BuildFlow } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
@@ -66,10 +66,7 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         BUILD_SPEC.outlineMaxPoints,
       );
       if (isBoxStepKind(flow.heightedKind)) {
-        const box = {
-          min: flow.base.min,
-          max: { ...flow.base.max, y: flow.base.min.y + height - 1 },
-        };
+        const box = boxWithHeight(flow.base, height);
         if (
           boxStepVolume(flow.heightedKind, box) >
           boxStepLimit(flow.heightedKind)
