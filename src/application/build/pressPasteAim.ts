@@ -21,6 +21,7 @@ export class PressPasteAim {
     dimensionId: DimensionId;
     aim: AimResult;
     tick: number;
+    sneaking: boolean;
   }): "pasted" | "refused" | "menu" | "ignored" {
     const session = this.repo.get(cmd.playerId);
     if (session?.flow.kind !== "pasteAim") return "ignored";

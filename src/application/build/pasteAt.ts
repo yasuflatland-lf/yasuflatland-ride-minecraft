@@ -6,6 +6,7 @@ import { isRepeat, recordPaste } from "../../domain/build/flow/paste";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildPlayers } from "./ports/players";
@@ -71,12 +72,14 @@ export class PasteAt {
       return "refused";
     }
     // Commit history only once placement succeeds, preserving earlier undo on failure.
-    for (const handle of session.recordSnapshot({
-      dimensionId: cmd.dimensionId,
-      box,
-      handle: snapshot,
-    }))
-      this.structures.discard(handle);
+    discardAll(
+      this.structures,
+      session.recordSnapshot({
+        dimensionId: cmd.dimensionId,
+        box,
+        handle: snapshot,
+      }),
+    );
     session.setFlow(recordPaste(flow, anchor, cmd.tick));
     const { message, takesUndoHint } = completionMessage({
       kind: "undoable",

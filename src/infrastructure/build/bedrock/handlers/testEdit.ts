@@ -1,6 +1,7 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
 import type { DescribeBuild } from "../../../../application/build/describeBuild";
+import { discardAll } from "../../../../application/build/discardAll";
 import type { EndBuildSession } from "../../../../application/build/endBuildSession";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type {
@@ -127,10 +128,12 @@ export function registerTestEdit(
             );
             return;
           }
-          for (const dropped of repo
-            .getOrCreate(playerId)
-            .recordSnapshot({ dimensionId, box, handle }))
-            structures.discard(dropped);
+          discardAll(
+            structures,
+            repo
+              .getOrCreate(playerId)
+              .recordSnapshot({ dimensionId, box, handle }),
+          );
         } else if (
           command === "structure" &&
           args.length === 6 &&

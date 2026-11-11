@@ -60,6 +60,7 @@ function setup(
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
+    { discard: () => {} },
   );
   const structures = new FakeStructureStore(world);
   const paste = new PasteAt(
@@ -85,10 +86,16 @@ function setup(
   const target = aimedPasteTarget(clipboard, aim.target);
   if (!target) throw new Error("Expected paste target");
   const start = vi.spyOn(structures, "place");
-  const execute = () => {
+  const execute = (sneaking = false) => {
     const target = aim.aim(playerId);
     if (!target) throw new Error("Expected aim");
-    return press.execute({ playerId, dimensionId: nether, aim: target, tick });
+    return press.execute({
+      playerId,
+      dimensionId: nether,
+      aim: target,
+      tick,
+      sneaking,
+    });
   };
   return {
     repo,
@@ -238,6 +245,7 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
             dimensionId: nether,
             aim: e.aim.target,
             tick: tick + delta,
+            sneaking: false,
           }),
         ).toBe("ignored");
         expect(e.session.flow).toBe(flow);
@@ -260,5 +268,28 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
       },
     ),
+  );
+});
+
+it("returns the same result and leaves the same state regardless of sneaking", () => {
+  fc.assert(
+    fc.property(cell, face, tick, fc.boolean(), (block, face, tick, onAir) => {
+      const press = (sneaking: boolean) => {
+        const e = setup(block, face, tick);
+        if (onAir && e.aim.target) e.aim.target = { ray: e.aim.target.ray };
+        const result = e.execute(sneaking);
+        e.jobs.step();
+        return {
+          result,
+          flow: e.session.flow,
+          clipboard: e.session.clipboard === e.clipboard,
+          editing: e.session.isEditing,
+          places: e.start.mock.calls,
+          messages: e.feedback.messages,
+          writes: e.world.writes,
+        };
+      };
+      expect(press(true)).toEqual(press(false));
+    }),
   );
 });

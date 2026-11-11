@@ -29,6 +29,7 @@ function setup() {
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
+    { discard: () => {} },
   );
   const session = repo.getOrCreate(playerId);
   return {
