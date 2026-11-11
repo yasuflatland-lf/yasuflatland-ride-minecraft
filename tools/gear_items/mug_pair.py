@@ -11,10 +11,9 @@ _paint = _load_tool("gear_paint")
 _tilt = _load_tool("cube_tilt")
 
 SIDES = 16
-# The generator requires the model to span exactly the catalog height, so the spike's 1.61 px
-# silhouette is stretched to 2.975 px (the rim ring adds the last 0.025 px).
-HEIGHT = 3
-SY = 2.975 / 1.61
+# The spike's 1.61 px silhouette plus the 0.025 px rim ring; camping_gear.json lists this height.
+WALL_TOP = 1.61
+HEIGHT = 1.635
 ASSEMBLIES = {
     "mug_pair_shells": {"owner": "camping_gear", "cubes": 128},
     "mug_pair_handles": {"owner": "camping_gear", "cubes": 16},
@@ -44,7 +43,7 @@ def _glaze(colors):
     # Shared panel regions use the final panel height at eight texels per pixel.
     for name, width, height, stops in (
         ("body", .3, HEIGHT, ((0, edge), (.035, upper), (.22, light), (.65, main), (.92, low), (1, edge))),
-        ("inner", .3, 2.5, ((0, edge), (.06, main), (.38, low), (1, deep))),
+        ("inner", .3, 1.35, ((0, edge), (.06, main), (.38, low), (1, deep))),
         ("rim", .3, .12, ((0, edge), (.5, low), (1, edge))),
         ("foot", .3, .24, ((0, edge), (.5, low), (1, edge))),
         ("handle", .24, .55, ((0, upper), (.22, light), (.72, main), (1, low))),
@@ -64,8 +63,6 @@ def _glaze(colors):
 
 def _geometry(faces, scale):
     cubes, shells, handles = [], [], []
-    # The vertical stretch happens before panel construction so the rotated panels remain cuboids.
-    sy = SY
     for x, face in zip((-1.32, .69), faces):
         def outline(radius):
             return {"a": radius*scale, "zf": -radius*scale,
@@ -77,19 +74,19 @@ def _geometry(faces, scale):
                 if surface == "body":
                     u, v = uv["uv"]
                     w, h = uv["uv_size"]
-                    uv = {"uv": [u, v+h*(1-y1/1.61)], "uv_size": [w, h*(y1-y0)/1.61]}
-                result = _kit.loft([(y0*sy, outline(r0)), (y1*sy, outline(r1))], uv,
+                    uv = {"uv": [u, v+h*(1-y1/WALL_TOP)], "uv_size": [w, h*(y1-y0)/WALL_TOP]}
+                result = _kit.loft([(y0, outline(r0)), (y1, outline(r1))], uv,
                                    sides=SIDES, thickness=thickness*scale, inward=inward,
                                    assembly="mug_pair_shells", assemblies=ASSEMBLIES)
                 shells.extend(result)
                 cubes.extend(result)
 
-        wall(((.015, .465), (.145, .485)), "foot", .055)
+        wall(((.0185, .465), (.145, .485)), "foot", .055)
         wall(((.13, .535), (.23, .605), (1.61, .67)), "body", .045)
         wall(((.27, .48), (1.61, .606)), "inner", .035, True)
         # Horizontal rings keep the mouth and the underside open without alpha cutouts.
         for radius, thickness, bottom, top, surface in (
-            (.67, .064, 2.975, 3, "rim"), (.467, .092, 0, .018*sy, "sole"),
+            (.67, .064, WALL_TOP, HEIGHT, "rim"), (.467, .092, 0, .018, "sole"),
         ):
             ring = _kit.ring(SIDES, radius*scale*math.cos(math.pi/SIDES), bottom, top,
                              face[surface], thickness*scale, (x*scale, 0))
@@ -111,9 +108,9 @@ def _geometry(faces, scale):
             w, h = face["floor"]["uv_size"]
             floor_face = {"uv": [u+w*(1-width/radius)/2, v+h*i/8],
                           "uv_size": [w*width/radius, h/8]}
-            cubes.extend(_kit.plate(strip, .245*sy, .272*sy, floor_face))
+            cubes.extend(_kit.plate(strip, .245, .272, floor_face))
         for a, b, thickness, depth in STRAPS:
-            points = [((x+px)*scale, py*sy, 0) for px, py in (a, b)]
+            points = [((x+px)*scale, py, 0) for px, py in (a, b)]
             segment = _kit.tube(points, thickness*scale, face["handle"],
                                 assembly="mug_pair_handles", assemblies=ASSEMBLIES)
             # At yaw 90 local x is the strap's depth, leaving its thin neck and

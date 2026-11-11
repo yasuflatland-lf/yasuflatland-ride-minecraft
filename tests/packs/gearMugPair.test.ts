@@ -42,7 +42,7 @@ else:
     raise AssertionError('Expected registered compound panels')
 lo, hi = tilt.bounds(model.cubes)
 assert abs(lo[0]+2) < .001 and abs(hi[0]-2) < .001
-assert (lo[1], hi[1]) == (0, 3)
+assert (lo[1], hi[1]) == (0, 1.635)
 assert abs(lo[2]+hi[2]) < .001
 rows = json.loads(generator.SPEC.read_text())
 generator.validate(rows)
