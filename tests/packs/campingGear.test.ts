@@ -301,7 +301,8 @@ describe("camping gear block models (ADR 0093)", () => {
       const usesGlass = cubesOf(g.id).some((c) =>
         FACES.some((f) => c.uv[f].uv.join() === GLASS_UV.join()),
       );
-      expect(usesGlass).toBe(g.glass);
+      // The painted sugar pot samples its own tile, not the glass swatch (ADR 0247).
+      expect(usesGlass).toBe(g.glass && g.id !== "sugar_pot");
     },
   );
 
