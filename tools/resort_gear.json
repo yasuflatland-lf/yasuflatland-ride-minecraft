@@ -40,5 +40,12 @@
     "geometry": "sofa_double",
     "textured": true,
     "cutout": false
+  },
+  {
+    "name": "washstand",
+    "item": "washstand_item",
+    "geometry": "washstand",
+    "textured": true,
+    "cutout": true
   }
 ]
