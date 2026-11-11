@@ -57,6 +57,11 @@ import {
   buildUnstuckFill,
   buildUnstuckNotTouched,
 } from "./buildFlow";
+import {
+  buildGroundSnapCave,
+  buildGroundSnapSlope,
+  buildGroundSnapWater,
+} from "./buildGroundSnap";
 import { buildRotateBox } from "./buildRotateBox";
 import {
   buildStructureDecorProbe,
@@ -380,6 +385,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_refusals: buildRefusals,
   build_aimed_paste: buildAimedPaste,
   build_paste_blocked: buildPasteBlocked,
+  build_ground_snap_slope: buildGroundSnapSlope,
+  build_ground_snap_water: buildGroundSnapWater,
+  build_ground_snap_cave: buildGroundSnapCave,
   build_paste_rotate: buildPasteRotate,
   build_paste_structure: buildPasteStructure,
   build_paste_structure_decor: buildPasteStructureDecor,

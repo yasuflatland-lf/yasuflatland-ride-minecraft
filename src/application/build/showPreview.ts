@@ -10,18 +10,16 @@ import { volumeSize } from "../../domain/build/volume/size";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { AimReader } from "./ports/aim";
 import type { BuildFeedback } from "./ports/feedback";
-import { ResolvePasteTarget } from "./resolvePasteTarget";
+import type { ResolvePasteTarget } from "./resolvePasteTarget";
 
 export class ShowPreview {
-  private readonly resolveTarget: ResolvePasteTarget;
   private readonly sizes = new Map<PlayerId, ReturnType<typeof volumeSize>>();
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly feedback: BuildFeedback,
     private readonly aimReader: AimReader,
-  ) {
-    this.resolveTarget = new ResolvePasteTarget(repo);
-  }
+    private readonly resolveTarget: ResolvePasteTarget,
+  ) {}
 
   execute(tick: number): void {
     for (const id of this.sizes.keys()) {
@@ -61,16 +59,22 @@ export class ShowPreview {
           size: session.clipboard.size,
           blockCount: session.clipboard.blockCount,
         });
-      if (flow.kind === "pasteAim" && aim && session.clipboard)
-        preview.pasteBox = this.resolveTarget.execute({
+      const dimensionId =
+        flow.kind === "pasteAim" ? this.aimReader.dimensionOf(id) : undefined;
+      if (flow.kind === "pasteAim" && aim && session.clipboard && dimensionId) {
+        const result = this.resolveTarget.execute({
           playerId: id,
+          dimensionId,
           aim,
-        })?.box;
+          tick,
+        });
+        if (result.kind === "target") preview.pasteBox = result.target.box;
+      }
       const set = previewPoints(flow, preview);
       if (Object.values(set).some((points) => points.length > 0))
         this.feedback.drawPreview(
           id,
-          "dimensionId" in flow ? flow.dimensionId : undefined,
+          "dimensionId" in flow ? flow.dimensionId : dimensionId,
           set,
         );
     }
