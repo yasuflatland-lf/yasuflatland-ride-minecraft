@@ -66,6 +66,15 @@
 - Implementation: `tools/cube_tilt.py` (`tilt_assembly`, `cube_matrix`); `tools/gen_sportsboat.py` (calls with `assembly="wheel"` and `assembly="throttle_lever"`); `tools/gen_noga_chair.py`
 - Verification: `tests/tools/cubeTilt.test.ts` "tilt_assembly (ADR 0166)" cases, including "composes the tilt after the cube's own z turn, Rx * Rz", "changes nothing for 0 degrees" and "requires a declared assembly for compound tilt results". Not verified: that the rotation order matches the game for a compound cube; 0167 says confirmation on a device is pending and no check is recorded.
 
+### Camping gear geometry kit
+
+- Applies to: Camping gear geometry built through the shared pure Python kit.
+- Rule: Rings reuse the panel ring corner overlap. Lofts build local pitch before yaw, and each loft panel spans every corner of its band so a tapered band leaves no corner gap; stepped panels take each vertex from the step end on the visible side and span the hidden end along the edge. Tubes use yaw and local pitch without roll. Compound cubes require a registered assembly. `COMPOUND_TILTS = False` selects yaw-only loft steps and tube stairs with rise at most 0.5 px. Extrusions use conservative horizontal slabs. Plates use texture alpha bounds, or conservative strips with holes when `ALPHA_CUT_PLATES = False`. Builders are deterministic, copy caller data, and check the active rotation rule.
+- Agreement: Proposed
+- Basis: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) Rotation rule.
+- Implementation: `tools/gear_kit.py`
+- Verification: `tests/tools/gearKit.test.ts` "closes rings with overlapping yaw-only edges and validates sizes", "closes constant lofts in both modes and builds local pitch before yaw" (including growing and shrinking outlines, outward and inward), "extrudes convex and concave profiles without gaps and with exact bounds", "plates use exact alpha bounds or conservative strips avoiding offset holes", "tubes contain segment endpoints and switch to yaw-only stairs". Client verification remains pending under ADR 0247.
+
 ### Shared texture modules
 
 - Applies to: the generators in `tools/` that write textures: SUV, camper, sports boat, bulldozer, camping gear, and the generators that use `tools/mer_atlas.py`.
@@ -214,7 +223,7 @@
 
 Where an ADR and the implementation differ, this spec states the implementation and lists the difference here.
 
-- ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) provisionally permits registered yaw-plus-local-pitch gear assemblies (no three-axis cubes), with `COMPOUND_TILTS = False` selecting yaw-only steps of at most 0.5 px; `tools/gen_camping_gear.py` still rejects compound cubes; #1592–#1595 implement the contracts.
+- ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) provisionally permits registered yaw-plus-local-pitch gear assemblies (no three-axis cubes), with `COMPOUND_TILTS = False` selecting yaw-only steps of at most 0.5 px; `tools/gear_kit.py` implements the rotation rule and `COMPOUND_TILTS`; `tools/gen_camping_gear.py` still rejects compound cubes until an item registers assemblies.
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) provisionally assigns a shared 512 x 512 atlas with 128 x 128 item cells, 4-texel outer and 2-texel region gutters, 8 texels per model pixel (16 for lettering), and binary non-glass alpha with nearest-opaque RGB; the generator still writes sixteen flat swatches in 16 x 16; #1594 implements the layout.
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) provisionally selects decor opaque/alpha-test/blend by sampled alpha and glass, uniform pair alpha test at the first standing cutout, and opaque glass twins in pairs; the generator still uses opaque/blend decor and opaque pairs; #1592–#1595 establish support before item ports.
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) provisionally sets `MAX_CUBES_PER_ITEM = 256` after decomposition and `MAX_CUBES_PER_PAIR_BLOCK = 512` visible cubes; the generator has no such budget checks; #1595 adds them.
