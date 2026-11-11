@@ -7,6 +7,7 @@ import {
   type BuildFlow,
   chooseHeighted,
 } from "../../../src/domain/build/flow/flow";
+import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -334,3 +335,27 @@ it.each(["copy", "cut"] as const)(
     );
   },
 );
+
+it("draws rotation mode with the endpoint selection appearance", () => {
+  fc.assert(
+    fc.property(cell, cell, fc.boolean(), (a, b, blink) => {
+      const box = boxOf(a, b);
+      expect(
+        previewPoints(beginRotateMode(dimensionId, box, material, 1), {
+          blink,
+        }),
+      ).toEqual(
+        previewPoints(
+          {
+            kind: "endpoint",
+            dimensionId,
+            from: box.min,
+            to: box.max,
+            material,
+          },
+          { blink },
+        ),
+      );
+    }),
+  );
+});

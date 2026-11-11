@@ -73,6 +73,7 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
 export function utilityMenu(
   session: BuildSession,
 ): MenuEntry<UtilityEntryId>[] {
+  if (session.flow.kind === "rotateMode") return [];
   const entries: MenuEntry<UtilityEntryId>[] = [];
   if (session.confirmedBox) entries.push({ id: "copy" });
   if (session.hasHistory) entries.push({ id: "undo" });

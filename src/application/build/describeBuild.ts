@@ -21,9 +21,12 @@ export class DescribeBuild {
       flow: session?.flow.kind ?? "idle",
       clipboardHeld: session?.clipboard !== undefined,
       pasteTurn: session?.pasteTurn ?? NO_TURN,
-      pasteMenu: pasteMenu({
-        hasHistory: session?.hasHistory ?? false,
-      }).map((entry) => entry.id),
+      pasteMenu:
+        session?.flow.kind === "rotateMode"
+          ? []
+          : pasteMenu({ hasHistory: session?.hasHistory ?? false }).map(
+              (entry) => entry.id,
+            ),
     };
   }
 

@@ -11,6 +11,7 @@ import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
+import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -256,5 +257,24 @@ it("Copy refuses an unconfirmed endpoint and enforces the confirmed copy limit",
       },
     ),
     { numRuns: 4 },
+  );
+});
+
+it("ignores ordinary block and air selection input during rotation without sampling or feedback", () => {
+  fc.assert(
+    fc.property(fc.constantFrom(overworld, nether), (dimensionId) => {
+      const e = setup();
+      const box = boxOf(from, to);
+      e.session.confirmBox(overworld, box);
+      const flow = beginRotateMode(overworld, box, stone, 1);
+      e.session.setFlow(flow);
+      const material = vi.spyOn(e.world, "materialOf");
+      e.point.execute({ playerId, dimensionId, cell: from });
+      e.air.execute({ playerId, end: to });
+      expect(e.session.flow).toBe(flow);
+      expect(e.session.confirmedBox?.box).toEqual(box);
+      expect(material).not.toHaveBeenCalled();
+      expect(e.feedback.messages).toEqual([]);
+    }),
   );
 });
