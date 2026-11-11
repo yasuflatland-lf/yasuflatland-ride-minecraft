@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { TOILET_SPEC, WASHSTAND_SPEC } from "../../src/domain/resort/shows";
 import { defined } from "../support/defined";
 import { expectContiguous, speedRanges } from "../support/soundLevels";
 import { dimension } from "../support/suvDimensions";
@@ -251,6 +252,27 @@ describe("Resource Pack banking (ADR 0026)", () => {
     expect(root.pivot[0]).toBe(0);
     expect(root.pivot[2]).toBe(0);
     expect(root.pivot[1]).toBeGreaterThan(6);
+  });
+});
+
+describe("Resource Pack resort show sounds", () => {
+  const defs = read(`${RP}/sounds/sound_definitions.json`).sound_definitions;
+
+  it.each([
+    ["toilet flush", TOILET_SPEC.flushSound],
+    ["washstand water", WASHSTAND_SPEC.runSound],
+  ])("defines the %s as a recorded, non-empty Ogg file", (_name, id) => {
+    const def = defs[id];
+    expect(def, id).toBeDefined();
+    expect(def.category).toBe("neutral");
+    expect(def.min_distance).toBe(4);
+    expect(def.max_distance).toBe(16);
+    expect(def.sounds).toHaveLength(1);
+    const file = `${RP}/${def.sounds[0].name}.ogg`;
+    expect(existsSync(file), file).toBe(true);
+    const bytes = readFileSync(file);
+    expect(bytes.length).toBeGreaterThan(0);
+    expect(bytes.subarray(0, 4).toString("latin1")).toBe("OggS");
   });
 });
 

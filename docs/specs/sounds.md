@@ -1,6 +1,6 @@
 # Sounds
 
-- Scope: Synthesized vehicle engine, hover, sonar, track, and blade hydraulic sounds, their pack definitions, and the client conditions that play them.
+- Scope: Synthesized vehicle engine, hover, sonar, track, and blade hydraulic sounds, the two recorded resort show sounds, their pack definitions, and the client conditions that play them.
 - Verified at: 5ed1f579
 - Source: [0030](../adr/0030-engine-and-hover-sounds.md)
 - Source: [0041](../adr/0041-sonar-sound-under-water.md)
@@ -19,7 +19,7 @@
 ### Synthesized clips and assets
 
 - Applies to: All sound families in this scope.
-- Rule: `pnpm sounds` runs the `sounds` command in `package.json`. The generator uses only the Python standard library and synthesizes the clips without copying recordings. `write` writes mono 16-bit PCM WAVs at `RATE` into `packs/yasu_ride_rp/sounds/yasu_ride/`. Each family has its own seeded `random.Random` instance; engine and push share one bulldozer instance, and hover and hover start share another. Changing one family's synthesis leaves the other families' random sequences unchanged. Regeneration is reproducible with the generator and environment held fixed.
+- Rule: `pnpm sounds` runs the `sounds` command in `package.json`. The generator uses only the Python standard library and synthesizes the clips without copying recordings; the two recorded resort show sounds below are the only exception and the generator does not write them. `write` writes mono 16-bit PCM WAVs at `RATE` into `packs/yasu_ride_rp/sounds/yasu_ride/`. Each family has its own seeded `random.Random` instance; engine and push share one bulldozer instance, and hover and hover start share another. Changing one family's synthesis leaves the other families' random sequences unchanged. Regeneration is reproducible with the generator and environment held fixed.
 - Agreement: Proposed
 - Basis: [0030](../adr/0030-engine-and-hover-sounds.md) Decision, "No recording is used; the references only set the character:"; [0041](../adr/0041-sonar-sound-under-water.md) Decision, "`tools/gen_sounds.py` also writes `sonar`, a 4 s loop from its own seeded generator, so the other sounds stay byte for byte the same."; [0060](../adr/0060-sports-boat-engine-sound.md) Decision, "The boat's generator has its own seed, so the SUV's sounds stay byte for byte the same"; [0140](../adr/0140-bulldozer-sounds.md) Decision, "Append the new writes after the shower, with independent seeds 140 (engine and push), 141 (tracks), and 142 (hydraulics)."
 - Implementation: `package.json` (`scripts.sounds`); `tools/gen_sounds.py` (`RATE`, `OUT`, `write`, family-specific `random.Random` instances); `packs/yasu_ride_rp/sounds/yasu_ride/`
@@ -114,6 +114,15 @@
 - Basis: [0136](../adr/0136-bulldozer.md) Decision, "Halve the engine and hover sound bands: engine edges 0.5/2.25/4/5.75/7.5 and hover edges 1/3/5/7 blocks/s."; [0136](../adr/0136-bulldozer.md) Decision, "Hover sound has no rider guard (0073); submarine sonar requires a rider."
 - Implementation: `packs/yasu_ride_rp/animation_controllers/yasu_ride/bulldozer.ac.json` (`controller.animation.yasu_ride.bulldozer.form`); `packs/yasu_ride_rp/entity/yasu_ride/bulldozer.ce.json` (`sound_effects`, `animations`); `packs/yasu_ride_rp/animations/yasu_ride/bulldozer.anim.json` (`hover_sound_*`, `submarine_sound`)
 - Verification: Controller states and transitions inspected. `tests/packs/bulldozer.test.ts` checks hover bands in "rumbles the engine at levels rescaled to a 9 blocks/s top speed", the exact sound map in "maps bulldozer sounds to dedicated clips while preserving hover and sonar", and lengths in "matches sound animation lengths to their clips". `tests/packs/resourcePack.test.ts` "%s keeps the hover sound on a riderless vehicle (ADR 0073)" includes the bulldozer. Not verified: bulldozer hover/sonar listening in game; B18-B22 do not explicitly cover these forms.
+
+### Recorded resort show sounds
+
+- Applies to: The Toilet flush and the Washstand running water.
+- Rule: `toilet_flush.ogg` and `washstand_water.ogg` in `packs/yasu_ride_rp/sounds/yasu_ride/` are recordings the owner made and confirmed on 2026-11-11 may be shipped (source not stated), not synthesis; `tools/gen_sounds.py` stays synthesis-only and never writes or overwrites them. Each is mono Ogg Vorbis, the first 5.0 s of its source with a 0.4 s linear fade-out baked in, because the engine cannot fade a sound. The flush comes from `recording-00_08.mp3` (8.21 s) and the running water from `recording-00_06.mp3` (6.84 s); the source files are not committed. The reference command is `ffmpeg -i <src> -t 5 -af afade=t=out:st=4.6:d=0.4 -ac 1 -c:a libvorbis <name>.ogg`; the committed files were cut and faded with the same parameters in Python with `soundfile` and `numpy` (48 kHz) because `ffmpeg` was not installed. `sound_definitions.json` defines `yasu_ride.toilet_flush` and `yasu_ride.washstand_water`, the ids of `TOILET_SPEC.flushSound` and `WASHSTAND_SPEC.runSound`, each in category `neutral`, `min_distance` 4, `max_distance` 16, with one sound named without its extension and no volume override.
+- Agreement: Proposed
+- Basis: Issue #1572 and the owner's Resort Toilet and Washstand design (2026-11-11, retained outside this worktree); [0140](../adr/0140-bulldozer-sounds.md) Decision, "Every definition uses `"category": "neutral"`."
+- Implementation: `packs/yasu_ride_rp/sounds/yasu_ride/toilet_flush.ogg`; `packs/yasu_ride_rp/sounds/yasu_ride/washstand_water.ogg`; `packs/yasu_ride_rp/sounds/sound_definitions.json` (`yasu_ride.toilet_flush`, `yasu_ride.washstand_water`); `src/domain/resort/shows.ts` (`TOILET_SPEC.flushSound`, `WASHSTAND_SPEC.runSound`)
+- Verification: `tests/packs/resourcePack.test.ts` "defines the %s as a recorded, non-empty Ogg file" checks both definitions for the domain spec ids, the category, the distances, the single referenced file, and a non-empty `OggS` stream. The committed files were read back as 5.0 s, mono, Ogg Vorbis. Not verified: that the sounds are audible and unclipped in game (manual check pending), and that the engine adapter plays these ids, which later issues wire.
 
 ## Open issues
 

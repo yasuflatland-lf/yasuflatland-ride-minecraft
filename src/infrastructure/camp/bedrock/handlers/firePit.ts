@@ -4,6 +4,7 @@ import type { FirePitWorld } from "../../../../application/camp/ports/firePit";
 import { asFirePitId } from "../../../../domain/camp/firePit";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
+import { allDimensions } from "../../../shared/dimensions";
 import {
   FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
@@ -59,8 +60,7 @@ export function registerFirePit(
     }
   });
   system.runInterval(() => {
-    for (const dimensionId of ["overworld", "nether", "the_end"]) {
-      const dimension = world.getDimension(dimensionId);
+    for (const dimension of allDimensions()) {
       for (const pit of dimension.getEntities({ type: FIRE_PIT_TYPE })) {
         if (pit.getProperty(FIRE_PIT_LIT_PROPERTY) !== true) continue;
         const at = pit.location;

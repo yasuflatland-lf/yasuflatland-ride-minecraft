@@ -81,6 +81,10 @@
       "args": ["packs/yasu_ride_rp"]
     },
     {
+      "script": "gen_toilet.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
       "script": "gen_washstand.py",
       "args": ["packs/yasu_ride_rp"]
     },
@@ -129,6 +133,7 @@
     "packs/yasu_ride_bp/items/yasu_build",
     "packs/yasu_ride_bp/item_catalog",
     "packs/yasu_ride_rp/textures/item_texture.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/toilet.geo.json",
     "packs/yasu_ride_rp/models/entity/yasu_ride/washstand.geo.json",
     "packs/yasu_ride_rp/animations/yasu_ride/washstand.anim.json"
   ]

@@ -1119,6 +1119,8 @@ def render_photo_view(rp, name, lid=None) -> RasterJob:
     if piece is None:
         raise ValueError(f"Piece '{view['piece']}' is missing from tools/resort_gear.json")
     geo = json.loads((rp / RESORT_GEOMETRY.format(piece["geometry"])).read_text())["minecraft:geometry"][0]
+    if piece["name"] == "toilet":
+        geo = static_pose(geo, json.loads((rp / "animations/yasu_ride/toilet.anim.json").read_text())["animations"]["animation.yasu_ride.toilet.rest"])
     degrees = view.get("lid") if lid is None else lid
     if degrees is not None:
         geo = open_lid(geo, degrees)
@@ -1143,6 +1145,8 @@ def render_gear(geo_path, texture, size, name, animation=None, view=None):
     if geo_path.name == "beach_chair.geo.json" and animation is None:
         animations = json.loads((geo_path.parents[3] / "animations/yasu_ride/beach_chair.anim.json").read_text())["animations"]
         animation = animations["animation.yasu_ride.beach_chair.chair"]
+    if geo_path.name == "toilet.geo.json" and animation is None:
+        animation = json.loads((geo_path.parents[3] / "animations/yasu_ride/toilet.anim.json").read_text())["animations"]["animation.yasu_ride.toilet.rest"]
     if animation is not None:
         geo = static_pose(geo, animation)
     textured = geo_path.name in TEXTURED_GEOMETRY_FILES

@@ -70,7 +70,7 @@ A black woven dining chair with steel tube legs, arm tubes, and an arched, recli
 
 ## The Resort Gear group
 
-Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items are Beach Parasol, Beach Chair, Dining Table, Dining Chair, Sofa (Single), Sofa (Double), and Washstand, in that order.
+Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items are Beach Parasol, Beach Chair, Dining Table, Dining Chair, Sofa (Single), Sofa (Double), Toilet, and Washstand, in that order.
 
 | Item          | Preview                                                          | Use                                                                                                                |
 | ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -78,7 +78,10 @@ Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items ar
 | Beach Chair   | ![Beach Chair](../images/items/camping-gear/beach_chair.png)     | Lie down or fold it into a low table that hosts lanterns and ovens.                                                |
 | Dining Table  | ![Dining Table](../images/items/camping-gear/dining_table.png)   | Place a table, host a lantern or oven on it, and recover it with three hits.                                       |
 | Dining Chair  | ![Dining Chair](../images/items/camping-gear/dining_chair.png)   | Place on a clear solid floor, sit with the normal riding interaction, and recover the empty chair with three hits. |
-| Washstand     | ![Washstand](../images/items/camping-gear/washstand.png)         | Oak and black steel washstand with a white basin and a five-second tap animation; interaction wiring is pending.   |
+| Sofa (Single) | ![Sofa (Single)](../images/items/camping-gear/sofa_single.png)   | A woven single-seat sofa.                                                                                          |
+| Sofa (Double) | ![Sofa (Double)](../images/items/camping-gear/sofa_double.png)   | A woven two-seat sofa spanning two cells.                                                                          |
+| Toilet        | ![Toilet](../images/items/camping-gear/toilet.png)               | A one-seat porcelain toilet; dismounting starts the flush.                                                        |
+| Washstand     | ![Washstand](../images/items/camping-gear/washstand.png)         | Oak and black steel washstand with a white basin and a five-second tap animation; interaction starts the tap.   |
 
 Craft one Dining Chair at a crafting table with planks (`P`), sticks (`S`), and an iron ingot (`I`):
 
@@ -90,11 +93,27 @@ SIS
 
 Dots are empty slots. The chair occupies one floor cell and needs two clear air layers. Its seat is 0.45 blocks above the ground; it seats one player. See [Resort gear](../specs/resort-gear.md) and the [PC/mobile checks](../manual-test.md#dining-chair-sitting-and-recovery). Owner visual approval and in-game verification are pending.
 
+## Toilet
+
+![Toilet](../images/items/camping-gear/toilet.png)
+
+A white porcelain toilet with an egg-shaped bowl, a slim oval tank, a flat hinged lid and a chrome side lever. It occupies one cell and seats one player. The item and model are available in Resort Gear; placement, the lid/flush interaction and sound are integrated.
+
+Craft one at a crafting table from five quartz (`Q`) and one iron ingot (`I`):
+
+```text
+QIQ
+Q.Q
+.Q.
+```
+
+Dots are empty slots. Owner approval of the four photo-angle previews and PC/mobile verification remain pending. See [Resort gear](../specs/resort-gear.md#toilet-assets).
+
 ## Washstand
 
 ![Washstand](../images/items/camping-gear/washstand.png)
 
-An oak top and drawer on a black steel frame, with an expanded-metal shelf, a white basin, and a chrome single-lever tap. It occupies one floor cell, reaches 20 px high, and has no seat. The assets include a five-second stream, foam, splash, film, and lever animation driven by the synchronized running property. Placement and interaction wiring and sound arrive separately; these assets alone do not start the tap on interaction.
+An oak top and drawer on a black steel frame, with an expanded-metal shelf, a white basin, and a chrome single-lever tap. It occupies one floor cell, reaches 20 px high, and has no seat. The assets include a five-second stream, foam, splash, film, and lever animation driven by the synchronized running property. Placement, interaction wiring and sound are integrated; interaction starts the five-second tap show.
 
 Craft one at a crafting table with iron ingots (`I`), planks (`P`), and quartz (`Q`):
 

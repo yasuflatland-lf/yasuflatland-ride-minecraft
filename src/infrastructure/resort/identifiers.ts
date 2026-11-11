@@ -48,6 +48,12 @@ export const TEST_FURNITURE_PLACE = "yasu_ride_test:test_furniture_place";
 export const TEST_FURNITURE_HIT = "yasu_ride_test:test_furniture_hit";
 export const TEST_FURNITURE_TOP = "yasu_ride_test:test_furniture_top";
 export const TEST_FURNITURE_BLOCK = "yasu_ride_test:test_furniture_block";
+export const TEST_TOILET = "yasu_ride_test:test_toilet";
+export const TEST_WASHSTAND = "yasu_ride_test:test_washstand";
+
+export const TOILET_LID_OPEN = id("lid_open");
+export const TOILET_FLUSHING = id("flushing");
+export const WASHSTAND_RUNNING = id("running");
 
 export function furnitureKindOf(
   typeId: string,

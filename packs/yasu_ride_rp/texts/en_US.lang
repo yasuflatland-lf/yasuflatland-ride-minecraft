@@ -254,3 +254,8 @@ item.yasu_ride:washstand_item.name=Washstand
 entity.yasu_ride:washstand.name=Washstand
 
 yasu_build.form.rotate_title=Rotate
+
+item.yasu_ride:toilet_item.name=Toilet
+entity.yasu_ride:toilet.name=Toilet
+yasu_ride.toilet.occupied=Someone is using the Toilet
+yasu_ride.toilet.flushing=The Toilet is flushing
