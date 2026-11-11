@@ -17,9 +17,11 @@ import { cellKey } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { attempt } from "../shared/isolated";
 import type { Logger } from "../shared/ports/logger";
+import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildPlayers } from "./ports/players";
+import type { BuildStructureStore } from "./ports/structures";
 import { unstuck } from "./unstuck";
 
 interface Job {
@@ -42,6 +44,7 @@ export class EditJobs {
     private readonly feedback: BuildFeedback,
     private readonly log: Logger,
     private readonly players: BuildPlayers,
+    private readonly structures: Pick<BuildStructureStore, "discard">,
   ) {}
 
   /** Queues a plan for the player's running edit (BuildSession.beginEdit already succeeded). */
@@ -84,12 +87,15 @@ export class EditJobs {
           this.drop(job);
           attempt(
             () => {
-              this.repo
-                .get(job.playerId)
-                ?.finishEdit(
-                  { dimensionId: job.dimensionId, changes: job.applied },
-                  job.kind,
-                );
+              discardAll(
+                this.structures,
+                this.repo
+                  .get(job.playerId)
+                  ?.finishEdit(
+                    { dimensionId: job.dimensionId, changes: job.applied },
+                    job.kind,
+                  ) ?? [],
+              );
             },
             this.log,
             () => `build edit history for ${job.playerId} failed`,
@@ -117,9 +123,15 @@ export class EditJobs {
       const next = job.plan.next();
       if (next.done) {
         this.drop(job);
-        session.finishEdit(
+        const evicted = session.finishEdit(
           { dimensionId: job.dimensionId, changes: job.applied },
           job.kind,
+        );
+        // A throwing discard must not skip unstuck and the completion feedback below.
+        attempt(
+          () => discardAll(this.structures, evicted),
+          this.log,
+          () => `build edit snapshot discard for ${job.playerId} failed`,
         );
         attempt(
           () => {

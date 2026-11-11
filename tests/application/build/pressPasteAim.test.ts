@@ -4,12 +4,10 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
+import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import {
-  aimedPasteTarget,
-  type Face,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   tapAir,
@@ -62,6 +60,7 @@ function setup(
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
+    { discard: () => {} },
   );
   const structures = new FakeStructureStore(world);
   const paste = new PasteAt(

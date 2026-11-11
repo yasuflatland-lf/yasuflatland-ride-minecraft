@@ -33,7 +33,14 @@ function setup() {
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const log = { warn: vi.fn<(message: string) => void>() };
-  const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    log,
+    new FakeBuildPlayers(),
+    { discard: () => {} },
+  );
   function start(
     player: PlayerId,
     changes: PlannedChange[],

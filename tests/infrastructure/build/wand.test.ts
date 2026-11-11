@@ -384,7 +384,7 @@ function setupRoof(kind: "gable" | "hip") {
   };
   e.aim.aim = () => ({ ray });
   e.menus.showContentsMenu.mockImplementation(() => {
-    expect(e.session.flow).toEqual({ ...flow, previous: 5 });
+    expect(e.session.flow).toEqual({ ...flow, previous: 6 });
   });
   return { ...e, flow, ray };
 }
@@ -398,7 +398,7 @@ function expectRoofTap(e: ReturnType<typeof setupRoof>) {
   expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
     e.menus.showContentsMenu.mock.invocationCallOrder[0] as number,
   );
-  expect(e.session.flow).toEqual({ ...e.flow, previous: 5 });
+  expect(e.session.flow).toEqual({ ...e.flow, previous: 6 });
   expect(e.pointExecute).not.toHaveBeenCalled();
   expect(e.execute).not.toHaveBeenCalled();
   expect(e.menus.showShapeMenu).not.toHaveBeenCalled();
@@ -648,7 +648,7 @@ it.each(["block", "air"])(
     e.confirmBoxStep.execute.mockImplementation(() => {
       expect(e.session.flow).toMatchObject({
         heightedKind: "copy",
-        previous: 5,
+        previous: 6,
       });
     });
     if (tap === "air") e.use();
@@ -682,7 +682,7 @@ it.each(["block", "air"])(
     e.confirmBoxStep.execute.mockImplementation(() => {
       expect(e.session.flow).toMatchObject({
         heightedKind: "cut",
-        previous: 5,
+        previous: 6,
       });
     });
     if (tap === "air") e.use();
