@@ -164,6 +164,8 @@ describe("furniture spec", () => {
       { x: -0.5, y: 0.2475, z: -0.1 },
       { x: 0.5, y: 0.2475, z: -0.1 },
     ]);
+    expect(FURNITURE_SPEC.toilet.seats).toEqual([{ x: 0, y: 0.264, z: -0.1 }]);
+    expect(FURNITURE_SPEC.washstand.seats).toEqual([]);
     expect(FURNITURE_SPEC.dining_table.top).toEqual({
       half: { halfX: 6, halfZ: 6 },
       topPx: 12,
@@ -182,6 +184,8 @@ describe("furniture spec", () => {
       { ahead: 0, left: -1 },
     ];
     expect(FURNITURE_SPEC.sofa_double.cells).toEqual(doubleCells);
+    for (const kind of ["toilet", "washstand"] as const)
+      expect(FURNITURE_SPEC[kind].cells).toEqual([{ ahead: 0, left: 0 }]);
   });
 
   it("brands furniture ids without changing them", () => {
