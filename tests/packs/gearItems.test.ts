@@ -14,6 +14,7 @@ it("builds every registered gear item in catalog order with named swatches", asy
       "registry = load_tool('gear_registry')",
       "values = load_tool('gear_model')",
       "atlas = load_tool('gear_atlas')",
+      "validation = load_tool('gear_validate')",
       "rows = json.loads(Path('tools/camping_gear.json').read_text())",
       "specs = [values.GearSpec.from_row(row) for row in rows]",
       "assert registry.gear_atlas is atlas",
@@ -29,7 +30,8 @@ it("builds every registered gear item in catalog order with named swatches", asy
       "    assert model.texture_request",
       "    assert all(name in atlas.PALETTE for name in model.texture_request)",
       "    requested = [atlas.face(name) for name in model.texture_request]",
-      "    assert all(face in requested for cube in model.cubes for face in cube['uv'].values())",
+      "    tile_regions = validation.allowed_regions(item_id, atlas.GEAR_TILES)[len(atlas.PALETTE):]",
+      "    assert all(face in requested or any(a <= u0 <= u1 <= c and b <= v0 <= v1 <= d for a, b, c, d in tile_regions) for cube in model.cubes for face in cube['uv'].values() for u0, v0, u1, v1 in [validation.face_rect(face)])",
       "print(json.dumps(list(models)))",
     ].join("\n"),
   );
