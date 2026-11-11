@@ -43,7 +43,13 @@ const ATLAS_SIZE = 512;
 const python = startPythonWorker();
 afterAll(() => python.close());
 let gearTiles: Record<string, number>;
+let assemblyItems: string[];
 beforeAll(async () => {
+  assemblyItems = JSON.parse(
+    await python.run(
+      "import sys, json\nsys.path.insert(0, 'tools')\nfrom tool_loader import load_tool, load_tool_in\nprint(json.dumps([item for item in load_tool('gear_registry').IDS if getattr(load_tool_in('gear_items', item), 'ASSEMBLIES', {})]))",
+    ),
+  );
   gearTiles = JSON.parse(
     await python.run(
       "import sys, json\nsys.path.insert(0, 'tools')\nfrom tool_loader import load_tool\nprint(json.dumps(load_tool('gear_atlas').GEAR_TILES))",
@@ -153,6 +159,30 @@ function readPng(path: string) {
   return { width, height, pixel };
 }
 
+function hasCutouts(id: string): boolean {
+  const atlas = readPng(ATLAS);
+  return cubesOf(id).some((cube) =>
+    Object.values(cube.uv).some((face) => {
+      const [u, v] = face.uv;
+      const [du = 0, dv = 0] = face.uv_size;
+      for (
+        let y = Math.floor(Math.min(v, v + dv));
+        y < Math.ceil(Math.max(v, v + dv));
+        y++
+      )
+        for (
+          let x = Math.floor(Math.min(u, u + du));
+          x < Math.ceil(Math.max(u, u + du));
+          x++
+        )
+          if (atlas.pixel(x, y)[3] === 0) return true;
+      return false;
+    }),
+  );
+}
+const pairRenderMethod = () =>
+  SPEC.some((g) => !g.hanging && hasCutouts(g.id)) ? "alpha_test" : "opaque";
+
 describe("camping gear spec (ADR 0093)", () => {
   it("lists the 17 items in the contract's order", () => {
     expect(SPEC.map((g) => g.id)).toEqual([
@@ -228,7 +258,7 @@ describe("camping gear block models (ADR 0093)", () => {
   });
 
   it.each(SPEC)(
-    "$id: is centered in the cell, $width_px px wide and $height_px px high",
+    "$id: covers at least $width_px px in x within the cell and is $height_px px high",
     (g) => {
       const geo = geometryOf(g.id);
       expect(geo.description).toEqual({
@@ -244,15 +274,20 @@ describe("camping gear block models (ADR 0093)", () => {
       const points = cubes.flatMap(cubeCorners);
       const lo = AXES.map((i) => Math.min(...points.map((p) => p[i])));
       const hi = AXES.map((i) => Math.max(...points.map((p) => p[i])));
-      expect(lo[0]).toBeCloseTo(-g.width_px / 2, 3);
-      expect(hi[0]).toBeCloseTo(g.width_px / 2, 3);
+      expect(lo[0]).toBeLessThanOrEqual(-g.width_px / 2 + 0.001);
+      expect(lo[0]).toBeGreaterThanOrEqual(-8);
+      expect(hi[0]).toBeGreaterThanOrEqual(g.width_px / 2 - 0.001);
+      expect(hi[0]).toBeLessThanOrEqual(8);
       expect([lo[1], hi[1]]).toEqual(ySpan(g));
       expect(lo[2]).toBeGreaterThanOrEqual(-8);
       expect(hi[2]).toBeLessThanOrEqual(8);
       for (const c of cubes) {
         expect(
           (c.rotation ?? []).filter((v) => v !== 0).length,
-        ).toBeLessThanOrEqual(1);
+        ).toBeLessThanOrEqual(2);
+        expect(c.rotation?.[2] ?? 0).toBe(0);
+        if ((c.rotation ?? []).filter((v) => v !== 0).length === 2)
+          expect(assemblyItems).toContain(g.id);
         expect(c.size.every((s) => s > 0)).toBe(true);
         expect(Object.keys(c.uv).sort()).toEqual([...FACES].sort());
         for (const f of FACES) {
@@ -308,9 +343,10 @@ describe("camping gear block models (ADR 0093)", () => {
 
   it("keeps the pair geometries within their cell and size budget (ADR 0169)", () => {
     for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
+      // ADR 0247 estimates 4.24 MiB for all 8,192 stored cubes, including hidden items.
       expect(
         statSync(`${MODELS}/${kind}_decor_pair.geo.json`).size,
-      ).toBeLessThan(1_000_000);
+      ).toBeLessThan(4_500_000);
       for (const bone of geometryOf(`${kind}_decor_pair`).bones) {
         for (const p of bone.cubes.flatMap(cubeCorners)) {
           expect(Math.abs(p[0])).toBeLessThanOrEqual(8);
@@ -546,7 +582,11 @@ function expectedDecor(g: Gear) {
         "minecraft:material_instances": {
           "*": {
             texture: ATLAS_KEY,
-            render_method: g.glass ? "blend" : "opaque",
+            render_method: g.glass
+              ? "blend"
+              : hasCutouts(g.id)
+                ? "alpha_test"
+                : "opaque",
           },
         },
         "minecraft:light_dampening": 0,
@@ -756,7 +796,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       });
       // BDS rejects a block that mixes opaque and blending material instances.
       expect(c["minecraft:material_instances"]).toEqual({
-        "*": { texture: ATLAS_KEY, render_method: "opaque" },
+        "*": { texture: ATLAS_KEY, render_method: pairRenderMethod() },
       });
       expect(c).not.toHaveProperty(["minecraft:transformation"]);
       // Only turned by the face and lifted by the height: the items stay over the cell.
@@ -831,7 +871,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     });
     expect(MAX_STANDING_HEIGHT).toBeLessThanOrEqual(10);
     expect(c["minecraft:material_instances"]).toEqual({
-      "*": { texture: ATLAS_KEY, render_method: "opaque" },
+      "*": { texture: ATLAS_KEY, render_method: pairRenderMethod() },
     });
     expect(block.permutations).toEqual(
       [0, 1, 2, 3].map((face) => ({
@@ -901,7 +941,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     expect(c["minecraft:collision_box"]).toBe(false);
     expect(c).not.toHaveProperty(["minecraft:selection_box"]);
     expect(c["minecraft:material_instances"]).toEqual({
-      "*": { texture: ATLAS_KEY, render_method: "opaque" },
+      "*": { texture: ATLAS_KEY, render_method: pairRenderMethod() },
     });
     // Lifted by its height, each box runs from the compartment floor to the top of the cell.
     expect(block.permutations).toEqual(
@@ -966,7 +1006,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     }
   });
 
-  it("draws each end's item at its slot's spot, so the block's turn puts it where the domain measures the slot, with every face on the block's one opaque material (ADR 0108)", () => {
+  it("draws each end's item at its slot's spot, so the block's turn puts it where the domain measures the slot, with every face on the block's shared material (ADR 0108)", () => {
     for (const slot of DECOR_SLOTS.filter((s) => s.pair)) {
       const pair = defined(slot.pair, "pair");
       const { left, forward: ahead } = defined(

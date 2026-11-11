@@ -20,7 +20,8 @@ The icon entry of the camping gear box (BOX) comes first in the generated part o
 item_texture.json; its item JSON and icon are written elsewhere (ADR 0093), and
 tools/gen_item_catalog.py lists it in the creative group.
 A gear shape may use cubes turned about a single axis (a `pivot` and a `rotation` on the cube; ADR
-0169): cube_tilt.bounds() and the pair blocks follow the turn. Compound rotations are not allowed in gear.
+0169): cube_tilt.bounds() and the pair blocks follow the turn. Registered assemblies allow yaw plus local pitch, without roll
+(ADR 0247).
 """
 
 import argparse
@@ -31,7 +32,7 @@ from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tool_loader import load_tool
+from tool_loader import load_tool, load_tool_in
 
 texture_io = load_tool("texture_io")
 gear_model = load_tool("gear_model")
@@ -143,7 +144,27 @@ def rounded(value):
     return value
 
 
-SHAPES = {item_id: list(model.cubes) for item_id, model in gear_registry.models().items()}
+def collect_assemblies(item_tables):
+    table = {}
+    for item_id, entries in item_tables.items():
+        for name, entry in entries.items():
+            if not name.startswith(f"{item_id}_") or name in table:
+                raise ValueError(f"{item_id}: invalid or duplicate assembly {name!r}")
+            table[name] = entry
+    return table
+
+
+MODELS_BY_ID = gear_registry.models()
+ITEM_ASSEMBLIES = {item_id: getattr(load_tool_in("gear_items", item_id), "ASSEMBLIES", {})
+                   for item_id in gear_registry.IDS}
+ASSEMBLIES = collect_assemblies(ITEM_ASSEMBLIES)
+SHAPES = {item_id: list(model.cubes) for item_id, model in MODELS_BY_ID.items()}
+
+ATLAS_PIXELS = atlas_pixels()
+
+
+def has_cutouts(item_id):
+    return 0 in gear_validate.sampled_alphas(SHAPES[item_id], ATLAS_PIXELS, ATLAS_SIZE)
 
 
 def geometry(item_id, cubes):
@@ -162,6 +183,8 @@ def geometry(item_id, cubes):
 
 def moved(cube, left, ahead):
     """The cube shifted to a pair end's spot; a turned cube's pivot moves with it."""
+    # Translate the shipped coordinates so pair and standalone meshes round identically.
+    cube = rounded(cube)
     shift = [left, 0, ahead]
     result = {**cube, "origin": [cube["origin"][i] - shift[i] for i in range(3)]}
     if "pivot" in cube:
@@ -170,11 +193,14 @@ def moved(cube, left, ahead):
 
 
 def pair_geometry(kind, spec):
-    """One bone per standing item per end, its cubes moved to the end's spot in the gear model's
-    frame, where the camper's left is -x and its forward -z (FACE_ROTATION). Every face is opaque,
-    the glass item's too: BDS rejects material instances that mix opaque and blending render
-    methods in one block ("MaterialInstances can't mix and match opaque and transparent
-    materials"), and blending every item would sort their faces wrongly (ADR 0108)."""
+    """Place one bone per standing item at each end's spot in the gear model's frame.
+
+    The camper's left is -x and its forward is -z (FACE_ROTATION). One alpha-test
+    material preserves cutouts across both items: BDS rejects material instances
+    that mix opaque and blending render methods in one block ("MaterialInstances
+    can't mix and match opaque and transparent materials"). Blending every item
+    would sort their faces wrongly (ADR 0108).
+    """
     bones = []
     for end, (left, ahead) in enumerate(PAIRS[kind]["ends"]):
         for item in standing(spec):
@@ -218,7 +244,7 @@ def validate(spec):
         errors.append("Registry must list exactly the ids of camping_gear.json, in the same order")
     # Series part 5/17 adds the static tile assignments.
     tiles = getattr(gear_atlas, "GEAR_TILES", {})
-    pixels = atlas_pixels()
+    pixels = ATLAS_PIXELS
     for item in spec:
         errors.extend(gear_atlas.check_alpha(item["id"], item["glass"]))
         if not isinstance(item["hanging"], bool):
@@ -232,15 +258,16 @@ def validate(spec):
         if not cubes:
             continue
         try:
-            cube_tilt.assert_axes(cubes, {})
+            cube_tilt.assert_axes(cubes, MODELS_BY_ID[item["id"]].assemblies,
+                                  ITEM_ASSEMBLIES[item["id"]])
         except ValueError as error:
             errors.append(f"{item['id']}: {error}")
             continue
         (x0, y0, z0), (x1, y1, z1) = cube_tilt.bounds(cubes)
         w = item["width_px"]
         # Written cube coordinates have three decimals; turning them adds sub-millipixel error.
-        if abs(x0 + w / 2) > 0.001 or abs(x1 - w / 2) > 0.001:
-            errors.append(f"{item['id']}: x spans {x0}..{x1}, not {-w / 2}..{w / 2}")
+        if x0 > -w / 2 + 0.001 or x1 < w / 2 - 0.001 or x0 < -8 or x1 > 8:
+            errors.append(f"{item['id']}: x spans {x0}..{x1}, not covering {-w / 2}..{w / 2} within -8..8")
         ylo, yhi = y_span(item)
         if (y0, y1) != (ylo, yhi):
             errors.append(f"{item['id']}: y spans {y0}..{y1}, not {ylo}..{yhi}")
@@ -253,6 +280,14 @@ def validate(spec):
         errors.extend(gear_validate.pair_budget_errors(kind, counts))
         for end, (left, ahead) in enumerate(pair["ends"]):
             for item in standing(spec):
+                model = MODELS_BY_ID[item["id"]]
+                try:
+                    cube_tilt.assert_axes(
+                        [moved(c, left, ahead) for c in model.cubes],
+                        {name: tuple(moved(c, left, ahead) for c in members)
+                         for name, members in model.assemblies.items()}, ITEM_ASSEMBLIES[item["id"]])
+                except ValueError as error:
+                    errors.append(f"{kind} end {end}: {item['id']}: {error}")
                 (x0, _, z0), (x1, _, z1) = cube_tilt.bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
                 if x0 - left < -8 or x1 - left > 8 or z0 - ahead < -8 or z1 - ahead > 8:
                     errors.append(f"{kind} end {end}: {item['id']} leaves the cell")
@@ -320,7 +355,7 @@ def decor_block(item):
             "components": {
                 "minecraft:geometry": f"geometry.yasu_ride.{gid}",
                 "minecraft:material_instances": {
-                    "*": {"texture": ATLAS_KEY, "render_method": "blend" if item["glass"] else "opaque"}
+                    "*": {"texture": ATLAS_KEY, "render_method": "blend" if item["glass"] else "alpha_test" if has_cutouts(item["id"]) else "opaque"}
                 },
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
@@ -404,7 +439,7 @@ def pair_block(kind, spec):
                     "bone_visibility": visibility,
                 },
                 "minecraft:material_instances": {
-                    "*": {"texture": ATLAS_KEY, "render_method": "opaque"},
+                    "*": {"texture": ATLAS_KEY, "render_method": "alpha_test" if any(has_cutouts(item["id"]) for item in standing(spec)) else "opaque"},
                 },
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
@@ -521,7 +556,7 @@ def main():
 
     for path, document in documents.items():
         out.json(path, json.dumps(document, separators=(",", ":")) + "\n")
-    out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, atlas_pixels()), compress_level=9)
+    out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, ATLAS_PIXELS), compress_level=9)
     out.finish("Camping gear outputs are out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result:", "camping gear models, atlas, blocks, and items are up to date")
 
 
