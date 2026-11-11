@@ -258,11 +258,12 @@ function setupAir() {
     structures,
     new FakeBuildPlayers(),
   );
+  const pressPasteAim = new PressPasteAim(repo, paste, feedback);
   registerWand({
     confirmBoxStep,
     aimHeight,
     repo,
-    pressPasteAim: new PressPasteAim(repo, paste, feedback),
+    pressPasteAim,
     setPoint,
     tapAir,
     menus,
@@ -290,6 +291,7 @@ function setupAir() {
     roofExecute,
     pointExecute,
     paste,
+    pressPasteAim,
     structures,
     feedback,
   };
@@ -515,6 +517,7 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
         };
         e.aim.aim = vi.fn(() => target);
         const pasteCall = vi.spyOn(e.paste, "execute");
+        const pressCall = vi.spyOn(e.pressPasteAim, "execute");
         for (const isFirstEvent of [true, false]) {
           const event = {
             player: e.player,
@@ -533,6 +536,13 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
           e.use();
         }
         expect(e.aim.aim).toHaveBeenCalledExactlyOnceWith(e.id);
+        expect(pressCall).toHaveBeenCalledExactlyOnceWith({
+          playerId: e.id,
+          dimensionId: nether,
+          aim: target,
+          tick: 0,
+          sneaking,
+        });
         if (hasBlock) {
           expect(pasteCall).toHaveBeenCalledExactlyOnceWith({
             playerId: e.id,

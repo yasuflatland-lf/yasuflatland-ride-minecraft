@@ -5,8 +5,6 @@ import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
-import { virtualEndPoint } from "../../../../domain/build/aim/aim";
-import { opensUtilityMenu } from "../../../../domain/build/flow/flow";
 import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { isBoxStepKind } from "../../../../domain/build/volume/kind";
@@ -19,6 +17,7 @@ import {
 import { heldTypeId } from "../../../shared/heldItem";
 import { SELECTION_WAND_TYPE } from "../../identifiers";
 import type { BuildMenus } from "../buildMenus";
+import { dispatchWandPress } from "./wandPress";
 
 export function registerWand({
   setPoint,
@@ -84,39 +83,17 @@ export function registerWand({
     if (!source.isValid || itemStack.typeId !== SELECTION_WAND_TYPE) return;
     const playerId = asPlayerId(source.id);
     if (!debounce.press(playerId, system.currentTick)) return;
-    const target = aim.aim(playerId);
-    const flow = repo.get(playerId)?.flow;
-    if (!target) return;
-    if (flow?.kind === "pasteAim") {
-      const result = pressPasteAim.execute({
-        playerId,
-        dimensionId: asDimensionId(source.dimension.id),
-        aim: target,
-        tick: system.currentTick,
-      });
-      if (result === "menu") void menus.showPasteMenu(source);
-      return;
-    }
-    // A block tap can also emit itemUse; only the interact handler owns that tap.
-    if (target.block) return;
-    if (flow?.kind === "heightStep") {
-      aimHeight.execute({ playerId, ray: target.ray });
-      if (isBoxStepKind(flow.heightedKind))
-        confirmBoxStep.execute({ playerId });
-      else void menus.showContentsMenu(source);
-      return;
-    }
-    if (flow && opensUtilityMenu(flow, source.isSneaking)) {
-      void menus.showUtilityMenu(source);
-      return;
-    }
-    const before = repo.get(playerId)?.flow.kind;
-    const point1 = pointOf(playerId);
-    const end = point1 ? virtualEndPoint(point1, target.ray) : undefined;
-    tapAir.execute({ playerId, end });
-    if (before !== "endpoint" && repo.get(playerId)?.flow.kind === "endpoint")
-      system.run(() => {
-        if (source.isValid) void menus.showShapeMenu(source);
-      });
+    dispatchWandPress({
+      source,
+      playerId,
+      aim,
+      repo,
+      pressPasteAim,
+      aimHeight,
+      confirmBoxStep,
+      menus,
+      pointOf,
+      tapAir,
+    });
   });
 }
