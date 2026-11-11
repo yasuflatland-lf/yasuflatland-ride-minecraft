@@ -1,0 +1,26 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.yasu_ride.washstand": {
+      "initial_state": "default",
+      "states": {
+        "default": {
+          "animations": ["idle"],
+          "transitions": [
+            {
+              "running": "query.property('yasu_ride:running')"
+            }
+          ]
+        },
+        "running": {
+          "animations": ["run"],
+          "transitions": [
+            {
+              "default": "!query.property('yasu_ride:running')"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

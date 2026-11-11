@@ -1126,7 +1126,7 @@ def render_photo_view(rp, name, lid=None) -> RasterJob:
     polygons, glass = collect_boat(
         geo, read_png(rp / RESORT_TEXTURE.format(piece["geometry"])),
         {"lamps": False, "dusk": False, "outward_normals": textured,
-         "merge_texels": piece["geometry"] in ("sofa_single", "sofa_double")},
+         "merge_texels": piece["geometry"] in ("sofa_single", "sofa_double", "washstand")},
         texture_mapping=textured, cutout=piece["cutout"])
     camera = Camera.looking_at(view["position"], view["target"])
     return RasterJob(f"{name}.png", polygons, [], PhotoScreenFit.for_fov(camera, view["fov"]),
@@ -1147,7 +1147,7 @@ def render_gear(geo_path, texture, size, name, animation=None, view=None):
         geo = static_pose(geo, animation)
     textured = geo_path.name in TEXTURED_GEOMETRY_FILES
     polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured,
-                                           "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json")}, texture_mapping=textured,
+                                           "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json", "washstand.geo.json")}, texture_mapping=textured,
                                    cutout=geo_path.name in CUTOUT_GEOMETRY_FILES)
     quads = [quad for quad, _, _ in polygons + glass]
     # Look from the ladder end so the SUV tent's vehicle-left ladder stays visible.
