@@ -17,6 +17,8 @@ NAMESPACE = "yasu_ride"
 FORMAT_VERSION = "1.21.60"
 CATEGORY = "items"
 GEAR_IDS = [item["id"] for item in json.loads(SPEC.read_text())]
+RESORT_SPEC = Path(__file__).resolve().parent / "resort_gear.json"
+RESORT_ITEMS = [piece["item"] for piece in json.loads(RESORT_SPEC.read_text())]
 
 # Plain camp-feature items, not decor in tools/camping_gear.json (ADR 0122, 0130).
 OUTSIDE_IDS = ["low_chair_item", "noga_chair_item", "tent_item", "roof_tent_item", "camp_table_item", "fire_pit_item", "dutch_oven_item", "gas_lantern_item"]
@@ -34,7 +36,8 @@ GROUPS = [
         "icon": "low_chair_item",
         "items": OUTSIDE_IDS,
     },
-    {"name": "resort_gear", "icon": "beach_parasol_item", "items": ["beach_parasol_item", "beach_chair_item", "dining_table_item", "dining_chair_item", "sofa_single_item", "sofa_double_item"]},
+    # tools/resort_gear.json lists the pieces in display order; the first is the group icon.
+    {"name": "resort_gear", "icon": RESORT_ITEMS[0], "items": RESORT_ITEMS},
     # The sports boat's equipment; the Icebreaker Switch is its only item and its icon; the
     # equipment box is a hidden placement gift (ADR 0174).
     {"name": "sportsboat_equipment", "icon": "icebreaker_switch", "items": ["icebreaker_switch"]},
