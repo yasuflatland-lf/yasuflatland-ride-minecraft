@@ -219,6 +219,39 @@ rejects(lambda: g.outline_points({'a':1,'zf':-1,'zb':1,'r':2}))`,
     );
   });
 
+  it("bounds planar polygons in broad faces with horizontal local x and normalized face UVs", async () => {
+    await fc.assert(
+      fc.asyncProperty(dimension, dimension, async (w, h) => {
+        await run(
+          `w,h = args
+for points, axes in (([[0,0,0],[w,0,0],[w,0,h],[0,0,h]],1),
+                     ([[0,0,0],[w,0,0],[w,h,0]],0),
+                     ([[0,0,0],[0,0,w],[0,h,w]],1),
+                     ([[0,0,0],[w,0,w],[w,h,w+h],[0,h,h]],2)):
+    cube, uv = g.planar(points, face, .04, assembly='test', assemblies=table)
+    assert ct.axis_count(cube) == axes
+    assert cube['rotation'][2] == 0
+    corners = ct.corners(cube)
+    # Corner bit order is x + 2y + 4z, so opposite broad faces differ by four.
+    center_plane = [[(corners[i][a]+corners[i+4][a])/2 for a in range(3)] for i in range(4)]
+    a,b,c = center_plane[0],center_plane[1],center_plane[2]
+    ex,ey = [b[i]-a[i] for i in range(3)],[c[i]-a[i] for i in range(3)]
+    for p,(u,v) in zip(points,uv):
+        assert inside(p,cube)
+        assert -1e-6 <= u <= 1+1e-6 and -1e-6 <= v <= 1+1e-6
+        reconstructed = [a[i]+u*ex[i]+(1-v)*ey[i] for i in range(3)]
+        assert max(abs(p[i]-reconstructed[i]) for i in range(3)) < .001
+    if axes == 2:
+        rejects(lambda: g.planar(points,face,.04), 'assembly')
+rejects(lambda: g.planar([[0,0,0],[1,0,0],[2,0,0]],face,.1))
+rejects(lambda: g.planar([[0,0,0],[1,0,0],[1,1,0],[0,1,1]],face,.1))`,
+          [w, h],
+        );
+      }),
+      runs,
+    );
+  });
+
   it("tubes contain segment endpoints and switch to yaw-only stairs", async () => {
     await fc.assert(
       fc.asyncProperty(dimension, dimension, dimension, async (x, y, z) => {
