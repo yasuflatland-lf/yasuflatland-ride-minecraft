@@ -1,5 +1,5 @@
 import { Direction } from "@minecraft/server";
-import type { Face } from "../../../domain/build/clipboard/clipboard";
+import type { Face } from "../../../domain/build/aim/face";
 
 export const FACES: Record<Direction, Face> = {
   [Direction.Up]: "up",
