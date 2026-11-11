@@ -1,0 +1,134 @@
+{
+  "generators": [
+    {
+      "script": "gen_model.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_sportsboat.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_camper.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_bulldozer.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_build_tools.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_camping_gear.py",
+      "args": ["packs/yasu_ride_rp", "packs/yasu_ride_bp"]
+    },
+    {
+      "script": "gen_item_catalog.py",
+      "args": ["packs/yasu_ride_bp"]
+    },
+    {
+      "script": "gen_low_chair.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_sofa.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_noga_chair.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_camp_table.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_fire_pit.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_dutch_oven.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_gas_lantern.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_tent.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_beach_parasol.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_beach_chair.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_dining_table.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_dining_chair.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_roof_tent.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "gen_toilet.py",
+      "args": ["packs/yasu_ride_rp"]
+    },
+    {
+      "script": "render_preview.py",
+      "args": [
+        "packs/yasu_ride_rp",
+        "docs/images",
+        "--icons",
+        "packs/yasu_ride_rp",
+        "packs/yasu_ride_bp",
+        "packs/yasu_ride_test_bp"
+      ],
+      "afterFormat": true
+    }
+  ],
+  "format": [
+    "packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json",
+    "packs/yasu_ride_rp/textures/entity/yasu_ride",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat_monitor.geo.json",
+    "packs/yasu_ride_rp/render_controllers/yasu_ride/sportsboat_monitor.rc.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer_monitor.geo.json",
+    "packs/yasu_ride_rp/render_controllers/yasu_ride/bulldozer_monitor.rc.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/low_chair.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/noga_chair.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/camp_table.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/fire_pit.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/dutch_oven.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/gas_lantern.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/tent.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/roof_tent.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/beach_parasol.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/beach_chair.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/dining_table.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/dining_chair.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/sofa_single.geo.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/sofa_double.geo.json",
+    "packs/yasu_ride_rp/models/blocks/yasu_ride",
+    "packs/yasu_ride_rp/textures/terrain_texture.json",
+    "packs/yasu_ride_bp/blocks/yasu_ride",
+    "packs/yasu_ride_bp/items/yasu_ride",
+    "packs/yasu_ride_bp/items/yasu_build",
+    "packs/yasu_ride_bp/item_catalog",
+    "packs/yasu_ride_rp/textures/item_texture.json",
+    "packs/yasu_ride_rp/models/entity/yasu_ride/toilet.geo.json"
+  ]
+}

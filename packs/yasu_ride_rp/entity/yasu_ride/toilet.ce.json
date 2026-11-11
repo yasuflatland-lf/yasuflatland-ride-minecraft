@@ -1,0 +1,31 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:toilet",
+      "materials": {
+        "default": "entity_alphatest",
+        "water": "entity_alphablend"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/toilet"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.toilet"
+      },
+      "render_controllers": ["controller.render.yasu_ride.toilet"],
+      "animations": {
+        "lid_open": "animation.yasu_ride.toilet.lid_open",
+        "lid_close": "animation.yasu_ride.toilet.lid_close",
+        "flush": "animation.yasu_ride.toilet.flush",
+        "rest": "animation.yasu_ride.toilet.rest",
+        "lid": "controller.animation.yasu_ride.toilet.lid",
+        "flushing": "controller.animation.yasu_ride.toilet.flush",
+        "closed_pose": "animation.yasu_ride.toilet.closed_pose"
+      },
+      "scripts": {
+        "animate": ["lid", "flushing"]
+      }
+    }
+  }
+}

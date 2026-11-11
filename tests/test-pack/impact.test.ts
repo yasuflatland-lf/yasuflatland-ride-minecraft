@@ -4,6 +4,8 @@ import { posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
+import { bareId } from "../../src/infrastructure/shared/identifiers";
 import { CATALOG } from "../../src/test-pack/catalog";
 import {
   covers,
@@ -335,6 +337,27 @@ describe("selectionOf", () => {
     "packs/yasu_ride_bp/items/yasu_ride/sofa_double_item.item.json",
   ])("selects resort for the new sofa asset %s", (path) => {
     expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
+  });
+
+  it("tags the entity and item stem of every furniture kind as resort", () => {
+    // impact.ts cannot import FURNITURE_IDS: that would make the resort sources harness imports and select every scenario.
+    const stems = Object.values(FURNITURE_IDS).flatMap(({ entity, item }) => [
+      bareId(entity),
+      bareId(item),
+    ]);
+    for (const stem of stems) {
+      expect(stem).toBeDefined();
+      expect(PACK_STEM_TAGS[stem as string]).toEqual(["resort"]);
+    }
+  });
+
+  it("selects only resort for edits to the resort domain and identifier sources", () => {
+    for (const path of [
+      "src/domain/resort/furniture.ts",
+      "src/infrastructure/resort/identifiers.ts",
+    ]) {
+      expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
+    }
   });
 
   it.each([

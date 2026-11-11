@@ -1,0 +1,51 @@
+[
+  {
+    "name": "beach_parasol",
+    "item": "beach_parasol_item",
+    "geometry": "beach_parasol",
+    "textured": true,
+    "cutout": false
+  },
+  {
+    "name": "beach_chair",
+    "item": "beach_chair_item",
+    "geometry": "beach_chair",
+    "textured": true,
+    "cutout": false
+  },
+  {
+    "name": "dining_table",
+    "item": "dining_table_item",
+    "geometry": "dining_table",
+    "textured": true,
+    "cutout": false
+  },
+  {
+    "name": "dining_chair",
+    "item": "dining_chair_item",
+    "geometry": "dining_chair",
+    "textured": true,
+    "cutout": false
+  },
+  {
+    "name": "sofa_single",
+    "item": "sofa_single_item",
+    "geometry": "sofa_single",
+    "textured": true,
+    "cutout": false
+  },
+  {
+    "name": "sofa_double",
+    "item": "sofa_double_item",
+    "geometry": "sofa_double",
+    "textured": true,
+    "cutout": false
+  },
+  {
+    "name": "toilet",
+    "item": "toilet_item",
+    "geometry": "toilet",
+    "textured": true,
+    "cutout": true
+  }
+]

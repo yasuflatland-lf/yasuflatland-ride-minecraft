@@ -2,6 +2,7 @@
 
 - Scope: Unit properties, mutation and unused-code checks, dependency updates, CI jobs and coverage, and the in-game test pack, runner protocol, scheduling, and local scenario selection.
 - Verified at: 5ed1f579
+- Source: [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md)
 - Source: [0010](../adr/0010-testing-strategy.md)
 - Source: [0013](../adr/0013-dependency-updates-with-renovate.md)
 - Source: [0048](../adr/0048-mutation-testing-and-unused-code-checks.md)
@@ -45,7 +46,16 @@
 - Agreement: Accepted
 - Basis: [0010](../adr/0010-testing-strategy.md) Decision, "Verify integration with the game through in-game tests written in a test-only Behavior Pack."; [0010](../adr/0010-testing-strategy.md) Decision, "Do not use the GameTest framework (`@minecraft/server-gametest`)."
 - Implementation: `scripts/build.mjs`, `scripts/game-test.mjs`, `src/test-pack/runner.ts`, `src/test-pack/protocol.ts`, `src/test-pack/arena.ts`, `package.json`, `packs/yasu_ride_test_bp/manifest.json`
-- Verification: `tests/test-pack/resultLog.test.ts` checks run isolation and summary verdicts; `tests/test-pack/runner.test.ts` checks orchestration with a mocked engine; `tests/test-pack/nodeImport.test.ts` checks that Node can load shared pure modules. `tests/packs/layout.test.ts` checks namespace layout and path length for all three packs. Not verified: those tests do not execute Docker transport or enforce the absence of GameTest imports; no BDS run was performed for this spec.
+- Verification: `tests/test-pack/resultLog.test.ts` checks run isolation and summary verdicts; `tests/test-pack/runner.test.ts` checks orchestration with a mocked engine; `tests/test-pack/nodeImport.test.ts` checks that Node can load shared pure modules. `tests/packs/layout.test.ts` checks namespace layout and path length for all four packs. Not verified: those tests do not execute Docker transport or enforce the absence of GameTest imports; no BDS run was performed for this spec.
+
+### Manual cutout probe resources
+
+- Applies to: the Toilet and Washstand cutout spike.
+- Rule: The dev world registers and mounts `yasu_ride_test_rp` alongside `yasu_ride_test_bp`. The client assets for `yasu_ride_test:cutout_probe` live only in the test Resource Pack; both test packs are excluded from the `.mcaddon` and Realms. The player command `/scriptevent yasu_ride_test:cutout_probe` replaces existing probes in that dimension and shows an inspection checklist. This is a manual visual probe, not an automated catalog scenario. Bump the test Resource Pack's header and module versions by hand when its files change; ADR 0062 rewrites only the main Resource Pack.
+- Agreement: Proposed
+- Basis: [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md) Decision, cut-out textures and the dev-only probe.
+- Implementation: `src/test-pack/cutoutProbe.ts`, `packs/yasu_ride_test_rp`, `tools/gen_cutout_probe.py`, `scripts/setup-dev-world.mjs`, `server/compose.yaml`.
+- Verification: `tests/packs/cutoutProbe.test.ts` checks hard alpha, transparent RGB, per-face UVs, water material and bone order. Not verified: the owner must inspect on PC and mobile (touch) for fringes, visible hidden faces, and incorrect water alpha order; screenshots and results are still required. A negative result blocks #1570 and #1571 pending the owner's fallback decision.
 
 ### Production driving-input receiver
 
@@ -113,7 +123,7 @@
 ### Conditional model checks
 
 - Applies to: the unit workflow model job.
-- Rule: The model job checks out at depth two. On pull requests it diffs `HEAD^1` against `HEAD` and runs only if the path filter matches. Inputs include every top-level Python file via `tools/[^/]+\.py`, camping gear and monitor screen JSON, Resource Pack models, render controllers, entity/block/item textures, animations, terrain and item atlases, Behavior Pack blocks/items/item catalog, pack icons, docs images, package.json, mise.toml, and the unit workflow. Main pushes always run the check. A skipped render leaves the job successful without mise setup. An active job installs tools through mise and runs `pnpm run model:check` without a pnpm dependency install; the script checks generators, previews, and icons.
+- Rule: The model job checks out at depth two. On pull requests it diffs `HEAD^1` against `HEAD` and runs only if the path filter matches. Inputs include every top-level Python file via `tools/[^/]+\.py`, camping gear, monitor screen, Resort Gear, and generator list JSON, Resource Pack models, render controllers, entity/block/item textures, animations, terrain and item atlases, Behavior Pack blocks/items/item catalog, pack icons, docs images, package.json, mise.toml, and the unit workflow. Main pushes always run the check. A skipped render leaves the job successful without mise setup. An active job installs tools through mise and runs `pnpm run model:check` without a pnpm dependency install; the script checks generators, previews, and icons.
 - Agreement: Proposed
 - Basis: [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md) Decision, "On a pull request, the `model` job checks out with depth 2"; [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md) Decision, "A push to `main` always runs the check"; [0193](../adr/0193-shared-texture-tooling.md) Decision, "Widen the model CI job path filter to include every `tools/*.py` file."
 - Implementation: `.github/workflows/unit-test.yml` (`model`), `package.json` (`model:check`)
@@ -194,7 +204,7 @@
 ### Feature tags and ordered impact rules
 
 - Applies to: automatic local selection of in-game scenarios.
-- Rule: The closed tags are `build`, `camp`, `vehicle`, `vehicle:suv`, `vehicle:camper`, `vehicle:sportsboat`, and `vehicle:bulldozer`. A changed `vehicle` covers every kind tag. The first matching impact rule returns all, none, or tags. Harness files and listed external harness imports, shared code, entry/install files, manifests, dependencies, runtime scripts, and server paths select all. Registry-only changes select none; scenario-file tags are the union of catalog entries for that file. Feature folders, motion mappings, and pack stems map to tags; unknown paths or pack stems select all. Docs, tests, remaining scripts/tools, generated scripts, and most Resource Pack changes select none. Resource Pack block models are an earlier exception mapped through pack stems, and `tools/camping_gear.json` maps to camper.
+- Rule: The closed tags are `build`, `camp`, `vehicle`, `vehicle:suv`, `vehicle:camper`, `vehicle:sportsboat`, and `vehicle:bulldozer`. A changed `vehicle` covers every kind tag. The first matching impact rule returns all, none, or tags. Harness files and listed external harness imports, shared code, entry/install files, manifests, dependencies, runtime scripts, and server paths select all. Registry-only changes select none; scenario-file tags are the union of catalog entries for that file. Feature folders, motion mappings, and pack stems map to tags; unknown paths or pack stems select all. Docs, tests, remaining scripts/tools, generated scripts, and most Resource Pack changes (including test Resource Pack assets) select none. Resource Pack block models are an earlier exception mapped through pack stems, and `tools/camping_gear.json` maps to camper.
 - Agreement: Proposed
 - Basis: [0189](../adr/0189-run-only-impacted-in-game-scenarios-locally.md) Decision, "A static, ordered rule table maps each changed path to `all`, `none`, or tags. The first match wins."; [0189](../adr/0189-run-only-impacted-in-game-scenarios-locally.md) Decision, "A changed `vehicle` covers every `vehicle:*` scenario."
 - Implementation: `src/test-pack/features.ts`, `src/test-pack/impact.ts` (`IMPACT_RULES`, `HARNESS_IMPORTS`, `MOTION_TAGS`, `PACK_STEM_TAGS`), `src/test-pack/catalog.ts`
