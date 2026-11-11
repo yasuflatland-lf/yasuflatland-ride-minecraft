@@ -1,7 +1,7 @@
 # 0246. Toilet and Washstand: interact shows, cut-out textures, baked chrome, and recorded sounds
 
-- Status: Proposed
-- Acceptance condition: the owner verifies the cutout probe on the dev BDS on PC and mobile (touch), records screenshots and results, and satisfies every check in Verification still required
+- Status: Accepted
+- Decided in: #1566
 - Date: 2026-11-11
 - Related: [0240](0240-resort-furniture-family.md): furniture placement and recovery
 - Related: [0239](0239-a-beach-chair-that-folds-into-a-table.md): entity interacts and rider departure
@@ -12,7 +12,7 @@
 
 The Toilet and Washstand design uses curved panel rings for bodies and single textured cubes for flat plates and round discs. Alpha-cut outlines and holes save cubes only if Bedrock renders those cutouts correctly and hides faces mapped to transparent texels. A browser reference cannot establish the engine's alpha handling or water draw order. Issue #1566 supplies a manual probe before the dependent model work in #1570 and #1571.
 
-The owner's design and browser reference remain outside the committed repository. Their other shared decisions are timed shows driven by entity interaction, painted chrome, and recorded audio. The probe and Washstand client assets implement these rendering decisions. Interaction wiring and sound assets remain separate work.
+The owner's design and browser reference remain outside the committed repository. Their other shared decisions are timed shows driven by entity interaction, painted chrome, and recorded audio. The probe, Toilet and Washstand client assets, interaction wiring and sound assets implement these decisions.
 
 ## Decision
 
@@ -32,7 +32,7 @@ Keep `yasu_ride_test:cutout_probe` in the test Behavior Pack and its client enti
 
 Run `scriptevent yasu_ride_test:cutout_probe` as a player. The handler removes existing probes in that dimension and spawns one three blocks ahead at the player's feet, facing the player. The model holds the plate, disc, and pool about 1.5 blocks above the origin for inspection above, beside, and below. Generate its atlas with `python3 tools/gen_cutout_probe.py`; this standalone deterministic generator is not part of `pnpm model`.
 
-Probe result: **not yet verified in game**.
+Probe result: **not yet verified in game.** On 2026-11-11 the owner accepted this decision and approved merging this probe and the dependent model changes ([11/14] (#1570) and [12/14] (#1571)) without waiting for the in-game result. The checks under Verification still required stay open as an accepted risk.
 
 ### Baked chrome
 
@@ -46,7 +46,7 @@ Use the first 5 seconds of each owner-approved recording, with a 0.4-second fade
 
 Single-cube plates and discs save the cube budget that panel outlines and rings would consume. Alpha texture padding and per-face UVs become part of the model contract. The extra dev Resource Pack requires world registration, a mount, layout checks, and manual version maintenance, while release packaging continues to include only the two production packs.
 
-Static asset tests establish UVs, alpha values, RGB padding, and material/bone order; they cannot establish Bedrock rendering on either device. Keep this ADR Proposed until the owner completes the checks below. If the result is negative, add a clearly marked **BLOCKED** section to this ADR, keep it Proposed, and do not merge [11/14] (#1570) or [12/14] (#1571). The fallback is N-gon panel rings of 32 sides, subject to the owner's decision; never switch silently.
+Static asset tests establish UVs, alpha values, RGB padding, and material/bone order; they cannot establish Bedrock rendering on either device. The owner accepted this ADR on 2026-11-11 before those checks ran, so they stay open as an accepted risk. If a check later shows a fringe, a hidden face, or incorrect alpha order, record the failure here under a clearly marked **Probe failure** heading and replace the affected rules with a new ADR that supersedes this one in part. The fallback is N-gon panel rings of 32 sides, subject to the owner's decision, and the model generators of [11/14] (#1570) and [12/14] (#1571) are then revised; never switch silently.
 
 Revisit the cutout decision if either device shows a fringe, a hidden face, or incorrect alpha order, or if an engine/material update changes the verified behavior. Revisit the chrome or audio approach only if entity reflection or animation sound volume control becomes available through the supported stable engine interfaces.
 
@@ -61,4 +61,4 @@ The owner must build with `pnpm build`, restart the dev BDS with `pnpm server:re
 - Confirm correct alpha order for the water plate against the opaque pool floor from both sides: the floor is visible through water from above and correctly occludes water from below.
 - Record screenshots and results for both platforms in the pull request, with client/BDS versions and date, and update this ADR with that evidence.
 
-A negative result requires the BLOCKED section and the #1570/#1571 merge stop described above. Until verification is recorded, those model changes remain dependent on this unverified spike.
+A negative result requires the Probe failure record described under Consequences. Until verification is recorded, the model changes of #1570 and #1571 rest on this unverified spike.

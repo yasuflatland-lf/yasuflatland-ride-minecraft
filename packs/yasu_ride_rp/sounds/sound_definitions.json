@@ -319,6 +319,18 @@
           "volume": 0.35
         }
       ]
+    },
+    "yasu_ride.toilet_flush": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 16.0,
+      "sounds": [{ "name": "sounds/yasu_ride/toilet_flush" }]
+    },
+    "yasu_ride.washstand_water": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 16.0,
+      "sounds": [{ "name": "sounds/yasu_ride/washstand_water" }]
     }
   }
 }

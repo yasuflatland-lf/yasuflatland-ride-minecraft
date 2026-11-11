@@ -52,7 +52,7 @@
 
 - Applies to: the Toilet and Washstand cutout spike.
 - Rule: The dev world registers and mounts `yasu_ride_test_rp` alongside `yasu_ride_test_bp`. The client assets for `yasu_ride_test:cutout_probe` live only in the test Resource Pack; both test packs are excluded from the `.mcaddon` and Realms. The player command `/scriptevent yasu_ride_test:cutout_probe` replaces existing probes in that dimension and shows an inspection checklist. This is a manual visual probe, not an automated catalog scenario. Bump the test Resource Pack's header and module versions by hand when its files change; ADR 0062 rewrites only the main Resource Pack.
-- Agreement: Proposed
+- Agreement: Accepted
 - Basis: [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md) Decision, cut-out textures and the dev-only probe.
 - Implementation: `src/test-pack/cutoutProbe.ts`, `packs/yasu_ride_test_rp`, `tools/gen_cutout_probe.py`, `scripts/setup-dev-world.mjs`, `server/compose.yaml`.
 - Verification: `tests/packs/cutoutProbe.test.ts` checks hard alpha, transparent RGB, per-face UVs, water material and bone order. Not verified: the owner must inspect on PC and mobile (touch) for fringes, visible hidden faces, and incorrect water alpha order; screenshots and results are still required. A negative result blocks #1570 and #1571 pending the owner's fallback decision.
