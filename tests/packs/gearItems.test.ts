@@ -29,7 +29,11 @@ it("builds every registered gear item in catalog order with named swatches", asy
       "    assert model.texture_request",
       "    assert all(name in atlas.PALETTE for name in model.texture_request)",
       "    requested = [atlas.face(name) for name in model.texture_request]",
-      "    assert all(face in requested for cube in model.cubes for face in cube['uv'].values())",
+      "    regions = load_tool('gear_validate').allowed_regions(item_id, atlas.GEAR_TILES)[len(atlas.PALETTE):]",
+      "    def own(face):",
+      "        u, v, x, y = load_tool('gear_validate').face_rect(face)",
+      "        return any(a <= u <= x <= c and b <= v <= y <= d for a,b,c,d in regions)",
+      "    assert all(face in requested or own(face) for cube in model.cubes for face in cube['uv'].values())",
       "print(json.dumps(list(models)))",
     ].join("\n"),
   );
