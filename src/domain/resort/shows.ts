@@ -6,6 +6,11 @@ export const TOILET_SPEC = Object.freeze({
   lidOpenTicks: ticks(8),
   lidOpenDegrees: 91,
   scanTicks: ticks(2),
+  // Keep the front exit search independent of other furniture tuning (ADR 0050).
+  exitFrontOffset: 1,
+  exitSearchRadius: 4,
+  exitSearchUp: 4,
+  exitSearchDown: 8,
   flushSound: soundId("yasu_ride.toilet_flush"),
 });
 

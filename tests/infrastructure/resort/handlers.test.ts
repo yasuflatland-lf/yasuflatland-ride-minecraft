@@ -150,8 +150,7 @@ it("wires the scan interval, shared block guard and both space checks", () => {
     .spyOn(BedrockParasolWorld.prototype, "ceilingOwner")
     .mockReturnValue("p");
   const deps = setup();
-  // Furniture and Beach Chair register before the parasol scan.
-  expect(game.runInterval).toHaveBeenCalledTimes(3);
+  expect(game.runInterval).toHaveBeenCalledTimes(5);
   expect(game.handlers.has("startup")).toBe(false);
   const loaded = { id: "p" };
   game.getDimension.mockReturnValue({ getEntities: () => [loaded] });
