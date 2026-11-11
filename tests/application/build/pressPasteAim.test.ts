@@ -264,3 +264,36 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
     ),
   );
 });
+
+it("returns the same result regardless of sneaking", () => {
+  fc.assert(
+    fc.property(cell, face, tick, (block, face, tick) => {
+      const baseline = setup(block, face, tick);
+      const expected = baseline.execute();
+      for (const sneaking of [true, false]) {
+        const e = setup(block, face, tick);
+        if (!e.aim.target) throw new Error("Expected aim");
+        const press = new PressPasteAim(
+          e.repo,
+          new PasteAt(
+            e.repo,
+            e.world,
+            e.feedback,
+            e.structures,
+            new FakeBuildPlayers(),
+          ),
+          e.feedback,
+        );
+        expect(
+          press.execute({
+            playerId,
+            dimensionId: nether,
+            aim: e.aim.target,
+            tick,
+            sneaking,
+          }),
+        ).toBe(expected);
+      }
+    }),
+  );
+});
