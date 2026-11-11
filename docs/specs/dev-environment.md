@@ -2,6 +2,7 @@
 
 - Scope: How the dev Bedrock Dedicated Server runs in Docker, which transport and ports it uses, how the packs reach it, how devices avoid a stale Resource Pack, and which packs go to a Realm.
 - Verified at: fd83ec4e
+- Source: [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md)
 - Source: [0015](../adr/0015-dev-server-docker-nethernet.md)
 - Source: [0062](../adr/0062-fresh-dev-pack-version-on-every-start.md)
 - Source: [0179](../adr/0179-support-realms-as-a-second-play-environment.md)
@@ -49,7 +50,7 @@
 ### Pack mounts and reload
 
 - Applies to: the dev BDS, when a pack changes.
-- Rule: `server/compose.yaml` mounts `packs/yasu_ride_bp`, `packs/yasu_ride_test_bp` and `packs/yasu_ride_rp` read-only into the container (plus `./data` as `/data`). Nothing in the scripts distinguishes script-only from entity or Resource Pack changes; the `/reload` versus restart guidance is only documentation in `AGENTS.md` (Bedrock gotchas).
+- Rule: `server/compose.yaml` mounts `packs/yasu_ride_bp`, `packs/yasu_ride_test_bp`, `packs/yasu_ride_rp`, and `packs/yasu_ride_test_rp` read-only into the container (plus `./data` as `/data`). Nothing in the scripts distinguishes script-only from entity or Resource Pack changes; the `/reload` versus restart guidance is only documentation in `AGENTS.md` (Bedrock gotchas).
 - Agreement: Accepted
 - Basis: [0015](../adr/0015-dev-server-docker-nethernet.md) Decision, "Carried over from 0011: mount the repository's Behavior Pack and Resource Pack directories into the container; apply script-only changes with `/reload` and restart the server for entity definition or Resource Pack changes"
 - Implementation: `server/compose.yaml` (`volumes`), `AGENTS.md` (Bedrock gotchas)
@@ -75,8 +76,8 @@
 
 ### Fresh dev-only pack version
 
-- Applies to: the Resource Pack and the Behavior Pack's dependency on it, as served by the dev BDS.
-- Rule: Every `pnpm server:up` and `pnpm server:restart` runs `scripts/setup-dev-world.mjs`, which serves the Resource Pack under `[major, minor, DEV_PATCH_BASE + counter]`. Major and minor come from the committed Resource Pack manifest. The counter is read from `server/data/dev-pack-version.json`, goes up by one on every run, and starts at 1 when the file is missing or unreadable. Rewritten manifests go to `server/data/dev-manifests/`: the Resource Pack header version and every module version change, and only the Behavior Pack's dependency on the Resource Pack (`RESOURCE_PACK_UUID`) changes. The committed `packs/*/manifest.json` files are never rewritten.
+- Applies to: the main Resource Pack and the main Behavior Pack's dependency on it, as served by the dev BDS.
+- Rule: Every `pnpm server:up` and `pnpm server:restart` runs `scripts/setup-dev-world.mjs`, which serves the Resource Pack under `[major, minor, DEV_PATCH_BASE + counter]`. Major and minor come from the committed Resource Pack manifest. The counter is read from `server/data/dev-pack-version.json`, goes up by one on every run, and starts at 1 when the file is missing or unreadable. Rewritten manifests go to `server/data/dev-manifests/`: the Resource Pack header version and every module version change, and only the Behavior Pack's dependency on the Resource Pack (`RESOURCE_PACK_UUID`) changes. The committed `packs/*/manifest.json` files are never rewritten. The test Resource Pack is served at its committed version; bump its header and module versions by hand whenever its files change, because the ADR 0062 rewrite covers only the main Resource Pack.
 - Agreement: Accepted
 - Basis: [0062](../adr/0062-fresh-dev-pack-version-on-every-start.md) Decision, "The dev version is `[major, minor, 10000 + counter]`: major and minor from the committed Resource Pack manifest, and a counter in `server/data/dev-pack-version.json` that goes up by one on every run."
 - Basis: [0062](../adr/0062-fresh-dev-pack-version-on-every-start.md) Decision, "The committed `packs/*/manifest.json` files are never changed to serve the dev BDS"
@@ -86,12 +87,12 @@
 ### Generated manifests are what the world and the container use
 
 - Applies to: the dev world registration and the container's pack manifests.
-- Rule: `world_resource_packs.json` and `world_behavior_packs.json` are written from the same generated manifests that the container serves; the test Behavior Pack, which does not depend on the Resource Pack, is registered with its committed version. `server/compose.yaml` mounts the two generated manifests read-only over the packs' `manifest.json` files with `create_host_path: false`, so `docker compose up` fails when they were not generated.
+- Rule: `world_resource_packs.json` and `world_behavior_packs.json` are written from the same generated manifests that the container serves; the test Behavior Pack and the test Resource Pack are registered with UUIDs and versions read from their committed manifests. The test Resource Pack has no pack dependencies. `server/compose.yaml` mounts the two generated manifests read-only over the packs' `manifest.json` files with `create_host_path: false`, so `docker compose up` fails when they were not generated.
 - Agreement: Accepted
 - Basis: [0062](../adr/0062-fresh-dev-pack-version-on-every-start.md) Decision, "The world's `world_resource_packs.json` and `world_behavior_packs.json` are written from the same generated manifests, so the world registration and the served packs always agree"
 - Basis: [0062](../adr/0062-fresh-dev-pack-version-on-every-start.md) Decision, "They set `create_host_path: false`, so `docker compose up` fails when the manifests were not generated instead of mounting an empty directory"
 - Implementation: `scripts/setup-dev-world.mjs`, `server/compose.yaml` (`volumes`)
-- Verification: `tests/scripts/devPackVersion.test.ts` checks that the written Resource Pack and Behavior Pack manifests agree. Not verified: the world registration files, the compose mounts, and the failure on missing manifests have no test.
+- Verification: `tests/scripts/devPackVersion.test.ts` checks that the written Resource Pack and Behavior Pack manifests agree. `tests/scripts/setupDevWorld.test.ts` checks both world registration files and confirms that the test Resource Pack keeps its manifest version across repeated setup runs. Not verified: the compose mounts and the failure on missing manifests have no test.
 
 ### Restart through the script
 
@@ -106,7 +107,7 @@
 ### Realm installation
 
 - Applies to: playing on a Realm, which has no server folder and no console.
-- Rule: A Realm is installed by applying `yasu_ride_bp` and `yasu_ride_rp` to a world on a device and uploading that world; `yasu_ride_test_bp` is never applied. The `.mcaddon` built by `scripts/package.mjs` contains only those two packs. The in-game tests cannot run on a Realm, so Realm behavior is checked by hand.
+- Rule: A Realm is installed by applying `yasu_ride_bp` and `yasu_ride_rp` to a world on a device and uploading that world; `yasu_ride_test_bp` and `yasu_ride_test_rp` are never applied. The `.mcaddon` built by `scripts/package.mjs` contains only those two packs. The in-game tests cannot run on a Realm, so Realm behavior is checked by hand.
 - Agreement: Proposed
 - Basis: [0179](../adr/0179-support-realms-as-a-second-play-environment.md) Decision, "Install on a Realm by applying `yasu_ride_bp` and `yasu_ride_rp` (never `yasu_ride_test_bp`) to a world on a device and uploading that world to the Realm"
 - Basis: [0179](../adr/0179-support-realms-as-a-second-play-environment.md) Consequences, "The in-game tests cannot run on a Realm, so Realm behavior is checked by hand only"
@@ -129,7 +130,7 @@
 - ADR 0179 says it is Proposed with acceptance pending a manual Realm pass recorded in the ADR; the implementation names a Realm as a target setup beside the home LAN BDS (`README.md`); the ADR needs an edit or a superseding ADR.
 - ADR 0015 says `pnpm server:up` sets `server-udp-ports`; the implementation runs `docker compose up` after `scripts/setup-dev-world.mjs` in CI, which `AGENTS.md` (Bedrock gotchas) says not to do alone, leaving `BDS_UDP_PORTS` unset and NetherNet with no advertised address (`.github/workflows/integration-test.yml`); ADR 0062 Consequences already records that the CI in-game tests run `scripts/setup-dev-world.mjs` before `docker compose up`, as before; the ADR needs an edit or a superseding ADR.
 - ADR 0015 says to bump the Resource Pack manifest version whenever the pack changes, as does `AGENTS.md`; the implementation checks against the previous release tag on a `v*` tag push or a manual release run, not on pull requests (`scripts/check-rp-version.mjs`, `.github/workflows/release.yml`); the ADR needs an edit or a superseding ADR.
-- ADR 0015 says to mount the Behavior Pack and Resource Pack directories; the implementation also mounts `packs/yasu_ride_test_bp` (`server/compose.yaml`); the ADR needs an edit or a superseding ADR. ADR 0062 mentions the test pack only as served as committed.
+- ADR 0015 says to mount the Behavior Pack and Resource Pack directories; the implementation also mounts `packs/yasu_ride_test_bp` and `packs/yasu_ride_test_rp` (`server/compose.yaml`, ADR [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md)); the ADR needs an edit or a superseding ADR. ADR 0062 mentions the test pack only as served as committed.
 - ADR 0015 says the raknet fallback and its UDP mapping are dropped once a stable BDS release removes raknet; the implementation has no removal step or check (`scripts/server-up.mjs`, `server/compose.yaml` publishes UDP 19132 always); the ADR needs an edit or a superseding ADR.
 - ADR 0179 says a change that needs a module or command a Realm lacks adds an ADR and that no such dependency is added; the implementation enforces neither (no check; `packs/yasu_ride_bp/manifest.json`); the ADR needs an edit or a superseding ADR, or a check.
 - `.github/workflows/integration-test.yml` cites ADR 0011 for `server/compose.yaml` (line 16); 0011 is superseded in full by 0015 and the spec excludes it; the workflow comment needs an edit to cite 0015.

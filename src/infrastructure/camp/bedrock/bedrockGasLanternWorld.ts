@@ -19,6 +19,7 @@ import type {
   TopRect,
 } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { allDimensions } from "../../shared/dimensions";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
@@ -168,10 +169,8 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
 
   relayLoaded(): void {
     const live = new Set<GasLanternId>();
-    for (const dimension of ["overworld", "nether", "the_end"]) {
-      for (const entity of world
-        .getDimension(dimension)
-        .getEntities({ type: GAS_LANTERN_TYPE })) {
+    for (const dimension of allDimensions()) {
+      for (const entity of dimension.getEntities({ type: GAS_LANTERN_TYPE })) {
         const id = asGasLanternId(entity.id);
         live.add(id);
         this.relayLight(id);

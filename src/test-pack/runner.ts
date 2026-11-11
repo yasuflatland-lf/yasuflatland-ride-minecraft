@@ -3,6 +3,7 @@
 import { system, world } from "@minecraft/server";
 import "./inputProbe";
 import "./loungeProbe";
+import "./cutoutProbe";
 import { type Arena, prepareRun, removeVehicles } from "./arena";
 import { CATALOG, type ScenarioSpec } from "./catalog";
 import { isFeatureTag } from "./features";

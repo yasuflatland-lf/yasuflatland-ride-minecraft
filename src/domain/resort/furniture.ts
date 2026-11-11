@@ -19,7 +19,7 @@ export interface CellOffset {
 }
 
 /** A seat relative to the entity origin, in blocks; must match the pack's `minecraft:rideable` seats. */
-export interface SeatOffset {
+interface SeatOffset {
   readonly x: number;
   readonly y: number;
   readonly z: number;
