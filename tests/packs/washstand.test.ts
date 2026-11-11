@@ -193,7 +193,7 @@ print(json.dumps({'lo':lo, 'hi':hi, 'corners':[p for c in parts for p in t.corne
       ),
     );
     expect(result.lo).toEqual([-8, 0, -5.25]);
-    expect(result.hi).toEqual([8, 19.94, 5.25]);
+    expect(result.hi).toEqual([8, expect.closeTo(19.94, 10), 5.25]);
     const boxes = entity.components["minecraft:custom_hit_test"].hitboxes;
     expect(boxes).toEqual(
       [-0.171875, 0.171875].map((x) => ({

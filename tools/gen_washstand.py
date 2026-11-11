@@ -18,6 +18,8 @@ WATER_TEXTURE = "textures/entity/yasu_ride/washstand_water.png"
 ANIMATION = "animations/yasu_ride/washstand.anim.json"
 TILE = 128
 ATLAS = 1024
+# macOS and Linux libm sin/cos can differ in the last bit; --check compares parsed JSON exactly.
+DECIMALS = 4
 SHELF_U, SHELF_V, SHELF_WIDTH, SHELF_HEIGHT = 512, 0, 512, 256
 LEG_HALF, LEG_X, LEG_Z = 0.28, 7.72, 4.45
 TOP_Y, TOP_THICKNESS = 14.6, 0.8
@@ -38,6 +40,16 @@ SLOTS = ("wood_top", "deck", "floor", "shelf", "drain", "overflow", "wood",
 CHROME = ((0, (139, 148, 154)), (0.22, (221, 227, 230)), (0.42, (255, 255, 255)),
           (0.58, (170, 179, 185)), (0.8, (227, 232, 235)), (1, (125, 135, 141)))
 ASSEMBLIES = {"basin": {"owner": "gen_washstand", "cubes": 60}}
+
+
+def rounded(value):
+    if isinstance(value, float):
+        return round(value, DECIMALS) + 0.0
+    if isinstance(value, list):
+        return [rounded(v) for v in value]
+    if isinstance(value, dict):
+        return {k: rounded(v) for k, v in value.items()}
+    return value
 
 
 def face(slot):
@@ -203,11 +215,11 @@ def geometry():
             if "rotation" in cube:
                 cube["rotation"][1:] = [-v for v in cube["rotation"][1:]]
     validate(bones)
-    return {"format_version": "1.12.0", "minecraft:geometry": [{
+    return rounded({"format_version": "1.12.0", "minecraft:geometry": [{
         "description": {"identifier": "geometry.yasu_ride.washstand", "texture_width": ATLAS,
                         "texture_height": ATLAS, "visible_bounds_width": 2,
                         "visible_bounds_height": 2, "visible_bounds_offset": [0, 0.625, 0]},
-        "bones": bones}]}
+        "bones": bones}]})
 
 
 def validate(bones):
@@ -364,10 +376,10 @@ def animations():
                              math.sin(angle)*0.8*phase]
             scale[key] = [1-phase]*3
         run[f"splash_{i}"] = {"position": position, "scale": scale}
-    return {"format_version": "1.8.0", "animations": {
+    return rounded({"format_version": "1.8.0", "animations": {
         "animation.yasu_ride.washstand.idle": {"loop": True, "bones": idle},
         "animation.yasu_ride.washstand.run": {"animation_length": RUN_SECONDS,
-                                              "loop": "hold_on_last_frame", "bones": run}}}
+                                              "loop": "hold_on_last_frame", "bones": run}}})
 
 
 def main():
