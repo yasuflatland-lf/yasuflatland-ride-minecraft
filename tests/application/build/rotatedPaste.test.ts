@@ -62,7 +62,14 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
     tick: 100,
     sneaking: false,
   };
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    players,
+    store,
+  );
   const undo = new UndoEdit(repo, feedback, jobs, world, store, {
     warn: () => {},
   });

@@ -257,6 +257,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
           warn: () => {},
         },
         new FakeBuildPlayers(),
+        { discard: () => {} },
       );
       const start = vi.spyOn(jobs, "start");
       const begin = vi.spyOn(e.session, "beginEdit");

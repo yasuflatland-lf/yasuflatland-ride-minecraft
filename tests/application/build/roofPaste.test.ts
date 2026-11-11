@@ -67,6 +67,7 @@ function setup() {
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
+    { discard: () => {} },
   );
   const structures = new FakeStructureStore(world);
   return { repo, session, world, feedback, jobs, structures };
@@ -99,17 +100,24 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
         });
         roof(e, base, kind);
         const aim = new AimHeight(e.repo);
+        // The rise to the center line is a multiple of 0.375, so a 0.2 offset
+        // keeps the aimed point at least 0.075 off a layer boundary, where
+        // floating-point error could flip the floored layer.
+        const originY = aimY + 0.2;
         aim.execute({
           playerId,
           ray: {
-            origin: { x: base.min.x - 10, y: aimY, z: base.min.z + sz / 2 },
+            origin: { x: base.min.x - 10, y: originY, z: base.min.z + sz / 2 },
             direction: { x: 0.8, y: 0.6, z: 0 },
           },
         });
         const cap = maxRoofHeight(base, BUILD_SPEC.worldTopY);
         const expected = Math.max(
           1,
-          Math.min(cap, Math.round(aimY + ((10 + sx / 2) * 0.6) / 0.8 - min.y)),
+          Math.min(
+            cap,
+            Math.floor(originY + ((10 + sx / 2) * 0.6) / 0.8 - min.y) + 1,
+          ),
         );
         expect(e.session.flow).toMatchObject({
           kind: "heightStep",
