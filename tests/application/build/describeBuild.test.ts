@@ -73,9 +73,9 @@ it("reports every flow, clipboard presence and domain paste entries without chan
                 ? []
                 : [
                     ...(history ? ["undo"] : []),
-                    "rotate",
                     "newCopy",
                     "endPaste",
+                    "cancel",
                   ],
           });
           expect(session.flow).toBe(flow);
@@ -100,7 +100,7 @@ it("describes a missing session as idle without creating it", () => {
     flow: "idle",
     clipboardHeld: false,
     pasteTurn: 0,
-    pasteMenu: ["rotate", "newCopy", "endPaste"],
+    pasteMenu: ["newCopy", "endPaste", "cancel"],
   });
   expect(describe.editStatus(playerId)).toEqual({
     flow: { kind: "idle" },

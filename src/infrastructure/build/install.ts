@@ -20,6 +20,7 @@ import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
+import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
 import { RotatePasteAim } from "../../application/build/rotatePasteAim";
@@ -38,6 +39,7 @@ import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockBuildPlayers } from "./bedrock/bedrockBuildPlayers";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
+import { BedrockGroundProbe } from "./bedrock/bedrockGroundProbe";
 import { BedrockStructureStore } from "./bedrock/bedrockStructureStore";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
 import { registerEditTick } from "./bedrock/handlers/editTick";
@@ -64,7 +66,11 @@ export function installBuild(deps: {
   };
   const { blocks } = ports;
   const aim = new BedrockAimReader();
+  const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
   const cancel = new CancelFlow(repo);
+  const pasteDebounce = new PressDebounces<PlayerId>(
+    BUILD_SPEC.pasteRepeatTicks,
+  );
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const endSession = new EndBuildSession(repo, ports.structures);
   const modes = new UpdateBuildModes(
@@ -139,31 +145,31 @@ export function installBuild(deps: {
     setHeight: new SetHeightTo(repo),
   };
   const rotate = new RotatePasteAim(repo);
-  const menus = new BedrockBuildMenus(
-    repo,
-    menuCases,
-    undefined,
-    undefined,
-    rotate,
-  );
+  const menus = new BedrockBuildMenus(repo, menuCases);
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
-    pressPasteAim: new PressPasteAim(repo, cases.pasteAt, feedback),
+    pressPasteAim: new PressPasteAim(
+      repo,
+      cases.pasteAt,
+      feedback,
+      resolveTarget,
+    ),
     aimHeight: cases.aimHeight,
     confirmBoxStep: cases.confirmBoxStep,
     repo,
     menus,
     aim,
     debounce,
+    pasteDebounce,
     pointOf: (playerId) => {
       const flow = repo.get(playerId)?.flow;
       return flow?.kind === "point1" ? flow.cell : undefined;
     },
   });
   registerModeTick(modes);
-  registerOutlineTick(new ShowPreview(repo, feedback, aim));
-  registerSessions(endSession, cases.endPasting, debounce);
+  registerOutlineTick(new ShowPreview(repo, feedback, aim, resolveTarget));
+  registerSessions(endSession, cases.endPasting, debounce, pasteDebounce);
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
@@ -171,7 +177,7 @@ export function installBuild(deps: {
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
     menuCases.confirmBoxStep,
-    cases.pasteAt,
+    new PressPasteAim(repo, cases.pasteAt, feedback, resolveTarget),
     cases.undo,
     new DescribeBuild(repo),
     recorded,

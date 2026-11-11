@@ -3,20 +3,17 @@ import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxSte
 import type { DescribeBuild } from "../../../../application/build/describeBuild";
 import { discardAll } from "../../../../application/build/discardAll";
 import type { EndBuildSession } from "../../../../application/build/endBuildSession";
-import type { PasteAt } from "../../../../application/build/pasteAt";
 import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
 import type { BuildStructureStore } from "../../../../application/build/ports/structures";
+import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
-import { boxOf, volume } from "../../../../domain/build/box";
-import {
-  parseFace,
-  pasteTarget,
-} from "../../../../domain/build/clipboard/clipboard";
+import { parseFace } from "../../../../domain/build/aim/face";
+import { boxOf, sizeOf, volume } from "../../../../domain/build/box";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
@@ -60,8 +57,7 @@ export function recordMessages(feedback: BuildFeedback): {
         feedback.showUndoHint(id);
       },
       showSize: (id, size) => feedback.showSize(id, size),
-      showPasteHint: (id, size, count) =>
-        feedback.showPasteHint(id, size, count),
+      showMode: (id, mode) => feedback.showMode(id, mode),
       drawPreview: (id, dimension, set) =>
         feedback.drawPreview(id, dimension, set),
     },
@@ -78,7 +74,7 @@ export function registerTestEdit(
   choices: MenuChoices,
   height: SetHeightTo,
   confirmBoxStep: ConfirmBoxStep,
-  paste: PasteAt,
+  paste: PressPasteAim,
   undo: UndoEdit,
   describe: DescribeBuild,
   messages: Pick<
@@ -152,11 +148,7 @@ export function registerTestEdit(
           const previous = repo
             .getOrCreate(playerId)
             .completeCopy(dimensionId, box, {
-              size: {
-                x: box.max.x - box.min.x + 1,
-                y: box.max.y - box.min.y + 1,
-                z: box.max.z - box.min.z + 1,
-              },
+              size: sizeOf(box),
               blockCount: volume(box),
               contents: { kind: "structure", handle },
             });
@@ -204,7 +196,9 @@ export function registerTestEdit(
           confirmBoxStep.execute({ playerId });
         } else if (
           command === "pasteat" &&
-          args.length === 4 &&
+          (args.length === 4 ||
+            (args.length === 5 &&
+              (args[4] === "true" || args[4] === "false"))) &&
           args.slice(0, 3).every((value) => Number.isInteger(Number(value)))
         ) {
           const face = parseFace(args[3] ?? "");
@@ -232,16 +226,21 @@ export function registerTestEdit(
           paste.execute({
             playerId,
             dimensionId: asDimensionId(player.dimension.id),
-            target: pasteTarget(
-              clipboard,
-              {
-                x: Number(args[0]),
-                y: Number(args[1]),
-                z: Number(args[2]),
+            aim: {
+              ray: {
+                origin: player.location,
+                direction: player.getViewDirection(),
               },
-              face,
-              describe.execute(playerId).pasteTurn,
-            ),
+              block: {
+                cell: {
+                  x: Number(args[0]),
+                  y: Number(args[1]),
+                  z: Number(args[2]),
+                },
+                face,
+              },
+            },
+            sneaking: args[4] !== "false",
             tick: system.currentTick,
           });
         } else if (

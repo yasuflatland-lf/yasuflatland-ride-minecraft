@@ -6,6 +6,7 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
+import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -24,6 +25,7 @@ import { InMemorySessionRepository } from "../../../src/infrastructure/build/per
 import {
   FakeBuildPlayers,
   FakeFeedback,
+  FakeGroundProbe,
   FakeWorld,
   nether,
 } from "../../application/build/fakes";
@@ -38,7 +40,6 @@ const menus = {
   showContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
   showPasteMenu: vi.fn(),
-  showRotateMenu: vi.fn(),
   showHeightSlider: vi.fn(),
 };
 
@@ -95,7 +96,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
           showSize: vi.fn(),
-          showPasteHint: vi.fn(),
+          showMode: vi.fn(),
           showUndoHint: vi.fn(),
           drawPreview: vi.fn(),
         };
@@ -115,11 +116,13 @@ it("preserves blocks and defers point taps out of before events", () => {
               new FakeBuildPlayers(),
             ),
             feedback,
+            new ResolvePasteTarget(repo, new FakeGroundProbe()),
           ),
           setPoint: new SetPoint(repo, blocks, feedback),
           tapAir: new TapAir(repo, feedback),
           menus,
           aim: {
+            dimensionOf: () => nether,
             aim: () => ({
               ray: {
                 origin: { x: 0, y: 0, z: 0 },
@@ -129,6 +132,9 @@ it("preserves blocks and defers point taps out of before events", () => {
             }),
           },
           debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
+          pasteDebounce: new PressDebounces<PlayerId>(
+            BUILD_SPEC.pasteRepeatTicks,
+          ),
           pointOf: () => undefined,
         });
         const player = {
@@ -203,7 +209,7 @@ function setupAir() {
   const feedback: BuildFeedback = {
     showMessage: vi.fn(),
     showSize: vi.fn(),
-    showPasteHint: vi.fn(),
+    showMode: vi.fn(),
     showUndoHint: vi.fn(),
     drawPreview: vi.fn(),
   };
@@ -220,10 +226,10 @@ function setupAir() {
     showContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
     showPasteMenu: vi.fn(),
-    showRotateMenu: vi.fn(),
     showHeightSlider: vi.fn(),
   };
   const aim: AimReader = {
+    dimensionOf: () => nether,
     aim: () => ({
       ray: {
         origin: { x: 0.5, y: 5.5, z: 0.5 },
@@ -258,16 +264,23 @@ function setupAir() {
     structures,
     new FakeBuildPlayers(),
   );
+  const pressPasteAim = new PressPasteAim(
+    repo,
+    paste,
+    feedback,
+    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+  );
   registerWand({
     confirmBoxStep,
     aimHeight,
     repo,
-    pressPasteAim: new PressPasteAim(repo, paste, feedback),
+    pressPasteAim,
     setPoint,
     tapAir,
     menus,
     aim,
     debounce,
+    pasteDebounce: new PressDebounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
     pointOf: () =>
       session.flow.kind === "point1" ? session.flow.cell : undefined,
   });
@@ -286,10 +299,12 @@ function setupAir() {
     menus,
     aim,
     debounce,
+    pasteDebounce: new PressDebounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
     confirmBoxStep,
     roofExecute,
     pointExecute,
     paste,
+    pressPasteAim,
     structures,
     feedback,
   };
@@ -379,7 +394,7 @@ function setupRoof(kind: "gable" | "hip") {
   };
   e.aim.aim = () => ({ ray });
   e.menus.showContentsMenu.mockImplementation(() => {
-    expect(e.session.flow).toEqual({ ...flow, previous: 5 });
+    expect(e.session.flow).toEqual({ ...flow, previous: 6 });
   });
   return { ...e, flow, ray };
 }
@@ -393,7 +408,7 @@ function expectRoofTap(e: ReturnType<typeof setupRoof>) {
   expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
     e.menus.showContentsMenu.mock.invocationCallOrder[0] as number,
   );
-  expect(e.session.flow).toEqual({ ...e.flow, previous: 5 });
+  expect(e.session.flow).toEqual({ ...e.flow, previous: 6 });
   expect(e.pointExecute).not.toHaveBeenCalled();
   expect(e.execute).not.toHaveBeenCalled();
   expect(e.menus.showShapeMenu).not.toHaveBeenCalled();
@@ -487,7 +502,7 @@ it("ignores unavailable aim, invalid players, and other items", () => {
   expect(menus.showUtilityMenu).not.toHaveBeenCalled();
 });
 
-it("routes paste aiming through itemUse with live aim and shared debounce", () => {
+it("routes paste aiming through itemUse with live aim and separate commit debounce", () => {
   fc.assert(
     fc.property(
       fc.constantFrom("up", "down", "north", "south", "east", "west"),
@@ -515,6 +530,7 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
         };
         e.aim.aim = vi.fn(() => target);
         const pasteCall = vi.spyOn(e.paste, "execute");
+        const pressCall = vi.spyOn(e.pressPasteAim, "execute");
         for (const isFirstEvent of [true, false]) {
           const event = {
             player: e.player,
@@ -533,7 +549,14 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
           e.use();
         }
         expect(e.aim.aim).toHaveBeenCalledExactlyOnceWith(e.id);
-        if (hasBlock) {
+        expect(pressCall).toHaveBeenCalledExactlyOnceWith({
+          playerId: e.id,
+          dimensionId: nether,
+          aim: target,
+          tick: 0,
+          sneaking,
+        });
+        if (hasBlock && sneaking) {
           expect(pasteCall).toHaveBeenCalledExactlyOnceWith({
             playerId: e.id,
             dimensionId: nether,
@@ -549,9 +572,7 @@ it("routes paste aiming through itemUse with live aim and shared debounce", () =
         } else {
           expect(pasteCall).not.toHaveBeenCalled();
           expect(e.session.isEditing).toBe(false);
-          expect(e.menus.showPasteMenu).toHaveBeenCalledExactlyOnceWith(
-            e.player,
-          );
+          expect(e.menus.showPasteMenu).toHaveBeenCalledTimes(sneaking ? 0 : 1);
         }
         expect(e.pointExecute).not.toHaveBeenCalled();
         expect(e.execute).not.toHaveBeenCalled();
@@ -600,12 +621,15 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
         new FakeBuildPlayers(),
       ),
       feedback,
+      new ResolvePasteTarget(repo, new FakeGroundProbe()),
     ),
     menus,
     aim: {
+      dimensionOf: () => nether,
       aim: () => ({ ray: { origin: from, direction: { x: 1, y: 0, z: 0 } } }),
     },
     debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
+    pasteDebounce: new PressDebounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
     pointOf: () =>
       session.flow.kind === "point1" ? session.flow.cell : undefined,
   });
@@ -636,7 +660,7 @@ it.each(["block", "air"])(
     e.confirmBoxStep.execute.mockImplementation(() => {
       expect(e.session.flow).toMatchObject({
         heightedKind: "copy",
-        previous: 5,
+        previous: 6,
       });
     });
     if (tap === "air") e.use();
@@ -670,7 +694,7 @@ it.each(["block", "air"])(
     e.confirmBoxStep.execute.mockImplementation(() => {
       expect(e.session.flow).toMatchObject({
         heightedKind: "cut",
-        previous: 5,
+        previous: 6,
       });
     });
     if (tap === "air") e.use();
@@ -695,3 +719,51 @@ it.each(["block", "air"])(
     expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
   },
 );
+
+it("opens the paste menu even when the aim reader returns undefined", () => {
+  const e = setupAir();
+  holdClipboard(
+    e.session,
+    structureClipboard(
+      boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+      () => blockStateOf("minecraft:stone"),
+      e.structures,
+    ),
+  );
+  e.session.setFlow({ kind: "pasteAim", turn: 0 });
+  e.aim.aim = () => undefined;
+  e.use();
+  expect(e.menus.showPasteMenu).toHaveBeenCalledExactlyOnceWith(e.player);
+});
+
+it("accepts a commit immediately after the menu and suppresses a second commit at another anchor", () => {
+  const e = setupAir();
+  const block = { x: 0, y: 0, z: 0 };
+  holdClipboard(
+    e.session,
+    structureClipboard(
+      boxOf(block, block),
+      () => blockStateOf("minecraft:stone"),
+      e.structures,
+    ),
+  );
+  e.session.setFlow({ kind: "pasteAim", turn: 0 });
+  e.aim.aim = () => ({
+    ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
+    block: { cell: { ...block, x: engine.tick }, face: "up" },
+  });
+  const paste = vi.spyOn(e.paste, "execute");
+  e.use();
+  expect(e.menus.showPasteMenu).toHaveBeenCalledExactlyOnceWith(e.player);
+  expect(paste).not.toHaveBeenCalled();
+  e.player.isSneaking = true;
+  engine.tick = 1;
+  e.use();
+  expect(paste).toHaveBeenCalledTimes(1);
+  engine.tick = BUILD_SPEC.pasteRepeatTicks;
+  e.use();
+  expect(paste).toHaveBeenCalledTimes(1);
+  engine.tick += BUILD_SPEC.pasteRepeatTicks;
+  e.use();
+  expect(paste).toHaveBeenCalledTimes(2);
+});

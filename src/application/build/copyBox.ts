@@ -1,4 +1,4 @@
-import { type CellBox, volume } from "../../domain/build/box";
+import { type CellBox, sizeOf, volume } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
@@ -28,11 +28,7 @@ export class CopyBox implements BoxAction {
       return false;
     }
     const clipboard: Clipboard = {
-      size: {
-        x: box.max.x - box.min.x + 1,
-        y: box.max.y - box.min.y + 1,
-        z: box.max.z - box.min.z + 1,
-      },
+      size: sizeOf(box),
       blockCount: count,
       contents: { kind: "structure", handle },
     };

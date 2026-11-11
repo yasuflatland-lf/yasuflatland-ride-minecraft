@@ -58,7 +58,6 @@ export class MenuChoices {
     playerId: PlayerId,
     menu: "shape" | "contents" | "terrain" | "utility" | "paste",
     entryId: string | undefined,
-    showRotateMenu?: () => void,
   ): boolean {
     const session = this.repo.get(playerId);
     if (!session) return false;
@@ -144,9 +143,7 @@ export class MenuChoices {
       )
         return false;
       switch (entryId) {
-        case "rotate":
-          if (!showRotateMenu) return false;
-          showRotateMenu();
+        case "cancel":
           break;
         case "endPaste":
           this.cases.endPasting.execute(playerId);

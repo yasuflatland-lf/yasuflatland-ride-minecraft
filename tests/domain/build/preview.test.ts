@@ -76,7 +76,15 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
             expect(points.length).toBeLessThanOrEqual(
               BUILD_SPEC.outlineMaxPoints,
             );
-          for (const point of [...set.shape, ...set.paste]) onEdge(box, point);
+          for (const point of [
+            ...set.shape,
+            ...set.paste,
+            ...set.pasteVertical,
+          ])
+            onEdge(box, point);
+          expect(
+            set.paste.length + set.pasteVertical.length,
+          ).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
           if (flow.kind === "point1" || flow.kind === "endpoint")
             expect(set.endCube).toEqual(cornerMarkerPoints(b));
         }

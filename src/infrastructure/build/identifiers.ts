@@ -7,13 +7,24 @@ export const SELECTION_WAND_TYPE = buildId("selection_wand");
 export const LAID_BLOCK_TAG = "yasu_ride:laid";
 
 export const BUILD_MESSAGE: Readonly<
-  Record<BuildMessage | "heightSize" | "pasteHint" | "undoHint", string>
+  Record<
+    | BuildMessage
+    | "heightSize"
+    | "pasteReady"
+    | "rotateMode"
+    | "sneakingPrefix"
+    | "undoHint",
+    string
+  >
 > = {
   cutRestored: "yasu_build.message.cut_restored",
   cutIncomplete: "yasu_build.message.cut_incomplete",
   removing: "yasu_build.message.removing",
   building: "yasu_build.message.building",
-  pasteHint: "yasu_build.message.paste_hint",
+  pasteReady: "yasu_build.message.paste_ready",
+  rotateMode: "yasu_build.message.rotate_mode",
+  sneakingPrefix: "yasu_build.message.sneaking_prefix",
+  pasteNoTarget: "yasu_build.message.paste_no_target",
   heightSize: "yasu_build.message.height_size",
   pointSet: "yasu_build.message.point_set",
   endSet: "yasu_build.message.end_set",
@@ -23,6 +34,7 @@ export const BUILD_MESSAGE: Readonly<
   noSelection: "yasu_build.message.no_selection",
   tooLarge: "yasu_build.message.too_large",
   busy: "yasu_build.message.busy",
+  noGround: "yasu_build.message.no_ground",
   noClipboard: "yasu_build.message.no_clipboard",
   nothingToUndo: "yasu_build.message.nothing_to_undo",
   pasteFailed: "yasu_build.message.paste_failed",

@@ -59,6 +59,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           const structures = new FakeStructureStore();
           const session = repo.getOrCreate(id);
           const debounce = new PressDebounces<PlayerId>(10);
+          const pasteDebounce = new PressDebounces<PlayerId>(10);
           new CopyBox(repo, structures, new FakeFeedback()).execute(
             id,
             overworld,
@@ -66,10 +67,12 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           );
           session.setFlow(flow);
           expect(debounce.press(id, 0)).toBe(true);
+          expect(pasteDebounce.press(id, 0)).toBe(true);
           registerSessions(
             new EndBuildSession(repo, structures),
             new EndPasting(repo, structures),
             debounce,
+            pasteDebounce,
           );
           engine.handlers.get(event)?.({
             player: { id },
@@ -81,6 +84,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           expect(session.confirmedBox).toBeUndefined();
           expect(repo.get(id)).toBe(session);
           expect(debounce.press(id, 0)).toBe(false);
+          expect(pasteDebounce.press(id, 0)).toBe(false);
         }
       }
     }),
@@ -92,6 +96,7 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
   const id = asPlayerId("p");
   const session = repo.getOrCreate(id);
   const debounce = new PressDebounces<PlayerId>(10);
+  const pasteDebounce = new PressDebounces<PlayerId>(10);
   const at = { x: 0, y: 0, z: 0 };
   const structures = new FakeStructureStore();
   new CopyBox(repo, structures, new FakeFeedback()).execute(
@@ -105,13 +110,16 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
     new EndBuildSession(repo, structures),
     new EndPasting(repo, structures),
     debounce,
+    pasteDebounce,
   );
   engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
   expect(session.flow.kind).toBe("pasteAim");
   expect(session.clipboard).toBe(clipboard);
   expect(debounce.press(id, 0)).toBe(true);
+  expect(pasteDebounce.press(id, 0)).toBe(true);
   engine.handlers.get("leave")?.({ playerId: id });
   expect(repo.get(id)).toBeUndefined();
   expect(structures.live.size).toBe(0);
   expect(debounce.press(id, 0)).toBe(true);
+  expect(pasteDebounce.press(id, 0)).toBe(true);
 });

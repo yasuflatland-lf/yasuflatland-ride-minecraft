@@ -3,13 +3,12 @@ import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
+import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
+import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import {
-  aimedPasteTarget,
-  type Face,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   tapAir,
@@ -27,6 +26,7 @@ import {
   FakeAimReader,
   FakeBuildPlayers,
   FakeFeedback,
+  FakeGroundProbe,
   FakeSessions,
   FakeWorld,
   nether,
@@ -72,7 +72,12 @@ function setup(
     structures,
     new FakeBuildPlayers(),
   );
-  const press = new PressPasteAim(repo, paste, feedback);
+  const press = new PressPasteAim(
+    repo,
+    paste,
+    feedback,
+    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+  );
   const clipboard = structureClipboard(
     boxOf(block, { ...block, x: block.x + 1 }),
     () => stone,
@@ -88,10 +93,15 @@ function setup(
   const target = aimedPasteTarget(clipboard, aim.target);
   if (!target) throw new Error("Expected paste target");
   const start = vi.spyOn(structures, "place");
-  const execute = () => {
+  const execute = (sneaking = true) => {
     const target = aim.aim(playerId);
-    if (!target) throw new Error("Expected aim");
-    return press.execute({ playerId, dimensionId: nether, aim: target, tick });
+    return press.execute({
+      playerId,
+      dimensionId: nether,
+      aim: target,
+      tick,
+      sneaking,
+    });
   };
   return {
     repo,
@@ -144,7 +154,7 @@ it("returns menu on air without starting a job or changing the flow", () => {
       const flow = e.session.flow;
       if (!e.aim.target) throw new Error("Expected aim");
       e.aim.target = { ray: e.aim.target.ray };
-      expect(e.execute()).toBe("menu");
+      expect(e.execute(false)).toBe("menu");
       expect(e.start).not.toHaveBeenCalled();
       expect(e.session.isEditing).toBe(false);
       expect(e.session.flow).toBe(flow);
@@ -233,6 +243,7 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
             new FakeBuildPlayers(),
           ),
           e.feedback,
+          new ResolvePasteTarget(e.repo, new FakeGroundProbe()),
         );
         if (!e.aim.target) throw new Error("Expected aim");
         expect(
@@ -241,6 +252,7 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
             dimensionId: nether,
             aim: e.aim.target,
             tick: tick + delta,
+            sneaking: true,
           }),
         ).toBe("ignored");
         expect(e.session.flow).toBe(flow);
@@ -261,6 +273,49 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
           snapshot: { dimensionId: nether },
         });
         expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
+      },
+    ),
+  );
+});
+
+it("never writes for a plain press with arbitrary aim and tick", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      face,
+      tick,
+      fc.integer({ min: 0, max: 2 }),
+      (block, face, tick, kind) => {
+        const e = setup(block, face, tick);
+        if (kind === 0) e.aim.target = undefined;
+        else if (kind === 1 && e.aim.target)
+          e.aim.target = { ray: e.aim.target.ray };
+        const capture = vi.spyOn(e.structures, "capture");
+        expect(e.execute(false)).toBe("menu");
+        e.jobs.step();
+        expect(e.start).not.toHaveBeenCalled();
+        expect(capture).not.toHaveBeenCalled();
+        expect(e.world.writes).toBe(0);
+      },
+    ),
+  );
+});
+
+it("reports a missing target for a sneak press", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      face,
+      tick,
+      fc.boolean(),
+      (block, face, tick, missingAim) => {
+        const e = setup(block, face, tick);
+        e.aim.target = missingAim
+          ? undefined
+          : { ray: { origin: block, direction: { x: 1, y: 0, z: 0 } } };
+        expect(e.execute(true)).toBe("ignored");
+        expect(e.feedback.messages).toEqual([{ message: "pasteNoTarget" }]);
+        expect(e.start).not.toHaveBeenCalled();
       },
     ),
   );

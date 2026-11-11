@@ -1,11 +1,10 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import type { Face } from "../../../src/domain/build/aim/face";
 import { boxOf, volume } from "../../../src/domain/build/box";
 import {
   aimedPasteTarget,
   type Clipboard,
-  type Face,
-  parseFace,
   pasteTarget,
 } from "../../../src/domain/build/clipboard/clipboard";
 import { structureClipboard } from "../../support/buildClipboard";
@@ -95,35 +94,6 @@ it("aimedPasteTarget is undefined exactly when there is no aimed block", () => {
         expect(target === undefined).toBe(block === undefined);
         if (block)
           expect(target).toEqual(pasteTarget(clip, block.cell, block.face));
-      },
-    ),
-  );
-});
-
-it("parseFace round-trips all six faces in any letter case", () => {
-  fc.assert(
-    fc.property(
-      fc.array(fc.boolean(), { minLength: 5, maxLength: 5 }),
-      (upper) => {
-        for (const face of faces) {
-          const mixed = [...face]
-            .map((letter, i) => (upper[i] ? letter.toUpperCase() : letter))
-            .join("");
-          expect(parseFace(mixed)).toBe(face);
-        }
-      },
-    ),
-  );
-});
-
-it("parseFace rejects every string other than a case-insensitive face", () => {
-  fc.assert(
-    fc.property(
-      fc
-        .string()
-        .filter((value) => !faces.some((face) => face === value.toLowerCase())),
-      (value) => {
-        expect(parseFace(value)).toBeUndefined();
       },
     ),
   );
