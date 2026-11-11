@@ -8,3 +8,5 @@ export interface AimReader {
     playerId: PlayerId,
   ): { ray: Ray; block?: { cell: Cell; face: Face } } | undefined;
 }
+
+export type AimResult = NonNullable<ReturnType<AimReader["aim"]>>;

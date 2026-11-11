@@ -1,21 +1,25 @@
-import { aimedPasteTarget } from "../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { PasteAt } from "./pasteAt";
-import type { AimReader } from "./ports/aim";
+import type { AimResult } from "./ports/aim";
 import type { BuildFeedback } from "./ports/feedback";
+import { ResolvePasteTarget } from "./resolvePasteTarget";
 
 export class PressPasteAim {
+  private readonly resolveTarget: ResolvePasteTarget;
+
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly paste: PasteAt,
     private readonly feedback: BuildFeedback,
-  ) {}
+  ) {
+    this.resolveTarget = new ResolvePasteTarget(repo);
+  }
 
   execute(cmd: {
     playerId: PlayerId;
     dimensionId: DimensionId;
-    aim: NonNullable<ReturnType<AimReader["aim"]>>;
+    aim: AimResult;
     tick: number;
     sneaking: boolean;
   }): "pasted" | "refused" | "menu" | "ignored" {
@@ -26,11 +30,7 @@ export class PressPasteAim {
       return "ignored";
     }
     // ADR 0203: use the live gaze target shared with the outline at press time.
-    const target = aimedPasteTarget(
-      session.clipboard,
-      cmd.aim,
-      session.pasteTurn,
-    );
+    const target = this.resolveTarget.execute(cmd);
     if (!target) return "menu";
     return this.paste.execute({
       playerId: cmd.playerId,
