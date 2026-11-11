@@ -1,0 +1,66 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.yasu_ride.toilet.lid": {
+      "initial_state": "initial",
+      "states": {
+        "initial": {
+          "transitions": [
+            {
+              "open": "query.property('yasu_ride:lid_open')"
+            },
+            {
+              "closed_rest": "!query.property('yasu_ride:lid_open')"
+            }
+          ],
+          "animations": ["closed_pose"]
+        },
+        "closed": {
+          "animations": ["lid_close"],
+          "transitions": [
+            {
+              "open": "query.property('yasu_ride:lid_open')"
+            }
+          ]
+        },
+        "open": {
+          "animations": ["lid_open"],
+          "transitions": [
+            {
+              "closed": "!query.property('yasu_ride:lid_open')"
+            }
+          ]
+        },
+        "closed_rest": {
+          "animations": ["closed_pose"],
+          "transitions": [
+            {
+              "open": "query.property('yasu_ride:lid_open')"
+            }
+          ]
+        }
+      }
+    },
+    "controller.animation.yasu_ride.toilet.flush": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["rest"],
+          "transitions": [
+            {
+              "flushing": "query.property('yasu_ride:flushing')"
+            }
+          ]
+        },
+        "flushing": {
+          "animations": ["flush"],
+          "transitions": [
+            {
+              "idle": "!query.property('yasu_ride:flushing')"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

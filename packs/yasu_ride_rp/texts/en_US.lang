@@ -252,3 +252,8 @@ entity.yasu_ride:sofa_single.name=Sofa (Single)
 entity.yasu_ride:sofa_double.name=Sofa (Double)
 
 yasu_build.form.rotate_title=Rotate
+
+item.yasu_ride:toilet_item.name=Toilet
+entity.yasu_ride:toilet.name=Toilet
+yasu_ride.toilet.occupied=Someone is using the Toilet
+yasu_ride.toilet.flushing=The Toilet is flushing

@@ -313,7 +313,7 @@ print(json.dumps([[sum(p[i] for p in quad) / len(quad) for i in range(3)] for qu
 from unittest.mock import patch
 geo = ${JSON.stringify({ ...geometry, bones: [{ name: "lid", pivot: [0, PIVOT_Y, 0], cubes: [bar(PIVOT_Y, -10, 10)] }] })}
 r.RESORT_GEAR = [{"name": "toilet", "geometry": "test", "textured": True, "cutout": True}]
-with patch.object(Path, "read_text", return_value=json.dumps({"minecraft:geometry": [geo]})), patch.object(r, "read_png", return_value=[[(255, 255, 255, 255)]]):
+with patch.object(Path, "read_text", return_value=json.dumps({"minecraft:geometry": [geo], "animations": {"animation.yasu_ride.toilet.rest": {"bones": {"swirl": {"scale": [0,0,0]}, "rim_jets": {"scale": [0,0,0]}}}}})), patch.object(r, "read_png", return_value=[[(255, 255, 255, 255)]]):
     opened = r.render_photo_view(Path("unused"), "lidOpen")
     closed = r.render_photo_view(Path("unused"), "lidOpen", lid=0)
     assert max(p[1] for q, _, _ in opened.polygons for p in q) > 19
@@ -321,7 +321,7 @@ with patch.object(Path, "read_text", return_value=json.dumps({"minecraft:geometr
     assert opened.width == opened.height == 800
     assert opened.layers == [] and opened.background is None and opened.bloom == {}
     geo["bones"][0]["name"] = "body"
-with patch.object(Path, "read_text", return_value=json.dumps({"minecraft:geometry": [geo]})):
+with patch.object(Path, "read_text", return_value=json.dumps({"minecraft:geometry": [geo], "animations": {"animation.yasu_ride.toilet.rest": {"bones": {"swirl": {"scale": [0,0,0]}, "rim_jets": {"scale": [0,0,0]}}}}})):
     try:
         r.render_photo_view(Path("unused"), "lidOpen")
     except ValueError as e:
@@ -369,7 +369,12 @@ print(json.dumps(True))
     expect(() =>
       execFileSync(
         "python3",
-        ["-I", "tools/render_preview.py", "packs/yasu_ride_rp", ...args],
+        [
+          "-I",
+          "-c",
+          "import sys; sys.path.insert(0, 'tools'); import render_preview as r; r.RESORT_GEAR = []; sys.argv = ['tools/render_preview.py', 'packs/yasu_ride_rp', *sys.argv[1:]]; r.main()",
+          ...args,
+        ],
         { encoding: "utf8", stdio: "pipe" },
       ),
     ).toThrow(message);

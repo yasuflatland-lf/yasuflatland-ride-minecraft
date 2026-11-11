@@ -40,5 +40,12 @@
     "geometry": "sofa_double",
     "textured": true,
     "cutout": false
+  },
+  {
+    "name": "toilet",
+    "item": "toilet_item",
+    "geometry": "toilet",
+    "textured": true,
+    "cutout": true
   }
 ]
