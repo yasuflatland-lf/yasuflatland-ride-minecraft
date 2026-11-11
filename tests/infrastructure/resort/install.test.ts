@@ -1,3 +1,50 @@
+import { registerShowLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/showLifecycle";
+
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/showLifecycle",
+  () => ({ registerShowLifecycle: vi.fn() }),
+);
+
+import { registerToiletInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/toiletInteraction";
+
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/toiletInteraction",
+  () => ({ registerToiletInteraction: vi.fn() }),
+);
+
+import { registerWashstandInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/washstandInteraction";
+
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/washstandInteraction",
+  () => ({ registerWashstandInteraction: vi.fn() }),
+);
+
+import { registerTestToilet } from "../../../src/infrastructure/resort/bedrock/handlers/testToilet";
+
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/testToilet",
+  () => ({ registerTestToilet: vi.fn() }),
+);
+
+import { registerTestWashstand } from "../../../src/infrastructure/resort/bedrock/handlers/testWashstand";
+
+vi.mock(
+  "../../../src/infrastructure/resort/bedrock/handlers/testWashstand",
+  () => ({ registerTestWashstand: vi.fn() }),
+);
+
+import { ShowStates } from "../../../src/application/resort/showStates";
+import { TickShows } from "../../../src/application/resort/tickShows";
+import { UseToilet } from "../../../src/application/resort/useToilet";
+import { UseWashstand } from "../../../src/application/resort/useWashstand";
+import { WatchToiletDismount } from "../../../src/application/resort/watchToiletDismount";
+import { asFurnitureId } from "../../../src/domain/resort/ids";
+import { TOILET_SPEC, WASHSTAND_SPEC } from "../../../src/domain/resort/shows";
+import { asPlayerId } from "../../../src/domain/shared/ids";
+import { BedrockShowSound } from "../../../src/infrastructure/resort/bedrock/bedrockShowSound";
+import { BedrockToiletWorld } from "../../../src/infrastructure/resort/bedrock/bedrockToiletWorld";
+import { BedrockWashstandWorld } from "../../../src/infrastructure/resort/bedrock/bedrockWashstandWorld";
+
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopInteraction",
   () => ({ registerFurnitureTopInteraction: vi.fn() }),
@@ -27,7 +74,19 @@ vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/testFurniture",
   () => ({ registerTestFurniture: vi.fn() }),
 );
-vi.mock("@minecraft/server", () => ({ world: {} }));
+const game = vi.hoisted(() => ({
+  getEntity: vi.fn(),
+  getDimension: vi.fn(),
+  tick: 10,
+}));
+vi.mock("@minecraft/server", () => ({
+  world: game,
+  system: {
+    get currentTick() {
+      return game.tick;
+    },
+  },
+}));
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction",
   () => ({ registerBeachChairInteraction: vi.fn() }),
@@ -130,6 +189,80 @@ it("registers folded chair hosting, the lifecycle, and the parasol starter with 
     isCampSpace: () => false,
     placeHostedOnTop: () => false,
   });
+  expect(registerToiletInteraction).toHaveBeenCalledExactlyOnceWith(
+    expect.any(UseToilet),
+  );
+  expect(registerWashstandInteraction).toHaveBeenCalledExactlyOnceWith(
+    expect.any(UseWashstand),
+  );
+  expect(registerShowLifecycle).toHaveBeenCalledExactlyOnceWith(
+    expect.any(WatchToiletDismount),
+    expect.any(TickShows),
+  );
+  expect(registerTestToilet).toHaveBeenCalledExactlyOnceWith(
+    expect.any(ShowStates),
+    expect.any(BedrockShowSound),
+    expect.objectContaining({ topHosts }),
+  );
+  expect(registerTestWashstand).toHaveBeenCalledExactlyOnceWith(
+    expect.any(BedrockWashstandWorld),
+    vi.mocked(registerWashstandInteraction).mock.calls[0]?.[0],
+  );
+  const [states, sound] = vi.mocked(registerTestToilet).mock.calls[0] ?? [];
+  const [watch, shows] = vi.mocked(registerShowLifecycle).mock.calls[0] ?? [];
+  const toiletId = asFurnitureId("toilet");
+  const washstandId = asFurnitureId("washstand");
+  const dimension = {
+    getEntities: ({ type }: { type: string }) => [
+      { id: type === FURNITURE_IDS.toilet.entity ? toiletId : washstandId },
+    ],
+  };
+  game.getDimension.mockReturnValue(dimension);
+  const seat = vi
+    .spyOn(BedrockToiletWorld.prototype, "seat")
+    .mockReturnValue(true);
+  const lid = vi
+    .spyOn(BedrockToiletWorld.prototype, "setLid")
+    .mockImplementation(() => {});
+  const flushing = vi
+    .spyOn(BedrockToiletWorld.prototype, "setFlushing")
+    .mockImplementation(() => {});
+  const running = vi
+    .spyOn(BedrockWashstandWorld.prototype, "setRunning")
+    .mockImplementation(() => {});
+  vi.spyOn(BedrockToiletWorld.prototype, "placeBeside").mockImplementation(
+    () => {},
+  );
+  const playAt =
+    sound && vi.spyOn(sound, "playAt").mockImplementation(() => {});
+  vi.mocked(registerToiletInteraction).mock.calls[0]?.[0].execute({
+    id: toiletId,
+    player: asPlayerId("p"),
+    now: 10,
+  });
+  expect(seat).toHaveBeenCalledExactlyOnceWith(toiletId, "p");
+  expect(states?.toilets.get(toiletId)?.phase).toBe("seated");
+  game.tick = 27;
+  watch?.refresh();
+  expect(states?.toilets.get(toiletId)).toEqual({
+    phase: "flushing",
+    endsAt: 27 + TOILET_SPEC.flushTicks,
+  });
+  vi.mocked(registerWashstandInteraction).mock.calls[0]?.[0].execute({
+    id: washstandId,
+    now: 27,
+  });
+  expect(states?.washstands.get(washstandId)).toEqual({
+    phase: "running",
+    endsAt: 27 + WASHSTAND_SPEC.runTicks,
+  });
+  expect(playAt).toHaveBeenCalledWith(TOILET_SPEC.flushSound, toiletId);
+  expect(playAt).toHaveBeenCalledWith(WASHSTAND_SPEC.runSound, washstandId);
+  shows?.tick(27 + TOILET_SPEC.flushTicks);
+  expect(flushing).toHaveBeenLastCalledWith(toiletId, false);
+  expect(lid).toHaveBeenLastCalledWith(toiletId, false);
+  expect(running).toHaveBeenLastCalledWith(washstandId, false);
+  vi.restoreAllMocks();
   expect(registerFurniturePlacement).toHaveBeenCalledExactlyOnceWith(
     expect.any(PlaceFurniture),
   );
