@@ -40,6 +40,8 @@ export const FURNITURE_IDS: Record<
   dining_chair: { entity: id("dining_chair"), item: id("dining_chair_item") },
   sofa_single: { entity: id("sofa_single"), item: id("sofa_single_item") },
   sofa_double: { entity: id("sofa_double"), item: id("sofa_double_item") },
+  toilet: { entity: id("toilet"), item: id("toilet_item") },
+  washstand: { entity: id("washstand"), item: id("washstand_item") },
 };
 
 export const TEST_FURNITURE_PLACE = "yasu_ride_test:test_furniture_place";
