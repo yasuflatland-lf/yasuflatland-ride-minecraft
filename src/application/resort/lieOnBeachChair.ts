@@ -1,10 +1,20 @@
 import type { BeachChairId } from "../../domain/resort/ids";
 import type { PlayerId } from "../../domain/shared/ids";
+import { RiderWatch } from "../shared/riderWatch";
 import type { BeachChairRiderWorld } from "./ports/beachChairRider";
 
 export class LieOnBeachChair {
-  private readonly previous = new Map<BeachChairId, PlayerId>();
-  constructor(private readonly world: BeachChairRiderWorld) {}
+  private readonly watch: RiderWatch<BeachChairId>;
+
+  constructor(private readonly world: BeachChairRiderWorld) {
+    this.watch = new RiderWatch(
+      { riderOf: (id) => this.world.riderOf(id) },
+      {
+        onSeated: (_id, player) => this.world.playLounge(player),
+        onGone: (id, player) => this.world.placeBeside(id, player),
+      },
+    );
+  }
 
   execute(cmd: { id: BeachChairId; player: PlayerId }): boolean {
     const state = this.world.state(cmd.id);
@@ -20,26 +30,12 @@ export class LieOnBeachChair {
     }
     if (rider === undefined && !this.world.seat(cmd.id, cmd.player))
       return false;
-    this.previous.set(cmd.id, cmd.player);
     this.world.playLounge(cmd.player);
+    this.watch.note(cmd.id, cmd.player);
     return true;
   }
 
   refresh(loaded: readonly BeachChairId[]): void {
-    const present = new Set(loaded);
-    for (const id of this.previous.keys())
-      if (!present.has(id)) this.previous.delete(id);
-    for (const id of loaded) {
-      const rider = this.world.riderOf(id);
-      const previous = this.previous.get(id);
-      // Clear first so a failed placement cannot repeat on every interval.
-      this.previous.delete(id);
-      if (previous !== undefined && previous !== rider)
-        this.world.placeBeside(id, previous);
-      if (rider !== undefined) {
-        this.previous.set(id, rider);
-        this.world.playLounge(rider);
-      }
-    }
+    this.watch.refresh(loaded);
   }
 }
