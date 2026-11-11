@@ -1,6 +1,5 @@
 import type { FurnitureKind } from "../../domain/resort/furniture";
-// The .ts extension lets Node load this file for src/test-pack/impact.ts, which it runs without a bundler.
-import { id } from "../shared/identifiers.ts";
+import { id } from "../shared/identifiers";
 
 export const BEACH_PARASOL = id("beach_parasol");
 export const BEACH_PARASOL_ITEM = id("beach_parasol_item");

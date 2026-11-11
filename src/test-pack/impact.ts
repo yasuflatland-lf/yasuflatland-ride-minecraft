@@ -1,5 +1,3 @@
-import { FURNITURE_IDS } from "../infrastructure/resort/identifiers.ts";
-import { bareId } from "../infrastructure/shared/identifiers.ts";
 import type { ScenarioSpec } from "./catalog.ts";
 import { CATALOG } from "./catalog.ts";
 import type { FeatureTag } from "./features.ts";
@@ -61,10 +59,8 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/camp/spec.ts",
   "src/domain/camp/tent.ts",
   "src/domain/camp/tentLayout.ts",
-  "src/domain/resort/furniture.ts",
   "src/domain/shared/cells.ts",
   "src/domain/shared/decorations.ts",
-  "src/domain/shared/facing.ts",
   "src/domain/shared/hitCounter.ts",
   "src/domain/shared/hosted.ts",
   "src/domain/shared/ids.ts",
@@ -163,22 +159,20 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/vehicle/standIn.ts",
   "src/domain/vehicle/vehicle.ts",
   "src/infrastructure/camp/identifiers.ts",
-  "src/infrastructure/resort/identifiers.ts",
   "src/infrastructure/shared/identifiers.ts",
   "src/infrastructure/vehicle/bedrock/identifiers.ts",
 ];
 
-// Every furniture kind's entity and item stem, so adding a kind needs no edit here.
-const FURNITURE_STEM_TAGS: Readonly<Record<string, Impact>> =
-  Object.fromEntries(
-    Object.values(FURNITURE_IDS)
-      .flatMap(({ entity, item }) => [bareId(entity), bareId(item)])
-      .flatMap((stem) => (stem === undefined ? [] : [[stem, ["resort"]]])),
-  );
-
 export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
-  ...FURNITURE_STEM_TAGS,
   dining_table_top: ["resort"],
+  dining_table: ["resort"],
+  dining_table_item: ["resort"],
+  dining_chair: ["resort"],
+  dining_chair_item: ["resort"],
+  sofa_single: ["resort"],
+  sofa_double: ["resort"],
+  sofa_single_item: ["resort"],
+  sofa_double_item: ["resort"],
   beach_chair: ["resort"],
   beach_chair_item: ["resort"],
   beach_parasol: ["resort"],
