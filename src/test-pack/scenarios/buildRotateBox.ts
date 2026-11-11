@@ -55,7 +55,7 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
   const undo = new UndoEdit(
     repo,
     feedback,
-    new EditJobs(repo, world, feedback, log, players),
+    new EditJobs(repo, world, feedback, log, players, structures),
     world,
     structures,
     log,

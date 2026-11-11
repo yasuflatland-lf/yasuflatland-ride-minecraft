@@ -793,7 +793,6 @@ export function buildContinuousPaste(a: Arena): Promise<Outcome> {
         "continuous Paste lost source states",
       );
     }
-    // A player keeps one structure snapshot, so only the last paste undoes.
     const last = targets[targets.length - 1];
     if (!last) throw new Error("no paste targets");
     const undone = await f.menu("paste", "undo");
@@ -2389,4 +2388,73 @@ export async function buildPasteStructureDecor(
       )
       .join("; "),
   };
+}
+
+export function buildUndoMixedTen(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(2, 2, 2);
+    await f.select(f.cell(1, 1, 1));
+    for (const cell of source) f.block(cell).setType("minecraft:gold_block");
+    const original = snapshot(f, source);
+    const targets = Array.from({ length: 8 }, (_, i) =>
+      pasteTarget(f, f.cell(8 + i * 3, 0, 24), 2, 2, 2),
+    );
+    check(
+      (await f.menu("shape", "fill")).count === source.length,
+      "Fill failed",
+    );
+    await f.select(f.cell(1, 1, 1));
+    check((await f.menu("shape", "cut")).message === "editDone", "Cut failed");
+    check(
+      f.count(source, "minecraft:air") === source.length,
+      "Cut left blocks",
+    );
+    for (const target of targets) {
+      const pasted = await pasteStep(
+        f,
+        target.anchor.x,
+        target.anchor.y,
+        target.anchor.z,
+        "up",
+      );
+      check(pasted.message === "editDone", "Paste failed");
+      check(
+        f.count(target.cells) === target.cells.length,
+        "Paste lost filled blocks",
+      );
+    }
+    await endPasteStep(f);
+    for (const target of [...targets].reverse()) {
+      check(
+        (await f.menu("utility", "undo")).message === "undoDone",
+        "Paste Undo unavailable",
+      );
+      check(
+        unchanged(f, target.cells, target.before),
+        "Paste Undo lost destination states",
+      );
+    }
+    check(
+      (await f.menu("utility", "undo")).message === "undoDone",
+      "Cut Undo unavailable",
+    );
+    check(f.count(source) === source.length, "Cut Undo lost filled blocks");
+    check(
+      (await f.menu("utility", "undo")).message === "undoDone",
+      "Fill Undo unavailable",
+    );
+    check(
+      unchanged(f, source, original),
+      "Ten mixed undos lost original source states",
+    );
+    for (const target of targets)
+      check(
+        unchanged(f, target.cells, target.before),
+        "Ten mixed undos lost original destination states",
+      );
+    check(
+      (await f.menu("utility", "undo")).offered === false,
+      "History survived ten undos",
+    );
+  });
 }

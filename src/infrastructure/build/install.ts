@@ -72,7 +72,14 @@ export function installBuild(deps: {
     new LeaveBuild(repo, ports.structures),
   );
   const players = new BedrockBuildPlayers();
-  const jobs = new EditJobs(repo, blocks, feedback, consoleLogger, players);
+  const jobs = new EditJobs(
+    repo,
+    blocks,
+    feedback,
+    consoleLogger,
+    players,
+    ports.structures,
+  );
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, ports.structures, feedback);
   const cutBox = new CutBox(
