@@ -17,7 +17,6 @@ import { beachChairExit } from "../../../domain/resort/beachChairExit";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../domain/resort/spec";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
-import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import {
   asDimensionId,
@@ -25,7 +24,6 @@ import {
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import { forward, rightOf } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
@@ -35,6 +33,7 @@ import {
   isCreative,
   playerById,
 } from "../../shared/players";
+import { makeSafeStand, seatRider } from "../../shared/seating";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   BEACH_CHAIR,
@@ -95,21 +94,7 @@ export class BedrockBeachChairWorld
     if (!chair || !player?.isValid || player.getComponent("minecraft:riding"))
       return false;
     try {
-      const offset = BEACH_CHAIR_SPEC.seatOffset;
-      const facing = forward(chair.getRotation().y);
-      const right = rightOf(facing);
-      // addRider requires a nearby player in the chair's dimension.
-      player.teleport(
-        {
-          x: chair.location.x + right.x * offset.x - facing.x * offset.z,
-          y: chair.location.y + offset.y,
-          z: chair.location.z + right.z * offset.x - facing.z * offset.z,
-        },
-        { dimension: chair.dimension },
-      );
-      return (
-        chair.getComponent("minecraft:rideable")?.addRider(player) === true
-      );
+      return seatRider(chair, player, BEACH_CHAIR_SPEC.seatOffset);
     } catch (error) {
       console.warn(`[${NAMESPACE}] beach chair seating failed: ${error}`);
       return false;
@@ -138,23 +123,13 @@ export class BedrockBeachChairWorld
       return;
     const dimension = chair.dimension;
     const dimensionId = asDimensionId(dimension.id);
+    const isSafe = makeSafeStand({
+      isVehicleSpace: (cell) => this.deps.isVehicleSpace(dimensionId, cell),
+      isCampSpace: (cell) => this.deps.isCampSpace(dimensionId, cell),
+    });
     const feet = beachChairExit(
       beachChairPoseAt(chair.location, snapYaw4(chair.getRotation().y)),
-      (cell) => {
-        const floor = safeBlockAt(dimension, { ...cell, y: cell.y - 1 });
-        return (
-          floor !== undefined &&
-          !floor.isAir &&
-          !floor.isLiquid &&
-          !CLEARABLE_DECORATIONS.has(floor.typeId) &&
-          [cell, { ...cell, y: cell.y + 1 }].every(
-            (at) =>
-              safeBlockAt(dimension, at)?.isAir === true &&
-              !this.deps.isVehicleSpace(dimensionId, at) &&
-              !this.deps.isCampSpace(dimensionId, at),
-          )
-        );
-      },
+      (cell) => isSafe(dimension, cell),
     );
     if (feet)
       player.teleport(
