@@ -16,6 +16,7 @@ export type BuildMessage =
   | "tooLarge"
   | "busy"
   | "noClipboard"
+  | "noGround"
   | "nothingToUndo"
   | "pasteFailed"
   | "pasteBlocked"

@@ -116,6 +116,7 @@ yasu_build.message.selection_cleared=選択を解除しました。
 yasu_build.message.no_selection=コピーには確定済みの範囲、建築には始点と終点が必要です。
 yasu_build.message.too_large=ブロック数 %s は上限を超えています（編集上限: %s ブロック、コピー上限: %s ブロック）。
 yasu_build.message.busy=編集中です。
+yasu_build.message.no_ground=貼り付け先の下に固い地面が見つかりません。
 yasu_build.message.no_clipboard=先に選択範囲をコピーしてください。
 yasu_build.message.nothing_to_undo=元に戻す編集がありません。
 yasu_build.message.paste_blocked=貼り付け先に保護されたブロックがあります。

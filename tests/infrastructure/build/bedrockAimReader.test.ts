@@ -71,3 +71,29 @@ it("returns undefined for missing, invalid, non-player, and throwing handles", (
   });
   expect(reader.aim(id)).toBeUndefined();
 });
+
+it("reads the current dimension and ignores absent or invalid player handles", () => {
+  const reader = new BedrockAimReader();
+  for (const dimensionId of ["minecraft:overworld", "minecraft:nether"]) {
+    engine.getEntity.mockReturnValue({
+      ...player(),
+      dimension: { id: dimensionId },
+    });
+    expect(reader.dimensionOf(id)).toBe(dimensionId);
+  }
+  for (const entity of [
+    undefined,
+    { ...player(), isValid: false },
+    { typeId: "minecraft:pig" },
+  ]) {
+    engine.getEntity.mockReturnValue(entity);
+    expect(reader.dimensionOf(id)).toBeUndefined();
+  }
+  engine.getEntity.mockReturnValue({
+    ...player(),
+    get dimension() {
+      throw new Error("Gone");
+    },
+  });
+  expect(reader.dimensionOf(id)).toBeUndefined();
+});

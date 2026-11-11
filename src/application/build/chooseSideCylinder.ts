@@ -10,7 +10,7 @@ export class ChooseSideCylinder {
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly feedback: BuildFeedback,
-    private readonly aim: AimReader,
+    private readonly aim: Pick<AimReader, "aim">,
     private readonly chooseHeighted: Pick<ChooseHeighted, "execute">,
   ) {}
 

@@ -6,6 +6,7 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
+import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -24,6 +25,7 @@ import { InMemorySessionRepository } from "../../../src/infrastructure/build/per
 import {
   FakeBuildPlayers,
   FakeFeedback,
+  FakeGroundProbe,
   FakeWorld,
   nether,
 } from "../../application/build/fakes";
@@ -115,11 +117,13 @@ it("preserves blocks and defers point taps out of before events", () => {
               new FakeBuildPlayers(),
             ),
             feedback,
+            new ResolvePasteTarget(repo, new FakeGroundProbe()),
           ),
           setPoint: new SetPoint(repo, blocks, feedback),
           tapAir: new TapAir(repo, feedback),
           menus,
           aim: {
+            dimensionOf: () => nether,
             aim: () => ({
               ray: {
                 origin: { x: 0, y: 0, z: 0 },
@@ -224,6 +228,7 @@ function setupAir() {
     showHeightSlider: vi.fn(),
   };
   const aim: AimReader = {
+    dimensionOf: () => nether,
     aim: () => ({
       ray: {
         origin: { x: 0.5, y: 5.5, z: 0.5 },
@@ -262,7 +267,12 @@ function setupAir() {
     confirmBoxStep,
     aimHeight,
     repo,
-    pressPasteAim: new PressPasteAim(repo, paste, feedback),
+    pressPasteAim: new PressPasteAim(
+      repo,
+      paste,
+      feedback,
+      new ResolvePasteTarget(repo, new FakeGroundProbe()),
+    ),
     setPoint,
     tapAir,
     menus,
@@ -600,9 +610,11 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
         new FakeBuildPlayers(),
       ),
       feedback,
+      new ResolvePasteTarget(repo, new FakeGroundProbe()),
     ),
     menus,
     aim: {
+      dimensionOf: () => nether,
       aim: () => ({ ray: { origin: from, direction: { x: 1, y: 0, z: 0 } } }),
     },
     debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),

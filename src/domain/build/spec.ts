@@ -1,6 +1,8 @@
 // Limits the build feature reads (ADR 0178).
 export const BUILD_SPEC = Object.freeze({
   reach: 64, // blocks along the view ray before an aim counts as air
+  // Bound per-column work so paste previews cannot scan the full world height.
+  groundSearchDepth: 64,
   heightSliderFallback: false,
   worldTopY: 319,
   worldBottomY: -64,

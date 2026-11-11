@@ -116,6 +116,7 @@ yasu_build.message.selection_cleared=Selection cleared.
 yasu_build.message.no_selection=Confirm a shape to copy, or set both points to build.
 yasu_build.message.too_large=The shape has %s blocks and is too large (edit limit: %s blocks; copy limit: %s blocks).
 yasu_build.message.busy=An edit is already running.
+yasu_build.message.no_ground=No solid ground found below the paste target.
 yasu_build.message.no_clipboard=Copy a selection first.
 yasu_build.message.nothing_to_undo=There is nothing to undo.
 yasu_build.message.paste_blocked=The paste overlaps protected blocks.

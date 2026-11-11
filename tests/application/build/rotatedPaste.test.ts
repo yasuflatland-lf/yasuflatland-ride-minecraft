@@ -6,6 +6,7 @@ import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
+import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -19,6 +20,7 @@ import {
   cellKey,
   FakeBuildPlayers,
   FakeFeedback,
+  FakeGroundProbe,
   FakeSessions,
   FakeWorld,
   overworld,
@@ -51,7 +53,12 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
   store.calls.length = 0;
   const target = pasteTarget(clipboard, block, "up", turn);
   const paste = new PasteAt(repo, world, feedback, store, players);
-  const press = new PressPasteAim(repo, paste, feedback);
+  const press = new PressPasteAim(
+    repo,
+    paste,
+    feedback,
+    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+  );
   const cmd = {
     playerId,
     dimensionId: overworld,

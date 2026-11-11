@@ -4,6 +4,7 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../src/application/build/ports/feedback";
+import type { GroundProbe } from "../../../src/application/build/ports/ground";
 import type { BuildPlayers } from "../../../src/application/build/ports/players";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
@@ -142,6 +143,10 @@ export function cellKey(c: Cell): string {
 }
 
 export class FakeAimReader implements AimReader {
+  dimensionId = nether;
+  dimensionOf(_playerId: PlayerId) {
+    return this.dimensionId;
+  }
   target: ReturnType<AimReader["aim"]>;
   aim(_playerId: PlayerId) {
     return this.target;
@@ -156,5 +161,19 @@ export class FakeBuildPlayers implements BuildPlayers {
   }
   moveTo(playerId: PlayerId, cell: Cell) {
     this.moves.push({ playerId, cell });
+  }
+}
+
+export class FakeGroundProbe implements GroundProbe {
+  topOf: (x: number, z: number, fromY: number) => number | undefined = (
+    _x,
+    _z,
+    fromY,
+  ) => fromY - 1;
+  calls: { dimensionId: DimensionId; x: number; z: number; fromY: number }[] =
+    [];
+  topSolidY(dimensionId: DimensionId, x: number, z: number, fromY: number) {
+    this.calls.push({ dimensionId, x, z, fromY });
+    return this.topOf(x, z, fromY);
   }
 }
