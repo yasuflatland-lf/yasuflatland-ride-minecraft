@@ -622,14 +622,14 @@ print(json.dumps(True))
     ).toBe(true);
   });
 
-  it("keeps shipped gear untiled and defines the six review angles in order", () => {
+  it("detects painted gear and defines the six review angles in order", () => {
     expect(
       previewPython(`
 rp = Path('packs/yasu_ride_rp')
 texture = r.read_png(rp / r.GEAR_TEXTURE)
 for item in json.loads(r.GEAR_SPEC.read_text()):
     geo = json.loads((rp / r.GEAR_GEOMETRY.format(item['id'])).read_text())['minecraft:geometry'][0]
-    assert not r.gear_tiled(geo, texture), item['id']
+    assert r.gear_tiled(geo, texture) == (item['id'] == 'saucepan'), item['id']
 assert r.GEAR_VIEWS['left'] == (1, 0.15, 0)
 assert r.GEAR_VIEWS['right'] == (-1, 0.15, 0)
 assert r.GEAR_VIEWS['threeQuarter'] == r.VIEW_DIRECTION
