@@ -1,5 +1,5 @@
 // Bundle the built Behavior Pack and Resource Pack into dist/yasuflatland-ride-<version>.mcaddon.
-// yasu_ride_test_bp is left out: it runs in-game tests and belongs in the dev world only.
+// Both test packs are left out because their scripts and assets belong in the dev world only.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";

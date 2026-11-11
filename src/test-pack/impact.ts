@@ -426,7 +426,11 @@ const IMPACT_RULES: readonly ImpactRule[] = [
     test: /^packs\/yasu_ride_rp\/models\/blocks\/(?:yasu_ride\/)?([^/.]+)\./,
     impact: packStemImpact,
   },
-  { rule: "resource-pack", test: /^packs\/yasu_ride_rp\//, impact: "none" },
+  {
+    rule: "resource-pack",
+    test: /^packs\/yasu_ride_(?:test_)?rp\//,
+    impact: "none",
+  },
   // The Behavior Pack icon belongs to the whole add-on.
   {
     rule: "pack-icon",
