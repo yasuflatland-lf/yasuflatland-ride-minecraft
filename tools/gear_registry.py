@@ -1,6 +1,8 @@
 """Camping gear builders in camping_gear.json order."""
 
-from tool_loader import load_tool_in
+from tool_loader import load_tool, load_tool_in
+
+gear_atlas = load_tool("gear_atlas")
 
 IDS = (
     "potted_plant",
@@ -23,5 +25,10 @@ IDS = (
 )
 
 
+def build(item_id):
+    gear_atlas.begin(item_id)
+    return load_tool_in("gear_items", item_id).build()
+
+
 def models():
-    return {item_id: load_tool_in("gear_items", item_id).build() for item_id in IDS}
+    return {item_id: build(item_id) for item_id in IDS}

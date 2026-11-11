@@ -4,8 +4,8 @@
     {
       "description": {
         "identifier": "geometry.yasu_ride.cabinet_decor_pair",
-        "texture_width": 16,
-        "texture_height": 16
+        "texture_width": 512,
+        "texture_height": 512
       },
       "bones": [
         {

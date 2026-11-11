@@ -6,8 +6,8 @@
 tools/camping_gear.json lists the items; gear_registry loads each item's cubes. Units are pixels (16
 per block). Every model is centered on x 0 and z 0, with its front at -z (ADR 0009). A standing item
 stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it to the hook (ADR
-0102). The atlas is 16 x 16 with one 4 x 4 swatch per color, so mipmapping in the block atlas does
-not bleed a neighbor's color into a face. --check compares parsed JSON and decoded pixels, because
+0102). The 512 x 512 atlas preserves the swatches in cell 0 and reserves per-item cells
+with edge-extension gutters; gear_atlas defines the layout (ADR 0247). --check compares parsed JSON and decoded pixels, because
 Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
 Behavior Pack decor blocks, the items, and the gear part of
 item_texture.json; the decor block's face, height, and spot states are described next to
@@ -216,6 +216,7 @@ def validate(spec):
     if [gear_model.GearSpec.from_row(item).id for item in spec] != list(gear_registry.IDS):
         errors.append("Registry must list exactly the ids of camping_gear.json, in the same order")
     for item in spec:
+        errors.extend(gear_atlas.check_alpha(item["id"], item["glass"]))
         if not isinstance(item["hanging"], bool):
             errors.append(f"{item['id']}: hanging must be true or false")
         cubes = SHAPES.get(item["id"], [])
