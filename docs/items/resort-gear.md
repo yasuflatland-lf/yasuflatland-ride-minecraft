@@ -70,7 +70,7 @@ A black woven dining chair with steel tube legs, arm tubes, and an arched, recli
 
 ## The Resort Gear group
 
-Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items are Beach Parasol, Beach Chair, Dining Table, and Dining Chair, in that order.
+Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items are Beach Parasol, Beach Chair, Dining Table, Dining Chair, Sofa (Single), Sofa (Double), and Washstand, in that order.
 
 | Item          | Preview                                                          | Use                                                                                                                |
 | ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -78,6 +78,7 @@ Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items ar
 | Beach Chair   | ![Beach Chair](../images/items/camping-gear/beach_chair.png)     | Lie down or fold it into a low table that hosts lanterns and ovens.                                                |
 | Dining Table  | ![Dining Table](../images/items/camping-gear/dining_table.png)   | Place a table, host a lantern or oven on it, and recover it with three hits.                                       |
 | Dining Chair  | ![Dining Chair](../images/items/camping-gear/dining_chair.png)   | Place on a clear solid floor, sit with the normal riding interaction, and recover the empty chair with three hits. |
+| Washstand     | ![Washstand](../images/items/camping-gear/washstand.png)         | Oak and black steel washstand with a white basin and a five-second tap animation; interaction wiring is pending.   |
 
 Craft one Dining Chair at a crafting table with planks (`P`), sticks (`S`), and an iron ingot (`I`):
 
@@ -88,3 +89,19 @@ SIS
 ```
 
 Dots are empty slots. The chair occupies one floor cell and needs two clear air layers. Its seat is 0.45 blocks above the ground; it seats one player. See [Resort gear](../specs/resort-gear.md) and the [PC/mobile checks](../manual-test.md#dining-chair-sitting-and-recovery). Owner visual approval and in-game verification are pending.
+
+## Washstand
+
+![Washstand](../images/items/camping-gear/washstand.png)
+
+An oak top and drawer on a black steel frame, with an expanded-metal shelf, a white basin, and a chrome single-lever tap. It occupies one floor cell, reaches 20 px high, and has no seat. The assets include a five-second stream, foam, splash, film, and lever animation driven by the synchronized running property. Placement and interaction wiring and sound arrive separately; these assets alone do not start the tap on interaction.
+
+Craft one at a crafting table with iron ingots (`I`), planks (`P`), and quartz (`Q`):
+
+```text
+I.I
+PQP
+III
+```
+
+Owner approval of the eight photo-angle previews and PC/mobile rendering checks remain pending. See [Resort gear](../specs/resort-gear.md#washstand-assets).
