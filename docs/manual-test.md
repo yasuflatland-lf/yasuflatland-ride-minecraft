@@ -563,6 +563,9 @@ Setup: use `/give @s yasu_build:selection_wand`, or craft it. Test on foot and w
 | The shape and end-point cube outlines follow the view while aiming at air.                                                                                                                   | unverified |
 | The roof wireframe follows the view in the height step.                                                                                                                                      | unverified |
 | The paste outline follows the viewed solid block and is absent when the ray hits no solid block within reach, including when looking at water or tall grass with no solid block behind them. | unverified |
+| In daylight, the paste outline shows blue horizontal edges, orange vertical edges, and a dense bottom ring and lowest vertical block.                                                        | unverified |
+| In a dark cave, the paste outline shows blue horizontal edges, orange vertical edges, and a dense bottom ring and lowest vertical block.                                                     | unverified |
+| On iPad, the paste outline shows blue horizontal edges, orange vertical edges, and a dense bottom ring and lowest vertical block.                                                            | unverified |
 
 ## Build Wand touch input (ADR 0198)
 

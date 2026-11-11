@@ -49,6 +49,7 @@ function preview(part: Partial<PreviewSet>): PreviewSet {
     endCube: [],
     roof: [],
     paste: [],
+    pasteVertical: [],
     boxStep: [],
     boxStepOver: [],
     ...part,
@@ -391,12 +392,18 @@ it("draws every preview style in the viewer dimension when no dimension is fixed
   new BedrockFeedback().drawPreview(
     playerId,
     undefined,
-    preview({ endCube: [point], roof: [point], paste: [point] }),
+    preview({
+      endCube: [point],
+      roof: [point],
+      paste: [point],
+      pasteVertical: [point],
+    }),
   );
   expect(spawnParticle.mock.calls).toEqual([
     ["minecraft:endrod", point],
     ["minecraft:villager_happy", point],
     ["minecraft:blue_flame_particle", point],
+    ["minecraft:basic_flame_particle", point],
   ]);
 });
 

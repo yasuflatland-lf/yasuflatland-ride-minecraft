@@ -485,6 +485,7 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           expect(feedback.previews).toHaveLength(1);
           const set = feedback.previews[0]?.set;
           expect(set?.paste.length).toBeGreaterThan(0);
+          expect((set?.pasteVertical.length ?? 0) > 0).toBe(y > 1);
           for (const layer of [
             "marker",
             "shape",
