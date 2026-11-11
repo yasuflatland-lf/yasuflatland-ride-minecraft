@@ -110,6 +110,7 @@ export class BedrockFeedback implements BuildFeedback {
       endCube: "minecraft:endrod",
       roof: "minecraft:villager_happy",
       paste: "minecraft:blue_flame_particle",
+      pasteVertical: "minecraft:basic_flame_particle",
       boxStep: "minecraft:balloon_gas_particle",
       boxStepOver: "minecraft:redstone_wire_dust_particle",
     };
