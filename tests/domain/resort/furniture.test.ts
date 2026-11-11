@@ -24,6 +24,8 @@ const kinds: readonly FurnitureKind[] = [
   "dining_chair",
   "sofa_single",
   "sofa_double",
+  "toilet",
+  "washstand",
 ];
 const facings: readonly Facing4[] = [0, 90, 180, 270];
 const cellArb = fc.record({
@@ -167,6 +169,8 @@ describe("furniture spec", () => {
         { x: -0.5, y: 0.2475, z: -0.1 },
         { x: 0.5, y: 0.2475, z: -0.1 },
       ],
+      [{ x: 0, y: 0.264, z: -0.1 }],
+      [],
     ];
     expect(kinds.map((kind) => FURNITURE_SPEC[kind].seats)).toEqual(seats);
     expect(FURNITURE_SPEC.dining_table.top).toEqual({
@@ -187,6 +191,8 @@ describe("furniture spec", () => {
       { ahead: 0, left: -1 },
     ];
     expect(FURNITURE_SPEC.sofa_double.cells).toEqual(doubleCells);
+    for (const kind of ["toilet", "washstand"] as const)
+      expect(FURNITURE_SPEC[kind].cells).toEqual([{ ahead: 0, left: 0 }]);
   });
 
   it("brands furniture ids without changing them", () => {
