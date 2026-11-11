@@ -70,14 +70,14 @@
 - Implementation: `package.json` (`lint:docs`), `.github/workflows/unit-test.yml` (`quick`), `scripts/docs.mjs` (`loadFiles`, `main`, `checkAdrIdentity`, `checkMetadata`, `checkRelationTargets`, `checkRelationConflicts`, `checkIndex`, `checkLinks`, `checkSpecFormat`, `checkSpecLinks`, `checkSpecAgreement`, `checkSpecBasisSources`, `checkSpecClosure`, `checkSpecCoverage`, `checkSpecIndex`)
 - Verification: Read the package command, workflow triggers and step, and the complete check-mode call list. `tests/scripts/docs.test.ts` contains fixtures for each checker. Not verified: the documentation command, tests and CI workflow were not run; the workflow's success on this checkout is not established.
 
-### Spike and design note locations
+### Spike note location
 
-- Applies to: repository spike findings and committed design notes.
-- Rule: The repository has spike findings under `docs/spikes/` and committed design notes under `docs/designs/`. ADR 0205 documents these locations and keeping owner-local drafts uncommitted; the documentation script has no placement or draft-commit check.
+- Applies to: repository spike findings.
+- Rule: The repository has spike findings under `docs/spikes/`. ADR 0205 documents this location and keeping owner-local design drafts uncommitted; the documentation script has no placement or draft-commit check.
 - Agreement: Proposed
-- Basis: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md) Decision, "Keep spike findings in `docs/spikes/` and committed design notes in `docs/designs/`. Owner-local drafts stay uncommitted."
-- Implementation: `docs/spikes/`, `docs/designs/`, `docs/adr/0205-structured-adr-metadata-and-current-specs.md` (Decision), `scripts/docs.mjs` (`main`)
-- Verification: Listed both note directories and `docs/`. Root-level documents are `docs/installing-on-a-realm.md`, `docs/installing-on-ipad.md`, `docs/manual-test.md`, `docs/releasing.md` and `docs/upgrading.md`; their titles and opening text describe installation, testing, releases or upgrades, rather than misplaced spike or design notes. `docs/specs/README.md` describes the separate topic-spec location. Not verified: no check enforces note placement or that owner-local drafts remain uncommitted; no audit of owner-local files was performed.
+- Basis: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md) Decision, "Keep spike findings in `docs/spikes/`. Owner-local design drafts stay uncommitted."
+- Implementation: `docs/spikes/`, `docs/adr/0205-structured-adr-metadata-and-current-specs.md` (Decision), `scripts/docs.mjs` (`main`)
+- Verification: Listed the spike directory and `docs/`. Root-level documents are `docs/installing-on-a-realm.md`, `docs/installing-on-ipad.md`, `docs/manual-test.md`, `docs/releasing.md` and `docs/upgrading.md`; their titles and opening text describe installation, testing, releases or upgrades, rather than misplaced spike or design notes. `docs/specs/README.md` describes the separate topic-spec location. Not verified: no check enforces note placement or that owner-local drafts remain uncommitted; no audit of owner-local files was performed.
 
 ### Current topic specs
 
@@ -95,5 +95,5 @@
 - ADR 0205 Decision says Acceptance condition is optional with Proposed; the implementation requires it for every Proposed ADR and rejects the `PRNUMBER` placeholder (`scripts/docs.mjs`, `checkMetadata`); the ADR needs an edit or a superseding ADR.
 - ADR 0205 Decision says "Part 2/4 fills this field" for Decided in; the repository has no ADR metadata line beginning `- Decided in:` (a repository-wide metadata search found zero), and the implementation never requires that field (`docs/adr/`, `scripts/docs.mjs`, `checkMetadata`); the ADR needs an edit or a superseding ADR.
 - ADR 0205 Decision names ADR and relative Markdown link checks for CI and describes topic specs only in its final bullet; the implementation additionally enforces spec format, ADR and implementation links, derived agreement, Basis sources, supersession closure, live ADR coverage and the spec index (`scripts/docs.mjs`, `checkSpecFormat`, `checkSpecLinks`, `checkSpecAgreement`, `checkSpecBasisSources`, `checkSpecClosure`, `checkSpecCoverage`, `checkSpecIndex`), with some of these documented in `docs/specs/README.md`; the ADR needs an edit or a superseding ADR.
-- ADR 0205 Decision says spike findings belong in `docs/spikes/`, committed design notes in `docs/designs/`, and owner-local drafts stay uncommitted; the implementation has these directories but no check enforcing those boundaries or the draft restriction (`docs/spikes/`, `docs/designs/`, `scripts/docs.mjs`, `main`); the ADR needs an edit or a superseding ADR.
+- ADR 0205 Decision says spike findings belong in `docs/spikes/` and owner-local design drafts stay uncommitted; the implementation has the spike directory but no check enforcing those boundaries or the draft restriction (`docs/spikes/`, `scripts/docs.mjs`, `main`); the ADR needs an edit or a superseding ADR.
 - ADR 0205 Decision says "existing dates stay unchanged"; the implementation validates calendar dates but does not compare them with earlier revisions (`scripts/docs.mjs`, `checkMetadata`); the ADR needs an edit or a superseding ADR.

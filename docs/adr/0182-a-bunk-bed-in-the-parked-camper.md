@@ -8,7 +8,7 @@
 
 ## Context
 
-The owner wants two players to have separate beds and respawn points in the parked camper, with an upper bunk in the existing bed's space. The [approved design](../designs/2026-10-29-wide-blade-road-paver-bunk-bed.md) chooses the level by aim and puts each spawn in the aisle because neither mattress leaves enough standing headroom.
+The owner wants two players to have separate beds and respawn points in the parked camper, with an upper bunk in the existing bed's space. The approved design chooses the level by aim and puts each spawn in the aisle because neither mattress leaves enough standing headroom.
 
 The existing code provides these building blocks:
 

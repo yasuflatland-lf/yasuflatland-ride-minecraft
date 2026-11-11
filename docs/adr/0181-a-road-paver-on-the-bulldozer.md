@@ -13,7 +13,7 @@
 
 ## Context
 
-The owner wants to clear and pave in one pass, using the driver's held block without consuming it, and to build flat bridges across liquid and roads behind the bulldozer in flight. The [approved design](../designs/2026-10-29-wide-blade-road-paver-bunk-bed.md) leaves the held-item pipeline, world call, and reference row to the builder. This decision keeps cell selection in the domain and shares the placement protection rule with World Edit.
+The owner wants to clear and pave in one pass, using the driver's held block without consuming it, and to build flat bridges across liquid and roads behind the bulldozer in flight. The approved design leaves the held-item pipeline, world call, and reference row to the builder. This decision keeps cell selection in the domain and shares the placement protection rule with World Edit.
 
 The existing code provides these building blocks:
 

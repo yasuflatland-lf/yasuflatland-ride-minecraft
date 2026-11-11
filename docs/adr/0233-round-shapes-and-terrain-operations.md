@@ -10,7 +10,7 @@
 
 ## Context
 
-The owner wants round buildings, clearing above an area, filling connected hollows below it, and automatic escape when an edit buries its player. The [design note](../designs/2026-11-06-build-wand-round-shapes-and-terrain-design.md) records the choices and their limits. Terrain operations need to cover an area of about 30 by 30 without stalling the server or accidentally destroying terrain without warning.
+The owner wants round buildings, clearing above an area, filling connected hollows below it, and automatic escape when an edit buries its player. The design note records the choices and their limits. Terrain operations need to cover an area of about 30 by 30 without stalling the server or accidentally destroying terrain without warning.
 
 ## Decision
 
