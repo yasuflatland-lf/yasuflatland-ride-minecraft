@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>Camping gear reference models</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; background: #16181b; color: #e6e8ea; font: 14px/1.5 system-ui, sans-serif; }
+      header { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; background: #1f2226; border-bottom: 1px solid #333; }
+      .grp { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      button, select { background: #2b3036; color: #e6e8ea; border: 1px solid #454c55; border-radius: 6px; padding: 4px 9px; cursor: pointer; font: inherit; }
+      button:hover { background: #38404a; }
+      button.on { background: #2f6fed; border-color: #2f6fed; }
+      #stage { display: flex; gap: 10px; padding: 10px; }
+      .pane { position: relative; flex: 1; min-width: 0; height: calc(100vh - 150px); background: #24282c; border-radius: 8px; overflow: hidden; }
+      .pane canvas { display: block; width: 100%; height: 100%; }
+      #photo { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+      #overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; opacity: 0; }
+      #info { position: absolute; left: 8px; bottom: 6px; font-size: 12px; color: #9aa3ab; text-shadow: 0 0 3px #000; }
+      #thumbs { display: flex; gap: 6px; padding: 0 10px 8px; overflow-x: auto; }
+      #thumbs img { height: 64px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; background: #fff; }
+      #thumbs img.on { border-color: #2f6fed; }
+      label { font-size: 12px; color: #9aa3ab; }
+    </style>
+    <script type="importmap">
+      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+    </script>
+  </head>
+  <body>
+    <header>
+      <b>Camping gear</b>
+      <select id="item"></select>
+      <div class="grp" id="views"></div>
+      <label>Overlay <input id="ov" type="range" min="0" max="100" value="0" /></label>
+      <label><input id="seams" type="checkbox" /> Panel seams</label>
+      <label><input id="grid" type="checkbox" checked /> 1-block frame</label>
+      <span id="count"></span>
+    </header>
+    <div id="stage">
+      <div class="pane" id="model"><div id="info"></div></div>
+      <div class="pane"><img id="photo" alt="" /><img id="overlay" alt="" /></div>
+    </div>
+    <div id="thumbs"></div>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+      import { makeLib } from "./lib.js";
+      import { ITEMS } from "./items/manifest.js";
+
+      const $ = (id) => document.getElementById(id);
+      const host = $("model");
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xdcdad5);
+      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 400);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      host.appendChild(renderer.domElement);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x9a9a94, 0.7));
+      const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+      sun.position.set(-20, 40, -30);
+      scene.add(sun);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0xcfcac0, roughness: 1 }));
+      floor.rotation.x = -Math.PI / 2;
+      scene.add(floor);
+      const L = makeLib(THREE);
+
+      const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(16, 16, 16)), new THREE.LineBasicMaterial({ color: 0x2f6fed, transparent: true, opacity: 0.5 }));
+      frame.position.y = 8;
+      scene.add(frame);
+
+      let current = null, group = null, item = null;
+      const VIEWS = { Front: [0, 0.35, -1], Back: [0, 0.35, 1], Left: [-1, 0.35, 0], Right: [1, 0.35, 0], Top: [0, 1, -0.001], "3/4": [-0.8, 0.7, -1] };
+      let lastView = "3/4";
+      function setView(name) {
+        lastView = name;
+        const h = (item.px[1]) / 2, d = Math.max(item.px[0] * 1.3, item.px[1]) * 2.3 + 3;
+        const v = new THREE.Vector3(...VIEWS[name]).normalize().multiplyScalar(d);
+        controls.target.set(0, h, 0);
+        camera.position.set(v.x, h + v.y, v.z);
+        controls.update();
+        document.querySelectorAll("#views button").forEach((b) => b.classList.toggle("on", b.textContent === name));
+      }
+      for (const n of Object.keys(VIEWS)) {
+        const b = document.createElement("button");
+        b.textContent = n;
+        b.onclick = () => setView(n);
+        $("views").appendChild(b);
+      }
+      for (const it of ITEMS) $("item").add(new Option(it.name, it.id));
+
+      async function load(id) {
+        item = ITEMS.find((i) => i.id === id);
+        if (group) scene.remove(group);
+        L.stats.reset();
+        group = new THREE.Group();
+        try {
+          const mod = await import(`./items/${id}.js?t=${Date.now()}`);
+          group.add(mod.default.build(THREE, L));
+        } catch (e) {
+          console.warn(id, e);
+          const m = new THREE.Mesh(new THREE.BoxGeometry(item.px[0], item.px[1], item.px[0]), new THREE.MeshStandardMaterial({ color: 0x9aa0a6 }));
+          m.position.y = item.px[1] / 2;
+          group.add(m);
+          $("info").textContent = "not built yet (" + (e.code || e.message) + ")";
+        }
+        scene.add(group);
+        if (item.hanging) frame.position.y = item.px[1] - 8; else frame.position.y = 8;
+        applySeams();
+        $("count").textContent = `${L.stats.panels} cubes · ${item.px[0]}×${item.px[1]} px`;
+        const t = $("thumbs");
+        t.innerHTML = "";
+        item.refs.forEach((r, i) => {
+          const im = new Image();
+          im.src = `ref/${r}.png`;
+          im.onclick = () => showPhoto(r, im);
+          t.appendChild(im);
+          if (i === 0) showPhoto(r, im);
+        });
+        setView(lastView);
+      }
+      function showPhoto(r, im) {
+        $("photo").src = $("overlay").src = `ref/${r}.png`;
+        document.querySelectorAll("#thumbs img").forEach((x) => x.classList.toggle("on", x === im));
+      }
+      function applySeams() { L.edgeLines.forEach((e) => (e.visible = $("seams").checked)); }
+      $("item").onchange = (e) => { location.hash = e.target.value; load(e.target.value); };
+      $("seams").onchange = applySeams;
+      $("grid").onchange = () => (frame.visible = $("grid").checked);
+      $("ov").oninput = (e) => ($("overlay").style.opacity = e.target.value / 100);
+      // Lets a headless check capture one view: window.shot(itemId, view) -> PNG data URL
+      window.shot = async (id, view) => { $("item").value = id; await load(id); setView(view); controls.update(); renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); };
+
+      function resize() {
+        const w = host.clientWidth, h = host.clientHeight;
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+      addEventListener("resize", resize);
+      resize();
+      const start = location.hash.slice(1);
+      $("item").value = ITEMS.some((i) => i.id === start) ? start : ITEMS[0].id;
+      load($("item").value);
+      (function loop() { controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); })();
+    </script>
+  </body>
+</html>
