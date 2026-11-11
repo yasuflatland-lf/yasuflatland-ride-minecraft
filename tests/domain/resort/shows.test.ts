@@ -9,6 +9,10 @@ it("pins the show tuning with branded durations and sound ids", () => {
     lidOpenTicks: 8,
     lidOpenDegrees: 91,
     scanTicks: 2,
+    exitFrontOffset: 1,
+    exitSearchRadius: 4,
+    exitSearchUp: 4,
+    exitSearchDown: 8,
     flushSound: "yasu_ride.toilet_flush",
   });
   expect(WASHSTAND_SPEC).toEqual({
