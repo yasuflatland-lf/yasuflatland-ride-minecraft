@@ -1,4 +1,5 @@
 import type { CellBox } from "../../domain/build/box";
+import { enterRotateMode } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { BoxAction } from "./boxAction";
@@ -31,7 +32,8 @@ export class RotateBoxAction implements BoxAction {
       });
     const rotated =
       this.rotate.execute({ playerId, dimensionId }) === "rotated";
-    if (!rotated) session.setFlow(flow);
+    if (rotated) session.setFlow(enterRotateMode(session.flow));
+    else session.setFlow(flow);
     return rotated;
   }
 }

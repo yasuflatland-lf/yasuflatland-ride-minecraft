@@ -6,7 +6,6 @@ import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateBoxAction } from "../../../src/application/build/rotateBoxAction";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { selectionBoxOf, setHeight } from "../../../src/domain/build/flow/flow";
-import { shapeMenu } from "../../../src/domain/build/flow/menu";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -79,21 +78,55 @@ it("rotates the shared height selection and preserves it on refusal", () => {
             planRotationAboutCenter(box).target,
           );
           expect(session.flow).toMatchObject({
-            kind: "endpoint",
+            kind: "rotateMode",
+            turn: 1,
             dimensionId: overworld,
             material,
           });
-          expect(shapeMenu(session.flow).map((entry) => entry.id)).toContain(
-            "rotate",
-          );
           expect(session.hasHistory).toBe(true);
           expect(feedback.messages.at(-1)?.message).toBe("rotateDone");
-          const next = selectionBoxOf(session.flow);
-          expect(next).toBeDefined();
-          if (next)
-            expect(rotate.execute(playerId, overworld, next)).toBe(true);
         }
       },
     ),
+  );
+});
+
+it("enters rotate mode after an immediate rotation and restores a refused endpoint", () => {
+  fc.assert(
+    fc.property(fc.boolean(), (blocked) => {
+      const repo = new FakeSessions();
+      const world = new FakeWorld();
+      const playerId = asPlayerId("builder");
+      const session = repo.getOrCreate(playerId);
+      const box = { min: { x: 0, y: 60, z: 0 }, max: { x: 2, y: 62, z: 4 } };
+      session.setFlow({
+        kind: "endpoint",
+        dimensionId: overworld,
+        from: box.min,
+        to: box.max,
+        material: blockStateOf("minecraft:stone"),
+      });
+      const before = session.flow;
+      if (blocked) world.mayEdit = () => false;
+      const action = new RotateBoxAction(
+        repo,
+        new RotateBox(
+          repo,
+          world,
+          new FakeBuildPlayers(),
+          new FakeStructureStore(world),
+          new FakeFeedback(),
+          { warn: () => {} },
+        ),
+      );
+      expect(action.execute(playerId, overworld, box)).toBe(!blocked);
+      if (blocked) expect(session.flow).toBe(before);
+      else
+        expect(session.flow).toMatchObject({
+          kind: "rotateMode",
+          turn: 1,
+          box: planRotationAboutCenter(box).target,
+        });
+    }),
   );
 });

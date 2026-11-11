@@ -1,8 +1,10 @@
 import { system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
+import type { FinishRotateMode } from "../../../../application/build/finishRotateMode";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
+import type { RotateModeTap } from "../../../../application/build/rotateModeTap";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
 import type { PressDebounces } from "../../../../domain/build/pressDebounce";
@@ -23,6 +25,8 @@ export function registerWand({
   setPoint,
   tapAir,
   pressPasteAim,
+  rotateModeTap,
+  finishRotateMode,
   aimHeight,
   confirmBoxStep,
   repo,
@@ -30,11 +34,14 @@ export function registerWand({
   aim,
   debounce,
   pasteDebounce,
+  rotateDebounce,
   pointOf,
 }: {
   setPoint: SetPoint;
   tapAir: TapAir;
   pressPasteAim: PressPasteAim;
+  rotateModeTap: Pick<RotateModeTap, "execute">;
+  finishRotateMode: Pick<FinishRotateMode, "execute">;
   aimHeight: AimHeight;
   confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   repo: BuildSessionRepository;
@@ -42,6 +49,7 @@ export function registerWand({
   aim: AimReader;
   debounce: PressDebounces<PlayerId>;
   pasteDebounce: PressDebounces<PlayerId>;
+  rotateDebounce: PressDebounces<PlayerId>;
   pointOf(playerId: PlayerId): Cell | undefined;
 }): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
@@ -50,8 +58,9 @@ export function registerWand({
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (heldTypeId(ev.player) !== SELECTION_WAND_TYPE) return;
     ev.cancel = true;
-    // ADR 0203: interact only cancels during paste aiming; itemUse owns paste.
-    if (repo.get(asPlayerId(ev.player.id))?.flow.kind === "pasteAim") return;
+    // itemUse owns mode presses, including duplicate block-interaction events.
+    const kind = repo.get(asPlayerId(ev.player.id))?.flow.kind;
+    if (kind === "pasteAim" || kind === "rotateMode") return;
     if (!ev.isFirstEvent) return;
     const player = ev.player;
     const command = {
@@ -62,7 +71,7 @@ export function registerWand({
     system.run(() => {
       if (!player.isValid) return;
       const flow = repo.get(command.playerId)?.flow;
-      if (flow?.kind === "pasteAim") return;
+      if (flow?.kind === "pasteAim" || flow?.kind === "rotateMode") return;
       if (flow?.kind === "heightStep") {
         const target = aim.aim(command.playerId);
         if (!target) return;
@@ -85,17 +94,25 @@ export function registerWand({
     if (!source.isValid || itemStack.typeId !== SELECTION_WAND_TYPE) return;
     const playerId = asPlayerId(source.id);
     // Opening the menu must not swallow the next commit; commits also debounce across anchors.
+    const flow = repo.get(playerId)?.flow;
+    const tick = system.currentTick;
     const presses =
-      source.isSneaking && repo.get(playerId)?.flow.kind === "pasteAim"
-        ? pasteDebounce
-        : debounce;
-    if (!presses.press(playerId, system.currentTick)) return;
+      flow?.kind === "rotateMode"
+        ? rotateDebounce
+        : source.isSneaking && flow?.kind === "pasteAim"
+          ? pasteDebounce
+          : debounce;
+    // A held finish press must not open utilities after returning to endpoint.
+    if (flow?.kind === "rotateMode") debounce.press(playerId, tick);
+    if (!presses.press(playerId, tick)) return;
     dispatchWandPress({
       source,
       playerId,
       aim,
       repo,
       pressPasteAim,
+      rotateModeTap,
+      finishRotateMode,
       aimHeight,
       confirmBoxStep,
       menus,

@@ -10,6 +10,8 @@ import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
+import { RotateBox } from "../../../src/application/build/rotateBox";
+import { RotateBoxAction } from "../../../src/application/build/rotateBoxAction";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
@@ -32,6 +34,7 @@ import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/bui
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import {
+  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -126,7 +129,17 @@ function setup(fallback?: boolean) {
         new ChooseBoxStep(
           repo,
           {
-            rotate: { execute: vi.fn(() => true) },
+            rotate: new RotateBoxAction(
+              repo,
+              new RotateBox(
+                repo,
+                new FakeWorld(),
+                new FakeBuildPlayers(),
+                new FakeStructureStore(),
+                new FakeFeedback(),
+                { warn: () => {} },
+              ),
+            ),
             copy: new CopyBox(
               repo,
               new FakeStructureStore(),
@@ -1224,4 +1237,14 @@ it("Cancel closes the paste menu and keeps paste aiming", async () => {
   );
   expect(session.flow).toBe(flow);
   expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+});
+
+it("enters rotate mode through the immediate shape menu Rotate dispatch", async () => {
+  const { menus, player, session } = setup();
+  session.setFlow({ ...endpoint, to: { ...to, y: 63 } });
+  ui.answers.push({
+    selection: shapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
+  });
+  await menus.showShapeMenu(player);
+  expect(session.flow).toMatchObject({ kind: "rotateMode", turn: 1 });
 });
