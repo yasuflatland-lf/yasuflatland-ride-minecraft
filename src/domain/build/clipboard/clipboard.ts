@@ -1,6 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import { anchorCell, type Face } from "../aim/face";
-import { boxOf, type CellBox } from "../box";
+import { boxFromSize, type CellBox, type Size } from "../box";
 import {
   NO_TURN,
   type QuarterTurn,
@@ -10,7 +10,7 @@ import type { StructureHandle } from "../structure/handle";
 
 export interface Clipboard {
   /** Box dimensions. */
-  readonly size: Cell;
+  readonly size: Size;
   /** What the "copied" and paste hint messages show. */
   readonly blockCount: number;
   readonly contents: {
@@ -25,14 +25,6 @@ export function structureOf(
   return clipboard?.contents.handle;
 }
 
-function pasteBox(size: Cell, anchor: Cell): CellBox {
-  return boxOf(anchor, {
-    x: anchor.x + size.x - 1,
-    y: anchor.y + size.y - 1,
-    z: anchor.z + size.z - 1,
-  });
-}
-
 export type PasteTarget = { anchor: Cell; box: CellBox; turn: QuarterTurn };
 
 export function pasteTarget(
@@ -44,7 +36,7 @@ export function pasteTarget(
   const anchor = anchorCell(block, face);
   return {
     anchor,
-    box: pasteBox(rotatedSize(clipboard.size, turn), anchor),
+    box: boxFromSize(anchor, rotatedSize(clipboard.size, turn)),
     turn,
   };
 }
