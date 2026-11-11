@@ -2,6 +2,7 @@
 
     python3 -I tools/render_preview.py <resource pack> <output dir>          write the images
     python3 -I tools/render_preview.py <resource pack> <output dir> --check  fail if any is stale
+    python3 -I tools/render_preview.py <resource pack> --gear sugar_pot --view front top --out /tmp/views
     python3 -I tools/render_preview.py <resource pack> --view sinkTap --out /tmp/views
     python3 -I tools/render_preview.py <resource pack> --view lidOpen --lid 45 --out /tmp/views
     python3 -I tools/render_preview.py <resource pack> <output dir> --beach-chair-form chair --view -1 0.65 -1
@@ -170,6 +171,16 @@ GEAR_GEOMETRY = "models/blocks/yasu_ride/{}.geo.json"
 GEAR_TEXTURE = "textures/blocks/yasu_ride/camping_gear.png"
 GEAR_DIR = "items/camping-gear"
 GEAR_SIZE = 128
+GEAR_SWATCH_AREA = 16
+GEAR_VIEW_SIZE = 512
+GEAR_VIEWS = {
+    "front": (0, 0.15, -1),
+    "back": (0, 0.15, 1),
+    "left": (1, 0.15, 0),
+    "right": (-1, 0.15, 0),
+    "top": (0, 1, 0),
+    "threeQuarter": VIEW_DIRECTION,
+}
 GEAR_FILL = 0.8
 GEAR_ICON_DIR = "textures/items/yasu_ride"
 GEAR_ICON_SIZE = 32
@@ -1135,7 +1146,30 @@ def render_photo_view(rp, name, lid=None) -> RasterJob:
                      PHOTO_VIEW_SIZE, PHOTO_VIEW_SIZE, None, {}, glass)
 
 
-def render_gear(geo_path, texture, size, name, animation=None, view=None):
+def gear_tiled(geo, texture):
+    """Detect tile UVs in texture texels, including mirrored faces."""
+    desc = geo["description"]
+    sx = len(texture[0]) / desc["texture_width"]
+    sy = len(texture) / desc["texture_height"]
+    for bone in geo["bones"]:
+        for cube in bone.get("cubes", []):
+            for face in cube["uv"].values():
+                (u, v), (du, dv) = face["uv"], face["uv_size"]
+                if (min(u, u + du) * sx < 0 or max(u, u + du) * sx > GEAR_SWATCH_AREA or
+                        min(v, v + dv) * sy < 0 or max(v, v + dv) * sy > GEAR_SWATCH_AREA):
+                    return True
+    return False
+
+
+def collect_gear(geo, texture, item):
+    """Keep swatch previews unchanged while tiled gear follows its game material."""
+    tiled = gear_tiled(geo, texture)
+    pose = {"lamps": False, "dusk": False, "outward_normals": False, "merge_texels": tiled}
+    return collect_boat(geo, texture, pose, texture_mapping=tiled,
+                        cutout=tiled and not item["glass"])
+
+
+def render_gear(geo_path, texture, size, name, animation=None, view=None, screen_up=None):
     """Draw one small model in a size-pixel square on transparency, seen like the vehicles."""
     geometries = json.loads(geo_path.read_text())["minecraft:geometry"]
     roof_tent = geo_path.name == "roof_tent.geo.json"
@@ -1149,14 +1183,19 @@ def render_gear(geo_path, texture, size, name, animation=None, view=None):
         animation = json.loads((geo_path.parents[3] / "animations/yasu_ride/toilet.anim.json").read_text())["animations"]["animation.yasu_ride.toilet.rest"]
     if animation is not None:
         geo = static_pose(geo, animation)
-    textured = geo_path.name in TEXTURED_GEOMETRY_FILES
-    polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured,
-                                           "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json", "washstand.geo.json")}, texture_mapping=textured,
-                                   cutout=geo_path.name in CUTOUT_GEOMETRY_FILES)
+    item = next((item for item in json.loads(GEAR_SPEC.read_text())
+                 if geo_path.name == f"{item['id']}.geo.json"), None)
+    if item is not None:
+        polygons, glass = collect_gear(geo, texture, item)
+    else:
+        textured = geo_path.name in TEXTURED_GEOMETRY_FILES
+        polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured,
+                                               "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json", "washstand.geo.json")}, texture_mapping=textured,
+                                       cutout=geo_path.name in CUTOUT_GEOMETRY_FILES)
     quads = [quad for quad, _, _ in polygons + glass]
     # Look from the ladder end so the SUV tent's vehicle-left ladder stays visible.
     view = view if view is not None else (ROOF_TENT_VIEW if roof_tent else VIEW_DIRECTION)
-    camera = Camera([p for quad in quads for p in quad], view=view)
+    camera = Camera([p for quad in quads for p in quad], view=view, screen_up=screen_up)
     return RasterJob(name, polygons, [], fit_square(camera, quads, size), size, size, None, {}, glass)
 
 
@@ -1306,6 +1345,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
     parser.add_argument("output_dir", type=Path, nargs="?")
+    parser.add_argument("--gear", help="camping gear item id for named review views")
     parser.add_argument("--out", type=Path, help="output directory for a named photo view")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--icons", nargs="+", type=Path, default=[])
@@ -1316,6 +1356,25 @@ def main():
                         help="photo view name, or three camera direction numbers with --beach-chair-form")
     parser.add_argument("--lid", type=float, help=f"lid opening in degrees (0 to {LID_OPEN}), with a named view")
     args = parser.parse_args()
+    if args.gear is not None:
+        items = {item["id"]: item for item in json.loads(GEAR_SPEC.read_text())}
+        if args.gear not in items:
+            parser.error(f"Unknown gear '{args.gear}'; valid ids: {', '.join(items)}")
+        if args.out is None or args.output_dir is not None:
+            parser.error("--gear requires --out and no positional output_dir")
+        if args.check or args.icons or args.beach_chair_form or args.lid is not None:
+            parser.error("--gear cannot be combined with --check, --icons, --beach-chair-form, or --lid")
+        views = args.view if args.view is not None else list(GEAR_VIEWS)
+        for name in views:
+            if name not in GEAR_VIEWS:
+                parser.error(f"Unknown gear view '{name}'; valid names: {', '.join(GEAR_VIEWS)}")
+        texture = read_png(args.resource_pack / GEAR_TEXTURE)
+        for name in views:
+            job = render_gear(args.resource_pack / GEAR_GEOMETRY.format(args.gear), texture,
+                              GEAR_VIEW_SIZE, f"{args.gear}-{name}.png", view=GEAR_VIEWS[name],
+                              screen_up=(0, 0, 1) if name == "top" else None)
+            write_png(args.out / job.name, job.width, job.height, rasterize_job(job))
+        return
     named_view, direction = None, None
     if args.view is not None:
         if len(args.view) == 1:

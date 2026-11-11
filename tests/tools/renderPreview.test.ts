@@ -598,3 +598,78 @@ print(json.dumps([[b.get('rotation', [0,0,0]) for b in p['bones'] if b['name']==
     [37, 0, 0],
   ]);
 });
+
+describe("camping gear tiles and review views", () => {
+  it("cuts non-glass tile patches and retains translucent glass patches", () => {
+    expect(
+      previewPython(`
+face = {"uv": [16, 0], "uv_size": [2, 1]}
+cube = {"origin": [0, 0, 0], "size": [2, 1, 1], "uv": {f: face for f in ("north", "south", "east", "west", "up", "down")}}
+geo = {"description": {"texture_width": 32, "texture_height": 32}, "bones": [{"name": "body", "cubes": [cube]}]}
+texture = [[(0, 0, 255, 255)] * 32 for _ in range(32)]
+texture[0][16:18] = [(255, 0, 0, 0), (0, 255, 0, 255)]
+assert r.gear_tiled(geo, texture)
+opaque, glass = r.collect_gear(geo, texture, {"glass": False})
+assert len(opaque) == 6 and not glass
+assert [rgb for _, rgb, _ in opaque] == [(0, 255 * k, 0) for k in (0.8, 0.8, 0.6, 0.6, 1, 0.5)]
+texture[0][16] = (255, 0, 0, 110)
+opaque, glass = r.collect_gear(geo, texture, {"glass": True})
+assert len(opaque) == len(glass) == 6
+assert all(alpha == 110 / 255 for _, _, alpha in glass)
+assert all(rgb[0] > 0 and rgb[1:] == (0, 0) for _, rgb, _ in glass)
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it("keeps shipped gear untiled and defines the six review angles in order", () => {
+    expect(
+      previewPython(`
+rp = Path('packs/yasu_ride_rp')
+texture = r.read_png(rp / r.GEAR_TEXTURE)
+for item in json.loads(r.GEAR_SPEC.read_text()):
+    geo = json.loads((rp / r.GEAR_GEOMETRY.format(item['id'])).read_text())['minecraft:geometry'][0]
+    assert not r.gear_tiled(geo, texture), item['id']
+assert r.GEAR_VIEWS['left'] == (1, 0.15, 0)
+assert r.GEAR_VIEWS['right'] == (-1, 0.15, 0)
+assert r.GEAR_VIEWS['threeQuarter'] == r.VIEW_DIRECTION
+print(json.dumps(list(r.GEAR_VIEWS)))
+`),
+    ).toEqual(["front", "back", "left", "right", "top", "threeQuarter"]);
+  });
+
+  it.each([
+    ["--gear", "unknown", "--out", "/tmp/unused-gear-1595"],
+    [
+      "--gear",
+      "sugar_pot",
+      "--view",
+      "unknown",
+      "--out",
+      "/tmp/unused-gear-1595",
+    ],
+    ["--gear", "sugar_pot"],
+    ...["--check", "--icons", "--beach-chair-form", "--lid"].map((option) => [
+      "--gear",
+      "sugar_pot",
+      "--out",
+      "/tmp/unused-gear-1595",
+      option,
+      ...(option === "--icons"
+        ? ["packs/yasu_ride_rp"]
+        : option === "--beach-chair-form"
+          ? ["chair"]
+          : option === "--lid"
+            ? ["45"]
+            : []),
+    ]),
+  ])("rejects invalid gear review arguments %j", (...args) => {
+    expect(() =>
+      execFileSync(
+        "python3",
+        ["-I", "tools/render_preview.py", "packs/yasu_ride_rp", ...args],
+        { stdio: "pipe" },
+      ),
+    ).toThrow();
+  });
+});

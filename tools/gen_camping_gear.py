@@ -37,6 +37,7 @@ texture_io = load_tool("texture_io")
 gear_model = load_tool("gear_model")
 gear_registry = load_tool("gear_registry")
 gear_atlas = load_tool("gear_atlas")
+gear_validate = load_tool("gear_validate")
 ATLAS_SIZE = gear_atlas.ATLAS_SIZE
 face = gear_atlas.face
 box = gear_atlas.box
@@ -215,11 +216,19 @@ def validate(spec):
     errors = []
     if [gear_model.GearSpec.from_row(item).id for item in spec] != list(gear_registry.IDS):
         errors.append("Registry must list exactly the ids of camping_gear.json, in the same order")
+    # Series part 5/17 adds the static tile assignments.
+    tiles = getattr(gear_atlas, "GEAR_TILES", {})
+    pixels = atlas_pixels()
     for item in spec:
         errors.extend(gear_atlas.check_alpha(item["id"], item["glass"]))
         if not isinstance(item["hanging"], bool):
             errors.append(f"{item['id']}: hanging must be true or false")
         cubes = SHAPES.get(item["id"], [])
+        errors.extend(gear_validate.item_budget_errors(item["id"], cubes))
+        errors.extend(gear_validate.rotation_errors(item["id"], cubes))
+        errors.extend(gear_validate.uv_errors(item["id"], cubes, tiles))
+        alphas = gear_validate.sampled_alphas(cubes, pixels, ATLAS_SIZE)
+        errors.extend(gear_validate.alpha_errors(item["id"], item["glass"], alphas))
         if not cubes:
             continue
         try:
@@ -239,10 +248,9 @@ def validate(spec):
             errors.append(f"{item['id']}: y spans {y0}..{y1}, outside the cell")
         if z0 < -8 or z1 > 8:
             errors.append(f"{item['id']}: z spans {z0}..{z1}, outside the cell")
-        glass = any(c["uv"]["north"] == face("glass") for c in cubes)
-        if glass != item["glass"]:
-            errors.append(f"{item['id']}: glass is {item['glass']} but the glass swatch is {'used' if glass else 'unused'}")
+    counts = {item["id"]: len(SHAPES.get(item["id"], [])) for item in standing(spec)}
     for kind, pair in PAIRS.items():
+        errors.extend(gear_validate.pair_budget_errors(kind, counts))
         for end, (left, ahead) in enumerate(pair["ends"]):
             for item in standing(spec):
                 (x0, _, z0), (x1, _, z1) = cube_tilt.bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
