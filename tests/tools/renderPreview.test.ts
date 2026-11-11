@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { RESORT_GEAR } from "../support/resortGear";
 
 type Point = [number, number, number];
 
@@ -113,12 +114,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
       ).map((g) => g.id);
       const names = [
         ...ids,
-        "beach_parasol",
-        "beach_chair",
-        "dining_table",
-        "dining_chair",
-        "sofa_single",
-        "sofa_double",
+        ...RESORT_GEAR.map((piece) => piece.name),
         "noga_chair",
         "low_chair",
         "tent",

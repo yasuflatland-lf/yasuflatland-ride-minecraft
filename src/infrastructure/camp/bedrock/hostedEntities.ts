@@ -1,13 +1,11 @@
 import { type Entity, world } from "@minecraft/server";
+import { allDimensions } from "../../shared/dimensions";
 
 const HOST_REACH_OFFSETS = [-1, 0, 1] as const;
 
 export function loadedEntityIds(type: string): string[] {
-  return ["overworld", "nether", "the_end"].flatMap((dimension) =>
-    world
-      .getDimension(dimension)
-      .getEntities({ type })
-      .map((entity) => entity.id),
+  return allDimensions().flatMap((dimension) =>
+    dimension.getEntities({ type }).map((entity) => entity.id),
   );
 }
 
