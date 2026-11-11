@@ -1,4 +1,5 @@
 import type { Paint } from "../shared/paint";
+import { ticks } from "../shared/ticks";
 
 // Every tuning value of the beach parasol. The dimensions come from the model in
 // tools/gen_beach_parasol.py: BASE_OFFSET, CANOPY_TOP, BASE_CELLS and POLE_FOOT_CELLS.
@@ -35,9 +36,9 @@ export const PARASOL_SPEC = Object.freeze({
   /** Hits in a row that fold the parasol back into its item, as for camp gear (ADR 0008). */
   hitsToTakeBack: 3,
   /** A gap longer than this, in ticks, starts the hit count again. */
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
   /** How often, in ticks, loaded parasols lay their rain ceiling again. */
-  ceilingSyncTicks: 20,
+  ceilingSyncTicks: ticks(20),
   defaultPaint: "white" satisfies Paint,
 } as const);
 
@@ -71,9 +72,9 @@ export const BEACH_CHAIR_SPEC = Object.freeze({
   /** Hits in a row that take the chair back, as for camp gear (ADR 0008). */
   hitsToTakeBack: 3,
   /** A gap longer than this, in ticks, starts the hit count again. */
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
   /** How often, in ticks, the leaning pose is sent again for late viewers. */
-  poseRefreshTicks: 20,
+  poseRefreshTicks: ticks(20),
   /** Cells to the right of the middle cell; one clears the one-cell-wide bed. */
   exitSideOffset: 1,
   /** Chebyshev radius from the side cell; four reaches beyond either end of the three-cell bed. */

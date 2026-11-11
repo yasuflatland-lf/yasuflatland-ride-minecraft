@@ -1,6 +1,7 @@
 import { type Cell, cellOf } from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
 import type { TopSurface } from "../shared/tableTop";
+import { type Ticks, ticks } from "../shared/ticks";
 import { forward, localOffset, type Vec2, type Vec3 } from "../shared/vec";
 
 export type FurnitureKind =
@@ -29,7 +30,7 @@ export interface FurnitureSpec {
   readonly clearance: number;
   readonly seats: readonly SeatOffset[];
   readonly hitsToTakeBack: number;
-  readonly hitResetTicks: number;
+  readonly hitResetTicks: Ticks;
   /** Only furniture that hosts lanterns and ovens has a top. */
   readonly top?: TopSurface;
 }
@@ -42,7 +43,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       clearance: 2,
       seats: Object.freeze([]),
       hitsToTakeBack: 3,
-      hitResetTicks: 100,
+      hitResetTicks: ticks(100),
       top: Object.freeze({
         half: Object.freeze({ halfX: 6, halfZ: 6 }),
         topPx: 12,
@@ -55,14 +56,14 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       clearance: 2,
       seats: Object.freeze([Object.freeze({ x: 0, y: 0.21, z: -0.00625 })]),
       hitsToTakeBack: 3,
-      hitResetTicks: 100,
+      hitResetTicks: ticks(100),
     }),
     sofa_single: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
       clearance: 2,
       seats: Object.freeze([Object.freeze({ x: 0, y: 0.2475, z: -0.1 })]),
       hitsToTakeBack: 3,
-      hitResetTicks: 100,
+      hitResetTicks: ticks(100),
     }),
     sofa_double: Object.freeze({
       cells: Object.freeze([
@@ -75,7 +76,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
         Object.freeze({ x: 0.5, y: 0.2475, z: -0.1 }),
       ]),
       hitsToTakeBack: 3,
-      hitResetTicks: 100,
+      hitResetTicks: ticks(100),
     }),
   });
 
@@ -147,7 +148,7 @@ export function furnitureClearCells(pose: FurniturePose): Cell[] {
   return cells;
 }
 
-export const FURNITURE_TOP_SYNC_TICKS = 20;
+export const FURNITURE_TOP_SYNC_TICKS = ticks(20);
 
 export function diningTableTopCells(pose: FurniturePose): Cell[] {
   return furnitureCells(pose);
