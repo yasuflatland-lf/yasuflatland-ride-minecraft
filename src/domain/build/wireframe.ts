@@ -106,18 +106,24 @@ export function outlinePoints(
   other: readonly Curve[],
   maxPoints: number,
 ): Vec3[] {
-  const budget = Math.max(0, Math.floor(maxPoints));
-  const denseCounts = scaled(
-    horizontal,
-    BUILD_SPEC.denseOutlinePerBlock,
-    budget,
-  );
-  const used = denseCounts.reduce((sum, n) => sum + n, 0);
-  const otherCounts = scaled(other, 1, budget - used);
-  return [
-    ...horizontal.flatMap((curve, i) =>
-      sample(curve, denseCounts[i] as number),
-    ),
-    ...other.flatMap((curve, i) => sample(curve, otherCounts[i] as number)),
-  ];
+  return tieredPoints(
+    [
+      { curves: horizontal, perBlock: BUILD_SPEC.denseOutlinePerBlock },
+      { curves: other, perBlock: 1 },
+    ],
+    maxPoints,
+  ).flat(2);
+}
+
+export function tieredPoints(
+  tiers: readonly { curves: readonly Curve[]; perBlock: number }[],
+  maxPoints: number,
+): Vec3[][][] {
+  let remaining = Math.max(0, Math.floor(maxPoints));
+  return tiers.map(({ curves, perBlock }) => {
+    const counts = scaled(curves, perBlock, remaining);
+    remaining -= counts.reduce((sum, n) => sum + n, 0);
+    // Preserve curve groups so callers can style edges without splitting their budget.
+    return curves.map((curve, i) => sample(curve, counts[i] as number));
+  });
 }
