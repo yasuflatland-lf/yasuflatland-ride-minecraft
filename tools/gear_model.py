@@ -1,6 +1,6 @@
 """Path-free values shared by camping gear builders and orchestration."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -20,3 +20,4 @@ class GearSpec:
 class GearModel:
     cubes: tuple[dict, ...]
     texture_request: tuple[str, ...]
+    assemblies: dict[str, tuple[dict, ...]] = field(default_factory=dict)
