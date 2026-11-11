@@ -9,7 +9,6 @@ import {
   furnitureClearCells,
   furniturePose,
   furnitureSupportCells,
-  type SeatOffset,
 } from "../../../src/domain/resort/furniture";
 import {
   asFurnitureId,
@@ -19,12 +18,7 @@ import { cellKey } from "../../../src/domain/shared/cells";
 import type { Facing4 } from "../../../src/domain/shared/facing";
 import { forward } from "../../../src/domain/shared/vec";
 
-const kinds: readonly FurnitureKind[] = [
-  "dining_table",
-  "dining_chair",
-  "sofa_single",
-  "sofa_double",
-];
+const kinds = Object.keys(FURNITURE_SPEC) as FurnitureKind[];
 const facings: readonly Facing4[] = [0, 90, 180, 270];
 const cellArb = fc.record({
   x: fc.integer({ min: -1000, max: 1000 }),
@@ -159,16 +153,17 @@ describe("furniture spec", () => {
   });
 
   it("provides per-kind seats and the finalized Dining Table surface", () => {
-    const seats: readonly (readonly SeatOffset[])[] = [
-      [],
-      [{ x: 0, y: 0.21, z: -0.00625 }],
-      [{ x: 0, y: 0.2475, z: -0.1 }],
-      [
-        { x: -0.5, y: 0.2475, z: -0.1 },
-        { x: 0.5, y: 0.2475, z: -0.1 },
-      ],
-    ];
-    expect(kinds.map((kind) => FURNITURE_SPEC[kind].seats)).toEqual(seats);
+    expect(FURNITURE_SPEC.dining_table.seats).toEqual([]);
+    expect(FURNITURE_SPEC.dining_chair.seats).toEqual([
+      { x: 0, y: 0.21, z: -0.00625 },
+    ]);
+    expect(FURNITURE_SPEC.sofa_single.seats).toEqual([
+      { x: 0, y: 0.2475, z: -0.1 },
+    ]);
+    expect(FURNITURE_SPEC.sofa_double.seats).toEqual([
+      { x: -0.5, y: 0.2475, z: -0.1 },
+      { x: 0.5, y: 0.2475, z: -0.1 },
+    ]);
     expect(FURNITURE_SPEC.dining_table.top).toEqual({
       half: { halfX: 6, halfZ: 6 },
       topPx: 12,
