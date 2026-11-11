@@ -80,8 +80,8 @@ Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items ar
 | Dining Chair  | ![Dining Chair](../images/items/camping-gear/dining_chair.png)   | Place on a clear solid floor, sit with the normal riding interaction, and recover the empty chair with three hits. |
 | Sofa (Single) | ![Sofa (Single)](../images/items/camping-gear/sofa_single.png)   | A woven single-seat sofa.                                                                                          |
 | Sofa (Double) | ![Sofa (Double)](../images/items/camping-gear/sofa_double.png)   | A woven two-seat sofa spanning two cells.                                                                          |
-| Toilet        | ![Toilet](../images/items/camping-gear/toilet.png)               | A one-seat porcelain toilet; dismounting starts the flush.                                                        |
-| Washstand     | ![Washstand](../images/items/camping-gear/washstand.png)         | Oak and black steel washstand with a white basin and a five-second tap animation; interaction starts the tap.   |
+| Toilet        | ![Toilet](../images/items/camping-gear/toilet.png)               | A one-seat porcelain toilet; dismounting starts the flush.                                                         |
+| Washstand     | ![Washstand](../images/items/camping-gear/washstand.png)         | Oak and black steel washstand with a white basin and a five-second tap animation; interaction starts the tap.      |
 
 Craft one Dining Chair at a crafting table with planks (`P`), sticks (`S`), and an iron ingot (`I`):
 
