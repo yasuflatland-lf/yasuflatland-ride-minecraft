@@ -44,7 +44,7 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
     },
     showUndoHint: () => {},
     showSize: () => {},
-    showPasteHint: () => {},
+    showMode: () => {},
     drawPreview: () => {},
   };
   const log = { warn: (value: string) => console.warn(value) };

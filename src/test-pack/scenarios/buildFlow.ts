@@ -394,8 +394,9 @@ function pasteStep(
   y: number,
   z: number,
   face: string,
+  sneaking = true,
 ): Promise<Reply> {
-  return f.edit(`pasteat ${x} ${y} ${z} ${face}`);
+  return f.edit(`pasteat ${x} ${y} ${z} ${face} ${sneaking}`);
 }
 
 async function endPasteStep(f: Fixture): Promise<void> {
@@ -470,14 +471,28 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
     await copyLine(f);
     const withoutHistory = await checkState(f, "pasteAim", true);
     check(
-      withoutHistory.pasteMenu.join() === "rotate,newCopy,endPaste",
+      withoutHistory.pasteMenu.join() === "newCopy,endPaste,cancel",
       "Paste menu without history has unexpected entries",
     );
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    await pasteStep(
+      f,
+      target.anchor.x,
+      target.anchor.y,
+      target.anchor.z,
+      "up",
+      false,
+    );
+    check(
+      unchanged(f, target.cells, target.before),
+      "Plain press pasted instead of opening the menu",
+    );
+    await f.menu("paste", "cancel");
+    await checkState(f, "pasteAim", true);
     await pasteInto(f, target);
     const withHistory = await checkState(f, "pasteAim", true);
     check(
-      withHistory.pasteMenu.join() === "undo,rotate,newCopy,endPaste",
+      withHistory.pasteMenu.join() === "undo,newCopy,endPaste,cancel",
       "Paste menu with history must have exactly four ordered entries",
     );
     await f.menu("paste", "undo");
@@ -486,7 +501,7 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
       "menu Undo did not restore blocks",
     );
     check(
-      (await f.state()).pasteMenu.join() === "rotate,newCopy,endPaste",
+      (await f.state()).pasteMenu.join() === "newCopy,endPaste,cancel",
       "Undo remained in the menu without history",
     );
   });
@@ -627,7 +642,16 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       });
       for (const c of target) f.block(c).setType("minecraft:gold_block");
       const before = snapshot(f, target);
-      const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, face);
+      await pasteStep(f, anchor.x, anchor.y, anchor.z, face, false);
+      check(unchanged(f, target, before), "Plain aimed press wrote blocks");
+      const pasted = await pasteStep(
+        f,
+        anchor.x,
+        anchor.y,
+        anchor.z,
+        face,
+        true,
+      );
       check(pasted.message === "editDone", "aimed paste failed");
       const actual = snapshot(f, target);
       check(

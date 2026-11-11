@@ -1289,7 +1289,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_paste_menu",
     file: "buildFlow",
-    ticks: 120,
+    ticks: 140,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
@@ -1632,7 +1632,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_aimed_paste",
     file: "buildFlow",
-    ticks: 220,
+    ticks: 260,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
