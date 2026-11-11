@@ -1,10 +1,18 @@
 import type { AimReader } from "../../../application/build/ports/aim";
 import { BUILD_SPEC } from "../../../domain/build/spec";
-import type { PlayerId } from "../../../domain/shared/ids";
+import { asDimensionId, type PlayerId } from "../../../domain/shared/ids";
 import { playerById } from "../../shared/players";
 import { FACES } from "./faces";
 
 export class BedrockAimReader implements AimReader {
+  dimensionOf(playerId: PlayerId) {
+    try {
+      const player = playerById(playerId);
+      return player?.isValid ? asDimensionId(player.dimension.id) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
   aim(playerId: PlayerId) {
     try {
       const player = playerById(playerId);

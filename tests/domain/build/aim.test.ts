@@ -123,6 +123,30 @@ describe("virtualEndPoint", () => {
 });
 
 describe("apexHeight", () => {
+  it("includes the looked-at cell as the top layer within the cap and world limits", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: BUILD_SPEC.worldBottomY, max: BUILD_SPEC.worldTopY }),
+        fc.nat(299),
+        fc.integer({ min: 0, max: 1023 }),
+        (baseY, index, fraction) => {
+          const k = Math.min(index, BUILD_SPEC.worldTopY - baseY);
+          const lookY = baseY + k + fraction / 1024;
+          const height = apexHeight({
+            ...defaults,
+            baseY,
+            ray: {
+              origin: { x: -10, y: lookY, z: 0 },
+              direction: { x: 1, y: 0, z: 0 },
+            },
+          });
+          expect(height).toBe(k + 1);
+          expect(baseY + height - 1).toBe(Math.floor(lookY));
+        },
+      ),
+    );
+  });
+
   it("always returns an integer within the cap and world limits, or one when no height fits", () => {
     fc.assert(
       fc.property(
@@ -189,7 +213,7 @@ describe("apexHeight", () => {
     );
   });
 
-  it("finds and rounds the height at closest approach even when the ray misses the line", () => {
+  it("includes the layer at closest approach even when the ray misses the line", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 299 }),
@@ -208,7 +232,7 @@ describe("apexHeight", () => {
           };
           expect(
             apexHeight({ ...defaults, baseY, maxY: baseY + 300, ray }),
-          ).toBe(Math.round(height + fraction));
+          ).toBe(height + 1);
         },
       ),
     );
@@ -223,6 +247,6 @@ describe("apexHeight", () => {
           direction: { x: 0.6, y: 0.8, z: 0 },
         },
       }),
-    ).toBe(20);
+    ).toBe(21);
   });
 });

@@ -45,8 +45,8 @@ export function apexHeight(args: {
   const height =
     Math.abs(ray.direction.y) > VERTICAL_PARALLEL_EPSILON
       ? previous
-      : rayHeightNearestLine(centerX, centerZ, ray) - baseY;
-  return Math.max(1, Math.min(max, Math.round(height)));
+      : Math.floor(rayHeightNearestLine(centerX, centerZ, ray) - baseY) + 1;
+  return Math.max(1, Math.min(max, height));
 }
 
 function rayHeightNearestLine(

@@ -34,6 +34,7 @@ export const BUILD_MESSAGE: Readonly<
   noSelection: "yasu_build.message.no_selection",
   tooLarge: "yasu_build.message.too_large",
   busy: "yasu_build.message.busy",
+  noGround: "yasu_build.message.no_ground",
   noClipboard: "yasu_build.message.no_clipboard",
   nothingToUndo: "yasu_build.message.nothing_to_undo",
   pasteFailed: "yasu_build.message.paste_failed",

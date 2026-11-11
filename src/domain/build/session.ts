@@ -26,6 +26,7 @@ type EditRefusal =
   | "tooLarge"
   | "busy"
   | "noClipboard"
+  | "noGround"
   | "nothingToUndo";
 
 /** Tells a refusal from a CellBox or an EditRecord. */

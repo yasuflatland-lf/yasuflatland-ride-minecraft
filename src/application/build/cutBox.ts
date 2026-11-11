@@ -1,4 +1,4 @@
-import { type CellBox, cellsOf, volume } from "../../domain/build/box";
+import { type CellBox, cellsOf, sizeOf, volume } from "../../domain/build/box";
 import { completionMessage } from "../../domain/build/edit/completion";
 import { airPressOffersUndo } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -58,11 +58,7 @@ export class CutBox implements BoxAction {
       return false;
     }
     const previous = session.completeCopy(dimensionId, box, {
-      size: {
-        x: box.max.x - box.min.x + 1,
-        y: box.max.y - box.min.y + 1,
-        z: box.max.z - box.min.z + 1,
-      },
+      size: sizeOf(box),
       blockCount: count,
       contents: { kind: "structure", handle },
     });

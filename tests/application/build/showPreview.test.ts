@@ -4,6 +4,7 @@ import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import type { AimReader } from "../../../src/application/build/ports/aim";
+import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -19,6 +20,7 @@ import {
 import {
   FakeAimReader,
   FakeFeedback,
+  FakeGroundProbe,
   FakeSessions,
   nether,
   overworld,
@@ -47,7 +49,12 @@ function setup(active = true) {
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
       modes.execute([{ playerId: alex, holding: true }]);
   const aim = vi.fn<AimReader["aim"]>();
-  const preview = new ShowPreview(repo, feedback, { aim });
+  const preview = new ShowPreview(
+    repo,
+    feedback,
+    { aim, dimensionOf: () => nether },
+    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+  );
   return { repo, feedback, session, aim, preview };
 }
 
@@ -181,7 +188,7 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
   expect(feedback.previews).toHaveLength(6);
   expect(feedback.previews[0]).toEqual({
     playerId: alex,
-    dimensionId: undefined,
+    dimensionId: nether,
     set: previewPoints(session.flow, {
       blink: true,
       pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
@@ -423,7 +430,12 @@ it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed
     structureClipboard(boxOf(cell, end), () => material),
   );
   const aim = new FakeAimReader();
-  const preview = new ShowPreview(repo, feedback, aim);
+  const preview = new ShowPreview(
+    repo,
+    feedback,
+    aim,
+    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+  );
   for (const target of [{ ray }, undefined]) {
     aim.target = target;
     preview.execute(0);
@@ -486,6 +498,7 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           expect(feedback.previews).toHaveLength(1);
           const set = feedback.previews[0]?.set;
           expect(set?.paste.length).toBeGreaterThan(0);
+          expect((set?.pasteVertical.length ?? 0) > 0).toBe(y > 1);
           for (const layer of [
             "marker",
             "shape",

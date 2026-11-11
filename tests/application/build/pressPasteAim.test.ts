@@ -3,13 +3,12 @@ import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
+import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
+import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import {
-  aimedPasteTarget,
-  type Face,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   tapAir,
@@ -27,6 +26,7 @@ import {
   FakeAimReader,
   FakeBuildPlayers,
   FakeFeedback,
+  FakeGroundProbe,
   FakeSessions,
   FakeWorld,
   nether,
@@ -72,7 +72,12 @@ function setup(
     structures,
     new FakeBuildPlayers(),
   );
-  const press = new PressPasteAim(repo, paste, feedback);
+  const press = new PressPasteAim(
+    repo,
+    paste,
+    feedback,
+    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+  );
   const clipboard = structureClipboard(
     boxOf(block, { ...block, x: block.x + 1 }),
     () => stone,
@@ -238,6 +243,7 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
             new FakeBuildPlayers(),
           ),
           e.feedback,
+          new ResolvePasteTarget(e.repo, new FakeGroundProbe()),
         );
         if (!e.aim.target) throw new Error("Expected aim");
         expect(

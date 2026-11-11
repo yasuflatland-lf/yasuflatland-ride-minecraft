@@ -7,6 +7,54 @@ export interface CellBox {
   readonly max: Cell;
 }
 
+export type Size = {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+};
+
+export function sizeOf(box: CellBox): Size {
+  return {
+    x: box.max.x - box.min.x + 1,
+    y: box.max.y - box.min.y + 1,
+    z: box.max.z - box.min.z + 1,
+  };
+}
+
+export function boxFromSize(min: Cell, size: Size): CellBox {
+  return {
+    min,
+    max: {
+      x: min.x + size.x - 1,
+      y: min.y + size.y - 1,
+      z: min.z + size.z - 1,
+    },
+  };
+}
+
+export function rotatedQuarter(size: Size): Size {
+  return { x: size.z, y: size.y, z: size.x };
+}
+
+export function unionOf(a: CellBox, b: CellBox): CellBox {
+  return {
+    min: {
+      x: Math.min(a.min.x, b.min.x),
+      y: Math.min(a.min.y, b.min.y),
+      z: Math.min(a.min.z, b.min.z),
+    },
+    max: {
+      x: Math.max(a.max.x, b.max.x),
+      y: Math.max(a.max.y, b.max.y),
+      z: Math.max(a.max.z, b.max.z),
+    },
+  };
+}
+
+export function boxWithHeight(base: CellBox, height: number): CellBox {
+  return { min: base.min, max: { ...base.max, y: base.min.y + height - 1 } };
+}
+
 export function boxOf(a: Cell, b: Cell): CellBox {
   return {
     min: {
@@ -22,12 +70,9 @@ export function boxOf(a: Cell, b: Cell): CellBox {
   };
 }
 
-const sizeX = (box: CellBox) => box.max.x - box.min.x + 1;
-const sizeY = (box: CellBox) => box.max.y - box.min.y + 1;
-const sizeZ = (box: CellBox) => box.max.z - box.min.z + 1;
-
 export function volume(box: CellBox): number {
-  return sizeX(box) * sizeY(box) * sizeZ(box);
+  const { x, y, z } = sizeOf(box);
+  return x * y * z;
 }
 
 export function contains(box: CellBox, cell: Cell): boolean {
@@ -59,24 +104,25 @@ export function* cellsOf(box: CellBox): Generator<Cell> {
 export function edgePoints(box: CellBox, maxPoints: number): Cell[] {
   if (maxPoints <= 0) return [];
   const { min, max } = box;
+  const size = sizeOf(box);
   const unique = (a: number, b: number) => (a === b ? [a] : [a, b]);
   const xs = unique(min.x, max.x);
   const ys = unique(min.y, max.y);
   const zs = unique(min.z, max.z);
   // Edges along x cover every cell with y and z extreme. Edges along y and z
   // then add only the interior cells, so no cell is counted twice.
-  const alongX = sizeX(box) * ys.length * zs.length;
-  const interiorY = Math.max(sizeY(box) - 2, 0);
+  const alongX = size.x * ys.length * zs.length;
+  const interiorY = Math.max(size.y - 2, 0);
   const alongY = interiorY * xs.length * zs.length;
-  const interiorZ = Math.max(sizeZ(box) - 2, 0);
+  const interiorZ = Math.max(size.z - 2, 0);
   const alongZ = interiorZ * xs.length * ys.length;
   const total = alongX + alongY + alongZ;
 
   const cellAt = (index: number): Cell => {
     if (index < alongX) {
-      const rest = Math.floor(index / sizeX(box));
+      const rest = Math.floor(index / size.x);
       return {
-        x: min.x + (index % sizeX(box)),
+        x: min.x + (index % size.x),
         y: ys[rest % ys.length] as number,
         z: zs[Math.floor(rest / ys.length)] as number,
       };

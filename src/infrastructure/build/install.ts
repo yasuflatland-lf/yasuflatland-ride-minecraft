@@ -21,6 +21,7 @@ import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
+import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
 import { RotateModeTap } from "../../application/build/rotateModeTap";
@@ -40,6 +41,7 @@ import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockBuildPlayers } from "./bedrock/bedrockBuildPlayers";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
+import { BedrockGroundProbe } from "./bedrock/bedrockGroundProbe";
 import { BedrockStructureStore } from "./bedrock/bedrockStructureStore";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
 import { registerEditTick } from "./bedrock/handlers/editTick";
@@ -66,6 +68,7 @@ export function installBuild(deps: {
   };
   const { blocks } = ports;
   const aim = new BedrockAimReader();
+  const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
   const cancel = new CancelFlow(repo);
   const pasteDebounce = new PressDebounces<PlayerId>(
     BUILD_SPEC.pasteRepeatTicks,
@@ -154,7 +157,12 @@ export function installBuild(deps: {
     rotateDebounce,
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
-    pressPasteAim: new PressPasteAim(repo, cases.pasteAt, feedback),
+    pressPasteAim: new PressPasteAim(
+      repo,
+      cases.pasteAt,
+      feedback,
+      resolveTarget,
+    ),
     aimHeight: cases.aimHeight,
     confirmBoxStep: cases.confirmBoxStep,
     repo,
@@ -168,7 +176,7 @@ export function installBuild(deps: {
     },
   });
   registerModeTick(modes);
-  registerOutlineTick(new ShowPreview(repo, feedback, aim));
+  registerOutlineTick(new ShowPreview(repo, feedback, aim, resolveTarget));
   registerSessions(
     endSession,
     cases.endPasting,
@@ -183,7 +191,7 @@ export function installBuild(deps: {
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
     menuCases.confirmBoxStep,
-    new PressPasteAim(repo, cases.pasteAt, feedback),
+    new PressPasteAim(repo, cases.pasteAt, feedback, resolveTarget),
     cases.undo,
     new DescribeBuild(repo),
     recorded,

@@ -7,6 +7,7 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
+import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -26,6 +27,7 @@ import { InMemorySessionRepository } from "../../../src/infrastructure/build/per
 import {
   FakeBuildPlayers,
   FakeFeedback,
+  FakeGroundProbe,
   FakeWorld,
   nether,
 } from "../../application/build/fakes";
@@ -121,11 +123,13 @@ it("preserves blocks and defers point taps out of before events", () => {
               new FakeBuildPlayers(),
             ),
             feedback,
+            new ResolvePasteTarget(repo, new FakeGroundProbe()),
           ),
           setPoint: new SetPoint(repo, blocks, feedback),
           tapAir: new TapAir(repo, feedback),
           menus,
           aim: {
+            dimensionOf: () => nether,
             aim: () => ({
               ray: {
                 origin: { x: 0, y: 0, z: 0 },
@@ -232,6 +236,7 @@ function setupAir() {
     showHeightSlider: vi.fn(),
   };
   const aim: AimReader = {
+    dimensionOf: () => nether,
     aim: () => ({
       ray: {
         origin: { x: 0.5, y: 5.5, z: 0.5 },
@@ -266,7 +271,12 @@ function setupAir() {
     structures,
     new FakeBuildPlayers(),
   );
-  const pressPasteAim = new PressPasteAim(repo, paste, feedback);
+  const pressPasteAim = new PressPasteAim(
+    repo,
+    paste,
+    feedback,
+    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+  );
   const rotateModeTap = { execute: vi.fn() };
   const finishRotateMode = new FinishRotateMode(repo);
   const finishExecute = vi.spyOn(finishRotateMode, "execute");
@@ -401,7 +411,7 @@ function setupRoof(kind: "gable" | "hip") {
   };
   e.aim.aim = () => ({ ray });
   e.menus.showContentsMenu.mockImplementation(() => {
-    expect(e.session.flow).toEqual({ ...flow, previous: 5 });
+    expect(e.session.flow).toEqual({ ...flow, previous: 6 });
   });
   return { ...e, flow, ray };
 }
@@ -415,7 +425,7 @@ function expectRoofTap(e: ReturnType<typeof setupRoof>) {
   expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
     e.menus.showContentsMenu.mock.invocationCallOrder[0] as number,
   );
-  expect(e.session.flow).toEqual({ ...e.flow, previous: 5 });
+  expect(e.session.flow).toEqual({ ...e.flow, previous: 6 });
   expect(e.pointExecute).not.toHaveBeenCalled();
   expect(e.execute).not.toHaveBeenCalled();
   expect(e.menus.showShapeMenu).not.toHaveBeenCalled();
@@ -633,9 +643,11 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
         new FakeBuildPlayers(),
       ),
       feedback,
+      new ResolvePasteTarget(repo, new FakeGroundProbe()),
     ),
     menus,
     aim: {
+      dimensionOf: () => nether,
       aim: () => ({ ray: { origin: from, direction: { x: 1, y: 0, z: 0 } } }),
     },
     debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
@@ -670,7 +682,7 @@ it.each(["block", "air"])(
     e.confirmBoxStep.execute.mockImplementation(() => {
       expect(e.session.flow).toMatchObject({
         heightedKind: "copy",
-        previous: 5,
+        previous: 6,
       });
     });
     if (tap === "air") e.use();
@@ -704,7 +716,7 @@ it.each(["block", "air"])(
     e.confirmBoxStep.execute.mockImplementation(() => {
       expect(e.session.flow).toMatchObject({
         heightedKind: "cut",
-        previous: 5,
+        previous: 6,
       });
     });
     if (tap === "air") e.use();
