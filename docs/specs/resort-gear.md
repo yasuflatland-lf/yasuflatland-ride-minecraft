@@ -2,6 +2,7 @@
 
 - Scope: Beach Parasol placement, rain ceiling persistence, recovery, Beach Chair placement, form switching, lying down and recovery, Dining Table placement, recovery and hosting, Dining Chair sitting and recovery, Sofa (Single) and Sofa (Double) placement, sitting and recovery, and Resort Gear assets. Dye painting is covered by [Paint](paint.md); starter grants are included.
 - Verified at: 732f6c1c
+- Source: [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md)
 - Source: [0242](../adr/0242-dining-table-top-interactions.md)
 - Source: [0241](../adr/0241-dining-table-top-blocks.md)
 - Source: [0122](../adr/0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
@@ -186,6 +187,8 @@
 - Verification: Unit tests cover forwarding, directional destination guards, obstruction before payment, and unchanged placement when the callback is absent. `dining_table_top_overlap` passed on the dev BDS on 2026-11-10, covering both placement orders and separate tables. Manual mobile lantern, oven, and block placement remains pending.
 
 ## Open issues
+
+- The Toilet and Washstand models depend on the unverified cutout spike in ADR [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md). The owner must verify it on the dev BDS on PC and mobile (touch). A negative result requires a BLOCKED section in the Proposed ADR and stops #1570 and #1571 from merging; 32-sided N-gon panel rings are an owner-decided fallback.
 
 - Stable API 2.2 has no cancellable playerPlaceBlock event, so the guard uses playerInteractWithBlock and recognizes block items by their registered block identifier. Commands bypass it; aliased block items and replacement of vegetation need device verification.
 

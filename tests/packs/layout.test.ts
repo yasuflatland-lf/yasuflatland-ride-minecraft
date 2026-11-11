@@ -6,6 +6,11 @@ import { type Json, jsonFileEntries, packFiles } from "../support/packFiles";
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PACKS = [
   {
+    folder: "yasu_ride_test_rp",
+    namespaces: ["yasu_ride_test"],
+    resource: true,
+  },
+  {
     folder: "yasu_ride_bp",
     namespaces: ["yasu_ride", "yasu_build"],
     resource: false,

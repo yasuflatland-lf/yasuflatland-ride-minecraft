@@ -99,7 +99,7 @@ Design decisions live in [docs/adr](docs/adr/README.md). Read the spec for the a
 
 ## Naming and adding a new kind of content
 
-Ship all rides in Yasuflatland Ride: `yasuflatland-ride-minecraft`, with `yasu_ride_bp` and `yasu_ride_rp`; `yasu_ride_test_bp` is for development only. The dev container is `yasuflatland-ride-bds` and its world is `yasuflatland-ride-dev`.
+Ship all rides in Yasuflatland Ride: `yasuflatland-ride-minecraft`, with `yasu_ride_bp` and `yasu_ride_rp`; `yasu_ride_test_bp` and `yasu_ride_test_rp` are for development only. The dev container is `yasuflatland-ride-bds` and its world is `yasuflatland-ride-dev`.
 
 House-building parts ship as a separate add-on with their own namespace. Do not change the `yasu_ride` namespace after the first Yasuflatland Ride release (0047).
 
