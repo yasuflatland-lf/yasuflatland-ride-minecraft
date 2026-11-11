@@ -1,6 +1,5 @@
 import { virtualEndPoint } from "../../domain/build/aim/aim";
 import { aimedHeight } from "../../domain/build/aim/height";
-import { aimedPasteTarget } from "../../domain/build/clipboard/clipboard";
 import {
   type PreviewAim,
   previewPoints,
@@ -11,14 +10,18 @@ import { volumeSize } from "../../domain/build/volume/size";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { AimReader } from "./ports/aim";
 import type { BuildFeedback } from "./ports/feedback";
+import { ResolvePasteTarget } from "./resolvePasteTarget";
 
 export class ShowPreview {
+  private readonly resolveTarget: ResolvePasteTarget;
   private readonly sizes = new Map<PlayerId, ReturnType<typeof volumeSize>>();
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly feedback: BuildFeedback,
     private readonly aimReader: AimReader,
-  ) {}
+  ) {
+    this.resolveTarget = new ResolvePasteTarget(repo);
+  }
 
   execute(tick: number): void {
     for (const id of this.sizes.keys()) {
@@ -59,11 +62,10 @@ export class ShowPreview {
           blockCount: session.clipboard.blockCount,
         });
       if (flow.kind === "pasteAim" && aim && session.clipboard)
-        preview.pasteBox = aimedPasteTarget(
-          session.clipboard,
+        preview.pasteBox = this.resolveTarget.execute({
+          playerId: id,
           aim,
-          session.pasteTurn,
-        )?.box;
+        })?.box;
       const set = previewPoints(flow, preview);
       if (Object.values(set).some((points) => points.length > 0))
         this.feedback.drawPreview(
