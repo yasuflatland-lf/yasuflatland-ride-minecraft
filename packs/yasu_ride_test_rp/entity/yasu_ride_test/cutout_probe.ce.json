@@ -1,0 +1,19 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride_test:cutout_probe",
+      "materials": {
+        "default": "entity_alphatest",
+        "water": "entity_alphablend"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride_test/cutout_probe"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride_test.cutout_probe"
+      },
+      "render_controllers": ["controller.render.yasu_ride_test.cutout_probe"]
+    }
+  }
+}

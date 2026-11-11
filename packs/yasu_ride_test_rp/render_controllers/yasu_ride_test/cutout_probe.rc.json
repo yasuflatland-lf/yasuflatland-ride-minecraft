@@ -1,0 +1,17 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.yasu_ride_test.cutout_probe": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "water": "Material.water"
+        }
+      ],
+      "textures": ["Texture.default"]
+    }
+  }
+}
