@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { forward } from "../../src/domain/shared/vec";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/decorCells";
@@ -26,6 +26,7 @@ import {
 } from "../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { defined } from "../support/defined";
 import { readTableRows } from "../support/markdown";
+import { startPythonWorker } from "../support/pythonWorker";
 import { RESORT_CATALOG_ITEMS, RESORT_GEAR } from "../support/resortGear";
 
 // tools/camping_gear.json is the one list of camping gear; these tests tie
@@ -38,7 +39,17 @@ const MODELS = `${RP}/models/blocks/yasu_ride`;
 const ATLAS = `${RP}/textures/blocks/yasu_ride/camping_gear.png`;
 const PREVIEWS = "docs/images/items/camping-gear";
 const PREVIEW_SIZE = 128;
-const ATLAS_SIZE = 16;
+const ATLAS_SIZE = 512;
+const python = startPythonWorker();
+afterAll(() => python.close());
+let gearTiles: Record<string, number>;
+beforeAll(async () => {
+  gearTiles = JSON.parse(
+    await python.run(
+      "import sys, json\nsys.path.insert(0, 'tools')\nfrom tool_loader import load_tool\nprint(json.dumps(load_tool('gear_atlas').GEAR_TILES))",
+    ),
+  );
+});
 const SWATCH = 4;
 const GLASS_UV = [8, 12];
 const MAX_STANDING_HEIGHT = 8;
@@ -246,11 +257,24 @@ describe("camping gear block models (ADR 0093)", () => {
         expect(Object.keys(c.uv).sort()).toEqual([...FACES].sort());
         for (const f of FACES) {
           const [u, v] = c.uv[f].uv;
-          expect(c.uv[f].uv_size).toEqual([SWATCH, SWATCH]);
-          expect(u % SWATCH === 0 && v % SWATCH === 0).toBe(true);
-          expect(u >= 0 && u < ATLAS_SIZE && v >= 0 && v < ATLAS_SIZE).toBe(
-            true,
-          );
+          const [du = 0, dv = 0] = c.uv[f].uv_size;
+          const swatch =
+            du === SWATCH &&
+            dv === SWATCH &&
+            u % SWATCH === 0 &&
+            v % SWATCH === 0 &&
+            u >= 0 &&
+            v >= 0 &&
+            u + du <= 16 &&
+            v + dv <= 16;
+          const cell = gearTiles[g.id];
+          const cx = cell === undefined ? Number.NaN : 128 * (cell % 4);
+          const cy =
+            cell === undefined ? Number.NaN : 128 * Math.floor(cell / 4);
+          const ownTile =
+            [u, u + du].every((x) => x >= cx + 4 && x <= cx + 124) &&
+            [v, v + dv].every((y) => y >= cy + 4 && y <= cy + 124);
+          expect(swatch || ownTile, g.id).toBe(true);
         }
       }
     },
@@ -317,12 +341,12 @@ describe("camping gear block models (ADR 0093)", () => {
     },
   );
 
-  it("paints the atlas as 16 distinct 4 by 4 swatches, opaque except the glass", () => {
+  it("preserves sixteen swatches and edge-extends cell zero in the 512 by 512 atlas", () => {
     const { width, height, pixel } = readPng(ATLAS);
     expect([width, height]).toEqual([ATLAS_SIZE, ATLAS_SIZE]);
     const swatches = new Set<string>();
-    for (let sy = 0; sy < ATLAS_SIZE; sy += SWATCH)
-      for (let sx = 0; sx < ATLAS_SIZE; sx += SWATCH) {
+    for (let sy = 0; sy < 16; sy += SWATCH)
+      for (let sx = 0; sx < 16; sx += SWATCH) {
         const color = pixel(sx, sy);
         for (let y = sy; y < sy + SWATCH; y++)
           for (let x = sx; x < sx + SWATCH; x++)
@@ -331,7 +355,10 @@ describe("camping gear block models (ADR 0093)", () => {
         expect((color[3] ?? 0) < 255, `${sx},${sy}`).toBe(glass);
         swatches.add(color.join());
       }
-    expect(swatches.size).toBe((ATLAS_SIZE / SWATCH) ** 2);
+    expect(swatches.size).toBe(16);
+    for (let y = 0; y < 128; y++)
+      for (let x = 0; x < 128; x++)
+        expect(pixel(x, y)).toEqual(pixel(Math.min(x, 15), Math.min(y, 15)));
   });
 
   it("registers the atlas as the terrain texture yasu_ride_camping_gear", () => {
