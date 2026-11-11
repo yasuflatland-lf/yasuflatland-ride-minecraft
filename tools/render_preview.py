@@ -207,13 +207,14 @@ GAS_LANTERN_GEOMETRY = "models/entity/yasu_ride/gas_lantern.geo.json"
 GAS_LANTERN_TEXTURE = "textures/entity/yasu_ride/gas_lantern.png"
 GAS_LANTERN_PREVIEW = "gas_lantern"
 GAS_LANTERN_ICON = "gas_lantern_item"
-BEACH_PARASOL_GEOMETRY = "models/entity/yasu_ride/beach_parasol.geo.json"
-BEACH_PARASOL_TEXTURE = "textures/entity/yasu_ride/beach_parasol.png"
-BEACH_PARASOL_PREVIEW = "beach_parasol"
-BEACH_PARASOL_ICON = "beach_parasol_item"
-BEACH_CHAIR_GEOMETRY = "models/entity/yasu_ride/beach_chair.geo.json"
-BEACH_CHAIR_TEXTURE = "textures/entity/yasu_ride/beach_chair.png"
-ICON_NAMES = {"sofa_double": "sofa_double_item", "dining_table": "dining_table_item", "sofa_single": "sofa_single_item", "dining_chair": "dining_chair_item", "beach_chair": "beach_chair_item", BEACH_PARASOL_PREVIEW: BEACH_PARASOL_ICON, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
+RESORT_SPEC = Path(__file__).resolve().parent / "resort_gear.json"
+RESORT_GEAR = json.loads(RESORT_SPEC.read_text())
+RESORT_GEOMETRY = "models/entity/yasu_ride/{}.geo.json"
+RESORT_TEXTURE = "textures/entity/yasu_ride/{}.png"
+BEACH_CHAIR_GEOMETRY = RESORT_GEOMETRY.format("beach_chair")
+BEACH_CHAIR_TEXTURE = RESORT_TEXTURE.format("beach_chair")
+TEXTURED_GEOMETRY_FILES = tuple(f"{piece['geometry']}.geo.json" for piece in RESORT_GEAR if piece["textured"])
+ICON_NAMES = {**{piece["name"]: piece["item"] for piece in RESORT_GEAR}, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -1043,7 +1044,7 @@ def render_gear(geo_path, texture, size, name, animation=None, view=None):
         animation = animations["animation.yasu_ride.beach_chair.chair"]
     if animation is not None:
         geo = static_pose(geo, animation)
-    textured = geo_path.name in (Path(BEACH_PARASOL_GEOMETRY).name, "beach_chair.geo.json", "dining_table.geo.json", "dining_chair.geo.json", "sofa_single.geo.json", "sofa_double.geo.json")
+    textured = geo_path.name in TEXTURED_GEOMETRY_FILES
     polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured,
                                            "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json")}, texture_mapping=textured)
     quads = [quad for quad, _, _ in polygons + glass]
@@ -1057,13 +1058,11 @@ def small_models(rp):
     """(name, geometry path, texture) of the decor and outside camping gear."""
     texture = read_png(rp / GEAR_TEXTURE)
     models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
-    return models + [
-        (BEACH_PARASOL_PREVIEW, rp / BEACH_PARASOL_GEOMETRY, read_png(rp / BEACH_PARASOL_TEXTURE)),
-        ("beach_chair", rp / BEACH_CHAIR_GEOMETRY, read_png(rp / BEACH_CHAIR_TEXTURE)),
-        ("dining_table", rp / "models/entity/yasu_ride/dining_table.geo.json", read_png(rp / "textures/entity/yasu_ride/dining_table.png")),
-        ("dining_chair", rp / "models/entity/yasu_ride/dining_chair.geo.json", read_png(rp / "textures/entity/yasu_ride/dining_chair.png")),
-        ("sofa_single", rp / "models/entity/yasu_ride/sofa_single.geo.json", read_png(rp / "textures/entity/yasu_ride/sofa_single.png")),
-        ("sofa_double", rp / "models/entity/yasu_ride/sofa_double.geo.json", read_png(rp / "textures/entity/yasu_ride/sofa_double.png")),
+    resort = [
+        (piece["name"], rp / RESORT_GEOMETRY.format(piece["geometry"]), read_png(rp / RESORT_TEXTURE.format(piece["geometry"])))
+        for piece in RESORT_GEAR
+    ]
+    return models + resort + [
         (NOGA_CHAIR_PREVIEW, rp / NOGA_CHAIR_GEOMETRY, read_png(rp / NOGA_CHAIR_TEXTURE)),
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),

@@ -26,6 +26,7 @@ import {
 } from "../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { defined } from "../support/defined";
 import { readTableRows } from "../support/markdown";
+import { RESORT_CATALOG_ITEMS, RESORT_GEAR } from "../support/resortGear";
 
 // tools/camping_gear.json is the one list of camping gear; these tests tie
 // it to the generated block models, the atlas, the previews, and the docs
@@ -355,12 +356,7 @@ describe("camping gear docs (ADR 0093)", () => {
       [
         ...SPEC.map((g) => `${g.id}.png`),
         "low_chair.png",
-        "beach_parasol.png",
-        "beach_chair.png",
-        "dining_table.png",
-        "dining_chair.png",
-        "sofa_single.png",
-        "sofa_double.png",
+        ...RESORT_GEAR.map((piece) => `${piece.name}.png`),
         "noga_chair.png",
         "tent.png",
         "roof_tent.png",
@@ -1073,17 +1069,10 @@ describe("camping gear blocks and items (ADR 0093)", () => {
               },
               {
                 group_identifier: {
-                  icon: "yasu_ride:beach_parasol_item",
+                  icon: RESORT_CATALOG_ITEMS[0],
                   name: "yasu_ride:resort_gear",
                 },
-                items: [
-                  "yasu_ride:beach_parasol_item",
-                  "yasu_ride:beach_chair_item",
-                  "yasu_ride:dining_table_item",
-                  "yasu_ride:dining_chair_item",
-                  "yasu_ride:sofa_single_item",
-                  "yasu_ride:sofa_double_item",
-                ],
+                items: RESORT_CATALOG_ITEMS,
               },
               {
                 group_identifier: {
