@@ -1,7 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
-import { boxOf, type CellBox } from "../box";
+import { boxOf, boxWithHeight, type CellBox } from "../box";
 import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
@@ -45,10 +45,7 @@ export type BuildFlow =
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
 
 export function heightStepBox(flow: HeightStepFlow): CellBox {
-  return {
-    min: flow.base.min,
-    max: { ...flow.base.max, y: flow.base.min.y + flow.previous - 1 },
-  };
+  return boxWithHeight(flow.base, flow.previous);
 }
 
 export function tapBlock(
