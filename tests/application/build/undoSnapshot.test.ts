@@ -31,7 +31,14 @@ function setup(box: CellBox) {
   const feedback = new FakeFeedback();
   const structures = new FakeStructureStore();
   const log = { warn: vi.fn() };
-  const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    log,
+    new FakeBuildPlayers(),
+    structures,
+  );
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   const session = repo.getOrCreate(playerId);
   const handle = structures.capture(overworld, box, playerId);
@@ -224,4 +231,38 @@ it("still sends cell records through edit jobs and keeps busy and empty refusals
   expect(e.structures.calls).toEqual([]);
   e.undo.execute({ playerId });
   expect(e.feedback.messages.at(-1)?.message).toBe("nothingToUndo");
+});
+
+it("retries a blocked newest snapshot before older snapshot and cell entries", () => {
+  const cell = { x: 0, y: 64, z: 0 };
+  const box = boxOf(cell, cell);
+  const e = setup(box);
+  const older = e.session.takeUndo();
+  if (typeof older === "string") throw new Error(older);
+  const after = blockStateOf("minecraft:stone");
+  e.world.put(cell, after);
+  e.session.finishEdit(
+    { dimensionId: overworld, changes: [{ cell, before: AIR, after }] },
+    "undoable",
+  );
+  e.session.putBackUndo(older);
+  const newest = e.structures.capture(overworld, box, playerId);
+  if (newest === "tooLarge" || newest === "unreadable") throw new Error(newest);
+  e.session.recordSnapshot({ dimensionId: overworld, box, handle: newest });
+  e.structures.calls.length = 0;
+  const guard = vi.spyOn(e.world, "mayRestore").mockReturnValue(false);
+  e.undo.execute({ playerId });
+  expect(e.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
+  expect(e.structures.calls).toEqual([]);
+  guard.mockReturnValue(true);
+  e.undo.execute({ playerId });
+  e.undo.execute({ playerId });
+  expect(e.structures.calls.filter((call) => call.kind === "discard")).toEqual([
+    { kind: "discard", handle: newest },
+    { kind: "discard", handle: e.handle },
+  ]);
+  e.undo.execute({ playerId });
+  e.jobs.step();
+  expect(e.world.stateAt(overworld, cell)).toEqual(AIR);
+  expect(e.session.takeUndo()).toBe("nothingToUndo");
 });

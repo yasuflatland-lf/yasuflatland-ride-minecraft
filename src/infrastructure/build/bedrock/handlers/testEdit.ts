@@ -1,6 +1,7 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
 import type { DescribeBuild } from "../../../../application/build/describeBuild";
+import { discardAll } from "../../../../application/build/discardAll";
 import type { EndBuildSession } from "../../../../application/build/endBuildSession";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type {
@@ -11,11 +12,9 @@ import type { BuildStructureStore } from "../../../../application/build/ports/st
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
+import { parseFace } from "../../../../domain/build/aim/face";
 import { boxOf, sizeOf, volume } from "../../../../domain/build/box";
-import {
-  parseFace,
-  pasteTarget,
-} from "../../../../domain/build/clipboard/clipboard";
+import { pasteTarget } from "../../../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
@@ -129,10 +128,12 @@ export function registerTestEdit(
             );
             return;
           }
-          for (const dropped of repo
-            .getOrCreate(playerId)
-            .recordSnapshot({ dimensionId, box, handle }))
-            structures.discard(dropped);
+          discardAll(
+            structures,
+            repo
+              .getOrCreate(playerId)
+              .recordSnapshot({ dimensionId, box, handle }),
+          );
         } else if (
           command === "structure" &&
           args.length === 6 &&

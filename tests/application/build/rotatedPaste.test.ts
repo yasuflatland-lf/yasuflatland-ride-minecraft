@@ -60,8 +60,16 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
       ray: { origin: block, direction: { x: 0, y: -1, z: 0 } },
     },
     tick: 100,
+    sneaking: false,
   };
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    players,
+    store,
+  );
   const undo = new UndoEdit(repo, feedback, jobs, world, store, {
     warn: () => {},
   });

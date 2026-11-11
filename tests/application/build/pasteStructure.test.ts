@@ -45,7 +45,14 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
     blockCount,
     contents: { kind: "structure", handle },
   });
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    players,
+    store,
+  );
   const start = vi.spyOn(jobs, "start");
   const paste = new PasteAt(repo, world, feedback, store, players);
   const cmd = {
@@ -57,7 +64,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
   return { repo, session, world, players, feedback, store, start, paste, cmd };
 }
 
-it("captures before replacement, records only after place, discards older snapshots and counts the clipboard", () => {
+it("captures before replacement, records only after place, retains older snapshots and counts the clipboard", () => {
   fc.assert(
     fc.property(origin, fc.nat({ max: 100 }), (anchor, count) => {
       const e = setup(anchor, count);
@@ -77,7 +84,6 @@ it("captures before replacement, records only after place, discards older snapsh
         "capture",
         "clearEntities",
         "place",
-        "discard",
       ]);
       expect(e.store.calls[0]).toEqual({
         kind: "capture",
@@ -103,7 +109,14 @@ it("captures before replacement, records only after place, discards older snapsh
           handle: structureHandle("fake_paste_1"),
         },
       });
-      expect(e.session.takeUndo()).toBe("nothingToUndo");
+      expect(e.session.takeUndo()).toEqual({
+        kind: "snapshot",
+        snapshot: {
+          dimensionId: overworld,
+          box: e.cmd.target.box,
+          handle: old,
+        },
+      });
       expect(e.feedback.messages).toEqual([{ message: "editDone", count }]);
       expect(e.feedback.undoHints.length).toBe(count > 0 ? 1 : 0);
       expect(e.session.isEditing).toBe(false);
@@ -298,5 +311,28 @@ it("discards the clipboard and paste snapshot before removing the session, and t
       expect(discard).toHaveBeenCalledTimes(2);
       expect(e.store.live.size).toBe(0);
     }),
+  );
+});
+
+it("discards only the oldest snapshot on the eleventh paste", () => {
+  const e = setup();
+  for (let i = 0; i <= BUILD_SPEC.undoDepth; i++) {
+    expect(
+      e.paste.execute({
+        ...e.cmd,
+        tick: 100 + i * BUILD_SPEC.pasteRepeatTicks,
+      }),
+    ).toBe("pasted");
+    expect(e.store.calls.filter((call) => call.kind === "discard")).toEqual(
+      i < BUILD_SPEC.undoDepth
+        ? []
+        : [{ kind: "discard", handle: structureHandle("fake_paste_1") }],
+    );
+  }
+  expect(e.store.live.has(handle)).toBe(true);
+  expect(e.session.clearHistory()).toEqual(
+    Array.from({ length: BUILD_SPEC.undoDepth }, (_, i) =>
+      structureHandle(`fake_paste_${i + 2}`),
+    ),
   );
 });

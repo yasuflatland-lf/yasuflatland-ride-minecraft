@@ -43,6 +43,7 @@ function setup() {
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
+    { discard: () => {} },
   );
   const session = repo.getOrCreate(playerId);
   const point = new SetPoint(repo, world, feedback);

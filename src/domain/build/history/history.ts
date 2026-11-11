@@ -22,37 +22,24 @@ export interface UndoHistory {
 
 export const EMPTY_HISTORY: UndoHistory = Object.freeze({ entries: [] });
 
-/**
- * Cell entries keep the newest `depth`, and an empty record is not added. A
- * snapshot entry replaces every older one; their handles come back as
- * `dropped` so the caller can discard the structures.
- */
+/** Keeps the newest `depth` entries across all kinds and returns evicted structures for disposal. */
 export function withEntry(
   history: UndoHistory,
   entry: UndoEntry,
   depth: number,
 ): { history: UndoHistory; dropped: readonly StructureHandle[] } {
-  if (entry.kind === "cells") {
-    if (entry.record.changes.length === 0) return { history, dropped: [] };
-    const entries = [...history.entries, entry];
-    let excess =
-      entries.filter((e) => e.kind === "cells").length - Math.max(depth, 0);
-    const kept = entries.filter((e) => {
-      if (e.kind === "cells" && excess > 0) {
-        excess--;
-        return false;
-      }
-      return true;
-    });
-    return { history: { entries: kept }, dropped: [] };
-  }
-  const dropped: StructureHandle[] = [];
-  const kept = history.entries.filter((e) => {
-    if (e.kind !== "snapshot") return true;
-    dropped.push(e.snapshot.handle);
-    return false;
-  });
-  return { history: { entries: [...kept, entry] }, dropped };
+  if (entry.kind === "cells" && entry.record.changes.length === 0)
+    return { history, dropped: [] };
+  const entries = [...history.entries, entry];
+  const excess = Math.max(0, entries.length - Math.max(depth, 0));
+  return {
+    history: { entries: entries.slice(excess) },
+    dropped: entries
+      .slice(0, excess)
+      .flatMap((entry) =>
+        entry.kind === "snapshot" ? [entry.snapshot.handle] : [],
+      ),
+  };
 }
 
 export function takeLast(history: UndoHistory): {
