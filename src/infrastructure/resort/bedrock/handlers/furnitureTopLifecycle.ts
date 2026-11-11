@@ -6,6 +6,7 @@ import {
 import { asFurnitureId, type FurnitureId } from "../../../../domain/resort/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import { safeBlockAt } from "../../../shared/blocks";
+import { allDimensions } from "../../../shared/dimensions";
 import { registerLaidBlockGuard } from "../../../shared/laidBlockGuard";
 import {
   DINING_TABLE_TOP,
@@ -49,8 +50,7 @@ export function registerFurnitureTopLifecycle(
     system.run(clearRemoved);
   });
   system.runInterval(() => {
-    for (const name of ["overworld", "nether", "the_end"]) {
-      const dimension = world.getDimension(name);
+    for (const dimension of allDimensions()) {
       for (const { entity: type } of Object.values(FURNITURE_IDS)) {
         if (!hasTop(type)) continue;
         for (const entity of dimension.getEntities({ type }))

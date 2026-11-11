@@ -14,6 +14,7 @@ import { asTableId, type TableId } from "../../../../domain/camp/table";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import type { LocalPoint } from "../../../../domain/shared/tableTop";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
+import { allDimensions } from "../../../shared/dimensions";
 import { heldTypeId } from "../../../shared/heldItem";
 import { id } from "../../../shared/identifiers";
 import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
@@ -176,8 +177,7 @@ export function registerDutchOven(
     actions.uncoverEmptyFirePits();
   }, DUTCH_OVEN_SPEC.hostCheckTicks);
   system.runInterval(() => {
-    for (const dimensionId of ["overworld", "nether", "the_end"]) {
-      const dimension = world.getDimension(dimensionId);
+    for (const dimension of allDimensions()) {
       for (const oven of dimension.getEntities({ type: DUTCH_OVEN_TYPE })) {
         if (oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) !== true) continue;
         const at = oven.location;
