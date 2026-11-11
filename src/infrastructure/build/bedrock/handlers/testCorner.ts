@@ -70,8 +70,7 @@ export function registerTestTap(
         },
         showUndoHint: (id) => feedback.showUndoHint(id),
         showSize: (id, size) => feedback.showSize(id, size),
-        showPasteHint: (id, size, count) =>
-          feedback.showPasteHint(id, size, count),
+        showMode: (id, mode) => feedback.showMode(id, mode),
         drawPreview: (id, dimension, set) =>
           feedback.drawPreview(id, dimension, set),
       };

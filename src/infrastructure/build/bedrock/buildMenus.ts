@@ -1,7 +1,5 @@
 import type { Player } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
-import { DescribeBuild } from "../../../application/build/describeBuild";
-import { RotatePasteAim } from "../../../application/build/rotatePasteAim";
 import {
   type ContentsEntryId,
   contentsMenu,
@@ -16,7 +14,6 @@ import {
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import { isRoofKind } from "../../../domain/build/roof/roof";
-import { degreesOf } from "../../../domain/build/rotation/quarterTurn";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import {
@@ -66,7 +63,6 @@ export interface BuildMenus {
   showContentsMenu(player: Player): Promise<void>;
   showUtilityMenu(player: Player): Promise<void>;
   showPasteMenu(player: Player): Promise<void>;
-  showRotateMenu(player: Player): Promise<void>;
   showHeightSlider(player: Player): Promise<void>;
 }
 
@@ -79,11 +75,6 @@ export class BedrockBuildMenus implements BuildMenus {
     private readonly repo: BuildSessionRepository,
     private readonly cases: MenuCases,
     private readonly heightSliderFallback: boolean = BUILD_SPEC.heightSliderFallback,
-    private readonly form = chooseFromForm<"rotate" | "done">,
-    private readonly rotate: Pick<
-      RotatePasteAim,
-      "execute"
-    > = new RotatePasteAim(repo),
   ) {
     this.choices = new MenuChoices(repo, cases);
   }
@@ -154,45 +145,8 @@ export class BedrockBuildMenus implements BuildMenus {
           hasHistory: session.hasHistory,
         }).map((entry) => ({ id: entry.id, textKey: menuLabel(entry) })),
       );
-      let rotating: Promise<void> | undefined;
-      if (player.isValid)
-        this.choices.choose(playerId, "paste", id, () => {
-          rotating = this.rotateMenu(player);
-        });
-      await rotating;
+      if (player.isValid) this.choices.choose(playerId, "paste", id);
     });
-  }
-
-  showRotateMenu(player: Player): Promise<void> {
-    return this.exclusive(player, () => this.rotateMenu(player));
-  }
-
-  private async rotateMenu(player: Player): Promise<void> {
-    const playerId = asPlayerId(player.id);
-    const describe = new DescribeBuild(this.repo);
-    while (player.isValid) {
-      const state = describe.execute(playerId);
-      if (state.flow !== "pasteAim") return;
-      const choice = await this.form(
-        player,
-        BUILD_FORM.rotate,
-        [
-          { id: "rotate", textKey: BUILD_FORM.rotate },
-          { id: "done", textKey: BUILD_FORM.done },
-        ],
-        {
-          translate: BUILD_FORM.rotateBody,
-          with: [String(degreesOf(state.pasteTurn))],
-        },
-      );
-      if (
-        !player.isValid ||
-        describe.execute(playerId).flow !== "pasteAim" ||
-        choice !== "rotate"
-      )
-        return;
-      if (this.rotate.execute({ playerId }) !== "rotated") return;
-    }
   }
 
   private async contents(player: Player): Promise<void> {
