@@ -17,7 +17,8 @@ validate = load_tool('gear_validate')
 tilt = load_tool('cube_tilt')
 generator = load_tool('gen_camping_gear')
 model = registry.build('mug_pair')
-assert 0 < len(model.cubes) <= validate.MAX_CUBES_PER_ITEM
+assert len(model.cubes) == 227
+assert len(model.cubes) <= validate.MAX_CUBES_PER_ITEM
 regions = [t for t in atlas.tiles() if t.item_id == 'mug_pair']
 assert regions
 pixels = atlas.atlas_pixels()
@@ -44,6 +45,16 @@ lo, hi = tilt.bounds(model.cubes)
 assert abs(lo[0]+2) < .001 and abs(hi[0]-2) < .001
 assert (lo[1], hi[1]) == (0, 3)
 assert abs(lo[2]+hi[2]) < .001
+# The three-box serving stand fills the catalog height without stretching the cups.
+mug_lo, mug_hi = tilt.bounds(model.cubes[:-3])
+assert 1.6 < mug_hi[1]-mug_lo[1] < 1.7
+tray_lo, tray_hi = tilt.bounds(model.cubes[-3:])
+assert tray_lo[1] == 0 and abs(tray_hi[1]-mug_lo[1]) < .001
+handles = members['mug_pair_handles']
+neck, shelf = handles[0], handles[2]
+assert shelf['size'][2] > 2.5 * neck['size'][0]
+assert shelf.get('rotation', [0, 0, 0]) == [0, 0, 0]
+
 rows = json.loads(generator.SPEC.read_text())
 generator.validate(rows)
 root = Path('packs/yasu_ride_rp/models/blocks/yasu_ride')
