@@ -244,15 +244,20 @@ describe("camping gear block models (ADR 0093)", () => {
       const points = cubes.flatMap(cubeCorners);
       const lo = AXES.map((i) => Math.min(...points.map((p) => p[i])));
       const hi = AXES.map((i) => Math.max(...points.map((p) => p[i])));
-      expect(lo[0]).toBeCloseTo(-g.width_px / 2, 3);
-      expect(hi[0]).toBeCloseTo(g.width_px / 2, 3);
+      // Match the generator tolerance for three-decimal rotated cube coordinates.
+      expect(Math.abs((lo[0] ?? 0) + g.width_px / 2)).toBeLessThanOrEqual(
+        0.001,
+      );
+      expect(Math.abs((hi[0] ?? 0) - g.width_px / 2)).toBeLessThanOrEqual(
+        0.001,
+      );
       expect([lo[1], hi[1]]).toEqual(ySpan(g));
       expect(lo[2]).toBeGreaterThanOrEqual(-8);
       expect(hi[2]).toBeLessThanOrEqual(8);
       for (const c of cubes) {
         expect(
           (c.rotation ?? []).filter((v) => v !== 0).length,
-        ).toBeLessThanOrEqual(1);
+        ).toBeLessThanOrEqual(2);
         expect(c.size.every((s) => s > 0)).toBe(true);
         expect(Object.keys(c.uv).sort()).toEqual([...FACES].sort());
         for (const f of FACES) {
@@ -545,7 +550,11 @@ function expectedDecor(g: Gear) {
         "minecraft:material_instances": {
           "*": {
             texture: ATLAS_KEY,
-            render_method: g.glass ? "blend" : "opaque",
+            render_method: g.glass
+              ? "blend"
+              : g.id === "macrame_planter"
+                ? "alpha_test"
+                : "opaque",
           },
         },
         "minecraft:light_dampening": 0,
@@ -606,8 +615,9 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     const planter = SPEC.find((g) => g.id === "macrame_planter");
     if (planter === undefined) throw new Error("macrame_planter is missing");
     const cubes = cubesOf(planter.id);
-    const bottom = Math.min(...cubes.map((c) => c.origin[1]));
-    const top = Math.max(...cubes.map((c) => c.origin[1] + c.size[1]));
+    const points = cubes.flatMap(cubeCorners);
+    const bottom = Math.min(...points.map((p) => p[1]));
+    const top = Math.max(...points.map((p) => p[1]));
     expect([bottom, top]).toEqual([0, 10]);
     expect(
       decorOf(planter)["minecraft:block"].components["minecraft:selection_box"],

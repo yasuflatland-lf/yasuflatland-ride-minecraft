@@ -20,7 +20,7 @@ The icon entry of the camping gear box (BOX) comes first in the generated part o
 item_texture.json; its item JSON and icon are written elsewhere (ADR 0093), and
 tools/gen_item_catalog.py lists it in the creative group.
 A gear shape may use cubes turned about a single axis (a `pivot` and a `rotation` on the cube; ADR
-0169): cube_tilt.bounds() and the pair blocks follow the turn. Compound rotations are not allowed in gear.
+0169): cube_tilt.bounds() and the pair blocks follow the turn. Compound rotations require registered item assemblies.
 """
 
 import argparse
@@ -232,7 +232,9 @@ def validate(spec):
         if not cubes:
             continue
         try:
-            cube_tilt.assert_axes(cubes, {})
+            table = gear_registry.assemblies(item["id"])
+            members = {name: cube_tilt.compound_cubes(cubes) for name in table}
+            cube_tilt.assert_axes(cubes, members, table)
         except ValueError as error:
             errors.append(f"{item['id']}: {error}")
             continue
@@ -305,6 +307,8 @@ def selection_box(item):
 
 def decor_block(item):
     gid = item["id"]
+    alphas = gear_validate.sampled_alphas(SHAPES[gid], atlas_pixels(), ATLAS_SIZE)
+    render_method = "blend" if item["glass"] else ("alpha_test" if 0 in alphas else "opaque")
     return {
         "format_version": "1.21.80",
         "minecraft:block": {
@@ -320,7 +324,7 @@ def decor_block(item):
             "components": {
                 "minecraft:geometry": f"geometry.yasu_ride.{gid}",
                 "minecraft:material_instances": {
-                    "*": {"texture": ATLAS_KEY, "render_method": "blend" if item["glass"] else "opaque"}
+                    "*": {"texture": ATLAS_KEY, "render_method": render_method}
                 },
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,

@@ -32,3 +32,7 @@ def build(item_id):
 
 def models():
     return {item_id: build(item_id) for item_id in IDS}
+
+
+def assemblies(item_id):
+    return getattr(load_tool_in("gear_items", item_id), "ASSEMBLIES", {})
