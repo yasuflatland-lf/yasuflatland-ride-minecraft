@@ -20,6 +20,8 @@ Place furniture one cell above the pressed block and face the player with `snapY
 
 Sitting uses `minecraft:rideable` with the per-kind seat offsets and vanilla riding behavior. Do not apply the lounge pose override from 0238 to furniture.
 
+Toilet and Washstand extend this table with a single pressed-cell footprint, two clearance layers, the same recovery parameters, and no top. Toilet has one seat at `(0, 0.264, -0.1)` blocks, using the 8.06 px seat top minus the 0.24-block rider offset from 0122, rounded to three decimals; its z offset awaits in-game tuning. Washstand has no seats. Keep their pure show rules in separate resort domain modules, with frozen show specs using shared `Ticks` and `SoundId` values. Shared furniture code continues to read the table without per-kind branches. Issue #1567 supplies these domain rules; assets and engine wiring remain later issues.
+
 The Dining Table has two complementary parts: a tabletop host registered through the shared registry from 0237 for Gas Lanterns and Dutch Ovens, and an invisible solid tabletop block for ordinary blocks. Later integration records, repairs, and clears laid blocks, prevents hosted items and ordinary blocks from sharing the top, and refuses recovery while anything stands on it. The initial tabletop surface has half extents 0.4 by 0.4 blocks, height 12 px, limit four, and clearance base zero.
 
 Leave the Beach Chair and its placement, recovery, folding, hosting, and lounge pose code untouched. This issue adds only furniture domain values and geometry; pack assets and in-game integration follow separately.
