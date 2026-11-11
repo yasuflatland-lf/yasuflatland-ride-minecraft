@@ -1,5 +1,5 @@
 import type { Vec3 } from "../../shared/vec";
-import type { CellBox } from "../box";
+import { boxWithHeight, type CellBox } from "../box";
 import { cellsOfShape, type ShapeStyle, shapeCount } from "../shape/shape";
 import { type Curve, line, outlinePoints } from "../wireframe";
 import type {
@@ -16,10 +16,7 @@ const STYLES: Record<FillStyle, ShapeStyle> = {
 };
 
 function boundsOf({ base, height }: HeightStepSpec): CellBox {
-  return {
-    min: base.min,
-    max: { ...base.max, y: base.min.y + height - 1 },
-  };
+  return boxWithHeight(base, height);
 }
 
 export const cubePlacement: HeightedPlacement = {

@@ -8,12 +8,10 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
+import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import {
-  type Face,
-  pasteTarget,
-} from "../../../src/domain/build/clipboard/clipboard";
+import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   setHeight,
