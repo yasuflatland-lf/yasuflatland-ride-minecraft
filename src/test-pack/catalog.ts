@@ -217,6 +217,42 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "toilet_place_take_back",
+    file: "toilet",
+    ticks: 64, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "toilet_flush_timing",
+    file: "toilet",
+    ticks: 120, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "washstand_place_take_back",
+    file: "washstand",
+    ticks: 64, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "washstand_run_timing",
+    file: "washstand",
+    ticks: 120, // Estimate until the first BDS run.
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "beach_chair_lantern",
     file: "beachChairHosting",
     ticks: 44, // Estimate until the first BDS run.

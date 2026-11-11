@@ -1,6 +1,7 @@
-import { system } from "@minecraft/server";
+import { type Entity, system } from "@minecraft/server";
 import {
   FURNITURE_SPEC,
+  type FurnitureKind,
   furnitureClearCells,
   furniturePose,
   furnitureSupportCells,
@@ -14,8 +15,14 @@ import {
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
-export async function sofaSinglePlaceTakeBack(a: Arena): Promise<Outcome> {
-  const kind = "sofa_single";
+export function sofaSinglePlaceTakeBack(a: Arena): Promise<Outcome> {
+  return furniturePlaceTakeBack(a, "sofa_single");
+}
+
+export async function furniturePlaceTakeBack(
+  a: Arena,
+  kind: FurnitureKind,
+): Promise<Outcome> {
   const ids = FURNITURE_IDS[kind];
   const block = a.at(110, a.gy - 1, 15);
   const failures: string[] = [];
@@ -100,4 +107,46 @@ export async function sofaSinglePlaceTakeBack(a: Arena): Promise<Outcome> {
       failures.join(", ") ||
       "all headings, support, clearance and three-hit recovery verified",
   };
+}
+
+// Allow script-event delivery and next-tick entity property visibility (ADR 0010).
+export const SHOW_SETTLE_TICKS = 2;
+
+export async function withPlacedFurniture(
+  a: Arena,
+  kind: "toilet" | "washstand",
+  run: (entity: Entity) => Promise<Outcome>,
+): Promise<Outcome> {
+  const block = a.at(110, a.gy - 1, 15);
+  const pose = furniturePose(block, 0, kind);
+  const supports = furnitureSupportCells(pose);
+  const clear = furnitureClearCells(pose);
+  const saved = [...supports, ...clear].map((cell) => ({
+    cell,
+    permutation: a.dim.getBlock(cell)?.permutation,
+  }));
+  const entities = () =>
+    a.dim.getEntities({
+      type: FURNITURE_IDS[kind].entity,
+      location: pose.origin,
+      maxDistance: 2,
+    });
+  try {
+    for (const cell of supports)
+      a.dim.getBlock(cell)?.setType("minecraft:stone");
+    for (const cell of clear) a.dim.getBlock(cell)?.setType("minecraft:air");
+    system.sendScriptEvent(
+      TEST_FURNITURE_PLACE,
+      `${kind} ${block.x} ${block.y} ${block.z} 0`,
+    );
+    await wait(SHOW_SETTLE_TICKS);
+    const entity = entities()[0];
+    if (!entity || entities().length !== 1)
+      return { pass: false, detail: `${kind} not placed exactly once` };
+    return await run(entity);
+  } finally {
+    for (const entity of entities()) entity.remove();
+    for (const { cell, permutation } of saved)
+      if (permutation) a.dim.getBlock(cell)?.setPermutation(permutation);
+  }
 }

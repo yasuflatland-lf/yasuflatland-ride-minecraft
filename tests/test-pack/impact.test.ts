@@ -339,6 +339,26 @@ describe("selectionOf", () => {
     expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
   });
 
+  it.each(["toilet", "washstand"])(
+    "selects resort for %s pack files and its registered scenarios",
+    (kind) => {
+      const paths = [
+        `packs/yasu_ride_bp/entities/yasu_ride/${kind}.se.json`,
+        `packs/yasu_ride_bp/items/yasu_ride/${kind}_item.item.json`,
+        `packs/yasu_ride_bp/recipes/yasu_ride/${kind}_item.recipe.json`,
+        `src/test-pack/scenarios/${kind}.ts`,
+        "src/test-pack/scenarios/sofaSingle.ts",
+      ];
+      for (const path of paths) {
+        expect(existsSync(new URL(path, root)), path).toBe(true);
+        expect(selectionOf([path])).toEqual({
+          all: false,
+          features: ["resort"],
+        });
+      }
+    },
+  );
+
   it("tags the entity and item stem of every furniture kind as resort", () => {
     // impact.ts cannot import FURNITURE_IDS: that would make the resort sources harness imports and select every scenario.
     const stems = Object.values(FURNITURE_IDS).flatMap(({ entity, item }) => [
@@ -395,6 +415,10 @@ describe("selectionOf", () => {
       "dining_table_oven",
       "sofa_single_place_take_back",
       "sofa_double_place_take_back",
+      "toilet_place_take_back",
+      "toilet_flush_timing",
+      "washstand_place_take_back",
+      "washstand_run_timing",
       "beach_chair_lantern",
       "beach_chair_oven",
       "beach_chair_empty_refresh",
