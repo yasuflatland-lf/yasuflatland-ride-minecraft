@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { rotatedQuarter, type Size } from "../box";
 
 /** Clockwise quarter turns seen from above. */
 export type QuarterTurn = 0 | 1 | 2 | 3;
@@ -13,8 +13,6 @@ export function degreesOf(turn: QuarterTurn): 0 | 90 | 180 | 270 {
   return (90 * turn) as 0 | 90 | 180 | 270;
 }
 
-export function rotatedSize(size: Cell, turn: QuarterTurn): Cell {
-  return Object.freeze(
-    turn % 2 === 0 ? { ...size } : { x: size.z, y: size.y, z: size.x },
-  );
+export function rotatedSize(size: Size, turn: QuarterTurn): Size {
+  return Object.freeze(turn % 2 === 0 ? { ...size } : rotatedQuarter(size));
 }

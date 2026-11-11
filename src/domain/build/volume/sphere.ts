@@ -1,5 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
+import { sizeOf } from "../box";
 import { type Curve, ellipse, ellipseOn, outlinePoints } from "../wireframe";
 import type {
   HeightedPlacement,
@@ -21,9 +22,11 @@ type ColumnRange = (x: number, z: number) => YRange | undefined;
  * in integers. Every sphere that fits `BUILD_SPEC.maxVolume` keeps these
  * products below 2^53, so the comparison is exact for anything actually built.
  */
-function columnRangeOf({ base: { min, max }, height }: HeightStepSpec) {
-  const widthSquared = (max.x - min.x + 1) ** 2;
-  const depthSquared = (max.z - min.z + 1) ** 2;
+function columnRangeOf({ base, height }: HeightStepSpec) {
+  const { min, max } = base;
+  const size = sizeOf(base);
+  const widthSquared = size.x ** 2;
+  const depthSquared = size.z ** 2;
   const heightSquared = height ** 2;
   const footprint = widthSquared * depthSquared;
   const sumY = 2 * min.y + height - 1;
@@ -128,17 +131,19 @@ export const sphereVolume: HeightedVolume = {
 };
 
 function sphereWireframe(
-  { base: { min, max }, height }: HeightStepSpec,
+  { base, height }: HeightStepSpec,
   maxPoints: number,
 ): Vec3[] {
+  const { min, max } = base;
+  const size = sizeOf(base);
   const center = {
     x: (min.x + max.x + 1) / 2,
     y: min.y + height / 2,
     z: (min.z + max.z + 1) / 2,
   };
-  const rx = (max.x - min.x + 1) / 2;
+  const rx = size.x / 2;
   const ry = height / 2;
-  const rz = (max.z - min.z + 1) / 2;
+  const rz = size.z / 2;
   const equator = ellipse(center.x, center.y, center.z, rx, rz);
   const budget = Math.max(0, Math.floor(maxPoints));
   if (height === 1) return outlinePoints([equator], [], budget);

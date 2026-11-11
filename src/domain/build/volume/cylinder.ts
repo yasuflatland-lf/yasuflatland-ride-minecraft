@@ -1,6 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import type { CellBox } from "../box";
+import { type CellBox, sizeOf } from "../box";
 import { ellipse, line, outlinePoints } from "../wireframe";
 import { ellipseCells } from "./ellipse";
 import type {
@@ -53,13 +53,15 @@ export const cylinderVolume: HeightedVolume = {
 };
 
 function cylinderWireframe(
-  { base: { min, max }, height }: HeightStepSpec,
+  { base, height }: HeightStepSpec,
   maxPoints: number,
 ): Vec3[] {
+  const { min, max } = base;
+  const size = sizeOf(base);
   const cx = (min.x + max.x + 1) / 2;
   const cz = (min.z + max.z + 1) / 2;
-  const rx = (max.x - min.x + 1) / 2;
-  const rz = (max.z - min.z + 1) / 2;
+  const rx = size.x / 2;
+  const rz = size.z / 2;
   const bottom = min.y + 0.5;
   const top = min.y + height - 0.5;
   const rings =

@@ -1,5 +1,5 @@
 import type { Cell } from "../../shared/cells";
-import type { CellBox } from "../box";
+import { type CellBox, sizeOf } from "../box";
 
 export type RoofKind = "gable" | "hip";
 
@@ -21,8 +21,8 @@ interface Rectangle {
 }
 
 export function maxRoofHeight(base: CellBox, worldTopY?: number): number {
-  const limit =
-    3 * Math.max(base.max.x - base.min.x + 1, base.max.z - base.min.z + 1);
+  const size = sizeOf(base);
+  const limit = 3 * Math.max(size.x, size.z);
   return Math.max(
     1,
     Math.min(
@@ -34,8 +34,7 @@ export function maxRoofHeight(base: CellBox, worldTopY?: number): number {
 
 function layerAt(spec: RoofSpec, layer: number): Rectangle {
   const { base, kind, height } = spec;
-  const sx = base.max.x - base.min.x + 1;
-  const sz = base.max.z - base.min.z + 1;
+  const { x: sx, z: sz } = sizeOf(base);
   // An even square ends in a 2x2 apex: a single cell cannot preserve symmetry.
   const inset = Math.round(
     (height === 1 ? 0 : layer / (height - 1)) *
