@@ -1,5 +1,4 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockGroundProbe } from "../../../src/infrastructure/build/bedrock/bedrockGroundProbe";
 
@@ -37,28 +36,27 @@ it("starts inclusively and skips liquids and replaceable cover to find solid gro
   engine.getBlock.mockImplementation(({ y }) =>
     block(`minecraft:${cover[100 - y] ?? "stone"}`),
   );
-  expect(probe.topSolidY(dimension, 3, 4, 100)).toBe(100 - cover.length);
+  expect(probe.topSolidY(dimension, 3, 4, 100, 37)).toBe(100 - cover.length);
   expect(engine.getDimension).toHaveBeenCalledWith(dimension);
   expect(engine.getBlock.mock.calls[0]).toEqual([{ x: 3, y: 100, z: 4 }]);
   engine.getBlock.mockReturnValue(block("minecraft:stone"));
-  expect(probe.topSolidY(dimension, 3, 4, 100)).toBe(100);
+  expect(probe.topSolidY(dimension, 3, 4, 100, 37)).toBe(100);
 });
 
-it("includes the last cell of the search budget but never searches past it", () => {
+it("includes toY but never reads below it", () => {
   engine.getBlock.mockImplementation(({ y }) =>
-    block(
-      y === 100 - BUILD_SPEC.groundSearchDepth + 1
-        ? "minecraft:stone"
-        : "minecraft:air",
-    ),
+    block(y === 90 ? "minecraft:stone" : "minecraft:air"),
   );
-  expect(probe.topSolidY(dimension, 0, 0, 100)).toBe(
-    100 - BUILD_SPEC.groundSearchDepth + 1,
-  );
+  expect(probe.topSolidY(dimension, 0, 0, 100, 90)).toBe(90);
   engine.getBlock.mockClear();
-  engine.getBlock.mockReturnValue(block("minecraft:air"));
-  expect(probe.topSolidY(dimension, 0, 0, 100)).toBeUndefined();
-  expect(engine.getBlock).toHaveBeenCalledTimes(BUILD_SPEC.groundSearchDepth);
+  expect(probe.topSolidY(dimension, 0, 0, 100, 91)).toBeUndefined();
+  expect(engine.getBlock).toHaveBeenCalledTimes(10);
+  expect(engine.getBlock.mock.calls.map(([cell]) => cell.y)).toEqual([
+    100, 99, 98, 97, 96, 95, 94, 93, 92, 91,
+  ]);
+  engine.getBlock.mockClear();
+  expect(probe.topSolidY(dimension, 0, 0, 100, 101)).toBeUndefined();
+  expect(engine.getBlock).not.toHaveBeenCalled();
 });
 
 it.each(["missing", "throwing"])(
@@ -71,7 +69,7 @@ it.each(["missing", "throwing"])(
       }
       return block(y === 100 ? "minecraft:air" : "minecraft:stone");
     });
-    expect(probe.topSolidY(dimension, 0, 0, 100)).toBeUndefined();
+    expect(probe.topSolidY(dimension, 0, 0, 100, 37)).toBeUndefined();
     expect(engine.getBlock).toHaveBeenCalledTimes(2);
   },
 );

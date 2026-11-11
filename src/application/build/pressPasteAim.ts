@@ -26,7 +26,8 @@ export class PressPasteAim {
       return "ignored";
     }
     // ADR 0203: use the live gaze target shared with the outline at press time.
-    const result = this.resolveTarget.execute(cmd);
+    // A press re-probes so it never places on a snap cached by the outline.
+    const result = this.resolveTarget.execute({ ...cmd, fresh: true });
     if (result.kind === "noTarget") return "menu";
     if (result.kind === "noGround") {
       this.feedback.showMessage(cmd.playerId, "noGround");

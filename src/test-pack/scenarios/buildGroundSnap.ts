@@ -1,5 +1,8 @@
 import { boxFromSize } from "../../domain/build/box";
-import { snapToGround } from "../../domain/build/clipboard/ground";
+import {
+  groundScanDepth,
+  snapToGround,
+} from "../../domain/build/clipboard/ground";
 import { asDimensionId } from "../../domain/shared/ids";
 import { BedrockGroundProbe } from "../../infrastructure/build/bedrock/bedrockGroundProbe";
 import type { Arena } from "../arena";
@@ -13,6 +16,7 @@ async function checkTerrain(
   const probe = new BedrockGroundProbe();
   const dimension = asDimensionId(a.dim.id);
   const box = boxFromSize(a.at(20, a.gy + 4, 20), { x: 3, y: 2, z: 3 });
+  const deepest = box.min.y - groundScanDepth(box) + 1;
   const originals = [];
   for (let y = a.gy; y <= a.gy + 6; y++)
     for (let z = 20; z <= 22; z++)
@@ -42,7 +46,7 @@ async function checkTerrain(
     const tops = [];
     for (let z = box.min.z; z <= box.max.z; z++)
       for (let x = box.min.x; x <= box.max.x; x++) {
-        const top = probe.topSolidY(dimension, x, z, box.min.y);
+        const top = probe.topSolidY(dimension, x, z, box.min.y, deepest);
         const expected = a.gy + (terrain === "slope" ? x - box.min.x : 0);
         if (top !== expected)
           return {
@@ -51,8 +55,8 @@ async function checkTerrain(
           };
         tops.push(top);
       }
-    const snapped = snapToGround(box, (x, z) =>
-      probe.topSolidY(dimension, x, z, box.min.y),
+    const snapped = snapToGround(box, (x, z, lowestY) =>
+      probe.topSolidY(dimension, x, z, box.min.y, lowestY),
     );
     return {
       pass: snapped?.min.y === Math.max(...tops) + 1,

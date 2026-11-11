@@ -170,10 +170,22 @@ export class FakeGroundProbe implements GroundProbe {
     _z,
     fromY,
   ) => fromY - 1;
-  calls: { dimensionId: DimensionId; x: number; z: number; fromY: number }[] =
-    [];
-  topSolidY(dimensionId: DimensionId, x: number, z: number, fromY: number) {
-    this.calls.push({ dimensionId, x, z, fromY });
-    return this.topOf(x, z, fromY);
+  calls: {
+    dimensionId: DimensionId;
+    x: number;
+    z: number;
+    fromY: number;
+    toY: number;
+  }[] = [];
+  topSolidY(
+    dimensionId: DimensionId,
+    x: number,
+    z: number,
+    fromY: number,
+    toY: number,
+  ) {
+    this.calls.push({ dimensionId, x, z, fromY, toY });
+    const top = this.topOf(x, z, fromY);
+    return top !== undefined && top >= toY && top <= fromY ? top : undefined;
   }
 }

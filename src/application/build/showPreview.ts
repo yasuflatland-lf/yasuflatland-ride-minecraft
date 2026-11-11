@@ -66,6 +66,7 @@ export class ShowPreview {
           playerId: id,
           dimensionId,
           aim,
+          tick,
         });
         if (result.kind === "target") preview.pasteBox = result.target.box;
       }
