@@ -3,6 +3,7 @@ import type { BuildBlockWorld } from "../../../src/application/build/ports/block
 import type {
   BuildFeedback,
   BuildMessage,
+  BuildMode,
 } from "../../../src/application/build/ports/feedback";
 import type { BuildPlayers } from "../../../src/application/build/ports/players";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
@@ -55,17 +56,9 @@ export class FakeFeedback implements BuildFeedback {
   showSize(playerId: PlayerId, size: { x: number; y: number; z: number }) {
     this.sizes.push({ playerId, size });
   }
-  pasteHints: {
-    playerId: PlayerId;
-    size: { x: number; y: number; z: number };
-    count: number;
-  }[] = [];
-  showPasteHint(
-    playerId: PlayerId,
-    size: { x: number; y: number; z: number },
-    count: number,
-  ) {
-    this.pasteHints.push({ playerId, size, count });
+  modes: { playerId: PlayerId; mode: BuildMode }[] = [];
+  showMode(playerId: PlayerId, mode: BuildMode) {
+    this.modes.push({ playerId, mode });
   }
   previews: {
     playerId: PlayerId;

@@ -47,7 +47,8 @@ it("defines every feedback message in both locales", () => {
         .sort(),
     ).toEqual(Object.values(BUILD_FORM).sort());
     expect(entries.get(BUILD_FORM.fillBelowBody)?.match(/%s/g)).toHaveLength(4);
-    expect(entries.get(BUILD_MESSAGE.pasteHint)?.match(/%s/g)).toHaveLength(4);
+    expect(entries.get(BUILD_MESSAGE.pasteReady)?.match(/%s/g)).toHaveLength(4);
+    expect(entries.get(BUILD_MESSAGE.rotateMode)?.match(/%s/g)).toHaveLength(1);
     expect(entries.get(BUILD_MESSAGE.copied)?.match(/%s/g)).toHaveLength(1);
     expect(
       entries.get(BUILD_MESSAGE.undoDonePartial)?.match(/%s/g),

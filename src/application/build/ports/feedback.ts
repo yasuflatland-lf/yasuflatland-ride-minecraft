@@ -3,6 +3,7 @@ import type { PreviewSet } from "../../../domain/build/preview/preview";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type BuildMessage =
+  | "pasteNoTarget"
   | "building"
   | "cutRestored"
   | "cutIncomplete"
@@ -31,6 +32,14 @@ export type BuildMessage =
   | "undoDone"
   | "undoDonePartial";
 
+export type BuildMode =
+  | {
+      kind: "pasteReady";
+      size: { x: number; y: number; z: number };
+      blockCount: number;
+    }
+  | { kind: "rotate"; degrees: 0 | 90 | 180 | 270 };
+
 export interface BuildFeedback {
   /** Chat message so the undo gesture stays visible beyond the action bar. */
   showUndoHint(playerId: PlayerId): void;
@@ -43,11 +52,7 @@ export interface BuildFeedback {
     skippedCount?: number,
   ): void;
   showSize(playerId: PlayerId, size: { x: number; y: number; z: number }): void;
-  showPasteHint(
-    playerId: PlayerId,
-    size: { x: number; y: number; z: number },
-    count: number,
-  ): void;
+  showMode(playerId: PlayerId, mode: BuildMode): void;
   drawPreview(
     playerId: PlayerId,
     dimensionId: DimensionId | undefined,

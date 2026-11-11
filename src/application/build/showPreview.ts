@@ -53,11 +53,11 @@ export class ShowPreview {
         }
       }
       if (flow.kind === "pasteAim" && session.clipboard)
-        this.feedback.showPasteHint(
-          id,
-          session.clipboard.size,
-          session.clipboard.blockCount,
-        );
+        this.feedback.showMode(id, {
+          kind: "pasteReady",
+          size: session.clipboard.size,
+          blockCount: session.clipboard.blockCount,
+        });
       if (flow.kind === "pasteAim" && aim && session.clipboard)
         preview.pasteBox = aimedPasteTarget(
           session.clipboard,
