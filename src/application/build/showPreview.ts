@@ -4,6 +4,7 @@ import {
   type PreviewAim,
   previewPoints,
 } from "../../domain/build/preview/preview";
+import { degreesOf } from "../../domain/build/rotation/quarterTurn";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { volumeSize } from "../../domain/build/volume/size";
@@ -33,6 +34,11 @@ export class ShowPreview {
       const session = this.repo.get(id);
       if (!session?.isInBuildMode) continue;
       const { flow } = session;
+      if (flow.kind === "rotateMode")
+        this.feedback.showMode(id, {
+          kind: "rotate",
+          degrees: degreesOf(flow.turn),
+        });
       const aim = this.aimReader.aim(id);
       const preview: PreviewAim = { blink };
       if (flow.kind === "point1" && aim)

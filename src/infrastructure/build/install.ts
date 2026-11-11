@@ -16,6 +16,7 @@ import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
+import { FinishRotateMode } from "../../application/build/finishRotateMode";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
 import { PasteAt } from "../../application/build/pasteAt";
@@ -23,6 +24,7 @@ import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
+import { RotateModeTap } from "../../application/build/rotateModeTap";
 import { RotatePasteAim } from "../../application/build/rotatePasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
@@ -70,6 +72,9 @@ export function installBuild(deps: {
   const cancel = new CancelFlow(repo);
   const pasteDebounce = new PressDebounces<PlayerId>(
     BUILD_SPEC.pasteRepeatTicks,
+  );
+  const rotateDebounce = new PressDebounces<PlayerId>(
+    BUILD_SPEC.rotateDebounceTicks,
   );
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const endSession = new EndBuildSession(repo, ports.structures);
@@ -147,6 +152,9 @@ export function installBuild(deps: {
   const rotate = new RotatePasteAim(repo);
   const menus = new BedrockBuildMenus(repo, menuCases);
   registerWand({
+    rotateModeTap: new RotateModeTap(repo, rotateBox),
+    finishRotateMode: new FinishRotateMode(repo),
+    rotateDebounce,
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
     pressPasteAim: new PressPasteAim(
@@ -169,7 +177,13 @@ export function installBuild(deps: {
   });
   registerModeTick(modes);
   registerOutlineTick(new ShowPreview(repo, feedback, aim, resolveTarget));
-  registerSessions(endSession, cases.endPasting, debounce, pasteDebounce);
+  registerSessions(
+    endSession,
+    cases.endPasting,
+    debounce,
+    pasteDebounce,
+    rotateDebounce,
+  );
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);

@@ -13,6 +13,8 @@ export const BUILD_SPEC = Object.freeze({
   // A held touch repeats itemUse every 4-6 ticks on mobile (ADR 0024).
   pressDebounceTicks: 10,
   pasteRepeatTicks: 10,
+  // Exceeds held itemUse repeats (4-6 ticks, ADR 0024) but admits taps below 10 ticks.
+  rotateDebounceTicks: 7,
   maxVolume: 100_000, // largest selection an edit accepts
   maxCopyVolume: 32_768, // largest selection copy accepts; copy reads in one tick
   maxTerrainSide: 32, // longest x or z side a terrain operation accepts (ADR 0233)

@@ -1,8 +1,10 @@
 import { type Player, system } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
+import type { FinishRotateMode } from "../../../../application/build/finishRotateMode";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
+import type { RotateModeTap } from "../../../../application/build/rotateModeTap";
 import type { TapAir } from "../../../../application/build/tapAir";
 import { virtualEndPoint } from "../../../../domain/build/aim/aim";
 import { opensUtilityMenu } from "../../../../domain/build/flow/flow";
@@ -18,6 +20,8 @@ type PressContext = {
   aim: AimReader;
   repo: BuildSessionRepository;
   pressPasteAim: PressPasteAim;
+  rotateModeTap: Pick<RotateModeTap, "execute">;
+  finishRotateMode: Pick<FinishRotateMode, "execute">;
   aimHeight: AimHeight;
   confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   menus: BuildMenus;
@@ -70,6 +74,15 @@ export function dispatchWandPress(context: PressContext): void {
   const flow = repo.get(playerId)?.flow;
   if (flow?.kind === "pasteAim") {
     pasteAimPress(context, target);
+    return;
+  }
+  if (flow?.kind === "rotateMode") {
+    if (source.isSneaking) context.finishRotateMode.execute({ playerId });
+    else
+      context.rotateModeTap.execute({
+        playerId,
+        dimensionId: asDimensionId(source.dimension.id),
+      });
     return;
   }
   if (!target) return;

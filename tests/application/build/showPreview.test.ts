@@ -554,3 +554,26 @@ it("draws the rotation box in its dimension without requiring an aim or modifyin
   ]);
   expect(e.session.flow).toBe(flow);
 });
+
+it.each([
+  [1, 90],
+  [2, 180],
+  [3, 270],
+  [0, 0],
+] as const)(
+  "shows rotate turn %s as %s degrees on the outline interval",
+  (turn, degrees) => {
+    const { session, preview, feedback } = setup();
+    session.setFlow(
+      beginRotateMode(overworld, boxOf(cell, end), material, turn),
+    );
+    const show = vi.spyOn(feedback, "showMode");
+    preview.execute(1);
+    expect(show).not.toHaveBeenCalled();
+    preview.execute(interval);
+    expect(show).toHaveBeenCalledExactlyOnceWith(alex, {
+      kind: "rotate",
+      degrees,
+    });
+  },
+);
