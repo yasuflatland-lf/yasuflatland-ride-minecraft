@@ -30,26 +30,33 @@ const decodeRgbRows = (png: Buffer): Buffer[] => {
   });
 };
 
-describe.each(["yasu_ride_bp", "yasu_ride_rp", "yasu_ride_test_bp"])(
-  "%s pack icon",
-  (pack) => {
-    it("contains a 256 by 256 RGB PNG at the pack root", () => {
-      const png = readIcon(pack);
-      expect(png.subarray(0, 8)).toEqual(
-        Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-      );
-      // IHDR comes first: width, height, bit depth 8, and color type 2 (RGB without alpha)
-      expect(png.readUInt32BE(8)).toBe(13);
-      expect(png.toString("ascii", 12, 16)).toBe("IHDR");
-      expect(png.readUInt32BE(16)).toBe(256);
-      expect(png.readUInt32BE(20)).toBe(256);
-      expect(png[24]).toBe(8);
-      expect(png[25]).toBe(2);
-    });
-  },
-);
+describe.each([
+  "yasu_ride_bp",
+  "yasu_ride_rp",
+  "yasu_ride_test_bp",
+  "yasu_ride_test_rp",
+])("%s pack icon", (pack) => {
+  it("contains a 256 by 256 RGB PNG at the pack root", () => {
+    const png = readIcon(pack);
+    expect(png.subarray(0, 8)).toEqual(
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    );
+    // IHDR comes first: width, height, bit depth 8, and color type 2 (RGB without alpha)
+    expect(png.readUInt32BE(8)).toBe(13);
+    expect(png.toString("ascii", 12, 16)).toBe("IHDR");
+    expect(png.readUInt32BE(16)).toBe(256);
+    expect(png.readUInt32BE(20)).toBe(256);
+    expect(png[24]).toBe(8);
+    expect(png[25]).toBe(2);
+  });
+});
 
 describe("pack icon variants", () => {
+  it("gives both dev packs the same icon", () => {
+    expect(readIcon("yasu_ride_test_rp")).toEqual(
+      readIcon("yasu_ride_test_bp"),
+    );
+  });
   it("gives both release packs the same icon", () => {
     expect(
       Buffer.concat(decodeRgbRows(readIcon("yasu_ride_bp"))).equals(
