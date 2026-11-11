@@ -32,6 +32,7 @@ services:
       - ../packs/yasu_ride_bp:/data/behavior_packs/yasu_ride_bp:ro
       - ../packs/yasu_ride_test_bp:/data/behavior_packs/yasu_ride_test_bp:ro
       - ../packs/yasu_ride_rp:/data/resource_packs/yasu_ride_rp:ro
+      - ../packs/yasu_ride_test_rp:/data/resource_packs/yasu_ride_test_rp:ro
       # Serve the Resource Pack under a fresh dev-only version (ADR 0062).
       # Without create_host_path, Docker would mount an empty directory when
       # the manifests were not generated; this way `up` fails instead.

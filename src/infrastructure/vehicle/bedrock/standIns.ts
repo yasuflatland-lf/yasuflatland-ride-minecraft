@@ -4,7 +4,7 @@ import { type Entity, world } from "@minecraft/server";
 import type { VehicleId } from "../../../domain/shared/ids";
 import { STAND_IN_REACH } from "../../../domain/vehicle/kinds/index";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
-import { DIMENSIONS } from "./entityIndex";
+import { allDimensions } from "../../shared/dimensions";
 import {
   isStandInEntity,
   isVehicleEntity,
@@ -163,10 +163,10 @@ export class StandIns {
     for (const id of [...this.kept.keys()])
       if (!live.has(id)) this.keep(id, undefined, undefined);
     for (const id of [...this.swept]) if (!live.has(id)) this.swept.delete(id);
-    for (const dimId of DIMENSIONS)
-      for (const standIn of world
-        .getDimension(dimId)
-        .getEntities({ families: [STAND_IN_FAMILY] })) {
+    for (const dimension of allDimensions())
+      for (const standIn of dimension.getEntities({
+        families: [STAND_IN_FAMILY],
+      })) {
         const owner = ownerOf(standIn);
         if (owner === undefined || !live.has(owner as VehicleId))
           standIn.remove();
