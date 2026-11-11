@@ -15,7 +15,7 @@
 
 ## Context
 
-The owner approved a blade twice as wide as today's, switched from the cab independently of the blade lift. The [approved design](../designs/2026-10-29-wide-blade-road-paver-bunk-bed.md) records that session; this ADR records the implementation rules and the owner's later decision to keep the fittings at their original size.
+The owner approved a blade twice as wide as today's, switched from the cab independently of the blade lift. The approved design records that session; this ADR records the implementation rules and the owner's later decision to keep the fittings at their original size.
 
 The design asked for the label NORMAL; it needs 35 px against the bulldozer's 25 px label area (`tools/monitor.py` draws 6 px per glyph), so the label is NORM. The design estimated 9 to 10 columns; the touching-cell rule of 0136 gives 11.
 

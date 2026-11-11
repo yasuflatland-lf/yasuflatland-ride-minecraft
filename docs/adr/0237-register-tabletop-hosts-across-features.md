@@ -8,7 +8,7 @@
 
 ## Context
 
-The [Beach Chair design](../designs/2026-11-09-beach-chair-design.md#table-form) needs resort hosts to accept camp items without imports between features. The shared domain and application placement rules already accept a host type and surface, and infrastructure now recognizes Camp Tables and folded Beach Chairs through the shared registry.
+The Beach Chair design needs resort hosts to accept camp items without imports between features. The shared domain and application placement rules already accept a host type and surface, and infrastructure now recognizes Camp Tables and folded Beach Chairs through the shared registry.
 
 ## Decision
 

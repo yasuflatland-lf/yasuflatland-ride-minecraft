@@ -28,7 +28,7 @@ Design and spike notes are spread across three places: files directly under `doc
 - Write each relation only as an outgoing line on the newer ADR. Do not store inverse relation fields or relation text in Status. Targets of `Supersedes`, `Supersedes in part`, and `Extends` must have lower numbers; `Related` may point either way. Links use the target's actual filename. Do not repeat a target with the same kind or combine `Supersedes` with another kind for that target.
 - Generate the ADR README index between its markers with `pnpm run docs`; never edit it by hand. Sort rows by number and show the title, agreement state, and derived inverse relations, ordered as superseded, superseded in part, and extended, with linked numbers sorted within each kind.
 - Run `pnpm lint:docs` in CI, extending the testing strategy (0010). Check filenames and titles, metadata fields and values, relation targets and duplicates, the generated index, and relative Markdown links in `docs/`, `README.md`, and `AGENTS.md`.
-- Keep spike findings in `docs/spikes/` and committed design notes in `docs/designs/`. Owner-local drafts stay uncommitted.
+- Keep spike findings in `docs/spikes/`. Owner-local design drafts stay uncommitted.
 - Parts 3/4 and 4/4 add `docs/specs/<topic>.md` as the current rules per topic; the implementation is the source of truth; the spec states what the implementation does and lists each difference from an ADR under Open issues for a person to fix by editing the ADR or adding a superseding ADR.
 
 ## Consequences

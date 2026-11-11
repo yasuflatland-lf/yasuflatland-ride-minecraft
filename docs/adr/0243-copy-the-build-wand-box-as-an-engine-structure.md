@@ -14,7 +14,7 @@
 
 ## Context
 
-The [owner's design](../designs/2026-11-09-build-wand-structure-copy-design.md) requires a copy of the entire selected box: container contents, sign text, decorations and animals. The current clipboard stores block types and permutation states, omits kept blocks, and has no entity snapshot. This ADR proposes the replacement; this issue adds only a test-pack probe, its recorded results, and documentation. Shipped behavior and the current spec remain unchanged.
+The owner's design requires a copy of the entire selected box: container contents, sign text, decorations and animals. The current clipboard stores block types and permutation states, omits kept blocks, and has no entity snapshot. This ADR proposes the replacement; this issue adds only a test-pack probe, its recorded results, and documentation. Shipped behavior and the current spec remain unchanged.
 
 ### Evidence from the type definitions
 
@@ -47,7 +47,7 @@ These statements come from the installed stable `@minecraft/server` **2.11.0**, 
 | Fleet exclusion mechanism        | Recording the destination entity IDs before place and removing only newly created excluded entities right after it, in the same tick, removes the armor-stand stand-in copy while its original survives and the cow is duplicated; this still holds two ticks later. The fleet predicate covers all four ride kinds, deck seats, seat fillers and stand-ins. | verified on the dev BDS (stand-in only; see Consequences)                   |
 | Clear without drops              | Default `fill <box> air` empties populated chest and furnace cells, and no item entity appears in the fixture box after five ticks.                                                                                                                                                                                                                          | verified on the dev BDS                                                     |
 
-None of these findings contradicts the [owner's design](../designs/2026-11-09-build-wand-structure-copy-design.md). The design keeps the 32,768-block copy limit unless the engine maximum differs; the engine maximum is a per-axis bound that allows more than 32,768 blocks, so the volume cap stays and the axis bounds are added on top of it (Decision 2).
+None of these findings contradicts the owner's design. The design keeps the 32,768-block copy limit unless the engine maximum differs; the engine maximum is a per-axis bound that allows more than 32,768 blocks, so the volume cap stays and the axis bounds are added on top of it (Decision 2).
 
 The scenario is exclusive because the maximum captures span the full world height (384 blocks in the Overworld) and must not capture entities from another scenario. Its largest footprint, 65 x 65, fits the 121 x 91 lane; its height stays inside `Dimension.heightRange`. The maximum captures only read blocks. The small fixture box is cleared in `finally`, structures are deleted, and spawned entities are removed even after assertion failures. No real fleet vehicle is summoned (`vehicles: 0`), because fleet spawn registration can evict existing vehicles.
 

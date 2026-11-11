@@ -10,7 +10,7 @@
 
 ## Context
 
-The [Dining set design](../designs/2026-11-09-dining-set-design.md) adds a Dining Table, Dining Chair, single sofa, and double sofa to Resort Gear. They need common placement and recovery rules, with different footprints, seats, and tabletop capabilities. The Beach Chair already has a separate three-cell footprint, folding behavior, and lounge pose that these pieces do not need.
+The Dining set design adds a Dining Table, Dining Chair, single sofa, and double sofa to Resort Gear. They need common placement and recovery rules, with different footprints, seats, and tabletop capabilities. The Beach Chair already has a separate three-cell footprint, folding behavior, and lounge pose that these pieces do not need.
 
 ## Decision
 

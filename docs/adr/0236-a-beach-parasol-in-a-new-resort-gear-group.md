@@ -8,7 +8,7 @@
 
 ## Context
 
-The owner wants a beach parasol that can be planted next to a camp. Its canopy has to keep rain off whoever sits under it. The design is in `docs/designs/2026-11-09-beach-parasol-design.md`. The tent already keeps rain off with the invisible `tent_ceiling` block, which has a 3-pixel collision box (0207). A parasol canopy is above head height, so a collision box there could still catch a jumping player or a vehicle.
+The owner wants a beach parasol that can be planted next to a camp. Its canopy has to keep rain off whoever sits under it. The tent already keeps rain off with the invisible `tent_ceiling` block, which has a 3-pixel collision box (0207). A parasol canopy is above head height, so a collision box there could still catch a jumping player or a vehicle.
 
 The author could not watch weather in the game when this block was written. Whether a block with no collision box stops rain is therefore not measured yet.
 

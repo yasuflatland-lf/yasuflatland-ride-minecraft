@@ -110,7 +110,7 @@
 - Applies to: Beach parasol entity hits and returned items.
 - Rule: A dye hit after the per-player swing check repaints the canopy and never counts toward recovery, even when the color is unchanged. The shared dye mapping, Creative exemption, no-op, and tick memory apply. Variant 0 shows white; white dye restores the default. Taking back a painted parasol returns a plain item.
 - Agreement: Proposed
-- Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision and [beach parasol design](../designs/2026-11-09-beach-parasol-design.md) Paint.
+- Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision and beach parasol design Paint.
 - Implementation: `src/application/resort/paintParasol.ts`; `src/infrastructure/resort/bedrock/bedrockParasolPaintWorld.ts`; `src/infrastructure/resort/bedrock/handlers/hits.ts`; `src/domain/resort/spec.ts`.
 - Verification: `tests/application/resort/paintParasol.test.ts` and `tests/infrastructure/resort/hits.test.ts` check repaint and hit routing. Scenario `parasol_paint` checks each paint event; in-game execution remains unverified.
 

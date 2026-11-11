@@ -11,7 +11,7 @@
 
 ## Context
 
-The owner copies a furnished building (containers, signs, beds, doors, stairs, furnaces) and wants the copy turned to another heading, and also wants to turn an already selected building in place. A rotation that drops or mis-orients any block is not acceptable. The [design](../designs/2026-11-10-build-wand-rotate-design.md) has the full intent, goals and open risks.
+The owner copies a furnished building (containers, signs, beds, doors, stairs, furnaces) and wants the copy turned to another heading, and also wants to turn an already selected building in place. A rotation that drops or mis-orients any block is not acceptable. The design has the full intent, goals and open risks.
 
 Since 0243 the clipboard is an engine structure, so the engine can rotate it. Hand-written facing, direction, axis and hinge tables in the domain layer would be large, fragile and would drift from the engine.
 
