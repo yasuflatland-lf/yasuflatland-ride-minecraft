@@ -1,0 +1,22 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "yasu_ride:toilet_item"
+    },
+    "tags": ["crafting_table"],
+    "pattern": ["QIQ", "Q Q", " Q "],
+    "key": {
+      "Q": {
+        "item": "minecraft:quartz"
+      },
+      "I": {
+        "item": "minecraft:iron_ingot"
+      }
+    },
+    "result": {
+      "item": "yasu_ride:toilet_item",
+      "count": 1
+    }
+  }
+}

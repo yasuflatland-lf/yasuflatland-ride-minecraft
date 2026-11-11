@@ -1,0 +1,252 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.yasu_ride.toilet.lid_open": {
+      "loop": "hold_on_last_frame",
+      "animation_length": 0.4,
+      "bones": {
+        "lid": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "0.4": [-91, 0, 0]
+          }
+        }
+      }
+    },
+    "animation.yasu_ride.toilet.lid_close": {
+      "loop": "hold_on_last_frame",
+      "animation_length": 0.4,
+      "bones": {
+        "lid": {
+          "rotation": {
+            "0.0": [-91, 0, 0],
+            "0.4": [0, 0, 0]
+          }
+        }
+      }
+    },
+    "animation.yasu_ride.toilet.closed_pose": {
+      "loop": true,
+      "bones": {
+        "lid": {
+          "rotation": [0, 0, 0]
+        }
+      }
+    },
+    "animation.yasu_ride.toilet.rest": {
+      "loop": true,
+      "bones": {
+        "swirl": {
+          "scale": [0, 0, 0]
+        },
+        "rim_jets": {
+          "scale": [0, 0, 0]
+        },
+        "water": {
+          "position": [0, 0, 0],
+          "scale": [1, 1, 1]
+        }
+      }
+    },
+    "animation.yasu_ride.toilet.flush": {
+      "loop": "hold_on_last_frame",
+      "animation_length": 5,
+      "bones": {
+        "water": {
+          "position": [
+            0,
+            "0.775 * ((query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))))",
+            0
+          ],
+          "scale": [
+            "1 + 0.45 * math.clamp(((query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1))))))))) / 1.5, 0, 1)",
+            1,
+            "1 + 0.45 * math.clamp(((query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1))))))))) / 1.5, 0, 1)"
+          ]
+        },
+        "swirl": {
+          "scale": [1, 1, 1]
+        },
+        "rim_jets": {
+          "scale": [1, 1, 1]
+        },
+        "swirl_0": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 0.0))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 0 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 0.0)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_1": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 22.5))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 1 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 22.5)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_2": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 45.0))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 2 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 45.0)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_3": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 67.5))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 3 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 67.5)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_4": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 90.0))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 0 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 90.0)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_5": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 112.5))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 1 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 112.5)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_6": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 135.0))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 2 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 135.0)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_7": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 157.5))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 3 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 157.5)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_8": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 180.0))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 0 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 180.0)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_9": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 202.5))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 1 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 202.5)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_10": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 225.0))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 2 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 225.0)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_11": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 247.5))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 3 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 247.5)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_12": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 270.0))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 0 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 270.0)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_13": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 292.5))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 1 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 292.5)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_14": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 315.0))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 2 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 315.0)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "swirl_15": {
+          "position": [
+            "-0.775 * 2 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.cos((query.anim_time * 515.662015617741 + 337.5))",
+            "0.775 * (5.1 + (query.anim_time < 0.3 ? 0 : (query.anim_time < 1.0 ? 1.5 * (((query.anim_time - 0.3) / 0.7) * ((query.anim_time - 0.3) / 0.7) * (3 - 2 * ((query.anim_time - 0.3) / 0.7))) : (query.anim_time < 1.8 ? 1.5 : (query.anim_time < 3.6 ? 1.5 - 1.75 * (((query.anim_time - 1.8) / 1.8) * ((query.anim_time - 1.8) / 1.8) * (3 - 2 * ((query.anim_time - 1.8) / 1.8))) : -0.25 + 0.25 * ((math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.6) / 1.4, 0, 1)))))))) + 0.25 + 3 * 0.4 + 2 * (1 - math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)))",
+            "0.775 * (-2.6 + 3 * (1 - 0.85 * math.clamp((query.anim_time - 0.2) / 3.4, 0, 1)) * math.sin((query.anim_time * 515.662015617741 + 337.5)))"
+          ],
+          "scale": "((math.clamp(query.anim_time / 0.4, 0, 1)) * (math.clamp(query.anim_time / 0.4, 0, 1)) * (3 - 2 * (math.clamp(query.anim_time / 0.4, 0, 1)))) * (1 - ((math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)) * (3 - 2 * (math.clamp((query.anim_time - 3.3) / 1.0, 0, 1)))))"
+        },
+        "rim_jet_0": {
+          "position": [
+            1.55,
+            "0.775 * (10 - 2.8 * math.mod(query.anim_time * 3 + 0/6, 1))",
+            "0.775 * (-0.4 - 0.3 * math.mod(query.anim_time * 3 + 0/6, 1))"
+          ],
+          "scale": "query.anim_time < 1.6 ? 1 - 0.5 * math.mod(query.anim_time * 3 + 0/6, 1) : 0"
+        },
+        "rim_jet_1": {
+          "position": [
+            0.9299999999999999,
+            "0.775 * (10 - 2.8 * math.mod(query.anim_time * 3 + 1/6, 1))",
+            "0.775 * (-0.4 - 0.3 * math.mod(query.anim_time * 3 + 1/6, 1))"
+          ],
+          "scale": "query.anim_time < 1.6 ? 1 - 0.5 * math.mod(query.anim_time * 3 + 1/6, 1) : 0"
+        },
+        "rim_jet_2": {
+          "position": [
+            0.30999999999999994,
+            "0.775 * (10 - 2.8 * math.mod(query.anim_time * 3 + 2/6, 1))",
+            "0.775 * (-0.4 - 0.3 * math.mod(query.anim_time * 3 + 2/6, 1))"
+          ],
+          "scale": "query.anim_time < 1.6 ? 1 - 0.5 * math.mod(query.anim_time * 3 + 2/6, 1) : 0"
+        },
+        "rim_jet_3": {
+          "position": [
+            -0.3100000000000003,
+            "0.775 * (10 - 2.8 * math.mod(query.anim_time * 3 + 3/6, 1))",
+            "0.775 * (-0.4 - 0.3 * math.mod(query.anim_time * 3 + 3/6, 1))"
+          ],
+          "scale": "query.anim_time < 1.6 ? 1 - 0.5 * math.mod(query.anim_time * 3 + 3/6, 1) : 0"
+        },
+        "rim_jet_4": {
+          "position": [
+            -0.9300000000000002,
+            "0.775 * (10 - 2.8 * math.mod(query.anim_time * 3 + 4/6, 1))",
+            "0.775 * (-0.4 - 0.3 * math.mod(query.anim_time * 3 + 4/6, 1))"
+          ],
+          "scale": "query.anim_time < 1.6 ? 1 - 0.5 * math.mod(query.anim_time * 3 + 4/6, 1) : 0"
+        },
+        "rim_jet_5": {
+          "position": [
+            -1.55,
+            "0.775 * (10 - 2.8 * math.mod(query.anim_time * 3 + 5/6, 1))",
+            "0.775 * (-0.4 - 0.3 * math.mod(query.anim_time * 3 + 5/6, 1))"
+          ],
+          "scale": "query.anim_time < 1.6 ? 1 - 0.5 * math.mod(query.anim_time * 3 + 5/6, 1) : 0"
+        }
+      }
+    }
+  }
+}
