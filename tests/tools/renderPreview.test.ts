@@ -622,14 +622,17 @@ print(json.dumps(True))
     ).toBe(true);
   });
 
-  it("detects the percolator tile and defines the six review angles in order", () => {
+  it("detects the percolator and toaster tiles and defines the six review angles in order", () => {
     expect(
       previewPython(`
+from tool_loader import load_tool
+cells = load_tool('gear_atlas').GEAR_TILES
 rp = Path('packs/yasu_ride_rp')
 texture = r.read_png(rp / r.GEAR_TEXTURE)
 for item in json.loads(r.GEAR_SPEC.read_text()):
     geo = json.loads((rp / r.GEAR_GEOMETRY.format(item['id'])).read_text())['minecraft:geometry'][0]
-    assert r.gear_tiled(geo, texture) == (item['id'] == 'percolator'), item['id']
+    assert item['id'] in cells or not r.gear_tiled(geo, texture), item['id']
+    assert r.gear_tiled(geo, texture) == (item['id'] in ('percolator', 'toaster')), item['id']
 assert r.GEAR_VIEWS['left'] == (1, 0.15, 0)
 assert r.GEAR_VIEWS['right'] == (-1, 0.15, 0)
 assert r.GEAR_VIEWS['threeQuarter'] == r.VIEW_DIRECTION
