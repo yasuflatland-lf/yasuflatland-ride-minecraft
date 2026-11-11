@@ -20,3 +20,4 @@ class GearSpec:
 class GearModel:
     cubes: tuple[dict, ...]
     texture_request: tuple[str, ...]
+    assemblies: tuple[tuple[str, list[dict]], ...] = ()

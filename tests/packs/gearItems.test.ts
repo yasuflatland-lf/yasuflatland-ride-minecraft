@@ -4,7 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds every registered gear item in catalog order with named swatches", async () => {
+it("builds every registered gear item in catalog order with declared textures", async () => {
   const output = await python.run(
     [
       "import json, sys",
@@ -27,6 +27,10 @@ it("builds every registered gear item in catalog order with named swatches", asy
       "    assert registry.build(item_id) == model",
       "    assert isinstance(model.texture_request, tuple)",
       "    assert model.texture_request",
+      "    if item_id == 'mug_pair':",
+      "        assert model.texture_request == ('mug_pair',)",
+      "        assert any(t.item_id == item_id for t in atlas.tiles())",
+      "        continue",
       "    assert all(name in atlas.PALETTE for name in model.texture_request)",
       "    requested = [atlas.face(name) for name in model.texture_request]",
       "    assert all(face in requested for cube in model.cubes for face in cube['uv'].values())",

@@ -252,7 +252,7 @@ describe("camping gear block models (ADR 0093)", () => {
       for (const c of cubes) {
         expect(
           (c.rotation ?? []).filter((v) => v !== 0).length,
-        ).toBeLessThanOrEqual(1);
+        ).toBeLessThanOrEqual(g.id === "mug_pair" ? 2 : 1);
         expect(c.size.every((s) => s > 0)).toBe(true);
         expect(Object.keys(c.uv).sort()).toEqual([...FACES].sort());
         for (const f of FACES) {

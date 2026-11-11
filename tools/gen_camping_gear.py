@@ -20,7 +20,7 @@ The icon entry of the camping gear box (BOX) comes first in the generated part o
 item_texture.json; its item JSON and icon are written elsewhere (ADR 0093), and
 tools/gen_item_catalog.py lists it in the creative group.
 A gear shape may use cubes turned about a single axis (a `pivot` and a `rotation` on the cube; ADR
-0169): cube_tilt.bounds() and the pair blocks follow the turn. Compound rotations are not allowed in gear.
+0169): cube_tilt.bounds() and the pair blocks follow the turn. Registered gear assemblies may carry two axes (ADR 0247).
 """
 
 import argparse
@@ -31,7 +31,7 @@ from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tool_loader import load_tool
+from tool_loader import load_tool, load_tool_in
 
 texture_io = load_tool("texture_io")
 gear_model = load_tool("gear_model")
@@ -143,7 +143,11 @@ def rounded(value):
     return value
 
 
-SHAPES = {item_id: list(model.cubes) for item_id, model in gear_registry.models().items()}
+ASSEMBLIES = {name: entry for item_id in gear_registry.IDS
+              for name, entry in getattr(load_tool_in("gear_items", item_id), "ASSEMBLIES", {}).items()}
+MODELS_BY_ID = gear_registry.models()
+SHAPES = {item_id: list(model.cubes) for item_id, model in MODELS_BY_ID.items()}
+ASSEMBLY_MEMBERS = {item_id: dict(model.assemblies) for item_id, model in MODELS_BY_ID.items()}
 
 
 def geometry(item_id, cubes):
@@ -179,6 +183,10 @@ def pair_geometry(kind, spec):
     for end, (left, ahead) in enumerate(PAIRS[kind]["ends"]):
         for item in standing(spec):
             cubes = [moved(c, left, ahead) for c in SHAPES[item["id"]]]
+            members = {name: [moved(c, left, ahead) for c in part]
+                       for name, part in ASSEMBLY_MEMBERS[item["id"]].items()}
+            table = {name: entry for name, entry in ASSEMBLIES.items() if name.startswith(item["id"] + "_")}
+            cube_tilt.assert_axes(cubes, members, table)
             bones.append({"name": pair_bone(end, item["id"]), "pivot": [0, 0, 0], "cubes": cubes})
     return rounded({
         "format_version": "1.12.0",
@@ -232,7 +240,8 @@ def validate(spec):
         if not cubes:
             continue
         try:
-            cube_tilt.assert_axes(cubes, {})
+            table = {name: entry for name, entry in ASSEMBLIES.items() if name.startswith(item["id"] + "_")}
+            cube_tilt.assert_axes(cubes, ASSEMBLY_MEMBERS[item["id"]], table)
         except ValueError as error:
             errors.append(f"{item['id']}: {error}")
             continue
