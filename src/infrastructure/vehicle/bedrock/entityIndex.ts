@@ -7,14 +7,13 @@ import {
   type PlayerId,
   type VehicleId,
 } from "../../../domain/shared/ids";
+import { allDimensions } from "../../shared/dimensions";
 import { PLAYER_TYPE, VEHICLE_FAMILY } from "./identifiers";
 
-export const DIMENSIONS = ["overworld", "nether", "the_end"] as const;
-
-/** Every loaded vehicle entity, dimension by dimension in DIMENSIONS order. */
+/** Every loaded vehicle entity, dimension by dimension in DIMENSION_IDS order. */
 export function loadedVehicleEntities(): Entity[] {
-  return DIMENSIONS.flatMap((dimId) =>
-    world.getDimension(dimId).getEntities({ families: [VEHICLE_FAMILY] }),
+  return allDimensions().flatMap((dimension) =>
+    dimension.getEntities({ families: [VEHICLE_FAMILY] }),
   );
 }
 

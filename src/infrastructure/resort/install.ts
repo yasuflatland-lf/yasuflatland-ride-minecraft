@@ -1,14 +1,20 @@
+import { system } from "@minecraft/server";
 import { BeachChairMenu } from "../../application/resort/beachChairMenu";
 import { LieOnBeachChair } from "../../application/resort/lieOnBeachChair";
 import { PaintParasol } from "../../application/resort/paintParasol";
 import { PlaceBeachChair } from "../../application/resort/placeBeachChair";
 import { PlaceFurniture } from "../../application/resort/placeFurniture";
 import { PlaceParasol } from "../../application/resort/placeParasol";
+import { ShowStates } from "../../application/resort/showStates";
 import { SwitchBeachChairForm } from "../../application/resort/switchBeachChairForm";
 import { SyncParasolCeilings } from "../../application/resort/syncParasolCeilings";
 import { TakeBackBeachChair } from "../../application/resort/takeBackBeachChair";
 import { TakeBackFurniture } from "../../application/resort/takeBackFurniture";
 import { TakeBackParasol } from "../../application/resort/takeBackParasol";
+import { TickShows } from "../../application/resort/tickShows";
+import { UseToilet } from "../../application/resort/useToilet";
+import { UseWashstand } from "../../application/resort/useWashstand";
+import { WatchToiletDismount } from "../../application/resort/watchToiletDismount";
 import { GiveStarterItem } from "../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import { Repaint } from "../../application/shared/repaint";
@@ -24,6 +30,9 @@ import { BedrockBeachChairWorld } from "./bedrock/bedrockBeachChairWorld";
 import { BedrockFurnitureWorld } from "./bedrock/bedrockFurnitureWorld";
 import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
 import { BedrockParasolWorld } from "./bedrock/bedrockParasolWorld";
+import { BedrockShowSound } from "./bedrock/bedrockShowSound";
+import { BedrockToiletWorld } from "./bedrock/bedrockToiletWorld";
+import { BedrockWashstandWorld } from "./bedrock/bedrockWashstandWorld";
 import { registerBeachChairHits } from "./bedrock/handlers/beachChairHits";
 import { registerBeachChairInteraction } from "./bedrock/handlers/beachChairInteraction";
 import { registerBeachChairLifecycle } from "./bedrock/handlers/beachChairLifecycle";
@@ -35,9 +44,14 @@ import { registerFurnitureTopLifecycle } from "./bedrock/handlers/furnitureTopLi
 import { registerParasolHits } from "./bedrock/handlers/hits";
 import { registerParasolLifecycle } from "./bedrock/handlers/lifecycle";
 import { registerParasolPlacement } from "./bedrock/handlers/placement";
+import { registerShowLifecycle } from "./bedrock/handlers/showLifecycle";
 import { registerTestBeachChair } from "./bedrock/handlers/testBeachChair";
 import { registerTestFurniture } from "./bedrock/handlers/testFurniture";
 import { registerTestParasol } from "./bedrock/handlers/testParasol";
+import { registerTestToilet } from "./bedrock/handlers/testToilet";
+import { registerTestWashstand } from "./bedrock/handlers/testWashstand";
+import { registerToiletInteraction } from "./bedrock/handlers/toiletInteraction";
+import { registerWashstandInteraction } from "./bedrock/handlers/washstandInteraction";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLDED,
@@ -84,6 +98,23 @@ export function installResort(deps: {
   registerFurnitureHits(takeFurniture, furniture);
   registerFurnitureTopLifecycle(furniture);
   registerTestFurniture(furniture, takeFurniture, deps);
+  const states = new ShowStates();
+  const sound = new BedrockShowSound();
+  const toilet = new BedrockToiletWorld(deps);
+  const washstand = new BedrockWashstandWorld();
+  const watch = new WatchToiletDismount(
+    toilet,
+    states,
+    sound,
+    () => system.currentTick,
+  );
+  const useToilet = new UseToilet(toilet, states, watch);
+  const useWashstand = new UseWashstand(washstand, states, sound);
+  registerToiletInteraction(useToilet);
+  registerWashstandInteraction(useWashstand);
+  registerShowLifecycle(watch, new TickShows(toilet, washstand, states));
+  registerTestToilet(states, sound, deps);
+  registerTestWashstand(washstand, useWashstand);
   const chair = new BedrockBeachChairWorld(deps);
   const takeChair = new TakeBackBeachChair(chair);
   registerBeachChairPlacement(new PlaceBeachChair(chair));

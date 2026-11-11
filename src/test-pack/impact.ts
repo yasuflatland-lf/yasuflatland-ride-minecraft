@@ -173,6 +173,10 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   sofa_double: ["resort"],
   sofa_single_item: ["resort"],
   sofa_double_item: ["resort"],
+  toilet: ["resort"],
+  toilet_item: ["resort"],
+  washstand: ["resort"],
+  washstand_item: ["resort"],
   beach_chair: ["resort"],
   beach_chair_item: ["resort"],
   beach_parasol: ["resort"],
@@ -426,7 +430,11 @@ const IMPACT_RULES: readonly ImpactRule[] = [
     test: /^packs\/yasu_ride_rp\/models\/blocks\/(?:yasu_ride\/)?([^/.]+)\./,
     impact: packStemImpact,
   },
-  { rule: "resource-pack", test: /^packs\/yasu_ride_rp\//, impact: "none" },
+  {
+    rule: "resource-pack",
+    test: /^packs\/yasu_ride_(?:test_)?rp\//,
+    impact: "none",
+  },
   // The Behavior Pack icon belongs to the whole add-on.
   {
     rule: "pack-icon",
