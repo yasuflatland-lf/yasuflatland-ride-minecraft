@@ -11,11 +11,9 @@ import type { BuildStructureStore } from "../../../../application/build/ports/st
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
+import { parseFace } from "../../../../domain/build/aim/face";
 import { boxOf, volume } from "../../../../domain/build/box";
-import {
-  parseFace,
-  pasteTarget,
-} from "../../../../domain/build/clipboard/clipboard";
+import { pasteTarget } from "../../../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
