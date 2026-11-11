@@ -168,6 +168,214 @@ print(json.dumps(True))
   ).toBe(true);
 });
 
+describe("render_preview.py resort cutout texels", () => {
+  it("discards texels below 128 only when opted in and preserves translucent water", () => {
+    const result = previewPython(`
+face = {"uv": [0, 0], "uv_size": [1, 1]}
+cube = {"origin": [0, 0, 0], "size": [1, 1, 1], "uv": {f: face for f in ("north", "south", "east", "west", "up", "down")}}
+geo = {"description": {"texture_width": 1, "texture_height": 1}, "bones": [{"name": "body", "cubes": [cube]}]}
+pose = {"lamps": False, "dusk": False}
+camera = r.Camera([(0, 0, 0), (1, 1, 1)])
+fit = r.ScreenFit(camera, 300, 24, 24)
+result = []
+for mapping in (False, True):
+    samples = []
+    for cutout, alpha in ((True, 0), (True, 64), (False, 0), (False, 64), (True, 128), (True, 255)):
+        polygons, glass = r.collect_boat(geo, [[(200, 100, 50, alpha)]], pose, texture_mapping=mapping, cutout=cutout)
+        pixels = r.rasterize(polygons, [], fit, 16, 16, bloom={}, see_through=glass)
+        samples.append({"empty": not any(pixels), "painted": any(pixels[3::4]), "opaque": len(polygons), "glass": len(glass)})
+    result.append(samples)
+print(json.dumps(result))
+`);
+    for (const samples of result) {
+      expect(
+        samples.slice(0, 3).map((s: { empty: boolean }) => s.empty),
+      ).toEqual([true, true, true]);
+      expect(
+        samples.slice(3).map((s: { painted: boolean }) => s.painted),
+      ).toEqual([true, true, true]);
+      expect(samples[0].glass).toBe(0);
+      expect(samples[1].glass).toBe(0);
+      expect(samples[4]).toMatchObject({ opaque: 0, glass: 6 });
+      expect(samples[5]).toMatchObject({ opaque: 6, glass: 0 });
+    }
+  });
+
+  it("checks alpha after looking up each textured patch", () => {
+    expect(
+      previewPython(`
+face = {"uv": [0, 0], "uv_size": [2, 1]}
+cube = {"origin": [0, 0, 0], "size": [2, 1, 1], "uv": {f: face for f in ("north", "south", "east", "west", "up", "down")}}
+geo = {"description": {"texture_width": 2, "texture_height": 1}, "bones": [{"name": "body", "cubes": [cube]}]}
+polygons, glass = r.collect_boat(geo, [[(255, 0, 0, 64), (0, 255, 0, 255)]], {"lamps": False, "dusk": False}, texture_mapping=True, cutout=True)
+print(json.dumps({"colors": [rgb for _, rgb, _ in polygons], "glass": glass}))
+`),
+    ).toEqual({
+      colors: [0.8, 0.8, 0.6, 0.6, 1, 0.5].map((k) => [0, 255 * k, 0]),
+      glass: [],
+    });
+  });
+});
+
+describe("render_preview.py photo views", () => {
+  it("defines the twelve reference cameras in photo order", () => {
+    const views = previewPython("print(json.dumps(r.PHOTO_VIEWS))");
+    const toilet = ["topFront", "side", "leftFront", "lidOpen"];
+    expect(Object.keys(views)).toEqual([
+      ...toilet,
+      "sinkFront",
+      "sinkBowl",
+      "sinkTap",
+      "sinkBowlTop",
+      "sinkDrain",
+      "sinkLeg",
+      "sinkNet",
+      "sinkWood",
+    ]);
+    for (const [name, view] of Object.entries(views) as [
+      string,
+      { position: number[]; target: number[]; fov: number; piece: string },
+    ][]) {
+      for (const point of [view.position, view.target]) {
+        expect(point).toHaveLength(3);
+        expect(point.every(Number.isFinite)).toBe(true);
+      }
+      expect(view.fov).toBeGreaterThan(0);
+      expect(view.piece).toBe(toilet.includes(name) ? "toilet" : "washstand");
+      expect(Object.keys(view)).toEqual([
+        "piece",
+        "position",
+        "target",
+        "fov",
+        ...(name === "lidOpen" ? ["lid"] : []),
+      ]);
+    }
+    expect(views.topFront).toEqual({
+      piece: "toilet",
+      position: [0, 41.1, -22.5],
+      target: [0, 8.6, 0.4],
+      fov: 30,
+    });
+    expect(views.sinkLeg).toEqual({
+      piece: "washstand",
+      position: [5.7, 2.2, -8.5],
+      target: [7.7, 1.3, -4.45],
+      fov: 30,
+    });
+    expect(views.lidOpen.lid).toBe(91);
+  });
+
+  it("centers targets, preserves vertical field of view and clips before projection", () => {
+    expect(
+      previewPython(`
+import pickle
+for view in r.PHOTO_VIEWS.values():
+    camera = r.Camera.looking_at(view["position"], view["target"])
+    fit = r.PhotoScreenFit.for_fov(camera, view["fov"])
+    x, y, _ = fit([view["target"]])[0]
+    assert abs(x - 1200) < 1e-9 and abs(y - 1200) < 1e-9
+    assert pickle.loads(pickle.dumps(fit))([view["target"]]) == fit([view["target"]])
+camera = r.Camera.looking_at((0, 0, 0), (0, 0, -1))
+fit = r.PhotoScreenFit.for_fov(camera, 30)
+s, c = r.sin_cos(15)
+assert abs(fit([(0, s / c, -1)])[0][1]) < 1e-9
+behind = [(-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1)]
+assert fit(behind) == []
+crossing = [(-1, -1, -1), (1, -1, -1), (1, 1, 1), (-1, 1, 1)]
+clipped = fit.clip(crossing)
+assert len(clipped) >= 3
+assert all(-r.dot(r.sub(p, camera.eye), camera.back) >= r.PHOTO_NEAR - 1e-12 for p in clipped)
+assert len(fit(crossing)) == len(clipped)
+assert not any(r.rasterize([(behind, (255, 0, 0), None)], [], fit, 16, 16, bloom={}))
+for polygon in ([], [(0, 0, 1)], [(0, 0, 1), (1, 1, 1)]):
+    r.fill(polygon, 16, 16, lambda *args: sys.exit("degenerate polygon was painted"))
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it("opens the lid's front above its hinge without mutating the bind pose", () => {
+    const result = previewPython(`
+import copy
+geo = ${JSON.stringify({ ...geometry, bones: [{ name: "lid", pivot: [0, PIVOT_Y, 0], cubes: [bar(PIVOT_Y, -10, 10)] }] })}
+before = copy.deepcopy(geo)
+posed = r.open_lid(geo, 90)
+assert geo == before
+polygons, _ = r.collect_boat(posed, [[(255, 255, 255, 255)]], {"lamps": False, "dusk": False})
+print(json.dumps([[sum(p[i] for p in quad) / len(quad) for i in range(3)] for quad, _, _ in polygons]))
+`);
+    expectNear(result, [0, PIVOT_Y + 10, 0]);
+  });
+
+  it("uses the view's lid default and lets an explicit angle override it", () => {
+    expect(
+      previewPython(`
+from unittest.mock import patch
+geo = ${JSON.stringify({ ...geometry, bones: [{ name: "lid", pivot: [0, PIVOT_Y, 0], cubes: [bar(PIVOT_Y, -10, 10)] }] })}
+r.RESORT_GEAR = [{"name": "toilet", "geometry": "test", "textured": True, "cutout": True}]
+with patch.object(Path, "read_text", return_value=json.dumps({"minecraft:geometry": [geo]})), patch.object(r, "read_png", return_value=[[(255, 255, 255, 255)]]):
+    opened = r.render_photo_view(Path("unused"), "lidOpen")
+    closed = r.render_photo_view(Path("unused"), "lidOpen", lid=0)
+    assert max(p[1] for q, _, _ in opened.polygons for p in q) > 19
+    assert max(p[1] for q, _, _ in closed.polygons for p in q) == 10.5
+    assert opened.width == opened.height == 800
+    assert opened.layers == [] and opened.background is None and opened.bloom == {}
+    geo["bones"][0]["name"] = "body"
+with patch.object(Path, "read_text", return_value=json.dumps({"minecraft:geometry": [geo]})):
+    try:
+        r.render_photo_view(Path("unused"), "lidOpen")
+    except ValueError as e:
+        assert "bone named 'lid'" in str(e)
+    else:
+        raise AssertionError("missing lid was accepted")
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it.each([
+    [
+      ["--view", "unknown", "--out", "/tmp/views"],
+      /valid names: topFront.*sinkWood/,
+    ],
+    [
+      ["--view", "topFront", "--lid", "92", "--out", "/tmp/views"],
+      /--lid must be between 0 and 91/,
+    ],
+    [
+      ["--view", "topFront", "--out", "/tmp/views"],
+      /toilet.*tools\/resort_gear.json/,
+    ],
+    [
+      ["--view", "sinkTap", "--out", "/tmp/views"],
+      /washstand.*tools\/resort_gear.json/,
+    ],
+    [["--lid", "0", "output"], /--lid requires a named --view/],
+    [
+      ["--view", "topFront", "--check", "--out", "/tmp/views"],
+      /cannot be combined with --check/,
+    ],
+    [
+      ["output", "--view", "topFront", "--out", "/tmp/views"],
+      /no positional output_dir/,
+    ],
+    [["--view", "topFront"], /requires --out/],
+    [["output", "--out", "/tmp/views"], /does not allow --out/],
+    [
+      ["--view", "-1", "0.65", "-1", "--out", "/tmp/views"],
+      /requires --beach-chair-form/,
+    ],
+  ])("rejects invalid photo CLI arguments %j", (args, message) => {
+    expect(() =>
+      execFileSync(
+        "python3",
+        ["-I", "tools/render_preview.py", "packs/yasu_ride_rp", ...args],
+        { encoding: "utf8", stdio: "pipe" },
+      ),
+    ).toThrow(message);
+  });
+});
+
 // An opaque face as [rgb, bloom group or null].
 type LitFace = [number[], string | null];
 

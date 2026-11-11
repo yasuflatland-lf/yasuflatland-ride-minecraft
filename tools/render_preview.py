@@ -2,6 +2,9 @@
 
     python3 -I tools/render_preview.py <resource pack> <output dir>          write the images
     python3 -I tools/render_preview.py <resource pack> <output dir> --check  fail if any is stale
+    python3 -I tools/render_preview.py <resource pack> --view sinkTap --out /tmp/views
+    python3 -I tools/render_preview.py <resource pack> --view lidOpen --lid 45 --out /tmp/views
+    python3 -I tools/render_preview.py <resource pack> <output dir> --beach-chair-form chair --view -1 0.65 -1
 
 Add --icons <pack dir> ... to either command to also write or check pack_icon.png in each pack: a
 256-pixel RGB icon of the flying pose with the lamps on, framed on its own, with a cyan glow behind
@@ -214,6 +217,28 @@ RESORT_TEXTURE = "textures/entity/yasu_ride/{}.png"
 BEACH_CHAIR_GEOMETRY = RESORT_GEOMETRY.format("beach_chair")
 BEACH_CHAIR_TEXTURE = RESORT_TEXTURE.format("beach_chair")
 TEXTURED_GEOMETRY_FILES = tuple(f"{piece['geometry']}.geo.json" for piece in RESORT_GEAR if piece["textured"])
+CUTOUT_GEOMETRY_FILES = tuple(f"{piece['geometry']}.geo.json" for piece in RESORT_GEAR if piece["cutout"])
+CUTOUT_ALPHA = 128
+PHOTO_VIEW_SIZE = 800
+PHOTO_NEAR = 0.2
+LID_OPEN = 91
+# The reference viewer's VIEWS, applied in the frame the previews are drawn in (after mirror(),
+# the game's). A generator that copies the reference model's x into the geometry shows up mirrored
+# here: sinkLeg, which targets an off-centre leg, would then look at empty floor.
+PHOTO_VIEWS = {
+    "topFront": {"piece": "toilet", "position": (0, 41.1, -22.5), "target": (0, 8.6, 0.4), "fov": 30},
+    "side": {"piece": "toilet", "position": (-37.2, 8.5, 0.4), "target": (0, 8.4, 0.4), "fov": 30},
+    "leftFront": {"piece": "toilet", "position": (-15.5, 20, -33.3), "target": (0, 8.5, 0.8), "fov": 30},
+    "lidOpen": {"piece": "toilet", "position": (0, 40.3, -21.7), "target": (0, 8.5, 0.8), "fov": 30, "lid": LID_OPEN},
+    "sinkFront": {"piece": "washstand", "position": (-22, 29, -38), "target": (0, 9, 0), "fov": 30},
+    "sinkBowl": {"piece": "washstand", "position": (-4.6, 32.7, -21.7), "target": (0, 15.5, 0), "fov": 30},
+    "sinkTap": {"piece": "washstand", "position": (-8.5, 21.6, -4.5), "target": (0.4, 18.5, 3.0), "fov": 30},
+    "sinkBowlTop": {"piece": "washstand", "position": (0, 29.3, -9.8), "target": (0, 14.5, 0.5), "fov": 30},
+    "sinkDrain": {"piece": "washstand", "position": (0, 22.5, -2.4), "target": (0, 13.9, -1.05), "fov": 30},
+    "sinkLeg": {"piece": "washstand", "position": (5.7, 2.2, -8.5), "target": (7.7, 1.3, -4.45), "fov": 30},
+    "sinkNet": {"piece": "washstand", "position": (-3, 15, -21), "target": (0, 3, 0), "fov": 30},
+    "sinkWood": {"piece": "washstand", "position": (3.3, 17.1, -16.5), "target": (6.3, 13.6, -5), "fov": 30},
+}
 ICON_NAMES = {**{piece["name"]: piece["item"] for piece in RESORT_GEAR}, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
@@ -607,7 +632,7 @@ def bone_turns(bones):
     return turns
 
 
-def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
@@ -624,7 +649,7 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
                 normal = cross(sub(quad[1], quad[0]), sub(quad[3], quad[0]))
                 if dot(normal, normal) == 0:
                     continue
-                if color is not None:
+                if color is not None and not cutout:
                     polygons.append((quad, color, "lamp"))
                     continue
                 # Mirroring x reverses winding; textured gear opts into outward normals.
@@ -638,6 +663,11 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
                 else:
                     patches = [(quad, face_color(texture, uv, desc["texture_width"], desc["texture_height"]))]
                 for patch, (r, g, b, a) in patches:
+                    if cutout and a < CUTOUT_ALPHA:
+                        continue
+                    if color is not None:
+                        polygons.append((patch, color, "lamp"))
+                        continue
                     rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
                     if a < 255:
                         glass.append((patch, rgb, a / 255))
@@ -673,6 +703,15 @@ def water_layers(polygons, pose):
 
 
 class Camera:
+    @classmethod
+    def looking_at(cls, eye, target):
+        camera = cls.__new__(cls)
+        camera.eye, camera.target = eye, target
+        camera.back = normalize(sub(eye, target))
+        camera.right = normalize(cross((0.0, 1.0, 0.0), camera.back))
+        camera.up = cross(camera.back, camera.right)
+        return camera
+
     def __init__(self, points, view=VIEW_DIRECTION, screen_up=None):
         """screen_up is the world direction that points up in the image; it is needed when the view
         looks straight down, and defaults to the world's up."""
@@ -705,6 +744,31 @@ class ScreenFit:
 
 
 @dataclass(frozen=True)
+class PhotoScreenFit(ScreenFit):
+    @classmethod
+    def for_fov(cls, camera, fov, size=PHOTO_VIEW_SIZE):
+        s, c = sin_cos(fov / 2)
+        center = size * SUPERSAMPLE / 2
+        return cls(camera, center / (s / c), center, center)
+
+    def clip(self, polygon):
+        """Clip in world space so close-up cameras never project across zero depth."""
+        clipped = []
+        for a, b in zip(polygon, polygon[1:] + polygon[:1]):
+            da = -dot(sub(a, self.camera.eye), self.camera.back)
+            db = -dot(sub(b, self.camera.eye), self.camera.back)
+            if (da >= PHOTO_NEAR) != (db >= PHOTO_NEAR):
+                t = (PHOTO_NEAR - da) / (db - da)
+                clipped.append(tuple(a[i] + t * (b[i] - a[i]) for i in range(3)))
+            if db >= PHOTO_NEAR:
+                clipped.append(b)
+        return clipped
+
+    def __call__(self, quad):
+        return super().__call__(self.clip(quad))
+
+
+@dataclass(frozen=True)
 class RasterJob:
     name: str
     polygons: list
@@ -724,6 +788,8 @@ def rasterize_job(job: RasterJob) -> bytearray:
 
 def fill(polygon, w, h, plot):
     """Scanline-fill a convex polygon, calling plot(x, y, inv_depth) at each covered pixel center."""
+    if len(polygon) < 3:
+        return
     (x0, y0, q0), (x1, y1, q1), (x2, y2, q2) = polygon[0], polygon[1], polygon[2]
     det = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0)
     if det == 0:
@@ -1032,6 +1098,41 @@ def static_pose(geo, animation):
     return posed
 
 
+def open_lid(geo, degrees):
+    import copy
+    if not 0 <= degrees <= LID_OPEN:
+        raise ValueError(f"--lid must be between 0 and {LID_OPEN} degrees")
+    posed = copy.deepcopy(geo)
+    lid = next((b for b in posed["bones"] if b["name"] == "lid"), None)
+    if lid is None:
+        raise ValueError("Lid pose requires a bone named 'lid'")
+    rotation = list(lid.get("rotation", [0, 0, 0]))
+    # The game's positive x rotation lowers the front (-z); opening must raise it.
+    rotation[0] -= degrees
+    lid["rotation"] = rotation
+    return posed
+
+
+def render_photo_view(rp, name, lid=None) -> RasterJob:
+    view = PHOTO_VIEWS[name]
+    piece = next((p for p in RESORT_GEAR if p["name"] == view["piece"]), None)
+    if piece is None:
+        raise ValueError(f"Piece '{view['piece']}' is missing from tools/resort_gear.json")
+    geo = json.loads((rp / RESORT_GEOMETRY.format(piece["geometry"])).read_text())["minecraft:geometry"][0]
+    degrees = view.get("lid") if lid is None else lid
+    if degrees is not None:
+        geo = open_lid(geo, degrees)
+    textured = piece["textured"]
+    polygons, glass = collect_boat(
+        geo, read_png(rp / RESORT_TEXTURE.format(piece["geometry"])),
+        {"lamps": False, "dusk": False, "outward_normals": textured,
+         "merge_texels": piece["geometry"] in ("sofa_single", "sofa_double")},
+        texture_mapping=textured, cutout=piece["cutout"])
+    camera = Camera.looking_at(view["position"], view["target"])
+    return RasterJob(f"{name}.png", polygons, [], PhotoScreenFit.for_fov(camera, view["fov"]),
+                     PHOTO_VIEW_SIZE, PHOTO_VIEW_SIZE, None, {}, glass)
+
+
 def render_gear(geo_path, texture, size, name, animation=None, view=None):
     """Draw one small model in a size-pixel square on transparency, seen like the vehicles."""
     geometries = json.loads(geo_path.read_text())["minecraft:geometry"]
@@ -1046,7 +1147,8 @@ def render_gear(geo_path, texture, size, name, animation=None, view=None):
         geo = static_pose(geo, animation)
     textured = geo_path.name in TEXTURED_GEOMETRY_FILES
     polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured,
-                                           "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json")}, texture_mapping=textured)
+                                           "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json")}, texture_mapping=textured,
+                                   cutout=geo_path.name in CUTOUT_GEOMETRY_FILES)
     quads = [quad for quad, _, _ in polygons + glass]
     # Look from the ladder end so the SUV tent's vehicle-left ladder stays visible.
     view = view if view is not None else (ROOF_TENT_VIEW if roof_tent else VIEW_DIRECTION)
@@ -1199,15 +1301,44 @@ def grayscale(rgba):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
-    parser.add_argument("output_dir", type=Path)
+    parser.add_argument("output_dir", type=Path, nargs="?")
+    parser.add_argument("--out", type=Path, help="output directory for a named photo view")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--icons", nargs="+", type=Path, default=[])
     parser.add_argument("--jobs", type=int, default=None, help="number of workers (default: CPU count)")
     parser.add_argument("--beach-chair-form", choices=("chair", "table"),
                         help="render only the Beach Chair in its shipped static pose")
-    parser.add_argument("--view", type=float, nargs=3, default=None,
-                        help="camera direction for the Beach Chair reference preview")
+    parser.add_argument("--view", nargs="+", default=None,
+                        help="photo view name, or three camera direction numbers with --beach-chair-form")
+    parser.add_argument("--lid", type=float, help=f"lid opening in degrees (0 to {LID_OPEN}), with a named view")
     args = parser.parse_args()
+    named_view, direction = None, None
+    if args.view is not None:
+        if len(args.view) == 1:
+            named_view = args.view[0]
+            if named_view not in PHOTO_VIEWS:
+                parser.error(f"Unknown view '{named_view}'; valid names: {', '.join(PHOTO_VIEWS)}")
+        elif len(args.view) == 3:
+            if not args.beach_chair_form:
+                parser.error("A three-number --view requires --beach-chair-form")
+            try:
+                direction = tuple(float(v) for v in args.view)
+            except ValueError:
+                parser.error("Beach Chair --view requires three numbers")
+        else:
+            parser.error("--view requires one photo view name or three Beach Chair direction numbers")
+    if args.lid is not None:
+        if not 0 <= args.lid <= LID_OPEN:
+            parser.error(f"--lid must be between 0 and {LID_OPEN} degrees")
+        if named_view is None:
+            parser.error("--lid requires a named --view")
+    if named_view is not None:
+        if args.output_dir is not None or args.out is None:
+            parser.error("A named --view requires --out and no positional output_dir")
+        if args.check or args.beach_chair_form or args.icons:
+            parser.error("A named --view cannot be combined with --check, --beach-chair-form, or --icons")
+    elif args.output_dir is None or args.out is not None:
+        parser.error("This mode requires positional output_dir and does not allow --out")
     # A mistyped pack dir would otherwise get a fresh pack_icon.png that no manifest uses
     for pack in args.icons:
         if not (pack / "manifest.json").is_file():
@@ -1217,13 +1348,19 @@ def main():
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
     pack_icon = str(args.icons[0] / "pack_icon.png") if args.icons else None
     targets = []
-    if args.beach_chair_form:
+    if named_view is not None:
+        try:
+            job = render_photo_view(args.resource_pack, named_view, args.lid)
+        except ValueError as e:
+            parser.error(str(e))
+        jobs = [replace(job, name=str(args.out / job.name))]
+    elif args.beach_chair_form:
         animations = json.loads((args.resource_pack / "animations/yasu_ride/beach_chair.anim.json").read_text())["animations"]
         animation = animations[f"animation.yasu_ride.beach_chair.{args.beach_chair_form}"]
         name = str(args.output_dir / f"beach-chair-{args.beach_chair_form}.png")
         jobs = [render_gear(args.resource_pack / BEACH_CHAIR_GEOMETRY,
                             read_png(args.resource_pack / BEACH_CHAIR_TEXTURE), 800, name,
-                            animation=animation, view=args.view)]
+                            animation=animation, view=direction)]
     else:
         jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
     for job, rgba in zip(jobs, rasterize_all(jobs, args.jobs)):
