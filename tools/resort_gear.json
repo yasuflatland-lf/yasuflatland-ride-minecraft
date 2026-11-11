@@ -47,5 +47,12 @@
     "geometry": "toilet",
     "textured": true,
     "cutout": true
+  },
+  {
+    "name": "washstand",
+    "item": "washstand_item",
+    "geometry": "washstand",
+    "textured": true,
+    "cutout": true
   }
 ]

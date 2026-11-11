@@ -1,0 +1,31 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:washstand",
+      "materials": {
+        "default": "entity_alphatest",
+        "water": "entity_alphablend"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/washstand",
+        "water": "textures/entity/yasu_ride/washstand_water"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.washstand"
+      },
+      "animations": {
+        "show": "controller.animation.yasu_ride.washstand",
+        "idle": "animation.yasu_ride.washstand.idle",
+        "run": "animation.yasu_ride.washstand.run"
+      },
+      "scripts": {
+        "animate": ["show"]
+      },
+      "render_controllers": [
+        "controller.render.yasu_ride.washstand",
+        "controller.render.yasu_ride.washstand.water"
+      ]
+    }
+  }
+}
