@@ -34,15 +34,18 @@ function setup() {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
+  const structures = new FakeStructureStore();
   const jobs = new EditJobs(
     repo,
     world,
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
+    structures,
   );
   return {
     repo,
+    structures,
     feedback,
     world,
     jobs,
@@ -446,4 +449,77 @@ describe("edit use cases", () => {
       count: 8,
     });
   });
+});
+
+it.each([false, true])(
+  "discards a snapshot evicted by a cell completion (failure: %s)",
+  (fail) => {
+    const e = setup();
+    const session = e.repo.getOrCreate(alex);
+    const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 0, y: 64, z: 0 });
+    const handle = e.structures.capture(overworld, box, alex);
+    if (handle === "tooLarge" || handle === "unreadable")
+      throw new Error(handle);
+    session.recordSnapshot({ dimensionId: overworld, box, handle });
+    for (let i = 1; i < BUILD_SPEC.undoDepth; i++)
+      session.finishEdit(
+        {
+          dimensionId: overworld,
+          changes: [
+            { cell: { x: i, y: 64, z: 0 }, before: dirt, after: stone },
+          ],
+        },
+        "undoable",
+      );
+    e.structures.calls.length = 0;
+    session.beginEdit();
+    e.jobs.start(
+      alex,
+      overworld,
+      {
+        *[Symbol.iterator]() {
+          yield { cell: box.min, after: stone };
+          if (fail) throw new Error("plan failed after a write");
+        },
+      },
+      "undoable",
+    );
+    runAll(e);
+    expect(e.structures.calls).toEqual([{ kind: "discard", handle }]);
+    expect(session.isEditing).toBe(false);
+    expect(e.structures.live.has(handle)).toBe(false);
+  },
+);
+
+it("finishes a cell job once with feedback when discarding an evicted snapshot throws", () => {
+  const e = setup();
+  const session = e.repo.getOrCreate(alex);
+  const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 0, y: 64, z: 0 });
+  const handle = e.structures.capture(overworld, box, alex);
+  if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
+  session.recordSnapshot({ dimensionId: overworld, box, handle });
+  for (let i = 1; i < BUILD_SPEC.undoDepth; i++)
+    session.finishEdit(
+      {
+        dimensionId: overworld,
+        changes: [{ cell: { x: i, y: 64, z: 0 }, before: dirt, after: stone }],
+      },
+      "undoable",
+    );
+  e.structures.discard = () => {
+    throw new Error("discard failed");
+  };
+  session.beginEdit();
+  e.jobs.start(alex, overworld, [{ cell: box.min, after: stone }], "undoable");
+  runAll(e);
+  expect(e.feedback.messages.at(-1)?.count).toBe(1);
+  let jobRecords = 0;
+  for (;;) {
+    const entry = session.takeUndo();
+    if (typeof entry === "string") break;
+    if (entry.kind === "cells" && entry.record.changes[0]?.cell.x === 0)
+      jobRecords++;
+  }
+  expect(jobRecords).toBe(1);
+  expect(session.isEditing).toBe(false);
 });

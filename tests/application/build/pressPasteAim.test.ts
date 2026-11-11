@@ -62,6 +62,7 @@ function setup(
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
+    { discard: () => {} },
   );
   const structures = new FakeStructureStore(world);
   const paste = new PasteAt(

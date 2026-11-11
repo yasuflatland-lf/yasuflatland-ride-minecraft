@@ -37,7 +37,14 @@ function setup() {
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
   const players = new FakeBuildPlayers();
-  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
+  const jobs = new EditJobs(
+    repo,
+    world,
+    feedback,
+    { warn: () => {} },
+    players,
+    { discard: () => {} },
+  );
   const session = repo.getOrCreate(playerId);
   const select = (from: Cell, to: Cell) => {
     session.setFlow(

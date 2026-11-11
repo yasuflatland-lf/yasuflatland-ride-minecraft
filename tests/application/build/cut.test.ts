@@ -94,7 +94,7 @@ it("captures the whole box twice before removing anything and records a snapshot
   );
 });
 
-it("discards the old clipboard and snapshot only after clearing succeeds", () => {
+it("discards the old clipboard and retains its snapshot only after clearing succeeds", () => {
   const e = setup();
   const box = boxOf(origin, origin);
   e.cut.execute(playerId, overworld, box);
@@ -107,13 +107,13 @@ it("discards the old clipboard and snapshot only after clearing succeeds", () =>
     "clearEntities",
     "clearBlocks",
     "discard",
-    "discard",
   ]);
   expect(e.structures.calls.slice(4, 6)).toEqual([
     { kind: "discard", handle: clipboard },
-    { kind: "discard", handle: snapshot },
   ]);
-  expect(e.structures.live.size).toBe(2);
+  expect(e.structures.live.size).toBe(3);
+  expect(snapshot).toBeDefined();
+  expect([...e.structures.live]).toContain(snapshot);
   expect(e.feedback.undoHints).toEqual([playerId]);
 });
 
@@ -257,7 +257,7 @@ it.each([false, true])(
     e.structures.clearBlocksSucceeds = false;
     e.structures.placeSucceeds = false;
     expect(e.cut.execute(playerId, overworld, box)).toBe(true);
-    const [clipboard, snapshot] = [...e.structures.live];
+    const [clipboard, snapshot] = [...e.structures.live].slice(-2);
     expect(e.structures.calls).toEqual([
       { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
       { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
@@ -270,7 +270,9 @@ it.each([false, true])(
         dimensionId: overworld,
         anchor: box.min,
       },
-      ...previousHandles.map((handle) => ({ kind: "discard", handle })),
+      ...previousHandles
+        .slice(0, 1)
+        .map((handle) => ({ kind: "discard", handle })),
     ]);
     expect(e.session.clipboard?.contents).toEqual({
       kind: "structure",

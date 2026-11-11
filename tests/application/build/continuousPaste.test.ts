@@ -63,7 +63,7 @@ function setup() {
   return { repo, session, world, feedback, paste, target, structures };
 }
 
-it("keeps aiming through successive synchronous pastes with only the newest snapshot", () => {
+it("keeps aiming through successive synchronous pastes with the newest snapshots up to the shared cap", () => {
   fc.assert(
     fc.property(cell, fc.integer({ min: 1, max: 30 }), (origin, count) => {
       const e = setup();
@@ -100,7 +100,18 @@ it("keeps aiming through successive synchronous pastes with only the newest snap
       });
       expect(
         e.structures.calls.filter((c) => c.kind === "discard"),
-      ).toHaveLength(count - 1);
+      ).toHaveLength(Math.max(0, count - BUILD_SPEC.undoDepth));
+      for (
+        let i = count - 2;
+        i >= Math.max(0, count - BUILD_SPEC.undoDepth);
+        i--
+      ) {
+        const cell = { ...origin, x: origin.x + i, y: origin.y + 1 };
+        expect(e.session.takeUndo()).toMatchObject({
+          kind: "snapshot",
+          snapshot: { box: boxOf(cell, cell) },
+        });
+      }
       expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
     }),
   );

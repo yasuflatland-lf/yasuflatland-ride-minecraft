@@ -243,7 +243,7 @@ it.each(["absent", "structure"] as const)(
             discard(handle);
           };
           let clipboardHandle: StructureHandle | undefined;
-          let snapshotHandle: StructureHandle | undefined;
+          let snapshotHandles: StructureHandle[] = [];
           let expectedClipboard: Clipboard | undefined;
           let sessionExists = false;
           const prefix =
@@ -258,7 +258,9 @@ it.each(["absent", "structure"] as const)(
             const clipboard = before?.clipboard;
             const callCount = e.structures.calls.length;
             const oldLive = new Set(
-              [clipboardHandle, snapshotHandle].filter((h) => h !== undefined),
+              [clipboardHandle, ...snapshotHandles].filter(
+                (h) => h !== undefined,
+              ),
             );
             captures.length = 0;
             e.structures.captureRefusal =
@@ -290,7 +292,14 @@ it.each(["absent", "structure"] as const)(
                 clipboardHandle = captures[0];
                 if (clipboardHandle === undefined)
                   throw new Error("Expected captured clipboard");
-                if (operation === "cut") snapshotHandle = captures[1];
+                if (operation === "cut") {
+                  const snapshot = captures[1];
+                  if (snapshot === undefined)
+                    throw new Error("Expected snapshot");
+                  snapshotHandles = [...snapshotHandles, snapshot].slice(
+                    -BUILD_SPEC.undoDepth,
+                  );
+                }
                 expectedClipboard = {
                   size: {
                     x: box.max.x - box.min.x + 1,
@@ -311,7 +320,7 @@ it.each(["absent", "structure"] as const)(
                 new LeaveBuild(e.repo, e.structures).execute(playerId);
               else {
                 new EndBuildSession(e.repo, e.structures).execute(playerId);
-                snapshotHandle = undefined;
+                snapshotHandles = [];
                 sessionExists = false;
               }
               clipboardHandle = undefined;
@@ -321,18 +330,20 @@ it.each(["absent", "structure"] as const)(
             expect(session !== undefined).toBe(sessionExists);
             expect(session?.clipboard).toEqual(expectedClipboard);
             expect(structureOf(session?.clipboard)).toBe(clipboardHandle);
-            if (snapshotHandle !== undefined) {
+            if (snapshotHandles.length > 0) {
               const entry = session?.takeUndo();
               expect(entry).toMatchObject({
                 kind: "snapshot",
-                snapshot: { handle: snapshotHandle },
+                snapshot: { handle: snapshotHandles.at(-1) },
               });
               if (!entry || typeof entry === "string")
                 throw new Error("Expected snapshot");
               session?.putBackUndo(entry);
             } else expect(session?.hasHistory ?? false).toBe(false);
             const live = new Set(
-              [clipboardHandle, snapshotHandle].filter((h) => h !== undefined),
+              [clipboardHandle, ...snapshotHandles].filter(
+                (h) => h !== undefined,
+              ),
             );
             expect(e.structures.live).toEqual(live);
             expect(

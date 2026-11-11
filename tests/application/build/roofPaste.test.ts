@@ -69,6 +69,7 @@ function setup() {
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
+    { discard: () => {} },
   );
   const structures = new FakeStructureStore(world);
   return { repo, session, world, feedback, jobs, structures };

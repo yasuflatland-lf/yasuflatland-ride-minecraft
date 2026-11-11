@@ -6,6 +6,7 @@ import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Logger } from "../shared/ports/logger";
 import type { BoxAction } from "./boxAction";
+import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildStructureStore } from "./ports/structures";
@@ -66,12 +67,14 @@ export class CutBox implements BoxAction {
       contents: { kind: "structure", handle },
     });
     if (previous !== undefined) this.structures.discard(previous);
-    for (const dropped of session.recordSnapshot({
-      dimensionId,
-      box,
-      handle: snapshot,
-    }))
-      this.structures.discard(dropped);
+    discardAll(
+      this.structures,
+      session.recordSnapshot({
+        dimensionId,
+        box,
+        handle: snapshot,
+      }),
+    );
     if (!cleared) {
       this.log.warn(
         `build cut for ${playerId} could not clear all blocks; snapshot retained for undo`,
