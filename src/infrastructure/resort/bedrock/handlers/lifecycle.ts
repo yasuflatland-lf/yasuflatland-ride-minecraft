@@ -2,6 +2,7 @@ import { system, world } from "@minecraft/server";
 import type { SyncParasolCeilings } from "../../../../application/resort/syncParasolCeilings";
 import { asParasolId, type ParasolId } from "../../../../domain/resort/ids";
 import { PARASOL_SPEC } from "../../../../domain/resort/spec";
+import { allDimensions } from "../../../shared/dimensions";
 import { registerLaidBlockGuard } from "../../../shared/laidBlockGuard";
 import { BEACH_PARASOL } from "../../identifiers";
 import type { BedrockParasolWorld } from "../bedrockParasolWorld";
@@ -32,10 +33,8 @@ export function registerParasolLifecycle(
   });
   system.runInterval(() => {
     const loaded: ParasolId[] = [];
-    for (const name of ["overworld", "nether", "the_end"]) {
-      for (const entity of world
-        .getDimension(name)
-        .getEntities({ type: BEACH_PARASOL }))
+    for (const dimension of allDimensions()) {
+      for (const entity of dimension.getEntities({ type: BEACH_PARASOL }))
         loaded.push(asParasolId(entity.id));
     }
     sync.execute(loaded);
