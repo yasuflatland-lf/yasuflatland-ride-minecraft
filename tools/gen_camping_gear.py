@@ -20,7 +20,7 @@ The icon entry of the camping gear box (BOX) comes first in the generated part o
 item_texture.json; its item JSON and icon are written elsewhere (ADR 0093), and
 tools/gen_item_catalog.py lists it in the creative group.
 A gear shape may use cubes turned about a single axis (a `pivot` and a `rotation` on the cube; ADR
-0169): cube_tilt.bounds() and the pair blocks follow the turn. Compound rotations are not allowed in gear.
+0169): cube_tilt.bounds() and the pair blocks follow the turn. Registered two-axis assemblies are allowed per ADR 0247/0167.
 """
 
 import argparse
@@ -31,7 +31,7 @@ from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tool_loader import load_tool
+from tool_loader import load_tool, load_tool_in
 
 texture_io = load_tool("texture_io")
 gear_model = load_tool("gear_model")
@@ -143,7 +143,21 @@ def rounded(value):
     return value
 
 
-SHAPES = {item_id: list(model.cubes) for item_id, model in gear_registry.models().items()}
+def collect_assemblies(item_tables):
+    table = {}
+    for item_id, entries in item_tables.items():
+        for name, entry in entries.items():
+            if not name.startswith(f"{item_id}_") or name in table:
+                raise ValueError(f"{item_id}: invalid or duplicate assembly {name!r}")
+            table[name] = entry
+    return table
+
+
+MODELS_BY_ID = gear_registry.models()
+ITEM_ASSEMBLIES = {item_id: getattr(load_tool_in("gear_items", item_id), "ASSEMBLIES", {})
+                   for item_id in gear_registry.IDS}
+ASSEMBLIES = collect_assemblies(ITEM_ASSEMBLIES)
+SHAPES = {item_id: list(model.cubes) for item_id, model in MODELS_BY_ID.items()}
 
 
 def geometry(item_id, cubes):
@@ -232,7 +246,8 @@ def validate(spec):
         if not cubes:
             continue
         try:
-            cube_tilt.assert_axes(cubes, {})
+            cube_tilt.assert_axes(cubes, MODELS_BY_ID[item["id"]].assemblies,
+                                  ITEM_ASSEMBLIES[item["id"]])
         except ValueError as error:
             errors.append(f"{item['id']}: {error}")
             continue
@@ -253,6 +268,14 @@ def validate(spec):
         errors.extend(gear_validate.pair_budget_errors(kind, counts))
         for end, (left, ahead) in enumerate(pair["ends"]):
             for item in standing(spec):
+                model = MODELS_BY_ID[item["id"]]
+                try:
+                    cube_tilt.assert_axes(
+                        [moved(c, left, ahead) for c in model.cubes],
+                        {name: tuple(moved(c, left, ahead) for c in members)
+                         for name, members in model.assemblies.items()}, ITEM_ASSEMBLIES[item["id"]])
+                except ValueError as error:
+                    errors.append(f"{kind} end {end}: {item['id']}: {error}")
                 (x0, _, z0), (x1, _, z1) = cube_tilt.bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
                 if x0 - left < -8 or x1 - left > 8 or z0 - ahead < -8 or z1 - ahead > 8:
                     errors.append(f"{kind} end {end}: {item['id']} leaves the cell")

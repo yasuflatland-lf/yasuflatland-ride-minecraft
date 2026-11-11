@@ -244,15 +244,20 @@ describe("camping gear block models (ADR 0093)", () => {
       const points = cubes.flatMap(cubeCorners);
       const lo = AXES.map((i) => Math.min(...points.map((p) => p[i])));
       const hi = AXES.map((i) => Math.max(...points.map((p) => p[i])));
-      expect(lo[0]).toBeCloseTo(-g.width_px / 2, 3);
-      expect(hi[0]).toBeCloseTo(g.width_px / 2, 3);
+      expect(
+        Math.abs((lo[0] ?? Number.NaN) + g.width_px / 2),
+      ).toBeLessThanOrEqual(0.001);
+      expect(
+        Math.abs((hi[0] ?? Number.NaN) - g.width_px / 2),
+      ).toBeLessThanOrEqual(0.001);
       expect([lo[1], hi[1]]).toEqual(ySpan(g));
       expect(lo[2]).toBeGreaterThanOrEqual(-8);
       expect(hi[2]).toBeLessThanOrEqual(8);
       for (const c of cubes) {
         expect(
           (c.rotation ?? []).filter((v) => v !== 0).length,
-        ).toBeLessThanOrEqual(1);
+        ).toBeLessThanOrEqual(2);
+        expect(c.rotation?.[2] ?? 0).toBe(0);
         expect(c.size.every((s) => s > 0)).toBe(true);
         expect(Object.keys(c.uv).sort()).toEqual([...FACES].sort());
         for (const f of FACES) {
