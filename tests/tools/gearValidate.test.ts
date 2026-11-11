@@ -81,6 +81,7 @@ def check(uv, tiles={}):
     return g.uv_errors("fixture", [cube(uv)], tiles)
 print(json.dumps({
     "rotation": g.rotation_errors("fixture", [{"rotation": [1, 2, 3]}, {"rotation": [1, 2, 0]}]),
+    "roll": g.rotation_errors("fixture", [{"rotation": [0, 0, 1]}]),
     "outside": check({"uv": [20, 20], "uv_size": [2, 2]}),
     "tile": check({"uv": [132, 4], "uv_size": [120, 120]}, {"fixture": 1}),
     "unassigned": check({"uv": [132, 4], "uv_size": [2, 2]}),
@@ -88,7 +89,10 @@ print(json.dumps({
     "mirror": check({"uv": [4, 4], "uv_size": [-4, -4]})}))
 `);
   expect(result.rotation).toEqual([
-    "fixture: cube 0 has three rotation axes, at most two allowed",
+    "fixture: cube 0 has roll or more than two rotation axes",
+  ]);
+  expect(result.roll).toEqual([
+    "fixture: cube 0 has roll or more than two rotation axes",
   ]);
   expect(result.outside[0]).toContain(
     "fixture: cube 0 face north UV (20, 20, 22, 22)",

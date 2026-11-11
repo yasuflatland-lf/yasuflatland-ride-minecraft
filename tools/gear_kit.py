@@ -334,3 +334,46 @@ def tube(points, size, face, *, assembly=None, assemblies=None):
                 midpoint = [a[i]+d[i]*(k+0.5)/steps for i in range(3)]
                 cubes.append(_box(midpoint, [size, size+abs(d[1])/steps, horizontal/steps+overlap], face, [0, yaw, 0]))
     return _finish(cubes, assembly, assemblies)
+
+
+def planar(points, face, thickness, *, assembly=None, assemblies=None, edge_face=None):
+    """Bound a planar polygon with horizontal local x; return north-face normalized UVs.
+
+    North and south sample u along local +x and v downward. Thin edges may be transparent
+    because the bounding rectangle extends outside an alpha-cut polygon.
+    """
+    _positive(thickness)
+    _points(points, 3)
+    if len(points) < 3:
+        raise ValueError("planar needs at least three points")
+    origin = points[0]
+    normal = None
+    for a, b in zip(points[1:], points[2:]):
+        u, v = _sub(a, origin), _sub(b, origin)
+        n = [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]]
+        if _length(n) > EPSILON:
+            normal = [x/_length(n) for x in n]
+            break
+    if normal is None:
+        raise ValueError("planar polygon is degenerate")
+    if any(abs(_dot(_sub(p, origin), normal)) > 0.001 for p in points):
+        raise ValueError("polygon is not planar")
+    horizontal = math.hypot(normal[0], normal[2])
+    ex = [normal[2]/horizontal, 0, -normal[0]/horizontal] if horizontal > EPSILON else [1, 0, 0]
+    ey = [normal[1]*ex[2]-normal[2]*ex[1], normal[2]*ex[0]-normal[0]*ex[2], normal[0]*ex[1]-normal[1]*ex[0]]
+    if ey[1] < -EPSILON:
+        ex = [-v for v in ex]
+        ey = [-v for v in ey]
+    projected = [(_dot(_sub(p, origin), ex), _dot(_sub(p, origin), ey)) for p in points]
+    x0, y0 = [min(p[i] for p in projected) for i in range(2)]
+    x1, y1 = [max(p[i] for p in projected) for i in range(2)]
+    _positive(x1-x0, y1-y0)
+    center = [origin[i]+ex[i]*(x0+x1)/2+ey[i]*(y0+y1)/2 for i in range(3)]
+    yaw = math.degrees(math.atan2(-ex[2], ex[0]))
+    pitch = math.degrees(math.atan2(normal[1], ey[1]))
+    cube = _box(center, [x1-x0, y1-y0, thickness], face, [pitch, yaw, 0])
+    if edge_face is not None:
+        for side in ("up", "down", "east", "west"):
+            cube["uv"][side] = copy.deepcopy(edge_face)
+    _finish([cube], assembly, assemblies)
+    return cube, [((x-x0)/(x1-x0), 1-(y-y0)/(y1-y0)) for x, y in projected]
