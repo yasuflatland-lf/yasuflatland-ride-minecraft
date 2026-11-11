@@ -3,7 +3,7 @@
     python3 -I tools/gen_camping_gear.py <resource pack> <behavior pack>          write the files
     python3 -I tools/gen_camping_gear.py <resource pack> <behavior pack> --check  fail if any file is stale
 
-tools/camping_gear.json lists the items; SHAPES below gives each item's cubes. Units are pixels (16
+tools/camping_gear.json lists the items; gear_registry loads each item's cubes. Units are pixels (16
 per block). Every model is centered on x 0 and z 0, with its front at -z (ADR 0009). A standing item
 stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it to the hook (ADR
 0102). The atlas is 16 x 16 with one 4 x 4 swatch per color, so mipmapping in the block atlas does
@@ -34,6 +34,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 texture_io = load_tool("texture_io")
+gear_model = load_tool("gear_model")
+gear_registry = load_tool("gear_registry")
+gear_atlas = load_tool("gear_atlas")
+ATLAS_SIZE = gear_atlas.ATLAS_SIZE
+face = gear_atlas.face
+box = gear_atlas.box
+atlas_pixels = gear_atlas.atlas_pixels
 
 cube_tilt = load_tool("cube_tilt")
 
@@ -120,42 +127,7 @@ MIN_STATE_VALUES = 2
 # generated part of item_texture.json; tools/gen_item_catalog.py makes it the creative group's
 # icon and first item.
 BOX = "camping_gear_box"
-ATLAS_SIZE = 16
-SWATCH = 4
 CELL_PX = 16
-# 1970s motorhome colors (#347): avocado, harvest gold, burnt orange, brown, cream, and chrome
-PALETTE = {
-    "cream": (240, 228, 196, 255),
-    "avocado": (128, 138, 52, 255),
-    "harvest_gold": (222, 165, 36, 255),
-    "burnt_orange": (204, 85, 20, 255),
-    "brown": (128, 78, 40, 255),
-    "dark_brown": (74, 46, 26, 255),
-    "chrome": (205, 206, 210, 255),
-    "black": (24, 24, 24, 255),
-    "terracotta": (178, 96, 60, 255),
-    "leaf": (70, 128, 50, 255),
-    "red": (196, 40, 36, 255),
-    "paper": (244, 240, 226, 255),
-    "sky": (124, 172, 210, 255),
-    "steel": (120, 124, 130, 255),
-    "glass": (210, 228, 236, 110),
-    "white": (250, 250, 248, 255),
-}
-SLOTS = list(PALETTE)
-
-
-def face(color):
-    i = SLOTS.index(color)
-    return {"uv": [SWATCH * (i % SWATCH), SWATCH * (i // SWATCH)], "uv_size": [SWATCH, SWATCH]}
-
-
-def box(x0, y0, z0, x1, y1, z1, color):
-    return {
-        "origin": [x0, y0, z0],
-        "size": [x1 - x0, y1 - y0, z1 - z0],
-        "uv": {f: face(color) for f in ("north", "south", "east", "west", "up", "down")},
-    }
 
 
 def rounded(value):
@@ -170,113 +142,7 @@ def rounded(value):
     return value
 
 
-SHAPES = {
-    "potted_plant": [
-        box(-1.5, 0, -1.5, 1.5, 3, 1.5, "terracotta"),
-        box(-2.5, 3, -2.5, 2.5, 6, 2.5, "leaf"),
-        box(-1.5, 6, -1.5, 1.5, 8, 1.5, "avocado"),
-    ],
-    "macrame_planter": [
-        box(-2.5, 0, -2.5, 2.5, 3, 2.5, "terracotta"),
-        box(-2, 3, -2, 2, 5, 2, "leaf"),
-        box(0.5, 0.5, -3, 1.5, 3, -2.5, "leaf"),
-        box(-2.5, 3, -0.25, -2, 8.5, 0.25, "cream"),
-        box(2, 3, -0.25, 2.5, 8.5, 0.25, "cream"),
-        box(-0.25, 3, -2.5, 0.25, 8.5, -2, "cream"),
-        box(-0.25, 3, 2, 0.25, 8.5, 2.5, "cream"),
-        box(-2.5, 8.5, -0.25, 2.5, 9, 0.25, "cream"),
-        box(-0.25, 8.5, -2.5, 0.25, 9, 2.5, "cream"),
-        box(-0.5, 9, -0.5, 0.5, 10, 0.5, "cream"),
-    ],
-    "cactus_pot": [
-        box(-2, 0, -2, 2, 3, 2, "harvest_gold"),
-        box(-1, 3, -1, 1, 7, 1, "leaf"),
-        box(1, 4, -0.5, 2, 6, 0.5, "leaf"),
-    ],
-    "percolator": [
-        box(-2, 0, -1.5, 1, 6, 1.5, "chrome"),
-        box(-1, 6, -0.5, 0, 7, 0.5, "black"),
-        box(1, 1.5, -0.5, 2, 4.5, 0.5, "black"),
-        box(-1, 4, -2.5, 0, 5, -1.5, "chrome"),
-    ],
-    "enamel_kettle": [
-        box(-2.5, 0, -2, 1.5, 3, 2, "avocado"),
-        box(-1.5, 3, -1.5, 0.5, 3.5, 1.5, "cream"),
-        box(1.5, 1, -0.5, 2.5, 2.5, 0.5, "avocado"),
-        box(-2, 4, -0.5, 1, 5, 0.5, "black"),
-        box(-2, 3.5, -0.5, -1.5, 4, 0.5, "black"),
-        box(0.5, 3.5, -0.5, 1, 4, 0.5, "black"),
-    ],
-    "saucepan": [
-        box(-3, 0, -2, 1, 2.5, 2, "burnt_orange"),
-        box(-2.5, 2.5, -1.5, 0.5, 3, 1.5, "chrome"),
-        box(1, 2, -0.5, 3, 2.5, 0.5, "black"),
-    ],
-    "mug_pair": [
-        box(-2, 0, -1.5, -0.5, 3, 0, "harvest_gold"),
-        box(-1.5, 1, -2, -1, 2, -1.5, "harvest_gold"),
-        box(0.5, 0, 0, 2, 3, 1.5, "burnt_orange"),
-        box(1, 1, 1.5, 1.5, 2, 2, "burnt_orange"),
-    ],
-    "sugar_pot": [
-        box(-1.5, 0, -1.5, 1.5, 3, 1.5, "glass"),
-        box(-1, 0.5, -1, 1, 2, 1, "paper"),
-        box(-1, 3, -1, 1, 3.5, 1, "chrome"),
-        box(-0.5, 3.5, -0.5, 0.5, 4, 0.5, "chrome"),
-    ],
-    "fruit_bowl": [
-        box(-2, 0, -2, 2, 1, 2, "avocado"),
-        box(-3, 1, -3, 3, 2, 3, "avocado"),
-        box(-2, 2, -1.5, -0.5, 3, 0, "red"),
-        box(0, 2, -1, 1.5, 3, 0.5, "burnt_orange"),
-        box(-1.5, 2, 0.5, 2, 2.75, 1.5, "harvest_gold"),
-    ],
-    "toaster": [
-        box(-3, 0, -2.25, 3, 0.5, 2.25, "black"),
-        box(-2.75, 0.5, -2, 2.75, 4.5, 2, "chrome"),
-        box(-1.5, 4.5, -1, 1.5, 5, -0.5, "harvest_gold"),
-        box(-1.5, 4.5, 0.5, 1.5, 5, 1, "harvest_gold"),
-        box(2.75, 2, -0.5, 3, 3, 0.5, "steel"),
-    ],
-    "transistor_radio": [
-        box(-3, 0, -1, 3, 3.5, 1, "burnt_orange"),
-        box(-2.5, 0.5, -1.25, 0.5, 3, -1, "cream"),
-        box(1, 1, -1.25, 2.5, 2.5, -1, "chrome"),
-        box(-2, 3.5, -0.25, 2, 4, 0.25, "black"),
-    ],
-    "book_stack": [
-        box(-3, 0, -2, 3, 1, 2, "avocado"),
-        box(-2.5, 1, -1.75, 2.5, 2, 1.75, "burnt_orange"),
-        box(-2.75, 2, -1.5, 2.25, 3, 1.5, "harvest_gold"),
-    ],
-    "road_map": [
-        box(-3, 0, -2, 3, 0.5, 2, "paper"),
-        box(-3, 0.5, -2, 0, 1, 2, "sky"),
-        box(0.5, 0.5, -0.25, 3, 0.75, 0.25, "red"),
-    ],
-    "photo_frame": [
-        box(-2, 0, 0, 2, 5, 0.5, "dark_brown"),
-        box(-1.5, 2, -0.25, 1.5, 4.5, 0, "sky"),
-        box(-1.5, 0.5, -0.25, 1.5, 2, 0, "leaf"),
-        box(-0.5, 0, 0.5, 0.5, 3, 1.5, "dark_brown"),
-    ],
-    "cushion": [
-        box(-3.5, 0, -3, 3.5, 1, 3, "burnt_orange"),
-        box(-3.5, 1, -3, 3.5, 2, 3, "brown"),
-        box(-3.5, 2, -3, 3.5, 3, 3, "burnt_orange"),
-    ],
-    "tissue_box": [
-        box(-2.5, 0, -1.5, 2.5, 2.5, 1.5, "harvest_gold"),
-        box(-1, 2.5, -0.5, 1, 3, 0.5, "white"),
-    ],
-    "desk_fan": [
-        box(-1.5, 0, -1.5, 1.5, 0.5, 1.5, "avocado"),
-        box(-0.5, 0.5, 0, 0.5, 3, 1, "steel"),
-        box(-1, 3, 0, 1, 5, 1.5, "avocado"),
-        box(-2, 2, -0.5, 2, 6, 0, "chrome"),
-        box(-0.5, 3.5, -0.75, 0.5, 4.5, -0.5, "black"),
-    ],
-}
+SHAPES = {item_id: list(model.cubes) for item_id, model in gear_registry.models().items()}
 
 
 def geometry(item_id, cubes):
@@ -347,8 +213,8 @@ def y_span(item):
 def validate(spec):
     """Stop before writing anything when a shape disagrees with its spec row."""
     errors = []
-    if [item["id"] for item in spec] != list(SHAPES):
-        errors.append("SHAPES must list exactly the ids of camping_gear.json, in the same order")
+    if [gear_model.GearSpec.from_row(item).id for item in spec] != list(gear_registry.IDS):
+        errors.append("Registry must list exactly the ids of camping_gear.json, in the same order")
     for item in spec:
         if not isinstance(item["hanging"], bool):
             errors.append(f"{item['id']}: hanging must be true or false")
@@ -390,15 +256,6 @@ def validate(spec):
         errors.append("a pair block state holds fewer than 2 values")
     if errors:
         sys.exit("\n".join(errors))
-
-
-def atlas_pixels():
-    return bytes(
-        c
-        for y in range(ATLAS_SIZE)
-        for x in range(ATLAS_SIZE)
-        for c in PALETTE[SLOTS[(y // SWATCH) * SWATCH + x // SWATCH]]
-    )
 
 
 def terrain():
