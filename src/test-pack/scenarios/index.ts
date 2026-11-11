@@ -213,6 +213,8 @@ import {
   tentRefuseVehicleSpace,
   tentRelayLostCell,
 } from "./tent";
+import { toiletFlushTiming, toiletPlaceTakeBack } from "./toilet";
+import { washstandPlaceTakeBack, washstandRunTiming } from "./washstand";
 
 export type ScenarioRun = (a: Arena, onStep: StepSink) => Promise<Outcome>;
 
@@ -323,6 +325,10 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dining_table_oven: diningTableOven,
   sofa_single_place_take_back: sofaSinglePlaceTakeBack,
   sofa_double_place_take_back: sofaDoublePlaceTakeBack,
+  toilet_place_take_back: toiletPlaceTakeBack,
+  toilet_flush_timing: toiletFlushTiming,
+  washstand_place_take_back: washstandPlaceTakeBack,
+  washstand_run_timing: washstandRunTiming,
   beach_chair_lantern: beachChairLantern,
   beach_chair_oven: beachChairOven,
   beach_chair_empty_refresh: beachChairEmptyRefresh,
