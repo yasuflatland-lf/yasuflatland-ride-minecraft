@@ -8,7 +8,9 @@ export type FurnitureKind =
   | "dining_table"
   | "dining_chair"
   | "sofa_single"
-  | "sofa_double";
+  | "sofa_double"
+  | "toilet"
+  | "washstand";
 
 /** A cell relative to the pressed column, seen by the placing player: `ahead` is away from them, `left` to their left. */
 export interface CellOffset {
@@ -75,6 +77,21 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
         Object.freeze({ x: -0.5, y: 0.2475, z: -0.1 }),
         Object.freeze({ x: 0.5, y: 0.2475, z: -0.1 }),
       ]),
+      hitsToTakeBack: 3,
+      hitResetTicks: ticks(100),
+    }),
+    toilet: Object.freeze({
+      cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
+      clearance: 2,
+      // The 8.06 px seat top minus the 0.24-block rider offset (ADR 0122), rounded.
+      seats: Object.freeze([Object.freeze({ x: 0, y: 0.264, z: -0.1 })]),
+      hitsToTakeBack: 3,
+      hitResetTicks: ticks(100),
+    }),
+    washstand: Object.freeze({
+      cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
+      clearance: 2,
+      seats: Object.freeze([]),
       hitsToTakeBack: 3,
       hitResetTicks: ticks(100),
     }),
