@@ -188,7 +188,7 @@
 
 ## Open issues
 
-- The Toilet and Washstand models depend on the unverified cutout spike in ADR [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md). The owner must verify it on the dev BDS on PC and mobile (touch). A negative result requires a BLOCKED section in the Proposed ADR and stops #1570 and #1571 from merging; 32-sided N-gon panel rings are an owner-decided fallback.
+- The Toilet and Washstand models rely on the cutout spike in ADR [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md), which the owner accepted on 2026-11-11 before it was verified in game. The owner still has to verify it on the dev BDS on PC and mobile (touch). A negative result is recorded under a Probe failure heading in the ADR and replaced by a superseding ADR; 32-sided N-gon panel rings are the owner-decided fallback.
 
 - Stable API 2.2 has no cancellable playerPlaceBlock event, so the guard uses playerInteractWithBlock and recognizes block items by their registered block identifier. Commands bypass it; aliased block items and replacement of vegetation need device verification.
 
