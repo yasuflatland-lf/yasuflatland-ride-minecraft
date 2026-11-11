@@ -29,7 +29,9 @@ function setup() {
   const players = new FakeBuildPlayers();
   const log = { warn: vi.fn() };
   players.occupants.set(owner, { dimensionId: overworld, feet });
-  const jobs = new EditJobs(repo, world, new FakeFeedback(), log, players);
+  const jobs = new EditJobs(repo, world, new FakeFeedback(), log, players, {
+    discard: () => {},
+  });
   const start = (
     plan: Iterable<PlannedChange>,
     kind: EditKind = "undoable",

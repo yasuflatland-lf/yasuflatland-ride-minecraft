@@ -129,9 +129,9 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
             }).map(({ id }) => id),
           ).toEqual([
             ...(history ? ["undo"] : []),
-            "rotate",
             "newCopy",
             "endPaste",
+            "cancel",
           ]);
         }
       },

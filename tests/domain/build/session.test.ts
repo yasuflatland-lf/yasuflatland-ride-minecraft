@@ -90,59 +90,44 @@ describe("undo history", () => {
     );
   });
 
-  // Each step adds a cell record (n = record x) or a snapshot (n = handle id).
-  const stepsArb = fc.array(
-    fc.oneof(
-      recordArb.map((r) => ({ snapshot: false as const, entry: cells(r) })),
-      fc
-        .integer({ min: 0, max: 1000 })
-        .map((n) => ({ snapshot: true as const, entry: snapshotAt(n) })),
-    ),
-    { maxLength: 40 },
+  const stepsArb = fc.array(fc.boolean(), { maxLength: 40 }).map((kinds) =>
+    kinds.map((snapshot, index) => ({
+      entry: snapshot ? snapshotAt(index) : cells(recordAt(index)),
+    })),
   );
 
-  it("keeps at most one snapshot and at most depth cell entries", () => {
+  it("caps mixed history, reports every evicted snapshot once and takes newest first", () => {
     fc.assert(
       fc.property(stepsArb, fc.integer({ min: 0, max: 12 }), (steps, depth) => {
-        const h = steps.reduce<UndoHistory>(
-          (acc, s) => withEntry(acc, s.entry, depth).history,
-          EMPTY_HISTORY,
-        );
-        const snapshots = h.entries.filter((e) => e.kind === "snapshot");
-        expect(snapshots.length).toBeLessThanOrEqual(1);
-        expect(h.entries.length - snapshots.length).toBeLessThanOrEqual(depth);
-      }),
-    );
-  });
-
-  it("keeps the newest entries in the order they were added", () => {
-    fc.assert(
-      fc.property(stepsArb, (steps) => {
-        const h = steps.reduce<UndoHistory>(
-          (acc, s) => withEntry(acc, s.entry, 100).history,
-          EMPTY_HISTORY,
-        );
-        const lastSnapshot = steps.map((s) => s.snapshot).lastIndexOf(true);
-        const expected = steps
-          .filter((s, i) => !s.snapshot || i === lastSnapshot)
-          .map((s) => s.entry);
-        expect(h.entries).toEqual(expected);
-      }),
-    );
-  });
-
-  it("reports exactly the removed snapshot handles as dropped", () => {
-    fc.assert(
-      fc.property(stepsArb, (steps) => {
-        let h = EMPTY_HISTORY;
-        for (const s of steps) {
-          const before = h.entries.flatMap((e) =>
-            e.kind === "snapshot" ? [e.snapshot.handle] : [],
+        let history = EMPTY_HISTORY;
+        const dropped: StructureHandle[] = [];
+        const pushed: UndoEntry[] = [];
+        for (const { entry } of steps) {
+          pushed.push(entry);
+          const result = withEntry(history, entry, depth);
+          history = result.history;
+          dropped.push(...result.dropped);
+          expect(history.entries).toEqual(
+            pushed.slice(pushed.length - Math.min(pushed.length, depth)),
           );
-          const r = withEntry(h, s.entry, 10);
-          expect(r.dropped).toEqual(s.snapshot ? before : []);
-          h = r.history;
+          const evicted = pushed.slice(0, Math.max(0, pushed.length - depth));
+          expect(dropped).toEqual(
+            evicted.flatMap((e) =>
+              e.kind === "snapshot" ? [e.snapshot.handle] : [],
+            ),
+          );
+          expect(new Set(dropped).size).toBe(dropped.length);
+          for (const e of history.entries)
+            if (e.kind === "snapshot")
+              expect(dropped).not.toContain(e.snapshot.handle);
         }
+        const expected = [...history.entries].reverse();
+        for (const entry of expected) {
+          const result = takeLast(history);
+          expect(result.entry).toBe(entry);
+          history = result.rest;
+        }
+        expect(takeLast(history).entry).toBeUndefined();
       }),
     );
   });
@@ -151,11 +136,14 @@ describe("undo history", () => {
     fc.assert(
       fc.property(stepsArb, (steps) => {
         const session = new BuildSession(asPlayerId("p1"));
-        let expected: readonly StructureHandle[] = [];
+        const expected = steps
+          .slice(-BUILD_SPEC.undoDepth)
+          .flatMap(({ entry }) =>
+            entry.kind === "snapshot" ? [entry.snapshot.handle] : [],
+          );
         for (const { entry } of steps) {
           if (entry.kind === "snapshot") {
             session.recordSnapshot(entry.snapshot);
-            expected = [entry.snapshot.handle];
           } else session.finishEdit(entry.record, "undoable");
         }
         expect(session.clearHistory()).toEqual(expected);
@@ -166,14 +154,15 @@ describe("undo history", () => {
     );
   });
 
-  it("session.recordSnapshot returns the replaced handle", () => {
+  it("session retains successive snapshots until the shared cap is exceeded", () => {
     const s = new BuildSession(asPlayerId("p1"));
     const first = snapshotAt(1);
     const second = snapshotAt(2);
     if (first.kind !== "snapshot" || second.kind !== "snapshot") return;
     expect(s.recordSnapshot(first.snapshot)).toEqual([]);
-    expect(s.recordSnapshot(second.snapshot)).toEqual([first.snapshot.handle]);
+    expect(s.recordSnapshot(second.snapshot)).toEqual([]);
     expect(s.takeUndo()).toEqual(second);
+    expect(s.takeUndo()).toEqual(first);
     expect(s.takeUndo()).toBe("nothingToUndo");
   });
 });

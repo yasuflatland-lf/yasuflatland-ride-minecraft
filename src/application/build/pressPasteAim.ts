@@ -16,8 +16,9 @@ export class PressPasteAim {
   execute(cmd: {
     playerId: PlayerId;
     dimensionId: DimensionId;
-    aim: AimResult;
+    aim: AimResult | undefined;
     tick: number;
+    sneaking: boolean;
   }): "pasted" | "refused" | "menu" | "ignored" {
     const session = this.repo.get(cmd.playerId);
     if (session?.flow.kind !== "pasteAim") return "ignored";
@@ -25,10 +26,16 @@ export class PressPasteAim {
       this.feedback.showMessage(cmd.playerId, "noClipboard");
       return "ignored";
     }
+    if (!cmd.sneaking) return "menu";
     // ADR 0203: use the live gaze target shared with the outline at press time.
     // A press re-probes so it never places on a snap cached by the outline.
-    const result = this.resolveTarget.execute({ ...cmd, fresh: true });
-    if (result.kind === "noTarget") return "menu";
+    const result = cmd.aim
+      ? this.resolveTarget.execute({ ...cmd, aim: cmd.aim, fresh: true })
+      : { kind: "noTarget" as const };
+    if (result.kind === "noTarget") {
+      this.feedback.showMessage(cmd.playerId, "pasteNoTarget");
+      return "ignored";
+    }
     if (result.kind === "noGround") {
       this.feedback.showMessage(cmd.playerId, "noGround");
       return "refused";

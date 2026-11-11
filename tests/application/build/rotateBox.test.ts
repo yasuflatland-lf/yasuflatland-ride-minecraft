@@ -58,7 +58,7 @@ function setup(box: CellBox = wideBox) {
     material: stone,
   });
   const rotate = new RotateBox(repo, world, players, structures, feedback, log);
-  const jobs = new EditJobs(repo, world, feedback, log, players);
+  const jobs = new EditJobs(repo, world, feedback, log, players, structures);
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   return {
     repo,
@@ -335,7 +335,7 @@ it.each(["clear", "place"] as const)(
   },
 );
 
-it("replaces an earlier snapshot and frees a player buried in the rotated target", () => {
+it("retains an earlier snapshot and frees a player buried in the rotated target", () => {
   const e = setup();
   const plan = planRotationAboutCenter(wideBox);
   const previous = e.structures.capture(overworld, wideBox, playerId);
@@ -354,14 +354,18 @@ it("replaces an earlier snapshot and frees a player buried in the rotated target
   expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
     "rotated",
   );
-  expect(e.structures.live.has(previous)).toBe(false);
-  expect(e.structures.live.size).toBe(1);
+  expect(e.structures.live.has(previous)).toBe(true);
+  expect(e.structures.live.size).toBe(2);
   expect(e.players.moves).toEqual([
     { playerId, cell: { ...plan.target.min, y: wideBox.max.y + 1 } },
   ]);
   expect(e.session.takeUndo()).toMatchObject({
     kind: "snapshot",
     snapshot: { box: plan.union },
+  });
+  expect(e.session.takeUndo()).toMatchObject({
+    kind: "snapshot",
+    snapshot: { handle: previous },
   });
   expect(e.session.takeUndo()).toBe("nothingToUndo");
 });

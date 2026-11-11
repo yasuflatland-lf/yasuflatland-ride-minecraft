@@ -54,11 +54,11 @@ export class ShowPreview {
         }
       }
       if (flow.kind === "pasteAim" && session.clipboard)
-        this.feedback.showPasteHint(
-          id,
-          session.clipboard.size,
-          session.clipboard.blockCount,
-        );
+        this.feedback.showMode(id, {
+          kind: "pasteReady",
+          size: session.clipboard.size,
+          blockCount: session.clipboard.blockCount,
+        });
       const dimensionId =
         flow.kind === "pasteAim" ? this.aimReader.dimensionOf(id) : undefined;
       if (flow.kind === "pasteAim" && aim && session.clipboard && dimensionId) {

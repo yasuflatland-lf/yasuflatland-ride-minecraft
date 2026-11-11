@@ -8,11 +8,13 @@ export function registerSessions(
   endSession: EndBuildSession,
   endPasting: EndPasting,
   debounce: PressDebounces<PlayerId>,
+  pasteDebounce: PressDebounces<PlayerId>,
 ): void {
   world.afterEvents.playerLeave.subscribe(({ playerId }) => {
     const id = asPlayerId(playerId);
     endSession.execute(id);
     debounce.remove(id);
+    pasteDebounce.remove(id);
   });
   world.afterEvents.playerDimensionChange.subscribe(({ player }) => {
     endPasting.execute(asPlayerId(player.id));

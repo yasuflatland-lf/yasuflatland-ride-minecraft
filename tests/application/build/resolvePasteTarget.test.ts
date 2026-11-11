@@ -95,56 +95,69 @@ it("returns no target without a session or clipboard", () => {
 
 it("draws the same paste box that the press sends to PasteAt", () => {
   fc.assert(
-    fc.property(aim, turn, fc.boolean(), (hit, turn, hasBlock) => {
-      const { repo, session, clipboard } = setup(turn);
-      for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-        session.tickMode({ holding: true });
-      const aim: AimResult = hasBlock ? hit : { ray: hit.ray };
-      const reader = new FakeAimReader();
-      reader.target = aim;
-      const feedback = new FakeFeedback();
-      const probe = new FakeGroundProbe();
-      probe.topOf = (x, z, fromY) => fromY - 1 - ((((x + z) % 7) + 7) % 7);
-      const resolver = new ResolvePasteTarget(repo, probe);
-      const execute = vi.fn<PasteAt["execute"]>(() => "pasted");
-      const press = new PressPasteAim(
-        repo,
-        { execute } as unknown as PasteAt,
-        feedback,
-        resolver,
-      );
-      new ShowPreview(repo, feedback, reader, resolver).execute(0);
-      const result = press.execute({
-        playerId,
-        dimensionId: nether,
-        aim,
-        tick: 0,
-      });
-      if (!hasBlock) {
-        expect(result).toBe("menu");
-        expect(execute).not.toHaveBeenCalled();
-        expect(feedback.previews).toEqual([]);
-        return;
-      }
-      expect(result).toBe("pasted");
-      expect(execute).toHaveBeenCalledTimes(1);
-      const target = execute.mock.calls[0]?.[0].target;
-      expect(target).toBeDefined();
-      expect(target?.anchor).toEqual(target?.box.min);
-      expect(probe.calls.every((call) => call.dimensionId === nether)).toBe(
-        true,
-      );
-      const unsnapped = aimedPasteTarget(clipboard, aim, turn);
-      if (!unsnapped) throw new Error("Expected hit target");
-      expect(
-        probe.calls.every((call) => call.fromY === unsnapped.box.min.y),
-      ).toBe(true);
-      expect(target?.box.min.y).toBeLessThanOrEqual(unsnapped.box.min.y);
-      expect(feedback.previews).toHaveLength(1);
-      expect(feedback.previews[0]?.set).toEqual(
-        previewPoints(session.flow, { blink: true, pasteBox: target?.box }),
-      );
-    }),
+    fc.property(
+      aim,
+      turn,
+      fc.boolean(),
+      fc.boolean(),
+      (hit, turn, hasBlock, sneaking) => {
+        const { repo, session, clipboard } = setup(turn);
+        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+          session.tickMode({ holding: true });
+        const aim: AimResult = hasBlock ? hit : { ray: hit.ray };
+        const reader = new FakeAimReader();
+        reader.target = aim;
+        const feedback = new FakeFeedback();
+        const probe = new FakeGroundProbe();
+        probe.topOf = (x, z, fromY) => fromY - 1 - ((((x + z) % 7) + 7) % 7);
+        const resolver = new ResolvePasteTarget(repo, probe);
+        const execute = vi.fn<PasteAt["execute"]>(() => "pasted");
+        const press = new PressPasteAim(
+          repo,
+          { execute } as unknown as PasteAt,
+          feedback,
+          resolver,
+        );
+        new ShowPreview(repo, feedback, reader, resolver).execute(0);
+        const result = press.execute({
+          playerId,
+          dimensionId: nether,
+          aim,
+          tick: 0,
+          sneaking,
+        });
+        if (!hasBlock) {
+          expect(result).toBe(sneaking ? "ignored" : "menu");
+          expect(execute).not.toHaveBeenCalled();
+          expect(feedback.previews).toEqual([]);
+          return;
+        }
+        if (!sneaking) {
+          expect(result).toBe("menu");
+          expect(execute).not.toHaveBeenCalled();
+          expect(feedback.previews).toHaveLength(1);
+          return;
+        }
+        expect(result).toBe("pasted");
+        expect(execute).toHaveBeenCalledTimes(1);
+        const target = execute.mock.calls[0]?.[0].target;
+        expect(target).toBeDefined();
+        expect(target?.anchor).toEqual(target?.box.min);
+        expect(probe.calls.every((call) => call.dimensionId === nether)).toBe(
+          true,
+        );
+        const unsnapped = aimedPasteTarget(clipboard, aim, turn);
+        if (!unsnapped) throw new Error("Expected hit target");
+        expect(
+          probe.calls.every((call) => call.fromY === unsnapped.box.min.y),
+        ).toBe(true);
+        expect(target?.box.min.y).toBeLessThanOrEqual(unsnapped.box.min.y);
+        expect(feedback.previews).toHaveLength(1);
+        expect(feedback.previews[0]?.set).toEqual(
+          previewPoints(session.flow, { blink: true, pasteBox: target?.box }),
+        );
+      },
+    ),
   );
 });
 
@@ -177,7 +190,13 @@ it("refuses no ground with feedback and no paste outline or placement", () => {
       { execute } as unknown as PasteAt,
       feedback,
       resolver,
-    ).execute({ playerId, dimensionId: nether, aim: reader.target, tick: 0 }),
+    ).execute({
+      playerId,
+      dimensionId: nether,
+      aim: reader.target,
+      tick: 0,
+      sneaking: true,
+    }),
   ).toBe("refused");
   expect(feedback.messages).toEqual([{ message: "noGround" }]);
   expect(feedback.previews).toEqual([]);

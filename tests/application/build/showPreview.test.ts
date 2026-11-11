@@ -365,17 +365,16 @@ it("refreshes the paste hint each interval without requiring an aimed block", ()
   const { session, preview, feedback } = setup();
   session.setFlow({ kind: "pasteAim", turn: 0 });
   preview.execute(0);
-  expect(feedback.pasteHints).toEqual([]);
+  expect(feedback.modes).toEqual([]);
   const clipboard = structureClipboard(boxOf(cell, end), (at) =>
     at.y === cell.y ? material : undefined,
   );
   holdClipboard(session, clipboard);
   for (let tick = 1; tick <= 3 * interval; tick++) preview.execute(tick);
-  expect(feedback.pasteHints).toEqual(
+  expect(feedback.modes).toEqual(
     Array.from({ length: 3 }, () => ({
       playerId: alex,
-      size: { x: 1, y: 3, z: 4 },
-      count: 12,
+      mode: { kind: "pasteReady", size: { x: 1, y: 3, z: 4 }, blockCount: 12 },
     })),
   );
 });
@@ -411,7 +410,7 @@ it("never shows paste hints in other flows or outside build mode", () => {
     preview.execute(0);
     preview.execute(interval);
   }
-  expect(feedback.pasteHints).toEqual([]);
+  expect(feedback.modes).toEqual([]);
   const inactive = setup(false);
   holdClipboard(
     inactive.session,
@@ -419,7 +418,7 @@ it("never shows paste hints in other flows or outside build mode", () => {
   );
   inactive.session.setFlow({ kind: "pasteAim", turn: 0 });
   inactive.preview.execute(0);
-  expect(inactive.feedback.pasteHints).toEqual([]);
+  expect(inactive.feedback.modes).toEqual([]);
 });
 
 it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed block", () => {
@@ -441,7 +440,7 @@ it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed
     preview.execute(0);
   }
   expect(feedback.previews).toEqual([]);
-  expect(feedback.pasteHints).toHaveLength(2);
+  expect(feedback.modes).toHaveLength(2);
 });
 
 it("idle after New copy draws no paste layers or hints with a held clipboard", () => {
@@ -458,7 +457,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
       aim.mockReturnValue(hit ? { ray, block: { cell, face: "up" } } : { ray });
       preview.execute(redraw * interval);
       expect(feedback.previews).toEqual([]);
-      expect(feedback.pasteHints).toEqual([]);
+      expect(feedback.modes).toEqual([]);
     }),
   );
 });
@@ -483,14 +482,22 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           hit ? { ray, block: { cell: end, face: "up" } } : { ray },
         );
         preview.execute(0);
-        expect(feedback.pasteHints).toEqual([
-          { playerId: alex, size: { x, y, z }, count: x * y * z },
+        expect(feedback.modes).toEqual([
+          {
+            playerId: alex,
+            mode: {
+              kind: "pasteReady",
+              size: { x, y, z },
+              blockCount: x * y * z,
+            },
+          },
         ]);
         expect(session.confirmedBox).toEqual({ dimensionId: overworld, box });
         if (hit) {
           expect(feedback.previews).toHaveLength(1);
           const set = feedback.previews[0]?.set;
           expect(set?.paste.length).toBeGreaterThan(0);
+          expect((set?.pasteVertical.length ?? 0) > 0).toBe(y > 1);
           for (const layer of [
             "marker",
             "shape",

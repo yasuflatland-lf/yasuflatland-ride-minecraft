@@ -168,18 +168,20 @@ export class BuildSession {
     return undefined;
   }
 
-  /** Ends the running edit; only undoable edits add their record to history. */
-  finishEdit(record: EditRecord, kind: EditKind): void {
+  /** Ends the edit and returns evicted structures; only undoable edits add history. */
+  finishEdit(record: EditRecord, kind: EditKind): readonly StructureHandle[] {
     this.editing = false;
-    if (kind !== "undoable") return;
-    this.history = withEntry(
+    if (kind !== "undoable") return [];
+    const { history, dropped } = withEntry(
       this.history,
       { kind: "cells", record },
       BUILD_SPEC.undoDepth,
-    ).history;
+    );
+    this.history = history;
+    return dropped;
   }
 
-  /** Adds the snapshot; returns the handles of older snapshots it replaced. */
+  /** Adds the snapshot and returns structures evicted by the shared history cap. */
   recordSnapshot(snapshot: SnapshotRecord): readonly StructureHandle[] {
     const { history, dropped } = withEntry(
       this.history,

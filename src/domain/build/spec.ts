@@ -17,7 +17,7 @@ export const BUILD_SPEC = Object.freeze({
   maxCopyVolume: 32_768, // largest selection copy accepts; copy reads in one tick
   maxTerrainSide: 32, // longest x or z side a terrain operation accepts (ADR 0233)
   blocksPerTick: 4_096, // changes applied per tick across all edit jobs
-  undoDepth: 10, // edits kept per player
+  undoDepth: 10, // total history entries per player across all kinds
   modeEnterTicks: 6, // ticks to enter build mode (ADR 0178 Decision 3)
   modeLeaveTicks: 6, // ticks to leave build mode (ADR 0178 Decision 3)
   outlineInterval: 10, // ticks between outline redraws

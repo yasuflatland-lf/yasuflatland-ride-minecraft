@@ -5,6 +5,7 @@ import type { BuildSessionRepository } from "../../domain/build/sessionRepositor
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Logger } from "../shared/ports/logger";
+import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildPlayers } from "./ports/players";
@@ -76,12 +77,14 @@ export class RotateBox {
       this.feedback.showMessage(playerId, "rotateFailed");
       return "refused";
     }
-    for (const dropped of session.recordSnapshot({
-      dimensionId,
-      box: plan.union,
-      handle: snapshot,
-    }))
-      this.structures.discard(dropped);
+    discardAll(
+      this.structures,
+      session.recordSnapshot({
+        dimensionId,
+        box: plan.union,
+        handle: snapshot,
+      }),
+    );
     this.structures.discard(source);
     session.replaceSelection(plan.target);
     unstuck(this.world, this.players, playerId, dimensionId, plan.target);

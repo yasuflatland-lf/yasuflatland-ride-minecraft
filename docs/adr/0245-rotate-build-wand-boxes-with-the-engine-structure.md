@@ -45,7 +45,7 @@ A spike on the dev BDS (2026-11-10, `@minecraft/server` 2.11.0, throwaway code d
 
 ## Consequences
 
-- The single undo snapshot slot is replaced by a rotation, exactly as a paste or a cut replaces it. The spec says so.
+- Rotation snapshots share the per-player `BUILD_SPEC.undoDepth` (10) entry history with paste, cut and cell edits, as in 0243. Evict the oldest entry first and discard its structure handle when it is a snapshot.
 - Entities with a `yasu_ride:` or `yasu_build:` identifier are excluded from structures and are not moved, as in 0243. Item frames, paintings and mobs follow whatever the structure keeps today; if the probe shows they are lost or mis-turned, that is recorded as a limitation.
 - Phase 2 overwrites blocks outside the old box by design. This is acceptable only because the undo snapshot covers the union box.
 - Revisit if the engine raises or changes the structure size limit, if placement over existing blocks does not write air, or if a faster input for rotating while aiming a paste is wanted.

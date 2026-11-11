@@ -394,8 +394,9 @@ function pasteStep(
   y: number,
   z: number,
   face: string,
+  sneaking = true,
 ): Promise<Reply> {
-  return f.edit(`pasteat ${x} ${y} ${z} ${face}`);
+  return f.edit(`pasteat ${x} ${y} ${z} ${face} ${sneaking}`);
 }
 
 async function endPasteStep(f: Fixture): Promise<void> {
@@ -470,14 +471,28 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
     await copyLine(f);
     const withoutHistory = await checkState(f, "pasteAim", true);
     check(
-      withoutHistory.pasteMenu.join() === "rotate,newCopy,endPaste",
+      withoutHistory.pasteMenu.join() === "newCopy,endPaste,cancel",
       "Paste menu without history has unexpected entries",
     );
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    await pasteStep(
+      f,
+      target.anchor.x,
+      target.anchor.y,
+      target.anchor.z,
+      "up",
+      false,
+    );
+    check(
+      unchanged(f, target.cells, target.before),
+      "Plain press pasted instead of opening the menu",
+    );
+    await f.menu("paste", "cancel");
+    await checkState(f, "pasteAim", true);
     await pasteInto(f, target);
     const withHistory = await checkState(f, "pasteAim", true);
     check(
-      withHistory.pasteMenu.join() === "undo,rotate,newCopy,endPaste",
+      withHistory.pasteMenu.join() === "undo,newCopy,endPaste,cancel",
       "Paste menu with history must have exactly four ordered entries",
     );
     await f.menu("paste", "undo");
@@ -486,7 +501,7 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
       "menu Undo did not restore blocks",
     );
     check(
-      (await f.state()).pasteMenu.join() === "rotate,newCopy,endPaste",
+      (await f.state()).pasteMenu.join() === "newCopy,endPaste,cancel",
       "Undo remained in the menu without history",
     );
   });
@@ -627,7 +642,16 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       });
       for (const c of target) f.block(c).setType("minecraft:gold_block");
       const before = snapshot(f, target);
-      const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, face);
+      await pasteStep(f, anchor.x, anchor.y, anchor.z, face, false);
+      check(unchanged(f, target, before), "Plain aimed press wrote blocks");
+      const pasted = await pasteStep(
+        f,
+        anchor.x,
+        anchor.y,
+        anchor.z,
+        face,
+        true,
+      );
       check(pasted.message === "editDone", "aimed paste failed");
       const actual = snapshot(f, target);
       check(
@@ -793,7 +817,6 @@ export function buildContinuousPaste(a: Arena): Promise<Outcome> {
         "continuous Paste lost source states",
       );
     }
-    // A player keeps one structure snapshot, so only the last paste undoes.
     const last = targets[targets.length - 1];
     if (!last) throw new Error("no paste targets");
     const undone = await f.menu("paste", "undo");
@@ -2389,4 +2412,73 @@ export async function buildPasteStructureDecor(
       )
       .join("; "),
   };
+}
+
+export function buildUndoMixedTen(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(2, 2, 2);
+    await f.select(f.cell(1, 1, 1));
+    for (const cell of source) f.block(cell).setType("minecraft:gold_block");
+    const original = snapshot(f, source);
+    const targets = Array.from({ length: 8 }, (_, i) =>
+      pasteTarget(f, f.cell(8 + i * 3, 0, 24), 2, 2, 2),
+    );
+    check(
+      (await f.menu("shape", "fill")).count === source.length,
+      "Fill failed",
+    );
+    await f.select(f.cell(1, 1, 1));
+    check((await f.menu("shape", "cut")).message === "editDone", "Cut failed");
+    check(
+      f.count(source, "minecraft:air") === source.length,
+      "Cut left blocks",
+    );
+    for (const target of targets) {
+      const pasted = await pasteStep(
+        f,
+        target.anchor.x,
+        target.anchor.y,
+        target.anchor.z,
+        "up",
+      );
+      check(pasted.message === "editDone", "Paste failed");
+      check(
+        f.count(target.cells) === target.cells.length,
+        "Paste lost filled blocks",
+      );
+    }
+    await endPasteStep(f);
+    for (const target of [...targets].reverse()) {
+      check(
+        (await f.menu("utility", "undo")).message === "undoDone",
+        "Paste Undo unavailable",
+      );
+      check(
+        unchanged(f, target.cells, target.before),
+        "Paste Undo lost destination states",
+      );
+    }
+    check(
+      (await f.menu("utility", "undo")).message === "undoDone",
+      "Cut Undo unavailable",
+    );
+    check(f.count(source) === source.length, "Cut Undo lost filled blocks");
+    check(
+      (await f.menu("utility", "undo")).message === "undoDone",
+      "Fill Undo unavailable",
+    );
+    check(
+      unchanged(f, source, original),
+      "Ten mixed undos lost original source states",
+    );
+    for (const target of targets)
+      check(
+        unchanged(f, target.cells, target.before),
+        "Ten mixed undos lost original destination states",
+      );
+    check(
+      (await f.menu("utility", "undo")).offered === false,
+      "History survived ten undos",
+    );
+  });
 }

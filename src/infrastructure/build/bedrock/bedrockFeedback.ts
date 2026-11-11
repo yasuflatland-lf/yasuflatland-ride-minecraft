@@ -2,6 +2,7 @@ import type { Player } from "@minecraft/server";
 import type {
   BuildFeedback,
   BuildMessage,
+  BuildMode,
 } from "../../../application/build/ports/feedback";
 import type { BlockState } from "../../../domain/build/blockState";
 import type { PreviewSet } from "../../../domain/build/preview/preview";
@@ -84,17 +85,33 @@ export class BedrockFeedback implements BuildFeedback {
     });
   }
 
-  showPasteHint(
-    playerId: PlayerId,
-    size: { x: number; y: number; z: number },
-    count: number,
-  ): void {
+  showMode(playerId: PlayerId, mode: BuildMode): void {
     const player = playerById(playerId);
     if (!player?.isValid) return;
-    player.onScreenDisplay.setActionBar({
-      translate: BUILD_MESSAGE.pasteHint,
-      with: [String(size.x), String(size.y), String(size.z), String(count)],
-    });
+    const line =
+      mode.kind === "pasteReady"
+        ? {
+            translate: BUILD_MESSAGE.pasteReady,
+            with: [
+              String(mode.size.x),
+              String(mode.size.y),
+              String(mode.size.z),
+              String(mode.blockCount),
+            ],
+          }
+        : { translate: BUILD_MESSAGE.rotateMode, with: [String(mode.degrees)] };
+    player.onScreenDisplay.setActionBar(
+      player.isSneaking
+        ? {
+            // The separator stays in script because lang values lose trailing spaces.
+            rawtext: [
+              { translate: BUILD_MESSAGE.sneakingPrefix },
+              { text: " " },
+              line,
+            ],
+          }
+        : line,
+    );
   }
 
   drawPreview(
@@ -110,6 +127,7 @@ export class BedrockFeedback implements BuildFeedback {
       endCube: "minecraft:endrod",
       roof: "minecraft:villager_happy",
       paste: "minecraft:blue_flame_particle",
+      pasteVertical: "minecraft:basic_flame_particle",
       boxStep: "minecraft:balloon_gas_particle",
       boxStepOver: "minecraft:redstone_wire_dust_particle",
     };

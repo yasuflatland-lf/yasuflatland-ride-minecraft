@@ -6,6 +6,7 @@ import { EndBuildSession } from "../../../src/application/build/endBuildSession"
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
   recordMessages,
@@ -33,7 +34,7 @@ function setup() {
     showMessage: vi.fn<BuildFeedback["showMessage"]>(),
     showUndoHint: vi.fn<BuildFeedback["showUndoHint"]>(),
     showSize: vi.fn<BuildFeedback["showSize"]>(),
-    showPasteHint: vi.fn<BuildFeedback["showPasteHint"]>(),
+    showMode: vi.fn<BuildFeedback["showMode"]>(),
     drawPreview: vi.fn<BuildFeedback["drawPreview"]>(),
   };
   return { feedback, messages: recordMessages(feedback) };
@@ -154,7 +155,7 @@ function snapshotHook() {
   return { repo, structures, send };
 }
 
-it("captures normalized snapshot corners in the player's dimension and discards replaced handles", () => {
+it("captures normalized snapshot corners in the player's dimension and discards only evicted handles", () => {
   const e = snapshotHook();
   e.send("snapshot 3 4 5 1 2 3");
   const dimensionId = asDimensionId("minecraft:overworld");
@@ -163,13 +164,20 @@ it("captures normalized snapshot corners in the player's dimension and discards 
     { kind: "capture", dimensionId, box, ownerId: player },
   ]);
   const first = [...e.structures.live][0];
+  for (let i = 1; i < BUILD_SPEC.undoDepth; i++) {
+    e.send("snapshot 1 2 3 3 4 5");
+    expect(
+      e.structures.calls.filter((call) => call.kind === "discard"),
+    ).toEqual([]);
+  }
   e.send("snapshot 1 2 3 3 4 5");
   expect(e.structures.calls.at(-1)).toEqual({ kind: "discard", handle: first });
-  expect(e.structures.live.size).toBe(1);
-  expect(e.repo.getOrCreate(player).takeUndo()).toEqual({
-    kind: "snapshot",
-    snapshot: { dimensionId, box, handle: [...e.structures.live][0] },
-  });
+  expect(e.structures.live.size).toBe(BUILD_SPEC.undoDepth);
+  for (const handle of [...e.structures.live].reverse())
+    expect(e.repo.getOrCreate(player).takeUndo()).toEqual({
+      kind: "snapshot",
+      snapshot: { dimensionId, box, handle },
+    });
   expect(e.repo.getOrCreate(player).takeUndo()).toBe("nothingToUndo");
   expect(system.sendScriptEvent).toHaveBeenCalledWith(
     TEST_RESULT_EVENT,

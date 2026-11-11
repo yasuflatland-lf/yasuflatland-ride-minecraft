@@ -68,6 +68,9 @@ export function installBuild(deps: {
   const aim = new BedrockAimReader();
   const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
   const cancel = new CancelFlow(repo);
+  const pasteDebounce = new PressDebounces<PlayerId>(
+    BUILD_SPEC.pasteRepeatTicks,
+  );
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const endSession = new EndBuildSession(repo, ports.structures);
   const modes = new UpdateBuildModes(
@@ -75,7 +78,14 @@ export function installBuild(deps: {
     new LeaveBuild(repo, ports.structures),
   );
   const players = new BedrockBuildPlayers();
-  const jobs = new EditJobs(repo, blocks, feedback, consoleLogger, players);
+  const jobs = new EditJobs(
+    repo,
+    blocks,
+    feedback,
+    consoleLogger,
+    players,
+    ports.structures,
+  );
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, ports.structures, feedback);
   const cutBox = new CutBox(
@@ -135,13 +145,7 @@ export function installBuild(deps: {
     setHeight: new SetHeightTo(repo),
   };
   const rotate = new RotatePasteAim(repo);
-  const menus = new BedrockBuildMenus(
-    repo,
-    menuCases,
-    undefined,
-    undefined,
-    rotate,
-  );
+  const menus = new BedrockBuildMenus(repo, menuCases);
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
@@ -157,6 +161,7 @@ export function installBuild(deps: {
     menus,
     aim,
     debounce,
+    pasteDebounce,
     pointOf: (playerId) => {
       const flow = repo.get(playerId)?.flow;
       return flow?.kind === "point1" ? flow.cell : undefined;
@@ -164,7 +169,7 @@ export function installBuild(deps: {
   });
   registerModeTick(modes);
   registerOutlineTick(new ShowPreview(repo, feedback, aim, resolveTarget));
-  registerSessions(endSession, cases.endPasting, debounce);
+  registerSessions(endSession, cases.endPasting, debounce, pasteDebounce);
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
@@ -172,7 +177,7 @@ export function installBuild(deps: {
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
     menuCases.confirmBoxStep,
-    cases.pasteAt,
+    new PressPasteAim(repo, cases.pasteAt, feedback, resolveTarget),
     cases.undo,
     new DescribeBuild(repo),
     recorded,
