@@ -70,7 +70,7 @@ A black woven dining chair with steel tube legs, arm tubes, and an arched, recli
 
 ## The Resort Gear group
 
-Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items are Beach Parasol, Beach Chair, Dining Table, Dining Chair, Sofa (Single), Sofa (Double), and Toilet, in that order.
+Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items are Beach Parasol, Beach Chair, Dining Table, Dining Chair, Sofa (Single), Sofa (Double), Toilet, and Washstand, in that order.
 
 | Item          | Preview                                                          | Use                                                                                                                |
 | ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -80,7 +80,8 @@ Resort Gear follows Camping Gear (Outside) in the creative catalog. Its items ar
 | Dining Chair  | ![Dining Chair](../images/items/camping-gear/dining_chair.png)   | Place on a clear solid floor, sit with the normal riding interaction, and recover the empty chair with three hits. |
 | Sofa (Single) | ![Sofa (Single)](../images/items/camping-gear/sofa_single.png)   | A woven single-seat sofa.                                                                                          |
 | Sofa (Double) | ![Sofa (Double)](../images/items/camping-gear/sofa_double.png)   | A woven two-seat sofa spanning two cells.                                                                          |
-| Toilet        | ![Toilet](../images/items/camping-gear/toilet.png)               | A one-seat porcelain toilet; interaction wiring is pending.                                                        |
+| Toilet        | ![Toilet](../images/items/camping-gear/toilet.png)               | A one-seat porcelain toilet; dismounting starts the flush.                                                         |
+| Washstand     | ![Washstand](../images/items/camping-gear/washstand.png)         | Oak and black steel washstand with a white basin and a five-second tap animation; interaction starts the tap.      |
 
 Craft one Dining Chair at a crafting table with planks (`P`), sticks (`S`), and an iron ingot (`I`):
 
@@ -96,7 +97,7 @@ Dots are empty slots. The chair occupies one floor cell and needs two clear air 
 
 ![Toilet](../images/items/camping-gear/toilet.png)
 
-A white porcelain toilet with an egg-shaped bowl, a slim oval tank, a flat hinged lid and a chrome side lever. It occupies one cell and seats one player. The item and model are available in Resort Gear; placement and the lid/flush interaction are pending engine integration. Sound ships separately.
+A white porcelain toilet with an egg-shaped bowl, a slim oval tank, a flat hinged lid and a chrome side lever. It occupies one cell and seats one player. The item and model are available in Resort Gear; placement, the lid/flush interaction and sound are integrated.
 
 Craft one at a crafting table from five quartz (`Q`) and one iron ingot (`I`):
 
@@ -107,3 +108,19 @@ Q.Q
 ```
 
 Dots are empty slots. Owner approval of the four photo-angle previews and PC/mobile verification remain pending. See [Resort gear](../specs/resort-gear.md#toilet-assets).
+
+## Washstand
+
+![Washstand](../images/items/camping-gear/washstand.png)
+
+An oak top and drawer on a black steel frame, with an expanded-metal shelf, a white basin, and a chrome single-lever tap. It occupies one floor cell, reaches 20 px high, and has no seat. The assets include a five-second stream, foam, splash, film, and lever animation driven by the synchronized running property. Placement, interaction wiring and sound are integrated; interaction starts the five-second tap show.
+
+Craft one at a crafting table with iron ingots (`I`), planks (`P`), and quartz (`Q`):
+
+```text
+I.I
+PQP
+III
+```
+
+Owner approval of the eight photo-angle previews and PC/mobile rendering checks remain pending. See [Resort gear](../specs/resort-gear.md#washstand-assets).

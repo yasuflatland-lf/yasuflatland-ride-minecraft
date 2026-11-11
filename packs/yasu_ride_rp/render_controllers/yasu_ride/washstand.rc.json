@@ -1,0 +1,105 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.yasu_ride.washstand": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "stream": "Material.water"
+        },
+        {
+          "film": "Material.water"
+        },
+        {
+          "foam": "Material.water"
+        },
+        {
+          "splash": "Material.water"
+        },
+        {
+          "foam_*": "Material.water"
+        },
+        {
+          "splash_*": "Material.water"
+        }
+      ],
+      "textures": ["Texture.default"],
+      "part_visibility": [
+        {
+          "*": true
+        },
+        {
+          "stream": false
+        },
+        {
+          "film": false
+        },
+        {
+          "foam": false
+        },
+        {
+          "splash": false
+        },
+        {
+          "foam_*": false
+        },
+        {
+          "splash_*": false
+        }
+      ]
+    },
+    "controller.render.yasu_ride.washstand.water": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "stream": "Material.water"
+        },
+        {
+          "film": "Material.water"
+        },
+        {
+          "foam": "Material.water"
+        },
+        {
+          "splash": "Material.water"
+        },
+        {
+          "foam_*": "Material.water"
+        },
+        {
+          "splash_*": "Material.water"
+        }
+      ],
+      "textures": ["Texture.water"],
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "stream": "query.property('yasu_ride:running')"
+        },
+        {
+          "film": "query.property('yasu_ride:running')"
+        },
+        {
+          "foam": "query.property('yasu_ride:running')"
+        },
+        {
+          "splash": "query.property('yasu_ride:running')"
+        },
+        {
+          "foam_*": "query.property('yasu_ride:running')"
+        },
+        {
+          "splash_*": "query.property('yasu_ride:running')"
+        }
+      ]
+    }
+  }
+}

@@ -333,6 +333,22 @@ print(json.dumps(True))
     ).toBe(true);
   });
 
+  it("rejects a missing photo-view piece independently of the shipped catalog", () => {
+    expect(
+      previewPython(`
+for view, piece in (("topFront", "toilet"), ("sinkTap", "washstand")):
+    r.RESORT_GEAR = []
+    try:
+        r.render_photo_view(Path("unused"), view)
+    except ValueError as e:
+        assert piece in str(e) and "tools/resort_gear.json" in str(e)
+    else:
+        raise AssertionError("missing piece accepted")
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
   it.each([
     [
       ["--view", "unknown", "--out", "/tmp/views"],
@@ -341,14 +357,6 @@ print(json.dumps(True))
     [
       ["--view", "topFront", "--lid", "92", "--out", "/tmp/views"],
       /--lid must be between 0 and 91/,
-    ],
-    [
-      ["--view", "topFront", "--out", "/tmp/views"],
-      /toilet.*tools\/resort_gear.json/,
-    ],
-    [
-      ["--view", "sinkTap", "--out", "/tmp/views"],
-      /washstand.*tools\/resort_gear.json/,
     ],
     [["--lid", "0", "output"], /--lid requires a named --view/],
     [
