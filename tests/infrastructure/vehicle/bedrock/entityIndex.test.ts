@@ -3,7 +3,10 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import {
-  DIMENSIONS,
+  DIMENSION_IDS,
+  type DimensionId,
+} from "../../../../src/infrastructure/shared/dimensions";
+import {
   EntityIndex,
   loadedVehicleEntities,
 } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
@@ -112,8 +115,7 @@ it("scans every dimension once in order and preserves entity order", () => {
         }));
         game.getDimension.mockReset();
         game.getDimension.mockImplementation(
-          (id: (typeof DIMENSIONS)[number]) =>
-            dimensions[DIMENSIONS.indexOf(id)],
+          (id: DimensionId) => dimensions[DIMENSION_IDS.indexOf(id)],
         );
         const result = loadedVehicleEntities();
         const expected = entities.flat();
@@ -121,7 +123,7 @@ it("scans every dimension once in order and preserves entity order", () => {
         for (const [index, entity] of result.entries())
           expect(entity).toBe(expected[index]);
         expect(game.getDimension.mock.calls).toEqual(
-          DIMENSIONS.map((id) => [id]),
+          DIMENSION_IDS.map((id) => [id]),
         );
         for (const dimension of dimensions)
           expect(dimension.getEntities).toHaveBeenCalledExactlyOnceWith({
