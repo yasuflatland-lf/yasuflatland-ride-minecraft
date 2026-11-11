@@ -34,7 +34,7 @@ function setup() {
     showMessage: vi.fn<BuildFeedback["showMessage"]>(),
     showUndoHint: vi.fn<BuildFeedback["showUndoHint"]>(),
     showSize: vi.fn<BuildFeedback["showSize"]>(),
-    showPasteHint: vi.fn<BuildFeedback["showPasteHint"]>(),
+    showMode: vi.fn<BuildFeedback["showMode"]>(),
     drawPreview: vi.fn<BuildFeedback["drawPreview"]>(),
   };
   return { feedback, messages: recordMessages(feedback) };

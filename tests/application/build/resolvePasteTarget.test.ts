@@ -101,9 +101,15 @@ it("draws the same paste box that the press sends to PasteAt", () => {
           sneaking,
         });
         if (!hasBlock) {
-          expect(result).toBe("menu");
+          expect(result).toBe(sneaking ? "ignored" : "menu");
           expect(execute).not.toHaveBeenCalled();
           expect(feedback.previews).toEqual([]);
+          return;
+        }
+        if (!sneaking) {
+          expect(result).toBe("menu");
+          expect(execute).not.toHaveBeenCalled();
+          expect(feedback.previews).toHaveLength(1);
           return;
         }
         expect(result).toBe("pasted");

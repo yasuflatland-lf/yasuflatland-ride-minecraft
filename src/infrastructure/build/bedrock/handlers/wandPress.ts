@@ -28,7 +28,7 @@ type Target = NonNullable<ReturnType<AimReader["aim"]>>;
 
 function pasteAimPress(
   { source, playerId, pressPasteAim, menus }: PressContext,
-  target: Target,
+  target: Target | undefined,
 ): void {
   const result = pressPasteAim.execute({
     playerId,
@@ -68,11 +68,11 @@ export function dispatchWandPress(context: PressContext): void {
   const { source, playerId, aim, repo, menus } = context;
   const target = aim.aim(playerId);
   const flow = repo.get(playerId)?.flow;
-  if (!target) return;
   if (flow?.kind === "pasteAim") {
     pasteAimPress(context, target);
     return;
   }
+  if (!target) return;
   // A block tap can also emit itemUse; only the interact handler owns that tap.
   if (target.block) return;
   if (flow?.kind === "heightStep") {

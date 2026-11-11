@@ -29,6 +29,7 @@ export function registerWand({
   menus,
   aim,
   debounce,
+  pasteDebounce,
   pointOf,
 }: {
   setPoint: SetPoint;
@@ -40,6 +41,7 @@ export function registerWand({
   menus: BuildMenus;
   aim: AimReader;
   debounce: PressDebounces<PlayerId>;
+  pasteDebounce: PressDebounces<PlayerId>;
   pointOf(playerId: PlayerId): Cell | undefined;
 }): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
@@ -82,7 +84,12 @@ export function registerWand({
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
     if (!source.isValid || itemStack.typeId !== SELECTION_WAND_TYPE) return;
     const playerId = asPlayerId(source.id);
-    if (!debounce.press(playerId, system.currentTick)) return;
+    // Opening the menu must not swallow the next commit; commits also debounce across anchors.
+    const presses =
+      source.isSneaking && repo.get(playerId)?.flow.kind === "pasteAim"
+        ? pasteDebounce
+        : debounce;
+    if (!presses.press(playerId, system.currentTick)) return;
     dispatchWandPress({
       source,
       playerId,
