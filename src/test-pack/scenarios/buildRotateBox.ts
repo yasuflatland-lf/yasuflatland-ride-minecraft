@@ -1,14 +1,19 @@
 import { ItemStack, SignSide, type Vector3 } from "@minecraft/server";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndBuildSession } from "../../application/build/endBuildSession";
+import { EndPasting } from "../../application/build/endPasting";
+import { FinishRotateMode } from "../../application/build/finishRotateMode";
+import { LeaveBuild } from "../../application/build/leaveBuild";
 import type {
   BuildFeedback,
   BuildMessage,
 } from "../../application/build/ports/feedback";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
+import { RotateModeTap } from "../../application/build/rotateModeTap";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { blockStateOf } from "../../domain/build/blockState";
+import type { CellBox } from "../../domain/build/box";
 import { cellsOf, contains } from "../../domain/build/box";
 import { selectionBoxOf } from "../../domain/build/flow/flow";
 import { shapeMenu } from "../../domain/build/flow/menu";
@@ -20,7 +25,22 @@ import { InMemorySessionRepository } from "../../infrastructure/build/persistenc
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
-export async function buildRotateBox(a: Arena): Promise<Outcome> {
+export function buildRotateBox(a: Arena): Promise<Outcome> {
+  return runRotateBox(a, "box");
+}
+
+export function buildRotateMode(a: Arena): Promise<Outcome> {
+  return runRotateBox(a, "mode");
+}
+
+export function buildRotateModeExit(a: Arena): Promise<Outcome> {
+  return runRotateBox(a, "exit");
+}
+
+async function runRotateBox(
+  a: Arena,
+  variant: "box" | "mode" | "exit",
+): Promise<Outcome> {
   const repo = new InMemorySessionRepository();
   const playerId = asPlayerId(`rotate_box_${a.lane.index}`);
   const dimensionId = asDimensionId(a.dim.id);
@@ -48,10 +68,10 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
     drawPreview: () => {},
   };
   const log = { warn: (value: string) => console.warn(value) };
-  const rotate = new RotateBoxAction(
-    repo,
-    new RotateBox(repo, world, players, structures, feedback, log),
-  );
+  const core = new RotateBox(repo, world, players, structures, feedback, log);
+  const rotate = new RotateBoxAction(repo, core);
+  const tap = new RotateModeTap(repo, core);
+  const finish = new FinishRotateMode(repo);
   const undo = new UndoEdit(
     repo,
     feedback,
@@ -97,9 +117,12 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
     const box = selectionBoxOf(session.flow);
     if (!box) throw new Error("selection lost");
     check("rotate", rotate.execute(playerId, dimensionId, box));
+    if (variant === "box") finish.execute({ playerId });
     check(
-      "menu_reopens",
-      shapeMenu(session.flow).some((entry) => entry.id === "rotate"),
+      "mode_or_menu",
+      variant === "box"
+        ? shapeMenu(session.flow).some((entry) => entry.id === "rotate")
+        : session.flow.kind === "rotateMode",
     );
   };
   const originalChest = a.at(20, a.gy + 1, 20);
@@ -163,38 +186,144 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
         { x: plan.target.min.x + 4, y: a.gy + 1, z: plan.target.min.z },
       ),
     );
-    undo.execute({ playerId });
-    check(
-      "undo_union",
-      message === "undoDone" &&
-        JSON.stringify(states()) === JSON.stringify(before),
-    );
-    check("undo_contents", contents(originalChest, originalSign));
-    select();
-    for (let i = 1; i <= 4; i++) {
-      turn();
-      if (i === 2 || i === 4)
+    if (variant !== "box") {
+      const mapCell = (
+        cell: Vector3,
+        box: CellBox,
+        target: CellBox,
+      ): Vector3 => ({
+        x: target.min.x + box.max.z - cell.z,
+        y: cell.y,
+        z: target.min.z + cell.x - box.min.x,
+      });
+      let box = source;
+      let chest = originalChest;
+      let sign = originalSign;
+      const snapshots = [before];
+      const locations = [{ chest, sign }];
+      for (let turn = 1; turn <= 3; turn++) {
+        const next = planRotationAboutCenter(box).target;
+        if (turn > 1)
+          check(
+            `tap_${turn}`,
+            tap.execute({ playerId, dimensionId }) === "rotated",
+          );
+        chest = mapCell(chest, box, next);
+        sign = mapCell(sign, box, next);
+        box = next;
         check(
-          `box_after_${i}`,
-          JSON.stringify(selectionBoxOf(session.flow)) ===
-            JSON.stringify(source),
+          `flow_${turn}`,
+          session.flow.kind === "rotateMode" &&
+            session.flow.turn === turn &&
+            JSON.stringify(session.flow.box) === JSON.stringify(box),
         );
+        check(`contents_${turn}`, contents(chest, sign));
+        check(
+          `floor_${turn}`,
+          [...cellsOf(plan.union)]
+            .filter((cell) => cell.y === a.gy)
+            .every((cell) =>
+              contains(box, cell)
+                ? block(cell).typeId === "minecraft:oak_planks"
+                : block(cell).isAir,
+            ),
+        );
+        check(
+          `facing_${turn}`,
+          block(chest).permutation.getState("minecraft:cardinal_direction") ===
+            ["north", "east", "south", "west"][turn],
+        );
+        check(
+          `sign_${turn}`,
+          block(sign).permutation.getState("ground_sign_direction") ===
+            (4 + turn * 4) % 16,
+        );
+        snapshots.push(states());
+        locations.push({ chest, sign });
+      }
+      const last = JSON.stringify(states());
+      if (variant === "mode") {
+        check("finish", finish.execute({ playerId }) === "finished");
+        check(
+          "endpoint",
+          session.flow.kind === "endpoint" &&
+            JSON.stringify(selectionBoxOf(session.flow)) ===
+              JSON.stringify(box),
+        );
+      } else new LeaveBuild(repo, structures).execute(playerId);
+      check(
+        "exit_no_write",
+        JSON.stringify(states()) === last && contents(chest, sign),
+      );
+      if (variant === "exit") check("leave_idle", session.flow.kind === "idle");
+      for (let step = 2; step >= 0; step--) {
+        undo.execute({ playerId });
+        const location = locations[step];
+        check(
+          `undo_${step}`,
+          message === "undoDone" &&
+            JSON.stringify(states()) === JSON.stringify(snapshots[step]) &&
+            location !== undefined &&
+            contents(location.chest, location.sign),
+        );
+      }
+      check("history_empty", !session.hasHistory);
+      if (variant === "exit") {
+        select();
+        turn();
+        const rotated = JSON.stringify(states());
+        new EndPasting(repo, structures).execute(playerId);
+        check("death_idle", session.flow.kind === "idle");
+        check(
+          "death_no_write",
+          JSON.stringify(states()) === rotated &&
+            contents(
+              { x: plan.target.min.x + 6, y: a.gy + 1, z: plan.target.min.z },
+              { x: plan.target.min.x + 4, y: a.gy + 1, z: plan.target.min.z },
+            ),
+        );
+        undo.execute({ playerId });
+        check(
+          "death_undo",
+          message === "undoDone" &&
+            JSON.stringify(states()) === JSON.stringify(before) &&
+            contents(originalChest, originalSign),
+        );
+      }
+    } else {
+      undo.execute({ playerId });
+      check(
+        "undo_union",
+        message === "undoDone" &&
+          JSON.stringify(states()) === JSON.stringify(before),
+      );
+      check("undo_contents", contents(originalChest, originalSign));
+      select();
+      for (let i = 1; i <= 4; i++) {
+        turn();
+        if (i === 2 || i === 4)
+          check(
+            `box_after_${i}`,
+            JSON.stringify(selectionBoxOf(session.flow)) ===
+              JSON.stringify(source),
+          );
+      }
+      check("four_turn_contents", contents(originalChest, originalSign));
+      const protectedBefore = states();
+      const previousFlow = session.flow;
+      protectedCell = neighbor;
+      check(
+        "protected_refused",
+        !rotate.execute(playerId, dimensionId, source) &&
+          message === "rotateBlocked",
+      );
+      check(
+        "protected_unchanged",
+        session.flow === previousFlow &&
+          JSON.stringify(states()) === JSON.stringify(protectedBefore) &&
+          contents(originalChest, originalSign),
+      );
     }
-    check("four_turn_contents", contents(originalChest, originalSign));
-    const protectedBefore = states();
-    const previousFlow = session.flow;
-    protectedCell = neighbor;
-    check(
-      "protected_refused",
-      !rotate.execute(playerId, dimensionId, source) &&
-        message === "rotateBlocked",
-    );
-    check(
-      "protected_unchanged",
-      session.flow === previousFlow &&
-        JSON.stringify(states()) === JSON.stringify(protectedBefore) &&
-        contents(originalChest, originalSign),
-    );
   } catch (error) {
     check(String(error), false);
   } finally {

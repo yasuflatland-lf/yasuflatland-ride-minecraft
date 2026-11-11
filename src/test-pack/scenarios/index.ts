@@ -57,7 +57,11 @@ import {
   buildUnstuckFill,
   buildUnstuckNotTouched,
 } from "./buildFlow";
-import { buildRotateBox } from "./buildRotateBox";
+import {
+  buildRotateBox,
+  buildRotateMode,
+  buildRotateModeExit,
+} from "./buildRotateBox";
 import {
   buildStructureDecorProbe,
   buildStructureProbe,
@@ -370,6 +374,8 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_structure_probe: buildStructureProbe,
   build_structure_store: buildStructureStore,
   build_rotate_box: buildRotateBox,
+  build_rotate_mode: buildRotateMode,
+  build_rotate_mode_exit: buildRotateModeExit,
   build_structure_rotation: buildStructureRotation,
   build_structure_rotation_decor: buildStructureRotationDecor,
   build_structure_store_hosted: buildStructureStoreHosted,
