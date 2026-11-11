@@ -9,6 +9,7 @@ import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -535,4 +536,21 @@ it("outlines the rotated paste box at each heading", () => {
       );
     }),
   );
+});
+
+it("draws the rotation box in its dimension without requiring an aim or modifying the mode", () => {
+  const e = setup();
+  const box = boxOf(cell, end);
+  const flow = beginRotateMode(nether, box, material, 2);
+  e.session.setFlow(flow);
+  e.aim.mockReturnValue(undefined);
+  e.preview.execute(0);
+  expect(e.feedback.previews).toEqual([
+    {
+      playerId: alex,
+      dimensionId: nether,
+      set: previewPoints(flow, { blink: true }),
+    },
+  ]);
+  expect(e.session.flow).toBe(flow);
 });

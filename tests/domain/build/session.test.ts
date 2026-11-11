@@ -4,6 +4,7 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
 import type { BuildFlow } from "../../../src/domain/build/flow/flow";
+import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -17,6 +18,7 @@ import {
   type ModeInput,
   stepMode,
 } from "../../../src/domain/build/mode";
+import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
@@ -523,3 +525,53 @@ it("replaceSelection updates an existing confirmation in the endpoint dimension"
     }),
   );
 });
+
+it("advances rotation selections and only updates confirmed boxes in the same dimension", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: -50, max: 50 }),
+      fc.boolean(),
+      (x, sameDimension) => {
+        const session = new BuildSession(asPlayerId("alex"));
+        const box = boxOf({ x, y: 0, z: 0 }, { x: x + 4, y: 2, z: 1 });
+        const confirmedDimension = sameDimension
+          ? dim
+          : asDimensionId("nether");
+        session.confirmBox(confirmedDimension, box);
+        session.setFlow(beginRotateMode(dim, box, stone, 1));
+        const target = planRotationAboutCenter(box).target;
+        session.replaceSelection(target);
+        expect(session.flow).toEqual({
+          kind: "rotateMode",
+          dimensionId: dim,
+          box: target,
+          turn: 2,
+          material: stone,
+        });
+        expect(session.confirmedBox).toEqual({
+          dimensionId: confirmedDimension,
+          box: sameDimension ? target : box,
+        });
+      },
+    ),
+  );
+});
+
+it.each(["endPasting", "leaveBuildMode", "clearSelection"] as const)(
+  "%s exits rotation while retaining history",
+  (exit) => {
+    fc.assert(
+      fc.property(recordArb, (record) => {
+        const session = new BuildSession(asPlayerId("alex"));
+        const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 2, z: 1 });
+        session.confirmBox(dim, box);
+        session.setFlow(beginRotateMode(dim, box, stone, 1));
+        session.finishEdit(record, "undoable");
+        session[exit]();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.confirmedBox).toBeUndefined();
+        expect(session.takeUndo()).toEqual(cells(record));
+      }),
+    );
+  },
+);

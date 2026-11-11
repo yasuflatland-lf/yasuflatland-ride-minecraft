@@ -6,6 +6,7 @@ import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
 import type { PasteAim } from "./paste";
+import { beginRotateMode, type RotateMode } from "./rotateMode";
 
 export type BuildFlow =
   | { readonly kind: "idle" }
@@ -40,7 +41,8 @@ export type BuildFlow =
       readonly material: BlockState;
       readonly op: TerrainOp;
     }
-  | PasteAim;
+  | PasteAim
+  | RotateMode;
 
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
 
@@ -57,7 +59,8 @@ export function tapBlock(
   if (
     flow.kind === "heightStep" ||
     flow.kind === "pasteAim" ||
-    flow.kind === "terrainConfirm"
+    flow.kind === "terrainConfirm" ||
+    flow.kind === "rotateMode"
   )
     return flow;
   if (flow.kind === "idle" || flow.dimensionId !== dimensionId)
@@ -83,7 +86,7 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
 }
 
 export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
-  return sneaking || flow.kind === "idle";
+  return flow.kind !== "rotateMode" && (sneaking || flow.kind === "idle");
 }
 
 /** True when a plain air press in this flow opens a menu that offers Undo (ADR 0229, 0203). */
@@ -157,11 +160,36 @@ export function finishHeightStep(flow: BuildFlow, _hollow: boolean): BuildFlow {
 }
 
 export function selectionBoxOf(flow: BuildFlow): CellBox | undefined {
-  return flow.kind === "endpoint" ? boxOf(flow.from, flow.to) : undefined;
+  return flow.kind === "rotateMode"
+    ? flow.box
+    : flow.kind === "endpoint"
+      ? boxOf(flow.from, flow.to)
+      : undefined;
 }
 
 export function clearLastPaste(flow: BuildFlow): BuildFlow {
   return flow.kind === "pasteAim"
     ? Object.freeze({ kind: "pasteAim", turn: flow.turn })
     : flow;
+}
+
+export function enterRotateMode(flow: BuildFlow): BuildFlow {
+  if (flow.kind !== "endpoint") return flow;
+  return beginRotateMode(
+    flow.dimensionId,
+    boxOf(flow.from, flow.to),
+    flow.material,
+    1,
+  );
+}
+
+export function finishRotateMode(flow: BuildFlow): BuildFlow {
+  if (flow.kind !== "rotateMode") return flow;
+  return Object.freeze({
+    kind: "endpoint",
+    dimensionId: flow.dimensionId,
+    from: flow.box.min,
+    to: flow.box.max,
+    material: flow.material,
+  });
 }

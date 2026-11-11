@@ -22,7 +22,8 @@ export class SetPoint {
     if (
       flow.kind === "heightStep" ||
       flow.kind === "pasteAim" ||
-      flow.kind === "terrainConfirm"
+      flow.kind === "terrainConfirm" ||
+      flow.kind === "rotateMode"
     )
       return;
     const starting =

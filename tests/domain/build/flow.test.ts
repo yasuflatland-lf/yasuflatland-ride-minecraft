@@ -10,8 +10,11 @@ import {
   cancel,
   chooseHeighted,
   chooseTerrain,
+  enterRotateMode,
   finishHeightStep,
+  finishRotateMode,
   opensUtilityMenu,
+  selectionBoxOf,
   setHeight,
   tapAir,
   tapBlock,
@@ -640,6 +643,58 @@ it("offers Remove above directly before Cut for every shape and the confirmation
         "confirm",
         "cancel",
       ]);
+    }),
+  );
+});
+
+it("enters rotation only from endpoints and keeps ordinary gestures and menus inactive", () => {
+  fc.assert(
+    fc.property(cell, cell, fc.boolean(), (a, b, sneaking) => {
+      const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
+      const mode = enterRotateMode(endpoint);
+      const box = boxOf(a, b);
+      expect(mode).toEqual({
+        kind: "rotateMode",
+        dimensionId: dim,
+        box,
+        material: stone,
+        turn: 1,
+      });
+      expect(selectionBoxOf(mode)).toEqual(box);
+      expect(finishRotateMode(mode)).toEqual({
+        kind: "endpoint",
+        dimensionId: dim,
+        from: box.min,
+        to: box.max,
+        material: stone,
+      });
+      for (const flow of [
+        idle,
+        tapBlock(idle, dim, a, stone),
+        chooseHeighted(endpoint, "copy"),
+        chooseTerrain(endpoint, "fillBelow"),
+        beginPasteAim(),
+        mode,
+      ]) {
+        if (flow.kind !== "endpoint") expect(enterRotateMode(flow)).toBe(flow);
+        if (flow.kind !== "rotateMode")
+          expect(finishRotateMode(flow)).toBe(flow);
+      }
+      expect(tapBlock(mode, other, a, dirt)).toBe(mode);
+      expect(tapAir(mode, b)).toBe(mode);
+      expect(backToAiming(mode)).toBe(mode);
+      expect(chooseHeighted(mode, "copy")).toBe(mode);
+      expect(chooseTerrain(mode, "fillBelow")).toBe(mode);
+      expect(setHeight(mode, 5)).toBe(mode);
+      expect(cancel(mode)).toEqual(idle);
+      expect(opensUtilityMenu(mode, sneaking)).toBe(false);
+      expect(airPressOffersUndo(mode)).toBe(false);
+      expect(shapeMenu(mode)).toEqual([]);
+      expect(contentsMenu(mode)).toEqual([]);
+      expect(terrainMenu(mode)).toEqual([]);
+      const session = new BuildSession(asPlayerId("alex"));
+      session.setFlow(mode);
+      expect(utilityMenu(session)).toEqual([]);
     }),
   );
 });
