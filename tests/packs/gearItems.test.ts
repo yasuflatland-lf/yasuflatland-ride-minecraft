@@ -4,7 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds every registered gear item in catalog order with named swatches", async () => {
+it("builds every registered gear item in catalog order with requested swatches or item tiles", async () => {
   const output = await python.run(
     [
       "import json, sys",
@@ -14,6 +14,7 @@ it("builds every registered gear item in catalog order with named swatches", asy
       "registry = load_tool('gear_registry')",
       "values = load_tool('gear_model')",
       "atlas = load_tool('gear_atlas')",
+      "validation = load_tool('gear_validate')",
       "rows = json.loads(Path('tools/camping_gear.json').read_text())",
       "specs = [values.GearSpec.from_row(row) for row in rows]",
       "assert registry.gear_atlas is atlas",
@@ -27,19 +28,13 @@ it("builds every registered gear item in catalog order with named swatches", asy
       "    assert registry.build(item_id) == model",
       "    assert isinstance(model.texture_request, tuple)",
       "    assert model.texture_request",
-      "    assert all(name in atlas.PALETTE or name == item_id and name in atlas.GEAR_TILES for name in model.texture_request)",
+      "    assert all(name in atlas.PALETTE or (name == item_id and name in atlas.GEAR_TILES) for name in model.texture_request)",
       "    requested = [atlas.face(name) for name in model.texture_request if name in atlas.PALETTE]",
-      "    cell = atlas.GEAR_TILES.get(item_id) if item_id in model.texture_request else None",
-      "    def allowed(face):",
-      "        if face in requested:",
-      "            return True",
-      "        if cell is None:",
-      "            return False",
-      "        x, y = atlas.CELL * (cell % 4), atlas.CELL * (cell // 4)",
-      "        (u, v), (du, dv) = face['uv'], face['uv_size']",
-      "        return (x + atlas.CELL_GUTTER <= min(u, u+du) <= max(u, u+du) <= x + atlas.CELL - atlas.CELL_GUTTER",
-      "                and y + atlas.CELL_GUTTER <= min(v, v+dv) <= max(v, v+dv) <= y + atlas.CELL - atlas.CELL_GUTTER)",
-      "    assert all(allowed(face) for cube in model.cubes for face in cube['uv'].values())",
+      "    regions = validation.allowed_regions(item_id, atlas.GEAR_TILES)[len(atlas.PALETTE):]",
+      "    def own(face):",
+      "        u, v, x, y = validation.face_rect(face)",
+      "        return any(a <= u <= x <= c and b <= v <= y <= d for a, b, c, d in regions)",
+      "    assert all(face in requested or own(face) for cube in model.cubes for face in cube['uv'].values())",
       "print(json.dumps(list(models)))",
     ].join("\n"),
   );
