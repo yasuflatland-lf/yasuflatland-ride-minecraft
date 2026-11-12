@@ -4,7 +4,10 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("keeps the mug pair within budget with opaque painted faces and registered assemblies", async () => {
+// Full-catalog validation and pair generation need headroom under CI coverage.
+it("keeps the mug pair within budget with opaque painted faces and registered assemblies", {
+  timeout: 30_000,
+}, async () => {
   expect(
     await python.run(`
 import json, sys
