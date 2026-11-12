@@ -74,7 +74,8 @@ def side_walls():
         box(x0, x1, 0.76, DOOR_OPENING_Y[0], 0.75, 2.38, "body")
         for z0, z1 in ((0.75, FRONT_DOOR_SPAN[0]), (FRONT_DOOR_SPAN[1], REAR_DOOR_SPAN[0]), (2.34, 2.38)):
             box(x0, x1, DOOR_OPENING_Y[0], DOOR_OPENING_Y[1], z0, z1, "body")
-        box(x0, x1, 0.82, 1.405, 3.41, 3.56, "body")
+        # Tread corners sweep beyond the nominal 0.5 D radius; at z=3.41 they reach y=0.822 D.
+        box(x0, x1, 0.84, 1.405, 3.41, 3.56, "body")
     for path in (FRONT_ARCH, REAR_ARCH):
         # The side skin above the arch, in rectangular panels of at most 0.025 D steps
         for (z0, y0), (z1, y1) in zip(path, path[1:]):
