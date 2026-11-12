@@ -622,14 +622,18 @@ print(json.dumps(True))
     ).toBe(true);
   });
 
-  it("keeps shipped gear untiled and defines the six review angles in order", () => {
+  it("detects every ported gear tile and defines the six review angles in order", () => {
     expect(
       previewPython(`
+from tool_loader import load_tool
+cells = load_tool('gear_atlas').GEAR_TILES
 rp = Path('packs/yasu_ride_rp')
 texture = r.read_png(rp / r.GEAR_TEXTURE)
+PORTED = {'percolator', 'toaster', 'enamel_kettle', 'transistor_radio', 'sugar_pot', 'mug_pair', 'saucepan', 'potted_plant', 'cactus_pot', 'macrame_planter'}
 for item in json.loads(r.GEAR_SPEC.read_text()):
     geo = json.loads((rp / r.GEAR_GEOMETRY.format(item['id'])).read_text())['minecraft:geometry'][0]
-    assert not r.gear_tiled(geo, texture), item['id']
+    assert item['id'] in cells or not r.gear_tiled(geo, texture), item['id']
+    assert r.gear_tiled(geo, texture) == (item['id'] in PORTED), item['id']
 assert r.GEAR_VIEWS['left'] == (1, 0.15, 0)
 assert r.GEAR_VIEWS['right'] == (-1, 0.15, 0)
 assert r.GEAR_VIEWS['threeQuarter'] == r.VIEW_DIRECTION

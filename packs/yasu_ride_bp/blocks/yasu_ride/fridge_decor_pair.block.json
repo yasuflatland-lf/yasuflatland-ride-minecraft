@@ -53,7 +53,10 @@
         }
       },
       "minecraft:material_instances": {
-        "*": { "texture": "yasu_ride_camping_gear", "render_method": "opaque" }
+        "*": {
+          "texture": "yasu_ride_camping_gear",
+          "render_method": "alpha_test"
+        }
       },
       "minecraft:light_dampening": 0,
       "minecraft:destructible_by_mining": false,
