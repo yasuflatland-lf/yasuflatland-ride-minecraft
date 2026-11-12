@@ -184,26 +184,8 @@ const pairRenderMethod = () =>
   SPEC.some((g) => !g.hanging && hasCutouts(g.id)) ? "alpha_test" : "opaque";
 
 describe("camping gear spec (ADR 0093)", () => {
-  it("lists the 17 items in the contract's order", () => {
-    expect(SPEC.map((g) => g.id)).toEqual([
-      "potted_plant",
-      "macrame_planter",
-      "cactus_pot",
-      "percolator",
-      "enamel_kettle",
-      "saucepan",
-      "mug_pair",
-      "sugar_pot",
-      "fruit_bowl",
-      "toaster",
-      "transistor_radio",
-      "book_stack",
-      "road_map",
-      "photo_frame",
-      "cushion",
-      "tissue_box",
-      "desk_fan",
-    ]);
+  it("lists the items in the contract's order", () => {
+    expect(SPEC.map((g) => g.id)).toEqual(CAMPING_GEAR_IDS);
   });
 
   it("keeps the Japanese names as escapes so the file stays ASCII", () => {

@@ -8,6 +8,7 @@ import {
   asVehicleId,
 } from "../../../../../src/domain/shared/ids";
 import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
+import { STANDING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import { roomCells as camperRoomCells } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
 import {
   DECK_CELLS_PROPERTY,
@@ -36,6 +37,7 @@ import {
   DECOR_SPOT_STATE,
   decorBlockId,
   PAIR_END_STATES,
+  PAIR_PAGE_SIZE,
   pairDecorBlockId,
   pairEndStates,
   ROOM_FACE_STATE,
@@ -589,26 +591,32 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
     },
   });
   const [end0, end1] = PAIR_END_STATES;
-  // potted_plant is standing item 0 (code 1); desk_fan is standing item 16 (code 17).
-  docks.lay(asVehicleId(f.car.id), f.car, [pairAt("potted_plant", "desk_fan")]);
+  const first = defined(STANDING_GEAR_IDS[0], "first standing gear");
+  const last = defined(
+    STANDING_GEAR_IDS[STANDING_GEAR_IDS.length - 1],
+    "last standing gear",
+  );
+  const firstCode = 1;
+  const lastCode = STANDING_GEAR_IDS.length;
+  docks.lay(asVehicleId(f.car.id), f.car, [pairAt(first, last)]);
   expect(f.at(position)).toEqual({
     typeId: pairDecorBlockId("fridge"),
     states: {
       [DECOR_FACE_STATE]: 3,
       [DECOR_HEIGHT_STATE]: 3,
       [ROOM_OPEN_STATE]: true,
-      [end0.page]: 0,
-      [end0.item]: 1,
-      [end1.page]: 1,
-      [end1.item]: 6,
+      [end0.page]: Math.floor(firstCode / PAIR_PAGE_SIZE),
+      [end0.item]: firstCode % PAIR_PAGE_SIZE,
+      [end1.page]: Math.floor(lastCode / PAIR_PAGE_SIZE),
+      [end1.item]: lastCode % PAIR_PAGE_SIZE,
     },
   });
-  docks.lay(asVehicleId(f.car.id), f.car, [pairAt(undefined, "desk_fan")]);
+  docks.lay(asVehicleId(f.car.id), f.car, [pairAt(undefined, last)]);
   expect(f.at(position).states).toMatchObject({
     [end0.page]: 0,
     [end0.item]: 0,
   });
-  expect(f.savedCells()).toEqual([pairAt(undefined, "desk_fan")]);
+  expect(f.savedCells()).toEqual([pairAt(undefined, last)]);
   new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(position).typeId).toBe("minecraft:air");
 });
