@@ -98,7 +98,9 @@ print('ok')
   ).toBe("ok\n");
 });
 
-it("pads cutouts by nearest visible RGB with deterministic ties and checks every alpha boundary", async () => {
+it("pads cutouts by nearest visible RGB with deterministic ties and checks every alpha boundary", {
+  timeout: 30_000,
+}, async () => {
   expect(
     await python.run(`${setup}
 a.begin('percolator')

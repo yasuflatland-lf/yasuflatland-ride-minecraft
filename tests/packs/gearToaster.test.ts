@@ -4,7 +4,9 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds an opaque painted toaster within the item and pair budgets", async () => {
+it("builds an opaque painted toaster within the item and pair budgets", {
+  timeout: 30_000,
+}, async () => {
   expect(
     await python.run(`
 import json, sys

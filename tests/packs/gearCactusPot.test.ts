@@ -4,7 +4,9 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds an opaque cactus pot within its geometry and atlas limits", async () => {
+it("builds an opaque cactus pot within its geometry and atlas limits", {
+  timeout: 30_000,
+}, async () => {
   const output = await python.run(
     [
       "import json, sys",

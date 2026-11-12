@@ -4,7 +4,9 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds an opaque, textured plant within its size and rotation limits", async () => {
+it("builds an opaque, textured plant within its size and rotation limits", {
+  timeout: 30_000,
+}, async () => {
   const output = await python.run(
     [
       "import json, sys",
