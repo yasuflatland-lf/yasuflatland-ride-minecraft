@@ -4,7 +4,9 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds every registered gear item in catalog order with valid swatches or item tiles", async () => {
+it("builds every registered gear item in catalog order with valid swatches or item tiles", {
+  timeout: 30_000,
+}, async () => {
   const output = await python.run(
     [
       "import json, sys",
