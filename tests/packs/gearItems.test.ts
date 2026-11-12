@@ -41,6 +41,7 @@ it("builds every registered gear item in catalog order with valid swatches or it
       "    if item_id == 'potted_plant':",
       "        assert any(t.item_id == item_id for t in atlas.tiles())",
       "        assert all(own(face) for cube in model.cubes for face in cube['uv'].values())",
+      "    assert validation.uv_errors(item_id, model.cubes, atlas.GEAR_TILES) == []",
       "print(json.dumps(list(models)))",
     ].join("\n"),
   );

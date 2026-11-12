@@ -62,6 +62,15 @@
 - Implementation: `tools/gen_item_catalog.py`; `tools/camping_gear.json`; `packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/packs/campingGear.test.ts` "lists the inside, outside, resort, sports boat, and building groups in order" asserts the current complete catalog; "keeps outside items separate from decor and each catalog item unique" checks separation and old-group removal. Not verified: generator rejection cases by those assertions, and the client inventory order (manual-test C159/C160 have no recorded result).
 
+### Precision cactus pot
+
+- Applies to: The cactus pot decor model, atlas tile, item icon, and preview.
+- Rule: The cactus pot uses stepped twelve-sided terracotta rings, painted cactus ribs and soil, and cream spines. It retains the catalog dimensions and uses its own atlas cell alongside the other precision gear items. Resource Pack 0.1.303 and the matching Behavior Pack dependency invalidate cached assets.
+- Agreement: Proposed
+- Basis: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) Rotation rule, Atlas layout, and cube budget.
+- Implementation: `tools/gear_items/cactus_pot.py`; `tools/gen_camping_gear.py`
+- Verification: `tests/packs/gearCactusPot.test.ts` checks geometry bounds, cube budget, rotations, UV ownership, and opacity. Client appearance remains unverified.
+
 ### Roof tent starter item
 
 - Applies to: Players joining the world, including existing players without a roof tent receipt flag.
