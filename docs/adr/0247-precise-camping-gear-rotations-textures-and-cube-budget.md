@@ -111,7 +111,7 @@ Pair geometry stores every standing item at both ends: at the limit, `2 x 16 x 2
 
 ### Series
 
-Each item pull request that changes Resource Pack assets bumps the header, modules, and matching Behavior Pack dependency once relative to main (0015). The mug pair port uses 0.1.300 against main's 0.1.299; merging main does not require a second bump. Part 17/17 verifies the resulting version rather than deferring the item ports' cache invalidation until then.
+Each item pull request that changes Resource Pack assets bumps the header, modules, and matching Behavior Pack dependency once relative to main (0015). The saucepan port uses 0.1.301 against main's 0.1.300. Part 17/17 verifies the resulting version rather than deferring the item ports' cache invalidation until then.
 
 | Part       | Issue       | Contract                                                                              |
 | ---------- | ----------- | ------------------------------------------------------------------------------------- |

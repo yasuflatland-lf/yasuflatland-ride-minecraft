@@ -622,7 +622,7 @@ print(json.dumps(True))
     ).toBe(true);
   });
 
-  it("detects the percolator, toaster, kettle, radio, sugar pot and mug pair tiles and defines the six review angles in order", () => {
+  it("detects the percolator, toaster, kettle, radio, sugar pot, mug pair and saucepan tiles and defines the six review angles in order", () => {
     expect(
       previewPython(`
 from tool_loader import load_tool
@@ -632,7 +632,7 @@ texture = r.read_png(rp / r.GEAR_TEXTURE)
 for item in json.loads(r.GEAR_SPEC.read_text()):
     geo = json.loads((rp / r.GEAR_GEOMETRY.format(item['id'])).read_text())['minecraft:geometry'][0]
     assert item['id'] in cells or not r.gear_tiled(geo, texture), item['id']
-    assert r.gear_tiled(geo, texture) == (item['id'] in ('percolator', 'toaster', 'enamel_kettle', 'transistor_radio', 'sugar_pot', 'mug_pair')), item['id']
+    assert r.gear_tiled(geo, texture) == (item['id'] in ('percolator', 'toaster', 'enamel_kettle', 'transistor_radio', 'sugar_pot', 'mug_pair', 'saucepan')), item['id']
 assert r.GEAR_VIEWS['left'] == (1, 0.15, 0)
 assert r.GEAR_VIEWS['right'] == (-1, 0.15, 0)
 assert r.GEAR_VIEWS['threeQuarter'] == r.VIEW_DIRECTION
