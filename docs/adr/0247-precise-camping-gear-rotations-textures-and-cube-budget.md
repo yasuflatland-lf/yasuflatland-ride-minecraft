@@ -68,7 +68,7 @@ Pair blocks retain one bone per item per end (0108). Assemblies belong to items,
 
 Keep one PNG, `textures/blocks/yasu_ride/camping_gear.png`, and terrain shortname `yasu_ride_camping_gear`, growing the PNG and every gear geometry's `texture_width` and `texture_height` to 512. The 512 x 512 atlas is a 4 x 4 grid of 128 x 128 cells. Cell 0 keeps all sixteen existing flat swatches at x 0–15, y 0–15. Existing swatch UVs remain valid, so untiled items keep their appearance.
 
-5/17 owns this static `GEAR_TILES` table; item pull requests do not edit it. Cell n starts at `(128 * (n % 4), 128 * (n // 4))`.
+The static `GEAR_TILES` table assigns the shipped cells. Cell n starts at `(128 * (n % 4), 128 * (n // 4))`.
 
 | Cell  | Item               |
 | ----- | ------------------ |
@@ -112,7 +112,7 @@ Set `MAX_CUBES_PER_ITEM = 256`, counted after decomposition for one hanging or s
 
 The owner measures both PC and phone using the inline proof procedure below: fill an 8 x 8 area (64 blocks) with N-cube proof blocks at a fixed view and compare against the empty view. A budget passes when frame rate stays within 10 percent of baseline. ADR 0093 lists 12 decor slots before later furniture, so 64 blocks exceeds the expected real load several times. A phone without a frame-rate display can record visible stutter, but that cannot establish the numerical threshold.
 
-Pair geometry stores every standing item at both ends: at the limit, `2 x 16 x 256 = 8192` cubes per geometry, although only 512 are visible. Hidden-bone load time, memory and frame-time costs remain unverified; compare `pair_hidden` with `budget_512`. Every detailed item increases Resource Pack size, including duplication across pair geometries.
+The shipped `alarm_clock`, `instant_camera`, and `binoculars` contain 237, 249, and 248 cubes, respectively. Pair geometry stores all 19 standing items at both ends: each shipped pair geometry has 38 bones and 4,768 cubes, with at most 512 visible. At the limit, 19 items would store `2 x 19 x 256 = 9728` cubes per geometry. Hidden-bone load time, memory and frame-time costs remain unverified; compare `pair_hidden` with `budget_512`. Every detailed item increases Resource Pack size, including duplication across pair geometries.
 
 ### Series
 
@@ -129,7 +129,7 @@ Each item pull request that changes Resource Pack assets bumps the header, modul
 
 ## Consequences
 
-The 512 x 512 RGBA atlas consumes 1 MiB before mipmaps. Pair files duplicate detailed items; the current JSON estimate is about 4.24 MiB per maximum-size geometry. `alpha_test` disables backface culling across a whole pair, increasing rendered faces. Opaque glass twins consume tile space. Restricting roll can change panel or tube details, and the stepped fallback can force detail reductions to retain the cube limits.
+The 512 x 512 RGBA atlas consumes 1 MiB before mipmaps. Pair files duplicate detailed items; the earlier JSON estimate was about 4.24 MiB for 8,192 stored cubes. `alpha_test` disables backface culling across a whole pair, increasing rendered faces. Opaque glass twins consume tile space. Restricting roll can change panel or tube details, and the stepped fallback can force detail reductions to retain the cube limits.
 
 Every rule here remains provisional until the proof. Removing the historical spike changes no shipped asset, item model, generator integration, or manifest. The historical isolated proof deliberately contained an invalid mixed opaque/blend block to reproduce the recorded BDS failure.
 

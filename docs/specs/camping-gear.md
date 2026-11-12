@@ -62,10 +62,19 @@
 - Implementation: `tools/gen_item_catalog.py`; `tools/camping_gear.json`; `packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/packs/campingGear.test.ts` "lists the inside, outside, resort, sports boat, and building groups in order" asserts the current complete catalog; "keeps outside items separate from decor and each catalog item unique" checks separation and old-group removal. Not verified: generator rejection cases by those assertions, and the client inventory order (manual-test C159/C160 have no recorded result).
 
+### Inside gear dimensions
+
+- Applies to: The 20 inside gear items in catalog order.
+- Rule: Width x height in model pixels: `potted_plant` 5 x 8, `macrame_planter` 5 x 10, `cactus_pot` 4 x 7, `percolator` 4 x 7, `enamel_kettle` 5 x 5, `saucepan` 6 x 3, `mug_pair` 4 x 1.635, `sugar_pot` 3 x 4, `fruit_bowl` 6 x 3, `toaster` 6 x 5, `transistor_radio` 6 x 4, `book_stack` 6 x 3, `road_map` 6 x 1, `photo_frame` 4 x 5, `cushion` 7 x 3, `tissue_box` 5 x 3, `desk_fan` 4 x 6, `alarm_clock` 4 x 5, `instant_camera` 5 x 7, `binoculars` 5 x 3. The box contains one of each; 19 stand and `macrame_planter` hangs.
+- Agreement: Proposed
+- Basis: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md), atlas and cube budget.
+- Implementation: `tools/camping_gear.json`; `src/domain/vehicle/kinds/camper/campingGear.ts`
+- Verification: `tests/packs/campingGear.test.ts` checks the catalog; client appearance remains unverified.
+
 ### Precision cactus pot
 
 - Applies to: The cactus pot decor model, atlas tile, item icon, and preview.
-- Rule: The cactus pot uses stepped twelve-sided terracotta rings, painted cactus ribs and soil, and cream spines. It retains the catalog dimensions and uses its own atlas cell alongside the other precision gear items. Resource Pack 0.1.305 and the matching Behavior Pack dependency invalidate cached assets for the combined precision gear atlas.
+- Rule: The cactus pot uses stepped twelve-sided terracotta rings, painted cactus ribs and soil, and cream spines. It retains the catalog dimensions and uses its own atlas cell alongside the other precision gear items. Resource Pack 0.1.306 and the matching Behavior Pack dependency invalidate cached assets for the combined precision gear atlas.
 - Agreement: Proposed
 - Basis: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) Rotation rule, Atlas layout, and cube budget.
 - Implementation: `tools/gear_items/cactus_pot.py`; `tools/gen_camping_gear.py`
