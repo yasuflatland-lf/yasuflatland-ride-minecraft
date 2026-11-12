@@ -168,5 +168,35 @@
     "glass": false,
     "hanging": false,
     "reference": null
+  },
+  {
+    "id": "alarm_clock",
+    "name_en": "Twin-Bell Alarm Clock",
+    "name_ja": "\u30c4\u30a4\u30f3\u30d9\u30eb\u76ee\u899a\u307e\u3057\u6642\u8a08",
+    "width_px": 4,
+    "height_px": 5,
+    "glass": false,
+    "hanging": false,
+    "reference": null
+  },
+  {
+    "id": "instant_camera",
+    "name_en": "Instant Camera",
+    "name_ja": "\u30a4\u30f3\u30b9\u30bf\u30f3\u30c8\u30ab\u30e1\u30e9",
+    "width_px": 5,
+    "height_px": 7,
+    "glass": false,
+    "hanging": false,
+    "reference": null
+  },
+  {
+    "id": "binoculars",
+    "name_en": "Binoculars",
+    "name_ja": "\u53cc\u773c\u93e1",
+    "width_px": 5,
+    "height_px": 3,
+    "glass": false,
+    "hanging": false,
+    "reference": null
   }
 ]

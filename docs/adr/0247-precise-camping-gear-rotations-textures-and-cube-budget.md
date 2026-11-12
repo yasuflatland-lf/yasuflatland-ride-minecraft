@@ -83,7 +83,10 @@ Keep one PNG, `textures/blocks/yasu_ride/camping_gear.png`, and terrain shortnam
 | 8     | `potted_plant`     |
 | 9     | `cactus_pot`       |
 | 10    | `macrame_planter`  |
-| 11–15 | Spare              |
+| 11    | `alarm_clock`      |
+| 12    | `instant_camera`   |
+| 13    | `binoculars`       |
+| 14–15 | Spare              |
 
 Each item cell's outer 4 texels are an edge-extension gutter, leaving 120 x 120 usable texels at offset (4, 4). Within a tile, every painted region sampled by a face has 2 texels of edge extension around it. Four texels exclude neighbors from mip levels 1 and 2 under a 4 x 4 footprint assumption; this is a layout rationale awaiting the client check, not a claim about the undocumented terrain mip chain. Bleeding at farther mip levels is accepted.
 
@@ -93,7 +96,7 @@ Apply 0246's alpha rules to blocks: non-glass texels have alpha 0 or 255, and al
 
 Each item pull request paints only its assigned cell. The PNG is a pure function of generators. After a rebase or merge, never hand-merge `camping_gear.png` or any generated gear file: select either side with `git checkout --theirs <file>` or `git checkout --ours <file>`, run `pnpm model`, and commit the regenerated file. `pnpm model:check` proves freshness.
 
-Rejected alternative: one PNG and terrain entry per item. A pair block draws two items with one `*` material instance; separate textures would require a named instance per item on every face and 17 more terrain entries.
+Rejected alternative: one PNG and terrain entry per item. A pair block draws two items with one `*` material instance; separate textures would require a named instance per item on every face and 20 terrain entries.
 
 ### Render methods and glass
 

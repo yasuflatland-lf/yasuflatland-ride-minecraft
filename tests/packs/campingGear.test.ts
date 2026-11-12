@@ -188,6 +188,25 @@ describe("camping gear spec (ADR 0093)", () => {
     expect(SPEC.map((g) => g.id)).toEqual(CAMPING_GEAR_IDS);
   });
 
+  it("appends the three placeholders without changing existing pair codes", () => {
+    expect(SPEC).toHaveLength(20);
+    expect(CAMPING_GEAR_IDS.slice(-4)).toEqual([
+      "desk_fan",
+      "alarm_clock",
+      "instant_camera",
+      "binoculars",
+    ]);
+    for (const [index, id] of [
+      "alarm_clock",
+      "instant_camera",
+      "binoculars",
+    ].entries()) {
+      expect(STANDING_GEAR_IDS.indexOf(id) + 1).toBe(17 + index);
+      expect(gearTiles[id]).toBe(11 + index);
+    }
+    expect(Math.ceil((STANDING_GEAR_IDS.length + 1) / PAIR_PAGE_SIZE)).toBe(2);
+  });
+
   it("keeps the Japanese names as escapes so the file stays ASCII", () => {
     // pnpm lint:lang allows Japanese only in texts/*.lang (AGENTS.md)
     const codes = (text: string) =>
@@ -203,7 +222,7 @@ describe("camping gear spec (ADR 0093)", () => {
   it.each(SPEC)(
     "$id: has a name, a size that fits its slot, and says whether it hangs",
     (g) => {
-      expect(g.name_en).toMatch(/^[A-Z][A-Za-z ]*[a-z]$/);
+      expect(g.name_en).toMatch(/^[A-Z][A-Za-z -]*[a-z]$/);
       expect(
         Number.isInteger(g.width_px) && g.width_px >= 1 && g.width_px <= 8,
       ).toBe(true);
@@ -1088,7 +1107,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
     ];
-    expect(items).toHaveLength(18);
+    expect(items).toHaveLength(SPEC.length + 1);
     expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
       format_version: "1.21.60",
       "minecraft:crafting_items_catalog": {

@@ -61,7 +61,7 @@ describe("camping gear box (ADR 0093)", () => {
     expect(GIFT_CONTENTS.camping_gear_box).toEqual(
       spec.map((g) => `yasu_ride:${g.id}`),
     );
-    expect(GIFT_CONTENTS.camping_gear_box).toHaveLength(17);
+    expect(GIFT_CONTENTS.camping_gear_box).toHaveLength(spec.length);
     const items = new Set(
       jsonFiles(BP)
         .map(
