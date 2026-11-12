@@ -205,6 +205,10 @@ def pair_geometry(kind, spec):
     for end, (left, ahead) in enumerate(PAIRS[kind]["ends"]):
         for item in standing(spec):
             cubes = [moved(c, left, ahead) for c in SHAPES[item["id"]]]
+            members = {name: [moved(c, left, ahead) for c in part]
+                       for name, part in MODELS_BY_ID[item["id"]].assemblies.items()}
+            table = ITEM_ASSEMBLIES[item["id"]]
+            cube_tilt.assert_axes(cubes, members, table)
             bones.append({"name": pair_bone(end, item["id"]), "pivot": [0, 0, 0], "cubes": cubes})
     return rounded({
         "format_version": "1.12.0",

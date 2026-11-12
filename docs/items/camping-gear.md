@@ -12,7 +12,7 @@ Each item stands in the middle of one slot on the camper's furniture, or at one 
 | ![Percolator](../images/items/camping-gear/percolator.png)                   | Percolator              | 4 × 7     | Stands                      | None      |
 | ![Enamel Kettle](../images/items/camping-gear/enamel_kettle.png)             | Enamel Kettle           | 5 × 5     | Stands                      | None      |
 | ![Saucepan](../images/items/camping-gear/saucepan.png)                       | Saucepan                | 6 × 3     | Stands                      | None      |
-| ![Pair of Mugs](../images/items/camping-gear/mug_pair.png)                   | Pair of Mugs            | 4 × 3     | Stands                      | None      |
+| ![Pair of Mugs](../images/items/camping-gear/mug_pair.png)                   | Pair of Mugs            | 4 × 1.635 | Stands                      | None      |
 | ![Glass Sugar Pot](../images/items/camping-gear/sugar_pot.png)               | Glass Sugar Pot         | 3 × 4     | Stands                      | None      |
 | ![Fruit Bowl](../images/items/camping-gear/fruit_bowl.png)                   | Fruit Bowl              | 6 × 3     | Stands                      | None      |
 | ![Chrome Toaster](../images/items/camping-gear/toaster.png)                  | Chrome Toaster          | 6 × 5     | Stands                      | None      |

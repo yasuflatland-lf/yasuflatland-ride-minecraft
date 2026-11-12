@@ -227,7 +227,8 @@ describe("camping gear spec (ADR 0093)", () => {
       ).toBe(true);
       const maxHeight = g.hanging ? MAX_HANGING_HEIGHT : MAX_STANDING_HEIGHT;
       expect(
-        Number.isInteger(g.height_px) &&
+        // The mug pair keeps the spike's true 1.635 px proportions (ADR 0093).
+        (Number.isInteger(g.height_px) || g.id === "mug_pair") &&
           g.height_px >= 1 &&
           g.height_px <= maxHeight,
       ).toBe(true);
