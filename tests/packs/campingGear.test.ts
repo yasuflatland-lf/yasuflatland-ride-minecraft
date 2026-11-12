@@ -336,15 +336,17 @@ describe("camping gear block models (ADR 0093)", () => {
       const usesGlass = cubesOf(g.id).some((c) =>
         FACES.some((f) => c.uv[f].uv.join() === GLASS_UV.join()),
       );
-      expect(usesGlass).toBe(g.glass);
+      // The painted sugar pot samples its own tile, not the glass swatch (ADR 0247).
+      expect(usesGlass).toBe(g.glass && g.id !== "sugar_pot");
     },
   );
 
   it("keeps the pair geometries within their cell and size budget (ADR 0169)", () => {
     for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
+      // ADR 0247 estimates 4.24 MiB for all 8,192 stored cubes, including hidden items.
       expect(
         statSync(`${MODELS}/${kind}_decor_pair.geo.json`).size,
-      ).toBeLessThan(1_000_000);
+      ).toBeLessThan(4_500_000);
       for (const bone of geometryOf(`${kind}_decor_pair`).bones) {
         for (const p of bone.cubes.flatMap(cubeCorners)) {
           expect(Math.abs(p[0])).toBeLessThanOrEqual(8);
