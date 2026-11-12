@@ -4,7 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds every registered gear item in catalog order with requested swatches or item tiles", async () => {
+it("builds every registered gear item in catalog order with valid swatches or item tiles", async () => {
   const output = await python.run(
     [
       "import json, sys",
@@ -28,7 +28,7 @@ it("builds every registered gear item in catalog order with requested swatches o
       "    assert registry.build(item_id) == model",
       "    assert isinstance(model.texture_request, tuple)",
       "    assert model.texture_request",
-      "    if item_id in ('mug_pair', 'saucepan'):",
+      "    if item_id in ('mug_pair', 'saucepan', 'potted_plant'):",
       "        assert model.texture_request == (item_id,)",
       "        assert any(t.item_id == item_id for t in atlas.tiles())",
       "    assert all(name in atlas.PALETTE or (name == item_id and name in atlas.GEAR_TILES) for name in model.texture_request)",
@@ -38,6 +38,9 @@ it("builds every registered gear item in catalog order with requested swatches o
       "        u, v, x, y = validation.face_rect(face)",
       "        return any(a <= u <= x <= c and b <= v <= y <= d for a, b, c, d in regions)",
       "    assert all(face in requested or own(face) for cube in model.cubes for face in cube['uv'].values())",
+      "    if item_id == 'potted_plant':",
+      "        assert any(t.item_id == item_id for t in atlas.tiles())",
+      "        assert all(own(face) for cube in model.cubes for face in cube['uv'].values())",
       "print(json.dumps(list(models)))",
     ].join("\n"),
   );
