@@ -1,4 +1,4 @@
-"""Panel port of spike/camping-gear/items/macrame_planter.js (ADR 0247)."""
+"""Panel port of the historical Macrame Hanging Planter reference (ADR 0247)."""
 
 import math
 from tool_loader import load_tool as _load_tool

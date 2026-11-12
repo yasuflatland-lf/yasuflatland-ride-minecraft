@@ -1,4 +1,4 @@
-"""Build the glass sugar pot model in pixels (spike/camping-gear/items/sugar_pot.js).
+"""Build the glass sugar pot model in pixels from the historical reference (ADR 0247).
 
 A straight-sided 32-sided glass jar on a thick glass base, a rolled rim, a flat lid with a
 rounded edge and a knob, sugar crystals inside, and a steel spoon. Rings are yaw-only 32-sided

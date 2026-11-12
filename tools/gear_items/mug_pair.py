@@ -1,4 +1,4 @@
-"""Opaque ceramic panels ported from spike/camping-gear/items/mug_pair.js."""
+"""Opaque ceramic panels ported from the historical mug pair reference (ADR 0247)."""
 
 import math
 

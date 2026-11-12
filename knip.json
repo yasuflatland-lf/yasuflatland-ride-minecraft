@@ -1,7 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6.41.0/schema.json",
   "ignoreDependencies": ["@swc/core"],
-  "ignore": ["spike/**"],
   "entry": [
     "src/main.ts",
     "src/test-pack/runner.ts",
