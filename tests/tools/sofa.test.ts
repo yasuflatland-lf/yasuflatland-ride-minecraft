@@ -85,18 +85,20 @@ with tempfile.TemporaryDirectory() as folder:
     subprocess.run(cmd, check=True, capture_output=True)
     subprocess.run(cmd+['--check'], check=True, capture_output=True)
     root = Path(folder)
+    stale = {}
     for kind in ('sofa_single', 'sofa_double'):
         geo = root/f'models/entity/yasu_ride/{kind}.geo.json'
         assert json.loads(geo.read_text()) == m.geometry(1 if kind == 'sofa_single' else 2)
         geo.write_text('{}')
-        result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
-        assert result.returncode and str(geo) in result.stderr
-        subprocess.run(cmd, check=True, capture_output=True)
+        stale[geo] = geo.read_bytes()
         texture = root/f'textures/entity/yasu_ride/{kind}.png'
         m.texture_io.Outputs(False).png(texture, 1, 1, lambda x,y: (0,0,0,0))
-        result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
-        assert result.returncode and str(texture) in result.stderr
-        subprocess.run(cmd, check=True, capture_output=True)
+        stale[texture] = texture.read_bytes()
+    result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
+    assert result.returncode
+    for path, contents in stale.items():
+        assert str(path) in result.stderr
+        assert path.read_bytes() == contents
 `);
   }, 30000);
 });

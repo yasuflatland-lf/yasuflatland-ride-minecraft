@@ -65,7 +65,7 @@
 ### Precision cactus pot
 
 - Applies to: The cactus pot decor model, atlas tile, item icon, and preview.
-- Rule: The cactus pot uses stepped twelve-sided terracotta rings, painted cactus ribs and soil, and cream spines. It retains the catalog dimensions and uses its own atlas cell alongside the other precision gear items. Resource Pack 0.1.305 and the matching Behavior Pack dependency invalidate cached assets for the combined precision gear atlas.
+- Rule: The cactus pot uses stepped twelve-sided terracotta rings, painted cactus ribs and soil, and cream spines. It retains the catalog dimensions and uses its own atlas cell alongside the other precision gear items. Resource Pack 0.1.307 and the matching Behavior Pack dependency invalidate cached assets for the combined precision gear atlas.
 - Agreement: Proposed
 - Basis: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) Rotation rule, Atlas layout, and cube budget.
 - Implementation: `tools/gear_items/cactus_pot.py`; `tools/gen_camping_gear.py`
