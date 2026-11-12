@@ -118,4 +118,4 @@ def build() -> _gear_model.GearModel:
         if any(cube.get("rotation", [])):
             cube["origin"][0] += 0.001
             cube["size"][0] -= 0.002
-    return _gear_model.GearModel(cubes=tuple(cubes), texture_request=())
+    return _gear_model.GearModel(cubes=tuple(cubes), texture_request=("saucepan",))
