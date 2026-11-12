@@ -21,7 +21,8 @@ assert tilt.bounds(model.cubes)[1][:2] == [2.5, 10]
 assert all(c.get('rotation', [0, 0, 0])[2] == 0 for c in model.cubes)
 compound = tilt.compound_cubes(model.cubes)
 assert len(compound) == item.ASSEMBLIES['macrame_planter_net']['cubes']
-tilt.assert_axes(model.cubes, {'macrame_planter_net': compound}, registry.assemblies('macrame_planter'))
+assert model.assemblies == {'macrame_planter_net': tuple(compound)}
+tilt.assert_axes(model.cubes, model.assemblies, registry.assemblies('macrame_planter'))
 assert atlas.GEAR_TILES['macrame_planter'] == 10
 assert any(t.item_id == 'macrame_planter' for t in atlas.tiles())
 print('ok')

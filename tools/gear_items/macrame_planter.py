@@ -167,4 +167,6 @@ def build() -> _gear_model.GearModel:
     for cube, _ in parts:
         for side in ("north", "south", "east", "west", "up", "down"):
             cube["uv"].setdefault(side, hidden)
-    return _gear_model.GearModel(tuple(c for c, _ in parts), ("macrame_planter",))
+    cubes = tuple(c for c, _ in parts)
+    return _gear_model.GearModel(cubes, ("macrame_planter",),
+                                 {"macrame_planter_net": tuple(_tilt.compound_cubes(cubes))})

@@ -30,8 +30,8 @@ def pair_budget_errors(kind, counts, limit=MAX_CUBES_PER_PAIR_BLOCK):
 
 
 def rotation_errors(item_id, cubes):
-    return [f"{item_id}: cube {i} has three rotation axes, at most two allowed"
-            for i, cube in enumerate(cubes) if cube_tilt.axis_count(cube) > 2]
+    return [f"{item_id}: cube {i} has roll or more than two rotation axes"
+            for i, cube in enumerate(cubes) if cube_tilt.axis_count(cube) > 2 or cube.get("rotation", [0, 0, 0])[2] != 0]
 
 
 def face_rect(face):
