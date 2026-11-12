@@ -30,6 +30,9 @@ GEAR_TILES = {
     "potted_plant": 8,
     "cactus_pot": 9,
     "macrame_planter": 10,
+    "alarm_clock": 11,
+    "instant_camera": 12,
+    "binoculars": 13,
 }
 SWATCH = 4
 # 1970s motorhome colors (#347): avocado, harvest gold, burnt orange, brown, cream, and chrome

@@ -629,7 +629,7 @@ from tool_loader import load_tool
 cells = load_tool('gear_atlas').GEAR_TILES
 rp = Path('packs/yasu_ride_rp')
 texture = r.read_png(rp / r.GEAR_TEXTURE)
-PORTED = {'percolator', 'toaster', 'enamel_kettle', 'transistor_radio', 'sugar_pot', 'mug_pair', 'saucepan', 'potted_plant', 'cactus_pot', 'macrame_planter'}
+PORTED = set(cells)
 for item in json.loads(r.GEAR_SPEC.read_text()):
     geo = json.loads((rp / r.GEAR_GEOMETRY.format(item['id'])).read_text())['minecraft:geometry'][0]
     assert item['id'] in cells or not r.gear_tiled(geo, texture), item['id']

@@ -4,7 +4,7 @@ Items other than vehicles, one page per group. Back to the [README](../../README
 
 | Group                      | Items | Page                                                                                                                                        |
 | -------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Camping Gear (Inside)**  | 17    | [Previews and placement](camping-gear.md)                                                                                                   |
+| **Camping Gear (Inside)**  | 20    | [Previews and placement](camping-gear.md)                                                                                                   |
 | **Camping Gear (Outside)** | 8     | [Low Chair, Noga Chair, Tent, Roof Tent, Camp Table, Fire Pit, Dutch Oven, and Gas Lantern](camping-gear.md#low-chair-outside-the-vehicles) |
 | **Resort Gear**            | 4     | [Beach Parasol](resort-gear.md), [Beach Chair, Dining Table, and Dining Chair](resort-gear.md#beach-chair)                                  |
 | **Sports Boat Equipment**  | 1     | [Icebreaker Switch](sportsboat-equipment.md)                                                                                                |

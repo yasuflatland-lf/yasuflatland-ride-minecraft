@@ -21,6 +21,9 @@ export const CAMPING_GEAR_IDS: readonly string[] = Object.freeze([
   "cushion",
   "tissue_box",
   "desk_fan",
+  "alarm_clock",
+  "instant_camera",
+  "binoculars",
 ]);
 
 /** The gear that hangs from the ceiling hook; every other item stands (ADR 0097). */

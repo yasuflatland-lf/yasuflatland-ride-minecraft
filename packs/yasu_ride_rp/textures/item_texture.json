@@ -116,6 +116,15 @@
     "yasu_ride_tissue_box": {
       "textures": "textures/items/yasu_ride/tissue_box"
     },
-    "yasu_ride_desk_fan": { "textures": "textures/items/yasu_ride/desk_fan" }
+    "yasu_ride_desk_fan": { "textures": "textures/items/yasu_ride/desk_fan" },
+    "yasu_ride_alarm_clock": {
+      "textures": "textures/items/yasu_ride/alarm_clock"
+    },
+    "yasu_ride_instant_camera": {
+      "textures": "textures/items/yasu_ride/instant_camera"
+    },
+    "yasu_ride_binoculars": {
+      "textures": "textures/items/yasu_ride/binoculars"
+    }
   }
 }

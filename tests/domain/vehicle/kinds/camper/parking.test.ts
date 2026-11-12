@@ -758,6 +758,33 @@ it("stows an entry of a removed slot when no slot that takes its item is free, a
   expect(f.drive.decor()).toEqual([...fullSlots, ...cabinetEntries]);
 });
 
+it("restores each new standing item in every standing slot", () => {
+  fc.assert(
+    fc.property(fc.integer(), (yaw) => {
+      for (const item of ["alarm_clock", "instant_camera", "binoculars"]) {
+        for (const slot of DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook")) {
+          const entries = [{ slot: slot.id, item }];
+          const restored = new CamperDrive(yaw, {
+            dockDecor: JSON.stringify(entries),
+          });
+          expect(restored.decor()).toEqual(entries);
+        }
+        for (const [oldSlot, currentSlot] of [
+          ["shelf_low", "fridge_bottom_rear"],
+          ["shelf_low_front", "fridge_bottom_front"],
+          ["shelf_high", "fridge_top_rear"],
+          ["shelf_high_front", "fridge_top_front"],
+        ]) {
+          const restored = new CamperDrive(yaw, {
+            dockDecor: JSON.stringify([{ slot: oldSlot, item }]),
+          });
+          expect(restored.decor()).toEqual([{ slot: currentSlot, item }]);
+        }
+      }
+    }),
+  );
+});
+
 it("never loses a saved item when restoring (ADR 0103)", () => {
   const slotId = fc.constantFrom(
     ...DECOR_SLOTS.map((s) => s.id),

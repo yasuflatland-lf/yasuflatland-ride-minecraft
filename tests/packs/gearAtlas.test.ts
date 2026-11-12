@@ -66,7 +66,7 @@ for n in a.GEAR_TILES.values():
         for x in range(128):
             if x < 4 or x >= 124 or y < 4 or y >= 124:
                 assert pixel(cx + x, cy + y) == pixel(cx + min(max(x, 4), 123), cy + min(max(y, 4), 123))
-for n in range(11, 16):
+for n in set(range(1, 16)) - set(a.GEAR_TILES.values()):
     assert all(pixel(128 * (n % 4) + x, 128 * (n // 4) + y) == bytes(4) for y in range(128) for x in range(128))
 with TemporaryDirectory() as directory:
     first, second = Path(directory) / 'a.png', Path(directory) / 'b.png'
