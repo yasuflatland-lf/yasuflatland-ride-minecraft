@@ -111,14 +111,16 @@ Pair geometry stores every standing item at both ends: at the limit, `2 x 16 x 2
 
 ### Series
 
-| Part       | Issue       | Contract                                                                                 |
-| ---------- | ----------- | ---------------------------------------------------------------------------------------- |
-| 3/17       | #1592       | Refactor with no output change                                                           |
-| 4/17       | #1593       | Rotation rule and `COMPOUND_TILTS` in the geometry kit                                   |
-| 5/17       | #1594       | Atlas, static tiles, gutter, density and alpha                                           |
-| 6/17       | #1595       | Budget constants and checks                                                              |
-| 7/17–16/17 | #1596–#1605 | Item ports follow these contracts                                                        |
-| 17/17      | #1606       | Record proof results, accept or revise this ADR, and bump the Resource Pack version once |
+Each item pull request that changes Resource Pack assets bumps the header, modules, and matching Behavior Pack dependency once relative to main (0015). The cactus pot port uses 0.1.303 against main's 0.1.302. Part 17/17 verifies the resulting version rather than deferring the item ports' cache invalidation until then.
+
+| Part       | Issue       | Contract                                                                              |
+| ---------- | ----------- | ------------------------------------------------------------------------------------- |
+| 3/17       | #1592       | Refactor with no output change                                                        |
+| 4/17       | #1593       | Rotation rule and `COMPOUND_TILTS` in the geometry kit                                |
+| 5/17       | #1594       | Atlas, static tiles, gutter, density and alpha                                        |
+| 6/17       | #1595       | Budget constants and checks                                                           |
+| 7/17–16/17 | #1596–#1605 | Item ports follow these contracts                                                     |
+| 17/17      | #1606       | Record proof results, accept or revise this ADR, and verify the Resource Pack version |
 
 ## Consequences
 

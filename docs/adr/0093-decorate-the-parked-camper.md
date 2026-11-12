@@ -81,7 +81,7 @@ The `ceiling_hook` slot is for hanging items. Its height is 0, and a hanging ite
 | `percolator`       | Percolator              | 4 × 7               | stove                  |
 | `enamel_kettle`    | Enamel Kettle           | 5 × 5               | stove                  |
 | `saucepan`         | Saucepan                | 6 × 3               | stove                  |
-| `mug_pair`         | Pair of Mugs            | 4 × 3               | table, counter         |
+| `mug_pair`         | Pair of Mugs            | 4 × 1.635           | table, counter         |
 | `sugar_pot`        | Glass Sugar Pot         | 3 × 4               | counter                |
 | `fruit_bowl`       | Fruit Bowl              | 6 × 3               | table                  |
 | `toaster`          | Chrome Toaster          | 6 × 5               | counter                |

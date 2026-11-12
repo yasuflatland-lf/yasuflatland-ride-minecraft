@@ -6,6 +6,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { type Triple, turnedCorners } from "../support/geometry";
 import { type Json, jsonFileEntries, jsonFiles } from "../support/packFiles";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -39,7 +40,7 @@ const INVISIBLE_BLOCKS = [
   "tent_wall",
 ].map((name) => `blocks/yasu_ride/${name}.block.json`);
 
-type Cube = { origin: number[] };
+type Cube = { origin: Triple; size: Triple; pivot?: Triple; rotation?: Triple };
 type GeometryReference = string | { identifier: string };
 
 interface BlockGeometry {
@@ -94,7 +95,11 @@ function modelCubes(): Map<string, Cube[]> {
 }
 
 function lowestY(cubes: Cube[]): number {
-  return Math.min(...cubes.map((cube) => cube.origin[1] ?? 0));
+  return Math.min(
+    ...cubes.flatMap((cube) =>
+      turnedCorners({ name: "root" }, cube).map((point) => point[1]),
+    ),
+  );
 }
 
 const blocks = blockGeometries();
@@ -165,7 +170,7 @@ const PAIR_BLOCKS = [
 ].map((name) => `blocks/yasu_ride/${name}.block.json`);
 
 type Bounds = { lo: number[]; hi: number[] };
-type Box = { origin: number[]; size: number[] };
+type Box = Cube;
 interface Transformation {
   rotation?: number[];
   translation?: number[];
@@ -209,24 +214,20 @@ function transformed(cubes: Box[], t: Transformation | undefined): Bounds {
   const [tx = 0, ty = 0, tz = 0] = (t?.translation ?? []).map((v) => v * 16);
   const lo = [Infinity, Infinity, Infinity];
   const hi = [-Infinity, -Infinity, -Infinity];
-  for (const { origin, size } of cubes)
-    for (const dx of [0, 1])
-      for (const dy of [0, 1])
-        for (const dz of [0, 1]) {
-          const x = (origin[0] ?? 0) + dx * (size[0] ?? 0);
-          const y = (origin[1] ?? 0) + dy * (size[1] ?? 0);
-          const z = (origin[2] ?? 0) + dz * (size[2] ?? 0);
-          // Bedrock's block turn by r takes (x, z) to (x cos r + z sin r, z cos r - x sin r).
-          const p = [
-            x * Math.cos(r) + z * Math.sin(r) + tx,
-            y + ty,
-            z * Math.cos(r) - x * Math.sin(r) + tz,
-          ];
-          for (const axis of AXES) {
-            lo[axis] = Math.min(lo[axis] ?? Infinity, p[axis] ?? 0);
-            hi[axis] = Math.max(hi[axis] ?? -Infinity, p[axis] ?? 0);
-          }
-        }
+  for (const cube of cubes) {
+    for (const [x, y, z] of turnedCorners({ name: "root" }, cube)) {
+      // Bedrock's block turn by r takes (x, z) to (x cos r + z sin r, z cos r - x sin r).
+      const p = [
+        x * Math.cos(r) + z * Math.sin(r) + tx,
+        y + ty,
+        z * Math.cos(r) - x * Math.sin(r) + tz,
+      ];
+      for (const axis of AXES) {
+        lo[axis] = Math.min(lo[axis] ?? Infinity, p[axis] ?? 0);
+        hi[axis] = Math.max(hi[axis] ?? -Infinity, p[axis] ?? 0);
+      }
+    }
+  }
   return { lo, hi };
 }
 
