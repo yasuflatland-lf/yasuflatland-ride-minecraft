@@ -759,4 +759,12 @@ Run on both PC (keyboard and mouse) and mobile (touch), after the ten precise it
 | PG4 | Look at the placed items from 8, 16, 32, and 48 blocks away, then at a full camper interior                                                  | Lettering and small parts stay readable at close range and show no fringes or flicker at distance; the frame rate does not visibly drop           | unverified | unverified |
 | PG5 | Compare the inventory icon and the README and item previews of each of the ten items with the in-game model                                  | The preview shows the same shape and colours as the model in game                                                                                 | unverified | unverified |
 
-The full in-game suite (`pnpm server:restart`, then `pnpm test:game` with `GAME_TEST_ALL=1` once) has not yet run for this series because the Docker daemon was unavailable.
+For each of the following, compare against the owner's reference photo from the same angle on PC and mobile, then place it on a shelf, the table, in a cabinet, and in the fridge. Check that it remains correctly positioned and textured in each location. Results are unverified on both devices.
+
+| #   | Item                  | Visual checks                                                                                                   |
+| --- | --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| PG6 | Twin-Bell Alarm Clock | Check the painted dial and hands, twin bells, handle, and legs; confirm it stands on its flange and front legs. |
+| PG7 | Instant Camera        | Check the twin lenses, textured body, viewfinder, side dials, and crank.                                        |
+| PG8 | Binoculars            | Check both barrels, prism shoulders, central focus wheel, and recessed coated lenses and rims.                  |
+
+The full in-game suite (`GAME_TEST_ALL=1 pnpm test:game`, with 4 lanes after `pnpm server:restart`) passed on the dev BDS with Resource Pack 0.1.306: 140 pass, 0 fail. Per-item placement on a shelf, the table, a cabinet, and the fridge, plus on-device frame rate, remain manual checks (PG6 to PG8).

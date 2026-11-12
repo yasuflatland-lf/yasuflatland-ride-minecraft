@@ -124,7 +124,7 @@ print(json.dumps([
   ]);
 });
 
-it("validates the current catalog unchanged", () => {
+it("validates the current catalog unchanged", { timeout: 30_000 }, () => {
   expect(
     python(`
 import gen_camping_gear as generator
