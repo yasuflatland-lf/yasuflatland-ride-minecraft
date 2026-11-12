@@ -648,8 +648,9 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     const planter = SPEC.find((g) => g.id === "macrame_planter");
     if (planter === undefined) throw new Error("macrame_planter is missing");
     const cubes = cubesOf(planter.id);
-    const bottom = Math.min(...cubes.map((c) => c.origin[1]));
-    const top = Math.max(...cubes.map((c) => c.origin[1] + c.size[1]));
+    const points = cubes.flatMap(cubeCorners);
+    const bottom = Math.min(...points.map((p) => p[1]));
+    const top = Math.max(...points.map((p) => p[1]));
     expect([bottom, top]).toEqual([0, 10]);
     expect(
       decorOf(planter)["minecraft:block"].components["minecraft:selection_box"],
