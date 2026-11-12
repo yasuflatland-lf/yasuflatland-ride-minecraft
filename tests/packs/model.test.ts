@@ -373,31 +373,56 @@ describe("SUV model (ADR 0009)", () => {
       .filter((b) => b.name === "body" || b.name.startsWith("door_"))
       .flatMap((b) => (b.cubes ?? []).map((c) => turnedCorners(b, c)))
       .map((corners) => ({ corners, box: bounds(corners) }));
-    fc.assert(
-      fc.property(fc.double({ min: 0, max: 360, noNaN: true }), (angle) => {
-        const radians = (angle * Math.PI) / 180;
-        for (const name of ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"]) {
-          const wheel = bones.get(name) as Bone;
-          const hub = pivot(name);
-          for (const cube of wheel.cubes ?? []) {
-            const tire = spun(turnedCorners(wheel, cube), hub, radians);
-            const tireBox = bounds(tire);
-            for (const { corners: obstacle, box } of obstacles) {
-              // Most body cubes are inboard or above the wheels.
-              const apart = tireBox.some(
-                ([min, max], axis) =>
-                  max <= (box[axis] as readonly [number, number])[0] ||
-                  (box[axis] as readonly [number, number])[1] <= min,
-              );
-              if (!apart)
-                expect(
-                  separated(tire, obstacle),
-                  `${name} at ${angle} degrees`,
-                ).toBe(true);
-            }
+    const apart = (
+      a: ReturnType<typeof bounds>,
+      b: ReturnType<typeof bounds>,
+    ) =>
+      a.some(([min, max], axis) => {
+        const [lo, hi] = b[axis] as readonly [number, number];
+        return max <= lo || hi <= min;
+      });
+    const wheels = ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"].map(
+      (name) => {
+        const wheel = bones.get(name) as Bone;
+        const hub = pivot(name);
+        const tires = (wheel.cubes ?? []).map((cube) =>
+          turnedCorners(wheel, cube),
+        );
+        const points = tires.flat();
+        const radius = Math.max(
+          ...points.map((p) => Math.hypot(p[1] - hub[1], p[2] - hub[2])),
+        );
+        const sweep = bounds(points);
+        sweep[1] = [hub[1] - radius, hub[1] + radius];
+        sweep[2] = [hub[2] - radius, hub[2] + radius];
+        return {
+          name,
+          hub,
+          tires,
+          obstacles: obstacles.filter(({ box }) => !apart(sweep, box)),
+        };
+      },
+    );
+    const checkAngle = (angle: number) => {
+      const radians = (angle * Math.PI) / 180;
+      for (const { name, hub, tires, obstacles } of wheels) {
+        for (const corners of tires) {
+          const tire = spun(corners, hub, radians);
+          const tireBox = bounds(tire);
+          for (const { corners: obstacle, box } of obstacles) {
+            if (!apart(tireBox, box))
+              expect(
+                separated(tire, obstacle),
+                `${name} at ${angle} degrees`,
+              ).toBe(true);
           }
         }
-      }),
+      }
+    };
+    // Sparse random doubles often cluster near zero and miss short tread-corner collisions.
+    for (let angle = 0; angle < 360; angle++) checkAngle(angle);
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 360, noNaN: true }), checkAngle),
       { numRuns: 12 },
     );
   });

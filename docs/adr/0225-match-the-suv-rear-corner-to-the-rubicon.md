@@ -13,7 +13,7 @@ The owner compared six renders with the photos from the same angles and approved
 
 ## Decision
 
-- End the rear overfender at 3.41 D from the front axle, 0.94 D high, and fill the side behind it with a body panel.
+- End the rear overfender at 3.41 D from the front axle, 0.94 D high, and fill the side behind it with a body panel. Keep that panel's underside at 0.84 D on both sides: the tread corners sweep up to 0.822 D at its front edge, beyond the nominal tyre radius. The panel, overfender and bumper must clear the tyres throughout a full rotation.
 - Build the rear bumper from 0.72 D to 0.92 D high, with a stepped notch in the top that is 0.31 D to 0.39 D from the centre at each side and has its floor at 0.765 D.
 - Taper the bumper's ends and run each corner forward under the overfender's end. The corner's front edge moves from 3.38 D at 0.91 D high back toward the tyre lower down, in ten steps.
 - Draw the bumper's panels as thin outlines in the bumper's own colour, so they read as shallow insets.
