@@ -87,4 +87,4 @@ def build() -> _gear_model.GearModel:
         for key in ("origin", "size", "pivot"):
             if key in cube:
                 cube[key] = [round(value, 3) for value in cube[key]]
-    return _gear_model.GearModel(cubes=tuple(cubes), texture_request=("pot_glaze", "pot_rim", "soil", "leaf_a", "leaf_b"))
+    return _gear_model.GearModel(cubes=tuple(cubes), texture_request=("potted_plant",))

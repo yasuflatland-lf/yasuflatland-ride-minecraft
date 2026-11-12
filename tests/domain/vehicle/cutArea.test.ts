@@ -77,9 +77,10 @@ it("covers every point of the rectangle", () =>
           rule.near + a * (rule.far - rule.near),
           s * rule.halfWidth,
         );
+        // Normalize -0 to match rectCells; toContainEqual distinguishes it from +0.
         expect(rectCells(p, y, rule)).toContainEqual({
-          x: Math.floor(q.x),
-          z: Math.floor(q.z),
+          x: Math.floor(q.x) + 0,
+          z: Math.floor(q.z) + 0,
         });
       },
     ),
