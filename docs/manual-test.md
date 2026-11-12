@@ -767,4 +767,4 @@ For each of the following, compare against the owner's reference photo from the 
 | PG7 | Instant Camera        | Check the twin lenses, textured body, viewfinder, side dials, and crank.                                        |
 | PG8 | Binoculars            | Check both barrels, prism shoulders, central focus wheel, and recessed coated lenses and rims.                  |
 
-The full in-game suite (`pnpm server:restart`, then `pnpm test:game` with `GAME_TEST_ALL=1` once) has not yet run for this series because the Docker daemon was unavailable.
+The full in-game suite (`GAME_TEST_ALL=1 pnpm test:game`, with 4 lanes after `pnpm server:restart`) passed on the dev BDS with Resource Pack 0.1.306: 140 pass, 0 fail. Per-item placement on a shelf, the table, a cabinet, and the fridge, plus on-device frame rate, remain manual checks (PG6 to PG8).
