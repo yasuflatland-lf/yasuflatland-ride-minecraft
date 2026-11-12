@@ -154,4 +154,4 @@ def build() -> _gear_model.GearModel:
     members = {name: _tilt.tilt_assembly(part, (0, 0, 0), "x", 0,
                 assembly=name, assemblies=ASSEMBLIES) for name, part in members.items()}
     _tilt.assert_axes(cubes, members, ASSEMBLIES)
-    return _gear_model.GearModel(tuple(cubes), ("mug_pair",), tuple(members.items()))
+    return _gear_model.GearModel(tuple(cubes), ("mug_pair",), {name: tuple(part) for name, part in members.items()})

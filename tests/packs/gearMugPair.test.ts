@@ -33,7 +33,7 @@ assert not validate.uv_errors('mug_pair', model.cubes, atlas.GEAR_TILES)
 assert not validate.rotation_errors('mug_pair', model.cubes)
 members = dict(model.assemblies)
 assert {name: len(cubes) for name, cubes in members.items()} == {'mug_pair_shells': 128, 'mug_pair_handles': 16}
-tilt.assert_axes(model.cubes, members, generator.ASSEMBLIES)
+tilt.assert_axes(model.cubes, members, generator.ITEM_ASSEMBLIES['mug_pair'])
 try:
     tilt.assert_axes(model.cubes, {})
 except ValueError:
@@ -56,7 +56,7 @@ for kind, pair in generator.PAIRS.items():
     for end, (left, ahead) in enumerate(pair['ends']):
         bone = next(b for b in geometry['minecraft:geometry'][0]['bones'] if b['name'] == f'end{end}_mug_pair')
         translated = {name: generator.rounded([generator.moved(c, left, ahead) for c in part]) for name, part in members.items()}
-        tilt.assert_axes(bone['cubes'], translated, generator.ASSEMBLIES)
+        tilt.assert_axes(bone['cubes'], translated, generator.ITEM_ASSEMBLIES['mug_pair'])
         assert validate.sampled_alphas(bone['cubes'], pixels, atlas.ATLAS_SIZE) == {255}
 print('ok')
 `),

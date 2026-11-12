@@ -145,7 +145,7 @@
 - Agreement: Proposed
 - Basis: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md), cube budget, rotation, atlas and alpha rules; issue #1595 review view contract.
 - Implementation: `tools/gear_validate.py`; `tools/gen_camping_gear.py` (`validate`); `tools/render_preview.py` (`gear_tiled`, `collect_gear`, `GEAR_VIEWS`, `render_gear`, `main`).
-- Verification: `tests/tools/gearValidate.test.ts`; `tests/tools/renderPreview.test.ts`; `tests/packs/campingGear.test.ts`; `pnpm model:check` checks existing preview pixels.
+- Verification: `tests/tools/gearValidate.test.ts`; `tests/tools/renderPreview.test.ts` detects tiles for the percolator, enamel kettle, toaster, transistor radio, sugar pot, and mug pair; `tests/packs/campingGear.test.ts` checks pair bounds and a 4,500,000-byte file ceiling based on ADR 0247's 4.24 MiB estimate for 8,192 stored cubes; `pnpm model:check` checks existing preview pixels.
 
 ### SUV preview set
 
