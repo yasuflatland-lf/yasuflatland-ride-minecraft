@@ -85,7 +85,7 @@ Both `pnpm model` and `pnpm model:check` include this fixture and its formatting
 - Agreement: Accepted
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Standardize the bone names as follows: `root`, `body`, `wheel_fl` / `wheel_fr` / `wheel_rl` / `wheel_rr`, `door_fl` / `door_fr` / `door_rl` / `door_rr`, `seat_0`–`seat_3`"
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json`
-- Verification: `tests/packs/model.test.ts` "has all the conventional bones"; `tests/packs/camper.test.ts` "connects every standard bone to root without cycles"; `tests/packs/bulldozerModel.test.ts` "has exactly the bone contract, each bone parented to body except root, body, blade, blade_wide, the lift rods, and door_glass". `tests/packs/sportsboat.test.ts` asserts the sports boat bone list. Not verified: the models in game.
+- Verification: `tests/packs/model.test.ts` "has all the conventional bones"; `tests/packs/camper/shell.test.ts` "connects every standard bone to root without cycles"; `tests/packs/bulldozerModel.test.ts` "has exactly the bone contract, each bone parented to body except root, body, blade, blade_wide, the lift rods, and door_glass". `tests/packs/sportsboat.test.ts` asserts the sports boat bone list. Not verified: the models in game.
 
 ### Exhaust locator
 
@@ -94,7 +94,7 @@ Both `pnpm model` and `pnpm model:check` include this fixture and its formatting
 - Agreement: Accepted
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Mark the exhaust position with the locator `exhaust`"
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json` (`body` locators); `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json` (`body` locators)
-- Verification: `tests/packs/model.test.ts` "has the exhaust locator on body"; `tests/packs/camper.test.ts` (the `body` locator list and `locators?.exhaust`). Not verified: where the exhaust particles show in game.
+- Verification: `tests/packs/model.test.ts` "has the exhaust locator on body"; `tests/packs/camper/shell.test.ts` (the `body` locator list and `locators?.exhaust`). Not verified: where the exhaust particles show in game.
 
 ### Compound rotations only in registered assemblies
 
@@ -103,7 +103,7 @@ Both `pnpm model` and `pnpm model:check` include this fixture and its formatting
 - Agreement: Proposed
 - Basis: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "A cube may carry two or more non-zero Euler axes only when it belongs to a named assembly built through `tilt_assembly` and registered in its generator's `ASSEMBLIES` table. Other cubes retain at most one axis."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "It rejects multi-axis cubes outside those lists, using a non-zero tolerance of 1e-6."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "The bulldozer monitor is checked too."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "Shipped-model tests share `tests/packs/oneAxis.ts`, with `multipleAxes` and `assertOneAxis`, and declare their own membership tables."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Consequences, "`assert_axes(cubes, assemblies, table)` also checks that each assembly holds exactly the declared number of cubes"
 - Implementation: `tools/cube_tilt.py` (`assert_axes`, `axis_count`, `compound_cubes`); `tools/gen_model.py` (`ASSEMBLIES`); `tools/suv_cabin.py` (`ASSEMBLIES`); `tools/gen_camper.py` (`ASSEMBLIES`); `tools/gen_sportsboat.py` (`ASSEMBLIES`); `tools/gen_bulldozer.py` (`ASSEMBLIES`); `tools/monitor.py`; `tests/packs/oneAxis.ts`
-- Verification: `tests/packs/oneAxis.test.ts` "requires membership by cube value for any pair of nonzero axes", "allows unregistered cubes with at most one axis beyond the tolerance"; "allows compound rotations only in declared assemblies (ADR 0167)" in `tests/packs/model.test.ts`, `tests/packs/camper.test.ts` and `tests/packs/bulldozerModel.test.ts`; `tests/tools/cubeTilt.test.ts` "requires a declared assembly for compound tilt results". `tests/tools/cubeTilt.test.ts` also checks rotations at the 1e-6 tolerance. Not verified: the count check of `assert_axes` has no direct test, and the generators' own `assert_axes` calls run only when a generator runs (`pnpm model:check`).
+- Verification: `tests/packs/oneAxis.test.ts` "requires membership by cube value for any pair of nonzero axes", "allows unregistered cubes with at most one axis beyond the tolerance"; "allows compound rotations only in declared assemblies (ADR 0167)" in `tests/packs/model.test.ts`, `tests/packs/camper/shell.test.ts` and `tests/packs/bulldozerModel.test.ts`; `tests/tools/cubeTilt.test.ts` "requires a declared assembly for compound tilt results". `tests/tools/cubeTilt.test.ts` also checks rotations at the 1e-6 tolerance. Not verified: the count check of `assert_axes` has no direct test, and the generators' own `assert_axes` calls run only when a generator runs (`pnpm model:check`).
 
 ### Tilting an assembly
 

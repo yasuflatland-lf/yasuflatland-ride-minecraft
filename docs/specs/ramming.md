@@ -70,7 +70,7 @@
 - Agreement: Proposed
 - Basis: [0116](../adr/0116-a-bumper-stand-in-takes-the-camper-hits.md) Decision, "The camper's own `minecraft:custom_hit_test` is a single box `CAMPER_SPEC.hiddenHitboxSize` (0.1) wide and high on its feet, centered under the body."; [0084](../adr/0084-camper-hitbox-spans-the-bumper.md) Decision, "the base components keep the 3 x 4 collision box that hitboxes need"
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json` (`components.minecraft:custom_hit_test`, `components.minecraft:collision_box`); `src/domain/vehicle/kinds/camper/spec.ts` (`hiddenHitboxSize`)
-- Verification: `tests/packs/camper.test.ts` "keeps the 3 x 4 collision box in the base components" and "switches collision and gravity groups when parking and departing"; `tests/packs/camperRoom.test.ts` "hides the camper's own hitbox in the parked floor block under its center and preserves the undocked camper's body collision" checks box dimensions and pivot, bounds below a full block's top face, and a center floor cell at an example parked pose. Not verified: its invisibility to taps in all forms or its occlusion by a parked floor on all clients.
+- Verification: `tests/packs/camper/parking.test.ts` "keeps the 3 x 4 collision box in the base components" and "switches collision and gravity groups when parking and departing"; `tests/packs/camperRoom.test.ts` "hides the camper's own hitbox in the parked floor block under its center and preserves the undocked camper's body collision" checks box dimensions and pivot, bounds below a full block's top face, and a center floor cell at an example parked pose. Not verified: its invisibility to taps in all forms or its occlusion by a parked floor on all clients.
 
 ### Bumper stand-in assets
 

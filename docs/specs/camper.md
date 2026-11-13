@@ -48,7 +48,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "Body: 3 wide, 7 long, 4 high."; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "The camper keeps its 3 x 4 collision box in its base components"
 - Implementation: `src/domain/vehicle/kinds/camper/spec.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`
-- Verification: `tests/packs/camper.test.ts` "keeps the 3 x 4 collision box in the base components"; `tests/packs/camperRoom.test.ts` "hides the camper's own hitbox in the parked floor block under its center and preserves the undocked camper's body collision". Not verified: collision and tap behavior on clients in this revision.
+- Verification: `tests/packs/camper/parking.test.ts` "keeps the 3 x 4 collision box in the base components"; `tests/packs/camperRoom.test.ts` "hides the camper's own hitbox in the parked floor block under its center and preserves the undocked camper's body collision". Not verified: collision and tap behavior on clients in this revision.
 
 ### Body end guard
 
@@ -75,7 +75,7 @@
 - Agreement: Proposed
 - Basis: [0067](../adr/0067-camper.md) Decision, "Khaki is the default (0031)"; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Repaints continue to change only `khaki`, `stripe`, and `tan` (0067, 0076)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride`
-- Verification: `tests/packs/camper.test.ts` "generates all 16 equally sized paints, changing only the three accent swatches and no region texel"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". Not verified: every paint on a client.
+- Verification: `tests/packs/camper/paints.test.ts` "generates all 16 equally sized paints, changing only the three accent swatches and no region texel"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". Not verified: every paint on a client.
 
 ### Model bone contract
 
@@ -84,7 +84,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "with bones `root`, `body`, `headlights`, `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `seat_0`-`seat_3`, `door_entry`, and `steering` (0009)"; [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "This extends the bone contract of 0009 for the camper with `glass` and `door_glass`."
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `tools/gen_camper.py`; `tools/camper_kit.py`; area modules and final cube ranges are listed in [Model conventions and rendered previews](model-and-previews.md#camper-generator-modules)
-- Verification: `tests/packs/camper.test.ts` "uses the production geometry identifier with no test namespace", "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
+- Verification: `tests/packs/camper/shell.test.ts` "uses the production geometry identifier with no test namespace", "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
 
 ### Glass material and draw order
 
@@ -93,7 +93,7 @@
 - Agreement: Proposed
 - Basis: [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "The render controller maps both bones to `Material.glass`"; [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "No opaque camper bone may hold a `glass` swatch cube"; [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md) Decision, "Remove the corner glass from 0091's `glass` bone."
 - Implementation: `packs/yasu_ride_rp/entity/yasu_ride/camper.ce.json`; `packs/yasu_ride_rp/render_controllers/yasu_ride/camper.rc.json`; `tools/gen_camper.py`
-- Verification: `tests/packs/camper.test.ts` "draws the model opaque and blends only the glass material", "puts every glass cube in a glass bone listed after every opaque bone". Not verified: cabin visibility through near and far panes on clients after front squaring.
+- Verification: `tests/packs/camper/glass.test.ts` "draws the model opaque and blends only the glass material", "puts every glass cube in a glass bone listed after every opaque bone". Not verified: cabin visibility through near and far panes on clients after front squaring.
 
 ### Right-hand-drive cab
 
@@ -102,7 +102,7 @@
 - Agreement: Accepted
 - Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "The model moves every driver-side part to the right"; [0069](../adr/0069-camper-right-hand-drive.md) Decision, "The radio and the glovebox move to the passenger side on the left"; [0070](../adr/0070-raise-the-camper-front-seats.md) Decision, "The model raises both front bucket seats by the same 6.4 px on a taller pedestal"
 - Implementation: `tools/camper_cab.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "puts the steering wheel and column on the right in front of the driver", "keeps the wheel's spokes level (owner decision in #410)", "ends the steering column inside the raised dash body, below the console (#422)". Gauges, pedals, radio, glovebox, and pedestals checked in the generator. Not verified: first-person windshield visibility by hand in this revision, or dedicated tests of each cab part’s side.
+- Verification: `tests/packs/camper/cab.test.ts` and `tests/packs/camper/shell.test.ts` "puts the steering wheel and column on the right in front of the driver", "keeps the wheel's spokes level (owner decision in #410)", "ends the steering column inside the raised dash body, below the console (#422)". Gauges, pedals, radio, glovebox, and pedestals checked in the generator. Not verified: first-person windshield visibility by hand in this revision, or dedicated tests of each cab part’s side.
 
 ### W mark exception
 
@@ -111,7 +111,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "Keep the stripe's large W from the photos, at the owner's request, as an exception to the rule against makers' marks in 0009."
 - Implementation: `tools/camper_shell.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "draws the side stripe's W as mirrored single-cube strokes on a flat bottom (#459)". Not verified: absence of every maker or model name anywhere in the model; no test asserts that complete visual claim.
+- Verification: `tests/packs/camper/shell.test.ts` "draws the side stripe's W as mirrored single-cube strokes on a flat bottom (#459)". Not verified: absence of every maker or model name anywhere in the model; no test asserts that complete visual claim.
 
 ### Rear signals, handles, and stripe ends
 
@@ -120,7 +120,7 @@
 - Agreement: Proposed
 - Basis: [0145](../adr/0145-move-camper-side-lamp-and-door-handle.md) Decision, "Remove the porch-light box."; [0145](../adr/0145-move-camper-side-lamp-and-door-handle.md) Decision, "End the side stripe on the W's outer arms' inner edge lines, extended up through the stripe, on both sides of the vehicle"
 - Implementation: `tools/camper_rear.py`; `tools/camper_door.py`; `tools/camper_shell.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "replaces the mid-body amber box with symmetric static rear signals (#596)", "aligns both entry handles half a pixel below the stripe (#596)", "ends the stripe on the W's outer arm inner edges, with no step at their tops (ADR 0145)". Not verified: PC/mobile appearance and door movement; manual rows C161–C163 have empty results.
+- Verification: `tests/packs/camper/door.test.ts` and `tests/packs/camper/rear.test.ts` and `tests/packs/camper/shell.test.ts` "replaces the mid-body amber box with symmetric static rear signals (#596)", "aligns both entry handles half a pixel below the stripe (#596)", "ends the stripe on the W's outer arm inner edges, with no step at their tops (ADR 0145)". Not verified: PC/mobile appearance and door movement; manual rows C161–C163 have empty results.
 
 ### Rear-right vent lid
 
@@ -129,7 +129,7 @@
 - Agreement: Proposed
 - Basis: [0146](../adr/0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) Decision, "Remove the camper's right-side window at z 38 to 50, y 36 to 49 from `right_windows`."; [0157](../adr/0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) Decision, "Keep 0146's wall closure, its position on the right outer wall, and the bulldozer steps. Replace only the cover's look."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "The vent lid of 0157 now has a `trim_beige` panel and an aluminium top rail whose west face carries `vent_screws`."
 - Implementation: `tools/camper_shell.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts`, describe "camper rear-right vent lid (ADR 0146, 0157)": "removes the rear-right pane and closes the outer wall, lining, and band", "frames a grey-beige panel in a raised aluminium rim with cut corners", "cuts two columns of twelve recessed slits above a plain lower part", "adds a latch below the slits"; "puts a screw row on the aluminium vent upper rail". Not verified: PC/mobile appearance; manual row C164 has empty results.
+- Verification: `tests/packs/camper/atlas.test.ts` and `tests/packs/camper/rear.test.ts`, describe "camper rear-right vent lid (ADR 0146, 0157)": "removes the rear-right pane and closes the outer wall, lining, and band", "frames a grey-beige panel in a raised aluminium rim with cut corners", "cuts two columns of twelve recessed slits above a plain lower part", "adds a latch below the slits"; "puts a screw row on the aluminium vent upper rail". Not verified: PC/mobile appearance; manual row C164 has empty results.
 
 ### Ribbed shell atlas and trim
 
@@ -138,7 +138,7 @@
 - Agreement: Proposed
 - Basis: [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Keep row 0 as the swatch row with every existing index unchanged."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Apply ribs only to both side walls."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Use aluminium for the door frame and roof edge, with bolt heads along the roof edge."
 - Implementation: `tools/camper_kit.py`; `tools/camper_shell.py`; `tools/camper_door.py`; `tools/camper_roof.py`; `tools/gen_camper.py`; `tools/camper_atlas.py`; `tools/swatch_atlas.py`
-- Verification: `tests/packs/camper.test.ts` "allocates the rib region below the swatches with groove, highlight, and flat bands", "maps only the outward white shell faces on both walls and the door to height-aligned ribs", "uses beige side window frames, black cab frames, and aluminium mullions", "maps bolts only to the three outer edge faces and preserves lamp swatches and bezels". Not verified: side and three-quarter views at chase-camera distance on PC/mobile; 0190’s owner decision remains pending.
+- Verification: `tests/packs/camper/atlas.test.ts` "allocates the rib region below the swatches with groove, highlight, and flat bands", "maps only the outward white shell faces on both walls and the door to height-aligned ribs", "uses beige side window frames, black cab frames, and aluminium mullions", "maps bolts only to the three outer edge faces and preserves lamp swatches and bezels". Not verified: side and three-quarter views at chase-camera distance on PC/mobile; 0190’s owner decision remains pending.
 
 ### Squared front and folded grille
 
@@ -146,8 +146,8 @@
 - Rule: The generated front has no 45-degree corner chamfers or corner glass. The windshield and grille span the front, with a black light surround extending to its edge. The face from the bumper to the sill is two flat panels, each leaning by `FRONT_LEAN_SLOPE` and yawed by `FRONT_YAW`, so they meet on the windshield's centre line seen from above with the nose forward. Rows stay level and start on the nose; strips close the sill above them up to an upright windshield folded by the same angle (`WS_YAW`), so the sill's short edges are parallel. The cab-over's upper face is one flat panel down to a V, lowest and furthest forward on the centre line, with two lower panels from the V to the windshield header and a chevron on each side wall. The right wall behind the door carries a water fill, a placard, and an oval lamp in place of the former plain square. The outer trim uses `EDGE_INSET`. Every non-glow cube’s bone, origin, and size is compared with the golden fixture, including the squared front.
 - Agreement: Proposed
 - Basis: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md) Decision, "Generate the front with `tools/gen_camper.py` without 45-degree corners."; [0226](../adr/0226-lean-and-fold-the-camper-front-panels.md) Decision, "Build the front from the bumper top (y = 8) to the sill (y = 31.5) as two flat panels."
-- Implementation: `tools/camper_front.py`; `tools/camper_shell.py`; `tools/gen_camper.py`; `tests/packs/fixtures/camper-cubes.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "leans both panels at one slope and folds them like the windshield, nose forward", "keeps every face cube on one plane per side, from the bumper to the sill", "drops the sill from the windshield base to the panels' top edge", "stands the windshield panes upright, parallel to the panels' top edge", "runs the cab-over's upper panel flat down to a V on the centre line", "replaces the plain square behind the door with the water fill, placard, and lamp", "paints the wall below the entry door like the skirt beside it", "starts every grille row exactly on the nose so the panels leave no gap", "mirrors the left panel onto the right one", "keeps every cube's bone, origin, and size equal to the snapshot in tests/packs/fixtures/camper-cubes.json". The snapshot checks bone, origin, and size, not UVs or rotations. Not verified: client shimmer or z-fighting; the owner checks in 0199 and 0226 are pending.
+- Implementation: `tools/camper_front.py`; `tools/camper_shell.py`; `tools/gen_camper.py`; `tests/packs/fixtures/camper-cubes/`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
+- Verification: `tests/packs/camper/snapshot.test.ts` and `tests/packs/camper/front.test.ts` "leans both panels at one slope and folds them like the windshield, nose forward", "keeps every face cube on one plane per side, from the bumper to the sill", "drops the sill from the windshield base to the panels' top edge", "stands the windshield panes upright, parallel to the panels' top edge", "runs the cab-over's upper panel flat down to a V on the centre line", "replaces the plain square behind the door with the water fill, placard, and lamp", "paints the wall below the entry door like the skirt beside it", "starts every grille row exactly on the nose so the panels leave no gap", "mirrors the left panel onto the right one", "keeps every cube's bone, origin, and size equal to the snapshot in tests/packs/fixtures/camper-cubes/". Regenerate the snapshot with `CAMPER_SNAPSHOT_UPDATE=1 pnpm vitest run tests/packs/camper/snapshot.test.ts`. The snapshot checks bone, origin, and size, not UVs or rotations. Not verified: client shimmer or z-fighting; the owner checks in 0199 and 0226 are pending.
 
 ### Door trim, fold-out step, and storage hatch
 
@@ -156,7 +156,7 @@
 - Agreement: Proposed
 - Basis: [0227](../adr/0227-camper-door-trim-and-thin-panel-step.md) Decision, "Add a fixed surround to the `body` bone, so it stays when the door swings."; [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md) Decision, "Build the storage hatch on the right wall only."
 - Implementation: `tools/camper_door.py`; `tools/camper_shell.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "frames the entry door in riveted aluminium with three hinges and a latch plate", "builds the fold-out step from thin panels, open at the back", "builds the rear storage hatches with a rounded rail, five louver columns, and latch knobs". Not verified: the metal look on a client; 0227's owner check is pending.
+- Verification: `tests/packs/camper/front.test.ts` "frames the entry door in riveted aluminium with three hinges and a latch plate", "builds the fold-out step from thin panels, open at the back", "builds the rear storage hatches with a rounded rail, five louver columns, and latch knobs". Not verified: the metal look on a client; 0227's owner check is pending.
 
 ### Automatic parking and pose snap
 
@@ -201,7 +201,7 @@
 - Agreement: Accepted
 - Basis: [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "The parking tick only holds the pose and docks the entity"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "The room is laid from the next tick"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "After a reload, a parked camper restored before its room was laid redoes the park check and clear"
 - Implementation: `src/domain/vehicle/kinds/camper/drive.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `src/domain/vehicle/motion/dockEntity.ts`
-- Verification: `tests/packs/camper.test.ts` "switches collision and gravity groups when parking and departing"; `tests/domain/vehicle/kinds/camper/parking.test.ts` "holds only the pose on tick 20, lays the room next tick, and scans once", "restores a laid open room immediately without a scan or dock event", "recovers an unlaid parked room once, clearing matching plants before laying even after a blocked check", "restores the saved door target through either direction of a partial swing". Not verified: restoration through an actual client reload in this revision.
+- Verification: `tests/packs/camper/parking.test.ts` "switches collision and gravity groups when parking and departing"; `tests/domain/vehicle/kinds/camper/parking.test.ts` "holds only the pose on tick 20, lays the room next tick, and scans once", "restores a laid open room immediately without a scan or dock event", "recovers an unlaid parked room once, clearing matching plants before laying even after a blocked check", "restores the saved door target through either direction of a partial swing". Not verified: restoration through an actual client reload in this revision.
 
 ### Departure and exit clearance
 

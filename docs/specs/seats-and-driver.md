@@ -33,7 +33,7 @@
 - Basis: [0007](../adr/0007-seats-and-driver.md) Consequences, "If the driver seat is empty, nobody drives and the vehicle coasts to a stop"
 - Basis: [0019](../adr/0019-passengers-move-up-to-the-driver-seat.md) Decision, "Keep the seat layout and the driver rule of 0007: four seats from `minecraft:rideable` with the driver seat at index 0"
 - Implementation: `src/domain/vehicle/seating.ts` (`Seating.update`); `src/domain/vehicle/crew.ts` (`Crew.update`); `src/domain/vehicle/vehicle.ts` (`Vehicle.tick`); `src/infrastructure/vehicle/bedrock/bedrockLoadedVehicles.ts` (`riders`); `src/domain/vehicle/seats.ts` (`DRIVER_SEAT`, `nearestSeat`); `src/domain/vehicle/profile.ts` (`SeatLayout`); `src/domain/vehicle/kinds/suv/profile.ts`, `src/domain/vehicle/kinds/camper/profile.ts`, `src/domain/vehicle/kinds/sportsboat/profile.ts`, `src/domain/vehicle/kinds/bulldozer/profile.ts`; `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json` (`minecraft:rideable`); `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json`; `packs/yasu_ride_bp/entities/yasu_ride/bulldozer.se.json`
-- Verification: `tests/domain/vehicle/seats.test.ts` "keeps the driver's seat at index zero for every facing (ADR 0019)"; `tests/packs/behaviorPack.test.ts` (SUV seats equal `SUV_PROFILE.seats.positions`); `tests/packs/camper.test.ts` "matches the camper's four seat positions and collision box to its profile"; `tests/packs/sportsboat.test.ts` (`controlling_seat` 0); `tests/packs/bulldozer.test.ts` "matches the seat and collision box to the profile" (x and z), "seats one driver at the cab seat". Not verified: real-player seating on a device.
+- Verification: `tests/domain/vehicle/seats.test.ts` "keeps the driver's seat at index zero for every facing (ADR 0019)"; `tests/packs/behaviorPack.test.ts` (SUV seats equal `SUV_PROFILE.seats.positions`); `tests/packs/camper/seats.test.ts` "matches the camper's four seat positions and collision box to its profile"; `tests/packs/sportsboat.test.ts` (`controlling_seat` 0); `tests/packs/bulldozer.test.ts` "matches the seat and collision box to the profile" (x and z), "seats one driver at the cab seat". Not verified: real-player seating on a device.
 
 ### Camper seat layout
 
@@ -44,7 +44,7 @@
 - Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "Seats 2 and 3 stay a facing dinette on the left, now behind the passenger"
 - Basis: [0070](../adr/0070-raise-the-camper-front-seats.md) Decision, "Both front seats of `minecraft:rideable` sit at 1.5 instead of 1.1, 0.4 blocks higher."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts` (`CAMPER_PROFILE.seats`); `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json` (`minecraft:rideable` `seats`)
-- Verification: `tests/packs/camper.test.ts` "matches the camper's four seat positions and collision box to its profile" (x and z only). Not verified: the seat heights by any test; the view over the dashboard (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
+- Verification: `tests/packs/camper/seats.test.ts` "matches the camper's four seat positions and collision box to its profile" (x and z only). Not verified: the seat heights by any test; the view over the dashboard (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
 
 ### Driver and seats by rider-list index
 

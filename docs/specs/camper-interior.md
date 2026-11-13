@@ -174,7 +174,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0094](../adr/0094-the-camper-shower-toilet-door-and-shower.md) Decision, "The shower is not restored; it is off after a reload."
 - Basis: [0094](../adr/0094-the-camper-shower-toilet-door-and-shower.md) Decision, "Departure shuts the shower door at once and stops the shower"
 - Implementation: `src/domain/vehicle/kinds/camper/drive.ts`; `src/domain/vehicle/kinds/camper/entity.ts`; `src/domain/vehicle/kinds/camper/doorSwing.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `packs/yasu_ride_rp/entity/yasu_ride/camper.ce.json`; `packs/yasu_ride_rp/animations/yasu_ride/camper.anim.json`; `tools/gen_camper.py`; `tools/camper_shower.py`
-- Verification: `tests/domain/vehicle/kinds/camper/parking.test.ts` "runs the shower for exactly showerTicks ticks and starts over on a new tap", "shuts the shower door and stops the shower on departure", and "restores the shower door's swing but not the shower after a reload" check state. `tests/packs/camper.test.ts` "rotates the shower door by its property and sprays at the shower head only while the shower runs" checks bindings and effect files. Not verified: client sound, spray and rendering in game, including Vibrant Visuals.
+- Verification: `tests/domain/vehicle/kinds/camper/parking.test.ts` "runs the shower for exactly showerTicks ticks and starts over on a new tap", "shuts the shower door and stops the shower on departure", and "restores the shower door's swing but not the shower after a reload" check state. `tests/packs/camper/animation.test.ts` "rotates the shower door by its property and sprays at the shower head only while the shower runs" checks bindings and effect files. Not verified: client sound, spray and rendering in game, including Vibrant Visuals.
 
 ### One toggle per swing
 
@@ -228,7 +228,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0114](../adr/0114-open-the-camper-wall-cabinet.md) Decision / The model, "Each door is its own bone, a child of `body`:"
 - Basis: [0114](../adr/0114-open-the-camper-wall-cabinet.md) Decision / The blocks, "Both blocks carry the custom component `yasu_ride:camper_cabinet`."
 - Implementation: `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/entity.ts`; `tools/gen_camper.py`; `tools/camper_room.py`; `tools/gen_camping_gear.py`; `packs/yasu_ride_bp/blocks/yasu_ride/cabinet_decor_pair.block.json`; `packs/yasu_ride_bp/blocks/yasu_ride/camper_cabinet_door.block.json`; `packs/yasu_ride_rp/animations/yasu_ride/camper.anim.json`
-- Verification: `tests/packs/camper.test.ts` "hinges each wall cabinet door at the cabinet's outer end" checks swings, and "hangs the wall cabinet from the ceiling down to y 50" checks window clearance and spacing. `tests/packs/campingGear.test.ts` "defines the wall cabinet's compartment block as a pair block with a door state" checks boxes, lift and component. Not verified: lifted selection/collision and head clearance in actual play.
+- Verification: `tests/packs/camper/room.test.ts` "hinges each wall cabinet door at the cabinet's outer end" checks swings, and "hangs the wall cabinet from the ceiling down to y 50" checks window clearance and spacing. `tests/packs/campingGear.test.ts` "defines the wall cabinet's compartment block as a pair block with a door state" checks boxes, lift and component. Not verified: lifted selection/collision and head clearance in actual play.
 
 ### Fridge
 
@@ -239,7 +239,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md) Decision / Blocks, "Each compartment cell holds `yasu_ride:fridge_decor_pair` while the camper is parked, full or empty."
 - Basis: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md) Decision / The model, "Two doors, each its own bone and a child of `body`:"
 - Implementation: `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/decor.ts`; `src/domain/vehicle/kinds/camper/entity.ts`; `src/domain/vehicle/kinds/camper/storagePlates.ts`; `src/domain/vehicle/kinds/camper/roomCells.ts`; `tools/gen_camper.py`; `tools/camper_fridge.py`; `tools/gen_camping_gear.py`; `packs/yasu_ride_bp/blocks/yasu_ride/fridge_decor_pair.block.json`; `packs/yasu_ride_bp/blocks/yasu_ride/camper_fridge_door.block.json`; `packs/yasu_ride_rp/animations/yasu_ride/camper.anim.json`
-- Verification: `tests/domain/vehicle/kinds/camper/fridge.test.ts` "lights the top door's plate in place of the front ceiling light" and "shuts both fridge doors on departure past their own plates" check lighting and departure. `tests/packs/camper.test.ts` "hinges both fridge doors at the fridge's front end on its aisle face" checks swings and heights. `tests/packs/campingGear.test.ts` "defines the fridge's compartment block as a pair block with its slots' heights and a door state" checks boxes. Not verified: BDS light emission, rendering, presses and migration on phone/PC; C152-C158 have no owner check recorded.
+- Verification: `tests/domain/vehicle/kinds/camper/fridge.test.ts` "lights the top door's plate in place of the front ceiling light" and "shuts both fridge doors on departure past their own plates" check lighting and departure. `tests/packs/camper/fridge.test.ts` "hinges both fridge doors at the fridge's front end on its aisle face" checks swings and heights. `tests/packs/campingGear.test.ts` "defines the fridge's compartment block as a pair block with its slots' heights and a door state" checks boxes. Not verified: BDS light emission, rendering, presses and migration on phone/PC; C152-C158 have no owner check recorded.
 
 ### Raised dashboard
 
@@ -249,7 +249,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0106](../adr/0106-raise-the-camper-dashboard-to-the-windshield.md) Decision, "The model lifts the dashboard and everything on its rear face and top by one constant, `DASH_RISE`"
 - Basis: [0106](../adr/0106-raise-the-camper-dashboard-to-the-windshield.md) Decision, "The dashboard's right cell still gets none"
 - Implementation: `tools/gen_camper.py`; `tools/camper_cab.py`; `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/decorCells.ts`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "ends the steering column inside the raised dash body, below the console" checks column clearance, and "puts every standing decor slot but the stove's on the model's top surface at its spot" checks slot surfaces. Not verified: seated windshield view and dashboard presses from each seat or the aisle on devices.
+- Verification: `tests/packs/camper/cab.test.ts` and `tests/packs/camper/room.test.ts` "ends the steering column inside the raised dash body, below the console" checks column clearance, and "puts every standing decor slot but the stove's on the model's top surface at its spot" checks slot surfaces. Not verified: seated windshield view and dashboard presses from each seat or the aisle on devices.
 
 ### Sink and single-burner stove
 
@@ -260,7 +260,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0112](../adr/0112-one-burner-on-the-camper-stove.md) Decision, "The other three are gone."
 - Basis: [0112](../adr/0112-one-burner-on-the-camper-stove.md) Decision, "`DECOR_SPOTS` keeps entries 1 to 4"
 - Implementation: `tools/gen_camper.py`; `tools/camper_room.py`; `src/domain/vehicle/kinds/camper/furniture.ts`; `tools/gen_camping_gear.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "stands the stove slot on top of the grate of its one burner in the cell middle" checks the surface, and "keeps every body cube, rotated ones included, out of every standing item" checks stove and pair-slot clearance using sampled geometry points. Not verified: visual fidelity to the stove reference or device presses around it. The one-knob change lacks an explicit seed ADR decision (see Open issues).
+- Verification: `tests/packs/camper/room.test.ts` "stands the stove slot on top of the grate of its one burner in the cell middle" checks the surface, and "keeps every body cube, rotated ones included, out of every standing item" checks stove and pair-slot clearance using sampled geometry points. Not verified: visual fidelity to the stove reference or device presses around it. The one-knob change lacks an explicit seed ADR decision (see Open issues).
 
 ### Counter window
 
@@ -270,7 +270,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0113](../adr/0113-a-window-over-the-camper-counter.md) Decision, "The right side gets a fourth side window"
 - Basis: [0113](../adr/0113-a-window-over-the-camper-counter.md) Decision, "It gets what every other side window gets from the shared window loop:"
 - Implementation: `tools/gen_camper.py`; `tools/camper_shell.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "hangs the wall cabinet from the ceiling down to y 50, over the counter window" checks cabinet separation. Not verified: an exact opening/frame/curtain regression specific to this window, the view outside from sink/stove, or device rendering; the loop behavior is read from the generator.
+- Verification: `tests/packs/camper/room.test.ts` "hangs the wall cabinet from the ceiling down to y 50, over the counter window" checks cabinet separation. Not verified: an exact opening/frame/curtain regression specific to this window, the view outside from sink/stove, or device rendering; the loop behavior is read from the generator.
 
 ### Ceiling hook and planter connection
 
@@ -281,7 +281,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0099](../adr/0099-hang-the-camper-planter-inside-its-cell.md) Consequences, "The cord and the hook show while driving too, with nothing on them"
 - Basis: [0102](../adr/0102-lift-the-hanging-planter-from-its-cell-bottom.md) Decision, "A hanging item is lifted to the hook by its slot's `yasu_ride:height`:"
 - Implementation: `tools/gen_camper.py`; `tools/camper_ceiling.py`; `src/domain/vehicle/kinds/camper/furniture.ts`; `tools/gen_camping_gear.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper.test.ts` "runs the ceiling hook from the ceiling plate to the top of its cell" checks continuity and no geometry below the cell top. `tests/packs/campingGear.test.ts` "starts the macrame planter at its cell bottom, with its outline over it" and "lifts every hanging item to the top of the hook cell" check model and lift. Not verified: knot/cord appearance and outline alignment on phone, PC or Vibrant Visuals.
+- Verification: `tests/packs/camper/room.test.ts` "runs the ceiling hook from the ceiling plate to the top of its cell" checks continuity and no geometry below the cell top. `tests/packs/campingGear.test.ts` "starts the macrame planter at its cell bottom, with its outline over it" and "lifts every hanging item to the top of the hook cell" check model and lift. Not verified: knot/cord appearance and outline alignment on phone, PC or Vibrant Visuals.
 
 ## Open issues
 

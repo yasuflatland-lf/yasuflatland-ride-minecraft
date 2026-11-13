@@ -24,5 +24,5 @@ Parking only made the bug easy to see, since that is when players walk around th
 
 - Through a window the cabin shows, tinted by the glass. The previews do not change, because `tools/render_preview.py` already picks see-through faces by texel alpha
 - The glass panes are still not sorted among themselves. Looking through a near pane at a far pane may lose the far pane's tint or show a small artifact on it. The cabin stays visible, so we accept this. Revisit if players notice it
-- A new see-through part of the camper goes into a glass bone, not into an opaque one. `tests/packs/camper.test.ts` checks this
+- A new see-through part of the camper goes into a glass bone, not into an opaque one. `tests/packs/camper/glass.test.ts` checks this
 - If a playtest still shows the terrain through the windows, look next at client culling of the parked camper's small collision box, which 0068 sets
