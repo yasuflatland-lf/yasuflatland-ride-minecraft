@@ -228,7 +228,10 @@ def audit(layout: Layout, atlas) -> list[str]:
     by_name = {r.name: r for r in layout.regions}
     for name, (u, v) in points:
         region = by_name[name]
-        if not (math.isfinite(u) and math.isfinite(v) and 0 <= u <= region.width and 0 <= v <= region.height):
+        # Face UVs are stored as origin + offset, so subtracting the origin
+        # back leaves float noise of about 1e-14 on a region edge.
+        ru, rv = round(u, 6), round(v, 6)
+        if not (math.isfinite(u) and math.isfinite(v) and 0 <= ru <= region.width and 0 <= rv <= region.height):
             message = f"{name}: UV outside region: ({u}, {v})"
             if message not in errors:
                 errors.append(message)

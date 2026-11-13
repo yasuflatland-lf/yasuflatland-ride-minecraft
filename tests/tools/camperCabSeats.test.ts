@@ -123,7 +123,8 @@ for cubes in area.values():
             owners = []
             for region in r.regions():
                 x,y = r._layout.origin(region.name)
-                if x <= min(u,u+du) <= max(u,u+du) <= x+region.width and y <= min(v,v+dv) <= max(v,v+dv) <= y+region.height:
+                e = 1e-6
+                if x - e <= min(u,u+du) <= max(u,u+du) <= x+region.width + e and y - e <= min(v,v+dv) <= max(v,v+dv) <= y+region.height + e:
                     owners.append(region.material)
             assert len(owners) == 1
             used.update(owners)
@@ -131,6 +132,6 @@ for cubes in area.values():
 `);
       },
     ),
-    { numRuns: 5 },
+    { numRuns: 5, examples: [[131, 155]] },
   );
 });
