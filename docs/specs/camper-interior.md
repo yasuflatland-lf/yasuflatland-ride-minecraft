@@ -2,6 +2,8 @@
 
 - Scope: The parked camper's furniture, bed and bunk, decor slots and gear placement and take-back, shower-toilet, toilet seat and standing up, entry and shower door taps, wall cabinet, fridge, and interior dashboard, stove, counter window, and hook.
 - Verified at: 5ed1f579
+- Source: [0009](../adr/0009-vehicle-model-conventions.md)
+- Source: [0091](../adr/0091-alpha-blend-only-the-camper-glass.md)
 - Source: [0092](../adr/0092-a-bed-in-the-parked-camper.md)
 - Source: [0093](../adr/0093-decorate-the-parked-camper.md)
 - Source: [0094](../adr/0094-the-camper-shower-toilet-door-and-shower.md)
@@ -27,6 +29,10 @@
 - Source: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md)
 - Source: [0182](../adr/0182-a-bunk-bed-in-the-parked-camper.md)
 - Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
+
+- Excluded: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) - Compound rotation rules belong to model and previews; these drawer cubes are unrotated.
+- Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md) - SUV model conventions are outside the camper interior.
+- Excluded: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md) - Exterior front and grille geometry are outside the kitchen fronts.
 
 ## Rules
 
@@ -222,12 +228,12 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 ### Wall cabinet
 
 - Applies to: The ceiling-layer storage over sink and stove.
-- Rule: `WALL_CABINET` supplies door ids `sink` and `stove`, with `cabinet_*` end slots in the ceiling layer. The model spans `CABINET_Y`, meets `CEIL`, and clears the counter window, with its floor at `CABINET_SHELF`. Body-child door bones `cabinet_sink_door` and `cabinet_stove_door` hinge at opposite outer ends; matching client-synced properties rotate them in opposite directions into the aisle. `cabinet_decor_pair` uses face, end codes and open visibility; its fixed lift follows its slot height, with selection over the compartment and collision at the ceiling plate. `camper_cabinet_door` replaces the aisle ceiling cell while open, retaining ceiling collision and providing hinge-side plate selection. Both blocks use `yasu_ride:camper_cabinet`; taking items uses storage presses, not the decor component.
+- Rule: `WALL_CABINET` supplies door ids `sink` and `stove`, with `cabinet_*` end slots in the ceiling layer. The model spans y 50 to 61 and clears the counter window, with its compartment floor at y 51. Its two-cube doors have routed cream faces, brown grain on their edges and pulls, and matching grain on the shelf edges. Body-child door bones `cabinet_sink_door` and `cabinet_stove_door` hinge at opposite outer ends; matching client-synced properties rotate them in opposite directions into the aisle. `cabinet_decor_pair` uses face, end codes and open visibility; its fixed lift follows its slot height, with selection over the compartment and collision at the ceiling plate. `camper_cabinet_door` replaces the aisle ceiling cell while open, retaining ceiling collision and providing hinge-side plate selection. Both blocks use `yasu_ride:camper_cabinet`; taking items uses storage presses, not the decor component.
 - Agreement: Accepted
-- Basis: [0103](../adr/0103-raise-the-camper-wall-cabinet-to-the-ceiling.md) Decision, "with its top at the ceiling (`CEIL`, model y 61)"
+- Basis: [0103](../adr/0103-raise-the-camper-wall-cabinet-to-the-ceiling.md) Decision, "keeps its top at the ceiling (`CEIL`, model y 61)"
 - Basis: [0114](../adr/0114-open-the-camper-wall-cabinet.md) Decision / The model, "Each door is its own bone, a child of `body`:"
 - Basis: [0114](../adr/0114-open-the-camper-wall-cabinet.md) Decision / The blocks, "Both blocks carry the custom component `yasu_ride:camper_cabinet`."
-- Implementation: `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/entity.ts`; `tools/gen_camper.py`; `tools/camper_room.py`; `tools/gen_camping_gear.py`; `packs/yasu_ride_bp/blocks/yasu_ride/cabinet_decor_pair.block.json`; `packs/yasu_ride_bp/blocks/yasu_ride/camper_cabinet_door.block.json`; `packs/yasu_ride_rp/animations/yasu_ride/camper.anim.json`
+- Implementation: `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/entity.ts`; `tools/gen_camper.py`; `tools/camper_kitchen_fronts.py`; `tools/gen_camping_gear.py`; `packs/yasu_ride_bp/blocks/yasu_ride/cabinet_decor_pair.block.json`; `packs/yasu_ride_bp/blocks/yasu_ride/camper_cabinet_door.block.json`; `packs/yasu_ride_rp/animations/yasu_ride/camper.anim.json`
 - Verification: `tests/packs/camper/room.test.ts` "hinges each wall cabinet door at the cabinet's outer end" checks swings, and "hangs the wall cabinet from the ceiling down to y 50" checks window clearance and spacing. `tests/packs/campingGear.test.ts` "defines the wall cabinet's compartment block as a pair block with a door state" checks boxes, lift and component. Not verified: lifted selection/collision and head clearance in actual play.
 
 ### Fridge
@@ -254,13 +260,23 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 ### Sink and single-burner stove
 
 - Applies to: The modeled right-hand kitchen and stove slot.
-- Rule: `tools/camper_kitchen.py` exposes `build_kitchen_top(registry) -> tuple[AreaCubes, KitchenRegions]`, with frozen shared region refs and exported `BROWN_ENDGRAIN`. Its 20-cube counter/sink has flecked laminate, a metal edge, three flush cover pieces with a finger notch, a low swept spout and twin taps. The counter slot stays at height 14 (model y 30); the cover stays flush at that surface over a recess with a stainless basin floor. The lower cabinet and wall cabinet remain in `camper_room.py`. The 36-cube range has a brushed stainless surround and uninterrupted control strip, dark olive oven face, chrome handle with brown inset, and one chrome-bezel ignition dial centred on the burner at model z 32. The black vent is also centred at z 32, 7.3 px wide with twelve slots, with metal filler on both sides. The dial ends at model x -8 to clear the aisle. `burner(cx, cz, turn)` builds the reduced 209-cube burner: an open bore, cast cup, one taller silver head ring, oval grate, six arms with raised feet, and three retaining straps. It remains at model (-16, 32), reaches y 30.95, and supports the height-15 stove slot. Obsolete burner offsets and permutations remain in `DECOR_SPOTS` unchanged. Registered regions are `flecked laminate` 192 x 192 LACQUER, `brushed stainless` 128 x 64 METAL, `range dial` 64 x 64 GLASS_COAT, `dark olive cab panel` 128 x 64 DARK_LACQUER, and shared `brown endgrain and pulls` 128 x 128 WOOD. Cast-cup detail uses a named base-atlas allocation; no unused texels are borrowed.
+- Rule: `tools/camper_kitchen.py` exposes `build_kitchen_top(registry) -> tuple[AreaCubes, KitchenRegions]`, with frozen shared region refs and exported `BROWN_ENDGRAIN`. Its 20-cube counter/sink has flecked laminate, a metal edge, three flush cover pieces with a finger notch, a low swept spout and twin taps. The counter slot stays at height 14 (model y 30); the cover stays flush at that surface over a recess with a stainless basin floor. The lower carcass remains in `camper_room.py`; drawers and overheads are built by `camper_kitchen_fronts.py`. The 36-cube range has a brushed stainless surround and uninterrupted control strip, dark olive oven face, chrome handle with brown inset, and one chrome-bezel ignition dial centred on the burner at model z 32. The black vent is also centred at z 32, 7.3 px wide with twelve slots, with metal filler on both sides. The dial ends at model x -8 to clear the aisle. `burner(cx, cz, turn)` builds the reduced 209-cube burner: an open bore, cast cup, one taller silver head ring, oval grate, six arms with raised feet, and three retaining straps. It remains at model (-16, 32), reaches y 30.95, and supports the height-15 stove slot. Obsolete burner offsets and permutations remain in `DECOR_SPOTS` unchanged. Registered regions are `flecked laminate` 192 x 192 LACQUER, `brushed stainless` 128 x 64 METAL, `range dial` 64 x 64 GLASS_COAT, `dark olive cab panel` 128 x 64 DARK_LACQUER, and shared `brown endgrain and pulls` 128 x 128 WOOD. Cast-cup detail uses a named base-atlas allocation; no unused texels are borrowed.
 - Agreement: Accepted
 - Basis: [0100](../adr/0100-swap-the-camper-stove-and-sink.md) Decision defines the counter, sink and range geometry and material regions.
 - Basis: [0107](../adr/0107-stand-stove-gear-on-a-burner.md) Decision retains height-15 grate compatibility and standing-item clearance.
 - Basis: [0112](../adr/0112-one-burner-on-the-camper-stove.md) Decision defines the single burner, aligned dial and vent, and preserved legacy spot indices.
 - Implementation: `tools/camper_kitchen.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `src/domain/vehicle/kinds/camper/furniture.ts`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
 - Verification: `tests/packs/camper/kitchen.test.ts` checks the centred dial/vent, twelve slots, flush notched cover, tap separation and 209-cube burner. `tests/tools/camperKitchen.test.ts` checks registered materials, frozen refs, atlas audits and burner transforms. `tests/packs/camper/room.test.ts` checks counter height 14, grate height 15 and standing-item clearance over stove, counter/sink and shared storage slots. Cube snapshots track the `counter`, `range`, `burner` and retained `room` areas. Device appearance and presses remain unverified.
+
+### Static kitchen drawers
+
+- Applies to: The lower cabinet beneath the sink.
+- Rule: `tools/camper_kitchen_fronts.py` exposes `build_drawers(regions: KitchenRegions, registry) -> AreaCubes` and `build_cabinet_fronts(registry) -> AreaCubes`. `drawer_bottom` and `drawer_top` are static children of `body`, listed before `glass` and `door_glass`. Each has ten cubes: routed front, two beads, three pull pieces, two sides, back and bottom. The open-top boxes are 10 px deep, 12.9 px wide and 4.5 px high with 0.2 px walls. Two 5.2 px fronts separated by a 0.2 px seam fill the 10.6 px span; pivots stay at the closed pose. The body is carved behind the drawers, including intersecting arch trim. The closed aisle clearance is 16.22 px. Region `routed cream panel` is 224 x 160 LACQUER and reuses the kitchen's `BROWN_ENDGRAIN` on edges, boxes and pulls. No drawer animation, interaction, properties or storage slots exist yet; behavior belongs to the last issue of the interior series.
+- Agreement: Accepted
+- Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision defines the static drawer bones.
+- Basis: [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision requires opaque drawers before glass.
+- Implementation: `tools/camper_kitchen_fronts.py`; `tools/camper_room.py`; `tools/camper_kit.py`; `tools/gen_camper.py`
+- Verification: `tests/packs/camper/kitchenFronts.test.ts` checks counts, closed pivots, seam, box walls, cavity and aisle clearance. `tests/tools/camperKitchenFronts.test.ts` checks repeatability, registered materials, routed texels and face audits. The existing cabinet hinge and animation tests remain applicable. Drawer behavior and device appearance remain unverified.
 
 ### Counter window
 
