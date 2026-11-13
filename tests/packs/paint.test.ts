@@ -108,7 +108,9 @@ describe("vehicle paints (ADR 0031)", () => {
 
   it("each painted entity's default paint matches the texture its variant-0 slot shows (ADR 0076)", () => {
     const painted: { entity: string; defaultPaint: Paint }[] = [
-      ...VEHICLE_KINDS.map((kind) => ({
+      ...VEHICLE_KINDS.filter(
+        (kind) => profileOf(kind).paintPolicy.kind === "dyeable",
+      ).map((kind) => ({
         entity: kind,
         defaultPaint: shownPaint(profileOf(kind).paintPolicy, PAINTS[0]),
       })),

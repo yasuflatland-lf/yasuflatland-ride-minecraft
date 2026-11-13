@@ -65,25 +65,6 @@ LAMP_GROUPS = {
 }
 LIT_SLOTS = tuple(dict.fromkeys(SLOTS.index(name) for names in LAMP_GROUPS.values() for name in names)) + (SLOTS.index("glow"),)
 
-# Accent bases follow the SUV paints (ADR 0031); the white shell never changes.
-ACCENT_BASES = {
-    "khaki": PALETTE["khaki"][:3],
-    "green": (62, 96, 56),
-    "red": (128, 22, 26),
-    "white": (222, 222, 216),
-    "light_gray": (156, 156, 152),
-    "gray": (92, 94, 98),
-    "black": (34, 34, 36),
-    "orange": (190, 92, 28),
-    "yellow": (214, 178, 44),
-    "lime": (112, 160, 42),
-    "cyan": (30, 118, 124),
-    "light_blue": (92, 150, 204),
-    "blue": (40, 58, 128),
-    "purple": (94, 46, 128),
-    "magenta": (160, 52, 140),
-    "pink": (214, 132, 162),
-}
 
 HW = 24  # half width
 FRONT, REAR = -56, 56

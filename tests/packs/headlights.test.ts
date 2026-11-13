@@ -38,7 +38,7 @@ describe.each(["suv", "sportsboat", "camper", "bulldozer"])(
       expect(controller.materials).toContainEqual({
         headlights: "Material.lamp",
       });
-      expect(controller.arrays.materials).toBeUndefined();
+      expect(controller.arrays?.materials).toBeUndefined();
       expect(client.materials.lamp).toBe("entity");
       expect(client.materials.lamp_lit).toBe("entity_emissive");
     });
