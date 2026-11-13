@@ -19,18 +19,22 @@ The generators copy the same texture tooling, and the copies have started to dri
 
 ## Decision
 
-Generators load three shared modules with `tool_loader.load_tool`:
+Generators load shared modules with `tool_loader.load_tool`:
 
 1. `tools/mer.py`: a validated `Mer(metalness, emissive, roughness)` value with `rgba()`, the constants `MER_OFF` and `MER_LIT`, and `mer_painter(lookup, default)`. It does no I/O.
 2. `tools/texture_io.py`: `Outputs(check)` writes JSON and PNG files, or under `--check` compares JSON parsed and PNGs by decoded pixel rows, collects every stale path, and reports them in `finish`, appending the exception reason in parentheses when reading or decoding fails. `png` accepts RGB or RGBA texels and pads RGB texels with alpha 255 once before writing or comparing. `png` takes a `compress_level` so each generator keeps its PNG bytes (`mer_atlas` uses 9, the others the zlib default). `texture_set_doc` and `write_texture_set` build the 1.16.100 texture set.
 3. `tools/lit_textures.py`: `build_lit_textures` writes `<kind>_lit.png`, `<kind>_lit_mer.png` and `<kind>_lit.texture_set.json` from a colour callback and an `is_lit` test.
 
-The copies are no longer justified, which amends the rationale in 0147. Every generated file stays byte-identical when a generator adopts the modules. The camper and the MER atlas users (fire pit, Dutch oven, Gas Lantern) adopt them first. The SUV adopts them in 6/17; the sports boat, bulldozer, and gear generators follow in 8/17.
+The camper also loads `tools/camper_regions.py` through `tool_loader`: `Material`, frozen `Region`, `RegionRegistry`, `RegionRef`, `Layout`, `pack`, `render_atlas`, and `audit` own region metadata, atlas placement, local-to-atlas UV resolution, and lossless validation. Material classifications are `SWATCHES_MIXED`, `METAL`, `LACQUER`, `GLASS_COAT`, `VINYL`, `WOOD`, `FABRIC`, `CARPET`, `TILE`, `STONE`, and `DARK_LACQUER`. They identify finishes for companion-map tooling; they do not assign a uniform MER value to the mixed base. The camper wrapper retains the shared `swatch_atlas.Atlas` for nested swatches and hardware, leaving other generators unchanged (0190).
+
+`tools/camper_golden.py compare --golden-dir DIR [--area NAME]` compares current pack geometry cube counts per bone and registry sizes/origins with `final-model.json.gz` and `final-regions.json` in the supplied directory. Golden `packed_origin` takes precedence over its source `origin`; the spike's descriptive base name is normalized to `base`. Area selection uses exact labels in current area ranges and golden cube `_area` tags, restricting regions to those used by that area. Current module labels and spike visual-feature labels can differ; a label missing on either side is reported as a difference, rather than guessed from overlapping feature groups. Current counts inspect actual cubes within the ownership ranges, so a stale range cannot count deleted geometry. A unified diff exits 1 on mismatch; a match exits 0. Golden artifacts stay outside the repository and their path is never embedded in tooling. Small temporary fixtures test the CLI; the unfinished camper is expected to differ from the completed-series golden.
+
+The copies are no longer justified, which amends the rationale in 0147. Every generated file stays byte-identical when a generator adopts the modules. The camper, SUV, sports boat, bulldozer, camping gear, and MER atlas users (fire pit, Dutch oven, Gas Lantern) use the shared modules.
 
 Widen the model CI job path filter to include every `tools/*.py` file. The filter matches `tools/[^/]+\.py` instead of a list of generator names. This amends the consequence in 0057 that `tools/gen_model.py` and `tools/gen_sportsboat.py` are left out of the pattern.
 
 ## Consequences
 
-- A fix to writing, checking or lit textures lands once for every adopter. Until 8/17 lands, the sports boat, bulldozer and gear generators still carry their own copies.
-- A shared-module change can affect several generators at once. `pnpm model:check` runs `--check` for the SUV (`tools/gen_model.py`), camper, MER atlas and gear generators, so drift in any adopter's output fails it.
+- A fix to writing, checking or lit textures lands once for every adopter.
+- A shared-module change can affect several generators at once. `pnpm model:check` runs the generator runner in check mode, including vehicles, gear, models, textures and previews, so drift in any adopter's output fails it.
 - The model job also runs for Python tools that do not feed the renderer, such as `tools/gen_sounds.py`. That costs CI time on those pull requests, which are rare.

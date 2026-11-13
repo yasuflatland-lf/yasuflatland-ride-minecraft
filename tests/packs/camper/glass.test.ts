@@ -1,6 +1,16 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { bone, bones, type Cube, RP, readPng } from "./helpers";
+import {
+  baseOrigin,
+  baseSize,
+  bone,
+  bones,
+  paletteSlots,
+  RP,
+  readPng,
+  swatch,
+  swatchUv,
+} from "./helpers";
 
 const camperRender = JSON.parse(
   readFileSync(`${RP}/render_controllers/yasu_ride/camper.rc.json`, "utf8"),
@@ -11,11 +21,6 @@ const camperMaterials: Record<string, string> = JSON.parse(
 
 describe("camper glass (ADR 0091)", () => {
   const glassBones = ["glass", "door_glass"];
-  // The PALETTE order in tools/gen_camper.py puts glass in slot 13 and the ceiling light
-  // lenses, whose alpha 0 lights them under the emissive material, last (ADR 0115).
-  const glassSlot = 13;
-  const domeSlot = 33;
-  const slotOf = (cube: Cube) => cube.uv.north?.uv[0];
 
   it("draws the model opaque and blends only the glass material", () => {
     expect(camperMaterials).toEqual({
@@ -37,18 +42,20 @@ describe("camper glass (ADR 0091)", () => {
   it("keeps glass transparent and limits emissive alpha to lamps and glows", () => {
     const { width, pixels } = readPng("textures/entity/yasu_ride/camper");
     const glowSlot = bone("glow_fl").cubes?.[0]?.uv.north?.uv[0];
-    for (let i = 0; i < width; i++) {
-      const alpha = pixels[i * 4 + 3];
-      if (i === glassSlot) expect(alpha).toBeLessThan(255);
-      else if (i === glowSlot) expect(alpha).toBe(40);
-      else if (i === domeSlot || i >= 39) expect(alpha).toBe(0);
+    for (let i = 0; i < baseSize[0]; i++) {
+      const u = baseOrigin[0] + i;
+      const alpha = pixels[(baseOrigin[1] * width + u) * 4 + 3];
+      if (u === swatchUv("glass")[0]) expect(alpha).toBeLessThan(255);
+      else if (u === glowSlot) expect(alpha).toBe(40);
+      else if (u === swatchUv("dome")[0] || i >= paletteSlots.length)
+        expect(alpha).toBe(0);
       else expect(alpha, `slot ${i}`).toBe(255);
     }
   });
 
   it("puts every glass cube in a glass bone listed after every opaque bone", () => {
     for (const b of bones) {
-      const glassy = (b.cubes ?? []).filter((c) => slotOf(c) === glassSlot);
+      const glassy = (b.cubes ?? []).filter((c) => swatch(c, "glass"));
       if (glassBones.includes(b.name)) {
         expect(b.cubes?.length, b.name).toBeGreaterThan(0);
         expect(glassy).toHaveLength(b.cubes?.length ?? 0);

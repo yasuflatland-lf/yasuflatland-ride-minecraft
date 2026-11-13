@@ -4,6 +4,7 @@ import { expect, it } from "vitest";
 import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
+import { swatchUv } from "./camper/helpers";
 
 const RP = "packs/yasu_ride_rp";
 const read = (path: string) =>
@@ -122,8 +123,9 @@ it("keeps the paint glow swatch and UVs unchanged and makes its lit texel fully 
     })[];
     for (const cube of cubes) {
       for (const face of Object.values(cube.uv)) {
-        const slot = face.uv[0] ?? -1;
-        expect(face.uv).toEqual([38, 0]);
+        const [u, v] = swatchUv("glow");
+        const slot = v * lit.width + u;
+        expect(face.uv).toEqual([u, v]);
         expect(Array.from(lit.pixels.slice(slot * 4, slot * 4 + 4))).toEqual([
           80, 170, 255, 0,
         ]);

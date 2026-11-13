@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { expect } from "vitest";
 import {
@@ -35,20 +36,42 @@ export const bone = (name: string) => {
 };
 export const end = (cube: Cube, axis: number) =>
   (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
-export const ALUMINIUM_SLOT = 36;
+
 export const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
-const paletteBlock =
-  readFileSync("tools/camper_kit.py", "utf8").match(
-    /^PALETTE = \{\n([\s\S]*?)^\}/m,
-  )?.[1] ?? "";
-export const paletteSlots = [...paletteBlock.matchAll(/^\s+"(\w+)":/gm)].map(
-  (m) => m[1],
+const registry: {
+  base: [number, number];
+  baseSize: [number, number];
+  size: [number, number];
+  slots: string[];
+  faces: Record<string, [number, number]>;
+} = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+kit = load_tool('camper_kit')
+print(json.dumps(dict(base=kit.LAYOUT.origin('base'), baseSize=[kit.BASE_REF.region.width, kit.BASE_REF.region.height], size=kit.LAYOUT.size, slots=kit.SLOTS, faces={name: kit.ATLAS.face(name)['uv'] for name in kit.SLOTS})))`,
+    ],
+    { encoding: "utf8" },
+  ),
 );
+export const baseOrigin = registry.base;
+export const baseSize = registry.baseSize;
+export const paletteSlots = registry.slots;
+export const swatchUv = (name: string): [number, number] => {
+  const face = registry.faces[name];
+  if (!face) throw new Error(`Missing camper swatch: ${name}`);
+  return face;
+};
+export const ALUMINIUM_SLOT = swatchUv("aluminium")[0];
 export const swatch = (c: Cube, name: string) => {
-  const slot = paletteSlots.indexOf(name);
-  expect(slot).toBeGreaterThanOrEqual(0);
-  return c.uv.north?.uv[0] === slot;
+  const [u, v] = swatchUv(name);
+  return c.uv.north?.uv[0] === u && c.uv.north?.uv[1] === v;
 };
 export const cubeCenter = (c: Cube, axis: number) =>
   (c.origin[axis] ?? 0) + (c.size[axis] ?? 0) / 2;
@@ -126,12 +149,15 @@ export const loadAtlas = async (python: PythonWorker) =>
         "with contextlib.redirect_stdout(io.StringIO()):",
         "    camper = runpy.run_path('tools/gen_camper.py')",
         "atlas = camper['ATLAS']",
-        "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], slots=camper['SLOTS'], windows=[camper['right_windows'], camper['left_windows']])))",
+        "ox, oy = camper['LAYOUT'].origin('base')",
+        "regions = [[r.name, ox + r.x, oy + r.y, r.w, r.h] for r in atlas.regions]",
+        "print(json.dumps(dict(width=camper['LAYOUT'].size[0], height=camper['LAYOUT'].size[1], base=[ox, oy, atlas.width, atlas.height], regions=regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], slots=camper['SLOTS'], windows=[camper['right_windows'], camper['left_windows']])))",
       ].join("\n"),
     ),
   ) as {
     width: number;
     height: number;
+    base: [number, number, number, number];
     regions: [string, number, number, number, number][];
     period: number;
     texelsPerPx: number;

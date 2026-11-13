@@ -54,7 +54,7 @@ PALETTE = {
     "glow": (80, 170, 255, 40),
 }
 SLOTS = list(PALETTE)
-ATLAS = camper_atlas.Atlas(SLOTS)
+ATLAS = camper_atlas.RegisteredAtlas(SLOTS)
 RIB_PERIOD_TEXELS = 4
 RIB_TEXELS_PER_PX = 2
 BOLT_PITCH_PX = 6
@@ -126,7 +126,7 @@ def take_slots(cubes, names):
     slots = {SLOTS.index(n) for n in names}
     taken, rest = [], []
     for c in cubes:
-        if ATLAS.swatch_at(*c["uv"]["north"]["uv"]) in slots:
+        if ATLAS.atlas_swatch_at(*c["uv"]["north"]["uv"]) in slots:
             taken.append(c)
         else:
             rest.append(c)
@@ -283,3 +283,55 @@ def wheel_positions():
         for sx in (1, -1):
             name = end + ("l" if sx < 0 else "r")
             yield name, sx, sx * (HW - 0.6 - 2), z
+
+
+def scale(color, factor):
+    return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
+
+
+# Baked streaks for devices without PBR, as on the owner's photo of the plated housing: the sky's
+# light from the top, a dark horizon, the ground's warmer light below, and narrow dark reflections.
+MIRROR_STREAKS = (0.9, 1.0, 1.0, 0.45, 0.8, 1.0, 0.95, 0.35, 0.6, 1.0, 1.0, 0.85, 0.4, 0.95, 1.0, 0.75)
+MIRROR_SKY, MIRROR_GROUND = (236, 244, 252), (250, 240, 224)
+MIRROR_HORIZON = (58, 62, 70)
+
+
+def mirror_chrome_pixel(x, y):
+    wobble = round(math.sin(y * 0.45) * 1.2)
+    streak = MIRROR_STREAKS[(x + wobble) % len(MIRROR_STREAKS)]
+    light = MIRROR_SKY if y < 19 else MIRROR_GROUND
+    fade = 0.72 + 0.28 * abs(y - 19) / 19
+    if y in (18, 19):
+        return (*MIRROR_HORIZON, 255)
+    return (*scale(light, streak * fade), 255)
+
+
+def region_pixel(region, x, y):
+    if region.name == "mirror_chrome":
+        return mirror_chrome_pixel(x, y)
+    if region.name == "rib":
+        phase = y % RIB_PERIOD_TEXELS
+        factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
+        return (*scale(PALETTE["white"][:3], factor), 255)
+    if region.name == "bolt":
+        dark = x % BOLT_PITCH_PX == 0
+    elif region.name == "door_head":
+        dark = y == region.h - 1
+    elif region.name == "door_hinge":
+        dark = y in (5, 6, 19, 20)
+    elif region.name == "door_latch":
+        dark = x == 1 and y in (10, 11)
+    elif region.name == "vent_screws":
+        dark = y == 1 and x in (2, 7, 12)
+    else:
+        raise ValueError(f"Unknown camper region: {region.name}")
+    return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
+
+
+regions = load_tool("camper_regions")
+REGISTRY = regions.RegionRegistry()
+BASE_REF = REGISTRY.register(regions.Region(
+    "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
+    lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
+LAYOUT = regions.pack(REGISTRY)
+ATLAS.base_ref = BASE_REF

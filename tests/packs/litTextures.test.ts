@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { readRgbaPng } from "../support/png";
+import { swatchUv } from "./camper/helpers";
 
 const RP = "packs/yasu_ride_rp";
 const read = (path: string) =>
@@ -127,6 +128,11 @@ const kinds = [
   {
     kind: "camper",
     slots: [14, 33, 34, 35, 38],
+    regionRule: (x: number, y: number) =>
+      ["lens", "dome", "marker_amber", "marker_red", "glow"].some((name) => {
+        const [u, v] = swatchUv(name);
+        return x === u && y === v;
+      }),
     cell: 1,
     bones: { headlights, ceiling_lights: ceiling },
     condition: `${headlights} || ${ceiling}`,

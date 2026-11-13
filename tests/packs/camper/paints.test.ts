@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { geometry, RP, readPng } from "./helpers";
+import { geometry, RP, readPng, swatchUv } from "./helpers";
 
 describe("camper model assets (ADR 0067)", () => {
   it("retains the saved variant and only a normalization event", () => {
@@ -40,7 +40,9 @@ describe("camper model assets (ADR 0067)", () => {
       geometry.description.texture_width,
       geometry.description.texture_height,
     ]);
-    expect([...khaki.pixels.subarray(4 * 4, 4 * 5)]).toEqual([
+    const [u, v] = swatchUv("khaki");
+    const offset = (v * khaki.width + u) * 4;
+    expect([...khaki.pixels.subarray(offset, offset + 4)]).toEqual([
       150, 128, 72, 255,
     ]);
   });
