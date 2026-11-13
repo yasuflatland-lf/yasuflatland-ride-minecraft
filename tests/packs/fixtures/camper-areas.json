@@ -10,7 +10,7 @@
     ],
     "glass": [0, 8]
   },
-  "arches": { "body": [3613, 3650] },
+  "room": { "body": [3583, 3593] },
   "curtains": {
     "body": [[299, 300], [305, 306], [541, 542], [551, 552], [557, 558]]
   },
@@ -56,8 +56,8 @@
     "drawer_bottom": [0, 9],
     "drawer_top": [0, 9]
   },
-  "room": { "body": [3583, 3593] },
   "shower": { "body": [3594, 3607], "shower_door": [0, 2] },
   "ceiling": { "body": [3608, 3610], "ceiling_lights": [0, 3] },
-  "dinette": { "body": [3611, 3612], "seat_2": [0, 3], "seat_3": [0, 3] }
+  "dinette": { "body": [3611, 3612], "seat_2": [0, 3], "seat_3": [0, 3] },
+  "arches": { "body": [3613, 3650] }
 }
