@@ -15,6 +15,7 @@ Bedrock's collision box (`minecraft:collision_box`) can only be square when seen
 
 - The front of the entity is the model's -z side
 - Standardize the bone names as follows: `root`, `body`, `wheel_fl` / `wheel_fr` / `wheel_rl` / `wheel_rr`, `door_fl` / `door_fr` / `door_rl` / `door_rr`, `seat_0`–`seat_3`
+- The camper extends this contract with a static `steering` child of `body` containing the 115-cube, 0.8-scale wheel, spokes, half horn ring and plain hub. Its pivot is (-14.29, 38.4909, -42.8), with bone rotation [60, 0, 0] giving a 30-degree wheel plane. The dark-dash column shaft, steel sleeve and static 30-cube gear lever stay on `body`. There is no steering animation. Compound wheel, spoke and lever rotations follow 0167.
 - Put each wheel bone's pivot at the center of its axle and each door bone's pivot at its hinge (front edge). Mark the exhaust position with the locator `exhaust`
 - Make the collision box a 1.8-wide, 1.6-high square, and accept that the front and back of the body stick out and appear to sink into walls
 - Give the grille eight slots, with no logo or vehicle name. A seven-slot grille is a registered trademark of Jeep, and this repository is public
