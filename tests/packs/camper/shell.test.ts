@@ -52,6 +52,8 @@ describe("camper model assets (ADR 0067)", () => {
         "door_entry",
         "steering",
         "shower_door",
+        "drawer_top",
+        "drawer_bottom",
         "cabinet_sink_door",
         "cabinet_stove_door",
         "fridge_top_door",

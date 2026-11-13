@@ -10,6 +10,7 @@
     ],
     "glass": [0, 8]
   },
+  "arches": { "body": [3613, 3650] },
   "curtains": {
     "body": [[299, 300], [305, 306], [541, 542], [551, 552], [557, 558]]
   },
@@ -48,13 +49,15 @@
   "counter": { "body": [3312, 3331] },
   "range": { "body": [3332, 3367] },
   "burner": { "body": [3368, 3576] },
-  "room": {
-    "body": [3577, 3587],
+  "kitchen_fronts": {
+    "body": [3577, 3582],
     "cabinet_sink_door": [0, 1],
-    "cabinet_stove_door": [0, 1]
+    "cabinet_stove_door": [0, 1],
+    "drawer_bottom": [0, 9],
+    "drawer_top": [0, 9]
   },
-  "shower": { "body": [3588, 3601], "shower_door": [0, 2] },
-  "ceiling": { "body": [3602, 3604], "ceiling_lights": [0, 3] },
-  "dinette": { "body": [3605, 3606], "seat_2": [0, 3], "seat_3": [0, 3] },
-  "arches": { "body": [3607, 3638] }
+  "room": { "body": [3583, 3593] },
+  "shower": { "body": [3594, 3607], "shower_door": [0, 2] },
+  "ceiling": { "body": [3608, 3610], "ceiling_lights": [0, 3] },
+  "dinette": { "body": [3611, 3612], "seat_2": [0, 3], "seat_3": [0, 3] }
 }

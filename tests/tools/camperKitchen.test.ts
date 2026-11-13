@@ -28,6 +28,7 @@ print(json.dumps(dict(regions=[[v.name,v.width,v.height,v.material.name] for v i
       ["range dial", 64, 64, "GLASS_COAT"],
       ["dark olive cab panel", 128, 64, "DARK_LACQUER"],
       ["brown endgrain and pulls", 128, 128, "WOOD"],
+      ["routed cream panel", 224, 160, "LACQUER"],
     ],
     frozen: true,
     shared: true,
