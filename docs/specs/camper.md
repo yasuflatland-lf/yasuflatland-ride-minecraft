@@ -70,12 +70,12 @@
 
 ### Fixed khaki paint
 
-- Applies to: All sixteen camper paint textures and default variant.
-- Rule: The camper uses `CAMPER_PROFILE.paintPolicy = fixed("khaki")`. All dye hits, including bumper stand-in hits, are ignored without consumption, sound, or a message. On load, nonzero saved variants are normalized to variant 0. The sixteen existing pack textures remain unchanged; their alternate colors affect only the `khaki` window band, `stripe` including the W, and `tan` lower skirt swatches. The white shell, trim, rib regions, and hardware regions stay fixed. All paints share the geometry’s atlas dimensions.
+- Applies to: The single khaki camper colour atlas and saved variant.
+- Rule: The camper uses `CAMPER_PROFILE.paintPolicy = fixed("khaki")`. All dye hits, including bumper stand-in hits, are ignored without consumption, sound, or a message. On load, nonzero saved variants are normalized to variant 0. The generator writes only `camper.png` for the colour atlas, and the base render controller uses `Texture.default` directly. No per-paint textures, paint events, or paint groups remain. Keep `minecraft:variant` for saved entities; `yasu_ride:normalize_paint` resets it to 0 through `yasu_ride:normalized_paint`. Lit, glow, and mirror passes are unchanged.
 - Agreement: Proposed
-- Basis: [0067](../adr/0067-camper.md) Decision, "The camper has fixed khaki paint through `CAMPER_PROFILE.paintPolicy = fixed("khaki")` (0031, 0076)."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "The retained paint texture variants differ only in `khaki`, `stripe`, and `tan`; the fixed-paint camper uses only the khaki variant (0067, 0076)."
+- Basis: [0067](../adr/0067-camper.md) Decision, "The camper has fixed khaki paint through `CAMPER_PROFILE.paintPolicy = fixed("khaki")` (0031, 0076)."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Generate one khaki colour atlas, `camper.png`, from the fixed palette (0067, 0076)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride`
-- Verification: `tests/packs/camper/paints.test.ts` "generates all 16 equally sized paints, changing only the three accent swatches and no region texel"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". `tests/application/vehicle/paintVehicle.test.ts` verifies ignored dyes; `tests/application/vehicle/normalizePaint.test.ts` verifies load normalization. Not verified: load recovery on a client.
+- Verification: `tests/packs/camper/paints.test.ts` "generates exactly one colour atlas and no per-paint files"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". `tests/application/vehicle/paintVehicle.test.ts` verifies ignored dyes; `tests/application/vehicle/normalizePaint.test.ts` verifies load normalization. Not verified: load recovery on a client.
 
 ### Model bone contract
 
@@ -133,7 +133,7 @@
 
 ### Ribbed shell atlas and trim
 
-- Applies to: Camper paint atlases and outward side-wall faces, including the door.
+- Applies to: The camper khaki atlas and outward side-wall faces, including the door.
 - Rule: Row 0 retains existing swatch indices; aluminium and `trim_beige` are appended. `camper_atlas.Atlas` allocates `rib`, `door_head`, `door_hinge`, `door_latch`, `vent_screws`, and `bolt` regions below it. The rib phase follows model height from `ROOF`, using `RIB_PERIOD_TEXELS` and `RIB_TEXELS_PER_PX`. Each period has groove, highlight, then flat shell texels. Only outward white faces on both side walls and the door receive ribs; front, rear, and roof remain plain. Door frames and roof edges use aluminium with roof-edge bolts; side-window trim is beige, cab frames black, and mullions aluminium. Hardware uses the named atlas regions and `HARDWARE_DARK_FACTOR`. Shared camper dimensions and atlas allocations live in `tools/camper_kit.py`; area-specific dimensions stay with their builders.
 - Agreement: Proposed
 - Basis: [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Keep row 0 as the swatch row with every existing index unchanged."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Apply ribs only to both side walls."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Use aluminium for the door frame and roof edge, with bolt heads along the roof edge."
