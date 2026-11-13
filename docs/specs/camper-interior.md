@@ -274,7 +274,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 ### Counter window
 
 - Applies to: The right-hand opening over sink and stove.
-- Rule: `right_windows` includes the counter opening behind the entry door at `WIN_Y`. The shared loop builds its frame, glass, curtains and cuts in the shell and lining. The cabinet stays above it and the kitchen below it.
+- Rule: `right_windows` includes the counter opening behind the entry door at `WIN_Y`. The shared loop builds its frame, glass and cuts in the shell and lining. Two tied-back light fabric panels and a rail occupy each of the five main side windows. The cabinet stays above it and the kitchen below it.
 - Agreement: Accepted
 - Basis: [0113](../adr/0113-a-window-over-the-camper-counter.md) Decision, "The right side gets a fourth side window"
 - Basis: [0113](../adr/0113-a-window-over-the-camper-counter.md) Decision, "It gets what every other side window gets from the shared window loop:"
@@ -294,6 +294,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 
 ## Open issues
 
+- The window curtains reach in to about |x| 21.8 and overlap the fridge column and top and the bunk deck (y 35.5 to 36.5), as in the approved golden model; the earlier "clear of the curtains" clearances in `tools/camper_kit.py` `FURN_X` and `tools/camper_bed_bunk.py` no longer hold. Resolve with a furniture or curtain depth change if it shows in game.
 - ADR 0093 says there are nineteen gear items, including an oil lamp and a lava lamp, each with places, and that the box gives one of each; the implementation has 20 items, including `alarm_clock`, `instant_camera`, and `binoculars`, no `places` field, and the box gives `CAMPING_GEAR_IDS` (`src/domain/vehicle/kinds/camper/campingGear.ts`, `tools/camping_gear.json`, `src/infrastructure/vehicle/bedrock/identifiers.ts`); the ADR needs an edit or a superseding ADR. The per-item places were superseded by 0097; catalog and box history belongs to the camping-gear spec.
 - ADR 0092 says the room grows from 103 to 105 cells and departure reads 61 cargo cells; ADR 0093 and layout consequences in 0097, 0098, 0103, 0106, 0108, 0114, 0118 and 0123 retain intermediate room, cargo, slot and departure totals; the implementation derives current sets from furniture and storage with the bunk included, while the parking-check total still agrees (`src/domain/vehicle/kinds/camper/roomCells.ts`, `src/domain/vehicle/kinds/camper/storagePlates.ts`, `src/domain/vehicle/kinds/camper/groundCheck.ts`, `tests/domain/vehicle/kinds/camper/room.test.ts`); the ADRs need an edit or a superseding ADR. These are historical totals, not layout requirements; 0182 records the current room and cargo transition.
 - ADR 0093 says the camper entity has 8 properties, ADR 0094 says 8, and ADR 0114 says 12 (ADR 0123 says 13); the implementation declares the current set in `CAMPER_ENTITY` and the pack asset, which also includes `ceiling_lights` (`src/domain/vehicle/kinds/camper/entity.ts`, `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`); the ADRs that state older totals need an edit or a superseding ADR.

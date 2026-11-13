@@ -51,6 +51,7 @@ from tool_loader import load_tool
 regions = load_tool('camper_regions')
 REGISTRY = regions.RegionRegistry()
 REGISTRY.register(regions.Region('base', 114, 220, regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
+REGISTRY.register(regions.Region('light curtain fabric', 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
 LAYOUT = regions.pack(REGISTRY)
 `,
     );
@@ -118,6 +119,12 @@ LAYOUT = regions.pack(REGISTRY)
             shell: 6,
             [change === "labels" ? "cab dash and instruments" : "cab"]: 6,
           },
+        },
+        {
+          name: "light curtain fabric",
+          size: [96, 120],
+          packed_origin: [0, 222],
+          used_by: { curtains: 1 },
         },
         ...(change === "extra"
           ? [

@@ -146,6 +146,8 @@ BOAT_POSES = {
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
 CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
+# Dense interior atlases need bounded preview tessellation at README resolution.
+CAMPER_CELLS_PER_UNIT = 2
 CAMPER_POSES = {
     "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
     "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
@@ -356,8 +358,8 @@ def face_color(texture, face, tex_w, tex_h):
     return texture[y][x]
 
 
-def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
-    """Split nonuniform UV rectangles at texel boundaries, preserving uniform quads exactly."""
+def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False, cells_per_unit=None):
+    """Split nonuniform UVs at texels or an optional model-space sampling limit."""
     (u, v), (du, dv) = face["uv"], face["uv_size"]
     u, du = u * len(texture[0]) / tex_w, du * len(texture[0]) / tex_w
     v, dv = v * len(texture) / tex_h, dv * len(texture) / tex_h
@@ -368,7 +370,16 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
         lo, hi = sorted((start, start + length))
         return sorted([0, 1, *[(n - start) / length for n in range(math.floor(lo) + 1, math.ceil(hi))]])
 
+    # Bedrock up/down UVs run u along +x and v toward -z; side faces run v downward.
+    order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
+    tl, tr, br, bl = [quad[i] for i in order]
     us, vs = breaks(u, du), breaks(v, dv)
+    if cells_per_unit is not None:
+        def bounded(steps, start, end):
+            # Rotation can leave an integer edge length a few ulps above its value.
+            count = max(1, math.ceil(round(math.dist(start, end) * cells_per_unit, 6)))
+            return steps if len(steps) - 1 <= count else [i / count for i in range(count + 1)]
+        us, vs = bounded(us, tl, tr), bounded(vs, tl, bl)
     if merge:
         # Merge equal texels before creating geometry: furniture atlases can otherwise
         # expand one face into hundreds of thousands of Python polygon objects.
@@ -405,10 +416,6 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
     if len({color for *_, color in cells}) == 1:
         yield quad, face_color(texture, face, tex_w, tex_h)
         return
-
-    # Bedrock up/down UVs run u along +x and v toward -z; side faces run v downward.
-    order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
-    tl, tr, br, bl = [quad[i] for i in order]
 
     points = {}
 
@@ -670,7 +677,7 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
                 if texture_mapping:
-                    patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False))
+                    patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False), cells_per_unit=pose.get("cells_per_unit"))
                 else:
                     patches = [(quad, face_color(texture, uv, desc["texture_width"], desc["texture_height"]))]
                 for patch, (r, g, b, a) in patches:
@@ -1048,7 +1055,8 @@ def render_camper(rp):
     # Camper previews use the ground pose, where the render controller hides hover glows.
     geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Other atlases intentionally use center sampling in their established previews.
-    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True)
+    return render_poses(geo, texture, {name: {**pose, "cells_per_unit": CAMPER_CELLS_PER_UNIT}
+                                       for name, pose in CAMPER_POSES.items()}, texture_mapping=True)
 
 
 def bulldozer_bones(bones):

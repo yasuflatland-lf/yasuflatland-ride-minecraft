@@ -59,6 +59,7 @@ a = s.build_surfaces(r)
       ["wall veneer", 416, 180, "wood", true],
       ["backsplash tile", 124, 152, "tile", true],
       ["table oak", 168, 144, "wood", true],
+      ["light curtain fabric", 96, 120, "fabric", true],
     ]);
   });
   it("preserves the reference material bytes regardless of sampling order", () => {
@@ -68,6 +69,8 @@ a = s.build_surfaces(r)
         "for r in k.REGISTRY.regions():\n    if r.name != 'base':\n        for y in reversed(range(r.height)):\n            for x in reversed(range(r.width)): r.pixel(x,y)",
       ),
     ).toEqual({
+      "light curtain fabric":
+        "96cb2afdfd1af2a32a8c474d29772de73de329ad36815133ab1c4f825c3d559a",
       "carpet v3":
         "9991eee05af8091f0884c15915f20278d0d5ba41080c2c81a7650773bfad27cf",
       "wall veneer":

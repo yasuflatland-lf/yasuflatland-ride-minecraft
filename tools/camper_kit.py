@@ -228,7 +228,7 @@ BOLT_REGION = ATLAS.allocate("bolt", math.ceil(REAR_OUT - TOP_FRONT), 1)
 # A polished-plate tile: the mirror parts' every face maps onto it, thin parts onto its corner.
 MIRROR_CHROME_REGION = ATLAS.allocate("mirror_chrome", 16, 32)
 MIRROR_THIN_UV = (4, 8)
-FURN_X = (9, 22.4)  # clear of the curtains (22.5 to 22.8) and the aisle (x < 8)
+FURN_X = (9, 22.4)  # leaves the aisle (x < 8) clear
 
 
 def moved(cube, offset):
@@ -361,10 +361,13 @@ def wheel_well_holes():
 
 
 regions = load_tool("camper_regions")
+assert WIN_Y == regions.CURTAIN_WINDOW_Y, "curtain geometry is baked for another window height"
 REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
 load_tool("camper_surfaces").register_surfaces(REGISTRY)
+CURTAIN_REF = REGISTRY.register(regions.Region(
+    "light curtain fabric", 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
 LAYOUT = regions.pack(REGISTRY)
 ATLAS.base_ref = BASE_REF

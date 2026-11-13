@@ -19,7 +19,7 @@ Since 0103 the wall cabinet over the counter sits at the ceiling, from y 54 to 6
 - The right side gets a fourth side window at z 10 to 35, y 36 to 49 (`WIN_Y`), in `right_windows` in `tools/camper_kit.py`
 - It is 25 px long, as long as the window ahead of the door (z -35 to -10), and has the same height
 - Its position retains the original 3 px spacing from the door and the former rear window. The rear opening is now closed by the vent-lid design (0157)
-- It gets what every other side window gets from the shared window loop: the chrome frame, the glass, the curtains drawn to its edges inside (z 10 to 12.5 and 32.5 to 35), the cut in the tan window band, and the holes in the outer wall and in the inner `wall_in` panel
+- It gets what every other side window gets from the shared window loop: the grey-beige frame, the glass, two tied-back fabric panels and a rail inside the opening, the cut in the tan window band, and the holes in the outer wall and in the inner `wall_in` panel
 - No interior part changes. No cube of the counter, the sink, the stove, or the wall cabinet reaches into the opening (x 9 to 23.4, y 36 to 49, z 10 to 35); only the two curtains do
 
 ## Consequences

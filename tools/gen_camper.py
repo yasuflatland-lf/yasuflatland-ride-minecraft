@@ -70,7 +70,7 @@ for name, module in areas.items():
         # Side curtains originally followed their individual panes inside the wall loop.
         for i, anchor in enumerate(module.anchors()):
             index = merged["body"].index(anchor) + 1
-            merged["body"][index:index] = built["body"][2 * i:2 * i + 2]
+            merged["body"][index:index] = built["body"][81 * i:81 * (i + 1)]
         continue
     if name == "arches":
         # The arches rise above the floor. Thin panels enclose them inside without
