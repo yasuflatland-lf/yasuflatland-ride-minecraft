@@ -12,12 +12,12 @@ import {
 import { decorItemId, decorSlotId } from "../../../support/decorIds";
 
 const decorList = (minLength: number) =>
-  fc.uniqueArray(
+  fc.array(
     fc.record({
       slot: fc.string().map(decorSlotId),
       item: fc.stringMatching(/^[a-z][a-z0-9_]{0,15}$/).map(decorItemId),
     }),
-    { selector: (d) => d.slot, minLength },
+    { minLength },
   );
 
 describe("decor (ADR 0093)", () => {
@@ -36,7 +36,7 @@ describe("decor (ADR 0093)", () => {
     expectTypeOf<DecorItemId>().not.toExtend<DecorSlotId>();
   });
 
-  it("round-trips any decor with distinct slots through the saved string", () => {
+  it("round-trips any decor through the saved string", () => {
     fc.assert(
       fc.property(decorList(1), (d) => {
         expect(parseDecor(serializeDecor(d))).toEqual(d);
@@ -59,10 +59,13 @@ describe("decor (ADR 0093)", () => {
     expect(parseDecor(saved)).toEqual([]);
   });
 
-  it("keeps the first entry of a repeated slot", () => {
+  it("keeps every entry of a repeated slot", () => {
     expect(
       parseDecor('[{"slot":"table","item":"a"},{"slot":"table","item":"b"}]'),
-    ).toEqual([{ slot: "table", item: "a" }]);
+    ).toEqual([
+      { slot: "table", item: "a" },
+      { slot: "table", item: "b" },
+    ]);
   });
 
   it("turns any yaw near a quarter into that quarter", () => {

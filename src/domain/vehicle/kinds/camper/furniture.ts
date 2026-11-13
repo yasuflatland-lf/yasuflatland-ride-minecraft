@@ -330,6 +330,11 @@ export const CEILING_LIGHTS: readonly LocalCell[] = [
   { x: 0, z: -3, layer: 2 },
 ];
 
+export const DASHBOARD_RECTANGLES = {
+  dashboard_center: { width: 7, depth: 4.73 },
+  dashboard_left: { width: 7, depth: 3.5 },
+} as const;
+
 // Derived from python3 -I tools/camper_decor_fit.py --json; tests verify the table.
 export const DASHBOARD_SLOT_ITEMS = {
   dashboard_center: [

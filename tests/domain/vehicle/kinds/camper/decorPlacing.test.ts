@@ -28,6 +28,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
   CAMPER_FURNITURE,
+  DASHBOARD_RECTANGLES,
   DECOR_SPOTS,
   type DecorSlot,
   type LocalCell,
@@ -832,10 +833,12 @@ it("accepts only dashboard items whose transformed footprint fits the slot recta
     fc.property(fc.constantFrom(...rows), (item) => {
       for (const slot of slotsFor(decorItemId(item.id))) {
         if (slot.id === "dashboard_center" || slot.id === "dashboard_left") {
-          expect(item.width).toBeLessThanOrEqual(7);
-          expect(item.depth).toBeLessThanOrEqual(
-            slot.id === "dashboard_center" ? 4.73 : 3.5,
-          );
+          const rectangle =
+            slot.id === "dashboard_center"
+              ? DASHBOARD_RECTANGLES.dashboard_center
+              : DASHBOARD_RECTANGLES.dashboard_left;
+          expect(item.width).toBeLessThanOrEqual(rectangle.width);
+          expect(item.depth).toBeLessThanOrEqual(rectangle.depth);
         }
       }
     }),

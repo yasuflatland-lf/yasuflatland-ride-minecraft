@@ -2,9 +2,15 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { slotsFor } from "../../src/domain/vehicle/kinds/camper/decorPlacing";
-import { DASHBOARD_SLOT_ITEMS } from "../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  DASHBOARD_RECTANGLES,
+  DASHBOARD_SLOT_ITEMS,
+  DECOR_SPOTS,
+} from "../../src/domain/vehicle/kinds/camper/furniture";
 import { decorItemId } from "../support/decorIds";
+import { defined } from "../support/defined";
 
 type FitRow = {
   id: string;
@@ -17,6 +23,39 @@ const table = () =>
   execFileSync("python3", ["-I", "tools/camper_decor_fit.py", "--json"], {
     encoding: "utf8",
   });
+
+it("uses the domain dashboard spots and rectangles in the fit checker", () => {
+  const raw = execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      `
+import json, sys
+sys.path.insert(0, "tools")
+import camper_decor_fit
+print(json.dumps(camper_decor_fit.SLOTS))
+`,
+    ],
+    { encoding: "utf8" },
+  );
+  const slots: Record<string, number[]> = JSON.parse(raw);
+  for (const id of ["dashboard_center", "dashboard_left"] as const) {
+    const slot = defined(
+      DECOR_SLOTS.find((s) => s.id === id),
+      id,
+    );
+    const spot = defined(DECOR_SPOTS[defined(slot.spot, id)], id);
+    const values = defined(slots[id], id);
+    expect(values[0]).toBeCloseTo(16 * slot.cell.x + spot.left);
+    expect(values[1]).toBe(16 * slot.cell.layer + slot.height);
+    expect(values[2]).toBeCloseTo(-(16 * slot.cell.z + spot.forward));
+    expect(values.slice(3)).toEqual([
+      DASHBOARD_RECTANGLES[id].width,
+      DASHBOARD_RECTANGLES[id].depth,
+    ]);
+  }
+});
 
 it("derives dashboard acceptance from deterministic clearance checks of the generated models", () => {
   const output = table();
@@ -38,9 +77,11 @@ it("derives dashboard acceptance from deterministic clearance checks of the gene
         );
         expect(accepted).toBe(row[slot]);
         if (accepted) {
-          expect(row.width).toBeLessThanOrEqual(7);
+          expect(row.width).toBeLessThanOrEqual(
+            DASHBOARD_RECTANGLES[slot].width,
+          );
           expect(row.depth).toBeLessThanOrEqual(
-            slot === "dashboard_center" ? 4.73 : 3.5,
+            DASHBOARD_RECTANGLES[slot].depth,
           );
         }
       }),
