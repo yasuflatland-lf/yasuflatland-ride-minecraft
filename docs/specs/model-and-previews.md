@@ -2,6 +2,7 @@
 
 - Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, and how the SUV and sports boat README previews and the pack icons are rendered from the model files and kept fresh.
 - Verified at: 7267bd8a
+- Source: [0067](../adr/0067-camper.md)
 - Source: [0009](../adr/0009-vehicle-model-conventions.md)
 - Source: [0016](../adr/0016-readme-preview-rendered-from-model.md)
 - Source: [0027](../adr/0027-readme-previews-in-three-poses.md)
@@ -18,8 +19,55 @@
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
 - Excluded: [0136](../adr/0136-bulldozer.md): extends 0027 and 0045 with the bulldozer previews, which belong to the bulldozer topic; the camper, bulldozer, camping gear, chair and tent previews drawn by the same renderer are not stated here
+- Excluded: [0068](../adr/0068-park-the-camper-with-room-blocks.md): parked room behavior belongs to the camper topic
+- Excluded: [0069](../adr/0069-camper-right-hand-drive.md): the cab layout belongs to the camper topic
+- Excluded: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md): front geometry belongs to the camper topic
+- Excluded: [0226](../adr/0226-lean-and-fold-the-camper-front-panels.md): front panel shape belongs to the camper topic
 
 ## Rules
+
+### Camper generator modules
+
+- Applies to: Camper geometry generation and the final cube ownership fixture.
+- Rule: Area builders return fresh bone cube lists without file writes. The orchestrator preserves the existing geometry, atlas allocations, bone order, and cube order, and writes area ranges alongside the existing assets.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "The orchestrator preserves bone and cube order and writes final ownership ranges to `tests/packs/fixtures/camper-areas.json` without adding cube fields"
+- Implementation: `tools/gen_camper.py`; `tools/camper_kit.py`; `tools/generators.json`; `tests/packs/fixtures/camper-areas.json`; area modules listed below.
+- Verification: `tests/packs/camperAreas.test.ts` "assigns every final camper cube to exactly one area range", "builds independent areas repeatedly without changing the shared atlas"; `pnpm model:check` checks fixture freshness. Generated assets remain identical after `pnpm model`.
+
+`tools/gen_camper.py` loads the following area builders through `tool_loader.load_tool`,
+then performs wheel-well cuts on the merged body and dinette seats, extracts lamps and
+glass, mirrors the model, and writes the existing assets. Each builder exposes `AREA`
+and `build() -> AreaCubes`, and loads only shared tools. `tools/camper_kit.py` owns
+shared dimensions, cube helpers, the palette, and all atlas allocations in their original
+order. `AreaCubes.merge` concatenates cube lists in call order and preserves bone insertion
+order; the orchestrator separately retains the existing bone draw order.
+
+| Build order | Module                     | Geometry area                                                                       |
+| ----------- | -------------------------- | ----------------------------------------------------------------------------------- |
+| 1           | `tools/camper_shell.py`    | Floor, ceiling, side walls, window frames, W, vent lid, service and storage hatches |
+| 2           | `tools/camper_curtains.py` | Side-window curtains, inserted after their respective panes                         |
+| 3           | `tools/camper_door.py`     | Entry door, fixed surround, fold-out step                                           |
+| 4           | `tools/camper_front.py`    | Nose, grille, windshield, cab-over, front lamps, mirrors                            |
+| 5           | `tools/camper_rear.py`     | Rear profile, lamps, bumper, ladder                                                 |
+| 6           | `tools/camper_roof.py`     | Air conditioners, vents, edge rails, rack                                           |
+| 7           | `tools/camper_running.py`  | Chassis, wheels, hover glows                                                        |
+| 8           | `tools/camper_cab.py`      | Dashboard, controls, pedals, front seats, steering                                  |
+| 9           | `tools/camper_bed_bunk.py` | Rear bed and bunk                                                                   |
+| 10          | `tools/camper_fridge.py`   | Fridge carcass and doors                                                            |
+| 11          | `tools/camper_room.py`     | Counter, sink, stove, burner, drawers, overhead cabinets and doors                  |
+| 12          | `tools/camper_shower.py`   | Shower room, toilet, shower head, door                                              |
+| 13          | `tools/camper_ceiling.py`  | Planter hook and ceiling lamps                                                      |
+| 14          | `tools/camper_dinette.py`  | Dinette seats and table                                                             |
+| 15          | `tools/camper_arches.py`   | Interior wheel-well panels                                                          |
+
+The generator also writes `tests/packs/fixtures/camper-areas.json` through `Outputs.json`,
+relative to the repository root. It maps each area and bone to inclusive final cube indices
+`[first, last]`. The `shell` and `curtains` body entries use lists of such ranges because
+curtains were interleaved with the walls; preserving that order keeps the model identical.
+Every other area has one contiguous range per bone. No ownership field enters a cube.
+`tests/packs/camperAreas.test.ts` checks that the ranges cover every cube exactly once.
+Both `pnpm model` and `pnpm model:check` include this fixture and its formatting.
 
 ### Front of every vehicle model
 
