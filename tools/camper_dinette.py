@@ -16,11 +16,7 @@ def build() -> AreaCubes:
     # Facing dinette on the left behind the passenger: seat 2 faces the rear, seat 3 forward,
     # with the table between them in the middle cell (seats 2 and 3 of minecraft:rideable).
     DIN_X = (-HW + 1, -8)
-    seat2 = [box(DIN_X[0], FLOOR, -23, DIN_X[1], FLOOR + 7, -10, "tweed"),
-             box(DIN_X[0], FLOOR + 7, -24, DIN_X[1], FLOOR + 20, -21.5, "tweed")]
-    seat3 = [box(DIN_X[0], FLOOR, 10, DIN_X[1], FLOOR + 7, 23, "tweed"),
-             box(DIN_X[0], FLOOR + 7, 21.5, DIN_X[1], FLOOR + 20, 24, "tweed")]
     body.append(box(DIN_X[0], FLOOR + 11, -6, -9, FLOOR + 12, 6, "wood"))  # table
     body.append(box(-15, FLOOR, -1, -13, FLOOR + 11, 1, "chrome"))
 
-    return AreaCubes({'body': body, 'seat_2': seat2, 'seat_3': seat3})
+    return AreaCubes({'body': body})

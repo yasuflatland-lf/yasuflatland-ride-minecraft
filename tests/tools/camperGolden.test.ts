@@ -44,6 +44,15 @@ function compare(change: Change, area?: string) {
   const directory = mkdtempSync(join(tmpdir(), "camper-golden-"));
   try {
     cpSync("tools", join(directory, "tools"), { recursive: true });
+    writeFileSync(
+      join(directory, "tools/camper_kit.py"),
+      `from tool_loader import load_tool
+regions = load_tool("camper_regions")
+REGISTRY = regions.RegionRegistry()
+REGISTRY.register(regions.Region("base", 114, 220, regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
+LAYOUT = regions.pack(REGISTRY)
+`,
+    );
     const models = join(
       directory,
       "packs/yasu_ride_rp/models/entity/yasu_ride",
