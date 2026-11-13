@@ -1,5 +1,6 @@
 import type { SleepInBed } from "../../../../application/shared/sleepInBed";
 import type { FindBedSpawnCell } from "../../../../application/vehicle/findBedSpawnCell";
+import type { NormalizePaint } from "../../../../application/vehicle/normalizePaint";
 import type { PlaceDecor } from "../../../../application/vehicle/placeDecor";
 import type { PressShowerToilet } from "../../../../application/vehicle/pressShowerToilet";
 import type { PressStorage } from "../../../../application/vehicle/pressStorage";
@@ -10,12 +11,14 @@ import type { Vec3 } from "../../../../domain/shared/vec";
 import { registerBedBlock } from "../../../shared/bedBlock";
 import { registerDecor } from "./handlers/decor";
 import { registerDockDoor } from "./handlers/dockDoor";
+import { registerNormalizePaint } from "./handlers/normalizePaint";
 import { registerShowerToilet } from "./handlers/showerToilet";
 import { registerStorage } from "./handlers/storage";
 import { CAMPER_BED_COMPONENT } from "./identifiers";
 
 export function installCamper(
   useCases: {
+    normalizePaint: NormalizePaint;
     door: UseDockDoor;
     bed: SleepInBed;
     bedSpawnCell: FindBedSpawnCell;
@@ -34,6 +37,7 @@ export function installCamper(
   ) => VehicleId | undefined,
   registerDockGuard: () => void,
 ): void {
+  registerNormalizePaint(useCases.normalizePaint);
   registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
   registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed, (dim, cell) => {
     const id = dockCellOwner(dim, cell);

@@ -184,13 +184,15 @@ describe("PaintVehicle (ADR 0031)", () => {
           if (creative) world.creativePlayers.add("p");
           const blackish = (p: Paint) => p === "khaki" || p === "black";
           const same =
-            kind === "sportsboat"
-              ? from === to || (blackish(from) && blackish(to))
-              : kind === "bulldozer"
-                ? from === to ||
-                  (["khaki", "yellow"].includes(from) &&
-                    ["khaki", "yellow"].includes(to))
-                : from === to;
+            kind === "camper"
+              ? true
+              : kind === "sportsboat"
+                ? from === to || (blackish(from) && blackish(to))
+                : kind === "bulldozer"
+                  ? from === to ||
+                    (["khaki", "yellow"].includes(from) &&
+                      ["khaki", "yellow"].includes(to))
+                  : from === to;
           const clock = new FakeClock();
           const uc = new PaintVehicle(world, clock);
           expect(
@@ -287,7 +289,7 @@ it("asks the world about creative mode for the painting player only", () => {
   );
 });
 
-it("reads paint before kind, and only kind after painting in the same tick", () => {
+it("checks the policy before reading paint, including repeat hits", () => {
   class ReadOrderWorld extends FakeWorld {
     readonly reads: string[] = [];
     override paintOf(id: string) {
@@ -308,8 +310,32 @@ it("reads paint before kind, and only kind after painting in the same tick", () 
     paint: "red" as const,
   };
   expect(useCase.execute(cmd)).toBe(true);
-  expect(world.reads).toEqual(["paintOf", "kindOf"]);
+  expect(world.reads).toEqual(["kindOf", "paintOf", "kindOf"]);
   world.reads.length = 0;
   expect(useCase.execute(cmd)).toBe(false);
-  expect(world.reads).toEqual(["kindOf"]);
+  expect(world.reads).toEqual(["kindOf", "kindOf"]);
 });
+
+it.each(PAINTS)(
+  "ignores camper dye %s in Survival and Creative without any effects",
+  (to) => {
+    for (const creative of [false, true]) {
+      for (const from of PAINTS) {
+        const world = new FakeWorld();
+        world.paints.set("camper", from);
+        world.kinds.set("camper", "camper");
+        if (creative) world.creativePlayers.add("p");
+        expect(
+          new PaintVehicle(world, new FakeClock()).execute({
+            playerId: asPlayerId("p"),
+            vehicleId: asVehicleId("camper"),
+            paint: to,
+          }),
+        ).toBe(false);
+        expect(world.paints.get("camper")).toBe(from);
+        expect(world.calls).toEqual([]);
+        expect(world.sounds).toEqual([]);
+      }
+    }
+  },
+);
