@@ -1,4 +1,4 @@
-import type { Paint } from "../shared/paint";
+import type { PaintPolicy } from "../shared/paint";
 import type { RoofTentMount } from "../shared/roofTent";
 import type { Vec2 } from "../shared/vec";
 import type { HintZones } from "./hints";
@@ -85,8 +85,8 @@ export interface VehicleProfile {
   readonly beams: BeamPattern;
   readonly placement: PlacementRule;
   readonly chaseCamera: ChaseCamera;
-  /** The paint the variant-0 slot (PAINTS[0]) shows for this kind (ADR 0076). */
-  readonly defaultPaint: Paint;
+  /** Whether dyes are accepted and which paint this kind shows (ADR 0076). */
+  readonly paintPolicy: PaintPolicy;
   /**
    * Where players on foot get hints (ADR 0086). Absent = the kind shows no hints: the
    * SUV and the boat take hits on their whole body.

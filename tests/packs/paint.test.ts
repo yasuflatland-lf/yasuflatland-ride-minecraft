@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { TENT_SPEC } from "../../src/domain/camp/spec";
-import { PAINTS, type Paint } from "../../src/domain/shared/paint";
+import { PAINTS, type Paint, shownPaint } from "../../src/domain/shared/paint";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
 import {
@@ -110,7 +110,7 @@ describe("vehicle paints (ADR 0031)", () => {
     const painted: { entity: string; defaultPaint: Paint }[] = [
       ...VEHICLE_KINDS.map((kind) => ({
         entity: kind,
-        defaultPaint: profileOf(kind).defaultPaint,
+        defaultPaint: shownPaint(profileOf(kind).paintPolicy, PAINTS[0]),
       })),
       { entity: "tent", defaultPaint: TENT_SPEC.defaultPaint },
     ];

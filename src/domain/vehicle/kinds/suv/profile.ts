@@ -1,3 +1,4 @@
+import { dyeable } from "../../../shared/paint";
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   clearanceHeight,
@@ -64,7 +65,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
     }),
   }),
   chaseCamera: "mid",
-  defaultPaint: "khaki",
+  paintPolicy: dyeable("khaki"),
 });
 
 // Frozen because every SUV drive shares this one object.

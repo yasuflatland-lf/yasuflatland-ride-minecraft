@@ -1,3 +1,4 @@
+import { dyeable } from "../../../shared/paint";
 import type { MotionLimits } from "../../motion/limits";
 import {
   clearanceHeight,
@@ -57,7 +58,7 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   monitor: SPORTSBOAT_MONITOR,
   placementGift: "sportsboat_equipment_box",
   chaseCamera: "near",
-  defaultPaint: "black", // ADR 0051, 0076
+  paintPolicy: dyeable("black"), // ADR 0051, 0076
 });
 
 /** The sports boat's motion limits, read from SPORTSBOAT_SPEC (ADR 0087). */
