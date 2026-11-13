@@ -2,12 +2,13 @@
 import { GameMode } from "@minecraft/server";
 import type { PaintWorld } from "../../../application/vehicle/ports/paint";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
-import { PAINTS, type Paint } from "../../../domain/shared/paint";
+import { isDyeable, PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
+import { profileOf } from "../../../domain/vehicle/kinds/index";
 import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
-import { kindOfEntity } from "./identifiers";
+import { entityEventId, kindOfEntity } from "./identifiers";
 
 export class BedrockPaintWorld implements PaintWorld {
   constructor(
@@ -29,7 +30,11 @@ export class BedrockPaintWorld implements PaintWorld {
   paint(vehicleId: VehicleId, paint: Paint): void {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return;
-    vehicle.triggerEvent(paintEvent(paint));
+    const kind = kindOfEntity(vehicle.typeId);
+    const fixed = kind !== undefined && !isDyeable(profileOf(kind).paintPolicy);
+    vehicle.triggerEvent(
+      fixed ? entityEventId("normalize_paint") : paintEvent(paint),
+    );
   }
 
   playPaintSound(vehicleId: VehicleId): void {

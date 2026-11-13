@@ -2,28 +2,6 @@
   "format_version": "1.8.0",
   "render_controllers": {
     "controller.render.yasu_ride.camper": {
-      "arrays": {
-        "textures": {
-          "Array.paints": [
-            "Texture.default",
-            "Texture.green",
-            "Texture.red",
-            "Texture.white",
-            "Texture.light_gray",
-            "Texture.gray",
-            "Texture.black",
-            "Texture.orange",
-            "Texture.yellow",
-            "Texture.lime",
-            "Texture.cyan",
-            "Texture.light_blue",
-            "Texture.blue",
-            "Texture.purple",
-            "Texture.magenta",
-            "Texture.pink"
-          ]
-        }
-      },
       "geometry": "Geometry.default",
       "materials": [
         {
@@ -42,7 +20,7 @@
           "door_glass": "Material.glass"
         }
       ],
-      "textures": ["Array.paints[query.variant]"],
+      "textures": ["Texture.default"],
       "part_visibility": [
         {
           "*": true
