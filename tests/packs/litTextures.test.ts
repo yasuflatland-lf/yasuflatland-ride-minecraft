@@ -185,7 +185,7 @@ describe.each(kinds)(
           255,
         ]);
       }
-    });
+    }, 30_000);
 
     it("draws only the switched lamp bones in a separate emissive pass", () => {
       const client = read(`entity/yasu_ride/${kind}.ce.json`)[

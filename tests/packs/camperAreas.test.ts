@@ -51,6 +51,7 @@ from tool_loader import load_tool
 kit = load_tool('camper_kit')
 regions = kit.ATLAS.regions
 names = list(json.loads(Path('tests/packs/fixtures/camper-areas.json').read_text()))
+names = [n for n in names if n not in ('floor', 'walls', 'tile', 'table')] + ['surfaces']
 for name in reversed(names):
     path = Path(f'tools/camper_{name}.py')
     for node in ast.walk(ast.parse(path.read_text())):
@@ -58,15 +59,16 @@ for name in reversed(names):
             assert node.args[0].value not in {f'camper_{n}' for n in names}
     area = load_tool(f'camper_{name}')
     assert area.AREA == name
-    first = area.build()
+    build = (lambda: area.build_surfaces(kit.REGISTRY)) if name == 'surfaces' else area.build
+    first = build()
     snapshot = json.dumps(first)
     assert isinstance(first, kit.AreaCubes)
-    assert json.dumps(area.build()) == snapshot
+    assert json.dumps(build()) == snapshot
     assert kit.ATLAS.regions == regions
     for cubes in first.values():
         for cube in cubes:
             cube['origin'][0] += 1000
-    assert json.dumps(area.build()) == snapshot
+    assert json.dumps(build()) == snapshot
 a = kit.AreaCubes({'body': [1], 'seat': [2]})
 assert a.merge(kit.AreaCubes({'glass': [3], 'body': [4]})) is a
 assert list(a) == ['body', 'seat', 'glass']

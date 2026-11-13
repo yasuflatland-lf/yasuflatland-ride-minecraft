@@ -53,9 +53,8 @@ moved = kit.moved
 carve = kit.carve
 take_slots = kit.take_slots
 
-# Keep the original body cube order; bone draw order is declared separately below.
 AREA_ORDER = (
-    "shell", "curtains", "door", "front", "rear", "roof", "running", "cab",
+    "shell", "surfaces", "curtains", "door", "front", "rear", "roof", "running", "cab",
     "bed_bunk", "fridge", "room", "shower", "ceiling", "dinette", "arches",
 )
 areas = {name: load_tool(f"camper_{name}") for name in AREA_ORDER}
@@ -63,10 +62,10 @@ merged = AreaCubes()
 owners = {}
 
 for name, module in areas.items():
-    built = module.build()
+    built = module.build_surfaces(REGISTRY) if name == "surfaces" else module.build()
     for cubes in built.values():
         for cube in cubes:
-            owners[id(cube)] = name
+            owners[id(cube)] = module.area_of(cube) if name == "surfaces" else name
     if name == "curtains":
         # Side curtains originally followed their individual panes inside the wall loop.
         for i, anchor in enumerate(module.anchors()):
@@ -80,6 +79,10 @@ for name, module in areas.items():
             for bone in ("body", "seat_2", "seat_3"):
                 cut = []
                 for cube in merged[bone]:
+                    # Surfaces are mapped after wheel-well cuts in their builder.
+                    if owners[id(cube)] in ("floor", "walls", "tile", "table"):
+                        cut.append(cube)
+                        continue
                     for piece in carve(cube, hole):
                         owners[id(piece)] = owners[id(cube)]
                         cut.append(piece)
@@ -174,7 +177,7 @@ def rounded(value):
 
 
 # Use the source lists to retain ownership when moved() replaces steering dictionaries.
-area_ranges = {name: {} for name in areas}
+area_ranges = {name: {} for name in dict.fromkeys(owners.values())}
 for bone in camper_bones:
     source = merged.get(bone["name"], [])
     for i, cube in enumerate(source):
@@ -209,9 +212,11 @@ outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
 atlas_pixels = kit.regions.render_atlas(LAYOUT)
+bound_faces = {id(face) for _, face in LAYOUT._faces}
 for cube in model_cubes:
     for face in cube["uv"].values():
-        LAYOUT.bind_face("base", face)
+        if id(face) not in bound_faces:
+            LAYOUT.bind_face("base", face)
 atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))
