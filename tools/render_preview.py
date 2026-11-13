@@ -146,11 +146,15 @@ BOAT_POSES = {
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
 CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
+# The cab PAD maps 184 x 48 texels onto 1 px strips; cells finer than the output
+# can show blew the CI model job past its limit. 16 cells/unit keeps >2 cells
+# per final pixel (max 5.55 px/unit).
+CAMPER_CELLS_PER_UNIT = 16
 CAMPER_POSES = {
-    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "brightness": MAIN_BRIGHTNESS},
-    "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True},
-    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "brightness": SIDE_BRIGHTNESS},
-    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "brightness": MAIN_BRIGHTNESS},
+    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
+    "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT},
+    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT, "brightness": SIDE_BRIGHTNESS},
+    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
 }
 
 BULLDOZER_GEOMETRY = "models/entity/yasu_ride/bulldozer.geo.json"
@@ -356,8 +360,8 @@ def face_color(texture, face, tex_w, tex_h):
     return texture[y][x]
 
 
-def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
-    """Split nonuniform UV rectangles at texel boundaries, preserving uniform quads exactly."""
+def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False, cells_per_unit=None):
+    """Split at texel boundaries, optionally limiting cell density along each model-space axis."""
     (u, v), (du, dv) = face["uv"], face["uv_size"]
     u, du = u * len(texture[0]) / tex_w, du * len(texture[0]) / tex_w
     v, dv = v * len(texture) / tex_h, dv * len(texture) / tex_h
@@ -368,7 +372,20 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
         lo, hi = sorted((start, start + length))
         return sorted([0, 1, *[(n - start) / length for n in range(math.floor(lo) + 1, math.ceil(hi))]])
 
+    # Bedrock up/down UVs run u along +x and v toward -z; side faces run v downward.
+    order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
+    tl, tr, br, bl = [quad[i] for i in order]
     us, vs = breaks(u, du), breaks(v, dv)
+    capped = False
+    if cells_per_unit is not None:
+        def limit(axis_breaks, edge):
+            # Rotated corners differ by one ulp between macOS and Linux libm; snap before ceil.
+            count = max(1, math.ceil(round(math.dist(*edge) * cells_per_unit, 6)))
+            return [i / count for i in range(count + 1)] if len(axis_breaks) - 1 > count else axis_breaks
+
+        limited_us, limited_vs = limit(us, (tl, tr)), limit(vs, (tl, bl))
+        capped = limited_us is not us or limited_vs is not vs
+        us, vs = limited_us, limited_vs
     if merge:
         # Merge equal texels before creating geometry: furniture atlases can otherwise
         # expand one face into hundreds of thousands of Python polygon objects.
@@ -403,12 +420,8 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
                 y = max(0, min(len(texture) - 1, int(v + dv * (c + d) / 2)))
                 cells.append((a, b, c, d, texture[y][x]))
     if len({color for *_, color in cells}) == 1:
-        yield quad, face_color(texture, face, tex_w, tex_h)
+        yield quad, cells[0][-1] if capped else face_color(texture, face, tex_w, tex_h)
         return
-
-    # Bedrock up/down UVs run u along +x and v toward -z; side faces run v downward.
-    order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
-    tl, tr, br, bl = [quad[i] for i in order]
 
     points = {}
 
@@ -672,11 +685,11 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
                 if texture_mapping:
-                    key = (bone["name"], id(cube), face, pose.get("merge_texels", False))
+                    key = (bone["name"], id(cube), face, pose.get("merge_texels", False), pose.get("cells_per_unit"))
                     if face_cache is not None and key in face_cache:
                         patches = face_cache[key]
                     else:
-                        patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False))
+                        patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False), cells_per_unit=pose.get("cells_per_unit"))
                         if face_cache is not None:
                             # Camper poses share static geometry and atlas pixels; shade each pose below.
                             patches = list(patches)

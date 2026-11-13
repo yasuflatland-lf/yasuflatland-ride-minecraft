@@ -586,6 +586,38 @@ print(json.dumps([len(r.collect_boat(geo,texture,pose,texture_mapping=True)[0]) 
     expect(result).toEqual([12, 12, 12, 12]);
   });
 
+  it("preserves patches below the density cap and samples capped cells at their UV centers", () => {
+    const result = previewPython(`
+texture = [[(x,y,(x*17+y*31)%256,255) for x in range(32)] for y in range(32)]
+quad = dict(r.cube_faces({"origin": [0,0,0], "size": [1,0.5,0.25]}))["east"]
+results = []
+for merge in (False, True):
+    for mirrored in (False, True):
+        face = {"uv": [32 if mirrored else 0,0], "uv_size": [-32 if mirrored else 32,32]}
+        patches = list(r.textured_face(texture, face, quad, "east", 32, 32, merge=merge, cells_per_unit=8))
+        centers = [[color[0],color[1]] for _,color in patches]
+        coverage = [[min(p[2] for p in q),max(p[2] for p in q),min(p[1] for p in q),max(p[1] for p in q)] for q,_ in patches]
+        small_uv = {"uv": [2.5,3.25], "uv_size": [-1.5 if mirrored else 1.5,2.5]}
+        baseline = list(r.textured_face(texture, small_uv, quad, "east", 32, 32, merge=merge))
+        unchanged = baseline == list(r.textured_face(texture, small_uv, quad, "east", 32, 32, merge=merge, cells_per_unit=16))
+        results.append({"count":len(patches),"centers":centers,"coverage":coverage,"unchanged":unchanged})
+print(json.dumps(results))
+`);
+    for (const [index, entry] of result.entries()) {
+      expect(entry.count).toBe(8);
+      expect(entry.unchanged).toBe(true);
+      const xs = index % 2 === 0 ? [8, 24] : [24, 8];
+      expect(entry.centers).toEqual(
+        xs.flatMap((x) => [4, 12, 20, 28].map((y) => [x, y])),
+      );
+      expect(entry.coverage).toEqual(
+        [0, 0.125].flatMap((z) =>
+          [0.375, 0.25, 0.125, 0].map((y) => [z, z + 0.125, y, y + 0.125]),
+        ),
+      );
+    }
+  });
+
   it("merges adjacent equal texels into rectangles without changing their UV coverage", () => {
     const result = previewPython(`
 quad = dict(r.cube_faces({"origin": [0, 0, 0], "size": [4, 1, 4]}))["east"]
