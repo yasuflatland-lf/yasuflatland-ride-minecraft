@@ -43,6 +43,15 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Implementation: `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/dooredStorage.ts`; `src/domain/vehicle/kinds/camper/roomCells.ts`; `src/domain/vehicle/kinds/camper/decorCells.ts`; `src/domain/vehicle/kinds/camper/storagePlates.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
 - Verification: `tests/domain/vehicle/kinds/camper/furniture.test.ts` "keeps slots off furniture that lays a block", "gives each cell to at most one furniture row", and "keeps the saved slot ids, cells, and heights" check table invariants and current data. `tests/domain/vehicle/kinds/camper/dooredStorage.test.ts` "builds a unit's furniture row from its compartments and their ends, door by door" checks storage rows. Not verified: furniture appearance in game.
 
+### Soft furnishings
+
+- Applies to: Dinette seats, lower bed and upper bunk in both driving and parked forms.
+- Rule: `tools/camper_soft.py` builds coarser olive looped/wale tweed cushions with chamfered corners, olive welt piping, and fixed olive/khaki/cream striped bolsters. The registry allocates `olive looped tweed` (192 x 256), `olive khaki cream bolster` (128 x 128) and `olive welt` (32 x 32), all FABRIC. Neither fabric nor bolster colours depend on the base `khaki` or `stripe` swatch. Five overlapping slabs form each cushion, with only exposed shoulder piping retained. Insets are bounded by every dimension; the 0.3 px foot cover uses a slab and two transverse welts to avoid the study's negative sizes. Final counts are seat 2: 22, seat 3: 15, bed: 30 including its three carved base pieces, bunk: 20 including deck and posts. Furniture cells, bed blocks, seat anchors, arch clearances and the bunk top at y 37.5 stay unchanged.
+- Agreement: Proposed
+- Basis: [0092](../adr/0092-a-bed-in-the-parked-camper.md) Decision, lower bed model; [0182](../adr/0182-a-bunk-bed-in-the-parked-camper.md) Decision, model.
+- Implementation: `tools/camper_soft.py`; `tools/camper_kit.py`; `tools/camper_dinette.py`; `tools/camper_bed_bunk.py`; `tools/gen_camper.py`
+- Verification: `tests/tools/camperSoft.test.ts` checks cushion bounds, positive dimensions, fabric registration and fixed colours. `tests/packs/camper/soft.test.ts`, `dinette.test.ts` and `bed_bunk.test.ts` check generated counts, furniture clearance and bunk selection height. Local golden comparison preserves fabric pixels and the unaffected cushion geometry; the thin foot cover deliberately differs from the invalid study geometry. Atlas origins differ because this series step registers only the base and three fabric regions. Camper previews defer opaque texture subdivision until rasterization and skip fully occluded faces, avoiding millions of retained fabric polygons; preview regression tests compare pixel output with the eager path. Not verified: appearance and filtering on a device.
+
 ### Bed and bunk sleeping
 
 - Applies to: A player interacting with a camper sleeping block.
