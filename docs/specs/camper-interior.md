@@ -265,7 +265,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 ### Counter window
 
 - Applies to: The right-hand opening over sink and stove.
-- Rule: `right_windows` includes the counter opening behind the entry door at `WIN_Y`. The shared loop builds its frame, glass, curtains and cuts in the shell and lining. The cabinet stays above it and the kitchen below it.
+- Rule: `right_windows` includes the counter opening behind the entry door at `WIN_Y`. The shared loop builds its frame, glass and cuts in the shell and lining. Two tied-back light fabric panels and a rail occupy each of the five main side windows. The cabinet stays above it and the kitchen below it.
 - Agreement: Accepted
 - Basis: [0113](../adr/0113-a-window-over-the-camper-counter.md) Decision, "The right side gets a fourth side window"
 - Basis: [0113](../adr/0113-a-window-over-the-camper-counter.md) Decision, "It gets what every other side window gets from the shared window loop:"
