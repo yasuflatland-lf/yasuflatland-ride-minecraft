@@ -369,5 +369,6 @@ BASE_REF = REGISTRY.register(regions.Region(
 load_tool("camper_surfaces").register_surfaces(REGISTRY)
 CURTAIN_REF = REGISTRY.register(regions.Region(
     "light curtain fabric", 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
+DOOR_REFS = load_tool("camper_door_materials").register(REGISTRY, PALETTE)
 LAYOUT = regions.pack(REGISTRY)
 ATLAS.base_ref = BASE_REF

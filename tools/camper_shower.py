@@ -33,9 +33,4 @@ def build() -> AreaCubes:
     body.append(box(19.5, 26, 44.5, 22.6, 34, 51.5, "white"))  # tank
     body.append(box(21.5, 46, 53, 22.8, 47, 54.5, "chrome"))  # shower arm
     body.append(box(19.5, 44.5, 52.5, 21.5, 46, 55, "chrome"))  # shower head
-    # The door is its own bone, hinged on its rear edge at the aisle face; it stays closed here.
-    shower_door = [box(8, FLOOR + 0.5, 42.1, 8.6, 51.9, 53.9, "wood")]
-    shower_door.append(box(7.4, 32, 43, 8, 33, 44.5, "chrome"))  # handle outside
-    shower_door.append(box(8.6, 32, 43, 9.2, 33, 44.5, "chrome"))  # handle inside
-
-    return AreaCubes({'body': body, 'shower_door': shower_door})
+    return AreaCubes({'body': body})

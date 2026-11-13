@@ -26,7 +26,12 @@
   "curtains": {
     "body": [[240, 320], [325, 405], [601, 681], [690, 770], [775, 855]]
   },
-  "door": { "body": [1252, 1331], "door_entry": [0, 31], "door_glass": [0, 0] },
+  "door": {
+    "body": [1252, 1331],
+    "door_entry": [0, 243],
+    "shower_door": [0, 2],
+    "door_glass": [0, 0]
+  },
   "front": {
     "body": [1332, 2794],
     "headlights": [0, 40],
@@ -63,7 +68,7 @@
     "cabinet_sink_door": [0, 1],
     "cabinet_stove_door": [0, 1]
   },
-  "shower": { "body": [3828, 3841], "shower_door": [0, 2] },
+  "shower": { "body": [3828, 3841] },
   "ceiling": { "body": [3842, 3844], "ceiling_lights": [0, 3] },
   "dinette": { "seat_2": [0, 3], "seat_3": [0, 3] },
   "arches": { "body": [3845, 3876] }

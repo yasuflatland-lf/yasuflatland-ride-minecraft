@@ -60,6 +60,10 @@ a = s.build_surfaces(r)
       ["backsplash tile", 124, 152, "tile", true],
       ["table oak", 168, 144, "wood", true],
       ["light curtain fabric", 96, 120, "fabric", true],
+      ["door wood", 111, 336, "wood", true],
+      ["door marble", 101, 41, "stone", true],
+      ["door kick", 101, 44, "metal", true],
+      ["door cloth", 16, 104, "fabric", true],
     ]);
   });
   it("preserves the reference material bytes regardless of sampling order", () => {
@@ -69,6 +73,14 @@ a = s.build_surfaces(r)
         "for r in k.REGISTRY.regions():\n    if r.name != 'base':\n        for y in reversed(range(r.height)):\n            for x in reversed(range(r.width)): r.pixel(x,y)",
       ),
     ).toEqual({
+      "door cloth":
+        "874f821b45b315fb585c21e47656b35ac74beb24d2f3a80ed1cd53ce39cdad2a",
+      "door kick":
+        "dbba18ac8fed99e972418158536cd711498e6749637f245683546f7a4933be85",
+      "door marble":
+        "2ba5ca728e2df19a0c4450a4c0cb6a4cd017569be1303c6a3671ed2de139b8ca",
+      "door wood":
+        "ecfac6f54e242993150b23c77ccbce2d0bc111d681ac1ad4b2ceffabacecac5f",
       "light curtain fabric":
         "96cb2afdfd1af2a32a8c474d29772de73de329ad36815133ab1c4f825c3d559a",
       "carpet v3":

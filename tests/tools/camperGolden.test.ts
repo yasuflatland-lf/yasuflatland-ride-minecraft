@@ -1,14 +1,37 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { defined } from "../support/defined";
 
+const currentRegions: { name: string; size: number[]; origin: number[] }[] =
+  JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-c",
+        `
+import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+kit = load_tool('camper_kit')
+print(json.dumps([{'name': r.name, 'size': [r.width, r.height],
+                  'origin': kit.LAYOUT.origin(r.name)} for r in kit.REGISTRY.regions()]))
+`,
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+const base = defined(
+  currentRegions.find((region) => region.name === "base"),
+  "base region",
+);
 const cube = {
   origin: [0, 0, 0],
   size: [1, 1, 1],
-  uv: { north: { uv: [0, 0], uv_size: [1, 1] } },
+  uv: { north: { uv: base.origin, uv_size: [1, 1] } },
 };
 type Change =
   | "none"
@@ -50,8 +73,8 @@ function compare(change: Change, area?: string) {
 from tool_loader import load_tool
 regions = load_tool('camper_regions')
 REGISTRY = regions.RegionRegistry()
-REGISTRY.register(regions.Region('base', 114, 220, regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
-REGISTRY.register(regions.Region('light curtain fabric', 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
+for region in ${JSON.stringify(currentRegions)}:
+    REGISTRY.register(regions.Region(region['name'], *region['size'], regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
 LAYOUT = regions.pack(REGISTRY)
 `,
     );
@@ -114,18 +137,20 @@ LAYOUT = regions.pack(REGISTRY)
           source: "base",
           size: [114, change === "size" ? 221 : 220],
           origin: [20, 30],
-          packed_origin: change === "origin" ? [1, 0] : [0, 0],
+          packed_origin: change === "origin" ? [1, 0] : base.origin,
           used_by: {
             shell: 6,
             [change === "labels" ? "cab dash and instruments" : "cab"]: 6,
           },
         },
-        {
-          name: "light curtain fabric",
-          size: [96, 120],
-          packed_origin: [0, 222],
-          used_by: { curtains: 1 },
-        },
+        ...currentRegions
+          .filter((region) => region.name !== "base")
+          .map((region) => ({
+            ...region,
+            packed_origin: region.origin,
+            used_by:
+              region.name === "light curtain fabric" ? { curtains: 1 } : {},
+          })),
         ...(change === "extra"
           ? [
               {
