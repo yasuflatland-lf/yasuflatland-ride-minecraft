@@ -33,3 +33,25 @@ export const PAINT_EVENT_PREFIX = "paint_";
 export function paintEventName(paint: Paint): string {
   return `${PAINT_EVENT_PREFIX}${paint}`;
 }
+
+export type PaintPolicy =
+  | { kind: "dyeable"; defaultPaint: Paint }
+  | { kind: "fixed"; paint: Paint };
+
+export function dyeable(defaultPaint: Paint): PaintPolicy {
+  return { kind: "dyeable", defaultPaint };
+}
+
+export function fixed(paint: Paint): PaintPolicy {
+  return { kind: "fixed", paint };
+}
+
+export function isDyeable(policy: PaintPolicy): boolean {
+  return policy.kind === "dyeable";
+}
+
+export function shownPaint(policy: PaintPolicy, stored: Paint): Paint {
+  return policy.kind === "fixed"
+    ? policy.paint
+    : effectivePaint(stored, policy.defaultPaint);
+}

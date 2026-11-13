@@ -107,7 +107,10 @@ describe("ShowVehicleHints (ADR 0086)", () => {
         playerId: "q",
         hint: { name: HINTS.bumperMouse, with: [HITS, CAMPER] },
       },
-      { playerId: "d", hint: { name: HINTS.paint, with: [CAMPER] } },
+      {
+        playerId: "d",
+        hint: { name: HINTS.bumperTouch, with: [HITS, CAMPER] },
+      },
     ]);
   });
 
@@ -183,7 +186,7 @@ describe("ShowVehicleHints (ADR 0086)", () => {
     expect(world.sent).toHaveLength(2);
   });
 
-  it("shows a new hint at once when the player picks up a dye", () => {
+  it("keeps the normal camper bumper hint when the player picks up a dye", () => {
     fc.assert(
       fc.property(fc.integer({ min: 1, max: 100 }), (checks) => {
         world = new FakeHintWorld();
@@ -197,7 +200,7 @@ describe("ShowVehicleHints (ADR 0086)", () => {
         checkAt(checks * STEP);
         expect(world.sent.at(-1)).toEqual({
           playerId: "p",
-          hint: { name: HINTS.paint, with: [CAMPER] },
+          hint: { name: HINTS.bumperTouch, with: [HITS, CAMPER] },
         });
       }),
     );

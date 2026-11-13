@@ -1,3 +1,4 @@
+import { dyeable } from "../../../shared/paint";
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   clearanceHeight,
@@ -40,7 +41,7 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
     }),
   }),
   chaseCamera: "mid",
-  defaultPaint: "yellow",
+  paintPolicy: dyeable("yellow"),
   monitor: BULLDOZER_MONITOR,
 });
 export const BULLDOZER_MOTION: MotionLimits = Object.freeze({

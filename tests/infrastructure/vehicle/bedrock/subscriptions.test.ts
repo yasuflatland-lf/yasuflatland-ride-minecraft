@@ -18,6 +18,7 @@ import {
 } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PaintVehicle } from "../../../../src/application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
@@ -61,6 +62,7 @@ import {
 } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { installCamper } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
+import { FakeClock, FakeWorld } from "../../../application/vehicle/fakes";
 import { defined } from "../../../support/defined";
 
 function registerSubscriptions(
@@ -2002,6 +2004,36 @@ describe("camper bumper stand-in (ADR 0116)", () => {
     send(vehicleAndStandIn("gone").standIn);
     expect(hit.execute).toHaveBeenCalledOnce();
     expect(paint.execute).toHaveBeenCalledOnce();
+  });
+
+  it("ignores a camper stand-in dye hit without painting, consuming dye, sound, or damage", () => {
+    const paintWorld = new FakeWorld();
+    paintWorld.kinds.set("camper", "camper");
+    paintWorld.paints.set("camper", "khaki");
+    const hit = { execute: vi.fn() };
+    subscribe({ hit, paint: new PaintVehicle(paintWorld, new FakeClock()) });
+    const onHit = defined(
+      vi
+        .mocked(world.afterEvents.entityHitEntity.subscribe)
+        .mock.calls.at(-1)?.[0],
+      "entityHitEntity handler",
+    );
+    const player = Object.assign(Object.create(Player.prototype) as object, {
+      id: "player",
+      selectedSlotIndex: 0,
+      getComponent: () => ({
+        container: { getItem: () => ({ typeId: "minecraft:red_dye" }) },
+      }),
+    });
+    const { standIn } = vehicleAndStandIn();
+    onHit({
+      damagingEntity: player,
+      hitEntity: standIn,
+    } as unknown as EntityHitEntityAfterEvent);
+    expect(paintWorld.paints.get("camper")).toBe("khaki");
+    expect(paintWorld.calls).toEqual([]);
+    expect(paintWorld.sounds).toEqual([]);
+    expect(hit.execute).not.toHaveBeenCalled();
   });
 
   it("never lets a player ride the stand-in, and boards them into its camper instead", () => {

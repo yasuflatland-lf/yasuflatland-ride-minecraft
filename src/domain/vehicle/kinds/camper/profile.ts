@@ -1,3 +1,4 @@
+import { fixed } from "../../../shared/paint";
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   clearanceHeight,
@@ -78,7 +79,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   // The vanilla view from behind stays inside the 7.6-block body, which hides the camper
   // in flight (ADR 0071).
   chaseCamera: "far",
-  defaultPaint: "khaki", // ADR 0067, 0076
+  paintPolicy: fixed("khaki"), // ADR 0067, 0076
   placementGift: "camping_gear_box", // ADR 0093
   // The camper's own hitbox is hidden in its floor; its bumper boxes stand on a stand-in
   // entity of their own, since an entity's boxes never turn with it (ADR 0116).

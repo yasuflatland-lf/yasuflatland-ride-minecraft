@@ -1,7 +1,7 @@
 // Use case: a player hits a vehicle with a dye to repaint its body (ADR 0031, 0036, 0076).
 
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
-import type { Paint } from "../../domain/shared/paint";
+import { isDyeable, type Paint } from "../../domain/shared/paint";
 import { profileOf } from "../../domain/vehicle/kinds/index";
 import { Repaint } from "../shared/repaint";
 import type { PaintWorld } from "./ports/paint";
@@ -17,14 +17,16 @@ export class PaintVehicle {
   private readonly repaint: Repaint<VehicleId>;
 
   constructor(
-    world: PaintWorld,
+    private readonly world: PaintWorld,
     private readonly clock: Clock,
   ) {
     this.repaint = new Repaint<VehicleId>({
       paintOf: (vehicleId) => world.paintOf(vehicleId),
       defaultPaintOf: (vehicleId) => {
         const kind = world.kindOf(vehicleId);
-        return kind === undefined ? undefined : profileOf(kind).defaultPaint;
+        if (kind === undefined) return undefined;
+        const policy = profileOf(kind).paintPolicy;
+        return policy.kind === "dyeable" ? policy.defaultPaint : undefined;
       },
       setPaint: (vehicleId, paint) => world.paint(vehicleId, paint),
       consumeDye: (playerId, paint) => world.consumeDye(playerId, paint),
@@ -34,6 +36,9 @@ export class PaintVehicle {
   }
 
   execute(cmd: PaintVehicleCommand): boolean {
+    const kind = this.world.kindOf(cmd.vehicleId);
+    if (kind === undefined || !isDyeable(profileOf(kind).paintPolicy))
+      return false;
     return this.repaint.execute({
       playerId: cmd.playerId,
       entityId: cmd.vehicleId,

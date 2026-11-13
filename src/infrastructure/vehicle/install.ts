@@ -11,6 +11,7 @@ import { FindBedSpawnCell } from "../../application/vehicle/findBedSpawnCell";
 import { GiveStarterVehicle } from "../../application/vehicle/giveStarterVehicle";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
+import { NormalizePaint } from "../../application/vehicle/normalizePaint";
 import { OpenGift } from "../../application/vehicle/openGift";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceDecor } from "../../application/vehicle/placeDecor";
@@ -130,6 +131,9 @@ export function installVehicles(deps: {
     () =>
       installCamper(
         {
+          normalizePaint: new NormalizePaint(
+            new BedrockPaintWorld(index, inventory),
+          ),
           door: new UseDockDoor(repo, systemClock),
           bedSpawnCell: new FindBedSpawnCell(repo),
           bed: new SleepInBed(new BedrockBedWorld(index)),

@@ -10,14 +10,16 @@
 
 ## Decision
 
-- Each kind's profile names `defaultPaint`, the paint its variant-0 slot shows: `khaki` for the SUV and the camper, `black` for the sports boat. Following 0050, this is a per-kind value, not an SUV constant
-- The effective paint of a variant is `defaultPaint` for `PAINTS[0]` and the paint itself otherwise. A dye whose effective paint equals the vehicle's current effective paint does nothing and keeps the dye. On the sports boat this covers black and brown dye on a boat at variant 0 or at `black`
+- Each kind's profile names a `paintPolicy`: `dyeable("khaki")` for the SUV, `dyeable("black")` for the sports boat, `dyeable("yellow")` for the bulldozer, and `fixed("khaki")` for the camper. Following 0050, this is a per-kind value, not an SUV constant
+- `shownPaint(policy, stored)` returns the fixed paint for a fixed policy and `effectivePaint(stored, defaultPaint)` for a dyeable policy. `PaintVehicle` rejects a fixed policy before reading paint or executing `Repaint`, without effects
+- `NormalizePaint.normalizeFixedPaint` resets a fixed-policy vehicle's stored nonzero paint to `PAINTS[0]`, without dye consumption or sound. A camper handler calls it for valid camper entities on `entityLoad` and `entitySpawn` with cause `Loaded`. Missing vehicles and dyeable policies are untouched
+- For a dyeable policy, the effective paint of a variant is `defaultPaint` for `PAINTS[0]` and the paint itself otherwise. A dye whose effective paint equals the vehicle's current effective paint does nothing and keeps the dye. On the sports boat this covers black and brown dye on a boat at variant 0 or at `black`
 - The use case reads the vehicle's kind from the world. A vehicle whose kind cannot be read, because it is gone or is not a vehicle, is not painted and keeps the dye, even if it was painted earlier in the same tick (0037)
-- Variant numbers, paint events, the dye map and the textures do not change. Brown dye still sends a vehicle of another color to variant 0
-- `tests/packs/paint.test.ts` resolves each paint's texture through the kind's render controller and client entity. It checks that a kind whose variant-0 texture is byte-identical to another paint's texture declares that paint as `defaultPaint`, and that a kind with no identical texture keeps `PAINTS[0]` as its default
+- Variant numbers, paint events, the dye map and the textures do not change. Brown dye still sends a dyeable vehicle of another color to variant 0
+- `tests/packs/paint.test.ts` resolves each paint's texture through the kind's render controller and client entity. It checks that a kind whose variant-0 texture is byte-identical to another paint's texture shows that paint at variant 0 through `shownPaint`, and that a kind with no identical texture shows `PAINTS[0]`
 
 ## Consequences
 
 - A sports boat can be stored at variant 0 or 6 for the same look. This is harmless, because neither black nor brown dye moves it between the two
-- A new kind whose default differs from khaki needs only its `defaultPaint` and a variant-0 texture identical to that paint's texture. The pack test fails if the two disagree
+- A new dyeable kind whose default differs from khaki needs only its policy's `defaultPaint` and a variant-0 texture identical to that paint's texture. The pack test fails if the two disagree
 - Revisit if a kind gets a distinct look for its variant-0 slot, which would make `defaultPaint` `PAINTS[0]` again

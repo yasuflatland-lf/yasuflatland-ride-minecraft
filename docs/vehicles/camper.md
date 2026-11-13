@@ -13,7 +13,7 @@ A four-seat camper with a facing dinette that drives, flies, and dives. Back to 
 - Use the item on a block's top face with 9 x 9 x 4 clear cells around it
 - The first time you place a camper, you also get a Camping Gear Box; use it to unpack the 20 [camping gear](../items/camping-gear.md) items
 - Each player keeps one camper; placing another removes their previous camper
-- Hit the front bumper of an empty camper 3 times without a dye to break it back into the item; the bumper is the only part that takes hits, so you also get in and paint there
+- Hit the front bumper of an empty camper 3 times without a dye to break it back into the item; the bumper is the only part that takes hits, so you also get in there
 
 ## Controls
 
@@ -25,7 +25,7 @@ The Headlight Switch turns the headlights on or off from the camper's driver sea
 
 The camper has the SUV's ground top speed of 0.9 blocks per tick, with gentler acceleration (about 3.75 s to top speed) and slower turns for its long body. It flies and dives with the same controls as the SUV. Its long body stops at a wall at both the front and the rear bumper, even a one-block pillar or a one-block-thick wall at top speed, and it still climbs one-block steps without hopping in place at a wall. Flying or diving, it stops before the nose enters any block, low ones included.
 
-The 16 dyes recolor the window band, the stripe with its W, and the lower skirt, leaving the white body unchanged. Headlights light the road up to 27 blocks ahead.
+The camper stays khaki with a white body; dyes do nothing. Headlights light the road up to 27 blocks ahead.
 
 ## Parking
 

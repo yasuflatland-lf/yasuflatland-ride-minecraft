@@ -68,14 +68,14 @@
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/placement/placement.ts`
 - Verification: `tests/packs/placementClearance.test.ts` "fits every %s collision box inside its placement clearance" (camper row). Not verified: placement beside obstacles on a client; 0143 still awaits an owner decision.
 
-### Accent paints
+### Fixed khaki paint
 
 - Applies to: All sixteen camper paint textures and default variant.
-- Rule: The camper has 16 paints, with `CAMPER_PROFILE.defaultPaint` set to khaki. Repaints change only the `khaki` window band, `stripe` including the W, and `tan` lower skirt swatches. The white shell, trim, rib regions, and hardware regions stay fixed. All paints share the geometry’s atlas dimensions.
+- Rule: The camper uses `CAMPER_PROFILE.paintPolicy = fixed("khaki")`. All dye hits, including bumper stand-in hits, are ignored without consumption, sound, or a message. On load, nonzero saved variants are normalized to variant 0. The sixteen existing pack textures remain unchanged; their alternate colors affect only the `khaki` window band, `stripe` including the W, and `tan` lower skirt swatches. The white shell, trim, rib regions, and hardware regions stay fixed. All paints share the geometry’s atlas dimensions.
 - Agreement: Proposed
-- Basis: [0067](../adr/0067-camper.md) Decision, "Khaki is the default (0031)"; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Repaints continue to change only `khaki`, `stripe`, and `tan` (0067, 0076)."
+- Basis: [0067](../adr/0067-camper.md) Decision, "The camper has fixed khaki paint through `CAMPER_PROFILE.paintPolicy = fixed("khaki")` (0031, 0076)."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "The retained paint texture variants differ only in `khaki`, `stripe`, and `tan`; the fixed-paint camper uses only the khaki variant (0067, 0076)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride`
-- Verification: `tests/packs/camper/paints.test.ts` "generates all 16 equally sized paints, changing only the three accent swatches and no region texel"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". Not verified: every paint on a client.
+- Verification: `tests/packs/camper/paints.test.ts` "generates all 16 equally sized paints, changing only the three accent swatches and no region texel"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". `tests/application/vehicle/paintVehicle.test.ts` verifies ignored dyes; `tests/application/vehicle/normalizePaint.test.ts` verifies load normalization. Not verified: load recovery on a client.
 
 ### Model bone contract
 

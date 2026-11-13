@@ -177,7 +177,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         clearance: { halfX: 1, halfZ: 1, height: 3 },
       },
       chaseCamera: "mid",
-      defaultPaint: "khaki",
+      paintPolicy: { kind: "dyeable", defaultPaint: "khaki" },
     });
   });
 
@@ -269,7 +269,7 @@ describe("vehicle profiles (ADR 0050)", () => {
       },
       placementGift: "sportsboat_equipment_box",
       chaseCamera: "near",
-      defaultPaint: "black",
+      paintPolicy: { kind: "dyeable", defaultPaint: "black" },
     });
     expect(profileOf("sportsboat")).toBe(SPORTSBOAT_PROFILE);
   });
@@ -551,7 +551,10 @@ describe("vehicle profiles (ADR 0050)", () => {
   });
 
   it("gives the camper a khaki default paint (ADR 0067, 0076)", () => {
-    expect(CAMPER_PROFILE.defaultPaint).toBe("khaki");
+    expect(CAMPER_PROFILE.paintPolicy).toEqual({
+      kind: "fixed",
+      paint: "khaki",
+    });
   });
 });
 
