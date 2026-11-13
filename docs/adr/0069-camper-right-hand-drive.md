@@ -16,7 +16,8 @@ This supersedes the seat bullet of 0067; the rest of 0067 stands.
 
 - Seat 0, the driver, sits at the front right, `{ x: -0.75, z: 2.1 }` (x = left, z = forward), and seat 1, the front passenger, at the front left, `{ x: 0.75, z: 2.1 }`. `minecraft:rideable` keeps the same seat order, heights, and seat 0's `lock_rider_rotation` (0019)
 - Seats 2 and 3 stay a facing dinette on the left, now behind the passenger, at `{ x: 1.0, z: 1.0 }` and `{ x: 1.0, z: -1.0 }`, seat 2 facing the rear, because the door stays in the middle of the right side
-- The model moves every driver-side part to the right: the steering wheel and its column, the two gauges, the pedals, and the driver's bucket seat. The radio and the glovebox move to the passenger side on the left, so the radio does not sit behind the wheel. The wheel's own shape, the center switches, and the parts on both sides stay as they were
+- The model moves every driver-side part to the right: the steering wheel and its column, the instrument cluster, the pedals, and the driver's bucket seat. The radio and the glovebox move to the passenger side on the left, so the radio does not sit behind the wheel.
+- The dashboard is built by `tools/camper_dash.py` through `build_dash(registry) -> AreaCubes`. Its instruments and controls follow one shallow sloping face; the six-button cluster and the lower gauge pair sit 3 px toward the wheel from their earlier traced positions. The lower pair has a chrome bracket tilted 35 degrees toward the driver. The old dashboard, console and engine cover are replaced; the existing steering bone, wheel, column, pedals, door trims and seats retain their geometry. Dashboard dimensions and the shelf are specified in 0106
 - The parked camper's deck seats follow the profile, so the driver's deck seat moves to the front right with seat 0, and a driver who pushes the stick there still moves into seat 0 and drives off (0068)
 
 ## Consequences
