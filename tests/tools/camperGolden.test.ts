@@ -1,9 +1,30 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { defined } from "../support/defined";
+
+const registry = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      `import sys,json
+sys.path.insert(0,'tools')
+from tool_loader import load_tool
+k=load_tool('camper_kit')
+print(json.dumps([dict(name=r.name,size=[r.width,r.height],origin=k.LAYOUT.origin(r.name)) for r in k.REGISTRY.regions()]))`,
+    ],
+    { encoding: "utf8" },
+  ),
+) as { name: string; size: [number, number]; origin: [number, number] }[];
+const baseRegion = defined(
+  registry.find((r) => r.name === "base"),
+  "base atlas",
+);
 
 const cube = {
   origin: [0, 0, 0],
@@ -101,14 +122,23 @@ function compare(change: Change, area?: string) {
         {
           name: "base including borrowed patch",
           source: "base",
-          size: [114, change === "size" ? 221 : 220],
+          size: [
+            baseRegion.size[0],
+            baseRegion.size[1] + (change === "size" ? 1 : 0),
+          ],
           origin: [20, 30],
-          packed_origin: change === "origin" ? [1, 0] : [0, 0],
+          packed_origin:
+            change === "origin"
+              ? [baseRegion.origin[0] + 1, baseRegion.origin[1]]
+              : baseRegion.origin,
           used_by: {
             shell: 6,
             [change === "labels" ? "cab dash and instruments" : "cab"]: 6,
           },
         },
+        ...registry
+          .filter((r) => r.name !== "base")
+          .map((r) => ({ ...r, used_by: { shell: 1 } })),
         ...(change === "extra"
           ? [
               {

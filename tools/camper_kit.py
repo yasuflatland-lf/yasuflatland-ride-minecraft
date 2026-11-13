@@ -307,6 +307,8 @@ def mirror_chrome_pixel(x, y):
 
 
 def region_pixel(region, x, y):
+    if region.name == "burner_cast":
+        return PALETTE["tire" if (x, y) in BURNER_CAST_DOTS else "grille"]
     if region.name == "mirror_chrome":
         return mirror_chrome_pixel(x, y)
     if region.name == "rib":
@@ -328,10 +330,15 @@ def region_pixel(region, x, y):
     return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
 
 
+BURNER_CAST_REGION = ATLAS.allocate("burner_cast", 8, 8)
+BURNER_CAST_DOTS = ((2, 3), (6, 5))
+
 regions = load_tool("camper_regions")
 REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
+kitchen = load_tool("camper_kitchen")
+KITCHEN_REGIONS = kitchen.register_kitchen(REGISTRY)
 LAYOUT = regions.pack(REGISTRY)
 ATLAS.base_ref = BASE_REF

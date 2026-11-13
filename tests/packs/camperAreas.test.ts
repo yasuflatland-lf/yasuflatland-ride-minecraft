@@ -52,21 +52,24 @@ kit = load_tool('camper_kit')
 regions = kit.ATLAS.regions
 names = list(json.loads(Path('tests/packs/fixtures/camper-areas.json').read_text()))
 for name in reversed(names):
-    path = Path(f'tools/camper_{name}.py')
+    module_name = 'kitchen' if name in ('counter', 'range', 'burner') else name
+    path = Path(f'tools/camper_{module_name}.py')
     for node in ast.walk(ast.parse(path.read_text())):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'load_tool':
             assert node.args[0].value not in {f'camper_{n}' for n in names}
-    area = load_tool(f'camper_{name}')
-    assert area.AREA == name
-    first = area.build()
+    area = load_tool(f'camper_{module_name}')
+    assert area.AREA == module_name
+    def build():
+        return area.build_kitchen_top(kit.REGISTRY)[0] if module_name == 'kitchen' else area.build()
+    first = build()
     snapshot = json.dumps(first)
     assert isinstance(first, kit.AreaCubes)
-    assert json.dumps(area.build()) == snapshot
+    assert json.dumps(build()) == snapshot
     assert kit.ATLAS.regions == regions
     for cubes in first.values():
         for cube in cubes:
             cube['origin'][0] += 1000
-    assert json.dumps(area.build()) == snapshot
+    assert json.dumps(build()) == snapshot
 a = kit.AreaCubes({'body': [1], 'seat': [2]})
 assert a.merge(kit.AreaCubes({'glass': [3], 'body': [4]})) is a
 assert list(a) == ['body', 'seat', 'glass']
