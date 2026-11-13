@@ -16,6 +16,8 @@ In the spike, the first player in the list returned by `getRiders()` was the dri
 - When the driver gets out, passengers are not moved into the driver seat automatically. Anyone who wants to drive gets out and back in. At the start of implementation, confirm whether Bedrock moves them automatically; if it does, revisit this ADR
 - When someone gets out, play that seat's door open/close animation and the door-open sound once each
 
+- Camper cab upholstery is visual geometry on `seat_0` and `seat_1`; its rounded 501-cube buckets do not redefine rider positions, seat order, or the collision box. The camper retains four seats.
+
 ## Consequences
 
 - The driver is chosen correctly regardless of the order `getRiders()` returns

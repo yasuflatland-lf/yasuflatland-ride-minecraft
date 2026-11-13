@@ -38,13 +38,13 @@
 ### Camper seat layout
 
 - Applies to: camper, all modes.
-- Rule: The camper's driver (seat 0) sits at the front right and the front passenger (seat 1) at the front left, like the SUV. Seats 2 and 3 are the dinette on the left, behind the passenger, with seat 2 facing the rear. Both front seats of the camper's `minecraft:rideable` sit higher than the dinette seats, as configured in the asset. The values are in `camper.se.json` and `CAMPER_PROFILE.seats.positions`.
+- Rule: The camper's driver (seat 0) sits at the front right and the front passenger (seat 1) at the front left, like the SUV. Seats 2 and 3 are the dinette on the left, behind the passenger, with seat 2 facing the rear. Both front seats of the camper's `minecraft:rideable` sit higher than the dinette seats, as configured in the asset. The values are in `camper.se.json` and `CAMPER_PROFILE.seats.positions`. The two cab bones retain their anchors and contain 501 cubes each for the light rounded buckets, with shared green tweed, vinyl, piping, swivel pedestals, and lap belts; this visual change leaves all four rider positions and the collision box unchanged.
 - Agreement: Accepted
 - Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "Seat 0, the driver, sits at the front right"
 - Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "Seats 2 and 3 stay a facing dinette on the left, now behind the passenger"
 - Basis: [0070](../adr/0070-raise-the-camper-front-seats.md) Decision, "Both front seats of `minecraft:rideable` sit at 1.5 instead of 1.1, 0.4 blocks higher."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts` (`CAMPER_PROFILE.seats`); `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json` (`minecraft:rideable` `seats`)
-- Verification: `tests/packs/camper/seats.test.ts` "matches the camper's four seat positions and collision box to its profile" (x and z only). Not verified: the seat heights by any test; the view over the dashboard (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
+- Verification: `tests/packs/camper/seats.test.ts` "matches the camper's four seat positions and collision box to its profile" (x and z only); `tests/packs/camper/seats.test.ts` checks both cab bone counts and pivots; `tests/tools/camperCabSeats.test.ts` checks transformed wheel, armrest, and exposed lap-belt clearance. Not verified: the seat heights by any test; the view over the dashboard (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
 
 ### Driver and seats by rider-list index
 
