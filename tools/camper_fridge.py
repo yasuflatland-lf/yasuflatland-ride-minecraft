@@ -27,7 +27,7 @@ def build() -> AreaCubes:
     body = []
     # --- Right-hand furniture (ADR 0093) ----------------------------------------
     # Each decor slot height in src/domain/vehicle/kinds/camper/furniture.ts is the top of the
-    # furniture at the middle of its cell; tests/packs/camper.test.ts checks them against this model.
+    # furniture at the middle of its cell; tests/packs/camper/room.test.ts checks them against this model.
     # Retro two-door fridge behind the driver (cell z = 1), at the size of the two-tier shelf it
     # replaced (ADR 0123): a cream body with softly rounded edges, a shorter top door over a taller
     # bottom door with a chrome seam strip between them, a chrome lever handle by each door's free

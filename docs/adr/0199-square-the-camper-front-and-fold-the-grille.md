@@ -22,7 +22,7 @@ reaches the edge. The upper and lower grilles each consist of two thin panels
 meeting at a crease, at 175 degrees seen from the front. Each half is rolled
 2.5 degrees. The lower louvers are laid out from the upper frame's bottom edge
 downward, so no black gap shows under it. The outer trim keeps a 0.4 px inset
-(`EDGE_INSET`). A property test in `tests/packs/camper.test.ts` caps any dark run
+(`EDGE_INSET`). A property test in `tests/packs/camper/front.test.ts` caps any dark run
 under the upper frame at 0.5 px (the model measures 0.45 px).
 
 Remove the corner glass from 0091's `glass` bone. The windshield, side windows,
@@ -30,8 +30,8 @@ mirror, and rear window stay in that alpha-blended bone.
 
 The squaring changed only cubes whose origins were ahead of z = -47.5; every
 previous cube at or behind that boundary remains unchanged. The golden snapshot
-in `tests/packs/fixtures/camper-cubes.json` was regenerated deliberately for the
-new geometry. `tests/packs/camper.test.ts` now compares every non-glow cube
+in `tests/packs/fixtures/camper-cubes/` was regenerated deliberately for the
+new geometry. `tests/packs/camper/snapshot.test.ts` now compares every non-glow cube
 against that snapshot in full, including the squared front.
 
 ## Consequences

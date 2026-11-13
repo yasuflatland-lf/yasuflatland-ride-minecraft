@@ -329,7 +329,7 @@ export const CEILING_LIGHTS: readonly LocalCell[] = [
 const TABLE_CELL = { x: 1, z: 0, layer: 1 } as const satisfies LocalCell;
 
 // Slot heights are the furniture's top at the slot's spot in tools/gen_camper.py, or, for
-// a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them
+// a hanging slot, 16 minus the hanging items' height; tests/packs/camper/room.test.ts checks them
 // against the generated model (ADR 0093, 0102).
 export const CAMPER_FURNITURE: readonly Furniture[] = [
   // The dash top is at 35 px, 3 px into layer 2, just under the windshield (ADR 0106).
