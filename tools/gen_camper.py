@@ -21,7 +21,7 @@ ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}, "front_panels": {"owne
 texture_io = load_tool("texture_io")
 mer = load_tool("mer")
 outputs = texture_io.Outputs("--check" in sys.argv[2:])
-build_lit_textures = load_tool("lit_textures").build_lit_textures
+build_layout_lit_textures = load_tool("lit_textures").build_layout_lit_textures
 
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
@@ -224,19 +224,23 @@ def atlas_pixel(x, y):
 
 outputs.png(ENTITY_TEXTURES / "camper.png", *LAYOUT.size, atlas_pixel)
 
-build_lit_textures(outputs, ENTITY_TEXTURES, "camper", *LAYOUT.size,
-                   atlas_pixel,
-                   lambda x, y: ATLAS.atlas_swatch_at(x, y) in LIT_SLOTS)
+build_layout_lit_textures(outputs, ENTITY_TEXTURES, "camper", LAYOUT,
+                          atlas_pixel, "base", lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
 
 # Polished plate, not a perfect mirror: Vibrant Visuals keeps a soft highlight along the housing.
 MER_MIRROR_CHROME = mer.Mer(255, 0, 26)
-outputs.png(ENTITY_TEXTURES / "camper_mirror.png", *LAYOUT.size,
-            atlas_pixel)
+mirror_mask = mer.layout_mask(LAYOUT, "base", lambda x, y:
+    MIRROR_CHROME_REGION.x <= x < MIRROR_CHROME_REGION.x + MIRROR_CHROME_REGION.w
+    and MIRROR_CHROME_REGION.y <= y < MIRROR_CHROME_REGION.y + MIRROR_CHROME_REGION.h)
+outputs.png(ENTITY_TEXTURES / "camper_mirror.png", *LAYOUT.size, atlas_pixel)
 outputs.png(ENTITY_TEXTURES / "camper_mirror_mer.png", *LAYOUT.size, mer.mer_painter(
-    lambda x, y: MER_MIRROR_CHROME if (MIRROR_CHROME_REGION.x <= x - LAYOUT.origin("base")[0] < MIRROR_CHROME_REGION.x + MIRROR_CHROME_REGION.w
-                                       and MIRROR_CHROME_REGION.y <= y - LAYOUT.origin("base")[1] < MIRROR_CHROME_REGION.y + MIRROR_CHROME_REGION.h)
-    else None))
+    lambda x, y: MER_MIRROR_CHROME if mirror_mask(x, y) else None))
 texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "camper_mirror", "camper_mirror_mer")
+
+interior_mer = load_tool("camper_mer").build_interior_mer(LAYOUT)
+outputs.png(ENTITY_TEXTURES / "camper_interior_mer.png", *LAYOUT.size,
+            texture_io.texel_reader(LAYOUT.size[0], interior_mer))
+texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "camper", "camper_interior_mer")
 
 ICON = [
     "................",
