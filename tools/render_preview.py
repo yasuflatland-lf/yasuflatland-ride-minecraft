@@ -643,12 +643,44 @@ def bone_turns(bones):
     return turns
 
 
-def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False):
+@dataclass(frozen=True)
+class TextureFace:
+    texture: list
+    uv: dict
+    name: str
+    width: int
+    height: int
+    light: float
+    tint: tuple
+    lift: float
+    merge: bool
+
+    def patches(self, quad):
+        for patch, color in textured_face(self.texture, self.uv, quad, self.name,
+                                         self.width, self.height, merge=self.merge):
+            yield patch, tuple(color[i] * self.light * self.tint[i] + self.lift for i in range(3)), None
+
+
+def opaque_region(texture, uv, width, height):
+    (u, v), (du, dv) = uv['uv'], uv['uv_size']
+    tw, th = len(texture[0]), len(texture)
+    x0, x1 = sorted((u * tw / width, (u + du) * tw / width))
+    y0, y1 = sorted((v * th / height, (v + dv) * th / height))
+    def indices(lo, hi, limit):
+        start = max(0, min(limit - 1, math.floor(lo)))
+        return range(start, max(start + 1, min(limit, math.ceil(hi))))
+    return all(texture[y][x][3] == 255
+               for y in indices(y0, y1, th) for x in indices(x0, x1, tw))
+
+
+
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, defer_textures=False):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
     tint = NIGHT_TINT if pose["dusk"] else (1.0, 1.0, 1.0)
     polygons, glass = [], []
+    opacity = {}
     turns = bone_turns(geo["bones"])
     for bone in geo["bones"]:
         color = lit.get(bone["name"]) if pose["lamps"] else None
@@ -669,6 +701,15 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
+                if texture_mapping and defer_textures and not cutout:
+                    key = (*uv['uv'], *uv['uv_size'])
+                    if key not in opacity:
+                        opacity[key] = opaque_region(texture, uv, desc['texture_width'], desc['texture_height'])
+                    if opacity[key]:
+                        polygons.append((quad, TextureFace(texture, uv, face,
+                            desc['texture_width'], desc['texture_height'],
+                            k, tint, face_lift, pose.get('merge_texels', False)), None))
+                        continue
                 if texture_mapping:
                     patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False))
                 else:
@@ -883,7 +924,22 @@ def rasterize(polygons, layers, to_screen, width=WIDTH, height=HEIGHT, backgroun
 
     depth = [0.0] * (w * h)  # stores 1/depth, so larger is nearer and 0 is empty
     color = [None] * (w * h)
-    for quad, rgb, _ in polygons:
+    def visible_patches():
+        for quad, rgb, emissive in polygons:
+            if not isinstance(rgb, TextureFace):
+                yield quad, rgb, emissive
+                continue
+            # Test the whole face against already drawn opaque geometry before
+            # expanding a large fabric region. Keep ties for the existing depth rule.
+            visible = [False]
+            def probe(x, y, q):
+                if q >= depth[y * w + x] - 1e-10:
+                    visible[0] = True
+            fill(to_screen(quad), w, h, probe)
+            if visible[0]:
+                yield from rgb.patches(quad)
+
+    for quad, rgb, _ in visible_patches():
 
         def paint(px, py, q, rgb=rgb):
             i = py * w + px
@@ -1048,7 +1104,7 @@ def render_camper(rp):
     # Camper previews use the ground pose, where the render controller hides hover glows.
     geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Other atlases intentionally use center sampling in their established previews.
-    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True)
+    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True, defer_textures=True)
 
 
 def bulldozer_bones(bones):
@@ -1070,8 +1126,8 @@ def render_bulldozer(rp):
     )
 
 
-def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False):
-    scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping) for name, pose in poses.items()}
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, defer_textures=False):
+    scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping, defer_textures=defer_textures) for name, pose in poses.items()}
     points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
     frames = {}
     for name, pose in poses.items():
