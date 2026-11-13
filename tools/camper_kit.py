@@ -339,6 +339,14 @@ BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
 kitchen = load_tool("camper_kitchen")
-KITCHEN_REGIONS = kitchen.register_kitchen(REGISTRY)
+
+def register_kitchen_materials(registry: regions.RegionRegistry) -> kitchen.KitchenRegions:
+    """Reserve shared kitchen materials before either area's faces are emitted."""
+    refs = kitchen.register_kitchen(registry)
+    load_tool("camper_kitchen_fronts").register_panel(registry)
+    return refs
+
+
+KITCHEN_REGIONS = register_kitchen_materials(REGISTRY)
 LAYOUT = regions.pack(REGISTRY)
 ATLAS.base_ref = BASE_REF

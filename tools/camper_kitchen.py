@@ -124,7 +124,7 @@ NOISE = (-3, -1, 0, 0, 1, 2, 3)
 TEXTURE_SEQUENCE = (("laminate", 192, 192), ("panel", 224, 160), ("metal", 128, 64),
                     ("wood", 128, 128), ("fabric", 192, 256), ("stripe", 128, 128),
                     ("welt", 32, 32), ("dial", 64, 64), ("dark", 128, 64))
-TEXTURE_BASES = {"laminate": (220, 215, 192), "metal": (176, 177, 165),
+TEXTURE_BASES = {"panel": (210, 200, 168), "laminate": (220, 215, 192), "metal": (176, 177, 165),
                  "wood": (103, 76, 45), "dark": (69, 62, 35), "dial": (53, 45, 29)}
 LAMINATE_FLECK_RATE, LAMINATE_FLECK_DEPTH = .13, (8, 35)
 LAMINATE_WAVE = (.19, .15, 2)
@@ -155,6 +155,8 @@ def texture_pixels() -> dict[str, tuple]:
                         n -= rng.randrange(*LAMINATE_FLECK_DEPTH)
                     fx, fy, gain = LAMINATE_WAVE
                     n += round(gain * math.sin(x * fx + y * fy))
+                elif kind == "panel":
+                    n += int(1.5 * math.sin(x * .13))
                 elif kind == "metal":
                     frequency, gain = METAL_WAVE
                     n += round(gain * math.sin(y * frequency)) + rng.choice(METAL_STREAKS)
@@ -318,7 +320,7 @@ def build_kitchen_top(registry: RegionRegistry) -> "tuple[AreaCubes, KitchenRegi
     kit = load_tool("camper_kit")
     if not any(r.name == "base" for r in registry.regions()):
         registry.register(kit.BASE_REF.region)
-    refs = register_kitchen(registry)
+    refs = kit.register_kitchen_materials(registry)
     if registry._layout is None:
         regions.pack(registry)
     counter = [model_box(d, refs.LAMINATE, registry) for d in COUNTER_LAMINATE]

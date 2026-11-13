@@ -55,7 +55,7 @@ take_slots = kit.take_slots
 
 AREA_ORDER = (
     "shell", "curtains", "door", "front", "rear", "roof", "running", "cab",
-    "bed_bunk", "fridge", "kitchen", "room", "shower", "ceiling", "dinette", "arches",
+    "bed_bunk", "fridge", "kitchen", "kitchen_fronts", "room", "shower", "ceiling", "dinette", "arches",
 )
 areas = {name: load_tool(f"camper_{name}") for name in AREA_ORDER}
 merged = AreaCubes()
@@ -85,6 +85,13 @@ for name, module in areas.items():
                 merged[bone] = cut
     merged.merge(built)
 
+# Carve after the arches as their inner trim also crosses the drawer cavity.
+cut = []
+for cube in merged["body"]:
+    for piece in carve(cube, areas["kitchen_fronts"].CAVITY):
+        owners[id(piece)] = owners[id(cube)]
+        cut.append(piece)
+merged["body"] = cut
 body = merged["body"]
 door = merged["door_entry"]
 # Extract the headlight group's lamps (lenses, roof clearance, rear roof, and tail lamps)
@@ -98,11 +105,11 @@ glass, body = take_slots(body, ("glass",))
 door_glass, door = take_slots(door, ("glass",))
 
 merged.update(body=body, door_entry=door, headlights=headlights, glass=glass, door_glass=door_glass)
-door_area, cab, shower, room, fridge = (areas[n] for n in ("door", "cab", "shower", "room", "fridge"))
+door_area, cab, shower, fridge = (areas[n] for n in ("door", "cab", "shower", "fridge"))
 DOOR_HINGE = door_area.DOOR_HINGE
 STEERING_PIVOT, STEERING_LEAN = cab.STEERING_PIVOT, cab.STEERING_LEAN
 SHOWER_HINGE, SHOWER_HEAD = shower.SHOWER_HINGE, shower.SHOWER_HEAD
-CABINET_SINK_HINGE, CABINET_STOVE_HINGE = room.CABINET_SINK_HINGE, room.CABINET_STOVE_HINGE
+CABINET_SINK_HINGE, CABINET_STOVE_HINGE = areas["kitchen_fronts"].CABINET_SINK_HINGE, areas["kitchen_fronts"].CABINET_STOVE_HINGE
 FRIDGE_HINGE = fridge.FRIDGE_HINGE
 wheels, glows, hover = [], [], {}
 for name, sx, center_x, z in kit.wheel_positions():
@@ -132,6 +139,8 @@ camper_bones = [
     {"name": "fridge_top_door", "parent": "body", "pivot": FRIDGE_HINGE, "cubes": merged["fridge_top_door"]},
     {"name": "fridge_bottom_door", "parent": "body", "pivot": FRIDGE_HINGE, "cubes": merged["fridge_bottom_door"]},
     {"name": "mirror", "parent": "body", "pivot": [0, 0, 0], "cubes": merged["mirror"]},
+    *[{"name": name, "parent": "body", "pivot": pivot, "cubes": merged[name]}
+      for name, pivot in areas["kitchen_fronts"].DRAWER_PIVOTS.items()],
     {"name": "glass", "parent": "body", "pivot": [0, 0, 0], "cubes": glass},
     {"name": "door_glass", "parent": "door_entry", "pivot": DOOR_HINGE, "cubes": door_glass},
 ]
