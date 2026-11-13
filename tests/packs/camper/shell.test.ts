@@ -8,6 +8,7 @@ import {
   geometry,
   geometryText,
   paletteSlots,
+  swatch,
 } from "./helpers";
 
 describe("camper model assets (ADR 0067)", () => {
@@ -76,9 +77,8 @@ describe("camper model assets (ADR 0067)", () => {
   });
 
   it("draws the side stripe's W as mirrored single-cube strokes on a flat bottom (#459)", () => {
-    // The PALETTE order in tools/gen_camper.py puts the stripe in slot 6.
     const strokes = (bone("body").cubes ?? []).filter(
-      (cube) => cube.uv.north?.uv[0] === 6 && (cube.rotation?.[0] ?? 0) !== 0,
+      (cube) => swatch(cube, "stripe") && (cube.rotation?.[0] ?? 0) !== 0,
     );
     const frontAxle = -31.5;
     const wBottom = 2 * 7.8 + 2 + 1.5;
@@ -134,8 +134,8 @@ describe("camper model assets (ADR 0067)", () => {
   it("ends the stripe on the W's outer arm inner edges, with no step at their tops (ADR 0145)", () => {
     const frontAxle = -31.5;
     const stripeBand: [number, number] = [29.5, 31.5];
-    const cubes = (bone("body").cubes ?? []).filter(
-      (cube) => cube.uv.north?.uv[0] === 6,
+    const cubes = (bone("body").cubes ?? []).filter((cube) =>
+      swatch(cube, "stripe"),
     );
     const arms = cubes.filter((cube) => (cube.rotation?.[0] ?? 0) !== 0);
     const armLength = Math.max(...arms.map((cube) => cube.size[1] ?? 0));
@@ -216,10 +216,9 @@ describe("camper model assets (ADR 0067)", () => {
   });
 
   it("keeps the wheel's spokes level (owner decision in #410)", () => {
-    const ivory = paletteSlots.indexOf("ivory");
-    expect(ivory).toBeGreaterThanOrEqual(0);
+    expect(paletteSlots.indexOf("ivory")).toBeGreaterThanOrEqual(0);
     const spokes = (bone("steering").cubes ?? []).filter(
-      (cube) => cube.uv.north?.uv[0] === ivory && Math.max(...cube.size) >= 3,
+      (cube) => swatch(cube, "ivory") && Math.max(...cube.size) >= 3,
     );
     expect(spokes.length).toBeGreaterThan(0);
     for (const cube of spokes) {

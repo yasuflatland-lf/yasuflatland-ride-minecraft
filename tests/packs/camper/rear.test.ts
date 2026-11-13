@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ALUMINIUM_SLOT,
+  baseOrigin,
   bone,
   bones,
   type Cube,
@@ -8,6 +9,7 @@ import {
   end,
   geometry,
   swatch,
+  swatchUv,
 } from "./helpers";
 
 describe("camper model assets (ADR 0067)", () => {
@@ -94,14 +96,13 @@ describe("camper model assets (ADR 0067)", () => {
   });
 });
 describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
-  // Slots in the PALETTE order of tools/gen_camper.py.
-  const WHITE_SLOT = 0;
-  const KHAKI_SLOT = 4;
-  const STEEL_SLOT = 5;
-  const BLACK_SLOT = 7;
-  const CHROME_SLOT = 10;
-  const WALL_IN_SLOT = 22;
-  const TRIM_BEIGE_SLOT = 37;
+  const WHITE_SLOT = swatchUv("white")[0];
+  const KHAKI_SLOT = swatchUv("khaki")[0];
+  const STEEL_SLOT = swatchUv("steel")[0];
+  const BLACK_SLOT = swatchUv("black")[0];
+  const CHROME_SLOT = swatchUv("chrome")[0];
+  const WALL_IN_SLOT = swatchUv("wall_in")[0];
+  const TRIM_BEIGE_SLOT = swatchUv("trim_beige")[0];
   it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
     expect(
       (bone("glass").cubes ?? []).filter(
@@ -143,7 +144,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
     const cubes = lid();
     for (const c of cubes)
       for (const face of Object.values(c.uv))
-        if (face.uv[1] === 0)
+        if (face.uv[1] === baseOrigin[1])
           expect([
             TRIM_BEIGE_SLOT,
             STEEL_SLOT,
@@ -152,7 +153,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
             ALUMINIUM_SLOT,
           ]).toContain(face.uv[0]);
         else {
-          expect(face.uv[1]).toBeGreaterThan(0);
+          expect(face.uv[1]).toBeGreaterThan(baseOrigin[1]);
           expect(
             (face.uv[0] ?? 0) + (face.uv_size[0] ?? 0),
           ).toBeLessThanOrEqual(geometry.description.texture_width);

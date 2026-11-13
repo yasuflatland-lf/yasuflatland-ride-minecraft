@@ -1,7 +1,14 @@
 import fc from "fast-check";
 import { afterAll, describe, expect, it } from "vitest";
 import { startPythonWorker } from "../../support/pythonWorker";
-import { bone, type Cube, end, loadAtlas } from "./helpers";
+import {
+  baseOrigin,
+  bone,
+  type Cube,
+  end,
+  loadAtlas,
+  swatchUv,
+} from "./helpers";
 
 const python = startPythonWorker();
 afterAll(() => python.close());
@@ -156,7 +163,8 @@ describe("camper front panels (ADR 0226)", () => {
         (cube.origin[1] ?? 0) >= 10 &&
         end(cube, 1) <= 26,
     );
-    const colour = (cube: Cube) => slots[cube.uv.north?.uv[0] ?? -1];
+    const colour = (cube: Cube) =>
+      slots[(cube.uv.north?.uv[0] ?? -1) - baseOrigin[0]];
     expect(new Set(parts.map(colour))).toEqual(
       new Set(["panel", "grille", "slat", "chrome"]),
     );
@@ -183,7 +191,8 @@ describe("camper front panels (ADR 0226)", () => {
 
   it("frames the entry door in riveted aluminium with three hinges and a latch plate", () => {
     const body = bone("body").cubes ?? [];
-    const colour = (cube: Cube) => slots[cube.uv.north?.uv[0] ?? -1];
+    const colour = (cube: Cube) =>
+      slots[(cube.uv.north?.uv[0] ?? -1) - baseOrigin[0]];
     const trim = body.filter(
       (cube) =>
         end(cube, 0) <= -24 &&
@@ -243,7 +252,8 @@ describe("camper front panels (ADR 0226)", () => {
 
   it("builds the rear storage hatches with a rounded rail, five louver columns, and latch knobs", () => {
     const body = bone("body").cubes ?? [];
-    const colour = (cube: Cube) => slots[cube.uv.north?.uv[0] ?? -1];
+    const colour = (cube: Cube) =>
+      slots[(cube.uv.north?.uv[0] ?? -1) - baseOrigin[0]];
     // The hatch is on the right side only; the left rear wall stays plain.
     for (const outer of [-1]) {
       const hatch = body.filter((cube) => {
@@ -279,7 +289,7 @@ describe("camper front panels (ADR 0226)", () => {
     expect(
       body.filter(
         (c) =>
-          slots[c.uv.north?.uv[0] ?? -1] === "aluminium" &&
+          slots[(c.uv.north?.uv[0] ?? -1) - baseOrigin[0]] === "aluminium" &&
           end(c, 0) >= 24 &&
           (c.origin[2] ?? 0) >= 42 &&
           end(c, 2) <= 56 &&
@@ -295,7 +305,7 @@ describe("camper front panels (ADR 0226)", () => {
 
   it("paints the wall below the entry door like the skirt beside it", () => {
     const body = bone("body").cubes ?? [];
-    const tan = slots.indexOf("tan");
+    const tan = swatchUv("tan")[0];
     const outermostAt = (y: number, z: number) =>
       body
         .filter(
@@ -317,7 +327,7 @@ describe("camper front panels (ADR 0226)", () => {
   it("starts every grille row exactly on the nose so the panels leave no gap", () => {
     const rows = faceCubes.filter(
       (cube) =>
-        slots[cube.uv.north?.uv[0] ?? -1] === "slat" &&
+        slots[(cube.uv.north?.uv[0] ?? -1) - baseOrigin[0]] === "slat" &&
         Math.abs(
           (cube.origin[0] ?? 0) +
             (sideOf(cube) > 0 ? 0 : (cube.size[0] ?? 0)) -

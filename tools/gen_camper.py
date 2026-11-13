@@ -7,7 +7,6 @@ Bedrock's frame. The stripe's W is an explicit exception recorded in ADR 0067.
 Run: python3 -I tools/gen_camper.py packs/yasu_ride_rp [--check]
 """
 
-import math
 import sys
 from pathlib import Path
 
@@ -31,6 +30,8 @@ ITEM_TEXTURES = RP / "textures/items/yasu_ride"
 kit = load_tool("camper_kit")
 AreaCubes = kit.AreaCubes
 ATLAS = kit.ATLAS
+REGISTRY = kit.REGISTRY
+LAYOUT = kit.LAYOUT
 PALETTE = kit.PALETTE
 LAMP_GROUPS = kit.LAMP_GROUPS
 LIT_SLOTS = kit.LIT_SLOTS
@@ -194,7 +195,7 @@ geo = {
     "minecraft:geometry": [{
         "description": {
             "identifier": "geometry.yasu_ride.camper",
-            "texture_width": ATLAS.width, "texture_height": ATLAS.height,
+            "texture_width": LAYOUT.size[0], "texture_height": LAYOUT.size[1],
             "visible_bounds_width": 10, "visible_bounds_height": 5,
             "visible_bounds_offset": [0, 1.5, 0],
         },
@@ -207,63 +208,33 @@ assert_axes(model_cubes, {"slanted": slanted, "front_panels": [cube for cube in 
 outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
-def scale(color, factor):
-    return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
+atlas_pixels = kit.regions.render_atlas(LAYOUT)
+for cube in model_cubes:
+    for face in cube["uv"].values():
+        LAYOUT.bind_face("base", face)
+atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
+if atlas_errors:
+    raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))
 
 
-# Baked streaks for devices without PBR, as on the owner's photo of the plated housing: the sky's
-# light from the top, a dark horizon, the ground's warmer light below, and narrow dark reflections.
-MIRROR_STREAKS = (0.9, 1.0, 1.0, 0.45, 0.8, 1.0, 0.95, 0.35, 0.6, 1.0, 1.0, 0.85, 0.4, 0.95, 1.0, 0.75)
-MIRROR_SKY, MIRROR_GROUND = (236, 244, 252), (250, 240, 224)
-MIRROR_HORIZON = (58, 62, 70)
+def atlas_pixel(x, y):
+    offset = (y * LAYOUT.size[0] + x) * 4
+    return tuple(atlas_pixels[offset:offset + 4])
 
 
-def mirror_chrome_pixel(x, y):
-    wobble = round(math.sin(y * 0.45) * 1.2)
-    streak = MIRROR_STREAKS[(x + wobble) % len(MIRROR_STREAKS)]
-    light = MIRROR_SKY if y < 19 else MIRROR_GROUND
-    fade = 0.72 + 0.28 * abs(y - 19) / 19
-    if y in (18, 19):
-        return (*MIRROR_HORIZON, 255)
-    return (*scale(light, streak * fade), 255)
+outputs.png(ENTITY_TEXTURES / "camper.png", *LAYOUT.size, atlas_pixel)
 
-
-def region_pixel(region, x, y):
-    if region.name == "mirror_chrome":
-        return mirror_chrome_pixel(x, y)
-    if region.name == "rib":
-        phase = y % RIB_PERIOD_TEXELS
-        factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
-        return (*scale(PALETTE["white"][:3], factor), 255)
-    if region.name == "bolt":
-        dark = x % BOLT_PITCH_PX == 0
-    elif region.name == "door_head":
-        dark = y == region.h - 1
-    elif region.name == "door_hinge":
-        dark = y in (5, 6, 19, 20)
-    elif region.name == "door_latch":
-        dark = x == 1 and y in (10, 11)
-    elif region.name == "vent_screws":
-        dark = y == 1 and x in (2, 7, 12)
-    else:
-        raise ValueError(f"Unknown camper region: {region.name}")
-    return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
-
-
-outputs.png(ENTITY_TEXTURES / "camper.png", ATLAS.width, ATLAS.height,
-            lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel))
-
-build_lit_textures(outputs, ENTITY_TEXTURES, "camper", ATLAS.width, ATLAS.height,
-                   lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel),
-                   lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
+build_lit_textures(outputs, ENTITY_TEXTURES, "camper", *LAYOUT.size,
+                   atlas_pixel,
+                   lambda x, y: ATLAS.atlas_swatch_at(x, y) in LIT_SLOTS)
 
 # Polished plate, not a perfect mirror: Vibrant Visuals keeps a soft highlight along the housing.
 MER_MIRROR_CHROME = mer.Mer(255, 0, 26)
-outputs.png(ENTITY_TEXTURES / "camper_mirror.png", ATLAS.width, ATLAS.height,
-            lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel))
-outputs.png(ENTITY_TEXTURES / "camper_mirror_mer.png", ATLAS.width, ATLAS.height, mer.mer_painter(
-    lambda x, y: MER_MIRROR_CHROME if (MIRROR_CHROME_REGION.x <= x < MIRROR_CHROME_REGION.x + MIRROR_CHROME_REGION.w
-                                       and MIRROR_CHROME_REGION.y <= y < MIRROR_CHROME_REGION.y + MIRROR_CHROME_REGION.h)
+outputs.png(ENTITY_TEXTURES / "camper_mirror.png", *LAYOUT.size,
+            atlas_pixel)
+outputs.png(ENTITY_TEXTURES / "camper_mirror_mer.png", *LAYOUT.size, mer.mer_painter(
+    lambda x, y: MER_MIRROR_CHROME if (MIRROR_CHROME_REGION.x <= x - LAYOUT.origin("base")[0] < MIRROR_CHROME_REGION.x + MIRROR_CHROME_REGION.w
+                                       and MIRROR_CHROME_REGION.y <= y - LAYOUT.origin("base")[1] < MIRROR_CHROME_REGION.y + MIRROR_CHROME_REGION.h)
     else None))
 texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "camper_mirror", "camper_mirror_mer")
 
