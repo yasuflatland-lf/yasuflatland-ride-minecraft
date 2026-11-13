@@ -107,6 +107,7 @@
     "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
     "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json",
     "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
+    "tests/packs/fixtures/camper-areas.json",
     "packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json",
     "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat_monitor.geo.json",
     "packs/yasu_ride_rp/render_controllers/yasu_ride/sportsboat_monitor.rc.json",

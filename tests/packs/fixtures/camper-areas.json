@@ -1,0 +1,57 @@
+{
+  "shell": {
+    "body": [
+      [0, 298],
+      [301, 304],
+      [307, 540],
+      [543, 550],
+      [553, 556],
+      [559, 844]
+    ],
+    "glass": [0, 8]
+  },
+  "curtains": {
+    "body": [[299, 300], [305, 306], [541, 542], [551, 552], [557, 558]]
+  },
+  "door": { "body": [845, 924], "door_entry": [0, 31], "door_glass": [0, 0] },
+  "front": {
+    "body": [925, 2387],
+    "headlights": [0, 40],
+    "mirror": [0, 11],
+    "glass": [9, 10]
+  },
+  "rear": { "body": [2388, 3107], "headlights": [41, 80], "glass": [11, 34] },
+  "roof": { "body": [3108, 3153] },
+  "running": {
+    "body": [3154, 3154],
+    "wheel_fr": [0, 63],
+    "wheel_fl": [0, 63],
+    "wheel_rr": [0, 63],
+    "wheel_rl": [0, 63],
+    "glow_fr": [0, 15],
+    "glow_fl": [0, 15],
+    "glow_rr": [0, 15],
+    "glow_rl": [0, 15]
+  },
+  "cab": {
+    "body": [3155, 3288],
+    "seat_0": [0, 24],
+    "seat_1": [0, 24],
+    "steering": [0, 114]
+  },
+  "bed_bunk": { "body": [3289, 3296], "bunk": [0, 5] },
+  "fridge": {
+    "body": [3297, 3311],
+    "fridge_top_door": [0, 4],
+    "fridge_bottom_door": [0, 3]
+  },
+  "room": {
+    "body": [3312, 3420],
+    "cabinet_sink_door": [0, 1],
+    "cabinet_stove_door": [0, 1]
+  },
+  "shower": { "body": [3421, 3434], "shower_door": [0, 2] },
+  "ceiling": { "body": [3435, 3437], "ceiling_lights": [0, 3] },
+  "dinette": { "body": [3438, 3439], "seat_2": [0, 3], "seat_3": [0, 3] },
+  "arches": { "body": [3440, 3471] }
+}

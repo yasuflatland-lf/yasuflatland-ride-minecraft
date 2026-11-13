@@ -381,7 +381,7 @@ describe("camper model assets (ADR 0067)", () => {
   });
 
   const paletteBlock =
-    readFileSync("tools/gen_camper.py", "utf8").match(
+    readFileSync("tools/camper_kit.py", "utf8").match(
       /^PALETTE = \{\n([\s\S]*?)^\}/m,
     )?.[1] ?? "";
   const paletteSlots = [...paletteBlock.matchAll(/^\s+"(\w+)":/gm)].map(
