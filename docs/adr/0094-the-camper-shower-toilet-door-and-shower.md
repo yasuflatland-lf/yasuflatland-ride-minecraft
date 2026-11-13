@@ -11,6 +11,8 @@
 
 ## Decision
 
+- `tools/camper_door.py` builds the three shower-door cubes. The panel uses the registered `door wood` region on both upright faces and all four edges at eight texels per model pixel, with UV v following height on upright faces. Both handles remain chrome. The hinge stays `[-8, 0, 54]`; panel bounds, spray locator and swing behavior are unchanged.
+
 - Two new entity properties, both client-synced:
   - `yasu_ride:shower_door` (float 0 to 1) swings the `shower_door` bone up to 90 degrees into the aisle, 0.1 per tick like the entry door.
   - `yasu_ride:shower` (bool) is true while the shower runs.
