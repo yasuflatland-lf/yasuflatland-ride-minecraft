@@ -333,5 +333,6 @@ REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
+DOOR_REFS = load_tool("camper_door_materials").register(REGISTRY, PALETTE)
 LAYOUT = regions.pack(REGISTRY)
 ATLAS.base_ref = BASE_REF

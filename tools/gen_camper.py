@@ -211,7 +211,16 @@ outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 atlas_pixels = kit.regions.render_atlas(LAYOUT)
 for cube in model_cubes:
     for face in cube["uv"].values():
-        LAYOUT.bind_face("base", face)
+        u, v = face["uv"]
+        du, dv = face["uv_size"]
+        for region in LAYOUT.regions:
+            x, y = LAYOUT.origin(region.name)
+            if (x <= min(u, u + du) and max(u, u + du) <= x + region.width
+                    and y <= min(v, v + dv) and max(v, v + dv) <= y + region.height):
+                LAYOUT.bind_face(region.name, face)
+                break
+        else:
+            raise ValueError(f"Camper face outside registered regions: {face}")
 atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))
