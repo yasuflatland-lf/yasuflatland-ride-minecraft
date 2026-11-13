@@ -975,3 +975,19 @@ describe("SUV model (ADR 0009)", () => {
     });
   });
 });
+
+describe("camper steering assembly registration (ADR 0167)", () => {
+  it("pins the generator membership counts alongside the shipped camper checks", async () => {
+    const declarations = JSON.parse(
+      await python.run(`import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+print(json.dumps(load_tool('camper_steering').ASSEMBLIES))`),
+    );
+    expect(declarations).toEqual({
+      steering_wheel: { owner: "camper", cubes: 114 },
+      steering_spokes: { owner: "camper", cubes: 3 },
+      steering_lever: { owner: "camper", cubes: 30 },
+    });
+  });
+});
