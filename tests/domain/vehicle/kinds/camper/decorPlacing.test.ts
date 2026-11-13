@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
@@ -117,14 +118,16 @@ const slotNamed = (id: string) =>
     id,
   ).slot;
 
-it("accepts a standing item on every slot but the ceiling hook and a hanging item only on the hook (ADR 0097)", () => {
+it("accepts standing items on fitting standing slots and hanging items only on the hook (ADR 0097)", () => {
   fc.assert(
     fc.property(gear, (id) => {
       const hanging = HANGING_GEAR_IDS.has(id);
       expect(slotsFor(decorItemId(id))).toEqual(
         DECOR_SLOTS.filter(
           (slot) =>
-            (slot.hanging === true) === hanging && slot.door === undefined,
+            (slot.hanging === true) === hanging &&
+            slot.door === undefined &&
+            (slot.items === undefined || slot.items.includes(id)),
         ),
       );
     }),
@@ -133,7 +136,9 @@ it("accepts a standing item on every slot but the ceiling hook and a hanging ite
     "ceiling_hook",
   ]);
   expect(ids(slotsFor(decorItemId("cushion")))).toEqual(
-    ids(DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook" && !s.door)),
+    ids(
+      DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook" && !s.door && !s.items),
+    ),
   );
   expect(slotsFor(decorItemId("percolator"))).toHaveLength(8);
   expect(slotsFor(decorItemId("percolator"), new Set(DOORS))).toHaveLength(16);
@@ -148,7 +153,8 @@ it("takes standing items behind an open cabinet door and none behind a shut one,
         DECOR_SLOTS.filter(
           (slot) =>
             (slot.hanging === true) === HANGING_GEAR_IDS.has(id) &&
-            reachable(open)(slot),
+            reachable(open)(slot) &&
+            (slot.items === undefined || slot.items.includes(id)),
         ),
       );
     }),
@@ -192,7 +198,9 @@ it("gives the stove one slot in its cell middle and every other furniture one sl
   const others = SLOTS.filter(({ slot }) => !PAIR_IDS.includes(slot.id)).map(
     ({ slot }) => slot,
   );
-  expect(others.every((s) => s.spot === undefined && !s.pair)).toBe(true);
+  expect(
+    others.every((s) => (s.spot === undefined || s.spot >= 9) && !s.pair),
+  ).toBe(true);
   expect(
     new Set(
       [...others, ...pairs.filter((_, i) => i % 2 === 0)].map((s) =>
@@ -203,7 +211,7 @@ it("gives the stove one slot in its cell middle and every other furniture one sl
   expect(DECOR_SPOTS[0]).toEqual({ left: 0, forward: 0 });
   // ADR 0107's burner spots stay, so the decor blocks' spot values and the pair ends' indexes
   // after them keep their meaning (ADR 0108, 0112).
-  expect(DECOR_SPOTS).toHaveLength(9);
+  expect(DECOR_SPOTS).toHaveLength(11);
 });
 
 it("lists every slot cell once with its slots in slot order (ADR 0107)", () => {
@@ -784,5 +792,52 @@ it("sends gear pressed on a shut compartment to the nearest free slot elsewhere,
           expect(open.has(chosen.door)).toBe(true);
       },
     ),
+  );
+});
+
+it("places dashboard spots on the shelf and rejects oversized decor", () => {
+  expect(DECOR_SPOTS.slice(9)).toEqual([
+    { left: 4.2, forward: 5.057 },
+    { left: -4.1, forward: 4.441 },
+  ]);
+  expect(slotNamed("dashboard_center").spot).toBe(9);
+  expect(slotNamed("dashboard_left").spot).toBe(10);
+  expect(ids(slotsFor(decorItemId("cushion")))).not.toContain(
+    "dashboard_center",
+  );
+  expect(ids(slotsFor(decorItemId("cushion")))).not.toContain("dashboard_left");
+});
+
+it("keeps every pre-dashboard spot index unchanged for saved dock cells", () => {
+  expect(DECOR_SPOTS.slice(0, 9)).toEqual([
+    { left: 0, forward: 0 },
+    { left: 3.8, forward: 5.4 },
+    { left: 3.8, forward: -5.35 },
+    { left: -3.3, forward: 5.4 },
+    { left: -3.3, forward: -5.35 },
+    { left: 0, forward: -3.5 },
+    { left: 0, forward: 3.5 },
+    { left: 3.3, forward: 0 },
+    { left: -3.7, forward: 0 },
+  ]);
+});
+
+it("accepts only dashboard items whose transformed footprint fits the slot rectangle", () => {
+  const rows = JSON.parse(
+    execFileSync("python3", ["-I", "tools/camper_decor_fit.py", "--json"], {
+      encoding: "utf8",
+    }),
+  ) as { id: string; width: number; depth: number }[];
+  fc.assert(
+    fc.property(fc.constantFrom(...rows), (item) => {
+      for (const slot of slotsFor(decorItemId(item.id))) {
+        if (slot.id === "dashboard_center" || slot.id === "dashboard_left") {
+          expect(item.width).toBeLessThanOrEqual(7);
+          expect(item.depth).toBeLessThanOrEqual(
+            slot.id === "dashboard_center" ? 4.73 : 3.5,
+          );
+        }
+      }
+    }),
   );
 });

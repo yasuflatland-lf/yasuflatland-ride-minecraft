@@ -75,6 +75,8 @@ export interface DecorSlot {
   readonly height: number;
   /** Items hang from this slot instead of standing on it (ADR 0093, 0102). */
   readonly hanging?: true;
+  /** Optional clearance restriction for a shallow furniture surface (ADR 0097). */
+  readonly items?: readonly string[];
   /** The index in DECOR_SPOTS of where on its cell the item stands; the cell middle when omitted (ADR 0107). */
   readonly spot?: number;
   /**
@@ -92,7 +94,7 @@ interface DecorSpot {
   readonly forward: number;
 }
 
-// Indexes 0 to 4 are a decor block's yasu_ride:spot state; tools/gen_camping_gear.py lists the same
+// Indexes 0 to 4 and 9 to 10 are a decor block's yasu_ride:spot state; tools/gen_camping_gear.py lists the same
 // offsets and tests/packs/campingGear.test.ts ties its translations to them. 0 is the cell
 // middle. 1 to 4 were the four stove burners of ADR 0107; no slot uses them since the stove
 // got one burner in its middle (ADR 0112). They stay so every index keeps its meaning and a
@@ -116,6 +118,8 @@ export const DECOR_SPOTS: readonly DecorSpot[] = [
   { left: 0, forward: 3.5 },
   { left: 3.3, forward: 0 },
   { left: -3.7, forward: 0 },
+  { left: 4.2, forward: 5.057 },
+  { left: -4.1, forward: 4.441 },
 ];
 
 /** A room block a piece of furniture fills its cells with; roomCells turns a faced one toward the aisle (ADR 0092, 0098). */
@@ -326,6 +330,37 @@ export const CEILING_LIGHTS: readonly LocalCell[] = [
   { x: 0, z: -3, layer: 2 },
 ];
 
+// Derived from python3 -I tools/camper_decor_fit.py --json; tests verify the table.
+export const DASHBOARD_SLOT_ITEMS = {
+  dashboard_center: [
+    "potted_plant",
+    "cactus_pot",
+    "percolator",
+    "enamel_kettle",
+    "saucepan",
+    "mug_pair",
+    "sugar_pot",
+    "transistor_radio",
+    "book_stack",
+    "road_map",
+    "photo_frame",
+    "tissue_box",
+    "desk_fan",
+    "alarm_clock",
+    "instant_camera",
+  ],
+  dashboard_left: [
+    "percolator",
+    "mug_pair",
+    "sugar_pot",
+    "transistor_radio",
+    "photo_frame",
+    "tissue_box",
+    "desk_fan",
+    "alarm_clock",
+  ],
+} as const;
+
 const TABLE_CELL = { x: 1, z: 0, layer: 1 } as const satisfies LocalCell;
 
 // Slot heights are the furniture's top at the slot's spot in tools/gen_camper.py, or, for
@@ -345,11 +380,15 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
         id: slotId("dashboard_center"),
         cell: { x: 0, z: 3, layer: 2 },
         height: 3,
+        spot: 9,
+        items: DASHBOARD_SLOT_ITEMS.dashboard_center,
       },
       {
         id: slotId("dashboard_left"),
         cell: { x: 1, z: 3, layer: 2 },
         height: 3,
+        spot: 10,
+        items: DASHBOARD_SLOT_ITEMS.dashboard_left,
       },
     ],
   },
