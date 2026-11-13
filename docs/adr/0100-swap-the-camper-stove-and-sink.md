@@ -12,6 +12,8 @@ For the v0.12.0 play test (#393, #407) the owner supplied a photo of the real 19
 
 ## Decision
 
+- The backsplash is split from the right inner lining at model z 24 to 39.5 and y 30 to 49, excluding the existing counter-window opening. Four cubes use `backsplash tile` (124 x 152 texels, TILE), with cloudy beige stone and one-texel dark grout at 8 texels per model pixel and a square pitch of 15.5 / 13 model pixels. Splitting adds six non-tile wall fragments and four tile cubes; all other lining fragments retain proportional, model-registered veneer UVs.
+
 - The stove moves to cell (-1, -2, 1) and the counter with the sink to (-1, -1, 1). The `stove` and `counter` slot ids stay, and both slot heights stay 14 px. The wall cabinet above (layer 2) is unchanged
 - `tools/gen_camper.py` draws the sink unit in model z 8.5 to 24 and the stove in z 24 to 39.5 (`STOVE_Z`), with the sink's shape unchanged
 - The stove follows the photo: a steel plate with a chrome front lip, a far-side flange, a sink-side trim, a rear strip with vent slots on its sink-side half only, and an ivory ledge at the wall; four burners in a 2 x 2 grid, centered on the slot point across the aisle, each a drip bowl, a dark gap, a head with a port band and a top disc, an eight-bar black grate ring, and six raised prongs; a harvest panel with two woodgrain lines leaning back 20 degrees about its lower front edge, five round black knobs with chrome skirts and smaller chrome caps, each part an octagon of two crossed bar pairs grouped toward the far end, and the sink-side third of the panel blank; a chrome strip, a shadow line, a chrome handle bar, and a brushed door in a steel frame below

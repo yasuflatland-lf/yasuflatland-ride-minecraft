@@ -11,17 +11,29 @@
 - Source: [0143](../adr/0143-place-the-camper-in-the-suvs-space.md)
 - Source: [0145](../adr/0145-move-camper-side-lamp-and-door-handle.md)
 - Source: [0146](../adr/0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md)
+- Source: [0147](../adr/0147-light-the-lamps-with-a-pbr-emissive-layer.md)
 - Source: [0157](../adr/0157-an-aluminium-rimmed-louvred-camper-vent-lid.md)
 - Source: [0190](../adr/0190-ribbed-camper-shell-atlas.md)
+- Source: [0193](../adr/0193-shared-texture-tooling.md)
+- Source: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md)
 - Source: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md)
 - Source: [0226](../adr/0226-lean-and-fold-the-camper-front-panels.md)
 - Source: [0227](../adr/0227-camper-door-trim-and-thin-panel-step.md)
 - Source: [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md)
 - Excluded: [0084](../adr/0084-camper-hitbox-spans-the-bumper.md): bumper hitbox coverage is a separate topic
 - Excluded: [0116](../adr/0116-a-bumper-stand-in-takes-the-camper-hits.md): stand-in entities and their lifecycle are a separate topic; only the lift from 0119 is specified here
-- Excluded: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md): hover discs, particles, and emissive overlay are covered by Camper hover display
+- Excluded: [0192](../adr/0192-suv-detailed-body.md): SUV texture regions and materials are outside the camper companion-map scope
 
 ## Rules
+
+### Interior surface materials
+
+- Applies to: The centre floor, inner side lining, backsplash and dinette table.
+- Rule: `build_surfaces(registry)` registers `carpet v3` (74 x 222, CARPET), `wall veneer` (416 x 180, WOOD), `backsplash tile` (124 x 152, TILE), and `table oak` (168 x 144, WOOD). The real-base centre floor remains one 36.6 x 3 x 111 px cube, carpet on its upper face at 2 texels per model pixel; six floor margins remain shell-owned. Veneer uses 4 texels per model pixel, anchored at z -48 and y 61, with vertical grain and continuous rails across fragments. The 91 lining cubes become 97 veneer cubes plus four tile cubes, split at z 24 to 39.5 and y 30 to 49 around the existing counter window. Tile uses 8 texels per model pixel, cloudy colour and dark grout at square pitch 15.5 / 13 model pixels. The two-cube table uses oak at 12 texels per model pixel and a central 1 x 1 x 11 px leg; its 14 x 12 px top still ends at y 28, keeping both standing decor slots and hanging clearance unchanged.
+- Agreement: Proposed
+- Basis: [0067](../adr/0067-camper.md) Decision; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision.
+- Implementation: `tools/camper_surfaces.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `tests/packs/fixtures/camper-areas.json`.
+- Verification: `tests/tools/camperSurfaces.test.ts` checks UV bounds, direction, fragment registration, backsplash coverage, native texture bytes and table dimensions. The camper pack tests retain the standing-slot surface and clearance checks. Ownership snapshots separate `floor`, `walls`, `tile`, and `table`; golden comparisons retain placement differences while later regions await porting. Not verified: client texture filtering and PC/mobile appearance.
 
 ### Kind, item, and fleet limit
 
@@ -125,7 +137,7 @@
 ### Rear-right vent lid
 
 - Applies to: Camper outer rear-right wall, all forms.
-- Rule: The former rear-right window is closed with outer shell, inner lining, and band; its glass, frame, and curtains are absent. The opaque lid is built in `body` using `VENT_COVER`, `VENT_RIM`, and `VENT_CORNER`. Two columns of `VENT_SLITS` recessed black-backed slits use `VENT_SLIT`, `VENT_SLIT_PITCH`, `VENT_SLIT_MARGIN`, and `VENT_SLIT_GAP`; the lower panel is plain with a latch. The panel is `trim_beige`, the upper rail is aluminium with the `vent_screws` region, and the other rim pieces are chrome. Build-frame +x is mirrored to Bedrock -x.
+- Rule: The former rear-right window is closed with outer shell, inner lining, and band; its glass, frame, and curtains are absent; the five remaining main side windows have tied-back fabric curtains. The opaque lid is built in `body` using `VENT_COVER`, `VENT_RIM`, and `VENT_CORNER`. Two columns of `VENT_SLITS` recessed black-backed slits use `VENT_SLIT`, `VENT_SLIT_PITCH`, `VENT_SLIT_MARGIN`, and `VENT_SLIT_GAP`; the lower panel is plain with a latch. The panel is `trim_beige`, the upper rail is aluminium with the `vent_screws` region, and the other rim pieces are chrome. Build-frame +x is mirrored to Bedrock -x.
 - Agreement: Proposed
 - Basis: [0146](../adr/0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) Decision, "Remove the camper's right-side window at z 38 to 50, y 36 to 49 from `right_windows`."; [0157](../adr/0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) Decision, "Keep 0146's wall closure, its position on the right outer wall, and the bulldozer steps. Replace only the cover's look."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "The vent lid of 0157 now has a `trim_beige` panel and an aluminium top rail whose west face carries `vent_screws`."
 - Implementation: `tools/camper_shell.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
@@ -220,6 +232,15 @@
 - Basis: [0119](../adr/0119-park-the-camper-over-natural-ground.md) Decision, "Each tick, `liftStandIn` raises the stand-in by the number of solid layers, counted from its feet up, in its middle box's cell, at most `maxLift`."
 - Implementation: `src/domain/vehicle/standIn.ts`; `src/domain/vehicle/vehicle.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/camper/spec.ts`
 - Verification: `tests/domain/vehicle/standIn.test.ts` "rises by the solid layers counted from the feet up, never past maxLift, and reads no layer past the first open one"; `tests/domain/vehicle/vehicleStandIn.test.ts` "rises out of solid ground in the bumper's middle cell while driving, at most maxLift blocks, but not over plants (ADR 0119)", "rises out of ground in the wall foot while parked, but not into the front end wall above it (ADR 0119)". Not verified: 0119’s required iPad check of bumper boarding on a rise and flat grass.
+
+### Camper companion maps and interior finishes
+
+- Applies to: Camper atlas generation and client texture sets.
+- Rule: All four lit/mirror companion maps and `camper_interior_mer.png` use `Layout.size`. Lamp masks resolve lens, marker_amber, marker_red, dome and glow through the registered `base` origin; only these lit MER texels are `(0,255,255)`. The mirror mask resolves the nested 16 x 32 `mirror_chrome` tile through that origin; only its mirror MER texels are `(255,0,26)`. Other companion MER texels are `(0,0,255)`. Interior MER follows region materials and the mixed base's semantic swatch/hardware tables in ADR 0193, with G = 0 and alpha 255 everywhere, including unused space. Metals use roughness 60 by material and 50-80 by palette, lacquer 80-90, vinyl 175-190, wood 150-160, fabric 235-245, carpet 250, tile 80, stone/dark lacquer 85, and instrument glass 65. The mirror tile retains roughness 26. The 1.16.100 `camper.texture_set.json` binds colour `camper` to `camper_interior_mer`; the existing `Texture.default` / `entity` base pass permits this without changes to lit, glow or mirror materials, visibility or switches. Without Vibrant Visuals, interior surfaces keep diffuse colour and mirrors keep their baked gradient; lamps retain legacy alpha-mask glow. No normal or height map is generated.
+- Agreement: Proposed
+- Basis: [0147](../adr/0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md), [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md), [0190](../adr/0190-ribbed-camper-shell-atlas.md), [0193](../adr/0193-shared-texture-tooling.md).
+- Implementation: `tools/camper_mer.py`; `tools/lit_textures.py`; `tools/mer.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride/camper.texture_set.json`.
+- Verification: `tests/tools/mer.test.ts` exercises shifted region origins, exact material values, bounded lamp/mirror masks, hardware, gutters and opaque zero-emission interiors. `tests/packs/litTextures.test.ts` and `tests/packs/camperGlow.test.ts` check dimensions, texture-set binding and unchanged switched-pass contracts. Client highlights and diffuse fallback are not verifiable offline; no device acceptance is claimed.
 
 ## Open issues
 

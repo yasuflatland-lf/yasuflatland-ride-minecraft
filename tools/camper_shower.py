@@ -20,7 +20,7 @@ SHOWER_HEAD = [20.5, 44.5, 53.75]
 def build() -> AreaCubes:
     body = []
     # Shower-toilet room in the rear right corner (cell z = -3, two layers), door to the aisle.
-    SHOWER_Z = (40.5, 41.1)  # front partition, behind the window curtain (38 to 40.5)
+    SHOWER_Z = (40.5, 41.1)  # front partition
     body.append(box(8, FLOOR, SHOWER_Z[0], 22.8, CEIL - 0.2, SHOWER_Z[1], "ivory"))
     body.append(box(8, FLOOR, SHOWER_Z[1], 8.6, CEIL - 0.2, 42, "ivory"))  # front jamb
     body.append(box(8, FLOOR, 54, 8.6, CEIL - 0.2, 55.5, "ivory"))  # rear jamb, short of the rear wall

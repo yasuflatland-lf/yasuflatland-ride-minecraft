@@ -23,7 +23,7 @@ def register(registry: RegionRegistry, palette: dict) -> dict:
         warp = .8 * math.sin(v / 67) + .4 * math.sin(v / 23)
         fiber = math.sin((u + warp) * 2.4) + .5 * math.sin(u * .83 + v / 140)
         delta = 2.6 * fiber + 1.4 * _noise(u // 2, v // 24, 8) + .7 * _noise(u, v, 9)
-        if math.sin((u + warp) * 3.1) > .93:
+        if round(math.sin((u + warp) * 3.1), 12) > .93:
             delta -= 5
         return tint("wood", delta)
 

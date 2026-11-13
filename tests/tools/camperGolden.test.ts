@@ -67,6 +67,17 @@ function compare(change: Change, area?: string) {
   const directory = mkdtempSync(join(tmpdir(), "camper-golden-"));
   try {
     cpSync("tools", join(directory, "tools"), { recursive: true });
+    writeFileSync(
+      join(directory, "tools/camper_kit.py"),
+      `
+from tool_loader import load_tool
+regions = load_tool('camper_regions')
+REGISTRY = regions.RegionRegistry()
+for region in ${JSON.stringify(currentRegions)}:
+    REGISTRY.register(regions.Region(region['name'], *region['size'], regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
+LAYOUT = regions.pack(REGISTRY)
+`,
+    );
     const models = join(
       directory,
       "packs/yasu_ride_rp/models/entity/yasu_ride",
@@ -132,7 +143,14 @@ function compare(change: Change, area?: string) {
             [change === "labels" ? "cab dash and instruments" : "cab"]: 6,
           },
         },
-        ...currentRegions.filter((region) => region.name !== "base"),
+        ...currentRegions
+          .filter((region) => region.name !== "base")
+          .map((region) => ({
+            ...region,
+            packed_origin: region.origin,
+            used_by:
+              region.name === "light curtain fabric" ? { curtains: 1 } : {},
+          })),
         ...(change === "extra"
           ? [
               {

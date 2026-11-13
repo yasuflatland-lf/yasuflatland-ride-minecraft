@@ -38,7 +38,8 @@ it("maps every shower panel face to door wood with vertical upright grain", asyn
   const faces = await run(
     "panel['uv']",
     `
-panel = door.build_shower_door(kit.REGISTRY)['shower_door'][0]
+from copy import deepcopy
+panel = deepcopy(door.build_shower_door(kit.REGISTRY)['shower_door'][0])
 x, y = kit.LAYOUT.origin('door wood')
 for face in panel['uv'].values():
     face['uv'][0] -= x

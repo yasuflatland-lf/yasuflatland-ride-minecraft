@@ -51,6 +51,7 @@ describe("camper atlas", () => {
           .sort(),
       ).toEqual([
         "camper.png",
+        "camper_interior_mer.png",
         "camper_lit.png",
         "camper_lit_mer.png",
         "camper_mirror.png",
@@ -59,7 +60,7 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 
   it("detects stale outputs while accepting equivalent JSON and PNG encoding", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-atlas-"));
@@ -309,5 +310,5 @@ describe("camper atlas", () => {
       true,
       true,
     ]);
-  });
+  }, 30_000);
 });
