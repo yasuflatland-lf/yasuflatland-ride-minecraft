@@ -13,6 +13,8 @@ Bedrock's collision box (`minecraft:collision_box`) can only be square when seen
 
 ## Decision
 
+- Camper door details stay on the existing bones: `door_entry` and its child `door_glass` keep hinge `[-24, 0, -7]`, and `shower_door` keeps `[-8, 0, 54]`. Interior curtains are static cubes on `door_entry`, not new animated bones.
+
 - The front of the entity is the model's -z side
 - Standardize the bone names as follows: `root`, `body`, `wheel_fl` / `wheel_fr` / `wheel_rl` / `wheel_rr`, `door_fl` / `door_fr` / `door_rl` / `door_rr`, `seat_0`–`seat_3`
 - Put each wheel bone's pivot at the center of its axle and each door bone's pivot at its hinge (front edge). Mark the exhaust position with the locator `exhaust`

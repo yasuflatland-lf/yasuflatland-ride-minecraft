@@ -13,6 +13,8 @@ Parking only made the bug easy to see, since that is when players walk around th
 
 ## Decision
 
+- The entry interior keeps an opaque recessed window backing and mini curtains on `door_entry`; reflected horizon strips use opaque hardware swatches. Its 244 opaque cubes precede the unchanged single pane on `door_glass`, whose pivot remains `[-24, 0, -7]`.
+
 - The camper's client entity draws with `entity` by default, `entity` and `entity_emissive` for the unlit and lit lamps as before, and `entity_alphablend` only for the material `glass`
 - The generator moves every cube with the `glass` swatch out of the opaque bones into two glass bones, listed after every other bone so they draw last:
   - `glass`: child of `body`, pivot `[0, 0, 0]`, holding the body glass (side windows, corner glass, windshield, mirror glass, rear window)

@@ -20,6 +20,7 @@ The sports boat helm introduced a rigid compound tilt and a global wheel excepti
 - `tools/tool_loader.py` exposes cached `load_tool(name)` through `functools.cache` and `importlib`. Generators bootstrap the sibling directory onto `sys.path` because isolated Python (`-I`) omits it. The sports boat uses this loader for cube tilt, tile layout, and preview decoding.
 - Preserve the rotation-order assumption from 0166: `Rz(-rz) * Ry(ry) * Rx(-rx)`, z outermost and x innermost. The assembly tilt multiplies on the left. Confirmation on a device remains pending; this refactor provides no new in-game evidence.
 - To add a camper, SUV, or bulldozer assembly, add its name, owner, and cube count or description to the generator table; build it through `tilt_assembly(..., assembly=name, assemblies=ASSEMBLIES)`; retain its tilted member cubes through final coordinate conversion for `assert_axes`; and add the corresponding membership entry to its shipped-model test.
+- The main-window curtain fan facets use single-axis tilts; they require no compound rotation assembly.
 - Throttle lever and dial changes in #682/#684 are out of scope. No geometry, textures, previews, Resource Pack files, or manifest versions change.
 
 ## Consequences
