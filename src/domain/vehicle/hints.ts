@@ -77,6 +77,7 @@ export interface HintView {
   readonly driverSeatFree: boolean;
   /** Someone sits in a seat of the vehicle itself, so hits do not break it (ADR 0008). */
   readonly hasRiders: boolean;
+  readonly dyeable: boolean;
   readonly held: HeldItem;
   readonly controls: HintControls;
 }
@@ -122,7 +123,8 @@ export function hintAt(
   )
     return undefined;
   const vehicle: HintArg = { vehicle: view.kind };
-  if (view.held === "dye") return { name: HINTS.paint, with: [vehicle] };
+  if (view.dyeable && view.held === "dye")
+    return { name: HINTS.paint, with: [vehicle] };
   // With a rider aboard the hits do not break it, and the seats may all be taken.
   if (view.hasRiders) return undefined;
   return {

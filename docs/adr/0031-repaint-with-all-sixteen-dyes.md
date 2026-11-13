@@ -16,7 +16,6 @@
 - The entity stores the paint in `minecraft:variant`, set by the events `mycar:paint_<paint>`, and the render controller picks the texture by `query.variant`
 - `tools/gen_model.py` writes one 64x16 texture per paint (`suv.png` for khaki, `suv_<paint>.png` for the rest) that differ only in the `body` swatch. Red stays darker than the tail lights, orange darker than the amber lamps, and black lighter than the grille, so those details still show
 - The vehicle item has one color. Breaking a painted vehicle drops the same item, so the next one placed is khaki again
-
 - The camper uses a fixed khaki paint policy (0067, 0076). Every dye hit is ignored without consuming dye, changing paint, playing sound, or showing a message. Saved nonzero variants are reset to variant 0 on load.
 
 ## Consequences

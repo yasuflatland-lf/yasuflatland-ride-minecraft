@@ -52,6 +52,7 @@ const viewArb = fc.record({
   docked: fc.boolean(),
   driverSeatFree: fc.boolean(),
   hasRiders: fc.boolean(),
+  dyeable: fc.boolean(),
   held: heldArb,
   controls: controlsArb,
 });
@@ -64,6 +65,7 @@ const viewOf = (s: ViewSample, yaw = s.yaw): HintView => ({
   docked: s.docked,
   driverSeatFree: s.driverSeatFree,
   hasRiders: s.hasRiders,
+  dyeable: s.dyeable,
   held: s.held,
   controls: s.controls,
 });
@@ -148,7 +150,11 @@ describe("hintAt", () => {
         coord(BUMPER.feet[0], BUMPER.feet[1]),
         (s, x, z, y) => {
           // In front of the bumper, so never at the seat.
-          const hint = hintAt(ZONES, SEATS, viewOf({ ...s, x, y, z }));
+          const hint = hintAt(
+            ZONES,
+            SEATS,
+            viewOf({ ...s, x, y, z, dyeable: true }),
+          );
           const vehicle = { vehicle: "camper" };
           if (s.held === "dye")
             expect(hint).toEqual({ name: HINTS.paint, with: [vehicle] });
@@ -160,6 +166,29 @@ describe("hintAt", () => {
             });
         },
       ),
+    );
+  });
+
+  it("never offers paint for a non-dyeable view with any held item", () => {
+    fc.assert(
+      fc.property(viewArb, (s) => {
+        expect(
+          hintAt(ZONES, SEATS, viewOf({ ...s, dyeable: false }))?.name,
+        ).not.toBe(HINTS.paint);
+        const hint = hintAt(
+          ZONES,
+          SEATS,
+          viewOf({ ...s, dyeable: false, x: 0, y: 0, z: BUMPER.boxZ + 1 }),
+        );
+        expect(hint).toEqual(
+          s.hasRiders
+            ? undefined
+            : {
+                name: `bumper_${s.controls}`,
+                with: [{ number: SPEC.hitsToBreak }, { vehicle: "camper" }],
+              },
+        );
+      }),
     );
   });
 
@@ -194,6 +223,7 @@ describe("hintAt", () => {
       docked: true,
       driverSeatFree: true,
       hasRiders: false,
+      dyeable: true,
       held: "other",
       controls: "touch",
     });
@@ -240,6 +270,7 @@ describe("hintAt", () => {
       docked: true,
       driverSeatFree: true,
       hasRiders: false,
+      dyeable: true,
       held: "dye",
       controls: "touch",
     });
@@ -272,6 +303,7 @@ describe("hintAt", () => {
       docked: true,
       driverSeatFree: true,
       hasRiders: false,
+      dyeable: true,
       held: "other",
       controls: "touch",
     });

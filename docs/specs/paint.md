@@ -6,9 +6,12 @@
 - Source: [0036](../adr/0036-paint-by-hitting-with-a-dye.md)
 - Source: [0037](../adr/0037-one-dye-per-repaint-within-a-tick.md)
 - Source: [0076](../adr/0076-per-kind-default-paint.md)
+- Source: [0190](../adr/0190-ribbed-camper-shell-atlas.md)
 - Source: [0135](../adr/0135-repaint-the-tent-with-dyes.md)
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md)
+- Excluded: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md): hover particles belong to the flight topic.
+- Excluded: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md): front geometry belongs to the camper body topic.
 - Excluded: [0192](../adr/0192-suv-detailed-body.md): supersedes in part 0031's texture size and paint-dependent regions for SUV body detail, covered by the SUV body topic
 - Excluded: [0136](../adr/0136-bulldozer.md): extends 0031 and 0076 for the bulldozer, covered by the bulldozer topic
 - Excluded: [0207](../adr/0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md): temporary occupied roof tent rain ceilings belong to the camping gear topic.
@@ -55,10 +58,10 @@
 
 - Applies to: Camper entities loaded or re-adopted through `entityLoad` or `entitySpawn` with cause `Loaded`.
 - Rule: `NormalizePaint.normalizeFixedPaint` resets a fixed-policy vehicle with a stored nonzero paint to `PAINTS[0]`. It returns true only when it requests that change. Variant 0, missing vehicles, and dyeable vehicles are untouched. Normalization consumes no dye and plays no sound. Existing pack textures and events remain unchanged.
-- Agreement: Accepted
-- Basis: [0076](../adr/0076-per-kind-default-paint.md) Decision.
+- Agreement: Proposed
+- Basis: [0076](../adr/0076-per-kind-default-paint.md) Decision; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, retained paint texture variants and the fixed khaki variant.
 - Implementation: `src/application/vehicle/normalizePaint.ts`; `src/infrastructure/vehicle/kinds/camper/handlers/normalizePaint.ts`.
-- Verification: `tests/application/vehicle/normalizePaint.test.ts` covers nonzero camper paints, variant 0, dyeable kinds, and missing vehicles. `tests/application/vehicle/paintVehicle.test.ts` covers all sixteen dyes in both game modes. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` routes a camper stand-in dye hit through the real `PaintVehicle` and verifies no paint, consumption, sound, or damage. Client load recovery remains unverified.
+- Verification: `tests/application/vehicle/normalizePaint.test.ts` covers nonzero camper paints, variant 0, dyeable kinds, and missing vehicles. `tests/application/vehicle/paintVehicle.test.ts` covers all sixteen dyes in both game modes. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` routes a camper stand-in dye hit through the real `PaintVehicle` and verifies no paint, consumption, sound, or damage. `tests/infrastructure/vehicle/kinds/camper/normalizePaint.test.ts` verifies normalization for valid camper `entityLoad` and `entitySpawn` with cause `Loaded`, and no change for non-campers, invalid entities, or `Spawned`/`Born` causes. Client load recovery remains unverified.
 
 ### One dye per repaint within a tick
 
@@ -135,4 +138,4 @@ Where an ADR and the implementation differ, this spec states the implementation 
 - ADR 0031 says the pack JSON is kept in order by hand and `tests/packs/paint.test.ts` checks it against `PAINTS`; the implementation's full event and rendering assertions in that file cover SUV and tent, while its texture-existence and default-paint comparison covers all five entities. Boat event contents are checked separately in `tests/packs/sportsboat.test.ts`; bulldozer tests check event existence and texture slots, and the camper controller test checks array length, leaving camper and bulldozer event contents without equivalent assertions (`tests/packs/bulldozer.test.ts`, `tests/packs/camper/glass.test.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0036 says hit/interaction wiring is covered by the manual test only because in-game tests cannot simulate a player; the implementation also has mocked hit-routing tests (`tests/infrastructure/vehicle/bedrock/subscriptions.test.ts`, `tests/infrastructure/camp/handlers.test.ts`), while actual player gestures remain unverified here; the ADR needs an edit or a superseding ADR. Manual-test rows 15, 27, 28, camper C10, sports boat B5, and T28-T33 have empty result cells, so no owner result is recorded (`docs/manual-test.md`).
 - No ADR records the `dye.use` sound played at the entity on each repaint (`src/infrastructure/vehicle/bedrock/bedrockPaintWorld.ts`, `src/infrastructure/camp/bedrock/bedrockTentPaintWorld.ts`); this behavior needs an ADR.
-- ADR 0135 remains Proposed until manual checks T28-T33 pass (#523). Their result cells are empty (`docs/manual-test.md`); every rule citing 0135 remains Proposed. Its routing and vehicle-only paint-hint statements match the implementation (`src/infrastructure/camp/bedrock/handlers/tentHits.ts`, `src/domain/vehicle/hints.ts`, `src/infrastructure/vehicle/bedrock/bedrockHintWorld.ts`).
+- ADR 0135 remains Proposed until manual checks T28-T33 pass (#523). Their result cells are empty (`docs/manual-test.md`); every rule citing 0135 remains Proposed. Its routing and vehicle-only paint-hint statements match the implementation; paint hints additionally require a dyeable kind (`src/infrastructure/camp/bedrock/handlers/tentHits.ts`, `src/domain/vehicle/hints.ts`, `src/infrastructure/vehicle/bedrock/bedrockHintWorld.ts`).

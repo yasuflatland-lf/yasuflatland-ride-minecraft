@@ -1049,12 +1049,12 @@ describe("hints (ADR 0086)", () => {
     });
   });
 
-  it("drops the pick-up hint while a rider keeps the camper whole, but still offers paint", () => {
+  it("drops the camper bumper hint while a rider is aboard, even with a dye", () => {
     const vehicle = camper(false);
     tick(vehicle, [riderView("r", { offset: SEAT0, yaw: YAW })]);
     const front = { x: 0, y: 0, z: BUMPER.boxZ + BUMPER.boxHalf + 0.5 };
     expect(vehicle.hint(front, "other", "touch")).toBeUndefined();
-    expect(vehicle.hint(front, "dye", "touch")?.name).toBe(HINTS.paint);
+    expect(vehicle.hint(front, "dye", "touch")).toBeUndefined();
     expect(vehicle.receiveHit(0)).toBe(false);
   });
 
@@ -1075,14 +1075,14 @@ describe("hints (ADR 0086)", () => {
     );
   });
 
-  it("keeps a shown paint hint beside the door side where the widened driver's seat zone reaches (issue #355)", () => {
+  it("keeps a shown bumper hint beside the door side where the widened driver's seat zone reaches (issue #355)", () => {
     const vehicle = camper(true);
     tick(vehicle);
     const at = { x: -2.6, y: 1, z: 2.1 };
     expect(vehicle.hint(at, "dye", "touch")).toBeUndefined();
-    expect(vehicle.hint(at, "dye", "touch", HINTS.paint)).toEqual({
-      name: HINTS.paint,
-      with: [{ vehicle: "camper" }],
+    expect(vehicle.hint(at, "dye", "touch", HINTS.bumperTouch)).toEqual({
+      name: HINTS.bumperTouch,
+      with: [{ number: SPEC.hitsToBreak }, { vehicle: "camper" }],
     });
   });
 
@@ -1099,17 +1099,15 @@ describe("hints (ADR 0086)", () => {
             z: BUMPER.boxZ + BUMPER.boxHalf + BUMPER.reach + past,
           };
           expect(vehicle.hint(at, "dye", "touch")).toBeUndefined();
-          expect(vehicle.hint(at, "dye", "touch", HINTS.paint)).toEqual({
-            name: HINTS.paint,
-            with: [{ vehicle: "camper" }],
+          expect(vehicle.hint(at, "dye", "touch", HINTS.bumperTouch)).toEqual({
+            name: HINTS.bumperTouch,
+            with: [{ number: SPEC.hitsToBreak }, { vehicle: "camper" }],
           });
           // Another hint than the one shown does not get the margin.
-          expect(
-            vehicle.hint(at, "dye", "touch", HINTS.bumperTouch),
-          ).toBeUndefined();
+          expect(vehicle.hint(at, "dye", "touch", HINTS.paint)).toBeUndefined();
           const beyond = { ...at, z: at.z + SPEC.hintExitMargin };
           expect(
-            vehicle.hint(beyond, "dye", "touch", HINTS.paint),
+            vehicle.hint(beyond, "dye", "touch", HINTS.bumperTouch),
           ).toBeUndefined();
         },
       ),

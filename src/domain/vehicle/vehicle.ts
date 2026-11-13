@@ -5,6 +5,7 @@ import {
   registerHit,
 } from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
+import { isDyeable } from "../shared/paint";
 import { SwitchCooldown } from "../shared/switchCooldown";
 import { SyncedValue } from "../shared/syncedValue";
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
@@ -244,6 +245,7 @@ export class Vehicle {
       docked: this.docked,
       driverSeatFree: this.driverSeatFree,
       hasRiders: this.crew.occupied,
+      dyeable: isDyeable(this.profile.paintPolicy),
       held,
       controls,
     };
