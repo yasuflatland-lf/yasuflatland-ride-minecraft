@@ -2,28 +2,28 @@
   "shell": {
     "body": [
       [0, 298],
-      [301, 304],
-      [307, 540],
-      [543, 550],
-      [553, 556],
-      [559, 844]
+      [380, 383],
+      [465, 698],
+      [780, 787],
+      [869, 872],
+      [954, 1239]
     ],
     "glass": [0, 8]
   },
   "curtains": {
-    "body": [[299, 300], [305, 306], [541, 542], [551, 552], [557, 558]]
+    "body": [[299, 379], [384, 464], [699, 779], [788, 868], [873, 953]]
   },
-  "door": { "body": [845, 924], "door_entry": [0, 31], "door_glass": [0, 0] },
+  "door": { "body": [1240, 1319], "door_entry": [0, 31], "door_glass": [0, 0] },
   "front": {
-    "body": [925, 2387],
+    "body": [1320, 2782],
     "headlights": [0, 40],
     "mirror": [0, 11],
     "glass": [9, 10]
   },
-  "rear": { "body": [2388, 3107], "headlights": [41, 80], "glass": [11, 34] },
-  "roof": { "body": [3108, 3153] },
+  "rear": { "body": [2783, 3502], "headlights": [41, 80], "glass": [11, 34] },
+  "roof": { "body": [3503, 3548] },
   "running": {
-    "body": [3154, 3154],
+    "body": [3549, 3549],
     "wheel_fr": [0, 63],
     "wheel_fl": [0, 63],
     "wheel_rr": [0, 63],
@@ -34,24 +34,24 @@
     "glow_rl": [0, 15]
   },
   "cab": {
-    "body": [3155, 3288],
+    "body": [3550, 3683],
     "seat_0": [0, 24],
     "seat_1": [0, 24],
     "steering": [0, 114]
   },
-  "bed_bunk": { "body": [3289, 3296], "bunk": [0, 5] },
+  "bed_bunk": { "body": [3684, 3691], "bunk": [0, 5] },
   "fridge": {
-    "body": [3297, 3311],
+    "body": [3692, 3706],
     "fridge_top_door": [0, 4],
     "fridge_bottom_door": [0, 3]
   },
   "room": {
-    "body": [3312, 3420],
+    "body": [3707, 3815],
     "cabinet_sink_door": [0, 1],
     "cabinet_stove_door": [0, 1]
   },
-  "shower": { "body": [3421, 3434], "shower_door": [0, 2] },
-  "ceiling": { "body": [3435, 3437], "ceiling_lights": [0, 3] },
-  "dinette": { "body": [3438, 3439], "seat_2": [0, 3], "seat_3": [0, 3] },
-  "arches": { "body": [3440, 3471] }
+  "shower": { "body": [3816, 3829], "shower_door": [0, 2] },
+  "ceiling": { "body": [3830, 3832], "ceiling_lights": [0, 3] },
+  "dinette": { "body": [3833, 3834], "seat_2": [0, 3], "seat_3": [0, 3] },
+  "arches": { "body": [3835, 3866] }
 }
