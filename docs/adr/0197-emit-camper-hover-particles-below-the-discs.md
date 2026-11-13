@@ -37,11 +37,11 @@ the chase camera, while banking, and from below.
 
 Issue #1035 also extends 0147's emissive overlay to the camper's hover discs.
 Add the existing `glow` swatch to the camper's lit slots alongside `lens`,
-`dome`, `marker_amber`, and `marker_red`. Keep its palette index (38), UVs,
+`dome`, `marker_amber`, and `marker_red`. Keep its base-local palette index (38), resolve its UV through the registry origin, and keep its
 RGB (80, 170, 255), and paint-atlas alpha (40) unchanged. The lit atlas sets
 its alpha to 0 for legacy full-bright rendering, and the MER atlas gives it
 (0, 255, 255, 255), matching the lamps' maximum emissivity. All other MER
-texels stay (0, 0, 255, 255), and the paint atlases gain no emissive texture set.
+texels in the lit MER stay (0, 0, 255, 255). The fixed-colour base atlas has a separate non-emissive interior texture set: every interior MER G channel is zero, so the base pass cannot replace the switched glow. Lit and glow companions use the full registry layout size.
 
 Hide `glow_*` in the base pass to avoid double drawing. Add a separate `.glow`
 render controller using the same geometry, `Texture.lit`, and `Material.lamp_lit`
