@@ -71,7 +71,7 @@ for name, module in areas.items():
         # Side curtains originally followed their individual panes inside the wall loop.
         for i, anchor in enumerate(module.anchors()):
             index = merged["body"].index(anchor) + 1
-            merged["body"][index:index] = built["body"][2 * i:2 * i + 2]
+            merged["body"][index:index] = built["body"][81 * i:81 * (i + 1)]
         continue
     if name == "arches":
         # The arches rise above the floor. Thin panels enclose them inside without
@@ -211,7 +211,10 @@ outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 atlas_pixels = kit.regions.render_atlas(LAYOUT)
 for cube in model_cubes:
     for face in cube["uv"].values():
-        LAYOUT.bind_face("base", face)
+        u, v = face["uv"]
+        x, y = LAYOUT.origin("light curtain fabric")
+        region = "light curtain fabric" if x <= u <= x + 96 and y <= v <= y + 120 else "base"
+        LAYOUT.bind_face(region, face)
 atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))

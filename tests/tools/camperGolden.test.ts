@@ -109,6 +109,12 @@ function compare(change: Change, area?: string) {
             [change === "labels" ? "cab dash and instruments" : "cab"]: 6,
           },
         },
+        {
+          name: "light curtain fabric",
+          size: [96, 120],
+          packed_origin: [0, 222],
+          used_by: { curtains: 1 },
+        },
         ...(change === "extra"
           ? [
               {

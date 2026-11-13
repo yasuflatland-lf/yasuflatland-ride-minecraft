@@ -233,3 +233,48 @@ def audit(layout: Layout, atlas) -> list[str]:
             if message not in errors:
                 errors.append(message)
     return errors
+
+
+CURTAIN_LEVELS = (35.55, 36.3, 37.3, 38.5, 40.15, 42, 44.2, 46.4, 48.95, 49.68)
+
+def curtain_width(y, width):
+    narrow = width * .27
+    if y >= 40.15:
+        return narrow + (width - narrow) * ((y - 40.15) / (49.76 - 40.15)) ** .85
+    return narrow + (width * .70 - narrow) * (math.sin((40.15 - y) / (40.15 - 35.55) * math.pi / 2) ** .86)
+
+def _curtain_pixels():
+    rng = random.Random(1968)
+    pixels = []
+    for v in range(120):
+        y = 49.76 - (v + .5) / 8
+        fade = .48 + .52 * min(1, abs(y - 40.15) / 4)
+        width = curtain_width(y, 4.1)
+        for u in range(96):
+            j = min(3, int(u / 24))
+            local = (u - j * 24 + .5) / 24
+            ya, yb = next(((a, b) for a, b in zip(CURTAIN_LEVELS, CURTAIN_LEVELS[1:]) if a <= y <= b), (48.95, 49.76))
+            wa, wb = curtain_width(ya, 4.1), curtain_width(yb, 4.1)
+            t = max(0, min(1, (y - ya) / (yb - ya)))
+            p = (local * max(wa, wb) / 4 * 1.05) / width if j == 0 else ((j + .5) / 4 * (wa + (wb - wa) * t) + (local - .5) * max(wa, wb) / 4 * 1.05) / width
+            phase = p * 12 * math.pi
+            slope = .17 * fade * 12 * math.pi * math.sin(phase) / width
+            factor = (.89 + .11 * math.cos(phase)) * (1 + (.8 / .6 - 1) * slope * slope / (1 + slope * slope))
+            factor *= 1 - .09 * math.exp(-((y - 39.80) / .16) ** 2)
+            if v < 7 and u % 16 in (6, 7, 9, 10):
+                factor *= .91
+            if 112 <= v < 114:
+                factor *= .95
+            n = rng.choice((-2, -1, 0, 1, 2)) + (1 if u % 2 == 0 else -1)
+            if v % 7 == 0 and (u + 13 * (v // 7)) % 31 < 12: n += 5
+            if v % 7 == 1 and (u + 13 * (v // 7)) % 31 < 12: n -= 5
+            pixels.append(tuple(max(0, min(255, round(c * factor + n))) for c in (196, 120, 60)) + (255,))
+        # The reference consumes a full 114-pixel source row before the next row.
+        for _ in range(18):
+            rng.choice((-2, -1, 0, 1, 2))
+    return pixels
+
+CURTAIN_PIXELS = _curtain_pixels()
+
+def curtain_pixel(x, y):
+    return CURTAIN_PIXELS[y * 96 + x]
