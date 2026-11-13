@@ -151,7 +151,7 @@ describe("camper furniture model (ADR 0093)", () => {
     }
   });
 
-  it("keeps every body cube, rotated ones included, out of every standing item on each stove, fridge, table, and wall cabinet slot, and the two items on the table or in a storage compartment apart (ADR 0100, 0105, 0108, 0114, 0123)", () => {
+  it("keeps every body cube, rotated ones included, out of every standing item on each stove, counter, fridge, table, and wall cabinet slot, and the two items on the table or in a storage compartment apart (ADR 0100, 0105, 0108, 0114, 0123)", () => {
     const points = bodyPoints();
     // Each standing item's box from its block model: half its width along the camper's left
     // (model x), half its depth forward (model z), and its height. The decor block turns the
@@ -179,13 +179,10 @@ describe("camper furniture model (ADR 0093)", () => {
       return { id, halfX: reach(0), halfZ: reach(2), height: reach(1) };
     });
     expect(items.length).toBeGreaterThan(0);
-    // Only the stove and the furniture that holds two items are held to this so far: the sink
-    // rim rises 0.15 px into the counter's footprint and the dashboard's slanted cubes into the
-    // dashboard's.
-    const standing = CAMPER_FURNITURE.filter((f) =>
-      SHARED_KINDS.includes(f.kind),
+    const standing = CAMPER_FURNITURE.filter(
+      (f) => SHARED_KINDS.includes(f.kind) || f.kind === "counter",
     ).flatMap((f) => f.slots);
-    expect(standing).toHaveLength(11);
+    expect(standing).toHaveLength(12);
     // The table's or a storage compartment's two items stand apart for any two items (ADR
     // 0108, 0114, 0123).
     for (const [a, b] of [

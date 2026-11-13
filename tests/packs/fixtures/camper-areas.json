@@ -45,13 +45,16 @@
     "fridge_top_door": [0, 4],
     "fridge_bottom_door": [0, 3]
   },
+  "counter": { "body": [3312, 3331] },
+  "range": { "body": [3332, 3367] },
+  "burner": { "body": [3368, 3576] },
   "room": {
-    "body": [3312, 3420],
+    "body": [3577, 3587],
     "cabinet_sink_door": [0, 1],
     "cabinet_stove_door": [0, 1]
   },
-  "shower": { "body": [3421, 3434], "shower_door": [0, 2] },
-  "ceiling": { "body": [3435, 3437], "ceiling_lights": [0, 3] },
-  "dinette": { "body": [3438, 3439], "seat_2": [0, 3], "seat_3": [0, 3] },
-  "arches": { "body": [3440, 3471] }
+  "shower": { "body": [3588, 3601], "shower_door": [0, 2] },
+  "ceiling": { "body": [3602, 3604], "ceiling_lights": [0, 3] },
+  "dinette": { "body": [3605, 3606], "seat_2": [0, 3], "seat_3": [0, 3] },
+  "arches": { "body": [3607, 3638] }
 }
