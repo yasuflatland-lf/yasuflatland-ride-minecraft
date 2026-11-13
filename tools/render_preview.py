@@ -147,10 +147,10 @@ BOAT_POSES = {
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
 CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
 CAMPER_POSES = {
-    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
-    "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
-    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
-    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
+    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "brightness": MAIN_BRIGHTNESS},
+    "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True},
+    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "brightness": SIDE_BRIGHTNESS},
+    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "brightness": MAIN_BRIGHTNESS},
 }
 
 BULLDOZER_GEOMETRY = "models/entity/yasu_ride/bulldozer.geo.json"
@@ -643,7 +643,7 @@ def bone_turns(bones):
     return turns
 
 
-def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, face_cache=None, frame_quads=None):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
@@ -662,6 +662,8 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                     continue
                 if color is not None and not cutout:
                     polygons.append((quad, color, "lamp"))
+                    if frame_quads is not None:
+                        frame_quads.append(quad)
                     continue
                 # Mirroring x reverses winding; textured gear opts into outward normals.
                 if pose.get("outward_normals", False):
@@ -670,9 +672,24 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
                 if texture_mapping:
-                    patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False))
+                    key = (bone["name"], id(cube), face, pose.get("merge_texels", False))
+                    if face_cache is not None and key in face_cache:
+                        patches = face_cache[key]
+                    else:
+                        patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False))
+                        if face_cache is not None:
+                            # Camper poses share static geometry and atlas pixels; shade each pose below.
+                            patches = list(patches)
+                            face_cache[key] = patches
                 else:
                     patches = [(quad, face_color(texture, uv, desc["texture_width"], desc["texture_height"]))]
+                if frame_quads is not None:
+                    patches = list(patches)
+                    if patches and all(pixel[3] == 255 for _, pixel in patches):
+                        # Perspective extrema of an opaque planar face occur at its corners.
+                        frame_quads.append(quad)
+                    else:
+                        frame_quads.extend(patch for patch, pixel in patches if pixel[3] == 255)
                 for patch, (r, g, b, a) in patches:
                     if cutout and a < CUTOUT_ALPHA:
                         continue
@@ -1048,7 +1065,7 @@ def render_camper(rp):
     # Camper previews use the ground pose, where the render controller hides hover glows.
     geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Other atlases intentionally use center sampling in their established previews.
-    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True)
+    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True, cache_faces=True)
 
 
 def bulldozer_bones(bones):
@@ -1070,14 +1087,19 @@ def render_bulldozer(rp):
     )
 
 
-def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False):
-    scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping) for name, pose in poses.items()}
-    points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cache_faces=False):
+    face_cache = {} if cache_faces else None
+    bounds = {name: [] for name in poses} if cache_faces else None
+    scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping, face_cache=face_cache,
+                                frame_quads=bounds[name] if bounds is not None else None)
+              for name, pose in poses.items()}
+    frame_faces = bounds if bounds is not None else {name: [q for q, _, _ in scene[0]] for name, scene in scenes.items()}
+    points = [p for quads in frame_faces.values() for quad in quads for p in quad]
     frames = {}
     for name, pose in poses.items():
         frames.setdefault((pose["view"], pose["screen_up"]), []).append(name)
     views = [
-        (Camera(points, view, screen_up), [q for name in names for q, _, _ in scenes[name][0]])
+        (Camera(points, view, screen_up), [q for name in names for q in frame_faces[name]])
         for (view, screen_up), names in frames.items()
     ]
     images = {}

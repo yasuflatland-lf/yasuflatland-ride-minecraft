@@ -533,6 +533,59 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
 });
 
 describe("render_preview.py textured faces", () => {
+  it("fits cached camper views from opaque face corners with identical framing", () => {
+    const result = previewPython(`
+texture = [[(c,c,c,255)] * 16 for c in [10]*8+[20]*8]
+face = {'uv':[16,0], 'uv_size':[-16,16]}
+cube = {'origin':[0,0,0], 'size':[2,3,4], 'pivot':[1,2,3], 'rotation':[23,17,9], 'uv':{f:face for f in ('north','south','east','west','up','down')}}
+geo = {'description':{'texture_width':16,'texture_height':16},'bones':[{'name':'body','pivot':[0,0,0],'cubes':[cube]}]}
+baseline = r.render_poses(geo,texture,r.CAMPER_POSES,texture_mapping=True)
+counts=[]
+original=r.Camera
+class MeasuredCamera(original):
+    def __init__(self,points,*args):
+        counts.append(len(points))
+        super().__init__(points,*args)
+r.Camera=MeasuredCamera
+cached=r.render_poses(geo,texture,r.CAMPER_POSES,texture_mapping=True,cache_faces=True)
+def framing(job):
+    fit=job.to_screen
+    return [fit.scale,fit.off_x,fit.off_y,fit.camera.eye,fit.camera.target]
+opaque_count=max(counts)
+opaque_equal=all(framing(baseline[n])==framing(cached[n]) and baseline[n].polygons==cached[n].polygons for n in cached)
+texture[:8]=[[(10,10,10,0)]*16 for _ in range(8)]
+transparent_baseline=r.render_poses(geo,texture,r.CAMPER_POSES,texture_mapping=True)
+transparent_cached=r.render_poses(geo,texture,r.CAMPER_POSES,texture_mapping=True,cache_faces=True)
+transparent_equal=all(framing(transparent_baseline[n])==framing(transparent_cached[n]) and transparent_baseline[n].see_through==transparent_cached[n].see_through and transparent_baseline[n].polygons==transparent_cached[n].polygons for n in transparent_cached)
+print(json.dumps([opaque_count,opaque_equal and transparent_equal]))
+`);
+    expect(result[0]).toBeLessThanOrEqual(96);
+    expect(result[1]).toBe(true);
+  });
+
+  it("reuses camper texture patches without changing any pose's faces or shading", () => {
+    const result = previewPython(`
+texture = [[(c,c,c,255)] * 4 for c in [10,10,20,20]]
+face = {'uv':[0,0], 'uv_size':[-4,4]}
+cube = {'origin':[0,0,0], 'size':[2,3,4], 'pivot':[1,2,3], 'rotation':[23,17,9], 'uv':{f:face for f in ('north','south','east','west','up','down')}}
+geo = {'description':{'texture_width':4,'texture_height':4},'bones':[{'name':'body','pivot':[0,0,0],'cubes':[cube]}]}
+cache = {}
+print(json.dumps([r.collect_boat(geo,texture,pose,texture_mapping=True)==r.collect_boat(geo,texture,pose,texture_mapping=True,face_cache=cache) for pose in r.CAMPER_POSES.values()]))
+`);
+    expect(result).toEqual([true, true, true, true]);
+  });
+
+  it("keeps repeated texel bands compact in every camper preview", () => {
+    const result = previewPython(`
+texture = [[(c,c,c,255)] * 16 for c in [10]*8+[20]*8]
+face = {'uv':[0,0], 'uv_size':[16,16]}
+cube = {'origin':[0,0,0], 'size':[1,1,1], 'uv':{f:face for f in ('north','south','east','west','up','down')}}
+geo = {'description':{'texture_width':16,'texture_height':16},'bones':[{'name':'body','pivot':[0,0,0],'cubes':[cube]}]}
+print(json.dumps([len(r.collect_boat(geo,texture,pose,texture_mapping=True)[0]) for pose in r.CAMPER_POSES.values()]))
+`);
+    expect(result).toEqual([12, 12, 12, 12]);
+  });
+
   it("merges adjacent equal texels into rectangles without changing their UV coverage", () => {
     const result = previewPython(`
 quad = dict(r.cube_faces({"origin": [0, 0, 0], "size": [4, 1, 4]}))["east"]
