@@ -50,8 +50,8 @@
     "cabinet_sink_door": [0, 1],
     "cabinet_stove_door": [0, 1]
   },
-  "shower": { "body": [3421, 3434], "shower_door": [0, 2] },
-  "ceiling": { "body": [3435, 3437], "ceiling_lights": [0, 3] },
-  "dinette": { "body": [3438, 3439], "seat_2": [0, 3], "seat_3": [0, 3] },
-  "arches": { "body": [3440, 3471] }
+  "shower": { "body": [3421, 4385], "shower_door": [0, 2] },
+  "ceiling": { "body": [4386, 4388], "ceiling_lights": [0, 3] },
+  "dinette": { "body": [4389, 4390], "seat_2": [0, 3], "seat_3": [0, 3] },
+  "arches": { "body": [4391, 4422] }
 }
