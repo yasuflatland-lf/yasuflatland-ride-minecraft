@@ -126,6 +126,60 @@ ref.uv(float('nan'),0)`,
       ],
     ]);
   });
+  it("registers the six dashboard regions with the approved pixels and materials", async () => {
+    expect(
+      await run(
+        `import hashlib
+kit = load_tool('camper_kit')
+selected = [r for r in kit.REGISTRY.regions() if r.name.startswith('cab ')]`,
+        "[[r.name, r.width, r.height, r.material.value, hashlib.sha256(bytes(c for y in range(r.height) for x in range(r.width) for c in r.pixel(x,y))).hexdigest()] for r in selected]",
+      ),
+    ).toEqual([
+      [
+        "cab SPEED",
+        128,
+        128,
+        "glass_coat",
+        "27a8f91fce4b60fd9e4dd3df39198bbd8ab3660a3126bb237800f8d31d8f4e2a",
+      ],
+      [
+        "cab QUAD",
+        128,
+        128,
+        "glass_coat",
+        "b30ea45ff4255ae34cc1732a6b5ce6ba668f01c58ad6e02f90e855722109698f",
+      ],
+      [
+        "cab PAD",
+        184,
+        48,
+        "vinyl",
+        "486ea611ed466a9e67d19d4954ed4a9051910c3d88b91e2ccfbb216a1f0805ca",
+      ],
+      [
+        "cab RADIO",
+        144,
+        40,
+        "metal",
+        "b37a7f7b5de638b9eb2b3aad71f43f80836cb8c0955c222854ace0d1a6926b55",
+      ],
+      [
+        "cab SMALL",
+        128,
+        60,
+        "glass_coat",
+        "5ee004d9bdc73b9a2fb46a4409ac2ddbc91fab618ca96b925f2bdbc73ac93212",
+      ],
+      [
+        "cab DARK19",
+        1,
+        1,
+        "dark_lacquer",
+        "1a93b51f95cce226460cda2e9cb83e9943978987534d498b8f501178bc9cdf63",
+      ],
+    ]);
+  });
+
   it("renders the registered base without running the generator", async () => {
     expect(
       await run(
