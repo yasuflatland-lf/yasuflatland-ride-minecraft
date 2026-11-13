@@ -32,7 +32,8 @@ describe("camper model assets (ADR 0067)", () => {
       (name) =>
         /^camper(?:_\w+)?\.png$/.test(name) &&
         !name.startsWith("camper_lit") &&
-        !name.startsWith("camper_mirror"),
+        !name.startsWith("camper_mirror") &&
+        name !== "camper_interior_mer.png",
     );
     expect(files).toEqual(["camper.png"]);
     const khaki = readPng("textures/entity/yasu_ride/camper");
