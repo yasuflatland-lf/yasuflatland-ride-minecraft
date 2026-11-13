@@ -40,8 +40,8 @@ The camper model (`tools/gen_camper.py`) gains four pieces of furniture in the r
 | Furniture                                   | Cells (x, z, layer)      |
 | ------------------------------------------- | ------------------------ |
 | Tall shelf, behind the driver's seat        | (-1, 1, 1), (-1, 1, 2)   |
-| Stove, part of the counter                  | (-1, -1, 1)              |
-| Counter with a sink                         | (-1, -2, 1)              |
+| Stove, part of the counter                  | (-1, -2, 1)              |
+| Counter with a sink                         | (-1, -1, 1)              |
 | Wall cabinet above the stove and counter    | (-1, -1, 2), (-1, -2, 2) |
 | Ceiling hook above the table                | (1, 0, 2)                |
 | Shower-toilet room in the rear right corner | (-1, -3, 1), (-1, -3, 2) |
@@ -59,13 +59,15 @@ The spike's storage chest stood in the rear right corner (docs/spikes/camper.md)
 | `dinette_rear`       | dinette_seat | (1, -1, 1)         | 7           |
 | `shelf_low`          | shelf        | (-1, 1, 1)         | 10          |
 | `shelf_high`         | shelf        | (-1, 1, 2)         | 4           |
-| `stove`              | stove        | (-1, -1, 1)        | 14          |
-| `counter`            | counter      | (-1, -2, 1)        | 14          |
+| `stove`              | stove        | (-1, -2, 1)        | 15          |
+| `counter`            | counter      | (-1, -1, 1)        | 14          |
 | `wall_cabinet_front` | wall_cabinet | (-1, -1, 2)        | 13          |
 | `wall_cabinet_rear`  | wall_cabinet | (-1, -2, 2)        | 13          |
 | `ceiling_hook`       | ceiling_hook | (1, 0, 2)          | 0           |
 
 The model builds every new piece of furniture so that its top is at its slots' heights.
+
+The current kitchen follows 0100 and 0112: the counter is in (-1, -1, 1), at height 14 (model y 30), and the one-burner stove in (-1, -2, 1), at height 15 on the grate. `tools/camper_kitchen.py` builds the flecked laminate counter, flush notched sink cover, low spout and twin taps, stainless range with one centred dial and vent, and 209-cube burner. The flush cover and recessed basin stay below the standing-item boxes without moving the slots. The lower and overhead cabinet geometry remains in `tools/camper_room.py`.
 
 The `ceiling_hook` slot is for hanging items. Its height is 0, and a hanging item's block model hangs down from 29 px above the bottom of its cell. 29 px is the underside of the ceiling plate (the plate's underside is at 28.8 px in the model, so the item's top knot meets it). A custom block's geometry is expected to reach up to 30 px above the cell bottom, which is not yet verified. The PR that adds the decor blocks checks it in game.
 
