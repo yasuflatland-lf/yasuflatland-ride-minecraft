@@ -72,8 +72,9 @@ HEIGHTS = range(16)  # HEIGHT_STATE, px above the cell bottom
 # on a burner still draws there until the next lay clears it. tests/packs/campingGear.test.ts
 # ties both to the domain.
 SPOT_STATE = "yasu_ride:spot"
-SPOTS = [(0, 0), (3.8, 5.4), (3.8, -5.35), (-3.3, 5.4), (-3.3, -5.35)]
-SPOT_HEIGHTS = [list(HEIGHTS)] + [[15]] * (len(SPOTS) - 1)
+SPOTS = {0: (0, 0), 1: (3.8, 5.4), 2: (3.8, -5.35), 3: (-3.3, 5.4),
+         4: (-3.3, -5.35), 9: (4.2, 5.057), 10: (-4.1, 4.441)}
+SPOT_HEIGHTS = {0: list(HEIGHTS), **{spot: [15] for spot in range(1, 5)}, 9: [3], 10: [3]}
 # A shelf board or the table holds two items in its one cell, and a block's transformed geometry
 # must keep at least one pixel on each axis inside its own cell: a decor block moved a cell away
 # to draw the second item is rejected and renders as the fallback block (ADR 0108). So one pair
@@ -353,7 +354,7 @@ def decor_block(item):
                 "states": {
                     FACE_STATE: list(FACES),
                     HEIGHT_STATE: list(HEIGHTS),
-                    SPOT_STATE: list(range(len(SPOTS))),
+                    SPOT_STATE: list(SPOTS),
                 },
             },
             "components": {
@@ -383,7 +384,7 @@ def decor_block(item):
                     },
                 }
                 for face in FACES
-                for spot in range(len(SPOTS))
+                for spot in SPOTS
                 for dx, dz in [spot_translation(face, spot)]
                 for height in SPOT_HEIGHTS[spot]
             ],
