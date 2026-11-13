@@ -8,6 +8,7 @@ Run: python3 -I tools/gen_camper.py packs/yasu_ride_rp [--check]
 """
 
 import sys
+import math
 from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
@@ -32,6 +33,9 @@ AreaCubes = kit.AreaCubes
 ATLAS = kit.ATLAS
 REGISTRY = kit.REGISTRY
 LAYOUT = kit.LAYOUT
+DASH_CORE_TOP = load_tool("camper_dash").CORE_TOP_Y
+DASH_SILL_Y = load_tool("camper_dash").DASH_GEOMETRY.shelf_y
+DASH_COORD_DECIMALS = 8
 PALETTE = kit.PALETTE
 LAMP_GROUPS = kit.LAMP_GROUPS
 LIT_SLOTS = kit.LIT_SLOTS
@@ -162,6 +166,17 @@ def mirror_x(bones):
     return bones
 
 
+CAB_BODY_IDS = {id(c) for c in body if owners.get(id(c)) == "cab"}
+
+
+def dash_top(cube: dict) -> float:
+    angle = math.radians(cube.get("rotation", [0, 0, 0])[0])
+    py, pz = cube.get("pivot", [0, 0, 0])[1:]
+    return max(py + (y - py) * math.cos(angle) + (z - pz) * math.sin(angle)
+               for y in (cube["origin"][1], cube["origin"][1] + cube["size"][1])
+               for z in (cube["origin"][2], cube["origin"][2] + cube["size"][2]))
+
+
 def rounded(value):
     """Drop floating-point noise and normalize negative zero before writing."""
     if isinstance(value, float):
@@ -169,7 +184,20 @@ def rounded(value):
     if isinstance(value, list):
         return [rounded(v) for v in value]
     if isinstance(value, dict):
-        return {k: rounded(v) for k, v in value.items()}
+        result = {k: rounded(v) for k, v in value.items()}
+        if ("origin" in value and "size" in value and "rotation" not in value
+                and abs(value["origin"][1] + value["size"][1] - DASH_CORE_TOP) < 1e-8):
+            # Keep the approved core/shelf separation through the usual 3-decimal serialization.
+            result["size"][1] = round(DASH_CORE_TOP - result["origin"][1], DASH_COORD_DECIMALS)
+        if (id(value) in CAB_BODY_IDS and not any(value.get("rotation", [0, 0, 0])[1:])
+                and dash_top(value) <= DASH_SILL_Y + 1e-8):
+            overhang = dash_top(result) - DASH_SILL_Y
+            if overhang > 0:
+                # Rounding a clipped cap must not put its corner back above the sill.
+                cosine = math.cos(math.radians(result.get("rotation", [0, 0, 0])[0]))
+                scale = 10 ** DASH_COORD_DECIMALS
+                result["size"][1] = math.floor((result["size"][1] - overhang / cosine) * scale) / scale
+        return result
     return value
 
 
@@ -211,7 +239,16 @@ outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 atlas_pixels = kit.regions.render_atlas(LAYOUT)
 for cube in model_cubes:
     for face in cube["uv"].values():
-        LAYOUT.bind_face("base", face)
+        u, v = face["uv"]
+        du, dv = face["uv_size"]
+        for region in LAYOUT.regions:
+            x, y = LAYOUT.origin(region.name)
+            if (x <= min(u, u + du) and max(u, u + du) <= x + region.width
+                    and y <= min(v, v + dv) and max(v, v + dv) <= y + region.height):
+                LAYOUT.bind_face(region.name, face)
+                break
+        else:
+            raise ValueError(f"Unregistered camper face: {face}")
 atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))

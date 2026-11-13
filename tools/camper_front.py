@@ -237,8 +237,6 @@ def build() -> AreaCubes:
             x0, x1 = sorted((sx * i * SILL_STRIP, sx * (i + 1) * SILL_STRIP))
             body.append(box(x0, SILL_FRONT_Y - 0.25, front, x1, SILL_FRONT_Y, front + length, "white",
                             [rise, 0, 0], [0, SILL_FRONT_Y, front]))
-            # Behind the upright panes the old ledge's depth stays closed under the dash.
-            body.append(box(x0, 35.65, back, x1, 35.9, WS_Z + 1, "black"))
     z = SILL_TOP
     # The walls run on to the side shell, past the windshield base, so its front end stays hidden.
     while z < SIDE0 - 1e-6:
