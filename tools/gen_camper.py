@@ -209,12 +209,15 @@ outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
 atlas_pixels = kit.regions.render_atlas(LAYOUT)
+curtain_x, curtain_y = LAYOUT.origin("light curtain fabric")
+curtain_region = next(r for r in LAYOUT.regions if r.name == "light curtain fabric")
 for cube in model_cubes:
     for face in cube["uv"].values():
         u, v = face["uv"]
-        x, y = LAYOUT.origin("light curtain fabric")
-        region = "light curtain fabric" if x <= u <= x + 96 and y <= v <= y + 120 else "base"
-        LAYOUT.bind_face(region, face)
+        du, dv = face["uv_size"]
+        lo_u, hi_u, lo_v, hi_v = min(u, u + du), max(u, u + du), min(v, v + dv), max(v, v + dv)
+        inside = curtain_x <= lo_u and hi_u <= curtain_x + curtain_region.width and curtain_y <= lo_v and hi_v <= curtain_y + curtain_region.height
+        LAYOUT.bind_face("light curtain fabric" if inside else "base", face)
 atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))

@@ -35,6 +35,10 @@ class RegionRef:
         self._registry = registry
         self.region = region
 
+    def bind(self, face):
+        """Keep a face on this region live for the atlas audit."""
+        self._registry._layout.bind_face(self.region.name, face)
+
     def uv(self, u: float, v: float) -> tuple[float, float]:
         layout = self._registry._layout
         if layout is None:
@@ -235,32 +239,62 @@ def audit(layout: Layout, atlas) -> list[str]:
     return errors
 
 
-CURTAIN_LEVELS = (35.55, 36.3, 37.3, 38.5, 40.15, 42, 44.2, 46.4, 48.95, 49.68)
+# Single source for the curtain geometry and the fold shading baked into the
+# fabric region. camper_kit asserts that WIN_Y matches CURTAIN_WINDOW_Y.
+CURTAIN_WINDOW_Y = (36, 49)
+_WIN_Y0, _WIN_Y1 = CURTAIN_WINDOW_Y
+CURTAIN_HEM_Y = round(_WIN_Y0 - .45, 3)
+CURTAIN_TOP_Y = round(_WIN_Y1 + .76, 3)
+CURTAIN_TIE_Y = round(_WIN_Y0 + 4.15, 3)
+CURTAIN_RAIL_Y = (round(_WIN_Y1 + .87, 3), round(_WIN_Y1 + .97, 3))
+CURTAIN_MAX_WIDTH = 4.1
+CURTAIN_NARROW_RATIO = .27
+CURTAIN_SPAN_RATIO = .43
+CURTAIN_LOWER_RATIO = .70
+CURTAIN_FAN_COLUMNS = 4
+CURTAIN_LEVELS = (
+    CURTAIN_HEM_Y,
+    round(_WIN_Y0 + .3, 3),
+    round(_WIN_Y0 + 1.3, 3),
+    round(_WIN_Y0 + 2.5, 3),
+    CURTAIN_TIE_Y,
+    42,
+    44.2,
+    46.4,
+    round(_WIN_Y1 - .05, 3),
+    round(_WIN_Y1 + .68, 3),
+)
+# Distances from the wall's inner face toward the cabin.
+CURTAIN_CLOTH_DEPTH = .48
+CURTAIN_FOLD_DEPTH = .26
+CURTAIN_TIE_DEPTH = 1.06
+CURTAIN_RAIL_DEPTH = .66
+
 
 def curtain_width(y, width):
-    narrow = width * .27
-    if y >= 40.15:
-        return narrow + (width - narrow) * ((y - 40.15) / (49.76 - 40.15)) ** .85
-    return narrow + (width * .70 - narrow) * (math.sin((40.15 - y) / (40.15 - 35.55) * math.pi / 2) ** .86)
+    narrow = width * CURTAIN_NARROW_RATIO
+    if y >= CURTAIN_TIE_Y:
+        return narrow + (width - narrow) * ((y - CURTAIN_TIE_Y) / (CURTAIN_TOP_Y - CURTAIN_TIE_Y)) ** .85
+    return narrow + (width * CURTAIN_LOWER_RATIO - narrow) * (math.sin((CURTAIN_TIE_Y - y) / (CURTAIN_TIE_Y - CURTAIN_HEM_Y) * math.pi / 2) ** .86)
 
 def _curtain_pixels():
     rng = random.Random(1968)
     pixels = []
     for v in range(120):
-        y = 49.76 - (v + .5) / 8
-        fade = .48 + .52 * min(1, abs(y - 40.15) / 4)
-        width = curtain_width(y, 4.1)
+        y = CURTAIN_TOP_Y - (v + .5) / 8
+        fade = .48 + .52 * min(1, abs(y - CURTAIN_TIE_Y) / 4)
+        width = curtain_width(y, CURTAIN_MAX_WIDTH)
         for u in range(96):
-            j = min(3, int(u / 24))
+            j = min(CURTAIN_FAN_COLUMNS - 1, int(u / 24))
             local = (u - j * 24 + .5) / 24
-            ya, yb = next(((a, b) for a, b in zip(CURTAIN_LEVELS, CURTAIN_LEVELS[1:]) if a <= y <= b), (48.95, 49.76))
-            wa, wb = curtain_width(ya, 4.1), curtain_width(yb, 4.1)
+            ya, yb = next(((a, b) for a, b in zip(CURTAIN_LEVELS, CURTAIN_LEVELS[1:]) if a <= y <= b), (CURTAIN_LEVELS[-2], CURTAIN_TOP_Y))
+            wa, wb = curtain_width(ya, CURTAIN_MAX_WIDTH), curtain_width(yb, CURTAIN_MAX_WIDTH)
             t = max(0, min(1, (y - ya) / (yb - ya)))
-            p = (local * max(wa, wb) / 4 * 1.05) / width if j == 0 else ((j + .5) / 4 * (wa + (wb - wa) * t) + (local - .5) * max(wa, wb) / 4 * 1.05) / width
+            p = (local * max(wa, wb) / CURTAIN_FAN_COLUMNS * 1.05) / width if j == 0 else ((j + .5) / CURTAIN_FAN_COLUMNS * (wa + (wb - wa) * t) + (local - .5) * max(wa, wb) / CURTAIN_FAN_COLUMNS * 1.05) / width
             phase = p * 12 * math.pi
             slope = .17 * fade * 12 * math.pi * math.sin(phase) / width
             factor = (.89 + .11 * math.cos(phase)) * (1 + (.8 / .6 - 1) * slope * slope / (1 + slope * slope))
-            factor *= 1 - .09 * math.exp(-((y - 39.80) / .16) ** 2)
+            factor *= 1 - .09 * math.exp(-((y - round(CURTAIN_TIE_Y - .35, 3)) / .16) ** 2)
             if v < 7 and u % 16 in (6, 7, 9, 10):
                 factor *= .91
             if 112 <= v < 114:

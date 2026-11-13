@@ -329,6 +329,7 @@ def region_pixel(region, x, y):
 
 
 regions = load_tool("camper_regions")
+assert WIN_Y == regions.CURTAIN_WINDOW_Y, "curtain geometry is baked for another window height"
 REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
