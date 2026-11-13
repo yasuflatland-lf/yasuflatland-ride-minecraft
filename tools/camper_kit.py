@@ -333,5 +333,30 @@ REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
-LAYOUT = regions.pack(REGISTRY)
 ATLAS.base_ref = BASE_REF
+
+AREA_ORDER = (
+    "shell", "curtains", "door", "front", "rear", "roof", "running", "cab",
+    "bed_bunk", "fridge", "room", "shower", "ceiling", "dinette", "arches",
+)
+
+
+def prepare_layout():
+    """Register area materials before any geometry resolves the shared atlas."""
+    if REGISTRY._layout is None:
+        for name in AREA_ORDER:
+            module = load_tool(f"camper_{name}")
+            register = getattr(module, "register_regions", None)
+            if register is not None:
+                register(REGISTRY)
+        regions.pack(REGISTRY)
+    return REGISTRY._layout
+
+
+def __getattr__(name):
+    if name == "LAYOUT":
+        return prepare_layout()
+    raise AttributeError(name)
+
+
+ATLAS.prepare = prepare_layout

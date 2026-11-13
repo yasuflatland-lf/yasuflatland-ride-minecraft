@@ -54,10 +54,7 @@ carve = kit.carve
 take_slots = kit.take_slots
 
 # Keep the original body cube order; bone draw order is declared separately below.
-AREA_ORDER = (
-    "shell", "curtains", "door", "front", "rear", "roof", "running", "cab",
-    "bed_bunk", "fridge", "room", "shower", "ceiling", "dinette", "arches",
-)
+AREA_ORDER = kit.AREA_ORDER
 areas = {name: load_tool(f"camper_{name}") for name in AREA_ORDER}
 merged = AreaCubes()
 owners = {}
@@ -211,7 +208,7 @@ outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 atlas_pixels = kit.regions.render_atlas(LAYOUT)
 for cube in model_cubes:
     for face in cube["uv"].values():
-        LAYOUT.bind_face("base", face)
+        LAYOUT.bind_face(LAYOUT.face_region(face), face)
 atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))

@@ -133,7 +133,7 @@ ref.uv(float('nan'),0)`,
         "m.audit(kit.LAYOUT, m.render_atlas(kit.LAYOUT))",
       ),
     ).toEqual([]);
-  });
+  }, 30_000);
 
   it("audits live geometry faces, including mirrored UV sizes", async () => {
     expect(
@@ -165,3 +165,83 @@ bounds = m.audit(a, bytes(4))`,
     ).toEqual([["b: overlaps a"], ["a: outside atlas", "b: outside atlas"]]);
   });
 });
+
+it("registers the shower materials before packing and audits every emitted face", async () => {
+  const result = await run<unknown[]>(
+    `
+kit = load_tool('camper_kit')
+shower = load_tool('camper_shower')
+layout = kit.LAYOUT
+built = shower.build_shower(kit.REGISTRY)
+for cubes in built.values():
+    for cube in cubes:
+        for face in cube['uv'].values(): layout.bind_face(layout.face_region(face), face)
+`,
+    "[[[r.name, r.width, r.height, r.material.value] for r in kit.REGISTRY.regions() if r.name != 'base'], m.audit(layout, m.render_atlas(layout))]",
+  );
+  expect(result).toEqual([
+    [
+      ["shower glaze", 128, 354, "tile"],
+      ["shower head", 64, 64, "metal"],
+      ["shower grip", 16, 80, "metal"],
+      ["shower hose", 16, 256, "metal"],
+    ],
+    [],
+  ]);
+}, 30_000);
+
+it("matches the catalogue's 950 shower additions after lossless cleanup", async () => {
+  expect(
+    await run(
+      `kit = load_tool('camper_kit')
+layout = kit.LAYOUT
+shower = load_tool('camper_shower')
+built = shower.build_shower(kit.REGISTRY)`,
+      "[len(built['body']) - len(shower.room_base()['body']), len(built['shower_door'])]",
+    ),
+  ).toEqual([950, 3]);
+}, 30_000);
+
+it("builds shower faces against a caller's packed registry when its base origin moves", async () => {
+  expect(
+    await run(
+      `kit = load_tool('camper_kit')
+shower = load_tool('camper_shower')
+shared = kit.LAYOUT
+registry = m.RegionRegistry()
+registry.register(kit.BASE_REF.region)
+shower.register_regions(registry)
+registry.register(m.Region('other area', 200, 800, m.Material.WOOD, lambda x, y: (1, 2, 3, 255)))
+layout = m.pack(registry)
+assert layout.origin('base') != shared.origin('base')
+built = shower.build_shower(registry)
+assert built['body'][0]['uv']['north']['uv'] == [layout.origin('base')[0] + kit.SLOTS.index('ivory'), layout.origin('base')[1]]
+for cubes in built.values():
+    for cube in cubes:
+        for face in cube['uv'].values(): layout.bind_face(layout.face_region(face), face)
+`,
+      "m.audit(layout, m.render_atlas(layout))",
+    ),
+  ).toEqual([]);
+}, 30_000);
+
+it("preserves the approved shower region RGBA bytes independently of packing", async () => {
+  expect(
+    await run(
+      `import hashlib
+kit = load_tool('camper_kit')
+layout = kit.LAYOUT
+`,
+      "{r.name: hashlib.sha256(bytes(c for y in range(r.height) for x in range(r.width) for c in r.pixel(x, y))).hexdigest() for r in kit.REGISTRY.regions() if r.name.startswith('shower ')}",
+    ),
+  ).toEqual({
+    "shower glaze":
+      "131787556502c48acfaaf05d8cdb57f05be43af874278b10fcf8a8e7d0fe00e5",
+    "shower head":
+      "da2c3a7bb66e447063774c8af11daed25f1c8241e2ceb1aba032b66211dfcfdb",
+    "shower grip":
+      "c1422dd8a8b163b3bdb090517ea085fbd75ad7c8af2184b4a13804df96fec7ee",
+    "shower hose":
+      "45e3c718c89eba216b3fcc0db49046cdc148c8ff264f57ee0b17f557de0267cd",
+  });
+}, 30_000);

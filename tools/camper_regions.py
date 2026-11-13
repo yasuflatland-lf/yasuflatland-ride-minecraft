@@ -30,6 +30,14 @@ class Region:
     pixel: Callable[[int, int], tuple[int, int, int, int]]
 
 
+class RegionFace(dict):
+    """Keep face ownership through mirroring without serializing audit metadata."""
+
+    def __init__(self, values: dict, region: str):
+        super().__init__(values)
+        self.region = region
+
+
 class RegionRef:
     def __init__(self, registry, region):
         self._registry = registry
@@ -74,6 +82,19 @@ class Layout:
 
     def origin(self, name) -> tuple[int, int]:
         return self._origins[name]
+
+    def face_region(self, face) -> str:
+        """Find the owning packed rectangle, including reversed face endpoints."""
+        if isinstance(face, RegionFace):
+            return face.region
+        u, v = face['uv']
+        du, dv = face['uv_size']
+        for region in self.regions:
+            x, y = self.origin(region.name)
+            if (x <= min(u, u + du) and max(u, u + du) <= x + region.width
+                    and y <= min(v, v + dv) and max(v, v + dv) <= y + region.height):
+                return region.name
+        raise ValueError(f"Face lies outside every region: {face}")
 
     def bind_face(self, name, face):
         """Keep the emitted face live so audits also catch later UV edits."""
