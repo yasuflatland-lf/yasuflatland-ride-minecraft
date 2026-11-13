@@ -23,6 +23,15 @@
 
 ## Rules
 
+### Interior surface materials
+
+- Applies to: The centre floor, inner side lining, backsplash and dinette table.
+- Rule: `build_surfaces(registry)` registers `carpet v3` (74 x 222, CARPET), `wall veneer` (416 x 180, WOOD), `backsplash tile` (124 x 152, TILE), and `table oak` (168 x 144, WOOD). The real-base centre floor remains one 36.6 x 3 x 111 px cube, carpet on its upper face at 2 texels per model pixel; six floor margins remain shell-owned. Veneer uses 4 texels per model pixel, anchored at z -48 and y 61, with vertical grain and continuous rails across fragments. The 91 lining cubes become 97 veneer cubes plus four tile cubes, split at z 24 to 39.5 and y 30 to 49 around the existing counter window. Tile uses 8 texels per model pixel, cloudy colour and dark grout at square pitch 15.5 / 13 model pixels. The two-cube table uses oak at 12 texels per model pixel and a central 1 x 1 x 11 px leg; its 14 x 12 px top still ends at y 28, keeping both standing decor slots and hanging clearance unchanged.
+- Agreement: Proposed
+- Basis: [0067](../adr/0067-camper.md) Decision; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision.
+- Implementation: `tools/camper_surfaces.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `tests/packs/fixtures/camper-areas.json`.
+- Verification: `tests/tools/camperSurfaces.test.ts` checks UV bounds, direction, fragment registration, backsplash coverage, native texture bytes and table dimensions. The camper pack tests retain the standing-slot surface and clearance checks. Ownership snapshots separate `floor`, `walls`, `tile`, and `table`; golden comparisons retain placement differences while later regions await porting. Not verified: client texture filtering and PC/mobile appearance.
+
 ### Kind, item, and fleet limit
 
 - Applies to: Camper registration, crafting, and per-player ownership.
