@@ -816,6 +816,29 @@ it("retains items when a stowed entry shares a placed slot on restore", () => {
   ).toEqual(entries.map((e) => e.item).sort());
 });
 
+it("stows dashboard items unchanged when clearance refuses them and the hook is taken", () => {
+  const entries = [
+    { slot: "dashboard_center", item: "macrame_planter" },
+    { slot: "dashboard_left", item: "macrame_planter" },
+    { slot: "ceiling_hook", item: "potted_plant" },
+    { slot: "dashboard_center", item: "potted_plant" },
+  ];
+  const placed = [
+    {
+      slot: decorSlotId("dashboard_center"),
+      item: decorItemId("potted_plant"),
+    },
+    { slot: decorSlotId("ceiling_hook"), item: decorItemId("potted_plant") },
+  ];
+  const f = fixture(JSON.stringify(entries));
+  expect(f.drive.decor()).toEqual([...placed, ...entries.slice(0, 2)]);
+  f.park();
+  const laid = defined(f.step().dock, "laid dock").cells;
+  expect(
+    laid.filter((c) => ["decor", "decorPair"].includes(c.block.type)),
+  ).toEqual(decorCells(f.pose, placed));
+});
+
 it("never loses a saved item when restoring (ADR 0103)", () => {
   const slotId = fc.constantFrom(
     ...DECOR_SLOTS.map((s) => s.id),
@@ -852,8 +875,12 @@ it("never loses a saved item when restoring (ADR 0103)", () => {
       // slot that takes its item has its place taken.
       const placed = d.filter((e, i) => {
         const place = placeOf(e.slot);
+        const slot = DECOR_SLOTS.find((s) => s.id === e.slot);
+        // A stowed entry may name a free slot that refuses its item.
         return (
           place !== undefined &&
+          slot !== undefined &&
+          (slot.items === undefined || slot.items.includes(e.item)) &&
           !d.slice(0, i).some((o) => placeOf(o.slot) === place)
         );
       });
