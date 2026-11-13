@@ -39,9 +39,14 @@ Facts this decision builds on:
 - Each shelf board gets two slots along the camper, both in the board's cell: the rear end keeps the board's id, `shelf_low` or `shelf_high`, at spot 5 (forward -3.5), and the front end, `shelf_low_front` or `shelf_high_front`, is at spot 6 (forward 3.5). The ends stay 0.5 px clear of each end panel and 1 px apart for the deepest items
 - The table gets two slots across the camper, both in the table's cell: `table` keeps its id at spot 7 (left 3.3), so the widest item ends at the wall's inner face, and `table_aisle` is at spot 8 (left -3.7). The two widest items touch and do not overlap; the aisle-side one overhangs the table's aisle edge by 0.2 px
 - A slot of a two-item furniture names its `pair`: the furniture kind (`shelf` or `table`) and its end (0 or 1). Its item is taken only by its own end: the nearest-free-slot rule, the pressed-cell rule, placing, and restoring count a pair slot as taken while that slot holds decor. Every other slot still counts as taken while any slot of its cell holds decor (0107)
-- `DECOR_SPOTS` 5 to 8 give the pair ends' offsets for slot points; they are not `yasu_ride:spot` values. The decor blocks keep spots 0 to 4 and their 80 permutations from 0107
+- `DECOR_SPOTS` 5 to 8 give the pair ends' offsets for slot points; they are not `yasu_ride:spot` values. Individual decor blocks use states 0–4, 9 and 10 and 88 permutations (0107). Spots 9 and 10 are the dashboard shelf points at height 3; they use individual decor blocks, not pair-end states. Existing pair-end offsets and saved indices remain unchanged
 
 ### The pair blocks
+
+Regenerating the dashboard placement transforms also regenerates every pair geometry through
+`tools/gen_camping_gear.py`. Dashboard allowlists do not filter the pair catalogue: tables and
+compartments retain every standing item. The generator and pack tests enforce the current
+per-item and pair cube budgets from ADR 0169.
 
 - `yasu_ride:shelf_decor_pair` and `yasu_ride:table_decor_pair` draw both items of a shelf board or the table. The room lays the pair block in the furniture cell while either end holds an item, the furniture block while neither does. The dock block is `{ type: "decorPair", pair, face, height, end0?, end1? }`, with at least one end set
 - Their geometry, `geometry.yasu_ride.<kind>_decor_pair`, has one bone per standing item per end, `end<n>_<item>`, 36 bones and 142 cubes. Each bone holds the item's cubes moved to its end's spot in the gear model's frame (the camper's left at -x, its forward at -z), so all of them stay over the furniture cell: x -3.5 to 3.5 and z -6.5 to 6.5 for the shelf, x -6.8 to 7.2 and z -3 to 3 for the table

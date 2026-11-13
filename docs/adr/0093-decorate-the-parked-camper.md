@@ -25,7 +25,7 @@ The camper entity already has 6 properties.
 - The camper's furniture is one table, `CAMPER_FURNITURE` in `src/domain/vehicle/kinds/camper/furniture.ts`. It holds only camper values, so it stays in the camper kind (0050). Each row is one piece of furniture:
   - `kind`: one of `dashboard`, `table`, `dinette_seat`, `bed`, `shelf`, `stove`, `counter`, `wall_cabinet`, `ceiling_hook`, `shower_toilet`
   - `cells`: the local cells it fills, as `{ x, z, layer }` in the coordinates of `room.ts`
-  - `slots`: where decor can stand on it, each `{ id, cell, height }`. `height` is the furniture's top above the cell bottom in pixels (0 to 15). The id is saved with the decor, so it never changes
+  - `slots`: where decor can stand on it, each `{ id, cell, height, spot?, items? }`. `height` is the furniture's top above the cell bottom in pixels (0 to 15). The id is saved with the decor, so it never changes
   - `block` (optional): a room block laid in every cell of the row. A row without a block is drawn only by the model, and players walk through it like the dinette table today
 - The room, parking, and departure code read the table and never name a piece of furniture:
   - `roomCells` lays each row's block in each of its cells
@@ -52,8 +52,8 @@ The spike's storage chest stood in the rear right corner (docs/spikes/camper.md)
 
 | Slot id              | Furniture    | Cell (x, z, layer) | Height (px) |
 | -------------------- | ------------ | ------------------ | ----------- |
-| `dashboard_center`   | dashboard    | (0, 3, 1)          | 13          |
-| `dashboard_left`     | dashboard    | (1, 3, 1)          | 13          |
+| `dashboard_center`   | dashboard    | (0, 3, 2)          | 3           |
+| `dashboard_left`     | dashboard    | (1, 3, 2)          | 3           |
 | `table`              | table        | (1, 0, 1)          | 12          |
 | `dinette_front`      | dinette_seat | (1, 1, 1)          | 7           |
 | `dinette_rear`       | dinette_seat | (1, -1, 1)         | 7           |
@@ -66,6 +66,12 @@ The spike's storage chest stood in the rear right corner (docs/spikes/camper.md)
 | `ceiling_hook`       | ceiling_hook | (1, 0, 2)          | 0           |
 
 The model builds every new piece of furniture so that its top is at its slots' heights.
+The dashboard's y 35 shelf uses spots 9 and 10: (left 4.2, forward 5.057) and
+(-4.1, 4.441), with stable slot ids and unchanged layer 2 and height 3.
+An optional slot `items` allowlist restricts standing gear only where clearance requires it
+(0097). `DASHBOARD_SLOT_ITEMS` is derived from `tools/camper_decor_fit.py`, not item places;
+the checker uses generated models and the fit table in the camping-gear specification.
+Saved gear that no longer fits is relocated or stowed without losing the item.
 
 The `ceiling_hook` slot is for hanging items. Its height is 0, and a hanging item's block model hangs down from 29 px above the bottom of its cell. 29 px is the underside of the ceiling plate (the plate's underside is at 28.8 px in the model, so the item's top knot meets it). A custom block's geometry is expected to reach up to 30 px above the cell bottom, which is not yet verified. The PR that adds the decor blocks checks it in game.
 

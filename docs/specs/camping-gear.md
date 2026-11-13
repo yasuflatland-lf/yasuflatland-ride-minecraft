@@ -2,6 +2,7 @@
 
 - Scope: Outdoor chairs, table, fire pit, oven, lantern, ground tent, and roof tent: placement, interaction, recovery, saved state, shelter blocks, generated assets, and the separation of the inside and outside camping catalogs. Camper furniture and decor placement belong to the camper interior specs; tent lantern switching and tent paint belong to the lights and paint specs.
 - Verified at: 9d4b0bbc
+- Source: [0097](../adr/0097-press-the-camper-furniture-to-place-decor.md)
 - Source: [0122](../adr/0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
 - Source: [0130](../adr/0130-a-tent-entity-whose-hits-land-on-its-blocks.md)
 - Source: [0131](../adr/0131-pitch-a-tent-in-the-camp.md)
@@ -29,6 +30,8 @@
 - Source: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md)
 - Source: [0237](../adr/0237-register-tabletop-hosts-across-features.md)
 - Source: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md)
+- Excluded: [0103](../adr/0103-raise-the-camper-wall-cabinet-to-the-ceiling.md): cabinet slots belong to the camper interior spec
+- Excluded: [0107](../adr/0107-stand-stove-gear-on-a-burner.md): spot encoding and furniture placement belong to the camper interior spec
 - Excluded: [0134](../adr/0134-switch-the-tent-lantern-with-the-headlight-switch.md): tent lantern switching is specified in the lights spec; the shelter's ceiling contract is included here
 - Excluded: [0135](../adr/0135-repaint-the-tent-with-dyes.md): tent paint is specified in the paint spec; differences from the earlier entity contract are recorded below
 - Excluded: [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md): replaces 0144's separate Bulldozer Switches group; build tools and their behavior belong to another spec
@@ -422,6 +425,50 @@
 - Basis: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md) Decision, "Removal first ejects an occupant to safe ground beside the vehicle"; Decision, "leaving by another player has no effect."; [0206](../adr/0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md) Decision, rideable occupant seat and bounded dismount handling.
 - Implementation: `src/application/camp/leaveRoofTent.ts`; `src/application/camp/roofTentHostGuard.ts`; `src/domain/camp/roofTent/exitCell.ts`
 - Verification: `tests/domain/camp/roofTentExitCell.test.ts` "places an integer ground cell farther from the host than the entrance for arbitrary mounts and yaws"; `tests/application/camp/roofTentOccupant.test.ts` "places the occupant outside before clearing occupancy, and ignores other players or an empty tent" and "ejects through the host guard and clears the recorded spawn on removal". `tests/infrastructure/camp/roofTent.test.ts` checks adapter ejection and occupancy clearing; `tests/infrastructure/camp/roofTentOccupantUi.test.ts` checks one-time leave/death/dimension cleanup and sneak release before dismount. Live terrain safety remains unverified.
+
+### Dashboard clearance
+
+- Applies to: Standing gear offered to dashboard slots.
+- Rule: Dashboard acceptance follows the fit table below, through an optional slot allowlist; other standing slots retain the catalogue rule.
+- Agreement: Accepted
+- Basis: [0097](../adr/0097-press-the-camper-furniture-to-place-decor.md) Decision / Choosing the slot.
+- Implementation: `tools/camper_decor_fit.py`; `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/decorPlacing.ts`
+- Verification: `tests/packs/camperDecorFit.test.ts` compares the deterministic table to the allowlist; `tests/domain/vehicle/kinds/camper/decorPlacing.test.ts` checks accepted footprints with fast-check. Not verified: visual placement on PC or mobile.
+
+Catalogue sizes are unchanged. `python3 -I tools/camper_decor_fit.py` checks all 20 catalogue
+items (19 standing and one hanging) against the generated camper and gear models. It checks
+each complete transformed item bounding box, including rotated gear cubes and rotated camper
+bones, for full support on the y 35 shelf and intersection with every camper cube. Surface
+contact is allowed; penetration is not. The footprint must also stay within the conservative
+7 x 4.73 px centre rectangle or 7 x 3.50 px left rectangle. The hanging planter is excluded.
+The output is deterministic and `--json` supplies the table used by `DASHBOARD_SLOT_ITEMS`.
+Tests compare the constant to that output and check every accepted item's rectangle.
+
+The spike estimated 15 centre and 10 left fits. The current generated models give 15 and 8.
+No gear dimensions or clearance thresholds are relaxed to reproduce the spike estimate.
+
+| Item               | Width (px) | Depth (px) | Centre | Left |
+| ------------------ | ---------: | ---------: | ------ | ---- |
+| `potted_plant`     |      5.000 |      3.681 | yes    | no   |
+| `macrame_planter`  |      5.000 |      5.117 | no     | no   |
+| `cactus_pot`       |      4.000 |      4.000 | yes    | no   |
+| `percolator`       |      5.527 |      3.449 | yes    | yes  |
+| `enamel_kettle`    |      5.001 |      4.000 | yes    | no   |
+| `saucepan`         |      6.000 |      3.946 | yes    | no   |
+| `mug_pair`         |      4.000 |      1.356 | yes    | yes  |
+| `sugar_pot`        |      2.999 |      2.999 | yes    | yes  |
+| `fruit_bowl`       |      6.000 |      6.000 | no     | no   |
+| `toaster`          |      6.000 |      6.728 | no     | no   |
+| `transistor_radio` |      6.000 |      1.461 | yes    | yes  |
+| `book_stack`       |      6.000 |      4.000 | yes    | no   |
+| `road_map`         |      6.000 |      4.000 | yes    | no   |
+| `photo_frame`      |      4.000 |      1.750 | yes    | yes  |
+| `cushion`          |      7.000 |      6.000 | no     | no   |
+| `tissue_box`       |      5.000 |      3.000 | yes    | yes  |
+| `desk_fan`         |      4.000 |      3.000 | yes    | yes  |
+| `alarm_clock`      |      4.127 |      1.751 | yes    | yes  |
+| `instant_camera`   |      5.000 |      4.440 | yes    | no   |
+| `binoculars`       |      4.999 |      4.732 | no     | no   |
 
 ## Open issues
 
