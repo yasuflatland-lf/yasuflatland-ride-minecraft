@@ -328,12 +328,45 @@ def region_pixel(region, x, y):
     return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
 
 
+def wheel_holes() -> list[tuple]:
+    arch_holes = []
+    for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_INSET in fine steps
+        arch_holes.append((a0, a1, 0, ARCH_SLOPE_Y))
+        n = round((ARCH_TOP - ARCH_SLOPE_Y) / ARCH_STEP)
+        for i in range(n):
+            inset = ARCH_INSET * (i + 0.5) / n
+            y = ARCH_SLOPE_Y + i * ARCH_STEP
+            arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
+    return arch_holes
+
+
+def side_holes(windows: list, right: bool) -> list:
+    return windows + wheel_holes() + [(SIDE0, -50.5, 35.4, 52)] + ([DOOR] if right else [])
+
+
+def surface_geometry() -> list[dict]:
+    cubes = [box(-HW + 1, 13, FRONT + 1, HW - 1, FLOOR, REAR_INNER, "wood")]
+    for inner, windows, right in ((HW - 1.2, right_windows, True), (-HW + 1, left_windows, False)):
+        cubes += panel("x", inner, inner + 0.2, FRONT + 8, REAR_INNER, FLOOR, CEIL - 0.2,
+                       side_holes(windows, right), "wall_in")
+    return cubes
+
+
+def wheel_well_holes():
+    """Wheel-well cuts applied to the merged floor and furniture before adding panels."""
+    for sgn in (1, -1):
+        for a0, a1 in ARCHES:
+            x_room, x_wall = (sgn * (HW - d) for d in (5.7, 1))
+            yield (min(x_room, x_wall), -99, a0 - 0.3, max(x_room, x_wall), ARCH_TOP + 0.8, a1 + 0.3)
+
+
 regions = load_tool("camper_regions")
 assert WIN_Y == regions.CURTAIN_WINDOW_Y, "curtain geometry is baked for another window height"
 REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
+load_tool("camper_surfaces").register_surfaces(REGISTRY)
 CURTAIN_REF = REGISTRY.register(regions.Region(
     "light curtain fabric", 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
 LAYOUT = regions.pack(REGISTRY)

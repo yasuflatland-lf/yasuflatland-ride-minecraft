@@ -116,7 +116,11 @@ it("draws only the flight discs in their own emissive overlay independently of t
 it("keeps the paint glow swatch and UVs unchanged and makes its lit texel fully emissive", () => {
   const lit = readRgbaPng(`${RP}/textures/entity/yasu_ride/camper_lit.png`);
   const mer = readRgbaPng(`${RP}/textures/entity/yasu_ride/camper_lit_mer.png`);
-  const { pixels } = readRgbaPng(`${RP}/textures/entity/yasu_ride/camper.png`);
+  const { width, height, pixels } = readRgbaPng(
+    `${RP}/textures/entity/yasu_ride/camper.png`,
+  );
+  for (const image of [lit, mer])
+    expect([image.width, image.height]).toEqual([width, height]);
   for (const glow of glows) {
     const cubes = glow.cubes as (GlowBone["cubes"][number] & {
       uv: Record<string, { uv: number[] }>;

@@ -12,6 +12,8 @@ The v0.12.0 play test (#393) showed that it does not. The client drew a brown sq
 
 ## Decision
 
+- The oak table surface remains at model y 28 after the interior material port; narrowing its leg to 1 x 1 px leaves the hanging planter clearance and the fixed hook geometry unchanged.
+
 - Every camping gear block model stays within 0 to 16 px of its cell. `tools/gen_camping_gear.py` fails when a model leaves the cell
 - A hanging item's model ends at the top of its cell: `HOOK_Y` is 16, so the planter spans 6 to 16 px. The `ceiling_hook` slot keeps height 0
 - A decor block's selection box covers its model: from the model's bottom to its top, clamped to 0 to 16 px. A standing item keeps 0 to its height; the planter gets 6 to 16

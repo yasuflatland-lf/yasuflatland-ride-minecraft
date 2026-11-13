@@ -30,6 +30,15 @@
 
 ## Rules
 
+### Interior surface materials
+
+- Applies to: The centre floor, inner side lining, backsplash and dinette table.
+- Rule: `build_surfaces(registry)` registers `carpet v3` (74 x 222, CARPET), `wall veneer` (416 x 180, WOOD), `backsplash tile` (124 x 152, TILE), and `table oak` (168 x 144, WOOD). The real-base centre floor remains one 36.6 x 3 x 111 px cube, carpet on its upper face at 2 texels per model pixel; six floor margins remain shell-owned. Veneer uses 4 texels per model pixel, anchored at z -48 and y 61, with vertical grain and continuous rails across fragments. The 91 lining cubes become 97 veneer cubes plus four tile cubes, split at z 24 to 39.5 and y 30 to 49 around the existing counter window. Tile uses 8 texels per model pixel, cloudy colour and dark grout at square pitch 15.5 / 13 model pixels. The two-cube table uses oak at 12 texels per model pixel and a central 1 x 1 x 11 px leg; its 14 x 12 px top still ends at y 28, keeping both standing decor slots and hanging clearance unchanged.
+- Agreement: Accepted
+- Basis: [0093](../adr/0093-decorate-the-parked-camper.md) Decision; [0099](../adr/0099-hang-the-camper-planter-inside-its-cell.md) Decision; [0100](../adr/0100-swap-the-camper-stove-and-sink.md) Decision; [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md) Decision; [0113](../adr/0113-a-window-over-the-camper-counter.md) Decision.
+- Implementation: `tools/camper_surfaces.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `tests/packs/fixtures/camper-areas.json`.
+- Verification: `tests/tools/camperSurfaces.test.ts` checks UV bounds, direction, fragment registration, backsplash coverage, native texture bytes and table dimensions. The camper pack tests retain the standing-slot surface and clearance checks. Ownership snapshots separate `floor`, `walls`, `tile`, and `table`; golden comparisons retain placement differences while later regions await porting. Not verified: client texture filtering and PC/mobile appearance.
+
 Room use cases obtain the required door, bed, shower, decor and storage methods from `Vehicle.asRoom()`, which returns `RoomDrive` or undefined. Unsupported vehicles retain false or undefined results and no effects; decor reads for pickup use an empty list (0220).
 
 ### Furniture table
@@ -297,7 +306,6 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - ADR 0108 says its pair geometries have 36 bones and 142 cubes, from eighteen standing items and nineteen codes, with 6,080 combinations for the individual decor blocks; the implementation's `table_decor_pair.geo.json` has 38 bones and 4,768 cubes, from the 19 standing items of `STANDING_GEAR_IDS` (`packs/yasu_ride_rp/models/blocks/yasu_ride/table_decor_pair.geo.json`, `src/domain/vehicle/kinds/camper/campingGear.ts`, `tools/gen_camping_gear.py`); the ADR needs an edit or a superseding ADR.
 - ADR 0109 says stand cells must hold air or a light block; the implementation also accepts `isStandableRoomBlock`, currently the fridge door plate (`src/infrastructure/vehicle/bedrock/standUp.ts`, `src/infrastructure/vehicle/kinds/camper/identifiers.ts`); the ADR needs an edit or a superseding ADR. Proposed 0123 describes this addition, so the standing-up rule cites it and has Proposed agreement.
 - ADR 0121 says a `DooredStorage` is defined in `furniture.ts`; the implementation defines the type in `dooredStorage.ts` and keeps only the units `WALL_CABINET` and `FRIDGE` in `furniture.ts` (`src/domain/vehicle/kinds/camper/dooredStorage.ts`, `src/domain/vehicle/kinds/camper/furniture.ts`); the ADR needs an edit or a superseding ADR.
-- ADR 0113 centers the counter window between the door and "the rear right window (z 38 to 50)"; the implementation has no window at that place, because `right_windows` holds the cab window, the window ahead of the door, the counter window and one small upper opening (`tools/camper_kit.py`); 0146 and 0157 extend 0113 but do not restate its window layout; the ADR needs an edit or a superseding ADR.
 - The player page `docs/vehicles/camper.md` says an empty-hand press on the table takes back "the item nearest the point you look at"; the implementation uses the pressed x and z from the block's face location, without the eye (`src/infrastructure/vehicle/kinds/camper/handlers/decor.ts`, `src/domain/vehicle/kinds/camper/drive.ts` `removeDecor`); the player page needs a correction if the wording is meant literally.
 - Proposed ADRs 0123 and 0182 both have the acceptance condition "owner decision pending (see #1193)"; every rule citing either is Proposed: `docs/adr/0123-a-fridge-in-place-of-the-camper-shelf.md`, `docs/adr/0182-a-bunk-bed-in-the-parked-camper.md`.
 
