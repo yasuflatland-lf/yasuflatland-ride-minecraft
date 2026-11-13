@@ -29,11 +29,11 @@
 ### Camper generator modules
 
 - Applies to: Camper geometry generation and the final cube ownership fixture.
-- Rule: Area builders return fresh bone cube lists without file writes. The orchestrator preserves the existing geometry, atlas allocations, bone order, and cube order, and writes area ranges alongside the existing assets.
+- Rule: Area builders return fresh bone cube lists without file writes. The orchestrator preserves the existing geometry, atlas allocations, bone order, and cube order, and writes area ranges alongside the existing assets. Generate only `camper.png` as the khaki colour atlas, with the existing lit and mirror companion maps; do not generate per-paint files. The client base pass uses `Texture.default` directly. Item, README, and pack-icon previews use the same khaki atlas.
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "The orchestrator preserves bone and cube order and writes final ownership ranges to `tests/packs/fixtures/camper-areas.json` without adding cube fields"
 - Implementation: `tools/gen_camper.py`; `tools/camper_kit.py`; `tools/generators.json`; `tests/packs/fixtures/camper-areas.json`; area modules listed below.
-- Verification: `tests/packs/camperAreas.test.ts` "assigns every final camper cube to exactly one area range", "builds independent areas repeatedly without changing the shared atlas"; `pnpm model:check` checks fixture freshness. Generated assets remain identical after `pnpm model`.
+- Verification: `tests/packs/camperAreas.test.ts` "assigns every final camper cube to exactly one area range", "builds independent areas repeatedly without changing the shared atlas"; `pnpm model:check` checks fixture freshness. Geometry and retained atlas pixels remain unchanged after `pnpm model`; the fifteen unused colour atlases are removed. `tests/tools/camperAtlas.test.ts` "writes only the khaki colour atlas and companion maps" checks generation into an empty directory.
 
 `tools/gen_camper.py` loads the following area builders through `tool_loader.load_tool`,
 then performs wheel-well cuts on the merged body and dinette seats, extracts lamps and

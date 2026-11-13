@@ -1,4 +1,4 @@
-"""Generate the camper geometry, 16 accent paint textures, and item icon.
+"""Generate the camper geometry, single khaki texture, and item icon.
 
 Based on the owner's photos of a cab-over motorhome, with no manufacturer name.
 Model units are pixels (16 per block), with the front at -z (ADR 0009). Build
@@ -32,7 +32,6 @@ kit = load_tool("camper_kit")
 AreaCubes = kit.AreaCubes
 ATLAS = kit.ATLAS
 PALETTE = kit.PALETTE
-ACCENT_BASES = kit.ACCENT_BASES
 LAMP_GROUPS = kit.LAMP_GROUPS
 LIT_SLOTS = kit.LIT_SLOTS
 RIB_PERIOD_TEXELS = kit.RIB_PERIOD_TEXELS
@@ -251,12 +250,8 @@ def region_pixel(region, x, y):
     return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
 
 
-for paint, base in ACCENT_BASES.items():
-    colors = dict(PALETTE)
-    if paint != "khaki":
-        colors.update(khaki=(*scale(base, 0.85), 255), stripe=(*scale(base, 0.65), 255), tan=(*base, 255))
-    name = "camper" if paint == "khaki" else f"camper_{paint}"
-    outputs.png(ENTITY_TEXTURES / f"{name}.png", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(colors, x, y, region_pixel))
+outputs.png(ENTITY_TEXTURES / "camper.png", ATLAS.width, ATLAS.height,
+            lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel))
 
 build_lit_textures(outputs, ENTITY_TEXTURES, "camper", ATLAS.width, ATLAS.height,
                    lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel),

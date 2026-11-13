@@ -16,14 +16,14 @@
 - The entity stores the paint in `minecraft:variant`, set by the events `mycar:paint_<paint>`, and the render controller picks the texture by `query.variant`
 - `tools/gen_model.py` writes one 64x16 texture per paint (`suv.png` for khaki, `suv_<paint>.png` for the rest) that differ only in the `body` swatch. Red stays darker than the tail lights, orange darker than the amber lamps, and black lighter than the grille, so those details still show
 - The vehicle item has one color. Breaking a painted vehicle drops the same item, so the next one placed is khaki again
-- The camper uses a fixed khaki paint policy (0067, 0076). Every dye hit is ignored without consuming dye, changing paint, playing sound, or showing a message. Saved nonzero variants are reset to variant 0 on load.
+- The camper uses a fixed khaki paint policy (0067, 0076). Every dye hit is ignored without consuming dye, changing paint, playing sound, or showing a message. Saved nonzero variants are reset to variant 0 on load through `yasu_ride:normalize_paint`, independently of the removed paint events. The camper ships only `camper.png` for its khaki colour atlas; its base render pass uses `Texture.default`. Lit, glow, and mirror passes are unchanged. The sixteen-paint event and texture rules above apply to dyeable vehicles.
 
 ## Consequences
 
 - The Resource Pack carries 16 entity textures of about 200 bytes each, 3.3 KB in all
 - A gray body sits close to the wheel spokes, a light gray body close to the rims, a yellow body close to the amber lamps, and a black body close to the trim; we accept this
 - The legacy dye items (ink sac, bone meal, cocoa beans, lapis lazuli) do not repaint. Supporting one needs an entry beside the derived ones in `PAINT_BY_DYE`, and `consumeDye` would have to take the item the player held instead of the dye `dyeOf` gives for the paint, or the repaint would be free
-- A Blockbench model (0009) needs 16 textures as well, or a tint that the render controller applies
+- A dyeable Blockbench model (0009) needs 16 textures as well, or a tint that the render controller applies. The fixed khaki camper needs one colour atlas
 - The color is still lost when a vehicle is picked up, as in 0017
 - The in-game tests cannot simulate a player using a dye, so they trigger every paint event and check its variant; the dye mapping and the use case are covered by unit tests only
 - Revisit with a tinted material if players want colors that no dye gives

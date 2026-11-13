@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PAINTS } from "../../../src/domain/shared/paint";
 import { bone, bones, type Cube, RP, readPng } from "./helpers";
 
 const camperRender = JSON.parse(
@@ -35,18 +34,15 @@ describe("camper glass (ADR 0091)", () => {
     );
   });
 
-  it("keeps glass transparent and limits emissive alpha to lamps and glows in every paint", () => {
-    for (const paint of PAINTS) {
-      const name = paint === PAINTS[0] ? "camper" : `camper_${paint}`;
-      const { width, pixels } = readPng(`textures/entity/yasu_ride/${name}`);
-      const glowSlot = bone("glow_fl").cubes?.[0]?.uv.north?.uv[0];
-      for (let i = 0; i < width; i++) {
-        const alpha = pixels[i * 4 + 3];
-        if (i === glassSlot) expect(alpha, paint).toBeLessThan(255);
-        else if (i === glowSlot) expect(alpha, paint).toBe(40);
-        else if (i === domeSlot || i >= 39) expect(alpha, paint).toBe(0);
-        else expect(alpha, `${paint} slot ${i}`).toBe(255);
-      }
+  it("keeps glass transparent and limits emissive alpha to lamps and glows", () => {
+    const { width, pixels } = readPng("textures/entity/yasu_ride/camper");
+    const glowSlot = bone("glow_fl").cubes?.[0]?.uv.north?.uv[0];
+    for (let i = 0; i < width; i++) {
+      const alpha = pixels[i * 4 + 3];
+      if (i === glassSlot) expect(alpha).toBeLessThan(255);
+      else if (i === glowSlot) expect(alpha).toBe(40);
+      else if (i === domeSlot || i >= 39) expect(alpha).toBe(0);
+      else expect(alpha, `slot ${i}`).toBe(255);
     }
   });
 
@@ -67,11 +63,15 @@ describe("camper glass (ADR 0091)", () => {
   });
 });
 
-it("lists every paint in the camper render controller", () => {
-  const controller = JSON.parse(
-    readFileSync(`${RP}/render_controllers/yasu_ride/camper.rc.json`, "utf8"),
-  ).render_controllers["controller.render.yasu_ride.camper"];
-  expect(controller.arrays.textures["Array.paints"]).toHaveLength(
-    PAINTS.length,
-  );
+it("uses the single khaki texture", () => {
+  expect(camperRender.textures).toEqual(["Texture.default"]);
+  expect(camperRender.arrays).toBeUndefined();
+  const client = JSON.parse(
+    readFileSync(`${RP}/entity/yasu_ride/camper.ce.json`, "utf8"),
+  )["minecraft:client_entity"].description;
+  expect(client.textures).toEqual({
+    default: "textures/entity/yasu_ride/camper",
+    lit: "textures/entity/yasu_ride/camper_lit",
+    mirror: "textures/entity/yasu_ride/camper_mirror",
+  });
 });

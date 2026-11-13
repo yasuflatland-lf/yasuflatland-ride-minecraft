@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import {
   cpSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -34,6 +35,32 @@ type Region = [string, number, number, number, number];
 type Face = { uv: number[]; uv_size: number[] };
 
 describe("camper atlas", () => {
+  it("writes only the khaki colour atlas and companion maps", () => {
+    const temporary = mkdtempSync(join(tmpdir(), "camper-colour-"));
+    try {
+      cpSync("tools", join(temporary, "tools"), { recursive: true });
+      const pack = join(temporary, "pack");
+      execFileSync("python3", [
+        "-I",
+        join(temporary, "tools/gen_camper.py"),
+        pack,
+      ]);
+      expect(
+        readdirSync(join(pack, "textures/entity/yasu_ride"))
+          .filter((name) => name.endsWith(".png"))
+          .sort(),
+      ).toEqual([
+        "camper.png",
+        "camper_lit.png",
+        "camper_lit_mer.png",
+        "camper_mirror.png",
+        "camper_mirror_mer.png",
+      ]);
+    } finally {
+      rmSync(temporary, { recursive: true, force: true });
+    }
+  });
+
   it("detects stale outputs while accepting equivalent JSON and PNG encoding", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-atlas-"));
     try {
@@ -100,7 +127,7 @@ describe("camper atlas", () => {
       expect(stale.stderr).toContain(geometryPath);
       expect(stale.stderr).toContain(texturePath);
       expect(stale.stderr).not.toContain(
-        "textures/entity/yasu_ride/camper_red.png",
+        "textures/entity/yasu_ride/camper_mirror.png",
       );
     } finally {
       rmSync(temporary, { recursive: true, force: true });

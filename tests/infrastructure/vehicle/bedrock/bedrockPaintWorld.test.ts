@@ -18,6 +18,7 @@ function fixture() {
   const dimension = { playSound: vi.fn() };
   const vehicle = {
     id: "vehicle",
+    typeId: "yasu_ride:suv",
     isValid: true,
     location: { x: 1, y: 64, z: -2 },
     dimension,
@@ -73,6 +74,15 @@ describe("BedrockPaintWorld", () => {
       paintEvent(color),
     );
     expect(dimension.playSound).not.toHaveBeenCalled();
+  });
+
+  it("normalizes fixed paint without a removed paint event", () => {
+    const { vehicle, paint } = fixture();
+    vehicle.typeId = "yasu_ride:camper";
+    paint.paint(asVehicleId(vehicle.id), PAINTS[0]);
+    expect(vehicle.triggerEvent).toHaveBeenCalledExactlyOnceWith(
+      "yasu_ride:normalize_paint",
+    );
   });
 
   it("plays the dye sound at the vehicle", () => {

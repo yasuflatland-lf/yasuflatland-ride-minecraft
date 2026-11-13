@@ -1,47 +1,47 @@
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PAINTS } from "../../../src/domain/shared/paint";
 import { geometry, RP, readPng } from "./helpers";
 
 describe("camper model assets (ADR 0067)", () => {
-  it("generates all 16 equally sized paints, changing only the three accent swatches and no region texel", () => {
+  it("retains the saved variant and only a normalization event", () => {
+    const entity = JSON.parse(
+      readFileSync(
+        "packs/yasu_ride_bp/entities/yasu_ride/camper.se.json",
+        "utf8",
+      ),
+    )["minecraft:entity"];
+    expect(entity.components["minecraft:variant"]).toEqual({ value: 0 });
+    for (const entries of [entity.component_groups, entity.events]) {
+      expect(
+        Object.keys(entries).filter((key) =>
+          key.startsWith("yasu_ride:paint_"),
+        ),
+      ).toEqual([]);
+    }
+    const event = entity.events["yasu_ride:normalize_paint"];
+    expect(event).toEqual({
+      add: { component_groups: ["yasu_ride:normalized_paint"] },
+    });
+    expect(entity.component_groups["yasu_ride:normalized_paint"]).toEqual({
+      "minecraft:variant": { value: 0 },
+    });
+  });
+
+  it("generates exactly one colour atlas and no per-paint files", () => {
     const files = readdirSync(`${RP}/textures/entity/yasu_ride`).filter(
       (name) =>
-        /^camper(?:_\w+)?\.png$/.test(name) && !name.startsWith("camper_lit"),
+        /^camper(?:_\w+)?\.png$/.test(name) &&
+        !name.startsWith("camper_lit") &&
+        !name.startsWith("camper_mirror"),
     );
-    // camper_mirror.png is the PBR mirror pass's copy of the default atlas.
-    expect(
-      files.filter((name) => !name.startsWith("camper_mirror")),
-    ).toHaveLength(PAINTS.length);
+    expect(files).toEqual(["camper.png"]);
     const khaki = readPng("textures/entity/yasu_ride/camper");
     expect([khaki.width, khaki.height]).toEqual([
       geometry.description.texture_width,
       geometry.description.texture_height,
     ]);
-    for (const paint of PAINTS.slice(1)) {
-      const texture = readPng(`textures/entity/yasu_ride/camper_${paint}`);
-      expect([texture.width, texture.height]).toEqual([
-        khaki.width,
-        khaki.height,
-      ]);
-      expect(texture.pixels.equals(khaki.pixels), paint).toBe(false);
-      for (let i = 0; i < khaki.width; i++) {
-        // The PALETTE order in tools/gen_camper.py puts tan, khaki, and stripe
-        // in slots 3, 4, and 6.
-        if ([3, 4, 6].includes(i)) continue;
-        expect(
-          texture.pixels
-            .subarray(i * 4, i * 4 + 4)
-            .equals(khaki.pixels.subarray(i * 4, i * 4 + 4)),
-          `${paint} slot ${i}`,
-        ).toBe(true);
-      }
-      expect(
-        texture.pixels
-          .subarray(khaki.width * 4)
-          .equals(khaki.pixels.subarray(khaki.width * 4)),
-        paint,
-      ).toBe(true);
-    }
+    expect([...khaki.pixels.subarray(4 * 4, 4 * 5)]).toEqual([
+      150, 128, 72, 255,
+    ]);
   });
 });

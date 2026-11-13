@@ -226,7 +226,7 @@ describe.each(kinds)(
           ),
         ).toEqual([{ [bone]: `!${property}` }]);
       }
-      expect(controllers[id].arrays.materials).toBeUndefined();
+      expect(controllers[id].arrays?.materials).toBeUndefined();
     });
   },
 );
