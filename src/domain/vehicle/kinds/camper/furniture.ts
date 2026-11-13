@@ -1,6 +1,7 @@
 // The camper's furniture in local room cells: what it fills and where decor stands on it (ADR 0093).
 import { type DecorSlotId, parseDecorSlotId } from "../../dock/decor";
 import type { DockBlock } from "../../dock/floor";
+import type { CampingGearId } from "./campingGear";
 import {
   type DooredStorage,
   type StorageDoor,
@@ -330,6 +331,7 @@ export const CEILING_LIGHTS: readonly LocalCell[] = [
   { x: 0, z: -3, layer: 2 },
 ];
 
+// Kept in the domain for the cross-check with tools/camper_decor_fit.py.
 export const DASHBOARD_RECTANGLES = {
   dashboard_center: { width: 7, depth: 4.73 },
   dashboard_left: { width: 7, depth: 3.5 },
@@ -364,7 +366,7 @@ export const DASHBOARD_SLOT_ITEMS = {
     "desk_fan",
     "alarm_clock",
   ],
-} as const;
+} as const satisfies Record<string, readonly CampingGearId[]>;
 
 const TABLE_CELL = { x: 1, z: 0, layer: 1 } as const satisfies LocalCell;
 

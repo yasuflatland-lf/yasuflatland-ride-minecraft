@@ -14,7 +14,7 @@ export interface RoomDrive {
   bedSpawnCell(cell: Vec3): Vec3 | undefined;
   /** A press on the shower-toilet of a held vehicle by a player with feet at `feet`, at `tick`: swings its door or runs its shower; false when it has none or the press is ignored (ADR 0094, 0098, 0105, 0118). */
   pressShowerToilet(feet: Vec3, tick: number): boolean;
-  /** The decor of the vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0093, 0103). */
+  /** The decor of the vehicle's room, in slot order, then any stowed decor that could not occupy a slot (ADR 0093, 0103). */
   decor(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
   setDecor(slot: DecorSlotId, item: DecorItemId | undefined): boolean;

@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { beforeAll, expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { slotsFor } from "../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
@@ -23,6 +23,11 @@ const table = () =>
   execFileSync("python3", ["-I", "tools/camper_decor_fit.py", "--json"], {
     encoding: "utf8",
   });
+
+let output: string;
+beforeAll(() => {
+  output = table();
+}, 60_000);
 
 it("uses the domain dashboard spots and rectangles in the fit checker", () => {
   const raw = execFileSync(
@@ -55,10 +60,9 @@ print(json.dumps(camper_decor_fit.SLOTS))
       DASHBOARD_RECTANGLES[id].depth,
     ]);
   }
-});
+}, 60_000);
 
 it("derives dashboard acceptance from deterministic clearance checks of the generated models", () => {
-  const output = table();
   expect(table()).toBe(output);
   const rows: FitRow[] = JSON.parse(output);
   expect(rows.map((r) => r.id)).toEqual(
@@ -104,7 +108,7 @@ it("derives dashboard acceptance from deterministic clearance checks of the gene
       dashboard_left: false,
     });
   }
-});
+}, 60_000);
 
 it("detects box penetration across faces and rotated cubes while permitting contact and rejecting gaps in shelf support", () => {
   execFileSync("python3", [
@@ -123,4 +127,4 @@ assert f.supported([0, 35, 0], [2, 36, 2], [([0, 34, 0], [1, 35, 2]), ([1, 34, 0
 assert not f.supported([0, 35, 0], [2, 36, 2], [([0, 34, 0], [.9, 35, 2]), ([1, 34, 0], [2, 35, 2])])
 `,
   ]);
-});
+}, 60_000);

@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
@@ -28,7 +27,6 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
   CAMPER_FURNITURE,
-  DASHBOARD_RECTANGLES,
   DECOR_SPOTS,
   type DecorSlot,
   type LocalCell,
@@ -821,26 +819,4 @@ it("keeps every pre-dashboard spot index unchanged for saved dock cells", () => 
     { left: 3.3, forward: 0 },
     { left: -3.7, forward: 0 },
   ]);
-});
-
-it("accepts only dashboard items whose transformed footprint fits the slot rectangle", () => {
-  const rows = JSON.parse(
-    execFileSync("python3", ["-I", "tools/camper_decor_fit.py", "--json"], {
-      encoding: "utf8",
-    }),
-  ) as { id: string; width: number; depth: number }[];
-  fc.assert(
-    fc.property(fc.constantFrom(...rows), (item) => {
-      for (const slot of slotsFor(decorItemId(item.id))) {
-        if (slot.id === "dashboard_center" || slot.id === "dashboard_left") {
-          const rectangle =
-            slot.id === "dashboard_center"
-              ? DASHBOARD_RECTANGLES.dashboard_center
-              : DASHBOARD_RECTANGLES.dashboard_left;
-          expect(item.width).toBeLessThanOrEqual(rectangle.width);
-          expect(item.depth).toBeLessThanOrEqual(rectangle.depth);
-        }
-      }
-    }),
-  );
 });

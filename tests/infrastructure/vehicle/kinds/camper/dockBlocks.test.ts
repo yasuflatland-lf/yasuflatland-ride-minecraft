@@ -199,6 +199,23 @@ describe("DockBlocks (ADR 0063)", () => {
     );
   });
 
+  it("restores and clears saved dashboard decor spots", () => {
+    const f = fixture();
+    const saved = [9, 10].map((spot, x) => ({
+      x,
+      y: 64,
+      z: 0,
+      block: { type: "decor", item: "potted_plant", face: 0, height: 3, spot },
+    }));
+    f.saved.set(DECK_CELLS_PROPERTY, JSON.stringify(saved));
+    for (const c of saved)
+      f.blocks.set(cellKey(c), { typeId: decorBlockId("potted_plant") });
+    expect(savedDock(f.car).laid).toBe(true);
+    new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
+    for (const c of saved) expect(f.at(c).typeId).toBe("minecraft:air");
+    expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
+  });
+
   it("persists placed cells, restores them after reload, resizes owned cells and clears them", () => {
     fc.assert(
       fc.property(cells, (wanted) => {
@@ -904,7 +921,7 @@ it.each([
       item: decorItemId("potted_plant"),
       face: 0,
       height: 0,
-      spot: 9,
+      spot: 11,
     },
     seed: decorBlockId("potted_plant"),
   },
