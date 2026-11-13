@@ -17,13 +17,14 @@
 ## Decision
 
 - When a player hits a vehicle while the selected hotbar slot holds one of the 16 dyes of 0031 (`minecraft:<color>_dye`), the hit repaints the vehicle by the rules of 0031 and does not count toward breaking it
+- A camper has fixed khaki paint. A dye hit on its body or bumper stand-in is ignored without dye consumption, paint changes, sound, or a message. It still does not count toward breaking the camper.
 - Interacting with a vehicle (the ride button or a long press on touch, right-click on PC) no longer repaints it, whatever the player holds. It gets the player in as it does with an empty hand. The headlight switch of a rider aiming at their own vehicle (0020) is still handled there
 - `entityHitEntity` is an after-event, which may change the world, so the repaint runs in the handler without `system.run`
 
 ## Consequences
 
-- A tap repaints on mobile, the gesture players try first, and the ride button works with any item in hand
-- On PC, a left-click with a dye repaints and a right-click gets in
+- A tap repaints dyeable vehicles on mobile, the gesture players try first, and the ride button works with any item in hand
+- On PC, a left-click with a dye repaints a dyeable vehicle and a right-click gets in
 - A player holding a dye cannot break a vehicle; they have to switch to another item first
 - A hit with a dye of the color the vehicle already has does nothing: it neither repaints nor counts as a hit
 - On touch, a rider can no longer repaint the vehicle they ride, because their tap on it is an interaction (0020). They get out to repaint it. On PC, a rider's left-click still repaints

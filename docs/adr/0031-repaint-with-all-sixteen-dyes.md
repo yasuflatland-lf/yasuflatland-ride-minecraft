@@ -10,12 +10,14 @@
 
 ## Decision
 
-- Every vanilla dye repaints a vehicle. Brown dye restores the starting khaki; each of the other 15 dyes paints the color of its name. Using a dye consumes one, except in creative mode. A dye of the color the vehicle already has does nothing and keeps the dye
+- Every vanilla dye can repaint a dyeable vehicle. Brown dye restores its starting color; each of the other 15 dyes paints the color of its name. Using a dye consumes one, except in creative mode. A dye of the color the vehicle already has does nothing and keeps the dye
 - Using a dye on a vehicle never mounts it: the script cancels `world.beforeEvents.playerInteractWithEntity` and repaints on the next tick, because a before-event cannot change the world
 - The paints, in `minecraft:variant` order, are `khaki` (0), `green` (1), `red` (2), `white`, `light_gray`, `gray`, `black`, `orange`, `yellow`, `lime`, `cyan`, `light_blue`, `blue`, `purple`, `magenta`, `pink` (15). `PAINTS` in the domain holds this order, and the dye map and variant numbers in the scripts are derived from it. The pack JSON is kept in the same order by hand, and `tests/packs/paint.test.ts` checks it against `PAINTS`. The first three keep the variants of 0017, so painted vehicles in existing worlds keep their color. New paints go at the end
 - The entity stores the paint in `minecraft:variant`, set by the events `mycar:paint_<paint>`, and the render controller picks the texture by `query.variant`
 - `tools/gen_model.py` writes one 64x16 texture per paint (`suv.png` for khaki, `suv_<paint>.png` for the rest) that differ only in the `body` swatch. Red stays darker than the tail lights, orange darker than the amber lamps, and black lighter than the grille, so those details still show
 - The vehicle item has one color. Breaking a painted vehicle drops the same item, so the next one placed is khaki again
+
+- The camper uses a fixed khaki paint policy (0067, 0076). Every dye hit is ignored without consuming dye, changing paint, playing sound, or showing a message. Saved nonzero variants are reset to variant 0 on load.
 
 ## Consequences
 
