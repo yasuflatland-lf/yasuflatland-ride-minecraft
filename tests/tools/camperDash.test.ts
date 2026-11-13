@@ -96,6 +96,58 @@ const hit = (eye: Triple, target: Triple, box: ReturnType<typeof prepare>) => {
 };
 
 describe("camper shallow dash", () => {
+  it("keeps instrument pixels identical when libm results move by one ulp", async () => {
+    expect(
+      JSON.parse(
+        await python.run(`import json, math, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+m = load_tool('camper_dash')
+kit = load_tool('camper_kit')
+m.PAL = kit.PALETTE
+expected = m.instrument_images()
+functions = {name: getattr(math, name) for name in ('sin', 'cos', 'hypot')}
+results = []
+try:
+    for direction in (-math.inf, math.inf):
+        for name, function in functions.items():
+            setattr(math, name, lambda *args, f=function, d=direction: math.nextafter(f(*args), d))
+        results.append(m.instrument_images() == expected)
+finally:
+    for name, function in functions.items():
+        setattr(math, name, function)
+print(json.dumps(results))`),
+      ),
+    ).toEqual([true, true]);
+  });
+
+  it("merges equivalent rotated strips despite one-ulp pivot and rotation differences", async () => {
+    expect(
+      JSON.parse(
+        await python.run(`import json, math, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+m = load_tool('camper_dash')
+kit = load_tool('camper_kit')
+from copy import deepcopy
+builder = m.DashBuilder(kit.REGISTRY)
+a = builder.box(0, 1, 2, 1, 3, 4, 'dash')
+a.update(pivot=[0, 1.25, 2.5], rotation=[30.0, 0, 0])
+results = []
+for direction in (-math.inf, math.inf):
+    b = deepcopy(a)
+    b['origin'][0] = 1
+    b['pivot'][1] = math.nextafter(b['pivot'][1], direction)
+    b['rotation'][0] = math.nextafter(b['rotation'][0], direction)
+    merged = m.tile_mass([deepcopy(a), b])
+    results.append([len(merged), merged[0]['size'][0]])
+    b['rotation'][0] = 30.000001
+    results.append([len(m.tile_mass([deepcopy(a), b]))])
+print(json.dumps(results))`),
+      ),
+    ).toEqual([[1, 2], [2], [1, 2], [2]]);
+  });
+
   it("preserves every occupied cell when sweeping overlapping uniform cores", async () => {
     await fc.assert(
       fc.asyncProperty(

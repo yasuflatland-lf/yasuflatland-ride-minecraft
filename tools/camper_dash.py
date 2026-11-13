@@ -44,16 +44,32 @@ FONT = {
 def patch(w: int, h: int, color: str | Pixel) -> Image:
     return [[PAL.get(color, color)] * w for _ in range(h)]
 
+def snap(value: float, decimals: int = 6) -> float:
+    # macOS and Linux libm differ by one ulp; discrete decisions must ignore those last bits.
+    return round(value, decimals) + 0.0
+
+
+def grouping_value(value):
+    if isinstance(value, float):
+        return snap(value, 9)
+    if isinstance(value, (list, tuple)):
+        return [grouping_value(v) for v in value]
+    if isinstance(value, dict):
+        return {k: grouping_value(v) for k, v in value.items()}
+    return value
+
+
 def dot(im: Image, x: float, y: float, c: str | Pixel) -> None:
-    if 0 <= int(y) < len(im) and 0 <= int(x) < len(im[0]):
-        im[int(y)][int(x)] = PAL.get(c, c)
+    x, y = int(snap(x)), int(snap(y))
+    if 0 <= y < len(im) and 0 <= x < len(im[0]):
+        im[y][x] = PAL.get(c, c)
 
 def line(im: Image, x: float, y: float, a: float, b: float, c: str | Pixel, width: int=1) -> None:
-    n = max(1, int(math.hypot(a - x, b - y) * 2))
+    n = max(1, int(snap(math.hypot(a - x, b - y) * 2)))
     for i in range(n + 1):
         for dy in range(-(width // 2), width // 2 + 1):
             for dx in range(-(width // 2), width // 2 + 1):
-                dot(im, round(x + (a - x) * i / n) + dx, round(y + (b - y) * i / n) + dy, c)
+                dot(im, round(snap(x + (a - x) * i / n)) + dx, round(snap(y + (b - y) * i / n)) + dy, c)
 
 def text(im: Image, s: str, x: int, y: int, c: str | Pixel='black', scale: int=1) -> None:
     for ch in s:
@@ -66,9 +82,9 @@ def text(im: Image, s: str, x: int, y: int, c: str | Pixel='black', scale: int=1
         x += 4 * scale
 
 def circle(im: Image, x: float, y: float, r: float, c: str | Pixel) -> None:
-    for yy in range(max(0, int(y - r)), min(len(im), int(y + r) + 1)):
-        for xx in range(max(0, int(x - r)), min(len(im[0]), int(x + r) + 1)):
-            if (xx - x) ** 2 + (yy - y) ** 2 <= r * r:
+    for yy in range(max(0, int(snap(y - r))), min(len(im), int(snap(y + r)) + 1)):
+        for xx in range(max(0, int(snap(x - r))), min(len(im[0]), int(snap(x + r)) + 1)):
+            if snap((xx - x) ** 2 + (yy - y) ** 2 - r * r) <= 0:
                 dot(im, xx, yy, c)
 
 def dial(kind: str) -> Image:
@@ -76,7 +92,7 @@ def dial(kind: str) -> Image:
     cx = cy = 63.5
     for y in range(DIAL_TEXELS):
         for x in range(DIAL_TEXELS):
-            r = math.hypot(x - cx, y - cy)
+            r = snap(math.hypot(x - cx, y - cy))
             if r < 63:
                 col = 'chrome' if r > 59 else 'steel' if r > 57 else 'ivory'
                 if r > 59 and (x + y) % 11 < 3:
@@ -91,7 +107,7 @@ def dial(kind: str) -> Image:
         for i in range(10):
             a = math.radians(140 + i * 260 / 9)
             s = str(i * 10)
-            text(im, s, round(cx + 43 * math.cos(a) - len(s) * 4 + 1), round(cy + 43 * math.sin(a) - 5), 'black', 2)
+            text(im, s, round(snap(cx + 43 * math.cos(a) - len(s) * 4 + 1)), round(snap(cy + 43 * math.sin(a) - 5)), 'black', 2)
         for y in range(44, 54):
             for x in range(41, 88):
                 dot(im, x, y, 'steel' if y in (44, 53) else 'black')
@@ -106,13 +122,13 @@ def dial(kind: str) -> Image:
             a = math.radians(a0)
             qx = cx + 35 * math.cos(a)
             qy = cy + 35 * math.sin(a)
-            text(im, label, round(qx - len(label) * 2), round(qy - 3))
+            text(im, label, round(snap(qx - len(label) * 2)), round(snap(qy - 3)))
             for j in range(7):
                 t = math.radians(a0 - 25 + j * 50 / 6)
                 line(im, cx + 45 * math.cos(t), cy + 45 * math.sin(t), cx + 50 * math.cos(t), cy + 50 * math.sin(t), 'black')
             for j, ch in enumerate(ends):
                 t = math.radians(a0 - 27 + j * 54)
-                text(im, ch, round(cx + 54 * math.cos(t) - 1), round(cy + 54 * math.sin(t) - 2))
+                text(im, ch, round(snap(cx + 54 * math.cos(t) - 1)), round(snap(cy + 54 * math.sin(t) - 2)))
             t = math.radians(a0 - 8)
             line(im, cx + 31 * math.cos(t), cy + 31 * math.sin(t), cx + 49 * math.cos(t), cy + 49 * math.sin(t), 'red', 2)
         circle(im, cx, cy, 16, 'chrome')
@@ -389,7 +405,7 @@ def tile_mass(cubes: list[Cube]) -> list[Cube]:
         if c.get('rotation'):
             rest.append(c)
         else:
-            key = json.dumps([round(c['origin'][1],9),round(c['size'][1],9),c['uv']],sort_keys=True)
+            key = json.dumps(grouping_value([c['origin'][1],c['size'][1],c['uv']]),sort_keys=True)
             groups.setdefault(key,[]).append(c)
     out = []
     for group in groups.values():
@@ -412,8 +428,8 @@ def tile_mass(cubes: list[Cube]) -> list[Cube]:
     # Adjacent strips with an identical swatch can join along their local x axis.
     groups = {}
     for c in out+rest:
-        key = json.dumps([{k:v for k,v in c.items() if k not in ('origin','size')},
-                          [round(v,9) for v in c['origin'][1:]+c['size'][1:]]],sort_keys=True)
+        key = json.dumps(grouping_value([{k:v for k,v in c.items() if k not in ('origin','size')},
+                                         c['origin'][1:]+c['size'][1:]]),sort_keys=True)
         groups.setdefault(key,[]).append(c)
     out = []
     for group in groups.values():
