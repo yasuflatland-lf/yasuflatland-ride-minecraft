@@ -69,6 +69,8 @@ Issue #461 splits the work in two. This ADR covers the first step: rebuild "stor
 
 ### The fridge
 
+- The fridge model uses photo-based rounded cream doors, recessed bevelled panels and horizontal chrome levers toward the entry door (0123). Its hinges stay on the cab side, left from the aisle; the model refinement preserves the shared door swing, compartment cells, plates and decor slots
+
 - The fridge (#455) will be a second definition, listed after the wall cabinet in `CAMPER_STORAGE`. It brings its own:
   - door ids in `StorageDoorId`, and their entity properties in `STORAGE_DOOR_PROPERTY`
   - compartment and plate block types, added to `DockBlock` with their `sameBlock` cases, to the two storage block unions, and to the infrastructure's block mapping, plus a row in `faceHeight.ts`
