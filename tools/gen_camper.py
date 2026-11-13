@@ -16,7 +16,7 @@ from tool_loader import load_tool
 
 cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
-ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}, "front_panels": {"owner": "camper", "cubes": 518}}
+ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}, "front_panels": {"owner": "camper", "cubes": 518}, "cab_seats": {"owner": "camper", "cubes": 464}}
 
 texture_io = load_tool("texture_io")
 mer = load_tool("mer")
@@ -55,7 +55,7 @@ take_slots = kit.take_slots
 
 # Keep the original body cube order; bone draw order is declared separately below.
 AREA_ORDER = (
-    "shell", "curtains", "door", "front", "rear", "roof", "running", "cab",
+    "shell", "curtains", "door", "front", "rear", "roof", "running", "cab", "cab_seats",
     "bed_bunk", "fridge", "room", "shower", "ceiling", "dinette", "arches",
 )
 areas = {name: load_tool(f"camper_{name}") for name in AREA_ORDER}
@@ -204,14 +204,26 @@ geo = {
 }
 model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
 slanted = [cube for cube in compound_cubes(model_cubes) if cube["rotation"][0] == 45]
-assert_axes(model_cubes, {"slanted": slanted, "front_panels": [cube for cube in compound_cubes(model_cubes) if cube not in slanted]}, ASSEMBLIES)
+seat_compound = compound_cubes(merged["seat_0"] + merged["seat_1"])
+assert_axes(model_cubes, {"slanted": slanted, "cab_seats": seat_compound,
+                         "front_panels": [cube for cube in compound_cubes(model_cubes)
+                                          if cube not in slanted and cube not in seat_compound]}, ASSEMBLIES)
 outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
 atlas_pixels = kit.regions.render_atlas(LAYOUT)
 for cube in model_cubes:
     for face in cube["uv"].values():
-        LAYOUT.bind_face("base", face)
+        u, v = face["uv"]
+        du, dv = face["uv_size"]
+        for region in LAYOUT.regions:
+            x, y = LAYOUT.origin(region.name)
+            if (x <= min(u, u + du) <= max(u, u + du) <= x + region.width
+                    and y <= min(v, v + dv) <= max(v, v + dv) <= y + region.height):
+                LAYOUT.bind_face(region.name, face)
+                break
+        else:
+            raise ValueError(f"Unregistered camper face: {face}")
 atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))
