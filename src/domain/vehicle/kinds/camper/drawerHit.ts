@@ -48,7 +48,15 @@ export function drawerHit(
   ray: Vec3,
   decor: readonly DecorPlacement[],
   open: ReadonlySet<StorageDoorId>,
-): { door?: StorageDoorId; point: Vec3; takeContents: boolean } | undefined {
+  pressCell?: Vec3,
+):
+  | {
+      door?: StorageDoorId;
+      point?: Vec3;
+      takeContents: boolean;
+      floorFootprint?: boolean;
+    }
+  | undefined {
   if (
     ![
       pose.x,
@@ -104,7 +112,7 @@ export function drawerHit(
     const shift = open.has(door.id) ? DRAWER_SLIDE_PX : 0;
     const bottom = HIT.frontBottom[door.id];
     targets.push({
-      min: [HIT.frontLeftMin + shift, bottom, HIT.frontAheadMin],
+      min: [HIT.frontLeftMin + shift, shift ? 0 : bottom, HIT.frontAheadMin],
       max: [
         HIT.frontLeftMax + shift,
         bottom + HIT.frontHeight,
@@ -150,12 +158,37 @@ export function drawerHit(
     const distance = intersection(origin, direction, target);
     if (
       distance !== undefined &&
-      (nearest === undefined || distance < nearest.distance)
+      (nearest === undefined ||
+        distance < nearest.distance ||
+        (distance === nearest.distance &&
+          target.door === "drawer_bottom" &&
+          nearest.target.door === "drawer_top" &&
+          origin[1] + direction[1] * distance < HIT.frontBottom.drawer_top))
     ) {
       nearest = { target, distance };
     }
   }
-  if (!nearest) return undefined;
+  if (!nearest) {
+    const margin = HIT.floorFootprintMargin;
+    if (
+      !pressCell ||
+      !drawerPressCell(pose, pressCell) ||
+      (pressCell.x === cell.x &&
+        pressCell.y === cell.y &&
+        pressCell.z === cell.z) ||
+      end[0] < half - margin ||
+      end[0] > HIT.frontLeftMax + DRAWER_SLIDE_PX + margin ||
+      end[2] < HIT.frontAheadMin - margin ||
+      end[2] > HIT.frontAheadMax + margin
+    )
+      return undefined;
+    const door = (["drawer_bottom", "drawer_top"] as const).find((id) =>
+      open.has(id),
+    );
+    return door
+      ? { door, takeContents: false, floorFootprint: true }
+      : undefined;
+  }
   const left = origin[0] + direction[0] * nearest.distance;
   const ahead = origin[2] + direction[2] * nearest.distance;
   return {
@@ -191,11 +224,12 @@ export function drawerBlockHit(
   open: ReadonlySet<StorageDoorId>,
 ) {
   if (!drawerPressCell(pose, cell)) return undefined;
-  return drawerHit(
+  const hit = drawerHit(
     pose,
     eye,
     { x: point.x - eye.x, y: point.y - eye.y, z: point.z - eye.z },
     decor,
     open,
   );
+  return hit?.point ? { ...hit, point: hit.point } : undefined;
 }

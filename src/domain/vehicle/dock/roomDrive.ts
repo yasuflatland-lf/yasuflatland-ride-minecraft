@@ -21,6 +21,7 @@ export interface RoomDrive {
         point: Vec3;
         slot?: DecorSlotId;
         open: boolean;
+        floorFootprint?: boolean;
       }
     | undefined;
   /** Opens or closes the door of a held vehicle's room at `tick`; false when it has none or the tap is ignored (ADR 0068, 0105). */

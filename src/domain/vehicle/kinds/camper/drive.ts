@@ -479,6 +479,7 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       direction,
       this.placed(),
       this.storage.open(),
+      cell,
     );
     let door = hit?.door;
     if (!door && !hit && item && feet) {
@@ -516,6 +517,7 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       point,
       slot: slot?.id,
       open: this.storage.open().has(door),
+      floorFootprint: hit?.floorFootprint,
     };
   }
 

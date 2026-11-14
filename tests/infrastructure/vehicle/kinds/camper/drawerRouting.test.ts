@@ -310,3 +310,98 @@ it("preserves a keyboard and mouse side-face report", () => {
     }),
   );
 });
+
+it.each([
+  [0.314, true, true, "drawer_bottom"],
+  [0.45, true, true, "drawer_bottom"],
+  [0.314, false, true, "drawer_bottom"],
+  [0.45, false, true, "drawer_bottom"],
+  [0.314, true, false, "drawer_top"],
+  [0.45, true, false, "drawer_top"],
+] as const)(
+  "routes a shallow floor press at x=%s with top=%s and bottom=%s to %s",
+  (x, top, bottom, drawer) => {
+    const f = fixture(true, top, bottom);
+    f.player.getHeadLocation = () => ({ x: 180.85, y: -58.48, z: 89.5 });
+    expect(f.block(floor, undefined, { x, y: 0, z: 0.491 }).cancel).toBe(true);
+    f.flush();
+    const press = f.storage.execute.mock.calls[0]?.[0];
+    expect(press).toMatchObject({ cell: counter });
+    if (!press) throw new Error("Expected storage press");
+    expect(
+      f.drive.pressStorage(
+        press.cell,
+        press.point,
+        200,
+        press.takeContents,
+        press.eye,
+        press.openOnly,
+        press.drawersSideFace,
+      ),
+    ).toMatchObject({ kind: "door" });
+    f.drive.resync();
+    const out = f.drive.step(undefined, {
+      tick: 201,
+      location: { x: 180.5, y: -60, z: 90.5 },
+      velocity: { x: 0, y: 0, z: 0 },
+      deckSeatInputs: [],
+      onGround: true,
+      solidAt: () => false,
+      waterAt: () => false,
+      blockTypes: (cells) => cells.map(() => "minecraft:air"),
+    });
+    for (const [name, wasOpen] of [
+      ["drawer_top", top],
+      ["drawer_bottom", bottom],
+    ] as const) {
+      expect(
+        out.commands.find((c) => c.type === "setProperty" && c.name === name),
+      ).toMatchObject({
+        value: name === drawer ? 0.9 : wasOpen ? 1 : 0,
+      });
+    }
+    expect(f.drive.decor()).toEqual([
+      { slot: "drawer_bottom_0", item: "mug_pair" },
+    ]);
+  },
+);
+it("leaves a distant floor tap available for ordinary placement", () => {
+  const f = fixture();
+  f.player.getHeadLocation = () => ({ x: 180.85, y: -58.48, z: 89.5 });
+  expect(f.block(floor, undefined, { x: 0.893, y: 0, z: 0.433 }).cancel).toBe(
+    false,
+  );
+  expect(f.storage.execute).not.toHaveBeenCalled();
+  f.block(floor, "yasu_ride:mug_pair", { x: 0.893, y: 0, z: 0.433 });
+  f.flush();
+  expect(f.place.execute).toHaveBeenCalledWith(
+    expect.objectContaining({ exact: false }),
+  );
+  expect(f.storage.execute).not.toHaveBeenCalled();
+});
+
+it("closes an occupied footprint drawer with allowlisted gear without placing or taking contents", () => {
+  const f = fixture(true);
+  f.player.getHeadLocation = () => ({ x: 180.85, y: -58.48, z: 89.5 });
+  expect(
+    f.block(floor, "yasu_ride:mug_pair", { x: 0.45, y: 0, z: 0.491 }).cancel,
+  ).toBe(true);
+  f.flush();
+  const press = f.storage.execute.mock.calls[0]?.[0];
+  if (!press) throw new Error("Expected storage press");
+  expect(
+    f.drive.pressStorage(
+      press.cell,
+      press.point,
+      200,
+      press.takeContents,
+      press.eye,
+      press.openOnly,
+      press.drawersSideFace,
+    ),
+  ).toMatchObject({ kind: "door" });
+  expect(f.place.execute).not.toHaveBeenCalled();
+  expect(f.drive.decor()).toEqual([
+    { slot: "drawer_bottom_0", item: "mug_pair" },
+  ]);
+});
