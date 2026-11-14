@@ -125,7 +125,7 @@ a = s.build_surfaces(r)
       "carpet v3":
         "9991eee05af8091f0884c15915f20278d0d5ba41080c2c81a7650773bfad27cf",
       "wall veneer":
-        "e80763992229b2b271ef9b32fba5e1f7464afd940c2fc1f8fada8d7890cf8415",
+        "a411a3e421ed6a2e8158b500df60f78b5d37e2ef7f376d5a16f00a4dfa7ee0cf",
       "backsplash tile":
         "be8228bff5fc74423397efa64f21c3d95b1d6783e3edc0ab12aad087d2eb3750",
       "table oak":
@@ -164,14 +164,89 @@ def contrast(scale):
     return pstdev(values)
 `,
     ) as { mean: [number, number, number]; std4: number; std8: number };
-    // 4x4: 3.91 -> 10.92 (2.79x); 8x8: 3.18 -> 9.73 (3.06x).
-    expect(std4).toBeGreaterThanOrEqual(8);
-    expect(std8).toBeGreaterThanOrEqual(6.4);
+    // Measured 20.83 (4x4) and 20.09 (8x8) luminance levels; floors keep a margin.
+    expect(std4).toBeGreaterThanOrEqual(17);
+    expect(std8).toBeGreaterThanOrEqual(16);
     for (const [channel, reference] of [194.87, 170.07, 129.53].entries()) {
       expect(
         Math.abs(defined(mean[channel], "mean channel") / reference - 1),
       ).toBeLessThanOrEqual(0.03);
     }
+  });
+  it("samples varied veneer texels on every large interior wall face", () => {
+    const faces = inspect(
+      "faces",
+      `
+from statistics import pstdev
+faces = []
+ox, oy = k.LAYOUT.origin('wall veneer')
+for c in a['body']:
+    if s.area_of(c) != 'walls': continue
+    f = c['uv']['east' if c['origin'][0] < 0 else 'west']
+    u0, v0 = f['uv'][0]-ox, f['uv'][1]-oy
+    u1, v1 = u0+f['uv_size'][0], v0+f['uv_size'][1]
+    lo_u, hi_u, lo_v, hi_v = u0, u1, v0, v1
+    if c['size'][1]*c['size'][2] < 1500/16: continue
+    assert all(n > 0 for n in f['uv_size']), (c['origin'], f)
+    xs = range(int(lo_u), max(int(lo_u)+1, int(hi_u)))
+    ys = range(int(lo_v), max(int(lo_v)+1, int(hi_v)))
+    vals = [sum(ch*w for ch,w in zip(s.wall_pixel(min(x,415), min(y,179))[:3], (0.2126,0.7152,0.0722))) for y in ys for x in xs]
+    faces.append([lo_u, hi_u, lo_v, hi_v, pstdev(vals)])
+`,
+    ) as [number, number, number, number, number][];
+    expect(faces.length).toBeGreaterThanOrEqual(10);
+    for (const [loU, hiU, loV, hiV, std] of faces) {
+      expect(loU).toBeGreaterThanOrEqual(0.5);
+      expect(hiU).toBeLessThanOrEqual(415.5);
+      expect(loV).toBeGreaterThanOrEqual(0.5);
+      expect(hiV).toBeLessThanOrEqual(179.5);
+      expect(std).toBeGreaterThanOrEqual(6);
+    }
+  });
+  it("exports positive, opaque, varied veneer on both broad faces of the lining", () => {
+    const faces = inspect(
+      "faces",
+      `
+from pathlib import Path
+from statistics import pstdev
+texture = load_tool('render_preview').read_png(Path('packs/yasu_ride_rp/textures/entity/yasu_ride/camper.png'))
+geometry = json.loads(Path('packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json').read_text())['minecraft:geometry'][0]
+faces = []
+for bone in geometry['bones']:
+    if bone['name'] != 'body': continue
+    for c in bone.get('cubes', []):
+        x,y,z = c['origin']
+        w,h,d = c['size']
+        if abs(w-0.2)>1e-6 or not (abs(x+23)<1e-6 or abs(x-22.8)<1e-6): continue
+        if h*d < 1500/16: continue
+        # The four backsplash fragments intentionally use tile, not veneer.
+        if x<0 and z>=24 and z+d<=39.5 and y>=30 and y+h<=49: continue
+        for side in ('east', 'west'):
+            f = c['uv'][side]
+            u,v = f['uv']
+            du,dv = f['uv_size']
+            valid = du>1 and dv>1 and u>=0.5 and v>=0.5 and u+du<=415.50001 and v+dv<=179.50001
+            samples = [texture[int(v+dv*j/16)][int(u+du*i/16)] for j in range(17) for i in range(17)] if valid else []
+            faces.append([valid, all(p[3]==255 for p in samples), pstdev([sum(ch*w for ch,w in zip(p[:3],(0.2126,0.7152,0.0722))) for p in samples]) if samples else 0])
+`,
+    ) as [boolean, boolean, number][];
+    expect(faces.length).toBeGreaterThanOrEqual(30);
+    for (const [valid, opaque, variance] of faces) {
+      expect(valid).toBe(true);
+      expect(opaque).toBe(true);
+      expect(variance).toBeGreaterThanOrEqual(6);
+    }
+  });
+  it("keeps veneer on the backing of every tile fragment", () => {
+    expect(
+      inspect(`[
+        [k.LAYOUT.face_region(c['uv']['east']),
+         k.LAYOUT.face_region(c['uv']['west']),
+         all(n > 0 for f in (c['uv']['east'], c['uv']['west']) for n in f['uv_size'])]
+        for c in a['body'] if s.area_of(c) == 'tile']`),
+    ).toEqual(
+      Array.from({ length: 4 }, () => ["wall veneer", "backsplash tile", true]),
+    );
   });
   it("samples the same veneer coordinates on either side of every fragment seam", () => {
     const walls = inspect(
@@ -191,8 +266,15 @@ def contrast(scale):
           const [origin, size, uv, extent] = defined(walls[i], "wall fragment");
           const z = origin[2] + (origin[0] < 0 ? 1 - u : u) * size[2];
           const y = origin[1] + (1 - v) * size[1];
-          expect(uv[0] + u * extent[0]).toBeCloseTo((z + 48) * 4, 8);
-          expect(uv[1] + v * extent[1]).toBeCloseTo((61 - y) * 4, 8);
+          const column = origin[0] < 0 ? (56 - z) * 4 : (z + 48) * 4;
+          expect(uv[0] + u * extent[0]).toBeCloseTo(
+            0.5 + column * (415 / 416),
+            8,
+          );
+          expect(uv[1] + v * extent[1]).toBeCloseTo(
+            0.5 + (61 - y) * 4 * (179 / 180),
+            8,
+          );
         },
       ),
     );
@@ -213,9 +295,9 @@ def contrast(scale):
   it("keeps veneer grain vertical and registered across all wall fragments", () => {
     expect(
       inspect(`all(
-      abs(f['uv'][0]-k.LAYOUT.origin('wall veneer')[0] - (c['origin'][2]+48+(c['size'][2] if c['origin'][0]<0 else 0))*4)<1e-8
-      and abs(f['uv'][1]-k.LAYOUT.origin('wall veneer')[1]-(61-c['origin'][1]-c['size'][1])*4)<1e-8
-      and all(abs(a-b)<1e-8 for a,b in zip(f['uv_size'],[c['size'][2]*4*(-1 if c['origin'][0]<0 else 1),c['size'][1]*4]))
+      abs(f['uv'][0]-k.LAYOUT.origin('wall veneer')[0] - (0.5 + ((56-c['origin'][2]-c['size'][2]) if c['origin'][0]<0 else (c['origin'][2]+48))*4*415/416))<1e-8
+      and abs(f['uv'][1]-k.LAYOUT.origin('wall veneer')[1]-(0.5+(61-c['origin'][1]-c['size'][1])*4*179/180))<1e-8
+      and all(abs(a-b)<1e-8 for a,b in zip(f['uv_size'],[c['size'][2]*4*415/416,c['size'][1]*4*179/180]))
       for c in a['body'] if s.area_of(c)=='walls'
       for f in [c['uv']['east' if c['origin'][0]<0 else 'west']])`),
     ).toBe(true);

@@ -62,6 +62,9 @@ it("isolates the provisional cell and seam split from the model constants", () =
   });
   expect(CAMPER_STORAGE).toContain(KITCHEN_DRAWERS);
   expect(storageFurniture(KITCHEN_DRAWERS).cells).toEqual([DRAWER_COMPARTMENT]);
+  expect(() => KITCHEN_DRAWERS.plateBlock({ face: 0, lit: false })).toThrow(
+    "Sliding storage has no plate",
+  );
   expect(doors.map((d) => [d.id, d.opening, d.slots.map((s) => s.id)])).toEqual(
     [
       ["drawer_top", { kind: "sliding" }, ["drawer_top_0"]],
