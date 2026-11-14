@@ -15,6 +15,8 @@ In local x (left positive) the shower-toilet cell spans -1.5 to -0.5, and the ai
 
 ## Decision
 
+- The glazed tile walls and the head, grip and hose remain model geometry. They add no selection boxes: the invisible doorway plate continues to receive presses under the rules refined by 0118. The model has no shower curtain or rail.
+
 - A new room block, `yasu_ride:camper_shower_toilet`, is laid in both shower-toilet cells (local x -1, z -3, layers 1 and 2) while the camper is parked, like the bed's block (0092). It is invisible, cannot be mined or blown up, has no collision, and has the state `yasu_ride:face` (0 to 3), which is set to the side of the cell toward the aisle
 - Its only selection box is a 2 px plate on that face, over the full 16 px height of the cell, which is where the model draws the shower door. Any ray from the aisle into the cell crosses that face, so it hits the plate (-0.625 to -0.5) before the toilet seat (-1.281 to -0.781). From inside, the toilet seat still takes a press aimed at the toilet
 - The block has the custom component `yasu_ride:camper_shower_toilet`. On `onPlayerInteract` with an empty hand, it finds the parked vehicle that laid the pressed cell. It runs `UseShowerDoor` when the player's feet are outside the pressed cell's block column, and `RunShower` when they are inside. Both use cases are 0094's, unchanged

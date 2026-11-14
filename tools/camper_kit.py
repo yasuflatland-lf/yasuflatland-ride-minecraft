@@ -370,5 +370,30 @@ load_tool("camper_surfaces").register_surfaces(REGISTRY)
 CURTAIN_REF = REGISTRY.register(regions.Region(
     "light curtain fabric", 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
 DOOR_REFS = load_tool("camper_door_materials").register(REGISTRY, PALETTE)
-LAYOUT = regions.pack(REGISTRY)
 ATLAS.base_ref = BASE_REF
+
+AREA_ORDER = (
+    "shell", "surfaces", "curtains", "door", "front", "rear", "roof", "running", "cab",
+    "bed_bunk", "fridge", "room", "shower", "ceiling", "dinette", "arches",
+)
+
+
+def prepare_layout():
+    """Register area materials before any geometry resolves the shared atlas."""
+    if REGISTRY._layout is None:
+        for name in AREA_ORDER:
+            module = load_tool(f"camper_{name}")
+            register = getattr(module, "register_regions", None)
+            if register is not None:
+                register(REGISTRY)
+        regions.pack(REGISTRY)
+    return REGISTRY._layout
+
+
+def __getattr__(name):
+    if name == "LAYOUT":
+        return prepare_layout()
+    raise AttributeError(name)
+
+
+ATLAS.prepare = prepare_layout

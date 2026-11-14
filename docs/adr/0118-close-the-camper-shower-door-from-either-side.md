@@ -25,6 +25,7 @@ The entry door and the wall cabinet doors do not have this problem. The open ent
 
 ## Decision
 
+- The tiled shower and its head, grip, plate and U-shaped hose stay inside the shower cell, clear of the open door in the aisle. The three shower-door cubes, hinge and swing remain unchanged; no curtain or rail crosses the doorway. Door wood is handled separately from these shower fixtures.
 - The textured shower panel retains its three-cube assembly, hinge `[-8, 0, 54]` in the final model, and original swept volume. Wood grain runs vertically on either upright panel face, including the face exposed to the aisle when open; selection plates and press routing stay unchanged.
 
 - While the shower door is open (its target, as for the cabinet doors in 0114), the rear wall cells behind the aisle cell beside the shower-toilet, local (0, -4) in layers 1 to 3, hold a new room block, `yasu_ride:camper_shower_door`, instead of `yasu_ride:camper_wall`. When the door shuts, they go back to the wall

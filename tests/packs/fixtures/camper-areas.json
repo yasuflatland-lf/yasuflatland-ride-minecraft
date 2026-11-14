@@ -68,8 +68,8 @@
     "cabinet_sink_door": [0, 1],
     "cabinet_stove_door": [0, 1]
   },
-  "shower": { "body": [3840, 3853] },
-  "ceiling": { "body": [3854, 3856], "ceiling_lights": [0, 3] },
+  "shower": { "body": [3840, 4804] },
   "dinette": { "seat_2": [0, 3], "seat_3": [0, 3] },
-  "arches": { "body": [3857, 3888] }
+  "ceiling": { "body": [4805, 4807], "ceiling_lights": [0, 3] },
+  "arches": { "body": [4808, 4839] }
 }

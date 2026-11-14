@@ -17,8 +17,9 @@ import json, sys
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 kit = load_tool('camper_kit')
+layout = kit.LAYOUT
 print(json.dumps([{'name': r.name, 'size': [r.width, r.height],
-                  'origin': kit.LAYOUT.origin(r.name)} for r in kit.REGISTRY.regions()]))
+                  'origin': layout.origin(r.name)} for r in kit.REGISTRY.regions()]))
 `,
       ],
       { encoding: "utf8" },

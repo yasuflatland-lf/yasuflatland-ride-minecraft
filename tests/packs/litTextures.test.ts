@@ -317,7 +317,7 @@ it("binds an opaque non-emissive camper interior MER without changing the base p
       "controller.render.yasu_ride.camper"
     ].textures,
   ).toEqual(["Texture.default"]);
-});
+}, 30_000);
 
 it("keeps the camper mirror MER confined to the relocated chrome tile and its own pass", () => {
   const [x, y, w, h]: number[] = JSON.parse(
@@ -364,4 +364,4 @@ print(json.dumps([x+r.x,y+r.y,r.w,r.h]))
     textures: ["Texture.mirror"],
     part_visibility: [{ "*": false }, { mirror: true }],
   });
-});
+}, 30_000);

@@ -53,10 +53,8 @@ moved = kit.moved
 carve = kit.carve
 take_slots = kit.take_slots
 
-AREA_ORDER = (
-    "shell", "surfaces", "curtains", "door", "front", "rear", "roof", "running", "cab",
-    "bed_bunk", "fridge", "room", "shower", "ceiling", "dinette", "arches",
-)
+# Keep the original body cube order; bone draw order is declared separately below.
+AREA_ORDER = kit.AREA_ORDER
 areas = {name: load_tool(f"camper_{name}") for name in AREA_ORDER}
 merged = AreaCubes()
 owners = {}
