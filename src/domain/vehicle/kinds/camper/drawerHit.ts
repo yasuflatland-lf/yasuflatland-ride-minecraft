@@ -112,7 +112,12 @@ export function drawerHit(
     const shift = open.has(door.id) ? DRAWER_SLIDE_PX : 0;
     const bottom = HIT.frontBottom[door.id];
     targets.push({
-      min: [HIT.frontLeftMin + shift, shift ? 0 : bottom, HIT.frontAheadMin],
+      // Only the lowest drawer reaches the floor; a taller box on the top drawer would occlude the bottom front.
+      min: [
+        HIT.frontLeftMin + shift,
+        shift && door.id === "drawer_bottom" ? 0 : bottom,
+        HIT.frontAheadMin,
+      ],
       max: [
         HIT.frontLeftMax + shift,
         bottom + HIT.frontHeight,
