@@ -20,8 +20,8 @@ interface PressStorageCommand {
   eye?: Vec3;
   /** Held gear opens closed storage before its placement path handles open storage. */
   openOnly?: boolean;
-  /** A press on a side face of the pressed block: its height picks the drawer. */
-  sideFace?: boolean;
+  /** Set only when the pressed block itself is the drawers block and its face is a side. */
+  drawersSideFace?: boolean;
 }
 
 export class PressStorage {
@@ -58,7 +58,7 @@ export class PressStorage {
       cmd.takeContents,
       cmd.eye,
       cmd.openOnly,
-      cmd.sideFace,
+      cmd.drawersSideFace,
     );
     if (!room || !press) return false;
     if (press.kind === "item") {

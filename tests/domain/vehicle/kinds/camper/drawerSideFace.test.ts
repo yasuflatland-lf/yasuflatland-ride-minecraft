@@ -58,6 +58,36 @@ const combos = [
   [true, true],
 ] as const;
 
+it("uses the ray through an open upper drawer when a rerouted floor side face has no drawer height", () => {
+  const floorPoint = { x: 180, y: -59.2, z: 89.125 };
+  const head = { x: 180.784, y: -57.48, z: 89.822 };
+  const direction = {
+    x: floorPoint.x - head.x,
+    y: floorPoint.y - head.y,
+    z: floorPoint.z - head.z,
+  };
+  const d = drive(true, false);
+  expect(
+    d.drawerTarget(head, direction, { x: 180, y: -60, z: 89 }),
+  ).toMatchObject({ cell });
+  expect(drawerAtHeight(floorPoint.y - cell.y)).toBeUndefined();
+  expect(
+    drive(true, false).pressStorage(
+      cell,
+      floorPoint,
+      200,
+      undefined,
+      head,
+      false,
+      true,
+    ),
+  ).toBeUndefined();
+  expect(
+    d.pressStorage(cell, floorPoint, 200, undefined, head, false, false),
+  ).toMatchObject({ kind: "door" });
+  expect(state(d, 300)).toEqual({ top: false, bottom: false });
+});
+
 it("toggles only the pressed drawer for the measured device taps in every state", () => {
   const taps = [
     { y: 0.3394165, x: 0, z: 0.6558795, door: "bottom" },

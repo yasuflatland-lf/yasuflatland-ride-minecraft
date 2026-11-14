@@ -299,7 +299,10 @@ function drawerPress(
   const playerId = asPlayerId(ev.player.id);
   const hotbarSlot = ev.player.selectedSlotIndex;
   const eye = ev.player.getHeadLocation();
-  const sideFace = ev.blockFace !== "Up" && ev.blockFace !== "Down";
+  const drawersSideFace =
+    ev.block.typeId === pairDecorBlockId("drawers") &&
+    ev.blockFace !== "Up" &&
+    ev.blockFace !== "Down";
   if (ev.block.typeId === id("camper_floor")) {
     if (item !== undefined && !DRAWER_GEAR_IDS.has(item)) return;
     const hit = storage.drawerTarget(
@@ -328,7 +331,7 @@ function drawerPress(
           eye,
           openOnly: true,
           takeContents: false,
-          sideFace,
+          drawersSideFace,
         })
       )
         place.execute({
@@ -348,7 +351,7 @@ function drawerPress(
         cell,
         point,
         eye,
-        sideFace,
+        drawersSideFace,
       })
     ) {
       remove.execute({ playerId, vehicleId, cell, point, eye });
