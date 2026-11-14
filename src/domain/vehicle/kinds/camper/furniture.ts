@@ -195,8 +195,11 @@ export const WALL_CABINET: DooredStorage<StorageDoorId, StoragePairKind> = {
     {
       id: "sink",
       compartment: SINK_CABINET_CELL,
-      plate: { x: 0, z: SINK_CABINET_CELL.z, layer: CABINET_LAYER },
-      hinge: 1,
+      opening: {
+        kind: "hinged",
+        hinge: 1,
+        plate: { x: 0, z: SINK_CABINET_CELL.z, layer: CABINET_LAYER },
+      },
       slots: compartmentSlots(
         "cabinet",
         "sink",
@@ -208,8 +211,11 @@ export const WALL_CABINET: DooredStorage<StorageDoorId, StoragePairKind> = {
     {
       id: "stove",
       compartment: STOVE_CABINET_CELL,
-      plate: { x: 0, z: STOVE_CABINET_CELL.z, layer: CABINET_LAYER },
-      hinge: -1,
+      opening: {
+        kind: "hinged",
+        hinge: -1,
+        plate: { x: 0, z: STOVE_CABINET_CELL.z, layer: CABINET_LAYER },
+      },
       slots: compartmentSlots(
         "cabinet",
         "stove",
@@ -257,12 +263,15 @@ export const FRIDGE: DooredStorage<StorageDoorId, StoragePairKind> = {
     {
       id: "fridge_bottom",
       compartment: FRIDGE_BOTTOM_CELL,
-      plate: {
-        x: 0,
-        z: FRIDGE_BOTTOM_CELL.z,
-        layer: FRIDGE_BOTTOM_CELL.layer,
+      opening: {
+        kind: "hinged",
+        hinge: 1,
+        plate: {
+          x: 0,
+          z: FRIDGE_BOTTOM_CELL.z,
+          layer: FRIDGE_BOTTOM_CELL.layer,
+        },
       },
-      hinge: 1,
       slots: compartmentSlots(
         "fridge",
         "fridge_bottom",
@@ -274,8 +283,11 @@ export const FRIDGE: DooredStorage<StorageDoorId, StoragePairKind> = {
     {
       id: "fridge_top",
       compartment: FRIDGE_TOP_CELL,
-      plate: { x: 0, z: FRIDGE_TOP_CELL.z, layer: FRIDGE_TOP_CELL.layer },
-      hinge: 1,
+      opening: {
+        kind: "hinged",
+        hinge: 1,
+        plate: { x: 0, z: FRIDGE_TOP_CELL.z, layer: FRIDGE_TOP_CELL.layer },
+      },
       slots: compartmentSlots(
         "fridge",
         "fridge_top",

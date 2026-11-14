@@ -29,6 +29,7 @@ import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
+import { hingedOpening } from "../../../../support/storageOpening";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
 const SWING = CAMPER_SPEC.doorSwingTicks;
@@ -63,7 +64,8 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
     );
   const compartment = (door: StorageDoorId) =>
     localCellAt(pose, placeOf(door).compartment);
-  const aisle = (door: StorageDoorId) => localCellAt(pose, placeOf(door).plate);
+  const aisle = (door: StorageDoorId) =>
+    localCellAt(pose, hingedOpening(placeOf(door)).plate);
   const press = (
     door: StorageDoorId,
     at: "compartment" | "aisle",

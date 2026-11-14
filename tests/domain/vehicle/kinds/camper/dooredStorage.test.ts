@@ -46,6 +46,7 @@ import {
   storagePressTarget,
 } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { decorItemId } from "../../../../support/decorIds";
+import { hingedOpening } from "../../../../support/storageOpening";
 
 const SWING = CAMPER_SPEC.doorSwingTicks;
 
@@ -100,14 +101,19 @@ function validateDooredStorage(units: readonly DooredStorage[]): string[] {
   const doors = storageDoors(units);
   const ids = doors.map(({ id }) => id);
   if (new Set(ids).size !== ids.length) problems.push("door ids repeat");
-  const cells = doors.flatMap(({ compartment, plate }) => [compartment, plate]);
+  const cells = doors.flatMap((door) => [
+    door.compartment,
+    hingedOpening(door).plate,
+  ]);
   cells.forEach((cell, i) => {
     if (cells.findIndex((c) => sameLocal(c, cell)) !== i)
       problems.push(`cell ${JSON.stringify(cell)} is used twice`);
     if (FURNITURE_BLOCK_CELLS.some((c) => sameLocal(c, cell)))
       problems.push(`cell ${JSON.stringify(cell)} holds a furniture block`);
   });
-  for (const { id, compartment, plate, slots, unit } of doors) {
+  for (const door of doors) {
+    const { id, compartment, slots, unit } = door;
+    const { plate } = hingedOpening(door);
     if (!PLATE_LAYERS.includes(plate.layer))
       problems.push(`door ${id}'s plate is in layer ${plate.layer}`);
     if (OPEN_SLOT_CELLS.some((c) => sameLocal(c, plate)))
@@ -152,10 +158,31 @@ describe("definitions", () => {
           const broken = {
             ...door,
             ...(fault === "id" ? { id: "sink" } : {}),
-            ...(fault === "cell" ? { plate: { x: 0, z: -1, layer: 3 } } : {}),
+            ...(fault === "cell"
+              ? {
+                  opening: {
+                    ...hingedOpening(door),
+                    plate: { x: 0, z: -1, layer: 3 },
+                  },
+                }
+              : {}),
             ...(fault === "block" ? { compartment: shower } : {}),
-            ...(fault === "layer" ? { plate: { ...door.plate, layer } } : {}),
-            ...(fault === "onSlot" ? { plate: slotCell } : {}),
+            ...(fault === "layer"
+              ? {
+                  opening: {
+                    ...hingedOpening(door),
+                    plate: { ...hingedOpening(door).plate, layer },
+                  },
+                }
+              : {}),
+            ...(fault === "onSlot"
+              ? {
+                  opening: {
+                    ...hingedOpening(door),
+                    plate: slotCell as LocalCell,
+                  },
+                }
+              : {}),
             ...(fault === "slot"
               ? {
                   slots: door.slots.map((s) => ({ ...s, door: "elsewhere" })),
@@ -199,7 +226,9 @@ describe("definitions", () => {
           const compartment = TWO_UNITS.find((d) =>
             sameLocal(d.compartment, cell),
           );
-          const plate = TWO_UNITS.find((d) => sameLocal(d.plate, cell));
+          const plate = TWO_UNITS.find((d) =>
+            sameLocal(hingedOpening(d).plate, cell),
+          );
           expect(compartmentDoorAt(cell, TWO_UNITS)).toBe(compartment);
           expect(openPlateAt(cell, open, TWO_UNITS)).toBe(
             plate && open.has(plate.id) ? plate : undefined,
@@ -399,11 +428,17 @@ describe("cells", () => {
               ),
             ).toEqual({ door, onCompartment: true });
             expect(
-              storagePressTarget(p, localCellAt(p, door.plate), TWO_UNITS),
+              storagePressTarget(
+                p,
+                localCellAt(p, hingedOpening(door).plate),
+                TWO_UNITS,
+              ),
             ).toEqual({ door, onCompartment: false });
           }
           const taken = TWO_UNITS.some(
-            (d) => sameLocal(d.compartment, other) || sameLocal(d.plate, other),
+            (d) =>
+              sameLocal(d.compartment, other) ||
+              sameLocal(hingedOpening(d).plate, other),
           );
           if (!taken)
             expect(
@@ -474,8 +509,11 @@ describe("cells", () => {
           expect(byKey.has(cellKey(localCellAt(p, door.compartment)))).toBe(
             false,
           );
-          const key = cellKey(localCellAt(p, door.plate));
-          const face = faceOf(door.hinge * f.x, door.hinge * f.z);
+          const key = cellKey(localCellAt(p, hingedOpening(door).plate));
+          const face = faceOf(
+            hingedOpening(door).hinge * f.x,
+            hingedOpening(door).hinge * f.z,
+          );
           const plate =
             door.unit === FRIDGE_SPY
               ? {
@@ -483,10 +521,12 @@ describe("cells", () => {
                   face,
                   lit:
                     lightsOn &&
-                    CEILING_LIGHTS.some((c) => sameLocal(c, door.plate)),
+                    CEILING_LIGHTS.some((c) =>
+                      sameLocal(c, hingedOpening(door).plate),
+                    ),
                 }
               : { type: "cabinetDoor", face };
-          if (door.plate.layer === 3) {
+          if (hingedOpening(door).plate.layer === 3) {
             expect(byKey.get(key)).toEqual(
               open.has(door.id) ? plate : { type: "ceiling" },
             );
@@ -499,7 +539,9 @@ describe("cells", () => {
           }
         }
         expect(inside).toHaveLength(
-          TWO_UNITS.filter((d) => d.plate.layer !== 3 && open.has(d.id)).length,
+          TWO_UNITS.filter(
+            (d) => hingedOpening(d).plate.layer !== 3 && open.has(d.id),
+          ).length,
         );
         const lit = (cell: LocalCell) =>
           lightsOn && CEILING_LIGHTS.some((c) => sameLocal(c, cell));
@@ -507,8 +549,11 @@ describe("cells", () => {
           FRIDGE.doors
             .filter((d) => open.has(d.id))
             .map((d) => ({
-              face: faceOf(d.hinge * f.x, d.hinge * f.z),
-              lit: lit(d.plate),
+              face: faceOf(
+                hingedOpening(d).hinge * f.x,
+                hingedOpening(d).hinge * f.z,
+              ),
+              lit: lit(hingedOpening(d).plate),
             })),
         );
       }),
@@ -551,7 +596,7 @@ describe("cells", () => {
     fc.assert(
       fc.property(pose, openOf(ALL_IDS), (p, open) => {
         const plates = FRIDGE.doors.map((d) =>
-          cellKey(localCellAt(p, d.plate)),
+          cellKey(localCellAt(p, hingedOpening(d).plate)),
         );
         expect(
           storagePlateChecks(p, TWO_UNITS).map(({ door, cell }) => [
@@ -570,7 +615,7 @@ describe("cells", () => {
         );
         const covered = new Set(
           TWO_UNITS.filter((d) => open.has(d.id)).map((d) =>
-            cellKey(localCellAt(p, d.plate)),
+            cellKey(localCellAt(p, hingedOpening(d).plate)),
           ),
         );
         expect(ceilingLightCells(p, open, TWO_UNITS).map(cellKey)).toEqual(
