@@ -55,29 +55,29 @@
   "bed_bunk": { "body": [4427, 4429], "bunk": [0, 2] },
   "steering": { "body": [4395, 4426], "steering": [0, 114] },
   "cab_seats": { "seat_0": [0, 500], "seat_1": [0, 500] },
-  "room": { "body": [4728, 4738] },
+  "room": { "body": [4737, 4747] },
   "fridge": {
-    "body": [4430, 4456],
-    "fridge_top_door": [0, 373],
-    "fridge_bottom_door": [0, 377]
+    "body": [4430, 4465],
+    "fridge_top_door": [0, 1633],
+    "fridge_bottom_door": [0, 1522]
   },
-  "shower": { "body": [4739, 5703] },
-  "counter": { "body": [4457, 4476] },
-  "range": { "body": [4477, 4512] },
-  "burner": { "body": [4513, 4721] },
+  "shower": { "body": [4748, 5712] },
+  "counter": { "body": [4466, 4485] },
+  "range": { "body": [4486, 4521] },
+  "burner": { "body": [4522, 4730] },
   "kitchen_fronts": {
-    "body": [4722, 4727],
+    "body": [4731, 4736],
     "cabinet_sink_door": [0, 1],
     "cabinet_stove_door": [0, 1],
     "drawer_bottom": [0, 9],
     "drawer_top": [0, 9]
   },
   "soft": {
-    "body": [5707, 5733],
+    "body": [5716, 5742],
     "bunk": [3, 19],
     "seat_2": [0, 14],
     "seat_3": [0, 14]
   },
-  "ceiling": { "body": [5704, 5706], "ceiling_lights": [0, 3] },
-  "arches": { "body": [5734, 5771] }
+  "ceiling": { "body": [5713, 5715], "ceiling_lights": [0, 3] },
+  "arches": { "body": [5743, 5780] }
 }
