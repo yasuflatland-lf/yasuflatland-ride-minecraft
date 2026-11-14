@@ -38,7 +38,9 @@ interface StorageDoorDef<Id extends string = string> {
   /** The cell of the compartment's pair block. */
   readonly compartment: LocalCell;
   readonly opening: StorageOpening;
-  /** The compartment's two ends, end 0 first. */
+  /** Optional height routing for openings sharing a cell; height is faceLocation.y. */
+  readonly acceptsPress?: (height: number) => boolean;
+  /** The compartment's usable slots; a shared cell assigns each slot a distinct pair end. */
   readonly slots: readonly StorageSlot<Id>[];
 }
 
@@ -50,6 +52,10 @@ export interface CompartmentLook {
   readonly height: number;
   readonly end0?: DecorItemId;
   readonly end1?: DecorItemId;
+  /** Independent visibility for doors sharing this compartment cell. */
+  readonly openings?: Readonly<Record<string, boolean>>;
+  /** Decor on a surface sharing the cell, outside its doors. */
+  readonly surface?: DecorItemId;
 }
 
 /** How an open door's plate looks this tick. */
@@ -92,12 +98,16 @@ export function storageDoors<Id extends string>(
   return units.flatMap((unit) => unit.doors.map((door) => ({ ...door, unit })));
 }
 
-/** The cells and slots of a unit's furniture row: one compartment cell per door. */
+/** The cells and slots of a unit's furniture row: each compartment cell once. */
 export function storageFurniture<Id extends string>(
   unit: DooredStorage<Id>,
 ): { cells: LocalCell[]; slots: StorageSlot<Id>[] } {
   return {
-    cells: unit.doors.map(({ compartment }) => compartment),
+    cells: unit.doors
+      .map(({ compartment }) => compartment)
+      .filter(
+        (cell, i, cells) => cells.findIndex((c) => sameLocal(c, cell)) === i,
+      ),
     slots: unit.doors.flatMap(({ slots }) => slots),
   };
 }

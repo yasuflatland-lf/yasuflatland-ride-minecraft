@@ -46,11 +46,11 @@ import {
   type CAMPER_ENTITY,
   ceilingLightsCommand,
   doorCommand,
-  STORAGE_DOOR_PROPERTY,
   SWITCH_CLICK,
   showerCommand,
   showerDoorCommand,
   storageDoorCommand,
+  storageDoorProperty,
 } from "./entity";
 import { STORAGE_DOORS, type StorageDoorId } from "./furniture";
 import {
@@ -185,7 +185,10 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       this.restoredDocked && restored.ceiling_lights === true;
     this.storage = new StorageDoors(
       STORAGE_DOORS,
-      (id) => restored[STORAGE_DOOR_PROPERTY[id]],
+      (id) => {
+        const name = storageDoorProperty(id);
+        return name === undefined ? undefined : restored[name];
+      },
       this.restoredDocked,
     );
   }
@@ -231,16 +234,19 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     cell: Vec3,
     point: Vec3 | undefined,
     tick: number,
+    takeContents = true,
   ): StoragePress | undefined {
     const pose = this.parked;
-    const target = pose && storagePressTarget(pose, cell, STORAGE_DOORS);
+    const target = pose && storagePressTarget(pose, cell, STORAGE_DOORS, point);
     if (!pose || !target) return undefined;
     return this.storage.press(
       target.door.id,
-      target.onCompartment,
+      target.onCompartment && takeContents,
       tick,
       () => {
-        const ends = slotsAt(pose, cell);
+        const ends = slotsAt(pose, cell).filter(
+          (s) => s.door === target.door.id,
+        );
         const end =
           point === undefined
             ? ends.find(({ id }) => this.decorBySlot.has(id))

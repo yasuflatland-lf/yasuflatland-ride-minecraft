@@ -118,7 +118,10 @@ const ROOM_CELL_COUNT = 107;
 
 const ROOM_BLOCK: Readonly<
   Record<
-    Exclude<DockBlock["type"], "decor" | "decorPair" | "cabinet" | "fridge">,
+    Exclude<
+      DockBlock["type"],
+      "decor" | "decorPair" | "cabinet" | "fridge" | "drawers"
+    >,
     string
   >
 > = {
@@ -138,6 +141,8 @@ const ROOM_BLOCK: Readonly<
 };
 
 function laidTypeOf(block: DockBlock): string {
+  if (block.type === "drawers")
+    throw new Error("Kitchen drawer blocks are gated until #1684");
   if (block.type === "decor") return decorBlockId(block.item);
   if (block.type === "decorPair") return pairDecorBlockId(block.pair);
   if (block.type === "cabinet" || block.type === "fridge")

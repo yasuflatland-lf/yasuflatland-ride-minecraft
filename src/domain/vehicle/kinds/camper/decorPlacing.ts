@@ -6,7 +6,8 @@ import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
 import { decorSlotCell, decorSpotOffset } from "./decorCells";
 import { usableBehindDoor } from "./dooredStorage";
-import type { DecorSlot, StorageDoorId } from "./furniture";
+import { type DecorSlot, STORAGE_DOORS, type StorageDoorId } from "./furniture";
+import { storagePressTarget } from "./storagePlates";
 
 const PX_PER_BLOCK = 16;
 const NO_DOORS: ReadonlySet<StorageDoorId> = new Set();
@@ -135,11 +136,37 @@ export function slotForPress(
   eye?: Vec3,
   open: ReadonlySet<StorageDoorId> = NO_DOORS,
 ): DecorSlot | undefined {
-  const accepting = new Set(slotsFor(item, open));
+  const target = storagePressTarget(pose, cell, STORAGE_DOORS, point);
+  if (target?.door.acceptsPress !== undefined) {
+    return nearest(
+      pose,
+      slotsFor(item, open).filter(
+        (slot) => slot.door === target.door.id && !cellTaken(slot, decor),
+      ),
+      point,
+      eye,
+    );
+  }
+  // Surface presses sharing a cell with height-routed openings must not enter them
+  // through the ordinary nearest-free fallback.
+  const surfaceDoors = new Set(
+    slotsAt(pose, cell).flatMap((slot) =>
+      STORAGE_DOORS.some(
+        (d) => d.id === slot.door && d.acceptsPress !== undefined,
+      ) && slot.door !== undefined
+        ? [slot.door]
+        : [],
+    ),
+  );
+  const surfaceOpen =
+    surfaceDoors.size === 0
+      ? open
+      : new Set([...open].filter((id) => !surfaceDoors.has(id)));
+  const accepting = new Set(slotsFor(item, surfaceOpen));
   const pressed = slotsAt(pose, cell).filter(
     (slot) => accepting.has(slot) && !cellTaken(slot, decor),
   );
   if (pressed.length > 0) return nearest(pose, pressed, point, eye);
   if (exact) return undefined;
-  return nearestFreeSlot(pose, item, decor, point, eye, open);
+  return nearestFreeSlot(pose, item, decor, point, eye, surfaceOpen);
 }
