@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { defined } from "../support/defined";
 
 function inspect(expression: string, setup = "") {
@@ -125,7 +125,7 @@ a = s.build_surfaces(r)
       "carpet v3":
         "9991eee05af8091f0884c15915f20278d0d5ba41080c2c81a7650773bfad27cf",
       "wall veneer":
-        "e00e655e7ae83b8c1957cf7290ca35c500796e167122406d0d2a49165359bd5a",
+        "51194977ee751a6889a18b4fdf76a6029460500fe20deac6a57f486b1b5dc9e8",
       "backsplash tile":
         "be8228bff5fc74423397efa64f21c3d95b1d6783e3edc0ab12aad087d2eb3750",
       "table oak":
@@ -144,20 +144,79 @@ a = s.build_surfaces(r)
         "1a93b51f95cce226460cda2e9cb83e9943978987534d498b8f501178bc9cdf63",
     });
   });
-  it("keeps non-rail veneer flat light tan and preserves rail and screw bytes", () => {
-    const { base, colours, railHash, railRows } = inspect(
-      "{'base': s.WALL_BASE, 'colours': sorted(colours), 'railHash': rail_hash, 'railRows': rail_rows}",
+  describe("wall cloth weave", () => {
+    let cloth: {
+      base: number[];
+      mean: number[];
+      nativeStd: number;
+      downsampleStd: number;
+      period: number;
+      correlations: [number, number][];
+    };
+    beforeAll(() => {
+      cloth = inspect(
+        "{'base': s.WALL_BASE, 'mean': mean, 'nativeStd': pstdev(values), 'downsampleStd': pstdev(downsampled), 'period': s.WALL_WEAVE_PERIOD, 'correlations': correlations}",
+        `
+from statistics import fmean, pstdev
+width, height = s.WALL_SIZE
+rows = [row for row in range(height)
+        if not any(abs(s.WALL_TOP-(row+0.5)/s.WALL_SCALE-rail) < s.WALL_RAIL_HALF_WIDTH for rail in s.WALL_RAILS)]
+pixels = [s.wall_pixel(x, row) for row in rows for x in range(width)]
+mean = [fmean(p[channel] for p in pixels) for channel in range(3)]
+# Rec. 709 luminance; rail rows are excluded from every measurement.
+luminance = {(x, row): sum(c*w for c,w in zip(s.wall_pixel(x, row), (0.2126, 0.7152, 0.0722)))
+             for row in rows for x in range(width)}
+values = list(luminance.values())
+downsampled = []
+for y in range(0, height-7, 8):
+    for x in range(0, width-7, 8):
+        block = [luminance[u,v] for v in range(y,y+8) for u in range(x,x+8) if (u,v) in luminance]
+        if len(block) == 64: downsampled.append(fmean(block))
+def correlation(dx, dy):
+    pairs = [(value, luminance[x+dx,y+dy]) for (x,y),value in luminance.items() if (x+dx,y+dy) in luminance]
+    left, right = zip(*pairs)
+    a, b = fmean(left), fmean(right)
+    scale = pstdev(left)*pstdev(right)
+    return fmean((u-a)*(v-b) for u,v in pairs) / scale if scale else 0
+correlations = [[correlation(4*dx,4*dy), correlation(2*dx,2*dy)]
+                for dx,dy in ((1,0),(0,1))]
+`,
+      );
+    });
+    it("keeps mean non-rail colour within half a level of light tan", () => {
+      expect(cloth.base).toEqual([196, 170, 128]);
+      for (const [channel, mean] of cloth.mean.entries()) {
+        expect(
+          Math.abs(mean - defined(cloth.base[channel], "wall channel")),
+        ).toBeLessThanOrEqual(0.5);
+      }
+    });
+    it("has subtle contrast at native resolution", () => {
+      expect(cloth.nativeStd).toBeGreaterThanOrEqual(2.5);
+      expect(cloth.nativeStd).toBeLessThanOrEqual(6);
+    });
+    it("has no broad variation after 8 x 8 averaging", () => {
+      expect(cloth.downsampleStd).toBeLessThan(1.5);
+    });
+    it("repeats along rows and columns at the four-texel weave period", () => {
+      expect(cloth.period).toBe(4);
+      for (const [atPeriod, offPeriod] of cloth.correlations) {
+        expect(atPeriod).toBeGreaterThan(0);
+        expect(offPeriod).toBeLessThan(atPeriod);
+      }
+    });
+  });
+  it("preserves rail and screw bytes", () => {
+    const { railHash, railRows } = inspect(
+      "{'railHash': rail_hash, 'railRows': rail_rows}",
       `
 from hashlib import sha256
 width, height = s.WALL_SIZE
 rail_rows = [row for row in range(height)
              if any(abs(s.WALL_TOP-(row+0.5)/s.WALL_SCALE-rail) < 0.5 for rail in s.WALL_RAILS)]
-colours = {s.wall_pixel(x, row) for row in range(height) if row not in rail_rows for x in range(width)}
 rail_hash = sha256(bytes(c for row in rail_rows for x in range(width) for c in s.wall_pixel(x, row))).hexdigest()
 `,
     );
-    expect(base).toEqual([196, 170, 128]);
-    expect(colours).toEqual([[196, 170, 128, 255]]);
     expect(railRows).toEqual([44, 45, 46, 47, 100, 101, 102, 103]);
     // Captured from the original grained veneer before flattening its non-rail pixels.
     expect(railHash).toBe(

@@ -53,6 +53,9 @@ HASH_WORD_MASK, HASH_SAMPLE_MASK = 0xffffffff, 65535
 HASH_SHIFTS = (13, 16)
 CARPET_TONES = (0.90, 1.05)
 WALL_BASE, WALL_RAIL_BASE = (196, 170, 128), (183, 184, 175)
+WALL_THREAD_WIDTH, WALL_WEAVE_PERIOD = 2, 4
+WALL_THREAD_SHADE, WALL_THREAD_VARIATION = 4, 3
+WALL_WARP_SEED, WALL_WEFT_SEED = 61, 62
 WALL_RAILS, WALL_RAIL_HALF_WIDTH = (35.5, 49.5), 0.5
 WALL_RAIL_EDGE, WALL_RAIL_SHADES = 0.29, (-15, 22)
 WALL_SCREW_OFFSET, WALL_SCREW_PITCH = 47.5, 12
@@ -80,10 +83,12 @@ OAK_KNOT_CORE, OAK_KNOT_CORE_SPREAD = 24, 0.003
 OAK_JOINT_WIDTH, OAK_JOINT_SHADE = 0.018, 15
 
 
-def hash_noise(x: float, y: float, seed: int = 0) -> float:
+def hash_noise(x: float, y: float, seed: int = 0, *, integer: bool = False) -> float | int:
+    # Cloth uses the raw sample to keep thread shading entirely in integer arithmetic.
     n = (int(x) * HASH_X + int(y) * HASH_Y + seed * HASH_SEED) & HASH_WORD_MASK
     n = ((n ^ (n >> HASH_SHIFTS[0])) * HASH_MIX) & HASH_WORD_MASK
-    return ((n ^ (n >> HASH_SHIFTS[1])) & HASH_SAMPLE_MASK) / (HASH_SAMPLE_MASK / 2) - 1
+    sample = (n ^ (n >> HASH_SHIFTS[1])) & HASH_SAMPLE_MASK
+    return sample if integer else sample / (HASH_SAMPLE_MASK / 2) - 1
 
 
 def noise(x: float, y: float, seed: int = 0) -> float:
@@ -132,7 +137,16 @@ def wall_pixel(x: int, row: int) -> RGBA:
                 shade = WALL_SCREW_SHADE
             gain, su, sv, seed = WALL_RAIL_NOISE
             return tinted(WALL_RAIL_BASE, shade + noise(u/su, v/sv, seed)*gain)
-    return tinted(WALL_BASE, 0)
+    warp, weft = x // WALL_THREAD_WIDTH, row // WALL_THREAD_WIDTH
+    # Alternate which thread passes over the crossing. Each two-texel cross-section
+    # has opposite integer tints, so every 4 x 4 repeat has exactly the base mean.
+    if (x % WALL_WEAVE_PERIOD) // WALL_THREAD_WIDTH == (row % WALL_WEAVE_PERIOD) // WALL_THREAD_WIDTH:
+        phase = x % WALL_THREAD_WIDTH
+        variation = hash_noise(warp, 0, WALL_WARP_SEED, integer=True) % WALL_THREAD_VARIATION
+    else:
+        phase = row % WALL_THREAD_WIDTH
+        variation = hash_noise(weft, 0, WALL_WEFT_SEED, integer=True) % WALL_THREAD_VARIATION
+    return tinted(WALL_BASE, (2 * phase - 1) * (WALL_THREAD_SHADE + variation))
 
 
 @lru_cache(maxsize=math.prod(TILE_SIZE))

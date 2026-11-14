@@ -244,7 +244,7 @@
 
 ## Open issues
 
-- ADR 0067 says the model has about 3,400 cubes; the implementation has 4,205 cubes (`packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`); the ADR needs an edit or a superseding ADR.
+- ADR 0067 says the model has about 3,400 cubes; the implementation has 10,829 cubes (`packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`); the ADR needs an edit or a superseding ADR.
 - ADR 0067 says placement requires 9 x 9 x 4 clear cells; the implementation uses `CAMPER_PROFILE.placement` for 3 x 3 x 4 (`src/domain/vehicle/kinds/camper/profile.ts`), following Proposed ADR 0143. ADR 0143 says it supersedes this clearance but records only an Extends relation; the ADR needs an edit or a superseding ADR.
 - ADR 0067 says there are three body-long hitboxes, and ADR 0068 says the only hitbox is one bumper cube; the implementation has a hidden feet-level box and separate bumper stand-ins (`packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`, `src/domain/vehicle/kinds/camper/profile.ts`). Accepted ADR 0084 partly supersedes 0068, but Proposed ADR 0116 replaces those bumper boxes; the ADRs need an edit or a superseding ADR.
 - ADR 0067 says the driver is on the left; the implementation is right-hand drive (`tools/gen_camper.py`, `src/domain/vehicle/kinds/camper/profile.ts`), following Accepted ADR 0069; the ADR needs an edit or a superseding ADR. Current rider layout and later height changes are covered by Seats and driver selection.
