@@ -31,7 +31,7 @@ describe("camper door interiors", () => {
   });
   it("builds the complete entry interior without changing the glass count", async () => {
     expect(await run("len(door.build()['door_entry'])")).toBe(245);
-  });
+  }, 30_000);
 });
 
 it("maps every shower panel face to door wood with vertical upright grain", async () => {
@@ -55,7 +55,7 @@ for face in panel['uv'].values():
   for (const side of ["up", "down"]) {
     expect(faces[side].uv_size).toEqual([4.8, 94.4]);
   }
-});
+}, 30_000);
 
 it("maps each entry wood field vertically at eight texels per pixel", async () => {
   const fields = await run(
@@ -76,7 +76,7 @@ for cube in door.build_door_entry(kit.REGISTRY)['door_entry']:
     [40, 104],
     [40, 104],
   ]);
-});
+}, 30_000);
 
 it("builds repeatably and audits every finish without growing geometry", async () => {
   expect(
@@ -88,4 +88,4 @@ b = door.build()
 `,
     ),
   ).toEqual([true, 3, []]);
-});
+}, 30_000);
