@@ -10,6 +10,7 @@ import {
 import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
 import { STANDING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import { roomCells as camperRoomCells } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
+import { DRAWER_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import {
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
@@ -36,6 +37,7 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  drawerBlockStates,
   PAIR_END_STATES,
   PAIR_PAGE_SIZE,
   pairDecorBlockId,
@@ -1383,4 +1385,63 @@ describe("DockBlocks and camp space (ADR 0129)", () => {
     for (const c of roomCells)
       expect(check).toHaveBeenCalledWith(asDimensionId(f.car.dimension.id), c);
   });
+});
+
+it("maps and restores a shared drawer/counter cell with independent contents and visibility", () => {
+  const items = fc.option(fc.constantFrom(...DRAWER_GEAR_IDS), {
+    nil: undefined,
+  });
+  fc.assert(
+    fc.property(
+      fc.constantFrom(0 as const, 1 as const, 2 as const, 3 as const),
+      fc.boolean(),
+      fc.boolean(),
+      items,
+      items,
+      fc.option(fc.constantFrom(...STANDING_GEAR_IDS), { nil: undefined }),
+      (face, topOpen, bottomOpen, top, bottom, counter) => {
+        const block = {
+          type: "drawers" as const,
+          face,
+          topOpen,
+          bottomOpen,
+          open: topOpen || bottomOpen,
+          height: 7.1,
+          ...(top === undefined ? {} : { end0: decorItemId(top) }),
+          ...(bottom === undefined ? {} : { end1: decorItemId(bottom) }),
+          ...(counter === undefined ? {} : { counter: decorItemId(counter) }),
+        };
+        const code =
+          counter === undefined ? 0 : STANDING_GEAR_IDS.indexOf(counter) + 1;
+        const expected = {
+          "yasu_ride:face": face,
+          "yasu_ride:top_open": topOpen,
+          "yasu_ride:bottom_open": bottomOpen,
+          "yasu_ride:end0_item":
+            top === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(top) + 1,
+          "yasu_ride:end1_item":
+            bottom === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(bottom) + 1,
+          "yasu_ride:counter_page": Math.floor(code / PAIR_PAGE_SIZE),
+          "yasu_ride:counter_item": code % PAIR_PAGE_SIZE,
+        };
+        expect(drawerBlockStates(block)).toEqual(expected);
+        const f = fixture();
+        const wanted = [{ x: 1, y: 65, z: 2, block }];
+        const layer = new DockBlocks(noCampSpace);
+        layer.lay(asVehicleId("car"), f.car, wanted);
+        expect(f.at(defined(wanted[0], "drawer cell"))).toEqual({
+          typeId: pairDecorBlockId("drawers"),
+          states: expected,
+        });
+        expect(f.savedCells()).toEqual(wanted);
+        const restored = new DockBlocks(noCampSpace);
+        restored.lay(asVehicleId("car"), f.car, wanted);
+        expect(f.writes).toHaveLength(1);
+        restored.lay(asVehicleId("car"), f.car, []);
+        expect(f.at(defined(wanted[0], "drawer cell")).typeId).toBe(
+          "minecraft:air",
+        );
+      },
+    ),
+  );
 });

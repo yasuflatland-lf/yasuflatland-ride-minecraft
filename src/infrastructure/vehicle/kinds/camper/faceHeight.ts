@@ -42,6 +42,7 @@ const COMPARTMENT_SHAPES: Partial<
   Record<PairKind, (height: number | undefined) => PressedShape>
 > = {
   // Lifted with its one height, which is no state (ADR 0114).
+  drawers: () => FULL,
   cabinet: () => {
     const lift = Math.min(...pairHeights("cabinet"));
     return {

@@ -18,7 +18,10 @@ import {
   type Face,
   sameBlock,
 } from "../../../../domain/vehicle/dock/floor";
-import { STANDING_GEAR_IDS } from "../../../../domain/vehicle/kinds/index";
+import {
+  DRAWER_GEAR_IDS,
+  STANDING_GEAR_IDS,
+} from "../../../../domain/vehicle/kinds/index";
 import {
   type CellCodec,
   CellLayer,
@@ -47,6 +50,7 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  drawerBlockStates,
   pairDecorBlockId,
   pairEndStates,
   pairHeightStates,
@@ -137,6 +141,23 @@ function isDockCell(v: unknown): v is DockCell {
       return isFace(b.face);
     case "fridgeDoor":
       return isFace(b.face) && typeof b.lit === "boolean";
+    case "drawers":
+      return (
+        isFace(b.face) &&
+        typeof b.open === "boolean" &&
+        typeof b.topOpen === "boolean" &&
+        typeof b.bottomOpen === "boolean" &&
+        typeof b.height === "number" &&
+        Number.isFinite(b.height) &&
+        b.height >= 0 &&
+        b.height <= MAX_DECOR_HEIGHT &&
+        [b.end0, b.end1].every(
+          (item) =>
+            item === undefined ||
+            (typeof item === "string" && DRAWER_GEAR_IDS.has(item)),
+        ) &&
+        isPairEnd(b.counter)
+      );
     case "fridge":
       return (
         isFace(b.face) &&
@@ -177,7 +198,7 @@ function isDockCell(v: unknown): v is DockCell {
 function blockIdOf(block: DockBlock): string {
   switch (block.type) {
     case "drawers":
-      throw new Error("Kitchen drawer blocks are gated until #1684");
+      return pairDecorBlockId("drawers");
     case "deck":
       return DECK_FLOOR_BLOCK;
     case "floor":
@@ -217,6 +238,11 @@ function blockIdOf(block: DockBlock): string {
 
 function permutationOf(block: DockBlock): BlockPermutation {
   switch (block.type) {
+    case "drawers":
+      return BlockPermutation.resolve(
+        pairDecorBlockId("drawers"),
+        drawerBlockStates(block),
+      );
     case "deck":
       return BlockPermutation.resolve(DECK_FLOOR_BLOCK, {
         [DECK_FLOOR_HEIGHT_STATE]: block.height,

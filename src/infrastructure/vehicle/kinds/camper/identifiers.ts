@@ -2,8 +2,10 @@ import {
   type DecorItemId,
   isDecorItem,
 } from "../../../../domain/vehicle/dock/decor";
+import type { DockBlock } from "../../../../domain/vehicle/dock/floor";
 import {
   CAMPING_GEAR_IDS,
+  DRAWER_GEAR_IDS,
   pairHeights,
   STANDING_GEAR_IDS,
 } from "../../../../domain/vehicle/kinds/index";
@@ -103,7 +105,7 @@ export function pairHeightStates(
   return pairHeights(kind).length > 1 ? { [DECOR_HEIGHT_STATE]: height } : {};
 }
 
-const PAIR_KINDS = ["shelf", "table", "cabinet", "fridge"] as const;
+const PAIR_KINDS = ["shelf", "table", "cabinet", "fridge", "drawers"] as const;
 
 /** The furniture whose pair block `typeId` is, or undefined for any other block (ADR 0108). */
 export function pairKindOfBlock(
@@ -167,3 +169,29 @@ export function campingGearOfItem(
 export function campingGearOfDecorBlock(typeId: string): string | undefined {
   return CAMPING_GEAR_IDS.find((gear) => decorBlockId(gear) === typeId);
 }
+
+/** Compact drawer codes keep three independent items below Bedrock's permutation limit. */
+export function drawerBlockStates(
+  block: Extract<DockBlock, { type: "drawers" }>,
+): Record<string, number | boolean> {
+  const code = (item: string | undefined) =>
+    item === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(item) + 1;
+  const counter =
+    block.counter === undefined
+      ? 0
+      : STANDING_GEAR_IDS.indexOf(block.counter) + 1;
+  return {
+    [DECOR_FACE_STATE]: block.face,
+    [DRAWER_OPEN_STATES.drawer_top]: block.topOpen,
+    [DRAWER_OPEN_STATES.drawer_bottom]: block.bottomOpen,
+    [id("end0_item")]: code(block.end0),
+    [id("end1_item")]: code(block.end1),
+    [id("counter_page")]: Math.floor(counter / PAIR_PAGE_SIZE),
+    [id("counter_item")]: counter % PAIR_PAGE_SIZE,
+  };
+}
+
+const DRAWER_OPEN_STATES = {
+  drawer_top: id("top_open"),
+  drawer_bottom: id("bottom_open"),
+} as const;

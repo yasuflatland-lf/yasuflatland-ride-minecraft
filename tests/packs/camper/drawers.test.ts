@@ -77,7 +77,7 @@ describe("camper drawer poses", () => {
     ["drawer_top", 22.65],
     ["drawer_bottom", 17.25],
   ] as const) {
-    it(`syncs ${drawer} as closed by default without adding gameplay restoration`, () => {
+    it(`syncs ${drawer} as closed by default with gameplay restoration`, () => {
       expect(CAMPER_ENTITY.properties[drawer]).toEqual({
         type: "float",
         range: [0, 1],
@@ -88,7 +88,7 @@ describe("camper drawer poses", () => {
         default: 0,
         client_sync: true,
       });
-      expect(CAMPER_ENTITY.restored).not.toContain(drawer);
+      expect(CAMPER_ENTITY.restored).toContain(drawer);
     });
 
     it(`preserves ${drawer}'s geometry and translates its front into the aisle`, () => {

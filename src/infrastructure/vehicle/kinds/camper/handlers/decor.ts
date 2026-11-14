@@ -5,6 +5,7 @@ import {
   world,
 } from "@minecraft/server";
 import type { PlaceDecor } from "../../../../../application/vehicle/placeDecor";
+import type { PressStorage } from "../../../../../application/vehicle/pressStorage";
 import type { RemoveDecor } from "../../../../../application/vehicle/removeDecor";
 import {
   asDimensionId,
@@ -29,6 +30,7 @@ import {
   DECOR_HEIGHT_STATE,
   isCamperRoomBlock,
   isDecorBlock,
+  pairDecorBlockId,
 } from "../identifiers";
 
 type DockCellOwner = (
@@ -40,12 +42,17 @@ export function registerDecor(
   place: PlaceDecor,
   remove: RemoveDecor,
   dockCellOwner: DockCellOwner,
+  storage: PressStorage,
 ): void {
   // Placing gear listens to the before event because most room blocks have no custom
   // component. A gear tap on a laid cell cancels every repeat of the long-press, so held
-  // gear never opens a door, runs the shower, or sleeps in the bed (ADR 0093, 0098).
+  // gear never runs the shower or sleeps in the bed; closed drawers open before placing (ADR 0093, 0098, 0121).
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     const item = campingGearOfItem(ev.itemStack?.typeId);
+    if (ev.block.typeId === pairDecorBlockId("drawers")) {
+      drawerPress(ev, item, place, remove, storage, dockCellOwner);
+      return;
+    }
     if (item !== undefined) placeGear(ev, item, place, dockCellOwner);
   });
   // A deck seat stands on each dinette seat's slot and takes the press first, so held
@@ -186,4 +193,64 @@ function placeGearOnSeat(
 function isSlotBlock(typeId: string | undefined): boolean {
   if (typeId === undefined) return false;
   return typeId === CAMPER_FURNITURE_BLOCK || isDecorBlock(typeId);
+}
+
+function drawerPress(
+  ev: PlayerInteractWithBlockBeforeEvent,
+  item: DecorItemId | undefined,
+  place: PlaceDecor,
+  remove: RemoveDecor,
+  storage: PressStorage,
+  owner: DockCellOwner,
+): void {
+  if (item === undefined && ev.itemStack !== undefined) return;
+  const vehicleId = owner(
+    asDimensionId(ev.block.dimension.id),
+    ev.block.location,
+  );
+  if (vehicleId === undefined) return;
+  ev.cancel = true;
+  if (!ev.isFirstEvent) return;
+  const cell = { ...ev.block.location };
+  const point = {
+    x: cell.x + ev.faceLocation.x,
+    y:
+      cell.y +
+      pressedHeight(
+        ev.blockFace,
+        ev.faceLocation.y,
+        pressedShape(ev.block.typeId, undefined),
+      ),
+    z: cell.z + ev.faceLocation.z,
+  };
+  const playerId = asPlayerId(ev.player.id);
+  const hotbarSlot = ev.player.selectedSlotIndex;
+  const eye = ev.player.getHeadLocation();
+  system.run(() => {
+    if (item !== undefined) {
+      if (
+        !storage.execute({
+          playerId,
+          vehicleId,
+          cell,
+          point,
+          eye,
+          openOnly: true,
+          takeContents: false,
+        })
+      )
+        place.execute({
+          playerId,
+          vehicleId,
+          cell,
+          point,
+          hotbarSlot,
+          item,
+          exact: false,
+          eye,
+        });
+    } else if (!storage.execute({ playerId, vehicleId, cell, point, eye })) {
+      remove.execute({ playerId, vehicleId, cell, point, eye });
+    }
+  });
 }

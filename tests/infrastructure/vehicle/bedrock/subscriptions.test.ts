@@ -1429,6 +1429,7 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
 });
 
 function decorFixture() {
+  const storage = { execute: vi.fn() };
   const placeDecor = { execute: vi.fn() };
   const removeDecor = { execute: vi.fn() };
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
@@ -1437,7 +1438,7 @@ function decorFixture() {
   const before = game.before.mock.calls.length;
   const startupsBefore = game.startup.mock.calls.length;
   registerSubscriptions(
-    { placeDecor, removeDecor } as unknown as Parameters<
+    { placeDecor, removeDecor, storage } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
     new VehicleTestStore<RawInput>(),
@@ -1479,7 +1480,15 @@ function decorFixture() {
     handler(ev as unknown as PlayerInteractWithBlockBeforeEvent);
     return ev;
   };
-  return { placeDecor, removeDecor, owner, startupsBefore, event, send };
+  return {
+    placeDecor,
+    removeDecor,
+    storage,
+    owner,
+    startupsBefore,
+    event,
+    send,
+  };
 }
 
 it("places held camping gear on a camper room, furniture, decor, or pair block on the next tick and cancels every repeat, falling back to another slot, with the player's eye and the corrected height (ADR 0093, 0097, 0104, 0108, 0110, 0111)", () => {
@@ -2418,4 +2427,66 @@ it("stores and clears held items only from server script events", () => {
   expect(testHeldItems.get(asVehicleId("car"))).toBe("yasu_ride:blade_switch");
   send("car,clear");
   expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
+});
+
+it("routes drawer front presses with corrected height and the view ray while cancelling held repeats", () => {
+  fc.assert(
+    fc.property(fc.double({ min: 0.05, max: 0.8, noNaN: true }), (height) => {
+      const f = decorFixture();
+      const ev = f.event({
+        itemStack: undefined,
+        blockFace: "West",
+        faceLocation: { x: 0, y: 1 - height, z: 0.5 },
+      });
+      ev.block = { ...ev.block, typeId: pairDecorBlockId("drawers") };
+      f.storage.execute.mockReturnValue(true);
+      expect(f.send(ev).cancel).toBe(true);
+      for (const [callback] of game.run.mock.calls) callback();
+      expect(f.storage.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId: "p",
+        vehicleId: "car",
+        cell: ev.block.location,
+        point: { x: 1, y: 64 + height, z: 2.5 },
+        eye: ev.player.getHeadLocation(),
+      });
+      expect(f.removeDecor.execute).not.toHaveBeenCalled();
+      game.run.mockClear();
+      expect(f.send({ ...ev, isFirstEvent: false }).cancel).toBe(true);
+      expect(game.run).not.toHaveBeenCalled();
+    }),
+  );
+});
+
+it("opens a closed drawer with held gear, places on an open drawer, and routes the counter surface through decor", () => {
+  const f = decorFixture();
+  const ev = f.event({ blockFace: "West" });
+  ev.block = { ...ev.block, typeId: pairDecorBlockId("drawers") };
+  f.storage.execute.mockReturnValueOnce(true);
+  f.send(ev);
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(f.storage.execute).toHaveBeenLastCalledWith(
+    expect.objectContaining({ openOnly: true, takeContents: false }),
+  );
+  expect(f.placeDecor.execute).not.toHaveBeenCalled();
+  game.run.mockClear();
+  f.storage.execute.mockReturnValue(false);
+  f.send(ev);
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(f.placeDecor.execute).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      item: "percolator",
+      point: { x: 1.25, y: 64.75, z: 2.5 },
+    }),
+  );
+  game.run.mockClear();
+  const surface = f.event({ itemStack: undefined });
+  surface.block = { ...surface.block, typeId: pairDecorBlockId("drawers") };
+  f.send(surface);
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(f.removeDecor.execute).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      point: { x: 1.25, y: 65, z: 2.5 },
+      eye: surface.player.getHeadLocation(),
+    }),
+  );
 });

@@ -167,6 +167,22 @@ describe("Camper room blocks (ADR 0068)", () => {
           p.condition === `q.block_state('${DECOR_HEIGHT_STATE}') == ${height}`,
       ).components["minecraft:selection_box"];
     for (const slot of DECOR_SLOTS) {
+      if (slot.pair?.kind === "drawers") {
+        const pair = JSON.parse(
+          readFileSync(
+            "packs/yasu_ride_bp/blocks/yasu_ride/drawers_decor_pair.block.json",
+            "utf8",
+          ),
+        )["minecraft:block"];
+        const box = pair.components["minecraft:selection_box"];
+        expect(box.origin).toEqual([-8, 0, -8]);
+        expect(box.size).toEqual([16, 16, 16]);
+        expect(slot.height).toBeGreaterThan(box.origin[1]);
+        expect(slot.height + 4.5).toBeLessThanOrEqual(
+          box.origin[1] + box.size[1],
+        );
+        continue;
+      }
       const { origin, size } = boxOf(slot.hanging ? 0 : slot.height);
       const spot = DECOR_SPOTS[slot.spot ?? 0];
       expect(spot).toBeDefined();

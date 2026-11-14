@@ -355,3 +355,15 @@ it("gives the wall cabinet's compartment block its box lifted onto the compartme
     3 / 16,
   );
 });
+
+it("corrects the shared drawer block side heights without embedding the door split in infrastructure", () => {
+  fc.assert(
+    fc.property(reported, fc.constantFrom(...FACES), (y, face) => {
+      const shape = pressedShape(pairDecorBlockId("drawers"), undefined);
+      expect(shape).toEqual({ kind: "room", bottom: 0, top: 1 });
+      expect(pressedHeight(face, y, shape)).toBe(
+        face === "Up" ? 1 : face === "Down" ? 0 : 1 - y,
+      );
+    }),
+  );
+});
