@@ -2447,9 +2447,10 @@ it("routes drawer front presses with raw side height and the press ray while can
         playerId: "p",
         vehicleId: "car",
         cell: ev.block.location,
-        // Side height inversion is unconfirmed on touch; virtual boxes select the drawer.
+        // Side-face height picks the drawer; virtual boxes serve other routes.
         point: { x: 1, y: 64 + ev.faceLocation.y, z: 2.5 },
         eye: ev.player.getHeadLocation(),
+        sideFace: true,
       });
       expect(f.removeDecor.execute).not.toHaveBeenCalled();
       game.run.mockClear();

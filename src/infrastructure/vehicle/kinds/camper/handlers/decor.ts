@@ -282,8 +282,9 @@ function drawerPress(
   let cell = { ...ev.block.location };
   const point = {
     x: cell.x + ev.faceLocation.x,
-    // Horizontal faces have known box heights; side-face y inversion is
-    // unconfirmed on 1.26.63 touch, so drawer identity comes from ray targets.
+    // Up and Down faces have known box heights. A side face reports the real
+    // height on 1.26.63 touch (measured 4.679 and 10.467 px for the two drawers),
+    // so the drawers cell picks its drawer from it; depth is not trusted.
     y:
       cell.y +
       (ev.blockFace === "Up" || ev.blockFace === "Down"
@@ -298,6 +299,7 @@ function drawerPress(
   const playerId = asPlayerId(ev.player.id);
   const hotbarSlot = ev.player.selectedSlotIndex;
   const eye = ev.player.getHeadLocation();
+  const sideFace = ev.blockFace !== "Up" && ev.blockFace !== "Down";
   if (ev.block.typeId === id("camper_floor")) {
     if (item !== undefined && !DRAWER_GEAR_IDS.has(item)) return;
     const hit = storage.drawerTarget(
@@ -326,6 +328,7 @@ function drawerPress(
           eye,
           openOnly: true,
           takeContents: false,
+          sideFace,
         })
       )
         place.execute({
@@ -338,7 +341,16 @@ function drawerPress(
           exact: false,
           eye,
         });
-    } else if (!storage.execute({ playerId, vehicleId, cell, point, eye })) {
+    } else if (
+      !storage.execute({
+        playerId,
+        vehicleId,
+        cell,
+        point,
+        eye,
+        sideFace,
+      })
+    ) {
       remove.execute({ playerId, vehicleId, cell, point, eye });
     }
   });
