@@ -103,7 +103,7 @@ function fixture(
   const rayPoint = (
     left: number,
     height: number,
-    ahead = DRAWER_HIT_PROFILE.contentAhead,
+    ahead: number = DRAWER_HIT_PROFILE.contentAhead,
   ) => {
     const { f, l } = axes(pose.yaw);
     return {
@@ -128,7 +128,7 @@ function fixture(
       DRAWER_HIT_PROFILE.frontBottom[door] + DRAWER_HIT_PROFILE.frontHeight / 2;
     const eye = contents
       ? rayPoint(DRAWER_HIT_PROFILE.contentLeft, 20)
-      : rayPoint(-28, height);
+      : rayPoint(28, height);
     const target = contents
       ? rayPoint(DRAWER_HIT_PROFILE.contentLeft, 0)
       : rayPoint(0, height);
@@ -174,6 +174,14 @@ function fixture(
     step,
     point,
     press,
+    floorPress: () =>
+      drive.pressStorage(
+        localCellAt(pose, { x: 0, z: -1, layer: 0 }),
+        rayPoint(10.336, 0, -6),
+        tick,
+        undefined,
+        rayPoint(20.544, 24.32, 5.152),
+      ),
     place,
     opened,
     holds,
@@ -308,10 +316,17 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
         .some((d) => d.slot === "counter" && d.item === "potted_plant"),
       "Counter decor must survive",
     );
+    await f.advance(CAMPER_SPEC.doorSwingTicks);
+    requireCheck(
+      f.floorPress()?.kind === "door",
+      "Recorded aisle-floor ray must close the open empty bottom drawer",
+    );
+    await f.advance(1);
+    requireCheck(!f.opened("bottom"), "Floor press must start bottom closing");
     return {
       pass: true,
       detail:
-        "independent toggle, allowed/occupied/tall placement, contents follow opening, close and removal",
+        "floor-routed close, independent toggle, allowed/occupied/tall placement, contents follow opening, close and removal",
     };
   });
 }

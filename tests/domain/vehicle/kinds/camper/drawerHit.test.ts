@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
 import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
 import type { HoldPose } from "../../../../../src/domain/vehicle/dock/floor";
-import { drawerHit } from "../../../../../src/domain/vehicle/kinds/camper/drawerHit";
+import { drawerBlockHit as drawerHit } from "../../../../../src/domain/vehicle/kinds/camper/drawerHit";
 import {
   DRAWER_COMPARTMENT,
   drawerAtHeight,
@@ -76,8 +76,8 @@ describe("drawer press ray targets", () => {
           const hit = drawerHit(
             pose,
             cell,
-            world(pose, -8.6, 20),
-            world(pose, -8.6, 0),
+            world(pose, 8.6, 20),
+            world(pose, 8.6, 0),
             contents,
             new Set<StorageDoorId>([id]),
           );
@@ -101,7 +101,7 @@ describe("drawer press ray targets", () => {
           const hit = drawerHit(
             pose,
             cell,
-            world(pose, -28, height),
+            world(pose, 28, height),
             world(pose, 0, height),
             contents,
             new Set<StorageDoorId>(opened ? [id] : []),
@@ -136,20 +136,28 @@ describe("drawer press ray targets", () => {
     );
   });
 
-  it("does not fabricate a content target for closed or empty drawers", () => {
+  it("gives an empty open drawer a body target", () => {
     fc.assert(
-      fc.property(poses, fc.boolean(), (pose, opened) => {
+      fc.property(poses, (pose) => {
         const cell = localCellAt(pose, DRAWER_COMPARTMENT);
+        const hit = drawerHit(
+          pose,
+          cell,
+          world(pose, 8.6, 20),
+          world(pose, 8.6, 0),
+          [],
+          new Set<StorageDoorId>(["drawer_bottom"]),
+        );
+        expect(hit?.door).toBe("drawer_bottom");
+        expect(hit?.takeContents).toBe(false);
         expect(
           drawerHit(
             pose,
             cell,
-            world(pose, -8.6, 20),
-            world(pose, -8.6, 0),
-            opened ? [] : contents,
-            new Set<StorageDoorId>(
-              opened ? ["drawer_top", "drawer_bottom"] : [],
-            ),
+            world(pose, 8.6, 20),
+            world(pose, 8.6, 0),
+            contents,
+            new Set(),
           ),
         ).toBeUndefined();
       }),
@@ -160,8 +168,8 @@ describe("drawer press ray targets", () => {
     fc.assert(
       fc.property(poses, (pose) => {
         const cell = localCellAt(pose, DRAWER_COMPARTMENT);
-        const eye = world(pose, -28, 3);
-        const away = world(pose, -30, 3);
+        const eye = world(pose, 28, 3);
+        const away = world(pose, 30, 3);
         const open = new Set<StorageDoorId>();
         expect(
           drawerHit(pose, cell, eye, away, contents, open),
@@ -180,7 +188,7 @@ describe("drawer press ray targets", () => {
         expect(
           drawerHit(
             pose,
-            { ...cell, x: cell.x + 1 },
+            { ...cell, x: cell.x + 5 },
             eye,
             world(pose, 0, 3),
             contents,

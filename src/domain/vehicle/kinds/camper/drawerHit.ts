@@ -14,6 +14,7 @@ interface Target {
   min: Point;
   max: Point;
   height: number;
+  door?: StorageDoorId;
   takeContents: boolean;
 }
 
@@ -43,33 +44,27 @@ function intersection(
 /** Resolve the visible drawer/front/counter along a press ray in the combined block. */
 export function drawerHit(
   pose: HoldPose,
-  cell: Vec3,
   eye: Vec3,
-  point: Vec3,
+  ray: Vec3,
   decor: readonly DecorPlacement[],
   open: ReadonlySet<StorageDoorId>,
-): { point: Vec3; takeContents: boolean } | undefined {
+): { door?: StorageDoorId; point: Vec3; takeContents: boolean } | undefined {
   if (
     ![
       pose.x,
       pose.y,
       pose.z,
       pose.yaw,
-      cell.x,
-      cell.y,
-      cell.z,
       eye.x,
       eye.y,
       eye.z,
-      point.x,
-      point.y,
-      point.z,
+      ray.x,
+      ray.y,
+      ray.z,
     ].every(Number.isFinite)
   )
     return undefined;
-  const expected = localCellAt(pose, DRAWER_COMPARTMENT);
-  if (cell.x !== expected.x || cell.y !== expected.y || cell.z !== expected.z)
-    return undefined;
+  const cell = localCellAt(pose, DRAWER_COMPARTMENT);
   const { f, l } = axes(pose.yaw);
   const local = (p: Vec3): Point => {
     const x = p.x - cell.x - 0.5;
@@ -81,7 +76,7 @@ export function drawerHit(
     ];
   };
   const origin = local(eye);
-  const end = local(point);
+  const end = local({ x: eye.x + ray.x, y: eye.y + ray.y, z: eye.z + ray.z });
   const direction: Point = [
     end[0] - origin[0],
     end[1] - origin[1],
@@ -102,23 +97,36 @@ export function drawerHit(
     },
   ];
   for (const door of KITCHEN_DRAWERS.doors) {
+    if (origin[0] < -half) continue;
     if (door.id !== "drawer_top" && door.id !== "drawer_bottom") continue;
     const slot = door.slots[0];
     if (!slot) continue;
     const shift = open.has(door.id) ? DRAWER_SLIDE_PX : 0;
     const bottom = HIT.frontBottom[door.id];
     targets.push({
-      min: [HIT.frontLeftMin - shift, bottom, HIT.frontAheadMin],
+      min: [HIT.frontLeftMin + shift, bottom, HIT.frontAheadMin],
       max: [
-        HIT.frontLeftMax - shift,
+        HIT.frontLeftMax + shift,
         bottom + HIT.frontHeight,
         HIT.frontAheadMax,
       ],
       height: slot.height,
+      door: door.id,
       takeContents: false,
     });
     if (!open.has(door.id)) continue;
     const item = decor.find((placement) => placement.slot === slot.id)?.item;
+    targets.push({
+      min: [half, bottom, HIT.frontAheadMin],
+      max: [
+        HIT.frontLeftMax + shift,
+        bottom + HIT.frontHeight,
+        HIT.frontAheadMax,
+      ],
+      height: slot.height,
+      door: door.id,
+      takeContents: item !== undefined,
+    });
     const gear =
       item !== undefined && Object.hasOwn(HIT.gear, item)
         ? HIT.gear[item as keyof typeof HIT.gear]
@@ -133,6 +141,7 @@ export function drawerHit(
         HIT.contentAhead + width,
       ],
       height: slot.height,
+      door: door.id,
       takeContents: true,
     });
   }
@@ -150,6 +159,7 @@ export function drawerHit(
   const left = origin[0] + direction[0] * nearest.distance;
   const ahead = origin[2] + direction[2] * nearest.distance;
   return {
+    door: nearest.target.door,
     point: {
       x: cell.x + 0.5 + (left * l.x + ahead * f.x) / HIT.pixelsPerBlock,
       y: cell.y + nearest.target.height / HIT.pixelsPerBlock,
@@ -157,4 +167,35 @@ export function drawerHit(
     },
     takeContents: nearest.target.takeContents,
   };
+}
+
+/** Only the counter and its adjacent aisle cells may forward a block press. */
+export function drawerPressCell(pose: HoldPose, cell: Vec3): Vec3 | undefined {
+  const counter = localCellAt(pose, DRAWER_COMPARTMENT);
+  const cells = [
+    counter,
+    localCellAt(pose, { x: 0, z: DRAWER_COMPARTMENT.z, layer: 1 }),
+    localCellAt(pose, { x: 0, z: DRAWER_COMPARTMENT.z, layer: 0 }),
+  ];
+  return cells.some((c) => c.x === cell.x && c.y === cell.y && c.z === cell.z)
+    ? counter
+    : undefined;
+}
+
+export function drawerBlockHit(
+  pose: HoldPose,
+  cell: Vec3,
+  eye: Vec3,
+  point: Vec3,
+  decor: readonly DecorPlacement[],
+  open: ReadonlySet<StorageDoorId>,
+) {
+  if (!drawerPressCell(pose, cell)) return undefined;
+  return drawerHit(
+    pose,
+    eye,
+    { x: point.x - eye.x, y: point.y - eye.y, z: point.z - eye.z },
+    decor,
+    open,
+  );
 }

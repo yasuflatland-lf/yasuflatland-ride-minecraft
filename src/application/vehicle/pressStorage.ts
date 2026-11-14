@@ -1,5 +1,6 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+import type { DecorItemId } from "../../domain/vehicle/dock/decor";
 // Use case: a player pressed a parked vehicle's storage with doors, such as the wall cabinet,
 // with an empty hand (ADR 0114, 0121).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
@@ -30,6 +31,20 @@ export class PressStorage {
     private readonly repo: VehicleRepository,
     private readonly clock: Clock,
   ) {}
+
+  drawerTarget(
+    vehicleId: VehicleId,
+    eye: Vec3,
+    direction: Vec3,
+    cell?: Vec3,
+    item?: DecorItemId,
+    feet?: Vec3,
+  ) {
+    return this.repo
+      .get(vehicleId)
+      ?.asRoom()
+      ?.drawerTarget?.(eye, direction, cell, item, feet);
+  }
 
   /** Returns whether the press did anything; an item taken out is saved and given. */
   execute(cmd: PressStorageCommand): boolean {

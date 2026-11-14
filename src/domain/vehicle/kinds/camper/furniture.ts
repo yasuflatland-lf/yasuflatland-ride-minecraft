@@ -330,10 +330,9 @@ export const FRIDGE: DooredStorage<StorageDoorId, "fridge"> = {
 
 const COUNTER_CELL = { x: -1, z: -1, layer: DRAWER_CELL_LAYER } as const;
 
-// One block carries both drawers, chosen from the #1681 iPad probe (PC was not
-// measured by owner decision). The model pivots are
-// (9, y, 16.45); room x/z point left/forward, opposite the model's kitchen side.
-// A two-cell layout would replace this cell and drawerAtHeight with one cell per door.
+// One counter cell carries both drawers. Room +left follows model +x into the
+// aisle: the model counter center is x=-16, its front x=-9..-8.65, and the
+// fronts slide +6.6 px. Ahead follows the opposite sign of model z.
 export const DRAWER_COMPARTMENT = COUNTER_CELL;
 const DRAWER_SEAM = DRAWER_TOP_Y - DRAWER_BOTTOM_Y - DRAWER_FRONT_HEIGHT;
 export const DRAWER_SPLIT_HEIGHT =

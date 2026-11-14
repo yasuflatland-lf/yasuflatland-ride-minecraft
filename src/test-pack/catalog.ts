@@ -636,7 +636,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     name: "camper_drawers_interaction",
     file: "camperDrawers",
     // Estimate until the first BDS run.
-    ticks: 24,
+    ticks: 35,
     features: ["vehicle:camper"],
     isolation: "lane",
     needsPlayer: false,
