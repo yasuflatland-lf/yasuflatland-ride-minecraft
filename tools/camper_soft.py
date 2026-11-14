@@ -51,7 +51,7 @@ def fabric_pixels() -> dict[str, bytes]:
                 noise = rng.choice(NOISE)
                 if name == WELT:
                     color = (85, 84, 43)
-                    noise += round(9 * math.sin(y * .6))
+                    noise += round(round(9 * math.sin(y * .6), 6))
                 else:
                     color = STRIPES[(x // 8) % 4] if name == BOLSTER else (100, 105, 56)
                     noise += (-12, -3, 6, 2, 0, -5)[x % 6]
@@ -64,7 +64,10 @@ def fabric_pixels() -> dict[str, bytes]:
 
 
 def register_regions(registry: RegionRegistry) -> None:
+    existing = {r.name for r in registry.regions()}
     for name, width, height in REGIONS:
+        if name in existing:
+            continue
         pixels = fabric_pixels()[name]
         registry.register(regions.Region(name, width, height, regions.Material.FABRIC,
             lambda x, y, data=pixels, w=width: tuple(data[(y * w + x) * 4:(y * w + x + 1) * 4])))
@@ -72,6 +75,9 @@ def register_regions(registry: RegionRegistry) -> None:
 
 def fabric_box(registry: RegionRegistry, origin: list[float], size: list[float],
                material: str = TWEED) -> dict:
+    kit = load_tool("camper_kit")
+    if registry is kit.REGISTRY:
+        kit.prepare_layout()
     layout = registry._layout
     if layout is None:
         raise ValueError("Pack the upholstery registry before building cubes")

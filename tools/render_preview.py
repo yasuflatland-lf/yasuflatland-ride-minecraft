@@ -146,11 +146,15 @@ BOAT_POSES = {
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
 CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
+# Kitchen counter, range and burner faces map whole laminate and stainless
+# regions (up to 192 x 192 texels) onto sub-unit strips, exhausting CI memory.
+# 16 cells/unit keeps >2 cells per final pixel (max 5.55 px/unit).
+CAMPER_CELLS_PER_UNIT = 16
 CAMPER_POSES = {
-    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
-    "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
-    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
-    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
+    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
+    "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT},
+    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT, "brightness": SIDE_BRIGHTNESS},
+    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
 }
 
 BULLDOZER_GEOMETRY = "models/entity/yasu_ride/bulldozer.geo.json"
@@ -356,8 +360,8 @@ def face_color(texture, face, tex_w, tex_h):
     return texture[y][x]
 
 
-def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
-    """Split nonuniform UV rectangles at texel boundaries, preserving uniform quads exactly."""
+def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False, cells_per_unit=None):
+    """Split at texel boundaries, optionally limiting cell density along each model-space axis."""
     (u, v), (du, dv) = face["uv"], face["uv_size"]
     u, du = u * len(texture[0]) / tex_w, du * len(texture[0]) / tex_w
     v, dv = v * len(texture) / tex_h, dv * len(texture) / tex_h
@@ -368,7 +372,20 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
         lo, hi = sorted((start, start + length))
         return sorted([0, 1, *[(n - start) / length for n in range(math.floor(lo) + 1, math.ceil(hi))]])
 
+    # Bedrock up/down UVs run u along +x and v toward -z; side faces run v downward.
+    order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
+    tl, tr, br, bl = [quad[i] for i in order]
     us, vs = breaks(u, du), breaks(v, dv)
+    capped = False
+    if cells_per_unit is not None:
+        def limit(axis_breaks, edge):
+            # Rotated corners differ by one ulp between macOS and Linux libm; snap before ceil.
+            count = max(1, math.ceil(round(math.dist(*edge) * cells_per_unit, 6)))
+            return [i / count for i in range(count + 1)] if len(axis_breaks) - 1 > count else axis_breaks
+
+        limited_us, limited_vs = limit(us, (tl, tr)), limit(vs, (tl, bl))
+        capped = limited_us is not us or limited_vs is not vs
+        us, vs = limited_us, limited_vs
     if merge:
         # Merge equal texels before creating geometry: furniture atlases can otherwise
         # expand one face into hundreds of thousands of Python polygon objects.
@@ -403,12 +420,8 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False):
                 y = max(0, min(len(texture) - 1, int(v + dv * (c + d) / 2)))
                 cells.append((a, b, c, d, texture[y][x]))
     if len({color for *_, color in cells}) == 1:
-        yield quad, face_color(texture, face, tex_w, tex_h)
+        yield quad, cells[0][-1] if capped else face_color(texture, face, tex_w, tex_h)
         return
-
-    # Bedrock up/down UVs run u along +x and v toward -z; side faces run v downward.
-    order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
-    tl, tr, br, bl = [quad[i] for i in order]
 
     points = {}
 
@@ -654,10 +667,22 @@ class TextureFace:
     tint: tuple
     lift: float
     merge: bool
+    cells_per_unit: float | None
+    face_cache: dict | None
+    cache_key: tuple
 
     def patches(self, quad):
-        for patch, color in textured_face(self.texture, self.uv, quad, self.name,
-                                         self.width, self.height, merge=self.merge):
+        if self.face_cache is not None and self.cache_key in self.face_cache:
+            patches = self.face_cache[self.cache_key]
+        else:
+            patches = textured_face(self.texture, self.uv, quad, self.name,
+                                    self.width, self.height, merge=self.merge,
+                                    cells_per_unit=self.cells_per_unit)
+            if self.face_cache is not None:
+                # Expand only visible faces, then reuse unshaded patches across poses.
+                patches = list(patches)
+                self.face_cache[self.cache_key] = patches
+        for patch, color in patches:
             yield patch, tuple(color[i] * self.light * self.tint[i] + self.lift for i in range(3)), None
 
 
@@ -674,7 +699,7 @@ def opaque_region(texture, uv, width, height):
 
 
 
-def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, defer_textures=False):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, face_cache=None, frame_quads=None, defer_textures=False):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
@@ -694,6 +719,8 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                     continue
                 if color is not None and not cutout:
                     polygons.append((quad, color, "lamp"))
+                    if frame_quads is not None:
+                        frame_quads.append(quad)
                     continue
                 # Mirroring x reverses winding; textured gear opts into outward normals.
                 if pose.get("outward_normals", False):
@@ -701,6 +728,7 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
+                cache_key = (bone["name"], id(cube), face, pose.get("merge_texels", False), pose.get("cells_per_unit"))
                 if texture_mapping and defer_textures and not cutout:
                     key = (*uv['uv'], *uv['uv_size'])
                     if key not in opacity:
@@ -708,12 +736,30 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                     if opacity[key]:
                         polygons.append((quad, TextureFace(texture, uv, face,
                             desc['texture_width'], desc['texture_height'],
-                            k, tint, face_lift, pose.get('merge_texels', False)), None))
+                            k, tint, face_lift, pose.get('merge_texels', False),
+                            pose.get('cells_per_unit'), face_cache, cache_key), None))
+                        if frame_quads is not None:
+                            frame_quads.append(quad)
                         continue
                 if texture_mapping:
-                    patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False))
+                    key = cache_key
+                    if face_cache is not None and key in face_cache:
+                        patches = face_cache[key]
+                    else:
+                        patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"], merge=pose.get("merge_texels", False), cells_per_unit=pose.get("cells_per_unit"))
+                        if face_cache is not None:
+                            # Camper poses share static geometry and atlas pixels; shade each pose below.
+                            patches = list(patches)
+                            face_cache[key] = patches
                 else:
                     patches = [(quad, face_color(texture, uv, desc["texture_width"], desc["texture_height"]))]
+                if frame_quads is not None:
+                    patches = list(patches)
+                    if patches and all(pixel[3] == 255 for _, pixel in patches):
+                        # Perspective extrema of an opaque planar face occur at its corners.
+                        frame_quads.append(quad)
+                    else:
+                        frame_quads.extend(patch for patch, pixel in patches if pixel[3] == 255)
                 for patch, (r, g, b, a) in patches:
                     if cutout and a < CUTOUT_ALPHA:
                         continue
@@ -1104,7 +1150,7 @@ def render_camper(rp):
     # Camper previews use the ground pose, where the render controller hides hover glows.
     geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Other atlases intentionally use center sampling in their established previews.
-    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True, defer_textures=True)
+    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True, cache_faces=True, defer_textures=True)
 
 
 def bulldozer_bones(bones):
@@ -1126,14 +1172,20 @@ def render_bulldozer(rp):
     )
 
 
-def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, defer_textures=False):
-    scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping, defer_textures=defer_textures) for name, pose in poses.items()}
-    points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cache_faces=False, defer_textures=False):
+    face_cache = {} if cache_faces else None
+    bounds = {name: [] for name in poses} if cache_faces else None
+    scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping, face_cache=face_cache,
+                                frame_quads=bounds[name] if bounds is not None else None,
+                                defer_textures=defer_textures)
+              for name, pose in poses.items()}
+    frame_faces = bounds if bounds is not None else {name: [q for q, _, _ in scene[0]] for name, scene in scenes.items()}
+    points = [p for quads in frame_faces.values() for quad in quads for p in quad]
     frames = {}
     for name, pose in poses.items():
         frames.setdefault((pose["view"], pose["screen_up"]), []).append(name)
     views = [
-        (Camera(points, view, screen_up), [q for name in names for q, _, _ in scenes[name][0]])
+        (Camera(points, view, screen_up), [q for name in names for q in frame_faces[name]])
         for (view, screen_up), names in frames.items()
     ]
     images = {}

@@ -27,3 +27,15 @@ def mer_painter(lookup, default=MER_OFF):
         value = lookup(x, y)
         return (default if value is None else value).rgba()
     return pixel
+
+
+def layout_mask(layout, region_name, local_mask):
+    """Translate a bounded region-local mask into atlas coordinates."""
+    region = next(r for r in layout.regions if r.name == region_name)
+    ox, oy = layout.origin(region_name)
+
+    def mask(x, y):
+        u, v = x - ox, y - oy
+        return 0 <= u < region.width and 0 <= v < region.height and local_mask(u, v)
+
+    return mask

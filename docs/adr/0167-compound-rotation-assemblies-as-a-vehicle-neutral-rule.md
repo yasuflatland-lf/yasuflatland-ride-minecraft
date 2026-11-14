@@ -12,15 +12,17 @@ The sports boat helm introduced a rigid compound tilt and a global wheel excepti
 
 ## Decision
 
-- A cube may carry two or more non-zero Euler axes only when it belongs to a named assembly built through `tilt_assembly` and registered in its generator's `ASSEMBLIES` table. Other cubes retain at most one axis.
+- A cube may carry two or more non-zero Euler axes only when it belongs to a named assembly built through `tilt_assembly` (or a tangent-frame matrix for curved surface patches) and registered in its generator's `ASSEMBLIES` table. Other cubes retain at most one axis.
 - The table shape is `{name: {"owner": generator_name, "cubes": count_or_description}}`. The sports boat declares only `{"wheel": {"owner": "sportsboat", "cubes": 146}}`. Shipped compound cubes that already existed in the other generators are registered as they stand (see below).
 - `tilt_assembly(cubes, pivot, axis, degrees, assembly=None, assemblies=None)` requires the name to be a key in the supplied table whenever a result carries multiple axes. The default table is empty; unknown or missing names fail with `ValueError`, including a zero-degree tilt of an already compound cube.
 - Every generator checks final model cubes before writing with `assert_axes(cubes, assemblies)`. This checker receives a separate `{name: tilted_member_cubes}` mapping in the final coordinate frame and compares cubes by value. It rejects multi-axis cubes outside those lists, using a non-zero tolerance of 1e-6. The bulldozer monitor is checked too.
 - Shipped-model tests share `tests/packs/oneAxis.ts`, with `multipleAxes` and `assertOneAxis`, and declare their own membership tables. The sports boat uses its existing 146 wheel cubes; the SUV, camper and bulldozer pin the counts of their registered assemblies. Property tests exercise both Python and TypeScript checks without running generators.
 - `tools/tool_loader.py` exposes cached `load_tool(name)` through `functools.cache` and `importlib`. Generators bootstrap the sibling directory onto `sys.path` because isolated Python (`-I`) omits it. The sports boat uses this loader for cube tilt, tile layout, and preview decoding.
 - Preserve the rotation-order assumption from 0166: `Rz(-rz) * Ry(ry) * Rx(-rx)`, z outermost and x innermost. The assembly tilt multiplies on the left. Confirmation on a device remains pending; this refactor provides no new in-game evidence.
-- To add a camper, SUV, or bulldozer assembly, add its name, owner, and cube count or description to the generator table; build it through `tilt_assembly(..., assembly=name, assemblies=ASSEMBLIES)`; retain its tilted member cubes through final coordinate conversion for `assert_axes`; and add the corresponding membership entry to its shipped-model test.
-- Throttle lever and dial changes in #682/#684 are out of scope. No geometry, textures, previews, Resource Pack files, or manifest versions change.
+- To add a camper, SUV, or bulldozer assembly, add its name, owner, and cube count or description to the generator table; build it through `tilt_assembly(..., assembly=name, assemblies=ASSEMBLIES)` or a decomposed tangent frame for curved surface patches; retain its tilted member cubes through final coordinate conversion for `assert_axes`; and add the corresponding membership entry to its shipped-model test.
+- The camper registers `cab_seats` with 464 compound-rotated tangent patches across its two rounded cab buckets. `cube_tilt._rotation_of` decomposes each surface frame; the final generator and shipped-model tests check membership separately from the existing front-panel and slanted assemblies.
+- The main-window curtain fan facets use single-axis tilts; they require no compound rotation assembly.
+- Throttle lever and dial changes in #682/#684 were outside the original rule-only refactor. Subsequent assemblies that change geometry regenerate the affected assets and bump the Resource Pack version.
 
 ## Consequences
 
@@ -28,4 +30,4 @@ Implementation verification found compound cubes outside the sports boat that pr
 
 All four vehicle generators enforce one rule without a global vehicle-specific exception. Registration records ownership and scope, while the final checker catches compound cubes that escape their assembly. Each new assembly needs matching generator and test membership lists, which must remain in the checked coordinate frame.
 
-Regeneration and the model freshness check must leave assets byte-identical. If the pending device check finds a different composition order, revisit the shared transform under a separate model change.
+Regeneration and the model freshness check must reproduce the current committed assets. If the pending device check finds a different composition order, revisit the shared transform under a separate model change.
