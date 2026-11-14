@@ -248,6 +248,8 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
    * back the item at the end nearest `point`, or shuts the door when that end is empty. A tap
    * may reach the block twice (ADR 0105), so a press within a swing of the door's last
    * action does nothing; otherwise the echo of an opening tap could take an item out.
+   * A `sideFace` press on the drawers cell carries a measured height, so that height alone
+   * picks the drawer, whichever drawers are open; the ray then only serves other presses.
    */
   pressStorage(
     cell: Vec3,
@@ -256,10 +258,16 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     takeContents?: boolean,
     eye?: Vec3,
     openOnly = false,
+    sideFace = false,
   ): StoragePress | undefined {
     const pose = this.parked;
+    const byHeight =
+      sideFace &&
+      point !== undefined &&
+      pose !== undefined &&
+      sameCell(cell, localCellAt(pose, DRAWER_COMPARTMENT));
     const hit =
-      pose && point && eye
+      !byHeight && pose && point && eye
         ? drawerBlockHit(
             pose,
             cell,
@@ -270,7 +278,7 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
           )
         : undefined;
     const counter = pose && drawerPressCell(pose, cell);
-    if (counter) {
+    if (counter && !byHeight) {
       if (
         !hit?.door &&
         (cell.x !== counter.x || cell.y !== counter.y || cell.z !== counter.z)
@@ -816,4 +824,8 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       ...(running === undefined ? [] : [showerCommand(running)]),
     ];
   }
+}
+
+function sameCell(a: Vec3, b: Vec3): boolean {
+  return a.x === b.x && a.y === b.y && a.z === b.z;
 }

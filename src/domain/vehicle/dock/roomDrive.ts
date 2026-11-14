@@ -53,6 +53,7 @@ export interface RoomDrive {
     takeContents?: boolean,
     eye?: Vec3,
     openOnly?: boolean,
+    sideFace?: boolean,
   ): StoragePress | undefined;
 }
 
