@@ -43,7 +43,7 @@ it("lists exactly the standing catalogue gear no taller than the drawer interior
   ).toBe(true);
 });
 
-it("isolates the provisional cell and seam split from the model constants", () => {
+it("isolates the shared drawer cell and seam split from the model constants", () => {
   const source = readFileSync("tools/camper_kitchen_fronts.py", "utf8");
   const heights = source.match(
     /DRAWER_HEIGHTS = \{"drawer_bottom": ([\d.]+), "drawer_top": ([\d.]+)\}/,
