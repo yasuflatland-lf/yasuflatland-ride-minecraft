@@ -146,9 +146,9 @@ BOAT_POSES = {
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
 CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
-# The cab PAD maps 184 x 48 texels onto 1 px strips; cells finer than the output
-# can show blew the CI model job past its limit. 16 cells/unit keeps >2 cells
-# per final pixel (max 5.55 px/unit).
+# Cab PAD strips and kitchen faces mapping up to 192 x 192 texels onto
+# sub-unit strips exceed CI memory without a sampling cap. 16 cells/unit
+# keeps >2 cells per final pixel (max 5.55 px/unit).
 CAMPER_CELLS_PER_UNIT = 16
 CAMPER_POSES = {
     "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
@@ -656,12 +656,56 @@ def bone_turns(bones):
     return turns
 
 
-def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, face_cache=None, frame_quads=None):
+@dataclass(frozen=True)
+class TextureFace:
+    texture: list
+    uv: dict
+    name: str
+    width: int
+    height: int
+    light: float
+    tint: tuple
+    lift: float
+    merge: bool
+    cells_per_unit: float | None
+    face_cache: dict | None
+    cache_key: tuple
+
+    def patches(self, quad):
+        if self.face_cache is not None and self.cache_key in self.face_cache:
+            patches = self.face_cache[self.cache_key]
+        else:
+            patches = textured_face(self.texture, self.uv, quad, self.name,
+                                    self.width, self.height, merge=self.merge,
+                                    cells_per_unit=self.cells_per_unit)
+            if self.face_cache is not None:
+                # Expand only visible faces, then reuse unshaded patches across poses.
+                patches = list(patches)
+                self.face_cache[self.cache_key] = patches
+        for patch, color in patches:
+            yield patch, tuple(color[i] * self.light * self.tint[i] + self.lift for i in range(3)), None
+
+
+def opaque_region(texture, uv, width, height):
+    (u, v), (du, dv) = uv['uv'], uv['uv_size']
+    tw, th = len(texture[0]), len(texture)
+    x0, x1 = sorted((u * tw / width, (u + du) * tw / width))
+    y0, y1 = sorted((v * th / height, (v + dv) * th / height))
+    def indices(lo, hi, limit):
+        start = max(0, min(limit - 1, math.floor(lo)))
+        return range(start, max(start + 1, min(limit, math.ceil(hi))))
+    return all(texture[y][x][3] == 255
+               for y in indices(y0, y1, th) for x in indices(x0, x1, tw))
+
+
+
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, face_cache=None, frame_quads=None, defer_textures=False):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
     tint = NIGHT_TINT if pose["dusk"] else (1.0, 1.0, 1.0)
     polygons, glass = [], []
+    opacity = {}
     turns = bone_turns(geo["bones"])
     for bone in geo["bones"]:
         color = lit.get(bone["name"]) if pose["lamps"] else None
@@ -684,8 +728,21 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
+                cache_key = (bone["name"], id(cube), face, pose.get("merge_texels", False), pose.get("cells_per_unit"))
+                if texture_mapping and defer_textures and not cutout:
+                    key = (*uv['uv'], *uv['uv_size'])
+                    if key not in opacity:
+                        opacity[key] = opaque_region(texture, uv, desc['texture_width'], desc['texture_height'])
+                    if opacity[key]:
+                        polygons.append((quad, TextureFace(texture, uv, face,
+                            desc['texture_width'], desc['texture_height'],
+                            k, tint, face_lift, pose.get('merge_texels', False),
+                            pose.get('cells_per_unit'), face_cache, cache_key), None))
+                        if frame_quads is not None:
+                            frame_quads.append(quad)
+                        continue
                 if texture_mapping:
-                    key = (bone["name"], id(cube), face, pose.get("merge_texels", False), pose.get("cells_per_unit"))
+                    key = cache_key
                     if face_cache is not None and key in face_cache:
                         patches = face_cache[key]
                     else:
@@ -913,7 +970,22 @@ def rasterize(polygons, layers, to_screen, width=WIDTH, height=HEIGHT, backgroun
 
     depth = [0.0] * (w * h)  # stores 1/depth, so larger is nearer and 0 is empty
     color = [None] * (w * h)
-    for quad, rgb, _ in polygons:
+    def visible_patches():
+        for quad, rgb, emissive in polygons:
+            if not isinstance(rgb, TextureFace):
+                yield quad, rgb, emissive
+                continue
+            # Test the whole face against already drawn opaque geometry before
+            # expanding a large fabric region. Keep ties for the existing depth rule.
+            visible = [False]
+            def probe(x, y, q):
+                if q >= depth[y * w + x] - 1e-10:
+                    visible[0] = True
+            fill(to_screen(quad), w, h, probe)
+            if visible[0]:
+                yield from rgb.patches(quad)
+
+    for quad, rgb, _ in visible_patches():
 
         def paint(px, py, q, rgb=rgb):
             i = py * w + px
@@ -1078,7 +1150,7 @@ def render_camper(rp):
     # Camper previews use the ground pose, where the render controller hides hover glows.
     geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Other atlases intentionally use center sampling in their established previews.
-    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True, cache_faces=True)
+    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True, cache_faces=True, defer_textures=True)
 
 
 def bulldozer_bones(bones):
@@ -1100,11 +1172,12 @@ def render_bulldozer(rp):
     )
 
 
-def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cache_faces=False):
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cache_faces=False, defer_textures=False):
     face_cache = {} if cache_faces else None
     bounds = {name: [] for name in poses} if cache_faces else None
     scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping, face_cache=face_cache,
-                                frame_quads=bounds[name] if bounds is not None else None)
+                                frame_quads=bounds[name] if bounds is not None else None,
+                                defer_textures=defer_textures)
               for name, pose in poses.items()}
     frame_faces = bounds if bounds is not None else {name: [q for q, _, _ in scene[0]] for name, scene in scenes.items()}
     points = [p for quads in frame_faces.values() for quad in quads for p in quad]

@@ -12,6 +12,7 @@ from tool_loader import load_tool
 
 ROOT = Path(__file__).resolve().parent.parent
 DIFF_CONTEXT_LINES = 8
+GOLDEN_AREA_LABELS = {"steering": ("steering", "wheel and column", "lever")}
 
 
 def _model(document):
@@ -22,7 +23,8 @@ def _current():
     model = _model(json.loads((ROOT / "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json").read_text()))
     areas = json.loads((ROOT / "tests/packs/fixtures/camper-areas.json").read_text())
     kit = load_tool("camper_kit")
-    regions = [{"name": r.name, "size": [r.width, r.height], "origin": kit.LAYOUT.origin(r.name)}
+    layout = kit.LAYOUT
+    regions = [{"name": r.name, "size": [r.width, r.height], "origin": layout.origin(r.name)}
                for r in kit.REGISTRY.regions()]
     return model, regions, areas
 
@@ -34,7 +36,7 @@ def _counts(model, area=None, ranges=None):
         if area is None:
             counts[bone["name"]] = len(cubes)
         elif ranges is None:
-            count = sum(c.get("_area") == area for c in cubes)
+            count = sum(c.get("_area") in GOLDEN_AREA_LABELS.get(area, (area,)) for c in cubes)
             if count:
                 counts[bone["name"]] = count
         elif bone["name"] in ranges.get(area, {}):
@@ -47,7 +49,7 @@ def _counts(model, area=None, ranges=None):
 
 def _regions(regions, area=None):
     return {r["name"]: {"size": list(r["size"]), "origin": list(r.get("packed_origin", r.get("origin", ())))}
-            for r in regions if area is None or area in r.get("used_by", {})}
+            for r in regions if area is None or any(label in r.get("used_by", {}) for label in GOLDEN_AREA_LABELS.get(area, (area,)))}
 
 
 def compare(golden_dir: Path, area=None) -> list[str]:

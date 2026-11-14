@@ -51,6 +51,7 @@ describe("camper atlas", () => {
           .sort(),
       ).toEqual([
         "camper.png",
+        "camper_interior_mer.png",
         "camper_lit.png",
         "camper_lit_mer.png",
         "camper_mirror.png",
@@ -59,7 +60,7 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 
   it("detects stale outputs while accepting equivalent JSON and PNG encoding", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-atlas-"));
@@ -292,7 +293,10 @@ describe("camper atlas", () => {
           "panel = camper['box'](0, 0, 0, 1, 1, 1, region, offset=(14, 1), uv_size=(1, 1))",
           "lamp = camper['box'](0, 0, 0, 1, 1, 1, 'lens')",
           "taken, rest = camper['take_slots']([panel, lamp], ['lens'])",
-          "for face in panel['uv'].values(): face['uv'][1] -= region.y",
+          "base_x, base_y = camper['kit'].LAYOUT.origin('base')",
+          "for face in panel['uv'].values():",
+          "    face['uv'][0] -= base_x",
+          "    face['uv'][1] -= base_y + region.y",
         ].join("\n"),
         "[panel['uv'], taken == [lamp], rest == [panel]]",
       ),
@@ -306,5 +310,5 @@ describe("camper atlas", () => {
       true,
       true,
     ]);
-  });
+  }, 30_000);
 });

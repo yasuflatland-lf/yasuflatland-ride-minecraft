@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { type Triple, turn } from "../../support/geometry";
 import { assertOneAxis, multipleAxes } from "../oneAxis";
 import {
   bone,
@@ -7,20 +9,41 @@ import {
   cubeCenter,
   geometry,
   geometryText,
-  paletteSlots,
   swatch,
 } from "./helpers";
 
 describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = bones.flatMap((bone) => bone.cubes ?? []);
-    const compound = cubes.filter(multipleAxes);
+    const steering = bone("steering").cubes ?? [];
+    const areas = JSON.parse(
+      readFileSync("tests/packs/fixtures/camper-areas.json", "utf8"),
+    ) as { steering: { body: [number, number] } };
+    const [first, last] = areas.steering.body;
+    const controls = (bone("body").cubes ?? []).slice(first, last + 1);
+    const lever = controls.slice(2);
+    const seats = [bone("seat_0"), bone("seat_1")]
+      .flatMap((b) => b.cubes ?? [])
+      .filter(multipleAxes);
+    const own = new Set([...steering, ...controls, ...seats]);
+    const compound = cubes.filter((c) => !own.has(c) && multipleAxes(c));
     const assemblies = {
       slanted: compound.filter((cube) => cube.rotation?.[0] === 45),
       front_panels: compound.filter((cube) => cube.rotation?.[0] !== 45),
+      steering_wheel: [...steering.slice(0, 112), ...controls.slice(0, 2)],
+      steering_spokes: steering.slice(112),
+      steering_lever: lever,
+      cab_seats: seats,
     };
-    expect(assemblies.slanted).toHaveLength(6);
+    expect(assemblies.slanted).toHaveLength(0);
     expect(assemblies.front_panels).toHaveLength(518);
+    expect(assemblies.steering_wheel).toHaveLength(114);
+    expect(assemblies.steering_spokes).toHaveLength(3);
+    expect(assemblies.steering_lever).toHaveLength(30);
+    expect(assemblies.steering_wheel.filter(multipleAxes)).toHaveLength(2);
+    expect(assemblies.steering_spokes.filter(multipleAxes)).toHaveLength(2);
+    expect(assemblies.steering_lever.filter(multipleAxes)).toHaveLength(29);
+    expect(assemblies.cab_seats).toHaveLength(464);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });
 
@@ -52,6 +75,8 @@ describe("camper model assets (ADR 0067)", () => {
         "door_entry",
         "steering",
         "shower_door",
+        "drawer_top",
+        "drawer_bottom",
         "cabinet_sink_door",
         "cabinet_stove_door",
         "fridge_top_door",
@@ -215,17 +240,54 @@ describe("camper model assets (ADR 0067)", () => {
     }
   });
 
-  it("keeps the wheel's spokes level (owner decision in #410)", () => {
-    expect(paletteSlots.indexOf("ivory")).toBeGreaterThanOrEqual(0);
-    const spokes = (bone("steering").cubes ?? []).filter(
-      (cube) => swatch(cube, "ivory") && Math.max(...cube.size) >= 3,
+  it("lays the wheel plane 30 degrees from horizontal and the column at 60 degrees", () => {
+    const steering = bone("steering");
+    const rim = steering.cubes?.[0];
+    const ranges = JSON.parse(
+      readFileSync("tests/packs/fixtures/camper-areas.json", "utf8"),
     );
-    expect(spokes.length).toBeGreaterThan(0);
-    for (const cube of spokes) {
-      const z = cube.rotation?.[2] ?? 0;
-      expect([0, 180, -180]).toContain(z);
-      expect(cube.rotation?.[0] ?? 0).toBe(0);
-      expect(cube.rotation?.[1] ?? 0).toBe(0);
-    }
+    const column = bone("body").cubes?.[ranges.steering.body[0]];
+    expect(rim).toBeDefined();
+    expect(column).toBeDefined();
+    if (!rim || !column) return;
+    const direction = (cube: Cube, point: Triple) => {
+      const zero = turn([0, 0, 0], [0, 0, 0], cube.rotation as Triple);
+      return turn(point, [0, 0, 0], cube.rotation as Triple).map(
+        (v, i) => v - (zero[i] ?? 0),
+      ) as Triple;
+    };
+    const normal = turn(
+      direction(rim, [0, 0, 1]),
+      [0, 0, 0],
+      steering.rotation as Triple,
+    );
+    const axis = direction(column, [1, 0, 0]);
+    expect((Math.acos(normal[1]) * 180) / Math.PI).toBeCloseTo(30, 1);
+    expect((Math.asin(axis[1]) * 180) / Math.PI).toBeCloseTo(60, 1);
+    const dot = normal.reduce((sum, v, i) => sum + v * (axis[i] ?? 0), 0);
+    expect((Math.acos(Math.min(1, dot)) * 180) / Math.PI).toBeLessThan(0.1);
+  });
+
+  it("projects the owner's red-line vertical axis within two degrees of vertical", () => {
+    const steering = bone("steering");
+    const rim = steering.cubes?.[0];
+    expect(rim?.rotation).toBeDefined();
+    // Remove the segment tangent phase to recover the rim's own vertical axis.
+    const phase = ((90 + 180 / 32) * Math.PI) / 180;
+    const localVertical: Triple = [-Math.sin(phase), Math.cos(phase), 0];
+    const axis = turn(
+      turn(localVertical, [0, 0, 0], rim?.rotation as Triple),
+      [0, 0, 0],
+      steering.rotation as Triple,
+    );
+    const normal = turn([0, 0, 1], [0, 0, 0], steering.rotation as Triple);
+    const projectedUp: Triple = [0, normal[2], -normal[1]];
+    const vertical = axis.reduce(
+      (sum, v, i) => sum + v * (projectedUp[i] ?? 0),
+      0,
+    );
+    expect(
+      Math.abs((Math.atan2(axis[0], vertical) * 180) / Math.PI),
+    ).toBeLessThan(2);
   });
 });

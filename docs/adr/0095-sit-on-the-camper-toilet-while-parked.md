@@ -18,6 +18,8 @@ Deck seats are already kept as a list of any length: the aggregate blanks deck s
 
 ## Decision
 
+- The tiled walls and head, grip, wall plate and hose are model-only details inside the shower room. They retain the toilet seat position and compact deck-seat box; they add no collision or interaction target. The shower has no curtain or rail.
+
 - A profile may list `parkedSeats`: seats that exist only as deck seats while the vehicle is parked, after the deck seats of its vehicle seats, in order. The camper has one, the toilet: x -1.031 (right), z -3.0 (rear), the center of the toilet seat, at the dinette's rise of 0.68 because the toilet seat is as high as the dinette seats. Its deck seat index is 4, and no vehicle seat ever blanks it
 - A deck seat can be compact: the toilet seat is the same `yasu_ride:deck_seat` entity, but the script triggers `yasu_ride:compact` when it spawns it, which adds a component group with a 0.5 wide, 0.8 high box. It covers the toilet only, so empty-hand long-presses on the floor around it still hit the floor block and reach the shower-toilet door and the shower
 - The toilet rider's stick does nothing. When the driver's deck seat rider sets off (0063, 0068), the toilet rider is moved into the camper after the other deck riders, like any deck rider; if every seat is taken, they stay on the toilet seat, and on departure they are taken off it and treated like a player standing inside without a seat: moved to the exit if it is clear, or left standing if it is not (0068). This refines 0093's "the rider is left standing": the rider is left standing only when the exit is blocked

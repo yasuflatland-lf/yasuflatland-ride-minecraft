@@ -89,7 +89,6 @@ def build() -> AreaCubes:
 
     body = []
     # --- Floor, roof and walls -------------------------------------------------
-    body.append(box(-HW + 1, 13, FRONT + 1, HW - 1, FLOOR, REAR_INNER, "wood"))
     body.append(box(-HW, CEIL, FRONT + 8.5, HW, ROOF, REAR_INNER, "white"))  # the cab-over fills the front
     body.append(box(-HW + 1, CEIL - 0.2, FRONT + 1, HW - 1, CEIL, REAR_INNER, "panel"))
 
@@ -150,25 +149,15 @@ def build() -> AreaCubes:
 
 
     # Wheel arches: wide at the bottom with the top corners cut, as on the photos.
-    arch_holes = []
-    for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_INSET in fine steps
-        arch_holes.append((a0, a1, 0, ARCH_SLOPE_Y))
-        n = round((ARCH_TOP - ARCH_SLOPE_Y) / ARCH_STEP)
-        for i in range(n):
-            inset = ARCH_INSET * (i + 0.5) / n
-            y = ARCH_SLOPE_Y + i * ARCH_STEP
-            arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
     for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
         right = x0 > 0
         sgn = 1 if right else -1
         out = x1 if right else x0
         # The front cut-out reaches up to where the cab-over chevron passes SIDE0.
-        holes = windows + arch_holes + [(SIDE0, -50.5, 35.4, 52)] + ([DOOR] if right else [])
+        holes = kit.side_holes(windows, right)
         body += rib_sides(panel("x", x0, x1, SIDE0, REAR_INNER, BOTTOM, CEIL, holes, "white"))
-        inner = x0 - 0.2 if right else x1
-        body += panel("x", inner, inner + 0.2, FRONT + 8, REAR_INNER, FLOOR, CEIL - 0.2, holes, "wall_in")
         # Tan lower skirt just proud of the wall.
-        skirt_holes = arch_holes + ([(DOOR[0], DOOR[1], DOOR[2], 16)] if right else [])
+        skirt_holes = kit.wheel_holes() + ([(DOOR[0], DOOR[1], DOOR[2], 16)] if right else [])
         lo, hi = (out, out + 0.12) if right else (out - 0.12, out)
         body += panel("x", lo, hi, SIDE0, REAR_INNER, BOTTOM, 15, skirt_holes, "tan")
         # As on the side photo: a tan band at window height from the cab window back, and one

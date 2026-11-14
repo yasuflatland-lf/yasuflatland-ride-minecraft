@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { type Triple, turn } from "../../support/geometry";
@@ -63,50 +62,63 @@ describe("camper model assets (ADR 0067)", () => {
 
   it("puts the steering wheel and column on the right in front of the driver", () => {
     const steering = bone("steering");
-    expect(steering.pivot).toEqual([-12, 33, -41]);
+    expect(steering.pivot).toEqual([-14.29, 38.491, -42.8]);
     expect(steering.cubes?.length).toBeGreaterThan(0);
     for (const cube of steering.cubes ?? []) {
       expect((cube.origin[0] ?? 0) + (cube.size[0] ?? 0) / 2).toBeLessThan(0);
     }
   });
 
-  // The wheel's cubes are built in its own plane and only moved by the pivot, so x and y
-  // relative to the pivot are the wheel's own axes.
   it("keeps the steering wheel inside its rim (sightline)", () => {
     const steering = bone("steering");
-    for (const cube of steering.cubes ?? []) {
-      const fromPivot = (axis: number) =>
-        (cube.origin[axis] ?? 0) +
-        (cube.size[axis] ?? 0) / 2 -
-        (steering.pivot[axis] ?? 0);
-      expect(Math.hypot(fromPivot(0), fromPivot(1))).toBeLessThanOrEqual(
-        7.2 + 0.5,
+    const wheel = steering.cubes ?? [];
+    expect(wheel.length).toBeGreaterThan(100);
+    for (const cube of wheel) {
+      const localCenter = turn(
+        cube.origin.map((v, i) => v + (cube.size[i] ?? 0) / 2) as Triple,
+        (cube.pivot ?? [0, 0, 0]) as Triple,
+        (cube.rotation ?? [0, 0, 0]) as Triple,
       );
+      const center = turn(
+        localCenter,
+        steering.pivot as Triple,
+        steering.rotation as Triple,
+      );
+      expect(Math.abs(center[0] + 14.29)).toBeLessThanOrEqual(6.33);
+      const rimCenter: Triple = [
+        -14.29,
+        38.491 - (0.76 * Math.sqrt(3)) / 2,
+        -42.8 - 0.76 / 2,
+      ];
+      const across = center[0] - rimCenter[0];
+      const up =
+        (center[1] - rimCenter[1]) * 0.5 -
+        ((center[2] - rimCenter[2]) * Math.sqrt(3)) / 2;
+      expect(Math.hypot(across, up)).toBeLessThanOrEqual(6.34);
     }
   });
 
-  it("preserves the existing steering lean and column geometry", () => {
-    const steering = bone("steering");
-    expect(steering.rotation).toEqual([65, 0, 0]);
-    expect(steering.cubes).toHaveLength(115);
-    // Texture packing can relocate UVs; the retained wheel and column shapes cannot change.
-    const shape = (steering.cubes ?? []).map(
-      ({ origin, size, pivot, rotation }) => ({
-        origin,
-        size,
-        pivot,
-        rotation,
-      }),
+  it("ends the steering column at the firewall beneath the raised dash (#422)", () => {
+    const ranges = JSON.parse(
+      readFileSync("tests/packs/fixtures/camper-areas.json", "utf8"),
     );
-    expect(
-      createHash("sha256").update(JSON.stringify(shape)).digest("hex"),
-    ).toBe("0bc40ece9eb633ea11234f6df25f6183bac452f9538c7aa0eacc1a91c0360d54");
-    const columns = (steering.cubes ?? []).filter((cube) =>
-      near(cube.size[2], 15.4),
+    const first = ranges.steering.body[0];
+    const columns = (bone("body").cubes ?? []).slice(first, first + 2);
+    expect(columns).toHaveLength(2);
+    const shaft = columns[0];
+    expect(shaft).toBeDefined();
+    if (!shaft) return;
+    const start = shaft.pivot as Triple;
+    const end = turn(
+      [start[0] + (shaft.size[0] ?? 0), start[1], start[2]],
+      start,
+      shaft.rotation as Triple,
     );
-    expect(columns).toHaveLength(1);
-    expect(columns[0]?.origin).toEqual([-12.7, 32.3, -57]);
-    expect(columns[0]?.size).toEqual([1.4, 1.4, 15.4]);
+    expect(start[1]).toBeLessThan(25);
+    expect(start[2]).toBeLessThan(-50);
+    expect(end[0]).toBeCloseTo(-14.29, 2);
+    expect(end[1]).toBeCloseTo(35.2, 2);
+    expect(end[2]).toBeCloseTo(-44.7, 2);
   });
 
   it("removes the green engine cover between the cab seats", () => {

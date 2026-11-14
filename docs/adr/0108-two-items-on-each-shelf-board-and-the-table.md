@@ -34,6 +34,8 @@ Facts this decision builds on:
 
 ## Decision
 
+- The table keeps its 14 x 12 px top footprint and y 28 top surface (slot height 12). `table oak` supplies a 168 x 144 WOOD region at 12 texels per model pixel. Its chrome leg narrows from 2 x 2 to 1 x 1 px about the same centre, with height 11 unchanged; neither pair spot nor item clearance moves.
+
 ### Slots
 
 - Each shelf board gets two slots along the camper, both in the board's cell: the rear end keeps the board's id, `shelf_low` or `shelf_high`, at spot 5 (forward -3.5), and the front end, `shelf_low_front` or `shelf_high_front`, is at spot 6 (forward 3.5). The ends stay 0.5 px clear of each end panel and 1 px apart for the deepest items

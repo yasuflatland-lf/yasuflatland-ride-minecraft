@@ -44,6 +44,7 @@ describe("camper rib atlas (ADR 0190)", () => {
       "vent_screws",
       "bolt",
       "mirror_chrome",
+      "burner_cast",
     ]);
     for (const [i, [, x, y, w, h]] of regions.entries()) {
       expect(x).toBeGreaterThanOrEqual(base[0]);
@@ -223,7 +224,10 @@ describe("camper rib atlas (ADR 0190)", () => {
   it("uses aluminium door frames with head, hinge, and latch hardware on the outward face", () => {
     const frames = (bone("door_entry").cubes ?? []).filter(
       // The latch plate and the window's corner rows share this depth but are far smaller.
-      (c) => c.size[0] === 0.18 && Math.max(c.size[1] ?? 0, c.size[2] ?? 0) > 5,
+      (c) =>
+        c.origin[0] === -24.18 &&
+        c.size[0] === 0.18 &&
+        Math.max(c.size[1] ?? 0, c.size[2] ?? 0) > 5,
     );
     expect(frames).toHaveLength(4);
     for (const c of frames)

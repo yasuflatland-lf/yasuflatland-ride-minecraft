@@ -1,14 +1,41 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { defined } from "../support/defined";
 
+const currentRegions: {
+  name: string;
+  size: [number, number];
+  origin: [number, number];
+}[] = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-c",
+      `
+import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+kit = load_tool('camper_kit')
+layout = kit.LAYOUT
+print(json.dumps([{'name': r.name, 'size': [r.width, r.height],
+                  'origin': layout.origin(r.name)} for r in kit.REGISTRY.regions()]))
+`,
+    ],
+    { encoding: "utf8" },
+  ),
+);
+const base = defined(
+  currentRegions.find((region) => region.name === "base"),
+  "base region",
+);
 const cube = {
   origin: [0, 0, 0],
   size: [1, 1, 1],
-  uv: { north: { uv: [0, 0], uv_size: [1, 1] } },
+  uv: { north: { uv: base.origin, uv_size: [1, 1] } },
 };
 type Change =
   | "none"
@@ -17,7 +44,8 @@ type Change =
   | "size"
   | "extra"
   | "deleted"
-  | "labels";
+  | "labels"
+  | "steering";
 
 describe("camper golden comparison", () => {
   it("returns zero for matching counts and region sizes and origins", () =>
@@ -36,6 +64,8 @@ describe("camper golden comparison", () => {
     compare("deleted", "shell"));
   it("reports missing-side labels when module and spike area names differ", () =>
     compare("labels", "cab"));
+  it("combines the spike wheel and lever labels for the steering module", () =>
+    compare("steering", "steering"));
   it("reports an unknown area instead of accepting an empty comparison", () =>
     compare("none", "missing"));
 });
@@ -44,13 +74,14 @@ function compare(change: Change, area?: string) {
   const directory = mkdtempSync(join(tmpdir(), "camper-golden-"));
   try {
     cpSync("tools", join(directory, "tools"), { recursive: true });
-    // This comparator fixture has one synthetic region, independent of live area registrations.
     writeFileSync(
       join(directory, "tools/camper_kit.py"),
-      `from tool_loader import load_tool
-regions = load_tool("camper_regions")
+      `
+from tool_loader import load_tool
+regions = load_tool('camper_regions')
 REGISTRY = regions.RegionRegistry()
-REGISTRY.register(regions.Region("base", 114, 220, regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
+for region in ${JSON.stringify(currentRegions)}:
+    REGISTRY.register(regions.Region(region['name'], *region['size'], regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
 LAYOUT = regions.pack(REGISTRY)
 `,
     );
@@ -68,7 +99,15 @@ LAYOUT = regions.pack(REGISTRY)
         "minecraft:geometry": [
           {
             bones: [
-              { name: "body", cubes: change === "deleted" ? [] : [cube] },
+              {
+                name: "body",
+                cubes:
+                  change === "deleted"
+                    ? []
+                    : change === "steering"
+                      ? [cube, cube]
+                      : [cube],
+              },
               { name: "steering", cubes: [cube] },
             ],
           },
@@ -77,7 +116,13 @@ LAYOUT = regions.pack(REGISTRY)
     );
     writeFileSync(
       join(fixtures, "camper-areas.json"),
-      JSON.stringify({ shell: { body: [0, 0] }, cab: { steering: [0, 0] } }),
+      JSON.stringify({
+        shell: { body: [0, 0] },
+        cab: { steering: [0, 0] },
+        ...(change === "steering"
+          ? { steering: { body: [0, 1], steering: [0, 0] } }
+          : {}),
+      }),
     );
     writeFileSync(
       join(golden, "final-model.json.gz"),
@@ -87,8 +132,16 @@ LAYOUT = regions.pack(REGISTRY)
             {
               name: "body",
               cubes: Array.from(
-                { length: change === "counts" ? 2 : 1 },
-                () => ({ ...cube, _area: "shell" }),
+                { length: ["counts", "steering"].includes(change) ? 2 : 1 },
+                (_, index) => ({
+                  ...cube,
+                  _area:
+                    change === "steering"
+                      ? index === 0
+                        ? "wheel and column"
+                        : "lever"
+                      : "shell",
+                }),
               ),
             },
             {
@@ -97,7 +150,11 @@ LAYOUT = regions.pack(REGISTRY)
                 {
                   ...cube,
                   _area:
-                    change === "labels" ? "cab dash and instruments" : "cab",
+                    change === "labels"
+                      ? "cab dash and instruments"
+                      : change === "steering"
+                        ? "wheel and column"
+                        : "cab",
                 },
               ],
             },
@@ -111,14 +168,29 @@ LAYOUT = regions.pack(REGISTRY)
         {
           name: "base including borrowed patch",
           source: "base",
-          size: [114, change === "size" ? 221 : 220],
+          size: [base.size[0], base.size[1] + (change === "size" ? 1 : 0)],
           origin: [20, 30],
-          packed_origin: change === "origin" ? [1, 0] : [0, 0],
+          packed_origin:
+            change === "origin"
+              ? [base.origin[0] + 1, base.origin[1]]
+              : base.origin,
           used_by: {
-            shell: 6,
-            [change === "labels" ? "cab dash and instruments" : "cab"]: 6,
+            [change === "steering" ? "lever" : "shell"]: 6,
+            [change === "labels"
+              ? "cab dash and instruments"
+              : change === "steering"
+                ? "wheel and column"
+                : "cab"]: 6,
           },
         },
+        ...currentRegions
+          .filter((region) => region.name !== "base")
+          .map((region) => ({
+            ...region,
+            packed_origin: region.origin,
+            used_by:
+              region.name === "light curtain fabric" ? { curtains: 1 } : {},
+          })),
         ...(change === "extra"
           ? [
               {
@@ -149,7 +221,7 @@ LAYOUT = regions.pack(REGISTRY)
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("Unknown area: missing");
     } else if (
-      change !== "none" &&
+      !["none", "steering"].includes(change) &&
       !(area === "cab" && ["counts", "extra"].includes(change))
     ) {
       expect(result.status).toBe(1);

@@ -13,8 +13,8 @@ A camper saved before this change may hold items in those two slots. 0093 drops 
 
 ## Decision
 
-- The wall cabinet is 7 px high with its top at the ceiling (`CEIL`, model y 61): from 54 to 61, with its doors from 54.5 to 60.5
-- It has no decor slot. The camper has 10: `dashboard_center`, `dashboard_left`, `table`, `dinette_front`, `dinette_rear`, `shelf_low`, `shelf_high`, `stove`, `counter`, and `ceiling_hook`. A standing item fits the first 9. The cells (-1, -1, 2) and (-1, -2, 2) become cargo cells
+- The wall cabinet keeps its top at the ceiling (`CEIL`, model y 61). As extended by 0114, it reaches y 50, with its doors from 50.5 to 60.5 and 9 px of clear compartment height. Routed cream faces, brown hardware and wood-grain shelf edges retain these dimensions
+- The original raised cabinet had no decor slot; 0114 adds four slots inside its two compartments. The original ten non-cabinet slots were: `dashboard_center`, `dashboard_left`, `table`, `dinette_front`, `dinette_rear`, `shelf_low`, `shelf_high`, `stove`, `counter`, and `ceiling_hook`. A standing item fits the first 9. The cells (-1, -1, 2) and (-1, -2, 2) become cargo cells
 - When a camper is rebuilt, each saved entry whose slot no longer exists, in saved order, moves to the first slot in slot order that takes its item and is free. If none is free, the entry stays saved, unchanged, as stowed decor. A stowed entry may name a slot occupied by another entry, so repeated saved slot ids are retained on load. It is not laid, no press reaches it, and breaking the camper gives it back with the rest of the decor
 - This replaces 0093's "on load, an entry with an unknown slot ... is dropped" and the wall cabinet rows of 0093's slot table, and removes both wall cabinet halves from 0097's standing slots
 

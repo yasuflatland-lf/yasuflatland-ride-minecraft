@@ -38,13 +38,22 @@
 ### Camper seat layout
 
 - Applies to: camper, all modes.
-- Rule: The camper's driver (seat 0) sits at the front right and the front passenger (seat 1) at the front left, like the SUV. Seats 2 and 3 are the dinette on the left, behind the passenger, with seat 2 facing the rear. Both front seats of the camper's `minecraft:rideable` sit higher than the dinette seats, as configured in the asset. The values are in `camper.se.json` and `CAMPER_PROFILE.seats.positions`.
+- Rule: The camper's driver (seat 0) sits at the front right and the front passenger (seat 1) at the front left, like the SUV. Seats 2 and 3 are the dinette on the left, behind the passenger, with seat 2 facing the rear. Both front seats of the camper's `minecraft:rideable` sit higher than the dinette seats, as configured in the asset. The values are in `camper.se.json` and `CAMPER_PROFILE.seats.positions`. The two cab bones retain their anchors and contain 501 cubes each for the light rounded buckets, with shared green tweed, vinyl, piping, swivel pedestals, and lap belts; this visual change leaves all four rider positions and the collision box unchanged. The front cushion height stays fixed while the static steering assembly uses a 115-cube, 0.8-scale wheel (about 12.64 px) at 30 degrees from horizontal and a perpendicular 60-degree column (0070). The dark-dash shaft, steel sleeve and static 30-cube lever belong to `body`; the wheel bone has rotation [60, 0, 0] without steering animation, and compound assemblies follow 0167. The wheel clears the cushion by at least 1 px; the gear lever stays on `body`, independent of `steering`.
 - Agreement: Accepted
 - Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "Seat 0, the driver, sits at the front right"
 - Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "Seats 2 and 3 stay a facing dinette on the left, now behind the passenger"
 - Basis: [0070](../adr/0070-raise-the-camper-front-seats.md) Decision, "Both front seats of `minecraft:rideable` sit at 1.5 instead of 1.1, 0.4 blocks higher."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts` (`CAMPER_PROFILE.seats`); `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json` (`minecraft:rideable` `seats`)
-- Verification: `tests/packs/camper/seats.test.ts` "matches the camper's four seat positions and collision box to its profile" (x and z only). Not verified: the seat heights by any test; the view over the dashboard (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
+- Verification: `tests/packs/camper/seats.test.ts` "matches the camper's four seat positions and collision box to its profile" (x and z only); `tests/packs/camper/seats.test.ts` checks both cab bone counts and pivots; `tests/tools/camperCabSeats.test.ts` checks transformed wheel, armrest, and exposed lap-belt clearance. `tests/packs/camper/steering.test.ts` checks wheel-to-cushion clearance; `tests/packs/camper/shell.test.ts` checks the red-line roll and plane/column angles. Not verified: the seat heights by any test; the view over the dashboard and new wheel (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
+
+### Camper dinette upholstery
+
+- Applies to: Camper seats 2 and 3, driving and parked.
+- Rule: The facing dinette uses fixed olive looped tweed with chamfered cushions and olive welt piping; seat 2 also has an olive/khaki/cream striped bolster. After wheel-arch carving, seats 2 and 3 contain 22 and 15 cubes. Their existing footprint, seat anchors and rider positions are unchanged. Build x -23..-8 becomes model x 8..23, with z -24..-10 for seat 2 and z 10..24 for seat 3. No fabric face uses an exterior paint swatch.
+- Agreement: Accepted
+- Basis: [0007](../adr/0007-seats-and-driver.md) Decision, camper dinette visuals.
+- Implementation: `tools/camper_soft.py`; `tools/gen_camper.py`
+- Verification: `tests/tools/camperSoft.test.ts`; `tests/packs/camper/soft.test.ts`; `tests/packs/camper/dinette.test.ts` "keeps the facing dinette on the left behind the passenger, clear of the bed and side walls". Not verified: seated visibility and the new fabric appearance on a device.
 
 ### Driver and seats by rider-list index
 

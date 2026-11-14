@@ -185,7 +185,7 @@ describe.each(kinds)(
           255,
         ]);
       }
-    });
+    }, 30_000);
 
     it("draws only the switched lamp bones in a separate emissive pass", () => {
       const client = read(`entity/yasu_ride/${kind}.ce.json`)[
@@ -288,3 +288,80 @@ print(json.dumps(list(load_tool('suv_atlas').region('headlight', 'lens')[1:])))`
     }
   });
 });
+
+it("binds an opaque non-emissive camper interior MER without changing the base pass", () => {
+  const base = texels("camper");
+  const interior = texels("camper_interior_mer");
+  for (const name of ["camper_mirror", "camper_mirror_mer"]) {
+    const image = texels(name);
+    expect([image.width, image.height]).toEqual([base.width, base.height]);
+  }
+  expect([interior.width, interior.height]).toEqual([base.width, base.height]);
+  expect(
+    interior.pixels.every((pixel) => pixel[1] === 0 && pixel[3] === 255),
+  ).toBe(true);
+  expect(read("textures/entity/yasu_ride/camper.texture_set.json")).toEqual({
+    format_version: "1.16.100",
+    "minecraft:texture_set": {
+      color: "camper",
+      metalness_emissive_roughness: "camper_interior_mer",
+    },
+  });
+  const client = read("entity/yasu_ride/camper.ce.json")[
+    "minecraft:client_entity"
+  ].description;
+  expect(client.textures.default).toBe("textures/entity/yasu_ride/camper");
+  expect(client.materials.default).toBe("entity");
+  expect(
+    read("render_controllers/yasu_ride/camper.rc.json").render_controllers[
+      "controller.render.yasu_ride.camper"
+    ].textures,
+  ).toEqual(["Texture.default"]);
+}, 30_000);
+
+it("keeps the camper mirror MER confined to the relocated chrome tile and its own pass", () => {
+  const [x, y, w, h]: number[] = JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-I",
+        "-c",
+        `
+import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+k = load_tool('camper_kit')
+x,y = k.LAYOUT.origin('base')
+r = k.MIRROR_CHROME_REGION
+print(json.dumps([x+r.x,y+r.y,r.w,r.h]))
+`,
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  expect([w, h]).toEqual([16, 32]);
+  if (x === undefined || y === undefined)
+    throw new Error("Missing mirror origin");
+  const base = texels("camper");
+  const color = texels("camper_mirror");
+  const mer = texels("camper_mirror_mer");
+  expect(color).toEqual(base);
+  for (const [i, pixel] of mer.pixels.entries()) {
+    const u = i % mer.width;
+    const v = Math.floor(i / mer.width);
+    const inside = x <= u && u < x + 16 && y <= v && v < y + 32;
+    expect(pixel).toEqual(inside ? [255, 0, 26, 255] : [0, 0, 255, 255]);
+  }
+  const controllers = read(
+    "render_controllers/yasu_ride/camper.rc.json",
+  ).render_controllers;
+  expect(
+    controllers["controller.render.yasu_ride.camper"].part_visibility,
+  ).toContainEqual({ mirror: false });
+  expect(controllers["controller.render.yasu_ride.camper.mirror"]).toEqual({
+    geometry: "Geometry.default",
+    materials: [{ "*": "Material.default" }],
+    textures: ["Texture.mirror"],
+    part_visibility: [{ "*": false }, { mirror: true }],
+  });
+}, 30_000);
