@@ -141,8 +141,7 @@ const ROOM_BLOCK: Readonly<
 };
 
 function laidTypeOf(block: DockBlock): string {
-  if (block.type === "drawers")
-    throw new Error("Kitchen drawer blocks are gated until #1684");
+  if (block.type === "drawers") return pairDecorBlockId("drawers");
   if (block.type === "decor") return decorBlockId(block.item);
   if (block.type === "decorPair") return pairDecorBlockId(block.pair);
   if (block.type === "cabinet" || block.type === "fridge")
@@ -644,7 +643,7 @@ type StorageUnit = (typeof CAMPER_STORAGE)[number];
 
 /** What a storage scenario checks beyond the shared shut-and-open round (ADR 0114, 0121). */
 interface StorageCase {
-  readonly unit: StorageUnit;
+  readonly unit: StorageUnit & { readonly pairKind: "cabinet" | "fridge" };
   /** One item behind each door. */
   readonly decor: readonly DecorPlacement[];
   /** The block a shut door's plate cell holds. */
