@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
+import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { roomCells } from "../../src/domain/vehicle/kinds/camper/roomCells";
 import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
@@ -167,6 +168,17 @@ describe("Camper room blocks (ADR 0068)", () => {
       ).components["minecraft:selection_box"];
     for (const slot of DECOR_SLOTS) {
       const { origin, size } = boxOf(slot.hanging ? 0 : slot.height);
+      const spot = DECOR_SPOTS[slot.spot ?? 0];
+      expect(spot).toBeDefined();
+      for (const [axis, offset] of [
+        [0, spot?.left ?? 0],
+        [2, spot?.forward ?? 0],
+      ]) {
+        expect(offset, slot.id).toBeGreaterThanOrEqual(origin[axis ?? 0] ?? 0);
+        expect(offset, slot.id).toBeLessThanOrEqual(
+          (origin[axis ?? 0] ?? 0) + (size[axis ?? 0] ?? 0),
+        );
+      }
       const [bottom, top] = [origin[1], (origin[1] ?? 0) + (size[1] ?? 0)];
       if (slot.hanging !== true)
         expect([bottom, top], slot.id).toEqual([0, slot.height]);

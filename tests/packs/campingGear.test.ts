@@ -713,7 +713,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
 
   it("draws every slot's item at its spot for every face, moved by the domain's spot offset (ADR 0107)", () => {
     const blocks = SPEC.map(decorOf);
-    expect(SPOTS).toEqual([0, 1, 2, 3, 4]);
+    expect(SPOTS).toEqual([0, 1, 2, 3, 4, 9, 10]);
     for (const slot of DECOR_SLOTS.filter((s) => !s.pair))
       for (const face of [0, 1, 2, 3])
         for (const block of blocks) {

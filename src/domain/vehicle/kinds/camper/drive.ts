@@ -144,7 +144,8 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
         ? savedTarget
         : this.doorStep * 2 >= DOOR_STEPS;
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
-    // An entry whose slot no longer exists, or whose cell an earlier entry already holds,
+    // An entry whose slot no longer exists, whose item no longer fits its clearance,
+    // or whose cell an earlier entry already holds,
     // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105). Decor
     // saved in a renamed slot loads as if saved in its new one (ADR 0112), and an item that
     // left the catalog is dropped without being handed back (ADR 0169).
@@ -157,7 +158,11 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     const homeless: DecorPlacement[] = [];
     for (const entry of saved) {
       const slot = decorSlot(entry.slot);
-      if (slot && !cellTaken(slot, this.placed()))
+      if (
+        slot &&
+        (slot.items === undefined || slot.items.includes(entry.item)) &&
+        !cellTaken(slot, this.placed())
+      )
         this.decorBySlot.set(slot.id, entry.item);
       else homeless.push(entry);
     }

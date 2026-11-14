@@ -3,7 +3,7 @@
 import { type DecorItemId, isDecorItem } from "../../dock/decor.ts";
 
 /** Every camping gear id, in the order of tools/camping_gear.json. */
-export const CAMPING_GEAR_IDS: readonly string[] = Object.freeze([
+const CAMPING_GEAR_CATALOG = Object.freeze([
   "potted_plant",
   "macrame_planter",
   "cactus_pot",
@@ -24,7 +24,10 @@ export const CAMPING_GEAR_IDS: readonly string[] = Object.freeze([
   "alarm_clock",
   "instant_camera",
   "binoculars",
-]);
+] as const);
+
+export type CampingGearId = (typeof CAMPING_GEAR_CATALOG)[number];
+export const CAMPING_GEAR_IDS: readonly string[] = CAMPING_GEAR_CATALOG;
 
 /** The gear that hangs from the ceiling hook; every other item stands (ADR 0097). */
 export const HANGING_GEAR_IDS: ReadonlySet<string> = new Set([

@@ -24,10 +24,6 @@ describe("camper furniture model (ADR 0093)", () => {
       .flatMap((b) => b.cubes ?? [])
       .filter((cube) => cube.rotation === undefined);
     for (const slot of slots) {
-      // The new dash shelf no longer reaches the old dashboard spots; #1658 moves them onto
-      // the shelf and restores this check for them.
-      if (slot.id === "dashboard_center" || slot.id === "dashboard_left")
-        continue;
       const { x, z } = slotXZ(slot);
       const bottom = 16 * slot.cell.layer;
       const covering = unrotatedCubes.filter((cube) => {

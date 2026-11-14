@@ -94,12 +94,12 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     expect(
       place.execute({
         ...cmd,
-        item: decorItemId("potted_plant"),
+        item: decorItemId("mug_pair"),
         point: slotPoint(pose, slot("dashboard_center")),
         cell: decorSlotCell(pose, slot("dashboard_left")),
       }),
     ).toBe(true);
-    expect(world.calls).toEqual(["saveDecor:car:dashboard_left=potted_plant"]);
+    expect(world.calls).toEqual(["saveDecor:car:dashboard_left=mug_pair"]);
   });
 
   it("picks the slot along the line of sight from the player's eye (ADR 0110)", () => {

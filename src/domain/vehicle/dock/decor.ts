@@ -38,8 +38,7 @@ export function decorFace(yaw: number): Face {
 
 /**
  * Parses the saved decor. Anything malformed reads as no decor; an entry
- * without a string slot or with an invalid item is dropped, and a repeated
- * slot keeps its first entry.
+ * without a string slot or with an invalid item is dropped.
  */
 export function parseDecor(saved: unknown): DecorPlacement[] {
   if (typeof saved !== "string") return [];
@@ -50,21 +49,14 @@ export function parseDecor(saved: unknown): DecorPlacement[] {
     return [];
   }
   if (!Array.isArray(parsed)) return [];
-  const seen = new Set<DecorSlotId>();
   const decor: DecorPlacement[] = [];
   for (const entry of parsed) {
     if (typeof entry !== "object" || entry === null) continue;
     const { slot: rawSlot, item } = entry as Record<string, unknown>;
     const slot =
       typeof rawSlot === "string" ? parseDecorSlotId(rawSlot) : undefined;
-    if (
-      slot === undefined ||
-      typeof item !== "string" ||
-      !isDecorItem(item) ||
-      seen.has(slot)
-    )
+    if (slot === undefined || typeof item !== "string" || !isDecorItem(item))
       continue;
-    seen.add(slot);
     decor.push({ slot, item });
   }
   return decor;

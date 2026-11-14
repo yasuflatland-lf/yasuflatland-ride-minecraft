@@ -9,7 +9,7 @@
         "yasu_ride:height": [
           0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
         ],
-        "yasu_ride:spot": [0, 1, 2, 3, 4]
+        "yasu_ride:spot": [0, 1, 2, 3, 4, 9, 10]
       }
     },
     "components": {
@@ -207,6 +207,24 @@
         }
       },
       {
+        "condition": "q.block_state('yasu_ride:face') == 0 && q.block_state('yasu_ride:spot') == 9 && q.block_state('yasu_ride:height') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 180, 0],
+            "translation": [0.2625, 0.1875, 0.3160625]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 0 && q.block_state('yasu_ride:spot') == 10 && q.block_state('yasu_ride:height') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 180, 0],
+            "translation": [-0.25625, 0.1875, 0.2775625]
+          }
+        }
+      },
+      {
         "condition": "q.block_state('yasu_ride:face') == 1 && q.block_state('yasu_ride:spot') == 0 && q.block_state('yasu_ride:height') == 0",
         "components": {
           "minecraft:transformation": {
@@ -383,6 +401,24 @@
           "minecraft:transformation": {
             "rotation": [0, 90, 0],
             "translation": [0.334375, 0.9375, -0.20625]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 1 && q.block_state('yasu_ride:spot') == 9 && q.block_state('yasu_ride:height') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 90, 0],
+            "translation": [-0.3160625, 0.1875, 0.2625]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 1 && q.block_state('yasu_ride:spot') == 10 && q.block_state('yasu_ride:height') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 90, 0],
+            "translation": [-0.2775625, 0.1875, -0.25625]
           }
         }
       },
@@ -567,6 +603,24 @@
         }
       },
       {
+        "condition": "q.block_state('yasu_ride:face') == 2 && q.block_state('yasu_ride:spot') == 9 && q.block_state('yasu_ride:height') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 0, 0],
+            "translation": [-0.2625, 0.1875, -0.3160625]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 2 && q.block_state('yasu_ride:spot') == 10 && q.block_state('yasu_ride:height') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 0, 0],
+            "translation": [0.25625, 0.1875, -0.2775625]
+          }
+        }
+      },
+      {
         "condition": "q.block_state('yasu_ride:face') == 3 && q.block_state('yasu_ride:spot') == 0 && q.block_state('yasu_ride:height') == 0",
         "components": {
           "minecraft:transformation": {
@@ -743,6 +797,24 @@
           "minecraft:transformation": {
             "rotation": [0, -90, 0],
             "translation": [-0.334375, 0.9375, 0.20625]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 3 && q.block_state('yasu_ride:spot') == 9 && q.block_state('yasu_ride:height') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, -90, 0],
+            "translation": [0.3160625, 0.1875, -0.2625]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 3 && q.block_state('yasu_ride:spot') == 10 && q.block_state('yasu_ride:height') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, -90, 0],
+            "translation": [0.2775625, 0.1875, 0.25625]
           }
         }
       }

@@ -690,12 +690,12 @@ it("restores saved decor and moves an entry of a removed slot to the first free 
       slot: decorSlotId("wall_cabinet_front"),
       item: decorItemId("book_stack"),
     },
-    { slot: decorSlotId("nowhere"), item: decorItemId("cushion") },
+    { slot: decorSlotId("nowhere"), item: decorItemId("mug_pair") },
     { slot: decorSlotId("stove"), item: decorItemId("Bad Item") },
   ]);
   const expected = [
     { slot: decorSlotId("dashboard_center"), item: decorItemId("book_stack") },
-    { slot: decorSlotId("dashboard_left"), item: decorItemId("cushion") },
+    { slot: decorSlotId("dashboard_left"), item: decorItemId("mug_pair") },
     { slot: decorSlotId("table"), item: decorItemId("potted_plant") },
   ];
   expect(new CamperDrive(37, { dockDecor: saved }).decor()).toEqual(expected);
@@ -727,7 +727,7 @@ const standingCells = DECOR_CELLS.filter(({ slots }) => !slots[0]?.hanging);
 const fullSlots = standingCells.flatMap(({ slots }) =>
   slots
     .filter((s, i) => i === 0 || s.pair)
-    .map((s) => ({ slot: s.id, item: decorItemId("potted_plant") })),
+    .map((s) => ({ slot: s.id, item: decorItemId("mug_pair") })),
 );
 const cabinetEntries = [
   { slot: decorSlotId("wall_cabinet_front"), item: decorItemId("book_stack") },
@@ -758,11 +758,14 @@ it("stows an entry of a removed slot when no slot that takes its item is free, a
   expect(f.drive.decor()).toEqual([...fullSlots, ...cabinetEntries]);
 });
 
-it("restores each new standing item in every standing slot", () => {
+it("restores each new standing item in every accepting standing slot", () => {
   fc.assert(
     fc.property(fc.integer(), (yaw) => {
       for (const item of ["alarm_clock", "instant_camera", "binoculars"]) {
-        for (const slot of DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook")) {
+        for (const slot of slotsFor(
+          decorItemId(item),
+          new Set(STORAGE_DOORS.map((d) => d.id)),
+        )) {
           const entries = [{ slot: slot.id, item }];
           const restored = new CamperDrive(yaw, {
             dockDecor: JSON.stringify(entries),
@@ -785,6 +788,57 @@ it("restores each new standing item in every standing slot", () => {
   );
 });
 
+it("retains items when a stowed entry shares a placed slot on restore", () => {
+  const entries = [
+    { slot: "wall_cabinet_rear", item: "potted_plant" },
+    { slot: "dashboard_center", item: "macrame_planter" },
+    { slot: "ceiling_hook", item: "potted_plant" },
+  ];
+  const drive = new CamperDrive(0, { dockDecor: JSON.stringify(entries) });
+  const restored = drive.decor();
+  const placed = restored.filter(
+    (e, i) =>
+      !restored
+        .slice(0, i)
+        .some((previous) => placeOf(previous.slot) === placeOf(e.slot)),
+  );
+  expect(restored).toHaveLength(3);
+  expect(new Set(placed.map((e) => e.slot)).size).toBe(placed.length);
+  expect(restored.map((e) => e.item).sort()).toEqual(
+    entries.map((e) => e.item).sort(),
+  );
+  const roundTrip = new CamperDrive(0, { dockDecor: JSON.stringify(restored) });
+  expect(
+    roundTrip
+      .decor()
+      .map((e) => e.item)
+      .sort(),
+  ).toEqual(entries.map((e) => e.item).sort());
+});
+
+it("stows dashboard items unchanged when clearance refuses them and the hook is taken", () => {
+  const entries = [
+    { slot: "dashboard_center", item: "macrame_planter" },
+    { slot: "dashboard_left", item: "macrame_planter" },
+    { slot: "ceiling_hook", item: "potted_plant" },
+    { slot: "dashboard_center", item: "potted_plant" },
+  ];
+  const placed = [
+    {
+      slot: decorSlotId("dashboard_center"),
+      item: decorItemId("potted_plant"),
+    },
+    { slot: decorSlotId("ceiling_hook"), item: decorItemId("potted_plant") },
+  ];
+  const f = fixture(JSON.stringify(entries));
+  expect(f.drive.decor()).toEqual([...placed, ...entries.slice(0, 2)]);
+  f.park();
+  const laid = defined(f.step().dock, "laid dock").cells;
+  expect(
+    laid.filter((c) => ["decor", "decorPair"].includes(c.block.type)),
+  ).toEqual(decorCells(f.pose, placed));
+});
+
 it("never loses a saved item when restoring (ADR 0103)", () => {
   const slotId = fc.constantFrom(
     ...DECOR_SLOTS.map((s) => s.id),
@@ -804,23 +858,33 @@ it("never loses a saved item when restoring (ADR 0103)", () => {
       const items = (list: readonly { item: string }[]) =>
         list.map((e) => e.item).sort();
       expect(items(d)).toEqual(items(parsed));
-      expect(new Set(d.map((e) => e.slot)).size).toBe(d.length);
       // A known slot keeps its entry unless an earlier entry took its place: its cell, or
       // its own end of a shelf board or the table (ADR 0107, 0108).
       for (const [i, e] of parsed.entries()) {
         const place = placeOf(e.slot);
-        if (place && !parsed.slice(0, i).some((o) => placeOf(o.slot) === place))
+        if (
+          place &&
+          slotsFor(e.item, new Set(STORAGE_DOORS.map((d) => d.id))).some(
+            (s) => s.id === e.slot,
+          ) &&
+          !parsed.slice(0, i).some((o) => placeOf(o.slot) === place)
+        )
           expect(d).toContainEqual(e);
       }
       // The placed entries come first, one per place; a stowed entry follows, and every
       // slot that takes its item has its place taken.
       const placed = d.filter((e, i) => {
         const place = placeOf(e.slot);
+        const slot = DECOR_SLOTS.find((s) => s.id === e.slot);
+        // A stowed entry may name a free slot that refuses its item.
         return (
           place !== undefined &&
+          slot !== undefined &&
+          (slot.items === undefined || slot.items.includes(e.item)) &&
           !d.slice(0, i).some((o) => placeOf(o.slot) === place)
         );
       });
+      expect(new Set(placed.map((e) => e.slot)).size).toBe(placed.length);
       const takenPlaces = new Set(placed.map((e) => placeOf(e.slot)));
       for (const e of d.slice(placed.length)) {
         expect(placed).not.toContain(e);
@@ -922,7 +986,7 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
   f.step();
   expect(
     f.drive.decorSlotFor(
-      decorItemId("potted_plant"),
+      decorItemId("mug_pair"),
       slotPoint(f.pose, slotNamed("dashboard_center")),
       decorSlotCell(f.pose, slotNamed("dashboard_left")),
       false,
@@ -1304,4 +1368,41 @@ it("keeps the compact toilet seat while parked and ignores its stick (ADR 0095)"
   expect(out.boardDeckRiders).toBe(false);
   expect(out.depart).toBeUndefined();
   expect(f.drive.inspect().parked).toBe(true);
+});
+
+it("restores dashboard saves at the new spots in every facing and relocates gear that no longer fits", () => {
+  for (const yaw of [0, 90, 180, -90]) {
+    const saved = [
+      { slot: "dashboard_center", item: "road_map" },
+      { slot: "dashboard_left", item: "mug_pair" },
+      { slot: "table", item: "cushion" },
+    ];
+    const drive = new CamperDrive(yaw, { dockDecor: JSON.stringify(saved) });
+    expect(drive.decor()).toEqual(saved);
+    const blocks = decorCells(
+      parkPose({ x: 0, y: 0, z: 0 }, yaw),
+      drive.decor(),
+    );
+    expect(blocks.map((c) => c.block)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "decor", item: "road_map", spot: 9 }),
+        expect.objectContaining({ type: "decor", item: "mug_pair", spot: 10 }),
+      ]),
+    );
+    const oversized = new CamperDrive(yaw, {
+      dockDecor: JSON.stringify([
+        { slot: "dashboard_center", item: "cushion" },
+        { slot: "dashboard_left", item: "binoculars" },
+      ]),
+    });
+    expect(
+      oversized
+        .decor()
+        .map((e) => e.item)
+        .sort(),
+    ).toEqual(["binoculars", "cushion"]);
+    expect(
+      oversized.decor().every((e) => !e.slot.startsWith("dashboard_")),
+    ).toBe(true);
+  }
 });
