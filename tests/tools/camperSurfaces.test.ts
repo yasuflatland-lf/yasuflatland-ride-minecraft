@@ -125,7 +125,7 @@ a = s.build_surfaces(r)
       "carpet v3":
         "9991eee05af8091f0884c15915f20278d0d5ba41080c2c81a7650773bfad27cf",
       "wall veneer":
-        "a92bf51eef145acf47014fcda8c5b88991e58ac7cb25e9f8ab9802ba65437330",
+        "e80763992229b2b271ef9b32fba5e1f7464afd940c2fc1f8fada8d7890cf8415",
       "backsplash tile":
         "be8228bff5fc74423397efa64f21c3d95b1d6783e3edc0ab12aad087d2eb3750",
       "table oak":
@@ -143,6 +143,35 @@ a = s.build_surfaces(r)
       "cab DARK19":
         "1a93b51f95cce226460cda2e9cb83e9943978987534d498b8f501178bc9cdf63",
     });
+  });
+  it("keeps the veneer grain visible after mip averaging", () => {
+    const { mean, std4, std8 } = inspect(
+      "{'mean': mean, 'std4': contrast(4), 'std8': contrast(8)}",
+      `
+from statistics import pstdev
+width, height = s.WALL_SIZE
+pixels = [[s.wall_pixel(x, y) for x in range(width)] for y in range(height)]
+mean = [sum(p[c] for row in pixels for p in row)/(width*height) for c in range(3)]
+def contrast(scale):
+    values = []
+    for by in range(height // scale):
+        for bx in range(width // scale):
+            rgb = [sum(pixels[y][x][c]
+                       for y in range(by*scale, (by+1)*scale)
+                       for x in range(bx*scale, (bx+1)*scale))/(scale*scale)
+                   for c in range(3)]
+            values.append(sum(c*w for c,w in zip(rgb, (0.2126, 0.7152, 0.0722))))
+    return pstdev(values)
+`,
+    ) as { mean: [number, number, number]; std4: number; std8: number };
+    // 4x4: 3.91 -> 10.92 (2.79x); 8x8: 3.18 -> 9.73 (3.06x).
+    expect(std4).toBeGreaterThanOrEqual(8);
+    expect(std8).toBeGreaterThanOrEqual(6.4);
+    for (const [channel, reference] of [194.87, 170.07, 129.53].entries()) {
+      expect(
+        Math.abs(defined(mean[channel], "mean channel") / reference - 1),
+      ).toBeLessThanOrEqual(0.03);
+    }
   });
   it("samples the same veneer coordinates on either side of every fragment seam", () => {
     const walls = inspect(

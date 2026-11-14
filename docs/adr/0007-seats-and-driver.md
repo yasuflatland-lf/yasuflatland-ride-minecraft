@@ -16,7 +16,7 @@ In the spike, the first player in the list returned by `getRiders()` was the dri
 - When the driver gets out, passengers are not moved into the driver seat automatically. Anyone who wants to drive gets out and back in. At the start of implementation, confirm whether Bedrock moves them automatically; if it does, revisit this ADR
 - When someone gets out, play that seat's door open/close animation and the door-open sound once each
 
-- Camper dinette visuals use fixed olive looped tweed, chamfered cushions and olive welt piping, with an olive/khaki/cream striped bolster on seat 2. `seat_2` and `seat_3` contain 22 and 15 cubes after wheel-arch carving. Upholstery does not change seat anchors, rideable positions or facing; the seats stay inside their existing furniture cells. The fabric regions never sample the exterior paint swatches.
+- Camper dinette visuals use fixed olive looped tweed, chamfered cushions and olive welt piping, without striped bolsters. `seat_2` and `seat_3` each contain 15 cubes after wheel-arch carving. Upholstery does not change seat anchors, rideable positions or facing; the seats stay inside their existing furniture cells. The fabric regions never sample the exterior paint swatches.
 - Camper cab upholstery is visual geometry on `seat_0` and `seat_1`; its rounded 501-cube buckets do not redefine rider positions, seat order, or the collision box. The camper retains four seats.
 
 ## Consequences

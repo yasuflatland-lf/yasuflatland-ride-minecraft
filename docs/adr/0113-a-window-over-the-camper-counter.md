@@ -14,7 +14,7 @@ Since 0103 the wall cabinet over the counter sits at the ceiling, from y 54 to 6
 
 ## Decision
 
-- Map the inner lining to `wall veneer` (416 x 180 texels, WOOD) at 4 texels per model pixel, anchored at z -48 and y 61. The grain runs vertically; signed horizontal UVs account for the opposite walls. At the backsplash material boundaries, remap every non-tile fragment from its own model coordinates so grain and the rails at y 35.5 and 49.5 stay registered. Preserve the counter-window hole exactly when splitting four tile cubes from the lining.
+- Map the inner lining to `wall veneer` (416 x 180 texels, WOOD) at 4 texels per model pixel, anchored at z -48 and y 61. The clearly visible grain runs vertically (2.79x the previous 4x4 mip contrast); signed horizontal UVs account for the opposite walls. At the backsplash material boundaries, remap every non-tile fragment from its own model coordinates so grain and the rails at y 35.5 and 49.5 stay registered. Preserve the counter-window hole exactly when splitting four tile cubes from the lining.
 
 - The right side gets a fourth side window at z 10 to 35, y 36 to 49 (`WIN_Y`), in `right_windows` in `tools/camper_kit.py`
 - It is 25 px long, as long as the window ahead of the door (z -35 to -10), and has the same height
