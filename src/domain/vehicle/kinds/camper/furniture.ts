@@ -321,9 +321,10 @@ export const FRIDGE: DooredStorage<StorageDoorId, "fridge"> = {
 const COUNTER_CELL = { x: -1, z: -1, layer: 1 } as const;
 const COUNTER_HEIGHT = 14;
 
-// Provisional until #1681 records PC/iPad probe numbers. The model pivots are
+// One block carries both drawers, chosen from the #1681 iPad probe (PC was not
+// measured by owner decision). The model pivots are
 // (9, y, 16.45); room x/z point left/forward, opposite the model's kitchen side.
-// A two-cell fallback replaces this cell and drawerAtHeight with one cell per door.
+// A two-cell layout would replace this cell and drawerAtHeight with one cell per door.
 export const DRAWER_COMPARTMENT = COUNTER_CELL;
 const DRAWER_BOTTOM_Y = 17.25;
 const DRAWER_TOP_Y = 22.65;
