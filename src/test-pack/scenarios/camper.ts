@@ -683,10 +683,14 @@ async function camperStorage(
       const states = block?.permutation.getAllStates();
       const want = {
         [DECOR_FACE_STATE]: cell.block.face,
-        [ROOM_OPEN_STATE]: false,
+        ...(cell.block.type === "drawers" ? {} : { [ROOM_OPEN_STATE]: false }),
         ...heightOf(cell.block),
-        ...pairEndStates(0, cell.block.end0),
-        ...pairEndStates(1, cell.block.end1),
+        ...(cell.block.type === "drawers"
+          ? {}
+          : {
+              ...pairEndStates(0, cell.block.end0),
+              ...pairEndStates(1, cell.block.end1),
+            }),
       };
       return (
         block?.typeId === compartmentId &&

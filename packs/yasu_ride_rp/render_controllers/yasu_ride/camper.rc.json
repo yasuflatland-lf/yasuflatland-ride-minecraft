@@ -97,7 +97,10 @@
       "geometry": "Geometry.drawer_items",
       "materials": [
         {
-          "*": "Material.default"
+          "*": "Material.cutout"
+        },
+        {
+          "drawer_*_item_sugar_pot": "Material.glass"
         }
       ],
       "textures": ["Texture.drawer_items"],

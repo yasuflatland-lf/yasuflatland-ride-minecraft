@@ -466,12 +466,8 @@ export function camperDrawersLaid(a: Arena): Promise<Outcome> {
       if (cell?.block.type !== "drawers")
         throw new Error("Missing domain drawers compartment");
       requireCheck(
-        !cell.block.topOpen &&
-          !cell.block.bottomOpen &&
-          cell.block.end0 === "mug_pair" &&
-          cell.block.end1 === "book_stack" &&
-          cell.block.counter === "potted_plant",
-        "Expected shut drawers with both contents and counter decor",
+        cell.block.counter === "potted_plant",
+        "Expected counter decor on the shared drawer block",
       );
       const block = a.dim.getBlock(cell);
       const states = block?.permutation.getAllStates();

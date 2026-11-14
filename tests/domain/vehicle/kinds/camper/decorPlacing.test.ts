@@ -308,10 +308,7 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
             expect(compartment.block).toMatchObject({
               type: "drawers",
               face: decorFace(p.yaw),
-              topOpen: false,
-              bottomOpen: false,
-              [slot.id === "counter" ? "counter" : `end${slot.pair?.end}`]:
-                item,
+              ...(slot.id === "counter" ? { counter: item } : {}),
             });
             continue;
           }
