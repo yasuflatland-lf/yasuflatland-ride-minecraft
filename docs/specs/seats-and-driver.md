@@ -49,7 +49,7 @@
 ### Camper dinette upholstery
 
 - Applies to: Camper seats 2 and 3, driving and parked.
-- Rule: The facing dinette uses fixed olive looped tweed with chamfered cushions and olive welt piping; seat 2 also has an olive/khaki/cream striped bolster. After wheel-arch carving, seats 2 and 3 contain 22 and 15 cubes. Their existing footprint, seat anchors and rider positions are unchanged. Build x -23..-8 becomes model x 8..23, with z -24..-10 for seat 2 and z 10..24 for seat 3. No fabric face uses an exterior paint swatch.
+- Rule: The facing dinette uses fixed olive looped tweed with chamfered cushions and olive welt piping, without striped bolsters. After wheel-arch carving, seats 2 and 3 each contain 15 cubes. Their existing footprint, seat anchors and rider positions are unchanged. Build x -23..-8 becomes model x 8..23, with z -24..-10 for seat 2 and z 10..24 for seat 3. No fabric face uses an exterior paint swatch.
 - Agreement: Accepted
 - Basis: [0007](../adr/0007-seats-and-driver.md) Decision, camper dinette visuals.
 - Implementation: `tools/camper_soft.py`; `tools/gen_camper.py`
