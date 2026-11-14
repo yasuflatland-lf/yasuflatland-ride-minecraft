@@ -33,6 +33,24 @@ const decorPairBlock = fc
     ...(end1 === undefined ? {} : { end1: decorItemId(end1) }),
   }));
 const furnitureHeight = fc.integer({ min: 0, max: 15 });
+const drawersBlock = fc
+  .record({
+    face: fc.constantFrom(0 as const, 1 as const, 2 as const, 3 as const),
+    topOpen: fc.boolean(),
+    bottomOpen: fc.boolean(),
+    open: fc.boolean(),
+    height: fc.constantFrom(10, 16),
+    end0: pairEnd,
+    end1: pairEnd,
+    counter: pairEnd,
+  })
+  .map(({ end0, end1, counter, ...rest }) => ({
+    type: "drawers" as const,
+    ...rest,
+    ...(end0 === undefined ? {} : { end0: decorItemId(end0) }),
+    ...(end1 === undefined ? {} : { end1: decorItemId(end1) }),
+    ...(counter === undefined ? {} : { counter: decorItemId(counter) }),
+  }));
 const showerToiletFace = fc.constantFrom(0, 1, 2, 3);
 const block: fc.Arbitrary<DockBlock> = fc.oneof(
   fc.record({
@@ -57,6 +75,7 @@ const block: fc.Arbitrary<DockBlock> = fc.oneof(
   showerToiletFace.map((face) => ({ type: "showerDoor" as const, face })),
   decorBlock,
   decorPairBlock,
+  drawersBlock,
 );
 it("changes only the door when its open state changes", () => {
   const floor: DockCell = { x: 0, y: 0, z: 0, block: { type: "floor" } };
@@ -123,6 +142,31 @@ describe("sameBlock", () => {
               a.end1 === b.end1,
           );
           expect(sameBlock(a, decor)).toBe(false);
+        },
+      ),
+    );
+  });
+
+  it("tells drawer blocks apart by face, height, every opening, and every item", () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.tuple(drawersBlock, drawersBlock),
+          drawersBlock.map((a) => [a, { ...a }] as const),
+        ),
+        block,
+        ([a, b], other) => {
+          expect(sameBlock(a, b)).toBe(
+            a.face === b.face &&
+              a.topOpen === b.topOpen &&
+              a.bottomOpen === b.bottomOpen &&
+              a.open === b.open &&
+              a.height === b.height &&
+              a.end0 === b.end0 &&
+              a.end1 === b.end1 &&
+              a.counter === b.counter,
+          );
+          if (other.type !== "drawers") expect(sameBlock(a, other)).toBe(false);
         },
       ),
     );
