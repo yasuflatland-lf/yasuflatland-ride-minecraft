@@ -1,6 +1,12 @@
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
+/**
+ * Keeps the 16.22 px closed aisle at least the 9.6 px player width (0.6 block):
+ * 16.22 - 6.6 = 9.62 px; the spike's 7 px slide would narrow it too far.
+ */
+export const DRAWER_SLIDE_PX = 6.6;
+
 // The camper's own tuning values (ADR 0067). Values marked "as the SUV" repeat the SUV's
 // numbers because the owner asked for the same behavior; they are not shared constants.
 export const CAMPER_SPEC = Object.freeze({
