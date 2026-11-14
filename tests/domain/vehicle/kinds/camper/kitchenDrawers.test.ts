@@ -60,7 +60,7 @@ it("isolates the shared drawer cell and seam split from the model constants", ()
     z: -Math.round(16.45 / 16),
     layer: Math.floor(bottom / 16),
   });
-  expect(CAMPER_STORAGE).not.toContain(KITCHEN_DRAWERS);
+  expect(CAMPER_STORAGE).toContain(KITCHEN_DRAWERS);
   expect(storageFurniture(KITCHEN_DRAWERS).cells).toEqual([DRAWER_COMPARTMENT]);
   expect(() => KITCHEN_DRAWERS.plateBlock({ face: 0, lit: false })).toThrow(
     "Sliding storage has no plate",
@@ -107,11 +107,8 @@ it("lays one compartment for both openings and no plates", () => {
       const shown = new Set(open);
       const cells = compartmentCells(pose, [], shown, doors);
       expect(cells).toHaveLength(1);
-      expect(cells[0]?.block).toMatchObject({
-        type: "drawers",
-        topOpen: shown.has("drawer_top"),
-        bottomOpen: shown.has("drawer_bottom"),
-      });
+      expect(cells).toEqual(compartmentCells(pose, [], new Set(), doors));
+      expect(cells[0]?.block.type).toBe("drawers");
       expect(storagePlateCells(pose, shown, false, doors)).toEqual([]);
     }),
   );
@@ -135,6 +132,36 @@ it("toggles independently with the existing opening-window debounce and shuts ev
         state.shutAll();
         expect([...state.open()]).toEqual([]);
         expect([...state.shown()]).toEqual([]);
+      },
+    ),
+  );
+});
+
+it("reports every nonzero drawer opening step through shown during opening and closing", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(...doors),
+      fc.integer({ min: 1, max: 10 }),
+      (door, steps) => {
+        const state = new StorageDoors(doors, () => 0, true);
+        state.press(door.id, true, 0, () => undefined);
+        for (let i = 0; i < steps; i++)
+          state.swingCommands((id, value) => ({
+            type: "setProperty",
+            name: id,
+            value,
+          }));
+        expect(state.shown().has(door.id)).toBe(true);
+        state.press(door.id, true, 10, () => undefined);
+        expect(state.shown().has(door.id)).toBe(true);
+        for (let i = steps; i > 0; i--) {
+          state.swingCommands((id, value) => ({
+            type: "setProperty",
+            name: id,
+            value,
+          }));
+          expect(state.shown().has(door.id)).toBe(i > 1);
+        }
       },
     ),
   );

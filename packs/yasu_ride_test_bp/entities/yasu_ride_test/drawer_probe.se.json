@@ -1,0 +1,43 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "yasu_ride_test:drawer_probe",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "properties": {
+        "yasu_ride:drawer_top": {
+          "type": "float",
+          "range": [0.0, 1.0],
+          "default": 0.0,
+          "client_sync": true
+        },
+        "yasu_ride:drawer_bottom": {
+          "type": "float",
+          "range": [0.0, 1.0],
+          "default": 0.0,
+          "client_sync": true
+        },
+        "yasu_ride:drawer_top_item": {
+          "type": "int",
+          "range": [0, 10],
+          "default": 0,
+          "client_sync": true
+        },
+        "yasu_ride:drawer_bottom_item": {
+          "type": "int",
+          "range": [0, 10],
+          "default": 0,
+          "client_sync": true
+        }
+      }
+    },
+    "components": {
+      "minecraft:collision_box": {
+        "width": 0,
+        "height": 0
+      },
+      "minecraft:persistent": {}
+    }
+  }
+}

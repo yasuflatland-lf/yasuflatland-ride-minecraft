@@ -3,8 +3,10 @@ import {
   type DecorPlacement,
   type DecorSlotId,
   parseDecorSlotId,
+  serializeDecor,
 } from "../../dock/decor";
 import { CAMPER_FURNITURE, type DecorSlot, type LocalCell } from "./furniture";
+import { CAMPER_SPEC } from "./spec";
 
 export const DECOR_SLOTS: readonly DecorSlot[] = CAMPER_FURNITURE.flatMap(
   (f) => f.slots,
@@ -97,4 +99,16 @@ export function cellTaken(
 ): boolean {
   const sharing = new Set(sharingSlots(slot).map((s) => s.id));
   return decor.some((d) => sharing.has(d.slot));
+}
+
+/** Include stowed and unknown slots in the engine's UTF-8 dynamic property budget. */
+export function decorFits(decor: readonly DecorPlacement[]): boolean {
+  const saved = serializeDecor(decor) ?? "";
+  let bytes = 0;
+  for (const char of saved) {
+    const code = char.codePointAt(0) ?? 0;
+    bytes += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4;
+    if (bytes > CAMPER_SPEC.decorMaxBytes) return false;
+  }
+  return true;
 }

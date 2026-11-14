@@ -7,6 +7,7 @@ import {
   type DecorSlotId,
   isDecorItem,
   parseDecor,
+  parseDecorSlotId,
   type StoragePress,
 } from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
@@ -28,6 +29,7 @@ import {
   cellTaken,
   DECOR_CELLS,
   DECOR_SLOTS,
+  decorFits,
   decorSlot,
   savedSlotId,
   sharingSlots,
@@ -39,20 +41,33 @@ import {
   ownSlotBlock,
   slotCells,
 } from "./decorCells";
-import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
+import {
+  nearest,
+  slotForPress,
+  slotPoint,
+  slotsAt,
+  slotsFor,
+} from "./decorPlacing";
 import { StorageDoors } from "./dooredStorage";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
+import { drawerBlockHit, drawerHit, drawerPressCell } from "./drawerHit";
 import {
   type CAMPER_ENTITY,
   ceilingLightsCommand,
   doorCommand,
+  drawerItemCommand,
   SWITCH_CLICK,
   showerCommand,
   showerDoorCommand,
   storageDoorCommand,
   storageDoorProperty,
 } from "./entity";
-import { STORAGE_DOORS, type StorageDoorId } from "./furniture";
+import {
+  DRAWER_COMPARTMENT,
+  KITCHEN_DRAWERS,
+  STORAGE_DOORS,
+  type StorageDoorId,
+} from "./furniture";
 import {
   isPassable,
   PARK_MESSAGES,
@@ -62,7 +77,7 @@ import {
   planPark,
   wallFootCells,
 } from "./groundCheck";
-import { parkPose } from "./parkPose";
+import { localCellAt, parkPose } from "./parkPose";
 import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
 import {
   ceilingLightCells,
@@ -74,7 +89,7 @@ import {
   bedSpawnCell as roomBedSpawnCell,
   roomCells,
 } from "./roomCells";
-import { CAMPER_SPEC, CAMPER_TRANSFORMING } from "./spec";
+import { CAMPER_SPEC, CAMPER_TRANSFORMING, DRAWER_GEAR_IDS } from "./spec";
 import {
   cargoCells,
   compartmentCells,
@@ -126,6 +141,10 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
   private clickPending = false;
   // The storage doors swing in the entry door's DOOR_STEPS, each on its own (ADR 0114, 0121).
   private readonly storage: StorageDoors<StorageDoorId>;
+  private readonly drawerItemsSync = {
+    drawer_top: new SyncedValue<number>(),
+    drawer_bottom: new SyncedValue<number>(),
+  };
   private readonly decorBySlot = new Map<DecorSlotId, DecorItemId>();
   // Saved decor whose slot no longer exists and that no free slot could take; it is
   // kept, saved, and given back when the camper breaks (ADR 0103).
@@ -229,19 +248,63 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
    * back the item at the end nearest `point`, or shuts the door when that end is empty. A tap
    * may reach the block twice (ADR 0105), so a press within a swing of the door's last
    * action does nothing; otherwise the echo of an opening tap could take an item out.
+   * The caller sets `drawersSideFace` only for a side face of the drawers block itself.
+   * Its measured height picks the drawer only when `cell` is the drawers compartment;
+   * rerouted floor presses keep using the ray, whichever drawers are open.
    */
   pressStorage(
     cell: Vec3,
     point: Vec3 | undefined,
     tick: number,
-    takeContents = true,
+    takeContents?: boolean,
+    eye?: Vec3,
+    openOnly = false,
+    drawersSideFace = false,
   ): StoragePress | undefined {
     const pose = this.parked;
-    const target = pose && storagePressTarget(pose, cell, STORAGE_DOORS, point);
-    if (!pose || !target) return undefined;
+    const byHeight =
+      drawersSideFace &&
+      point !== undefined &&
+      pose !== undefined &&
+      sameCell(cell, localCellAt(pose, DRAWER_COMPARTMENT));
+    const hit =
+      !byHeight && pose && point && eye
+        ? drawerBlockHit(
+            pose,
+            cell,
+            eye,
+            point,
+            this.placed(),
+            this.storage.open(),
+          )
+        : undefined;
+    const counter = pose && drawerPressCell(pose, cell);
+    if (counter && !byHeight) {
+      if (
+        !hit?.door &&
+        (cell.x !== counter.x || cell.y !== counter.y || cell.z !== counter.z)
+      )
+        return undefined;
+      if (eye && point && !hit?.door) return undefined;
+      cell = counter;
+    }
+    point = hit?.point ?? point;
+    const hitDoor = STORAGE_DOORS.find((d) => d.id === hit?.door);
+    const target = hitDoor
+      ? {
+          door: hitDoor,
+          onCompartment: true,
+        }
+      : pose && storagePressTarget(pose, cell, STORAGE_DOORS, point);
+    if (
+      !pose ||
+      !target ||
+      (openOnly && this.storage.open().has(target.door.id))
+    )
+      return undefined;
     return this.storage.press(
       target.door.id,
-      target.onCompartment && takeContents,
+      target.onCompartment && (takeContents ?? hit?.takeContents ?? true),
       tick,
       () => {
         const ends = slotsAt(pose, cell).filter(
@@ -324,9 +387,22 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       this.decorBySlot.delete(slot);
       return true;
     }
+    if (!this.canSaveDecor(target, item)) return false;
     for (const other of sharingSlots(target)) this.decorBySlot.delete(other.id);
     this.decorBySlot.set(slot, item);
     return true;
+  }
+
+  private canSaveDecor(
+    target: Parameters<typeof sharingSlots>[0],
+    item: DecorItemId,
+  ): boolean {
+    const replaced = new Set(sharingSlots(target).map((s) => s.id));
+    return decorFits([
+      ...this.placed().filter((d) => !replaced.has(d.slot)),
+      ...this.stowedDecor,
+      { slot: target.id, item },
+    ]);
   }
 
   // No roomLaid check: parkedStep sets it on the parking tick itself, so it is
@@ -340,7 +416,38 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     eye?: Vec3,
   ): DecorSlotId | undefined {
     if (!this.parked) return undefined;
-    return slotForPress(
+    const hit = eye
+      ? drawerBlockHit(
+          this.parked,
+          cell,
+          eye,
+          point,
+          this.placed(),
+          this.storage.open(),
+        )
+      : undefined;
+    const counter = drawerPressCell(this.parked, cell);
+    if (hit?.door) {
+      const slot = slotForPress(
+        this.parked,
+        item,
+        this.placed(),
+        counter ?? cell,
+        hit.point,
+        true,
+        undefined,
+        this.storage.open(),
+        hit.door,
+      );
+      return slot && this.canSaveDecor(slot, item) ? slot.id : undefined;
+    }
+    if (
+      counter &&
+      (cell.x !== counter.x || cell.y !== counter.y || cell.z !== counter.z)
+    )
+      return undefined;
+    point = hit?.point ?? point;
+    const slot = slotForPress(
       this.parked,
       item,
       this.placed(),
@@ -349,7 +456,67 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       exact,
       eye,
       this.storage.open(),
-    )?.id;
+    );
+    return slot && this.canSaveDecor(slot, item) ? slot.id : undefined;
+  }
+
+  drawerTarget(
+    eye: Vec3,
+    direction: Vec3,
+    cell?: Vec3,
+    item?: DecorItemId,
+    feet?: Vec3,
+  ) {
+    const pose = this.parked;
+    if (!pose) return undefined;
+    const counter = cell
+      ? drawerPressCell(pose, cell)
+      : localCellAt(pose, DRAWER_COMPARTMENT);
+    if (!counter) return undefined;
+    const hit = drawerHit(
+      pose,
+      eye,
+      direction,
+      this.placed(),
+      this.storage.open(),
+    );
+    let door = hit?.door;
+    if (!door && !hit && item && feet) {
+      const aisle = localCellAt(pose, {
+        x: 0,
+        z: DRAWER_COMPARTMENT.z,
+        layer: 1,
+      });
+      if (
+        Math.floor(feet.x) === aisle.x &&
+        Math.floor(feet.y) === aisle.y &&
+        Math.floor(feet.z) === aisle.z
+      ) {
+        const free = slotsFor(item, this.storage.open()).filter(
+          (s) =>
+            KITCHEN_DRAWERS.doors.some((d) => d.id === s.door) &&
+            !cellTaken(s, this.placed()),
+        );
+        if (free.length === 1) door = free[0]?.door;
+      }
+    }
+    if (!door) return undefined;
+    const slot = item
+      ? slotsFor(item, this.storage.open()).find(
+          (s) => s.door === door && !cellTaken(s, this.placed()),
+        )
+      : undefined;
+    const definition = STORAGE_DOORS.find((d) => d.id === door);
+    const point =
+      hit?.point ??
+      (definition?.slots[0] && slotPoint(pose, definition.slots[0]));
+    if (!point) return undefined;
+    return {
+      cell: counter,
+      point,
+      slot: slot?.id,
+      open: this.storage.open().has(door),
+    };
   }
 
   placeDecor(slot: DecorSlotId, item: DecorItemId): boolean {
@@ -368,6 +535,24 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
    */
   removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): DecorItemId | undefined {
     if (!this.parked) return undefined;
+    const hit =
+      point && eye
+        ? drawerBlockHit(
+            this.parked,
+            cell,
+            eye,
+            point,
+            this.placed(),
+            this.storage.open(),
+          )
+        : undefined;
+    if (hit?.door) return undefined;
+    if (
+      point &&
+      storagePressTarget(this.parked, cell, STORAGE_DOORS, hit?.point ?? point)
+        ?.door.acceptsPress !== undefined
+    )
+      return undefined;
     // A storage compartment gives its items back only through pressStorage (ADR 0114, 0121).
     const held = slotsAt(this.parked, cell).filter(
       ({ id, door }) => door === undefined && this.decorBySlot.has(id),
@@ -388,6 +573,7 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     this.showerSync.resync();
     this.ceilingLightsSync.resync();
     this.storage.resync();
+    for (const sync of Object.values(this.drawerItemsSync)) sync.resync();
   }
 
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
@@ -602,8 +788,21 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       ...this.doorCommands(),
       ...this.showerCommands(),
       ...this.storage.swingCommands(storageDoorCommand),
+      ...this.drawerItemCommands(),
       ...this.ceilingLightCommands(),
     ];
+  }
+
+  private drawerItemCommands(): EngineCommand[] {
+    return (["drawer_top", "drawer_bottom"] as const).flatMap((drawer) => {
+      const slot = parseDecorSlotId(`${drawer}_0`);
+      const item = slot === undefined ? undefined : this.decorBySlot.get(slot);
+      const code =
+        item === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(item) + 1;
+      return this.drawerItemsSync[drawer].next(code) === undefined
+        ? []
+        : [drawerItemCommand(drawer, code)];
+    });
   }
 
   private ceilingLightCommands(): EngineCommand[] {
@@ -626,4 +825,8 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       ...(running === undefined ? [] : [showerCommand(running)]),
     ];
   }
+}
+
+function sameCell(a: Vec3, b: Vec3): boolean {
+  return a.x === b.x && a.y === b.y && a.z === b.z;
 }

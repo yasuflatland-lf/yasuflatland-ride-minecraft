@@ -20,6 +20,8 @@ it("restores the form, docked, door, and ceiling light properties and writes the
     "cabinet_stove_door",
     "fridge_top_door",
     "fridge_bottom_door",
+    "drawer_top",
+    "drawer_bottom",
     "ceiling_lights",
   ]);
   expect(ceilingLightsCommand(true)).toEqual({
@@ -65,12 +67,15 @@ it("restores the form, docked, door, and ceiling light properties and writes the
   });
 });
 
-it("leaves the gated kitchen drawers without a restored property until #1684 wires them", () => {
+it("writes each kitchen drawer to its own restored slide property", () => {
   for (const door of ["drawer_top", "drawer_bottom"] as const) {
-    expect(storageDoorProperty(door)).toBeUndefined();
-    expect(() => storageDoorCommand(door, 1)).toThrow(
-      `Storage property is not wired: ${door}`,
-    );
+    expect(storageDoorProperty(door)).toBe(door);
+    expect(CAMPER_ENTITY.restored).toContain(door);
+    expect(storageDoorCommand(door, 0.4)).toEqual({
+      type: "setProperty",
+      name: door,
+      value: 0.4,
+    });
   }
   expect(storageDoorProperty("sink")).toBe("cabinet_sink_door");
 });

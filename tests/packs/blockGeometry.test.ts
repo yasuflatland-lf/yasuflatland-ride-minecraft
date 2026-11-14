@@ -164,6 +164,7 @@ const MIN_INSIDE_PX = 1;
 const MAX_REACH_PX = 30;
 const PAIR_BLOCKS = [
   "cabinet_decor_pair",
+  "drawers_decor_pair",
   "fridge_decor_pair",
   "shelf_decor_pair",
   "table_decor_pair",
@@ -314,7 +315,9 @@ describe("block bounds the client accepts (ADR 0108)", () => {
 
   it("keeps both items of a pair block over its own cell in every permutation, not just a pixel of them (ADR 0108)", () => {
     for (const { path, condition, components } of states) {
-      if (!PAIR_BLOCKS.includes(path)) continue;
+      // Sliding drawers extend into the aisle; the general client bounds check covers them.
+      if (!PAIR_BLOCKS.includes(path) || path.includes("drawers_decor_pair"))
+        continue;
       const reference = components["minecraft:geometry"] as GeometryReference;
       const model = bones.get(identifierOf(reference)) ?? new Map();
       const { lo, hi } = transformed(

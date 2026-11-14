@@ -7,9 +7,51 @@ import type { TransformingSpec } from "../../motion/transforming";
  */
 export const DRAWER_SLIDE_PX = 6.6;
 
+export const PX_PER_BLOCK = 16;
+export const COUNTER_HEIGHT = 14;
+export const DRAWER_CELL_LAYER = 1;
+export const DRAWER_BOTTOM_Y = 17.25;
+export const DRAWER_TOP_Y = 22.65;
+export const DRAWER_FRONT_HEIGHT = 5.2;
+export const DRAWER_BOX_LIFT = 0.25;
+export const DRAWER_WALL_PX = 0.2;
+
+// Room left has the model x sign; ahead negates model z. Virtual targets let
+// one combined block distinguish the fronts and contents despite its single selection box.
+export const DRAWER_HIT_PROFILE = Object.freeze({
+  pixelsPerBlock: PX_PER_BLOCK,
+  counterHeight: COUNTER_HEIGHT,
+  counterHalfWidth: 8,
+  frontLeftMin: 7,
+  frontLeftMax: 7.35,
+  frontAheadMin: -7.3,
+  frontAheadMax: 6.4,
+  frontHeight: DRAWER_FRONT_HEIGHT,
+  frontBottom: {
+    drawer_top: DRAWER_TOP_Y - DRAWER_CELL_LAYER * PX_PER_BLOCK,
+    drawer_bottom: DRAWER_BOTTOM_Y - DRAWER_CELL_LAYER * PX_PER_BLOCK,
+  },
+  contentLeft: 2 + DRAWER_SLIDE_PX,
+  contentAhead: -0.45,
+  gear: {
+    saucepan: { width: 6, height: 3 },
+    mug_pair: { width: 4, height: 1.635 },
+    sugar_pot: { width: 3, height: 4 },
+    fruit_bowl: { width: 6, height: 3 },
+    transistor_radio: { width: 6, height: 4 },
+    book_stack: { width: 6, height: 3 },
+    road_map: { width: 6, height: 1 },
+    cushion: { width: 7, height: 3 },
+    tissue_box: { width: 5, height: 3 },
+    binoculars: { width: 5, height: 3 },
+  },
+});
+
 // The camper's own tuning values (ADR 0067). Values marked "as the SUV" repeat the SUV's
 // numbers because the owner asked for the same behavior; they are not shared constants.
 export const CAMPER_SPEC = Object.freeze({
+  // Bedrock limits a dynamic string property to 32,767 UTF-8 bytes.
+  decorMaxBytes: 32767,
   // Driving (ADR 0002, 0067)
   maxSpeed: 0.9, // blocks/tick, as the SUV (owner's choice)
   maxReverse: 0.15,

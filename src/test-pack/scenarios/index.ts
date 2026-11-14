@@ -133,6 +133,11 @@ import {
   camperParkSnow,
   camperWall,
 } from "./camper";
+import {
+  camperDrawersInteraction,
+  camperDrawersLaid,
+  camperDrawersRestore,
+} from "./camperDrawers";
 import { campingGearBlocks } from "./campingGear";
 import { diningChairPlaceTakeBack } from "./diningChair";
 import {
@@ -250,6 +255,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   camper_wall: camperWall,
   camper_land: camperLand,
   camper_dive: camperDive,
+  camper_drawers_laid: camperDrawersLaid,
+  camper_drawers_interaction: camperDrawersInteraction,
+  camper_drawers_restore: camperDrawersRestore,
   camper_park_course: camperParkCourse,
   camper_park_blocked: camperParkBlocked,
   camper_park_snow: camperParkSnow,

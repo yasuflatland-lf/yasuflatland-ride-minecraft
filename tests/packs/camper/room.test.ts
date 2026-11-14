@@ -1,5 +1,11 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CAMPER_FURNITURE } from "../../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  DRAWER_GEAR_IDS,
+  DRAWER_HIT_PROFILE,
+  DRAWER_SLIDE_PX,
+} from "../../../src/domain/vehicle/kinds/camper/spec";
 import {
   bodyPoints,
   bone,
@@ -18,7 +24,7 @@ describe("camper furniture model (ADR 0093)", () => {
     const slots = CAMPER_FURNITURE.filter((f) => f.kind !== "stove").flatMap(
       (f) => f.slots,
     );
-    expect(slots).toHaveLength(16);
+    expect(slots).toHaveLength(18);
     const unrotatedCubes = bones
       .filter((b) => b.rotation === undefined)
       .flatMap((b) => b.cubes ?? [])
@@ -26,6 +32,23 @@ describe("camper furniture model (ADR 0093)", () => {
     for (const slot of slots) {
       const { x, z } = slotXZ(slot);
       const bottom = 16 * slot.cell.layer;
+      if (slot.pair?.kind === "drawers") {
+        const drawer = bone(slot.door ?? "");
+        const floor = drawer.cubes?.find((cube) => cube.size[1] === 0.2);
+        expect(floor, slot.id).toBeDefined();
+        expect(
+          (floor?.origin[1] ?? 0) + (floor?.size[1] ?? 0) - bottom,
+        ).toBeCloseTo(slot.height, 6);
+        expect((floor?.origin[0] ?? 0) + (floor?.size[0] ?? 0) / 2).toBeCloseTo(
+          x + DRAWER_HIT_PROFILE.contentLeft - DRAWER_SLIDE_PX,
+          6,
+        );
+        expect((floor?.origin[2] ?? 0) + (floor?.size[2] ?? 0) / 2).toBeCloseTo(
+          z - DRAWER_HIT_PROFILE.contentAhead,
+          6,
+        );
+        continue;
+      }
       const covering = unrotatedCubes.filter((cube) => {
         const [ox = 0, , oz = 0] = cube.origin;
         const [sx = 0, , sz = 0] = cube.size;
@@ -159,7 +182,7 @@ describe("camper furniture model (ADR 0093)", () => {
     const standing = CAMPER_FURNITURE.filter(
       (f) => SHARED_KINDS.includes(f.kind) || f.kind === "counter",
     ).flatMap((f) => f.slots);
-    expect(standing).toHaveLength(12);
+    expect(standing).toHaveLength(14);
     // The table's or a storage compartment's two items stand apart for any two items (ADR
     // 0108, 0114, 0123).
     for (const [a, b] of [
@@ -192,7 +215,10 @@ describe("camper furniture model (ADR 0093)", () => {
     const halfZ = Math.max(...items.map((i) => i.halfZ));
     const height = Math.max(...items.map((i) => i.height));
     for (const slot of standing) {
-      const { x, z } = slotXZ(slot);
+      const center = slotXZ(slot);
+      const sliding = slot.pair?.kind === "drawers";
+      const x = center.x + (sliding ? DRAWER_HIT_PROFILE.contentLeft : 0);
+      const z = center.z - (sliding ? DRAWER_HIT_PROFILE.contentAhead : 0);
       const top = 16 * slot.cell.layer + slot.height;
       // Narrowing to the points near the slot once keeps the per-item scans short; the run
       // with coverage in CI exceeded the 5 s test timeout scanning every point per item.
@@ -203,7 +229,9 @@ describe("camper furniture model (ADR 0093)", () => {
           py > top + 1e-6 &&
           py < top + height,
       );
-      for (const item of items) {
+      for (const item of items.filter(
+        (item) => slot.items === undefined || slot.items.includes(item.id),
+      )) {
         const intruding = near.filter(
           ([px = 0, py = 0, pz = 0]) =>
             Math.abs(px - x) < item.halfX &&
@@ -212,6 +240,65 @@ describe("camper furniture model (ADR 0093)", () => {
             py < top + item.height,
         );
         expect(intruding, `${slot.id} ${item.id}`).toEqual([]);
+      }
+    }
+  });
+
+  it("fits each allowed drawer item above its closed floor between its walls", () => {
+    const contents = JSON.parse(
+      readFileSync(
+        "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
+        "utf8",
+      ),
+    )["minecraft:geometry"][1].bones;
+    const slots = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
+      (s) => s.pair?.kind === "drawers",
+    );
+    expect(slots).toHaveLength(2);
+    for (const slot of slots) {
+      const drawer = bone(slot.door ?? "");
+      const floor = drawer.cubes?.find((cube) => cube.size[1] === 0.2);
+      if (!floor) throw new Error(`Missing floor for ${slot.id}`);
+      const floorTop = (floor.origin[1] ?? 0) + (floor.size[1] ?? 0);
+      const left = (floor.origin[0] ?? 0) + 0.2;
+      const right = (floor.origin[0] ?? 0) + (floor.size[0] ?? 0);
+      const rear = (floor.origin[2] ?? 0) + 0.2;
+      const front = (floor.origin[2] ?? 0) + (floor.size[2] ?? 0) - 0.2;
+      for (const item of DRAWER_GEAR_IDS) {
+        const gear = contents.find(
+          (b: { name: string }) => b.name === `${slot.door}_item_${item}`,
+        );
+        expect(gear, `${slot.id} ${item}`).toBeDefined();
+        for (const cube of gear.cubes) {
+          for (const [axis, low, high] of [
+            [0, left, right],
+            [1, floorTop, floorTop + 4.5],
+            [2, rear, front],
+          ] as const) {
+            const coordinates = [0, 1].flatMap((i) =>
+              [0, 1].flatMap((j) =>
+                [0, 1].map((k) => {
+                  const point = [i, j, k].map(
+                    (n, a) => cube.origin[a] + n * cube.size[a],
+                  );
+                  const rotated = cube.rotation
+                    ? turn(point, cube.pivot, cube.rotation)
+                    : point;
+                  return rotated[axis];
+                }),
+              ),
+            );
+            // Mug-pair rotated corners extend 0.006663 px below the source model base.
+            expect(
+              Math.min(...coordinates),
+              `${slot.id} ${item} axis ${axis}`,
+            ).toBeGreaterThanOrEqual(low - (axis === 1 ? 0.01 : 1e-6));
+            expect(
+              Math.max(...coordinates),
+              `${slot.id} ${item} axis ${axis}`,
+            ).toBeLessThanOrEqual(high + 1e-6);
+          }
+        }
       }
     }
   });

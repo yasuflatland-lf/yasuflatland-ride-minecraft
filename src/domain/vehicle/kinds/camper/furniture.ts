@@ -9,7 +9,17 @@ import {
   storageDoors,
   storageFurniture,
 } from "./dooredStorage";
-import { DRAWER_GEAR_IDS } from "./spec";
+import {
+  COUNTER_HEIGHT,
+  DRAWER_BOTTOM_Y,
+  DRAWER_BOX_LIFT,
+  DRAWER_CELL_LAYER,
+  DRAWER_FRONT_HEIGHT,
+  DRAWER_GEAR_IDS,
+  DRAWER_TOP_Y,
+  DRAWER_WALL_PX,
+  PX_PER_BLOCK,
+} from "./spec";
 
 type FurnitureKind =
   | "dashboard"
@@ -318,21 +328,13 @@ export const FRIDGE: DooredStorage<StorageDoorId, "fridge"> = {
   plateBlockName: "camper_fridge_door",
 };
 
-const COUNTER_CELL = { x: -1, z: -1, layer: 1 } as const;
-const COUNTER_HEIGHT = 14;
+const COUNTER_CELL = { x: -1, z: -1, layer: DRAWER_CELL_LAYER } as const;
 
-// One block carries both drawers, chosen from the #1681 iPad probe (PC was not
-// measured by owner decision). The model pivots are
-// (9, y, 16.45); room x/z point left/forward, opposite the model's kitchen side.
-// A two-cell layout would replace this cell and drawerAtHeight with one cell per door.
+// One counter cell carries both drawers. Room +left follows model +x into the
+// aisle: the model counter center is x=-16, its front x=-9..-8.65, and the
+// fronts slide +6.6 px. Ahead follows the opposite sign of model z.
 export const DRAWER_COMPARTMENT = COUNTER_CELL;
-const DRAWER_BOTTOM_Y = 17.25;
-const DRAWER_TOP_Y = 22.65;
-const DRAWER_FRONT_HEIGHT = 5.2;
-const DRAWER_BOX_LIFT = 0.25;
-const DRAWER_WALL_PX = 0.2;
 const DRAWER_SEAM = DRAWER_TOP_Y - DRAWER_BOTTOM_Y - DRAWER_FRONT_HEIGHT;
-const PX_PER_BLOCK = 16;
 export const DRAWER_SPLIT_HEIGHT =
   (DRAWER_BOTTOM_Y +
     DRAWER_FRONT_HEIGHT +
@@ -367,30 +369,17 @@ export const KITCHEN_DRAWERS: DooredStorage<StorageDoorId, StoragePairKind> = {
           (id === "drawer_top" ? DRAWER_TOP_Y : DRAWER_BOTTOM_Y) +
           DRAWER_BOX_LIFT +
           DRAWER_WALL_PX -
-          PX_PER_BLOCK,
+          DRAWER_COMPARTMENT.layer * PX_PER_BLOCK,
         items: [...DRAWER_GEAR_IDS],
         pair: { kind: "drawers", end: end as 0 | 1 },
         door: id,
       },
     ],
   })),
-  compartmentBlock: ({
-    face,
-    open,
-    height,
-    openings,
-    end0,
-    end1,
-    surface,
-  }) => ({
+  compartmentBlock: ({ face, height, surface }) => ({
     type: "drawers",
     face,
-    open,
     height,
-    topOpen: openings?.drawer_top === true,
-    bottomOpen: openings?.drawer_bottom === true,
-    ...(end0 === undefined ? {} : { end0 }),
-    ...(end1 === undefined ? {} : { end1 }),
     ...(surface === undefined ? {} : { counter: surface }),
   }),
   plateBlock: () => {
@@ -399,17 +388,13 @@ export const KITCHEN_DRAWERS: DooredStorage<StorageDoorId, StoragePairKind> = {
   plateBlockName: "",
 };
 
-// Deviates from #1683's requested append: activation is tracked on #1684.
-// Append KITCHEN_DRAWERS to CAMPER_STORAGE, merge its slots into the counter row,
-// add drawer_top/drawer_bottom to STORAGE_DOOR_PROPERTY and CAMPER_ENTITY.restored, and drop the vi.mock
-// activation in tests/domain/vehicle/kinds/camper/kitchenDrawerInteraction.test.ts.
 export const CAMPER_STORAGE: readonly DooredStorage<
   StorageDoorId,
-  "cabinet" | "fridge"
->[] = [WALL_CABINET, FRIDGE];
+  StoragePairKind
+>[] = [WALL_CABINET, FRIDGE, KITCHEN_DRAWERS];
 
 const STORAGE_PAIR_KINDS: ReadonlySet<DecorPairKind> = new Set(
-  [...CAMPER_STORAGE, KITCHEN_DRAWERS].map(({ pairKind }) => pairKind),
+  CAMPER_STORAGE.map(({ pairKind }) => pairKind),
 );
 
 /** Whether `kind` is a storage compartment's, not a pair block's that decorCells lays (ADR 0108, 0121). */
@@ -578,6 +563,7 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     cells: [COUNTER_CELL],
     slots: [
       { id: slotId("counter"), cell: COUNTER_CELL, height: COUNTER_HEIGHT },
+      ...storageFurniture(KITCHEN_DRAWERS).slots,
     ],
   },
   // Height 6 lifts the 10 px hanging planter so its top meets the hook at the top of the cell (ADR 0099, 0102).

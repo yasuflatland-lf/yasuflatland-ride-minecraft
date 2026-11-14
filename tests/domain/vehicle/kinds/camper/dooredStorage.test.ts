@@ -25,6 +25,7 @@ import {
   CEILING_LIGHTS,
   FRIDGE,
   isStoragePairKind,
+  KITCHEN_DRAWERS,
   type LocalCell,
   STORAGE_DOORS,
   WALL_CABINET,
@@ -107,7 +108,23 @@ function validateDooredStorage(units: readonly DooredStorage[]): string[] {
       : [door.compartment],
   );
   cells.forEach((cell, i) => {
-    if (cells.findIndex((c) => sameLocal(c, cell)) !== i)
+    if (
+      cells.findIndex((c) => sameLocal(c, cell)) !== i &&
+      !units.some(
+        (u) =>
+          u.doors.filter(
+            (d) =>
+              d.opening.kind === "sliding" && sameLocal(d.compartment, cell),
+          ).length > 1 &&
+          doors
+            .filter((d) => sameLocal(d.compartment, cell))
+            .every((d) => d.unit === u && d.opening.kind === "sliding") &&
+          !doors.some(
+            (d) =>
+              d.opening.kind === "hinged" && sameLocal(d.opening.plate, cell),
+          ),
+      )
+    )
       problems.push(`cell ${JSON.stringify(cell)} is used twice`);
     if (FURNITURE_BLOCK_CELLS.some((c) => sameLocal(c, cell)))
       problems.push(`cell ${JSON.stringify(cell)} holds a furniture block`);
@@ -121,8 +138,22 @@ function validateDooredStorage(units: readonly DooredStorage[]): string[] {
       if (OPEN_SLOT_CELLS.some((c) => sameLocal(c, plate)))
         problems.push(`door ${id}'s plate covers a slot`);
     }
+    const sharedSlots = doors
+      .filter((d) => sameLocal(d.compartment, compartment))
+      .flatMap((d) => d.slots);
+    if (
+      new Set(sharedSlots.map((s) => s.pair?.end)).size !== sharedSlots.length
+    )
+      problems.push(`door ${id}'s shared compartment repeats an end`);
     const ends = slots.map((s) => s.pair?.end).sort();
-    if (JSON.stringify(ends) !== "[0,1]")
+    if (
+      JSON.stringify(ends) !== "[0,1]" &&
+      !(
+        door.opening.kind === "sliding" &&
+        slots.length === 1 &&
+        (ends[0] === 0 || ends[0] === 1)
+      )
+    )
       problems.push(`door ${id} does not hold ends 0 and 1 once`);
     for (const s of slots)
       if (
@@ -138,12 +169,14 @@ function validateDooredStorage(units: readonly DooredStorage[]): string[] {
 describe("definitions", () => {
   it("accepts the camper's storage, the wall cabinet then the fridge (ADR 0121, 0123)", () => {
     expect(validateDooredStorage(CAMPER_STORAGE)).toEqual([]);
-    expect(CAMPER_STORAGE).toEqual([WALL_CABINET, FRIDGE]);
+    expect(CAMPER_STORAGE).toEqual([WALL_CABINET, FRIDGE, KITCHEN_DRAWERS]);
     expect(STORAGE_DOORS.map(({ id }) => id)).toEqual([
       "sink",
       "stove",
       "fridge_bottom",
       "fridge_top",
+      "drawer_top",
+      "drawer_bottom",
     ]);
   });
 
@@ -224,8 +257,12 @@ describe("definitions", () => {
       expect(s.door !== undefined).toBe(
         s.pair !== undefined && isStoragePairKind(s.pair.kind),
       );
-    expect(DECOR_SLOTS.filter((s) => s.door !== undefined)).toEqual(
-      STORAGE_DOORS.flatMap(({ slots }) => slots),
+    expect(
+      DECOR_SLOTS.filter((s) => s.door !== undefined)
+        .map((s) => s.id)
+        .sort(),
+    ).toEqual(
+      STORAGE_DOORS.flatMap(({ slots }) => slots.map((s) => s.id)).sort(),
     );
   });
 
@@ -480,8 +517,11 @@ describe("cells", () => {
         expect(laid.map(cellKey)).toEqual(
           TWO_UNITS.map((d) => cellKey(localCellAt(p, d.compartment))),
         );
-        for (const [i, c] of laid.entries())
+        for (const [i, c] of laid.entries()) {
+          if (c.block.type !== "cabinet" && c.block.type !== "fridge")
+            throw new Error("Expected a hinged storage compartment");
           expect(c.block.open).toBe(shown.has(TWO_UNITS[i]?.id ?? ""));
+        }
         expect(looks).toEqual(
           FRIDGE.doors.map((d) => ({
             face: decorFace(p.yaw),

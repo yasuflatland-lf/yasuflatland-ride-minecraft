@@ -623,6 +623,36 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 1,
   },
   {
+    name: "camper_drawers_laid",
+    file: "camperDrawers",
+    // Estimate until the first BDS run.
+    ticks: 60,
+    features: ["vehicle:camper"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "camper_drawers_interaction",
+    file: "camperDrawers",
+    // Estimate until the first BDS run.
+    ticks: 35,
+    features: ["vehicle:camper"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "camper_drawers_restore",
+    file: "camperDrawers",
+    // Estimate until the first BDS run.
+    ticks: 20,
+    features: ["vehicle:camper"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
     name: "camper_park_course",
     file: "camper",
     ticks: 127,

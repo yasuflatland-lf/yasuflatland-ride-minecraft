@@ -8,6 +8,21 @@ import type {
 } from "./decor";
 
 export interface RoomDrive {
+  /** Read-only drawer routing for block presses and itemUse rays. */
+  drawerTarget?(
+    eye: Vec3,
+    direction: Vec3,
+    cell?: Vec3,
+    item?: DecorItemId,
+    feet?: Vec3,
+  ):
+    | {
+        cell: Vec3;
+        point: Vec3;
+        slot?: DecorSlotId;
+        open: boolean;
+      }
+    | undefined;
   /** Opens or closes the door of a held vehicle's room at `tick`; false when it has none or the tap is ignored (ADR 0068, 0105). */
   useDockDoor(tick: number): boolean;
   /** The spawn cell for a press on bed block `cell` of this held vehicle; undefined when it is none of its beds (ADR 0182). */
@@ -36,6 +51,10 @@ export interface RoomDrive {
     point: Vec3 | undefined,
     tick: number,
     takeContents?: boolean,
+    eye?: Vec3,
+    openOnly?: boolean,
+    /** Set only for a side face of the drawers block itself; rerouted floor presses use the ray. */
+    drawersSideFace?: boolean,
   ): StoragePress | undefined;
 }
 

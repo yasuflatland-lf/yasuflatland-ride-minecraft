@@ -141,8 +141,7 @@ const ROOM_BLOCK: Readonly<
 };
 
 function laidTypeOf(block: DockBlock): string {
-  if (block.type === "drawers")
-    throw new Error("Kitchen drawer blocks are gated until #1684");
+  if (block.type === "drawers") return pairDecorBlockId("drawers");
   if (block.type === "decor") return decorBlockId(block.item);
   if (block.type === "decorPair") return pairDecorBlockId(block.pair);
   if (block.type === "cabinet" || block.type === "fridge")
@@ -179,7 +178,7 @@ function movedFrom(car: Entity, pose: HoldPose): number {
 
 // Removing the camper clears its room a tick later; the fill also clears what a
 // test placed, so the next test starts on bare ground.
-async function atParkSpot(
+export async function atParkSpot(
   a: Arena,
   run: (car: Entity) => Promise<Outcome>,
 ): Promise<Outcome> {
@@ -591,7 +590,8 @@ async function camperDecor(a: Arena, car: Entity): Promise<Outcome> {
       pass:
         clean &&
         laid === 3 &&
-        furniture === 5 &&
+        // The counter cell is the drawer compartment (ADR 0121), rather than a furniture block.
+        furniture === 4 &&
         kept === 2 &&
         emptied === CAMPER_FURNITURE_BLOCK,
       detail: `clean=${clean} laid=${laid} furniture=${furniture} kept=${kept} emptied=${emptied}`,
@@ -644,7 +644,7 @@ type StorageUnit = (typeof CAMPER_STORAGE)[number];
 
 /** What a storage scenario checks beyond the shared shut-and-open round (ADR 0114, 0121). */
 interface StorageCase {
-  readonly unit: StorageUnit;
+  readonly unit: StorageUnit & { readonly pairKind: "cabinet" | "fridge" };
   /** One item behind each door. */
   readonly decor: readonly DecorPlacement[];
   /** The block a shut door's plate cell holds. */
@@ -683,10 +683,14 @@ async function camperStorage(
       const states = block?.permutation.getAllStates();
       const want = {
         [DECOR_FACE_STATE]: cell.block.face,
-        [ROOM_OPEN_STATE]: false,
+        ...(cell.block.type === "drawers" ? {} : { [ROOM_OPEN_STATE]: false }),
         ...heightOf(cell.block),
-        ...pairEndStates(0, cell.block.end0),
-        ...pairEndStates(1, cell.block.end1),
+        ...(cell.block.type === "drawers"
+          ? {}
+          : {
+              ...pairEndStates(0, cell.block.end0),
+              ...pairEndStates(1, cell.block.end1),
+            }),
       };
       return (
         block?.typeId === compartmentId &&

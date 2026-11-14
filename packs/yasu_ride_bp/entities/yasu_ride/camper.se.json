@@ -90,6 +90,18 @@
           "type": "bool",
           "default": false,
           "client_sync": true
+        },
+        "yasu_ride:drawer_top_item": {
+          "type": "int",
+          "range": [0, 10],
+          "default": 0,
+          "client_sync": true
+        },
+        "yasu_ride:drawer_bottom_item": {
+          "type": "int",
+          "range": [0, 10],
+          "default": 0,
+          "client_sync": true
         }
       }
     },

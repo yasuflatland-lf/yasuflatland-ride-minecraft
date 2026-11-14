@@ -5,6 +5,7 @@ import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/deco
 import { decorSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
 import { slotForPress } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { COUNTER_HEIGHT } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/index";
 import {
   type PressedShape,
@@ -353,5 +354,31 @@ it("gives the wall cabinet's compartment block its box lifted onto the compartme
     });
   expect(pressedHeight("Down", 0.4, pressedShape(cabinet, undefined))).toBe(
     3 / 16,
+  );
+});
+
+it("corrects the shared drawer block side heights without embedding the door split in infrastructure", () => {
+  const boxes = selectionBoxes(pairDecorBlockId("drawers"));
+  expect(boxes).toHaveLength(2);
+  expect(pressedShape(pairDecorBlockId("drawers"), undefined)).toEqual(
+    vertical(defined(boxes[0], "empty counter box").box),
+  );
+  expect(vertical(defined(boxes[1], "counter decor box").box)).toEqual({
+    kind: "room",
+    bottom: 0,
+    top: 1,
+  });
+  fc.assert(
+    fc.property(reported, fc.constantFrom(...FACES), (y, face) => {
+      const shape = pressedShape(pairDecorBlockId("drawers"), undefined);
+      expect(shape).toEqual({
+        kind: "room",
+        bottom: 0,
+        top: COUNTER_HEIGHT / 16,
+      });
+      expect(pressedHeight(face, y, shape)).toBe(
+        face === "Up" ? COUNTER_HEIGHT / 16 : face === "Down" ? 0 : 1 - y,
+      );
+    }),
   );
 });
