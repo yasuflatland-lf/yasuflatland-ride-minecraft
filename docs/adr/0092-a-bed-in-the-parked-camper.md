@@ -17,6 +17,8 @@ The [camper spike](../spikes/camper.md) found on a phone that a custom bed block
 - Long-pressing or using a bed cell in the overworld sets the player's spawn point to that cell. From time of day 12542 to 23459, the player's screen also fades to black over 0.5 s, stays black for 1 s, and fades back over 0.5 s, and the time of day becomes 0 when the screen is fully black (10 ticks). At any other time, the player sees "You can sleep only at night". Outside the overworld the bed does nothing
 - One player's sleep skips the night for everyone. The `playersSleepingPercentage` game rule is not read, because a player in a camper bed is not sleeping as far as the engine knows
 
+- The lower bed model uses fixed olive looped tweed, chamfered cushions, olive welt piping and a striped olive/khaki/cream pillow. Its 30 cubes include the three wooden base pieces left by wheel-arch carving. The main cover still reaches y 25 (9 px above the floor), the folded sheet y 25.4 and the pillow y 26; neither the bed block nor the furniture cells change. A 0.3 px foot cover uses a slab and two transverse welts instead of the study's negative-depth chamfers. Cushion radii are bounded by width, height and depth.
+
 ## Consequences
 
 - Players can stand on the bed but cannot walk through its cells

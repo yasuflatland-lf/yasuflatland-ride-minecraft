@@ -181,6 +181,9 @@ for cubes in built.values():
   );
   expect(result).toEqual([
     [
+      ["olive looped tweed", 192, 256, "fabric"],
+      ["olive khaki cream bolster", 128, 128, "fabric"],
+      ["olive welt", 32, 32, "fabric"],
       ["green tweed and vinyl shared by both seats", 333, 128, "fabric"],
       ["cab seat vinyl", 64, 64, "vinyl"],
       ["cab seat vinyl swatches", 6, 1, "vinyl"],

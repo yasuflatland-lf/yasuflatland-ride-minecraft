@@ -5,8 +5,8 @@ import { RESORT_GEAR } from "../support/resortGear";
 
 type Point = [number, number, number];
 
-// The full furniture preview set, including the curved chair back, exceeds 30 s locally.
-const CAMPING_PREVIEW_TIMEOUT_MS = 240_000;
+// Concurrent model generators in sibling worktrees can push the full furniture render past four minutes.
+const CAMPING_PREVIEW_TIMEOUT_MS = 600_000;
 
 // Runs collect_boat from tools/render_preview.py on a geometry and returns the
 // center of every opaque face it draws, in the preview's mirrored frame.
@@ -774,4 +774,32 @@ print(json.dumps(list(r.GEAR_VIEWS)))
       ),
     ).toThrow();
   });
+});
+
+it("defers opaque texture patches without changing perspective, ties, glass or lighting", () => {
+  expect(
+    previewPython(`
+from copy import deepcopy
+import pickle
+r.WIDTH, r.HEIGHT, r.SUPERSAMPLE = 32, 32, 2
+for alpha in (255,110):
+ for reversed_uv in (False,True):
+  for lamps in (False,True):
+    texture = [[(x*30,y*30,80,alpha if x%2 else 255) for x in range(8)] for y in range(8)]
+    face = {'uv':[8,8], 'uv_size':[-8,-8]} if reversed_uv else {'uv':[0,0], 'uv_size':[8,8]}
+    uv = {f:deepcopy(face) for f in ('north','south','east','west','up','down')}
+    cube = {'origin':[-2,-2,-2],'size':[4,4,4],'uv':uv}
+    geo = {'description':{'texture_width':8,'texture_height':8}, 'bones':[{'name':'body','pivot':[0,0,0], 'cubes':[
+        cube, deepcopy(cube), {'origin':[-1,-1,-1],'size':[2,2,2],'uv':uv},
+    ]}, {'name':'headlights','pivot':[0,0,0], 'cubes':[{'origin':[3,0,0],'size':[1,1,1],'uv':uv}]}]}
+    poses = {'test':{'lamps':lamps,'dusk':lamps,'view':(-1,.65,-1),'screen_up':None}}
+    a = r.render_poses(geo,texture,poses,texture_mapping=True)['test']
+    b = r.render_poses(geo,texture,poses,texture_mapping=True,defer_textures=True)['test']
+    assert r.rasterize_job(a) == r.rasterize_job(b), (alpha,reversed_uv,lamps)
+    assert r.rasterize_job(pickle.loads(pickle.dumps(b))) == r.rasterize_job(b)
+    if alpha == 255: assert len(b.polygons) < len(a.polygons)
+assert not r.opaque_region([[(0,0,0,110)]], {'uv':[0,0], 'uv_size':[0,0]},1,1)
+print(json.dumps(True))
+`),
+  ).toBe(true);
 });

@@ -46,6 +46,15 @@
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts` (`CAMPER_PROFILE.seats`); `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json` (`minecraft:rideable` `seats`)
 - Verification: `tests/packs/camper/seats.test.ts` "matches the camper's four seat positions and collision box to its profile" (x and z only); `tests/packs/camper/seats.test.ts` checks both cab bone counts and pivots; `tests/tools/camperCabSeats.test.ts` checks transformed wheel, armrest, and exposed lap-belt clearance. Not verified: the seat heights by any test; the view over the dashboard (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
 
+### Camper dinette upholstery
+
+- Applies to: Camper seats 2 and 3, driving and parked.
+- Rule: The facing dinette uses fixed olive looped tweed with chamfered cushions and olive welt piping; seat 2 also has an olive/khaki/cream striped bolster. After wheel-arch carving, seats 2 and 3 contain 22 and 15 cubes. Their existing footprint, seat anchors and rider positions are unchanged. Build x -23..-8 becomes model x 8..23, with z -24..-10 for seat 2 and z 10..24 for seat 3. No fabric face uses an exterior paint swatch.
+- Agreement: Accepted
+- Basis: [0007](../adr/0007-seats-and-driver.md) Decision, camper dinette visuals.
+- Implementation: `tools/camper_soft.py`; `tools/gen_camper.py`
+- Verification: `tests/tools/camperSoft.test.ts`; `tests/packs/camper/soft.test.ts`; `tests/packs/camper/dinette.test.ts` "keeps the facing dinette on the left behind the passenger, clear of the bed and side walls". Not verified: seated visibility and the new fabric appearance on a device.
+
 ### Driver and seats by rider-list index
 
 - Applies to: every rider, every kind.

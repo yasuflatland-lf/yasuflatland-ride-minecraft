@@ -43,7 +43,7 @@
 ### Camper generator modules
 
 - Applies to: Camper geometry generation and the final cube ownership fixture.
-- Rule: `camper_regions.RegionRegistry` owns immutable named texture regions and material classifications. Deterministic MaxRects packing resolves `RegionRef.uv` in atlas texels without rotation or resampling; default gutters are two transparent texels between regions. The nested swatch atlas remains the 114 by 220 `base` region, with local swatch/hardware coordinates unchanged. A base-only pack keeps origin `(0, 0)`, geometry and texture bytes. `camper_kit.prepare_layout()` calls each area's optional `register_regions(registry)` hook in `AREA_ORDER` before a single shared pack. Layout access and the first swatch face prepare this final layout lazily, so independent `build()` calls use the same coordinates. No area resolves UVs during registration. The base region may move, and the lit swatch mask, mirror texture and mirror MER mask follow its final origin. `render_atlas` returns RGBA bytes; generation retains explicit face bindings, assigns remaining faces to the registered region containing their complete UV rectangle, and rejects faces outside all regions. It audits exact pixel-function output, region bounds/separation, and both endpoints of every emitted face. Area builders return fresh bone cube lists without file writes. The orchestrator preserves the existing geometry, atlas allocations, bone order, and writes final ownership ranges alongside the existing assets. Generate only `camper.png` as the khaki colour atlas, with the existing lit and mirror companion maps; do not generate per-paint files. The client base pass uses `Texture.default` directly. Item, README, and pack-icon previews use the same khaki atlas. Camper previews cap dense textured faces at `CAMPER_CELLS_PER_UNIT = 2` cells per model pixel along each edge. Round rotated edge lengths to six decimal places before taking the cell-count ceiling so trigonometric noise cannot change tessellation. Lower-density UVs retain their texel boundaries; generated pack textures retain full resolution.
+- Rule: `camper_regions.RegionRegistry` owns immutable named texture regions and material classifications. Deterministic MaxRects packing resolves `RegionRef.uv` in atlas texels without rotation or resampling; default gutters are two transparent texels between regions. The nested swatch atlas remains the 114 by 220 `base` region, with local swatch/hardware coordinates unchanged. A base-only pack keeps origin `(0, 0)`, geometry and texture bytes. `camper_kit.prepare_layout()` calls each area's optional `register_regions(registry)` hook in `AREA_ORDER` before a single shared pack. Layout access and the first swatch face prepare this final layout lazily, so independent `build()` calls use the same coordinates. No area resolves UVs during registration. The base region may move, and the lit swatch mask, mirror texture and mirror MER mask follow its final origin. `render_atlas` returns RGBA bytes; generation retains explicit face bindings, assigns remaining faces to the registered region containing their complete UV rectangle, and rejects faces outside all regions. It audits exact pixel-function output, region bounds/separation, and both endpoints of every emitted face. Area builders return fresh bone cube lists without file writes. The orchestrator preserves bone order and writes final ownership ranges alongside the assets. The soft-furnishing area replaces the original dinette and bedding upholstery; its three FABRIC regions join the interior materials before packing, so base UVs and companion maps follow the resulting relocated origin. Generate only `camper.png` as the khaki colour atlas, with the existing lit and mirror companion maps; do not generate per-paint files. The client base pass uses `Texture.default` directly. Item, README, and pack-icon previews use the same khaki atlas. Camper previews cap dense textured faces at `CAMPER_CELLS_PER_UNIT = 16` cells per model pixel along each edge. Round rotated edge lengths to six decimal places before taking the cell-count ceiling so trigonometric noise cannot change tessellation. Lower-density UVs retain their texel boundaries; generated pack textures retain full resolution.
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "The orchestrator preserves bone and cube order and writes final ownership ranges to `tests/packs/fixtures/camper-areas.json` without adding cube fields"
 - Implementation: `tools/gen_camper.py`; `tools/camper_kit.py`; `tools/camper_regions.py`; `tools/camper_golden.py`; `tools/generators.json`; `tests/packs/fixtures/camper-areas.json`; area modules listed below.
@@ -53,27 +53,32 @@
 then performs wheel-well cuts on the merged body and dinette seats, extracts lamps and
 glass, mirrors the model, and writes the existing assets. Each builder exposes `AREA`
 and `build() -> AreaCubes`, and loads only shared tools. `tools/camper_kit.py` owns
-shared dimensions, cube helpers, the palette, and all atlas allocations in their original
-order. `AreaCubes.merge` concatenates cube lists in call order and preserves bone insertion
+shared dimensions, cube helpers, the palette, and base atlas allocations. It registers the
+soft area's fabric regions before packing. `AreaCubes.merge` concatenates cube lists in call order and preserves bone insertion
 order; the orchestrator separately retains the existing bone draw order.
 
-| Build order | Module                     | Geometry area                                                                       |
-| ----------- | -------------------------- | ----------------------------------------------------------------------------------- |
-| 1           | `tools/camper_shell.py`    | Floor, ceiling, side walls, window frames, W, vent lid, service and storage hatches |
-| 2           | `tools/camper_curtains.py` | Side-window curtains, inserted after their respective panes                         |
-| 3           | `tools/camper_door.py`     | Entry door, fixed surround, fold-out step                                           |
-| 4           | `tools/camper_front.py`    | Nose, grille, windshield, cab-over, front lamps, mirrors                            |
-| 5           | `tools/camper_rear.py`     | Rear profile, lamps, bumper, ladder                                                 |
-| 6           | `tools/camper_roof.py`     | Air conditioners, vents, edge rails, rack                                           |
-| 7           | `tools/camper_running.py`  | Chassis, wheels, hover glows                                                        |
-| 8           | `tools/camper_cab.py`      | Dashboard, controls, pedals, front seats, steering                                  |
-| 9           | `tools/camper_bed_bunk.py` | Rear bed and bunk                                                                   |
-| 10          | `tools/camper_fridge.py`   | Fridge carcass and doors                                                            |
-| 11          | `tools/camper_room.py`     | Counter, sink, stove, burner, drawers, overhead cabinets and doors                  |
-| 12          | `tools/camper_shower.py`   | Shower room, toilet, shower head, door                                              |
-| 13          | `tools/camper_ceiling.py`  | Planter hook and ceiling lamps                                                      |
-| 14          | `tools/camper_dinette.py`  | Dinette seats and table                                                             |
-| 15          | `tools/camper_arches.py`   | Interior wheel-well panels                                                          |
+| Build order | Module                           | Geometry area                                                    |
+| ----------- | -------------------------------- | ---------------------------------------------------------------- |
+| 1           | `tools/camper_shell.py`          | Ceiling, window frames, W, vent lid, service and storage hatches |
+| 2           | `tools/camper_surfaces.py`       | Carpet floor, wall veneer, backsplash tile and oak dinette table |
+| 3           | `tools/camper_curtains.py`       | Side-window curtains, inserted after their respective panes      |
+| 4           | `tools/camper_door.py`           | Entry door, fixed surround, fold-out step                        |
+| 5           | `tools/camper_front.py`          | Nose, grille, windshield, cab-over, front lamps, mirrors         |
+| 6           | `tools/camper_rear.py`           | Rear profile, lamps, bumper, ladder                              |
+| 7           | `tools/camper_roof.py`           | Air conditioners, vents, edge rails, rack                        |
+| 8           | `tools/camper_running.py`        | Chassis, wheels, hover glows                                     |
+| 9           | `tools/camper_cab.py`            | Dashboard, controls, pedals and steering                         |
+| 10          | `tools/camper_cab_seats.py`      | Rounded cab bucket seats and upholstery                          |
+| 11          | `tools/camper_bed_bunk.py`       | Wooden lower-bed base, upper deck and posts                      |
+| 12          | `tools/camper_fridge.py`         | Fridge carcass and doors                                         |
+| 13          | `tools/camper_kitchen.py`        | Counter, sink, range and burner                                  |
+| 14          | `tools/camper_kitchen_fronts.py` | Drawers and overhead cabinet fronts                              |
+| 15          | `tools/camper_room.py`           | Hollow lower kitchen carcass                                     |
+| 16          | `tools/camper_shower.py`         | Shower room, toilet, shower head, door                           |
+| 17          | `tools/camper_ceiling.py`        | Planter hook and ceiling lamps                                   |
+| 18          | `tools/camper_dinette.py`        | Empty area hook; surfaces owns the table and soft owns seating   |
+| 19          | `tools/camper_soft.py`           | Dinette seats and bed/bunk upholstery                            |
+| 20          | `tools/camper_arches.py`         | Interior wheel-well panels                                       |
 
 The generator also writes `tests/packs/fixtures/camper-areas.json` through `Outputs.json`,
 relative to the repository root. It maps each area and bone to inclusive final cube indices
@@ -176,11 +181,11 @@ Both `pnpm model` and `pnpm model:check` include this fixture and its formatting
 ### Preview renderer determinism
 
 - Applies to: `tools/render_preview.py`, every image it writes.
-- Rule: The renderer uses only the Python standard library. It computes sine and cosine with its own series (`sin_cos`) and does not call `math.sin` or `math.cos`, so the same model renders to the same pixels on a Mac and on the Linux CI runner. Face shading is fixed (`SHADE_UP`, `SHADE_Z`, `SHADE_X`, `SHADE_DOWN`), a soft shadow lies under the vehicle (`SHADOW_*`), and the background of every preview image is transparent (the pack icon has its own opaque background). A check run compares decoded pixels of every image with the committed one, not PNG bytes.
+- Rule: The renderer uses only the Python standard library. It computes sine and cosine with its own series (`sin_cos`) and does not call `math.sin` or `math.cos`, so the same model renders to the same pixels on a Mac and on the Linux CI runner. Face shading is fixed (`SHADE_UP`, `SHADE_Z`, `SHADE_X`, `SHADE_DOWN`), a soft shadow lies under the vehicle (`SHADOW_*`), and the background of every preview image is transparent (the pack icon has its own opaque background). A check run compares decoded pixels of every image with the committed one, not PNG bytes. Camper previews keep opaque texture faces as compact descriptors until rasterization, then use the existing texel subdivision and shading in original polygon order. A supersampled depth probe skips a descriptor only when its whole face is behind already drawn opaque geometry; depth ties remain. Mixed-alpha and emissive faces use the existing eager path. Deferred faces use the same density cap as eager faces; visible faces cache unshaded patches for reuse across poses, and framing uses opaque face corners without expanding them. Hidden faces remain compact descriptors.
 - Agreement: Accepted
 - Basis: [0016](../adr/0016-readme-preview-rendered-from-model.md) Decision, "It uses Minecraft's fixed face shading (top 1.0, north/south 0.8, east/west 0.6, bottom 0.5), a soft ground shadow, and a transparent background"; [0016](../adr/0016-readme-preview-rendered-from-model.md) Decision, "The renderer avoids `math.sin` and `math.cos`, whose last bit can differ between platforms, so a Mac and the Linux CI runner produce identical pixels. The check compares decoded pixels, not PNG bytes, because zlib builds do not all compress identically"; [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "Everything else in 0016 stays: the standard library only, no `math.sin` or `math.cos`, a transparent background, and `pnpm model:check` comparing decoded pixels of every image in CI"
 - Implementation: `tools/render_preview.py` (`sin_cos`, `SHADE_UP`, `SHADE_DOWN`, `SHADE_Z`, `SHADE_X`, `SHADOW_LAYERS`, `main`)
-- Verification: `tests/tools/renderPreview.test.ts` "turns a rotated bone's cubes about its pivot the way the game does", "ScreenFit maps quads the same after pickling". Not verified: no test compares Mac and Linux output; the identity of pixels across platforms rests on `pnpm model:check` passing in CI.
+- Verification: `tests/tools/renderPreview.test.ts` "turns a rotated bone's cubes about its pivot the way the game does", "ScreenFit maps quads the same after pickling", "defers opaque texture patches without changing perspective, ties, glass or lighting" (including a pickle round trip). Not verified: no test compares Mac and Linux output; the identity of pixels across platforms rests on `pnpm model:check` passing in CI.
 
 ### Model freshness check
 

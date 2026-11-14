@@ -55,6 +55,9 @@ a = s.build_surfaces(r)
         "[[r.name,r.width,r.height,r.material.value,all(r.pixel(x,y)[3] == 255 for y in range(r.height) for x in range(r.width))] for r in k.REGISTRY.regions() if r.name != 'base']",
       ),
     ).toEqual([
+      ["olive looped tweed", 192, 256, "fabric", true],
+      ["olive khaki cream bolster", 128, 128, "fabric", true],
+      ["olive welt", 32, 32, "fabric", true],
       ["green tweed and vinyl shared by both seats", 333, 128, "fabric", false],
       ["cab seat vinyl", 64, 64, "vinyl", true],
       ["cab seat vinyl swatches", 6, 1, "vinyl", true],
@@ -81,6 +84,12 @@ a = s.build_surfaces(r)
         "for r in k.REGISTRY.regions():\n    if r.name != 'base':\n        for y in reversed(range(r.height)):\n            for x in reversed(range(r.width)): r.pixel(x,y)",
       ),
     ).toEqual({
+      "olive looped tweed":
+        "a10d8ab5b23bf605adf77c76080ea57bcb09bf12c108f3567a2b2f5749da9134",
+      "olive khaki cream bolster":
+        "66d5387e523d41891b6e8ff7a32ba10537216814135ab0962601a025bf8883cd",
+      "olive welt":
+        "c1d01e9182a899bcd7b3e1303f6c2599dacf3500586e338963fa5f3bf968ab79",
       "green tweed and vinyl shared by both seats":
         "1b90ae7fb5be0cdd714f8b5a2ab14cbf93aab8756ea0ddf4984d72bb8810d7ad",
       "cab seat vinyl":
