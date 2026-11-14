@@ -11,6 +11,9 @@
 
 ## Decision
 
+- The shower model has three glazed tile walls with a raised 0.035 px tile grid, a wide drilled head with a tapered grip, wall plate and screws, and a U-shaped stainless hose. There is no shower curtain or rail. The head underside is centred at the unchanged body locator `shower_head`, `[-20.5, 44.5, 53.75]`, so the existing spray binding stays aligned. `tools/camper_shower.py` registers `shower glaze` (128 x 354, TILE), `shower head` (64 x 64, METAL), `shower grip` (16 x 80, METAL) and `shower hose` (16 x 256, METAL) before the shared atlas pack.
+- `tools/camper_door.py` builds the three shower-door cubes. The panel uses the registered `door wood` region on both upright faces and all four edges at eight texels per model pixel, with UV v following height on upright faces. Both handles remain chrome. The hinge stays `[-8, 0, 54]`; panel bounds, spray locator and swing behavior are unchanged.
+
 - Two new entity properties, both client-synced:
   - `yasu_ride:shower_door` (float 0 to 1) swings the `shower_door` bone up to 90 degrees into the aisle, 0.1 per tick like the entry door.
   - `yasu_ride:shower` (bool) is true while the shower runs.

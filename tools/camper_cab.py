@@ -17,7 +17,6 @@ AREA = "cab"
 
 # The front cushions sit 0.4 blocks above where they started, with minecraft:rideable's
 # front seats at 1.5, so a seated player's eyes clear the windshield's lower frame (36).
-FRONT_SEAT_RISE = 6.4
 # Raised and laid back with the front seats so its lower rim clears the cushion and its
 # upper rim stays under the driver's line of sight to the windshield's lower frame.
 STEERING_PIVOT, STEERING_LEAN = [12, 33, FRONT + 15], 65
@@ -38,27 +37,6 @@ def build() -> AreaCubes:
 
 
 
-
-    def bucket_seat(x0, x1):
-        """A green tweed bucket seat with horizontal pleats and lighter piping."""
-        r = FRONT_SEAT_RISE
-        out = [box(x0 + 1, FLOOR, -39, x1 - 1, 18 + r, -30, "black")]  # pedestal
-        out.append(box(x0, 18 + r, -41, x1, 21.5 + r, -29, "tweed"))
-        for z in [-40 + i * 1.4 for i in range(8)]:
-            out.append(box(x0 + 0.6, 21.5 + r, z, x1 - 0.6, 21.7 + r, z + 0.4, "tweed_line"))
-        out.append(box(x0 - 0.2, 21.2 + r, -41.2, x1 + 0.2, 21.8 + r, -40.8, "piping"))
-        pivot = [0, 21.5 + r, -29.5]
-        lean = [-12, 0, 0]
-        out.append(box(x0, 21.5 + r, -30, x1, 38 + r, -28, "tweed", lean, pivot))
-        for y in [23 + r + i * 1.5 for i in range(10)]:
-            out.append(box(x0 + 0.6, y, -30.2, x1 - 0.6, y + 0.5, -30, "tweed_line", lean, pivot))
-        out.append(box(x0 - 0.2, 37.6 + r, -30.2, x1 + 0.2, 38.3 + r, -27.8, "piping", lean, pivot))
-        for xs in (x0 - 0.2, x1 - 0.4):
-            out.append(box(xs, 21.5 + r, -30.2, xs + 0.6, 38.3 + r, -27.8, "piping", lean, pivot))
-        return out
-
-    seat0 = bucket_seat(7, 18)
-    seat1 = bucket_seat(-18, -7)
 
     # Steering wheel, as on the reference (#410): a thin ivory rim of 32 segments with finger grips
     # on its inner edge, one straight spoke bar through the hub held level as when driving straight
@@ -93,4 +71,4 @@ def build() -> AreaCubes:
     steering += disc("z", 0, 0, 0.6, 1.6, 0.4, "chrome", steps=STEPS_16)
     steering += disc("z", 0, 0, 1.0, 1.25, 0.3, "black", steps=STEPS_16)
     steering.append(box(-0.7, -0.7, -16, 0.7, 0.7, -0.6, "dark_dash"))  # column down to the dashboard
-    return AreaCubes({'body': body, 'seat_0': seat0, 'seat_1': seat1, 'steering': steering})
+    return AreaCubes({'body': body, 'steering': steering})

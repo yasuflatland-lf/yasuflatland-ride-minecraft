@@ -31,6 +31,7 @@ sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 m = load_tool('camper_dash')
 kit = load_tool('camper_kit')
+layout = kit.LAYOUT
 area = m.build_dash(kit.REGISTRY)
 print(json.dumps(dict(cubes=area['body'], fittings=m.DashBuilder(kit.REGISTRY).fittings(), geometry=asdict(m.DASH_GEOMETRY), regions=[dict(name=r.name, origin=kit.LAYOUT.origin(r.name), size=[r.width,r.height]) for r in kit.REGISTRY.regions()], black=kit.ATLAS.face('black')['uv'])))`),
   );

@@ -18,6 +18,7 @@ This supersedes the seat bullet of 0067; the rest of 0067 stands.
 - Seats 2 and 3 stay a facing dinette on the left, now behind the passenger, at `{ x: 1.0, z: 1.0 }` and `{ x: 1.0, z: -1.0 }`, seat 2 facing the rear, because the door stays in the middle of the right side
 - The model moves every driver-side part to the right: the steering wheel and its column, the instrument cluster, the pedals, and the driver's bucket seat. The radio and the glovebox move to the passenger side on the left, so the radio does not sit behind the wheel.
 - The dashboard is built by `tools/camper_dash.py` through `build_dash(registry) -> AreaCubes`. Its instruments and controls follow one shallow sloping face; the six-button cluster and the lower gauge pair sit 3 px toward the wheel from their earlier traced positions. The lower pair has a chrome bracket tilted 35 degrees toward the driver. The old dashboard, console and engine cover are replaced; the existing steering bone, wheel, column, pedals, door trims and seats retain their geometry. Dashboard dimensions and the shelf are specified in 0106
+- Both cab seats use the light rounded bucket shape, with 501 cubes each, shared green six-wale tweed, grey-olive vinyl, piping, swivel plates, and lap belts; their centers stay at model x = -12.5 and +12.5
 - The parked camper's deck seats follow the profile, so the driver's deck seat moves to the front right with seat 0, and a driver who pushes the stick there still moves into seat 0 and drives off (0068)
 
 ## Consequences
