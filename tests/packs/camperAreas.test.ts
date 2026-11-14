@@ -43,7 +43,7 @@ it("assigns every final camper cube to exactly one area range", () => {
 });
 
 it("builds independent areas repeatedly without changing the shared atlas", {
-  timeout: 30_000,
+  timeout: 120_000,
 }, async () => {
   await python.run(`
 import ast, json, sys

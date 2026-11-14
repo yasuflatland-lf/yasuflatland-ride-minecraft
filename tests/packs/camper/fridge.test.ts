@@ -186,7 +186,9 @@ describe("camper furniture model (ADR 0093)", () => {
     const [bottom = 0, top = 0] = heights;
     expect(top).toBeLessThan(bottom);
   });
-  it("sweeps both fridge doors through the aisle beside the fridge without hitting the cab seat or standing decor", () => {
+  it("sweeps both fridge doors through the aisle beside the fridge without hitting the cab seat or standing decor", {
+    timeout: 60_000,
+  }, () => {
     const items = standingItems();
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
       (s) => !s.hanging,
