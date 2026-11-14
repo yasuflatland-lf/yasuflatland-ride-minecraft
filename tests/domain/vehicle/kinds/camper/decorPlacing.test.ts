@@ -29,11 +29,13 @@ import {
   CAMPER_FURNITURE,
   DECOR_SPOTS,
   type DecorSlot,
+  DRAWER_SPLIT_HEIGHT,
   type LocalCell,
   STORAGE_DOORS,
   type StorageDoorId,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { DRAWER_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { compartmentCells } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/index";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
@@ -118,6 +120,15 @@ const slotNamed = (id: string) =>
     SLOTS.find(({ slot }) => slot.id === id),
     id,
   ).slot;
+
+const inDrawerBand = (
+  p: ReturnType<typeof parkPose>,
+  cell: Vec3,
+  point: Vec3,
+) =>
+  cellKey(cell) === cellKey(decorSlotCell(p, slotNamed("counter"))) &&
+  point.y - cell.y >= 0 &&
+  point.y - cell.y < slotNamed("counter").height / 16;
 
 it("accepts standing items on fitting standing slots and hanging items only on the hook (ADR 0097)", () => {
   fc.assert(
@@ -436,6 +447,7 @@ it("prefers the pressed cell's free slot nearest the hit point when it accepts t
         const decor = taken.map((s) => ({ slot: s.id, item: decorItemId(id) }));
         const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
         const cell = decorSlotCell(p, slot);
+        fc.pre(!inDrawerBand(p, cell, point));
         const nearest = nearestFreeSlot(p, decorItemId(id), decor, point);
         const pressed = slotsFor(decorItemId(id))
           .filter((s) => sameCell(s, slot))
@@ -473,6 +485,7 @@ it("with an exact press returns the pressed slot when it accepts the item and is
         const decor = taken.map((s) => ({ slot: s.id, item: decorItemId(id) }));
         const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
         const cell = decorSlotCell(p, slot);
+        fc.pre(!inDrawerBand(p, cell, point));
         const pressed = slotsFor(decorItemId(id))
           .filter((s) => sameCell(s, slot))
           .filter(freeOf(taken));
@@ -489,6 +502,63 @@ it("with an exact press returns the pressed slot when it accepts the item and is
             true,
           ),
         ).toBeUndefined();
+      },
+    ),
+  );
+});
+
+it("routes a press below the counter surface in the counter cell to the drawer at that height, its free slot if open and the item fits, else nothing, never the counter (ADR 0114, 0121)", () => {
+  const offset = fc.double({ min: -6, max: 6, noNaN: true });
+  fc.assert(
+    fc.property(
+      pose,
+      fc.oneof(gear, fc.constantFrom(...DRAWER_GEAR_IDS)),
+      fc.subarray(DECOR_SLOTS.filter((s) => !s.hanging)),
+      openDoors,
+      fc.oneof(
+        fc.double({
+          min: 0,
+          max: DRAWER_SPLIT_HEIGHT,
+          maxExcluded: true,
+          noNaN: true,
+        }),
+        fc.double({
+          min: DRAWER_SPLIT_HEIGHT,
+          max: slotNamed("counter").height / 16,
+          maxExcluded: true,
+          noNaN: true,
+        }),
+      ),
+      fc.tuple(offset, offset),
+      (p, id, taken, open, height, [dx, dz]) => {
+        const cell = decorSlotCell(p, slotNamed("counter"));
+        const point = { x: p.x + dx, y: cell.y + height, z: p.z + dz };
+        // Adding the height to world y can round up to the counter surface.
+        fc.pre(inDrawerBand(p, cell, point));
+        const h = point.y - cell.y;
+        const door = h >= DRAWER_SPLIT_HEIGHT ? "drawer_top" : "drawer_bottom";
+        const slot = defined(
+          DECOR_SLOTS.find((s) => s.door === door),
+          door,
+        );
+        const expected =
+          open.has(door) && slot.items?.includes(id) && freeOf(taken)(slot)
+            ? slot
+            : undefined;
+        const decor = taken.map((s) => ({ slot: s.id, item: decorItemId(id) }));
+        for (const exact of [false, true])
+          expect(
+            slotForPress(
+              p,
+              decorItemId(id),
+              decor,
+              cell,
+              point,
+              exact,
+              undefined,
+              open,
+            ),
+          ).toBe(expected);
       },
     ),
   );
@@ -638,11 +708,7 @@ it("picks the slot the line of sight is aimed at, wherever along the ray the pre
             eye,
           ),
         ).toBe(
-          target.id === "counter" &&
-            point.y >= decorSlotCell(p, target).y &&
-            point.y - decorSlotCell(p, target).y < target.height / 16
-            ? undefined
-            : target,
+          inDrawerBand(p, decorSlotCell(p, target), point) ? undefined : target,
         );
       },
     ),
