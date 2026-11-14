@@ -94,6 +94,21 @@ export const CAMPER_SPEC = Object.freeze({
   seatPressIdleTicks: 10, // a held touch repeats every 4-6 ticks on mobile (ADR 0024)
 } as const);
 
+// Drawer boxes have 4.5 px of inside height (tools/camper_kitchen_fronts.py).
+export const DRAWER_INNER_HEIGHT_PX = 4.5;
+export const DRAWER_GEAR_IDS: ReadonlySet<string> = new Set([
+  "saucepan",
+  "mug_pair",
+  "sugar_pot",
+  "fruit_bowl",
+  "transistor_radio",
+  "book_stack",
+  "road_map",
+  "cushion",
+  "tissue_box",
+  "binoculars",
+]);
+
 export const CAMPER_AIR: Medium = Object.freeze({
   drag: CAMPER_SPEC.flightDrag,
   maxSpeed: CAMPER_SPEC.maxSpeed,
