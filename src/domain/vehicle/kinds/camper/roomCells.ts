@@ -117,7 +117,7 @@ function ceilingBlock(
   const door = openPlateAt(cell, open, doors);
   if (!door) return { type: "ceiling" };
   // No ceiling light hangs in the ceiling layer: its light cells are the ones under it.
-  return door.unit.plateBlock({ face: plateFace(door, f), lit: false });
+  return door.unit.plateBlock({ face: plateFace(door.opening, f), lit: false });
 }
 
 /**

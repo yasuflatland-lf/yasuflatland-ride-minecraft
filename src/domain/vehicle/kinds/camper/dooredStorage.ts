@@ -7,7 +7,7 @@ import { TapToggle } from "../../../shared/tapToggle";
 import type { DecorItemId, StoragePress } from "../../dock/decor";
 import type { Face } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
-import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
+import { DOOR_STEPS, restoredDoorStep, stepOpening } from "./doorSwing";
 import type {
   DecorSlot,
   LocalCell,
@@ -22,16 +22,22 @@ export type StorageSlot<Id extends string = string> = Omit<
   "door"
 > & { readonly door: Id };
 
+/** A hinged door has an aisle plate; a sliding opening has none (ADR 0121). */
+export type StorageOpening =
+  | {
+      readonly kind: "hinged";
+      readonly hinge: 1 | -1;
+      readonly plate: LocalCell;
+    }
+  | { readonly kind: "sliding" };
+
 /** One door of a storage unit and the compartment behind it. */
 interface StorageDoorDef<Id extends string = string> {
-  /** Names the door in DecorSlot.door and in the entity property that swings it. */
+  /** Names the door in DecorSlot.door and in the entity property that animates its opening progress. */
   readonly id: Id;
   /** The cell of the compartment's pair block. */
   readonly compartment: LocalCell;
-  /** The aisle cell the open door stands in, where a plate takes the taps on it. */
-  readonly plate: LocalCell;
-  /** 1 when the hinge is at the compartment's front end, -1 at its rear end. */
-  readonly hinge: 1 | -1;
+  readonly opening: StorageOpening;
   /** The compartment's two ends, end 0 first. */
   readonly slots: readonly StorageSlot<Id>[];
 }
@@ -75,6 +81,10 @@ export type StorageDoor<Id extends string = string> = StorageDoorDef<Id> & {
   readonly unit: DooredStorage<Id>;
 };
 
+export type HingedStorageDoor<Id extends string = string> = StorageDoor<Id> & {
+  readonly opening: Extract<StorageOpening, { kind: "hinged" }>;
+};
+
 /** Every door of `units`, in unit order and then door order. */
 export function storageDoors<Id extends string>(
   units: readonly DooredStorage<Id>[],
@@ -109,8 +119,13 @@ export function openPlateAt<Id extends string>(
   cell: LocalCell,
   open: ReadonlySet<Id>,
   doors: readonly StorageDoor<Id>[],
-): StorageDoor<Id> | undefined {
-  return doors.find((d) => open.has(d.id) && sameLocal(d.plate, cell));
+): HingedStorageDoor<Id> | undefined {
+  return doors.find(
+    (d): d is HingedStorageDoor<Id> =>
+      d.opening.kind === "hinged" &&
+      open.has(d.id) &&
+      sameLocal(d.opening.plate, cell),
+  );
 }
 
 /** Whether `slot` takes and gives items with the doors in `open`: it is behind none, or behind an open one. */
@@ -121,7 +136,7 @@ export function usableBehindDoor<Id extends string>(
   return slot.door === undefined || open.has(slot.door);
 }
 
-/** One door's state: where it is heading, how far it has swung, and its tap window. */
+/** One door's state: where it is heading, its opening progress, and its tap window. */
 interface DoorState {
   open: boolean;
   step: number;
@@ -130,13 +145,13 @@ interface DoorState {
 }
 
 /**
- * The doors of the camper's storage, each swinging in DOOR_STEPS on its own and acting at
- * most once per swing (ADR 0105, 0114).
+ * The doors of the camper's storage, each with opening progress in DOOR_STEPS on its own and acting at
+ * most once per opening window (ADR 0105, 0114).
  */
 export class StorageDoors<Id extends string> {
   private readonly states: ReadonlyMap<Id, DoorState>;
 
-  /** `restoredOpen` gives a door's saved swing; a camper that was not `docked` starts with every door shut. */
+  /** `restoredOpen` gives a door's saved opening progress; a camper that was not `docked` starts with every door shut. */
   constructor(
     doors: readonly { readonly id: Id }[],
     restoredOpen: (id: Id) => unknown,
@@ -184,19 +199,19 @@ export class StorageDoors<Id extends string> {
     }
   }
 
-  /** Swings every door one step, in door order, and the commands for the swings the entity lacks. */
+  /** Advances opening progress one step, in door order, and returns commands the entity lacks. */
   swingCommands(
     command: (id: Id, open: number) => EngineCommand,
   ): EngineCommand[] {
     return [...this.states].flatMap(([id, door]) => {
-      door.step = swing(door.step, door.open);
+      door.step = stepOpening(door.step, door.open);
       const step = door.sync.next(door.step);
       return step === undefined ? [] : [command(id, step / DOOR_STEPS)];
     });
   }
 
   /**
-   * A press on door `id`'s compartment or plate at `tick`. Within a swing of the door's last
+   * A press on door `id`'s compartment or plate at `tick`. Within the opening window of the door's last
    * action it does nothing (ADR 0105). On an open compartment, `take` takes an item out; when
    * it gives none, or on a shut compartment or the plate, the door toggles.
    */

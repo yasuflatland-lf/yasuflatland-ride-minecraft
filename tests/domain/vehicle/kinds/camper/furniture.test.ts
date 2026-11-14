@@ -6,6 +6,7 @@ import {
   SLEEP_BLOCKS,
   STORAGE_DOORS,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import { hingedOpening } from "../../../../support/storageOpening";
 
 const key = ({ x, z, layer }: LocalCell): string => `${x},${z},${layer}`;
 
@@ -172,11 +173,11 @@ it("puts two slots behind each storage door, at the shelf boards' end spots, and
 
 it("swings each cabinet door into the aisle cell beside its compartment, hinged at the cabinet's outer ends, and both fridge doors into the aisle cell beside the fridge, hinged at its front end (ADR 0114, 0123)", () => {
   expect(
-    STORAGE_DOORS.map(({ id, compartment, plate, hinge }) => ({
-      id,
-      compartment,
-      plate,
-      hinge,
+    STORAGE_DOORS.map((door) => ({
+      id: door.id,
+      compartment: door.compartment,
+      plate: hingedOpening(door).plate,
+      hinge: hingedOpening(door).hinge,
     })),
   ).toEqual([
     {
