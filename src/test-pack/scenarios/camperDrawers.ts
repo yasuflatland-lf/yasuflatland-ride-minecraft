@@ -30,8 +30,9 @@ import {
   drawerBlockStates,
   pairDecorBlockId,
 } from "../../infrastructure/vehicle/kinds/camper/identifiers";
-import { type Arena, setDecor, wait, withCamper } from "../arena";
+import { type Arena, setDecor, wait } from "../arena";
 import type { Outcome } from "../outcome";
+import { atParkSpot } from "./camper";
 
 function requireCheck(ok: boolean, message: string): void {
   if (!ok) throw new Error(message);
@@ -131,8 +132,16 @@ function fixture(
     const slot = drive.decorSlotFor(item, point(which), cell, false);
     return slot !== undefined && drive.placeDecor(slot, item);
   };
-  const state = (name: string) =>
-    a.dim.getBlock(cell)?.permutation.getAllStates()[id(name)];
+  const state = (which: "top" | "bottom") => {
+    const value = a.dim.getBlock(cell)?.permutation.getAllStates()[
+      id(`${which}_drawer`)
+    ];
+    if (typeof value !== "number")
+      throw new Error(`Missing ${which} drawer state`);
+    return value;
+  };
+  const opened = (which: "top" | "bottom") => state(which) > 0;
+  const holds = (which: "top" | "bottom") => state(which) >= 2;
   const advance = async (ticks: number) => {
     for (let n = 0; n < ticks; n++) {
       step();
@@ -159,7 +168,8 @@ function fixture(
     point,
     press,
     place,
-    state,
+    opened,
+    holds,
     properties,
     advance,
   };
@@ -189,7 +199,7 @@ async function withFixture(
 export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
   return withFixture(a, async (f) => {
     requireCheck(
-      f.state("top_open") === false && f.state("bottom_open") === false,
+      !f.opened("top") && !f.opened("bottom"),
       "Drawers must start closed",
     );
     requireCheck(
@@ -216,17 +226,17 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
         `Opening property at tick ${n}`,
       );
       requireCheck(
-        f.state("top_open") === false && f.state("bottom_open") === false,
+        !f.opened("top") && !f.opened("bottom"),
         `Contents shown before tick 10 (${n})`,
       );
     }
     await f.advance(1);
     requireCheck(
-      f.properties.get("drawer_top") === 1 && f.state("top_open") === true,
+      f.properties.get("drawer_top") === 1 && f.opened("top"),
       "Contents must appear at tick 10",
     );
     requireCheck(
-      f.state("end0_item") !== 0 && f.state("end1_item") === 0,
+      f.holds("top") && !f.holds("bottom"),
       "Only top contains an item",
     );
     requireCheck(
@@ -251,7 +261,7 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
     );
     await f.advance(CAMPER_SPEC.doorSwingTicks);
     requireCheck(
-      f.state("top_open") === true && f.state("bottom_open") === true,
+      f.opened("top") && f.opened("bottom"),
       "Both drawers must open",
     );
     requireCheck(
@@ -260,7 +270,7 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
     );
     await f.advance(1);
     requireCheck(
-      f.state("top_open") === false && f.state("bottom_open") === true,
+      !f.opened("top") && f.opened("bottom"),
       "Close start must hide only top contents",
     );
     requireCheck(
@@ -273,7 +283,10 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
     );
     await f.advance(1);
     requireCheck(
-      f.state("end1_item") === 0 && f.state("end0_item") !== 0,
+      !f.holds("bottom") &&
+        f.drive
+          .decor()
+          .some((d) => d.slot === "drawer_top_0" && d.item === "mug_pair"),
       "Removal must empty only bottom",
     );
     requireCheck(
@@ -313,8 +326,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
     reloaded.step();
     await wait(1);
     requireCheck(
-      reloaded.state("top_open") === true &&
-        reloaded.state("bottom_open") === true,
+      reloaded.opened("top") && reloaded.opened("bottom"),
       "Parked reload must restore open states",
     );
     requireCheck(
@@ -374,14 +386,12 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
     parkedAgain.step();
     await wait(1);
     requireCheck(
-      parkedAgain.state("top_open") === false &&
-        parkedAgain.state("bottom_open") === false,
+      !parkedAgain.opened("top") && !parkedAgain.opened("bottom"),
       "Next park must hide stored contents",
     );
     requireCheck(
-      parkedAgain.state("end0_item") !== 0 &&
-        parkedAgain.state("end1_item") !== 0,
-      "Next park must keep both contents encoded",
+      JSON.stringify(parkedAgain.drive.decor()) === saved,
+      "Next park must retain both contents in saved decor",
     );
     return {
       pass: true,
@@ -392,7 +402,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
 }
 
 export function camperDrawersLaid(a: Arena): Promise<Outcome> {
-  return withCamper(a, 108.5, 78.5, 90, async (car) => {
+  return atParkSpot(a, async (car) => {
     const decor: DecorPlacement[] = (
       [
         ["drawer_top_0", "mug_pair"],

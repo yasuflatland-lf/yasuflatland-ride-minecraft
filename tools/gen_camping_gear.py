@@ -269,10 +269,9 @@ def drawers_geometry(spec):
 def drawers_block(spec):
     visibility = {"anchor": False}
     for end, door in enumerate(("top", "bottom")):
-        for code, item_id in enumerate(DRAWER_IDS, 1):
+        for code, item_id in enumerate(DRAWER_IDS, 2):
             visibility[pair_bone(end, item_id)] = (
-                f"q.block_state('yasu_ride:{door}_open') == true && "
-                f"q.block_state('yasu_ride:end{end}_item') == {code}")
+                f"q.block_state('yasu_ride:{door}_drawer') == {code}")
     for code, item in enumerate(standing(spec), 1):
         page, index = divmod(code, PAIR_PAGE_SIZE)
         visibility[f"counter_{item['id']}"] = (
@@ -283,8 +282,8 @@ def drawers_block(spec):
     body["description"]["identifier"] = "yasu_ride:drawers_decor_pair"
     body["description"]["states"] = {
         FACE_STATE: list(FACES),
-        "yasu_ride:top_open": [False, True], "yasu_ride:bottom_open": [False, True],
-        **{f"yasu_ride:end{end}_item": list(range(len(DRAWER_IDS) + 1)) for end in range(2)},
+        **{f"yasu_ride:{door}_drawer": list(range(len(DRAWER_IDS) + 2))
+           for door in ("top", "bottom")},
         "yasu_ride:counter_page": list(range(pair_pages(spec))),
         "yasu_ride:counter_item": list(range(PAIR_PAGE_SIZE)),
     }
@@ -373,13 +372,15 @@ def validate(spec):
     if pair_pages(spec) < MIN_STATE_VALUES or PAIR_PAGE_SIZE < MIN_STATE_VALUES:
         errors.append("a pair block state holds fewer than 2 values")
     standing_by_id = {item["id"]: item for item in standing(spec)}
-    if len(DRAWER_IDS) + 1 > MAX_STATE_VALUES:
-        errors.append("a drawer item state holds more than 16 values")
+    drawer_states = drawers_block(spec)["minecraft:block"]["description"]["states"]
+    if any(len(values) > MAX_STATE_VALUES for values in drawer_states.values()):
+        errors.append("a drawer block state holds more than 16 values")
     for item_id in DRAWER_IDS:
         if item_id not in standing_by_id or standing_by_id[item_id]["height_px"] > 4.5:
             errors.append(f"{item_id} does not fit the drawer's 4.5 px inside height")
-    if len(FACE_ROTATION) * 4 * (len(DRAWER_IDS) + 1) ** 2 * pair_pages(spec) * PAIR_PAGE_SIZE > 65536:
-        errors.append("the combined drawer block exceeds Bedrock's permutation limit")
+    if sum(max(1, math.ceil(math.log2(len(values))))
+           for values in drawer_states.values()) > 16:
+        errors.append("the combined drawer block exceeds Bedrock's 16-bit state budget")
     if errors:
         sys.exit("\n".join(errors))
 

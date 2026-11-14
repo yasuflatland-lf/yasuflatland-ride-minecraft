@@ -170,28 +170,21 @@ export function campingGearOfDecorBlock(typeId: string): string | undefined {
   return CAMPING_GEAR_IDS.find((gear) => decorBlockId(gear) === typeId);
 }
 
-/** Compact drawer codes keep three independent items below Bedrock's permutation limit. */
+/** Drawer codes (0 shut, 1 open empty, 2 + item index) fit the 16-bit state budget. */
 export function drawerBlockStates(
   block: Extract<DockBlock, { type: "drawers" }>,
 ): Record<string, number | boolean> {
-  const code = (item: string | undefined) =>
-    item === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(item) + 1;
+  const code = (open: boolean, item: string | undefined) =>
+    !open ? 0 : item === undefined ? 1 : [...DRAWER_GEAR_IDS].indexOf(item) + 2;
   const counter =
     block.counter === undefined
       ? 0
       : STANDING_GEAR_IDS.indexOf(block.counter) + 1;
   return {
     [DECOR_FACE_STATE]: block.face,
-    [DRAWER_OPEN_STATES.drawer_top]: block.topOpen,
-    [DRAWER_OPEN_STATES.drawer_bottom]: block.bottomOpen,
-    [id("end0_item")]: code(block.end0),
-    [id("end1_item")]: code(block.end1),
+    [id("top_drawer")]: code(block.topOpen, block.end0),
+    [id("bottom_drawer")]: code(block.bottomOpen, block.end1),
     [id("counter_page")]: Math.floor(counter / PAIR_PAGE_SIZE),
     [id("counter_item")]: counter % PAIR_PAGE_SIZE,
   };
 }
-
-const DRAWER_OPEN_STATES = {
-  drawer_top: id("top_open"),
-  drawer_bottom: id("bottom_open"),
-} as const;
