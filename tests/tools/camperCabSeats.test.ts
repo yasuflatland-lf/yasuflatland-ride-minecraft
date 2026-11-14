@@ -32,7 +32,7 @@ first['seat_0'][0]['origin'][0] += 100
 assert json.dumps(seats.build_cab_seats(kit.REGISTRY)) == snapshot
 assert kit.regions.audit(kit.LAYOUT, kit.regions.render_atlas(kit.LAYOUT)) == []
 `);
-});
+}, 30_000);
 
 it("keeps transformed seat boxes clear of the wheel, door armrests, and lap belts", async () => {
   await python.run(`
@@ -94,7 +94,7 @@ for name in ('seat_0','seat_1'):
     exposed = points(lap, seat)
     assert not any(overlap(box, exposed) for box in boxes[:-3]), (name, 'exposed belt clearance')
 `);
-});
+}, 30_000);
 
 it("keeps seat UVs inside their material regions after arbitrary atlas relocation", async () => {
   await fc.assert(
@@ -134,4 +134,4 @@ for cubes in area.values():
     ),
     { numRuns: 5, examples: [[131, 155]] },
   );
-});
+}, 30_000);

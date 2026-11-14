@@ -44,7 +44,8 @@ type Change =
   | "size"
   | "extra"
   | "deleted"
-  | "labels";
+  | "labels"
+  | "steering";
 
 describe("camper golden comparison", () => {
   it("returns zero for matching counts and region sizes and origins", () =>
@@ -63,6 +64,8 @@ describe("camper golden comparison", () => {
     compare("deleted", "shell"));
   it("reports missing-side labels when module and spike area names differ", () =>
     compare("labels", "cab"));
+  it("combines the spike wheel and lever labels for the steering module", () =>
+    compare("steering", "steering"));
   it("reports an unknown area instead of accepting an empty comparison", () =>
     compare("none", "missing"));
 });
@@ -96,7 +99,15 @@ LAYOUT = regions.pack(REGISTRY)
         "minecraft:geometry": [
           {
             bones: [
-              { name: "body", cubes: change === "deleted" ? [] : [cube] },
+              {
+                name: "body",
+                cubes:
+                  change === "deleted"
+                    ? []
+                    : change === "steering"
+                      ? [cube, cube]
+                      : [cube],
+              },
               { name: "steering", cubes: [cube] },
             ],
           },
@@ -105,7 +116,13 @@ LAYOUT = regions.pack(REGISTRY)
     );
     writeFileSync(
       join(fixtures, "camper-areas.json"),
-      JSON.stringify({ shell: { body: [0, 0] }, cab: { steering: [0, 0] } }),
+      JSON.stringify({
+        shell: { body: [0, 0] },
+        cab: { steering: [0, 0] },
+        ...(change === "steering"
+          ? { steering: { body: [0, 1], steering: [0, 0] } }
+          : {}),
+      }),
     );
     writeFileSync(
       join(golden, "final-model.json.gz"),
@@ -115,8 +132,16 @@ LAYOUT = regions.pack(REGISTRY)
             {
               name: "body",
               cubes: Array.from(
-                { length: change === "counts" ? 2 : 1 },
-                () => ({ ...cube, _area: "shell" }),
+                { length: ["counts", "steering"].includes(change) ? 2 : 1 },
+                (_, index) => ({
+                  ...cube,
+                  _area:
+                    change === "steering"
+                      ? index === 0
+                        ? "wheel and column"
+                        : "lever"
+                      : "shell",
+                }),
               ),
             },
             {
@@ -125,7 +150,11 @@ LAYOUT = regions.pack(REGISTRY)
                 {
                   ...cube,
                   _area:
-                    change === "labels" ? "cab dash and instruments" : "cab",
+                    change === "labels"
+                      ? "cab dash and instruments"
+                      : change === "steering"
+                        ? "wheel and column"
+                        : "cab",
                 },
               ],
             },
@@ -146,8 +175,12 @@ LAYOUT = regions.pack(REGISTRY)
               ? [base.origin[0] + 1, base.origin[1]]
               : base.origin,
           used_by: {
-            shell: 6,
-            [change === "labels" ? "cab dash and instruments" : "cab"]: 6,
+            [change === "steering" ? "lever" : "shell"]: 6,
+            [change === "labels"
+              ? "cab dash and instruments"
+              : change === "steering"
+                ? "wheel and column"
+                : "cab"]: 6,
           },
         },
         ...currentRegions
@@ -188,7 +221,7 @@ LAYOUT = regions.pack(REGISTRY)
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("Unknown area: missing");
     } else if (
-      change !== "none" &&
+      !["none", "steering"].includes(change) &&
       !(area === "cab" && ["counts", "extra"].includes(change))
     ) {
       expect(result.status).toBe(1);

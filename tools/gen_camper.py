@@ -17,7 +17,8 @@ from tool_loader import load_tool
 
 cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
-ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owner": "camper", "cubes": 518}, "cab_seats": {"owner": "camper", "cubes": 464}}
+STEERING = load_tool("camper_steering")
+ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owner": "camper", "cubes": 518}, "cab_seats": {"owner": "camper", "cubes": 464}, **STEERING.ASSEMBLIES}
 
 texture_io = load_tool("texture_io")
 mer = load_tool("mer")
@@ -58,7 +59,8 @@ carve = kit.carve
 take_slots = kit.take_slots
 
 # Keep the original body cube order; bone draw order is declared separately below.
-AREA_ORDER = kit.AREA_ORDER
+AREA_ORDER = tuple(name for area in kit.AREA_ORDER
+                   for name in ((area, "steering") if area == "cab" else (area,)))
 areas = {name: load_tool(f"camper_{name}") for name in AREA_ORDER}
 merged = AreaCubes()
 owners = {}
@@ -118,7 +120,7 @@ door_glass, door = take_slots(door, ("glass",))
 merged.update(body=body, door_entry=door, headlights=headlights, glass=glass, door_glass=door_glass)
 door_area, cab, shower, fridge = (areas[n] for n in ("door", "cab", "shower", "fridge"))
 DOOR_HINGE = door_area.DOOR_HINGE
-STEERING_PIVOT, STEERING_LEAN = cab.STEERING_PIVOT, cab.STEERING_LEAN
+STEERING_PIVOT = [-STEERING.STEERING_PIVOT[0], *STEERING.STEERING_PIVOT[1:]]
 SHOWER_HINGE, SHOWER_HEAD = shower.SHOWER_HINGE, shower.SHOWER_HEAD
 CABINET_SINK_HINGE, CABINET_STOVE_HINGE = areas["kitchen_fronts"].CABINET_SINK_HINGE, areas["kitchen_fronts"].CABINET_STOVE_HINGE
 FRIDGE_HINGE = fridge.FRIDGE_HINGE
@@ -142,8 +144,8 @@ camper_bones = [
     *[{"name": f"seat_{i}", "parent": "body", "pivot": [0, FLOOR, 0], "cubes": cubes}
       for i, cubes in enumerate((merged[f"seat_{i}"] for i in range(4)))],
     {"name": "door_entry", "parent": "body", "pivot": DOOR_HINGE, "cubes": door},
-    {"name": "steering", "parent": "body", "pivot": STEERING_PIVOT, "rotation": [STEERING_LEAN, 0, 0],
-     "cubes": [moved(c, STEERING_PIVOT) for c in merged["steering"]]},
+    {"name": "steering", "parent": "body", "pivot": STEERING_PIVOT,
+     "rotation": [STEERING.WHEEL_LEAN, 0, 0], "cubes": merged["steering"]},
     {"name": "shower_door", "parent": "body", "pivot": SHOWER_HINGE, "cubes": merged["shower_door"]},
     {"name": "cabinet_sink_door", "parent": "body", "pivot": CABINET_SINK_HINGE, "cubes": merged["cabinet_sink_door"]},
     {"name": "cabinet_stove_door", "parent": "body", "pivot": CABINET_STOVE_HINGE, "cubes": merged["cabinet_stove_door"]},
@@ -187,9 +189,10 @@ CAB_BODY_IDS = {id(c) for c in body if owners.get(id(c)) == "cab"}
 def dash_top(cube: dict) -> float:
     angle = math.radians(cube.get("rotation", [0, 0, 0])[0])
     py, pz = cube.get("pivot", [0, 0, 0])[1:]
-    return max(py + (y - py) * math.cos(angle) + (z - pz) * math.sin(angle)
+    # Normalize trig noise before the sill checks choose whether to clip a cube.
+    return round(max(py + (y - py) * math.cos(angle) + (z - pz) * math.sin(angle)
                for y in (cube["origin"][1], cube["origin"][1] + cube["size"][1])
-               for z in (cube["origin"][2], cube["origin"][2] + cube["size"][2]))
+               for z in (cube["origin"][2], cube["origin"][2] + cube["size"][2])), DASH_COORD_DECIMALS)
 
 
 def rounded(value):
@@ -216,7 +219,7 @@ def rounded(value):
     return value
 
 
-# Use the source lists to retain ownership when moved() replaces steering dictionaries.
+# Area ownership is retained through the final coordinate mirror.
 area_ranges = {name: {} for name in dict.fromkeys(owners.values())}
 for bone in camper_bones:
     source = merged.get(bone["name"], [])
@@ -246,11 +249,19 @@ geo = {
     }],
 }
 model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
-slanted = [cube for cube in compound_cubes(model_cubes) if cube["rotation"][0] == 45]
+steering_cubes = merged["steering"]
+steering_members = {
+    "steering_wheel": steering_cubes[:STEERING.WHEEL_CUBES] + [cube for cube in body if owners.get(id(cube)) == "steering"][:2],
+    "steering_spokes": steering_cubes[STEERING.WHEEL_CUBES:],
+    "steering_lever": [cube for cube in body if owners.get(id(cube)) == "steering"][2:],
+}
 seat_compound = compound_cubes(merged["seat_0"] + merged["seat_1"])
-assert_axes(model_cubes, {"slanted": slanted, "cab_seats": seat_compound,
-                         "front_panels": [cube for cube in compound_cubes(model_cubes)
-                                          if cube not in slanted and cube not in seat_compound]}, ASSEMBLIES)
+seat_ids = {id(cube) for cube in seat_compound}
+other_compound = compound_cubes([cube for cube in model_cubes if owners.get(id(cube)) != "steering" and id(cube) not in seat_ids])
+slanted = [cube for cube in other_compound if cube["rotation"][0] == 45]
+assert_axes(model_cubes, {"slanted": slanted,
+                         "front_panels": [cube for cube in other_compound if cube not in slanted],
+                         "cab_seats": seat_compound, **steering_members}, ASSEMBLIES)
 outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
