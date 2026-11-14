@@ -101,10 +101,11 @@ function validateDooredStorage(units: readonly DooredStorage[]): string[] {
   const doors = storageDoors(units);
   const ids = doors.map(({ id }) => id);
   if (new Set(ids).size !== ids.length) problems.push("door ids repeat");
-  const cells = doors.flatMap((door) => [
-    door.compartment,
-    hingedOpening(door).plate,
-  ]);
+  const cells = doors.flatMap((door) =>
+    door.opening.kind === "hinged"
+      ? [door.compartment, door.opening.plate]
+      : [door.compartment],
+  );
   cells.forEach((cell, i) => {
     if (cells.findIndex((c) => sameLocal(c, cell)) !== i)
       problems.push(`cell ${JSON.stringify(cell)} is used twice`);
@@ -113,11 +114,13 @@ function validateDooredStorage(units: readonly DooredStorage[]): string[] {
   });
   for (const door of doors) {
     const { id, compartment, slots, unit } = door;
-    const { plate } = hingedOpening(door);
-    if (!PLATE_LAYERS.includes(plate.layer))
-      problems.push(`door ${id}'s plate is in layer ${plate.layer}`);
-    if (OPEN_SLOT_CELLS.some((c) => sameLocal(c, plate)))
-      problems.push(`door ${id}'s plate covers a slot`);
+    if (door.opening.kind === "hinged") {
+      const { plate } = door.opening;
+      if (!PLATE_LAYERS.includes(plate.layer))
+        problems.push(`door ${id}'s plate is in layer ${plate.layer}`);
+      if (OPEN_SLOT_CELLS.some((c) => sameLocal(c, plate)))
+        problems.push(`door ${id}'s plate covers a slot`);
+    }
     const ends = slots.map((s) => s.pair?.end).sort();
     if (JSON.stringify(ends) !== "[0,1]")
       problems.push(`door ${id} does not hold ends 0 and 1 once`);
@@ -144,6 +147,22 @@ describe("definitions", () => {
     ]);
   });
 
+  it("accepts sliding storage alongside hinged storage", () => {
+    const sliding: DooredStorage = {
+      ...FRIDGE,
+      doors: FRIDGE.doors.map((door) => {
+        const id = `sliding_${door.id}`;
+        return {
+          ...door,
+          id,
+          opening: { kind: "sliding" },
+          slots: door.slots.map((slot) => ({ ...slot, door: id })),
+        };
+      }),
+    };
+    expect(validateDooredStorage([WALL_CABINET, sliding])).toEqual([]);
+  });
+
   it("rejects a unit whose door repeats an id, shares a cell, sits on a furniture block, puts its plate in another layer or on a slot, or holds a stray slot", () => {
     const slotCell = OPEN_SLOT_CELLS.find(
       (c) => !FURNITURE_BLOCK_CELLS.some((f) => sameLocal(f, c)),
@@ -153,10 +172,14 @@ describe("definitions", () => {
         fc.constantFrom(...FRIDGE.doors),
         fc.constantFrom("id", "cell", "block", "layer", "onSlot", "slot"),
         fc.constantFrom(0, 4),
-        (door, fault, layer) => {
+        fc.boolean(),
+        (door, fault, layer, sliding) => {
           const shower = { x: -1, z: -3, layer: 1 };
           const broken = {
             ...door,
+            ...(sliding && ["id", "block", "slot"].includes(fault)
+              ? { opening: { kind: "sliding" as const } }
+              : {}),
             ...(fault === "id" ? { id: "sink" } : {}),
             ...(fault === "cell"
               ? {
