@@ -10,7 +10,6 @@ import {
 import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
 import { STANDING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import { roomCells as camperRoomCells } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
-import { DRAWER_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import {
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
@@ -1388,27 +1387,15 @@ describe("DockBlocks and camp space (ADR 0129)", () => {
 });
 
 it("maps and restores a shared drawer/counter cell with counter-only block states", () => {
-  const items = fc.option(fc.constantFrom(...DRAWER_GEAR_IDS), {
-    nil: undefined,
-  });
   fc.assert(
     fc.property(
       fc.constantFrom(0 as const, 1 as const, 2 as const, 3 as const),
-      fc.boolean(),
-      fc.boolean(),
-      items,
-      items,
       fc.option(fc.constantFrom(...STANDING_GEAR_IDS), { nil: undefined }),
-      (face, topOpen, bottomOpen, top, bottom, counter) => {
+      (face, counter) => {
         const block = {
           type: "drawers" as const,
           face,
-          topOpen,
-          bottomOpen,
-          open: topOpen || bottomOpen,
           height: 7.1,
-          ...(top === undefined ? {} : { end0: decorItemId(top) }),
-          ...(bottom === undefined ? {} : { end1: decorItemId(bottom) }),
           ...(counter === undefined ? {} : { counter: decorItemId(counter) }),
         };
         const code =

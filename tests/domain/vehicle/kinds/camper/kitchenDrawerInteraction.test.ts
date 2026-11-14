@@ -199,10 +199,7 @@ it("loads an old save without drawer properties or placements as closed and empt
     out.dock?.cells.find((cell) => cell.block.type === "drawers")?.block,
     "drawer block",
   );
-  expect(block).toMatchObject({
-    topOpen: false,
-    bottomOpen: false,
-  });
+  expect(block.type).toBe("drawers");
   expect(block).not.toHaveProperty("end0");
   expect(block).not.toHaveProperty("end1");
 });
@@ -261,13 +258,13 @@ it("keeps counter top decor independent from both drawer contents", () => {
   expect(f.press.execute(f.command("counter"))).toBe(false);
   expect(f.place.execute(f.command("counter", "potted_plant"))).toBe(true);
   expect(f.room.decor()).toHaveLength(3);
+  for (const slot of ["drawer_top_0", "drawer_bottom_0"])
+    expect(f.room.decor()).toContainEqual({ slot, item: "mug_pair" });
   const block = f
     .tick(50)
     .dock?.cells.filter((c) => c.block.type === "drawers");
   expect(block).toHaveLength(1);
   expect(block?.[0]?.block).toMatchObject({
-    end0: "mug_pair",
-    end1: "mug_pair",
     counter: "potted_plant",
   });
 });
@@ -411,8 +408,6 @@ it("closes and reopens populated drawers through the existing storage use case w
           .dock?.cells.find((c) => c.block.type === "drawers")?.block;
         expect(closed).toMatchObject({
           type: "drawers",
-          topOpen: false,
-          bottomOpen: false,
         });
         f.clock.tick += 10;
         expect(f.press.execute(cmd)).toBe(true);
@@ -423,11 +418,12 @@ it("closes and reopens populated drawers through the existing storage use case w
   );
 });
 
-it("retains compartment opening flags while selecting entity contents from the first opening step", () => {
+it("keeps the counter block unchanged while entity contents slide through opening and closing", () => {
   const f = fixture();
   const cmd = { ...f.command("drawer_top_0"), takeContents: false };
   expect(f.press.execute(cmd)).toBe(true);
   expect(f.place.execute(cmd)).toBe(true);
+  let previousBlock: unknown;
   for (let i = 1; i <= 10; i++) {
     const out = f.tick(100 + i);
     if (i === 1)
@@ -439,13 +435,20 @@ it("retains compartment opening flags while selecting entity contents from the f
     const block = out.dock?.cells.find(
       (c) => c.block.type === "drawers",
     )?.block;
-    expect(block).toMatchObject({ topOpen: i === 10, bottomOpen: false });
+    expect(block?.type).toBe("drawers");
+    if (previousBlock !== undefined) expect(block).toEqual(previousBlock);
+    previousBlock = block;
+    expect(out.stepCommands).toContainEqual({
+      type: "setProperty",
+      name: "drawer_top",
+      value: i / 10,
+    });
   }
   f.clock.tick += 10;
   expect(f.press.execute(cmd)).toBe(true);
   expect(
     f.tick(111).dock?.cells.find((c) => c.block.type === "drawers")?.block,
-  ).toMatchObject({ topOpen: false });
+  ).toEqual(previousBlock);
 });
 
 it("refuses a decor placement before consuming its item when preserved save entries exhaust the string limit", () => {

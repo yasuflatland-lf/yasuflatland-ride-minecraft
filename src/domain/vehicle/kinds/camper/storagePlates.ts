@@ -85,10 +85,6 @@ export function compartmentCells(
         s.cell.layer === cell.layer
       );
     })?.item;
-    const sharedLook =
-      group.length > 1 ||
-      door.opening.kind === "sliding" ||
-      surface !== undefined;
     return [
       {
         ...localCellAt(pose, cell),
@@ -101,13 +97,6 @@ export function compartmentCells(
             decor,
             group.flatMap((d) => d.slots),
           ),
-          ...(sharedLook
-            ? {
-                openings: Object.fromEntries(
-                  group.map((d) => [d.id, shown.has(d.id)]),
-                ),
-              }
-            : {}),
           ...(surface === undefined ? {} : { surface }),
         }),
       },

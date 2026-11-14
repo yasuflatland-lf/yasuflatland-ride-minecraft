@@ -135,6 +135,46 @@ describe("drawer compartment art", () => {
     ).toBe(true);
   });
 
+  it("preserves transparency for drawer gear that needs alpha", () => {
+    const controller =
+      controllers["controller.render.yasu_ride.camper.drawer_items"];
+    for (const item of DRAWER_GEAR_IDS) {
+      const decor = read(
+        `packs/yasu_ride_bp/blocks/yasu_ride/${item}_decor.block.json`,
+      )["minecraft:block"];
+      const materials = decor.components[
+        "minecraft:material_instances"
+      ] as Record<string, { render_method: string }>;
+      if (
+        !Object.values(materials).some(({ render_method }) =>
+          ["alpha_test", "blend"].includes(render_method),
+        )
+      )
+        continue;
+      for (const door of KITCHEN_DRAWERS.doors) {
+        const name = `${door.id}_item_${item}`;
+        expect(
+          contents.bones.some((bone: { name: string }) => bone.name === name),
+        ).toBe(true);
+        let material: string | undefined;
+        for (const mapping of controller.materials as Record<
+          string,
+          string
+        >[]) {
+          for (const [pattern, value] of Object.entries(mapping)) {
+            if (new RegExp(`^${pattern.split("*").join(".*")}$`).test(name))
+              material = value;
+          }
+        }
+        expect(material, name).toBeDefined();
+        const value =
+          client.materials[defined(material, name).replace("Material.", "")];
+        expect(value, name).toBeDefined();
+        expect(value, name).not.toBe("entity");
+      }
+    }
+  });
+
   it("keeps counter gear at fourteen pixels independent of drawer state", () => {
     expect(
       visible("counter_potted_plant", {

@@ -771,16 +771,16 @@ The full in-game suite (`GAME_TEST_ALL=1 pnpm test:game`, with 4 lanes after `pn
 
 ## Camper kitchen drawers
 
-| #    | Steps                                                                         | Pass condition                                                                                  | PC  | Mobile |
-| ---- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --- | ------ |
-| KD1  | Press each drawer front once with an empty hand                               | Only the pressed drawer toggles; both operate independently                                     |     |        |
-| KD2  | Hold allowed gear and press a closed drawer, then place into each open drawer | The first press opens; each drawer stores one item and refuses a second                         |     |        |
-| KD3  | Try placing a potted plant in either open drawer                              | The tall item stays in hand and no other slot changes                                           |     |        |
-| KD4  | Open a populated drawer and close it from the front                           | Contents appear after the 10-tick opening and hide when closing starts                          |     |        |
-| KD5  | Press the item inside each open drawer                                        | Only that drawer's item returns to inventory                                                    |     |        |
-| KD6  | Place counter decor and operate both populated drawers                        | Counter top decor and presses remain independent                                                |     |        |
-| KD7  | Drive off with both drawers open, then park and reopen them                   | Both close on departure and keep their contents; moving presses do nothing                      |     |        |
-| KD8  | Leave and return, then reload with populated drawers                          | Slots and contents survive; parked opening progress restores                                    |     |        |
-| KD9  | Walk through the aisle with each drawer and both drawers open                 | Passage stays clear on PC and iPad                                                              |     |        |
-| KD10 | Operate both drawers repeatedly on iPad in a furnished camper                 | Animation and frame rate remain usable                                                          |     |        |
-| KD11 | Aim at top and bottom fronts and at the counter surface                       | The primary shared-cell routing selects the intended drawer and preserves counter decor (#1681) |     |        |
+| #    | Steps                                                                         | Pass condition                                                                                        | PC  | Mobile |
+| ---- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --- | ------ |
+| KD1  | Press each drawer front once with an empty hand                               | Only the pressed drawer toggles; both operate independently                                           |     |        |
+| KD2  | Hold allowed gear and press a closed drawer, then place into each open drawer | The first press opens; each drawer stores one item and refuses a second                               |     |        |
+| KD3  | Try placing a potted plant in either open drawer                              | The tall item stays in hand and no other slot changes                                                 |     |        |
+| KD4  | Open a populated drawer and close it from the front                           | Contents slide out with the box and slide back in with it; nothing pops in or out at a fixed position |     |        |
+| KD5  | Press the item inside each open drawer                                        | Only that drawer's item returns to inventory                                                          |     |        |
+| KD6  | Place counter decor and operate both populated drawers                        | Counter top decor and presses remain independent                                                      |     |        |
+| KD7  | Drive off with both drawers open, then park and reopen them                   | Both close on departure and keep their contents; moving presses do nothing                            |     |        |
+| KD8  | Leave and return, then reload with populated drawers                          | Slots and contents survive; parked opening progress restores                                          |     |        |
+| KD9  | Walk through the aisle with each drawer and both drawers open                 | Passage stays clear on PC and iPad                                                                    |     |        |
+| KD10 | Operate both drawers repeatedly on iPad in a furnished camper                 | Animation and frame rate remain usable                                                                |     |        |
+| KD11 | Aim at top and bottom fronts and at the counter surface                       | The primary shared-cell routing selects the intended drawer and preserves counter decor (#1681)       |     |        |

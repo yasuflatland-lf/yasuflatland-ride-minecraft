@@ -18,10 +18,7 @@ import {
   type Face,
   sameBlock,
 } from "../../../../domain/vehicle/dock/floor";
-import {
-  DRAWER_GEAR_IDS,
-  STANDING_GEAR_IDS,
-} from "../../../../domain/vehicle/kinds/index";
+import { STANDING_GEAR_IDS } from "../../../../domain/vehicle/kinds/index";
 import {
   type CellCodec,
   CellLayer,
@@ -144,18 +141,10 @@ function isDockCell(v: unknown): v is DockCell {
     case "drawers":
       return (
         isFace(b.face) &&
-        typeof b.open === "boolean" &&
-        typeof b.topOpen === "boolean" &&
-        typeof b.bottomOpen === "boolean" &&
         typeof b.height === "number" &&
         Number.isFinite(b.height) &&
         b.height >= 0 &&
         b.height <= MAX_DECOR_HEIGHT &&
-        [b.end0, b.end1].every(
-          (item) =>
-            item === undefined ||
-            (typeof item === "string" && DRAWER_GEAR_IDS.has(item)),
-        ) &&
         isPairEnd(b.counter)
       );
     case "fridge":

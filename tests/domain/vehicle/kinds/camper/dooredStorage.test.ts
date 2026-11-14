@@ -517,8 +517,11 @@ describe("cells", () => {
         expect(laid.map(cellKey)).toEqual(
           TWO_UNITS.map((d) => cellKey(localCellAt(p, d.compartment))),
         );
-        for (const [i, c] of laid.entries())
+        for (const [i, c] of laid.entries()) {
+          if (c.block.type !== "cabinet" && c.block.type !== "fridge")
+            throw new Error("Expected a hinged storage compartment");
           expect(c.block.open).toBe(shown.has(TWO_UNITS[i]?.id ?? ""));
+        }
         expect(looks).toEqual(
           FRIDGE.doors.map((d) => ({
             face: decorFace(p.yaw),

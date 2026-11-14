@@ -360,7 +360,6 @@ export const KITCHEN_DRAWERS: DooredStorage<StorageDoorId, StoragePairKind> = {
     id,
     compartment: DRAWER_COMPARTMENT,
     opening: { kind: "sliding" },
-    showContents: "fullyOpen",
     acceptsPress: (height: number) => drawerAtHeight(height) === id,
     slots: [
       {
@@ -378,23 +377,10 @@ export const KITCHEN_DRAWERS: DooredStorage<StorageDoorId, StoragePairKind> = {
       },
     ],
   })),
-  compartmentBlock: ({
-    face,
-    open,
-    height,
-    openings,
-    end0,
-    end1,
-    surface,
-  }) => ({
+  compartmentBlock: ({ face, height, surface }) => ({
     type: "drawers",
     face,
-    open,
     height,
-    topOpen: openings?.drawer_top === true,
-    bottomOpen: openings?.drawer_bottom === true,
-    ...(end0 === undefined ? {} : { end0 }),
-    ...(end1 === undefined ? {} : { end1 }),
     ...(surface === undefined ? {} : { counter: surface }),
   }),
   plateBlock: () => {

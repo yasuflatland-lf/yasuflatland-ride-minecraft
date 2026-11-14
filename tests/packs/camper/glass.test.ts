@@ -25,6 +25,7 @@ describe("camper glass (ADR 0091)", () => {
   it("draws the model opaque and blends only the glass material", () => {
     expect(camperMaterials).toEqual({
       default: "entity",
+      cutout: "entity_alphatest",
       lamp: "entity",
       lamp_lit: "entity_emissive",
       glass: "entity_alphablend",

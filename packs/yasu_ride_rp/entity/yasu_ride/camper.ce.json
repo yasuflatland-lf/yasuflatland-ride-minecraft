@@ -5,6 +5,7 @@
       "identifier": "yasu_ride:camper",
       "materials": {
         "default": "entity",
+        "cutout": "entity_alphatest",
         "lamp": "entity",
         "lamp_lit": "entity_emissive",
         "glass": "entity_alphablend"
