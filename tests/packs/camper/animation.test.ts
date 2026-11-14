@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { DRAWER_SLIDE_PX } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { bone, bones, RP } from "./helpers";
 
 interface ParticleEffect {
@@ -69,13 +70,13 @@ describe("camper animation references", () => {
       ...Object.keys(camperAnimations),
       ...Object.keys(camperControllers),
     ]);
-    expect(Object.keys(camperClient.animations)).toHaveLength(31);
+    expect(Object.keys(camperClient.animations)).toHaveLength(33);
     for (const name of Object.values(camperClient.animations)) {
       expect(names.has(String(name)), String(name)).toBe(true);
     }
   });
 
-  it("animates only root, the wheels, the entry door, the shower door, and the storage doors present in the model", () => {
+  it("animates only root, the wheels, the entry door, the shower door, the storage doors, and the drawers present in the model", () => {
     const allowed = [
       "root",
       "wheel_fl",
@@ -88,6 +89,8 @@ describe("camper animation references", () => {
       "cabinet_stove_door",
       "fridge_top_door",
       "fridge_bottom_door",
+      "drawer_top",
+      "drawer_bottom",
     ];
     const modelBones = bones.map((b) => b.name);
     for (const animation of Object.values(camperAnimations)) {
@@ -154,6 +157,8 @@ describe("camper animation references", () => {
       "cabinet_stove_door",
       "fridge_top_door",
       "fridge_bottom_door",
+      "drawer_top",
+      "drawer_bottom",
       { shower: "q.property('yasu_ride:shower')" },
       { shower_sound: "q.property('yasu_ride:shower')" },
     ]);
@@ -240,6 +245,27 @@ describe("camper animation references", () => {
           },
         },
       });
+  });
+
+  it("slides each drawer independently by its own property without sound", () => {
+    for (const drawer of ["drawer_top", "drawer_bottom"]) {
+      expect(camperClient.animations[drawer]).toBe(
+        `animation.yasu_ride.camper.${drawer}`,
+      );
+      expect(camperClient.scripts.animate).toContain(drawer);
+      expect(camperAnimation(drawer)).toEqual({
+        loop: true,
+        bones: {
+          [drawer]: {
+            position: [
+              `q.property('yasu_ride:${drawer}') * ${DRAWER_SLIDE_PX}`,
+              0,
+              0,
+            ],
+          },
+        },
+      });
+    }
   });
 
   it("matches wheel spin to the circumference derived from each wheel pivot", () => {

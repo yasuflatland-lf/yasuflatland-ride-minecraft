@@ -59,7 +59,7 @@ it.each(VEHICLE_KINDS)(
     }
     for (const name of contract.restored)
       expect(contract.properties).toHaveProperty(name);
-    // An entity declares at most 32 properties; the fridge doors took the camper to 13 (ADR 0123).
+    // An entity declares at most 32 properties; the drawer properties take the camper to 15 (ADR 0114).
     expect(
       Object.keys(entity.description.properties).length,
     ).toBeLessThanOrEqual(MAX_ENTITY_PROPERTIES);
