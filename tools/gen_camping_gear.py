@@ -292,11 +292,16 @@ def drawers_block(spec):
     components["minecraft:geometry"] = {
         "identifier": "geometry.yasu_ride.drawers_decor_pair", "bone_visibility": visibility}
     components["minecraft:collision_box"] = False
-    components["minecraft:selection_box"] = {"origin": [-8, 0, -8], "size": [16, 16, 16]}
+    components["minecraft:selection_box"] = {"origin": [-8, 0, -8], "size": [16, COUNTER_HEIGHT, 16]}
     body["permutations"] = [{
         "condition": f"q.block_state('{FACE_STATE}') == {face}",
         "components": {"minecraft:transformation": {"rotation": [0, FACE_ROTATION[face], 0]}},
     } for face in FACES]
+    body["permutations"].append({
+        "condition": "!(q.block_state('yasu_ride:counter_page') == 0 && "
+                     "q.block_state('yasu_ride:counter_item') == 0)",
+        "components": {"minecraft:selection_box": {"origin": [-8, 0, -8], "size": [16, 16, 16]}},
+    })
     return block
 
 

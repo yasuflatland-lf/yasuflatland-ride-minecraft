@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { CAMPER_FURNITURE } from "../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   DRAWER_GEAR_IDS,
+  DRAWER_HIT_PROFILE,
   DRAWER_SLIDE_PX,
 } from "../../../src/domain/vehicle/kinds/camper/spec";
 import {
@@ -39,11 +40,11 @@ describe("camper furniture model (ADR 0093)", () => {
           (floor?.origin[1] ?? 0) + (floor?.size[1] ?? 0) - bottom,
         ).toBeCloseTo(slot.height, 6);
         expect((floor?.origin[0] ?? 0) + (floor?.size[0] ?? 0) / 2).toBeCloseTo(
-          x + 2,
+          x - DRAWER_HIT_PROFILE.contentLeft - DRAWER_SLIDE_PX,
           6,
         );
         expect((floor?.origin[2] ?? 0) + (floor?.size[2] ?? 0) / 2).toBeCloseTo(
-          z + 0.45,
+          z - DRAWER_HIT_PROFILE.contentAhead,
           6,
         );
         continue;
@@ -216,8 +217,8 @@ describe("camper furniture model (ADR 0093)", () => {
     for (const slot of standing) {
       const center = slotXZ(slot);
       const sliding = slot.pair?.kind === "drawers";
-      const x = center.x + (sliding ? 8.6 : 0);
-      const z = center.z + (sliding ? 0.45 : 0);
+      const x = center.x - (sliding ? DRAWER_HIT_PROFILE.contentLeft : 0);
+      const z = center.z - (sliding ? DRAWER_HIT_PROFILE.contentAhead : 0);
       const top = 16 * slot.cell.layer + slot.height;
       // Narrowing to the points near the slot once keeps the per-item scans short; the run
       // with coverage in CI exceeded the 5 s test timeout scanning every point per item.

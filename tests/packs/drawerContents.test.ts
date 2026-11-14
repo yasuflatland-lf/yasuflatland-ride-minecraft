@@ -37,7 +37,7 @@ describe("drawer compartment art", () => {
     ).toBe(38720);
     expect(states["yasu_ride:height"]).toBeUndefined();
     expect(states["yasu_ride:open"]).toBeUndefined();
-    expect(block.permutations).toHaveLength(4);
+    expect(block.permutations).toHaveLength(5);
     expect(block.components["minecraft:collision_box"]).toBe(false);
     expect(block.components["minecraft:custom_components"]).toEqual([
       "yasu_ride:camper_cabinet",

@@ -23,6 +23,7 @@ import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
+import { COUNTER_HEIGHT } from "../../../../src/domain/vehicle/kinds/camper/spec";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
@@ -2446,7 +2447,8 @@ it("routes drawer front presses with corrected height and the view ray while can
         playerId: "p",
         vehicleId: "car",
         cell: ev.block.location,
-        point: { x: 1, y: 64 + height, z: 2.5 },
+        // Encoding the reported fraction can round the sampled height.
+        point: { x: 1, y: 64 + (1 - ev.faceLocation.y), z: 2.5 },
         eye: ev.player.getHeadLocation(),
       });
       expect(f.removeDecor.execute).not.toHaveBeenCalled();
@@ -2485,7 +2487,7 @@ it("opens a closed drawer with held gear, places on an open drawer, and routes t
   for (const [callback] of game.run.mock.calls) callback();
   expect(f.removeDecor.execute).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({
-      point: { x: 1.25, y: 65, z: 2.5 },
+      point: { x: 1.25, y: 64 + COUNTER_HEIGHT / 16, z: 2.5 },
       eye: surface.player.getHeadLocation(),
     }),
   );

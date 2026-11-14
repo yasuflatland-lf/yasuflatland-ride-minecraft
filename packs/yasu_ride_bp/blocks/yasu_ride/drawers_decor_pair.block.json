@@ -72,7 +72,7 @@
       "tag:yasu_ride:laid": {},
       "minecraft:custom_components": ["yasu_ride:camper_cabinet"],
       "minecraft:collision_box": false,
-      "minecraft:selection_box": { "origin": [-8, 0, -8], "size": [16, 16, 16] }
+      "minecraft:selection_box": { "origin": [-8, 0, -8], "size": [16, 14, 16] }
     },
     "permutations": [
       {
@@ -93,6 +93,15 @@
         "condition": "q.block_state('yasu_ride:face') == 3",
         "components": {
           "minecraft:transformation": { "rotation": [0, -90, 0] }
+        }
+      },
+      {
+        "condition": "!(q.block_state('yasu_ride:counter_page') == 0 && q.block_state('yasu_ride:counter_item') == 0)",
+        "components": {
+          "minecraft:selection_box": {
+            "origin": [-8, 0, -8],
+            "size": [16, 16, 16]
+          }
         }
       }
     ]

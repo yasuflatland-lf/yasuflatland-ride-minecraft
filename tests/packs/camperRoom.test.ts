@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { roomCells } from "../../src/domain/vehicle/kinds/camper/roomCells";
-import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
+import {
+  CAMPER_SPEC,
+  COUNTER_HEIGHT,
+} from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BED_COMPONENT,
@@ -176,7 +179,7 @@ describe("Camper room blocks (ADR 0068)", () => {
         )["minecraft:block"];
         const box = pair.components["minecraft:selection_box"];
         expect(box.origin).toEqual([-8, 0, -8]);
-        expect(box.size).toEqual([16, 16, 16]);
+        expect(box.size).toEqual([16, COUNTER_HEIGHT, 16]);
         expect(slot.height).toBeGreaterThan(box.origin[1]);
         expect(slot.height + 4.5).toBeLessThanOrEqual(
           box.origin[1] + box.size[1],

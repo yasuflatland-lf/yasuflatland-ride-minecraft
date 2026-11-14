@@ -2,9 +2,26 @@ import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { CAMPER_ENTITY } from "../../../src/domain/vehicle/kinds/camper/entity";
-import { DRAWER_SLIDE_PX } from "../../../src/domain/vehicle/kinds/camper/spec";
+import { KITCHEN_DRAWERS } from "../../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  COUNTER_HEIGHT,
+  DRAWER_SLIDE_PX,
+  DRAWER_WALL_PX,
+  DRAWER_HIT_PROFILE as HIT,
+  PX_PER_BLOCK,
+} from "../../../src/domain/vehicle/kinds/camper/spec";
+import { STANDING_GEAR_IDS } from "../../../src/domain/vehicle/kinds/index";
+import { PAIR_PAGE_SIZE } from "../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { defined } from "../../support/defined";
-import { bone, type Cube, RP } from "./helpers";
+import {
+  type Bone,
+  bone,
+  type Cube,
+  cubeCenter,
+  end,
+  RP,
+  slotXZ,
+} from "./helpers";
 
 // A player's 0.6-block width must fit the aisle even at full extension.
 const PLAYER_WIDTH_PX = 9.6;
@@ -59,6 +76,106 @@ function clearance(cubes: Cube[]): number {
 }
 
 describe("camper drawer poses", () => {
+  it("keeps the empty counter selection at its surface and extends it only for counter decor", () => {
+    const block = JSON.parse(
+      readFileSync(
+        "packs/yasu_ride_bp/blocks/yasu_ride/drawers_decor_pair.block.json",
+        "utf8",
+      ),
+    )["minecraft:block"];
+    const base = block.components["minecraft:selection_box"];
+    expect(base).toEqual({
+      origin: [-8, 0, -8],
+      size: [16, COUNTER_HEIGHT, 16],
+    });
+    expect(base.size[0] / 2).toBe(HIT.counterHalfWidth);
+    expect(base.size[2] / 2).toBe(HIT.counterHalfWidth);
+    const permutations = block.permutations as {
+      condition: string;
+      components: Record<string, unknown>;
+    }[];
+    const selection = permutations.filter(
+      (p) => p.components["minecraft:selection_box"],
+    );
+    expect(selection).toEqual([
+      {
+        condition:
+          "!(q.block_state('yasu_ride:counter_page') == 0 && q.block_state('yasu_ride:counter_item') == 0)",
+        components: {
+          "minecraft:selection_box": {
+            origin: [-8, 0, -8],
+            size: [16, 16, 16],
+          },
+        },
+      },
+    ]);
+    const visibility = block.components["minecraft:geometry"].bone_visibility;
+    for (const [index, item] of STANDING_GEAR_IDS.entries()) {
+      const code = index + 1;
+      expect(visibility[`counter_${item}`]).toBe(
+        `q.block_state('yasu_ride:counter_page') == ${Math.floor(code / PAIR_PAGE_SIZE)} && q.block_state('yasu_ride:counter_item') == ${code % PAIR_PAGE_SIZE}`,
+      );
+    }
+    for (const face of block.description.states["yasu_ride:face"]) {
+      expect(
+        permutations.find(
+          (p) => p.condition === `q.block_state('yasu_ride:face') == ${face}`,
+        )?.components,
+      ).toHaveProperty("minecraft:transformation");
+    }
+  });
+
+  it("places both generated drawer content groups at the hit profile's open content centre", () => {
+    const contents = JSON.parse(
+      readFileSync(
+        `${RP}/models/blocks/yasu_ride/drawers_decor_pair.geo.json`,
+        "utf8",
+      ),
+    )["minecraft:geometry"][0];
+    expect(contents.description.identifier).toBe(
+      "geometry.yasu_ride.drawers_decor_pair",
+    );
+    for (const door of KITCHEN_DRAWERS.doors) {
+      for (const slot of door.slots) {
+        for (const item of defined(slot.items, "allowed drawer items")) {
+          const group = defined(
+            (contents.bones as Bone[]).find(
+              (b) => b.name === `end${slot.pair?.end}_${item}`,
+            ),
+            "drawer content group",
+          );
+          const source = JSON.parse(
+            readFileSync(
+              `${RP}/models/blocks/yasu_ride/${item}.geo.json`,
+              "utf8",
+            ),
+          )["minecraft:geometry"][0].bones[0] as Bone;
+          const cubes = defined(group.cubes, "content cubes");
+          const originals = defined(source.cubes, "source cubes");
+          expect(cubes).toHaveLength(originals.length);
+          for (const [index, cube] of cubes.entries()) {
+            const original = defined(originals[index], "source cube");
+            for (const key of ["origin", "pivot"] as const) {
+              const at = cube[key];
+              const from = original[key];
+              expect(at === undefined).toBe(from === undefined);
+              if (!at || !from) continue;
+              expect(
+                -(defined(at[0], "x") - defined(from[0], "source x")),
+              ).toBeCloseTo(HIT.contentLeft, 6);
+              expect(
+                -(defined(at[2], "z") - defined(from[2], "source z")),
+              ).toBeCloseTo(HIT.contentAhead, 6);
+              expect(
+                defined(at[1], "y") - defined(from[1], "source y"),
+              ).toBeCloseTo(slot.height, 6);
+            }
+          }
+        }
+      }
+    }
+  });
+
   it("declares fifteen properties within Bedrock's limit", () => {
     expect(Object.keys(properties)).toHaveLength(15);
     // Headlights belong to the core, outside the camper kind's contract.
@@ -77,6 +194,44 @@ describe("camper drawer poses", () => {
     ["drawer_top", 22.65],
     ["drawer_bottom", 17.25],
   ] as const) {
+    it(`keeps ${drawer}'s virtual front and open content centre aligned with its model`, () => {
+      const cubes = defined(bone(drawer).cubes, "drawer cubes");
+      const front = defined(cubes[0], "front cube");
+      const floor = defined(
+        cubes.find((cube) => cube.size[1] === DRAWER_WALL_PX),
+        "floor cube",
+      );
+      const door = defined(
+        KITCHEN_DRAWERS.doors.find((door) => door.id === drawer),
+        "drawer door",
+      );
+      const slot = defined(door.slots[0], "drawer slot");
+      const centre = slotXZ(slot);
+      // Room left/ahead negate model x/z, relative to the shared cell centre (ADR 0009).
+      expect(-(end(front, 0) - centre.x)).toBeCloseTo(HIT.frontLeftMin, 6);
+      expect(-(defined(front.origin[0], "front x") - centre.x)).toBeCloseTo(
+        HIT.frontLeftMax,
+        6,
+      );
+      expect(-(end(front, 2) - centre.z)).toBeCloseTo(HIT.frontAheadMin, 6);
+      expect(-(defined(front.origin[2], "front z") - centre.z)).toBeCloseTo(
+        HIT.frontAheadMax,
+        6,
+      );
+      expect(
+        defined(front.origin[1], "front y") - slot.cell.layer * PX_PER_BLOCK,
+      ).toBeCloseTo(HIT.frontBottom[drawer], 6);
+      expect(front.size[1]).toBeCloseTo(HIT.frontHeight, 6);
+      expect(-(cubeCenter(floor, 0) + DRAWER_SLIDE_PX - centre.x)).toBeCloseTo(
+        HIT.contentLeft,
+        6,
+      );
+      expect(-(cubeCenter(floor, 2) - centre.z)).toBeCloseTo(
+        HIT.contentAhead,
+        6,
+      );
+    });
+
     it(`syncs ${drawer} as closed by default with gameplay restoration`, () => {
       expect(CAMPER_ENTITY.properties[drawer]).toEqual({
         type: "float",
