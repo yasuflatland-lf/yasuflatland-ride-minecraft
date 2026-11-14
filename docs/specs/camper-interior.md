@@ -296,6 +296,28 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Implementation: `tools/camper_kitchen_fronts.py`; `tools/camper_room.py`; `tools/camper_kit.py`; `tools/gen_camper.py`
 - Verification: `tests/packs/camper/kitchenFronts.test.ts` checks counts, closed pivots, seam, box walls, cavity and aisle clearance. `tests/tools/camperKitchenFronts.test.ts` checks repeatability, registered materials, routed texels and face audits. The existing cabinet hinge and animation tests remain applicable. Drawer behavior and device appearance remain unverified.
 
+### Drawer press probe
+
+- Applies to: Presses on the static drawer fronts in a parked camper.
+- Rule: The dev-only `/scriptevent yasu_ride_test:probe drawer` observes block and entity interaction events and item use for the watching player without cancelling them. It records the event tick, available first-event and target details, held item and riding state; block coordinates include `faceLocation.y` in pixels. `/scriptevent yasu_ride_test:probe off` stops observation. The counter slot at local `x = -1, z = -1, layer = 1` already holds `yasu_ride:camper_furniture` at height 14 when empty, or its decor block when occupied, so no temporary layout is needed. The fronts span model z 9.6 to 23.3, across the 16 px cell edge, so a press near the range end may target the stove cell (`x = -1, z = -2, layer = 1`) instead; record the targeted block location for each press. Keep the counter empty at the start of each press trial and record any placement caused by the press.
+- Agreement: Accepted
+- Basis: [0097](../adr/0097-press-the-camper-furniture-to-place-decor.md) defines the counter slot and furniture press; [0009](../adr/0009-vehicle-model-conventions.md) describes the static fronts.
+- Implementation: `src/test-pack/inputProbe.ts`; `src/domain/vehicle/kinds/camper/decorCells.ts`
+- Verification: Owner measurements on PC and iPad are pending. Entity and item-use events have no face coordinates or `isFirstEvent` in the pinned stable API. The expected absence of drawer presses from the driver and passenger seats while driving, because interior blocks exist only while parked, is also PENDING verification.
+
+| Device | Minecraft version | Hand      | Drawer pressed | Event sequence (first press, repeats while held) | Block / face    | faceLocation (x, y, z) | faceLocation.y px |
+| ------ | ----------------- | --------- | -------------- | ------------------------------------------------ | --------------- | ---------------------- | ----------------- |
+| PC     | PENDING (owner)   | empty     | top            | PENDING (owner)                                  | PENDING (owner) | PENDING (owner)        | PENDING (owner)   |
+| PC     | PENDING (owner)   | empty     | bottom         | PENDING (owner)                                  | PENDING (owner) | PENDING (owner)        | PENDING (owner)   |
+| iPad   | PENDING (owner)   | empty     | top            | PENDING (owner)                                  | PENDING (owner) | PENDING (owner)        | PENDING (owner)   |
+| iPad   | PENDING (owner)   | empty     | bottom         | PENDING (owner)                                  | PENDING (owner) | PENDING (owner)        | PENDING (owner)   |
+| PC     | PENDING (owner)   | held item | top            | PENDING (owner)                                  | PENDING (owner) | PENDING (owner)        | PENDING (owner)   |
+| PC     | PENDING (owner)   | held item | bottom         | PENDING (owner)                                  | PENDING (owner) | PENDING (owner)        | PENDING (owner)   |
+| iPad   | PENDING (owner)   | held item | top            | PENDING (owner)                                  | PENDING (owner) | PENDING (owner)        | PENDING (owner)   |
+| iPad   | PENDING (owner)   | held item | bottom         | PENDING (owner)                                  | PENDING (owner) | PENDING (owner)        | PENDING (owner)   |
+
+Decision: PENDING. The primary choice is one interior block carrying both drawers, separated by pressed `faceLocation.y`: the fronts are each 5.2 px high, with a 0.2 px seam over a 10.6 px span. Choose it if top and bottom presses reach the same interior block in disjoint height bands on both devices and the counter decor press does not win on the front face. Otherwise use two adjacent interior blocks, one per drawer; the save format remains two slot IDs in `yasu_ride:decor`.
+
 ### Counter window
 
 - Applies to: The right-hand opening over sink and stove.
@@ -318,6 +340,8 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Verification: `tests/packs/camper/room.test.ts` "runs the ceiling hook from the ceiling plate to the top of its cell" checks continuity and no geometry below the cell top. `tests/packs/campingGear.test.ts` "starts the macrame planter at its cell bottom, with its outline over it" and "lifts every hanging item to the top of the hook cell" check model and lift. Not verified: knot/cord appearance and outline alignment on phone, PC or Vibrant Visuals.
 
 ## Open issues
+
+- Drawer press measurements are pending from the owner on PC and iPad; the block layout decision blocks 4/6 (#1683) and 5/6 (#1684).
 
 - The scoped dashboard construction has 921 cubes after equivalent rotated strips merge deterministically, versus 932 in the approved reference. The reference catalogue's 989 also includes 57 retained shell and armrest cubes. These counts use different strip grouping and do not establish shape differences; the shared final cleanup remains outside this port. The exterior upper grille remains unchanged; the reference's removal of 62 grille slats and rails is outside the dashboard-only scope.
 
