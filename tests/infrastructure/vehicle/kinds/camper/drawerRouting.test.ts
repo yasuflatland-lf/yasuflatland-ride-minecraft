@@ -9,6 +9,7 @@ import type { RemoveDecor } from "../../../../../src/application/vehicle/removeD
 import { asVehicleId } from "../../../../../src/domain/shared/ids";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import { registerDecor } from "../../../../../src/infrastructure/vehicle/kinds/camper/handlers/decor";
+import { pairDecorBlockId } from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 
 const game = vi.hoisted(() => ({
   block: vi.fn(),
@@ -41,10 +42,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   game.system.currentTick = 100;
 });
-function fixture(full = false) {
+function fixture(full = false, top = false, bottom = true) {
   const drive = new CamperDrive(0, {
     docked: true,
-    drawer_bottom: 1,
+    drawer_top: top ? 1 : 0,
+    drawer_bottom: bottom ? 1 : 0,
     dockDecor: full ? '[{"slot":"drawer_bottom_0","item":"mug_pair"}]' : "[]",
   });
   drive.step(undefined, {
@@ -60,7 +62,7 @@ function fixture(full = false) {
   const place = { execute: vi.fn(() => true) };
   const remove = { execute: vi.fn() };
   const storage = {
-    execute: vi.fn(() => true),
+    execute: vi.fn((_press: Parameters<PressStorage["execute"]>[0]) => true),
     drawerTarget: vi.fn(
       (_id, ...args: Parameters<CamperDrive["drawerTarget"]>) =>
         drive.drawerTarget(...args),
@@ -76,6 +78,7 @@ function fixture(full = false) {
   const player = {
     id: "player",
     selectedSlotIndex: 2,
+    inputInfo: { lastInputModeUsed: "Touch" },
     dimension: { id: "overworld" },
     location: { x: 180.784, y: -59, z: 89.822 },
     getHeadLocation: () => eye,
@@ -85,17 +88,19 @@ function fixture(full = false) {
     cell = floor,
     item?: string,
     face = { x: 0.146, y: 0, z: 0.125 },
+    typeId = "yasu_ride:camper_floor",
+    blockFace = "Up",
   ) => {
     const ev = {
       player,
       block: {
-        typeId: "yasu_ride:camper_floor",
+        typeId,
         location: cell,
         dimension: { id: "overworld" },
         permutation: { getAllStates: () => ({}) },
       },
       itemStack: item ? { typeId: item } : undefined,
-      blockFace: "Up",
+      blockFace,
       faceLocation: face,
       isFirstEvent: true,
       cancel: false,
@@ -114,7 +119,7 @@ function fixture(full = false) {
     for (const [callback] of game.system.run.mock.calls) callback();
     game.system.run.mockClear();
   };
-  return { storage, place, remove, block, use, flush, player };
+  return { storage, place, remove, block, use, flush, player, drive };
 }
 it("cancels a confirmed empty-hand aisle-floor ray and defers storage with the counter cell and eye", () => {
   const f = fixture();
@@ -214,5 +219,94 @@ it("keeps ordinary floor placement for held gear when the floor ray misses every
   expect(f.storage.execute).not.toHaveBeenCalled();
   expect(f.place.execute).toHaveBeenCalledWith(
     expect.objectContaining({ item: "mug_pair", exact: false }),
+  );
+});
+
+const drawerStates = [
+  [false, false],
+  [true, false],
+  [false, true],
+  [true, true],
+] as const;
+
+for (const [top, bottom] of drawerStates) {
+  it.each([
+    [4.679, "drawer_top"],
+    [10.467, "drawer_bottom"],
+    [6.73, "drawer_top"],
+    [5.43, "drawer_top"],
+    [13.16, "drawer_bottom"],
+  ] as const)(
+    `routes touch report %s px to %s with top=${top}, bottom=${bottom}`,
+    (reportedPx, drawer) => {
+      const f = fixture(false, top, bottom);
+      const ev = f.block(
+        counter,
+        undefined,
+        { x: 0, y: reportedPx / 16, z: 0.5 },
+        pairDecorBlockId("drawers"),
+        "West",
+      );
+      expect(ev.cancel).toBe(true);
+      expect(f.storage.execute).not.toHaveBeenCalled();
+      f.flush();
+      expect(f.storage.execute).toHaveBeenCalledTimes(1);
+      const press = f.storage.execute.mock.calls[0]?.[0];
+      expect(press).toMatchObject({ cell: counter, drawersSideFace: true });
+      if (!press?.point) throw new Error("Expected a storage press point");
+      expect(press.point.y - counter.y).toBeCloseTo(1 - reportedPx / 16, 12);
+      expect(
+        f.drive.pressStorage(
+          press.cell,
+          press.point,
+          200,
+          press.takeContents,
+          press.eye,
+          press.openOnly,
+          press.drawersSideFace,
+        ),
+      ).toMatchObject({ kind: "door" });
+      f.drive.resync();
+      const out = f.drive.step(undefined, {
+        tick: 201,
+        location: { x: 180.5, y: -60, z: 90.5 },
+        velocity: { x: 0, y: 0, z: 0 },
+        deckSeatInputs: [],
+        onGround: true,
+        solidAt: () => false,
+        waterAt: () => false,
+        blockTypes: (cells) => cells.map(() => "minecraft:air"),
+      });
+      for (const [name, wasOpen] of [
+        ["drawer_top", top],
+        ["drawer_bottom", bottom],
+      ] as const) {
+        const command = out.commands.find(
+          (c) => c.type === "setProperty" && c.name === name,
+        );
+        expect(command).toMatchObject({
+          value: name === drawer ? (wasOpen ? 0.9 : 0.1) : wasOpen ? 1 : 0,
+        });
+      }
+    },
+  );
+}
+
+it("preserves a keyboard and mouse side-face report", () => {
+  const f = fixture();
+  f.player.inputInfo.lastInputModeUsed = "KeyboardAndMouse";
+  f.block(
+    counter,
+    undefined,
+    { x: 0, y: 4.679 / 16, z: 0.5 },
+    pairDecorBlockId("drawers"),
+    "West",
+  );
+  f.flush();
+  expect(f.storage.execute).toHaveBeenCalledWith(
+    expect.objectContaining({
+      point: { x: counter.x, y: counter.y + 4.679 / 16, z: counter.z + 0.5 },
+      drawersSideFace: true,
+    }),
   );
 });

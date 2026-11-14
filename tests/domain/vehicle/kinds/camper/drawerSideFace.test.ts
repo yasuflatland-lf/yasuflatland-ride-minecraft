@@ -88,12 +88,12 @@ it("uses the ray through an open upper drawer when a rerouted floor side face ha
   expect(state(d, 300)).toEqual({ top: false, bottom: false });
 });
 
-it("toggles only the pressed drawer for the measured device taps in every state", () => {
+it("toggles only the pressed drawer for true heights and corrected device taps in every state", () => {
   const taps = [
     { y: 0.3394165, x: 0, z: 0.6558795, door: "bottom" },
     { y: 0.8228302, x: 0, z: 0.367517, door: "top" },
-    { y: 4.679 / 16, x: 0, z: 0.5, door: "bottom" },
-    { y: 10.467 / 16, x: 0, z: 0.5, door: "top" },
+    { y: 1 - 4.679 / 16, x: 0, z: 0.5, door: "top" },
+    { y: 1 - 10.467 / 16, x: 0, z: 0.5, door: "bottom" },
   ] as const;
   for (const t of taps)
     for (const [top, bottom] of combos) {
