@@ -1,81 +1,208 @@
-"""Build the camper fridge area."""
+"""Build the photo-shaped fridge without changing its storage or hinge contract."""
+
+import json
+import math
+from copy import deepcopy
+from typing import Any
 
 from tool_loader import load_tool
 
 kit = load_tool("camper_kit")
 AreaCubes = kit.AreaCubes
-FLOOR = kit.FLOOR
-FURN_X = kit.FURN_X
-box = kit.box
-
+Cube = dict[str, Any]
+Profile = tuple[float, float, float, float, float]
 AREA = "fridge"
 
-
+FRIDGE_HINGE = [8.3, 0, -23.3]
+FRIDGE_X = (9.0, 22.4)
+FRIDGE_Y = (16.0, 49.0)
 FRIDGE_Z = (-23.5, -8.5)
-FRIDGE_BEVEL = 0.4  # the step that rounds each outer edge
-fz0, fz1 = FRIDGE_Z
-fx0, fb = FURN_X[0], FRIDGE_BEVEL
-FRIDGE_DOOR_X = (8.5, fx0)  # the door slab; its face plate stands proud of it by FRIDGE_FACE
-FRIDGE_FACE = 0.2
-# The hinge side starts 0.2 px in from the front end, so the open door's face plate and handles,
-# turned to face the cab, stay in the fridge's cell row.
-FRIDGE_DOOR_Z = (fz0 + 0.2, fz1 - 0.1)
-FRIDGE_HINGE = [FRIDGE_DOOR_X[0] - FRIDGE_FACE, 0, FRIDGE_DOOR_Z[0]]
+FRIDGE_SIDE = 0.6
+FRIDGE_TOP_UNDERSIDE = 48.0
+FRIDGE_TOP_RADIUS = 2.2
+FRIDGE_BOTTOM_RADIUS = 0.5
+CARCASS_SLICE = 0.25
+# The 3 px floor hides the wheel-arch hump and preserves the decor slot surface.
+BACK_LINER = (21.9, 19.0, -22.9, 22.4, 48.0, -9.1)
+BOTTOM_PANEL = (9.0, 16.0, -22.9, 22.4, 19.0, -9.1)
+DIVIDER = (9.0, 35.0, -22.9, 21.9, 36.0, -9.1)
+CHROME_SEAM = (8.4, 35.2, -23.2, 9.0, 35.8, -8.8)
+TOP_DOOR = (35.8, 48.8, 39.66)
+BOTTOM_DOOR = (16.5, 35.2, 31.74)
+DOOR_X = (8.5, 9.0)
+DOOR_Z = (-23.3, -8.6)
+TOP_DOOR_RADIUS = 2.05
+SMALL_DOOR_RADIUS = 0.5
+FACE_X = (8.29, 8.5)
+FACE_Y_INSET = 0.08
+FACE_Z = (-23.22, -8.68)
+TOP_FACE_RADIUS = 1.97
+SMALL_FACE_RADIUS = 0.45
+PANEL_Y_INSET = 1.0
+PANEL_HANDLE_RISE = 3.1
+PANEL_Z = (-19.8, -9.65)
+PANEL_RADIUS = 1.15
+BEVEL_RINGS = 3
+BEVEL_STEP = 0.09
+BEVEL_X_STEP = 0.055
+PANEL_X = (8.455, 8.5)
+PANEL_INSET = BEVEL_RINGS * BEVEL_STEP
+HOUSING_X = (8.04, 8.29)
+HOUSING_HALF_HEIGHT = 0.48
+HOUSING_Z = (-11.3, -9.45)
+HOUSING_RADIUS = 0.32
+INSERT_X = (7.98, 8.04)
+INSERT_HALF_HEIGHT = 0.30
+INSERT_Z = (-11.12, -9.62)
+INSERT_RADIUS = 0.2
+# Handle boxes use y offsets from the handle centre; the tip flares toward the aisle.
+LEVER = (7.68, -0.17, -13.9, 7.98, 0.17, -10.2)
+LEVER_RIM = (7.65, 0.11, -13.9, 7.96, 0.20, -10.2)
+LEVER_TIP = (7.6, -0.24, -14.23, 7.91, 0.24, -13.85)
+LINER_X = (9.0, 9.22)
+LINER_Y_INSET = 0.55
+LINER_Z = (-22.7, -9.2)
+TOP_LINER_RADIUS = 1.4
+SMALL_LINER_RADIUS = 0.3
+TOP_BIN_OFFSETS = (2.0,)
+BOTTOM_BIN_OFFSETS = (3.0, 9.0)
+BIN_FLOOR = (9.22, 0.0, -22.0, 10.1, 0.18, -10.0)
+BIN_LIP = (9.95, 0.0, -22.0, 10.1, 1.35, -10.0)
+BIN_ENDS = ((9.22, 0.0, -22.0, 10.1, 1.35, -21.8),
+            (9.22, 0.0, -10.2, 10.1, 1.35, -10.0))
+CURVE_SEGMENTS = 9
+MERGE_PRECISION = 7
+MERGE_EPSILON = 1e-7
+OUTPUT_PRECISION = 3
 
 
-def build() -> AreaCubes:
-    body = []
-    # --- Right-hand furniture (ADR 0093) ----------------------------------------
-    # Each decor slot height in src/domain/vehicle/kinds/camper/furniture.ts is the top of the
-    # furniture at the middle of its cell; tests/packs/camper/room.test.ts checks them against this model.
-    # Retro two-door fridge behind the driver (cell z = 1), at the size of the two-tier shelf it
-    # replaced (ADR 0123): a cream body with softly rounded edges, a shorter top door over a taller
-    # bottom door with a chrome seam strip between them, a chrome lever handle by each door's free
-    # edge, and a thin chrome trim line across the top door. No brand name or logo. Its two
-    # compartments are the shelf's two cells: the bottom one stands its items on the bottom panel,
-    # 3 px into layer 1, and the top one on the divider, 4 px into layer 2, as the decor slots say.
-    # The bottom panel is 3 px thick so it covers the front wheel arch's hump, which rises to y 18.4
-    # in the fridge's back corner.
-    FRIDGE_Y = (FLOOR, 49)
-    FRIDGE_FLOOR_Y = FLOOR + 3  # the bottom panel's top
-    FRIDGE_DIVIDER_Y = 36  # the divider's top, under the top door
-    FRIDGE_PANEL_Y = FRIDGE_Y[1] - 1  # the top panel's underside
-    FRIDGE_SIDE = 0.6  # the side walls' thickness
-    FRIDGE_BACK_X = FURN_X[1] - 0.5  # the back wall's inner face
-    fin0, fin1 = fz0 + FRIDGE_SIDE, fz1 - FRIDGE_SIDE  # the inside, between the side walls
-    for z0, z1, inner in ((fz0, fin0, (fz0 + fb, fin0)), (fin1, fz1, (fin1, fz1 - fb))):
-        body.append(box(fx0 + fb, FLOOR, z0, FURN_X[1], FRIDGE_Y[1] - fb, z1, "ivory"))  # side wall
-        body.append(box(fx0 + fb, FRIDGE_Y[1] - fb, inner[0], FURN_X[1], FRIDGE_Y[1], inner[1], "ivory"))  # its rounded top edge
-        body.append(box(fx0, FLOOR, inner[0], fx0 + fb, FRIDGE_Y[1] - fb, inner[1], "ivory"))  # its rounded front edge
-    body.append(box(fx0 + fb, FRIDGE_PANEL_Y, fin0, FURN_X[1], FRIDGE_Y[1], fin1, "ivory"))  # top panel
-    body.append(box(fx0, FRIDGE_PANEL_Y, fin0, fx0 + fb, FRIDGE_Y[1] - fb, fin1, "ivory"))  # its rounded front edge
-    body.append(box(FRIDGE_BACK_X, FRIDGE_FLOOR_Y, fin0, FURN_X[1], FRIDGE_PANEL_Y, fin1, "white"))  # back liner
-    body.append(box(fx0, FLOOR, fin0, FURN_X[1], FRIDGE_FLOOR_Y, fin1, "white"))  # bottom panel
-    body.append(box(fx0, FRIDGE_DIVIDER_Y - 1, fin0, FRIDGE_BACK_X, FRIDGE_DIVIDER_Y, fin1, "white"))  # divider
-    FRIDGE_SEAM_Y = (FRIDGE_DIVIDER_Y - 0.8, FRIDGE_DIVIDER_Y - 0.2)
-    body.append(box(8.4, *(FRIDGE_SEAM_Y[0], fz0 + 0.3), fx0, *(FRIDGE_SEAM_Y[1], fz1 - 0.3), "chrome"))  # seam strip
-    FRIDGE_HANDLE_Z = fz1 - 2.2  # by the free edge, toward the entry door
+def box(x0: float, y0: float, z0: float, x1: float, y1: float,
+        z1: float, color: str = "ivory") -> Cube:
+    cube = kit.box(x0, y0, z0, x1, y1, z1, color)
+    # Merge at spike precision before rounding: independently rounded slices leave gaps.
+    cube["origin"] = [x0, y0, z0]
+    cube["size"] = [x1 - x0, y1 - y0, z1 - z0]
+    return cube
 
 
-    def fridge_door(y0, y1, handle_y, trim_y=None):
-        """One fridge door on the aisle face, its edges rounded by a face plate inset by
-        FRIDGE_BEVEL, with a chrome lever handle by its free edge: a mount on the face and a bar
-        standing off it. `trim_y` adds a thin chrome line across the door."""
-        dz0, dz1 = FRIDGE_DOOR_Z
-        x_face = FRIDGE_DOOR_X[0] - FRIDGE_FACE
-        out = [box(FRIDGE_DOOR_X[0], y0, dz0, FRIDGE_DOOR_X[1], y1, dz1, "ivory")]
-        out.append(box(x_face, y0 + fb, dz0 + fb, FRIDGE_DOOR_X[0], y1 - fb, dz1 - fb, "ivory"))
-        out.append(box(x_face - 0.2, handle_y - 0.4, FRIDGE_HANDLE_Z - 0.5, x_face, handle_y + 3.4, FRIDGE_HANDLE_Z + 0.5, "chrome"))  # mount
-        out.append(box(x_face - 0.7, handle_y, FRIDGE_HANDLE_Z - 0.3, x_face - 0.2, handle_y + 3, FRIDGE_HANDLE_Z + 0.3, "chrome"))  # lever
-        if trim_y is not None:
-            out.append(box(x_face - 0.1, trim_y, dz0 + 1, x_face, trim_y + 0.3, dz1 - 1, "chrome"))
-        return out
+def bounds(y: float, y0: float, y1: float, z0: float, z1: float,
+           top_radius: float, bottom_radius: float) -> tuple[float, float]:
+    inset = 0.0
+    if y > y1 - top_radius:
+        inset = top_radius - math.sqrt(max(0, top_radius**2 - (y - (y1 - top_radius))**2))
+    elif y < y0 + bottom_radius:
+        inset = bottom_radius - math.sqrt(max(0, bottom_radius**2 - (y - (y0 + bottom_radius))**2))
+    return z0 + inset, z1 - inset
 
 
-    # Each door is its own bone, hinged at the fridge's front end on the aisle face, so an open
-    # door stands across the aisle against the front seats' backs and leaves the way from the entry
-    # door to the compartments free; they stay closed here (ADR 0123).
-    fridge_bottom_door = fridge_door(FLOOR + 0.5, FRIDGE_SEAM_Y[0], 29)
-    fridge_top_door = fridge_door(FRIDGE_SEAM_Y[1], FRIDGE_Y[1] - 0.4, 37.5, trim_y=45.5)
+def rounded(x0: float, x1: float, y0: float, y1: float, z0: float, z1: float,
+            top_radius: float, bottom_radius: float, color: str = "ivory",
+            hole: Profile | None = None) -> list[Cube]:
+    cuts = {y0, y1, y0 + bottom_radius, y1 - top_radius}
+    for radius, base in ((bottom_radius, y0), (top_radius, y1 - top_radius)):
+        cuts.update(base + radius * i / CURVE_SEGMENTS for i in range(1, CURVE_SEGMENTS))
+    if hole:
+        hy0, hy1, hz0, hz1, hr = hole
+        cuts.update((hy0, hy1, hy0 + hr, hy1 - hr))
+        for i in range(1, CURVE_SEGMENTS):
+            cuts.update((hy0 + hr * i / CURVE_SEGMENTS, hy1 - hr + hr * i / CURVE_SEGMENTS))
+    ordered = sorted(v for v in cuts if y0 <= v <= y1)
+    cubes = []
+    for a, b in zip(ordered, ordered[1:]):
+        mid = (a + b) / 2
+        left, right = bounds(mid, y0, y1, z0, z1, top_radius, bottom_radius)
+        if hole and hy0 < mid < hy1:
+            hole_left, hole_right = bounds(mid, hy0, hy1, hz0, hz1, hr, hr)
+            spans = ((left, hole_left), (hole_right, right))
+        else:
+            spans = ((left, right),)
+        cubes.extend(box(x0, a, left, x1, b, right, color) for left, right in spans if right > left)
+    return cubes
 
-    return AreaCubes({'body': body, 'fridge_top_door': fridge_top_door, 'fridge_bottom_door': fridge_bottom_door})
+
+def offset_box(dimensions: tuple[float, ...], y: float, color: str) -> Cube:
+    x0, y0, z0, x1, y1, z1 = dimensions
+    return box(x0, y + y0, z0, x1, y + y1, z1, color)
+
+
+def door(y0: float, y1: float, handle_y: float, top: bool) -> list[Cube]:
+    cubes = rounded(*DOOR_X, y0, y1, *DOOR_Z,
+                    TOP_DOOR_RADIUS if top else SMALL_DOOR_RADIUS, SMALL_DOOR_RADIUS)
+    panel = (y0 + PANEL_Y_INSET, min(y1 - PANEL_Y_INSET, handle_y + PANEL_HANDLE_RISE),
+             *PANEL_Z, PANEL_RADIUS)
+    cubes += rounded(*FACE_X, y0 + FACE_Y_INSET, y1 - FACE_Y_INSET, *FACE_Z,
+                     TOP_FACE_RADIUS if top else SMALL_FACE_RADIUS, SMALL_FACE_RADIUS, hole=panel)
+    hy0, hy1, hz0, hz1, radius = panel
+    for i in range(BEVEL_RINGS):
+        d = BEVEL_STEP * i
+        outer = (hy0 + d, hy1 - d, hz0 + d, hz1 - d, radius - d)
+        inner = (hy0 + d + BEVEL_STEP, hy1 - d - BEVEL_STEP,
+                 hz0 + d + BEVEL_STEP, hz1 - d - BEVEL_STEP, radius - d - BEVEL_STEP)
+        cubes += rounded(FACE_X[0] + BEVEL_X_STEP * i, FACE_X[1],
+                         *outer[:4], outer[4], outer[4], hole=inner)
+    cubes += rounded(*PANEL_X, hy0 + PANEL_INSET, hy1 - PANEL_INSET,
+                     hz0 + PANEL_INSET, hz1 - PANEL_INSET,
+                     radius - PANEL_INSET, radius - PANEL_INSET)
+    cubes += rounded(*HOUSING_X, handle_y - HOUSING_HALF_HEIGHT, handle_y + HOUSING_HALF_HEIGHT,
+                     *HOUSING_Z, HOUSING_RADIUS, HOUSING_RADIUS, "chrome")
+    cubes += rounded(*INSERT_X, handle_y - INSERT_HALF_HEIGHT, handle_y + INSERT_HALF_HEIGHT,
+                     *INSERT_Z, INSERT_RADIUS, INSERT_RADIUS, "steel")
+    for dimensions, color in ((LEVER, "chrome"), (LEVER_RIM, "rim"), (LEVER_TIP, "chrome")):
+        cubes.append(offset_box(dimensions, handle_y, color))
+    cubes += rounded(*LINER_X, y0 + LINER_Y_INSET, y1 - LINER_Y_INSET, *LINER_Z,
+                     TOP_LINER_RADIUS if top else SMALL_LINER_RADIUS, SMALL_LINER_RADIUS, "white")
+    for offset in TOP_BIN_OFFSETS if top else BOTTOM_BIN_OFFSETS:
+        cubes.extend(offset_box(dimensions, y0 + offset, "white")
+                     for dimensions in (BIN_FLOOR, BIN_LIP, *BIN_ENDS))
+    # The spike cleanup joins the straight bevel edges to the surrounding face.
+    return finish(merge_axis(merge_vertical(cubes), 2))
+
+
+def merge_axis(cubes: list[Cube], axis: int) -> list[Cube]:
+    groups: dict[tuple, list[Cube]] = {}
+    other = [i for i in range(3) if i != axis]
+    for cube in cubes:
+        key = (*[round(cube[field][i], MERGE_PRECISION)
+                 for field in ("origin", "size") for i in other], json.dumps(cube["uv"], sort_keys=True))
+        groups.setdefault(key, []).append(deepcopy(cube))
+    result = []
+    for group in groups.values():
+        previous = None
+        for cube in sorted(group, key=lambda c: c["origin"][axis]):
+            if previous is not None and abs(previous["origin"][axis] + previous["size"][axis] - cube["origin"][axis]) < MERGE_EPSILON:
+                previous["size"][axis] += cube["size"][axis]
+            else:
+                result.append(cube)
+                previous = cube
+    return result
+
+
+def merge_vertical(cubes: list[Cube]) -> list[Cube]:
+    return merge_axis(cubes, 1)
+
+
+def finish(cubes: list[Cube]) -> list[Cube]:
+    for cube in cubes:
+        for field in ("origin", "size"):
+            cube[field] = [round(v, OUTPUT_PRECISION) for v in cube[field]]
+    return cubes
+
+
+def build_fridge() -> AreaCubes:
+    body = [box(*dimensions, "white") for dimensions in (BACK_LINER, BOTTOM_PANEL, DIVIDER)]
+    for i in range(round((FRIDGE_Y[1] - FRIDGE_Y[0]) / CARCASS_SLICE)):
+        a = FRIDGE_Y[0] + i * CARCASS_SLICE
+        b = a + CARCASS_SLICE
+        left, right = bounds((a + b) / 2, *FRIDGE_Y, *FRIDGE_Z, FRIDGE_TOP_RADIUS, FRIDGE_BOTTOM_RADIUS)
+        if b <= FRIDGE_TOP_UNDERSIDE:
+            body.extend((box(FRIDGE_X[0], a, left, FRIDGE_X[1], b, left + FRIDGE_SIDE),
+                         box(FRIDGE_X[0], a, right - FRIDGE_SIDE, FRIDGE_X[1], b, right)))
+        else:
+            body.append(box(FRIDGE_X[0], a, left, FRIDGE_X[1], b, right))
+    body.append(box(*CHROME_SEAM, "chrome"))
+    return AreaCubes({"body": finish(merge_vertical(body)),
+                      "fridge_top_door": door(*TOP_DOOR, top=True),
+                      "fridge_bottom_door": door(*BOTTOM_DOOR, top=False)})
+
+
+build = build_fridge
