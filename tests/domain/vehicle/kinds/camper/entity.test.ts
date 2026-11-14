@@ -7,6 +7,7 @@ import {
   showerCommand,
   showerDoorCommand,
   storageDoorCommand,
+  storageDoorProperty,
 } from "../../../../../src/domain/vehicle/kinds/camper/entity";
 
 it("restores the form, docked, door, and ceiling light properties and writes the doors, the shower, and the lights (ADR 0094, 0114, 0115, 0123)", () => {
@@ -64,4 +65,17 @@ it("restores the form, docked, door, and ceiling light properties and writes the
     name: "shower",
     value: true,
   });
+});
+
+it("writes each kitchen drawer to its own restored slide property", () => {
+  for (const door of ["drawer_top", "drawer_bottom"] as const) {
+    expect(storageDoorProperty(door)).toBe(door);
+    expect(CAMPER_ENTITY.restored).toContain(door);
+    expect(storageDoorCommand(door, 0.4)).toEqual({
+      type: "setProperty",
+      name: door,
+      value: 0.4,
+    });
+  }
+  expect(storageDoorProperty("sink")).toBe("cabinet_sink_door");
 });
