@@ -64,6 +64,20 @@ kit.PALETTE.update(saved)
 `);
 });
 
+it("uses bolster fabric on the bed and bunk but not seat 2", async () => {
+  await run(`
+area = m.build_soft(kit.REGISTRY)
+region = next(r for r in kit.REGISTRY.regions() if r.name == m.BOLSTER)
+origin = list(kit.LAYOUT.origin(m.BOLSTER))
+size = [region.width, region.height]
+def has_bolster_face(cube):
+    return any(face['uv'] == origin and face['uv_size'] == size for face in cube['uv'].values())
+assert not any(has_bolster_face(cube) for cube in area['seat_2'])
+for name in ('body', 'bunk'):
+    assert any(has_bolster_face(cube) for cube in area[name]), name
+`);
+});
+
 it("preserves the approved fabric region pixels independently of packing", async () => {
   await run(`
 import hashlib

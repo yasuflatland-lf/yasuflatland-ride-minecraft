@@ -136,7 +136,6 @@ def build_soft(registry: RegionRegistry) -> AreaCubes:
         built[name] = [fabric_box(registry, [-23, kit.FLOOR, z], [15, 5, 13])]
         built[name] += _build_cushion(registry, 8, 21, z, 15, 2, 13, piping=False)
         built[name] += _build_cushion(registry, 8, 23, back, 15, 13, 2.5)
-    built['seat_2'] += _build_cushion(registry, 10, 23, -20.4, 9, 2.1, 3, BOLSTER)
     bed = _build_cushion(registry, 8.3, 19, 24.3, 14.4, 4.5, 30.4)
     bed += _build_cushion(registry, 8.2, 23.5, 24.2, 14.6, 1.5, 22.8, piping=False)
     # The foot cover is only 0.3 px deep: a slab and two transverse welts
