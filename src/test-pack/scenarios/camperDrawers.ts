@@ -21,6 +21,7 @@ import {
 } from "../../domain/vehicle/kinds/camper/parkPose";
 import {
   CAMPER_SPEC,
+  DRAWER_GEAR_IDS,
   DRAWER_HIT_PROFILE,
 } from "../../domain/vehicle/kinds/camper/spec";
 import { compartmentCells } from "../../domain/vehicle/kinds/camper/storagePlates";
@@ -75,7 +76,7 @@ function fixture(
     for (const cmd of out.commands)
       if (cmd.type === "setProperty") {
         properties.set(cmd.name, cmd.value);
-        if (cmd.name === "drawer_top" || cmd.name === "drawer_bottom")
+        if (cmd.name.startsWith("drawer_"))
           carrier.setProperty(id(cmd.name), cmd.value);
       }
     carrier.setDynamicProperty(id("decor"), JSON.stringify(drive.decor()));
@@ -89,6 +90,12 @@ function fixture(
             drawerBlockStates(drawer.block),
           ),
         );
+    const blockStates = a.dim.getBlock(cell)?.permutation.getAllStates();
+    requireCheck(
+      blockStates?.[id("top_drawer")] === undefined &&
+        blockStates?.[id("bottom_drawer")] === undefined,
+      "Drawers block must not carry drawer item states",
+    );
     return out;
   };
   const point = (which: "top" | "bottom") =>
@@ -132,21 +139,21 @@ function fixture(
     const slot = drive.decorSlotFor(item, point(which), cell, false);
     return slot !== undefined && drive.placeDecor(slot, item);
   };
-  const state = (which: "top" | "bottom") => {
-    const value = a.dim.getBlock(cell)?.permutation.getAllStates()[
-      id(`${which}_drawer`)
-    ];
-    if (typeof value !== "number")
-      throw new Error(`Missing ${which} drawer state`);
-    return value;
-  };
-  const opened = (which: "top" | "bottom") => state(which) > 0;
-  const holds = (which: "top" | "bottom") => state(which) >= 2;
+  const itemCode = (which: "top" | "bottom") =>
+    carrier.getProperty(id(`drawer_${which}_item`));
+  const opened = (which: "top" | "bottom") =>
+    properties.get(`drawer_${which}`) === 1;
+  const holds = (which: "top" | "bottom") => Number(itemCode(which)) > 0;
   const advance = async (ticks: number) => {
     for (let n = 0; n < ticks; n++) {
       step();
       await wait(1);
-      for (const name of ["drawer_top", "drawer_bottom"]) {
+      for (const name of [
+        "drawer_top",
+        "drawer_bottom",
+        "drawer_top_item",
+        "drawer_bottom_item",
+      ]) {
         const actual = carrier.getProperty(id(name));
         const expected = properties.get(name);
         // Entity float properties may round the script's double to single precision.
@@ -226,17 +233,18 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
         `Opening property at tick ${n}`,
       );
       requireCheck(
-        !f.opened("top") && !f.opened("bottom"),
-        `Contents shown before tick 10 (${n})`,
+        !f.opened("top") && !f.opened("bottom") && f.holds("top"),
+        `Top item must be selected while opening (${n})`,
       );
     }
     await f.advance(1);
     requireCheck(
       f.properties.get("drawer_top") === 1 && f.opened("top"),
-      "Contents must appear at tick 10",
+      "Top slide must finish at tick 10",
     );
     requireCheck(
-      f.holds("top") && !f.holds("bottom"),
+      f.carrier.getProperty(id("drawer_top_item")) ===
+        [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1 && !f.holds("bottom"),
       "Only top contains an item",
     );
     requireCheck(
@@ -265,13 +273,18 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
       "Both drawers must open",
     );
     requireCheck(
+      f.carrier.getProperty(id("drawer_bottom_item")) ===
+        [...DRAWER_GEAR_IDS].indexOf("book_stack") + 1,
+      "Bottom entity item property must select the allowed item",
+    );
+    requireCheck(
       f.press("top")?.kind === "door",
       "View ray to populated front must close without returning item",
     );
     await f.advance(1);
     requireCheck(
-      !f.opened("top") && f.opened("bottom"),
-      "Close start must hide only top contents",
+      !f.opened("top") && f.opened("bottom") && f.holds("top"),
+      "Only top must start closing",
     );
     requireCheck(
       f.drive.decor().length === 3,
@@ -298,7 +311,7 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
     return {
       pass: true,
       detail:
-        "independent toggle, allowed/occupied/tall placement, 10-tick visibility, close and removal",
+        "independent toggle, allowed/occupied/tall placement, contents follow opening, close and removal",
     };
   });
 }
@@ -333,6 +346,13 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
       JSON.stringify(reloaded.drive.decor()) === saved,
       "Reload must restore contents",
     );
+    requireCheck(
+      f.carrier.getProperty(id("drawer_top_item")) ===
+        [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1 &&
+        f.carrier.getProperty(id("drawer_bottom_item")) ===
+          [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1,
+      "Entity must retain both drawer item properties",
+    );
     const departure = reloaded.step({ moveX: 0, moveY: 1, jump: false });
     await wait(1);
     requireCheck(
@@ -347,6 +367,13 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
     requireCheck(
       JSON.stringify(reloaded.drive.decor()) === saved,
       "Departure must keep contents",
+    );
+    requireCheck(
+      f.carrier.getProperty(id("drawer_top_item")) ===
+        [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1 &&
+        f.carrier.getProperty(id("drawer_bottom_item")) ===
+          [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1,
+      "Entity must retain both drawer item properties",
     );
     requireCheck(
       reloaded.press("top") === undefined &&
@@ -377,6 +404,13 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
       JSON.stringify(undocked.drive.decor()) === saved,
       "Undocked reload must retain contents",
     );
+    requireCheck(
+      f.carrier.getProperty(id("drawer_top_item")) ===
+        [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1 &&
+        f.carrier.getProperty(id("drawer_bottom_item")) ===
+          [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1,
+      "Entity must retain both drawer item properties",
+    );
     const parkedAgain = fixture(a, f.carrier, {
       docked: true,
       dockDecor: savedDecor(f.carrier),
@@ -392,6 +426,13 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
     requireCheck(
       JSON.stringify(parkedAgain.drive.decor()) === saved,
       "Next park must retain both contents in saved decor",
+    );
+    requireCheck(
+      f.carrier.getProperty(id("drawer_top_item")) ===
+        [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1 &&
+        f.carrier.getProperty(id("drawer_bottom_item")) ===
+          [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1,
+      "Entity must retain both drawer item properties",
     );
     return {
       pass: true,
@@ -442,7 +483,18 @@ export function camperDrawersLaid(a: Arena): Promise<Outcome> {
       const shut =
         car.getProperty(id("drawer_top")) === 0 &&
         car.getProperty(id("drawer_bottom")) === 0;
-      return { pass: laid && shut, detail: `laid=${laid} shut=${shut}` };
+      const contents =
+        car.getProperty(id("drawer_top_item")) ===
+          [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1 &&
+        car.getProperty(id("drawer_bottom_item")) ===
+          [...DRAWER_GEAR_IDS].indexOf("book_stack") + 1;
+      const counterOnly =
+        states?.[id("top_drawer")] === undefined &&
+        states?.[id("bottom_drawer")] === undefined;
+      return {
+        pass: laid && shut && contents && counterOnly,
+        detail: `laid=${laid} shut=${shut} contents=${contents} counterOnly=${counterOnly}`,
+      };
     } finally {
       for (const d of decor) setDecor(car, d.slot, undefined);
       await wait(3);

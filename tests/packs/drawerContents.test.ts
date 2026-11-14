@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { KITCHEN_DRAWERS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { DRAWER_GEAR_IDS } from "../../src/domain/vehicle/kinds/camper/spec";
@@ -15,6 +14,18 @@ const bones = read(
   name: string;
   cubes: { origin: number[]; pivot?: number[] }[];
 }[];
+const entity = read("packs/yasu_ride_bp/entities/yasu_ride/camper.se.json")[
+  "minecraft:entity"
+].description;
+const contents = read(
+  "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
+)["minecraft:geometry"][1];
+const client = read("packs/yasu_ride_rp/entity/yasu_ride/camper.ce.json")[
+  "minecraft:client_entity"
+].description;
+const controllers = read(
+  "packs/yasu_ride_rp/render_controllers/yasu_ride/camper.rc.json",
+).render_controllers;
 const visible = (name: string, states: Record<string, number | boolean>) => {
   const expression = block.components["minecraft:geometry"].bone_visibility[
     name
@@ -30,14 +41,13 @@ const visible = (name: string, states: Record<string, number | boolean>) => {
 };
 
 describe("drawer compartment art", () => {
-  it("uses fifteen bits within Bedrock's sixteen-bit state budget", () => {
+  it("keeps only counter decor in eighty block permutations", () => {
     const states = block.description.states as Record<string, unknown[]>;
     expect(
-      Object.values(states).reduce(
-        (n, values) => n + Math.max(1, Math.ceil(Math.log2(values.length))),
-        0,
-      ),
-    ).toBe(15);
+      Object.values(states).reduce((n, values) => n * values.length, 1),
+    ).toBe(80);
+    expect(states["yasu_ride:top_drawer"]).toBeUndefined();
+    expect(states["yasu_ride:bottom_drawer"]).toBeUndefined();
     expect(states["yasu_ride:height"]).toBeUndefined();
     expect(states["yasu_ride:open"]).toBeUndefined();
     expect(block.permutations).toHaveLength(5);
@@ -47,61 +57,82 @@ describe("drawer compartment art", () => {
     ]);
   });
 
-  it("independently shows only each open drawer's compact item code", () => {
+  it("uses independently selected entity item bones with the gear atlas", () => {
     const items = [...DRAWER_GEAR_IDS];
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: items.length }),
-        fc.integer({ min: 0, max: items.length }),
-        fc.boolean(),
-        fc.boolean(),
-        (top, bottom, topOpen, bottomOpen) => {
-          const states = {
-            "yasu_ride:top_drawer": topOpen ? top + 1 : 0,
-            "yasu_ride:bottom_drawer": bottomOpen ? bottom + 1 : 0,
-          };
-          for (const [end, code, open] of [
-            [0, top, topOpen],
-            [1, bottom, bottomOpen],
-          ] as const) {
-            for (const [index, item] of items.entries()) {
-              expect(visible(`end${end}_${item}`, states)).toBe(
-                open && code === index + 1,
-              );
-            }
-          }
-        },
-      ),
+    const controller =
+      controllers["controller.render.yasu_ride.camper.drawer_items"];
+    expect(client.geometry.drawer_items).toBe(contents.description.identifier);
+    expect(client.textures.drawer_items).toBe(
+      "textures/blocks/yasu_ride/camping_gear",
     );
-  });
-
-  it("reuses gear cubes at the open box center and each domain floor", () => {
-    for (const [end, door] of KITCHEN_DRAWERS.doors.entries()) {
-      const floor = defined(door.slots[0], "drawer slot").height;
-      for (const item of DRAWER_GEAR_IDS) {
-        const original = read(
+    expect(client.render_controllers[0]).toBe(
+      "controller.render.yasu_ride.camper.drawer_items",
+    );
+    expect(controller.geometry).toBe("Geometry.drawer_items");
+    expect(controller.textures).toEqual(["Texture.drawer_items"]);
+    expect(controller.part_visibility[0]).toEqual({ "*": false });
+    expect(contents.description.texture_width).toBe(512);
+    expect(contents.description.texture_height).toBe(512);
+    const mainBones = read(
+      "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
+    )["minecraft:geometry"][0].bones;
+    for (const name of ["root", "body", "drawer_top", "drawer_bottom"]) {
+      const main = mainBones.find(
+        (bone: { name: string }) => bone.name === name,
+      );
+      const skeleton = contents.bones.find(
+        (bone: { name: string }) => bone.name === name,
+      );
+      expect(skeleton.parent).toBe(main.parent);
+      expect(skeleton.pivot).toEqual(main.pivot);
+      expect(skeleton.rotation).toEqual(main.rotation);
+      expect(skeleton.cubes).toBeUndefined();
+    }
+    for (const door of KITCHEN_DRAWERS.doors) {
+      expect(entity.properties[`yasu_ride:${door.id}_item`]).toEqual({
+        type: "int",
+        range: [0, items.length],
+        default: 0,
+        client_sync: true,
+      });
+      const parent = contents.bones.find(
+        (b: { name: string }) => b.name === door.id,
+      );
+      expect(parent.parent).toBe("body");
+      for (const [index, item] of items.entries()) {
+        expect(controller.part_visibility).toContainEqual({
+          [`${door.id}_item_${item}`]: `q.property('yasu_ride:${door.id}_item') == ${index + 1}`,
+        });
+        const source = read(
           `packs/yasu_ride_rp/models/blocks/yasu_ride/${item}.geo.json`,
         )["minecraft:geometry"][0].bones[0].cubes;
-        const moved = defined(
-          bones.find((bone) => bone.name === `end${end}_${item}`),
-          "item bone",
+        const group = contents.bones.find(
+          (b: { name: string }) => b.name === `${door.id}_item_${item}`,
         );
-        expect(moved.cubes).toHaveLength(original.length);
-        moved.cubes.forEach((cube, index) => {
-          for (const [axis, shift] of [8.6, floor, 0.45].entries()) {
-            expect(
-              defined(cube.origin[axis], "origin") -
-                original[index].origin[axis],
-            ).toBeCloseTo(shift, 3);
-            if (cube.pivot)
-              expect(
-                defined(cube.pivot[axis], "pivot") -
-                  original[index].pivot[axis],
-              ).toBeCloseTo(shift, 3);
+        expect(group.parent).toBe(door.id);
+        expect(group.cubes).toHaveLength(source.length);
+        const floor = defined(door.slots[0], "slot").height + 16;
+        for (const [i, cube] of group.cubes.entries()) {
+          expect(cube.uv).toEqual(source[i].uv);
+          expect(cube.size).toEqual(source[i].size);
+          expect(cube.rotation).toEqual(source[i].rotation);
+          for (const key of ["origin", "pivot"]) {
+            if (!source[i][key]) {
+              expect(cube[key]).toBeUndefined();
+              continue;
+            }
+            for (const [axis, shift] of [-14, floor, 16.45].entries())
+              expect(cube[key][axis] - source[i][key][axis]).toBeCloseTo(
+                shift,
+                2,
+              );
           }
-        });
+        }
       }
     }
+    expect(
+      bones.every((b) => b.name === "anchor" || b.name.startsWith("counter_")),
+    ).toBe(true);
   });
 
   it("keeps counter gear at fourteen pixels independent of drawer state", () => {
@@ -109,8 +140,6 @@ describe("drawer compartment art", () => {
       visible("counter_potted_plant", {
         "yasu_ride:counter_page": 0,
         "yasu_ride:counter_item": 1,
-        "yasu_ride:top_drawer": 0,
-        "yasu_ride:bottom_drawer": 0,
       }),
     ).toBe(true);
     const counter = defined(

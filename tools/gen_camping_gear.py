@@ -131,13 +131,7 @@ MIN_STATE_VALUES = 2
 # icon and first item.
 BOX = "camping_gear_box"
 CELL_PX = 16
-# Compact codes preserve the domain allowlist order, rather than all standing gear codes.
-DRAWER_IDS = ("saucepan", "mug_pair", "sugar_pot", "fruit_bowl", "transistor_radio",
-              "book_stack", "road_map", "cushion", "tissue_box", "binoculars")
-DRAWER_FLOORS = (7.1, 1.7)
-# Relative to the counter cell's model center (-16, 16), the open box center is
-# (-14 + 6.6, 16.45). The two floors are y + .25 + .2 in camper_kitchen_fronts.
-DRAWER_CENTER = (8.6, .45)
+DRAWER_IDS = load_tool("camper_drawer_items").DRAWER_IDS
 COUNTER_HEIGHT = 14
 
 
@@ -248,9 +242,7 @@ def drawers_geometry(spec):
     # Bedrock requires a cube at y 0 even when every visible item is raised (ADR 0101).
     bones = [{"name": "anchor", "pivot": [0, 0, 0],
               "cubes": [box(0, 0, 0, 1, 1, 1, "cream")]}]
-    groups = [(f"end{end}", DRAWER_IDS, (*DRAWER_CENTER, height))
-              for end, height in enumerate(DRAWER_FLOORS)]
-    groups.append(("counter", [item["id"] for item in standing(spec)], (0, 0, COUNTER_HEIGHT)))
+    groups = [("counter", [item["id"] for item in standing(spec)], (0, 0, COUNTER_HEIGHT))]
     for prefix, ids, (x, z, height) in groups:
         for item_id in ids:
             cubes = []
@@ -268,10 +260,6 @@ def drawers_geometry(spec):
 
 def drawers_block(spec):
     visibility = {"anchor": False}
-    for end, door in enumerate(("top", "bottom")):
-        for code, item_id in enumerate(DRAWER_IDS, 2):
-            visibility[pair_bone(end, item_id)] = (
-                f"q.block_state('yasu_ride:{door}_drawer') == {code}")
     for code, item in enumerate(standing(spec), 1):
         page, index = divmod(code, PAIR_PAGE_SIZE)
         visibility[f"counter_{item['id']}"] = (
@@ -282,8 +270,6 @@ def drawers_block(spec):
     body["description"]["identifier"] = "yasu_ride:drawers_decor_pair"
     body["description"]["states"] = {
         FACE_STATE: list(FACES),
-        **{f"yasu_ride:{door}_drawer": list(range(len(DRAWER_IDS) + 2))
-           for door in ("top", "bottom")},
         "yasu_ride:counter_page": list(range(pair_pages(spec))),
         "yasu_ride:counter_item": list(range(PAIR_PAGE_SIZE)),
     }

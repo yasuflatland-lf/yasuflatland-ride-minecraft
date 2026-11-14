@@ -14,10 +14,12 @@ it("uses the camper drawer property declarations on an inert persistent BDS test
   expect(probe.description.is_summonable).toBe(true);
   expect(probe.description.properties).toEqual(
     Object.fromEntries(
-      ["drawer_top", "drawer_bottom"].map((name) => [
-        id(name),
-        camper.description.properties[id(name)],
-      ]),
+      [
+        "drawer_top",
+        "drawer_bottom",
+        "drawer_top_item",
+        "drawer_bottom_item",
+      ].map((name) => [id(name), camper.description.properties[id(name)]]),
     ),
   );
   expect(probe.components).toEqual({

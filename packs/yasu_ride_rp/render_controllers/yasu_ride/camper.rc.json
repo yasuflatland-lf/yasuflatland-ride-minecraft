@@ -92,6 +92,80 @@
           "glow_*": "!query.property('yasu_ride:gear_down')"
         }
       ]
+    },
+    "controller.render.yasu_ride.camper.drawer_items": {
+      "geometry": "Geometry.drawer_items",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": ["Texture.drawer_items"],
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "drawer_top_item_saucepan": "q.property('yasu_ride:drawer_top_item') == 1"
+        },
+        {
+          "drawer_top_item_mug_pair": "q.property('yasu_ride:drawer_top_item') == 2"
+        },
+        {
+          "drawer_top_item_sugar_pot": "q.property('yasu_ride:drawer_top_item') == 3"
+        },
+        {
+          "drawer_top_item_fruit_bowl": "q.property('yasu_ride:drawer_top_item') == 4"
+        },
+        {
+          "drawer_top_item_transistor_radio": "q.property('yasu_ride:drawer_top_item') == 5"
+        },
+        {
+          "drawer_top_item_book_stack": "q.property('yasu_ride:drawer_top_item') == 6"
+        },
+        {
+          "drawer_top_item_road_map": "q.property('yasu_ride:drawer_top_item') == 7"
+        },
+        {
+          "drawer_top_item_cushion": "q.property('yasu_ride:drawer_top_item') == 8"
+        },
+        {
+          "drawer_top_item_tissue_box": "q.property('yasu_ride:drawer_top_item') == 9"
+        },
+        {
+          "drawer_top_item_binoculars": "q.property('yasu_ride:drawer_top_item') == 10"
+        },
+        {
+          "drawer_bottom_item_saucepan": "q.property('yasu_ride:drawer_bottom_item') == 1"
+        },
+        {
+          "drawer_bottom_item_mug_pair": "q.property('yasu_ride:drawer_bottom_item') == 2"
+        },
+        {
+          "drawer_bottom_item_sugar_pot": "q.property('yasu_ride:drawer_bottom_item') == 3"
+        },
+        {
+          "drawer_bottom_item_fruit_bowl": "q.property('yasu_ride:drawer_bottom_item') == 4"
+        },
+        {
+          "drawer_bottom_item_transistor_radio": "q.property('yasu_ride:drawer_bottom_item') == 5"
+        },
+        {
+          "drawer_bottom_item_book_stack": "q.property('yasu_ride:drawer_bottom_item') == 6"
+        },
+        {
+          "drawer_bottom_item_road_map": "q.property('yasu_ride:drawer_bottom_item') == 7"
+        },
+        {
+          "drawer_bottom_item_cushion": "q.property('yasu_ride:drawer_bottom_item') == 8"
+        },
+        {
+          "drawer_bottom_item_tissue_box": "q.property('yasu_ride:drawer_bottom_item') == 9"
+        },
+        {
+          "drawer_bottom_item_binoculars": "q.property('yasu_ride:drawer_bottom_item') == 10"
+        }
+      ]
     }
   }
 }

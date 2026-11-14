@@ -5,7 +5,6 @@ import {
 import type { DockBlock } from "../../../../domain/vehicle/dock/floor";
 import {
   CAMPING_GEAR_IDS,
-  DRAWER_GEAR_IDS,
   pairHeights,
   STANDING_GEAR_IDS,
 } from "../../../../domain/vehicle/kinds/index";
@@ -170,20 +169,16 @@ export function campingGearOfDecorBlock(typeId: string): string | undefined {
   return CAMPING_GEAR_IDS.find((gear) => decorBlockId(gear) === typeId);
 }
 
-/** Drawer codes (0 shut, 1 open empty, 2 + item index) fit the 16-bit state budget. */
+/** Drawer contents render on the entity; the block carries only counter decor (ADR 0121). */
 export function drawerBlockStates(
   block: Extract<DockBlock, { type: "drawers" }>,
 ): Record<string, number | boolean> {
-  const code = (open: boolean, item: string | undefined) =>
-    !open ? 0 : item === undefined ? 1 : [...DRAWER_GEAR_IDS].indexOf(item) + 2;
   const counter =
     block.counter === undefined
       ? 0
       : STANDING_GEAR_IDS.indexOf(block.counter) + 1;
   return {
     [DECOR_FACE_STATE]: block.face,
-    [id("top_drawer")]: code(block.topOpen, block.end0),
-    [id("bottom_drawer")]: code(block.bottomOpen, block.end1),
     [id("counter_page")]: Math.floor(counter / PAIR_PAGE_SIZE),
     [id("counter_item")]: counter % PAIR_PAGE_SIZE,
   };

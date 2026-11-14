@@ -13,15 +13,7 @@ import {
 import { STANDING_GEAR_IDS } from "../../../src/domain/vehicle/kinds/index";
 import { PAIR_PAGE_SIZE } from "../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { defined } from "../../support/defined";
-import {
-  type Bone,
-  bone,
-  type Cube,
-  cubeCenter,
-  end,
-  RP,
-  slotXZ,
-} from "./helpers";
+import { bone, type Cube, cubeCenter, end, RP, slotXZ } from "./helpers";
 
 // A player's 0.6-block width must fit the aisle even at full extension.
 const PLAYER_WIDTH_PX = 9.6;
@@ -125,59 +117,8 @@ describe("camper drawer poses", () => {
     }
   });
 
-  it("places both generated drawer content groups at the hit profile's open content centre", () => {
-    const contents = JSON.parse(
-      readFileSync(
-        `${RP}/models/blocks/yasu_ride/drawers_decor_pair.geo.json`,
-        "utf8",
-      ),
-    )["minecraft:geometry"][0];
-    expect(contents.description.identifier).toBe(
-      "geometry.yasu_ride.drawers_decor_pair",
-    );
-    for (const door of KITCHEN_DRAWERS.doors) {
-      for (const slot of door.slots) {
-        for (const item of defined(slot.items, "allowed drawer items")) {
-          const group = defined(
-            (contents.bones as Bone[]).find(
-              (b) => b.name === `end${slot.pair?.end}_${item}`,
-            ),
-            "drawer content group",
-          );
-          const source = JSON.parse(
-            readFileSync(
-              `${RP}/models/blocks/yasu_ride/${item}.geo.json`,
-              "utf8",
-            ),
-          )["minecraft:geometry"][0].bones[0] as Bone;
-          const cubes = defined(group.cubes, "content cubes");
-          const originals = defined(source.cubes, "source cubes");
-          expect(cubes).toHaveLength(originals.length);
-          for (const [index, cube] of cubes.entries()) {
-            const original = defined(originals[index], "source cube");
-            for (const key of ["origin", "pivot"] as const) {
-              const at = cube[key];
-              const from = original[key];
-              expect(at === undefined).toBe(from === undefined);
-              if (!at || !from) continue;
-              expect(
-                -(defined(at[0], "x") - defined(from[0], "source x")),
-              ).toBeCloseTo(HIT.contentLeft, 6);
-              expect(
-                -(defined(at[2], "z") - defined(from[2], "source z")),
-              ).toBeCloseTo(HIT.contentAhead, 6);
-              expect(
-                defined(at[1], "y") - defined(from[1], "source y"),
-              ).toBeCloseTo(slot.height, 6);
-            }
-          }
-        }
-      }
-    }
-  });
-
-  it("declares fifteen properties within Bedrock's limit", () => {
-    expect(Object.keys(properties)).toHaveLength(15);
+  it("declares seventeen properties within Bedrock's limit", () => {
+    expect(Object.keys(properties)).toHaveLength(17);
     // Headlights belong to the core, outside the camper kind's contract.
     expect(Object.keys(properties).sort()).toEqual(
       [

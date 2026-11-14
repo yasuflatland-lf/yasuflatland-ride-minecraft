@@ -782,7 +782,7 @@ A failing row gets a follow-up issue; do not fix it in this PR.
 | KD1  | With an empty hand, press the top drawer once, then the bottom drawer once.     | Each drawer opens with one press, independently of the other.                                    | PENDING | PENDING |
 | KD2  | Hold allowed gear and press a closed drawer, then point it at each open drawer. | The first press opens the drawer; each open drawer stores one item and refuses a second.         | PENDING | PENDING |
 | KD3  | Try placing a potted plant in either open drawer.                               | The tall item stays in hand and no other slot changes.                                           | PENDING | PENDING |
-| KD4  | Close a populated drawer, then reopen it.                                       | Contents hide when closing starts and appear again after the 10-tick opening.                    | PENDING | PENDING |
+| KD4  | Close a populated drawer, then reopen it.                                       | Contents slide with the box and show as soon as the opening exposes them; none vanish mid-slide. | PENDING | PENDING |
 | KD5  | Press the item inside each open drawer.                                         | Only that drawer's item returns to inventory.                                                    | PENDING | PENDING |
 | KD6  | Place counter decor and operate both populated drawers.                         | Counter top decor and presses remain independent.                                                | PENDING | PENDING |
 | KD7  | Drive off with both drawers open, then park and reopen them.                    | Both close on departure and keep their contents; moving presses do nothing.                      | PENDING | PENDING |

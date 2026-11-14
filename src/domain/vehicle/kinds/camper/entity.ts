@@ -6,7 +6,7 @@ import {
   transformingProperties,
 } from "../../motion/transformingEntity";
 import type { StorageDoorId } from "./furniture";
-import { CAMPER_SPEC } from "./spec";
+import { CAMPER_SPEC, DRAWER_GEAR_IDS } from "./spec";
 
 export const CAMPER_ENTITY = {
   properties: {
@@ -21,6 +21,8 @@ export const CAMPER_ENTITY = {
     fridge_bottom_door: { type: "float", range: [0, 1] },
     drawer_top: { type: "float", range: [0, 1] },
     drawer_bottom: { type: "float", range: [0, 1] },
+    drawer_top_item: { type: "int", range: [0, DRAWER_GEAR_IDS.size] },
+    drawer_bottom_item: { type: "int", range: [0, DRAWER_GEAR_IDS.size] },
     ceiling_lights: { type: "bool" },
   },
   events: [...TRANSFORMING_EVENTS, ...DOCK_EVENTS],
@@ -93,3 +95,11 @@ export const SWITCH_CLICK: EngineCommand = Object.freeze({
   type: "playSound",
   name: "random.click",
 });
+
+/** Contents are independent of slide progress and derive from saved decor (ADR 0121). */
+export function drawerItemCommand(
+  drawer: "drawer_top" | "drawer_bottom",
+  code: number,
+): EngineCommand {
+  return property(`${drawer}_item`, code);
+}

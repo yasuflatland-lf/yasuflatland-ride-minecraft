@@ -244,13 +244,13 @@ describe("camper furniture model (ADR 0093)", () => {
     }
   });
 
-  it("fits each allowed drawer item above its animated floor between its open walls", () => {
+  it("fits each allowed drawer item above its closed floor between its walls", () => {
     const contents = JSON.parse(
       readFileSync(
-        "packs/yasu_ride_rp/models/blocks/yasu_ride/drawers_decor_pair.geo.json",
+        "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
         "utf8",
       ),
-    )["minecraft:geometry"][0].bones;
+    )["minecraft:geometry"][1].bones;
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
       (s) => s.pair?.kind === "drawers",
     );
@@ -260,14 +260,13 @@ describe("camper furniture model (ADR 0093)", () => {
       const floor = drawer.cubes?.find((cube) => cube.size[1] === 0.2);
       if (!floor) throw new Error(`Missing floor for ${slot.id}`);
       const floorTop = (floor.origin[1] ?? 0) + (floor.size[1] ?? 0);
-      const left = (floor.origin[0] ?? 0) + DRAWER_SLIDE_PX + 0.2;
-      const right =
-        (floor.origin[0] ?? 0) + DRAWER_SLIDE_PX + (floor.size[0] ?? 0);
+      const left = (floor.origin[0] ?? 0) + 0.2;
+      const right = (floor.origin[0] ?? 0) + (floor.size[0] ?? 0);
       const rear = (floor.origin[2] ?? 0) + 0.2;
       const front = (floor.origin[2] ?? 0) + (floor.size[2] ?? 0) - 0.2;
       for (const item of DRAWER_GEAR_IDS) {
         const gear = contents.find(
-          (b: { name: string }) => b.name === `end${slot.pair?.end}_${item}`,
+          (b: { name: string }) => b.name === `${slot.door}_item_${item}`,
         );
         expect(gear, `${slot.id} ${item}`).toBeDefined();
         for (const cube of gear.cubes) {
@@ -285,14 +284,7 @@ describe("camper furniture model (ADR 0093)", () => {
                   const rotated = cube.rotation
                     ? turn(point, cube.pivot, cube.rotation)
                     : point;
-                  return (
-                    rotated[axis] +
-                    (axis === 0
-                      ? 16 * slot.cell.x
-                      : axis === 1
-                        ? 16 * slot.cell.layer
-                        : -16 * slot.cell.z)
-                  );
+                  return rotated[axis];
                 }),
               ),
             );
