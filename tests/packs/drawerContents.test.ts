@@ -30,11 +30,14 @@ const visible = (name: string, states: Record<string, number | boolean>) => {
 };
 
 describe("drawer compartment art", () => {
-  it("keeps its combined state space below Bedrock's 65536 permutations", () => {
+  it("uses fifteen bits within Bedrock's sixteen-bit state budget", () => {
     const states = block.description.states as Record<string, unknown[]>;
     expect(
-      Object.values(states).reduce((n, values) => n * values.length, 1),
-    ).toBe(38720);
+      Object.values(states).reduce(
+        (n, values) => n + Math.max(1, Math.ceil(Math.log2(values.length))),
+        0,
+      ),
+    ).toBe(15);
     expect(states["yasu_ride:height"]).toBeUndefined();
     expect(states["yasu_ride:open"]).toBeUndefined();
     expect(block.permutations).toHaveLength(5);
@@ -54,10 +57,8 @@ describe("drawer compartment art", () => {
         fc.boolean(),
         (top, bottom, topOpen, bottomOpen) => {
           const states = {
-            "yasu_ride:end0_item": top,
-            "yasu_ride:end1_item": bottom,
-            "yasu_ride:top_open": topOpen,
-            "yasu_ride:bottom_open": bottomOpen,
+            "yasu_ride:top_drawer": topOpen ? top + 1 : 0,
+            "yasu_ride:bottom_drawer": bottomOpen ? bottom + 1 : 0,
           };
           for (const [end, code, open] of [
             [0, top, topOpen],
@@ -108,8 +109,8 @@ describe("drawer compartment art", () => {
       visible("counter_potted_plant", {
         "yasu_ride:counter_page": 0,
         "yasu_ride:counter_item": 1,
-        "yasu_ride:top_open": false,
-        "yasu_ride:bottom_open": false,
+        "yasu_ride:top_drawer": 0,
+        "yasu_ride:bottom_drawer": 0,
       }),
     ).toBe(true);
     const counter = defined(

@@ -178,7 +178,7 @@ function movedFrom(car: Entity, pose: HoldPose): number {
 
 // Removing the camper clears its room a tick later; the fill also clears what a
 // test placed, so the next test starts on bare ground.
-async function atParkSpot(
+export async function atParkSpot(
   a: Arena,
   run: (car: Entity) => Promise<Outcome>,
 ): Promise<Outcome> {
@@ -590,7 +590,8 @@ async function camperDecor(a: Arena, car: Entity): Promise<Outcome> {
       pass:
         clean &&
         laid === 3 &&
-        furniture === 5 &&
+        // The counter cell is the drawer compartment (ADR 0121), rather than a furniture block.
+        furniture === 4 &&
         kept === 2 &&
         emptied === CAMPER_FURNITURE_BLOCK,
       detail: `clean=${clean} laid=${laid} furniture=${furniture} kept=${kept} emptied=${emptied}`,

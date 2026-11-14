@@ -1415,12 +1415,16 @@ it("maps and restores a shared drawer/counter cell with independent contents and
           counter === undefined ? 0 : STANDING_GEAR_IDS.indexOf(counter) + 1;
         const expected = {
           "yasu_ride:face": face,
-          "yasu_ride:top_open": topOpen,
-          "yasu_ride:bottom_open": bottomOpen,
-          "yasu_ride:end0_item":
-            top === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(top) + 1,
-          "yasu_ride:end1_item":
-            bottom === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(bottom) + 1,
+          "yasu_ride:top_drawer": !topOpen
+            ? 0
+            : top === undefined
+              ? 1
+              : [...DRAWER_GEAR_IDS].indexOf(top) + 2,
+          "yasu_ride:bottom_drawer": !bottomOpen
+            ? 0
+            : bottom === undefined
+              ? 1
+              : [...DRAWER_GEAR_IDS].indexOf(bottom) + 2,
           "yasu_ride:counter_page": Math.floor(code / PAIR_PAGE_SIZE),
           "yasu_ride:counter_item": code % PAIR_PAGE_SIZE,
         };
