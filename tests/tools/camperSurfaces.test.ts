@@ -125,7 +125,7 @@ a = s.build_surfaces(r)
       "carpet v3":
         "9991eee05af8091f0884c15915f20278d0d5ba41080c2c81a7650773bfad27cf",
       "wall veneer":
-        "a411a3e421ed6a2e8158b500df60f78b5d37e2ef7f376d5a16f00a4dfa7ee0cf",
+        "e00e655e7ae83b8c1957cf7290ca35c500796e167122406d0d2a49165359bd5a",
       "backsplash tile":
         "be8228bff5fc74423397efa64f21c3d95b1d6783e3edc0ab12aad087d2eb3750",
       "table oak":
@@ -144,40 +144,30 @@ a = s.build_surfaces(r)
         "1a93b51f95cce226460cda2e9cb83e9943978987534d498b8f501178bc9cdf63",
     });
   });
-  it("keeps the veneer grain visible after mip averaging", () => {
-    const { mean, std4, std8 } = inspect(
-      "{'mean': mean, 'std4': contrast(4), 'std8': contrast(8)}",
+  it("keeps non-rail veneer flat light tan and preserves rail and screw bytes", () => {
+    const { base, colours, railHash, railRows } = inspect(
+      "{'base': s.WALL_BASE, 'colours': sorted(colours), 'railHash': rail_hash, 'railRows': rail_rows}",
       `
-from statistics import pstdev
+from hashlib import sha256
 width, height = s.WALL_SIZE
-pixels = [[s.wall_pixel(x, y) for x in range(width)] for y in range(height)]
-mean = [sum(p[c] for row in pixels for p in row)/(width*height) for c in range(3)]
-def contrast(scale):
-    values = []
-    for by in range(height // scale):
-        for bx in range(width // scale):
-            rgb = [sum(pixels[y][x][c]
-                       for y in range(by*scale, (by+1)*scale)
-                       for x in range(bx*scale, (bx+1)*scale))/(scale*scale)
-                   for c in range(3)]
-            values.append(sum(c*w for c,w in zip(rgb, (0.2126, 0.7152, 0.0722))))
-    return pstdev(values)
+rail_rows = [row for row in range(height)
+             if any(abs(s.WALL_TOP-(row+0.5)/s.WALL_SCALE-rail) < 0.5 for rail in s.WALL_RAILS)]
+colours = {s.wall_pixel(x, row) for row in range(height) if row not in rail_rows for x in range(width)}
+rail_hash = sha256(bytes(c for row in rail_rows for x in range(width) for c in s.wall_pixel(x, row))).hexdigest()
 `,
-    ) as { mean: [number, number, number]; std4: number; std8: number };
-    // Measured 20.83 (4x4) and 20.09 (8x8) luminance levels; floors keep a margin.
-    expect(std4).toBeGreaterThanOrEqual(17);
-    expect(std8).toBeGreaterThanOrEqual(16);
-    for (const [channel, reference] of [194.87, 170.07, 129.53].entries()) {
-      expect(
-        Math.abs(defined(mean[channel], "mean channel") / reference - 1),
-      ).toBeLessThanOrEqual(0.03);
-    }
+    );
+    expect(base).toEqual([196, 170, 128]);
+    expect(colours).toEqual([[196, 170, 128, 255]]);
+    expect(railRows).toEqual([44, 45, 46, 47, 100, 101, 102, 103]);
+    // Captured from the original grained veneer before flattening its non-rail pixels.
+    expect(railHash).toBe(
+      "194ce457ce21b5ff395b457381ae1d2f72ecfcd2217836e6d075d704f13c4098",
+    );
   });
-  it("samples varied veneer texels on every large interior wall face", () => {
+  it("samples the veneer region on every large interior wall face", () => {
     const faces = inspect(
       "faces",
       `
-from statistics import pstdev
 faces = []
 ox, oy = k.LAYOUT.origin('wall veneer')
 for c in a['body']:
@@ -188,27 +178,22 @@ for c in a['body']:
     lo_u, hi_u, lo_v, hi_v = u0, u1, v0, v1
     if c['size'][1]*c['size'][2] < 1500/16: continue
     assert all(n > 0 for n in f['uv_size']), (c['origin'], f)
-    xs = range(int(lo_u), max(int(lo_u)+1, int(hi_u)))
-    ys = range(int(lo_v), max(int(lo_v)+1, int(hi_v)))
-    vals = [sum(ch*w for ch,w in zip(s.wall_pixel(min(x,415), min(y,179))[:3], (0.2126,0.7152,0.0722))) for y in ys for x in xs]
-    faces.append([lo_u, hi_u, lo_v, hi_v, pstdev(vals)])
+    faces.append([lo_u, hi_u, lo_v, hi_v])
 `,
-    ) as [number, number, number, number, number][];
+    ) as [number, number, number, number][];
     expect(faces.length).toBeGreaterThanOrEqual(10);
-    for (const [loU, hiU, loV, hiV, std] of faces) {
+    for (const [loU, hiU, loV, hiV] of faces) {
       expect(loU).toBeGreaterThanOrEqual(0.5);
       expect(hiU).toBeLessThanOrEqual(415.5);
       expect(loV).toBeGreaterThanOrEqual(0.5);
       expect(hiV).toBeLessThanOrEqual(179.5);
-      expect(std).toBeGreaterThanOrEqual(6);
     }
   });
-  it("exports positive, opaque, varied veneer on both broad faces of the lining", () => {
+  it("exports positive, opaque veneer on both broad faces of the lining", () => {
     const faces = inspect(
       "faces",
       `
 from pathlib import Path
-from statistics import pstdev
 texture = load_tool('render_preview').read_png(Path('packs/yasu_ride_rp/textures/entity/yasu_ride/camper.png'))
 geometry = json.loads(Path('packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json').read_text())['minecraft:geometry'][0]
 faces = []
@@ -227,14 +212,13 @@ for bone in geometry['bones']:
             du,dv = f['uv_size']
             valid = du>1 and dv>1 and u>=0.5 and v>=0.5 and u+du<=415.50001 and v+dv<=179.50001
             samples = [texture[int(v+dv*j/16)][int(u+du*i/16)] for j in range(17) for i in range(17)] if valid else []
-            faces.append([valid, all(p[3]==255 for p in samples), pstdev([sum(ch*w for ch,w in zip(p[:3],(0.2126,0.7152,0.0722))) for p in samples]) if samples else 0])
+            faces.append([valid, all(p[3]==255 for p in samples)])
 `,
-    ) as [boolean, boolean, number][];
+    ) as [boolean, boolean][];
     expect(faces.length).toBeGreaterThanOrEqual(30);
-    for (const [valid, opaque, variance] of faces) {
+    for (const [valid, opaque] of faces) {
       expect(valid).toBe(true);
       expect(opaque).toBe(true);
-      expect(variance).toBeGreaterThanOrEqual(6);
     }
   });
   it("keeps veneer on the backing of every tile fragment", () => {
@@ -292,7 +276,7 @@ for bone in geometry['bones']:
       ],
     ]);
   });
-  it("keeps veneer grain vertical and registered across all wall fragments", () => {
+  it("keeps veneer coordinates registered across all wall fragments", () => {
     expect(
       inspect(`all(
       abs(f['uv'][0]-k.LAYOUT.origin('wall veneer')[0] - (0.5 + ((56-c['origin'][2]-c['size'][2]) if c['origin'][0]<0 else (c['origin'][2]+48))*4*415/416))<1e-8

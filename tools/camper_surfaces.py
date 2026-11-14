@@ -53,16 +53,6 @@ HASH_WORD_MASK, HASH_SAMPLE_MASK = 0xffffffff, 65535
 HASH_SHIFTS = (13, 16)
 CARPET_TONES = (0.90, 1.05)
 WALL_BASE, WALL_RAIL_BASE = (196, 170, 128), (183, 184, 175)
-WALL_WARPS = ((3, 40, 160, 2), (1.2, 17, 90, 3))
-WALL_GRAIN = (30, 12, 180, 4)
-WALL_SOFT_GRAIN = (14, 27, 260, 8)
-WALL_FINE_GRAIN = (2, 1.2, 32, 12)
-WALL_BOARD_GAIN, WALL_BOARD_SEED = 12, 16
-WALL_PORES = (3, 0.65, 13, 11, 0.45)
-WALL_DITHER, WALL_DITHER_SEED = 0.35, 9
-WALL_FADE_HEIGHT, WALL_FADE_GAIN, WALL_FADE_BIAS = 45, 9, -7
-WALL_JOINT_PITCH, WALL_JOINT_WIDTH, WALL_JOINT_SHADE = 16, 2, 40
-WALL_JOINT_EDGE_WIDTH, WALL_JOINT_EDGE_LIGHT = 1, 6
 WALL_RAILS, WALL_RAIL_HALF_WIDTH = (35.5, 49.5), 0.5
 WALL_RAIL_EDGE, WALL_RAIL_SHADES = 0.29, (-15, 22)
 WALL_SCREW_OFFSET, WALL_SCREW_PITCH = 47.5, 12
@@ -133,24 +123,6 @@ def carpet_pixel(x: int, y: int) -> RGBA:
 def wall_pixel(x: int, row: int) -> RGBA:
     u, v = x + 0.5, row + 0.5
     z, y = WALL_FRONT + u / WALL_SCALE, WALL_TOP - v / WALL_SCALE
-    warp = sum(gain*noise(u/su, v/sv, seed) for gain,su,sv,seed in WALL_WARPS)
-    gain, su, sv, seed = WALL_GRAIN
-    grain = gain*noise((u+warp)/su, v/sv, seed)
-    gain, su, sv, seed = WALL_SOFT_GRAIN
-    grain += gain*noise((u+warp)/su, v/sv, seed)
-    gain, su, sv, seed = WALL_FINE_GRAIN
-    grain += gain*noise((u+warp)/su, v/sv, seed) + WALL_DITHER*hash_noise(x, row, WALL_DITHER_SEED)
-    # Integer texel columns keep board membership identical across platforms.
-    board = x // (WALL_JOINT_PITCH*WALL_SCALE)
-    joint = x % (WALL_JOINT_PITCH*WALL_SCALE)
-    grain += WALL_BOARD_GAIN*hash_noise(board, 0, WALL_BOARD_SEED)
-    gain, su, sv, seed, threshold = WALL_PORES
-    grain -= max(0, noise((u+warp)/su, v/sv, seed)-threshold)*gain
-    grain += (WALL_TOP-y)/WALL_FADE_HEIGHT*WALL_FADE_GAIN+WALL_FADE_BIAS
-    if joint < WALL_JOINT_WIDTH*WALL_SCALE:
-        grain -= WALL_JOINT_SHADE
-    elif joint < WALL_JOINT_WIDTH*WALL_SCALE + WALL_JOINT_EDGE_WIDTH:
-        grain += WALL_JOINT_EDGE_LIGHT
     for rail in WALL_RAILS:
         if abs(y-rail) < WALL_RAIL_HALF_WIDTH:
             edge = abs(y-rail)
@@ -160,7 +132,7 @@ def wall_pixel(x: int, row: int) -> RGBA:
                 shade = WALL_SCREW_SHADE
             gain, su, sv, seed = WALL_RAIL_NOISE
             return tinted(WALL_RAIL_BASE, shade + noise(u/su, v/sv, seed)*gain)
-    return tinted(WALL_BASE, grain)
+    return tinted(WALL_BASE, 0)
 
 
 @lru_cache(maxsize=math.prod(TILE_SIZE))
