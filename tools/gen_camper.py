@@ -18,12 +18,12 @@ from tool_loader import load_tool
 cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 STEERING = load_tool("camper_steering")
-ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}, "front_panels": {"owner": "camper", "cubes": 518}, **STEERING.ASSEMBLIES}
+ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owner": "camper", "cubes": 518}, "cab_seats": {"owner": "camper", "cubes": 464}, **STEERING.ASSEMBLIES}
 
 texture_io = load_tool("texture_io")
 mer = load_tool("mer")
 outputs = texture_io.Outputs("--check" in sys.argv[2:])
-build_lit_textures = load_tool("lit_textures").build_lit_textures
+build_layout_lit_textures = load_tool("lit_textures").build_layout_lit_textures
 
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
@@ -59,24 +59,27 @@ carve = kit.carve
 take_slots = kit.take_slots
 
 # Keep the original body cube order; bone draw order is declared separately below.
-AREA_ORDER = (
-    "shell", "curtains", "door", "front", "rear", "roof", "running", "cab", "steering",
-    "bed_bunk", "fridge", "room", "shower", "ceiling", "dinette", "arches",
-)
+AREA_ORDER = tuple(name for area in kit.AREA_ORDER
+                   for name in ((area, "steering") if area == "cab" else (area,)))
 areas = {name: load_tool(f"camper_{name}") for name in AREA_ORDER}
 merged = AreaCubes()
 owners = {}
 
 for name, module in areas.items():
-    built = module.build()
+    if name == "kitchen":
+        built = module.build_kitchen_top(REGISTRY)[0]
+    elif name == "surfaces":
+        built = module.build_surfaces(REGISTRY)
+    else:
+        built = module.build()
     for cubes in built.values():
         for cube in cubes:
-            owners[id(cube)] = name
+            owners[id(cube)] = module.area_of(cube) if name in ("kitchen", "surfaces") else name
     if name == "curtains":
         # Side curtains originally followed their individual panes inside the wall loop.
         for i, anchor in enumerate(module.anchors()):
             index = merged["body"].index(anchor) + 1
-            merged["body"][index:index] = built["body"][2 * i:2 * i + 2]
+            merged["body"][index:index] = built["body"][81 * i:81 * (i + 1)]
         continue
     if name == "arches":
         # The arches rise above the floor. Thin panels enclose them inside without
@@ -85,12 +88,23 @@ for name, module in areas.items():
             for bone in ("body", "seat_2", "seat_3"):
                 cut = []
                 for cube in merged[bone]:
+                    # Surfaces are mapped after wheel-well cuts in their builder.
+                    if owners[id(cube)] in ("floor", "walls", "tile", "table"):
+                        cut.append(cube)
+                        continue
                     for piece in carve(cube, hole):
                         owners[id(piece)] = owners[id(cube)]
                         cut.append(piece)
                 merged[bone] = cut
     merged.merge(built)
 
+# Carve after the arches as their inner trim also crosses the drawer cavity.
+cut = []
+for cube in merged["body"]:
+    for piece in carve(cube, areas["kitchen_fronts"].CAVITY):
+        owners[id(piece)] = owners[id(cube)]
+        cut.append(piece)
+merged["body"] = cut
 body = merged["body"]
 door = merged["door_entry"]
 # Extract the headlight group's lamps (lenses, roof clearance, rear roof, and tail lamps)
@@ -104,11 +118,11 @@ glass, body = take_slots(body, ("glass",))
 door_glass, door = take_slots(door, ("glass",))
 
 merged.update(body=body, door_entry=door, headlights=headlights, glass=glass, door_glass=door_glass)
-door_area, cab, shower, room, fridge = (areas[n] for n in ("door", "cab", "shower", "room", "fridge"))
+door_area, cab, shower, fridge = (areas[n] for n in ("door", "cab", "shower", "fridge"))
 DOOR_HINGE = door_area.DOOR_HINGE
 STEERING_PIVOT = [-STEERING.STEERING_PIVOT[0], *STEERING.STEERING_PIVOT[1:]]
 SHOWER_HINGE, SHOWER_HEAD = shower.SHOWER_HINGE, shower.SHOWER_HEAD
-CABINET_SINK_HINGE, CABINET_STOVE_HINGE = room.CABINET_SINK_HINGE, room.CABINET_STOVE_HINGE
+CABINET_SINK_HINGE, CABINET_STOVE_HINGE = areas["kitchen_fronts"].CABINET_SINK_HINGE, areas["kitchen_fronts"].CABINET_STOVE_HINGE
 FRIDGE_HINGE = fridge.FRIDGE_HINGE
 wheels, glows, hover = [], [], {}
 for name, sx, center_x, z in kit.wheel_positions():
@@ -138,6 +152,8 @@ camper_bones = [
     {"name": "fridge_top_door", "parent": "body", "pivot": FRIDGE_HINGE, "cubes": merged["fridge_top_door"]},
     {"name": "fridge_bottom_door", "parent": "body", "pivot": FRIDGE_HINGE, "cubes": merged["fridge_bottom_door"]},
     {"name": "mirror", "parent": "body", "pivot": [0, 0, 0], "cubes": merged["mirror"]},
+    *[{"name": name, "parent": "body", "pivot": pivot, "cubes": merged[name]}
+      for name, pivot in areas["kitchen_fronts"].DRAWER_PIVOTS.items()],
     {"name": "glass", "parent": "body", "pivot": [0, 0, 0], "cubes": glass},
     {"name": "door_glass", "parent": "door_entry", "pivot": DOOR_HINGE, "cubes": door_glass},
 ]
@@ -173,9 +189,10 @@ CAB_BODY_IDS = {id(c) for c in body if owners.get(id(c)) == "cab"}
 def dash_top(cube: dict) -> float:
     angle = math.radians(cube.get("rotation", [0, 0, 0])[0])
     py, pz = cube.get("pivot", [0, 0, 0])[1:]
-    return max(py + (y - py) * math.cos(angle) + (z - pz) * math.sin(angle)
+    # Normalize trig noise before the sill checks choose whether to clip a cube.
+    return round(max(py + (y - py) * math.cos(angle) + (z - pz) * math.sin(angle)
                for y in (cube["origin"][1], cube["origin"][1] + cube["size"][1])
-               for z in (cube["origin"][2], cube["origin"][2] + cube["size"][2]))
+               for z in (cube["origin"][2], cube["origin"][2] + cube["size"][2])), DASH_COORD_DECIMALS)
 
 
 def rounded(value):
@@ -203,7 +220,7 @@ def rounded(value):
 
 
 # Area ownership is retained through the final coordinate mirror.
-area_ranges = {name: {} for name in areas}
+area_ranges = {name: {} for name in dict.fromkeys(owners.values())}
 for bone in camper_bones:
     source = merged.get(bone["name"], [])
     for i, cube in enumerate(source):
@@ -238,17 +255,22 @@ steering_members = {
     "steering_spokes": steering_cubes[STEERING.WHEEL_CUBES:],
     "steering_lever": [cube for cube in body if owners.get(id(cube)) == "steering"][2:],
 }
-other_compound = compound_cubes([cube for cube in model_cubes if owners.get(id(cube)) != "steering"])
+seat_compound = compound_cubes(merged["seat_0"] + merged["seat_1"])
+seat_ids = {id(cube) for cube in seat_compound}
+other_compound = compound_cubes([cube for cube in model_cubes if owners.get(id(cube)) != "steering" and id(cube) not in seat_ids])
 slanted = [cube for cube in other_compound if cube["rotation"][0] == 45]
 assert_axes(model_cubes, {"slanted": slanted,
                          "front_panels": [cube for cube in other_compound if cube not in slanted],
-                         **steering_members}, ASSEMBLIES)
+                         "cab_seats": seat_compound, **steering_members}, ASSEMBLIES)
 outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
 atlas_pixels = kit.regions.render_atlas(LAYOUT)
+bound_faces = {id(face) for _, face in LAYOUT._faces}
 for cube in model_cubes:
     for face in cube["uv"].values():
+        if id(face) in bound_faces:
+            continue
         u, v = face["uv"]
         du, dv = face["uv_size"]
         for region in LAYOUT.regions:
@@ -258,7 +280,7 @@ for cube in model_cubes:
                 LAYOUT.bind_face(region.name, face)
                 break
         else:
-            raise ValueError(f"Unregistered camper face: {face}")
+            raise ValueError(f"Camper face outside registered regions: {face}")
 atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))
@@ -271,19 +293,23 @@ def atlas_pixel(x, y):
 
 outputs.png(ENTITY_TEXTURES / "camper.png", *LAYOUT.size, atlas_pixel)
 
-build_lit_textures(outputs, ENTITY_TEXTURES, "camper", *LAYOUT.size,
-                   atlas_pixel,
-                   lambda x, y: ATLAS.atlas_swatch_at(x, y) in LIT_SLOTS)
+build_layout_lit_textures(outputs, ENTITY_TEXTURES, "camper", LAYOUT,
+                          atlas_pixel, "base", lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
 
 # Polished plate, not a perfect mirror: Vibrant Visuals keeps a soft highlight along the housing.
 MER_MIRROR_CHROME = mer.Mer(255, 0, 26)
-outputs.png(ENTITY_TEXTURES / "camper_mirror.png", *LAYOUT.size,
-            atlas_pixel)
+mirror_mask = mer.layout_mask(LAYOUT, "base", lambda x, y:
+    MIRROR_CHROME_REGION.x <= x < MIRROR_CHROME_REGION.x + MIRROR_CHROME_REGION.w
+    and MIRROR_CHROME_REGION.y <= y < MIRROR_CHROME_REGION.y + MIRROR_CHROME_REGION.h)
+outputs.png(ENTITY_TEXTURES / "camper_mirror.png", *LAYOUT.size, atlas_pixel)
 outputs.png(ENTITY_TEXTURES / "camper_mirror_mer.png", *LAYOUT.size, mer.mer_painter(
-    lambda x, y: MER_MIRROR_CHROME if (MIRROR_CHROME_REGION.x <= x - LAYOUT.origin("base")[0] < MIRROR_CHROME_REGION.x + MIRROR_CHROME_REGION.w
-                                       and MIRROR_CHROME_REGION.y <= y - LAYOUT.origin("base")[1] < MIRROR_CHROME_REGION.y + MIRROR_CHROME_REGION.h)
-    else None))
+    lambda x, y: MER_MIRROR_CHROME if mirror_mask(x, y) else None))
 texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "camper_mirror", "camper_mirror_mer")
+
+interior_mer = load_tool("camper_mer").build_interior_mer(LAYOUT)
+outputs.png(ENTITY_TEXTURES / "camper_interior_mer.png", *LAYOUT.size,
+            texture_io.texel_reader(LAYOUT.size[0], interior_mer))
+texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "camper", "camper_interior_mer")
 
 ICON = [
     "................",

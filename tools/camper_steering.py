@@ -74,6 +74,10 @@ class SteeringBuilder:
     def __init__(self, registry: 'RegionRegistry') -> None:
         self.kit = load_tool('camper_kit')
         regions = load_tool('camper_regions')
+        if registry is self.kit.REGISTRY:
+            self.kit.prepare_layout()
+        elif registry._layout is None:
+            regions.pack(registry)
         self.refs = {r.name: regions.RegionRef(registry, r) for r in registry.regions()}
 
     def box(self, origin: Point, size: Point, color: str, pivot: Point | None=None,

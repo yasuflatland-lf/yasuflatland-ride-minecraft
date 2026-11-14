@@ -13,6 +13,8 @@ In the play test on 2026-10-22 (#423) the entry door often did not open with an 
 
 ## Decision
 
+- The entry interior and shower-panel wood finish move with their existing door bones. Static mini curtains add no animation or interaction target; the same independent swing windows apply to both doors.
+
 - A tap toggles a camper door only when that door's last toggle was at least one swing, `CAMPER_SPEC.doorSwingTicks` (10 ticks, half a second), earlier. A tap inside that window does nothing
 - The window runs from the last toggle, not from the last tap, so an ignored tap does not push the next toggle back. A player who taps again after the swing has finished always toggles the door
 - The entry door and the shower-toilet door each keep their own window. The shower run (0094) is not a toggle and is not limited

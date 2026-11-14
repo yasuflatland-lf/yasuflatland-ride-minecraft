@@ -22,7 +22,10 @@ describe("camper model assets (ADR 0067)", () => {
     const [first, last] = areas.steering.body;
     const controls = (bone("body").cubes ?? []).slice(first, last + 1);
     const lever = controls.slice(2);
-    const own = new Set([...steering, ...controls]);
+    const seats = [bone("seat_0"), bone("seat_1")]
+      .flatMap((b) => b.cubes ?? [])
+      .filter(multipleAxes);
+    const own = new Set([...steering, ...controls, ...seats]);
     const compound = cubes.filter((c) => !own.has(c) && multipleAxes(c));
     const assemblies = {
       slanted: compound.filter((cube) => cube.rotation?.[0] === 45),
@@ -30,8 +33,9 @@ describe("camper model assets (ADR 0067)", () => {
       steering_wheel: [...steering.slice(0, 112), ...controls.slice(0, 2)],
       steering_spokes: steering.slice(112),
       steering_lever: lever,
+      cab_seats: seats,
     };
-    expect(assemblies.slanted).toHaveLength(6);
+    expect(assemblies.slanted).toHaveLength(0);
     expect(assemblies.front_panels).toHaveLength(518);
     expect(assemblies.steering_wheel).toHaveLength(114);
     expect(assemblies.steering_spokes).toHaveLength(3);
@@ -39,6 +43,7 @@ describe("camper model assets (ADR 0067)", () => {
     expect(assemblies.steering_wheel.filter(multipleAxes)).toHaveLength(2);
     expect(assemblies.steering_spokes.filter(multipleAxes)).toHaveLength(2);
     expect(assemblies.steering_lever.filter(multipleAxes)).toHaveLength(29);
+    expect(assemblies.cab_seats).toHaveLength(464);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });
 
@@ -70,6 +75,8 @@ describe("camper model assets (ADR 0067)", () => {
         "door_entry",
         "steering",
         "shower_door",
+        "drawer_top",
+        "drawer_bottom",
         "cabinet_sink_door",
         "cabinet_stove_door",
         "fridge_top_door",

@@ -13,9 +13,12 @@ Bedrock's collision box (`minecraft:collision_box`) can only be square when seen
 
 ## Decision
 
+- Camper door details stay on the existing bones: `door_entry` and its child `door_glass` keep hinge `[-24, 0, -7]`, and `shower_door` keeps `[-8, 0, 54]`. Interior curtains are static cubes on `door_entry`, not new animated bones.
+
 - The front of the entity is the model's -z side
 - Standardize the bone names as follows: `root`, `body`, `wheel_fl` / `wheel_fr` / `wheel_rl` / `wheel_rr`, `door_fl` / `door_fr` / `door_rl` / `door_rr`, `seat_0`–`seat_3`
 - The camper extends this contract with a static `steering` child of `body` containing the 115-cube, 0.8-scale wheel, spokes, half horn ring and plain hub. Its pivot is (-14.29, 38.4909, -42.8), with bone rotation [60, 0, 0] giving a 30-degree wheel plane. The dark-dash column shaft, steel sleeve and static 30-cube gear lever stay on `body`. There is no steering animation. Compound wheel, spoke and lever rotations follow 0167.
+- The camper also has static `drawer_top` and `drawer_bottom` children of `body`, each with ten cubes and a closed-pose pivot. Their open-top boxes are 10 x 12.9 x 4.5 px with 0.2 px walls; two 5.2 px routed cream fronts have a 0.2 px seam. The carcass is hollow behind them. Drawer behavior, including the proposed 7 px slide, is deferred to the last interior-series issue; neither bone is animated here
 - Put each wheel bone's pivot at the center of its axle and each door bone's pivot at its hinge (front edge). Mark the exhaust position with the locator `exhaust`
 - Make the collision box a 1.8-wide, 1.6-high square, and accept that the front and back of the body stick out and appear to sink into walls
 - Give the grille eight slots, with no logo or vehicle name. A seven-slot grille is a registered trademark of Jeep, and this repository is public
