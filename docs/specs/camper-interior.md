@@ -323,7 +323,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Drawers and hinged storage doors stay silent: there is no cabinet open/close sound to reuse. Define storage open/close sound in a later issue.
 - The shared counter cell rests on the #1681 iPad touch measurements only: PC was not measured by owner decision, and presses on extended drawer fronts and on contents outside the combined selection box were not measured on either device.
 
-- PC and iPad verification of the kitchen drawers is pending ([manual-test.md](../manual-test.md), KD1-KD11), including confirmation of provisional shared-cell press routing (#1681). Failures found there go to follow-up issues.
+- PC and iPad verification of the kitchen drawers is pending ([manual-test.md](../manual-test.md), KD1-KD11), including the shared-cell press routing chosen by the #1681 probe. Failures found there go to follow-up issues.
 
 - The scoped dashboard construction has 921 cubes after equivalent rotated strips merge deterministically, versus 932 in the approved reference. The reference catalogue's 989 also includes 57 retained shell and armrest cubes. These counts use different strip grouping and do not establish shape differences; the shared final cleanup remains outside this port. The exterior upper grille remains unchanged; the reference's removal of 62 grille slats and rails is outside the dashboard-only scope.
 
