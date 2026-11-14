@@ -38,6 +38,7 @@ TABLE_SIZE = (168, 144)
 CARPET_SCALE, WALL_SCALE, TILE_SCALE, TABLE_SCALE = 2, 4, 8, 12
 WALL_FRONT, WALL_TOP = -48, 61
 WALL_THICKNESS = 0.2
+WALL_UV_INSET = 0.5
 TILE_FRONT, TILE_REAR, TILE_BOTTOM, TILE_TOP = 24, 39.5, 30, 49
 TILE_PITCH = (TILE_REAR - TILE_FRONT) / 13
 LEG_CENTER, LEG_WIDTH, LEG_HEIGHT = -14, 1, 11
@@ -53,14 +54,14 @@ HASH_SHIFTS = (13, 16)
 CARPET_TONES = (0.90, 1.05)
 WALL_BASE, WALL_RAIL_BASE = (196, 170, 128), (183, 184, 175)
 WALL_WARPS = ((3, 40, 160, 2), (1.2, 17, 90, 3))
-WALL_GRAIN = (20, 12, 180, 4)
-WALL_SOFT_GRAIN = (8, 27, 260, 8)
+WALL_GRAIN = (30, 12, 180, 4)
+WALL_SOFT_GRAIN = (14, 27, 260, 8)
 WALL_FINE_GRAIN = (2, 1.2, 32, 12)
-WALL_BOARD_GAIN, WALL_BOARD_SEED = 4, 16
+WALL_BOARD_GAIN, WALL_BOARD_SEED = 12, 16
 WALL_PORES = (3, 0.65, 13, 11, 0.45)
 WALL_DITHER, WALL_DITHER_SEED = 0.35, 9
 WALL_FADE_HEIGHT, WALL_FADE_GAIN, WALL_FADE_BIAS = 45, 9, -7
-WALL_JOINT_PITCH, WALL_JOINT_WIDTH, WALL_JOINT_SHADE = 24, 1, 18
+WALL_JOINT_PITCH, WALL_JOINT_WIDTH, WALL_JOINT_SHADE = 16, 2, 40
 WALL_JOINT_EDGE_WIDTH, WALL_JOINT_EDGE_LIGHT = 1, 6
 WALL_RAILS, WALL_RAIL_HALF_WIDTH = (35.5, 49.5), 0.5
 WALL_RAIL_EDGE, WALL_RAIL_SHADES = 0.29, (-15, 22)
@@ -259,14 +260,19 @@ def build_surfaces(registry: RegionRegistry) -> AreaCubes:
                 part['origin'] = [x,y0,z0]
                 part['size'] = [width,round(y1-y0, 3),round(z1-z0, 3)]
                 side = 'east' if x < 0 else 'west'
+                # Both broad faces use veneer: no flat swatch can show through the lining.
+                # Reflect sampling instead of emitting negative extents, and keep endpoints
+                # inside opaque texel centres (ADR 0113), including behind the backsplash.
+                su, sv = ((n-2*WALL_UV_INSET)/n for n in WALL_SIZE)
+                for wall_side in ('east', 'west'):
+                    u0 = (z0-WALL_FRONT)*WALL_SCALE if wall_side == 'west' else WALL_SIZE[0]-(z1-WALL_FRONT)*WALL_SCALE
+                    v0 = (WALL_TOP-y1)*WALL_SCALE
+                    part['uv'][wall_side] = face('wall veneer',
+                        (WALL_UV_INSET+u0*su, WALL_UV_INSET+v0*sv),
+                        ((z1-z0)*WALL_SCALE*su, (y1-y0)*WALL_SCALE*sv))
                 if area_of(part) == 'tile':
                     part['uv'][side] = face('backsplash tile', ((z0-TILE_FRONT)*TILE_SCALE, (TILE_TOP-y1)*TILE_SCALE),
                                             ((z1-z0)*TILE_SCALE, (y1-y0)*TILE_SCALE))
-                else:
-                    # Mirroring into Bedrock swaps face names, not signed UV extents.
-                    part['uv'][side] = face('wall veneer', (((z1 if x < 0 else z0)-WALL_FRONT)*WALL_SCALE,
-                                           (WALL_TOP-y1)*WALL_SCALE),
-                                           ((z1-z0)*WALL_SCALE*(-1 if x < 0 else 1), (y1-y0)*WALL_SCALE))
                 body.append(part)
     table = kit.box(*TABLE_BOUNDS, 'wood')
     table['uv']['up'] = face('table oak', (0,0), TABLE_SIZE)
