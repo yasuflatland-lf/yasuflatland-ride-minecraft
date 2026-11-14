@@ -318,10 +318,13 @@ export const FRIDGE: DooredStorage<StorageDoorId, "fridge"> = {
   plateBlockName: "camper_fridge_door",
 };
 
+const COUNTER_CELL = { x: -1, z: -1, layer: 1 } as const;
+const COUNTER_HEIGHT = 14;
+
 // Provisional until #1681 records PC/iPad probe numbers. The model pivots are
 // (9, y, 16.45); room x/z point left/forward, opposite the model's kitchen side.
 // A two-cell fallback replaces this cell and drawerAtHeight with one cell per door.
-export const DRAWER_COMPARTMENT = { x: -1, z: -1, layer: 1 } as const;
+export const DRAWER_COMPARTMENT = COUNTER_CELL;
 const DRAWER_BOTTOM_Y = 17.25;
 const DRAWER_TOP_Y = 22.65;
 const DRAWER_FRONT_HEIGHT = 5.2;
@@ -329,7 +332,6 @@ const DRAWER_BOX_LIFT = 0.25;
 const DRAWER_WALL_PX = 0.2;
 const DRAWER_SEAM = DRAWER_TOP_Y - DRAWER_BOTTOM_Y - DRAWER_FRONT_HEIGHT;
 const PX_PER_BLOCK = 16;
-const COUNTER_HEIGHT = 14;
 export const DRAWER_SPLIT_HEIGHT =
   (DRAWER_BOTTOM_Y +
     DRAWER_FRONT_HEIGHT +
@@ -396,8 +398,10 @@ export const KITCHEN_DRAWERS: DooredStorage<StorageDoorId, StoragePairKind> = {
   plateBlockName: "",
 };
 
-// 5/6 (#1684) adds the combined drawer/counter block and entity properties before
-// appending KITCHEN_DRAWERS and merging its slots into the counter furniture row.
+// Deviates from #1683's requested append: activation is tracked on #1684.
+// Append KITCHEN_DRAWERS to CAMPER_STORAGE, merge its slots into the counter row,
+// add drawer_top/drawer_bottom to STORAGE_DOOR_PROPERTY, and drop the vi.mock
+// activation in tests/domain/vehicle/kinds/camper/kitchenDrawerInteraction.test.ts.
 export const CAMPER_STORAGE: readonly DooredStorage<
   StorageDoorId,
   "cabinet" | "fridge"
@@ -570,9 +574,9 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
   },
   {
     kind: "counter",
-    cells: [{ x: -1, z: -1, layer: 1 }],
+    cells: [COUNTER_CELL],
     slots: [
-      { id: slotId("counter"), cell: { x: -1, z: -1, layer: 1 }, height: 14 },
+      { id: slotId("counter"), cell: COUNTER_CELL, height: COUNTER_HEIGHT },
     ],
   },
   // Height 6 lifts the 10 px hanging planter so its top meets the hook at the top of the cell (ADR 0099, 0102).

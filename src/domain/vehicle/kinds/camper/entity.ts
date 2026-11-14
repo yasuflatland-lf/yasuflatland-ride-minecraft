@@ -55,6 +55,9 @@ export function showerCommand(on: boolean): EngineCommand {
   return property("shower", on);
 }
 
+// #1684 removes this exclusion when it declares the drawer properties.
+type GatedStorageDoorId = "drawer_top" | "drawer_bottom";
+
 /**
  * The entity property that swings each storage door: 0 is shut, 1 is open into the aisle
  * (ADR 0114, 0121, 0123). Gated units wait for their pack property declarations.
@@ -64,8 +67,9 @@ export const STORAGE_DOOR_PROPERTY = {
   stove: "cabinet_stove_door",
   fridge_top: "fridge_top_door",
   fridge_bottom: "fridge_bottom_door",
-} as const satisfies Partial<
-  Record<StorageDoorId, keyof typeof CAMPER_ENTITY.properties>
+} as const satisfies Record<
+  Exclude<StorageDoorId, GatedStorageDoorId>,
+  keyof typeof CAMPER_ENTITY.properties
 >;
 
 /** Gated units get their entity properties with their pack wiring (#1684). */
