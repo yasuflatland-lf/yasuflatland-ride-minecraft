@@ -75,6 +75,12 @@ a = s.build_surfaces(r)
       ["door marble", 101, 41, "stone", true],
       ["door kick", 101, 44, "metal", true],
       ["door cloth", 16, 104, "fabric", true],
+      ["cab SPEED", 128, 128, "glass_coat", true],
+      ["cab QUAD", 128, 128, "glass_coat", true],
+      ["cab PAD", 184, 48, "vinyl", true],
+      ["cab RADIO", 144, 40, "metal", true],
+      ["cab SMALL", 128, 60, "glass_coat", true],
+      ["cab DARK19", 1, 1, "dark_lacquer", true],
     ]);
   });
   it("preserves the reference material bytes regardless of sampling order", () => {
@@ -124,6 +130,18 @@ a = s.build_surfaces(r)
         "be8228bff5fc74423397efa64f21c3d95b1d6783e3edc0ab12aad087d2eb3750",
       "table oak":
         "3aec30b8a877063863d44ccd75a1286375e11161bbc0e3d4217581f7a2e5176a",
+      "cab SPEED":
+        "a17300945ab36ec52abe746fd3672eef13d9f08b4c40118bd53a03be272dc63a",
+      "cab QUAD":
+        "ee2c45e13b9a1705830628f72128202fd20a17eb5a312e62899004632eaac991",
+      "cab PAD":
+        "486ea611ed466a9e67d19d4954ed4a9051910c3d88b91e2ccfbb216a1f0805ca",
+      "cab RADIO":
+        "b37a7f7b5de638b9eb2b3aad71f43f80836cb8c0955c222854ace0d1a6926b55",
+      "cab SMALL":
+        "b6b77379755e6e2f974f4bb78f64a9a5f641c121b1fc28f2852664dfc56aeaad",
+      "cab DARK19":
+        "1a93b51f95cce226460cda2e9cb83e9943978987534d498b8f501178bc9cdf63",
     });
   });
   it("samples the same veneer coordinates on either side of every fragment seam", () => {

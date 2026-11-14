@@ -387,6 +387,7 @@ load_tool("camper_surfaces").register_surfaces(REGISTRY)
 CURTAIN_REF = REGISTRY.register(regions.Region(
     "light curtain fabric", 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
 DOOR_REFS = load_tool("camper_door_materials").register(REGISTRY, PALETTE)
+load_tool("camper_dash").register_regions(REGISTRY, PALETTE)
 ATLAS.base_ref = BASE_REF
 
 AREA_ORDER = (

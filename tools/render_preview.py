@@ -146,9 +146,9 @@ BOAT_POSES = {
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
 CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
-# Kitchen counter, range and burner faces map whole laminate and stainless
-# regions (up to 192 x 192 texels) onto sub-unit strips, exhausting CI memory.
-# 16 cells/unit keeps >2 cells per final pixel (max 5.55 px/unit).
+# Cab PAD strips and kitchen faces mapping up to 192 x 192 texels onto
+# sub-unit strips exceed CI memory without a sampling cap. 16 cells/unit
+# keeps >2 cells per final pixel (max 5.55 px/unit).
 CAMPER_CELLS_PER_UNIT = 16
 CAMPER_POSES = {
     "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": CAMPER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},

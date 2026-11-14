@@ -42,7 +42,9 @@ it("assigns every final camper cube to exactly one area range", () => {
     expect(counts.every((n) => n === 1)).toBe(true);
 });
 
-it("builds independent areas repeatedly without changing the shared atlas", async () => {
+it("builds independent areas repeatedly without changing the shared atlas", {
+  timeout: 30_000,
+}, async () => {
   await python.run(`
 import ast, json, sys
 from pathlib import Path

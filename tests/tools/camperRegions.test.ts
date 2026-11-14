@@ -126,6 +126,61 @@ ref.uv(float('nan'),0)`,
       ],
     ]);
   });
+  it("registers the six dashboard regions with the approved pixels and materials", async () => {
+    expect(
+      await run(
+        `import hashlib
+kit = load_tool('camper_kit')
+dashboard_names = {'cab SPEED', 'cab QUAD', 'cab PAD', 'cab RADIO', 'cab SMALL', 'cab DARK19'}
+selected = [r for r in kit.REGISTRY.regions() if r.name in dashboard_names]`,
+        "[[r.name, r.width, r.height, r.material.value, hashlib.sha256(bytes(c for y in range(r.height) for x in range(r.width) for c in r.pixel(x,y))).hexdigest()] for r in selected]",
+      ),
+    ).toEqual([
+      [
+        "cab SPEED",
+        128,
+        128,
+        "glass_coat",
+        "a17300945ab36ec52abe746fd3672eef13d9f08b4c40118bd53a03be272dc63a",
+      ],
+      [
+        "cab QUAD",
+        128,
+        128,
+        "glass_coat",
+        "ee2c45e13b9a1705830628f72128202fd20a17eb5a312e62899004632eaac991",
+      ],
+      [
+        "cab PAD",
+        184,
+        48,
+        "vinyl",
+        "486ea611ed466a9e67d19d4954ed4a9051910c3d88b91e2ccfbb216a1f0805ca",
+      ],
+      [
+        "cab RADIO",
+        144,
+        40,
+        "metal",
+        "b37a7f7b5de638b9eb2b3aad71f43f80836cb8c0955c222854ace0d1a6926b55",
+      ],
+      [
+        "cab SMALL",
+        128,
+        60,
+        "glass_coat",
+        "b6b77379755e6e2f974f4bb78f64a9a5f641c121b1fc28f2852664dfc56aeaad",
+      ],
+      [
+        "cab DARK19",
+        1,
+        1,
+        "dark_lacquer",
+        "1a93b51f95cce226460cda2e9cb83e9943978987534d498b8f501178bc9cdf63",
+      ],
+    ]);
+  });
+
   it("renders the registered base without running the generator", async () => {
     expect(
       await run(
@@ -201,6 +256,12 @@ for cubes in built.values():
       ["door marble", 101, 41, "stone"],
       ["door kick", 101, 44, "metal"],
       ["door cloth", 16, 104, "fabric"],
+      ["cab SPEED", 128, 128, "glass_coat"],
+      ["cab QUAD", 128, 128, "glass_coat"],
+      ["cab PAD", 184, 48, "vinyl"],
+      ["cab RADIO", 144, 40, "metal"],
+      ["cab SMALL", 128, 60, "glass_coat"],
+      ["cab DARK19", 1, 1, "dark_lacquer"],
       ["routed cream panel", 224, 160, "lacquer"],
       ["shower glaze", 128, 354, "tile"],
       ["shower head", 64, 64, "metal"],
