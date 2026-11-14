@@ -53,7 +53,8 @@ export interface RoomDrive {
     takeContents?: boolean,
     eye?: Vec3,
     openOnly?: boolean,
-    sideFace?: boolean,
+    /** Set only for a side face of the drawers block itself; rerouted floor presses use the ray. */
+    drawersSideFace?: boolean,
   ): StoragePress | undefined;
 }
 

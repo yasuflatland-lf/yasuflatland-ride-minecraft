@@ -2430,6 +2430,35 @@ it("stores and clears held items only from server script events", () => {
   expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
 });
 
+it("routes floor side-face presses through the drawer ray without using floor height", () => {
+  for (const itemStack of [undefined, { typeId: "yasu_ride:mug_pair" }]) {
+    const f = decorFixture();
+    const ev = f.event({
+      itemStack,
+      blockFace: "West",
+      faceLocation: { x: 0, y: 0.25, z: 0.5 },
+    });
+    const counter = { x: 0, y: 65, z: 2 };
+    f.storage.drawerTarget.mockReturnValue({ cell: counter });
+    f.storage.execute.mockReturnValue(true);
+    expect(f.send(ev).cancel).toBe(true);
+    for (const [callback] of game.run.mock.calls) callback();
+    expect(f.storage.drawerTarget).toHaveBeenCalledExactlyOnceWith(
+      "car",
+      ev.player.getHeadLocation(),
+      { x: -0.5, y: 64.25 - 66.62, z: 0 },
+      ev.block.location,
+    );
+    expect(f.storage.execute).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        cell: counter,
+        point: { x: 1, y: 64.25, z: 2.5 },
+        drawersSideFace: false,
+      }),
+    );
+  }
+});
+
 it("routes drawer front presses with raw side height and the press ray while cancelling held repeats", () => {
   fc.assert(
     fc.property(fc.double({ min: 0.05, max: 0.8, noNaN: true }), (height) => {
@@ -2450,7 +2479,7 @@ it("routes drawer front presses with raw side height and the press ray while can
         // Side-face height picks the drawer; virtual boxes serve other routes.
         point: { x: 1, y: 64 + ev.faceLocation.y, z: 2.5 },
         eye: ev.player.getHeadLocation(),
-        sideFace: true,
+        drawersSideFace: true,
       });
       expect(f.removeDecor.execute).not.toHaveBeenCalled();
       game.run.mockClear();
