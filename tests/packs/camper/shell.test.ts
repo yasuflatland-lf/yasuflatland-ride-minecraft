@@ -15,12 +15,19 @@ describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = bones.flatMap((bone) => bone.cubes ?? []);
     const compound = cubes.filter(multipleAxes);
+    const seats = [bone("seat_0"), bone("seat_1")]
+      .flatMap((b) => b.cubes ?? [])
+      .filter(multipleAxes);
     const assemblies = {
       slanted: compound.filter((cube) => cube.rotation?.[0] === 45),
-      front_panels: compound.filter((cube) => cube.rotation?.[0] !== 45),
+      front_panels: compound.filter(
+        (cube) => cube.rotation?.[0] !== 45 && !seats.includes(cube),
+      ),
+      cab_seats: seats,
     };
     expect(assemblies.slanted).toHaveLength(0);
     expect(assemblies.front_panels).toHaveLength(518);
+    expect(assemblies.cab_seats).toHaveLength(464);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });
 

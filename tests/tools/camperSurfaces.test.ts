@@ -55,6 +55,9 @@ a = s.build_surfaces(r)
         "[[r.name,r.width,r.height,r.material.value,all(r.pixel(x,y)[3] == 255 for y in range(r.height) for x in range(r.width))] for r in k.REGISTRY.regions() if r.name != 'base']",
       ),
     ).toEqual([
+      ["green tweed and vinyl shared by both seats", 333, 128, "fabric", false],
+      ["cab seat vinyl", 64, 64, "vinyl", true],
+      ["cab seat vinyl swatches", 6, 1, "vinyl", true],
       ["flecked laminate", 192, 192, "lacquer", true],
       ["brushed stainless", 128, 64, "metal", true],
       ["range dial", 64, 64, "glass_coat", true],
@@ -78,6 +81,12 @@ a = s.build_surfaces(r)
         "for r in k.REGISTRY.regions():\n    if r.name != 'base':\n        for y in reversed(range(r.height)):\n            for x in reversed(range(r.width)): r.pixel(x,y)",
       ),
     ).toEqual({
+      "green tweed and vinyl shared by both seats":
+        "1b90ae7fb5be0cdd714f8b5a2ab14cbf93aab8756ea0ddf4984d72bb8810d7ad",
+      "cab seat vinyl":
+        "1a915d6c9c52dbc538912ae2c93cba47b95d42d284838a49b9f7891f3b6ff139",
+      "cab seat vinyl swatches":
+        "a1d6e948b89f9e735a552197dfe05cbb4e85bf9beb856a24691594074ad77bd3",
       "flecked laminate":
         "85756420156afa783e0030423ad6c94f9af24f8b9e3316b8ac4619b5a3150092",
       "brushed stainless":

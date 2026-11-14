@@ -370,6 +370,7 @@ REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
+load_tool("camper_seat_textures").register(REGISTRY)
 kitchen = load_tool("camper_kitchen")
 
 
@@ -388,7 +389,7 @@ DOOR_REFS = load_tool("camper_door_materials").register(REGISTRY, PALETTE)
 ATLAS.base_ref = BASE_REF
 
 AREA_ORDER = (
-    "shell", "surfaces", "curtains", "door", "front", "rear", "roof", "running", "cab",
+    "shell", "surfaces", "curtains", "door", "front", "rear", "roof", "running", "cab", "cab_seats",
     "bed_bunk", "fridge", "kitchen", "kitchen_fronts", "room", "shower", "ceiling", "dinette", "arches",
 )
 

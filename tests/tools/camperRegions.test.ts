@@ -181,6 +181,9 @@ for cubes in built.values():
   );
   expect(result).toEqual([
     [
+      ["green tweed and vinyl shared by both seats", 333, 128, "fabric"],
+      ["cab seat vinyl", 64, 64, "vinyl"],
+      ["cab seat vinyl swatches", 6, 1, "vinyl"],
       ["flecked laminate", 192, 192, "lacquer"],
       ["brushed stainless", 128, 64, "metal"],
       ["range dial", 64, 64, "glass_coat"],

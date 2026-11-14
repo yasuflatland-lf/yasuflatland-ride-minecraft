@@ -416,9 +416,9 @@ describe("Noga Chair (ADR 0169)", () => {
     },
   );
 
-  it("ships RP 0.1.318 and matches the BP dependency", () => {
+  it("ships RP 0.1.319 and matches the BP dependency", () => {
     const rp = read(`${RP}/manifest.json`);
-    expect(rp.header.version).toEqual([0, 1, 318]);
+    expect(rp.header.version).toEqual([0, 1, 319]);
     expect(rp.modules[0].version).toEqual(rp.header.version);
     expect(
       read(`${BP}/manifest.json`).dependencies.find(

@@ -16,7 +16,7 @@ from tool_loader import load_tool
 
 cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
-ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owner": "camper", "cubes": 518}}
+ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owner": "camper", "cubes": 518}, "cab_seats": {"owner": "camper", "cubes": 464}}
 
 texture_io = load_tool("texture_io")
 mer = load_tool("mer")
@@ -219,7 +219,10 @@ geo = {
 }
 model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
 slanted = [cube for cube in compound_cubes(model_cubes) if cube["rotation"][0] == 45]
-assert_axes(model_cubes, {"slanted": slanted, "front_panels": [cube for cube in compound_cubes(model_cubes) if cube not in slanted]}, ASSEMBLIES)
+seat_compound = compound_cubes(merged["seat_0"] + merged["seat_1"])
+assert_axes(model_cubes, {"slanted": slanted, "cab_seats": seat_compound,
+                         "front_panels": [cube for cube in compound_cubes(model_cubes)
+                                          if cube not in slanted and cube not in seat_compound]}, ASSEMBLIES)
 outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
