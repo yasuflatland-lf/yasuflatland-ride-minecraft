@@ -281,7 +281,7 @@ function drawerPress(
   );
   if (vehicleId === undefined) return;
   let cell = { ...ev.block.location };
-  const point = {
+  let point = {
     x: cell.x + ev.faceLocation.x,
     // Up and Down faces have known box heights. Side-face y is inverted on
     // iPad touch 1.26.63 (measured); PC mouse is unmeasured and keeps the
@@ -304,7 +304,8 @@ function drawerPress(
   };
   const playerId = asPlayerId(ev.player.id);
   const hotbarSlot = ev.player.selectedSlotIndex;
-  const eye = ev.player.getHeadLocation();
+  let eye: Vec3 | undefined = ev.player.getHeadLocation();
+  let floorFootprint = false;
   const drawersSideFace =
     ev.block.typeId === pairDecorBlockId("drawers") &&
     ev.blockFace !== "Up" &&
@@ -323,11 +324,17 @@ function drawerPress(
     );
     if (!hit) return;
     cell = hit.cell;
+    if (hit.floorFootprint) {
+      // A footprint has no front intersection to replay; use its resolved slot height.
+      point = hit.point;
+      eye = undefined;
+      floorFootprint = true;
+    }
   }
   ev.cancel = true;
   if (!ev.isFirstEvent) return;
   system.run(() => {
-    if (item !== undefined) {
+    if (item !== undefined && !floorFootprint) {
       if (
         !storage.execute({
           playerId,
@@ -358,6 +365,7 @@ function drawerPress(
         point,
         eye,
         drawersSideFace,
+        takeContents: floorFootprint ? false : undefined,
       })
     ) {
       remove.execute({ playerId, vehicleId, cell, point, eye });

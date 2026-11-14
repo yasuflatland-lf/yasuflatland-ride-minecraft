@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
 import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
 import type { HoldPose } from "../../../../../src/domain/vehicle/dock/floor";
-import { drawerBlockHit as drawerHit } from "../../../../../src/domain/vehicle/kinds/camper/drawerHit";
+import {
+  drawerBlockHit as drawerHit,
+  drawerHit as rayHit,
+} from "../../../../../src/domain/vehicle/kinds/camper/drawerHit";
 import {
   DRAWER_COMPARTMENT,
   drawerAtHeight,
@@ -210,4 +213,136 @@ describe("drawer press ray targets", () => {
       }),
     );
   });
+});
+
+const recordedPose: HoldPose = { x: -0.5, y: -60, z: 5.5, yaw: 0 };
+const recordedEye = { x: -0.15, y: -58.48, z: 4.5 };
+const floorCell = { x: -1, y: -60, z: 4 };
+function floorHit(
+  pose: HoldPose,
+  eye: Vec3,
+  point: Vec3,
+  open: StorageDoorId[],
+) {
+  return rayHit(
+    pose,
+    eye,
+    { x: point.x - eye.x, y: point.y - eye.y, z: point.z - eye.z },
+    [],
+    new Set(open),
+    floorCell,
+  );
+}
+it.each([
+  [["drawer_bottom"], "drawer_bottom"],
+  [["drawer_top", "drawer_bottom"], "drawer_bottom"],
+  [["drawer_top"], "drawer_top"],
+] as [StorageDoorId[], StorageDoorId][])(
+  "routes the recorded floor hit with %s open",
+  (open, door) => {
+    expect(localCellAt(recordedPose, DRAWER_COMPARTMENT)).toEqual({
+      x: -2,
+      y: -59,
+      z: 4,
+    });
+    expect(
+      floorHit(recordedPose, recordedEye, { x: -0.686, y: -60, z: 4.491 }, open)
+        ?.door,
+    ).toBe(door);
+  },
+);
+it("ignores recorded floor taps beyond the extended footprint and closed drawers", () => {
+  // These taps are 22.3 and 21.0 px out from the cell center, beyond the footprint.
+  for (const [x, z] of [
+    [0.893, 0.433],
+    [0.811, 0.437],
+  ] as const) {
+    expect(
+      floorHit(recordedPose, recordedEye, { x: -1 + x, y: -60, z: 4 + z }, [
+        "drawer_bottom",
+      ]),
+    ).toBeUndefined();
+  }
+  expect(
+    floorHit(recordedPose, recordedEye, { x: -0.686, y: -60, z: 4.491 }, []),
+  ).toBeUndefined();
+});
+it("closes the lowest open drawer throughout the floor footprint at every yaw", () => {
+  fc.assert(
+    fc.property(
+      poses,
+      fc.double({ min: 6.51, max: 15.44, noNaN: true }),
+      fc.double({ min: -8.79, max: 7.89, noNaN: true }),
+      (pose, left, ahead) => {
+        const point = world(pose, left, -16, ahead);
+        const eye = world(pose, left, -1, ahead);
+        const counter = localCellAt(pose, DRAWER_COMPARTMENT);
+        const cell = localCellAt(pose, {
+          x: 0,
+          z: DRAWER_COMPARTMENT.z,
+          layer: 0,
+        });
+        for (const [open, door] of [
+          [["drawer_bottom"], "drawer_bottom"],
+          [["drawer_top"], "drawer_top"],
+          [["drawer_top", "drawer_bottom"], "drawer_bottom"],
+        ] as [StorageDoorId[], StorageDoorId][]) {
+          const hit = rayHit(
+            pose,
+            eye,
+            { x: point.x - eye.x, y: point.y - eye.y, z: point.z - eye.z },
+            [],
+            new Set(open),
+            cell,
+          );
+          expect(hit?.door).toBe(door);
+          expect(
+            rayHit(
+              pose,
+              eye,
+              { x: point.x - eye.x, y: point.y - eye.y, z: point.z - eye.z },
+              [],
+              new Set(open),
+              counter,
+            ),
+          ).toBeUndefined();
+        }
+        for (const far of [world(pose, 30, -16), world(pose, 10, -16, 20)]) {
+          expect(
+            rayHit(
+              pose,
+              far,
+              { x: 0, y: -1, z: 0 },
+              [],
+              new Set(["drawer_bottom"]),
+              cell,
+            ),
+          ).toBeUndefined();
+        }
+      },
+    ),
+  );
+});
+it("extends only open fronts to the floor and preserves a positive top-front hit", () => {
+  const cell = localCellAt(recordedPose, DRAWER_COMPARTMENT);
+  for (const open of [[], ["drawer_bottom"]] as StorageDoorId[][]) {
+    expect(
+      drawerHit(
+        recordedPose,
+        cell,
+        world(recordedPose, 28, 0.5),
+        world(recordedPose, 0, 0.5),
+        [],
+        new Set(open),
+      )?.door,
+    ).toBe(open.length ? "drawer_bottom" : undefined);
+  }
+  expect(
+    floorHit(
+      recordedPose,
+      world(recordedPose, 28, 65),
+      world(recordedPose, 8, -16),
+      ["drawer_top", "drawer_bottom"],
+    )?.door,
+  ).toBe("drawer_top");
 });

@@ -22,6 +22,7 @@ export const DRAWER_HIT_PROFILE = Object.freeze({
   pixelsPerBlock: PX_PER_BLOCK,
   counterHeight: COUNTER_HEIGHT,
   counterHalfWidth: 8,
+  floorFootprintMargin: 1.5,
   frontLeftMin: 7,
   frontLeftMax: 7.35,
   frontAheadMin: -7.3,
