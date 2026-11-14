@@ -20,6 +20,8 @@ The camper entity already has 6 properties.
 
 ## Decision
 
+- The centre floor retains its single 36.6 x 3 x 111 px cube at y 13 and maps its upper face to `carpet v3` (74 x 222 texels, CARPET). The six wheel-well floor margins retain the base material. The table remains two cubes: a 14 x 1 x 12 px oak top at y 27 and a centred 1 x 1 px chrome leg, 11 px high. Its top stays at y 28, 12 px above the room floor, preserving both decor slots.
+
 ### Furniture table
 
 - The camper's furniture is one table, `CAMPER_FURNITURE` in `src/domain/vehicle/kinds/camper/furniture.ts`. It holds only camper values, so it stays in the camper kind (0050). Each row is one piece of furniture:

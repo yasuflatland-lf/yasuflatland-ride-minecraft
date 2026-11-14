@@ -181,6 +181,15 @@ for cubes in built.values():
   );
   expect(result).toEqual([
     [
+      ["carpet v3", 74, 222, "carpet"],
+      ["wall veneer", 416, 180, "wood"],
+      ["backsplash tile", 124, 152, "tile"],
+      ["table oak", 168, 144, "wood"],
+      ["light curtain fabric", 96, 120, "fabric"],
+      ["door wood", 111, 336, "wood"],
+      ["door marble", 101, 41, "stone"],
+      ["door kick", 101, 44, "metal"],
+      ["door cloth", 16, 104, "fabric"],
       ["shower glaze", 128, 354, "tile"],
       ["shower head", 64, 64, "metal"],
       ["shower grip", 16, 80, "metal"],
@@ -196,8 +205,9 @@ it("matches the catalogue's 950 shower additions after lossless cleanup", async 
       `kit = load_tool('camper_kit')
 layout = kit.LAYOUT
 shower = load_tool('camper_shower')
-built = shower.build_shower(kit.REGISTRY)`,
-      "[len(built['body']) - len(shower.room_base()['body']), len(built['shower_door'])]",
+built = shower.build_shower(kit.REGISTRY)
+door = load_tool('camper_door').build_shower_door(kit.REGISTRY)`,
+      "[len(built['body']) - len(shower.room_base()['body']), len(door['shower_door'])]",
     ),
   ).toEqual([950, 3]);
 }, 30_000);

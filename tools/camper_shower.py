@@ -22,7 +22,7 @@ SHOWER_HEAD = [20.5, 44.5, 53.75]
 def room_base() -> AreaCubes:
     body = []
     # Shower-toilet room in the rear right corner (cell z = -3, two layers), door to the aisle.
-    SHOWER_Z = (40.5, 41.1)  # front partition, behind the window curtain (38 to 40.5)
+    SHOWER_Z = (40.5, 41.1)  # front partition
     body.append(box(8, FLOOR, SHOWER_Z[0], 22.8, CEIL - 0.2, SHOWER_Z[1], "ivory"))
     body.append(box(8, FLOOR, SHOWER_Z[1], 8.6, CEIL - 0.2, 42, "ivory"))  # front jamb
     body.append(box(8, FLOOR, 54, 8.6, CEIL - 0.2, 55.5, "ivory"))  # rear jamb, short of the rear wall
@@ -33,12 +33,7 @@ def room_base() -> AreaCubes:
     body.append(box(13, 22, 45, 20, 23, 51, "ivory"))  # seat, 7 px up like the dinette
     body.append(box(19, 23, 45, 19.5, 31, 51, "ivory"))  # raised lid
     body.append(box(19.5, 26, 44.5, 22.6, 34, 51.5, "white"))  # tank
-    # The door is its own bone, hinged on its rear edge at the aisle face; it stays closed here.
-    shower_door = [box(8, FLOOR + 0.5, 42.1, 8.6, 51.9, 53.9, "wood")]
-    shower_door.append(box(7.4, 32, 43, 8, 33, 44.5, "chrome"))  # handle outside
-    shower_door.append(box(8.6, 32, 43, 9.2, 33, 44.5, "chrome"))  # handle inside
-
-    return AreaCubes({'body': body, 'shower_door': shower_door})
+    return AreaCubes({'body': body})
 
 TILE_PITCH = 1.6
 TILE_SCALE = 8
@@ -117,8 +112,8 @@ def head_pixel(x: int, y: int) -> tuple[int, int, int, int]:
     dx, dy = (x + .5) / 32 - 1, (y + .5) / 32 - 1
     color = COLORS['steel']
     for radius, holes in ((.18, 6), (.38, 12), (.59, 18), (.79, 24)):
-        angle = round(math.atan2(dy, dx) / (2 * math.pi) * holes) * 2 * math.pi / holes
-        distance = math.hypot(dx - radius * math.cos(angle), dy - radius * math.sin(angle))
+        angle = round(round(math.atan2(dy, dx) / (2 * math.pi) * holes, 12)) * 2 * math.pi / holes
+        distance = round(math.hypot(dx - radius * math.cos(angle), dy - radius * math.sin(angle)), 12)
         if distance < .034:
             color = COLORS['dark']
         elif distance < .052:

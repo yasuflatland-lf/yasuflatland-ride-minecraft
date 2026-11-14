@@ -29,9 +29,6 @@ def build() -> AreaCubes:
     return AreaCubes({"body": body})
 
 
+
 def holes():
-    """Wheel-well cuts applied to the merged floor and furniture before adding panels."""
-    for sgn in (1, -1):
-        for a0, a1 in ARCHES:
-            x_room, x_wall = (sgn * (HW - d) for d in (5.7, 1))
-            yield (min(x_room, x_wall), -99, a0 - 0.3, max(x_room, x_wall), ARCH_TOP + 0.8, a1 + 0.3)
+    return kit.wheel_well_holes()
