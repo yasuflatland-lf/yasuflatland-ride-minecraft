@@ -55,7 +55,7 @@ export function showerCommand(on: boolean): EngineCommand {
   return property("shower", on);
 }
 
-// #1684 removes this exclusion when it declares the drawer properties.
+// #1684 removes this exclusion when it restores the declared drawer properties.
 type GatedStorageDoorId = "drawer_top" | "drawer_bottom";
 
 /**
@@ -72,7 +72,7 @@ export const STORAGE_DOOR_PROPERTY = {
   keyof typeof CAMPER_ENTITY.properties
 >;
 
-/** Gated units get their entity properties with their pack wiring (#1684). */
+/** Gated units get their restored entity properties with their pack wiring (#1684). */
 export function storageDoorProperty(
   door: StorageDoorId,
 ): (typeof CAMPER_ENTITY.restored)[number] | undefined {

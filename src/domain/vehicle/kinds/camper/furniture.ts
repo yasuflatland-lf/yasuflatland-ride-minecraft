@@ -400,7 +400,7 @@ export const KITCHEN_DRAWERS: DooredStorage<StorageDoorId, StoragePairKind> = {
 
 // Deviates from #1683's requested append: activation is tracked on #1684.
 // Append KITCHEN_DRAWERS to CAMPER_STORAGE, merge its slots into the counter row,
-// add drawer_top/drawer_bottom to STORAGE_DOOR_PROPERTY, and drop the vi.mock
+// add drawer_top/drawer_bottom to STORAGE_DOOR_PROPERTY and CAMPER_ENTITY.restored, and drop the vi.mock
 // activation in tests/domain/vehicle/kinds/camper/kitchenDrawerInteraction.test.ts.
 export const CAMPER_STORAGE: readonly DooredStorage<
   StorageDoorId,

@@ -18,7 +18,7 @@ import {
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 
-// Activate only in this test module; #1684 supplies the pack block and properties.
+// Activate only in this test module; #1684 supplies the pack block and restores the drawer properties.
 vi.mock(
   "../../../../../src/domain/vehicle/kinds/camper/furniture",
   async (importOriginal) => {
