@@ -20,7 +20,5 @@ def build() -> AreaCubes:
              box(DIN_X[0], FLOOR + 7, -24, DIN_X[1], FLOOR + 20, -21.5, "tweed")]
     seat3 = [box(DIN_X[0], FLOOR, 10, DIN_X[1], FLOOR + 7, 23, "tweed"),
              box(DIN_X[0], FLOOR + 7, 21.5, DIN_X[1], FLOOR + 20, 24, "tweed")]
-    body.append(box(DIN_X[0], FLOOR + 11, -6, -9, FLOOR + 12, 6, "wood"))  # table
-    body.append(box(-15, FLOOR, -1, -13, FLOOR + 11, 1, "chrome"))
 
     return AreaCubes({'body': body, 'seat_2': seat2, 'seat_3': seat3})

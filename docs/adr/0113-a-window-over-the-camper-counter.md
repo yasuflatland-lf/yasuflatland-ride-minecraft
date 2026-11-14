@@ -14,15 +14,17 @@ Since 0103 the wall cabinet over the counter sits at the ceiling, from y 54 to 6
 
 ## Decision
 
-- The right side gets a fourth side window at z 10 to 35, y 36 to 49 (`WIN_Y`), in `right_windows` in `tools/gen_camper.py`
+- Map the inner lining to `wall veneer` (416 x 180 texels, WOOD) at 4 texels per model pixel, anchored at z -48 and y 61. The grain runs vertically; signed horizontal UVs account for the opposite walls. At the backsplash material boundaries, remap every non-tile fragment from its own model coordinates so grain and the rails at y 35.5 and 49.5 stay registered. Preserve the counter-window hole exactly when splitting four tile cubes from the lining.
+
+- The right side gets a fourth side window at z 10 to 35, y 36 to 49 (`WIN_Y`), in `right_windows` in `tools/camper_kit.py`
 - It is 25 px long, as long as the window ahead of the door (z -35 to -10), and has the same height
-- It is centered in the wall between the door's rear edge (z 7) and the rear right window's front edge (z 38): 3 px of wall on each side
-- It gets what every other side window gets from the shared window loop: the chrome frame, the glass, the curtains drawn to its edges inside (z 10 to 12.5 and 32.5 to 35), the cut in the tan window band, and the holes in the outer wall and in the inner `wall_in` panel
-- No interior part changes. No cube of the counter, the sink, the stove, or the wall cabinet reaches into the opening (x 9 to 23.4, y 36 to 49, z 10 to 35); only the two curtains do
+- Its position retains the original 3 px spacing from the door and the former rear window. The rear opening is now closed by the vent-lid design (0157)
+- It gets what every other side window gets from the shared window loop: the grey-beige frame, the glass, two tied-back fabric panels and a rail inside the opening, the cut in the tan window band, and the holes in the outer wall and in the inner `wall_in` panel
+- The kitchen top in `tools/camper_kitchen.py` stays below the opening: the counter and flush sink cover end at y 30, the low spout and twin taps below y 32, and the burner grate at y 30.95. No cube of the counter, the sink, the stove, or the wall cabinet reaches into the opening (x 9 to 23.4, y 36 to 49, z 10 to 35); only the two curtains do
 
 ## Consequences
 
 - From the stove and the sink, a player sees outside through the window
-- The right side now reads: front window, door, counter window, rear window, each with wall between them
+- The right side now reads: front window, door, counter window, and the opaque vent lid behind it (0157)
 - The camper model gains cubes (frame, glass, curtains, and the extra wall panel pieces around the opening). The model changes, so the Resource Pack version goes up (0015), and the README previews are rendered again (0027)
 - Decor on the counter and the stove stands in front of the lower edge of the window, as it already does in front of the wall

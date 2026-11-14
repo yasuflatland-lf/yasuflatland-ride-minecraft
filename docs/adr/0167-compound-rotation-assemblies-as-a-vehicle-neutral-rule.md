@@ -21,6 +21,7 @@ The sports boat helm introduced a rigid compound tilt and a global wheel excepti
 - Preserve the rotation-order assumption from 0166: `Rz(-rz) * Ry(ry) * Rx(-rx)`, z outermost and x innermost. The assembly tilt multiplies on the left. Confirmation on a device remains pending; this refactor provides no new in-game evidence.
 - To add a camper, SUV, or bulldozer assembly, add its name, owner, and cube count or description to the generator table; build it through `tilt_assembly(..., assembly=name, assemblies=ASSEMBLIES)` or a decomposed tangent frame for curved surface patches; retain its tilted member cubes through final coordinate conversion for `assert_axes`; and add the corresponding membership entry to its shipped-model test.
 - The camper registers `cab_seats` with 464 compound-rotated tangent patches across its two rounded cab buckets. `cube_tilt._rotation_of` decomposes each surface frame; the final generator and shipped-model tests check membership separately from the existing front-panel and slanted assemblies.
+- The main-window curtain fan facets use single-axis tilts; they require no compound rotation assembly.
 - Throttle lever and dial changes in #682/#684 were outside the original rule-only refactor. Subsequent assemblies that change geometry regenerate the affected assets and bump the Resource Pack version.
 
 ## Consequences

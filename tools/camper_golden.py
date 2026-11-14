@@ -22,7 +22,8 @@ def _current():
     model = _model(json.loads((ROOT / "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json").read_text()))
     areas = json.loads((ROOT / "tests/packs/fixtures/camper-areas.json").read_text())
     kit = load_tool("camper_kit")
-    regions = [{"name": r.name, "size": [r.width, r.height], "origin": kit.LAYOUT.origin(r.name)}
+    layout = kit.LAYOUT
+    regions = [{"name": r.name, "size": [r.width, r.height], "origin": layout.origin(r.name)}
                for r in kit.REGISTRY.regions()]
     return model, regions, areas
 

@@ -228,7 +228,7 @@ BOLT_REGION = ATLAS.allocate("bolt", math.ceil(REAR_OUT - TOP_FRONT), 1)
 # A polished-plate tile: the mirror parts' every face maps onto it, thin parts onto its corner.
 MIRROR_CHROME_REGION = ATLAS.allocate("mirror_chrome", 16, 32)
 MIRROR_THIN_UV = (4, 8)
-FURN_X = (9, 22.4)  # clear of the curtains (22.5 to 22.8) and the aisle (x < 8)
+FURN_X = (9, 22.4)  # leaves the aisle (x < 8) clear
 
 
 def moved(cube, offset):
@@ -307,6 +307,8 @@ def mirror_chrome_pixel(x, y):
 
 
 def region_pixel(region, x, y):
+    if region.name == "burner_cast":
+        return PALETTE["tire" if (x, y) in BURNER_CAST_DOTS else "grille"]
     if region.name == "mirror_chrome":
         return mirror_chrome_pixel(x, y)
     if region.name == "rib":
@@ -328,11 +330,86 @@ def region_pixel(region, x, y):
     return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
 
 
+BURNER_CAST_REGION = ATLAS.allocate("burner_cast", 8, 8)
+BURNER_CAST_DOTS = ((2, 3), (6, 5))
+def wheel_holes() -> list[tuple]:
+    arch_holes = []
+    for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_INSET in fine steps
+        arch_holes.append((a0, a1, 0, ARCH_SLOPE_Y))
+        n = round((ARCH_TOP - ARCH_SLOPE_Y) / ARCH_STEP)
+        for i in range(n):
+            inset = ARCH_INSET * (i + 0.5) / n
+            y = ARCH_SLOPE_Y + i * ARCH_STEP
+            arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
+    return arch_holes
+
+
+def side_holes(windows: list, right: bool) -> list:
+    return windows + wheel_holes() + [(SIDE0, -50.5, 35.4, 52)] + ([DOOR] if right else [])
+
+
+def surface_geometry() -> list[dict]:
+    cubes = [box(-HW + 1, 13, FRONT + 1, HW - 1, FLOOR, REAR_INNER, "wood")]
+    for inner, windows, right in ((HW - 1.2, right_windows, True), (-HW + 1, left_windows, False)):
+        cubes += panel("x", inner, inner + 0.2, FRONT + 8, REAR_INNER, FLOOR, CEIL - 0.2,
+                       side_holes(windows, right), "wall_in")
+    return cubes
+
+
+def wheel_well_holes():
+    """Wheel-well cuts applied to the merged floor and furniture before adding panels."""
+    for sgn in (1, -1):
+        for a0, a1 in ARCHES:
+            x_room, x_wall = (sgn * (HW - d) for d in (5.7, 1))
+            yield (min(x_room, x_wall), -99, a0 - 0.3, max(x_room, x_wall), ARCH_TOP + 0.8, a1 + 0.3)
+
+
 regions = load_tool("camper_regions")
+assert WIN_Y == regions.CURTAIN_WINDOW_Y, "curtain geometry is baked for another window height"
 REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
 load_tool("camper_seat_textures").register(REGISTRY)
-LAYOUT = regions.pack(REGISTRY)
+kitchen = load_tool("camper_kitchen")
+
+
+def register_kitchen_materials(registry):
+    """Reserve shared kitchen materials before either area's faces are emitted."""
+    refs = kitchen.register_kitchen(registry)
+    load_tool("camper_kitchen_fronts").register_panel(registry)
+    return refs
+
+
+KITCHEN_REGIONS = kitchen.register_kitchen(REGISTRY)
+load_tool("camper_surfaces").register_surfaces(REGISTRY)
+CURTAIN_REF = REGISTRY.register(regions.Region(
+    "light curtain fabric", 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
+DOOR_REFS = load_tool("camper_door_materials").register(REGISTRY, PALETTE)
 ATLAS.base_ref = BASE_REF
+
+AREA_ORDER = (
+    "shell", "surfaces", "curtains", "door", "front", "rear", "roof", "running", "cab", "cab_seats",
+    "bed_bunk", "fridge", "kitchen", "kitchen_fronts", "room", "shower", "ceiling", "dinette", "arches",
+)
+
+
+def prepare_layout():
+    """Register area materials before any geometry resolves the shared atlas."""
+    if REGISTRY._layout is None:
+        for name in AREA_ORDER:
+            module = load_tool(f"camper_{name}")
+            register = getattr(module, "register_regions", None)
+            if register is not None:
+                register(REGISTRY)
+        regions.pack(REGISTRY)
+    return REGISTRY._layout
+
+
+def __getattr__(name):
+    if name == "LAYOUT":
+        return prepare_layout()
+    raise AttributeError(name)
+
+
+ATLAS.prepare = prepare_layout

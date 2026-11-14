@@ -1,39 +1,53 @@
 # Model conventions and rendered previews
 
-- Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, and how the SUV and sports boat README previews and the pack icons are rendered from the model files and kept fresh.
+- Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV and sports boat README previews and the pack icons are rendered from the model files and kept fresh.
 - Verified at: 7267bd8a
-- Source: [0067](../adr/0067-camper.md)
 - Source: [0009](../adr/0009-vehicle-model-conventions.md)
 - Source: [0016](../adr/0016-readme-preview-rendered-from-model.md)
 - Source: [0027](../adr/0027-readme-previews-in-three-poses.md)
 - Source: [0045](../adr/0045-submarine-preview.md)
 - Source: [0049](../adr/0049-pack-icons-rendered-from-model.md)
 - Source: [0056](../adr/0056-sports-boat-previews.md)
+- Source: [0067](../adr/0067-camper.md)
 - Source: [0101](../adr/0101-give-invisible-blocks-a-hidden-cube.md)
+- Source: [0147](../adr/0147-light-the-lamps-with-a-pbr-emissive-layer.md)
 - Source: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md)
+- Source: [0190](../adr/0190-ribbed-camper-shell-atlas.md)
 - Source: [0193](../adr/0193-shared-texture-tooling.md)
+- Source: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md)
+- Source: [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md)
 - Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md)
 - Excluded: [0241](../adr/0241-dining-table-top-blocks.md): Dining Table physics and hosted-item clearance belong to the resort gear topic
 - Excluded: [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md): the model job's path filter belongs to the testing-and-ci topic; only the part 0193 amends is stated here (see Model freshness check)
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
-- Excluded: [0136](../adr/0136-bulldozer.md): extends 0027 and 0045 with the bulldozer previews, which belong to the bulldozer topic; the camper, bulldozer, camping gear, chair and tent previews drawn by the same renderer are not stated here
+- Excluded: [0136](../adr/0136-bulldozer.md): extends 0027 and 0045 with the bulldozer previews, which belong to the bulldozer topic; the bulldozer, camping gear, chair and tent preview sets drawn by the same renderer are not stated here
 - Excluded: [0068](../adr/0068-park-the-camper-with-room-blocks.md): parked room behavior belongs to the camper topic
 - Excluded: [0069](../adr/0069-camper-right-hand-drive.md): the cab layout belongs to the camper topic
 - Excluded: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md): front geometry belongs to the camper topic
 - Excluded: [0226](../adr/0226-lean-and-fold-the-camper-front-panels.md): front panel shape belongs to the camper topic
+- Excluded: [0192](../adr/0192-suv-detailed-body.md): SUV texture regions and materials are outside the camper companion-map scope
 
 ## Rules
+
+### Camper preview texture density
+
+- Applies to: The four `camper-*.png` README previews only.
+- Rule: Textured faces split at texel boundaries and merge adjacent equal colors. Along each face axis, if the texel cell count exceeds `ceil(edge length * CAMPER_CELLS_PER_UNIT)`, replace those breaks with that many uniform cells (at least one), sampling the texel under each cell center. Faces below the limit retain their exact patches. The cap is 16 cells per model unit: the fitted camera reaches at most about 16.64 supersampled or 5.55 final pixels per model unit, leaving over two cells per final pixel. This bounds preview geometry for kitchen counter, range and burner faces mapping whole laminate and stainless regions, up to 192 by 192 texels, onto sub-unit strips without changing generated geometry, UVs, other previews, or icons. The face cache includes the cap.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
+- Implementation: `tools/render_preview.py` (`CAMPER_CELLS_PER_UNIT`, `CAMPER_POSES`, `textured_face`, `collect_boat`).
+- Verification: `tests/tools/renderPreview.test.ts` checks unchanged patches below the cap, capped cell counts and coverage, and midpoint colors with mirrored UVs and merging enabled or disabled; `pnpm model:check` checks preview freshness.
 
 ### Camper generator modules
 
 - Applies to: Camper geometry generation and the final cube ownership fixture.
-- Rule: `camper_regions.RegionRegistry` owns immutable named texture regions and material classifications. Deterministic MaxRects packing resolves `RegionRef.uv` in atlas texels without rotation or resampling; default gutters are two transparent texels between regions. The nested swatch atlas remains the 114 by 220 `base` region, with local swatch/hardware coordinates unchanged. A base-only pack keeps origin `(0, 0)`, geometry and texture bytes. `render_atlas` returns RGBA bytes; generation audits exact pixel-function output, region bounds/separation, and both endpoints of every emitted face. Area builders return fresh bone cube lists without file writes. The orchestrator preserves the existing geometry, atlas allocations, bone order, and cube order, and writes area ranges alongside the existing assets. Generate only `camper.png` as the khaki colour atlas, with the existing lit and mirror companion maps; do not generate per-paint files. The client base pass uses `Texture.default` directly. Item, README, and pack-icon previews use the same khaki atlas.
+- Rule: `camper_regions.RegionRegistry` owns immutable named texture regions and material classifications. Deterministic MaxRects packing resolves `RegionRef.uv` in atlas texels without rotation or resampling; default gutters are two transparent texels between regions. The nested swatch atlas remains the 114 by 220 `base` region, with local swatch/hardware coordinates unchanged. A base-only pack keeps origin `(0, 0)`, geometry and texture bytes. `camper_kit.prepare_layout()` calls each area's optional `register_regions(registry)` hook in `AREA_ORDER` before a single shared pack. Layout access and the first swatch face prepare this final layout lazily, so independent `build()` calls use the same coordinates. No area resolves UVs during registration. The base region may move, and the lit swatch mask, mirror texture and mirror MER mask follow its final origin. `render_atlas` returns RGBA bytes; generation retains explicit face bindings, assigns remaining faces to the registered region containing their complete UV rectangle, and rejects faces outside all regions. It audits exact pixel-function output, region bounds/separation, and both endpoints of every emitted face. Area builders return fresh bone cube lists without file writes. The orchestrator preserves the existing geometry, atlas allocations, bone order, and writes final ownership ranges alongside the existing assets. Generate only `camper.png` as the khaki colour atlas, with the existing lit and mirror companion maps; do not generate per-paint files. The client base pass uses `Texture.default` directly. Item, README, and pack-icon previews use the same khaki atlas. Camper previews cap dense textured faces at `CAMPER_CELLS_PER_UNIT = 2` cells per model pixel along each edge. Round rotated edge lengths to six decimal places before taking the cell-count ceiling so trigonometric noise cannot change tessellation. Lower-density UVs retain their texel boundaries; generated pack textures retain full resolution.
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "The orchestrator preserves bone and cube order and writes final ownership ranges to `tests/packs/fixtures/camper-areas.json` without adding cube fields"
 - Implementation: `tools/gen_camper.py`; `tools/camper_kit.py`; `tools/camper_regions.py`; `tools/camper_golden.py`; `tools/generators.json`; `tests/packs/fixtures/camper-areas.json`; area modules listed below.
-- Verification: `tests/tools/camperRegions.test.ts` covers deterministic packing, gutters, bounds, UV mapping and byte corruption. `tests/tools/camperGolden.test.ts` checks `camper_golden.py compare --golden-dir DIR [--area NAME]` with temporary compressed-model/region fixtures: match exits 0, mismatch prints a unified diff and exits 1; area selection compares only that area's bone counts and used regions. The CLI reads current pack geometry, registry placements and area ranges, and golden `packed_origin` values. Area labels are exact: module and spike feature names that differ appear as missing content on the corresponding side; there is no inferred aliasing. Counts use actual selected cubes, including when an ownership range is stale. Local golden artifacts are never imported or committed. `tests/packs/camperAreas.test.ts` "assigns every final camper cube to exactly one area range", "builds independent areas repeatedly without changing the shared atlas"; `pnpm model:check` checks fixture freshness. Geometry and retained atlas pixels remain unchanged after `pnpm model`; the fifteen unused colour atlases are removed. `tests/tools/camperAtlas.test.ts` "writes only the khaki colour atlas and companion maps" checks generation into an empty directory.
+- Verification: `tests/tools/camperRegions.test.ts` covers deterministic packing, gutters, bounds, UV mapping and byte corruption, plus shower material declarations, approved per-region RGBA hashes, the 950 added cubes after cleanup and builds against a caller's packed registry with a relocated base. `tests/tools/camperGolden.test.ts` checks `camper_golden.py compare --golden-dir DIR [--area NAME]` with temporary compressed-model/region fixtures: match exits 0, mismatch prints a unified diff and exits 1; area selection compares only that area's bone counts and used regions. The CLI reads current pack geometry, registry placements and area ranges, and golden `packed_origin` values. Area labels are exact: module and spike feature names that differ appear as missing content on the corresponding side; there is no inferred aliasing. Counts use actual selected cubes, including when an ownership range is stale. Local golden artifacts are never imported or committed. `tests/packs/camperAreas.test.ts` "assigns every final camper cube to exactly one area range", "builds independent areas repeatedly without changing the shared atlas"; `pnpm model:check` checks fixture freshness. Other areas retain their geometry and base-local atlas pixels when new regions move the packed base; the fifteen unused colour atlases are removed. `tests/tools/camperAtlas.test.ts` "writes only the khaki colour atlas and companion maps" checks generation into an empty directory.
 
 `tools/gen_camper.py` loads the following area builders through `tool_loader.load_tool`,
 then performs wheel-well cuts on the merged body and dinette seats, extracts lamps and
@@ -276,6 +290,15 @@ Both `pnpm model` and `pnpm model:check` include this fixture and its formatting
 - Implementation: `tools/gen_sofa.py`; `tools/render_preview.py` (`small_models`, `ICON_NAMES`, `render_gear`); `package.json`.
 - Verification: `tests/tools/sofa.test.ts`; `tests/packs/sofaSingle.test.ts`; `tests/packs/sofaDouble.test.ts`; `tests/tools/renderPreview.test.ts`. Owner review against the reference photos and PC/mobile checks remain pending.
 
+### Camper companion maps and interior finishes
+
+- Applies to: Camper atlas generation and client texture sets.
+- Rule: All four lit/mirror companion maps and `camper_interior_mer.png` use `Layout.size`. Lamp masks resolve lens, marker_amber, marker_red, dome and glow through the registered `base` origin; only these lit MER texels are `(0,255,255)`. The mirror mask resolves the nested 16 x 32 `mirror_chrome` tile through that origin; only its mirror MER texels are `(255,0,26)`. Other companion MER texels are `(0,0,255)`. Interior MER follows region materials and the mixed base's semantic swatch/hardware tables in ADR 0193, with G = 0 and alpha 255 everywhere, including unused space. Metals use roughness 60 by material and 50-80 by palette, lacquer 80-90, vinyl 175-190, wood 150-160, fabric 235-245, carpet 250, tile 80, stone/dark lacquer 85, and instrument glass 65. The mirror tile retains roughness 26. The 1.16.100 `camper.texture_set.json` binds colour `camper` to `camper_interior_mer`; the existing `Texture.default` / `entity` base pass permits this without changes to lit, glow or mirror materials, visibility or switches. Without Vibrant Visuals, interior surfaces keep diffuse colour and mirrors keep their baked gradient; lamps retain legacy alpha-mask glow. No normal or height map is generated.
+- Agreement: Proposed
+- Basis: [0147](../adr/0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md), [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md), [0190](../adr/0190-ribbed-camper-shell-atlas.md), [0193](../adr/0193-shared-texture-tooling.md).
+- Implementation: `tools/camper_mer.py`; `tools/lit_textures.py`; `tools/mer.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride/camper.texture_set.json`.
+- Verification: `tests/tools/mer.test.ts` exercises shifted region origins, exact material values, bounded lamp/mirror masks, hardware, gutters and opaque zero-emission interiors. `tests/packs/litTextures.test.ts` and `tests/packs/camperGlow.test.ts` check dimensions, texture-set binding and unchanged switched-pass contracts. Client highlights and diffuse fallback are not verifiable offline; no device acceptance is claimed.
+
 ## Open issues
 
 Where an ADR and the implementation differ, this spec states the implementation and lists the difference here.
@@ -312,4 +335,4 @@ Where an ADR and the implementation differ, this spec states the implementation 
 - ADR 0101 Decision lists eight invisible blocks; the test lists seventeen, including the tent blocks and extra camper blocks added by later ADRs (`tests/packs/blockGeometry.test.ts`, `INVISIBLE_BLOCKS`); the ADR needs an edit, or the later ADRs should say they extend the list.
 - ADR 0101 asks for a manual check that no hidden-bone dot shows on a client; the manual-test rows that mention it (B17, C72, C73) have empty result cells: `docs/manual-test.md`.
 - ADR 0193 says every generated file stays byte-identical when a generator adopts the modules; no test compares bytes, and `pnpm model:check` compares decoded PNG pixels and parsed JSON only (`tools/texture_io.py`).
-- The renderer also writes the camper, bulldozer, camping gear, chair, tent and item previews, and `README.md` shows the camper and bulldozer tables; these pictures are not specified here, so no rule in this spec covers them: `tools/render_preview.py`, `README.md`.
+- The renderer also writes the camper, bulldozer, camping gear, chair, tent and item previews, and `README.md` shows the camper and bulldozer tables; apart from camper texture density and the gear rules above, these preview sets are not specified here: `tools/render_preview.py`, `README.md`.

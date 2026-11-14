@@ -23,3 +23,8 @@ def build_lit_textures(out, directory, kind, width, height, pixel, is_lit,
     out.png(directory / f"{kind}_lit_mer.png", width, height,
             mer.mer_painter(lambda x, y: lit_mer if is_lit(x, y) else off_mer))
     write_texture_set(out, directory, f"{kind}_lit")
+
+
+def build_layout_lit_textures(out, directory, kind, layout, pixel, region_name, local_mask):
+    build_lit_textures(out, directory, kind, *layout.size, pixel,
+                       mer.layout_mask(layout, region_name, local_mask))
