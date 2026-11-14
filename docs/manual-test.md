@@ -775,6 +775,8 @@ Run on PC (keyboard and mouse) and iPad (touch) after `pnpm server:restart`. Rec
 
 Recorded on: PC device: PENDING; PC Minecraft version: PENDING; Mobile device (iPad): PENDING; Mobile Minecraft version: PENDING.
 
+Probe note: in the first iPad probe session the presses came in the order top drawer, then bottom drawer, so the reported side-face y (top 4.679 px, bottom 10.467 px) shows the inversion on touch. The input probe does not see presses the add-on handles, so rows KD1-KD12 cannot be judged from probe output alone.
+
 A failing row gets a follow-up issue; do not fix it in this PR.
 
 | #    | Steps                                                                                                             | Pass condition                                                                                   | PC      | Mobile  |
