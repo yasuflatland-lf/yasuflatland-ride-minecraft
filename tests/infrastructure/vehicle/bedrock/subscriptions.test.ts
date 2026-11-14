@@ -1472,6 +1472,7 @@ function decorFixture() {
     player: {
       id: "p",
       selectedSlotIndex: 4,
+      inputInfo: { lastInputModeUsed: "KeyboardAndMouse" },
       location: { x: 1.5, y: 65, z: 2.5 },
       getHeadLocation: () => ({ x: 1.5, y: 66.62, z: 2.5 }),
     },
@@ -2438,6 +2439,7 @@ it("routes floor side-face presses through the drawer ray without using floor he
       blockFace: "West",
       faceLocation: { x: 0, y: 0.25, z: 0.5 },
     });
+    ev.player.inputInfo.lastInputModeUsed = "Touch";
     const counter = { x: 0, y: 65, z: 2 };
     f.storage.drawerTarget.mockReturnValue({ cell: counter });
     f.storage.execute.mockReturnValue(true);
@@ -2459,7 +2461,7 @@ it("routes floor side-face presses through the drawer ray without using floor he
   }
 });
 
-it("routes drawer front presses with raw side height and the press ray while cancelling held repeats", () => {
+it("routes keyboard and mouse drawer front presses with raw side height while cancelling held repeats", () => {
   fc.assert(
     fc.property(fc.double({ min: 0.05, max: 0.8, noNaN: true }), (height) => {
       const f = decorFixture();

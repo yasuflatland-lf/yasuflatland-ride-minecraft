@@ -34,6 +34,7 @@ import {
   isDecorBlock,
   pairDecorBlockId,
 } from "../identifiers";
+import { sideFaceHeight } from "../sideFaceHeight";
 
 type DockCellOwner = (
   dimensionId: DimensionId,
@@ -282,9 +283,9 @@ function drawerPress(
   let cell = { ...ev.block.location };
   const point = {
     x: cell.x + ev.faceLocation.x,
-    // Up and Down faces have known box heights. A side face reports the real
-    // height on 1.26.63 touch (measured 4.679 and 10.467 px for the two drawers),
-    // so the drawers cell picks its drawer from it; depth is not trusted.
+    // Up and Down faces have known box heights. Side-face y is inverted on
+    // iPad touch 1.26.63 (measured); PC mouse is unmeasured and keeps the
+    // reported height. The domain receives true height (ADR 0121, 0111).
     y:
       cell.y +
       (ev.blockFace === "Up" || ev.blockFace === "Down"
@@ -293,7 +294,12 @@ function drawerPress(
             ev.faceLocation.y,
             pressedShape(ev.block.typeId, undefined),
           )
-        : ev.faceLocation.y),
+        : ev.block.typeId === id("camper_floor")
+          ? ev.faceLocation.y
+          : sideFaceHeight(
+              ev.faceLocation.y,
+              ev.player.inputInfo.lastInputModeUsed,
+            )),
     z: cell.z + ev.faceLocation.z,
   };
   const playerId = asPlayerId(ev.player.id);
