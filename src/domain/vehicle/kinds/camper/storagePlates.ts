@@ -3,7 +3,11 @@ import type { Vec2, Vec3 } from "../../../shared/vec";
 import { type DecorPlacement, decorFace } from "../../dock/decor";
 import type { DockCell, Face, HoldPose } from "../../dock/floor";
 import { pairItems, slotCells } from "./decorCells";
-import type { StorageDoor } from "./dooredStorage";
+import type {
+  HingedStorageDoor,
+  StorageDoor,
+  StorageOpening,
+} from "./dooredStorage";
 import {
   CEILING_LIGHTS,
   type LocalCell,
@@ -21,8 +25,11 @@ import {
 } from "./roomGeometry";
 
 // The side of a plate's cell where its door's hinge is, so the plate stands where the open door does.
-export function plateFace(door: StorageDoor, f: Vec2): Face {
-  return faceToward({ x: door.hinge * f.x, z: door.hinge * f.z });
+export function plateFace(
+  opening: Extract<StorageOpening, { kind: "hinged" }>,
+  f: Vec2,
+): Face {
+  return faceToward({ x: opening.hinge * f.x, z: opening.hinge * f.z });
 }
 
 function isLightCell(cell: LocalCell): boolean {
@@ -34,8 +41,12 @@ function isLightCell(cell: LocalCell): boolean {
 /** The doors whose plates stand in the room's inside layers, where the ceiling does not lay them (ADR 0121). */
 function insidePlateDoors<Id extends string>(
   doors: readonly StorageDoor<Id>[],
-): StorageDoor<Id>[] {
-  return doors.filter(({ plate }) => plate.layer !== CEILING_LAYER);
+): HingedStorageDoor<Id>[] {
+  return doors.filter(
+    (door): door is HingedStorageDoor<Id> =>
+      door.opening.kind === "hinged" &&
+      door.opening.plate.layer !== CEILING_LAYER,
+  );
 }
 
 type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
@@ -78,10 +89,10 @@ export function storagePlateCells(
   return insidePlateDoors(doors)
     .filter(({ id }) => open.has(id))
     .map((door) => ({
-      ...localCellAt(pose, door.plate),
+      ...localCellAt(pose, door.opening.plate),
       block: door.unit.plateBlock({
-        face: plateFace(door, f),
-        lit: lightsOn && isLightCell(door.plate),
+        face: plateFace(door.opening, f),
+        lit: lightsOn && isLightCell(door.opening.plate),
       }),
     }));
 }
@@ -97,7 +108,7 @@ export function storagePlateChecks<Id extends string>(
 ): { door: StorageDoor<Id>; cell: Vec3 }[] {
   return insidePlateDoors(doors).map((door) => ({
     door,
-    cell: localCellAt(pose, door.plate),
+    cell: localCellAt(pose, door.opening.plate),
   }));
 }
 
@@ -127,7 +138,10 @@ export function storagePressTarget<Id extends string>(
     const c = localCellAt(pose, local);
     return c.x === cell.x && c.y === cell.y && c.z === cell.z;
   };
-  const door = doors.find((d) => at(d.compartment) || at(d.plate));
+  const door = doors.find(
+    (d) =>
+      at(d.compartment) || (d.opening.kind === "hinged" && at(d.opening.plate)),
+  );
   return door && { door, onCompartment: at(door.compartment) };
 }
 

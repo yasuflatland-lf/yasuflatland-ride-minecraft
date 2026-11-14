@@ -30,6 +30,8 @@ Facts this decision builds on:
 
 ## Decision
 
+Storage uses `StorageOpening`: either hinged, with a hinge and an aisle plate for the swinging door, or sliding, a drawer with no hinge or plate (0121). Both kinds share opening progress from 0 to `DOOR_STEPS` over 10 ticks, tap toggling and closing at departure. The wall cabinet's existing doors remain hinged with the same cells, properties and behavior; this abstraction adds no drawer unit.
+
 ### The model
 
 - The cabinet hangs from the ceiling plate down to model y 50, clear of the window's top at 49: a floor from 50 to 51, a top panel from 60 to 61, a back against the wall, its two ends, and a divider at z 24, the edge between the sink and stove cells. Each compartment spans its cell, so its middle is its cell's middle. Inside, a compartment is 9 px high, over the tallest item

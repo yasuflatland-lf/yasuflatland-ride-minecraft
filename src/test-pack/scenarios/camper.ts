@@ -689,8 +689,10 @@ async function camperStorage(
       );
     }).length;
     const shutPlates = c.unit.doors.filter(
-      ({ plate }) =>
-        a.dim.getBlock(localCellAt(pose, plate))?.typeId === c.shutPlate,
+      ({ opening }) =>
+        opening.kind === "hinged" &&
+        a.dim.getBlock(localCellAt(pose, opening.plate))?.typeId ===
+          c.shutPlate,
     ).length;
     const spot = a.at(108, a.gy + 2, 78);
     const resolved: string[] = [];

@@ -31,26 +31,27 @@ Issue #461 splits the work in two. This ADR covers the first step: rebuild "stor
 
 - A unit of storage with doors is a `DooredStorage` in `src/domain/vehicle/kinds/camper/furniture.ts`. It has:
   - `pairKind`: the `DecorPairEnd.kind` of its slots. Its compartments lay `<pairKind>_decor_pair`
-  - its doors. Each door has an `id`, its `compartment` cell, the `plate` cell in the aisle where the open door stands, its `hinge` (1 at the compartment's front end, -1 at the rear end), and the compartment's two `slots` (end 0, then end 1)
+  - its doors. Each door has an `id`, its `compartment` cell, an `opening: StorageOpening`, and the compartment's `slots` (end 0, then end 1 for the existing pair compartments). An opening is either `hinged`, with a `hinge` (1 at the compartment's front end, -1 at the rear end) and the `plate` cell in the aisle where the swinging door stands, or `sliding`, a drawer with no hinge or plate
   - `compartmentBlock`, which builds the compartment block from a look: face, open, height of the first slot, and the two items
   - `plateBlock`, which builds the open door's plate from a look: its face, and `lit` when the plate stands in a ceiling light's cell while the lights are on, so the plate gives that light (0115)
   - `plateBlockName`, the namespace-free name of the plate block, which a plate cell in the inside layers may hold on departure
 - The blocks the units lay are the unions `StorageCompartmentBlock` and `StoragePlateBlock` in `furniture.ts`, next to the definitions. A new unit adds its block types there and to `DockBlock`
-- The wall cabinet, `WALL_CABINET`, is the only definition. Its doors, cells, plates, hinges, slots, and blocks are the ones 0114 sets. Its plates are in the ceiling layer, so they are never lit. `CAMPER_STORAGE` lists the units in order, and `STORAGE_DOORS` lists their doors in the same order. The units' furniture rows come last in `CAMPER_FURNITURE`, in `CAMPER_STORAGE` order. So saved decor that loses its slot fills every open spot before any compartment (0103, 0114)
+- The wall cabinet, `WALL_CABINET`, and the fridge, `FRIDGE` (0123), are the shipped definitions, both with hinged openings. No sliding unit is added by the opening abstraction. For the wall cabinet, its doors, cells, plates, hinges, slots, and blocks are the ones 0114 sets. Its plates are in the ceiling layer, so they are never lit. `CAMPER_STORAGE` lists the units in order, and `STORAGE_DOORS` lists their doors in the same order. The units' furniture rows come last in `CAMPER_FURNITURE`, in `CAMPER_STORAGE` order. So saved decor that loses its slot fills every open spot before any compartment (0103, 0114)
 - `StorageDoorId` is the union of the door ids. Each id needs an entity property in `STORAGE_DOOR_PROPERTY` (`entity.ts`), or the code does not compile. The entity contract stays in `entity.ts` (0067)
-- Every door swings in `CAMPER_SPEC.doorSwingTicks`, as in 0105. A unit gets its own timing only when it needs a different value (0050)
+- Every hinged or sliding opening shares opening progress from 0 to `DOOR_STEPS` in `CAMPER_SPEC.doorSwingTicks` (10 ticks), as in 0105. A unit gets its own timing only when it needs a different value (0050)
 
 ### Shared code
 
 - `dooredStorage.ts` holds the code and no unit data:
-  - `StorageDoors` keeps each door's target, swing step, tap window and synced value. It also restores the swing from the saved property, rounded and clamped, only for a docked camper. It swings the doors and sends their commands in door order, shuts every door on departure, and runs a press. A press does nothing within a swing of that door's last action. Otherwise, on an open compartment it takes an item out, and if no item comes out it toggles the door
+  - `StorageDoors` keeps each opening's target, opening progress, tap window and synced value. It also restores opening progress from the saved property, rounded and clamped, only for a docked camper. It advances opening progress and sends commands in door order, shuts every opening on departure, and runs a press. A press does nothing within the 10-tick window of that opening's last action. Otherwise, on an open compartment it takes an item out, and if no item comes out it toggles the door
   - pure queries: the door of a compartment cell, the open door whose plate is in a cell, and whether a slot can be used given the open doors
 - The definitions are constant data, so a test checks them instead of the running code: door ids are unique, no two compartments or plates share a cell, none is on a furniture block, no plate covers a slot outside storage, every plate is in the ceiling layer or an inside layer, and each compartment holds ends 0 and 1 of its unit's pair kind, behind its door
-- `doorSwing.ts` holds the swing helpers that the entry door, the shower door and `StorageDoors` share
+- `doorSwing.ts` holds kind-neutral opening progress (`stepOpening`, `DOOR_STEPS`, `restoredDoorStep`) shared by hinged and sliding openings. `swing` wraps that step for the entry and shower doors
 - `room.ts` handles everything that depends on the pose:
   - `compartmentCells` (formerly `cabinetCells`)
   - the ceiling cell: no ceiling over a compartment, and an open door's plate under the ceiling
-  - `storagePlateCells`: an open door's plate in the inside layers (layers 1 and 2), which the ceiling does not lay. The drive lays it after the compartments
+  - Sliding openings have no plate: `openPlateAt`, `storagePlateCells`, `storagePlateChecks` and plate press routing skip them. A sliding compartment still receives presses, and `cargoCells` excludes only actual plate cells
+  - `storagePlateCells`: an open hinged door's plate in the inside layers (layers 1 and 2), which the ceiling does not lay. The drive lays it after the compartments
   - `storagePlateChecks`: the plate cells in the inside layers. `parkCheckCells` checks them, `cargoCells` leaves them out, and departure reads them with `ownPlateBlock`, which takes air or the door's own plate block, since departure shuts the door and the plate goes with it
   - `storagePressTarget`, which maps a pressed world cell to a door. It matches a plate cell whether or not the door is open. A press reaches it only from a block with the storage component. A shut door's plate cell holds the ceiling, air, or a player's block, except on the tick before the next lay takes its plate away, which falls within the door's swing window (0105)
   - `decorBlockName` and `furnitureCells` for compartment cells
@@ -71,7 +72,7 @@ Issue #461 splits the work in two. This ADR covers the first step: rebuild "stor
 
 - The fridge model uses photo-based rounded cream doors, recessed bevelled panels and horizontal chrome levers toward the entry door (0123). Its hinges stay on the cab side, left from the aisle; the model refinement preserves the shared door swing, compartment cells, plates and decor slots
 
-- The fridge (#455) will be a second definition, listed after the wall cabinet in `CAMPER_STORAGE`. It brings its own:
+- The fridge (0123) is the second definition, listed after the wall cabinet in `CAMPER_STORAGE`. It brings its own:
   - door ids in `StorageDoorId`, and their entity properties in `STORAGE_DOOR_PROPERTY`
   - compartment and plate block types, added to `DockBlock` with their `sameBlock` cases, to the two storage block unions, and to the infrastructure's block mapping, plus a row in `faceHeight.ts`
   - pair kind in `StoragePairKind`, model, and pack files

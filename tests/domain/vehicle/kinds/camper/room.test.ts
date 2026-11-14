@@ -56,6 +56,7 @@ import {
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
+import { hingedOpening } from "../../../../support/storageOpening";
 
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });
 const location = fc.record({
@@ -123,7 +124,7 @@ it("lays 107 distinct integer cells with the specified counts at any snapped pos
         });
         const cells = roomCells(p, open, cabinets, showerOpen);
         const underCeiling = STORAGE_DOORS.filter(
-          (d) => d.plate.layer === 3 && cabinets.has(d.id),
+          (d) => hingedOpening(d).plate.layer === 3 && cabinets.has(d.id),
         ).length;
         expect(cells).toHaveLength(107);
         expect(new Set(cells.map(cellKey)).size).toBe(107);
@@ -1011,7 +1012,9 @@ it("lays the cabinet blocks over the sink and the stove in the ceiling layer, in
         [1, 2].map((layer) => cellKey(at(-1, 1, layer))),
       );
       for (const key of compartments) expect(byKey.has(key)).toBe(false);
-      for (const { id: door, plate: aisle, hinge } of STORAGE_DOORS) {
+      for (const storageDoor of STORAGE_DOORS) {
+        const { id: door } = storageDoor;
+        const { plate: aisle, hinge } = hingedOpening(storageDoor);
         if (aisle.layer !== 3) continue;
         const block = byKey.get(cellKey(at(aisle.x, aisle.z, aisle.layer)));
         expect(block).toEqual(
