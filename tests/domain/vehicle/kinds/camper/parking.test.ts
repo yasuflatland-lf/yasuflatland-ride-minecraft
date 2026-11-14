@@ -617,13 +617,13 @@ it("departs past its own decor blocks and refuses any other block in a slot cell
   const parked = (withDecor = true) => {
     const f = fixture();
     if (withDecor)
-      f.drive.setDecor(decorSlotId("counter"), decorItemId("potted_plant"));
+      f.drive.setDecor(decorSlotId("stove"), decorItemId("potted_plant"));
     f.park();
     f.step();
     return f;
   };
   const f = parked();
-  const table = decorSlotCell(f.pose, slotNamed("counter"));
+  const table = decorSlotCell(f.pose, slotNamed("stove"));
   f.blocks.set(cellKey(table), "yasu_ride:potted_plant_decor");
   const out = f.step(PUSH);
   expect(out.depart).toBeDefined();

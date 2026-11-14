@@ -19,6 +19,8 @@ it("restores the form, docked, door, and ceiling light properties and writes the
     "cabinet_stove_door",
     "fridge_top_door",
     "fridge_bottom_door",
+    "drawer_top",
+    "drawer_bottom",
     "ceiling_lights",
   ]);
   expect(ceilingLightsCommand(true)).toEqual({

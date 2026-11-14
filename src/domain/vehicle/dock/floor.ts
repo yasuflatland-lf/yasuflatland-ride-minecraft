@@ -13,7 +13,7 @@ export interface HoldPose {
 export type Face = 0 | 1 | 2 | 3;
 
 export type DockBlock =
-  /** Gated until #1684 supplies the combined counter/drawer pack block. */
+  /** Combined counter surface and independently visible drawer contents. */
   | {
       readonly type: "drawers";
       readonly face: Face;

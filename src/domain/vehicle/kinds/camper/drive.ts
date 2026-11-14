@@ -28,6 +28,7 @@ import {
   cellTaken,
   DECOR_CELLS,
   DECOR_SLOTS,
+  decorFits,
   decorSlot,
   savedSlotId,
   sharingSlots,
@@ -42,6 +43,7 @@ import {
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { StorageDoors } from "./dooredStorage";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
+import { drawerHit } from "./drawerHit";
 import {
   type CAMPER_ENTITY,
   ceilingLightsCommand,
@@ -234,14 +236,26 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     cell: Vec3,
     point: Vec3 | undefined,
     tick: number,
-    takeContents = true,
+    takeContents?: boolean,
+    eye?: Vec3,
+    openOnly = false,
   ): StoragePress | undefined {
     const pose = this.parked;
+    const hit =
+      pose && point && eye
+        ? drawerHit(pose, cell, eye, point, this.placed(), this.storage.open())
+        : undefined;
+    point = hit?.point ?? point;
     const target = pose && storagePressTarget(pose, cell, STORAGE_DOORS, point);
-    if (!pose || !target) return undefined;
+    if (
+      !pose ||
+      !target ||
+      (openOnly && this.storage.open().has(target.door.id))
+    )
+      return undefined;
     return this.storage.press(
       target.door.id,
-      target.onCompartment && takeContents,
+      target.onCompartment && (takeContents ?? hit?.takeContents ?? true),
       tick,
       () => {
         const ends = slotsAt(pose, cell).filter(
@@ -324,9 +338,22 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       this.decorBySlot.delete(slot);
       return true;
     }
+    if (!this.canSaveDecor(target, item)) return false;
     for (const other of sharingSlots(target)) this.decorBySlot.delete(other.id);
     this.decorBySlot.set(slot, item);
     return true;
+  }
+
+  private canSaveDecor(
+    target: Parameters<typeof sharingSlots>[0],
+    item: DecorItemId,
+  ): boolean {
+    const replaced = new Set(sharingSlots(target).map((s) => s.id));
+    return decorFits([
+      ...this.placed().filter((d) => !replaced.has(d.slot)),
+      ...this.stowedDecor,
+      { slot: target.id, item },
+    ]);
   }
 
   // No roomLaid check: parkedStep sets it on the parking tick itself, so it is
@@ -340,7 +367,18 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     eye?: Vec3,
   ): DecorSlotId | undefined {
     if (!this.parked) return undefined;
-    return slotForPress(
+    point =
+      (eye
+        ? drawerHit(
+            this.parked,
+            cell,
+            eye,
+            point,
+            this.placed(),
+            this.storage.open(),
+          )?.point
+        : undefined) ?? point;
+    const slot = slotForPress(
       this.parked,
       item,
       this.placed(),
@@ -349,7 +387,8 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       exact,
       eye,
       this.storage.open(),
-    )?.id;
+    );
+    return slot && this.canSaveDecor(slot, item) ? slot.id : undefined;
   }
 
   placeDecor(slot: DecorSlotId, item: DecorItemId): boolean {
@@ -368,6 +407,23 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
    */
   removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): DecorItemId | undefined {
     if (!this.parked) return undefined;
+    const hit =
+      point && eye
+        ? drawerHit(
+            this.parked,
+            cell,
+            eye,
+            point,
+            this.placed(),
+            this.storage.open(),
+          )
+        : undefined;
+    if (
+      point &&
+      storagePressTarget(this.parked, cell, STORAGE_DOORS, hit?.point ?? point)
+        ?.door.acceptsPress !== undefined
+    )
+      return undefined;
     // A storage compartment gives its items back only through pressStorage (ADR 0114, 0121).
     const held = slotsAt(this.parked, cell).filter(
       ({ id, door }) => door === undefined && this.decorBySlot.has(id),

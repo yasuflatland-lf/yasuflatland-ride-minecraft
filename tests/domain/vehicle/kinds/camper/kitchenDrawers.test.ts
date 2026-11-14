@@ -60,7 +60,7 @@ it("isolates the provisional cell and seam split from the model constants", () =
     z: -Math.round(16.45 / 16),
     layer: Math.floor(bottom / 16),
   });
-  expect(CAMPER_STORAGE).not.toContain(KITCHEN_DRAWERS);
+  expect(CAMPER_STORAGE).toContain(KITCHEN_DRAWERS);
   expect(storageFurniture(KITCHEN_DRAWERS).cells).toEqual([DRAWER_COMPARTMENT]);
   expect(doors.map((d) => [d.id, d.opening, d.slots.map((s) => s.id)])).toEqual(
     [

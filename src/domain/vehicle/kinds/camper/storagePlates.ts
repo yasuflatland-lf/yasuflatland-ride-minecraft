@@ -54,7 +54,7 @@ type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
 
 /**
  * The block in each storage compartment, with the item at each end, its items drawn while its
- * door is in `shown`: open or still swinging shut (ADR 0114, 0121).
+ * door is in `shown`, according to the unit's visibility policy (ADR 0114, 0121).
  */
 export function compartmentCells(
   pose: HoldPose,

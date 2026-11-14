@@ -34,6 +34,8 @@ export const CAMPER_ENTITY = {
     "cabinet_stove_door",
     "fridge_top_door",
     "fridge_bottom_door",
+    "drawer_top",
+    "drawer_bottom",
     "ceiling_lights",
   ],
 } as const satisfies EntityContract;
@@ -55,31 +57,21 @@ export function showerCommand(on: boolean): EngineCommand {
   return property("shower", on);
 }
 
-// #1684 removes this exclusion when it restores the declared drawer properties.
-type GatedStorageDoorId = "drawer_top" | "drawer_bottom";
-
-/**
- * The entity property that swings each storage door: 0 is shut, 1 is open into the aisle
- * (ADR 0114, 0121, 0123). Gated units wait for their pack property declarations.
- */
+/** The entity property controlling each storage opening (ADR 0114, 0121). */
 export const STORAGE_DOOR_PROPERTY = {
   sink: "cabinet_sink_door",
   stove: "cabinet_stove_door",
   fridge_top: "fridge_top_door",
   fridge_bottom: "fridge_bottom_door",
+  drawer_top: "drawer_top",
+  drawer_bottom: "drawer_bottom",
 } as const satisfies Record<
-  Exclude<StorageDoorId, GatedStorageDoorId>,
+  StorageDoorId,
   keyof typeof CAMPER_ENTITY.properties
 >;
 
-/** Gated units get their restored entity properties with their pack wiring (#1684). */
-export function storageDoorProperty(
-  door: StorageDoorId,
-): (typeof CAMPER_ENTITY.restored)[number] | undefined {
-  const properties: Partial<
-    Record<StorageDoorId, (typeof CAMPER_ENTITY.restored)[number]>
-  > = STORAGE_DOOR_PROPERTY;
-  return properties[door];
+export function storageDoorProperty(door: StorageDoorId) {
+  return STORAGE_DOOR_PROPERTY[door];
 }
 
 /** 0 is shut, 1 is swung fully open into the aisle (ADR 0114, 0121). */
@@ -88,8 +80,6 @@ export function storageDoorCommand(
   open: number,
 ): EngineCommand {
   const name = storageDoorProperty(door);
-  if (name === undefined)
-    throw new Error(`Storage property is not wired: ${door}`);
   return property(name, open);
 }
 

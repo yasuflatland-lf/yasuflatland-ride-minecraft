@@ -36,6 +36,8 @@ export interface RoomDrive {
     point: Vec3 | undefined,
     tick: number,
     takeContents?: boolean,
+    eye?: Vec3,
+    openOnly?: boolean,
   ): StoragePress | undefined;
 }
 

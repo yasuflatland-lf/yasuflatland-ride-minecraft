@@ -15,6 +15,10 @@ interface PressStorageCommand {
   point?: Vec3;
   /** False for an opening/front press that must toggle without taking its contents. */
   takeContents?: boolean;
+  /** View ray used by shared-cell storage to distinguish fronts, contents and surfaces. */
+  eye?: Vec3;
+  /** Held gear opens closed storage before its placement path handles open storage. */
+  openOnly?: boolean;
 }
 
 export class PressStorage {
@@ -35,6 +39,8 @@ export class PressStorage {
       cmd.point,
       this.clock.now(),
       cmd.takeContents,
+      cmd.eye,
+      cmd.openOnly,
     );
     if (!room || !press) return false;
     if (press.kind === "item") {

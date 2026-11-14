@@ -39,7 +39,10 @@ it("puts every slot in its own furniture's cell, with a unique id, a height from
   for (const row of CAMPER_FURNITURE)
     for (const slot of row.slots) {
       expect(row.cells).toContainEqual(slot.cell);
-      expect(Number.isInteger(slot.height)).toBe(true);
+      expect(Number.isFinite(slot.height)).toBe(true);
+      expect(Number.isInteger(slot.height)).toBe(
+        !slot.id.startsWith("drawer_"),
+      );
       expect(slot.height).toBeGreaterThanOrEqual(0);
       expect(slot.height).toBeLessThanOrEqual(15);
       expect(DECOR_SPOTS[slot.spot ?? 0]).toBeDefined();
@@ -145,6 +148,8 @@ it("keeps the saved slot ids, cells, and heights", () => {
     ["dinette_rear", 1, -1, 1, 7],
     ["stove", -1, -2, 1, 15],
     ["counter", -1, -1, 1, 14],
+    ["drawer_top_0", -1, -1, 1, 7.099999999999998],
+    ["drawer_bottom_0", -1, -1, 1, 1.6999999999999993],
     ["ceiling_hook", 1, 0, 2, 6],
     ["cabinet_sink_rear", -1, -1, 3, 3],
     ["cabinet_sink_front", -1, -1, 3, 3],
@@ -161,6 +166,15 @@ it("puts two slots behind each storage door, at the shelf boards' end spots, and
   const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
   for (const { id: door, compartment: cell, unit } of STORAGE_DOORS) {
     const behind = slots.filter((s) => s.door === door);
+    if (unit.pairKind === "drawers") {
+      expect(behind).toHaveLength(1);
+      expect(behind[0]?.pair).toEqual({
+        kind: "drawers",
+        end: door === "drawer_top" ? 0 : 1,
+      });
+      expect(behind[0]?.cell).toEqual(cell);
+      continue;
+    }
     expect(behind.map((s) => s.spot)).toEqual([5, 6]);
     expect(behind.map((s) => s.pair)).toEqual([
       { kind: unit.pairKind, end: 0 },
@@ -168,12 +182,12 @@ it("puts two slots behind each storage door, at the shelf boards' end spots, and
     ]);
     for (const s of behind) expect(s.cell).toEqual(cell);
   }
-  expect(slots.filter((s) => s.door !== undefined)).toHaveLength(8);
+  expect(slots.filter((s) => s.door !== undefined)).toHaveLength(10);
 });
 
 it("swings each cabinet door into the aisle cell beside its compartment, hinged at the cabinet's outer ends, and both fridge doors into the aisle cell beside the fridge, hinged at its front end (ADR 0114, 0123)", () => {
   expect(
-    STORAGE_DOORS.map((door) => ({
+    STORAGE_DOORS.filter((d) => d.opening.kind === "hinged").map((door) => ({
       id: door.id,
       compartment: door.compartment,
       plate: hingedOpening(door).plate,
@@ -219,7 +233,10 @@ it("puts every slot in a cell of its own furniture, 0 to 15 px up", () => {
   for (const row of CAMPER_FURNITURE) {
     for (const slot of row.slots) {
       expect(row.cells).toContainEqual(slot.cell);
-      expect(Number.isInteger(slot.height)).toBe(true);
+      expect(Number.isFinite(slot.height)).toBe(true);
+      expect(Number.isInteger(slot.height)).toBe(
+        !slot.id.startsWith("drawer_"),
+      );
       expect(slot.height).toBeGreaterThanOrEqual(0);
       expect(slot.height).toBeLessThanOrEqual(15);
     }

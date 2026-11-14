@@ -38,6 +38,8 @@ interface StorageDoorDef<Id extends string = string> {
   /** The cell of the compartment's pair block. */
   readonly compartment: LocalCell;
   readonly opening: StorageOpening;
+  /** Sliding contents appear at their final position only after extension finishes. */
+  readonly showContents?: "fullyOpen";
   /** Optional height routing for openings sharing a cell; height is faceLocation.y. */
   readonly acceptsPress?: (height: number) => boolean;
   /** The compartment's usable slots; a shared cell assigns each slot a distinct pair end. */
@@ -152,6 +154,7 @@ interface DoorState {
   step: number;
   readonly toggle: TapToggle;
   readonly sync: SyncedValue<number>;
+  readonly showContents?: "fullyOpen";
 }
 
 /**
@@ -163,17 +166,18 @@ export class StorageDoors<Id extends string> {
 
   /** `restoredOpen` gives a door's saved opening progress; a camper that was not `docked` starts with every door shut. */
   constructor(
-    doors: readonly { readonly id: Id }[],
+    doors: readonly { readonly id: Id; readonly showContents?: "fullyOpen" }[],
     restoredOpen: (id: Id) => unknown,
     docked: boolean,
   ) {
     this.states = new Map(
-      doors.map(({ id }) => {
+      doors.map(({ id, showContents }) => {
         const step = restoredDoorStep(restoredOpen(id), docked);
         return [
           id,
           {
             open: step * 2 >= DOOR_STEPS,
+            ...(showContents === undefined ? {} : { showContents }),
             step,
             toggle: new TapToggle(CAMPER_SPEC.doorSwingTicks),
             sync: new SyncedValue<number>(),
@@ -194,10 +198,16 @@ export class StorageDoors<Id extends string> {
     );
   }
 
-  /** The doors not yet fully shut: their compartments show their items. */
+  /** Openings whose contents may be rendered at their fixed block positions. */
   shown(): ReadonlySet<Id> {
     return new Set(
-      [...this.states].filter(([, d]) => d.step > 0).map(([id]) => id),
+      [...this.states]
+        .filter(([, d]) =>
+          d.showContents === "fullyOpen"
+            ? d.open && d.step === DOOR_STEPS
+            : d.step > 0,
+        )
+        .map(([id]) => id),
     );
   }
 

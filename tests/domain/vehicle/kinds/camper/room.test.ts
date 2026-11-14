@@ -97,7 +97,7 @@ const slotOf = (id: string) =>
   );
 // The storage compartments are laid by compartmentCells, full or empty (ADR 0114, 0121).
 const outsideCabinet = <T extends { slot: string }>(placements: readonly T[]) =>
-  placements.filter((e) => slotOf(e.slot).door === undefined);
+  placements.filter((e) => !isCabinetCell(slotOf(e.slot).cell));
 const isCabinetCell = (cell: { x: number; z: number; layer: number }) =>
   STORAGE_DOORS.some(
     (d) =>
@@ -124,7 +124,10 @@ it("lays 107 distinct integer cells with the specified counts at any snapped pos
         });
         const cells = roomCells(p, open, cabinets, showerOpen);
         const underCeiling = STORAGE_DOORS.filter(
-          (d) => hingedOpening(d).plate.layer === 3 && cabinets.has(d.id),
+          (d) =>
+            d.opening.kind === "hinged" &&
+            d.opening.plate.layer === 3 &&
+            cabinets.has(d.id),
         ).length;
         expect(cells).toHaveLength(107);
         expect(new Set(cells.map(cellKey)).size).toBe(107);
@@ -642,8 +645,8 @@ it("clears wall-foot decorations only below a cleared matching upper half, upper
   );
 });
 
-it("lists the seventeen decor slots with distinct ids (ADR 0093, 0103, 0105, 0108, 0112, 0114, 0123)", () => {
-  expect(DECOR_SLOTS).toHaveLength(17);
+it("lists the nineteen decor slots with distinct ids (ADR 0093, 0103, 0105, 0108, 0112, 0114, 0123)", () => {
+  expect(DECOR_SLOTS).toHaveLength(19);
   expect(new Set(DECOR_SLOTS.map((s) => s.id))).toEqual(
     new Set([
       "dashboard_center",
@@ -654,6 +657,8 @@ it("lists the seventeen decor slots with distinct ids (ADR 0093, 0103, 0105, 010
       "dinette_rear",
       "stove",
       "counter",
+      "drawer_top_0",
+      "drawer_bottom_0",
       "ceiling_hook",
       "cabinet_sink_rear",
       "cabinet_sink_front",
@@ -826,7 +831,7 @@ it("names the block a cell's decor lays: the pair block on the table, else the i
     fc.property(decor, (d) => {
       for (const { cell, slots } of DECOR_CELLS) {
         const placed = d.find((e) => slots.some((s) => s.id === e.slot));
-        const pair = slots[0]?.pair;
+        const pair = slots.find((s) => s.pair)?.pair;
         expect(decorBlockName(cell, d)).toBe(
           isCabinetCell(cell)
             ? `${pair?.kind}_decor_pair`
@@ -1008,11 +1013,14 @@ it("lays the cabinet blocks over the sink and the stove in the ceiling layer, in
       const compartments = compartmentCells(p, [], open).map(cellKey);
       const cabinets = compartments.slice(0, 2);
       expect(cabinets).toEqual([-1, -2].map((z) => cellKey(at(-1, z, 3))));
-      expect(compartments.slice(2)).toEqual(
+      expect(compartments.slice(2, 4)).toEqual(
         [1, 2].map((layer) => cellKey(at(-1, 1, layer))),
       );
       for (const key of compartments) expect(byKey.has(key)).toBe(false);
-      for (const storageDoor of STORAGE_DOORS) {
+      expect(compartments.slice(4)).toEqual([cellKey(at(-1, -1, 1))]);
+      for (const storageDoor of STORAGE_DOORS.filter(
+        (d) => d.opening.kind === "hinged",
+      )) {
         const { id: door } = storageDoor;
         const { plate: aisle, hinge } = hingedOpening(storageDoor);
         if (aisle.layer !== 3) continue;

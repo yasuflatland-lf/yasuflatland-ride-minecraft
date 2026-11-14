@@ -59,7 +59,9 @@ const sameCell = (a: DecorSlot, b: DecorSlot) =>
 // A slot is free while no slot of its cell holds decor (ADR 0107), or on a shelf board or the
 // table, while its own end holds none (ADR 0108).
 const freeOf = (taken: readonly DecorSlot[]) => (s: DecorSlot) =>
-  !taken.some((t) => (s.pair ? t.id === s.id : sameCell(t, s)));
+  !taken.some((t) =>
+    s.pair ? t.id === s.id : sameCell(t, s) && t.door === s.door,
+  );
 const PAIR_IDS = [
   "table",
   "table_aisle",
@@ -172,7 +174,7 @@ it("takes standing items behind an open cabinet door and none behind a shut one,
 
 it("gives the stove one slot in its cell middle and every other furniture one slot per cell but the table's or a storage compartment's two ends, keeping the burner spots (ADR 0107, 0108, 0112, 0114, 0123)", () => {
   expect(SLOTS.map((s) => s.slot)).toEqual(DECOR_SLOTS);
-  expect(SLOTS).toHaveLength(17);
+  expect(SLOTS).toHaveLength(19);
   const stove = SLOTS.filter(({ kind }) => kind === "stove").map(
     ({ slot }) => slot,
   );
@@ -194,9 +196,9 @@ it("gives the stove one slot in its cell middle and every other furniture one sl
     expect(
       sameCell(defined(pairs[i], "end 0"), defined(pairs[i + 1], "end 1")),
     ).toBe(true);
-  const others = SLOTS.filter(({ slot }) => !PAIR_IDS.includes(slot.id)).map(
-    ({ slot }) => slot,
-  );
+  const others = SLOTS.filter(
+    ({ slot }) => !PAIR_IDS.includes(slot.id) && slot.pair?.kind !== "drawers",
+  ).map(({ slot }) => slot);
   expect(
     others.every((s) => (s.spot === undefined || s.spot >= 9) && !s.pair),
   ).toBe(true);
@@ -278,8 +280,11 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
           y: c.y + slot.height / 16,
           z: c.z + 0.5 + o.z,
         });
-        const decor = [{ slot: slot.id, item: decorItemId("potted_plant") }];
-        if (slot.door !== undefined) {
+        const item =
+          slot.items?.[0] ??
+          (slot.hanging ? "macrame_planter" : "potted_plant");
+        const decor = [{ slot: slot.id, item: decorItemId(item) }];
+        if (slot.door !== undefined || slot.id === "counter") {
           // A storage compartment is laid by compartmentCells, not as decor (ADR 0114, 0121).
           expect(decorCells(p, decor)).toEqual([]);
           const compartment = defined(
@@ -288,10 +293,27 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
             ),
             "compartment cell",
           );
+          if (slot.pair?.kind === "drawers" || slot.id === "counter") {
+            expect(compartment.block).toMatchObject({
+              type: "drawers",
+              face: decorFace(p.yaw),
+              topOpen: false,
+              bottomOpen: false,
+              [slot.id === "counter" ? "counter" : `end${slot.pair?.end}`]:
+                item,
+            });
+            continue;
+          }
           expect(compartment.block).toEqual(
-            compartmentBlock(slot.door, decorFace(p.yaw), false, slot.height, {
-              [`end${slot.pair?.end}`]: "potted_plant",
-            }),
+            compartmentBlock(
+              defined(slot.door, "hinged compartment door"),
+              decorFace(p.yaw),
+              false,
+              slot.height,
+              {
+                [`end${slot.pair?.end}`]: item,
+              },
+            ),
           );
           continue;
         }
@@ -304,11 +326,11 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
                 pair: slot.pair.kind,
                 face: laid.block.face,
                 height: slot.height,
-                [`end${slot.pair.end}`]: "potted_plant",
+                [`end${slot.pair.end}`]: item,
               }
             : {
                 type: "decor",
-                item: "potted_plant",
+                item: item,
                 face: laid.block.face,
                 height: slot.height,
                 spot: slot.spot ?? 0,
@@ -334,6 +356,7 @@ it("lays one block per cell: the first placement in it, or the pair block with t
         const firsts = slots.filter(
           (s, i) =>
             s.door === undefined &&
+            s.id !== "counter" &&
             slots.findIndex((t) => sameCell(t, s)) === i,
         );
         expect(laid.map((c) => c.block)).toEqual(
@@ -614,7 +637,13 @@ it("picks the slot the line of sight is aimed at, wherever along the ray the pre
             false,
             eye,
           ),
-        ).toBe(target);
+        ).toBe(
+          target.id === "counter" &&
+            point.y >= decorSlotCell(p, target).y &&
+            point.y - decorSlotCell(p, target).y < target.height / 16
+            ? undefined
+            : target,
+        );
       },
     ),
   );
@@ -705,7 +734,9 @@ it("puts a saucepan on the stove's one burner for the side-face press logged in 
 });
 
 it("lays a compartment block in every compartment, full or empty, with each end's item, showing them only behind the doors in `shown` (ADR 0114, 0123)", () => {
-  const cabinetSlots = DECOR_SLOTS.filter((s) => s.door !== undefined);
+  const cabinetSlots = DECOR_SLOTS.filter(
+    (s) => s.door !== undefined && s.pair?.kind !== "drawers",
+  );
   fc.assert(
     fc.property(
       pose,
@@ -717,9 +748,14 @@ it("lays a compartment block in every compartment, full or empty, with each end'
           slot: s.id,
           item: decorItemId(item),
         }));
-        const laid = compartmentCells(p, decor, shown);
-        expect(laid).toHaveLength(DOORS.length);
-        for (const door of DOORS) {
+        const laid = compartmentCells(
+          p,
+          decor,
+          shown,
+          STORAGE_DOORS.filter((d) => d.opening.kind === "hinged"),
+        );
+        expect(laid).toHaveLength(4);
+        for (const door of DOORS.filter((id) => !id.startsWith("drawer_"))) {
           const ends = cabinetSlots.filter((s) => s.door === door);
           const at = decorSlotCell(p, defined(ends[0], "end"));
           const cell = defined(
@@ -747,7 +783,9 @@ it("lays a compartment block in every compartment, full or empty, with each end'
 
 it("sends gear pressed on a shut compartment to the nearest free slot elsewhere, and on an open one to its free end nearest the press (ADR 0114)", () => {
   const offset = fc.double({ min: -6, max: 6, noNaN: true });
-  const cabinetSlots = DECOR_SLOTS.filter((s) => s.door !== undefined);
+  const cabinetSlots = DECOR_SLOTS.filter(
+    (s) => s.door !== undefined && s.pair?.kind !== "drawers",
+  );
   fc.assert(
     fc.property(
       pose,
