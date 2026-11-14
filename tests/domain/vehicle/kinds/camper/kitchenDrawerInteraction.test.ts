@@ -81,7 +81,7 @@ function fixture() {
       };
     const door = id === "drawer_top_0" ? "drawer_top" : "drawer_bottom";
     const height = HIT.frontBottom[door] + HIT.frontHeight / 2;
-    return { ...base, eye: rayPoint(-28, height), point: rayPoint(0, height) };
+    return { ...base, eye: rayPoint(28, height), point: rayPoint(0, height) };
   };
   return {
     ...f,

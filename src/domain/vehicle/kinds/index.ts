@@ -24,7 +24,7 @@ import { SUV_PROFILE } from "./suv/profile";
 export { CAMPING_GEAR_IDS, STANDING_GEAR_IDS } from "./camper/campingGear";
 export { pairHeights } from "./camper/decor";
 export { SeatPresses, seatSlotCell } from "./camper/seatPress";
-export { COUNTER_HEIGHT } from "./camper/spec";
+export { COUNTER_HEIGHT, DRAWER_GEAR_IDS } from "./camper/spec";
 
 export { SPORTSBOAT_EQUIPMENT_IDS } from "./sportsboat/equipment";
 

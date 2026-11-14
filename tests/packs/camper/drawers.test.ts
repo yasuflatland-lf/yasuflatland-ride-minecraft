@@ -148,12 +148,12 @@ describe("camper drawer poses", () => {
       );
       const slot = defined(door.slots[0], "drawer slot");
       const centre = slotXZ(slot);
-      // Room left/ahead negate model x/z, relative to the shared cell centre (ADR 0009).
-      expect(-(end(front, 0) - centre.x)).toBeCloseTo(HIT.frontLeftMin, 6);
-      expect(-(defined(front.origin[0], "front x") - centre.x)).toBeCloseTo(
-        HIT.frontLeftMax,
+      // Room left follows model x; ahead negates model z relative to the cell center.
+      expect(defined(front.origin[0], "front x") - centre.x).toBeCloseTo(
+        HIT.frontLeftMin,
         6,
       );
+      expect(end(front, 0) - centre.x).toBeCloseTo(HIT.frontLeftMax, 6);
       expect(-(end(front, 2) - centre.z)).toBeCloseTo(HIT.frontAheadMin, 6);
       expect(-(defined(front.origin[2], "front z") - centre.z)).toBeCloseTo(
         HIT.frontAheadMax,
@@ -163,7 +163,7 @@ describe("camper drawer poses", () => {
         defined(front.origin[1], "front y") - slot.cell.layer * PX_PER_BLOCK,
       ).toBeCloseTo(HIT.frontBottom[drawer], 6);
       expect(front.size[1]).toBeCloseTo(HIT.frontHeight, 6);
-      expect(-(cubeCenter(floor, 0) + DRAWER_SLIDE_PX - centre.x)).toBeCloseTo(
+      expect(cubeCenter(floor, 0) + DRAWER_SLIDE_PX - centre.x).toBeCloseTo(
         HIT.contentLeft,
         6,
       );

@@ -229,7 +229,7 @@ function fixture(
   const uses = game.use.mock.calls
     .slice(usesBefore)
     .map(([handler]) => handler);
-  if (!before || uses.length !== 3) throw new Error("subscriptions missing");
+  if (!before || uses.length !== 4) throw new Error("subscriptions missing");
   game.run.mockClear();
   const event = {
     isFirstEvent: true,
@@ -1430,7 +1430,7 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
 });
 
 function decorFixture() {
-  const storage = { execute: vi.fn() };
+  const storage = { execute: vi.fn(), drawerTarget: vi.fn() };
   const placeDecor = { execute: vi.fn() };
   const removeDecor = { execute: vi.fn() };
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
@@ -2430,7 +2430,7 @@ it("stores and clears held items only from server script events", () => {
   expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
 });
 
-it("routes drawer front presses with corrected height and the view ray while cancelling held repeats", () => {
+it("routes drawer front presses with raw side height and the press ray while cancelling held repeats", () => {
   fc.assert(
     fc.property(fc.double({ min: 0.05, max: 0.8, noNaN: true }), (height) => {
       const f = decorFixture();
@@ -2447,8 +2447,8 @@ it("routes drawer front presses with corrected height and the view ray while can
         playerId: "p",
         vehicleId: "car",
         cell: ev.block.location,
-        // Encoding the reported fraction can round the sampled height.
-        point: { x: 1, y: 64 + (1 - ev.faceLocation.y), z: 2.5 },
+        // Side height inversion is unconfirmed on touch; virtual boxes select the drawer.
+        point: { x: 1, y: 64 + ev.faceLocation.y, z: 2.5 },
         eye: ev.player.getHeadLocation(),
       });
       expect(f.removeDecor.execute).not.toHaveBeenCalled();
@@ -2477,7 +2477,7 @@ it("opens a closed drawer with held gear, places on an open drawer, and routes t
   expect(f.placeDecor.execute).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({
       item: "percolator",
-      point: { x: 1.25, y: 64.75, z: 2.5 },
+      point: { x: 1.25, y: 64.25, z: 2.5 },
     }),
   );
   game.run.mockClear();

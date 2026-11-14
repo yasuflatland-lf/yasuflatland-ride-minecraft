@@ -40,7 +40,7 @@ describe("camper furniture model (ADR 0093)", () => {
           (floor?.origin[1] ?? 0) + (floor?.size[1] ?? 0) - bottom,
         ).toBeCloseTo(slot.height, 6);
         expect((floor?.origin[0] ?? 0) + (floor?.size[0] ?? 0) / 2).toBeCloseTo(
-          x - DRAWER_HIT_PROFILE.contentLeft - DRAWER_SLIDE_PX,
+          x + DRAWER_HIT_PROFILE.contentLeft - DRAWER_SLIDE_PX,
           6,
         );
         expect((floor?.origin[2] ?? 0) + (floor?.size[2] ?? 0) / 2).toBeCloseTo(
@@ -217,7 +217,7 @@ describe("camper furniture model (ADR 0093)", () => {
     for (const slot of standing) {
       const center = slotXZ(slot);
       const sliding = slot.pair?.kind === "drawers";
-      const x = center.x - (sliding ? DRAWER_HIT_PROFILE.contentLeft : 0);
+      const x = center.x + (sliding ? DRAWER_HIT_PROFILE.contentLeft : 0);
       const z = center.z - (sliding ? DRAWER_HIT_PROFILE.contentAhead : 0);
       const top = 16 * slot.cell.layer + slot.height;
       // Narrowing to the points near the slot once keeps the per-item scans short; the run

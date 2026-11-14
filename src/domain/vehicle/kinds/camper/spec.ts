@@ -16,14 +16,14 @@ export const DRAWER_FRONT_HEIGHT = 5.2;
 export const DRAWER_BOX_LIFT = 0.25;
 export const DRAWER_WALL_PX = 0.2;
 
-// Cell-centered room coordinates negate the model's x/z. Virtual targets let
+// Room left has the model x sign; ahead negates model z. Virtual targets let
 // one combined block distinguish the fronts and contents despite its single selection box.
 export const DRAWER_HIT_PROFILE = Object.freeze({
   pixelsPerBlock: PX_PER_BLOCK,
   counterHeight: COUNTER_HEIGHT,
   counterHalfWidth: 8,
-  frontLeftMin: -7.35,
-  frontLeftMax: -7,
+  frontLeftMin: 7,
+  frontLeftMax: 7.35,
   frontAheadMin: -7.3,
   frontAheadMax: 6.4,
   frontHeight: DRAWER_FRONT_HEIGHT,
@@ -31,7 +31,7 @@ export const DRAWER_HIT_PROFILE = Object.freeze({
     drawer_top: DRAWER_TOP_Y - DRAWER_CELL_LAYER * PX_PER_BLOCK,
     drawer_bottom: DRAWER_BOTTOM_Y - DRAWER_CELL_LAYER * PX_PER_BLOCK,
   },
-  contentLeft: -8.6,
+  contentLeft: 2 + DRAWER_SLIDE_PX,
   contentAhead: -0.45,
   gear: {
     saucepan: { width: 6, height: 3 },
