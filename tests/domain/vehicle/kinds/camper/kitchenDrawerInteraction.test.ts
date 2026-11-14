@@ -304,6 +304,13 @@ it("closes both drawers on departure and after an undocked reload, keeping saved
           ...{ drawer_top: 1, drawer_bottom: 1 },
         });
         const initial = parked.step(undefined, ctx);
+        const itemCommands = [top, bottom].map((item, i) => ({
+          type: "setProperty",
+          name: i === 0 ? "drawer_top_item" : "drawer_bottom_item",
+          value: [...DRAWER_GEAR_IDS].indexOf(item) + 1,
+        }));
+        for (const command of itemCommands)
+          expect(initial.commands).toContainEqual(command);
         for (const name of ["drawer_top", "drawer_bottom"])
           expect(initial.commands).toContainEqual({
             type: "setProperty",
@@ -315,6 +322,12 @@ it("closes both drawers on departure and after an undocked reload, keeping saved
           { ...ctx, tick: 1 },
         );
         expect(out.depart).toBeDefined();
+        for (const name of ["drawer_top_item", "drawer_bottom_item"])
+          expect(out.commands).not.toContainEqual({
+            type: "setProperty",
+            name,
+            value: 0,
+          });
         for (const name of ["drawer_top", "drawer_bottom"])
           expect(out.commands).toContainEqual({
             type: "setProperty",
@@ -329,6 +342,8 @@ it("closes both drawers on departure and after an undocked reload, keeping saved
         });
         expect(restored.decor()).toEqual(saved);
         const reload = restored.step(undefined, ctx);
+        for (const command of itemCommands)
+          expect(reload.commands).toContainEqual(command);
         for (const name of ["drawer_top", "drawer_bottom"])
           expect(reload.commands).toContainEqual({
             type: "setProperty",
@@ -408,15 +423,22 @@ it("closes and reopens populated drawers through the existing storage use case w
   );
 });
 
-it("shows each drawer only after all ten opening steps and hides it as closing starts", () => {
+it("retains compartment opening flags while selecting entity contents from the first opening step", () => {
   const f = fixture();
   const cmd = { ...f.command("drawer_top_0"), takeContents: false };
   expect(f.press.execute(cmd)).toBe(true);
   expect(f.place.execute(cmd)).toBe(true);
   for (let i = 1; i <= 10; i++) {
-    const block = f
-      .tick(100 + i)
-      .dock?.cells.find((c) => c.block.type === "drawers")?.block;
+    const out = f.tick(100 + i);
+    if (i === 1)
+      expect(out.stepCommands).toContainEqual({
+        type: "setProperty",
+        name: "drawer_top_item",
+        value: [...DRAWER_GEAR_IDS].indexOf("mug_pair") + 1,
+      });
+    const block = out.dock?.cells.find(
+      (c) => c.block.type === "drawers",
+    )?.block;
     expect(block).toMatchObject({ topOpen: i === 10, bottomOpen: false });
   }
   f.clock.tick += 10;
@@ -442,4 +464,44 @@ it("refuses a decor placement before consuming its item when preserved save entr
   ).toBe(false);
   expect(restored.decor()).toContainEqual(unknown);
   expect(restored.decor().some((d) => d.slot === "counter")).toBe(false);
+});
+
+it("syncs independent drawer item codes on changes and resync, including while opening", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(...DRAWER_GEAR_IDS),
+      fc.constantFrom(...DRAWER_GEAR_IDS),
+      (top, bottom) => {
+        const f = fixture();
+        for (const [slot, item] of [
+          ["drawer_top_0", top],
+          ["drawer_bottom_0", bottom],
+        ] as const) {
+          expect(f.press.execute(f.command(slot))).toBe(true);
+          expect(f.place.execute(f.command(slot, item))).toBe(true);
+        }
+        const expected = [top, bottom].map((item, i) => ({
+          type: "setProperty",
+          name: i === 0 ? "drawer_top_item" : "drawer_bottom_item",
+          value: [...DRAWER_GEAR_IDS].indexOf(item) + 1,
+        }));
+        const first = f.tick(101);
+        for (const command of expected)
+          expect(first.stepCommands).toContainEqual(command);
+        const unchanged = f.tick(102);
+        for (const command of expected)
+          expect(unchanged.stepCommands).not.toContainEqual(command);
+        f.car.resync();
+        const resend = f.tick(103);
+        for (const command of expected)
+          expect(resend.stepCommands).toContainEqual(command);
+        f.room.setDecor(decorSlotId("drawer_bottom_0"), undefined);
+        expect(f.tick(104).stepCommands).toContainEqual({
+          type: "setProperty",
+          name: "drawer_bottom_item",
+          value: 0,
+        });
+      },
+    ),
+  );
 });

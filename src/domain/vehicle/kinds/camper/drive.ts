@@ -7,6 +7,7 @@ import {
   type DecorSlotId,
   isDecorItem,
   parseDecor,
+  parseDecorSlotId,
   type StoragePress,
 } from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
@@ -48,6 +49,7 @@ import {
   type CAMPER_ENTITY,
   ceilingLightsCommand,
   doorCommand,
+  drawerItemCommand,
   SWITCH_CLICK,
   showerCommand,
   showerDoorCommand,
@@ -76,7 +78,7 @@ import {
   bedSpawnCell as roomBedSpawnCell,
   roomCells,
 } from "./roomCells";
-import { CAMPER_SPEC, CAMPER_TRANSFORMING } from "./spec";
+import { CAMPER_SPEC, CAMPER_TRANSFORMING, DRAWER_GEAR_IDS } from "./spec";
 import {
   cargoCells,
   compartmentCells,
@@ -128,6 +130,10 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
   private clickPending = false;
   // The storage doors swing in the entry door's DOOR_STEPS, each on its own (ADR 0114, 0121).
   private readonly storage: StorageDoors<StorageDoorId>;
+  private readonly drawerItemsSync = {
+    drawer_top: new SyncedValue<number>(),
+    drawer_bottom: new SyncedValue<number>(),
+  };
   private readonly decorBySlot = new Map<DecorSlotId, DecorItemId>();
   // Saved decor whose slot no longer exists and that no free slot could take; it is
   // kept, saved, and given back when the camper breaks (ADR 0103).
@@ -444,6 +450,7 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     this.showerSync.resync();
     this.ceilingLightsSync.resync();
     this.storage.resync();
+    for (const sync of Object.values(this.drawerItemsSync)) sync.resync();
   }
 
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
@@ -658,8 +665,21 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       ...this.doorCommands(),
       ...this.showerCommands(),
       ...this.storage.swingCommands(storageDoorCommand),
+      ...this.drawerItemCommands(),
       ...this.ceilingLightCommands(),
     ];
+  }
+
+  private drawerItemCommands(): EngineCommand[] {
+    return (["drawer_top", "drawer_bottom"] as const).flatMap((drawer) => {
+      const slot = parseDecorSlotId(`${drawer}_0`);
+      const item = slot === undefined ? undefined : this.decorBySlot.get(slot);
+      const code =
+        item === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(item) + 1;
+      return this.drawerItemsSync[drawer].next(code) === undefined
+        ? []
+        : [drawerItemCommand(drawer, code)];
+    });
   }
 
   private ceilingLightCommands(): EngineCommand[] {

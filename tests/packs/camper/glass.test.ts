@@ -70,7 +70,7 @@ describe("camper glass (ADR 0091)", () => {
   });
 });
 
-it("uses the single khaki texture", () => {
+it("keeps the camper atlas separate from the drawer gear atlas", () => {
   expect(camperRender.textures).toEqual(["Texture.default"]);
   expect(camperRender.arrays).toBeUndefined();
   const client = JSON.parse(
@@ -80,5 +80,6 @@ it("uses the single khaki texture", () => {
     default: "textures/entity/yasu_ride/camper",
     lit: "textures/entity/yasu_ride/camper_lit",
     mirror: "textures/entity/yasu_ride/camper_mirror",
+    drawer_items: "textures/blocks/yasu_ride/camping_gear",
   });
 });
