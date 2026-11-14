@@ -371,6 +371,15 @@ BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
 kitchen = load_tool("camper_kitchen")
+
+
+def register_kitchen_materials(registry):
+    """Reserve shared kitchen materials before either area's faces are emitted."""
+    refs = kitchen.register_kitchen(registry)
+    load_tool("camper_kitchen_fronts").register_panel(registry)
+    return refs
+
+
 KITCHEN_REGIONS = kitchen.register_kitchen(REGISTRY)
 load_tool("camper_surfaces").register_surfaces(REGISTRY)
 CURTAIN_REF = REGISTRY.register(regions.Region(
@@ -380,7 +389,7 @@ ATLAS.base_ref = BASE_REF
 
 AREA_ORDER = (
     "shell", "surfaces", "curtains", "door", "front", "rear", "roof", "running", "cab",
-    "bed_bunk", "fridge", "kitchen", "room", "shower", "ceiling", "dinette", "arches",
+    "bed_bunk", "fridge", "kitchen", "kitchen_fronts", "room", "shower", "ceiling", "dinette", "arches",
 )
 
 

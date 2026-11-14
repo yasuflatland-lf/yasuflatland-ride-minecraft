@@ -19,6 +19,7 @@ Parking only made the bug easy to see, since that is when players walk around th
 - The generator moves every cube with the `glass` swatch out of the opaque bones into two glass bones, listed after every other bone so they draw last:
   - `glass`: child of `body`, pivot `[0, 0, 0]`, holding the body glass (side windows, corner glass, windshield, mirror glass, rear window)
   - `door_glass`: child of `door_entry`, pivot at the door hinge, holding the door window so it swings with the door
+- The opaque `drawer_top` and `drawer_bottom` bones are listed before both glass bones, like every other opaque body child
 - The cubes keep their own coordinates, rotations, and pivots. The render controller maps both bones to `Material.glass`
 - This extends the bone contract of 0009 for the camper with `glass` and `door_glass`. No opaque camper bone may hold a `glass` swatch cube, and every other camper swatch stays fully opaque, which `entity` needs
 

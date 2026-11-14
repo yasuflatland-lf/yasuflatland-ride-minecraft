@@ -195,6 +195,7 @@ for cubes in built.values():
       ["door marble", 101, 41, "stone"],
       ["door kick", 101, 44, "metal"],
       ["door cloth", 16, 104, "fabric"],
+      ["routed cream panel", 224, 160, "lacquer"],
       ["shower glaze", 128, 354, "tile"],
       ["shower head", 64, 64, "metal"],
       ["shower grip", 16, 80, "metal"],
