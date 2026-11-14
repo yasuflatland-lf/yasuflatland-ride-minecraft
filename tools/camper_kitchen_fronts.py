@@ -61,13 +61,20 @@ def register_panel(registry: RegionRegistry) -> regions.RegionRef:
         regions.Material.LACQUER, lambda x, y: panel_pixels()[y * PANEL_WIDTH + x]))
 
 
+def register_regions(registry: RegionRegistry) -> regions.RegionRef:
+    """Reserve the routed panel before the shared atlas is packed."""
+    return register_panel(registry)
+
+
 def prepare(registry: RegionRegistry) -> tuple:
     kit = load_tool("camper_kit")
     refs = kitchen.register_kitchen(registry)
-    panel = register_panel(registry)
+    panel = register_regions(registry)
     if not any(r.name == "base" for r in registry.regions()):
         registry.register(kit.BASE_REF.region)
-    if registry._layout is None:
+    if registry is kit.REGISTRY:
+        kit.prepare_layout()
+    elif registry._layout is None:
         regions.pack(registry)
     return kit, refs, panel
 

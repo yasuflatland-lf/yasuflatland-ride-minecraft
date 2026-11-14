@@ -14,14 +14,14 @@ The owner wants every vehicle's switched lamps to glow at maximum PBR emissivity
 
 ## Decision
 
-Generate one default-paint lit atlas, one MER atlas, and one texture set per kind, shared by all paints. The lit atlas keeps every non-lamp texel unchanged and sets the lamp swatches' alpha to 0 for the legacy full-bright material. MER uses RGB `(0, 255, 255)` for lit swatches and `(0, 0, 255)` elsewhere, with alpha 255 throughout: metalness 0, emissivity at its maximum 255 only on lamps, and roughness 255. Each generator declares `EMISSIVE_LIT`, `MER_LIT`, `MER_OFF`, and name-derived `LIT_SLOTS` locally; isolated Python execution prevents importing a shared helper.
+Generate one default-paint lit atlas, one MER atlas, and one texture set per kind, shared by all paints. The lit atlas keeps every non-lamp texel unchanged and sets the lamp swatches' alpha to 0 for the legacy full-bright material. MER uses RGB `(0, 255, 255)` for lit swatches and `(0, 0, 255)` elsewhere, with alpha 255 throughout: metalness 0, emissivity at its maximum 255 only on lamps, and roughness 255. Generators use the shared `lit_textures` and `mer` helpers through `tool_loader` (0193). The camper supplies its `Layout` and a base-local swatch mask; the helper bounds and translates that mask through the registered `base` origin. Lens, amber and red markers, dome, and hover glow are the only emissive camper texels. Its separate `camper_interior_mer` has G = 0 and alpha 255 everywhere, including the unlit lamp swatches; attaching it to `camper.texture_set.json` does not alter the switched overlays.
 
-| Kind        | Lit swatches    | Overlay bones                           | Switch                                                            |
-| ----------- | --------------- | --------------------------------------- | ----------------------------------------------------------------- |
-| SUV         | `light`         | `headlights` (headlights and fog lamps) | `yasu_ride:headlights`                                            |
-| Sports boat | `light`         | `headlights`                            | `yasu_ride:headlights`                                            |
-| Camper      | `lens`, `dome`  | `headlights`, `ceiling_lights`          | `yasu_ride:headlights`, `yasu_ride:ceiling_lights`, independently |
-| Bulldozer   | `lens`, `amber` | `headlights`, `beacon`                  | `yasu_ride:headlights` for both                                   |
+| Kind        | Lit swatches                                 | Overlay bones                           | Switch                                                            |
+| ----------- | -------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------- |
+| SUV         | `light`                                      | `headlights` (headlights and fog lamps) | `yasu_ride:headlights`                                            |
+| Sports boat | `light`                                      | `headlights`                            | `yasu_ride:headlights`                                            |
+| Camper      | `lens`, `dome`, `marker_amber`, `marker_red` | `headlights`, `ceiling_lights`          | `yasu_ride:headlights`, `yasu_ride:ceiling_lights`, independently |
+| Bulldozer   | `lens`, `amber`                              | `headlights`, `beacon`                  | `yasu_ride:headlights` for both                                   |
 
 Append a conditional `.lit` render controller using the same geometry, `Texture.lit`, and `Material.lamp_lit` (`entity_emissive`). Hide every bone by default, then show only the table's bones while their properties are on. The camper overlay runs when either light property is on. The base pass keeps `Material.lamp` (`entity`) for those bones and hides each exactly while its corresponding property is on, avoiding double drawing. Existing visibility rules and the bulldozer monitor pass stay intact. The camper ceiling rim keeps MER_OFF and its existing color alpha. Bone animations apply in both passes, including flight, bank, doors, and tracks.
 

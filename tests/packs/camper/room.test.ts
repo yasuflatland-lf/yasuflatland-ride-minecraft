@@ -1,16 +1,14 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CAMPER_FURNITURE } from "../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   bodyPoints,
   bone,
   bones,
-  type Cube,
   HANG_TOP,
   PLATE_UNDERSIDE,
-  RP,
   SHARED_KINDS,
   slotXZ,
+  standingItems,
   turn,
 } from "./helpers";
 
@@ -156,28 +154,7 @@ describe("camper furniture model (ADR 0093)", () => {
     // Each standing item's box from its block model: half its width along the camper's left
     // (model x), half its depth forward (model z), and its height. The decor block turns the
     // model with the camper, so these axes hold in every facing.
-    const gear = (
-      JSON.parse(readFileSync("tools/camping_gear.json", "utf8")) as {
-        id: string;
-        hanging: boolean;
-      }[]
-    ).filter((g) => !g.hanging);
-    const items = gear.map(({ id }) => {
-      const geo = JSON.parse(
-        readFileSync(`${RP}/models/blocks/yasu_ride/${id}.geo.json`, "utf8"),
-      ) as { "minecraft:geometry": { bones: { cubes: Cube[] }[] }[] };
-      const cubes = geo["minecraft:geometry"].flatMap((g) =>
-        g.bones.flatMap((b) => b.cubes),
-      );
-      const reach = (axis: number) =>
-        Math.max(
-          ...cubes.flatMap((c) => [
-            Math.abs(c.origin[axis] ?? 0),
-            Math.abs((c.origin[axis] ?? 0) + (c.size[axis] ?? 0)),
-          ]),
-        );
-      return { id, halfX: reach(0), halfZ: reach(2), height: reach(1) };
-    });
+    const items = standingItems();
     expect(items.length).toBeGreaterThan(0);
     const standing = CAMPER_FURNITURE.filter(
       (f) => SHARED_KINDS.includes(f.kind) || f.kind === "counter",

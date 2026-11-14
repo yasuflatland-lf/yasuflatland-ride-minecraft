@@ -31,7 +31,6 @@ def build() -> AreaCubes:
     bunk = [
         box(BED[0], BUNK_DECK_BOTTOM, BED[2], BED[1], BUNK_DECK_TOP, BED[3], "wood"),
         box(BED[0] + 0.3, BUNK_DECK_TOP, BED[2] + 0.3, BED[1] - 0.3, BUNK_TOP - 2, BED[3] - 0.3, "ivory"),
-        # Starts 0.5 px off the wall so it stays clear of the window curtains (0.3 px thick).
         box(BED[0] + 0.5, BUNK_TOP - 2, BED[2] + 0.2, BED[1] - 0.2, BUNK_TOP - 1, BED[3] - 8, "curtain"),
         box(BED[0] + 2, BUNK_TOP - 2, BED[3] - 6, BED[1] - 2, BUNK_TOP, BED[3] - 1.5, "white"),
         *[box(BED[1] - 1.25, FLOOR, z, BED[1], BUNK_DECK_TOP, z + 1.25, "wood")

@@ -164,3 +164,28 @@ export const loadAtlas = async (python: PythonWorker) =>
     slots: string[];
     windows: number[][][];
   };
+
+export const standingItems = () => {
+  const gear = (
+    JSON.parse(readFileSync("tools/camping_gear.json", "utf8")) as {
+      id: string;
+      hanging: boolean;
+    }[]
+  ).filter((g) => !g.hanging);
+  return gear.map(({ id }) => {
+    const geo = JSON.parse(
+      readFileSync(`${RP}/models/blocks/yasu_ride/${id}.geo.json`, "utf8"),
+    ) as { "minecraft:geometry": { bones: { cubes: Cube[] }[] }[] };
+    const cubes = geo["minecraft:geometry"].flatMap((g) =>
+      g.bones.flatMap((b) => b.cubes),
+    );
+    const reach = (axis: number) =>
+      Math.max(
+        ...cubes.flatMap((c) => [
+          Math.abs(c.origin[axis] ?? 0),
+          Math.abs((c.origin[axis] ?? 0) + (c.size[axis] ?? 0)),
+        ]),
+      );
+    return { id, halfX: reach(0), halfZ: reach(2), height: reach(1) };
+  });
+};

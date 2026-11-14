@@ -6,30 +6,36 @@ import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { defined } from "../support/defined";
 
-const registry = JSON.parse(
+const currentRegions: {
+  name: string;
+  size: [number, number];
+  origin: [number, number];
+}[] = JSON.parse(
   execFileSync(
     "python3",
     [
-      "-I",
       "-c",
-      `import sys,json
-sys.path.insert(0,'tools')
+      `
+import json, sys
+sys.path.insert(0, 'tools')
 from tool_loader import load_tool
-k=load_tool('camper_kit')
-print(json.dumps([dict(name=r.name,size=[r.width,r.height],origin=k.LAYOUT.origin(r.name)) for r in k.REGISTRY.regions()]))`,
+kit = load_tool('camper_kit')
+layout = kit.LAYOUT
+print(json.dumps([{'name': r.name, 'size': [r.width, r.height],
+                  'origin': layout.origin(r.name)} for r in kit.REGISTRY.regions()]))
+`,
     ],
     { encoding: "utf8" },
   ),
-) as { name: string; size: [number, number]; origin: [number, number] }[];
-const baseRegion = defined(
-  registry.find((r) => r.name === "base"),
-  "base atlas",
 );
-
+const base = defined(
+  currentRegions.find((region) => region.name === "base"),
+  "base region",
+);
 const cube = {
   origin: [0, 0, 0],
   size: [1, 1, 1],
-  uv: { north: { uv: [0, 0], uv_size: [1, 1] } },
+  uv: { north: { uv: base.origin, uv_size: [1, 1] } },
 };
 type Change =
   | "none"
@@ -65,6 +71,17 @@ function compare(change: Change, area?: string) {
   const directory = mkdtempSync(join(tmpdir(), "camper-golden-"));
   try {
     cpSync("tools", join(directory, "tools"), { recursive: true });
+    writeFileSync(
+      join(directory, "tools/camper_kit.py"),
+      `
+from tool_loader import load_tool
+regions = load_tool('camper_regions')
+REGISTRY = regions.RegionRegistry()
+for region in ${JSON.stringify(currentRegions)}:
+    REGISTRY.register(regions.Region(region['name'], *region['size'], regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
+LAYOUT = regions.pack(REGISTRY)
+`,
+    );
     const models = join(
       directory,
       "packs/yasu_ride_rp/models/entity/yasu_ride",
@@ -122,23 +139,25 @@ function compare(change: Change, area?: string) {
         {
           name: "base including borrowed patch",
           source: "base",
-          size: [
-            baseRegion.size[0],
-            baseRegion.size[1] + (change === "size" ? 1 : 0),
-          ],
+          size: [base.size[0], base.size[1] + (change === "size" ? 1 : 0)],
           origin: [20, 30],
           packed_origin:
             change === "origin"
-              ? [baseRegion.origin[0] + 1, baseRegion.origin[1]]
-              : baseRegion.origin,
+              ? [base.origin[0] + 1, base.origin[1]]
+              : base.origin,
           used_by: {
             shell: 6,
             [change === "labels" ? "cab dash and instruments" : "cab"]: 6,
           },
         },
-        ...registry
-          .filter((r) => r.name !== "base")
-          .map((r) => ({ ...r, used_by: { shell: 1 } })),
+        ...currentRegions
+          .filter((region) => region.name !== "base")
+          .map((region) => ({
+            ...region,
+            packed_origin: region.origin,
+            used_by:
+              region.name === "light curtain fabric" ? { curtains: 1 } : {},
+          })),
         ...(change === "extra"
           ? [
               {

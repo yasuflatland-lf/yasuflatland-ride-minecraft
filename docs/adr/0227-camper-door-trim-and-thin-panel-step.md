@@ -15,6 +15,9 @@ The photo's door is taller for its width than the model's: 16.8 photo px per mod
 
 ## Decision
 
+- Build the entry inside with four recessed wood fields, an opaque window backing, metal reveal and perimeter, a marble band, scuffed kick plate, escutcheon and deadbolt, and two tied mini curtains with 160 rotated pleats. All 212 added cubes fit the original slab envelope (final x -24 to -23, y 12 to 54, z -6.9 to 6.9), preserving the swing clearance. Thin the outer skin to 0.2 px while keeping its outward face and UVs fixed; both existing handles and the glass pane stay unchanged. The opaque entry bone totals 244 cubes.
+- Register `door wood` (111 by 336, WOOD), `door marble` (101 by 41, STONE), `door kick` (101 by 44, METAL), and `door cloth` (16 by 104, FABRIC) before packing the atlas. Wood fields use eight texels per model pixel and vertical grain. The shower panel shares this wood region on all six faces; its two handles remain chrome. Regenerate the colour, lit and mirror companion maps with the packed layout.
+
 - Add a fixed surround to the `body` bone, so it stays when the door swings. The latch side has one strip, and the hinge side two with a dark seam. A riveted threshold plate sits at y = 9.2 to 10.7, an inner head rail over the door, and a riveted two-step drip cap past both jambs. Three hinges at y = 13.3, 32.1, and 51.5 each have a bright leaf and two dark knuckle ends, and a small catch sits low on the latch side.
 - Each strip uses `aluminium`, with a narrow `chrome` edge and `grille` seams for contrast. The strips' lips cover the gap around the door, which hid a white hairline.
 - Keep the threshold at the wall's bottom with the tan skin above it, not directly under the door, because the door is shorter than on the photo.
@@ -26,4 +29,4 @@ The photo's door is taller for its width than the model's: 16.8 photo px per mod
 
 ## Consequences
 
-The surround and the hatches add about 270 cubes, for about 4230 in all, and the owner should watch frame rates on mobile. The strips are at most 0.5 px proud, so they do not affect collision. The texture atlas does not change, so "aluminium" comes only from colour contrast; the look on a client needs the owner's check. The photo's black and silver pinstripe along the skirt's top is not modelled.
+The surround and the hatches add about 270 cubes, before the 212-cube interior addition, and the owner should watch frame rates on mobile. The strips are at most 0.5 px proud, so they do not affect collision. The atlas now includes four procedural interior finishes. The exterior aluminium still uses colour contrast; both interior and exterior appearance need the owner's client check. The photo's black and silver pinstripe along the skirt's top is not modelled.

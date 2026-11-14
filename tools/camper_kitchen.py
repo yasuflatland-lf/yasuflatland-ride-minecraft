@@ -189,7 +189,7 @@ def draw_dial(pixels: list[tuple]) -> tuple:
                     color = outline if distance > radius - stroke else fill
                     pixels[y * width + x] = (*color, 255)
     def line(a, b, color, stroke=1):
-        length = math.ceil(math.dist(a, b))
+        length = math.ceil(round(math.dist(a, b), 6))
         for i in range(length + 1):
             x, y = (round(a[j] + (b[j] - a[j]) * i / length) for j in range(2))
             for dy in range(-(stroke // 2), stroke // 2 + 1):
@@ -321,7 +321,9 @@ def build_kitchen_top(registry: RegionRegistry) -> "tuple[AreaCubes, KitchenRegi
     if not any(r.name == "base" for r in registry.regions()):
         registry.register(kit.BASE_REF.region)
     refs = kit.register_kitchen_materials(registry)
-    if registry._layout is None:
+    if registry is kit.REGISTRY:
+        kit.prepare_layout()
+    elif registry._layout is None:
         regions.pack(registry)
     counter = [model_box(d, refs.LAMINATE, registry) for d in COUNTER_LAMINATE]
     counter += [model_box(d, refs.STAINLESS, registry) for d in COUNTER_METAL]
