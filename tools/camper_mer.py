@@ -37,6 +37,7 @@ MER_BY_HARDWARE = {
     "door_head": (255, 0, 75), "door_hinge": (255, 0, 75),
     "door_latch": (255, 0, 75), "vent_screws": (255, 0, 75), "bolt": (255, 0, 75),
     "mirror_chrome": (255, 0, 26),
+    "burner_cast": (0, 0, 255),
 }
 MER_DEFAULT = (0, 0, 255)
 

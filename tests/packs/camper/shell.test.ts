@@ -19,7 +19,7 @@ describe("camper model assets (ADR 0067)", () => {
       slanted: compound.filter((cube) => cube.rotation?.[0] === 45),
       front_panels: compound.filter((cube) => cube.rotation?.[0] !== 45),
     };
-    expect(assemblies.slanted).toHaveLength(6);
+    expect(assemblies.slanted).toHaveLength(0);
     expect(assemblies.front_panels).toHaveLength(518);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });

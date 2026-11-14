@@ -13,18 +13,19 @@ For the v0.12.0 play test (#393, #407) the owner supplied a photo of the real 19
 ## Decision
 
 - The backsplash is split from the right inner lining at model z 24 to 39.5 and y 30 to 49, excluding the existing counter-window opening. Four cubes use `backsplash tile` (124 x 152 texels, TILE), with cloudy beige stone and one-texel dark grout at 8 texels per model pixel and a square pitch of 15.5 / 13 model pixels. Splitting adds six non-tile wall fragments and four tile cubes; all other lining fragments retain proportional, model-registered veneer UVs.
-
-- The stove moves to cell (-1, -2, 1) and the counter with the sink to (-1, -1, 1). The `stove` and `counter` slot ids stay, and both slot heights stay 14 px. The wall cabinet above (layer 2) is unchanged
-- `tools/gen_camper.py` draws the sink unit in model z 8.5 to 24 and the stove in z 24 to 39.5 (`STOVE_Z`), with the sink's shape unchanged
-- The stove follows the photo: a steel plate with a chrome front lip, a far-side flange, a sink-side trim, a rear strip with vent slots on its sink-side half only, and an ivory ledge at the wall; four burners in a 2 x 2 grid, centered on the slot point across the aisle, each a drip bowl, a dark gap, a head with a port band and a top disc, an eight-bar black grate ring, and six raised prongs; a harvest panel with two woodgrain lines leaning back 20 degrees about its lower front edge, five round black knobs with chrome skirts and smaller chrome caps, each part an octagon of two crossed bar pairs grouped toward the far end, and the sink-side third of the panel blank; a chrome strip, a shadow line, a chrome handle bar, and a brushed door in a steel frame below
-- No brand badge, lettering, or logo is drawn. The panel area where the photo has a badge stays blank
-- Each slot cell's middle stays flat at 30 px and free of rotated cubes, so decor stands on a flat top: the sink stays behind the counter slot point and every burner part stays outside the 7 px square around the stove slot point (the widest item's footprint), so the burners are smaller than in the photo
-- Every stove cube stays within x 8.0 to 22.8 (clear of the aisle and the wall) and under y 31.5 (the tallest item on the stove still clears the wall cabinet at y 38)
-- This replaces 0093's cells for the stove and the counter, in its furniture table and its slot table. The rest of 0093 stands
+- The stove moves to cell (-1, -2, 1) and the counter with the sink to (-1, -1, 1). The `stove` and `counter` slot ids stay. The counter height is 14 px (top y 30); the stove height is 15 px on its grate (0107, 0112). The wall cabinet above is unchanged.
+- `tools/camper_kitchen.py` builds the counter and sink at model z 8.5 to 24 and the range at z 24 to 39.5. `build_kitchen_top(registry)` returns `AreaCubes` and frozen `KitchenRegions`; the lower counter cabinet and the overhead cabinet remain in `tools/camper_room.py`.
+- The 20-cube counter and sink use flecked laminate, a metal edge strip, and a three-piece flush sink cover with an aisle-side finger notch. The low swept spout and twin taps stand behind the cover, clear of standing decor. The cover ends at y 30 so even the widest standing item clears it. Five slab pieces form a recess around a stainless basin floor below the notch. They replace the spike's solid slab, three raised sink-rim strips and two hinges without changing the 20-cube total; the three cover pieces sit 0.14 px lower than in the visual spike.
+- The 36-cube range has a brushed stainless cooktop and control strip, chrome trim and handle, a brown handle inset, and a dark olive oven face. One chrome-bezel ignition dial and the 7.3 px black vent band are centred at model z 32, in line with the burner. The vent has twelve slots. Metal filler on both sides of the vent leaves it visible. The removed knob positions are part of the uninterrupted brushed strip.
+- The dial face is inset 0.06 px from the visual spike so its outer face ends at model x -8 and stays out of the aisle. No brand badge, lettering or logo is drawn.
+- The one 209-cube burner is centred at model (-16, 32), with an open bore, cast cup, oval grate, six arms with raised feet and three retaining straps. Its silver head is one taller ring, retaining the approved 40-cube reduction (0112).
+- The registry owns `flecked laminate` (192 x 192, LACQUER), `brushed stainless` (128 x 64, METAL), `range dial` (64 x 64, GLASS_COAT), `dark olive cab panel` (128 x 64, DARK_LACQUER), and `brown endgrain and pulls` (128 x 128, WOOD). `BROWN_ENDGRAIN` is a shared `RegionRef` for the later drawer work. The cast-cup detail gets a named allocation in the registered base atlas rather than borrowing unused texels.
+- Every kitchen cube stays out of the aisle and below the window. The counter surface at its decor slot remains y 30; the stove slot stands on the grate at height 15. `DECOR_SPOTS` is unchanged.
+- This replaces 0093's stove and counter cells and its kitchen appearance. The remaining furniture rules stand.
 
 ## Consequences
 
 - Decor already saved in the `stove` or `counter` slot of a parked camper is redrawn in the slot's new cell the next time the room is laid. Nothing else moves
-- The camper model grows by a few hundred cubes, all in the body bone
+- The kitchen top grows from 98 to 265 cubes (+167), all in the body bone
 - The camper model changes, so the Resource Pack version goes up and the dev server needs a restart (0015)
-- The counter top keeps its harvest color although the photo's laminate is cream; change it in its own decision if the play test asks for it
+- The kitchen keeps the approved olive, beige and brown palette, with flecked cream laminate in place of the plain harvest counter. Device rendering and presses remain to be checked.

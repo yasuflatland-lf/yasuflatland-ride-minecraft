@@ -16,7 +16,7 @@ from tool_loader import load_tool
 
 cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
-ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}, "front_panels": {"owner": "camper", "cubes": 518}}
+ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owner": "camper", "cubes": 518}}
 
 texture_io = load_tool("texture_io")
 mer = load_tool("mer")
@@ -60,10 +60,15 @@ merged = AreaCubes()
 owners = {}
 
 for name, module in areas.items():
-    built = module.build_surfaces(REGISTRY) if name == "surfaces" else module.build()
+    if name == "kitchen":
+        built = module.build_kitchen_top(REGISTRY)[0]
+    elif name == "surfaces":
+        built = module.build_surfaces(REGISTRY)
+    else:
+        built = module.build()
     for cubes in built.values():
         for cube in cubes:
-            owners[id(cube)] = module.area_of(cube) if name == "surfaces" else name
+            owners[id(cube)] = module.area_of(cube) if name in ("kitchen", "surfaces") else name
     if name == "curtains":
         # Side curtains originally followed their individual panes inside the wall loop.
         for i, anchor in enumerate(module.anchors()):

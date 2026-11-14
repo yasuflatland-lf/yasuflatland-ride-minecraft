@@ -19,7 +19,8 @@ Facts this decision builds on:
 
 ## Decision
 
-- `tools/gen_camper.py` draws one burner, the same burner as 0107's, centered on the cooktop at (16, 32). The other three are gone. The sink, the vent band, the ledge, and the control panel stay
+- `tools/camper_kitchen.py` draws one 209-cube burner centred on the cooktop at model (-16, 32). The other three are gone. The reduced burner keeps its open bore, cast cup, oval grate, six raised arms and retaining straps; its head is one taller silver ring rather than three stepped rings. The grate reaches y 30.95.
+- The range has one chrome-bezel ignition dial and a 7.3 px vent band with twelve slots, both centred at model z 32. The brushed strip fills the removed knob positions, the oven face is dark olive, and the chrome handle has a brown inset (0100).
 - The stove has one decor slot, `stove`, at spot 0, the cell middle, 15 px high, so the item stands on the burner's grate as in 0107. `tests/packs/camper/room.test.ts` checks that 15 is the ceiling of the highest body point within 2 px of the slot point, and that no body cube reaches into any standing item's box on the slot
 - `stove_rear`, `stove_wall`, and `stove_wall_rear` are no longer slots. Decor saved under any of them loads as if saved under `stove`: `savedSlotId` in `src/domain/vehicle/kinds/camper/decor.ts` maps the three old ids to `stove` before restoring, so the item goes back on the stove instead of to the first free slot. If an earlier entry already holds the stove, the entry moves to the first free slot or is stowed, as in 0107. The test command that sets a slot refuses the old ids
 - `DECOR_SPOTS` keeps entries 1 to 4, 0107's burner offsets, although no slot uses them. Removing them would shift every later index, including those #429 adds, and the decor blocks keep their `yasu_ride:spot` values 0 to 4 and their 80 permutations, so a decor block an older build laid on a burner still draws on that burner until the next lay replaces it

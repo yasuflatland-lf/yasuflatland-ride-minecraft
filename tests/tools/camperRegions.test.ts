@@ -181,6 +181,11 @@ for cubes in built.values():
   );
   expect(result).toEqual([
     [
+      ["flecked laminate", 192, 192, "lacquer"],
+      ["brushed stainless", 128, 64, "metal"],
+      ["range dial", 64, 64, "glass_coat"],
+      ["dark olive cab panel", 128, 64, "dark_lacquer"],
+      ["brown endgrain and pulls", 128, 128, "wood"],
       ["carpet v3", 74, 222, "carpet"],
       ["wall veneer", 416, 180, "wood"],
       ["backsplash tile", 124, 152, "tile"],

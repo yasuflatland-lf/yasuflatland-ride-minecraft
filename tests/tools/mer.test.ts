@@ -97,7 +97,7 @@ for name in ('lens','marker_amber','marker_red','dome','glow'):
 swatches = {'white': (0,0,85), 'panel': (0,0,90), 'ivory': (0,0,80), 'steel': (255,0,75), 'chrome': (255,0,50), 'slat': (255,0,80), 'aluminium': (255,0,80), 'dash': (0,0,185), 'dark_dash': (0,0,190), 'dash_pad': (0,0,175), 'wood': (0,0,155), 'wall_in': (0,0,160), 'gauge': (0,0,65), 'needle': (0,0,65), 'tweed': (0,0,245), 'tweed_line': (0,0,245), 'curtain': (0,0,245), 'piping': (0,0,235), 'khaki': (0,0,100), 'stripe': (0,0,100), 'tan': (0,0,100)}
 for name,rgb in swatches.items(): assert pixel(${dx}+k.SLOTS.index(name),${dy}) == (*rgb,255)
 for region in k.ATLAS.regions:
-    rgb = (0,0,85) if region.name == 'rib' else (255,0,26) if region.name == 'mirror_chrome' else (255,0,75)
+    rgb = (0,0,85) if region.name == 'rib' else (255,0,26) if region.name == 'mirror_chrome' else (0,0,255) if region.name == 'burner_cast' else (255,0,75)
     for v in range(region.h):
         for u in range(region.w): assert pixel(${dx}+region.x+u,${dy}+region.y+v) == (*rgb,255)
 class Capture:

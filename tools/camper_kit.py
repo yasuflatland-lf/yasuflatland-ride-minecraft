@@ -307,6 +307,8 @@ def mirror_chrome_pixel(x, y):
 
 
 def region_pixel(region, x, y):
+    if region.name == "burner_cast":
+        return PALETTE["tire" if (x, y) in BURNER_CAST_DOTS else "grille"]
     if region.name == "mirror_chrome":
         return mirror_chrome_pixel(x, y)
     if region.name == "rib":
@@ -328,6 +330,8 @@ def region_pixel(region, x, y):
     return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
 
 
+BURNER_CAST_REGION = ATLAS.allocate("burner_cast", 8, 8)
+BURNER_CAST_DOTS = ((2, 3), (6, 5))
 def wheel_holes() -> list[tuple]:
     arch_holes = []
     for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_INSET in fine steps
@@ -366,6 +370,8 @@ REGISTRY = regions.RegionRegistry()
 BASE_REF = REGISTRY.register(regions.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
+kitchen = load_tool("camper_kitchen")
+KITCHEN_REGIONS = kitchen.register_kitchen(REGISTRY)
 load_tool("camper_surfaces").register_surfaces(REGISTRY)
 CURTAIN_REF = REGISTRY.register(regions.Region(
     "light curtain fabric", 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
@@ -374,7 +380,7 @@ ATLAS.base_ref = BASE_REF
 
 AREA_ORDER = (
     "shell", "surfaces", "curtains", "door", "front", "rear", "roof", "running", "cab",
-    "bed_bunk", "fridge", "room", "shower", "ceiling", "dinette", "arches",
+    "bed_bunk", "fridge", "kitchen", "room", "shower", "ceiling", "dinette", "arches",
 )
 
 

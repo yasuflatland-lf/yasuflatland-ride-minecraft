@@ -44,6 +44,7 @@ describe("camper rib atlas (ADR 0190)", () => {
       "vent_screws",
       "bolt",
       "mirror_chrome",
+      "burner_cast",
     ]);
     for (const [i, [, x, y, w, h]] of regions.entries()) {
       expect(x).toBeGreaterThanOrEqual(base[0]);

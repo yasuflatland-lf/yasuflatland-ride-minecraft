@@ -53,13 +53,19 @@ regions = kit.ATLAS.regions
 names = list(json.loads(Path('tests/packs/fixtures/camper-areas.json').read_text()))
 names = [n for n in names if n not in ('floor', 'walls', 'tile', 'table')] + ['surfaces']
 for name in reversed(names):
-    path = Path(f'tools/camper_{name}.py')
+    module_name = 'kitchen' if name in ('counter', 'range', 'burner') else name
+    path = Path(f'tools/camper_{module_name}.py')
     for node in ast.walk(ast.parse(path.read_text())):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'load_tool':
             assert node.args[0].value not in {f'camper_{n}' for n in names}
-    area = load_tool(f'camper_{name}')
-    assert area.AREA == name
-    build = (lambda: area.build_surfaces(kit.REGISTRY)) if name == 'surfaces' else area.build
+    area = load_tool(f'camper_{module_name}')
+    assert area.AREA == module_name
+    def build():
+        if module_name == 'kitchen':
+            return area.build_kitchen_top(kit.REGISTRY)[0]
+        if module_name == 'surfaces':
+            return area.build_surfaces(kit.REGISTRY)
+        return area.build()
     first = build()
     snapshot = json.dumps(first)
     assert isinstance(first, kit.AreaCubes)

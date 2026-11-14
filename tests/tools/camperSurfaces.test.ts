@@ -55,6 +55,11 @@ a = s.build_surfaces(r)
         "[[r.name,r.width,r.height,r.material.value,all(r.pixel(x,y)[3] == 255 for y in range(r.height) for x in range(r.width))] for r in k.REGISTRY.regions() if r.name != 'base']",
       ),
     ).toEqual([
+      ["flecked laminate", 192, 192, "lacquer", true],
+      ["brushed stainless", 128, 64, "metal", true],
+      ["range dial", 64, 64, "glass_coat", true],
+      ["dark olive cab panel", 128, 64, "dark_lacquer", true],
+      ["brown endgrain and pulls", 128, 128, "wood", true],
       ["carpet v3", 74, 222, "carpet", true],
       ["wall veneer", 416, 180, "wood", true],
       ["backsplash tile", 124, 152, "tile", true],
@@ -73,6 +78,16 @@ a = s.build_surfaces(r)
         "for r in k.REGISTRY.regions():\n    if r.name != 'base':\n        for y in reversed(range(r.height)):\n            for x in reversed(range(r.width)): r.pixel(x,y)",
       ),
     ).toEqual({
+      "flecked laminate":
+        "85756420156afa783e0030423ad6c94f9af24f8b9e3316b8ac4619b5a3150092",
+      "brushed stainless":
+        "5a81bfbf1abd4be9ae99ca22b152031d70203078c92f8fa9fc1ece9bc2ecd884",
+      "range dial":
+        "139933046b8b791d142cc238bf1ebb53ef0a71b8ae737849f922889ee979a085",
+      "dark olive cab panel":
+        "c4a81371c2964af391421747c8df949291d31cdfcbf69224a0107a3858229eeb",
+      "brown endgrain and pulls":
+        "322dd7ee6075d479df5c89ae8f12c749b8748834c237109c69d496eb324eea1a",
       "door cloth":
         "874f821b45b315fb585c21e47656b35ac74beb24d2f3a80ed1cd53ce39cdad2a",
       "door kick":

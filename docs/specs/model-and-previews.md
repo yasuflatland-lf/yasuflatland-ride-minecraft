@@ -1,6 +1,6 @@
 # Model conventions and rendered previews
 
-- Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, and how the SUV and sports boat README previews and the pack icons are rendered from the model files and kept fresh.
+- Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV and sports boat README previews and the pack icons are rendered from the model files and kept fresh.
 - Verified at: 7267bd8a
 - Source: [0009](../adr/0009-vehicle-model-conventions.md)
 - Source: [0016](../adr/0016-readme-preview-rendered-from-model.md)
@@ -22,7 +22,7 @@
 - Excluded: [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md): the model job's path filter belongs to the testing-and-ci topic; only the part 0193 amends is stated here (see Model freshness check)
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
-- Excluded: [0136](../adr/0136-bulldozer.md): extends 0027 and 0045 with the bulldozer previews, which belong to the bulldozer topic; the camper, bulldozer, camping gear, chair and tent previews drawn by the same renderer are not stated here
+- Excluded: [0136](../adr/0136-bulldozer.md): extends 0027 and 0045 with the bulldozer previews, which belong to the bulldozer topic; the bulldozer, camping gear, chair and tent preview sets drawn by the same renderer are not stated here
 - Excluded: [0068](../adr/0068-park-the-camper-with-room-blocks.md): parked room behavior belongs to the camper topic
 - Excluded: [0069](../adr/0069-camper-right-hand-drive.md): the cab layout belongs to the camper topic
 - Excluded: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md): front geometry belongs to the camper topic
@@ -30,6 +30,15 @@
 - Excluded: [0192](../adr/0192-suv-detailed-body.md): SUV texture regions and materials are outside the camper companion-map scope
 
 ## Rules
+
+### Camper preview texture density
+
+- Applies to: The four `camper-*.png` README previews only.
+- Rule: Textured faces split at texel boundaries and merge adjacent equal colors. Along each face axis, if the texel cell count exceeds `ceil(edge length * CAMPER_CELLS_PER_UNIT)`, replace those breaks with that many uniform cells (at least one), sampling the texel under each cell center. Faces below the limit retain their exact patches. The cap is 16 cells per model unit: the fitted camera reaches at most about 16.64 supersampled or 5.55 final pixels per model unit, leaving over two cells per final pixel. This bounds preview geometry for kitchen counter, range and burner faces mapping whole laminate and stainless regions, up to 192 by 192 texels, onto sub-unit strips without changing generated geometry, UVs, other previews, or icons. The face cache includes the cap.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
+- Implementation: `tools/render_preview.py` (`CAMPER_CELLS_PER_UNIT`, `CAMPER_POSES`, `textured_face`, `collect_boat`).
+- Verification: `tests/tools/renderPreview.test.ts` checks unchanged patches below the cap, capped cell counts and coverage, and midpoint colors with mirrored UVs and merging enabled or disabled; `pnpm model:check` checks preview freshness.
 
 ### Camper generator modules
 
@@ -326,4 +335,4 @@ Where an ADR and the implementation differ, this spec states the implementation 
 - ADR 0101 Decision lists eight invisible blocks; the test lists seventeen, including the tent blocks and extra camper blocks added by later ADRs (`tests/packs/blockGeometry.test.ts`, `INVISIBLE_BLOCKS`); the ADR needs an edit, or the later ADRs should say they extend the list.
 - ADR 0101 asks for a manual check that no hidden-bone dot shows on a client; the manual-test rows that mention it (B17, C72, C73) have empty result cells: `docs/manual-test.md`.
 - ADR 0193 says every generated file stays byte-identical when a generator adopts the modules; no test compares bytes, and `pnpm model:check` compares decoded PNG pixels and parsed JSON only (`tools/texture_io.py`).
-- The renderer also writes the camper, bulldozer, camping gear, chair, tent and item previews, and `README.md` shows the camper and bulldozer tables; these pictures are not specified here, so no rule in this spec covers them: `tools/render_preview.py`, `README.md`.
+- The renderer also writes the camper, bulldozer, camping gear, chair, tent and item previews, and `README.md` shows the camper and bulldozer tables; apart from camper texture density and the gear rules above, these preview sets are not specified here: `tools/render_preview.py`, `README.md`.
