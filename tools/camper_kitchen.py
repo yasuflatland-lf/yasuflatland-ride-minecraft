@@ -187,7 +187,7 @@ def draw_dial(pixels: list[tuple]) -> tuple:
                     color = outline if distance > radius - stroke else fill
                     pixels[y * width + x] = (*color, 255)
     def line(a, b, color, stroke=1):
-        length = math.ceil(math.dist(a, b))
+        length = math.ceil(round(math.dist(a, b), 6))
         for i in range(length + 1):
             x, y = (round(a[j] + (b[j] - a[j]) * i / length) for j in range(2))
             for dy in range(-(stroke // 2), stroke // 2 + 1):

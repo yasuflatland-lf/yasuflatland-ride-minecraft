@@ -51,6 +51,7 @@ from tool_loader import load_tool
 kit = load_tool('camper_kit')
 regions = kit.ATLAS.regions
 names = list(json.loads(Path('tests/packs/fixtures/camper-areas.json').read_text()))
+names = [n for n in names if n not in ('floor', 'walls', 'tile', 'table')] + ['surfaces']
 for name in reversed(names):
     module_name = 'kitchen' if name in ('counter', 'range', 'burner') else name
     path = Path(f'tools/camper_{module_name}.py')
@@ -60,7 +61,11 @@ for name in reversed(names):
     area = load_tool(f'camper_{module_name}')
     assert area.AREA == module_name
     def build():
-        return area.build_kitchen_top(kit.REGISTRY)[0] if module_name == 'kitchen' else area.build()
+        if module_name == 'kitchen':
+            return area.build_kitchen_top(kit.REGISTRY)[0]
+        if module_name == 'surfaces':
+            return area.build_surfaces(kit.REGISTRY)
+        return area.build()
     first = build()
     snapshot = json.dumps(first)
     assert isinstance(first, kit.AreaCubes)

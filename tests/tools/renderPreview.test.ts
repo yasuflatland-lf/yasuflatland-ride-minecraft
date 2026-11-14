@@ -618,6 +618,19 @@ print(json.dumps(results))
     }
   });
 
+  it("bounds dense face sampling and ignores rotation noise at integer cell counts", () => {
+    const result = previewPython(`
+texture = [[(x, y, 0, 255) for x in range(16)] for y in range(16)]
+face = {"uv": [0, 0], "uv_size": [16, 16]}
+counts = []
+for degrees in (0, 30, 60, 90):
+    quad = dict(r.cube_faces({"origin": [0,0,0], "size": [1,1,1], "rotation": [degrees,0,0], "pivot": [0,0,0]}))["east"]
+    counts.append(len(list(r.textured_face(texture, face, quad, "east", 16, 16, cells_per_unit=2))))
+print(json.dumps(counts))
+`);
+    expect(result).toEqual([4, 4, 4, 4]);
+  });
+
   it("merges adjacent equal texels into rectangles without changing their UV coverage", () => {
     const result = previewPython(`
 quad = dict(r.cube_faces({"origin": [0, 0, 0], "size": [4, 1, 4]}))["east"]
