@@ -52,13 +52,16 @@ HASH_WORD_MASK, HASH_SAMPLE_MASK = 0xffffffff, 65535
 HASH_SHIFTS = (13, 16)
 CARPET_TONES = (0.90, 1.05)
 WALL_BASE, WALL_RAIL_BASE = (196, 170, 128), (183, 184, 175)
-WALL_WARPS = ((0.5, 22, 48, 2), (0.3, 7, 31, 3))
-WALL_GRAIN = (1.9, 0.85, 24, 4)
-WALL_SOFT_GRAIN = (1.1, 3, 55, 8)
+WALL_WARPS = ((3, 40, 160, 2), (1.2, 17, 90, 3))
+WALL_GRAIN = (20, 12, 180, 4)
+WALL_SOFT_GRAIN = (8, 27, 260, 8)
+WALL_FINE_GRAIN = (2, 1.2, 32, 12)
+WALL_BOARD_GAIN, WALL_BOARD_SEED = 4, 16
 WALL_PORES = (3, 0.65, 13, 11, 0.45)
 WALL_DITHER, WALL_DITHER_SEED = 0.35, 9
-WALL_FADE_HEIGHT, WALL_FADE_GAIN, WALL_FADE_BIAS = 45, 9, -5
-WALL_JOINT_PITCH, WALL_JOINT_WIDTH, WALL_JOINT_SHADE = 24, 0.18, 8
+WALL_FADE_HEIGHT, WALL_FADE_GAIN, WALL_FADE_BIAS = 45, 9, -7
+WALL_JOINT_PITCH, WALL_JOINT_WIDTH, WALL_JOINT_SHADE = 24, 1, 18
+WALL_JOINT_EDGE_WIDTH, WALL_JOINT_EDGE_LIGHT = 1, 6
 WALL_RAILS, WALL_RAIL_HALF_WIDTH = (35.5, 49.5), 0.5
 WALL_RAIL_EDGE, WALL_RAIL_SHADES = 0.29, (-15, 22)
 WALL_SCREW_OFFSET, WALL_SCREW_PITCH = 47.5, 12
@@ -133,12 +136,20 @@ def wall_pixel(x: int, row: int) -> RGBA:
     gain, su, sv, seed = WALL_GRAIN
     grain = gain*noise((u+warp)/su, v/sv, seed)
     gain, su, sv, seed = WALL_SOFT_GRAIN
-    grain += gain*noise(u/su, v/sv, seed) + WALL_DITHER*hash_noise(int(u), int(v), WALL_DITHER_SEED)
+    grain += gain*noise((u+warp)/su, v/sv, seed)
+    gain, su, sv, seed = WALL_FINE_GRAIN
+    grain += gain*noise((u+warp)/su, v/sv, seed) + WALL_DITHER*hash_noise(x, row, WALL_DITHER_SEED)
+    # Integer texel columns keep board membership identical across platforms.
+    board = x // (WALL_JOINT_PITCH*WALL_SCALE)
+    joint = x % (WALL_JOINT_PITCH*WALL_SCALE)
+    grain += WALL_BOARD_GAIN*hash_noise(board, 0, WALL_BOARD_SEED)
     gain, su, sv, seed, threshold = WALL_PORES
     grain -= max(0, noise((u+warp)/su, v/sv, seed)-threshold)*gain
     grain += (WALL_TOP-y)/WALL_FADE_HEIGHT*WALL_FADE_GAIN+WALL_FADE_BIAS
-    if (z-WALL_FRONT) % WALL_JOINT_PITCH < WALL_JOINT_WIDTH:
+    if joint < WALL_JOINT_WIDTH*WALL_SCALE:
         grain -= WALL_JOINT_SHADE
+    elif joint < WALL_JOINT_WIDTH*WALL_SCALE + WALL_JOINT_EDGE_WIDTH:
+        grain += WALL_JOINT_EDGE_LIGHT
     for rail in WALL_RAILS:
         if abs(y-rail) < WALL_RAIL_HALF_WIDTH:
             edge = abs(y-rail)
