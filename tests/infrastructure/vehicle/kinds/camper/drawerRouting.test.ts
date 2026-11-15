@@ -42,7 +42,16 @@ beforeEach(() => {
   vi.clearAllMocks();
   game.system.currentTick = 100;
 });
-function fixture(full = false, top = false, bottom = true) {
+function fixture(
+  full = false,
+  top = false,
+  bottom = true,
+  geometry = {
+    floor,
+    eye,
+    pose: { x: 180.5, y: -60, z: 90.5 },
+  },
+) {
   const drive = new CamperDrive(0, {
     docked: true,
     drawer_top: top ? 1 : 0,
@@ -51,7 +60,7 @@ function fixture(full = false, top = false, bottom = true) {
   });
   drive.step(undefined, {
     tick: 10,
-    location: { x: 180.5, y: -60, z: 90.5 },
+    location: geometry.pose,
     velocity: { x: 0, y: 0, z: 0 },
     deckSeatInputs: [],
     onGround: true,
@@ -80,14 +89,15 @@ function fixture(full = false, top = false, bottom = true) {
     selectedSlotIndex: 2,
     inputInfo: { lastInputModeUsed: "Touch" },
     dimension: { id: "overworld" },
-    location: { x: 180.784, y: -59, z: 89.822 },
-    getHeadLocation: () => eye,
+    location: { ...geometry.eye, y: geometry.eye.y - 1.52 },
+    getHeadLocation: () => geometry.eye,
     getViewDirection: () => ({ x: -0.43, y: -0.903, z: 0.014 }),
   };
   const block = (
-    cell = floor,
+    cell = geometry.floor,
     item?: string,
-    face = { x: 0.146, y: 0, z: 0.125 },
+    // Synthetic touch report retains the original intended world x after correction.
+    face = { x: 1 - 0.146, y: 0, z: 0.125 },
     typeId = "yasu_ride:camper_floor",
     blockFace = "Up",
   ) => {
@@ -139,7 +149,7 @@ it("cancels a confirmed empty-hand aisle-floor ray and defers storage with the c
 it("leaves other floor cells and missed rays alone", () => {
   const f = fixture();
   expect(f.block({ ...floor, z: floor.z + 1 }).cancel).toBe(false);
-  expect(f.block(floor, undefined, { x: 1, y: 0, z: 0.8 }).cancel).toBe(false);
+  expect(f.block(floor, undefined, { x: 0, y: 0, z: 0.8 }).cancel).toBe(false);
   expect(game.system.run).not.toHaveBeenCalled();
 });
 it("places once from itemUse and suppresses the same tap in this tick and the next", () => {
@@ -237,7 +247,7 @@ for (const [top, bottom] of drawerStates) {
     [5.43, "drawer_top"],
     [13.16, "drawer_bottom"],
   ] as const)(
-    `routes touch report %s px to %s with top=${top}, bottom=${bottom}`,
+    `routes East-face touch report %s px to %s with top=${top}, bottom=${bottom}`,
     (reportedPx, drawer) => {
       const f = fixture(false, top, bottom);
       const ev = f.block(
@@ -245,7 +255,7 @@ for (const [top, bottom] of drawerStates) {
         undefined,
         { x: 0, y: reportedPx / 16, z: 0.5 },
         pairDecorBlockId("drawers"),
-        "West",
+        "East",
       );
       expect(ev.cancel).toBe(true);
       expect(f.storage.execute).not.toHaveBeenCalled();
@@ -311,6 +321,7 @@ it("preserves a keyboard and mouse side-face report", () => {
   );
 });
 
+// These synthetic world points need mirrored touch reports to retain their footprint.
 it.each([
   [0.314, true, true, "drawer_bottom"],
   [0.45, true, true, "drawer_bottom"],
@@ -319,11 +330,13 @@ it.each([
   [0.314, true, false, "drawer_top"],
   [0.45, true, false, "drawer_top"],
 ] as const)(
-  "routes a shallow floor press at x=%s with top=%s and bottom=%s to %s",
+  "routes a shallow floor press at corrected x=%s with top=%s and bottom=%s to %s",
   (x, top, bottom, drawer) => {
     const f = fixture(true, top, bottom);
     f.player.getHeadLocation = () => ({ x: 180.85, y: -58.48, z: 89.5 });
-    expect(f.block(floor, undefined, { x, y: 0, z: 0.491 }).cancel).toBe(true);
+    expect(f.block(floor, undefined, { x: 1 - x, y: 0, z: 0.491 }).cancel).toBe(
+      true,
+    );
     f.flush();
     const press = f.storage.execute.mock.calls[0]?.[0];
     expect(press).toMatchObject({ cell: counter });
@@ -368,11 +381,11 @@ it.each([
 it("leaves a distant floor tap available for ordinary placement", () => {
   const f = fixture();
   f.player.getHeadLocation = () => ({ x: 180.85, y: -58.48, z: 89.5 });
-  expect(f.block(floor, undefined, { x: 0.893, y: 0, z: 0.433 }).cancel).toBe(
-    false,
-  );
+  expect(
+    f.block(floor, undefined, { x: 1 - 0.893, y: 0, z: 0.433 }).cancel,
+  ).toBe(false);
   expect(f.storage.execute).not.toHaveBeenCalled();
-  f.block(floor, "yasu_ride:mug_pair", { x: 0.893, y: 0, z: 0.433 });
+  f.block(floor, "yasu_ride:mug_pair", { x: 1 - 0.893, y: 0, z: 0.433 });
   f.flush();
   expect(f.place.execute).toHaveBeenCalledWith(
     expect.objectContaining({ exact: false }),
@@ -384,7 +397,8 @@ it("closes an occupied footprint drawer with allowlisted gear without placing or
   const f = fixture(true);
   f.player.getHeadLocation = () => ({ x: 180.85, y: -58.48, z: 89.5 });
   expect(
-    f.block(floor, "yasu_ride:mug_pair", { x: 0.45, y: 0, z: 0.491 }).cancel,
+    f.block(floor, "yasu_ride:mug_pair", { x: 1 - 0.45, y: 0, z: 0.491 })
+      .cancel,
   ).toBe(true);
   f.flush();
   const press = f.storage.execute.mock.calls[0]?.[0];
@@ -404,4 +418,91 @@ it("closes an occupied footprint drawer with allowlisted gear without placing or
   expect(f.drive.decor()).toEqual([
     { slot: "drawer_bottom_0", item: "mug_pair" },
   ]);
+});
+
+const recordedGeometry = {
+  floor: { x: -1, y: -60, z: 4 },
+  eye: { x: -0.15, y: -58.48, z: 4.5 },
+  pose: { x: -0.5, y: -60, z: 5.5 },
+};
+
+for (const [top, bottom] of drawerStates) {
+  it.each([
+    [0.893, 0.433],
+    [0.811, 0.437],
+  ])(
+    `replays recorded floor report (%s,0,%s) with top=${top}, bottom=${bottom}`,
+    (x, z) => {
+      const f = fixture(false, top, bottom, recordedGeometry);
+      const ev = f.block(recordedGeometry.floor, undefined, { x, y: 0, z });
+      expect(ev.cancel).toBe(top || bottom);
+      f.flush();
+      if (!top && !bottom) {
+        expect(f.storage.execute).not.toHaveBeenCalled();
+        return;
+      }
+      const press = f.storage.execute.mock.calls[0]?.[0];
+      if (!press) throw new Error("Expected recorded floor storage press");
+      expect(press.cell).toEqual({ x: -2, y: -59, z: 4 });
+      expect(
+        f.drive.pressStorage(
+          press.cell,
+          press.point,
+          200,
+          press.takeContents,
+          press.eye,
+          press.openOnly,
+          press.drawersSideFace,
+        ),
+      ).toMatchObject({ kind: "door" });
+      f.drive.resync();
+      const out = f.drive.step(undefined, {
+        tick: 201,
+        location: recordedGeometry.pose,
+        velocity: { x: 0, y: 0, z: 0 },
+        deckSeatInputs: [],
+        onGround: true,
+        solidAt: () => false,
+        waterAt: () => false,
+        blockTypes: (cells) => cells.map(() => "minecraft:air"),
+      });
+      for (const [name, open] of [
+        ["drawer_top", top],
+        ["drawer_bottom", bottom],
+      ] as const) {
+        expect(
+          out.commands.find((c) => c.type === "setProperty" && c.name === name),
+        ).toMatchObject({
+          value:
+            name === (bottom ? "drawer_bottom" : "drawer_top")
+              ? 0.9
+              : open
+                ? 1
+                : 0,
+        });
+      }
+    },
+  );
+}
+
+it.each([
+  [0.146, 0.125],
+  [0.138, 0.12],
+])(
+  "replays older raw floor report (%s,0,%s) as a miss in its documented pose",
+  (x, z) => {
+    const f = fixture();
+    expect(f.block(floor, undefined, { x, y: 0, z }).cancel).toBe(false);
+    expect(game.system.run).not.toHaveBeenCalled();
+  },
+);
+
+it("does not close the sole open top drawer outside its footprint and ray", () => {
+  const f = fixture(false, true, false, recordedGeometry);
+  expect(
+    f.block(recordedGeometry.floor, undefined, { x: 0.05, y: 0, z: 0.95 })
+      .cancel,
+  ).toBe(false);
+  f.flush();
+  expect(f.storage.execute).not.toHaveBeenCalled();
 });

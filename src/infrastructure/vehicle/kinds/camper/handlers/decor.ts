@@ -34,7 +34,7 @@ import {
   isDecorBlock,
   pairDecorBlockId,
 } from "../identifiers";
-import { sideFaceHeight } from "../sideFaceHeight";
+import { touchCorrectedFaceLocation } from "../touchFaceLocation";
 
 type DockCellOwner = (
   dimensionId: DimensionId,
@@ -281,26 +281,24 @@ function drawerPress(
   );
   if (vehicleId === undefined) return;
   let cell = { ...ev.block.location };
+  const face = touchCorrectedFaceLocation(
+    ev.faceLocation,
+    ev.player.inputInfo.lastInputModeUsed,
+  );
   let point = {
-    x: cell.x + ev.faceLocation.x,
-    // Up and Down faces have known box heights. Side-face y is inverted on
-    // iPad touch 1.26.63 (measured); PC mouse is unmeasured and keeps the
-    // reported height. The domain receives true height (ADR 0121, 0111).
+    x: cell.x + face.x,
+    // Both blocks have room boxes: Up/Down use their bounds, while every
+    // side face (including floor sides) uses the already corrected true y.
     y:
       cell.y +
       (ev.blockFace === "Up" || ev.blockFace === "Down"
         ? pressedHeight(
             ev.blockFace,
-            ev.faceLocation.y,
+            face.y,
             pressedShape(ev.block.typeId, undefined),
           )
-        : ev.block.typeId === id("camper_floor")
-          ? ev.faceLocation.y
-          : sideFaceHeight(
-              ev.faceLocation.y,
-              ev.player.inputInfo.lastInputModeUsed,
-            )),
-    z: cell.z + ev.faceLocation.z,
+        : face.y),
+    z: cell.z + face.z,
   };
   const playerId = asPlayerId(ev.player.id);
   const hotbarSlot = ev.player.selectedSlotIndex;
