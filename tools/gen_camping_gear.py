@@ -626,7 +626,8 @@ def main():
     out = texture_io.Outputs(args.check, report_writes=True)
 
     for path, document in documents.items():
-        out.json(path, document)
+        # item_texture.json also holds hand-written entries, so it stays formatted for Biome.
+        (out.fixture_json if path == rp / ITEM_TEXTURES else out.json)(path, document)
     out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, ATLAS_PIXELS), compress_level=9)
     out.finish("Camping gear outputs are out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result:", "camping gear models, atlas, blocks, and items are up to date")
 

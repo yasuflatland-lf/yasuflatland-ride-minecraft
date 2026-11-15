@@ -8,16 +8,18 @@ const python = (script: string) =>
     maxBuffer: 8 * 1024 * 1024,
   });
 
-it("excludes exactly the generated JSON patterns from Biome except the formatted fixture", () => {
+it("excludes exactly the generated JSON patterns from Biome except the formatted fixture and read-modify-write files", () => {
   python(`
 import json, subprocess, sys
 from pathlib import Path
 patterns = subprocess.check_output(
     [sys.executable, '-I', 'tools/run_generators.py', '--list-outputs'], text=True).splitlines()
-fixture = 'tests/packs/fixtures/camper-areas.json'
-assert fixture in patterns
+formatted = {'tests/packs/fixtures/camper-areas.json',
+             'packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json',
+             'packs/yasu_ride_rp/textures/item_texture.json'}
+assert formatted <= set(patterns)
 expected = {'!' + pattern for pattern in patterns
-            if not pattern.endswith('.png') and pattern != fixture}
+            if not pattern.endswith('.png') and pattern not in formatted}
 includes = json.loads(Path('biome.json').read_text())['files']['includes']
 assert set(includes) == {'**', '!spike'} | expected
 assert len(includes) == len(set(includes))
