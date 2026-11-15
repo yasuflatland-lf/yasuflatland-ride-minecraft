@@ -151,7 +151,7 @@ The `ceiling_hook` slot is for hanging items. Its height is 0, and a hanging ite
 
 - The items and the box form the creative group `yasu_ride:camping_gear` at the end of the Items tab. It is defined in `packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json` (`format_version` 1.21.60, category `items`), with the box as its icon
 - The group name is also its lang key: `yasu_ride:camping_gear=Camping Gear`. The owner checked this on the dev server on 2026-10-21
-- `crafting_item_catalog.json` sits at an engine-fixed path, like `textures/item_texture.json`
+- `crafting_item_catalog.json` sits at an engine-fixed path, like `textures/item_texture.json`. The camping gear generator builds the complete item texture file from the hand-written `tools/item_texture_base.json`, followed by the box and gear entries in `tools/camping_gear.json` order. The base contains all other entries in their existing order.
 
 ### Preview pages
 

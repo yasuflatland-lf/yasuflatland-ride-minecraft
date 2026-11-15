@@ -31,6 +31,8 @@
 
 ## Rules
 
+The camping gear item texture atlas generation and ordering are specified in [Camper interior](camper-interior.md#item-texture-generation).
+
 ### Camper preview texture density
 
 - Applies to: The four `camper-*.png` README previews only.
