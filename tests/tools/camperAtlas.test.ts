@@ -35,6 +35,7 @@ type Region = [string, number, number, number, number];
 type Face = { uv: number[]; uv_size: number[] };
 
 describe("camper atlas", () => {
+  // Full generation took 30.5 s alongside the other Python tests in CI.
   it("writes only the khaki colour atlas and companion maps", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-colour-"));
     try {
@@ -60,8 +61,9 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  }, 30_000);
+  }, 120_000);
 
+  // Three full checks took 119.4 s in CI; allow for runner CPU contention.
   it("detects stale outputs while accepting equivalent JSON and PNG encoding", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-atlas-"));
     try {
@@ -133,7 +135,7 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  }, 120_000);
+  }, 300_000);
 
   it("preserves the one-row swatches without any regions", async () => {
     expect(
