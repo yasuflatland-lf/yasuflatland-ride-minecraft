@@ -91,13 +91,25 @@ describe("impact reach", () => {
     );
   });
 
-  it("lists every tracked pack stem explicitly", () => {
+  it("lists every tracked pack stem explicitly or checks full impact for the shared board geometry", () => {
     const paths = tracked.filter((p) =>
       /^packs\/yasu_ride_bp\/[^/]+\/yasu_ride\/|^packs\/yasu_ride_rp\/models\/blocks\//.test(
         p,
       ),
     );
     for (const path of paths) {
+      if (
+        path ===
+        "packs/yasu_ride_rp/models/blocks/yasu_ride/board_decor_pair.geo.json"
+      ) {
+        // The shared layout has no block kind; retain the conservative full-suite fallback.
+        expect(impactOfPath(path)).toEqual({
+          rule: "block-model",
+          impact: "all",
+        });
+        expect(selectionOf([path]).all).toBe(true);
+        continue;
+      }
       const stem = posix.basename(path).split(".")[0] ?? "";
       expect(Object.hasOwn(PACK_STEM_TAGS, stem), path).toBe(true);
     }

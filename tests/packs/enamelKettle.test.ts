@@ -49,8 +49,8 @@ assert round(bar['origin'][1]+bar['size'][1], 6) == 5
 handle_z = bar['origin'][2]+bar['size'][2]/2
 for cube in model.assemblies['enamel_kettle_spout']:
     assert abs(cube['pivot'][2]-handle_z) < .0001
-for pair in generator.PAIRS.values():
-    for left, ahead in pair['ends']:
+for layout in generator.PAIR_LAYOUTS.values():
+    for left, ahead in layout.ends:
         cubes = [generator.moved(c, left, ahead) for c in model.cubes]
         members = {name: [generator.moved(c, left, ahead) for c in part] for name, part in model.assemblies.items()}
         tilt.assert_axes(cubes, members, item.ASSEMBLIES)

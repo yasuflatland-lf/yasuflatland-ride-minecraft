@@ -53,10 +53,13 @@ root = Path('packs/yasu_ride_rp/models/blocks/yasu_ride')
 written = json.loads((root/'mug_pair.geo.json').read_text())['minecraft:geometry'][0]['bones'][0]['cubes']
 assert written == generator.rounded(list(model.cubes))
 for kind, pair in generator.PAIRS.items():
-    geometry = generator.pair_geometry(kind, rows)
-    saved = json.loads((root/(kind+'_decor_pair.geo.json')).read_text())
+    layout = generator.PAIR_LAYOUTS[pair['layout']]
+    geometry = generator.pair_geometry(layout, rows)
+    block = json.loads(Path(f'packs/yasu_ride_bp/blocks/yasu_ride/{kind}_decor_pair.block.json').read_text())
+    name = block['minecraft:block']['components']['minecraft:geometry']['identifier'].removeprefix('geometry.yasu_ride.')
+    saved = json.loads((root/(name+'.geo.json')).read_text())
     assert saved == geometry
-    for end, (left, ahead) in enumerate(pair['ends']):
+    for end, (left, ahead) in enumerate(layout.ends):
         bone = next(b for b in geometry['minecraft:geometry'][0]['bones'] if b['name'] == f'end{end}_mug_pair')
         translated = {name: generator.rounded([generator.moved(c, left, ahead) for c in part]) for name, part in members.items()}
         tilt.assert_axes(bone['cubes'], translated, generator.ITEM_ASSEMBLIES['mug_pair'])
