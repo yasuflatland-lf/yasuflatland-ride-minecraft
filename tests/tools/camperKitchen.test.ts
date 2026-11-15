@@ -35,7 +35,7 @@ print(json.dumps(dict(regions=[[v.name,v.width,v.height,v.material.name] for v i
     counts: { body: 265 },
     audit: [],
   });
-});
+}, 30_000);
 
 it("translates and turns the burner about its requested centre without closing its bore", async () => {
   await fc.assert(

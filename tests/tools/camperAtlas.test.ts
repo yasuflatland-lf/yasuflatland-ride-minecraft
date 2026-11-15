@@ -285,15 +285,12 @@ describe("camper atlas", () => {
     expect(
       await run(
         [
-          "import contextlib, io, runpy",
-          "sys.argv = ['tools/gen_camper.py', 'packs/yasu_ride_rp', '--check']",
-          "with contextlib.redirect_stdout(io.StringIO()):",
-          "    camper = runpy.run_path('tools/gen_camper.py')",
-          "region = camper['ATLAS'].allocate('ribbed_panel', 20, 3)",
-          "panel = camper['box'](0, 0, 0, 1, 1, 1, region, offset=(14, 1), uv_size=(1, 1))",
-          "lamp = camper['box'](0, 0, 0, 1, 1, 1, 'lens')",
-          "taken, rest = camper['take_slots']([panel, lamp], ['lens'])",
-          "base_x, base_y = camper['kit'].LAYOUT.origin('base')",
+          "camper = load_tool('camper_kit')",
+          "region = camper.ATLAS.allocate('ribbed_panel', 20, 3)",
+          "panel = camper.box(0, 0, 0, 1, 1, 1, region, offset=(14, 1), uv_size=(1, 1))",
+          "lamp = camper.box(0, 0, 0, 1, 1, 1, 'lens')",
+          "taken, rest = camper.take_slots([panel, lamp], ['lens'])",
+          "base_x, base_y = camper.LAYOUT.origin('base')",
           "for face in panel['uv'].values():",
           "    face['uv'][0] -= base_x",
           "    face['uv'][1] -= base_y + region.y",
@@ -310,5 +307,5 @@ describe("camper atlas", () => {
       true,
       true,
     ]);
-  }, 30_000);
+  });
 });
