@@ -775,7 +775,7 @@ Run on PC (keyboard and mouse) and iPad (touch) after `pnpm server:restart`. Rec
 
 Recorded on: PC device: PENDING; PC Minecraft version: PENDING; Mobile device (iPad): PENDING; Mobile Minecraft version: PENDING.
 
-Probe note: in the first iPad probe session the presses came in the order top drawer, then bottom drawer, so the reported side-face y (top 4.679 px, bottom 10.467 px) shows the inversion on touch. The input probe does not see presses the add-on handles, so rows KD1-KD12 cannot be judged from probe output alone.
+Probe note: in the first iPad probe session the presses came in the order top drawer, then bottom drawer, so the reported side-face y (top 4.679 px, bottom 10.467 px) shows the inversion on touch. The input probe does not see presses the add-on handles, so rows KD1-KD13 cannot be judged from probe output alone.
 
 A failing row gets a follow-up issue; do not fix it in this PR.
 
@@ -793,3 +793,4 @@ A failing row gets a follow-up issue; do not fix it in this PR.
 | KD10 | Operate both drawers repeatedly in a furnished camper.                                                            | Animation and frame rate remain usable.                                                          | PENDING | PENDING |
 | KD11 | Aim at top and bottom fronts and at the counter surface.                                                          | The primary shared-cell routing selects the intended drawer and preserves counter decor (#1681). | PENDING | PENDING |
 | KD12 | Open the top drawer, then TAP the bottom drawer with an empty hand.                                               | The bottom drawer opens while the top stays open; tapping the top toggles only the top.          | PENDING | PENDING |
+| KD13 | Open the bottom drawer, then TAP the lower part of its slid-out front; reopen it and TAP the floor just under it. | Each tap closes the open bottom drawer.                                                          | PENDING | PENDING |
