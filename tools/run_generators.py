@@ -11,6 +11,8 @@ stars match across folders. Outputs writes compact JSON; afterGenerators entries
 every other generator. --check compares parsed JSON and decoded pixels. --report-touched
 FILE writes JSON Lines containing generator and repo-relative path for every write or check,
 including secondary Outputs instances. Listing flags never run generators.
+A generator never reads a file it or another generator writes, except render_preview.py, which
+runs after the generators and reads their outputs.
 """
 
 import argparse

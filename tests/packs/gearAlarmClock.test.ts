@@ -59,7 +59,9 @@ png = load_tool('render_preview').read_png(Path('packs/yasu_ride_rp/textures/blo
 pixels = bytes(v for row in png for pixel in row for v in pixel)
 assert validation.sampled_alphas(shipped, pixels, atlas.ATLAS_SIZE) == {0, 255}
 for kind in ('shelf', 'table', 'cabinet', 'fridge'):
-    pair = json.loads(Path(f'packs/yasu_ride_rp/models/blocks/yasu_ride/{kind}_decor_pair.geo.json').read_text())['minecraft:geometry'][0]
+    block = json.loads(Path(f'packs/yasu_ride_bp/blocks/yasu_ride/{kind}_decor_pair.block.json').read_text())
+    name = block['minecraft:block']['components']['minecraft:geometry']['identifier'].removeprefix('geometry.yasu_ride.')
+    pair = json.loads(Path(f'packs/yasu_ride_rp/models/blocks/yasu_ride/{name}.geo.json').read_text())['minecraft:geometry'][0]
     for end in range(2):
         bone = next(b for b in pair['bones'] if b['name'] == f'end{end}_alarm_clock')
         assert len(bone['cubes']) == len(model.cubes)

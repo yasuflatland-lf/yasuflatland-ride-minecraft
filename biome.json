@@ -66,6 +66,7 @@
       "!packs/yasu_ride_bp/items/yasu_ride/instant_camera.item.json",
       "!packs/yasu_ride_bp/items/yasu_ride/binoculars.item.json",
       "!packs/yasu_ride_bp/blocks/yasu_ride/*_decor_pair.block.json",
+      "!packs/yasu_ride_rp/textures/item_texture.json",
       "!packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json",
       "!packs/yasu_ride_rp/models/entity/yasu_ride/low_chair.geo.json",
       "!packs/yasu_ride_rp/models/entity/yasu_ride/sofa_single.geo.json",
@@ -118,8 +119,7 @@
     {
       "includes": [
         "tests/packs/fixtures/camper-areas.json",
-        "packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json",
-        "packs/yasu_ride_rp/textures/item_texture.json"
+        "packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json"
       ],
       "json": {
         "formatter": {
