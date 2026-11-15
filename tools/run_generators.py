@@ -13,6 +13,8 @@ stars match across folders. Outputs writes compact JSON; afterGenerators entries
 every other generator. --check compares parsed JSON and decoded pixels. --report-touched
 FILE writes JSON Lines containing generator and repo-relative path for every write or check,
 including secondary Outputs instances. Listing flags never run generators.
+A generator never reads a file it or another generator writes, except render_preview.py, which
+runs after the generators and reads their outputs.
 """
 
 import argparse
@@ -31,13 +33,6 @@ ROOT = TOOLS.parent
 STAMP = ROOT / ".cache/generated/stamp.json"
 sys.path.insert(0, str(TOOLS))
 from generated_outputs import OutputManifest
-
-
-def run(command, env=None):
-    print("$", " ".join(Path(part).name if part.startswith(str(TOOLS)) else part for part in command), flush=True)
-    result = subprocess.run(command, cwd=ROOT, env=env)
-    if result.returncode != 0:
-        sys.exit(result.returncode)
 
 
 def generator_command(entry, check):

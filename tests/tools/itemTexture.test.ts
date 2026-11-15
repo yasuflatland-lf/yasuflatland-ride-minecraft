@@ -5,7 +5,7 @@ import { expect, it } from "vitest";
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
 it("builds the item texture atlas from unowned base entries followed by the box and gear in spec order", () => {
-  const basePath = "tools/templates/item_texture.json";
+  const basePath = "tools/item_texture_base.json";
   expect(existsSync(basePath)).toBe(true);
   const base = readJson(basePath);
   const spec: { id: string }[] = readJson("tools/camping_gear.json");
@@ -37,7 +37,7 @@ it("builds the item texture atlas from unowned base entries followed by the box 
       [
         "-I",
         "-c",
-        "import json, sys; sys.path.insert(0, 'tools'); import gen_camping_gear as g; print(json.dumps(g.item_textures(json.load(open('tools/templates/item_texture.json')), json.load(open('tools/camping_gear.json')))))",
+        "import json, sys; sys.path.insert(0, 'tools'); import gen_camping_gear as g; print(json.dumps(g.item_textures(json.load(open('tools/item_texture_base.json')), json.load(open('tools/camping_gear.json')))))",
       ],
       { encoding: "utf8" },
     ),

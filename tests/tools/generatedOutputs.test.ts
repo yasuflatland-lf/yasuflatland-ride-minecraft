@@ -22,31 +22,35 @@ assert json.loads(Path('biome.json').read_text())['files']['includes'] == ['**',
 
 it("runs afterGenerators entries last without a formatter in write and check modes", () => {
   python(`
-import json, sys
+import json, sys, tempfile
+from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, 'tools')
 import run_generators as runner
+from generated_outputs import OutputManifest
 plan = json.loads(runner.PLAN.read_text())
 assert 'format' not in plan
 assert all('afterFormat' not in entry for entry in plan['generators'])
 assert [entry['script'] for entry in plan['generators'] if entry.get('afterGenerators')] == ['render_preview.py']
 entries = [
-    {'script': 'render_preview.py', 'args': [], 'afterGenerators': True},
-    {'script': 'first.py', 'args': ['pack']},
-    {'script': 'second.py', 'args': []},
+    {'script': 'render_preview.py', 'args': [], 'afterGenerators': True,
+     'after': ['first.py', 'second.py'], 'reads': [], 'outputs': []},
+    {'script': 'first.py', 'args': ['pack'], 'reads': [], 'outputs': []},
+    {'script': 'second.py', 'args': [], 'reads': [], 'outputs': []},
 ]
-for entry in entries:
-    entry.update(outputs=[], reads=[])
 for check in (False, True):
-    with patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \
-         patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \
-         patch.object(runner, 'generation_status', return_value={'missing_build': []}), \
-         patch.object(runner, 'STAMP'), \
-         patch.object(runner, 'run_parallel') as run:
+    with tempfile.TemporaryDirectory() as directory, \\
+         patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \\
+         patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \\
+         patch.object(runner.OutputManifest, 'load', return_value=OutputManifest(entries)), \\
+         patch.object(runner, 'STAMP', Path(directory) / 'stamp.json'), \\
+         patch.object(runner, 'run_parallel') as run_parallel, \\
+         patch.object(runner.subprocess, 'run', side_effect=AssertionError('unexpected subprocess')):
         runner.main()
-    assert [call.args[:2] for call in run.call_args_list] == [
+    assert [call.args[:2] for call in run_parallel.call_args_list] == [
         ([entries[1], entries[2]], check), ([entries[0]], check)
     ]
+    assert run_parallel.call_args_list[1].kwargs == {'completed': ['first.py', 'second.py']}
 `);
 });
 
@@ -64,6 +68,7 @@ with tempfile.TemporaryDirectory() as directory:
     output = Path(directory) / 'output'
     for path, expected in [
         ('tools/gear_items/new_item.py', True),
+        ('tools/item_texture_base.json', True),
         ('tools/gear_items/__pycache__/new_item.pyc', False),
         ('packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json', True),
         ('packs/yasu_ride_rp/textures/item_texture.json', False),
@@ -125,6 +130,9 @@ from pathlib import Path
 sys.path.insert(0, 'tools')
 from generated_outputs import OutputManifest
 manifest = OutputManifest.load()
+plan = json.loads(Path('tools/generators.json').read_text())
+gear = next(entry for entry in plan['generators'] if entry['script'] == 'gen_camping_gear.py')
+assert gear['reads'] == []
 handwritten = [
     'packs/yasu_ride_rp/models/blocks/yasu_ride/deck_floor.geo.json',
     'packs/yasu_ride_rp/models/entity/yasu_ride/deck_seat.geo.json',

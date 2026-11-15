@@ -57,15 +57,15 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
         ? BOX_SOLID_ENTRIES
         : [];
   return [
+    { id: "cut" },
+    { id: "removeAbove" },
+    { id: "rotate" },
     ...stylesFor(shape).map<MenuEntry<ShapeEntryId>>((style) => ({
       id: shape.kind === "line" ? "place" : style,
     })),
     ...extraEntries.map((id) => ({ id })),
     { id: "fillBelow" },
-    { id: "removeAbove" },
-    { id: "cut" },
     { id: "copy" },
-    { id: "rotate" },
     { id: "cancel" },
   ];
 }
