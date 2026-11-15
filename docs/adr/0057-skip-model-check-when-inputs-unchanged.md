@@ -9,12 +9,12 @@
 
 ## Decision
 
-- On a pull request, the `model` job checks out with depth 2 and lists the files the merge commit changes against its base (`HEAD^1`). It runs `pnpm model:check` only when one of them matches the renderer's inputs or outputs: `tools/render_preview.py`, `packs/yasu_ride_rp/models/`, `packs/yasu_ride_rp/textures/entity/`, `packs/yasu_ride_rp/animations/`, any pack's `pack_icon.png`, `docs/images/`, `package.json` (the script line), `mise.toml` (the Python version), or `.github/workflows/unit-test.yml`
+- On a pull request, the `model` job checks out with depth 2 and lists the files the merge commit changes against its base (`HEAD^1`). It runs `pnpm model:check` only when a changed path matches the inputs or outputs declared by `tools/generators.json`, consumed through `tools/run_generators.py --list-inputs` and `--list-outputs` (0193), or `package.json`, `mise.toml`, or `.github/workflows/unit-test.yml`. Input consumers exclude `__pycache__` paths.
 - Otherwise the job skips mise and the render and succeeds, so the required `check` job still passes without a change to the ruleset
 - A push to `main` always runs the check
 
 ## Consequences
 
 - Pull requests that do not touch the model finish the `model` job in a few seconds
-- A new renderer input outside these paths must be added to the pattern, or a change to it could merge with stale images until the next push to `main` catches it
-- `tools/gen_model.py` and `tools/gen_sportsboat.py` are not in the pattern: a change to them reaches the previews only through the model and texture files they write, which are
+- A new external generator input must be declared in its `reads`; every file under `tools/**` is already an implicit input. Generated outputs are declared per generator and checked for complete coverage (0193).
+- Generator changes trigger the check directly through `tools/**`, including `tools/gen_model.py` and `tools/gen_sportsboat.py`.

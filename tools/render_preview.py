@@ -43,6 +43,11 @@ import zlib
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+texture_io = load_tool("texture_io")
+
 GEOMETRY = "models/entity/yasu_ride/suv.geo.json"
 TEXTURE = "textures/entity/yasu_ride/suv.png"
 ANIMATIONS = "animations/yasu_ride/suv.anim.json"
@@ -311,18 +316,7 @@ def read_png(path):
 
 
 def write_png(path, w, h, pixels, rgb=False):
-    channels = 3 if rgb else 4
-    if rgb:
-        pixels = bytes(c for i, c in enumerate(pixels) if i % 4 != 3)
-    raw = b"".join(b"\x00" + bytes(pixels[y * w * channels : (y + 1) * w * channels]) for y in range(h))
-
-    def chunk(t, d):
-        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-    data = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2 if rgb else 6, 0, 0, 0))
-    data += chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
+    texture_io.Outputs(False).rgba(path, w, h, pixels, rgb=rgb)
 
 
 def sin_cos(degrees):
@@ -1541,26 +1535,11 @@ def main():
                 targets.append((pack / "pack_icon.png", ICON_SIZE, ICON_SIZE, pixels, True))
         else:
             targets.append((Path(job.name), job.width, job.height, rgba, False))
-    stale = []
+    out = texture_io.Outputs(args.check, report_writes=True)
     for target, width, height, pixels, rgb in targets:
-        if args.check:
-            try:
-                current = bytes(c for row in read_png(target) for px in row for c in px)
-            except FileNotFoundError:
-                stale.append(f"{target} (missing)")
-                continue
-            except (OSError, ValueError, struct.error, zlib.error) as e:
-                stale.append(f"{target} ({e})")
-                continue
-            if current != bytes(pixels):
-                stale.append(str(target))
-        else:
-            write_png(target, width, height, pixels, rgb=rgb)
-            print(f"wrote {target}")
-    if stale:
-        sys.exit(f"{', '.join(stale)} out of date with the model. Run `pnpm model` and commit the result.")
-    if args.check:
-        print("previews and requested icons are up to date")
+        out.rgba(target, width, height, pixels, rgb=rgb)
+    out.finish("Previews or icons are out of date with the model. Run `pnpm model` and commit the result:",
+               "previews and requested icons are up to date")
 
 
 if __name__ == "__main__":
