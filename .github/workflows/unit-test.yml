@@ -13,7 +13,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Generates the pack files once per run so every job below restores them
+  # (ADR 0248). It installs only pnpm: generation runs Python from the runner
+  # image and needs no dependencies, which keeps a cache hit short.
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      cache-hit: ${{ steps.generated.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install_args: pnpm
+
+      - id: generated
+        uses: ./.github/actions/generated-files
+
   quick:
+    needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -66,6 +85,7 @@ jobs:
         run: node scripts/check-rp-version.mjs "$BASE"
 
   test:
+    needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -94,6 +114,7 @@ jobs:
   # Tests that spawn Python add no src/** coverage, so they run here without
   # coverage, beside the covered shards (ADR 0204).
   tools:
+    needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -108,7 +129,7 @@ jobs:
       - run: pnpm exec vitest run tests/tools/ tests/support/pythonWorker.test.ts tests/packs/litTextures tests/packs/model.test tests/packs/sportsboat tests/packs/camper.test tests/packs/camperDecorFit.test tests/packs/suvPbr tests/packs/headlights
 
   coverage:
-    needs: test
+    needs: [generate, test]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -144,6 +165,7 @@ jobs:
   # The renderer takes about 27 s, as long as the rest of the checks, so it
   # runs beside them (ADR 0054). It only needs Python's standard library.
   model:
+    needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -201,10 +223,10 @@ jobs:
   # id. It fails unless every job above succeeded.
   check:
     if: always()
-    needs: [quick, test, tools, coverage, model]
+    needs: [generate, quick, test, tools, coverage, model]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: echo "quick=${{ needs.quick.result }} test=${{ needs.test.result }} tools=${{ needs.tools.result }} coverage=${{ needs.coverage.result }} model=${{ needs.model.result }}"
-      - if: needs.quick.result != 'success' || needs.test.result != 'success' || needs.tools.result != 'success' || needs.coverage.result != 'success' || needs.model.result != 'success'
+      - run: echo "generate=${{ needs.generate.result }} quick=${{ needs.quick.result }} test=${{ needs.test.result }} tools=${{ needs.tools.result }} coverage=${{ needs.coverage.result }} model=${{ needs.model.result }}"
+      - if: needs.generate.result != 'success' || needs.quick.result != 'success' || needs.test.result != 'success' || needs.tools.result != 'success' || needs.coverage.result != 'success' || needs.model.result != 'success'
         run: exit 1
