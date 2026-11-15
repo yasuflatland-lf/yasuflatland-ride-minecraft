@@ -8,7 +8,7 @@ const python = (script: string) =>
     maxBuffer: 8 * 1024 * 1024,
   });
 
-it("excludes exactly the generated JSON patterns from Biome except the formatted fixture and read-modify-write files", () => {
+it("excludes exactly the generated JSON patterns from Biome except the formatted fixture and animation", () => {
   python(`
 import json, subprocess, sys
 from pathlib import Path
@@ -27,27 +27,35 @@ assert len(includes) == len(set(includes))
 
 it("runs afterGenerators entries last without a formatter in write and check modes", () => {
   python(`
-import json, sys
+import json, sys, tempfile
+from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, 'tools')
 import run_generators as runner
+from generated_outputs import OutputManifest
 plan = json.loads(runner.PLAN.read_text())
 assert 'format' not in plan
 assert all('afterFormat' not in entry for entry in plan['generators'])
 assert [entry['script'] for entry in plan['generators'] if entry.get('afterGenerators')] == ['render_preview.py']
 entries = [
-    {'script': 'render_preview.py', 'args': [], 'afterGenerators': True},
-    {'script': 'first.py', 'args': ['pack']},
-    {'script': 'second.py', 'args': []},
+    {'script': 'render_preview.py', 'args': [], 'afterGenerators': True,
+     'after': ['first.py', 'second.py'], 'reads': [], 'outputs': []},
+    {'script': 'first.py', 'args': ['pack'], 'reads': [], 'outputs': []},
+    {'script': 'second.py', 'args': [], 'reads': [], 'outputs': []},
 ]
 for check in (False, True):
-    with patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \
-         patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \
-         patch.object(runner, 'run') as run:
+    with tempfile.TemporaryDirectory() as directory, \\
+         patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \\
+         patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \\
+         patch.object(runner.OutputManifest, 'load', return_value=OutputManifest(entries)), \\
+         patch.object(runner, 'STAMP', Path(directory) / 'stamp.json'), \\
+         patch.object(runner, 'run_parallel') as run_parallel, \\
+         patch.object(runner.subprocess, 'run', side_effect=AssertionError('unexpected subprocess')):
         runner.main()
-    assert [call.args[0] for call in run.call_args_list] == [
-        runner.generator_command(entry, check) for entry in [entries[1], entries[2], entries[0]]
+    assert [call.args[:2] for call in run_parallel.call_args_list] == [
+        ([entries[1], entries[2]], check), ([entries[0]], check)
     ]
+    assert run_parallel.call_args_list[1].kwargs == {'completed': ['first.py', 'second.py']}
 `);
 });
 

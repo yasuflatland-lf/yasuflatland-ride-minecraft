@@ -30,6 +30,15 @@
 - Implementation: `package.json` (`test`), `vitest.config.ts`, `tests/support/engineModel.ts`, `src/domain/vehicle/`, `.dependency-cruiser.cjs`
 - Verification: `tests/domain/vehicle/motion/motion.test.ts` exercises generated sequences, friction, walls, speed bounds, and input conversion; `tests/domain/vehicle/motion/forms.test.ts` checks form transitions and vertical motion. Not verified: properties do not reproduce the whole engine, and no test enforces a maximum number of examples or requires every unit test to be a property. No tests were run for this spec.
 
+### Generated assets before tests and dev commands
+
+- Applies to: Vitest runs, build, packaging, the dev server, and the in-game driver.
+- Rule: Vitest's `tests/support/generatedSetup.ts` runs `python3 -I tools/run_generators.py --ensure` once before test collection, so pack and tool tests can read generated files in a checkout whose generated outputs were deleted. Build invokes the same command before esbuild. The fingerprint stamp in ignored `.cache/generated/stamp.json` skips unchanged inputs with present outputs; ensure skips the preview renderer. `scripts/server-up.mjs` and `scripts/game-test.mjs` call the build when either bundle is missing, source or build inputs are newer, or the runner's read-only `--status` reports stale or missing generated assets. Packaging refuses missing generated outputs, including committed rendered pack textures and icons, with “run `pnpm build` first”. Restore missing renderer outputs or run `pnpm model`; ensure keeps skipping rendering. `pnpm model` forces generation and rendering; `pnpm model:check` retains the complete check. Generated files remain committed for this step.
+- Agreement: Proposed
+- Basis: [0193](../adr/0193-shared-texture-tooling.md) Decision, command integration and on-demand generation.
+- Implementation: `tools/run_generators.py`; `scripts/generated-files.mjs`; `scripts/build.mjs`; `scripts/package.mjs`; `scripts/server-up.mjs`; `scripts/game-test.mjs`; `tests/support/generatedSetup.ts`; `vitest.config.ts`; `package.json`.
+- Verification: `tests/tools/ensureGenerated.test.ts` checks caching, regeneration, failure behavior, concurrency, and ordering in temporary roots. `tests/scripts/generatedFiles.test.ts` checks conditional builds and missing-output packaging errors without starting BDS. The manual recovery check deletes all non-retained manifest outputs, runs `pnpm test` and `pnpm build`, and compares generated files with Git. Server startup and live in-game behavior require a separate BDS run.
+
 ### Manual device checks
 
 - Applies to: occupant safety, camera feel, and rendering on PC and mobile.

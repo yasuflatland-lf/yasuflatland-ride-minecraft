@@ -11,7 +11,7 @@
         "packs/yasu_ride_rp/textures/items/yasu_ride/suv_item.png",
         "packs/yasu_ride_rp/textures/items/yasu_ride/headlight_switch.png"
       ],
-      "reads": ["packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json"]
+      "reads": []
     },
     {
       "script": "gen_sportsboat.py",
@@ -391,7 +391,29 @@
         "packs/yasu_ride_bp/manifest.json",
         "packs/yasu_ride_test_bp/manifest.json"
       ],
-      "tracked": true
+      "tracked": true,
+      "after": [
+        "gen_model.py",
+        "gen_sportsboat.py",
+        "gen_camper.py",
+        "gen_bulldozer.py",
+        "gen_low_chair.py",
+        "gen_noga_chair.py",
+        "gen_tent.py",
+        "gen_roof_tent.py",
+        "gen_camp_table.py",
+        "gen_fire_pit.py",
+        "gen_dutch_oven.py",
+        "gen_gas_lantern.py",
+        "gen_beach_parasol.py",
+        "gen_beach_chair.py",
+        "gen_dining_table.py",
+        "gen_dining_chair.py",
+        "gen_sofa.py",
+        "gen_toilet.py",
+        "gen_washstand.py",
+        "gen_camping_gear.py"
+      ]
     }
   ]
 }

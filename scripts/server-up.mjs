@@ -3,6 +3,7 @@
 // falls back to the old transport while BDS still ships it.
 import { execFileSync } from "node:child_process";
 import { networkInterfaces } from "node:os";
+import { ensureBuild } from "./generated-files.mjs";
 
 const UDP_RANGE = "19140-19155";
 
@@ -38,6 +39,7 @@ if (transport === "nethernet") {
   console.log(`NetherNet: advertising ${udpPorts}`);
 }
 
+ensureBuild();
 execFileSync("node", ["scripts/setup-dev-world.mjs"], { stdio: "inherit" });
 execFileSync("docker", ["compose", "-f", "server/compose.yaml", "up", "-d"], {
   stdio: "inherit",
