@@ -36,6 +36,15 @@
 
 ## Rules
 
+### Item texture generation
+
+- Applies to: `packs/yasu_ride_rp/textures/item_texture.json`.
+- Rule: The camping gear generator builds the complete atlas from `tools/templates/item_texture.json`, retaining its unowned entries in order, then appending the box and each gear item in `tools/camping_gear.json` order. Generators do not read their own or other generators' outputs; the preview renderer runs afterward and reads those outputs.
+- Agreement: Accepted
+- Basis: [0093](../adr/0093-decorate-the-parked-camper.md) Decision, "The camping gear generator builds the complete item texture file from the hand-written `tools/templates/item_texture.json`"
+- Implementation: `tools/gen_camping_gear.py`, `tools/templates/item_texture.json`, `tools/run_generators.py`.
+- Verification: `tests/tools/itemTexture.test.ts` checks ownership, content, and order; `pnpm model:check` checks freshness.
+
 ### Interior surface materials
 
 - Applies to: The centre floor, inner side lining, backsplash and dinette table.
