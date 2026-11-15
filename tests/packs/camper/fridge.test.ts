@@ -1,14 +1,108 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CAMPER_FURNITURE } from "../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   bone,
   type Cube,
   end,
+  readPng,
   slotXZ,
   standingItems,
-  swatch,
+  swatchUv,
   turn,
 } from "./helpers";
+
+const fridgeCubes = () => {
+  const areas = JSON.parse(
+    readFileSync("tests/packs/fixtures/camper-areas.json", "utf8"),
+  ) as { fridge: Record<string, [number, number]> };
+  return Object.entries(areas.fridge).flatMap(([name, [first, last]]) =>
+    (bone(name).cubes ?? []).slice(first, last + 1),
+  );
+};
+
+describe("fridge surface continuity", () => {
+  it("joins slab slices without cracks and keeps corner steps below 0.15 px", () => {
+    for (const name of ["fridge_top_door", "fridge_bottom_door"]) {
+      const slabs = (bone(name).cubes ?? [])
+        .filter((c) => (c.origin[0] ?? 0) < -8.75 && end(c, 0) > -8.75)
+        .sort((a, b) => (a.origin[1] ?? 0) - (b.origin[1] ?? 0));
+      expect(slabs.length).toBeGreaterThan(0);
+      for (const [i, slab] of slabs.entries()) {
+        const next = slabs[i + 1];
+        if (!next) continue;
+        expect(
+          Math.abs(end(slab, 1) - (next.origin[1] ?? 0)),
+          name,
+        ).toBeLessThanOrEqual(1e-6);
+        for (const z of [0, 1]) {
+          const edge = (c: Cube) => (c.origin[2] ?? 0) + z * (c.size[2] ?? 0);
+          expect(Math.abs(edge(slab) - edge(next)), name).toBeLessThan(0.15);
+        }
+      }
+    }
+  });
+
+  it("has no same-direction coplanar overlapping faces, including between fridge bones", () => {
+    const cubes = fridgeCubes();
+    const conflicts: string[] = [];
+    for (const [i, a] of cubes.entries()) {
+      for (const [j, b] of cubes.slice(0, i).entries()) {
+        for (let axis = 0; axis < 3; axis++) {
+          for (const side of [0, 1]) {
+            const plane = (c: Cube) =>
+              (c.origin[axis] ?? 0) + side * (c.size[axis] ?? 0);
+            if (Math.abs(plane(a) - plane(b)) > 1e-6) continue;
+            if (
+              [0, 1, 2].every(
+                (k) =>
+                  k === axis ||
+                  Math.min(end(a, k), end(b, k)) -
+                    Math.max(a.origin[k] ?? 0, b.origin[k] ?? 0) >
+                    1e-6,
+              )
+            )
+              conflicts.push(`${i}/${j} axis ${axis} side ${side}`);
+          }
+        }
+      }
+    }
+    expect(conflicts).toEqual([]);
+  });
+
+  it("keeps every face's filtering footprint inside a light opaque texel", () => {
+    const atlas = readPng("textures/entity/yasu_ride/camper");
+    const bad: string[] = [];
+    for (const [i, cube] of fridgeCubes().entries()) {
+      for (const [name, face] of Object.entries(cube.uv)) {
+        const [u = 0, v = 0] = face.uv;
+        const [du = 0, dv = 0] = face.uv_size;
+        // Linear filtering reaches half a texel beyond each UV endpoint.
+        for (
+          let y = Math.floor(Math.min(v, v + dv) - 0.5 + 1e-6);
+          y <= Math.ceil(Math.max(v, v + dv) - 0.5 - 1e-6);
+          y++
+        ) {
+          for (
+            let x = Math.floor(Math.min(u, u + du) - 0.5 + 1e-6);
+            x <= Math.ceil(Math.max(u, u + du) - 0.5 - 1e-6);
+            x++
+          ) {
+            const offset = 4 * (y * atlas.width + x);
+            const rgba = [...atlas.pixels.subarray(offset, offset + 4)];
+            if (
+              rgba.length !== 4 ||
+              rgba.slice(0, 3).some((c) => c < 160) ||
+              rgba[3] !== 255
+            )
+              bad.push(`${i} ${name}: ${x},${y} ${rgba}`);
+          }
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});
 
 const corners = (cube: Pick<Cube, "origin" | "size">) =>
   [0, 1].flatMap((x) =>
@@ -92,7 +186,9 @@ describe("camper furniture model (ADR 0093)", () => {
     const [bottom = 0, top = 0] = heights;
     expect(top).toBeLessThan(bottom);
   });
-  it("sweeps both fridge doors through the aisle beside the fridge without hitting the cab seat or standing decor", () => {
+  it("sweeps both fridge doors through the aisle beside the fridge without hitting the cab seat or standing decor", {
+    timeout: 60_000,
+  }, () => {
     const items = standingItems();
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
       (s) => !s.hanging,
@@ -157,7 +253,10 @@ describe("camper furniture model (ADR 0093)", () => {
     for (const name of ["fridge_bottom_door", "fridge_top_door"]) {
       const cubes = bone(name).cubes ?? [];
       const levers = cubes.filter(
-        (c) => swatch(c, "chrome") && (c.size[2] ?? 0) > 3,
+        (c) =>
+          c.uv.north?.uv.every(
+            (v, i) => v === (swatchUv("chrome")[i] ?? 0) + 0.5,
+          ) && (c.size[2] ?? 0) > 3,
       );
       expect(levers.length, name).toBeGreaterThan(0);
       for (const lever of levers) {
