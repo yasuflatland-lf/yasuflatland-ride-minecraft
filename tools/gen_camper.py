@@ -233,7 +233,7 @@ for bones in area_ranges.values():
     for bone, ranges in bones.items():
         if len(ranges) == 1:
             bones[bone] = ranges[0]
-outputs.json(Path(__file__).resolve().parent.parent / "tests/packs/fixtures/camper-areas.json", area_ranges)
+outputs.fixture_json(Path(__file__).resolve().parent.parent / "tests/packs/fixtures/camper-areas.json", area_ranges)
 
 mirror_x(camper_bones)
 geo = {
@@ -266,7 +266,7 @@ drawer_items = load_tool("camper_drawer_items").geometry(
     [bone for bone in camper_bones if bone["name"] in areas["kitchen_fronts"].DRAWER_PIVOTS])
 geo["minecraft:geometry"].append(drawer_items)
 print("drawer item cubes added:", sum(len(b.get("cubes", [])) for b in drawer_items["bones"]))
-outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
+outputs.json(MODELS / "camper.geo.json", rounded(geo))
 
 
 atlas_pixels = kit.regions.render_atlas(LAYOUT)

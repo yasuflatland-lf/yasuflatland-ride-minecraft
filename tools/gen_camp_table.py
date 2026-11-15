@@ -1,7 +1,6 @@
 """Generate the folding camp table's model and wood-grain texture."""
 
 import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -68,7 +67,7 @@ def main():
     geo = args.resource_pack / GEOMETRY
     texture = args.resource_pack / TEXTURE
     out = texture_io.Outputs(args.check)
-    out.json(geo, json.dumps(geometry(), separators=(",", ":")) + "\n")
+    out.json(geo, geometry())
     out.png(texture, SIZE, SIZE, texture_io.texel_reader(SIZE, pixels()), compress_level=9)
     out.finish("camp table model or texture is stale; run pnpm model")
 

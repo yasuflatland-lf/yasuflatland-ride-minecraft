@@ -5,7 +5,6 @@ and decoded pixels so formatting and PNG compression do not affect freshness.
 """
 import argparse
 import itertools
-import json
 import math
 import sys
 from pathlib import Path
@@ -290,7 +289,7 @@ def main():
     document = geometry()
     out = texture_io.Outputs(args.check, report_writes=True)
 
-    out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
+    out.json(geo_path, document)
     out.png(texture_path, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, texture_pixels()), compress_level=9)
     out.finish("Noga Chair outputs are out of date with tools/gen_noga_chair.py. Run `pnpm model` and commit the result:", "Noga Chair model and texture are up to date")
 

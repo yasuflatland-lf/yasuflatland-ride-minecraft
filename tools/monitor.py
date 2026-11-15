@@ -174,11 +174,11 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
         }],
     }
     assert_axes([cube for bone in screen_bones for cube in bone["cubes"]], {})
-    out.json(rp / f"models/entity/yasu_ride/{kind}_monitor.geo.json", json.dumps(rounded(monitor_geo), separators=(",", ":")))
+    out.json(rp / f"models/entity/yasu_ride/{kind}_monitor.geo.json", rounded(monitor_geo))
     out.png(rp / f"textures/entity/yasu_ride/{kind}_monitor.png",
         layout.cell_size[0], layout.cell_size[1] * len(screens),
         lambda x, y: cells[y // layout.cell_size[1]][y % layout.cell_size[1]][x])
-    out.json(rp / f"render_controllers/yasu_ride/{kind}_monitor.rc.json", json.dumps({
+    out.json(rp / f"render_controllers/yasu_ride/{kind}_monitor.rc.json", {
         "format_version": "1.8.0",
         "render_controllers": {f"controller.render.yasu_ride.{kind}.monitor": {
             "geometry": "Geometry.monitor", "materials": [{"*": "Material.lamp_lit"}],
@@ -188,5 +188,5 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
                 for k, bone in enumerate(screen_bones)
             ]],
         }},
-    }, separators=(",", ":")))
+    })
     return out.stale

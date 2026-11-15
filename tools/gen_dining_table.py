@@ -223,7 +223,7 @@ def main():
             return tile[y % WEAVE_TILE][x % WEAVE_TILE]
         return STEEL if x < 8 else STEEL_DARK if x < 16 else FOOT_BLACK
     out = texture_io.Outputs(args.check, report_writes=True)
-    out.json(args.resource_pack / GEOMETRY, geometry(), separators=(",", ":"))
+    out.json(args.resource_pack / GEOMETRY, geometry())
     out.png(args.resource_pack / TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT, pixel, compress_level=9)
     out.finish("Dining Table outputs are stale. Run pnpm model:", "Dining Table model and texture are up to date")
 
