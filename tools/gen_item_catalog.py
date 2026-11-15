@@ -11,6 +11,11 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+texture_io = load_tool("texture_io")
+
 SPEC = Path(__file__).resolve().parent / "camping_gear.json"
 CATALOG = "item_catalog/crafting_item_catalog.json"
 NAMESPACE = "yasu_ride"
@@ -118,18 +123,10 @@ def main():
     validate(GROUPS)
     document = catalog(GROUPS)
     path = args.behavior_pack / CATALOG
-    if not args.check:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
-        print(f"wrote {path}")
-        return
-    try:
-        stale = json.loads(path.read_text()) != document
-    except (OSError, ValueError):
-        stale = True
-    if stale:
-        sys.exit(f"{path} out of date with tools/gen_item_catalog.py and tools/camping_gear.json. Run `pnpm model` and commit the result.")
-    print("creative item catalog is up to date")
+    out = texture_io.Outputs(args.check, report_writes=True)
+    out.json(path, json.dumps(document, separators=(",", ":")) + "\n")
+    out.finish("Creative item catalog is out of date with tools/gen_item_catalog.py and tools/camping_gear.json. Run `pnpm model` and commit the result:",
+               "creative item catalog is up to date")
 
 
 if __name__ == "__main__":
