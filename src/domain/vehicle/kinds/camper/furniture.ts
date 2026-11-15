@@ -9,6 +9,7 @@ import {
   storageDoors,
   storageFurniture,
 } from "./dooredStorage";
+import { DRAWER_GEAR_IDS } from "./spec";
 
 type FurnitureKind =
   | "dashboard"
@@ -39,12 +40,12 @@ type DecorPairKind =
   | StoragePairKind;
 
 /** The pair kind of a storage compartment, whose block compartmentCells lays (ADR 0114, 0121). */
-type StoragePairKind = "cabinet" | "fridge";
+type StoragePairKind = "cabinet" | "fridge" | "drawers";
 
 /** The blocks a storage compartment lays; a new unit adds its own here (ADR 0121). */
 export type StorageCompartmentBlock = Extract<
   DockBlock,
-  { type: "cabinet" | "fridge" }
+  { type: "cabinet" | "fridge" | "drawers" }
 >;
 /** The blocks an open storage door's plate lays; a new unit adds its own here (ADR 0121). */
 export type StoragePlateBlock = Extract<
@@ -57,7 +58,13 @@ export type StoragePlateBlock = Extract<
  * compartment hangs over (ADR 0114), or a fridge door, the shorter top one or the taller
  * bottom one (ADR 0123). Each needs an entity property (entity.ts STORAGE_DOOR_PROPERTY).
  */
-export type StorageDoorId = "sink" | "stove" | "fridge_top" | "fridge_bottom";
+export type StorageDoorId =
+  | "sink"
+  | "stove"
+  | "fridge_top"
+  | "fridge_bottom"
+  | "drawer_top"
+  | "drawer_bottom";
 
 /** One end of a furniture that holds two items in one cell (ADR 0108). */
 interface DecorPairEnd {
@@ -189,7 +196,7 @@ function compartmentSlots<Id extends StorageDoorId>(
 // Each door hangs on the compartment's outer end, so the open doors stand at the cabinet's two
 // ends, in the aisle cells beside their compartments, and leave the middle free
 // (tools/gen_camper.py, ADR 0114).
-export const WALL_CABINET: DooredStorage<StorageDoorId, StoragePairKind> = {
+export const WALL_CABINET: DooredStorage<StorageDoorId, "cabinet"> = {
   pairKind: "cabinet",
   doors: [
     {
@@ -257,7 +264,7 @@ const FRIDGE_TOP_HEIGHT = 4;
 // aisle cell beside the fridge, against the front seats' backs, and leaves the way from the
 // entry door to the compartments free. The top door's plate takes the front ceiling light's
 // cell and gives its light while the lights are on (tools/gen_camper.py, ADR 0115, 0123).
-export const FRIDGE: DooredStorage<StorageDoorId, StoragePairKind> = {
+export const FRIDGE: DooredStorage<StorageDoorId, "fridge"> = {
   pairKind: "fridge",
   doors: [
     {
@@ -311,15 +318,98 @@ export const FRIDGE: DooredStorage<StorageDoorId, StoragePairKind> = {
   plateBlockName: "camper_fridge_door",
 };
 
-// The units of storage with doors, in the order their doors swing and homeless saved decor
-// fills them (ADR 0121).
+const COUNTER_CELL = { x: -1, z: -1, layer: 1 } as const;
+const COUNTER_HEIGHT = 14;
+
+// One block carries both drawers, chosen from the #1681 iPad probe (PC was not
+// measured by owner decision). The model pivots are
+// (9, y, 16.45); room x/z point left/forward, opposite the model's kitchen side.
+// A two-cell layout would replace this cell and drawerAtHeight with one cell per door.
+export const DRAWER_COMPARTMENT = COUNTER_CELL;
+const DRAWER_BOTTOM_Y = 17.25;
+const DRAWER_TOP_Y = 22.65;
+const DRAWER_FRONT_HEIGHT = 5.2;
+const DRAWER_BOX_LIFT = 0.25;
+const DRAWER_WALL_PX = 0.2;
+const DRAWER_SEAM = DRAWER_TOP_Y - DRAWER_BOTTOM_Y - DRAWER_FRONT_HEIGHT;
+const PX_PER_BLOCK = 16;
+export const DRAWER_SPLIT_HEIGHT =
+  (DRAWER_BOTTOM_Y +
+    DRAWER_FRONT_HEIGHT +
+    DRAWER_SEAM / 2 -
+    DRAWER_COMPARTMENT.layer * PX_PER_BLOCK) /
+  PX_PER_BLOCK;
+
+/** Height within the pressed cell; the counter surface retains its decor press. */
+export function drawerAtHeight(height: number): StorageDoorId | undefined {
+  if (
+    !Number.isFinite(height) ||
+    height < 0 ||
+    height >= COUNTER_HEIGHT / PX_PER_BLOCK
+  )
+    return undefined;
+  return height >= DRAWER_SPLIT_HEIGHT ? "drawer_top" : "drawer_bottom";
+}
+
+export const KITCHEN_DRAWERS: DooredStorage<StorageDoorId, StoragePairKind> = {
+  pairKind: "drawers",
+  doors: (["drawer_top", "drawer_bottom"] as const).map((id, end) => ({
+    id,
+    compartment: DRAWER_COMPARTMENT,
+    opening: { kind: "sliding" },
+    acceptsPress: (height: number) => drawerAtHeight(height) === id,
+    slots: [
+      {
+        id: slotId(`${id}_0`),
+        cell: DRAWER_COMPARTMENT,
+        // The box floor is y + .25 + .2 in build_drawers; keep subpixel heights.
+        height:
+          (id === "drawer_top" ? DRAWER_TOP_Y : DRAWER_BOTTOM_Y) +
+          DRAWER_BOX_LIFT +
+          DRAWER_WALL_PX -
+          PX_PER_BLOCK,
+        items: [...DRAWER_GEAR_IDS],
+        pair: { kind: "drawers", end: end as 0 | 1 },
+        door: id,
+      },
+    ],
+  })),
+  compartmentBlock: ({
+    face,
+    open,
+    height,
+    openings,
+    end0,
+    end1,
+    surface,
+  }) => ({
+    type: "drawers",
+    face,
+    open,
+    height,
+    topOpen: openings?.drawer_top === true,
+    bottomOpen: openings?.drawer_bottom === true,
+    ...(end0 === undefined ? {} : { end0 }),
+    ...(end1 === undefined ? {} : { end1 }),
+    ...(surface === undefined ? {} : { counter: surface }),
+  }),
+  plateBlock: () => {
+    throw new Error("Sliding storage has no plate");
+  },
+  plateBlockName: "",
+};
+
+// Deviates from #1683's requested append: activation is tracked on #1684.
+// Append KITCHEN_DRAWERS to CAMPER_STORAGE, merge its slots into the counter row,
+// add drawer_top/drawer_bottom to STORAGE_DOOR_PROPERTY and CAMPER_ENTITY.restored, and drop the vi.mock
+// activation in tests/domain/vehicle/kinds/camper/kitchenDrawerInteraction.test.ts.
 export const CAMPER_STORAGE: readonly DooredStorage<
   StorageDoorId,
-  StoragePairKind
+  "cabinet" | "fridge"
 >[] = [WALL_CABINET, FRIDGE];
 
 const STORAGE_PAIR_KINDS: ReadonlySet<DecorPairKind> = new Set(
-  CAMPER_STORAGE.map(({ pairKind }) => pairKind),
+  [...CAMPER_STORAGE, KITCHEN_DRAWERS].map(({ pairKind }) => pairKind),
 );
 
 /** Whether `kind` is a storage compartment's, not a pair block's that decorCells lays (ADR 0108, 0121). */
@@ -485,9 +575,9 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
   },
   {
     kind: "counter",
-    cells: [{ x: -1, z: -1, layer: 1 }],
+    cells: [COUNTER_CELL],
     slots: [
-      { id: slotId("counter"), cell: { x: -1, z: -1, layer: 1 }, height: 14 },
+      { id: slotId("counter"), cell: COUNTER_CELL, height: COUNTER_HEIGHT },
     ],
   },
   // Height 6 lifts the 10 px hanging planter so its top meets the hook at the top of the cell (ADR 0099, 0102).

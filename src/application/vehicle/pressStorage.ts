@@ -13,6 +13,8 @@ interface PressStorageCommand {
   cell: Vec3;
   /** Where the press hit the block, to tell the two items of a compartment apart. */
   point?: Vec3;
+  /** False for an opening/front press that must toggle without taking its contents. */
+  takeContents?: boolean;
 }
 
 export class PressStorage {
@@ -28,7 +30,12 @@ export class PressStorage {
   /** Returns whether the press did anything; an item taken out is saved and given. */
   execute(cmd: PressStorageCommand): boolean {
     const room = this.repo.get(cmd.vehicleId)?.asRoom();
-    const press = room?.pressStorage(cmd.cell, cmd.point, this.clock.now());
+    const press = room?.pressStorage(
+      cmd.cell,
+      cmd.point,
+      this.clock.now(),
+      cmd.takeContents,
+    );
     if (!room || !press) return false;
     if (press.kind === "item") {
       this.world.saveDecor(cmd.vehicleId, room.decor());

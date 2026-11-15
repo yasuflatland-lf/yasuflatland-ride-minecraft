@@ -7,6 +7,7 @@ import {
   showerCommand,
   showerDoorCommand,
   storageDoorCommand,
+  storageDoorProperty,
 } from "../../../../../src/domain/vehicle/kinds/camper/entity";
 
 it("restores the form, docked, door, and ceiling light properties and writes the doors, the shower, and the lights (ADR 0094, 0114, 0115, 0123)", () => {
@@ -62,4 +63,14 @@ it("restores the form, docked, door, and ceiling light properties and writes the
     name: "shower",
     value: true,
   });
+});
+
+it("leaves the gated kitchen drawers without a restored property until #1684 wires them", () => {
+  for (const door of ["drawer_top", "drawer_bottom"] as const) {
+    expect(storageDoorProperty(door)).toBeUndefined();
+    expect(() => storageDoorCommand(door, 1)).toThrow(
+      `Storage property is not wired: ${door}`,
+    );
+  }
+  expect(storageDoorProperty("sink")).toBe("cabinet_sink_door");
 });

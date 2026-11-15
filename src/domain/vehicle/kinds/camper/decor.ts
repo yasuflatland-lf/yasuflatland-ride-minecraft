@@ -85,7 +85,9 @@ export function decorInCell(
  * of its cell otherwise, since the cell's decor block draws one item (ADR 0107).
  */
 export function sharingSlots(slot: DecorSlot): DecorSlot[] {
-  return slot.pair ? [slot] : cellSlots(slot.cell);
+  return slot.pair
+    ? [slot]
+    : cellSlots(slot.cell).filter((s) => s.door === slot.door);
 }
 
 /** Whether `slot` cannot take an item: it, or a slot sharing its place, holds decor (ADR 0107, 0108). */

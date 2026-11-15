@@ -176,6 +176,8 @@ function isDockCell(v: unknown): v is DockCell {
 
 function blockIdOf(block: DockBlock): string {
   switch (block.type) {
+    case "drawers":
+      throw new Error("Kitchen drawer blocks are gated until #1684");
     case "deck":
       return DECK_FLOOR_BLOCK;
     case "floor":
