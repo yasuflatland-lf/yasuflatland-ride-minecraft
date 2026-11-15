@@ -689,7 +689,14 @@ it.each([false, true])(
   async (fallback) => {
     const { session, menus, player, cases } = setup(fallback);
     session.setFlow({ ...endpoint, to: { ...to, y: 71 } });
-    ui.answers.push({ selection: 3 }, { selection: 2 });
+    ui.answers.push(
+      {
+        selection: shapeMenu(session.flow).findIndex(
+          (e) => e.id === "cylinder",
+        ),
+      },
+      { selection: 2 },
+    );
     await menus.showShapeMenu(player);
     expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
