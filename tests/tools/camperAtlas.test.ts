@@ -35,7 +35,7 @@ type Region = [string, number, number, number, number];
 type Face = { uv: number[]; uv_size: number[] };
 
 describe("camper atlas", () => {
-  // Full generation took 30.5 s alongside the other Python tests in CI.
+  // Full generation took up to 14.6 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
   it("writes only the khaki colour atlas and companion maps", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-colour-"));
     try {
@@ -61,9 +61,9 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  }, 120_000);
+  }, 60_000);
 
-  // Three full checks took 119.4 s in CI; allow for runner CPU contention.
+  // Three full checks took up to 60.3 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
   it("detects stale outputs while accepting equivalent JSON and PNG encoding", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-atlas-"));
     try {
@@ -135,7 +135,7 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  }, 300_000);
+  }, 270_000);
 
   it("preserves the one-row swatches without any regions", async () => {
     expect(
@@ -203,7 +203,7 @@ describe("camper atlas", () => {
       ),
       { numRuns: 30 },
     );
-  }, 60_000);
+  });
 
   it("maps region subrectangles to texels relative to the region origin", async () => {
     await fc.assert(
@@ -229,7 +229,7 @@ describe("camper atlas", () => {
       ),
       { numRuns: 20 },
     );
-  }, 60_000);
+  });
 
   it("samples regions in local coordinates and leaves unused space transparent", async () => {
     expect(

@@ -43,7 +43,7 @@ print(json.dumps(all(abs(y['origin'][2]-x['origin'][2]-${dz})<1e-8 and all(abs(a
       ),
       { numRuns: 15, examples: [[1], [-4], [4], [6.2990430649279006e-9]] },
     );
-  }, 30_000);
+  });
 
   it("resolves every face inside a registered region without private atlas offsets", async () => {
     const result = JSON.parse(

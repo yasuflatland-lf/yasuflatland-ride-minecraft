@@ -60,7 +60,7 @@ describe("MER atlas", () => {
       }),
       { numRuns: 20 },
     );
-  }, 60_000);
+  });
 
   it("preserves RGBA alpha and changes only RGB in the requested streak rows", async () => {
     await fc.assert(
@@ -81,7 +81,7 @@ describe("MER atlas", () => {
       ),
       { numRuns: 20 },
     );
-  }, 60_000);
+  });
 
   it("keeps each MER swatch exact and opaque regardless of colour alpha", async () => {
     await fc.assert(
@@ -98,7 +98,7 @@ describe("MER atlas", () => {
       }),
       { numRuns: 20 },
     );
-  }, 60_000);
+  });
 
   it("round-trips arbitrary RGBA bytes through an unfiltered PNG", async () => {
     await fc.assert(
@@ -114,7 +114,7 @@ describe("MER atlas", () => {
       ),
       { numRuns: 20 },
     );
-  }, 60_000);
+  });
 
   it("tiles the atlas with sixteen non-overlapping swatch faces", async () => {
     const faces = await run<

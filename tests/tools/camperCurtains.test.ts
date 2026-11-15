@@ -18,7 +18,7 @@ region = next((r for r in k.REGISTRY.regions() if r.name == 'light curtain fabri
 print(json.dumps([len(cubes), len(m.anchors()), len(m.make_panel(k.REGISTRY)), [region.width, region.height, region.material.value] if region else None, cubes == m.build()['body'], load_tool('camper_regions').CURTAIN_PIXELS == load_tool('camper_regions')._curtain_pixels()]))`),
   );
   expect(result).toEqual([405, 5, 40, [96, 120, "fabric"], true, true]);
-}, 30_000);
+});
 
 it("keeps each window assembly within its opening and the allowed interior depth", async () => {
   const result = JSON.parse(

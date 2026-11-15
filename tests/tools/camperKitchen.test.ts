@@ -35,7 +35,7 @@ print(json.dumps(dict(regions=[[v.name,v.width,v.height,v.material.name] for v i
     counts: { body: 265 },
     audit: [],
   });
-}, 30_000);
+});
 
 it("translates and turns the burner about its requested centre without closing its bore", async () => {
   await fc.assert(
@@ -67,7 +67,7 @@ print(json.dumps([len(cubes),hi[1],lo[0]-${cx},hi[0]-${cx},lo[2]-${cz},hi[2]-${c
     ),
     { numRuns: 12 },
   );
-}, 30_000);
+});
 
 it("maps the cast cup sides to a dark patch and keeps the taller head ring open", async () => {
   const result = JSON.parse(

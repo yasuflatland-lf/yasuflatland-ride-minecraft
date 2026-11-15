@@ -4,7 +4,6 @@ import { startPythonWorker } from "../support/pythonWorker";
 
 const python = startPythonWorker();
 afterAll(() => python.close());
-const PYTHON_PROPERTY_TIMEOUT_MS = 30_000;
 const preamble = `import copy, json, math, sys
 sys.path.insert(0, 'tools')
 import gear_kit as g
@@ -52,7 +51,7 @@ const run = async (script: string, args: unknown = null) => {
 const runs = { numRuns: 20 };
 const dimension = fc.integer({ min: 2, max: 10 });
 
-describe("gear geometry kit", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
+describe("gear geometry kit", () => {
   it("closes rings with overlapping yaw-only edges and validates sizes", async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -80,6 +79,7 @@ rejects(lambda: g.ring(8, a, 1, 0, face))`,
     );
   });
 
+  // The loft property took up to 8.6 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
   it("closes constant lofts in both modes and builds local pitch before yaw", async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -151,7 +151,7 @@ g.COMPOUND_TILTS = True`,
       ),
       runs,
     );
-  });
+  }, 60_000);
 
   it("extrudes convex and concave profiles without gaps and with exact bounds", async () => {
     await fc.assert(

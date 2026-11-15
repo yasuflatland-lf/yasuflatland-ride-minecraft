@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 
+// The round-trip took up to 33.4 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
 it("round-trips generated Washstand outputs and detects missing or altered geometry and texels", () => {
   const directory = mkdtempSync(join(tmpdir(), "washstand-"));
   const run = (check = false) =>
@@ -44,4 +45,4 @@ it("round-trips generated Washstand outputs and detects missing or altered geome
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
-}, 120_000);
+}, 150_000);

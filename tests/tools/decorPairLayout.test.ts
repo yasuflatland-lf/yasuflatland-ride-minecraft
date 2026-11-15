@@ -46,8 +46,9 @@ print('ok')
   ).toBe("ok\n");
 });
 
+// Orphan cleanup took up to 22.1 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
 it("reports orphan pair geometries without rewriting in check mode and removes them on regeneration", {
-  timeout: 60_000,
+  timeout: 90_000,
 }, async () => {
   expect(
     await python.run(`
