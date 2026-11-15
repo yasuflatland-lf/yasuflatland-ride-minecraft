@@ -29,7 +29,7 @@ pnpm build         # esbuild bundle into the Behavior Pack and the test pack
 pnpm package       # zip the packs into dist/yasuflatland-ride-<version>.mcaddon (after build)
 pnpm generate      # ensure generated pack files are current, skipping previews and icons
 pnpm model         # regenerate compact pack JSON, textures, README and item previews, pack icons, and the formatted camper fixture (Python 3)
-pnpm model:check   # fail if the camping gear models and atlas, the previews in docs/images, or the pack icons are stale
+pnpm model:check   # check previews and pack icons against freshly generated packs
 pnpm sounds        # regenerate the Resource Pack sounds (Python 3)
 pnpm server:up     # register the packs and start the dev BDS (Docker)
 pnpm server:down   # stop the dev BDS
@@ -43,7 +43,7 @@ pnpm test:game     # run impacted scenarios on the running dev BDS in 4 lanes lo
 # GAME_TEST_AT=<0..7> runs inside one lane, for converting scenarios (defaults to serial).
 ```
 
-Build and Vitest run `pnpm generate` automatically through its Python command. The dev server and in-game test driver build first when bundles or generated files are missing or stale. `pnpm package` requires a successful build and reports missing generated files. `pnpm model` still forces all generators and renders previews and icons; `pnpm model:check` still checks everything. The generation stamp lives in the ignored `.cache/generated/` directory.
+Build and Vitest run `pnpm generate` automatically through its Python command. The dev server and in-game test driver build first when bundles or generated files are missing or stale. `pnpm package` requires a successful build and reports missing generated files. `pnpm model` still forces all generators and renders previews and icons; `pnpm model:check` ensures fresh packs and checks the committed previews, rendered item icons, and pack icons. Generated build outputs declared by `tools/run_generators.py --list-outputs --untracked` are never committed; `pnpm generate` produces them locally, in CI, and for releases. Keep the renderer outputs marked `tracked: true` committed so GitHub and pack lists can display them. The generation stamp lives in the ignored `.cache/generated/` directory.
 
 Before you say a change is done, run `pnpm lint`, `pnpm lint:lang`, `pnpm lint:docs`, `pnpm lint:unused`, `pnpm lint:deps`, `pnpm typecheck`, and `pnpm test`. When you change `src/infrastructure`, `src/test-pack`, or the packs, also run `pnpm build`, restart the dev BDS, and run `pnpm test:game` if Docker is available. CI runs the lint, unused code, test, build, and package checks on every pull request ([unit-test.yml](.github/workflows/unit-test.yml), which also uploads coverage to Codecov) and runs the in-game tests against a BDS container ([integration-test.yml](.github/workflows/integration-test.yml)).
 
@@ -87,7 +87,7 @@ Design decisions live in [docs/adr](docs/adr/README.md). Read the spec for the a
 
 ## Bedrock gotchas
 
-- Bump the Resource Pack manifest version whenever the Resource Pack changes. Otherwise devices keep using their cached copy (0015).
+- Bump the Resource Pack manifest version whenever tracked Resource Pack files or generator inputs change. Otherwise devices keep using their cached copy (0015).
 - Script-only changes reload with `/reload`. Entity definition and Resource Pack changes need a server restart (0015).
 - The dev BDS serves the Resource Pack, and the Behavior Pack's dependency on it, under a fresh dev-only version on every `pnpm server:up` and `pnpm server:restart`: the committed major and minor with patch 10000 plus a counter kept in `server/data/dev-pack-version.json`. The committed manifests stay unchanged; the served ones are generated into `server/data/dev-manifests/`. Restart through `pnpm server:restart`, not `docker restart` or `docker compose restart`, so the version goes up and devices drop their cached copy (0062).
 - Start the dev BDS with `pnpm server:up`, not `docker compose up`. It uses NetherNet: TCP 19132 for signaling, and UDP 19140-19155 advertised on the Mac's LAN IP (`BDS_LAN_IP`, detected when unset). Without that advertisement, clients behind Docker's bridge network cannot reach their UDP port. `BDS_TRANSPORT=raknet` falls back to raknet on UDP 19132; ignore its "NetherNet is the only supported transport type" banner (0015).

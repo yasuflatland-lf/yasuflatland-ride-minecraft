@@ -12,8 +12,10 @@ The model is made only of axis-aligned cubes (a few of them rotated around one a
 ## Decision
 
 - `tools/render_preview.py` draws `docs/images/suv-front-left.png` from `suv.geo.json` and `suv.png`, using only the Python standard library, like `tools/gen_model.py`. It uses Minecraft's fixed face shading (top 1.0, north/south 0.8, east/west 0.6, bottom 0.5), a soft ground shadow, and a transparent background
-- `pnpm model` regenerates the preview right after the model. `pnpm model:check` renders it again and fails if the pixels differ from the committed image; CI runs it on every pull request
+- `pnpm model` regenerates the preview right after the model. `pnpm model:check` first ensures freshly generated packs, then renders it again and fails if the pixels differ from the committed image; CI runs it when the input filter matches (0057)
 - The renderer avoids `math.sin` and `math.cos`, whose last bit can differ between platforms, so a Mac and the Linux CI runner produce identical pixels. The check compares decoded pixels, not PNG bytes, because zlib builds do not all compress identically
+
+Keep README previews committed and marked `tracked: true` in the generator manifest so GitHub can display them. Generated pack build outputs are ignored (0248).
 
 ## Consequences
 
