@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
+import { generatedStatus } from "./generated-files.mjs";
 
 const BP = "yasu_ride_bp";
 const RP = "yasu_ride_rp";
@@ -17,6 +18,11 @@ const fail = (message) => {
 
 if (!existsSync(`packs/${BP}/scripts/main.js`)) {
   fail(`packs/${BP}/scripts/main.js is missing; run \`pnpm build\` first`);
+}
+
+const generated = generatedStatus();
+if (!generated.stamped || generated.missing.length > 0) {
+  fail(`generated pack files are missing; run \`pnpm build\` first`);
 }
 
 // Bedrock refuses to load the Behavior Pack when the Resource Pack version it

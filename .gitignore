@@ -16,3 +16,4 @@ reports/
 .stryker-tmp/
 
 __pycache__/
+.cache/
