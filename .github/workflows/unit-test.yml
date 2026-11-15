@@ -162,7 +162,7 @@ jobs:
           if [ "$EVENT" != pull_request ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
-            python3 - <<'PYTHON'
+            python3 -B - <<'PYTHON'
           import fnmatch
           import os
           import subprocess
