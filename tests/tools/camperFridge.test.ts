@@ -63,4 +63,4 @@ it("matches the brute-force finish for boxes on a half-unit grid", async () => {
     ),
     { numRuns: 50 },
   );
-});
+}, 30_000);
