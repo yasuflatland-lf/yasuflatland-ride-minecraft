@@ -15,7 +15,7 @@
     },
     "components": {
       "minecraft:geometry": {
-        "identifier": "geometry.yasu_ride.shelf_decor_pair",
+        "identifier": "geometry.yasu_ride.board_decor_pair",
         "bone_visibility": {
           "end0_potted_plant": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 1",
           "end0_cactus_pot": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 2",
