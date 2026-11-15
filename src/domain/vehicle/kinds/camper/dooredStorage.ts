@@ -16,7 +16,7 @@ import type {
 } from "./furniture";
 import { CAMPER_SPEC } from "./spec";
 
-/** A slot inside a compartment: an end of the compartment's pair block, behind door `door`. */
+/** A slot behind `door`; its pair end routes decor in the domain, including entity-only drawer items. */
 export type StorageSlot<Id extends string = string> = Omit<
   DecorSlot,
   "door"
@@ -52,8 +52,6 @@ export interface CompartmentLook {
   readonly height: number;
   readonly end0?: DecorItemId;
   readonly end1?: DecorItemId;
-  /** Independent visibility for doors sharing this compartment cell. */
-  readonly openings?: Readonly<Record<string, boolean>>;
   /** Decor on a surface sharing the cell, outside its doors. */
   readonly surface?: DecorItemId;
 }
@@ -194,7 +192,7 @@ export class StorageDoors<Id extends string> {
     );
   }
 
-  /** The doors not yet fully shut: their compartments show their items. */
+  /** Openings above step zero; hinged contents use this to render at fixed block positions. */
   shown(): ReadonlySet<Id> {
     return new Set(
       [...this.states].filter(([, d]) => d.step > 0).map(([id]) => id),

@@ -5,6 +5,7 @@
       "identifier": "yasu_ride:camper",
       "materials": {
         "default": "entity",
+        "cutout": "entity_alphatest",
         "lamp": "entity",
         "lamp_lit": "entity_emissive",
         "glass": "entity_alphablend"
@@ -12,12 +13,15 @@
       "textures": {
         "default": "textures/entity/yasu_ride/camper",
         "lit": "textures/entity/yasu_ride/camper_lit",
-        "mirror": "textures/entity/yasu_ride/camper_mirror"
+        "mirror": "textures/entity/yasu_ride/camper_mirror",
+        "drawer_items": "textures/blocks/yasu_ride/camping_gear"
       },
       "geometry": {
-        "default": "geometry.yasu_ride.camper"
+        "default": "geometry.yasu_ride.camper",
+        "drawer_items": "geometry.yasu_ride.camper.drawer_items"
       },
       "render_controllers": [
+        "controller.render.yasu_ride.camper.drawer_items",
         "controller.render.yasu_ride.camper",
         "controller.render.yasu_ride.camper.mirror",
         {
@@ -116,8 +120,12 @@
           "fridge_bottom_door",
           "drawer_top",
           "drawer_bottom",
-          { "shower": "q.property('yasu_ride:shower')" },
-          { "shower_sound": "q.property('yasu_ride:shower')" }
+          {
+            "shower": "q.property('yasu_ride:shower')"
+          },
+          {
+            "shower_sound": "q.property('yasu_ride:shower')"
+          }
         ]
       }
     }

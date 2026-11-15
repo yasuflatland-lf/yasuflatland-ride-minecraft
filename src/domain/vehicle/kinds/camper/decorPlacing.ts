@@ -135,8 +135,12 @@ export function slotForPress(
   exact: boolean,
   eye?: Vec3,
   open: ReadonlySet<StorageDoorId> = NO_DOORS,
+  drawerDoor?: StorageDoorId,
 ): DecorSlot | undefined {
-  const target = storagePressTarget(pose, cell, STORAGE_DOORS, point);
+  const resolvedDoor = STORAGE_DOORS.find((d) => d.id === drawerDoor);
+  const target = resolvedDoor
+    ? { door: resolvedDoor, onCompartment: true }
+    : storagePressTarget(pose, cell, STORAGE_DOORS, point);
   if (target?.door.acceptsPress !== undefined) {
     return nearest(
       pose,

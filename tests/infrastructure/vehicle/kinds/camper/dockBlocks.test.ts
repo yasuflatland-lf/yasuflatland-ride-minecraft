@@ -36,6 +36,7 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  drawerBlockStates,
   PAIR_END_STATES,
   PAIR_PAGE_SIZE,
   pairDecorBlockId,
@@ -1383,4 +1384,45 @@ describe("DockBlocks and camp space (ADR 0129)", () => {
     for (const c of roomCells)
       expect(check).toHaveBeenCalledWith(asDimensionId(f.car.dimension.id), c);
   });
+});
+
+it("maps and restores a shared drawer/counter cell with counter-only block states", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(0 as const, 1 as const, 2 as const, 3 as const),
+      fc.option(fc.constantFrom(...STANDING_GEAR_IDS), { nil: undefined }),
+      (face, counter) => {
+        const block = {
+          type: "drawers" as const,
+          face,
+          height: 7.1,
+          ...(counter === undefined ? {} : { counter: decorItemId(counter) }),
+        };
+        const code =
+          counter === undefined ? 0 : STANDING_GEAR_IDS.indexOf(counter) + 1;
+        const expected = {
+          "yasu_ride:face": face,
+          "yasu_ride:counter_page": Math.floor(code / PAIR_PAGE_SIZE),
+          "yasu_ride:counter_item": code % PAIR_PAGE_SIZE,
+        };
+        expect(drawerBlockStates(block)).toEqual(expected);
+        const f = fixture();
+        const wanted = [{ x: 1, y: 65, z: 2, block }];
+        const layer = new DockBlocks(noCampSpace);
+        layer.lay(asVehicleId("car"), f.car, wanted);
+        expect(f.at(defined(wanted[0], "drawer cell"))).toEqual({
+          typeId: pairDecorBlockId("drawers"),
+          states: expected,
+        });
+        expect(f.savedCells()).toEqual(wanted);
+        const restored = new DockBlocks(noCampSpace);
+        restored.lay(asVehicleId("car"), f.car, wanted);
+        expect(f.writes).toHaveLength(1);
+        restored.lay(asVehicleId("car"), f.car, []);
+        expect(f.at(defined(wanted[0], "drawer cell")).typeId).toBe(
+          "minecraft:air",
+        );
+      },
+    ),
+  );
 });

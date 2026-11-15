@@ -13,16 +13,11 @@ export interface HoldPose {
 export type Face = 0 | 1 | 2 | 3;
 
 export type DockBlock =
-  /** Gated until #1684 supplies the combined counter/drawer pack block. */
+  /** Combined counter-decor block; drawer contents render on the entity (ADR 0121). */
   | {
       readonly type: "drawers";
       readonly face: Face;
-      readonly topOpen: boolean;
-      readonly bottomOpen: boolean;
-      readonly open: boolean;
       readonly height: number;
-      readonly end0?: DecorItemId;
-      readonly end1?: DecorItemId;
       readonly counter?: DecorItemId;
     }
   /** Collision height in pixels, 1..16 (yasu_ride:deck_floor). */
@@ -116,12 +111,7 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
       return (
         b.type === "drawers" &&
         a.face === b.face &&
-        a.topOpen === b.topOpen &&
-        a.bottomOpen === b.bottomOpen &&
-        a.open === b.open &&
         a.height === b.height &&
-        a.end0 === b.end0 &&
-        a.end1 === b.end1 &&
         a.counter === b.counter
       );
     case "deck":

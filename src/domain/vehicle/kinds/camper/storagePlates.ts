@@ -54,7 +54,7 @@ type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
 
 /**
  * The block in each storage compartment, with the item at each end, its items drawn while its
- * door is in `shown`: open or still swinging shut (ADR 0114, 0121).
+ * door is in `shown`, according to the unit's visibility policy (ADR 0114, 0121).
  */
 export function compartmentCells(
   pose: HoldPose,
@@ -85,10 +85,6 @@ export function compartmentCells(
         s.cell.layer === cell.layer
       );
     })?.item;
-    const sharedLook =
-      group.length > 1 ||
-      door.opening.kind === "sliding" ||
-      surface !== undefined;
     return [
       {
         ...localCellAt(pose, cell),
@@ -101,13 +97,6 @@ export function compartmentCells(
             decor,
             group.flatMap((d) => d.slots),
           ),
-          ...(sharedLook
-            ? {
-                openings: Object.fromEntries(
-                  group.map((d) => [d.id, shown.has(d.id)]),
-                ),
-              }
-            : {}),
           ...(surface === undefined ? {} : { surface }),
         }),
       },
