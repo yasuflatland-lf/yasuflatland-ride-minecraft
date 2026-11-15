@@ -124,6 +124,9 @@ it("offers only supported shape styles followed by Cancel", () => {
       expect(shapeMenu(idle)).toEqual([]);
       expect(shapeMenu(first)).toEqual([]);
       expect(shapeMenu(tapAir(first, b)).map((e) => e.id)).toEqual([
+        "cut",
+        "removeAbove",
+        "rotate",
         ...stylesFor(shape).map((style) =>
           shape.kind === "line" ? "place" : style,
         ),
@@ -133,10 +136,7 @@ it("offers only supported shape styles followed by Cancel", () => {
             ? ["cylinder", "sideCylinder", "sphere"]
             : []),
         "fillBelow",
-        "removeAbove",
-        "cut",
         "copy",
-        "rotate",
         "cancel",
       ]);
     }),
@@ -144,11 +144,14 @@ it("offers only supported shape styles followed by Cancel", () => {
   for (const [to, ids] of [
     [
       { x: 3, y: 0, z: 0 },
-      ["place", "fillBelow", "removeAbove", "cut", "copy", "rotate", "cancel"],
+      ["cut", "removeAbove", "rotate", "place", "fillBelow", "copy", "cancel"],
     ],
     [
       { x: 3, y: 0, z: 3 },
       [
+        "cut",
+        "removeAbove",
+        "rotate",
         "fill",
         "frame",
         "gable",
@@ -158,16 +161,16 @@ it("offers only supported shape styles followed by Cancel", () => {
         "sphere",
         "cube",
         "fillBelow",
-        "removeAbove",
-        "cut",
         "copy",
-        "rotate",
         "cancel",
       ],
     ],
     [
       { x: 3, y: 3, z: 3 },
       [
+        "cut",
+        "removeAbove",
+        "rotate",
         "fill",
         "faces",
         "walls",
@@ -175,10 +178,7 @@ it("offers only supported shape styles followed by Cancel", () => {
         "sideCylinder",
         "sphere",
         "fillBelow",
-        "removeAbove",
-        "cut",
         "copy",
-        "rotate",
         "cancel",
       ],
     ],
@@ -267,6 +267,9 @@ it("accepts every heighted kind only on its supported shapes", () => {
           [
             { x: dx, y: 0, z: dz },
             [
+              "cut",
+              "removeAbove",
+              "rotate",
               "fill",
               "frame",
               "gable",
@@ -276,16 +279,16 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "sphere",
               "cube",
               "fillBelow",
-              "removeAbove",
-              "cut",
               "copy",
-              "rotate",
               "cancel",
             ],
           ],
           [
             { x: dx, y: dy, z: dz },
             [
+              "cut",
+              "removeAbove",
+              "rotate",
               "fill",
               "faces",
               "walls",
@@ -293,72 +296,69 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "sideCylinder",
               "sphere",
               "fillBelow",
-              "removeAbove",
-              "cut",
               "copy",
-              "rotate",
               "cancel",
             ],
           ],
           [
             { x: dx, y: dy, z: 0 },
             [
+              "cut",
+              "removeAbove",
+              "rotate",
               "fill",
               "frame",
               "fillBelow",
-              "removeAbove",
-              "cut",
               "copy",
-              "rotate",
               "cancel",
             ],
           ],
           [
             { x: 0, y: dy, z: dz },
             [
+              "cut",
+              "removeAbove",
+              "rotate",
               "fill",
               "frame",
               "fillBelow",
-              "removeAbove",
-              "cut",
               "copy",
-              "rotate",
               "cancel",
             ],
           ],
           [
             { x: dx, y: 0, z: 0 },
             [
+              "cut",
+              "removeAbove",
+              "rotate",
               "place",
               "fillBelow",
-              "removeAbove",
-              "cut",
               "copy",
-              "rotate",
               "cancel",
             ],
           ],
           [
             { x: 0, y: dy, z: 0 },
             [
+              "cut",
+              "removeAbove",
+              "rotate",
               "place",
               "fillBelow",
-              "removeAbove",
-              "cut",
               "copy",
-              "rotate",
               "cancel",
             ],
           ],
           [
             { x: 0, y: 0, z: dz },
             [
+              "cut",
+              "removeAbove",
+              "rotate",
               "place",
               "fillBelow",
-              "removeAbove",
-              "cut",
               "copy",
-              "rotate",
               "cancel",
             ],
           ],
@@ -630,12 +630,12 @@ it("enters the terrain confirmation only from an end point, keeps the points, an
   );
 });
 
-it("offers Remove above directly before Cut for every shape and the confirmation only in its state", () => {
+it("offers Cut then Remove above first for every shape and the confirmation only in its state", () => {
   fc.assert(
     fc.property(cell, cell, (a, b) => {
       const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
       const ids = shapeMenu(endpoint).map((entry) => entry.id);
-      expect(ids.indexOf("removeAbove")).toBe(ids.indexOf("cut") - 1);
+      expect(ids.slice(0, 2)).toEqual(["cut", "removeAbove"]);
       expect(terrainMenu(endpoint)).toEqual([]);
       const confirming = chooseTerrain(endpoint, "removeAbove");
       expect(shapeMenu(confirming)).toEqual([]);
