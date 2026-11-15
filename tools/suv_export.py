@@ -1,6 +1,7 @@
 """SUV geometry transforms, animation synchronization and texture writers."""
 
 import json
+from pathlib import Path
 
 from tool_loader import load_tool
 
@@ -54,23 +55,22 @@ def scale_geometry(geometry):
 
 def sync_animation(out, path, scaled):
     # Rebuild translations from construction lengths on every run, avoiding cumulative scaling.
-    if path.exists():
-        animation = json.loads(path.read_text())
-        for name, clip in animation["animations"].items():
-            for member, channels in clip.get("bones", {}).items():
-                if "position" not in channels:
-                    continue
-                side = 1 if member.endswith("l") else -1
-                folded = "wheels_" in name
-                offset = scaled([side * (FOLD_OUT if folded else SUB_OUT),
-                                 -FOLD_DROP if folded else 0, 0])
-                position = channels["position"]
-                if isinstance(position, list):
-                    channels["position"] = offset
-                else:
-                    channels["position"] = {t: offset if any(v) else [0, 0, 0]
-                                            for t, v in position.items()}
-        out.fixture_json(path, animation)
+    animation = json.loads((Path(__file__).resolve().parent / "templates/suv.anim.json").read_text())
+    for name, clip in animation["animations"].items():
+        for member, channels in clip.get("bones", {}).items():
+            if "position" not in channels:
+                continue
+            side = 1 if member.endswith("l") else -1
+            folded = "wheels_" in name
+            offset = scaled([side * (FOLD_OUT if folded else SUB_OUT),
+                             -FOLD_DROP if folded else 0, 0])
+            position = channels["position"]
+            if isinstance(position, list):
+                channels["position"] = offset
+            else:
+                channels["position"] = {t: offset if any(v) else [0, 0, 0]
+                                        for t, v in position.items()}
+    out.fixture_json(path, animation)
 
 
 def icon(x, y):

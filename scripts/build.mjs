@@ -1,4 +1,9 @@
+import { execFileSync } from "node:child_process";
 import { build } from "esbuild";
+
+execFileSync("python3", ["-I", "tools/run_generators.py", "--ensure"], {
+  stdio: "inherit",
+});
 
 const common = {
   bundle: true,

@@ -621,7 +621,7 @@ def main():
     for kind in PAIRS:
         documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
     documents[bp / BLOCKS / "drawers_decor_pair.block.json"] = drawers_block(spec)
-    documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
+    documents[rp / ITEM_TEXTURES] = item_textures(json.loads((Path(__file__).resolve().parent / "templates/item_texture.json").read_text()), spec)
     atlas = rp / ATLAS
     out = texture_io.Outputs(args.check, report_writes=True)
 

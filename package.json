@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage '--coverage.include=src/**' --coverage.reporter=text --coverage.reporter=lcov",
     "test:mutation": "stryker run",
+    "generate": "python3 -I tools/run_generators.py --ensure",
     "model": "python3 -I tools/run_generators.py",
     "sounds": "python3 -I tools/gen_sounds.py packs/yasu_ride_rp",
     "model:check": "python3 -I tools/run_generators.py --check",

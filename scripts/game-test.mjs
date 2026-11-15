@@ -31,6 +31,7 @@ import {
   summaryOfRun,
   summaryPassed,
 } from "../src/test-pack/resultLog.ts";
+import { ensureBuild } from "./generated-files.mjs";
 
 const CONTAINER = "yasuflatland-ride-bds";
 const runId = randomBytes(4).toString("hex");
@@ -138,6 +139,7 @@ if (features !== undefined) {
   features = impactedFeatures();
 }
 const message = formatRunRequest({ runId, shard, lanes, at, features });
+ensureBuild();
 const since = new Date().toISOString();
 // Write the command to bedrock_server's stdin ourselves, as Mojang's Creator
 // Tools does with the process it spawns. The image's send-command cannot be
