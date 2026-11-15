@@ -7,6 +7,8 @@ tools/generators.json lists the generator scripts in run order, each with its ar
 paths Biome formats after they have written (`format`). A generator marked `afterFormat` reads the
 formatted files, so it runs after Biome. --check appends `--check` to every generator and skips
 Biome, because the generators compare parsed JSON. A new generator needs only an entry there.
+A generator never reads a file it or another generator writes, except render_preview.py, which
+runs after the generators and reads their outputs.
 """
 
 import argparse

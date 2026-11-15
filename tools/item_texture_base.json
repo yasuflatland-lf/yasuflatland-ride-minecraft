@@ -1,0 +1,87 @@
+{
+  "resource_pack_name": "yasu_ride",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "yasu_ride_suv_item": {
+      "textures": "textures/items/yasu_ride/suv_item"
+    },
+    "yasu_ride_headlight_switch": {
+      "textures": "textures/items/yasu_ride/headlight_switch"
+    },
+    "yasu_ride_sportsboat_item": {
+      "textures": "textures/items/yasu_ride/sportsboat_item"
+    },
+    "yasu_ride_camper_item": {
+      "textures": "textures/items/yasu_ride/camper_item"
+    },
+    "yasu_ride_bulldozer_item": {
+      "textures": "textures/items/yasu_ride/bulldozer_item"
+    },
+    "yasu_ride_blade_switch": {
+      "textures": "textures/items/yasu_ride/blade_switch"
+    },
+    "yasu_ride_wide_blade_switch": {
+      "textures": "textures/items/yasu_ride/wide_blade_switch"
+    },
+    "yasu_ride_road_paver_switch": {
+      "textures": "textures/items/yasu_ride/road_paver_switch"
+    },
+    "yasu_ride_sportsboat_equipment_box": {
+      "textures": "textures/items/yasu_ride/sportsboat_equipment_box"
+    },
+    "yasu_ride_icebreaker_switch": {
+      "textures": "textures/items/yasu_ride/icebreaker_switch"
+    },
+    "yasu_ride_low_chair_item": {
+      "textures": "textures/items/yasu_ride/low_chair_item"
+    },
+    "yasu_ride_camp_table_item": {
+      "textures": "textures/items/yasu_ride/camp_table_item"
+    },
+    "yasu_ride_fire_pit_item": {
+      "textures": "textures/items/yasu_ride/fire_pit_item"
+    },
+    "yasu_ride_tent_item": {
+      "textures": "textures/items/yasu_ride/tent_item"
+    },
+    "yasu_ride_dutch_oven_item": {
+      "textures": "textures/items/yasu_ride/dutch_oven_item"
+    },
+    "yasu_ride_gas_lantern_item": {
+      "textures": "textures/items/yasu_ride/gas_lantern_item"
+    },
+    "yasu_ride_noga_chair_item": {
+      "textures": "textures/items/yasu_ride/noga_chair_item"
+    },
+    "yasu_build_selection_wand": {
+      "textures": "textures/items/yasu_build/selection_wand"
+    },
+    "yasu_ride_roof_tent_item": {
+      "textures": "textures/items/yasu_ride/roof_tent_item"
+    },
+    "yasu_ride_beach_parasol": {
+      "textures": "textures/items/yasu_ride/beach_parasol_item"
+    },
+    "yasu_ride_beach_chair": {
+      "textures": "textures/items/yasu_ride/beach_chair_item"
+    },
+    "yasu_ride_dining_table": {
+      "textures": "textures/items/yasu_ride/dining_table_item"
+    },
+    "yasu_ride_dining_chair": {
+      "textures": "textures/items/yasu_ride/dining_chair_item"
+    },
+    "yasu_ride_sofa_single": {
+      "textures": "textures/items/yasu_ride/sofa_single_item"
+    },
+    "yasu_ride_sofa_double": {
+      "textures": "textures/items/yasu_ride/sofa_double_item"
+    },
+    "yasu_ride_toilet": {
+      "textures": "textures/items/yasu_ride/toilet_item"
+    },
+    "yasu_ride_washstand": {
+      "textures": "textures/items/yasu_ride/washstand_item"
+    }
+  }
+}
