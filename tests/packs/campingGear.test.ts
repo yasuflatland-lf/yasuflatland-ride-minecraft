@@ -250,6 +250,7 @@ describe("camping gear block models (ADR 0093)", () => {
         "deck_floor",
         "cabinet_decor_pair",
         "fridge_decor_pair",
+        "drawers_decor_pair",
         "shelf_decor_pair",
         "table_decor_pair",
         ...SPEC.map((g) => g.id),
@@ -826,7 +827,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         .filter((f) => f.endsWith("_decor_pair.block.json"))
         .sort(),
     ).toEqual(
-      [...PAIR_KINDS, "cabinet", "fridge"]
+      [...PAIR_KINDS, "cabinet", "fridge", "drawers"]
         .map((k) => `${k}_decor_pair.block.json`)
         .sort(),
     );
@@ -1012,7 +1013,9 @@ describe("camping gear blocks and items (ADR 0093)", () => {
   });
 
   it("draws each end's item at its slot's spot, so the block's turn puts it where the domain measures the slot, with every face on the block's shared material (ADR 0108)", () => {
-    for (const slot of DECOR_SLOTS.filter((s) => s.pair)) {
+    for (const slot of DECOR_SLOTS.filter(
+      (s) => s.pair && s.pair.kind !== "drawers",
+    )) {
       const pair = defined(slot.pair, "pair");
       const { left, forward: ahead } = defined(
         DECOR_SPOTS[slot.spot ?? 0],

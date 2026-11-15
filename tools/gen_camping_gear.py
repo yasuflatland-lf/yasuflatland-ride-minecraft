@@ -131,6 +131,8 @@ MIN_STATE_VALUES = 2
 # icon and first item.
 BOX = "camping_gear_box"
 CELL_PX = 16
+DRAWER_IDS = load_tool("camper_drawer_items").DRAWER_IDS
+COUNTER_HEIGHT = 14
 
 
 def rounded(value):
@@ -236,6 +238,58 @@ def pair_pages(spec):
     return -(-(len(standing(spec)) + 1) // PAIR_PAGE_SIZE)
 
 
+def drawers_geometry(spec):
+    # Bedrock requires a cube at y 0 even when every visible item is raised (ADR 0101).
+    bones = [{"name": "anchor", "pivot": [0, 0, 0],
+              "cubes": [box(0, 0, 0, 1, 1, 1, "cream")]}]
+    groups = [("counter", [item["id"] for item in standing(spec)], (0, 0, COUNTER_HEIGHT))]
+    for prefix, ids, (x, z, height) in groups:
+        for item_id in ids:
+            cubes = []
+            for cube in SHAPES[item_id]:
+                cube = moved(cube, -x, -z)
+                cube["origin"][1] += height
+                if "pivot" in cube:
+                    cube["pivot"][1] += height
+                cubes.append(cube)
+            bones.append({"name": f"{prefix}_{item_id}", "pivot": [0, 0, 0], "cubes": cubes})
+    result = geometry("drawers_decor_pair", [])
+    result["minecraft:geometry"][0]["bones"] = bones
+    return rounded(result)
+
+
+def drawers_block(spec):
+    visibility = {"anchor": False}
+    for code, item in enumerate(standing(spec), 1):
+        page, index = divmod(code, PAIR_PAGE_SIZE)
+        visibility[f"counter_{item['id']}"] = (
+            f"q.block_state('yasu_ride:counter_page') == {page} && "
+            f"q.block_state('yasu_ride:counter_item') == {index}")
+    block = pair_block("cabinet", spec)
+    body = block["minecraft:block"]
+    body["description"]["identifier"] = "yasu_ride:drawers_decor_pair"
+    body["description"]["states"] = {
+        FACE_STATE: list(FACES),
+        "yasu_ride:counter_page": list(range(pair_pages(spec))),
+        "yasu_ride:counter_item": list(range(PAIR_PAGE_SIZE)),
+    }
+    components = body["components"]
+    components["minecraft:geometry"] = {
+        "identifier": "geometry.yasu_ride.drawers_decor_pair", "bone_visibility": visibility}
+    components["minecraft:collision_box"] = False
+    components["minecraft:selection_box"] = {"origin": [-8, 0, -8], "size": [16, COUNTER_HEIGHT, 16]}
+    body["permutations"] = [{
+        "condition": f"q.block_state('{FACE_STATE}') == {face}",
+        "components": {"minecraft:transformation": {"rotation": [0, FACE_ROTATION[face], 0]}},
+    } for face in FACES]
+    body["permutations"].append({
+        "condition": "!(q.block_state('yasu_ride:counter_page') == 0 && "
+                     "q.block_state('yasu_ride:counter_item') == 0)",
+        "components": {"minecraft:selection_box": {"origin": [-8, 0, -8], "size": [16, 16, 16]}},
+    })
+    return block
+
+
 def y_span(item):
     """Every item's model starts on y 0; a hanging item is lifted to the hook by its slot's
     yasu_ride:height (ADR 0102)."""
@@ -303,6 +357,16 @@ def validate(spec):
         errors.append("a pair block state holds more than 16 values")
     if pair_pages(spec) < MIN_STATE_VALUES or PAIR_PAGE_SIZE < MIN_STATE_VALUES:
         errors.append("a pair block state holds fewer than 2 values")
+    standing_by_id = {item["id"]: item for item in standing(spec)}
+    drawer_states = drawers_block(spec)["minecraft:block"]["description"]["states"]
+    if any(len(values) > MAX_STATE_VALUES for values in drawer_states.values()):
+        errors.append("a drawer block state holds more than 16 values")
+    for item_id in DRAWER_IDS:
+        if item_id not in standing_by_id or standing_by_id[item_id]["height_px"] > 4.5:
+            errors.append(f"{item_id} does not fit the drawer's 4.5 px inside height")
+    if sum(max(1, math.ceil(math.log2(len(values))))
+           for values in drawer_states.values()) > 16:
+        errors.append("the combined drawer block exceeds Bedrock's 16-bit state budget")
     if errors:
         sys.exit("\n".join(errors))
 
@@ -547,6 +611,7 @@ def main():
     documents = {rp / MODELS / f"{item_id}.geo.json": geometry(item_id, cubes) for item_id, cubes in SHAPES.items()}
     for kind in PAIRS:
         documents[rp / MODELS / f"{kind}_decor_pair.geo.json"] = pair_geometry(kind, spec)
+    documents[rp / MODELS / "drawers_decor_pair.geo.json"] = drawers_geometry(spec)
     documents[rp / TERRAIN] = terrain()
     bp = args.behavior_pack
     for item in spec:
@@ -555,6 +620,7 @@ def main():
         documents[bp / ITEMS / f"{gid}.item.json"] = gear_item(item)
     for kind in PAIRS:
         documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
+    documents[bp / BLOCKS / "drawers_decor_pair.block.json"] = drawers_block(spec)
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
     atlas = rp / ATLAS
     out = texture_io.Outputs(args.check, report_writes=True)

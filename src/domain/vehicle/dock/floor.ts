@@ -13,6 +13,13 @@ export interface HoldPose {
 export type Face = 0 | 1 | 2 | 3;
 
 export type DockBlock =
+  /** Combined counter-decor block; drawer contents render on the entity (ADR 0121). */
+  | {
+      readonly type: "drawers";
+      readonly face: Face;
+      readonly height: number;
+      readonly counter?: DecorItemId;
+    }
   /** Collision height in pixels, 1..16 (yasu_ride:deck_floor). */
   | { readonly type: "deck"; readonly height: number }
   | { readonly type: "floor" }
@@ -100,6 +107,13 @@ export type DockCell = LaidCell<DockBlock>;
 
 export function sameBlock(a: DockBlock, b: DockBlock): boolean {
   switch (a.type) {
+    case "drawers":
+      return (
+        b.type === "drawers" &&
+        a.face === b.face &&
+        a.height === b.height &&
+        a.counter === b.counter
+      );
     case "deck":
       return b.type === "deck" && a.height === b.height;
     case "furniture":

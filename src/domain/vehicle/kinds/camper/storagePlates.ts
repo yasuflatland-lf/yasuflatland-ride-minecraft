@@ -2,6 +2,7 @@ import { cellKey } from "../../../shared/cells";
 import type { Vec2, Vec3 } from "../../../shared/vec";
 import { type DecorPlacement, decorFace } from "../../dock/decor";
 import type { DockCell, Face, HoldPose } from "../../dock/floor";
+import { decorSlot } from "./decor";
 import { pairItems, slotCells } from "./decorCells";
 import type {
   HingedStorageDoor,
@@ -53,7 +54,7 @@ type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
 
 /**
  * The block in each storage compartment, with the item at each end, its items drawn while its
- * door is in `shown`: open or still swinging shut (ADR 0114, 0121).
+ * door is in `shown`, according to the unit's visibility policy (ADR 0114, 0121).
  */
 export function compartmentCells(
   pose: HoldPose,
@@ -62,15 +63,45 @@ export function compartmentCells(
   doors: readonly StorageDoor[] = STORAGE_DOORS,
 ): CompartmentCell[] {
   const face = decorFace(pose.yaw);
-  return doors.map((door) => ({
-    ...localCellAt(pose, door.compartment),
-    block: door.unit.compartmentBlock({
-      face,
-      open: shown.has(door.id),
-      height: door.slots[0]?.height ?? 0,
-      ...pairItems({ cell: door.compartment }, decor),
-    }),
-  }));
+  const groups = new Map<string, StorageDoor[]>();
+  for (const door of doors) {
+    const { x, z, layer } = door.compartment;
+    const key = `${x},${z},${layer}`;
+    const group = groups.get(key) ?? [];
+    group.push(door);
+    groups.set(key, group);
+  }
+  return [...groups.values()].flatMap((group) => {
+    const door = group[0];
+    if (!door) return [];
+    const cell = door.compartment;
+    const surface = decor.find(({ slot }) => {
+      const s = decorSlot(slot);
+      return (
+        s !== undefined &&
+        s.door === undefined &&
+        s.cell.x === cell.x &&
+        s.cell.z === cell.z &&
+        s.cell.layer === cell.layer
+      );
+    })?.item;
+    return [
+      {
+        ...localCellAt(pose, cell),
+        block: door.unit.compartmentBlock({
+          face,
+          open: group.some((d) => shown.has(d.id)),
+          height: door.slots[0]?.height ?? 0,
+          ...pairItems(
+            { cell },
+            decor,
+            group.flatMap((d) => d.slots),
+          ),
+          ...(surface === undefined ? {} : { surface }),
+        }),
+      },
+    ];
+  });
 }
 
 /**
@@ -133,6 +164,7 @@ export function storagePressTarget<Id extends string>(
   pose: HoldPose,
   cell: Vec3,
   doors: readonly StorageDoor<Id>[],
+  point?: Vec3,
 ): { door: StorageDoor<Id>; onCompartment: boolean } | undefined {
   const at = (local: LocalCell) => {
     const c = localCellAt(pose, local);
@@ -140,7 +172,10 @@ export function storagePressTarget<Id extends string>(
   };
   const door = doors.find(
     (d) =>
-      at(d.compartment) || (d.opening.kind === "hinged" && at(d.opening.plate)),
+      (at(d.compartment) &&
+        (d.acceptsPress === undefined ||
+          (point !== undefined && d.acceptsPress(point.y - cell.y)))) ||
+      (d.opening.kind === "hinged" && at(d.opening.plate)),
   );
   return door && { door, onCompartment: at(door.compartment) };
 }

@@ -304,7 +304,9 @@ it("restores each door's swing after a reload of a parked camper, and shuts it w
 });
 
 it("stores saved decor of a removed slot in a shut cabinet once every open spot is full (ADR 0103, 0114)", () => {
-  const open = DECOR_SLOTS.filter((s) => !s.hanging && s.door === undefined);
+  const open = DECOR_SLOTS.filter(
+    (s) => !s.hanging && (s.door === undefined || s.pair?.kind === "drawers"),
+  );
   const full = open.map((s) => ({ slot: s.id, item: "mug_pair" }));
   const drive = new CamperDrive(0, {
     dockDecor: JSON.stringify([

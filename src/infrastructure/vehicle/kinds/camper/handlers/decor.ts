@@ -5,6 +5,7 @@ import {
   world,
 } from "@minecraft/server";
 import type { PlaceDecor } from "../../../../../application/vehicle/placeDecor";
+import type { PressStorage } from "../../../../../application/vehicle/pressStorage";
 import type { RemoveDecor } from "../../../../../application/vehicle/removeDecor";
 import {
   asDimensionId,
@@ -16,10 +17,12 @@ import {
 import type { Vec3 } from "../../../../../domain/shared/vec";
 import type { DecorItemId } from "../../../../../domain/vehicle/dock/decor";
 import {
+  DRAWER_GEAR_IDS,
   SeatPresses,
   seatSlotCell,
 } from "../../../../../domain/vehicle/kinds/index";
 import { heldTypeId } from "../../../../shared/heldItem";
+import { id } from "../../../../shared/identifiers";
 import { DECK_SEAT_TYPE } from "../../../bedrock/identifiers";
 import { pressedHeight, pressedShape } from "../faceHeight";
 import {
@@ -29,7 +32,9 @@ import {
   DECOR_HEIGHT_STATE,
   isCamperRoomBlock,
   isDecorBlock,
+  pairDecorBlockId,
 } from "../identifiers";
+import { touchCorrectedFaceLocation } from "../touchFaceLocation";
 
 type DockCellOwner = (
   dimensionId: DimensionId,
@@ -40,13 +45,86 @@ export function registerDecor(
   place: PlaceDecor,
   remove: RemoveDecor,
   dockCellOwner: DockCellOwner,
+  storage: PressStorage,
 ): void {
+  const handled = new Map<PlayerId, number>();
   // Placing gear listens to the before event because most room blocks have no custom
   // component. A gear tap on a laid cell cancels every repeat of the long-press, so held
-  // gear never opens a door, runs the shower, or sleeps in the bed (ADR 0093, 0098).
+  // gear never runs the shower or sleeps in the bed; closed drawers open before placing (ADR 0093, 0098, 0121).
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
+    for (const [player, tick] of handled)
+      if (system.currentTick - tick > 1) handled.delete(player);
     const item = campingGearOfItem(ev.itemStack?.typeId);
+    if (
+      ev.block.typeId === pairDecorBlockId("drawers") ||
+      (ev.block.typeId === id("camper_floor") &&
+        (item === undefined || DRAWER_GEAR_IDS.has(item)))
+    ) {
+      drawerPress(ev, item, place, remove, storage, dockCellOwner);
+      if (ev.cancel) handled.set(asPlayerId(ev.player.id), system.currentTick);
+      // A floor press that misses every drawer keeps the ordinary floor placement.
+      if (ev.cancel || ev.block.typeId !== id("camper_floor")) return;
+    }
     if (item !== undefined) placeGear(ev, item, place, dockCellOwner);
+    if (ev.cancel) handled.set(asPlayerId(ev.player.id), system.currentTick);
+  });
+  world.afterEvents.itemUse.subscribe((ev) => {
+    const item = campingGearOfItem(ev.itemStack.typeId);
+    if (item === undefined || !DRAWER_GEAR_IDS.has(item)) return;
+    const player = ev.source;
+    const playerId = asPlayerId(player.id);
+    const previous = handled.get(playerId);
+    if (previous !== undefined && system.currentTick - previous <= 1) return;
+    const feet = player.location;
+    const cell = {
+      x: Math.floor(feet.x),
+      y: Math.floor(feet.y),
+      z: Math.floor(feet.z),
+    };
+    const dimension = asDimensionId(player.dimension.id);
+    const vehicleId =
+      dockCellOwner(dimension, cell) ??
+      dockCellOwner(dimension, { ...cell, y: cell.y - 1 });
+    if (vehicleId === undefined) return;
+    const eye = player.getHeadLocation();
+    const direction = player.getViewDirection();
+    // itemUse carries no tap point. Use the view ray, then only in the counter's
+    // aisle allow the sole open free drawer: touch view and tap rays can differ.
+    const target = storage.drawerTarget(
+      vehicleId,
+      eye,
+      direction,
+      undefined,
+      item,
+      feet,
+    );
+    if (!target) return;
+    handled.set(playerId, system.currentTick);
+    if (!target.open)
+      storage.execute({
+        playerId,
+        vehicleId,
+        cell: target.cell,
+        point: {
+          x: eye.x + direction.x,
+          y: eye.y + direction.y,
+          z: eye.z + direction.z,
+        },
+        eye,
+        openOnly: true,
+        takeContents: false,
+      });
+    else if (target.slot)
+      place.execute({
+        playerId,
+        vehicleId,
+        item,
+        slot: target.slot,
+        cell: target.cell,
+        point: target.point,
+        hotbarSlot: player.selectedSlotIndex,
+        exact: true,
+      });
   });
   // A deck seat stands on each dinette seat's slot and takes the press first, so held
   // gear on a deck seat goes to the slot instead of seating the player (ADR 0097). A
@@ -186,4 +264,109 @@ function placeGearOnSeat(
 function isSlotBlock(typeId: string | undefined): boolean {
   if (typeId === undefined) return false;
   return typeId === CAMPER_FURNITURE_BLOCK || isDecorBlock(typeId);
+}
+
+function drawerPress(
+  ev: PlayerInteractWithBlockBeforeEvent,
+  item: DecorItemId | undefined,
+  place: PlaceDecor,
+  remove: RemoveDecor,
+  storage: PressStorage,
+  owner: DockCellOwner,
+): void {
+  if (item === undefined && ev.itemStack !== undefined) return;
+  const vehicleId = owner(
+    asDimensionId(ev.block.dimension.id),
+    ev.block.location,
+  );
+  if (vehicleId === undefined) return;
+  let cell = { ...ev.block.location };
+  const face = touchCorrectedFaceLocation(
+    ev.faceLocation,
+    ev.player.inputInfo.lastInputModeUsed,
+  );
+  let point = {
+    x: cell.x + face.x,
+    // Both blocks have room boxes: Up/Down use their bounds, while every
+    // side face (including floor sides) uses the already corrected true y.
+    y:
+      cell.y +
+      (ev.blockFace === "Up" || ev.blockFace === "Down"
+        ? pressedHeight(
+            ev.blockFace,
+            face.y,
+            pressedShape(ev.block.typeId, undefined),
+          )
+        : face.y),
+    z: cell.z + face.z,
+  };
+  const playerId = asPlayerId(ev.player.id);
+  const hotbarSlot = ev.player.selectedSlotIndex;
+  let eye: Vec3 | undefined = ev.player.getHeadLocation();
+  let floorFootprint = false;
+  const drawersSideFace =
+    ev.block.typeId === pairDecorBlockId("drawers") &&
+    ev.blockFace !== "Up" &&
+    ev.blockFace !== "Down";
+  if (ev.block.typeId === id("camper_floor")) {
+    if (item !== undefined && !DRAWER_GEAR_IDS.has(item)) return;
+    const hit = storage.drawerTarget(
+      vehicleId,
+      eye,
+      {
+        x: point.x - eye.x,
+        y: point.y - eye.y,
+        z: point.z - eye.z,
+      },
+      cell,
+    );
+    if (!hit) return;
+    cell = hit.cell;
+    if (hit.floorFootprint) {
+      // A footprint has no front intersection to replay; use its resolved slot height.
+      point = hit.point;
+      eye = undefined;
+      floorFootprint = true;
+    }
+  }
+  ev.cancel = true;
+  if (!ev.isFirstEvent) return;
+  system.run(() => {
+    if (item !== undefined && !floorFootprint) {
+      if (
+        !storage.execute({
+          playerId,
+          vehicleId,
+          cell,
+          point,
+          eye,
+          openOnly: true,
+          takeContents: false,
+          drawersSideFace,
+        })
+      )
+        place.execute({
+          playerId,
+          vehicleId,
+          cell,
+          point,
+          hotbarSlot,
+          item,
+          exact: false,
+          eye,
+        });
+    } else if (
+      !storage.execute({
+        playerId,
+        vehicleId,
+        cell,
+        point,
+        eye,
+        drawersSideFace,
+        takeContents: floorFootprint ? false : undefined,
+      })
+    ) {
+      remove.execute({ playerId, vehicleId, cell, point, eye });
+    }
+  });
 }

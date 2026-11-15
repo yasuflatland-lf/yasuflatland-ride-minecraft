@@ -6,7 +6,7 @@ import {
   decorFace,
 } from "../../dock/decor";
 import type { DockBlock, DockCell, HoldPose } from "../../dock/floor";
-import { DECOR_CELLS, decorInCell, decorSlot } from "./decor";
+import { DECOR_CELLS, DECOR_SLOTS, decorInCell, decorSlot } from "./decor";
 import { compartmentDoorAt } from "./dooredStorage";
 import {
   DECOR_SPOTS,
@@ -54,10 +54,11 @@ type DecorCell = DockCell & {
 export function pairItems(
   slot: Pick<DecorSlot, "cell">,
   decor: readonly DecorPlacement[],
+  slots: readonly Omit<DecorSlot, "door">[] = DECOR_SLOTS,
 ): { end0?: DecorItemId; end1?: DecorItemId } {
   const itemAt = (end: 0 | 1) =>
     decor.find((d) => {
-      const s = decorSlot(d.slot);
+      const s = slots.find((s) => s.id === d.slot);
       return (
         s?.pair?.end === end &&
         s.cell.x === slot.cell.x &&
@@ -89,7 +90,12 @@ export function decorCells(
   return decor.flatMap(({ slot, item }) => {
     const s = decorSlot(slot);
     const pair = s?.pair?.kind;
-    if (!s || (pair !== undefined && isStoragePairKind(pair))) return [];
+    if (
+      !s ||
+      compartmentDoorAt(s.cell, STORAGE_DOORS) ||
+      (pair !== undefined && isStoragePairKind(pair))
+    )
+      return [];
     const at = decorSlotCell(pose, s);
     const key = cellKey(at);
     if (laid.has(key)) return [];

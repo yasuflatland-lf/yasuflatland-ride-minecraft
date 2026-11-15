@@ -411,6 +411,22 @@
         }
       }
     },
+    "animation.yasu_ride.camper.drawer_top": {
+      "loop": true,
+      "bones": {
+        "drawer_top": {
+          "position": ["q.property('yasu_ride:drawer_top') * 6.6", 0, 0]
+        }
+      }
+    },
+    "animation.yasu_ride.camper.drawer_bottom": {
+      "loop": true,
+      "bones": {
+        "drawer_bottom": {
+          "position": ["q.property('yasu_ride:drawer_bottom') * 6.6", 0, 0]
+        }
+      }
+    },
     "animation.yasu_ride.camper.cabinet_sink_door": {
       "loop": true,
       "bones": {

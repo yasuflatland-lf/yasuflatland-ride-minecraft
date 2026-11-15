@@ -262,6 +262,10 @@ slanted = [cube for cube in other_compound if cube["rotation"][0] == 45]
 assert_axes(model_cubes, {"slanted": slanted,
                          "front_panels": [cube for cube in other_compound if cube not in slanted],
                          "cab_seats": seat_compound, **steering_members}, ASSEMBLIES)
+drawer_items = load_tool("camper_drawer_items").geometry(
+    [bone for bone in camper_bones if bone["name"] in areas["kitchen_fronts"].DRAWER_PIVOTS])
+geo["minecraft:geometry"].append(drawer_items)
+print("drawer item cubes added:", sum(len(b.get("cubes", [])) for b in drawer_items["bones"]))
 outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 

@@ -2,6 +2,7 @@ import {
   type DecorItemId,
   isDecorItem,
 } from "../../../../domain/vehicle/dock/decor";
+import type { DockBlock } from "../../../../domain/vehicle/dock/floor";
 import {
   CAMPING_GEAR_IDS,
   pairHeights,
@@ -103,7 +104,7 @@ export function pairHeightStates(
   return pairHeights(kind).length > 1 ? { [DECOR_HEIGHT_STATE]: height } : {};
 }
 
-const PAIR_KINDS = ["shelf", "table", "cabinet", "fridge"] as const;
+const PAIR_KINDS = ["shelf", "table", "cabinet", "fridge", "drawers"] as const;
 
 /** The furniture whose pair block `typeId` is, or undefined for any other block (ADR 0108). */
 export function pairKindOfBlock(
@@ -166,4 +167,19 @@ export function campingGearOfItem(
 /** The camping gear id of a decor block type, if it is one. */
 export function campingGearOfDecorBlock(typeId: string): string | undefined {
   return CAMPING_GEAR_IDS.find((gear) => decorBlockId(gear) === typeId);
+}
+
+/** Drawer contents render on the entity; the block carries only counter decor (ADR 0121). */
+export function drawerBlockStates(
+  block: Extract<DockBlock, { type: "drawers" }>,
+): Record<string, number | boolean> {
+  const counter =
+    block.counter === undefined
+      ? 0
+      : STANDING_GEAR_IDS.indexOf(block.counter) + 1;
+  return {
+    [DECOR_FACE_STATE]: block.face,
+    [id("counter_page")]: Math.floor(counter / PAIR_PAGE_SIZE),
+    [id("counter_item")]: counter % PAIR_PAGE_SIZE,
+  };
 }

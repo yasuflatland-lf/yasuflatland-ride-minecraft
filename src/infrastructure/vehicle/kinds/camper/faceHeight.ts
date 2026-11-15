@@ -1,7 +1,10 @@
 // The engine reports PlayerInteractWithBlockBeforeEvent.faceLocation.y as 1 minus the real
 // height within the block, while x and z are right (measured on the dev BDS, ADR 0111).
 // Every correction of that report lives here, so it can be removed if the engine changes.
-import { pairHeights } from "../../../../domain/vehicle/kinds/index";
+import {
+  COUNTER_HEIGHT,
+  pairHeights,
+} from "../../../../domain/vehicle/kinds/index";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BUNK_BLOCK,
@@ -56,6 +59,12 @@ const COMPARTMENT_SHAPES: Partial<
     kind: "room",
     bottom: (height ?? Math.min(...pairHeights("fridge"))) / PX_PER_BLOCK,
     top: 1,
+  }),
+  // The box spans floor to counter; drawerHit/drawerAtHeight route presses inside it (ADR 0121).
+  drawers: () => ({
+    kind: "room",
+    bottom: 0,
+    top: COUNTER_HEIGHT / PX_PER_BLOCK,
   }),
 };
 

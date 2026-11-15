@@ -85,6 +85,7 @@ it("draws only the flight discs in their own emissive overlay independently of t
   expect(client.materials.lamp_lit).toBe("entity_emissive");
   expect(client.textures.lit).toBe("textures/entity/yasu_ride/camper_lit");
   expect(client.render_controllers).toEqual([
+    "controller.render.yasu_ride.camper.drawer_items",
     "controller.render.yasu_ride.camper",
     "controller.render.yasu_ride.camper.mirror",
     { "controller.render.yasu_ride.camper.glow": condition },

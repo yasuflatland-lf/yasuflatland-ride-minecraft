@@ -38,7 +38,12 @@ export function installCamper(
   registerDockGuard: () => void,
 ): void {
   registerNormalizePaint(useCases.normalizePaint);
-  registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
+  registerDecor(
+    useCases.placeDecor,
+    useCases.removeDecor,
+    dockCellOwner,
+    useCases.storage,
+  );
   registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed, (dim, cell) => {
     const id = dockCellOwner(dim, cell);
     return id === undefined

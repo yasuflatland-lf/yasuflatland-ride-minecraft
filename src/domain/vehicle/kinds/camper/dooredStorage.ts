@@ -16,7 +16,7 @@ import type {
 } from "./furniture";
 import { CAMPER_SPEC } from "./spec";
 
-/** A slot inside a compartment: an end of the compartment's pair block, behind door `door`. */
+/** A slot behind `door`; its pair end routes decor in the domain, including entity-only drawer items. */
 export type StorageSlot<Id extends string = string> = Omit<
   DecorSlot,
   "door"
@@ -38,7 +38,9 @@ interface StorageDoorDef<Id extends string = string> {
   /** The cell of the compartment's pair block. */
   readonly compartment: LocalCell;
   readonly opening: StorageOpening;
-  /** The compartment's two ends, end 0 first. */
+  /** Optional height routing for openings sharing a cell; height is faceLocation.y. */
+  readonly acceptsPress?: (height: number) => boolean;
+  /** The compartment's usable slots; a shared cell assigns each slot a distinct pair end. */
   readonly slots: readonly StorageSlot<Id>[];
 }
 
@@ -50,6 +52,8 @@ export interface CompartmentLook {
   readonly height: number;
   readonly end0?: DecorItemId;
   readonly end1?: DecorItemId;
+  /** Decor on a surface sharing the cell, outside its doors. */
+  readonly surface?: DecorItemId;
 }
 
 /** How an open door's plate looks this tick. */
@@ -92,12 +96,16 @@ export function storageDoors<Id extends string>(
   return units.flatMap((unit) => unit.doors.map((door) => ({ ...door, unit })));
 }
 
-/** The cells and slots of a unit's furniture row: one compartment cell per door. */
+/** The cells and slots of a unit's furniture row: each compartment cell once. */
 export function storageFurniture<Id extends string>(
   unit: DooredStorage<Id>,
 ): { cells: LocalCell[]; slots: StorageSlot<Id>[] } {
   return {
-    cells: unit.doors.map(({ compartment }) => compartment),
+    cells: unit.doors
+      .map(({ compartment }) => compartment)
+      .filter(
+        (cell, i, cells) => cells.findIndex((c) => sameLocal(c, cell)) === i,
+      ),
     slots: unit.doors.flatMap(({ slots }) => slots),
   };
 }
@@ -184,7 +192,7 @@ export class StorageDoors<Id extends string> {
     );
   }
 
-  /** The doors not yet fully shut: their compartments show their items. */
+  /** Openings above step zero; hinged contents use this to render at fixed block positions. */
   shown(): ReadonlySet<Id> {
     return new Set(
       [...this.states].filter(([, d]) => d.step > 0).map(([id]) => id),

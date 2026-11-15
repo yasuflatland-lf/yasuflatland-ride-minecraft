@@ -140,7 +140,10 @@ describe("HitVehicle (ADR 0008)", () => {
     const standing = DECOR_CELLS.flatMap(({ slots }) =>
       slots
         .filter((s, i) => !s.hanging && (i === 0 || s.pair))
-        .map((s) => ({ slot: s.id, item: "potted_plant" })),
+        .map((s) => ({
+          slot: s.id,
+          item: s.pair?.kind === "drawers" ? "mug_pair" : "potted_plant",
+        })),
     );
     const saved = [
       ...standing,
@@ -168,9 +171,13 @@ describe("HitVehicle (ADR 0008)", () => {
         fromDeck: false,
       });
     }
-    expect(world.calls).toContain(
-      `giveDecor:p:${saved.map((d) => d.item).join(",")}`,
+    const delivery = world.calls.filter((call) =>
+      call.startsWith("giveDecor:p:"),
     );
-    expect(saved).toHaveLength(18);
+    expect(delivery).toHaveLength(1);
+    expect(delivery[0]?.slice("giveDecor:p:".length).split(",").sort()).toEqual(
+      saved.map((d) => d.item).sort(),
+    );
+    expect(saved).toHaveLength(20);
   });
 });

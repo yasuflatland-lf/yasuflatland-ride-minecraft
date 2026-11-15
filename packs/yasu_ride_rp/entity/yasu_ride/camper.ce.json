@@ -5,6 +5,7 @@
       "identifier": "yasu_ride:camper",
       "materials": {
         "default": "entity",
+        "cutout": "entity_alphatest",
         "lamp": "entity",
         "lamp_lit": "entity_emissive",
         "glass": "entity_alphablend"
@@ -12,12 +13,15 @@
       "textures": {
         "default": "textures/entity/yasu_ride/camper",
         "lit": "textures/entity/yasu_ride/camper_lit",
-        "mirror": "textures/entity/yasu_ride/camper_mirror"
+        "mirror": "textures/entity/yasu_ride/camper_mirror",
+        "drawer_items": "textures/blocks/yasu_ride/camping_gear"
       },
       "geometry": {
-        "default": "geometry.yasu_ride.camper"
+        "default": "geometry.yasu_ride.camper",
+        "drawer_items": "geometry.yasu_ride.camper.drawer_items"
       },
       "render_controllers": [
+        "controller.render.yasu_ride.camper.drawer_items",
         "controller.render.yasu_ride.camper",
         "controller.render.yasu_ride.camper.mirror",
         {
@@ -53,6 +57,8 @@
         "form": "controller.animation.yasu_ride.camper.form",
         "door": "animation.yasu_ride.camper.door",
         "shower_door": "animation.yasu_ride.camper.shower_door",
+        "drawer_top": "animation.yasu_ride.camper.drawer_top",
+        "drawer_bottom": "animation.yasu_ride.camper.drawer_bottom",
         "cabinet_sink_door": "animation.yasu_ride.camper.cabinet_sink_door",
         "cabinet_stove_door": "animation.yasu_ride.camper.cabinet_stove_door",
         "fridge_top_door": "animation.yasu_ride.camper.fridge_top_door",
@@ -112,8 +118,14 @@
           "cabinet_stove_door",
           "fridge_top_door",
           "fridge_bottom_door",
-          { "shower": "q.property('yasu_ride:shower')" },
-          { "shower_sound": "q.property('yasu_ride:shower')" }
+          "drawer_top",
+          "drawer_bottom",
+          {
+            "shower": "q.property('yasu_ride:shower')"
+          },
+          {
+            "shower_sound": "q.property('yasu_ride:shower')"
+          }
         ]
       }
     }

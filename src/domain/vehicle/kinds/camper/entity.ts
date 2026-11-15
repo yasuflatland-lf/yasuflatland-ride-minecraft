@@ -6,7 +6,7 @@ import {
   transformingProperties,
 } from "../../motion/transformingEntity";
 import type { StorageDoorId } from "./furniture";
-import { CAMPER_SPEC } from "./spec";
+import { CAMPER_SPEC, DRAWER_GEAR_IDS } from "./spec";
 
 export const CAMPER_ENTITY = {
   properties: {
@@ -19,6 +19,10 @@ export const CAMPER_ENTITY = {
     cabinet_stove_door: { type: "float", range: [0, 1] },
     fridge_top_door: { type: "float", range: [0, 1] },
     fridge_bottom_door: { type: "float", range: [0, 1] },
+    drawer_top: { type: "float", range: [0, 1] },
+    drawer_bottom: { type: "float", range: [0, 1] },
+    drawer_top_item: { type: "int", range: [0, DRAWER_GEAR_IDS.size] },
+    drawer_bottom_item: { type: "int", range: [0, DRAWER_GEAR_IDS.size] },
     ceiling_lights: { type: "bool" },
   },
   events: [...TRANSFORMING_EVENTS, ...DOCK_EVENTS],
@@ -32,6 +36,8 @@ export const CAMPER_ENTITY = {
     "cabinet_stove_door",
     "fridge_top_door",
     "fridge_bottom_door",
+    "drawer_top",
+    "drawer_bottom",
     "ceiling_lights",
   ],
 } as const satisfies EntityContract;
@@ -53,26 +59,30 @@ export function showerCommand(on: boolean): EngineCommand {
   return property("shower", on);
 }
 
-/**
- * The entity property that swings each storage door: 0 is shut, 1 is open into the aisle
- * (ADR 0114, 0121, 0123). A new door fails to compile here until its property is declared.
- */
+/** The entity property controlling each storage opening (ADR 0114, 0121). */
 export const STORAGE_DOOR_PROPERTY = {
   sink: "cabinet_sink_door",
   stove: "cabinet_stove_door",
   fridge_top: "fridge_top_door",
   fridge_bottom: "fridge_bottom_door",
+  drawer_top: "drawer_top",
+  drawer_bottom: "drawer_bottom",
 } as const satisfies Record<
   StorageDoorId,
   keyof typeof CAMPER_ENTITY.properties
 >;
+
+export function storageDoorProperty(door: StorageDoorId) {
+  return STORAGE_DOOR_PROPERTY[door];
+}
 
 /** 0 is shut, 1 is swung fully open into the aisle (ADR 0114, 0121). */
 export function storageDoorCommand(
   door: StorageDoorId,
   open: number,
 ): EngineCommand {
-  return property(STORAGE_DOOR_PROPERTY[door], open);
+  const name = storageDoorProperty(door);
+  return property(name, open);
 }
 
 /** Whether the ceiling lights glow (ADR 0115). */
@@ -85,3 +95,11 @@ export const SWITCH_CLICK: EngineCommand = Object.freeze({
   type: "playSound",
   name: "random.click",
 });
+
+/** Contents are independent of slide progress and derive from saved decor (ADR 0121). */
+export function drawerItemCommand(
+  drawer: "drawer_top" | "drawer_bottom",
+  code: number,
+): EngineCommand {
+  return property(`${drawer}_item`, code);
+}
