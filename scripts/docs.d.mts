@@ -78,3 +78,5 @@ export function generateIndex(adrs: readonly Adr[]): string;
 export function writeIndex(text: string, adrs: readonly Adr[]): string;
 export function checkIndex(files: FileMap, adrs: readonly Adr[]): Problem[];
 export function checkLinks(files: FileMap): Problem[];
+
+export function loadFiles(root: string): FileMap;

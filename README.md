@@ -60,12 +60,15 @@ pnpm lint            # format and lint check with Biome
 pnpm test            # unit tests, property-based tests, and the layer dependency check
 pnpm build           # bundle the TypeScript into the Behavior Pack
 pnpm package         # zip the packs into dist/yasuflatland-ride-<version>.mcaddon (run after build)
+pnpm generate        # produce ignored pack build outputs when missing or stale
 pnpm model           # generate the vehicle models and textures, the camping gear block models and atlas, the README and item previews, and pack icons
-pnpm model:check     # fail if the camping gear models, the README or item previews, or the pack icons are out of date
+pnpm model:check     # check previews and pack icons against freshly generated packs
 pnpm server:up       # start the dev BDS in Docker
 pnpm server:restart  # restart it under a new dev-only Resource Pack version
 pnpm test:game       # run impacted in-game scenarios in 4 lanes locally by default
 ```
+
+Generated pack build outputs are ignored and never committed. Build and tests run `pnpm generate` automatically. Commit generator source changes and the renderer outputs marked `tracked: true` in `tools/generators.json` (README previews, rendered item icons, and the three pack icons). Run `pnpm model` after a design change to refresh those committed images.
 
 Local in-game runs select only impacted scenarios. `GAME_TEST_ALL=1` runs everything, and `GAME_TEST_LANES=1` runs serially. `GAME_TEST_FEATURES=<tags>` selects comma-separated feature tags, and `GAME_TEST_BASE=<ref>` overrides the merge base used for impact selection. `GAME_TEST_AT=<0..7>` runs inside one lane for converting scenarios and defaults to serial execution.
 

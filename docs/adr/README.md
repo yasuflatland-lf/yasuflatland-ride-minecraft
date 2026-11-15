@@ -197,7 +197,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0190](0190-ribbed-camper-shell-atlas.md) | A ribbed camper shell atlas and trim | Proposed; superseded in part by [0197](0197-emit-camper-hover-particles-below-the-discs.md), [0199](0199-square-the-camper-front-and-fold-the-grille.md) |
 | [0191](0191-press-camp-gear-without-the-light-tool.md) | Press camp gear without the light tool | Proposed |
 | [0192](0192-suv-detailed-body.md) | Detail the SUV body, dashboard and lamps | Proposed; superseded in part by [0214](0214-replace-the-suv-with-the-rubicon-shape.md), [0219](0219-remove-the-suv-headlight-bezel-plate.md); extended by [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) |
-| [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed |
+| [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed; extended by [0248](0248-treat-generated-pack-files-as-build-outputs.md) |
 | [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) | Enlarge the SUV for seated head clearance | Proposed; superseded in part by [0196](0196-raise-the-suv-seats-for-first-person-visibility.md), [0214](0214-replace-the-suv-with-the-rubicon-shape.md), [0215](0215-fit-the-suv-interior-to-the-rubicon-cabin.md), [0217](0217-derive-the-suv-spec-from-the-rubicon-body.md) |
 | [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) | Cut the body height ahead of a grounded blade | Proposed |
 | [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) | Raise the SUV seats for first-person visibility | Proposed; superseded in part by [0215](0215-fit-the-suv-interior-to-the-rubicon-cabin.md) |
@@ -251,6 +251,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0245](0245-rotate-build-wand-boxes-with-the-engine-structure.md) | Rotate Build Wand boxes with the engine structure | Accepted |
 | [0246](0246-toilet-and-washstand-shows-and-cutouts.md) | Toilet and Washstand: interact shows, cut-out textures, baked chrome, and recorded sounds | Accepted |
 | [0247](0247-precise-camping-gear-rotations-textures-and-cube-budget.md) | Precise camping gear: rotations, texture tiles, cube budget, and glass | Proposed |
+| [0248](0248-treat-generated-pack-files-as-build-outputs.md) | Treat generated pack files as build outputs | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

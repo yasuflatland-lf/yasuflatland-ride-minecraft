@@ -20,7 +20,9 @@ Since then:
 - `pnpm server:up` sets `server-udp-ports` to `<LAN IP>:19140-19155:19140-19155`. The LAN IP comes from `BDS_LAN_IP`, or from the Mac's only non-internal IPv4 address; with zero or several addresses it stops and asks for `BDS_LAN_IP`. BDS accepts only an IP literal there; a hostname makes clients fail with error "Door" (itzg/docker-minecraft-bedrock-server#673)
 - `server/compose.yaml` publishes TCP 19132 (signaling) and UDP 19140-19155 (one port per client), plus UDP 19132 for raknet
 - Keep raknet as a fallback while BDS still ships it: `BDS_TRANSPORT=raknet pnpm server:up`
-- Carried over from 0011: mount the repository's Behavior Pack and Resource Pack directories into the container; apply script-only changes with `/reload` and restart the server for entity definition or Resource Pack changes; bump the Resource Pack manifest version when it changes, or devices keep their cached copy; keep world data (`server/data/`) out of git; use `network_mode: bridge`
+- Carried over from 0011: mount the repository's Behavior Pack and Resource Pack directories into the container; apply script-only changes with `/reload` and restart the server for entity definition or Resource Pack changes; bump the Resource Pack manifest version when tracked files under `packs/yasu_ride_rp` or generator inputs from `tools/run_generators.py --list-inputs` change, or devices keep their cached copy; keep world data (`server/data/`) out of git; use `network_mode: bridge`
+
+The release version check compares against the previous tag; pull request CI compares against the base commit. Both reject changed Resource Pack sources with an unchanged version. Ignore declared untracked build outputs, including their removal from older tags, and Python bytecode caches. Generator inputs include all `tools/**` sources and declared external reads, so model changes require a bump even though generated packs are no longer committed (0248).
 
 ## Consequences
 

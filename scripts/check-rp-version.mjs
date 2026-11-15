@@ -10,14 +10,15 @@ const PACK = "packs/yasu_ride_rp";
 export function checkResourcePackVersion({
   tag,
   changed,
+  generatorInputsChanged = false,
   previousVersion,
   currentVersion,
 }) {
-  if (!tag || !changed) return null;
+  if (!tag || !(changed || generatorInputsChanged)) return null;
   const previous = previousVersion.join(".");
   const current = currentVersion.join(".");
   if (previous !== current) return null;
-  return `${PACK} changed since ${tag}, but its version is ${previous} at ${tag} and ${current} at HEAD; bump header.version, the module version, and the Behavior Pack's dependency on it (ADR 0015)`;
+  return `${PACK} or its generator inputs changed since ${tag}, but its version is ${previous} at ${tag} and ${current} at HEAD; bump header.version, the module version, and the Behavior Pack's dependency on it (ADR 0015)`;
 }
 
 // Pipe stderr so a failing command's error message ends with git's own reason
@@ -37,14 +38,34 @@ function manifestAt(revision, dir) {
   }
 }
 
-function treesDiffer(left, right) {
-  try {
-    git("diff", "--quiet", left, right);
-    return false;
-  } catch (error) {
-    if (error.status !== 1) throw error;
-    return true;
-  }
+// Use the manifest's POSIX fnmatch semantics, including stars across folders.
+// Ignore build-output deletions when comparing against tags that committed them.
+export function resourcePackChanges(paths) {
+  return JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-I",
+        "-c",
+        `
+import fnmatch, json, sys
+from pathlib import PurePosixPath
+sys.path.insert(0, 'tools')
+from generated_outputs import OutputManifest
+manifest = OutputManifest.load()
+paths = [path for path in json.load(sys.stdin)
+         if '__pycache__' not in PurePosixPath(path).parts
+         and not any(fnmatch.fnmatchcase(path, pattern) for pattern in manifest.untracked_patterns())]
+print(json.dumps({
+    'changed': any(path.startswith('packs/yasu_ride_rp/') for path in paths),
+    'generatorInputsChanged': any(fnmatch.fnmatchcase(path, pattern)
+                                 for path in paths for pattern in manifest.inputs()),
+}))
+`,
+      ],
+      { input: JSON.stringify(paths), encoding: "utf8" },
+    ),
+  );
 }
 
 function main(tag) {
@@ -63,10 +84,14 @@ function main(tag) {
     console.log(`${PACK} did not exist at ${tag}; skipping the check`);
     return;
   }
-  const changed = treesDiffer(`${tag}:${previousDir}`, `HEAD:${PACK}`);
+  const changes = resourcePackChanges(
+    git("diff", "--name-only", "--no-renames", "-z", tag, "HEAD")
+      .split("\0")
+      .filter(Boolean),
+  );
   const failure = checkResourcePackVersion({
     tag,
-    changed,
+    ...changes,
     previousVersion: manifestAt(tag, previousDir).header.version,
     currentVersion: current.header.version,
   });
@@ -76,8 +101,8 @@ function main(tag) {
     return;
   }
   console.log(
-    changed
-      ? `${PACK} changed since ${tag} and its version was bumped`
+    changes.changed || changes.generatorInputsChanged
+      ? `${PACK} or its generator inputs changed since ${tag} and its version was bumped`
       : `${PACK} is unchanged since ${tag}`,
   );
 }

@@ -59,6 +59,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - if: steps.runner.outputs.present == 'true'
+        run: pnpm generate
+
+      - if: steps.runner.outputs.present == 'true'
         run: pnpm run build
 
       - name: Start the dev BDS

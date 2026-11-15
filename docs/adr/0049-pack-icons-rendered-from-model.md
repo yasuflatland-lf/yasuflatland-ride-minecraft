@@ -12,7 +12,7 @@ All three packs show Minecraft's placeholder because they have no pack icon. The
 - Extend `tools/render_preview.py` with `--icons <pack dir> ...`, using the same model, flying pose, camera, and supersampled rasterizer as the previews. Keep the preview pixels unchanged
 - Render a 256 by 256 RGB icon with the headlights on and the vehicle occupying 80% of its width, without text, logos, or badges (0009)
 - Use charcoal `#16181C`, an orange `#F28C28` diagonal band 18% of the image height, and cyan `#5AD7FF` discs beneath the folded wheels. Disc alpha falls linearly from 0.9 at the center to zero at 1.6 times the wheel radius; composite them behind the vehicle. Each disc is a circle on screen centered under the wheel, on the projected bottom center of its `glow_*` plate, not a disc lying flat under it, because from the camera above a flat disc hides behind the folded wheel
-- Give the release packs identical icons and the test pack a grayscale copy. `pnpm model` writes all three; `pnpm model:check` compares decoded pixels alongside the previews
+- Give the release packs identical icons and the test pack a grayscale copy. `pnpm model` writes all three; `pnpm model:check` ensures fresh packs and compares decoded pixels alongside the previews. Keep all three `pack_icon.png` files committed, marked `tracked: true` in the generator manifest, so pack lists can display them independently of build generation (0248)
 
 ## Consequences
 
