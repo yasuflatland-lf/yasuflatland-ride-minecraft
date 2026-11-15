@@ -248,10 +248,8 @@ describe("camping gear block models (ADR 0093)", () => {
     expect(readdirSync(MODELS).sort()).toEqual(
       [
         "deck_floor",
-        "cabinet_decor_pair",
-        "fridge_decor_pair",
+        "board_decor_pair",
         "drawers_decor_pair",
-        "shelf_decor_pair",
         "table_decor_pair",
         ...SPEC.map((g) => g.id),
       ]
@@ -350,9 +348,9 @@ describe("camping gear block models (ADR 0093)", () => {
     for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
       // ADR 0247 estimates 4.24 MiB for all 8,192 stored cubes, including hidden items.
       expect(
-        statSync(`${MODELS}/${kind}_decor_pair.geo.json`).size,
+        statSync(`${MODELS}/${pairGeometryName(kind)}.geo.json`).size,
       ).toBeLessThan(4_500_000);
-      for (const bone of geometryOf(`${kind}_decor_pair`).bones) {
+      for (const bone of geometryOf(pairGeometryName(kind)).bones) {
         for (const p of bone.cubes.flatMap(cubeCorners)) {
           expect(Math.abs(p[0])).toBeLessThanOrEqual(8);
           expect(Math.abs(p[2])).toBeLessThanOrEqual(8);
@@ -519,6 +517,11 @@ interface PairBlock {
 }
 const pairOf = (kind: string) =>
   readJson(`${BP}/blocks/yasu_ride/${kind}_decor_pair.block.json`) as PairBlock;
+const pairGeometryName = (kind: string) =>
+  pairOf(kind)["minecraft:block"].components[
+    "minecraft:geometry"
+  ].identifier.replace("geometry.yasu_ride.", "");
+
 // Evaluates the generated bone_visibility form, "q.block_state('<state>') == <n>" joined by &&;
 // the cabinet's door state compares with true (ADR 0114).
 function molangTrue(
@@ -993,8 +996,10 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     for (const kind of PAIR_KINDS) {
       const geometry =
         pairOf(kind)["minecraft:block"].components["minecraft:geometry"];
-      expect(geometry.identifier).toBe(`geometry.yasu_ride.${kind}_decor_pair`);
-      const bones = geometryOf(`${kind}_decor_pair`).bones.map((b) => b.name);
+      expect(geometryOf(pairGeometryName(kind)).description.identifier).toBe(
+        geometry.identifier,
+      );
+      const bones = geometryOf(pairGeometryName(kind)).bones.map((b) => b.name);
       expect(Object.keys(geometry.bone_visibility).sort()).toEqual(
         [...bones].sort(),
       );
@@ -1022,7 +1027,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         "spot",
       );
       const bones = new Map(
-        geometryOf(`${pair.kind}_decor_pair`).bones.map((b) => [
+        geometryOf(pairGeometryName(pair.kind)).bones.map((b) => [
           b.name,
           b.cubes,
         ]),

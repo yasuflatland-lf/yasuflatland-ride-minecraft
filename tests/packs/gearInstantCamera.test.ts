@@ -65,9 +65,12 @@ shipped = [c for b in saved['bones'] for c in b.get('cubes', [])]
 assert len(shipped) == len(model.cubes)
 assert shipped == generator.rounded(list(model.cubes))
 for kind, pair in generator.PAIRS.items():
-    geometry = generator.pair_geometry(kind, rows)
-    assert json.loads((root/(kind+'_decor_pair.geo.json')).read_text()) == geometry
-    for end, (left, ahead) in enumerate(pair['ends']):
+    layout = generator.PAIR_LAYOUTS[pair['layout']]
+    geometry = generator.pair_geometry(layout, rows)
+    block = json.loads(Path(f'packs/yasu_ride_bp/blocks/yasu_ride/{kind}_decor_pair.block.json').read_text())
+    name = block['minecraft:block']['components']['minecraft:geometry']['identifier'].removeprefix('geometry.yasu_ride.')
+    assert json.loads((root/(name+'.geo.json')).read_text()) == geometry
+    for end, (left, ahead) in enumerate(layout.ends):
         bone = next(b for b in geometry['minecraft:geometry'][0]['bones'] if b['name'] == f"end{end}_instant_camera")
         translated = {name: generator.rounded([generator.moved(c, left, ahead) for c in part]) for name, part in members.items()}
         tilt.assert_axes(bone['cubes'], translated, table)

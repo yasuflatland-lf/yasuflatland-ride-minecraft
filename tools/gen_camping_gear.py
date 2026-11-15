@@ -28,6 +28,7 @@ import argparse
 import json
 import math
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
@@ -79,30 +80,41 @@ SPOT_HEIGHTS = {0: list(HEIGHTS), **{spot: [15] for spot in range(1, 5)}, 9: [3]
 # must keep at least one pixel on each axis inside its own cell: a decor block moved a cell away
 # to draw the second item is rejected and renders as the fallback block (ADR 0108). So one pair
 # block per furniture draws both. Its geometry has one bone per standing item per end, the item
-# standing at that end, and bone_visibility shows the bone whose item the end's states name. ENDS
+# standing at that end, and bone_visibility shows the bone whose item the end's states name. Ends
 # are each end's (left, forward) px from the cell middle in the camper's room frame, as
 # DECOR_SPOTS 5 to 8 in src/domain/vehicle/kinds/camper/furniture.ts; HEIGHTS are the heights of
 # its slots. tests/packs/campingGear.test.ts ties both to the domain slots.
 # A pair with a "door" is a compartment behind a storage door (ADR 0121): its "door" names how
 # its boxes are laid (DOOR_BOXES), and "inside_px" is its inside height, which no standing item
 # may pass.
+@dataclass(frozen=True)
+class PairLayout:
+    name: str
+    ends: tuple[tuple[float, float], tuple[float, float]]
+
+
+PAIR_LAYOUTS: dict[str, PairLayout] = {
+    "board": PairLayout("board", ((0, -3.5), (0, 3.5))),
+    "table": PairLayout("table", ((3.3, 0), (-3.7, 0))),
+}
+
 PAIRS = {
     # No slot lays the shelf's pair block since the fridge took the shelf's place. It stays
     # defined so a block an older build laid keeps its type, which lets the next lay replace it
     # with the fridge's compartment block (ADR 0123).
-    "shelf": {"ends": [(0, -3.5), (0, 3.5)], "heights": [4, 10]},
-    "table": {"ends": [(3.3, 0), (-3.7, 0)], "heights": [12]},
+    "shelf": {"layout": "board", "heights": [4, 10]},
+    "table": {"layout": "table", "heights": [12]},
     # A wall cabinet compartment under the ceiling, as long as a shelf board, so its ends are the
     # board's. Its items stand on the compartment floor, 3 px above the cell bottom (ADR 0114).
     # Its inside runs from its floor's top at model y 51 to its top panel at 60
     # (tools/gen_camper.py CABINET_Y).
-    "cabinet": {"ends": [(0, -3.5), (0, 3.5)], "heights": [3], "door": "ceiling", "inside_px": 9},
+    "cabinet": {"layout": "board", "heights": [3], "door": "ceiling", "inside_px": 9},
     # A fridge compartment in a shelf cell, as long as a shelf board, so its ends are the board's.
     # Its items stand on the bottom compartment's floor, 3 px above layer 1's bottom, or on the
     # divider, 4 px above layer 2's bottom. The upper compartment is the lower one inside: from
     # the divider's top at model y 36 to the top panel at 48 (tools/gen_camper.py FRIDGE_Y,
     # ADR 0123).
-    "fridge": {"ends": [(0, -3.5), (0, 3.5)], "heights": [3, 4], "door": "cell", "inside_px": 12},
+    "fridge": {"layout": "board", "heights": [3, 4], "door": "cell", "inside_px": 12},
 }
 # A compartment block's door state: its items show only while the door is open or still swinging
 # shut. The cabinet's box ("ceiling") covers the compartment from its floor to the top of its
@@ -195,7 +207,7 @@ def moved(cube, left, ahead):
     return result
 
 
-def pair_geometry(kind, spec):
+def pair_geometry(layout: PairLayout, spec) -> dict:
     """Place one bone per standing item at each end's spot in the gear model's frame.
 
     The camper's left is -x and its forward is -z (FACE_ROTATION). One alpha-test
@@ -205,7 +217,7 @@ def pair_geometry(kind, spec):
     would sort their faces wrongly (ADR 0108).
     """
     bones = []
-    for end, (left, ahead) in enumerate(PAIRS[kind]["ends"]):
+    for end, (left, ahead) in enumerate(layout.ends):
         for item in standing(spec):
             cubes = [moved(c, left, ahead) for c in SHAPES[item["id"]]]
             members = {name: [moved(c, left, ahead) for c in part]
@@ -217,7 +229,7 @@ def pair_geometry(kind, spec):
         "format_version": "1.12.0",
         "minecraft:geometry": [{
             "description": {
-                "identifier": f"geometry.yasu_ride.{kind}_decor_pair",
+                "identifier": f"geometry.yasu_ride.{layout.name}_decor_pair",
                 "texture_width": ATLAS_SIZE,
                 "texture_height": ATLAS_SIZE,
             },
@@ -337,7 +349,7 @@ def validate(spec):
     counts = {item["id"]: len(SHAPES.get(item["id"], [])) for item in standing(spec)}
     for kind, pair in PAIRS.items():
         errors.extend(gear_validate.pair_budget_errors(kind, counts))
-        for end, (left, ahead) in enumerate(pair["ends"]):
+        for end, (left, ahead) in enumerate(PAIR_LAYOUTS[pair["layout"]].ends):
             for item in standing(spec):
                 model = MODELS_BY_ID[item["id"]]
                 try:
@@ -463,6 +475,7 @@ def pair_block(kind, spec):
     the tallest standing item, over both items (ADR 0108). A pair with a door, a storage
     compartment, shows its items only while open and takes its door's boxes (DOOR_BOXES, ADR
     0114, 0121, 0123)."""
+    layout = PAIR_LAYOUTS[PAIRS[kind]["layout"]]
     ids = [item["id"] for item in standing(spec)]
     door = PAIRS[kind].get("door")
     visibility = {}
@@ -504,7 +517,7 @@ def pair_block(kind, spec):
             },
             "components": {
                 "minecraft:geometry": {
-                    "identifier": f"geometry.yasu_ride.{kind}_decor_pair",
+                    "identifier": f"geometry.yasu_ride.{layout.name}_decor_pair",
                     "bone_visibility": visibility,
                 },
                 "minecraft:material_instances": {
@@ -609,8 +622,8 @@ def main():
     validate(spec)
     rp = args.resource_pack
     documents = {rp / MODELS / f"{item_id}.geo.json": geometry(item_id, cubes) for item_id, cubes in SHAPES.items()}
-    for kind in PAIRS:
-        documents[rp / MODELS / f"{kind}_decor_pair.geo.json"] = pair_geometry(kind, spec)
+    for layout in PAIR_LAYOUTS.values():
+        documents[rp / MODELS / f"{layout.name}_decor_pair.geo.json"] = pair_geometry(layout, spec)
     documents[rp / MODELS / "drawers_decor_pair.geo.json"] = drawers_geometry(spec)
     documents[rp / TERRAIN] = terrain()
     bp = args.behavior_pack
@@ -624,6 +637,15 @@ def main():
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads((Path(__file__).resolve().parent / "templates/item_texture.json").read_text()), spec)
     atlas = rp / ATLAS
     out = texture_io.Outputs(args.check, report_writes=True)
+
+    # The drawers geometry is independently generated and remains in documents.
+    for path in sorted((rp / MODELS).glob("*_decor_pair.geo.json")):
+        if path not in documents:
+            if args.check:
+                out.stale.append(f"{path} (orphan decor pair geometry)")
+            else:
+                path.unlink()
+                print(f"removed {path}")
 
     for path, document in documents.items():
         # item_texture.json also holds hand-written entries, so it stays formatted for Biome.
