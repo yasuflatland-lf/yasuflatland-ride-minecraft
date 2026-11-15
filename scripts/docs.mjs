@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, posix } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -749,13 +749,24 @@ export function checkLinks(files) {
   return errors;
 }
 
-function loadFiles(root) {
+export function loadFiles(root) {
   const files = {};
   const paths = execFileSync(
     "git",
     ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
     { cwd: root, encoding: "utf8" },
   ).split("\0");
+  const plan = join(root, "tools/generators.json");
+  if (existsSync(plan)) {
+    // Specs reference generated assets even though Git no longer tracks them.
+    const { generators } = JSON.parse(readFileSync(plan, "utf8"));
+    paths.push(
+      ...globSync(
+        generators.flatMap((entry) => entry.outputs),
+        { cwd: root },
+      ),
+    );
+  }
   for (const path of paths) {
     if (!path || !existsSync(join(root, path))) continue;
     files[path] = path.endsWith(".md")

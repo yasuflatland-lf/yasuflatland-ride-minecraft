@@ -18,11 +18,34 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       # Install Node and pnpm as pinned in mise.toml
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
 
       - run: pnpm install --frozen-lockfile
+
+      - id: generated
+        run: |
+          echo 'paths<<GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+          python3 -I -B tools/run_generators.py --list-outputs --untracked >> "$GITHUB_OUTPUT"
+          echo 'GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v5
+        with:
+          key: ${{ runner.os }}-generated-${{ hashFiles('tools/**', 'mise.toml') }}
+          path: |
+            ${{ steps.generated.outputs.paths }}
+            .cache/generated
+
+      - run: pnpm generate
+
+      - name: Check Resource Pack version on pull requests
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-rp-version.mjs "$BASE"
 
       # Format and lint check (config files are checked even before source code lands)
       - run: pnpm exec biome ci
@@ -68,6 +91,21 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - id: generated
+        run: |
+          echo 'paths<<GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+          python3 -I -B tools/run_generators.py --list-outputs --untracked >> "$GITHUB_OUTPUT"
+          echo 'GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v5
+        with:
+          key: ${{ runner.os }}-generated-${{ hashFiles('tools/**', 'mise.toml') }}
+          path: |
+            ${{ steps.generated.outputs.paths }}
+            .cache/generated
+
+      - run: pnpm generate
+
       - run: pnpm exec vitest run --shard=${{ matrix.shard }}/2 --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}.json --coverage '--coverage.include=src/**' '--exclude=tests/tools/**' '--exclude=tests/support/pythonWorker.test.ts' '--exclude=tests/packs/{litTextures,model,sportsboat,camper,camperDecorFit,suvPbr,headlights}.test.ts'
 
       - uses: actions/upload-artifact@v7
@@ -90,6 +128,21 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - id: generated
+        run: |
+          echo 'paths<<GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+          python3 -I -B tools/run_generators.py --list-outputs --untracked >> "$GITHUB_OUTPUT"
+          echo 'GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v5
+        with:
+          key: ${{ runner.os }}-generated-${{ hashFiles('tools/**', 'mise.toml') }}
+          path: |
+            ${{ steps.generated.outputs.paths }}
+            .cache/generated
+
+      - run: pnpm generate
+
       - run: pnpm exec vitest run tests/tools/ tests/support/pythonWorker.test.ts tests/packs/litTextures tests/packs/model.test tests/packs/sportsboat tests/packs/camper.test tests/packs/camperDecorFit.test tests/packs/suvPbr tests/packs/headlights
 
   coverage:
@@ -102,6 +155,21 @@ jobs:
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
 
       - run: pnpm install --frozen-lockfile
+
+      - id: generated
+        run: |
+          echo 'paths<<GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+          python3 -I -B tools/run_generators.py --list-outputs --untracked >> "$GITHUB_OUTPUT"
+          echo 'GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v5
+        with:
+          key: ${{ runner.os }}-generated-${{ hashFiles('tools/**', 'mise.toml') }}
+          path: |
+            ${{ steps.generated.outputs.paths }}
+            .cache/generated
+
+      - run: pnpm generate
 
       - uses: actions/download-artifact@v8
         with:
@@ -135,7 +203,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      # A pull request that touches none of the generators' or the renderer's inputs or outputs
+      # A pull request that touches none of the generators' or the renderer's inputs or committed outputs
       # cannot make them stale, so it skips the render (ADR 0057). Pushes to
       # main always render.
       - id: inputs
@@ -152,10 +220,15 @@ jobs:
           import sys
           from pathlib import PurePosixPath
 
+          sys.path.insert(0, 'tools')
+          from generated_outputs import OutputManifest
+
           patterns = ["package.json", "mise.toml", ".github/workflows/unit-test.yml"]
-          for flag in ("--list-inputs", "--list-outputs"):
-              patterns.extend(subprocess.check_output(
-                  [sys.executable, "-I", "tools/run_generators.py", flag], text=True).splitlines())
+          manifest = OutputManifest.load()
+          untracked = manifest.untracked_patterns()
+          patterns.extend(pattern for pattern in manifest.inputs()
+                          if not any(fnmatch.fnmatchcase(pattern, output) for output in untracked))
+          patterns.extend(output.pattern for output in manifest.outputs() if output.tracked)
           paths = subprocess.check_output(["git", "diff", "--name-only", "-z", "HEAD^1", "HEAD"], text=True).split("\0")
           changed = any(fnmatch.fnmatchcase(path, pattern)
                         for path in paths if "__pycache__" not in PurePosixPath(path).parts
@@ -168,7 +241,10 @@ jobs:
       - if: steps.inputs.outputs.changed == 'true'
         uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
 
-      # The README previews and pack icons must be re-rendered whenever the model or its texture changes
+      # Generate build outputs before checking the committed renderings.
+      - if: steps.inputs.outputs.changed == 'true'
+        run: pnpm generate
+
       - if: steps.inputs.outputs.changed == 'true'
         run: pnpm run model:check
 

@@ -8,21 +8,15 @@ const python = (script: string) =>
     maxBuffer: 8 * 1024 * 1024,
   });
 
-it("excludes exactly the generated JSON patterns from Biome except the formatted fixture and read-modify-write files", () => {
+it("ignores exactly the manifest's untracked outputs and lets Biome use Git ignores", () => {
   python(`
 import json, subprocess, sys
 from pathlib import Path
 patterns = subprocess.check_output(
-    [sys.executable, '-I', 'tools/run_generators.py', '--list-outputs'], text=True).splitlines()
-formatted = {'tests/packs/fixtures/camper-areas.json',
-             'packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json',
-             'packs/yasu_ride_rp/textures/item_texture.json'}
-assert formatted <= set(patterns)
-expected = {'!' + pattern for pattern in patterns
-            if not pattern.endswith('.png') and pattern not in formatted}
-includes = json.loads(Path('biome.json').read_text())['files']['includes']
-assert set(includes) == {'**', '!spike'} | expected
-assert len(includes) == len(set(includes))
+    [sys.executable, '-I', 'tools/run_generators.py', '--list-outputs', '--untracked'], text=True).splitlines()
+section = Path('.gitignore').read_text().split('# Generated outputs (tools/generators.json)\\n')[1]
+assert section.splitlines() == patterns
+assert json.loads(Path('biome.json').read_text())['files']['includes'] == ['**', '!spike']
 `);
 });
 
@@ -41,13 +35,17 @@ entries = [
     {'script': 'first.py', 'args': ['pack']},
     {'script': 'second.py', 'args': []},
 ]
+for entry in entries:
+    entry.update(outputs=[], reads=[])
 for check in (False, True):
     with patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \
          patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \
-         patch.object(runner, 'run') as run:
+         patch.object(runner, 'generation_status', return_value={'missing_build': []}), \
+         patch.object(runner, 'STAMP'), \
+         patch.object(runner, 'run_parallel') as run:
         runner.main()
-    assert [call.args[0] for call in run.call_args_list] == [
-        runner.generator_command(entry, check) for entry in [entries[1], entries[2], entries[0]]
+    assert [call.args[:2] for call in run.call_args_list] == [
+        ([entries[1], entries[2]], check), ([entries[0]], check)
     ]
 `);
 });
@@ -68,8 +66,8 @@ with tempfile.TemporaryDirectory() as directory:
         ('tools/gear_items/new_item.py', True),
         ('tools/gear_items/__pycache__/new_item.pyc', False),
         ('packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json', True),
-        ('packs/yasu_ride_rp/textures/item_texture.json', True),
-        ('packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json', True),
+        ('packs/yasu_ride_rp/textures/item_texture.json', False),
+        ('packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json', False),
         ('packs/yasu_ride_rp/models/entity/yasu_ride/stand_in.geo.json', False),
         ('docs/images/wicker-tiles-preview.png', False),
         ('docs/README.md', False),
@@ -157,10 +155,9 @@ pack_art = {path for path in tracked if path.startswith('packs/')
 assert pack_art == set(handwritten) | {entry['path'] for entry in touched
                                      if entry['path'] in pack_art}
 for output in manifest.outputs():
-    assert any(fnmatch.fnmatchcase(path, output.pattern) for path in tracked), output
-attributes = [line.split()[0] for line in Path('.gitattributes').read_text().splitlines()
-              if line.endswith(' linguist-generated=true')]
-assert attributes == [output.pattern for output in manifest.outputs()]
+    matches = [path for path in tracked if fnmatch.fnmatchcase(path, output.pattern)]
+    assert bool(matches) == output.tracked, (output, matches)
+
 for flag, expected in [('--list-outputs', [o.pattern for o in manifest.outputs()]),
                        ('--list-inputs', list(manifest.inputs()))]:
     actual = subprocess.check_output([sys.executable, '-I', 'tools/run_generators.py', flag], text=True)
@@ -172,3 +169,19 @@ print('manifest covers every generator output')
 `),
   ).toContain("manifest covers every generator output");
 }, 600_000);
+
+it("lists CI cache paths without creating bytecode inside the cache key inputs", () => {
+  python(`
+import shlex, shutil, subprocess, tempfile
+from pathlib import Path
+workflow = Path('.github/workflows/unit-test.yml').read_text()
+commands = [line.strip().split(' >> ')[0] for line in workflow.splitlines()
+            if '--list-outputs --untracked >>' in line]
+assert len(commands) == 4
+for command in commands:
+    with tempfile.TemporaryDirectory() as directory:
+        shutil.copytree('tools', Path(directory) / 'tools', ignore=shutil.ignore_patterns('__pycache__'))
+        subprocess.check_output(shlex.split(command), cwd=directory, text=True)
+        assert not list(Path(directory).rglob('__pycache__')), command
+`);
+});

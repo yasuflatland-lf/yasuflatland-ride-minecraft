@@ -15,6 +15,7 @@ import {
   checkSpecIndex,
   checkSpecLinks,
   generateIndex,
+  loadFiles,
   parseAdr,
   parseAdrs,
   parseSpec,
@@ -751,4 +752,16 @@ describe("ADR validation edge cases", () => {
       1,
     );
   });
+});
+
+it("resolves declared generated implementation paths without including unrelated ignored files", () => {
+  const files = loadFiles(process.cwd());
+  expect(files).toHaveProperty(
+    "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
+  );
+  expect(files).toHaveProperty(
+    "packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat_mirror.texture_set.json",
+  );
+  expect(files).not.toHaveProperty(".cache/generated/stamp.json");
+  expect(files).not.toHaveProperty("node_modules/.modules.yaml");
 });
