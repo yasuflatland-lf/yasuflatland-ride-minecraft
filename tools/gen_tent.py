@@ -15,7 +15,6 @@ recolor only fly, fly_dark, seam, and skirt; both tan tarp slots stay fixed (ADR
 --check compares parsed JSON and decoded pixels, independent of formatting and compression.
 """
 import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -250,7 +249,7 @@ def main():
     validate(document["minecraft:geometry"][0]["bones"])
     out = texture_io.Outputs(args.check, report_writes=True)
 
-    out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
+    out.json(geo_path, document)
     for paint, path in textures.items():
         out.png(path, ATLAS_WIDTH, ATLAS_HEIGHT, texture_io.texel_reader(ATLAS_WIDTH, texture_pixels(paint)), compress_level=9)
     out.finish("Tent outputs are out of date with tools/gen_tent.py. Run `pnpm model` and commit the result:", "tent model and textures are up to date")

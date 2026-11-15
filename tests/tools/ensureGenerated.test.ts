@@ -49,7 +49,7 @@ with Path('runs.txt').open('a') as stream:
       reads: ["packs/output.txt"],
       outputs: ["preview.png"],
       after: ["fixture.py"],
-      afterFormat: true,
+      afterGenerators: true,
       tracked: true,
     },
   ]);

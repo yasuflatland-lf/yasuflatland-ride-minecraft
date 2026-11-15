@@ -3,7 +3,6 @@
 RGBA alpha is data: alpha 0 is the entity_emissive mask (ADR 0020, 0147).
 """
 
-import json
 import math
 import struct
 import sys
@@ -82,7 +81,7 @@ def write_or_check(root, check, files, stale_message):
     out = texture_io.Outputs(check)
     for name in ("geometry", "texture_set"):
         relative, doc = files[name]
-        out.json(root / relative, json.dumps(doc, separators=(",", ":")) + "\n")
+        out.json(root / relative, doc)
     for name in ("color", "mer"):
         relative, size, data = files[name]
         out.png(root / relative, size, size, texture_io.texel_reader(size, data), compress_level=9)

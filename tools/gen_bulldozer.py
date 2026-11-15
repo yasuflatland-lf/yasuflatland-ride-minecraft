@@ -1420,7 +1420,7 @@ assert_axes(model_cubes, {
     "yawed_pair": [c for c in compound if c["rotation"][0] == -15],
     "propeller": [c for c in compound if c["rotation"][1] == -18],
 }, ASSEMBLIES)
-outputs.json(MODELS / "bulldozer.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
+outputs.json(MODELS / "bulldozer.geo.json", rounded(geo))
 
 
 # Variant 0, khaki on the SUV, is yellow here, so a new bulldozer is yellow (ADR 0076); khaki writes bulldozer.png, the others bulldozer_<paint>.png.

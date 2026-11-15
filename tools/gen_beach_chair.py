@@ -285,7 +285,7 @@ def main():
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     out = texture_io.Outputs(args.check, report_writes=True)
-    out.json(args.resource_pack / GEOMETRY, geometry(), separators=(",", ":"))
+    out.json(args.resource_pack / GEOMETRY, geometry())
     out.png(args.resource_pack / TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT, pixel, compress_level=9)
     out.finish("Beach Chair outputs are stale. Run pnpm model:", "Beach Chair model and texture are up to date")
 

@@ -8,22 +8,54 @@ const python = (script: string) =>
     maxBuffer: 8 * 1024 * 1024,
   });
 
-it("formats nested JSON with the same fnmatch semantics as ownership", () => {
+it("excludes exactly the generated JSON patterns from Biome except the formatted fixture and animation", () => {
   python(`
-import sys, tempfile
+import json, subprocess, sys
 from pathlib import Path
+patterns = subprocess.check_output(
+    [sys.executable, '-I', 'tools/run_generators.py', '--list-outputs'], text=True).splitlines()
+formatted = {'tests/packs/fixtures/camper-areas.json',
+             'packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json'}
+assert formatted <= set(patterns)
+expected = {'!' + pattern for pattern in patterns
+            if not pattern.endswith('.png') and pattern not in formatted}
+includes = json.loads(Path('biome.json').read_text())['files']['includes']
+assert set(includes) == {'**', '!spike'} | expected
+assert len(includes) == len(set(includes))
+`);
+});
+
+it("runs afterGenerators entries last without a formatter in write and check modes", () => {
+  python(`
+import json, sys, tempfile
+from pathlib import Path
+from unittest.mock import patch
 sys.path.insert(0, 'tools')
+import run_generators as runner
 from generated_outputs import OutputManifest
-from run_generators import json_outputs
-with tempfile.TemporaryDirectory() as directory:
-    root = Path(directory)
-    nested = root / 'packs/models/nested/car.json'
-    nested.parent.mkdir(parents=True)
-    nested.write_text('{}')
-    handwritten = nested.with_name('handwritten.json')
-    handwritten.write_text('{}')
-    manifest = OutputManifest([{'script': 'model.py', 'outputs': ['packs/*car.json'], 'reads': []}])
-    assert json_outputs(manifest, root) == ['packs/models/nested/car.json']
+plan = json.loads(runner.PLAN.read_text())
+assert 'format' not in plan
+assert all('afterFormat' not in entry for entry in plan['generators'])
+assert [entry['script'] for entry in plan['generators'] if entry.get('afterGenerators')] == ['render_preview.py']
+entries = [
+    {'script': 'render_preview.py', 'args': [], 'afterGenerators': True,
+     'after': ['first.py', 'second.py'], 'reads': [], 'outputs': []},
+    {'script': 'first.py', 'args': ['pack'], 'reads': [], 'outputs': []},
+    {'script': 'second.py', 'args': [], 'reads': [], 'outputs': []},
+]
+for check in (False, True):
+    with tempfile.TemporaryDirectory() as directory, \\
+         patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \\
+         patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \\
+         patch.object(runner.OutputManifest, 'load', return_value=OutputManifest(entries)), \\
+         patch.object(runner, 'STAMP', Path(directory) / 'stamp.json'), \\
+         patch.object(runner, 'run_parallel') as run_parallel, \\
+         patch.object(runner.subprocess, 'run', side_effect=AssertionError('unexpected subprocess')):
+        runner.main()
+    assert [call.args[:2] for call in run_parallel.call_args_list] == [
+        ([entries[1], entries[2]], check), ([entries[0]], check)
+    ]
+    assert run_parallel.call_args_list[1].kwargs == {'completed': ['first.py', 'second.py']}
 `);
 });
 
@@ -41,6 +73,7 @@ with tempfile.TemporaryDirectory() as directory:
     output = Path(directory) / 'output'
     for path, expected in [
         ('tools/gear_items/new_item.py', True),
+        ('tools/item_texture_base.json', True),
         ('tools/gear_items/__pycache__/new_item.pyc', False),
         ('packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json', True),
         ('packs/yasu_ride_rp/textures/item_texture.json', True),
@@ -102,6 +135,9 @@ from pathlib import Path
 sys.path.insert(0, 'tools')
 from generated_outputs import OutputManifest
 manifest = OutputManifest.load()
+plan = json.loads(Path('tools/generators.json').read_text())
+gear = next(entry for entry in plan['generators'] if entry['script'] == 'gen_camping_gear.py')
+assert gear['reads'] == []
 handwritten = [
     'packs/yasu_ride_rp/models/blocks/yasu_ride/deck_floor.geo.json',
     'packs/yasu_ride_rp/models/entity/yasu_ride/deck_seat.geo.json',

@@ -1805,9 +1805,7 @@ def turn_around(bones):
 
 
 def rounded(value):
-    """Round floats to 4 places to drop float noise such as 5.714285714285714. The file is written
-    compact because `indent=1` output exceeds Biome's 1 MiB `files.maxSize`, and `pnpm model` could
-    no longer format it."""
+    """Round floats to 4 places to drop float noise such as 5.714285714285714."""
     if isinstance(value, float):
         return round(value, 4) + 0.0  # + 0.0 turns -0.0 into 0.0
     if isinstance(value, list):
@@ -1820,7 +1818,7 @@ def rounded(value):
 turn_around(geo["minecraft:geometry"][0]["bones"])
 assert_axes([cube for bone in geo["minecraft:geometry"][0]["bones"]
              for cube in bone.get("cubes", [])], {"wheel": wheel, "throttle_lever": lever}, ASSEMBLIES)
-outputs.json(MODELS / "sportsboat.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
+outputs.json(MODELS / "sportsboat.geo.json", rounded(geo))
 
 
 def swatch_cell(x, y):

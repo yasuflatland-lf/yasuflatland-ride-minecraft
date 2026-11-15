@@ -70,7 +70,7 @@ def sync_animation(out, path, scaled):
             else:
                 channels["position"] = {t: offset if any(v) else [0, 0, 0]
                                         for t, v in position.items()}
-    out.json(path, animation, indent=2)
+    out.fixture_json(path, animation)
 
 
 def icon(x, y):

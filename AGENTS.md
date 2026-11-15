@@ -28,7 +28,7 @@ pnpm test:mutation # Stryker mutation testing, report in reports/mutation (not i
 pnpm build         # esbuild bundle into the Behavior Pack and the test pack
 pnpm package       # zip the packs into dist/yasuflatland-ride-<version>.mcaddon (after build)
 pnpm generate      # ensure generated pack files are current, skipping previews and icons
-pnpm model         # regenerate the Resource Pack models and textures (vehicles and camping gear), the README and item previews, and the pack icons (Python 3)
+pnpm model         # regenerate compact pack JSON, textures, README and item previews, pack icons, and the formatted camper fixture (Python 3)
 pnpm model:check   # fail if the camping gear models and atlas, the previews in docs/images, or the pack icons are stale
 pnpm sounds        # regenerate the Resource Pack sounds (Python 3)
 pnpm server:up     # register the packs and start the dev BDS (Docker)

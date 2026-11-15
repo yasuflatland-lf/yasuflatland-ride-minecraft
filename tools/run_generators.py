@@ -9,10 +9,12 @@
 
 tools/generators.json declares dependencies, arguments, output globs, and reads outside tools/.
 All tools/** files are implicit inputs except __pycache__. Output patterns use POSIX fnmatch;
-stars match across folders. Biome formats declared JSON outputs before afterFormat generators
-read them. --check compares parsed JSON and decoded pixels without formatting. --report-touched
+stars match across folders. Outputs writes compact JSON; afterGenerators entries run after
+every other generator. --check compares parsed JSON and decoded pixels. --report-touched
 FILE writes JSON Lines containing generator and repo-relative path for every write or check,
 including secondary Outputs instances. Listing flags never run generators.
+A generator never reads a file it or another generator writes, except render_preview.py, which
+runs after the generators and reads their outputs.
 """
 
 import argparse
@@ -20,7 +22,6 @@ import fnmatch
 import hashlib
 import json
 import os
-import shutil
 import subprocess
 import sys
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
@@ -32,13 +33,6 @@ ROOT = TOOLS.parent
 STAMP = ROOT / ".cache/generated/stamp.json"
 sys.path.insert(0, str(TOOLS))
 from generated_outputs import OutputManifest
-
-
-def run(command, env=None):
-    print("$", " ".join(Path(part).name if part.startswith(str(TOOLS)) else part for part in command), flush=True)
-    result = subprocess.run(command, cwd=ROOT, env=env)
-    if result.returncode != 0:
-        sys.exit(result.returncode)
 
 
 def generator_command(entry, check):
@@ -133,20 +127,6 @@ def run_parallel(entries, check, env, completed=()):
                 completed.add(name)
 
 
-def json_outputs(manifest, root=ROOT):
-    directories = set()
-    for output in manifest.outputs():
-        directory = root
-        for part in output.pattern.split("/")[:-1]:
-            if any(char in part for char in "*?["):
-                break
-            directory /= part
-        directories.add(directory)
-    candidates = {path.relative_to(root).as_posix() for directory in directories
-                  for path in directory.rglob("*.json") if path.is_file()}
-    return sorted(path for path in candidates if manifest.matches(path) is not None)
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     mode = parser.add_mutually_exclusive_group()
@@ -192,17 +172,10 @@ def main():
     plan = json.loads(PLAN.read_text())
     generators = [entry for entry in plan["generators"]
                   if not args.ensure or entry["script"] != "render_preview.py"]
-    before = [g for g in generators if not g.get("afterFormat")]
-    after = [g for g in generators if g.get("afterFormat")]
+    before = [g for g in generators if not g.get("afterGenerators")]
+    after = [g for g in generators if g.get("afterGenerators")]
 
     run_parallel(before, args.check, env)
-    if not args.check:
-        biome = shutil.which("biome")
-        if biome is None:
-            sys.exit("biome is not on PATH; run this through pnpm so node_modules/.bin is included")
-        paths = json_outputs(manifest)
-        if paths:
-            run([biome, "format", "--write", *paths])
     run_parallel(after, args.check, env, completed=[entry["script"] for entry in before])
 
     if not args.check:

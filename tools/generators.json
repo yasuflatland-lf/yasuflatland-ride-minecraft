@@ -274,7 +274,7 @@
         "packs/yasu_ride_bp",
         "packs/yasu_ride_test_bp"
       ],
-      "afterFormat": true,
+      "afterGenerators": true,
       "outputs": [
         "docs/images/suv-*.png",
         "docs/images/sportsboat-*.png",

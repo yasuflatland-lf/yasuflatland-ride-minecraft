@@ -98,3 +98,40 @@ else:
 `,
   ]);
 });
+
+it("writes compact UTF-8 documents and indented fixtures with semantic freshness checks", () => {
+  execFileSync("python3", [
+    "-I",
+    "-c",
+    `
+import json, sys, tempfile
+from pathlib import Path
+sys.path.insert(0, 'tools')
+from texture_io import Outputs
+with tempfile.TemporaryDirectory() as directory:
+    root = Path(directory)
+    documents = [{'label': 'caf\u00e9', 'values': (1, 2.5, None, True)}, '{"a":1}', [], {}]
+    for index, doc in enumerate(documents):
+        for method, options in [('json', {'separators': (',', ':')}), ('fixture_json', {'indent': 2})]:
+            path = root / method / f'{index}.json'
+            write = Outputs(False)
+            getattr(write, method)(path, doc)
+            expected = json.dumps(doc, ensure_ascii=False, **options) + '\\n'
+            assert path.read_bytes() == expected.encode('utf-8')
+            assert write.touched == [path]
+            path.write_text(json.dumps(doc, indent=4, ensure_ascii=True))
+            before = path.read_bytes()
+            check = Outputs(True)
+            getattr(check, method)(path, doc)
+            assert not check.stale
+            assert check.touched == [path]
+            assert path.read_bytes() == before
+            path.write_text('invalid JSON')
+            getattr(check, method)(path, doc)
+            assert len(check.stale) == 1
+            path.write_text('null')
+            getattr(check, method)(path, doc)
+            assert check.stale[-1] == str(path)
+`,
+  ]);
+});
