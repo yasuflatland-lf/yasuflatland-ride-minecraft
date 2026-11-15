@@ -4,7 +4,7 @@
     python3 -I tools/gen_item_catalog.py <behavior pack> --check  fail if the file is stale
 
 item_catalog/crafting_item_catalog.json lists the groups in the Items tab in list order.
---check compares parsed JSON because Biome reformats the file.
+--check compares parsed JSON so whitespace does not affect freshness.
 """
 import argparse
 import json
@@ -124,7 +124,7 @@ def main():
     document = catalog(GROUPS)
     path = args.behavior_pack / CATALOG
     out = texture_io.Outputs(args.check, report_writes=True)
-    out.json(path, json.dumps(document, separators=(",", ":")) + "\n")
+    out.json(path, document)
     out.finish("Creative item catalog is out of date with tools/gen_item_catalog.py and tools/camping_gear.json. Run `pnpm model` and commit the result:",
                "creative item catalog is up to date")
 

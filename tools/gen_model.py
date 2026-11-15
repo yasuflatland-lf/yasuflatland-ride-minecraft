@@ -124,7 +124,7 @@ model_cubes = [cube for bone in geometry["bones"] for cube in bone.get("cubes", 
 hull_turns = [cube for cube in compound_cubes(model_cubes) if id(cube) in hull_turn_ids]
 arcs = [cube for cube in compound_cubes(model_cubes) if id(cube) not in hull_turn_ids]
 assert_axes(model_cubes, {"arc": arcs, "hull_turns": hull_turns}, ASSEMBLIES)
-out.json(MODELS / "suv.geo.json", geo, indent=1)
+out.json(MODELS / "suv.geo.json", geo)
 
 export.paint_textures(out, ENTITY_TEXTURES)
 load_tool("lit_textures").build_lit_textures(

@@ -7,8 +7,8 @@
 
 tools/generators.json declares run order, arguments, output globs, and reads outside tools/.
 All tools/** files are implicit inputs except __pycache__. Output patterns use POSIX fnmatch;
-stars match across folders. Biome formats declared JSON outputs before afterFormat generators
-read them. --check compares parsed JSON and decoded pixels without formatting. --report-touched
+stars match across folders. Outputs writes compact JSON; afterGenerators entries run after
+every other generator. --check compares parsed JSON and decoded pixels. --report-touched
 FILE writes JSON Lines containing generator and repo-relative path for every write or check,
 including secondary Outputs instances. Listing flags never run generators.
 A generator never reads a file it or another generator writes, except render_preview.py, which
@@ -18,7 +18,6 @@ runs after the generators and reads their outputs.
 import argparse
 import json
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -40,20 +39,6 @@ def run(command, env=None):
 def generator_command(entry, check):
     command = [sys.executable, "-I", str(TOOLS / entry["script"]), *entry["args"]]
     return command + ["--check"] if check else command
-
-
-def json_outputs(manifest, root=ROOT):
-    directories = set()
-    for output in manifest.outputs():
-        directory = root
-        for part in output.pattern.split("/")[:-1]:
-            if any(char in part for char in "*?["):
-                break
-            directory /= part
-        directories.add(directory)
-    candidates = {path.relative_to(root).as_posix() for directory in directories
-                  for path in directory.rglob("*.json") if path.is_file()}
-    return sorted(path for path in candidates if manifest.matches(path) is not None)
 
 
 def main():
@@ -85,18 +70,11 @@ def main():
 
     plan = json.loads(PLAN.read_text())
     generators = plan["generators"]
-    before = [g for g in generators if not g.get("afterFormat")]
-    after = [g for g in generators if g.get("afterFormat")]
+    before = [g for g in generators if not g.get("afterGenerators")]
+    after = [g for g in generators if g.get("afterGenerators")]
 
     for entry in before:
         run(generator_command(entry, args.check), env=env)
-    if not args.check:
-        biome = shutil.which("biome")
-        if biome is None:
-            sys.exit("biome is not on PATH; run this through pnpm so node_modules/.bin is included")
-        manifest = OutputManifest.load()
-        paths = json_outputs(manifest)
-        run([biome, "format", "--write", *paths])
     for entry in after:
         run(generator_command(entry, args.check), env=env)
 

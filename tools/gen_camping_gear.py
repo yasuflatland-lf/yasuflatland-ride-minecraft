@@ -7,12 +7,13 @@ tools/camping_gear.json lists the items; gear_registry loads each item's cubes. 
 per block). Every model is centered on x 0 and z 0, with its front at -z (ADR 0009). A standing item
 stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it to the hook (ADR
 0102). The 512 x 512 atlas preserves the swatches in cell 0 and reserves per-item cells
-with edge-extension gutters; gear_atlas defines the layout (ADR 0247). --check compares parsed JSON and decoded pixels, because
-Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
+with edge-extension gutters; gear_atlas defines the layout (ADR 0247). --check compares parsed JSON
+and decoded pixels so whitespace and PNG compression do not affect freshness. It also writes the
 Behavior Pack decor blocks, the items, and the complete
-item_texture.json from tools/item_texture_base.json and the gear spec; the decor block's face, height, and spot states are described next to
-FACE_ROTATION. It also writes the pair blocks and their geometry, which draw the two items of a
-shelf board or of the table in one block (PAIRS, ADR 0108), the wall cabinet's compartment
+item_texture.json from tools/item_texture_base.json and the gear spec; the decor block's face,
+height, and spot states are described next to FACE_ROTATION. It also writes the pair blocks and
+their geometry, which draw the two items of a shelf board or of the table in one block (PAIRS,
+ADR 0108), the wall cabinet's compartment
 block, a pair block that also holds the ceiling up and shows its items only while its door is
 open (ADR 0114), and the fridge's compartment block, which shows its items the same way (ADR
 0123).
@@ -648,7 +649,7 @@ def main():
                 print(f"removed {path}")
 
     for path, document in documents.items():
-        out.json(path, json.dumps(document, separators=(",", ":")) + "\n")
+        out.json(path, document)
     out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, ATLAS_PIXELS), compress_level=9)
     out.finish("Camping gear outputs are out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result:", "camping gear models, atlas, blocks, and items are up to date")
 

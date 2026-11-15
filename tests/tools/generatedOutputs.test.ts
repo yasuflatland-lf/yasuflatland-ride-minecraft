@@ -8,22 +8,46 @@ const python = (script: string) =>
     maxBuffer: 8 * 1024 * 1024,
   });
 
-it("formats nested JSON with the same fnmatch semantics as ownership", () => {
+it("excludes exactly the generated JSON patterns from Biome except the formatted fixture and read-modify-write files", () => {
   python(`
-import sys, tempfile
+import json, subprocess, sys
 from pathlib import Path
+patterns = subprocess.check_output(
+    [sys.executable, '-I', 'tools/run_generators.py', '--list-outputs'], text=True).splitlines()
+formatted = {'tests/packs/fixtures/camper-areas.json',
+             'packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json'}
+assert formatted <= set(patterns)
+expected = {'!' + pattern for pattern in patterns
+            if not pattern.endswith('.png') and pattern not in formatted}
+includes = json.loads(Path('biome.json').read_text())['files']['includes']
+assert set(includes) == {'**', '!spike'} | expected
+assert len(includes) == len(set(includes))
+`);
+});
+
+it("runs afterGenerators entries last without a formatter in write and check modes", () => {
+  python(`
+import json, sys
+from unittest.mock import patch
 sys.path.insert(0, 'tools')
-from generated_outputs import OutputManifest
-from run_generators import json_outputs
-with tempfile.TemporaryDirectory() as directory:
-    root = Path(directory)
-    nested = root / 'packs/models/nested/car.json'
-    nested.parent.mkdir(parents=True)
-    nested.write_text('{}')
-    handwritten = nested.with_name('handwritten.json')
-    handwritten.write_text('{}')
-    manifest = OutputManifest([{'script': 'model.py', 'outputs': ['packs/*car.json'], 'reads': []}])
-    assert json_outputs(manifest, root) == ['packs/models/nested/car.json']
+import run_generators as runner
+plan = json.loads(runner.PLAN.read_text())
+assert 'format' not in plan
+assert all('afterFormat' not in entry for entry in plan['generators'])
+assert [entry['script'] for entry in plan['generators'] if entry.get('afterGenerators')] == ['render_preview.py']
+entries = [
+    {'script': 'render_preview.py', 'args': [], 'afterGenerators': True},
+    {'script': 'first.py', 'args': ['pack']},
+    {'script': 'second.py', 'args': []},
+]
+for check in (False, True):
+    with patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \
+         patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \
+         patch.object(runner, 'run') as run:
+        runner.main()
+    assert [call.args[0] for call in run.call_args_list] == [
+        runner.generator_command(entry, check) for entry in [entries[1], entries[2], entries[0]]
+    ]
 `);
 });
 

@@ -4,7 +4,6 @@ Model pixels use -z toward the canopy; the origin is the base center at ground.
 Cell offsets assume the origin is at a block center, with y at its top face.
 """
 import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -196,7 +195,7 @@ def main():
     document = geometry()
     validate(document["minecraft:geometry"][0]["bones"])
     out = texture_io.Outputs(args.check, report_writes=True)
-    out.json(args.resource_pack / GEOMETRY, document, separators=(",", ":"))
+    out.json(args.resource_pack / GEOMETRY, document)
     for paint in PAINTS:
         out.png(args.resource_pack / texture_path(paint), ATLAS_WIDTH, ATLAS_HEIGHT,
                 lambda x, y, paint=paint: pixel(paint, x, y), compress_level=9)

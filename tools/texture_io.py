@@ -32,13 +32,18 @@ class Outputs:
             with Path(report).open("a") as stream:
                 stream.write(json.dumps(entry) + "\n")
 
-    # Compare parsed JSON because pnpm model reformats the written JSON with Biome.
-    def json(self, path, doc, separators=None, indent=None):
+    def json(self, path, doc):
+        self._json(path, json.dumps(doc, separators=(",", ":"), ensure_ascii=False) + "\n")
+
+    def fixture_json(self, path, doc):
+        self._json(path, json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+
+    # Freshness depends on content, even when a fixture is reformatted by an editor.
+    def _json(self, path, data):
         self._touch(path)
-        data = doc if isinstance(doc, str) else json.dumps(doc, separators=separators, indent=indent)
         if self.check:
             try:
-                matches = json.loads(path.read_text()) == json.loads(data)
+                matches = json.loads(path.read_text(encoding="utf-8")) == json.loads(data)
             except (OSError, ValueError) as e:
                 self.stale.append(f"{path} ({e})")
                 return
@@ -46,7 +51,7 @@ class Outputs:
                 self.stale.append(str(path))
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(data)
+            path.write_text(data, encoding="utf-8")
             if self.report_writes:
                 print(f"wrote {path}")
 

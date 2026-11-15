@@ -7,7 +7,88 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!spike"],
+    "includes": [
+      "**",
+      "!spike",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
+      "!packs/yasu_ride_rp/textures/entity/yasu_ride/suv*.texture_set.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json",
+      "!packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat*.texture_set.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat_monitor.geo.json",
+      "!packs/yasu_ride_rp/render_controllers/yasu_ride/sportsboat_monitor.rc.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
+      "!packs/yasu_ride_rp/textures/entity/yasu_ride/camper*.texture_set.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json",
+      "!packs/yasu_ride_rp/textures/entity/yasu_ride/bulldozer*.texture_set.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer_monitor.geo.json",
+      "!packs/yasu_ride_rp/render_controllers/yasu_ride/bulldozer_monitor.rc.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/potted_plant.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/macrame_planter.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/cactus_pot.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/percolator.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/enamel_kettle.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/saucepan.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/mug_pair.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/sugar_pot.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/fruit_bowl.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/toaster.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/transistor_radio.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/book_stack.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/road_map.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/photo_frame.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/cushion.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/tissue_box.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/desk_fan.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/alarm_clock.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/instant_camera.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/binoculars.geo.json",
+      "!packs/yasu_ride_rp/models/blocks/yasu_ride/*_decor_pair.geo.json",
+      "!packs/yasu_ride_rp/textures/terrain_texture.json",
+      "!packs/yasu_ride_bp/blocks/yasu_ride/*_decor.block.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/potted_plant.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/macrame_planter.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/cactus_pot.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/percolator.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/enamel_kettle.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/saucepan.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/mug_pair.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/sugar_pot.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/fruit_bowl.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/toaster.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/transistor_radio.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/book_stack.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/road_map.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/photo_frame.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/cushion.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/tissue_box.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/desk_fan.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/alarm_clock.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/instant_camera.item.json",
+      "!packs/yasu_ride_bp/items/yasu_ride/binoculars.item.json",
+      "!packs/yasu_ride_bp/blocks/yasu_ride/*_decor_pair.block.json",
+      "!packs/yasu_ride_rp/textures/item_texture.json",
+      "!packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/low_chair.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/sofa_single.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/sofa_double.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/noga_chair.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/camp_table.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/fire_pit.geo.json",
+      "!packs/yasu_ride_rp/textures/entity/yasu_ride/fire_pit*.texture_set.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/dutch_oven.geo.json",
+      "!packs/yasu_ride_rp/textures/entity/yasu_ride/dutch_oven*.texture_set.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/gas_lantern.geo.json",
+      "!packs/yasu_ride_rp/textures/entity/yasu_ride/gas_lantern*.texture_set.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/tent.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/beach_parasol.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/beach_chair.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/dining_table.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/dining_chair.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/roof_tent.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/toilet.geo.json",
+      "!packs/yasu_ride_rp/models/entity/yasu_ride/washstand.geo.json",
+      "!packs/yasu_ride_rp/animations/yasu_ride/washstand.anim.json"
+    ],
     "maxSize": 10485760
   },
   "formatter": {
@@ -33,5 +114,18 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "tests/packs/fixtures/camper-areas.json",
+        "packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json"
+      ],
+      "json": {
+        "formatter": {
+          "expand": "always"
+        }
+      }
+    }
+  ]
 }

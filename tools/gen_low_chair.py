@@ -7,12 +7,11 @@ A low folding camp chair: a brown canvas sling seat and a tall canvas back on a 
 frame, with wooden armrests, rubber feet, an X brace under the seat at the front and a larger one
 across the back. Units are pixels (16 per block). The origin is the middle of the footprint on the
 ground, and the front is -z (ADR 0009). The texture is 16 x 16 with one 4 x 4 swatch per color, like
-the camping gear atlas. --check compares parsed JSON and decoded pixels, because Biome reformats the
-geometry and zlib builds do not all compress identically.
+the camping gear atlas. --check compares parsed JSON and decoded pixels so whitespace and PNG
+compression do not affect freshness.
 """
 
 import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -207,7 +206,7 @@ def main():
     document = geometry()
     out = texture_io.Outputs(args.check, report_writes=True)
 
-    out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
+    out.json(geo_path, document)
     out.png(texture_path, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, texture_pixels()), compress_level=9)
     out.finish("Low chair outputs are out of date with tools/gen_low_chair.py. Run `pnpm model` and commit the result:", "low chair model and texture are up to date")
 
