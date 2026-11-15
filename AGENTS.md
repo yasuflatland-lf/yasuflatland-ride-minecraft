@@ -27,6 +27,7 @@ pnpm test:coverage # same, with a coverage report in coverage/ (CI uploads it to
 pnpm test:mutation # Stryker mutation testing, report in reports/mutation (not in CI)
 pnpm build         # esbuild bundle into the Behavior Pack and the test pack
 pnpm package       # zip the packs into dist/yasuflatland-ride-<version>.mcaddon (after build)
+pnpm generate      # ensure generated pack files are current, skipping previews and icons
 pnpm model         # regenerate the Resource Pack models and textures (vehicles and camping gear), the README and item previews, and the pack icons (Python 3)
 pnpm model:check   # fail if the camping gear models and atlas, the previews in docs/images, or the pack icons are stale
 pnpm sounds        # regenerate the Resource Pack sounds (Python 3)
@@ -41,6 +42,8 @@ pnpm test:game     # run impacted scenarios on the running dev BDS in 4 lanes lo
 # GAME_TEST_FEATURES=<tags> runs those comma-separated feature tags.
 # GAME_TEST_AT=<0..7> runs inside one lane, for converting scenarios (defaults to serial).
 ```
+
+Build and Vitest run `pnpm generate` automatically through its Python command. The dev server and in-game test driver build first when bundles or generated files are missing or stale. `pnpm package` requires a successful build and reports missing generated files. `pnpm model` still forces all generators and renders previews and icons; `pnpm model:check` still checks everything. The generation stamp lives in the ignored `.cache/generated/` directory.
 
 Before you say a change is done, run `pnpm lint`, `pnpm lint:lang`, `pnpm lint:docs`, `pnpm lint:unused`, `pnpm lint:deps`, `pnpm typecheck`, and `pnpm test`. When you change `src/infrastructure`, `src/test-pack`, or the packs, also run `pnpm build`, restart the dev BDS, and run `pnpm test:game` if Docker is available. CI runs the lint, unused code, test, build, and package checks on every pull request ([unit-test.yml](.github/workflows/unit-test.yml), which also uploads coverage to Codecov) and runs the in-game tests against a BDS container ([integration-test.yml](.github/workflows/integration-test.yml)).
 
