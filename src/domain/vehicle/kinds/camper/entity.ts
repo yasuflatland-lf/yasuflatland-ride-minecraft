@@ -19,6 +19,8 @@ export const CAMPER_ENTITY = {
     cabinet_stove_door: { type: "float", range: [0, 1] },
     fridge_top_door: { type: "float", range: [0, 1] },
     fridge_bottom_door: { type: "float", range: [0, 1] },
+    drawer_top: { type: "float", range: [0, 1] },
+    drawer_bottom: { type: "float", range: [0, 1] },
     ceiling_lights: { type: "bool" },
   },
   events: [...TRANSFORMING_EVENTS, ...DOCK_EVENTS],

@@ -52,6 +52,18 @@
           "default": 0.0,
           "client_sync": true
         },
+        "yasu_ride:drawer_top": {
+          "type": "float",
+          "range": [0.0, 1.0],
+          "default": 0.0,
+          "client_sync": true
+        },
+        "yasu_ride:drawer_bottom": {
+          "type": "float",
+          "range": [0.0, 1.0],
+          "default": 0.0,
+          "client_sync": true
+        },
         "yasu_ride:ceiling_lights": {
           "type": "bool",
           "default": false,
