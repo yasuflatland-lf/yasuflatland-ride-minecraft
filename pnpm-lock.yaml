@@ -162,6 +162,8 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+pnpmfileChecksum: sha256-oY54qkziaWUR93Lzphi2gim6zV+aORbrQVd+v89wNSA=
+
 importers:
 
   .:
@@ -183,7 +185,7 @@ importers:
         version: 10.1.1(@types/node@26.6.6)
       '@stryker-mutator/typescript-checker':
         specifier: 10.1.1
-        version: 10.1.1(@stryker-mutator/core@10.1.1(@types/node@26.6.6))(typescript@7.0.2)
+        version: 10.1.1(@stryker-mutator/core@10.1.1(@types/node@26.6.6))
       '@stryker-mutator/vitest-runner':
         specifier: 10.1.1
         version: 10.1.1(@stryker-mutator/core@10.1.1(@types/node@26.6.6))(vitest@5.1.0)
@@ -1184,7 +1186,6 @@ packages:
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@stryker-mutator/core': 10.1.1
-      typescript: '>=3.6'
 
   '@stryker-mutator/util@10.1.1':
     resolution: {integrity: sha512-Z0zDzsmhoSykE1gT3DvD1knFxySgNMfBlpSSs1j87kWvjEMfeMqfLOk0bqEPRg/rTFIUNSEXLZapxePUhZmfZA==}
@@ -2167,6 +2168,11 @@ packages:
     resolution: {integrity: sha512-k4kX5Up6qA68D0Cby2AK+6+vM5k3qTxe+/3FqhnHRExjY5cfbOnzjQZbP/LXleF8hVoDvDqxlgk9KK83HoBZlQ==}
     engines: {node: '>= 16.0.0'}
 
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
     engines: {node: '>=16.20.0'}
@@ -3054,6 +3060,7 @@ snapshots:
       tslib: 2.8.1
       typed-inject: 5.0.0
       typed-rest-client: 2.3.1
+      typescript: 6.0.3
     transitivePeerDependencies:
       - '@types/node'
 
@@ -3074,13 +3081,13 @@ snapshots:
       tslib: 2.8.1
       weapon-regex: 2.0.6
 
-  '@stryker-mutator/typescript-checker@10.1.1(@stryker-mutator/core@10.1.1(@types/node@26.6.6))(typescript@7.0.2)':
+  '@stryker-mutator/typescript-checker@10.1.1(@stryker-mutator/core@10.1.1(@types/node@26.6.6))':
     dependencies:
       '@stryker-mutator/api': 10.1.1
       '@stryker-mutator/core': 10.1.1(@types/node@26.6.6)
       '@stryker-mutator/util': 10.1.1
       semver: 7.8.5
-      typescript: 7.0.2
+      typescript: 6.0.3
 
   '@stryker-mutator/util@10.1.1': {}
 
@@ -3953,6 +3960,8 @@ snapshots:
       qs: 6.15.1
       tunnel: 0.0.6
       underscore: 1.13.8
+
+  typescript@6.0.3: {}
 
   typescript@7.0.2:
     optionalDependencies:
