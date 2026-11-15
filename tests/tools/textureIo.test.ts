@@ -1,6 +1,42 @@
 import { execFileSync } from "node:child_process";
 import { expect, it } from "vitest";
 
+it("records writes and checks, preserving rendered RGB and RGBA PNG bytes", () => {
+  execFileSync("python3", [
+    "-I",
+    "-c",
+    `
+import struct, sys, tempfile, zlib
+from pathlib import Path
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+io = load_tool('texture_io')
+with tempfile.TemporaryDirectory() as directory:
+    root = Path(directory)
+    pixels = bytes((10, 20, 30, 255, 40, 50, 60, 255))
+    def chunk(kind, data):
+        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xffffffff)
+    for rgb in (False, True):
+        path = root / f'{rgb}.png'
+        write = io.Outputs(False)
+        write.rgba(path, 2, 1, pixels, rgb=rgb)
+        raw = bytes(c for i, c in enumerate(pixels) if not rgb or i % 4 != 3)
+        expected = (b'\\x89PNG\\r\\n\\x1a\\n'
+                    + chunk(b'IHDR', struct.pack('>IIBBBBB', 2, 1, 8, 2 if rgb else 6, 0, 0, 0))
+                    + chunk(b'IDAT', zlib.compress(b'\\0' + raw, 9)) + chunk(b'IEND', b''))
+        assert path.read_bytes() == expected
+        assert write.touched == [path]
+        check = io.Outputs(True)
+        check.rgba(path, 2, 1, pixels, rgb=rgb)
+        missing = root / 'missing.json'
+        check.json(missing, {})
+        assert check.touched == [path, missing]
+        assert len(check.stale) == 1
+        assert not missing.exists()
+`,
+  ]);
+});
+
 it("compares JSON and PNG content and reports every stale file", () => {
   const script = `
 import json, sys, tempfile

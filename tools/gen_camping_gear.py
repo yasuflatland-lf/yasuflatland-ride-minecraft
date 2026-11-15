@@ -9,8 +9,8 @@ stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it
 0102). The 512 x 512 atlas preserves the swatches in cell 0 and reserves per-item cells
 with edge-extension gutters; gear_atlas defines the layout (ADR 0247). --check compares parsed JSON and decoded pixels, because
 Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
-Behavior Pack decor blocks, the items, and the gear part of
-item_texture.json; the decor block's face, height, and spot states are described next to
+Behavior Pack decor blocks, the items, and the complete
+item_texture.json from tools/item_texture_base.json and the gear spec; the decor block's face, height, and spot states are described next to
 FACE_ROTATION. It also writes the pair blocks and their geometry, which draw the two items of a
 shelf board or of the table in one block (PAIRS, ADR 0108), the wall cabinet's compartment
 block, a pair block that also holds the ceiling up and shows its items only while its door is
@@ -50,6 +50,7 @@ cube_tilt = load_tool("cube_tilt")
 LAID_TAG = "tag:yasu_ride:laid"
 
 SPEC = Path(__file__).resolve().parent / "camping_gear.json"
+ITEM_TEXTURE_BASE = Path(__file__).resolve().parent / "item_texture_base.json"
 MODELS = "models/blocks/yasu_ride"
 ATLAS = "textures/blocks/yasu_ride/camping_gear.png"
 TERRAIN = "textures/terrain_texture.json"
@@ -598,16 +599,15 @@ def gear_item(item):
     }
 
 
-def item_textures(current, spec):
-    """Keep every other entry in its order, then the box and each gear item, in spec order (ADR 0093)."""
+def item_textures(base: dict, spec: list[dict]) -> dict:
+    """Append the box and gear in spec order to the base entries (ADR 0093)."""
     owned = [BOX] + [item["id"] for item in spec]
-    keys = {f"yasu_ride_{i}" for i in owned}
-    data = {k: v for k, v in current["texture_data"].items() if k not in keys}
+    data = dict(base["texture_data"])
     for i in owned:
         data[f"yasu_ride_{i}"] = {"textures": f"textures/items/yasu_ride/{i}"}
     return {
-        "resource_pack_name": current["resource_pack_name"],
-        "texture_name": current["texture_name"],
+        "resource_pack_name": base["resource_pack_name"],
+        "texture_name": base["texture_name"],
         "texture_data": data,
     }
 
@@ -634,7 +634,7 @@ def main():
     for kind in PAIRS:
         documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
     documents[bp / BLOCKS / "drawers_decor_pair.block.json"] = drawers_block(spec)
-    documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
+    documents[rp / ITEM_TEXTURES] = item_textures(json.loads(ITEM_TEXTURE_BASE.read_text()), spec)
     atlas = rp / ATLAS
     out = texture_io.Outputs(args.check, report_writes=True)
 
