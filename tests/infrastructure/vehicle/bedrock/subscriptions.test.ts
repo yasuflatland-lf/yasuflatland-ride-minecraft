@@ -2431,12 +2431,12 @@ it("stores and clears held items only from server script events", () => {
   expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
 });
 
-it("routes floor side-face presses through the drawer ray without using floor height", () => {
+it("routes corrected touch floor side-face points through the drawer ray", () => {
   for (const itemStack of [undefined, { typeId: "yasu_ride:mug_pair" }]) {
     const f = decorFixture();
     const ev = f.event({
       itemStack,
-      blockFace: "West",
+      blockFace: "East",
       faceLocation: { x: 0, y: 0.25, z: 0.5 },
     });
     ev.player.inputInfo.lastInputModeUsed = "Touch";
@@ -2448,13 +2448,14 @@ it("routes floor side-face presses through the drawer ray without using floor he
     expect(f.storage.drawerTarget).toHaveBeenCalledExactlyOnceWith(
       "car",
       ev.player.getHeadLocation(),
-      { x: -0.5, y: 64.25 - 66.62, z: 0 },
+      { x: 0.5, y: 64.75 - 66.62, z: 0 },
       ev.block.location,
     );
     expect(f.storage.execute).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         cell: counter,
-        point: { x: 1, y: 64.25, z: 2.5 },
+        // Floor sides use the same single touch x/y correction as drawer sides.
+        point: { x: 2, y: 64.75, z: 2.5 },
         drawersSideFace: false,
       }),
     );
