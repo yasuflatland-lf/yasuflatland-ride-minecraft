@@ -31,6 +31,8 @@
 
 ## Rules
 
+The camping gear item texture atlas generation and ordering are specified in [Camper interior](camper-interior.md#item-texture-generation).
+
 ### Camper preview texture density
 
 - Applies to: The four `camper-*.png` README previews only.
@@ -316,6 +318,8 @@ Both `pnpm model` and `pnpm model:check` include this fixture and its formatting
 ## Open issues
 
 Where an ADR and the implementation differ, this spec states the implementation and lists the difference here.
+
+- The generator rule in `tools/run_generators.py` forbids reading generated outputs except in the preview renderer, but `tools/gen_model.py` still calls `tools/suv_export.py` (`sync_animation`) to read and update `packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json`. Its `reads` entry remains in `tools/generators.json` until that animation has a separate source. The camping gear item texture atlas reads only its hand-written base.
 
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) provisionally permits registered yaw-plus-local-pitch gear assemblies (no three-axis cubes), with `COMPOUND_TILTS = False` selecting yaw-only steps of at most 0.5 px; `tools/gear_kit.py` implements the rotation rule and `COMPOUND_TILTS`; `tools/gen_camping_gear.py` accepts compound cubes that match an assembly registered through `gear_registry.assemblies()`; each model supplies its final assembly members through `GearModel.assemblies`, including the Macrame Hanging Planter's `macrame_planter_net`.
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) provisionally assigns a shared 512 x 512 atlas with 128 x 128 item cells, 4-texel outer and 2-texel region gutters, 8 texels per model pixel (16 for lettering), and binary non-glass alpha with nearest-opaque RGB; the layout is implemented by `tools/gear_atlas.py` (512 x 512, static `GEAR_TILES`, gutters, and alpha checks), with deterministic painting in `tools/gear_paint.py` and verification in `tests/packs/gearAtlas.test.ts`; only the client checks remain.

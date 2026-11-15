@@ -116,7 +116,7 @@
         "packs/yasu_ride_rp/textures/item_texture.json",
         "packs/yasu_ride_rp/textures/blocks/yasu_ride/camping_gear.png"
       ],
-      "reads": ["packs/yasu_ride_rp/textures/item_texture.json"]
+      "reads": []
     },
     {
       "script": "gen_item_catalog.py",

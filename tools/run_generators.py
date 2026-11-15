@@ -11,6 +11,8 @@ stars match across folders. Biome formats declared JSON outputs before afterForm
 read them. --check compares parsed JSON and decoded pixels without formatting. --report-touched
 FILE writes JSON Lines containing generator and repo-relative path for every write or check,
 including secondary Outputs instances. Listing flags never run generators.
+A generator never reads a file it or another generator writes, except render_preview.py, which
+runs after the generators and reads their outputs.
 """
 
 import argparse

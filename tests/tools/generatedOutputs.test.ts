@@ -41,6 +41,7 @@ with tempfile.TemporaryDirectory() as directory:
     output = Path(directory) / 'output'
     for path, expected in [
         ('tools/gear_items/new_item.py', True),
+        ('tools/item_texture_base.json', True),
         ('tools/gear_items/__pycache__/new_item.pyc', False),
         ('packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json', True),
         ('packs/yasu_ride_rp/textures/item_texture.json', True),
@@ -102,6 +103,9 @@ from pathlib import Path
 sys.path.insert(0, 'tools')
 from generated_outputs import OutputManifest
 manifest = OutputManifest.load()
+plan = json.loads(Path('tools/generators.json').read_text())
+gear = next(entry for entry in plan['generators'] if entry['script'] == 'gen_camping_gear.py')
+assert gear['reads'] == []
 handwritten = [
     'packs/yasu_ride_rp/models/blocks/yasu_ride/deck_floor.geo.json',
     'packs/yasu_ride_rp/models/entity/yasu_ride/deck_seat.geo.json',
