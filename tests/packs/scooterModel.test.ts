@@ -28,6 +28,7 @@ const AREAS: readonly AreaRow[] = [
   { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_plate"], cubes: 257 },
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1150 },
   { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"], cubes: 650 },
+  { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"], cubes: 520 },
 ];
 
 const python = startPythonWorker();
@@ -156,6 +157,40 @@ describe("scooter generated foundation", () => {
     expect(AREAS.flatMap((row) => row.assemblies).sort()).toEqual(
       Object.keys(metadata.table).sort(),
     );
+  });
+
+  it("keeps head paint cutouts attached to their panels after the final mirror", async () => {
+    const checked = Number(
+      await python.run(`${setup}
+h=load_tool('scooter_head')
+a=load_tool('scooter_atlas')
+registry=a.RegionRegistry()
+h.register_regions(registry)
+registered=registry.regions()
+h.register_regions(registry)
+assert registry.regions()==registered
+built=h.build()
+assert built==h.build()
+panels=[c for c in built['steer'] if c['uv']['south'].region=='head_panels']
+k.mirror_to_game([dict(name='steer',pivot=[0,0,0],cubes=panels)])
+region=next(r for r in registered if r.name=='head_panels')
+tile=d.HEAD_PANEL_TEXELS
+checked=0
+for index,cube in enumerate(panels):
+    u,v=cube['uv']['south']['uv']
+    du,dv=cube['uv']['south']['uv_size']
+    tx=index % d.HEAD_PANEL_COLUMNS*tile
+    ty=index // d.HEAD_PANEL_COLUMNS*tile
+    for x in range(tile):
+        for y in range(tile):
+            actual=region.pixel(int(u+(x+.5)*du/tile),int(v+(y+.5)*dv/tile))
+            expected=region.pixel(tx+tile-1-x,ty+y)
+            assert actual==expected, (index,x,y,actual,expected)
+            checked+=1
+print(checked)
+`),
+    );
+    expect(checked).toBeGreaterThan(0);
   });
 
   for (const row of AREAS) {

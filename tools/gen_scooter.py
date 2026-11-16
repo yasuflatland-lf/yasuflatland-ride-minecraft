@@ -16,6 +16,7 @@ AREA_ORDER = (
     "rear",
     "body",
     "shield",
+    "head",
 )
 
 ASSEMBLIES = {
@@ -30,6 +31,14 @@ ASSEMBLIES = {
     "shield_trim": {"owner": "scooter", "cubes": 66},
     "shield_ridge": {"owner": "scooter", "cubes": 110},
     "shield_fender": {"owner": "scooter", "cubes": 262},
+    "head_collar": {"owner": "scooter", "cubes": 36},
+    "head_headset": {"owner": "scooter", "cubes": 120},
+    "head_bib": {"owner": "scooter", "cubes": 120},
+    "head_meter": {"owner": "scooter", "cubes": 24},
+    "head_lamp": {"owner": "scooter", "cubes": 72},
+    "head_controls": {"owner": "scooter", "cubes": 64},
+    "head_levers": {"owner": "scooter", "cubes": 6},
+    "head_mirrors": {"owner": "scooter", "cubes": 52},
 }
 
 BONES = (

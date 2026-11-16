@@ -73,6 +73,13 @@ preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel. The whole-vehicle target is 3,500 cubes;
 model pixels apart. Area and assembly tables let builders replace the seven
 placeholder cubes independently. The whole-vehicle target is 3,500 cubes;
+model pixels apart. The head area replaces the steering and headlight placeholders with 510 cubes:
+437 on `steer` and 73 on `headlights`. Its collar, horn casting, bib, instrument
+bezel, lamp rim, controls, levers, and mirrors retain the spike ring counts.
+Named `head_*` assemblies carry compound panels; alpha-cut profiles and
+world-position paint shading keep the casting smooth. Small atlas regions carry
+the silver reflector, text-free dial, dark mirror glass, and chrome mirror backs.
+Other areas still use placeholder cubes. The whole-vehicle target is 3,500 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 
