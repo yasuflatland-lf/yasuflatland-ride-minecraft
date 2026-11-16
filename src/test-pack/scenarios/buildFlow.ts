@@ -1273,7 +1273,14 @@ async function pasteCutClipboard(
   f: Fixture,
   anchor: Cell,
   volume: number,
+  sx: number,
+  sy: number,
+  sz: number,
 ): Promise<void> {
+  for (const cell of f.region(sx, sy, sz, anchor))
+    f.block(cell).setType("minecraft:air");
+  for (const cell of f.region(sx, 1, sz, { ...anchor, y: anchor.y - 1 }))
+    f.block(cell).setType("minecraft:stone");
   const pasted = await pasteStep(f, anchor.x, anchor.y - 1, anchor.z, "up");
   check(
     pasted.message === "editDone" && pasted.count === volume,
@@ -1337,7 +1344,7 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
         "Cut left source blocks or frame",
       );
       check(entities().length === 0, "Cut left entities or dropped items");
-      await pasteCutClipboard(f, f.cell(12), source.length);
+      await pasteCutClipboard(f, f.cell(12), source.length, 8, 4, 8);
       await wait(2);
       const restored = f
         .block(f.cell(13, 1, 1))
@@ -1560,7 +1567,7 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
       "Cut clipboard is not a structure",
     );
     const target = f.region(3, 1, 1, f.cell(12, 0, 12));
-    await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length);
+    await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length, 3, 1, 1);
     check(unchanged(f, target, before), "Cut payload lost block states");
     await f.menu("paste", "endPaste");
   });
