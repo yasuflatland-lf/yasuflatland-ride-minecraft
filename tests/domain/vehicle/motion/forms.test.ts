@@ -546,3 +546,84 @@ describe("per-kind transforming values", () => {
     );
   });
 });
+
+describe("surface water policy", () => {
+  const spec: TransformingSpec = {
+    ...SUV_TRANSFORMING,
+    waterPolicy: "surface",
+  };
+  const wet = fc.double({
+    min: 0.001,
+    max: spec.carHeight - 0.001,
+    noNaN: true,
+  });
+
+  it("never enters submarine under arbitrary input sequences", () => {
+    fc.assert(
+      fc.property(
+        form,
+        fc.array(
+          fc.record({
+            jump: fc.boolean(),
+            controlled: fc.boolean(),
+            onGround: fc.boolean(),
+            waterDepth,
+          }),
+          { minLength: 1, maxLength: 300 },
+        ),
+        (start, seq) => {
+          for (const frame of run(seq, initialForm(start), spec))
+            expect(frame.after.form).not.toBe("submarine");
+        },
+      ),
+    );
+  });
+
+  it("restores submarine states to car regardless of input", () => {
+    fc.assert(
+      fc.property(step, (input) => {
+        expect(
+          stepForm(initialForm("submarine"), { ...input, tick: 0 }, spec).form,
+        ).toBe("car");
+      }),
+    );
+  });
+
+  it("lands hover and landing on water without ground contact", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom<Form>("hover", "landing"),
+        wet,
+        fc.boolean(),
+        (start, depth, controlled) => {
+          expect(
+            stepForm(
+              initialForm(start),
+              {
+                tick: 0,
+                jump: false,
+                controlled,
+                onGround: false,
+                waterDepth: depth,
+              },
+              spec,
+            ).form,
+          ).toBe("car");
+        },
+      ),
+    );
+  });
+
+  it("takes off on a double tap while floating without ground contact", () => {
+    fc.assert(
+      fc.property(wet, (depth) => {
+        const frames = run(
+          taps([0, 2], 3, { onGround: false, waterDepth: depth }),
+          initialForm(),
+          spec,
+        );
+        expect(frames[2]?.after.form).toBe("takeoff");
+      }),
+    );
+  });
+});

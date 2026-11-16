@@ -183,4 +183,5 @@ export const CAMPER_TRANSFORMING: TransformingSpec = Object.freeze({
   hitboxFront: CAMPER_SPEC.hitboxFront,
   air: CAMPER_AIR,
   water: CAMPER_WATER,
+  waterPolicy: "submerge",
 });

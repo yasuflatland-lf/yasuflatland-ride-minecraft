@@ -1,4 +1,5 @@
 import type { Medium } from "./motion";
+import type { WaterPolicy } from "./water";
 
 /** `constant` moves the bank angle by `bankRate` degrees every tick. */
 type BankEasing = "constant" | "smooth";
@@ -32,4 +33,6 @@ export interface TransformingSpec {
   readonly hitboxFront: number;
   readonly air: Medium;
   readonly water: Medium;
+  /** Per-kind choice of diving or surface support, independent of water speed (ADR 0050). */
+  readonly waterPolicy: WaterPolicy;
 }

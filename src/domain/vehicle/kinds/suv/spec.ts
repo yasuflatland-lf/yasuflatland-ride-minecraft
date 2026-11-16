@@ -109,4 +109,5 @@ export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({
   hitboxFront: SUV_SPEC.hitboxFront,
   air: AIR,
   water: WATER,
+  waterPolicy: "submerge",
 });

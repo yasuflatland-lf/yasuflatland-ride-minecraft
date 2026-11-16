@@ -6,7 +6,7 @@ import type { TransformingSpec } from "./transforming";
 
 type FormSpec = Pick<
   TransformingSpec,
-  "carHeight" | "doubleTapTicks" | "takeoffTicks"
+  "carHeight" | "doubleTapTicks" | "takeoffTicks" | "waterPolicy"
 >;
 
 export const FORMS = [
@@ -73,7 +73,10 @@ function nextForm(
   toggle: boolean,
   spec: FormSpec,
 ): Form {
-  if (isSubmerged(input.waterDepth, spec)) return "submarine";
+  const surface = spec.waterPolicy === "surface";
+  if (surface && prev.form === "submarine") return "car";
+  if (isSubmerged(input.waterDepth, spec)) return surface ? "car" : "submarine";
+  const landed = input.onGround || (surface && !isDry(input.waterDepth));
   switch (prev.form) {
     case "car":
       return toggle && input.controlled ? "takeoff" : "car";
@@ -81,10 +84,10 @@ function nextForm(
       return prev.formTicks >= spec.takeoffTicks ? "hover" : "takeoff";
     case "hover":
       // Sinking onto the ground lands at once, as touchdown ends landing (ADR 0034).
-      if (input.onGround) return "car";
+      if (landed) return "car";
       return toggle || !input.controlled ? "landing" : "hover";
     case "landing":
-      return input.onGround ? "car" : "landing";
+      return landed ? "car" : "landing";
     case "submarine":
       if (isDry(input.waterDepth))
         return input.controlled && input.jump ? "hover" : "car";

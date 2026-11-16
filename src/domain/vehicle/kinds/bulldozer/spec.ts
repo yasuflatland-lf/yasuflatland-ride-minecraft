@@ -140,4 +140,5 @@ export const BULLDOZER_TRANSFORMING: TransformingSpec = Object.freeze({
   hitboxFront: BULLDOZER_SPEC.hitboxFront,
   air: BULLDOZER_AIR,
   water: BULLDOZER_WATER,
+  waterPolicy: "submerge",
 });
