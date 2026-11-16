@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import {
   chooseFromForm,
   chooseFromFormResult,
+  entryLabel,
 } from "../../../src/infrastructure/shared/choiceForm";
 
 type Answer = {
@@ -140,4 +141,14 @@ it("shows a body only when one is given", async () => {
   expect(ui.forms.at(-1)?.message).toEqual(body);
   expect(await chooseFromForm(player, "title", entries)).toBe("a");
   expect(ui.forms.at(-1)?.message).toBeUndefined();
+});
+
+it("translates a choice entry text key", () => {
+  expect(entryLabel({ id: "a", textKey: "label.a" })).toEqual({
+    translate: "label.a",
+  });
+});
+it("returns a choice entry's dynamic label", () => {
+  const label = { translate: "label.count", with: ["2"] };
+  expect(entryLabel({ id: "a", label })).toBe(label);
 });
