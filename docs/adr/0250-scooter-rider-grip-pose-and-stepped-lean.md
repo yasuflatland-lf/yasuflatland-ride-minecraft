@@ -8,7 +8,7 @@
 
 ## Context
 
-The scooter's riders should hold the handlebar and lean into turns with the vehicle. Stable Script API has no player posture setter, so the pose uses the method that 0238 proved for the lounge: an animation defined in the overridden `minecraft:player` client entity and played with stable `Entity.playAnimation`. The scooter must not depend on this until the owner confirms it works on devices.
+The scooter's riders should hold the handlebar and lean into turns with the vehicle. Stable Script API has no player posture setter, so the pose uses the method that 0238 proved for the lounge: an animation defined in the overridden `minecraft:player` client entity and played with stable `Entity.playAnimation`. The automatic wiring remains Proposed until the owner confirms its visual behavior on devices.
 
 ## Decision
 
@@ -19,11 +19,13 @@ Add seven looping animations to `animations/yasu_ride/player.anim.json` and regi
 
 The test pack handles `scriptevent yasu_ride_test:scooter_pose <level>` (`grip`, `l1` to `l3`, `r1` to `r3`). It mounts the nearest rideable like the lounge probe and plays the pose on controller `yasu_ride.scooter_pose` with `stopExpression: "!query.is_riding"` and a blend-out time of 0.15 seconds. The level table and blend time live in one constant in `src/test-pack/scooterPoseProbe.ts`.
 
+The scooter profile supplies a grip and stepped-lean pose table, ordered strongest left to strongest right, to the kind-neutral `RiderPoseState` in the vehicle core. The scooter drive reports its signed lean level; the core emits pose changes for its own driver and passenger and clears departing riders. The application applies these commands through the `RiderPose` port immediately after step commands, within their resync boundary. `BedrockRiderPose` plays the profile entries on the proven controller and clears by replaying the last pose with stop expression `1`. A 20-tick refresh interval, matching the beach chair lounge interval, makes the current pose visible to late joiners within a second (0238 check 4).
+
 If any owner check fails, stop and report to the owner. The fallback, where only the vehicle leans, needs the owner's agreement; do not switch approaches automatically.
 
 ## Consequences
 
-The override gains seven animation entries, so the vanilla fixture comparison pins vanilla plus `lounge` plus these entries. The Resource Pack version is bumped (0015). The pose cannot be proven by unit tests; the roll sign and grip alignment are judged on devices. Nothing in the scooter depends on the pose until this ADR is accepted.
+The override gains seven animation entries, so the vanilla fixture comparison pins vanilla plus `lounge` plus these entries. The Resource Pack version is bumped (0015). The pose cannot be proven by unit tests; the roll sign and grip alignment are judged on devices. Automatic scooter pose wiring is implemented, but its grip alignment, lean and transition appearance remain unverified on devices while this ADR is Proposed.
 
 ## Owner checks
 
