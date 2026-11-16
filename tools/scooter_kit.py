@@ -120,7 +120,8 @@ def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None, tangent_frame=F
     hi = [max(p[i] for p in projected) for i in range(2)]
     rectangle = all(any(abs(p[0]-x) < FRAME_EPSILON and abs(p[1]-y) < FRAME_EPSILON
                         for p in projected) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]))
-    margin = 0 if rectangle else PANEL_MARGIN
+    # A tyre trapezoid is covered by its bounding rectangle; the usual margin would poke past the tread.
+    margin = 0 if rectangle or tangent_frame else PANEL_MARGIN
     return _oriented([center[0]+lo[0]-margin, center[1]+lo[1]-margin, center[2]-thick],
                      [center[0]+hi[0]+margin, center[1]+hi[1]+margin, center[2]],
                      center, rotation, uv_faces, assembly)

@@ -14,15 +14,15 @@ atlas = load_tool("scooter_atlas")
 AREA = "running"
 
 OUTLINE_TEXELS_PER_PX = 8
-RING_SEGMENTS = 32
+RING_SEGMENTS = 40
 HUB_SEGMENTS = 12
 CIRCLE_SEGMENTS = 24
 REAR_WHEEL_SCALE = 0.96
 TYRE_THICKNESS = 0.3
 HUB_THICKNESS = 0.035
 # Revolved tyre profile (x across the tread, radius from the axle); the bead is hidden by the rim disc.
-TYRE_PROFILE = ((-1.05, 3.0), (-1.05, 3.4), (-1.0, 3.95), (-0.7, 4.25),
-                (0.7, 4.25), (1.0, 3.95), (1.05, 3.4), (1.05, 3.0))
+TYRE_PROFILE = ((-1.05, 3.0), (-1.05, 3.4), (-1.0, 3.95), (-0.7, 4.3),
+                (0.7, 4.3), (1.0, 3.95), (1.05, 3.4), (1.05, 3.0))
 DISC_HALF_WIDTH = 1.15
 DISC_HALF_SIZE = 3.74
 # Keep whitewall boundary error below 0.04 model units without adding wheel cubes.

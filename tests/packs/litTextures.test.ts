@@ -240,12 +240,14 @@ describe.each(kinds)(
       const expectedColor = Buffer.from(base.pixels);
       const expectedMer = Buffer.alloc(base.pixels.length);
       for (let i = 0; i < base.width * base.height; i++) {
-        const on =
+        const inRegion =
           regionRule?.(i % base.width, Math.floor(i / base.width)) ??
           (Math.floor(i / base.width) < (cell ?? 1) &&
             slots.includes(Math.floor((i % base.width) / (cell ?? 1))));
         const offset = i * 4;
         const pixel = Array.from(base.pixels.subarray(offset, offset + 4));
+        // The clear corners of the scooter's round lens must not glow as a square plate.
+        const on = kind === "scooter" ? inRegion && pixel[3] !== 0 : inRegion;
         expectedColor.set(expectedColorTexel(pixel, on), offset);
         expectedMer.set([0, on ? 255 : 0, 255, 255], offset);
       }
