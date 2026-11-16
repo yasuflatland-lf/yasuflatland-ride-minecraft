@@ -139,7 +139,7 @@ def skin(rings, thick, uv_faces, inside=None, closed=False, assembly=None):
     return cubes
 
 
-def tube(points, size, uv_faces, assembly=None):
+def tube(points, size, uv_faces, assembly=None, roll=0):
     cubes = []
     for a, b in zip(points, points[1:]):
         direction = _sub(b, a)
@@ -148,9 +148,12 @@ def tube(points, size, uv_faces, assembly=None):
             continue
         center = _centroid((a, b))
         half = [size/2, size/2, length/2 + TUBE_END_EXTENSION*size]
+        rotation = _rotation(_unit(direction))
+        if roll:
+            rotation = tilt.roll_rotation(rotation, roll)
         cubes.append(_oriented([center[i]-half[i] for i in range(3)],
                                [center[i]+half[i] for i in range(3)], center,
-                               _rotation(_unit(direction)), uv_faces, assembly))
+                               rotation, uv_faces, assembly))
     return cubes
 
 

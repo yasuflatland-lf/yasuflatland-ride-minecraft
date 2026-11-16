@@ -17,6 +17,7 @@ AREA_ORDER = (
     "body",
     "shield",
     "head",
+    "running",
 )
 
 ASSEMBLIES = {
@@ -39,6 +40,10 @@ ASSEMBLIES = {
     "head_controls": {"owner": "scooter", "cubes": 64},
     "head_levers": {"owner": "scooter", "cubes": 6},
     "head_mirrors": {"owner": "scooter", "cubes": 52},
+    "running_wheel_front": {"owner": "scooter", "cubes": 236},
+    "running_wheel_rear": {"owner": "scooter", "cubes": 236},
+    "running_spring": {"owner": "scooter", "cubes": 112},
+    "running_stand": {"owner": "scooter", "cubes": 2},
 }
 
 BONES = (
