@@ -54,7 +54,7 @@ MER_BY_MATERIAL = {
     atlas.Material.PLATE: mer.Mer(DIELECTRIC_METALNESS, 0, PLATE_ROUGHNESS),
     atlas.Material.CUTOUT: mer.Mer(CAST_METALNESS, 0, CAST_ROUGHNESS),
 }
-LIT_REGIONS = ("head_lens", "lens_head", "lens_tail", "lens_amber", "glow")
+LIT_REGIONS = ("head_lens", "lens_head", "lens_tail_glow", "lens_amber", "glow")
 
 
 def recolor(layout, pixels, color):
