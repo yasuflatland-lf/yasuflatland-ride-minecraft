@@ -1,5 +1,5 @@
 {
-  "format_version": "1.21.80",
+  "format_version": "1.21.100",
   "minecraft:block": {
     "description": {
       "identifier": "yasu_build:warp_block",
@@ -21,7 +21,13 @@
       },
       "minecraft:collision_box": true,
       "minecraft:selection_box": true,
-      "minecraft:custom_components": ["yasu_build:warp_block"]
+      "yasu_build:warp_block": {},
+      "minecraft:movable": {
+        "movement_type": "immovable"
+      },
+      "minecraft:destructible_by_mining": false,
+      "minecraft:destructible_by_explosion": false,
+      "tag:yasu_ride:laid": {}
     }
   }
 }
