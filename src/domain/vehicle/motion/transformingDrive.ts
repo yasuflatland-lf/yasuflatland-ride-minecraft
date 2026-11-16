@@ -17,6 +17,7 @@ import {
   type Form,
   type FormState,
   initialForm,
+  isDry,
   isForm,
   stepForm,
   verticalImpulse,
@@ -36,6 +37,7 @@ import {
 } from "./motion";
 import { stepHeight } from "./stepUp";
 import { submarineVerticalSpeed } from "./submarine";
+import { surfaceHold } from "./surface";
 import type { TransformingSpec } from "./transforming";
 import { bankCommand, formCommands, gearCommand } from "./transformingEntity";
 import { waterDepthAt } from "./water";
@@ -116,6 +118,8 @@ export interface HorizontalStepInput {
   readonly input: GroundInput;
   readonly ctx: TickContext;
   readonly form: Form;
+  /** Depth above the feet already sensed for this tick, so custom steps need no extra water probe. */
+  readonly waterDepth: number;
   /** Jump went down this tick after being up the tick before. */
   readonly jumpTapped: boolean;
   /** The car-form step probe; it never finds a step on a tick when `stepUpEnabled()` is false. */
@@ -127,7 +131,7 @@ export interface HorizontalStepInput {
 
 export type HorizontalStep = (h: HorizontalStepInput) => MotionResult;
 
-/** Today's step: stepMotion in car form, stepMediumMotion (spec.water as a submarine, else spec.air) otherwise. */
+/** Car uses stepMotion, with ground control and friction on water for surface kinds. Other forms use spec.water as a submarine, else spec.air. */
 export function transformingHorizontalStep(
   h: HorizontalStepInput,
 ): MotionResult {
@@ -136,7 +140,12 @@ export function transformingHorizontalStep(
     return stepMotion(
       h.state,
       h.input,
-      { velocity, onGround: h.ctx.onGround },
+      {
+        velocity,
+        onGround:
+          h.ctx.onGround ||
+          (h.spec.waterPolicy === "surface" && !isDry(h.waterDepth)),
+      },
       h.probe,
       h.limits,
       h.tyres,
@@ -268,7 +277,13 @@ export class TransformingDrive implements Drive {
     const form = this.advanceForm(raw, ctx, controlled, waterDepth);
     const input = this.inputFor(raw, form);
     const yawBefore = this.motion.yaw;
-    const step = this.moveHorizontally(input, ctx, form, jumpTapped);
+    const step = this.moveHorizontally(
+      input,
+      ctx,
+      form,
+      jumpTapped,
+      waterDepth,
+    );
     this.bank = stepBank(
       this.bank,
       form,
@@ -327,6 +342,7 @@ export class TransformingDrive implements Drive {
     ctx: TickContext,
     form: Form,
     jumpTapped: boolean,
+    waterDepth: number,
   ): MotionResult {
     const moved = this.horizontal({
       state: this.motion,
@@ -334,6 +350,7 @@ export class TransformingDrive implements Drive {
       ctx,
       form,
       jumpTapped,
+      waterDepth,
       probe: this.stepUpEnabled() ? stepProbe(ctx, this.spec) : NO_STEP,
       spec: this.spec,
       limits: this.limits,
@@ -351,7 +368,22 @@ export class TransformingDrive implements Drive {
     controlled: boolean,
     waterDepth: number,
   ): number {
-    if (form === "car") return step.jumpVelocity;
+    if (form === "car") {
+      if (this.spec.waterPolicy === "surface" && !isDry(waterDepth)) {
+        if (step.jumpVelocity > 0) return step.jumpVelocity;
+        return verticalImpulse(
+          surfaceHold(
+            waterDepth,
+            this.spec.carHeight,
+            ctx.velocity.y,
+            this.spec,
+          ),
+          ctx.velocity.y,
+          this.spec.waterVerticalDrag,
+        );
+      }
+      return step.jumpVelocity;
+    }
     if (form === "submarine")
       return this.submarineImpulse(
         raw,

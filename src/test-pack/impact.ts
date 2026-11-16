@@ -49,6 +49,7 @@ export const MOTION_TAGS: Readonly<Record<string, readonly FeatureTag[]>> = {
   landingGear: transforming,
   stepUp: transforming,
   submarine: transforming,
+  surface: transforming,
 };
 
 export const HARNESS_IMPORTS: readonly string[] = [
@@ -142,6 +143,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/vehicle/motion/pivot.ts",
   "src/domain/vehicle/motion/stepUp.ts",
   "src/domain/vehicle/motion/submarine.ts",
+  "src/domain/vehicle/motion/surface.ts",
   "src/domain/vehicle/motion/transforming.ts",
   "src/domain/vehicle/motion/transformingDrive.ts",
   "src/domain/vehicle/motion/transformingEntity.ts",
