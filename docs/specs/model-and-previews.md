@@ -67,7 +67,7 @@ own all compound panels and trim; remaining areas retain their placeholders.
 Body regions register idempotently before faces are constructed. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
 grey joint piping, and chrome floor rails and opening trim. The body budget is
-1,200 cubes (currently 1,122); the production sampling reduces the spike's surface
+1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel. The whole-vehicle target is 3,500 cubes;
