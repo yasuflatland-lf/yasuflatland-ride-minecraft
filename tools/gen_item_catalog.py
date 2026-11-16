@@ -52,7 +52,8 @@ GROUPS = [
     # in that order (ADR 0178, 0180, 0181).
     {"namespace": "yasu_build", "name": "building_tools", "icon": "selection_wand",
      "items": ["selection_wand", "yasu_ride:blade_switch",
-               "yasu_ride:wide_blade_switch", "yasu_ride:road_paver_switch"]},
+               "yasu_ride:wide_blade_switch", "yasu_ride:road_paver_switch",
+               "warp_tool", "warp_block"]},
 ]
 
 
