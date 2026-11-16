@@ -48,6 +48,8 @@
 - Implementation: `packs/yasu_ride_bp/items/yasu_build/selection_wand.item.json`; `packs/yasu_ride_bp/recipes/yasu_build/selection_wand.recipe.json`; `tools/gen_build_tools.py`; `tools/gen_item_catalog.py`; `packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json`; `packs/yasu_ride_rp/textures/item_texture.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`; `src/domain/vehicle/kinds/bulldozer/monitor.ts`
 - Verification: `tests/packs/buildTools.test.ts` checks stack/use components, the 16-by-16 transparent icon, recipe, two locale names, final group order and exact membership. Source and asset searches found no removed Build Tool or Bulldozer Switches entries. Tests were inspected, not run for this spec. Not verified: crafting, translated group rendering, or removal of an existing player's obsolete item in an actual world; manual rows BT1 and B11 remain unverified.
 
+The resource pack also generates original radar-style warp art with `tools/gen_warp_art.py`: a transparent tool icon, an opaque scope top, and an opaque single-ring side panel. `tools/item_texture_base.json` and `tools/terrain_texture_base.json` register these textures; `tools/gen_camping_gear.py` appends its entries to the shared atlases. `tests/packs/warpArt.test.ts` checks dimensions, visibility, opacity, transparent icon corners, and atlas paths. These assets do not add item or block definitions.
+
 ### Build mode
 
 - Applies to: A player holding the wand, on foot or riding any vehicle.
