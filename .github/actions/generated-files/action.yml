@@ -1,0 +1,36 @@
+name: Generated files
+description: Restore and ensure generated pack files, reporting cache use and generation time.
+outputs:
+  cache-hit:
+    description: Whether the generated files cache was an exact match.
+    value: ${{ steps.cache.outputs.cache-hit == 'true' && 'true' || 'false' }}
+runs:
+  using: composite
+  steps:
+    - id: paths
+      shell: bash
+      run: |
+        echo 'paths<<GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+        python3 -I -B tools/run_generators.py --list-outputs --untracked >> "$GITHUB_OUTPUT"
+        echo 'GENERATED_OUTPUTS' >> "$GITHUB_OUTPUT"
+
+    - id: cache
+      uses: actions/cache@v6
+      with:
+        key: ${{ runner.os }}-generated-${{ hashFiles('tools/**', 'mise.toml') }}
+        path: |
+          ${{ steps.paths.outputs.paths }}
+          .cache/generated
+
+    - shell: bash
+      env:
+        CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+      run: |
+        start=$(date +%s)
+        pnpm generate
+        end=$(date +%s)
+        cache_status=miss
+        if [ "$CACHE_HIT" = true ]; then
+          cache_status=hit
+        fi
+        echo "generated files: cache $cache_status, $((end - start))s" >> "$GITHUB_STEP_SUMMARY"
