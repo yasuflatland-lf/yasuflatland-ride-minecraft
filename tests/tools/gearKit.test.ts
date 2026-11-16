@@ -79,7 +79,7 @@ rejects(lambda: g.ring(8, a, 1, 0, face))`,
     );
   });
 
-  // The loft property took up to 8.6 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
+  // The loft property took up to 8.6 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
   it("closes constant lofts in both modes and builds local pitch before yaw", async () => {
     await fc.assert(
       fc.asyncProperty(

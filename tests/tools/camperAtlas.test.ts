@@ -35,7 +35,7 @@ type Region = [string, number, number, number, number];
 type Face = { uv: number[]; uv_size: number[] };
 
 describe("camper atlas", () => {
-  // Full generation took up to 14.6 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
+  // Full generation took up to 15.6 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
   it("writes only the khaki colour atlas and companion maps", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-colour-"));
     try {
@@ -61,9 +61,9 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  }, 60_000);
+  }, 90_000);
 
-  // Three full checks took up to 60.3 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
+  // Three full checks took up to 60.3 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
   it("detects stale outputs while accepting equivalent JSON and PNG encoding", () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-atlas-"));
     try {

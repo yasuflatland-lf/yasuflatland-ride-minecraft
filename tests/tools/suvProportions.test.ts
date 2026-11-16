@@ -125,7 +125,7 @@ describe("SUV proportions", () => {
     expect(baseline.unchanged).toBe(true);
   });
 
-  // The scaling property took up to 9.6 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
+  // The scaling property took up to 9.6 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
   it("preserves ratios and rake under uniform scaling and reversed cube order", async () => {
     await fc.assert(
       fc.asyncProperty(

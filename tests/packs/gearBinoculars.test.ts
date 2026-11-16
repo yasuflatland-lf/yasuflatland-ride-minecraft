@@ -4,9 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("ports painted binoculars within the cube, assembly, alpha and size contracts", {
-  timeout: 30_000,
-}, async () => {
+it("ports painted binoculars within the cube, assembly, alpha and size contracts", async () => {
   const output = await python.run(
     [
       "import json, sys",

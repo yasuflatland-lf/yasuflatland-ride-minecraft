@@ -16,9 +16,7 @@ item = load_tool_in('gear_items', 'enamel_kettle')
 model = registry.build('enamel_kettle')
 `;
 
-it("keeps the opaque kettle inside its tile, bounds and cube budgets", {
-  timeout: 30_000,
-}, async () => {
+it("keeps the opaque kettle inside its tile, bounds and cube budgets", async () => {
   expect(
     await python.run(`${setup}
 assert len(model.cubes) <= validate.MAX_CUBES_PER_ITEM

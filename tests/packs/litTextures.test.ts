@@ -155,7 +155,7 @@ describe.each(kinds)(
       return pixel;
     }
 
-    // The per-vehicle texture check took up to 9.2 s in CI (PR #1738, three runs); 4x rounded up to 30 s.
+    // The per-vehicle texture check took up to 9.2 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
     it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", () => {
       const base = texels(kind);
       const lit = texels(`${kind}_lit`);

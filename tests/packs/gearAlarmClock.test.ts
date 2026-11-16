@@ -4,9 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds a painted twin-bell clock with registered tilts and three floor contacts", {
-  timeout: 30_000,
-}, async () => {
+it("builds a painted twin-bell clock with registered tilts and three floor contacts", async () => {
   expect(
     await python.run(`
 import json, sys

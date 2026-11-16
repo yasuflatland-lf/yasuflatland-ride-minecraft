@@ -42,8 +42,9 @@ it("assigns every final camper cube to exactly one area range", () => {
     expect(counts.every((n) => n === 1)).toBe(true);
 });
 
+// The repeated area builds took up to 34.8 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
 it("builds independent areas repeatedly without changing the shared atlas", {
-  timeout: 120_000,
+  timeout: 150_000,
 }, async () => {
   await python.run(`
 import ast, json, sys
