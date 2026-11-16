@@ -3,8 +3,9 @@ import { LAID_BLOCK_TAG } from "../../src/infrastructure/shared/identifiers";
 import { jsonFileEntries } from "../support/packFiles";
 
 it("tags every block the add-on lays so a blade cut keeps it (ADR 0137)", () => {
+  // Ride blocks are script-laid structures; build blocks are placed by players.
   const blocks = jsonFileEntries("packs/yasu_ride_bp").filter((e) =>
-    e.path.startsWith("blocks/"),
+    e.path.startsWith("blocks/yasu_ride/"),
   );
   expect(blocks.length).toBeGreaterThan(0);
   for (const { path, json } of blocks) {
