@@ -34,6 +34,22 @@ for ring in s._fender_rings():
     );
   });
 
+  it("centres the face relief on the relief crown, not the fender crown", async () => {
+    await python.run(`${setup}
+assert s.D.SHIELD_RELIEF_CROWN_Y==10.8
+base=s._shield_z(0,10.8)
+try:
+    s.D.SHIELD_CROWN_Y+=1
+    assert s._shield_z(0,10.8)==base
+    s.D.SHIELD_CROWN_Y-=1
+    s.D.SHIELD_RELIEF_CROWN_Y+=1
+    assert s._shield_z(0,10.8)!=base
+finally:
+    s.D.SHIELD_CROWN_Y=10.61
+    s.D.SHIELD_RELIEF_CROWN_Y=10.8
+`);
+  });
+
   it("builds standalone, registers idempotently and authorizes every compound panel", async () => {
     await python.run(`${setup}
 registry=a.RegionRegistry()

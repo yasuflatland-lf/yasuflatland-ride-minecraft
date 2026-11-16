@@ -20,7 +20,7 @@ ASSEMBLIES = {
     "shield_face": {"owner": "scooter", "cubes": 105},
     "shield_trim": {"owner": "scooter", "cubes": 66},
     "shield_ridge": {"owner": "scooter", "cubes": 110},
-    "shield_fender": {"owner": "scooter", "cubes": 262},
+    "shield_fender": {"owner": "scooter", "cubes": 295},
 }
 
 BONES = (
