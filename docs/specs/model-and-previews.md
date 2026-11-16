@@ -47,7 +47,7 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 
 ### Scooter generator foundation
 
-- Applies to: Scooter generator primitives, placeholder geometry, and texture regions.
+- Applies to: Scooter generator primitives, area geometry, placeholders, and texture regions.
 - Rule: `tools/gen_scooter.py` exposes an importable `build()` and writes only the generated
   `scooter.geo.json` and `scooter.png` assets. Dimensions live in `scooter_dims.py`;
   `scooter_atlas.py` classifies paint separately from other materials and reuses the
@@ -71,8 +71,19 @@ grey joint piping, and chrome floor rails and opening trim. The body budget is
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel. The whole-vehicle target is 3,500 cubes;
+model pixels apart. Area and assembly tables let builders replace the seven
+placeholder cubes independently. The whole-vehicle target is 3,500 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
+
+`tools/scooter_shield.py` contributes 549 cubes: 284 on `body` and 265 on `steer`,
+within a 650-cube allocation. The crowned shield, shoulder, side plates, chrome
+outline, flaring spine and 0.8-scale horn stay on `body`;
+the valanced front fender, curled lips, two bolts and crown shadow stay on `steer`.
+Broad panels use shaded alpha-cut masks, with twisted patches split at their
+measured vertices. The registered assemblies are `shield_face` (105),
+`shield_trim` (66), `shield_ridge` (110), and `shield_fender` (262).
+Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
 
 - Agreement: Proposed
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md), front direction and model bones; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), named compound assemblies and the pending device confirmation of rotation order.
@@ -81,6 +92,9 @@ only; the scooter has no entity or riding behavior yet.
   corners, local UV resolution, measured dimensions, and deterministic builds.
   `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
   UV bounds, and per-area budgets against the generated model and Python builders.
+  `tests/tools/scooterShield.test.ts` checks symmetry, the flaring spine, standalone
+  deterministic builds, region registration, finite geometry, compound membership,
+  the horn scale, fender bolts, and continuous crown texture coverage.
 
 ### Camper generator modules
 
