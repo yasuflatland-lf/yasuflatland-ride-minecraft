@@ -17,6 +17,7 @@ Full write and --check runs verify output ownership against the manifest; --ensu
 A generator never reads a file it or another generator writes, except render_preview.py, which
 runs after the generators and reads their outputs.
 """
+# Temporary measurement marker for issue 1737 (baseline).
 
 import argparse
 import fnmatch
