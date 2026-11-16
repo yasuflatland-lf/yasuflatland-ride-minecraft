@@ -691,9 +691,15 @@ function pasteTarget(
   sy: number,
   sz: number,
 ) {
-  f.block(anchor).setType("minecraft:gold_block");
+  // Paste snaps above the highest ground under its footprint, so an air bottom
+  // layer over a solid footprint keeps the snapped box equal to the aimed box.
+  for (const cell of f.region(sx, 1, sz, anchor))
+    f.block(cell).setType("minecraft:gold_block");
   const cells = f.region(sx, sy, sz, { ...anchor, y: anchor.y + 1 });
-  for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
+  for (const cell of cells)
+    f.block(cell).setType(
+      cell.y === anchor.y + 1 ? "minecraft:air" : "minecraft:gold_block",
+    );
   return { anchor, cells, before: snapshot(f, cells) };
 }
 
