@@ -14,12 +14,17 @@ texture_io = load_tool("texture_io")
 
 AREA_ORDER = (
     "rear",
+    "body",
 )
 
 ASSEMBLIES = {
     "rear_seat": {"owner": "scooter", "cubes": 90},
     "rear_lamp": {"owner": "scooter", "cubes": 158},
     "rear_plate": {"owner": "scooter", "cubes": 4},
+    "body_cowl": {"owner": "scooter", "cubes": 594},
+    "body_tail": {"owner": "scooter", "cubes": 216},
+    "body_frame": {"owner": "scooter", "cubes": 148},
+    "body_floor": {"owner": "scooter", "cubes": 164},
 }
 
 BONES = (
