@@ -282,3 +282,6 @@ yasu_build.warp.no_points=ワープ地点が登録されていません。
 yasu_build.warp.teleport_failed=ワープ地点に移動できませんでした。
 item.yasu_build:warp_tool.name=ワープツール
 tile.yasu_build:warp_block.name=ワープブロック
+
+yasu_build.warp.hits_left=ワープブロックを壊すには、あと %s 回叩いてください
+yasu_build.warp.block_broken=ワープブロックを壊しました

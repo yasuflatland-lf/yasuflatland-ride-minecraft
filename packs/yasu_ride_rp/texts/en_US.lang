@@ -282,3 +282,6 @@ yasu_build.warp.no_points=No warp points are registered.
 yasu_build.warp.teleport_failed=Could not teleport to the warp point.
 item.yasu_build:warp_tool.name=Warp Tool
 tile.yasu_build:warp_block.name=Warp Block
+
+yasu_build.warp.hits_left=Hit the Warp Block %s more times to break it
+yasu_build.warp.block_broken=Warp Block broken

@@ -28,6 +28,8 @@ vi.mock("@minecraft/server-ui", () => ({
 }));
 
 const game = vi.hoisted(() => ({
+  hitBlock: vi.fn(),
+  beforeBreak: vi.fn(),
   leave: vi.fn(),
   getDynamicProperty: vi.fn(),
   place: vi.fn(),
@@ -49,11 +51,13 @@ vi.mock("@minecraft/server", () => ({
   world: {
     getDynamicProperty: game.getDynamicProperty,
     afterEvents: {
+      entityHitBlock: { subscribe: game.hitBlock },
       playerLeave: { subscribe: game.leave },
       playerPlaceBlock: { subscribe: game.place },
       playerBreakBlock: { subscribe: game.break },
     },
     beforeEvents: {
+      playerBreakBlock: { subscribe: game.beforeBreak },
       itemUse: { subscribe: game.use },
       playerInteractWithBlock: { subscribe: game.interact },
     },
@@ -292,6 +296,8 @@ it("catches placement rejection and releases the form lock", async () => {
 it("installs all warp subscriptions without reading storage during startup", () => {
   installWarp();
   for (const subscribe of [
+    game.hitBlock,
+    game.beforeBreak,
     game.place,
     game.break,
     game.startup,
