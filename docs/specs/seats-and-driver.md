@@ -1,6 +1,6 @@
 # Seats and driver selection
 
-- Scope: Which seat a rider takes, how a boarding player picks one, and who drives, for the SUV, camper, sports boat, and bulldozer.
+- Scope: Which seat a rider takes, how a boarding player picks one, and who drives, for the SUV, camper, sports boat, scooter, and bulldozer.
 - Verified at: 20d2e520
 - Source: [0007](../adr/0007-seats-and-driver.md)
 - Source: [0019](../adr/0019-passengers-move-up-to-the-driver-seat.md)
@@ -28,7 +28,7 @@
 
 ### Seat order and the driver seat
 
-- Applies to: SUV, camper, sports boat, bulldozer; ground, flight, water, and parked.
+- Applies to: SUV, camper, sports boat, scooter, bulldozer; ground, flight, water, and parked.
 - Rule: A kind's seats are numbered from 0 in `VehicleProfile.seats.positions` (x positive to the left, z positive forward), and those horizontal positions equal the x and z of the `seats` positions of the kind's `minecraft:rideable`; seat heights are defined only in the pack assets. Seat 0 (`DRIVER_SEAT`) is the driver seat and `controlling_seat` is 0. Every rider has a rider-list slot, and the rider settled in seat 0 is the driver. Without driver input, the kind's drive applies its driverless behavior, including the handover wait and landing for a hovering transforming vehicle; an empty seat 0 alone does not determine this.
 - Agreement: Accepted
 - Basis: [0007](../adr/0007-seats-and-driver.md) Decision, "The driver seat is index 0, and `controlling_seat` is also 0"
@@ -81,7 +81,7 @@
 
 ### Passenger moves up when the driver leaves (engine order)
 
-- Applies to: kinds with `boarding.order` `"engine"` (SUV; the bulldozer has one seat), a driver who leaves while another rider remains.
+- Applies to: kinds with `boarding.order` `"engine"` (SUV and scooter; the bulldozer has one seat), a driver who leaves while another rider remains.
 - Rule: The script does not undo the engine's seating: the next rider in boarding order moves into seat 0 and becomes the driver, and the player who wants the wheel only has to wait for it. The SUV emits its door animation and sound commands for the driver's previous settled seat. `Crew.update` reports `awaitingDriver` only while riders remain, no driver is selected, and the number of updates since the last selected driver is within `SPEC.driverHandoverTicks`. This timer is shared by every kind, including chosen-seat kinds; it starts at infinity on construction and restore, so a rebuilt crew with no selected driver gets no wait. A hovering transforming drive uses the wait before starting driverless landing.
 - Agreement: Accepted
 - Basis: [0019](../adr/0019-passengers-move-up-to-the-driver-seat.md) Decision, "Accept Bedrock's behavior: when the driver gets out, the next rider in boarding order moves into the driver seat and becomes the driver."
@@ -92,7 +92,7 @@
 
 ### Touch Jump does not dismount a rider
 
-- Applies to: SUV, camper, sports boat, bulldozer; any rider on touch or PC.
+- Applies to: SUV, camper, sports boat, scooter, bulldozer; any rider on touch or PC.
 - Rule: Every drivable entity has `minecraft:input_ground_controlled`, `minecraft:can_power_jump`, and `minecraft:horse.jump_strength` with value 0, and `minecraft:movement` stays 0, so a press of Jump reaches the script and the rider stays seated. The script still sets the velocity every tick.
 - Agreement: Accepted
 - Basis: [0025](../adr/0025-jump-on-touch-and-a-sticky-driver.md) Decision, "The entity gets `minecraft:input_ground_controlled`, `minecraft:can_power_jump`, and `minecraft:horse.jump_strength` with value 0."

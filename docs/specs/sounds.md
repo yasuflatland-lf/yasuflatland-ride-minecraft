@@ -8,6 +8,7 @@
 - Source: [0073](../adr/0073-hover-sound-on-a-riderless-vehicle.md)
 - Source: [0136](../adr/0136-bulldozer.md)
 - Source: [0140](../adr/0140-bulldozer-sounds.md)
+- Source: [0251](../adr/0251-add-the-scooter-kind.md)
 - Excluded: [0138](../adr/0138-raise-and-lower-the-bulldozer-blade.md): partly supersedes 0136's blade rules, not its sound rules
 - Excluded: [0155](../adr/0155-cut-under-water-and-dig-a-shaft-when-rising.md): partly supersedes 0136's cutting rules, not its sound rules
 - Excluded: [0195](../adr/0195-cut-the-body-height-ahead-of-a-grounded-blade.md): partly supersedes 0136's body-height cutting rules, not its sound rules
@@ -51,6 +52,15 @@
 - Basis: [0030](../adr/0030-engine-and-hover-sounds.md) Decision, "The client entity plays exactly one engine level while `query.has_rider` and `mycar:flight` is `ground`, picked by `query.ground_speed`: below 1, 1–4.5, 4.5–8, 8–11.5, 11.5–15, and from 15 blocks/s."; [0030](../adr/0030-engine-and-hover-sounds.md) Consequences, "The pitch steps between levels instead of gliding; when the speed crosses a bound, the old clip finishes under the new one for up to its length"; [0073](../adr/0073-hover-sound-on-a-riderless-vehicle.md) Context, "The engine levels are not in the form controller: the client entities `suv.ce.json` and `camper.ce.json` play `engine_sound_0` to `engine_sound_5` only while `query.has_rider` and `yasu_ride:form` is `car`."
 - Implementation: `packs/yasu_ride_rp/entity/yasu_ride/suv.ce.json` (`scripts.animate`, `sound_effects`); `packs/yasu_ride_rp/entity/yasu_ride/camper.ce.json` (`scripts.animate`, `sound_effects`); `tools/gen_sounds.py` (`engine`, `ENGINE_FIRING_RATES`, `EXHAUST`, `KNOCK`, `CLANK`)
 - Verification: Both clients' six conditions, mappings, and bands inspected. `tests/packs/resourcePack.test.ts` "rumbles the engine on the ground at a pitch that rises with the speed" reads only the SUV and uses `tests/support/soundLevels.ts` (`speedRanges`, `expectContiguous`); it checks guards, continuity, and effect names, not measured pitch. `tests/packs/camper/animation.test.ts` "resolves every client sound effect to an existing sound definition" checks camper mappings, not its engine conditions. Not verified: the SUV/camper engine mix in game; no manual row names this check except the general regression check B22 in the Bulldozer section of `docs/manual-test.md`.
+
+### Scooter engine and hover
+
+- Applies to: Scooter engine and hover sounds.
+- Rule: The scooter has no sound clip of its own. `gen_scooter.py` writes the shared `engine` and `hover` clips into six ground engine animations and five hover animations. While the scooter has a rider and is in car form, one engine loop plays per ground speed band: below 1, 1 to 4.5, 4.5 to 8, 8 to 11.5, 11.5 to 15 and from 15 blocks per second. While its wheels are folded, one hover loop plays per ground speed band: below 2, 2 to 6, 6 to 10, 10 to 14 and from 14 blocks per second. The hover animations have no rider condition. Each animation loops for exactly the length of its clip.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "use the existing mechanisms with no scooter sound of its own"; [0030](../adr/0030-engine-and-hover-sounds.md) Decision
+- Implementation: `tools/scooter_anim.py`, `tools/gen_scooter.py`, `packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`, `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`
+- Verification: `tests/packs/scooterClient.test.ts` "resolves shared sounds and the hover particle at both disc locators", "uses only the four ground and hover states with the shared sound gates"; `tests/tools/scooterAnim.test.ts` shared-sound checks. Tests were read, not run for this spec. Not verified: audibility on a device.
 
 ### Hover start and hover rush
 

@@ -1,6 +1,6 @@
 # Flight and submarine forms
 
-- Scope: SUV, camper, and bulldozer transforming forms, water policy, motion, gravity, landing gear, rider effects, and the SUV transformation model.
+- Scope: SUV, camper, bulldozer, and scooter transforming forms, water policy, motion, gravity, landing gear, rider effects, and the SUV transformation model.
 - Verified at: 5ed1f579
 - Source: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md)
 - Source: [0021](../adr/0021-flight-mode.md)
@@ -47,7 +47,7 @@
 ### Water policy
 
 - Applies to: Every transforming kind.
-- Rule: Each transforming kind declares `waterPolicy`. SUV, camper, and bulldozer use `submerge`, preserving their existing submarine behavior. With `surface`, the vehicle never enters submarine: submergence holds car form and a restored submarine returns to car. Water counts as ground for hover and landing touchdown. In car form, wet vehicles drive with ground limits, friction compensation, full control, and the shore step probe. `surfaceHold` lifts a submerged vehicle at `surfaceRise`, then lifts it toward the kind's `floatDraft` float line without commanding downward motion; without a driver it floats and stops. A shore step jump takes priority over surface support. Take-off from the surface uses the car-to-takeoff double tap without requiring ground contact, and takeoff holds past `takeoffTicks` until the feet are dry, so the first hover tick does not count the water as touchdown. No kind uses `surface` yet; the scooter will.
+- Rule: Each transforming kind declares `waterPolicy`. SUV, camper, and bulldozer use `submerge`, preserving their existing submarine behavior. With `surface`, the vehicle never enters submarine: submergence holds car form and a restored submarine returns to car. Water counts as ground for hover and landing touchdown. In car form, wet vehicles drive with ground limits, friction compensation, full control, and the shore step probe. `surfaceHold` lifts a submerged vehicle at `surfaceRise`, then lifts it toward the kind's `floatDraft` float line without commanding downward motion; without a driver it floats and stops. A shore step jump takes priority over surface support. Take-off from the surface uses the car-to-takeoff double tap without requiring ground contact, and takeoff holds past `takeoffTicks` until the feet are dry, so the first hover tick does not count the water as touchdown. The scooter is the only kind that uses `surface`; its own rules are in [Scooter](scooter.md).
 - Agreement: Accepted
 - Basis: [0040](../adr/0040-submarine.md) Decision; [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md) Decision; [issue #1752](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/1752).
 - Implementation: `src/domain/vehicle/motion/water.ts`; `src/domain/vehicle/motion/transforming.ts`; `src/domain/vehicle/motion/forms.ts`; `src/domain/vehicle/motion/surface.ts`; `src/domain/vehicle/motion/transformingDrive.ts`; transforming objects in each kind's `spec.ts`.

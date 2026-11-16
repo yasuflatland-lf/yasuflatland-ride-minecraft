@@ -1,6 +1,6 @@
 # Model conventions and rendered previews
 
-- Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV and sports boat README previews and the pack icons are rendered from the model files and kept fresh.
+- Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV, sports boat, camper, bulldozer and scooter README previews and the pack icons are rendered from the model files and kept fresh.
 - Verified at: 7267bd8a
 - Source: [0009](../adr/0009-vehicle-model-conventions.md)
 - Source: [0016](../adr/0016-readme-preview-rendered-from-model.md)
@@ -9,6 +9,7 @@
 - Source: [0049](../adr/0049-pack-icons-rendered-from-model.md)
 - Source: [0056](../adr/0056-sports-boat-previews.md)
 - Source: [0067](../adr/0067-camper.md)
+- Source: [0251](../adr/0251-add-the-scooter-kind.md)
 - Source: [0101](../adr/0101-give-invisible-blocks-a-hidden-cube.md)
 - Source: [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md)
 - Source: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md)
@@ -44,6 +45,15 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 - Basis: [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
 - Implementation: `tools/render_preview.py` (`CAMPER_CELLS_PER_UNIT`, `CAMPER_POSES`, `textured_face`, `collect_boat`).
 - Verification: `tests/tools/renderPreview.test.ts` checks unchanged patches below the cap, capped cell counts and coverage, and midpoint colors with mirrored UVs and merging enabled or disabled; `pnpm model:check` checks preview freshness.
+
+### Scooter README previews
+
+- Applies to: The four `scooter-*.png` README previews only.
+- Rule: `render_scooter` draws the road pose of the default white paint with the hover glow bones left out, as the render controller hides them on the ground, and lights the `headlights` and `tail_lights` bones for the dusk picture. The four views reuse the bulldozer's camera directions: front-left, front-left at dusk with the lamps on, side and rear. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Generate it with `tools/gen_scooter.py`"; [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
+- Implementation: `tools/render_preview.py` (`render_scooter`, `SCOOTER_POSES`, `SCOOTER_LIT`, `SCENE_BUILDERS`); `docs/images/scooter-front-left.png`; `docs/images/scooter-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`
+- Verification: `tests/tools/renderPreview.test.ts` "renders four previews from the camper's angles without hover discs" and the scene list test; `pnpm model:check` checks preview freshness. Not verified: how the curved panels compare with the photos beyond the rendered images.
 
 ### Scooter generator foundation
 
@@ -89,8 +99,10 @@ Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
 (18), `engine_muffler` (114), and `engine_header` (66).
 
 The whole-vehicle target is 3,500 cubes;
-generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
-only; the scooter has no entity or riding behavior yet.
+generation rejects more than the 3,800-cube ceiling. The finished
+generated model has 3,407 cubes: 1,934 on `body`, 834 on `steer`, 238 on each wheel,
+73 on `headlights`, 48 on `tail_lights`, 16 on each glow bone and 10 on `stand`. The
+kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 549 cubes: 284 on `body` and 265 on `steer`,
 within a 600-cube allocation. The crowned shield, shoulder, side plates, chrome
