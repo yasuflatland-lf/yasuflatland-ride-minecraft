@@ -77,7 +77,7 @@
 ### Feature folders and isolation
 
 - Applies to: All production layers and their tests.
-- Rule: Domain, application and infrastructure each contain the features `build`, `camp`, `resort`, and `vehicle`, alongside `shared`. Layer TypeScript files live below those folders except `src/infrastructure/bootstrap.ts`. A feature imports only itself and shared code across the layers; shared code imports no feature. Tests use matching layer and feature directories, with main, test-pack, pack and support tests outside that arrangement.
+- Rule: Domain, application and infrastructure each contain the features `build`, `camp`, `resort`, `vehicle`, and `warp`, alongside `shared`. Layer TypeScript files live below those folders except `src/infrastructure/bootstrap.ts`. A feature imports only itself and shared code across the layers; shared code imports no feature. Tests use matching layer and feature directories, with main, test-pack, pack and support tests outside that arrangement.
 - Agreement: Accepted
 - Basis: [0046](../adr/0046-organize-each-layer-by-feature.md) Decision, "Every TypeScript file in each layer lives under a feature folder or `shared/`, except `src/infrastructure/bootstrap.ts`."; [0046](../adr/0046-organize-each-layer-by-feature.md) Decision, "A feature must not import another feature in any layer. Shared code must not import a feature."; [0046](../adr/0046-organize-each-layer-by-feature.md) Decision, "Tests mirror the feature layout."
 - Implementation: `src/domain`; `src/application`; `src/infrastructure`; `tests/domain`; `tests/application`; `tests/infrastructure`; `.dependency-cruiser.cjs` (`feature-imports-other-feature`)

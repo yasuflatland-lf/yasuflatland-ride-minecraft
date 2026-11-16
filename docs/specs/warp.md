@@ -54,11 +54,11 @@
 ### Storage
 
 - Applies to: The registry across restarts.
-- Rule: One world-level registry lives in the world's dynamic properties, shared by all players, with a version field, split across keys when a string would exceed the property size limit.
+- Rule: One world-level registry lives in the world's dynamic properties, shared by all players, with a version field. The snapshot JSON is split into chunks of at most 10,000 UTF-16 code units under `yasu_build:warp_registry:<bank>:<index>`, where the bank is 0 or 1. The published value of `yasu_build:warp_registry:count` is `<bank>:<count>`. A save writes the chunks into the bank the published value does not reference, then writes the count last in one write, then deletes the old bank's chunks, so a failed save leaves the previously published registry readable. A missing count loads an empty registry; an invalid count, a missing or non-string chunk, malformed JSON, or an unsupported snapshot version loads as unreadable (`undefined`) and is never overwritten. Reads are lazy and uncached. The store is not wired into the composition root yet.
 - Agreement: Proposed
 - Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decision 8.
-- Implementation: `docs/superpowers/specs/2026-11-16-warp-block-and-tool-design.md` (design only; the `warp` feature is planned).
-- Verification: None yet. Round-trip property tests are planned.
+- Implementation: `src/infrastructure/warp/identifiers.ts`; `src/infrastructure/warp/persistence/chunks.ts`; `src/infrastructure/warp/persistence/dynamicPropertyWarpRegistryStore.ts`
+- Verification: `tests/infrastructure/warp/chunks.test.ts` checks string round trips, chunk bounds and invalid sizes; `tests/infrastructure/warp/dynamicPropertyWarpRegistryStore.test.ts` checks lazy reads, registry round trips, unreadable data, chunk sizes, count-last writes, old-bank cleanup, and that a failed overwrite keeps the old registry readable, using a mocked world. Engine persistence is not verified in game; the round trip is planned for the in-game scenarios.
 
 ### Limits
 
