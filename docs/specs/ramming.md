@@ -8,6 +8,7 @@
 - Source: [0086](../adr/0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md)
 - Source: [0116](../adr/0116-a-bumper-stand-in-takes-the-camper-hits.md)
 - Source: [0154](../adr/0154-keep-camper-passengers-in-their-seats-on-departure.md)
+- Source: [0251](../adr/0251-add-the-scooter-kind.md)
 - Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
 - Excluded: [0055](../adr/0055-kind-neutral-vehicle-core.md): partly superseded by 0083; the kind-neutral core is the architecture topic.
 - Excluded: [0068](../adr/0068-park-the-camper-with-room-blocks.md): parking, room blocks and deck seats belong to the camper topic; its old bumper box is superseded by 0084 and 0116.
@@ -47,12 +48,12 @@
 
 ### Occupant protection and vehicle immunity
 
-- Applies to: Ram targets and the four vehicle entity types.
-- Rule: `isProtectedFromRam` protects only a target whose mount is `vehicle`. `ramMountOf` classifies a recognized vehicle entity as `vehicle` and a deck seat as `deckSeat`; the latter is treated like a target on foot. This protects direct riders of either the attacking vehicle or another vehicle from the scripted ram. The SUV, camper, sports boat and bulldozer each have a base `minecraft:damage_sensor` with cause `all` and `deals_damage: no`. That sensor protects the vehicle entity. Rider immunity to collision, falling and other engine damage is left to the engine.
+- Applies to: Ram targets and the five vehicle entity types.
+- Rule: `isProtectedFromRam` protects only a target whose mount is `vehicle`. `ramMountOf` classifies a recognized vehicle entity as `vehicle` and a deck seat as `deckSeat`; the latter is treated like a target on foot. This protects direct riders of either the attacking vehicle or another vehicle from the scripted ram. The SUV, camper, sports boat, bulldozer and scooter each have a base `minecraft:damage_sensor` with cause `all` and `deals_damage: no`. That sensor protects the vehicle entity. Rider immunity to collision, falling and other engine damage is left to the engine.
 - Agreement: Accepted
 - Basis: [0006](../adr/0006-ram-damage-and-occupant-protection.md) Decision, "Always protect riders."; [0006](../adr/0006-ram-damage-and-occupant-protection.md) Decision, "Make the vehicle immune to all damage with `minecraft:damage_sensor`"; [0006](../adr/0006-ram-damage-and-occupant-protection.md) Decision, "Leave rider damage immunity to the engine's behavior and catch regressions with in-game tests."
-- Implementation: `src/domain/vehicle/ram.ts` (`isProtectedFromRam`); `src/infrastructure/vehicle/bedrock/identifiers.ts` (`ramMountOf`); `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json` (damage sensor, lines 446-448); `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json` (lines 522-524); `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json` (lines 604-609); `packs/yasu_ride_bp/entities/yasu_ride/bulldozer.se.json` (lines 613-618)
-- Verification: `tests/domain/vehicle/ram.test.ts` "protects only a target that rides a vehicle" and "treats a deck-seat rider like a target on foot". Asset inspection confirms all four damage sensors. `boat_ram` in `src/test-pack/scenarios/sportsboat.ts` also checks unchanged boat health; `bulldozer_fall_survives` in `src/test-pack/scenarios/bulldozer.ts` checks bulldozer health and hurt events. Not verified: rider health after collision, falling or another vehicle's ram; no rider-health regression scenario was found in `src/test-pack/catalog.ts` or `src/test-pack/scenarios/`, and no in-game tests were run here.
+- Implementation: `src/domain/vehicle/ram.ts` (`isProtectedFromRam`); `src/infrastructure/vehicle/bedrock/identifiers.ts` (`ramMountOf`); `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json` (damage sensor, lines 446-448); `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json` (lines 522-524); `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json` (lines 604-609); `packs/yasu_ride_bp/entities/yasu_ride/bulldozer.se.json` (lines 613-618); `packs/yasu_ride_bp/entities/yasu_ride/scooter.se.json` (lines 451-453)
+- Verification: `tests/domain/vehicle/ram.test.ts` "protects only a target that rides a vehicle" and "treats a deck-seat rider like a target on foot". Asset inspection confirms all five damage sensors. `boat_ram` in `src/test-pack/scenarios/sportsboat.ts` also checks unchanged boat health; `bulldozer_fall_survives` in `src/test-pack/scenarios/bulldozer.ts` checks bulldozer health and hurt events. Not verified: rider health after collision, falling or another vehicle's ram; no rider-health regression scenario was found in `src/test-pack/catalog.ts` or `src/test-pack/scenarios/`, and no in-game tests were run here.
 
 ### Core-only target sensor and world query
 
