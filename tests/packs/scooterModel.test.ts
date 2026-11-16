@@ -29,7 +29,7 @@ const AREAS: readonly AreaRow[] = [
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1125 },
   { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"], cubes: 585 },
   { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"], cubes: 512 },
-  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand"], cubes: 620 },
+  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand"], cubes: 740 },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 319 },
 ];
 
@@ -77,23 +77,39 @@ print(json.dumps(g.rounded(dict(areas=g.AREA_ORDER,table=g.ASSEMBLIES,assemblies
 }, 30_000);
 
 describe("scooter generated foundation", () => {
-  it("keeps the black tread round in every angular sector", async () => {
-    await python.run(`${setup}
+  it("keeps the black tread silhouette within 0.03 units of a true circle", async () => {
+    const result: { side: string; low: number; high: number }[] = JSON.parse(
+      await python.run(`${setup}
 import math
 r=load_tool('scooter_running')
 t=load_tool('cube_tilt')
 built=r.build()
-assert r.RING_SEGMENTS>=32
-for side,axle,radius in (('front',-11.8,4.25),('rear',11.8,4.08)):
-    for sector in range(r.RING_SEGMENTS):
-        cube=built['wheel_'+side][sector*7+3]
-        corners=t.corners(cube)
-        # The two outer chord endpoints lie on the circle; its midpoint bounds faceting.
-        assert abs(max(math.hypot(p[1]-4.3,p[2]-axle) for p in corners)-radius)<1e-5
-        angle=2*math.pi*(sector+0.5)/r.RING_SEGMENTS
-        reach=max((p[1]-4.3)*math.cos(angle)+(p[2]-axle)*math.sin(angle) for p in corners)
-        assert abs(reach-radius)<0.025
-`);
+assert r.RING_SEGMENTS>=40
+out=[]
+for side,axle,radius in (('front',-11.8,4.3),('rear',11.8,4.3*0.96)):
+    bins=[0.0]*360
+    for cube in built['wheel_'+side][:r.RING_SEGMENTS*7]:
+        c=t.corners(cube)
+        for i in range(8):
+            for axis in range(3):
+                j=i^(1<<axis)
+                if i<j:
+                    for step in range(41):
+                        u=step/40
+                        y=c[i][1]+u*(c[j][1]-c[i][1])-4.3
+                        z=c[i][2]+u*(c[j][2]-c[i][2])-axle
+                        b=int(math.degrees(math.atan2(z,y))%360)
+                        bins[b]=max(bins[b],math.hypot(y,z))
+    out.append(dict(side=side,low=min(bins)-radius,high=max(bins)-radius))
+print(json.dumps(out))
+`),
+    );
+    expect(result).toHaveLength(2);
+    for (const { low, high } of result) {
+      // The outer envelope never pokes past the tread circle and never sags below the chord polygon.
+      expect(high).toBeLessThanOrEqual(0.001);
+      expect(low).toBeGreaterThanOrEqual(-0.03);
+    }
   });
 
   it("keeps black tyre panels behind the whitewall circle on both sides", async () => {

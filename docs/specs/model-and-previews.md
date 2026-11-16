@@ -102,8 +102,9 @@ Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
 
 The running area supplies both wheels, suspension, and stand. Whitewall discs
 use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
-0.04 units of their ideal radii. The 32-segment black tyre skin preserves each
-panel's tangent frame so its bounding box cannot overlap the whitewall. Wheel and
+0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
+panel's tangent frame and takes no panel margin, so its outer envelope stays within
+0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
 fold bones retain their axle pivots. The combined packed atlas stays within 4096 by 4096
 texels. Side and front-left previews render the full atlas without a density cap.
 
