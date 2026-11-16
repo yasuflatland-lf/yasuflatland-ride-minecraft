@@ -326,7 +326,7 @@ import re
 from pathlib import Path
 for name, jobs in [
     ('unit-test', ['quick', 'test', 'tools', 'coverage', 'model']),
-    ('integration-test', ['in-game']),
+    ('integration-test', ['generate', 'in-game']),
     ('release', ['build']),
 ]:
     workflow = Path(f'.github/workflows/{name}.yml').read_text()
@@ -337,9 +337,20 @@ for name, jobs in [
         body = re.split(r'\\n  [a-z][a-z-]*:', body)[0]
         assert body.count('uses: ./.github/actions/generated-files') == 1, job
         assert body.index('actions/checkout@') < body.index('jdx/mise-action@') < body.index('uses: ./.github/actions/generated-files'), job
-        if job in ('model', 'in-game'):
+        if job in ('model', 'generate', 'in-game'):
             guard = "steps.inputs.outputs.changed == 'true'" if job == 'model' else "steps.runner.outputs.present == 'true'"
             assert f"- if: {guard}\\n        uses: ./.github/actions/generated-files" in body
+`);
+});
+
+it("makes the in-game matrix wait for the generate job", () => {
+  python(`
+from pathlib import Path
+workflow = Path('.github/workflows/integration-test.yml').read_text()
+body = workflow.split('  in-game:\\n', 1)[1]
+assert '    needs: generate\\n' in body
+assert 'pnpm install' not in workflow.split('  in-game:\\n', 1)[0]
+assert 'workflow_run' not in workflow
 `);
 });
 
