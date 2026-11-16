@@ -6,6 +6,7 @@ import type { VehicleKind } from "./kind";
 import type { MonitorRule } from "./monitor/monitor";
 import type { PlacementGift } from "./placement/gift";
 import type { PlacementRule } from "./placement/placement";
+import type { RiderPoseTable } from "./riderPose";
 import type { StandInRule } from "./standIn";
 
 /** Front and half width from the center, height from the feet to the collision box top, in blocks. */
@@ -66,6 +67,8 @@ export interface VehicleProfile {
   readonly footprint: number;
   /** Riders of this kind are kept fire-protected while aboard (ADR 0050). */
   readonly ridersFireProof: boolean;
+  /** The players' grip pose and stepped lean poses; absent for kinds without one (ADR 0250). */
+  readonly riderPose?: RiderPoseTable;
   readonly seats: SeatLayout;
   /** How a boarding player gets a seat, set per kind (ADR 0050). */
   readonly boarding: SeatBoarding;

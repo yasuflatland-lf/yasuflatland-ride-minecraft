@@ -49,6 +49,8 @@ export const SCOOTER_SPEC = Object.freeze({
   leanRate: 2, // degrees/tick
   leanFullSpeed: 0.3, // blocks/tick; slower turns lean proportionally less
   maxSteer: 30, // degrees of handlebar turn about the steering axis
+  // Late joiners see the pose within a second, matching the beach chair poseRefreshTicks.
+  riderPoseRefreshTicks: 20,
   leanLevels: 3, // stepped rider lean poses per side; players cannot read the lean property (ADR 0238)
   standSpeed: 0.01, // blocks/tick below which the scooter counts as stopped
 } as const);

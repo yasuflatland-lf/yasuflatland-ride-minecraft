@@ -8,7 +8,7 @@ import {
 } from "../../motion/transformingDrive";
 import { waterDepthAt } from "../../motion/water";
 import { leanCommand, standCommand, steerCommand } from "./entity";
-import { type Lean, stepLean } from "./lean";
+import { type Lean, leanLevel, stepLean } from "./lean";
 import { SCOOTER_MOTION, SCOOTER_TYRES } from "./profile";
 import { SCOOTER_SPEC, SCOOTER_TRANSFORMING } from "./spec";
 import { standDown } from "./stand";
@@ -54,6 +54,11 @@ export class ScooterDrive extends TransformingDrive {
     const stand = this.standSync.next(this.stand);
     return {
       ...step,
+      riderLean: leanLevel(
+        this.lean,
+        SCOOTER_SPEC.leanLevels,
+        SCOOTER_SPEC.maxLean,
+      ),
       commands: [
         ...step.commands,
         ...(lean === undefined ? [] : [leanCommand(lean)]),

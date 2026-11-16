@@ -59,6 +59,8 @@ export interface RiderState {
 }
 
 export interface DriveStep {
+  /** The rider lean level this tick, positive to the left; absent means upright (ADR 0250). */
+  readonly riderLean?: number;
   dock?: Dock;
   /** Blocks to remove this tick before the dock's cells are laid (ADR 0063, 0068). */
   clear?: readonly ClearCell[];
