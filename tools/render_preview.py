@@ -39,6 +39,7 @@ import multiprocessing
 import os
 import struct
 import sys
+import time
 import zlib
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -1513,6 +1514,8 @@ def main():
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
     pack_icon = str(args.icons[0] / "pack_icon.png") if args.icons else None
     targets = []
+    # Temporary phase timing for preview rendering.
+    raster_jobs_seconds = 0.0
     if named_view is not None:
         try:
             job = render_photo_view(args.resource_pack, named_view, args.lid)
@@ -1527,8 +1530,14 @@ def main():
                             read_png(args.resource_pack / BEACH_CHAIR_TEXTURE), 800, name,
                             animation=animation, view=direction)]
     else:
+        started = time.perf_counter()
         jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
-    for job, rgba in zip(jobs, rasterize_all(jobs, args.jobs)):
+        raster_jobs_seconds = time.perf_counter() - started
+    started = time.perf_counter()
+    results = rasterize_all(jobs, args.jobs)
+    rasterize_all_seconds = time.perf_counter() - started
+    print(f"PHASE_TIMING raster_jobs={raster_jobs_seconds:.2f} rasterize_all={rasterize_all_seconds:.2f} cpu_count={os.cpu_count()} jobs={len(jobs)}")
+    for job, rgba in zip(jobs, results):
         if job.name == pack_icon:
             for pack in args.icons:
                 pixels = grayscale(rgba) if pack.name == ICON_GRAYSCALE_PACK else rgba
