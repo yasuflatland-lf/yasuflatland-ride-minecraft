@@ -88,6 +88,13 @@ forward-looping exhaust header, shallow kidney muffler, and two body brackets.
 Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
 (18), `engine_muffler` (114), and `engine_header` (66).
 
+The running area supplies both wheels, suspension, and stand. Whitewall discs
+use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
+0.04 units of their ideal radii. The 32-segment black tyre skin preserves each
+panel's tangent frame so its bounding box cannot overlap the whitewall. Wheel and
+fold bones retain their axle pivots. The packed atlas stays within 1024 by 1024
+texels. Side and front-left previews render the full atlas without a density cap.
+
 The whole-vehicle target is 3,500 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
@@ -121,6 +128,9 @@ A transparent 16 by 16 item icon shows the scooter facing right.
   `tests/tools/scooterShield.test.ts` checks symmetry, the flaring spine, standalone
   deterministic builds, region registration, finite geometry, compound membership,
   the horn scale, fender bolts, and continuous crown texture coverage.
+  `tests/packs/scooterModel.test.ts` also checks whitewall circularity and tyre
+  clearance and atlas bounds. `pnpm model:check` checks
+  `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
 
 ### Camper generator modules
 
