@@ -287,6 +287,7 @@
       "outputs": [
         "docs/images/suv-*.png",
         "docs/images/sportsboat-*.png",
+        "docs/images/scooter-*.png",
         "docs/images/camper-*.png",
         "docs/images/bulldozer-*.png",
         "docs/images/items/camping-gear/*.png",
@@ -333,6 +334,7 @@
       "reads": [
         "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json",
+        "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/low_chair.geo.json",
@@ -373,6 +375,7 @@
         "packs/yasu_ride_rp/models/blocks/yasu_ride/binoculars.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/suv.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat.png",
+        "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/camper.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/bulldozer.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/low_chair.png",
@@ -404,6 +407,7 @@
       "after": [
         "gen_model.py",
         "gen_sportsboat.py",
+        "gen_scooter.py",
         "gen_camper.py",
         "gen_bulldozer.py",
         "gen_low_chair.py",

@@ -61,8 +61,14 @@ The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_fron
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
-model pixels apart. Empty area and assembly tables allow later areas to replace
-the seven placeholder cubes independently. The whole-vehicle target is 3,500 cubes;
+model pixels apart. The running area supplies both wheels, suspension, and stand;
+later areas replace the remaining placeholder cubes independently. Whitewall discs
+use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
+0.04 units of their ideal radii. The 32-segment black tyre skin preserves each
+panel's tangent frame so its bounding box cannot overlap the whitewall. Wheel and
+fold bones retain their axle pivots. The packed atlas stays within 1024 by 1024
+texels. Side and front-left previews render the full atlas without a density cap.
+The whole-vehicle target is 3,500 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 
@@ -72,7 +78,9 @@ only; the scooter has no entity or riding behavior yet.
 - Verification: `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
   corners, local UV resolution, measured dimensions, and deterministic builds.
   `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
-  UV bounds, and per-area budgets against the generated model and Python builders.
+  whitewall circularity and tyre clearance, atlas bounds, and per-area budgets
+  against the generated model and Python builders. `pnpm model:check` checks
+  `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
 
 ### Camper generator modules
 
