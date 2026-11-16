@@ -57,7 +57,7 @@ def _shield_z(x,y):
     u = _clamp((y-D.SHIELD_RELIEF_Y)/D.SHIELD_RELIEF_HEIGHT)
     relief = D.SHIELD_RELIEF_MIN+(1-D.SHIELD_RELIEF_MIN)*u*u*(3-2*u)
     return (_edge_z(y)-relief*(D.SHIELD_DEPTH_MIN+D.SHIELD_DEPTH_GAIN
-            *math.exp(-((y-D.SHIELD_CROWN_Y)/D.SHIELD_RELIEF_HEIGHT)**2))
+            *math.exp(-((y-D.SHIELD_RELIEF_CROWN_Y)/D.SHIELD_RELIEF_HEIGHT)**2))
             *(1-(x/D.SHIELD_HALF_WIDTH)**2))
 
 
