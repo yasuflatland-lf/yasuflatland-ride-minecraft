@@ -28,9 +28,13 @@ SEAT_X_MIN, SEAT_X_MAX = 165.05, 396.95
 SEAT_ARC_STEPS = 6
 SEAT_BELLY_DROP = 0.06
 SEAT_BELLY_WIDTH = 0.8
-SEAT_SKIN = 0.065
-SEAT_CAP_SKIN = 0.04
-SEAT_CAP_SCALE = 0.04
+SEAT_SKIN = 0.012
+SEAT_CAP_SKIN = 0.012
+SEAT_CAP_SCALE = 0.0
+SEAT_MASK_DENSITY = 32
+SEAT_MASK_OVERLAP = 0.045
+SEAT_ATLAS_WIDTH = 512
+SEAT_MASK_GUTTER = 2
 
 # Side-photo calibration of the spike (camera ray and plane intersection).
 SIDE_ORIGIN = (67.06044586721978, 19.658432367867558, -9.293375316273526)
@@ -116,6 +120,8 @@ PLATE_LINES = ("MDR", "39")
 
 def _plate_pixel(u, v):
     width, height = PLATE_TEXELS
+    # Bedrock rear-view screen right runs toward -x on the south face.
+    u = width - 1 - u
     if min(u, v, width - 1 - u, height - 1 - v) < PLATE_BORDER:
         return (*PLATE_INK, 255)
     for text, (top, bottom) in zip(PLATE_LINES, LINE_ROWS):
@@ -198,8 +204,45 @@ def _lamp_frame():
     return place
 
 
+def _seat_skin(rings, thick, panels, interior=None):
+    cubes = []
+    for a, b in zip(rings, rings[1:]):
+        inside = interior if interior is not None else kit._centroid(a + b)
+        for j in range(len(a)):
+            n = (j + 1) % len(a)
+            # Twisted ring quads leave cracks when flattened; triangles share exact edges.
+            for points in ((a[j], a[n], b[j], b[j]), (a[n], b[n], b[j], b[j])):
+                cube = kit.quad(*points, thick, atlas.faces("clear"), inside, SEAT_ASSEMBLY)
+                if cube is None:
+                    continue
+                matrix = kit.tilt.cube_matrix(cube.get("rotation", [0, 0, 0]))
+                pivot = cube.get("pivot", [0, 0, 0])
+                local = [[sum(matrix[i][axis] * (p[i] - pivot[i]) for i in range(3)) + pivot[axis]
+                          for axis in range(2)] for p in points]
+                # A quad's rotated bounding rectangle includes wedges outside its tapered outline.
+                # Cut those wedges away instead of exposing overlapping rectangular corners.
+                poly = [(p[0], p[1]) for p in (local[0], local[1], local[3], local[2])]
+                x0, y0 = cube["origin"][:2]
+                w, h = cube["size"][:2]
+                bounds = [(x0, y0), (x0 + w, y0), (x0 + w, y0 + h), (x0, y0 + h)]
+                width, height, _ = atlas.outline_pixel(bounds, SEAT_MASK_DENSITY, lambda u, v: (*atlas.LEATHER, 255))
+
+                def pixel(u, v, poly=poly, x0=x0, y0=y0, w=w, h=h, width=width, height=height):
+                    # Final x mirroring reverses the south face's local horizontal coordinate.
+                    x, y = x0 + (1 - (u + 0.5) / width) * w, y0 + (1 - (v + 0.5) / height) * h
+                    crosses = [((q[0]-p[0])*(y-p[1]) - (q[1]-p[1])*(x-p[0])) / math.dist(p, q)
+                               for p, q in zip(poly, (*poly[1:], poly[0])) if math.dist(p, q) > kit.FRAME_EPSILON]
+                    return (*atlas.LEATHER, 255) if min(crosses) >= -SEAT_MASK_OVERLAP or max(crosses) <= SEAT_MASK_OVERLAP else atlas.CLEAR
+
+                data = (bytes(c for v in range(height) for u in range(width) for c in pixel(u, v))
+                        if "seat_panels" not in atlas.REGISTRY._regions else None)
+                panels.append((cube, width, height, data))
+                cubes.append(cube)
+    return cubes
+
+
 def _seat(result):
-    faces = atlas.faces("seat_leather")
+    panels = []
     rings = []
     for xi in SEAT_RING_PHOTO_X:
         top, bottom = _span_at(SEAT_OUTLINE, xi)
@@ -213,11 +256,36 @@ def _seat(result):
         ring += [[-half * SEAT_BELLY_WIDTH, y_bottom - SEAT_BELLY_DROP, z],
                  [half * SEAT_BELLY_WIDTH, y_bottom - SEAT_BELLY_DROP, z]]
         rings.append(ring)
-    result.add("body", kit.skin(rings, SEAT_SKIN, faces, closed=True, assembly=SEAT_ASSEMBLY))
+    result.add("body", _seat_skin(rings, SEAT_SKIN, panels))
     for ring in (rings[0], rings[-1]):
         cy = sum(p[1] for p in ring) / len(ring)
         cap = [[p[0] * SEAT_CAP_SCALE, cy + (p[1] - cy) * SEAT_CAP_SCALE, p[2]] for p in ring]
-        result.add("body", kit.skin([ring, cap], SEAT_CAP_SKIN, faces, closed=True, assembly=SEAT_ASSEMBLY))
+        interior = [0, cy, (rings[0][0][2] + rings[-1][0][2]) / 2]
+        result.add("body", _seat_skin([ring, cap], SEAT_CAP_SKIN, panels, interior))
+
+    x, y, row_height = 0, 0, 0
+    placements = []
+    for cube, width, height, data in panels:
+        if x + width > SEAT_ATLAS_WIDTH:
+            x, y, row_height = 0, y + row_height + SEAT_MASK_GUTTER, 0
+        placements.append((cube, x, y, width, height, data))
+        row_height = max(row_height, height)
+        x += width + SEAT_MASK_GUTTER
+    if "seat_panels" not in atlas.REGISTRY._regions:
+        height = y + row_height
+        pixels = bytearray(SEAT_ATLAS_WIDTH * height * 4)
+        for _, x, y, w, h, data in placements:
+            for v in range(h):
+                offset = ((y + v) * SEAT_ATLAS_WIDTH + x) * 4
+                pixels[offset:offset + w * 4] = data[v * w * 4:(v + 1) * w * 4]
+        data = bytes(pixels)
+
+        def texel(u, v):
+            offset = (v * SEAT_ATLAS_WIDTH + u) * 4
+            return tuple(data[offset:offset + 4])
+        atlas.register("seat_panels", SEAT_ATLAS_WIDTH, height, atlas.Material.LEATHER, texel)
+    for cube, x, y, w, h, _ in placements:
+        cube["uv"]["south"] = atlas.face("seat_panels", x, y, w, h)
 
 
 def _lamp(result):
