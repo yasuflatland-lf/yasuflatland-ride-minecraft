@@ -42,8 +42,9 @@ it("assigns every final camper cube to exactly one area range", () => {
     expect(counts.every((n) => n === 1)).toBe(true);
 });
 
+// Main maximum 36.861 s (three runs); 4 x 36.861 = 147.444 s, rounded up to 150 s.
 it("builds independent areas repeatedly without changing the shared atlas", {
-  timeout: 120_000,
+  timeout: 150_000,
 }, async () => {
   await python.run(`
 import ast, json, sys

@@ -50,6 +50,7 @@ const box = fc
   )
   .map(([x, y, z, color]) => [[x[0], y[0], z[0], x[1], y[1], z[1]], color]);
 
+// The finish property took up to 5.412 s on main (two runs after its merge); 4 x 5.412 = 21.648 s, rounded up to the 30 s global default.
 it("matches the brute-force finish for boxes on a half-unit grid", async () => {
   await fc.assert(
     fc.asyncProperty(
@@ -63,4 +64,4 @@ it("matches the brute-force finish for boxes on a half-unit grid", async () => {
     ),
     { numRuns: 50 },
   );
-}, 30_000);
+});

@@ -102,7 +102,7 @@ with tempfile.TemporaryDirectory(dir='.') as folder:
     result = subprocess.run(cmd+['--check'],capture_output=True,text=True)
     assert result.returncode and str(tex) in result.stderr and tex.read_bytes() == before
 `);
-  }, 30000);
+  });
 
   it("uses the rest pose in item and all photo previews without moving the lid", async () => {
     await run(`

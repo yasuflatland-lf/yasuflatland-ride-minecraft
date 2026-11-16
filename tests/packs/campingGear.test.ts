@@ -342,9 +342,7 @@ describe("camping gear block models (ADR 0093)", () => {
     },
   );
 
-  it("keeps the pair geometries within their cell and size budget (ADR 0169)", {
-    timeout: 30_000,
-  }, () => {
+  it("keeps the pair geometries within their cell and size budget (ADR 0169)", () => {
     for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
       // ADR 0247 estimates 4.24 MiB for all 8,192 stored cubes, including hidden items.
       expect(

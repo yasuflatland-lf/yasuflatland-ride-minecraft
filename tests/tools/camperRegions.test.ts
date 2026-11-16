@@ -63,7 +63,7 @@ assert a.size == b.size`,
       ),
       { numRuns: 20 },
     );
-  }, 60_000);
+  });
 
   it("resolves fractional UVs into their region after packing", async () => {
     await fc.assert(
@@ -86,7 +86,7 @@ u,v = ref.uv(${w}/2, ${h}/4)`,
       ),
       { numRuns: 20 },
     );
-  }, 60_000);
+  });
 
   it("preserves the exact base rectangle and detects one changed byte", async () => {
     expect(
@@ -188,7 +188,7 @@ selected = [r for r in kit.REGISTRY.regions() if r.name in dashboard_names]`,
         "m.audit(kit.LAYOUT, m.render_atlas(kit.LAYOUT))",
       ),
     ).toEqual([]);
-  }, 30_000);
+  });
 
   it("audits live geometry faces, including mirrored UV sizes", async () => {
     expect(
@@ -270,7 +270,7 @@ for cubes in built.values():
     ],
     [],
   ]);
-}, 30_000);
+});
 
 it("matches the catalogue's 950 shower additions after lossless cleanup", async () => {
   expect(
@@ -283,7 +283,7 @@ door = load_tool('camper_door').build_shower_door(kit.REGISTRY)`,
       "[len(built['body']) - len(shower.room_base()['body']), len(door['shower_door'])]",
     ),
   ).toEqual([950, 3]);
-}, 30_000);
+});
 
 it("builds shower faces against a caller's packed registry when its base origin moves", async () => {
   expect(
@@ -306,7 +306,7 @@ for cubes in built.values():
       "m.audit(layout, m.render_atlas(layout))",
     ),
   ).toEqual([]);
-}, 30_000);
+});
 
 it("preserves the approved shower region RGBA bytes independently of packing", async () => {
   expect(
@@ -327,4 +327,4 @@ layout = kit.LAYOUT
     "shower hose":
       "45e3c718c89eba216b3fcc0db49046cdc148c8ff264f57ee0b17f557de0267cd",
   });
-}, 30_000);
+});

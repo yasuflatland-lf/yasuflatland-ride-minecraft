@@ -4,9 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-it("builds an opaque painted saucepan within the rotation and size budgets", {
-  timeout: 30_000,
-}, async () => {
+it("builds an opaque painted saucepan within the rotation and size budgets", async () => {
   const output = await python.run(
     [
       "import json, math, sys",

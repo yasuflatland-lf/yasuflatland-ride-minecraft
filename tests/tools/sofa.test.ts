@@ -100,5 +100,5 @@ with tempfile.TemporaryDirectory() as folder:
         assert str(path) in result.stderr
         assert path.read_bytes() == contents
 `);
-  }, 30000);
+  });
 });

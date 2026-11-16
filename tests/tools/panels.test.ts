@@ -5,8 +5,6 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-const PYTHON_PROPERTY_TIMEOUT_MS = 30_000;
-
 type Vec = [number, number, number];
 type Cube = {
   origin: Vec;
@@ -30,7 +28,7 @@ const run = async (call: string): Promise<Cube[]> => {
   return JSON.parse(await python.run(script));
 };
 
-describe("panel_ring", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
+describe("panel_ring", () => {
   const ring = (radius: number, sides: number, thickness: number) =>
     run(`panels.panel_ring(${radius}, 0, 1, face, ${sides}, ${thickness})`);
 
@@ -119,7 +117,7 @@ const domeDimensions = fc.integer({ min: 1, max: 12 }).chain((radius) =>
   }),
 );
 
-describe("dome", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
+describe("dome", () => {
   it("closes decreasing latitude rings with a positive cap using only Y turns", async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -202,7 +200,7 @@ describe("dome", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
   });
 });
 
-describe("panel centers", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
+describe("panel centers", () => {
   it("translates every dome and disc origin and pivot while preserving shape", async () => {
     await fc.assert(
       fc.asyncProperty(

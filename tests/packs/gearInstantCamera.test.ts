@@ -4,10 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-// Full-catalog validation and pair generation need headroom under CI coverage.
-it("keeps the painted twin-lens camera within budget and validates its registered barrels at both pair ends", {
-  timeout: 30_000,
-}, async () => {
+it("keeps the painted twin-lens camera within budget and validates its registered barrels at both pair ends", async () => {
   expect(
     await python.run(`
 import json, sys

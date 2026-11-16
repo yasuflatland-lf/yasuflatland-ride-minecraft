@@ -25,7 +25,7 @@ print(json.dumps(${expression}))
   );
 }
 
-describe("camper interior surfaces", { timeout: 30_000 }, () => {
+describe("camper interior surfaces", () => {
   it("builds against an independent registry with relocated base swatches", () => {
     expect(
       inspect(

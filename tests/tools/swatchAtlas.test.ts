@@ -35,7 +35,7 @@ for paint in suv_palette.BODY_PAINTS:
                 name = suv_palette.NAMES[x // 4]
                 expected = (*colors[name], suv_palette.ALPHA.get(name, 255))
             assert pixel(x, y) == expected`);
-}, 120_000);
+});
 
 it("pins camper defaults and rejects invalid placements without mutation", async () => {
   await run(`a = m.Atlas(['a', 'b'])
@@ -141,4 +141,4 @@ for i, r in enumerate(b.regions):
     ),
     { numRuns: 25 },
   );
-}, 60_000);
+});

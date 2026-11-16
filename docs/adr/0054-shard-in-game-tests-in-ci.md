@@ -36,6 +36,8 @@ Packing by ticks, the slowest slice was estimated at 72 s for three jobs, 61 s f
 
 Run 38213466285 took 75 s for the in-game tests instead of about 159 s; its four slices took 714, 660, 671, and 674 ticks and the slowest job 70 s. Run 38213466103 took 44 s for the unit test workflow instead of about 55 s: `model` 35 s, `unit` 18 s, and `check` 3 s. In-game runner time grows from about 153 s to about 268 s, and a failure log is spread over four jobs. The in-game job names change, but only `check` is a required status check, so the ruleset is unaffected.
 
+Across three successful main Unit Tests runs after 3/6 and 4/6 (43784775606, 43785539768, and 43786830193), the tools job took 175 to 220 s and its Vitest duration was 155.43 to 208.93 s, versus 421 to 589 s of Vitest time before these changes (the series baseline after PR #1708). The model jobs took 314, 415, and 313 s respectively. The owner decision on #1730 uses these three runs instead of five; the #1734 merge changed `tools/**`, so its run 43785539768 had a cold generated-files cache, while the other two runs' cache state is not recorded in the logs. Re-measure when the tools job's Vitest duration exceeds 240 s on main, or when `model:check` exceeds 8 minutes.
+
 The tick numbers can go stale. A stale number only unbalances the slices and never skips or repeats a test.
 
 Revisit when the slowest slice runs more than 10 s longer than the fastest, or when the suite grows enough that the in-game workflow takes more than about twice as long as the unit test workflow. A fifth job would save at most about 7 s, because each job still pays the fixed 27 s.

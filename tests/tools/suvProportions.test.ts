@@ -125,7 +125,10 @@ describe("SUV proportions", () => {
     expect(baseline.unchanged).toBe(true);
   });
 
-  it("preserves ratios and rake under uniform scaling and reversed cube order", async () => {
+  // Main maximum 16.961 s (three runs); 4 x 16.961 = 67.844 s, rounded up to 90 s.
+  it("preserves ratios and rake under uniform scaling and reversed cube order", {
+    timeout: 90_000,
+  }, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.double({ min: 0.25, max: 20, noNaN: true }),
@@ -153,9 +156,12 @@ describe("SUV proportions", () => {
       ),
       { numRuns: 20 },
     );
-  }, 60_000);
+  });
 
-  it("measures wheelbase from the wheel bones when the rear axle moves", async () => {
+  // Main maximum 8.542 s (three runs); 4 x 8.542 = 34.168 s, rounded up to 60 s.
+  it("measures wheelbase from the wheel bones when the rear axle moves", {
+    timeout: 60_000,
+  }, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.double({ min: 0.1, max: 2, noNaN: true }),
@@ -175,7 +181,7 @@ describe("SUV proportions", () => {
       ),
       { numRuns: 10 },
     );
-  }, 60_000);
+  });
 
   it("ignores an enlarged rear spare when measuring the bumper tip", async () => {
     const cubes = structuredClone(generated);
@@ -190,7 +196,10 @@ describe("SUV proportions", () => {
     );
   });
 
-  it("turns corners around offset pivots in the game rotation convention", async () => {
+  // Main maximum 8.413 s (three runs); 4 x 8.413 = 33.652 s, rounded up to 60 s.
+  it("turns corners around offset pivots in the game rotation convention", {
+    timeout: 60_000,
+  }, async () => {
     await fc.assert(
       fc.asyncProperty(fc.integer({ min: 1, max: 80 }), async (angle) => {
         const cubes = structuredClone(generated);
@@ -217,7 +226,7 @@ describe("SUV proportions", () => {
       }),
       { numRuns: 10 },
     );
-  }, 60_000);
+  });
 
   for (const key of keys) {
     it.skipIf(baseline.pending.includes(key))(

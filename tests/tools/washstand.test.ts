@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 
-it("round-trips generated Washstand outputs and detects missing or altered geometry and texels", () => {
+// Main maximum 46.952 s (three runs); 4 x 46.952 = 187.808 s, rounded up to 210 s.
+it("round-trips generated Washstand outputs and detects missing or altered geometry and texels", {
+  timeout: 210_000,
+}, () => {
   const directory = mkdtempSync(join(tmpdir(), "washstand-"));
   const run = (check = false) =>
     spawnSync(
@@ -44,4 +47,4 @@ it("round-trips generated Washstand outputs and detects missing or altered geome
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
-}, 120_000);
+});

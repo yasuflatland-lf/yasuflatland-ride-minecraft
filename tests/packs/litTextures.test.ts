@@ -155,7 +155,10 @@ describe.each(kinds)(
       return pixel;
     }
 
-    it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", () => {
+    // Main maximum 15.209 s (three runs); 4 x 15.209 = 60.836 s, rounded up to 90 s.
+    it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", {
+      timeout: 90_000,
+    }, () => {
       const base = texels(kind);
       const lit = texels(`${kind}_lit`);
       const mer = texels(`${kind}_lit_mer`);
@@ -185,7 +188,7 @@ describe.each(kinds)(
           255,
         ]);
       }
-    }, 30_000);
+    });
 
     it("draws only the switched lamp bones in a separate emissive pass", () => {
       const client = read(`entity/yasu_ride/${kind}.ce.json`)[
@@ -317,9 +320,12 @@ it("binds an opaque non-emissive camper interior MER without changing the base p
       "controller.render.yasu_ride.camper"
     ].textures,
   ).toEqual(["Texture.default"]);
-}, 30_000);
+});
 
-it("keeps the camper mirror MER confined to the relocated chrome tile and its own pass", () => {
+// Main maximum 11.099 s (three runs); 4 x 11.099 = 44.396 s, rounded up to 60 s.
+it("keeps the camper mirror MER confined to the relocated chrome tile and its own pass", {
+  timeout: 60_000,
+}, () => {
   const [x, y, w, h]: number[] = JSON.parse(
     execFileSync(
       "python3",
@@ -364,4 +370,4 @@ print(json.dumps([x+r.x,y+r.y,r.w,r.h]))
     textures: ["Texture.mirror"],
     part_visibility: [{ "*": false }, { mirror: true }],
   });
-}, 30_000);
+});

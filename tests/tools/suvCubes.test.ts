@@ -97,7 +97,7 @@ assert markers(turn(cube), 'west')[(255, 0, 0, 255)][2] > 20 - ${d} / 2`);
     ),
     { numRuns: 15 },
   );
-}, 60_000);
+});
 
 it("preserves every swatch face key and value through all transforms", async () => {
   await run(`from copy import deepcopy
@@ -153,4 +153,4 @@ for axis, index in [('x', 0), ('y', 1), ('z', 2)]:
     ),
     { numRuns: 15 },
   );
-}, 60_000);
+});

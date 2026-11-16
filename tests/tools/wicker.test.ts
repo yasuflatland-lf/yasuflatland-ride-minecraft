@@ -32,7 +32,7 @@ const options = fc.record({
 const tileCall =
   "wicker.weave_tile(getattr(wicker, args['palette']), args['size'], seed=args['seed'], direction=args['direction'])";
 
-describe("wicker tiles", { timeout: 30_000 }, () => {
+describe("wicker tiles", () => {
   it("is deterministic, square, opaque and confined to its palette", async () => {
     await fc.assert(
       fc.asyncProperty(options, async (args) => {
