@@ -1,0 +1,27 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:block": {
+    "description": {
+      "identifier": "yasu_build:warp_block",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:geometry": "minecraft:geometry.full_block",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "yasu_build_warp_block_side",
+          "render_method": "opaque"
+        },
+        "up": {
+          "texture": "yasu_build_warp_block_top",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:collision_box": true,
+      "minecraft:selection_box": true,
+      "minecraft:custom_components": ["yasu_build:warp_block"]
+    }
+  }
+}

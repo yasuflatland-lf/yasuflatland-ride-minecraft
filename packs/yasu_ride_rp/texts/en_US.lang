@@ -265,3 +265,5 @@ item.yasu_ride:toilet_item.name=Toilet
 entity.yasu_ride:toilet.name=Toilet
 yasu_ride.toilet.occupied=Someone is using the Toilet
 yasu_ride.toilet.flushing=The Toilet is flushing
+item.yasu_build:warp_tool.name=Warp Tool
+tile.yasu_build:warp_block.name=Warp Block
