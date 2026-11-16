@@ -56,6 +56,11 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   `scooter_kit.py` builds panels and tubes in the spike frame, then mirrors their x
   coordinates and rotations into Bedrock coordinates without replacing cube objects.
   Compound rotations require named assemblies under ADR 0167.
+  The rear saddle uses thin, planar triangular panels with alpha-cut outlines in one
+  leather region; cube bounding rectangles and panel margins must not extend its visible
+  silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
+  `MDR` over `39` from behind, with its horizontal raster reversed for Bedrock's rear-view
+  coordinate convention after the final x mirror.
 
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
@@ -128,6 +133,8 @@ A transparent 16 by 16 item icon shows the scooter facing right.
   `tests/tools/scooterShield.test.ts` checks symmetry, the flaring spine, standalone
   deterministic builds, region registration, finite geometry, compound membership,
   the horn scale, fender bolts, and continuous crown texture coverage.
+  `tests/tools/scooterRear.test.ts` projects the generated plate face corners through its
+  rotation and checks every rear-view texel against the expected upright lettering.
   `tests/packs/scooterModel.test.ts` also checks whitewall circularity and tyre
   clearance and atlas bounds. `pnpm model:check` checks
   `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
