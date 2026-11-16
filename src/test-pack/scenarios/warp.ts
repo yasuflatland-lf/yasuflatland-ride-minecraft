@@ -240,6 +240,11 @@ export async function warpEngineProbes(a: Arena): Promise<Outcome> {
           destination === block,
           `piston control failed: ${source}/${destination}`,
         );
+      else
+        checkWarp(
+          source === block && destination !== block,
+          `warp block moved: ${source}/${destination}`,
+        );
       lines.push(
         `piston_${label}: moved=${destination === block}; source=${source}; destination=${destination}`,
       );

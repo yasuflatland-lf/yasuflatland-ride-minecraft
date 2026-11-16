@@ -1,4 +1,10 @@
-import { type Block, type BlockPermutation, world } from "@minecraft/server";
+import {
+  type Block,
+  type BlockPermutation,
+  system,
+  world,
+} from "@minecraft/server";
+import { HitWarpBlock } from "../../application/warp/hitWarpBlock";
 import { OpenWarpList } from "../../application/warp/openWarpList";
 import type { WarpMenus } from "../../application/warp/ports/menus";
 import { RegisterWarpPoint } from "../../application/warp/registerWarpPoint";
@@ -6,13 +12,15 @@ import { RemoveWarpPoint } from "../../application/warp/removeWarpPoint";
 import { RenameWarpPoint } from "../../application/warp/renameWarpPoint";
 import { WarpTo } from "../../application/warp/warpTo";
 import { asPlayerId } from "../../domain/shared/ids";
+import { WARP_SPEC } from "../../domain/warp/spec";
 import { parseWarpName } from "../../domain/warp/warpName";
+import { BedrockWarpBlockHits } from "../../infrastructure/warp/bedrock/bedrockWarpBlockHits";
 import { BedrockWarpFeedback } from "../../infrastructure/warp/bedrock/bedrockWarpFeedback";
 import { BedrockWarpPlayers } from "../../infrastructure/warp/bedrock/bedrockWarpPlayers";
 import { BedrockWarpWorld } from "../../infrastructure/warp/bedrock/bedrockWarpWorld";
 import { SystemWarpTicks } from "../../infrastructure/warp/bedrock/systemWarpTicks";
 import { WARP_BLOCK_TYPE } from "../../infrastructure/warp/identifiers";
-import type { Arena } from "../arena";
+import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 import {
   checkWarp,
@@ -28,6 +36,12 @@ export async function warpFlow(a: Arena): Promise<Outcome> {
   const location = player.location;
   const dimension = player.dimension;
   const rotation = player.getRotation();
+  const inventory = player.getComponent("minecraft:inventory")?.container;
+  if (!inventory)
+    return { pass: false, detail: "player inventory unavailable" };
+  const originalItems = Array.from({ length: inventory.size }, (_, slot) =>
+    inventory.getItem(slot),
+  );
   const point = warpPoint(a);
   const block = a.dim.getBlock(point.cell);
   if (!block) return { pass: false, detail: "fixture is unloaded" };
@@ -139,8 +153,38 @@ export async function warpFlow(a: Arena): Promise<Outcome> {
           Math.abs(player.getRotation().y - rotation.y) < 0.01,
         "player facing changed",
       );
-      block.setType("minecraft:air");
-      new RemoveWarpPoint(store).run(command);
+      const hits = new HitWarpBlock(
+        new BedrockWarpBlockHits(),
+        new RemoveWarpPoint(store),
+      );
+      const itemCount = () =>
+        Array.from({ length: inventory.size }, (_, slot) =>
+          inventory.getItem(slot),
+        ).reduce(
+          (count, item) =>
+            count + (item?.typeId === WARP_BLOCK_TYPE ? item.amount : 0),
+          0,
+        );
+      inventory.setItem(0, undefined);
+      const beforeItems = itemCount();
+      for (let i = 0; i < WARP_SPEC.breakHits; i++) {
+        hits.run({ ...command, now: system.currentTick });
+        if (i < WARP_SPEC.breakHits - 1)
+          checkWarp(
+            block.typeId === WARP_BLOCK_TYPE &&
+              store.load()?.points.length === 1,
+            "early hit broke the block",
+          );
+        await wait(1);
+      }
+      checkWarp(
+        block.typeId === "minecraft:air",
+        "fifth hit did not remove block",
+      );
+      checkWarp(
+        itemCount() - beforeItems === 1,
+        "five hits must return exactly one item",
+      );
       checkWarp(store.load()?.points.length === 0, "break removal failed");
       naming = 0;
       await register.run(command);
@@ -152,11 +196,13 @@ export async function warpFlow(a: Arena): Promise<Outcome> {
       return {
         pass: true,
         detail:
-          "place/default/name/list/rename/empty edit/teleport/facing/break/prune; scripted menus, input handlers and rendered forms require manual check",
+          "place/default/name/list/rename/empty edit/teleport/facing/five-hit break/refund/prune; scripted menus, input handlers and rendered forms require manual check",
       };
     });
   } finally {
     try {
+      for (let slot = 0; slot < originalItems.length; slot++)
+        inventory.setItem(slot, originalItems[slot]);
       for (const savedCell of saved)
         savedCell.block.setPermutation(savedCell.permutation);
     } finally {
