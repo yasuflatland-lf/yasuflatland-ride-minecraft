@@ -1,12 +1,18 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
+import {
+  SUV_SPEC,
+  SUV_TRANSFORMING,
+} from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
 import {
   stepHeight as probeStepHeight,
   type SolidAt,
-  STEP_LANES,
+  stepLanes,
 } from "../../../../src/domain/vehicle/motion/stepUp";
+
+const laneOffset = SUV_TRANSFORMING.stepLaneOffset;
+const STEP_LANES = stepLanes(laneOffset);
 
 interface Lane {
   start: number;
@@ -62,6 +68,7 @@ describe("stepHeight (ADR 0004, 0035)", () => {
               probeStepHeight(terrain(lanes(bodyFront + 0.2)), 0.2, {
                 front: bodyFront,
                 height: 1,
+                laneOffset,
               }),
             ).toBe(height);
             const behind: SolidAt = (ahead, side, dy) =>
@@ -70,7 +77,11 @@ describe("stepHeight (ADR 0004, 0035)", () => {
               ahead < bodyFront + 0.05 &&
               dy < height;
             expect(
-              probeStepHeight(behind, 0.2, { front: bodyFront, height: 1 }),
+              probeStepHeight(behind, 0.2, {
+                front: bodyFront,
+                height: 1,
+                laneOffset,
+              }),
             ).toBe(0);
           }
         },
@@ -85,12 +96,16 @@ describe("stepHeight (ADR 0004, 0035)", () => {
         fc.double({ min: 2.1, max: 3, noNaN: true }),
         (short, tall) => {
           const solid = terrain([{ start: 4.2, height: 1, ceiling: 2 }]);
-          expect(probeStepHeight(solid, 0.2, { front: 4, height: short })).toBe(
-            1,
-          );
-          expect(probeStepHeight(solid, 0.2, { front: 4, height: tall })).toBe(
-            0,
-          );
+          expect(
+            probeStepHeight(solid, 0.2, {
+              front: 4,
+              height: short,
+              laneOffset,
+            }),
+          ).toBe(1);
+          expect(
+            probeStepHeight(solid, 0.2, { front: 4, height: tall, laneOffset }),
+          ).toBe(0);
         },
       ),
     );
@@ -109,11 +124,14 @@ describe("stepHeight (ADR 0004, 0035)", () => {
               ahead === 0 && side === 0
                 ? dy === overhead
                 : step(ahead, side, dy);
-            expect(probeStepHeight(solid, 0.2, { front: 4, height })).toBe(0);
+            expect(
+              probeStepHeight(solid, 0.2, { front: 4, height, laneOffset }),
+            ).toBe(0);
             expect(
               probeStepHeight(solid, 0.2, {
                 front: 4,
                 height: height === short ? tall : short,
+                laneOffset,
               }),
             ).toBe(1);
           }
@@ -281,5 +299,19 @@ function stepHeight(solid: SolidAt, speed: number): 0 | 1 | 2 {
   return probeStepHeight(solid, speed, {
     front: SUV_SPEC.hitboxFront,
     height: SUV_SPEC.carHeight,
+    laneOffset,
   });
 }
+
+describe("stepLanes", () => {
+  it("is symmetric around the centerline and contains 0", () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0.01, max: 5, noNaN: true }), (o) => {
+        const lanes = stepLanes(o);
+        expect(lanes).toEqual([0, -o, o]);
+        expect(lanes.includes(0)).toBe(true);
+        for (const l of lanes) expect(lanes.includes(-l)).toBe(true);
+      }),
+    );
+  });
+});

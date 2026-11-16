@@ -107,6 +107,7 @@ export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({
   gearDownHeight: SUV_SPEC.gearDownHeight,
   gearProbeOffset: SUV_SPEC.gearProbeOffset,
   hitboxFront: SUV_SPEC.hitboxFront,
+  stepLaneOffset: 0.8,
   air: AIR,
   water: WATER,
   waterPolicy: "submerge",
