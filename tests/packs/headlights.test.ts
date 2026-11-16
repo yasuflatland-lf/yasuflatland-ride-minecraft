@@ -4,7 +4,7 @@ import { HEADLIGHT_SWITCH_TYPE } from "../../src/infrastructure/shared/identifie
 import { HEADLIGHTS_PROPERTY } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
-describe.each(["suv", "sportsboat", "camper", "bulldozer"])(
+describe.each(["suv", "sportsboat", "camper", "bulldozer", "scooter"])(
   "%s headlights (ADR 0020)",
   (vehicle) => {
     const entity = read(
@@ -28,9 +28,9 @@ describe.each(["suv", "sportsboat", "camper", "bulldozer"])(
       });
     });
 
-    it("the lamps are a bone of the body that has cubes", () => {
+    it("the lamps have cubes and follow their body or steering assembly", () => {
       const lamps = bones.find((b) => b.name === "headlights");
-      expect(lamps?.parent).toBe("body");
+      expect(lamps?.parent).toBe(vehicle === "scooter" ? "steer" : "body");
       expect(lamps?.cubes?.length).toBeGreaterThan(0);
     });
 

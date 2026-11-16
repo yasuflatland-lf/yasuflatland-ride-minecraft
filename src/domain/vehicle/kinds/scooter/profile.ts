@@ -14,10 +14,7 @@ const body = Object.freeze({
   height: SCOOTER_SPEC.carHeight,
 });
 
-// Registration adds scooter to VehicleKind in issue 15; keep its other fields checked now.
-export const SCOOTER_PROFILE: Omit<VehicleProfile, "kind"> & {
-  readonly kind: "scooter";
-} = Object.freeze({
+export const SCOOTER_PROFILE: VehicleProfile = Object.freeze({
   kind: "scooter",
   ridersFireProof: false,
   fleetLimit: SCOOTER_SPEC.fleetLimit,

@@ -12,6 +12,7 @@ import {
   entityContractOf,
   profileOf,
 } from "../../../src/domain/vehicle/kinds/index";
+import { SCOOTER_MOTION } from "../../../src/domain/vehicle/kinds/scooter/profile";
 import { SPORTSBOAT_MOTION } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SUV_MOTION } from "../../../src/domain/vehicle/kinds/suv/profile";
 import type { MotionLimits } from "../../../src/domain/vehicle/motion/limits";
@@ -21,6 +22,7 @@ import { waterSensors } from "../../support/waterDepth";
 
 const LIMITS: Record<VehicleKind, MotionLimits> = {
   suv: SUV_MOTION,
+  scooter: SCOOTER_MOTION,
   camper: CAMPER_MOTION,
   bulldozer: BULLDOZER_MOTION,
   sportsboat: SPORTSBOAT_MOTION,

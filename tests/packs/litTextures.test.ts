@@ -105,6 +105,27 @@ print(json.dumps({'rect': list(atlas.BLOCKS['tail_lamp'].region[1:]), 'lit': sor
   });
 });
 
+const scooterLampRegions: [number, number, number, number][] = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+generator = load_tool('gen_scooter')
+for area in generator.AREA_ORDER:
+    load_tool('scooter_' + area).build()
+layout = load_tool('scooter_atlas').pack_layout()
+names = load_tool('scooter_textures').LIT_REGIONS
+print(json.dumps([[*layout.origin(r.name), r.width, r.height] for r in layout.regions if r.name in names]))
+`,
+    ],
+    { encoding: "utf8" },
+  ),
+);
+
 const headlights = "query.property('yasu_ride:headlights')";
 const ceiling = "query.property('yasu_ride:ceiling_lights')";
 // The slots are the palette columns the generators select by name into
@@ -138,6 +159,16 @@ const kinds = [
     condition: `${headlights} || ${ceiling}`,
   },
   {
+    kind: "scooter",
+    slots: [],
+    regionRule: (x: number, y: number) =>
+      scooterLampRegions.some(
+        ([u, v, w, h]) => x >= u && x < u + w && y >= v && y < v + h,
+      ),
+    bones: { headlights, tail_lights: headlights },
+    condition: headlights,
+  },
+  {
     kind: "bulldozer",
     slots: [14, 16],
     cell: 1,
@@ -151,7 +182,8 @@ describe.each(kinds)(
   ({ kind, slots, cell, regionRule, bones, condition }) => {
     function expectedColorTexel(pixel: number[], on: boolean) {
       if (on) return [...pixel.slice(0, 3), 0];
-      if (kind === "suv" && pixel[3] === 0) return [...pixel.slice(0, 3), 255];
+      if (["suv", "scooter"].includes(kind) && pixel[3] === 0)
+        return [...pixel.slice(0, 3), 255];
       return pixel;
     }
 
@@ -159,9 +191,11 @@ describe.each(kinds)(
     it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", {
       timeout: 90_000,
     }, () => {
-      const base = texels(kind);
-      const lit = texels(`${kind}_lit`);
-      const mer = texels(`${kind}_lit_mer`);
+      const texture = (name: string) =>
+        readRgbaPng(`${RP}/textures/entity/yasu_ride/${name}.png`);
+      const base = texture(kind);
+      const lit = texture(`${kind}_lit`);
+      const mer = texture(`${kind}_lit_mer`);
       for (const image of [lit, mer])
         expect([image.width, image.height]).toEqual([base.width, base.height]);
       expect(
@@ -173,21 +207,24 @@ describe.each(kinds)(
           metalness_emissive_roughness: `${kind}_lit_mer`,
         },
       });
-      for (const [i, pixel] of base.pixels.entries()) {
+      const expectedColor = Buffer.from(base.pixels);
+      const expectedMer = Buffer.alloc(base.pixels.length);
+      for (let i = 0; i < base.width * base.height; i++) {
         const on =
           regionRule?.(i % base.width, Math.floor(i / base.width)) ??
           (Math.floor(i / base.width) < (cell ?? 1) &&
             slots.includes(Math.floor((i % base.width) / (cell ?? 1))));
-        expect(lit.pixels[i], `color texel ${i}`).toEqual(
-          expectedColorTexel(pixel, on),
-        );
-        expect(mer.pixels[i], `MER texel ${i}`).toEqual([
-          0,
-          on ? 255 : 0,
-          255,
-          255,
-        ]);
+        const offset = i * 4;
+        const pixel = Array.from(base.pixels.subarray(offset, offset + 4));
+        expectedColor.set(expectedColorTexel(pixel, on), offset);
+        expectedMer.set([0, on ? 255 : 0, 255, 255], offset);
       }
+      expect(Buffer.from(lit.pixels).equals(expectedColor), "color atlas").toBe(
+        true,
+      );
+      expect(Buffer.from(mer.pixels).equals(expectedMer), "MER atlas").toBe(
+        true,
+      );
     });
 
     it("draws only the switched lamp bones in a separate emissive pass", () => {

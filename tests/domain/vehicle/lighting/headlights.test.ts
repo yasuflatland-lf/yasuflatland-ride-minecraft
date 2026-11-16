@@ -145,7 +145,7 @@ describe("headlightCells (ADR 0020)", () => {
     );
   });
 
-  it.each(["suv", "sportsboat", "camper"] as const)(
+  it.each(["suv", "sportsboat", "camper", "scooter"] as const)(
     "lights every %s cell at level 15, as before levels existed",
     (kind) => {
       fc.assert(

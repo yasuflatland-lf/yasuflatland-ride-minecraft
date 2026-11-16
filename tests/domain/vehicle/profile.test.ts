@@ -23,6 +23,7 @@ import {
   profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
+import { SCOOTER_PROFILE } from "../../../src/domain/vehicle/kinds/scooter/profile";
 import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
@@ -356,6 +357,7 @@ describe("vehicle profiles (ADR 0050)", () => {
             sportsboat: SPORTSBOAT_PROFILE,
             camper: CAMPER_PROFILE,
             bulldozer: BULLDOZER_PROFILE,
+            scooter: SCOOTER_PROFILE,
           }[kind],
         );
         expect(createVehicle(kind, asVehicleId("v"), heading).kind).toBe(kind);

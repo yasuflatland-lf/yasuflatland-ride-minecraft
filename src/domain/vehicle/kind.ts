@@ -3,6 +3,7 @@ export const VEHICLE_KINDS = [
   "sportsboat",
   "camper",
   "bulldozer",
+  "scooter",
 ] as const;
 export type VehicleKind = (typeof VEHICLE_KINDS)[number];
 

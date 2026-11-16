@@ -177,18 +177,9 @@ describe("Resource Pack and Behavior Pack references", () => {
   });
 
   it("each Behavior Pack entity has a client entity with the same identifier", () => {
-    // Issue #1762 introduces the scooter client before its server entity in issue 15.
-    const clientOnly = ["yasu_ride:scooter"];
-    for (const id of clientOnly) {
-      expect(clientEntities.map((e) => e.identifier)).toContain(id);
-      expect(bpEntityIds).not.toContain(id);
-    }
-    expect(
-      clientEntities
-        .map((e) => e.identifier)
-        .filter((id) => !clientOnly.includes(id))
-        .sort(),
-    ).toEqual([...bpEntityIds].sort());
+    expect(clientEntities.map((e) => e.identifier).sort()).toEqual(
+      [...bpEntityIds].sort(),
+    );
   });
 
   it("defines the identifiers the script uses", () => {

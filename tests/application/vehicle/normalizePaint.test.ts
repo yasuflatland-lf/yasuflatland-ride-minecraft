@@ -22,7 +22,7 @@ it("resets every saved nonzero camper variant to zero, without dye or sound", ()
   );
 });
 
-it.each(["suv", "sportsboat", "bulldozer", "camper"] as const)(
+it.each(["suv", "sportsboat", "bulldozer", "camper", "scooter"] as const)(
   "leaves %s alone when no normalization is needed",
   (kind) => {
     const world = new FakeWorld();
