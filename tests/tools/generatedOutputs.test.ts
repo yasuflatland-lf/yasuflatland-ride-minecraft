@@ -171,10 +171,10 @@ it("lists CI cache paths without creating bytecode inside the cache key inputs",
   python(`
 import shlex, shutil, subprocess, tempfile
 from pathlib import Path
-workflow = Path('.github/workflows/unit-test.yml').read_text()
+workflow = Path('.github/actions/generated-files/action.yml').read_text()
 commands = [line.strip().split(' >> ')[0] for line in workflow.splitlines()
             if '--list-outputs --untracked >>' in line]
-assert len(commands) == 4
+assert len(commands) == 1
 for command in commands:
     with tempfile.TemporaryDirectory() as directory:
         shutil.copytree('tools', Path(directory) / 'tools', ignore=shutil.ignore_patterns('__pycache__'))
@@ -318,4 +318,91 @@ assert manifest.ownership_errors(touched) == [
   } finally {
     await worker.close();
   }
+});
+
+it("uses the shared generated-files action in every generation job", () => {
+  python(`
+import re
+from pathlib import Path
+for name, jobs in [
+    ('unit-test', ['quick', 'test', 'tools', 'coverage', 'model']),
+    ('integration-test', ['generate', 'in-game']),
+    ('release', ['build']),
+]:
+    workflow = Path(f'.github/workflows/{name}.yml').read_text()
+    assert 'hashFiles' not in workflow
+    assert 'run: pnpm generate' not in workflow
+    for job in jobs:
+        body = workflow.split(f'  {job}:\\n', 1)[1]
+        body = re.split(r'\\n  [a-z][a-z-]*:', body)[0]
+        assert body.count('uses: ./.github/actions/generated-files') == 1, job
+        assert body.index('actions/checkout@') < body.index('jdx/mise-action@') < body.index('uses: ./.github/actions/generated-files'), job
+        if job in ('model', 'generate', 'in-game'):
+            guard = "steps.inputs.outputs.changed == 'true'" if job == 'model' else "steps.runner.outputs.present == 'true'"
+            assert f"- if: {guard}\\n        uses: ./.github/actions/generated-files" in body
+`);
+});
+
+it("makes the in-game matrix wait for the generate job", () => {
+  python(`
+from pathlib import Path
+workflow = Path('.github/workflows/integration-test.yml').read_text()
+body = workflow.split('  in-game:\\n', 1)[1]
+assert '    needs: generate\\n' in body
+assert 'pnpm install' not in workflow.split('  in-game:\\n', 1)[0]
+assert 'workflow_run' not in workflow
+`);
+});
+
+it("makes every integration job that uses the generated-files action depend on generate", () => {
+  python(`
+import re
+from pathlib import Path
+workflow = Path('.github/workflows/integration-test.yml').read_text()
+jobs = {}
+for match in re.finditer(r'^  ([a-z][a-z-]*):\\n(.*?)(?=^  [a-z][a-z-]*:\\n|\\Z)', workflow.split('\\njobs:\\n', 1)[1], re.S | re.M):
+    jobs[match.group(1)] = match.group(2)
+assert 'generate' in jobs
+
+def dependencies(body):
+    match = re.search(r'^    needs:[ \\t]*(\\[[^\\]]*\\]|[^\\n]*)(?:\\n((?:      - [^\\n]+\\n)*))?', body, re.M)
+    if not match:
+        return []
+    return re.findall(r'[a-z][a-z-]*', match.group(1) + ' ' + (match.group(2) or ''))
+
+def reaches_generate(job, seen):
+    if job == 'generate':
+        return True
+    if job in seen or job not in jobs:
+        return False
+    seen.add(job)
+    return any(reaches_generate(need, seen) for need in dependencies(jobs[job]))
+
+for job, body in jobs.items():
+    if job != 'generate' and 'uses: ./.github/actions/generated-files' in body:
+        assert reaches_generate(job, set()), f'integration-test: {job} must need generate'
+`);
+});
+
+it("reports cache hits and misses with elapsed generation time", () => {
+  python(`
+import os, re, subprocess, tempfile, textwrap
+from pathlib import Path
+action = Path('.github/actions/generated-files/action.yml').read_text()
+script = textwrap.dedent(action.rsplit('      run: |\\n', 1)[1])
+with tempfile.TemporaryDirectory() as directory:
+    root = Path(directory)
+    (root / 'pnpm').write_text('#!/bin/bash\\n[ "$1" = generate ] || exit 1\\necho generated >> "$CALLS"\\n')
+    (root / 'pnpm').chmod(0o755)
+    for cache_hit, expected in [('true', 'hit'), ('false', 'miss'), ('', 'miss')]:
+        summary = root / 'summary'
+        summary.write_text('')
+        calls = root / 'calls'
+        calls.write_text('')
+        env = dict(os.environ, PATH=f'{root}:' + os.environ['PATH'], CACHE_HIT=cache_hit,
+                   GITHUB_STEP_SUMMARY=str(summary), CALLS=str(calls))
+        subprocess.run(['bash', '-e', '-c', script], env=env, check=True)
+        assert re.fullmatch(f'generated files: cache {expected}, [0-9]+s\\n', summary.read_text())
+        assert calls.read_text() == 'generated\\n'
+`);
 });

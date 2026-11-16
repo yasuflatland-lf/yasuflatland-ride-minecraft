@@ -75,6 +75,7 @@ CURVE_SEGMENTS = 24
 MERGE_PRECISION = 7
 MERGE_EPSILON = 1e-7
 OUTPUT_PRECISION = 3
+GRID_CELL = 2.0
 
 
 def box(x0: float, y0: float, z0: float, x1: float, y1: float,
@@ -194,6 +195,19 @@ def merge_axis(cubes: list[Cube], axis: int) -> list[Cube]:
     return result
 
 
+def grid_keys(cube: Cube) -> list[tuple[int, int, int]]:
+    ranges = [range(math.floor((o - MERGE_EPSILON) / GRID_CELL), math.floor((o + d + MERGE_EPSILON) / GRID_CELL) + 1)
+              for o, d in zip(cube["origin"], cube["size"])]
+    return [(x, y, z) for x in ranges[0] for y in ranges[1] for z in ranges[2]]
+
+
+def overlap_candidates(cells: dict[tuple[int, int, int], list[int]], cube: Cube) -> set[int]:
+    found: set[int] = set()
+    for key in grid_keys(cube):
+        found.update(cells.get(key, ()))
+    return found
+
+
 def finish(cubes: list[Cube]) -> list[Cube]:
     # Quantize shared endpoints, never origin and length independently: the
     # latter opens 0.001 px cracks between adjacent slices after serialization.
@@ -207,15 +221,22 @@ def finish(cubes: list[Cube]) -> list[Cube]:
     # Give later details (handle rims, bins) ownership of intersecting solids.
     # Disjoint volumes cannot carry overlapping, same-direction coplanar faces.
     result: list[Cube] = []
+    cells: dict[tuple[int, int, int], list[int]] = {}
     for cube in reversed(cubes):
         if any(v <= 0 for v in cube["size"]):
             continue
         pieces = [cube]
-        for occupied in result:
-            pieces = [part for piece in pieces for part in subtract(piece, occupied)]
+        # Only a neighbour whose grid cell touches this cube can overlap it, and
+        # subtract() returns a disjoint cube unchanged, so skipping the others
+        # keeps the output identical while avoiding every pairwise test.
+        for index in sorted(overlap_candidates(cells, cube)):
+            pieces = [part for piece in pieces for part in subtract(piece, result[index])]
             if not pieces:
                 break
-        result.extend(pieces)
+        for piece in pieces:
+            for key in grid_keys(piece):
+                cells.setdefault(key, []).append(len(result))
+            result.append(piece)
     for axis in (1, 2, 0):
         result = merge_axis(result, axis)
     return result

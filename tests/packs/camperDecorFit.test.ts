@@ -25,9 +25,10 @@ const table = () =>
   });
 
 let output: string;
+// Setup has a 15.993 s file upper bound on main (three runs); 4x rounds up to 90 s.
 beforeAll(() => {
   output = table();
-}, 60_000);
+}, 90_000);
 
 it("uses the domain dashboard spots and rectangles in the fit checker", () => {
   const raw = execFileSync(

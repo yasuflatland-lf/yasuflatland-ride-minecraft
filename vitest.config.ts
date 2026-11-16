@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    // Python-backed tests: 7.4 s slowest default-reliant test on PR #1738; 4x rounded up to 30 s (docs/specs/testing-and-ci.md).
+    // camperSurfaces veneer coordinates: main maximum 7.384 s (three runs); 4 x 7.384 = 29.536 s, rounded up to 30 s.
     testTimeout: 30_000,
     include: ["tests/**/*.test.ts"],
     globalSetup: ["tests/support/generatedSetup.ts"],

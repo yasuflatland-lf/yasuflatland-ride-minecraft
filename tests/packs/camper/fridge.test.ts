@@ -186,9 +186,8 @@ describe("camper furniture model (ADR 0093)", () => {
     const [bottom = 0, top = 0] = heights;
     expect(top).toBeLessThan(bottom);
   });
-  it("sweeps both fridge doors through the aisle beside the fridge without hitting the cab seat or standing decor", {
-    timeout: 60_000,
-  }, () => {
+  // The door sweep took up to 4.788 s on main (three runs); 4x rounds up to 30 s, covered by the global default.
+  it("sweeps both fridge doors through the aisle beside the fridge without hitting the cab seat or standing decor", () => {
     const items = standingItems();
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
       (s) => !s.hanging,

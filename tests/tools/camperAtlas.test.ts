@@ -35,8 +35,10 @@ type Region = [string, number, number, number, number];
 type Face = { uv: number[]; uv_size: number[] };
 
 describe("camper atlas", () => {
-  // Full generation took up to 15.6 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
-  it("writes only the khaki colour atlas and companion maps", () => {
+  // Main maximum 19.994 s (three runs); 4 x 19.994 = 79.976 s, rounded up to 90 s.
+  it("writes only the khaki colour atlas and companion maps", {
+    timeout: 90_000,
+  }, () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-colour-"));
     try {
       cpSync("tools", join(temporary, "tools"), { recursive: true });
@@ -61,10 +63,12 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  }, 90_000);
+  });
 
-  // Three full checks took up to 60.3 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
-  it("detects stale outputs while accepting equivalent JSON and PNG encoding", () => {
+  // Main maximum 72.329 s (three runs); 4 x 72.329 = 289.316 s, rounded up to 300 s.
+  it("detects stale outputs while accepting equivalent JSON and PNG encoding", {
+    timeout: 300_000,
+  }, () => {
     const temporary = mkdtempSync(join(tmpdir(), "camper-atlas-"));
     try {
       cpSync("packs/yasu_ride_rp", temporary, { recursive: true });
@@ -135,7 +139,7 @@ describe("camper atlas", () => {
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
-  }, 270_000);
+  });
 
   it("preserves the one-row swatches without any regions", async () => {
     expect(

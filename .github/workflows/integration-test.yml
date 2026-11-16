@@ -13,8 +13,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Generates the pack files once per run so the matrix below only restores
+  # them (ADR 0248). It needs Python and the pnpm shim, not installed dependencies.
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: runner
+        run: |
+          if [ -f scripts/game-test.mjs ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.runner.outputs.present == 'true'
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+
+      - if: steps.runner.outputs.present == 'true'
+        uses: ./.github/actions/generated-files
+
   # Runs the in-game tests (ADR 0010) against the dev BDS from server/compose.yaml (ADR 0011).
   in-game:
+    needs: generate
     name: in-game (${{ matrix.label }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -53,13 +76,13 @@ jobs:
           fi
 
       - if: steps.runner.outputs.present == 'true'
-        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
 
       - if: steps.runner.outputs.present == 'true'
         run: pnpm install --frozen-lockfile
 
       - if: steps.runner.outputs.present == 'true'
-        run: pnpm generate
+        uses: ./.github/actions/generated-files
 
       - if: steps.runner.outputs.present == 'true'
         run: pnpm run build

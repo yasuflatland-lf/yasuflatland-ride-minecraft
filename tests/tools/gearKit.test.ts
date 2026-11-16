@@ -79,8 +79,10 @@ rejects(lambda: g.ring(8, a, 1, 0, face))`,
     );
   });
 
-  // The loft property took up to 8.6 s in CI (PR #1738, four runs); 4x rounded up to 30 s.
-  it("closes constant lofts in both modes and builds local pitch before yaw", async () => {
+  // Main maximum 11.712 s (three runs); 4 x 11.712 = 46.848 s, rounded up to 60 s.
+  it("closes constant lofts in both modes and builds local pitch before yaw", {
+    timeout: 60_000,
+  }, async () => {
     await fc.assert(
       fc.asyncProperty(
         dimension,
@@ -151,9 +153,12 @@ g.COMPOUND_TILTS = True`,
       ),
       runs,
     );
-  }, 60_000);
+  });
 
-  it("extrudes convex and concave profiles without gaps and with exact bounds", async () => {
+  // Main maximum 10.528 s (three runs); 4 x 10.528 = 42.112 s, rounded up to 60 s.
+  it("extrudes convex and concave profiles without gaps and with exact bounds", {
+    timeout: 60_000,
+  }, async () => {
     await fc.assert(
       fc.asyncProperty(dimension, dimension, async (w, h) => {
         await run(
