@@ -40,6 +40,7 @@ import os
 import struct
 import sys
 import zlib
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -873,6 +874,12 @@ class RasterJob:
     see_through: tuple | list
 
 
+@dataclass(frozen=True)
+class SceneResult:
+    images: dict[str, RasterJob]
+    icon: RasterJob | None
+
+
 def rasterize_job(job: RasterJob) -> bytearray:
     return rasterize(job.polygons, job.layers, job.to_screen, job.width, job.height,
                      job.background, job.bloom, job.see_through)
@@ -1054,7 +1061,7 @@ def rasterize(polygons, layers, to_screen, width=WIDTH, height=HEIGHT, backgroun
     return out
 
 
-def render(rp, icon_path=None):
+def render_suv(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / TEXTURE)
     lit_texture = read_png(rp / LIT_TEXTURE)
@@ -1074,17 +1081,13 @@ def render(rp, icon_path=None):
         name: RasterJob(name, scenes[name], layers[name], to_screen, WIDTH, HEIGHT, None, BLOOM, ())
         for name in POSES
     }
-    images.update(render_boat(rp))
-    images.update(render_camper(rp))
-    images.update(render_bulldozer(rp))
-    images.update(render_camping_gear(rp))
     icon = None
     if icon_path is not None:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
         pose = {**POSES["suv-flying.png"], "lamps": True, "brightness": 1.0}
         polygons = collect(geo, texture, folds, turns, pose, lit_texture)
         icon = render_icon(geo, polygons, camera, str(icon_path))
-    return images, icon
+    return SceneResult(images, icon)
 
 
 def fit(camera, quads):
@@ -1115,7 +1118,7 @@ def fit_views(views):
     ]
 
 
-def render_boat(rp):
+def render_boat(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / BOAT_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / BOAT_TEXTURE)
     scenes = {name: collect_boat(geo, texture, pose) for name, pose in BOAT_POSES.items()}
@@ -1135,16 +1138,17 @@ def render_boat(rp):
         for name in names:
             polygons, glass = scenes[name]
             images[name] = RasterJob(name, polygons, [], to_screen, WIDTH, HEIGHT, None, BLOOM, glass + layers[name])
-    return {name: images[name] for name in BOAT_POSES}
+    return SceneResult({name: images[name] for name in BOAT_POSES}, None)
 
 
-def render_camper(rp):
+def render_camper(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / CAMPER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / CAMPER_TEXTURE)
     # Camper previews use the ground pose, where the render controller hides hover glows.
     geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Other atlases intentionally use center sampling in their established previews.
-    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True, cache_faces=True, defer_textures=True)
+    images = render_poses(geo, texture, CAMPER_POSES, texture_mapping=True, cache_faces=True, defer_textures=True)
+    return SceneResult(images, None)
 
 
 def bulldozer_bones(bones):
@@ -1156,14 +1160,15 @@ def opaque_lenses(texture):
     return [[(r, g, b, 255 if a == 0 else a) for r, g, b, a in row] for row in texture]
 
 
-def render_bulldozer(rp):
+def render_bulldozer(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / BULLDOZER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / BULLDOZER_TEXTURE)
-    return render_poses(
+    images = render_poses(
         {**geo, "bones": bulldozer_bones(geo["bones"])},
         opaque_lenses(texture),
         BULLDOZER_POSES,
     )
+    return SceneResult(images, None)
 
 
 def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cache_faces=False, defer_textures=False):
@@ -1322,11 +1327,12 @@ def small_models(rp):
     ]
 
 
-def render_camping_gear(rp):
-    return {
+def render_camping_gear(rp: Path, icon_path: Path | None) -> SceneResult:
+    images = {
         f"{GEAR_DIR}/{name}.png": render_gear(geo, texture, GEAR_SIZE, f"{GEAR_DIR}/{name}.png")
         for name, geo, texture in small_models(rp)
     }
+    return SceneResult(images, None)
 
 
 def fit_square(camera, quads, size):
@@ -1400,6 +1406,26 @@ def render_icon(geo, polygons, camera, target_name):
                     background[i] = (*(background[i][c] * (1 - alpha) + GLOW_DISC_COLOR[c] * alpha for c in range(3)), 1.0)
     # Bloom would wash the lamp and disc halos over the orange band and blur the small icon.
     return RasterJob(target_name, polygons, [], to_screen, size, size, background, {}, ())
+
+
+SCENE_BUILDERS: tuple[tuple[str, Callable[[Path, Path | None], SceneResult]], ...] = (
+    ("suv", render_suv),
+    ("boat", render_boat),
+    ("camper", render_camper),
+    ("bulldozer", render_bulldozer),
+    ("gear", render_camping_gear),
+)
+
+
+def render(rp, icon_path=None):
+    images = {}
+    icon = None
+    for _, builder in SCENE_BUILDERS:
+        result = builder(rp, icon_path)
+        images.update(result.images)
+        if result.icon is not None:
+            icon = result.icon
+    return images, icon
 
 
 def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path]) -> list[RasterJob]:
