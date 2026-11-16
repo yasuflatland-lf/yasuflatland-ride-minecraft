@@ -280,3 +280,5 @@ yasu_build.warp.registry_full=The warp registry is full.
 yasu_build.warp.point_gone=Warp point "%1" no longer exists and was removed.
 yasu_build.warp.no_points=No warp points are registered.
 yasu_build.warp.teleport_failed=Could not teleport to the warp point.
+item.yasu_build:warp_tool.name=Warp Tool
+tile.yasu_build:warp_block.name=Warp Block
