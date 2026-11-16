@@ -216,7 +216,9 @@ def _fork(result):
         y = SPRING_Y0 + (SPRING_Y1 - SPRING_Y0) * u
         coil.append((SUSPENSION_X + SPRING_RADIUS * math.cos(a), y - SPRING_RADIUS * SPRING_TILT_Y * math.sin(a),
                      _spring_z(y) + SPRING_RADIUS * SPRING_TILT_Z * math.sin(a)))
-    result.add("steer", kit.tube(coil, SPRING_WIRE, chrome, assembly="running_spring"))
+    # Two crossed square sections, the second rolled 45 degrees about the segment axis, read as a round wire.
+    for roll in (0, 45):
+        result.add("steer", kit.tube(coil, SPRING_WIRE, chrome, assembly="running_spring", roll=roll))
     for y in SEAT_YS:
         z = _spring_z(y)
         result.add("steer", kit.box((SUSPENSION_X - SEAT_HALF[0], y - SEAT_HALF[1], z - SEAT_HALF[2]),
