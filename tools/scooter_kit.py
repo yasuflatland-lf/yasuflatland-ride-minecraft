@@ -95,7 +95,7 @@ def _oriented(lo, hi, pivot, rotation, uv_faces, assembly):
     return cube
 
 
-def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None):
+def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None, tangent_frame=False):
     u = [(a1[i] - a0[i] + b1[i] - b0[i]) / 2 for i in range(3)]
     v = [(b0[i] - a0[i] + b1[i] - a1[i]) / 2 for i in range(3)]
     if _length(u) < EDGE_EPSILON or _length(v) < EDGE_EPSILON:
@@ -109,7 +109,10 @@ def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None):
     center = _centroid((a0, a1, b0, b1))
     if _dot(normal, _sub(center, inside)) < 0:
         normal = [-n for n in normal]
-    rotation = _rotation(normal)
+        ey = [-n for n in ey]
+    # Tyre patches need their in-plane turn; a normal alone produces oversized boxes over the whitewall.
+    rotation = (tilt._rotation_of([[ex[i], ey[i], normal[i]] for i in range(3)])
+                if tangent_frame else _rotation(normal))
     matrix = tilt.cube_matrix(rotation)
     ex, ey = ([matrix[i][j] for i in range(3)] for j in range(2))
     projected = [(_dot(_sub(p, center), ex), _dot(_sub(p, center), ey)) for p in (a0, a1, b0, b1)]
@@ -123,7 +126,7 @@ def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None):
                      center, rotation, uv_faces, assembly)
 
 
-def skin(rings, thick, uv_faces, inside=None, closed=False, assembly=None):
+def skin(rings, thick, uv_faces, inside=None, closed=False, assembly=None, tangent_frame=False):
     cubes = []
     for k, (a, b) in enumerate(zip(rings, rings[1:])):
         if len(a) != len(b):
@@ -133,7 +136,7 @@ def skin(rings, thick, uv_faces, inside=None, closed=False, assembly=None):
             point = inside(k, j) if callable(inside) else inside
             if point is None:
                 point = _centroid((_centroid(a), _centroid(b)))
-            cube = quad(a[j], a[next_j], b[j], b[next_j], thick, uv_faces, point, assembly)
+            cube = quad(a[j], a[next_j], b[j], b[next_j], thick, uv_faces, point, assembly, tangent_frame)
             if cube is not None:
                 cubes.append(cube)
     return cubes
