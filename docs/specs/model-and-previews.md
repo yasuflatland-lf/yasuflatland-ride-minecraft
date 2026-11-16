@@ -45,6 +45,35 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 - Implementation: `tools/render_preview.py` (`CAMPER_CELLS_PER_UNIT`, `CAMPER_POSES`, `textured_face`, `collect_boat`).
 - Verification: `tests/tools/renderPreview.test.ts` checks unchanged patches below the cap, capped cell counts and coverage, and midpoint colors with mirrored UVs and merging enabled or disabled; `pnpm model:check` checks preview freshness.
 
+### Scooter generator foundation
+
+- Applies to: Scooter generator primitives, placeholder geometry, and texture regions.
+- Rule: `tools/gen_scooter.py` exposes an importable `build()` and writes only the generated
+  `scooter.geo.json` and `scooter.png` assets. Dimensions live in `scooter_dims.py`;
+  `scooter_atlas.py` classifies paint separately from other materials and reuses the
+  camper MaxRects packer. Area builders register local region faces before packing;
+  each face resolves once and remains bound to its region for the atlas audit.
+  `scooter_kit.py` builds panels and tubes in the spike frame, then mirrors their x
+  coordinates and rotations into Bedrock coordinates without replacing cube objects.
+  Compound rotations require named assemblies under ADR 0167.
+
+The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
+`headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
+`seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
+pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
+model pixels apart. Empty area and assembly tables allow later areas to replace
+the seven placeholder cubes independently. The whole-vehicle target is 3,500 cubes;
+generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
+only; the scooter has no entity or riding behavior yet.
+
+- Agreement: Proposed
+- Basis: [0009](../adr/0009-vehicle-model-conventions.md), front direction and model bones; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), named compound assemblies and the pending device confirmation of rotation order.
+- Implementation: `tools/gen_scooter.py`, `tools/scooter_dims.py`, `tools/scooter_atlas.py`, `tools/scooter_kit.py`, `tools/generators.json`.
+- Verification: `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
+  corners, local UV resolution, measured dimensions, and deterministic builds.
+  `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
+  UV bounds, and per-area budgets against the generated model and Python builders.
+
 ### Camper generator modules
 
 - Applies to: Camper geometry generation and the final cube ownership fixture.
