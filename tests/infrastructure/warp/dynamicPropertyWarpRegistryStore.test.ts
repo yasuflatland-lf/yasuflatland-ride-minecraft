@@ -12,7 +12,8 @@ const game = vi.hoisted(() => ({
 vi.mock("@minecraft/server", () => ({ world: game }));
 
 const COUNT = "yasu_build:warp_registry:count";
-const chunkKey = (index: number) => `yasu_build:warp_registry:${index}`;
+const chunkKey = (bank: number, index: number) =>
+  `yasu_build:warp_registry:${bank}:${index}`;
 const saved = new Map<string, unknown>();
 
 beforeEach(() => {
@@ -28,12 +29,12 @@ beforeEach(() => {
 it("reads lazily and reloads properties on every call", () => {
   const store = new DynamicPropertyWarpRegistryStore();
   expect(game.getDynamicProperty).not.toHaveBeenCalled();
-  saved.set(chunkKey(0), "orphaned chunk");
+  saved.set(chunkKey(0, 0), "orphaned chunk");
   expect(store.load()).toEqual(emptyRegistry());
   expect(game.getDynamicProperty).toHaveBeenCalledExactlyOnceWith(COUNT);
-  saved.set(COUNT, 1);
+  saved.set(COUNT, "0:1");
   expect(store.load()).toBeUndefined();
-  saved.set(chunkKey(0), JSON.stringify(toSnapshot(emptyRegistry())));
+  saved.set(chunkKey(0, 0), JSON.stringify(toSnapshot(emptyRegistry())));
   expect(store.load()).toEqual(emptyRegistry());
 });
 
@@ -49,13 +50,23 @@ it("round trips registries through world properties", () => {
 
 it("rejects invalid counts, missing chunks, non-string chunks and invalid snapshots", () => {
   const store = new DynamicPropertyWarpRegistryStore();
-  for (const count of ["1", true, -1, 0.5, NaN, Infinity, 2 ** 53]) {
+  for (const count of [
+    1,
+    "1",
+    "2:1",
+    "0:-1",
+    "0:01",
+    "0:1.5",
+    "0:",
+    true,
+    -1,
+    NaN,
+    `0:${2 ** 53}`,
+  ]) {
     saved.set(COUNT, count);
     expect(store.load()).toBeUndefined();
   }
-  saved.set(COUNT, 0);
-  expect(store.load()).toBeUndefined();
-  saved.set(COUNT, 1);
+  saved.set(COUNT, "0:1");
   for (const raw of [
     undefined,
     123,
@@ -65,15 +76,15 @@ it("rejects invalid counts, missing chunks, non-string chunks and invalid snapsh
     "null",
     '{"version":2,"points":[]}',
   ]) {
-    saved.set(chunkKey(0), raw);
+    saved.set(chunkKey(0, 0), raw);
     expect(store.load()).toBeUndefined();
   }
-  saved.set(COUNT, 2);
-  saved.set(chunkKey(0), JSON.stringify(toSnapshot(emptyRegistry())));
+  saved.set(COUNT, "1:2");
+  saved.set(chunkKey(1, 0), JSON.stringify(toSnapshot(emptyRegistry())));
   expect(store.load()).toBeUndefined();
 });
 
-it("writes bounded chunks before the count and removes stale chunks afterwards", () => {
+it("writes bounded chunks before the count and removes the old bank afterwards", () => {
   fc.assert(
     fc.property(point, (p) => {
       saved.clear();
@@ -85,20 +96,20 @@ it("writes bounded chunks before the count and removes stale chunks afterwards",
       const chunkCalls = calls.slice(0, -1);
       expect(chunkCalls.length).toBeGreaterThan(1);
       for (const [index, [key, value]] of chunkCalls.entries()) {
-        expect(key).toBe(chunkKey(index));
+        expect(key).toBe(chunkKey(0, index));
         expect(typeof value).toBe("string");
         expect(value.length).toBeLessThan(30_000);
         expect(Buffer.byteLength(value, "utf8")).toBeLessThan(32_767);
       }
-      expect(calls.at(-1)).toEqual([COUNT, chunkCalls.length]);
+      expect(calls.at(-1)).toEqual([COUNT, `0:${chunkCalls.length}`]);
       expect(store.load()).toEqual(reg);
       game.setDynamicProperty.mockClear();
       store.save(emptyRegistry());
       expect(game.setDynamicProperty.mock.calls).toEqual([
-        [chunkKey(0), JSON.stringify(toSnapshot(emptyRegistry()))],
-        [COUNT, 1],
-        ...Array.from({ length: chunkCalls.length - 1 }, (_, i) => [
-          chunkKey(i + 1),
+        [chunkKey(1, 0), JSON.stringify(toSnapshot(emptyRegistry()))],
+        [COUNT, "1:1"],
+        ...Array.from({ length: chunkCalls.length }, (_, i) => [
+          chunkKey(0, i),
           undefined,
         ]),
       ]);
@@ -109,9 +120,9 @@ it("writes bounded chunks before the count and removes stale chunks afterwards",
   );
 });
 
-it("does not publish a count or delete stale chunks when a chunk write fails", () => {
-  saved.set(COUNT, 3);
-  saved.set(chunkKey(2), "stale");
+it("does not publish a count or delete the old bank when the first chunk write fails", () => {
+  saved.set(COUNT, "0:1");
+  saved.set(chunkKey(0, 0), JSON.stringify(toSnapshot(emptyRegistry())));
   game.setDynamicProperty.mockImplementationOnce(() => {
     throw new Error("write failed");
   });
@@ -119,6 +130,31 @@ it("does not publish a count or delete stale chunks when a chunk write fails", (
     new DynamicPropertyWarpRegistryStore().save(emptyRegistry()),
   ).toThrow("write failed");
   expect(game.setDynamicProperty).toHaveBeenCalledTimes(1);
-  expect(saved.get(COUNT)).toBe(3);
-  expect(saved.get(chunkKey(2))).toBe("stale");
+  expect(saved.get(COUNT)).toBe("0:1");
+  expect(new DynamicPropertyWarpRegistryStore().load()).toEqual(
+    emptyRegistry(),
+  );
+});
+
+it("keeps the old multi-chunk registry readable when an overwrite fails after the first chunk", () => {
+  const store = new DynamicPropertyWarpRegistryStore();
+  const [base] = fc.sample(point, 1);
+  if (!base) throw new Error("no sample");
+  const big = (owner: string) => ({
+    points: [{ ...base, owner: owner.repeat(70_000) }],
+  });
+  const old = big("\u0800");
+  store.save(old);
+  expect(saved.get(COUNT)).toMatch(/^0:[2-9]/);
+  let writes = 0;
+  game.setDynamicProperty.mockImplementation((key: string, value: unknown) => {
+    if (++writes === 2) throw new Error("write failed");
+    if (value === undefined) saved.delete(key);
+    else saved.set(key, value);
+  });
+  expect(() => store.save(big("\u0801"))).toThrow("write failed");
+  expect(new DynamicPropertyWarpRegistryStore().load()).toEqual(old);
+  writes = -1000;
+  store.save(big("\u0801"));
+  expect(store.load()).toEqual(big("\u0801"));
 });

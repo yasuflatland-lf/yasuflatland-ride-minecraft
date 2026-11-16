@@ -5,24 +5,43 @@ import {
   emptyRegistry,
   type WarpRegistry,
 } from "../../../domain/warp/warpRegistry";
-import { WARP_REGISTRY_COUNT, warpRegistryChunkKey } from "../identifiers";
+import {
+  WARP_REGISTRY_COUNT,
+  type WarpRegistryBank,
+  warpRegistryChunkKey,
+} from "../identifiers";
 import { chunkString, joinChunks } from "./chunks";
 
 // Allow up to three UTF-8 bytes per UTF-16 code unit within the property limit.
 const CHUNK_SIZE = 10_000;
 
-function isChunkCount(value: unknown): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+interface Published {
+  bank: WarpRegistryBank;
+  count: number;
+}
+
+// The published value is "<bank>:<count>". One write switches both the bank
+// and the chunk count, so readers never see chunks from two saves mixed.
+function parsePublished(value: unknown): Published | undefined {
+  if (typeof value !== "string") return undefined;
+  const match = /^([01]):(0|[1-9]\d*)$/.exec(value);
+  if (!match) return undefined;
+  const count = Number(match[2]);
+  if (!Number.isSafeInteger(count)) return undefined;
+  return { bank: match[1] === "1" ? 1 : 0, count };
 }
 
 export class DynamicPropertyWarpRegistryStore implements WarpRegistryStore {
   load(): WarpRegistry | undefined {
-    const count = world.getDynamicProperty(WARP_REGISTRY_COUNT);
-    if (count === undefined) return emptyRegistry();
-    if (!isChunkCount(count)) return undefined;
+    const raw = world.getDynamicProperty(WARP_REGISTRY_COUNT);
+    if (raw === undefined) return emptyRegistry();
+    const published = parsePublished(raw);
+    if (!published) return undefined;
     const chunks: string[] = [];
-    for (let index = 0; index < count; index++) {
-      const chunk = world.getDynamicProperty(warpRegistryChunkKey(index));
+    for (let index = 0; index < published.count; index++) {
+      const chunk = world.getDynamicProperty(
+        warpRegistryChunkKey(published.bank, index),
+      );
       if (typeof chunk !== "string") return undefined;
       chunks.push(chunk);
     }
@@ -38,16 +57,22 @@ export class DynamicPropertyWarpRegistryStore implements WarpRegistryStore {
       JSON.stringify(toSnapshot(registry)),
       CHUNK_SIZE,
     );
-    const previousCount = world.getDynamicProperty(WARP_REGISTRY_COUNT);
+    const previous = parsePublished(
+      world.getDynamicProperty(WARP_REGISTRY_COUNT),
+    );
+    // Write into the bank the published value does not reference, so a failed
+    // write leaves the published registry intact.
+    const bank: WarpRegistryBank = previous?.bank === 0 ? 1 : 0;
     for (const [index, chunk] of chunks.entries()) {
-      world.setDynamicProperty(warpRegistryChunkKey(index), chunk);
+      world.setDynamicProperty(warpRegistryChunkKey(bank, index), chunk);
     }
-    // Publish the count only after every chunk write succeeds. Existing chunk
-    // keys are reused, so this ordering cannot make overwrites atomic.
-    world.setDynamicProperty(WARP_REGISTRY_COUNT, chunks.length);
-    if (isChunkCount(previousCount)) {
-      for (let index = chunks.length; index < previousCount; index++) {
-        world.setDynamicProperty(warpRegistryChunkKey(index), undefined);
+    world.setDynamicProperty(WARP_REGISTRY_COUNT, `${bank}:${chunks.length}`);
+    if (previous) {
+      for (let index = 0; index < previous.count; index++) {
+        world.setDynamicProperty(
+          warpRegistryChunkKey(previous.bank, index),
+          undefined,
+        );
       }
     }
   }
