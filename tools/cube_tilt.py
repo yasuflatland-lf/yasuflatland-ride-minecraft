@@ -83,6 +83,11 @@ def _rotation_of(m):
     return [_clean(-x), _clean(y), _clean(-z)]
 
 
+def roll_rotation(rotation, degrees):
+    """`rotation` with the cube first turned `degrees` about its own local z, so a segment rolls about its axis."""
+    return _rotation_of(_mul(cube_matrix(rotation), _rz(-degrees)))
+
+
 def panel_matrix(lean, yaw):
     """The turn of a flat panel: lean about x first, then yaw about the vertical, so its rows stay level."""
     return _mul(_ry(yaw), _rx(-lean))

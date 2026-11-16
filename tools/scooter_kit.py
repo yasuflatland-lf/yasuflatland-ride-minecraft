@@ -149,7 +149,8 @@ def tube(points, size, uv_faces, assembly=None, roll=0):
         center = _centroid((a, b))
         half = [size/2, size/2, length/2 + TUBE_END_EXTENSION*size]
         rotation = _rotation(_unit(direction))
-        rotation[2] = roll
+        if roll:
+            rotation = tilt.roll_rotation(rotation, roll)
         cubes.append(_oriented([center[i]-half[i] for i in range(3)],
                                [center[i]+half[i] for i in range(3)], center,
                                rotation, uv_faces, assembly))

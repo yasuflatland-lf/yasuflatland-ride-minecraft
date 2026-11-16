@@ -165,6 +165,17 @@ assert len(k.skin(rings,0.1,a.faces('paint'),closed=True,assembly='skin'))==3
 `);
   });
 
+  it("rolls a tube cube about its own axis without leaving the segment direction", async () => {
+    await python.run(`${setup}
+d0=[0.941,0.188,0.282]
+n=math.sqrt(sum(x*x for x in d0))
+for roll in (0,45):
+    c,=k.tube([[0,0,0],[x/n*3 for x in d0]],0.2,a.faces('chrome'),assembly='rod',roll=roll)
+    axis=t.apply_matrix(t.cube_matrix(c.get('rotation',[0,0,0])),[0,0,1])
+    assert all(abs(axis[i]-d0[i]/n)<1e-6 for i in range(3)),(roll,axis)
+`);
+  });
+
   it("uses the measured steering line, grounded tyres, and wheelbase", async () => {
     const result = JSON.parse(
       await python.run(`${setup}
