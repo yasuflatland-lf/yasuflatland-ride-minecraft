@@ -55,6 +55,28 @@ const suvLit = (x: number, y: number) =>
       lit.some(([lx, ly]) => lx === x && ly === y),
   );
 
+const scooterLitRects: [number, number, number, number][] = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+textures = load_tool('scooter_textures')
+# The areas register their regions while building, so only a full build packs the real atlas.
+_, layout, _ = load_tool('gen_scooter').build()
+print(json.dumps([[*layout.origin(r.name), r.width, r.height] for r in layout.regions if r.name in textures.LIT_REGIONS]))`,
+    ],
+    { encoding: "utf8" },
+  ),
+);
+const scooterLit = (x: number, y: number) =>
+  scooterLitRects.some(
+    ([bx, by, w, h]) => x >= bx && x < bx + w && y >= by && y < by + h,
+  );
+
 describe("SUV tail lamp lit texels", () => {
   it("lights exactly the painter's LED, reverse and complete third brake regions", () => {
     const expected: {
@@ -140,6 +162,13 @@ const kinds = [
     condition: headlights,
   },
   {
+    kind: "scooter",
+    slots: [],
+    regionRule: scooterLit,
+    bones: { headlights, tail_lights: headlights },
+    condition: headlights,
+  },
+  {
     kind: "sportsboat",
     slots: [14],
     cell: 4,
@@ -182,7 +211,8 @@ describe.each(kinds)(
   ({ kind, slots, cell, regionRule, bones, condition }) => {
     function expectedColorTexel(pixel: number[], on: boolean) {
       if (on) return [...pixel.slice(0, 3), 0];
-      if (["suv", "scooter"].includes(kind) && pixel[3] === 0)
+      // Both generators pass opaque_unlit_cutouts, so a cutout hole stays out of the lit pass.
+      if ((kind === "suv" || kind === "scooter") && pixel[3] === 0)
         return [...pixel.slice(0, 3), 255];
       return pixel;
     }
