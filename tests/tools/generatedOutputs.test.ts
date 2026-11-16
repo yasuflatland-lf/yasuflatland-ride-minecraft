@@ -354,6 +354,36 @@ assert 'workflow_run' not in workflow
 `);
 });
 
+it("makes every integration job that uses the generated-files action depend on generate", () => {
+  python(`
+import re
+from pathlib import Path
+workflow = Path('.github/workflows/integration-test.yml').read_text()
+jobs = {}
+for match in re.finditer(r'^  ([a-z][a-z-]*):\\n(.*?)(?=^  [a-z][a-z-]*:\\n|\\Z)', workflow.split('\\njobs:\\n', 1)[1], re.S | re.M):
+    jobs[match.group(1)] = match.group(2)
+assert 'generate' in jobs
+
+def dependencies(body):
+    match = re.search(r'^    needs:[ \\t]*(\\[[^\\]]*\\]|[^\\n]*)(?:\\n((?:      - [^\\n]+\\n)*))?', body, re.M)
+    if not match:
+        return []
+    return re.findall(r'[a-z][a-z-]*', match.group(1) + ' ' + (match.group(2) or ''))
+
+def reaches_generate(job, seen):
+    if job == 'generate':
+        return True
+    if job in seen or job not in jobs:
+        return False
+    seen.add(job)
+    return any(reaches_generate(need, seen) for need in dependencies(jobs[job]))
+
+for job, body in jobs.items():
+    if job != 'generate' and 'uses: ./.github/actions/generated-files' in body:
+        assert reaches_generate(job, set()), f'integration-test: {job} must need generate'
+`);
+});
+
 it("reports cache hits and misses with elapsed generation time", () => {
   python(`
 import os, re, subprocess, tempfile, textwrap

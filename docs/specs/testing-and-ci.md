@@ -120,7 +120,23 @@
 - Agreement: Proposed
 - Basis: [0248](../adr/0248-treat-generated-pack-files-as-build-outputs.md) Decision; [0015](../adr/0015-dev-server-docker-nethernet.md) Decision.
 - Implementation: `.github/actions/generated-files/action.yml`; `.github/workflows/unit-test.yml`; `.github/workflows/integration-test.yml`; `.github/workflows/release.yml`; `scripts/check-rp-version.mjs`.
-- Verification: `tests/scripts/checkRpVersion.test.ts` checks generator-input-only failures, bumped tracked RP changes, external reads, removed RP files, and ignored build outputs. `tests/tools/generatedOutputs.test.ts` checks shared-action callers, their ordering and guards, bytecode-free cache-path listing, and hit/miss summaries. Cache service behavior and live BDS runs are not verified locally.
+- Verification: `tests/scripts/checkRpVersion.test.ts` checks generator-input-only failures, bumped tracked RP changes, external reads, removed RP files, and ignored build outputs. `tests/tools/generatedOutputs.test.ts` checks shared-action callers, their ordering and guards, that every integration job using the action needs `generate` directly or transitively, bytecode-free cache-path listing, and hit/miss summaries. Cache service behavior and live BDS runs are not verified locally.
+
+### Generation cost in CI
+
+| Workflow and cache             | `generate` job                      | Longest downstream job or wall-clock                | Billed job-seconds | Before/control                                                                                    |
+| ------------------------------ | ----------------------------------- | --------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------- |
+| Unit (2/4, #1715), warm        | 10–17 s on a hit; 30 s limit passed | Wall-clock median 454 s (378, 463, 445, 454, 651)   | Median 1052 s      | Main median 446 s (6 runs, mean 426 s); control median 432 s (425, 434, 432), billed median 975 s |
+| Unit (2/4, #1715), cold        | 34–35 s; one miss instead of five   | Billed without `tools` and `check`: 550 s and 528 s | 909 s and 1089 s   | Control (#1719, five misses) 902 s and 1092 s; without `tools` and `check` 493 s and 531 s        |
+| Integration (3/4, #1716), warm | 12 s                                | Longest `in-game` 162 s                             | 680 s              | Main longest mean 163.7 s (167, 167, 157); billed mean 745.7 s (770, 728, 739)                    |
+| Integration (3/4, #1716), cold | 37 s; the only miss                 | Longest `in-game` 178 s                             | 698 s              | Same warm main baseline: 163.7 s longest and 745.7 s billed; not a strict cold comparison         |
+
+- Applies to: generation in the unit and integration workflows.
+- Rule: The integration workflow generates once per run in a `generate` job that the `in-game` matrix needs. The unit workflow keeps per-job generation because a shared job was not cheaper. In the warm unit trial, `generate` preceded the `tools` critical path, adding 13–20 s, while `tools` varied by more than the 20 s limit, making wall-clock results borderline. In two cold rounds with the same `tools/gen_sofa.py` comment change on both heads, the approximately 34 s shared job canceled the 7–20 s saved per downstream job; billed time changed by +7 s and -3 s, so the rule requiring a cold billed-seconds drop was not met. PR #1720 (2/4) was closed by its acceptance rule and issue #1715 was closed as not planned. PR #1721 (3/4, issue #1716) passed both rules and is open, pending merge. Re-measure when the number of jobs needing generated files changes by more than two, or cold `pnpm generate` exceeds 60 s.
+- Agreement: Proposed
+- Basis: [0248](../adr/0248-treat-generated-pack-files-as-build-outputs.md) Decision.
+- Implementation: `.github/workflows/unit-test.yml`; `.github/workflows/integration-test.yml`; `.github/actions/generated-files/action.yml`.
+- Verification: `tests/tools/generatedOutputs.test.ts` checks that integration jobs using the action need `generate` directly or transitively. The table records CI measurements from PRs #1720 and #1721 and the #1719 control.
 
 ### Python test selection and coverage merge
 
