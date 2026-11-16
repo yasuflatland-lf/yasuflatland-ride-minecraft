@@ -640,7 +640,17 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
         y: anchor.y + dy,
         z: anchor.z + dz,
       });
-      for (const c of target) f.block(c).setType("minecraft:gold_block");
+      // Air above solid ground keeps the snapped box at the aimed box (ADR 0203).
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of target) {
+        const ground = { ...c, y: c.y - 1 };
+        if (
+          ground.x !== anchor.x ||
+          ground.y !== anchor.y ||
+          ground.z !== anchor.z
+        )
+          f.block(ground).setType("minecraft:stone");
+      }
       const before = snapshot(f, target);
       await pasteStep(f, anchor.x, anchor.y, anchor.z, face, false);
       check(unchanged(f, target, before), "Plain aimed press wrote blocks");
