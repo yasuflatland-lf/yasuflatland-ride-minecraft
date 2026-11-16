@@ -24,7 +24,7 @@ AREA_ORDER = (
 
 ASSEMBLIES = {
     "rear_seat": {"owner": "scooter", "cubes": 162},
-    "rear_lamp": {"owner": "scooter", "cubes": 158},
+    "rear_lamp": {"owner": "scooter", "cubes": 212},
     "rear_plate": {"owner": "scooter", "cubes": 4},
     "body_cowl": {"owner": "scooter", "cubes": 594},
     "body_tail": {"owner": "scooter", "cubes": 216},
