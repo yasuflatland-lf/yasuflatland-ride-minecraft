@@ -22,6 +22,8 @@ import {
 import { type Arena, wait } from "../arena";
 import type { Outcome, StepSink } from "../outcome";
 
+const LOOK_SETTLE_MAX_TICKS = 20;
+
 interface BuildState {
   flow: string;
   clipboardHeld: boolean;
@@ -38,7 +40,7 @@ interface Reply {
   offered?: boolean;
   undoHints?: number;
   timedOut?: boolean;
-  flow: { kind: string; previous?: number };
+  flow: { kind: string; previous?: number; heightedKind?: string };
   mode?: boolean;
 }
 function check(ok: boolean, detail: string): asserts ok {
@@ -121,6 +123,26 @@ async function withBuilder(
     cell,
     look: (yaw: number) =>
       player.teleport(player.location, { rotation: { x: 25, y: yaw } }),
+    lookSettled: async (yaw: number, pitch = 25): Promise<void> => {
+      // A connected client sends its own rotation, so a teleport may be
+      // overwritten or not yet applied one tick later.
+      player.teleport(player.location, { rotation: { x: pitch, y: yaw } });
+      let settledTicks = 0;
+      let r = player.getRotation();
+      for (let tick = 0; tick < LOOK_SETTLE_MAX_TICKS; tick++) {
+        await wait(1);
+        r = player.getRotation();
+        const yawDelta = ((((r.y - yaw) % 360) + 540) % 360) - 180;
+        if (Math.abs(yawDelta) <= 1 && Math.abs(r.x - pitch) <= 1)
+          settledTicks++;
+        else settledTicks = 0;
+        if (settledTicks === 2) return;
+        player.teleport(player.location, { rotation: { x: pitch, y: yaw } });
+      }
+      throw new Error(
+        `view rotation did not settle: wanted yaw=${yaw} pitch=${pitch}, saw yaw=${r.y} pitch=${r.x}`,
+      );
+    },
     block,
     tap,
     edit,
@@ -174,6 +196,7 @@ async function withBuilder(
 type Fixture = {
   player: Player;
   look(yaw: number): void;
+  lookSettled(yaw: number, pitch?: number): Promise<void>;
   cell(x?: number, y?: number, z?: number): Cell;
   block(cell: Cell): NonNullable<ReturnType<Arena["dim"]["getBlock"]>>;
   tap(tap: "block" | "air" | "clear", cell?: Cell): Promise<Reply>;
