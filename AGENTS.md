@@ -29,7 +29,7 @@ pnpm build         # esbuild bundle into the Behavior Pack and the test pack
 pnpm package       # zip the packs into dist/yasuflatland-ride-<version>.mcaddon (after build)
 pnpm generate      # ensure generated pack files are current, skipping previews and icons
 pnpm model         # regenerate compact pack JSON, textures, README and item previews, pack icons, and the formatted camper fixture (Python 3)
-pnpm model:check   # check previews and pack icons against freshly generated packs
+pnpm model:check   # check every generator's output, previews and icons, and the output manifest
 pnpm sounds        # regenerate the Resource Pack sounds (Python 3)
 pnpm server:up     # register the packs and start the dev BDS (Docker)
 pnpm server:down   # stop the dev BDS
@@ -43,9 +43,9 @@ pnpm test:game     # run impacted scenarios on the running dev BDS in 4 lanes lo
 # GAME_TEST_AT=<0..7> runs inside one lane, for converting scenarios (defaults to serial).
 ```
 
-Build and Vitest run `pnpm generate` automatically through its Python command. The dev server and in-game test driver build first when bundles or generated files are missing or stale. `pnpm package` requires a successful build and reports missing generated files. `pnpm model` still forces all generators and renders previews and icons; `pnpm model:check` ensures fresh packs and checks the committed previews, rendered item icons, and pack icons. Generated build outputs declared by `tools/run_generators.py --list-outputs --untracked` are never committed; `pnpm generate` produces them locally, in CI, and for releases. Keep the renderer outputs marked `tracked: true` committed so GitHub and pack lists can display them. The generation stamp lives in the ignored `.cache/generated/` directory.
+Build and Vitest run `pnpm generate` automatically through its Python command. The dev server and in-game test driver build first when bundles or generated files are missing or stale. `pnpm package` requires a successful build and reports missing generated files. `pnpm model` still forces all generators and renders previews and icons; `pnpm model:check` ensures fresh packs, checks every generator's output, including the committed previews, rendered item icons, and pack icons, and verifies the output manifest. Generated build outputs declared by `tools/run_generators.py --list-outputs --untracked` are never committed; `pnpm generate` produces them locally, in CI, and for releases. Keep the renderer outputs marked `tracked: true` committed so GitHub and pack lists can display them. The generation stamp lives in the ignored `.cache/generated/` directory.
 
-Before you say a change is done, run `pnpm lint`, `pnpm lint:lang`, `pnpm lint:docs`, `pnpm lint:unused`, `pnpm lint:deps`, `pnpm typecheck`, and `pnpm test`. When you change `src/infrastructure`, `src/test-pack`, or the packs, also run `pnpm build`, restart the dev BDS, and run `pnpm test:game` if Docker is available. CI runs the lint, unused code, test, build, and package checks on every pull request ([unit-test.yml](.github/workflows/unit-test.yml), which also uploads coverage to Codecov) and runs the in-game tests against a BDS container ([integration-test.yml](.github/workflows/integration-test.yml)).
+Before you say a change is done, run `pnpm lint`, `pnpm lint:lang`, `pnpm lint:docs`, `pnpm lint:unused`, `pnpm lint:deps`, `pnpm typecheck`, and `pnpm test`. When you change `tools/**` or `package.json`, also run `pnpm model:check`. When you change `src/infrastructure`, `src/test-pack`, or the packs, also run `pnpm build`, restart the dev BDS, and run `pnpm test:game` if Docker is available. CI runs the lint, unused code, test, build, and package checks on every pull request ([unit-test.yml](.github/workflows/unit-test.yml), which also uploads coverage to Codecov) and runs the in-game tests against a BDS container ([integration-test.yml](.github/workflows/integration-test.yml)).
 
 Adding an in-game scenario requires a `CATALOG` entry in `src/test-pack/catalog.ts` (name, file, declared ticks, tags, isolation, vehicles) and an entry in `src/test-pack/scenarios/index.ts`.
 
