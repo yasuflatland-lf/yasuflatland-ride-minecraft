@@ -13,9 +13,13 @@ cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 
 AREA_ORDER = (
+    "rear",
 )
 
 ASSEMBLIES = {
+    "rear_seat": {"owner": "scooter", "cubes": 90},
+    "rear_lamp": {"owner": "scooter", "cubes": 158},
+    "rear_plate": {"owner": "scooter", "cubes": 4},
 }
 
 BONES = (
