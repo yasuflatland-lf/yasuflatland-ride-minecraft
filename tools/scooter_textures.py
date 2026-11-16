@@ -54,7 +54,7 @@ MER_BY_MATERIAL = {
     atlas.Material.PLATE: mer.Mer(DIELECTRIC_METALNESS, 0, PLATE_ROUGHNESS),
     atlas.Material.CUTOUT: mer.Mer(CAST_METALNESS, 0, CAST_ROUGHNESS),
 }
-LIT_REGIONS = ("head_lens", "lens_head", "lens_tail", "lens_amber", "glow")
+LIT_REGIONS = ("head_lens", "lens_head", "lens_tail_glow", "lens_amber", "glow")
 
 
 def recolor(layout, pixels, color):
@@ -138,10 +138,10 @@ def write(outputs, rp, layout, pixels):
     for region in layout.regions:
         if region.name in LIT_REGIONS:
             ox, oy = layout.origin(region.name)
-            row = bytes([1]) * region.width
             for y in range(oy, oy + region.height):
-                start = y * width + ox
-                mask[start:start + region.width] = row
+                for x in range(ox, ox + region.width):
+                    # Clear corners of a round lens must not glow as a square plate.
+                    mask[y * width + x] = pixels[(y * width + x) * 4 + 3] != 0
     lit_textures.build_lit_textures(
         outputs, directory, "scooter", width, height,
         texture_io.texel_reader(width, pixels), lambda x, y: mask[y * width + x],

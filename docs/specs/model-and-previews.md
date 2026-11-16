@@ -61,6 +61,13 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
   `MDR` over `39` from behind, with its horizontal raster reversed for Bedrock's rear-view
   coordinate convention after the final x mirror.
+  The 212-cube rear lamp uses full tangent frames with 0.01-unit panel margins,
+  16-point superellipse lens rings, alpha-clipped tapered panels and stepped side-housing
+  extrusions. Chrome stays
+  on `body` and red lenses on `tail_lights`. The base flange follows the calibrated
+  centre-line tail-wall profile with 0.23 units of embed; it may clear the wall by at
+  most 0.1 units or embed by at most 0.8 units. The plate hangs directly below the
+  lamp, with its top edge within 0.5 units of the wall and its short bracket embedded.
 
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
 `glow_front`, `headlights`, `wheel_rear_fold`, `wheel_rear`, `glow_rear`, `stand`, `tail_lights`, `seat_0`,
@@ -95,8 +102,9 @@ Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
 
 The running area supplies both wheels, suspension, and stand. Whitewall discs
 use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
-0.04 units of their ideal radii. The 32-segment black tyre skin preserves each
-panel's tangent frame so its bounding box cannot overlap the whitewall. Wheel and
+0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
+panel's tangent frame and takes no panel margin, so its outer envelope stays within
+0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
 fold bones retain their axle pivots. The combined packed atlas stays within 4096 by 4096
 texels. Side and front-left previews render the full atlas without a density cap.
 
