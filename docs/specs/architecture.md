@@ -246,6 +246,16 @@
 - Implementation: `.dependency-cruiser.cjs`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/dockLayer.ts`; `src/infrastructure/vehicle/kinds/camper/install.ts`
 - Verification: `tests/architecture.test.ts`; `tests/infrastructure/vehicle/install.test.ts`; `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts`
 
+### Warp form adapters
+
+- Applies to: Warp name and destination forms and feedback adapters; event handlers are not wired yet.
+- Rule: The `warp` infrastructure feature implements the application menu and feedback ports using the stable form API and shared player lookup. Name answers are trimmed and limited to `WARP_SPEC.nameMaxLength` by `parseWarpName`; an empty answer cancels the edit. Stable `ModalFormData` has no input length option, so the field label shows the limit and parsing enforces it on submission. Destination buttons preserve point IDs and show name, owner, translated dimension, coordinates, and an optional translated unverified suffix. Unknown dimensions show their raw ID. Previous and next controls appear only for reachable pages and use whitespace IDs excluded by snapshot validation. Busy answers remain distinct from cancellation; unavailable players and unanswered forms cancel. All five feedback methods use translated action-bar messages, with the point name substituted when a point is gone. Keys use `yasu_build.warp.*` in both locales.
+- Agreement: Accepted
+- Basis: [0001](../adr/0001-bedrock-addon-with-stable-script-api.md) Decision, stable Script API only.
+- Basis: [0046](../adr/0046-organize-each-layer-by-feature.md) Decision, feature boundaries and shared infrastructure.
+- Implementation: `src/infrastructure/warp/bedrock/bedrockWarpMenus.ts`; `src/infrastructure/warp/bedrock/bedrockWarpFeedback.ts`; `src/infrastructure/warp/messages.ts`
+- Verification: `tests/infrastructure/warp/menus.test.ts`; `tests/infrastructure/warp/feedback.test.ts`; `tests/packs/warpMessages.test.ts`. In-game presentation has not been tested; handler wiring belongs to the next series step.
+
 ## Open issues
 
 - ADR 0001 says to use only stable `@minecraft/server` 2.x; the implementation also imports stable server-ui forms and declares that module in the main manifest, as introduced by Proposed 0178 and retained by Proposed 0198 (`src/infrastructure/build/bedrock/buildMenus.ts`, `package.json`, `packs/yasu_ride_bp/manifest.json`); the ADR needs an edit or a superseding ADR.
