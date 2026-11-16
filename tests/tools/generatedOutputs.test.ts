@@ -45,6 +45,8 @@ for check in (False, True):
          patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \\
          patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \\
          patch.object(runner.OutputManifest, 'load', return_value=OutputManifest(entries)), \\
+         patch.object(runner, 'read_touched_report', return_value=()), \\
+         patch.object(runner.OutputManifest, 'ownership_errors', return_value=[]), \\
          patch.object(runner, 'STAMP', Path(directory) / 'stamp.json'), \\
          patch.object(runner, 'run_parallel') as run_parallel, \\
          patch.object(runner.subprocess, 'run', side_effect=AssertionError('unexpected subprocess')):
