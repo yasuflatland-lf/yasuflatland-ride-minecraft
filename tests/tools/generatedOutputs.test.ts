@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { expect, it } from "vitest";
+import fc from "fast-check";
+import { it } from "vitest";
+import { startPythonWorker } from "../support/pythonWorker";
 
 const python = (script: string) =>
   execFileSync("python3", ["-I", "-c", script], {
     encoding: "utf8",
-    timeout: 600_000,
     maxBuffer: 8 * 1024 * 1024,
   });
 
@@ -43,6 +44,8 @@ for check in (False, True):
          patch.object(sys, 'argv', ['run_generators.py'] + (['--check'] if check else [])), \\
          patch.object(runner.Path, 'read_text', return_value=json.dumps({'generators': entries})), \\
          patch.object(runner.OutputManifest, 'load', return_value=OutputManifest(entries)), \\
+         patch.object(runner, 'read_touched_report', return_value=()), \\
+         patch.object(runner.OutputManifest, 'ownership_errors', return_value=[]), \\
          patch.object(runner, 'STAMP', Path(directory) / 'stamp.json'), \\
          patch.object(runner, 'run_parallel') as run_parallel, \\
          patch.object(runner.subprocess, 'run', side_effect=AssertionError('unexpected subprocess')):
@@ -122,10 +125,9 @@ assert result.wasSuccessful()
 `);
 });
 
-it("declares every checked output exactly once and marks only generated assets", () => {
-  expect(
-    python(`
-import fnmatch, json, subprocess, sys, tempfile
+it("allows only hand-written or tracked generated art in Git and matches the tracked flags", () => {
+  python(`
+import fnmatch, json, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, 'tools')
 from generated_outputs import OutputManifest
@@ -143,25 +145,14 @@ handwritten = [
 for path in handwritten:
     assert Path(path).is_file(), path
     assert manifest.matches(path) is None, path
-with tempfile.TemporaryDirectory() as directory:
-    report = Path(directory) / 'touched.jsonl'
-    subprocess.run([sys.executable, '-I', 'tools/run_generators.py', '--check',
-                    '--report-touched', str(report)], check=True, stdout=subprocess.DEVNULL)
-    touched = [json.loads(line) for line in report.read_text().splitlines()]
-assert touched
-assert {entry['generator'] for entry in touched} == {
-    entry['script'] for entry in json.loads(Path('tools/generators.json').read_text())['generators']
-}
-for entry in touched:
-    matches = [output for output in manifest.outputs()
-               if fnmatch.fnmatchcase(entry['path'], output.pattern)]
-    assert len(matches) == 1, (entry, matches)
-    assert matches[0].generator == entry['generator'], (entry, matches)
 tracked = subprocess.check_output(['git', 'ls-files', '-z'], text=True).split('\\0')
 pack_art = {path for path in tracked if path.startswith('packs/')
             and ('/models/' in path or '/textures/' in path)}
-assert pack_art == set(handwritten) | {entry['path'] for entry in touched
-                                     if entry['path'] in pack_art}
+for path in pack_art:
+    if path not in handwritten:
+        output = manifest.matches(path)
+        assert output is not None and output.tracked, path
+assert set(handwritten) <= pack_art
 for output in manifest.outputs():
     matches = [path for path in tracked if fnmatch.fnmatchcase(path, output.pattern)]
     assert bool(matches) == output.tracked, (output, matches)
@@ -173,10 +164,8 @@ for flag, expected in [('--list-outputs', [o.pattern for o in manifest.outputs()
 actual = subprocess.check_output([sys.executable, '-I', 'tools/run_generators.py',
                                   '--list-outputs', '--untracked'], text=True)
 assert actual.splitlines() == list(manifest.untracked_patterns())
-print('manifest covers every generator output')
-`),
-  ).toContain("manifest covers every generator output");
-}, 600_000);
+`);
+});
 
 it("lists CI cache paths without creating bytecode inside the cache key inputs", () => {
   python(`
@@ -192,6 +181,143 @@ for command in commands:
         subprocess.check_output(shlex.split(command), cwd=directory, text=True)
         assert not list(Path(directory).rglob('__pycache__')), command
 `);
+});
+
+it("reports ownership errors with exact, sorted, deduplicated messages", () => {
+  python(`
+import sys, unittest
+sys.path.insert(0, 'tools')
+from generated_outputs import OutputManifest, TouchedOutput
+
+def manifest(*patterns):
+    return OutputManifest([{'script': name, 'outputs': outputs, 'reads': []}
+                           for name, outputs in patterns])
+
+class OwnershipTests(unittest.TestCase):
+    def setUp(self):
+        self.manifest = manifest(('z.py', ['packs/z.json', 'packs/z.png']),
+                                 ('a.py', ['packs/a*']))
+        self.clean = [TouchedOutput('z.py', 'packs/z.json'),
+                      TouchedOutput('z.py', 'packs/z.png'),
+                      TouchedOutput('a.py', 'packs/a/nested.png')]
+
+    def test_clean_and_plan_order(self):
+        self.assertEqual(self.manifest.generators(), ('z.py', 'a.py'))
+        self.assertEqual(self.manifest.ownership_errors(iter(self.clean)), [])
+
+    def test_undeclared(self):
+        self.assertEqual(self.manifest.ownership_errors(self.clean + [
+            TouchedOutput('a.py', 'packs/A.png')]), [
+            'packs/A.png: touched by a.py but declared by no output pattern'])
+
+    def test_multiple_patterns(self):
+        overlapping = manifest(('a.py', ['packs/*', 'packs/a*']))
+        self.assertEqual(overlapping.ownership_errors([TouchedOutput('a.py', 'packs/a.png')]), [
+            'packs/a.png: matched by more than one output pattern: a.py:packs/*, a.py:packs/a*'])
+
+    def test_wrong_owner(self):
+        self.assertEqual(self.manifest.ownership_errors([
+            TouchedOutput('a.py', 'packs/z.json'), *self.clean[1:]]), [
+            'packs/z.json: touched by a.py but declared by z.py'])
+
+    def test_no_outputs(self):
+        self.assertEqual(self.manifest.ownership_errors([]), [
+            'a.py: reported no outputs', 'z.py: reported no outputs'])
+
+    def test_did_not_run(self):
+        self.assertEqual(self.manifest.ownership_errors(self.clean, ['z.py']), [
+            'a.py: reported outputs but did not run'])
+
+    def test_duplicate(self):
+        unknown = TouchedOutput('a.py', 'unknown')
+        self.assertEqual(self.manifest.ownership_errors(self.clean + [unknown, unknown]), [
+            'unknown: touched by a.py but declared by no output pattern'])
+
+    def test_subset(self):
+        self.assertEqual(self.manifest.ownership_errors(self.clean[:2], iter(['z.py'])), [])
+        self.assertEqual(self.manifest.ownership_errors([], []), [])
+
+suite = unittest.defaultTestLoader.loadTestsFromTestCase(OwnershipTests)
+assert unittest.TextTestRunner().run(suite).wasSuccessful()
+`);
+});
+
+it("reads touched reports written by Outputs and rejects malformed lines with their number", () => {
+  python(`
+import json, os, sys, tempfile, unittest
+from pathlib import Path
+from unittest.mock import patch
+sys.path.insert(0, 'tools')
+from generated_outputs import TouchedOutput, read_touched_report
+from texture_io import Outputs
+
+class ReportTests(unittest.TestCase):
+    def test_writer_format(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report = Path(directory) / 'touched.jsonl'
+            report.write_text('\\n  \\n')
+            with patch.dict(os.environ, {'GENERATED_OUTPUTS_REPORT': str(report)}), \\
+                 patch.object(sys, 'argv', ['tools/model.py']):
+                Outputs(check=True)._touch(Path('packs/model.json'))
+            self.assertEqual(read_touched_report(report), (
+                TouchedOutput('model.py', 'packs/model.json'),))
+
+    def test_malformed_line(self):
+        malformed = ['{', 'null', '[]', '"text"', '{}',
+                     '{"generator":"a.py"}', '{"generator":1,"path":"a"}',
+                     '{"generator":"a.py","path":null}',
+                     '{"generator":"a.py","path":"a","extra":true}']
+        with tempfile.TemporaryDirectory() as directory:
+            report = Path(directory) / 'touched.jsonl'
+            for line in malformed:
+                with self.subTest(line=line):
+                    report.write_text(json.dumps({'generator': 'a.py', 'path': 'a'}) + '\\n\\n' + line)
+                    with self.assertRaisesRegex(ValueError, 'line 3'):
+                        read_touched_report(report)
+
+suite = unittest.defaultTestLoader.loadTestsFromTestCase(ReportTests)
+assert unittest.TextTestRunner().run(suite).wasSuccessful()
+`);
+});
+
+it("accepts generated literal plans and identifies a reassigned path", async () => {
+  const worker = startPythonWorker();
+  try {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.uniqueArray(fc.nat({ max: 100_000 }), {
+          minLength: 2,
+          maxLength: 12,
+        }),
+        fc.nat(),
+        async (ids, selection) => {
+          await worker.run(
+            `import json, sys
+sys.path.insert(0, 'tools')
+from generated_outputs import OutputManifest, TouchedOutput
+ids, selection = json.loads(sys.stdin.read())
+entries = [{'script': f'gen_{key}.py', 'reads': [],
+            'outputs': [f'packs/{key}/first.json', f'packs/{key}/second.json']}
+           for key in ids]
+manifest = OutputManifest(entries)
+touched = [TouchedOutput(entry['script'], path)
+           for entry in entries for path in entry['outputs']]
+assert manifest.ownership_errors(touched) == []
+index = selection % len(entries)
+original = touched[index * 2]
+other = entries[(index + 1) % len(entries)]['script']
+touched[index * 2] = TouchedOutput(other, original.path)
+assert manifest.ownership_errors(touched) == [
+    f'{original.path}: touched by {other} but declared by {original.generator}']
+`,
+            JSON.stringify([ids, selection]),
+          );
+        },
+      ),
+    );
+  } finally {
+    await worker.close();
+  }
 });
 
 it("uses the shared generated-files action in every generation job", () => {

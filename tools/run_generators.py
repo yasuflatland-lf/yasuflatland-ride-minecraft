@@ -13,6 +13,7 @@ stars match across folders. Outputs writes compact JSON; afterGenerators entries
 every other generator. --check compares parsed JSON and decoded pixels. --report-touched
 FILE writes JSON Lines containing generator and repo-relative path for every write or check,
 including secondary Outputs instances. Listing flags never run generators.
+Full write and --check runs verify output ownership against the manifest; --ensure does not.
 A generator never reads a file it or another generator writes, except render_preview.py, which
 runs after the generators and reads their outputs.
 """
@@ -25,14 +26,16 @@ import os
 import subprocess
 import sys
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from contextlib import ExitStack
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 TOOLS = Path(__file__).resolve().parent
 PLAN = TOOLS / "generators.json"
 ROOT = TOOLS.parent
 STAMP = ROOT / ".cache/generated/stamp.json"
 sys.path.insert(0, str(TOOLS))
-from generated_outputs import OutputManifest
+from generated_outputs import OutputManifest, read_touched_report
 
 
 def generator_command(entry, check):
@@ -163,20 +166,33 @@ def main():
 
     env = os.environ.copy()
     env.pop("GENERATED_OUTPUTS_REPORT", None)
-    if args.report_touched:
-        report = args.report_touched.resolve()
-        report.parent.mkdir(parents=True, exist_ok=True)
-        report.write_text("")
-        env["GENERATED_OUTPUTS_REPORT"] = str(report)
-
     plan = json.loads(PLAN.read_text())
     generators = [entry for entry in plan["generators"]
                   if not args.ensure or entry["script"] != "render_preview.py"]
     before = [g for g in generators if not g.get("afterGenerators")]
     after = [g for g in generators if g.get("afterGenerators")]
 
-    run_parallel(before, args.check, env)
-    run_parallel(after, args.check, env, completed=[entry["script"] for entry in before])
+    with ExitStack() as stack:
+        report = args.report_touched
+        if report is None and not args.ensure:
+            report = Path(stack.enter_context(TemporaryDirectory())) / "touched.jsonl"
+        if report is not None:
+            report = report.resolve()
+            report.parent.mkdir(parents=True, exist_ok=True)
+            report.write_text("")
+            env["GENERATED_OUTPUTS_REPORT"] = str(report)
+
+        run_parallel(before, args.check, env)
+        run_parallel(after, args.check, env, completed=[entry["script"] for entry in before])
+
+        if not args.ensure:
+            errors = manifest.ownership_errors(read_touched_report(report),
+                                               [entry["script"] for entry in generators])
+            if errors:
+                print("Generated output manifest (tools/generators.json) does not match "
+                      "what the generators wrote:", file=sys.stderr)
+                print("\n".join(errors), file=sys.stderr)
+                sys.exit(1)
 
     if not args.check:
         status = generation_status(manifest)
