@@ -145,6 +145,32 @@ const previewPython = (body: string) =>
     ),
   );
 
+it("registers ordered top-level scene builders with frozen results", () => {
+  expect(
+    previewPython(`
+from dataclasses import FrozenInstanceError, is_dataclass
+from inspect import isfunction
+assert isinstance(r.SCENE_BUILDERS, tuple)
+for _, builder in r.SCENE_BUILDERS:
+    assert isfunction(builder)
+    assert builder.__module__ == "render_preview"
+    assert "<locals>" not in builder.__qualname__
+    assert "." not in builder.__qualname__
+assert is_dataclass(r.SceneResult)
+assert r.SceneResult.__dataclass_params__.frozen
+result = r.SceneResult({}, None)
+for field in ("images", "icon"):
+    try:
+        setattr(result, field, None)
+    except FrozenInstanceError:
+        pass
+    else:
+        raise AssertionError(f"SceneResult.{field} is mutable")
+print(json.dumps([name for name, _ in r.SCENE_BUILDERS]))
+`),
+  ).toEqual(["suv", "boat", "camper", "bulldozer", "gear"]);
+});
+
 it("ScreenFit maps quads the same after pickling", () => {
   expect(
     previewPython(`
