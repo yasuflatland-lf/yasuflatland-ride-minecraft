@@ -1,0 +1,56 @@
+# 0249. Shared warp points with a block and a tool
+
+- Status: Proposed
+- Acceptance condition: the manual check on PC and touch in #1781 (11/11) passes
+- Date: 2026-11-16
+- Extends: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md): the `yasu_build:` namespace and the Building Tools group
+- Related: [0229](0229-open-build-utilities-with-a-plain-air-press.md): the plain air press that opens a build utility
+
+## Context
+
+Players on the home LAN server build in several places far apart. They want to jump between build sites, jump to another player's base, and mark their own reference points. Walking or flying is slow and coordinates are hard to remember. The feature is a build tool in the family of the Build Wand, not a vehicle.
+
+The stable Script API cannot enumerate blocks in the world, so a list of warp points has to come from placement and break events, not from a scan. Custom blocks already exist in the Behavior Pack, so a new block is not a new technique.
+
+Alternatives considered for opening the list:
+
+- A "warp" entry in the Build Wand's utility menu. It fits the build tools but needs the wand in hand and adds nothing at the warp block.
+- Block right-click only. It works like a portal, but a player far from any block cannot open the list.
+- Block right-click plus a separate warp tool. Both open the same form. Chosen by the owner; the wand menu entry is dropped.
+
+Alternatives considered for knowing the warp points:
+
+- Record them from placement and break events in a stored registry. Chosen: it is the only approach the stable API supports.
+- Scan loaded chunks for the block. Rejected as unreliable and slow.
+
+Alternatives considered for the block:
+
+- The vanilla beacon. Rejected: its beam and pyramid behavior get in the way, it cannot be told apart from other beacons, and it has no clean place for a name.
+- A dedicated custom block. Chosen.
+
+## Decision
+
+1. **Warp block.** `yasu_build:warp_block`, one kind, in the Building Tools group. Right-click (tap) opens the warp list. Sneaking and right-click (a long press on touch) opens the name edit form instead.
+2. **Warp tool.** `yasu_build:warp_tool` stacks to one, sits in the Building Tools group, and uses an original radar-style icon. Any press opens the warp list, in the air or on a block, like the Build Wand's plain air press (0229). Pressing it on a warp block opens the same list.
+3. **Naming.** The name is typed in a text form when the block is placed and can be edited with the sneaking press. Any player may edit any name. An empty edit keeps the old name. Names are trimmed and at most 32 characters.
+4. **Registration.** Placing the block by a player opens a name form for that player. A cancelled form or an empty name uses the default name "Warp N", where N is the lowest free number. An entry stores a unique id, the name, the placing player's name, the dimension id, and the block cell. Blocks placed without a player (dispenser, `/setblock`, `/clone`, structure paste, piston) are not registered.
+5. **Removal.** The break event removes the entry. An explosion or an entity break is not seen, so the list is also pruned when it opens (6).
+6. **List form.** An action form with one button per entry showing the name, the owner, the dimension, and the coordinates. Entries in the player's current dimension come first, ordered by distance; entries in other dimensions follow. The form is paged when it is long. When the list opens, an entry whose chunk is loaded and whose block is no longer a warp block is removed. An entry in an unloaded chunk is kept and labelled "unverified".
+7. **Teleport.** Choosing an entry teleports the player to a safe standing spot on or beside the block, in the entry's dimension, keeping the player's facing. An unverified entry may be chosen: the player is teleported, then the block is checked on arrival, and if it is gone the entry is removed and the player is told, so a stale list is never silent. If no safe spot exists beside the block, the player goes to the top of the block.
+8. **Storage.** One world-level registry in the world's dynamic properties, shared by all players, with a version field. It is split across keys when a stored string would exceed the property size limit.
+9. **Limits.** At most 64 entries.
+10. **Dimensions.** The block can be placed in all three dimensions.
+11. **Immovable block.** The block is defined so that a piston cannot move it, if the stable block definition allows that.
+12. **Group order.** The Building Tools group becomes: Selection Wand, blade switch, wide blade switch, road paver switch, warp tool, warp block. New items are appended, so the existing order is unchanged.
+13. **Icon.** The tool icon and the block texture are original radar-style art: a round screen, a grid, a few dots, and a center marker. They must not copy the shape, rim, button, colors, or layout of the Dragon Radar from Dragon Ball.
+14. **Placement in the code.** A new `warp` feature in domain, application, and infrastructure, wired through its infrastructure install function, with no imports from other features (0046). Only infrastructure imports `@minecraft/server` (0012), and only stable APIs are used (0001).
+
+## Consequences
+
+- Any player may warp to, rename, or break any warp block. This is accepted on a trusted LAN; there are no permissions, cooldowns, or costs.
+- The name is shown in the list and the edit form only, not on the block.
+- A block removed by an explosion, an entity, or a world edit stays in the registry until a list opens with its chunk loaded, or until a player arrives at it.
+- Blocks placed without a player are not registered, so a structure paste of warp blocks leaves them unlisted.
+- The Resource Pack manifest version must be bumped when the block texture, icon, and lang keys land (0015).
+- The Building Tools group order text in 0178 and the build-tools spec change together with the group change.
+- Revisit the decision if the 64-entry limit or the dynamic property size makes the registry too small, or if a permission model is needed.
