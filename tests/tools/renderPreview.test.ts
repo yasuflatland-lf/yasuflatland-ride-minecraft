@@ -1,5 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { RESORT_GEAR } from "../support/resortGear";
 
@@ -819,4 +820,69 @@ assert not r.opaque_region([[(0,0,0,110)]], {'uv':[0,0], 'uv_size':[0,0]},1,1)
 print(json.dumps(True))
 `),
   ).toBe(true);
+});
+
+describe("--timing (phase durations on stderr)", () => {
+  it("formats the exact PHASE_TIMING line", () => {
+    expect(
+      previewPython("print(json.dumps(r.format_timing(1.5, 2.25, 4.0, 4, 4)))"),
+    ).toBe(
+      "PHASE_TIMING raster_jobs=1.50 rasterize_all=2.25 total=4.00 cpu_count=4 jobs=4",
+    );
+  });
+
+  it("keeps five key=value fields in order that parse back within 0.005", () => {
+    const seconds = fc.double({ min: 0, max: 100000, noNaN: true });
+    const count = fc.integer({ min: 1, max: 256 });
+    fc.assert(
+      fc.property(
+        fc.array(fc.tuple(seconds, seconds, seconds, count, count), {
+          minLength: 1,
+          maxLength: 25,
+        }),
+        (rows) => {
+          const lines: string[] = previewPython(
+            `print(json.dumps([r.format_timing(*row) for row in ${JSON.stringify(rows)}]))`,
+          );
+          lines.forEach((line, i) => {
+            const [prefix, ...fields] = line.split(" ");
+            expect(prefix).toBe("PHASE_TIMING");
+            expect(fields.map((f) => f.split("=")[0])).toEqual([
+              "raster_jobs",
+              "rasterize_all",
+              "total",
+              "cpu_count",
+              "jobs",
+            ]);
+            const values = fields.map((f) => Number(f.split("=")[1]));
+            rows[i]?.forEach((v, k) => {
+              expect(
+                Math.abs((values[k] ?? Number.NaN) - v),
+              ).toBeLessThanOrEqual(0.005);
+            });
+          });
+        },
+      ),
+      { numRuns: 8 },
+    );
+  });
+
+  it("rejects --timing together with --gear", () => {
+    const result = spawnSync(
+      "python3",
+      [
+        "-I",
+        "tools/render_preview.py",
+        "x",
+        "--gear",
+        "x",
+        "--out",
+        "y",
+        "--timing",
+      ],
+      { encoding: "utf8" },
+    );
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("--timing");
+  });
 });

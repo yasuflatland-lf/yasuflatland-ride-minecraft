@@ -39,6 +39,7 @@ import multiprocessing
 import os
 import struct
 import sys
+import time
 import zlib
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -1469,6 +1470,12 @@ def grayscale(rgba):
     return gray_rgba
 
 
+def format_timing(scene_seconds: float, rasterize_seconds: float, total_seconds: float,
+                  cpu_count: int, jobs: int) -> str:
+    return (f"PHASE_TIMING raster_jobs={scene_seconds:.2f} rasterize_all={rasterize_seconds:.2f} "
+            f"total={total_seconds:.2f} cpu_count={cpu_count} jobs={jobs}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
@@ -1483,6 +1490,8 @@ def main():
     parser.add_argument("--view", nargs="+", default=None,
                         help="photo view name, or three camera direction numbers with --beach-chair-form")
     parser.add_argument("--lid", type=float, help=f"lid opening in degrees (0 to {LID_OPEN}), with a named view")
+    parser.add_argument("--timing", action="store_true",
+                        help="print the raster_jobs and rasterize_all durations to stderr (full render and --check only)")
     args = parser.parse_args()
     if args.gear is not None:
         items = {item["id"]: item for item in json.loads(GEAR_SPEC.read_text())}
@@ -1490,8 +1499,8 @@ def main():
             parser.error(f"Unknown gear '{args.gear}'; valid ids: {', '.join(items)}")
         if args.out is None or args.output_dir is not None:
             parser.error("--gear requires --out and no positional output_dir")
-        if args.check or args.icons or args.beach_chair_form or args.lid is not None:
-            parser.error("--gear cannot be combined with --check, --icons, --beach-chair-form, or --lid")
+        if args.check or args.icons or args.beach_chair_form or args.lid is not None or args.timing:
+            parser.error("--gear cannot be combined with --check, --icons, --beach-chair-form, --lid, or --timing")
         views = args.view if args.view is not None else list(GEAR_VIEWS)
         for name in views:
             if name not in GEAR_VIEWS:
@@ -1526,10 +1535,12 @@ def main():
     if named_view is not None:
         if args.output_dir is not None or args.out is None:
             parser.error("A named --view requires --out and no positional output_dir")
-        if args.check or args.beach_chair_form or args.icons:
-            parser.error("A named --view cannot be combined with --check, --beach-chair-form, or --icons")
+        if args.check or args.beach_chair_form or args.icons or args.timing:
+            parser.error("A named --view cannot be combined with --check, --beach-chair-form, --icons, or --timing")
     elif args.output_dir is None or args.out is not None:
         parser.error("This mode requires positional output_dir and does not allow --out")
+    if args.beach_chair_form and args.timing:
+        parser.error("--beach-chair-form cannot be combined with --timing")
     # A mistyped pack dir would otherwise get a fresh pack_icon.png that no manifest uses
     for pack in args.icons:
         if not (pack / "manifest.json").is_file():
@@ -1539,6 +1550,7 @@ def main():
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
     pack_icon = str(args.icons[0] / "pack_icon.png") if args.icons else None
     targets = []
+    started = scene_done = time.perf_counter()
     if named_view is not None:
         try:
             job = render_photo_view(args.resource_pack, named_view, args.lid)
@@ -1554,7 +1566,10 @@ def main():
                             animation=animation, view=direction)]
     else:
         jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
-    for job, rgba in zip(jobs, rasterize_all(jobs, args.jobs)):
+        scene_done = time.perf_counter()
+    pixel_sets = rasterize_all(jobs, args.jobs)
+    rasterized = time.perf_counter()
+    for job, rgba in zip(jobs, pixel_sets):
         if job.name == pack_icon:
             for pack in args.icons:
                 pixels = grayscale(rgba) if pack.name == ICON_GRAYSCALE_PACK else rgba
@@ -1566,6 +1581,9 @@ def main():
         out.rgba(target, width, height, pixels, rgb=rgb)
     out.finish("Previews or icons are out of date with the model. Run `pnpm model` and commit the result:",
                "previews and requested icons are up to date")
+    if args.timing:
+        print(format_timing(scene_done - started, rasterized - scene_done, time.perf_counter() - started,
+                            os.cpu_count() or 1, args.jobs or os.cpu_count() or 1), file=sys.stderr)
 
 
 if __name__ == "__main__":

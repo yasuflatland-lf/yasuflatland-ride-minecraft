@@ -179,6 +179,8 @@ The global `testTimeout` is 30 s, the smallest 30 s increment covering the large
 
 **Render cost in the unit workflow**
 
+The renderer's phase durations (scene construction and rasterization) come from `python3 tools/render_preview.py --timing`, which prints a `PHASE_TIMING` line to stderr.
+
 | Metric                           | Before (Series rules / main run 43765838821)                                   | After (three successful main runs after 3/6 and 4/6)                                                    |
 | -------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | Tools job seconds                | Series rules: 603 s against `timeout-minutes: 15`; main: 324 s                 | 175 / 193 / 220 s                                                                                       |
