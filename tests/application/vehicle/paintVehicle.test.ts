@@ -192,7 +192,11 @@ describe("PaintVehicle (ADR 0031)", () => {
                   ? from === to ||
                     (["khaki", "yellow"].includes(from) &&
                       ["khaki", "yellow"].includes(to))
-                  : from === to;
+                  : kind === "scooter"
+                    ? from === to ||
+                      (["khaki", "white"].includes(from) &&
+                        ["khaki", "white"].includes(to))
+                    : from === to;
           const clock = new FakeClock();
           const uc = new PaintVehicle(world, clock);
           expect(
