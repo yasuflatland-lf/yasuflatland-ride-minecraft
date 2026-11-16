@@ -205,10 +205,12 @@ describe.each(kinds)(
         },
       });
       for (const [i, pixel] of base.pixels.entries()) {
-        const on =
+        const inRegion =
           regionRule?.(i % base.width, Math.floor(i / base.width)) ??
           (Math.floor(i / base.width) < (cell ?? 1) &&
             slots.includes(Math.floor((i % base.width) / (cell ?? 1))));
+        // The clear corners of the scooter's round lens must not glow as a square plate.
+        const on = kind === "scooter" ? inRegion && pixel[3] !== 0 : inRegion;
         expect(lit.pixels[i], `color texel ${i}`).toEqual(
           expectedColorTexel(pixel, on),
         );
