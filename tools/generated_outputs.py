@@ -2,10 +2,34 @@
 
 import fnmatch
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
 PLAN = Path(__file__).resolve().with_name("generators.json")
+
+
+@dataclass(frozen=True)
+class TouchedOutput:
+    generator: str
+    path: str
+
+
+def read_touched_report(path: Path) -> tuple[TouchedOutput, ...]:
+    touched = []
+    for number, line in enumerate(path.read_text().splitlines(), 1):
+        if not line.strip():
+            continue
+        message = f"Invalid touched output on line {number}"
+        try:
+            entry = json.loads(line)
+        except ValueError as error:
+            raise ValueError(message) from error
+        if (not isinstance(entry, dict) or set(entry) != {"generator", "path"}
+                or not all(isinstance(value, str) for value in entry.values())):
+            raise ValueError(message)
+        touched.append(TouchedOutput(**entry))
+    return tuple(touched)
 
 
 @dataclass(frozen=True)
@@ -17,6 +41,7 @@ class GeneratedOutput:
 
 class OutputManifest:
     def __init__(self, entries):
+        self._generators = tuple(entry["script"] for entry in entries)
         self._outputs = tuple(
             GeneratedOutput(entry["script"], pattern, entry.get("tracked", False))
             for entry in entries for pattern in entry["outputs"]
@@ -32,6 +57,32 @@ class OutputManifest:
 
     def outputs(self) -> tuple[GeneratedOutput, ...]:
         return self._outputs
+
+    def generators(self) -> tuple[str, ...]:
+        return self._generators
+
+    def ownership_errors(self, touched: Iterable[TouchedOutput],
+                         generators: Iterable[str] | None = None) -> list[str]:
+        expected = set(self.generators() if generators is None else generators)
+        reported = set()
+        errors = set()
+        for entry in touched:
+            reported.add(entry.generator)
+            matches = [output for output in self._outputs
+                       if fnmatch.fnmatchcase(entry.path, output.pattern)]
+            if not matches:
+                errors.add(f"{entry.path}: touched by {entry.generator} "
+                           "but declared by no output pattern")
+            elif len(matches) > 1:
+                owners = ", ".join(f"{output.generator}:{output.pattern}" for output in matches)
+                errors.add(f"{entry.path}: matched by more than one output pattern: {owners}")
+            elif matches[0].generator != entry.generator:
+                errors.add(f"{entry.path}: touched by {entry.generator} "
+                           f"but declared by {matches[0].generator}")
+        errors.update(f"{generator}: reported no outputs" for generator in expected - reported)
+        errors.update(f"{generator}: reported outputs but did not run"
+                      for generator in reported - expected)
+        return sorted(errors)
 
     def matches(self, repo_path: str) -> GeneratedOutput | None:
         matches = [output for output in self._outputs
