@@ -112,7 +112,7 @@ assert result[:3]==bytes(min(255,round(target*old/base)) for target,old,base in 
   );
 });
 
-it("assigns material finishes and lights exactly the lamp rectangles", () => {
+it("assigns material finishes and lights exactly the opaque lamp texels", () => {
   expect(metadata.lit).toEqual([
     "head_lens",
     "lens_head",
@@ -120,6 +120,7 @@ it("assigns material finishes and lights exactly the lamp rectangles", () => {
     "lens_amber",
   ]);
   const mer = readRgbaPng(`${directory}scooter_mer.png`);
+  const base = readRgbaPng(`${directory}scooter.png`);
   const lit = readRgbaPng(`${directory}scooter_lit.png`);
   const litMer = readRgbaPng(`${directory}scooter_lit_mer.png`);
   expect([lit.width, lit.height]).toEqual([mer.width, mer.height]);
@@ -146,7 +147,10 @@ it("assigns material finishes and lights exactly the lamp rectangles", () => {
     if (r.material === "rubber") expect(mer.pixels[p + 2]).toBeGreaterThan(220);
     if (metadata.lit.includes(r.name))
       for (let y = r.y; y < r.y + r.height; y++)
-        mask.fill(1, y * mer.width + r.x, y * mer.width + r.x + r.width);
+        for (let x = r.x; x < r.x + r.width; x++)
+          // The clear corners of a round lens must not glow as a square plate.
+          if (base.pixels[(y * mer.width + x) * 4 + 3] !== 0)
+            mask[y * mer.width + x] = 1;
   }
   let invalid = 0;
   for (let i = 0; i < mask.length; i++) {
