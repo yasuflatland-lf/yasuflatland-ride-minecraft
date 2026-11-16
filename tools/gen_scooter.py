@@ -13,9 +13,15 @@ cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 
 AREA_ORDER = (
+    "engine",
 )
 
 ASSEMBLIES = {
+    "engine_casting": {"owner": "scooter", "cubes": 42},
+    "engine_fan": {"owner": "scooter", "cubes": 32},
+    "engine_kick": {"owner": "scooter", "cubes": 18},
+    "engine_muffler": {"owner": "scooter", "cubes": 114},
+    "engine_header": {"owner": "scooter", "cubes": 66},
 }
 
 BONES = (

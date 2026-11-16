@@ -25,6 +25,7 @@ type AreaRow = {
 // One row per area module (issues 6 to 11 each append one row).
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
+  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 320 },
 ];
 
 const python = startPythonWorker();
