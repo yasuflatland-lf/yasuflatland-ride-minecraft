@@ -640,7 +640,17 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
         y: anchor.y + dy,
         z: anchor.z + dz,
       });
-      for (const c of target) f.block(c).setType("minecraft:gold_block");
+      // Air above solid ground keeps the snapped box at the aimed box (ADR 0203).
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of target) {
+        const ground = { ...c, y: c.y - 1 };
+        if (
+          ground.x !== anchor.x ||
+          ground.y !== anchor.y ||
+          ground.z !== anchor.z
+        )
+          f.block(ground).setType("minecraft:stone");
+      }
       const before = snapshot(f, target);
       await pasteStep(f, anchor.x, anchor.y, anchor.z, face, false);
       check(unchanged(f, target, before), "Plain aimed press wrote blocks");
@@ -691,9 +701,15 @@ function pasteTarget(
   sy: number,
   sz: number,
 ) {
-  f.block(anchor).setType("minecraft:gold_block");
+  // Paste snaps above the highest ground under its footprint, so an air bottom
+  // layer over a solid footprint keeps the snapped box equal to the aimed box.
+  for (const cell of f.region(sx, 1, sz, anchor))
+    f.block(cell).setType("minecraft:gold_block");
   const cells = f.region(sx, sy, sz, { ...anchor, y: anchor.y + 1 });
-  for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
+  for (const cell of cells)
+    f.block(cell).setType(
+      cell.y === anchor.y + 1 ? "minecraft:air" : "minecraft:gold_block",
+    );
   return { anchor, cells, before: snapshot(f, cells) };
 }
 
@@ -1273,7 +1289,14 @@ async function pasteCutClipboard(
   f: Fixture,
   anchor: Cell,
   volume: number,
+  sx: number,
+  sy: number,
+  sz: number,
 ): Promise<void> {
+  for (const cell of f.region(sx, sy, sz, anchor))
+    f.block(cell).setType("minecraft:air");
+  for (const cell of f.region(sx, 1, sz, { ...anchor, y: anchor.y - 1 }))
+    f.block(cell).setType("minecraft:stone");
   const pasted = await pasteStep(f, anchor.x, anchor.y - 1, anchor.z, "up");
   check(
     pasted.message === "editDone" && pasted.count === volume,
@@ -1337,7 +1360,7 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
         "Cut left source blocks or frame",
       );
       check(entities().length === 0, "Cut left entities or dropped items");
-      await pasteCutClipboard(f, f.cell(12), source.length);
+      await pasteCutClipboard(f, f.cell(12), source.length, 8, 4, 8);
       await wait(2);
       const restored = f
         .block(f.cell(13, 1, 1))
@@ -1560,7 +1583,7 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
       "Cut clipboard is not a structure",
     );
     const target = f.region(3, 1, 1, f.cell(12, 0, 12));
-    await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length);
+    await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length, 3, 1, 1);
     check(unchanged(f, target, before), "Cut payload lost block states");
     await f.menu("paste", "endPaste");
   });
@@ -1980,6 +2003,9 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
           c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
         );
       for (const c of surround) f.block(c).setType("minecraft:gold_block");
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of f.region(3, 1, 5, f.cell(12, -1)))
+        f.block(c).setType("minecraft:stone");
       const chest = f.block(f.cell(1, 1, 1));
       chest.setType("minecraft:chest");
       chest
@@ -2021,7 +2047,7 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
         check(f.block(c).typeId === expected, "Rotated footprint mismatch");
       }
       const outside = surround.filter(
-        (c) => !target.some((t) => t.x === c.x && t.y === c.y && t.z === c.z),
+        (c) => !target.some((t) => t.x === c.x && t.z === c.z),
       );
       check(
         f.count(outside, "minecraft:gold_block") === outside.length,
@@ -2073,10 +2099,13 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
         );
       });
     try {
-      for (const c of [...source, ...target])
+      for (const c of source)
         f.block(c).setType(
           c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
         );
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of f.region(8, 1, 4, f.cell(12, -1)))
+        f.block(c).setType("minecraft:stone");
       const chest = f.block(f.cell(1, 1, 1));
       chest.setType("minecraft:chest");
       chest
@@ -2133,6 +2162,8 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
           inside(12).filter((e) => e.typeId === "minecraft:cow").length === 1,
         "animal replacement failed",
       );
+      // The pasted stone layer lifts the snapped box by one; clearing it would
+      // pop the pasted sign, and the bed lies inside both boxes anyway.
       f.block(f.cell(19, 3, 3)).setType("yasu_ride:camper_bed");
       const before = snapshot(f, target);
       const cowIds = inside(12)
@@ -2255,10 +2286,13 @@ export async function buildPasteStructureDecor(
       try {
         for (const offset of [0, 12])
           for (const entity of entities(offset)) entity.remove();
-        for (const c of [...source, ...target])
+        for (const c of source)
           f.block(c).setType(
             c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
           );
+        for (const c of target) f.block(c).setType("minecraft:air");
+        for (const c of f.region(8, 1, 8, f.cell(12, -1)))
+          f.block(c).setType("minecraft:stone");
         for (const offset of [0, 12])
           for (const c of f.region(1, 4, 6, f.cell(offset + 1, 1, 1)))
             f.block(c).setType("minecraft:stone");
@@ -2364,6 +2398,8 @@ export async function buildPasteStructureDecor(
         removeItems();
         await wait(BUILD_SPEC.pasteRepeatTicks);
         f.block(mirrored).setPermutation(permutation);
+        for (const c of f.region(8, 1, 8, f.cell(12)))
+          f.block(c).setType("minecraft:air");
         const repeated = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
         record(
           "paste_repeat",
