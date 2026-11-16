@@ -64,8 +64,7 @@
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter.png"
       ],
-      "reads": ["tools/scooter_body.py"]
-      "reads": ["tools/scooter_shield.py"]
+      "reads": ["tools/scooter_body.py", "tools/scooter_shield.py"]
     },
     {
       "script": "gen_build_tools.py",

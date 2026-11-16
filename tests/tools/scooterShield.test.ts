@@ -52,7 +52,7 @@ cubes=[c for cs in first.values() for c in cs]
 assert 0<len(cubes)<=s.D.SHIELD_BUDGET
 assert all(x is not y for bone in first for x,y in zip(first[bone],second[bone]))
 assert set(first.assemblies)=={'shield_face','shield_trim','shield_ridge','shield_fender'}
-t.assert_axes(cubes,first.assemblies,load_tool('gen_scooter').ASSEMBLIES)
+t.assert_axes(cubes,first.assemblies,{k:v for k,v in load_tool('gen_scooter').ASSEMBLIES.items() if k in first.assemblies})
 for c in cubes:
     assert all(math.isfinite(v) for field in ('origin','size','rotation','pivot') for v in c.get(field,[]))
     assert all(v>0 for v in c['size'])
