@@ -57,6 +57,16 @@ function importsOf(path: string): string[] {
 }
 
 describe("impact reach", () => {
+  it.each(["domain", "application", "infrastructure"])(
+    "selects all scenarios for the %s warp layer",
+    (layer) => {
+      expect(impactOfPath(`src/${layer}/warp/future.ts`)).toEqual({
+        impact: "all",
+        rule: "warp",
+      });
+    },
+  );
+
   it("maps every tracked runtime and tooling path explicitly", () => {
     const paths = tracked.filter((p) =>
       /^(src|packs|scripts|server|tools)\//.test(p),
