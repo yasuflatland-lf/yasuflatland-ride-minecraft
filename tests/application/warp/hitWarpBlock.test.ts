@@ -133,3 +133,30 @@ it.each(["dimension", "cell"])("isolates counters by %s", (changed) => {
     }),
   );
 });
+
+it("does not give an item or remove the registry entry when block removal fails", () => {
+  const p = point();
+  const f = setup({ points: [p] });
+  let drops = 0;
+  const failure = new Error("setType failed");
+  const hit = new HitWarpBlock(
+    {
+      at: () => ({
+        drop() {
+          drops++;
+        },
+        remove() {
+          throw failure;
+        },
+        showRemaining() {},
+      }),
+    },
+    new RemoveWarpPoint(f.store),
+  );
+  const run = (now: number) =>
+    hit.run({ playerId: player, dimension: p.dimension, cell: p.cell, now });
+  for (let i = 0; i < 4; i++) run(i);
+  expect(() => run(4)).toThrow(failure);
+  expect(drops).toBe(0);
+  expect(f.store.registry?.points).toEqual([p]);
+});

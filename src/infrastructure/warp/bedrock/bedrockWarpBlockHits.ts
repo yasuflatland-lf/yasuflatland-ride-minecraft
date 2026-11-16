@@ -28,7 +28,7 @@ export class BedrockWarpBlockHits implements WarpBlockHits {
       },
       showRemaining: (left: number) =>
         player.onScreenDisplay.setActionBar({
-          translate: WARP_MESSAGE.hitsLeft,
+          translate: left === 1 ? WARP_MESSAGE.hitLeft : WARP_MESSAGE.hitsLeft,
           with: [String(left)],
         }),
     };

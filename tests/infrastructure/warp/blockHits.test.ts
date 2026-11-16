@@ -120,10 +120,12 @@ it("returns one item including creative, drops overflow, removes the block and t
   );
   expect(effects).toBeDefined();
   effects?.showRemaining(4);
+  effects?.showRemaining(1);
   effects?.drop();
   effects?.remove();
   expect(f.player.onScreenDisplay.setActionBar.mock.calls).toEqual([
     [{ translate: WARP_MESSAGE.hitsLeft, with: ["4"] }],
+    [{ translate: "yasu_build.warp.hit_left", with: ["1"] }],
     [{ translate: WARP_MESSAGE.blockBroken }],
   ]);
   expect(f.addItem).toHaveBeenCalledExactlyOnceWith(
