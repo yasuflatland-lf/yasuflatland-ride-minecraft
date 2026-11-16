@@ -31,12 +31,15 @@ Packing by ticks, the slowest slice was estimated at 72 s for three jobs, 61 s f
 - Every result line carries `ticks=`. Update a test's number when it moves by more than about 50 ticks, and give a new test its measured ticks
 - In the unit test workflow, run `pnpm model:check` in its own `model` job beside the `unit` job. It needs only Python's standard library, so the job skips `pnpm install`. A `check` job that needs both fails unless both succeeded, so the required status check named `check` still covers everything
 - Unit tests do not run the renderer or a full generator check; `model:check` is the only place that does
+- Construct preview scenes in a spawn pool of at most five workers, capped by `--jobs` (CPU count by default); `--jobs 1` remains serial. Merge all results in builder order and derive gear icons in the parent before rasterization. `--timing` reports each builder duration in builder order alongside phase durations on stderr
 
 ## Consequences
 
 Run 38213466285 took 75 s for the in-game tests instead of about 159 s; its four slices took 714, 660, 671, and 674 ticks and the slowest job 70 s. Run 38213466103 took 44 s for the unit test workflow instead of about 55 s: `model` 35 s, `unit` 18 s, and `check` 3 s. In-game runner time grows from about 153 s to about 268 s, and a failure log is spread over four jobs. The in-game job names change, but only `check` is a required status check, so the ruleset is unaffected.
 
 Across three successful main Unit Tests runs after 3/6 and 4/6 (43784775606, 43785539768, and 43786830193), the tools job took 175 to 220 s and its Vitest duration was 155.43 to 208.93 s, versus 421 to 589 s of Vitest time before these changes (the series baseline after PR #1708). The model jobs took 314, 415, and 313 s respectively. The owner decision on #1730 uses these three runs instead of five; the #1734 merge changed `tools/**`, so its run 43785539768 had a cold generated-files cache, while the other two runs' cache state is not recorded in the logs. Re-measure when the tools job's Vitest duration exceeds 240 s on main, or when `model:check` exceeds 8 minutes.
+
+For parallel scene construction (#1745), one local developer-machine run of `python3 -I tools/render_preview.py packs/yasu_ride_rp <tmp dir> --jobs 4 --timing` (macOS, `cpu_count=18`) measured `raster_jobs` 65.78 s before and 64.24 s after, `rasterize_all` 48.02 s and 50.07 s, and a total of 115.95 s and 125.40 s; the outputs were byte-identical. The camping gear builder alone took 52.88 s of the 64.47 s serial builder time (82%; SUV 6.99 s, camper 2.96 s, bulldozer 1.29 s, boat 0.35 s), which is more than 70%, so no process-level split can shorten scene construction much: it is bounded by the gear builder. These are local measurements; the CI numbers on the 4-vCPU runner are pending.
 
 The tick numbers can go stale. A stale number only unbalances the slices and never skips or repeats a test.
 

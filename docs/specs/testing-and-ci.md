@@ -179,7 +179,17 @@ The global `testTimeout` is 30 s, the smallest 30 s increment covering the large
 
 **Render cost in the unit workflow**
 
-The renderer's phase durations (scene construction and rasterization) come from `python3 tools/render_preview.py --timing`, which prints a `PHASE_TIMING` line to stderr.
+The renderer's phase durations (scene construction and rasterization) come from `--timing`, which prints a `PHASE_TIMING` line and one `SCENE_TIMING <name>=<s>` line per builder to stderr, in builder order with seconds to two decimals. Scene construction runs in a spawn pool of at most five workers, capped by `--jobs` (CPU count by default); `--jobs 1` stays serial. Rasterization starts after all scenes have been merged and gear icons derived in the parent.
+
+The parallel-construction comparison (#1745) records local developer-machine measurements of `python3 -I tools/render_preview.py packs/yasu_ride_rp <tmp dir> --jobs 4 --timing`, on macOS with `cpu_count=18`, one run each. These are local measurements; the CI numbers on the 4-vCPU runner are pending. The outputs of both runs were byte-identical.
+
+| Renderer phase  | Before parallel construction (local seconds) | After parallel construction (local seconds) |
+| --------------- | -------------------------------------------- | ------------------------------------------- |
+| `raster_jobs`   | 65.78                                        | 64.24                                       |
+| `rasterize_all` | 48.02                                        | 50.07                                       |
+| Total           | 115.95                                       | 125.40                                      |
+
+Serial per-builder times (`SCENE_TIMING`, `--jobs 1` construction) were suv 6.99, boat 0.35, camper 2.96, bulldozer 1.29, and gear 52.88 s; in the pool they were 6.18, 0.37, 3.08, 0.66, and 53.55 s. The gear builder is 82% of the 64.47 s serial builder time, more than 70%, so no process-level split can help much: scene construction is bounded by that one builder.
 
 | Metric                           | Before (Series rules / main run 43765838821)                                   | After (three successful main runs after 3/6 and 4/6)                                                    |
 | -------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |

@@ -137,6 +137,7 @@ const previewPython = (body: string) =>
           "import json, sys",
           "from pathlib import Path",
           "sys.path.insert(0, 'tools')",
+          "sys.path.insert(0, 'tests/tools')",
           "import render_preview as r",
           body,
         ].join("\n"),
@@ -159,7 +160,8 @@ for _, builder in r.SCENE_BUILDERS:
 assert is_dataclass(r.SceneResult)
 assert r.SceneResult.__dataclass_params__.frozen
 result = r.SceneResult({}, None)
-for field in ("images", "icon"):
+assert result.seconds == 0.0
+for field in ("images", "icon", "seconds"):
     try:
         setattr(result, field, None)
     except FrozenInstanceError:
@@ -169,6 +171,62 @@ for field in ("images", "icon"):
 print(json.dumps([name for name, _ in r.SCENE_BUILDERS]))
 `),
   ).toEqual(["suv", "boat", "camper", "bulldozer", "gear"]);
+});
+
+describe("scene construction", () => {
+  it.each(["second", "second_with_icon"])(
+    "merges serial and spawned %s results in builder order",
+    (second) => {
+      expect(
+        previewPython(`
+import scene_builder_stubs as stubs
+r.SCENE_BUILDERS = (("first", stubs.first), ("second", stubs.${second}))
+results = []
+for workers in (1, 2):
+    timings = {}
+    images, icon = r.build_scenes(Path("stub-rp"), Path("stub-icon.png"), workers, timings=timings)
+    assert list(timings) == ["first", "second"]
+    assert all(isinstance(seconds, float) and seconds >= 0 for seconds in timings.values())
+    results.append(json.dumps((images, icon), default=vars))
+assert results[0] == results[1]
+print(json.dumps([list(images), [job.name for job in images.values()], icon.name if icon else None]))
+`),
+      ).toEqual([
+        ["z-first", "a-next", "m-last"],
+        ["first.png", "next.png", "last.png"],
+        second === "second_with_icon" ? "stub-icon.png" : null,
+      ]);
+    },
+  );
+
+  it.each([1, 2])("rejects two pack icons with %i workers", (workers) => {
+    expect(
+      previewPython(`
+import scene_builder_stubs as stubs
+r.SCENE_BUILDERS = (("first", stubs.first_with_icon), ("second", stubs.second_with_icon))
+try:
+    r.build_scenes(Path("stub-rp"), Path("stub-icon.png"), ${workers})
+except ValueError:
+    print(json.dumps(True))
+else:
+    raise AssertionError("Two pack icons were accepted")
+`),
+    ).toBe(true);
+  });
+
+  it("times each serial builder call separately", () => {
+    expect(
+      previewPython(`
+from unittest.mock import patch
+import scene_builder_stubs as stubs
+r.SCENE_BUILDERS = (("first", stubs.first), ("second", stubs.second))
+timings = {}
+with patch.object(r.time, "perf_counter", side_effect=[10.0, 10.125, 20.0, 20.5]):
+    r.build_scenes(Path("stub-rp"), None, 1, timings=timings)
+print(json.dumps(timings))
+`),
+    ).toEqual({ first: 0.125, second: 0.5 });
+  });
 });
 
 it("ScreenFit maps quads the same after pickling", () => {
@@ -823,6 +881,14 @@ print(json.dumps(True))
 });
 
 describe("--timing (phase durations on stderr)", () => {
+  it("formats each SCENE_TIMING line with two decimal places", () => {
+    expect(
+      previewPython(
+        'print(json.dumps([r.format_scene_timing("suv", 1.5), r.format_scene_timing("gear", 0.0)]))',
+      ),
+    ).toEqual(["SCENE_TIMING suv=1.50", "SCENE_TIMING gear=0.00"]);
+  });
+
   it("formats the exact PHASE_TIMING line", () => {
     expect(
       previewPython("print(json.dumps(r.format_timing(1.5, 2.25, 4.0, 4, 4)))"),

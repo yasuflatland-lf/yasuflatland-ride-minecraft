@@ -879,6 +879,7 @@ class RasterJob:
 class SceneResult:
     images: dict[str, RasterJob]
     icon: RasterJob | None
+    seconds: float = 0.0
 
 
 def rasterize_job(job: RasterJob) -> bytearray:
@@ -1418,20 +1419,38 @@ SCENE_BUILDERS: tuple[tuple[str, Callable[[Path, Path | None], SceneResult]], ..
 )
 
 
-def render(rp, icon_path=None):
-    images = {}
-    icon = None
-    for _, builder in SCENE_BUILDERS:
-        result = builder(rp, icon_path)
+def _build_scene(entry: tuple[str, Callable[[Path, Path | None], SceneResult], Path, Path | None]) -> SceneResult:
+    _, builder, rp, icon_path = entry
+    started = time.perf_counter()
+    result = builder(rp, icon_path)
+    return replace(result, seconds=time.perf_counter() - started)
+
+
+def build_scenes(rp: Path, icon_path: Path | None, workers: int | None, *,
+                 timings: dict[str, float] | None = None) -> tuple[dict[str, RasterJob], RasterJob | None]:
+    entries = [(name, builder, rp, icon_path) for name, builder in SCENE_BUILDERS]
+    if workers == 1:
+        results = [_build_scene(entry) for entry in entries]
+    else:
+        with multiprocessing.get_context("spawn").Pool(min(workers or os.cpu_count() or 1, len(SCENE_BUILDERS))) as pool:
+            results = pool.map(_build_scene, entries, chunksize=1)
+    images: dict[str, RasterJob] = {}
+    icon: RasterJob | None = None
+    for (name, _), result in zip(SCENE_BUILDERS, results):
         images.update(result.images)
         if result.icon is not None:
+            if icon is not None:
+                raise ValueError("Multiple scene builders returned a pack icon")
             icon = result.icon
+        if timings is not None:
+            timings[name] = result.seconds
     return images, icon
 
 
-def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path]) -> list[RasterJob]:
+def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path], workers: int | None = None, *,
+                timings: dict[str, float] | None = None) -> list[RasterJob]:
     """Every job named by its target path; the one pack icon job stands for all icon packs."""
-    images, icon = render(rp, icon_packs[0] / "pack_icon.png" if icon_packs else None)
+    images, icon = build_scenes(rp, icon_packs[0] / "pack_icon.png" if icon_packs else None, workers, timings=timings)
     jobs = [replace(job, name=str(output_dir / job.name)) for job in images.values()]
     if icon is not None:
         jobs.append(icon)
@@ -1470,6 +1489,10 @@ def grayscale(rgba):
     return gray_rgba
 
 
+def format_scene_timing(name: str, seconds: float) -> str:
+    return f"SCENE_TIMING {name}={seconds:.2f}"
+
+
 def format_timing(scene_seconds: float, rasterize_seconds: float, total_seconds: float,
                   cpu_count: int, jobs: int) -> str:
     return (f"PHASE_TIMING raster_jobs={scene_seconds:.2f} rasterize_all={rasterize_seconds:.2f} "
@@ -1491,7 +1514,7 @@ def main():
                         help="photo view name, or three camera direction numbers with --beach-chair-form")
     parser.add_argument("--lid", type=float, help=f"lid opening in degrees (0 to {LID_OPEN}), with a named view")
     parser.add_argument("--timing", action="store_true",
-                        help="print the raster_jobs and rasterize_all durations to stderr (full render and --check only)")
+                        help="print per-builder and phase durations to stderr (full render and --check only)")
     args = parser.parse_args()
     if args.gear is not None:
         items = {item["id"]: item for item in json.loads(GEAR_SPEC.read_text())}
@@ -1550,6 +1573,7 @@ def main():
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
     pack_icon = str(args.icons[0] / "pack_icon.png") if args.icons else None
     targets = []
+    scene_timings: dict[str, float] = {}
     started = scene_done = time.perf_counter()
     if named_view is not None:
         try:
@@ -1565,7 +1589,7 @@ def main():
                             read_png(args.resource_pack / BEACH_CHAIR_TEXTURE), 800, name,
                             animation=animation, view=direction)]
     else:
-        jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
+        jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons, args.jobs, timings=scene_timings)
         scene_done = time.perf_counter()
     pixel_sets = rasterize_all(jobs, args.jobs)
     rasterized = time.perf_counter()
@@ -1582,6 +1606,8 @@ def main():
     out.finish("Previews or icons are out of date with the model. Run `pnpm model` and commit the result:",
                "previews and requested icons are up to date")
     if args.timing:
+        for name, seconds in scene_timings.items():
+            print(format_scene_timing(name, seconds), file=sys.stderr)
         print(format_timing(scene_done - started, rasterized - scene_done, time.perf_counter() - started,
                             os.cpu_count() or 1, args.jobs or os.cpu_count() or 1), file=sys.stderr)
 
