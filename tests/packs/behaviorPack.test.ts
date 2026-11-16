@@ -109,6 +109,22 @@ describe("packs/yasu_ride_bp landing gear (ADR 0033)", () => {
 });
 
 describe("packs/yasu_ride_test_bp", () => {
+  it("the scooter seat probe copies the scooter's rideable, but seats cows instead of players", () => {
+    const scooter = read(
+      "packs/yasu_ride_bp/entities/yasu_ride/scooter.se.json",
+    )["minecraft:entity"].components;
+    const probe = read(
+      "packs/yasu_ride_test_bp/entities/yasu_ride_test/scooter_seat_probe.se.json",
+    )["minecraft:entity"].components;
+    expect(probe["minecraft:rideable"]).toEqual({
+      ...scooter["minecraft:rideable"],
+      family_types: ["cow"],
+    });
+    expect(probe["minecraft:collision_box"]).toEqual(
+      scooter["minecraft:collision_box"],
+    );
+  });
+
   // The in-game seat test only says something about the SUV while the probe
   // seats riders exactly as the SUV does (ADR 0019).
   it("the seat probe copies the SUV's rideable, but seats cows instead of players", () => {
