@@ -1,0 +1,16 @@
+export const WARP_MESSAGE = {
+  nameTitle: "yasu_build.warp.name_title",
+  nameLabel: "yasu_build.warp.name_label",
+  listTitle: "yasu_build.warp.list_title",
+  overworld: "yasu_build.warp.overworld",
+  nether: "yasu_build.warp.nether",
+  theEnd: "yasu_build.warp.the_end",
+  unverified: "yasu_build.warp.unverified",
+  previousPage: "yasu_build.warp.previous_page",
+  nextPage: "yasu_build.warp.next_page",
+  registryUnreadable: "yasu_build.warp.registry_unreadable",
+  registryFull: "yasu_build.warp.registry_full",
+  pointGone: "yasu_build.warp.point_gone",
+  noPoints: "yasu_build.warp.no_points",
+  teleportFailed: "yasu_build.warp.teleport_failed",
+} as const;
