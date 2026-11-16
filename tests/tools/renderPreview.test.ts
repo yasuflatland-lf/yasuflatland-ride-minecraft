@@ -168,7 +168,7 @@ for field in ("images", "icon"):
         raise AssertionError(f"SceneResult.{field} is mutable")
 print(json.dumps([name for name, _ in r.SCENE_BUILDERS]))
 `),
-  ).toEqual(["suv", "boat", "camper", "bulldozer", "gear"]);
+  ).toEqual(["suv", "boat", "camper", "bulldozer", "scooter", "gear"]);
 });
 
 it("ScreenFit maps quads the same after pickling", () => {
