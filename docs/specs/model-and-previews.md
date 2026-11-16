@@ -74,7 +74,7 @@ and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assembli
 own all compound panels and trim. Body regions register idempotently before faces
 are constructed. Curved surfaces use broad alpha-cut panels, with seven slot rows
 only on the rider's right cowl, grey joint piping, and chrome floor rails and
-opening trim. The body budget is 1,150 cubes (currently 1,122); the production
+opening trim. The body budget is 1,125 cubes (currently 1,122); the production
 sampling reduces the spike's surface and trim segments. Warped or concave quads
 split into convex triangle masks to preserve closure coverage. Material sheets keep
 the mask regions cheap to pack; the paint gradient spans the shell instead of
@@ -97,7 +97,7 @@ The running area supplies both wheels, suspension, and stand. Whitewall discs
 use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
 0.04 units of their ideal radii. The 32-segment black tyre skin preserves each
 panel's tangent frame so its bounding box cannot overlap the whitewall. Wheel and
-fold bones retain their axle pivots. The packed atlas stays within 1024 by 1024
+fold bones retain their axle pivots. The combined packed atlas stays within 4096 by 4096
 texels. Side and front-left previews render the full atlas without a density cap.
 
 The whole-vehicle target is 3,500 cubes;
@@ -105,7 +105,7 @@ generation rejects more than the 3,800-cube ceiling. This foundation supplies as
 only; the scooter has no entity or riding behavior yet.
 
 `tools/scooter_shield.py` contributes 549 cubes: 284 on `body` and 265 on `steer`,
-within a 600-cube allocation. The crowned shield, shoulder, side plates, chrome
+within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome
 outline, flaring spine and 0.8-scale horn stay on `body`;
 the valanced front fender, curled lips, two bolts and crown shadow stay on `steer`.
 Broad panels use shaded alpha-cut masks, with twisted patches split at their
