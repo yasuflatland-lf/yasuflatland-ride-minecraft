@@ -33,7 +33,8 @@ PLACEHOLDER_STAND_HI = (2.0, STAND_PIVOT[1], 2.5)
 VISIBLE_BOUNDS_WIDTH = 3
 VISIBLE_BOUNDS_HEIGHT = 2.5
 VISIBLE_BOUNDS_OFFSET = (0, 1, 0)
-CUBE_BUDGET = 3500
+# Raised from 3500 for 40-segment tyres, which keep the tread silhouette within 0.015 units of a circle.
+CUBE_BUDGET = 3650
 CUBE_BUDGET_CEILING = 3800
 
 

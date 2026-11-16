@@ -17,8 +17,8 @@ AREA_ORDER = (
 )
 
 ASSEMBLIES = {
-    "running_wheel_front": {"owner": "scooter", "cubes": 236},
-    "running_wheel_rear": {"owner": "scooter", "cubes": 236},
+    "running_wheel_front": {"owner": "scooter", "cubes": 292},
+    "running_wheel_rear": {"owner": "scooter", "cubes": 292},
     "running_spring": {"owner": "scooter", "cubes": 112},
     "running_stand": {"owner": "scooter", "cubes": 2},
 }

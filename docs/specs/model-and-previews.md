@@ -64,11 +64,12 @@ pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.
 model pixels apart. The running area supplies both wheels, suspension, and stand;
 later areas replace the remaining placeholder cubes independently. Whitewall discs
 use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
-0.04 units of their ideal radii. The 32-segment black tyre skin preserves each
-panel's tangent frame so its bounding box cannot overlap the whitewall. Wheel and
+0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
+panel's tangent frame and takes no panel margin, so its outer envelope stays within
+0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
 fold bones retain their axle pivots. The packed atlas stays within 1024 by 1024
 texels. Side and front-left previews render the full atlas without a density cap.
-The whole-vehicle target is 3,500 cubes;
+The whole-vehicle target is 3,650 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 
