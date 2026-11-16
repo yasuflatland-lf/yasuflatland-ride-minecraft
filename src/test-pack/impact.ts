@@ -332,8 +332,8 @@ const IMPACT_RULES: readonly ImpactRule[] = [
   { rule: "server", test: /^server\//, impact: "all" },
   ...mappedRules(scenarioTags, "src/test-pack/scenarios/", ".ts", "scenario"),
   {
-    rule: "warp-domain",
-    test: /^src\/domain\/warp\//,
+    rule: "warp",
+    test: /^src\/(?:domain|application)\/warp\//,
     impact: "all",
   },
   {
