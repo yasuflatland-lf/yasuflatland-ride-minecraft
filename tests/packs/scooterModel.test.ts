@@ -30,6 +30,7 @@ const AREAS: readonly AreaRow[] = [
   { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"], cubes: 650 },
   { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"], cubes: 520 },
   { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand"], cubes: 650 },
+  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 320 },
 ];
 
 const python = startPythonWorker();

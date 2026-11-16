@@ -80,6 +80,12 @@ Named `head_*` assemblies carry compound panels; alpha-cut profiles and
 world-position paint shading keep the casting smooth. Small atlas regions carry
 the silver reflector, text-free dial, dark mirror glass, and chrome mirror backs.
 Other areas still use placeholder cubes. The whole-vehicle target is 3,500 cubes;
+model pixels apart. The engine area supplies 319 cubes on `body`: the compact
+cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
+forward-looping exhaust header, shallow kidney muffler, and two body brackets.
+Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
+(18), `engine_muffler` (114), and `engine_header` (66). Remaining areas retain
+placeholder cubes until their builders are installed. The whole-vehicle target is 3,500 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 

@@ -18,6 +18,7 @@ AREA_ORDER = (
     "shield",
     "head",
     "running",
+    "engine",
 )
 
 ASSEMBLIES = {
@@ -44,6 +45,11 @@ ASSEMBLIES = {
     "running_wheel_rear": {"owner": "scooter", "cubes": 236},
     "running_spring": {"owner": "scooter", "cubes": 112},
     "running_stand": {"owner": "scooter", "cubes": 2},
+    "engine_casting": {"owner": "scooter", "cubes": 42},
+    "engine_fan": {"owner": "scooter", "cubes": 32},
+    "engine_kick": {"owner": "scooter", "cubes": 18},
+    "engine_muffler": {"owner": "scooter", "cubes": 114},
+    "engine_header": {"owner": "scooter", "cubes": 66},
 }
 
 BONES = (
