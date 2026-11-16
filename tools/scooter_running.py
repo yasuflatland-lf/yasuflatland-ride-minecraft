@@ -25,7 +25,8 @@ TYRE_PROFILE = ((-1.05, 3.0), (-1.05, 3.4), (-1.0, 3.95), (-0.7, 4.25),
                 (0.7, 4.25), (1.0, 3.95), (1.05, 3.4), (1.05, 3.0))
 DISC_HALF_WIDTH = 1.15
 DISC_HALF_SIZE = 3.74
-DISC_TEXELS = 60
+# Keep whitewall boundary error below 0.04 model units without adding wheel cubes.
+DISC_TEXELS = 256
 # Photo radii in px of the front wheel: whitewall 2.98..3.71, dark line, bead ring, rim dish, lug circle.
 WALL_OUTER, WALL_INNER = 3.71, 2.98
 LINE_OUTER, LINE_INNER, BEAD_INNER, DISH_OUTER = 3.0, 2.94, 2.89, 2.85
@@ -181,7 +182,8 @@ def _wheel(result, side, axle_z, scale):
         a = 2 * math.pi * (k + 0.5) / RING_SEGMENTS
         return [0, cy + 2.0 * scale * math.cos(a), axle_z + 2.0 * scale * math.sin(a)]
     bone = f"wheel_{side}"
-    result.add(bone, kit.skin(rings, TYRE_THICKNESS, atlas.faces("rubber"), inside, assembly=name))
+    result.add(bone, kit.skin(rings, TYRE_THICKNESS, atlas.faces("rubber"), inside,
+                              assembly=name, tangent_frame=True))
     half = DISC_HALF_SIZE * scale
     result.add(bone, kit.box((-DISC_HALF_WIDTH, cy - half, axle_z - half),
                              (DISC_HALF_WIDTH, cy + half, axle_z + half),
