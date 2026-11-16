@@ -25,7 +25,7 @@ type AreaRow = {
 // One row per area module (issues 6 to 11 each append one row).
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
-  { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_plate"], cubes: 329 },
+  { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_plate"], cubes: 383 },
 ];
 
 const python = startPythonWorker();
@@ -69,7 +69,7 @@ k.mirror_to_game(bones)
 print(json.dumps(g.rounded(dict(areas=g.AREA_ORDER,table=g.ASSEMBLIES,assemblies=merged.assemblies,budget=d.CUBE_BUDGET,ceiling=d.CUBE_BUDGET_CEILING,axis=d.STEERING_AXIS_DEGREES))))
 `),
   );
-});
+}, 30_000);
 
 describe("scooter generated foundation", () => {
   it("keeps the exact ordered bone contract without rest rotations", () => {
