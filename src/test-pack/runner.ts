@@ -3,6 +3,7 @@
 import { system, world } from "@minecraft/server";
 import "./inputProbe";
 import "./loungeProbe";
+import "./scooterPoseProbe";
 import "./cutoutProbe";
 import "./rotationProbe";
 import { type Arena, prepareRun, removeVehicles } from "./arena";
