@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "yasu_ride",
+  "texture_name": "atlas.terrain",
+  "texture_data": {
+    "yasu_build_warp_block_top": {
+      "textures": "textures/blocks/yasu_build/warp_block_top"
+    },
+    "yasu_build_warp_block_side": {
+      "textures": "textures/blocks/yasu_build/warp_block_side"
+    }
+  }
+}

@@ -49,6 +49,9 @@ packs/yasu_ride_rp/textures/items/yasu_ride/road_paver_switch.png
 packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer_monitor.geo.json
 packs/yasu_ride_rp/render_controllers/yasu_ride/bulldozer_monitor.rc.json
 packs/yasu_ride_rp/textures/items/yasu_build/selection_wand.png
+packs/yasu_ride_rp/textures/items/yasu_build/warp_tool.png
+packs/yasu_ride_rp/textures/blocks/yasu_build/warp_block_top.png
+packs/yasu_ride_rp/textures/blocks/yasu_build/warp_block_side.png
 packs/yasu_ride_rp/models/blocks/yasu_ride/potted_plant.geo.json
 packs/yasu_ride_rp/models/blocks/yasu_ride/macrame_planter.geo.json
 packs/yasu_ride_rp/models/blocks/yasu_ride/cactus_pot.geo.json

@@ -280,3 +280,5 @@ yasu_build.warp.registry_full=ワープ地点の登録数が上限に達して�
 yasu_build.warp.point_gone=ワープ地点「%1」のブロックがなくなったため、登録を削除しました。
 yasu_build.warp.no_points=ワープ地点が登録されていません。
 yasu_build.warp.teleport_failed=ワープ地点に移動できませんでした。
+item.yasu_build:warp_tool.name=ワープツール
+tile.yasu_build:warp_block.name=ワープブロック
