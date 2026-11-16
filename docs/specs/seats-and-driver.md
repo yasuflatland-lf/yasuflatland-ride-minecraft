@@ -18,7 +18,7 @@
 - Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
 - Source: [0223](../adr/0223-require-a-rider-list-slot-on-every-rider.md)
 - Source: [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md)
-- Source: [0249](../adr/0249-scooter-rider-grip-pose-and-stepped-lean.md)
+- Source: [0250](../adr/0250-scooter-rider-grip-pose-and-stepped-lean.md)
 - Excluded: [0117](../adr/0117-move-the-suv-front-seats-back.md): SUV seat coordinates, covered by suv-body
 - Excluded: [0138](../adr/0138-raise-and-lower-the-bulldozer-blade.md): bulldozer blade lift, not seating
 - Excluded: [0155](../adr/0155-cut-under-water-and-dig-a-shaft-when-rising.md): bulldozer cutting, not seating
@@ -179,7 +179,7 @@
 - Applies to: players invoking `yasu_ride_test:scooter_pose` in the test pack.
 - Rule: `grip` (0), `l1`–`l3` (-1 through -3), and `r1`–`r3` (1 through 3) select looping poses through the player client override. Arms cancel vanilla rotation to -70 degrees x and legs cancel all axes to stay straight. Lean variants preserve the grip bones and roll the waist by positive 8/16/24 degrees for left or negative 8/16/24 for right. Invalid arguments report usage. The probe retains an existing seat or mounts the nearest rideable within four blocks, then plays with controller `yasu_ride.scooter_pose`, stop expression `!query.is_riding`, and blend-out time 0.15. The animations are registered only in `description.animations` and do not run automatically.
 - Agreement: Proposed
-- Basis: [0249](../adr/0249-scooter-rider-grip-pose-and-stepped-lean.md) Decision; [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md) Decision.
+- Basis: [0250](../adr/0250-scooter-rider-grip-pose-and-stepped-lean.md) Decision; [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md) Decision.
 - Implementation: `src/test-pack/scooterPoseProbe.ts`; `packs/yasu_ride_rp/entity/yasu_ride/player.ce.json`; `packs/yasu_ride_rp/animations/yasu_ride/player.anim.json`
 - Verification: `tests/packs/playerOverride.test.ts` pins the vanilla definition, grip bones, looping, and six waist angles. Not verified: grip alignment, roll sign, pose switching, dismount restoration, and visibility on devices; these await owner checks.
 

@@ -241,7 +241,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0235](0235-share-convex-rain-ceiling-geometry-and-placement.md) | Share convex rain ceiling geometry and placement | Proposed |
 | [0236](0236-a-beach-parasol-in-a-new-resort-gear-group.md) | A beach parasol in a new Resort Gear group | Proposed; extended by [0239](0239-a-beach-chair-that-folds-into-a-table.md) |
 | [0237](0237-register-tabletop-hosts-across-features.md) | Register tabletop hosts across features | Proposed; extended by [0240](0240-resort-furniture-family.md), [0242](0242-dining-table-top-interactions.md) |
-| [0238](0238-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Accepted; extended by [0249](0249-scooter-rider-grip-pose-and-stepped-lean.md) |
+| [0238](0238-lounge-pose-by-overriding-the-player-client-entity.md) | Lounge pose by overriding the player client entity | Accepted; extended by [0250](0250-scooter-rider-grip-pose-and-stepped-lean.md) |
 | [0239](0239-a-beach-chair-that-folds-into-a-table.md) | A beach chair that folds into a table | Proposed |
 | [0240](0240-resort-furniture-family.md) | Resort furniture family | Proposed; superseded in part by [0241](0241-dining-table-top-blocks.md); extended by [0241](0241-dining-table-top-blocks.md) |
 | [0241](0241-dining-table-top-blocks.md) | Dining Table top blocks | Proposed; extended by [0242](0242-dining-table-top-interactions.md) |
@@ -252,7 +252,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0246](0246-toilet-and-washstand-shows-and-cutouts.md) | Toilet and Washstand: interact shows, cut-out textures, baked chrome, and recorded sounds | Accepted |
 | [0247](0247-precise-camping-gear-rotations-textures-and-cube-budget.md) | Precise camping gear: rotations, texture tiles, cube budget, and glass | Proposed |
 | [0248](0248-treat-generated-pack-files-as-build-outputs.md) | Treat generated pack files as build outputs | Proposed |
-| [0249](0249-scooter-rider-grip-pose-and-stepped-lean.md) | Scooter rider grip pose and stepped lean | Proposed |
+| [0250](0250-scooter-rider-grip-pose-and-stepped-lean.md) | Scooter rider grip pose and stepped lean | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

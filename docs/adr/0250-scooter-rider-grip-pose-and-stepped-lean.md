@@ -1,4 +1,4 @@
-# 0249. Scooter rider grip pose and stepped lean
+# 0250. Scooter rider grip pose and stepped lean
 
 - Status: Proposed
 - Acceptance condition: the owner records the PC and mobile results of the checks below in this ADR and accepts it in #1750
