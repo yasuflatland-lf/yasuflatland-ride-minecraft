@@ -251,6 +251,8 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   tent_lantern: ["camp"],
   tent_mattress: ["camp"],
   tent_wall: ["camp"],
+  warp_block: ["warp"],
+  warp_tool: ["warp"],
   wide_blade_switch: ["vehicle:bulldozer"],
 };
 
@@ -334,7 +336,7 @@ const IMPACT_RULES: readonly ImpactRule[] = [
   {
     rule: "warp",
     test: /^src\/(?:domain|application|infrastructure)\/warp\//,
-    impact: "all",
+    impact: ["warp"],
   },
   {
     rule: "build",
@@ -379,6 +381,11 @@ const IMPACT_RULES: readonly ImpactRule[] = [
     rule: "vehicle",
     test: /^src\/(?:domain|application|infrastructure)\/vehicle\//,
     impact: ["vehicle"],
+  },
+  {
+    rule: "warp-pack",
+    test: /^packs\/yasu_ride_bp\/[^/]+\/yasu_build\/warp_(?:block|tool)\./,
+    impact: ["warp"],
   },
   {
     rule: "build-pack",
