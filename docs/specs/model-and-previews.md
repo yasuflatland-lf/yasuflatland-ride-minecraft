@@ -108,11 +108,11 @@ use 256 by 256 texels over 7.48 model units, keeping both circular boundaries wi
 0.04 units of their ideal radii. The 32-segment black tyre skin preserves each
 panel's tangent frame so its bounding box cannot overlap the whitewall. Wheel and
 fold bones retain their axle pivots. The combined packed atlas stays within 4096 by 4096
-texels. Side and front-left previews render the full atlas without a density cap.
+texels. Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit.
 
 The whole-vehicle target is 3,550 cubes;
 generation rejects more than the 3,800-cube ceiling. The finished
-generated model has 3,407 cubes: 1,934 on `body`, 834 on `steer`, 238 on each wheel,
+generated model has 3,512 cubes: 2,006 on `body`, 867 on `steer`, 238 on each wheel,
 73 on `headlights`, 48 on `tail_lights`, 16 on each glow bone and 10 on `stand`. The
 kind's entity and driving rules are in [Scooter](scooter.md).
 
