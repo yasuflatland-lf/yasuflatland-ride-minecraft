@@ -61,8 +61,13 @@ The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_fron
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
-model pixels apart. Empty area and assembly tables allow later areas to replace
-the seven placeholder cubes independently. The whole-vehicle target is 3,500 cubes;
+model pixels apart. The head area replaces the steering and headlight placeholders with 510 cubes:
+437 on `steer` and 73 on `headlights`. Its collar, horn casting, bib, instrument
+bezel, lamp rim, controls, levers, and mirrors retain the spike ring counts.
+Named `head_*` assemblies carry compound panels; alpha-cut profiles and
+world-position paint shading keep the casting smooth. Small atlas regions carry
+the silver reflector, text-free dial, dark mirror glass, and chrome mirror backs.
+Other areas still use placeholder cubes. The whole-vehicle target is 3,500 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 
