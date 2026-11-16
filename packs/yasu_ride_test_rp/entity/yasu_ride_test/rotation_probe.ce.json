@@ -1,0 +1,18 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride_test:rotation_probe",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride_test/rotation_probe"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride_test.rotation_probe"
+      },
+      "render_controllers": ["controller.render.yasu_ride_test.rotation_probe"]
+    }
+  }
+}
