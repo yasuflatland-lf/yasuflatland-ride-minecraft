@@ -1980,6 +1980,9 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
           c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
         );
       for (const c of surround) f.block(c).setType("minecraft:gold_block");
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of f.region(3, 1, 5, f.cell(12, -1)))
+        f.block(c).setType("minecraft:stone");
       const chest = f.block(f.cell(1, 1, 1));
       chest.setType("minecraft:chest");
       chest
@@ -2021,7 +2024,7 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
         check(f.block(c).typeId === expected, "Rotated footprint mismatch");
       }
       const outside = surround.filter(
-        (c) => !target.some((t) => t.x === c.x && t.y === c.y && t.z === c.z),
+        (c) => !target.some((t) => t.x === c.x && t.z === c.z),
       );
       check(
         f.count(outside, "minecraft:gold_block") === outside.length,
@@ -2073,10 +2076,13 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
         );
       });
     try {
-      for (const c of [...source, ...target])
+      for (const c of source)
         f.block(c).setType(
           c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
         );
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of f.region(8, 1, 4, f.cell(12, -1)))
+        f.block(c).setType("minecraft:stone");
       const chest = f.block(f.cell(1, 1, 1));
       chest.setType("minecraft:chest");
       chest
@@ -2133,6 +2139,8 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
           inside(12).filter((e) => e.typeId === "minecraft:cow").length === 1,
         "animal replacement failed",
       );
+      // The pasted stone layer lifts the snapped box by one; clearing it would
+      // pop the pasted sign, and the bed lies inside both boxes anyway.
       f.block(f.cell(19, 3, 3)).setType("yasu_ride:camper_bed");
       const before = snapshot(f, target);
       const cowIds = inside(12)
@@ -2255,10 +2263,13 @@ export async function buildPasteStructureDecor(
       try {
         for (const offset of [0, 12])
           for (const entity of entities(offset)) entity.remove();
-        for (const c of [...source, ...target])
+        for (const c of source)
           f.block(c).setType(
             c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
           );
+        for (const c of target) f.block(c).setType("minecraft:air");
+        for (const c of f.region(8, 1, 8, f.cell(12, -1)))
+          f.block(c).setType("minecraft:stone");
         for (const offset of [0, 12])
           for (const c of f.region(1, 4, 6, f.cell(offset + 1, 1, 1)))
             f.block(c).setType("minecraft:stone");
@@ -2364,6 +2375,8 @@ export async function buildPasteStructureDecor(
         removeItems();
         await wait(BUILD_SPEC.pasteRepeatTicks);
         f.block(mirrored).setPermutation(permutation);
+        for (const c of f.region(8, 1, 8, f.cell(12)))
+          f.block(c).setType("minecraft:air");
         const repeated = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
         record(
           "paste_repeat",
