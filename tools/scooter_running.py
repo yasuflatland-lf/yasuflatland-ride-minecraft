@@ -70,7 +70,6 @@ FORK_TABS = (((1.5, 8.45), (1.75, 8.6), 8.55, 0.12), ((1.18, 7.98), (1.69, 8.13)
 SEAT_HALF = (0.3, 0.12, 0.4)
 SEAT_YS = (4.38, 8.02)
 
-STAND_PIXEL = (400, 462)
 STAND_FLOOR_Y = 5.29
 STAND_LUG_X = 1.6
 STAND_LUG_THICKNESS = 0.18
@@ -79,7 +78,6 @@ STAND_FOOT = (3.8, 0.7, -0.6)
 STAND_PAD_HALF = (0.23, 0.9, (-0.95, -0.25))
 STAND_LEG_SIZE, STAND_BAR_SIZE, STAND_PIVOT_SIZE = 0.32, 0.3, 0.28
 STAND_PIVOT_HALF_LENGTH = 0.24
-STAND_PIVOT_BACK = 0.2
 
 LEG_OUTLINE_OFFSETS = (0.3, -0.38, -0.34, -0.34)
 LINK_OUTLINE = ((-11.45, 3.65), (-11.04, 3.75), (-10.99, 4.13), (-13.45, 6.03),
@@ -163,7 +161,7 @@ def register_regions(registry=None):
     _outline_region("running_leg", _leg_outline(), atlas.Material.PAINT, atlas.PAINT_IVORY)
     _outline_region("running_link", list(LINK_OUTLINE), atlas.Material.CHROME, LINK_COLOR)
     _outline_region("running_link_shade", list(LINK_SHADE_OUTLINE), atlas.Material.CHROME, LINK_SHADE_COLOR)
-    pivot_z, pivot_y = dims.i2m(*STAND_PIXEL)
+    pivot_z, pivot_y = dims.i2m(*dims.STAND_PIXEL)
     _outline_region("running_stand_lug", _stand_lug(pivot_z, pivot_y), atlas.Material.CHROME, LINK_COLOR)
 
 
@@ -234,8 +232,8 @@ def _fork(result):
 
 def _stand(result):
     chrome = atlas.faces("chrome")
-    pivot_z, pivot_y = dims.i2m(*STAND_PIXEL)
-    bar_z = pivot_z - STAND_PIVOT_BACK
+    pivot_z, pivot_y = dims.i2m(*dims.STAND_PIXEL)
+    bar_z = dims.STAND_PIVOT[2]
     half_x, floor_lo, floor_hi, (back, front) = STAND_BRACKET
     result.add("stand", kit.box((-half_x, floor_lo, pivot_z + back), (half_x, floor_hi, pivot_z + front), chrome))
     lug = _stand_lug(pivot_z, pivot_y)

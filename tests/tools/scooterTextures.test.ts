@@ -118,6 +118,7 @@ it("assigns material finishes and lights exactly the lamp rectangles", () => {
     "lens_head",
     "lens_tail",
     "lens_amber",
+    "glow",
   ]);
   const mer = readRgbaPng(`${directory}scooter_mer.png`);
   const lit = readRgbaPng(`${directory}scooter_lit.png`);
