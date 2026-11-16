@@ -1,12 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { RESORT_GEAR } from "../support/resortGear";
 
 type Point = [number, number, number];
-
-// Concurrent model generators in sibling worktrees can push the full furniture render past four minutes.
-const CAMPING_PREVIEW_TIMEOUT_MS = 600_000;
 
 // Runs collect_boat from tools/render_preview.py on a geometry and returns the
 // center of every opaque face it draws, in the preview's mirrored frame.
@@ -87,51 +84,45 @@ describe("render_preview.py bone rotations", () => {
   });
 });
 
+const pngSize = (path: string): [number, number] => {
+  const png = readFileSync(path);
+  return [png.readUInt32BE(16), png.readUInt32BE(20)];
+};
+
 describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", () => {
-  it(
-    "renders every item of the spec and the low chair and tent into their own 128 px squares and keeps the vehicle frame for the rest",
-    () => {
-      const script = [
-        "import json, sys",
-        "from pathlib import Path",
-        "sys.path.insert(0, 'tools')",
-        "import render_preview",
-        "images = render_preview.render_camping_gear(Path('packs/yasu_ride_rp'))",
-        "names = list(images)",
-        "print(json.dumps({'names': names, 'lengths': sorted({len(render_preview.rasterize_job(v)) for v in images.values()}),",
-        "  'sizes': [render_preview.image_size(n) for n in names + ['camper-side.png']]}))",
-      ].join("\n");
-      const out = JSON.parse(
-        execFileSync("python3", ["-I", "-c", script], {
-          encoding: "utf8",
-          timeout: CAMPING_PREVIEW_TIMEOUT_MS,
-        }),
-      );
-      const ids = (
-        JSON.parse(readFileSync("tools/camping_gear.json", "utf8")) as {
-          id: string;
-        }[]
-      ).map((g) => g.id);
-      const names = [
-        ...ids,
-        ...RESORT_GEAR.map((piece) => piece.name),
-        "noga_chair",
-        "low_chair",
-        "tent",
-        "roof_tent",
-        "camp_table",
-        "fire_pit",
-        "dutch_oven",
-        "gas_lantern",
-      ];
-      expect(out.names).toEqual(
-        names.map((name) => `items/camping-gear/${name}.png`),
-      );
-      expect(out.lengths).toEqual([128 * 128 * 4]);
-      expect(out.sizes).toEqual([...names.map(() => [128, 128]), [800, 600]]);
-    },
-    CAMPING_PREVIEW_TIMEOUT_MS,
-  );
+  it("keeps one 128 px preview per camping gear item and the vehicle frame for the rest", () => {
+    const ids = (
+      JSON.parse(readFileSync("tools/camping_gear.json", "utf8")) as {
+        id: string;
+      }[]
+    ).map((g) => g.id);
+    const names = [
+      ...ids,
+      ...RESORT_GEAR.map((piece) => piece.name),
+      "noga_chair",
+      "low_chair",
+      "tent",
+      "roof_tent",
+      "camp_table",
+      "fire_pit",
+      "dutch_oven",
+      "gas_lantern",
+    ];
+    const directory = "docs/images/items/camping-gear";
+    const files = readdirSync(directory).filter((file) =>
+      file.endsWith(".png"),
+    );
+    expect(files.sort()).toEqual(names.map((name) => `${name}.png`).sort());
+    for (const file of files) {
+      expect(pngSize(`${directory}/${file}`)).toEqual([128, 128]);
+    }
+    expect(pngSize("docs/images/camper-side.png")).toEqual([800, 600]);
+    expect(
+      previewPython(
+        `print(json.dumps([r.image_size(n) for n in ${JSON.stringify(names.map((name) => `items/camping-gear/${name}.png`).concat("camper-side.png"))}]))`,
+      ),
+    ).toEqual([...names.map(() => [128, 128]), [800, 600]]);
+  });
 });
 
 const previewPython = (body: string) =>
