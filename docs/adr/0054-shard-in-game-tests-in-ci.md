@@ -30,6 +30,7 @@ Packing by ticks, the slowest slice was estimated at 72 s for three jobs, 61 s f
 - Each entry in the runner's test list carries its ticks as last logged in CI. `shardsOf` packs the tests slowest first, each into the slice with the fewest ticks so far, breaking ties by list position and then by the lower slice, so every job computes the same split
 - Every result line carries `ticks=`. Update a test's number when it moves by more than about 50 ticks, and give a new test its measured ticks
 - In the unit test workflow, run `pnpm model:check` in its own `model` job beside the `unit` job. It needs only Python's standard library, so the job skips `pnpm install`. A `check` job that needs both fails unless both succeeded, so the required status check named `check` still covers everything
+- Unit tests do not run the renderer or a full generator check; `model:check` is the only place that does
 
 ## Consequences
 
