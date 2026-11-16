@@ -116,7 +116,7 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
   expect(metadata.lit).toEqual([
     "head_lens",
     "lens_head",
-    "lens_tail",
+    "lens_tail_glow",
     "lens_amber",
   ]);
   const mer = readRgbaPng(`${directory}scooter_mer.png`);

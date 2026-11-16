@@ -349,6 +349,7 @@ def _seat(result):
 def _lamp(result):
     place = _lamp_frame()
     chrome, red = atlas.faces("chrome"), atlas.faces("lens_tail")
+    glow = atlas.faces("lens_tail_glow")
     dark = atlas.faces("rubber")
 
     def rings(specs, **kw):
@@ -378,8 +379,8 @@ def _lamp(result):
     add("body", skin(rings(LAMP_BASE), LAMP_BASE_SKIN, chrome))
     rim = [place(p) for p in _ring(*LAMP_RIM)]
     add("body", tube([*rim, rim[0]], LAMP_RIM_SIZE * LAMP_SCALE, chrome))
-    add("tail_lights", skin(rings(LAMP_LENS), LAMP_LENS_SKIN, red))
-    add("tail_lights", skin(rings(LAMP_CAP), LAMP_CAP_SKIN, red))
+    add("tail_lights", skin(rings(LAMP_LENS), LAMP_LENS_SKIN, glow))
+    add("tail_lights", skin(rings(LAMP_CAP), LAMP_CAP_SKIN, glow))
 
     hood = [[place(p) for p in _ring(w, h, z, cy, n, HOOD_RING_POINTS)] for w, h, z, cy, n in HOOD]
     tip = [place([0, HOOD_TIP[3], HOOD_TIP[2]])] * HOOD_RING_POINTS

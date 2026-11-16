@@ -111,7 +111,7 @@ register("rubber", SMALL_TEXELS, SMALL_TEXELS, Material.RUBBER,
 register("whitewall", SMALL_TEXELS, SMALL_TEXELS, Material.WHITEWALL, _solid(WHITEWALL))
 register("seat_leather", REGION_TEXELS, REGION_TEXELS, Material.LEATHER,
          lambda u, v: (*(LEATHER_SEAM if v % SEAM_PERIOD_TEXELS == 0 else LEATHER), 255))
-for name, color in (("lens_head", HEAD_LENS), ("lens_tail", TAIL_LENS), ("lens_amber", AMBER_LENS)):
+for name, color in (("lens_head", HEAD_LENS), ("lens_tail", TAIL_LENS), ("lens_tail_glow", TAIL_LENS), ("lens_amber", AMBER_LENS)):
     register(name, SMALL_TEXELS, SMALL_TEXELS, Material.LENS, _solid(color))
 register("plate", SMALL_TEXELS, SMALL_TEXELS, Material.PLATE, _solid(PLATE))
 register("clear", SMALL_TEXELS, SMALL_TEXELS, Material.CUTOUT, lambda u, v: CLEAR)
