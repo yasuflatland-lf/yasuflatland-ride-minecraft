@@ -159,12 +159,20 @@ export interface RiderEffectWorld {
   protectFromFire(playerId: PlayerId): void;
 }
 
+export interface RiderPose {
+  /** Pose names are entries in the kind profile's table (ADR 0250). */
+  play(playerId: PlayerId, pose: string): void;
+  /** Ends the pose for a rider who left. */
+  clear(playerId: PlayerId): void;
+}
+
 export type DriveWorld = LoadedVehicleWorld &
   SurroundingsWorld &
   ImpulseWorld &
   VehicleBlockWorld &
   RiderWorld &
-  RiderEffectWorld;
+  RiderEffectWorld &
+  RiderPose;
 
 export interface HintPlayerView {
   id: PlayerId;

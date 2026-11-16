@@ -100,6 +100,11 @@ export class DriveVehicles {
       });
       // Latches advance while building commands; a failed tick or send must retry every value (ADR 0127).
       this.world.run(snap.id, out.stepCommands);
+      for (const command of out.riderPoses) {
+        if (command.type === "play")
+          this.world.play(command.playerId, command.pose);
+        else this.world.clear(command.playerId);
+      }
     } catch (error) {
       vehicle.resync();
       throw error;
