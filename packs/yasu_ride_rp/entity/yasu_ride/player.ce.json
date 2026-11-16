@@ -122,7 +122,14 @@
         "third_person_melee_spear_hold": "animation.humanoid.melee_spear_hold",
         "third_person_melee_spear_attack": "animation.player.melee_spear_attack",
         "third_person_melee_spear_controller": "controller.animation.player.melee_spear",
-        "lounge": "animation.yasu_ride.player.lounge"
+        "lounge": "animation.yasu_ride.player.lounge",
+        "scooter_grip": "animation.yasu_ride.player.scooter_grip",
+        "scooter_lean_l1": "animation.yasu_ride.player.scooter_lean_l1",
+        "scooter_lean_l2": "animation.yasu_ride.player.scooter_lean_l2",
+        "scooter_lean_l3": "animation.yasu_ride.player.scooter_lean_l3",
+        "scooter_lean_r1": "animation.yasu_ride.player.scooter_lean_r1",
+        "scooter_lean_r2": "animation.yasu_ride.player.scooter_lean_r2",
+        "scooter_lean_r3": "animation.yasu_ride.player.scooter_lean_r3"
       },
       "render_controllers": [
         {

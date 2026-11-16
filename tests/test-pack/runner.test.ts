@@ -25,6 +25,7 @@ vi.mock("@minecraft/server", () => ({
 }));
 vi.mock("../../src/test-pack/inputProbe", () => ({}));
 vi.mock("../../src/test-pack/loungeProbe", () => ({}));
+vi.mock("../../src/test-pack/scooterPoseProbe", () => ({}));
 vi.mock("../../src/test-pack/cutoutProbe", () => ({}));
 vi.mock("../../src/test-pack/arena", () => ({
   prepareRun: harness.setup,
