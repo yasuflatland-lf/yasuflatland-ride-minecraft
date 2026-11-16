@@ -121,8 +121,6 @@ async function withBuilder(
   const f = {
     player,
     cell,
-    look: (yaw: number) =>
-      player.teleport(player.location, { rotation: { x: 25, y: yaw } }),
     lookSettled: async (yaw: number, pitch = 25): Promise<void> => {
       // A connected client sends its own rotation, so a teleport may be
       // overwritten or not yet applied one tick later.
@@ -195,7 +193,6 @@ async function withBuilder(
 }
 type Fixture = {
   player: Player;
-  look(yaw: number): void;
   lookSettled(yaw: number, pitch?: number): Promise<void>;
   cell(x?: number, y?: number, z?: number): Cell;
   block(cell: Cell): NonNullable<ReturnType<Arena["dim"]["getBlock"]>>;
@@ -1861,17 +1858,18 @@ function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
       for (const cell of cells) f.block(cell).setType("minecraft:air");
       await f.select(at(6, axis === "x" ? 4 : 0, 4));
       f.block(f.cell()).setType("minecraft:air");
-      f.look(axis === "x" ? -90 : 0);
-      // Teleport rotation is only readable on a later tick.
-      await wait(1);
+      await f.lookSettled(axis === "x" ? -90 : 0);
       const step = await f.menu("shape", "sideCylinder");
+      const expectedKind = axis === "x" ? "sideCylinderX" : "sideCylinderZ";
+      check(
+        step.flow.heightedKind === expectedKind,
+        `sideways cylinder picked ${step.flow.heightedKind} instead of ${expectedKind}`,
+      );
       check(
         step.offered === true && step.flow.kind === "heightStep",
         "sideways cylinder step missing",
       );
-      f.look(axis === "x" ? 0 : -90);
-      // Teleport rotation is only readable on a later tick.
-      await wait(1);
+      await f.lookSettled(axis === "x" ? 0 : -90);
       check(
         (await f.edit("height 5")).flow.previous === 5,
         "sideways cylinder height incorrect",
@@ -1882,9 +1880,10 @@ function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
           "box height was not locked",
         );
       const done = await f.menu("contents", fill);
+      const n = f.count(cells);
       check(
-        done.message === "editDone" && f.count(cells) === expected,
-        `sideways ${axis} ${fill} count incorrect`,
+        done.message === "editDone" && n === expected,
+        `sideways ${axis} ${fill} count incorrect: got ${n}, expected ${expected}, kind ${step.flow.heightedKind}`,
       );
       const stone = (along: number, y: number, across: number) =>
         f.block(at(along, y, across)).typeId === "minecraft:stone";
