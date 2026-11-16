@@ -2,30 +2,22 @@ import { type Block, type Dimension, world } from "@minecraft/server";
 import type { WarpWorld } from "../../../application/warp/ports/world";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import {
+  isStandableLanding,
+  type LandingSample,
+} from "../../../domain/warp/landing";
 import type { BlockPresence } from "../../../domain/warp/presence";
 import type { WarpPoint } from "../../../domain/warp/warpPoint";
 import { playerById } from "../../shared/players";
 import { WARP_BLOCK_TYPE } from "../identifiers";
 
-const LANDING_HAZARDS = new Set([
-  "minecraft:lava",
-  "minecraft:flowing_lava",
-  "minecraft:fire",
-  "minecraft:soul_fire",
-  "minecraft:cactus",
-  "minecraft:magma",
-]);
-
-// Block.isSolid is not in stable 2.11.0; a one-cell search excludes passable blocks.
+// BDS 1.26.63.1 includes the origin cell; starting below it tests the wrong block.
 function isSolid(dimension: Dimension, cell: Cell): boolean {
-  const block = dimension.getBlockAbove(
-    { ...cell, y: cell.y - 1 },
-    {
-      maxDistance: 1,
-      includeLiquidBlocks: false,
-      includePassableBlocks: false,
-    },
-  );
+  const block = dimension.getBlockAbove(cell, {
+    maxDistance: 1,
+    includeLiquidBlocks: false,
+    includePassableBlocks: false,
+  });
   return (
     block !== undefined &&
     block.location.x === cell.x &&
@@ -34,8 +26,13 @@ function isSolid(dimension: Dimension, cell: Cell): boolean {
   );
 }
 
-function isPassable(dimension: Dimension, cell: Cell, block: Block): boolean {
-  return block.isAir || (!block.isLiquid && !isSolid(dimension, cell));
+function sample(dimension: Dimension, cell: Cell, block: Block): LandingSample {
+  return {
+    typeId: block.typeId,
+    isAir: block.isAir,
+    isLiquid: block.isLiquid,
+    solid: isSolid(dimension, cell),
+  };
 }
 
 export class BedrockWarpWorld implements WarpWorld {
@@ -58,16 +55,10 @@ export class BedrockWarpWorld implements WarpWorld {
       const body = dimension.getBlock(feet);
       const head = dimension.getBlock(headCell);
       if (!floor || !body || !head) return false;
-      if (
-        [floor, body, head].some((block) => LANDING_HAZARDS.has(block.typeId))
-      )
-        return false;
-      return (
-        !floor.isAir &&
-        !floor.isLiquid &&
-        isSolid(dimension, floorCell) &&
-        isPassable(dimension, feet, body) &&
-        isPassable(dimension, headCell, head)
+      return isStandableLanding(
+        sample(dimension, floorCell, floor),
+        sample(dimension, feet, body),
+        sample(dimension, headCell, head),
       );
     } catch {
       return false;
@@ -78,7 +69,7 @@ export class BedrockWarpWorld implements WarpWorld {
     try {
       const player = playerById(playerId);
       if (!player?.isValid) return false;
-      // Unloaded-chunk teleport behavior needs the #1781 probe; a throw reports failure to the use case.
+      // An unloaded target does not throw on BDS 1.26.63.1 (ADR 0249 probe); a throw still reports failure.
       player.teleport(
         { x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 },
         { dimension: world.getDimension(dimensionId) },
