@@ -9,11 +9,11 @@
 ### Registration
 
 - Applies to: Placing `yasu_build:warp_block`.
-- Rule: A block placed by a player registers one warp point holding a unique id, the name, the owner's player name, the dimension id, and the block cell. Blocks placed without a player are not registered.
+- Rule: A block placed by a player registers one warp point holding a unique id, the name, the owner's player name, the dimension id, and the block cell. Blocks placed without a player are not registered. A full registry removes the placed block and returns one item through the inventory, dropping overflow at the player; Creative players need no refund. Placement flows hold the shared form guard until they finish, without suppressing registration.
 - Agreement: Proposed
 - Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decision 4.
-- Implementation: `docs/superpowers/specs/2026-11-16-warp-block-and-tool-design.md` (design only; the `warp` feature is planned).
-- Verification: None yet. The in-game scenario and the manual check are planned in #1780 and #1781.
+- Implementation: `src/infrastructure/warp/handlers/placement.ts`, `src/application/warp/registerWarpPoint.ts`, `src/infrastructure/warp/install.ts`, and `src/infrastructure/bootstrap.ts`.
+- Verification: `tests/infrastructure/warp/handlers.test.ts` covers placement filtering and full-registry rollback; `tests/application/warp/registerWarpPoint.test.ts` covers registration. The in-game scenario and manual check remain planned in #1781.
 
 ### Naming
 
@@ -21,17 +21,17 @@
 - Rule: Names are trimmed and at most 32 characters. A cancelled or empty name at placement uses "Warp N" with the lowest free N. An empty edit keeps the old name. Any player may edit any name.
 - Agreement: Proposed
 - Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decisions 3 and 4.
-- Implementation: `docs/superpowers/specs/2026-11-16-warp-block-and-tool-design.md` (design only; the `warp` feature is planned).
-- Verification: None yet. Property tests for the default name are planned.
+- Implementation: `src/application/warp/registerWarpPoint.ts`, `src/application/warp/renameWarpPoint.ts`, `src/infrastructure/warp/bedrock/bedrockWarpMenus.ts`, `src/infrastructure/warp/handlers/blockInteract.ts`, and `src/infrastructure/warp/handlers/formGuard.ts`.
+- Verification: `tests/domain/warp/names.test.ts`, `tests/application/warp/registerWarpPoint.test.ts`, `tests/application/warp/editWarpPoint.test.ts`, `tests/infrastructure/warp/menus.test.ts`, and `tests/infrastructure/warp/handlers.test.ts` cover naming, forms, and sneak routing; `tests/infrastructure/warp/formGuard.test.ts` checks per-player debounce and busy flows.
 
 ### List
 
 - Applies to: Opening the list by a right-click on the block or any press of `yasu_build:warp_tool`.
-- Rule: The list shows name, owner, dimension, and coordinates per entry. The player's current dimension comes first ordered by distance, then other dimensions. A long list is paged.
+- Rule: The list shows name, owner, dimension, and coordinates per entry. The player's current dimension comes first ordered by distance, then other dimensions. A long list is paged. Block and tool presses share a per-player guard: presses within 5 ticks and presses while a warp form flow is pending are ignored. Tool air and block before-events cancel the vanilla action and defer the list through `system.run`; held block repeats are ignored.
 - Agreement: Proposed
 - Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decisions 1, 2, and 6.
-- Implementation: `docs/superpowers/specs/2026-11-16-warp-block-and-tool-design.md` (design only; the `warp` feature is planned).
-- Verification: None yet. Property tests for ordering and paging are planned.
+- Implementation: `src/application/warp/openWarpList.ts`, `src/domain/warp/warpOrder.ts`, `src/infrastructure/warp/bedrock/bedrockWarpMenus.ts`, `src/infrastructure/warp/handlers/blockInteract.ts`, `src/infrastructure/warp/handlers/tool.ts`, and `src/infrastructure/warp/install.ts`.
+- Verification: `tests/domain/warp/orderLanding.test.ts`, `tests/application/warp/openWarpList.test.ts`, and `tests/infrastructure/warp/menus.test.ts` cover ordering, pruning, paging, and labels. `tests/infrastructure/warp/handlers.test.ts` covers tool cancellation, deferred forms, duplicate events, and busy-player suppression.
 
 ### Teleport
 
@@ -40,24 +40,24 @@
 - Agreement: Proposed
 - Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decisions 7 and 10.
 - Implementation: `src/infrastructure/warp/bedrock/bedrockWarpWorld.ts`, `src/domain/warp/landing.ts`, `src/application/warp/warpTo.ts`, `src/domain/warp/spec.ts`, `src/infrastructure/warp/bedrock/systemWarpTicks.ts`.
-- Verification: Mocked unit tests in `tests/infrastructure/warp/bedrockWarp.test.ts`; landing-choice property tests in `tests/domain/warp/orderLanding.test.ts` and `tests/application/warp/warpTo.test.ts`, with application tests for arrival rechecks and failure feedback. The in-game scenario and manual check remain planned in #1780 and #1781.
+- Verification: Mocked unit tests in `tests/infrastructure/warp/bedrockWarp.test.ts`; landing-choice property tests in `tests/domain/warp/orderLanding.test.ts` and `tests/application/warp/warpTo.test.ts`, with application tests for arrival rechecks and failure feedback. The in-game scenario and manual check remain planned in #1781.
 
 ### Removal and pruning
 
 - Applies to: Breaking a warp block, and block checks when opening the list or teleporting.
-- Rule: Breaking the block removes its entry; the removal use case removes the entry at the supplied dimension and block cell, and the break event handler that calls it is planned. A point's block is checked with `getBlock`: a warp block is present, and only a loaded cell holding another block counts as gone. A return value of `undefined` or any engine error counts as unloaded. When the list opens, gone entries are removed; unloaded entries are kept and labelled "unverified". Teleport uses the same presence check before departure and when rechecking an unverified arrival.
+- Rule: Breaking the block removes its entry; the removal use case removes the entry at the supplied dimension and block cell, through the player break event handler. A point's block is checked with `getBlock`: a warp block is present, and only a loaded cell holding another block counts as gone. A return value of `undefined` or any engine error counts as unloaded. When the list opens, gone entries are removed; unloaded entries are kept and labelled "unverified". Teleport uses the same presence check before departure and when rechecking an unverified arrival.
 - Agreement: Proposed
 - Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decisions 5 and 6.
-- Implementation: `src/infrastructure/warp/bedrock/bedrockWarpWorld.ts`, `src/domain/warp/presence.ts`, `src/application/warp/removeWarpPoint.ts`, `src/application/warp/openWarpList.ts`, `src/application/warp/warpTo.ts`.
-- Verification: Mocked unit tests in `tests/infrastructure/warp/bedrockWarp.test.ts`; pruning property tests in `tests/application/warp/openWarpList.test.ts` and arrival recheck tests in `tests/application/warp/warpTo.test.ts`. The in-game scenario and manual check remain planned in #1780 and #1781.
+- Implementation: `src/infrastructure/warp/bedrock/bedrockWarpWorld.ts`, `src/domain/warp/presence.ts`, `src/application/warp/removeWarpPoint.ts`, `src/infrastructure/warp/handlers/removal.ts`, `src/application/warp/openWarpList.ts`, `src/application/warp/warpTo.ts`.
+- Verification: Mocked event tests in `tests/infrastructure/warp/handlers.test.ts` cover removal filtering; adapter tests in `tests/infrastructure/warp/bedrockWarp.test.ts` and pruning property tests in `tests/application/warp/openWarpList.test.ts` and arrival recheck tests in `tests/application/warp/warpTo.test.ts` cover stale entries. The in-game scenario and manual check remain planned in #1781.
 
 ### Storage
 
 - Applies to: The registry across restarts.
-- Rule: One world-level registry lives in the world's dynamic properties, shared by all players, with a version field. The snapshot JSON is split into chunks of at most 10,000 UTF-16 code units under `yasu_build:warp_registry:<bank>:<index>`, where the bank is 0 or 1. The published value of `yasu_build:warp_registry:count` is `<bank>:<count>`. A save writes the chunks into the bank the published value does not reference, then writes the count last in one write, then deletes the old bank's chunks, so a failed save leaves the previously published registry readable. A missing count loads an empty registry; an invalid count, a missing or non-string chunk, malformed JSON, or an unsupported snapshot version loads as unreadable (`undefined`) and is never overwritten. Reads are lazy and uncached. The store is not wired into the composition root yet.
+- Rule: One world-level registry lives in the world's dynamic properties, shared by all players, with a version field. The snapshot JSON is split into chunks of at most 10,000 UTF-16 code units under `yasu_build:warp_registry:<bank>:<index>`, where the bank is 0 or 1. The published value of `yasu_build:warp_registry:count` is `<bank>:<count>`. A save writes the chunks into the bank the published value does not reference, then writes the count last in one write, then deletes the old bank's chunks, so a failed save leaves the previously published registry readable. A missing count loads an empty registry; an invalid count, a missing or non-string chunk, malformed JSON, or an unsupported snapshot version loads as unreadable (`undefined`) and is never overwritten. Reads are lazy and uncached. The warp install function supplies the store to every use case and is called once by bootstrap.
 - Agreement: Proposed
 - Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decision 8.
-- Implementation: `src/infrastructure/warp/identifiers.ts`; `src/infrastructure/warp/persistence/chunks.ts`; `src/infrastructure/warp/persistence/dynamicPropertyWarpRegistryStore.ts`
+- Implementation: `src/infrastructure/warp/identifiers.ts`; `src/infrastructure/warp/persistence/chunks.ts`; `src/infrastructure/warp/persistence/dynamicPropertyWarpRegistryStore.ts`; `src/infrastructure/warp/install.ts`; `src/infrastructure/bootstrap.ts`.
 - Verification: `tests/infrastructure/warp/chunks.test.ts` checks string round trips, chunk bounds and invalid sizes; `tests/infrastructure/warp/dynamicPropertyWarpRegistryStore.test.ts` checks lazy reads, registry round trips, unreadable data, chunk sizes, count-last writes, old-bank cleanup, and that a failed overwrite keeps the old registry readable, using a mocked world. Engine persistence is not verified in game; the round trip is planned for the in-game scenarios.
 
 ### Limits
@@ -66,11 +66,11 @@
 - Rule: The registry holds at most 64 entries. The block can be placed in all three dimensions and cannot be moved by a piston where the block definition allows that.
 - Agreement: Proposed
 - Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decisions 9, 10, and 11.
-- Implementation: `docs/superpowers/specs/2026-11-16-warp-block-and-tool-design.md` (design only; the `warp` feature is planned).
-- Verification: None yet. A limit property test is planned.
+- Implementation: `src/domain/warp/warpRegistry.ts`, `src/domain/warp/spec.ts`, `src/infrastructure/warp/handlers/placement.ts`, and `packs/yasu_ride_bp/blocks/yasu_build/warp_block.block.json`.
+- Verification: `tests/domain/warp/registry.test.ts` checks the registry limit; `tests/infrastructure/warp/handlers.test.ts` checks full-registry rollback.
 
 ## Open issues
 
-- The domain registry, naming, ordering, paging, pruning, landing selection, and snapshots, the application use cases, and the infrastructure identifiers, block check, teleport, player lookup, and tick adapters exist on this branch. ADR 0249 Decisions 1 to 5, 8, and 11 to 14 describe game integration that is still planned: placement, break, and interaction event handlers, menu, feedback, and world dynamic-property storage adapters, block and tool definitions, the icon and texture, lang strings, the Building Tools group order, and installation wired into bootstrap. The implementation series (#1773 to #1780) must complete that integration and update the remaining design-only references; ADR 0249 needs an edit or a superseding ADR if the completed implementation differs. The manual check in #1781 decides whether ADR 0249 is Accepted.
+- Event handlers, adapters, pack definitions, and bootstrap installation are implemented. The in-game scenarios and PC/touch manual check remain in #1781; ADR 0249 stays Proposed until that check passes.
+- The Warp Block can still be moved by a piston: the block definition omits `minecraft:movable` because of the block format version (see the Open issues in [build-tools.md](build-tools.md)). A piston-moved block leaves its warp point at the old cell, which the list prunes as gone.
 - Teleporting into an unloaded chunk is unmeasured. #1781 (11/11) adds a probe scenario; until then, a throwing teleport is reported as a failed teleport by `src/infrastructure/warp/bedrock/bedrockWarpWorld.ts` and `src/application/warp/warpTo.ts`.
-- ADR 0178 and the Building Tools rules in `build-tools.md` still list the group without the warp tool and block; #1775 changes them together with the group change.
