@@ -2,6 +2,10 @@
 const BUILD_NAMESPACE = "yasu_build";
 const buildId = (name: string): string => `${BUILD_NAMESPACE}:${name}`;
 
+export const WARP_BLOCK_TYPE = buildId("warp_block");
+export const WARP_TOOL_TYPE = buildId("warp_tool");
+export const WARP_BLOCK_COMPONENT = buildId("warp_block");
+
 export type WarpRegistryBank = 0 | 1;
 
 export const WARP_REGISTRY_COUNT = buildId("warp_registry:count");
