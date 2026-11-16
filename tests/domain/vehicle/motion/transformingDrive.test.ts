@@ -1149,3 +1149,33 @@ it("cancels sinking velocity at the float line and shares sensed depth with cust
     }),
   );
 });
+
+it("takes off from the float line and stays in hover with dry feet", () => {
+  const drive = surfaceDrive();
+  // Feet height with the water surface at y = 0, so depth is -y below it.
+  let y = -surfaceSpec.floatDraft;
+  let vy = 0;
+  let hoverSince: number | undefined;
+  for (let tick = 0; tick < 200; tick++) {
+    const jump = tick === 0 || tick === 2;
+    const out = drive.step(
+      { ...IDLE, jump },
+      {
+        ...context(Math.max(0, -y)),
+        tick,
+        onGround: false,
+        velocity: { x: 0, y: vy, z: 0 },
+        solidAt: () => false,
+      },
+    );
+    const drag =
+      y < 0 ? surfaceSpec.waterVerticalDrag : surfaceSpec.flightVerticalDrag;
+    vy = (vy + out.impulse.y) * drag;
+    y += vy;
+    if (drive.form === "hover") hoverSince ??= tick;
+    else expect(hoverSince).toBeUndefined();
+  }
+  expect(hoverSince).toBeDefined();
+  expect(drive.form).toBe("hover");
+  expect(y).toBeGreaterThanOrEqual(0);
+});

@@ -626,4 +626,24 @@ describe("surface water policy", () => {
       }),
     );
   });
+
+  it("holds takeoff past takeoffTicks until the feet are dry", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: spec.takeoffTicks, max: spec.takeoffTicks + 100 }),
+        wet,
+        fc.boolean(),
+        (formTicks, depth, controlled) => {
+          const prev = { ...initialForm("takeoff"), formTicks };
+          const input = { tick: 0, jump: false, controlled, onGround: false };
+          expect(
+            stepForm(prev, { ...input, waterDepth: depth }, spec).form,
+          ).toBe("takeoff");
+          expect(stepForm(prev, { ...input, waterDepth: 0 }, spec).form).toBe(
+            "hover",
+          );
+        },
+      ),
+    );
+  });
 });
