@@ -18,7 +18,7 @@
     "generate": "python3 -I tools/run_generators.py --ensure",
     "model": "python3 -I tools/run_generators.py",
     "sounds": "python3 -I tools/gen_sounds.py packs/yasu_ride_rp",
-    "model:check": "pnpm generate && python3 -I tools/run_generators.py --check",
+    "model:check": "python3 -I tools/run_generators.py && git diff --exit-code -- $(python3 -I tools/run_generators.py --list-outputs)",
     "server:up": "node scripts/server-up.mjs",
     "server:down": "docker compose -f server/compose.yaml down",
     "server:restart": "docker compose -f server/compose.yaml down && node scripts/server-up.mjs",
