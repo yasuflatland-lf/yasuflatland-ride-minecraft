@@ -36,6 +36,5 @@ export const MOTION = Object.freeze({
   stepMinSpeed: 0.15,
   stepLookaheadTicks: 4,
   stepLookaheadMargin: 0.3,
-  stepLaneOffset: 0.8,
   stepScanStep: 0.2,
 } as const);
