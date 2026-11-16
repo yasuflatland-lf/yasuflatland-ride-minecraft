@@ -174,6 +174,42 @@ print(json.dumps([name for name, _ in r.SCENE_BUILDERS]))
 });
 
 describe("scene construction", () => {
+  it("caps the pool at the builder count and requested workers", () => {
+    expect(
+      previewPython(`
+from unittest.mock import patch
+import scene_builder_stubs as stubs
+r.SCENE_BUILDERS = tuple((name, stubs.first) for name, _ in r.SCENE_BUILDERS)
+assert len(r.SCENE_BUILDERS) == 5
+pool_sizes = []
+
+class SerialPool:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def map(self, fn, entries, chunksize=1):
+        assert chunksize == 1
+        return [fn(entry) for entry in entries]
+
+class FakeContext:
+    def Pool(self, n):
+        pool_sizes.append(n)
+        return SerialPool()
+
+with patch.object(r.os, "cpu_count", return_value=64), patch.object(r.multiprocessing, "get_context", return_value=FakeContext()) as get_context:
+    for workers, expected in ((None, 5), (64, 5), (2, 2)):
+        r.build_scenes(Path("stub-rp"), None, workers)
+        assert pool_sizes[-1] == expected
+    assert get_context.call_count == 3
+    get_context.assert_called_with("spawn")
+print(json.dumps(pool_sizes))
+`),
+    ).toEqual([5, 5, 2]);
+  });
+
   it.each(["second", "second_with_icon"])(
     "merges serial and spawned %s results in builder order",
     (second) => {
