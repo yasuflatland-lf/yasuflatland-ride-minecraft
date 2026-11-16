@@ -58,7 +58,7 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   Compound rotations require named assemblies under ADR 0167.
 
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
-`headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
+`glow_front`, `headlights`, `wheel_rear_fold`, `wheel_rear`, `glow_rear`, `stand`, `tail_lights`, `seat_0`,
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
 model pixels apart. Area and assembly tables let builders replace the seven
@@ -421,6 +421,18 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Basis: [0147](../adr/0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md), [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md), [0190](../adr/0190-ribbed-camper-shell-atlas.md), [0193](../adr/0193-shared-texture-tooling.md).
 - Implementation: `tools/camper_mer.py`; `tools/lit_textures.py`; `tools/mer.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride/camper.texture_set.json`.
 - Verification: `tests/tools/mer.test.ts` exercises shifted region origins, exact material values, bounded lamp/mirror masks, hardware, gutters and opaque zero-emission interiors. `tests/packs/litTextures.test.ts` and `tests/packs/camperGlow.test.ts` check dimensions, texture-set binding and unchanged switched-pass contracts. Client highlights and diffuse fallback are not verifiable offline; no device acceptance is claimed.
+
+### Scooter flight geometry and generated animations
+
+- Applies to: The scooter generator and Resource Pack client entity.
+- Rule: `gen_scooter.py` writes the geometry, textures and `scooter.anim.json`. Only the wheel and hub bones drop and fold; the fender, fork and suspension remain on `steer`. Both fold bones drop 3.5 px before turning +90 degrees about game z, with the drop complete at 0.4 seconds of the one-second deployment. Retraction reverses those stages. Turned cube corners require a drop strictly greater than 3.353244 px to clear the lowest fixed corner at y 2.666652 px, excluding the stand. The stand rotates +85 degrees about its real hinge bar at (0, 3.735, 1.045), lifting both feet above y 1 px. `glow_front` and `glow_rear` are children of the corresponding fold bones. Each disc has 16 squares rotated about x, corner radius 4.3 px and depth 0.5 px, separated from the wheel's game +x outer face by 0.1 px. Its `hover_front` or `hover_rear` locator is centred on the outer face, which faces down after folding. The solid (80, 170, 255) glow region participates in both the legacy lit alpha mask and the emissive MER mask, following the [camper hover display](camper-hover-display.md) approach. Steering rotates about the measured 20.9-degree inclined axis using the game Euler convention of ADR 0166. Positive steering moves the front of the wheel left. Root roll is lean minus bank; wheel roll uses distance travelled and the tyre radius. The generated animations also provide the shared engine and hover sound loops and hover particles at the two disc locators.
+
+  The client uses `entity_alphatest` for the alpha-cut body and steering plates and the shared 16-paint variant order. The form controller has only ground, deploy, hover and retract states, with the SUV's engine and hover sound gates and no submarine mode. The independent stand controller blends between the resting stand and `stand_up` over 0.3 seconds. The base render pass hides glow discs and lit lamps; the gear-gated emissive glow overlay draws only `glow_*`, followed by the headlights-gated lamp overlay. Hover particles use both disc locators; there is no exhaust particle binding. The server entity remains a later issue.
+
+- Agreement: Proposed
+- Basis: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md); scooter generator requirements (#1762).
+- Implementation: `tools/scooter_dims.py`, `tools/scooter_glow.py`, `tools/scooter_anim.py`, `tools/gen_scooter.py`; `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`, `packs/yasu_ride_rp/render_controllers/yasu_ride/scooter.rc.json`.
+- Verification: `tests/tools/scooterAnim.test.ts` checks steering matrices, axis invariance, clearance, stand feet, glow radius and locators, fold reversal and shared sounds. `tests/tools/scooterTextures.test.ts` checks lit masks. `tests/packs/scooterClient.test.ts` checks client references, paint variants, controller gates and overlays, and transformed fold, glow, steering and stand geometry. In-game appearance remains unverified.
 
 ## Open issues
 
