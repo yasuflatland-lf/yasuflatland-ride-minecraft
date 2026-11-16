@@ -25,3 +25,35 @@ export function chooseLanding(
     }
   );
 }
+
+export interface LandingSample {
+  readonly typeId: string;
+  readonly isAir: boolean;
+  readonly isLiquid: boolean;
+  readonly solid: boolean;
+}
+
+const LANDING_HAZARDS = new Set([
+  "minecraft:lava",
+  "minecraft:flowing_lava",
+  "minecraft:fire",
+  "minecraft:soul_fire",
+  "minecraft:cactus",
+  "minecraft:magma",
+]);
+
+export function isStandableLanding(
+  floor: LandingSample,
+  body: LandingSample,
+  head: LandingSample,
+): boolean {
+  return (
+    ![floor, body, head].some((block) => LANDING_HAZARDS.has(block.typeId)) &&
+    floor.solid &&
+    !floor.isAir &&
+    !floor.isLiquid &&
+    [body, head].every(
+      (block) => block.isAir || (!block.isLiquid && !block.solid),
+    )
+  );
+}

@@ -9,7 +9,7 @@ const block = definition["minecraft:block"];
 
 describe("Warp Block pack definition", () => {
   it("exposes a full cube in the Items tab with the deferred custom component", () => {
-    expect(definition.format_version).toBe("1.21.80");
+    expect(definition.format_version).toBe("1.21.100");
     expect(block.description).toEqual({
       identifier: "yasu_build:warp_block",
       menu_category: { category: "items" },
@@ -19,9 +19,20 @@ describe("Warp Block pack definition", () => {
     );
     expect(block.components["minecraft:collision_box"]).toBe(true);
     expect(block.components["minecraft:selection_box"]).toBe(true);
-    expect(block.components["minecraft:custom_components"]).toEqual([
-      "yasu_build:warp_block",
-    ]);
+    expect(block.components["yasu_build:warp_block"]).toEqual({});
+    expect(block.components).not.toHaveProperty("minecraft:custom_components");
+  });
+
+  it("resists mining, explosions, pistons, blade cuts and wand edits", () => {
+    expect(block.components["minecraft:movable"]).toEqual({
+      movement_type: "immovable",
+    });
+    expect(block.components["minecraft:destructible_by_mining"]).toBe(false);
+    expect(block.components["minecraft:destructible_by_explosion"]).toBe(false);
+    expect(block.components["tag:yasu_ride:laid"]).toEqual({});
+    expect(
+      read("packs/yasu_ride_bp/manifest.json").header.min_engine_version,
+    ).toEqual([1, 21, 100]);
   });
 
   it("wires the opaque scope top and side panels to generated terrain textures", () => {

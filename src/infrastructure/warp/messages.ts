@@ -1,4 +1,7 @@
 export const WARP_MESSAGE = {
+  hitLeft: "yasu_build.warp.hit_left",
+  hitsLeft: "yasu_build.warp.hits_left",
+  blockBroken: "yasu_build.warp.block_broken",
   nameTitle: "yasu_build.warp.name_title",
   nameLabel: "yasu_build.warp.name_label",
   listTitle: "yasu_build.warp.list_title",

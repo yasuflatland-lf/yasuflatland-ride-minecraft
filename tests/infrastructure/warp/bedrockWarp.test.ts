@@ -48,9 +48,7 @@ function fixture() {
     id: dimensionId,
     getBlock: vi.fn((cell: Cell) => blocks.get(cell.y)),
     getBlockAbove: vi.fn((cell: Cell) =>
-      solid.has(cell.y + 1)
-        ? { ...blocks.get(cell.y + 1), location: { ...cell, y: cell.y + 1 } }
-        : undefined,
+      solid.has(cell.y) ? { ...blocks.get(cell.y), location: cell } : undefined,
     ),
   };
   const player = {
@@ -115,7 +113,7 @@ it("accepts air above a solid floor and probes the three cells", () => {
     expect.arrayContaining([feet, { ...feet, y: 63 }, { ...feet, y: 65 }]),
   );
   expect(f.dimension.getBlockAbove).toHaveBeenCalledWith(
-    { ...feet, y: 62 },
+    { ...feet, y: 63 },
     {
       maxDistance: 1,
       includeLiquidBlocks: false,

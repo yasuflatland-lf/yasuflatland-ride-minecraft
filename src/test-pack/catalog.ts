@@ -19,6 +19,42 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "warp_registry_store",
+    file: "warp",
+    ticks: 5, // Estimate until the first BDS run.
+    features: ["warp"],
+    isolation: "exclusive",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "warp_world",
+    file: "warp",
+    ticks: 5, // Estimate until the first BDS run.
+    features: ["warp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "warp_engine_probes",
+    file: "warp",
+    ticks: 100, // Estimate until the first BDS run.
+    features: ["warp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "warp_flow",
+    file: "warpFlow",
+    ticks: 30, // Estimate until the first BDS run.
+    features: ["warp"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "build_structure_store_hosted",
     file: "buildStructureStore",
     ticks: 20, // Estimate until the first BDS run.
