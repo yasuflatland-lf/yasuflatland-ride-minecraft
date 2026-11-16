@@ -2406,10 +2406,15 @@ export async function buildPasteStructureDecor(
           pasted.message,
         );
         await wait(2);
+        const pastedFrames = frames(target);
+        const mirroredType = f.block(mirrored).typeId;
+        let frameDetail = `frames=${pastedFrames.length};mirroredType=${mirroredType};mirrored=${mirrored.x},${mirrored.y},${mirrored.z}`;
+        if (pastedFrames.length !== 1)
+          frameDetail += `;frameCells=${pastedFrames.map(cellKey).join(";")}`;
         record(
           "item_frame_block",
-          frames(target).length === 1 &&
-            f.block(mirrored).typeId === "minecraft:frame",
+          pastedFrames.length === 1 && mirroredType === "minecraft:frame",
+          frameDetail,
         );
         const firstPaintings = paintings(12);
         record("painting", firstPaintings.length === 1, firstPaintings.length);
