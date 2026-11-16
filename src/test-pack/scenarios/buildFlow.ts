@@ -20,6 +20,14 @@ import {
   TEST_TAP_EVENT,
 } from "../../infrastructure/build/identifiers";
 import { type Arena, wait } from "../arena";
+import {
+  SETUP_LIMIT_TICKS,
+  SETUP_POLL_TICKS,
+  SETUP_REPORT_TICKS,
+  setupProgressStep,
+  setupPromptStep,
+  setupTimeoutDetail,
+} from "../decorSetup";
 import type { Outcome, StepSink } from "../outcome";
 
 const LOOK_SETTLE_MAX_TICKS = 20;
@@ -2335,29 +2343,25 @@ export async function buildPasteStructureDecor(
           "Structure paste decor check: within 60 seconds, place the item frame on the stone wall, put the diamond into it, and hang the painting on the wall.";
         f.player.sendMessage(prompt);
         f.player.onScreenDisplay.setActionBar(prompt);
+        onStep?.(setupPromptStep());
+        let elapsed = 0;
         let setup = setupState();
         for (
-          let ticks = 0;
-          ticks < 1200 && setup.missing.length > 0;
-          ticks += 10
+          ;
+          elapsed < SETUP_LIMIT_TICKS && setup.missing.length > 0;
+          elapsed += SETUP_POLL_TICKS
         ) {
-          await wait(10);
+          await wait(SETUP_POLL_TICKS);
           setup = setupState();
           // The player setup window exceeds the runner's 60-second stall watch.
-          if ((ticks + 10) % 200 === 0)
-            onStep?.({
-              name: `setup_wait_${ticks + 10}`,
-              pass: true,
-              detail: `polled setup after ${ticks + 10} ticks; missing: ${setup.missing.join(", ") || "none"}`,
-            });
+          if ((elapsed + SETUP_POLL_TICKS) % SETUP_REPORT_TICKS === 0)
+            onStep?.(
+              setupProgressStep(elapsed + SETUP_POLL_TICKS, setup.missing),
+            );
         }
         const cell = setup.frame;
         if (!cell || setup.missing.length > 0) {
-          record(
-            "setup",
-            false,
-            `fixture incomplete; missing: ${setup.missing.join(", ")}`,
-          );
+          record("setup", false, setupTimeoutDetail(elapsed, setup.missing));
           return;
         }
         record(

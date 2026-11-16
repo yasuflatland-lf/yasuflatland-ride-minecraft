@@ -24,6 +24,7 @@ const catalog = fc
       ticks: fc.nat({ max: 400 }),
       features: tags,
       needsPlayer: fc.boolean(),
+      manualSetup: fc.option(fc.constant(true as const), { nil: undefined }),
       isolation: fc.constantFrom<Isolation>("lane", "exclusive"),
       group: fc.option(fc.constant("tent" as const), { nil: undefined }),
       vehicles: fc.integer({ min: 0, max: 4 }),
@@ -41,10 +42,88 @@ const selectedBy = (spec: ScenarioSpec, features: readonly FeatureTag[]) =>
   features.some((changed) => spec.features.some((tag) => covers(changed, tag)));
 
 describe("planOf", () => {
+  it("gates manual setup before player checks and sharding, reporting each skip once", () => {
+    fc.assert(
+      fc.property(
+        catalog,
+        fc.boolean(),
+        fc.option(fc.boolean(), { nil: undefined }),
+        fc.option(tags, { nil: undefined }),
+        fc.integer({ min: 1, max: 8 }),
+        (specs, playerConnected, manual, features, total) => {
+          for (let index = 1; index <= total; index++) {
+            const plan = planOf(specs, {
+              shard: { index, total },
+              playerConnected,
+              manual,
+              features,
+            });
+            const selected = specs.filter(
+              (spec) => features === undefined || selectedBy(spec, features),
+            );
+            expect(plan.skipped).toEqual(
+              selected.flatMap((spec) => {
+                const reason =
+                  spec.manualSetup && !manual
+                    ? "manual setup: set GAME_TEST_MANUAL=1 to run it"
+                    : spec.needsPlayer && !playerConnected
+                      ? "a connected player is required"
+                      : undefined;
+                return reason === undefined
+                  ? []
+                  : [{ name: spec.name, reason }];
+              }),
+            );
+            expect(new Set(plan.skipped.map((spec) => spec.name)).size).toBe(
+              plan.skipped.length,
+            );
+            expect(
+              plan.runs.every(
+                (spec) =>
+                  (!spec.manualSetup || manual) &&
+                  (!spec.needsPlayer || playerConnected),
+              ),
+            ).toBe(true);
+          }
+        },
+      ),
+    );
+  });
+
+  it("preserves the manual setup note with or without a connected player", () => {
+    fc.assert(
+      fc.property(fc.boolean(), fc.string(), (playerConnected, skipNote) => {
+        const spec: ScenarioSpec = {
+          name: "decor",
+          file: "fixture",
+          ticks: 1300,
+          features: ["build"],
+          isolation: "exclusive",
+          needsPlayer: true,
+          manualSetup: true,
+          skipNote,
+          vehicles: 0,
+        };
+        expect(
+          planOf([spec], { shard: WHOLE_RUN, playerConnected }).skipped,
+        ).toEqual([
+          {
+            name: spec.name,
+            reason: `manual setup: set GAME_TEST_MANUAL=1 to run it; ${skipNote}`,
+          },
+        ]);
+      }),
+    );
+  });
+
   it("runs the catalog unchanged with a player and no feature filter", () => {
     fc.assert(
       fc.property(catalog, (specs) => {
-        const plan = planOf(specs, { shard: WHOLE_RUN, playerConnected: true });
+        const plan = planOf(specs, {
+          shard: WHOLE_RUN,
+          playerConnected: true,
+          manual: true,
+        });
         expect(plan.runs).toEqual(specs);
         expect(plan.skipped).toEqual([]);
         expect(plan.unselected).toBe(0);
@@ -62,6 +141,7 @@ describe("planOf", () => {
           const plan = planOf(specs, {
             shard: { index: 1, total },
             playerConnected: false,
+            manual: true,
             features,
           });
           expect(plan.skipped).toEqual(
@@ -95,7 +175,8 @@ describe("planOf", () => {
           const eligible = specs.filter(
             (spec) =>
               (features === undefined || selectedBy(spec, features)) &&
-              (playerConnected || !spec.needsPlayer),
+              (playerConnected || !spec.needsPlayer) &&
+              !spec.manualSetup,
           );
           const runs = Array.from({ length: total }, (_, i) => {
             const plan = planOf(specs, {
@@ -141,7 +222,8 @@ describe("planOf", () => {
               specs.filter(
                 (spec) =>
                   selectedBy(spec, features) &&
-                  (playerConnected || !spec.needsPlayer),
+                  (playerConnected || !spec.needsPlayer) &&
+                  !spec.manualSetup,
               ),
             );
             expect(plan.unselected).toBe(
@@ -329,7 +411,11 @@ describe("planOf", () => {
   it("keeps the default and explicit single lane identical", () => {
     fc.assert(
       fc.property(catalog, (specs) => {
-        const options = { shard: WHOLE_RUN, playerConnected: true };
+        const options = {
+          shard: WHOLE_RUN,
+          playerConnected: true,
+          manual: true,
+        };
         const plan = planOf(specs, options);
         expect(planOf(specs, { ...options, lanes: 1 })).toEqual(plan);
         expect(plan.lanes).toEqual([specs]);

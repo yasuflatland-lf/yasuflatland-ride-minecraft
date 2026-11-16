@@ -14,6 +14,7 @@ export interface ScenarioSpec {
   readonly group?: "tent";
   readonly needsPlayer: boolean;
   readonly skipNote?: string;
+  readonly manualSetup?: true;
   readonly vehicles: number;
 }
 
@@ -160,6 +161,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
+    manualSetup: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,
@@ -171,6 +173,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
+    manualSetup: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,
@@ -182,6 +185,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
+    manualSetup: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,
@@ -203,6 +207,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
+    manualSetup: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,
