@@ -21,6 +21,8 @@ headlights at dusk, side, and rear, without water layers (ADR 0067).
 Four bulldozer pictures share a fourth scale: front-left, headlights at dusk, side, and rear,
 showing only the first grouser phase and no propeller (ADR 0136). The beacon stays unlit: it faces
 backward on the cab roof, so the cab hides it from the front-left dusk view.
+Four scooter pictures share a fifth scale: front-left, headlights at dusk, side, and rear, in the
+default white road pose without the hover discs (ADR 0251).
 
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
@@ -173,6 +175,18 @@ BULLDOZER_POSES = {
     "bulldozer-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
     "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
     "bulldozer-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
+}
+
+SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
+# The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
+SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_white.png"
+SCOOTER_CELLS_PER_UNIT = 16
+SCOOTER_LIT = {"headlights": LAMP_LIT, "tail_lights": LAMP_LIT}
+SCOOTER_POSES = {
+    "scooter-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
+    "scooter-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
+    "scooter-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": SIDE_BRIGHTNESS},
+    "scooter-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
 }
 
 # Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,
@@ -1152,6 +1166,15 @@ def render_camper(rp: Path, icon_path: Path | None) -> SceneResult:
     return SceneResult(images, None)
 
 
+def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
+    geo = json.loads((rp / SCOOTER_GEOMETRY).read_text())["minecraft:geometry"][0]
+    texture = read_png(rp / SCOOTER_TEXTURE)
+    # The road pose has no hover discs: the render controller hides the glow bones on the ground.
+    geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
+    images = render_poses(geo, texture, SCOOTER_POSES, SCOOTER_LIT, texture_mapping=True, cache_faces=True, defer_textures=True)
+    return SceneResult(images, None)
+
+
 def bulldozer_bones(bones):
     return [b for b in bones if b["name"] not in BULLDOZER_HIDDEN]
 
@@ -1414,6 +1437,7 @@ SCENE_BUILDERS: tuple[tuple[str, Callable[[Path, Path | None], SceneResult]], ..
     ("boat", render_boat),
     ("camper", render_camper),
     ("bulldozer", render_bulldozer),
+    ("scooter", render_scooter),
     ("gear", render_camping_gear),
 )
 

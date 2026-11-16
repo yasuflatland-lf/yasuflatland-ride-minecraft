@@ -168,7 +168,7 @@ for field in ("images", "icon"):
         raise AssertionError(f"SceneResult.{field} is mutable")
 print(json.dumps([name for name, _ in r.SCENE_BUILDERS]))
 `),
-  ).toEqual(["suv", "boat", "camper", "bulldozer", "gear"]);
+  ).toEqual(["suv", "boat", "camper", "bulldozer", "scooter", "gear"]);
 });
 
 it("ScreenFit maps quads the same after pickling", () => {
@@ -546,6 +546,22 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
       "bulldozer-rear.png",
     ]);
     expect(result.views).toEqual(result.camper);
+    expect(result.size).toEqual([800, 600]);
+  });
+});
+
+describe("scooter previews (ADR 0251)", () => {
+  it("renders four previews from the camper's angles without hover discs", () => {
+    const result = previewPython(
+      "print(json.dumps({'names': list(r.SCOOTER_POSES), 'views': [p['view'] for p in r.SCOOTER_POSES.values()], 'bulldozer': [p['view'] for p in r.BULLDOZER_POSES.values()], 'size': r.image_size('scooter-side.png')}))",
+    );
+    expect(result.names).toEqual([
+      "scooter-front-left.png",
+      "scooter-headlights.png",
+      "scooter-side.png",
+      "scooter-rear.png",
+    ]);
+    expect(result.views).toEqual(result.bulldozer);
     expect(result.size).toEqual([800, 600]);
   });
 });
