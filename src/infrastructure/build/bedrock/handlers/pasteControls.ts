@@ -1,4 +1,4 @@
-import { system, world } from "@minecraft/server";
+import { type Player, system, world } from "@minecraft/server";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
@@ -11,6 +11,11 @@ import {
 } from "../../../../domain/shared/ids";
 import { buildItemRole, PASTE_ROTATE_TYPE } from "../../identifiers";
 import { heldBuildItem } from "../heldBuildItem";
+
+export type PressPasteControl = (args: {
+  source: Player;
+  typeId: string;
+}) => void;
 
 export function registerPasteControls({
   repo,
@@ -28,7 +33,7 @@ export function registerPasteControls({
   rotateDebounce: PressDebounces<PlayerId>;
   pasteDebounce: PressDebounces<PlayerId>;
   refresh(playerId: PlayerId, tick: number): void;
-}): void {
+}): PressPasteControl {
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     // itemUse owns the press even when the same tap interacts with a block.
     if (heldBuildItem(ev.player) === "pasteControl") ev.cancel = true;
@@ -40,12 +45,10 @@ export function registerPasteControls({
     )
       ev.cancel = true;
   });
-  world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
-    if (!source.isValid || buildItemRole(itemStack.typeId) !== "pasteControl")
-      return;
+  const pressPasteControl: PressPasteControl = ({ source, typeId }) => {
     const playerId = asPlayerId(source.id);
     const tick = system.currentTick;
-    if (itemStack.typeId === PASTE_ROTATE_TYPE) {
+    if (typeId === PASTE_ROTATE_TYPE) {
       if (!rotateDebounce.press(playerId, tick)) return;
       if (rotatePasteAim.execute({ playerId }) === "rotated")
         refresh(playerId, tick);
@@ -60,5 +63,11 @@ export function registerPasteControls({
         intent: "place",
       });
     }
+  };
+  world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
+    if (!source.isValid || buildItemRole(itemStack.typeId) !== "pasteControl")
+      return;
+    pressPasteControl({ source, typeId: itemStack.typeId });
   });
+  return pressPasteControl;
 }
