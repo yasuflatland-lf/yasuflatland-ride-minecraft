@@ -17,7 +17,7 @@ import {
   withPutBack,
 } from "./history/history";
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
-import { type Facing, turnBetween } from "./rotation/facing";
+import { effectiveTurn, type Facing } from "./rotation/facing";
 import { NO_TURN, type QuarterTurn } from "./rotation/quarterTurn";
 import { BUILD_SPEC } from "./spec";
 import type { StructureHandle } from "./structure/handle";
@@ -107,9 +107,10 @@ export class BuildSession {
 
   get pasteTurn(): QuarterTurn {
     return this.currentClipboard && this.currentFlow.kind === "pasteAim"
-      ? turnBetween(
+      ? effectiveTurn(
           this.currentClipboard.facing,
           this.currentFlow.facing ?? this.currentClipboard.facing,
+          this.currentFlow.manualTurn,
         )
       : NO_TURN;
   }
