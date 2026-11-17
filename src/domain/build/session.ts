@@ -5,7 +5,7 @@ import type { CellBox } from "./box";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
-import { beginPasteAim, followFacing } from "./flow/paste";
+import { beginPasteAim, followFacing, rotatePasteAim } from "./flow/paste";
 import { turnRotateMode } from "./flow/rotateMode";
 import {
   EMPTY_HISTORY,
@@ -103,6 +103,12 @@ export class BuildSession {
   followPasteFacing(facing: Facing): void {
     if (this.currentFlow.kind !== "pasteAim") return;
     this.currentFlow = followFacing(this.currentFlow, facing);
+  }
+
+  rotatePaste(): boolean {
+    if (this.currentFlow.kind !== "pasteAim") return false;
+    this.currentFlow = rotatePasteAim(this.currentFlow);
+    return true;
   }
 
   get pasteTurn(): QuarterTurn {
