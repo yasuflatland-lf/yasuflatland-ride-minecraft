@@ -60,7 +60,6 @@
       "initial_state": "down",
       "states": {
         "down": {
-          "animations": [],
           "transitions": [
             {
               "up": "!query.property('yasu_ride:stand')"
