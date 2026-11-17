@@ -32,7 +32,7 @@ from generated_outputs import OutputManifest
 plan = json.loads(runner.PLAN.read_text())
 assert 'format' not in plan
 assert all('afterFormat' not in entry for entry in plan['generators'])
-assert [entry['script'] for entry in plan['generators'] if entry.get('afterGenerators')] == ['render_preview.py']
+assert [entry['script'] for entry in plan['generators'] if entry.get('afterGenerators')] == ['render_preview.py'] * 6
 entries = [
     {'script': 'render_preview.py', 'args': [], 'afterGenerators': True,
      'after': ['first.py', 'second.py'], 'reads': [], 'outputs': []},

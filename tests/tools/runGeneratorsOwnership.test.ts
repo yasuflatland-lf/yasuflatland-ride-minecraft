@@ -205,3 +205,80 @@ out.finish('Stale fixture outputs')
   expect(run(root, "--check").status).toBe(0);
   expect(existsSync(join(root, "packs/b.json"))).toBe(true);
 });
+
+function sceneFixture() {
+  const root = fixture();
+  const path = join(root, "tools/generators.json");
+  const plan = JSON.parse(readFileSync(path, "utf8"));
+  plan.generators[1].id = "render_preview.py:suv";
+  plan.generators[1].after = ["first.py"];
+  writeFileSync(path, JSON.stringify(plan));
+  writeFileSync(
+    join(root, "packs/b.json"),
+    JSON.stringify({ generated: true }),
+  );
+  return root;
+}
+
+it.each([[], ["--check"]])(
+  "limits ownership to selected ids with %j",
+  (...args) => {
+    const root = sceneFixture();
+    const report = join(root, "touched.jsonl");
+    const result = run(
+      root,
+      ...args,
+      "--only",
+      "render_preview.py:suv",
+      "--report-touched",
+      report,
+    );
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(existsSync(join(root, "packs/a.json"))).toBe(false);
+    expect(existsSync(join(root, stamp))).toBe(false);
+    expect(JSON.parse(readFileSync(report, "utf8"))).toEqual({
+      generator: "render_preview.py:suv",
+      path: "packs/b.json",
+    });
+  },
+);
+
+it("preserves an existing stamp during partial writes and deduplicates selections", () => {
+  const root = sceneFixture();
+  mkdirSync(join(root, ".cache/generated"), { recursive: true });
+  writeFileSync(join(root, stamp), "old stamp");
+  expect(
+    run(root, "--only", "render_preview.py:suv", "render_preview.py:suv")
+      .status,
+  ).toBe(0);
+  expect(readFileSync(join(root, stamp), "utf8")).toBe("old stamp");
+});
+
+it("still rejects undeclared outputs from selected entries", () => {
+  const root = undeclaredFixture();
+  const result = run(root, "--only", "first.py");
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("packs/undeclared.json");
+});
+
+it("rejects unknown ids before writing and lists valid ids", () => {
+  const root = sceneFixture();
+  const result = run(root, "--only", "unknown");
+  expect(result.status).toBe(2);
+  expect(result.stderr).toContain("unknown");
+  expect(result.stderr).toContain("first.py");
+  expect(result.stderr).toContain("render_preview.py:suv");
+  expect(existsSync(join(root, "packs/a.json"))).toBe(false);
+});
+
+it.each(["--ensure", "--status", "--list-outputs", "--list-inputs"])(
+  "rejects --only with %s",
+  (flag) => {
+    const root = sceneFixture();
+    const result = run(root, "--only", "render_preview.py:suv", flag);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--only cannot be combined");
+    expect(existsSync(join(root, "packs/a.json"))).toBe(false);
+  },
+);
