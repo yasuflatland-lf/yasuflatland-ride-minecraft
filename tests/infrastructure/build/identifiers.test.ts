@@ -50,7 +50,7 @@ it("defines every feedback message in both locales", () => {
         .sort(),
     ).toEqual(Object.values(BUILD_FORM).sort());
     expect(entries.get(BUILD_FORM.fillBelowBody)?.match(/%s/g)).toHaveLength(4);
-    expect(entries.get(BUILD_MESSAGE.pasteReady)?.match(/%s/g)).toHaveLength(4);
+    expect(entries.get(BUILD_MESSAGE.pasteReady)?.match(/%s/g)).toHaveLength(5);
     expect(entries.get(BUILD_MESSAGE.rotateMode)?.match(/%s/g)).toHaveLength(1);
     expect(entries.get(BUILD_MESSAGE.copied)?.match(/%s/g)).toHaveLength(1);
     expect(
@@ -135,4 +135,22 @@ it("does not classify unrelated item ids as build items", () => {
       },
     ),
   );
+});
+
+it("keeps format arguments identical for every build message in both locales", () => {
+  const counts = ["en_US", "ja_JP"].map((locale) => {
+    const entries = new Map(
+      readFileSync(`packs/yasu_ride_rp/texts/${locale}.lang`, "utf8")
+        .split("\n")
+        .map((line) => {
+          const split = line.indexOf("=");
+          return [line.slice(0, split), line.slice(split + 1)];
+        }),
+    );
+    return Object.values(BUILD_MESSAGE).map((key) => [
+      key,
+      entries.get(key)?.match(/%s/g)?.length ?? 0,
+    ]);
+  });
+  expect(counts[0]).toEqual(counts[1]);
 });

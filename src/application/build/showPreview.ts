@@ -60,12 +60,6 @@ export class ShowPreview {
         this.sizes.set(id, size);
       }
     }
-    if (flow.kind === "pasteAim" && session.clipboard)
-      this.feedback.showMode(id, {
-        kind: "pasteReady",
-        size: session.clipboard.size,
-        blockCount: session.clipboard.blockCount,
-      });
     const dimensionId =
       flow.kind === "pasteAim" ? this.aimReader.dimensionOf(id) : undefined;
     if (flow.kind === "pasteAim" && aim && session.clipboard && dimensionId) {
@@ -77,6 +71,13 @@ export class ShowPreview {
       });
       if (result.kind === "target") preview.pasteBox = result.target.box;
     }
+    if (flow.kind === "pasteAim" && session.clipboard)
+      this.feedback.showMode(id, {
+        kind: "pasteReady",
+        size: session.clipboard.size,
+        blockCount: session.clipboard.blockCount,
+        degrees: degreesOf(session.pasteTurn),
+      });
     const set = previewPoints(flow, preview);
     if (Object.values(set).some((points) => points.length > 0))
       this.feedback.drawPreview(
