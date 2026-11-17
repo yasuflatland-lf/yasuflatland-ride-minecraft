@@ -4,10 +4,13 @@ import { expect, it, vi } from "vitest";
 import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
+import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
+import { ShowPreview } from "../../../src/application/build/showPreview";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { TestAimReader } from "../../../src/infrastructure/build/bedrock/handlers/testAim";
 import {
   recordMessages,
   registerTestEdit,
@@ -16,7 +19,11 @@ import {
   TEST_EDIT_EVENT,
   TEST_RESULT_EVENT,
 } from "../../../src/infrastructure/build/identifiers";
-import { FakeSessions } from "../../application/build/fakes";
+import {
+  FakeAimReader,
+  FakeGroundProbe,
+  FakeSessions,
+} from "../../application/build/fakes";
 import { FakeStructureStore } from "../../application/build/fakes/structureStore";
 
 vi.mock("@minecraft/server", () => ({
@@ -128,6 +135,17 @@ function snapshotHook() {
       dimension: { id: "minecraft:overworld" },
     } as ReturnType<typeof world.getAllPlayers>[number],
   ]);
+  const reader = new FakeAimReader();
+  reader.target = {
+    ray: { origin: { x: 0, y: 5, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+  };
+  const aim = new TestAimReader(reader);
+  const preview = new ShowPreview(
+    repo,
+    messages.feedback,
+    aim,
+    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+  );
   const execute = vi.fn(() => "pasted" as const);
   type Args = Parameters<typeof registerTestEdit>;
   registerTestEdit(
@@ -142,6 +160,7 @@ function snapshotHook() {
     new EndBuildSession(repo, structures),
     structures,
     new RotatePasteAim(repo, messages.feedback),
+    { aim, preview },
   );
   const callback = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
@@ -153,7 +172,7 @@ function snapshotHook() {
       id: TEST_EDIT_EVENT,
       message: `player ${command}`,
     } as Parameters<typeof callback>[0]);
-  return { repo, structures, send, execute };
+  return { repo, structures, send, execute, messages, aim };
 }
 
 it("captures normalized snapshot corners in the player's dimension and discards only evicted handles", () => {
@@ -310,3 +329,70 @@ it.each(["-1", "4", "1.5", "invalid"])(
     expect(e.repo.get(player)?.flow).toBe(flow);
   },
 );
+
+it("records and forwards the last mode independently per player and clears it on forget", () => {
+  fc.assert(
+    fc.property(fc.constantFrom(0, 90, 180, 270), (degrees) => {
+      const { feedback, messages } = setup();
+      const mode = {
+        kind: "pasteReady" as const,
+        size: { x: 2, y: 3, z: 4 },
+        blockCount: 24,
+        degrees,
+      };
+      expect(messages.lastMode(player)).toBeUndefined();
+      messages.feedback.showMode(player, { kind: "rotate", degrees: 0 });
+      messages.feedback.showMode(other, { kind: "rotate", degrees: 90 });
+      messages.feedback.showMode(player, mode);
+      expect(feedback.showMode).toHaveBeenLastCalledWith(player, mode);
+      expect(messages.lastMode(player)).toEqual(mode);
+      expect(messages.lastMode(other)).toEqual({ kind: "rotate", degrees: 90 });
+      messages.forget(player);
+      expect(messages.lastMode(player)).toBeUndefined();
+      expect(messages.lastMode(other)).toEqual({ kind: "rotate", degrees: 90 });
+    }),
+  );
+});
+
+it("returns the last shown paste-ready degrees in a state reply without clearing them", () => {
+  const e = snapshotHook();
+  e.messages.feedback.showMode(player, {
+    kind: "pasteReady",
+    size: { x: 1, y: 2, z: 3 },
+    blockCount: 6,
+    degrees: 270,
+  });
+  e.send("state");
+  expect(
+    JSON.parse(
+      vi.mocked(system.sendScriptEvent).mock.calls.at(-1)?.[1] ?? "{}",
+    ),
+  ).toMatchObject({ pasteReadyDegrees: 270 });
+  expect(e.messages.lastMode(player)?.degrees).toBe(270);
+});
+
+it("refreshes the shown degrees through the facing override and rejects invalid overrides", () => {
+  const e = snapshotHook();
+  e.send("structure 0 0 0 1 1 1 east");
+  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+    e.repo.getOrCreate(player).tickMode({ holding: true });
+  for (const [facing, degrees] of [
+    ["east", 0],
+    ["south", 90],
+    ["west", 180],
+    ["north", 270],
+  ] as const) {
+    e.send(`aim ${facing}`);
+    expect(
+      JSON.parse(
+        vi.mocked(system.sendScriptEvent).mock.calls.at(-1)?.[1] ?? "{}",
+      ),
+    ).toMatchObject({ pasteReadyDegrees: degrees });
+  }
+  vi.mocked(system.sendScriptEvent).mockClear();
+  e.send("aim invalid");
+  expect(system.sendScriptEvent).not.toHaveBeenCalled();
+  e.send("aim clear");
+  expect(e.messages.lastMode(player)?.degrees).toBe(0);
+  expect(e.aim.aim(player)?.ray.direction).toEqual({ x: 1, y: 0, z: 0 });
+});
