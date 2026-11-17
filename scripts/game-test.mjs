@@ -67,6 +67,7 @@ if (lanes > 1 && at > 0) {
   process.exit(1);
 }
 console.log(`lanes: ${lanes}`);
+const manual = process.env.GAME_TEST_MANUAL === "1" ? true : undefined;
 const featuresText = process.env.GAME_TEST_FEATURES;
 let features =
   featuresText === undefined ? undefined : featuresFrom(featuresText);
@@ -122,6 +123,7 @@ function impactedFeatures() {
     shard: WHOLE_RUN,
     playerConnected: true,
     features: selection.features,
+    manual,
   });
   if (impactPlan.runs.length === 0) {
     console.log("impact: no in-game scenario affected");
@@ -138,7 +140,7 @@ if (features !== undefined) {
 } else {
   features = impactedFeatures();
 }
-const message = formatRunRequest({ runId, shard, lanes, at, features });
+const message = formatRunRequest({ runId, shard, lanes, at, features, manual });
 ensureBuild();
 const since = new Date().toISOString();
 // Write the command to bedrock_server's stdin ourselves, as Mojang's Creator

@@ -1,0 +1,33 @@
+{
+  "format_version": "1.21.100",
+  "minecraft:block": {
+    "description": {
+      "identifier": "yasu_build:warp_block",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:geometry": "minecraft:geometry.full_block",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "yasu_build_warp_block_side",
+          "render_method": "opaque"
+        },
+        "up": {
+          "texture": "yasu_build_warp_block_top",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:collision_box": true,
+      "minecraft:selection_box": true,
+      "yasu_build:warp_block": {},
+      "minecraft:movable": {
+        "movement_type": "immovable"
+      },
+      "minecraft:destructible_by_mining": false,
+      "minecraft:destructible_by_explosion": false,
+      "tag:yasu_ride:laid": {}
+    }
+  }
+}
