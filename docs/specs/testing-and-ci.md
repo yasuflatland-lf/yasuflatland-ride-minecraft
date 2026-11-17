@@ -2,6 +2,7 @@
 
 - Scope: Unit properties, mutation and unused-code checks, dependency updates, CI jobs and coverage, and the in-game test pack, runner protocol, scheduling, and local scenario selection.
 - Verified at: 5ed1f579
+- Source: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md)
 - Source: [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md)
 - Source: [0010](../adr/0010-testing-strategy.md)
 - Source: [0015](../adr/0015-dev-server-docker-nethernet.md)
@@ -67,6 +68,15 @@
 - Basis: [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md) Decision, cut-out textures and the dev-only probe.
 - Implementation: `src/test-pack/cutoutProbe.ts`, `packs/yasu_ride_test_rp`, `tools/gen_cutout_probe.py`, `scripts/setup-dev-world.mjs`, `server/compose.yaml`.
 - Verification: `tests/packs/cutoutProbe.test.ts` checks hard alpha, transparent RGB, per-face UVs, water material and bone order. Not verified: the owner must inspect on PC and mobile (touch) for fringes, visible hidden faces, and incorrect water alpha order; screenshots and results are still required. A negative result blocks #1570 and #1571 pending the owner's fallback decision.
+
+### Rotation order probe
+
+- Applies to: manual device verification of cube rotation order.
+- Rule: The dev-only rotation probe compares compound cube rotations with adjacent one-axis references. Run `/scriptevent yasu_ride_test:rotation_probe` as a player on PC and mobile (touch).
+- Agreement: Proposed
+- Basis: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), rotation-order assumption.
+- Implementation: `src/test-pack/rotationProbe.ts`, `tools/gen_rotation_probe.py`, and the test packs.
+- Verification: `tests/test-pack/rotationProbe.test.ts` and `tests/packs/rotationProbe.test.ts` check the handler and reference geometry. Not verified: owner device check pending.
 
 ### Production driving-input receiver
 

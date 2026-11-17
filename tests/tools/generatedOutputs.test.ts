@@ -139,6 +139,8 @@ handwritten = [
     'packs/yasu_ride_rp/models/blocks/yasu_ride/deck_floor.geo.json',
     'packs/yasu_ride_rp/models/entity/yasu_ride/deck_seat.geo.json',
     'packs/yasu_ride_rp/models/entity/yasu_ride/stand_in.geo.json',
+    'packs/yasu_ride_test_rp/models/entity/yasu_ride_test/rotation_probe.geo.json',
+    'packs/yasu_ride_test_rp/textures/entity/yasu_ride_test/rotation_probe.png',
     'packs/yasu_ride_test_rp/models/entity/yasu_ride_test/cutout_probe.geo.json',
     'packs/yasu_ride_test_rp/textures/entity/yasu_ride_test/cutout_probe.png',
 ]
