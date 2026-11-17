@@ -154,6 +154,7 @@ function setup(fallback?: boolean) {
             ),
           },
           new FakeFeedback(),
+          { facingOf: () => "east" },
         ).execute(cmd),
       ),
     },
@@ -232,7 +233,7 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
         } as const,
         end,
         chooseHeighted(end, "hip"),
-        { kind: "pasteAim", turn: 0 } as const,
+        { kind: "pasteAim" } as const,
       ]) {
         session.setFlow(flow);
         for (const [model, show] of [
@@ -512,7 +513,7 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
         session,
         structureClipboard(boxOf(from, from), () => stone),
       );
-      session.setFlow({ kind: "pasteAim", turn: 0 });
+      session.setFlow({ kind: "pasteAim" });
     }
     ui.answers.push(
       new Promise((resolve) => {
@@ -767,7 +768,7 @@ it("accepts EndPasting only in paste aiming and exposes its own label", async ()
     boxOf(from, to),
     structureClipboard(boxOf(from, to), () => stone),
   );
-  session.setFlow({ kind: "pasteAim", turn: 0 });
+  session.setFlow({ kind: "pasteAim" });
   expect(choices.choose(playerId, "paste", "endPaste")).toBe(true);
   expect(cases.endPasting.execute).toHaveBeenCalledExactlyOnceWith(playerId);
   expect(session.flow.kind).toBe("idle");
@@ -775,7 +776,7 @@ it("accepts EndPasting only in paste aiming and exposes its own label", async ()
   expect(session.confirmedBox).toBeUndefined();
   expect(choices.choose(playerId, "utility", "paste")).toBe(false);
   expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
-  session.setFlow({ kind: "pasteAim", turn: 0 });
+  session.setFlow({ kind: "pasteAim" });
   ui.answers.push({
     selection: pasteMenu({
       hasHistory: session.hasHistory,
@@ -1031,9 +1032,7 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
       ),
       (history, aiming, entryId) => {
         const { session, choices, cases } = setup();
-        session.setFlow(
-          aiming ? { kind: "pasteAim", turn: 0 } : { kind: "idle" },
-        );
+        session.setFlow(aiming ? { kind: "pasteAim" } : { kind: "idle" });
         if (history)
           session.finishEdit(
             {
@@ -1078,7 +1077,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
         structureClipboard(boxOf(from, from), () => stone),
       );
       const clipboard = session.clipboard;
-      session.setFlow({ kind: "pasteAim", turn: 0 });
+      session.setFlow({ kind: "pasteAim" });
       if (history)
         session.finishEdit(
           {
@@ -1235,7 +1234,7 @@ it("confirms Rotate after the fallback slider without opening contents", async (
 
 it("Cancel closes the paste menu and keeps paste aiming", async () => {
   const { session, menus, player, cases } = setup();
-  session.setFlow({ kind: "pasteAim", turn: 0 });
+  session.setFlow({ kind: "pasteAim" });
   const flow = session.flow;
   ui.answers.push({ selection: 2 });
   await menus.showPasteMenu(player);

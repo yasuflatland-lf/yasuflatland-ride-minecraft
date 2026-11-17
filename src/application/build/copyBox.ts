@@ -1,5 +1,6 @@
 import { type CellBox, sizeOf, volume } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
+import type { Facing } from "../../domain/build/rotation/facing";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -14,7 +15,13 @@ export class CopyBox implements BoxAction {
     private readonly feedback: BuildFeedback,
   ) {}
 
-  execute(playerId: PlayerId, dimensionId: DimensionId, box: CellBox): boolean {
+  execute(cmd: {
+    playerId: PlayerId;
+    dimensionId: DimensionId;
+    box: CellBox;
+    facing: Facing;
+  }): boolean {
+    const { playerId, dimensionId, box } = cmd;
     const count = volume(box);
     if (count > BUILD_SPEC.maxCopyVolume) {
       this.feedback.showMessage(playerId, "tooLarge", count);
@@ -28,6 +35,7 @@ export class CopyBox implements BoxAction {
       return false;
     }
     const clipboard: Clipboard = {
+      facing: cmd.facing,
       size: sizeOf(box),
       blockCount: count,
       contents: { kind: "structure", handle },

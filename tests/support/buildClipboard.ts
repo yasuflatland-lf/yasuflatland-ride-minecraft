@@ -53,6 +53,7 @@ export function structureClipboard(
       z: box.max.z - box.min.z + 1,
     },
     blockCount: volume(box),
+    facing: "east",
     contents: { kind: "structure", handle },
   };
 }

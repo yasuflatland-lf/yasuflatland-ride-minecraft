@@ -4,7 +4,6 @@ import { expect, it, vi } from "vitest";
 import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
-import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -128,19 +127,19 @@ function snapshotHook() {
       dimension: { id: "minecraft:overworld" },
     } as ReturnType<typeof world.getAllPlayers>[number],
   ]);
+  const execute = vi.fn(() => "pasted" as const);
   type Args = Parameters<typeof registerTestEdit>;
   registerTestEdit(
     {} as Args[0],
     {} as Args[1],
     {} as Args[2],
-    {} as Args[3],
+    { execute } as unknown as Args[3],
     {} as Args[4],
     new DescribeBuild(repo),
     messages,
     repo,
     new EndBuildSession(repo, structures),
     structures,
-    new RotatePasteAim(repo),
   );
   const callback = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
@@ -152,7 +151,7 @@ function snapshotHook() {
       id: TEST_EDIT_EVENT,
       message: `player ${command}`,
     } as Parameters<typeof callback>[0]);
-  return { repo, structures, send };
+  return { repo, structures, send, execute };
 }
 
 it("captures normalized snapshot corners in the player's dimension and discards only evicted handles", () => {
@@ -219,5 +218,65 @@ it.each([
   e.send(command);
   expect(e.structures.calls).toEqual([]);
   expect(e.repo.get(player)).toBeUndefined();
+  expect(system.sendScriptEvent).not.toHaveBeenCalled();
+});
+
+it.each([
+  ["", "east"],
+  [" north", "north"],
+])("stores structure facing for argument %s", (argument, facing) => {
+  const e = snapshotHook();
+  e.send(`structure 0 0 0 1 1 1${argument}`);
+  expect(e.repo.get(player)?.clipboard?.facing).toBe(facing);
+});
+
+it("rejects an invalid structure facing without replacing the clipboard", () => {
+  const e = snapshotHook();
+  e.send("structure 0 0 0 1 1 1");
+  const clipboard = e.repo.get(player)?.clipboard;
+  const calls = [...e.structures.calls];
+  e.send("structure 0 0 0 1 1 1 invalid");
+  expect(e.repo.get(player)?.clipboard).toBe(clipboard);
+  expect(e.structures.calls).toEqual(calls);
+  expect(system.sendScriptEvent).toHaveBeenLastCalledWith(
+    TEST_RESULT_EVENT,
+    JSON.stringify({ player: "Alex", error: "Invalid structure facing" }),
+  );
+});
+
+it.each([
+  ["", { x: 1, y: 0, z: 0 }],
+  [" true", { x: 1, y: 0, z: 0 }],
+  [" true north", { x: 0, y: 0, z: -1 }],
+  [" false south", { x: 0, y: 0, z: 1 }],
+  [" true west", { x: -1, y: 0, z: 0 }],
+])("uses deterministic paste facing for argument %s", (argument, direction) => {
+  const e = snapshotHook();
+  e.send("structure 0 0 0 1 1 1");
+  e.send(`pasteat 3 4 5 up${argument}`);
+  expect(e.execute).toHaveBeenCalledWith(
+    expect.objectContaining({
+      aim: expect.objectContaining({
+        ray: expect.objectContaining({ direction }),
+        block: { cell: { x: 3, y: 4, z: 5 }, face: "up" },
+      }),
+      sneaking: !argument.includes("false"),
+    }),
+  );
+});
+
+it("rejects invalid paste facing and ignores the removed rotate command", () => {
+  const e = snapshotHook();
+  e.send("structure 0 0 0 1 1 1");
+  const flow = e.repo.get(player)?.flow;
+  e.send("pasteat 3 4 5 up true invalid");
+  expect(e.execute).not.toHaveBeenCalled();
+  expect(system.sendScriptEvent).toHaveBeenLastCalledWith(
+    TEST_RESULT_EVENT,
+    JSON.stringify({ player: "Alex", error: "Invalid paste facing" }),
+  );
+  vi.mocked(system.sendScriptEvent).mockClear();
+  e.send("rotate");
+  expect(e.repo.get(player)?.flow).toBe(flow);
   expect(system.sendScriptEvent).not.toHaveBeenCalled();
 });

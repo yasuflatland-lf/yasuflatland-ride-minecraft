@@ -61,8 +61,12 @@ function setup() {
     world,
     feedback,
     session,
-    choose: new ChooseBoxStep(repo, actions, feedback),
-    confirm: new ConfirmBoxStep(repo, actions, feedback),
+    choose: new ChooseBoxStep(repo, actions, feedback, {
+      facingOf: () => "east",
+    }),
+    confirm: new ConfirmBoxStep(repo, actions, feedback, {
+      facingOf: () => "east",
+    }),
   };
 }
 function endpoint(
@@ -95,6 +99,7 @@ it("copies a base grown through any allowed height without beginning an edit", (
           chooseHeighted(
             endpoint(reverse ? to : from, reverse ? from : to, nether),
             "copy",
+            "east",
           ),
         );
         expect(e.session.clipboard).toBeUndefined();
@@ -108,7 +113,7 @@ it("copies a base grown through any allowed height without beginning an edit", (
           max: { ...base.max, y: base.min.y + height - 1 },
         };
         expect(e.session.confirmedBox).toEqual({ dimensionId: nether, box });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", turn: 0 });
+        expect(e.session.flow).toEqual({ kind: "pasteAim" });
         expect(e.session.clipboard?.size).toEqual({
           x: dx + 1,
           y: height,
@@ -147,7 +152,7 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
       const begin = vi.spyOn(e.session, "beginEdit");
       e.choose.execute({ playerId, kind: "copy" });
       const box = boxOf(from, to);
-      expect(e.session.flow).toEqual({ kind: "pasteAim", turn: 0 });
+      expect(e.session.flow).toEqual({ kind: "pasteAim" });
       expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
       expect(e.session.clipboard?.blockCount).toBe(volume(box));
       expect(e.session.clipboard?.contents.kind).toBe("structure");
@@ -200,6 +205,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
             e.repo,
             new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
             e.feedback,
+            { facingOf: () => "east" },
           ).execute({ playerId });
         expect(e.session.clipboard).toBe(clip);
         expect(e.session.confirmedBox).toBe(confirmed);
@@ -232,7 +238,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         horizontal,
         copy,
         roof,
-        { kind: "pasteAim", turn: 0 },
+        { kind: "pasteAim" },
       ] as BuildFlow[]) {
         for (const useCase of [e.choose, e.confirm]) {
           if (
@@ -285,12 +291,13 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         selected,
         chooseHeighted(selected, "copy"),
         chooseHeighted(selected, "hip"),
-        { kind: "pasteAim", turn: 0, lastPaste: { anchor: from, tick } },
+        { kind: "pasteAim", lastPaste: { anchor: from, turn: 0, tick } },
       ];
       const copy = new CopySelection(
         e.repo,
         new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
         e.feedback,
+        { facingOf: () => "east" },
       );
       const old = structureClipboard(boxOf(from, from), () => stone);
       for (const flow of flows) {
@@ -298,11 +305,12 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         holdClipboard(e.session, old);
         e.session.setFlow(flow);
         copy.execute({ playerId });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", turn: 0 });
+        expect(e.session.flow).toEqual({ kind: "pasteAim" });
         expect(e.session.clipboard).not.toBe(old);
         expect(e.session.clipboard).toMatchObject({
           size: { x: 2, y: 1, z: 2 },
           blockCount: volume(box),
+          facing: "east",
           contents: { kind: "structure" },
         });
         const oversized = boxOf(from, {

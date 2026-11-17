@@ -9,6 +9,7 @@ import {
 } from "@minecraft/server";
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
+import type { Facing } from "../../domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Cell } from "../../domain/shared/cells";
 import {
@@ -179,6 +180,7 @@ async function withBuilder(
   try {
     player.teleport(a.at(45, a.gy, 45), { dimension: a.dim });
     f.hold(true);
+    await f.lookSettled(-90);
     await wait(BUILD_SPEC.modeEnterTicks + 2);
     await tap("clear");
     await run(f);
@@ -423,8 +425,11 @@ function pasteStep(
   z: number,
   face: string,
   sneaking = true,
+  facing?: Facing,
 ): Promise<Reply> {
-  return f.edit(`pasteat ${x} ${y} ${z} ${face} ${sneaking}`);
+  return f.edit(
+    `pasteat ${x} ${y} ${z} ${face} ${sneaking}${facing ? ` ${facing}` : ""}`,
+  );
 }
 
 async function endPasteStep(f: Fixture): Promise<void> {
@@ -655,8 +660,8 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       ["up", 0, 1, 0],
       ["down", 0, -1, 0],
       ["east", 1, 0, 0],
-      ["west", -1, 0, 0],
-      ["north", 0, 0, -1],
+      ["west", -3, 0, 0],
+      ["north", -2, 0, -1],
       ["south", 0, 0, 1],
     ] as const) {
       await f.select(f.cell(2));
@@ -691,6 +696,11 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
         true,
       );
       check(pasted.message === "editDone", "aimed paste failed");
+      if (face !== "up" && face !== "down")
+        check(
+          f.block(anchor).typeId === "minecraft:gold_block",
+          "Side-face paste covered the aimed block",
+        );
       const actual = snapshot(f, target);
       check(
         actual[0]?.typeId === "minecraft:stone" &&
@@ -2025,17 +2035,13 @@ export function buildUndoSnapshot(a: Arena): Promise<Outcome> {
 export function buildPasteRotate(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const source = f.region(5, 3, 3);
-    const surround = f.region(5, 3, 7, f.cell(11, 0, -1));
-    const target = f.region(3, 3, 5, f.cell(12));
+    const surround = f.region(11, 3, 11, f.cell(11, 0, 7));
+    const ground = f.region(11, 1, 11, f.cell(11, -1, 7));
     try {
       for (const c of source)
         f.block(c).setType(
           c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
         );
-      for (const c of surround) f.block(c).setType("minecraft:gold_block");
-      for (const c of target) f.block(c).setType("minecraft:air");
-      for (const c of f.region(3, 1, 5, f.cell(12, -1)))
-        f.block(c).setType("minecraft:stone");
       const chest = f.block(f.cell(1, 1, 1));
       chest.setType("minecraft:chest");
       chest
@@ -2049,60 +2055,96 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
       sign
         .getComponent("minecraft:sign")
         ?.setText("Rotate back", SignSide.Back);
+      await f.lookSettled(-90);
       await f.select(f.cell(4, 2, 2));
       check(
         (await f.menu("shape", "copy")).flow.kind === "pasteAim",
         "Copy did not start paste aiming",
       );
-      await f.edit("rotate");
-      check((await f.state()).pasteTurn === 1, "Rotate did not set the turn");
-      const anchor = f.cell(12, -1);
       check(
-        (await pasteStep(f, anchor.x, anchor.y, anchor.z, "up")).message ===
-          "editDone",
-        "Rotated paste failed",
+        (await f.state()).clipboard?.facing === "east",
+        "Copy did not record east",
       );
-      for (const c of target) {
-        const x = c.x - f.cell(12).x;
-        const y = c.y - f.cell().y;
-        const z = c.z - f.cell().z;
-        const expected =
-          y === 0
-            ? "minecraft:stone"
-            : y === 1 && x === 1 && z === 1
-              ? "minecraft:chest"
-              : y === 1 && x === 1 && z === 3
-                ? "minecraft:standing_sign"
-                : "minecraft:air";
-        check(f.block(c).typeId === expected, "Rotated footprint mismatch");
+      for (const [
+        facing,
+        turn,
+        yaw,
+        minX,
+        minZ,
+        width,
+        depth,
+        chestX,
+        chestZ,
+        signX,
+        signZ,
+      ] of [
+        ["south", 1, 0, 14, 12, 3, 5, 1, 1, 1, 3],
+        ["west", 2, 90, 12, 10, 5, 3, 3, 1, 1, 1],
+        ["north", 3, 180, 16, 8, 3, 5, 1, 3, 1, 1],
+        ["east", 0, -90, 16, 12, 5, 3, 1, 1, 3, 1],
+      ] as const) {
+        await f.lookSettled(yaw);
+        const target = f.region(width, 3, depth, f.cell(minX, 0, minZ));
+        for (const c of surround) {
+          f.block(c).getComponent("minecraft:inventory")?.container?.clearAll();
+          f.block(c).setType("minecraft:gold_block");
+        }
+        for (const c of target) f.block(c).setType("minecraft:air");
+        for (const c of ground) f.block(c).setType("minecraft:stone");
+        const anchor = f.cell(16, -1, 12);
+        check(
+          (await pasteStep(f, anchor.x, anchor.y, anchor.z, "up", true, facing))
+            .message === "editDone",
+          `Paste failed facing ${facing}`,
+        );
+        for (const c of target) {
+          const x = c.x - f.cell(minX).x;
+          const y = c.y - f.cell().y;
+          const z = c.z - f.cell(0, 0, minZ).z;
+          const expected =
+            y === 0
+              ? "minecraft:stone"
+              : y === 1 && x === chestX && z === chestZ
+                ? "minecraft:chest"
+                : y === 1 && x === signX && z === signZ
+                  ? "minecraft:standing_sign"
+                  : "minecraft:air";
+          check(
+            f.block(c).typeId === expected,
+            `Footprint mismatch facing ${facing}`,
+          );
+        }
+        const outside = surround.filter(
+          (c) => !target.some((t) => t.x === c.x && t.z === c.z),
+        );
+        check(
+          f.count(outside, "minecraft:gold_block") === outside.length,
+          `Paste changed cells outside the ${facing} footprint`,
+        );
+        const item = f
+          .block(f.cell(minX + chestX, 1, minZ + chestZ))
+          .getComponent("minecraft:inventory")
+          ?.container?.getItem(0);
+        check(
+          item?.typeId === "minecraft:diamond" && item.amount === 7,
+          `Chest lost items facing ${facing}`,
+        );
+        const pastedSign = f
+          .block(f.cell(minX + signX, 1, minZ + signZ))
+          .getComponent("minecraft:sign");
+        check(
+          pastedSign?.getText(SignSide.Front) === "Rotate front" &&
+            pastedSign.getText(SignSide.Back) === "Rotate back",
+          `Sign lost text facing ${facing}`,
+        );
+        check(
+          (await f.state()).pasteTurn === turn,
+          `Wrong turn facing ${facing}`,
+        );
       }
-      const outside = surround.filter(
-        (c) => !target.some((t) => t.x === c.x && t.z === c.z),
-      );
-      check(
-        f.count(outside, "minecraft:gold_block") === outside.length,
-        "Paste changed cells outside the rotated footprint",
-      );
-      const item = f
-        .block(f.cell(13, 1, 1))
-        .getComponent("minecraft:inventory")
-        ?.container?.getItem(0);
-      check(
-        item?.typeId === "minecraft:diamond" && item.amount === 7,
-        "Rotated chest lost items",
-      );
-      const pastedSign = f
-        .block(f.cell(13, 1, 3))
-        .getComponent("minecraft:sign");
-      check(
-        pastedSign?.getText(SignSide.Front) === "Rotate front" &&
-          pastedSign.getText(SignSide.Back) === "Rotate back",
-        "Rotated sign lost text",
-      );
-      check((await f.state()).pasteTurn === 1, "Paste lost the turn");
     } finally {
       await f.edit("releaseStructures");
-      for (const c of [...source, ...surround]) {
+      for (const c of [...source, ...surround, ...ground]) {
         f.block(c).getComponent("minecraft:inventory")?.container?.clearAll();
         f.block(c).setType("minecraft:air");
       }

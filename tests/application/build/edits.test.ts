@@ -54,6 +54,7 @@ function setup() {
       repo,
       new CopyBox(repo, new FakeStructureStore(), feedback),
       feedback,
+      { facingOf: () => "east" },
     ),
     paste: new PasteAt(
       repo,
@@ -342,6 +343,7 @@ describe("edit use cases", () => {
           ),
         { x: 0, y: 63, z: 0 },
         "up",
+        "east",
       ),
     });
     env.undo.execute({ playerId: alex });
@@ -406,6 +408,7 @@ describe("edit use cases", () => {
           ),
         { x: 0, y: 63, z: 0 },
         "up",
+        "east",
       ),
     });
     expect(env.feedback.messages.at(-1)?.message).toBe("pasteBlocked");

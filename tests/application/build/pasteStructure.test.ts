@@ -43,6 +43,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
   session.completeCopy(overworld, box, {
     size: { x: 2, y: 2, z: 2 },
     blockCount,
+    facing: "east",
     contents: { kind: "structure", handle },
   });
   const jobs = new EditJobs(
@@ -149,7 +150,7 @@ it.each(["idle", "noClipboard", "repeat", "busy"] as const)(
     if (reason === "noClipboard") e.session.clearClipboard();
     if (reason === "repeat" && e.session.flow.kind === "pasteAim")
       e.session.setFlow(
-        recordPaste(e.session.flow, e.cmd.target.anchor, e.cmd.tick),
+        recordPaste(e.session.flow, e.cmd.target.anchor, 0, e.cmd.tick),
       );
     if (reason === "busy") e.session.beginEdit();
     const flow = e.session.flow;

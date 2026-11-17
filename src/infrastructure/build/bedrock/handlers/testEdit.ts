@@ -9,11 +9,14 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import type { BuildStructureStore } from "../../../../application/build/ports/structures";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
-import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import { parseFace } from "../../../../domain/build/aim/face";
 import { boxOf, sizeOf, volume } from "../../../../domain/build/box";
+import {
+  facingVector,
+  parseFacing,
+} from "../../../../domain/build/rotation/facing";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
@@ -84,7 +87,6 @@ export function registerTestEdit(
   repo: BuildSessionRepository,
   endSession: EndBuildSession,
   structures: BuildStructureStore,
-  rotate: RotatePasteAim,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -134,9 +136,20 @@ export function registerTestEdit(
           );
         } else if (
           command === "structure" &&
-          args.length === 6 &&
-          args.every((v) => Number.isInteger(Number(v)))
+          (args.length === 6 || args.length === 7) &&
+          args.slice(0, 6).every((v) => Number.isInteger(Number(v)))
         ) {
+          const facing = parseFacing(args[6] ?? "east");
+          if (!facing) {
+            system.sendScriptEvent(
+              TEST_RESULT_EVENT,
+              JSON.stringify({
+                player: player.name,
+                error: "Invalid structure facing",
+              }),
+            );
+            return;
+          }
           const box = boxOf(
             { x: Number(args[0]), y: Number(args[1]), z: Number(args[2]) },
             { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
@@ -148,6 +161,7 @@ export function registerTestEdit(
           const previous = repo
             .getOrCreate(playerId)
             .completeCopy(dimensionId, box, {
+              facing,
               size: sizeOf(box),
               blockCount: volume(box),
               contents: { kind: "structure", handle },
@@ -164,8 +178,6 @@ export function registerTestEdit(
               structures.discard(entry.snapshot.handle);
           }
           session.endPasting();
-        } else if (command === "rotate" && args.length === 0) {
-          rotate.execute({ playerId });
         } else if (command === "state" && args.length === 0) {
           system.sendScriptEvent(
             TEST_RESULT_EVENT,
@@ -197,7 +209,7 @@ export function registerTestEdit(
         } else if (
           command === "pasteat" &&
           (args.length === 4 ||
-            (args.length === 5 &&
+            ((args.length === 5 || args.length === 6) &&
               (args[4] === "true" || args[4] === "false"))) &&
           args.slice(0, 3).every((value) => Number.isInteger(Number(value)))
         ) {
@@ -208,6 +220,17 @@ export function registerTestEdit(
               JSON.stringify({
                 player: player.name,
                 error: "Invalid paste face",
+              }),
+            );
+            return;
+          }
+          const facing = parseFacing(args[5] ?? "east");
+          if (!facing) {
+            system.sendScriptEvent(
+              TEST_RESULT_EVENT,
+              JSON.stringify({
+                player: player.name,
+                error: "Invalid paste facing",
               }),
             );
             return;
@@ -229,7 +252,7 @@ export function registerTestEdit(
             aim: {
               ray: {
                 origin: player.location,
-                direction: player.getViewDirection(),
+                direction: facingVector(facing),
               },
               block: {
                 cell: {

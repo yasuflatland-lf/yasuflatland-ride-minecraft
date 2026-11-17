@@ -228,14 +228,14 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
         );
         holdClipboard(e.session, clip);
         e.session.setFlow(beginPasteAim());
-        const { anchor, box } = pasteTarget(clip, block, face);
+        const { anchor, box } = pasteTarget(clip, block, face, "east");
         const delta = {
           up: [0, 1, 0],
           down: [0, -1, 0],
-          north: [0, 0, -1],
+          north: [1 - clip.size.x, 0, -clip.size.z],
           south: [0, 0, 1],
-          east: [1, 0, 0],
-          west: [-1, 0, 0],
+          east: [1, 0, 1 - clip.size.z],
+          west: [-clip.size.x, 0, 0],
         }[face];
         expect(anchor).toEqual({
           x: block.x + (delta[0] as number),
@@ -255,15 +255,14 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           tick: 0,
           playerId,
           dimensionId: nether,
-          target: pasteTarget(clip, block, face),
+          target: pasteTarget(clip, block, face, "east"),
         });
         expect(read.mock.calls).toEqual(
           [...cellsOf(box)].map((at) => [nether, at]),
         );
         expect(e.session.flow).toEqual({
           kind: "pasteAim",
-          turn: 0,
-          lastPaste: { anchor, tick: 0 },
+          lastPaste: { anchor, turn: 0, tick: 0 },
         });
         e.jobs.step();
         for (const [index, at] of [...cellsOf(box)].entries())
@@ -292,6 +291,7 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
       ),
       { x: 0, y: 0, z: 0 },
       "up",
+      "east",
     ),
     tick: 0,
   };

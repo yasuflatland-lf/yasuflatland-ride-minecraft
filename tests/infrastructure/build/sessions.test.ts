@@ -54,7 +54,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
         endpoint,
         beginRotateMode(overworld, boxOf(at, at), stone, 1),
         chooseHeighted(endpoint, "copy"),
-        { kind: "pasteAim", turn: 0 } as const,
+        { kind: "pasteAim" } as const,
       ]) {
         for (const event of ["dimension", "die"]) {
           const repo = new FakeSessions();
@@ -63,11 +63,12 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           const debounce = new PressDebounces<PlayerId>(10);
           const pasteDebounce = new PressDebounces<PlayerId>(10);
           const rotateDebounce = new PressDebounces<PlayerId>(7);
-          new CopyBox(repo, structures, new FakeFeedback()).execute(
-            id,
-            overworld,
-            boxOf(at, at),
-          );
+          new CopyBox(repo, structures, new FakeFeedback()).execute({
+            playerId: id,
+            dimensionId: overworld,
+            box: boxOf(at, at),
+            facing: "east",
+          });
           session.finishEdit(
             {
               dimensionId: overworld,
@@ -120,11 +121,12 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   const rotateDebounce = new PressDebounces<PlayerId>(7);
   const at = { x: 0, y: 0, z: 0 };
   const structures = new FakeStructureStore();
-  new CopyBox(repo, structures, new FakeFeedback()).execute(
-    id,
-    overworld,
-    boxOf(at, at),
-  );
+  new CopyBox(repo, structures, new FakeFeedback()).execute({
+    playerId: id,
+    dimensionId: overworld,
+    box: boxOf(at, at),
+    facing: "east",
+  });
   const handle = structures.capture(overworld, boxOf(at, at), id);
   if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
   session.recordSnapshot({

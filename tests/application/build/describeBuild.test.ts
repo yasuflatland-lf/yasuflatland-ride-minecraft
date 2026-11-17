@@ -60,14 +60,14 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           endpoint,
           enterRotateMode(endpoint),
           chooseHeighted(endpoint, "copy"),
-          { kind: "pasteAim", turn: 0 },
+          { kind: "pasteAim" },
         ];
         for (const flow of flows) {
           session.setFlow(flow);
           expect(describe.execute(playerId)).toEqual({
             flow: flow.kind,
             clipboardHeld: clipboard,
-            pasteTurn: flow.kind === "pasteAim" ? flow.turn : 0,
+            pasteTurn: 0,
             pasteMenu:
               flow.kind === "rotateMode"
                 ? []

@@ -1,0 +1,48 @@
+import type { Vec3 } from "../../shared/vec";
+import { BUILD_SPEC } from "../spec";
+import type { QuarterTurn } from "./quarterTurn";
+
+export type Facing = "north" | "east" | "south" | "west";
+export const FACINGS: readonly Facing[] = ["north", "east", "south", "west"];
+
+export function turnBetween(from: Facing, to: Facing): QuarterTurn {
+  return ((FACINGS.indexOf(to) - FACINGS.indexOf(from) + 4) % 4) as QuarterTurn;
+}
+
+export function facingFromDirection(
+  direction: Vec3,
+  current?: Facing,
+  hysteresisDegrees = BUILD_SPEC.pasteFacingHysteresisDegrees,
+): Facing | undefined {
+  if (Math.hypot(direction.x, direction.z) < BUILD_SPEC.facingMinHorizontal)
+    return undefined;
+  const angle = (Math.atan2(direction.x, -direction.z) * 180) / Math.PI;
+  if (current !== undefined) {
+    const difference =
+      ((angle - FACINGS.indexOf(current) * 90 + 540) % 360) - 180;
+    if (Math.abs(difference) <= 45 + hysteresisDegrees) return current;
+  }
+  return FACINGS[((Math.round(angle / 90) % 4) + 4) % 4];
+}
+
+export function facingFromYaw(yawDegrees: number): Facing {
+  const index = ((Math.round(yawDegrees / 90) % 4) + 4) % 4;
+  return FACINGS[(index + 2) % 4] as Facing;
+}
+
+export function parseFacing(value: string): Facing | undefined {
+  return FACINGS.find((facing) => facing === value.toLowerCase());
+}
+
+export function facingVector(facing: Facing): Vec3 {
+  switch (facing) {
+    case "north":
+      return { x: 0, y: 0, z: -1 };
+    case "east":
+      return { x: 1, y: 0, z: 0 };
+    case "south":
+      return { x: 0, y: 0, z: 1 };
+    case "west":
+      return { x: -1, y: 0, z: 0 };
+  }
+}

@@ -58,7 +58,7 @@ function setup() {
   );
   const target = (block: { x: number; y: number; z: number }) => {
     if (!session.clipboard) throw new Error("Expected clipboard");
-    return pasteTarget(session.clipboard, block, "up");
+    return pasteTarget(session.clipboard, block, "up", "east");
   };
   return { repo, session, world, feedback, paste, target, structures };
 }
@@ -80,6 +80,7 @@ it("keeps aiming through successive synchronous pastes with the newest snapshots
           recordPaste(
             beginPasteAim(),
             { ...block, y: block.y + 1 },
+            0,
             i * BUILD_SPEC.pasteRepeatTicks,
           ),
         );
@@ -156,8 +157,7 @@ it("silently ignores repeats, refuses busy and blocked taps, and records only su
         expect(start).toHaveBeenCalledTimes(2);
         expect(e.session.flow).toMatchObject({
           kind: "pasteAim",
-          turn: 0,
-          lastPaste: { anchor, tick: 200 },
+          lastPaste: { anchor, turn: 0, tick: 200 },
         });
       },
     ),
@@ -178,7 +178,6 @@ it("allows the same anchor again once the repeat window ends", () => {
   expect(start).toHaveBeenCalledTimes(2);
   expect(e.session.flow).toMatchObject({
     kind: "pasteAim",
-    turn: 0,
     lastPaste: { tick: BUILD_SPEC.pasteRepeatTicks },
   });
 });
@@ -310,5 +309,31 @@ it("EndPasting preserves the completed snapshot and older cell history", () => {
       expect(start).not.toHaveBeenCalled();
       expect(e.world.writes).toBe(1);
     }),
+  );
+});
+
+it("accepts a different turn at the same anchor inside the repeat window", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.constantFrom(1 as const, 2 as const, 3 as const),
+      (block, turn) => {
+        const e = setup();
+        const command = {
+          playerId,
+          dimensionId: overworld,
+          target: e.target(block),
+          tick: 0,
+        };
+        expect(e.paste.execute(command)).toBe("pasted");
+        expect(
+          e.paste.execute({ ...command, target: { ...command.target, turn } }),
+        ).toBe("pasted");
+        expect(
+          e.paste.execute({ ...command, target: { ...command.target, turn } }),
+        ).toBe("ignored");
+        expect(e.session.flow).toMatchObject({ lastPaste: { turn } });
+      },
+    ),
   );
 });

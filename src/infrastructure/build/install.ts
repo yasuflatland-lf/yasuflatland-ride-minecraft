@@ -25,7 +25,6 @@ import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
 import { RotateModeTap } from "../../application/build/rotateModeTap";
-import { RotatePasteAim } from "../../application/build/rotatePasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -40,6 +39,7 @@ import { consoleLogger } from "../shared/consoleLogger";
 import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockBuildPlayers } from "./bedrock/bedrockBuildPlayers";
+import { BedrockFacingReader } from "./bedrock/bedrockFacingReader";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
 import { BedrockGroundProbe } from "./bedrock/bedrockGroundProbe";
 import { BedrockStructureStore } from "./bedrock/bedrockStructureStore";
@@ -83,6 +83,7 @@ export function installBuild(deps: {
     new LeaveBuild(repo, ports.structures),
   );
   const players = new BedrockBuildPlayers();
+  const facing = new BedrockFacingReader();
   const jobs = new EditJobs(
     repo,
     blocks,
@@ -115,10 +116,10 @@ export function installBuild(deps: {
   };
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
-    chooseBoxStep: new ChooseBoxStep(repo, actions, feedback),
-    confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback),
+    chooseBoxStep: new ChooseBoxStep(repo, actions, feedback, facing),
+    confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback, facing),
     fill: new ConfirmShape(repo, feedback, jobs),
-    copy: new CopySelection(repo, copyBox, feedback),
+    copy: new CopySelection(repo, copyBox, feedback, facing),
     endPasting: new EndPasting(repo, ports.structures),
     newCopy: new NewCopy(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, ports.structures, players),
@@ -149,7 +150,6 @@ export function installBuild(deps: {
     cancel,
     setHeight: new SetHeightTo(repo),
   };
-  const rotate = new RotatePasteAim(repo);
   const menus = new BedrockBuildMenus(repo, menuCases);
   registerWand({
     rotateModeTap: new RotateModeTap(repo, rotateBox),
@@ -198,6 +198,5 @@ export function installBuild(deps: {
     repo,
     endSession,
     ports.structures,
-    rotate,
   );
 }

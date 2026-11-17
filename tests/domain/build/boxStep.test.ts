@@ -69,7 +69,7 @@ it.each(["copy", "cut", "rotate"] as const)(
         for (const flow of [
           { kind: "idle" },
           tapBlock({ kind: "idle" }, dimensionId, from, stone),
-          chosen.kind === "heightStep" ? chosen : { kind: "pasteAim", turn: 0 },
+          chosen.kind === "heightStep" ? chosen : { kind: "pasteAim" },
         ] as BuildFlow[]) {
           expect(shapeMenu(flow)).toEqual([]);
           expect(chooseHeighted(flow, kind)).toBe(flow);

@@ -84,13 +84,13 @@ function setup(
     structures,
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim", turn: 0 });
+  session.setFlow({ kind: "pasteAim", facing: "east" });
   const aim = new FakeAimReader();
   aim.target = {
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: block, face },
   };
-  const target = aimedPasteTarget(clipboard, aim.target);
+  const target = aimedPasteTarget(clipboard, aim.target, "east");
   if (!target) throw new Error("Expected paste target");
   const start = vi.spyOn(structures, "place");
   const execute = (sneaking = true) => {
@@ -132,8 +132,8 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
       ]);
       expect(e.session.flow).toEqual({
         kind: "pasteAim",
-        turn: 0,
-        lastPaste: { anchor: e.target.anchor, tick },
+        facing: "east",
+        lastPaste: { anchor: e.target.anchor, turn: 0, tick },
       });
       e.jobs.step();
       for (const at of cellsOf(e.target.box))
@@ -157,7 +157,7 @@ it("returns menu on air without starting a job or changing the flow", () => {
       expect(e.execute(false)).toBe("menu");
       expect(e.start).not.toHaveBeenCalled();
       expect(e.session.isEditing).toBe(false);
-      expect(e.session.flow).toBe(flow);
+      expect(e.session.flow).toEqual(flow);
     }),
   );
 });
@@ -180,13 +180,13 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
       ]) {
         e.session.setFlow(flow);
         expect(e.execute()).toBe("ignored");
-        expect(e.session.flow).toBe(flow);
+        expect(e.session.flow).toEqual(flow);
       }
       e.repo.remove(playerId);
       expect(e.execute()).toBe("ignored");
       expect(e.repo.get(playerId)).toBeUndefined();
       const empty = e.repo.getOrCreate(playerId);
-      empty.setFlow({ kind: "pasteAim", turn: 0 });
+      empty.setFlow({ kind: "pasteAim" });
       expect(e.execute()).toBe("ignored");
       expect(e.feedback.messages).toEqual([{ message: "noClipboard" }]);
       expect(e.start).not.toHaveBeenCalled();
@@ -205,7 +205,7 @@ it("refuses protected volumes and busy jobs without opening the repeat window or
           cellKey({ ...e.target.anchor, x: e.target.anchor.x + 1 }),
         );
       expect(e.execute()).toBe("refused");
-      expect(e.session.flow).toBe(flow);
+      expect(e.session.flow).toEqual(flow);
       expect(e.feedback.messages.at(-1)?.message).toBe(
         busy ? "busy" : "pasteBlocked",
       );
@@ -255,12 +255,12 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
             sneaking: true,
           }),
         ).toBe("ignored");
-        expect(e.session.flow).toBe(flow);
+        expect(e.session.flow).toEqual(flow);
         expect(e.start).toHaveBeenCalledTimes(1);
         new UndoEdit(e.repo, e.feedback, e.jobs, e.world, e.structures, {
           warn: () => {},
         }).execute({ playerId });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", turn: 0 });
+        expect(e.session.flow).toEqual({ kind: "pasteAim", facing: "east" });
         expect(e.session.clipboard).toBe(e.clipboard);
         e.jobs.step();
         expect(e.world.stateAt(nether, e.target.anchor)).toBe(AIR);

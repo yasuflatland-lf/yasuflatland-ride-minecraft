@@ -54,6 +54,7 @@ function setup() {
     repo,
     new CopyBox(repo, new FakeStructureStore(), feedback),
     feedback,
+    { facingOf: () => "east" },
   );
   const endpoint = () =>
     session.setFlow(
