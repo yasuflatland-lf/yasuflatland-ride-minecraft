@@ -330,8 +330,9 @@ it("registers ordered top-level scene builders with frozen results", () => {
     previewPython(`
 from dataclasses import FrozenInstanceError, is_dataclass
 from inspect import isfunction
-assert isinstance(r.SCENE_BUILDERS, tuple)
-for _, builder in r.SCENE_BUILDERS:
+assert isinstance(r.SCENES, tuple)
+for scene in r.SCENES:
+    builder = scene.build
     assert isfunction(builder)
     assert builder.__module__ == "render_preview"
     assert "<locals>" not in builder.__qualname__
@@ -346,9 +347,44 @@ for field in ("images", "icon"):
         pass
     else:
         raise AssertionError(f"SceneResult.{field} is mutable")
-print(json.dumps([name for name, _ in r.SCENE_BUILDERS]))
+print(json.dumps([scene.name for scene in r.SCENES]))
 `),
   ).toEqual(["suv", "boat", "camper", "bulldozer", "scooter", "gear"]);
+});
+
+describe("render_preview.py scene selection", () => {
+  it("returns every scene in order for None and keeps SCENES order for any subset", () => {
+    expect(
+      previewPython(`
+import itertools
+assert r.select_scenes(None) == r.SCENES
+assert r.SCENE_NAMES == ("suv", "boat", "camper", "bulldozer", "scooter", "gear")
+for size in range(len(r.SCENE_NAMES) + 1):
+    for combo in itertools.combinations(r.SCENE_NAMES, size):
+        reversed_names = list(reversed(combo))
+        picked = r.select_scenes(reversed_names)
+        assert [s.name for s in picked] == list(combo)
+        assert r.select_scenes(list(combo) + list(combo)) == picked
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it("raises naming the unknown scene and the valid names", () => {
+    expect(
+      previewPython(`
+try:
+    r.select_scenes(["suv", "tractor"])
+except ValueError as error:
+    message = str(error)
+    assert "tractor" in message
+    assert all(name in message for name in r.SCENE_NAMES)
+else:
+    raise AssertionError("unknown scene accepted")
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
 });
 
 it("ScreenFit maps quads the same after pickling", () => {
