@@ -2,6 +2,7 @@
 
     python3 -I tools/render_preview.py <resource pack> <output dir>          write the images
     python3 -I tools/render_preview.py <resource pack> <output dir> --check  fail if any is stale
+    python3 -I tools/render_preview.py <resource pack> <output dir> --check --scene suv --timing
     python3 -I tools/render_preview.py <resource pack> --gear sugar_pot --view front top --out /tmp/views
     python3 -I tools/render_preview.py <resource pack> --view sinkTap --out /tmp/views
     python3 -I tools/render_preview.py <resource pack> --view lidOpen --lid 45 --out /tmp/views
@@ -1645,6 +1646,8 @@ def main():
     parser.add_argument("--gear", help="camping gear item id for named review views")
     parser.add_argument("--out", type=Path, help="output directory for a named photo view")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--scene", action="append", metavar="NAME",
+                        help=f"render only this scene (repeatable): {', '.join(SCENE_NAMES)}")
     parser.add_argument("--icons", nargs="+", type=Path, default=[])
     parser.add_argument("--jobs", type=int, default=None, help="number of workers (default: CPU count)")
     parser.add_argument("--beach-chair-form", choices=("chair", "table"),
@@ -1653,8 +1656,14 @@ def main():
                         help="photo view name, or three camera direction numbers with --beach-chair-form")
     parser.add_argument("--lid", type=float, help=f"lid opening in degrees (0 to {LID_OPEN}), with a named view")
     parser.add_argument("--timing", action="store_true",
-                        help="print the raster_jobs and rasterize_all durations to stderr (full render and --check only)")
+                        help="print phase durations and, with --scene, per-scene build durations and job counts to stderr")
     args = parser.parse_args()
+    try:
+        scenes = select_scenes(args.scene)
+    except ValueError as e:
+        parser.error(str(e))
+    if args.scene and (args.gear is not None or args.view is not None or args.beach_chair_form):
+        parser.error("--scene cannot be combined with --gear, --view, or --beach-chair-form")
     if args.gear is not None:
         items = {item["id"]: item for item in json.loads(GEAR_SPEC.read_text())}
         if args.gear not in items:
@@ -1727,7 +1736,16 @@ def main():
                             read_png(args.resource_pack / BEACH_CHAIR_TEXTURE), 800, name,
                             animation=animation, view=direction)]
     else:
-        jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
+        if args.scene and args.timing:
+            jobs = []
+            for scene in scenes:
+                build_started = time.perf_counter()
+                scene_jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons, scenes=(scene,))
+                build_seconds = time.perf_counter() - build_started
+                print(f"scene={scene.name} build={build_seconds:.2f} jobs={len(scene_jobs)}", file=sys.stderr)
+                jobs.extend(scene_jobs)
+        else:
+            jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons, scenes=scenes)
         scene_done = time.perf_counter()
     pixel_sets = rasterize_all(jobs, args.jobs)
     rasterized = time.perf_counter()

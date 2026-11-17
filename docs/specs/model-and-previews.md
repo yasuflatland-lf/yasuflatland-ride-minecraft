@@ -331,6 +331,15 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Implementation: `tools/render_preview.py` (`sin_cos`, `SHADE_UP`, `SHADE_DOWN`, `SHADE_Z`, `SHADE_X`, `SHADOW_LAYERS`, `main`)
 - Verification: `tests/tools/renderPreview.test.ts` "turns a rotated bone's cubes about its pivot the way the game does", "ScreenFit maps quads the same after pickling", "registers ordered top-level scene builders with frozen results", "defers opaque texture patches without changing perspective, ties, glass or lighting" (including a pickle round trip). Not verified: no test compares Mac and Linux output; the identity of pixels across platforms rests on `pnpm model:check` passing in CI.
 
+### Preview scene selection and timing
+
+- Applies to: `tools/render_preview.py` command-line rendering and checks.
+- Rule: Repeatable `--scene NAME` selects from `suv`, `boat`, `camper`, `bulldozer`, `scooter`, and `gear`, preserving registry order and dropping duplicates. Unknown names fail with the valid names. The option works with the default render, `--check`, `--icons`, and `--timing`; it cannot be combined with `--gear`, `--view`, or `--beach-chair-form`. Only selected scenes' previews and owned icons are built, written, or compared. A subset check does not require other scenes' files. With `--scene --timing`, stderr includes `scene=<name> build=<seconds> jobs=<count>` for each selected scene before the existing `PHASE_TIMING` summary. Build seconds cover that scene's job construction; jobs counts raster jobs, so the single SUV pack-icon job can produce multiple pack files. Without `--scene`, the full render and `pnpm model:check` retain their existing behavior.
+- Agreement: Accepted
+- Basis: [0016](../adr/0016-readme-preview-rendered-from-model.md) Decision (deterministic previews and decoded-pixel comparison); scene selection preserves that comparison contract.
+- Implementation: `tools/render_preview.py` (`main`, `select_scenes`, `raster_jobs`).
+- Verification: `tests/tools/renderPreview.test.ts` checks CLI validation, SUV subset comparisons without writes or other scenes' files, selected timing lines, and the output partition including owned icons using small scene fixtures without rasterization. `pnpm model:check` verifies the full committed output set.
+
 ### Model freshness check
 
 - Applies to: `pnpm model`, `pnpm model:check`, and the `model` job in `.github/workflows/unit-test.yml`.
