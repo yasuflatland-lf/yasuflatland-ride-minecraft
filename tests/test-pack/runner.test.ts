@@ -1,3 +1,5 @@
+vi.mock("../../src/test-pack/rotationProbe", () => ({}));
+
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { Outcome, StepSink } from "../../src/test-pack/outcome";
 import { CANCEL_EVENT, TEST_EVENT } from "../../src/test-pack/protocol";
@@ -25,6 +27,7 @@ vi.mock("@minecraft/server", () => ({
 }));
 vi.mock("../../src/test-pack/inputProbe", () => ({}));
 vi.mock("../../src/test-pack/loungeProbe", () => ({}));
+vi.mock("../../src/test-pack/scooterPoseProbe", () => ({}));
 vi.mock("../../src/test-pack/cutoutProbe", () => ({}));
 vi.mock("../../src/test-pack/arena", () => ({
   prepareRun: harness.setup,

@@ -56,7 +56,11 @@ function stepProbe(
         return ctx.solidAt({ x: o.x, y: dy - drop, z: o.z });
       },
       speed,
-      { front: spec.hitboxFront, height: spec.carHeight },
+      {
+        front: spec.hitboxFront,
+        height: spec.carHeight,
+        laneOffset: spec.stepLaneOffset,
+      },
     );
 }
 

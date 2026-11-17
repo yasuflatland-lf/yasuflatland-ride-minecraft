@@ -32,6 +32,7 @@ const request = fc
     lanes: fc.integer({ min: 1, max: MAX_LANES }),
     at: fc.integer({ min: 0, max: MAX_LANES - 1 }),
     features: fc.option(features, { nil: undefined }),
+    manual: fc.option(fc.constant(true as const), { nil: undefined }),
   })
   .filter((r) => r.lanes === 1 || r.at === 0);
 
@@ -89,6 +90,23 @@ describe("run request grammar", () => {
     );
   });
 
+  it("accepts the explicit manual setup token", () => {
+    fc.assert(
+      fc.property(runId, (id) => {
+        expect(parseRunRequest(`${id} manual=1`)).toEqual({
+          ok: true,
+          request: {
+            runId: id,
+            shard: WHOLE_RUN,
+            lanes: 1,
+            at: 0,
+            manual: true,
+          },
+        });
+      }),
+    );
+  });
+
   it("accepts positional and keyed shards identically", () => {
     fc.assert(
       fc.property(runId, shard, (id, s) => {
@@ -128,8 +146,9 @@ describe("run request grammar", () => {
             lanes: 1,
             at: 3,
             features: ["vehicle:suv"],
+            manual: true,
           }),
-        ).toBe(`${id} shard=2/4 at=3 features=vehicle:suv`);
+        ).toBe(`${id} shard=2/4 at=3 features=vehicle:suv manual=1`);
       }),
     );
   });
@@ -145,6 +164,9 @@ describe("run request grammar", () => {
           ["lanes=0", "lanes=0"],
           ["at=8", "at=8"],
           ["features=", "features="],
+          ["manual=0", "manual=0"],
+          ["manual=true", "manual=true"],
+          ["manual=1 manual=1", "manual=1"],
           ["features=a,a", "features=a,a"],
           ["lanes=1 lanes=2", "lanes=2"],
           ["at=0 at=0", "at=0"],
@@ -202,6 +224,9 @@ describe("run request grammar", () => {
       features: ["a".repeat(MESSAGE_LIMIT - "a features=".length)],
     };
     expect(formatRunRequest(r)).toHaveLength(MESSAGE_LIMIT);
+    expect(() => formatRunRequest({ ...r, manual: true })).toThrow(
+      "MESSAGE_LIMIT",
+    );
     expect(() =>
       formatRunRequest({ ...r, features: [`${r.features[0]}a`] }),
     ).toThrow("MESSAGE_LIMIT");

@@ -31,6 +31,8 @@ export interface TransformingSpec {
   readonly gearProbeOffset: number;
   /** Blocks from the center to the front edge the step probe uses (ADR 0004). */
   readonly hitboxFront: number;
+  /** Side offset of the two outer step-up rays; keep it within the body's half width (ADR 0004). */
+  readonly stepLaneOffset: number;
   readonly air: Medium;
   readonly water: Medium;
   /** Per-kind choice of diving or surface support, independent of water speed (ADR 0050). */
