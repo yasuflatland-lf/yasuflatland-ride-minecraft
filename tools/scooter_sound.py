@@ -1,4 +1,4 @@
-"""Scooter engine clips indexed by the ground speed bands in scooter.ac.json."""
+"""Recorded Vespa engine clips indexed by the ground speed bands in scooter.ac.json."""
 
 from dataclasses import dataclass
 
@@ -12,12 +12,12 @@ class EngineClip:
 
 # Band lower bounds in blocks/s: 0, 1, 4.5, 8, 11.5 and 15.
 ENGINE_CLIPS: tuple[EngineClip, ...] = (
-    EngineClip(0, 1.0, 0.5),
-    EngineClip(1, 1.0, 0.54),
-    EngineClip(2, 1.0, 0.58),
-    EngineClip(3, 1.0, 0.62),
-    EngineClip(4, 1.0, 0.66),
-    EngineClip(5, 1.0, 0.7),
+    EngineClip(0, 3.0, 0.5),
+    EngineClip(1, 2.5, 0.54),
+    EngineClip(2, 2.0, 0.58),
+    EngineClip(3, 2.0, 0.62),
+    EngineClip(4, 2.0, 0.66),
+    EngineClip(5, 2.0, 0.7),
 )
 
 
