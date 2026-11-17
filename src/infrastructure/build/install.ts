@@ -25,6 +25,7 @@ import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
 import { RotateModeTap } from "../../application/build/rotateModeTap";
+import { RotatePasteAim } from "../../application/build/rotatePasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -47,10 +48,12 @@ import { BedrockBuildMenus } from "./bedrock/buildMenus";
 import { registerEditTick } from "./bedrock/handlers/editTick";
 import { registerModeTick } from "./bedrock/handlers/modeTick";
 import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
+import { registerPasteControls } from "./bedrock/handlers/pasteControls";
 import { registerSessions } from "./bedrock/handlers/sessions";
 import { registerTestTap } from "./bedrock/handlers/testCorner";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
 import { registerTestMode } from "./bedrock/handlers/testMode";
+import { registerTestPress } from "./bedrock/handlers/testPress";
 import { registerWand } from "./bedrock/handlers/wand";
 import { MenuChoices } from "./bedrock/menuChoices";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
@@ -151,18 +154,30 @@ export function installBuild(deps: {
     setHeight: new SetHeightTo(repo),
   };
   const menus = new BedrockBuildMenus(repo, menuCases);
+  const pressPasteAim = new PressPasteAim(
+    repo,
+    cases.pasteAt,
+    feedback,
+    resolveTarget,
+  );
+  const rotatePasteAim = new RotatePasteAim(repo, feedback);
+  const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
+  const routes = registerPasteControls({
+    repo,
+    aim,
+    pressPasteAim,
+    rotatePasteAim,
+    pasteDebounce,
+    rotateDebounce,
+    refresh: (id, tick) => preview.refresh(id, tick),
+  });
   registerWand({
     rotateModeTap: new RotateModeTap(repo, rotateBox),
     finishRotateMode: new FinishRotateMode(repo),
     rotateDebounce,
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
-    pressPasteAim: new PressPasteAim(
-      repo,
-      cases.pasteAt,
-      feedback,
-      resolveTarget,
-    ),
+    pressPasteAim,
     aimHeight: cases.aimHeight,
     confirmBoxStep: cases.confirmBoxStep,
     repo,
@@ -176,7 +191,7 @@ export function installBuild(deps: {
     },
   });
   registerModeTick(modes);
-  registerOutlineTick(new ShowPreview(repo, feedback, aim, resolveTarget));
+  registerOutlineTick(preview);
   registerSessions(
     endSession,
     cases.endPasting,
@@ -187,16 +202,19 @@ export function installBuild(deps: {
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
+  const describe = new DescribeBuild(repo);
+  registerTestPress(routes, describe, recorded);
   registerTestEdit(
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
     menuCases.confirmBoxStep,
-    new PressPasteAim(repo, cases.pasteAt, feedback, resolveTarget),
+    pressPasteAim,
     cases.undo,
-    new DescribeBuild(repo),
+    describe,
     recorded,
     repo,
     endSession,
     ports.structures,
+    rotatePasteAim,
   );
 }

@@ -19,14 +19,22 @@ export class PressPasteAim {
     aim: AimResult | undefined;
     tick: number;
     sneaking: boolean;
+    intent?: "wand" | "place";
   }): "pasted" | "refused" | "menu" | "ignored" {
     const session = this.repo.get(cmd.playerId);
-    if (session?.flow.kind !== "pasteAim") return "ignored";
-    if (!session.clipboard) {
-      this.feedback.showMessage(cmd.playerId, "noClipboard");
+    const placing = cmd.intent === "place";
+    if (session?.flow.kind !== "pasteAim") {
+      if (placing) this.feedback.showMessage(cmd.playerId, "pasteInactive");
       return "ignored";
     }
-    if (!cmd.sneaking) return "menu";
+    if (!session.clipboard) {
+      this.feedback.showMessage(
+        cmd.playerId,
+        placing ? "pasteInactive" : "noClipboard",
+      );
+      return "ignored";
+    }
+    if (!placing && !cmd.sneaking) return "menu";
     // ADR 0203: use the live gaze target shared with the outline at press time.
     // A press re-probes so it never places on a snap cached by the outline.
     const result = cmd.aim

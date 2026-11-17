@@ -1,4 +1,9 @@
-import { ScriptEventSource, system, world } from "@minecraft/server";
+import {
+  type Player,
+  ScriptEventSource,
+  system,
+  world,
+} from "@minecraft/server";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
 import type { DescribeBuild } from "../../../../application/build/describeBuild";
 import { discardAll } from "../../../../application/build/discardAll";
@@ -9,6 +14,7 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import type { BuildStructureStore } from "../../../../application/build/ports/structures";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
+import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import { parseFace } from "../../../../domain/build/aim/face";
@@ -87,6 +93,7 @@ export function registerTestEdit(
   repo: BuildSessionRepository,
   endSession: EndBuildSession,
   structures: BuildStructureStore,
+  rotatePasteAim: RotatePasteAim,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -209,7 +216,7 @@ export function registerTestEdit(
         } else if (
           command === "pasteat" &&
           (args.length === 4 ||
-            ((args.length === 5 || args.length === 6) &&
+            ((args.length === 5 || args.length === 6 || args.length === 7) &&
               (args[4] === "true" || args[4] === "false"))) &&
           args.slice(0, 3).every((value) => Number.isInteger(Number(value)))
         ) {
@@ -235,6 +242,9 @@ export function registerTestEdit(
             );
             return;
           }
+          const rotations = Number(args[6] ?? 0);
+          if (!Number.isInteger(rotations) || rotations < 0 || rotations > 3)
+            return;
           const clipboard = repo.get(playerId)?.clipboard;
           if (!clipboard) {
             system.sendScriptEvent(
@@ -246,6 +256,8 @@ export function registerTestEdit(
             );
             return;
           }
+          for (let i = 0; i < rotations; i++)
+            rotatePasteAim.execute({ playerId });
           paste.execute({
             playerId,
             dimensionId: asDimensionId(player.dimension.id),
@@ -281,34 +293,60 @@ export function registerTestEdit(
         // A malformed test command must not interrupt the server event loop.
         return;
       }
-      const started = system.currentTick;
-      const reply = () => {
-        if (!player.isValid) return;
-        if (
-          describe.editStatus(playerId).isEditing &&
-          system.currentTick - started < 200
-        ) {
-          system.runTimeout(reply, 1);
-          return;
-        }
-        const last = messages.last(playerId);
-        system.sendScriptEvent(
-          TEST_RESULT_EVENT,
-          JSON.stringify({
-            player: player.name,
-            offered,
-            flow: describe.editStatus(playerId).flow,
-            timedOut: describe.editStatus(playerId).isEditing,
-            message: last?.message,
-            count: last?.count,
-            skippedCount: last?.skippedCount,
-            undoHints: messages.hints(playerId),
-            ticks: system.currentTick - started,
-          }),
-        );
-      };
-      reply();
+      replyWhenSettled({
+        player,
+        playerId,
+        describe,
+        messages,
+        offered,
+        delayTicks: 0,
+      });
     },
     { namespaces: [BUILD_NAMESPACE] },
   );
+}
+
+export function replyWhenSettled({
+  player,
+  playerId,
+  describe,
+  messages,
+  offered,
+  delayTicks,
+}: {
+  player: Player;
+  playerId: PlayerId;
+  describe: DescribeBuild;
+  messages: Pick<ReturnType<typeof recordMessages>, "last" | "hints">;
+  offered?: boolean;
+  delayTicks: number;
+}): void {
+  const started = system.currentTick;
+  const reply = () => {
+    if (!player.isValid) return;
+    if (
+      describe.editStatus(playerId).isEditing &&
+      system.currentTick - started < 200
+    ) {
+      system.runTimeout(reply, 1);
+      return;
+    }
+    const last = messages.last(playerId);
+    system.sendScriptEvent(
+      TEST_RESULT_EVENT,
+      JSON.stringify({
+        player: player.name,
+        offered,
+        flow: describe.editStatus(playerId).flow,
+        timedOut: describe.editStatus(playerId).isEditing,
+        message: last?.message,
+        count: last?.count,
+        skippedCount: last?.skippedCount,
+        undoHints: messages.hints(playerId),
+        ticks: system.currentTick - started,
+      }),
+    );
+  };
+  if (delayTicks === 0) reply();
+  else system.runTimeout(reply, delayTicks);
 }

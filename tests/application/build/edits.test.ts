@@ -11,6 +11,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
+import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
@@ -343,6 +344,16 @@ describe("edit use cases", () => {
           ),
         { x: 0, y: 63, z: 0 },
         "up",
+        turnBetween(
+          (
+            env.repo.get(alex)?.clipboard ??
+            structureClipboard(
+              boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+              () => stone,
+            )
+          ).facing,
+          "east",
+        ),
         "east",
       ),
     });
@@ -408,6 +419,16 @@ describe("edit use cases", () => {
           ),
         { x: 0, y: 63, z: 0 },
         "up",
+        turnBetween(
+          (
+            env.repo.get(alex)?.clipboard ??
+            structureClipboard(
+              boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+              () => stone,
+            )
+          ).facing,
+          "east",
+        ),
         "east",
       ),
     });
