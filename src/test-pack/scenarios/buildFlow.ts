@@ -1,5 +1,6 @@
 import {
   type BlockPermutation,
+  Direction,
   ItemStack,
   type Player,
   type PlayerInteractWithBlockAfterEvent,
@@ -14,9 +15,12 @@ import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Cell } from "../../domain/shared/cells";
 import {
   LAID_BLOCK_TAG,
+  PASTE_PLACE_TYPE,
+  PASTE_ROTATE_TYPE,
   SELECTION_WAND_TYPE,
   TEST_EDIT_EVENT,
   TEST_MODE_EVENT,
+  TEST_PRESS_EVENT,
   TEST_RESULT_EVENT,
   TEST_TAP_EVENT,
 } from "../../infrastructure/build/identifiers";
@@ -153,6 +157,13 @@ async function withBuilder(
     block,
     tap,
     edit,
+    press: (routes: string, gapTicks = 0) =>
+      query(
+        TEST_PRESS_EVENT,
+        `${player.id} ${routes}${gapTicks ? ` ${gapTicks}` : ""}`,
+      ),
+    holdControl: (typeId: string) =>
+      inventory.setItem(player.selectedSlotIndex, new ItemStack(typeId)),
     region,
     state: () => query<BuildState>(TEST_EDIT_EVENT, `${player.id} state`),
     switchItem: async (wand = false) => {
@@ -208,6 +219,8 @@ type Fixture = {
   block(cell: Cell): NonNullable<ReturnType<Arena["dim"]["getBlock"]>>;
   tap(tap: "block" | "air" | "clear", cell?: Cell): Promise<Reply>;
   edit(command: string): Promise<Reply>;
+  press(routes: string, gapTicks?: number): Promise<Reply>;
+  holdControl(typeId: string): void;
   menu(menu: string, id: string): Promise<Reply>;
   mode(): Promise<Reply>;
   state(): Promise<BuildState>;
@@ -2163,6 +2176,221 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
       }
     }
   });
+}
+
+async function copyControlSource(f: Fixture, source: Cell[]): Promise<void> {
+  for (const c of source)
+    f.block(c).setType(
+      c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
+    );
+  const chest = f.block(f.cell(1, 1, 1));
+  chest.setType("minecraft:chest");
+  chest
+    .getComponent("minecraft:inventory")
+    ?.container?.setItem(0, new ItemStack("minecraft:diamond", 7));
+  const sign = f.block(f.cell(3, 1, 1));
+  sign.setType("minecraft:standing_sign");
+  sign.getComponent("minecraft:sign")?.setText("Rotate front", SignSide.Front);
+  sign.getComponent("minecraft:sign")?.setText("Rotate back", SignSide.Back);
+  await f.lookSettled(-90);
+  await f.select(f.cell(4, 2, 2));
+  check(
+    (await f.menu("shape", "copy")).flow.kind === "pasteAim",
+    "Copy did not start paste aiming",
+  );
+  check(
+    (await f.state()).clipboard?.facing === "east",
+    "Copy did not record east",
+  );
+}
+
+async function holdPasteControl(f: Fixture, typeId: string): Promise<void> {
+  f.holdControl(typeId);
+  await wait(BUILD_SPEC.modeEnterTicks + 2);
+}
+
+async function releaseControlFixture(f: Fixture, cells: Cell[]): Promise<void> {
+  try {
+    await f.edit("releaseStructures");
+  } finally {
+    for (const c of cells) {
+      f.block(c).getComponent("minecraft:inventory")?.container?.clearAll();
+      f.block(c).setType("minecraft:air");
+    }
+  }
+}
+
+async function aimControlTarget(
+  f: Fixture,
+  ground: Cell[],
+  air: Cell[],
+): Promise<void> {
+  for (const c of ground) f.block(c).setType("minecraft:stone");
+  for (const c of air) f.block(c).setType("minecraft:air");
+  const anchor = f.cell(16, -1, 12);
+  f.player.teleport({
+    x: anchor.x + 0.5 - 4,
+    y: anchor.y + 1,
+    z: anchor.z + 0.5,
+  });
+  await wait(4);
+  const head = f.player.getHeadLocation();
+  const distance = Math.hypot(
+    head.x - (anchor.x + 0.5),
+    head.z - (anchor.z + 0.5),
+  );
+  const pitch = (Math.atan2(head.y - (anchor.y + 1), distance) * 180) / Math.PI;
+  await f.lookSettled(-90, pitch);
+  const hit = f.player.getBlockFromViewDirection({
+    maxDistance: BUILD_SPEC.reach,
+  });
+  check(
+    !!hit &&
+      hit.block.x === anchor.x &&
+      hit.block.y === anchor.y &&
+      hit.block.z === anchor.z &&
+      hit.face === Direction.Up,
+    `Expected anchor ${JSON.stringify(anchor)} Up; hit ${hit ? `${JSON.stringify(hit.block.location)} ${hit.face} ${hit.block.typeId}` : "nothing"}`,
+  );
+}
+
+function checkControlPaste(f: Fixture, target: Cell[]): void {
+  const min = f.cell(16, 0, 12);
+  for (const c of target) {
+    const x = c.x - min.x;
+    const y = c.y - min.y;
+    const z = c.z - min.z;
+    const expected =
+      y === 0
+        ? "minecraft:stone"
+        : y === 1 && x === 1 && z === 1
+          ? "minecraft:chest"
+          : y === 1 && x === 1 && z === 3
+            ? "minecraft:standing_sign"
+            : "minecraft:air";
+    check(
+      f.block(c).typeId === expected,
+      `Rotated footprint mismatch at ${JSON.stringify(c)}: expected ${expected}, got ${f.block(c).typeId}`,
+    );
+  }
+  const item = f
+    .block(f.cell(17, 1, 13))
+    .getComponent("minecraft:inventory")
+    ?.container?.getItem(0);
+  check(
+    item?.typeId === "minecraft:diamond" && item.amount === 7,
+    "Control paste lost chest items",
+  );
+  const sign = f.block(f.cell(17, 1, 15)).getComponent("minecraft:sign");
+  check(
+    sign?.getText(SignSide.Front) === "Rotate front" &&
+      sign.getText(SignSide.Back) === "Rotate back",
+    "Control paste lost sign text",
+  );
+}
+
+export function buildPasteControlInactive(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await f.edit("reset");
+    const cells = f.region(3, 2, 3, f.cell(16, 0, 12));
+    for (const c of cells) f.block(c).setType("minecraft:stone");
+    const before = snapshot(f, cells);
+    for (const item of [PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE]) {
+      for (const route of ["itemUse", "blockInteract"]) {
+        await holdPasteControl(f, item);
+        const reply = await f.press(route);
+        check(
+          reply.message === "pasteInactive",
+          `${item} ${route} did not show pasteInactive`,
+        );
+        const state = await f.state();
+        check(
+          state.flow === "idle" && !state.clipboardHeld,
+          `${item} ${route} changed the inactive session`,
+        );
+        check(unchanged(f, cells, before), `${item} ${route} changed blocks`);
+        await wait(BUILD_SPEC.pasteRepeatTicks + 2);
+      }
+    }
+  });
+}
+
+export function buildPasteControlRotate(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(5, 3, 3);
+    try {
+      await copyControlSource(f, source);
+      await holdPasteControl(f, PASTE_ROTATE_TYPE);
+      const start = (await f.state()).pasteTurn;
+      for (let turn = 1; turn <= 4; turn++) {
+        await f.press("blockInteract");
+        check(
+          (await f.state()).pasteTurn === (start + turn) % 4,
+          `Control rotation ${turn} did not advance one quarter turn`,
+        );
+        if (turn < 4) await wait(BUILD_SPEC.pasteRepeatTicks + 2);
+      }
+    } finally {
+      await releaseControlFixture(f, source);
+    }
+  });
+}
+
+async function pasteControlOnce(
+  a: Arena,
+  bothRoutes: boolean,
+): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(5, 3, 3);
+    const ground = f.region(15, 1, 11, f.cell(8, -1, 8));
+    const air = f.region(15, 4, 11, f.cell(8, 0, 8));
+    const target = f.region(3, 3, 5, f.cell(16, 0, 12));
+    try {
+      await copyControlSource(f, source);
+      await aimControlTarget(f, ground, air);
+      await holdPasteControl(f, PASTE_ROTATE_TYPE);
+      const start = (await f.state()).pasteTurn;
+      check(
+        start === 0,
+        "East-facing control paste did not start at turn zero",
+      );
+      await f.press(bothRoutes ? "itemUse,blockInteract" : "blockInteract");
+      check(
+        (await f.state()).pasteTurn === (start + 1) % 4,
+        "Control routes did not rotate exactly once",
+      );
+      await wait(BUILD_SPEC.pasteRepeatTicks + 2);
+      await holdPasteControl(f, PASTE_PLACE_TYPE);
+      const placed = await f.press(
+        bothRoutes ? "itemUse,blockInteract" : "blockInteract,blockInteract",
+        bothRoutes ? 0 : 3,
+      );
+      check(placed.message === "editDone", "Control paste did not finish");
+      checkControlPaste(f, target);
+      check(
+        (await f.state()).pasteTurn === 1,
+        "Control paste lost manual turn",
+      );
+      check(
+        (await f.edit("undo")).message === "undoDone",
+        "Control paste Undo failed",
+      );
+      check(
+        f.count(target, "minecraft:air") === target.length,
+        "One Undo did not restore air: control routes pasted more than once",
+      );
+    } finally {
+      await releaseControlFixture(f, [...source, ...ground, ...air]);
+    }
+  });
+}
+
+export function buildPasteControlPlace(a: Arena): Promise<Outcome> {
+  return pasteControlOnce(a, false);
+}
+
+export function buildPasteControlRoutesOnce(a: Arena): Promise<Outcome> {
+  return pasteControlOnce(a, true);
 }
 
 export function buildPasteStructure(a: Arena): Promise<Outcome> {

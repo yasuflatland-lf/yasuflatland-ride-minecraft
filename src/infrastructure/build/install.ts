@@ -53,6 +53,7 @@ import { registerSessions } from "./bedrock/handlers/sessions";
 import { registerTestTap } from "./bedrock/handlers/testCorner";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
 import { registerTestMode } from "./bedrock/handlers/testMode";
+import { registerTestPress } from "./bedrock/handlers/testPress";
 import { registerWand } from "./bedrock/handlers/wand";
 import { MenuChoices } from "./bedrock/menuChoices";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
@@ -161,7 +162,7 @@ export function installBuild(deps: {
   );
   const rotatePasteAim = new RotatePasteAim(repo, feedback);
   const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
-  registerPasteControls({
+  const routes = registerPasteControls({
     repo,
     aim,
     pressPasteAim,
@@ -201,13 +202,15 @@ export function installBuild(deps: {
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
+  const describe = new DescribeBuild(repo);
+  registerTestPress(routes, describe, recorded);
   registerTestEdit(
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
     menuCases.confirmBoxStep,
     pressPasteAim,
     cases.undo,
-    new DescribeBuild(repo),
+    describe,
     recorded,
     repo,
     endSession,
