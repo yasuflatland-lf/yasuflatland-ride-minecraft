@@ -30,6 +30,7 @@ export interface RunRequest {
   readonly lanes: number;
   readonly at: number;
   readonly features?: readonly string[];
+  readonly manual?: true;
 }
 
 export function shardFrom(text: string): Shard | undefined {
@@ -88,6 +89,7 @@ export function parseRunRequest(message: string): ParsedRequest {
   let lanes = 1;
   let at = 0;
   let features: readonly string[] | undefined;
+  let manual: true | undefined;
   const seen = new Set<string>();
   const invalid = (token: string): ParsedRequest => ({
     ok: false,
@@ -127,6 +129,11 @@ export function parseRunRequest(message: string): ParsedRequest {
         features = parsed;
         break;
       }
+      case "manual": {
+        if (value !== "1") return invalid(token);
+        manual = true;
+        break;
+      }
       default:
         return invalid(token);
     }
@@ -140,18 +147,20 @@ export function parseRunRequest(message: string): ParsedRequest {
       lanes,
       at,
       ...(features === undefined ? {} : { features }),
+      ...(manual === undefined ? {} : { manual }),
     },
   };
 }
 
 export function formatRunRequest(request: RunRequest): string {
-  const { runId, shard, lanes, at, features } = request;
+  const { runId, shard, lanes, at, features, manual } = request;
   const tokens = [runId];
   if (shard.index !== WHOLE_RUN.index || shard.total !== WHOLE_RUN.total)
     tokens.push(`shard=${shard.index}/${shard.total}`);
   if (lanes !== 1) tokens.push(`lanes=${lanes}`);
   if (at !== 0) tokens.push(`at=${at}`);
   if (features !== undefined) tokens.push(`features=${features.join(",")}`);
+  if (manual) tokens.push("manual=1");
   const message = tokens.join(" ");
   if (message.length > MESSAGE_LIMIT)
     throw new Error(`Run request exceeds MESSAGE_LIMIT (${MESSAGE_LIMIT})`);

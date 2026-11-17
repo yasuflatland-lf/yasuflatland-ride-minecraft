@@ -3,7 +3,9 @@
 import { system, world } from "@minecraft/server";
 import "./inputProbe";
 import "./loungeProbe";
+import "./scooterPoseProbe";
 import "./cutoutProbe";
+import "./rotationProbe";
 import { type Arena, prepareRun, removeVehicles } from "./arena";
 import { CATALOG, type ScenarioSpec } from "./catalog";
 import { isFeatureTag } from "./features";
@@ -83,6 +85,7 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
     shard,
     features: tags,
     lanes: request.lanes,
+    manual: request.manual,
     playerConnected: world.getAllPlayers().length > 0,
   });
   const laneCount = plan.lanes.length;

@@ -45,6 +45,116 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 - Implementation: `tools/render_preview.py` (`CAMPER_CELLS_PER_UNIT`, `CAMPER_POSES`, `textured_face`, `collect_boat`).
 - Verification: `tests/tools/renderPreview.test.ts` checks unchanged patches below the cap, capped cell counts and coverage, and midpoint colors with mirrored UVs and merging enabled or disabled; `pnpm model:check` checks preview freshness.
 
+### Scooter generator foundation
+
+- Applies to: Scooter generator primitives, area geometry, placeholders, and texture regions.
+- Rule: `tools/gen_scooter.py` exposes an importable `build()` and writes the generated
+  geometry, paint textures, material maps, lit textures, and item icon. Dimensions live in `scooter_dims.py`;
+  `scooter_atlas.py` classifies paint separately from other materials and reuses the
+  camper MaxRects packer. Area builders register local region faces before packing;
+  each face resolves once and remains bound to its region for the atlas audit.
+  `scooter_kit.py` builds panels and tubes in the spike frame, then mirrors their x
+  coordinates and rotations into Bedrock coordinates without replacing cube objects.
+  Compound rotations require named assemblies under ADR 0167.
+  The rear saddle uses thin, planar triangular panels with alpha-cut outlines in one
+  leather region; cube bounding rectangles and panel margins must not extend its visible
+  silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
+  `MDR` over `39` from behind, with its horizontal raster reversed for Bedrock's rear-view
+  coordinate convention after the final x mirror.
+  The 80-cube rear lamp has one round, 0.6-unit-radius domed red lens seated on
+  the cowl tip, with 16-point circular rings, full tangent frames, 0.01-unit panel
+  margins and alpha-clipped tapered panels. A continuous chrome tube bezel and short
+  skirt follow the calibrated tail-wall contour, with each skirt contact embedded
+  0.1 units along z. The skirt may clear the wall by at most 0.1 units or embed by
+  at most 0.2 units. Chrome stays on `body` and the single red lens on `tail_lights`.
+  The upright plate tilts back by 0.42 radians directly below the bezel with a tiny
+  gap, its top edge within 0.5 units of the wall and its short bracket embedded.
+
+The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
+`headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
+`seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
+pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
+model pixels apart. The running area supplies both wheels, suspension, and stand.
+Whitewall discs
+use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
+0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
+panel's tangent frame and takes no panel margin, so its outer envelope stays within
+0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
+fold bones retain their axle pivots. The combined running, body, rear, engine, head, and shield atlas stays within 2048 by 2048
+texels. The scooter requests this side limit from the shared packer, which searches
+wider layouts and rejects regions that cannot fit without reducing texture detail.
+Side and front-left previews render the full atlas without a density cap.
+
+The body area replaces the body placeholder with the tail, cowls, frame cover,
+and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
+own all compound body panels and trim.
+Body regions register idempotently before faces are constructed. Neighboring
+mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
+use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
+grey joint piping, and chrome floor rails and opening trim. The body budget is
+1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
+and trim segments. Warped or concave quads split into convex triangle masks to
+preserve closure coverage. Material sheets keep the mask regions cheap to pack;
+the paint gradient spans the shell instead of restarting on each panel.
+
+The rear area supplies the seat, lamp housing, tail lens, and plate through
+`rear_seat`, `rear_lamp`, and `rear_plate`. Only the red lens belongs to
+`tail_lights`; the remaining rear geometry stays on `body`. Seat alpha masks use
+24 texels per model unit and pack in descending height order so the combined
+atlas fits the 2048-texel side limit. The rear allocation remains 251 cubes.
+
+The engine area supplies 319 cubes on `body`: the compact
+cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
+forward-looping exhaust header, shallow kidney muffler, and two body brackets.
+Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
+(18), `engine_muffler` (114), and `engine_header` (66).
+
+The head area replaces the steering
+and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
+Its collar, horn casting, bib, instrument bezel, lamp rim, controls, levers, and
+mirrors retain the spike ring counts. Named `head_*` assemblies carry compound
+panels; alpha-cut profiles and world-position paint shading keep the casting
+smooth. Small atlas regions carry the silver reflector, text-free dial, dark
+mirror glass, and chrome mirror backs.
+
+The whole-vehicle target is 3,650 cubes; generation rejects more than the
+3,800-cube ceiling. This foundation supplies assets
+only; the scooter has no entity or riding behavior yet.
+
+`tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
+within a 650-cube allocation. The crowned shield, shoulder, side plates, chrome
+outline, flaring spine and 0.8-scale horn stay on `body`;
+the valanced front fender, curled lips, two bolts and crown shadow stay on `steer`.
+Broad panels use shaded alpha-cut masks, with twisted patches split at their
+measured vertices. The registered assemblies are `shield_face` (105),
+`shield_trim` (66), `shield_ridge` (110), and `shield_fender` (295).
+Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
+
+The sixteen paints follow the shared dye order. Khaki and white preserve the ivory
+atlas byte-for-byte, with white declared as the default paint for future kind wiring
+(ADR 0076). Recolouring affects only paint regions and retains their shading and alpha.
+Material maps distinguish polished chrome, semi-gloss paint, rough rubber and leather,
+smooth lenses, the plate, and cast metal. The switched lit maps cover `head_lens`,
+`lens_head`, `lens_tail_glow`, and `lens_amber`; mirror glass and transparent cutouts do not glow.
+A transparent 16 by 16 item icon shows the scooter facing right.
+
+- Agreement: Proposed
+- Basis: [0009](../adr/0009-vehicle-model-conventions.md), front direction and model bones; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), named compound assemblies and the pending device confirmation of rotation order.
+- Implementation: `tools/scooter_textures.py`, `tools/gen_scooter.py`, `tools/scooter_dims.py`, `tools/scooter_atlas.py`, `tools/scooter_kit.py`, `tools/generators.json`.
+- Verification: `tests/tools/scooterTextures.test.ts` checks dye order, unchanged non-paint
+  texels, ivory identity, material finishes, lamp masks, texture sets, and icon transparency.
+  `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
+  corners, local UV resolution, measured dimensions, and deterministic builds.
+  `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
+  whitewall circularity and tyre clearance, atlas bounds, and per-area budgets
+  against the generated model and Python builders. `pnpm model:check` checks
+  `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
+  `tests/tools/scooterRear.test.ts` projects the generated plate face corners through its
+  rotation and checks every rear-view texel against the expected upright lettering.
+  `tests/tools/scooterShield.test.ts` checks symmetry, the flaring spine, standalone
+  deterministic builds, region registration, finite geometry, compound membership,
+  the horn scale, fender bolts, and continuous crown texture coverage.
+
 ### Camper generator modules
 
 - Applies to: Camper geometry generation and the final cube ownership fixture.
@@ -127,7 +237,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Agreement: Proposed
 - Basis: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "A cube may carry two or more non-zero Euler axes only when it belongs to a named assembly built through `tilt_assembly` and registered in its generator's `ASSEMBLIES` table. Other cubes retain at most one axis."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "It rejects multi-axis cubes outside those lists, using a non-zero tolerance of 1e-6."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "The bulldozer monitor is checked too."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "Shipped-model tests share `tests/packs/oneAxis.ts`, with `multipleAxes` and `assertOneAxis`, and declare their own membership tables."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Consequences, "`assert_axes(cubes, assemblies, table)` also checks that each assembly holds exactly the declared number of cubes"
 - Implementation: `tools/cube_tilt.py` (`assert_axes`, `axis_count`, `compound_cubes`); `tools/gen_model.py` (`ASSEMBLIES`); `tools/suv_cabin.py` (`ASSEMBLIES`); `tools/gen_camper.py` (`ASSEMBLIES`); `tools/gen_sportsboat.py` (`ASSEMBLIES`); `tools/gen_bulldozer.py` (`ASSEMBLIES`); `tools/monitor.py`; `tests/packs/oneAxis.ts`
-- Verification: `tests/packs/oneAxis.test.ts` "requires membership by cube value for any pair of nonzero axes", "allows unregistered cubes with at most one axis beyond the tolerance"; "allows compound rotations only in declared assemblies (ADR 0167)" in `tests/packs/model.test.ts`, `tests/packs/camper/shell.test.ts` and `tests/packs/bulldozerModel.test.ts`; `tests/tools/cubeTilt.test.ts` "requires a declared assembly for compound tilt results". `tests/tools/cubeTilt.test.ts` also checks rotations at the 1e-6 tolerance. Not verified: the count check of `assert_axes` has no direct test, and the generators' own `assert_axes` calls run only when a generator runs (`pnpm model:check`).
+- Verification: `tests/packs/oneAxis.test.ts` "requires membership by cube value for any pair of nonzero axes", "allows unregistered cubes with at most one axis beyond the tolerance"; "allows compound rotations only in declared assemblies (ADR 0167)" in `tests/packs/model.test.ts`, `tests/packs/camper/shell.test.ts` and `tests/packs/bulldozerModel.test.ts`; `tests/tools/cubeTilt.test.ts` "requires a declared assembly for compound tilt results". `tests/tools/cubeTilt.test.ts` also checks rotations at the 1e-6 tolerance. The dev-only `yasu_ride_test:rotation_probe` compares compound rotations with one-axis references; device confirmation is pending the owner. Not verified: the count check of `assert_axes` has no direct test, and the generators' own `assert_axes` calls run only when a generator runs (`pnpm model:check`).
 
 ### Tilting an assembly
 

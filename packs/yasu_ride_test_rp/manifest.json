@@ -4,7 +4,7 @@
     "name": "Yasuflatland Ride Test Resources",
     "description": "Visual probes for Yasuflatland Ride (dev world only)",
     "uuid": "b9a86965-b7ba-4f15-a065-28ee5e6ae3aa",
-    "version": [0, 1, 0],
+    "version": [0, 1, 1],
     "min_engine_version": [1, 21, 120],
     "pack_scope": "world"
   },
@@ -12,7 +12,7 @@
     {
       "type": "resources",
       "uuid": "dc03dab0-73d9-4bef-a4ed-0f40c638e09a",
-      "version": [0, 1, 0]
+      "version": [0, 1, 1]
     }
   ]
 }

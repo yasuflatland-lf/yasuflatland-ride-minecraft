@@ -81,7 +81,12 @@ function nextForm(
     case "car":
       return toggle && input.controlled ? "takeoff" : "car";
     case "takeoff":
-      return prev.formTicks >= spec.takeoffTicks ? "hover" : "takeoff";
+      // A surface kind keeps climbing until its feet are dry, or the first
+      // hover tick would count the water as touchdown and land again.
+      return prev.formTicks >= spec.takeoffTicks &&
+        (!surface || isDry(input.waterDepth))
+        ? "hover"
+        : "takeoff";
     case "hover":
       // Sinking onto the ground lands at once, as touchdown ends landing (ADR 0034).
       if (landed) return "car";
