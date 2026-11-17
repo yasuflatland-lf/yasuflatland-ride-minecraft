@@ -38,6 +38,7 @@ import {
   buildPasteItemSwitch,
   buildPasteMenu,
   buildPasteRotate,
+  buildPasteRotationDisplay,
   buildPasteStructure,
   buildPasteStructureDecor,
   buildPasteUndoRepeat,
@@ -455,6 +456,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_paste_rotate: buildPasteRotate,
   build_paste_control_inactive: buildPasteControlInactive,
   build_paste_control_rotate: buildPasteControlRotate,
+  build_paste_rotation_display: buildPasteRotationDisplay,
   build_paste_control_place: buildPasteControlPlace,
   build_paste_control_routes_once: buildPasteControlRoutesOnce,
 

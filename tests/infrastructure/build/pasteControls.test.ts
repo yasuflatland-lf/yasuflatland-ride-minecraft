@@ -501,6 +501,7 @@ it.each(["itemUse", "blockInteract", "blockInteract,itemUse"])(
     registerTestPress(e.pressPasteControl, new DescribeBuild(e.repo), {
       forget: vi.fn(),
       last: () => undefined,
+      lastMode: () => undefined,
       hints: () => 0,
     });
     engine.handlers.get("script")?.({

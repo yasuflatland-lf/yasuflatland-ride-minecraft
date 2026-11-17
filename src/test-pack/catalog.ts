@@ -1916,6 +1916,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_paste_rotation_display",
+    file: "buildFlow",
+    ticks: 220, // Estimate until the first BDS run.
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "build_paste_control_rotate",
     file: "buildFlow",
     ticks: 160, // Estimate until the first BDS run.

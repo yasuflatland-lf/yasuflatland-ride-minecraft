@@ -5,6 +5,7 @@ import { readRgbaPng } from "../support/png";
 const WAND = "yasu_build:selection_wand";
 const ROTATE = "yasu_build:paste_rotate";
 const PLACE = "yasu_build:paste_place";
+const UNDO = "yasu_build:build_undo";
 const TOOL = "yasu_build:warp_tool";
 const BLOCK = "yasu_build:warp_block";
 const GROUP = "yasu_build:building_tools";
@@ -14,6 +15,7 @@ const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const JA = {
   [ROTATE]: "\u8cbc\u308a\u4ed8\u3051\u56de\u8ee2",
   [PLACE]: "\u8cbc\u308a\u4ed8\u3051\u914d\u7f6e",
+  [UNDO]: "\u30d3\u30eb\u30c9\u53d6\u308a\u6d88\u3057",
   [TOOL]: "\u30ef\u30fc\u30d7\u30c4\u30fc\u30eb",
   [BLOCK]: "\u30ef\u30fc\u30d7\u30d6\u30ed\u30c3\u30af",
   [WAND]: JSON.parse('"\\u7bc4\\u56f2\\u9078\\u629e\\u30ef\\u30f3\\u30c9"'),
@@ -22,6 +24,7 @@ const JA = {
 const EN = {
   [ROTATE]: "Paste Rotate",
   [PLACE]: "Paste Place",
+  [UNDO]: "Build Undo",
   [TOOL]: "Warp Tool",
   [BLOCK]: "Warp Block",
   [WAND]: "Selection Wand",
@@ -32,6 +35,7 @@ describe.each([
   ["selection_wand", WAND],
   ["paste_rotate", ROTATE],
   ["paste_place", PLACE],
+  ["build_undo", UNDO],
   ["warp_tool", TOOL],
 ])("the %s item", (name, type) => {
   it("keeps item, recipe, and icon paths within the console limit", () => {
@@ -77,46 +81,59 @@ describe.each([
       `packs/yasu_ride_rp/textures/items/yasu_build/${name}.png`,
     );
     expect([width, height]).toEqual([16, 16]);
-    expect(pixels[3]).toBe(0);
+    expect(pixels[3]).toBe(
+      ["selection_wand", "warp_tool"].includes(name) ? 0 : 255,
+    );
     expect(
       Array.from(pixels).some((alpha, i) => i % 4 === 3 && alpha === 255),
     ).toBe(true);
   });
 });
 
-describe("Paste control icon badges", () => {
+describe("Build control glyph icons", () => {
+  const controls = ["paste_rotate", "paste_place", "build_undo"];
   const icon = (name: string) =>
     readRgbaPng(`packs/yasu_ride_rp/textures/items/yasu_build/${name}.png`);
   const pixelAt = (pixels: Uint8Array, x: number, y: number) =>
     Array.from(pixels.subarray((y * 16 + x) * 4, (y * 16 + x) * 4 + 4));
-  const NAVY = [25, 38, 58, 255].join();
-  const WHITE = [255, 255, 255, 255].join();
+  const yellow = [250, 190, 20, 255];
+  const black = [0, 0, 0, 255];
 
-  it.each(["paste_rotate", "paste_place"])(
-    "%s has a white plate with a navy glyph bottom right and keeps the wand top",
-    (name) => {
-      const wand = icon("selection_wand");
-      const { width, height, pixels } = icon(name);
-      expect([width, height]).toEqual([16, 16]);
-      const plate: string[] = [];
-      for (let y = 5; y < 16; y++) {
-        for (let x = 5; x < 16; x++) plate.push(pixelAt(pixels, x, y).join());
-      }
-      expect(plate.filter((p) => p === WHITE).length).toBeGreaterThan(30);
-      expect(plate.filter((p) => p === NAVY).length).toBeGreaterThan(20);
-      for (let y = 0; y < 5; y++) {
-        for (let x = 0; x < 16; x++) {
-          expect(pixelAt(pixels, x, y)).toEqual(pixelAt(wand.pixels, x, y));
+  it.each(controls)("%s is a black glyph on a full yellow tile", (name) => {
+    const { width, height, pixels } = icon(name);
+    expect([width, height]).toEqual([16, 16]);
+    for (const [x, y] of [
+      [0, 0],
+      [15, 0],
+      [0, 15],
+      [15, 15],
+    ] as const) {
+      expect(pixelAt(pixels, x, y)).toEqual(yellow);
+    }
+    const glyph: number[][] = [];
+    const wandGlyph: number[][] = [];
+    const wand = icon("selection_wand");
+    for (let y = 0; y < 16; y++) {
+      for (let x = 0; x < 16; x++) {
+        const pixel = pixelAt(pixels, x, y);
+        expect([yellow, black]).toContainEqual(pixel);
+        if (x >= 2 && x < 14 && y >= 2 && y < 14) {
+          glyph.push(pixel);
+          wandGlyph.push(pixelAt(wand.pixels, x, y));
+        } else {
+          expect(pixel).toEqual(yellow);
         }
       }
-    },
-  );
+    }
+    expect(glyph).toContainEqual(black);
+    expect(glyph).not.toEqual(wandGlyph);
+  });
 
-  it("draws different glyphs for rotate and place", () => {
-    expect(icon("paste_rotate").pixels).not.toEqual(icon("paste_place").pixels);
-    expect(icon("paste_rotate").pixels).not.toEqual(
-      icon("selection_wand").pixels,
-    );
+  it.each(controls)("%s differs from the other controls and wand", (name) => {
+    for (const other of [...controls, "selection_wand"]) {
+      if (other !== name)
+        expect(icon(name).pixels).not.toEqual(icon(other).pixels);
+    }
   });
 });
 
@@ -125,6 +142,7 @@ describe("Building Tools recipes and names", () => {
     ["selection_wand", WAND, ["minecraft:copper_ingot", "minecraft:stick"]],
     ["paste_rotate", ROTATE, ["minecraft:flint", "minecraft:stick"]],
     ["paste_place", PLACE, ["minecraft:clay_ball", "minecraft:stick"]],
+    ["build_undo", UNDO, ["minecraft:slime_ball", "minecraft:stick"]],
     ["warp_tool", TOOL, ["minecraft:compass", "minecraft:copper_ingot"]],
     [
       "warp_block",
@@ -158,6 +176,7 @@ describe("Building Tools recipes and names", () => {
     );
     expect(values.get(`item.${ROTATE}.name`)).toBe(names[ROTATE]);
     expect(values.get(`item.${PLACE}.name`)).toBe(names[PLACE]);
+    expect(values.get(`item.${UNDO}.name`)).toBe(names[UNDO]);
     expect(values.get("yasu_build.message.paste_inactive")).toBe(
       locale === "en_US"
         ? "Copy something first."
@@ -170,7 +189,7 @@ describe("Building Tools recipes and names", () => {
     );
     expect(
       values.get("yasu_build.message.paste_ready")?.match(/%s/g),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
     expect(values.get(`item.${WAND}.name`)).toBe(names[WAND]);
     expect(values.get(`item.${TOOL}.name`)).toBe(names[TOOL]);
     expect(values.get(`tile.${BLOCK}.name`)).toBe(names[BLOCK]);
@@ -194,6 +213,7 @@ describe("Building Tools recipes and names", () => {
         WAND,
         ROTATE,
         PLACE,
+        UNDO,
         "yasu_ride:blade_switch",
         "yasu_ride:wide_blade_switch",
         "yasu_ride:road_paver_switch",

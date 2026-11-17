@@ -53,6 +53,7 @@ interface Reply {
   skippedCount?: number;
   offered?: boolean;
   undoHints?: number;
+  pasteReadyDegrees?: number;
   timedOut?: boolean;
   flow: { kind: string; previous?: number; heightedKind?: string };
   mode?: boolean;
@@ -2441,6 +2442,38 @@ export function buildPasteControlInactive(a: Arena): Promise<Outcome> {
         check(unchanged(f, cells, before), `${item} ${route} changed blocks`);
         await wait(BUILD_SPEC.pasteRepeatTicks + 2);
       }
+    }
+  });
+}
+
+export function buildPasteRotationDisplay(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(5, 3, 3);
+    try {
+      await copyControlSource(f, source);
+      check(
+        (await f.edit("aim east")).pasteReadyDegrees === 0,
+        "Copy did not show zero degrees with matching facing",
+      );
+      await holdPasteControl(f, PASTE_ROTATE_TYPE);
+      for (const degrees of [90, 180, 270, 0]) {
+        const reply = await f.press("blockInteract");
+        check(
+          reply.pasteReadyDegrees === degrees,
+          `Paste Rotate showed ${reply.pasteReadyDegrees}, expected ${degrees}`,
+        );
+        await wait(BUILD_SPEC.rotateDebounceTicks + 2);
+      }
+      await f.edit("aim clear");
+      f.hold(true);
+      await copyControlSource(f, source);
+      check(
+        (await f.edit("aim south")).pasteReadyDegrees === 90,
+        "A quarter-turn gaze change did not show 90 degrees before pressing",
+      );
+    } finally {
+      await f.edit("aim clear");
+      await releaseControlFixture(f, source);
     }
   });
 }

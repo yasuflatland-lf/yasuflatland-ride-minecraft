@@ -83,7 +83,8 @@
       "outputs": [
         "packs/yasu_ride_rp/textures/items/yasu_build/selection_wand.png",
         "packs/yasu_ride_rp/textures/items/yasu_build/paste_rotate.png",
-        "packs/yasu_ride_rp/textures/items/yasu_build/paste_place.png"
+        "packs/yasu_ride_rp/textures/items/yasu_build/paste_place.png",
+        "packs/yasu_ride_rp/textures/items/yasu_build/build_undo.png"
       ],
       "reads": []
     },
