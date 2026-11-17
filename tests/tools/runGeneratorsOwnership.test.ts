@@ -163,3 +163,45 @@ it.each([false, true])(
     );
   },
 );
+
+it("owns and reports entries sharing one script by their explicit ids", () => {
+  const root = fixture([
+    { script: "first.py", outputs: ["packs/a.json"], writes: ["packs/a.json"] },
+  ]);
+  writeFileSync(
+    join(root, "tools/generators.json"),
+    JSON.stringify({
+      generators: [
+        {
+          script: "first.py",
+          id: "one",
+          args: ["packs/a.json"],
+          outputs: ["packs/a.json"],
+          reads: [],
+        },
+        {
+          script: "first.py",
+          id: "two",
+          args: ["packs/b.json"],
+          outputs: ["packs/b.json"],
+          reads: [],
+          after: ["one"],
+        },
+      ],
+    }),
+  );
+  writeFileSync(
+    join(root, "tools/first.py"),
+    `import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from texture_io import Outputs
+out = Outputs('--check' in sys.argv)
+out.json(Path(sys.argv[1]), {'generated': True})
+out.finish('Stale fixture outputs')
+`,
+  );
+  expect(run(root).status).toBe(0);
+  expect(run(root, "--check").status).toBe(0);
+  expect(existsSync(join(root, "packs/b.json"))).toBe(true);
+});
