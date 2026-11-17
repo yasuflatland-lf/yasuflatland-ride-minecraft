@@ -103,6 +103,13 @@ it.each([false, true])(
     expect(controls?.pressPasteAim).toBe(wand.pressPasteAim);
     expect(controls?.rotateDebounce).toBe(wand.rotateDebounce);
     expect(controls?.pasteDebounce).toBe(wand.pasteDebounce);
+    expect(controls?.undoDebounce).toBeDefined();
+    controls?.undo.execute({ playerId });
+    expect(wand.repo.get(playerId)).toBeUndefined();
+    expect(setActionBar).toHaveBeenLastCalledWith({
+      translate: "yasu_build.message.nothing_to_undo",
+      with: [],
+    });
     const session = wand.repo.getOrCreate(playerId);
     session.beginEdit();
     jobs.start(

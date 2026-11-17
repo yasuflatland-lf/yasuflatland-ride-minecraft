@@ -27,7 +27,8 @@ class Outputs:
         report = os.environ.get("GENERATED_OUTPUTS_REPORT")
         if report:
             root = Path(__file__).resolve().parent.parent
-            entry = {"generator": Path(sys.argv[0]).name,
+            entry = {"generator": os.environ.get("GENERATED_OUTPUTS_GENERATOR")
+                         or Path(sys.argv[0]).name,
                      "path": path.resolve().relative_to(root).as_posix()}
             with Path(report).open("a") as stream:
                 stream.write(json.dumps(entry) + "\n")

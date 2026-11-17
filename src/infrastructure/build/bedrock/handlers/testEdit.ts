@@ -11,11 +11,13 @@ import type { EndBuildSession } from "../../../../application/build/endBuildSess
 import type {
   BuildFeedback,
   BuildMessage,
+  BuildMode,
 } from "../../../../application/build/ports/feedback";
 import type { BuildStructureStore } from "../../../../application/build/ports/structures";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
+import type { ShowPreview } from "../../../../application/build/showPreview";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import { parseFace } from "../../../../domain/build/aim/face";
 import { boxOf, sizeOf, volume } from "../../../../domain/build/box";
@@ -35,6 +37,7 @@ import {
   TEST_RESULT_EVENT,
 } from "../../identifiers";
 import type { MenuChoices } from "../menuChoices";
+import type { TestAimReader } from "./testAim";
 
 interface LastMessage {
   message: BuildMessage;
@@ -50,10 +53,12 @@ interface LastMessage {
 export function recordMessages(feedback: BuildFeedback): {
   feedback: BuildFeedback;
   last(playerId: PlayerId): LastMessage | undefined;
+  lastMode(playerId: PlayerId): BuildMode | undefined;
   hints(playerId: PlayerId): number;
   forget(playerId: PlayerId): void;
 } {
   const latest = new Map<PlayerId, LastMessage>();
+  const modes = new Map<PlayerId, BuildMode>();
   const hints = new Map<PlayerId, number>();
   return {
     feedback: {
@@ -66,14 +71,19 @@ export function recordMessages(feedback: BuildFeedback): {
         feedback.showUndoHint(id);
       },
       showSize: (id, size) => feedback.showSize(id, size),
-      showMode: (id, mode) => feedback.showMode(id, mode),
+      showMode: (id, mode) => {
+        modes.set(id, mode);
+        feedback.showMode(id, mode);
+      },
       drawPreview: (id, dimension, set) =>
         feedback.drawPreview(id, dimension, set),
     },
     hints: (playerId) => hints.get(playerId) ?? 0,
     last: (playerId) => latest.get(playerId),
+    lastMode: (playerId) => modes.get(playerId),
     forget: (playerId) => {
       latest.delete(playerId);
+      modes.delete(playerId);
       hints.delete(playerId);
     },
   };
@@ -88,12 +98,13 @@ export function registerTestEdit(
   describe: DescribeBuild,
   messages: Pick<
     ReturnType<typeof recordMessages>,
-    "last" | "hints" | "forget"
+    "last" | "lastMode" | "hints" | "forget"
   >,
   repo: BuildSessionRepository,
   endSession: EndBuildSession,
   structures: BuildStructureStore,
   rotatePasteAim: RotatePasteAim,
+  previewAim?: { aim: TestAimReader; preview: ShowPreview },
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -107,13 +118,23 @@ export function registerTestEdit(
       if (!player?.isValid) return;
       const playerId = asPlayerId(player.id);
       let offered: boolean | undefined;
-      messages.forget(playerId);
+      if (command !== "state") messages.forget(playerId);
       try {
         // A fresh session makes the first-edit check independent of scenario order.
-        if (command === "reset" && args.length === 0) {
+        if (
+          command === "reset" &&
+          (args.length === 0 || (args.length === 1 && args[0] === "absent"))
+        ) {
           if (describe.editStatus(playerId).isEditing) return;
+          previewAim?.aim.setFacing(playerId, undefined);
           endSession.execute(playerId);
-          repo.getOrCreate(playerId);
+          if (args.length === 0) repo.getOrCreate(playerId);
+        } else if (command === "aim" && args.length === 1 && previewAim) {
+          const facing =
+            args[0] === "clear" ? undefined : parseFacing(args[0] ?? "");
+          if (args[0] !== "clear" && !facing) return;
+          previewAim.aim.setFacing(playerId, facing);
+          previewAim.preview.refresh(playerId, system.currentTick);
         } else if (
           command === "snapshot" &&
           args.length === 6 &&
@@ -186,12 +207,15 @@ export function registerTestEdit(
           }
           session.endPasting();
         } else if (command === "state" && args.length === 0) {
+          const mode = messages.lastMode(playerId);
           system.sendScriptEvent(
             TEST_RESULT_EVENT,
             JSON.stringify({
               player: player.name,
               ...describe.execute(playerId),
               clipboard: repo.get(playerId)?.clipboard,
+              pasteReadyDegrees:
+                mode?.kind === "pasteReady" ? mode.degrees : undefined,
             }),
           );
           return;
@@ -317,7 +341,10 @@ export function replyWhenSettled({
   player: Player;
   playerId: PlayerId;
   describe: DescribeBuild;
-  messages: Pick<ReturnType<typeof recordMessages>, "last" | "hints">;
+  messages: Pick<
+    ReturnType<typeof recordMessages>,
+    "last" | "lastMode" | "hints"
+  >;
   offered?: boolean;
   delayTicks: number;
 }): void {
@@ -332,6 +359,7 @@ export function replyWhenSettled({
       return;
     }
     const last = messages.last(playerId);
+    const mode = messages.lastMode(playerId);
     system.sendScriptEvent(
       TEST_RESULT_EVENT,
       JSON.stringify({
@@ -343,6 +371,8 @@ export function replyWhenSettled({
         count: last?.count,
         skippedCount: last?.skippedCount,
         undoHints: messages.hints(playerId),
+        pasteReadyDegrees:
+          mode?.kind === "pasteReady" ? mode.degrees : undefined,
         ticks: system.currentTick - started,
       }),
     );

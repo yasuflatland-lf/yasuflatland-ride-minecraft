@@ -62,6 +62,9 @@
     "yasu_build_paste_place": {
       "textures": "textures/items/yasu_build/paste_place"
     },
+    "yasu_build_build_undo": {
+      "textures": "textures/items/yasu_build/build_undo"
+    },
     "yasu_build_selection_wand": {
       "textures": "textures/items/yasu_build/selection_wand"
     },

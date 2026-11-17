@@ -1,6 +1,10 @@
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startPythonWorker } from "../support/pythonWorker";
+import {
+  boneCubes,
+  cubeBounds,
+  loadScooterGeo,
+} from "../tools/helpers/scooterGeo";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 type Cube = {
@@ -8,13 +12,6 @@ type Cube = {
   size: number[];
   rotation?: number[];
   uv: Record<string, { uv: number[]; uv_size: number[] }>;
-};
-type Bone = {
-  name: string;
-  parent?: string;
-  pivot: number[];
-  rotation?: number[];
-  cubes?: Cube[];
 };
 type AreaRow = {
   area: string;
@@ -26,6 +23,7 @@ type AreaRow = {
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
   { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand", "running_pedal"], cubes: 743 },
+  { area: "struts", bones: ["steer", "body", "wheel_front_strut", "wheel_rear_strut", "wheel_rear_stem"], assemblies: [], cubes: 5 },
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1150 },
   { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"], cubes: 363 },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 320 },
@@ -51,15 +49,7 @@ let metadata: {
   ceiling: number;
   axis: number;
 };
-const geometry = JSON.parse(
-  readFileSync(
-    "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
-    "utf8",
-  ),
-)["minecraft:geometry"][0] as {
-  bones: Bone[];
-  description: { texture_width: number; texture_height: number };
-};
+const geometry = loadScooterGeo();
 const cubes = geometry.bones.flatMap((b) => b.cubes ?? []);
 
 beforeAll(async () => {
@@ -193,10 +183,13 @@ print(json.dumps(deviations))
       ["wheel_front_fold", "steer", [0, 4.3, -11.8]],
       ["wheel_front", "wheel_front_fold", [0, 4.3, -11.8]],
       ["glow_front", "wheel_front_fold", [0, 4.3, -11.8]],
+      ["wheel_front_strut", "steer", [0, 4.3, -11.8]],
       ["headlights", "steer", [0, 0, 0]],
       ["wheel_rear_fold", "body", [0, 4.3, 11.8]],
       ["wheel_rear", "wheel_rear_fold", [0, 4.3, 11.8]],
       ["glow_rear", "wheel_rear_fold", [0, 4.3, 11.8]],
+      ["wheel_rear_strut", "body", [0, 4.3, 11.8]],
+      ["wheel_rear_stem", "body", [0, 13.26, 11.8]],
       ["stand", "body", [0, 3.735, 1.045]],
       ["tail_lights", "body", [0, 0, 0]],
       ["seat_0", "body", [0, 16.1, 3.5]],
@@ -222,6 +215,51 @@ print(json.dumps(deviations))
       if (bone.name.startsWith("seat_") || bone.name.endsWith("_fold")) {
         expect(bone.cubes ?? []).toEqual([]);
       }
+    }
+  });
+
+  it("keeps struts outside every fold ancestry", () => {
+    for (const name of ["wheel_front_strut", "wheel_rear_strut"]) {
+      let bone = geometry.bones.find((b) => b.name === name);
+      expect(bone).toBeDefined();
+      while (bone?.parent) {
+        expect(bone.parent.endsWith("_fold")).toBe(false);
+        bone = geometry.bones.find((b) => b.name === bone?.parent);
+      }
+    }
+  });
+
+  it("rejects direct and indirect fold ancestors for either strut", async () => {
+    await python.run(`${setup}
+from unittest.mock import patch
+for strut in d.STRUT_BONES.values():
+    for fold in d.FOLD_BONES.values():
+        for indirect in (False, True):
+            bones=tuple((name, ('bridge' if indirect else fold) if name==strut else parent, pivot)
+                        for name,parent,pivot in g.BONES)
+            if indirect:
+                bones+=(('bridge',fold,(0,0,0)),)
+            with patch.object(g, 'BONES', bones):
+                try:
+                    g.build()
+                except ValueError as error:
+                    assert strut in str(error) and 'fold' in str(error).lower()
+                else:
+                    raise AssertionError('Accepted a strut below a fold bone')
+`);
+  });
+
+  it("measures stand feet in generated model pixels without undoing the mirror", () => {
+    const feet = boneCubes("stand").filter((cube) => cube.origin[1] === 0);
+    expect(feet).toHaveLength(2);
+    for (const cube of feet) {
+      const [min, max] = cubeBounds(cube);
+      expect(min).toEqual(cube.origin);
+      expect(max).toEqual(
+        cube.origin.map((v, axis) => v + (cube.size[axis] ?? 0)),
+      );
+      expect(min[1]).toBe(0);
+      expect(max[1]).toBeGreaterThan(0);
     }
   });
 

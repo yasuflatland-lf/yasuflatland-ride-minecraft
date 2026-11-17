@@ -39,6 +39,7 @@ export type BuildMode =
       kind: "pasteReady";
       size: { x: number; y: number; z: number };
       blockCount: number;
+      degrees: 0 | 90 | 180 | 270;
     }
   | { kind: "rotate"; degrees: 0 | 90 | 180 | 270 };
 

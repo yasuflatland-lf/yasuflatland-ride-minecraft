@@ -35,7 +35,7 @@ PLAN = TOOLS / "generators.json"
 ROOT = TOOLS.parent
 STAMP = ROOT / ".cache/generated/stamp.json"
 sys.path.insert(0, str(TOOLS))
-from generated_outputs import OutputManifest, read_touched_report
+from generated_outputs import OutputManifest, entry_id, read_touched_report
 
 
 def generator_command(entry, check):
@@ -75,14 +75,15 @@ def generation_status(manifest):
             raise ValueError("Invalid output inventory")
     except (OSError, ValueError, KeyError, TypeError):
         stamp = None
-    outputs = [output for output in manifest.outputs() if output.generator != "render_preview.py"]
+    after_ids = {entry.id for entry in manifest.entries() if entry.after_generators}
+    outputs = [output for output in manifest.outputs() if output.generator not in after_ids]
     existing = matching_paths(output.pattern for output in outputs)
     missing = {output.pattern for output in outputs
                if not any(fnmatch.fnmatchcase(path, output.pattern) for path in existing)}
     if stamp:
         missing.update(path for path in stamp["outputs"] if not (ROOT / path).is_file())
     retained = [output for output in manifest.outputs()
-                if output.generator == "render_preview.py" and output.pattern.startswith("packs/")]
+                if output.generator in after_ids and output.pattern.startswith("packs/")]
     retained_existing = matching_paths(output.pattern for output in retained)
     retained_missing = {output.pattern for output in retained
                         if not any(fnmatch.fnmatchcase(path, output.pattern) for path in retained_existing)}
@@ -94,20 +95,21 @@ def generation_status(manifest):
 def run_generator(entry, check, env):
     command = generator_command(entry, check)
     print("$", " ".join(command), flush=True)
+    env = {**env, "GENERATED_OUTPUTS_GENERATOR": entry_id(entry)}
     return subprocess.run(command, cwd=ROOT, env=env).returncode
 
 
 def run_parallel(entries, check, env, completed=()):
     if not entries:
         return
-    pending = {entry["script"]: entry for entry in entries}
+    pending = {entry_id(entry): entry for entry in entries}
     names = set(pending)
     if len(names) != len(entries):
-        sys.exit("Duplicate generator scripts")
+        sys.exit("Duplicate generator ids")
     for entry in entries:
         unknown = set(entry.get("after", [])) - names - set(completed)
         if unknown:
-            sys.exit(f"{entry['script']}: unknown dependencies {sorted(unknown)}")
+            sys.exit(f"{entry_id(entry)}: unknown dependencies {sorted(unknown)}")
     completed = set(completed)
     with ProcessPoolExecutor(max_workers=len(entries)) as pool:
         running = {}
@@ -168,7 +170,7 @@ def main():
     env.pop("GENERATED_OUTPUTS_REPORT", None)
     plan = json.loads(PLAN.read_text())
     generators = [entry for entry in plan["generators"]
-                  if not args.ensure or entry["script"] != "render_preview.py"]
+                  if not args.ensure or not entry.get("afterGenerators")]
     before = [g for g in generators if not g.get("afterGenerators")]
     after = [g for g in generators if g.get("afterGenerators")]
 
@@ -183,11 +185,11 @@ def main():
             env["GENERATED_OUTPUTS_REPORT"] = str(report)
 
         run_parallel(before, args.check, env)
-        run_parallel(after, args.check, env, completed=[entry["script"] for entry in before])
+        run_parallel(after, args.check, env, completed=[entry_id(entry) for entry in before])
 
         if not args.ensure:
             errors = manifest.ownership_errors(read_touched_report(report),
-                                               [entry["script"] for entry in generators])
+                                               [entry_id(entry) for entry in generators])
             if errors:
                 print("Generated output manifest (tools/generators.json) does not match "
                       "what the generators wrote:", file=sys.stderr)
@@ -198,8 +200,9 @@ def main():
         status = generation_status(manifest)
         if status["missing_build"]:
             sys.exit(f"Generators left missing outputs: {status['missing_build']}")
+        after_ids = {entry.id for entry in manifest.entries() if entry.after_generators}
         outputs = matching_paths(output.pattern for output in manifest.outputs()
-                                 if output.generator != "render_preview.py")
+                                 if output.generator not in after_ids)
         STAMP.parent.mkdir(parents=True, exist_ok=True)
         temporary = STAMP.with_suffix(".tmp")
         temporary.write_text(json.dumps({"fingerprint": fingerprint(manifest), "outputs": outputs}) + "\n")
