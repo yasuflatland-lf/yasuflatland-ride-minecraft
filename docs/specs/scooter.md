@@ -77,6 +77,15 @@
 - Implementation: `src/domain/vehicle/kinds/scooter/spec.ts` (`SCOOTER_TRANSFORMING`), `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`, `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `tools/scooter_anim.py`
 - Verification: `tests/packs/scooterClient.test.ts` "folds each horizontal wheel below every fixed cube with discs and locators underneath", "uses only the four ground and hover states with the shared sound gates". Tests were read, not run for this spec. Not verified: the flight appearance on a device.
 
+### Engine and hover sounds
+
+- Applies to: Scooter client sound playback.
+- Rule: The scooter uses its own `yasu_ride.scooter_engine_0..5` sound IDs over the shared `engine_0..5` WAVs. `tools/scooter_sound.py` owns the six speed band indices, per-clip lengths and volumes in the frozen `ENGINE_CLIPS` table. Each engine animation uses its clip length and `scooter_engine_<index>` effect. The one-second loops, volumes, distances, speed gates and audible output are unchanged. Hover effects remain shared, with no sonar effect. Band thresholds and playback conditions are described in [Sounds](sounds.md).
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "The scooter has its own engine sound IDs"; [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md) Decision
+- Implementation: `tools/scooter_sound.py`, `tools/scooter_anim.py`, `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `packs/yasu_ride_rp/sounds/sound_definitions.json`
+- Verification: `tests/packs/scooterClient.test.ts` "resolves scooter engine sounds, shared hover sounds and the hover particle at both disc locators"; `tests/tools/scooterAnim.test.ts` per-clip engine and shared hover checks. Not verified: audibility on a device.
+
 ### Paint and headlights
 
 - Applies to: Scooter paint, headlight switch and lamps.

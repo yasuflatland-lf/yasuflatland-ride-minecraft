@@ -34,7 +34,7 @@ Add the kind `scooter`: entity `yasu_ride:scooter`, item `yasu_ride:scooter_item
 
 **Step probe.** The step-up probe lane offset is a per-kind value (`stepLaneOffset`, 0.25 blocks for the scooter), so a narrow body does not step up on blocks beside it.
 
-**Everything else is shared.** Paint, the headlight switch (headlight, tail light and amber lamp on one `yasu_ride:headlights` property), ramming, fleet limits, placement, and the engine and hover sounds use the existing mechanisms with no scooter sound of its own.
+**Everything else is shared.** Paint, the headlight switch (headlight, tail light and amber lamp on one `yasu_ride:headlights` property), ramming, fleet limits, placement, and the engine and hover sounds use the existing mechanisms. The scooter has its own engine sound IDs (`yasu_ride.scooter_engine_0..5`) over the shared `engine_0..5` clips, with per-clip loop lengths and volumes owned by `tools/scooter_sound.py`. Hover sounds remain shared.
 
 ## Consequences
 
