@@ -14,6 +14,8 @@
 
 ## Rules
 
+The eight scooter README previews include underbody, running-board and front-wheel close-ups; their framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).
+
 ### Spec table, profile and seats
 
 - Applies to: Scooter, driven entity `yasu_ride:scooter`, item `yasu_ride:scooter_item`.

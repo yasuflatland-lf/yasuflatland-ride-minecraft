@@ -891,7 +891,7 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
 });
 
 describe("scooter previews (ADR 0251)", () => {
-  it("renders the flying headlights from the camper's front angle plus four ground previews", () => {
+  it("renders the flying headlights from the camper's front angle plus seven ground previews", () => {
     const result = previewPython(
       "print(json.dumps({'names': list(r.SCOOTER_POSES), 'views': [p['view'] for p in r.SCOOTER_POSES.values()], 'bulldozer': [p['view'] for p in r.BULLDOZER_POSES.values()], 'size': r.image_size('scooter-side.png')}))",
     );
@@ -901,10 +901,41 @@ describe("scooter previews (ADR 0251)", () => {
       "scooter-side.png",
       "scooter-rear.png",
       "scooter-taillights.png",
+      "scooter-underbody.png",
+      "scooter-floor.png",
+      "scooter-wheel-front.png",
     ]);
     expect(result.views.slice(0, 4)).toEqual(result.bulldozer);
     expect(result.views[4]).not.toEqual(result.bulldozer[3]);
+    expect(result.views.slice(5)).toEqual([
+      [1.0, -0.45, -0.65],
+      [-1.0, 1.8, -0.5],
+      [-1.0, 0.2, -0.55],
+    ]);
     expect(result.size).toEqual([800, 600]);
+  });
+  it("frames a model-space box independently of bone bounds without removing geometry", () => {
+    expect(
+      previewPython(`
+face = {'uv': [0, 0], 'uv_size': [1, 1]}
+cube = {'origin': [-10, -10, -10], 'size': [20, 20, 20], 'uv': {f: face for f in ('north','south','east','west','up','down')}}
+geo = {'description': {'texture_width': 1, 'texture_height': 1}, 'bones': [{'name': 'body', 'cubes': [cube]}]}
+texture = [[(255, 255, 255, 255)]]
+pose = {'lamps': False, 'dusk': False, 'view': (-1, 0.65, -1), 'screen_up': None}
+for cache in (False, True):
+    baseline = r.render_poses(geo, texture, {'full': pose}, cache_faces=cache)['full']
+    for pad in (1, 1.5):
+        framed = {**pose, 'frame_box': ((2, 3, -6), (4, 7, -2)), 'frame_pad': pad}
+        job = r.render_poses(geo, texture, {'detail': framed}, cache_faces=cache)['detail']
+        assert job.polygons == baseline.polygons
+        assert job.to_screen.camera.target == (-3, 5, -4)
+        corners = [(x, y, z) for x in (-3-pad, -3+pad) for y in (5-2*pad, 5+2*pad) for z in (-4-2*pad, -4+2*pad)]
+        expected = r.fit(r.Camera(corners, pose['view']), [corners])
+        for a, b in zip(job.to_screen(corners), expected(corners)):
+            assert all(abs(x-y) < 1e-8 for x, y in zip(a, b))
+print(json.dumps(True))
+`),
+    ).toBe(true);
   });
   it("raises the stand, folds the wheels and frames flight with rounded pools instead of the beam", () => {
     expect(
@@ -963,10 +994,15 @@ for name, job in result.images.items():
     else:
         assert not discs
         assert not job.layers
+        if 'frame_box' in r.SCOOTER_POSES[name]:
+            pose = r.SCOOTER_POSES[name]
+            assert not pose['lamps'] and not pose['dusk']
+            assert pose['merge_texels'] and pose['brightness'] == r.MAIN_BRIGHTNESS
+            assert not any(group == 'lamp' for _, _, group in job.polygons)
 print(json.dumps(True))
 `),
     ).toBe(true);
-  });
+  }, 120_000);
 });
 
 describe("render_preview.py textured faces", () => {
