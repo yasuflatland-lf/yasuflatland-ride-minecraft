@@ -61,38 +61,47 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
   `MDR` over `39` from behind, with its horizontal raster reversed for Bedrock's rear-view
   coordinate convention after the final x mirror.
-  The 212-cube rear lamp uses full tangent frames with 0.01-unit panel margins,
-  16-point superellipse lens rings, alpha-clipped tapered panels and stepped side-housing
-  extrusions. Chrome stays
-  on `body` and red lenses on `tail_lights`. The base flange follows the calibrated
-  centre-line tail-wall profile with 0.23 units of embed; it may clear the wall by at
-  most 0.1 units or embed by at most 0.8 units. The plate hangs directly below the
-  lamp, with its top edge within 0.5 units of the wall and its short bracket embedded.
+  The 80-cube rear lamp has one round, 0.6-unit-radius domed red lens seated on
+  the cowl tip, with 16-point circular rings, full tangent frames, 0.01-unit panel
+  margins and alpha-clipped tapered panels. A continuous chrome tube bezel and short
+  skirt follow the calibrated tail-wall contour, with each skirt contact embedded
+  0.1 units along z. The skirt may clear the wall by at most 0.1 units or embed by
+  at most 0.2 units. Chrome stays on `body` and the single red lens on `tail_lights`.
+  The upright plate tilts back by 0.42 radians directly below the bezel with a tiny
+  gap, its top edge within 0.5 units of the wall and its short bracket embedded.
 
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
-model pixels apart. Area and assembly tables let builders replace the seven
-placeholder cubes independently.
+model pixels apart. The running area supplies both wheels, suspension, and stand.
+Whitewall discs
+use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
+0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
+panel's tangent frame and takes no panel margin, so its outer envelope stays within
+0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
+fold bones retain their axle pivots. The combined running, body, rear, engine, head, and shield atlas stays within 2048 by 2048
+texels. The scooter requests this side limit from the shared packer, which searches
+wider layouts and rejects regions that cannot fit without reducing texture detail.
+Side and front-left previews render the full atlas without a density cap.
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
-own all compound panels and trim. Body regions register idempotently before faces
-are constructed. Curved surfaces use broad alpha-cut panels, with seven slot rows
-only on the rider's right cowl, grey joint piping, and chrome floor rails and
-opening trim. The body budget is 1,125 cubes (currently 1,122); the production
-sampling reduces the spike's surface and trim segments. Warped or concave quads
-split into convex triangle masks to preserve closure coverage. Material sheets keep
-the mask regions cheap to pack; the paint gradient spans the shell instead of
-restarting on each panel.
+own all compound body panels and trim.
+Body regions register idempotently before faces are constructed. Neighboring
+mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
+use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
+grey joint piping, and chrome floor rails and opening trim. The body budget is
+1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
+and trim segments. Warped or concave quads split into convex triangle masks to
+preserve closure coverage. Material sheets keep the mask regions cheap to pack;
+the paint gradient spans the shell instead of restarting on each panel.
 
-The head area replaces the steering and headlight placeholders with 510 cubes:
-437 on `steer` and 73 on `headlights`. Its collar, horn casting, bib, instrument
-bezel, lamp rim, controls, levers, and mirrors retain the spike ring counts.
-Named `head_*` assemblies carry compound panels; alpha-cut profiles and
-world-position paint shading keep the casting smooth. Small atlas regions carry
-the silver reflector, text-free dial, dark mirror glass, and chrome mirror backs.
+The rear area supplies the seat, lamp housing, tail lens, and plate through
+`rear_seat`, `rear_lamp`, and `rear_plate`. Only the red lens belongs to
+`tail_lights`; the remaining rear geometry stays on `body`. Seat alpha masks use
+24 texels per model unit and pack in descending height order so the combined
+atlas fits the 2048-texel side limit. The rear allocation remains 251 cubes.
 
 The engine area supplies 319 cubes on `body`: the compact
 cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
@@ -100,25 +109,25 @@ forward-looping exhaust header, shallow kidney muffler, and two body brackets.
 Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
 (18), `engine_muffler` (114), and `engine_header` (66).
 
-The running area supplies both wheels, suspension, and stand. Whitewall discs
-use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
-0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
-panel's tangent frame and takes no panel margin, so its outer envelope stays within
-0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
-fold bones retain their axle pivots. The combined packed atlas stays within 4096 by 4096
-texels. Side and front-left previews render the full atlas without a density cap.
+The head area replaces the steering
+and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
+Its collar, horn casting, bib, instrument bezel, lamp rim, controls, levers, and
+mirrors retain the spike ring counts. Named `head_*` assemblies carry compound
+panels; alpha-cut profiles and world-position paint shading keep the casting
+smooth. Small atlas regions carry the silver reflector, text-free dial, dark
+mirror glass, and chrome mirror backs.
 
-The whole-vehicle target is 3,500 cubes;
-generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
+The whole-vehicle target is 3,650 cubes; generation rejects more than the
+3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 
-`tools/scooter_shield.py` contributes 549 cubes: 284 on `body` and 265 on `steer`,
-within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome
+`tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
+within a 650-cube allocation. The crowned shield, shoulder, side plates, chrome
 outline, flaring spine and 0.8-scale horn stay on `body`;
 the valanced front fender, curled lips, two bolts and crown shadow stay on `steer`.
 Broad panels use shaded alpha-cut masks, with twisted patches split at their
 measured vertices. The registered assemblies are `shield_face` (105),
-`shield_trim` (66), `shield_ridge` (110), and `shield_fender` (262).
+`shield_trim` (66), `shield_ridge` (110), and `shield_fender` (295).
 Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
 
 The sixteen paints follow the shared dye order. Khaki and white preserve the ivory
@@ -126,7 +135,7 @@ atlas byte-for-byte, with white declared as the default paint for future kind wi
 (ADR 0076). Recolouring affects only paint regions and retains their shading and alpha.
 Material maps distinguish polished chrome, semi-gloss paint, rough rubber and leather,
 smooth lenses, the plate, and cast metal. The switched lit maps cover `head_lens`,
-`lens_head`, `lens_tail`, and `lens_amber`; mirror glass and transparent cutouts do not glow.
+`lens_head`, `lens_tail_glow`, and `lens_amber`; mirror glass and transparent cutouts do not glow.
 A transparent 16 by 16 item icon shows the scooter facing right.
 
 - Agreement: Proposed
@@ -137,15 +146,14 @@ A transparent 16 by 16 item icon shows the scooter facing right.
   `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
   corners, local UV resolution, measured dimensions, and deterministic builds.
   `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
-  UV bounds, and per-area budgets against the generated model and Python builders.
+  whitewall circularity and tyre clearance, atlas bounds, and per-area budgets
+  against the generated model and Python builders. `pnpm model:check` checks
+  `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
+  `tests/tools/scooterRear.test.ts` projects the generated plate face corners through its
+  rotation and checks every rear-view texel against the expected upright lettering.
   `tests/tools/scooterShield.test.ts` checks symmetry, the flaring spine, standalone
   deterministic builds, region registration, finite geometry, compound membership,
   the horn scale, fender bolts, and continuous crown texture coverage.
-  `tests/tools/scooterRear.test.ts` projects the generated plate face corners through its
-  rotation and checks every rear-view texel against the expected upright lettering.
-  `tests/packs/scooterModel.test.ts` also checks whitewall circularity and tyre
-  clearance and atlas bounds. `pnpm model:check` checks
-  `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
 
 ### Camper generator modules
 

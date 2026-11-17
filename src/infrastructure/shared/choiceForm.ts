@@ -1,10 +1,13 @@
 import type { Player, RawMessage } from "@minecraft/server";
 import { ActionFormData, FormCancelationReason } from "@minecraft/server-ui";
 
-type ChoiceEntry<Id extends string = string> = Readonly<{
-  id: Id;
-  textKey: string;
-}>;
+type ChoiceEntry<Id extends string = string> = Readonly<
+  { id: Id } & ({ textKey: string } | { label: RawMessage })
+>;
+
+export function entryLabel(entry: ChoiceEntry): RawMessage {
+  return "textKey" in entry ? { translate: entry.textKey } : entry.label;
+}
 const CANCELLED = "cancel" as const;
 
 type ChoiceFormResult<Id extends string> =
@@ -33,7 +36,7 @@ export async function chooseFromFormResult<Id extends string>(
   if (entries.length === 0) return { status: "unavailable" };
   const form = new ActionFormData().title({ translate: titleKey });
   if (body) form.body(body);
-  for (const entry of entries) form.button({ translate: entry.textKey });
+  for (const entry of entries) form.button(entryLabel(entry));
   const answer = await form.show(player);
   if (!player.isValid) return { status: "unavailable" };
   if (answer.cancelationReason === FormCancelationReason.UserBusy)

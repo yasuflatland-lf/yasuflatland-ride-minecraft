@@ -15,6 +15,40 @@ print(json.dumps(${expression}))`),
   );
 
 describe("camper region registry", () => {
+  it("searches wider layouts within a texture limit and permits an exact fit", async () => {
+    expect(
+      await run(
+        `r = m.RegionRegistry()
+for name in ('a', 'b', 'c'):
+    r.register(m.Region(name, 12, 12, m.Material.WOOD, lambda x,y: (0,0,0,255)))
+a = m.pack(r, gutter_px=0, max_side=24)
+single = m.RegionRegistry()
+single.register(m.Region('edge', 24, 24, m.Material.WOOD, lambda x,y: (0,0,0,255)))
+b = m.pack(single, gutter_px=2, max_side=24)`,
+        "[a.size, m.audit(a, m.render_atlas(a)), b.size, b.origin('edge')]",
+      ),
+    ).toEqual([[24, 24], [], [24, 24], [0, 0]]);
+  });
+
+  it("rejects impossible layouts and invalid texture limits", async () => {
+    expect(
+      await run(
+        `r = m.RegionRegistry()
+for name in ('a', 'b'):
+    r.register(m.Region(name, 16, 16, m.Material.WOOD, lambda x,y: (0,0,0,255)))
+errors = []
+for limit in (24, 15, 0, -1, 1.5, True):
+    try: m.pack(r, max_side=limit)
+    except ValueError as error: errors.append(str(error))`,
+        "errors",
+      ),
+    ).toEqual([
+      "Regions do not fit within a 24 by 24 atlas",
+      "Regions do not fit within a 15 by 15 atlas",
+      ...Array(4).fill("Maximum atlas side must be a positive texel count"),
+    ]);
+  });
+
   it("packs deterministically without rotation, overlaps or out-of-bounds regions", async () => {
     await fc.assert(
       fc.asyncProperty(
