@@ -44,7 +44,7 @@ cases = [
     (['docs/images/zeta-rear.png'], Selection(('zeta',), False)),
     (['packs/zeta.geo.json'], Selection(('zeta',), False)),
     (['packs/alpha.geo.json'], Selection(('alpha',), False)),
-    (['sources/model.json'], Selection((), True)),
+    (['sources/model.json'], Selection(('zeta',), True)),
     (['sources/catalog/nested/a.json'], Selection((), True)),
     (['catalog/a.json'], Selection((), True)),
     (['tools/gen_model.py'], Selection(('zeta',), True)),
@@ -87,7 +87,8 @@ def chained_entries(length, cycle=False, wildcard=0):
         {'script': 'gen_a.py' if i == 0 else f'convert_{i}.py',
          'outputs': [f'packs/{i}.*' if wildcard == 1 else f'packs/{i}.json'],
          'reads': ([f'packs/{i - 1}.*' if wildcard == 2 else f'packs/{i - 1}.json']
-                   if i else [f'packs/{length - 1}.json'] if cycle else [])}
+                   if i else ['sources/input.json'] + ([f'packs/{length - 1}.json'] if cycle else [])),
+         'tracked': i == 0}
         for i in range(length)
     ]
     entries.extend([
@@ -104,6 +105,14 @@ def chained_entries(length, cycle=False, wildcard=0):
 it("selects a scene through another generator's output", () => {
   python(`${fixture}${chainedFixture}
 assert select(['tools/gen_a.py'], OutputManifest(chained_entries(2))) == Selection(('chained',), True)
+`);
+});
+
+it("selects dependent scenes when a generator's read-only input changes", () => {
+  python(`${fixture}${chainedFixture}
+assert select(['sources/model.json'], manifest) == Selection(('zeta',), True)
+assert select(['sources/input.json'], OutputManifest(chained_entries(2))) == Selection(('chained',), True)
+assert select(['packs/0.json'], OutputManifest(chained_entries(2))) == Selection(('chained',), True)
 `);
 });
 
@@ -127,6 +136,9 @@ entries = entries[offset:] + entries[:offset]
 for ordered in (entries, list(reversed(entries))):
     manifest = OutputManifest(ordered)
     assert select(['tools/gen_a.py'], manifest) == Selection(('chained',), True)
+    assert select(['sources/input.json'], manifest) == Selection(('chained',), True)
+    assert select(['packs/0.json'], manifest) == Selection(('chained',), True)
+    assert select(['sources/__pycache__/input.json'], manifest) == Selection((), False)
     assert select(['tools/__pycache__/gen_a.py'], manifest) == Selection((), False)
 `,
             JSON.stringify([length, cycle, wildcard, offset]),
@@ -170,6 +182,7 @@ it("is independent of path order and duplicates and monotone when paths are adde
     "tools/gen_model.py",
     "tools/gen_unknown.py",
     "sources/catalog/a.json",
+    "sources/model.json",
     "catalog/a.json",
     "tools/__pycache__/a.pyc",
     ...sharedPaths,
@@ -265,5 +278,19 @@ print(json.dumps(expected))
 `),
     ) as string[];
     expect(result.length).toBeGreaterThan(0);
+  },
+);
+
+it.skipIf(!hasScenes)(
+  "selects the boat scene for its generator's entity input",
+  () => {
+    const result = JSON.parse(
+      execFileSync("python3", ["-I", "-B", "tools/select_model_scenes.py"], {
+        input: "packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json\0",
+        encoding: "utf8",
+      }),
+    );
+    expect(result.scenes).toContain("boat");
+    expect(result.others).toBe(true);
   },
 );
