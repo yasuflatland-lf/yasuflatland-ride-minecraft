@@ -30,7 +30,7 @@ const engine = vi.hoisted(() => {
   const event = (name: string) => ({
     subscribe: (fn: (event: unknown) => void) => handlers.set(name, fn),
   });
-  return { handlers, event, tick: 0 };
+  return { handlers, event, tick: 0, queue: [] as (() => void)[] };
 });
 vi.mock("@minecraft/server", () => ({
   world: {
@@ -41,6 +41,7 @@ vi.mock("@minecraft/server", () => ({
     },
   },
   system: {
+    run: (fn: () => void) => engine.queue.push(fn),
     get currentTick() {
       return engine.tick;
     },
@@ -49,6 +50,7 @@ vi.mock("@minecraft/server", () => ({
 
 function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   engine.tick = 0;
+  engine.queue.length = 0;
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const structures = new FakeStructureStore();
@@ -106,14 +108,28 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     isSneaking: false,
     dimension: { id: nether },
     selectedSlotIndex: 0,
-    getComponent: () => ({ container: { getItem: () => ({ typeId }) } }),
+    heldTypeId: typeId,
+    getComponent: () => ({
+      container: { getItem: () => ({ typeId: player.heldTypeId }) },
+    }),
   };
   const use = (item = typeId) =>
     engine.handlers.get("use")?.({
       source: player,
       itemStack: { typeId: item },
     });
+  const interact = (isFirstEvent = true) => {
+    const event = {
+      player,
+      isFirstEvent,
+      cancel: false,
+      block: { dimension: player.dimension, location: cell },
+    };
+    engine.handlers.get("interact")?.(event);
+    return event;
+  };
   return {
+    interact,
     pressPasteControl,
     repo,
     session,
@@ -129,6 +145,11 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     rotateDebounce,
     pasteDebounce,
   };
+}
+
+function flush() {
+  engine.tick += 1;
+  for (const fn of engine.queue.splice(0)) fn();
 }
 
 it("rotates the clipboard and immediately refreshes only its owner", () => {
@@ -243,15 +264,98 @@ it("keeps rotate and place windows separate and honors shared wand windows", () 
 });
 
 it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
-  "cancels %s block interactions and cancels breaks only in pasteAim",
+  "presses %s once from a first block tap without itemUse",
+  (item) => {
+    const e = setup(item);
+    expect(e.interact().cancel).toBe(true);
+    expect(e.rotate).not.toHaveBeenCalled();
+    expect(e.place).not.toHaveBeenCalled();
+    flush();
+    if (item === PASTE_ROTATE_TYPE) {
+      expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 1 });
+      expect(e.rotate).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
+      expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 1);
+      expect(e.place).not.toHaveBeenCalled();
+      expect(e.structures.calls).toEqual([]);
+    } else {
+      expect(e.place).toHaveBeenCalledTimes(1);
+      expect(e.structures.calls.at(-1)?.kind).toBe("place");
+      expect(e.rotate).not.toHaveBeenCalled();
+      expect(e.refresh).not.toHaveBeenCalled();
+    }
+  },
+);
+
+it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
+  "deduplicates a block tap and itemUse for %s",
+  (item) => {
+    const e = setup(item);
+    e.interact();
+    e.use();
+    flush();
+    expect(
+      item === PASTE_ROTATE_TYPE ? e.rotate : e.place,
+    ).toHaveBeenCalledTimes(1);
+    if (item === PASTE_ROTATE_TYPE)
+      expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 1 });
+    else
+      expect(
+        e.structures.calls.filter((call) => call.kind === "place"),
+      ).toHaveLength(1);
+  },
+);
+
+it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
+  "cancels non-first %s block interactions without pressing",
+  (item) => {
+    const e = setup(item);
+    expect(e.interact(false).cancel).toBe(true);
+    flush();
+    expect(e.rotate).not.toHaveBeenCalled();
+    expect(e.place).not.toHaveBeenCalled();
+    expect(e.structures.calls).toEqual([]);
+  },
+);
+
+it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
+  "shows only the inactive hint for a %s block tap before Copy",
+  (item) => {
+    const e = setup(item, false);
+    e.repo.remove(e.id);
+    expect(e.interact().cancel).toBe(true);
+    flush();
+    expect(e.feedback.messages).toEqual([
+      expect.objectContaining({ message: "pasteInactive" }),
+    ]);
+    expect(e.repo.get(e.id)).toBeUndefined();
+    expect(e.refresh).not.toHaveBeenCalled();
+    expect(e.structures.calls).toEqual([]);
+  },
+);
+
+it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
+  "ignores a scheduled %s tap if the player becomes invalid or changes to a non-control item",
+  (item) => {
+    for (const change of ["invalid", "wand", "empty"]) {
+      const e = setup(item);
+      e.interact();
+      if (change === "invalid") e.player.isValid = false;
+      else e.player.heldTypeId = change === "wand" ? SELECTION_WAND_TYPE : "";
+      flush();
+      expect(e.rotate).not.toHaveBeenCalled();
+      expect(e.place).not.toHaveBeenCalled();
+      expect(e.refresh).not.toHaveBeenCalled();
+      expect(e.structures.calls).toEqual([]);
+      expect(e.feedback.messages).toEqual([]);
+    }
+  },
+);
+
+it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
+  "cancels %s breaks only in pasteAim",
   (item) => {
     for (const active of [false, true]) {
       const e = setup(item, active);
-      for (const isFirstEvent of [false, true]) {
-        const event = { player: e.player, isFirstEvent, cancel: false };
-        engine.handlers.get("interact")?.(event);
-        expect(event.cancel).toBe(true);
-      }
       const event = { player: e.player, cancel: false };
       engine.handlers.get("break")?.(event);
       expect(event.cancel).toBe(active);
