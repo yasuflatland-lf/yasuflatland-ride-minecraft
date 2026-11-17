@@ -62,17 +62,26 @@ The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_fron
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
 model pixels apart. Area and assembly tables let builders replace the seven
-placeholder cubes independently. The whole-vehicle target is 3,500 cubes;
+placeholder cubes independently. The body area replaces the body placeholder with the tail, cowls, frame cover,
+and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
+own all compound panels and trim; areas without builders retain their placeholders.
+Body regions register idempotently before faces are constructed. Curved surfaces
+use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
+grey joint piping, and chrome floor rails and opening trim. The body budget is
+1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
+and trim segments. Warped or concave quads split into convex triangle masks to
+preserve closure coverage. Material sheets keep the mask regions cheap to pack;
+the paint gradient spans the shell instead of restarting on each panel. The whole-vehicle target is 3,500 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 
-`tools/scooter_shield.py` contributes 549 cubes: 284 on `body` and 265 on `steer`,
+`tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
 within a 650-cube allocation. The crowned shield, shoulder, side plates, chrome
 outline, flaring spine and 0.8-scale horn stay on `body`;
 the valanced front fender, curled lips, two bolts and crown shadow stay on `steer`.
 Broad panels use shaded alpha-cut masks, with twisted patches split at their
 measured vertices. The registered assemblies are `shield_face` (105),
-`shield_trim` (66), `shield_ridge` (110), and `shield_fender` (262).
+`shield_trim` (66), `shield_ridge` (110), and `shield_fender` (295).
 Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
 
 - Agreement: Proposed

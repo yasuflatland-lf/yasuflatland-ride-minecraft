@@ -13,6 +13,7 @@ cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 
 AREA_ORDER = (
+    "body",
     "shield",
 )
 
@@ -21,6 +22,10 @@ ASSEMBLIES = {
     "shield_trim": {"owner": "scooter", "cubes": 66},
     "shield_ridge": {"owner": "scooter", "cubes": 110},
     "shield_fender": {"owner": "scooter", "cubes": 295},
+    "body_cowl": {"owner": "scooter", "cubes": 594},
+    "body_tail": {"owner": "scooter", "cubes": 216},
+    "body_frame": {"owner": "scooter", "cubes": 148},
+    "body_floor": {"owner": "scooter", "cubes": 164},
 }
 
 BONES = (
