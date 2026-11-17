@@ -3,9 +3,11 @@ import type { BuildSessionRepository } from "../../domain/build/sessionRepositor
 import type { PlayerId } from "../../domain/shared/ids";
 import type { LeaveBuild } from "./leaveBuild";
 
+export type HeldBuildItem = "wand" | "pasteControl" | "none";
+
 interface BuildModeInput {
   playerId: PlayerId;
-  holding: boolean;
+  held: HeldBuildItem;
 }
 
 export class UpdateBuildModes {
@@ -15,12 +17,16 @@ export class UpdateBuildModes {
   ) {}
 
   execute(inputs: readonly BuildModeInput[]): void {
-    for (const { playerId, holding } of inputs) {
+    for (const { playerId, held } of inputs) {
       // A session is created only once the player holds the tool, so players
       // who never build cost nothing.
-      const session = holding
-        ? this.repo.getOrCreate(playerId)
-        : this.repo.get(playerId);
+      const session =
+        held === "wand"
+          ? this.repo.getOrCreate(playerId)
+          : this.repo.get(playerId);
+      const holding =
+        held === "wand" ||
+        (held === "pasteControl" && session?.flow.kind === "pasteAim");
       if (
         session?.tickMode({ holding }) &&
         !session.isInBuildMode &&
