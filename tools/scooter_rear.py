@@ -31,7 +31,7 @@ SEAT_BELLY_WIDTH = 0.8
 SEAT_SKIN = 0.012
 SEAT_CAP_SKIN = 0.012
 SEAT_CAP_SCALE = 0.0
-SEAT_MASK_DENSITY = 32
+SEAT_MASK_DENSITY = 24
 SEAT_MASK_OVERLAP = 0.045
 SEAT_ATLAS_WIDTH = 512
 SEAT_MASK_GUTTER = 2
@@ -296,7 +296,8 @@ def _seat(result):
 
     x, y, row_height = 0, 0, 0
     placements = []
-    for cube, width, height, data in panels:
+    # Group equal-height masks to avoid wasting atlas rows when all areas are combined.
+    for cube, width, height, data in sorted(panels, key=lambda p: p[2], reverse=True):
         if x + width > SEAT_ATLAS_WIDTH:
             x, y, row_height = 0, y + row_height + SEAT_MASK_GUTTER, 0
         placements.append((cube, x, y, width, height, data))

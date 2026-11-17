@@ -47,7 +47,7 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 
 ### Scooter generator foundation
 
-- Applies to: Scooter generator primitives, placeholder geometry, and texture regions.
+- Applies to: Scooter generator primitives, area geometry, placeholders, and texture regions.
 - Rule: `tools/gen_scooter.py` exposes an importable `build()` and writes only the generated
   `scooter.geo.json` and `scooter.png` assets. Dimensions live in `scooter_dims.py`;
   `scooter_atlas.py` classifies paint separately from other materials and reuses the
@@ -74,18 +74,61 @@ The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_fron
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
-model pixels apart. The body area replaces the body placeholder with the tail, cowls, frame cover,
+model pixels apart. The running area supplies both wheels, suspension, and stand.
+Whitewall discs
+use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
+0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
+panel's tangent frame and takes no panel margin, so its outer envelope stays within
+0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
+fold bones retain their axle pivots. The combined running, body, rear, engine, head, and shield atlas stays within 2048 by 2048
+texels. The scooter requests this side limit from the shared packer, which searches
+wider layouts and rejects regions that cannot fit without reducing texture detail.
+Side and front-left previews render the full atlas without a density cap.
+
+The body area replaces the body placeholder with the tail, cowls, frame cover,
 and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
-own all compound panels and trim; remaining areas retain their placeholders.
-Body regions register idempotently before faces are constructed. Curved surfaces
+own all compound body panels and trim.
+Body regions register idempotently before faces are constructed. Neighboring
+mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
 grey joint piping, and chrome floor rails and opening trim. The body budget is
 1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
-the paint gradient spans the shell instead of restarting on each panel. The whole-vehicle target is 3,500 cubes;
-generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
+the paint gradient spans the shell instead of restarting on each panel.
+
+The rear area supplies the seat, lamp housing, tail lens, and plate through
+`rear_seat`, `rear_lamp`, and `rear_plate`. Only the red lens belongs to
+`tail_lights`; the remaining rear geometry stays on `body`. Seat alpha masks use
+24 texels per model unit and pack in descending height order so the combined
+atlas fits the 2048-texel side limit. The rear allocation remains 251 cubes.
+
+The engine area supplies 319 cubes on `body`: the compact
+cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
+forward-looping exhaust header, shallow kidney muffler, and two body brackets.
+Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
+(18), `engine_muffler` (114), and `engine_header` (66).
+
+The head area replaces the steering
+and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
+Its collar, horn casting, bib, instrument bezel, lamp rim, controls, levers, and
+mirrors retain the spike ring counts. Named `head_*` assemblies carry compound
+panels; alpha-cut profiles and world-position paint shading keep the casting
+smooth. Small atlas regions carry the silver reflector, text-free dial, dark
+mirror glass, and chrome mirror backs.
+
+The whole-vehicle target is 3,650 cubes; generation rejects more than the
+3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
+
+`tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
+within a 650-cube allocation. The crowned shield, shoulder, side plates, chrome
+outline, flaring spine and 0.8-scale horn stay on `body`;
+the valanced front fender, curled lips, two bolts and crown shadow stay on `steer`.
+Broad panels use shaded alpha-cut masks, with twisted patches split at their
+measured vertices. The registered assemblies are `shield_face` (105),
+`shield_trim` (66), `shield_ridge` (110), and `shield_fender` (295).
+Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
 
 - Agreement: Proposed
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md), front direction and model bones; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), named compound assemblies and the pending device confirmation of rotation order.
@@ -93,9 +136,14 @@ only; the scooter has no entity or riding behavior yet.
 - Verification: `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
   corners, local UV resolution, measured dimensions, and deterministic builds.
   `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
-  UV bounds, and per-area budgets against the generated model and Python builders.
+  whitewall circularity and tyre clearance, atlas bounds, and per-area budgets
+  against the generated model and Python builders. `pnpm model:check` checks
+  `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
   `tests/tools/scooterRear.test.ts` projects the generated plate face corners through its
   rotation and checks every rear-view texel against the expected upright lettering.
+  `tests/tools/scooterShield.test.ts` checks symmetry, the flaring spine, standalone
+  deterministic builds, region registration, finite geometry, compound membership,
+  the horn scale, fender bolts, and continuous crown texture coverage.
 
 ### Camper generator modules
 

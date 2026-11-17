@@ -95,7 +95,7 @@ def _oriented(lo, hi, pivot, rotation, uv_faces, assembly):
     return cube
 
 
-def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None):
+def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None, tangent_frame=False):
     u = [(a1[i] - a0[i] + b1[i] - b0[i]) / 2 for i in range(3)]
     v = [(b0[i] - a0[i] + b1[i] - a1[i]) / 2 for i in range(3)]
     if _length(u) < EDGE_EPSILON or _length(v) < EDGE_EPSILON:
@@ -109,7 +109,10 @@ def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None):
     center = _centroid((a0, a1, b0, b1))
     if _dot(normal, _sub(center, inside)) < 0:
         normal = [-n for n in normal]
-    rotation = _rotation(normal)
+        ey = [-n for n in ey]
+    # Tyre patches need their in-plane turn; a normal alone produces oversized boxes over the whitewall.
+    rotation = (tilt._rotation_of([[ex[i], ey[i], normal[i]] for i in range(3)])
+                if tangent_frame else _rotation(normal))
     matrix = tilt.cube_matrix(rotation)
     ex, ey = ([matrix[i][j] for i in range(3)] for j in range(2))
     projected = [(_dot(_sub(p, center), ex), _dot(_sub(p, center), ey)) for p in (a0, a1, b0, b1)]
@@ -117,13 +120,14 @@ def quad(a0, a1, b0, b1, thick, uv_faces, inside, assembly=None):
     hi = [max(p[i] for p in projected) for i in range(2)]
     rectangle = all(any(abs(p[0]-x) < FRAME_EPSILON and abs(p[1]-y) < FRAME_EPSILON
                         for p in projected) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]))
-    margin = 0 if rectangle else PANEL_MARGIN
+    # A tyre trapezoid is covered by its bounding rectangle; the usual margin would poke past the tread.
+    margin = 0 if rectangle or tangent_frame else PANEL_MARGIN
     return _oriented([center[0]+lo[0]-margin, center[1]+lo[1]-margin, center[2]-thick],
                      [center[0]+hi[0]+margin, center[1]+hi[1]+margin, center[2]],
                      center, rotation, uv_faces, assembly)
 
 
-def skin(rings, thick, uv_faces, inside=None, closed=False, assembly=None):
+def skin(rings, thick, uv_faces, inside=None, closed=False, assembly=None, tangent_frame=False):
     cubes = []
     for k, (a, b) in enumerate(zip(rings, rings[1:])):
         if len(a) != len(b):
@@ -133,13 +137,13 @@ def skin(rings, thick, uv_faces, inside=None, closed=False, assembly=None):
             point = inside(k, j) if callable(inside) else inside
             if point is None:
                 point = _centroid((_centroid(a), _centroid(b)))
-            cube = quad(a[j], a[next_j], b[j], b[next_j], thick, uv_faces, point, assembly)
+            cube = quad(a[j], a[next_j], b[j], b[next_j], thick, uv_faces, point, assembly, tangent_frame)
             if cube is not None:
                 cubes.append(cube)
     return cubes
 
 
-def tube(points, size, uv_faces, assembly=None):
+def tube(points, size, uv_faces, assembly=None, roll=0):
     cubes = []
     for a, b in zip(points, points[1:]):
         direction = _sub(b, a)
@@ -148,9 +152,12 @@ def tube(points, size, uv_faces, assembly=None):
             continue
         center = _centroid((a, b))
         half = [size/2, size/2, length/2 + TUBE_END_EXTENSION*size]
+        rotation = _rotation(_unit(direction))
+        if roll:
+            rotation = tilt.roll_rotation(rotation, roll)
         cubes.append(_oriented([center[i]-half[i] for i in range(3)],
                                [center[i]+half[i] for i in range(3)], center,
-                               _rotation(_unit(direction)), uv_faces, assembly))
+                               rotation, uv_faces, assembly))
     return cubes
 
 
