@@ -141,4 +141,5 @@ export const BULLDOZER_TRANSFORMING: TransformingSpec = Object.freeze({
   stepLaneOffset: 0.8,
   air: BULLDOZER_AIR,
   water: BULLDOZER_WATER,
+  waterPolicy: "submerge",
 });

@@ -110,4 +110,5 @@ export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({
   stepLaneOffset: 0.8,
   air: AIR,
   water: WATER,
+  waterPolicy: "submerge",
 });

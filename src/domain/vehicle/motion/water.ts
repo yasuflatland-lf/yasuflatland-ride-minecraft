@@ -1,5 +1,8 @@
 import type { Vec3 } from "../../shared/vec";
 
+/** Whether a transforming kind may dive or must stay on the surface (ADR 0050). */
+export type WaterPolicy = "submerge" | "surface";
+
 /**
  * Blocks of water above the feet, counting contiguous full cells upward from
  * the cell that holds the feet, capped at maxHeight + 1 (ADR 0040).

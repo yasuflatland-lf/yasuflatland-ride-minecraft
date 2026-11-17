@@ -15,6 +15,8 @@ The SUV should become a sealed submarine when its roof goes under water, with bl
 
 ## Decision
 
+- Transforming kinds declare `TransformingSpec.waterPolicy` (0050). The submarine transitions and motion below apply to `submerge`, used by SUV, camper, and bulldozer. The `surface` policy never enters submarine, restores submarine to car, holds car on submergence, and treats wet hover or landing as ground touchdown. Wet car motion uses ground limits and control, with `surfaceHold` providing upward-only support toward the kind's float line and full `surfaceRise` when submerged; shore step jumps take priority. Car double-tap takeoff also works while floating, and takeoff continues past `takeoffTicks` until the feet are dry so hover does not touch down on the water it just left. No kind uses `surface` yet; it prepares the scooter's water motion ([#1752](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/1752)).
+
 - Add `submarine` to `Form` and the client-synced `mycar:form` enum. Keep property and gravity changes on the same tick (0021): only `car` has gravity. Apply the following transitions in priority order; otherwise keep the current form. Controlled means a driver or test input is present, submerged means `waterDepth >= SPEC.carHeight`, and dry means no water above the feet.
 
 | Current form                    | Condition                           | Next form |

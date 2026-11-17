@@ -184,4 +184,5 @@ export const CAMPER_TRANSFORMING: TransformingSpec = Object.freeze({
   stepLaneOffset: 0.8,
   air: CAMPER_AIR,
   water: CAMPER_WATER,
+  waterPolicy: "submerge",
 });
