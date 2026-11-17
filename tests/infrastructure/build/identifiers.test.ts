@@ -5,6 +5,7 @@ import {
   BUILD_FORM,
   BUILD_MESSAGE,
   BUILD_NAMESPACE,
+  BUILD_UNDO_TYPE,
   buildId,
   buildItemRole,
   LAID_BLOCK_TAG,
@@ -96,6 +97,7 @@ it("defines items and test events in the build namespace", () => {
   );
   expect(
     [
+      BUILD_UNDO_TYPE,
       PASTE_PLACE_TYPE,
       PASTE_ROTATE_TYPE,
       SELECTION_WAND_TYPE,
@@ -111,6 +113,7 @@ it.each([
   ["yasu_build:selection_wand", "wand"],
   ["yasu_build:paste_rotate", "pasteControl"],
   ["yasu_build:paste_place", "pasteControl"],
+  ["yasu_build:build_undo", "undo"],
   ["minecraft:stick", undefined],
   [undefined, undefined],
 ] as const)("classifies build item %s as %s", (typeId, role) => {
@@ -128,6 +131,7 @@ it("does not classify unrelated item ids as build items", () => {
               "yasu_build:selection_wand",
               "yasu_build:paste_rotate",
               "yasu_build:paste_place",
+              "yasu_build:build_undo",
             ].includes(typeId),
         ),
       (typeId) => {
