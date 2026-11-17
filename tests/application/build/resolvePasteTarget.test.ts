@@ -10,6 +10,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import {
+  effectiveTurn,
   FACINGS,
   type Facing,
   facingVector,
@@ -114,8 +115,10 @@ it("draws the same paste box that the press sends to PasteAt", () => {
       facing,
       fc.boolean(),
       fc.boolean(),
-      (hit, facing, hasBlock, sneaking) => {
+      fc.constantFrom(0, 1, 2, 3),
+      (hit, facing, hasBlock, sneaking, manualTurn) => {
         const { repo, session, clipboard } = setup();
+        for (let i = 0; i < manualTurn; i++) session.rotatePaste();
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           session.tickMode({ holding: true });
         const ray = { ...hit.ray, direction: facingVector(facing) };
@@ -158,14 +161,16 @@ it("draws the same paste box that the press sends to PasteAt", () => {
         const target = execute.mock.calls[0]?.[0].target;
         expect(target).toBeDefined();
         expect(target?.anchor).toEqual(target?.box.min);
-        expect(target?.turn).toBe(turnBetween(clipboard.facing, facing));
+        expect(target?.turn).toBe(
+          effectiveTurn(clipboard.facing, facing, manualTurn),
+        );
         expect(probe.calls.every((call) => call.dimensionId === nether)).toBe(
           true,
         );
         const unsnapped = aimedPasteTarget(
           clipboard,
           aim,
-          turnBetween(clipboard.facing, facing),
+          effectiveTurn(clipboard.facing, facing, manualTurn),
           facing,
         );
         if (!unsnapped) throw new Error("Expected hit target");

@@ -73,11 +73,12 @@ function setup(
     structures,
     new FakeBuildPlayers(),
   );
+  const ground = new FakeGroundProbe();
   const press = new PressPasteAim(
     repo,
     paste,
     feedback,
-    new ResolvePasteTarget(repo, new FakeGroundProbe()),
+    new ResolvePasteTarget(repo, ground),
   );
   const clipboard = structureClipboard(
     boxOf(block, { ...block, x: block.x + 1 }),
@@ -99,7 +100,7 @@ function setup(
   );
   if (!target) throw new Error("Expected paste target");
   const start = vi.spyOn(structures, "place");
-  const execute = (sneaking = true) => {
+  const execute = (sneaking = true, intent?: "wand" | "place") => {
     const target = aim.aim(playerId);
     return press.execute({
       playerId,
@@ -107,10 +108,12 @@ function setup(
       aim: target,
       tick,
       sneaking,
+      intent,
     });
   };
   return {
     repo,
+    ground,
     structures,
     session,
     world,
@@ -329,5 +332,118 @@ it("reports a missing target for a sneak press", () => {
         expect(e.start).not.toHaveBeenCalled();
       },
     ),
+  );
+});
+
+it("place hints without starting a paste outside aiming or without a clipboard", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      face,
+      tick,
+      fc.boolean(),
+      (block, face, tick, sneaking) => {
+        const e = setup(block, face, tick);
+        const first = tapBlock({ kind: "idle" }, nether, block, stone);
+        const endpoint = tapAir(first, {
+          ...block,
+          x: block.x + 2,
+          z: block.z + 2,
+        });
+        for (const flow of [
+          { kind: "idle" } as const,
+          first,
+          endpoint,
+          chooseHeighted(endpoint, "copy"),
+        ]) {
+          e.session.setFlow(flow);
+          expect(e.execute(sneaking, "place")).toBe("ignored");
+          expect(e.session.flow).toBe(flow);
+          expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
+        }
+        e.repo.remove(playerId);
+        expect(e.execute(sneaking, "place")).toBe("ignored");
+        expect(e.repo.get(playerId)).toBeUndefined();
+        expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
+        const empty = e.repo.getOrCreate(playerId);
+        empty.setFlow({ kind: "pasteAim", manualTurn: 0 });
+        expect(e.execute(sneaking, "place")).toBe("ignored");
+        expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
+        expect(e.start).not.toHaveBeenCalled();
+        expect(e.ground.calls).toEqual([]);
+        expect(e.world.writes).toBe(0);
+      },
+    ),
+  );
+});
+
+it("place and sneak wand share placement, refusals, missing targets and repeat behavior", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      face,
+      tick,
+      fc.boolean(),
+      (block, face, tick, sneaking) => {
+        for (const scenario of [
+          "pasted",
+          "protected",
+          "busy",
+          "noGround",
+          "noTarget",
+          "repeat",
+          "limit",
+        ] as const) {
+          const wand = setup(block, face, tick);
+          const place = setup(block, face, tick);
+          for (const e of [wand, place]) {
+            e.session.rotatePaste();
+            if (scenario === "protected")
+              vi.spyOn(e.world, "mayEdit").mockReturnValue(false);
+            if (scenario === "busy") e.session.beginEdit();
+            if (scenario === "noGround") e.ground.topOf = () => undefined;
+            if (scenario === "noTarget") e.aim.target = undefined;
+            if (scenario === "limit")
+              vi.spyOn(e.structures, "capture").mockReturnValue("tooLarge");
+            if (scenario === "repeat") expect(e.execute()).toBe("pasted");
+          }
+          const result = wand.execute(true, "wand");
+          expect(place.execute(sneaking, "place")).toBe(result);
+          expect(result).toBe(
+            scenario === "pasted"
+              ? "pasted"
+              : scenario === "noTarget" || scenario === "repeat"
+                ? "ignored"
+                : "refused",
+          );
+          expect(place.start.mock.calls).toEqual(wand.start.mock.calls);
+          expect(place.session.flow).toEqual(wand.session.flow);
+          expect(place.feedback.messages).toEqual(wand.feedback.messages);
+          expect(place.feedback.undoHints).toEqual(wand.feedback.undoHints);
+          expect(place.world.writes).toBe(wand.world.writes);
+        }
+      },
+    ),
+  );
+});
+
+it("rotation permits another paste at the same anchor and keeps the manual turn", () => {
+  fc.assert(
+    fc.property(cell, tick, (block, tick) => {
+      const e = setup(block, "up", tick);
+      expect(e.execute(false, "place")).toBe("pasted");
+      expect(e.execute()).toBe("ignored");
+      expect(e.session.rotatePaste()).toBe(true);
+      expect(e.execute(false, "place")).toBe("pasted");
+      expect(e.start.mock.calls.map((call) => call.slice(2))).toEqual([
+        [e.target.anchor, 0],
+        [e.target.anchor, 1],
+      ]);
+      expect(e.session.flow).toMatchObject({
+        manualTurn: 1,
+        lastPaste: { turn: 1 },
+      });
+      expect(e.execute()).toBe("ignored");
+    }),
   );
 });
