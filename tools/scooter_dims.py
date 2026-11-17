@@ -23,6 +23,12 @@ FOLD_DEGREES = 90
 FOLD_DROP = 3.5
 FOLD_LAY_START = 0.4
 FOLD_SECONDS = 1.0
+FOLD_BONES = {"front": "wheel_front_fold", "rear": "wheel_rear_fold"}
+STRUT_BONES = {"front": "wheel_front_strut", "rear": "wheel_rear_strut"}
+# The rear stem hangs from the cowl underside plate (y 13.23..13.29) and is squashed to nothing
+# on the ground so the open wheel well keeps its road silhouette; it extends with the fold drop.
+REAR_STEM_BONE = "wheel_rear_stem"
+REAR_STEM_TOP = 13.26
 STAND_UP_DEGREES = 85
 GLOW_DEPTH = 0.5
 GLOW_GAP = 0.1

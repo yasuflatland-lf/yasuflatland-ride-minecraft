@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { SCOOTER_SPEC } from "../../src/domain/vehicle/kinds/scooter/spec";
 import { RESORT_GEAR } from "../support/resortGear";
 
 type Point = [number, number, number];
@@ -160,7 +161,8 @@ describe("render_preview.py flight poses", () => {
 transform = {"rotation": [13, 27, ${angle}], "position": ${JSON.stringify(position)}}
 animations = {"animations": {"animation.example.ride.wheels_folded": {"bones": {
     "wheel_left": transform, "wheel_front_fold": transform,
-    "body": transform, "arm_left": {"scale": [1, 1, 1]}
+    "body": transform, "strut": {"position": ${JSON.stringify(position)}},
+    "arm_left": {"scale": [1, 1, 1]}
 }}, "animation.example.other.wheels_folded": {"bones": {}}}}
 flight = r.build_flight_pose(animations, "animation.example.ride.wheels_folded", lift=${lift})
 print(json.dumps({"folds": dict(flight.folds), "lift": flight.lift}))
@@ -169,6 +171,7 @@ print(json.dumps({"folds": dict(flight.folds), "lift": flight.lift}))
             folds: {
               wheel_left: [angle, position],
               wheel_front_fold: [angle, position],
+              strut: [0, position],
             },
             lift,
           });
@@ -242,6 +245,28 @@ print(json.dumps(True))
     );
   });
 
+  it("translates position-only struts without turning them in both collectors", () => {
+    expect(
+      previewPython(`
+geo = ${JSON.stringify({ description: { texture_width: 1, texture_height: 1 }, bones: [{ name: "strut", pivot: [1, 2, 3], cubes: [bar(4, -5, 1)] }] })}
+texture = [[(255, 255, 255, 255)]]
+pose = {"lamps": False, "dusk": False, "submarine": False, "hover": False}
+flight = r.build_flight_pose({"animations": {"fold": {"bones": {
+    "strut": {"position": [2, -3.5, 1]}
+}}}}, "fold", lift=16)
+for collect in (lambda **kw: r.collect(geo, texture, {}, pose, **kw),
+                lambda **kw: r.collect_boat(geo, texture, pose, **kw)[0]):
+    original = collect()
+    moved = collect(flight=flight)
+    assert len(original) == len(moved) > 0
+    for (before, _, _), (after, _, _) in zip(original, moved):
+        for (x, y, z), actual in zip(before, after):
+            assert actual == (x - 2, y - 3.5 + 16, z + 1)
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
   it("keeps cached texture patches in their own flight pose", () => {
     expect(
       previewPython(`
@@ -305,8 +330,9 @@ it("registers ordered top-level scene builders with frozen results", () => {
     previewPython(`
 from dataclasses import FrozenInstanceError, is_dataclass
 from inspect import isfunction
-assert isinstance(r.SCENE_BUILDERS, tuple)
-for _, builder in r.SCENE_BUILDERS:
+assert isinstance(r.SCENES, tuple)
+for scene in r.SCENES:
+    builder = scene.build
     assert isfunction(builder)
     assert builder.__module__ == "render_preview"
     assert "<locals>" not in builder.__qualname__
@@ -321,9 +347,168 @@ for field in ("images", "icon"):
         pass
     else:
         raise AssertionError(f"SceneResult.{field} is mutable")
-print(json.dumps([name for name, _ in r.SCENE_BUILDERS]))
+print(json.dumps([scene.name for scene in r.SCENES]))
 `),
   ).toEqual(["suv", "boat", "camper", "bulldozer", "scooter", "gear"]);
+});
+
+describe("render_preview.py scene selection", () => {
+  it("returns every scene in order for None and keeps SCENES order for any subset", () => {
+    expect(
+      previewPython(`
+import itertools
+assert r.select_scenes(None) == r.SCENES
+assert r.SCENE_NAMES == ("suv", "boat", "camper", "bulldozer", "scooter", "gear")
+for size in range(len(r.SCENE_NAMES) + 1):
+    for combo in itertools.combinations(r.SCENE_NAMES, size):
+        reversed_names = list(reversed(combo))
+        picked = r.select_scenes(reversed_names)
+        assert [s.name for s in picked] == list(combo)
+        assert r.select_scenes(list(combo) + list(combo)) == picked
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it("raises naming the unknown scene and the valid names", () => {
+    expect(
+      previewPython(`
+try:
+    r.select_scenes(["suv", "tractor"])
+except ValueError as error:
+    message = str(error)
+    assert "tractor" in message
+    assert all(name in message for name in r.SCENE_NAMES)
+else:
+    raise AssertionError("unknown scene accepted")
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+});
+
+describe("render_preview.py --scene CLI", () => {
+  it("rejects unknown scenes with the valid names", () => {
+    const result = spawnSync(
+      "python3",
+      ["-I", "tools/render_preview.py", "x", "y", "--scene", "tractor"],
+      { encoding: "utf8" },
+    );
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("Unknown scene 'tractor'");
+    for (const name of [
+      "suv",
+      "boat",
+      "camper",
+      "bulldozer",
+      "scooter",
+      "gear",
+    ]) {
+      expect(result.stderr).toContain(name);
+    }
+  });
+
+  it.each([
+    ["--gear", "sugar_pot", "--out", "unused"],
+    ["--view", "sinkTap", "--out", "unused"],
+    ["--beach-chair-form", "chair"],
+  ])("rejects --scene with review arguments %j", (...args) => {
+    const result = spawnSync(
+      "python3",
+      ["-I", "tools/render_preview.py", "x", "--scene", "suv", ...args],
+      { encoding: "utf8" },
+    );
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--scene cannot be combined");
+    expect(result.stderr).toContain(args[0]);
+  });
+
+  it("checks only SUV images without writing or requiring other scenes", () => {
+    expect(
+      previewPython(`
+import contextlib, io, tempfile
+from unittest.mock import patch
+rp = Path('packs/yasu_ride_rp')
+with tempfile.TemporaryDirectory() as directory:
+    output = Path(directory)
+    names = ('suv-front-left.png', 'suv-headlights.png', 'suv-flying.png', 'suv-submarine.png')
+    before = {name: Path('docs/images', name).read_bytes() for name in names}
+    for name, data in before.items():
+        (output / name).write_bytes(data)
+    sentinel = output / 'boat-front-left.png'
+    sentinel.write_bytes(b'untouched')
+    def pixels(jobs, workers):
+        return [bytearray(channel for row in r.read_png(Path(job.name)) for pixel in row for channel in pixel) for job in jobs]
+    with patch.object(sys, 'argv', ['render_preview.py', str(rp), str(output), '--scene', 'suv', '--check']), \
+         patch.object(r, 'rasterize_all', side_effect=pixels), contextlib.redirect_stdout(io.StringIO()):
+        r.main()
+    assert {name: (output / name).read_bytes() for name in names} == before
+    assert sentinel.read_bytes() == b'untouched'
+    assert set(p.name for p in output.iterdir()) == {*names, sentinel.name}
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it("partitions checked outputs and owned icons across all six CLI selections", () => {
+    expect(
+      previewPython(`
+import contextlib, io, tempfile
+from unittest.mock import patch
+fit = r.ScreenFit(None, 1, 0, 0)
+def job(name, size=1):
+    return r.RasterJob(name, [], [], fit, size, size, None, {}, ())
+def builder(name):
+    def build(rp, icon_path):
+        preview = job(f'{r.GEAR_DIR}/sugar_pot.png' if name == 'gear' else f'{name}.png')
+        icon = job(str(icon_path), r.ICON_SIZE) if name == 'suv' and icon_path else None
+        return r.SceneResult({preview.name: preview}, icon)
+    return build
+scenes = tuple(r.Scene(name, builder(name)) for name in r.SCENE_NAMES)
+with tempfile.TemporaryDirectory() as directory:
+    root = Path(directory)
+    packs = [root / r.GEAR_ICON_PACK, root / r.ICON_GRAYSCALE_PACK]
+    for pack in packs:
+        pack.mkdir()
+        (pack / 'manifest.json').write_text('{}')
+    def run(names, check=True, timing=False):
+        args = ['render_preview.py', 'unused', str(root / 'images'), '--icons', *map(str, packs), '--jobs', '4']
+        if check: args.append('--check')
+        if timing: args.append('--timing')
+        for name in names: args.extend(['--scene', name])
+        touched = []
+        def rgba(out, path, width, height, pixels, rgb=False):
+            assert out.check == check
+            touched.append(str(path.relative_to(root)))
+        stderr = io.StringIO()
+        with patch.object(sys, 'argv', args), patch.object(r.texture_io.Outputs, 'rgba', rgba), \
+             patch.object(r, 'rasterize_all', side_effect=lambda jobs, workers: [bytearray(j.width*j.height*4) for j in jobs]), \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            r.main()
+        return touched, stderr.getvalue().splitlines()
+    with patch.object(r, 'SCENES', scenes):
+        full, _ = run([])
+        single = [run([name])[0] for name in r.SCENE_NAMES]
+        assert set(full) == set(path for paths in single for path in paths)
+        assert sum(map(len, single)) == len(full) == 9
+        assert single[0] == ['images/suv.png', f'{r.GEAR_ICON_PACK}/pack_icon.png', f'{r.ICON_GRAYSCALE_PACK}/pack_icon.png']
+        assert single[-1] == [f'images/{r.GEAR_DIR}/sugar_pot.png', f'{r.GEAR_ICON_PACK}/{r.GEAR_ICON_DIR}/sugar_pot.png']
+        selected, lines = run(['gear', 'suv', 'suv'], timing=True)
+        assert selected == single[0] + single[-1]
+        assert len(lines) == 3, lines
+        for line, name, count in zip(lines, ['suv', 'gear'], [2, 2]):
+            fields = dict(field.split('=') for field in line.split())
+            assert fields['scene'] == name and int(fields['jobs']) == count, line
+            assert float(fields['build']) >= 0, line
+        assert lines[-1].startswith('PHASE_TIMING '), lines
+        written, lines = run(['boat'], check=False, timing=True)
+        assert written == ['images/boat.png']
+        assert lines[0].startswith('scene=boat build=')
+        assert run(['boat'])[1] == []
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
 });
 
 it("ScreenFit maps quads the same after pickling", () => {
@@ -706,13 +891,13 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
 });
 
 describe("scooter previews (ADR 0251)", () => {
-  it("renders four previews from the camper's angles plus a framed tail lamp close-up, without hover discs", () => {
+  it("renders the flying headlights from the camper's front angle plus four ground previews", () => {
     const result = previewPython(
       "print(json.dumps({'names': list(r.SCOOTER_POSES), 'views': [p['view'] for p in r.SCOOTER_POSES.values()], 'bulldozer': [p['view'] for p in r.BULLDOZER_POSES.values()], 'size': r.image_size('scooter-side.png')}))",
     );
     expect(result.names).toEqual([
       "scooter-front-left.png",
-      "scooter-headlights.png",
+      "scooter-flying-headlights.png",
       "scooter-side.png",
       "scooter-rear.png",
       "scooter-taillights.png",
@@ -720,6 +905,67 @@ describe("scooter previews (ADR 0251)", () => {
     expect(result.views.slice(0, 4)).toEqual(result.bulldozer);
     expect(result.views[4]).not.toEqual(result.bulldozer[3]);
     expect(result.size).toEqual([800, 600]);
+  });
+  it("raises the stand, folds the wheels and frames flight with rounded pools instead of the beam", () => {
+    expect(
+      previewPython(`
+from pathlib import Path
+rp = Path("packs/yasu_ride_rp")
+# This checks pose geometry and framing, not atlas detail; full-density previews
+# are covered by model:check. Keep the real model and lit lens texels at a cheaper density.
+for pose in r.SCOOTER_POSES.values():
+    pose["cells_per_unit"] = 1
+assert r.SCOOTER_FLIGHT_LIFT == ${SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16}
+animations = json.loads((rp / r.SCOOTER_ANIMATIONS).read_text())["animations"]
+stand_rotation = animations["animation.yasu_ride.scooter.stand_up"]["bones"]["stand"]["rotation"]
+original_collect = r.collect_boat
+stand_poses = []
+def capture(geo, *args, **kwargs):
+    stand = next(b for b in geo["bones"] if b["name"] == "stand")
+    stand_poses.append((kwargs.get("flight") is not None, stand.get("rotation", [0, 0, 0])))
+    return original_collect(geo, *args, **kwargs)
+r.collect_boat = capture
+result = r.render_scooter(rp, None)
+assert any(flying for flying, _ in stand_poses)
+assert any(not flying for flying, _ in stand_poses)
+assert all(rotation == (stand_rotation if flying else [0, 0, 0]) for flying, rotation in stand_poses)
+assert "scooter-flying-headlights.png" in result.images
+for name, job in result.images.items():
+    discs = [q for q, _, group in job.polygons if group == "disc"]
+    if name == "scooter-flying-headlights.png":
+        assert discs
+        points = [p for q in discs for p in q]
+        assert max(p[1] for p in points) - min(p[1] for p in points) < 1
+        assert max(p[0] for p in points) - min(p[0] for p in points) > 5
+        assert min(p[1] for q in discs for p in q) > 16
+        assert job.layers[0][1] == r.FLIGHT_SHADOW_ALPHA
+        pools = [(q, alpha) for q, alpha, color in job.layers if color == r.SCOOTER_POOL_COLOR]
+        assert len(pools) == 2 * r.SCOOTER_POOL_LAYERS
+        for start in range(0, len(pools), r.SCOOTER_POOL_LAYERS):
+            stack = pools[start:start + r.SCOOTER_POOL_LAYERS]
+            assert sum(alpha for _, alpha in stack) < 1
+            assert all(a > b for (_, a), (_, b) in zip(stack, stack[1:]))
+            ring = stack[-1][0]
+            assert len(ring) == r.SCOOTER_POOL_SEGMENTS
+            cx = sum(p[0] for p in ring) / len(ring)
+            cz = sum(p[2] for p in ring) / len(ring)
+            radii = [((p[0] - cx)**2 + (p[2] - cz)**2)**0.5 for p in ring]
+            assert max(radii) - min(radii) < 1e-6
+            assert 4 < max(radii) < 8
+        framing = [q for q, _, color in job.layers if color != r.BEAM_COLOR]
+        expected = r.fit(job.to_screen.camera, [q for q, _, _ in job.polygons] + framing)
+        assert job.to_screen == expected
+        with_beam = r.fit(job.to_screen.camera, [q for q, _, _ in job.polygons + job.layers])
+        assert job.to_screen.scale > with_beam.scale * 1.2
+        lamps = [q for q, _, group in job.polygons if group == "lamp"]
+        assert any(all(p[2] < 0 for p in q) for q in lamps)
+        assert any(all(p[2] > 0 for p in q) for q in lamps)
+    else:
+        assert not discs
+        assert not job.layers
+print(json.dumps(True))
+`),
+    ).toBe(true);
   });
 });
 

@@ -2,6 +2,7 @@
 
     python3 -I tools/render_preview.py <resource pack> <output dir>          write the images
     python3 -I tools/render_preview.py <resource pack> <output dir> --check  fail if any is stale
+    python3 -I tools/render_preview.py <resource pack> <output dir> --check --scene suv --timing
     python3 -I tools/render_preview.py <resource pack> --gear sugar_pot --view front top --out /tmp/views
     python3 -I tools/render_preview.py <resource pack> --view sinkTap --out /tmp/views
     python3 -I tools/render_preview.py <resource pack> --view lidOpen --lid 45 --out /tmp/views
@@ -44,7 +45,7 @@ import struct
 import sys
 import time
 import zlib
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
@@ -183,10 +184,18 @@ SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
 # The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
 SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_white.png"
 SCOOTER_CELLS_PER_UNIT = 16
+SCOOTER_ANIMATIONS = "animations/yasu_ride/scooter.anim.json"
+# SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16 model pixels (ADR 0251).
+SCOOTER_FLIGHT_LIFT = 24.0
+SCOOTER_POOL_LAYERS = 20
+SCOOTER_POOL_SEGMENTS = 48
+SCOOTER_POOL_RADIUS_RATIO = 1.6
+SCOOTER_POOL_ALPHA = 0.07
+SCOOTER_POOL_COLOR = GLOW_LIT
 SCOOTER_LIT_TEXTURE = "textures/entity/yasu_ride/scooter_lit.png"
 SCOOTER_POSES = {
     "scooter-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
-    "scooter-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
+    "scooter-flying-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
     "scooter-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": SIDE_BRIGHTNESS},
     "scooter-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
     # Framed on the tail lamp alone, so it is rendered apart from the shared scale (see render_scooter).
@@ -485,12 +494,12 @@ class FlightPose:
 
 
 def build_flight_pose(animations, animation_name, *, lift):
-    """Read wheel and fold bones from a kind's wheels_folded animation (ADR 0022)."""
+    """Read static wheel rolls and bone offsets from a kind's flight animation (ADR 0022)."""
     bones = animations["animations"][animation_name]["bones"]
     return FlightPose({
-        name: (pose["rotation"][2], pose["position"])
+        name: (pose.get("rotation", [0, 0, 0])[2], pose.get("position", [0, 0, 0]))
         for name, pose in bones.items()
-        if name.startswith("wheel_")
+        if (name.startswith("wheel_") and "rotation" in pose) or set(pose) == {"position"}
     }, lift)
 
 
@@ -625,7 +634,7 @@ def collect(geo, texture, turns, pose, lit_texture=None, lit_bones=SUV_LIT_BONES
     return polygons
 
 
-def ground_layers(polygons, pose, ground_y, *, flight: FlightPose | None = None):
+def ground_layers(polygons, pose, ground_y, *, flight: FlightPose | None = None, glow_pools=None):
     """Translucent quads on the ground as (quad, alpha, rgb): the shadow, then the headlight beam, the
     seabed, or the glow pools of the pose."""
     points = [p for quad, _, emissive in polygons if not emissive for p in quad]
@@ -651,7 +660,9 @@ def ground_layers(polygons, pose, ground_y, *, flight: FlightPose | None = None)
             g = SEABED_MARGIN * (layer + 1) / SEABED_LAYERS
             quad = [(x_lo - g, ground_y, z_lo - g), (x_hi + g, ground_y, z_lo - g), (x_hi + g, ground_y, z_hi + g), (x_lo - g, ground_y, z_hi + g)]
             layers.append((quad, SEABED_ALPHA, SEABED_COLOR))
-    if flight is not None:
+    if glow_pools is not None:
+        layers.extend(glow_pools)
+    elif flight is not None:
         for quad, _, emissive in polygons:
             if emissive != "disc" or quad[0][1] != min(p[1] for p in quad):
                 continue
@@ -1218,19 +1229,60 @@ def render_camper(rp: Path, icon_path: Path | None) -> SceneResult:
     return SceneResult(images, None)
 
 
+def scooter_glow_pools(geo, texture, pose, flight, ground_y):
+    layers = []
+    for bone in geo["bones"]:
+        if not bone["name"].startswith("glow_"):
+            continue
+        # One pool per assembly avoids stacking light for every overlapping disc face.
+        disc_geo = {**geo, "bones": [b if b is bone else {**b, "cubes": []} for b in geo["bones"]]}
+        discs, _ = collect_boat(disc_geo, texture, pose, flight=flight)
+        points = [p for quad, _, _ in discs for p in quad]
+        x_lo, x_hi = min(p[0] for p in points), max(p[0] for p in points)
+        z_lo, z_hi = min(p[2] for p in points), max(p[2] for p in points)
+        cx, cz = (x_lo + x_hi) / 2, (z_lo + z_hi) / 2
+        radius = max(x_hi - x_lo, z_hi - z_lo) / 2 * SCOOTER_POOL_RADIUS_RATIO
+        for layer in range(SCOOTER_POOL_LAYERS):
+            fraction = (layer + 1) / SCOOTER_POOL_LAYERS
+            ring = []
+            for segment in range(SCOOTER_POOL_SEGMENTS):
+                sine, cosine = sin_cos(360 * segment / SCOOTER_POOL_SEGMENTS - 180)
+                ring.append((cx + radius * fraction * cosine, ground_y, cz + radius * fraction * sine))
+            layers.append((ring, SCOOTER_POOL_ALPHA * (1 - fraction), SCOOTER_POOL_COLOR))
+    return layers
+
+
 def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / SCOOTER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / SCOOTER_TEXTURE)
-    # The road pose has no hover discs: the render controller hides the glow bones on the ground.
-    geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
+    # The road pose has no hover discs: the render controller hides the glow bones on the ground,
+    # and the rear stem is squashed flat against the cowl by the ground animation.
+    ground_geo = {**geo, "bones": [b for b in geo["bones"]
+                                   if not b["name"].startswith("glow_") and b["name"] != "wheel_rear_stem"]}
     # Only the texels the lit texture marks glow, so the lens stays round and the rim stays chrome.
     texture = combine_textures(texture, read_png(rp / SCOOTER_LIT_TEXTURE))
-    shared = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" not in p}
+    flight_name = "scooter-flying-headlights.png"
+    shared = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" not in p and n != flight_name}
     close = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" in p}
     images = {}
     for poses in (shared, close):
-        images.update(render_poses(geo, texture, poses, {}, texture_mapping=True, cache_faces=True,
+        images.update(render_poses(ground_geo, texture, poses, {}, texture_mapping=True, cache_faces=True,
                                    defer_textures=True, texel_lit=True))
+    animations = json.loads((rp / SCOOTER_ANIMATIONS).read_text())
+    flight = build_flight_pose(animations, "animation.yasu_ride.scooter.wheels_folded", lift=SCOOTER_FLIGHT_LIFT)
+    pose = SCOOTER_POSES[flight_name]
+    flight_geo = static_pose(geo, animations["animations"]["animation.yasu_ride.scooter.stand_up"])
+    polygons, glass = collect_boat(flight_geo, texture, pose, {}, texture_mapping=True, face_cache={},
+                                   defer_textures=True, texel_lit=True, flight=flight)
+    ground_y = min(p[1] for quad, _, _ in images["scooter-front-left.png"].polygons for p in quad)
+    pools = scooter_glow_pools(flight_geo, texture, pose, flight, ground_y)
+    layers = ground_layers(polygons, pose, ground_y, flight=flight, glow_pools=pools)
+    # Flight gets its own frame so its lift and light pools cannot rescale the ground previews.
+    camera = Camera([p for quad, _, _ in polygons for p in quad], pose["view"], pose["screen_up"])
+    # The headlight beam can leave the picture without shrinking the vehicle.
+    frame_layers = ground_layers(polygons, {**pose, "lamps": False}, ground_y, flight=flight, glow_pools=pools)
+    to_screen = fit(camera, [q for q, _, _ in polygons + frame_layers])
+    images[flight_name] = RasterJob(flight_name, polygons, layers, to_screen, WIDTH, HEIGHT, None, BLOOM, glass)
     return SceneResult({name: images[name] for name in SCOOTER_POSES}, None)
 
 
@@ -1499,30 +1551,50 @@ def render_icon(geo, polygons, camera, target_name, flight: FlightPose):
     return RasterJob(target_name, polygons, [], to_screen, size, size, background, {}, ())
 
 
-SCENE_BUILDERS: tuple[tuple[str, Callable[[Path, Path | None], SceneResult]], ...] = (
-    ("suv", render_suv),
-    ("boat", render_boat),
-    ("camper", render_camper),
-    ("bulldozer", render_bulldozer),
-    ("scooter", render_scooter),
-    ("gear", render_camping_gear),
+@dataclass(frozen=True)
+class Scene:
+    name: str
+    build: Callable[[Path, Path | None], SceneResult]
+
+
+# A scene owns the images and icons its builder returns. Pack icons belong to the suv
+# scene, and gear item icons belong to the gear scene.
+SCENES: tuple[Scene, ...] = (
+    Scene("suv", render_suv),
+    Scene("boat", render_boat),
+    Scene("camper", render_camper),
+    Scene("bulldozer", render_bulldozer),
+    Scene("scooter", render_scooter),
+    Scene("gear", render_camping_gear),
 )
+SCENE_NAMES: tuple[str, ...] = tuple(scene.name for scene in SCENES)
 
 
-def render(rp, icon_path=None):
+def select_scenes(names: Sequence[str] | None) -> tuple[Scene, ...]:
+    if names is None:
+        return SCENES
+    unknown = [name for name in names if name not in SCENE_NAMES]
+    if unknown:
+        raise ValueError(f"Unknown scene '{unknown[0]}'; valid names: {', '.join(SCENE_NAMES)}")
+    wanted = set(names)
+    return tuple(scene for scene in SCENES if scene.name in wanted)
+
+
+def render(rp, icon_path=None, scenes=SCENES):
     images = {}
     icon = None
-    for _, builder in SCENE_BUILDERS:
-        result = builder(rp, icon_path)
+    for scene in scenes:
+        result = scene.build(rp, icon_path)
         images.update(result.images)
         if result.icon is not None:
             icon = result.icon
     return images, icon
 
 
-def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path]) -> list[RasterJob]:
+def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path],
+                scenes: tuple[Scene, ...] = SCENES) -> list[RasterJob]:
     """Every job named by its target path; the one pack icon job stands for all icon packs."""
-    images, icon = render(rp, icon_packs[0] / "pack_icon.png" if icon_packs else None)
+    images, icon = render(rp, icon_packs[0] / "pack_icon.png" if icon_packs else None, scenes)
     jobs = [replace(job, name=str(output_dir / job.name)) for job in images.values()]
     if icon is not None:
         jobs.append(icon)
@@ -1574,6 +1646,8 @@ def main():
     parser.add_argument("--gear", help="camping gear item id for named review views")
     parser.add_argument("--out", type=Path, help="output directory for a named photo view")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--scene", action="append", metavar="NAME",
+                        help=f"render only this scene (repeatable): {', '.join(SCENE_NAMES)}")
     parser.add_argument("--icons", nargs="+", type=Path, default=[])
     parser.add_argument("--jobs", type=int, default=None, help="number of workers (default: CPU count)")
     parser.add_argument("--beach-chair-form", choices=("chair", "table"),
@@ -1582,8 +1656,14 @@ def main():
                         help="photo view name, or three camera direction numbers with --beach-chair-form")
     parser.add_argument("--lid", type=float, help=f"lid opening in degrees (0 to {LID_OPEN}), with a named view")
     parser.add_argument("--timing", action="store_true",
-                        help="print the raster_jobs and rasterize_all durations to stderr (full render and --check only)")
+                        help="print phase durations and, with --scene, per-scene build durations and job counts to stderr")
     args = parser.parse_args()
+    try:
+        scenes = select_scenes(args.scene)
+    except ValueError as e:
+        parser.error(str(e))
+    if args.scene and (args.gear is not None or args.view is not None or args.beach_chair_form):
+        parser.error("--scene cannot be combined with --gear, --view, or --beach-chair-form")
     if args.gear is not None:
         items = {item["id"]: item for item in json.loads(GEAR_SPEC.read_text())}
         if args.gear not in items:
@@ -1656,7 +1736,16 @@ def main():
                             read_png(args.resource_pack / BEACH_CHAIR_TEXTURE), 800, name,
                             animation=animation, view=direction)]
     else:
-        jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
+        if args.scene and args.timing:
+            jobs = []
+            for scene in scenes:
+                build_started = time.perf_counter()
+                scene_jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons, scenes=(scene,))
+                build_seconds = time.perf_counter() - build_started
+                print(f"scene={scene.name} build={build_seconds:.2f} jobs={len(scene_jobs)}", file=sys.stderr)
+                jobs.extend(scene_jobs)
+        else:
+            jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons, scenes=scenes)
         scene_done = time.perf_counter()
     pixel_sets = rasterize_all(jobs, args.jobs)
     rasterized = time.perf_counter()
