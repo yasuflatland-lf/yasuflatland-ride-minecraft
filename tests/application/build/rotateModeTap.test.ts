@@ -80,7 +80,7 @@ it("ignores absent sessions, every other flow, and rotation in another dimension
       material: stone,
       op: "fillBelow",
     },
-    { kind: "pasteAim" },
+    { kind: "pasteAim", manualTurn: 0 },
     beginRotateMode(nether, box, stone, 1),
   ];
   for (const flow of flows) {
