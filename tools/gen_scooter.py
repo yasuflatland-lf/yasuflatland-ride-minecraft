@@ -62,13 +62,13 @@ BONES = (
     ("root", None, (0, 0, 0)),
     ("body", "root", (0, 0, 0)),
     ("steer", "root", dims.STEER_PIVOT),
-    ("wheel_front_fold", "steer", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
-    ("wheel_front", "wheel_front_fold", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
-    ("glow_front", "wheel_front_fold", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
+    (dims.FOLD_BONES["front"], "steer", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
+    ("wheel_front", dims.FOLD_BONES["front"], (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
+    ("glow_front", dims.FOLD_BONES["front"], (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
     ("headlights", "steer", (0, 0, 0)),
-    ("wheel_rear_fold", "body", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
-    ("wheel_rear", "wheel_rear_fold", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
-    ("glow_rear", "wheel_rear_fold", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
+    (dims.FOLD_BONES["rear"], "body", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
+    ("wheel_rear", dims.FOLD_BONES["rear"], (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
+    ("glow_rear", dims.FOLD_BONES["rear"], (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
     ("stand", "body", dims.STAND_PIVOT),
     ("tail_lights", "body", (0, 0, 0)),
     ("seat_0", "body", (0, dims.SEAT_Y, dims.DRIVER_SEAT_Z)),
@@ -111,7 +111,7 @@ def build():
     for name, cubes in merged.items():
         if name not in allowed:
             raise ValueError(f"Unknown scooter bone: {name}")
-        if name.endswith("_fold") and cubes:
+        if name in dims.FOLD_BONES.values() and cubes:
             raise ValueError(f"Fold bone must not carry cubes: {name}")
     for name, cubes in _placeholders().items():
         if not merged.get(name):
