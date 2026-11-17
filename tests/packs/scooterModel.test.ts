@@ -25,9 +25,9 @@ type AreaRow = {
 // One row per area module (issues 6 to 11 each append one row).
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
-  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand"], cubes: 740 },
+  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand", "running_pedal"], cubes: 743 },
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1150 },
-  { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_plate"], cubes: 251 },
+  { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"], cubes: 363 },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 320 },
   { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"], cubes: 520 },
   { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"], cubes: 650 },
@@ -268,7 +268,8 @@ print(json.dumps(deviations))
     expect(AREAS.map((row) => row.area)).toEqual(metadata.areas);
     expect(
       AREAS.reduce((total, row) => total + row.cubes, 0),
-    ).toBeLessThanOrEqual(metadata.budget);
+    ).toBeLessThanOrEqual(metadata.ceiling);
+    expect(cubes.length).toBeLessThanOrEqual(metadata.budget);
     expect(AREAS.flatMap((row) => row.assemblies).sort()).toEqual(
       Object.keys(metadata.table).sort(),
     );

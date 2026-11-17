@@ -48,12 +48,12 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 
 ### Scooter README previews
 
-- Applies to: The four `scooter-*.png` README previews only.
-- Rule: `render_scooter` draws the road pose of the default white paint with the hover glow bones left out, as the render controller hides them on the ground, and lights the `headlights` and `tail_lights` bones for the dusk picture. The four views reuse the bulldozer's camera directions: front-left, front-left at dusk with the lamps on, side and rear. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
+- Applies to: The five `scooter-*.png` previews only.
+- Rule: `render_scooter` draws the road pose of the default white paint with the hover glow bones left out, as the render controller hides them on the ground, and lights the `headlights` and `tail_lights` bones for the dusk picture. The four views reuse the bulldozer's camera directions: front-left, front-left at dusk with the lamps on, side and rear. A fifth picture, `scooter-taillights.png`, lights the lamps at dusk from the rear three-quarter and frames only the `tail_lights` bone with padding (`frame_bones`, `frame_pad`), so it is rendered apart from the shared scale. Only the lit lens glows: the lit texture and MER mask follow the opaque texels of the head lens and tail lens regions, so no bezel, hood, plate or rectangular panel glows. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Generate it with `tools/gen_scooter.py`"; [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
-- Implementation: `tools/render_preview.py` (`render_scooter`, `SCOOTER_POSES`, `SCOOTER_LIT`, `SCENE_BUILDERS`); `docs/images/scooter-front-left.png`; `docs/images/scooter-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`
-- Verification: `tests/tools/renderPreview.test.ts` "renders four previews from the camper's angles without hover discs" and the scene list test; `pnpm model:check` checks preview freshness. Not verified: how the curved panels compare with the photos beyond the rendered images.
+- Implementation: `tools/render_preview.py` (`render_scooter`, `SCOOTER_POSES`, `SCOOTER_LIT`, `SCENE_BUILDERS`); `docs/images/scooter-front-left.png`; `docs/images/scooter-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`; `docs/images/scooter-taillights.png`
+- Verification: `tests/tools/renderPreview.test.ts` "renders four previews from the camper's angles plus a framed tail lamp close-up, without hover discs" and the scene list test; `pnpm model:check` checks preview freshness. Not verified: how the curved panels compare with the photos beyond the rendered images.
 
 ### Scooter generator foundation
 
@@ -71,14 +71,19 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
   `MDR` over `39` from behind, with its horizontal raster reversed for Bedrock's rear-view
   coordinate convention after the final x mirror.
-  The 80-cube rear lamp has one round, 0.6-unit-radius domed red lens seated on
-  the cowl tip, with 16-point circular rings, full tangent frames, 0.01-unit panel
-  margins and alpha-clipped tapered panels. A continuous chrome tube bezel and short
-  skirt follow the calibrated tail-wall contour, with each skirt contact embedded
-  0.1 units along z. The skirt may clear the wall by at most 0.1 units or embed by
-  at most 0.2 units. Chrome stays on `body` and the single red lens on `tail_lights`.
-  The upright plate tilts back by 0.42 radians directly below the bezel with a tiny
-  gap, its top edge within 0.5 units of the wall and its short bracket embedded.
+  The rear lamp uses the spike's 0.9 group scale and 16-point, n=3 superellipse
+  housing rings, with half-widths 0.82 to 1.21 and half-heights 0.46 to 0.69 before
+  scaling. Its broad red lens has a vertical gradient and top highlight, a pale
+  bezel with a dark outline, and a closed chrome tube rim. The short ribbed grey
+  housing has a contact skirt embedded 0.1 units into the calibrated cowl wall.
+  A separate eight-segment red dome sits on a chrome base above the lens, with
+  two chrome cage arcs. Side flanges have dark insets, and two thin chrome
+  straps trim the tapered lower housing. Chrome stays on `body`; the red lens
+  and dome stay on `tail_lights`. The main face uses `lens_tail_glow`.
+  The 3.0 by 3.3 plate sits directly below the housing and tilts by -0.36 radians,
+  with its bottom projecting backwards clear of the cowl. Its 128 by 140 texture
+  carries a blue border and large `MDR` over `39`, with four chrome corner studs
+  and a thin chrome lower tube bracket.
 
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
 `glow_front`, `headlights`, `wheel_rear_fold`, `wheel_rear`, `glow_rear`, `stand`, `tail_lights`, `seat_0`,
@@ -107,10 +112,11 @@ preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
 
 The rear area supplies the seat, lamp housing, tail lens, and plate through
-`rear_seat`, `rear_lamp`, and `rear_plate`. Only the red lens belongs to
+`rear_seat`, `rear_lamp`, `rear_dome`, `rear_cage`, `rear_flange`, and
+`rear_plate`. Only the red lens and dome belong to
 `tail_lights`; the remaining rear geometry stays on `body`. Seat alpha masks use
 24 texels per model unit and pack in descending height order so the combined
-atlas fits the 2048-texel side limit. The rear allocation remains 251 cubes.
+atlas fits the 2048-texel side limit. The rear allocation is 363 cubes.
 
 The engine area supplies 319 cubes on `body`: the compact
 cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
@@ -127,8 +133,7 @@ mirror glass, and chrome mirror backs.
 
 The whole-vehicle target is 3,700 cubes, including 32 glow cubes;
 generation rejects more than the 3,800-cube ceiling. The finished
-generated model has 3,546 cubes: 1,928 on `body`, 867 on `steer`, 294 on each wheel,
-73 on `headlights`, 48 on `tail_lights`, 16 on each glow bone and 10 on `stand`. The
+generated model has 3,661 cubes, including 49 on `tail_lights`. The
 kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,

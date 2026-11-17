@@ -42,8 +42,10 @@ SIDE_EULER_YXZ = (0.009094408239098302, 1.5530540217458202, 0.013353457932479265
 SIDE_FOCAL = 1341.9033074952995
 SIDE_CENTER = (637.4085583675401, 133.03247667128977)
 
-LAMP_CENTER_Y = 10.0
-LAMP_RADIUS = 0.60
+LAMP_CENTER_Y = 9.774
+LAMP_SCALE = 0.9
+LAMP_TILT = -0.23
+LAMP_OFFSET = 0.45
 LAMP_EMBED = 0.10
 LAMP_WALL_TOLERANCE = 0.1
 LAMP_WALL_EMBED_LIMIT = 0.2
@@ -51,40 +53,45 @@ LAMP_PANEL_MARGIN = 0.01
 LAMP_MASK_DENSITY = 32
 LAMP_MASK_OVERLAP = 0.03
 LAMP_RING_POINTS = 16
-LAMP_SQUARENESS = 2.0
-LAMP_SKIRT_RADIUS = 0.71
-LAMP_SKIRT_SKIN = 0.04
-LAMP_LENS_SKIN = 0.04
-LAMP_RIM_RADIUS = 0.68
-LAMP_RIM_SIZE = 0.10
-LAMP_RIM_LIFT = 0.06
-LAMP_DOME = ((LAMP_RADIUS, 0.0), (0.52, 0.17), (0.32, 0.29), (0.0, 0.35))
+LAMP_SQUARENESS = 3.0
+LAMP_SKIN = 0.04
+LAMP_RIM_SIZE = 0.065
+LAMP_RIM_LIFT = 0.94
+LAMP_DOME_ASSEMBLY = "rear_dome"
+LAMP_CAGE_ASSEMBLY = "rear_cage"
+LAMP_FLANGE_ASSEMBLY = "rear_flange"
+LAMP_HOUSING = ((0.82, 0.46, -0.48), (1.12, 0.66, 0.02),
+                (1.21, 0.68, 0.48), (1.13, 0.61, 0.72))
+LAMP_HOOD = ((0.03, 0.03, -0.03, 0.82), (0.46, 0.49, -0.12, 0.91),
+             (0.44, 0.55, 0.22, 0.91), (0.33, 0.45, 0.65, 0.86),
+             (0.01, 0.01, 0.72, 0.8))
+LAMP_LOWER = ((0.82, 0.10, -0.72, -0.62), (1.08, 0.13, 0.10, -0.61),
+              (0.92, 0.09, 0.75, -0.54))
+LAMP_FACE_TEXELS = (128, 80)
+LAMP_GRADIENT = ((0.0, (180, 58, 48)), (0.38, (124, 13, 17)), (1.0, (63, 5, 8)))
 
-PLATE_TILT = -0.42
-PLATE_WALL_TOLERANCE = 0.5
-PLATE_WALL_CLEARANCE = 0.5
-PLATE_LAMP_GAP = 0.035
+PLATE_TILT = -0.36
 PLATE_WIDTH = 3.0
 PLATE_HEIGHT = 3.3
 PLATE_THICK = 0.15
-PLATE_BRACKET_Y = 1.65
+PLATE_BRACKET_Y = -1.72
 PLATE_BRACKET_SAG = 0.035
 PLATE_BRACKET_HALF = 1.56
 PLATE_BRACKET_POINTS = 5
 PLATE_BRACKET_SIZE = 0.055
-PLATE_BRACKET_Z = -0.74
+PLATE_BRACKET_Z = 0.09
 FASTENER_X = 1.32
 FASTENER_Y = 1.47
 FASTENER_HALF = 0.065
 FASTENER_THICK = 0.04
 FASTENER_LIFT = 0.04
 
-TEXELS_PER_PIXEL = 8
-PLATE_TEXELS = (24, 26)
+PLATE_TEXELS = (128, 140)
 PLATE_INK = (29, 60, 107)
 PLATE_PAPER = (242, 242, 238)
-PLATE_BORDER = 1
-LINE_ROWS = ((3, 12), (14, 23))
+PLATE_BORDER = 5
+LINE_ROWS = ((18, 64), (78, 124))
+GLYPH_SCALE = 6
 GLYPH_ROWS = 7
 GLYPH_COLS = 5
 GLYPH_GAP = 1
@@ -107,7 +114,7 @@ def _plate_pixel(u, v):
     for text, (top, bottom) in zip(PLATE_LINES, LINE_ROWS):
         if top <= v <= bottom:
             span = len(text) * GLYPH_COLS + (len(text) - 1) * GLYPH_GAP
-            column = u - (width - span) // 2
+            column = (u - (width - span * GLYPH_SCALE) // 2) // GLYPH_SCALE
             if 0 <= column < span:
                 index, within = divmod(column, GLYPH_COLS + GLYPH_GAP)
                 if within < GLYPH_COLS:
@@ -117,10 +124,36 @@ def _plate_pixel(u, v):
     return (*PLATE_PAPER, 255)
 
 
+def _lamp_face_pixel(u, v, bezel=False):
+    x, y = (u + 0.5) / 64 - 1, (v + 0.5) / 40 - 1
+    radius = abs(x) ** LAMP_SQUARENESS + abs(y) ** LAMP_SQUARENESS
+    inner = abs(x / 0.84) ** LAMP_SQUARENESS + abs(y / 0.76) ** LAMP_SQUARENESS
+    if bezel:
+        if radius > 1 or inner <= 1:
+            return atlas.CLEAR
+        color = (59, 55, 50) if radius > 0.85 else (224, 227, 223)
+        return (*color, 255)
+    if inner > 1:
+        return atlas.CLEAR
+    if 29 <= u <= 94 and 19 <= v <= 22:
+        return (184, 58, 58, 255)
+    t = max(0, min(1, (v - 12) / 56))
+    for (a, ca), (b, cb) in zip(LAMP_GRADIENT, LAMP_GRADIENT[1:]):
+        if a <= t <= b:
+            return tuple(round(x + (y - x) * (t - a) / (b - a)) for x, y in zip(ca, cb)) + (255,)
+
+
 def register_regions(registry):
     if PLATE_NAME in registry._regions:
         return
     registry.register(atlas.Region(PLATE_NAME, *PLATE_TEXELS, atlas.Material.PLATE, _plate_pixel))
+    registry.register(atlas.Region("tail_bezel", *LAMP_FACE_TEXELS, atlas.Material.CHROME,
+                                   lambda u, v: _lamp_face_pixel(u, v, True)))
+    registry._regions["lens_tail_glow"] = atlas.Region(
+        "lens_tail_glow", *LAMP_FACE_TEXELS, atlas.Material.LENS, _lamp_face_pixel)
+    registry._layout = None
+    registry.register(atlas.Region("tail_housing", 16, 16, atlas.Material.CHROME,
+                                   lambda u, v: (*( (115, 123, 125) if v % 4 < 2 else (169, 178, 180)), 255)))
 
 
 def _smooth_at(points, x):
@@ -224,10 +257,8 @@ def _ring(w, h, z, cy=0.0, n=LAMP_SQUARENESS, points=LAMP_RING_POINTS):
 
 
 def _lamp_frame():
-    slope = next((b[1] - a[1]) / (b[0] - a[0])
-                 for a, b in zip(TAIL_WALL, TAIL_WALL[1:]) if a[0] <= LAMP_CENTER_Y <= b[0])
-    tilt = math.atan(slope)
-    origin = [0, LAMP_CENTER_Y, _wall_z(LAMP_CENTER_Y)]
+    tilt = LAMP_TILT
+    origin = [0, LAMP_CENTER_Y, _wall_z(LAMP_CENTER_Y) + LAMP_OFFSET]
 
     def place(point):
         rotated = _rot_x(point, tilt)
@@ -321,37 +352,80 @@ def _seat(result):
 
 
 def _lamp(result):
-    place = _lamp_frame()
-    chrome, glow = atlas.faces("chrome"), atlas.faces("lens_tail_glow")
+    register_regions(atlas.REGISTRY)
+    frame = _lamp_frame()
+
+    def place(p):
+        return frame([v * LAMP_SCALE for v in p])
+
+    chrome = atlas.faces("chrome")
     panel_index = 0
 
-    def skin(rings, thick, faces):
+    def skin(rings, faces, bone="body", assembly=LAMP_ASSEMBLY):
         nonlocal panel_index
         cubes = []
         for a, b in zip(rings, rings[1:]):
             for j in range(len(a)):
                 cube = _lamp_panel(a[j], a[(j+1) % len(a)], b[j], b[(j+1) % len(a)],
-                                   thick, faces, kit._centroid(a+b), f"lamp_panel_{panel_index}")
+                                   LAMP_SKIN, faces, kit._centroid(a+b), f"lamp_panel_{panel_index}")
                 panel_index += 1
                 if cube is not None:
                     cubes.append(cube)
-        return cubes
+        result.add(bone, cubes, assembly)
 
-    rim = [place(p) for p in _ring(LAMP_RIM_RADIUS, LAMP_RIM_RADIUS, LAMP_RIM_LIFT)]
-    contact = [place(p) for p in _ring(LAMP_SKIRT_RADIUS, LAMP_SKIRT_RADIUS, 0)]
-    # Fit every contact to the wall, including bends outside the centre tangent plane.
-    contact = [[x, y, _wall_z(y) - LAMP_EMBED] for x, y, _ in contact]
-    result.add("body", skin([contact, rim], LAMP_SKIRT_SKIN, chrome), LAMP_ASSEMBLY)
-    result.add("body", kit.tube([*rim, rim[0]], LAMP_RIM_SIZE, chrome, LAMP_ASSEMBLY), LAMP_ASSEMBLY)
-    lens = [[place(p) for p in _ring(radius, radius, LAMP_RIM_LIFT + rise)]
-            for radius, rise in LAMP_DOME]
-    result.add("tail_lights", skin(lens, LAMP_LENS_SKIN, glow), LAMP_ASSEMBLY)
+    def rings(spec, points=LAMP_RING_POINTS, n=LAMP_SQUARENESS):
+        return [[place(p) for p in _ring(*row, n=n, points=points)] for row in spec]
+
+    housing = rings(LAMP_HOUSING)
+    contact = [[x, y, _wall_z(y) - LAMP_EMBED] for x, y, _ in housing[0]]
+    skin([contact, housing[0]], chrome)
+    skin(housing, atlas.faces("tail_housing"))
+    rim = rings(((1.17, 0.65, LAMP_RIM_LIFT),))[0]
+    result.add("body", kit.tube([*rim, rim[0]], LAMP_RIM_SIZE, chrome, LAMP_ASSEMBLY))
+    skin(rings(((1.13, 0.61, 0.72), (1.10, 0.58, LAMP_RIM_LIFT))),
+         atlas.faces("lens_tail"), "tail_lights")
+    for region, bone in (("tail_bezel", "body"), ("lens_tail_glow", "tail_lights")):
+        corners = [place([x, y, 0.98]) for y in (-0.61, 0.61) for x in (-1.13, 1.13)]
+        faces = {**atlas.faces("clear"), "south": atlas.face(region)}
+        result.add(bone, kit.quad(*corners, 0.015, faces, place([0, 0, 0]), LAMP_ASSEMBLY))
+
+    hood = rings(LAMP_HOOD, points=8, n=2)
+    skin(hood, atlas.faces("lens_tail"), "tail_lights", LAMP_DOME_ASSEMBLY)
+    base = [[place([0.5 * math.cos(j*math.pi/4), y, 0.2 + 0.48 * math.sin(j*math.pi/4)])
+             for j in range(8)] for y in (0.66, 0.8)]
+    skin(base, chrome, assembly=LAMP_DOME_ASSEMBLY)
+    result.add("body", kit.tube([*hood[1], hood[1][0]], 0.055, chrome, LAMP_DOME_ASSEMBLY))
+    for sx in (-1, 1):
+        arc = [place([sx*x, y, z]) for x, y, z in
+               ((0.95, 0.42, 0.87), (0.85, 0.66, 0.25), (0.6, 1.29, -0.03), (0.35, 1.35, -0.03))]
+        result.add("body", kit.tube(arc, 0.06, chrome, LAMP_CAGE_ASSEMBLY))
+    skin(rings(LAMP_LOWER), atlas.faces("tail_housing"))
+    for sx in (-1, 1):
+        strap = [place([sx*w, cy, z]) for w, _, z, cy in LAMP_LOWER]
+        result.add("body", kit.tube(strap, 0.045, chrome, LAMP_CAGE_ASSEMBLY))
+
+    for name, x, outline, material in (
+        ("tail_flange", 1.03, ((-0.85,-0.6),(-0.78,0.48),(-0.37,0.63),(0.65,0.31),
+                               (0.85,-0.22),(0.45,-0.66),(-0.15,-0.78)), "chrome"),
+        ("tail_flange_inset", 1.065, ((-0.66,-0.47),(-0.57,0.33),(-0.31,0.45),
+                                     (0.45,0.18),(0.62,-0.18),(0.27,-0.49)), "rubber")):
+        if name not in atlas.REGISTRY._regions:
+            width, height, pixel = atlas.outline_pixel(outline, 48, atlas.REGISTRY._regions[material].pixel)
+            atlas.register(name, width, height, atlas.REGISTRY._regions[material].material, pixel)
+        z0, z1 = min(p[0] for p in outline), max(p[0] for p in outline)
+        y0, y1 = min(p[1] for p in outline), max(p[1] for p in outline)
+        for sx in (-1, 1):
+            corners = [place([sx*x, y, z]) for z in (z0, z1) for y in (y0, y1)]
+            result.add("body", kit.quad(*corners, 0.025, {**atlas.faces("clear"), "south": atlas.face(name)},
+                                       place([0, 0, 0]), LAMP_FLANGE_ASSEMBLY))
 
 
 def _plate(result):
-    top_y = min(_lamp_frame()(p)[1] for p in _ring(LAMP_RIM_RADIUS, LAMP_RIM_RADIUS, LAMP_RIM_LIFT)) - LAMP_RIM_SIZE / 2 - PLATE_LAMP_GAP
-    top = _rot_x([0, PLATE_HEIGHT/2, PLATE_THICK/2], PLATE_TILT)
-    base = [0, top_y - top[1], _wall_z(top_y) + PLATE_WALL_CLEARANCE - top[2]]
+    top = _lamp_frame()([0, -0.72 * LAMP_SCALE, 0.75 * LAMP_SCALE])
+    top[1] = min(_lamp_frame()([v * LAMP_SCALE for v in p])[1]
+                 for row in LAMP_LOWER for p in _ring(*row)) - 0.02
+    offset = _rot_x([0, PLATE_HEIGHT/2, PLATE_THICK/2], PLATE_TILT)
+    base = [top[i] - offset[i] for i in range(3)]
 
     def place(x, y, z):
         local = _rot_x([x, y, z], PLATE_TILT)

@@ -254,6 +254,18 @@ def _stand(result):
                                  chrome))
 
 
+def _pedal(result):
+    z0, y0 = dims.i2m(465, 415)
+    z1, _ = dims.i2m(515, 415)
+    # The pivot starts on the deck; final x mirroring puts it on the rider's right.
+    result.add("body", kit.box((1.4, 5.32, z0 - 0.6), (1.9, y0 + 0.02, z0),
+                               atlas.faces("chrome")), "running_pedal")
+    result.add("body", kit.box((1.3, y0 - 0.15, z1), (2.0, y0 + 0.25, z0),
+                               atlas.faces("chrome")), "running_pedal")
+    result.add("body", kit.box((1.25, y0 + 0.2, z1 + 0.2), (2.05, y0 + 0.45, z1 + 1.4),
+                               atlas.faces("rubber")), "running_pedal")
+
+
 def build():
     register_regions()
     result = kit.AreaCubes()
@@ -261,4 +273,5 @@ def build():
     _wheel(result, "rear", dims.REAR_AXLE_Z, REAR_WHEEL_SCALE)
     _fork(result)
     _stand(result)
+    _pedal(result)
     return result

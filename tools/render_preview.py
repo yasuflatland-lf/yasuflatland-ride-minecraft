@@ -22,7 +22,8 @@ Four bulldozer pictures share a fourth scale: front-left, headlights at dusk, si
 showing only the first grouser phase and no propeller (ADR 0136). The beacon stays unlit: it faces
 backward on the cab roof, so the cab hides it from the front-left dusk view.
 Four scooter pictures share a fifth scale: front-left, headlights at dusk, side, and rear, in the
-default white road pose without the hover discs (ADR 0251).
+default white road pose without the hover discs (ADR 0251). A fifth, scooter-taillights.png, frames
+the tail lamp alone at dusk with the lamps on, so it has its own scale.
 
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
@@ -187,6 +188,8 @@ SCOOTER_POSES = {
     "scooter-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
     "scooter-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": SIDE_BRIGHTNESS},
     "scooter-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
+    # Framed on the tail lamp alone, so it is rendered apart from the shared scale (see render_scooter).
+    "scooter-taillights.png": {"lamps": True, "dusk": True, "view": (0.7, 0.2, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "frame_bones": ("tail_lights",), "frame_pad": 2.7},
 }
 
 # Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,
@@ -726,6 +729,7 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
     opacity = {}
     turns = bone_turns(geo["bones"])
     for bone in geo["bones"]:
+        framed = frame_quads if not pose.get("frame_bones") or bone["name"] in pose["frame_bones"] else None
         color = lit.get(bone["name"]) if pose["lamps"] else None
         for cube in bone.get("cubes", []):
             for face, quad in cube_faces({**cube, "rotation": game_turn(cube.get("rotation", [0, 0, 0]))}):
@@ -737,8 +741,8 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                     continue
                 if color is not None and not cutout:
                     polygons.append((quad, color, "lamp"))
-                    if frame_quads is not None:
-                        frame_quads.append(quad)
+                    if framed is not None:
+                        framed.append(quad)
                     continue
                 # Mirroring x reverses winding; textured gear opts into outward normals.
                 if pose.get("outward_normals", False):
@@ -757,8 +761,8 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                             k, tint, face_lift, pose.get('merge_texels', False),
                             pose.get('cells_per_unit'), face_cache, cache_key,
                             bool(pose["lamps"] and texel_lit)), None))
-                        if frame_quads is not None:
-                            frame_quads.append(quad)
+                        if framed is not None:
+                            framed.append(quad)
                         continue
                 if texture_mapping:
                     key = cache_key
@@ -772,13 +776,13 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                             face_cache[key] = patches
                 else:
                     patches = [(quad, face_color(texture, uv, desc["texture_width"], desc["texture_height"]))]
-                if frame_quads is not None:
+                if framed is not None:
                     patches = list(patches)
                     if patches and all(pixel[3] == 255 for _, pixel in patches):
                         # Perspective extrema of an opaque planar face occur at its corners.
-                        frame_quads.append(quad)
+                        framed.append(quad)
                     else:
-                        frame_quads.extend(patch for patch, pixel in patches if pixel[3] == 255)
+                        framed.extend(patch for patch, pixel in patches if pixel[3] == 255)
                 for patch, texel in patches:
                     r, g, b, a = texel[:4]
                     if cutout and a < CUTOUT_ALPHA:
@@ -1186,9 +1190,13 @@ def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Only the texels the lit texture marks glow, so the lens stays round and the rim stays chrome.
     texture = combine_textures(texture, read_png(rp / SCOOTER_LIT_TEXTURE))
-    images = render_poses(geo, texture, SCOOTER_POSES, {}, texture_mapping=True, cache_faces=True,
-                          defer_textures=True, texel_lit=True)
-    return SceneResult(images, None)
+    shared = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" not in p}
+    close = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" in p}
+    images = {}
+    for poses in (shared, close):
+        images.update(render_poses(geo, texture, poses, {}, texture_mapping=True, cache_faces=True,
+                                   defer_textures=True, texel_lit=True))
+    return SceneResult({name: images[name] for name in SCOOTER_POSES}, None)
 
 
 def bulldozer_bones(bones):
@@ -1219,6 +1227,14 @@ def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False,
                                 defer_textures=defer_textures, texel_lit=texel_lit)
               for name, pose in poses.items()}
     frame_faces = bounds if bounds is not None else {name: [q for q, _, _ in scene[0]] for name, scene in scenes.items()}
+    for name, pose in poses.items():
+        if pose.get("frame_pad"):
+            # Grow the framed bones about their center so a close-up keeps some context around them.
+            quads = frame_faces[name]
+            corners = [p for quad in quads for p in quad]
+            center = tuple((min(p[i] for p in corners) + max(p[i] for p in corners)) / 2 for i in range(3))
+            frame_faces[name] = [[tuple(c + (v - c) * pose["frame_pad"] for v, c in zip(p, center)) for p in quad]
+                                 for quad in quads]
     points = [p for quads in frame_faces.values() for quad in quads for p in quad]
     frames = {}
     for name, pose in poses.items():

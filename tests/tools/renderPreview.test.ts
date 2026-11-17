@@ -551,7 +551,7 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
 });
 
 describe("scooter previews (ADR 0251)", () => {
-  it("renders four previews from the camper's angles without hover discs", () => {
+  it("renders four previews from the camper's angles plus a framed tail lamp close-up, without hover discs", () => {
     const result = previewPython(
       "print(json.dumps({'names': list(r.SCOOTER_POSES), 'views': [p['view'] for p in r.SCOOTER_POSES.values()], 'bulldozer': [p['view'] for p in r.BULLDOZER_POSES.values()], 'size': r.image_size('scooter-side.png')}))",
     );
@@ -560,8 +560,10 @@ describe("scooter previews (ADR 0251)", () => {
       "scooter-headlights.png",
       "scooter-side.png",
       "scooter-rear.png",
+      "scooter-taillights.png",
     ]);
-    expect(result.views).toEqual(result.bulldozer);
+    expect(result.views.slice(0, 4)).toEqual(result.bulldozer);
+    expect(result.views[4]).not.toEqual(result.bulldozer[3]);
     expect(result.size).toEqual([800, 600]);
   });
 });
