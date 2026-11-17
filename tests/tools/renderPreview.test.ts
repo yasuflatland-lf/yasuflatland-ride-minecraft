@@ -1219,3 +1219,23 @@ describe("--timing (phase durations on stderr)", () => {
     expect(result.stderr).toContain("--timing");
   });
 });
+
+describe("gear scene build", () => {
+  it("builds the same jobs in parallel as serially", () => {
+    const script = [
+      "import sys",
+      "sys.path.insert(0, 'tools')",
+      "from pathlib import Path",
+      "import render_preview as r",
+      "rp = Path('packs/yasu_ride_rp')",
+      "serial = r.render_camping_gear(rp, None, workers=1).images",
+      "parallel = r.render_camping_gear(rp, None, workers=2).images",
+      "assert list(serial) == list(parallel)",
+      "def key(j): return (j.polygons, j.layers, j.to_screen.scale, j.to_screen.off_x, j.to_screen.off_y, vars(j.to_screen.camera), j.width, j.height)",
+      "assert all(key(serial[k]) == key(parallel[k]) for k in serial)",
+      "print('same', len(serial))",
+    ].join("\n");
+    const out = execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" });
+    expect(out.trim()).toBe("same 36");
+  }, 120_000);
+});
