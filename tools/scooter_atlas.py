@@ -37,6 +37,7 @@ SMALL_TEXELS = 4
 SEAM_PERIOD_TEXELS = 8
 RUBBER_BAND_TEXELS = 2
 GUTTER_TEXELS = 2
+MAX_SIDE_TEXELS = 2048
 FACE_NAMES = ("north", "south", "east", "west", "up", "down")
 
 
@@ -161,7 +162,7 @@ def plate_faces(region):
 
 def pack_layout():
     if REGISTRY._layout is None:
-        regions.pack(REGISTRY, gutter_px=GUTTER_TEXELS)
+        regions.pack(REGISTRY, gutter_px=GUTTER_TEXELS, max_side=MAX_SIDE_TEXELS)
     packed = REGISTRY._layout
     # Bindings belong to a build; cached placement must not retain earlier cubes.
     return Layout(packed.regions, packed.size, {r.name: packed.origin(r.name) for r in packed.regions})

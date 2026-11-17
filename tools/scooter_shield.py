@@ -12,8 +12,6 @@ atlas = load_tool("scooter_atlas")
 tilt = load_tool("cube_tilt")
 AREA = "shield"
 
-EDGE = ((448,506),(430,525),(400,548),(370,565),(340,574),
-        (310,575),(280,571),(250,564),(215,554),(188,546))
 SPINE = ((188,570,.36),(215,582,.44),(245,599,.66),(272,606,.94),
          (296,615,1.2),(307,619,1.34),(315,623,1.47),(322,627,1.61),(331,630,1.78))
 ROWS = (D.SHIELD_BOTTOM,5.4,6.8,8.4,10.1,11.7,13.3,14.8,
@@ -29,7 +27,7 @@ FENDER_WIDTH = ((715,1),(730,.98),(746,.92))
 LIP_DROP = ((700,1),(724,.8),(738,.36),(746,.12))
 FENDER_BOLTS = ((592,378),(606,371))
 HORN_POSITION = (615,296)
-EDGE_MODEL = tuple(sorted((D.i2m(x,y)[1],D.i2m(x,y)[0]) for y,x in EDGE))
+EDGE_MODEL = tuple(sorted((D.i2m(x,y)[1],D.i2m(x,y)[0]) for y,x in D.SHIELD_EDGE))
 
 
 def _clamp(t):

@@ -77,7 +77,7 @@
 ### Feature folders and isolation
 
 - Applies to: All production layers and their tests.
-- Rule: Domain, application and infrastructure each contain the features `build`, `camp`, `resort`, and `vehicle`, alongside `shared`. Layer TypeScript files live below those folders except `src/infrastructure/bootstrap.ts`. A feature imports only itself and shared code across the layers; shared code imports no feature. Tests use matching layer and feature directories, with main, test-pack, pack and support tests outside that arrangement.
+- Rule: Domain, application and infrastructure each contain the features `build`, `camp`, `resort`, `vehicle`, and `warp`, alongside `shared`. Layer TypeScript files live below those folders except `src/infrastructure/bootstrap.ts`. A feature imports only itself and shared code across the layers; shared code imports no feature. Tests use matching layer and feature directories, with main, test-pack, pack and support tests outside that arrangement.
 - Agreement: Accepted
 - Basis: [0046](../adr/0046-organize-each-layer-by-feature.md) Decision, "Every TypeScript file in each layer lives under a feature folder or `shared/`, except `src/infrastructure/bootstrap.ts`."; [0046](../adr/0046-organize-each-layer-by-feature.md) Decision, "A feature must not import another feature in any layer. Shared code must not import a feature."; [0046](../adr/0046-organize-each-layer-by-feature.md) Decision, "Tests mirror the feature layout."
 - Implementation: `src/domain`; `src/application`; `src/infrastructure`; `tests/domain`; `tests/application`; `tests/infrastructure`; `.dependency-cruiser.cjs` (`feature-imports-other-feature`)
@@ -245,6 +245,16 @@
 - Basis: [0221](../adr/0221-organize-infrastructure-vehicle-code-by-kind.md) Decision.
 - Implementation: `.dependency-cruiser.cjs`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/dockLayer.ts`; `src/infrastructure/vehicle/kinds/camper/install.ts`
 - Verification: `tests/architecture.test.ts`; `tests/infrastructure/vehicle/install.test.ts`; `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts`
+
+### Warp form adapters
+
+- Applies to: Warp name and destination forms and feedback adapters; event handlers are not wired yet.
+- Rule: The `warp` infrastructure feature implements the application menu and feedback ports using the stable form API and shared player lookup. Name answers are trimmed and limited to `WARP_SPEC.nameMaxLength` by `parseWarpName`; an empty answer cancels the edit. Stable `ModalFormData` has no input length option, so the field label shows the limit and parsing enforces it on submission. Destination buttons preserve point IDs and show name, owner, translated dimension, coordinates, and an optional translated unverified suffix. Unknown dimensions show their raw ID. Previous and next controls appear only for reachable pages and use whitespace IDs excluded by snapshot validation. Busy answers remain distinct from cancellation; unavailable players and unanswered forms cancel. All five feedback methods use translated action-bar messages, with the point name substituted when a point is gone. Keys use `yasu_build.warp.*` in both locales.
+- Agreement: Accepted
+- Basis: [0001](../adr/0001-bedrock-addon-with-stable-script-api.md) Decision, stable Script API only.
+- Basis: [0046](../adr/0046-organize-each-layer-by-feature.md) Decision, feature boundaries and shared infrastructure.
+- Implementation: `src/infrastructure/warp/bedrock/bedrockWarpMenus.ts`; `src/infrastructure/warp/bedrock/bedrockWarpFeedback.ts`; `src/infrastructure/warp/messages.ts`
+- Verification: `tests/infrastructure/warp/menus.test.ts`; `tests/infrastructure/warp/feedback.test.ts`; `tests/packs/warpMessages.test.ts`. In-game presentation has not been tested; handler wiring belongs to the next series step.
 
 ## Open issues
 

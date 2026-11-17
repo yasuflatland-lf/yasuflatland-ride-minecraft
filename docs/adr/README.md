@@ -182,7 +182,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) | Keep the icebreaker cut above the hull floor | Proposed |
 | [0176](0176-move-the-sports-boat-front-seats-back.md) | Move the sports boat's front seats back | Accepted |
 | [0177](0177-drive-text-on-the-sports-boat-driver-deck-seat.md) | Drive text on the sports boat driver deck seat | Accepted |
-| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; superseded in part by [0198](0198-one-build-wand-without-a-bulldozer.md), [0232](0232-undo-skips-conflicting-cells.md), [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md); extended by [0180](0180-a-wide-bulldozer-blade.md), [0181](0181-a-road-paver-on-the-bulldozer.md), [0183](0183-mark-a-lone-selection-corner.md), [0230](0230-cut-a-selection-with-the-build-wand.md) |
+| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; superseded in part by [0198](0198-one-build-wand-without-a-bulldozer.md), [0232](0232-undo-skips-conflicting-cells.md), [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md); extended by [0180](0180-a-wide-bulldozer-blade.md), [0181](0181-a-road-paver-on-the-bulldozer.md), [0183](0183-mark-a-lone-selection-corner.md), [0230](0230-cut-a-selection-with-the-build-wand.md), [0249](0249-shared-warp-points-with-a-block-and-a-tool.md) |
 | [0179](0179-support-realms-as-a-second-play-environment.md) | Support Realms as a second play environment | Proposed |
 | [0180](0180-a-wide-bulldozer-blade.md) | A wide bulldozer blade switched from the cab | Proposed; extended by [0181](0181-a-road-paver-on-the-bulldozer.md) |
 | [0181](0181-a-road-paver-on-the-bulldozer.md) | Lay a road behind the bulldozer from the driver's held block | Proposed |
@@ -252,6 +252,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0246](0246-toilet-and-washstand-shows-and-cutouts.md) | Toilet and Washstand: interact shows, cut-out textures, baked chrome, and recorded sounds | Accepted |
 | [0247](0247-precise-camping-gear-rotations-textures-and-cube-budget.md) | Precise camping gear: rotations, texture tiles, cube budget, and glass | Proposed |
 | [0248](0248-treat-generated-pack-files-as-build-outputs.md) | Treat generated pack files as build outputs | Proposed |
+| [0249](0249-shared-warp-points-with-a-block-and-a-tool.md) | Shared warp points with a block and a tool | Proposed |
 | [0250](0250-scooter-rider-grip-pose-and-stepped-lean.md) | Scooter rider grip pose and stepped lean | Proposed; extended by [0251](0251-add-the-scooter-kind.md) |
 | [0251](0251-add-the-scooter-kind.md) | Add the scooter kind | Proposed |
 <!-- adr-index:end -->

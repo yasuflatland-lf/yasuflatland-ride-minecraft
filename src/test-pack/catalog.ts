@@ -14,6 +14,7 @@ export interface ScenarioSpec {
   readonly group?: "tent";
   readonly needsPlayer: boolean;
   readonly skipNote?: string;
+  readonly manualSetup?: true;
   readonly vehicles: number;
 }
 
@@ -108,7 +109,42 @@ export const CATALOG: readonly ScenarioSpec[] = [
     needsPlayer: false,
     vehicles: 1,
   },
-
+  {
+    name: "warp_registry_store",
+    file: "warp",
+    ticks: 5, // Estimate until the first BDS run.
+    features: ["warp"],
+    isolation: "exclusive",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "warp_world",
+    file: "warp",
+    ticks: 5, // Estimate until the first BDS run.
+    features: ["warp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "warp_engine_probes",
+    file: "warp",
+    ticks: 100, // Estimate until the first BDS run.
+    features: ["warp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
+    name: "warp_flow",
+    file: "warpFlow",
+    ticks: 30, // Estimate until the first BDS run.
+    features: ["warp"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
   {
     name: "build_structure_store_hosted",
     file: "buildStructureStore",
@@ -215,6 +251,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
+    manualSetup: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,
@@ -226,6 +263,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
+    manualSetup: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,
@@ -237,6 +275,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
+    manualSetup: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,
@@ -258,6 +297,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
+    manualSetup: true,
     skipNote:
       "a player hangs a painting and puts a diamond in an item frame when prompted",
     vehicles: 0,

@@ -100,11 +100,11 @@ export function scooterWaterSurface(a: Arena): Promise<Outcome> {
         const x = a.local(car.location).x;
         if (x > POOL.minX + SCOOTER_SPEC.bodyFront) {
           entered = true;
-          surface &&=
-            car.location.y >=
-              a.gy - SCOOTER_SPEC.floatDraft - FLOAT_TOLERANCE &&
-            car.location.y <= a.gy + FLOAT_TOLERANCE;
-          if (tick >= 60) speeds.push(length(car.getVelocity()));
+          // Surface support recovers gradually from the shore-entry fall.
+          if (tick >= 60) {
+            surface &&= atFloatLine(a, car);
+            speeds.push(length(car.getVelocity()));
+          }
         }
       }
       return {

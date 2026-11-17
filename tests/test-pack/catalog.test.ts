@@ -51,6 +51,8 @@ describe("scenario catalog", () => {
     expect(new Set(spec.features).size).toBe(spec.features.length);
     expect(spec.features.every(isFeatureTag)).toBe(true);
     if (spec.needsPlayer) expect(spec.isolation).toBe("exclusive");
+    expect(spec.manualSetup === true).toBe(playerDecorScenarios.has(spec.name));
+    if (spec.manualSetup) expect(spec.needsPlayer).toBe(true);
     if (spec.group !== undefined) expect(spec.isolation).toBe("lane");
     expect(existsSync(new URL(`${spec.file}.ts`, scenarios))).toBe(true);
   });
