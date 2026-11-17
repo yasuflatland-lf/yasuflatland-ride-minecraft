@@ -1470,12 +1470,22 @@ def small_models(rp):
     ]
 
 
+def render_gear_item(model):
+    name, geo, texture = model
+    return f"{GEAR_DIR}/{name}.png", render_gear(geo, texture, GEAR_SIZE, f"{GEAR_DIR}/{name}.png")
+
+
+def build_gear_images(models, workers: int | None = None):
+    """Build every model's job in its own task: a few items (dining_chair, toilet, washstand)
+    take most of the serial time, so one process per item shortens the scene."""
+    if workers == 1:
+        return dict(render_gear_item(model) for model in models)
+    with multiprocessing.get_context("spawn").Pool(workers or os.cpu_count()) as pool:
+        return dict(pool.map(render_gear_item, models, chunksize=1))
+
+
 def render_camping_gear(rp: Path, icon_path: Path | None) -> SceneResult:
-    images = {
-        f"{GEAR_DIR}/{name}.png": render_gear(geo, texture, GEAR_SIZE, f"{GEAR_DIR}/{name}.png")
-        for name, geo, texture in small_models(rp)
-    }
-    return SceneResult(images, None)
+    return SceneResult(build_gear_images(small_models(rp)), None)
 
 
 def fit_square(camera, quads, size):
