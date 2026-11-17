@@ -97,6 +97,7 @@ export class BedrockFeedback implements BuildFeedback {
               String(mode.size.y),
               String(mode.size.z),
               String(mode.blockCount),
+              String(mode.degrees),
             ],
           }
         : { translate: BUILD_MESSAGE.rotateMode, with: [String(mode.degrees)] };

@@ -5,6 +5,7 @@ import {
   BUILD_FORM,
   BUILD_MESSAGE,
   BUILD_NAMESPACE,
+  BUILD_UNDO_TYPE,
   buildId,
   buildItemRole,
   LAID_BLOCK_TAG,
@@ -50,7 +51,7 @@ it("defines every feedback message in both locales", () => {
         .sort(),
     ).toEqual(Object.values(BUILD_FORM).sort());
     expect(entries.get(BUILD_FORM.fillBelowBody)?.match(/%s/g)).toHaveLength(4);
-    expect(entries.get(BUILD_MESSAGE.pasteReady)?.match(/%s/g)).toHaveLength(4);
+    expect(entries.get(BUILD_MESSAGE.pasteReady)?.match(/%s/g)).toHaveLength(5);
     expect(entries.get(BUILD_MESSAGE.rotateMode)?.match(/%s/g)).toHaveLength(1);
     expect(entries.get(BUILD_MESSAGE.copied)?.match(/%s/g)).toHaveLength(1);
     expect(
@@ -96,6 +97,7 @@ it("defines items and test events in the build namespace", () => {
   );
   expect(
     [
+      BUILD_UNDO_TYPE,
       PASTE_PLACE_TYPE,
       PASTE_ROTATE_TYPE,
       SELECTION_WAND_TYPE,
@@ -111,6 +113,7 @@ it.each([
   ["yasu_build:selection_wand", "wand"],
   ["yasu_build:paste_rotate", "pasteControl"],
   ["yasu_build:paste_place", "pasteControl"],
+  ["yasu_build:build_undo", "undo"],
   ["minecraft:stick", undefined],
   [undefined, undefined],
 ] as const)("classifies build item %s as %s", (typeId, role) => {
@@ -128,6 +131,7 @@ it("does not classify unrelated item ids as build items", () => {
               "yasu_build:selection_wand",
               "yasu_build:paste_rotate",
               "yasu_build:paste_place",
+              "yasu_build:build_undo",
             ].includes(typeId),
         ),
       (typeId) => {
@@ -135,4 +139,22 @@ it("does not classify unrelated item ids as build items", () => {
       },
     ),
   );
+});
+
+it("keeps format arguments identical for every build message in both locales", () => {
+  const counts = ["en_US", "ja_JP"].map((locale) => {
+    const entries = new Map(
+      readFileSync(`packs/yasu_ride_rp/texts/${locale}.lang`, "utf8")
+        .split("\n")
+        .map((line) => {
+          const split = line.indexOf("=");
+          return [line.slice(0, split), line.slice(split + 1)];
+        }),
+    );
+    return Object.values(BUILD_MESSAGE).map((key) => [
+      key,
+      entries.get(key)?.match(/%s/g)?.length ?? 0,
+    ]);
+  });
+  expect(counts[0]).toEqual(counts[1]);
 });

@@ -89,6 +89,7 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       "yasu_build:selection_wand",
       "yasu_build:paste_rotate",
       "yasu_build:paste_place",
+      "yasu_build:build_undo",
       TYPE,
       "yasu_ride:wide_blade_switch",
       "yasu_ride:road_paver_switch",
