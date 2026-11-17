@@ -36,8 +36,11 @@ def fold_rotation_keys(clip):
 
 
 def _fold_bones(clip):
-    return {name: {"position": fold_position_keys(clip), "rotation": fold_rotation_keys(clip)}
-            for name in dims.FOLD_BONES.values()}
+    bones = {name: {"position": fold_position_keys(clip), "rotation": fold_rotation_keys(clip)}
+             for name in dims.FOLD_BONES.values()}
+    bones.update({name: {"position": fold_position_keys(clip)}
+                  for name in dims.STRUT_BONES.values()})
+    return bones
 
 
 def build():

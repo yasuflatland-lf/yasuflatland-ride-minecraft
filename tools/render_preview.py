@@ -493,12 +493,12 @@ class FlightPose:
 
 
 def build_flight_pose(animations, animation_name, *, lift):
-    """Read wheel and fold bones from a kind's wheels_folded animation (ADR 0022)."""
+    """Read static wheel rolls and bone offsets from a kind's flight animation (ADR 0022)."""
     bones = animations["animations"][animation_name]["bones"]
     return FlightPose({
-        name: (pose["rotation"][2], pose["position"])
+        name: (pose.get("rotation", [0, 0, 0])[2], pose.get("position", [0, 0, 0]))
         for name, pose in bones.items()
-        if name.startswith("wheel_")
+        if (name.startswith("wheel_") and "rotation" in pose) or set(pose) == {"position"}
     }, lift)
 
 
