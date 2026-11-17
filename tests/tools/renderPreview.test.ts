@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { SCOOTER_SPEC } from "../../src/domain/vehicle/kinds/scooter/spec";
 import { RESORT_GEAR } from "../support/resortGear";
 
 type Point = [number, number, number];
@@ -706,13 +707,13 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
 });
 
 describe("scooter previews (ADR 0251)", () => {
-  it("renders four previews from the camper's angles plus a framed tail lamp close-up, without hover discs", () => {
+  it("renders the flying headlights from the camper's front angle plus four ground previews", () => {
     const result = previewPython(
       "print(json.dumps({'names': list(r.SCOOTER_POSES), 'views': [p['view'] for p in r.SCOOTER_POSES.values()], 'bulldozer': [p['view'] for p in r.BULLDOZER_POSES.values()], 'size': r.image_size('scooter-side.png')}))",
     );
     expect(result.names).toEqual([
       "scooter-front-left.png",
-      "scooter-headlights.png",
+      "scooter-flying-headlights.png",
       "scooter-side.png",
       "scooter-rear.png",
       "scooter-taillights.png",
@@ -720,6 +721,63 @@ describe("scooter previews (ADR 0251)", () => {
     expect(result.views.slice(0, 4)).toEqual(result.bulldozer);
     expect(result.views[4]).not.toEqual(result.bulldozer[3]);
     expect(result.size).toEqual([800, 600]);
+  });
+  it("raises the stand, folds the wheels and frames flight with rounded pools instead of the beam", () => {
+    expect(
+      previewPython(`
+from pathlib import Path
+rp = Path("packs/yasu_ride_rp")
+assert r.SCOOTER_FLIGHT_LIFT == ${SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16}
+animations = json.loads((rp / r.SCOOTER_ANIMATIONS).read_text())["animations"]
+stand_rotation = animations["animation.yasu_ride.scooter.stand_up"]["bones"]["stand"]["rotation"]
+original_collect = r.collect_boat
+stand_poses = []
+def capture(geo, *args, **kwargs):
+    stand = next(b for b in geo["bones"] if b["name"] == "stand")
+    stand_poses.append((kwargs.get("flight") is not None, stand.get("rotation", [0, 0, 0])))
+    return original_collect(geo, *args, **kwargs)
+r.collect_boat = capture
+result = r.render_scooter(rp, None)
+assert any(flying for flying, _ in stand_poses)
+assert any(not flying for flying, _ in stand_poses)
+assert all(rotation == (stand_rotation if flying else [0, 0, 0]) for flying, rotation in stand_poses)
+assert "scooter-flying-headlights.png" in result.images
+for name, job in result.images.items():
+    discs = [q for q, _, group in job.polygons if group == "disc"]
+    if name == "scooter-flying-headlights.png":
+        assert discs
+        points = [p for q in discs for p in q]
+        assert max(p[1] for p in points) - min(p[1] for p in points) < 1
+        assert max(p[0] for p in points) - min(p[0] for p in points) > 5
+        assert min(p[1] for q in discs for p in q) > 16
+        assert job.layers[0][1] == r.FLIGHT_SHADOW_ALPHA
+        pools = [(q, alpha) for q, alpha, color in job.layers if color == r.SCOOTER_POOL_COLOR]
+        assert len(pools) == 2 * r.SCOOTER_POOL_LAYERS
+        for start in range(0, len(pools), r.SCOOTER_POOL_LAYERS):
+            stack = pools[start:start + r.SCOOTER_POOL_LAYERS]
+            assert sum(alpha for _, alpha in stack) < 1
+            assert all(a > b for (_, a), (_, b) in zip(stack, stack[1:]))
+            ring = stack[-1][0]
+            assert len(ring) == r.SCOOTER_POOL_SEGMENTS
+            cx = sum(p[0] for p in ring) / len(ring)
+            cz = sum(p[2] for p in ring) / len(ring)
+            radii = [((p[0] - cx)**2 + (p[2] - cz)**2)**0.5 for p in ring]
+            assert max(radii) - min(radii) < 1e-6
+            assert 4 < max(radii) < 8
+        framing = [q for q, _, color in job.layers if color != r.BEAM_COLOR]
+        expected = r.fit(job.to_screen.camera, [q for q, _, _ in job.polygons] + framing)
+        assert job.to_screen == expected
+        with_beam = r.fit(job.to_screen.camera, [q for q, _, _ in job.polygons + job.layers])
+        assert job.to_screen.scale > with_beam.scale * 1.2
+        lamps = [q for q, _, group in job.polygons if group == "lamp"]
+        assert any(all(p[2] < 0 for p in q) for q in lamps)
+        assert any(all(p[2] > 0 for p in q) for q in lamps)
+    else:
+        assert not discs
+        assert not job.layers
+print(json.dumps(True))
+`),
+    ).toBe(true);
   });
 });
 
