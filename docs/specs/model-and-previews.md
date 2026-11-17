@@ -48,12 +48,12 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 
 ### Scooter README previews
 
-- Applies to: The four `scooter-*.png` README previews only.
-- Rule: `render_scooter` draws the road pose of the default white paint with the hover glow bones left out, as the render controller hides them on the ground, and lights the `headlights` and `tail_lights` bones for the dusk picture. The four views reuse the bulldozer's camera directions: front-left, front-left at dusk with the lamps on, side and rear. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
+- Applies to: The five `scooter-*.png` previews only.
+- Rule: `render_scooter` draws the road pose of the default white paint with the hover glow bones left out, as the render controller hides them on the ground, and lights the `headlights` and `tail_lights` bones for the dusk picture. The four views reuse the bulldozer's camera directions: front-left, front-left at dusk with the lamps on, side and rear. A fifth picture, `scooter-taillights.png`, lights the lamps at dusk from the rear three-quarter and frames only the `tail_lights` bone with padding (`frame_bones`, `frame_pad`), so it is rendered apart from the shared scale. Only the lit lens glows: the lit texture and MER mask follow the opaque texels of the head lens and tail lens regions, so no bezel, hood, plate or rectangular panel glows. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Generate it with `tools/gen_scooter.py`"; [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
-- Implementation: `tools/render_preview.py` (`render_scooter`, `SCOOTER_POSES`, `SCOOTER_LIT`, `SCENE_BUILDERS`); `docs/images/scooter-front-left.png`; `docs/images/scooter-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`
-- Verification: `tests/tools/renderPreview.test.ts` "renders four previews from the camper's angles without hover discs" and the scene list test; `pnpm model:check` checks preview freshness. Not verified: how the curved panels compare with the photos beyond the rendered images.
+- Implementation: `tools/render_preview.py` (`render_scooter`, `SCOOTER_POSES`, `SCOOTER_LIT`, `SCENE_BUILDERS`); `docs/images/scooter-front-left.png`; `docs/images/scooter-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`; `docs/images/scooter-taillights.png`
+- Verification: `tests/tools/renderPreview.test.ts` "renders four previews from the camper's angles plus a framed tail lamp close-up, without hover discs" and the scene list test; `pnpm model:check` checks preview freshness. Not verified: how the curved panels compare with the photos beyond the rendered images.
 
 ### Scooter generator foundation
 

@@ -4,6 +4,8 @@
 | :------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------: |
 | ![The scooter seen from its front-left corner](../images/scooter-front-left.png) | ![The scooter with its headlights on at dusk](../images/scooter-headlights.png) | ![The scooter seen from the side, with its centre stand down](../images/scooter-side.png) | ![The scooter seen from the rear, showing the tail light and the plate](../images/scooter-rear.png) |
 
+![The scooter tail light glowing at dusk, seen from the rear three-quarter](../images/scooter-taillights.png)
+
 A classic two-seat scooter that drives on the ground and across the water surface, and flies with its wheels laid flat like hover discs. Back to the [README](../../README.md).
 
 ## Getting one
