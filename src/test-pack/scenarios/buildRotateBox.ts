@@ -116,7 +116,15 @@ async function runRotateBox(
   const turn = () => {
     const box = selectionBoxOf(session.flow);
     if (!box) throw new Error("selection lost");
-    check("rotate", rotate.execute(playerId, dimensionId, box));
+    check(
+      "rotate",
+      rotate.execute({
+        playerId,
+        dimensionId: dimensionId,
+        box: box,
+        facing: "east",
+      }),
+    );
     if (variant === "box") finish.execute({ playerId });
     check(
       "mode_or_menu",
@@ -314,8 +322,12 @@ async function runRotateBox(
       protectedCell = neighbor;
       check(
         "protected_refused",
-        !rotate.execute(playerId, dimensionId, source) &&
-          message === "rotateBlocked",
+        !rotate.execute({
+          playerId,
+          dimensionId: dimensionId,
+          box: source,
+          facing: "east",
+        }) && message === "rotateBlocked",
       );
       check(
         "protected_unchanged",

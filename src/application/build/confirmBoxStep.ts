@@ -3,6 +3,7 @@ import type { BuildSessionRepository } from "../../domain/build/sessionRepositor
 import { isBoxStepKind } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { BoxActions } from "./boxAction";
+import type { FacingReader } from "./ports/facing";
 import type { BuildFeedback } from "./ports/feedback";
 
 export class ConfirmBoxStep {
@@ -10,6 +11,7 @@ export class ConfirmBoxStep {
     private readonly repo: BuildSessionRepository,
     private readonly actions: BoxActions,
     private readonly feedback: BuildFeedback,
+    private readonly facing: FacingReader,
   ) {}
 
   execute({ playerId }: { playerId: PlayerId }): void {
@@ -19,10 +21,11 @@ export class ConfirmBoxStep {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
-    this.actions[flow.heightedKind].execute(
+    this.actions[flow.heightedKind].execute({
       playerId,
-      flow.dimensionId,
-      heightStepBox(flow),
-    );
+      dimensionId: flow.dimensionId,
+      box: heightStepBox(flow),
+      facing: flow.facing ?? this.facing.facingOf(playerId),
+    });
   }
 }

@@ -54,6 +54,7 @@ function setup() {
       repo,
       new CopyBox(repo, new FakeStructureStore(), feedback),
       feedback,
+      { facingOf: () => "east" },
     ),
     paste: new PasteAt(
       repo,

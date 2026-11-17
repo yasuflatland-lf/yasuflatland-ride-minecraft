@@ -38,7 +38,14 @@ it("captures exactly once with the owner and dimension and stores the full box s
   fc.assert(
     fc.property(boxArb, (box) => {
       const e = setup();
-      expect(e.copy.execute(playerId, overworld, box)).toBe(true);
+      expect(
+        e.copy.execute({
+          playerId,
+          dimensionId: overworld,
+          box: box,
+          facing: "east",
+        }),
+      ).toBe(true);
       expect(e.structures.calls).toEqual([
         { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
       ]);
@@ -50,6 +57,7 @@ it("captures exactly once with the owner and dimension and stores the full box s
           z: box.max.z - box.min.z + 1,
         },
         blockCount: volume(box),
+        facing: "east",
         contents: { kind: "structure", handle: [...e.structures.live][0] },
       });
       expect(e.feedback.messages).toEqual([
@@ -63,7 +71,12 @@ it("keeps the old structure live during New copy and discards it only after succ
   fc.assert(
     fc.property(boxArb, fc.boolean(), fc.boolean(), (box, newCopy, cut) => {
       const e = setup();
-      e.copy.execute(playerId, overworld, box);
+      e.copy.execute({
+        playerId,
+        dimensionId: overworld,
+        box: box,
+        facing: "east",
+      });
       const session = e.repo.getOrCreate(playerId);
       const old = structureOf(session.clipboard);
       if (newCopy) new NewCopy(e.repo).execute(playerId);
@@ -73,7 +86,12 @@ it("keeps the old structure live during New copy and discards it only after succ
         expect(
           new CutBox(e.repo, world, e.structures, e.feedback, {
             warn: () => {},
-          }).execute(playerId, overworld, box),
+          }).execute({
+            playerId,
+            dimensionId: overworld,
+            box: box,
+            facing: "east",
+          }),
         ).toBe(true);
         expect(session.clipboard?.contents.kind).toBe("structure");
         const entry = session.takeUndo();
@@ -84,7 +102,12 @@ it("keeps the old structure live during New copy and discards it only after succ
         );
         session.putBackUndo(entry);
       } else {
-        e.copy.execute(playerId, overworld, box);
+        e.copy.execute({
+          playerId,
+          dimensionId: overworld,
+          box: box,
+          facing: "east",
+        });
         expect(e.structures.live).toEqual(
           new Set([structureOf(session.clipboard)]),
         );
@@ -104,7 +127,12 @@ it("discards cleared structures once through every exit and leaves no live clipb
       (box, exit) => {
         const e = setup();
         const session = e.repo.getOrCreate(playerId);
-        e.copy.execute(playerId, overworld, box);
+        e.copy.execute({
+          playerId,
+          dimensionId: overworld,
+          box: box,
+          facing: "east",
+        });
         const old = structureOf(session.clipboard);
         const clear = () => {
           if (exit === "clear") {
@@ -140,7 +168,12 @@ it("refuses without changing a present session or creating an absent one, preser
       (box, refusal, present) => {
         const e = setup();
         if (present) {
-          e.copy.execute(playerId, overworld, box);
+          e.copy.execute({
+            playerId,
+            dimensionId: overworld,
+            box: box,
+            facing: "east",
+          });
           new NewCopy(e.repo).execute(playerId);
         }
         const session = e.repo.get(playerId);
@@ -158,7 +191,14 @@ it("refuses without changing a present session or creating an absent one, preser
                 x: box.min.x + BUILD_SPEC.maxCopyVolume,
               })
             : box;
-        expect(e.copy.execute(playerId, overworld, target)).toBe(false);
+        expect(
+          e.copy.execute({
+            playerId,
+            dimensionId: overworld,
+            box: target,
+            facing: "east",
+          }),
+        ).toBe(false);
         expect(e.repo.get(playerId)).toBe(session);
         expect(session?.flow).toBe(flow);
         expect(session?.clipboard).toBe(clipboard);
@@ -282,11 +322,12 @@ it.each(["absent", "structure"] as const)(
                     })
                   : box;
               expect(
-                (operation === "cut" ? cut : e.copy).execute(
+                (operation === "cut" ? cut : e.copy).execute({
                   playerId,
-                  overworld,
-                  target,
-                ),
+                  dimensionId: overworld,
+                  box: target,
+                  facing: "east",
+                }),
               ).toBe(!refused);
               if (!refused) {
                 clipboardHandle = captures[0];
@@ -307,6 +348,7 @@ it.each(["absent", "structure"] as const)(
                     z: box.max.z - box.min.z + 1,
                   },
                   blockCount: volume(box),
+                  facing: "east",
                   contents: { kind: "structure", handle: clipboardHandle },
                 };
                 sessionExists = true;

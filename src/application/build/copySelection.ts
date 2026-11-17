@@ -3,6 +3,7 @@
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { CopyBox } from "./copyBox";
+import type { FacingReader } from "./ports/facing";
 import type { BuildFeedback } from "./ports/feedback";
 
 export class CopySelection {
@@ -10,6 +11,7 @@ export class CopySelection {
     private readonly repo: BuildSessionRepository,
     private readonly copy: CopyBox,
     private readonly feedback: BuildFeedback,
+    private readonly facing: FacingReader,
   ) {}
 
   execute(cmd: { playerId: PlayerId }): void {
@@ -21,6 +23,11 @@ export class CopySelection {
       return;
     }
     const { box, dimensionId } = confirmed;
-    this.copy.execute(playerId, dimensionId, box);
+    this.copy.execute({
+      playerId,
+      dimensionId,
+      box,
+      facing: this.facing.facingOf(playerId),
+    });
   }
 }

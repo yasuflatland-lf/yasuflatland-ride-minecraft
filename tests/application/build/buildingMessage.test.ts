@@ -85,6 +85,7 @@ it("does not announce building when copying or cancelling", () => {
     e.repo,
     new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
     e.feedback,
+    { facingOf: () => "east" },
   ).execute({ playerId });
   new CancelFlow(e.repo).execute({ playerId });
   expect(

@@ -1,6 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import { anchorCell, type Face } from "../aim/face";
 import { boxFromSize, type CellBox, type Size } from "../box";
+import type { Facing } from "../rotation/facing";
 import {
   NO_TURN,
   type QuarterTurn,
@@ -9,6 +10,7 @@ import {
 import type { StructureHandle } from "../structure/handle";
 
 export interface Clipboard {
+  readonly facing: Facing;
   /** Box dimensions. */
   readonly size: Size;
   /** What the "copied" and paste hint messages show. */

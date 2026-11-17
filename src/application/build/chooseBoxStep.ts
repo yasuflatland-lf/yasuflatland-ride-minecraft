@@ -4,6 +4,7 @@ import { shapeOf } from "../../domain/build/shape/shape";
 import type { BoxStepKind } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { BoxActions } from "./boxAction";
+import type { FacingReader } from "./ports/facing";
 import type { BuildFeedback } from "./ports/feedback";
 
 export class ChooseBoxStep {
@@ -11,6 +12,7 @@ export class ChooseBoxStep {
     private readonly repo: BuildSessionRepository,
     private readonly actions: BoxActions,
     private readonly feedback: BuildFeedback,
+    private readonly facing: FacingReader,
   ) {}
 
   execute({ playerId, kind }: { playerId: PlayerId; kind: BoxStepKind }): void {
@@ -20,12 +22,19 @@ export class ChooseBoxStep {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
+    const facing = this.facing.facingOf(playerId);
     const shape = shapeOf(flow.from, flow.to);
     if (shape.kind === "rect" && shape.flat === "y") {
-      session.setFlow(chooseHeighted(flow, kind));
+      session.setFlow(chooseHeighted(flow, kind, facing));
       return;
     }
     const box = selectionBoxOf(flow);
-    if (box) this.actions[kind].execute(playerId, flow.dimensionId, box);
+    if (box)
+      this.actions[kind].execute({
+        playerId,
+        dimensionId: flow.dimensionId,
+        box,
+        facing,
+      });
   }
 }

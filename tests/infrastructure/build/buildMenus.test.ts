@@ -154,6 +154,7 @@ function setup(fallback?: boolean) {
             ),
           },
           new FakeFeedback(),
+          { facingOf: () => "east" },
         ).execute(cmd),
       ),
     },
