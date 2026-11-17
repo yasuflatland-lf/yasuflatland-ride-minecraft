@@ -34,6 +34,7 @@ import { MAX_LANES } from "./protocol";
 // Mirrors the SUV's minecraft:rideable but seats cows, because only players
 // can ride the SUV and a test has no players (ADR 0010).
 export const SEAT_PROBE = "yasu_ride_test:seat_probe";
+export const SCOOTER_SEAT_PROBE = "yasu_ride_test:scooter_seat_probe";
 export const BOAT_SEAT_PROBE = "yasu_ride_test:boat_seat_probe";
 
 export interface Arena {
@@ -178,6 +179,7 @@ const VEHICLE_TYPES = [
   ENTITY_TYPE.sportsboat,
   ENTITY_TYPE.camper,
   ENTITY_TYPE.bulldozer,
+  ENTITY_TYPE.scooter,
 ] as const;
 
 export async function prepareRun(
@@ -229,6 +231,7 @@ export async function prepareRun(
   dim.runCommand("kill @e[type=cow]");
   dim.runCommand(`kill @e[type=${SEAT_PROBE}]`);
   dim.runCommand(`kill @e[type=${BOAT_SEAT_PROBE}]`);
+  dim.runCommand(`kill @e[type=${SCOOTER_SEAT_PROBE}]`);
   dim.runCommand(`kill @e[type=${SEAT_FILLER_TYPE}]`);
   // The pool's water replaces the stone under passable_no_hop's carpets and
   // torches, which then drop as items.

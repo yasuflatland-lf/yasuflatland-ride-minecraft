@@ -19,6 +19,97 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "scooter_accel",
+    file: "scooter",
+    ticks: 60, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_water_surface",
+    file: "scooter",
+    ticks: 95, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_water_float",
+    file: "scooter",
+    ticks: 205, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_takeoff_ground",
+    file: "scooter",
+    ticks: 165, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_takeoff_water",
+    file: "scooter",
+    ticks: 250, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_stand",
+    file: "scooter",
+    ticks: 185, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_lean_steer",
+    file: "scooter",
+    ticks: 110, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_headlights",
+    file: "scooter",
+    ticks: 56, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_ram_cow",
+    file: "scooter",
+    ticks: 80, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "scooter_seats",
+    file: "scooter",
+    ticks: 30, // Estimate until the first BDS run.
+    features: ["vehicle:scooter"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+
+  {
     name: "build_structure_store_hosted",
     file: "buildStructureStore",
     ticks: 20, // Estimate until the first BDS run.

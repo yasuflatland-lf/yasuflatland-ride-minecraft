@@ -1,0 +1,33 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "yasu_ride_test:scooter_seat_probe",
+      "is_spawnable": false,
+      "is_summonable": true
+    },
+    "components": {
+      "minecraft:collision_box": {
+        "width": 0.8125,
+        "height": 1.5625
+      },
+      "minecraft:physics": {},
+      "minecraft:rideable": {
+        "seat_count": 2,
+        "controlling_seat": 0,
+        "crouching_skip_interact": true,
+        "family_types": ["cow"],
+        "interact_text": "action.interact.yasu_ride.drive",
+        "seats": [
+          {
+            "position": [0, 1.00625, -0.21875],
+            "lock_rider_rotation": 90
+          },
+          {
+            "position": [0, 1.00625, -0.59375]
+          }
+        ]
+      }
+    }
+  }
+}
