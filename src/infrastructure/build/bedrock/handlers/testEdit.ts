@@ -1,4 +1,9 @@
-import { ScriptEventSource, system, world } from "@minecraft/server";
+import {
+  type Player,
+  ScriptEventSource,
+  system,
+  world,
+} from "@minecraft/server";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
 import type { DescribeBuild } from "../../../../application/build/describeBuild";
 import { discardAll } from "../../../../application/build/discardAll";
@@ -288,34 +293,60 @@ export function registerTestEdit(
         // A malformed test command must not interrupt the server event loop.
         return;
       }
-      const started = system.currentTick;
-      const reply = () => {
-        if (!player.isValid) return;
-        if (
-          describe.editStatus(playerId).isEditing &&
-          system.currentTick - started < 200
-        ) {
-          system.runTimeout(reply, 1);
-          return;
-        }
-        const last = messages.last(playerId);
-        system.sendScriptEvent(
-          TEST_RESULT_EVENT,
-          JSON.stringify({
-            player: player.name,
-            offered,
-            flow: describe.editStatus(playerId).flow,
-            timedOut: describe.editStatus(playerId).isEditing,
-            message: last?.message,
-            count: last?.count,
-            skippedCount: last?.skippedCount,
-            undoHints: messages.hints(playerId),
-            ticks: system.currentTick - started,
-          }),
-        );
-      };
-      reply();
+      replyWhenSettled({
+        player,
+        playerId,
+        describe,
+        messages,
+        offered,
+        delayTicks: 0,
+      });
     },
     { namespaces: [BUILD_NAMESPACE] },
   );
+}
+
+export function replyWhenSettled({
+  player,
+  playerId,
+  describe,
+  messages,
+  offered,
+  delayTicks,
+}: {
+  player: Player;
+  playerId: PlayerId;
+  describe: DescribeBuild;
+  messages: Pick<ReturnType<typeof recordMessages>, "last" | "hints">;
+  offered?: boolean;
+  delayTicks: number;
+}): void {
+  const started = system.currentTick;
+  const reply = () => {
+    if (!player.isValid) return;
+    if (
+      describe.editStatus(playerId).isEditing &&
+      system.currentTick - started < 200
+    ) {
+      system.runTimeout(reply, 1);
+      return;
+    }
+    const last = messages.last(playerId);
+    system.sendScriptEvent(
+      TEST_RESULT_EVENT,
+      JSON.stringify({
+        player: player.name,
+        offered,
+        flow: describe.editStatus(playerId).flow,
+        timedOut: describe.editStatus(playerId).isEditing,
+        message: last?.message,
+        count: last?.count,
+        skippedCount: last?.skippedCount,
+        undoHints: messages.hints(playerId),
+        ticks: system.currentTick - started,
+      }),
+    );
+  };
+  if (delayTicks === 0) reply();
+  else system.runTimeout(reply, delayTicks);
 }

@@ -216,7 +216,7 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
   (typeId) => {
     const e = setup(typeId);
     const press = () =>
-      e.pressPasteControl({ source: e.player as unknown as Player, typeId });
+      e.pressPasteControl.itemUse(e.player as unknown as Player);
     const call = typeId === PASTE_ROTATE_TYPE ? e.rotate : e.place;
     const window =
       typeId === PASTE_ROTATE_TYPE
@@ -385,3 +385,18 @@ it("ignores invalid players", () => {
   e.use();
   expect(e.rotate).not.toHaveBeenCalled();
 });
+
+it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
+  "shares the returned routes and subscriber debounce for %s",
+  (item) => {
+    const e = setup(item);
+    e.pressPasteControl.blockInteract(e.player as unknown as Player);
+    expect(e.rotate).not.toHaveBeenCalled();
+    expect(e.place).not.toHaveBeenCalled();
+    e.use();
+    flush();
+    expect(
+      item === PASTE_ROTATE_TYPE ? e.rotate : e.place,
+    ).toHaveBeenCalledTimes(1);
+  },
+);
