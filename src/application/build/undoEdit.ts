@@ -23,7 +23,11 @@ export class UndoEdit {
 
   execute(cmd: { playerId: PlayerId }): void {
     const { playerId } = cmd;
-    const session = this.repo.getOrCreate(playerId);
+    const session = this.repo.get(playerId);
+    if (!session) {
+      this.feedback.showMessage(playerId, "nothingToUndo");
+      return;
+    }
     const entry = session.takeUndo();
     if (isEditRefusal(entry)) {
       this.feedback.showMessage(playerId, entry);
