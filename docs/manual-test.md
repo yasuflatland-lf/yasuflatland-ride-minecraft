@@ -443,7 +443,7 @@ Setup: craft the Scooter item from 3 iron ingots and 2 coal, or use `/give @s ya
 
 ### Scooter engine sound (Vespa recordings)
 
-Setup: run `pnpm server:restart`, then test on PC and on mobile with a lake and a flat road. The result cells are empty on purpose: nobody has listened to these clips in game yet. If a row fails, adjust `SCOOTER_ENGINE_SLICES` in `tools/scooter_vespa_clips.py` or the volumes in `tools/scooter_sound.py`, regenerate, and bump the Resource Pack version.
+Setup: run `pnpm server:restart`, then test on PC and on mobile with a lake and a flat road. E6 needs a second player who stays put and listens while the rider drives away. The result cells are empty on purpose: nobody has listened to these clips in game yet. If a row fails, adjust `SCOOTER_ENGINE_SLICES` in `tools/scooter_vespa_clips.py` or the volumes in `tools/scooter_sound.py`, regenerate, and bump the Resource Pack version.
 
 | #   | Steps                                                                                                           | Pass condition                                                                              | PC  | Mobile |
 | --- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --- | ------ |
@@ -452,7 +452,7 @@ Setup: run `pnpm server:restart`, then test on PC and on mobile with a lake and 
 | E3  | Listen to the idle and each band for at least two loop lengths, and across every band switch while accelerating | No click, jump or gap at a loop restart or at a band switch                                 |     |        |
 | E4  | Get out and listen from beside the scooter; place a riderless scooter and walk around it                        | No engine sound plays without a rider                                                       |     |        |
 | E5  | Take off and fly with the wheels folded                                                                         | The hover sound is the same as before this change                                           |     |        |
-| E6  | Ride away from another player's position and listen from 4, 12 and 24 blocks, then beyond 24 blocks             | The engine falls off with distance as the other engines do and is heard up to 24 blocks     |     |        |
+| E6  | A second player stands still and listens while the rider drives away: at 4, 12 and 24 blocks, then beyond 24    | The engine falls off with distance as the other engines do and is heard up to 24 blocks     |     |        |
 
 ## Tent
 
