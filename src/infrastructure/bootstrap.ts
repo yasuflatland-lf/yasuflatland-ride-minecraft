@@ -7,6 +7,7 @@ import { installResort } from "./resort/install";
 import { NAMESPACE } from "./shared/identifiers";
 import { TopHostRegistry } from "./shared/tableTop/registry";
 import { installVehicles } from "./vehicle/install";
+import { installWarp } from "./warp/install";
 
 export function bootstrap(): void {
   const topHosts = new TopHostRegistry();
@@ -36,5 +37,6 @@ export function bootstrap(): void {
     isProtected: (d, c) =>
       vehicles.isVehicleSpace(d, c) || camp.isCampSpace(d, c),
   });
+  installWarp();
   console.warn(`[${NAMESPACE}] loaded`);
 }

@@ -17,6 +17,8 @@
 - Source: [0154](../adr/0154-keep-camper-passengers-in-their-seats-on-departure.md)
 - Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
 - Source: [0223](../adr/0223-require-a-rider-list-slot-on-every-rider.md)
+- Source: [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md)
+- Source: [0250](../adr/0250-scooter-rider-grip-pose-and-stepped-lean.md)
 - Excluded: [0117](../adr/0117-move-the-suv-front-seats-back.md): SUV seat coordinates, covered by suv-body
 - Excluded: [0138](../adr/0138-raise-and-lower-the-bulldozer-blade.md): bulldozer blade lift, not seating
 - Excluded: [0155](../adr/0155-cut-under-water-and-dig-a-shaft-when-rising.md): bulldozer cutting, not seating
@@ -171,6 +173,15 @@
 - Basis: [0104](../adr/0104-refuse-a-press-on-a-taken-seat.md) Decision, "The seat press stays cancelled in both cases, so a refused press does not seat the player either."
 - Implementation: `src/domain/vehicle/kinds/camper/decorPlacing.ts` (`slotForPress`); `src/application/vehicle/placeDecor.ts` (`PlaceDecorCommand.exact`); `src/infrastructure/vehicle/kinds/camper/handlers/decor.ts` (`placeGearOnSeat`); `src/domain/vehicle/kinds/camper/seatPress.ts` (`SeatPresses`, `seatSlotCell`)
 - Verification: `tests/domain/vehicle/kinds/camper/decorPlacing.test.ts` "with an exact press returns the pressed slot when it accepts the item and is free, else nothing, never another slot (ADR 0104)"; `tests/application/vehicle/placeDecor.test.ts` "refuses an exact press on a taken slot with the no-slot message, consuming and saving nothing (ADR 0104)". Not verified: on a device, and that an empty-handed press seats the player (no test found).
+
+### Scooter rider pose probe
+
+- Applies to: players invoking `yasu_ride_test:scooter_pose` in the test pack.
+- Rule: `grip` (0), `l1`–`l3` (-1 through -3), and `r1`–`r3` (1 through 3) select looping poses through the player client override. Arms cancel vanilla rotation to -70 degrees x and legs cancel all axes to stay straight. Lean variants preserve the grip bones and roll the waist by positive 8/16/24 degrees for left or negative 8/16/24 for right. Invalid arguments report usage. The probe retains an existing seat or mounts the nearest rideable within four blocks, then plays with controller `yasu_ride.scooter_pose`, stop expression `!query.is_riding`, and blend-out time 0.15. The animations are registered only in `description.animations` and do not run automatically.
+- Agreement: Proposed
+- Basis: [0250](../adr/0250-scooter-rider-grip-pose-and-stepped-lean.md) Decision; [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md) Decision.
+- Implementation: `src/test-pack/scooterPoseProbe.ts`; `packs/yasu_ride_rp/entity/yasu_ride/player.ce.json`; `packs/yasu_ride_rp/animations/yasu_ride/player.anim.json`
+- Verification: `tests/packs/playerOverride.test.ts` pins the vanilla definition, grip bones, looping, and six waist angles. Not verified: grip alignment, roll sign, pose switching, dismount restoration, and visibility on devices; these await owner checks.
 
 ## Open issues
 

@@ -90,6 +90,8 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       TYPE,
       "yasu_ride:wide_blade_switch",
       "yasu_ride:road_paver_switch",
+      "yasu_build:warp_tool",
+      "yasu_build:warp_block",
     ]);
   });
 });

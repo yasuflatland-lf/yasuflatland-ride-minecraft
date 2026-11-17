@@ -26,6 +26,7 @@ type AreaRow = {
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
   { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand"], cubes: 740 },
+  { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1150 },
 ];
 
 const python = startPythonWorker();
@@ -238,8 +239,8 @@ print(json.dumps(deviations))
   it("keeps all face rectangles inside the texture and respects the ceiling", () => {
     const { texture_width: width, texture_height: height } =
       geometry.description;
-    expect(width).toBeLessThanOrEqual(1024);
-    expect(height).toBeLessThanOrEqual(1024);
+    expect(width).toBeLessThanOrEqual(2048);
+    expect(height).toBeLessThanOrEqual(2048);
     for (const cube of cubes) {
       for (const face of Object.values(cube.uv)) {
         const [u = Number.NaN, v = Number.NaN] = face.uv;

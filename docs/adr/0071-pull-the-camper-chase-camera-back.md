@@ -8,7 +8,7 @@
 
 0028 switches riders to the vanilla `minecraft:third_person` preset in every form but `car` (0039). That view sits a few blocks behind the player. It frames the SUV, but the camper's body runs 7.6 blocks with the bumper and ladder, and its front seats sit 2.1 blocks ahead of its center. The owner flew the camper and found the view still inside the body.
 
-The stable Script API cannot set the distance of `minecraft:third_person`. A behavior pack camera preset can: one that inherits from `minecraft:follow_orbit` takes a `radius` in blocks, and that preset has needed no experimental toggle since 1.21.40, below the pack's minimum engine version of 1.21.80 (0001).
+The stable Script API cannot set the distance of `minecraft:third_person`. A behavior pack camera preset can: one that inherits from `minecraft:follow_orbit` takes a `radius` in blocks, and that preset has needed no experimental toggle since 1.21.40, below the Behavior Pack's current minimum engine version of 1.21.100 (0249).
 
 ## Decision
 
