@@ -21,6 +21,7 @@ export const BUILD_MESSAGE: Readonly<
   Record<
     | BuildMessage
     | "heightSize"
+    | "pasteInactive"
     | "pasteReady"
     | "rotateMode"
     | "sneakingPrefix"
@@ -32,6 +33,7 @@ export const BUILD_MESSAGE: Readonly<
   cutIncomplete: "yasu_build.message.cut_incomplete",
   removing: "yasu_build.message.removing",
   building: "yasu_build.message.building",
+  pasteInactive: "yasu_build.message.paste_inactive",
   pasteReady: "yasu_build.message.paste_ready",
   rotateMode: "yasu_build.message.rotate_mode",
   sneakingPrefix: "yasu_build.message.sneaking_prefix",

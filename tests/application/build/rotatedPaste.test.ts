@@ -11,7 +11,10 @@ import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import { facingVector } from "../../../src/domain/build/rotation/facing";
+import {
+  facingVector,
+  turnBetween,
+} from "../../../src/domain/build/rotation/facing";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -50,7 +53,13 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
   const facing = (["east", "south", "west", "north"] as const)[turn];
   session.followPasteFacing(facing);
   store.calls.length = 0;
-  const target = pasteTarget(clipboard, block, "up", facing);
+  const target = pasteTarget(
+    clipboard,
+    block,
+    "up",
+    turnBetween(clipboard.facing, facing),
+    facing,
+  );
   const paste = new PasteAt(repo, world, feedback, store, players);
   const press = new PressPasteAim(
     repo,
@@ -161,7 +170,13 @@ it("refuses a blocked cell inside only the rotated footprint without changing fl
   fc.assert(
     fc.property(origin, fc.constantFrom<QuarterTurn>(1, 3), (block, turn) => {
       const e = setup(block, turn);
-      const original = pasteTarget(e.clipboard, block, "up", "east");
+      const original = pasteTarget(
+        e.clipboard,
+        block,
+        "up",
+        turnBetween(e.clipboard.facing, "east"),
+        "east",
+      );
       const blocked = [...cellsOf(e.target.box)].find(
         (cell) =>
           cell.x < original.box.min.x ||
