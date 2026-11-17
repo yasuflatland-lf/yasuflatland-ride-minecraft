@@ -267,3 +267,24 @@ item.yasu_ride:toilet_item.name=Toilet
 entity.yasu_ride:toilet.name=Toilet
 yasu_ride.toilet.occupied=Someone is using the Toilet
 yasu_ride.toilet.flushing=The Toilet is flushing
+
+yasu_build.warp.name_title=Warp name
+yasu_build.warp.name_label=Name (up to %1 characters)
+yasu_build.warp.list_title=Warp points
+yasu_build.warp.overworld=Overworld
+yasu_build.warp.nether=Nether
+yasu_build.warp.the_end=The End
+yasu_build.warp.unverified=Unverified
+yasu_build.warp.previous_page=Previous page
+yasu_build.warp.next_page=Next page
+yasu_build.warp.registry_unreadable=The warp registry could not be read.
+yasu_build.warp.registry_full=The warp registry is full.
+yasu_build.warp.point_gone=Warp point "%1" no longer exists and was removed.
+yasu_build.warp.no_points=No warp points are registered.
+yasu_build.warp.teleport_failed=Could not teleport to the warp point.
+item.yasu_build:warp_tool.name=Warp Tool
+tile.yasu_build:warp_block.name=Warp Block
+
+yasu_build.warp.hits_left=Hit the Warp Block %s more times to break it
+yasu_build.warp.hit_left=Hit the Warp Block %s more time to break it
+yasu_build.warp.block_broken=Warp Block broken

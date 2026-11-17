@@ -49,8 +49,6 @@ ROLL_STATIONS = ((4,0),(3.7,.5),(3,1),(0,1),(-3,1),(-4.5,1))
 ROLL_PROFILE = ((3.8,5.38),(4.02,5.24),(4.12,4.95),(4.02,4.63),(3.92,4.5))
 FLOOR_EDGE = ((4.3,4.4322,-4.0338),(4.02,4.48,-3.5),(4.08,4.56,-2.5),
               (4.08,4.56,0),(4.08,4.59,3),(3.94,4.95,3.7),(3.8,5.32,4))
-SHIELD_EDGE = ((448,506),(430,525),(400,548),(370,565),(340,574),
-               (310,575),(280,571),(250,564),(215,554),(188,546))
 
 
 def _clamp(t):
@@ -146,12 +144,12 @@ def _cowl_point(xi,t,side):
 
 
 def _shield_z(x,y):
-    rows = sorted((D.i2m(xi,yi)[1],D.i2m(xi,yi)[0]) for yi,xi in SHIELD_EDGE)
-    u = _clamp((y-D.BODY_SHIELD_RELIEF_Y)/D.BODY_SHIELD_RELIEF_HEIGHT)
-    relief = D.BODY_SHIELD_RELIEF_MIN+(1-D.BODY_SHIELD_RELIEF_MIN)*u*u*(3-2*u)
-    return (_smooth(rows,y)-relief*(D.BODY_SHIELD_DEPTH_MIN+D.BODY_SHIELD_DEPTH_GAIN
-            *math.exp(-((y-D.BODY_SHIELD_CROWN_Y)/D.BODY_SHIELD_RELIEF_HEIGHT)**2))
-            *(1-(x/D.BODY_SHIELD_HALF_WIDTH)**2))
+    rows = sorted((D.i2m(xi,yi)[1],D.i2m(xi,yi)[0]) for yi,xi in D.SHIELD_EDGE)
+    u = _clamp((y-D.SHIELD_RELIEF_Y)/D.SHIELD_RELIEF_HEIGHT)
+    relief = D.SHIELD_RELIEF_MIN+(1-D.SHIELD_RELIEF_MIN)*u*u*(3-2*u)
+    return (_smooth(rows,y)-relief*(D.SHIELD_DEPTH_MIN+D.SHIELD_DEPTH_GAIN
+            *math.exp(-((y-D.SHIELD_RELIEF_CROWN_Y)/D.SHIELD_RELIEF_HEIGHT)**2))
+            *(1-(x/D.SHIELD_HALF_WIDTH)**2))
 
 
 def _geometry():
@@ -326,13 +324,15 @@ def _prepared():
     # Packing each mask independently makes MaxRects quadratic in the panel count.
     for material,tiles in masks.items():
         name = "body_panels" if material == "paint" else "body_cowl_right"
-        stride = D.BODY_PANEL_TEXELS + 2*atlas.GUTTER_TEXELS
+        # Neighboring tiles each supply half of the two-texel transparent gutter.
+        gutter = atlas.GUTTER_TEXELS // 2
+        stride = D.BODY_PANEL_TEXELS + 2*gutter
         columns = math.ceil(math.sqrt(len(tiles)))
         rows = math.ceil(len(tiles)/columns)
-        def pixel(u,v,tiles=tiles,columns=columns,stride=stride):
+        def pixel(u,v,tiles=tiles,columns=columns,stride=stride,gutter=gutter):
             column,x = divmod(u,stride)
             row,y = divmod(v,stride)
-            x,y = x-atlas.GUTTER_TEXELS,y-atlas.GUTTER_TEXELS
+            x,y = x-gutter,y-gutter
             index = row*columns+column
             if index >= len(tiles) or not (0 <= x < D.BODY_PANEL_TEXELS and 0 <= y < D.BODY_PANEL_TEXELS):
                 return atlas.CLEAR
@@ -343,8 +343,8 @@ def _prepared():
         for i,entry in enumerate(panel_uv):
             if entry[0] == name:
                 sheet,slot = entry
-                panel_uv[i] = (sheet,(slot%columns)*stride+atlas.GUTTER_TEXELS,
-                               (slot//columns)*stride+atlas.GUTTER_TEXELS)
+                panel_uv[i] = (sheet,(slot%columns)*stride+gutter,
+                               (slot//columns)*stride+gutter)
     for index,(poly,x) in enumerate(plates):
         name = f"body_inner_{index}"
         w,h,pixel = atlas.outline_pixel(poly,D.BODY_PLATE_DENSITY,

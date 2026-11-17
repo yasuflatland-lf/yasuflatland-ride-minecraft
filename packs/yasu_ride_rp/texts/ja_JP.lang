@@ -267,3 +267,24 @@ item.yasu_ride:toilet_item.name=トイレ
 entity.yasu_ride:toilet.name=トイレ
 yasu_ride.toilet.occupied=誰かがトイレを使用しています
 yasu_ride.toilet.flushing=トイレを洗浄中です
+
+yasu_build.warp.name_title=ワープ地点の名前
+yasu_build.warp.name_label=名前（%1文字まで）
+yasu_build.warp.list_title=ワープ地点
+yasu_build.warp.overworld=オーバーワールド
+yasu_build.warp.nether=ネザー
+yasu_build.warp.the_end=ジ・エンド
+yasu_build.warp.unverified=未確認
+yasu_build.warp.previous_page=前のページ
+yasu_build.warp.next_page=次のページ
+yasu_build.warp.registry_unreadable=ワープ地点の登録情報を読み込めませんでした。
+yasu_build.warp.registry_full=ワープ地点の登録数が上限に達しています。
+yasu_build.warp.point_gone=ワープ地点「%1」のブロックがなくなったため、登録を削除しました。
+yasu_build.warp.no_points=ワープ地点が登録されていません。
+yasu_build.warp.teleport_failed=ワープ地点に移動できませんでした。
+item.yasu_build:warp_tool.name=ワープツール
+tile.yasu_build:warp_block.name=ワープブロック
+
+yasu_build.warp.hits_left=ワープブロックを壊すには、あと %s 回叩いてください
+yasu_build.warp.hit_left=ワープブロックを壊すには、あと %s 回叩いてください
+yasu_build.warp.block_broken=ワープブロックを壊しました

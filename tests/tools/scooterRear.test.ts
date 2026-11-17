@@ -4,7 +4,7 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-describe("scooter rear plate", () => {
+describe("scooter rear lamp and plate", () => {
   it("fits fine lamp panels to their full frame and preserves it through mirroring", async () => {
     await python.run(`import math, sys
 sys.path.insert(0, 'tools')
@@ -25,6 +25,36 @@ before=t.corners(cube)
 k.mirror_to_game([dict(name='tail_lights',pivot=[0,0,0],cubes=[cube])])
 after=t.corners(cube)
 assert all(any(math.dist([-p[0],p[1],p[2]],q)<1e-5 for q in after) for p in before)
+`);
+  });
+
+  it("keeps the red lens within one small round footprint", async () => {
+    await python.run(`import math, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+r=load_tool('scooter_rear')
+t=load_tool('cube_tilt')
+result=r.kit.AreaCubes()
+r._lamp(result)
+points=[p for c in result['tail_lights'] for p in t.corners(c)]
+origin=r._lamp_frame()([0,0,0])
+up=r.kit._unit(r.kit._sub(r._lamp_frame()([0,1,0]),origin))
+for axis in ([1,0,0],up):
+    values=[r.kit._dot(r.kit._sub(p,origin),axis) for p in points]
+    assert max(values)-min(values)<=2.3*r.LAMP_RADIUS, 'Lens must be small and circular'
+boxes=[]
+for cube in result['tail_lights']:
+    corners=t.corners(cube)
+    boxes.append([(min(p[i] for p in corners),max(p[i] for p in corners)) for i in range(3)])
+seen={0}
+while True:
+    adjacent={j for j,b in enumerate(boxes) if any(all(a[i][0]<=b[i][1]+0.02 and b[i][0]<=a[i][1]+0.02 for i in range(3)) for a in (boxes[k] for k in seen))}
+    if adjacent<=seen:
+        break
+    seen.update(adjacent)
+assert len(seen)==len(boxes), 'All red cubes must form one connected lens'
+assert all(math.hypot(p[0],r.kit._dot(r.kit._sub(p,origin),up))<=r.LAMP_RIM_RADIUS-r.LAMP_RIM_SIZE/2 for p in points), 'Red lens must stay inside the bezel'
+
 `);
   });
 
@@ -50,7 +80,7 @@ for bone,cubes in result.items():
             assert bone=='body'
 assert set(result)=={'body','tail_lights'}
 assert all(a.REGISTRY._regions[c['uv']['south'].region].material==a.Material.LENS for c in result['tail_lights'])
-flange=result['body'][r.LAMP_RING_POINTS*(len(r.LAMP_SHELL)-1):r.LAMP_RING_POINTS*len(r.LAMP_SHELL)]
+flange=result['body'][:r.LAMP_RING_POINTS]
 contacts=[p for c in flange for p in t.corners(c)]
 gaps=[distance(p) for p in contacts]
 assert max(gaps)<=r.LAMP_WALL_TOLERANCE, ('floating flange',min(gaps),max(gaps))
@@ -64,6 +94,43 @@ assert max(distance(p) for p in top)<=r.PLATE_WALL_TOLERANCE
 assert min(distance(p) for p in top)>=-0.2
 lamp_bottom=min(p[1] for c in result.assemblies[r.LAMP_ASSEMBLY] for p in t.corners(c))
 assert abs(lamp_bottom-max(p[1] for p in top))<0.2
+`);
+  });
+
+  it("closes the chrome bezel around the lens with uniform angular coverage", async () => {
+    await python.run(`import math, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+r=load_tool('scooter_rear')
+t=load_tool('cube_tilt')
+k=r.kit
+calls=[]
+original=k.tube
+def capture(points,size,faces,assembly=None):
+    cubes=original(points,size,faces,assembly)
+    calls.append((points,cubes))
+    return cubes
+k.tube=capture
+try:
+    result=k.AreaCubes()
+    r._lamp(result)
+finally:
+    k.tube=original
+assert len(calls)==1, 'Lamp must have just one bezel loop'
+points,cubes=calls[0]
+assert len(cubes)==r.LAMP_RING_POINTS
+assert len(points)==len(cubes)+1 and math.dist(points[0],points[-1])<1e-8
+origin=r._lamp_frame()([0,0,r.LAMP_RIM_LIFT])
+up=k._unit(k._sub(r._lamp_frame()([0,1,r.LAMP_RIM_LIFT]),origin))
+angles=sorted(math.atan2(k._dot(k._sub(p,origin),up),p[0])%(2*math.pi) for p in points[:-1])
+gaps=[(b-a)%(2*math.pi) for a,b in zip(angles,angles[1:]+angles[:1])]
+assert max(gaps)<=1.5*2*math.pi/len(cubes)
+for j,cube in enumerate(cubes):
+    matrix=t.cube_matrix(cube.get('rotation',[0,0,0]))
+    center=cube['pivot']
+    direction=[matrix[i][2] for i in range(3)]
+    endpoints=[[center[i]+sign*direction[i]*math.dist(points[j],points[j+1])/2 for i in range(3)] for sign in (-1,1)]
+    assert all(any(math.dist(p,q)<1e-7 for q in endpoints) for p in points[j:j+2]), 'Tube segment must span the shared loop vertices'
 `);
   });
 

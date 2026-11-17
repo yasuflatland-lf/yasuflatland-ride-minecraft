@@ -59,6 +59,9 @@
     "yasu_build_selection_wand": {
       "textures": "textures/items/yasu_build/selection_wand"
     },
+    "yasu_build_warp_tool": {
+      "textures": "textures/items/yasu_build/warp_tool"
+    },
     "yasu_ride_roof_tent_item": {
       "textures": "textures/items/yasu_ride/roof_tent_item"
     },
