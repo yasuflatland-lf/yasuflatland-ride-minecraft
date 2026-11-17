@@ -54,7 +54,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
         endpoint,
         beginRotateMode(overworld, boxOf(at, at), stone, 1),
         chooseHeighted(endpoint, "copy"),
-        { kind: "pasteAim" } as const,
+        { kind: "pasteAim", manualTurn: 0 } as const,
       ]) {
         for (const event of ["dimension", "die"]) {
           const repo = new FakeSessions();

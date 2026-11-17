@@ -91,7 +91,7 @@ it("ignores all non-rotation flow kinds without changing session state", () => {
       material,
       op: "fillBelow",
     },
-    { kind: "pasteAim", facing: "west" },
+    { kind: "pasteAim", manualTurn: 0, facing: "west" },
   ];
   for (const flow of flows) {
     session.setFlow(flow);
