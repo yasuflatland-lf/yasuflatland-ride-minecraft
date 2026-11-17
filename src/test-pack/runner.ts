@@ -84,6 +84,7 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
     shard,
     features: tags,
     lanes: request.lanes,
+    manual: request.manual,
     playerConnected: world.getAllPlayers().length > 0,
   });
   const laneCount = plan.lanes.length;
