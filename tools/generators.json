@@ -69,6 +69,7 @@
       ],
       "reads": [
         "tools/scooter_running.py",
+        "tools/scooter_struts.py",
         "tools/scooter_body.py",
         "tools/scooter_rear.py",
         "tools/scooter_engine.py",

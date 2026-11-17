@@ -86,8 +86,13 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   and a thin chrome lower tube bracket.
 
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
-`glow_front`, `headlights`, `wheel_rear_fold`, `wheel_rear`, `glow_rear`, `stand`, `tail_lights`, `seat_0`,
-`seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
+`glow_front`, `wheel_front_strut`, `headlights`, `wheel_rear_fold`, `wheel_rear`,
+`glow_rear`, `wheel_rear_strut`, `stand`, `tail_lights`, `seat_0`, `seat_1`.
+Fold, strut and seat bones remain empty; no bone has a rest rotation.
+The strut bones use the axle pivots and parent to `steer` (front) and `body` (rear).
+They cannot descend from any fold bone: all three wheel fold clips give each strut
+only the corresponding fold bone's position keys, keeping it vertical while the wheel rolls. The `struts`
+area follows `running` and reserves separate front and rear builders. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
 model pixels apart. The running area supplies both wheels, suspension, and stand.
 Whitewall discs use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within

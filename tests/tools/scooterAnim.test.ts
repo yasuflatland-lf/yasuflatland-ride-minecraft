@@ -185,3 +185,14 @@ print(json.dumps(list(anim_mod.fold_position_keys('deploy'))))
 `);
   expect(JSON.parse(out)).toEqual(["0.0", "0.4", "1.0"]);
 });
+
+it("moves each strut with its fold position keys without rotating it", () => {
+  python(`
+module=load_tool('scooter_anim')
+for clip in ('deploy','folded','retract'):
+    bones=anim('wheels_'+clip)['bones']
+    for side,strut in d.STRUT_BONES.items():
+        assert bones[strut]=={'position':module.fold_position_keys(clip)}
+        assert bones[strut]['position']==bones[d.FOLD_BONES[side]]['position']
+`);
+});

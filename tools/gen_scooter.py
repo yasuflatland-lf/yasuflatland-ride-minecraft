@@ -15,6 +15,7 @@ scooter_textures = load_tool("scooter_textures")
 
 AREA_ORDER = (
     "running",
+    "struts",
     "body",
     "rear",
     "engine",
@@ -65,10 +66,12 @@ BONES = (
     (dims.FOLD_BONES["front"], "steer", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
     ("wheel_front", dims.FOLD_BONES["front"], (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
     ("glow_front", dims.FOLD_BONES["front"], (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
+    (dims.STRUT_BONES["front"], "steer", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
     ("headlights", "steer", (0, 0, 0)),
     (dims.FOLD_BONES["rear"], "body", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
     ("wheel_rear", dims.FOLD_BONES["rear"], (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
     ("glow_rear", dims.FOLD_BONES["rear"], (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
+    (dims.STRUT_BONES["rear"], "body", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
     ("stand", "body", dims.STAND_PIVOT),
     ("tail_lights", "body", (0, 0, 0)),
     ("seat_0", "body", (0, dims.SEAT_Y, dims.DRIVER_SEAT_Z)),
@@ -104,6 +107,13 @@ def rounded(value):
 
 
 def build():
+    parents = {name: parent for name, parent, _ in BONES}
+    for strut in dims.STRUT_BONES.values():
+        ancestor = parents[strut]
+        while ancestor is not None:
+            if ancestor.endswith("_fold"):
+                raise ValueError(f"Strut bone {strut} must not descend from fold bone {ancestor}")
+            ancestor = parents[ancestor]
     merged = kit.AreaCubes()
     for name in AREA_ORDER:
         merged.merge(load_tool(f"scooter_{name}").build())
