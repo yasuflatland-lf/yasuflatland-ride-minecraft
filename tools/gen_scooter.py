@@ -15,6 +15,7 @@ texture_io = load_tool("texture_io")
 AREA_ORDER = (
     "running",
     "body",
+    "shield",
 )
 
 ASSEMBLIES = {
@@ -22,6 +23,10 @@ ASSEMBLIES = {
     "running_wheel_rear": {"owner": "scooter", "cubes": 292},
     "running_spring": {"owner": "scooter", "cubes": 112},
     "running_stand": {"owner": "scooter", "cubes": 2},
+    "shield_face": {"owner": "scooter", "cubes": 105},
+    "shield_trim": {"owner": "scooter", "cubes": 66},
+    "shield_ridge": {"owner": "scooter", "cubes": 110},
+    "shield_fender": {"owner": "scooter", "cubes": 295},
     "body_cowl": {"owner": "scooter", "cubes": 594},
     "body_tail": {"owner": "scooter", "cubes": 216},
     "body_frame": {"owner": "scooter", "cubes": 148},
