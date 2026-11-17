@@ -231,12 +231,15 @@ print(json.dumps(deviations))
       expect(members).toHaveLength(metadata.table[name]?.cubes ?? -1);
       expect(metadata.table[name]?.owner).toBe("scooter");
     }
+    const authorized = new Set(
+      Object.values(metadata.assemblies)
+        .flat()
+        .map((member) => JSON.stringify(member)),
+    );
     expect(
-      cubes.filter(multipleAxes).every((cube) =>
-        Object.values(metadata.assemblies)
-          .flat()
-          .some((member) => JSON.stringify(member) === JSON.stringify(cube)),
-      ),
+      cubes
+        .filter(multipleAxes)
+        .every((cube) => authorized.has(JSON.stringify(cube))),
     ).toBe(true);
   });
 
