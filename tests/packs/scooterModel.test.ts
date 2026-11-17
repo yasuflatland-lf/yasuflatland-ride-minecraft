@@ -22,7 +22,8 @@ type AreaRow = {
 // One row per area module (issues 6 to 11 each append one row).
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
-  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand", "running_pedal"], cubes: 743 },
+  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_pedal"], cubes: 733 },
+  { area: "stand", bones: ["stand"], assemblies: ["running_stand"], cubes: 10 },
   { area: "struts", bones: ["steer", "body", "wheel_front_strut", "wheel_rear_strut", "wheel_rear_stem"], assemblies: [], cubes: 5 },
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1030 },
   { area: "floor", bones: ["body"], assemblies: ["body_floor"], cubes: 120 },

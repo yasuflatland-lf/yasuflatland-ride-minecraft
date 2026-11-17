@@ -94,18 +94,20 @@ They cannot descend from any fold bone: all three wheel fold clips give each str
 only the corresponding fold bone's position keys, keeping it vertical while the wheel rolls. The `struts`
 area follows `running` and reserves separate front and rear builders. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
-model pixels apart. The running area supplies both wheels, suspension, and stand.
+model pixels apart. The running area supplies both wheels and suspension.
 Whitewall discs use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
 0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
 panel's tangent frame and takes no panel margin, so its outer envelope stays within
 0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
-fold bones retain their axle pivots. The combined running, body, rear, engine, head, and shield atlas stays within 2048 by 2048
+fold bones retain their axle pivots. The combined running, stand, body, floor, rear, engine, head, and shield atlas stays within 2048 by 2048
 texels. The scooter requests this side limit from the shared packer, which searches
 wider layouts and rejects regions that cannot fit without reducing texture detail.
 Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit.
 
+`tools/scooter_stand.py` builds the centre stand independently of the wheel and fork area.
+
 The body area replaces the body placeholder with the tail, cowls, frame cover,
-and deck and roll skins. The floor area supplies the edge tubes, chrome rails,
+and deck and roll skins. The floor area (`tools/scooter_floor.py`) supplies the edge tubes, chrome rails,
 and rubber treads. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
 own all compound body panels and trim.
 Body regions register idempotently before faces are constructed. Neighboring

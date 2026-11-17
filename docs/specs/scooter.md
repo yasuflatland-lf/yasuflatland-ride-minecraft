@@ -1,6 +1,6 @@
 # Scooter
 
-- Scope: The scooter kind: its spec table and profile, collision box and entity contract, ground and water-surface driving, lean, steering and stand, flat-wheel flight, paint, headlights and item. The generated model, including the separate body and floor areas, is covered by Model conventions and rendered previews; the riders' grip pose by Seats and driver selection.
+- Scope: The scooter kind: its spec table and profile, collision box and entity contract, ground and water-surface driving, lean, steering and stand, flat-wheel flight, paint, headlights and item. The generated model, including the separate body, floor and stand areas, is covered by Model conventions and rendered previews; the riders' grip pose by Seats and driver selection.
 - Verified at: 8ca71e8
 - Source: [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md)
 - Source: [0055](../adr/0055-kind-neutral-vehicle-core.md)
@@ -56,7 +56,7 @@
 - Rule: The stand is down when nobody is aboard and no driver is awaited, the speed is under `standSpeed` (0.01 blocks per tick) and the scooter is not on water; otherwise it is up. Outside car form it is up. The client lowers the stand on the property and raises it when the property is false, with short blends. A boarding rider folds it up.
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "`yasu_ride:stand` is true when nobody is aboard"
-- Implementation: `src/domain/vehicle/kinds/scooter/stand.ts` (`standDown`), `src/domain/vehicle/kinds/scooter/drive.ts`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`
+- Implementation: `tools/scooter_stand.py` (stand model), `src/domain/vehicle/kinds/scooter/stand.ts` (`standDown`), `src/domain/vehicle/kinds/scooter/drive.ts`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`
 - Verification: `tests/domain/vehicle/kinds/scooter/stand.test.ts` "lowers only when empty, stopped and dry", "stays up at the stopped threshold in either direction"; `tests/domain/vehicle/kinds/scooter/drive.test.ts` "lowers the stand once at rest and raises it when a driver appears"; `tests/packs/scooterClient.test.ts` "raises the stand when the stand property is false with short blends". Tests were read, not run for this spec.
 
 ### Water surface
