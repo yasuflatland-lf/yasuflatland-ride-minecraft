@@ -47,7 +47,7 @@ import {
   stepMotion,
   updateSpeed,
 } from "../../../src/domain/vehicle/motion/motion";
-import { STEP_LANES } from "../../../src/domain/vehicle/motion/stepUp";
+import { stepLanes } from "../../../src/domain/vehicle/motion/stepUp";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 
 const NEUTRAL_GROUND: GroundInput = {
@@ -317,7 +317,7 @@ describe("vehicle profiles (ADR 0050)", () => {
     for (const table of [
       SPEC,
       MOTION,
-      STEP_LANES,
+      stepLanes(SUV_TRANSFORMING.stepLaneOffset),
       SUV_SPEC,
       SUV_SPEC.headlightReach,
       AIR,

@@ -52,6 +52,7 @@ LAID_TAG = "tag:yasu_ride:laid"
 
 SPEC = Path(__file__).resolve().parent / "camping_gear.json"
 ITEM_TEXTURE_BASE = Path(__file__).resolve().parent / "item_texture_base.json"
+TERRAIN_TEXTURE_BASE = Path(__file__).resolve().parent / "terrain_texture_base.json"
 MODELS = "models/blocks/yasu_ride"
 ATLAS = "textures/blocks/yasu_ride/camping_gear.png"
 TERRAIN = "textures/terrain_texture.json"
@@ -385,11 +386,13 @@ def validate(spec):
         sys.exit("\n".join(errors))
 
 
-def terrain():
+def terrain(base: dict) -> dict:
+    data = dict(base["texture_data"])
+    data[ATLAS_KEY] = {"textures": "textures/blocks/yasu_ride/camping_gear"}
     return {
-        "resource_pack_name": "yasu_ride",
-        "texture_name": "atlas.terrain",
-        "texture_data": {ATLAS_KEY: {"textures": "textures/blocks/yasu_ride/camping_gear"}},
+        "resource_pack_name": base["resource_pack_name"],
+        "texture_name": base["texture_name"],
+        "texture_data": data,
     }
 
 
@@ -626,7 +629,7 @@ def main():
     for layout in PAIR_LAYOUTS.values():
         documents[rp / MODELS / f"{layout.name}_decor_pair.geo.json"] = pair_geometry(layout, spec)
     documents[rp / MODELS / "drawers_decor_pair.geo.json"] = drawers_geometry(spec)
-    documents[rp / TERRAIN] = terrain()
+    documents[rp / TERRAIN] = terrain(json.loads(TERRAIN_TEXTURE_BASE.read_text()))
     bp = args.behavior_pack
     for item in spec:
         gid = item["id"]

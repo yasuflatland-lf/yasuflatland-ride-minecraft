@@ -138,6 +138,8 @@ export const BULLDOZER_TRANSFORMING: TransformingSpec = Object.freeze({
   gearDownHeight: BULLDOZER_SPEC.gearDownHeight,
   gearProbeOffset: BULLDOZER_SPEC.gearProbeOffset,
   hitboxFront: BULLDOZER_SPEC.hitboxFront,
+  stepLaneOffset: 0.8,
   air: BULLDOZER_AIR,
   water: BULLDOZER_WATER,
+  waterPolicy: "submerge",
 });
