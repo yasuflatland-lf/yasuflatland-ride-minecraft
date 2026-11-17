@@ -81,6 +81,64 @@ const sharedPaths = [
   ".github/workflows/unit-test.yml",
 ];
 
+const chainedFixture = `
+def chained_entries(length, cycle=False, wildcard=0):
+    entries = [
+        {'script': 'gen_a.py' if i == 0 else f'convert_{i}.py',
+         'outputs': [f'packs/{i}.*' if wildcard == 1 else f'packs/{i}.json'],
+         'reads': ([f'packs/{i - 1}.*' if wildcard == 2 else f'packs/{i - 1}.json']
+                   if i else [f'packs/{length - 1}.json'] if cycle else [])}
+        for i in range(length)
+    ]
+    entries.extend([
+        {'script': 'render_preview.py', 'id': 'render_preview.py:chained',
+         'outputs': ['docs/chained.png'], 'reads': [f'packs/{length - 1}.json']},
+        {'script': 'convert_preview.py', 'outputs': ['packs/preview.json'],
+         'reads': ['docs/chained.png']},
+        {'script': 'render_preview.py', 'id': 'render_preview.py:unrelated',
+         'outputs': ['docs/unrelated.png'], 'reads': ['packs/preview.json']},
+    ])
+    return entries
+`;
+
+it("selects a scene through another generator's output", () => {
+  python(`${fixture}${chainedFixture}
+assert select(['tools/gen_a.py'], OutputManifest(chained_entries(2))) == Selection(('chained',), True)
+`);
+});
+
+it("follows generator chains and cycles regardless of manifest order", async () => {
+  const worker = startPythonWorker();
+  try {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.integer({ min: 2, max: 12 }),
+        fc.boolean(),
+        fc.integer({ min: 0, max: 2 }),
+        fc.nat(),
+        async (length, cycle, wildcard, offset) => {
+          await worker.run(
+            `${fixture}${chainedFixture}
+import json
+length, cycle, wildcard, offset = json.loads(sys.stdin.read())
+entries = chained_entries(length, cycle, wildcard)
+offset %= len(entries)
+entries = entries[offset:] + entries[:offset]
+for ordered in (entries, list(reversed(entries))):
+    manifest = OutputManifest(ordered)
+    assert select(['tools/gen_a.py'], manifest) == Selection(('chained',), True)
+    assert select(['tools/__pycache__/gen_a.py'], manifest) == Selection((), False)
+`,
+            JSON.stringify([length, cycle, wildcard, offset]),
+          );
+        },
+      ),
+    );
+  } finally {
+    await worker.close();
+  }
+});
+
 it.each(sharedPaths)("selects every scene for %s", (path) => {
   python(`${fixture}
 assert select([${JSON.stringify(path)}], manifest) == Selection(('zeta', 'alpha'), True)

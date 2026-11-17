@@ -33,9 +33,19 @@ def select(changed_paths: Iterable[str], manifest: OutputManifest) -> Selection:
                 and fnmatch.fnmatchcase(PurePosixPath(path).name, "gen_*.py")
                 and any(entry.script == PurePosixPath(path).name for entry in entries)):
             run_others = True
-            outputs = tuple(output for entry in entries
-                            if entry.script == PurePosixPath(path).name
-                            for output in entry.outputs)
+            affected = {entry for entry in entries
+                        if entry.script == PurePosixPath(path).name}
+            pending = list(affected)
+            while pending:
+                upstream = pending.pop()
+                for entry in others:
+                    if entry not in affected and any(
+                            fnmatch.fnmatchcase(output, read)
+                            or fnmatch.fnmatchcase(read, output)
+                            for output in upstream.outputs for read in entry.reads):
+                        affected.add(entry)
+                        pending.append(entry)
+            outputs = tuple(output for entry in affected for output in entry.outputs)
             selected.update(scene.id for scene in scenes
                             if any(fnmatch.fnmatchcase(output, read)
                                    or fnmatch.fnmatchcase(read, output)
