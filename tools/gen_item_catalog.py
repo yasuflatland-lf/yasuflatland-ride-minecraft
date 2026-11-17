@@ -51,7 +51,7 @@ GROUPS = [
     # Up/Down, Wide Blade, and Road Paver switches keep their fully qualified yasu_ride IDs
     # in that order (ADR 0178, 0180, 0181).
     {"namespace": "yasu_build", "name": "building_tools", "icon": "selection_wand",
-     "items": ["selection_wand", "yasu_ride:blade_switch",
+     "items": ["selection_wand", "paste_rotate", "paste_place", "yasu_ride:blade_switch",
                "yasu_ride:wide_blade_switch", "yasu_ride:road_paver_switch",
                "warp_tool", "warp_block"]},
 ]
