@@ -118,6 +118,7 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
     "lens_head",
     "lens_tail_glow",
     "lens_amber",
+    "glow",
   ]);
   const mer = readRgbaPng(`${directory}scooter_mer.png`);
   const base = readRgbaPng(`${directory}scooter.png`);

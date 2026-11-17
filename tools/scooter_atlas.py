@@ -27,6 +27,7 @@ WHITEWALL = (233, 232, 227)
 LEATHER = (169, 109, 52)
 LEATHER_SEAM = (118, 72, 32)
 HEAD_LENS = (255, 242, 209)
+GLOW_RGB = (80, 170, 255)
 TAIL_LENS = (138, 15, 18)
 AMBER_LENS = (232, 151, 36)
 PLATE = (237, 231, 210)
@@ -114,6 +115,7 @@ register("seat_leather", REGION_TEXELS, REGION_TEXELS, Material.LEATHER,
          lambda u, v: (*(LEATHER_SEAM if v % SEAM_PERIOD_TEXELS == 0 else LEATHER), 255))
 for name, color in (("lens_head", HEAD_LENS), ("lens_tail", TAIL_LENS), ("lens_tail_glow", TAIL_LENS), ("lens_amber", AMBER_LENS)):
     register(name, SMALL_TEXELS, SMALL_TEXELS, Material.LENS, _solid(color))
+register("glow", SMALL_TEXELS, SMALL_TEXELS, Material.LENS, _solid(GLOW_RGB))
 register("plate", SMALL_TEXELS, SMALL_TEXELS, Material.PLATE, _solid(PLATE))
 register("clear", SMALL_TEXELS, SMALL_TEXELS, Material.CUTOUT, lambda u, v: CLEAR)
 

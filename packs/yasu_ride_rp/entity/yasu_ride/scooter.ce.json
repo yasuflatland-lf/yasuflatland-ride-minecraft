@@ -1,0 +1,110 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:scooter",
+      "materials": {
+        "default": "entity_alphatest",
+        "lamp": "entity",
+        "lamp_lit": "entity_emissive"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/scooter",
+        "green": "textures/entity/yasu_ride/scooter_green",
+        "red": "textures/entity/yasu_ride/scooter_red",
+        "white": "textures/entity/yasu_ride/scooter_white",
+        "light_gray": "textures/entity/yasu_ride/scooter_light_gray",
+        "gray": "textures/entity/yasu_ride/scooter_gray",
+        "black": "textures/entity/yasu_ride/scooter_black",
+        "orange": "textures/entity/yasu_ride/scooter_orange",
+        "yellow": "textures/entity/yasu_ride/scooter_yellow",
+        "lime": "textures/entity/yasu_ride/scooter_lime",
+        "cyan": "textures/entity/yasu_ride/scooter_cyan",
+        "light_blue": "textures/entity/yasu_ride/scooter_light_blue",
+        "blue": "textures/entity/yasu_ride/scooter_blue",
+        "purple": "textures/entity/yasu_ride/scooter_purple",
+        "magenta": "textures/entity/yasu_ride/scooter_magenta",
+        "pink": "textures/entity/yasu_ride/scooter_pink",
+        "lit": "textures/entity/yasu_ride/scooter_lit"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.scooter"
+      },
+      "animations": {
+        "wheels": "animation.yasu_ride.scooter.wheels",
+        "steer": "animation.yasu_ride.scooter.steer",
+        "lean": "animation.yasu_ride.scooter.lean",
+        "stand_up": "animation.yasu_ride.scooter.stand_up",
+        "wheels_deploy": "animation.yasu_ride.scooter.wheels_deploy",
+        "wheels_folded": "animation.yasu_ride.scooter.wheels_folded",
+        "wheels_retract": "animation.yasu_ride.scooter.wheels_retract",
+        "hover_glow": "animation.yasu_ride.scooter.hover_glow",
+        "engine_sound_0": "animation.yasu_ride.scooter.engine_sound_0",
+        "engine_sound_1": "animation.yasu_ride.scooter.engine_sound_1",
+        "engine_sound_2": "animation.yasu_ride.scooter.engine_sound_2",
+        "engine_sound_3": "animation.yasu_ride.scooter.engine_sound_3",
+        "engine_sound_4": "animation.yasu_ride.scooter.engine_sound_4",
+        "engine_sound_5": "animation.yasu_ride.scooter.engine_sound_5",
+        "hover_sound_0": "animation.yasu_ride.scooter.hover_sound_0",
+        "hover_sound_1": "animation.yasu_ride.scooter.hover_sound_1",
+        "hover_sound_2": "animation.yasu_ride.scooter.hover_sound_2",
+        "hover_sound_3": "animation.yasu_ride.scooter.hover_sound_3",
+        "hover_sound_4": "animation.yasu_ride.scooter.hover_sound_4",
+        "form": "controller.animation.yasu_ride.scooter.form",
+        "stand": "controller.animation.yasu_ride.scooter.stand"
+      },
+      "sound_effects": {
+        "engine_0": "yasu_ride.engine_0",
+        "engine_1": "yasu_ride.engine_1",
+        "engine_2": "yasu_ride.engine_2",
+        "engine_3": "yasu_ride.engine_3",
+        "engine_4": "yasu_ride.engine_4",
+        "engine_5": "yasu_ride.engine_5",
+        "hover_0": "yasu_ride.hover_0",
+        "hover_1": "yasu_ride.hover_1",
+        "hover_2": "yasu_ride.hover_2",
+        "hover_3": "yasu_ride.hover_3",
+        "hover_4": "yasu_ride.hover_4",
+        "hover_start": "yasu_ride.hover_start"
+      },
+      "particle_effects": {
+        "hover_glow": "yasu_ride:hover_glow"
+      },
+      "scripts": {
+        "animate": [
+          "form",
+          "stand",
+          "lean",
+          "steer",
+          {
+            "engine_sound_0": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed < 1"
+          },
+          {
+            "engine_sound_1": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 1 && query.ground_speed < 4.5"
+          },
+          {
+            "engine_sound_2": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 4.5 && query.ground_speed < 8"
+          },
+          {
+            "engine_sound_3": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 8 && query.ground_speed < 11.5"
+          },
+          {
+            "engine_sound_4": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 11.5 && query.ground_speed < 15"
+          },
+          {
+            "engine_sound_5": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 15"
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.yasu_ride.scooter",
+        {
+          "controller.render.yasu_ride.scooter.glow": "!query.property('yasu_ride:gear_down')"
+        },
+        {
+          "controller.render.yasu_ride.scooter.lit": "query.property('yasu_ride:headlights')"
+        }
+      ]
+    }
+  }
+}

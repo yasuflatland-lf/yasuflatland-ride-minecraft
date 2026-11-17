@@ -62,6 +62,7 @@
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
+        "packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.texture_set.json",
         "packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png"

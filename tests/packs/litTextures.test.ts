@@ -55,6 +55,28 @@ const suvLit = (x: number, y: number) =>
       lit.some(([lx, ly]) => lx === x && ly === y),
   );
 
+const scooterLitRects: [number, number, number, number][] = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+textures = load_tool('scooter_textures')
+# The areas register their regions while building, so only a full build packs the real atlas.
+_, layout, _ = load_tool('gen_scooter').build()
+print(json.dumps([[*layout.origin(r.name), r.width, r.height] for r in layout.regions if r.name in textures.LIT_REGIONS]))`,
+    ],
+    { encoding: "utf8" },
+  ),
+);
+const scooterLit = (x: number, y: number) =>
+  scooterLitRects.some(
+    ([bx, by, w, h]) => x >= bx && x < bx + w && y >= by && y < by + h,
+  );
+
 describe("SUV tail lamp lit texels", () => {
   it("lights exactly the painter's LED, reverse and complete third brake regions", () => {
     const expected: {
@@ -119,6 +141,13 @@ const kinds = [
     condition: headlights,
   },
   {
+    kind: "scooter",
+    slots: [],
+    regionRule: scooterLit,
+    bones: { headlights, tail_lights: headlights },
+    condition: headlights,
+  },
+  {
     kind: "sportsboat",
     slots: [14],
     cell: 4,
@@ -151,13 +180,16 @@ describe.each(kinds)(
   ({ kind, slots, cell, regionRule, bones, condition }) => {
     function expectedColorTexel(pixel: number[], on: boolean) {
       if (on) return [...pixel.slice(0, 3), 0];
-      if (kind === "suv" && pixel[3] === 0) return [...pixel.slice(0, 3), 255];
+      // Both generators pass opaque_unlit_cutouts, so a cutout hole stays out of the lit pass.
+      if ((kind === "suv" || kind === "scooter") && pixel[3] === 0)
+        return [...pixel.slice(0, 3), 255];
       return pixel;
     }
 
-    // Main maximum 15.209 s (three runs); 4 x 15.209 = 60.836 s, rounded up to 90 s.
+    // Main maximum 15.209 s (three runs); 4 x 15.209 = 60.836 s locally. A loaded
+    // CI runner took over 90 s with all scooter areas merged, so allow 300 s.
     it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", {
-      timeout: 90_000,
+      timeout: 300_000,
     }, () => {
       const base = texels(kind);
       const lit = texels(`${kind}_lit`);
@@ -174,10 +206,12 @@ describe.each(kinds)(
         },
       });
       for (const [i, pixel] of base.pixels.entries()) {
-        const on =
+        const inRegion =
           regionRule?.(i % base.width, Math.floor(i / base.width)) ??
           (Math.floor(i / base.width) < (cell ?? 1) &&
             slots.includes(Math.floor((i % base.width) / (cell ?? 1))));
+        // The clear corners of the scooter's round lens must not glow as a square plate.
+        const on = kind === "scooter" ? inRegion && pixel[3] !== 0 : inRegion;
         expect(lit.pixels[i], `color texel ${i}`).toEqual(
           expectedColorTexel(pixel, on),
         );

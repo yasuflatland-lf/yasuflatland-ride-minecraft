@@ -20,6 +20,7 @@ AREA_ORDER = (
     "engine",
     "head",
     "shield",
+    "glow",
 )
 
 ASSEMBLIES = {
@@ -59,9 +60,11 @@ BONES = (
     ("steer", "root", dims.STEER_PIVOT),
     ("wheel_front_fold", "steer", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
     ("wheel_front", "wheel_front_fold", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
+    ("glow_front", "wheel_front_fold", (0, dims.AXLE_Y, dims.FRONT_AXLE_Z)),
     ("headlights", "steer", (0, 0, 0)),
     ("wheel_rear_fold", "body", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
     ("wheel_rear", "wheel_rear_fold", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
+    ("glow_rear", "wheel_rear_fold", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
     ("stand", "body", dims.STAND_PIVOT),
     ("tail_lights", "body", (0, 0, 0)),
     ("seat_0", "body", (0, dims.SEAT_Y, dims.DRIVER_SEAT_Z)),
@@ -116,6 +119,11 @@ def build():
     atlas.resolve(all_cubes, layout)
     bones = [{"name": name, **({"parent": parent} if parent else {}), "pivot": list(pivot),
               "cubes": merged.get(name, [])} for name, parent, pivot in BONES]
+    for bone in bones:
+        if bone["name"].startswith("glow_"):
+            side = bone["name"].removeprefix("glow_")
+            outer = min(cube["origin"][0] for cube in bone["cubes"])
+            bone["locators"] = {"hover_" + side: [outer, *bone["pivot"][1:]]}
     kit.mirror_to_game(bones)
     cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
     pixels = atlas.render_atlas(layout)
@@ -137,6 +145,7 @@ def main(argv):
     outputs = texture_io.Outputs("--check" in argv[1:])
     geo, layout, pixels = build()
     outputs.json(rp / "models/entity/yasu_ride/scooter.geo.json", geo)
+    outputs.json(rp / "animations/yasu_ride/scooter.anim.json", load_tool("scooter_anim").build())
     scooter_textures.write(outputs, rp, layout, pixels)
     counts = [(b["name"], len(b["cubes"])) for b in geo["minecraft:geometry"][0]["bones"]]
     for name, count in counts:
