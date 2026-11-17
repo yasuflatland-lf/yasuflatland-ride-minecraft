@@ -16,8 +16,7 @@ HEADSET_Y = 17.9
 SEAT_Y = 16.1
 DRIVER_SEAT_Z = 3.5
 PASSENGER_SEAT_Z = 9.5
-STAND_PIXEL = (400, 462)
-STAND_PIVOT_BACK = 0.2
+STAND_PIVOT = (0, 4.8, 3.5)
 FOLD_DEGREES = 90
 # Turned cube corners require a drop greater than 3.353244 px; round up to a quarter pixel.
 FOLD_DROP = 3.5
@@ -29,7 +28,7 @@ STRUT_BONES = {"front": "wheel_front_strut", "rear": "wheel_rear_strut"}
 # on the ground so the open wheel well keeps its road silhouette; it extends with the fold drop.
 REAR_STEM_BONE = "wheel_rear_stem"
 REAR_STEM_TOP = 13.26
-STAND_UP_DEGREES = 85
+STAND_UP_DEGREES = -85
 GLOW_DEPTH = 0.5
 GLOW_GAP = 0.1
 GLOW_SEGMENTS = 16
@@ -56,7 +55,7 @@ VISIBLE_BOUNDS_OFFSET = (0, 1, 0)
 # Area allocations share the model budget; the ceiling allows later detail work.
 AREA_CUBE_ALLOCATION: dict[str, int] = {
     "running": 725,
-    "stand": 35,
+    "stand": 70,
     "struts": 10,
     "body": 1005,
     "floor": 125,
@@ -74,7 +73,6 @@ def i2m(xi, yi) -> tuple[float, float]:
     return ((I2M_ORIGIN_X - xi) * I2M_SCALE, (I2M_ORIGIN_Y - yi) * I2M_SCALE)
 
 
-STAND_PIVOT = (0, i2m(*STAND_PIXEL)[1], i2m(*STAND_PIXEL)[0] - STAND_PIVOT_BACK)
 
 
 def steering_axis_z(y):

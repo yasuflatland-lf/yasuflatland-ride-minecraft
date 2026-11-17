@@ -23,14 +23,26 @@ rotation=load_tool('scooter_anim').build()['animations']['animation.yasu_ride.sc
 assert rotation==[d.STAND_UP_DEGREES,0,0]
 pivot=bones['stand']['pivot']
 assert tuple(pivot)==d.STAND_PIVOT
-matrix=t.cube_matrix(rotation)
-for index,cube in enumerate(bones['stand']['cubes']):
-    points=[[pivot[i]+v for i,v in enumerate(t.apply_matrix(matrix,[p[j]-pivot[j] for j in range(3)]))]
-            for p in t.corners(cube)]
-    lo=[min(p[i] for p in points) for i in range(3)]
-    hi=[max(p[i] for p in points) for i in range(3)]
-    assert lo[1]>1, ('ground clearance',index,lo)
-    for name,(other_lo,other_hi) in obstacles:
-        assert any(hi[i]+0.01<other_lo[i] or other_hi[i]+0.01<lo[i] for i in range(3)), (index,name,lo,hi)
+for angle in range(0, d.STAND_UP_DEGREES-1, -5):
+    matrix=t.cube_matrix([angle,0,0])
+    for index,cube in enumerate(bones['stand']['cubes']):
+        points=[[pivot[i]+v for i,v in enumerate(t.apply_matrix(matrix,[p[j]-pivot[j] for j in range(3)]))]
+                for p in t.corners(cube)]
+        lo=[min(p[i] for p in points) for i in range(3)]
+        hi=[max(p[i] for p in points) for i in range(3)]
+        if angle in (0, d.STAND_UP_DEGREES):
+            assert lo[1]>1 if angle else lo[1]>=-0.0005, ('ground clearance',angle,index,lo)
+        for name,(other_lo,other_hi) in obstacles:
+            assert any(hi[i]+0.01<other_lo[i] or other_hi[i]+0.01<lo[i] for i in range(3)), (index,name,lo,hi)
+`);
+});
+
+it("places the stand hinge beneath the rear floor at reference height", async () => {
+  await python.run(`import sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+d=load_tool('scooter_dims')
+assert 4.6 <= d.STAND_PIVOT[1] <= 5.0, d.STAND_PIVOT
+assert 3.5 <= d.STAND_PIVOT[2] <= 5.0, d.STAND_PIVOT
 `);
 });

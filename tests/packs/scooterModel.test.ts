@@ -86,7 +86,7 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(3720);
+    expect(metadata.budget).toBe(3755);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });
@@ -240,7 +240,7 @@ print(json.dumps(deviations))
       ["glow_rear", "wheel_rear_fold", [0, 4.3, 11.8]],
       ["wheel_rear_strut", "body", [0, 4.3, 11.8]],
       ["wheel_rear_stem", "body", [0, 13.26, 11.8]],
-      ["stand", "body", [0, 3.735, 1.045]],
+      ["stand", "body", [0, 4.8, 3.5]],
       ["tail_lights", "body", [0, 0, 0]],
       ["seat_0", "body", [0, 16.1, 3.5]],
       ["seat_1", "body", [0, 16.1, 9.5]],
@@ -300,16 +300,20 @@ for strut in d.STRUT_BONES.values():
   });
 
   it("measures stand feet in generated model pixels without undoing the mirror", () => {
-    const feet = boneCubes("stand").filter((cube) => cube.origin[1] === 0);
-    expect(feet).toHaveLength(2);
-    for (const cube of feet) {
-      const [min, max] = cubeBounds(cube);
-      expect(min).toEqual(cube.origin);
-      expect(max).toEqual(
-        cube.origin.map((v, axis) => v + (cube.size[axis] ?? 0)),
-      );
-      expect(min[1]).toBe(0);
-      expect(max[1]).toBeGreaterThan(0);
+    const feet = boneCubes("stand").filter(
+      (cube) => cubeBounds(cube)[0][1] < 0.1,
+    );
+    expect(feet).toHaveLength(16);
+    for (const sign of [-1, 1]) {
+      const side = feet.filter((cube) => sign * cubeBounds(cube)[0][0] > 0);
+      expect(side).toHaveLength(8);
+      const lowest = Math.min(...side.map((cube) => cubeBounds(cube)[0][1]));
+      expect(lowest).toBeCloseTo(0, 3);
+      for (const cube of side) {
+        const [min, max] = cubeBounds(cube);
+        expect(min[1]).toBeGreaterThanOrEqual(-0.0005);
+        expect(max[1] - min[1]).toBeGreaterThan(1.2);
+      }
     }
   });
 

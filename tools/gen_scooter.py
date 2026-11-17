@@ -30,7 +30,7 @@ ASSEMBLIES = {
     "running_wheel_front": {"owner": "scooter", "cubes": 292},
     "running_wheel_rear": {"owner": "scooter", "cubes": 292},
     "running_spring": {"owner": "scooter", "cubes": 112},
-    "running_stand": {"owner": "scooter", "cubes": 26},
+    "running_stand": {"owner": "scooter", "cubes": 68},
     "running_pedal": {"owner": "scooter", "cubes": 3},
     "shield_face": {"owner": "scooter", "cubes": 105},
     "shield_trim": {"owner": "scooter", "cubes": 66},

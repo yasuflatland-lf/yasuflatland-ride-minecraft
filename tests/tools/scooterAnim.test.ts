@@ -65,13 +65,13 @@ threshold=max(d.AXLE_Y-p[0]-low for name in ('wheel_front','wheel_rear') for c i
 assert threshold<d.FOLD_DROP<=threshold+.25
 assert d.FOLD_DROP*4==round(d.FOLD_DROP*4)
 pivot=d.STAND_PIVOT
-assert pivot==(0,d.i2m(*d.STAND_PIXEL)[1],d.i2m(*d.STAND_PIXEL)[0]-d.STAND_PIVOT_BACK)
-feet=[c for c in bones['stand']['cubes'] if c['origin'][1]==0]
-assert len(feet)==2
+assert pivot==(0,4.8,3.5)
+feet=[c for c in bones['stand']['cubes'] if min(p[1] for p in t.corners(c))<.1]
+assert len(feet)==16
 for cube in feet:
     for p in t.corners(cube):
         q=t.apply_matrix(t.cube_matrix([d.STAND_UP_DEGREES,0,0]),[p[i]-pivot[i] for i in range(3)])
-        assert q[1]+pivot[1]>1 and q[2]+pivot[2]>p[2]
+        assert q[1]+pivot[1]>1 and q[2]+pivot[2]<p[2]
 assert sum(len(b['cubes']) for b in bones.values())<=d.CUBE_BUDGET
 `);
 });
