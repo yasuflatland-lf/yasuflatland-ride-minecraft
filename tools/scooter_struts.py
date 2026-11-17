@@ -31,9 +31,10 @@ REAR_STEM_HALF = 0.3
 # so the rod never leaves the collar in flight.
 REAR_SLIDE_OVERLAP = 0.4
 REAR_COLLAR_BOTTOM = 4.6
-# Ends inside the cowl underside plate (y 13.23..13.29 on x = 0), the nearest fixed
-# body cube above the rear axle.
-REAR_COLLAR_TOP = 13.26
+# Highest stem top that leaves the road-pose previews identical to main: measured pixel
+# by pixel, a stem to y 9.0 is fully hidden behind the tyre and fender, while a stem to
+# y 10.0 already shows through the open wheel well (side, rear and tail lamp previews).
+REAR_COLLAR_TOP = 9.0
 
 
 def _rear(result):
@@ -46,8 +47,8 @@ def _rear(result):
     def column(half, bottom, top):
         return kit.box((-half, bottom, z - half), (half, top, z + half), chrome)
 
-    # The wide sleeve stays inside the tyre at rest; only the thin stem crosses the
-    # open wheel well up to the cowl.
+    # The wide sleeve stays inside the tyre at rest, and the thin stem stops where the
+    # tyre and fender still hide it, so no strut cube shows in the road pose.
     result.add("body", [column(REAR_SLEEVE_HALF, REAR_COLLAR_BOTTOM, rod_top),
                         column(REAR_STEM_HALF, rod_top, REAR_COLLAR_TOP)])
     result.add(dims.STRUT_BONES["rear"], column(REAR_ROD_HALF, dims.AXLE_Y, rod_top))
