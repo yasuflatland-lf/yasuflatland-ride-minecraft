@@ -16,6 +16,7 @@ import {
   beginPasteAim,
   recordPaste,
 } from "../../../src/domain/build/flow/paste";
+import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -58,7 +59,13 @@ function setup() {
   );
   const target = (block: { x: number; y: number; z: number }) => {
     if (!session.clipboard) throw new Error("Expected clipboard");
-    return pasteTarget(session.clipboard, block, "up", "east");
+    return pasteTarget(
+      session.clipboard,
+      block,
+      "up",
+      turnBetween(session.clipboard.facing, "east"),
+      "east",
+    );
   };
   return { repo, session, world, feedback, paste, target, structures };
 }
@@ -157,6 +164,7 @@ it("silently ignores repeats, refuses busy and blocked taps, and records only su
         expect(start).toHaveBeenCalledTimes(2);
         expect(e.session.flow).toMatchObject({
           kind: "pasteAim",
+          manualTurn: 0,
           lastPaste: { anchor, turn: 0, tick: 200 },
         });
       },
@@ -178,6 +186,7 @@ it("allows the same anchor again once the repeat window ends", () => {
   expect(start).toHaveBeenCalledTimes(2);
   expect(e.session.flow).toMatchObject({
     kind: "pasteAim",
+    manualTurn: 0,
     lastPaste: { tick: BUILD_SPEC.pasteRepeatTicks },
   });
 });

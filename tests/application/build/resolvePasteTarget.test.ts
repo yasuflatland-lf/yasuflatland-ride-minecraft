@@ -50,7 +50,7 @@ function setup(facing?: Facing) {
     boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 2, z: 3 }),
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim", facing });
+  session.setFlow({ kind: "pasteAim", manualTurn: 0, facing });
   return { repo, session, clipboard };
 }
 
@@ -67,7 +67,12 @@ it("matches the domain target for every face and turn, and returns no target on 
         resolver.execute({ playerId, dimensionId: nether, aim, tick: 0 }),
       ).toEqual({
         kind: "target",
-        target: aimedPasteTarget(clipboard, aim, facing),
+        target: aimedPasteTarget(
+          clipboard,
+          aim,
+          turnBetween(clipboard.facing, facing),
+          facing,
+        ),
       });
       expect(
         resolver.execute({
@@ -157,7 +162,12 @@ it("draws the same paste box that the press sends to PasteAt", () => {
         expect(probe.calls.every((call) => call.dimensionId === nether)).toBe(
           true,
         );
-        const unsnapped = aimedPasteTarget(clipboard, aim, facing);
+        const unsnapped = aimedPasteTarget(
+          clipboard,
+          aim,
+          turnBetween(clipboard.facing, facing),
+          facing,
+        );
         if (!unsnapped) throw new Error("Expected hit target");
         expect(
           probe.calls.every((call) => call.fromY === unsnapped.box.min.y),
@@ -327,7 +337,7 @@ it("uses the clipboard facing for an initial vertical gaze", () => {
           },
         },
       });
-      expect(session.flow).toEqual({ kind: "pasteAim", facing });
+      expect(session.flow).toEqual({ kind: "pasteAim", manualTurn: 0, facing });
       expect(session.pasteTurn).toBe(0);
     }),
   );

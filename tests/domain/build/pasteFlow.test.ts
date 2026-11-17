@@ -63,9 +63,10 @@ it("records an immutable paste and suppresses only the same anchor within the wi
         const flow = recordPaste(initial, anchor, 0, tick);
         expect(flow).toEqual({
           kind: "pasteAim",
+          manualTurn: 0,
           lastPaste: { anchor, turn: 0, tick },
         });
-        expect(initial).toEqual({ kind: "pasteAim" });
+        expect(initial).toEqual({ kind: "pasteAim", manualTurn: 0 });
         expect(Object.isFrozen(flow)).toBe(true);
         expect(Object.isFrozen(flow.lastPaste)).toBe(true);
         expect(Object.isFrozen(flow.lastPaste?.anchor)).toBe(true);

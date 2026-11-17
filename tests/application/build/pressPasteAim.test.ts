@@ -14,6 +14,7 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -84,13 +85,18 @@ function setup(
     structures,
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim", facing: "east" });
+  session.setFlow({ kind: "pasteAim", manualTurn: 0, facing: "east" });
   const aim = new FakeAimReader();
   aim.target = {
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: block, face },
   };
-  const target = aimedPasteTarget(clipboard, aim.target, "east");
+  const target = aimedPasteTarget(
+    clipboard,
+    aim.target,
+    turnBetween(clipboard.facing, "east"),
+    "east",
+  );
   if (!target) throw new Error("Expected paste target");
   const start = vi.spyOn(structures, "place");
   const execute = (sneaking = true) => {
@@ -132,6 +138,7 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
       ]);
       expect(e.session.flow).toEqual({
         kind: "pasteAim",
+        manualTurn: 0,
         facing: "east",
         lastPaste: { anchor: e.target.anchor, turn: 0, tick },
       });
@@ -186,7 +193,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
       expect(e.execute()).toBe("ignored");
       expect(e.repo.get(playerId)).toBeUndefined();
       const empty = e.repo.getOrCreate(playerId);
-      empty.setFlow({ kind: "pasteAim" });
+      empty.setFlow({ kind: "pasteAim", manualTurn: 0 });
       expect(e.execute()).toBe("ignored");
       expect(e.feedback.messages).toEqual([{ message: "noClipboard" }]);
       expect(e.start).not.toHaveBeenCalled();
@@ -260,7 +267,11 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         new UndoEdit(e.repo, e.feedback, e.jobs, e.world, e.structures, {
           warn: () => {},
         }).execute({ playerId });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", facing: "east" });
+        expect(e.session.flow).toEqual({
+          kind: "pasteAim",
+          manualTurn: 0,
+          facing: "east",
+        });
         expect(e.session.clipboard).toBe(e.clipboard);
         e.jobs.step();
         expect(e.world.stateAt(nether, e.target.anchor)).toBe(AIR);
