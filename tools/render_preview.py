@@ -183,10 +183,18 @@ SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
 # The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
 SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_white.png"
 SCOOTER_CELLS_PER_UNIT = 16
+SCOOTER_ANIMATIONS = "animations/yasu_ride/scooter.anim.json"
+# SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16 model pixels (ADR 0251).
+SCOOTER_FLIGHT_LIFT = 24.0
+SCOOTER_POOL_LAYERS = 20
+SCOOTER_POOL_SEGMENTS = 48
+SCOOTER_POOL_RADIUS_RATIO = 1.6
+SCOOTER_POOL_ALPHA = 0.07
+SCOOTER_POOL_COLOR = GLOW_LIT
 SCOOTER_LIT_TEXTURE = "textures/entity/yasu_ride/scooter_lit.png"
 SCOOTER_POSES = {
     "scooter-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
-    "scooter-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
+    "scooter-flying-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
     "scooter-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": SIDE_BRIGHTNESS},
     "scooter-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
     # Framed on the tail lamp alone, so it is rendered apart from the shared scale (see render_scooter).
@@ -625,7 +633,7 @@ def collect(geo, texture, turns, pose, lit_texture=None, lit_bones=SUV_LIT_BONES
     return polygons
 
 
-def ground_layers(polygons, pose, ground_y, *, flight: FlightPose | None = None):
+def ground_layers(polygons, pose, ground_y, *, flight: FlightPose | None = None, glow_pools=None):
     """Translucent quads on the ground as (quad, alpha, rgb): the shadow, then the headlight beam, the
     seabed, or the glow pools of the pose."""
     points = [p for quad, _, emissive in polygons if not emissive for p in quad]
@@ -651,7 +659,9 @@ def ground_layers(polygons, pose, ground_y, *, flight: FlightPose | None = None)
             g = SEABED_MARGIN * (layer + 1) / SEABED_LAYERS
             quad = [(x_lo - g, ground_y, z_lo - g), (x_hi + g, ground_y, z_lo - g), (x_hi + g, ground_y, z_hi + g), (x_lo - g, ground_y, z_hi + g)]
             layers.append((quad, SEABED_ALPHA, SEABED_COLOR))
-    if flight is not None:
+    if glow_pools is not None:
+        layers.extend(glow_pools)
+    elif flight is not None:
         for quad, _, emissive in polygons:
             if emissive != "disc" or quad[0][1] != min(p[1] for p in quad):
                 continue
@@ -1218,19 +1228,58 @@ def render_camper(rp: Path, icon_path: Path | None) -> SceneResult:
     return SceneResult(images, None)
 
 
+def scooter_glow_pools(geo, texture, pose, flight, ground_y):
+    layers = []
+    for bone in geo["bones"]:
+        if not bone["name"].startswith("glow_"):
+            continue
+        # One pool per assembly avoids stacking light for every overlapping disc face.
+        disc_geo = {**geo, "bones": [b if b is bone else {**b, "cubes": []} for b in geo["bones"]]}
+        discs, _ = collect_boat(disc_geo, texture, pose, flight=flight)
+        points = [p for quad, _, _ in discs for p in quad]
+        x_lo, x_hi = min(p[0] for p in points), max(p[0] for p in points)
+        z_lo, z_hi = min(p[2] for p in points), max(p[2] for p in points)
+        cx, cz = (x_lo + x_hi) / 2, (z_lo + z_hi) / 2
+        radius = max(x_hi - x_lo, z_hi - z_lo) / 2 * SCOOTER_POOL_RADIUS_RATIO
+        for layer in range(SCOOTER_POOL_LAYERS):
+            fraction = (layer + 1) / SCOOTER_POOL_LAYERS
+            ring = []
+            for segment in range(SCOOTER_POOL_SEGMENTS):
+                sine, cosine = sin_cos(360 * segment / SCOOTER_POOL_SEGMENTS - 180)
+                ring.append((cx + radius * fraction * cosine, ground_y, cz + radius * fraction * sine))
+            layers.append((ring, SCOOTER_POOL_ALPHA * (1 - fraction), SCOOTER_POOL_COLOR))
+    return layers
+
+
 def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / SCOOTER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / SCOOTER_TEXTURE)
     # The road pose has no hover discs: the render controller hides the glow bones on the ground.
-    geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
+    ground_geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Only the texels the lit texture marks glow, so the lens stays round and the rim stays chrome.
     texture = combine_textures(texture, read_png(rp / SCOOTER_LIT_TEXTURE))
-    shared = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" not in p}
+    flight_name = "scooter-flying-headlights.png"
+    shared = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" not in p and n != flight_name}
     close = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" in p}
     images = {}
     for poses in (shared, close):
-        images.update(render_poses(geo, texture, poses, {}, texture_mapping=True, cache_faces=True,
+        images.update(render_poses(ground_geo, texture, poses, {}, texture_mapping=True, cache_faces=True,
                                    defer_textures=True, texel_lit=True))
+    animations = json.loads((rp / SCOOTER_ANIMATIONS).read_text())
+    flight = build_flight_pose(animations, "animation.yasu_ride.scooter.wheels_folded", lift=SCOOTER_FLIGHT_LIFT)
+    pose = SCOOTER_POSES[flight_name]
+    flight_geo = static_pose(geo, animations["animations"]["animation.yasu_ride.scooter.stand_up"])
+    polygons, glass = collect_boat(flight_geo, texture, pose, {}, texture_mapping=True, face_cache={},
+                                   defer_textures=True, texel_lit=True, flight=flight)
+    ground_y = min(p[1] for quad, _, _ in images["scooter-front-left.png"].polygons for p in quad)
+    pools = scooter_glow_pools(flight_geo, texture, pose, flight, ground_y)
+    layers = ground_layers(polygons, pose, ground_y, flight=flight, glow_pools=pools)
+    # Flight gets its own frame so its lift and light pools cannot rescale the ground previews.
+    camera = Camera([p for quad, _, _ in polygons for p in quad], pose["view"], pose["screen_up"])
+    # The headlight beam can leave the picture without shrinking the vehicle.
+    frame_layers = ground_layers(polygons, {**pose, "lamps": False}, ground_y, flight=flight, glow_pools=pools)
+    to_screen = fit(camera, [q for q, _, _ in polygons + frame_layers])
+    images[flight_name] = RasterJob(flight_name, polygons, layers, to_screen, WIDTH, HEIGHT, None, BLOOM, glass)
     return SceneResult({name: images[name] for name in SCOOTER_POSES}, None)
 
 
