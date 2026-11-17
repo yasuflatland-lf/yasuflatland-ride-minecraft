@@ -13,10 +13,10 @@ import { heldTypeId } from "../../../shared/heldItem";
 import { buildItemRole, PASTE_ROTATE_TYPE } from "../../identifiers";
 import { heldBuildItem } from "../heldBuildItem";
 
-export type PressPasteControl = (args: {
-  source: Player;
-  typeId: string;
-}) => void;
+export interface PasteControlRoutes {
+  itemUse(player: Player): void;
+  blockInteract(player: Player): void;
+}
 
 export function registerPasteControls({
   repo,
@@ -34,19 +34,21 @@ export function registerPasteControls({
   rotateDebounce: PressDebounces<PlayerId>;
   pasteDebounce: PressDebounces<PlayerId>;
   refresh(playerId: PlayerId, tick: number): void;
-}): PressPasteControl {
-  world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (heldBuildItem(ev.player) !== "pasteControl") return;
-    ev.cancel = true;
-    // A short iPad block tap sends only playerInteractWithBlock (ADR 0203).
-    if (!ev.isFirstEvent) return;
-    const player = ev.player;
+}): PasteControlRoutes {
+  function pressFromBlockTap(player: Player, isFirstEvent: boolean): boolean {
+    if (heldBuildItem(player) !== "pasteControl") return false;
+    if (!isFirstEvent) return true;
     system.run(() => {
       if (!player.isValid) return;
       const typeId = heldTypeId(player);
       if (!typeId || buildItemRole(typeId) !== "pasteControl") return;
       pressPasteControl({ source: player, typeId });
     });
+    return true;
+  }
+  world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
+    // A short iPad block tap sends only playerInteractWithBlock (ADR 0203).
+    if (pressFromBlockTap(ev.player, ev.isFirstEvent)) ev.cancel = true;
   });
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     if (
@@ -55,7 +57,13 @@ export function registerPasteControls({
     )
       ev.cancel = true;
   });
-  const pressPasteControl: PressPasteControl = ({ source, typeId }) => {
+  const pressPasteControl = ({
+    source,
+    typeId,
+  }: {
+    source: Player;
+    typeId: string;
+  }) => {
     const playerId = asPlayerId(source.id);
     const tick = system.currentTick;
     if (typeId === PASTE_ROTATE_TYPE) {
@@ -74,10 +82,20 @@ export function registerPasteControls({
       });
     }
   };
+  function pressFromItemUse(source: Player, typeId: string): void {
+    if (!source.isValid || buildItemRole(typeId) !== "pasteControl") return;
+    pressPasteControl({ source, typeId });
+  }
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
-    if (!source.isValid || buildItemRole(itemStack.typeId) !== "pasteControl")
-      return;
-    pressPasteControl({ source, typeId: itemStack.typeId });
+    pressFromItemUse(source, itemStack.typeId);
   });
-  return pressPasteControl;
+  return {
+    itemUse(player) {
+      const typeId = heldTypeId(player);
+      if (typeId) pressFromItemUse(player, typeId);
+    },
+    blockInteract(player) {
+      pressFromBlockTap(player, true);
+    },
+  };
 }
