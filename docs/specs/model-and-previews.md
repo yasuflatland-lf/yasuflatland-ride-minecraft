@@ -48,8 +48,8 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 ### Scooter generator foundation
 
 - Applies to: Scooter generator primitives, area geometry, placeholders, and texture regions.
-- Rule: `tools/gen_scooter.py` exposes an importable `build()` and writes only the generated
-  `scooter.geo.json` and `scooter.png` assets. Dimensions live in `scooter_dims.py`;
+- Rule: `tools/gen_scooter.py` exposes an importable `build()` and writes the generated
+  geometry, paint textures, material maps, lit textures, and item icon. Dimensions live in `scooter_dims.py`;
   `scooter_atlas.py` classifies paint separately from other materials and reuses the
   camper MaxRects packer. Area builders register local region faces before packing;
   each face resolves once and remains bound to its region for the atlas audit.
@@ -130,10 +130,20 @@ measured vertices. The registered assemblies are `shield_face` (105),
 `shield_trim` (66), `shield_ridge` (110), and `shield_fender` (295).
 Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
 
+The sixteen paints follow the shared dye order. Khaki and white preserve the ivory
+atlas byte-for-byte, with white declared as the default paint for future kind wiring
+(ADR 0076). Recolouring affects only paint regions and retains their shading and alpha.
+Material maps distinguish polished chrome, semi-gloss paint, rough rubber and leather,
+smooth lenses, the plate, and cast metal. The switched lit maps cover `head_lens`,
+`lens_head`, `lens_tail_glow`, and `lens_amber`; mirror glass and transparent cutouts do not glow.
+A transparent 16 by 16 item icon shows the scooter facing right.
+
 - Agreement: Proposed
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md), front direction and model bones; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), named compound assemblies and the pending device confirmation of rotation order.
-- Implementation: `tools/gen_scooter.py`, `tools/scooter_dims.py`, `tools/scooter_atlas.py`, `tools/scooter_kit.py`, `tools/generators.json`.
-- Verification: `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
+- Implementation: `tools/scooter_textures.py`, `tools/gen_scooter.py`, `tools/scooter_dims.py`, `tools/scooter_atlas.py`, `tools/scooter_kit.py`, `tools/generators.json`.
+- Verification: `tests/tools/scooterTextures.test.ts` checks dye order, unchanged non-paint
+  texels, ivory identity, material finishes, lamp masks, texture sets, and icon transparency.
+  `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
   corners, local UV resolution, measured dimensions, and deterministic builds.
   `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
   whitewall circularity and tyre clearance, atlas bounds, and per-area budgets

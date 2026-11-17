@@ -11,6 +11,7 @@ kit = load_tool("scooter_kit")
 atlas = load_tool("scooter_atlas")
 cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
+scooter_textures = load_tool("scooter_textures")
 
 AREA_ORDER = (
     "running",
@@ -136,7 +137,7 @@ def main(argv):
     outputs = texture_io.Outputs("--check" in argv[1:])
     geo, layout, pixels = build()
     outputs.json(rp / "models/entity/yasu_ride/scooter.geo.json", geo)
-    outputs.rgba(rp / "textures/entity/yasu_ride/scooter.png", *layout.size, pixels)
+    scooter_textures.write(outputs, rp, layout, pixels)
     counts = [(b["name"], len(b["cubes"])) for b in geo["minecraft:geometry"][0]["bones"]]
     for name, count in counts:
         print(f"{name}: {count}")

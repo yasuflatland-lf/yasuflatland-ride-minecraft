@@ -322,7 +322,7 @@ def _seat(result):
 
 def _lamp(result):
     place = _lamp_frame()
-    chrome, red = atlas.faces("chrome"), atlas.faces("lens_tail")
+    chrome, glow = atlas.faces("chrome"), atlas.faces("lens_tail_glow")
     panel_index = 0
 
     def skin(rings, thick, faces):
@@ -345,7 +345,7 @@ def _lamp(result):
     result.add("body", kit.tube([*rim, rim[0]], LAMP_RIM_SIZE, chrome, LAMP_ASSEMBLY), LAMP_ASSEMBLY)
     lens = [[place(p) for p in _ring(radius, radius, LAMP_RIM_LIFT + rise)]
             for radius, rise in LAMP_DOME]
-    result.add("tail_lights", skin(lens, LAMP_LENS_SKIN, red), LAMP_ASSEMBLY)
+    result.add("tail_lights", skin(lens, LAMP_LENS_SKIN, glow), LAMP_ASSEMBLY)
 
 
 def _plate(result):

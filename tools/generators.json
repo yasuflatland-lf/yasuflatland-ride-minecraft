@@ -62,7 +62,9 @@
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
-        "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter.png"
+        "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.png",
+        "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.texture_set.json",
+        "packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png"
       ],
       "reads": [
         "tools/scooter_running.py",
@@ -70,7 +72,8 @@
         "tools/scooter_rear.py",
         "tools/scooter_engine.py",
         "tools/scooter_head.py",
-        "tools/scooter_shield.py"
+        "tools/scooter_shield.py",
+        "tools/scooter_textures.py"
       ]
     },
     {

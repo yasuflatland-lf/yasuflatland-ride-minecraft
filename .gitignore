@@ -49,7 +49,9 @@ packs/yasu_ride_rp/textures/items/yasu_ride/road_paver_switch.png
 packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer_monitor.geo.json
 packs/yasu_ride_rp/render_controllers/yasu_ride/bulldozer_monitor.rc.json
 packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json
-packs/yasu_ride_rp/textures/entity/yasu_ride/scooter.png
+packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.png
+packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.texture_set.json
+packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png
 packs/yasu_ride_rp/textures/items/yasu_build/selection_wand.png
 packs/yasu_ride_rp/textures/items/yasu_build/warp_tool.png
 packs/yasu_ride_rp/textures/blocks/yasu_build/warp_block_top.png
