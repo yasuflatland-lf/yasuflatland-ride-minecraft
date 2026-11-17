@@ -1152,6 +1152,18 @@ def render_camper(rp: Path, icon_path: Path | None) -> SceneResult:
     return SceneResult(images, None)
 
 
+def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
+    geo = json.loads((rp / "models/entity/yasu_ride/scooter.geo.json").read_text())["minecraft:geometry"][0]
+    texture = read_png(rp / "textures/entity/yasu_ride/scooter.png")
+    poses = {
+        "scooter-side.png": {"view": (1.0, 0.0, 0.0), "brightness": SIDE_BRIGHTNESS},
+        "scooter-front-left.png": {"view": VIEW_DIRECTION, "brightness": MAIN_BRIGHTNESS},
+    }
+    poses = {name: dict(lamps=False, dusk=False, screen_up=None, merge_texels=True,
+                        outward_normals=True, **pose) for name, pose in poses.items()}
+    return SceneResult(render_poses(geo, texture, poses, texture_mapping=True, cache_faces=True), None)
+
+
 def bulldozer_bones(bones):
     return [b for b in bones if b["name"] not in BULLDOZER_HIDDEN]
 
@@ -1414,6 +1426,7 @@ SCENE_BUILDERS: tuple[tuple[str, Callable[[Path, Path | None], SceneResult]], ..
     ("boat", render_boat),
     ("camper", render_camper),
     ("bulldozer", render_bulldozer),
+    ("scooter", render_scooter),
     ("gear", render_camping_gear),
 )
 

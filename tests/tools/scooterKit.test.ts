@@ -12,6 +12,8 @@ a=load_tool('scooter_atlas')
 d=load_tool('scooter_dims')
 t=load_tool('cube_tilt')
 `;
+// Two full builds of every merged area run slowly under parallel CI load.
+const GENERATOR_TIMEOUT_MS = 120_000;
 const scalar = fc.double({ min: -20, max: 20, noNaN: true });
 const angle = fc.double({ min: -170, max: 170, noNaN: true });
 
@@ -165,6 +167,17 @@ assert len(k.skin(rings,0.1,a.faces('paint'),closed=True,assembly='skin'))==3
 `);
   });
 
+  it("rolls a tube cube about its own axis without leaving the segment direction", async () => {
+    await python.run(`${setup}
+d0=[0.941,0.188,0.282]
+n=math.sqrt(sum(x*x for x in d0))
+for roll in (0,45):
+    c,=k.tube([[0,0,0],[x/n*3 for x in d0]],0.2,a.faces('chrome'),assembly='rod',roll=roll)
+    axis=t.apply_matrix(t.cube_matrix(c.get('rotation',[0,0,0])),[0,0,1])
+    assert all(abs(axis[i]-d0[i]/n)<1e-6 for i in range(3)),(roll,axis)
+`);
+  });
+
   it("uses the measured steering line, grounded tyres, and wheelbase", async () => {
     const result = JSON.parse(
       await python.run(`${setup}
@@ -179,13 +192,17 @@ print(json.dumps(d.i2m(425,537)))
     expect(result).toEqual([0, 0]);
   });
 
-  it("builds identical geometry and atlas bytes twice", async () => {
-    await python.run(`${setup}
+  it(
+    "builds identical geometry and atlas bytes twice",
+    async () => {
+      await python.run(`${setup}
 g=load_tool('gen_scooter')
 first,layout,pixels=g.build()
 second,other,again=g.build()
 assert json.dumps(first)==json.dumps(second)
 assert layout.size==other.size and pixels==again
 `);
-  });
+    },
+    GENERATOR_TIMEOUT_MS,
+  );
 });

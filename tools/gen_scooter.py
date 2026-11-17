@@ -13,11 +13,22 @@ cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 
 AREA_ORDER = (
+    "running",
     "body",
     "engine",
+    "head",
+    "shield",
 )
 
 ASSEMBLIES = {
+    "running_wheel_front": {"owner": "scooter", "cubes": 292},
+    "running_wheel_rear": {"owner": "scooter", "cubes": 292},
+    "running_spring": {"owner": "scooter", "cubes": 112},
+    "running_stand": {"owner": "scooter", "cubes": 2},
+    "shield_face": {"owner": "scooter", "cubes": 105},
+    "shield_trim": {"owner": "scooter", "cubes": 66},
+    "shield_ridge": {"owner": "scooter", "cubes": 110},
+    "shield_fender": {"owner": "scooter", "cubes": 295},
     "body_cowl": {"owner": "scooter", "cubes": 594},
     "body_tail": {"owner": "scooter", "cubes": 216},
     "body_frame": {"owner": "scooter", "cubes": 148},
@@ -27,6 +38,14 @@ ASSEMBLIES = {
     "engine_kick": {"owner": "scooter", "cubes": 18},
     "engine_muffler": {"owner": "scooter", "cubes": 114},
     "engine_header": {"owner": "scooter", "cubes": 66},
+    "head_collar": {"owner": "scooter", "cubes": 36},
+    "head_headset": {"owner": "scooter", "cubes": 120},
+    "head_bib": {"owner": "scooter", "cubes": 120},
+    "head_meter": {"owner": "scooter", "cubes": 24},
+    "head_lamp": {"owner": "scooter", "cubes": 72},
+    "head_controls": {"owner": "scooter", "cubes": 64},
+    "head_levers": {"owner": "scooter", "cubes": 6},
+    "head_mirrors": {"owner": "scooter", "cubes": 52},
 }
 
 BONES = (

@@ -25,8 +25,11 @@ type AreaRow = {
 // One row per area module (issues 6 to 11 each append one row).
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
+  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand"], cubes: 740 },
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1150 },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 320 },
+  { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"], cubes: 520 },
+  { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"], cubes: 650 },
 ];
 
 const python = startPythonWorker();
@@ -73,6 +76,111 @@ print(json.dumps(g.rounded(dict(areas=g.AREA_ORDER,table=g.ASSEMBLIES,assemblies
 });
 
 describe("scooter generated foundation", () => {
+  it("keeps the black tread silhouette within 0.03 units of a true circle", async () => {
+    const result: { side: string; low: number; high: number }[] = JSON.parse(
+      await python.run(`${setup}
+import math
+r=load_tool('scooter_running')
+t=load_tool('cube_tilt')
+built=r.build()
+assert r.RING_SEGMENTS>=40
+out=[]
+for side,axle,radius in (('front',-11.8,4.3),('rear',11.8,4.3*0.96)):
+    bins=[0.0]*360
+    for cube in built['wheel_'+side][:r.RING_SEGMENTS*7]:
+        c=t.corners(cube)
+        for i in range(8):
+            for axis in range(3):
+                j=i^(1<<axis)
+                if i<j:
+                    for step in range(41):
+                        u=step/40
+                        y=c[i][1]+u*(c[j][1]-c[i][1])-4.3
+                        z=c[i][2]+u*(c[j][2]-c[i][2])-axle
+                        b=int(math.degrees(math.atan2(z,y))%360)
+                        bins[b]=max(bins[b],math.hypot(y,z))
+    out.append(dict(side=side,low=min(bins)-radius,high=max(bins)-radius))
+print(json.dumps(out))
+`),
+    );
+    expect(result).toHaveLength(2);
+    for (const { low, high } of result) {
+      // The outer envelope never pokes past the tread circle and never sags below the chord polygon.
+      expect(high).toBeLessThanOrEqual(0.001);
+      expect(low).toBeGreaterThanOrEqual(-0.03);
+    }
+  });
+
+  it("keeps black tyre panels behind the whitewall circle on both sides", async () => {
+    await python.run(`${setup}
+import itertools, math
+r=load_tool('scooter_running')
+t=load_tool('cube_tilt')
+built=r.build()
+for side,axle,scale in (('front',-11.8,1.0),('rear',11.8,0.96)):
+    tyre=built['wheel_'+side][:r.RING_SEGMENTS*7]
+    for sign in (-1,1):
+        for cube in tyre:
+            corners=t.corners(cube)
+            points=[p for p in corners if sign*p[0]>=1.15]
+            for i,p in enumerate(corners):
+                for axis in range(3):
+                    j=i^(1<<axis)
+                    q=corners[j]
+                    if i<j and (sign*p[0]-1.15)*(sign*q[0]-1.15)<0:
+                        u=(sign*1.15-p[0])/(q[0]-p[0])
+                        points.append([p[k]+u*(q[k]-p[k]) for k in range(3)])
+            for p,q in itertools.combinations(points,2):
+                y,z=p[1]-4.3,p[2]-axle
+                dy,dz=q[1]-p[1],q[2]-p[2]
+                u=max(0,min(1,-(y*dy+z*dz)/(dy*dy+dz*dz))) if dy*dy+dz*dz else 0
+                assert math.hypot(y+u*dy,z+u*dz)>=3.71*scale-0.04
+`);
+  });
+
+  it("keeps both whitewall boundaries within 0.04 units of concentric circles", async () => {
+    const deviations: number[] = JSON.parse(
+      await python.run(`${setup}
+import math
+r=load_tool('scooter_running')
+a=load_tool('scooter_atlas')
+deviations=[]
+for side in ('front','rear'):
+    region=a.REGISTRY._regions['running_disc_'+side]
+    step=7.48/region.width
+    # Flood only the outer white band; the bead and hub are separate pale regions.
+    u=region.width//2
+    v=next(v for v in range(region.height) if region.pixel(u,v)[3])
+    pending=[(u,v)]
+    wall=set(pending)
+    while pending:
+        u,v=pending.pop()
+        for du,dv in ((1,0),(-1,0),(0,1),(0,-1)):
+            q=(u+du,v+dv)
+            if q in wall or not (0<=q[0]<region.width and 0<=q[1]<region.height):
+                continue
+            color=region.pixel(*q)
+            if color[3] and min(color[:3])>=190:
+                wall.add(q)
+                pending.append(q)
+    errors=[]
+    for u,v in wall:
+        for du,dv,corners in ((1,0,((1,0),(1,1))),(-1,0,((0,0),(0,1))),
+                              (0,1,((0,1),(1,1))),(0,-1,((0,0),(1,0)))):
+            if (u+du,v+dv) not in wall:
+                for x,y in corners:
+                    radius=math.hypot((u+x)*step-3.74,(v+y)*step-3.74)
+                    errors.append(min(abs(radius-3.0),abs(radius-3.71)))
+    deviations.append(max(errors))
+print(json.dumps(deviations))
+`),
+    );
+    expect(deviations).toHaveLength(2);
+    for (const deviation of deviations) {
+      expect(deviation).toBeLessThanOrEqual(0.04);
+    }
+  });
+
   it("keeps the exact ordered bone contract without rest rotations", () => {
     const steerZ =
       -11.8 + (17.9 - 4.3) * Math.tan((metadata.axis * Math.PI) / 180);
@@ -134,6 +242,8 @@ describe("scooter generated foundation", () => {
   it("keeps all face rectangles inside the texture and respects the ceiling", () => {
     const { texture_width: width, texture_height: height } =
       geometry.description;
+    expect(width).toBeLessThanOrEqual(2048);
+    expect(height).toBeLessThanOrEqual(2048);
     for (const cube of cubes) {
       for (const face of Object.values(cube.uv)) {
         const [u = Number.NaN, v = Number.NaN] = face.uv;
@@ -155,6 +265,40 @@ describe("scooter generated foundation", () => {
     expect(AREAS.flatMap((row) => row.assemblies).sort()).toEqual(
       Object.keys(metadata.table).sort(),
     );
+  });
+
+  it("keeps head paint cutouts attached to their panels after the final mirror", async () => {
+    const checked = Number(
+      await python.run(`${setup}
+h=load_tool('scooter_head')
+a=load_tool('scooter_atlas')
+registry=a.RegionRegistry()
+h.register_regions(registry)
+registered=registry.regions()
+h.register_regions(registry)
+assert registry.regions()==registered
+built=h.build()
+assert built==h.build()
+panels=[c for c in built['steer'] if c['uv']['south'].region=='head_panels']
+k.mirror_to_game([dict(name='steer',pivot=[0,0,0],cubes=panels)])
+region=next(r for r in registered if r.name=='head_panels')
+tile=d.HEAD_PANEL_TEXELS
+checked=0
+for index,cube in enumerate(panels):
+    u,v=cube['uv']['south']['uv']
+    du,dv=cube['uv']['south']['uv_size']
+    tx=index % d.HEAD_PANEL_COLUMNS*tile
+    ty=index // d.HEAD_PANEL_COLUMNS*tile
+    for x in range(tile):
+        for y in range(tile):
+            actual=region.pixel(int(u+(x+.5)*du/tile),int(v+(y+.5)*dv/tile))
+            expected=region.pixel(tx+tile-1-x,ty+y)
+            assert actual==expected, (index,x,y,actual,expected)
+            checked+=1
+print(checked)
+`),
+    );
+    expect(checked).toBeGreaterThan(0);
   });
 
   for (const row of AREAS) {
