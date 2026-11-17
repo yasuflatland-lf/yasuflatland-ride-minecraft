@@ -1432,6 +1432,12 @@ def collect_gear(geo, texture, item):
                         cutout=tiled and not item["glass"])
 
 
+# Equal neighbouring texels are merged into one polygon: these atlases otherwise expand a
+# face into hundreds of thousands of Python polygon objects (dining_chair took 18 s).
+MERGED_TEXEL_GEOMETRY_FILES = ("sofa_single.geo.json", "sofa_double.geo.json", "washstand.geo.json",
+                               "dining_chair.geo.json")
+
+
 def render_gear(geo_path, texture, size, name, animation=None, view=None, screen_up=None):
     """Draw one small model in a size-pixel square on transparency, seen like the vehicles."""
     geometries = json.loads(geo_path.read_text())["minecraft:geometry"]
@@ -1453,7 +1459,7 @@ def render_gear(geo_path, texture, size, name, animation=None, view=None, screen
     else:
         textured = geo_path.name in TEXTURED_GEOMETRY_FILES
         polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False, "outward_normals": textured,
-                                               "merge_texels": geo_path.name in ("sofa_single.geo.json", "sofa_double.geo.json", "washstand.geo.json")}, texture_mapping=textured,
+                                               "merge_texels": geo_path.name in MERGED_TEXEL_GEOMETRY_FILES}, texture_mapping=textured,
                                        cutout=geo_path.name in CUTOUT_GEOMETRY_FILES)
     quads = [quad for quad, _, _ in polygons + glass]
     # Look from the ladder end so the SUV tent's vehicle-left ladder stays visible.
