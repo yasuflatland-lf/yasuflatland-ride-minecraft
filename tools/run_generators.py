@@ -5,6 +5,7 @@
     python3 -I tools/run_generators.py --ensure  ensure build inputs without rendering previews
     python3 -I tools/run_generators.py --status  print build-input freshness as JSON
     python3 -I tools/run_generators.py --list-outputs [--untracked]
+    python3 -I tools/run_generators.py --only ID [ID ...] [--check]
     python3 -I tools/run_generators.py --list-inputs
 
 tools/generators.json declares dependencies, arguments, output globs, and reads outside tools/.
@@ -14,6 +15,8 @@ every other generator. --check compares parsed JSON and decoded pixels. --report
 FILE writes JSON Lines containing generator and repo-relative path for every write or check,
 including secondary Outputs instances. Listing flags never run generators.
 Full write and --check runs verify output ownership against the manifest; --ensure does not.
+--only runs and verifies selected ids without dependency waits; generate their inputs first.
+It supports write and --check modes, rejects ensure/status/listing modes, and leaves the stamp unchanged.
 A generator never reads a file it or another generator writes, except render_preview.py, which
 runs after the generators and reads their outputs.
 """
@@ -143,7 +146,10 @@ def main():
     listing.add_argument("--list-inputs", action="store_true")
     parser.add_argument("--untracked", action="store_true", help="list only outputs not retained in Git")
     parser.add_argument("--report-touched", type=Path, help="write touched paths as JSON Lines")
+    parser.add_argument("--only", nargs="+", metavar="ID", help="run only these entry ids; inputs must already exist")
     args = parser.parse_args()
+    if args.only and (args.ensure or args.status or args.list_outputs or args.list_inputs):
+        parser.error("--only cannot be combined with --ensure, --status, --list-outputs, or --list-inputs")
     if args.untracked and not args.list_outputs:
         parser.error("--untracked requires --list-outputs")
 
@@ -163,14 +169,20 @@ def main():
         if status["fresh"]:
             print("Generated pack files are up to date")
             return
-    if not args.check:
+    if args.only:
+        unknown = set(args.only) - set(manifest.generators())
+        if unknown:
+            parser.error(f"Unknown generator ids: {', '.join(sorted(unknown))}; "
+                         f"valid ids: {', '.join(manifest.generators())}")
+    if not args.check and not args.only:
         STAMP.unlink(missing_ok=True)
 
     env = os.environ.copy()
     env.pop("GENERATED_OUTPUTS_REPORT", None)
     plan = json.loads(PLAN.read_text())
     generators = [entry for entry in plan["generators"]
-                  if not args.ensure or not entry.get("afterGenerators")]
+                  if (not args.ensure or not entry.get("afterGenerators"))
+                  and (not args.only or entry_id(entry) in args.only)]
     before = [g for g in generators if not g.get("afterGenerators")]
     after = [g for g in generators if g.get("afterGenerators")]
 
@@ -184,19 +196,22 @@ def main():
             report.write_text("")
             env["GENERATED_OUTPUTS_REPORT"] = str(report)
 
-        run_parallel(before, args.check, env)
-        run_parallel(after, args.check, env, completed=[entry_id(entry) for entry in before])
+        if args.only:
+            run_parallel([{**entry, "after": []} for entry in generators], args.check, env)
+        else:
+            run_parallel(before, args.check, env)
+            run_parallel(after, args.check, env, completed=[entry_id(entry) for entry in before])
 
         if not args.ensure:
             errors = manifest.ownership_errors(read_touched_report(report),
-                                               [entry_id(entry) for entry in generators])
+                                               generators=[entry_id(entry) for entry in generators])
             if errors:
                 print("Generated output manifest (tools/generators.json) does not match "
                       "what the generators wrote:", file=sys.stderr)
                 print("\n".join(errors), file=sys.stderr)
                 sys.exit(1)
 
-    if not args.check:
+    if not args.check and not args.only:
         status = generation_status(manifest)
         if status["missing_build"]:
             sys.exit(f"Generators left missing outputs: {status['missing_build']}")
