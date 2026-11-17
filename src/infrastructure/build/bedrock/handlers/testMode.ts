@@ -29,6 +29,7 @@ export function registerTestMode(
         JSON.stringify({
           player: player.name,
           flow: repo.get(asPlayerId(player.id))?.flow ?? { kind: "idle" },
+          sessionPresent: repo.get(asPlayerId(player.id)) !== undefined,
           mode: modes.isInBuildMode(asPlayerId(player.id)),
         }),
       );

@@ -50,6 +50,7 @@ import { registerModeTick } from "./bedrock/handlers/modeTick";
 import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
 import { registerPasteControls } from "./bedrock/handlers/pasteControls";
 import { registerSessions } from "./bedrock/handlers/sessions";
+import { TestAimReader } from "./bedrock/handlers/testAim";
 import { registerTestTap } from "./bedrock/handlers/testCorner";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
 import { registerTestMode } from "./bedrock/handlers/testMode";
@@ -70,10 +71,13 @@ export function installBuild(deps: {
     structures: new BedrockStructureStore(deps.isExcludedEntityType),
   };
   const { blocks } = ports;
-  const aim = new BedrockAimReader();
+  const aim = new TestAimReader(new BedrockAimReader());
   const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
   const cancel = new CancelFlow(repo);
   const pasteDebounce = new PressDebounces<PlayerId>(
+    BUILD_SPEC.pasteRepeatTicks,
+  );
+  const undoDebounce = new PressDebounces<PlayerId>(
     BUILD_SPEC.pasteRepeatTicks,
   );
   const rotateDebounce = new PressDebounces<PlayerId>(
@@ -163,6 +167,8 @@ export function installBuild(deps: {
   const rotatePasteAim = new RotatePasteAim(repo, feedback);
   const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const routes = registerPasteControls({
+    undo: cases.undo,
+    undoDebounce,
     repo,
     aim,
     pressPasteAim,
@@ -198,6 +204,7 @@ export function installBuild(deps: {
     debounce,
     pasteDebounce,
     rotateDebounce,
+    undoDebounce,
   );
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
@@ -216,5 +223,6 @@ export function installBuild(deps: {
     endSession,
     ports.structures,
     rotatePasteAim,
+    { aim, preview },
   );
 }
