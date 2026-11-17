@@ -58,18 +58,36 @@ class Outputs:
 
     # Compare decoded RGBA rows so zlib packing differences do not affect --check.
     def png(self, path, width, height, pixel, compress_level=-1, *, rgb=False):
+        pixels = bytearray()
+        for y in range(height):
+            for x in range(width):
+                pixels += bytes((*pixel(x, y), 255)[:4])
+        self.rgba(path, width, height, pixels, rgb=rgb, compress_level=compress_level)
+
+    def rgba(self, path, width, height, pixels, rgb=False, compress_level=9):
+        """Write rendered RGBA bytes, preserving the renderer's RGB icons and zlib level."""
         self._touch(path)
-        pixels = [[(*pixel(x, y), 255)[:4] for x in range(width)] for y in range(height)]
         if self.check:
             try:
-                matches = load_tool("render_preview").read_png(path) == pixels
+                decoded = load_tool("render_preview").read_png_bytes(path)
+                matches = decoded == (width, height, bytes(pixels))
             except (OSError, ValueError, struct.error, zlib.error) as e:
                 self.stale.append(f"{path} ({e})")
                 return
             if not matches:
                 self.stale.append(str(path))
             return
-        raw = b"".join(b"\x00" + b"".join(bytes(texel[:3] if rgb else texel) for texel in row) for row in pixels)
+        stride = width * 4
+        rows = []
+        for y in range(height):
+            row = pixels[y * stride : (y + 1) * stride]
+            if rgb:
+                packed = bytearray(width * 3)
+                for channel in range(3):
+                    packed[channel::3] = row[channel::4]
+                row = packed
+            rows.append(b"\x00" + bytes(row))
+        raw = b"".join(rows)
 
         def chunk(kind, payload):
             return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
@@ -80,10 +98,6 @@ class Outputs:
                          + chunk(b"IDAT", zlib.compress(raw, compress_level)) + chunk(b"IEND", b""))
         if self.report_writes:
             print(f"wrote {path}")
-
-    def rgba(self, path, width, height, pixels, rgb=False):
-        """Write rendered RGBA bytes, preserving the renderer's RGB icons and zlib level."""
-        self.png(path, width, height, texel_reader(width, pixels), 9, rgb=rgb)
 
     def finish(self, stale_header, ok_message=None):
         if self.stale:
