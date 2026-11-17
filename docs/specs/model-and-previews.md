@@ -67,7 +67,7 @@ use 256 by 256 texels over 7.48 model units, keeping both circular boundaries wi
 0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
 panel's tangent frame and takes no panel margin, so its outer envelope stays within
 0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
-fold bones retain their axle pivots. The combined running, body, shield, and head atlas stays within 2048 by 2048
+fold bones retain their axle pivots. The combined running, body, engine, head, and shield atlas stays within 2048 by 2048
 texels. The scooter requests this side limit from the shared packer, which searches
 wider layouts and rejects regions that cannot fit without reducing texture detail.
 Side and front-left previews render the full atlas without a density cap.
@@ -82,6 +82,12 @@ grey joint piping, and chrome floor rails and opening trim. The body budget is
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
+
+The engine area supplies 319 cubes on `body`: the compact
+cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
+forward-looping exhaust header, shallow kidney muffler, and two body brackets.
+Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
+(18), `engine_muffler` (114), and `engine_header` (66).
 
 The head area replaces the steering
 and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.

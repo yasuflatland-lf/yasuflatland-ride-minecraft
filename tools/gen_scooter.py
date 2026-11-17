@@ -15,6 +15,7 @@ texture_io = load_tool("texture_io")
 AREA_ORDER = (
     "running",
     "body",
+    "engine",
     "head",
     "shield",
 )
@@ -32,6 +33,11 @@ ASSEMBLIES = {
     "body_tail": {"owner": "scooter", "cubes": 216},
     "body_frame": {"owner": "scooter", "cubes": 148},
     "body_floor": {"owner": "scooter", "cubes": 164},
+    "engine_casting": {"owner": "scooter", "cubes": 42},
+    "engine_fan": {"owner": "scooter", "cubes": 32},
+    "engine_kick": {"owner": "scooter", "cubes": 18},
+    "engine_muffler": {"owner": "scooter", "cubes": 114},
+    "engine_header": {"owner": "scooter", "cubes": 66},
     "head_collar": {"owner": "scooter", "cubes": 36},
     "head_headset": {"owner": "scooter", "cubes": 120},
     "head_bib": {"owner": "scooter", "cubes": 120},
