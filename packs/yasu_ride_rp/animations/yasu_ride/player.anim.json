@@ -14,6 +14,143 @@
           "rotation": [-55.0, 0.0, 0.0]
         }
       }
+    },
+    "animation.yasu_ride.player.scooter_grip": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-this", "-this", "-this"]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_l1": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "waist": {
+          "rotation": [0, 0, 8]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_l2": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "waist": {
+          "rotation": [0, 0, 16]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_l3": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "waist": {
+          "rotation": [0, 0, 24]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_r1": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "waist": {
+          "rotation": [0, 0, -8]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_r2": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "waist": {
+          "rotation": [0, 0, -16]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_r3": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-this", "-this", "-this"]
+        },
+        "waist": {
+          "rotation": [0, 0, -24]
+        }
+      }
     }
   }
 }

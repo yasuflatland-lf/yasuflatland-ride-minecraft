@@ -1,5 +1,6 @@
 export const FEATURE_TAGS = [
   "build",
+  "warp",
   "camp",
   "resort",
   "vehicle",

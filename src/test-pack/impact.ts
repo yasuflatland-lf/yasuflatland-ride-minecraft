@@ -49,6 +49,7 @@ export const MOTION_TAGS: Readonly<Record<string, readonly FeatureTag[]>> = {
   landingGear: transforming,
   stepUp: transforming,
   submarine: transforming,
+  surface: transforming,
 };
 
 export const HARNESS_IMPORTS: readonly string[] = [
@@ -142,6 +143,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/vehicle/motion/pivot.ts",
   "src/domain/vehicle/motion/stepUp.ts",
   "src/domain/vehicle/motion/submarine.ts",
+  "src/domain/vehicle/motion/surface.ts",
   "src/domain/vehicle/motion/transforming.ts",
   "src/domain/vehicle/motion/transformingDrive.ts",
   "src/domain/vehicle/motion/transformingEntity.ts",
@@ -251,6 +253,8 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   tent_lantern: ["camp"],
   tent_mattress: ["camp"],
   tent_wall: ["camp"],
+  warp_block: ["warp"],
+  warp_tool: ["warp"],
   wide_blade_switch: ["vehicle:bulldozer"],
 };
 
@@ -332,6 +336,11 @@ const IMPACT_RULES: readonly ImpactRule[] = [
   { rule: "server", test: /^server\//, impact: "all" },
   ...mappedRules(scenarioTags, "src/test-pack/scenarios/", ".ts", "scenario"),
   {
+    rule: "warp",
+    test: /^src\/(?:domain|application|infrastructure)\/warp\//,
+    impact: ["warp"],
+  },
+  {
     rule: "build",
     test: /^src\/(?:domain|application|infrastructure)\/build\//,
     impact: ["build"],
@@ -374,6 +383,11 @@ const IMPACT_RULES: readonly ImpactRule[] = [
     rule: "vehicle",
     test: /^src\/(?:domain|application|infrastructure)\/vehicle\//,
     impact: ["vehicle"],
+  },
+  {
+    rule: "warp-pack",
+    test: /^packs\/yasu_ride_bp\/[^/]+\/yasu_build\/warp_(?:block|tool)\./,
+    impact: ["warp"],
   },
   {
     rule: "build-pack",

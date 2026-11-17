@@ -48,6 +48,7 @@ it("copies the SUV's flight and water values, with its own body", () => {
   expect(T).toMatchObject({
     carHeight: 2.9,
     hitboxFront: 1.2,
+    stepLaneOffset: 0.8,
     maxBank: 0,
     bankEasing: "constant",
     floatDraft: 2.5,

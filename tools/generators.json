@@ -64,13 +64,23 @@
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter.png"
       ],
-      "reads": []
+      "reads": ["tools/scooter_body.py"]
     },
     {
       "script": "gen_build_tools.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
         "packs/yasu_ride_rp/textures/items/yasu_build/selection_wand.png"
+      ],
+      "reads": []
+    },
+    {
+      "script": "gen_warp_art.py",
+      "args": ["packs/yasu_ride_rp"],
+      "outputs": [
+        "packs/yasu_ride_rp/textures/items/yasu_build/warp_tool.png",
+        "packs/yasu_ride_rp/textures/blocks/yasu_build/warp_block_top.png",
+        "packs/yasu_ride_rp/textures/blocks/yasu_build/warp_block_side.png"
       ],
       "reads": []
     },

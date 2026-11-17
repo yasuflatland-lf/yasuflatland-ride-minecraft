@@ -13,10 +13,15 @@ cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 
 AREA_ORDER = (
+    "body",
     "head",
 )
 
 ASSEMBLIES = {
+    "body_cowl": {"owner": "scooter", "cubes": 594},
+    "body_tail": {"owner": "scooter", "cubes": 216},
+    "body_frame": {"owner": "scooter", "cubes": 148},
+    "body_floor": {"owner": "scooter", "cubes": 164},
     "head_collar": {"owner": "scooter", "cubes": 36},
     "head_headset": {"owner": "scooter", "cubes": 120},
     "head_bib": {"owner": "scooter", "cubes": 120},

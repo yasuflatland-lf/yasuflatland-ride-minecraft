@@ -61,13 +61,23 @@ The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_fron
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
-model pixels apart. The head area replaces the steering and headlight placeholders with 510 cubes:
-437 on `steer` and 73 on `headlights`. Its collar, horn casting, bib, instrument
-bezel, lamp rim, controls, levers, and mirrors retain the spike ring counts.
-Named `head_*` assemblies carry compound panels; alpha-cut profiles and
-world-position paint shading keep the casting smooth. Small atlas regions carry
-the silver reflector, text-free dial, dark mirror glass, and chrome mirror backs.
-Other areas still use placeholder cubes. The whole-vehicle target is 3,500 cubes;
+model pixels apart. The body area replaces the body placeholder with the tail, cowls,
+frame cover, and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor`
+assemblies own all compound panels and trim. Body regions register idempotently
+before faces are constructed. Curved surfaces use broad alpha-cut panels, with
+seven slot rows only on the rider's right cowl, grey joint piping, and chrome
+floor rails and opening trim. The body budget is 1,150 cubes (currently 1,122);
+the production sampling reduces the spike's surface and trim segments. Warped
+or concave quads split into convex triangle masks to preserve closure coverage.
+Material sheets keep the mask regions cheap to pack; the paint gradient spans
+the shell instead of restarting on each panel. The head area replaces the steering
+and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
+Its collar, horn casting, bib, instrument bezel, lamp rim, controls, levers, and
+mirrors retain the spike ring counts. Named `head_*` assemblies carry compound
+panels; alpha-cut profiles and world-position paint shading keep the casting
+smooth. Small atlas regions carry the silver reflector, text-free dial, dark
+mirror glass, and chrome mirror backs. Remaining areas retain their placeholders.
+The whole-vehicle target is 3,500 cubes;
 generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 
