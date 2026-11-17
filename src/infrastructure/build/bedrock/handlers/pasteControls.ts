@@ -2,6 +2,7 @@ import { type Player, system, world } from "@minecraft/server";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
+import type { UndoEdit } from "../../../../application/build/undoEdit";
 import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
@@ -10,7 +11,11 @@ import {
   type PlayerId,
 } from "../../../../domain/shared/ids";
 import { heldTypeId } from "../../../shared/heldItem";
-import { buildItemRole, PASTE_ROTATE_TYPE } from "../../identifiers";
+import {
+  BUILD_UNDO_TYPE,
+  buildItemRole,
+  PASTE_ROTATE_TYPE,
+} from "../../identifiers";
 import { heldBuildItem } from "../heldBuildItem";
 
 export interface PasteControlRoutes {
@@ -23,6 +28,8 @@ export function registerPasteControls({
   aim,
   rotatePasteAim,
   pressPasteAim,
+  undo,
+  undoDebounce,
   rotateDebounce,
   pasteDebounce,
   refresh,
@@ -31,17 +38,20 @@ export function registerPasteControls({
   aim: AimReader;
   rotatePasteAim: RotatePasteAim;
   pressPasteAim: PressPasteAim;
+  undo: UndoEdit;
+  undoDebounce: PressDebounces<PlayerId>;
   rotateDebounce: PressDebounces<PlayerId>;
   pasteDebounce: PressDebounces<PlayerId>;
   refresh(playerId: PlayerId, tick: number): void;
 }): PasteControlRoutes {
   function pressFromBlockTap(player: Player, isFirstEvent: boolean): boolean {
-    if (heldBuildItem(player) !== "pasteControl") return false;
+    const role = heldBuildItem(player);
+    if (role !== "pasteControl" && role !== "undo") return false;
     if (!isFirstEvent) return true;
     system.run(() => {
       if (!player.isValid) return;
       const typeId = heldTypeId(player);
-      if (!typeId || buildItemRole(typeId) !== "pasteControl") return;
+      if (!typeId || !isControl(typeId)) return;
       pressPasteControl({ source: player, typeId });
     });
     return true;
@@ -66,7 +76,10 @@ export function registerPasteControls({
   }) => {
     const playerId = asPlayerId(source.id);
     const tick = system.currentTick;
-    if (typeId === PASTE_ROTATE_TYPE) {
+    if (typeId === BUILD_UNDO_TYPE) {
+      if (!undoDebounce.press(playerId, tick)) return;
+      undo.execute({ playerId });
+    } else if (typeId === PASTE_ROTATE_TYPE) {
       if (!rotateDebounce.press(playerId, tick)) return;
       if (rotatePasteAim.execute({ playerId }) === "rotated")
         refresh(playerId, tick);
@@ -83,7 +96,7 @@ export function registerPasteControls({
     }
   };
   function pressFromItemUse(source: Player, typeId: string): void {
-    if (!source.isValid || buildItemRole(typeId) !== "pasteControl") return;
+    if (!source.isValid || !isControl(typeId)) return;
     pressPasteControl({ source, typeId });
   }
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
@@ -98,4 +111,9 @@ export function registerPasteControls({
       pressFromBlockTap(player, true);
     },
   };
+}
+
+function isControl(typeId: string): boolean {
+  const role = buildItemRole(typeId);
+  return role === "pasteControl" || role === "undo";
 }

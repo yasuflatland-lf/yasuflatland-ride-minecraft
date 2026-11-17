@@ -14,6 +14,7 @@ import type { Facing } from "../../domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Cell } from "../../domain/shared/cells";
 import {
+  BUILD_UNDO_TYPE,
   LAID_BLOCK_TAG,
   PASTE_PLACE_TYPE,
   PASTE_ROTATE_TYPE,
@@ -52,9 +53,11 @@ interface Reply {
   skippedCount?: number;
   offered?: boolean;
   undoHints?: number;
+  pasteReadyDegrees?: number;
   timedOut?: boolean;
   flow: { kind: string; previous?: number; heightedKind?: string };
   mode?: boolean;
+  sessionPresent?: boolean;
 }
 function check(ok: boolean, detail: string): asserts ok {
   if (!ok) throw new Error(detail);
@@ -606,6 +609,134 @@ export function buildPasteItemSwitch(a: Arena): Promise<Outcome> {
       unchanged(f, target.cells, target.before),
       "Paste wrote blocks after item switch",
     );
+  });
+}
+
+export function buildUndoItemPaste(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    const expected = snapshot(f, f.region(2, 1, 1));
+    const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    await pasteInto(f, target);
+    check(unchanged(f, target.cells, expected), "Paste did not write blocks");
+    f.holdControl(BUILD_UNDO_TYPE);
+    const undone = await f.press("blockInteract");
+    check(undone.message === "undoDone", "Undo block tap did not finish");
+    check(
+      unchanged(f, target.cells, target.before),
+      "Undo did not restore the area",
+    );
+    await checkState(f, "pasteAim", true);
+    await pasteInto(f, target);
+    check(
+      unchanged(f, target.cells, expected),
+      "Re-paste lost the clipboard or repeat reset",
+    );
+    await f.edit("undo");
+  });
+}
+
+export function buildUndoItemShape(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(2, 2, 2);
+    for (const c of cells) f.block(c).setType("minecraft:air");
+    await f.select(f.cell(1, 1, 1), false);
+    const before = snapshot(f, cells);
+    check(
+      (await f.menu("shape", "fill")).message === "editDone",
+      "Fill failed",
+    );
+    check(f.count(cells) === cells.length, "Fill did not write the box");
+    f.holdControl(BUILD_UNDO_TYPE);
+    check(
+      (await f.press("itemUse")).message === "undoDone",
+      "Shape Undo failed",
+    );
+    check(unchanged(f, cells, before), "Shape Undo did not restore the box");
+  });
+}
+
+export function buildUndoItemEmpty(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await f.edit("reset");
+    f.holdControl(BUILD_UNDO_TYPE);
+    check(
+      (await f.press("blockInteract")).message === "nothingToUndo",
+      "Empty history did not report nothingToUndo",
+    );
+    await checkState(f, "idle", false);
+    // Remove the fixture's wand-created session to model a fresh player.
+    f.hold(false);
+    await wait(BUILD_SPEC.modeLeaveTicks + 4);
+    await f.edit("reset absent");
+    f.holdControl(BUILD_UNDO_TYPE);
+    await wait(BUILD_SPEC.modeEnterTicks + BUILD_SPEC.pasteRepeatTicks);
+    const before = await f.mode();
+    check(
+      before.mode === false && before.sessionPresent === false,
+      "Undo alone entered build mode or created a session",
+    );
+    check(
+      (await f.press("itemUse")).message === "nothingToUndo",
+      "Fresh player Undo did not report nothingToUndo",
+    );
+    const after = await f.mode();
+    check(
+      after.mode === false && after.sessionPresent === false,
+      "Undo press created a session or entered build mode",
+    );
+  });
+}
+
+export function buildUndoItemRoutesOnce(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    const expected = snapshot(f, f.region(2, 1, 1));
+    const first = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    const last = pasteTarget(f, f.cell(16, 0, 12), 2, 1, 1);
+    await pasteInto(f, first);
+    await wait(BUILD_SPEC.pasteRepeatTicks);
+    await pasteInto(f, last);
+    check(
+      unchanged(f, first.cells, expected) && unchanged(f, last.cells, expected),
+      "Both pastes must exist before Undo",
+    );
+    f.holdControl(BUILD_UNDO_TYPE);
+    check(
+      (await f.press("blockInteract,itemUse")).message === "undoDone",
+      "Combined routes did not undo",
+    );
+    check(unchanged(f, last.cells, last.before), "Last paste was not undone");
+    check(
+      unchanged(f, first.cells, expected),
+      "One press undid more than one edit",
+    );
+    await f.edit("undo");
+    check(
+      unchanged(f, first.cells, first.before),
+      "Earlier undo history was lost",
+    );
+  });
+}
+
+export function buildUndoItemKeepsPasteAim(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    const expected = snapshot(f, f.region(2, 1, 1));
+    const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    f.holdControl(BUILD_UNDO_TYPE);
+    await wait(BUILD_SPEC.modeLeaveTicks + 4);
+    check((await f.mode()).mode === true, "Holding Undo left build mode");
+    await checkState(f, "pasteAim", true);
+    f.hold(true);
+    await wait(BUILD_SPEC.modeEnterTicks + 2);
+    await checkState(f, "pasteAim", true);
+    await pasteInto(f, target);
+    check(
+      unchanged(f, target.cells, expected),
+      "Wand to Undo to wand lost the clipboard or aiming",
+    );
+    await f.edit("undo");
   });
 }
 
@@ -2311,6 +2442,38 @@ export function buildPasteControlInactive(a: Arena): Promise<Outcome> {
         check(unchanged(f, cells, before), `${item} ${route} changed blocks`);
         await wait(BUILD_SPEC.pasteRepeatTicks + 2);
       }
+    }
+  });
+}
+
+export function buildPasteRotationDisplay(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(5, 3, 3);
+    try {
+      await copyControlSource(f, source);
+      check(
+        (await f.edit("aim east")).pasteReadyDegrees === 0,
+        "Copy did not show zero degrees with matching facing",
+      );
+      await holdPasteControl(f, PASTE_ROTATE_TYPE);
+      for (const degrees of [90, 180, 270, 0]) {
+        const reply = await f.press("blockInteract");
+        check(
+          reply.pasteReadyDegrees === degrees,
+          `Paste Rotate showed ${reply.pasteReadyDegrees}, expected ${degrees}`,
+        );
+        await wait(BUILD_SPEC.rotateDebounceTicks + 2);
+      }
+      await f.edit("aim clear");
+      f.hold(true);
+      await copyControlSource(f, source);
+      check(
+        (await f.edit("aim south")).pasteReadyDegrees === 90,
+        "A quarter-turn gaze change did not show 90 degrees before pressing",
+      );
+    } finally {
+      await f.edit("aim clear");
+      await releaseControlFixture(f, source);
     }
   });
 }
