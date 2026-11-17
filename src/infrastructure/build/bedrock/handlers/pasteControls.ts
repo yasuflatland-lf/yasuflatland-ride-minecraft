@@ -9,6 +9,7 @@ import {
   asPlayerId,
   type PlayerId,
 } from "../../../../domain/shared/ids";
+import { heldTypeId } from "../../../shared/heldItem";
 import { buildItemRole, PASTE_ROTATE_TYPE } from "../../identifiers";
 import { heldBuildItem } from "../heldBuildItem";
 
@@ -35,8 +36,17 @@ export function registerPasteControls({
   refresh(playerId: PlayerId, tick: number): void;
 }): PressPasteControl {
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    // itemUse owns the press even when the same tap interacts with a block.
-    if (heldBuildItem(ev.player) === "pasteControl") ev.cancel = true;
+    if (heldBuildItem(ev.player) !== "pasteControl") return;
+    ev.cancel = true;
+    // A short iPad block tap sends only playerInteractWithBlock (ADR 0203).
+    if (!ev.isFirstEvent) return;
+    const player = ev.player;
+    system.run(() => {
+      if (!player.isValid) return;
+      const typeId = heldTypeId(player);
+      if (!typeId || buildItemRole(typeId) !== "pasteControl") return;
+      pressPasteControl({ source: player, typeId });
+    });
   });
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     if (
