@@ -44,9 +44,10 @@ import struct
 import sys
 import time
 import zlib
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
+from types import MappingProxyType
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
@@ -98,8 +99,8 @@ BEAM_ALPHA = 0.03
 BEAM_SPREAD = 0.35  # half width gained per unit of length
 BEAM_COLOR = (255, 232, 160)
 
-# Flight: the takeoff lifts the vehicle 1.5 blocks (ADR 0021).
-FLIGHT_LIFT = 24.0
+# SUV_SPEC.takeoffTicks * SUV_SPEC.takeoffClimb * 16 model pixels (ADR 0021).
+SUV_FLIGHT_LIFT = 24.0
 GLOW_LIT = (130, 205, 255)
 GLOW_POOL_LAYERS = 10
 GLOW_POOL_ALPHA = 0.03
@@ -472,14 +473,34 @@ def cube_faces(cube):
         yield name, [rotate(p, pivot, rotation) for p in quad]
 
 
-def folded_wheels(animations):
-    """Bone name -> (z rotation, position) of the folded wheels, read from the hover animation (ADR 0022)."""
-    bones = animations["animations"]["animation.yasu_ride.suv.wheels_folded"]["bones"]
-    return {
+@dataclass(frozen=True)
+class FlightPose:
+    folds: Mapping[str, tuple[float, tuple[float, float, float]]]
+    lift: float
+
+    def __post_init__(self):
+        object.__setattr__(self, "folds", MappingProxyType({
+            name: (angle, tuple(offset)) for name, (angle, offset) in self.folds.items()
+        }))
+
+
+def build_flight_pose(animations, animation_name, *, lift):
+    """Read wheel and fold bones from a kind's wheels_folded animation (ADR 0022)."""
+    bones = animations["animations"][animation_name]["bones"]
+    return FlightPose({
         name: (pose["rotation"][2], pose["position"])
         for name, pose in bones.items()
         if name.startswith("wheel_")
-    }
+    }, lift)
+
+
+def apply_bone_motion(quad, pivot, rotation, offset=None):
+    quad = [rotate(p, pivot, rotation) for p in quad]
+    if offset is not None:
+        # Animation positions run along the model's axes (ADR 0043).
+        dx, dy, dz = offset
+        quad = [(x + dx, y + dy, z + dz) for x, y, z in quad]
+    return quad
 
 
 def submerged_parts(animations):
@@ -530,10 +551,10 @@ def combine_textures(texture, lit_texture):
     return [[base + lit for base, lit in zip(row, lit_row)] for row, lit_row in zip(texture, lit_texture)]
 
 
-def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LIT_BONES, cutout_bones=SUV_CUTOUT_BONES):
+def collect(geo, texture, turns, pose, lit_texture=None, lit_bones=SUV_LIT_BONES, cutout_bones=SUV_CUTOUT_BONES, *, flight: FlightPose | None = None):
     """Return the vehicle's faces as (quad, rgb, bloom group or None)."""
     desc = geo["description"]
-    lift = FLIGHT_LIFT if pose["hover"] else 0.0
+    lift = flight.lift if flight is not None else 0.0
     if pose["dusk"]:
         tint = NIGHT_TINT
     elif pose["submarine"]:
@@ -545,22 +566,22 @@ def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LI
     for bone in geo["bones"]:
         name = bone["name"]
         # The render controller hides the glow while the gear is down: on the ground and under water (ADR 0022)
-        if name.startswith("glow_") and not pose["hover"]:
+        if name.startswith("glow_") and flight is None:
             continue
         # The render controller shows the rear glass in every form but car
-        if name == "rear_glass" and not (pose["hover"] or pose["submarine"]):
+        if name == "rear_glass" and not (flight is not None or pose["submarine"]):
             continue
         # The wheel arms are scaled to zero outside flight (ADR 0043)
-        if name.startswith("arm_") and not pose["hover"]:
+        if name.startswith("arm_") and flight is None:
             continue
         # The submarine bones are hidden outside the submarine form (ADR 0040)
         if (name == "windows_sealed" or name.startswith(("prop_", "sub_arm_"))) and not pose["submarine"]:
             continue
         # Each rotation sign below was pinned from the game on its own axis
         motion = None
-        if pose["hover"] and name in folds:
+        if flight is not None and name in flight.folds:
             # The fold's z rotation turns the other way from this rotate() (ADR 0022: hub side down)
-            angle, offset = folds[name]
+            angle, offset = flight.folds[name]
             motion = ((0, 0, -angle), offset)
         elif pose["submarine"] and name in turns:
             # The right-handed x and y turn that the rear-hub test in tests/packs/resourcePack.test.ts
@@ -579,11 +600,8 @@ def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LI
             rx, ry, rz = cube.get("rotation", [0, 0, 0])
             for face, quad in cube_faces({**cube, "rotation": [-rx, ry, -rz]}):
                 if motion:
-                    rotation, (dx, dy, dz) = motion
-                    quad = [rotate(p, bone["pivot"], rotation) for p in quad]
-                    # Animation positions run along the model's axes: in game a positive x moves the +x
-                    # rear wheel out (ADR 0043)
-                    quad = [(x + dx, y + dy, z + dz) for x, y, z in quad]
+                    rotation, offset = motion
+                    quad = apply_bone_motion(quad, bone["pivot"], rotation, offset)
                 quad = mirror([(x, y + lift, z) for x, y, z in quad])
                 normal = cross(sub(quad[1], quad[0]), sub(quad[3], quad[0]))
                 if dot(normal, normal) == 0:
@@ -607,13 +625,13 @@ def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LI
     return polygons
 
 
-def ground_layers(polygons, pose, ground_y):
+def ground_layers(polygons, pose, ground_y, *, flight: FlightPose | None = None):
     """Translucent quads on the ground as (quad, alpha, rgb): the shadow, then the headlight beam, the
     seabed, or the glow pools of the pose."""
     points = [p for quad, _, emissive in polygons if not emissive for p in quad]
     x_lo, x_hi = min(p[0] for p in points), max(p[0] for p in points)
     z_lo, z_hi = min(p[2] for p in points), max(p[2] for p in points)
-    shadow_alpha = FLIGHT_SHADOW_ALPHA if pose["hover"] else SHADOW_ALPHA
+    shadow_alpha = FLIGHT_SHADOW_ALPHA if flight is not None else SHADOW_ALPHA
     layers = []
     for layer in range(SHADOW_LAYERS):
         g = layer * SHADOW_GROWTH
@@ -627,13 +645,13 @@ def ground_layers(polygons, pose, ground_y):
             spread = half + length * BEAM_SPREAD
             quad = [(-half, ground_y, z_lo), (-spread, ground_y, z_lo - length), (spread, ground_y, z_lo - length), (half, ground_y, z_lo)]
             layers.append((quad, BEAM_ALPHA, BEAM_COLOR))
-    if pose["submarine"]:
+    if pose.get("submarine", False):
         # A seabed of layered blue-green that fades out away from the vehicle
         for layer in range(SEABED_LAYERS):
             g = SEABED_MARGIN * (layer + 1) / SEABED_LAYERS
             quad = [(x_lo - g, ground_y, z_lo - g), (x_hi + g, ground_y, z_lo - g), (x_hi + g, ground_y, z_hi + g), (x_lo - g, ground_y, z_hi + g)]
             layers.append((quad, SEABED_ALPHA, SEABED_COLOR))
-    if pose["hover"]:
+    if flight is not None:
         for quad, _, emissive in polygons:
             if emissive != "disc" or quad[0][1] != min(p[1] for p in quad):
                 continue
@@ -654,16 +672,23 @@ def game_turn(rotation):
 
 
 def bone_turns(bones):
-    """Bone name -> the (pivot, rotation) turns that pose its cubes, its own first and then each
-    rotated ancestor's, as the game composes a child bone inside its parent. Bones with no rotation
-    in their chain get none, so their cubes keep their exact coordinates."""
+    return {name: [(pivot, rotation) for pivot, rotation, _ in motions]
+            for name, motions in bone_motions(bones).items()}
+
+
+def bone_motions(bones, flight: FlightPose | None = None):
+    """Bone name -> (pivot, rotation, offset) motions, its own first and then each ancestor's.
+    Unposed chains get none, so their cubes keep their exact coordinates."""
     by_name = {bone["name"]: bone for bone in bones}
     turns = {}
     for bone in bones:
         chain, current = [], bone
         while current is not None:
-            if any(current.get("rotation", [0, 0, 0])):
-                chain.append((current["pivot"], game_turn(current["rotation"])))
+            if flight is not None and current["name"] in flight.folds:
+                angle, offset = flight.folds[current["name"]]
+                chain.append((current["pivot"], (0, 0, -angle), offset))
+            elif any(current.get("rotation", [0, 0, 0])):
+                chain.append((current["pivot"], game_turn(current["rotation"]), None))
             current = by_name.get(current.get("parent"))
         turns[bone["name"]] = chain
     return turns
@@ -720,24 +745,31 @@ def opaque_region(texture, uv, width, height):
 
 
 
-def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, face_cache=None, frame_quads=None, defer_textures=False, texel_lit=False):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, face_cache=None, frame_quads=None, defer_textures=False, texel_lit=False, flight: FlightPose | None = None):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
     tint = NIGHT_TINT if pose["dusk"] else (1.0, 1.0, 1.0)
     polygons, glass = [], []
     opacity = {}
-    turns = bone_turns(geo["bones"])
+    turns = bone_motions(geo["bones"], flight)
     for bone in geo["bones"]:
         framed = frame_quads if not pose.get("frame_bones") or bone["name"] in pose["frame_bones"] else None
         color = lit.get(bone["name"]) if pose["lamps"] else None
         for cube in bone.get("cubes", []):
             for face, quad in cube_faces({**cube, "rotation": game_turn(cube.get("rotation", [0, 0, 0]))}):
-                for pivot, rotation in turns[bone["name"]]:
-                    quad = [rotate(p, pivot, rotation) for p in quad]
+                for pivot, rotation, offset in turns[bone["name"]]:
+                    quad = apply_bone_motion(quad, pivot, rotation, offset)
+                if flight is not None:
+                    quad = [(x, y + flight.lift, z) for x, y, z in quad]
                 quad = mirror(quad)
                 normal = cross(sub(quad[1], quad[0]), sub(quad[3], quad[0]))
                 if dot(normal, normal) == 0:
+                    continue
+                if flight is not None and bone["name"].startswith("glow_"):
+                    polygons.append((quad, GLOW_LIT, "disc"))
+                    if framed is not None:
+                        framed.append(quad)
                     continue
                 if color is not None and not cutout:
                     polygons.append((quad, color, "lamp"))
@@ -751,6 +783,8 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
                 cache_key = (bone["name"], id(cube), face, pose.get("merge_texels", False), pose.get("cells_per_unit"))
+                if flight is not None:
+                    cache_key = (*cache_key, tuple(quad))
                 if texture_mapping and defer_textures and not cutout:
                     key = (*uv['uv'], *uv['uv_size'])
                     if key not in opacity:
@@ -1098,12 +1132,13 @@ def render_suv(rp: Path, icon_path: Path | None) -> SceneResult:
     texture = read_png(rp / TEXTURE)
     lit_texture = read_png(rp / LIT_TEXTURE)
     animations = json.loads((rp / ANIMATIONS).read_text())
-    folds = folded_wheels(animations)
+    flight = build_flight_pose(animations, "animation.yasu_ride.suv.wheels_folded", lift=SUV_FLIGHT_LIFT)
     turns = submerged_parts(animations)
 
-    scenes = {name: collect(geo, texture, folds, turns, pose, lit_texture) for name, pose in POSES.items()}
+    scenes = {name: collect(geo, texture, turns, pose, lit_texture, flight=flight if pose["hover"] else None)
+              for name, pose in POSES.items()}
     ground_y = min(p[1] for quad, _, _ in scenes["suv-front-left.png"] for p in quad)
-    layers = {name: ground_layers(scenes[name], pose, ground_y) for name, pose in POSES.items()}
+    layers = {name: ground_layers(scenes[name], pose, ground_y, flight=flight if pose["hover"] else None) for name, pose in POSES.items()}
 
     # One camera and one scale for every pose, so the vehicle has the same size in each picture
     camera = Camera([p for polygons in scenes.values() for quad, _, _ in polygons for p in quad])
@@ -1117,8 +1152,8 @@ def render_suv(rp: Path, icon_path: Path | None) -> SceneResult:
     if icon_path is not None:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
         pose = {**POSES["suv-flying.png"], "lamps": True, "brightness": 1.0}
-        polygons = collect(geo, texture, folds, turns, pose, lit_texture)
-        icon = render_icon(geo, polygons, camera, str(icon_path))
+        polygons = collect(geo, texture, turns, pose, lit_texture, flight=flight)
+        icon = render_icon(geo, polygons, camera, str(icon_path), flight)
     return SceneResult(images, icon)
 
 
@@ -1409,7 +1444,7 @@ def image_size(name):
     return (GEAR_SIZE, GEAR_SIZE) if name.startswith(f"{GEAR_DIR}/") else (WIDTH, HEIGHT)
 
 
-def render_icon(geo, polygons, camera, target_name):
+def render_icon(geo, polygons, camera, target_name, flight: FlightPose):
     """Fit the vehicle to ICON_FILL of the width over the background and the wheel discs."""
     size = ICON_SIZE
     w = h = size * SUPERSAMPLE
@@ -1437,7 +1472,7 @@ def render_icon(geo, polygons, camera, target_name):
             continue
         cube = bone["cubes"][0]
         origin, extent = cube["origin"], cube["size"]
-        cx, cy, cz = -(origin[0] + extent[0] / 2), origin[1] + FLIGHT_LIFT, origin[2] + extent[2] / 2
+        cx, cy, cz = -(origin[0] + extent[0] / 2), origin[1] + flight.lift, origin[2] + extent[2] / 2
         wheel = bones[name.replace("glow_", "wheel_")]
         # The tire is a ring of rotated cubes, so its radius is the farthest rotated corner from the hub
         hub = wheel["pivot"]

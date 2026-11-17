@@ -145,6 +145,161 @@ const previewPython = (body: string) =>
     ),
   );
 
+describe("render_preview.py flight poses", () => {
+  it("builds wheel and fold transforms from the requested animation and lift", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -180, max: 180 }),
+        fc.tuple(
+          ...Array.from({ length: 3 }, () => fc.integer({ min: -32, max: 32 })),
+        ),
+        fc.integer({ min: 0, max: 64 }),
+        (angle, position, lift) => {
+          expect(
+            previewPython(`
+transform = {"rotation": [13, 27, ${angle}], "position": ${JSON.stringify(position)}}
+animations = {"animations": {"animation.example.ride.wheels_folded": {"bones": {
+    "wheel_left": transform, "wheel_front_fold": transform,
+    "body": transform, "arm_left": {"scale": [1, 1, 1]}
+}}, "animation.example.other.wheels_folded": {"bones": {}}}}
+flight = r.build_flight_pose(animations, "animation.example.ride.wheels_folded", lift=${lift})
+print(json.dumps({"folds": dict(flight.folds), "lift": flight.lift}))
+`),
+          ).toEqual({
+            folds: {
+              wheel_left: [angle, position],
+              wheel_front_fold: [angle, position],
+            },
+            lift,
+          });
+        },
+      ),
+      { numRuns: 15 },
+    );
+  });
+
+  it("owns immutable fold data independently of its animation input", () => {
+    expect(
+      previewPython(`
+from dataclasses import FrozenInstanceError
+bones = {"wheel_left": {"rotation": [0, 0, 90], "position": [6, -4, 0]}}
+flight = r.build_flight_pose({"animations": {"fold": {"bones": bones}}}, "fold", lift=24.0)
+bones["wheel_left"]["position"][0] = 100
+assert flight.folds["wheel_left"] == (90, (6, -4, 0))
+assert r.SUV_FLIGHT_LIFT == 24.0 and isinstance(r.SUV_FLIGHT_LIFT, float)
+try:
+    flight.lift = 0
+except FrozenInstanceError:
+    pass
+else:
+    raise AssertionError("mutable flight lift")
+try:
+    flight.folds["wheel_left"] = (0, (0, 0, 0))
+except TypeError:
+    pass
+else:
+    raise AssertionError("mutable flight folds")
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it("applies the specified fold about its pivot, then position, lift and mirror in both collectors", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -180, max: 180 }),
+        fc.integer({ min: -8, max: 8 }),
+        fc.integer({ min: 0, max: 48 }),
+        (angle, offset, lift) => {
+          expect(
+            previewPython(`
+import math
+geo = ${JSON.stringify({ description: { texture_width: 1, texture_height: 1 }, bones: [{ name: "wheel_test", pivot: [1, 2, 3], cubes: [bar(4, -5, 1)] }] })}
+texture = [[(255, 255, 255, 255)]]
+pose = {"lamps": False, "dusk": False, "submarine": False, "hover": False}
+flight = r.build_flight_pose({"animations": {"fold": {"bones": {"wheel_test": {
+    "rotation": [0, 0, ${angle}], "position": [${offset}, -4, 2]
+}}}}}, "fold", lift=${lift})
+for collect in (lambda **kw: r.collect(geo, texture, {}, pose, **kw),
+                lambda **kw: r.collect_boat(geo, texture, pose, **kw)[0]):
+    original = collect()
+    assert collect(flight=None) == original
+    folded = collect(flight=flight)
+    assert len(folded) == len(original)
+    s, c = math.sin(math.radians(-${angle})), math.cos(math.radians(-${angle}))
+    for (before, _, _), (after, _, _) in zip(original, folded):
+        for (mx, y, z), actual in zip(before, after):
+            x = -mx
+            expected = (-(1 + (x - 1) * c - (y - 2) * s + ${offset}),
+                        2 + (x - 1) * s + (y - 2) * c - 4 + ${lift}, z + 2)
+            assert all(abs(a - b) < 1e-9 for a, b in zip(actual, expected)), (actual, expected)
+print(json.dumps(True))
+`),
+          ).toBe(true);
+        },
+      ),
+      { numRuns: 15 },
+    );
+  });
+
+  it("keeps cached texture patches in their own flight pose", () => {
+    expect(
+      previewPython(`
+geo = ${JSON.stringify({ description: { texture_width: 1, texture_height: 1 }, bones: [{ name: "wheel_test", pivot: [0, 0, 0], cubes: [bar(0, -5, 1)] }] })}
+texture = [[(255, 0, 0, 255), (0, 255, 0, 255)]]
+pose = {"lamps": False, "dusk": False}
+flight = r.FlightPose({"wheel_test": (90, (6, -4, 0))}, 24.0)
+for deferred in (False, True):
+    cache = {}
+    def collect(flight, face_cache=None):
+        polygons, glass = r.collect_boat(geo, texture, pose, texture_mapping=True,
+            flight=flight, face_cache=face_cache, defer_textures=deferred)
+        return [patch for quad, color, _ in polygons
+                for patch, _, _ in (color.patches(quad) if isinstance(color, r.TextureFace) else [(quad, color, None)])]
+    for current in (None, flight, r.FlightPose(flight.folds, 12.0), None, flight):
+        assert collect(current, cache) == collect(current)
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it("carries a folded parent's transform to child discs and drives ground lighting without hover flags", () => {
+    expect(
+      previewPython(`
+geo = ${JSON.stringify({
+        description: { texture_width: 1, texture_height: 1 },
+        bones: [
+          {
+            name: "wheel_front_fold",
+            pivot: [0, 0, 0],
+            rotation: [0, 0, 30],
+            cubes: [bar(0, -5, 1)],
+          },
+          {
+            name: "glow_front",
+            parent: "wheel_front_fold",
+            cubes: [bar(0, -5, 1)],
+          },
+        ],
+      })}
+texture = [[(255, 255, 255, 255)]]
+pose = {"lamps": False, "dusk": False}
+flight = r.build_flight_pose({"animations": {"fold": {"bones": {"wheel_front_fold": {
+    "rotation": [0, 0, 90], "position": [6, -4, 0]
+}}}}}, "fold", lift=24.0)
+assert r.collect_boat(geo, texture, pose, flight=None) == r.collect_boat(geo, texture, pose)
+polygons, _ = r.collect_boat(geo, texture, pose, flight=flight)
+assert [q for q, _, group in polygons if group == "disc"] == [q for q, _, group in polygons if group is None]
+layers = r.ground_layers(polygons, pose, 0, flight=flight)
+assert layers[0][1] == r.FLIGHT_SHADOW_ALPHA
+assert any(color == r.GLOW_LIT for _, _, color in layers)
+assert r.ground_layers(polygons, pose, 0)[0][1] == r.SHADOW_ALPHA
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+});
+
 it("registers ordered top-level scene builders with frozen results", () => {
   expect(
     previewPython(`
@@ -464,7 +619,7 @@ texture = [[(200, 100, 50, 0), (10, 20, 30, 255)]]
 lit = [[(250, 10, 10, 0), (10, 20, 30, 255)]]
 pose = {"lamps": True, "dusk": False, "hover": False, "submarine": False}
 def faces(bone, base=texture, lamps=True):
-    polygons = r.collect({**geo, "bones": [bone]}, base, {}, {}, {**pose, "lamps": lamps}, lit,
+    polygons = r.collect({**geo, "bones": [bone]}, base, {}, {**pose, "lamps": lamps}, lit,
                          lit_bones={"lens": "texel"}, cutout_bones=frozenset({"cutout"}))
     return [[rgb, group] for _, rgb, group in polygons]
 print(json.dumps({"on": [faces(bone) for bone in geo["bones"]],
