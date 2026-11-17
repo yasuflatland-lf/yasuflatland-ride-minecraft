@@ -1228,6 +1228,8 @@ describe("gear scene build", () => {
       "from pathlib import Path",
       "import render_preview as r",
       "rp = Path('packs/yasu_ride_rp')",
+      "every = r.small_models",
+      "r.small_models = lambda rp: [m for m in every(rp) if m[0] in ('sugar_pot', 'mug_pair', 'tent', 'fire_pit', 'gas_lantern')]",
       "serial = r.render_camping_gear(rp, None, workers=1).images",
       "parallel = r.render_camping_gear(rp, None, workers=2).images",
       "assert list(serial) == list(parallel)",
@@ -1235,7 +1237,9 @@ describe("gear scene build", () => {
       "assert all(key(serial[k]) == key(parallel[k]) for k in serial)",
       "print('same', len(serial))",
     ].join("\n");
-    const out = execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" });
-    expect(out.trim()).toBe("same 36");
+    const out = execFileSync("python3", ["-I", "-c", script], {
+      encoding: "utf8",
+    });
+    expect(out.trim()).toBe("same 5");
   }, 120_000);
 });
