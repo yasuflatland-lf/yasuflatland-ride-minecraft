@@ -324,13 +324,15 @@ def _prepared():
     # Packing each mask independently makes MaxRects quadratic in the panel count.
     for material,tiles in masks.items():
         name = "body_panels" if material == "paint" else "body_cowl_right"
-        stride = D.BODY_PANEL_TEXELS + 2*atlas.GUTTER_TEXELS
+        # Neighboring tiles each supply half of the two-texel transparent gutter.
+        gutter = atlas.GUTTER_TEXELS // 2
+        stride = D.BODY_PANEL_TEXELS + 2*gutter
         columns = math.ceil(math.sqrt(len(tiles)))
         rows = math.ceil(len(tiles)/columns)
-        def pixel(u,v,tiles=tiles,columns=columns,stride=stride):
+        def pixel(u,v,tiles=tiles,columns=columns,stride=stride,gutter=gutter):
             column,x = divmod(u,stride)
             row,y = divmod(v,stride)
-            x,y = x-atlas.GUTTER_TEXELS,y-atlas.GUTTER_TEXELS
+            x,y = x-gutter,y-gutter
             index = row*columns+column
             if index >= len(tiles) or not (0 <= x < D.BODY_PANEL_TEXELS and 0 <= y < D.BODY_PANEL_TEXELS):
                 return atlas.CLEAR
@@ -341,8 +343,8 @@ def _prepared():
         for i,entry in enumerate(panel_uv):
             if entry[0] == name:
                 sheet,slot = entry
-                panel_uv[i] = (sheet,(slot%columns)*stride+atlas.GUTTER_TEXELS,
-                               (slot//columns)*stride+atlas.GUTTER_TEXELS)
+                panel_uv[i] = (sheet,(slot%columns)*stride+gutter,
+                               (slot//columns)*stride+gutter)
     for index,(poly,x) in enumerate(plates):
         name = f"body_inner_{index}"
         w,h,pixel = atlas.outline_pixel(poly,D.BODY_PLATE_DENSITY,

@@ -56,6 +56,19 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   `scooter_kit.py` builds panels and tubes in the spike frame, then mirrors their x
   coordinates and rotations into Bedrock coordinates without replacing cube objects.
   Compound rotations require named assemblies under ADR 0167.
+  The rear saddle uses thin, planar triangular panels with alpha-cut outlines in one
+  leather region; cube bounding rectangles and panel margins must not extend its visible
+  silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
+  `MDR` over `39` from behind, with its horizontal raster reversed for Bedrock's rear-view
+  coordinate convention after the final x mirror.
+  The 80-cube rear lamp has one round, 0.6-unit-radius domed red lens seated on
+  the cowl tip, with 16-point circular rings, full tangent frames, 0.01-unit panel
+  margins and alpha-clipped tapered panels. A continuous chrome tube bezel and short
+  skirt follow the calibrated tail-wall contour, with each skirt contact embedded
+  0.1 units along z. The skirt may clear the wall by at most 0.1 units or embed by
+  at most 0.2 units. Chrome stays on `body` and the single red lens on `tail_lights`.
+  The upright plate tilts back by 0.42 radians directly below the bezel with a tiny
+  gap, its top edge within 0.5 units of the wall and its short bracket embedded.
 
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
@@ -67,7 +80,7 @@ use 256 by 256 texels over 7.48 model units, keeping both circular boundaries wi
 0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
 panel's tangent frame and takes no panel margin, so its outer envelope stays within
 0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
-fold bones retain their axle pivots. The combined running, body, engine, head, and shield atlas stays within 2048 by 2048
+fold bones retain their axle pivots. The combined running, body, rear, engine, head, and shield atlas stays within 2048 by 2048
 texels. The scooter requests this side limit from the shared packer, which searches
 wider layouts and rejects regions that cannot fit without reducing texture detail.
 Side and front-left previews render the full atlas without a density cap.
@@ -75,13 +88,20 @@ Side and front-left previews render the full atlas without a density cap.
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
 own all compound body panels and trim.
-Body regions register idempotently before faces are constructed. Curved surfaces
+Body regions register idempotently before faces are constructed. Neighboring
+mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
 grey joint piping, and chrome floor rails and opening trim. The body budget is
 1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
+
+The rear area supplies the seat, lamp housing, tail lens, and plate through
+`rear_seat`, `rear_lamp`, and `rear_plate`. Only the red lens belongs to
+`tail_lights`; the remaining rear geometry stays on `body`. Seat alpha masks use
+24 texels per model unit and pack in descending height order so the combined
+atlas fits the 2048-texel side limit. The rear allocation remains 251 cubes.
 
 The engine area supplies 319 cubes on `body`: the compact
 cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
@@ -119,6 +139,8 @@ Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and susp
   whitewall circularity and tyre clearance, atlas bounds, and per-area budgets
   against the generated model and Python builders. `pnpm model:check` checks
   `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
+  `tests/tools/scooterRear.test.ts` projects the generated plate face corners through its
+  rotation and checks every rear-view texel against the expected upright lettering.
   `tests/tools/scooterShield.test.ts` checks symmetry, the flaring spine, standalone
   deterministic builds, region registration, finite geometry, compound membership,
   the horn scale, fender bolts, and continuous crown texture coverage.

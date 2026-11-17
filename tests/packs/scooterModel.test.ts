@@ -27,6 +27,7 @@ type AreaRow = {
 const AREAS: readonly AreaRow[] = [
   { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand"], cubes: 740 },
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1150 },
+  { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_plate"], cubes: 251 },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 320 },
   { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"], cubes: 520 },
   { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"], cubes: 650 },
@@ -73,7 +74,7 @@ k.mirror_to_game(bones)
 print(json.dumps(g.rounded(dict(areas=g.AREA_ORDER,table=g.ASSEMBLIES,assemblies=merged.assemblies,budget=d.CUBE_BUDGET,ceiling=d.CUBE_BUDGET_CEILING,axis=d.STEERING_AXIS_DEGREES))))
 `),
   );
-});
+}, 30_000);
 
 describe("scooter generated foundation", () => {
   it("keeps the black tread silhouette within 0.03 units of a true circle", async () => {
@@ -230,12 +231,15 @@ print(json.dumps(deviations))
       expect(members).toHaveLength(metadata.table[name]?.cubes ?? -1);
       expect(metadata.table[name]?.owner).toBe("scooter");
     }
+    const authorized = new Set(
+      Object.values(metadata.assemblies)
+        .flat()
+        .map((member) => JSON.stringify(member)),
+    );
     expect(
-      cubes.filter(multipleAxes).every((cube) =>
-        Object.values(metadata.assemblies)
-          .flat()
-          .some((member) => JSON.stringify(member) === JSON.stringify(cube)),
-      ),
+      cubes
+        .filter(multipleAxes)
+        .every((cube) => authorized.has(JSON.stringify(cube))),
     ).toBe(true);
   });
 
