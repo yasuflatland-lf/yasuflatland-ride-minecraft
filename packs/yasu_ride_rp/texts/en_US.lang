@@ -120,6 +120,7 @@ action.interact.yasu_ride.gas_lantern=Turn the Gas Lantern On / Off
 item.yasu_build:selection_wand.name=Selection Wand
 item.yasu_build:paste_rotate.name=Paste Rotate
 item.yasu_build:paste_place.name=Paste Place
+item.yasu_build:build_undo.name=Build Undo
 yasu_build:building_tools=Building Tools
 
 yasu_build.message.selection_cleared=Selection cleared.
