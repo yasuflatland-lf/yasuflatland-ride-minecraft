@@ -1855,7 +1855,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_paste_rotate",
     file: "buildFlow",
-    ticks: 260,
+    ticks: 300,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,

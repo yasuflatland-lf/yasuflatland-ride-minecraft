@@ -7,11 +7,11 @@ import { NewCopy } from "../../../src/application/build/newCopy";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
-import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
+import { facingVector } from "../../../src/domain/build/rotation/facing";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -47,11 +47,10 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
   const source = boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 3 });
   const clipboard = structureClipboard(source, () => stone, store);
   session.completeCopy(overworld, source, clipboard);
-  const rotate = new RotatePasteAim(repo);
-  for (let i = 0; i < turn; i++)
-    expect(rotate.execute({ playerId })).toBe("rotated");
+  const facing = (["east", "south", "west", "north"] as const)[turn];
+  session.followPasteFacing(facing);
   store.calls.length = 0;
-  const target = pasteTarget(clipboard, block, "up", turn);
+  const target = pasteTarget(clipboard, block, "up", facing);
   const paste = new PasteAt(repo, world, feedback, store, players);
   const press = new PressPasteAim(
     repo,
@@ -64,7 +63,7 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
     dimensionId: overworld,
     aim: {
       block: { cell: block, face: "up" as const },
-      ray: { origin: block, direction: { x: 0, y: -1, z: 0 } },
+      ray: { origin: block, direction: facingVector(facing) },
     },
     tick: 100,
     sneaking: true,
@@ -162,9 +161,15 @@ it("refuses a blocked cell inside only the rotated footprint without changing fl
   fc.assert(
     fc.property(origin, fc.constantFrom<QuarterTurn>(1, 3), (block, turn) => {
       const e = setup(block, turn);
-      const original = pasteTarget(e.clipboard, block, "up");
-      const blocked = { ...e.target.anchor, x: original.box.max.x + 1 };
-      expect(blocked.x).toBeLessThanOrEqual(e.target.box.max.x);
+      const original = pasteTarget(e.clipboard, block, "up", "east");
+      const blocked = [...cellsOf(e.target.box)].find(
+        (cell) =>
+          cell.x < original.box.min.x ||
+          cell.x > original.box.max.x ||
+          cell.z < original.box.min.z ||
+          cell.z > original.box.max.z,
+      );
+      if (!blocked) throw new Error("Missing rotated-only cell");
       e.world.protectedCells.add(cellKey(blocked));
       const previous = e.store.capture(overworld, original.box, playerId);
       if (previous === "tooLarge" || previous === "unreadable")
@@ -178,7 +183,7 @@ it("refuses a blocked cell inside only the rotated footprint without changing fl
       e.store.calls.length = 0;
       const flow = e.session.flow;
       expect(e.press.execute(e.cmd)).toBe("refused");
-      expect(e.session.flow).toBe(flow);
+      expect(e.session.flow).toEqual(flow);
       expect(e.store.calls).toEqual([]);
       expect(e.session.takeUndo()).toEqual({ kind: "snapshot", snapshot });
     }),
@@ -204,8 +209,11 @@ it("resets the turn on New copy, a completed copy and End pasting", () => {
             new EndPasting(e.repo, e.store).execute(playerId);
           expect(e.session.pasteTurn).toBe(0);
           expect(new DescribeBuild(e.repo).execute(playerId).pasteTurn).toBe(0);
-          if (action !== "completeCopy")
-            expect(e.session.rotatePaste()).toBe(false);
+          if (action !== "completeCopy") {
+            const flow = e.session.flow;
+            e.session.followPasteFacing("south");
+            expect(e.session.flow).toBe(flow);
+          }
         }
       },
     ),
@@ -229,7 +237,7 @@ it("restores a failed rotated placement with an unturned snapshot", () => {
           },
         );
         expect(e.press.execute(e.cmd)).toBe("refused");
-        expect(e.session.flow).toBe(flow);
+        expect(e.session.flow).toEqual(flow);
         expect(e.session.hasHistory).toBe(false);
         expect(e.store.calls[4]).toMatchObject({
           kind: "place",

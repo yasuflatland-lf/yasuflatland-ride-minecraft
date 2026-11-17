@@ -539,7 +539,7 @@ it("routes paste aiming through itemUse with live aim and separate commit deboun
           e.structures,
         );
         holdClipboard(e.session, clipboard);
-        e.session.setFlow({ kind: "pasteAim", turn: 0 });
+        e.session.setFlow({ kind: "pasteAim" });
         const flow = e.session.flow;
         const target = {
           ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
@@ -577,7 +577,7 @@ it("routes paste aiming through itemUse with live aim and separate commit deboun
           expect(pasteCall).toHaveBeenCalledExactlyOnceWith({
             playerId: e.id,
             dimensionId: nether,
-            target: aimedPasteTarget(clipboard, target),
+            target: aimedPasteTarget(clipboard, target, "east"),
             tick: 0,
           });
           expect(e.session.isEditing).toBe(false);
@@ -752,7 +752,7 @@ it("opens the paste menu even when the aim reader returns undefined", () => {
       e.structures,
     ),
   );
-  e.session.setFlow({ kind: "pasteAim", turn: 0 });
+  e.session.setFlow({ kind: "pasteAim" });
   e.aim.aim = () => undefined;
   e.use();
   expect(e.menus.showPasteMenu).toHaveBeenCalledExactlyOnceWith(e.player);
@@ -769,7 +769,7 @@ it("accepts a commit immediately after the menu and suppresses a second commit a
       e.structures,
     ),
   );
-  e.session.setFlow({ kind: "pasteAim", turn: 0 });
+  e.session.setFlow({ kind: "pasteAim" });
   e.aim.aim = () => ({
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: { ...block, x: engine.tick }, face: "up" },

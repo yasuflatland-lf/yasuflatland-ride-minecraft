@@ -5,7 +5,7 @@ import type { CellBox } from "./box";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
-import { beginPasteAim, rotatePasteAim } from "./flow/paste";
+import { beginPasteAim, followFacing } from "./flow/paste";
 import { turnRotateMode } from "./flow/rotateMode";
 import {
   EMPTY_HISTORY,
@@ -17,6 +17,7 @@ import {
   withPutBack,
 } from "./history/history";
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
+import { type Facing, turnBetween } from "./rotation/facing";
 import { NO_TURN, type QuarterTurn } from "./rotation/quarterTurn";
 import { BUILD_SPEC } from "./spec";
 import type { StructureHandle } from "./structure/handle";
@@ -99,15 +100,17 @@ export class BuildSession {
     return previous !== structureOf(clipboard) ? previous : undefined;
   }
 
-  rotatePaste(): boolean {
-    if (this.currentFlow.kind !== "pasteAim") return false;
-    this.currentFlow = rotatePasteAim(this.currentFlow);
-    return true;
+  followPasteFacing(facing: Facing): void {
+    if (this.currentFlow.kind !== "pasteAim") return;
+    this.currentFlow = followFacing(this.currentFlow, facing);
   }
 
   get pasteTurn(): QuarterTurn {
-    return this.currentFlow.kind === "pasteAim"
-      ? this.currentFlow.turn
+    return this.currentClipboard && this.currentFlow.kind === "pasteAim"
+      ? turnBetween(
+          this.currentClipboard.facing,
+          this.currentFlow.facing ?? this.currentClipboard.facing,
+        )
       : NO_TURN;
   }
 

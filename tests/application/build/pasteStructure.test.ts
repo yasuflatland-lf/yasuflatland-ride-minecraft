@@ -150,7 +150,7 @@ it.each(["idle", "noClipboard", "repeat", "busy"] as const)(
     if (reason === "noClipboard") e.session.clearClipboard();
     if (reason === "repeat" && e.session.flow.kind === "pasteAim")
       e.session.setFlow(
-        recordPaste(e.session.flow, e.cmd.target.anchor, e.cmd.tick),
+        recordPaste(e.session.flow, e.cmd.target.anchor, 0, e.cmd.tick),
       );
     if (reason === "busy") e.session.beginEdit();
     const flow = e.session.flow;

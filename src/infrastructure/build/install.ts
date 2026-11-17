@@ -25,7 +25,6 @@ import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
 import { RotateModeTap } from "../../application/build/rotateModeTap";
-import { RotatePasteAim } from "../../application/build/rotatePasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -151,7 +150,6 @@ export function installBuild(deps: {
     cancel,
     setHeight: new SetHeightTo(repo),
   };
-  const rotate = new RotatePasteAim(repo);
   const menus = new BedrockBuildMenus(repo, menuCases);
   registerWand({
     rotateModeTap: new RotateModeTap(repo, rotateBox),
@@ -200,6 +198,5 @@ export function installBuild(deps: {
     repo,
     endSession,
     ports.structures,
-    rotate,
   );
 }

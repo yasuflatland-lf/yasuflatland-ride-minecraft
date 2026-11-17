@@ -9,7 +9,12 @@ import type { Face } from "../../../src/domain/build/aim/face";
 import { boxOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
-import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
+import {
+  FACINGS,
+  type Facing,
+  facingVector,
+  turnBetween,
+} from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -36,29 +41,33 @@ const aim = fc.record({
     face: fc.constantFrom<Face>("up", "down", "north", "south", "east", "west"),
   }),
 });
-const turn = fc.constantFrom<QuarterTurn>(0, 1, 2, 3);
+const facing = fc.constantFrom(...FACINGS);
 
-function setup(turn: QuarterTurn) {
+function setup(facing?: Facing) {
   const repo = new FakeSessions();
   const session = repo.getOrCreate(playerId);
   const clipboard = structureClipboard(
     boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 2, z: 3 }),
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim", turn });
+  session.setFlow({ kind: "pasteAim", facing });
   return { repo, session, clipboard };
 }
 
 it("matches the domain target for every face and turn, and returns no target on air", () => {
   fc.assert(
-    fc.property(aim, turn, (aim, turn) => {
-      const { repo, clipboard } = setup(turn);
+    fc.property(aim, facing, (hit, facing) => {
+      const aim = {
+        ...hit,
+        ray: { ...hit.ray, direction: facingVector(facing) },
+      };
+      const { repo, clipboard } = setup();
       const resolver = new ResolvePasteTarget(repo, new FakeGroundProbe());
       expect(
         resolver.execute({ playerId, dimensionId: nether, aim, tick: 0 }),
       ).toEqual({
         kind: "target",
-        target: aimedPasteTarget(clipboard, aim, turn),
+        target: aimedPasteTarget(clipboard, aim, facing),
       });
       expect(
         resolver.execute({
@@ -97,14 +106,15 @@ it("draws the same paste box that the press sends to PasteAt", () => {
   fc.assert(
     fc.property(
       aim,
-      turn,
+      facing,
       fc.boolean(),
       fc.boolean(),
-      (hit, turn, hasBlock, sneaking) => {
-        const { repo, session, clipboard } = setup(turn);
+      (hit, facing, hasBlock, sneaking) => {
+        const { repo, session, clipboard } = setup();
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           session.tickMode({ holding: true });
-        const aim: AimResult = hasBlock ? hit : { ray: hit.ray };
+        const ray = { ...hit.ray, direction: facingVector(facing) };
+        const aim: AimResult = hasBlock ? { ...hit, ray } : { ray };
         const reader = new FakeAimReader();
         reader.target = aim;
         const feedback = new FakeFeedback();
@@ -143,10 +153,11 @@ it("draws the same paste box that the press sends to PasteAt", () => {
         const target = execute.mock.calls[0]?.[0].target;
         expect(target).toBeDefined();
         expect(target?.anchor).toEqual(target?.box.min);
+        expect(target?.turn).toBe(turnBetween(clipboard.facing, facing));
         expect(probe.calls.every((call) => call.dimensionId === nether)).toBe(
           true,
         );
-        const unsnapped = aimedPasteTarget(clipboard, aim, turn);
+        const unsnapped = aimedPasteTarget(clipboard, aim, facing);
         if (!unsnapped) throw new Error("Expected hit target");
         expect(
           probe.calls.every((call) => call.fromY === unsnapped.box.min.y),
@@ -162,7 +173,7 @@ it("draws the same paste box that the press sends to PasteAt", () => {
 });
 
 it("refuses no ground with feedback and no paste outline or placement", () => {
-  const { repo, session } = setup(0);
+  const { repo, session } = setup();
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     session.tickMode({ holding: true });
   const probe = new FakeGroundProbe();
@@ -204,7 +215,7 @@ it("refuses no ground with feedback and no paste outline or placement", () => {
 });
 
 it("reuses a preview snap for an unchanged box until it expires, and presses always re-probe", () => {
-  const { repo } = setup(0);
+  const { repo } = setup();
   const probe = new FakeGroundProbe();
   const resolver = new ResolvePasteTarget(repo, probe);
   const hit: AimResult = {
@@ -251,7 +262,7 @@ it("reuses a preview snap for an unchanged box until it expires, and presses alw
 });
 
 it("reads one cell per footprint column on flat ground", () => {
-  const { repo, clipboard } = setup(0);
+  const { repo, clipboard } = setup();
   const probe = new FakeGroundProbe();
   new ResolvePasteTarget(repo, probe).execute({
     playerId,
@@ -265,5 +276,91 @@ it("reads one cell per footprint column on flat ground", () => {
   expect(probe.calls).toHaveLength(clipboard.size.x * clipboard.size.z);
   expect(probe.calls.slice(1).every((call) => call.fromY === call.toY)).toBe(
     true,
+  );
+});
+
+it("keeps the previous facing for diagonal hysteresis and vertical gaze", () => {
+  fc.assert(
+    fc.property(fc.double({ min: 45, max: 54.9, noNaN: true }), (degrees) => {
+      const { repo, session } = setup();
+      const resolver = new ResolvePasteTarget(repo, new FakeGroundProbe());
+      const resolve = (direction: { x: number; y: number; z: number }) =>
+        resolver.execute({
+          playerId,
+          dimensionId: nether,
+          tick: 0,
+          aim: {
+            ray: { origin: { x: 0, y: 80, z: 0 }, direction },
+            block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
+          },
+        });
+      const first = resolve(facingVector("north"));
+      const radians = (degrees * Math.PI) / 180;
+      expect(
+        resolve({ x: Math.sin(radians), y: 0, z: -Math.cos(radians) }),
+      ).toEqual(first);
+      expect(resolve({ x: 0, y: -1, z: 0 })).toEqual(first);
+      expect(session.pasteTurn).toBe(3);
+      resolve(facingVector("east"));
+      expect(session.pasteTurn).toBe(0);
+    }),
+  );
+});
+
+it("uses the clipboard facing for an initial vertical gaze", () => {
+  fc.assert(
+    fc.property(facing, (facing) => {
+      const { repo, session, clipboard } = setup();
+      session.completeCopy(
+        nether,
+        boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 2, z: 3 }),
+        { ...clipboard, facing },
+      );
+      new ResolvePasteTarget(repo, new FakeGroundProbe()).execute({
+        playerId,
+        dimensionId: nether,
+        tick: 0,
+        aim: {
+          ray: {
+            origin: { x: 0, y: 80, z: 0 },
+            direction: { x: 0, y: 1, z: 0 },
+          },
+        },
+      });
+      expect(session.flow).toEqual({ kind: "pasteAim", facing });
+      expect(session.pasteTurn).toBe(0);
+    }),
+  );
+});
+
+it("never covers the aimed block on a side face for any gaze", () => {
+  fc.assert(
+    fc.property(
+      aim,
+      facing,
+      fc.constantFrom<Face>("north", "east", "south", "west"),
+      (hit, facing, face) => {
+        const { repo } = setup();
+        const cell = hit.block.cell;
+        const result = new ResolvePasteTarget(
+          repo,
+          new FakeGroundProbe(),
+        ).execute({
+          playerId,
+          dimensionId: nether,
+          tick: 0,
+          aim: {
+            ray: { ...hit.ray, direction: facingVector(facing) },
+            block: { cell, face },
+          },
+        });
+        expect(result.kind).toBe("target");
+        if (result.kind !== "target") throw new Error("Missing target");
+        const { min, max } = result.target.box;
+        expect(
+          cell.x < min.x || cell.x > max.x || cell.z < min.z || cell.z > max.z,
+        ).toBe(true);
+      },
+    ),
   );
 });
