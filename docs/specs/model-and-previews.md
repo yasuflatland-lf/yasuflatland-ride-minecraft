@@ -105,6 +105,15 @@ wider layouts and rejects regions that cannot fit without reducing texture detai
 Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit.
 
 `tools/scooter_stand.py` builds the centre stand independently of the wheel and fork area.
+Its 33 cubes fit a 35-cube allocation, all on the existing `stand` bone. Paired
+rolled cubes give the chrome tubes a faceted round section: two bent, splayed
+legs, pivot bosses and collars, knee joins, and a cross bar with end bosses near
+the hinge. Thicker pressed lugs meet the floor bracket. Each short rubber cap
+has a separate sole; exactly two sole cubes touch y 0. All dimensions remain in
+`STAND_*` constants, with the hinge and animation unchanged and no new paint region.
+`tests/tools/scooterStand.test.ts` checks each folded cube's bounds against the
+rear wheel and every engine cube, including the muffler and exhaust, with a
+0.01 px gap. Side and front-left previews show the lowered stand.
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and deck and roll skins. The floor area (`tools/scooter_floor.py`) supplies the edge tubes, chrome rails,
@@ -141,8 +150,8 @@ mirror glass, and chrome mirror backs.
 
 The whole-vehicle budget is the sum of `AREA_CUBE_ALLOCATION` in
 `tools/scooter_dims.py`; generation enforces each allocation and the
-6,000-cube ceiling. The current allocations total 3,700 cubes; the generated model
-has 3,666 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
+6,000-cube ceiling. The current allocations total 3,720 cubes; the generated model
+has 3,689 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
 within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome

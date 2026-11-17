@@ -55,11 +55,11 @@ The eight scooter README previews include underbody, running-board and front-whe
 ### Centre stand
 
 - Applies to: Scooter in car form; the entity property `yasu_ride:stand`.
-- Rule: The stand is down when nobody is aboard and no driver is awaited, the speed is under `standSpeed` (0.01 blocks per tick) and the scooter is not on water; otherwise it is up. Outside car form it is up. The client lowers the stand on the property and raises it when the property is false, with short blends. A boarding rider folds it up.
+- Rule: The stand is down when nobody is aboard and no driver is awaited, the speed is under `standSpeed` (0.01 blocks per tick) and the scooter is not on water; otherwise it is up. Outside car form it is up. The client lowers the stand on the property and raises it when the property is false, with short blends. A boarding rider folds it up. The centre stand has bent chrome tube legs, pivot lugs and collars, a cross bar with end bosses, and short rubber caps on two ground-contact soles. All 33 cubes remain on the existing `stand` bone and rotate 85 degrees about the unchanged hinge, clearing the rear tyre and exhaust.
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "`yasu_ride:stand` is true when nobody is aboard"
 - Implementation: `tools/scooter_stand.py` (stand model), `src/domain/vehicle/kinds/scooter/stand.ts` (`standDown`), `src/domain/vehicle/kinds/scooter/drive.ts`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`
-- Verification: `tests/domain/vehicle/kinds/scooter/stand.test.ts` "lowers only when empty, stopped and dry", "stays up at the stopped threshold in either direction"; `tests/domain/vehicle/kinds/scooter/drive.test.ts` "lowers the stand once at rest and raises it when a driver appears"; `tests/packs/scooterClient.test.ts` "raises the stand when the stand property is false with short blends". Tests were read, not run for this spec.
+- Verification: `tests/domain/vehicle/kinds/scooter/stand.test.ts` "lowers only when empty, stopped and dry", "stays up at the stopped threshold in either direction"; `tests/domain/vehicle/kinds/scooter/drive.test.ts` "lowers the stand once at rest and raises it when a driver appears"; `tests/packs/scooterClient.test.ts` "raises the stand when the stand property is false with short blends"; `tests/tools/scooterStand.test.ts` "keeps folded stand bounds clear of the rear wheel and every engine cube".
 
 ### Water surface
 
