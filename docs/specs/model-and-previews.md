@@ -68,7 +68,9 @@ use 256 by 256 texels over 7.48 model units, keeping both circular boundaries wi
 panel's tangent frame and takes no panel margin, so its outer envelope stays within
 0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
 fold bones retain their axle pivots. The combined running, body, shield, and head atlas stays within 2048 by 2048
-texels. Side and front-left previews render the full atlas without a density cap.
+texels. The scooter requests this side limit from the shared packer, which searches
+wider layouts and rejects regions that cannot fit without reducing texture detail.
+Side and front-left previews render the full atlas without a density cap.
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
