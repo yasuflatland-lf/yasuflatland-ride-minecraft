@@ -77,6 +77,15 @@
 - Implementation: `src/domain/vehicle/kinds/scooter/spec.ts` (`SCOOTER_TRANSFORMING`), `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`, `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `tools/scooter_anim.py`
 - Verification: `tests/packs/scooterClient.test.ts` "folds each horizontal wheel below every fixed cube with discs and locators underneath", "uses only the four ground and hover states with the shared sound gates". Tests were read, not run for this spec. Not verified: the flight appearance on a device.
 
+### Engine and hover sounds
+
+- Applies to: Scooter client sound playback.
+- Rule: The scooter uses its own `yasu_ride.scooter_engine_0..5` sound IDs to play the recorded Vespa `scooter_engine_0..5.ogg` clips, with idle at band 0 and revving slices ordered from low to high at bands 1–5. `tools/scooter_sound.py` owns the six speed band indices, per-clip lengths and volumes in the frozen `ENGINE_CLIPS` table. Each engine animation uses its clip length and `scooter_engine_<index>` effect. The loop lengths are 3.0, 2.5, 2.0, 2.0, 2.0 and 2.0 seconds; volumes remain 0.5, 0.54, 0.58, 0.62, 0.66 and 0.7. Distances and speed gates are unchanged. Hover effects remain shared, with no sonar effect. Band thresholds and playback conditions are described in [Sounds](sounds.md).
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "The scooter engine plays its own recorded Vespa clips"; [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md) Decision
+- Implementation: `tools/scooter_sound.py` (`ENGINE_CLIPS`, `engine_effect`), `tools/scooter_anim.py`, `packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json`, `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `packs/yasu_ride_rp/sounds/sound_definitions.json`
+- Verification: `tests/packs/scooterClient.test.ts` "resolves scooter engine sounds, shared hover sounds and the hover particle at both disc locators"; `tests/packs/scooterEngineClips.test.ts` "plays band $index from its own Ogg with matching duration and volume", "keeps all six band volumes non-decreasing with idle quietest"; `tests/tools/scooterAnim.test.ts` "generates reversible staged folds, wheel travel, lean, particles and per-clip engine sounds" checks per-clip engine and shared hover animations. Not verified: audibility on a device, because no device was available; manual rows E1 to E6 in `docs/manual-test.md` have empty result cells until someone listens.
+
 ### Paint and headlights
 
 - Applies to: Scooter paint, headlight switch and lamps.

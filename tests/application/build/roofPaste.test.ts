@@ -24,6 +24,7 @@ import {
   roofCells,
   roofCount,
 } from "../../../src/domain/build/roof/roof";
+import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -228,7 +229,13 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
         );
         holdClipboard(e.session, clip);
         e.session.setFlow(beginPasteAim());
-        const { anchor, box } = pasteTarget(clip, block, face, "east");
+        const { anchor, box } = pasteTarget(
+          clip,
+          block,
+          face,
+          turnBetween(clip.facing, "east"),
+          "east",
+        );
         const delta = {
           up: [0, 1, 0],
           down: [0, -1, 0],
@@ -255,13 +262,20 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           tick: 0,
           playerId,
           dimensionId: nether,
-          target: pasteTarget(clip, block, face, "east"),
+          target: pasteTarget(
+            clip,
+            block,
+            face,
+            turnBetween(clip.facing, "east"),
+            "east",
+          ),
         });
         expect(read.mock.calls).toEqual(
           [...cellsOf(box)].map((at) => [nether, at]),
         );
         expect(e.session.flow).toEqual({
           kind: "pasteAim",
+          manualTurn: 0,
           lastPaste: { anchor, turn: 0, tick: 0 },
         });
         e.jobs.step();
@@ -291,6 +305,13 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
       ),
       { x: 0, y: 0, z: 0 },
       "up",
+      turnBetween(
+        structureClipboard(
+          boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
+          () => undefined,
+        ).facing,
+        "east",
+      ),
       "east",
     ),
     tick: 0,
