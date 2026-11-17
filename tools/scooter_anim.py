@@ -35,11 +35,24 @@ def fold_rotation_keys(clip):
     raise ValueError(f"Unknown fold clip: {clip}")
 
 
+def stem_scale_keys(clip):
+    """Rear stem length keys: flat on the ground, full while the wheel is down."""
+    flat, full = [1, 0, 1], [1, 1, 1]
+    if clip == "deploy":
+        return {"0.0": flat, str(dims.FOLD_LAY_START): full, "1.0": full}
+    if clip == "folded":
+        return full
+    if clip == "retract":
+        return {"0.0": full, str(round(1 - dims.FOLD_LAY_START, 6)): full, "1.0": flat}
+    raise ValueError(f"Unknown fold clip: {clip}")
+
+
 def _fold_bones(clip):
     bones = {name: {"position": fold_position_keys(clip), "rotation": fold_rotation_keys(clip)}
              for name in dims.FOLD_BONES.values()}
     bones.update({name: {"position": fold_position_keys(clip)}
                   for name in dims.STRUT_BONES.values()})
+    bones[dims.REAR_STEM_BONE] = {"scale": stem_scale_keys(clip)}
     return bones
 
 
@@ -55,8 +68,9 @@ def build():
     ]
     wheel = f"-query.modified_distance_moved * {180/math.pi/(dims.TYRE_RADIUS/dims.MODEL_PIXELS_PER_BLOCK):.6f}"
     animations = {
-        "wheels": {"loop": True, "bones": {name: {"rotation": [wheel, 0, 0]}
-                   for name in ("wheel_front", "wheel_rear")}},
+        "wheels": {"loop": True, "bones": {
+            **{name: {"rotation": [wheel, 0, 0]} for name in ("wheel_front", "wheel_rear")},
+            dims.REAR_STEM_BONE: {"scale": stem_scale_keys("retract")["1.0"]}}},
         "steer": {"loop": True, "bones": {"steer": {"rotation": rotation}}},
         "lean": {"loop": True, "bones": {"root": {"rotation": [0, 0,
                  "query.property('yasu_ride:lean') - query.property('yasu_ride:bank')"]}}},

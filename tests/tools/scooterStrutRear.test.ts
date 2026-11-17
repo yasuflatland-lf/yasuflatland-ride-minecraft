@@ -7,6 +7,10 @@ type Box = [Triple, Triple];
 type StrutFacts = {
   collar: { origin: Triple; size: Triple }[];
   rodCount: number;
+  stem: { origin: Triple; size: Triple }[];
+  stemTop: number;
+  groundScale: number[];
+  deployScale: Record<string, number[]>;
   axleY: number;
   axleZ: number;
   drop: number;
@@ -31,10 +35,15 @@ k=load_tool('scooter_kit')
 s=load_tool('scooter_struts')
 result=k.AreaCubes()
 s._rear(result)
-keys=load_tool('scooter_anim').build()['animations']['animation.yasu_ride.scooter.wheels_deploy']['bones'][d.STRUT_BONES['rear']]['position']
+anims={k.split('.')[-1]: v for k, v in load_tool('scooter_anim').build()['animations'].items()}
+keys=anims['wheels_deploy']['bones'][d.STRUT_BONES['rear']]['position']
 print(json.dumps(dict(
     collar=[dict(origin=c['origin'], size=c['size']) for c in result.get('body', [])],
     rodCount=len(result.get(d.STRUT_BONES['rear'], [])),
+    stem=[dict(origin=c['origin'], size=c['size']) for c in result.get(d.REAR_STEM_BONE, [])],
+    stemTop=d.REAR_STEM_TOP,
+    groundScale=anims['wheels']['bones'][d.REAR_STEM_BONE]['scale'],
+    deployScale=anims['wheels_deploy']['bones'][d.REAR_STEM_BONE]['scale'],
     axleY=d.AXLE_Y, axleZ=d.REAR_AXLE_Z, drop=-min(v[1] for v in keys.values()),
     tyreRadius=d.TYRE_RADIUS, tyreHalfWidth=d.TYRE_HALF_WIDTH,
     wheelScale=load_tool('scooter_running').REAR_WHEEL_SCALE, budget=d.CUBE_BUDGET)))
@@ -118,43 +127,33 @@ describe("scooter rear telescoping strut", () => {
     }
   });
 
-  it("anchors the collar top in a fixed body cube", () => {
-    const top = collarBoxes.reduce((a, b) => (b[1][1] > a[1][1] ? b : a));
+  it("anchors the stem top in a fixed body cube and reaches the sleeve", () => {
+    const stemBoxes = boneCubes("wheel_rear_stem").map(cubeBounds);
+    expect(stemBoxes).toHaveLength(facts.stem.length);
+    const top = stemBoxes.reduce((a, b) => (b[1][1] > a[1][1] ? b : a));
+    expect(close(top[1][1], facts.stemTop)).toBe(true);
     const anchors = fixedBody.filter((cube) => {
       const [lo, hi] = cubeBounds(cube);
       return overlaps(top, [lo, hi]) && lo[1] < top[1][1] && hi[1] > top[1][1];
     });
     expect(anchors.length).toBeGreaterThan(0);
+    const stemBottom = Math.min(...stemBoxes.map(([lo]) => lo[1]));
+    const sleeveTop = Math.max(...collarBoxes.map(([, hi]) => hi[1]));
+    expect(stemBottom).toBeLessThanOrEqual(sleeveTop);
   });
 
-  it("hides the strut at rest inside the rear tyre or under the cowl", () => {
-    const anchor = fixedBody
-      .map(cubeBounds)
-      .filter((box) =>
-        collarBoxes.some((collarBox) => overlaps(collarBox, box)),
-      );
+  it("squashes the stem flat on the ground and extends it with the drop", () => {
+    expect(facts.groundScale[1]).toBe(0);
+    expect(facts.deployScale["0.0"]).toEqual(facts.groundScale);
+    expect(facts.deployScale["1.0"]).toEqual([1, 1, 1]);
+  });
+
+  it("hides the sleeve and rod at rest inside the rear tyre", () => {
     for (const [lo, hi] of [...rodBoxes, ...collarBoxes]) {
-      // Below the tyre top the cube must sit inside the tyre width.
-      if (lo[1] < tyreTop) {
-        const half = Math.max(Math.abs(lo[0]), Math.abs(hi[0]));
-        const inTyre = half <= facts.tyreHalfWidth * facts.wheelScale;
-        expect(inTyre).toBe(true);
-      }
-      // Above it, the cube must stay under the cowl underside it is anchored to.
-      if (hi[1] > tyreTop) {
-        expect(
-          anchor.some(
-            ([alo, ahi]) =>
-              alo[0] <= lo[0] &&
-              hi[0] <= ahi[0] &&
-              alo[2] <= lo[2] &&
-              hi[2] <= ahi[2] &&
-              hi[1] < ahi[1],
-          ),
-        ).toBe(true);
-      }
+      const half = Math.max(Math.abs(lo[0]), Math.abs(hi[0]));
+      expect(half).toBeLessThanOrEqual(facts.tyreHalfWidth * facts.wheelScale);
+      expect(hi[1]).toBeLessThan(tyreTop + 0.3);
     }
-    for (const [, hi] of rodBoxes) expect(hi[1]).toBeLessThan(tyreTop + 0.3);
   });
 
   it("stays within the cube budget", () => {
