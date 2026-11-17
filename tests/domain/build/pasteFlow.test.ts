@@ -14,8 +14,10 @@ import {
   followFacing,
   isRepeat,
   recordPaste,
+  rotatePasteAim,
 } from "../../../src/domain/build/flow/paste";
 import {
+  effectiveTurn,
   FACINGS,
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
@@ -169,6 +171,87 @@ it("derives the session turn from copy and paste facings, and ignores following 
         expect(session.pasteTurn).toBe(
           turnBetween(copiedFacing, currentFacing),
         );
+      },
+    ),
+  );
+});
+
+const quarterTurn = fc.constantFrom(0, 1, 2, 3);
+
+it("rotates immutably through four turns while keeping facing and the paste record", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      quarterTurn,
+      fc.constantFrom(...FACINGS),
+      (anchor, manualTurn, facing) => {
+        const initial = recordPaste(
+          { ...beginPasteAim(), manualTurn, facing },
+          anchor,
+          manualTurn,
+          10,
+        );
+        let aim = initial;
+        for (let i = 1; i <= 4; i++) {
+          const previous = aim;
+          aim = rotatePasteAim(aim);
+          expect(aim).not.toBe(previous);
+          expect(Object.isFrozen(aim)).toBe(true);
+          expect(aim.manualTurn).toBe((manualTurn + i) % 4);
+          expect(aim.facing).toBe(facing);
+          expect(aim.lastPaste).toBe(initial.lastPaste);
+        }
+        expect(aim).toEqual(initial);
+        expect(initial.manualTurn).toBe(manualTurn);
+      },
+    ),
+  );
+});
+
+it("resets manual rotation on a fresh copy and discards it on paste exits", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.integer({ min: 1, max: 3 }),
+      fc.constantFrom(...FACINGS),
+      fc.constantFrom(...FACINGS),
+      (at, turns, copied, gaze) => {
+        const session = new BuildSession(asPlayerId("p"));
+        const box = boxOf(at, at);
+        const clipboard = { ...structureClipboard(box), facing: copied };
+        for (const exit of [
+          () => session.startNewCopy(),
+          () => session.endPasting(),
+          () => session.leaveBuildMode(),
+        ]) {
+          session.completeCopy(dimensionId, box, clipboard);
+          session.followPasteFacing(gaze);
+          for (let i = 0; i < turns; i++)
+            expect(session.rotatePaste()).toBe(true);
+          expect(session.pasteTurn).toBe(
+            effectiveTurn(copied, gaze, turns as 1 | 2 | 3),
+          );
+          session.completeCopy(dimensionId, box, clipboard);
+          expect(session.flow).toEqual(beginPasteAim());
+          session.rotatePaste();
+          exit();
+          expect(session.flow).toEqual({ kind: "idle" });
+          expect(session.pasteTurn).toBe(0);
+          session.completeCopy(dimensionId, box, clipboard);
+          expect(session.flow).toEqual(beginPasteAim());
+        }
+        const first = tapBlock({ kind: "idle" }, dimensionId, at, stone);
+        const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+        for (const flow of [
+          { kind: "idle" } as const,
+          first,
+          endpoint,
+          chooseHeighted(endpoint, "copy"),
+        ]) {
+          session.setFlow(flow);
+          expect(session.rotatePaste()).toBe(false);
+          expect(session.flow).toBe(flow);
+        }
       },
     ),
   );
