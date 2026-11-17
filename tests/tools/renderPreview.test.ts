@@ -891,7 +891,7 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
 });
 
 describe("scooter previews (ADR 0251)", () => {
-  it("renders the flying headlights from the camper's front angle plus seven ground previews", () => {
+  it("renders the flying headlights from the camper's front angle plus eight ground previews", () => {
     const result = previewPython(
       "print(json.dumps({'names': list(r.SCOOTER_POSES), 'views': [p['view'] for p in r.SCOOTER_POSES.values()], 'bulldozer': [p['view'] for p in r.BULLDOZER_POSES.values()], 'size': r.image_size('scooter-side.png')}))",
     );
@@ -904,6 +904,7 @@ describe("scooter previews (ADR 0251)", () => {
       "scooter-underbody.png",
       "scooter-floor.png",
       "scooter-wheel-front.png",
+      "scooter-wheel-rear.png",
     ]);
     expect(result.views.slice(0, 4)).toEqual(result.bulldozer);
     expect(result.views[4]).not.toEqual(result.bulldozer[3]);
@@ -911,6 +912,7 @@ describe("scooter previews (ADR 0251)", () => {
       [1.0, -0.45, -0.65],
       [-1.0, 1.8, -0.5],
       [-1.0, 0.2, -0.55],
+      [-1.0, 0.1, 0.55],
     ]);
     expect(result.size).toEqual([800, 600]);
   });

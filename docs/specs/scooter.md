@@ -14,7 +14,7 @@
 
 ## Rules
 
-The eight scooter README previews include underbody, running-board and front-wheel close-ups; their framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).
+The nine scooter README previews include underbody, running-board, front-wheel and rear-wheel close-ups; their framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).
 
 ### Spec table, profile and seats
 
@@ -73,11 +73,11 @@ The eight scooter README previews include underbody, running-board and front-whe
 ### Wheel detail
 
 - Applies to: Front and rear scooter wheels.
-- Rule: White tyre walls, beige dishes and chrome hubs remain. Each exposed hub, opposite the fork and spring, has four raised hex nuts at 90-degree intervals and one central castellated axle nut. The disc texture supplies six slotted rim screws, an outer flange line, bead and concentric dish step. Real rubber cubes form three staggered tread columns and two shoulder rows within the original tyre envelope. Rear detail uses `REAR_WHEEL_SCALE` (0.96). All additions stay on the existing wheel bones and follow roll and fold; the fork, struts and stand are unchanged. Each wheel adds 231 cubes. The running allocation is 1,190 (1,185 used); the total allocation is 4,165 below the 6,000 ceiling.
+- Rule: Both wheels retain white tyre walls, beige discs and chrome dishes. Five raised chrome hex nuts at 72-degree intervals share one bolt circle on each exposed negative-x face, opposite the fork and spring. A smaller dark centre boss has a round chrome ring; the inner dish uses a round outline and 40-segment sides. Six enlarged slotted screws and a shaded dish transition use the existing disc regions, with raised chrome bead lips outside. Three crown columns and two shoulder columns have 40 equally spaced blocks each, aligned across the width with recessed grooves. Every tread corner remains within the original 4.3 px rolling radius; rear radial and hardware dimensions scale by 0.96. No bones, paint regions or materials are added, and roll and fold retain their clearance. Each wheel adds 527 cubes relative to the original wheel and contains 821 cubes (818 in its running assembly). The running allocation is 1,785 (1,777 used); total allocation is 4,760 under the 6,000 ceiling. Front-left and rear-left close-ups show the hardware on both wheels.
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Wheels."
 - Implementation: `tools/scooter_running.py` (`_wheel`, `_wheel_pixel`), `tools/scooter_dims.py` (`AREA_CUBE_ALLOCATION`).
-- Verification: `tests/tools/scooterWheelDetail.test.ts` checks hardware layout, block bounds and stagger, and screw pixels; `tests/packs/scooterModel.test.ts` checks size, ancestry and budget; the strut and fold tests retain their clearance checks. Generated previews support visual review; device appearance remains unverified.
+- Verification: `tests/tools/scooterWheelDetail.test.ts` checks hardware layout, block bounds, full-width coverage and equal spacing, and screw pixels; `tests/packs/scooterModel.test.ts` checks size, ancestry and budget; the strut and fold tests retain their clearance checks. Generated previews support visual review; device appearance remains unverified.
 
 ### Flat-wheel flight
 

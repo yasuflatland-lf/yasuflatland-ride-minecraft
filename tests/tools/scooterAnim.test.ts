@@ -55,14 +55,15 @@ assert unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTes
 `);
 });
 
-it("drops both wheels strictly below fixed geometry with the smallest quarter-pixel drop and raises the stand feet", () => {
+it("retains the wheel fold drop, clears fixed geometry and raises the stand feet", () => {
   python(`
 g=load_tool('gen_scooter')
 geo,_,_=g.build()
 bones={b['name']:b for b in geo['minecraft:geometry'][0]['bones']}
 low=min(p[1] for name in ('body','steer','headlights','tail_lights') for c in bones[name]['cubes'] for p in t.corners(c))
 threshold=max(d.AXLE_Y-p[0]-low for name in ('wheel_front','wheel_rear') for c in bones[name]['cubes'] for p in t.corners(c))
-assert threshold<d.FOLD_DROP<=threshold+.25
+assert threshold<d.FOLD_DROP
+assert d.FOLD_DROP==3.5
 assert d.FOLD_DROP*4==round(d.FOLD_DROP*4)
 pivot=d.STAND_PIVOT
 assert pivot==(0,d.i2m(*d.STAND_PIXEL)[1],d.i2m(*d.STAND_PIXEL)[0]-d.STAND_PIVOT_BACK)

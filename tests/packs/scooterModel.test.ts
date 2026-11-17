@@ -86,7 +86,7 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(4165);
+    expect(metadata.budget).toBe(4760);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });
@@ -118,7 +118,7 @@ for allocation in ({k:v for k,v in d.AREA_CUBE_ALLOCATION.items() if k != 'glow'
             raise AssertionError('Accepted mismatched area keys')
 `);
   });
-  it("keeps the black tread silhouette within 0.03 units of a true circle", async () => {
+  it("keeps block tops on the rolling circle with recessed grooves", async () => {
     const result: { side: string; low: number; high: number }[] = JSON.parse(
       await python.run(`${setup}
 import math
@@ -129,7 +129,9 @@ assert r.RING_SEGMENTS>=40
 out=[]
 for side,axle,radius in (('front',-11.8,4.3),('rear',11.8,4.3*0.96)):
     bins=[0.0]*360
-    for cube in built['wheel_'+side][:r.RING_SEGMENTS*7]:
+    for cube in built['wheel_'+side]:
+        if cube['uv']['east'].region!='rubber':
+            continue
         c=t.corners(cube)
         for i in range(8):
             for axis in range(3):
@@ -147,9 +149,10 @@ print(json.dumps(out))
     );
     expect(result).toHaveLength(2);
     for (const { low, high } of result) {
-      // The outer envelope never pokes past the tread circle and never sags below the chord polygon.
+      // Grooves recess the carcass while the block corners stay inside the rolling circle.
       expect(high).toBeLessThanOrEqual(0.001);
-      expect(low).toBeGreaterThanOrEqual(-0.03);
+      expect(high).toBeGreaterThan(-0.01);
+      expect(low).toBeGreaterThanOrEqual(-0.25);
     }
   });
 
