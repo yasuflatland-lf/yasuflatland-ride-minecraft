@@ -22,7 +22,7 @@ COLORS = {
     "Y": (250, 190, 20, 255),  # crane yellow
     "D": (190, 130, 10, 255),  # crane shade
     "N": (25, 38, 58, 255),
-    "H": (255, 245, 200, 255),
+    "W": (255, 255, 255, 255),  # badge plate
     "K": (50, 50, 50, 255),  # hook and counterweight
 }
 
@@ -45,42 +45,48 @@ SELECTION_WAND = [
     "................",
 ]
 
+PLATE = 11
+PLATE_ORIGIN = 16 - PLATE
+GLYPH = 9
+GLYPH_ORIGIN = PLATE_ORIGIN + 1
+
 ROTATE_BADGE = [
-    "..NNNN..",
-    ".N....N.",
-    "N....NNN",
-    "N.....N.",
-    ".N.....N",
-    "NNN....N",
-    ".N....N.",
-    "..NNNN..",
+    "..NNNN...",
+    ".N....NNN",
+    "N......N.",
+    "N........",
+    "N.......N",
+    "........N",
+    ".N......N",
+    "NNN....N.",
+    "...NNNN..",
 ]
 PLACE_BADGE = [
-    "...NNNNN",
-    "...N.N.N",
-    "...NNNNN",
-    "NNNN.N.N",
-    "N..NNNNN",
-    "N...N...",
-    "N...N...",
-    "NNNNN...",
+    "..NNNNNNN",
+    "..N.....N",
+    "NNNNNNN.N",
+    "N.....N.N",
+    "N..N..N.N",
+    "N.NNN.N.N",
+    "N..N..NNN",
+    "N.....N..",
+    "NNNNNNN..",
 ]
 
 
 def draw_badge(rows, badge):
+    """Draw a white plate with trimmed corners, then the dark glyph on it."""
     result = [list(row) for row in rows]
-    for y in range(16):
-        for x in range(16):
-            if rows[y][x] != "." and any(
-                0 <= x + dx - 8 < 8 and 0 <= y + dy - 8 < 8
-                and badge[y + dy - 8][x + dx - 8] == "N"
-                for dx in (-1, 0, 1) for dy in (-1, 0, 1)
-            ):
-                result[y][x] = "H"
+    last = PLATE - 1
+    corners = {(0, 0), (last, 0), (0, last), (last, last)}
+    for y in range(PLATE):
+        for x in range(PLATE):
+            if (x, y) not in corners:
+                result[PLATE_ORIGIN + y][PLATE_ORIGIN + x] = "W"
     for y, row in enumerate(badge):
         for x, pixel in enumerate(row):
             if pixel != ".":
-                result[y + 8][x + 8] = pixel
+                result[GLYPH_ORIGIN + y][GLYPH_ORIGIN + x] = pixel
     return ["".join(row) for row in result]
 
 
