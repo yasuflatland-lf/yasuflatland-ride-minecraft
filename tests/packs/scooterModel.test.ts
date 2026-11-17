@@ -28,7 +28,7 @@ const AREAS: readonly AreaRow[] = [
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"] },
   { area: "floor", bones: ["body"], assemblies: ["body_floor"] },
   { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"] },
-  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"] },
+  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_exhaust_pipe", "engine_casing_detail", "engine_fan_detail", "engine_cylinder_fins", "engine_swing_arm"] },
   { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"] },
   { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"] },
   { area: "glow", bones: ["glow_front", "glow_rear"], assemblies: [] },
@@ -86,9 +86,72 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(3700);
+    expect(metadata.budget).toBe(3770);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
+  });
+
+  it("hangs a solid right-side muffler below the floor and clears the rear tyre and fold drop", async () => {
+    await python.run(`${setup}
+import math
+e=load_tool('scooter_engine')
+t=load_tool('cube_tilt')
+r=load_tool('scooter_running')
+engine=e.build()
+muffler=engine.assemblies['engine_muffler']
+solid=[c for c in muffler if min(c['size'])>0.3]
+assert solid, 'Muffler needs solid pressed-steel thickness'
+pan=[c for c in muffler if max(p[1] for p in t.corners(c))<5.4]
+points=[p for c in pan for p in t.corners(c)]
+assert min(p[0] for p in points)>d.TYRE_HALF_WIDTH, 'Muffler must be on the rider right before mirroring'
+assert 7.5<max(p[2] for p in points)-min(p[2] for p in points)<9.5
+assert 2.0<max(p[1] for p in points)-min(p[1] for p in points)<3.1
+assert min(p[1] for p in points)<3.1
+wheel=r.build()['wheel_rear']
+body=load_tool('scooter_body').build()['body']
+width=max(abs(p[0]) for c in body for p in t.corners(c))
+tyre_width=max(abs(p[0]) for c in wheel[:r.RING_SEGMENTS*7] for p in t.corners(c))
+fold_top=max(d.AXLE_Y-d.FOLD_DROP+p[0] for c in wheel for p in t.corners(c))
+for c in engine['body']:
+    corners=t.corners(c)
+    assert min(p[1] for p in corners)>fold_top+0.05, 'Engine intersects the dropped, horizontal rear wheel'
+    assert min(p[1] for p in corners)>=0
+    assert max(abs(p[0]) for p in corners)<=width, 'Engine exceeds the existing non-mirror width'
+    # A cylinder enclosing the road tyre also covers its full vertical drop.
+    if min(p[0] for p in corners)<tyre_width and max(p[0] for p in corners)>-tyre_width:
+        y0,y1=min(p[1] for p in corners),max(p[1] for p in corners)
+        z0,z1=min(p[2] for p in corners),max(p[2] for p in corners)
+        dy=max(y0-d.AXLE_Y, d.AXLE_Y-d.FOLD_DROP-y1, 0)
+        dz=max(z0-d.REAR_AXLE_Z, d.REAR_AXLE_Z-z1, 0)
+        assert math.hypot(dy,dz)>d.TYRE_RADIUS*r.REAR_WHEEL_SCALE, 'Engine intersects the rear tyre drop envelope'
+`);
+  });
+
+  it("keeps the muffler seam against the shell without end overhang", async () => {
+    await python.run(`${setup}
+e=load_tool('scooter_engine')
+surfaces={name:rings for name,rings,_,_ in e._surfaces()}
+shell=surfaces['engine_pan_patch'][3]
+for ring in surfaces['engine_seam_patch']:
+    for lip,skin in zip(ring,shell):
+        assert abs(lip[0]-skin[0])<=0.05, 'Seam protrudes beyond the shell side'
+        assert abs(lip[2]-skin[2])<0.001, 'Seam extends past the shell ends'
+    assert abs(ring[0][1]-4.1)<=0.05, 'Seam must remain a thin middle lip'
+`);
+  });
+
+  it("routes a short exhaust from the cylinder flange into the engine-side muffler top", async () => {
+    await python.run(`${setup}
+import math
+e=load_tool('scooter_engine')
+path=e.catmull_rom(e.HEADER_POINTS,100)
+assert math.dist(path[0],(2.23,6.02,8.55))<0.2, 'Pipe misses the cylinder exhaust port'
+assert all(p[2]>=6.0 for p in path), 'Pipe extends beyond the muffler middle'
+assert all(b[2]<=a[2] for a,b in zip(path,path[1:])), 'Pipe loops back along the muffler'
+end=path[-1]
+assert 6.5<=end[2]<=8.0 and 4.9<=end[1]<=5.25 and 2.5<=end[0]<=3.6, 'Pipe misses the engine-side top inlet'
+assert sum(math.dist(a,b) for a,b in zip(path,path[1:]))<3.5, 'Exhaust should be a short S-bend'
+`);
   });
 
   it("rejects an overallocated area and names it", async () => {
