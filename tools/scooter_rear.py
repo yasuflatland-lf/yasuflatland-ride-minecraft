@@ -42,11 +42,16 @@ SIDE_EULER_YXZ = (0.009094408239098302, 1.5530540217458202, 0.013353457932479265
 SIDE_FOCAL = 1341.9033074952995
 SIDE_CENTER = (637.4085583675401, 133.03247667128977)
 
-LAMP_PHOTO = (82, 345)
-LAMP_OFFSET = (0, 0.38, 0.45)
+LAMP_CENTER_Y = 10.0
+LAMP_EMBED = 0.23
+LAMP_WALL_TOLERANCE = 0.1
+LAMP_WALL_EMBED_LIMIT = 0.8
+LAMP_PANEL_MARGIN = 0.01
+LAMP_MASK_DENSITY = 32
+LAMP_MASK_OVERLAP = 0.03
 LAMP_SCALE = 0.9
-LAMP_TILT = -0.23
-LAMP_RING_POINTS = 12
+LAMP_TILT = -0.50
+LAMP_RING_POINTS = 16
 LAMP_SQUARENESS = 3.0
 LAMP_SHELL_SKIN = 0.09
 LAMP_BASE_SKIN = 0.07
@@ -56,23 +61,25 @@ LAMP_RIM_SIZE = 0.065
 LAMP_SHELL = ((0.82, 0.46, -0.48), (1.12, 0.66, 0.02), (1.21, 0.68, 0.48), (1.13, 0.61, 0.72))
 LAMP_BASE = ((0.84, 0.48, -0.51), (1.15, 0.69, -0.3))
 LAMP_LENS = ((1.15, 0.64, 0.28), (1.13, 0.61, 0.72))
-LAMP_CAP = ((1.12, 0.6, 0.72), (1.05, 0.54, 0.87))
+LAMP_CAP = ((1.12, 0.6, 0.72), (1.05, 0.54, 0.87), (0, 0, 1.03))
 LAMP_RIM = (1.17, 0.65, 0.74)
 
 HOOD_RING_POINTS = 8
 HOOD_SKIN = 0.07
 HOOD_RIM_SIZE = 0.055
-HOOD = ((0.46, 0.49, -0.12, 0.91, 2.0), (0.44, 0.55, 0.22, 0.91, 2.0), (0.33, 0.45, 0.65, 0.86, 2.0))
+HOOD = ((0.46, 0.49, -0.65, 0.91, 2.0), (0.44, 0.55, 0.22, 0.91, 2.0), (0.33, 0.45, 0.65, 0.86, 2.0))
 HOOD_TIP = (0.01, 0.01, 0.72, 0.8)
 HOOD_BASE_Y = (0.66, 0.8)
 HOOD_BASE_RADIUS = 0.5
-HOOD_BASE_Z = 0.2
-HOOD_BASE_DEPTH = 0.48
+HOOD_BASE_Z = -0.25
+HOOD_BASE_DEPTH = 0.65
 HOOD_BASE_SKIN = 0.055
 ARM_SIZE = 0.06
-ARM = ((0.95, 0.42, 0.87), (0.85, 0.66, 0.25), (0.6, 1.29, -0.03), (0.35, 1.35, -0.03))
+ARM = ((0.95, 0.42, 0.87), (0.85, 0.66, 0.25), (0.6, 1.29, -0.75), (0.35, 1.35, -0.75))
 SADDLE_SKIN = 0.04
 SADDLE = ((0.82, 0.1, -0.72, -0.62), (1.08, 0.13, 0.1, -0.61), (0.92, 0.09, 0.75, -0.54))
+SIDE_STEP = 0.3
+SADDLE_RING_POINTS = 8
 SIDE_PLATE_X = 1.03
 SIDE_PLATE_THICK = 0.06
 SIDE_PLATE = ((-0.85, -0.6), (-0.78, 0.48), (-0.37, 0.63), (0.65, 0.31), (0.85, -0.22),
@@ -82,17 +89,19 @@ SIDE_INNER_THICK = 0.025
 SIDE_INNER = ((-0.66, -0.47), (-0.57, 0.33), (-0.31, 0.45), (0.45, 0.18), (0.62, -0.18),
               (0.27, -0.49))
 
-PLATE_PHOTO = (63, 381)
-PLATE_TILT = -0.36
+PLATE_TILT = -0.42
+PLATE_WALL_TOLERANCE = 0.5
+PLATE_WALL_CLEARANCE = 0.5
+PLATE_LAMP_GAP = -0.06
 PLATE_WIDTH = 3.0
 PLATE_HEIGHT = 3.3
 PLATE_THICK = 0.15
-PLATE_BRACKET_Y = -1.72
+PLATE_BRACKET_Y = 1.65
 PLATE_BRACKET_SAG = 0.035
 PLATE_BRACKET_HALF = 1.56
 PLATE_BRACKET_POINTS = 5
 PLATE_BRACKET_SIZE = 0.055
-PLATE_BRACKET_Z = 0.09
+PLATE_BRACKET_Z = -0.74
 FASTENER_X = 1.32
 FASTENER_Y = 1.47
 FASTENER_HALF = 0.065
@@ -182,6 +191,55 @@ def _side_surface(xi, yi):
     return [SIDE_ORIGIN[i] + ry[i] * t for i in range(3)]
 
 
+FRAME_REAR = ((262,165),(270,164),(279,156),(297,128),(319,105),(345,88),(370,74),(393,61),(413,50))
+# Centre-line ray casts of the tail cowl put its wall 0.45 units forward of the photo silhouette.
+BODY_WALL_BOW = 0.45
+TAIL_WALL = tuple(sorted((_side_surface(x, y)[1], _side_surface(x, y)[2] - BODY_WALL_BOW)
+                         for y, x in FRAME_REAR))
+
+
+def _wall_z(y):
+    a, b = next((a, b) for a, b in zip(TAIL_WALL, TAIL_WALL[1:]) if a[0] <= y <= b[0])
+    return a[1] + (y - a[0]) * (b[1] - a[1]) / (b[0] - a[0])
+
+
+def _lamp_panel(a0, a1, b0, b1, thick, faces, inside, panel_name):
+    u = [(a1[i] - a0[i] + b1[i] - b0[i]) / 2 for i in range(3)]
+    v = [(b0[i] - a0[i] + b1[i] - a1[i]) / 2 for i in range(3)]
+    if min(kit._length(u), kit._length(v)) < kit.EDGE_EPSILON:
+        return None
+    ex = kit._unit(u)
+    ey = kit._unit([v[i] - ex[i] * kit._dot(v, ex) for i in range(3)])
+    normal = [ex[1]*ey[2]-ex[2]*ey[1], ex[2]*ey[0]-ex[0]*ey[2], ex[0]*ey[1]-ex[1]*ey[0]]
+    center = kit._centroid((a0, a1, b0, b1))
+    if kit._dot(normal, kit._sub(center, inside)) < 0:
+        ey, normal = ([-c for c in axis] for axis in (ey, normal))
+    matrix = [[ex[i], ey[i], normal[i]] for i in range(3)]
+    projected = [[kit._dot(kit._sub(p, center), axis) for axis in (ex, ey)]
+                 for p in (a0, a1, b0, b1)]
+    lo = [center[i] + min(p[i] for p in projected) - LAMP_PANEL_MARGIN for i in range(2)]
+    hi = [center[i] + max(p[i] for p in projected) + LAMP_PANEL_MARGIN for i in range(2)]
+    cube = kit._oriented([*lo, center[2] - thick], [*hi, center[2]], center,
+                         kit.tilt._rotation_of(matrix), atlas.faces("clear"), LAMP_ASSEMBLY)
+    poly = [projected[i] for i in (0, 1, 3, 2)]
+    x0, y0 = lo[0] - center[0], lo[1] - center[1]
+    w, h = hi[0] - lo[0], hi[1] - lo[1]
+    width, height = math.ceil(w*LAMP_MASK_DENSITY), math.ceil(h*LAMP_MASK_DENSITY)
+    source = atlas.REGISTRY._regions[faces["south"].region]
+    if panel_name not in atlas.REGISTRY._regions:
+        def pixel(u, v):
+            # The final x mirror reverses south-face UVs; cut away the rectangle's tapered wedges.
+            x, y = x0 + (1-(u+0.5)/width)*w, y0 + (1-(v+0.5)/height)*h
+            crosses = [((q[0]-p[0])*(y-p[1])-(q[1]-p[1])*(x-p[0]))/math.dist(p,q)
+                       for p,q in zip(poly, (*poly[1:],poly[0])) if math.dist(p,q)>kit.FRAME_EPSILON]
+            if min(crosses) < -LAMP_MASK_OVERLAP and max(crosses) > LAMP_MASK_OVERLAP:
+                return atlas.CLEAR
+            return source.pixel(u*source.width//width, v*source.height//height)
+        atlas.register(panel_name, width, height, source.material, pixel)
+    cube["uv"]["south"] = atlas.face(panel_name)
+    return cube
+
+
 def _superellipse(t, n):
     return math.copysign(abs(t) ** (2 / n), t)
 
@@ -195,8 +253,8 @@ def _ring(w, h, z, cy=0.0, n=LAMP_SQUARENESS, points=LAMP_RING_POINTS):
 
 
 def _lamp_frame():
-    base = _side_surface(*LAMP_PHOTO)
-    origin = [base[i] + LAMP_OFFSET[i] for i in range(3)]
+    front = _rot_x([0, 0, LAMP_BASE[0][2] * LAMP_SCALE], LAMP_TILT)
+    origin = [0, LAMP_CENTER_Y - front[1], _wall_z(LAMP_CENTER_Y) - LAMP_EMBED - front[2]]
 
     def place(point):
         scaled = _rot_x([c * LAMP_SCALE for c in point], LAMP_TILT)
@@ -291,13 +349,25 @@ def _seat(result):
 def _lamp(result):
     place = _lamp_frame()
     chrome, red = atlas.faces("chrome"), atlas.faces("lens_tail")
+    glow = atlas.faces("lens_tail_glow")
     dark = atlas.faces("rubber")
 
     def rings(specs, **kw):
         return [[place(p) for p in _ring(*spec, **kw)] for spec in specs]
 
-    def skin(*args, **kw):
-        return kit.skin(*args, assembly=LAMP_ASSEMBLY, **kw)
+    panel_index = 0
+
+    def skin(rings, thick, faces):
+        nonlocal panel_index
+        cubes = []
+        for a, b in zip(rings, rings[1:]):
+            for j in range(len(a)):
+                cube = _lamp_panel(a[j], a[(j+1) % len(a)], b[j], b[(j+1) % len(a)],
+                                   thick, faces, kit._centroid(a+b), f"lamp_panel_{panel_index}")
+                panel_index += 1
+                if cube is not None:
+                    cubes.append(cube)
+        return cubes
 
     def tube(*args):
         return kit.tube(*args, assembly=LAMP_ASSEMBLY)
@@ -305,36 +375,40 @@ def _lamp(result):
     def add(bone, cubes):
         result.add(bone, cubes, LAMP_ASSEMBLY)
 
-    add("body", skin(rings(LAMP_SHELL), LAMP_SHELL_SKIN, chrome, closed=True))
-    add("body", skin(rings(LAMP_BASE), LAMP_BASE_SKIN, chrome, closed=True))
+    add("body", skin(rings(LAMP_SHELL), LAMP_SHELL_SKIN, chrome))
+    add("body", skin(rings(LAMP_BASE), LAMP_BASE_SKIN, chrome))
     rim = [place(p) for p in _ring(*LAMP_RIM)]
     add("body", tube([*rim, rim[0]], LAMP_RIM_SIZE * LAMP_SCALE, chrome))
-    add("tail_lights", skin(rings(LAMP_LENS), LAMP_LENS_SKIN, red, closed=True))
-    add("tail_lights", skin(rings(LAMP_CAP), LAMP_CAP_SKIN, red, closed=True))
+    add("tail_lights", skin(rings(LAMP_LENS), LAMP_LENS_SKIN, glow))
+    add("tail_lights", skin(rings(LAMP_CAP), LAMP_CAP_SKIN, glow))
 
     hood = [[place(p) for p in _ring(w, h, z, cy, n, HOOD_RING_POINTS)] for w, h, z, cy, n in HOOD]
     tip = [place([0, HOOD_TIP[3], HOOD_TIP[2]])] * HOOD_RING_POINTS
-    add("tail_lights", skin([*hood, tip], HOOD_SKIN, red, closed=True))
+    add("tail_lights", skin([*hood, tip], HOOD_SKIN, red))
     add("body", tube([*hood[1], hood[1][0]], HOOD_RIM_SIZE * LAMP_SCALE, chrome))
     base = [[place([HOOD_BASE_RADIUS * math.cos(a), y, HOOD_BASE_Z + HOOD_BASE_DEPTH * math.sin(a)])
              for a in (2 * math.pi * j / HOOD_RING_POINTS for j in range(HOOD_RING_POINTS))]
             for y in HOOD_BASE_Y]
-    add("body", skin(base, HOOD_BASE_SKIN, chrome, closed=True))
+    add("body", skin(base, HOOD_BASE_SKIN, chrome))
     for side in (-1, 1):
         add("body", tube([place([side * x, y, z]) for x, y, z in ARM], ARM_SIZE * LAMP_SCALE, chrome))
         for x, thick, faces, poly in ((SIDE_PLATE_X, SIDE_PLATE_THICK, chrome, SIDE_PLATE),
                                       (SIDE_INNER_X, SIDE_INNER_THICK, dark, SIDE_INNER)):
-            lo_z, hi_z = min(p[0] for p in poly), max(p[0] for p in poly)
-            lo_y, hi_y = min(p[1] for p in poly), max(p[1] for p in poly)
-            corners = [place([side * x, y, z]) for z, y in ((lo_z, lo_y), (hi_z, lo_y), (lo_z, hi_y), (hi_z, hi_y))]
-            inside = place([side * (x - 1), (lo_y + hi_y) / 2, (lo_z + hi_z) / 2])
-            add("body", kit.quad(*corners, thick * LAMP_SCALE, faces, inside, LAMP_ASSEMBLY))
-    saddle = [[place(p) for p in _ring(w, h, z, cy, n=LAMP_SQUARENESS)] for w, h, z, cy in SADDLE]
-    add("body", skin(saddle, SADDLE_SKIN, chrome, closed=True))
+            for cube in kit.extrude(poly, side*x-thick/2, side*x+thick/2, SIDE_STEP, faces):
+                center = [cube['origin'][i] + cube['size'][i]/2 for i in range(3)]
+                pivot = place(center)
+                half = [s*LAMP_SCALE/2 for s in cube['size']]
+                add("body", kit._oriented([pivot[i]-half[i] for i in range(3)],
+                                           [pivot[i]+half[i] for i in range(3)], pivot,
+                                           [-math.degrees(LAMP_TILT), 0, 0], faces, LAMP_ASSEMBLY))
+    saddle = [[place(p) for p in _ring(w, h, z, cy, n=LAMP_SQUARENESS, points=SADDLE_RING_POINTS)] for w, h, z, cy in SADDLE]
+    add("body", skin(saddle, SADDLE_SKIN, chrome))
 
 
 def _plate(result):
-    base = _side_surface(*PLATE_PHOTO)
+    top_y = min(_lamp_frame()(p)[1] for spec in SADDLE for p in _ring(*spec, points=SADDLE_RING_POINTS)) - PLATE_LAMP_GAP
+    top = _rot_x([0, PLATE_HEIGHT/2, PLATE_THICK/2], PLATE_TILT)
+    base = [0, top_y - top[1], _wall_z(top_y) + PLATE_WALL_CLEARANCE - top[2]]
 
     def place(x, y, z):
         local = _rot_x([x, y, z], PLATE_TILT)
