@@ -201,10 +201,11 @@ it("sends translated counts and bounded player-only particles at block centers",
           kind: "pasteReady",
           size: { x: 9, y: 12, z: 5 },
           blockCount: count,
+          degrees: 270,
         });
         expect(setActionBar).toHaveBeenLastCalledWith({
           translate: BUILD_MESSAGE.pasteReady,
-          with: ["9", "12", "5", String(count)],
+          with: ["9", "12", "5", String(count), "270"],
         });
         for (const sneaking of [false, true]) {
           Object.assign(player, { isSneaking: sneaking });
@@ -230,10 +231,11 @@ it("sends translated counts and bounded player-only particles at block centers",
             kind: "pasteReady",
             size: { x: 9, y: 12, z: 5 },
             blockCount: count,
+            degrees: 270,
           });
           const line = {
             translate: BUILD_MESSAGE.pasteReady,
-            with: ["9", "12", "5", String(count)],
+            with: ["9", "12", "5", String(count), "270"],
           };
           expect(setActionBar).toHaveBeenLastCalledWith(
             sneaking
@@ -274,6 +276,7 @@ it("sends translated counts and bounded player-only particles at block centers",
           kind: "pasteReady",
           size: { x: 9, y: 12, z: 5 },
           blockCount: count,
+          degrees: 270,
         });
         feedback.showSize(playerId, { x: 9, y: 12, z: 5 });
         feedback.drawPreview(playerId, dimension, set);

@@ -63,6 +63,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           const debounce = new PressDebounces<PlayerId>(10);
           const pasteDebounce = new PressDebounces<PlayerId>(10);
           const rotateDebounce = new PressDebounces<PlayerId>(7);
+          const undoDebounce = new PressDebounces<PlayerId>(10);
           new CopyBox(repo, structures, new FakeFeedback()).execute({
             playerId: id,
             dimensionId: overworld,
@@ -86,12 +87,14 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           expect(debounce.press(id, 0)).toBe(true);
           expect(pasteDebounce.press(id, 0)).toBe(true);
           expect(rotateDebounce.press(id, 0)).toBe(true);
+          expect(undoDebounce.press(id, 0)).toBe(true);
           registerSessions(
             new EndBuildSession(repo, structures),
             new EndPasting(repo, structures),
             debounce,
             pasteDebounce,
             rotateDebounce,
+            undoDebounce,
           );
           engine.handlers.get(event)?.({
             player: { id },
@@ -104,6 +107,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           expect(repo.get(id)).toBe(session);
           expect(session.takeUndo()).toMatchObject({ kind: "cells" });
           expect(rotateDebounce.press(id, 0)).toBe(false);
+          expect(undoDebounce.press(id, 0)).toBe(false);
           expect(debounce.press(id, 0)).toBe(false);
           expect(pasteDebounce.press(id, 0)).toBe(false);
         }
@@ -119,6 +123,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   const debounce = new PressDebounces<PlayerId>(10);
   const pasteDebounce = new PressDebounces<PlayerId>(10);
   const rotateDebounce = new PressDebounces<PlayerId>(7);
+  const undoDebounce = new PressDebounces<PlayerId>(10);
   const at = { x: 0, y: 0, z: 0 };
   const structures = new FakeStructureStore();
   new CopyBox(repo, structures, new FakeFeedback()).execute({
@@ -150,6 +155,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
     debounce,
     pasteDebounce,
     rotateDebounce,
+    undoDebounce,
   );
   engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
   expect(session.flow.kind).toBe("rotateMode");
@@ -157,6 +163,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   expect(debounce.press(id, 0)).toBe(true);
   expect(pasteDebounce.press(id, 0)).toBe(true);
   expect(rotateDebounce.press(id, 0)).toBe(true);
+  expect(undoDebounce.press(id, 0)).toBe(true);
   engine.handlers.get("leave")?.({ playerId: id });
   expect(repo.get(id)).toBeUndefined();
   expect(session.hasHistory).toBe(false);
@@ -164,4 +171,5 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   expect(debounce.press(id, 0)).toBe(true);
   expect(pasteDebounce.press(id, 0)).toBe(true);
   expect(rotateDebounce.press(id, 0)).toBe(true);
+  expect(undoDebounce.press(id, 0)).toBe(true);
 });
