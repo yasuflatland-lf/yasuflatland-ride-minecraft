@@ -140,18 +140,28 @@ describe("scooter client references", () => {
       expect(existsSync(`${RP}/${texture}.png`), String(texture)).toBe(true);
   });
 
-  it("resolves shared sounds and the hover particle at both disc locators", () => {
+  it("resolves scooter engine sounds, shared hover sounds and the hover particle at both disc locators", () => {
     const sounds = read("sounds/sound_definitions.json").sound_definitions;
     for (const animation of Object.values(animations)) {
       for (const effect of effects(animation.sound_effects))
         expect(client.sound_effects[effect.effect]).toBeDefined();
     }
-    expect(Object.keys(client.sound_effects)).toEqual(
-      Object.keys(suv.sound_effects).filter((key) => key !== "sonar"),
-    );
+    expect(Object.keys(client.sound_effects)).toEqual([
+      ...Array.from({ length: 6 }, (_, i) => `scooter_engine_${i}`),
+      ...Object.keys(suv.sound_effects).filter((key) =>
+        key.startsWith("hover_"),
+      ),
+    ]);
     for (const [key, sound] of Object.entries(client.sound_effects)) {
       expect(sound).toBe(`yasu_ride.${key}`);
       expect(sounds[String(sound)]).toBeDefined();
+    }
+    for (let i = 0; i < 6; i++) {
+      for (const field of ["category", "min_distance", "max_distance"]) {
+        expect(sounds[`yasu_ride.scooter_engine_${i}`][field]).toEqual(
+          sounds[`yasu_ride.engine_${i}`][field],
+        );
+      }
     }
     expect(client.particle_effects).toEqual({
       hover_glow: read("particles/yasu_ride/hover_glow.particle.json")
