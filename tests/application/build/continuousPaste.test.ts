@@ -355,6 +355,7 @@ it("keeps build mode and the clipboard according to held items and paste aiming"
           held: fc.constantFrom(
             "wand" as const,
             "pasteControl" as const,
+            "undo" as const,
             "none" as const,
           ),
           aiming: fc.boolean(),
@@ -374,7 +375,9 @@ it("keeps build mode and the clipboard according to held items and paste aiming"
         for (const { held, aiming } of steps) {
           e.session.setFlow(aiming ? beginPasteAim() : { kind: "idle" });
           releases =
-            held === "wand" || (held === "pasteControl" && aiming)
+            held === "wand" ||
+            held === "undo" ||
+            (held === "pasteControl" && aiming)
               ? 0
               : releases + 1;
           modes.execute([{ playerId, held }]);
@@ -391,13 +394,20 @@ it("keeps build mode and the clipboard according to held items and paste aiming"
   );
 });
 
-it("does not create a session or enter build mode with paste control alone", () => {
+it("does not create a session or enter build mode with paste control or undo alone", () => {
   fc.assert(
     fc.property(
-      fc.array(fc.constantFrom("pasteControl" as const, "none" as const), {
-        minLength: 1,
-        maxLength: 100,
-      }),
+      fc.array(
+        fc.constantFrom(
+          "pasteControl" as const,
+          "undo" as const,
+          "none" as const,
+        ),
+        {
+          minLength: 1,
+          maxLength: 100,
+        },
+      ),
       (items) => {
         const repo = new FakeSessions();
         const modes = new UpdateBuildModes(
@@ -415,9 +425,16 @@ it("does not create a session or enter build mode with paste control alone", () 
 it("preserves aiming through held controls and leaves after consecutive empty ticks", () => {
   fc.assert(
     fc.property(
-      fc.array(fc.constantFrom("wand" as const, "pasteControl" as const), {
-        maxLength: 100,
-      }),
+      fc.array(
+        fc.constantFrom(
+          "wand" as const,
+          "pasteControl" as const,
+          "undo" as const,
+        ),
+        {
+          maxLength: 100,
+        },
+      ),
       fc.nat({ max: 20 }),
       (items, extra) => {
         const e = setup();
@@ -463,4 +480,24 @@ it("leaves and discards the clipboard when paste control is held outside aiming"
   modes.execute([{ playerId, held: "pasteControl" }]);
   expect(e.session.isInBuildMode).toBe(false);
   expect(e.session.clipboard).toBeUndefined();
+});
+
+it("undo does not enter build mode in an existing inactive session", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.integer({ min: 1, max: 100 }),
+      (aiming, count) => {
+        const e = setup();
+        e.session.setFlow(aiming ? beginPasteAim() : { kind: "idle" });
+        const modes = new UpdateBuildModes(
+          e.repo,
+          new LeaveBuild(e.repo, e.structures),
+        );
+        for (let i = 0; i < count; i++)
+          modes.execute([{ playerId, held: "undo" }]);
+        expect(e.session.isInBuildMode).toBe(false);
+      },
+    ),
+  );
 });
