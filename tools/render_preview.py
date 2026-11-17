@@ -44,7 +44,7 @@ import struct
 import sys
 import time
 import zlib
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
@@ -1499,30 +1499,50 @@ def render_icon(geo, polygons, camera, target_name, flight: FlightPose):
     return RasterJob(target_name, polygons, [], to_screen, size, size, background, {}, ())
 
 
-SCENE_BUILDERS: tuple[tuple[str, Callable[[Path, Path | None], SceneResult]], ...] = (
-    ("suv", render_suv),
-    ("boat", render_boat),
-    ("camper", render_camper),
-    ("bulldozer", render_bulldozer),
-    ("scooter", render_scooter),
-    ("gear", render_camping_gear),
+@dataclass(frozen=True)
+class Scene:
+    name: str
+    build: Callable[[Path, Path | None], SceneResult]
+
+
+# A scene owns the images and icons its builder returns. Pack icons belong to the suv
+# scene, and gear item icons belong to the gear scene.
+SCENES: tuple[Scene, ...] = (
+    Scene("suv", render_suv),
+    Scene("boat", render_boat),
+    Scene("camper", render_camper),
+    Scene("bulldozer", render_bulldozer),
+    Scene("scooter", render_scooter),
+    Scene("gear", render_camping_gear),
 )
+SCENE_NAMES: tuple[str, ...] = tuple(scene.name for scene in SCENES)
 
 
-def render(rp, icon_path=None):
+def select_scenes(names: Sequence[str] | None) -> tuple[Scene, ...]:
+    if names is None:
+        return SCENES
+    unknown = [name for name in names if name not in SCENE_NAMES]
+    if unknown:
+        raise ValueError(f"Unknown scene '{unknown[0]}'; valid names: {', '.join(SCENE_NAMES)}")
+    wanted = set(names)
+    return tuple(scene for scene in SCENES if scene.name in wanted)
+
+
+def render(rp, icon_path=None, scenes=SCENES):
     images = {}
     icon = None
-    for _, builder in SCENE_BUILDERS:
-        result = builder(rp, icon_path)
+    for scene in scenes:
+        result = scene.build(rp, icon_path)
         images.update(result.images)
         if result.icon is not None:
             icon = result.icon
     return images, icon
 
 
-def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path]) -> list[RasterJob]:
+def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path],
+                scenes: tuple[Scene, ...] = SCENES) -> list[RasterJob]:
     """Every job named by its target path; the one pack icon job stands for all icon packs."""
-    images, icon = render(rp, icon_packs[0] / "pack_icon.png" if icon_packs else None)
+    images, icon = render(rp, icon_packs[0] / "pack_icon.png" if icon_packs else None, scenes)
     jobs = [replace(job, name=str(output_dir / job.name)) for job in images.values()]
     if icon is not None:
         jobs.append(icon)
