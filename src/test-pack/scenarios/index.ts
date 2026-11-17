@@ -164,6 +164,18 @@ import {
   bulldozerPaveWide,
 } from "./roadPaver";
 import { roofTentCourse } from "./roofTent";
+import {
+  scooterAccel,
+  scooterHeadlights,
+  scooterLeanSteer,
+  scooterRamCow,
+  scooterSeats,
+  scooterStand,
+  scooterTakeoffGround,
+  scooterTakeoffWater,
+  scooterWaterFloat,
+  scooterWaterSurface,
+} from "./scooter";
 import { sofaDoublePlaceTakeBack } from "./sofaDouble";
 import { sofaSinglePlaceTakeBack } from "./sofaSingle";
 import {
@@ -226,6 +238,17 @@ import { washstandPlaceTakeBack, washstandRunTiming } from "./washstand";
 export type ScenarioRun = (a: Arena, onStep: StepSink) => Promise<Outcome>;
 
 export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
+  scooter_accel: scooterAccel,
+  scooter_water_surface: scooterWaterSurface,
+  scooter_water_float: scooterWaterFloat,
+  scooter_takeoff_ground: scooterTakeoffGround,
+  scooter_takeoff_water: scooterTakeoffWater,
+  scooter_stand: scooterStand,
+  scooter_lean_steer: scooterLeanSteer,
+  scooter_headlights: scooterHeadlights,
+  scooter_ram_cow: scooterRamCow,
+  scooter_seats: scooterSeats,
+
   build_block_states: buildBlockStates,
   bulldozer_exit_spot: bulldozerExitSpot,
   bulldozer_exit_ground: bulldozerExitGround,

@@ -183,6 +183,8 @@ describe("PaintVehicle (ADR 0031)", () => {
           world.kinds.set("a", kind);
           if (creative) world.creativePlayers.add("p");
           const blackish = (p: Paint) => p === "khaki" || p === "black";
+          // The variant-0 slot shows the owner's default paint, white for the scooter (ADR 0076).
+          const scooterShown = (p: Paint) => (p === "khaki" ? "white" : p);
           const same =
             kind === "camper"
               ? true
@@ -192,7 +194,9 @@ describe("PaintVehicle (ADR 0031)", () => {
                   ? from === to ||
                     (["khaki", "yellow"].includes(from) &&
                       ["khaki", "yellow"].includes(to))
-                  : from === to;
+                  : kind === "scooter"
+                    ? scooterShown(from) === scooterShown(to)
+                    : from === to;
           const clock = new FakeClock();
           const uc = new PaintVehicle(world, clock);
           expect(
