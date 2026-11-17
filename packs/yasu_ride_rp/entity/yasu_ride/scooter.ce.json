@@ -54,12 +54,12 @@
         "stand": "controller.animation.yasu_ride.scooter.stand"
       },
       "sound_effects": {
-        "engine_0": "yasu_ride.engine_0",
-        "engine_1": "yasu_ride.engine_1",
-        "engine_2": "yasu_ride.engine_2",
-        "engine_3": "yasu_ride.engine_3",
-        "engine_4": "yasu_ride.engine_4",
-        "engine_5": "yasu_ride.engine_5",
+        "scooter_engine_0": "yasu_ride.scooter_engine_0",
+        "scooter_engine_1": "yasu_ride.scooter_engine_1",
+        "scooter_engine_2": "yasu_ride.scooter_engine_2",
+        "scooter_engine_3": "yasu_ride.scooter_engine_3",
+        "scooter_engine_4": "yasu_ride.scooter_engine_4",
+        "scooter_engine_5": "yasu_ride.scooter_engine_5",
         "hover_0": "yasu_ride.hover_0",
         "hover_1": "yasu_ride.hover_1",
         "hover_2": "yasu_ride.hover_2",
