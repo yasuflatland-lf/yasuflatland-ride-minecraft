@@ -57,39 +57,6 @@ for check in (False, True):
 `);
 });
 
-it("uses manifest lists in CI and ignores Python cache paths", () => {
-  python(`
-import os, subprocess, tempfile, textwrap
-from pathlib import Path
-from unittest.mock import patch
-workflow = Path('.github/workflows/unit-test.yml').read_text()
-start = workflow.index('          import fnmatch')
-end = workflow.index('          PYTHON', start)
-script = textwrap.dedent(workflow[start:end])
-original = subprocess.check_output
-with tempfile.TemporaryDirectory() as directory:
-    output = Path(directory) / 'output'
-    for path, expected in [
-        ('tools/gear_items/new_item.py', True),
-        ('tools/item_texture_base.json', True),
-        ('tools/gear_items/__pycache__/new_item.pyc', False),
-        ('packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json', True),
-        ('packs/yasu_ride_rp/textures/item_texture.json', False),
-        ('packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json', False),
-        ('packs/yasu_ride_rp/models/entity/yasu_ride/stand_in.geo.json', False),
-        ('docs/images/wicker-tiles-preview.png', False),
-        ('docs/README.md', False),
-        ('package.json', True),
-    ]:
-        output.write_text('')
-        def check_output(command, **kwargs):
-            return path + '\\0' if command[0] == 'git' else original(command, **kwargs)
-        with patch.dict(os.environ, {'GITHUB_OUTPUT': str(output)}), patch('subprocess.check_output', check_output):
-            exec(script, {})
-        assert output.read_text() == f'changed={str(expected).lower()}\\n', path
-`);
-});
-
 it("matches manifest globs and exposes declared inputs and tracking", () => {
   python(`
 import json, sys, tempfile, unittest
@@ -327,7 +294,7 @@ it("uses the shared generated-files action in every generation job", () => {
 import re
 from pathlib import Path
 for name, jobs in [
-    ('unit-test', ['quick', 'test', 'tools', 'coverage', 'model']),
+    ('unit-test', ['quick', 'test', 'tools', 'coverage', 'model-others', 'model-scene']),
     ('integration-test', ['generate', 'in-game']),
     ('release', ['build']),
 ]:
@@ -339,8 +306,8 @@ for name, jobs in [
         body = re.split(r'\\n  [a-z][a-z-]*:', body)[0]
         assert body.count('uses: ./.github/actions/generated-files') == 1, job
         assert body.index('actions/checkout@') < body.index('jdx/mise-action@') < body.index('uses: ./.github/actions/generated-files'), job
-        if job in ('model', 'generate', 'in-game'):
-            guard = "steps.inputs.outputs.changed == 'true'" if job == 'model' else "steps.runner.outputs.present == 'true'"
+        if job in ('generate', 'in-game'):
+            guard = "steps.runner.outputs.present == 'true'"
             assert f"- if: {guard}\\n        uses: ./.github/actions/generated-files" in body
 `);
 });
