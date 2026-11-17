@@ -1,6 +1,6 @@
 # Flight and submarine forms
 
-- Scope: SUV and camper flight and submarine forms, motion, gravity, landing gear, rider effects, and the SUV transformation model.
+- Scope: SUV, camper, and bulldozer transforming forms, water policy, motion, gravity, landing gear, rider effects, and the SUV transformation model.
 - Verified at: 5ed1f579
 - Source: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md)
 - Source: [0021](../adr/0021-flight-mode.md)
@@ -12,6 +12,7 @@
 - Source: [0034](../adr/0034-touch-down-from-flight.md)
 - Source: [0039](../adr/0039-vehicle-forms.md)
 - Source: [0040](../adr/0040-submarine.md)
+- Source: [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md)
 - Source: [0042](../adr/0042-bronze-four-blade-propellers.md)
 - Source: [0043](../adr/0043-wheel-arms.md)
 - Source: [0044](../adr/0044-bank-under-water.md)
@@ -23,6 +24,7 @@
 - Source: [0214](../adr/0214-replace-the-suv-with-the-rubicon-shape.md)
 - Source: [0218](../adr/0218-extend-the-wheel-axle-straight-out-in-flight.md)
 - Source: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md)
+- Excluded: [0055](../adr/0055-kind-neutral-vehicle-core.md): kind-neutral architecture and file layout, covered by the architecture topic
 - Excluded: [0045](../adr/0045-submarine-preview.md): submarine README preview pose, covered by the model-and-previews topic
 - Excluded: [0075](../adr/0075-name-the-medium-step-after-the-medium.md): renaming the medium step, covered by the architecture topic; see Open issues for stale 0039 names
 - Excluded: [0117](../adr/0117-move-the-suv-front-seats-back.md): SUV seat positions, covered by SUV body and seats and seats-and-driver
@@ -42,9 +44,18 @@
 - Implementation: `src/application/vehicle/riderEffects.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/switchFeedback.ts`; `src/infrastructure/vehicle/install.ts`; `src/domain/vehicle/kinds/bulldozer/profile.ts`
 - Verification: `tests/application/vehicle/riderEffects.test.ts` covers successful sets, clears and failures; switch use-case property tests cover gating and new states. `tests/packs/chaseCamera.test.ts` checks profile choices and existing preset radii. Visible framing and feedback require a client check.
 
+### Water policy
+
+- Applies to: Every transforming kind.
+- Rule: Each transforming kind declares `waterPolicy`. SUV, camper, and bulldozer use `submerge`, preserving their existing submarine behavior. With `surface`, the vehicle never enters submarine: submergence holds car form and a restored submarine returns to car. Water counts as ground for hover and landing touchdown. In car form, wet vehicles drive with ground limits, friction compensation, full control, and the shore step probe. `surfaceHold` lifts a submerged vehicle at `surfaceRise`, then lifts it toward the kind's `floatDraft` float line without commanding downward motion; without a driver it floats and stops. A shore step jump takes priority over surface support. Take-off from the surface uses the car-to-takeoff double tap without requiring ground contact, and takeoff holds past `takeoffTicks` until the feet are dry, so the first hover tick does not count the water as touchdown. No kind uses `surface` yet; the scooter will.
+- Agreement: Accepted
+- Basis: [0040](../adr/0040-submarine.md) Decision; [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md) Decision; [issue #1752](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/1752).
+- Implementation: `src/domain/vehicle/motion/water.ts`; `src/domain/vehicle/motion/transforming.ts`; `src/domain/vehicle/motion/forms.ts`; `src/domain/vehicle/motion/surface.ts`; `src/domain/vehicle/motion/transformingDrive.ts`; transforming objects in each kind's `spec.ts`.
+- Verification: `tests/domain/vehicle/motion/surface.test.ts` checks float targets, dry velocity preservation, and convergence without going dry; surface-policy properties in `tests/domain/vehicle/motion/forms.test.ts` cover arbitrary transitions, restored submarine state, water touchdown, floating take-off, and takeoff held until dry; `tests/domain/vehicle/motion/transformingDrive.test.ts` covers unattended rise and stopping, ground-speed equivalence, shore jumps, and a double tap from the float line that reaches hover with dry feet and stays there. Device behavior remains to be checked when a surface kind ships.
+
 ### Forms and transition priority
 
-- Applies to: SUV and camper transforming drives; the camper supplies its own `CAMPER_SPEC` through `CAMPER_TRANSFORMING`.
+- Applies to: `submerge` policy (SUV, camper, and bulldozer) transforming drives; the camper supplies its own `CAMPER_SPEC` through `CAMPER_TRANSFORMING`.
 - Rule: `FORMS` declares `car`, `takeoff`, `hover`, `landing`, and `submarine`, mirrored by `yasu_ride:form`. Submergence (`waterDepth >=` the kind's `carHeight`) wins over every other transition. Otherwise a controlled double tap takes `car` to `takeoff`; takeoff advances to `hover` after `takeoffTicks` ticks (the entry tick counts). In hover, ground contact returns directly to `car` before checking a double tap or loss of control; either of those starts `landing` when airborne. Landing returns to `car` on ground contact. In submarine, dry feet with control and Jump held breach to `hover` before the ground check; otherwise dry feet or ground contact below the submergence threshold return to `car`. A submerged submarine stays submarine even on the bed. Double taps are accepted only in car and hover, within `doubleTapTicks`, and a form change clears the pending tap. The SUV definitions are `SUV_SPEC.doubleTapTicks` and `SUV_SPEC.takeoffTicks`; no pitch is part of the input.
 - Agreement: Accepted
 - Basis: [0039](../adr/0039-vehicle-forms.md) Decision, "The `car` form has gravity; every other form does not."; [0040](../adr/0040-submarine.md) Decision, "Apply the following transitions in priority order; otherwise keep the current form."; [0021](../adr/0021-flight-mode.md) Decision, "Takeoff and landing ignore Jump."; [0034](../adr/0034-touch-down-from-flight.md) Decision, "A `flying` vehicle that is on the ground goes straight to `ground` on that tick, without `landing`."
