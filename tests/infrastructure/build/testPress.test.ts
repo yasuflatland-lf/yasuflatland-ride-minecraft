@@ -47,6 +47,12 @@ function setup() {
   const status = vi.spyOn(describe, "editStatus");
   const messages = {
     forget: vi.fn(),
+    lastMode:
+      vi.fn<
+        () =>
+          | import("../../../src/application/build/ports/feedback").BuildMode
+          | undefined
+      >(),
     last: vi.fn(() => ({
       message: "editDone" as const,
       count: 45,
@@ -156,4 +162,32 @@ it("ignores other events and abandons delayed presses after disconnect", () => {
   e.advance(250);
   expect(e.calls).toEqual(["itemUse:0"]);
   expect(system.sendScriptEvent).not.toHaveBeenCalled();
+});
+
+it.each([0, 90, 180, 270] as const)(
+  "reports shown paste-ready degrees %s in the press reply",
+  (degrees) => {
+    const e = setup();
+    e.messages.lastMode.mockReturnValue({
+      kind: "pasteReady",
+      size: { x: 1, y: 2, z: 3 },
+      blockCount: 6,
+      degrees,
+    });
+    e.send("player blockInteract");
+    e.advance(2);
+    expect(
+      JSON.parse(vi.mocked(system.sendScriptEvent).mock.calls[0]?.[1] ?? "{}"),
+    ).toMatchObject({ pasteReadyDegrees: degrees });
+  },
+);
+
+it("omits paste-ready degrees when the latest mode is rotation", () => {
+  const e = setup();
+  e.messages.lastMode.mockReturnValue({ kind: "rotate", degrees: 90 });
+  e.send("player itemUse");
+  e.advance(2);
+  expect(
+    JSON.parse(vi.mocked(system.sendScriptEvent).mock.calls[0]?.[1] ?? "{}"),
+  ).not.toHaveProperty("pasteReadyDegrees");
 });
