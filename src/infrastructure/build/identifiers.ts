@@ -3,6 +3,17 @@ import type { BuildMessage } from "../../application/build/ports/feedback";
 export const BUILD_NAMESPACE = "yasu_build";
 export const buildId = (name: string): string => `${BUILD_NAMESPACE}:${name}`;
 export const SELECTION_WAND_TYPE = buildId("selection_wand");
+export const PASTE_ROTATE_TYPE = buildId("paste_rotate");
+export const PASTE_PLACE_TYPE = buildId("paste_place");
+
+export function buildItemRole(
+  typeId: string | undefined,
+): "wand" | "pasteControl" | undefined {
+  if (typeId === SELECTION_WAND_TYPE) return "wand";
+  if (typeId === PASTE_ROTATE_TYPE || typeId === PASTE_PLACE_TYPE)
+    return "pasteControl";
+}
+
 // Copy of the vehicle protection tag; build cannot import that feature (ADR 0046, 0178).
 export const LAID_BLOCK_TAG = "yasu_ride:laid";
 
