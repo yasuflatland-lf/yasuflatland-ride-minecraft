@@ -8,6 +8,14 @@ import type { StructureHandle } from "../../domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
 import { type Arena, wait } from "../arena";
+import {
+  SETUP_LIMIT_TICKS,
+  SETUP_POLL_TICKS,
+  SETUP_REPORT_TICKS,
+  setupProgressStep,
+  setupPromptStep,
+  setupTimeoutDetail,
+} from "../decorSetup";
 import type { Outcome, StepSink } from "../outcome";
 
 export async function buildStructureRotationDecor(
@@ -105,29 +113,39 @@ export async function buildStructureRotationDecor(
     player.sendMessage(
       "Rotation decor check: within 60 seconds, place a frame on the stone wall, put the diamond in it, and hang a painting on the wall.",
     );
-    const ready = () =>
-      frames().find((b) => b && interacted.has(JSON.stringify(b.location)));
+    onStep?.(setupPromptStep());
+    const setupState = () => {
+      const allFrames = frames();
+      const frame = allFrames.find(
+        (b) => b && interacted.has(JSON.stringify(b.location)),
+      );
+      const missing = [
+        ...(allFrames.length === 0 ? ["item frame"] : []),
+        ...(!frame ? ["diamond interaction with the frame"] : []),
+        ...(paintingFacts(source).length === 0 ? ["painting"] : []),
+      ];
+      return { frame, missing };
+    };
+    let elapsed = 0;
+    let setup = setupState();
     for (
-      let ticks = 0;
-      ticks < 1200 && (!ready() || paintingFacts(source).length === 0);
-      ticks += 10
+      ;
+      elapsed < SETUP_LIMIT_TICKS && setup.missing.length > 0;
+      elapsed += SETUP_POLL_TICKS
     ) {
-      await wait(10);
-      if ((ticks + 10) % 200 === 0)
-        onStep?.({
-          name: `setup_wait_${ticks + 10}`,
-          pass: true,
-          detail: `frame=${!!ready()};paintings=${paintingFacts(source).length};ticks=${ticks + 10}`,
-        });
+      await wait(SETUP_POLL_TICKS);
+      setup = setupState();
+      if ((elapsed + SETUP_POLL_TICKS) % SETUP_REPORT_TICKS === 0)
+        onStep?.(setupProgressStep(elapsed + SETUP_POLL_TICKS, setup.missing));
     }
-    const frame = ready();
+    const frame = setup.frame;
     const originals = paintingFacts(source);
     record("setup", !!frame && originals.length > 0, {
       frame: frame?.location,
       paintings: originals,
     });
     if (!frame || originals.length === 0)
-      throw new Error("decor fixture incomplete");
+      throw new Error(setupTimeoutDetail(elapsed, setup.missing));
     const cell = frame.location;
     const states = frame.permutation.getAllStates();
     player.teleport(a.at(16.5, a.gy, 23.5), { dimension: a.dim });

@@ -27,3 +27,4 @@ The specs in this folder state the rules that apply now, one topic per file, so 
 - [SUV body and seats](suv-body.md): The SUV's model contract, size, collision box, body proportions, and seat positions.
 - [Testing and CI](testing-and-ci.md): Unit properties, mutation and unused-code checks, dependency updates, CI jobs and coverage, and the in-game test pack, runner protocol, scheduling, and local scenario selection.
 - [Vehicle items, placement, and fleet limits](vehicle-items-and-fleet.md): How a vehicle is obtained as an item, placed, picked up, and limited in number (per player and kind), for all kinds.
+- [Warp](warp.md): The shared warp registry, the warp block and warp tool, naming, the warp list, teleport, removal and pruning, storage, and limits.
