@@ -262,7 +262,7 @@ def _pedal(result):
                                atlas.faces("chrome")), "running_pedal")
     result.add("body", kit.box((1.3, y0 - 0.15, z1), (2.0, y0 + 0.25, z0),
                                atlas.faces("chrome")), "running_pedal")
-    result.add("body", kit.box((1.25, y0 + 0.2, z1 + 0.2), (2.05, y0 + 0.45, z1 + 1.4),
+    result.add("body", kit.box((1.25, y0 + 0.2, z1 + 0.15), (2.05, y0 + 0.45, z1 + 1.95),
                                atlas.faces("rubber")), "running_pedal")
 
 

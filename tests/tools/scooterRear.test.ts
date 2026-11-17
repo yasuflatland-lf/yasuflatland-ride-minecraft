@@ -28,8 +28,8 @@ assert all(any(math.dist([-p[0],p[1],p[2]],q)<1e-5 for q in after) for p in befo
 `);
   });
 
-  it("keeps the red lens within one small round footprint", async () => {
-    await python.run(`import math, sys
+  it("uses a horizontal superellipse lens and a separate raised dome", async () => {
+    await python.run(`import sys
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 r=load_tool('scooter_rear')
@@ -37,24 +37,37 @@ t=load_tool('cube_tilt')
 result=r.kit.AreaCubes()
 r._lamp(result)
 points=[p for c in result['tail_lights'] for p in t.corners(c)]
+width=max(p[0] for p in points)-min(p[0] for p in points)
+assert 1.9 < width < 2.3, ('Horizontal lens width',width)
+main=[p for c in result.assemblies[r.LAMP_ASSEMBLY] if c in result['tail_lights'] for p in t.corners(c)]
+assert r.LAMP_SQUARENESS==3.0
+assert r.LAMP_DOME_ASSEMBLY in result.assemblies
+assert r.LAMP_CAGE_ASSEMBLY in result.assemblies
 origin=r._lamp_frame()([0,0,0])
 up=r.kit._unit(r.kit._sub(r._lamp_frame()([0,1,0]),origin))
-for axis in ([1,0,0],up):
-    values=[r.kit._dot(r.kit._sub(p,origin),axis) for p in points]
-    assert max(values)-min(values)<=2.3*r.LAMP_RADIUS, 'Lens must be small and circular'
-boxes=[]
-for cube in result['tail_lights']:
-    corners=t.corners(cube)
-    boxes.append([(min(p[i] for p in corners),max(p[i] for p in corners)) for i in range(3)])
-seen={0}
-while True:
-    adjacent={j for j,b in enumerate(boxes) if any(all(a[i][0]<=b[i][1]+0.02 and b[i][0]<=a[i][1]+0.02 for i in range(3)) for a in (boxes[k] for k in seen))}
-    if adjacent<=seen:
-        break
-    seen.update(adjacent)
-assert len(seen)==len(boxes), 'All red cubes must form one connected lens'
-assert all(math.hypot(p[0],r.kit._dot(r.kit._sub(p,origin),up))<=r.LAMP_RIM_RADIUS-r.LAMP_RIM_SIZE/2 for p in points), 'Red lens must stay inside the bezel'
+height=max(r.kit._dot(r.kit._sub(p,origin),up) for p in main)-min(r.kit._dot(r.kit._sub(p,origin),up) for p in main)
+assert 1.0<height<1.25 and width/height>1.7, ('Horizontal lens aspect',width,height)
+dome=[p for c in result.assemblies[r.LAMP_DOME_ASSEMBLY] for p in t.corners(c)]
+assert max(r.kit._dot(r.kit._sub(p,origin),up) for p in dome)>1.2
+assert max(p[0] for p in dome)-min(p[0] for p in dome)<1.1
+`);
+  });
 
+  it("separates the glass gradient and highlight from the pale bezel and dark outline", async () => {
+    await python.run(`import sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+r=load_tool('scooter_rear')
+r.register_regions(r.atlas.REGISTRY)
+lens=r.atlas.REGISTRY._regions['lens_tail_glow']
+bezel=r.atlas.REGISTRY._regions['tail_bezel']
+assert (lens.width,lens.height)==(128,80)
+assert lens.pixel(64,13)[0]>lens.pixel(64,40)[0]>lens.pixel(64,67)[0]
+assert lens.pixel(64,20)==(184,58,58,255)
+assert lens.pixel(0,0)[3]==0 and bezel.pixel(0,0)[3]==0
+assert bezel.pixel(64,0)==(59,55,50,255)
+assert bezel.pixel(64,4)==(224,227,223,255)
+assert bezel.pixel(64,40)[3]==0
 `);
   });
 
@@ -83,21 +96,21 @@ assert all(a.REGISTRY._regions[c['uv']['south'].region].material==a.Material.LEN
 flange=result['body'][:r.LAMP_RING_POINTS]
 contacts=[p for c in flange for p in t.corners(c)]
 gaps=[distance(p) for p in contacts]
-assert max(gaps)<=r.LAMP_WALL_TOLERANCE, ('floating flange',min(gaps),max(gaps))
+assert all(any(-r.LAMP_WALL_EMBED_LIMIT<=distance(p)<=0 for p in t.corners(c)) for c in flange), 'Every flange panel must contact the wall'
 assert min(gaps)>=-r.LAMP_WALL_EMBED_LIMIT, ('buried flange',min(gaps),max(gaps))
 r.register_regions(a.REGISTRY)
 plate=r.kit.AreaCubes()
 r._plate(plate)
 points=t.corners(plate['body'][0])
 top=sorted(points,key=lambda p:p[1])[-4:]
-assert max(distance(p) for p in top)<=r.PLATE_WALL_TOLERANCE
-assert min(distance(p) for p in top)>=-0.2
+assert min(distance(p) for p in points if p[1]>=wall[0][0])>0, 'The entire tilted plate must clear the cowl'
+assert min(p[2] for p in sorted(points,key=lambda p:p[1])[:4])>max(p[2] for p in top), 'Plate bottom must kick backwards'
 lamp_bottom=min(p[1] for c in result.assemblies[r.LAMP_ASSEMBLY] for p in t.corners(c))
 assert abs(lamp_bottom-max(p[1] for p in top))<0.2
 `);
   });
 
-  it("closes the chrome bezel around the lens with uniform angular coverage", async () => {
+  it("closes the chrome bezel around the lens with uniform superellipse coverage", async () => {
     await python.run(`import math, sys
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
@@ -116,13 +129,17 @@ try:
     r._lamp(result)
 finally:
     k.tube=original
-assert len(calls)==1, 'Lamp must have just one bezel loop'
+assert len(calls)==6, 'Lamp has bezel, dome rim, two cage arcs and two straps'
 points,cubes=calls[0]
 assert len(cubes)==r.LAMP_RING_POINTS
 assert len(points)==len(cubes)+1 and math.dist(points[0],points[-1])<1e-8
-origin=r._lamp_frame()([0,0,r.LAMP_RIM_LIFT])
-up=k._unit(k._sub(r._lamp_frame()([0,1,r.LAMP_RIM_LIFT]),origin))
-angles=sorted(math.atan2(k._dot(k._sub(p,origin),up),p[0])%(2*math.pi) for p in points[:-1])
+origin=r._lamp_frame()([0,0,r.LAMP_RIM_LIFT*r.LAMP_SCALE])
+up=k._unit(k._sub(r._lamp_frame()([0,1,r.LAMP_RIM_LIFT*r.LAMP_SCALE]),origin))
+def angle(p):
+    x=p[0]/(1.17*r.LAMP_SCALE)
+    y=k._dot(k._sub(p,origin),up)/(0.65*r.LAMP_SCALE)
+    return math.atan2(math.copysign(abs(y)**1.5,y),math.copysign(abs(x)**1.5,x))%(2*math.pi)
+angles=sorted(angle(p) for p in points[:-1])
 gaps=[(b-a)%(2*math.pi) for a,b in zip(angles,angles[1:]+angles[:1])]
 assert max(gaps)<=1.5*2*math.pi/len(cubes)
 for j,cube in enumerate(cubes):
@@ -143,7 +160,7 @@ r=load_tool('scooter_rear')
 t=load_tool('cube_tilt')
 geo,layout,pixels=g.build()
 ox,oy=layout.origin('plate_text')
-w,h=24,26
+w,h=128,140
 plates=[c for b in geo['minecraft:geometry'][0]['bones'] for c in b['cubes']
         if c['uv']['south']['uv']==[ox,oy]]
 assert len(plates)==1
@@ -179,13 +196,14 @@ glyphs={
 'R':['11110','10001','10001','11110','10100','10010','10001'],
 '3':['01110','10001','00001','00110','00001','10001','01110'],
 '9':['01110','10001','10001','01111','00001','10001','01110']}
-expected=[[x in (0,w-1) or y in (0,h-1) for x in range(w)] for y in range(h)]
-for text,top in [('MDR',3),('39',14)]:
-    start=(w-(len(text)*6-1))//2
-    for y in range(10):
+expected=[[min(x,y,w-1-x,h-1-y)<5 for x in range(w)] for y in range(h)]
+for text,top in [('MDR',18),('39',78)]:
+    start=(w-(len(text)*6-1)*6)//2
+    for y in range(47):
         for index,char in enumerate(text):
-            for x,bit in enumerate(glyphs[char][y*7//10]):
-                expected[top+y][start+index*6+x]=bit=='1'
+            for x,bit in enumerate(glyphs[char][y*7//47]):
+                for dx in range(6):
+                    expected[top+y][start+index*36+x*6+dx]=bit=='1'
 assert seen==expected, 'Rear plate bitmap must read MDR over 39 without reflection or inversion'
 `);
   });
