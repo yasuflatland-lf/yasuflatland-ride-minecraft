@@ -5,6 +5,7 @@ import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
+import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -12,6 +13,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import {
+  FACINGS,
   type Facing,
   facingVector,
 } from "../../../src/domain/build/rotation/facing";
@@ -379,7 +381,12 @@ it("refreshes the paste hint each interval without requiring an aimed block", ()
   expect(feedback.modes).toEqual(
     Array.from({ length: 3 }, () => ({
       playerId: alex,
-      mode: { kind: "pasteReady", size: { x: 1, y: 3, z: 4 }, blockCount: 12 },
+      mode: {
+        kind: "pasteReady",
+        size: { x: 1, y: 3, z: 4 },
+        blockCount: 12,
+        degrees: 0,
+      },
     })),
   );
 });
@@ -494,6 +501,7 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
               kind: "pasteReady",
               size: { x, y, z },
               blockCount: x * y * z,
+              degrees: 0,
             },
           },
         ]);
@@ -622,4 +630,48 @@ it("refreshes only the requested player's rotated paste between outline ticks", 
   const inactive = setup(false);
   inactive.preview.refresh(alex, 1);
   expect(inactive.aim).not.toHaveBeenCalled();
+});
+
+it("shows the effective degrees for every facing and manual turn, including air aim and immediate refresh", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(...FACINGS),
+      fc.constantFrom(...FACINGS),
+      fc.constantFrom(0, 1, 2, 3),
+      fc.boolean(),
+      (copied, gaze, manualTurn, hit) => {
+        const e = setup();
+        const box = boxOf(cell, end);
+        e.session.completeCopy(overworld, box, {
+          ...structureClipboard(box),
+          facing: copied,
+        });
+        e.session.setFlow({ kind: "pasteAim", manualTurn });
+        e.aim.mockReturnValue({
+          ray: { ...ray, direction: facingVector(gaze) },
+          block: hit ? { cell, face: "up" } : undefined,
+        });
+        const expected =
+          ((FACINGS.indexOf(gaze) - FACINGS.indexOf(copied) + 4 + manualTurn) %
+            4) *
+          90;
+        const rotate = new RotatePasteAim(e.repo, e.feedback);
+        for (let press = 0; press <= 4; press++) {
+          e.preview.refresh(alex, 1);
+          expect(e.feedback.modes.at(-1)?.mode).toEqual({
+            kind: "pasteReady",
+            size: e.session.clipboard?.size,
+            blockCount: e.session.clipboard?.blockCount,
+            degrees: (expected + press * 90) % 360,
+          });
+          if (press < 4) rotate.execute({ playerId: alex });
+        }
+        e.aim.mockReturnValue(undefined);
+        e.preview.refresh(alex, 2);
+        expect(e.feedback.modes.at(-1)?.mode).toMatchObject({
+          degrees: expected,
+        });
+      },
+    ),
+  );
 });

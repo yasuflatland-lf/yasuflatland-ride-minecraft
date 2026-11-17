@@ -10,7 +10,7 @@ export function registerTestPress(
   describe: DescribeBuild,
   messages: Pick<
     ReturnType<typeof recordMessages>,
-    "last" | "hints" | "forget"
+    "last" | "lastMode" | "hints" | "forget"
   >,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
