@@ -362,6 +362,130 @@ print(json.dumps(True))
   });
 });
 
+describe("render_preview.py --scene CLI", () => {
+  it("rejects unknown scenes with the valid names", () => {
+    const result = spawnSync(
+      "python3",
+      ["-I", "tools/render_preview.py", "x", "y", "--scene", "tractor"],
+      { encoding: "utf8" },
+    );
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("Unknown scene 'tractor'");
+    for (const name of [
+      "suv",
+      "boat",
+      "camper",
+      "bulldozer",
+      "scooter",
+      "gear",
+    ]) {
+      expect(result.stderr).toContain(name);
+    }
+  });
+
+  it.each([
+    ["--gear", "sugar_pot", "--out", "unused"],
+    ["--view", "sinkTap", "--out", "unused"],
+    ["--beach-chair-form", "chair"],
+  ])("rejects --scene with review arguments %j", (...args) => {
+    const result = spawnSync(
+      "python3",
+      ["-I", "tools/render_preview.py", "x", "--scene", "suv", ...args],
+      { encoding: "utf8" },
+    );
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--scene cannot be combined");
+    expect(result.stderr).toContain(args[0]);
+  });
+
+  it("checks only SUV images without writing or requiring other scenes", () => {
+    expect(
+      previewPython(`
+import contextlib, io, tempfile
+from unittest.mock import patch
+rp = Path('packs/yasu_ride_rp')
+with tempfile.TemporaryDirectory() as directory:
+    output = Path(directory)
+    names = ('suv-front-left.png', 'suv-headlights.png', 'suv-flying.png', 'suv-submarine.png')
+    before = {name: Path('docs/images', name).read_bytes() for name in names}
+    for name, data in before.items():
+        (output / name).write_bytes(data)
+    sentinel = output / 'boat-front-left.png'
+    sentinel.write_bytes(b'untouched')
+    def pixels(jobs, workers):
+        return [bytearray(channel for row in r.read_png(Path(job.name)) for pixel in row for channel in pixel) for job in jobs]
+    with patch.object(sys, 'argv', ['render_preview.py', str(rp), str(output), '--scene', 'suv', '--check']), \
+         patch.object(r, 'rasterize_all', side_effect=pixels), contextlib.redirect_stdout(io.StringIO()):
+        r.main()
+    assert {name: (output / name).read_bytes() for name in names} == before
+    assert sentinel.read_bytes() == b'untouched'
+    assert set(p.name for p in output.iterdir()) == {*names, sentinel.name}
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+
+  it("partitions checked outputs and owned icons across all six CLI selections", () => {
+    expect(
+      previewPython(`
+import contextlib, io, tempfile
+from unittest.mock import patch
+fit = r.ScreenFit(None, 1, 0, 0)
+def job(name, size=1):
+    return r.RasterJob(name, [], [], fit, size, size, None, {}, ())
+def builder(name):
+    def build(rp, icon_path):
+        preview = job(f'{r.GEAR_DIR}/sugar_pot.png' if name == 'gear' else f'{name}.png')
+        icon = job(str(icon_path), r.ICON_SIZE) if name == 'suv' and icon_path else None
+        return r.SceneResult({preview.name: preview}, icon)
+    return build
+scenes = tuple(r.Scene(name, builder(name)) for name in r.SCENE_NAMES)
+with tempfile.TemporaryDirectory() as directory:
+    root = Path(directory)
+    packs = [root / r.GEAR_ICON_PACK, root / r.ICON_GRAYSCALE_PACK]
+    for pack in packs:
+        pack.mkdir()
+        (pack / 'manifest.json').write_text('{}')
+    def run(names, check=True, timing=False):
+        args = ['render_preview.py', 'unused', str(root / 'images'), '--icons', *map(str, packs), '--jobs', '4']
+        if check: args.append('--check')
+        if timing: args.append('--timing')
+        for name in names: args.extend(['--scene', name])
+        touched = []
+        def rgba(out, path, width, height, pixels, rgb=False):
+            assert out.check == check
+            touched.append(str(path.relative_to(root)))
+        stderr = io.StringIO()
+        with patch.object(sys, 'argv', args), patch.object(r.texture_io.Outputs, 'rgba', rgba), \
+             patch.object(r, 'rasterize_all', side_effect=lambda jobs, workers: [bytearray(j.width*j.height*4) for j in jobs]), \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            r.main()
+        return touched, stderr.getvalue().splitlines()
+    with patch.object(r, 'SCENES', scenes):
+        full, _ = run([])
+        single = [run([name])[0] for name in r.SCENE_NAMES]
+        assert set(full) == set(path for paths in single for path in paths)
+        assert sum(map(len, single)) == len(full) == 9
+        assert single[0] == ['images/suv.png', f'{r.GEAR_ICON_PACK}/pack_icon.png', f'{r.ICON_GRAYSCALE_PACK}/pack_icon.png']
+        assert single[-1] == [f'images/{r.GEAR_DIR}/sugar_pot.png', f'{r.GEAR_ICON_PACK}/{r.GEAR_ICON_DIR}/sugar_pot.png']
+        selected, lines = run(['gear', 'suv', 'suv'], timing=True)
+        assert selected == single[0] + single[-1]
+        assert len(lines) == 3, lines
+        for line, name, count in zip(lines, ['suv', 'gear'], [2, 2]):
+            fields = dict(field.split('=') for field in line.split())
+            assert fields['scene'] == name and int(fields['jobs']) == count, line
+            assert float(fields['build']) >= 0, line
+        assert lines[-1].startswith('PHASE_TIMING '), lines
+        written, lines = run(['boat'], check=False, timing=True)
+        assert written == ['images/boat.png']
+        assert lines[0].startswith('scene=boat build=')
+        assert run(['boat'])[1] == []
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
+});
+
 it("ScreenFit maps quads the same after pickling", () => {
   expect(
     previewPython(`
