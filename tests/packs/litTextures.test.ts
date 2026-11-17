@@ -186,9 +186,10 @@ describe.each(kinds)(
       return pixel;
     }
 
-    // Main maximum 15.209 s (three runs); 4 x 15.209 = 60.836 s, rounded up to 90 s.
+    // Main maximum 15.209 s (three runs); 4 x 15.209 = 60.836 s locally. A loaded
+    // CI runner took over 90 s with all scooter areas merged, so allow 300 s.
     it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", {
-      timeout: 90_000,
+      timeout: 300_000,
     }, () => {
       const base = texels(kind);
       const lit = texels(`${kind}_lit`);
