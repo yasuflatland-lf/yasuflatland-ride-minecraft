@@ -211,3 +211,46 @@ def mirror_to_game(bones):
             if "rotation" in cube:
                 cube["rotation"] = _mirror_rotation(cube["rotation"])
     return bones
+
+
+def clamp(t):
+    return max(0, min(1, t))
+
+
+def smooth(points, x, column=1):
+    i = 0
+    while i < len(points)-2 and x > points[i+1][0]:
+        i += 1
+    a, b = points[i:i+2]
+    prev, following = points[max(0,i-1)], points[min(len(points)-1,i+2)]
+    t = clamp((x-a[0])/(b[0]-a[0]))
+    ma = (b[column]-prev[column])/(b[0]-prev[0])
+    mb = (following[column]-a[column])/(following[0]-a[0])
+    return ((2*t**3-3*t*t+1)*a[column] + (t**3-2*t*t+t)*(b[0]-a[0])*ma
+            + (-2*t**3+3*t*t)*b[column] + (t**3-t*t)*(b[0]-a[0])*mb)
+
+
+def spline(points, steps, closed=False):
+    result = []
+    for i in range(len(points) if closed else len(points)-1):
+        a,b = points[i],points[(i+1)%len(points)]
+        c = points[(i-1)%len(points)] if closed else points[max(0,i-1)]
+        d = points[(i+2)%len(points)] if closed else points[min(len(points)-1,i+2)]
+        for k in range(steps):
+            t = k/steps
+            result.append(tuple((2*v+(-c[j]+b[j])*t+(2*c[j]-5*v+4*b[j]-d[j])*t*t
+                          +(-c[j]+3*v-3*b[j]+d[j])*t**3)/2 for j,v in enumerate(a)))
+    if not closed:
+        result.append(points[-1])
+    return result
+
+
+
+def shield_z(x,y):
+    D = load_tool("scooter_dims")
+    rows = sorted((D.i2m(xi,yi)[1],D.i2m(xi,yi)[0]) for yi,xi in D.SHIELD_EDGE)
+    u = clamp((y-D.SHIELD_RELIEF_Y)/D.SHIELD_RELIEF_HEIGHT)
+    relief = D.SHIELD_RELIEF_MIN+(1-D.SHIELD_RELIEF_MIN)*u*u*(3-2*u)
+    return (smooth(rows,y)-relief*(D.SHIELD_DEPTH_MIN+D.SHIELD_DEPTH_GAIN
+            *math.exp(-((y-D.SHIELD_RELIEF_CROWN_Y)/D.SHIELD_RELIEF_HEIGHT)**2))
+            *(1-(x/D.SHIELD_HALF_WIDTH)**2))

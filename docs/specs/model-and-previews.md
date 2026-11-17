@@ -105,12 +105,13 @@ wider layouts and rejects regions that cannot fit without reducing texture detai
 Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit.
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
-and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
+and deck and roll skins. The floor area supplies the edge tubes, chrome rails,
+and rubber treads. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
 own all compound body panels and trim.
 Body regions register idempotently before faces are constructed. Neighboring
 mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
-grey joint piping, and chrome floor rails and opening trim. The body budget is
+grey joint piping, and chrome floor rails and opening trim. The combined body and floor budget is
 1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
@@ -148,7 +149,7 @@ the valanced front fender, curled lips, two bolts and crown shadow stay on `stee
 Broad panels use shaded alpha-cut masks, with twisted patches split at their
 measured vertices. The registered assemblies are `shield_face` (105),
 `shield_trim` (66), `shield_ridge` (110), and `shield_fender` (295).
-Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
+Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area. The floor area builds the rails, edge tubes and treads; the body area builds the deck, roll skins and frame cover, and the running area builds the suspension.
 
 The sixteen paints follow the shared dye order. Khaki and white preserve the ivory
 atlas byte-for-byte, with white declared as the default paint

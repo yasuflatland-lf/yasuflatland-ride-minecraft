@@ -1,6 +1,6 @@
 # Scooter
 
-- Scope: The scooter kind: its spec table and profile, collision box and entity contract, ground and water-surface driving, lean, steering and stand, flat-wheel flight, paint, headlights and item. The generated model is covered by Model conventions and rendered previews; the riders' grip pose by Seats and driver selection.
+- Scope: The scooter kind: its spec table and profile, collision box and entity contract, ground and water-surface driving, lean, steering and stand, flat-wheel flight, paint, headlights and item. The generated model, including the separate body and floor areas, is covered by Model conventions and rendered previews; the riders' grip pose by Seats and driver selection.
 - Verified at: 8ca71e8
 - Source: [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md)
 - Source: [0055](../adr/0055-kind-neutral-vehicle-core.md)
