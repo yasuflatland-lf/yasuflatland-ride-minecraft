@@ -1,3 +1,5 @@
+vi.mock("../../src/test-pack/rotationProbe", () => ({}));
+
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { Outcome, StepSink } from "../../src/test-pack/outcome";
 import { CANCEL_EVENT, TEST_EVENT } from "../../src/test-pack/protocol";
