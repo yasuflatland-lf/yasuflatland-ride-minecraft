@@ -192,13 +192,17 @@ print(json.dumps(d.i2m(425,537)))
     expect(result).toEqual([0, 0]);
   });
 
-  it("builds identical geometry and atlas bytes twice", async () => {
-    await python.run(`${setup}
+  it(
+    "builds identical geometry and atlas bytes twice",
+    async () => {
+      await python.run(`${setup}
 g=load_tool('gen_scooter')
 first,layout,pixels=g.build()
 second,other,again=g.build()
 assert json.dumps(first)==json.dumps(second)
 assert layout.size==other.size and pixels==again
 `);
-  }, GENERATOR_TIMEOUT_MS);
+    },
+    GENERATOR_TIMEOUT_MS,
+  );
 });
