@@ -5,11 +5,13 @@ export const buildId = (name: string): string => `${BUILD_NAMESPACE}:${name}`;
 export const SELECTION_WAND_TYPE = buildId("selection_wand");
 export const PASTE_ROTATE_TYPE = buildId("paste_rotate");
 export const PASTE_PLACE_TYPE = buildId("paste_place");
+export const BUILD_UNDO_TYPE = buildId("build_undo");
 
 export function buildItemRole(
   typeId: string | undefined,
-): "wand" | "pasteControl" | undefined {
+): "wand" | "pasteControl" | "undo" | undefined {
   if (typeId === SELECTION_WAND_TYPE) return "wand";
+  if (typeId === BUILD_UNDO_TYPE) return "undo";
   if (typeId === PASTE_ROTATE_TYPE || typeId === PASTE_PLACE_TYPE)
     return "pasteControl";
 }

@@ -3,7 +3,7 @@ import type { BuildSessionRepository } from "../../domain/build/sessionRepositor
 import type { PlayerId } from "../../domain/shared/ids";
 import type { LeaveBuild } from "./leaveBuild";
 
-export type HeldBuildItem = "wand" | "pasteControl" | "none";
+export type HeldBuildItem = "wand" | "pasteControl" | "undo" | "none";
 
 interface BuildModeInput {
   playerId: PlayerId;
@@ -26,7 +26,8 @@ export class UpdateBuildModes {
           : this.repo.get(playerId);
       const holding =
         held === "wand" ||
-        (held === "pasteControl" && session?.flow.kind === "pasteAim");
+        (held === "pasteControl" && session?.flow.kind === "pasteAim") ||
+        (held === "undo" && session?.isInBuildMode === true);
       if (
         session?.tickMode({ holding }) &&
         !session.isInBuildMode &&

@@ -121,11 +121,14 @@ export function registerTestEdit(
       if (command !== "state") messages.forget(playerId);
       try {
         // A fresh session makes the first-edit check independent of scenario order.
-        if (command === "reset" && args.length === 0) {
+        if (
+          command === "reset" &&
+          (args.length === 0 || (args.length === 1 && args[0] === "absent"))
+        ) {
           if (describe.editStatus(playerId).isEditing) return;
           previewAim?.aim.setFacing(playerId, undefined);
           endSession.execute(playerId);
-          repo.getOrCreate(playerId);
+          if (args.length === 0) repo.getOrCreate(playerId);
         } else if (command === "aim" && args.length === 1 && previewAim) {
           const facing =
             args[0] === "clear" ? undefined : parseFacing(args[0] ?? "");

@@ -1,18 +1,25 @@
-import type { Player } from "@minecraft/server";
+import { type Player, world } from "@minecraft/server";
+import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 import { expect, it, vi } from "vitest";
+import { DescribeBuild } from "../../../src/application/build/describeBuild";
+import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
+import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { boxOf } from "../../../src/domain/build/box";
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerPasteControls } from "../../../src/infrastructure/build/bedrock/handlers/pasteControls";
+import { registerTestPress } from "../../../src/infrastructure/build/bedrock/handlers/testPress";
 import {
+  BUILD_UNDO_TYPE,
   PASTE_PLACE_TYPE,
   PASTE_ROTATE_TYPE,
   SELECTION_WAND_TYPE,
+  TEST_PRESS_EVENT,
 } from "../../../src/infrastructure/build/identifiers";
 import {
   FakeBuildPlayers,
@@ -33,7 +40,9 @@ const engine = vi.hoisted(() => {
   return { handlers, event, tick: 0, queue: [] as (() => void)[] };
 });
 vi.mock("@minecraft/server", () => ({
+  ScriptEventSource: { Server: "Server" },
   world: {
+    getAllPlayers: vi.fn(),
     afterEvents: { itemUse: engine.event("use") },
     beforeEvents: {
       playerInteractWithBlock: engine.event("interact"),
@@ -41,11 +50,18 @@ vi.mock("@minecraft/server", () => ({
     },
   },
   system: {
+    afterEvents: { scriptEventReceive: engine.event("script") },
+    runTimeout: vi.fn(),
     run: (fn: () => void) => engine.queue.push(fn),
     get currentTick() {
       return engine.tick;
     },
   },
+}));
+
+vi.mock("@minecraft/server-ui", () => ({
+  ActionFormData: vi.fn(),
+  ModalFormData: vi.fn(),
 }));
 
 function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
@@ -79,6 +95,21 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   );
   const rotate = vi.spyOn(rotatePasteAim, "execute");
   const place = vi.spyOn(pressPasteAim, "execute");
+  const blocks = new FakeWorld();
+  const log = { warn: vi.fn(), info: vi.fn(), error: vi.fn() };
+  const jobs = new EditJobs(
+    repo,
+    blocks,
+    feedback,
+    log,
+    new FakeBuildPlayers(),
+    structures,
+  );
+  const undoEdit = new UndoEdit(repo, feedback, jobs, blocks, structures, log);
+  const undo = vi.spyOn(undoEdit, "execute");
+  const undoDebounce = new PressDebounces<PlayerId>(
+    BUILD_SPEC.pasteRepeatTicks,
+  );
   const refresh = vi.fn();
   const aim = {
     dimensionOf: () => nether,
@@ -98,6 +129,8 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     aim,
     rotatePasteAim,
     pressPasteAim,
+    undo: undoEdit,
+    undoDebounce,
     rotateDebounce,
     pasteDebounce,
     refresh,
@@ -129,6 +162,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     return event;
   };
   return {
+    undo,
     interact,
     pressPasteControl,
     repo,
@@ -333,7 +367,7 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
   },
 );
 
-it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
+it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE, BUILD_UNDO_TYPE])(
   "ignores a scheduled %s tap if the player becomes invalid or changes to a non-control item",
   (item) => {
     for (const change of ["invalid", "wand", "empty"]) {
@@ -345,6 +379,7 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
       expect(e.rotate).not.toHaveBeenCalled();
       expect(e.place).not.toHaveBeenCalled();
       expect(e.refresh).not.toHaveBeenCalled();
+      expect(e.undo).not.toHaveBeenCalled();
       expect(e.structures.calls).toEqual([]);
       expect(e.feedback.messages).toEqual([]);
     }
@@ -400,3 +435,100 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
     ).toHaveBeenCalledTimes(1);
   },
 );
+
+it("undoes once from a first block tap without itemUse or a menu", () => {
+  const e = setup(BUILD_UNDO_TYPE);
+  expect(e.interact().cancel).toBe(true);
+  expect(e.undo).not.toHaveBeenCalled();
+  flush();
+  expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
+  expect(ActionFormData).not.toHaveBeenCalled();
+  expect(ModalFormData).not.toHaveBeenCalled();
+  expect(e.place).not.toHaveBeenCalled();
+  expect(e.rotate).not.toHaveBeenCalled();
+});
+
+it.each([false, true])(
+  "deduplicates Undo routes (block first: %s)",
+  (blockFirst) => {
+    const e = setup(BUILD_UNDO_TYPE);
+    if (blockFirst) e.interact();
+    e.use();
+    if (!blockFirst) e.interact();
+    flush();
+    expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
+  },
+);
+
+it("debounces repeated Undo itemUse and permits a later press", () => {
+  const e = setup(BUILD_UNDO_TYPE);
+  for (engine.tick = 0; engine.tick <= 40; engine.tick += 4) e.use();
+  expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
+  engine.tick = 40 + BUILD_SPEC.pasteRepeatTicks;
+  e.use();
+  expect(e.undo).toHaveBeenCalledTimes(2);
+});
+
+it("cancels non-first Undo block events without pressing", () => {
+  const e = setup(BUILD_UNDO_TYPE);
+  expect(e.interact(false).cancel).toBe(true);
+  flush();
+  expect(e.undo).not.toHaveBeenCalled();
+});
+
+it.each(["itemUse", "blockInteract"] as const)(
+  "reports empty Undo history through %s without creating a session",
+  (route) => {
+    const e = setup(BUILD_UNDO_TYPE, false);
+    e.repo.remove(e.id);
+    e.pressPasteControl[route](e.player as unknown as Player);
+    flush();
+    expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
+    expect(e.feedback.messages).toEqual([
+      expect.objectContaining({ message: "nothingToUndo" }),
+    ]);
+    expect(e.repo.get(e.id)).toBeUndefined();
+  },
+);
+
+it.each(["itemUse", "blockInteract", "blockInteract,itemUse"])(
+  "presses held Build Undo through the test hook using %s",
+  (routes) => {
+    const e = setup(BUILD_UNDO_TYPE);
+    vi.mocked(world.getAllPlayers).mockReturnValue([
+      e.player as unknown as Player,
+    ]);
+    registerTestPress(e.pressPasteControl, new DescribeBuild(e.repo), {
+      forget: vi.fn(),
+      last: () => undefined,
+      hints: () => 0,
+    });
+    engine.handlers.get("script")?.({
+      sourceType: "Server",
+      id: TEST_PRESS_EVENT,
+      message: `${e.id} ${routes}`,
+    });
+    flush();
+    expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
+    expect(e.feedback.messages).toEqual([
+      expect.objectContaining({ message: "nothingToUndo" }),
+    ]);
+  },
+);
+
+it("preserves busy feedback and isolates Undo debouncing per player", () => {
+  const e = setup(BUILD_UNDO_TYPE);
+  e.session.beginEdit();
+  e.use();
+  expect(e.feedback.messages).toEqual([
+    expect.objectContaining({ message: "busy" }),
+  ]);
+  const other = { ...e.player, id: asPlayerId("other") };
+  engine.handlers.get("use")?.({
+    source: other,
+    itemStack: { typeId: BUILD_UNDO_TYPE },
+  });
+  expect(e.undo).toHaveBeenCalledTimes(2);
+  expect(e.undo).toHaveBeenLastCalledWith({ playerId: other.id });
+  expect(e.repo.get(other.id)).toBeUndefined();
+});
