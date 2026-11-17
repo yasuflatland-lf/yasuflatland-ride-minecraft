@@ -70,6 +70,15 @@ The eight scooter README previews include underbody, running-board and front-whe
 - Implementation: `src/domain/vehicle/kinds/scooter/spec.ts` (`SCOOTER_TRANSFORMING`, `SCOOTER_WATER`), `src/domain/vehicle/motion/surface.ts`
 - Verification: `tests/domain/vehicle/kinds/scooter/drive.test.ts` "never dives and sends visual properties only when their values change", "floats level without a driver and corrects depth toward the surface"; `tests/domain/vehicle/motion/surface.test.ts` "bounds wet surface targets and rises exactly below the float line", "converges from below the surface to the float line without going dry". Tests were read, not run for this spec. Not verified: floating on a device.
 
+### Wheel detail
+
+- Applies to: Front and rear scooter wheels.
+- Rule: White tyre walls, beige dishes and chrome hubs remain. Each exposed hub, opposite the fork and spring, has four raised hex nuts at 90-degree intervals and one central castellated axle nut. The disc texture supplies six slotted rim screws, an outer flange line, bead and concentric dish step. Real rubber cubes form three staggered tread columns and two shoulder rows within the original tyre envelope. Rear detail uses `REAR_WHEEL_SCALE` (0.96). All additions stay on the existing wheel bones and follow roll and fold; the fork, struts and stand are unchanged. Each wheel adds 231 cubes. The running allocation is 1,190 (1,185 used); the total allocation is 4,165 below the 6,000 ceiling.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Wheels."
+- Implementation: `tools/scooter_running.py` (`_wheel`, `_wheel_pixel`), `tools/scooter_dims.py` (`AREA_CUBE_ALLOCATION`).
+- Verification: `tests/tools/scooterWheelDetail.test.ts` checks hardware layout, block bounds and stagger, and screw pixels; `tests/packs/scooterModel.test.ts` checks size, ancestry and budget; the strut and fold tests retain their clearance checks. Generated previews support visual review; device appearance remains unverified.
+
 ### Flat-wheel flight
 
 - Applies to: Scooter in take-off, hover and landing forms.

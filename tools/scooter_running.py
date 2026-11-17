@@ -20,8 +20,8 @@ REAR_WHEEL_SCALE = 0.96
 TYRE_THICKNESS = 0.3
 HUB_THICKNESS = 0.035
 # Revolved tyre profile (x across the tread, radius from the axle); the bead is hidden by the rim disc.
-TYRE_PROFILE = ((-1.05, 3.0), (-1.05, 3.4), (-1.0, 3.95), (-0.7, 4.3),
-                (0.7, 4.3), (1.0, 3.95), (1.05, 3.4), (1.05, 3.0))
+TYRE_PROFILE = ((-1.05, 3.0), (-1.05, 3.4), (-1.0, 3.95), (-0.7, 4.285),
+                (0.7, 4.285), (1.0, 3.95), (1.05, 3.4), (1.05, 3.0))
 DISC_HALF_WIDTH = 1.15
 DISC_HALF_SIZE = 3.74
 # Keep whitewall boundary error below 0.04 model units without adding wheel cubes.
@@ -29,7 +29,14 @@ DISC_TEXELS = 256
 # Photo radii in px of the front wheel: whitewall 2.98..3.71, dark line, bead ring, rim dish, lug circle.
 WALL_OUTER, WALL_INNER = 3.71, 2.98
 LINE_OUTER, LINE_INNER, BEAD_INNER, DISH_OUTER = 3.0, 2.94, 2.89, 2.85
-DISH_RING, LUG_CIRCLE, LUG_RADIUS, LUG_COUNT = 2.63, 1.69, 0.3, 5
+DISH_RING = 2.12
+SCREW_CIRCLE, SCREW_RADIUS, SCREW_COUNT = 2.48, 0.14, 6
+NUT_CIRCLE, NUT_RADIUS, NUT_DEPTH = 0.78, 0.23, 0.22
+CENTRE_RADIUS, CENTRE_DEPTH = 0.33, 0.34
+TREAD_ROWS, TREAD_HALF_LENGTH = 40, 0.23
+TREAD_OUTER, TREAD_DEPTH = 4.292, 0.12
+TREAD_COLUMNS = (-0.47, 0, 0.47)
+TREAD_HALF_WIDTH = 0.195
 HUB_SIDE = 1
 HUB_PLATE_X = 1.4
 HUB_RING_X = (1.17, 1.39)
@@ -117,12 +124,18 @@ def _wheel_pixel(cap_radius):
         if r > DISH_OUTER:
             return (*LINE_COLOR, 255)
         if r > cap_radius:
-            for k in range(LUG_COUNT):
-                a = 2 * math.pi * k / LUG_COUNT
-                if math.hypot(dy - LUG_CIRCLE * math.cos(a), dz - LUG_CIRCLE * math.sin(a)) < LUG_RADIUS:
-                    return (*LUG_COLOR, 255)
-            if abs(r - DISH_RING) < 0.05:
+            for k in range(SCREW_COUNT):
+                a = 2 * math.pi * k / SCREW_COUNT
+                radial = dy * math.cos(a) + dz * math.sin(a) - SCREW_CIRCLE
+                tangent = -dy * math.sin(a) + dz * math.cos(a)
+                if math.hypot(radial, tangent) < SCREW_RADIUS:
+                    if abs(radial) < 0.025 and abs(tangent) < 0.1:
+                        return (*LUG_COLOR, 255)
+                    return (*(CAP_COLOR if radial > 0 else CAP_RIM_COLOR), 255)
+            if abs(r - DISH_RING) < 0.045 or abs(r - 2.77) < 0.035:
                 return (*DISH_RING_COLOR, 255)
+            if DISH_RING < r < DISH_RING + 0.09:
+                return (*BEAD_COLOR, 255)
             shade = (r - cap_radius) / (DISH_OUTER - cap_radius)
             shade = shade + 0.15 * math.cos(angle - math.pi * 1.25)
             return (*_blend(DISH_COLOR, DISH_EDGE_COLOR, max(0.0, min(1.0, shade))), 255)
@@ -171,12 +184,59 @@ def _wheel(result, side, axle_z, scale):
                              (DISC_HALF_WIDTH, cy + half, axle_z + half),
                              atlas.plate_faces(f"running_disc_{side}")))
     cap = CAP_RADIUS[side] * scale
-    hub = [[[HUB_SIDE * x, cy + radius * math.sin(2 * math.pi * i / HUB_SEGMENTS),
-             axle_z + radius * math.cos(2 * math.pi * i / HUB_SEGMENTS)] for i in range(HUB_SEGMENTS + 1)]
-           for x, radius in zip(HUB_RING_X, (cap, cap * HUB_TAPER))]
-    result.add(bone, kit.skin(hub, HUB_THICKNESS, atlas.faces("chrome"), [0, cy, axle_z], assembly=name))
-    result.add(bone, kit.profile_plate(_circle(cap * HUB_TAPER, (axle_z, cy)), HUB_SIDE * HUB_PLATE_X,
-                                       CAP_THICKNESS, f"running_cap_{side}"))
+    for face in (HUB_SIDE, -HUB_SIDE):
+        hub = [[[face * x, cy + radius * math.sin(2 * math.pi * i / HUB_SEGMENTS),
+                 axle_z + radius * math.cos(2 * math.pi * i / HUB_SEGMENTS)] for i in range(HUB_SEGMENTS + 1)]
+               for x, radius in zip(HUB_RING_X, (cap, cap * HUB_TAPER))]
+        result.add(bone, kit.skin(hub, HUB_THICKNESS, atlas.faces("chrome"), [0, cy, axle_z],
+                                  assembly=name, tangent_frame=face < 0))
+        result.add(bone, kit.profile_plate(_circle(cap * HUB_TAPER, (axle_z, cy)), face * HUB_PLATE_X,
+                                           CAP_THICKNESS, f"running_cap_{side}"))
+
+    def nut(y, z, radius, depth, castle=False):
+        # Three rectangles at 60-degree intervals share the six vertices of a hexagon.
+        # Negative x is the exposed face, clear of the positive-x fork, spring and axle pin.
+        pivot = [-HUB_SIDE * (HUB_PLATE_X + CAP_THICKNESS / 2), y, z]
+        for turn in (0, 60, 120):
+            cube = kit.box((pivot[0] - depth * scale, y - radius * scale, z - radius * scale / math.sqrt(3)),
+                           (pivot[0], y + radius * scale, z + radius * scale / math.sqrt(3)),
+                           atlas.faces("chrome"))
+            cube.update(pivot=pivot, rotation=[turn, 0, 0])
+            result.add(bone, cube, name)
+        if castle:
+            for turn in (0, 60, 120):
+                cube = kit.box((pivot[0] - (depth + 0.07) * scale, y - radius * scale, z - 0.065 * scale),
+                               (pivot[0] - depth * scale, y + radius * scale, z + 0.065 * scale),
+                               atlas.faces("chrome"))
+                cube.update(pivot=pivot, rotation=[turn, 0, 0])
+                result.add(bone, cube, name)
+
+    nut(cy, axle_z, CENTRE_RADIUS, CENTRE_DEPTH, castle=True)
+    for i in range(4):
+        a = 2 * math.pi * i / 4 + math.pi / 4
+        nut(cy + NUT_CIRCLE * scale * math.cos(a), axle_z + NUT_CIRCLE * scale * math.sin(a),
+            NUT_RADIUS, NUT_DEPTH)
+
+    # All block corners remain inside the original 4.3-radius tyre, including during roll and fold.
+    for row in range(TREAD_ROWS):
+        for column, x in enumerate(TREAD_COLUMNS):
+            a = 2 * math.pi * (row + (0.5 if column % 2 else 0)) / TREAD_ROWS
+            pivot = [x * scale, cy + TREAD_OUTER * scale * math.cos(a),
+                     axle_z + TREAD_OUTER * scale * math.sin(a)]
+            cube = kit.box((pivot[0] - TREAD_HALF_WIDTH * scale, pivot[1] - TREAD_DEPTH * scale,
+                            pivot[2] - TREAD_HALF_LENGTH * scale),
+                           (pivot[0] + TREAD_HALF_WIDTH * scale, pivot[1],
+                            pivot[2] + TREAD_HALF_LENGTH * scale), atlas.faces("rubber", 0, 0, 1, 1))
+            cube.update(pivot=pivot, rotation=[-math.degrees(a), 0, 0])
+            result.add(bone, cube, name)
+        for sign in (-1, 1):
+            a = 2 * math.pi * (row + 0.25) / TREAD_ROWS
+            da = TREAD_HALF_LENGTH / dims.TYRE_RADIUS
+            points = [[sign * x * scale, cy + radius * scale * math.cos(angle),
+                       axle_z + radius * scale * math.sin(angle)]
+                      for angle in (a - da, a + da) for x, radius in ((0.72, 4.28), (0.98, 4.0))]
+            result.add(bone, kit.quad(*points, 0.1 * scale, atlas.faces("rubber", 0, 0, 1, 1),
+                                      [0, cy, axle_z], assembly=name, tangent_frame=True))
 
 
 def _fork(result):
