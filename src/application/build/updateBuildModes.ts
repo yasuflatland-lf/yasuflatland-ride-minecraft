@@ -18,12 +18,15 @@ export class UpdateBuildModes {
 
   execute(inputs: readonly BuildModeInput[]): void {
     for (const { playerId, held } of inputs) {
-      const holding = held === "wand";
       // A session is created only once the player holds the tool, so players
       // who never build cost nothing.
-      const session = holding
-        ? this.repo.getOrCreate(playerId)
-        : this.repo.get(playerId);
+      const session =
+        held === "wand"
+          ? this.repo.getOrCreate(playerId)
+          : this.repo.get(playerId);
+      const holding =
+        held === "wand" ||
+        (held === "pasteControl" && session?.flow.kind === "pasteAim");
       if (
         session?.tickMode({ holding }) &&
         !session.isInBuildMode &&

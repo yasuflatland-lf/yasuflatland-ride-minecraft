@@ -346,3 +346,121 @@ it("accepts a different turn at the same anchor inside the repeat window", () =>
     ),
   );
 });
+
+it("keeps build mode and the clipboard according to held items and paste aiming", () => {
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.record({
+          held: fc.constantFrom(
+            "wand" as const,
+            "pasteControl" as const,
+            "none" as const,
+          ),
+          aiming: fc.boolean(),
+        }),
+        { maxLength: 100 },
+      ),
+      (steps) => {
+        const e = setup();
+        const modes = new UpdateBuildModes(
+          e.repo,
+          new LeaveBuild(e.repo, e.structures),
+        );
+        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+          modes.execute([{ playerId, held: "wand" }]);
+        const clipboard = e.session.clipboard;
+        let releases = 0;
+        for (const { held, aiming } of steps) {
+          e.session.setFlow(aiming ? beginPasteAim() : { kind: "idle" });
+          releases =
+            held === "wand" || (held === "pasteControl" && aiming)
+              ? 0
+              : releases + 1;
+          modes.execute([{ playerId, held }]);
+          if (releases >= BUILD_SPEC.modeLeaveTicks) {
+            expect(e.session.isInBuildMode).toBe(false);
+            expect(e.session.clipboard).toBeUndefined();
+            break;
+          }
+          expect(e.session.isInBuildMode).toBe(true);
+          expect(e.session.clipboard).toBe(clipboard);
+        }
+      },
+    ),
+  );
+});
+
+it("does not create a session or enter build mode with paste control alone", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.constantFrom("pasteControl" as const, "none" as const), {
+        minLength: 1,
+        maxLength: 100,
+      }),
+      (items) => {
+        const repo = new FakeSessions();
+        const modes = new UpdateBuildModes(
+          repo,
+          new LeaveBuild(repo, new FakeStructureStore()),
+        );
+        for (const held of items) modes.execute([{ playerId, held }]);
+        expect(repo.get(playerId)).toBeUndefined();
+        expect(modes.isInBuildMode(playerId)).toBe(false);
+      },
+    ),
+  );
+});
+
+it("preserves aiming through held controls and leaves after consecutive empty ticks", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.constantFrom("wand" as const, "pasteControl" as const), {
+        maxLength: 100,
+      }),
+      fc.nat({ max: 20 }),
+      (items, extra) => {
+        const e = setup();
+        const modes = new UpdateBuildModes(
+          e.repo,
+          new LeaveBuild(e.repo, e.structures),
+        );
+        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+          modes.execute([{ playerId, held: "wand" }]);
+        const clipboard = e.session.clipboard;
+        for (const held of items) {
+          modes.execute([{ playerId, held }]);
+          expect(e.session.isInBuildMode).toBe(true);
+          expect(e.session.clipboard).toBe(clipboard);
+        }
+        for (let i = 0; i < BUILD_SPEC.modeLeaveTicks + extra; i++) {
+          modes.execute([{ playerId, held: "none" }]);
+          expect(e.session.isInBuildMode).toBe(
+            i < BUILD_SPEC.modeLeaveTicks - 1,
+          );
+          expect(e.session.clipboard).toBe(
+            i < BUILD_SPEC.modeLeaveTicks - 1 ? clipboard : undefined,
+          );
+        }
+      },
+    ),
+  );
+});
+
+it("leaves and discards the clipboard when paste control is held outside aiming", () => {
+  const e = setup();
+  const modes = new UpdateBuildModes(
+    e.repo,
+    new LeaveBuild(e.repo, e.structures),
+  );
+  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+    modes.execute([{ playerId, held: "wand" }]);
+  e.session.setFlow({ kind: "idle" });
+  for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
+    modes.execute([{ playerId, held: "pasteControl" }]);
+  expect(e.session.isInBuildMode).toBe(true);
+  expect(e.session.clipboard).toBeDefined();
+  modes.execute([{ playerId, held: "pasteControl" }]);
+  expect(e.session.isInBuildMode).toBe(false);
+  expect(e.session.clipboard).toBeUndefined();
+});
