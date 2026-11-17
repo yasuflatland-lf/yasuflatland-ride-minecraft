@@ -10,6 +10,7 @@ import { installResort } from "../../src/infrastructure/resort/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { TopHostRegistry } from "../../src/infrastructure/shared/tableTop/registry";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
+import { installWarp } from "../../src/infrastructure/warp/install";
 
 vi.mock("@minecraft/server-ui", () => ({
   FormCancelationReason: { UserBusy: "UserBusy", UserClosed: "UserClosed" },
@@ -67,6 +68,9 @@ vi.mock("../../src/infrastructure/build/install", () => ({
 vi.mock("../../src/infrastructure/resort/install", () => ({
   installResort: vi.fn(),
 }));
+vi.mock("../../src/infrastructure/warp/install", () => ({
+  installWarp: vi.fn(),
+}));
 afterEach(() => vi.restoreAllMocks());
 
 it("wires space both ways through a late-bound camp reference (ADR 0129)", () => {
@@ -85,6 +89,7 @@ it("wires space both ways through a late-bound camp reference (ADR 0129)", () =>
     placeHostedOnTop: () => false,
   });
   bootstrap();
+  expect(installWarp).toHaveBeenCalledExactlyOnceWith();
   expect(installVehicles).toHaveBeenCalledTimes(1);
   expect(installCamp).toHaveBeenCalledExactlyOnceWith({
     topHosts: expect.any(TopHostRegistry),
