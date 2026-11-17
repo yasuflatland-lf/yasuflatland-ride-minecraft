@@ -88,8 +88,8 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
 `glow_front`, `wheel_front_strut`, `headlights`, `wheel_rear_fold`, `wheel_rear`,
 `glow_rear`, `wheel_rear_strut`, `stand`, `tail_lights`, `seat_0`, `seat_1`.
-Fold, strut and seat bones remain empty; no bone has a rest rotation.
-The strut bones use the axle pivots and parent to `steer` (front) and `body` (rear).
+Fold and seat bones remain empty, and the two strut bones carry the strut rod cubes (the collars stay on `steer` and `body`); no bone has a rest rotation.
+The strut bones follow only the fold position (the drop, never the roll), are never children of a fold bone, and use the axle pivots and parent to `steer` (front) and `body` (rear).
 They cannot descend from any fold bone: all three wheel fold clips give each strut
 only the corresponding fold bone's position keys, keeping it vertical while the wheel rolls. The `struts`
 area follows `running` and reserves separate front and rear builders. The steering

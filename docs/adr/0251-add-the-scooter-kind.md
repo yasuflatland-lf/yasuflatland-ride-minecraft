@@ -28,7 +28,7 @@ Add the kind `scooter`: entity `yasu_ride:scooter`, item `yasu_ride:scooter_item
 
 **Stand.** `yasu_ride:stand` is true when nobody is aboard and no driver is awaited, the speed is under 0.01 blocks per tick and the scooter is not on water. The client lowers the stand then and raises it otherwise.
 
-**Flat-wheel flight.** The scooter reuses the transforming drive (takeoff, hover, landing) without a submarine form. On take-off each wheel and hub drops 3.5 px and turns 90 degrees until its plane is horizontal, with a glow disc and hover particles underneath; landing reverses it before touch-down. The fender, fork and suspension stay in place. The shared drive gains no scooter branch: the kind passes its own `TransformingSpec`.
+**Flat-wheel flight.** The scooter reuses the transforming drive (takeoff, hover, landing) without a submarine form. On take-off each wheel and hub drops 3.5 px and turns 90 degrees until its plane is horizontal, with a glow disc and hover particles underneath; landing reverses it before touch-down. The fender, fork and suspension stay in place, and a chrome strut rod on its own bone follows the drop (not the roll) so each hub stays joined to the body. Two parallel hinged links were rejected because they move the wheel about 2 px inward. The shared drive gains no scooter branch: the kind passes its own `TransformingSpec`.
 
 **Water.** The kind declares `waterPolicy: "surface"`. It never enters the submarine form, runs on the surface at its ground speed, floats level and still with no driver, is pushed back up when it is submerged, and can take off from the surface.
 
