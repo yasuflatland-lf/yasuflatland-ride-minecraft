@@ -9,6 +9,7 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import type { BuildStructureStore } from "../../../../application/build/ports/structures";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
+import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import { parseFace } from "../../../../domain/build/aim/face";
@@ -87,6 +88,7 @@ export function registerTestEdit(
   repo: BuildSessionRepository,
   endSession: EndBuildSession,
   structures: BuildStructureStore,
+  rotatePasteAim: RotatePasteAim,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -209,7 +211,7 @@ export function registerTestEdit(
         } else if (
           command === "pasteat" &&
           (args.length === 4 ||
-            ((args.length === 5 || args.length === 6) &&
+            ((args.length === 5 || args.length === 6 || args.length === 7) &&
               (args[4] === "true" || args[4] === "false"))) &&
           args.slice(0, 3).every((value) => Number.isInteger(Number(value)))
         ) {
@@ -235,6 +237,9 @@ export function registerTestEdit(
             );
             return;
           }
+          const rotations = Number(args[6] ?? 0);
+          if (!Number.isInteger(rotations) || rotations < 0 || rotations > 3)
+            return;
           const clipboard = repo.get(playerId)?.clipboard;
           if (!clipboard) {
             system.sendScriptEvent(
@@ -246,6 +251,8 @@ export function registerTestEdit(
             );
             return;
           }
+          for (let i = 0; i < rotations; i++)
+            rotatePasteAim.execute({ playerId });
           paste.execute({
             playerId,
             dimensionId: asDimensionId(player.dimension.id),

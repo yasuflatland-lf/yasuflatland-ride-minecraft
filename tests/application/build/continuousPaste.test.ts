@@ -16,6 +16,7 @@ import {
   beginPasteAim,
   recordPaste,
 } from "../../../src/domain/build/flow/paste";
+import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -58,7 +59,13 @@ function setup() {
   );
   const target = (block: { x: number; y: number; z: number }) => {
     if (!session.clipboard) throw new Error("Expected clipboard");
-    return pasteTarget(session.clipboard, block, "up", "east");
+    return pasteTarget(
+      session.clipboard,
+      block,
+      "up",
+      turnBetween(session.clipboard.facing, "east"),
+      "east",
+    );
   };
   return { repo, session, world, feedback, paste, target, structures };
 }
@@ -157,6 +164,7 @@ it("silently ignores repeats, refuses busy and blocked taps, and records only su
         expect(start).toHaveBeenCalledTimes(2);
         expect(e.session.flow).toMatchObject({
           kind: "pasteAim",
+          manualTurn: 0,
           lastPaste: { anchor, turn: 0, tick: 200 },
         });
       },
@@ -178,6 +186,7 @@ it("allows the same anchor again once the repeat window ends", () => {
   expect(start).toHaveBeenCalledTimes(2);
   expect(e.session.flow).toMatchObject({
     kind: "pasteAim",
+    manualTurn: 0,
     lastPaste: { tick: BUILD_SPEC.pasteRepeatTicks },
   });
 });
@@ -200,31 +209,31 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
         const execute = vi.spyOn(leave, "execute");
         const modes = new UpdateBuildModes(e.repo, leave);
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-          modes.execute([{ playerId, holding: true }]);
+          modes.execute([{ playerId, held: "wand" }]);
         e.session.confirmBox(overworld, boxOf(at, at));
         e.session.setFlow(flow);
         const clipboard = e.session.clipboard;
         const box = e.session.confirmedBox;
         // A one-tick item flicker must keep the copy (ADR 0203, Decision 5).
-        modes.execute([{ playerId, holding: false }]);
-        modes.execute([{ playerId, holding: true }]);
+        modes.execute([{ playerId, held: "none" }]);
+        modes.execute([{ playerId, held: "wand" }]);
         expect(e.session.clipboard).toBe(clipboard);
         expect(e.session.confirmedBox).toBe(box);
         expect(e.session.flow).toBe(flow);
         for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
-          modes.execute([{ playerId, holding: false }]);
+          modes.execute([{ playerId, held: "none" }]);
         expect(e.session.flow).toBe(flow);
         expect(e.session.clipboard).toBe(clipboard);
         expect(e.session.confirmedBox).toBe(box);
         expect(execute).not.toHaveBeenCalled();
-        modes.execute([{ playerId, holding: false }]);
+        modes.execute([{ playerId, held: "none" }]);
         expect(e.session.flow).toEqual({ kind: "idle" });
         expect(e.session.clipboard).toBeUndefined();
         expect(e.session.confirmedBox).toBeUndefined();
         expect(e.session.mode).toEqual({ active: false, streak: 0 });
         const idle = e.session.flow;
         for (let i = 0; i < extraTicks + BUILD_SPEC.modeLeaveTicks; i++)
-          modes.execute([{ playerId, holding: false }]);
+          modes.execute([{ playerId, held: "none" }]);
         expect(execute).toHaveBeenCalledExactlyOnceWith(playerId);
         expect(e.session.flow).toBe(idle);
         expect(e.session.mode).toEqual({ active: false, streak: 0 });
@@ -336,4 +345,122 @@ it("accepts a different turn at the same anchor inside the repeat window", () =>
       },
     ),
   );
+});
+
+it("keeps build mode and the clipboard according to held items and paste aiming", () => {
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.record({
+          held: fc.constantFrom(
+            "wand" as const,
+            "pasteControl" as const,
+            "none" as const,
+          ),
+          aiming: fc.boolean(),
+        }),
+        { maxLength: 100 },
+      ),
+      (steps) => {
+        const e = setup();
+        const modes = new UpdateBuildModes(
+          e.repo,
+          new LeaveBuild(e.repo, e.structures),
+        );
+        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+          modes.execute([{ playerId, held: "wand" }]);
+        const clipboard = e.session.clipboard;
+        let releases = 0;
+        for (const { held, aiming } of steps) {
+          e.session.setFlow(aiming ? beginPasteAim() : { kind: "idle" });
+          releases =
+            held === "wand" || (held === "pasteControl" && aiming)
+              ? 0
+              : releases + 1;
+          modes.execute([{ playerId, held }]);
+          if (releases >= BUILD_SPEC.modeLeaveTicks) {
+            expect(e.session.isInBuildMode).toBe(false);
+            expect(e.session.clipboard).toBeUndefined();
+            break;
+          }
+          expect(e.session.isInBuildMode).toBe(true);
+          expect(e.session.clipboard).toBe(clipboard);
+        }
+      },
+    ),
+  );
+});
+
+it("does not create a session or enter build mode with paste control alone", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.constantFrom("pasteControl" as const, "none" as const), {
+        minLength: 1,
+        maxLength: 100,
+      }),
+      (items) => {
+        const repo = new FakeSessions();
+        const modes = new UpdateBuildModes(
+          repo,
+          new LeaveBuild(repo, new FakeStructureStore()),
+        );
+        for (const held of items) modes.execute([{ playerId, held }]);
+        expect(repo.get(playerId)).toBeUndefined();
+        expect(modes.isInBuildMode(playerId)).toBe(false);
+      },
+    ),
+  );
+});
+
+it("preserves aiming through held controls and leaves after consecutive empty ticks", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.constantFrom("wand" as const, "pasteControl" as const), {
+        maxLength: 100,
+      }),
+      fc.nat({ max: 20 }),
+      (items, extra) => {
+        const e = setup();
+        const modes = new UpdateBuildModes(
+          e.repo,
+          new LeaveBuild(e.repo, e.structures),
+        );
+        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+          modes.execute([{ playerId, held: "wand" }]);
+        const clipboard = e.session.clipboard;
+        for (const held of items) {
+          modes.execute([{ playerId, held }]);
+          expect(e.session.isInBuildMode).toBe(true);
+          expect(e.session.clipboard).toBe(clipboard);
+        }
+        for (let i = 0; i < BUILD_SPEC.modeLeaveTicks + extra; i++) {
+          modes.execute([{ playerId, held: "none" }]);
+          expect(e.session.isInBuildMode).toBe(
+            i < BUILD_SPEC.modeLeaveTicks - 1,
+          );
+          expect(e.session.clipboard).toBe(
+            i < BUILD_SPEC.modeLeaveTicks - 1 ? clipboard : undefined,
+          );
+        }
+      },
+    ),
+  );
+});
+
+it("leaves and discards the clipboard when paste control is held outside aiming", () => {
+  const e = setup();
+  const modes = new UpdateBuildModes(
+    e.repo,
+    new LeaveBuild(e.repo, e.structures),
+  );
+  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+    modes.execute([{ playerId, held: "wand" }]);
+  e.session.setFlow({ kind: "idle" });
+  for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
+    modes.execute([{ playerId, held: "pasteControl" }]);
+  expect(e.session.isInBuildMode).toBe(true);
+  expect(e.session.clipboard).toBeDefined();
+  modes.execute([{ playerId, held: "pasteControl" }]);
+  expect(e.session.isInBuildMode).toBe(false);
+  expect(e.session.clipboard).toBeUndefined();
 });

@@ -15,6 +15,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
+import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
   asDimensionId,
@@ -539,7 +540,7 @@ it("routes paste aiming through itemUse with live aim and separate commit deboun
           e.structures,
         );
         holdClipboard(e.session, clipboard);
-        e.session.setFlow({ kind: "pasteAim" });
+        e.session.setFlow({ kind: "pasteAim", manualTurn: 0 });
         const flow = e.session.flow;
         const target = {
           ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
@@ -577,7 +578,12 @@ it("routes paste aiming through itemUse with live aim and separate commit deboun
           expect(pasteCall).toHaveBeenCalledExactlyOnceWith({
             playerId: e.id,
             dimensionId: nether,
-            target: aimedPasteTarget(clipboard, target, "east"),
+            target: aimedPasteTarget(
+              clipboard,
+              target,
+              turnBetween(clipboard.facing, "east"),
+              "east",
+            ),
             tick: 0,
           });
           expect(e.session.isEditing).toBe(false);
@@ -752,7 +758,7 @@ it("opens the paste menu even when the aim reader returns undefined", () => {
       e.structures,
     ),
   );
-  e.session.setFlow({ kind: "pasteAim" });
+  e.session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   e.aim.aim = () => undefined;
   e.use();
   expect(e.menus.showPasteMenu).toHaveBeenCalledExactlyOnceWith(e.player);
@@ -769,7 +775,7 @@ it("accepts a commit immediately after the menu and suppresses a second commit a
       e.structures,
     ),
   );
-  e.session.setFlow({ kind: "pasteAim" });
+  e.session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   e.aim.aim = () => ({
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: { ...block, x: engine.tick }, face: "up" },
