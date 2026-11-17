@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
+  effectiveTurn,
   FACINGS,
   facingFromDirection,
   facingFromYaw,
@@ -8,6 +9,11 @@ import {
   parseFacing,
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
+import {
+  NO_TURN,
+  nextQuarterTurn,
+  type QuarterTurn,
+} from "../../../src/domain/build/rotation/quarterTurn";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 
 const facing = fc.constantFrom(...FACINGS);
@@ -106,6 +112,51 @@ it("rejects vertical directions and parses facing names", () => {
         ),
       (s) => {
         expect(parseFacing(s)).toBeUndefined();
+      },
+    ),
+  );
+});
+
+it("keeps the facing-derived turn when there is no manual offset", () => {
+  fc.assert(
+    fc.property(facing, facing, (copied, gaze) => {
+      expect(effectiveTurn(copied, gaze, NO_TURN)).toBe(
+        turnBetween(copied, gaze),
+      );
+    }),
+  );
+});
+
+it("four successive manual quarter turns return to the starting turn", () => {
+  fc.assert(
+    fc.property(
+      facing,
+      facing,
+      fc.constantFrom<QuarterTurn>(0, 1, 2, 3),
+      (copied, gaze, manual) => {
+        const start = effectiveTurn(copied, gaze, manual);
+        let offset = manual;
+        let previous = start;
+        for (let step = 0; step < 4; step++) {
+          offset = nextQuarterTurn(offset);
+          const current = effectiveTurn(copied, gaze, offset);
+          expect(current).toBe((previous + 1) % 4);
+          previous = current;
+        }
+        expect(previous).toBe(start);
+      },
+    ),
+  );
+});
+
+it("normalizes every effective turn to a clockwise quarter turn", () => {
+  fc.assert(
+    fc.property(
+      facing,
+      facing,
+      fc.constantFrom<QuarterTurn>(0, 1, 2, 3),
+      (copied, gaze, manual) => {
+        expect([0, 1, 2, 3]).toContain(effectiveTurn(copied, gaze, manual));
       },
     ),
   );

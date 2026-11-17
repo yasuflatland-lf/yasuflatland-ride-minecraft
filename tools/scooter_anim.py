@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 dims = load_tool("scooter_dims")
+sound = load_tool("scooter_sound")
 
 
 def build():
@@ -45,10 +46,13 @@ def build():
             "particle_effects": {"0.0": [{"effect": "hover_glow", "locator": "hover_" + side}
                                          for side in ("front", "rear")]}},
     }
-    for family, count in (("engine", dims.ENGINE_SOUND_COUNT), ("hover", dims.HOVER_SOUND_COUNT)):
-        for i in range(count):
-            animations[f"{family}_sound_{i}"] = {
-                "loop": True, "animation_length": dims.SOUND_LOOP_SECONDS,
-                "sound_effects": {"0.0": {"effect": f"{family}_{i}"}}}
+    for clip in sound.ENGINE_CLIPS:
+        animations[f"engine_sound_{clip.index}"] = {
+            "loop": True, "animation_length": clip.seconds,
+            "sound_effects": {"0.0": {"effect": sound.engine_effect(clip.index)}}}
+    for i in range(dims.HOVER_SOUND_COUNT):
+        animations[f"hover_sound_{i}"] = {
+            "loop": True, "animation_length": dims.HOVER_LOOP_SECONDS,
+            "sound_effects": {"0.0": {"effect": f"hover_{i}"}}}
     return {"format_version": "1.8.0", "animations": {
         "animation.yasu_ride.scooter." + name: value for name, value in animations.items()}}
