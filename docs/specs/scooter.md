@@ -106,6 +106,15 @@ The eight scooter README previews include underbody, running-board and front-whe
 - Implementation: `packs/yasu_ride_bp/recipes/yasu_ride/scooter_item.recipe.json`, `packs/yasu_ride_bp/items/yasu_ride/scooter_item.item.json`, `packs/yasu_ride_rp/texts/en_US.lang`, `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/packs/scooter.test.ts` "crafts a named single-stack scooter item using its registered icon". Tests were read, not run for this spec.
 
+### Underbody model
+
+- Applies to: The generated scooter engine area and underbody previews.
+- Rule: The engine area on `body` uses 384 of its 390 allocated cubes. The rider's right has a long, low pressed-steel muffler with solid thickness, rounded ends, a thin middle seam lip following the shell outline without end overhang, a rear outlet stub and two brackets. A short S-bend pipe runs down and outward from the cylinder exhaust flange into the top of the muffler at its engine-side rear third, with a chrome joint at the flange. The hub casing has ribs and bosses, the round fan cover has a solid backing disk, slots and raised radial fins, the cylinder has seven cooling fins, and a ribbed cast swing arm joins the front pivot bracket to the rear hub. The floor area already supplies the chrome rail. Existing engine finishes and bones are reused. The parts clear the rear tyre, its 3.5 px drop and the horizontal folded wheel, stay above y 0 and within the existing non-mirror width. Total allocations are 3,770 cubes; the model uses 3,731, below the unchanged 6,000-cube ceiling.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md), Model.
+- Implementation: `tools/scooter_engine.py`, `tools/scooter_dims.py`, `tools/gen_scooter.py`; geometry and preview details in [Model and previews](model-and-previews.md).
+- Verification: `tests/packs/scooterModel.test.ts` checks muffler proportions and solid thickness, tyre and fold-drop clearance, bounds, assembly counts and allocations. `tests/tools/scooterAnim.test.ts` and `tests/packs/scooterClient.test.ts` check wheel folding; the front and rear strut tests retain their existing contracts. `pnpm model:check` checks regenerated preview pixels. In-game appearance remains unverified.
+
 ## Open issues
 
 - The riders' pose, the stepped lean look, the compound rotation order of the curved panels, flat-wheel flight and surface floating are unverified on devices; ADR 0251 stays Proposed until the manual Scooter checks pass.
