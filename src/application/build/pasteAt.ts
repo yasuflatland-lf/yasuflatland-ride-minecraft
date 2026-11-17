@@ -37,8 +37,8 @@ export class PasteAt {
       this.feedback.showMessage(playerId, "noClipboard");
       return "refused";
     }
-    const { anchor, box } = cmd.target;
-    if (isRepeat(flow, anchor, cmd.tick, BUILD_SPEC.pasteRepeatTicks))
+    const { anchor, box, turn } = cmd.target;
+    if (isRepeat(flow, anchor, turn, cmd.tick, BUILD_SPEC.pasteRepeatTicks))
       return "ignored";
     for (const cell of cellsOf(box)) {
       if (!this.world.mayEdit(cmd.dimensionId, cell)) {
@@ -80,7 +80,7 @@ export class PasteAt {
         handle: snapshot,
       }),
     );
-    session.setFlow(recordPaste(flow, anchor, cmd.tick));
+    session.setFlow(recordPaste(flow, anchor, turn, cmd.tick));
     const { message, takesUndoHint } = completionMessage({
       kind: "undoable",
       skipped: 0,

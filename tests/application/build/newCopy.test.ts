@@ -35,8 +35,7 @@ function setup(from: { x: number; y: number; z: number }) {
   session.completeCopy(overworld, box, old);
   session.setFlow({
     kind: "pasteAim",
-    turn: 0,
-    lastPaste: { anchor: from, tick: 10 },
+    lastPaste: { anchor: from, turn: 0, tick: 10 },
   });
   const newCopy = new NewCopy(repo);
   const chooseBoxStep = new ChooseBoxStep(
@@ -79,7 +78,7 @@ it("starts a normal selection with the old clipboard, then replaces it on Copy",
         facing: "east",
         contents: { kind: "structure" },
       });
-      expect(e.session.flow).toEqual({ kind: "pasteAim", turn: 0 });
+      expect(e.session.flow).toEqual({ kind: "pasteAim" });
     }),
   );
 });
