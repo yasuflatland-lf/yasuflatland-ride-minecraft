@@ -406,6 +406,12 @@ describe("camping gear block models (ADR 0093)", () => {
       resource_pack_name: "yasu_ride",
       texture_name: "atlas.terrain",
       texture_data: {
+        yasu_build_warp_block_top: {
+          textures: "textures/blocks/yasu_build/warp_block_top",
+        },
+        yasu_build_warp_block_side: {
+          textures: "textures/blocks/yasu_build/warp_block_side",
+        },
         yasu_ride_camping_gear: {
           textures: "textures/blocks/yasu_ride/camping_gear",
         },
@@ -1170,6 +1176,8 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   "yasu_ride:blade_switch",
                   "yasu_ride:wide_blade_switch",
                   "yasu_ride:road_paver_switch",
+                  "yasu_build:warp_tool",
+                  "yasu_build:warp_block",
                 ],
               },
             ],

@@ -181,6 +181,8 @@ export const CAMPER_TRANSFORMING: TransformingSpec = Object.freeze({
   gearDownHeight: CAMPER_SPEC.gearDownHeight,
   gearProbeOffset: CAMPER_SPEC.gearProbeOffset,
   hitboxFront: CAMPER_SPEC.hitboxFront,
+  stepLaneOffset: 0.8,
   air: CAMPER_AIR,
   water: CAMPER_WATER,
+  waterPolicy: "submerge",
 });

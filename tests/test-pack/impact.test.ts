@@ -57,6 +57,55 @@ function importsOf(path: string): string[] {
 }
 
 describe("impact reach", () => {
+  it.each(["domain", "application", "infrastructure"])(
+    "selects warp scenarios for the %s warp layer",
+    (layer) => {
+      expect(impactOfPath(`src/${layer}/warp/future.ts`)).toEqual({
+        impact: ["warp"],
+        rule: "warp",
+      });
+    },
+  );
+
+  it.each([
+    "packs/yasu_ride_bp/blocks/yasu_build/warp_block.block.json",
+    "packs/yasu_ride_bp/items/yasu_build/warp_tool.item.json",
+  ])("selects warp scenarios for %s", (path) => {
+    expect(impactOfPath(path)).toEqual({ rule: "warp-pack", impact: ["warp"] });
+  });
+
+  it("runs headless warp checks and serializes registry access across lanes", () => {
+    expect(impactOfPath("src/infrastructure/warp/install.ts")).toEqual({
+      rule: "install",
+      impact: "all",
+    });
+    const selection = selectionOf(["src/application/warp/warpTo.ts"]);
+    expect(selection.all).toBe(false);
+    if (selection.all) throw new Error("warp selection must be scoped");
+    const options = {
+      shard: WHOLE_RUN,
+      features: selection.features,
+      lanes: 4,
+    };
+    const headless = planOf(CATALOG, { ...options, playerConnected: false });
+    expect(headless.runs.map((scenario) => scenario.name)).toEqual([
+      "warp_registry_store",
+      "warp_world",
+      "warp_engine_probes",
+    ]);
+    expect(headless.skipped.map((scenario) => scenario.name)).toContain(
+      "warp_flow",
+    );
+    expect(headless.exclusive.map((scenario) => scenario.name)).toEqual([
+      "warp_registry_store",
+    ]);
+    const connected = planOf(CATALOG, { ...options, playerConnected: true });
+    expect(connected.exclusive.map((scenario) => scenario.name)).toEqual([
+      "warp_registry_store",
+      "warp_flow",
+    ]);
+  });
+
   it("maps every tracked runtime and tooling path explicitly", () => {
     const paths = tracked.filter((p) =>
       /^(src|packs|scripts|server|tools)\//.test(p),

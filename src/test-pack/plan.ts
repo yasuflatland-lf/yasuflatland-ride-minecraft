@@ -112,6 +112,7 @@ export function planOf(
     readonly playerConnected: boolean;
     readonly features?: readonly FeatureTag[];
     readonly lanes?: number;
+    readonly manual?: boolean;
   },
 ): RunPlan {
   const selected = catalog.filter(
@@ -123,6 +124,13 @@ export function planOf(
   );
   const skipped: Skipped[] = [];
   const eligible = selected.filter((spec) => {
+    if (spec.manualSetup && !options.manual) {
+      skipped.push({
+        name: spec.name,
+        reason: `manual setup: set GAME_TEST_MANUAL=1 to run it${spec.skipNote === undefined ? "" : `; ${spec.skipNote}`}`,
+      });
+      return false;
+    }
     if (options.playerConnected || !spec.needsPlayer) return true;
     skipped.push({ name: spec.name, reason: skipReason(spec) });
     return false;
