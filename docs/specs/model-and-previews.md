@@ -7,6 +7,7 @@
 - Source: [0027](../adr/0027-readme-previews-in-three-poses.md)
 - Source: [0045](../adr/0045-submarine-preview.md)
 - Source: [0049](../adr/0049-pack-icons-rendered-from-model.md)
+- Source: [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md)
 - Source: [0056](../adr/0056-sports-boat-previews.md)
 - Source: [0067](../adr/0067-camper.md)
 - Source: [0251](../adr/0251-add-the-scooter-kind.md)
@@ -23,7 +24,6 @@
 - Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md)
 - Excluded: [0241](../adr/0241-dining-table-top-blocks.md): Dining Table physics and hosted-item clearance belong to the resort gear topic
-- Excluded: [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md): the model job's path filter belongs to the testing-and-ci topic; only the part 0193 amends is stated here (see Model freshness check)
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
 - Excluded: [0136](../adr/0136-bulldozer.md): extends 0027 and 0045 with the bulldozer previews, which belong to the bulldozer topic; the bulldozer, camping gear, chair and tent preview sets drawn by the same renderer are not stated here
@@ -223,6 +223,16 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 `tests/packs/camperAreas.test.ts` checks that the ranges cover every cube exactly once.
 `pnpm generate` and `pnpm model` recreate this ignored build fixture. Its generator keeps two-space indentation; parsed-content checks remain available through `tools/run_generators.py --check`.
 
+### Preview checks in CI
+
+- Applies to: preview and icon freshness checks in the unit workflow.
+- Rule: Pull requests select preview scenes through `tools/select_model_scenes.py` and check each selected manifest entry in the `model-scene` matrix with fail-fast disabled. The SUV scene owns pack icons and the gear scene owns item icons. Non-render entries run separately in `model-others`. Main pushes run every scene plus the full `pnpm run model:check`, which remains available locally. Selection rules, skipped-job handling, and workflow tests are specified in [testing and CI](testing-and-ci.md#conditional-model-checks) and [ADR 0057](../adr/0057-skip-model-check-when-inputs-unchanged.md).
+
+- Agreement: Accepted
+- Basis: [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md) Decision, per-scene selection and full main checks.
+- Implementation: `.github/workflows/unit-test.yml`, `tools/select_model_scenes.py`, `tools/generators.json`, `tools/run_generators.py`.
+- Verification: `tests/tools/modelCheckWorkflow.test.ts` checks matrix and aggregate gate wiring; `tests/tools/selectModelScenes.test.ts` checks selection rules. Live GitHub matrix behavior and wall-clock timing require a pull-request run.
+
 ### Front of every vehicle model
 
 - Applies to: the geometry files `suv.geo.json`, `camper.geo.json`, `sportsboat.geo.json` and `bulldozer.geo.json`.
@@ -342,12 +352,12 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 
 ### Model freshness check
 
-- Applies to: `pnpm model`, `pnpm model:check`, and the `model` job in `.github/workflows/unit-test.yml`.
-- Rule: `pnpm model` runs the generators with compact JSON output and then `tools/render_preview.py` last via `afterGenerators: true`, without invoking Biome, writing the previews into `docs/images` and the pack icons. `pnpm model:check` runs `pnpm generate` to ensure fresh packs, then `python3 -I tools/run_generators.py --check`, which checks every generator's output by comparing parsed JSON and decoded pixels, with `tools/render_preview.py` last. It fails naming stale files and verifies output ownership against `tools/generators.json`. The CI `model` job runs `pnpm run model:check`; on a pull request it runs only when the diff touches a model input or committed renderer output, and the filter consumes the runner's `--list-inputs` and `--list-outputs` flags, including all `tools/**` files except `__pycache__` paths and excluding untracked generated assets. A push to `main` always runs it.
+- Applies to: `pnpm model`, `pnpm model:check`, and the model checking jobs in `.github/workflows/unit-test.yml`.
+- Rule: `pnpm model` runs the generators with compact JSON output and then `tools/render_preview.py` last via `afterGenerators: true`, without invoking Biome, writing the previews into `docs/images` and the pack icons. `pnpm model:check` runs `pnpm generate` to ensure fresh packs, then `python3 -I tools/run_generators.py --check`, which checks every generator's output by comparing parsed JSON and decoded pixels, with `tools/render_preview.py` last. It fails naming stale files and verifies output ownership against `tools/generators.json`. CI selects scenes and other generators through `model-plan` and checks them in `model-scene` and `model-others`, as specified in Preview checks in CI above. Main pushes retain the full check.
 - Agreement: Proposed
-- Basis: [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "Everything else in 0016 stays: the standard library only, no `math.sin` or `math.cos`, a transparent background, and `pnpm model:check` comparing decoded pixels of every image in CI"; [0193](../adr/0193-shared-texture-tooling.md) Decision, "The model CI job consumes both lists instead of a separate asset-path regex"
-- Implementation: `package.json` (`model`, `model:check`); `tools/run_generators.py`; `tools/render_preview.py` (`main`); `.github/workflows/unit-test.yml` (`model` job, `inputs` step)
-- Verification: `tests/tools/generatedOutputs.test.ts` executes the workflow filter against nested tools, Python caches, external reads, generated outputs, unrelated art, docs, and package changes. A pull request that skips the job relies on each generator declaring its external reads. Live GitHub setup and skip behavior remain unverified locally.
+- Basis: [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "Everything else in 0016 stays: the standard library only, no `math.sin` or `math.cos`, a transparent background, and `pnpm model:check` comparing decoded pixels of every image in CI"; [0193](../adr/0193-shared-texture-tooling.md), generated-output declarations and ownership; [0057](../adr/0057-skip-model-check-when-inputs-unchanged.md), per-scene CI selection
+- Implementation: `package.json` (`model`, `model:check`); `tools/run_generators.py`; `tools/render_preview.py` (`main`); `.github/workflows/unit-test.yml` (`model-plan`, `model-others`, `model-scene` jobs)
+- Verification: `tests/tools/selectModelScenes.test.ts` checks selection for tools, caches, reads, outputs, unrelated art, docs, and package changes. `tests/tools/modelCheckWorkflow.test.ts` checks manifest coverage, the matrix, and aggregate skip handling. A pull request that skips the job relies on each generator declaring its external reads. Live GitHub setup and skip behavior remain unverified locally.
 
 ### Generated pack files are build outputs
 
@@ -401,7 +411,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Agreement: Accepted
 - Basis: [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "`tools/render_preview.py <resource pack> <output dir>` writes three images into `docs/images`: `suv-front-left.png` (on the ground, as before), `suv-headlights.png` (headlights on), and `suv-flying.png` (flying). The README shows them side by side"; [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "All three use one camera and one scale, fitted to the union of the three scenes, so the vehicle has the same size and position in each and the flying one sits 1.5 blocks higher, the takeoff height of 0021"; [0045](../adr/0045-submarine-preview.md) Decision, "`tools/render_preview.py` writes a fourth image, `docs/images/suv-submarine.png`, with the same camera and scale as the other three, fitted to the union of all four scenes. The README shows it as a fourth column, \"Under water\""
 - Implementation: `tools/render_preview.py` (`POSES`, `render`, `fit`, `fit_views`, `WIDTH`, `HEIGHT`, `MARGIN`, `SUPERSAMPLE`, `MAIN_BRIGHTNESS`); `docs/images/suv-front-left.png`; `docs/images/suv-headlights.png`; `docs/images/suv-flying.png`; `docs/images/suv-submarine.png`; `README.md`
-- Verification: `pnpm model:check` in CI compares all four images with the model. Not verified: no unit test renders a whole SUV pose or checks the shared scale; nothing checks the README table.
+- Verification: the selected scene checks on pull requests and full `pnpm model:check` on main compare all four images with the model. Not verified: no unit test renders a whole SUV pose or checks the shared scale; nothing checks the README table.
 
 ### SUV headlights pose
 
@@ -428,7 +438,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Agreement: Accepted
 - Basis: [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "Emissive faces get a bloom: a box blur, 3 passes of radius 6 output pixels, added to the image."; [0027](../adr/0027-readme-previews-in-three-poses.md) Decision, "The discs sit under the folded tires and cannot be seen from above, so their bloom is drawn through the vehicle but only added where the vehicle does not cover the pixel"
 - Implementation: `tools/render_preview.py` (`BLOOM`, `BLOOM_RADIUS`, `BLOOM_PASSES`, `add_bloom`, `rasterize`)
-- Verification: `pnpm model:check` in CI. Not verified: no unit test covers `add_bloom`.
+- Verification: the selected scene checks on pull requests and full `pnpm model:check` on main. Not verified: no unit test covers `add_bloom`.
 
 ### SUV submarine pose
 
@@ -446,7 +456,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Agreement: Accepted
 - Basis: [0056](../adr/0056-sports-boat-previews.md) Decision, "`tools/render_preview.py` also writes four boat images into `docs/images`, all in the default black texture: `sportsboat-afloat.png` and `sportsboat-headlights.png` (headlights on at dusk) from the SUV's front-left view, `sportsboat-rear.png` from the rear-left corner, and `sportsboat-top.png` from straight above."; [0056](../adr/0056-sports-boat-previews.md) Decision, "The top view looks along `(0, 1, 0)` with the world's -x pointing up in the image, so the bow points right and the long hull fills the landscape frame"; [0056](../adr/0056-sports-boat-previews.md) Decision, "Poses seen from the same direction share one camera and frame. Each view is centered on its own, and all four share one scale, separate from the SUV's"
 - Implementation: `tools/render_preview.py` (`BOAT_POSES`, `BOAT_REAR_VIEW`, `BOAT_TOP_VIEW`, `BOAT_TOP_SCREEN_UP`, `render_boat`, `fit_views`); `docs/images/sportsboat-afloat.png`; `docs/images/sportsboat-headlights.png`; `docs/images/sportsboat-rear.png`; `docs/images/sportsboat-top.png`; `README.md`
-- Verification: `pnpm model:check` in CI compares the four images. Not verified: no unit test renders a boat pose or checks the shared frame and scale; nothing checks the README table. `docs/manual-test.md` row B25 compares `sportsboat-top.png`, `sportsboat-rear.png` and `sportsboat-afloat.png` with the game (not `sportsboat-headlights.png`), and its result cells are empty.
+- Verification: the selected scene checks on pull requests and full `pnpm model:check` on main compare the four images. Not verified: no unit test renders a boat pose or checks the shared frame and scale; nothing checks the README table. `docs/manual-test.md` row B25 compares `sportsboat-top.png`, `sportsboat-rear.png` and `sportsboat-afloat.png` with the game (not `sportsboat-headlights.png`), and its result cells are empty.
 
 ### Sports boat water, glass and rotations
 
@@ -464,7 +474,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Agreement: Accepted
 - Basis: [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Extend `tools/render_preview.py` with `--icons <pack dir> ...`, using the same model, flying pose, camera, and supersampled rasterizer as the previews."; [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Render a 256 by 256 RGB icon with the headlights on and the vehicle occupying 80% of its width, without text, logos, or badges (0009)"; [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Use charcoal `#16181C`, an orange `#F28C28` diagonal band 18% of the image height, and cyan `#5AD7FF` discs beneath the folded wheels."; [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Disc alpha falls linearly from 0.9 at the center to zero at 1.6 times the wheel radius; composite them behind the vehicle."; [0049](../adr/0049-pack-icons-rendered-from-model.md) Decision, "Give the release packs identical icons and the test pack a grayscale copy. `pnpm model` writes all three; `pnpm model:check` compares decoded pixels alongside the previews"
 - Implementation: `tools/render_preview.py` (`render_icon`, `main`, `grayscale`, `ICON_SIZE`, `ICON_FILL`, `ICON_BACKGROUND`, `ICON_BAND_COLOR`, `ICON_BAND_HEIGHT`, `GLOW_DISC_COLOR`, `GLOW_DISC_ALPHA`, `GLOW_DISC_REACH`, `ICON_GRAYSCALE_PACK`); `packs/yasu_ride_bp/pack_icon.png`; `packs/yasu_ride_rp/pack_icon.png`; `packs/yasu_ride_test_bp/pack_icon.png`
-- Verification: `tests/packs/icons.test.ts` "contains a 256 by 256 RGB PNG at the pack root", "gives both release packs the same icon", "gives the test pack a grayscale icon"; `pnpm model:check` in CI. Not verified: the colors, the band, the disc falloff and the 80 percent width have no test; the icon in a client pack list.
+- Verification: `tests/packs/icons.test.ts` "contains a 256 by 256 RGB PNG at the pack root", "gives both release packs the same icon", "gives the test pack a grayscale icon"; the selected scene checks on pull requests and full `pnpm model:check` on main. Not verified: the colors, the band, the disc falloff and the 80 percent width have no test; the icon in a client pack list.
 
 ### Sofa generation and preview
 
@@ -511,7 +521,7 @@ Where an ADR and the implementation differ, this spec states the implementation 
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) leaves opaque/alpha-test mixing unverified and requires reproducing the recorded opaque/blend rejection on BDS; follow the [inline proof procedure in ADR 0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md#inline-proof-procedure) for the material checks.
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) leaves the 10-percent frame-rate threshold and highest passing cube counts on PC and phone unmeasured; follow the [inline proof procedure in ADR 0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md#inline-proof-procedure) for the budget checks.
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) leaves 8192 stored cubes with 512 visible unmeasured for load time, memory and frame rate; compare `pair_hidden` with `budget_512` in the [inline proof procedure in ADR 0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md#inline-proof-procedure).
-- ADR 0167 and ADR 0193 are Proposed with the acceptance condition "owner decision pending (see #1193)". The rules for compound rotations, tilting, the shared texture modules, texture comparison, and the model job's path filter cannot be Accepted until the owner decides: `docs/adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md`, `docs/adr/0193-shared-texture-tooling.md`.
+- ADR 0167 and ADR 0193 are Proposed with the acceptance condition "owner decision pending (see #1193)". The rules for compound rotations, tilting, the shared texture modules, texture comparison cannot be Accepted until the owner decides: `docs/adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md`, `docs/adr/0193-shared-texture-tooling.md`.
 - ADR 0167 Decision says the sports boat declares only `{"wheel": {"owner": "sportsboat", "cubes": 146}}` and puts the throttle lever out of scope; the implementation also registers `throttle_lever` (8 cubes) in the sports boat table (`tools/gen_sportsboat.py`); the ADR needs an edit or a superseding ADR.
 - ADR 0167 Consequences says the SUV `arc` has 16 cubes; the implementation registers `arc` with 30 cubes and pins 30 in a test (`tools/suv_cabin.py`, `tests/packs/model.test.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0167 says the table shape is `{name: {"owner": generator_name, "cubes": count_or_description}}`; the implementation compares `cubes` as a number (`assert_axes` in `tools/cube_tilt.py`), so a description would fail; the ADR needs an edit or a superseding ADR.
@@ -526,7 +536,7 @@ Where an ADR and the implementation differ, this spec states the implementation 
 - ADR 0027 and ADR 0045 name the animations `animation.mycar.suv.wheels_folded` and `animation.mycar.suv.submerged` and the file `suv.animation.json`; the implementation reads `animation.yasu_ride.suv.wheels_folded` and `animation.yasu_ride.suv.submerged` from `suv.anim.json` (`tools/render_preview.py`, `packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json`); the ADRs need an edit.
 - ADR 0016 Consequences says the renderer samples one texel per face; the implementation maps fractional UVs to strips for the SUV and the camper (`tools/render_preview.py`, `textured_face`) and still takes one colour per face for the sports boat (`collect_boat`, `face_color`); the ADR is superseded, so it needs an edit or none.
 - ADR 0056 Decision says the boat's cube x rotations are negated before drawing; the implementation negates the x and z rotations of cubes and of bones (`game_turn` cites ADR 0051 and 0058); the ADR needs an edit or a superseding ADR.
-- ADR 0027 Consequences says rendering takes about 6 seconds and ADR 0056 says `pnpm model:check` takes about 21 seconds; the renderer now also draws the camper, bulldozer, camping gear, chair and tent previews and the item icons (`tools/render_preview.py`, `raster_jobs`), and the CI comment says about 27 seconds (`.github/workflows/unit-test.yml`). The extra previews are covered by ADRs 0067, 0093, 0122, 0130 and 0136, and are not in this spec.
+- ADR 0027 Consequences says rendering takes about 6 seconds and ADR 0056 says `pnpm model:check` takes about 21 seconds; the renderer now also draws the camper, bulldozer, camping gear, chair and tent previews and the item icons (`tools/render_preview.py`, `raster_jobs`); these historical timings do not describe the current per-scene CI matrix. The extra previews are covered by ADRs 0067, 0093, 0122, 0130 and 0136, and are not in this spec.
 - ADR 0101 Decision says the macrame planter is the one listed exception to the rule that every block geometry starts at y 0 until #412 lands; the test has no exception list and asserts y 0 for every block geometry, including the macrame planter (`tests/packs/blockGeometry.test.ts`, `packs/yasu_ride_rp/models/blocks/yasu_ride/macrame_planter.geo.json`); the ADR needs an edit.
 - ADR 0101 Decision lists eight invisible blocks; the test lists seventeen, including the tent blocks and extra camper blocks added by later ADRs (`tests/packs/blockGeometry.test.ts`, `INVISIBLE_BLOCKS`); the ADR needs an edit, or the later ADRs should say they extend the list.
 - ADR 0101 asks for a manual check that no hidden-bone dot shows on a client; the manual-test rows that mention it (B17, C72, C73) have empty result cells: `docs/manual-test.md`.
