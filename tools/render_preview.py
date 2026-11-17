@@ -290,8 +290,8 @@ POSES = {
 }
 
 
-def read_png(path):
-    """Decode an 8-bit RGB or RGBA PNG without interlacing into rows of RGBA tuples."""
+def read_png_bytes(path):
+    """Decode an 8-bit RGB or RGBA PNG without interlacing into (width, height, RGBA bytes)."""
     data = path.read_bytes()
     pos, idat, header = 8, b"", None
     while pos < len(data):
@@ -317,7 +317,8 @@ def read_png(path):
         if filter_type > 4:
             raise ValueError(f"{path}: unknown filter type {filter_type} on row {y}")
         line = bytearray(raw[y * (stride + 1) + 1 : (y + 1) * (stride + 1)])
-        for i in range(stride):
+        # Filter 0 leaves the row as stored; every writer in this repo uses it.
+        for i in range(stride if filter_type else 0):
             a = line[i - channels] if i >= channels else 0
             b = prev[i]
             c = prev[i - channels] if i >= channels else 0
@@ -331,9 +332,21 @@ def read_png(path):
                 p = a + b - c
                 pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
                 line[i] = (line[i] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 0xFF
-        rows.append([tuple(line[x * channels : x * channels + 3]) + ((line[x * channels + 3],) if channels == 4 else (255,)) for x in range(w)])
+        if channels == 4:
+            rows.append(line)
+        else:
+            rgba = bytearray(b"\xff" * (w * 4))
+            for channel in range(3):
+                rgba[channel::4] = line[channel::3]
+            rows.append(rgba)
         prev = line
-    return rows
+    return w, h, b"".join(rows)
+
+
+def read_png(path):
+    """Decode an 8-bit RGB or RGBA PNG without interlacing into rows of RGBA tuples."""
+    w, h, rgba = read_png_bytes(path)
+    return [[tuple(rgba[(y * w + x) * 4 : (y * w + x) * 4 + 4]) for x in range(w)] for y in range(h)]
 
 
 def write_png(path, w, h, pixels, rgb=False):
