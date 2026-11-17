@@ -56,7 +56,9 @@ it("rotates the shared height selection and preserves it on refusal", () => {
           },
         };
         const actions = { rotate, copy: unused, cut: unused };
-        new ChooseBoxStep(repo, actions, feedback).execute({
+        new ChooseBoxStep(repo, actions, feedback, {
+          facingOf: () => "east",
+        }).execute({
           playerId,
           kind: "rotate",
         });
@@ -68,7 +70,9 @@ it("rotates the shared height selection and preserves it on refusal", () => {
         const before = session.flow;
         const box = { min, max: { x: x - 1, y: 60 + height - 1, z: z - 1 } };
         if (blocked) world.mayEdit = () => false;
-        new ConfirmBoxStep(repo, actions, feedback).execute({ playerId });
+        new ConfirmBoxStep(repo, actions, feedback, {
+          facingOf: () => "east",
+        }).execute({ playerId });
         if (blocked) {
           expect(session.flow).toBe(before);
           expect(session.hasHistory).toBe(false);
@@ -119,7 +123,14 @@ it("enters rotate mode after an immediate rotation and restores a refused endpoi
           { warn: () => {} },
         ),
       );
-      expect(action.execute(playerId, overworld, box)).toBe(!blocked);
+      expect(
+        action.execute({
+          playerId,
+          dimensionId: overworld,
+          box: box,
+          facing: "east",
+        }),
+      ).toBe(!blocked);
       if (blocked) expect(session.flow).toBe(before);
       else
         expect(session.flow).toMatchObject({

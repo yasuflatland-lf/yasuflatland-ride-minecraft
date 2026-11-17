@@ -49,8 +49,12 @@ function setup() {
     cut,
     structures,
     log,
-    choose: new ChooseBoxStep(repo, actions, feedback),
-    confirm: new ConfirmBoxStep(repo, actions, feedback),
+    choose: new ChooseBoxStep(repo, actions, feedback, {
+      facingOf: () => "east",
+    }),
+    confirm: new ConfirmBoxStep(repo, actions, feedback, {
+      facingOf: () => "east",
+    }),
   };
 }
 
@@ -64,7 +68,14 @@ it("captures the whole box twice before removing anything and records a snapshot
         const e = setup();
         const box = boxOf(origin, { x: x - 1, y: 63 + y, z: z - 1 });
         e.world.put(origin, blockStateOf("minecraft:chest"));
-        expect(e.cut.execute(playerId, overworld, box)).toBe(true);
+        expect(
+          e.cut.execute({
+            playerId,
+            dimensionId: overworld,
+            box: box,
+            facing: "east",
+          }),
+        ).toBe(true);
         const [clipboard, snapshot] = [...e.structures.live];
         expect(e.structures.calls).toEqual([
           { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
@@ -75,6 +86,7 @@ it("captures the whole box twice before removing anything and records a snapshot
         expect(e.session.clipboard).toEqual({
           size: { x, y, z },
           blockCount: x * y * z,
+          facing: "east",
           contents: { kind: "structure", handle: clipboard },
         });
         expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
@@ -97,10 +109,10 @@ it("captures the whole box twice before removing anything and records a snapshot
 it("discards the old clipboard and retains its snapshot only after clearing succeeds", () => {
   const e = setup();
   const box = boxOf(origin, origin);
-  e.cut.execute(playerId, overworld, box);
+  e.cut.execute({ playerId, dimensionId: overworld, box: box, facing: "east" });
   const [clipboard, snapshot] = [...e.structures.live];
   e.structures.calls.length = 0;
-  e.cut.execute(playerId, overworld, box);
+  e.cut.execute({ playerId, dimensionId: overworld, box: box, facing: "east" });
   expect(e.structures.calls.map((c) => c.kind)).toEqual([
     "capture",
     "capture",
@@ -136,7 +148,14 @@ it.each(["tooLarge", "unreadable"] as const)(
       const flow = e.session.flow;
       const confirmed = e.session.confirmedBox;
       e.structures.captureRefusals = second ? [undefined, refusal] : [refusal];
-      expect(e.cut.execute(playerId, overworld, box)).toBe(false);
+      expect(
+        e.cut.execute({
+          playerId,
+          dimensionId: overworld,
+          box: box,
+          facing: "east",
+        }),
+      ).toBe(false);
       expect(e.session.flow).toBe(flow);
       expect(e.session.confirmedBox).toBe(confirmed);
       expect(e.session.clipboard).toBe(clipboard);
@@ -162,7 +181,14 @@ it("refuses the entire box when any cell is protected", () => {
       if (!cell) throw new Error("missing cell");
       e.world.protectedCells.add(cellKey(cell));
       const flow = e.session.flow;
-      expect(e.cut.execute(playerId, overworld, box)).toBe(false);
+      expect(
+        e.cut.execute({
+          playerId,
+          dimensionId: overworld,
+          box: box,
+          facing: "east",
+        }),
+      ).toBe(false);
       expect(e.structures.calls).toEqual([]);
       expect(e.session.flow).toBe(flow);
       expect(e.session.hasHistory).toBe(false);
@@ -179,7 +205,13 @@ it("restores failed cuts without changing the session or discarding prior handle
       (previousCut, x) => {
         const e = setup();
         const oldBox = boxOf(origin, origin);
-        if (previousCut) e.cut.execute(playerId, overworld, oldBox);
+        if (previousCut)
+          e.cut.execute({
+            playerId,
+            dimensionId: overworld,
+            box: oldBox,
+            facing: "east",
+          });
         const previousHandles = [...e.structures.live];
         const clipboard = e.session.clipboard;
         const confirmed = e.session.confirmedBox;
@@ -194,7 +226,14 @@ it("restores failed cuts without changing the session or discarding prior handle
         e.feedback.undoHints.length = 0;
         e.structures.clearBlocksSucceeds = false;
         const box = boxOf({ x, y: 65, z: 1 }, { x: x + 1, y: 66, z: 2 });
-        expect(e.cut.execute(playerId, overworld, box)).toBe(false);
+        expect(
+          e.cut.execute({
+            playerId,
+            dimensionId: overworld,
+            box: box,
+            facing: "east",
+          }),
+        ).toBe(false);
         expect(e.session).toEqual(before);
         expect(e.session.clipboard).toBe(clipboard);
         expect(e.session.confirmedBox).toBe(confirmed);
@@ -249,14 +288,27 @@ it.each([false, true])(
   (previousCut) => {
     const e = setup();
     const box = boxOf(origin, origin);
-    if (previousCut) e.cut.execute(playerId, overworld, box);
+    if (previousCut)
+      e.cut.execute({
+        playerId,
+        dimensionId: overworld,
+        box: box,
+        facing: "east",
+      });
     const previousHandles = [...e.structures.live];
     e.structures.calls.length = 0;
     e.feedback.messages.length = 0;
     e.feedback.undoHints.length = 0;
     e.structures.clearBlocksSucceeds = false;
     e.structures.placeSucceeds = false;
-    expect(e.cut.execute(playerId, overworld, box)).toBe(true);
+    expect(
+      e.cut.execute({
+        playerId,
+        dimensionId: overworld,
+        box: box,
+        facing: "east",
+      }),
+    ).toBe(true);
     const [clipboard, snapshot] = [...e.structures.live].slice(-2);
     expect(e.structures.calls).toEqual([
       { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
@@ -398,7 +450,14 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
 it("accepts the copy-volume boundary even when the entire box is air", () => {
   const e = setup();
   const box = boxOf(origin, { x: 31, y: 95, z: 31 });
-  expect(e.cut.execute(playerId, overworld, box)).toBe(true);
+  expect(
+    e.cut.execute({
+      playerId,
+      dimensionId: overworld,
+      box: box,
+      facing: "east",
+    }),
+  ).toBe(true);
   expect(e.session.clipboard?.blockCount).toBe(BUILD_SPEC.maxCopyVolume);
   expect(e.session.hasHistory).toBe(true);
 });

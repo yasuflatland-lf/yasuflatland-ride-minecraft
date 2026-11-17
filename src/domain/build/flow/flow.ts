@@ -2,6 +2,7 @@ import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
+import type { Facing } from "../rotation/facing";
 import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
@@ -29,6 +30,7 @@ export type BuildFlow =
       readonly base: CellBox;
       readonly from: Cell;
       readonly heightedKind: HeightStepKind;
+      readonly facing?: Facing;
       readonly previous: number;
       readonly heightLocked: boolean;
       readonly material: BlockState;
@@ -119,6 +121,7 @@ export function backToAiming(flow: BuildFlow): BuildFlow {
 export function chooseHeighted(
   flow: BuildFlow,
   kind: HeightStepKind,
+  facing?: Facing,
 ): BuildFlow {
   if (flow.kind !== "endpoint") return flow;
   const shape = shapeOf(flow.from, flow.to);
@@ -132,6 +135,7 @@ export function chooseHeighted(
       : shape.box,
     from: flow.from,
     heightedKind: kind,
+    facing,
     previous: locked ? sizeOf(shape.box).y : 1,
     heightLocked: locked,
     material: flow.material,

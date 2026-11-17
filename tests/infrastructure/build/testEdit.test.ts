@@ -221,3 +221,26 @@ it.each([
   expect(e.repo.get(player)).toBeUndefined();
   expect(system.sendScriptEvent).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["", "east"],
+  [" north", "north"],
+])("stores structure facing for argument %s", (argument, facing) => {
+  const e = snapshotHook();
+  e.send(`structure 0 0 0 1 1 1${argument}`);
+  expect(e.repo.get(player)?.clipboard?.facing).toBe(facing);
+});
+
+it("rejects an invalid structure facing without replacing the clipboard", () => {
+  const e = snapshotHook();
+  e.send("structure 0 0 0 1 1 1");
+  const clipboard = e.repo.get(player)?.clipboard;
+  const calls = [...e.structures.calls];
+  e.send("structure 0 0 0 1 1 1 invalid");
+  expect(e.repo.get(player)?.clipboard).toBe(clipboard);
+  expect(e.structures.calls).toEqual(calls);
+  expect(system.sendScriptEvent).toHaveBeenLastCalledWith(
+    TEST_RESULT_EVENT,
+    JSON.stringify({ player: "Alex", error: "Invalid structure facing" }),
+  );
+});

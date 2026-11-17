@@ -14,6 +14,7 @@ import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import { parseFace } from "../../../../domain/build/aim/face";
 import { boxOf, sizeOf, volume } from "../../../../domain/build/box";
+import { parseFacing } from "../../../../domain/build/rotation/facing";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
@@ -134,9 +135,20 @@ export function registerTestEdit(
           );
         } else if (
           command === "structure" &&
-          args.length === 6 &&
-          args.every((v) => Number.isInteger(Number(v)))
+          (args.length === 6 || args.length === 7) &&
+          args.slice(0, 6).every((v) => Number.isInteger(Number(v)))
         ) {
+          const facing = parseFacing(args[6] ?? "east");
+          if (!facing) {
+            system.sendScriptEvent(
+              TEST_RESULT_EVENT,
+              JSON.stringify({
+                player: player.name,
+                error: "Invalid structure facing",
+              }),
+            );
+            return;
+          }
           const box = boxOf(
             { x: Number(args[0]), y: Number(args[1]), z: Number(args[2]) },
             { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
@@ -148,6 +160,7 @@ export function registerTestEdit(
           const previous = repo
             .getOrCreate(playerId)
             .completeCopy(dimensionId, box, {
+              facing,
               size: sizeOf(box),
               blockCount: volume(box),
               contents: { kind: "structure", handle },

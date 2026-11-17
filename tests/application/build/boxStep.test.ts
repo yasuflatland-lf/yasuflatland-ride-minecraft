@@ -61,8 +61,12 @@ function setup() {
     world,
     feedback,
     session,
-    choose: new ChooseBoxStep(repo, actions, feedback),
-    confirm: new ConfirmBoxStep(repo, actions, feedback),
+    choose: new ChooseBoxStep(repo, actions, feedback, {
+      facingOf: () => "east",
+    }),
+    confirm: new ConfirmBoxStep(repo, actions, feedback, {
+      facingOf: () => "east",
+    }),
   };
 }
 function endpoint(
@@ -95,6 +99,7 @@ it("copies a base grown through any allowed height without beginning an edit", (
           chooseHeighted(
             endpoint(reverse ? to : from, reverse ? from : to, nether),
             "copy",
+            "east",
           ),
         );
         expect(e.session.clipboard).toBeUndefined();
@@ -200,6 +205,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
             e.repo,
             new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
             e.feedback,
+            { facingOf: () => "east" },
           ).execute({ playerId });
         expect(e.session.clipboard).toBe(clip);
         expect(e.session.confirmedBox).toBe(confirmed);
@@ -291,6 +297,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         e.repo,
         new CopyBox(e.repo, new FakeStructureStore(), e.feedback),
         e.feedback,
+        { facingOf: () => "east" },
       );
       const old = structureClipboard(boxOf(from, from), () => stone);
       for (const flow of flows) {
@@ -303,6 +310,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         expect(e.session.clipboard).toMatchObject({
           size: { x: 2, y: 1, z: 2 },
           blockCount: volume(box),
+          facing: "east",
           contents: { kind: "structure" },
         });
         const oversized = boxOf(from, {

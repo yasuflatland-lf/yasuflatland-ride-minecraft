@@ -432,6 +432,7 @@ it("returns only replaced or cleared structure handles and retains identical han
         const session = new BuildSession(asPlayerId("builder"));
         const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
         const clipboard = (raw: string) => ({
+          facing: "east" as const,
           size: { x: 1, y: 1, z: 1 },
           blockCount: 1,
           contents: {

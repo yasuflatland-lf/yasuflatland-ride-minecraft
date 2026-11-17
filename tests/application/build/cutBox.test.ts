@@ -1,0 +1,31 @@
+import fc from "fast-check";
+import { expect, it } from "vitest";
+import { CutBox } from "../../../src/application/build/cutBox";
+import { FACINGS } from "../../../src/domain/build/rotation/facing";
+import { asPlayerId } from "../../../src/domain/shared/ids";
+import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
+import { FakeStructureStore } from "./fakes/structureStore";
+
+it("stores the passed facing in the clipboard", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(...FACINGS),
+      fc.integer({ min: 1, max: 5 }),
+      (facing, side) => {
+        const repo = new FakeSessions();
+        const structures = new FakeStructureStore();
+        const feedback = new FakeFeedback();
+        const playerId = asPlayerId("builder");
+        const box = {
+          min: { x: 0, y: 0, z: 0 },
+          max: { x: side, y: side, z: side },
+        };
+        const action = new CutBox(repo, new FakeWorld(), structures, feedback, {
+          warn: () => {},
+        });
+        action.execute({ playerId, dimensionId: overworld, box, facing });
+        expect(repo.get(playerId)?.clipboard?.facing).toBe(facing);
+      },
+    ),
+  );
+});

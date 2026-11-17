@@ -43,6 +43,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
   session.completeCopy(overworld, box, {
     size: { x: 2, y: 2, z: 2 },
     blockCount,
+    facing: "east",
     contents: { kind: "structure", handle },
   });
   const jobs = new EditJobs(
