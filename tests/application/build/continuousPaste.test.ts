@@ -200,31 +200,31 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
         const execute = vi.spyOn(leave, "execute");
         const modes = new UpdateBuildModes(e.repo, leave);
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-          modes.execute([{ playerId, holding: true }]);
+          modes.execute([{ playerId, held: "wand" }]);
         e.session.confirmBox(overworld, boxOf(at, at));
         e.session.setFlow(flow);
         const clipboard = e.session.clipboard;
         const box = e.session.confirmedBox;
         // A one-tick item flicker must keep the copy (ADR 0203, Decision 5).
-        modes.execute([{ playerId, holding: false }]);
-        modes.execute([{ playerId, holding: true }]);
+        modes.execute([{ playerId, held: "none" }]);
+        modes.execute([{ playerId, held: "wand" }]);
         expect(e.session.clipboard).toBe(clipboard);
         expect(e.session.confirmedBox).toBe(box);
         expect(e.session.flow).toBe(flow);
         for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
-          modes.execute([{ playerId, holding: false }]);
+          modes.execute([{ playerId, held: "none" }]);
         expect(e.session.flow).toBe(flow);
         expect(e.session.clipboard).toBe(clipboard);
         expect(e.session.confirmedBox).toBe(box);
         expect(execute).not.toHaveBeenCalled();
-        modes.execute([{ playerId, holding: false }]);
+        modes.execute([{ playerId, held: "none" }]);
         expect(e.session.flow).toEqual({ kind: "idle" });
         expect(e.session.clipboard).toBeUndefined();
         expect(e.session.confirmedBox).toBeUndefined();
         expect(e.session.mode).toEqual({ active: false, streak: 0 });
         const idle = e.session.flow;
         for (let i = 0; i < extraTicks + BUILD_SPEC.modeLeaveTicks; i++)
-          modes.execute([{ playerId, holding: false }]);
+          modes.execute([{ playerId, held: "none" }]);
         expect(execute).toHaveBeenCalledExactlyOnceWith(playerId);
         expect(e.session.flow).toBe(idle);
         expect(e.session.mode).toEqual({ active: false, streak: 0 });
