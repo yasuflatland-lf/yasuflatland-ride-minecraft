@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { it } from "vitest";
+import fc from "fast-check";
+import { expect, it } from "vitest";
 
 const python = (script: string) =>
   execFileSync(
@@ -151,4 +152,36 @@ for i in range(5):
     assert anim(name)==suv['animation.yasu_ride.suv.'+name]
 for name in ('wheels','steer','lean','stand_up','wheels_folded','hover_glow'): assert anim(name)['loop'] is True
 `);
+});
+
+it("keeps the fold keys sorted, inside the clip and within the fold limits", () => {
+  fc.assert(
+    fc.property(fc.constantFrom("deploy", "folded", "retract"), (clip) => {
+      const out = python(`
+anim_mod=load_tool('scooter_anim')
+def check(keys, limit):
+    if isinstance(keys, dict):
+        times=[float(k) for k in keys]
+        assert times==sorted(times) and all(0<=x<=1 for x in times)
+        values=list(keys.values())
+    else:
+        values=[keys]
+    for v in values:
+        assert all(abs(x)<=limit+1e-9 for x in v)
+check(anim_mod.fold_position_keys('${clip}'), d.FOLD_DROP)
+check(anim_mod.fold_rotation_keys('${clip}'), d.FOLD_DEGREES)
+print('ok')
+`);
+      expect(out.trim()).toBe("ok");
+    }),
+    { numRuns: 3 },
+  );
+});
+
+it("keeps the wheels_deploy position keys", () => {
+  const out = python(`
+anim_mod=load_tool('scooter_anim')
+print(json.dumps(list(anim_mod.fold_position_keys('deploy'))))
+`);
+  expect(JSON.parse(out)).toEqual(["0.0", "0.4", "1.0"]);
 });
