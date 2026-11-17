@@ -12,6 +12,8 @@ a=load_tool('scooter_atlas')
 d=load_tool('scooter_dims')
 t=load_tool('cube_tilt')
 `;
+// Two full builds of every merged area run slowly under parallel CI load.
+const GENERATOR_TIMEOUT_MS = 120_000;
 const scalar = fc.double({ min: -20, max: 20, noNaN: true });
 const angle = fc.double({ min: -170, max: 170, noNaN: true });
 
@@ -198,5 +200,5 @@ second,other,again=g.build()
 assert json.dumps(first)==json.dumps(second)
 assert layout.size==other.size and pixels==again
 `);
-  });
+  }, GENERATOR_TIMEOUT_MS);
 });
