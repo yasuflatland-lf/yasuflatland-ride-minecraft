@@ -43,56 +43,27 @@ SIDE_FOCAL = 1341.9033074952995
 SIDE_CENTER = (637.4085583675401, 133.03247667128977)
 
 LAMP_CENTER_Y = 10.0
-LAMP_EMBED = 0.23
+LAMP_RADIUS = 0.60
+LAMP_EMBED = 0.10
 LAMP_WALL_TOLERANCE = 0.1
-LAMP_WALL_EMBED_LIMIT = 0.8
+LAMP_WALL_EMBED_LIMIT = 0.2
 LAMP_PANEL_MARGIN = 0.01
 LAMP_MASK_DENSITY = 32
 LAMP_MASK_OVERLAP = 0.03
-LAMP_SCALE = 0.9
-LAMP_TILT = -0.50
 LAMP_RING_POINTS = 16
-LAMP_SQUARENESS = 3.0
-LAMP_SHELL_SKIN = 0.09
-LAMP_BASE_SKIN = 0.07
-LAMP_LENS_SKIN = 0.06
-LAMP_CAP_SKIN = 0.09
-LAMP_RIM_SIZE = 0.065
-LAMP_SHELL = ((0.82, 0.46, -0.48), (1.12, 0.66, 0.02), (1.21, 0.68, 0.48), (1.13, 0.61, 0.72))
-LAMP_BASE = ((0.84, 0.48, -0.51), (1.15, 0.69, -0.3))
-LAMP_LENS = ((1.15, 0.64, 0.28), (1.13, 0.61, 0.72))
-LAMP_CAP = ((1.12, 0.6, 0.72), (1.05, 0.54, 0.87), (0, 0, 1.03))
-LAMP_RIM = (1.17, 0.65, 0.74)
-
-HOOD_RING_POINTS = 8
-HOOD_SKIN = 0.07
-HOOD_RIM_SIZE = 0.055
-HOOD = ((0.46, 0.49, -0.65, 0.91, 2.0), (0.44, 0.55, 0.22, 0.91, 2.0), (0.33, 0.45, 0.65, 0.86, 2.0))
-HOOD_TIP = (0.01, 0.01, 0.72, 0.8)
-HOOD_BASE_Y = (0.66, 0.8)
-HOOD_BASE_RADIUS = 0.5
-HOOD_BASE_Z = -0.25
-HOOD_BASE_DEPTH = 0.65
-HOOD_BASE_SKIN = 0.055
-ARM_SIZE = 0.06
-ARM = ((0.95, 0.42, 0.87), (0.85, 0.66, 0.25), (0.6, 1.29, -0.75), (0.35, 1.35, -0.75))
-SADDLE_SKIN = 0.04
-SADDLE = ((0.82, 0.1, -0.72, -0.62), (1.08, 0.13, 0.1, -0.61), (0.92, 0.09, 0.75, -0.54))
-SIDE_STEP = 0.3
-SADDLE_RING_POINTS = 8
-SIDE_PLATE_X = 1.03
-SIDE_PLATE_THICK = 0.06
-SIDE_PLATE = ((-0.85, -0.6), (-0.78, 0.48), (-0.37, 0.63), (0.65, 0.31), (0.85, -0.22),
-              (0.45, -0.66), (-0.15, -0.78))
-SIDE_INNER_X = 1.065
-SIDE_INNER_THICK = 0.025
-SIDE_INNER = ((-0.66, -0.47), (-0.57, 0.33), (-0.31, 0.45), (0.45, 0.18), (0.62, -0.18),
-              (0.27, -0.49))
+LAMP_SQUARENESS = 2.0
+LAMP_SKIRT_RADIUS = 0.71
+LAMP_SKIRT_SKIN = 0.04
+LAMP_LENS_SKIN = 0.04
+LAMP_RIM_RADIUS = 0.68
+LAMP_RIM_SIZE = 0.10
+LAMP_RIM_LIFT = 0.06
+LAMP_DOME = ((LAMP_RADIUS, 0.0), (0.52, 0.17), (0.32, 0.29), (0.0, 0.35))
 
 PLATE_TILT = -0.42
 PLATE_WALL_TOLERANCE = 0.5
 PLATE_WALL_CLEARANCE = 0.5
-PLATE_LAMP_GAP = -0.06
+PLATE_LAMP_GAP = 0.035
 PLATE_WIDTH = 3.0
 PLATE_HEIGHT = 3.3
 PLATE_THICK = 0.15
@@ -253,12 +224,14 @@ def _ring(w, h, z, cy=0.0, n=LAMP_SQUARENESS, points=LAMP_RING_POINTS):
 
 
 def _lamp_frame():
-    front = _rot_x([0, 0, LAMP_BASE[0][2] * LAMP_SCALE], LAMP_TILT)
-    origin = [0, LAMP_CENTER_Y - front[1], _wall_z(LAMP_CENTER_Y) - LAMP_EMBED - front[2]]
+    slope = next((b[1] - a[1]) / (b[0] - a[0])
+                 for a, b in zip(TAIL_WALL, TAIL_WALL[1:]) if a[0] <= LAMP_CENTER_Y <= b[0])
+    tilt = math.atan(slope)
+    origin = [0, LAMP_CENTER_Y, _wall_z(LAMP_CENTER_Y)]
 
     def place(point):
-        scaled = _rot_x([c * LAMP_SCALE for c in point], LAMP_TILT)
-        return [origin[i] + scaled[i] for i in range(3)]
+        rotated = _rot_x(point, tilt)
+        return [origin[i] + rotated[i] for i in range(3)]
     return place
 
 
@@ -349,11 +322,6 @@ def _seat(result):
 def _lamp(result):
     place = _lamp_frame()
     chrome, red = atlas.faces("chrome"), atlas.faces("lens_tail")
-    dark = atlas.faces("rubber")
-
-    def rings(specs, **kw):
-        return [[place(p) for p in _ring(*spec, **kw)] for spec in specs]
-
     panel_index = 0
 
     def skin(rings, thick, faces):
@@ -368,44 +336,19 @@ def _lamp(result):
                     cubes.append(cube)
         return cubes
 
-    def tube(*args):
-        return kit.tube(*args, assembly=LAMP_ASSEMBLY)
-
-    def add(bone, cubes):
-        result.add(bone, cubes, LAMP_ASSEMBLY)
-
-    add("body", skin(rings(LAMP_SHELL), LAMP_SHELL_SKIN, chrome))
-    add("body", skin(rings(LAMP_BASE), LAMP_BASE_SKIN, chrome))
-    rim = [place(p) for p in _ring(*LAMP_RIM)]
-    add("body", tube([*rim, rim[0]], LAMP_RIM_SIZE * LAMP_SCALE, chrome))
-    add("tail_lights", skin(rings(LAMP_LENS), LAMP_LENS_SKIN, red))
-    add("tail_lights", skin(rings(LAMP_CAP), LAMP_CAP_SKIN, red))
-
-    hood = [[place(p) for p in _ring(w, h, z, cy, n, HOOD_RING_POINTS)] for w, h, z, cy, n in HOOD]
-    tip = [place([0, HOOD_TIP[3], HOOD_TIP[2]])] * HOOD_RING_POINTS
-    add("tail_lights", skin([*hood, tip], HOOD_SKIN, red))
-    add("body", tube([*hood[1], hood[1][0]], HOOD_RIM_SIZE * LAMP_SCALE, chrome))
-    base = [[place([HOOD_BASE_RADIUS * math.cos(a), y, HOOD_BASE_Z + HOOD_BASE_DEPTH * math.sin(a)])
-             for a in (2 * math.pi * j / HOOD_RING_POINTS for j in range(HOOD_RING_POINTS))]
-            for y in HOOD_BASE_Y]
-    add("body", skin(base, HOOD_BASE_SKIN, chrome))
-    for side in (-1, 1):
-        add("body", tube([place([side * x, y, z]) for x, y, z in ARM], ARM_SIZE * LAMP_SCALE, chrome))
-        for x, thick, faces, poly in ((SIDE_PLATE_X, SIDE_PLATE_THICK, chrome, SIDE_PLATE),
-                                      (SIDE_INNER_X, SIDE_INNER_THICK, dark, SIDE_INNER)):
-            for cube in kit.extrude(poly, side*x-thick/2, side*x+thick/2, SIDE_STEP, faces):
-                center = [cube['origin'][i] + cube['size'][i]/2 for i in range(3)]
-                pivot = place(center)
-                half = [s*LAMP_SCALE/2 for s in cube['size']]
-                add("body", kit._oriented([pivot[i]-half[i] for i in range(3)],
-                                           [pivot[i]+half[i] for i in range(3)], pivot,
-                                           [-math.degrees(LAMP_TILT), 0, 0], faces, LAMP_ASSEMBLY))
-    saddle = [[place(p) for p in _ring(w, h, z, cy, n=LAMP_SQUARENESS, points=SADDLE_RING_POINTS)] for w, h, z, cy in SADDLE]
-    add("body", skin(saddle, SADDLE_SKIN, chrome))
+    rim = [place(p) for p in _ring(LAMP_RIM_RADIUS, LAMP_RIM_RADIUS, LAMP_RIM_LIFT)]
+    contact = [place(p) for p in _ring(LAMP_SKIRT_RADIUS, LAMP_SKIRT_RADIUS, 0)]
+    # Fit every contact to the wall, including bends outside the centre tangent plane.
+    contact = [[x, y, _wall_z(y) - LAMP_EMBED] for x, y, _ in contact]
+    result.add("body", skin([contact, rim], LAMP_SKIRT_SKIN, chrome), LAMP_ASSEMBLY)
+    result.add("body", kit.tube([*rim, rim[0]], LAMP_RIM_SIZE, chrome, LAMP_ASSEMBLY), LAMP_ASSEMBLY)
+    lens = [[place(p) for p in _ring(radius, radius, LAMP_RIM_LIFT + rise)]
+            for radius, rise in LAMP_DOME]
+    result.add("tail_lights", skin(lens, LAMP_LENS_SKIN, red), LAMP_ASSEMBLY)
 
 
 def _plate(result):
-    top_y = min(_lamp_frame()(p)[1] for spec in SADDLE for p in _ring(*spec, points=SADDLE_RING_POINTS)) - PLATE_LAMP_GAP
+    top_y = min(_lamp_frame()(p)[1] for p in _ring(LAMP_RIM_RADIUS, LAMP_RIM_RADIUS, LAMP_RIM_LIFT)) - LAMP_RIM_SIZE / 2 - PLATE_LAMP_GAP
     top = _rot_x([0, PLATE_HEIGHT/2, PLATE_THICK/2], PLATE_TILT)
     base = [0, top_y - top[1], _wall_z(top_y) + PLATE_WALL_CLEARANCE - top[2]]
 

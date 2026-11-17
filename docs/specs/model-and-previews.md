@@ -61,13 +61,14 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
   `MDR` over `39` from behind, with its horizontal raster reversed for Bedrock's rear-view
   coordinate convention after the final x mirror.
-  The 212-cube rear lamp uses full tangent frames with 0.01-unit panel margins,
-  16-point superellipse lens rings, alpha-clipped tapered panels and stepped side-housing
-  extrusions. Chrome stays
-  on `body` and red lenses on `tail_lights`. The base flange follows the calibrated
-  centre-line tail-wall profile with 0.23 units of embed; it may clear the wall by at
-  most 0.1 units or embed by at most 0.8 units. The plate hangs directly below the
-  lamp, with its top edge within 0.5 units of the wall and its short bracket embedded.
+  The 80-cube rear lamp has one round, 0.6-unit-radius domed red lens seated on
+  the cowl tip, with 16-point circular rings, full tangent frames, 0.01-unit panel
+  margins and alpha-clipped tapered panels. A continuous chrome tube bezel and short
+  skirt follow the calibrated tail-wall contour, with each skirt contact embedded
+  0.1 units along z. The skirt may clear the wall by at most 0.1 units or embed by
+  at most 0.2 units. Chrome stays on `body` and the single red lens on `tail_lights`.
+  The upright plate tilts back by 0.42 radians directly below the bezel with a tiny
+  gap, its top edge within 0.5 units of the wall and its short bracket embedded.
 
 The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_front`,
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
