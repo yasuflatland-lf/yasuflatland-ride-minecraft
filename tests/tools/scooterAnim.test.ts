@@ -106,7 +106,7 @@ for side,z in (('front',d.FRONT_AXLE_Z),('rear',d.REAR_AXLE_Z)):
 `);
 });
 
-it("generates reversible staged folds, wheel travel, lean, particles and the shared sound shapes", () => {
+it("generates reversible staged folds, wheel travel, lean, particles and per-clip engine sounds", () => {
   python(`
 from pathlib import Path
 output=load_tool('scooter_anim').build()
@@ -136,10 +136,19 @@ assert anim('hover_glow')['animation_length']==d.GLOW_SECONDS
 assert anim('hover_glow')['particle_effects']=={'0.0':[{'effect':'hover_glow','locator':'hover_front'},{'effect':'hover_glow','locator':'hover_rear'}]}
 from pathlib import Path
 suv=json.loads(Path('tools/templates/suv.anim.json').read_text())['animations']
-for family,count in (('engine',6),('hover',5)):
-    for i in range(count):
-        name=f'{family}_sound_{i}'
-        assert anim(name)==suv['animation.yasu_ride.suv.'+name]
+sound=load_tool('scooter_sound')
+assert isinstance(sound.ENGINE_CLIPS, tuple)
+assert [clip.index for clip in sound.ENGINE_CLIPS]==list(range(6))
+definitions=json.loads(Path('packs/yasu_ride_rp/sounds/sound_definitions.json').read_text())['sound_definitions']
+for clip in sound.ENGINE_CLIPS:
+    assert anim(f'engine_sound_{clip.index}')=={
+        'loop':True, 'animation_length':clip.seconds,
+        'sound_effects':{'0.0':{'effect':f'scooter_engine_{clip.index}'}}}
+    assert sound.engine_effect(clip.index)==f'scooter_engine_{clip.index}'
+    assert definitions[f'yasu_ride.scooter_engine_{clip.index}']['sounds'][0]['volume']==clip.volume
+for i in range(5):
+    name=f'hover_sound_{i}'
+    assert anim(name)==suv['animation.yasu_ride.suv.'+name]
 for name in ('wheels','steer','lean','stand_up','wheels_folded','hover_glow'): assert anim(name)['loop'] is True
 `);
 });
