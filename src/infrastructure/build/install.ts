@@ -76,6 +76,9 @@ export function installBuild(deps: {
   const pasteDebounce = new PressDebounces<PlayerId>(
     BUILD_SPEC.pasteRepeatTicks,
   );
+  const undoDebounce = new PressDebounces<PlayerId>(
+    BUILD_SPEC.pasteRepeatTicks,
+  );
   const rotateDebounce = new PressDebounces<PlayerId>(
     BUILD_SPEC.rotateDebounceTicks,
   );
@@ -163,6 +166,8 @@ export function installBuild(deps: {
   const rotatePasteAim = new RotatePasteAim(repo, feedback);
   const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const routes = registerPasteControls({
+    undo: cases.undo,
+    undoDebounce,
     repo,
     aim,
     pressPasteAim,
@@ -198,6 +203,7 @@ export function installBuild(deps: {
     debounce,
     pasteDebounce,
     rotateDebounce,
+    undoDebounce,
   );
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
