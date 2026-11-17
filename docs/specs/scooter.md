@@ -84,7 +84,7 @@
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "The scooter engine plays its own recorded Vespa clips"; [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md) Decision
 - Implementation: `tools/scooter_sound.py` (`ENGINE_CLIPS`, `engine_effect`), `tools/scooter_anim.py`, `packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json`, `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `packs/yasu_ride_rp/sounds/sound_definitions.json`
-- Verification: `tests/packs/scooterClient.test.ts` "resolves scooter engine sounds, shared hover sounds and the hover particle at both disc locators"; `tests/packs/scooterEngineClips.test.ts` "plays band $index from its own Ogg with matching duration and volume", "keeps all six band volumes non-decreasing with idle quietest"; `tests/tools/scooterAnim.test.ts` "generates reversible staged folds, wheel travel, lean, particles and per-clip engine sounds" checks per-clip engine and shared hover animations. Not verified: audibility on a device.
+- Verification: `tests/packs/scooterClient.test.ts` "resolves scooter engine sounds, shared hover sounds and the hover particle at both disc locators"; `tests/packs/scooterEngineClips.test.ts` "plays band $index from its own Ogg with matching duration and volume", "keeps all six band volumes non-decreasing with idle quietest"; `tests/tools/scooterAnim.test.ts` "generates reversible staged folds, wheel travel, lean, particles and per-clip engine sounds" checks per-clip engine and shared hover animations. Not verified: audibility on a device, because no device was available; manual rows E1 to E6 in `docs/manual-test.md` have empty result cells until someone listens.
 
 ### Paint and headlights
 
