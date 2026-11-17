@@ -3,6 +3,7 @@ import type { PreviewSet } from "../../../domain/build/preview/preview";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type BuildMessage =
+  | "pasteInactive"
   | "pasteNoTarget"
   | "building"
   | "cutRestored"

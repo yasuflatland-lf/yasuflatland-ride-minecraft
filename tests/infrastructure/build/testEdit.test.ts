@@ -4,6 +4,7 @@ import { expect, it, vi } from "vitest";
 import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
+import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -140,6 +141,7 @@ function snapshotHook() {
     repo,
     new EndBuildSession(repo, structures),
     structures,
+    new RotatePasteAim(repo, messages.feedback),
   );
   const callback = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
@@ -280,3 +282,31 @@ it("rejects invalid paste facing and ignores the removed rotate command", () => 
   expect(e.repo.get(player)?.flow).toBe(flow);
   expect(system.sendScriptEvent).not.toHaveBeenCalled();
 });
+
+it.each([0, 1, 2, 3])(
+  "presses rotate %s times before the test paste",
+  (turns) => {
+    const e = snapshotHook();
+    e.send("structure 0 0 0 1 1 1");
+    let turnAtPaste: unknown;
+    e.execute.mockImplementation(() => {
+      turnAtPaste = e.repo.get(player)?.flow;
+      return "pasted";
+    });
+    e.send(`pasteat 3 4 5 up true east ${turns}`);
+    expect(e.execute).toHaveBeenCalledTimes(1);
+    expect(turnAtPaste).toEqual({ kind: "pasteAim", manualTurn: turns });
+  },
+);
+
+it.each(["-1", "4", "1.5", "invalid"])(
+  "rejects invalid rotation count %s before changing the flow",
+  (turns) => {
+    const e = snapshotHook();
+    e.send("structure 0 0 0 1 1 1");
+    const flow = e.repo.get(player)?.flow;
+    e.send(`pasteat 3 4 5 up true east ${turns}`);
+    expect(e.execute).not.toHaveBeenCalled();
+    expect(e.repo.get(player)?.flow).toBe(flow);
+  },
+);
