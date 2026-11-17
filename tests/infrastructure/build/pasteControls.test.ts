@@ -1,3 +1,4 @@
+import type { Player } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
@@ -90,7 +91,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const pasteDebounce = new PressDebounces<PlayerId>(
     BUILD_SPEC.pasteRepeatTicks,
   );
-  registerPasteControls({
+  const pressPasteControl = registerPasteControls({
     repo,
     aim,
     rotatePasteAim,
@@ -113,6 +114,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
       itemStack: { typeId: item },
     });
   return {
+    pressPasteControl,
     repo,
     session,
     id,
@@ -184,6 +186,43 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
     expect(call).toHaveBeenCalledTimes(1);
     engine.tick = 40 + window;
     e.use();
+    expect(call).toHaveBeenCalledTimes(2);
+  },
+);
+
+it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
+  "presses and debounces %s through the returned entry point",
+  (typeId) => {
+    const e = setup(typeId);
+    const press = () =>
+      e.pressPasteControl({ source: e.player as unknown as Player, typeId });
+    const call = typeId === PASTE_ROTATE_TYPE ? e.rotate : e.place;
+    const window =
+      typeId === PASTE_ROTATE_TYPE
+        ? BUILD_SPEC.rotateDebounceTicks
+        : BUILD_SPEC.pasteRepeatTicks;
+    engine.tick = 11;
+    press();
+    press();
+    expect(call).toHaveBeenCalledTimes(1);
+    if (typeId === PASTE_ROTATE_TYPE) {
+      expect(e.rotate).toHaveBeenCalledWith({ playerId: e.id });
+      expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 11);
+      expect(e.place).not.toHaveBeenCalled();
+    } else {
+      expect(e.place).toHaveBeenCalledWith({
+        playerId: e.id,
+        dimensionId: nether,
+        aim: e.aim.aim(),
+        tick: 11,
+        sneaking: false,
+        intent: "place",
+      });
+      expect(e.rotate).not.toHaveBeenCalled();
+      expect(e.refresh).not.toHaveBeenCalled();
+    }
+    engine.tick = 11 + window;
+    press();
     expect(call).toHaveBeenCalledTimes(2);
   },
 );
