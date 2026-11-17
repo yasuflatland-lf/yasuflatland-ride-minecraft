@@ -51,7 +51,7 @@ function setup(active = true) {
   );
   if (active)
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-      modes.execute([{ playerId: alex, holding: true }]);
+      modes.execute([{ playerId: alex, held: "wand" }]);
   const aim = vi.fn<AimReader["aim"]>();
   const preview = new ShowPreview(
     repo,
@@ -127,7 +127,7 @@ it("draws only in build mode and on the interval, and clears the preview with th
     new LeaveBuild(repo, new FakeStructureStore()),
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-    modes.execute([{ playerId: alex, holding: true }]);
+    modes.execute([{ playerId: alex, held: "wand" }]);
   preview.execute(1);
   expect(aim).not.toHaveBeenCalled();
   expect(feedback.previews).toEqual([]);
@@ -217,8 +217,8 @@ it("keeps concurrent players and their aim targets separate", () => {
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
-      { playerId: alex, holding: true },
-      { playerId: bob, holding: true },
+      { playerId: alex, held: "wand" },
+      { playerId: bob, held: "wand" },
     ]);
   aim.mockImplementation((id) => ({
     ray,
@@ -329,8 +329,8 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
-      { playerId: alex, holding: true },
-      { playerId: bob, holding: true },
+      { playerId: alex, held: "wand" },
+      { playerId: bob, held: "wand" },
     ]);
   const flow = {
     kind: "heightStep" as const,
@@ -357,8 +357,8 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
   const returning = repo.getOrCreate(bob);
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
-      { playerId: alex, holding: true },
-      { playerId: bob, holding: true },
+      { playerId: alex, held: "wand" },
+      { playerId: bob, held: "wand" },
     ]);
   returning.setFlow(flow);
   preview.execute(3 * interval);

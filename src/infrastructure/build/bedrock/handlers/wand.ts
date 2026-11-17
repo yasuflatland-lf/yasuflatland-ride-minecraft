@@ -16,9 +16,9 @@ import {
   asPlayerId,
   type PlayerId,
 } from "../../../../domain/shared/ids";
-import { heldTypeId } from "../../../shared/heldItem";
-import { SELECTION_WAND_TYPE } from "../../identifiers";
+import { buildItemRole } from "../../identifiers";
 import type { BuildMenus } from "../buildMenus";
+import { heldBuildItem } from "../heldBuildItem";
 import { dispatchWandPress } from "./wandPress";
 
 export function registerWand({
@@ -53,10 +53,10 @@ export function registerWand({
   pointOf(playerId: PlayerId): Cell | undefined;
 }): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
-    if (heldTypeId(ev.player) === SELECTION_WAND_TYPE) ev.cancel = true;
+    if (heldBuildItem(ev.player) === "wand") ev.cancel = true;
   });
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (heldTypeId(ev.player) !== SELECTION_WAND_TYPE) return;
+    if (heldBuildItem(ev.player) !== "wand") return;
     ev.cancel = true;
     // itemUse owns mode presses, including duplicate block-interaction events.
     const kind = repo.get(asPlayerId(ev.player.id))?.flow.kind;
@@ -91,7 +91,7 @@ export function registerWand({
     });
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
-    if (!source.isValid || itemStack.typeId !== SELECTION_WAND_TYPE) return;
+    if (!source.isValid || buildItemRole(itemStack.typeId) !== "wand") return;
     const playerId = asPlayerId(source.id);
     // Opening the menu must not swallow the next commit; commits also debounce across anchors.
     const flow = repo.get(playerId)?.flow;
