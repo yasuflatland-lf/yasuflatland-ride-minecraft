@@ -17,6 +17,14 @@ import {
   SEAT_FILLER_TYPE,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, wait } from "../arena";
+import {
+  SETUP_LIMIT_TICKS,
+  SETUP_POLL_TICKS,
+  SETUP_REPORT_TICKS,
+  setupProgressStep,
+  setupPromptStep,
+  setupTimeoutDetail,
+} from "../decorSetup";
 import type { Outcome, StepSink } from "../outcome";
 
 function errorText(error: unknown): string {
@@ -529,25 +537,23 @@ export async function buildStructureDecorProbe(
       "Structure decor probe: within 60 seconds, place the item frame on the stone wall, put the diamond into it, and hang the painting on the wall.";
     player.sendMessage(prompt);
     player.onScreenDisplay.setActionBar(prompt);
+    onStep?.(setupPromptStep());
+    let elapsed = 0;
     let setup = setupState();
-    for (let ticks = 0; ticks < 1200 && setup.missing.length > 0; ticks += 10) {
-      await wait(10);
+    for (
+      ;
+      elapsed < SETUP_LIMIT_TICKS && setup.missing.length > 0;
+      elapsed += SETUP_POLL_TICKS
+    ) {
+      await wait(SETUP_POLL_TICKS);
       setup = setupState();
       // The player setup window exceeds the runner's 60-second stall watch.
-      if ((ticks + 10) % 200 === 0)
-        onStep?.({
-          name: `setup_wait_${ticks + 10}`,
-          pass: true,
-          detail: `polled setup after ${ticks + 10} ticks; missing: ${setup.missing.join(", ") || "none"}`,
-        });
+      if ((elapsed + SETUP_POLL_TICKS) % SETUP_REPORT_TICKS === 0)
+        onStep?.(setupProgressStep(elapsed + SETUP_POLL_TICKS, setup.missing));
     }
     const frame = setup.frame;
     if (!frame || setup.missing.length > 0) {
-      record(
-        "setup",
-        false,
-        `fixture incomplete; missing: ${setup.missing.join(", ")}`,
-      );
+      record("setup", false, setupTimeoutDetail(elapsed, setup.missing));
     } else {
       record(
         "setup",

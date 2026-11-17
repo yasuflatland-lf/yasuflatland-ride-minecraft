@@ -30,14 +30,14 @@
         },
         "yasu_ride:lean": {
           "type": "float",
-          "range": [-20, 20],
-          "default": 0,
+          "range": [-20.0, 20.0],
+          "default": 0.0,
           "client_sync": true
         },
         "yasu_ride:steer": {
           "type": "float",
-          "range": [-30, 30],
-          "default": 0,
+          "range": [-30.0, 30.0],
+          "default": 0.0,
           "client_sync": true
         },
         "yasu_ride:stand": {

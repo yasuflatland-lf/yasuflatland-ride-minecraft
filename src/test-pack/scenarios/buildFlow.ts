@@ -20,7 +20,17 @@ import {
   TEST_TAP_EVENT,
 } from "../../infrastructure/build/identifiers";
 import { type Arena, wait } from "../arena";
+import {
+  SETUP_LIMIT_TICKS,
+  SETUP_POLL_TICKS,
+  SETUP_REPORT_TICKS,
+  setupProgressStep,
+  setupPromptStep,
+  setupTimeoutDetail,
+} from "../decorSetup";
 import type { Outcome, StepSink } from "../outcome";
+
+const LOOK_SETTLE_MAX_TICKS = 20;
 
 interface BuildState {
   flow: string;
@@ -38,7 +48,7 @@ interface Reply {
   offered?: boolean;
   undoHints?: number;
   timedOut?: boolean;
-  flow: { kind: string; previous?: number };
+  flow: { kind: string; previous?: number; heightedKind?: string };
   mode?: boolean;
 }
 function check(ok: boolean, detail: string): asserts ok {
@@ -119,8 +129,26 @@ async function withBuilder(
   const f = {
     player,
     cell,
-    look: (yaw: number) =>
-      player.teleport(player.location, { rotation: { x: 25, y: yaw } }),
+    lookSettled: async (yaw: number, pitch = 25): Promise<void> => {
+      // A connected client sends its own rotation, so a teleport may be
+      // overwritten or not yet applied one tick later.
+      player.teleport(player.location, { rotation: { x: pitch, y: yaw } });
+      let settledTicks = 0;
+      let r = player.getRotation();
+      for (let tick = 0; tick < LOOK_SETTLE_MAX_TICKS; tick++) {
+        await wait(1);
+        r = player.getRotation();
+        const yawDelta = ((((r.y - yaw) % 360) + 540) % 360) - 180;
+        if (Math.abs(yawDelta) <= 1 && Math.abs(r.x - pitch) <= 1)
+          settledTicks++;
+        else settledTicks = 0;
+        if (settledTicks === 2) return;
+        player.teleport(player.location, { rotation: { x: pitch, y: yaw } });
+      }
+      throw new Error(
+        `view rotation did not settle: wanted yaw=${yaw} pitch=${pitch}, saw yaw=${r.y} pitch=${r.x}`,
+      );
+    },
     block,
     tap,
     edit,
@@ -173,7 +201,7 @@ async function withBuilder(
 }
 type Fixture = {
   player: Player;
-  look(yaw: number): void;
+  lookSettled(yaw: number, pitch?: number): Promise<void>;
   cell(x?: number, y?: number, z?: number): Cell;
   block(cell: Cell): NonNullable<ReturnType<Arena["dim"]["getBlock"]>>;
   tap(tap: "block" | "air" | "clear", cell?: Cell): Promise<Reply>;
@@ -640,7 +668,17 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
         y: anchor.y + dy,
         z: anchor.z + dz,
       });
-      for (const c of target) f.block(c).setType("minecraft:gold_block");
+      // Air above solid ground keeps the snapped box at the aimed box (ADR 0203).
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of target) {
+        const ground = { ...c, y: c.y - 1 };
+        if (
+          ground.x !== anchor.x ||
+          ground.y !== anchor.y ||
+          ground.z !== anchor.z
+        )
+          f.block(ground).setType("minecraft:stone");
+      }
       const before = snapshot(f, target);
       await pasteStep(f, anchor.x, anchor.y, anchor.z, face, false);
       check(unchanged(f, target, before), "Plain aimed press wrote blocks");
@@ -691,9 +729,15 @@ function pasteTarget(
   sy: number,
   sz: number,
 ) {
-  f.block(anchor).setType("minecraft:gold_block");
+  // Paste snaps above the highest ground under its footprint, so an air bottom
+  // layer over a solid footprint keeps the snapped box equal to the aimed box.
+  for (const cell of f.region(sx, 1, sz, anchor))
+    f.block(cell).setType("minecraft:gold_block");
   const cells = f.region(sx, sy, sz, { ...anchor, y: anchor.y + 1 });
-  for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
+  for (const cell of cells)
+    f.block(cell).setType(
+      cell.y === anchor.y + 1 ? "minecraft:air" : "minecraft:gold_block",
+    );
   return { anchor, cells, before: snapshot(f, cells) };
 }
 
@@ -1273,7 +1317,14 @@ async function pasteCutClipboard(
   f: Fixture,
   anchor: Cell,
   volume: number,
+  sx: number,
+  sy: number,
+  sz: number,
 ): Promise<void> {
+  for (const cell of f.region(sx, sy, sz, anchor))
+    f.block(cell).setType("minecraft:air");
+  for (const cell of f.region(sx, 1, sz, { ...anchor, y: anchor.y - 1 }))
+    f.block(cell).setType("minecraft:stone");
   const pasted = await pasteStep(f, anchor.x, anchor.y - 1, anchor.z, "up");
   check(
     pasted.message === "editDone" && pasted.count === volume,
@@ -1337,7 +1388,7 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
         "Cut left source blocks or frame",
       );
       check(entities().length === 0, "Cut left entities or dropped items");
-      await pasteCutClipboard(f, f.cell(12), source.length);
+      await pasteCutClipboard(f, f.cell(12), source.length, 8, 4, 8);
       await wait(2);
       const restored = f
         .block(f.cell(13, 1, 1))
@@ -1560,7 +1611,7 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
       "Cut clipboard is not a structure",
     );
     const target = f.region(3, 1, 1, f.cell(12, 0, 12));
-    await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length);
+    await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length, 3, 1, 1);
     check(unchanged(f, target, before), "Cut payload lost block states");
     await f.menu("paste", "endPaste");
   });
@@ -1815,17 +1866,18 @@ function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
       for (const cell of cells) f.block(cell).setType("minecraft:air");
       await f.select(at(6, axis === "x" ? 4 : 0, 4));
       f.block(f.cell()).setType("minecraft:air");
-      f.look(axis === "x" ? -90 : 0);
-      // Teleport rotation is only readable on a later tick.
-      await wait(1);
+      await f.lookSettled(axis === "x" ? -90 : 0);
       const step = await f.menu("shape", "sideCylinder");
+      const expectedKind = axis === "x" ? "sideCylinderX" : "sideCylinderZ";
+      check(
+        step.flow.heightedKind === expectedKind,
+        `sideways cylinder picked ${step.flow.heightedKind} instead of ${expectedKind}`,
+      );
       check(
         step.offered === true && step.flow.kind === "heightStep",
         "sideways cylinder step missing",
       );
-      f.look(axis === "x" ? 0 : -90);
-      // Teleport rotation is only readable on a later tick.
-      await wait(1);
+      await f.lookSettled(axis === "x" ? 0 : -90);
       check(
         (await f.edit("height 5")).flow.previous === 5,
         "sideways cylinder height incorrect",
@@ -1836,9 +1888,10 @@ function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
           "box height was not locked",
         );
       const done = await f.menu("contents", fill);
+      const n = f.count(cells);
       check(
-        done.message === "editDone" && f.count(cells) === expected,
-        `sideways ${axis} ${fill} count incorrect`,
+        done.message === "editDone" && n === expected,
+        `sideways ${axis} ${fill} count incorrect: got ${n}, expected ${expected}, kind ${step.flow.heightedKind}`,
       );
       const stone = (along: number, y: number, across: number) =>
         f.block(at(along, y, across)).typeId === "minecraft:stone";
@@ -1980,6 +2033,9 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
           c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
         );
       for (const c of surround) f.block(c).setType("minecraft:gold_block");
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of f.region(3, 1, 5, f.cell(12, -1)))
+        f.block(c).setType("minecraft:stone");
       const chest = f.block(f.cell(1, 1, 1));
       chest.setType("minecraft:chest");
       chest
@@ -2021,7 +2077,7 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
         check(f.block(c).typeId === expected, "Rotated footprint mismatch");
       }
       const outside = surround.filter(
-        (c) => !target.some((t) => t.x === c.x && t.y === c.y && t.z === c.z),
+        (c) => !target.some((t) => t.x === c.x && t.z === c.z),
       );
       check(
         f.count(outside, "minecraft:gold_block") === outside.length,
@@ -2073,10 +2129,13 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
         );
       });
     try {
-      for (const c of [...source, ...target])
+      for (const c of source)
         f.block(c).setType(
           c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
         );
+      for (const c of target) f.block(c).setType("minecraft:air");
+      for (const c of f.region(8, 1, 4, f.cell(12, -1)))
+        f.block(c).setType("minecraft:stone");
       const chest = f.block(f.cell(1, 1, 1));
       chest.setType("minecraft:chest");
       chest
@@ -2133,6 +2192,8 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
           inside(12).filter((e) => e.typeId === "minecraft:cow").length === 1,
         "animal replacement failed",
       );
+      // The pasted stone layer lifts the snapped box by one; clearing it would
+      // pop the pasted sign, and the bed lies inside both boxes anyway.
       f.block(f.cell(19, 3, 3)).setType("yasu_ride:camper_bed");
       const before = snapshot(f, target);
       const cowIds = inside(12)
@@ -2255,10 +2316,13 @@ export async function buildPasteStructureDecor(
       try {
         for (const offset of [0, 12])
           for (const entity of entities(offset)) entity.remove();
-        for (const c of [...source, ...target])
+        for (const c of source)
           f.block(c).setType(
             c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
           );
+        for (const c of target) f.block(c).setType("minecraft:air");
+        for (const c of f.region(8, 1, 8, f.cell(12, -1)))
+          f.block(c).setType("minecraft:stone");
         for (const offset of [0, 12])
           for (const c of f.region(1, 4, 6, f.cell(offset + 1, 1, 1)))
             f.block(c).setType("minecraft:stone");
@@ -2279,29 +2343,25 @@ export async function buildPasteStructureDecor(
           "Structure paste decor check: within 60 seconds, place the item frame on the stone wall, put the diamond into it, and hang the painting on the wall.";
         f.player.sendMessage(prompt);
         f.player.onScreenDisplay.setActionBar(prompt);
+        onStep?.(setupPromptStep());
+        let elapsed = 0;
         let setup = setupState();
         for (
-          let ticks = 0;
-          ticks < 1200 && setup.missing.length > 0;
-          ticks += 10
+          ;
+          elapsed < SETUP_LIMIT_TICKS && setup.missing.length > 0;
+          elapsed += SETUP_POLL_TICKS
         ) {
-          await wait(10);
+          await wait(SETUP_POLL_TICKS);
           setup = setupState();
           // The player setup window exceeds the runner's 60-second stall watch.
-          if ((ticks + 10) % 200 === 0)
-            onStep?.({
-              name: `setup_wait_${ticks + 10}`,
-              pass: true,
-              detail: `polled setup after ${ticks + 10} ticks; missing: ${setup.missing.join(", ") || "none"}`,
-            });
+          if ((elapsed + SETUP_POLL_TICKS) % SETUP_REPORT_TICKS === 0)
+            onStep?.(
+              setupProgressStep(elapsed + SETUP_POLL_TICKS, setup.missing),
+            );
         }
         const cell = setup.frame;
         if (!cell || setup.missing.length > 0) {
-          record(
-            "setup",
-            false,
-            `fixture incomplete; missing: ${setup.missing.join(", ")}`,
-          );
+          record("setup", false, setupTimeoutDetail(elapsed, setup.missing));
           return;
         }
         record(
@@ -2346,10 +2406,15 @@ export async function buildPasteStructureDecor(
           pasted.message,
         );
         await wait(2);
+        const pastedFrames = frames(target);
+        const mirroredType = f.block(mirrored).typeId;
+        let frameDetail = `frames=${pastedFrames.length};mirroredType=${mirroredType};mirrored=${mirrored.x},${mirrored.y},${mirrored.z}`;
+        if (pastedFrames.length !== 1)
+          frameDetail += `;frameCells=${pastedFrames.map(cellKey).join(";")}`;
         record(
           "item_frame_block",
-          frames(target).length === 1 &&
-            f.block(mirrored).typeId === "minecraft:frame",
+          pastedFrames.length === 1 && mirroredType === "minecraft:frame",
+          frameDetail,
         );
         const firstPaintings = paintings(12);
         record("painting", firstPaintings.length === 1, firstPaintings.length);
@@ -2364,6 +2429,8 @@ export async function buildPasteStructureDecor(
         removeItems();
         await wait(BUILD_SPEC.pasteRepeatTicks);
         f.block(mirrored).setPermutation(permutation);
+        for (const c of f.region(8, 1, 8, f.cell(12)))
+          f.block(c).setType("minecraft:air");
         const repeated = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
         record(
           "paste_repeat",

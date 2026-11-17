@@ -41,6 +41,8 @@ const INVISIBLE_BLOCKS = [
 ].map((name) => `blocks/yasu_ride/${name}.block.json`);
 
 type Cube = { origin: Triple; size: Triple; pivot?: Triple; rotation?: Triple };
+// Bedrock supplies this geometry, so no Resource Pack model file exists.
+const FULL_BLOCK_CUBES: Cube[] = [{ origin: [-8, 0, -8], size: [16, 16, 16] }];
 type GeometryReference = string | { identifier: string };
 
 interface BlockGeometry {
@@ -79,7 +81,9 @@ function blockGeometries(): BlockGeometry[] {
 }
 
 function modelCubes(): Map<string, Cube[]> {
-  const cubes = new Map<string, Cube[]>();
+  const cubes = new Map<string, Cube[]>([
+    ["minecraft:geometry.full_block", FULL_BLOCK_CUBES],
+  ]);
   for (const file of jsonFiles(join(RP, "models"))) {
     const geometries = (file["minecraft:geometry"] as Json[] | undefined) ?? [];
     for (const geometry of geometries) {
@@ -179,7 +183,9 @@ interface Transformation {
 }
 
 function modelBones(): Map<string, Map<string, Box[]>> {
-  const out = new Map<string, Map<string, Box[]>>();
+  const out = new Map<string, Map<string, Box[]>>([
+    ["minecraft:geometry.full_block", new Map([["root", FULL_BLOCK_CUBES]])],
+  ]);
   for (const file of jsonFiles(join(RP, "models"))) {
     for (const geometry of (file["minecraft:geometry"] as Json[] | undefined) ??
       []) {
