@@ -25,6 +25,7 @@ import { SPEC } from "../../../src/domain/vehicle/spec";
 import { type SeatExit, Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";
+import { engineStep } from "../../support/engineModel";
 import { riderView } from "../../support/riders";
 import {
   riderViews,
@@ -1616,5 +1617,69 @@ it("silently drops saved oil lamps and removed decor, and saves it after the nex
   ).toBe(true);
   expect(saveDecor).toHaveBeenCalledWith(vehicleId, [
     { slot: "stove", item: "toaster" },
+  ]);
+});
+
+it("applies scooter poses for both turning riders and none for an SUV", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  const uc = new DriveVehicles(world, repo, logger(), () => false);
+  let body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+  const applyMotion = world.applyMotion.bind(world);
+  vi.spyOn(world, "applyMotion").mockImplementation((id, impulse, yaw) => {
+    applyMotion(id, impulse, yaw);
+    if (id === "scooter") body = engineStep(body, impulse, { mu: 0.688 }).body;
+  });
+  for (let tick = 1; tick < 80; tick++) {
+    world.snapshots = [
+      snapshot("scooter", {
+        kind: "scooter",
+        riders: [
+          riderView("driver", { raw: { moveX: 1, moveY: 1, jump: false } }),
+          riderView("passenger", { slot: 1 }),
+        ],
+        velocity: { ...body.vel, y: 0 },
+      }),
+      snapshot("suv", { riders: [riderView("suv-driver")] }),
+    ];
+    uc.execute(tick);
+  }
+  expect(world.calls).toContain("play:driver:scooter_grip");
+  expect(world.calls).toContain("play:passenger:scooter_grip");
+  expect(world.calls).toContain("play:driver:scooter_lean_l3");
+  expect(world.calls).toContain("play:passenger:scooter_lean_l3");
+  expect(world.calls.some((c) => c.startsWith("play:suv-driver:"))).toBe(false);
+  world.snapshots = [
+    snapshot("scooter", { kind: "scooter", riders: [riderView("driver")] }),
+  ];
+  uc.execute(81);
+  uc.execute(82);
+  expect(world.calls.filter((c) => c === "clearPose:passenger")).toEqual([
+    "clearPose:passenger",
+  ]);
+});
+it("resends rider poses after a pose port throws", () => {
+  const world = new FakeWorld();
+  world.snapshots = [
+    snapshot("scooter", {
+      kind: "scooter",
+      riders: [riderView("driver"), riderView("passenger", { slot: 1 })],
+    }),
+  ];
+  const play = vi.spyOn(world, "play").mockImplementationOnce(() => {
+    throw new Error("pose send");
+  });
+  const uc = new DriveVehicles(
+    world,
+    new InMemoryRepo(),
+    logger(),
+    () => false,
+  );
+  uc.execute(1);
+  play.mockClear();
+  uc.execute(2);
+  expect(play.mock.calls).toEqual([
+    ["driver", "scooter_grip"],
+    ["passenger", "scooter_grip"],
   ]);
 });

@@ -17,6 +17,18 @@ const body = Object.freeze({
 export const SCOOTER_PROFILE: VehicleProfile = Object.freeze({
   kind: "scooter",
   ridersFireProof: false,
+  riderPose: Object.freeze({
+    grip: "scooter_grip",
+    lean: Object.freeze([
+      "scooter_lean_l3",
+      "scooter_lean_l2",
+      "scooter_lean_l1",
+      "scooter_lean_r1",
+      "scooter_lean_r2",
+      "scooter_lean_r3",
+    ]),
+    refreshTicks: SCOOTER_SPEC.riderPoseRefreshTicks,
+  }),
   fleetLimit: SCOOTER_SPEC.fleetLimit,
   body,
   footprint: SCOOTER_SPEC.footprint,

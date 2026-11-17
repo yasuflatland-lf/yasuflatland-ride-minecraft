@@ -223,3 +223,10 @@ export function isFleetEntityType(typeId: string): boolean {
     isStandInEntity(typeId)
   );
 }
+
+export const RIDER_POSE_ANIMATION_PREFIX = "animation.yasu_ride.player.";
+export const RIDER_POSE_CONTROLLER = "yasu_ride.scooter_pose";
+/** Seconds; ADR 0250 owner check 2 specifies 0.1 to 0.25. */
+export const RIDER_POSE_BLEND_OUT_TIME = 0.15;
+export const RIDER_POSE_STOP_EXPRESSION = "!query.is_riding";
+export const RIDER_POSE_CLEAR_EXPRESSION = "1";

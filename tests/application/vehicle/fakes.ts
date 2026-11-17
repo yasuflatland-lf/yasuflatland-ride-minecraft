@@ -23,6 +23,7 @@ import { cellKey } from "../../../src/domain/shared/cells";
 import {
   asPlayerId,
   asVehicleId,
+  type PlayerId,
   type VehicleId,
 } from "../../../src/domain/shared/ids";
 import type { Paint } from "../../../src/domain/shared/paint";
@@ -165,6 +166,12 @@ export class FakeWorld
   runFault: ((id: string, call: number) => number | undefined) | undefined;
   private runCalls = 0;
   readonly calls: string[] = [];
+  play(playerId: PlayerId, pose: string): void {
+    this.calls.push(`play:${playerId}:${pose}`);
+  }
+  clear(playerId: PlayerId): void {
+    this.calls.push(`clearPose:${playerId}`);
+  }
   private nextId = 1;
 
   blockTypes(

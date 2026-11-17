@@ -5,6 +5,7 @@ import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { ScooterDrive } from "../../../../../src/domain/vehicle/kinds/scooter/drive";
 import { SCOOTER_SPEC } from "../../../../../src/domain/vehicle/kinds/scooter/spec";
 import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
+import { engineStep } from "../../../../support/engineModel";
 import { waterSensors } from "../../../../support/waterDepth";
 
 const idle: RawInput = { moveX: 0, moveY: 0, jump: false };
@@ -158,6 +159,35 @@ it("floats level without a driver and corrects depth toward the surface", () => 
         if (depth > SCOOTER_SPEC.floatDraft)
           expect(out.impulse.y).toBeGreaterThan(0);
         else if (depth < SCOOTER_SPEC.floatDraft) expect(out.impulse.y).toBe(0);
+      },
+    ),
+  );
+});
+
+it("reports upright straight driving and signed rider lean in sustained turns", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(-1, 1),
+      fc.integer({ min: 40, max: 100 }),
+      (steer, duration) => {
+        const drive = new ScooterDrive(0, {});
+        let body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+        const step = (moveX: number) => {
+          const out = drive.step(
+            { ...idle, moveX, moveY: 1 },
+            { ...context(), velocity: { ...body.vel, y: 0 } },
+          );
+          body = engineStep(body, out.impulse, { mu: 0.688 }).body;
+          return out;
+        };
+        for (let tick = 0; tick < duration; tick++)
+          expect(step(0).riderLean).toBe(0);
+        expect(drive.speed).toBeCloseTo(SCOOTER_SPEC.maxSpeed);
+        for (let tick = 0; tick < duration; tick++) {
+          const out = step(steer);
+          if (tick >= SCOOTER_SPEC.maxLean / SCOOTER_SPEC.leanRate)
+            expect(out.riderLean).toBe(steer * SCOOTER_SPEC.leanLevels);
+        }
       },
     ),
   );

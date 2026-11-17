@@ -30,6 +30,7 @@ import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { BedrockLoadedVehicles } from "./bedrockLoadedVehicles";
 import { BedrockRiderEffects } from "./bedrockRiderEffects";
+import { BedrockRiderPose } from "./bedrockRiderPose";
 import { BedrockSurroundings } from "./bedrockSurroundings";
 import { BedrockVehicleBlocks } from "./bedrockVehicleBlocks";
 import { BedrockVehicleImpulse } from "./bedrockVehicleImpulse";
@@ -54,6 +55,7 @@ export class BedrockVehicleWorld implements DriveWorld {
   private readonly blocks: BedrockVehicleBlocks;
   private readonly riders: BedrockVehicleRiders;
   private readonly effects: BedrockRiderEffects;
+  private readonly poses: BedrockRiderPose;
   private readonly space: BedrockVehicleSpace;
   /** Shared with BedrockFleetWorld so a removed vehicle releases the same blocks, seats, stand-in and hold. */
   readonly releaser: VehicleReleaser;
@@ -110,6 +112,7 @@ export class BedrockVehicleWorld implements DriveWorld {
       standIns,
     );
     this.effects = new BedrockRiderEffects(index);
+    this.poses = new BedrockRiderPose(index);
     this.space = new BedrockVehicleSpace(dockBlocks, (dimensionId, cell) =>
       this.dockCellOwner(dimensionId, cell),
     );
@@ -236,6 +239,14 @@ export class BedrockVehicleWorld implements DriveWorld {
 
   run(vehicleId: VehicleId, commands: readonly EngineCommand[]): void {
     this.impulse.run(vehicleId, commands);
+  }
+
+  play(playerId: PlayerId, pose: string): void {
+    this.poses.play(playerId, pose);
+  }
+
+  clear(playerId: PlayerId): void {
+    this.poses.clear(playerId);
   }
 
   setChaseCamera(playerId: PlayerId, chase: ChaseCamera | undefined): void {
