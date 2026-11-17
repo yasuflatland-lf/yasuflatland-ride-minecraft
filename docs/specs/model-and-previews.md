@@ -1,6 +1,6 @@
 # Model conventions and rendered previews
 
-- Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV and sports boat README previews and the pack icons are rendered from the model files and kept fresh.
+- Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV, sports boat, camper, bulldozer and scooter README previews and the pack icons are rendered from the model files and kept fresh.
 - Verified at: 7267bd8a
 - Source: [0009](../adr/0009-vehicle-model-conventions.md)
 - Source: [0016](../adr/0016-readme-preview-rendered-from-model.md)
@@ -9,6 +9,7 @@
 - Source: [0049](../adr/0049-pack-icons-rendered-from-model.md)
 - Source: [0056](../adr/0056-sports-boat-previews.md)
 - Source: [0067](../adr/0067-camper.md)
+- Source: [0251](../adr/0251-add-the-scooter-kind.md)
 - Source: [0101](../adr/0101-give-invisible-blocks-a-hidden-cube.md)
 - Source: [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md)
 - Source: [0123](../adr/0123-a-fridge-in-place-of-the-camper-shelf.md)
@@ -45,6 +46,15 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 - Implementation: `tools/render_preview.py` (`CAMPER_CELLS_PER_UNIT`, `CAMPER_POSES`, `textured_face`, `collect_boat`).
 - Verification: `tests/tools/renderPreview.test.ts` checks unchanged patches below the cap, capped cell counts and coverage, and midpoint colors with mirrored UVs and merging enabled or disabled; `pnpm model:check` checks preview freshness.
 
+### Scooter README previews
+
+- Applies to: The four `scooter-*.png` README previews only.
+- Rule: `render_scooter` draws the road pose of the default white paint with the hover glow bones left out, as the render controller hides them on the ground, and lights the `headlights` and `tail_lights` bones for the dusk picture. The four views reuse the bulldozer's camera directions: front-left, front-left at dusk with the lamps on, side and rear. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Generate it with `tools/gen_scooter.py`"; [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
+- Implementation: `tools/render_preview.py` (`render_scooter`, `SCOOTER_POSES`, `SCOOTER_LIT`, `SCENE_BUILDERS`); `docs/images/scooter-front-left.png`; `docs/images/scooter-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`
+- Verification: `tests/tools/renderPreview.test.ts` "renders four previews from the camper's angles without hover discs" and the scene list test; `pnpm model:check` checks preview freshness. Not verified: how the curved panels compare with the photos beyond the rendered images.
+
 ### Scooter generator foundation
 
 - Applies to: Scooter generator primitives, area geometry, placeholders, and texture regions.
@@ -75,15 +85,14 @@ The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_fron
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
 model pixels apart. The running area supplies both wheels, suspension, and stand.
-Whitewall discs
-use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
+Whitewall discs use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
 0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
 panel's tangent frame and takes no panel margin, so its outer envelope stays within
 0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
 fold bones retain their axle pivots. The combined running, body, rear, engine, head, and shield atlas stays within 2048 by 2048
 texels. The scooter requests this side limit from the shared packer, which searches
 wider layouts and rejects regions that cannot fit without reducing texture detail.
-Side and front-left previews render the full atlas without a density cap.
+Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit.
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
@@ -109,17 +118,18 @@ forward-looping exhaust header, shallow kidney muffler, and two body brackets.
 Its named assemblies are `engine_casting` (42), `engine_fan` (32), `engine_kick`
 (18), `engine_muffler` (114), and `engine_header` (66).
 
-The head area replaces the steering
-and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
+The head area replaces the steering and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
 Its collar, horn casting, bib, instrument bezel, lamp rim, controls, levers, and
 mirrors retain the spike ring counts. Named `head_*` assemblies carry compound
 panels; alpha-cut profiles and world-position paint shading keep the casting
 smooth. Small atlas regions carry the silver reflector, text-free dial, dark
 mirror glass, and chrome mirror backs.
 
-The whole-vehicle target is 3,682 cubes, including 32 glow cubes; generation rejects more than the
-3,800-cube ceiling. This foundation supplies assets
-only; the scooter has no entity or riding behavior yet.
+The whole-vehicle target is 3,700 cubes, including 32 glow cubes;
+generation rejects more than the 3,800-cube ceiling. The finished
+generated model has 3,546 cubes: 1,928 on `body`, 867 on `steer`, 294 on each wheel,
+73 on `headlights`, 48 on `tail_lights`, 16 on each glow bone and 10 on `stand`. The
+kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
 within a 650-cube allocation. The crowned shield, shoulder, side plates, chrome
@@ -131,7 +141,7 @@ measured vertices. The registered assemblies are `shield_face` (105),
 Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
 
 The sixteen paints follow the shared dye order. Khaki and white preserve the ivory
-atlas byte-for-byte, with white declared as the default paint for future kind wiring
+atlas byte-for-byte, with white declared as the default paint
 (ADR 0076). Recolouring affects only paint regions and retains their shading and alpha.
 Material maps distinguish polished chrome, semi-gloss paint, rough rubber and leather,
 smooth lenses, the plate, and cast metal. The switched lit maps cover `head_lens`,
@@ -209,13 +219,13 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Rule: The front of a vehicle is the model's -z side and its rear is +z. The sports boat generator builds the bow at +z and rotates the model half a turn about the y axis just before writing, so the written file has the bow at -z. The preview renderer relies on this: the headlight beam is drawn toward lower z.
 - Agreement: Accepted
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "The front of the entity is the model's -z side"
-- Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json`; `tools/gen_sportsboat.py` (`turn_around`); `tools/render_preview.py` (`ground_layers`, `water_layers`)
+- Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json`; `tools/gen_sportsboat.py` (`turn_around`); `tools/render_preview.py` (`ground_layers`, `water_layers`)
 - Verification: `tests/packs/model.test.ts` "faces -z: front wheels, front doors and front seats sit at lower z than the rear ones"; `tests/packs/bulldozerModel.test.ts` "keeps the front at -z"; `tests/packs/resourcePack.test.ts` "turns each rear hub to face the rear, with the prop behind its wheel". Not verified: no test asserts the front direction of the camper or the sports boat file directly (the camper and boat tests only state it in comments and derive other positions from it), and the models in game on any device.
 
 ### Bone names
 
-- Applies to: the four vehicle geometries, every mode.
-- Rule: Every vehicle geometry has the bones `root`, which has no parent, and `body`, whose parent is `root`. A part that exists on a vehicle uses the standard bone names: the SUV has `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `door_fl`, `door_fr`, `door_rl`, `door_rr` and `seat_0` to `seat_3`; the camper has the four `wheel_*` bones and `seat_0` to `seat_3` but names its entry door `door_entry`, not `door_f*`, and also has `door_glass`; the bulldozer has `seat_0` as its only seat, one door bone `door_l` and `door_glass`, and no wheel bones; the sports boat has no wheel, door or seat bones. The positions of the wheel and door pivots are stated in the SUV body and seats topic.
+- Applies to: the five vehicle geometries, every mode.
+- Rule: Every vehicle geometry has the bones `root`, which has no parent, and `body`, whose parent is `root`. A part that exists on a vehicle uses the standard bone names: the SUV has `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `door_fl`, `door_fr`, `door_rl`, `door_rr` and `seat_0` to `seat_3`; the camper has the four `wheel_*` bones and `seat_0` to `seat_3` but names its entry door `door_entry`, not `door_f*`, and also has `door_glass`; the bulldozer has `seat_0` as its only seat, one door bone `door_l` and `door_glass`, and no wheel bones; the sports boat has no wheel, door or seat bones; the scooter has `wheel_front` and `wheel_rear` (under `steer` and the fold bones `wheel_front_fold` and `wheel_rear_fold`), `seat_0` and `seat_1`, and no door bones. The positions of the wheel and door pivots are stated in the SUV body and seats topic.
 - Agreement: Accepted
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Standardize the bone names as follows: `root`, `body`, `wheel_fl` / `wheel_fr` / `wheel_rl` / `wheel_rr`, `door_fl` / `door_fr` / `door_rl` / `door_rr`, `seat_0`–`seat_3`"
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json`

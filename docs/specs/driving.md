@@ -20,19 +20,19 @@
 
 ### The script sets the velocity every tick
 
-- Applies to: SUV, camper, sports boat, bulldozer; every form and medium.
+- Applies to: SUV, camper, sports boat, scooter, bulldozer; every form and medium.
 - Rule: The engine does not move a vehicle. Each tick the script computes the vehicle's velocity from its internal speed and heading and gives the engine the difference as an impulse. The horizontal velocity it aims for never exceeds the kind's `maxSpeed` (`targetVelocity` caps its length). The cap bounds the speed the vehicle aims for, not the speed it reaches: right after it leaves a slippery surface where the friction estimate sat at `MOTION.frictionMin` (0.2) for a normal surface, the estimate has not caught up for some ticks, and one tick's velocity can reach `maxSpeed / MOTION.frictionMin` (4.5 blocks/tick at a `maxSpeed` of 0.9). In the SUV simulation, switching from a surface that keeps 0.2 to one that keeps 0.69 moves 3.1 blocks on the first tick and exceeds 1.0 on 9 ticks. The values that shape handling (speeds, acceleration, braking, drag, turn rate, steering full speed, grip) are not scattered through the logic; each kind declares them in its spec table and passes them to the motion functions as `MotionLimits` (`TyreLimits` for the two values only the ground step reads).
 - Agreement: Accepted
 - Basis: [0002](../adr/0002-script-driven-vehicle-movement.md) Decision, "Adopt approach 1. The vehicle entity is defined as a \"box you can ride\", and all movement is computed in the script."
 - Basis: [0002](../adr/0002-script-driven-vehicle-movement.md) Decision, "Cap the magnitude of horizontal velocity at the max speed every tick."
 - Basis: [0002](../adr/0002-script-driven-vehicle-movement.md) Decision, "Keep the tuning values in one place"
 - Basis: [0082](../adr/0082-learn-strongly-slowing-surfaces.md) Consequences, "Leaving a slow surface, the estimate catches up through the moving average, so for some ticks the engine keeps more of the pre-divided velocity than the target."
-- Implementation: `src/domain/vehicle/motion/motion.ts` (`targetVelocity`, `stepMotion`, `stepMediumMotion`); `src/domain/vehicle/motion/limits.ts` (`MotionLimits`, `TyreLimits`); `src/domain/vehicle/kinds/suv/spec.ts` (`SUV_SPEC`); `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/sportsboat/spec.ts`; `src/domain/vehicle/kinds/bulldozer/spec.ts`
+- Implementation: `src/domain/vehicle/motion/motion.ts` (`targetVelocity`, `stepMotion`, `stepMediumMotion`); `src/domain/vehicle/motion/limits.ts` (`MotionLimits`, `TyreLimits`); `src/domain/vehicle/kinds/suv/spec.ts` (`SUV_SPEC`); `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/sportsboat/spec.ts`; `src/domain/vehicle/kinds/scooter/spec.ts`; `src/domain/vehicle/kinds/bulldozer/spec.ts`
 - Verification: `tests/domain/vehicle/motion/motion.test.ts` "horizontal velocity stays within max speed on the ground, in the air, and over steps (up to 10% estimation error during the first 30 ticks)", "caps the result at maxSpeed"; `tests/domain/vehicle/profile.test.ts` "keeps speed inside the profile limits across arbitrary control sequences", "builds the SUV profile from the existing tuning and seat data". Not verified: how smooth the driver's camera is with the server computing the movement (0002 Consequences: not evaluated); any in-game measurement of the cap; whether the overshoot tick passes through walls in game.
 
 ### Boarding turns a stopped vehicle toward the driver
 
-- Applies to: SUV, camper, sports boat, bulldozer; a player who becomes the driver.
+- Applies to: SUV, camper, sports boat, scooter, bulldozer; a player who becomes the driver.
 - Rule: When a player takes the driver seat and the vehicle's speed is below `MOTION.mountAlignSpeed`, the vehicle turns to the driver's view direction (`alignOnMount`, which stores the yaw normalized). At or above that speed nothing changes. The driver seat of every kind has `lock_rider_rotation: 90`, so the camera follows the vehicle when it turns. A parked camper and a docked sports boat keep their yaw (see Open issues).
 - Agreement: Accepted
 - Basis: [0002](../adr/0002-script-driven-vehicle-movement.md) Decision, "When a player gets into the driver seat while the vehicle is stopped, turn the vehicle to face the driver's view direction."
@@ -42,7 +42,7 @@
 
 ### Speed, braking, and steering
 
-- Applies to: SUV, camper (car form); sports boat afloat; bulldozer; every kind that calls `updateSpeed` and `steerYaw`.
+- Applies to: SUV, camper, scooter (car form); sports boat afloat; bulldozer; every kind that calls `updateSpeed` and `steerYaw`.
 - Rule: Each tick `updateSpeed` changes the internal speed (blocks per tick, negative in reverse) from the throttle. Forward throttle at rest or while moving forward adds `accel` times the throttle. Reverse throttle at rest or while reversing adds `reverseAccel` times the throttle backward. With no throttle the speed shrinks toward 0 by `drag` and does not cross 0. A throttle against the direction of travel removes `max(drag, brake × |throttle|)` from the speed, so a light pull on the stick never slows the vehicle less than releasing it; that tick may cross 0. The result is clamped to `-maxReverse` and `maxSpeed`. `steerYaw` turns the heading by `steer × turnRate` scaled by `min(1, |speed| / steerFullSpeed)` and by the sign of the speed, so a stopped vehicle does not turn and a reversing one turns the other way. Left input (`steer > 0`) lowers the yaw.
 - Agreement: Accepted
 - Basis: [0002](../adr/0002-script-driven-vehicle-movement.md) Context, "We want arcade-style driving: acceleration and coasting, turning as soon as you steer, and sliding sideways under the handbrake."
@@ -50,12 +50,12 @@
 - Basis: [0074](../adr/0074-light-braking-at-least-coasting.md) Decision, "Acceleration, reverse acceleration, creep, coasting and the speed limits are unchanged. A braking tick may still cross zero, as before"
 - Basis: [0018](../adr/0018-sideways-stick-creeps-forward.md) Context, "steering is reversed when backing up (0002)"
 - Basis: [0018](../adr/0018-sideways-stick-creeps-forward.md) Decision, "it is above the speed at which steering reaches full effect (0.08), so the vehicle turns at its full rate"
-- Implementation: `src/domain/vehicle/motion/motion.ts` (`updateSpeed`, `steerYaw`); `src/domain/vehicle/kinds/suv/spec.ts` (`SUV_SPEC`: `maxSpeed`, `maxReverse`, `accel`, `reverseAccel`, `brake`, `drag`, `turnRate`, `steerFullSpeed`); `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/sportsboat/spec.ts`; `src/domain/vehicle/kinds/bulldozer/spec.ts`
+- Implementation: `src/domain/vehicle/motion/motion.ts` (`updateSpeed`, `steerYaw`); `src/domain/vehicle/kinds/suv/spec.ts` (`SUV_SPEC`: `maxSpeed`, `maxReverse`, `accel`, `reverseAccel`, `brake`, `drag`, `turnRate`, `steerFullSpeed`); `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/sportsboat/spec.ts`; `src/domain/vehicle/kinds/scooter/spec.ts`; `src/domain/vehicle/kinds/bulldozer/spec.ts`
 - Verification: `tests/domain/vehicle/motion/motion.test.ts` "forward throttle accelerates by accel times throttle from a standstill or moving forward, up to max speed (ADR 0002)", "reverse throttle from a standstill or reversing accelerates backward by reverseAccel times throttle, down to the reverse limit (ADR 0002)", "forward throttle while reversing brakes by the larger of drag and brake times throttle (ADR 0002, 0074)", "reverse throttle while moving forward brakes by the larger of drag and brake times throttle (ADR 0002, 0074)", "coasts to a stop without input and without reversing the sign of speed", "a light brake stops the SUV from max speed no later than coasting", "turns at the full turn rate at or above steerFullSpeed, mirrored in reverse (ADR 0002)", "up to steerFullSpeed, turns forward in proportion to speed", "steering does not change heading when stopped and turns the opposite way in reverse"; `tests/domain/vehicle/motion/mediumMotion.test.ts` "the sports boat afloat slows at least as much under a light brake as when released". Not verified: handling feel in game on PC or touch.
 
 ### Sideways grip and the handbrake
 
-- Applies to: SUV and camper in car form on the ground; the sports boat and the bulldozer have no handbrake.
+- Applies to: SUV, camper and scooter in car form on the ground; the sports boat and the bulldozer have no handbrake.
 - Rule: Each tick the target velocity keeps `1 - grip` of the sideways component of the observed velocity (except during a step jump and on a tick that reads a wall, see those rules) and sets the forward component to the internal speed. With Jump held in car form the grip is the kind's `handbrakeGrip` (`TyreLimits`), which is far lower than `grip`, so the vehicle slides. Out of car form (takeoff, hover, landing, submarine) Jump is not a handbrake.
 - Agreement: Accepted
 - Basis: [0002](../adr/0002-script-driven-vehicle-movement.md) Decision, "steering 6°/tick, grip 0.6, grip under handbrake 0.04"
@@ -66,7 +66,7 @@
 
 ### Stick to throttle, steering, and the sideways stick
 
-- Applies to: SUV, camper, sports boat, through `toDriveInput`; PC keyboard and mobile joystick alike. The bulldozer reads only the throttle from it (see Open issues).
+- Applies to: SUV, camper, sports boat, scooter, through `toDriveInput`; PC keyboard and mobile joystick alike. The bulldozer reads only the throttle from it (see Open issues).
 - Rule: The forward/back stick value becomes the throttle: 0 while its magnitude is at most `SPEC.throttleDeadzone`, otherwise `sign × min(1, |value| / SPEC.throttleFullAt)`, so pushing the stick half way gives full throttle and a hard turn on a phone keeps full throttle. The left/right value, clamped to -1..1, is the steering. When the left/right value is past the deadzone and the stick is within `SPEC.sidewaysAngle` of horizontal (`|moveY| <= tan(angle) × |moveX|`), the throttle is 0 and the input is marked `sideways` (see Creep). To reverse, the stick must point more than that angle below horizontal. A missing input, or a stick value that is not a finite number, gives the neutral control with `jump` false. The mapping does not branch on device type.
 - Agreement: Accepted
 - Basis: [0018](../adr/0018-sideways-stick-creeps-forward.md) Decision, "Keep 0005's mapping: when the forward/back value exceeds 0.1, the throttle is `sign × min(1, |value| / 0.5)`, and the left/right value is the steering"
@@ -78,7 +78,7 @@
 
 ### Creep
 
-- Applies to: SUV and camper in every form except takeoff (which ignores the controls); the sports boat afloat. The sports boat beached and the bulldozer never creep.
+- Applies to: SUV, camper and scooter in every form except takeoff (which ignores the controls); the sports boat afloat. The sports boat beached and the bulldozer never creep.
 - Rule: While the control is `sideways`, the speed moves to the kind's `creepSpeed` and holds there. From a stop, or from reversing, it speeds up (or brakes) to `creepSpeed`; above `creepSpeed` it coasts down by `drag` and stops there. For the SUV, `creepSpeed` is below `SPEC.ramMinSpeed`, so a vehicle that has settled at the creep speed never damages mobs (a vehicle still coasting down from a higher speed can, because ramming reads the speed, not the creep flag), and above `steerFullSpeed`, so it turns at its full rate. Creep needs no forward throttle, so a creeping vehicle never jumps a step.
 - Agreement: Accepted
 - Basis: [0018](../adr/0018-sideways-stick-creeps-forward.md) Decision, "Creeping speeds the vehicle up (or brakes it out of reverse) to 0.12 blocks/tick and holds it there. Above 0.12 it coasts down with the usual drag and stops at 0.12."
@@ -89,7 +89,7 @@
 
 ### Each kind maps Jump and the sideways stick
 
-- Applies to: SUV, camper, sports boat; the bulldozer has its own mapping (`bulldozerInput`), which this spec does not describe.
+- Applies to: SUV, camper, sports boat, scooter; the bulldozer has its own mapping (`bulldozerInput`), which this spec does not describe.
 - Rule: The core gives every kind the same `ControlInput { throttle, steer, jump, sideways }`; a kind decides what `jump` and `sideways` mean. The SUV and camper (`groundInputFor`): `jump` is the handbrake in car form only, `sideways` is creep in every form, takeoff ignores the controls, and out of car form the throttle is clamped to 0 or more. The sports boat afloat (`afloatInput`): `sideways` is creep and `jump` does nothing. The sports boat beached (`beachedInput`): reverse throttle and steering only, no creep, no handbrake. `MotionLimits` holds the values every step reads; `TyreLimits { handbrakeGrip, creepSpeed }` is taken only by the ground step, and the medium step and `updateSpeed` take the creep speed as an argument. The sports boat has no `handbrakeGrip` of its own; its beached drive builds a `TyreLimits` from its grip, which nothing reads.
 - Agreement: Accepted
 - Basis: [0089](../adr/0089-per-kind-control-mapping.md) Decision, "The core gives a kind-neutral control input: `ControlInput { throttle, steer, jump, sideways }` from `toDriveInput` in `src/domain/vehicle/driveInput.ts`."
@@ -103,7 +103,7 @@
 
 ### The shared medium step
 
-- Applies to: SUV and camper in every form except car (takeoff, hover, landing, submarine); the sports boat whenever it is afloat; the bulldozer in its hover and submarine forms.
+- Applies to: SUV and camper in every form except car (takeoff, hover, landing, submarine); the scooter in takeoff, hover and landing; the sports boat whenever it is afloat; the bulldozer in its hover and submarine forms.
 - Rule: The step that moves a vehicle horizontally in a medium whose engine drag the script divides out of the impulse (air or water with gravity off, or a buoyant hull) is `stepMediumMotion`, and the velocity it aimed for last tick is `MotionState.mediumExpected`. There is no ground friction to estimate, so the impulse is the target divided by the medium's drag, minus the observed velocity, applied in full, and the handbrake does not exist. `MotionLimits` lives in `src/domain/vehicle/motion/limits.ts` and the core's `profile.ts` does not re-export it. The sports boat's drive class is `SportsboatDrive`.
 - Agreement: Accepted
 - Basis: [0075](../adr/0075-name-the-medium-step-after-the-medium.md) Decision, "Rename `stepFlightMotion` to `stepMediumMotion`, and the motion state field `airExpected` to `mediumExpected`."
@@ -114,7 +114,7 @@
 
 ### Ground friction estimate
 
-- Applies to: car form on the ground (SUV, camper, bulldozer, and the beached sports boat through `stepMotion`).
+- Applies to: car form on the ground (SUV, camper, scooter, bulldozer, and the beached sports boat through `stepMotion`).
 - Rule: The engine's ground friction scales the velocity the script sets, so `stepMotion` estimates it and divides the target velocity by the estimate before giving it as an impulse. The estimate is the fraction of last tick's given velocity that remains in the direction it was given, clamped to `MOTION.frictionMin`..`MOTION.frictionMax`. The first sample becomes the estimate; later samples are blended in with weight `MOTION.frictionEma`. Until a first sample exists the estimate is `MOTION.defaultFriction`. A sample is taken only when this tick and the last were on the ground, the given velocity was long enough (`MOTION.minExpectedForFriction`), and no wall was read on this tick. While a wall is read the estimate is frozen. A surface that keeps at least `MOTION.frictionMin` of the velocity each tick is learned and the vehicle reaches its normal speed on it (soul sand is the example). A surface that keeps `k` with `MOTION.wallKeptMax` (0.15) <= `k` < `MOTION.frictionMin` is learned as `frictionMin`, so top speed is capped at `k / frictionMin × maxSpeed`. A surface that keeps less than `wallKeptMax` is read as a wall and the vehicle nearly stops (see "Which axes are walls on the ground").
 - Agreement: Accepted
 - Basis: [0003](../adr/0003-friction-compensation-and-axis-wall-detection.md) Decision, "Estimate the decay rate from the fraction of the previous tick's velocity that remains in the direction it was given."
@@ -141,7 +141,7 @@
 
 ### Which axes are walls in a medium
 
-- Applies to: the medium step (SUV and camper out of car form; the sports boat afloat; the bulldozer in its hover and submarine forms).
+- Applies to: the medium step (SUV and camper out of car form; the scooter out of car form; the sports boat afloat; the bulldozer in its hover and submarine forms).
 - Rule: `blockedAxes` checks each axis on its own: a driven axis (given velocity above `MOTION.blockedAxisMin`) is blocked when it kept less than `MOTION.blockedRatio` of the medium's wall drag (the drag, or `Medium.wallDrag` when the medium sets one) of the given velocity. The medium step takes no friction sample, and the sports boat's water-drag estimator takes no sample on a tick on which the check fires.
 - Agreement: Accepted
 - Basis: [0003](../adr/0003-friction-compensation-and-axis-wall-detection.md) Decision, "an axis is colliding if the fraction of the given velocity that remains on it is less than half the estimate"

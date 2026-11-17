@@ -21,6 +21,8 @@ headlights at dusk, side, and rear, without water layers (ADR 0067).
 Four bulldozer pictures share a fourth scale: front-left, headlights at dusk, side, and rear,
 showing only the first grouser phase and no propeller (ADR 0136). The beacon stays unlit: it faces
 backward on the cab roof, so the cab hides it from the front-left dusk view.
+Four scooter pictures share a fifth scale: front-left, headlights at dusk, side, and rear, in the
+default white road pose without the hover discs (ADR 0251).
 
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
@@ -173,6 +175,18 @@ BULLDOZER_POSES = {
     "bulldozer-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
     "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
     "bulldozer-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
+}
+
+SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
+# The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
+SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_white.png"
+SCOOTER_CELLS_PER_UNIT = 16
+SCOOTER_LIT_TEXTURE = "textures/entity/yasu_ride/scooter_lit.png"
+SCOOTER_POSES = {
+    "scooter-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
+    "scooter-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
+    "scooter-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": SIDE_BRIGHTNESS},
+    "scooter-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
 }
 
 # Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,
@@ -666,6 +680,7 @@ class TextureFace:
     cells_per_unit: float | None
     face_cache: dict | None
     cache_key: tuple
+    lit_texels: bool = False
 
     def patches(self, quad):
         if self.face_cache is not None and self.cache_key in self.face_cache:
@@ -679,7 +694,14 @@ class TextureFace:
                 patches = list(patches)
                 self.face_cache[self.cache_key] = patches
         for patch, color in patches:
+            if self.lit_texels and color[7] == 0:
+                yield patch, texel_glow(color), "lamp"
+                continue
             yield patch, tuple(color[i] * self.light * self.tint[i] + self.lift for i in range(3)), None
+
+
+def texel_glow(color):
+    return tuple(c + (255 - c) * LIT_GAIN for c in color[4:7])
 
 
 def opaque_region(texture, uv, width, height):
@@ -695,7 +717,7 @@ def opaque_region(texture, uv, width, height):
 
 
 
-def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, face_cache=None, frame_quads=None, defer_textures=False):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cutout=False, face_cache=None, frame_quads=None, defer_textures=False, texel_lit=False):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
@@ -733,7 +755,8 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                         polygons.append((quad, TextureFace(texture, uv, face,
                             desc['texture_width'], desc['texture_height'],
                             k, tint, face_lift, pose.get('merge_texels', False),
-                            pose.get('cells_per_unit'), face_cache, cache_key), None))
+                            pose.get('cells_per_unit'), face_cache, cache_key,
+                            bool(pose["lamps"] and texel_lit)), None))
                         if frame_quads is not None:
                             frame_quads.append(quad)
                         continue
@@ -756,8 +779,12 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                         frame_quads.append(quad)
                     else:
                         frame_quads.extend(patch for patch, pixel in patches if pixel[3] == 255)
-                for patch, (r, g, b, a) in patches:
+                for patch, texel in patches:
+                    r, g, b, a = texel[:4]
                     if cutout and a < CUTOUT_ALPHA:
+                        continue
+                    if pose["lamps"] and texel_lit and texel[7] == 0:
+                        polygons.append((patch, texel_glow(texel), "lamp"))
                         continue
                     if color is not None:
                         polygons.append((patch, color, "lamp"))
@@ -1153,15 +1180,15 @@ def render_camper(rp: Path, icon_path: Path | None) -> SceneResult:
 
 
 def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
-    geo = json.loads((rp / "models/entity/yasu_ride/scooter.geo.json").read_text())["minecraft:geometry"][0]
-    texture = read_png(rp / "textures/entity/yasu_ride/scooter.png")
-    poses = {
-        "scooter-side.png": {"view": (1.0, 0.0, 0.0), "brightness": SIDE_BRIGHTNESS},
-        "scooter-front-left.png": {"view": VIEW_DIRECTION, "brightness": MAIN_BRIGHTNESS},
-    }
-    poses = {name: dict(lamps=False, dusk=False, screen_up=None, merge_texels=True,
-                        outward_normals=True, **pose) for name, pose in poses.items()}
-    return SceneResult(render_poses(geo, texture, poses, texture_mapping=True, cache_faces=True), None)
+    geo = json.loads((rp / SCOOTER_GEOMETRY).read_text())["minecraft:geometry"][0]
+    texture = read_png(rp / SCOOTER_TEXTURE)
+    # The road pose has no hover discs: the render controller hides the glow bones on the ground.
+    geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
+    # Only the texels the lit texture marks glow, so the lens stays round and the rim stays chrome.
+    texture = combine_textures(texture, read_png(rp / SCOOTER_LIT_TEXTURE))
+    images = render_poses(geo, texture, SCOOTER_POSES, {}, texture_mapping=True, cache_faces=True,
+                          defer_textures=True, texel_lit=True)
+    return SceneResult(images, None)
 
 
 def bulldozer_bones(bones):
@@ -1184,12 +1211,12 @@ def render_bulldozer(rp: Path, icon_path: Path | None) -> SceneResult:
     return SceneResult(images, None)
 
 
-def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cache_faces=False, defer_textures=False):
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False, *, cache_faces=False, defer_textures=False, texel_lit=False):
     face_cache = {} if cache_faces else None
     bounds = {name: [] for name in poses} if cache_faces else None
     scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping, face_cache=face_cache,
                                 frame_quads=bounds[name] if bounds is not None else None,
-                                defer_textures=defer_textures)
+                                defer_textures=defer_textures, texel_lit=texel_lit)
               for name, pose in poses.items()}
     frame_faces = bounds if bounds is not None else {name: [q for q, _, _ in scene[0]] for name, scene in scenes.items()}
     points = [p for quads in frame_faces.values() for quad in quads for p in quad]

@@ -550,6 +550,22 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
   });
 });
 
+describe("scooter previews (ADR 0251)", () => {
+  it("renders four previews from the camper's angles without hover discs", () => {
+    const result = previewPython(
+      "print(json.dumps({'names': list(r.SCOOTER_POSES), 'views': [p['view'] for p in r.SCOOTER_POSES.values()], 'bulldozer': [p['view'] for p in r.BULLDOZER_POSES.values()], 'size': r.image_size('scooter-side.png')}))",
+    );
+    expect(result.names).toEqual([
+      "scooter-front-left.png",
+      "scooter-headlights.png",
+      "scooter-side.png",
+      "scooter-rear.png",
+    ]);
+    expect(result.views).toEqual(result.bulldozer);
+    expect(result.size).toEqual([800, 600]);
+  });
+});
+
 describe("render_preview.py textured faces", () => {
   it("fits cached camper views from opaque face corners with identical framing", () => {
     const result = previewPython(`

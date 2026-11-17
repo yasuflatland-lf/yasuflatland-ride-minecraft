@@ -48,8 +48,8 @@ PLACEHOLDER_STAND_HI = (2.0, 5.0, 2.5)
 VISIBLE_BOUNDS_WIDTH = 3
 VISIBLE_BOUNDS_HEIGHT = 2.5
 VISIBLE_BOUNDS_OFFSET = (0, 1, 0)
-# Raised from 3500 for 40-segment tyres, which keep the tread silhouette within 0.015 units of a circle.
-CUBE_BUDGET = 3682
+# Raised from 3500 to 3650 for 40-segment tyres (tread silhouette within 0.015 units of a circle), then to 3700 for the glow bones and the rounded rear lamp.
+CUBE_BUDGET = 3700
 CUBE_BUDGET_CEILING = 3800
 
 

@@ -1,6 +1,6 @@
 # Paint
 
-- Scope: Paint order, dyes, repaint cost and hit routing, variant textures, and plain returned items for the SUV, camper, sports boat, bulldozer, ground tent, roof tent, and beach parasol.
+- Scope: Paint order, dyes, repaint cost and hit routing, variant textures, and plain returned items for the SUV, camper, sports boat, scooter, bulldozer, ground tent, roof tent, and beach parasol.
 - Verified at: 5ed1f579
 - Source: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md)
 - Source: [0036](../adr/0036-paint-by-hitting-with-a-dye.md)
@@ -20,7 +20,7 @@
 
 ### Paint order and variant
 
-- Applies to: Dyeable SUV, sports boat, bulldozer, and tent.
+- Applies to: Dyeable SUV, sports boat, scooter, bulldozer, and tent.
 - Rule: `PAINTS` defines the sixteen paints and their saved `minecraft:variant` indices: khaki, green, red, white, light_gray, gray, black, orange, yellow, lime, cyan, light_blue, blue, purple, magenta, pink. Preserve this order, including the early khaki, green, and red indices; append new paints.
 - Agreement: Proposed
 - Basis: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "`PAINTS` in the domain holds this order, and the dye map and variant numbers in the scripts are derived from it."; [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "New paints go at the end"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "The `PAINTS` order now also binds the tent"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "New paints still go at the end."
@@ -29,7 +29,7 @@
 
 ### Dye to paint
 
-- Applies to: Dyeable SUV, sports boat, bulldozer, and tent.
+- Applies to: Dyeable SUV, sports boat, scooter, bulldozer, and tent.
 - Rule: `PAINT_BY_DYE`, derived through `dyeOf`, accepts only the sixteen vanilla `minecraft:<color>_dye` items. Brown maps to `PAINTS[0]`; every other dye maps to its named paint. Ink sacs, bone meal, cocoa beans, and lapis lazuli do not repaint. `heldDye` reads the selected hotbar slot.
 - Agreement: Proposed
 - Basis: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "Every vanilla dye can repaint a dyeable vehicle. Brown dye restores its starting color; each of the other 15 dyes paints the color of its name."; [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Consequences, "The legacy dye items (ink sac, bone meal, cocoa beans, lapis lazuli) do not repaint."; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "so brown dye restores it, as it restores khaki on the vehicles (0076)."
@@ -38,7 +38,7 @@
 
 ### Dye hit routing
 
-- Applies to: SUV, camper, sports boat, and bulldozer, including a stand-in that receives a vehicle's hits.
+- Applies to: SUV, camper, sports boat, scooter, and bulldozer, including a stand-in that receives a vehicle's hits.
 - Rule: The `entityHitEntity` after-event resolves the vehicle through `vehicleOfTarget` and the selected-slot dye through `heldDye`. A dye hit executes `PaintVehicle` immediately in the handler and returns without calling `HitVehicle`, including when repainting does nothing. Interacting never repaints, whatever the player holds; boarding remains in the boarding handler.
 - Agreement: Accepted
 - Basis: [0036](../adr/0036-paint-by-hitting-with-a-dye.md) Decision, "the hit repaints the vehicle by the rules of 0031 and does not count toward breaking it"; [0036](../adr/0036-paint-by-hitting-with-a-dye.md) Decision, "Interacting with a vehicle (the ride button or a long press on touch, right-click on PC) no longer repaints it, whatever the player holds."; [0036](../adr/0036-paint-by-hitting-with-a-dye.md) Decision, "`entityHitEntity` is an after-event, which may change the world, so the repaint runs in the handler without `system.run`"
@@ -47,7 +47,7 @@
 
 ### Cost and no-op
 
-- Applies to: Dyeable SUV, sports boat, bulldozer, and tent.
+- Applies to: Dyeable SUV, sports boat, scooter, bulldozer, and tent.
 - Rule: `Repaint.execute` consumes one selected-slot dye outside Creative when the shown color changes. It consumes none in Creative. Compare both requested and current paint through `effectivePaint`: `PAINTS[0]` means the entity's `defaultPaint`, and every other paint means itself. Equal effective paints change nothing and keep the dye. Dyeable vehicle policies supply `defaultPaint`; the tent uses `TENT_SPEC.defaultPaint`. If the current paint or default paint cannot be read, including a removed entity or an unknown vehicle kind, do nothing and keep the dye, even after a repaint earlier in that tick. The camper uses `fixed("khaki")`: every dye is ignored, in Survival and Creative, without paint changes, dye consumption, sound, or a message. A variant-0 SUV uses `dyeable("khaki")`, so brown dye also does nothing there. No dye is named khaki.
 - Agreement: Proposed
 - Basis: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "Using a dye consumes one, except in creative mode."; [0076](../adr/0076-per-kind-default-paint.md) Decision, "A dye whose effective paint equals the vehicle's current effective paint does nothing and keeps the dye."; [0076](../adr/0076-per-kind-default-paint.md) Decision, "A vehicle whose kind cannot be read, because it is gone or is not a vehicle, is not painted and keeps the dye, even if it was painted earlier in the same tick (0037)"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Consequences, "Repainting a tent costs one dye outside Creative"
@@ -74,16 +74,16 @@
 
 ### Applying and displaying paint
 
-- Applies to: Dyeable SUV, sports boat, bulldozer, and tent.
+- Applies to: Dyeable SUV, sports boat, scooter, bulldozer, and tent.
 - Rule: `world.paint` triggers `yasu_ride:paint_<paint>` using `paintEvent` and `paintEventName`. `Repaint` then consumes the dye and only afterwards calls `world.playPaintSound`, which plays `dye.use` at the entity and logs a warning instead of throwing, so a failing sound cannot block the dye. Each event sets `minecraft:variant` to the paint's `PAINTS` index and removes the other paint groups. Each base render controller selects `Array.paints[query.variant]` in `PAINTS` order, with one texture per paint. A dyeable vehicle kind whose variant-0 texture is byte-identical to another paint's texture declares that paint as `defaultPaint`; otherwise it declares `PAINTS[0]`.
 - Agreement: Proposed
 - Basis: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "the render controller picks the texture by `query.variant`"; [0076](../adr/0076-per-kind-default-paint.md) Decision, "It checks that a kind whose variant-0 texture is byte-identical to another paint's texture shows that paint at variant 0 through `shownPaint`, and that a kind with no identical texture shows `PAINTS[0]`"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "`tent.rc.json` picks `Array.paints[query.variant]` from 16 textures in that order."
-- Implementation: `src/infrastructure/vehicle/bedrock/bedrockPaintWorld.ts`; `src/infrastructure/camp/bedrock/bedrockTentPaintWorld.ts`; `src/infrastructure/shared/dyes.ts`; `src/domain/shared/paint.ts`; `packs/yasu_ride_bp/entities/yasu_ride/{suv,sportsboat,bulldozer,tent}.se.json`; corresponding `.rc.json` files in `packs/yasu_ride_rp/render_controllers/yasu_ride/` and `.ce.json` files in `packs/yasu_ride_rp/entity/yasu_ride/`.
-- Verification: `tests/packs/paint.test.ts` "each paint event sets that paint's variant and drops the other paints" (SUV and tent), "the render controller picks each paint's texture by its variant, and the texture exists" (SUV), and "each painted entity's default paint matches the texture its variant-0 slot shows (ADR 0076)" (the three dyeable vehicles and tent). `tests/packs/sportsboat.test.ts` "each paint event sets that paint's variant and drops the other paints" covers boat events. `tests/packs/bulldozer.test.ts` "switches gravity with the shared groups and paints with the 16 dye events" checks event existence only; "maps each paint and the cab monitor to its texture" checks texture slots. `tests/packs/camper/glass.test.ts` "uses the single khaki texture" checks the fixed camper separately; `tests/packs/camper/paints.test.ts` checks that paint events and groups are absent and the normalization event sets variant 0. Scenario `paint_events` (`src/test-pack/scenarios/suv.ts`, `paintEvents`) and `tent_paint_events` (`src/test-pack/scenarios/tent.ts`, `tentPaintEvents`) check variants after each event; neither was run here. Not verified: bulldozer event contents by tests, player gestures, visible client rendering, or the sound in game.
+- Implementation: `src/infrastructure/vehicle/bedrock/bedrockPaintWorld.ts`; `src/infrastructure/camp/bedrock/bedrockTentPaintWorld.ts`; `src/infrastructure/shared/dyes.ts`; `src/domain/shared/paint.ts`; `packs/yasu_ride_bp/entities/yasu_ride/{suv,sportsboat,scooter,bulldozer,tent}.se.json`; corresponding `.rc.json` files in `packs/yasu_ride_rp/render_controllers/yasu_ride/` and `.ce.json` files in `packs/yasu_ride_rp/entity/yasu_ride/`.
+- Verification: `tests/packs/paint.test.ts` "each paint event sets that paint's variant and drops the other paints" (SUV and tent), "the render controller picks each paint's texture by its variant, and the texture exists" (SUV), and "each painted entity's default paint matches the texture its variant-0 slot shows (ADR 0076)" (every dyeable vehicle and tent). `tests/packs/sportsboat.test.ts` "each paint event sets that paint's variant and drops the other paints" covers boat events. `tests/packs/scooter.test.ts` "switches every dye variant while removing the other paint groups" covers scooter events. `tests/packs/bulldozer.test.ts` "switches gravity with the shared groups and paints with the 16 dye events" checks event existence only; "maps each paint and the cab monitor to its texture" checks texture slots. `tests/packs/camper/glass.test.ts` "uses the single khaki texture" checks the fixed camper separately; `tests/packs/camper/paints.test.ts` checks that paint events and groups are absent and the normalization event sets variant 0. Scenario `paint_events` (`src/test-pack/scenarios/suv.ts`, `paintEvents`) and `tent_paint_events` (`src/test-pack/scenarios/tent.ts`, `tentPaintEvents`) check variants after each event; neither was run here. Not verified: bulldozer event contents by tests, player gestures, visible client rendering, or the sound in game.
 
 ### A painted vehicle returns its plain item
 
-- Applies to: SUV, camper, sports boat, and bulldozer when broken back into an item.
+- Applies to: SUV, camper, sports boat, scooter, and bulldozer when broken back into an item.
 - Rule: Paint does not create a colored vehicle item. `HitVehicle` asks the world to drop the vehicle item; the adapter creates a fresh stack of `ITEM_TYPE[kind]` without reading or copying paint. Each kind therefore returns its same plain item regardless of paint.
 - Agreement: Accepted
 - Basis: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "The vehicle item has one color. Breaking a painted vehicle drops the same item"; [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Consequences, "The color is still lost when a vehicle is picked up, as in 0017"
