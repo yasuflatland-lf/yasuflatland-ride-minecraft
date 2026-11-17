@@ -61,25 +61,38 @@ The fixed bone order is `root`, `body`, `steer`, `wheel_front_fold`, `wheel_fron
 `headlights`, `wheel_rear_fold`, `wheel_rear`, `stand`, `tail_lights`, `seat_0`,
 `seat_1`. Fold and seat bones remain empty; no bone has a rest rotation. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
-model pixels apart. Area and assembly tables let builders replace the seven
-placeholder cubes independently. The body area replaces the body placeholder with the tail, cowls,
-frame cover, and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor`
-assemblies own all compound panels and trim. Body regions register idempotently
-before faces are constructed. Curved surfaces use broad alpha-cut panels, with
-seven slot rows only on the rider's right cowl, grey joint piping, and chrome
-floor rails and opening trim. The body budget is 1,150 cubes (currently 1,122);
-the production sampling reduces the spike's surface and trim segments. Warped
-or concave quads split into convex triangle masks to preserve closure coverage.
-Material sheets keep the mask regions cheap to pack; the paint gradient spans
-the shell instead of restarting on each panel. The head area replaces the steering
+model pixels apart. The running area supplies both wheels, suspension, and stand.
+Whitewall discs
+use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
+0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
+panel's tangent frame and takes no panel margin, so its outer envelope stays within
+0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
+fold bones retain their axle pivots. The combined running, body, shield, and head atlas stays within 2048 by 2048
+texels. The scooter requests this side limit from the shared packer, which searches
+wider layouts and rejects regions that cannot fit without reducing texture detail.
+Side and front-left previews render the full atlas without a density cap.
+
+The body area replaces the body placeholder with the tail, cowls, frame cover,
+and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
+own all compound body panels and trim.
+Body regions register idempotently before faces are constructed. Curved surfaces
+use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
+grey joint piping, and chrome floor rails and opening trim. The body budget is
+1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
+and trim segments. Warped or concave quads split into convex triangle masks to
+preserve closure coverage. Material sheets keep the mask regions cheap to pack;
+the paint gradient spans the shell instead of restarting on each panel.
+
+The head area replaces the steering
 and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
 Its collar, horn casting, bib, instrument bezel, lamp rim, controls, levers, and
 mirrors retain the spike ring counts. Named `head_*` assemblies carry compound
 panels; alpha-cut profiles and world-position paint shading keep the casting
 smooth. Small atlas regions carry the silver reflector, text-free dial, dark
-mirror glass, and chrome mirror backs. Remaining areas retain their placeholders.
-The whole-vehicle target is 3,500 cubes;
-generation rejects more than the 3,800-cube ceiling. This foundation supplies assets
+mirror glass, and chrome mirror backs.
+
+The whole-vehicle target is 3,650 cubes; generation rejects more than the
+3,800-cube ceiling. This foundation supplies assets
 only; the scooter has no entity or riding behavior yet.
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
@@ -97,7 +110,9 @@ Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and susp
 - Verification: `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
   corners, local UV resolution, measured dimensions, and deterministic builds.
   `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
-  UV bounds, and per-area budgets against the generated model and Python builders.
+  whitewall circularity and tyre clearance, atlas bounds, and per-area budgets
+  against the generated model and Python builders. `pnpm model:check` checks
+  `docs/images/scooter-side.png` and `scooter-front-left.png` freshness.
   `tests/tools/scooterShield.test.ts` checks symmetry, the flaring spine, standalone
   deterministic builds, region registration, finite geometry, compound membership,
   the horn scale, fender bolts, and continuous crown texture coverage.

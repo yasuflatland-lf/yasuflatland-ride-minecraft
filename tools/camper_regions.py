@@ -158,9 +158,11 @@ def _attempt(sizes, width, height, order, mode):
     return placed
 
 
-def pack(registry: RegionRegistry, gutter_px: int = 2) -> Layout:
+def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = None) -> Layout:
     if type(gutter_px) is not int or gutter_px < 0:
         raise ValueError("Gutter must be a nonnegative texel count")
+    if max_side is not None and (type(max_side) is not int or max_side <= 0):
+        raise ValueError("Maximum atlas side must be a positive texel count")
     regions = sorted(registry.regions(), key=lambda r: r.name)
     if not regions:
         raise ValueError("Cannot pack an empty registry")
@@ -176,10 +178,18 @@ def pack(registry: RegionRegistry, gutter_px: int = 2) -> Layout:
     min_width = max(w for w, _ in sizes)
     widths = sorted({min_width, max(min_width, math.ceil(math.sqrt(area))),
                      *(w for w in PACK_WIDTHS if w >= min_width)})
+    if max_side is not None:
+        # Minimum area alone can pick a tall narrow atlas that exceeds a texture limit.
+        # Packing includes a trailing gutter that is omitted from the final atlas.
+        limit = max_side + gutter_px
+        widths = sorted({*widths, *range(min_width, limit + 1, 64), limit})
+        widths = [w for w in widths if w <= limit]
     best = None
     for width in widths:
         low = max(max(h for _, h in sizes), math.ceil(area / width))
         high = sum(h for _, h in sizes)
+        if max_side is not None:
+            high = min(high, limit)
         while low <= high:
             height = (low + high) // 2
             found = None
@@ -200,6 +210,8 @@ def pack(registry: RegionRegistry, gutter_px: int = 2) -> Layout:
             if best is None or candidate < best:
                 best = candidate
             high = height - 1
+    if best is None:
+        raise ValueError(f"Regions do not fit within a {max_side} by {max_side} atlas")
     _, width, height, origins = best
     layout = Layout(regions, (width, height), {r.name: origin for r, origin in zip(regions, origins)})
     registry._layout = layout

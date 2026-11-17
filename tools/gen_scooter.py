@@ -13,12 +13,17 @@ cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 
 AREA_ORDER = (
+    "running",
     "body",
     "head",
     "shield",
 )
 
 ASSEMBLIES = {
+    "running_wheel_front": {"owner": "scooter", "cubes": 292},
+    "running_wheel_rear": {"owner": "scooter", "cubes": 292},
+    "running_spring": {"owner": "scooter", "cubes": 112},
+    "running_stand": {"owner": "scooter", "cubes": 2},
     "shield_face": {"owner": "scooter", "cubes": 105},
     "shield_trim": {"owner": "scooter", "cubes": 66},
     "shield_ridge": {"owner": "scooter", "cubes": 110},
