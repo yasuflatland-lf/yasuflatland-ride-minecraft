@@ -24,7 +24,7 @@ REAR_SLIDE_OVERLAP = 0.4
 REAR_COLLAR_BOTTOM = 4.6
 # Ends inside the cowl underside plate (y 13.23..13.29 on x = 0), the nearest fixed
 # body cube above the rear axle.
-REAR_COLLAR_TOP = 13.26
+REAR_COLLAR_TOP = load_tool("scooter_dims").REAR_STEM_TOP
 
 
 def _rear(result):
@@ -37,10 +37,10 @@ def _rear(result):
     def column(half, bottom, top):
         return kit.box((-half, bottom, z - half), (half, top, z + half), chrome)
 
-    # The wide sleeve stays inside the tyre at rest; only the thin stem crosses the
-    # open wheel well up to the cowl.
-    result.add("body", [column(REAR_SLEEVE_HALF, REAR_COLLAR_BOTTOM, rod_top),
-                        column(REAR_STEM_HALF, rod_top, REAR_COLLAR_TOP)])
+    # The wide sleeve stays inside the tyre at rest; the thin stem crosses the open wheel
+    # well only in flight, scaled flat against the cowl on the ground.
+    result.add("body", [column(REAR_SLEEVE_HALF, REAR_COLLAR_BOTTOM, rod_top)])
+    result.add(dims.REAR_STEM_BONE, [column(REAR_STEM_HALF, rod_top, REAR_COLLAR_TOP)])
     result.add(dims.STRUT_BONES["rear"], column(REAR_ROD_HALF, dims.AXLE_Y, rod_top))
 
 
