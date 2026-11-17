@@ -60,7 +60,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           endpoint,
           enterRotateMode(endpoint),
           chooseHeighted(endpoint, "copy"),
-          { kind: "pasteAim" },
+          { kind: "pasteAim", manualTurn: 0 },
         ];
         for (const flow of flows) {
           session.setFlow(flow);

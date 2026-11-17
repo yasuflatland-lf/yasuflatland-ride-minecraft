@@ -4,7 +4,11 @@ import {
   type PasteTarget,
 } from "../../domain/build/clipboard/clipboard";
 import { snapToGround } from "../../domain/build/clipboard/ground";
-import { facingFromDirection } from "../../domain/build/rotation/facing";
+import {
+  effectiveTurn,
+  facingFromDirection,
+} from "../../domain/build/rotation/facing";
+import { NO_TURN } from "../../domain/build/rotation/quarterTurn";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -64,7 +68,16 @@ export class ResolvePasteTarget {
       previous ??
       session.clipboard.facing;
     session.followPasteFacing(facing);
-    const target = aimedPasteTarget(session.clipboard, command.aim, facing);
+    const target = aimedPasteTarget(
+      session.clipboard,
+      command.aim,
+      effectiveTurn(
+        session.clipboard.facing,
+        facing,
+        flow.kind === "pasteAim" ? flow.manualTurn : NO_TURN,
+      ),
+      facing,
+    );
     if (!target) return { kind: "noTarget" };
     const box = this.snap(command, target.box);
     return box

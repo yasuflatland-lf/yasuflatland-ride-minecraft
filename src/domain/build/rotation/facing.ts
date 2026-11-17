@@ -9,6 +9,15 @@ export function turnBetween(from: Facing, to: Facing): QuarterTurn {
   return ((FACINGS.indexOf(to) - FACINGS.indexOf(from) + 4) % 4) as QuarterTurn;
 }
 
+export function effectiveTurn(
+  clipboardFacing: Facing,
+  gazeFacing: Facing,
+  manual: QuarterTurn,
+): QuarterTurn {
+  return ((turnBetween(clipboardFacing, gazeFacing) + manual) %
+    4) as QuarterTurn;
+}
+
 export function facingFromDirection(
   direction: Vec3,
   current?: Facing,
