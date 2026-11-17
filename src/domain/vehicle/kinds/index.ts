@@ -14,6 +14,9 @@ import { BULLDOZER_PROFILE } from "./bulldozer/profile";
 import { CamperDrive } from "./camper/drive";
 import { CAMPER_ENTITY } from "./camper/entity";
 import { CAMPER_PROFILE } from "./camper/profile";
+import { ScooterDrive } from "./scooter/drive";
+import { SCOOTER_ENTITY } from "./scooter/entity";
+import { SCOOTER_PROFILE } from "./scooter/profile";
 import { SportsboatDrive } from "./sportsboat/drive";
 import { SPORTSBOAT_ENTITY } from "./sportsboat/entity";
 import { SPORTSBOAT_PROFILE } from "./sportsboat/profile";
@@ -40,6 +43,11 @@ interface KindDefinition {
 // every vehicle of that kind.
 export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
   Object.freeze({
+    scooter: Object.freeze<KindDefinition>({
+      profile: SCOOTER_PROFILE,
+      entity: SCOOTER_ENTITY,
+      createDrive: (yaw, restored) => new ScooterDrive(yaw, restored),
+    }),
     suv: Object.freeze<KindDefinition>({
       profile: SUV_PROFILE,
       entity: SUV_ENTITY,

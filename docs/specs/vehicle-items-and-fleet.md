@@ -24,11 +24,11 @@
 
 ### Crafted vehicle items
 
-- Applies to: SUV, camper, sports boat, and bulldozer items.
-- Rule: Each kind has a craftable item `yasu_ride:<kind>_item`, as mapped by `ITEM_TYPE`. The SUV uses a shaped `crafting_table` recipe; crafting remains available alongside starter items.
+- Applies to: SUV, camper, sports boat, bulldozer, and scooter items.
+- Rule: Each kind has a craftable item `yasu_ride:<kind>_item`, as mapped by `ITEM_TYPE`. The SUV uses a shaped `crafting_table` recipe; crafting remains available alongside starter items. The scooter recipe uses three iron ingots and two coal (`  I` / ` II` / `C C`) and is always unlocked; its item stacks to one and uses the scooter icon.
 - Agreement: Accepted
 - Basis: [0008](../adr/0008-vehicle-item-and-breaking.md) Decision, "The vehicle item is crafted. Using it on the ground consumes one item and places one vehicle"; [0023](../adr/0023-starter-vehicle-on-first-join.md) Decision, "Crafting (0008) stays, so more vehicles can still be crafted"
-- Implementation: `packs/yasu_ride_bp/recipes/yasu_ride/suv_item.recipe.json`; `packs/yasu_ride_bp/items/yasu_ride/suv_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/sportsboat_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/bulldozer_item.recipe.json`; `src/infrastructure/vehicle/bedrock/identifiers.ts` (`ITEM_TYPE`).
+- Implementation: `packs/yasu_ride_bp/recipes/yasu_ride/suv_item.recipe.json`; `packs/yasu_ride_bp/items/yasu_ride/suv_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/sportsboat_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/bulldozer_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/scooter_item.recipe.json`; `packs/yasu_ride_bp/items/yasu_ride/scooter_item.item.json`; `src/infrastructure/vehicle/bedrock/identifiers.ts` (`ITEM_TYPE`).
 - Verification: `tests/packs/behaviorPack.test.ts` "has an item and a recipe (ADR 0008)" and "the recipe is unlocked from the start (BDS does not load the recipe without unlock)" check the SUV item, recipe result, and unlock. Not verified: the SUV recipe's shape and crafting-table tag by these assertions, or crafting on a device. Test references throughout this spec describe existing coverage; no tests were run for this document.
 
 ### Placement from the before-event
@@ -51,7 +51,7 @@
 
 ### Placement surfaces per kind
 
-- Applies to: every kind's placement profile; land placement for SUV, camper, and bulldozer.
+- Applies to: every kind's placement profile; land placement for SUV, camper, bulldozer, and scooter.
 - Rule: `placementCell` tries `profile.placement.surfaces` in order, and `canPlaceAt` uses `profile.placement.clearance`. Land kinds use the surface `"top"`: only the top face returns the clicked block as the placement cell. `PlaceVehicle.execute` spawns one block above that cell at its horizontal center, with the command's yaw. Liquid placement is specified by the sports boat topic.
 - Agreement: Accepted
 - Basis: [0024](../adr/0024-item-use-on-mobile-and-longer-headlights.md) Decision, "with the same filters (first event, vehicle item, top face)"; [0008](../adr/0008-vehicle-item-and-breaking.md) Decision, "Using it on the ground consumes one item and places one vehicle"
@@ -61,11 +61,11 @@
 ### Clearance box
 
 - Applies to: placement of every kind.
-- Rule: Every cell at offsets `-halfX..halfX`, `-halfZ..halfZ`, and `1..height` above the placement cell must pass `world.isAir` and must not be `isCampSpace`. The Bedrock adapter accepts air and light blocks as air, and rejects undefined or throwing block lookups. Each profile defines its clearance; `clearanceHeight(body)` is the ceiling of its body height. Every current profile uses `halfX` and `halfZ` of 1, the shared horizontal footprint. The bulldozer blade and tracks and the camper's body ends are model only for this check and may overlap nearby blocks. The clearance promises room for the collision box rather than every visible model part.
+- Rule: Every cell at offsets `-halfX..halfX`, `-halfZ..halfZ`, and `1..height` above the placement cell must pass `world.isAir` and must not be `isCampSpace`. The Bedrock adapter accepts air and light blocks as air, and rejects undefined or throwing block lookups. Each profile defines its clearance; `clearanceHeight(body)` is the ceiling of its body height. Every current profile uses `halfX` and `halfZ` of 1, the shared horizontal footprint. The bulldozer blade and tracks and the camper's body ends are model only for this check and may overlap nearby blocks. The clearance promises room for the collision box rather than every visible model part. The scooter uses a 0.8125-block-wide, 1.5625-block-high collision box, checked within a 3 by 3 by 2 placement clearance; its 1.3-block footprint covers its collision box and model corners.
 - Agreement: Proposed
 - Basis: [0142](../adr/0142-place-the-bulldozer-in-the-suvs-space.md) Decision, "Set the bulldozer's placement clearance to `halfX` 1, `halfZ` 1, and height 3, the SUV's 3 x 3 footprint."; [0142](../adr/0142-place-the-bulldozer-in-the-suvs-space.md) Decision, "Leave the blade and tracks, which are model only, out of the check."; [0143](../adr/0143-place-the-camper-in-the-suvs-space.md) Decision, "Set the camper's placement clearance to `halfX` 1, `halfZ` 1, and height 4, the SUV's footprint with the camper's own height."
 - Implementation: `src/domain/vehicle/placement/placement.ts` (`canPlaceAt`, `clearanceHeight`); `src/application/vehicle/placeVehicle.ts` (`isFree`); `src/infrastructure/vehicle/bedrock/bedrockPlacementWorld.ts` (`isAir`); `src/domain/vehicle/kinds/suv/profile.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/sportsboat/profile.ts`; `src/domain/vehicle/kinds/bulldozer/profile.ts`.
-- Verification: `tests/packs/placementClearance.test.ts` "fits every %s collision box inside its placement clearance"; `tests/domain/vehicle/placement/placement.test.ts` `canPlaceAt` tests, including "checks only distinct clearance cells and stops at the first obstruction" and "uses every dimension of a kind's clearance"; `tests/application/vehicle/placeVehicle.test.ts` "refuses any camp cell inside the clearance before reading its block or consuming or spawning". Not verified: visible model overlap on a device.
+- Verification: `tests/packs/scooter.test.ts` seat, clearance, and footprint checks; `tests/packs/placementClearance.test.ts` "fits every %s collision box inside its placement clearance"; `tests/domain/vehicle/placement/placement.test.ts` `canPlaceAt` tests, including "checks only distinct clearance cells and stops at the first obstruction" and "uses every dimension of a kind's clearance"; `tests/application/vehicle/placeVehicle.test.ts` "refuses any camp cell inside the clearance before reading its block or consuming or spawning". Not verified: visible model overlap on a device.
 
 ### Starter items once per kind
 

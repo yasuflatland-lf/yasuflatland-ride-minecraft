@@ -11,6 +11,10 @@ import {
   CAMPER_MOTION,
   CAMPER_TYRES,
 } from "../../../src/domain/vehicle/kinds/camper/profile";
+import {
+  SCOOTER_MOTION,
+  SCOOTER_TYRES,
+} from "../../../src/domain/vehicle/kinds/scooter/profile";
 import { SPORTSBOAT_MOTION } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPORTSBOAT_SPEC } from "../../../src/domain/vehicle/kinds/sportsboat/spec";
 import {
@@ -23,6 +27,10 @@ import { SPEC } from "../../../src/domain/vehicle/spec";
 // The sports boat keeps its creep speed outside TyreLimits (drive.ts).
 const DECLARED: Record<VehicleKind, { maxSpeed: number; creepSpeed: number }> =
   {
+    scooter: {
+      maxSpeed: SCOOTER_MOTION.maxSpeed,
+      creepSpeed: SCOOTER_TYRES.creepSpeed,
+    },
     suv: { maxSpeed: SUV_MOTION.maxSpeed, creepSpeed: SUV_TYRES.creepSpeed },
     camper: {
       maxSpeed: CAMPER_MOTION.maxSpeed,

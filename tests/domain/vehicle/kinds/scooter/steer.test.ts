@@ -7,8 +7,15 @@ it("scales steering within the handlebar limits", () => {
   fc.assert(
     fc.property(fc.double({ min: -10, max: 10, noNaN: true }), (input) => {
       expect(steerAngle(input, SCOOTER_SPEC)).toBe(
-        Math.max(-1, Math.min(1, input)) * SCOOTER_SPEC.maxSteer,
+        Math.max(-1, Math.min(1, input)) * SCOOTER_SPEC.maxSteer || 0,
       );
     }),
   );
 });
+
+it.each([0, -0])(
+  "normalizes neutral steering %s for consistent property retries",
+  (input) => {
+    expect(steerAngle(input, SCOOTER_SPEC)).toBe(0);
+  },
+);

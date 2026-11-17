@@ -9,7 +9,7 @@ const entity = (name: string) =>
     ),
   )["minecraft:entity"];
 
-it.each(["suv", "camper", "sportsboat"])(
+it.each(["suv", "camper", "sportsboat", "scooter"])(
   "shows Drive on the interact button of the %s",
   (name) => {
     expect(entity(name).components["minecraft:rideable"].interact_text).toBe(

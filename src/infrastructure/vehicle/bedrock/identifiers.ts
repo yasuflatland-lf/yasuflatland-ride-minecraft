@@ -27,6 +27,7 @@ export const VEHICLE_FAMILY = "yasu_ride_vehicle";
 export const ENTITY_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze(
   {
     suv: id("suv"),
+    scooter: id("scooter"),
     sportsboat: id("sportsboat"),
     camper: id("camper"),
     bulldozer: id("bulldozer"),
@@ -34,6 +35,7 @@ export const ENTITY_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze(
 );
 export const ITEM_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze({
   suv: id("suv_item"),
+  scooter: id("scooter_item"),
   sportsboat: id("sportsboat_item"),
   camper: id("camper_item"),
   bulldozer: id("bulldozer_item"),
