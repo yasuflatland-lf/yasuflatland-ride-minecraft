@@ -29,60 +29,60 @@ export class ShowPreview {
         this.sizes.delete(id);
     }
     if (tick % BUILD_SPEC.outlineInterval !== 0) return;
+    for (const id of this.repo.ids()) this.refresh(id, tick);
+  }
+
+  refresh(id: PlayerId, tick: number): void {
     const blink = Math.floor(tick / BUILD_SPEC.outlineInterval) % 2 === 0;
-    for (const id of this.repo.ids()) {
-      const session = this.repo.get(id);
-      if (!session?.isInBuildMode) continue;
-      const { flow } = session;
-      if (flow.kind === "rotateMode")
-        this.feedback.showMode(id, {
-          kind: "rotate",
-          degrees: degreesOf(flow.turn),
-        });
-      const aim = this.aimReader.aim(id);
-      const preview: PreviewAim = { blink };
-      if (flow.kind === "point1" && aim)
-        preview.end = aim.block?.cell ?? virtualEndPoint(flow.cell, aim.ray);
-      if (flow.kind === "heightStep") {
-        preview.height =
-          !flow.heightLocked && aim
-            ? aimedHeight(flow, aim.ray)
-            : flow.previous;
-        const size = volumeSize(flow.base, preview.height);
-        const previous = this.sizes.get(id);
-        if (
-          previous?.x !== size.x ||
-          previous.y !== size.y ||
-          previous.z !== size.z
-        ) {
-          this.feedback.showSize(id, size);
-          this.sizes.set(id, size);
-        }
+    const session = this.repo.get(id);
+    if (!session?.isInBuildMode) return;
+    const { flow } = session;
+    if (flow.kind === "rotateMode")
+      this.feedback.showMode(id, {
+        kind: "rotate",
+        degrees: degreesOf(flow.turn),
+      });
+    const aim = this.aimReader.aim(id);
+    const preview: PreviewAim = { blink };
+    if (flow.kind === "point1" && aim)
+      preview.end = aim.block?.cell ?? virtualEndPoint(flow.cell, aim.ray);
+    if (flow.kind === "heightStep") {
+      preview.height =
+        !flow.heightLocked && aim ? aimedHeight(flow, aim.ray) : flow.previous;
+      const size = volumeSize(flow.base, preview.height);
+      const previous = this.sizes.get(id);
+      if (
+        previous?.x !== size.x ||
+        previous.y !== size.y ||
+        previous.z !== size.z
+      ) {
+        this.feedback.showSize(id, size);
+        this.sizes.set(id, size);
       }
-      if (flow.kind === "pasteAim" && session.clipboard)
-        this.feedback.showMode(id, {
-          kind: "pasteReady",
-          size: session.clipboard.size,
-          blockCount: session.clipboard.blockCount,
-        });
-      const dimensionId =
-        flow.kind === "pasteAim" ? this.aimReader.dimensionOf(id) : undefined;
-      if (flow.kind === "pasteAim" && aim && session.clipboard && dimensionId) {
-        const result = this.resolveTarget.execute({
-          playerId: id,
-          dimensionId,
-          aim,
-          tick,
-        });
-        if (result.kind === "target") preview.pasteBox = result.target.box;
-      }
-      const set = previewPoints(flow, preview);
-      if (Object.values(set).some((points) => points.length > 0))
-        this.feedback.drawPreview(
-          id,
-          "dimensionId" in flow ? flow.dimensionId : dimensionId,
-          set,
-        );
     }
+    if (flow.kind === "pasteAim" && session.clipboard)
+      this.feedback.showMode(id, {
+        kind: "pasteReady",
+        size: session.clipboard.size,
+        blockCount: session.clipboard.blockCount,
+      });
+    const dimensionId =
+      flow.kind === "pasteAim" ? this.aimReader.dimensionOf(id) : undefined;
+    if (flow.kind === "pasteAim" && aim && session.clipboard && dimensionId) {
+      const result = this.resolveTarget.execute({
+        playerId: id,
+        dimensionId,
+        aim,
+        tick,
+      });
+      if (result.kind === "target") preview.pasteBox = result.target.box;
+    }
+    const set = previewPoints(flow, preview);
+    if (Object.values(set).some((points) => points.length > 0))
+      this.feedback.drawPreview(
+        id,
+        "dimensionId" in flow ? flow.dimensionId : dimensionId,
+        set,
+      );
   }
 }

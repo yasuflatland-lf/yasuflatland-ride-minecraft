@@ -2,6 +2,7 @@ import { expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { registerEditTick } from "../../../src/infrastructure/build/bedrock/handlers/editTick";
+import { registerPasteControls } from "../../../src/infrastructure/build/bedrock/handlers/pasteControls";
 import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers/wand";
 import { installBuild } from "../../../src/infrastructure/build/install";
 
@@ -43,6 +44,12 @@ vi.mock("@minecraft/server-ui", () => ({
   ActionFormData: vi.fn(),
   ModalFormData: vi.fn(),
 }));
+vi.mock(
+  "../../../src/infrastructure/build/bedrock/handlers/pasteControls",
+  () => ({
+    registerPasteControls: vi.fn(),
+  }),
+);
 vi.mock("../../../src/infrastructure/build/bedrock/handlers/wand", () => ({
   registerWand: vi.fn(),
 }));
@@ -89,6 +96,13 @@ it.each([false, true])(
     expect(wand).toBeDefined();
     expect(jobs).toBeDefined();
     if (!wand || !jobs) throw new Error("Build handlers were not installed");
+    const controls = vi.mocked(registerPasteControls).mock.calls[0]?.[0];
+    expect(controls).toBeDefined();
+    expect(controls?.repo).toBe(wand.repo);
+    expect(controls?.aim).toBe(wand.aim);
+    expect(controls?.pressPasteAim).toBe(wand.pressPasteAim);
+    expect(controls?.rotateDebounce).toBe(wand.rotateDebounce);
+    expect(controls?.pasteDebounce).toBe(wand.pasteDebounce);
     const session = wand.repo.getOrCreate(playerId);
     session.beginEdit();
     jobs.start(

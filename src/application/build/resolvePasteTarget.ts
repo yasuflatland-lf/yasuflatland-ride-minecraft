@@ -64,7 +64,12 @@ export class ResolvePasteTarget {
       previous ??
       session.clipboard.facing;
     session.followPasteFacing(facing);
-    const target = aimedPasteTarget(session.clipboard, command.aim, facing);
+    const target = aimedPasteTarget(
+      session.clipboard,
+      command.aim,
+      session.pasteTurn,
+      facing,
+    );
     if (!target) return { kind: "noTarget" };
     const box = this.snap(command, target.box);
     return box

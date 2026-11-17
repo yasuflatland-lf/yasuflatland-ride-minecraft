@@ -51,7 +51,7 @@ function setup(active = true) {
   );
   if (active)
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-      modes.execute([{ playerId: alex, holding: true }]);
+      modes.execute([{ playerId: alex, held: "wand" }]);
   const aim = vi.fn<AimReader["aim"]>();
   const preview = new ShowPreview(
     repo,
@@ -127,7 +127,7 @@ it("draws only in build mode and on the interval, and clears the preview with th
     new LeaveBuild(repo, new FakeStructureStore()),
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-    modes.execute([{ playerId: alex, holding: true }]);
+    modes.execute([{ playerId: alex, held: "wand" }]);
   preview.execute(1);
   expect(aim).not.toHaveBeenCalled();
   expect(feedback.previews).toEqual([]);
@@ -170,7 +170,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
 
 it("anchors paste on each typed face in the viewer dimension and ignores absent targets", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   aim.mockReturnValue({ ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
@@ -217,8 +217,8 @@ it("keeps concurrent players and their aim targets separate", () => {
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
-      { playerId: alex, holding: true },
-      { playerId: bob, holding: true },
+      { playerId: alex, held: "wand" },
+      { playerId: bob, held: "wand" },
     ]);
   aim.mockImplementation((id) => ({
     ray,
@@ -314,7 +314,7 @@ it("does not report sizes outside the height step", () => {
     material,
   });
   preview.execute(2 * interval);
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   preview.execute(3 * interval);
   expect(feedback.sizes).toEqual([]);
 });
@@ -329,8 +329,8 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
-      { playerId: alex, holding: true },
-      { playerId: bob, holding: true },
+      { playerId: alex, held: "wand" },
+      { playerId: bob, held: "wand" },
     ]);
   const flow = {
     kind: "heightStep" as const,
@@ -357,8 +357,8 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
   const returning = repo.getOrCreate(bob);
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
-      { playerId: alex, holding: true },
-      { playerId: bob, holding: true },
+      { playerId: alex, held: "wand" },
+      { playerId: bob, held: "wand" },
     ]);
   returning.setFlow(flow);
   preview.execute(3 * interval);
@@ -368,7 +368,7 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
 
 it("refreshes the paste hint each interval without requiring an aimed block", () => {
   const { session, preview, feedback } = setup();
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   preview.execute(0);
   expect(feedback.modes).toEqual([]);
   const clipboard = structureClipboard(boxOf(cell, end), (at) =>
@@ -421,14 +421,14 @@ it("never shows paste hints in other flows or outside build mode", () => {
     inactive.session,
     structureClipboard(boxOf(cell, end), () => material),
   );
-  inactive.session.setFlow({ kind: "pasteAim" });
+  inactive.session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   inactive.preview.execute(0);
   expect(inactive.feedback.modes).toEqual([]);
 });
 
 it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed block", () => {
   const { repo, session, feedback } = setup();
-  session.setFlow({ kind: "pasteAim" });
+  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   holdClipboard(
     session,
     structureClipboard(boxOf(cell, end), () => material),
@@ -457,7 +457,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
         boxOf(cell, end),
         structureClipboard(boxOf(cell, end), () => material),
       );
-      session.setFlow({ kind: "pasteAim" });
+      session.setFlow({ kind: "pasteAim", manualTurn: 0 });
       session.startNewCopy();
       aim.mockReturnValue(hit ? { ray, block: { cell, face: "up" } } : { ray });
       preview.execute(redraw * interval);
@@ -592,3 +592,34 @@ it.each([
     });
   },
 );
+
+it("refreshes only the requested player's rotated paste between outline ticks", () => {
+  const e = setup();
+  e.session.completeCopy(
+    overworld,
+    boxOf(cell, end),
+    structureClipboard(boxOf(cell, end)),
+  );
+  e.aim.mockReturnValue({ ray, block: { cell, face: "up" } });
+  e.preview.execute(0);
+  e.session.rotatePaste();
+  e.feedback.previews.length = 0;
+  e.aim.mockClear();
+  e.preview.refresh(alex, 1);
+  expect(e.aim).toHaveBeenCalledExactlyOnceWith(alex);
+  expect(e.feedback.previews).toEqual([
+    {
+      playerId: alex,
+      dimensionId: nether,
+      set: previewPoints(e.session.flow, {
+        blink: true,
+        pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 3, y: 67, z: 0 }),
+      }),
+    },
+  ]);
+  e.preview.refresh(asPlayerId("missing"), 1);
+  expect(e.feedback.previews).toHaveLength(1);
+  const inactive = setup(false);
+  inactive.preview.refresh(alex, 1);
+  expect(inactive.aim).not.toHaveBeenCalled();
+});
