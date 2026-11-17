@@ -189,7 +189,7 @@ describe("Building Tools recipes and names", () => {
     );
     expect(
       values.get("yasu_build.message.paste_ready")?.match(/%s/g),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
     expect(values.get(`item.${WAND}.name`)).toBe(names[WAND]);
     expect(values.get(`item.${TOOL}.name`)).toBe(names[TOOL]);
     expect(values.get(`tile.${BLOCK}.name`)).toBe(names[BLOCK]);
