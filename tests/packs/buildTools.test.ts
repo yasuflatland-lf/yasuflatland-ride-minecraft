@@ -84,6 +84,42 @@ describe.each([
   });
 });
 
+describe("Paste control icon badges", () => {
+  const icon = (name: string) =>
+    readRgbaPng(`packs/yasu_ride_rp/textures/items/yasu_build/${name}.png`);
+  const pixelAt = (pixels: Uint8Array, x: number, y: number) =>
+    Array.from(pixels.subarray((y * 16 + x) * 4, (y * 16 + x) * 4 + 4));
+  const NAVY = [25, 38, 58, 255].join();
+  const WHITE = [255, 255, 255, 255].join();
+
+  it.each(["paste_rotate", "paste_place"])(
+    "%s has a white plate with a navy glyph bottom right and keeps the wand top",
+    (name) => {
+      const wand = icon("selection_wand");
+      const { width, height, pixels } = icon(name);
+      expect([width, height]).toEqual([16, 16]);
+      const plate: string[] = [];
+      for (let y = 5; y < 16; y++) {
+        for (let x = 5; x < 16; x++) plate.push(pixelAt(pixels, x, y).join());
+      }
+      expect(plate.filter((p) => p === WHITE).length).toBeGreaterThan(30);
+      expect(plate.filter((p) => p === NAVY).length).toBeGreaterThan(20);
+      for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 16; x++) {
+          expect(pixelAt(pixels, x, y)).toEqual(pixelAt(wand.pixels, x, y));
+        }
+      }
+    },
+  );
+
+  it("draws different glyphs for rotate and place", () => {
+    expect(icon("paste_rotate").pixels).not.toEqual(icon("paste_place").pixels);
+    expect(icon("paste_rotate").pixels).not.toEqual(
+      icon("selection_wand").pixels,
+    );
+  });
+});
+
 describe("Building Tools recipes and names", () => {
   it.each([
     ["selection_wand", WAND, ["minecraft:copper_ingot", "minecraft:stick"]],
