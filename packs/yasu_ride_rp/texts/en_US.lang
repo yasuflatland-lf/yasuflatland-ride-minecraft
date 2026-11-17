@@ -118,6 +118,8 @@ entity.yasu_ride:gas_lantern.name=Gas Lantern
 yasu_ride.hint.gas_lantern_hits=Hit %s more to take back the Gas Lantern
 action.interact.yasu_ride.gas_lantern=Turn the Gas Lantern On / Off
 item.yasu_build:selection_wand.name=Selection Wand
+item.yasu_build:paste_rotate.name=Paste Rotate
+item.yasu_build:paste_place.name=Paste Place
 yasu_build:building_tools=Building Tools
 
 yasu_build.message.selection_cleared=Selection cleared.
@@ -132,7 +134,7 @@ yasu_build.message.rotate_too_large=Cannot rotate this area (%s blocks): volume 
 yasu_build.message.rotate_blocked=The rotation overlaps protected blocks.
 yasu_build.message.rotate_failed=Rotation failed; restoration was attempted.
 yasu_build.message.rotate_done=Rotated %s blocks.
-yasu_build.message.paste_ready=Paste ready %sx%sx%s (%s blocks) | Press: menu | Sneak + press: paste
+yasu_build.message.paste_ready=Paste ready %sx%sx%s (%s blocks) | Press: menu | Sneak + press: paste | Rotate / Place items
 yasu_build.message.paste_inactive=Copy something first.
 yasu_build.message.rotate_mode=Rotate mode %s° | Tap: rotate | Sneak + tap: finish
 yasu_build.message.sneaking_prefix=[Sneaking]
