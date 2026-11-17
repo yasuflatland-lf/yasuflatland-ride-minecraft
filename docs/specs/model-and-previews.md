@@ -92,7 +92,7 @@ Fold and seat bones remain empty, and the two strut bones carry the strut rod cu
 The strut bones follow only the fold position (the drop, never the roll), are never children of a fold bone, and use the axle pivots and parent to `steer` (front) and `body` (rear).
 They cannot descend from any fold bone: all three wheel fold clips give each strut
 only the corresponding fold bone's position keys, keeping it vertical while the wheel rolls. The `struts`
-area follows `running` and reserves separate front and rear builders. The steering
+area follows `stand` and reserves separate front and rear builders. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
 model pixels apart. The running area supplies both wheels and suspension.
 Whitewall discs use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
@@ -114,7 +114,7 @@ Body regions register idempotently before faces are constructed. Neighboring
 mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
 grey joint piping, and chrome floor rails and opening trim. The combined body and floor budget is
-1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
+1,130 cubes (1,005 for body and 125 for floor; currently 1,002 and 120); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
@@ -124,7 +124,7 @@ The rear area supplies the seat, lamp housing, tail lens, and plate through
 `rear_plate`. Only the red lens and dome belong to
 `tail_lights`; the remaining rear geometry stays on `body`. Seat alpha masks use
 24 texels per model unit and pack in descending height order so the combined
-atlas fits the 2048-texel side limit. The rear allocation is 363 cubes.
+atlas fits the 2048-texel side limit. The rear allocation is 370 cubes, of which 363 are used.
 
 The engine area supplies 319 cubes on `body`: the compact
 cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
@@ -139,13 +139,13 @@ panels; alpha-cut profiles and world-position paint shading keep the casting
 smooth. Small atlas regions carry the silver reflector, text-free dial, dark
 mirror glass, and chrome mirror backs.
 
-The whole-vehicle target is 3,700 cubes, including 32 glow cubes;
-generation rejects more than the 3,800-cube ceiling. The finished
-generated model has 3,661 cubes, including 49 on `tail_lights`. The
-kind's entity and driving rules are in [Scooter](scooter.md).
+The whole-vehicle budget is the sum of `AREA_CUBE_ALLOCATION` in
+`tools/scooter_dims.py`; generation enforces each allocation and the
+6,000-cube ceiling. The current allocations total 3,700 cubes; the generated model
+has 3,666 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
-within a 650-cube allocation. The crowned shield, shoulder, side plates, chrome
+within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome
 outline, flaring spine and 0.8-scale horn stay on `body`;
 the valanced front fender, curled lips, two bolts and crown shadow stay on `steer`.
 Broad panels use shaded alpha-cut masks, with twisted patches split at their
