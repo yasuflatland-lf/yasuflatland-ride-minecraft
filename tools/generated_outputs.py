@@ -39,12 +39,38 @@ class GeneratedOutput:
     tracked: bool
 
 
+@dataclass(frozen=True)
+class ManifestEntry:
+    id: str
+    script: str
+    args: tuple[str, ...]
+    outputs: tuple[str, ...]
+    reads: tuple[str, ...]
+    tracked: bool
+    after_generators: bool
+
+
+def entry_id(entry) -> str:
+    """The id is the only identity of an entry; script is only what to run."""
+    return entry.get("id", entry["script"])
+
+
 class OutputManifest:
     def __init__(self, entries):
-        self._generators = tuple(entry["script"] for entry in entries)
+        ids = [entry_id(entry) for entry in entries]
+        duplicates = sorted({name for name in ids if ids.count(name) > 1})
+        if duplicates:
+            raise ValueError(f"Duplicate generator ids: {duplicates}")
+        self._entries = tuple(
+            ManifestEntry(entry_id(entry), entry["script"], tuple(entry.get("args", ())),
+                          tuple(entry["outputs"]), tuple(entry["reads"]),
+                          entry.get("tracked", False), entry.get("afterGenerators", False))
+            for entry in entries
+        )
+        self._generators = tuple(ids)
         self._outputs = tuple(
-            GeneratedOutput(entry["script"], pattern, entry.get("tracked", False))
-            for entry in entries for pattern in entry["outputs"]
+            GeneratedOutput(entry.id, pattern, entry.tracked)
+            for entry in self._entries for pattern in entry.outputs
         )
         self._inputs = tuple(dict.fromkeys(
             ["tools/**"] + [path for entry in entries for path in entry["reads"]
@@ -57,6 +83,9 @@ class OutputManifest:
 
     def outputs(self) -> tuple[GeneratedOutput, ...]:
         return self._outputs
+
+    def entries(self) -> tuple[ManifestEntry, ...]:
+        return self._entries
 
     def generators(self) -> tuple[str, ...]:
         return self._generators
