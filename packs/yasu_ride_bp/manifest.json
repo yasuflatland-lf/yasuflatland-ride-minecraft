@@ -5,7 +5,7 @@
     "description": "Rides and vehicles for Minecraft Bedrock Edition",
     "uuid": "5ec4fadb-b148-4d62-8473-092b63e01270",
     "version": [0, 53, 0],
-    "min_engine_version": [1, 21, 80]
+    "min_engine_version": [1, 21, 100]
   },
   "modules": [
     {
@@ -24,6 +24,6 @@
   "dependencies": [
     { "module_name": "@minecraft/server-ui", "version": "2.0.0" },
     { "module_name": "@minecraft/server", "version": "2.2.0" },
-    { "uuid": "b5d52b53-d112-4da1-9c1a-b95db192f94a", "version": [0, 1, 340] }
+    { "uuid": "b5d52b53-d112-4da1-9c1a-b95db192f94a", "version": [0, 1, 346] }
   ]
 }

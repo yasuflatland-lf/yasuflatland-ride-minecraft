@@ -1034,3 +1034,148 @@ it("never reads the hook during construction", () => {
   expect(build).not.toThrow();
   expect(() => build().step(FORWARD, context())).not.toThrow();
 });
+
+const surfaceSpec: TransformingSpec = {
+  ...SUV_TRANSFORMING,
+  waterPolicy: "surface",
+};
+function surfaceDrive(options: TransformingOptions = {}): TransformingDrive {
+  return new TransformingDrive(
+    0,
+    {},
+    surfaceSpec,
+    SUV_MOTION,
+    SUV_TYRES,
+    options,
+  );
+}
+
+it("pushes a submerged surface vehicle up without a driver", () => {
+  fc.assert(
+    fc.property(
+      fc.double({
+        min: surfaceSpec.carHeight,
+        max: surfaceSpec.carHeight + 10,
+        noNaN: true,
+      }),
+      (depth) => {
+        const drive = surfaceDrive();
+        const out = drive.step(undefined, {
+          ...context(depth),
+          onGround: false,
+          solidAt: () => false,
+        });
+        expect(drive.form).toBe("car");
+        expect(out.impulse.y).toBeCloseTo(
+          surfaceSpec.surfaceRise / surfaceSpec.waterVerticalDrag,
+        );
+      },
+    ),
+  );
+});
+
+it("uses the ground step at full throttle on water and stops without a driver", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: 0.01, max: surfaceSpec.carHeight - 0.01, noNaN: true }),
+      (depth) => {
+        const drive = surfaceDrive();
+        let state = initialMotion(0);
+        let body: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+        for (let tick = 0; tick < 600; tick++) {
+          const raw = tick < 300 ? FORWARD : undefined;
+          const expected = stepMotion(
+            state,
+            groundInputFor(raw, "car"),
+            { velocity: body.vel, onGround: true },
+            () => 0,
+            SUV_MOTION,
+            SUV_TYRES,
+          );
+          const out = drive.step(raw, {
+            ...context(depth),
+            tick,
+            onGround: false,
+            velocity: { ...body.vel, y: 0 },
+            solidAt: () => false,
+          });
+          expect(drive.form).toBe("car");
+          expect(drive.speed).toBe(expected.state.speed);
+          expect({ x: out.impulse.x, z: out.impulse.z }).toEqual(
+            expected.impulse,
+          );
+          state = expected.state;
+          body = engineStep(body, out.impulse, { mu: MOTION.airFriction }).body;
+          if (tick === 299)
+            expect(drive.speed).toBeCloseTo(SUV_MOTION.maxSpeed);
+        }
+        expect(drive.speed).toBe(0);
+      },
+    ),
+  );
+});
+
+it("preserves shore step jumps for a floating surface vehicle", () => {
+  const drive = surfaceDrive();
+  let hops = 0;
+  for (let tick = 0; tick < 40; tick++) {
+    const out = drive.step(FORWARD, {
+      ...context(surfaceSpec.floatDraft),
+      tick,
+      onGround: false,
+      solidAt: oneBlockStepAhead(surfaceSpec),
+    });
+    if (out.impulse.y === MOTION.oneStepVelocity) hops++;
+  }
+  expect(hops).toBeGreaterThan(0);
+});
+
+it("cancels sinking velocity at the float line and shares sensed depth with custom steps", () => {
+  fc.assert(
+    fc.property(fc.double({ min: -2, max: 2, noNaN: true }), (vy) => {
+      const spy = spyStep();
+      const drive = surfaceDrive({ horizontal: spy.step });
+      const ctx = {
+        ...context(surfaceSpec.floatDraft),
+        onGround: false,
+        velocity: { x: 0, y: vy, z: 0 },
+        solidAt: () => false,
+      };
+      const out = drive.step(undefined, ctx);
+      expect((vy + out.impulse.y) * surfaceSpec.waterVerticalDrag).toBeCloseTo(
+        0,
+      );
+      expect(spy.seen().waterDepth).toBeCloseTo(surfaceSpec.floatDraft);
+    }),
+  );
+});
+
+it("takes off from the float line and stays in hover with dry feet", () => {
+  const drive = surfaceDrive();
+  // Feet height with the water surface at y = 0, so depth is -y below it.
+  let y = -surfaceSpec.floatDraft;
+  let vy = 0;
+  let hoverSince: number | undefined;
+  for (let tick = 0; tick < 200; tick++) {
+    const jump = tick === 0 || tick === 2;
+    const out = drive.step(
+      { ...IDLE, jump },
+      {
+        ...context(Math.max(0, -y)),
+        tick,
+        onGround: false,
+        velocity: { x: 0, y: vy, z: 0 },
+        solidAt: () => false,
+      },
+    );
+    const drag =
+      y < 0 ? surfaceSpec.waterVerticalDrag : surfaceSpec.flightVerticalDrag;
+    vy = (vy + out.impulse.y) * drag;
+    y += vy;
+    if (drive.form === "hover") hoverSince ??= tick;
+    else expect(hoverSince).toBeUndefined();
+  }
+  expect(hoverSince).toBeDefined();
+  expect(drive.form).toBe("hover");
+  expect(y).toBeGreaterThanOrEqual(0);
+});

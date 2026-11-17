@@ -22,10 +22,13 @@ import {
 import { SPORTSBOAT_PROFILE } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { DOOR_BY_SEAT } from "../../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
-import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
+import {
+  SUV_SPEC,
+  SUV_TRANSFORMING,
+} from "../../../src/domain/vehicle/kinds/suv/spec";
 import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
-import { STEP_LANES } from "../../../src/domain/vehicle/motion/stepUp";
+import { stepLanes } from "../../../src/domain/vehicle/motion/stepUp";
 import type { VehicleProfile } from "../../../src/domain/vehicle/profile";
 import type { RamTarget } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
@@ -302,7 +305,7 @@ describe("Vehicle (aggregate)", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: -180, max: 179 }),
-        fc.constantFrom(...STEP_LANES),
+        fc.constantFrom(...stepLanes(SUV_TRANSFORMING.stepLaneOffset)),
         (yaw, lane) => {
           const sim = new Sim();
           sim.yaw = yaw;

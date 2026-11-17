@@ -75,6 +75,16 @@
       "reads": []
     },
     {
+      "script": "gen_warp_art.py",
+      "args": ["packs/yasu_ride_rp"],
+      "outputs": [
+        "packs/yasu_ride_rp/textures/items/yasu_build/warp_tool.png",
+        "packs/yasu_ride_rp/textures/blocks/yasu_build/warp_block_top.png",
+        "packs/yasu_ride_rp/textures/blocks/yasu_build/warp_block_side.png"
+      ],
+      "reads": []
+    },
+    {
       "script": "gen_camping_gear.py",
       "args": ["packs/yasu_ride_rp", "packs/yasu_ride_bp"],
       "outputs": [
