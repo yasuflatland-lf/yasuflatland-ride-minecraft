@@ -72,6 +72,7 @@ BONES = (
     ("wheel_rear", dims.FOLD_BONES["rear"], (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
     ("glow_rear", dims.FOLD_BONES["rear"], (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
     (dims.STRUT_BONES["rear"], "body", (0, dims.AXLE_Y, dims.REAR_AXLE_Z)),
+    (dims.REAR_STEM_BONE, "body", (0, dims.REAR_STEM_TOP, dims.REAR_AXLE_Z)),
     ("stand", "body", dims.STAND_PIVOT),
     ("tail_lights", "body", (0, 0, 0)),
     ("seat_0", "body", (0, dims.SEAT_Y, dims.DRIVER_SEAT_Z)),

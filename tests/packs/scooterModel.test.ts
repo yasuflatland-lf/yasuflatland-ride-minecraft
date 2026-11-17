@@ -23,7 +23,7 @@ type AreaRow = {
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
   { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "stand", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_stand", "running_pedal"], cubes: 743 },
-  { area: "struts", bones: ["steer", "wheel_front_strut"], assemblies: [], cubes: 2 },
+  { area: "struts", bones: ["steer", "body", "wheel_front_strut", "wheel_rear_strut", "wheel_rear_stem"], assemblies: [], cubes: 5 },
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1150 },
   { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"], cubes: 363 },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 320 },
@@ -189,6 +189,7 @@ print(json.dumps(deviations))
       ["wheel_rear", "wheel_rear_fold", [0, 4.3, 11.8]],
       ["glow_rear", "wheel_rear_fold", [0, 4.3, 11.8]],
       ["wheel_rear_strut", "body", [0, 4.3, 11.8]],
+      ["wheel_rear_stem", "body", [0, 13.26, 11.8]],
       ["stand", "body", [0, 3.735, 1.045]],
       ["tail_lights", "body", [0, 0, 0]],
       ["seat_0", "body", [0, 16.1, 3.5]],

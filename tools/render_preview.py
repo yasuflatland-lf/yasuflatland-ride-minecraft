@@ -1254,8 +1254,10 @@ def scooter_glow_pools(geo, texture, pose, flight, ground_y):
 def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / SCOOTER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / SCOOTER_TEXTURE)
-    # The road pose has no hover discs: the render controller hides the glow bones on the ground.
-    ground_geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
+    # The road pose has no hover discs: the render controller hides the glow bones on the ground,
+    # and the rear stem is squashed flat against the cowl by the ground animation.
+    ground_geo = {**geo, "bones": [b for b in geo["bones"]
+                                   if not b["name"].startswith("glow_") and b["name"] != "wheel_rear_stem"]}
     # Only the texels the lit texture marks glow, so the lens stays round and the rim stays chrome.
     texture = combine_textures(texture, read_png(rp / SCOOTER_LIT_TEXTURE))
     flight_name = "scooter-flying-headlights.png"
