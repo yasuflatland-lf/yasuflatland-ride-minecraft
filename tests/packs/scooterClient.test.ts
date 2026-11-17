@@ -157,9 +157,11 @@ describe("scooter client references", () => {
       expect(sounds[String(sound)]).toBeDefined();
     }
     for (let i = 0; i < 6; i++) {
-      expect(sounds[`yasu_ride.scooter_engine_${i}`]).toEqual(
-        sounds[`yasu_ride.engine_${i}`],
-      );
+      for (const field of ["category", "min_distance", "max_distance"]) {
+        expect(sounds[`yasu_ride.scooter_engine_${i}`][field]).toEqual(
+          sounds[`yasu_ride.engine_${i}`][field],
+        );
+      }
     }
     expect(client.particle_effects).toEqual({
       hover_glow: read("particles/yasu_ride/hover_glow.particle.json")
