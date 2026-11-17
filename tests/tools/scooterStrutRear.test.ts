@@ -18,7 +18,6 @@ type StrutFacts = {
   tyreHalfWidth: number;
   wheelScale: number;
   budget: number;
-  hiddenCeiling: number;
 };
 
 const facts: StrutFacts = JSON.parse(
@@ -47,7 +46,7 @@ print(json.dumps(dict(
     deployScale=anims['wheels_deploy']['bones'][d.REAR_STEM_BONE]['scale'],
     axleY=d.AXLE_Y, axleZ=d.REAR_AXLE_Z, drop=-min(v[1] for v in keys.values()),
     tyreRadius=d.TYRE_RADIUS, tyreHalfWidth=d.TYRE_HALF_WIDTH,
-    wheelScale=load_tool('scooter_running').REAR_WHEEL_SCALE, budget=d.CUBE_BUDGET, hiddenCeiling=s.REAR_COLLAR_TOP)))
+    wheelScale=load_tool('scooter_running').REAR_WHEEL_SCALE, budget=d.CUBE_BUDGET)))
 `,
     ],
     { encoding: "utf8" },
@@ -80,6 +79,7 @@ const body = boneCubes("body");
 const collar = body.filter((cube) =>
   facts.collar.some((ref) => sameCube(cube, ref)),
 );
+const fixedBody = body.filter((cube) => !collar.includes(cube));
 const rod = boneCubes("wheel_rear_strut");
 const collarBoxes = collar.map(cubeBounds);
 const rodBoxes = rod.map(cubeBounds);
