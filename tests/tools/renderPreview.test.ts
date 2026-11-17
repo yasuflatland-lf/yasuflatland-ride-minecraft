@@ -727,6 +727,10 @@ describe("scooter previews (ADR 0251)", () => {
       previewPython(`
 from pathlib import Path
 rp = Path("packs/yasu_ride_rp")
+# This checks pose geometry and framing, not atlas detail; full-density previews
+# are covered by model:check. Keep the real model and lit lens texels at a cheaper density.
+for pose in r.SCOOTER_POSES.values():
+    pose["cells_per_unit"] = 1
 assert r.SCOOTER_FLIGHT_LIFT == ${SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16}
 animations = json.loads((rp / r.SCOOTER_ANIMATIONS).read_text())["animations"]
 stand_rotation = animations["animation.yasu_ride.scooter.stand_up"]["bones"]["stand"]["rotation"]
