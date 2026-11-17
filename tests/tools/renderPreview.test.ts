@@ -161,7 +161,8 @@ describe("render_preview.py flight poses", () => {
 transform = {"rotation": [13, 27, ${angle}], "position": ${JSON.stringify(position)}}
 animations = {"animations": {"animation.example.ride.wheels_folded": {"bones": {
     "wheel_left": transform, "wheel_front_fold": transform,
-    "body": transform, "arm_left": {"scale": [1, 1, 1]}
+    "body": transform, "strut": {"position": ${JSON.stringify(position)}},
+    "arm_left": {"scale": [1, 1, 1]}
 }}, "animation.example.other.wheels_folded": {"bones": {}}}}
 flight = r.build_flight_pose(animations, "animation.example.ride.wheels_folded", lift=${lift})
 print(json.dumps({"folds": dict(flight.folds), "lift": flight.lift}))
@@ -170,6 +171,7 @@ print(json.dumps({"folds": dict(flight.folds), "lift": flight.lift}))
             folds: {
               wheel_left: [angle, position],
               wheel_front_fold: [angle, position],
+              strut: [0, position],
             },
             lift,
           });
@@ -241,6 +243,28 @@ print(json.dumps(True))
       ),
       { numRuns: 15 },
     );
+  });
+
+  it("translates position-only struts without turning them in both collectors", () => {
+    expect(
+      previewPython(`
+geo = ${JSON.stringify({ description: { texture_width: 1, texture_height: 1 }, bones: [{ name: "strut", pivot: [1, 2, 3], cubes: [bar(4, -5, 1)] }] })}
+texture = [[(255, 255, 255, 255)]]
+pose = {"lamps": False, "dusk": False, "submarine": False, "hover": False}
+flight = r.build_flight_pose({"animations": {"fold": {"bones": {
+    "strut": {"position": [2, -3.5, 1]}
+}}}}, "fold", lift=16)
+for collect in (lambda **kw: r.collect(geo, texture, {}, pose, **kw),
+                lambda **kw: r.collect_boat(geo, texture, pose, **kw)[0]):
+    original = collect()
+    moved = collect(flight=flight)
+    assert len(original) == len(moved) > 0
+    for (before, _, _), (after, _, _) in zip(original, moved):
+        for (x, y, z), actual in zip(before, after):
+            assert actual == (x - 2, y - 3.5 + 16, z + 1)
+print(json.dumps(True))
+`),
+    ).toBe(true);
   });
 
   it("keeps cached texture patches in their own flight pose", () => {
