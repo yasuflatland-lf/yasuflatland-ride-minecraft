@@ -8,6 +8,7 @@ export const FEATURE_TAGS = [
   "vehicle:camper",
   "vehicle:sportsboat",
   "vehicle:bulldozer",
+  "vehicle:scooter",
 ] as const;
 
 export type FeatureTag = (typeof FEATURE_TAGS)[number];
