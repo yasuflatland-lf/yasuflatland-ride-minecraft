@@ -1,0 +1,64 @@
+import { system, world } from "@minecraft/server";
+import type { AimReader } from "../../../../application/build/ports/aim";
+import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
+import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
+import type { PressDebounces } from "../../../../domain/build/pressDebounce";
+import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
+import {
+  asDimensionId,
+  asPlayerId,
+  type PlayerId,
+} from "../../../../domain/shared/ids";
+import { buildItemRole, PASTE_ROTATE_TYPE } from "../../identifiers";
+import { heldBuildItem } from "../heldBuildItem";
+
+export function registerPasteControls({
+  repo,
+  aim,
+  rotatePasteAim,
+  pressPasteAim,
+  rotateDebounce,
+  pasteDebounce,
+  refresh,
+}: {
+  repo: BuildSessionRepository;
+  aim: AimReader;
+  rotatePasteAim: RotatePasteAim;
+  pressPasteAim: PressPasteAim;
+  rotateDebounce: PressDebounces<PlayerId>;
+  pasteDebounce: PressDebounces<PlayerId>;
+  refresh(playerId: PlayerId, tick: number): void;
+}): void {
+  world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
+    // itemUse owns the press even when the same tap interacts with a block.
+    if (heldBuildItem(ev.player) === "pasteControl") ev.cancel = true;
+  });
+  world.beforeEvents.playerBreakBlock.subscribe((ev) => {
+    if (
+      heldBuildItem(ev.player) === "pasteControl" &&
+      repo.get(asPlayerId(ev.player.id))?.flow.kind === "pasteAim"
+    )
+      ev.cancel = true;
+  });
+  world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
+    if (!source.isValid || buildItemRole(itemStack.typeId) !== "pasteControl")
+      return;
+    const playerId = asPlayerId(source.id);
+    const tick = system.currentTick;
+    if (itemStack.typeId === PASTE_ROTATE_TYPE) {
+      if (!rotateDebounce.press(playerId, tick)) return;
+      if (rotatePasteAim.execute({ playerId }) === "rotated")
+        refresh(playerId, tick);
+    } else {
+      if (!pasteDebounce.press(playerId, tick)) return;
+      pressPasteAim.execute({
+        playerId,
+        dimensionId: asDimensionId(source.dimension.id),
+        aim: aim.aim(playerId),
+        tick,
+        sneaking: source.isSneaking,
+        intent: "place",
+      });
+    }
+  });
+}

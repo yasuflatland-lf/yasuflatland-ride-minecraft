@@ -592,3 +592,34 @@ it.each([
     });
   },
 );
+
+it("refreshes only the requested player's rotated paste between outline ticks", () => {
+  const e = setup();
+  e.session.completeCopy(
+    overworld,
+    boxOf(cell, end),
+    structureClipboard(boxOf(cell, end)),
+  );
+  e.aim.mockReturnValue({ ray, block: { cell, face: "up" } });
+  e.preview.execute(0);
+  e.session.rotatePaste();
+  e.feedback.previews.length = 0;
+  e.aim.mockClear();
+  e.preview.refresh(alex, 1);
+  expect(e.aim).toHaveBeenCalledExactlyOnceWith(alex);
+  expect(e.feedback.previews).toEqual([
+    {
+      playerId: alex,
+      dimensionId: nether,
+      set: previewPoints(e.session.flow, {
+        blink: true,
+        pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 3, y: 67, z: 0 }),
+      }),
+    },
+  ]);
+  e.preview.refresh(asPlayerId("missing"), 1);
+  expect(e.feedback.previews).toHaveLength(1);
+  const inactive = setup(false);
+  inactive.preview.refresh(alex, 1);
+  expect(inactive.aim).not.toHaveBeenCalled();
+});
