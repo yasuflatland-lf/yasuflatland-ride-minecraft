@@ -408,3 +408,45 @@ with tempfile.TemporaryDirectory() as directory:
         assert calls.read_text() == 'generated\\n'
 `);
 });
+
+it("identifies manifest entries by id, defaulting to the script", () => {
+  python(`
+import sys
+sys.path.insert(0, 'tools')
+from generated_outputs import OutputManifest, TouchedOutput
+entries = [
+    {'script': 'gen.py', 'id': 'gen_a', 'args': ['a'], 'outputs': ['out/a.json'], 'reads': ['in/a']},
+    {'script': 'gen.py', 'id': 'gen_b', 'outputs': ['out/b.json'], 'reads': [], 'tracked': True,
+     'afterGenerators': True},
+    {'script': 'plain.py', 'outputs': ['out/c.json'], 'reads': []},
+]
+manifest = OutputManifest(entries)
+assert manifest.generators() == ('gen_a', 'gen_b', 'plain.py')
+assert [e.id for e in manifest.entries()] == ['gen_a', 'gen_b', 'plain.py']
+b = manifest.entries()[1]
+assert (b.script, b.args, b.tracked, b.after_generators) == ('gen.py', (), True, True)
+assert manifest.entries()[0].reads == ('in/a',)
+assert manifest.matches('out/a.json').generator == 'gen_a'
+touched = [TouchedOutput('gen_a', 'out/a.json'), TouchedOutput('gen_b', 'out/b.json'),
+           TouchedOutput('plain.py', 'out/c.json')]
+assert manifest.ownership_errors(touched) == []
+assert manifest.ownership_errors([TouchedOutput('gen.py', 'out/a.json')] + touched[1:])
+`);
+});
+
+it("rejects a duplicate generator id", () => {
+  python(`
+import sys
+sys.path.insert(0, 'tools')
+from generated_outputs import OutputManifest
+try:
+    OutputManifest([
+        {'script': 'one.py', 'id': 'x', 'outputs': [], 'reads': []},
+        {'script': 'two.py', 'id': 'x', 'outputs': [], 'reads': []},
+    ])
+except ValueError as error:
+    assert 'x' in str(error)
+else:
+    raise SystemExit('duplicate id accepted')
+`);
+});
