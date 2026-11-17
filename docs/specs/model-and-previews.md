@@ -67,12 +67,12 @@ use 256 by 256 texels over 7.48 model units, keeping both circular boundaries wi
 0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
 panel's tangent frame and takes no panel margin, so its outer envelope stays within
 0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
-fold bones retain their axle pivots. The combined running, body, and shield atlas stays within 2048 by 2048
+fold bones retain their axle pivots. The combined running, body, shield, and head atlas stays within 2048 by 2048
 texels. Side and front-left previews render the full atlas without a density cap.
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
-own all compound body panels and trim; later areas retain their placeholders.
+own all compound body panels and trim.
 Body regions register idempotently before faces are constructed. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
 grey joint piping, and chrome floor rails and opening trim. The body budget is
@@ -80,6 +80,14 @@ grey joint piping, and chrome floor rails and opening trim. The body budget is
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
+
+The head area replaces the steering
+and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
+Its collar, horn casting, bib, instrument bezel, lamp rim, controls, levers, and
+mirrors retain the spike ring counts. Named `head_*` assemblies carry compound
+panels; alpha-cut profiles and world-position paint shading keep the casting
+smooth. Small atlas regions carry the silver reflector, text-free dial, dark
+mirror glass, and chrome mirror backs.
 
 The whole-vehicle target is 3,650 cubes; generation rejects more than the
 3,800-cube ceiling. This foundation supplies assets

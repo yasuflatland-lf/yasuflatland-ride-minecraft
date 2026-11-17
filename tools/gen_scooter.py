@@ -15,6 +15,7 @@ texture_io = load_tool("texture_io")
 AREA_ORDER = (
     "running",
     "body",
+    "head",
     "shield",
 )
 
@@ -31,6 +32,14 @@ ASSEMBLIES = {
     "body_tail": {"owner": "scooter", "cubes": 216},
     "body_frame": {"owner": "scooter", "cubes": 148},
     "body_floor": {"owner": "scooter", "cubes": 164},
+    "head_collar": {"owner": "scooter", "cubes": 36},
+    "head_headset": {"owner": "scooter", "cubes": 120},
+    "head_bib": {"owner": "scooter", "cubes": 120},
+    "head_meter": {"owner": "scooter", "cubes": 24},
+    "head_lamp": {"owner": "scooter", "cubes": 72},
+    "head_controls": {"owner": "scooter", "cubes": 64},
+    "head_levers": {"owner": "scooter", "cubes": 6},
+    "head_mirrors": {"owner": "scooter", "cubes": 52},
 }
 
 BONES = (
