@@ -29,7 +29,9 @@ def select(changed_paths: Iterable[str], manifest: OutputManifest) -> Selection:
     for path in changed_paths:
         if "__pycache__" in PurePosixPath(path).parts:
             continue
-        if fnmatch.fnmatchcase(path, "tools/gen_*.py"):
+        if (PurePosixPath(path).parent == PurePosixPath("tools")
+                and fnmatch.fnmatchcase(PurePosixPath(path).name, "gen_*.py")
+                and any(entry.script == PurePosixPath(path).name for entry in entries)):
             run_others = True
             outputs = tuple(output for entry in entries
                             if entry.script == PurePosixPath(path).name
