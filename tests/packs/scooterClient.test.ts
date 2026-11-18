@@ -21,7 +21,7 @@ const suv = read("entity/yasu_ride/suv.ce.json")["minecraft:client_entity"]
   .description;
 type Entry = string | Record<string, string>;
 interface State {
-  animations: Entry[];
+  animations?: Entry[];
   transitions: Record<string, string>[];
   blend_transition?: number;
 }
@@ -104,7 +104,7 @@ describe("scooter client references", () => {
     }
     for (const controller of Object.values(controllers)) {
       for (const state of Object.values(controller.states)) {
-        for (const entry of state.animations)
+        for (const entry of state.animations ?? [])
           expect(animations[client.animations[nameOf(entry)]]).toBeDefined();
         for (const transition of state.transitions)
           expect(controller.states[nameOf(transition)]).toBeDefined();
@@ -209,7 +209,7 @@ describe("scooter controllers", () => {
   it("raises the stand when the stand property is false with short blends", () => {
     expect(stand.initial_state).toBe("down");
     expect(Object.keys(stand.states)).toEqual(["down", "up"]);
-    expect(stand.states.down?.animations).toEqual([]);
+    expect(stand.states.down).not.toHaveProperty("animations");
     expect(stand.states.up?.animations).toEqual(["stand_up"]);
     expect(stand.states.down?.transitions).toEqual([
       { up: "!query.property('yasu_ride:stand')" },
