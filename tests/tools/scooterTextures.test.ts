@@ -192,12 +192,46 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
   expect(alpha.includes(255)).toBe(true);
 });
 
-it("reduces scooter storage below the original atlas area", () => {
+it("reduces scooter storage by a quarter of the original atlas area", () => {
   const image = readRgbaPng(`${directory}scooter.png`);
-  // The unshared atlas occupied 2048 x 1951 texels.
-  expect([image.width, image.height]).toEqual([2048, 1920]);
-  expect(image.width * image.height).toBeLessThan(2048 * 1951);
+  // The unshared atlas occupied 2048 x 1951 texels; sharing whole regions
+  // alone reached only 2048 x 1920, because mirrored panels sit inside sheets.
+  expect([image.width, image.height]).toEqual([1754, 1696]);
+  expect(image.width * image.height).toBeLessThan(0.75 * 2048 * 1951);
 });
+
+it("stores mirrored panel tiles once inside the scooter sheets", async () => {
+  const sheets = JSON.parse(
+    await python.run(`${setup}
+b=load_tool("scooter_body")
+s=load_tool("scooter_shield")
+h=load_tool("scooter_head")
+e=load_tool("scooter_engine")
+shares={}
+for sheet,*_,share in b._prepared()[4]:
+    shares.setdefault(sheet,[]).append(share)
+shares["shield_panels"]=s._prepared()[4]
+shares["head_panels"]=h._panel_sheet()[1]
+for name,*_ in e._surfaces():
+    shares[name]=e._surface_masks(name)[1]
+print(json.dumps({name:[len(values),len({v.slot for v in values})] for name,values in shares.items()}))
+`),
+  );
+  // [tiles, stored tiles] per sheet; left-right pairs dominate the savings.
+  expect(sheets).toEqual({
+    body_panels: [661, 434],
+    body_cowl_right: [179, 179],
+    shield_panels: [510, 362],
+    head_panels: [276, 135],
+    engine_cast_patch: [42, 33],
+    engine_fan_patch: [32, 8],
+    engine_pan_patch: [90, 80],
+    engine_seam_patch: [18, 12],
+    engine_header_patch: [60, 60],
+    engine_joint_patch: [6, 2],
+    engine_outlet_patch: [6, 2],
+  });
+}, 60000);
 
 it("shares storage only within matching finishes and lit membership", () => {
   const slots = new Map<string, string>();

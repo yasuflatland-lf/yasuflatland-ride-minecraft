@@ -453,3 +453,82 @@ l.bind_face('b',face)`,
     ),
   ).toEqual(["b: face pixel mismatch"]);
 });
+
+it("stores mirrored sheet tiles once and maps every tile's faces onto its own texels", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.array(
+        fc.tuple(
+          fc.integer({ min: 0, max: 3 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.integer({ min: 0, max: 3 }),
+        ),
+        { minLength: 1, maxLength: 12 },
+      ),
+      async (entries) => {
+        expect(
+          await run(
+            `import random
+entries = ${JSON.stringify(entries)}
+sources = {}
+tiles = []
+for seed,w,h,orientation in entries:
+    if seed not in sources:
+        rng = random.Random(seed)
+        sources[seed] = (w,h,[[(rng.randrange(3),rng.randrange(3),0,rng.choice((0,255))) for _ in range(w)] for _ in range(h)])
+    w,h,rows = sources[seed]
+    fx,fy = orientation & 1 == 1, orientation & 2 == 2
+    rows = [list(reversed(row)) if fx else row for row in (reversed(rows) if fy else rows)]
+    tiles.append((w,h,bytes(c for row in rows for p in row for c in p)))
+stored,shares = m.share_tiles(tiles)
+assert len(stored) <= len(sources) and stored == sorted(stored)
+assert [shares[i] for i in stored] == [m.TileShare(slot) for slot in range(len(stored))]
+def oriented(data,w,h,fx,fy):
+    return b''.join(m._oriented_rows(tuple(data[v*w*4:(v+1)*w*4] for v in range(h)),fx,fy))
+for i in stored:
+    for j in stored:
+        wi,hi,di = tiles[i]
+        wj,hj,dj = tiles[j]
+        if i < j and (wi,hi) == (wj,hj):
+            assert all(oriented(di,wi,hi,fx,fy) != dj for fx in (False,True) for fy in (False,True))
+# Lay the stored tiles side by side; every face must read the texels of its own tile.
+origins, x = [], 0
+for i in stored:
+    origins.append((x,0))
+    x += tiles[i][0]
+sheet = [[None]*x for _ in range(max(tiles[i][1] for i in stored))]
+for (ox,oy),i in zip(origins,stored):
+    w,h,data = tiles[i]
+    for v in range(h):
+        for u in range(w):
+            sheet[oy+v][ox+u] = data[(v*w+u)*4:(v*w+u)*4+4]
+for (w,h,data),share in zip(tiles,shares):
+    for local in (m.UvRect(0,0,w,h),m.UvRect(w,0,-w,h),m.UvRect(0,h,w,-h),m.UvRect(w,h,-w,-h)):
+        rect = local.to_atlas(m.Placement(*origins[share.slot],share.flip_x,share.flip_y),w,h)
+        for v in range(h):
+            for u in range(w):
+                lu, lv = int(local.u+(u+.5)*local.w/w), int(local.v+(v+.5)*local.h/h)
+                ax, ay = int(rect.u+(u+.5)*rect.w/w), int(rect.v+(v+.5)*rect.h/h)
+                assert sheet[ay][ax] == data[(lv*w+lu)*4:(lv*w+lu)*4+4]`,
+            "True",
+          ),
+        ).toBe(true);
+      },
+    ),
+    { numRuns: 30 },
+  );
+});
+
+it("rejects tiles whose bytes do not match their dimensions", async () => {
+  expect(
+    await run(
+      `try:
+    m.share_tiles([(2,2,bytes(12))])
+    error = None
+except ValueError as e:
+    error = str(e)`,
+      "error",
+    ),
+  ).toBe("A tile's RGBA bytes must match its dimensions");
+});

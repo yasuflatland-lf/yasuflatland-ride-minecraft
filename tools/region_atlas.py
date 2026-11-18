@@ -51,9 +51,15 @@ class UvRect:
 class RegionFace(dict):
     """Keep face ownership through mirroring without serializing audit metadata."""
 
-    def __init__(self, values: dict, region: str):
+    # A face on a shared sheet tile samples its stored copy mirrored on these axes.
+    flip_x = False
+    flip_y = False
+
+    def __init__(self, values: dict, region: str, flip_x: bool = False, flip_y: bool = False):
         super().__init__(values)
         self.region = region
+        if flip_x or flip_y:
+            self.flip_x, self.flip_y = flip_x, flip_y
 
 
 class RegionRef:
@@ -264,6 +270,44 @@ def _oriented_rows(rows, flip_x, flip_y):
     return tuple(reversed(rows)) if flip_y else rows
 
 
+_ORIENTATIONS = ((False, False), (True, False), (False, True), (True, True))
+
+
+@dataclass(frozen=True)
+class TileShare:
+    """A tile's stored slot and the flip that maps the tile's pixels onto it."""
+    slot: int
+    flip_x: bool = False
+    flip_y: bool = False
+
+
+def share_tiles(tiles) -> tuple[list[int], list[TileShare]]:
+    """Store sheet tiles once when they repeat, also as left-right or top-bottom mirrors.
+
+    A region packs many tiles into one sheet, so region-level sharing cannot see
+    mirrored panel pairs inside it. ``tiles`` holds ``(width, height, rgba)``.
+    Returns the indices of the stored tiles in input order and every tile's share;
+    a face on a tile reaches its stored copy through ``UvRect.to_atlas`` with a
+    ``Placement`` at the slot origin carrying the share's flips.
+    """
+    stored = []
+    shares = []
+    signatures = {}
+    for index, (width, height, data) in enumerate(tiles):
+        if len(data) != width * height * 4:
+            raise ValueError("A tile's RGBA bytes must match its dimensions")
+        rows = tuple(bytes(data[v * width * 4:(v + 1) * width * 4]) for v in range(height))
+        share = signatures.get((width, height, rows))
+        if share is None:
+            share = TileShare(len(stored))
+            stored.append(index)
+            for fx, fy in _ORIENTATIONS:
+                signatures.setdefault((width, height, _oriented_rows(rows, fx, fy)),
+                                      TileShare(share.slot, fx, fy))
+        shares.append(share)
+    return stored, shares
+
+
 def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = None,
          share_key: Callable[[Region], Hashable] | None = None) -> Layout:
     if share_key is None:
@@ -280,7 +324,7 @@ def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = No
         if match is None:
             representatives.register(region)
             match = (region.name, False, False)
-            for fx, fy in ((False, False), (True, False), (False, True), (True, True)):
+            for fx, fy in _ORIENTATIONS:
                 signatures.setdefault((key, _oriented_rows(rows, fx, fy)), (region.name, fx, fy))
         matches[region.name] = match
     # Heuristic packing is not monotonic when rectangles are removed. Keeping

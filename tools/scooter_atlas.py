@@ -129,6 +129,14 @@ def face(region, u=0, v=0, w=None, h=None):
                                                  registered.height if h is None else h]}, name)
 
 
+def tile_face(region, origin, share, width, height, u, v, w, h):
+    """Map a face rectangle on a sheet tile onto the tile's stored, possibly mirrored, copy."""
+    rect = region_atlas.UvRect(u, v, w, h).to_atlas(
+        region_atlas.Placement(*origin, share.flip_x, share.flip_y), width, height)
+    result = face(region, rect.u, rect.v, rect.w, rect.h)
+    return region_atlas.RegionFace(result, result.region, share.flip_x, share.flip_y)
+
+
 def faces(region, u=0, v=0, w=None, h=None):
     return {name: face(region, u, v, w, h) for name in FACE_NAMES}
 

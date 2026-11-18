@@ -404,9 +404,11 @@ def rotate(point, pivot, rotation):
 class SampledUv(dict):
     """Retain storage orientation for texel-boundary ties in preview sampling."""
 
-    def __init__(self, face, placement):
+    def __init__(self, face, placement, tile=None):
         super().__init__(face)
-        self.flip_x, self.flip_y = placement.flip_x, placement.flip_y
+        # A mirrored sheet tile inside a mirrored placement reads its texels unmirrored.
+        self.flip_x = placement.flip_x != getattr(tile, "flip_x", False)
+        self.flip_y = placement.flip_y != getattr(tile, "flip_y", False)
 
 
 def _sample_index(position, limit, flipped=False, snap=False):
@@ -1318,7 +1320,7 @@ def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
         if bone["name"] != source["name"]:
             raise ValueError("Scooter preview region metadata does not match geometry")
         for cube, original in zip(bone["cubes"], source["cubes"], strict=True):
-            cube["uv"] = {name: SampledUv(face, layout.placement(original["uv"][name].region))
+            cube["uv"] = {name: SampledUv(face, layout.placement(original["uv"][name].region), original["uv"][name])
                           for name, face in cube["uv"].items()}
     texture = read_png(rp / SCOOTER_TEXTURE)
     # The road pose has no hover discs: the render controller hides the glow bones on the ground,

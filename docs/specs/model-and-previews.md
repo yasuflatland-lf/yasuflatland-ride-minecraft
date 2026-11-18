@@ -65,12 +65,18 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   each face resolves once and remains bound to its region for the atlas audit.
   Packing shares exact and mirrored pixel rows only within equal material and lit-membership
   keys. The first region in name order owns the storage; copies use its position and
-  placement flips, expressed as signed face UV sizes. Paint, MER and lit-mask writers
+  placement flips, expressed as signed face UV sizes. Most repeated content is a
+  mirrored panel tile inside a sheet region (body, cowl, shield, head and engine
+  patch sheets), which region sharing cannot see, so each sheet first passes its
+  tiles through `region_atlas.share_tiles` and lays out only the stored ones; a
+  face on a copy samples the stored tile through the same `UvRect.to_atlas` flip
+  rule. Together these shrink the colour atlas from 2048 x 1951 to 1754 x 1696
+  texels. Paint, MER and lit-mask writers
   visit each unique storage rectangle once. Audits verify every bound face's covered
   texels against its local region pixels; sharing preserves all preview bytes.
   Capped preview samples round midpoint coordinates to nine decimal places before
   texel selection, preserving integer boundary samples when atlas regions move.
-  Nonserialized region metadata supplies placement flips to the preview sampler;
+  Nonserialized region metadata supplies placement and tile flips to the preview sampler;
   mirrored integer ties select the reflected texel cell, while pack geometry and
   UV values remain the rendered inputs.
   `scooter_kit.py` builds panels and tubes in the spike frame, then mirrors their x
@@ -181,7 +187,10 @@ A transparent 16 by 16 item icon shows the scooter facing right.
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md), front direction and model bones; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), named compound assemblies and the pending device confirmation of rotation order.
 - Implementation: `tools/scooter_textures.py`, `tools/gen_scooter.py`, `tools/scooter_dims.py`, `tools/scooter_atlas.py`, `tools/scooter_kit.py`, `tools/generators.json`.
 - Verification: `tests/tools/scooterTextures.test.ts` checks dye order, unchanged non-paint
-  texels, ivory identity, material finishes, lamp masks, texture sets, and icon transparency.
+  texels, ivory identity, material finishes, lamp masks, texture sets, and icon transparency,
+  plus the shared atlas size and the stored tile count of every panel sheet;
+  `tests/tools/regionAtlas.test.ts` checks that `share_tiles` stores no mirrored
+  pair twice and maps every tile's faces onto its own texels.
   `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
   corners, local UV resolution, measured dimensions, and deterministic builds.
   `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
