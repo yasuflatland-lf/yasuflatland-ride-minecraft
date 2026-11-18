@@ -22,7 +22,7 @@ CHROME_STOPS = ((0.0, (250, 252, 253)), (0.25, (170, 183, 190)),
                 (0.48, (65, 78, 88)), (0.55, (245, 248, 250)),
                 (0.8, (127, 143, 153)), (1.0, (230, 236, 239)))
 RUBBER_DARK = (21, 21, 21)
-RUBBER_LIGHT = (35, 35, 35)
+RUBBER = (28, 28, 28)
 WHITEWALL = (233, 232, 227)
 LEATHER = (169, 109, 52)
 LEATHER_SEAM = (118, 72, 32)
@@ -35,7 +35,6 @@ CLEAR = (0, 0, 0, 0)
 REGION_TEXELS = 16
 SMALL_TEXELS = 4
 SEAM_PERIOD_TEXELS = 8
-RUBBER_BAND_TEXELS = 2
 GUTTER_TEXELS = 2
 MAX_SIDE_TEXELS = 2048
 FACE_NAMES = ("north", "south", "east", "west", "up", "down")
@@ -108,8 +107,7 @@ def _chrome(u, v):
 
 register_paint("paint", REGION_TEXELS, REGION_TEXELS)
 register("chrome", REGION_TEXELS, REGION_TEXELS, Material.CHROME, _chrome)
-register("rubber", SMALL_TEXELS, SMALL_TEXELS, Material.RUBBER,
-         lambda u, v: (*(RUBBER_DARK if v % RUBBER_BAND_TEXELS else RUBBER_LIGHT), 255))
+register("rubber", SMALL_TEXELS, SMALL_TEXELS, Material.RUBBER, _solid(RUBBER))
 register("whitewall", SMALL_TEXELS, SMALL_TEXELS, Material.WHITEWALL, _solid(WHITEWALL))
 register("seat_leather", REGION_TEXELS, REGION_TEXELS, Material.LEATHER,
          lambda u, v: (*(LEATHER_SEAM if v % SEAM_PERIOD_TEXELS == 0 else LEATHER), 255))
