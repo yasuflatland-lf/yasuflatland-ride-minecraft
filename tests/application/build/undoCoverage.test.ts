@@ -88,6 +88,7 @@ function seed(e: Env, box: CellBox) {
 function select(e: Env, box: CellBox) {
   e.session.setFlow({
     kind: "endpoint",
+    menuLevel: "build",
     dimensionId: overworld,
     from: box.min,
     to: box.max,
