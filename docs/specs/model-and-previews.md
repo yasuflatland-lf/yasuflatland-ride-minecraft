@@ -63,6 +63,16 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   `scooter_atlas.py` classifies paint separately from other materials and reuses the
   camper MaxRects packer. Area builders register local region faces before packing;
   each face resolves once and remains bound to its region for the atlas audit.
+  Packing shares exact and mirrored pixel rows only within equal material and lit-membership
+  keys. The first region in name order owns the storage; copies use its position and
+  placement flips, expressed as signed face UV sizes. Paint, MER and lit-mask writers
+  visit each unique storage rectangle once. Audits verify every bound face's covered
+  texels against its local region pixels; sharing preserves all preview bytes.
+  Capped preview samples round midpoint coordinates to nine decimal places before
+  texel selection, preserving integer boundary samples when atlas regions move.
+  Nonserialized region metadata supplies placement flips to the preview sampler;
+  mirrored integer ties select the reflected texel cell, while pack geometry and
+  UV values remain the rendered inputs.
   `scooter_kit.py` builds panels and tubes in the spike frame, then mirrors their x
   coordinates and rotations into Bedrock coordinates without replacing cube objects.
   Compound rotations require named assemblies under ADR 0167.

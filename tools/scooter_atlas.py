@@ -33,6 +33,7 @@ SMALL_TEXELS = 4
 SEAM_PERIOD_TEXELS = 8
 GUTTER_TEXELS = 2
 MAX_SIDE_TEXELS = 2048
+LIT_REGIONS = ("head_lens", "lens_head", "lens_tail_glow", "lens_amber", "glow")
 FACE_NAMES = ("north", "south", "east", "west", "up", "down")
 
 
@@ -138,10 +139,14 @@ def plate_faces(region):
 
 def pack_layout():
     if REGISTRY._layout is None:
-        region_atlas.pack(REGISTRY, gutter_px=GUTTER_TEXELS, max_side=MAX_SIDE_TEXELS)
+        region_atlas.pack(REGISTRY, gutter_px=GUTTER_TEXELS, max_side=MAX_SIDE_TEXELS,
+                          share_key=lambda r: (r.material, r.name in LIT_REGIONS))
     packed = REGISTRY._layout
     # Bindings belong to a build; cached placement must not retain earlier cubes.
-    return region_atlas.Layout(packed.regions, packed.size, {r.name: packed.placement(r.name) for r in packed.regions})
+    layout = region_atlas.Layout(packed.regions, packed.size, {r.name: packed.placement(r.name) for r in packed.regions})
+    layout._pixels = packed._pixels
+    layout._shared = packed._shared
+    return layout
 
 
 def resolve(cubes, layout):
