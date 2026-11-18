@@ -33,6 +33,7 @@ SMALL_TEXELS = 4
 SEAM_PERIOD_TEXELS = 8
 GUTTER_TEXELS = 2
 MAX_SIDE_TEXELS = 2048
+LIT_REGIONS = ("head_lens", "lens_head", "lens_tail_glow", "lens_amber", "glow")
 FACE_NAMES = ("north", "south", "east", "west", "up", "down")
 
 
@@ -128,6 +129,14 @@ def face(region, u=0, v=0, w=None, h=None):
                                                  registered.height if h is None else h]}, name)
 
 
+def tile_face(region, origin, share, width, height, u, v, w, h):
+    """Map a face rectangle on a sheet tile onto the tile's stored, possibly mirrored, copy."""
+    rect = region_atlas.UvRect(u, v, w, h).to_atlas(
+        region_atlas.Placement(*origin, share.flip_x, share.flip_y), width, height)
+    result = face(region, rect.u, rect.v, rect.w, rect.h)
+    return region_atlas.RegionFace(result, result.region, share.flip_x, share.flip_y)
+
+
 def faces(region, u=0, v=0, w=None, h=None):
     return {name: face(region, u, v, w, h) for name in FACE_NAMES}
 
@@ -138,10 +147,14 @@ def plate_faces(region):
 
 def pack_layout():
     if REGISTRY._layout is None:
-        region_atlas.pack(REGISTRY, gutter_px=GUTTER_TEXELS, max_side=MAX_SIDE_TEXELS)
+        region_atlas.pack(REGISTRY, gutter_px=GUTTER_TEXELS, max_side=MAX_SIDE_TEXELS,
+                          share_key=lambda r: (r.material, r.name in LIT_REGIONS))
     packed = REGISTRY._layout
     # Bindings belong to a build; cached placement must not retain earlier cubes.
-    return region_atlas.Layout(packed.regions, packed.size, {r.name: packed.placement(r.name) for r in packed.regions})
+    layout = region_atlas.Layout(packed.regions, packed.size, {r.name: packed.placement(r.name) for r in packed.regions})
+    layout._pixels = packed._pixels
+    layout._shared = packed._shared
+    return layout
 
 
 def resolve(cubes, layout):
