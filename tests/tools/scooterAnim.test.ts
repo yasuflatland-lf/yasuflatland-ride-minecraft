@@ -71,7 +71,7 @@ assert len(feet)==2
 for cube in feet:
     for p in t.corners(cube):
         q=t.apply_matrix(t.cube_matrix([d.STAND_UP_DEGREES,0,0]),[p[i]-pivot[i] for i in range(3)])
-        assert q[1]+pivot[1]>1 and q[2]+pivot[2]>p[2]
+        assert q[1]+pivot[1]>1 and q[2]+pivot[2]<p[2]
 assert sum(len(b['cubes']) for b in bones.values())<=d.CUBE_BUDGET
 `);
 });

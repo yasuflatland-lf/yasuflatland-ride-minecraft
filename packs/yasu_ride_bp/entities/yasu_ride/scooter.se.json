@@ -458,8 +458,8 @@
         "family_types": ["player"],
         "interact_text": "action.interact.yasu_ride.drive",
         "seats": [
-          { "position": [0, 1.00625, -0.21875], "lock_rider_rotation": 90 },
-          { "position": [0, 1.00625, -0.59375] }
+          { "position": [0, 0.65625, -0.21875], "lock_rider_rotation": 90 },
+          { "position": [0, 0.65625, -0.59375] }
         ]
       }
     }

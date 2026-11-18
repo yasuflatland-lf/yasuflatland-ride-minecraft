@@ -13,7 +13,9 @@ AXLE_Y = TYRE_RADIUS
 TYRE_HALF_WIDTH = 1.05
 STEERING_AXIS_DEGREES = 20.9
 HEADSET_Y = 17.9
-SEAT_Y = 16.1
+# Bedrock seats a rider 0.4 blocks below the seat position (ADR 0029), so the hips sit 5.6 px above it:
+# 10.5 puts them on the 16.1 px seat top.
+SEAT_Y = 10.5
 DRIVER_SEAT_Z = 3.5
 PASSENGER_SEAT_Z = 9.5
 STAND_PIXEL = (400, 462)
@@ -29,7 +31,9 @@ STRUT_BONES = {"front": "wheel_front_strut", "rear": "wheel_rear_strut"}
 # on the ground so the open wheel well keeps its road silhouette; it extends with the fold drop.
 REAR_STEM_BONE = "wheel_rear_stem"
 REAR_STEM_TOP = 13.26
-STAND_UP_DEGREES = 85
+# At rest the stand legs lean about 28 degrees forward of straight down; turning the stand 62 degrees
+# more to the front lays the legs horizontal, parallel to the floor, pointing at the front tyre.
+STAND_UP_DEGREES = -62
 GLOW_DEPTH = 0.5
 GLOW_GAP = 0.1
 GLOW_SEGMENTS = 16

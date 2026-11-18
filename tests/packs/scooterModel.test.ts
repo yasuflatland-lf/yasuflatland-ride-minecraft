@@ -192,8 +192,8 @@ print(json.dumps(deviations))
       ["wheel_rear_stem", "body", [0, 13.26, 11.8]],
       ["stand", "body", [0, 3.735, 1.045]],
       ["tail_lights", "body", [0, 0, 0]],
-      ["seat_0", "body", [0, 16.1, 3.5]],
-      ["seat_1", "body", [0, 16.1, 9.5]],
+      ["seat_0", "body", [0, 10.5, 3.5]],
+      ["seat_1", "body", [0, 10.5, 9.5]],
     ] as const;
     expect(geometry.bones.map((b) => b.name)).toEqual(
       expected.map((b) => b[0]),
