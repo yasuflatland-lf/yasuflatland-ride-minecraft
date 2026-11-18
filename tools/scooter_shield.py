@@ -315,6 +315,9 @@ def build() -> kit.AreaCubes:
         cube = copy.deepcopy(template)
         cube["uv"] = atlas.faces(material)
         result.add(bone,cube)
+    rings = _fender_rings()
+    for path in ([r[0] for r in rings],[r[-1] for r in rings],rings[0],rings[-1]):
+        result.add("steer",kit.tube(path,D.SHIELD_BEAD_SIZE,atlas.faces("paint"),"shield_bead"))
     z,y = D.i2m(*HORN_POSITION)
     diameter = D.SHIELD_HORN_DIAMETER*D.SHIELD_HORN_SCALE
     depth = D.SHIELD_HORN_DEPTH*D.SHIELD_HORN_SCALE
