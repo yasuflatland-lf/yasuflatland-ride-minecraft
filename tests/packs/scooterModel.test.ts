@@ -30,7 +30,7 @@ const AREAS: readonly AreaRow[] = [
   { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"] },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"] },
   { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"] },
-  { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender", "shield_bead"] },
+  { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"] },
   { area: "glow", bones: ["glow_front", "glow_rear"], assemblies: [] },
 ];
 
@@ -86,7 +86,7 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(5617);
+    expect(metadata.budget).toBe(4667);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });
@@ -118,7 +118,7 @@ for allocation in ({k:v for k,v in d.AREA_CUBE_ALLOCATION.items() if k != 'glow'
             raise AssertionError('Accepted mismatched area keys')
 `);
   });
-  it("keeps block tops on the rolling circle with recessed grooves", async () => {
+  it("keeps the smooth tyre crown on the rolling circle", async () => {
     const result: { side: string; low: number; high: number }[] = JSON.parse(
       await python.run(`${setup}
 import math
@@ -149,10 +149,10 @@ print(json.dumps(out))
     );
     expect(result).toHaveLength(2);
     for (const { low, high } of result) {
-      // Grooves recess the carcass while the block corners stay inside the rolling circle.
+      // The smooth crown touches the rolling circle without passing it.
       expect(high).toBeLessThanOrEqual(0.001);
       expect(high).toBeGreaterThan(-0.01);
-      expect(low).toBeGreaterThanOrEqual(-0.18);
+      expect(low).toBeGreaterThanOrEqual(-0.02);
     }
   });
 
@@ -163,7 +163,7 @@ r=load_tool('scooter_running')
 t=load_tool('cube_tilt')
 built=r.build()
 for side,axle,scale in (('front',-11.8,1.0),('rear',11.8,0.96)):
-    tyre=built['wheel_'+side][:r.RING_SEGMENTS*7]
+    tyre=built['wheel_'+side][:r.RING_SEGMENTS*(len(r.TYRE_PROFILE)-1)]
     for sign in (-1,1):
         for cube in tyre:
             corners=t.corners(cube)

@@ -51,35 +51,18 @@ for side, axle, scale in (('front', -11.8, 1), ('rear', 11.8, 0.96)):
 `);
 });
 
-it("uses chunky per-wheel tread with deep transverse grooves and wrapping shoulders", async () => {
+it("keeps a smooth tyre without tread blocks, reaching the rolling radius", async () => {
   await python.run(`${setup}
 for side, axle, scale in (('front', -11.8, 1), ('rear', 11.8, 0.96)):
-    blocks=[c for c in built['wheel_'+side] if c['uv']['east'].region=='rubber'
-            and c['uv']['east']['uv_size']==[1,1]]
-    rows={}
-    for c in blocks:
-        rows.setdefault(round(c['pivot'][0],4),[]).append(c)
+    assert not [c for c in built['wheel_'+side] if c['uv']['east'].region=='rubber'
+                and c['uv']['east']['uv_size']==[1,1]]
+    for c in [c for c in built['wheel_'+side] if c['uv']['east'].region=='rubber']:
         for p in t.corners(c):
             assert abs(p[0])<1.15
             assert math.hypot(p[1]-4.3,p[2]-axle)<=4.3*scale+1e-6
-    assert len(rows)==5
-    assert min(rows)<-0.8*scale and max(rows)>0.8*scale
-    for cs in rows.values():
-        angles=sorted(math.atan2(c['pivot'][2]-axle,c['pivot'][1]-4.3)%(2*math.pi) for c in cs)
-        assert len(angles)==r.TREAD_SETTINGS[side]["rows"]
-        assert 36<=len(angles)<=40
-        for a,b in zip(angles,angles[1:]+[angles[0]+2*math.pi]):
-            assert abs(b-a-2*math.pi/len(angles))<1e-5
-    for x in sorted(rows,key=abs)[:3]:
-        for c in rows[x]:
-            assert c['size'][1]>=0.12*scale
-            assert 0.5*scale<c['size'][2]<2*math.pi*4.3*scale/r.TREAD_SETTINGS[side]['rows']-0.1*scale
-    assert r.RING_SEGMENTS>=64
-    assert r.TREAD_OUTER-max(radius for x,radius in r.TYRE_PROFILE)>=0.12
-    shoulders=[c for x,cs in rows.items() if abs(x)>0.8*scale for c in cs]
-    assert min(math.hypot(p[1]-4.3,p[2]-axle) for c in shoulders for p in t.corners(c))<3.71*scale
-assert r.TREAD_SETTINGS['rear']['rows']<r.TREAD_SETTINGS['front']['rows']
-assert r.TREAD_SETTINGS['rear']['half_length']*r.REAR_WHEEL_SCALE>=r.TREAD_SETTINGS['front']['half_length']
+assert r.RING_SEGMENTS>=64
+assert max(radius for x,radius in r.TYRE_PROFILE)<=4.3
+assert min(radius for x,radius in r.TYRE_PROFILE)>=3.4
 `);
 });
 
