@@ -8,7 +8,7 @@ const setup = `import json, sys
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 k = load_tool('camper_kitchen')
-r = load_tool('camper_regions')
+r = load_tool('region_atlas')
 `;
 
 it("registers the kitchen materials once and exports frozen shared refs with audited faces", async () => {

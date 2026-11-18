@@ -2,8 +2,9 @@
 
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 _atlas = load_tool("swatch_atlas")
-_regions = load_tool("camper_regions")
 Atlas = _atlas.Atlas
 Region = _atlas.Region
 __all__ = ["Atlas", "Region"]
@@ -21,7 +22,7 @@ class RegisteredAtlas(Atlas):
         face = super().face(target, offset, uv_size)
         if self.base_ref is not None:
             face["uv"] = list(self.base_ref.uv(*face["uv"]))
-            face = _regions.RegionFace(face, "base")
+            face = region_atlas.RegionFace(face, "base")
         return face
 
     def atlas_swatch_at(self, x, y):

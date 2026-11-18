@@ -11,7 +11,7 @@ sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 k = load_tool('camper_kitchen_fronts')
 kit = load_tool('camper_kit')
-r = load_tool('camper_regions')
+r = load_tool('region_atlas')
 registry = r.RegionRegistry()
 refs = kit.kitchen.register_kitchen(registry)
 k.register_panel(registry)
@@ -63,7 +63,7 @@ sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 k = load_tool('camper_kitchen')
 f = load_tool('camper_kitchen_fronts')
-r = load_tool('camper_regions')
+r = load_tool('region_atlas')
 registry = r.RegionRegistry()
 kitchen, refs = k.build_kitchen_top(registry)
 layout = registry._layout

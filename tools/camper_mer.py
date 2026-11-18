@@ -2,9 +2,11 @@
 
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 regions = load_tool("camper_regions")
 Material = regions.Material
-Layout = regions.Layout
+Layout = region_atlas.Layout
 RGBA = bytes
 kit = load_tool("camper_kit")
 
