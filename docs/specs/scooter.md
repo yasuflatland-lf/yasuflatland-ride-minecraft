@@ -14,7 +14,7 @@
 
 ## Rules
 
-The nine scooter README previews include underbody, running-board, front-wheel and rear-wheel close-ups; their framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).
+The five scooter README previews include a running-board close-up; its framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).
 
 ### Spec table, profile and seats
 
