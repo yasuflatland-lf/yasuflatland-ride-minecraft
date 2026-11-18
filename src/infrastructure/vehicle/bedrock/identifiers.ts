@@ -226,13 +226,14 @@ export function isFleetEntityType(typeId: string): boolean {
 
 export const RIDER_POSE_ANIMATION_PREFIX = "animation.yasu_ride.player.";
 export const RIDER_POSE_CONTROLLER = "yasu_ride.scooter_pose";
-/** Seconds; ADR 0250 owner check 2 specifies 0.1 to 0.25. */
-export const RIDER_POSE_BLEND_OUT_TIME = 0.15;
 /**
- * A refresh replays the pose already playing. The pose animations cancel the
- * vanilla arms with `this`, which also counts the instance still blending out,
- * so any overlap makes the arms jump once per refresh (issue 1930).
+ * A played pose, changed or refreshed, replaces the previous one with no
+ * blend-out. The pose animations cancel the vanilla arm and leg rotation with
+ * `this`, which also counts an instance still blending out, so any overlap
+ * kicks the limbs for a moment (issues 1930 and 1993).
  */
-export const RIDER_POSE_REFRESH_BLEND_OUT_TIME = 0;
+export const RIDER_POSE_PLAY_BLEND_OUT_TIME = 0;
+/** Seconds; only a dismount fades the pose out; a tuning value no owner check pins. */
+export const RIDER_POSE_CLEAR_BLEND_OUT_TIME = 0.15;
 export const RIDER_POSE_STOP_EXPRESSION = "!query.is_riding";
 export const RIDER_POSE_CLEAR_EXPRESSION = "1";
