@@ -149,12 +149,12 @@ def write(outputs, rp, fixed_layout, fixed_pixels, layout, pixels, lit_layout, l
     texture_variants.write_variants(outputs, directory, "scooter_fixed", *fixed_layout.size,
                                     [texture_variants.Variant("scooter_fixed", fixed_pixels, mer_bytes(fixed_layout))])
     width, height = layout.size
-    material_pixels = mer_bytes(layout)
+    material = texture_variants.UniformMer(MER_BY_MATERIAL[atlas.Material.PAINT])
     variants = []
     for paint, color in PAINTS.items():
         name = "scooter_paint" if paint == "khaki" else f"scooter_paint_{paint}"
         color_pixels = pixels if color == atlas.PAINT_IVORY else recolor(layout, pixels, color)
-        variants.append(texture_variants.Variant(name, color_pixels, material_pixels))
+        variants.append(texture_variants.Variant(name, color_pixels, material))
     paint_textures = texture_variants.write_variants(outputs, directory, "scooter_paint", width, height, variants)
     width, height = lit_layout.size
     mask = bytearray(width * height)
