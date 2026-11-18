@@ -3,6 +3,8 @@
 import math
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 kit = load_tool("camper_kit")
 ATLAS = kit.ATLAS
 AreaCubes = kit.AreaCubes
@@ -131,7 +133,7 @@ def _build_exterior() -> AreaCubes:
     return AreaCubes({'body': body, 'door_entry': door})
 
 
-RegionRegistry = kit.regions.RegionRegistry
+RegionRegistry = region_atlas.RegionRegistry
 TEXELS_PER_PX = load_tool("camper_door_materials").TEXELS_PER_PX
 WOOD_HEIGHT = load_tool("camper_door_materials").WOOD_HEIGHT
 INNER_FIELDS = ((12, 36, -6.9, 6.9), (49, 54, -6.9, 6.9),
@@ -143,7 +145,7 @@ CURTAIN_FOLDS = 8
 def _face(registry: RegionRegistry, name: str, u: float, v: float,
           width: float, height: float) -> dict:
     region = next(r for r in registry.regions() if r.name == name)
-    ref = kit.regions.RegionRef(registry, region)
+    ref = region_atlas.RegionRef(registry, region)
     face = {"uv": list(ref.uv(u, v)), "uv_size": [width, height]}
     registry._layout.bind_face(name, face)
     return face

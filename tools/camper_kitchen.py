@@ -11,9 +11,11 @@ if TYPE_CHECKING:
 
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 regions = load_tool("camper_regions")
-RegionRef = regions.RegionRef
-RegionRegistry = regions.RegionRegistry
+RegionRef = region_atlas.RegionRef
+RegionRegistry = region_atlas.RegionRegistry
 Cube = dict[str, Any]
 AREA = "kitchen"
 FACES = ("north", "south", "east", "west", "up", "down")
@@ -216,8 +218,8 @@ def register_kitchen(registry: RegionRegistry) -> KitchenRegions:
     refs = []
     for name, width, height, material, kind in definitions:
         pixel = lambda x, y, kind=kind, width=width: texture_pixels()[kind][y * width + x]
-        refs.append(regions.RegionRef(registry, existing[name]) if name in existing else
-                    registry.register(regions.Region(name, width, height, material, pixel)))
+        refs.append(region_atlas.RegionRef(registry, existing[name]) if name in existing else
+                    registry.register(region_atlas.Region(name, width, height, material, pixel)))
     result = KitchenRegions(*refs)
     return result
 
@@ -231,7 +233,7 @@ def model_box(dimensions: tuple, color, registry: RegionRegistry) -> Cube:
             registry._layout.bind_face(color.region.name, value)
             return value
     else:
-        base = regions.RegionRef(registry, next(r for r in registry.regions() if r.name == "base"))
+        base = region_atlas.RegionRef(registry, next(r for r in registry.regions() if r.name == "base"))
         def face():
             value = kit.ATLAS.face(color)
             ox, oy = kit.LAYOUT.origin("base")
@@ -284,7 +286,7 @@ def burner(cx: float, cz: float, turn: float, registry: RegionRegistry | None = 
                 for name in ("north", "south", "east", "west"):
                     f = kit.ATLAS.face(kit.BURNER_CAST_REGION)
                     old_x, old_y = kit.LAYOUT.origin("base")
-                    base = regions.RegionRef(registry, next(r for r in registry.regions() if r.name == "base"))
+                    base = region_atlas.RegionRef(registry, next(r for r in registry.regions() if r.name == "base"))
                     f['uv'] = list(base.uv(f['uv'][0] - old_x, f['uv'][1] - old_y))
                     registry._layout.bind_face("base", f)
                     c['uv'][name] = f
@@ -324,7 +326,7 @@ def build_kitchen_top(registry: RegionRegistry) -> "tuple[AreaCubes, KitchenRegi
     if registry is kit.REGISTRY:
         kit.prepare_layout()
     elif registry._layout is None:
-        regions.pack(registry)
+        region_atlas.pack(registry)
     counter = [model_box(d, refs.LAMINATE, registry) for d in COUNTER_LAMINATE]
     counter += [model_box(d, refs.STAINLESS, registry) for d in COUNTER_METAL]
     spout = model_box(SPOUT, refs.STAINLESS, registry)

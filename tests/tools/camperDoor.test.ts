@@ -81,7 +81,7 @@ for cube in door.build_door_entry(kit.REGISTRY)['door_entry']:
 it("builds repeatably and audits every finish without growing geometry", async () => {
   expect(
     await run(
-      "[a == b, len(a['shower_door']), kit.regions.audit(kit.LAYOUT, kit.regions.render_atlas(kit.LAYOUT))]",
+      "[a == b, len(a['shower_door']), load_tool('region_atlas').audit(kit.LAYOUT, load_tool('region_atlas').render_atlas(kit.LAYOUT))]",
       `
 a = door.build()
 b = door.build()
