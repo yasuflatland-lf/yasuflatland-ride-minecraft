@@ -399,6 +399,7 @@ function setupRoof(kind: "gable" | "hip") {
   const e = setupAir();
   e.session.setFlow({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: nether,
     from: { x: 0, y: 0, z: 0 },
     to: { x: 4, y: 0, z: 4 },
@@ -472,6 +473,7 @@ it("opens the utility menu on a sneak air press in point1 and endpoint", () => {
   expect(menus.showUtilityMenu).toHaveBeenCalledTimes(1);
   session.setFlow({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: asDimensionId("minecraft:overworld"),
     from: { x: 10, y: 0, z: 0 },
     to: { x: 12, y: 0, z: 0 },

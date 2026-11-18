@@ -22,6 +22,7 @@ it("reads aim once at choice, ignores pitch, locks boxes and retains the axis on
         const session = repo.getOrCreate(playerId);
         session.setFlow({
           kind: "endpoint",
+          menuLevel: "build",
           from: { x: 0, y: 60, z: 0 },
           to: { x: 6, y: box ? 64 : 60, z: 8 },
           dimensionId: overworld,
@@ -74,6 +75,7 @@ it("falls back to x when aim is unavailable", () => {
   const repo = new FakeSessions();
   repo.getOrCreate(playerId).setFlow({
     kind: "endpoint",
+    menuLevel: "build",
     from: { x: 0, y: 60, z: 0 },
     to: { x: 4, y: 64, z: 4 },
     dimensionId: overworld,
@@ -92,7 +94,7 @@ it("falls back to x when aim is unavailable", () => {
   });
 });
 
-it("does not read aim or delegate for missing selections, lines or vertical rectangles", () => {
+it("does not read aim or delegate for missing selections, unsupported shapes or the root level", () => {
   const repo = new FakeSessions();
   const aim = { aim: vi.fn() };
   const delegate = { execute: vi.fn() };
@@ -103,12 +105,15 @@ it("does not read aim or delegate for missing selections, lines or vertical rect
     delegate,
   );
   choose.execute({ playerId });
-  for (const to of [
-    { x: 4, y: 60, z: 0 },
-    { x: 4, y: 64, z: 0 },
-  ]) {
+  for (const [to, menuLevel] of [
+    [{ x: 4, y: 60, z: 0 }, "build"],
+    [{ x: 4, y: 64, z: 0 }, "build"],
+    [{ x: 4, y: 60, z: 4 }, "root"],
+    [{ x: 4, y: 64, z: 4 }, "root"],
+  ] as const) {
     repo.getOrCreate(playerId).setFlow({
       kind: "endpoint",
+      menuLevel,
       from: { x: 0, y: 60, z: 0 },
       to,
       dimensionId: overworld,
@@ -127,6 +132,7 @@ it.each([
   const repo = new FakeSessions();
   repo.getOrCreate(playerId).setFlow({
     kind: "endpoint",
+    menuLevel: "build",
     from: { x: 0, y: 60, z: 0 },
     to: { x: 4, y: 64, z: 4 },
     dimensionId: overworld,

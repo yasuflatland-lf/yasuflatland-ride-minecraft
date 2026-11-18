@@ -30,6 +30,7 @@ function setup(to = flat) {
   const session = repo.getOrCreate(playerId);
   session.setFlow({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: overworld,
     from,
     to,

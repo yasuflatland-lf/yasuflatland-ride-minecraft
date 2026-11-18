@@ -35,7 +35,7 @@ const dimensionId = asDimensionId("minecraft:overworld");
 const stone = blockStateOf("minecraft:stone");
 
 it.each(["copy", "cut", "rotate"] as const)(
-  "offers Cut first and Copy before Cancel, and starts %s height only for horizontal rectangles",
+  "offers Cut first and Copy before Fill below, and starts %s height only for horizontal rectangles",
   (kind) => {
     fc.assert(
       fc.property(cell, offset, fc.boolean(), (a, delta, reverse) => {
@@ -47,8 +47,9 @@ it.each(["copy", "cut", "rotate"] as const)(
           to,
         );
         const entries = shapeMenu(endpoint).map((entry) => entry.id);
-        expect(entries.slice(0, 3)).toEqual(["cut", "removeAbove", "rotate"]);
-        expect(entries.slice(-2)).toEqual(["copy", "cancel"]);
+        expect(entries.slice(0, 2)).toEqual(["cut", "removeAbove"]);
+        expect(entries[3]).toBe("rotate");
+        expect(entries.slice(-3)).toEqual(["copy", "fillBelow", "cancel"]);
         expect(entries.filter((id) => id === kind)).toHaveLength(1);
         expect(selectionBoxOf(endpoint)).toEqual(boxOf(a, b));
         const shape = shapeOf(a, b);

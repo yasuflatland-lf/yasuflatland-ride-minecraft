@@ -22,6 +22,8 @@ export type BuildEntryId =
   | "walls"
   | Exclude<HeightedKind, "sideCylinderX" | "sideCylinderZ">
   | "sideCylinder";
+export type RootEntryId = EditEntryId | "buildShape" | "place" | "cancel";
+export type BuildMenuEntryId = BuildEntryId | "back";
 export type ShapeEntryId = EditEntryId | BuildEntryId | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
 export type TerrainEntryId = "confirm" | "cancel";
@@ -81,15 +83,33 @@ export function isBuildEntry(id: ShapeEntryId): id is BuildEntryId {
   return id !== "cancel" && !isEditEntry(id);
 }
 
-export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
-  if (flow.kind !== "endpoint") return [];
-  const edits = editEntries();
+export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
+  if (flow.kind !== "endpoint" || flow.menuLevel !== "root") return [];
   return [
-    ...edits.slice(0, 3),
-    ...buildEntries(shapeOf(flow.from, flow.to)),
-    ...edits.slice(3),
+    { id: "cut" },
+    { id: "removeAbove" },
+    {
+      id: shapeOf(flow.from, flow.to).kind === "line" ? "place" : "buildShape",
+    },
+    { id: "rotate" },
+    { id: "copy" },
+    { id: "fillBelow" },
     { id: "cancel" },
   ];
+}
+
+export function buildMenu(flow: BuildFlow): MenuEntry<BuildMenuEntryId>[] {
+  if (flow.kind !== "endpoint" || flow.menuLevel !== "build") return [];
+  return [...buildEntries(shapeOf(flow.from, flow.to)), { id: "back" }];
+}
+
+export function isShapeEntryOffered(
+  flow: BuildFlow,
+  id: RootEntryId | BuildMenuEntryId,
+): boolean {
+  return [...shapeMenu(flow), ...buildMenu(flow)].some(
+    (entry) => entry.id === id,
+  );
 }
 
 export function utilityMenu(

@@ -26,6 +26,7 @@ it("sets only a roof flow's height and leaves other players and missing sessions
         const session = repo.getOrCreate(playerId);
         const endpoint: BuildFlow = {
           kind: "endpoint",
+          menuLevel: "root",
           dimensionId: overworld,
           from: { x: 0, y: 60, z: 0 },
           to: { x: 3, y: 60, z: 4 },
@@ -63,6 +64,7 @@ it("keeps locked box heights and other players unchanged for aiming and explicit
         const flow = chooseHeighted(
           {
             kind: "endpoint",
+            menuLevel: "root",
             dimensionId: overworld,
             material: blockStateOf("minecraft:stone"),
             from: { x: 0, y: 60, z: 0 },

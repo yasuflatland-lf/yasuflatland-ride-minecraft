@@ -38,6 +38,7 @@ it("retains the choice facing through height changes and a different confirmatio
         };
         session.setFlow({
           kind: "endpoint",
+          menuLevel: "root",
           dimensionId: overworld,
           from: { x: 0, y: 0, z: 0 },
           to: { x: 2, y: 0, z: 2 },

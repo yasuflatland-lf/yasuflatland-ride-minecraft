@@ -13,6 +13,7 @@ import type { EndPasting } from "../../../application/build/endPasting";
 import type { NewCopy } from "../../../application/build/newCopy";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../application/build/undoEdit";
+import { openBuildMenu } from "../../../domain/build/flow/flow";
 import {
   type BuildEntryId,
   contentsMenu,
@@ -21,12 +22,12 @@ import {
   isEditEntry,
   type MenuEntry,
   pasteMenu,
-  shapeMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import type { PlayerId } from "../../../domain/shared/ids";
+import { flatShapeMenu } from "./flatShapeMenu";
 
 function isOffered<Id extends string>(
   entries: MenuEntry<Id>[],
@@ -66,7 +67,7 @@ export class MenuChoices {
     const session = this.repo.get(playerId);
     if (!session) return false;
     if (menu === "shape") {
-      if (!isOffered(shapeMenu(session.flow), entryId)) return false;
+      if (!isOffered(flatShapeMenu(session.flow), entryId)) return false;
       if (isEditEntry(entryId)) {
         this.dispatchEditEntry(entryId, playerId);
       } else if (isBuildEntry(entryId)) {
@@ -187,9 +188,12 @@ export class MenuChoices {
       case "cube":
         this.cases.chooseHeighted.execute({ playerId, kind: id });
         break;
-      case "sideCylinder":
+      case "sideCylinder": {
+        const session = this.repo.get(playerId);
+        if (session) session.setFlow(openBuildMenu(session.flow));
         this.cases.chooseSideCylinder.execute({ playerId });
         break;
+      }
 
       default: {
         const exhaustive: never = id;

@@ -52,6 +52,7 @@ function setup(box: CellBox = wideBox) {
   const session = repo.getOrCreate(playerId);
   session.setFlow({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: overworld,
     from: box.min,
     to: box.max,
@@ -126,6 +127,7 @@ it("rotates any selection with one union snapshot and never writes outside the u
       expect(selectionBoxOf(e.session.flow)).toEqual(plan.target);
       expect(e.session.flow).toMatchObject({
         kind: "endpoint",
+        menuLevel: "root",
         dimensionId: overworld,
         material: stone,
       });
@@ -241,6 +243,7 @@ it("ignores idle, incomplete and other-dimension selections", () => {
     { kind: "point1", dimensionId: overworld, cell: origin, material: stone },
     {
       kind: "endpoint",
+      menuLevel: "root",
       dimensionId: nether,
       from: wideBox.min,
       to: wideBox.max,

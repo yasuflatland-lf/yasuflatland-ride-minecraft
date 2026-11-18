@@ -32,6 +32,7 @@ export class RotateBoxAction implements BoxAction {
     if (flow.kind === "heightStep")
       session.setFlow({
         kind: "endpoint",
+        menuLevel: "root",
         dimensionId,
         from: box.min,
         to: box.max,

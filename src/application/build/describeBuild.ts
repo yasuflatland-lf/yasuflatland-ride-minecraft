@@ -12,6 +12,7 @@ export class DescribeBuild {
 
   execute(playerId: PlayerId): {
     flow: BuildFlow["kind"];
+    menuLevel: "root" | "build" | undefined;
     clipboardHeld: boolean;
     pasteTurn: QuarterTurn;
     pasteMenu: string[];
@@ -19,6 +20,8 @@ export class DescribeBuild {
     const session = this.repo.get(playerId);
     return {
       flow: session?.flow.kind ?? "idle",
+      menuLevel:
+        session?.flow.kind === "endpoint" ? session.flow.menuLevel : undefined,
       clipboardHeld: session?.clipboard !== undefined,
       pasteTurn: session?.pasteTurn ?? NO_TURN,
       pasteMenu:
