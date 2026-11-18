@@ -171,10 +171,10 @@ it("filters removal using the broken permutation rather than the remaining block
   });
 });
 
-function interactions(f: ReturnType<typeof fixture>) {
-  const rename = { run: vi.fn().mockResolvedValue(undefined) };
+function interactions(f: ReturnType<typeof fixture>, settled = true) {
+  const taps = { run: vi.fn().mockResolvedValue(settled) };
   const list = { run: vi.fn().mockResolvedValue(undefined) };
-  registerWarpBlockInteract(rename, list, f.guard);
+  registerWarpBlockInteract(taps, list, f.guard);
   const registry = { registerCustomComponent: vi.fn() };
   game.startup.mock.calls[0]?.[0]({ blockComponentRegistry: registry });
   expect(registry.registerCustomComponent).toHaveBeenCalledWith(
@@ -194,27 +194,65 @@ function interactions(f: ReturnType<typeof fixture>) {
       >[0],
       {} as CustomComponentParameters,
     );
-  return { rename, list, tap };
+  return { taps, list, tap };
 }
 
-it.each([false, true])(
-  "routes a sneaking=%s block interaction and debounces repeated taps",
-  async (sneaking) => {
-    const f = fixture();
-    f.player.isSneaking = sneaking;
-    const i = interactions(f);
-    i.tap();
-    i.tap();
-    await flush();
-    i.tap();
-    expect(sneaking ? i.rename.run : i.list.run).toHaveBeenCalledOnce();
-    expect(sneaking ? i.list.run : i.rename.run).not.toHaveBeenCalled();
-    game.currentTick = 100;
-    i.tap();
-    await flush();
-    expect(sneaking ? i.rename.run : i.list.run).toHaveBeenCalledTimes(2);
-  },
-);
+it("counts one tap per player per tick and opens the list once the taps settle", async () => {
+  const f = fixture();
+  f.player.isSneaking = true;
+  const i = interactions(f);
+  game.currentTick = 7;
+  i.tap();
+  i.tap();
+  expect(game.run).toHaveBeenCalledOnce();
+  expect(i.taps.run).not.toHaveBeenCalled();
+  game.run.mock.calls[0]?.[0]();
+  await flush();
+  expect(i.taps.run).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    dimension: f.dimension.id,
+    cell: f.block.location,
+    now: 7,
+  });
+  expect(i.list.run).toHaveBeenCalledExactlyOnceWith("player");
+  game.currentTick = 8;
+  i.tap();
+  expect(game.run).toHaveBeenCalledTimes(2);
+});
+
+it("does not open the list for a tap that broke the block or was followed by another", async () => {
+  const f = fixture();
+  const i = interactions(f, false);
+  i.tap();
+  game.run.mock.calls[0]?.[0]();
+  await flush();
+  expect(i.list.run).not.toHaveBeenCalled();
+});
+
+it("counts taps but skips the list while a warp form is open", async () => {
+  const f = fixture();
+  const i = interactions(f);
+  f.guard.hold(asPlayerId(f.player.id), 0);
+  game.currentTick = 100;
+  i.tap();
+  game.run.mock.calls[0]?.[0]();
+  await flush();
+  expect(i.taps.run).toHaveBeenCalledOnce();
+  expect(i.list.run).not.toHaveBeenCalled();
+});
+
+it("logs a failed tap instead of throwing", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const f = fixture();
+  const i = interactions(f);
+  i.taps.run.mockRejectedValue(Error("setType failed"));
+  i.tap();
+  game.run.mock.calls[0]?.[0]();
+  await flush();
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining("setType failed"));
+  expect(i.list.run).not.toHaveBeenCalled();
+  warn.mockRestore();
+});
 
 it("cancels tool air and block actions, defers forms, and coalesces both event paths", async () => {
   const f = fixture();
@@ -251,10 +289,10 @@ it("cancels tool air and block actions, defers forms, and coalesces both event p
   expect(list.run).toHaveBeenCalledTimes(2);
 });
 
-it("ignores other items, held block repeats, and busy players across block and tool paths", () => {
+it("ignores other items, held tool repeats, and busy players on the tool path", () => {
   const f = fixture();
-  const i = interactions(f);
-  registerWarpTool(i.list, f.guard);
+  const list = { run: vi.fn().mockResolvedValue(undefined) };
+  registerWarpTool(list, f.guard);
   game.use.mock.calls[0]?.[0]({
     source: f.player,
     itemStack: { typeId: "minecraft:stick" },
@@ -266,7 +304,6 @@ it("ignores other items, held block repeats, and busy players across block and t
     isFirstEvent: false,
   });
   f.guard.hold(asPlayerId(f.player.id), 0);
-  i.tap();
   const ev = {
     source: f.player,
     itemStack: { typeId: WARP_TOOL_TYPE },
@@ -275,8 +312,7 @@ it("ignores other items, held block repeats, and busy players across block and t
   game.use.mock.calls[0]?.[0](ev);
   expect(ev.cancel).toBe(true);
   expect(game.run).not.toHaveBeenCalled();
-  expect(i.list.run).not.toHaveBeenCalled();
-  expect(i.rename.run).not.toHaveBeenCalled();
+  expect(list.run).not.toHaveBeenCalled();
 });
 
 it("catches placement rejection and releases the form lock", async () => {

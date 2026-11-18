@@ -139,7 +139,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "warp_flow",
     file: "warpFlow",
-    ticks: 30, // Estimate until the first BDS run.
+    ticks: 45, // Estimate until the first BDS run.
     features: ["warp"],
     isolation: "exclusive",
     needsPlayer: true,
