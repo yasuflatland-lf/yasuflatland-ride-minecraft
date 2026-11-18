@@ -45,6 +45,22 @@ describe("recorded scooter engine clips", () => {
         .digest("hex"),
     ).toBe("d59d23f4e76c5939ef0a92a2f48effdd4a0243774517303acfca1216bc770605");
   });
+  it.each(clips.filter(({ index }) => index > 0))(
+    "aligns band $index animation and Vorbis granule to whole ticks",
+    ({ index, seconds }) => {
+      const ticks = Math.round(seconds / 0.05);
+      expect(Math.abs(seconds / 0.05 - ticks)).toBeLessThan(1e-9);
+      expect(ticks).toBeGreaterThanOrEqual(50);
+      expect(ticks).toBeLessThanOrEqual(80);
+      const info = readOggInfo(`${sounds}/scooter_engine_${index}.ogg`);
+      expect(info.sampleCount).toBe(ticks * 2400);
+      expect(info.seconds).toBe(seconds);
+      expect(
+        animations[`animation.yasu_ride.scooter.engine_sound_${index}`]
+          .animation_length,
+      ).toBe(seconds);
+    },
+  );
   it.each(clips)(
     "plays band $index from its own Ogg with matching duration and volume",
     ({ index, seconds, volume }) => {
@@ -100,6 +116,7 @@ it("reads the existing five-second mono resort recording", () => {
   expect(readOggInfo(`${sounds}/toilet_flush.ogg`)).toEqual({
     channels: 1,
     sampleRate: 48000,
+    sampleCount: 240000,
     seconds: 5,
   });
 });
@@ -177,6 +194,8 @@ peak_db = 20 * math.log10(max(abs(v) for v in samples))
 assert abs(rms_db - (-21 + 0.2 * band)) < 0.15, (band, rms_db)
 assert peak_db < -1, peak_db
 if band:
+    ticks = round(${clips[band]?.seconds} / 0.05)
+    assert len(samples) == ticks * 2400, (band, len(samples), ticks)
     # Low-pass before decimation; correlate 0.5 s endpoint windows over the
     # measured 55–87 Hz fundamental range and interpolate the best lag.
     filtered = subprocess.check_output([

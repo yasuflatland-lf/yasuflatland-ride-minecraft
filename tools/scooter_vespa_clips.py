@@ -4,9 +4,9 @@ Run by hand with FFmpeg 9.0.2; the private MP3s are never generator inputs.
 Rev bands use overlapping post-drop windows with increasing decoded
 fundamentals. All six seams use the beat-aligned waveform/envelope search
 recorded in docs/specs/sounds.md. Rev search regions span 4.0–14.6 s,
-excluding the falling rev at 2.0–4.0 s. Prefer longer 2–4 s candidates
-within 0.15 of the best seam score, subject to decoded verification:
-wrap gap inside the internal spread and within 10 ms of its median,
+excluding the falling rev at 2.0–4.0 s. Search 50–80 tick candidates
+(2400 samples/tick), choosing the lowest seam score that passes decoded
+verification: wrap gap inside the internal spread and within 10 ms of its median,
 endpoint jump below the local adjacent-difference 99th percentile,
 and <=3 Hz fundamental drift between the first and last 0.5 s.
 The 3 Hz bound limits measured drift; it is not a listening result.
@@ -39,11 +39,11 @@ SCOOTER_ENGINE_SLICES: tuple[SliceSpec, ...] = (
     # 0.246560 + 0.092780 + 10 * 0.019697 = 0.536310. Source wrap gap
     # 112.167 ms vs 110 ms median; decoded wrap 112.167 ms (see sounds spec).
     SliceSpec("idle", 4.289833, 2.226167, 0.03),
-    SliceSpec("rev", 4.471250000, 2.580750000, 0.03),
-    SliceSpec("rev", 6.018000000, 2.496000000, 0.03),
-    SliceSpec("rev", 7.813020833, 2.904145833, 0.03),
-    SliceSpec("rev", 9.498000000, 3.180000000, 0.03),
-    SliceSpec("rev", 10.780770833, 3.652145833, 0.03),
+    SliceSpec("rev", 4.8000625, 2.55, 0.03),
+    SliceSpec("rev", 6.2734375, 2.5, 0.03),
+    SliceSpec("rev", 7.276, 2.5, 0.03),
+    SliceSpec("rev", 9.363979166666667, 2.85, 0.03),
+    SliceSpec("rev", 11.427229166666667, 2.55, 0.03),
 )
 
 RATE = 48000
@@ -109,6 +109,26 @@ def write_clip(ffmpeg: str, source: Path, out: Path, band: int, spec: SliceSpec)
         "-af", f"volume={gain:.12f}", "-c:a", "libvorbis", "-q:a", "5",
         str(out),
     ], pcm)
+    # Vorbis end trimming is carried by the final page granule, not packet size.
+    data = out.read_bytes()
+    offset = 0
+    granule = -1
+    while offset < len(data):
+        if offset + 27 > len(data) or data[offset:offset + 5] != b"OggS\x00":
+            raise ValueError(f"Invalid Ogg page: {out}")
+        body = offset + 27 + data[offset + 26]
+        if body > len(data):
+            raise ValueError(f"Truncated Ogg page: {out}")
+        end = body + sum(data[offset + 27:body])
+        if end > len(data):
+            raise ValueError(f"Truncated Ogg body: {out}")
+        granule = struct.unpack_from("<q", data, offset + 6)[0]
+        offset = end
+    decoded = run_ffmpeg(ffmpeg, [
+        "-i", str(out), "-f", "f32le", "pipe:1",
+    ])
+    if granule != samples or len(decoded) != samples * 4:
+        raise ValueError(f"Vorbis duration changed for band {band}: {out}")
     print(f"{out.name}: {length:.3f} s")
 
 

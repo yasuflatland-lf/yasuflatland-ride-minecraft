@@ -13,6 +13,7 @@ sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 os.environ['PATH'] = ''
 m = load_tool('scooter_vespa_clips')
+clips = load_tool('scooter_sound').ENGINE_CLIPS
 rng = random.Random(1849)
 for _ in range(1000):
     length = rng.uniform(0.001, 60)
@@ -54,7 +55,11 @@ for i, spec in enumerate(m.SCOOTER_ENGINE_SLICES):
         assert 0.02 <= spec.fade <= 0.05
         assert spec.start >= 4.0 and end <= 8.0
     else:
-        assert 2.0 <= spec.length <= 4.0
+        ticks = spec.length / 0.05
+        assert abs(ticks - round(ticks)) < 1e-9
+        assert 50 <= round(ticks) <= 80
+        assert round(spec.length * m.RATE) == round(ticks) * 2400
+        assert spec.length == clips[i].seconds
         assert 0.02 <= spec.fade <= 0.05
         assert spec.start >= 4.0
         if i == 1:
