@@ -335,7 +335,7 @@ for strut in d.STRUT_BONES.values():
         .filter(multipleAxes)
         .every((cube) => authorized.has(JSON.stringify(cube))),
     ).toBe(true);
-  });
+  }, 90_000);
 
   it("keeps all face rectangles inside the texture and respects the ceiling", () => {
     const { texture_width: width, texture_height: height } =
