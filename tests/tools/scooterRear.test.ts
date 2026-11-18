@@ -162,13 +162,14 @@ geo,layout,pixels=g.build()
 ox,oy=layout.origin('plate_text')
 w,h=128,140
 plates=[c for b in geo['minecraft:geometry'][0]['bones'] for c in b['cubes']
-        if c['uv']['south']['uv']==[ox,oy]]
+        if c['uv']['south']['uv']==[ox+w,oy]]
 assert len(plates)==1
 cube=plates[0]
 # Bedrock model +x points left on screen when looking toward the front from behind.
-# South UV corners are local (-x,+y), (+x,+y), (+x,-y), (-x,-y).
+# On the device, a south face with a positive UV width read mirrored from behind, so its U runs from
+# local +x to -x. The UV corners are local (+x,+y), (-x,+y), (-x,-y), (+x,-y).
 world=t.corners(cube)
-corners=[world[i] for i in (6,7,5,4)]
+corners=[world[i] for i in (7,6,4,5)]
 normal=t.apply_matrix(t.cube_matrix(cube.get('rotation',[0,0,0])),[0,0,1])
 assert normal[2]>0.9, 'The textured face must face the rear viewer'
 screen=[(-p[0],p[1]) for p in corners]
