@@ -1,14 +1,15 @@
 """Cut the owner's Vespa recordings into six unreferenced engine loops.
 
 Run by hand with FFmpeg 9.0.2; the private MP3s are never generator inputs.
-Rev bands use overlapping post-drop windows with increasing decoded
+Rev bands use post-drop windows with increasing decoded
 fundamentals. All six seams use the beat-aligned waveform/envelope search
 recorded in docs/specs/sounds.md. Rev search regions span 4.0–14.6 s,
-excluding the falling rev at 2.0–4.0 s. Search 50–80 tick candidates
-(2400 samples/tick), choosing the lowest seam score that passes decoded
-verification: wrap gap inside the internal spread and within 10 ms of its median,
-endpoint jump below the local adjacent-difference 99th percentile,
-and <=3 Hz fundamental drift between the first and last 0.5 s.
+excluding the falling rev at 2.0–4.0 s. Search exactly 20 ticks
+(48000 samples), refining the waveform/envelope/beat score within each
+band's region and choosing the smallest decoded 100 ms RMS spread among
+candidates passing verification: wrap gap inside the internal spread and
+within 10 ms of its median, endpoint jump below the local adjacent-difference
+99th percentile, and <=3 Hz fundamental drift between the first and last 0.5 s.
 The 3 Hz bound limits measured drift; it is not a listening result.
 Idle is unchanged; private MP3s are never generator inputs.
 
@@ -39,11 +40,11 @@ SCOOTER_ENGINE_SLICES: tuple[SliceSpec, ...] = (
     # 0.246560 + 0.092780 + 10 * 0.019697 = 0.536310. Source wrap gap
     # 112.167 ms vs 110 ms median; decoded wrap 112.167 ms (see sounds spec).
     SliceSpec("idle", 4.289833, 2.226167, 0.03),
-    SliceSpec("rev", 4.8000625, 2.55, 0.03),
-    SliceSpec("rev", 6.2734375, 2.5, 0.03),
-    SliceSpec("rev", 7.276, 2.5, 0.03),
-    SliceSpec("rev", 9.363979166666667, 2.85, 0.03),
-    SliceSpec("rev", 11.427229166666667, 2.55, 0.03),
+    SliceSpec("rev", 4.831979166666667, 1.0, 0.02),
+    SliceSpec("rev", 6.351354166666667, 1.0, 0.02),
+    SliceSpec("rev", 7.386, 1.0, 0.02),
+    SliceSpec("rev", 10.895958333333333, 1.0, 0.02),
+    SliceSpec("rev", 13.459979166666667, 1.0, 0.02),
 )
 
 RATE = 48000
@@ -104,9 +105,11 @@ def write_clip(ffmpeg: str, source: Path, out: Path, band: int, spec: SliceSpec)
         raise ValueError(f"Silent source for band {band}: {source}")
     target = 10 ** ((-21 + 0.2 * band) / 20)
     gain = min(target / rms, 10 ** (-2 / 20) / peak)
+    # Short pages preserve the initial samples when decoding one-second Vorbis.
     run_ffmpeg(ffmpeg, [
         "-y", "-f", "f32le", "-ar", str(RATE), "-ac", "1", "-i", "pipe:0",
         "-af", f"volume={gain:.12f}", "-c:a", "libvorbis", "-q:a", "5",
+        "-page_duration", "20000",
         str(out),
     ], pcm)
     # Vorbis end trimming is carried by the final page granule, not packet size.

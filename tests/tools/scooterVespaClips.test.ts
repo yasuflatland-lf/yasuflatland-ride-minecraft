@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { it } from "vitest";
 
-it("plans exact loop lengths and rejects invalid seam fades without FFmpeg", () => {
+it("plans one-second rev loops and rejects invalid seam fades without FFmpeg", () => {
   execFileSync(
     "python3",
     [
@@ -45,19 +45,21 @@ REV_DROP_START = 2.0
 REV_DROP_END = 4.0
 for i, spec in enumerate(m.SCOOTER_ENGINE_SLICES):
     assert spec.source == ('idle' if i == 0 else 'rev')
-    assert 2 <= spec.length <= 6
     assert spec.start >= 0
     assert 0 <= spec.fade <= spec.length / 2
     end = spec.start + spec.length + spec.fade
     assert end <= SOURCE_SECONDS[spec.source], (i, end)
     if i == 0:
+        assert 2 <= spec.length <= 6
         assert 2.0 <= spec.length <= 2.4
         assert 0.02 <= spec.fade <= 0.05
         assert spec.start >= 4.0 and end <= 8.0
     else:
         ticks = spec.length / 0.05
         assert abs(ticks - round(ticks)) < 1e-9
-        assert 50 <= round(ticks) <= 80
+        assert spec.length == 1.0
+        assert round(ticks) == 20
+        assert round(spec.length * m.RATE) == 48000
         assert round(spec.length * m.RATE) == round(ticks) * 2400
         assert spec.length == clips[i].seconds
         assert 0.02 <= spec.fade <= 0.05

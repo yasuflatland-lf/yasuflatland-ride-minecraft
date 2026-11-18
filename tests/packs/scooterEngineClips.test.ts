@@ -46,13 +46,14 @@ describe("recorded scooter engine clips", () => {
     ).toBe("d59d23f4e76c5939ef0a92a2f48effdd4a0243774517303acfca1216bc770605");
   });
   it.each(clips.filter(({ index }) => index > 0))(
-    "aligns band $index animation and Vorbis granule to whole ticks",
+    "aligns band $index animation and Vorbis granule to exactly 20 ticks",
     ({ index, seconds }) => {
       const ticks = Math.round(seconds / 0.05);
       expect(Math.abs(seconds / 0.05 - ticks)).toBeLessThan(1e-9);
-      expect(ticks).toBeGreaterThanOrEqual(50);
-      expect(ticks).toBeLessThanOrEqual(80);
+      expect(seconds).toBe(1);
+      expect(ticks).toBe(20);
       const info = readOggInfo(`${sounds}/scooter_engine_${index}.ogg`);
+      expect(info.sampleCount).toBe(48000);
       expect(info.sampleCount).toBe(ticks * 2400);
       expect(info.seconds).toBe(seconds);
       expect(
@@ -98,7 +99,7 @@ describe("recorded scooter engine clips", () => {
   });
 
   it.each([0, 1, 2, 3, 4, 5])(
-    "ships band %i as mono 48 kHz Vorbis lasting 2–6 seconds",
+    "ships band %i as mono 48 kHz Vorbis with its idle or one-second rev duration",
     (band) => {
       const path = `${sounds}/scooter_engine_${band}.ogg`;
       expect(existsSync(path)).toBe(true);
@@ -106,8 +107,13 @@ describe("recorded scooter engine clips", () => {
       const info = readOggInfo(path);
       expect(info.channels).toBe(1);
       expect(info.sampleRate).toBe(48000);
-      expect(info.seconds).toBeGreaterThanOrEqual(2);
-      expect(info.seconds).toBeLessThanOrEqual(6);
+      if (band === 0) {
+        expect(info.seconds).toBeGreaterThanOrEqual(2);
+        expect(info.seconds).toBeLessThanOrEqual(6);
+      } else {
+        expect(info.seconds).toBe(1);
+        expect(info.sampleCount).toBe(48000);
+      }
     },
   );
 });
@@ -149,7 +155,7 @@ const hasFFmpeg =
     { encoding: "utf8" },
   ).trim() === "True";
 it.skipIf(!hasFFmpeg).each([0, 1, 2, 3, 4, 5])(
-  "keeps decoded band %i within the beat, pitch stability and level limits",
+  "keeps decoded band %i within the beat, pitch stability and loudness limits",
   (band) => {
     execFileSync(
       "python3",
@@ -182,7 +188,7 @@ for i in sorted(candidates, key=lambda i: (-envelope[i], i)):
         selected.append(i)
 peaks = sorted((i * 96 + 288) / rate - seconds for i in selected
                if seconds <= (i * 96 + 288) / rate < 2 * seconds)
-assert len(peaks) >= 15, peaks
+assert len(peaks) >= (15 if band == 0 else 8), peaks
 gaps = [b - a for a, b in zip(peaks, peaks[1:])]
 wrap = peaks[0] + seconds - peaks[-1]
 assert min(gaps) <= wrap <= max(gaps), (wrap, gaps)
@@ -220,7 +226,12 @@ if band:
         return 4000 / (lag + delta)
     start, end = fundamental(signal[:2000]), fundamental(signal[-2000:])
     assert abs(end - start) <= 3.0, (band, start, end)
-    assert 2 <= seconds <= 4, (band, seconds)
+    assert seconds == 1 and len(samples) == 48000, (band, seconds)
+    levels = [20 * math.log10(math.sqrt(
+        sum(v*v for v in samples[i:i+4800]) / 4800))
+        for i in range(0, len(samples), 4800)]
+    assert max(levels) - min(levels) <= 2, (band, levels)
+
     if band > 1:
         previous_pcm = subprocess.check_output([
             'ffmpeg', '-v', 'error', '-i',
