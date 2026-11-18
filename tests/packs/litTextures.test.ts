@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readRgbaPng } from "../support/png";
+import { startPythonWorker } from "../support/pythonWorker";
 import { swatchUv } from "./camper/helpers";
 
 const RP = "packs/yasu_ride_rp";
@@ -55,23 +56,29 @@ const suvLit = (x: number, y: number) =>
       lit.some(([lx, ly]) => lx === x && ly === y),
   );
 
-const scooterLitRects: [number, number, number, number][] = JSON.parse(
-  execFileSync(
-    "python3",
-    [
-      "-I",
-      "-c",
-      `import json, sys
+const scooterPython = startPythonWorker();
+afterAll(() => scooterPython.close());
+let scooterLitRects: [number, number, number, number][];
+let scooterAtlas: { width: number; height: number; pixels: Buffer };
+beforeAll(async () => {
+  const result = JSON.parse(
+    await scooterPython.run(`
+import json, sys
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 textures = load_tool('scooter_textures')
-# The areas register their regions while building, so only a full build packs the real atlas.
-_, layout, _ = load_tool('gen_scooter').build()
-print(json.dumps([[*layout.origin(r.name), r.width, r.height] for r in layout.regions if r.name in textures.LIT_REGIONS]))`,
-    ],
-    { encoding: "utf8" },
-  ),
-);
+_, _, _, _, layout, pixels = load_tool('gen_scooter').build()
+print(json.dumps(dict(width=layout.size[0],height=layout.size[1],pixels=pixels.hex(),
+    rects=[[*layout.origin(r.name),r.width,r.height] for r in layout.regions if r.name in textures.LIT_REGIONS])))
+`),
+  );
+  scooterLitRects = result.rects;
+  scooterAtlas = {
+    width: result.width,
+    height: result.height,
+    pixels: Buffer.from(result.pixels, "hex"),
+  };
+}, 60000);
 const scooterLit = (x: number, y: number) =>
   scooterLitRects.some(
     ([bx, by, w, h]) => x >= bx && x < bx + w && y >= by && y < by + h,
@@ -127,27 +134,6 @@ print(json.dumps({'rect': list(atlas.BLOCKS['tail_lamp'].region[1:]), 'lit': sor
   });
 });
 
-const scooterLampRegions: [number, number, number, number][] = JSON.parse(
-  execFileSync(
-    "python3",
-    [
-      "-I",
-      "-c",
-      `import json, sys
-sys.path.insert(0, 'tools')
-from tool_loader import load_tool
-generator = load_tool('gen_scooter')
-for area in generator.AREA_ORDER:
-    load_tool('scooter_' + area).build()
-layout = load_tool('scooter_atlas').pack_layout()
-names = load_tool('scooter_textures').LIT_REGIONS
-print(json.dumps([[*layout.origin(r.name), r.width, r.height] for r in layout.regions if r.name in names]))
-`,
-    ],
-    { encoding: "utf8" },
-  ),
-);
-
 const headlights = "query.property('yasu_ride:headlights')";
 const ceiling = "query.property('yasu_ride:ceiling_lights')";
 // The slots are the palette columns the generators select by name into
@@ -191,7 +177,7 @@ const kinds = [
     kind: "scooter",
     slots: [],
     regionRule: (x: number, y: number) =>
-      scooterLampRegions.some(
+      scooterLitRects.some(
         ([u, v, w, h]) => x >= u && x < u + w && y >= v && y < v + h,
       ),
     bones: { headlights, tail_lights: headlights },
@@ -224,7 +210,7 @@ describe.each(kinds)(
     }, () => {
       const texture = (name: string) =>
         readRgbaPng(`${RP}/textures/entity/yasu_ride/${name}.png`);
-      const base = texture(kind);
+      const base = kind === "scooter" ? scooterAtlas : texture(kind);
       const lit = texture(`${kind}_lit`);
       const mer = texture(`${kind}_lit_mer`);
       for (const image of [lit, mer])
@@ -279,7 +265,7 @@ describe.each(kinds)(
         [`${id}.lit`]: condition,
       });
       expect(controllers[`${id}.lit`]).toEqual({
-        geometry: "Geometry.default",
+        geometry: kind === "scooter" ? "Geometry.lit" : "Geometry.default",
         materials: [{ "*": "Material.lamp_lit" }],
         textures: ["Texture.lit"],
         part_visibility: [
@@ -289,9 +275,9 @@ describe.each(kinds)(
           })),
         ],
       });
-      const geometry = read(`models/entity/yasu_ride/${kind}.geo.json`)[
-        "minecraft:geometry"
-      ][0];
+      const geometry = read(
+        `models/entity/yasu_ride/${kind}${kind === "scooter" ? "_lit" : ""}.geo.json`,
+      )["minecraft:geometry"][0];
       for (const [bone, property] of Object.entries(bones)) {
         expect(
           geometry.bones.some((entry: { name: string }) => entry.name === bone),

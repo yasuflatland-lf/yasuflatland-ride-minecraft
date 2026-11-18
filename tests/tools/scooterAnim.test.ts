@@ -75,7 +75,7 @@ assert unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTes
 it("retains the wheel fold drop, clears fixed geometry and raises the stand feet", async () => {
   await modelPython(`
 g=load_tool('gen_scooter')
-geo,_,_=g.build()
+geo,*_=g.build()
 bones={b['name']:b for b in geo['minecraft:geometry'][0]['bones']}
 low=min(p[1] for name in ('body','steer','headlights','tail_lights') for c in bones[name]['cubes'] for p in t.corners(c))
 threshold=max(d.AXLE_Y-p[0]-low for name in ('wheel_front','wheel_rear') for c in bones[name]['cubes'] for p in t.corners(c))
@@ -104,7 +104,7 @@ region=next(r for r in atlas.REGISTRY.regions() if r.name=='glow')
 assert region.material==atlas.Material.LENS
 for x in range(region.width):
     for y in range(region.height): assert region.pixel(x,y)==(80,170,255,255)
-geo,_,_=load_tool('gen_scooter').build()
+geo,*_=load_tool('gen_scooter').build()
 bones={b['name']:b for b in geo['minecraft:geometry'][0]['bones']}
 for side,z in (('front',d.FRONT_AXLE_Z),('rear',d.REAR_AXLE_Z)):
     cubes=glow['glow_'+side]

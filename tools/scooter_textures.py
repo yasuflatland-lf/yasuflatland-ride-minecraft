@@ -135,7 +135,7 @@ def icon(x, y):
     return atlas.CLEAR if color is None else (*color, CHANNEL_MAX)
 
 
-def write(outputs, rp, layout, pixels):
+def write(outputs, rp, layout, pixels, lit_layout, lit_pixels):
     directory = rp / "textures/entity/yasu_ride"
     width, height = layout.size
     material_pixels = mer_bytes(layout)
@@ -145,16 +145,17 @@ def write(outputs, rp, layout, pixels):
         color_pixels = pixels if color == atlas.PAINT_IVORY else recolor(layout, pixels, color)
         variants.append(texture_variants.Variant(name, color_pixels, material_pixels))
     texture_variants.write_variants(outputs, directory, "scooter", width, height, variants)
+    width, height = lit_layout.size
     mask = bytearray(width * height)
-    for region, placement in _unique_regions(layout):
+    for region, placement in _unique_regions(lit_layout):
         if region.name in LIT_REGIONS:
             ox, oy = placement.x, placement.y
             for y in range(oy, oy + region.height):
                 for x in range(ox, ox + region.width):
                     # Clear corners of a round lens must not glow as a square plate.
-                    mask[y * width + x] = pixels[(y * width + x) * 4 + 3] != 0
+                    mask[y * width + x] = lit_pixels[(y * width + x) * 4 + 3] != 0
     lit_textures.build_lit_textures(
         outputs, directory, "scooter", width, height,
-        texture_io.texel_reader(width, pixels), lambda x, y: mask[y * width + x],
+        texture_io.texel_reader(width, lit_pixels), lambda x, y: mask[y * width + x],
         opaque_unlit_cutouts=True)
     outputs.png(rp / "textures/items/yasu_ride/scooter_item.png", ICON_SIZE, ICON_SIZE, icon)

@@ -158,7 +158,7 @@ from tool_loader import load_tool
 g=load_tool('gen_scooter')
 r=load_tool('scooter_rear')
 t=load_tool('cube_tilt')
-geo,layout,pixels=g.build()
+geo,layout,pixels,*_=g.build()
 ox,oy=layout.origin('plate_text')
 w,h=128,140
 plates=[c for b in geo['minecraft:geometry'][0]['bones'] for c in b['cubes']

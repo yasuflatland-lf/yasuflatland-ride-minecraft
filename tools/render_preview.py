@@ -193,6 +193,7 @@ SCOOTER_POOL_SEGMENTS = 48
 SCOOTER_POOL_RADIUS_RATIO = 1.6
 SCOOTER_POOL_ALPHA = 0.07
 SCOOTER_POOL_COLOR = GLOW_LIT
+SCOOTER_LIT_GEOMETRY = "models/entity/yasu_ride/scooter_lit.geo.json"
 SCOOTER_LIT_TEXTURE = "textures/entity/yasu_ride/scooter_lit.png"
 # frame_bones selects whole bones; frame_box = ((x0,y0,z0), (x1,y1,z1)) overrides
 # framing with a region in Bedrock model coordinates (before the renderer mirrors x).
@@ -1305,9 +1306,30 @@ def scooter_glow_pools(geo, texture, pose, flight, ground_y):
     return layers
 
 
+def project_lit_texture(geo, lit_geo, lit_texture):
+    """Project subset UVs onto the base atlas for the preview's combined texel lookup."""
+    width = geo["description"]["texture_width"]
+    height = geo["description"]["texture_height"]
+    projected = [[(0, 0, 0, 255)] * width for _ in range(height)]
+    for base_bone, lit_bone in zip(geo["bones"], lit_geo["bones"]):
+        for base_cube, lit_cube in zip(base_bone.get("cubes", []), lit_bone.get("cubes", [])):
+            for name, face in lit_cube["uv"].items():
+                original = base_cube["uv"][name]
+                u, v = face["uv"]
+                du, dv = face["uv_size"]
+                ou, ov = original["uv"]
+                odu, odv = original["uv_size"]
+                for y in range(math.floor(min(v, v + dv)), math.ceil(max(v, v + dv))):
+                    for x in range(math.floor(min(u, u + du)), math.ceil(max(u, u + du))):
+                        target_y = math.floor(ov + (y + 0.5 - v) * odv / dv)
+                        target_x = math.floor(ou + (x + 0.5 - u) * odu / du)
+                        projected[target_y][target_x] = lit_texture[y][x]
+    return projected
+
+
 def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / SCOOTER_GEOMETRY).read_text())["minecraft:geometry"][0]
-    generated, layout, _ = load_tool("gen_scooter").build()
+    generated, layout, _, _, _, _ = load_tool("gen_scooter").build()
     # Serialized UVs omit region ownership. Restore only sampling metadata;
     # the geometry and UV values being rendered still come from the pack file.
     for bone, source in zip(geo["bones"], generated["minecraft:geometry"][0]["bones"], strict=True):
@@ -1322,7 +1344,9 @@ def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     ground_geo = {**geo, "bones": [b for b in geo["bones"]
                                    if not b["name"].startswith("glow_") and b["name"] != "wheel_rear_stem"]}
     # Only the texels the lit texture marks glow, so the lens stays round and the rim stays chrome.
-    texture = combine_textures(texture, read_png(rp / SCOOTER_LIT_TEXTURE))
+    lit_geo = json.loads((rp / SCOOTER_LIT_GEOMETRY).read_text())["minecraft:geometry"][0]
+    lit_texture = read_png(rp / SCOOTER_LIT_TEXTURE)
+    texture = combine_textures(texture, project_lit_texture(geo, lit_geo, lit_texture))
     flight_name = "scooter-flying-headlights.png"
     close = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" in p or "frame_box" in p}
     shared = {n: p for n, p in SCOOTER_POSES.items() if n not in close and n != flight_name}
@@ -1334,6 +1358,7 @@ def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     animations = json.loads((rp / SCOOTER_ANIMATIONS).read_text())
     flight = build_flight_pose(animations, "animation.yasu_ride.scooter.wheels_folded", lift=SCOOTER_FLIGHT_LIFT)
     pose = SCOOTER_POSES[flight_name]
+    # The combined preview texture uses base-atlas UVs for the hover discs too.
     flight_geo = static_pose(geo, animations["animations"]["animation.yasu_ride.scooter.stand_up"])
     polygons, glass = collect_boat(flight_geo, texture, pose, {}, texture_mapping=True, face_cache={},
                                    defer_textures=True, texel_lit=True, flight=flight)

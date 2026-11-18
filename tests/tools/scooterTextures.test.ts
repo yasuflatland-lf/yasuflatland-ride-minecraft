@@ -12,6 +12,15 @@ sys.path.insert(0, "tools")
 from tool_loader import load_tool
 t=load_tool("scooter_textures")
 a=load_tool("scooter_atlas")
+g=load_tool("gen_scooter")
+`;
+// A full scooter build takes about 8 s; the worker keeps one interpreter, so
+// builtins carries the build from beforeAll to the tests (each run gets fresh globals).
+const built = `${setup}
+import builtins
+if not hasattr(builtins, "scooter_build"):
+    builtins.scooter_build=g.build()
+geo,l,pixels,lit_geo,ll,lp=builtins.scooter_build
 `;
 type Region = {
   name: string;
@@ -20,6 +29,8 @@ type Region = {
   y: number;
   width: number;
   height: number;
+  flipX: boolean;
+  flipY: boolean;
 };
 let metadata: {
   paints: Record<string, number[]>;
@@ -27,15 +38,14 @@ let metadata: {
   ivory: number[];
   lit: string[];
   regions: Region[];
+  litRegions: Region[];
+  litSize: number[];
 };
 const directory = "packs/yasu_ride_rp/textures/entity/yasu_ride/";
 beforeAll(async () => {
   metadata = JSON.parse(
-    await python.run(`${setup}
-g=load_tool("gen_scooter")
-for name in g.AREA_ORDER: load_tool("scooter_"+name).build()
-l=a.pack_layout()
-print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,regions=[dict(name=r.name,material=r.material.value,x=l.placement(r.name).x,y=l.placement(r.name).y,width=r.width,height=r.height) for r in l.regions])))
+    await python.run(`${built}
+print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,litSize=ll.size,litRegions=[dict(name=r.name,material=r.material.value,x=ll.placement(r.name).x,y=ll.placement(r.name).y,flipX=ll.placement(r.name).flip_x,flipY=ll.placement(r.name).flip_y,width=r.width,height=r.height) for r in ll.regions],regions=[dict(name=r.name,material=r.material.value,x=l.placement(r.name).x,y=l.placement(r.name).y,flipX=l.placement(r.name).flip_x,flipY=l.placement(r.name).flip_y,width=r.width,height=r.height) for r in l.regions])))
 `),
   );
 }, 60000);
@@ -147,8 +157,8 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
   const base = readRgbaPng(`${directory}scooter.png`);
   const lit = readRgbaPng(`${directory}scooter_lit.png`);
   const litMer = readRgbaPng(`${directory}scooter_lit_mer.png`);
-  expect([lit.width, lit.height]).toEqual([mer.width, mer.height]);
-  expect([litMer.width, litMer.height]).toEqual([mer.width, mer.height]);
+  expect([lit.width, lit.height]).toEqual(metadata.litSize);
+  expect([litMer.width, litMer.height]).toEqual(metadata.litSize);
   expect(
     JSON.parse(
       readFileSync(`${directory}scooter_lit.texture_set.json`, "utf8"),
@@ -157,7 +167,7 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
     color: "scooter_lit",
     metalness_emissive_roughness: "scooter_lit_mer",
   });
-  const mask = new Uint8Array(mer.width * mer.height);
+  const mask = new Uint8Array(lit.width * lit.height);
   for (const r of metadata.regions) {
     const p = (r.y * mer.width + r.x) * 4;
     if (r.material === "chrome") {
@@ -169,12 +179,25 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
       expect(mer.pixels[p + 2]).toBe(90);
     }
     if (r.material === "rubber") expect(mer.pixels[p + 2]).toBeGreaterThan(220);
-    if (metadata.lit.includes(r.name))
-      for (let y = r.y; y < r.y + r.height; y++)
-        for (let x = r.x; x < r.x + r.width; x++)
-          // The clear corners of a round lens must not glow as a square plate.
-          if (base.pixels[(y * mer.width + x) * 4 + 3] !== 0)
-            mask[y * mer.width + x] = 1;
+  }
+  for (const r of metadata.litRegions) {
+    if (!metadata.lit.includes(r.name)) continue;
+    const original = metadata.regions.find((region) => region.name === r.name);
+    expect(original).toBeDefined();
+    if (!original) throw new Error(r.name);
+    for (let y = 0; y < r.height; y++)
+      for (let x = 0; x < r.width; x++)
+        if (
+          base.pixels[
+            ((original.y + (original.flipY ? r.height - 1 - y : y)) *
+              base.width +
+              original.x +
+              (original.flipX ? r.width - 1 - x : x)) *
+              4 +
+              3
+          ] !== 0
+        )
+          mask[(r.y + y) * lit.width + r.x + x] = 1;
   }
   let invalid = 0;
   for (let i = 0; i < mask.length; i++) {
@@ -290,9 +313,10 @@ it("writes distinct paint colours and exactly one paint MER without white aliase
 from pathlib import Path
 from tempfile import TemporaryDirectory
 l=a.pack_layout()
+p=a.render_atlas(l)
 with TemporaryDirectory() as temporary:
     root = Path(temporary)
-    t.write(load_tool("texture_io").Outputs(False),root,l,a.render_atlas(l))
+    t.write(load_tool("texture_io").Outputs(False),root,l,p,l,p)
     directory = root / "textures/entity/yasu_ride"
     colours = sorted(p for p in directory.glob("scooter*.png")
                      if not p.stem.endswith("_mer") and p.stem != "scooter_lit")
@@ -306,3 +330,75 @@ with TemporaryDirectory() as temporary:
         assert texture_set == dict(color=colour.stem,metalness_emissive_roughness="scooter_mer")
 `);
 }, 60000);
+
+it("preserves every lit face texel in an audited compact atlas", async () => {
+  await python.run(`${built}
+import math
+assert a.audit(ll, lp) == []
+assert {r.name for r in ll.regions} == {name for name, face in ll._faces}
+assert len(lp) < len(pixels) / 20
+count = 0
+for base_bone, lit_bone in zip(geo["minecraft:geometry"][0]["bones"], lit_geo["minecraft:geometry"][0]["bones"]):
+    for base_cube, lit_cube in zip(base_bone["cubes"], lit_bone["cubes"]):
+        for name, face in lit_cube["uv"].items():
+            original = base_cube["uv"][name]
+            assert list(map(abs, face["uv_size"])) == list(map(abs, original["uv_size"]))
+            u,v = face["uv"]
+            ou,ov = original["uv"]
+            du,dv = face["uv_size"]
+            odu,odv = original["uv_size"]
+            for y in range(math.floor(min(v,v+dv)), math.ceil(max(v,v+dv))):
+                for x in range(math.floor(min(u,u+du)), math.ceil(max(u,u+du))):
+                    source = (math.floor(ov+(y+0.5-v)*odv/dv)*l.size[0]+math.floor(ou+(x+0.5-u)*odu/du))*4
+                    target = (y*ll.size[0]+x)*4
+                    assert lp[target:target+4] == pixels[source:source+4]
+            count += 1
+assert count == len(ll._faces) and count > 0
+`);
+}, 60000);
+
+it("relocates signed local rectangles without changing their sampled region texels", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.integer({ min: 1, max: 20 }),
+      fc.integer({ min: 1, max: 20 }),
+      fc.integer({ min: 0, max: 50 }),
+      fc.integer({ min: 0, max: 50 }),
+      fc.boolean(),
+      fc.boolean(),
+      fc.tuple(
+        fc.integer({ min: 0, max: 19 }),
+        fc.integer({ min: 0, max: 19 }),
+        fc.integer({ min: 0, max: 19 }),
+        fc.integer({ min: 0, max: 19 }),
+      ),
+      async (width, height, x, y, flipX, flipY, rect) => {
+        const u = rect[0] % width;
+        const v = rect[1] % height;
+        const w = 1 + (rect[2] % (width - u));
+        const h = 1 + (rect[3] % (height - v));
+        await python.run(`${setup}
+r = load_tool("region_atlas")
+region = r.Region("test", ${width}, ${height}, a.Material.LENS, lambda u,v: (u,v,0,255))
+local = r.UvRect(${flipX ? u + w : u}, ${flipY ? v + h : v}, ${flipX ? -w : w}, ${flipY ? -h : h})
+layouts = [r.Layout([region], (${width + 51},${height + 51}), {"test": r.Placement(px,py)}) for px,py in [(0,0),(${x},${y})]]
+faces = []
+for layout in layouts:
+    face = {}
+    g.relocate_face(local, region, layout, face)
+    faces.append(face)
+    rendered = r.render_atlas(layout)
+    assert r.audit(layout, rendered) == []
+    px,py = layout.origin(region.name)
+    for v in range(${v}, ${v + h}):
+        for u in range(${u}, ${u + w}):
+            offset = ((py+v)*layout.size[0]+px+u)*4
+            assert rendered[offset:offset+4] == bytes(region.pixel(u,v))
+assert faces[1]["uv"] == [faces[0]["uv"][0]+${x}, faces[0]["uv"][1]+${y}]
+assert faces[0]["uv_size"] == faces[1]["uv_size"]
+`);
+      },
+    ),
+    { numRuns: 20 },
+  );
+});

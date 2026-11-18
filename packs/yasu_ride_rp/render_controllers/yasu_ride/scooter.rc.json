@@ -53,7 +53,7 @@
       ]
     },
     "controller.render.yasu_ride.scooter.glow": {
-      "geometry": "Geometry.default",
+      "geometry": "Geometry.lit",
       "materials": [
         {
           "*": "Material.lamp_lit"
@@ -70,7 +70,7 @@
       ]
     },
     "controller.render.yasu_ride.scooter.lit": {
-      "geometry": "Geometry.default",
+      "geometry": "Geometry.lit",
       "materials": [
         {
           "*": "Material.lamp_lit"
