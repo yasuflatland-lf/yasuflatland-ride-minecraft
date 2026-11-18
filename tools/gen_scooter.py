@@ -17,6 +17,7 @@ AREA_ORDER = (
     "running",
     "struts",
     "body",
+    "floor",
     "rear",
     "engine",
     "head",
@@ -117,7 +118,16 @@ def build():
             ancestor = parents[ancestor]
     merged = kit.AreaCubes()
     for name in AREA_ORDER:
-        merged.merge(load_tool(f"scooter_{name}").build())
+        area = load_tool(f"scooter_{name}").build()
+        if name == "floor":
+            # Body inner plates followed the floor solids before the areas were split.
+            trailing = load_tool("scooter_body").trailing_cube_count()
+            plates = merged["body"][-trailing:]
+            del merged["body"][-trailing:]
+            merged.merge(area)
+            merged["body"].extend(plates)
+        else:
+            merged.merge(area)
     allowed = {name for name, _, _ in BONES}
     for name, cubes in merged.items():
         if name not in allowed:
