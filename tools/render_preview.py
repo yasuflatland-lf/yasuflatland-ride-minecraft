@@ -1323,7 +1323,9 @@ def project_lit_texture(geo, lit_geo, lit_texture):
                 odu, odv = original["uv_size"]
                 for y in range(math.floor(min(v, v + dv)), math.ceil(max(v, v + dv))):
                     for x in range(math.floor(min(u, u + du)), math.ceil(max(u, u + du))):
-                        projected[math.floor(ov + (y + 0.5 - v) * odv / dv)][math.floor(ou + (x + 0.5 - u) * odu / du)] = lit_texture[y][x]
+                        target_y = math.floor(ov + (y + 0.5 - v) * odv / dv)
+                        target_x = math.floor(ou + (x + 0.5 - u) * odu / du)
+                        projected[target_y][target_x] = lit_texture[y][x]
     return projected
 
 

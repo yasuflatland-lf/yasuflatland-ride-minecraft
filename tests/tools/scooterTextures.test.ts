@@ -33,6 +33,8 @@ type Region = {
   y: number;
   width: number;
   height: number;
+  flipX: boolean;
+  flipY: boolean;
 };
 let metadata: {
   paints: Record<string, number[]>;
@@ -48,7 +50,7 @@ const directory = "packs/yasu_ride_rp/textures/entity/yasu_ride/";
 beforeAll(async () => {
   metadata = JSON.parse(
     await python.run(`${built}
-print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,litSize=ll.size,fixedRegions=[dict(name=r.name,material=r.material.value,x=fl.placement(r.name).x,y=fl.placement(r.name).y,width=r.width,height=r.height) for r in fl.regions],litRegions=[dict(name=r.name,material=r.material.value,x=ll.placement(r.name).x,y=ll.placement(r.name).y,width=r.width,height=r.height) for r in ll.regions],regions=[dict(name=r.name,material=r.material.value,x=l.placement(r.name).x,y=l.placement(r.name).y,width=r.width,height=r.height) for r in l.regions])))
+print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,litSize=ll.size,fixedRegions=[dict(name=r.name,material=r.material.value,x=fl.placement(r.name).x,y=fl.placement(r.name).y,flipX=fl.placement(r.name).flip_x,flipY=fl.placement(r.name).flip_y,width=r.width,height=r.height) for r in fl.regions],litRegions=[dict(name=r.name,material=r.material.value,x=ll.placement(r.name).x,y=ll.placement(r.name).y,flipX=ll.placement(r.name).flip_x,flipY=ll.placement(r.name).flip_y,width=r.width,height=r.height) for r in ll.regions],regions=[dict(name=r.name,material=r.material.value,x=l.placement(r.name).x,y=l.placement(r.name).y,flipX=l.placement(r.name).flip_x,flipY=l.placement(r.name).flip_y,width=r.width,height=r.height) for r in l.regions])))
 `),
   );
 }, 180_000);
@@ -204,7 +206,12 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
       for (let x = 0; x < r.width; x++)
         if (
           base.pixels[
-            ((original.y + y) * base.width + original.x + x) * 4 + 3
+            ((original.y + (original.flipY ? r.height - 1 - y : y)) *
+              base.width +
+              original.x +
+              (original.flipX ? r.width - 1 - x : x)) *
+              4 +
+              3
           ] !== 0
         )
           mask[(r.y + y) * lit.width + r.x + x] = 1;
@@ -283,6 +290,7 @@ for base_bone, lit_bone in zip(geo["minecraft:geometry"][0]["bones"], lit_geo["m
             assert [abs(s) for s in face["uv_size"]] == [abs(s) for s in original["uv_size"]]
             u,v = face["uv"]
             du,dv = face["uv_size"]
+            odu,odv = original["uv_size"]
             for y in range(math.floor(min(v,v+dv)), math.ceil(max(v,v+dv))):
                 for x in range(math.floor(min(u,u+du)), math.ceil(max(u,u+du))):
                     lu, lv = x - lit.x, y - lit.y
