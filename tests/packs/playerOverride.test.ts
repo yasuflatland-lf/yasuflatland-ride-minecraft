@@ -65,7 +65,7 @@ describe("vanilla player override (ADR 0238)", () => {
     });
   });
 
-  it("loops scooter grip with forward arms and legs swung 35 degrees forward, and adds stepped waist roll", () => {
+  it("loops scooter grip with forward arms and legs swung 35 degrees forward, and adds stepped root roll", () => {
     const animations = read(
       "packs/yasu_ride_rp/animations/yasu_ride/player.anim.json",
     ).animations;
@@ -80,23 +80,24 @@ describe("vanilla player override (ADR 0238)", () => {
       },
     });
     for (const [side, rolls] of [
-      ["l", [8, 16, 24]],
-      ["r", [-8, -16, -24]],
+      ["l", [7, 13, 20]],
+      ["r", [-7, -13, -20]],
     ] as const) {
       for (const [index, roll] of rolls.entries()) {
-        expect(
+        const lean =
           animations[
             `animation.yasu_ride.player.scooter_lean_${side}${index + 1}`
-          ],
-        ).toEqual({
+          ];
+        expect(lean).toEqual({
           loop: true,
-          bones: { ...grip.bones, waist: { rotation: [0, 0, roll] } },
+          bones: { ...grip.bones, root: { rotation: [0, 0, roll] } },
         });
+        expect(lean.bones).not.toHaveProperty("waist");
       }
     }
   });
 
-  it("loops the pillion set with arms swung back and the driver's legs and waist roll", () => {
+  it("loops the pillion set with arms swung back and the driver's legs and root roll", () => {
     const animations = read(
       "packs/yasu_ride_rp/animations/yasu_ride/player.anim.json",
     ).animations;
@@ -121,6 +122,7 @@ describe("vanilla player override (ADR 0238)", () => {
           rightarm: { rotation: ["20.0 - this", "-this", "-this"] },
         },
       });
+      expect(pillion.bones).not.toHaveProperty("waist");
     }
   });
 });
