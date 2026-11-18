@@ -10,14 +10,41 @@ import { engineStep } from "../../support/engineModel";
 import { riderView } from "../../support/riders";
 
 it("matches the scooter pose table to its lean levels", () => {
-  expect(profileOf("scooter").riderPose?.lean.length).toBe(
-    2 * SCOOTER_SPEC.leanLevels,
-  );
+  const tables = profileOf("scooter").riderPose?.seats;
+  expect(tables).toHaveLength(2);
+  expect(tables).toEqual([
+    {
+      grip: "scooter_grip",
+      lean: [
+        "scooter_lean_l3",
+        "scooter_lean_l2",
+        "scooter_lean_l1",
+        "scooter_lean_r1",
+        "scooter_lean_r2",
+        "scooter_lean_r3",
+      ],
+    },
+    {
+      grip: "scooter_pillion_grip",
+      lean: [
+        "scooter_pillion_lean_l3",
+        "scooter_pillion_lean_l2",
+        "scooter_pillion_lean_l1",
+        "scooter_pillion_lean_r1",
+        "scooter_pillion_lean_r2",
+        "scooter_pillion_lean_r3",
+      ],
+    },
+  ]);
+  for (const table of tables ?? []) {
+    expect(table.lean.length).toBe(2 * SCOOTER_SPEC.leanLevels);
+  }
 });
 it("drives both scooter riders through grip, stepped lean, departure and resync", () => {
   const vehicle = createVehicle("scooter", asVehicleId("scooter"), 0);
   const table = profileOf("scooter").riderPose;
-  if (!table) throw new Error("scooter pose table required");
+  const seatTable = table?.seats[0];
+  if (!table || !seatTable) throw new Error("scooter pose table required");
   let previous = "";
   let changes = 0;
   let angle = 0;
@@ -48,14 +75,22 @@ it("drives both scooter riders through grip, stepped lean, departure and resync"
     if (lean?.type === "setProperty" && typeof lean.value === "number")
       angle = lean.value;
     const pose = riderPoseOf(
-      table,
+      seatTable,
       Math.round((angle / SCOOTER_SPEC.maxLean) * SCOOTER_SPEC.leanLevels),
     );
     if (tick <= 50) expect(pose).toBe("scooter_grip");
+    const passengerPose = pose.replace("scooter_", "scooter_pillion_");
     const expected = previous !== pose || tick % table.refreshTicks === 0;
     expect(out.riderPoses).toEqual(
       expected
-        ? riders.map((r) => ({ type: "play", playerId: r.id, pose }))
+        ? [
+            { type: "play", playerId: riderView("driver").id, pose },
+            {
+              type: "play",
+              playerId: riderView("passenger").id,
+              pose: passengerPose,
+            },
+          ]
         : [],
     );
     if (previous !== pose) changes++;
