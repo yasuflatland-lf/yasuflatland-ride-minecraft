@@ -5,6 +5,7 @@ import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
 import { ChooseTerrain } from "../../application/build/chooseTerrain";
 import { ClearSelection } from "../../application/build/clearSelection";
+import { CloseBuildMenu } from "../../application/build/closeBuildMenu";
 import { ConfirmBoxStep } from "../../application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
@@ -19,6 +20,7 @@ import { EndPasting } from "../../application/build/endPasting";
 import { FinishRotateMode } from "../../application/build/finishRotateMode";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
+import { OpenBuildMenu } from "../../application/build/openBuildMenu";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
@@ -151,7 +153,10 @@ export function installBuild(deps: {
     ),
     clear,
   };
+  const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const menuCases = {
+    openBuildMenu: new OpenBuildMenu(repo, preview),
+    closeBuildMenu: new CloseBuildMenu(repo, preview),
     ...cases,
     confirmShape: cases.fill,
     cancel,
@@ -165,7 +170,6 @@ export function installBuild(deps: {
     resolveTarget,
   );
   const rotatePasteAim = new RotatePasteAim(repo, feedback);
-  const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const routes = registerPasteControls({
     undo: cases.undo,
     undoDebounce,

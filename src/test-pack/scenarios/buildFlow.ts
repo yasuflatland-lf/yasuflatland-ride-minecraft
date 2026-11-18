@@ -174,7 +174,26 @@ async function withBuilder(
       await edit(`slot ${wand ? slot : otherSlot}`);
       await wait(BUILD_SPEC.modeLeaveTicks + 4);
     },
-    menu: (menu: string, id: string) => edit(`menu ${menu} ${id}`),
+    menu: async (menu: string, id: string) => {
+      if (
+        menu === "shape" &&
+        [
+          "fill",
+          "frame",
+          "faces",
+          "walls",
+          "gable",
+          "hip",
+          "cylinder",
+          "sideCylinder",
+          "sphere",
+          "cube",
+        ].includes(id)
+      ) {
+        await edit("menu shape buildShape");
+      }
+      return edit(`menu ${menu} ${id}`);
+    },
     mode: () => query(TEST_MODE_EVENT, player.name),
     hold: (wand: boolean) =>
       inventory.setItem(
