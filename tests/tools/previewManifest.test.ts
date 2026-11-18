@@ -138,14 +138,14 @@ scenes = ['suv', 'boat', 'camper', 'bulldozer', 'scooter', 'gear']
 assert [e.get('id') for e in entries] == ['render_preview.py:' + s for s in scenes]
 old_outputs, old_reads = json.loads(sys.argv[1])
 assert {p for e in entries for p in e['outputs']} == set(old_outputs)
-assert {p for e in entries for p in e['reads']} == set(old_reads) | {'packs/yasu_ride_rp/textures/entity/yasu_ride/scooter_lit.png'}
+assert {p for e in entries for p in e['reads']} == set(old_reads) | {'packs/yasu_ride_rp/textures/entity/yasu_ride/scooter_lit.png', 'packs/yasu_ride_rp/models/entity/yasu_ride/scooter_lit.geo.json'}
 vehicle_reads = {
     'suv': ['models/entity/yasu_ride/suv.geo.json', 'textures/entity/yasu_ride/suv.png',
             'textures/entity/yasu_ride/suv_lit.png', 'animations/yasu_ride/suv.anim.json'],
     'boat': ['models/entity/yasu_ride/sportsboat.geo.json', 'textures/entity/yasu_ride/sportsboat.png'],
     'camper': ['models/entity/yasu_ride/camper.geo.json', 'textures/entity/yasu_ride/camper.png'],
     'bulldozer': ['models/entity/yasu_ride/bulldozer.geo.json', 'textures/entity/yasu_ride/bulldozer.png'],
-    'scooter': ['models/entity/yasu_ride/scooter.geo.json', 'textures/entity/yasu_ride/scooter.png',
+    'scooter': ['models/entity/yasu_ride/scooter.geo.json', 'models/entity/yasu_ride/scooter_lit.geo.json', 'textures/entity/yasu_ride/scooter.png',
                 'textures/entity/yasu_ride/scooter_lit.png'],
 }
 manifest_reads = {p for p in old_reads if p.endswith('/manifest.json')}

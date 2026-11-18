@@ -13,6 +13,8 @@ cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 scooter_textures = load_tool("scooter_textures")
 scooter_engine = load_tool("scooter_engine")
+region_atlas = load_tool("region_atlas")
+geometry_passes = load_tool("geometry_passes")
 
 AREA_ORDER = (
     "running",
@@ -110,6 +112,11 @@ def rounded(value):
     return value
 
 
+def relocate_face(local, region, layout, face):
+    local.to_atlas(layout.placement(region.name), region.width, region.height).apply(face)
+    layout.bind_face(region.name, face)
+
+
 def build():
     parents = {name: parent for name, parent, _ in BONES}
     for strut in dims.STRUT_BONES.values():
@@ -147,6 +154,8 @@ def build():
     if len(all_cubes) > dims.CUBE_BUDGET_CEILING:
         raise ValueError("Scooter cube count exceeds the owner-approved ceiling")
     layout = atlas.pack_layout()
+    local_uvs = {id(face): region_atlas.UvRect.of(face)
+                 for cube in all_cubes for face in cube["uv"].values()}
     atlas.resolve(all_cubes, layout)
     bones = [{"name": name, **({"parent": parent} if parent else {}), "pivot": list(pivot),
               "cubes": merged.get(name, [])} for name, parent, pivot in BONES]
@@ -157,29 +166,53 @@ def build():
             side = bone["name"].removeprefix("glow_")
             outer = min(cube["origin"][0] for cube in bone["cubes"])
             bone["locators"] = {"hover_" + side: [outer, *bone["pivot"][1:]]}
+    description = {"identifier": "geometry.yasu_ride.scooter",
+                   "texture_width": layout.size[0], "texture_height": layout.size[1],
+                   "visible_bounds_width": dims.VISIBLE_BOUNDS_WIDTH,
+                   "visible_bounds_height": dims.VISIBLE_BOUNDS_HEIGHT,
+                   "visible_bounds_offset": dims.VISIBLE_BOUNDS_OFFSET}
+    geometry = {"description": description, "bones": bones}
+    lit_geometry = geometry_passes.select_faces(geometry, geometry_passes.PassSpec(
+        "geometry.yasu_ride.scooter_lit",
+        lambda name, cube, face: name in ("headlights", "tail_lights") or name.startswith("glow_")))
+    regions = {region.name: region for region in layout.regions}
+    lit_registry = region_atlas.RegionRegistry()
+    bound = {layout.face_region(face) for bone in lit_geometry["bones"]
+             for cube in bone.get("cubes", []) for face in cube["uv"].values()}
+    for region in layout.regions:
+        if region.name in bound:
+            lit_registry.register(region)
+    lit_layout = region_atlas.pack(lit_registry, gutter_px=atlas.GUTTER_TEXELS, max_side=atlas.MAX_SIDE_TEXELS)
+    for original_bone, lit_bone in zip(bones, lit_geometry["bones"]):
+        for original_cube, lit_cube in zip(original_bone["cubes"], lit_bone["cubes"]):
+            for name, face in lit_cube["uv"].items():
+                original = original_cube["uv"][name]
+                relocate_face(local_uvs[id(original)], regions[layout.face_region(original)], lit_layout, face)
+    lit_geometry["description"].update(texture_width=lit_layout.size[0], texture_height=lit_layout.size[1])
     kit.mirror_to_game(bones)
+    kit.mirror_to_game(lit_geometry["bones"])
+    lit_pixels = atlas.render_atlas(lit_layout)
+    lit_errors = atlas.audit(lit_layout, lit_pixels)
+    if lit_errors:
+        raise ValueError("Scooter lit atlas audit failed: " + "; ".join(lit_errors))
     cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
     pixels = atlas.render_atlas(layout)
     errors = atlas.audit(layout, pixels)
     if errors:
         raise ValueError("Scooter atlas audit failed: " + "; ".join(errors))
-    geo = {"format_version": "1.12.0", "minecraft:geometry": [{
-        "description": {"identifier": "geometry.yasu_ride.scooter",
-                        "texture_width": layout.size[0], "texture_height": layout.size[1],
-                        "visible_bounds_width": dims.VISIBLE_BOUNDS_WIDTH,
-                        "visible_bounds_height": dims.VISIBLE_BOUNDS_HEIGHT,
-                        "visible_bounds_offset": dims.VISIBLE_BOUNDS_OFFSET},
-        "bones": bones}]}
-    return rounded(geo), layout, pixels
+    geo = {"format_version": "1.12.0", "minecraft:geometry": [geometry]}
+    lit_geo = {"format_version": "1.12.0", "minecraft:geometry": [lit_geometry]}
+    return rounded(geo), layout, pixels, rounded(lit_geo), lit_layout, lit_pixels
 
 
 def main(argv):
     rp = Path(argv[0])
     outputs = texture_io.Outputs("--check" in argv[1:])
-    geo, layout, pixels = build()
+    geo, layout, pixels, lit_geo, lit_layout, lit_pixels = build()
     outputs.json(rp / "models/entity/yasu_ride/scooter.geo.json", geo)
+    outputs.json(rp / "models/entity/yasu_ride/scooter_lit.geo.json", lit_geo)
     outputs.json(rp / "animations/yasu_ride/scooter.anim.json", load_tool("scooter_anim").build())
-    scooter_textures.write(outputs, rp, layout, pixels)
+    scooter_textures.write(outputs, rp, layout, pixels, lit_layout, lit_pixels)
     counts = [(b["name"], len(b["cubes"])) for b in geo["minecraft:geometry"][0]["bones"]]
     for name, count in counts:
         print(f"{name}: {count}")
