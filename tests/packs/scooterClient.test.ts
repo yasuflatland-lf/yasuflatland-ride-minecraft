@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { PAINT_VARIANT } from "../../src/infrastructure/shared/dyes";
 import { defined } from "../support/defined";
@@ -11,11 +11,11 @@ import {
   turnedCorners,
 } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
-import { startPythonWorker } from "../support/pythonWorker";
-import { loadScooterGeo } from "../tools/helpers/scooterGeo";
+import {
+  loadScooterGeo,
+  runWithScooterBuild,
+} from "../tools/helpers/scooterGeo";
 
-const python = startPythonWorker();
-afterAll(() => python.close());
 const RP = "packs/yasu_ride_rp";
 const read = (path: string) =>
   JSON.parse(readFileSync(`${RP}/${path}`, "utf8"));
@@ -319,13 +319,9 @@ describe("scooter controllers", () => {
   });
 
   it("partitions every source face into exactly one default-material pass", async () => {
-    await python.run(`
-import json, sys
+    await runWithScooterBuild(`
+import json
 from pathlib import Path
-sys.path.insert(0, "tools")
-from tool_loader import load_tool
-g = load_tool("gen_scooter")
-built = g.build()
 full = built.full_geometry["minecraft:geometry"][0]
 p = load_tool("render_preview")
 merged, texture = p.load_scooter_model(Path("packs/yasu_ride_rp"), built)
