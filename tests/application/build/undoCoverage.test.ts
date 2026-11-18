@@ -125,7 +125,7 @@ it("CutBox then UndoEdit restores the box and consumes only its snapshot", () =>
   );
 });
 
-it.each(["line Place", "rectangle Frame"] as const)(
+it.each(["line Place", "rectangle Fill", "rectangle Frame"] as const)(
   "%s then UndoEdit restores the previous blocks",
   (build) => {
     fc.assert(
@@ -139,7 +139,7 @@ it.each(["line Place", "rectangle Frame"] as const)(
         select(e, box);
         e.shape.execute({
           playerId,
-          style: build === "line Place" ? "fill" : "frame",
+          style: build === "rectangle Frame" ? "frame" : "fill",
         });
         e.drain();
         expect(snapshot(e, box)).not.toEqual(before);
