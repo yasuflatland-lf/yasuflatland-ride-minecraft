@@ -30,14 +30,9 @@ export class ScooterDrive extends TransformingDrive {
     const step = super.step(raw, ctx);
     const car = this.form === "car";
     const input = groundInputFor(raw, this.form);
-    // Out of car form the lean eases back upright instead of snapping, so the
-    // body never jumps by maxLean in one tick at take-off or after a crash.
-    this.lean = stepLean(
-      this.lean,
-      car ? input.steer : 0,
-      car ? this.speed : 0,
-      SCOOTER_SPEC,
-    );
+    // Ground and flight share lean tuning; neutral input during take-off or
+    // without a driver eases the body and riders upright without a jump.
+    this.lean = stepLean(this.lean, input.steer, this.speed, SCOOTER_SPEC);
     this.steer = steerAngle(input.steer, SCOOTER_SPEC);
     const onWater = !isDry(
       waterDepthAt(ctx.location, ctx.waterAt, SCOOTER_SPEC.carHeight),
