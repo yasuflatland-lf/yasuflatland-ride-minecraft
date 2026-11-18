@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { expectUniqueTextureBindings } from "../../support/textureBindings";
 import {
   baseOrigin,
   baseSize,
@@ -83,4 +84,11 @@ it("keeps the camper atlas separate from the drawer gear atlas", () => {
     mirror: "textures/entity/yasu_ride/camper_mirror",
     drawer_items: "textures/blocks/yasu_ride/camping_gear",
   });
+});
+
+it("binds existing textures with unique colour and MER content", () => {
+  const client = JSON.parse(
+    readFileSync(`${RP}/entity/yasu_ride/camper.ce.json`, "utf8"),
+  )["minecraft:client_entity"].description;
+  expectUniqueTextureBindings(client.textures);
 });

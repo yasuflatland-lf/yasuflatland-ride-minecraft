@@ -91,9 +91,12 @@ with tempfile.TemporaryDirectory() as folder:
         assert json.loads(geo.read_text()) == m.geometry(1 if kind == 'sofa_single' else 2)
         geo.write_text('{}')
         stale[geo] = geo.read_bytes()
-        texture = root/f'textures/entity/yasu_ride/{kind}.png'
-        m.texture_io.Outputs(False).png(texture, 1, 1, lambda x,y: (0,0,0,0))
-        stale[texture] = texture.read_bytes()
+    texture = root/'textures/entity/yasu_ride/sofa_single.png'
+    assert not (root/'textures/entity/yasu_ride/sofa_double.png').exists()
+    expected = m.texture_io.rgba_bytes(m.ATLAS_SIZE, m.ATLAS_SIZE, m.texture_pixels())
+    assert m.load_tool('render_preview').read_png_bytes(texture) == (m.ATLAS_SIZE, m.ATLAS_SIZE, expected)
+    m.texture_io.Outputs(False).png(texture, 1, 1, lambda x,y: (0,0,0,0))
+    stale[texture] = texture.read_bytes()
     result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
     assert result.returncode
     for path, contents in stale.items():

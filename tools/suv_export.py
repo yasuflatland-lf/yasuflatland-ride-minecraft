@@ -11,7 +11,8 @@ PALETTE = palette.PALETTE
 BODY_PAINTS = palette.BODY_PAINTS
 texture = load_tool("suv_texture")
 material = load_tool("suv_material")
-write_texture_set = load_tool("texture_io").write_texture_set
+texture_io = load_tool("texture_io")
+texture_variants = load_tool("texture_variants")
 transform_uv = load_tool("suv_cubes").transform_uv
 ATLAS = load_tool("suv_atlas").ATLAS
 
@@ -100,17 +101,15 @@ def paint_textures(out, directory):
     for other_kind in material.RELIEF_KINDS:
         if other_kind == material.RELIEF_KIND:
             continue
-        other_path = directory / f"suv_{other_kind}.png"
-        if other_path.exists():
-            if out.check:
-                out.stale.append(str(other_path))
-            else:
-                other_path.unlink()
-    for paint in BODY_PAINTS:
-        name = "suv" if paint.name == "khaki" else f"suv_{paint.name}"
-        out.png(directory / f"{name}.png", ATLAS.width, ATLAS.height, texture.paint_pixel(paint))
-        out.png(directory / f"{name}_mer.png", ATLAS.width, ATLAS.height, material.mer_pixel(paint))
-        write_texture_set(out, directory, name, relief=(material.RELIEF_KIND, relief_name))
+        out.remove(directory / f"suv_{other_kind}.png")
+    variants = [texture_variants.Variant(
+        "suv" if paint.name == "khaki" else f"suv_{paint.name}",
+        texture_io.rgba_bytes(ATLAS.width, ATLAS.height, texture.paint_pixel(paint)),
+        texture_io.rgba_bytes(ATLAS.width, ATLAS.height, material.mer_pixel(paint)),
+    ) for paint in BODY_PAINTS]
+    texture_variants.write_variants(
+        out, directory, "suv", ATLAS.width, ATLAS.height, variants,
+        relief=(material.RELIEF_KIND, relief_name))
 
 
 def item_icons(out, directory):

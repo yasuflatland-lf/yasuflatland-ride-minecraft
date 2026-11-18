@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FURNITURE_SPEC } from "../../src/domain/resort/furniture";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
 import { readRgbaPng } from "../support/png";
+import { expectUniqueTextureBindings } from "../support/textureBindings";
 
 const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
@@ -120,6 +121,8 @@ describe("Sofa (Double) pack contract", () => {
     const c = read(`${RP}/entity/yasu_ride/sofa_double.ce.json`)[
       "minecraft:client_entity"
     ].description;
+    expectUniqueTextureBindings(c.textures);
+    expect(c.textures.default).toBe("textures/entity/yasu_ride/sofa_single");
     expect(c.identifier).toBe(ids.entity);
     expect(c.geometry.default).toBe(model.description.identifier);
     expect(c.geometry.default).toBe("geometry.yasu_ride.sofa_double");

@@ -14,6 +14,7 @@ from tool_loader import load_tool
 tilt = load_tool("cube_tilt")
 wicker = load_tool("wicker")
 texture_io = load_tool("texture_io")
+texture_variants = load_tool("texture_variants")
 ATLAS_SIZE = 1024
 # The photo's strands are orange and the gaps between them stay warm and light, so all four colors of
 # the shared amber palette are replaced (strand, light, dark, gap); only the weave geometry is inherited.
@@ -167,9 +168,11 @@ def main():
     args = parser.parse_args()
     out = texture_io.Outputs(args.check, report_writes=True)
     out.json(args.resource_pack / "models/entity/yasu_ride/sofa_single.geo.json", geometry())
-    out.png(args.resource_pack / "textures/entity/yasu_ride/sofa_single.png", ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
     out.json(args.resource_pack / "models/entity/yasu_ride/sofa_double.geo.json", geometry(2))
-    out.png(args.resource_pack / "textures/entity/yasu_ride/sofa_double.png", ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
+    pixels = texture_io.rgba_bytes(ATLAS_SIZE, ATLAS_SIZE, texture_pixels())
+    texture_variants.write_variants(out, args.resource_pack / "textures/entity/yasu_ride", "sofa",
+        ATLAS_SIZE, ATLAS_SIZE, [texture_variants.Variant(name, pixels, None)
+                               for name in ("sofa_single", "sofa_double")])
     out.finish("Sofa assets are stale; run pnpm model.", "sofa model and texture are up to date")
 
 

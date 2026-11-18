@@ -31,6 +31,7 @@ ASSEMBLIES = {
 }
 
 texture_io = load_tool("texture_io")
+texture_variants = load_tool("texture_variants")
 outputs = texture_io.Outputs("--check" in sys.argv[2:])
 build_lit_textures = load_tool("lit_textures").build_lit_textures
 
@@ -1452,6 +1453,7 @@ def lighten(color, t):
     return tuple(math.floor(c + (255 - c) * t + 0.5) for c in color)
 
 
+variants = []
 for paint, base in BODY_PAINTS.items():
     colors = dict(PALETTE)
     if base != PALETTE["yellow"][:3]:
@@ -1462,7 +1464,11 @@ for paint, base in BODY_PAINTS.items():
             yellow_light=(*lighten(base, 0.25), 255),
         )
     name = "bulldozer" if paint == "khaki" else f"bulldozer_{paint}"
-    outputs.png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+    variants.append(texture_variants.Variant(name,
+        texture_io.rgba_bytes(len(SLOTS), 1, lambda x, y: colors[SLOTS[x]]), None))
+
+texture_variants.write_variants(
+    outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1, variants)
 
 build_lit_textures(outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1,
                    lambda x, y: PALETTE[SLOTS[x]], is_lit=lambda x, y: x in LIT_SLOTS)

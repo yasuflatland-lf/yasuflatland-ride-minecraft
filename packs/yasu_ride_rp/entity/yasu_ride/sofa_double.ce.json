@@ -7,7 +7,7 @@
         "default": "entity"
       },
       "textures": {
-        "default": "textures/entity/yasu_ride/sofa_double"
+        "default": "textures/entity/yasu_ride/sofa_single"
       },
       "geometry": {
         "default": "geometry.yasu_ride.sofa_double"
