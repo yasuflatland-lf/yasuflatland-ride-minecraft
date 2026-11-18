@@ -1,6 +1,6 @@
 # Scooter
 
-- Scope: The scooter kind: its spec table and profile, collision box and entity contract, ground and water-surface driving, lean, steering and stand, flat-wheel flight, paint, headlights and item. The generated model is covered by Model conventions and rendered previews; the riders' grip pose by Seats and driver selection.
+- Scope: The scooter kind: its spec table and profile, collision box and entity contract, ground and water-surface driving, lean, steering and stand, flat-wheel flight, paint, headlights and item. The generated model, including the separate body, floor and stand areas, is covered by Model conventions and rendered previews; the riders' grip pose by Seats and driver selection.
 - Verified at: 8ca71e8
 - Source: [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md)
 - Source: [0055](../adr/0055-kind-neutral-vehicle-core.md)
@@ -13,6 +13,8 @@
 - Excluded: [0250](../adr/0250-scooter-rider-grip-pose-and-stepped-lean.md): the riders' pose and stepped lean; described in seats-and-driver
 
 ## Rules
+
+The nine scooter README previews include underbody, running-board, front-wheel and rear-wheel close-ups; their framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).
 
 ### Spec table, profile and seats
 
@@ -56,7 +58,7 @@
 - Rule: The stand is down when nobody is aboard and no driver is awaited, the speed is under `standSpeed` (0.01 blocks per tick) and the scooter is not on water; otherwise it is up. Outside car form it is up. The client lowers the stand on the property and raises it when the property is false, with short blends. A boarding rider folds it up. The folded stand lies horizontal under the floor, pointing at the front tyre: the legs rest about 28 degrees forward of straight down, and `stand_up` turns the stand 62 degrees further forward (`STAND_UP_DEGREES` -62).
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "`yasu_ride:stand` is true when nobody is aboard"
-- Implementation: `src/domain/vehicle/kinds/scooter/stand.ts` (`standDown`), `src/domain/vehicle/kinds/scooter/drive.ts`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`
+- Implementation: `tools/scooter_stand.py` (stand model), `src/domain/vehicle/kinds/scooter/stand.ts` (`standDown`), `src/domain/vehicle/kinds/scooter/drive.ts`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`
 - Verification: `tests/domain/vehicle/kinds/scooter/stand.test.ts` "lowers only when empty, stopped and dry", "stays up at the stopped threshold in either direction"; `tests/domain/vehicle/kinds/scooter/drive.test.ts` "lowers the stand once at rest and raises it when a driver appears"; `tests/packs/scooterClient.test.ts` "raises the stand when the stand property is false with short blends". Tests were read, not run for this spec.
 
 ### Water surface
@@ -67,6 +69,15 @@
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "The kind declares `waterPolicy: "surface"`."
 - Implementation: `src/domain/vehicle/kinds/scooter/spec.ts` (`SCOOTER_TRANSFORMING`, `SCOOTER_WATER`), `src/domain/vehicle/motion/surface.ts`
 - Verification: `tests/domain/vehicle/kinds/scooter/drive.test.ts` "never dives and sends visual properties only when their values change", "floats level without a driver and corrects depth toward the surface"; `tests/domain/vehicle/motion/surface.test.ts` "bounds wet surface targets and rises exactly below the float line", "converges from below the surface to the float line without going dry". Tests were read, not run for this spec. Not verified: floating on a device.
+
+### Wheel detail
+
+- Applies to: Front and rear scooter wheels.
+- Rule: Both wheels retain white tyre walls, beige discs and chrome dishes. Four raised chrome hex nuts sit at 90-degree intervals with a 45-degree phase on a 0.82 px bolt circle on each exposed negative-x face, opposite the fork and spring. Each 0.32 px-deep nut rises over a wider dark round washer and has a dark hexagonal bevel border around its light face. Each raised part uses one cutout face, avoiding crossed reflection bands. The centre has a 0.55 px-radius round boss, a 0.43 px-radius washer step and a 0.30 px-radius hex nut. Six 0.19 px-radius dark slotted screw heads sit on a distinct painted outer rim ring. Revolved skins form the exposed dish's raised inner hub, recessed step and rolled outer lip, plus a wider polished bead beside a dark line; new relief stays on the negative-x face clear of the fixed suspension. Three crown columns and two wrapping shoulder columns use 40 tread rows at the front and 36 at the rear, with per-wheel block lengths, 0.13 px crown depth and deep transverse gaps over a smooth 64-segment carcass. Shoulder blocks step over the whitewall edge while remaining within |x| < 1.15. Every tread corner remains within the original 4.3 px rolling radius; rear radial and hardware dimensions scale by 0.96. No bones, paint regions or material types are added, and roll and fold retain their clearance. The front running wheel assembly contains 1,233 cubes and the rear 1,213; their wheel bones contain 1,236 and 1,216 including the discs and hub plates. The running allocation and usage are both 2,587; total allocation is 5,562 under the 6,000 ceiling. Front-left and rear-left close-ups show the hardware on both wheels.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Wheels."
+- Implementation: `tools/scooter_running.py` (`_wheel`, `_wheel_pixel`), `tools/scooter_dims.py` (`AREA_CUBE_ALLOCATION`).
+- Verification: `tests/tools/scooterWheelDetail.test.ts` checks hardware layout, block bounds, full-width coverage and equal spacing, and screw pixels; `tests/packs/scooterModel.test.ts` checks size, ancestry and budget; the strut and fold tests retain their clearance checks. Generated previews support visual review; device appearance remains unverified.
 
 ### Flat-wheel flight
 

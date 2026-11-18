@@ -21,7 +21,7 @@ PASSENGER_SEAT_Z = 9.5
 STAND_PIXEL = (400, 462)
 STAND_PIVOT_BACK = 0.2
 FOLD_DEGREES = 90
-# Turned cube corners require a drop greater than 3.353244 px; round up to a quarter pixel.
+# Retain the 3.5 px fold envelope; round dish corners now require only 3.216401 px of drop.
 FOLD_DROP = 3.5
 FOLD_LAY_START = 0.4
 FOLD_SECONDS = 1.0
@@ -57,9 +57,21 @@ PLACEHOLDER_STAND_HI = (2.0, 5.0, 2.5)
 VISIBLE_BOUNDS_WIDTH = 3
 VISIBLE_BOUNDS_HEIGHT = 2.5
 VISIBLE_BOUNDS_OFFSET = (0, 1, 0)
-# Raised from 3500 to 3650 for 40-segment tyres (tread silhouette within 0.015 units of a circle), then to 3700 for the glow bones and the rounded rear lamp.
-CUBE_BUDGET = 3700
-CUBE_BUDGET_CEILING = 3800
+# Area allocations share the model budget; the ceiling allows later detail work.
+AREA_CUBE_ALLOCATION: dict[str, int] = {
+    "running": 2587,
+    "stand": 15,
+    "struts": 10,
+    "body": 1005,
+    "floor": 125,
+    "rear": 370,
+    "engine": 320,
+    "head": 510,
+    "shield": 640,
+    "glow": 35,
+}
+CUBE_BUDGET = sum(AREA_CUBE_ALLOCATION.values())
+CUBE_BUDGET_CEILING = 6000
 
 
 def i2m(xi, yi) -> tuple[float, float]:
@@ -337,3 +349,6 @@ HEAD_PANEL_COLUMNS = 16
 HEAD_PANEL_EDGE_PADDING = 14 / 256
 HEAD_DIAL_GLINT_ALPHA = 0.75
 HEAD_FITTED_OVERLAP = 0.02
+
+OUTLINE_TEXELS_PER_PX = 8
+LINK_COLOR = (214, 220, 223)

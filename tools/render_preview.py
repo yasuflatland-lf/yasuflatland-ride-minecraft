@@ -22,9 +22,9 @@ headlights at dusk, side, and rear, without water layers (ADR 0067).
 Four bulldozer pictures share a fourth scale: front-left, headlights at dusk, side, and rear,
 showing only the first grouser phase and no propeller (ADR 0136). The beacon stays unlit: it faces
 backward on the cab roof, so the cab hides it from the front-left dusk view.
-Four scooter pictures share a fifth scale: front-left, headlights at dusk, side, and rear, in the
-default white road pose without the hover discs (ADR 0251). A fifth, scooter-taillights.png, frames
-the tail lamp alone at dusk with the lamps on, so it has its own scale.
+Eight scooter pictures show the default white paint (ADR 0251). The front-left, side and rear
+road views share a scale; flying headlights and the tail lamp at dusk have their own frames.
+Underbody, running board and front wheel close-ups each frame a model-space region in the road pose.
 
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
@@ -184,6 +184,7 @@ SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
 # The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
 SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_white.png"
 SCOOTER_CELLS_PER_UNIT = 16
+SCOOTER_WHEEL_CELLS_PER_UNIT = 32
 SCOOTER_ANIMATIONS = "animations/yasu_ride/scooter.anim.json"
 # SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16 model pixels (ADR 0251).
 SCOOTER_FLIGHT_LIFT = 24.0
@@ -193,6 +194,9 @@ SCOOTER_POOL_RADIUS_RATIO = 1.6
 SCOOTER_POOL_ALPHA = 0.07
 SCOOTER_POOL_COLOR = GLOW_LIT
 SCOOTER_LIT_TEXTURE = "textures/entity/yasu_ride/scooter_lit.png"
+# frame_bones selects whole bones; frame_box = ((x0,y0,z0), (x1,y1,z1)) overrides
+# framing with a region in Bedrock model coordinates (before the renderer mirrors x).
+# frame_pad expands either frame about its center. Each close-up has its own scale.
 SCOOTER_POSES = {
     "scooter-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
     "scooter-flying-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
@@ -200,6 +204,10 @@ SCOOTER_POSES = {
     "scooter-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
     # Framed on the tail lamp alone, so it is rendered apart from the shared scale (see render_scooter).
     "scooter-taillights.png": {"lamps": True, "dusk": True, "view": (0.7, 0.2, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "frame_bones": ("tail_lights",), "frame_pad": 2.7},
+    "scooter-underbody.png": {"lamps": False, "dusk": False, "view": (1.0, -0.45, -0.65), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-4.5, 2.5, 2.5), (4.5, 8.5, 12.5))},
+    "scooter-floor.png": {"lamps": False, "dusk": False, "view": (-1.0, 1.8, -0.5), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((0.5, 4.3, -5.3), (4.5, 6.5, 4.0))},
+    "scooter-wheel-front.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.2, -0.55), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_WHEEL_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-2.0, -0.3, -16.5), (2.0, 10.7, -7.0))},
+    "scooter-wheel-rear.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.1, 0.55), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_WHEEL_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-2.0, -0.3, 7.0), (2.0, 10.7, 16.5))},
 }
 # The scooter's geometry already flips U on its four side faces for the device (tools/scooter_kit.py);
 # this renderer reads those faces the other way round, so the scooter poses flip them back to match the device.
@@ -1282,10 +1290,11 @@ def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     # Only the texels the lit texture marks glow, so the lens stays round and the rim stays chrome.
     texture = combine_textures(texture, read_png(rp / SCOOTER_LIT_TEXTURE))
     flight_name = "scooter-flying-headlights.png"
-    shared = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" not in p and n != flight_name}
-    close = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" in p}
+    close = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" in p or "frame_box" in p}
+    shared = {n: p for n, p in SCOOTER_POSES.items() if n not in close and n != flight_name}
     images = {}
-    for poses in (shared, close):
+    # Separate cameras preserve the existing tail-lamp frame when new close-ups are added.
+    for poses in (shared, *({n: p} for n, p in close.items())):
         images.update(render_poses(ground_geo, texture, poses, {}, texture_mapping=True, cache_faces=True,
                                    defer_textures=True, texel_lit=True))
     animations = json.loads((rp / SCOOTER_ANIMATIONS).read_text())
@@ -1335,8 +1344,13 @@ def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False,
               for name, pose in poses.items()}
     frame_faces = bounds if bounds is not None else {name: [q for q, _, _ in scene[0]] for name, scene in scenes.items()}
     for name, pose in poses.items():
+        if "frame_box" in pose:
+            lo, hi = pose["frame_box"]
+            frame_faces[name] = [mirror(quad) for _, quad in cube_faces({
+                "origin": lo, "size": tuple(b - a for a, b in zip(lo, hi)),
+            })]
         if pose.get("frame_pad"):
-            # Grow the framed bones about their center so a close-up keeps some context around them.
+            # Grow the frame about its center so a close-up keeps some context around them.
             quads = frame_faces[name]
             corners = [p for quad in quads for p in quad]
             center = tuple((min(p[i] for p in corners) + max(p[i] for p in corners)) / 2 for i in range(3))

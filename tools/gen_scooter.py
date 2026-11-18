@@ -15,8 +15,10 @@ scooter_textures = load_tool("scooter_textures")
 
 AREA_ORDER = (
     "running",
+    "stand",
     "struts",
     "body",
+    "floor",
     "rear",
     "engine",
     "head",
@@ -25,8 +27,8 @@ AREA_ORDER = (
 )
 
 ASSEMBLIES = {
-    "running_wheel_front": {"owner": "scooter", "cubes": 292},
-    "running_wheel_rear": {"owner": "scooter", "cubes": 292},
+    "running_wheel_front": {"owner": "scooter", "cubes": 1233},
+    "running_wheel_rear": {"owner": "scooter", "cubes": 1213},
     "running_spring": {"owner": "scooter", "cubes": 112},
     "running_stand": {"owner": "scooter", "cubes": 2},
     "running_pedal": {"owner": "scooter", "cubes": 3},
@@ -116,9 +118,22 @@ def build():
             if ancestor.endswith("_fold"):
                 raise ValueError(f"Strut bone {strut} must not descend from fold bone {ancestor}")
             ancestor = parents[ancestor]
+    if set(AREA_ORDER) != set(dims.AREA_CUBE_ALLOCATION):
+        raise ValueError("Scooter area order and allocation keys differ")
     merged = kit.AreaCubes()
     for name in AREA_ORDER:
-        merged.merge(load_tool(f"scooter_{name}").build())
+        area = load_tool(f"scooter_{name}").build()
+        if sum(map(len, area.values())) > dims.AREA_CUBE_ALLOCATION[name]:
+            raise ValueError(f"Scooter area {name} exceeds its cube allocation")
+        if name == "floor":
+            # Body inner plates followed the floor solids before the areas were split.
+            trailing = load_tool("scooter_body").trailing_cube_count()
+            plates = merged["body"][-trailing:]
+            del merged["body"][-trailing:]
+            merged.merge(area)
+            merged["body"].extend(plates)
+        else:
+            merged.merge(area)
     allowed = {name for name, _, _ in BONES}
     for name, cubes in merged.items():
         if name not in allowed:

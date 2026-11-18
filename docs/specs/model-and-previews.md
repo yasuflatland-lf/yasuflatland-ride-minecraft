@@ -48,12 +48,12 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 
 ### Scooter README previews
 
-- Applies to: The five `scooter-*.png` previews only.
-- Rule: `render_scooter` draws the default white paint. The front-left, side and rear views stay in the road pose with the hover glow bones left out, as the render controller hides them on the ground. Only `scooter-flying-headlights.png` uses the flying pose: `build_flight_pose` reads the wheel folds from `animation.yasu_ride.scooter.wheels_folded` into a `FlightPose` with `SCOOTER_FLIGHT_LIFT` (24.0 model pixels), and `static_pose` raises the stand. The wheels are folded, the `glow_*` discs are drawn, rounded pools of light lie on the ground, and the shadow is fainter (`FLIGHT_SHADOW_ALPHA`). The `headlights` and `tail_lights` are on at dusk. These four views reuse the bulldozer's camera directions. Flight has its own frame, fitted to the vehicle and glow pools without the headlight beam, so it does not rescale the road views. A fifth picture, `scooter-taillights.png`, stays in the road pose without hover glow bones and lights the lamps at dusk from the rear three-quarter and frames only the `tail_lights` bone with padding (`frame_bones`, `frame_pad`), so it is rendered apart from the shared scale. Only the lit lens glows: the lit texture and MER mask follow the opaque texels of the head lens and tail lens regions, so no bezel, hood, plate or rectangular panel glows. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
+- Applies to: The nine `scooter-*.png` previews only.
+- Rule: `render_scooter` draws the default white paint. The front-left, side and rear views stay in the road pose with the hover glow bones left out, as the render controller hides them on the ground. Only `scooter-flying-headlights.png` uses the flying pose: `build_flight_pose` reads the wheel folds from `animation.yasu_ride.scooter.wheels_folded` into a `FlightPose` with `SCOOTER_FLIGHT_LIFT` (24.0 model pixels), and `static_pose` raises the stand. The wheels are folded, the `glow_*` discs are drawn, rounded pools of light lie on the ground, and the shadow is fainter (`FLIGHT_SHADOW_ALPHA`). The `headlights` and `tail_lights` are on at dusk. These four views reuse the bulldozer's camera directions. Flight has its own frame, fitted to the vehicle and glow pools without the headlight beam, so it does not rescale the road views. A fifth picture, `scooter-taillights.png`, stays in the road pose without hover glow bones and lights the lamps at dusk from the rear three-quarter and frames only the `tail_lights` bone with padding (`frame_bones`, `frame_pad`), so it is rendered apart from the shared scale. Four more close-ups show the low underbody from below at the front-right (`scooter-underbody.png`), the running board from above at the front-left (`scooter-floor.png`), the front wheel from the front-left (`scooter-wheel-front.png`), and the rear wheel from the rear-left (`scooter-wheel-rear.png`). They use white paint in the road pose without hover discs, with lamps off, daylight and `MAIN_BRIGHTNESS`. Their optional `frame_box = ((x0,y0,z0), (x1,y1,z1))` selects a region in Bedrock model coordinates before the renderer mirrors x, overriding whole-bone framing without hiding geometry. `frame_pad` can expand either frame. Each close-up renders separately, preserving the camera and scale of all five existing previews. Only the lit lens glows: the lit texture and MER mask follow the opaque texels of the head lens and tail lens regions, so no bezel, hood, plate or rectangular panel glows. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Generate it with `tools/gen_scooter.py`"; [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
-- Implementation: `tools/render_preview.py` (`render_scooter`, `FlightPose`, `build_flight_pose`, `static_pose`, `SCOOTER_POSES`, `SCOOTER_FLIGHT_LIFT`, `SCOOTER_LIT_TEXTURE`, `scooter_glow_pools`, `ground_layers`, `Scene`, `SCENES`); `docs/images/scooter-front-left.png`; `docs/images/scooter-flying-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`; `docs/images/scooter-taillights.png`
-- Verification: `tests/tools/renderPreview.test.ts` "renders the flying headlights from the camper's front angle plus four ground previews", "raises the stand, folds the wheels and frames flight with rounded pools instead of the beam" and "registers ordered top-level scene builders with frozen results"; `pnpm model:check` checks preview freshness. Not verified: how the curved panels compare with the photos beyond the rendered images.
+- Implementation: `tools/render_preview.py` (`render_scooter`, `FlightPose`, `build_flight_pose`, `static_pose`, `SCOOTER_POSES`, `SCOOTER_FLIGHT_LIFT`, `SCOOTER_LIT_TEXTURE`, `scooter_glow_pools`, `ground_layers`, `Scene`, `SCENES`); `docs/images/scooter-front-left.png`; `docs/images/scooter-flying-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`; `docs/images/scooter-taillights.png`; `docs/images/scooter-underbody.png`; `docs/images/scooter-floor.png`; `docs/images/scooter-wheel-front.png`; `docs/images/scooter-wheel-rear.png`
+- Verification: `tests/tools/renderPreview.test.ts` "renders the flying headlights from the camper's front angle plus eight ground previews", "raises the stand, folds the wheels and frames flight with rounded pools instead of the beam" and "registers ordered top-level scene builders with frozen results"; `tests/tools/previewManifest.test.ts` checks all nine files are owned by the scooter preview generator; `pnpm model:check` checks their freshness. Not verified: how the curved panels compare with the photos beyond the rendered images.
 
 ### Scooter generator foundation
 
@@ -97,26 +97,30 @@ Fold and seat bones remain empty, and the two strut bones carry the strut rod cu
 The strut bones follow only the fold position (the drop, never the roll), are never children of a fold bone, and use the axle pivots and parent to `steer` (front) and `body` (rear).
 They cannot descend from any fold bone: all three wheel fold clips give each strut
 only the corresponding fold bone's position keys, keeping it vertical while the wheel rolls. The `struts`
-area follows `running` and reserves separate front and rear builders. The steering
+area follows `stand` and reserves separate front and rear builders. The steering
 pivot lies on the 20.9-degree axis through the grounded front hub; axles are 23.6
-model pixels apart. The running area supplies both wheels, suspension, and stand.
+model pixels apart. The running area supplies both wheels and suspension.
 Whitewall discs use 256 by 256 texels over 7.48 model units, keeping both circular boundaries within
-0.04 units of their ideal radii. The 40-segment black tyre skin preserves each
+0.04 units of their ideal radii. The 64-segment black tyre skin preserves each
 panel's tangent frame and takes no panel margin, so its outer envelope stays within
 0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
-fold bones retain their axle pivots. The combined running, body, rear, engine, head, and shield atlas stays within 2048 by 2048
+fold bones retain their axle pivots. The combined running, stand, body, floor, rear, engine, head, and shield atlas stays within 2048 by 2048
 texels. The scooter requests this side limit from the shared packer, which searches
 wider layouts and rejects regions that cannot fit without reducing texture detail.
-Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit.
+Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit,
+with 32 cells per unit in wheel close-ups so small round screw heads remain legible.
+
+`tools/scooter_stand.py` builds the centre stand independently of the wheel and fork area.
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
-and floor. Its `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
+and deck and roll skins. The floor area (`tools/scooter_floor.py`) supplies the edge tubes, chrome rails,
+and rubber treads. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
 own all compound body panels and trim.
 Body regions register idempotently before faces are constructed. Neighboring
 mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
-grey joint piping, and chrome floor rails and opening trim. The body budget is
-1,150 cubes (currently 1,122); the production sampling reduces the spike's surface
+grey joint piping, and chrome floor rails and opening trim. The combined body and floor budget is
+1,130 cubes (1,005 for body and 125 for floor; currently 1,002 and 120); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
@@ -126,7 +130,7 @@ The rear area supplies the seat, lamp housing, tail lens, and plate through
 `rear_plate`. Only the red lens and dome belong to
 `tail_lights`; the remaining rear geometry stays on `body`. Seat alpha masks use
 24 texels per model unit and pack in descending height order so the combined
-atlas fits the 2048-texel side limit. The rear allocation is 363 cubes.
+atlas fits the 2048-texel side limit. The rear allocation is 370 cubes, of which 363 are used.
 
 The engine area supplies 319 cubes on `body`: the compact
 cast housing, slotted fan disc, tilted cylinder fins, kick lever and rubber pad,
@@ -141,19 +145,19 @@ panels; alpha-cut profiles and world-position paint shading keep the casting
 smooth. Small atlas regions carry the silver reflector, text-free dial, dark
 mirror glass, and chrome mirror backs.
 
-The whole-vehicle target is 3,700 cubes, including 32 glow cubes;
-generation rejects more than the 3,800-cube ceiling. The finished
-generated model has 3,661 cubes, including 49 on `tail_lights`. The
-kind's entity and driving rules are in [Scooter](scooter.md).
+The whole-vehicle budget is the sum of `AREA_CUBE_ALLOCATION` in
+`tools/scooter_dims.py`; generation enforces each allocation and the
+6,000-cube ceiling. The current allocations total 3,700 cubes; the generated model
+has 3,666 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
-within a 650-cube allocation. The crowned shield, shoulder, side plates, chrome
+within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome
 outline, flaring spine and 0.8-scale horn stay on `body`;
 the valanced front fender, curled lips, two bolts and crown shadow stay on `steer`.
 Broad panels use shaded alpha-cut masks, with twisted patches split at their
 measured vertices. The registered assemblies are `shield_face` (105),
 `shield_trim` (66), `shield_ridge` (110), and `shield_fender` (295).
-Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area (the body area builds them).
+Floor runs, rails, floor-edge tubes, treads, the rider-side frame cover and suspension remain outside this area. The floor area builds the rails, edge tubes and treads; the body area builds the deck, roll skins and frame cover, and the running area builds the suspension.
 
 The sixteen paints follow the shared dye order. Khaki and white preserve the ivory
 atlas byte-for-byte, with white declared as the default paint
@@ -499,10 +503,19 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Implementation: `tools/camper_mer.py`; `tools/lit_textures.py`; `tools/mer.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride/camper.texture_set.json`.
 - Verification: `tests/tools/mer.test.ts` exercises shifted region origins, exact material values, bounded lamp/mirror masks, hardware, gutters and opaque zero-emission interiors. `tests/packs/litTextures.test.ts` and `tests/packs/camperGlow.test.ts` check dimensions, texture-set binding and unchanged switched-pass contracts. Client highlights and diffuse fallback are not verifiable offline; no device acceptance is claimed.
 
+### Scooter wheel geometry and texture detail
+
+- Applies to: Both wheels generated by `tools/scooter_running.py`.
+- Rule: Both wheels retain white tyre walls, beige discs and chrome dishes. Four raised chrome hex nuts sit at 90-degree intervals with a 45-degree phase on a 0.82 px bolt circle on each exposed negative-x face, opposite the fork and spring. Each 0.32 px-deep nut rises over a wider dark round washer and has a dark hexagonal bevel border around its light face. Each raised part uses one cutout face, avoiding crossed reflection bands. The centre has a 0.55 px-radius round boss, a 0.43 px-radius washer step and a 0.30 px-radius hex nut. Six 0.19 px-radius dark slotted screw heads sit on a distinct painted outer rim ring. Revolved skins form the exposed dish's raised inner hub, recessed step and rolled outer lip, plus a wider polished bead beside a dark line; new relief stays on the negative-x face clear of the fixed suspension. Three crown columns and two wrapping shoulder columns use 40 tread rows at the front and 36 at the rear, with per-wheel block lengths, 0.13 px crown depth and deep transverse gaps over a smooth 64-segment carcass. Shoulder blocks step over the whitewall edge while remaining within |x| < 1.15. Every tread corner remains within the original 4.3 px rolling radius; rear radial and hardware dimensions scale by 0.96. No bones, paint regions or material types are added, and roll and fold retain their clearance. The front running wheel assembly contains 1,233 cubes and the rear 1,213; their wheel bones contain 1,236 and 1,216 including the discs and hub plates. The running allocation and usage are both 2,587; total allocation is 5,562 under the 6,000 ceiling. Front-left and rear-left close-ups show the hardware on both wheels. The geometry size guard remains twice the main baseline. Hub hardware stays within a 1.5 px radial envelope and |x| below 1.95 in the generator frame.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Wheels."
+- Implementation: `tools/scooter_running.py` (`_wheel`, `_wheel_pixel`), `tools/scooter_dims.py` (`AREA_CUBE_ALLOCATION`).
+- Verification: `tests/tools/scooterWheelDetail.test.ts`; `tests/packs/scooterModel.test.ts`; `tests/tools/scooterStrutFront.test.ts`; `tests/tools/scooterStrutRear.test.ts`; `tests/packs/scooterClient.test.ts`. `pnpm model:check` checks generated previews. Device appearance remains unverified.
+
 ### Scooter flight geometry and generated animations
 
 - Applies to: The scooter generator and Resource Pack client entity.
-- Rule: `gen_scooter.py` writes the geometry, textures and `scooter.anim.json`. Only the wheel and hub bones drop and fold; the fender, fork and suspension remain on `steer`. Both fold bones drop 3.5 px before turning +90 degrees about game z, with the drop complete at 0.4 seconds of the one-second deployment. Retraction reverses those stages. Turned cube corners require a drop strictly greater than 3.353244 px to clear the lowest fixed corner at y 2.666652 px, excluding the stand. The stand rotates +85 degrees about its real hinge bar at (0, 3.735, 1.045), lifting both feet above y 1 px. `glow_front` and `glow_rear` are children of the corresponding fold bones. Each disc has 16 squares rotated about x, corner radius 4.3 px and depth 0.5 px, separated from the wheel's game +x outer face by 0.1 px. Its `hover_front` or `hover_rear` locator is centred on the outer face, which faces down after folding. The solid (80, 170, 255) glow region participates in both the legacy lit alpha mask and the emissive MER mask, following the [camper hover display](camper-hover-display.md) approach. Steering rotates about the measured 20.9-degree inclined axis using the game Euler convention of ADR 0166. Positive steering moves the front of the wheel left. Root roll is lean minus bank; wheel roll uses distance travelled and the tyre radius. The generated animations also provide the shared engine and hover sound loops and hover particles at the two disc locators.
+- Rule: `gen_scooter.py` writes the geometry, textures and `scooter.anim.json`. Only the wheel and hub bones drop and fold; the fender, fork and suspension remain on `steer`. Both fold bones drop 3.5 px before turning +90 degrees about game z, with the drop complete at 0.4 seconds of the one-second deployment. Retraction reverses those stages. Turned cube corners require a drop strictly greater than 3.216401 px to clear the lowest fixed corner at y 2.666652 px, excluding the stand. The stand rotates +85 degrees about its real hinge bar at (0, 3.735, 1.045), lifting both feet above y 1 px. `glow_front` and `glow_rear` are children of the corresponding fold bones. Each disc has 16 squares rotated about x, corner radius 4.3 px and depth 0.5 px, separated from the wheel's game +x outer face by 0.1 px. Its `hover_front` or `hover_rear` locator is centred on the outer face, which faces down after folding. The solid (80, 170, 255) glow region participates in both the legacy lit alpha mask and the emissive MER mask, following the [camper hover display](camper-hover-display.md) approach. Steering rotates about the measured 20.9-degree inclined axis using the game Euler convention of ADR 0166. Positive steering moves the front of the wheel left. Root roll is lean minus bank; wheel roll uses distance travelled and the tyre radius. The generated animations also provide the shared engine and hover sound loops and hover particles at the two disc locators.
 
   The client uses `entity_alphatest` for the alpha-cut body and steering plates and the shared 16-paint variant order. The form controller has only ground, deploy, hover and retract states, with the SUV's engine and hover sound gates and no submarine mode. The independent stand controller blends between the resting stand and `stand_up` over 0.3 seconds. The base render pass hides glow discs and lit lamps; the gear-gated emissive glow overlay draws only `glow_*`, followed by the headlights-gated lamp overlay. Hover particles use both disc locators; there is no exhaust particle binding. The server entity remains a later issue.
 

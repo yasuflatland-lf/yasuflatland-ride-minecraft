@@ -47,25 +47,6 @@ WALL_SECTIONS = (0,.3,.6,.84,1)
 DECK_ROWS = ((4.75,5.32),(2.7,5.32),(-3.8,5.32),(-4.65,5.32),(-5.15,5.42))
 ROLL_STATIONS = ((4,0),(3.7,.5),(3,1),(0,1),(-3,1),(-4.5,1))
 ROLL_PROFILE = ((3.8,5.38),(4.02,5.24),(4.12,4.95),(4.02,4.63),(3.92,4.5))
-FLOOR_EDGE = ((4.3,4.4322,-4.0338),(4.02,4.48,-3.5),(4.08,4.56,-2.5),
-              (4.08,4.56,0),(4.08,4.59,3),(3.94,4.95,3.7),(3.8,5.32,4))
-
-
-def _clamp(t):
-    return max(0, min(1, t))
-
-
-def _smooth(points, x, column=1):
-    i = 0
-    while i < len(points)-2 and x > points[i+1][0]:
-        i += 1
-    a, b = points[i:i+2]
-    prev, following = points[max(0,i-1)], points[min(len(points)-1,i+2)]
-    t = _clamp((x-a[0])/(b[0]-a[0]))
-    ma = (b[column]-prev[column])/(b[0]-prev[0])
-    mb = (following[column]-a[column])/(following[0]-a[0])
-    return ((2*t**3-3*t*t+1)*a[column] + (t**3-2*t*t+t)*(b[0]-a[0])*ma
-            + (-2*t**3+3*t*t)*b[column] + (t**3-t*t)*(b[0]-a[0])*mb)
 
 
 def _span(poly, x):
@@ -79,24 +60,11 @@ def _cos_steps(a,b,n):
     return [a+(b-a)*(1-math.cos(math.pi*i/n))/2 for i in range(n+1)]
 
 
-def _spline(points, steps, closed=False):
-    result = []
-    for i in range(len(points) if closed else len(points)-1):
-        a,b = points[i],points[(i+1)%len(points)]
-        c = points[(i-1)%len(points)] if closed else points[max(0,i-1)]
-        d = points[(i+2)%len(points)] if closed else points[min(len(points)-1,i+2)]
-        for k in range(steps):
-            t = k/steps
-            result.append(tuple((2*v+(-c[j]+b[j])*t+(2*c[j]-5*v+4*b[j]-d[j])*t*t
-                          +(-c[j]+3*v-3*b[j]+d[j])*t**3)/2 for j,v in enumerate(a)))
-    if not closed:
-        result.append(points[-1])
-    return result
 
 
 @cache
 def _outline():
-    return _spline(COWL_OUTLINE,D.BODY_OUTLINE_STEPS,True)
+    return kit.spline(COWL_OUTLINE,D.BODY_OUTLINE_STEPS,True)
 
 
 def _surface(xi,yi,x):
@@ -115,11 +83,11 @@ def _surface(xi,yi,x):
 def _saddle(xi):
     _,bottom = _span(SEAT_OUTLINE,max(D.BODY_SEAT_MIN,min(D.BODY_SEAT_MAX,xi)))
     z,y = D.i2m(xi,bottom)
-    return [_smooth(SEAT_WIDTH,xi)+D.BODY_SADDLE_OVERHANG,y-D.BODY_SADDLE_DROP,z]
+    return [kit.smooth(SEAT_WIDTH,xi)+D.BODY_SADDLE_OVERHANG,y-D.BODY_SADDLE_DROP,z]
 
 
 def _blend_saddle(point,xi,yi):
-    t = _clamp((D.BODY_SADDLE_BLEND_Y-yi)/D.BODY_SADDLE_BLEND_SPAN)
+    t = kit.clamp((D.BODY_SADDLE_BLEND_Y-yi)/D.BODY_SADDLE_BLEND_SPAN)
     t = t*t*(3-2*t)
     return [a+(b-a)*t for a,b in zip(point,_saddle(xi))]
 
@@ -128,11 +96,11 @@ def _cowl_point(xi,t,side):
     top,bottom = _span(_outline(),xi)
     yi = top+(bottom-top)*(1-math.cos(t*math.pi))/2
     _,y = D.i2m(xi,yi)
-    width,base = _smooth(COWL_WIDTH,xi),_smooth(COWL_BASE,xi)
-    front = _clamp((D.BODY_COWL_FRONT-xi)/D.BODY_COWL_FRONT_ROLL)
+    width,base = kit.smooth(COWL_WIDTH,xi),kit.smooth(COWL_BASE,xi)
+    front = kit.clamp((D.BODY_COWL_FRONT-xi)/D.BODY_COWL_FRONT_ROLL)
     cross = [(t,base*b+width*w+front*r) for t,b,w,r in COWL_CROSS]
-    x = _smooth(cross,t)
-    along = _clamp((xi-D.BODY_COWL_REAR)/D.BODY_COWL_LENGTH)
+    x = kit.smooth(cross,t)
+    along = kit.clamp((xi-D.BODY_COWL_REAR)/D.BODY_COWL_LENGTH)
     roll = max(0,(t-D.BODY_COWL_ROLL_START)/(1-D.BODY_COWL_ROLL_START))
     yi = D.I2M_ORIGIN_Y-(y+D.BODY_COWL_LIP_RISE*math.sin(along*math.pi)**2*roll*roll)/D.I2M_SCALE
     p = _surface(xi,yi,x)
@@ -143,13 +111,6 @@ def _cowl_point(xi,t,side):
     return p
 
 
-def _shield_z(x,y):
-    rows = sorted((D.i2m(xi,yi)[1],D.i2m(xi,yi)[0]) for yi,xi in D.SHIELD_EDGE)
-    u = _clamp((y-D.SHIELD_RELIEF_Y)/D.SHIELD_RELIEF_HEIGHT)
-    relief = D.SHIELD_RELIEF_MIN+(1-D.SHIELD_RELIEF_MIN)*u*u*(3-2*u)
-    return (_smooth(rows,y)-relief*(D.SHIELD_DEPTH_MIN+D.SHIELD_DEPTH_GAIN
-            *math.exp(-((y-D.SHIELD_RELIEF_CROWN_Y)/D.SHIELD_RELIEF_HEIGHT)**2))
-            *(1-(x/D.SHIELD_HALF_WIDTH)**2))
 
 
 def _geometry():
@@ -187,7 +148,7 @@ def _geometry():
     frame_ys = _cos_steps(FRAME_FRONT[0][0],FRAME_FRONT[-1][0],D.BODY_FRAME_STEPS)
     tunnel = []
     for i,yi in enumerate(frame_ys):
-        xi = _smooth(FRAME_FRONT,yi)
+        xi = kit.smooth(FRAME_FRONT,yi)
         p = _blend_saddle(_surface(xi,yi,D.BODY_FRAME_PHOTO_X),xi,yi)
         t = i/D.BODY_FRAME_STEPS
         tunnel.append((p[2],p[1],D.BODY_FRAME_WIDTH+D.BODY_FRAME_FLARE*t**D.BODY_FRAME_FLARE_POWER,
@@ -205,7 +166,7 @@ def _geometry():
     for side in (-1,1):
         rings = []
         for i,yi in enumerate(frame_ys):
-            rear,front = _smooth(FRAME_REAR,yi),_smooth(FRAME_FRONT,yi)
+            rear,front = kit.smooth(FRAME_REAR,yi),kit.smooth(FRAME_FRONT,yi)
             ring = []
             for u in WALL_SECTIONS:
                 xi = rear+(front-rear)*u
@@ -235,7 +196,7 @@ def _geometry():
         for ring in rings:
             p = ring[-1]
             xi = D.I2M_ORIGIN_X-p[2]/D.I2M_SCALE
-            arch = D.BODY_RETURN_ARCH*math.sin(math.pi*_clamp((xi-D.BODY_COWL_REAR)/D.BODY_COWL_LENGTH))
+            arch = D.BODY_RETURN_ARCH*math.sin(math.pi*kit.clamp((xi-D.BODY_COWL_REAR)/D.BODY_COWL_LENGTH))
             q = [side*min(abs(p[0])-D.BODY_RETURN_INSET,D.BODY_COWL_INNER_X),
                  p[1]+D.BODY_RETURN_RISE+arch*D.BODY_RETURN_ARCH_GAIN,p[2]-D.BODY_RETURN_FORWARD]
             returns.append([p,q])
@@ -267,11 +228,11 @@ def _geometry():
         poly.extend((r[-1][2],r[-1][1]+D.BODY_INNER_LIP) for r in reversed(returns))
         plates.append((poly,side*D.BODY_COWL_INNER_X))
         rim = []
-        for xi,t in _spline(JOINT_ROUTE,D.BODY_JOINT_STEPS):
+        for xi,t in kit.spline(JOINT_ROUTE,D.BODY_JOINT_STEPS):
             p = _cowl_point(xi,t,side)
             rim.append([p[0]+side*D.BODY_PIPE_OFFSET,p[1]+D.BODY_PIPE_LIFT,p[2]])
         for i,(a,b) in enumerate(zip(rim,rim[1:])):
-            fade = _clamp(((i+1)/(len(rim)-1)-D.BODY_PIPE_FADE_START)/D.BODY_PIPE_FADE_SPAN)
+            fade = kit.clamp(((i+1)/(len(rim)-1)-D.BODY_PIPE_FADE_START)/D.BODY_PIPE_FADE_SPAN)
             tube([a,b],D.BODY_PIPE_SIZE*(1-D.BODY_PIPE_FADE_GAIN*fade),"body_pipe","body_cowl")
 
     tube([(x,D.BODY_REAR_PIPE_Y+D.BODY_REAR_PIPE_RISE*(x/D.BODY_REAR_PIPE_WIDTH)**2,
@@ -285,19 +246,6 @@ def _geometry():
                   D.BODY_DECK_Y+(y-D.BODY_DECK_Y)*radius,z) for x,y in ROLL_PROFILE]
                 for z,radius in ROLL_STATIONS]
         skin(roll,"body_floor",lambda k,j:(side*D.BODY_ROLL_INSIDE_X,D.BODY_ROLL_INSIDE_Y,ROLL_STATIONS[k][0]))
-        tube([(side*x,y,z) for x,y,z in _spline(FLOOR_EDGE,D.BODY_FLOOR_EDGE_STEPS)],
-             D.BODY_FLOOR_EDGE_SIZE,"body_edge","body_floor")
-    for x in D.BODY_RAIL_X:
-        rise = []
-        for i in range(D.BODY_RAIL_STEPS+1):
-            y = D.BODY_RAIL_Y+D.BODY_RAIL_RISE*(i/D.BODY_RAIL_STEPS)**2
-            rise.append((x,y,_shield_z(x,y)+D.BODY_RAIL_SHIELD_OFFSET))
-        tube([(x,D.BODY_RAIL_Y,D.BODY_RAIL_REAR),(x,D.BODY_RAIL_Y,D.BODY_RAIL_FRONT),*rise],
-             D.BODY_RAIL_SIZE,"chrome","body_floor")
-        cube = kit.box((x-D.BODY_TREAD_HALF_WIDTH,D.BODY_TREAD_BOTTOM,D.BODY_TREAD_FRONT),
-                       (x+D.BODY_TREAD_HALF_WIDTH,D.BODY_TREAD_TOP,D.BODY_TREAD_REAR),{})
-        cube.assembly = "body_floor"
-        solids.append((cube,"body_tread"))
     return panels,solids,plates
 
 
@@ -398,7 +346,7 @@ def _panel_region(name,poly,material,cube):
     colors = []
     for v in range(size):
         y = 1-(v+.5)/size
-        shade_v = _clamp((D.BODY_PAINT_TOP-corner[1]-dy[1]*y)/D.BODY_PAINT_HEIGHT)*(D.BODY_PAINT_TEXELS-1)
+        shade_v = kit.clamp((D.BODY_PAINT_TOP-corner[1]-dy[1]*y)/D.BODY_PAINT_HEIGHT)*(D.BODY_PAINT_TEXELS-1)
         rgb = color(0,shade_v)[:3]
         row = []
         for u in range(size):
@@ -444,7 +392,6 @@ def register_regions(registry):
                                lambda u,v,c=color:(*c,255)))
              for name,material,color in (("body_pipe",atlas.Material.RUBBER,D.BODY_PIPE_COLOR),
                 ("body_slot",atlas.Material.RUBBER,D.BODY_SLOT_COLOR),
-                ("body_tread",atlas.Material.RUBBER,D.BODY_TREAD_COLOR),
                 ("body_edge",atlas.Material.CHROME,D.BODY_EDGE_COLOR))]
     for name,region in [*extra,*_prepared()[3]]:
         if name not in existing:
@@ -470,3 +417,7 @@ def build() -> kit.AreaCubes:
     for index,(poly,x) in enumerate(plates):
         result.add("body",kit.profile_plate(poly,x,D.BODY_INNER_THICKNESS,f"body_inner_{index}"),"body_cowl")
     return result
+
+
+def trailing_cube_count():
+    return len(_prepared()[2])

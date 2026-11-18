@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { afterAll, expect, it } from "vitest";
+import { startPythonWorker } from "../support/pythonWorker";
 
 const python = (script: string) =>
   execFileSync(
@@ -22,6 +23,22 @@ ${script}
     ],
     { encoding: "utf8" },
   );
+
+const modelWorker = startPythonWorker();
+afterAll(() => modelWorker.close());
+
+const modelPython = (script: string) =>
+  modelWorker.run(`
+import math, json, sys, unittest
+from functools import cache
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+d=load_tool('scooter_dims')
+t=load_tool('cube_tilt')
+g=load_tool('gen_scooter')
+if not hasattr(g.build, 'cache_info'): g.build=cache(g.build)
+${script}
+`);
 
 it("decomposes steering about the inclined axis with positive left steering", () => {
   python(`
@@ -55,14 +72,15 @@ assert unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTes
 `);
 });
 
-it("drops both wheels strictly below fixed geometry with the smallest quarter-pixel drop and raises the stand feet", () => {
-  python(`
+it("retains the wheel fold drop, clears fixed geometry and raises the stand feet", async () => {
+  await modelPython(`
 g=load_tool('gen_scooter')
 geo,_,_=g.build()
 bones={b['name']:b for b in geo['minecraft:geometry'][0]['bones']}
 low=min(p[1] for name in ('body','steer','headlights','tail_lights') for c in bones[name]['cubes'] for p in t.corners(c))
 threshold=max(d.AXLE_Y-p[0]-low for name in ('wheel_front','wheel_rear') for c in bones[name]['cubes'] for p in t.corners(c))
-assert threshold<d.FOLD_DROP<=threshold+.25
+assert threshold<d.FOLD_DROP
+assert d.FOLD_DROP==3.5
 assert d.FOLD_DROP*4==round(d.FOLD_DROP*4)
 pivot=d.STAND_PIVOT
 assert pivot==(0,d.i2m(*d.STAND_PIXEL)[1],d.i2m(*d.STAND_PIXEL)[0]-d.STAND_PIVOT_BACK)
@@ -74,10 +92,10 @@ for cube in feet:
         assert q[1]+pivot[1]>1 and q[2]+pivot[2]<p[2]
 assert sum(len(b['cubes']) for b in bones.values())<=d.CUBE_BUDGET
 `);
-});
+}, 90_000);
 
-it("centres single-axis glow squares at the axles with radius-sized corners and lower-face locators", () => {
-  python(`
+it("centres single-axis glow squares at the axles with radius-sized corners and lower-face locators", async () => {
+  await modelPython(`
 glow=load_tool('scooter_glow').build()
 running=load_tool('scooter_running').build()
 assert not glow.assemblies
