@@ -12,6 +12,7 @@ atlas = load_tool("scooter_atlas")
 cube_tilt = load_tool("cube_tilt")
 texture_io = load_tool("texture_io")
 scooter_textures = load_tool("scooter_textures")
+scooter_engine = load_tool("scooter_engine")
 
 AREA_ORDER = (
     "running",
@@ -150,6 +151,8 @@ def build():
     bones = [{"name": name, **({"parent": parent} if parent else {}), "pivot": list(pivot),
               "cubes": merged.get(name, [])} for name, parent, pivot in BONES]
     for bone in bones:
+        if bone["name"] == scooter_engine.BONE:
+            bone["locators"] = {"exhaust": list(scooter_engine.OUTLET_END)}
         if bone["name"].startswith("glow_"):
             side = bone["name"].removeprefix("glow_")
             outer = min(cube["origin"][0] for cube in bone["cubes"])
