@@ -3,6 +3,8 @@
 import math
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 kit = load_tool("camper_kit")
 textures = load_tool("camper_seat_textures")
 tilt = load_tool("cube_tilt")
@@ -92,9 +94,9 @@ class SeatBuilder:
         self.refs = textures.register(registry)
         self.registry = registry
         base = next(r for r in registry.regions() if r.name == "base")
-        self.base_ref = kit.regions.RegionRef(registry, base)
+        self.base_ref = region_atlas.RegionRef(registry, base)
         if registry._layout is None:
-            kit.regions.pack(registry)
+            region_atlas.pack(registry)
 
     def face(self, cube, name, rectangle, face):
         u, v, width, height = rectangle

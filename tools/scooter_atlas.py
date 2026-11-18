@@ -2,19 +2,15 @@
 
 import math
 import sys
-from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
-regions = load_tool("camper_regions")
-Layout = regions.Layout
-RegionFace = regions.RegionFace
-render_atlas = regions.render_atlas
-audit = regions.audit
+region_atlas = load_tool("region_atlas")
+render_atlas = region_atlas.render_atlas
+audit = region_atlas.audit
 
 PAINT_IVORY = (222, 215, 200)
 PAINT_EDGE_FACTOR = 0.82
@@ -51,26 +47,8 @@ class Material(Enum):
     CUTOUT = "cutout"
 
 
-@dataclass(frozen=True)
-class Region:
-    name: str
-    width: int
-    height: int
-    material: Material
-    pixel: Callable[[int, int], tuple[int, int, int, int]]
-
-
-class RegionRegistry(regions.RegionRegistry):
-    def register(self, region):
-        if not region.name or region.name in self._regions:
-            raise ValueError("Region names must be nonempty and unique")
-        if any(type(n) is not int or n <= 0 for n in (region.width, region.height)):
-            raise ValueError("Region dimensions must be positive texel counts")
-        if not isinstance(region.material, Material) or not callable(region.pixel):
-            raise ValueError("Regions require a scooter material and pixel function")
-        self._regions[region.name] = region
-        self._layout = None
-        return regions.RegionRef(self, region)
+Region = region_atlas.Region
+RegionRegistry = region_atlas.RegionRegistry
 
 
 REGISTRY = RegionRegistry()
@@ -146,7 +124,7 @@ def _region_name(region):
 def face(region, u=0, v=0, w=None, h=None):
     name = _region_name(region)
     registered = REGISTRY._regions[name]
-    return RegionFace({"uv": [u, v], "uv_size": [registered.width if w is None else w,
+    return region_atlas.RegionFace({"uv": [u, v], "uv_size": [registered.width if w is None else w,
                                                  registered.height if h is None else h]}, name)
 
 
@@ -160,18 +138,20 @@ def plate_faces(region):
 
 def pack_layout():
     if REGISTRY._layout is None:
-        regions.pack(REGISTRY, gutter_px=GUTTER_TEXELS, max_side=MAX_SIDE_TEXELS)
+        region_atlas.pack(REGISTRY, gutter_px=GUTTER_TEXELS, max_side=MAX_SIDE_TEXELS)
     packed = REGISTRY._layout
     # Bindings belong to a build; cached placement must not retain earlier cubes.
-    return Layout(packed.regions, packed.size, {r.name: packed.origin(r.name) for r in packed.regions})
+    return region_atlas.Layout(packed.regions, packed.size, {r.name: packed.placement(r.name) for r in packed.regions})
 
 
 def resolve(cubes, layout):
+    by_name = {r.name: r for r in layout.regions}
     for cube in cubes:
         for value in cube["uv"].values():
             if getattr(value, "resolved", False):
                 raise ValueError("A scooter face cannot be resolved twice")
-            x, y = layout.origin(value.region)
-            value["uv"] = [x + value["uv"][0], y + value["uv"][1]]
+            region = by_name[value.region]
+            region_atlas.UvRect.of(value).to_atlas(
+                layout.placement(value.region), region.width, region.height).apply(value)
             value.resolved = True
             layout.bind_face(value.region, value)

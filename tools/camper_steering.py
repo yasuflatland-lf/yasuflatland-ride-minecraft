@@ -4,10 +4,12 @@ import math
 from typing import TYPE_CHECKING
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 if TYPE_CHECKING:
     from camper_dash import DashGeometry
     from camper_kit import AreaCubes
-    from camper_regions import RegionRegistry
+    from region_atlas import RegionRegistry
 
 Cube = dict
 Point = tuple[float, float, float]
@@ -73,12 +75,11 @@ def along(a: Point, direction: Point, distance: float) -> Point:
 class SteeringBuilder:
     def __init__(self, registry: 'RegionRegistry') -> None:
         self.kit = load_tool('camper_kit')
-        regions = load_tool('camper_regions')
         if registry is self.kit.REGISTRY:
             self.kit.prepare_layout()
         elif registry._layout is None:
-            regions.pack(registry)
-        self.refs = {r.name: regions.RegionRef(registry, r) for r in registry.regions()}
+            region_atlas.pack(registry)
+        self.refs = {r.name: region_atlas.RegionRef(registry, r) for r in registry.regions()}
 
     def box(self, origin: Point, size: Point, color: str, pivot: Point | None=None,
             rotation: Point | None=None) -> Cube:

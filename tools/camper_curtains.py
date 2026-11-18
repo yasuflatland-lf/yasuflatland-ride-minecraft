@@ -8,6 +8,8 @@ import math
 
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 kit = load_tool("camper_kit")
 AreaCubes = kit.AreaCubes
 HW, right_windows, left_windows = kit.HW, kit.right_windows, kit.left_windows
@@ -31,10 +33,10 @@ def _depth(sign, wall, depth):
     return sign * round(wall - depth, 3)
 
 
-def make_panel(registry: kit.regions.RegionRegistry, sign=-1, edge=0, direction=1, span=25, wall=HW - 1) -> list[dict]:
+def make_panel(registry: region_atlas.RegionRegistry, sign=-1, edge=0, direction=1, span=25, wall=HW - 1) -> list[dict]:
     regions = load_tool("camper_regions")
     tilt = load_tool("cube_tilt")
-    ref = next(regions.RegionRef(registry, r) for r in registry.regions() if r.name == "light curtain fabric")
+    ref = next(region_atlas.RegionRef(registry, r) for r in registry.regions() if r.name == "light curtain fabric")
     # A short window narrows the panel below the width the fold shading was baked for (the 5-wide
     # window); the shading is then slightly compressed, as in the approved spike model.
     width = min(regions.CURTAIN_MAX_WIDTH, span * regions.CURTAIN_SPAN_RATIO)
@@ -85,7 +87,7 @@ def make_panel(registry: kit.regions.RegionRegistry, sign=-1, edge=0, direction=
     return cubes
 
 
-def build_curtains(registry: kit.regions.RegionRegistry) -> AreaCubes:
+def build_curtains(registry: region_atlas.RegionRegistry) -> AreaCubes:
     regions = load_tool("camper_regions")
     body = []
     rail_lo, rail_hi = regions.CURTAIN_RAIL_Y

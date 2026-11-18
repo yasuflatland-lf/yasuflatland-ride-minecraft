@@ -30,7 +30,7 @@ assert hashlib.sha256(rgba).hexdigest() == '1b90ae7fb5be0cdd714f8b5a2ab14cbf93aa
 snapshot = json.dumps(first)
 first['seat_0'][0]['origin'][0] += 100
 assert json.dumps(seats.build_cab_seats(kit.REGISTRY)) == snapshot
-assert kit.regions.audit(kit.LAYOUT, kit.regions.render_atlas(kit.LAYOUT)) == []
+assert load_tool('region_atlas').audit(kit.LAYOUT, load_tool('region_atlas').render_atlas(kit.LAYOUT)) == []
 `);
 });
 
@@ -109,12 +109,12 @@ sys.path.insert(0, str(Path('tools').resolve()))
 from tool_loader import load_tool
 kit = load_tool('camper_kit')
 seats = load_tool('camper_cab_seats')
-r = kit.regions.RegionRegistry()
+r = load_tool('region_atlas').RegionRegistry()
 r.register(kit.BASE_REF.region)
-r.register(kit.regions.Region('other', ${width}, ${height}, kit.regions.Material.WOOD, lambda x,y: (1,2,3,255)))
+r.register(load_tool('region_atlas').Region('other', ${width}, ${height}, kit.regions.Material.WOOD, lambda x,y: (1,2,3,255)))
 area = seats.build_cab_seats(r)
 assert len(area['seat_0']) == len(area['seat_1']) == 501
-assert kit.regions.audit(r._layout, kit.regions.render_atlas(r._layout)) == []
+assert load_tool('region_atlas').audit(r._layout, load_tool('region_atlas').render_atlas(r._layout)) == []
 for cubes in area.values():
     used = set()
     for cube in cubes:

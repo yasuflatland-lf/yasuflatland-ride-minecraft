@@ -75,12 +75,12 @@ assert Path('tools/camper_mer.py').exists(), 'Interior MER builder is missing'
 c = load_tool('camper_mer')
 l = load_tool('lit_textures')
 expected = {'METAL': (255,0,60), 'LACQUER': (0,0,80), 'GLASS_COAT': (0,0,65), 'VINYL': (0,0,180), 'WOOD': (0,0,150), 'FABRIC': (0,0,245), 'CARPET': (0,0,250), 'TILE': (0,0,80), 'STONE': (0,0,85), 'DARK_LACQUER': (0,0,85)}
-regions = [r.Region('base', k.ATLAS.width, k.ATLAS.height, r.Material.SWATCHES_MIXED, lambda x,y: (12,34,56,255))]
+regions = [load_tool('region_atlas').Region('base', k.ATLAS.width, k.ATLAS.height, r.Material.SWATCHES_MIXED, lambda x,y: (12,34,56,255))]
 origins = {'base': (${dx}, ${dy})}
 for i, name in enumerate(expected):
-    regions.append(r.Region(name, 2, 3, r.Material[name], lambda x,y: (0,0,0,0)))
+    regions.append(load_tool('region_atlas').Region(name, 2, 3, r.Material[name], lambda x,y: (0,0,0,0)))
     origins[name] = (${dx} + k.ATLAS.width + 2 + i*3, ${dy})
-layout = r.Layout(regions, (${dx}+k.ATLAS.width+35, ${dy}+k.ATLAS.height+2), origins)
+layout = load_tool('region_atlas').Layout(regions, (${dx}+k.ATLAS.width+35, ${dy}+k.ATLAS.height+2), {name: load_tool('region_atlas').Placement(*xy) for name,xy in origins.items()})
 data = c.build_interior_mer(layout)
 assert len(data) == layout.size[0]*layout.size[1]*4
 assert all(data[i] == 0 and data[i+2] == 255 for i in range(1,len(data),4))

@@ -4,6 +4,8 @@ import math
 import random
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 regions = load_tool("camper_regions")
 NAME = "green tweed and vinyl shared by both seats"
 VINYL_NAME = "cab seat vinyl"
@@ -71,11 +73,11 @@ def register(registry):
     if NAME not in existing:
         slab = pixels()
         # Keep the complete reference slab, but resolve vinyl faces through material-specific regions.
-        registry.register(regions.Region(NAME, WIDTH, HEIGHT, regions.Material.FABRIC,
+        registry.register(region_atlas.Region(NAME, WIDTH, HEIGHT, regions.Material.FABRIC,
                                          lambda x, y: slab[y][x]))
-        registry.register(regions.Region(VINYL_NAME, VINYL_SIZE, VINYL_SIZE, regions.Material.VINYL,
+        registry.register(region_atlas.Region(VINYL_NAME, VINYL_SIZE, VINYL_SIZE, regions.Material.VINYL,
                                          lambda x, y: slab[y][VINYL_OFFSET + x]))
-        registry.register(regions.Region(TRIM_NAME, len(COLORS) - CLOTH_COLORS, 1, regions.Material.VINYL,
+        registry.register(region_atlas.Region(TRIM_NAME, len(COLORS) - CLOTH_COLORS, 1, regions.Material.VINYL,
                                          lambda x, y: slab[0][SWATCH_OFFSET + CLOTH_COLORS + x]))
-    return {r.name: regions.RegionRef(registry, r) for r in registry.regions()
+    return {r.name: region_atlas.RegionRef(registry, r) for r in registry.regions()
             if r.name in (NAME, VINYL_NAME, TRIM_NAME)}
