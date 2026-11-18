@@ -108,13 +108,26 @@ Scooter previews merge adjacent texels and cap dense faces at 16 cells per model
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and deck and roll skins. The floor area (`tools/scooter_floor.py`) supplies the edge tubes, chrome rails,
-and rubber treads. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
+and rubber treads. `FLOOR_STRIPS` in `tools/scooter_dims.py` declares three composite strips per
+side at x = 1.0, 1.9 and 2.8 px, followed by the outer chrome edge at 3.7 px.
+Each strip is 0.28 px wide: a 0.18 px `body_tread` rubber core between two
+0.05 px `chrome` lips. The lips are 0.14 px high and the core is 0.10 px high,
+with its top recessed 0.035 px below the lip tops. The 0.62 px paint gaps
+remain exposed. Rear ends are staggered at z = 1.2, 2.4 and 2.7 px, with
+0.22 px chrome rivet caps. Only the innermost strips follow the shield with
+the existing 2.19 px rise and 0.6 px offset. The outer strips and edge curl
+forward 0.5 px and down 0.9 px; strip curls end in matching rivet caps.
+The 0.14 px outer edge drops 0.55 px at the rear into a squared 0.6 px tab.
+The lower side edge tube remains unchanged. Deck and roll skins, rider foot
+positions and seat locators are unchanged; no bones or paint regions are added.
+`tests/tools/scooterBody.test.ts` checks narrow cores, chrome lips, paint gaps,
+recess, staggered caps, table counts and floor bounds. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
 own all compound body panels and trim.
 Body regions register idempotently before faces are constructed. Neighboring
 mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
 grey joint piping, and chrome floor rails and opening trim. The combined body and floor budget is
-1,130 cubes (1,005 for body and 125 for floor; currently 1,002 and 120); the production sampling reduces the spike's surface
+1,187 cubes (1,005 for body and 182 for floor; currently 1,002 and 182); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
@@ -141,8 +154,8 @@ mirror glass, and chrome mirror backs.
 
 The whole-vehicle budget is the sum of `AREA_CUBE_ALLOCATION` in
 `tools/scooter_dims.py`; generation enforces each allocation and the
-6,000-cube ceiling. The current allocations total 3,700 cubes; the generated model
-has 3,666 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
+6,000-cube ceiling. The current allocations total 3,757 cubes; the generated model
+has 3,728 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
 within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome
