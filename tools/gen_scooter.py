@@ -27,8 +27,8 @@ AREA_ORDER = (
 )
 
 ASSEMBLIES = {
-    "running_wheel_front": {"owner": "scooter", "cubes": 1233},
-    "running_wheel_rear": {"owner": "scooter", "cubes": 1213},
+    "running_wheel_front": {"owner": "scooter", "cubes": 777},
+    "running_wheel_rear": {"owner": "scooter", "cubes": 777},
     "running_spring": {"owner": "scooter", "cubes": 112},
     "running_stand": {"owner": "scooter", "cubes": 2},
     "running_pedal": {"owner": "scooter", "cubes": 3},
@@ -36,7 +36,6 @@ ASSEMBLIES = {
     "shield_trim": {"owner": "scooter", "cubes": 66},
     "shield_ridge": {"owner": "scooter", "cubes": 110},
     "shield_fender": {"owner": "scooter", "cubes": 295},
-    "shield_bead": {"owner": "scooter", "cubes": 58},
     "body_cowl": {"owner": "scooter", "cubes": 594},
     "body_tail": {"owner": "scooter", "cubes": 216},
     "body_frame": {"owner": "scooter", "cubes": 148},
