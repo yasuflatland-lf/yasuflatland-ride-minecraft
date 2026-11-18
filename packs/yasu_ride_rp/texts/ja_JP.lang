@@ -292,3 +292,7 @@ tile.yasu_build:warp_block.name=ワープブロック
 yasu_build.warp.hits_left=ワープブロックを壊すには、あと %s 回叩いてください
 yasu_build.warp.hit_left=ワープブロックを壊すには、あと %s 回叩いてください
 yasu_build.warp.block_broken=ワープブロックを壊しました
+yasu_build.form.build_shape=形を作る
+yasu_build.form.build_shape_title=形の選択
+yasu_build.form.back=戻る
+yasu_build.form.rotate_box=範囲を回転
