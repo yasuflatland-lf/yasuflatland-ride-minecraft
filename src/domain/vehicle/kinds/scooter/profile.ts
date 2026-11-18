@@ -17,24 +17,32 @@ const body = Object.freeze({
 const driverSeatPose = Object.freeze({
   grip: "scooter_grip",
   lean: Object.freeze([
+    "scooter_lean_l5",
+    "scooter_lean_l4",
     "scooter_lean_l3",
     "scooter_lean_l2",
     "scooter_lean_l1",
     "scooter_lean_r1",
     "scooter_lean_r2",
     "scooter_lean_r3",
+    "scooter_lean_r4",
+    "scooter_lean_r5",
   ]),
 });
 
 const passengerSeatPose = Object.freeze({
   grip: "scooter_pillion_grip",
   lean: Object.freeze([
+    "scooter_pillion_lean_l5",
+    "scooter_pillion_lean_l4",
     "scooter_pillion_lean_l3",
     "scooter_pillion_lean_l2",
     "scooter_pillion_lean_l1",
     "scooter_pillion_lean_r1",
     "scooter_pillion_lean_r2",
     "scooter_pillion_lean_r3",
+    "scooter_pillion_lean_r4",
+    "scooter_pillion_lean_r5",
   ]),
 });
 

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { SCOOTER_SPEC } from "../../src/domain/vehicle/kinds/scooter/spec";
 
 const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const vanilla = read("tests/packs/fixtures/vanilla-player.ce.json");
@@ -8,26 +9,27 @@ const vanillaDescription = vanilla["minecraft:client_entity"].description;
 const description = override["minecraft:client_entity"].description;
 const animationId = "animation.yasu_ride.player.lounge";
 
-const addedAnimations = {
+const driverNames = [
+  "grip",
+  ...["l", "r"].flatMap((side) =>
+    SCOOTER_SPEC.rollLevelAngles.map((_, i) => `lean_${side}${i + 1}`),
+  ),
+];
+const addedAnimations: Record<string, string> = {
   lounge: animationId,
-  scooter_grip: "animation.yasu_ride.player.scooter_grip",
-  scooter_lean_l1: "animation.yasu_ride.player.scooter_lean_l1",
-  scooter_lean_l2: "animation.yasu_ride.player.scooter_lean_l2",
-  scooter_lean_l3: "animation.yasu_ride.player.scooter_lean_l3",
-  scooter_lean_r1: "animation.yasu_ride.player.scooter_lean_r1",
-  scooter_lean_r2: "animation.yasu_ride.player.scooter_lean_r2",
-  scooter_lean_r3: "animation.yasu_ride.player.scooter_lean_r3",
-  scooter_pillion_grip: "animation.yasu_ride.player.scooter_pillion_grip",
-  scooter_pillion_lean_l1: "animation.yasu_ride.player.scooter_pillion_lean_l1",
-  scooter_pillion_lean_l2: "animation.yasu_ride.player.scooter_pillion_lean_l2",
-  scooter_pillion_lean_l3: "animation.yasu_ride.player.scooter_pillion_lean_l3",
-  scooter_pillion_lean_r1: "animation.yasu_ride.player.scooter_pillion_lean_r1",
-  scooter_pillion_lean_r2: "animation.yasu_ride.player.scooter_pillion_lean_r2",
-  scooter_pillion_lean_r3: "animation.yasu_ride.player.scooter_pillion_lean_r3",
+  ...Object.fromEntries(
+    driverNames.flatMap((name) => [
+      [`scooter_${name}`, `animation.yasu_ride.player.scooter_${name}`],
+      [
+        `scooter_pillion_${name}`,
+        `animation.yasu_ride.player.scooter_pillion_${name}`,
+      ],
+    ]),
+  ),
 };
 
 describe("vanilla player override (ADR 0238)", () => {
-  it("preserves the entire vanilla definition with only lounge and the 14 scooter animations added", () => {
+  it("preserves the entire vanilla definition with only lounge and the 22 scooter animations added", () => {
     expect(override.format_version).toBe(vanilla.format_version);
     expect(Object.keys(description).sort()).toEqual(
       Object.keys(vanillaDescription).sort(),
@@ -65,11 +67,11 @@ describe("vanilla player override (ADR 0238)", () => {
     });
   });
 
-  it("loops scooter grip with forward arms and legs swung 35 degrees forward, and adds stepped root roll", () => {
+  it("loops scooter grip with forward arms and legs swung 35 degrees forward, and adds stepped root roll at the SCOOTER_SPEC angles", () => {
     const animations = read(
       "packs/yasu_ride_rp/animations/yasu_ride/player.anim.json",
     ).animations;
-    const grip = animations[addedAnimations.scooter_grip];
+    const grip = animations["animation.yasu_ride.player.scooter_grip"];
     expect(grip).toEqual({
       loop: true,
       bones: {
@@ -79,9 +81,10 @@ describe("vanilla player override (ADR 0238)", () => {
         rightleg: { rotation: ["-35.0 - this", "-this", "-this"] },
       },
     });
+    const angles = SCOOTER_SPEC.rollLevelAngles;
     for (const [side, rolls] of [
-      ["l", [7, 13, 20]],
-      ["r", [-7, -13, -20]],
+      ["l", angles],
+      ["r", angles.map((angle) => -angle)],
     ] as const) {
       for (const [index, roll] of rolls.entries()) {
         const lean =
@@ -101,16 +104,7 @@ describe("vanilla player override (ADR 0238)", () => {
     const animations = read(
       "packs/yasu_ride_rp/animations/yasu_ride/player.anim.json",
     ).animations;
-    const names = [
-      "grip",
-      "lean_l1",
-      "lean_l2",
-      "lean_l3",
-      "lean_r1",
-      "lean_r2",
-      "lean_r3",
-    ];
-    for (const name of names) {
+    for (const name of driverNames) {
       const driver = animations[`animation.yasu_ride.player.scooter_${name}`];
       const pillion =
         animations[`animation.yasu_ride.player.scooter_pillion_${name}`];
