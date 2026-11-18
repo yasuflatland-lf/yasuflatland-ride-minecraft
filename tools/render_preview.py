@@ -184,6 +184,7 @@ SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
 # The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
 SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_white.png"
 SCOOTER_CELLS_PER_UNIT = 16
+SCOOTER_WHEEL_CELLS_PER_UNIT = 32
 SCOOTER_ANIMATIONS = "animations/yasu_ride/scooter.anim.json"
 # SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16 model pixels (ADR 0251).
 SCOOTER_FLIGHT_LIFT = 24.0
@@ -205,7 +206,8 @@ SCOOTER_POSES = {
     "scooter-taillights.png": {"lamps": True, "dusk": True, "view": (0.7, 0.2, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "frame_bones": ("tail_lights",), "frame_pad": 2.7},
     "scooter-underbody.png": {"lamps": False, "dusk": False, "view": (1.0, -0.45, -0.65), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-4.5, 2.5, 2.5), (4.5, 8.5, 12.5))},
     "scooter-floor.png": {"lamps": False, "dusk": False, "view": (-1.0, 1.8, -0.5), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((0.5, 4.3, -5.3), (4.5, 6.5, 4.0))},
-    "scooter-wheel-front.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.2, -0.55), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-2.0, -0.3, -16.5), (2.0, 10.7, -7.0))},
+    "scooter-wheel-front.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.2, -0.55), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_WHEEL_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-2.0, -0.3, -16.5), (2.0, 10.7, -7.0))},
+    "scooter-wheel-rear.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.1, 0.55), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_WHEEL_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-2.0, -0.3, 7.0), (2.0, 10.7, 16.5))},
 }
 
 # Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,

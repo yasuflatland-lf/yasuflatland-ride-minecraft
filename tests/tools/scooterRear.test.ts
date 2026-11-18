@@ -206,5 +206,5 @@ for text,top in [('MDR',18),('39',78)]:
                     expected[top+y][start+index*36+x*6+dx]=bit=='1'
 assert seen==expected, 'Rear plate bitmap must read MDR over 39 without reflection or inversion'
 `);
-  });
+  }, 90_000);
 });

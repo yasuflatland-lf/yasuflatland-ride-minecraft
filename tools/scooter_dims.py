@@ -19,7 +19,7 @@ PASSENGER_SEAT_Z = 9.5
 STAND_PIXEL = (400, 462)
 STAND_PIVOT_BACK = 0.2
 FOLD_DEGREES = 90
-# Turned cube corners require a drop greater than 3.353244 px; round up to a quarter pixel.
+# Retain the 3.5 px fold envelope; round dish corners now require only 3.216401 px of drop.
 FOLD_DROP = 3.5
 FOLD_LAY_START = 0.4
 FOLD_SECONDS = 1.0
@@ -55,7 +55,7 @@ VISIBLE_BOUNDS_HEIGHT = 2.5
 VISIBLE_BOUNDS_OFFSET = (0, 1, 0)
 # Area allocations share the model budget; the ceiling allows later detail work.
 AREA_CUBE_ALLOCATION: dict[str, int] = {
-    "running": 725,
+    "running": 2587,
     "stand": 15,
     "struts": 10,
     "body": 1005,

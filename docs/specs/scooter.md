@@ -14,7 +14,7 @@
 
 ## Rules
 
-The eight scooter README previews include underbody, running-board and front-wheel close-ups; their framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).
+The nine scooter README previews include underbody, running-board, front-wheel and rear-wheel close-ups; their framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).
 
 ### Spec table, profile and seats
 
@@ -69,6 +69,15 @@ The eight scooter README previews include underbody, running-board and front-whe
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "The kind declares `waterPolicy: "surface"`."
 - Implementation: `src/domain/vehicle/kinds/scooter/spec.ts` (`SCOOTER_TRANSFORMING`, `SCOOTER_WATER`), `src/domain/vehicle/motion/surface.ts`
 - Verification: `tests/domain/vehicle/kinds/scooter/drive.test.ts` "never dives and sends visual properties only when their values change", "floats level without a driver and corrects depth toward the surface"; `tests/domain/vehicle/motion/surface.test.ts` "bounds wet surface targets and rises exactly below the float line", "converges from below the surface to the float line without going dry". Tests were read, not run for this spec. Not verified: floating on a device.
+
+### Wheel detail
+
+- Applies to: Front and rear scooter wheels.
+- Rule: Both wheels retain white tyre walls, beige discs and chrome dishes. Four raised chrome hex nuts sit at 90-degree intervals with a 45-degree phase on a 0.82 px bolt circle on each exposed negative-x face, opposite the fork and spring. Each 0.32 px-deep nut rises over a wider dark round washer and has a dark hexagonal bevel border around its light face. Each raised part uses one cutout face, avoiding crossed reflection bands. The centre has a 0.55 px-radius round boss, a 0.43 px-radius washer step and a 0.30 px-radius hex nut. Six 0.19 px-radius dark slotted screw heads sit on a distinct painted outer rim ring. Revolved skins form the exposed dish's raised inner hub, recessed step and rolled outer lip, plus a wider polished bead beside a dark line; new relief stays on the negative-x face clear of the fixed suspension. Three crown columns and two wrapping shoulder columns use 40 tread rows at the front and 36 at the rear, with per-wheel block lengths, 0.13 px crown depth and deep transverse gaps over a smooth 64-segment carcass. Shoulder blocks step over the whitewall edge while remaining within |x| < 1.15. Every tread corner remains within the original 4.3 px rolling radius; rear radial and hardware dimensions scale by 0.96. No bones, paint regions or material types are added, and roll and fold retain their clearance. The front running wheel assembly contains 1,233 cubes and the rear 1,213; their wheel bones contain 1,236 and 1,216 including the discs and hub plates. The running allocation and usage are both 2,587; total allocation is 5,562 under the 6,000 ceiling. Front-left and rear-left close-ups show the hardware on both wheels.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Wheels."
+- Implementation: `tools/scooter_running.py` (`_wheel`, `_wheel_pixel`), `tools/scooter_dims.py` (`AREA_CUBE_ALLOCATION`).
+- Verification: `tests/tools/scooterWheelDetail.test.ts` checks hardware layout, block bounds, full-width coverage and equal spacing, and screw pixels; `tests/packs/scooterModel.test.ts` checks size, ancestry and budget; the strut and fold tests retain their clearance checks. Generated previews support visual review; device appearance remains unverified.
 
 ### Flat-wheel flight
 
