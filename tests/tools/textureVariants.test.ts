@@ -17,10 +17,22 @@ interface Result {
   stored: string[];
   files: Record<string, string>;
   sets: Record<string, { color: string; mer: string }>;
+  stale: string[];
+}
+
+interface RunOptions {
+  // File names written into the directory before the writer runs, as a checkout
+  // generated under an earlier layout would hold them.
+  seed?: string[];
+  check?: boolean;
+  retired?: string[];
 }
 
 // Textures are 1x1, so each content is one RGBA texel written as 8 hex digits.
-const run = async (variants: VariantInput[]): Promise<Result> => {
+const run = async (
+  variants: VariantInput[],
+  { seed = [], check = false, retired = [] }: RunOptions = {},
+): Promise<Result> => {
   const script = [
     "import json, sys, tempfile",
     "from pathlib import Path",
@@ -29,22 +41,35 @@ const run = async (variants: VariantInput[]): Promise<Result> => {
     "tv = load_tool('texture_variants')",
     "io = load_tool('texture_io')",
     "png = load_tool('render_preview').read_png_bytes",
-    "items = json.loads(sys.stdin.read())",
+    "request = json.loads(sys.stdin.read())",
+    "items = request['variants']",
     "variants = [tv.Variant(v['name'], bytes.fromhex(v['color']),",
     "                       None if v['mer'] is None else bytes.fromhex(v['mer'])) for v in items]",
     "with tempfile.TemporaryDirectory() as directory:",
     "    d = Path(directory)",
-    "    out = io.Outputs(False)",
-    "    result = tv.write_variants(out, d, 'kind', 1, 1, variants)",
+    "    seeder = io.Outputs(False)",
+    "    for name in request['seed']:",
+    "        if name.endswith('.png'):",
+    "            seeder.rgba(d / name, 1, 1, bytes(4))",
+    "        else:",
+    "            seeder.json(d / name, io.texture_set_doc('old', 'old_mer'))",
+    "    out = io.Outputs(request['check'])",
+    "    result = tv.write_variants(out, d, 'kind', 1, 1, variants, retired=request['retired'])",
     "    files = {p.stem: png(p)[2].hex() for p in sorted(d.glob('*.png'))}",
     "    sets = {p.name[:-len('.texture_set.json')]: json.loads(p.read_text())['minecraft:texture_set']",
     "            for p in sorted(d.glob('*.texture_set.json'))}",
     "    print(json.dumps({'colorOf': dict(result.color_of), 'merOf': dict(result.mer_of),",
     "                      'stored': list(result.stored()), 'files': files,",
     "                      'sets': {k: {'color': v['color'], 'mer': v['metalness_emissive_roughness']}",
-    "                               for k, v in sets.items()}}))",
+    "                               for k, v in sets.items()},",
+    "                      'stale': [entry.replace(str(d) + '/', '') for entry in out.stale]}))",
   ].join("\n");
-  return JSON.parse(await python.run(script, JSON.stringify(variants)));
+  return JSON.parse(
+    await python.run(
+      script,
+      JSON.stringify({ variants, seed, check, retired }),
+    ),
+  );
 };
 
 const texel = fc
@@ -104,7 +129,18 @@ describe("texture variants writer", () => {
           await expect(run(variants)).rejects.toThrow(/collide/);
           return;
         }
-        const result = await run(variants);
+        // Every name the per-variant layout could have written, plus files the writer does not own.
+        const seed = [
+          "kind_mer.png",
+          "other.png",
+          "other.texture_set.json",
+          ...variants.flatMap((v) => [
+            `${v.name}.png`,
+            `${v.name}_mer.png`,
+            `${v.name}.texture_set.json`,
+          ]),
+        ];
+        const result = await run(variants, { seed });
         const keeperOfPair = new Map<string, string>();
         const keeperOfMer = new Map<string, string>();
         for (const variant of variants) {
@@ -127,7 +163,9 @@ describe("texture variants writer", () => {
         // A texture set exists exactly for each stored colour that has a MER,
         // and it points at that MER's stored file.
         const withMer = [...colors].filter((color) => color in result.merOf);
-        expect(Object.keys(result.sets).sort()).toEqual(withMer.sort());
+        expect(Object.keys(result.sets).sort()).toEqual(
+          [...withMer, "other"].sort(),
+        );
         for (const color of withMer) {
           expect(result.sets[color]?.color).toBe(color);
           expect(result.sets[color]?.mer).toBe(result.merOf[color]);
@@ -137,7 +175,7 @@ describe("texture variants writer", () => {
         expect(new Set(result.stored).size).toBe(result.stored.length);
         expect([...result.stored].sort()).toEqual([...colors, ...mers].sort());
         expect(Object.keys(result.files).sort()).toEqual(
-          [...colors, ...mers].sort(),
+          [...colors, ...mers, "other"].sort(),
         );
         const merContents = [...mers].map((name) => result.files[name]);
         expect(new Set(merContents).size).toBe(merContents.length);
@@ -208,5 +246,39 @@ describe("texture variants writer", () => {
       "blue",
       "green",
     ]);
+  });
+
+  it("removes files of the per-variant layout and retired names it no longer stores", async () => {
+    const result = await run(
+      [
+        { name: "a", color: "01000000", mer: "09000000" },
+        { name: "b", color: "01000000", mer: "09000000" },
+      ],
+      {
+        seed: [
+          "b.png",
+          "a_mer.png",
+          "b_mer.png",
+          "b.texture_set.json",
+          "old_mer.png",
+        ],
+        retired: ["old_mer"],
+      },
+    );
+    expect(Object.keys(result.files).sort()).toEqual(["a", "kind_mer"]);
+    expect(Object.keys(result.sets)).toEqual(["a"]);
+    expect(result.stale).toEqual([]);
+  });
+
+  it("reports leftover files as stale under check and keeps them", async () => {
+    const result = await run(
+      [
+        { name: "a", color: "00000000", mer: null },
+        { name: "b", color: "00000000", mer: null },
+      ],
+      { seed: ["a.png", "b.png"], check: true },
+    );
+    expect(result.stale).toEqual(["b.png (no longer generated)"]);
+    expect(Object.keys(result.files)).toEqual(["a", "b"]);
   });
 });

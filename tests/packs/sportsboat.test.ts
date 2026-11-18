@@ -16,6 +16,7 @@ import {
 import { turnedCorners } from "../support/geometry";
 import { SEAT_FILLER_FAMILY } from "../support/packIdentifiers";
 import { readRgbaPng } from "../support/png";
+import { expectUniqueTextureBindings } from "../support/textureBindings";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
@@ -26,7 +27,7 @@ const THROTTLE_CUBES = EXTENSION_CUBES + POD_CUBES + LEVER_CUBES;
 const RP = "packs/yasu_ride_rp";
 const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
 const paintAtlas = (paint: string) =>
-  paint === "khaki" ? "sportsboat" : `sportsboat_${paint}`;
+  paint === "khaki" || paint === "black" ? "sportsboat" : `sportsboat_${paint}`;
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json")[
   "minecraft:entity"
 ];
@@ -2814,11 +2815,16 @@ describe("sports boat gloss hull (ADR 0163) and dash (ADR 0166)", () => {
         format_version: "1.16.100",
         "minecraft:texture_set": {
           color: name,
-          metalness_emissive_roughness: `${name}_mer`,
+          metalness_emissive_roughness: "sportsboat_mer",
         },
       });
       const color = readRgbaPng(`${ENTITY_TEXTURES}/${name}.png`);
-      const mer = readRgbaPng(`${ENTITY_TEXTURES}/${name}_mer.png`);
+      const set = read(`${ENTITY_TEXTURES}/${name}.texture_set.json`)[
+        "minecraft:texture_set"
+      ];
+      const mer = readRgbaPng(
+        `${ENTITY_TEXTURES}/${set.metalness_emissive_roughness}.png`,
+      );
       expect([mer.width, mer.height]).toEqual([color.width, color.height]);
       const expected = Buffer.alloc(mer.width * mer.height * 4);
       for (let y = 0; y < mer.height; y++) {
@@ -2932,4 +2938,9 @@ print(json.dumps({name: {"uv": list(uv), "size": list(size)}
       "64f9de190f4cb9d31792ec8c503eb799c65caee4fd38b3f22f00b9cf7082aab5",
     );
   });
+});
+
+it("binds existing textures with unique colour and MER content", () => {
+  expectUniqueTextureBindings(client.textures);
+  expect(client.textures.black).toBe(client.textures.default);
 });
