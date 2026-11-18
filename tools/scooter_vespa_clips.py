@@ -9,8 +9,8 @@ The owner supplied idoling.mp3 (8.088 s) and reving.mp3 (14.640 s) on
 2026-11-18. Exclude the falling rev at 2.0–4.0 s: the mean centroid drops
 from 1879 Hz over 2.0–4.25 s to 1598 Hz over 4.0–6.25 s. Overlapping
 post-drop windows retain the rising rev without including that fall.
-Idle uses the steady 4.0–6.25 s region rather than the full recording,
-keeping the output within the pack's 2–6 second duration contract.
+Idle uses a beat-aligned window found in the steady 4.0–8.0 s region,
+with a short fade to preserve the rhythm across the wrap.
 Offsets were refined after encoding to keep decoded endpoint jumps below
 local adjacent-sample differences and preserve centroid ordering.
 
@@ -37,7 +37,10 @@ class SliceSpec:
 
 
 SCOOTER_ENGINE_SLICES: tuple[SliceSpec, ...] = (
-    SliceSpec("idle", 4.0, 2.0, 0.25),  # Idle: 2167 Hz centroid, -29.84 dBFS RMS.
+    # Search score = waveform NMSE + envelope NMSE + 10 * relative beat error:
+    # 0.246560 + 0.092780 + 10 * 0.019697 = 0.536310. Source wrap gap
+    # 112.167 ms vs 110 ms median; decoded wrap 112.167 ms (see sounds spec).
+    SliceSpec("idle", 4.289833, 2.226167, 0.03),
     SliceSpec("rev", 4.01, 2.0, 0.25),  # Low rev: 1594 Hz, -21.92 dBFS.
     SliceSpec("rev", 5.01, 2.0, 0.25),  # Early rise: 1609 Hz, -21.87 dBFS.
     SliceSpec("rev", 6.53, 2.0, 0.25),  # Middle rise: 1656 Hz, -21.93 dBFS.

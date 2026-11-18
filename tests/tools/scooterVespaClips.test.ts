@@ -49,6 +49,12 @@ for i, spec in enumerate(m.SCOOTER_ENGINE_SLICES):
     assert 0 <= spec.fade <= spec.length / 2
     end = spec.start + spec.length + spec.fade
     assert end <= SOURCE_SECONDS[spec.source], (i, end)
+    if i == 0:
+        assert 2.0 <= spec.length <= 2.4
+        assert 0.02 <= spec.fade <= 0.05
+        assert spec.start >= 4.0 and end <= 8.0
+    else:
+        assert spec.fade == 0.25
     if spec.source == 'rev':
         assert end <= REV_DROP_START or spec.start >= REV_DROP_END, (i, spec.start, end)
     assert m.crossfade_plan(spec.length, spec.fade) == (spec.length + spec.fade, spec.length)
