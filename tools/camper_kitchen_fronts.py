@@ -5,13 +5,15 @@ from functools import cache
 from typing import TYPE_CHECKING
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 if TYPE_CHECKING:
     from camper_kit import AreaCubes
     from camper_kitchen import KitchenRegions
 
 regions = load_tool("camper_regions")
 kitchen = load_tool("camper_kitchen")
-RegionRegistry = regions.RegionRegistry
+RegionRegistry = region_atlas.RegionRegistry
 AREA = "kitchen_fronts"
 DRAWER_HEIGHTS = {"drawer_bottom": 17.25, "drawer_top": 22.65}
 DRAWER_PIVOTS = {name: [9, y, 16.45] for name, y in DRAWER_HEIGHTS.items()}
@@ -53,15 +55,15 @@ def panel_pixels() -> tuple:
     return tuple(pixels)
 
 
-def register_panel(registry: RegionRegistry) -> regions.RegionRef:
+def register_panel(registry: RegionRegistry) -> region_atlas.RegionRef:
     for region in registry.regions():
         if region.name == "routed cream panel":
-            return regions.RegionRef(registry, region)
-    return registry.register(regions.Region("routed cream panel", PANEL_WIDTH, PANEL_HEIGHT,
+            return region_atlas.RegionRef(registry, region)
+    return registry.register(region_atlas.Region("routed cream panel", PANEL_WIDTH, PANEL_HEIGHT,
         regions.Material.LACQUER, lambda x, y: panel_pixels()[y * PANEL_WIDTH + x]))
 
 
-def register_regions(registry: RegionRegistry) -> regions.RegionRef:
+def register_regions(registry: RegionRegistry) -> region_atlas.RegionRef:
     """Reserve the routed panel before the shared atlas is packed."""
     return register_panel(registry)
 
@@ -75,11 +77,11 @@ def prepare(registry: RegionRegistry) -> tuple:
     if registry is kit.REGISTRY:
         kit.prepare_layout()
     elif registry._layout is None:
-        regions.pack(registry)
+        region_atlas.pack(registry)
     return kit, refs, panel
 
 
-def front(bounds: tuple, wood: regions.RegionRef, panel: regions.RegionRef,
+def front(bounds: tuple, wood: region_atlas.RegionRef, panel: region_atlas.RegionRef,
           registry: RegionRegistry) -> dict:
     cube = kitchen.model_box(bounds, wood, registry)
     face = {"uv": list(panel.uv(0, 0)), "uv_size": [PANEL_WIDTH, PANEL_HEIGHT]}

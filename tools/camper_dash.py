@@ -8,9 +8,11 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 if TYPE_CHECKING:
     from camper_kit import AreaCubes
-    from camper_regions import RegionRegistry, RegionRef
+    from region_atlas import RegionRegistry, RegionRef
 
 Pixel = tuple[int, int, int, int]
 Image = list[list[Pixel]]
@@ -183,7 +185,7 @@ def register_regions(registry: 'RegionRegistry', palette: dict[str, Pixel] | Non
     PAL = palette if palette is not None else load_tool('camper_kit').PALETTE
     regions = load_tool('camper_regions')
     materials = (regions.Material.GLASS_COAT, regions.Material.GLASS_COAT, regions.Material.VINYL, regions.Material.METAL, regions.Material.GLASS_COAT, regions.Material.DARK_LACQUER)
-    return {name: registry.register(regions.Region('cab ' + name, len(image[0]), len(image), material, lambda x, y, image=image: image[y][x])) for (name, image), material in zip(instrument_images().items(), materials)}
+    return {name: registry.register(region_atlas.Region('cab ' + name, len(image[0]), len(image), material, lambda x, y, image=image: image[y][x])) for (name, image), material in zip(instrument_images().items(), materials)}
 
 
 # The traced profile is measured from the owner's approved cab study (ADR 0106).
@@ -310,8 +312,7 @@ class DashBuilder:
     def __init__(self, registry: "RegionRegistry") -> None:
         self.registry = registry
         self.kit = load_tool("camper_kit")
-        regions = load_tool("camper_regions")
-        self.refs = {r.name: regions.RegionRef(registry, r) for r in registry.regions()}
+        self.refs = {r.name: region_atlas.RegionRef(registry, r) for r in registry.regions()}
 
     def swatch(self, name: str) -> dict:
         return {'uv': list(self.refs['base'].uv(self.kit.SLOTS.index(name), 0)), 'uv_size': [1, 1]}

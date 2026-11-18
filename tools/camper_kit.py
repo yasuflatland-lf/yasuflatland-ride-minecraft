@@ -4,6 +4,8 @@ import json
 import math
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 camper_atlas = load_tool("camper_atlas")
 
 PALETTE = {
@@ -366,8 +368,8 @@ def wheel_well_holes():
 
 regions = load_tool("camper_regions")
 assert WIN_Y == regions.CURTAIN_WINDOW_Y, "curtain geometry is baked for another window height"
-REGISTRY = regions.RegionRegistry()
-BASE_REF = REGISTRY.register(regions.Region(
+REGISTRY = region_atlas.RegionRegistry()
+BASE_REF = REGISTRY.register(region_atlas.Region(
     "base", ATLAS.width, ATLAS.height, regions.Material.SWATCHES_MIXED,
     lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel)))
 load_tool("camper_soft").register_regions(REGISTRY)
@@ -384,7 +386,7 @@ def register_kitchen_materials(registry):
 
 KITCHEN_REGIONS = kitchen.register_kitchen(REGISTRY)
 load_tool("camper_surfaces").register_surfaces(REGISTRY)
-CURTAIN_REF = REGISTRY.register(regions.Region(
+CURTAIN_REF = REGISTRY.register(region_atlas.Region(
     "light curtain fabric", 96, 120, regions.Material.FABRIC, regions.curtain_pixel))
 DOOR_REFS = load_tool("camper_door_materials").register(REGISTRY, PALETTE)
 load_tool("camper_dash").register_regions(REGISTRY, PALETTE)
@@ -404,7 +406,7 @@ def prepare_layout():
             register = getattr(module, "register_regions", None)
             if register is not None:
                 register(REGISTRY)
-        regions.pack(REGISTRY)
+        region_atlas.pack(REGISTRY)
     return REGISTRY._layout
 
 

@@ -9,9 +9,11 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 if TYPE_CHECKING:
     from camper_kit import AreaCubes
-    from camper_regions import RegionRef, RegionRegistry
+    from region_atlas import RegionRef, RegionRegistry
 
 regions = load_tool("camper_regions")
 RGBA = tuple[int, int, int, int]
@@ -195,8 +197,8 @@ def register_surfaces(registry: RegionRegistry) -> dict[str, RegionRef]:
         ("table oak", TABLE_SIZE, regions.Material.WOOD, oak_pixel),
     )
     existing = {r.name: r for r in registry.regions()}
-    return {name: regions.RegionRef(registry, existing[name]) if name in existing else
-            registry.register(regions.Region(name, *size, material, pixel))
+    return {name: region_atlas.RegionRef(registry, existing[name]) if name in existing else
+            registry.register(region_atlas.Region(name, *size, material, pixel))
             for name, size, material, pixel in definitions}
 
 
@@ -218,7 +220,7 @@ def build_surfaces(registry: RegionRegistry) -> AreaCubes:
         registry.register(kit.BASE_REF.region)
     refs = register_surfaces(registry)
     if registry._layout is None:
-        regions.pack(registry)
+        region_atlas.pack(registry)
     def face(name: str, uv: tuple[float, float], size: tuple[float, float]) -> Face:
         result = {'uv': list(refs[name].uv(*uv)), 'uv_size': list(size)}
         registry._layout.bind_face(name, result)
