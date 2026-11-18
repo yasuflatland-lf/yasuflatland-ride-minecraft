@@ -1652,13 +1652,15 @@ it("applies scooter poses for both turning riders and none for an SUV", () => {
     expect(plays.filter((c) => c.startsWith("play:driver:"))).toEqual(
       plays
         .filter((c) => c.startsWith("play:passenger:"))
-        .map((c) => c.replace("play:passenger:", "play:driver:")),
+        .map((c) =>
+          c.replace("play:passenger:scooter_pillion_", "play:driver:scooter_"),
+        ),
     );
   }
   expect(world.calls).toContain("play:driver:scooter_grip");
-  expect(world.calls).toContain("play:passenger:scooter_grip");
+  expect(world.calls).toContain("play:passenger:scooter_pillion_grip");
   expect(world.calls).toContain("play:driver:scooter_lean_l3");
-  expect(world.calls).toContain("play:passenger:scooter_lean_l3");
+  expect(world.calls).toContain("play:passenger:scooter_pillion_lean_l3");
   expect(world.calls.some((c) => c.startsWith("play:suv-driver:"))).toBe(false);
   world.snapshots = [
     snapshot("scooter", { kind: "scooter", riders: [riderView("driver")] }),
@@ -1691,6 +1693,6 @@ it("resends rider poses after a pose port throws", () => {
   uc.execute(2);
   expect(play.mock.calls).toEqual([
     ["driver", "scooter_grip"],
-    ["passenger", "scooter_grip"],
+    ["passenger", "scooter_pillion_grip"],
   ]);
 });
