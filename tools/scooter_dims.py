@@ -60,7 +60,7 @@ VISIBLE_BOUNDS_HEIGHT = 2.5
 VISIBLE_BOUNDS_OFFSET = (0, 1, 0)
 # Area allocations share the model budget; the ceiling allows later detail work.
 AREA_CUBE_ALLOCATION: dict[str, int] = {
-    "running": 2587,
+    "running": 1695,
     "stand": 15,
     "struts": 10,
     "body": 1005,
@@ -68,7 +68,7 @@ AREA_CUBE_ALLOCATION: dict[str, int] = {
     "rear": 370,
     "engine": 320,
     "head": 510,
-    "shield": 640,
+    "shield": 582,
     "glow": 35,
 }
 CUBE_BUDGET = sum(AREA_CUBE_ALLOCATION.values())
@@ -141,8 +141,6 @@ SHIELD_FENDER_LIP_UPPER = 18
 SHIELD_FENDER_LIP_END = 0.8
 SHIELD_FENDER_ARCH_DROP = 0.9
 SHIELD_FENDER_ARCH_STEPS = 12
-# Paint bead that follows the fender rim; it hides the stepped edge of the cut-out panels.
-SHIELD_BEAD_SIZE = 0.5
 SHIELD_FENDER_CURL_INSET = 0.07
 SHIELD_FENDER_CURL_RISE = 0.055
 SHIELD_FENDER_END_SCALE = 0.94
