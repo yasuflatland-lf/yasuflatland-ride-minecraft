@@ -35,56 +35,72 @@ assert 1.4<p[0]<5 and 4<p[1]<13 and 4<p[2]<19
     );
   });
 
-  it("gives each floor strip a narrow rubber core recessed between chrome lips", async () => {
+  it("uses rounded narrow rails around visibly recessed rubber channels", async () => {
     await python.run(`${setup}
 f=load_tool('scooter_floor')
 d=f.D.FLOOR_STRIPS
 cubes=f.build()['body']
+assert 0.15<=d['chrome_lip_width']<=0.25
+assert d['chrome_lip_width']<=d['rubber_width']<=2*d['chrome_lip_width']
+assert d['groove_depth']>=0.15
 for side in (-1,1):
-    for x in d['x_centres']:
+    for x,front,rear in zip(d['x_centres'],d['front_z'],d['rear_z']):
         core=next(c for c in cubes if c['uv']['up'].region=='body_tread'
-                  and abs(c['origin'][0]+c['size'][0]/2-side*x)<1e-9
-                  and abs(c['origin'][2]-d['front_z'])<1e-9)
-        assert core['size'][0]<=0.10, 'Rubber belongs inside a narrow strip, not across the paint gap'
-        lips=[c for c in cubes if c['uv']['up'].region=='chrome'
-              and abs(c['origin'][2]-core['origin'][2])<1e-9
-              and abs(c['size'][2]-core['size'][2])<1e-9
-              and abs(c['origin'][0]+c['size'][0]/2-side*x)<0.2]
-        assert len(lips)==2
-        assert all(lip['size'][1]>=0.20 for lip in lips)
-        assert core['size'][0]<sum(lip['size'][0] for lip in lips)
-        assert core['size'][2]>=8.4
-        assert math.isclose(core['origin'][1],f.D.BODY_DECK_Y,abs_tol=0.01)
-        for lip in lips:
-            assert math.isclose(lip['origin'][1]+lip['size'][1]-core['origin'][1]-core['size'][1],d['groove_depth'])
+                  and math.isclose(c['origin'][0]+c['size'][0]/2,side*x))
+        assert math.isclose(core['size'][0],d['rubber_width'])
+        assert math.isclose(core['origin'][2],front)
+        assert math.isclose(core['origin'][2]+core['size'][2],rear)
+        assert core['origin'][1]>=f.D.BODY_DECK_Y
+        for direction in (-1,1):
+            cx=side*x+direction*(d['rubber_width']+d['chrome_lip_width'])/2
+            rail=[c for c in cubes if c['uv']['up'].region=='body_rail'
+                  and math.isclose(c['origin'][0]+c['size'][0]/2,cx)
+                  and math.isclose(c['origin'][2],front)
+                  and math.isclose(c['size'][2],rear-front)]
+            assert len(rail)>=3
+            widest=max(rail,key=lambda c:c['size'][0])
+            highest=max(rail,key=lambda c:c['origin'][1]+c['size'][1])
+            assert highest['size'][0]<widest['size'][0]
+            assert highest['size'][1]>widest['size'][1]
+            assert math.isclose(highest['origin'][1]+highest['size'][1]
+                                -core['origin'][1]-core['size'][1],d['groove_depth'])
+            for end,sign in ((front,-1),(rear,1)):
+                caps=[c for c in cubes if c['uv']['up'].region=='body_rail'
+                      and math.isclose(c['origin'][0]+c['size'][0]/2,cx)
+                      and 0<sign*(c['origin'][2]+c['size'][2]/2-end)<d['cap_length']]
+                assert len(caps)>=6, 'Every rail needs rounded caps at both ends'
+                near=min(caps,key=lambda c:abs(c['origin'][2]+c['size'][2]/2-end))
+                far=max(caps,key=lambda c:abs(c['origin'][2]+c['size'][2]/2-end))
+                assert far['size'][0]<near['size'][0]
 `);
   });
 
-  it("keeps wide paint gaps, aligned capped ends and floor bounds in the dimension table", async () => {
+  it("keeps narrow paint gaps, staggered lengths and floor bounds in the dimension table", async () => {
     await python.run(`${setup}
 f=load_tool('scooter_floor')
 d=f.D.FLOOR_STRIPS
-assert d['count']==len(d['x_centres'])==len(d['rear_z'])==3
+assert d['count']==len(d['x_centres'])==len(d['front_z'])==len(d['rear_z'])==3
 width=d['rubber_width']+2*d['chrome_lip_width']
-assert 0.25<=width<=0.3
 centres=d['x_centres']
-assert d['edge_x']-centres[-1]-width/2-d['edge_size']/2>=0.2
+assert centres[0]-width/2>1.06
+assert centres[-1]+width/2<d['edge_x']-d['edge_size']/2
 for left,right in zip(centres,centres[1:]):
-    assert right-left-width>width
-assert len(set(d['rear_z']))==1
-assert d['x_centres'][-1]>=3.4
-assert d['x_centres'][1]-d['x_centres'][0]>=1.1
-assert d['groove_depth']<=0.02
-area=f.build()
-for side in (-1,1):
-    for x,z in zip(d['x_centres'],d['rear_z']):
-        assert any(c['uv']['up'].region=='chrome' and
-                   all(math.isclose(v,d['rivet_size']) for v in c['size']) and
-                   math.isclose(c['origin'][0]+c['size'][0]/2,side*x) and
-                   math.isclose(c['origin'][2]+c['size'][2]/2,z) for c in area['body'])
-for c in area['body']:
+    assert 0<right-left-width<0.15
+for i in range(d['count']-1):
+    assert d['front_z'][i]>d['front_z'][i+1]+2*d['cap_length']
+    assert d['rear_z'][i]<d['rear_z'][i+1]-2*d['cap_length']
+for c in f.build()['body']:
     for px,py,pz in t.corners(c):
         assert abs(px)<4.6 and 4.3<py<7.8 and -6.5<pz<5.0
+`);
+  });
+
+  it("attaches the centre stand below the deck without chrome protrusions", async () => {
+    await python.run(`${setup}
+s=load_tool('scooter_stand')
+points=[p for c in s.build()['stand'] for p in t.corners(c)]
+assert max(p[1] for p in points)<=b.D.BODY_DECK_Y-0.04
+assert max(p[1] for p in points)>=b.D.BODY_DECK_Y-0.15
 `);
   });
 

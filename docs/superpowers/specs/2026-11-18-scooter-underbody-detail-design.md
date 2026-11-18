@@ -9,7 +9,7 @@ Raise the fidelity of the scooter's lower body so it matches the reference photo
 Four areas, built in this order, each reviewed on a rendered preview before the next starts:
 
 1. **Underbody: engine casing and exhaust.** A large black pressed-steel muffler hanging under the floor on the right, with the exhaust pipe bending from the engine to the muffler, the engine casing with its fan cover and fins, and the rear swing arm and mount. Reference: close-ups of the front-right underside (real and wireframe).
-2. **Floor board.** The running board's narrow chrome-lipped rubber strips and the wide painted bands between them, seen from above and from the side, with the board's front curl and rear tab at the reference proportions. Reference: the top-left floor pattern photo.
+2. **Floor board.** The running board's rounded chrome rails, recessed rubber channels and narrow painted gaps, seen from above and from the side, with the board's front curl and rear tab at the reference proportions. Reference: the top-left floor pattern photo.
 3. **Wheels.** Hub with a centre nut and hex nuts, rim ring with small screws, bead and dish, and a block tread on the tyre that reads as a pattern at close range. Both wheels, front and rear. Reference: front-left and back-left wheel close-ups.
 4. **Centre stand.** Leg, cross bar, pivot and foot pad at the reference proportions.
 
@@ -26,7 +26,7 @@ Four areas, built in this order, each reviewed on a rendered preview before the 
 
 ## Constraints
 
-- The cube count is no longer a design limit. After the floor-board detail, the model has 3,822 cubes against the summed `CUBE_BUDGET = 3867` and `CUBE_BUDGET_CEILING = 6000` in `tools/scooter_dims.py`. The floor uses 292 cubes of its 292-cube allocation; other area allocations stay unchanged. Keep these guards, with the current numbers recorded in `docs/specs/model-and-previews.md` and ADR 0251, and in the tests that read them.
+- The cube count is no longer a design limit. After the floor-board detail, the model has 3,912 cubes against the summed `CUBE_BUDGET = 3957` and `CUBE_BUDGET_CEILING = 6000` in `tools/scooter_dims.py`. The floor uses 382 cubes of its 382-cube allocation; other area allocations stay unchanged. Keep these guards, with the current numbers recorded in `docs/specs/model-and-previews.md` and ADR 0251, and in the tests that read them.
 - Follow AGENTS.md: generated pack files come from the generator (`pnpm model`), Resource Pack manifest version is bumped when tracked Resource Pack files change, the previews are regenerated and committed, and `pnpm model:check`, lint, typecheck and tests pass. Everything committed is in English.
 - The fold animation drops each wheel and hub; new wheel and hub detail must stay inside the existing fold and strut ancestry rules (`tests/packs/scooterModel.test.ts`).
 - Underbody parts that sit near the rear wheel must keep clear of the rear tyre and the fold drop.
@@ -60,7 +60,7 @@ Acceptance is "matches these photos in proportion and detail layout", judged on 
 - **Size target:** total stays under about 6,000 cubes, and the generated model JSON must not more than double in size. Check both after each area and stop to ask if a area would exceed them. Use texture for the tread if block geometry would blow the target.
 - **Bones:** no new bones. New parts are cubes under existing bones. The muffler, exhaust pipe, engine detail, floor strips and stand parts attach to `body` (stand parts to `stand`). Wheel and hub detail attaches to the existing wheel and fold bones and rolls with the wheel as today. Nothing new goes under the strut bones.
 - **Extent:** new underbody parts stay inside the model's current overall bounds: not below model y 0, and not wider than the current widest non-mirror point. The collision box and footprint stay as they are.
-- **Colours:** reuse existing finish regions. Black muffler and pipe use `engine_steel` and `engine_fin`; rubber cores use `body_tread`; chrome lips and rivets use `chrome`. No new paint region.
+- **Colours:** reuse existing finish regions. Black muffler and pipe use `engine_steel` and `engine_fin`; rubber cores use `body_tread`; rounded rails use uniform `body_rail` chrome. No new paint region.
 - **Previews:** keep the existing five `scooter-*.png` names and add new underbody and wheel close-up angles as new files, linked from the README.
 
 ## Left to the builder
@@ -73,23 +73,25 @@ Acceptance is "matches these photos in proportion and detail layout", judged on 
 
 ## Floor board revision (#1917)
 
-`FLOOR_STRIPS` in `tools/scooter_dims.py` declares three matching composite strips per
-side at x = 1.2, 2.35 and 3.5 px, inside the outer chrome edge at 3.95 px.
-Each strip is 0.28 px wide: a 0.08 px `body_tread` rubber line between two
-0.10 px `chrome` lips. The lips rise 0.24 px from the deck; the rubber rises
-0.225 px, leaving a shallow 0.015 px recess. The 1.15 px centre spacing
-leaves 0.87 px painted gaps. All three parallel deck runs extend from
-z = -4.5 to 3.95 px with matching 0.22 px rivet caps at the rear.
-Including the 0.65 px front curl, they cover roughly 90% of the board length.
-Only the innermost strips continue up the shield with the existing 2.19 px
-rise and 0.6 px offset. The outer strips curl forward 0.65 px and upward
-0.50 px, with rivet caps at their tips. The 0.14 px outer edge follows the
-curl and a rear step rising 0.35 px over 0.2 px, then continuing to z = 4.6 px
-and returning across the board. Painted backing supports both raised ends.
-The lower edge follows a smooth route outside the roll; both edge trims use
-the uniform `body_edge` chrome region, avoiding a repeated gradient at every
-tube segment. Curve sampling doubles to eight steps. The existing deck and
-roll skins, rider foot positions and seat locators remain unchanged; no bones
-or paint regions are added. The lower centre tunnel narrows to a 0.95 px
-half-width at y = 5.6 and blends back to its existing width at y = 8.65,
-exposing the innermost rails without lifting them off the deck.
+`FLOOR_STRIPS` in `tools/scooter_dims.py` declares three composite strips per
+side at x = 1.50, 2.42 and 3.34 px, inside the outer chrome edge at 3.95 px.
+Each 0.84 px unit has a 0.36 px rubber channel between two 0.24 px chrome rails.
+Three overlapping box sections narrow toward each rail crown to approximate a round tube;
+the uniform `body_rail` chrome region avoids repeated grey bands. The rails rise
+0.24 px above the deck, while the rubber rises 0.06 px, leaving a visible 0.18 px recess.
+The 0.92 px centre spacing leaves only 0.08 px paint gaps. Front stations are
+(-3.6, -4.05, -4.5) and rear stations are (3.05, 3.5, 3.95), ordered from inner
+to outer: the outer rails are longest at both ends. Each chrome rail has its own
+0.18 px rounded cap at each end, formed from three tapering sections; the strips
+end on the deck rather than climbing the shield or joining a common curled rim.
+The separate 0.14 px outer edge retains its 0.65 px forward curl and 0.50 px rise,
+and its rear tab rises 0.35 px over 0.2 px before returning across the board at z = 4.6.
+Painted backing supports both raised ends. The lower edge follows the roll;
+both edge trims retain uniform `body_edge` chrome and eight-step curve sampling.
+The centre stand bracket and lug tops sit at y = 5.24, below the deck at 5.32,
+so the stand attaches underneath without exposing chrome blocks between the rails.
+The lower tunnel retains its 0.95 px half-width at y = 5.6, blending back at 8.65;
+the innermost rail starts outside x = 1.06. Deck and roll skins, rider foot positions,
+seat locators and bones are unchanged. The floor uses 382 cubes of its 382-cube
+allocation, with 426 cubes in the shared `body_floor` assembly. The total allocation
+is 3,957 and the generated count is 3,912, below the unchanged 6,000-cube ceiling.

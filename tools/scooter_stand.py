@@ -13,10 +13,10 @@ atlas = load_tool("scooter_atlas")
 AREA = "stand"
 BONE = "stand"
 
-STAND_FLOOR_Y = 5.29
+STAND_FLOOR_Y = 5.24
 STAND_LUG_X = 1.6
 STAND_LUG_THICKNESS = 0.18
-STAND_BRACKET = (1.92, 5.17, 5.34, (-0.83, 0.43))
+STAND_BRACKET = (1.92, 5.07, 5.24, (-0.83, 0.43))
 STAND_FOOT = (3.8, 0.7, -0.6)
 STAND_PAD_HALF = (0.23, 0.9, (-0.95, -0.25))
 STAND_LEG_SIZE, STAND_BAR_SIZE, STAND_PIVOT_SIZE = 0.32, 0.3, 0.28

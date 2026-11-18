@@ -108,34 +108,36 @@ Scooter previews merge adjacent texels and cap dense faces at 16 cells per model
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and deck and roll skins. The floor area (`tools/scooter_floor.py`) supplies the edge tubes, chrome rails,
-and rubber treads. `FLOOR_STRIPS` in `tools/scooter_dims.py` declares three matching composite strips per
-side at x = 1.2, 2.35 and 3.5 px, inside the outer chrome edge at 3.95 px.
-Each strip is 0.28 px wide: a 0.08 px `body_tread` rubber line between two
-0.10 px `chrome` lips. The lips rise 0.24 px from the deck; the rubber rises
-0.225 px, leaving a shallow 0.015 px recess. The 1.15 px centre spacing
-leaves 0.87 px painted gaps. All three parallel deck runs extend from
-z = -4.5 to 3.95 px with matching 0.22 px rivet caps at the rear.
-Including the 0.65 px front curl, they cover roughly 90% of the board length.
-Only the innermost strips continue up the shield with the existing 2.19 px
-rise and 0.6 px offset. The outer strips curl forward 0.65 px and upward
-0.50 px, with rivet caps at their tips. The 0.14 px outer edge follows the
-curl and a rear step rising 0.35 px over 0.2 px, then continuing to z = 4.6 px
-and returning across the board. Painted backing supports both raised ends.
-The lower edge follows a smooth route outside the roll; both edge trims use
-the uniform `body_edge` chrome region, avoiding a repeated gradient at every
-tube segment. Curve sampling doubles to eight steps. The existing deck and
-roll skins, rider foot positions and seat locators remain unchanged; no bones
-or paint regions are added. The lower centre tunnel narrows to a 0.95 px
-half-width at y = 5.6 and blends back to its existing width at y = 8.65,
-exposing the innermost rails without lifting them off the deck.
-`tests/tools/scooterBody.test.ts` checks narrow cores, chrome lips, paint gaps,
-recess, aligned caps, raised painted ends, uniform edge chrome and floor bounds. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
+and rubber treads. `FLOOR_STRIPS` in `tools/scooter_dims.py` declares three composite strips per
+side at x = 1.50, 2.42 and 3.34 px, inside the outer chrome edge at 3.95 px.
+Each 0.84 px unit has a 0.36 px rubber channel between two 0.24 px chrome rails.
+Three overlapping box sections narrow toward each rail crown to approximate a round tube;
+the uniform `body_rail` chrome region avoids repeated grey bands. The rails rise
+0.24 px above the deck, while the rubber rises 0.06 px, leaving a visible 0.18 px recess.
+The 0.92 px centre spacing leaves only 0.08 px paint gaps. Front stations are
+(-3.6, -4.05, -4.5) and rear stations are (3.05, 3.5, 3.95), ordered from inner
+to outer: the outer rails are longest at both ends. Each chrome rail has its own
+0.18 px rounded cap at each end, formed from three tapering sections; the strips
+end on the deck rather than climbing the shield or joining a common curled rim.
+The separate 0.14 px outer edge retains its 0.65 px forward curl and 0.50 px rise,
+and its rear tab rises 0.35 px over 0.2 px before returning across the board at z = 4.6.
+Painted backing supports both raised ends. The lower edge follows the roll;
+both edge trims retain uniform `body_edge` chrome and eight-step curve sampling.
+The centre stand bracket and lug tops sit at y = 5.24, below the deck at 5.32,
+so the stand attaches underneath without exposing chrome blocks between the rails.
+The lower tunnel retains its 0.95 px half-width at y = 5.6, blending back at 8.65;
+the innermost rail starts outside x = 1.06. Deck and roll skins, rider foot positions,
+seat locators and bones are unchanged. The floor uses 382 cubes of its 382-cube
+allocation, with 426 cubes in the shared `body_floor` assembly. The total allocation
+is 3,957 and the generated count is 3,912, below the unchanged 6,000-cube ceiling.
+`tests/tools/scooterBody.test.ts` checks rounded rails, recessed channels, narrow paint gaps,
+staggered caps, tunnel clearance, hidden stand attachments, raised painted ends and floor bounds. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
 own all compound body panels and trim.
 Body regions register idempotently before faces are constructed. Neighboring
 mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
 grey joint piping, and chrome floor rails and opening trim. The combined body and floor budget is
-1,297 cubes (1,005 for body and 292 for floor; currently 986 and 292); the production sampling reduces the spike's surface
+1,387 cubes (1,005 for body and 382 for floor; currently 986 and 382); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
@@ -162,8 +164,8 @@ mirror glass, and chrome mirror backs.
 
 The whole-vehicle budget is the sum of `AREA_CUBE_ALLOCATION` in
 `tools/scooter_dims.py`; generation enforces each allocation and the
-6,000-cube ceiling. The current allocations total 3,867 cubes; the generated model
-has 3,822 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
+6,000-cube ceiling. The current allocations total 3,957 cubes; the generated model
+has 3,912 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
 within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome
