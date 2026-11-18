@@ -51,20 +51,59 @@ const texel = fc
   .integer({ min: 0, max: 3 })
   .map((n) => `${n.toString(16).padStart(2, "0")}000000`);
 
+const variantName = fc.constantFrom(
+  "a",
+  "b",
+  "a_mer",
+  "b_mer",
+  "kind",
+  "kind_mer",
+);
+
 const variantList = fc
   .array(
     fc.record({
+      name: variantName,
       color: texel,
       mer: fc.option(texel, { nil: null }),
     }),
     { minLength: 1, maxLength: 8 },
   )
-  .map((items) => items.map((item, index) => ({ name: `v${index}`, ...item })));
+  .filter(
+    (items) => new Set(items.map((item) => item.name)).size === items.length,
+  );
+
+// Mirrors the writer's naming so the property only covers lists that can be stored.
+const storedNames = (variants: VariantInput[]): string[] => {
+  const mers = new Set(
+    variants.filter((v) => v.mer !== null).map((v) => v.mer),
+  );
+  const single = mers.size === 1 && variants.every((v) => v.mer !== null);
+  const names: string[] = [];
+  const seenMer = new Set<string>();
+  const seenPair = new Set<string>();
+  for (const variant of variants) {
+    if (variant.mer !== null && !seenMer.has(variant.mer)) {
+      seenMer.add(variant.mer);
+      names.push(single ? "kind_mer" : `${variant.name}_mer`);
+    }
+    if (!seenPair.has(`${variant.color}|${variant.mer}`)) {
+      seenPair.add(`${variant.color}|${variant.mer}`);
+      names.push(variant.name);
+    }
+  }
+  return names;
+};
 
 describe("texture variants writer", () => {
   it("stores each distinct content once and resolves every variant to its own bytes", async () => {
     await fc.assert(
       fc.asyncProperty(variantList, async (variants) => {
+        const names = storedNames(variants);
+        if (new Set(names).size !== names.length) {
+          await expect(run(variants)).rejects.toThrow(/collide/);
+          return;
+        }
         const result = await run(variants);
         const keeperOfPair = new Map<string, string>();
         const keeperOfMer = new Map<string, string>();
@@ -105,6 +144,21 @@ describe("texture variants writer", () => {
       }),
       { numRuns: 40 },
     );
+  });
+
+  it("rejects a derived MER name that equals another variant name", async () => {
+    await expect(
+      run([
+        { name: "a", color: "01000000", mer: "09000000" },
+        { name: "a_mer", color: "02000000", mer: "0a000000" },
+      ]),
+    ).rejects.toThrow(/collide/);
+    await expect(
+      run([
+        { name: "kind_mer", color: "01000000", mer: "09000000" },
+        { name: "b", color: "02000000", mer: "09000000" },
+      ]),
+    ).rejects.toThrow(/collide/);
   });
 
   it("lets the first variant of equal content keep its name", async () => {

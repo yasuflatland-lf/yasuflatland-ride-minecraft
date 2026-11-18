@@ -46,12 +46,11 @@ def write_variants(outputs, directory: Path, kind: str, width: int, height: int,
     mer_of: dict[str, str] = {}
     color_by_pair: dict[tuple[bytes, bytes | None], str] = {}
     mer_by_content: dict[bytes, str] = {}
-    written: list[str] = []
+    planned: list[tuple[str, bytes]] = []
     sets: list[tuple[str, str]] = []
 
     def store(name: str, data: bytes) -> None:
-        outputs.rgba(directory / f"{name}.png", width, height, data)
-        written.append(name)
+        planned.append((name, data))
 
     for variant in variants:
         if variant.mer is not None and variant.mer not in mer_by_content:
@@ -69,6 +68,14 @@ def write_variants(outputs, directory: Path, kind: str, width: int, height: int,
                 sets.append((variant.name, mer_of[variant.name]))
         color_of[variant.name] = color_by_pair[pair]
 
+    # A derived MER name (`<name>_mer` or `<kind>_mer`) can equal another variant's name;
+    # writing both would overwrite one PNG and hand a variant the wrong bytes.
+    written = [name for name, _ in planned]
+    if len(set(written)) != len(written):
+        repeated = sorted({name for name in written if written.count(name) > 1})
+        raise ValueError(f"Stored texture names collide: {', '.join(repeated)}")
+    for name, data in planned:
+        outputs.rgba(directory / f"{name}.png", width, height, data)
     for stored, mer_name in sets:
         texture_io.write_texture_set(outputs, directory, stored, mer_name, relief)
     return VariantTextures(MappingProxyType(color_of), MappingProxyType(mer_of), tuple(written))
