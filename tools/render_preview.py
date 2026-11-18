@@ -183,7 +183,9 @@ BULLDOZER_POSES = {
 
 SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
 # The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
-SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter.png"
+SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_fixed.png"
+SCOOTER_PAINT_GEOMETRY = "models/entity/yasu_ride/scooter_paint.geo.json"
+SCOOTER_PAINT_TEXTURE = "textures/entity/yasu_ride/scooter_paint.png"
 SCOOTER_CELLS_PER_UNIT = 16
 SCOOTER_ANIMATIONS = "animations/yasu_ride/scooter.anim.json"
 # SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16 model pixels (ADR 0251).
@@ -1327,18 +1329,55 @@ def project_lit_texture(geo, lit_geo, lit_texture):
     return projected
 
 
+def load_scooter_model(rp: Path, built=None):
+    """Rejoin serialized passes in source order, retaining their own atlas sampling."""
+    built = built or load_tool("gen_scooter").build()
+    passes = [json.loads((rp / path).read_text())["minecraft:geometry"][0]
+              for path in (SCOOTER_GEOMETRY, SCOOTER_PAINT_GEOMETRY)]
+    layouts = [built.fixed.layout, built.paint.layout]
+    textures = [read_png(rp / path) for path in (SCOOTER_TEXTURE, SCOOTER_PAINT_TEXTURE)]
+    width = max(len(t[0]) for t in textures)
+    offsets = [0, len(textures[0])]
+    texture = [row + [(0, 0, 0, 0)] * (width - len(row)) for t in textures for row in t]
+    source = built.full_geometry["minecraft:geometry"][0]
+    geo = {**source, "description": {**source["description"], "texture_width": width,
+                                     "texture_height": len(texture)}, "bones": []}
+    paint_regions = {r.name for r in built.paint.layout.regions}
+    for index, original_bone in enumerate(source["bones"]):
+        pass_bones = [p["bones"][index] for p in passes]
+        metadata = {k: v for k, v in original_bone.items() if k != "cubes"}
+        if any({k: v for k, v in b.items() if k != "cubes"} != metadata for b in pass_bones):
+            raise ValueError("Scooter preview bone metadata does not match geometry")
+        cursors = [iter(b.get("cubes", [])) for b in pass_bones]
+        cubes = []
+        for original in original_bone.get("cubes", []):
+            shape = {k: v for k, v in original.items() if k != "uv"}
+            owners = {name: int(face.region in paint_regions) for name, face in original["uv"].items()}
+            pieces = {}
+            for owner in set(owners.values()):
+                piece = next(cursors[owner], None)
+                if piece is None or {k: v for k, v in piece.items() if k != "uv"} != shape:
+                    raise ValueError("Scooter preview cube shape does not match geometry")
+                if list(piece["uv"]) != [name for name, value in owners.items() if value == owner]:
+                    raise ValueError("Scooter preview pass faces do not partition the source")
+                pieces[owner] = piece
+            uv = {}
+            for name, original_face in original["uv"].items():
+                owner = owners[name]
+                face = pieces[owner]["uv"][name]
+                if face != original_face:
+                    raise ValueError("Scooter preview face UV does not match geometry")
+                face = {**face, "uv": [face["uv"][0], face["uv"][1] + offsets[owner]]}
+                uv[name] = SampledUv(face, layouts[owner].placement(original_face.region), original_face)
+            cubes.append({**shape, "uv": uv})
+        if any(next(cursor, None) is not None for cursor in cursors):
+            raise ValueError("Scooter preview pass has extra cubes")
+        geo["bones"].append({**metadata, "cubes": cubes})
+    return geo, texture
+
+
 def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
-    geo = json.loads((rp / SCOOTER_GEOMETRY).read_text())["minecraft:geometry"][0]
-    generated, layout, _, _, _, _ = load_tool("gen_scooter").build()
-    # Serialized UVs omit region ownership. Restore only sampling metadata;
-    # the geometry and UV values being rendered still come from the pack file.
-    for bone, source in zip(geo["bones"], generated["minecraft:geometry"][0]["bones"], strict=True):
-        if bone["name"] != source["name"]:
-            raise ValueError("Scooter preview region metadata does not match geometry")
-        for cube, original in zip(bone["cubes"], source["cubes"], strict=True):
-            cube["uv"] = {name: SampledUv(face, layout.placement(original["uv"][name].region), original["uv"][name])
-                          for name, face in cube["uv"].items()}
-    texture = read_png(rp / SCOOTER_TEXTURE)
+    geo, texture = load_scooter_model(rp)
     # The road pose has no hover discs: the render controller hides the glow bones on the ground,
     # and the rear stem is squashed flat against the cowl by the ground animation.
     ground_geo = {**geo, "bones": [b for b in geo["bones"]
@@ -1358,7 +1397,7 @@ def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     animations = json.loads((rp / SCOOTER_ANIMATIONS).read_text())
     flight = build_flight_pose(animations, "animation.yasu_ride.scooter.wheels_folded", lift=SCOOTER_FLIGHT_LIFT)
     pose = SCOOTER_POSES[flight_name]
-    # The combined preview texture uses base-atlas UVs for the hover discs too.
+    # The projected lit texels let the glow discs keep the recombined atlas coordinates.
     flight_geo = static_pose(geo, animations["animations"]["animation.yasu_ride.scooter.stand_up"])
     polygons, glass = collect_boat(flight_geo, texture, pose, {}, texture_mapping=True, face_cache={},
                                    defer_textures=True, texel_lit=True, flight=flight)

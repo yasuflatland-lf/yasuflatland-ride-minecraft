@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { PAINT_VARIANT } from "../../src/infrastructure/shared/dyes";
 import { defined } from "../support/defined";
@@ -11,7 +11,11 @@ import {
   turnedCorners,
 } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
+import { startPythonWorker } from "../support/pythonWorker";
+import { loadScooterGeo } from "../tools/helpers/scooterGeo";
 
+const python = startPythonWorker();
+afterAll(() => python.close());
 const RP = "packs/yasu_ride_rp";
 const read = (path: string) =>
   JSON.parse(readFileSync(`${RP}/${path}`, "utf8"));
@@ -67,9 +71,9 @@ const stand = defined(
   controllers["controller.animation.yasu_ride.scooter.stand"],
   "stand",
 );
-const bones = read("models/entity/yasu_ride/scooter.geo.json")[
-  "minecraft:geometry"
-][0].bones as (Bone & { locators?: Record<string, Triple> })[];
+const bones = loadScooterGeo().bones as (Bone & {
+  locators?: Record<string, Triple>;
+})[];
 const bone = (name: string) =>
   defined(
     bones.find((b) => b.name === name),
@@ -96,6 +100,7 @@ describe("scooter client references", () => {
     expect(client.identifier).toBe("yasu_ride:scooter");
     expect(client.geometry).toEqual({
       default: "geometry.yasu_ride.scooter",
+      paint: "geometry.yasu_ride.scooter_paint",
       lit: "geometry.yasu_ride.scooter_lit",
     });
     const available = { ...animations, ...controllers };
@@ -197,8 +202,11 @@ describe("scooter client references", () => {
   });
 
   it("binds every paint variant and texture in the SUV order", () => {
-    expect(Object.keys(client.textures)).toEqual(Object.keys(suv.textures));
-    const slots: string[] = renders[renderId].arrays.textures["Array.paints"];
+    expect(
+      Object.keys(client.textures).filter((key) => key !== "fixed"),
+    ).toEqual(Object.keys(suv.textures));
+    const slots: string[] =
+      renders[`${renderId}.paint`].arrays.textures["Array.paints"];
     expect(slots).toHaveLength(PAINTS.length);
     for (const paint of PAINTS) {
       const key = defined(slots[PAINT_VARIANT[paint]], paint).replace(
@@ -206,7 +214,7 @@ describe("scooter client references", () => {
         "",
       );
       expect(client.textures[key]).toBe(
-        `textures/entity/yasu_ride/scooter${paint === "khaki" || paint === "white" ? "" : `_${paint}`}`,
+        `textures/entity/yasu_ride/scooter_paint${paint === "khaki" || paint === "white" ? "" : `_${paint}`}`,
       );
     }
     for (const texture of Object.values(client.textures)) {
@@ -310,15 +318,47 @@ describe("scooter controllers", () => {
     }
   });
 
-  it("draws cutout paint, a separate hover glow, then the lit lamps last", () => {
-    const main = read("models/entity/yasu_ride/scooter.geo.json")[
-      "minecraft:geometry"
-    ][0];
+  it("partitions every source face into exactly one default-material pass", async () => {
+    await python.run(`
+import json, sys
+from pathlib import Path
+sys.path.insert(0, "tools")
+from tool_loader import load_tool
+g = load_tool("gen_scooter")
+built = g.build()
+full = built.full_geometry["minecraft:geometry"][0]
+p = load_tool("render_preview")
+merged, texture = p.load_scooter_model(Path("packs/yasu_ride_rp"), built)
+paint_regions = {r.name for r in built.paint.layout.regions}
+faces = 0
+for original_bone, merged_bone in zip(full["bones"], merged["bones"], strict=True):
+    assert {k:v for k,v in original_bone.items() if k!="cubes"} == {k:v for k,v in merged_bone.items() if k!="cubes"}
+    for original, rejoined in zip(original_bone["cubes"], merged_bone["cubes"], strict=True):
+        assert {k:v for k,v in original.items() if k!="uv"} == {k:v for k,v in rejoined.items() if k!="uv"}
+        assert list(original["uv"]) == list(rejoined["uv"])
+        for name, face in original["uv"].items():
+            translated = dict(rejoined["uv"][name])
+            translated["uv"] = [translated["uv"][0], translated["uv"][1] - (built.fixed.layout.size[1] if face.region in paint_regions else 0)]
+            assert translated == face
+            faces += 1
+assert faces == 27816
+for name, render_pass in (("scooter", built.fixed), ("scooter_paint", built.paint)):
+    disk = json.loads(Path("packs/yasu_ride_rp/models/entity/yasu_ride/"+name+".geo.json").read_text())
+    assert disk == render_pass.geometry
+    assert all((face.region in paint_regions) == (name == "scooter_paint")
+               for bone in render_pass.geometry["minecraft:geometry"][0]["bones"]
+               for cube in bone["cubes"] for face in cube["uv"].values())
+`);
+  }, 60000);
+
+  it("draws fixed and paint cutouts, a separate hover glow, then the lit lamps last", () => {
+    const main = loadScooterGeo();
     const lit = read("models/entity/yasu_ride/scooter_lit.geo.json")[
       "minecraft:geometry"
     ][0];
     expect(client.geometry).toEqual({
       default: "geometry.yasu_ride.scooter",
+      paint: "geometry.yasu_ride.scooter_paint",
       lit: "geometry.yasu_ride.scooter_lit",
     });
     expect(lit.description.identifier).toBe("geometry.yasu_ride.scooter_lit");
@@ -336,17 +376,21 @@ describe("scooter controllers", () => {
     })[];
     expect(litBones.map((b) => b.name)).toEqual(bones.map((b) => b.name));
     for (const [index, b] of litBones.entries()) {
-      const original = main.bones[index];
+      const original = defined(main.bones[index], b.name);
+      const originalCubes = original.cubes ?? [];
       const { cubes: _cubes, ...metadata } = b;
       const { cubes: _originalCubes, ...originalMetadata } = original;
       expect(metadata).toEqual(originalMetadata);
       const kept =
         ["headlights", "tail_lights"].includes(b.name) ||
         b.name.startsWith("glow_");
-      expect(b.cubes?.length ?? 0).toBe(kept ? original.cubes.length : 0);
+      expect(b.cubes?.length ?? 0).toBe(kept ? originalCubes.length : 0);
       for (const [cubeIndex, cube] of (b.cubes ?? []).entries()) {
         const { uv, ...shape } = cube;
-        const { uv: originalUv, ...originalShape } = original.cubes[cubeIndex];
+        const { uv: originalUv, ...originalShape } = defined(
+          originalCubes[cubeIndex],
+          "cube",
+        );
         expect(shape).toEqual(originalShape);
         expect(Object.keys(uv ?? {})).toEqual(Object.keys(originalUv));
       }
@@ -360,11 +404,25 @@ describe("scooter controllers", () => {
     });
     expect(client.render_controllers).toEqual([
       renderId,
+      `${renderId}.paint`,
       { [`${renderId}.glow`]: gearUp },
       { [`${renderId}.lit`]: headlights },
     ]);
     expect(renders[renderId].geometry).toBe("Geometry.default");
-    expect(renders[renderId].textures).toEqual(["Array.paints[query.variant]"]);
+    expect(renders[renderId].textures).toEqual(["Texture.fixed"]);
+    expect(renders[`${renderId}.paint`]).toEqual({
+      arrays: {
+        textures: {
+          "Array.paints": PAINTS.map(
+            (paint) => `Texture.${paint === "khaki" ? "default" : paint}`,
+          ),
+        },
+      },
+      geometry: "Geometry.paint",
+      textures: ["Array.paints[query.variant]"],
+      materials: renders[renderId].materials,
+      part_visibility: renders[renderId].part_visibility,
+    });
     expect(renders[renderId].materials).toEqual([
       { "*": "Material.default" },
       { headlights: "Material.lamp" },

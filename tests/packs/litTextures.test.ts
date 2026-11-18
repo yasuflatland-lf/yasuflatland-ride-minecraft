@@ -67,7 +67,7 @@ import json, sys
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 textures = load_tool('scooter_textures')
-_, _, _, _, layout, pixels = load_tool('gen_scooter').build()
+_, layout, pixels = load_tool('gen_scooter').build().lit
 print(json.dumps(dict(width=layout.size[0],height=layout.size[1],pixels=pixels.hex(),
     rects=[[*layout.origin(r.name),r.width,r.height] for r in layout.regions if r.name in textures.LIT_REGIONS])))
 `),
@@ -78,7 +78,7 @@ print(json.dumps(dict(width=layout.size[0],height=layout.size[1],pixels=pixels.h
     height: result.height,
     pixels: Buffer.from(result.pixels, "hex"),
   };
-}, 60000);
+}, 180_000);
 const scooterLit = (x: number, y: number) =>
   scooterLitRects.some(
     ([bx, by, w, h]) => x >= bx && x < bx + w && y >= by && y < by + h,

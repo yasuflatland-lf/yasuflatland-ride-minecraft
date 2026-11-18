@@ -2,6 +2,35 @@
   "format_version": "1.8.0",
   "render_controllers": {
     "controller.render.yasu_ride.scooter": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "headlights": "Material.lamp"
+        },
+        {
+          "tail_lights": "Material.lamp"
+        }
+      ],
+      "textures": ["Texture.fixed"],
+      "part_visibility": [
+        {
+          "*": true
+        },
+        {
+          "glow_*": false
+        },
+        {
+          "headlights": "!query.property('yasu_ride:headlights')"
+        },
+        {
+          "tail_lights": "!query.property('yasu_ride:headlights')"
+        }
+      ]
+    },
+    "controller.render.yasu_ride.scooter.paint": {
       "arrays": {
         "textures": {
           "Array.paints": [
@@ -24,7 +53,7 @@
           ]
         }
       },
-      "geometry": "Geometry.default",
+      "geometry": "Geometry.paint",
       "materials": [
         {
           "*": "Material.default"

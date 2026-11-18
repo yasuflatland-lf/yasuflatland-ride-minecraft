@@ -31,9 +31,16 @@ function textureOf(entity: string, paint: Paint): string {
   const ce = read(`${RP}/entity/yasu_ride/${entity}.ce.json`)[
     "minecraft:client_entity"
   ].description;
-  const rc = read(`${RP}/render_controllers/yasu_ride/${entity}.rc.json`)
-    .render_controllers[`controller.render.yasu_ride.${entity}`];
-  const slot: string = rc.arrays.textures["Array.paints"][PAINT_VARIANT[paint]];
+  const rc = read(
+    `${RP}/render_controllers/yasu_ride/${entity}.rc.json`,
+  ).render_controllers;
+  const paintController = Object.values(rc).find(
+    (value) =>
+      (value as { arrays?: { textures?: Record<string, unknown> } }).arrays
+        ?.textures?.["Array.paints"],
+  ) as typeof controller;
+  const slot: string =
+    paintController.arrays.textures["Array.paints"][PAINT_VARIANT[paint]];
   return `${RP}/${ce.textures[slot.replace("Texture.", "")]}.png`;
 }
 

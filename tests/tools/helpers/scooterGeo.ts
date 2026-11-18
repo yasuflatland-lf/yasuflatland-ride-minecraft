@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import { type Triple, turnedCorners } from "../../support/geometry";
+import { startPythonWorker } from "../../support/pythonWorker";
 
 type Cube = {
   origin: Triple;
@@ -20,13 +20,23 @@ type Geometry = {
   description: { texture_width: number; texture_height: number };
 };
 
+const python = startPythonWorker();
+let geometry: Geometry;
+try {
+  geometry = JSON.parse(
+    await python.run(`
+import json, sys
+sys.path.insert(0, "tools")
+from tool_loader import load_tool
+print(json.dumps(load_tool("gen_scooter").build().full_geometry["minecraft:geometry"][0]))
+`),
+  );
+} finally {
+  await python.close();
+}
+
 export function loadScooterGeo(): Geometry {
-  return JSON.parse(
-    readFileSync(
-      "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
-      "utf8",
-    ),
-  )["minecraft:geometry"][0];
+  return geometry;
 }
 
 export function boneCubes(name: string): Cube[] {

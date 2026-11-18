@@ -9,26 +9,28 @@
         "lamp_lit": "entity_emissive"
       },
       "textures": {
-        "default": "textures/entity/yasu_ride/scooter",
-        "green": "textures/entity/yasu_ride/scooter_green",
-        "red": "textures/entity/yasu_ride/scooter_red",
-        "white": "textures/entity/yasu_ride/scooter",
-        "light_gray": "textures/entity/yasu_ride/scooter_light_gray",
-        "gray": "textures/entity/yasu_ride/scooter_gray",
-        "black": "textures/entity/yasu_ride/scooter_black",
-        "orange": "textures/entity/yasu_ride/scooter_orange",
-        "yellow": "textures/entity/yasu_ride/scooter_yellow",
-        "lime": "textures/entity/yasu_ride/scooter_lime",
-        "cyan": "textures/entity/yasu_ride/scooter_cyan",
-        "light_blue": "textures/entity/yasu_ride/scooter_light_blue",
-        "blue": "textures/entity/yasu_ride/scooter_blue",
-        "purple": "textures/entity/yasu_ride/scooter_purple",
-        "magenta": "textures/entity/yasu_ride/scooter_magenta",
-        "pink": "textures/entity/yasu_ride/scooter_pink",
-        "lit": "textures/entity/yasu_ride/scooter_lit"
+        "default": "textures/entity/yasu_ride/scooter_paint",
+        "green": "textures/entity/yasu_ride/scooter_paint_green",
+        "red": "textures/entity/yasu_ride/scooter_paint_red",
+        "white": "textures/entity/yasu_ride/scooter_paint",
+        "light_gray": "textures/entity/yasu_ride/scooter_paint_light_gray",
+        "gray": "textures/entity/yasu_ride/scooter_paint_gray",
+        "black": "textures/entity/yasu_ride/scooter_paint_black",
+        "orange": "textures/entity/yasu_ride/scooter_paint_orange",
+        "yellow": "textures/entity/yasu_ride/scooter_paint_yellow",
+        "lime": "textures/entity/yasu_ride/scooter_paint_lime",
+        "cyan": "textures/entity/yasu_ride/scooter_paint_cyan",
+        "light_blue": "textures/entity/yasu_ride/scooter_paint_light_blue",
+        "blue": "textures/entity/yasu_ride/scooter_paint_blue",
+        "purple": "textures/entity/yasu_ride/scooter_paint_purple",
+        "magenta": "textures/entity/yasu_ride/scooter_paint_magenta",
+        "pink": "textures/entity/yasu_ride/scooter_paint_pink",
+        "lit": "textures/entity/yasu_ride/scooter_lit",
+        "fixed": "textures/entity/yasu_ride/scooter_fixed"
       },
       "geometry": {
         "default": "geometry.yasu_ride.scooter",
+        "paint": "geometry.yasu_ride.scooter_paint",
         "lit": "geometry.yasu_ride.scooter_lit"
       },
       "animations": {
@@ -124,6 +126,7 @@
       },
       "render_controllers": [
         "controller.render.yasu_ride.scooter",
+        "controller.render.yasu_ride.scooter.paint",
         {
           "controller.render.yasu_ride.scooter.glow": "!query.property('yasu_ride:gear_down')"
         },
