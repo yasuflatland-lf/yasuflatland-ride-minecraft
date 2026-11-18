@@ -1,6 +1,6 @@
 export const WARP_SPEC = {
-  breakHits: 5,
-  breakResetTicks: 100,
+  breakTaps: 3,
+  tapWindowTicks: 10,
   maxPoints: 64,
   nameMaxLength: 32,
   pressDebounceTicks: 5,
