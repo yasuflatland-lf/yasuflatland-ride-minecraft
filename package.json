@@ -27,7 +27,7 @@
     "lint:docs": "node scripts/docs.mjs --check"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.7",
+    "@biomejs/biome": "2.6.8",
     "@minecraft/server": "2.11.0",
     "@minecraft/server-ui": "2.3.0",
     "@minecraft/vanilla-data": "1.26.60",
