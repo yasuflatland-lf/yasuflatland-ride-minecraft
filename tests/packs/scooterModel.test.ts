@@ -28,7 +28,7 @@ const AREAS: readonly AreaRow[] = [
   { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"] },
   { area: "floor", bones: ["body"], assemblies: ["body_floor"] },
   { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"] },
-  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_exhaust_pipe", "engine_casing_detail", "engine_fan_detail", "engine_cylinder_fins", "engine_swing_arm"] },
+  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_exhaust_pipe", "engine_casing_detail", "engine_fan_detail", "engine_cylinder_fins", "engine_swing_arm", "engine_support"] },
   { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"] },
   { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"] },
   { area: "glow", bones: ["glow_front", "glow_rear"], assemblies: [] },
@@ -104,19 +104,16 @@ assert solid, 'Muffler needs solid pressed-steel thickness'
 pan=[c for c in muffler if max(p[1] for p in t.corners(c))<5.4]
 points=[p for c in pan for p in t.corners(c)]
 assert min(p[0] for p in points)>d.TYRE_HALF_WIDTH, 'Muffler must be on the rider right before mirroring'
-assert 5.5<max(p[2] for p in points)-min(p[2] for p in points)<6.1
-assert 4.7<min(p[2] for p in points)<5.1
-assert 10.3<max(p[2] for p in points)<10.8
+assert 7.0<max(p[2] for p in points)-min(p[2] for p in points)<8.8
+assert -1.1<min(p[2] for p in points)<-0.9
+assert max(p[2] for p in points)<7.0, 'Rear cap and outlet must clear the tyre with margin'
 assert 1.3<max(p[1] for p in points)-min(p[1] for p in points)<1.6
-assert 3.6<min(p[1] for p in points)<3.8
-shell=e._pan_ring(4.55,1)
-front=[p for p in shell if p[2]<5.6]
-middle=[p for p in shell if 6.5<p[2]<9.0]
-assert max(p[0] for p in front)-min(p[0] for p in front)<0.95, 'Front inlet must be narrower than the main chamber'
-assert max(p[0] for p in middle)-min(p[0] for p in middle)>1.4
-assert min(p[2] for p in e._pan_ring(*e.PAN_RINGS[-1]))>min(p[2] for p in shell)+0.4, 'Upper shell must taper down toward the front'
-straps=[c for c in muffler if min(p[1] for p in t.corners(c))<5.1 and max(p[1] for p in t.corners(c))>5.8]
-assert 2<=len(straps)<=3, 'Muffler needs separate mounts to the floor underside'
+assert 2.7<min(p[1] for p in points)<3.0
+shell=e._pan_ring(3.55,1)
+for x in (3.65,5.05):
+    side=[p[2] for p in shell if abs(p[0]-x)<0.001]
+    assert max(side)-min(side)>6.3, 'Chamber must have long straight parallel sides'
+assert max(p[0] for p in points)-min(p[0] for p in points)<1.6
 wheel=r.build()['wheel_rear']
 body=load_tool('scooter_body').build()['body']
 width=max(abs(p[0]) for c in body for p in t.corners(c))
@@ -148,32 +145,60 @@ assert max(math.hypot(p[1]-d.AXLE_Y,p[2]-d.REAR_AXLE_Z) for c in hub for p in t.
 `);
   });
 
-  it("keeps the muffler seam against the shell without end overhang", async () => {
+  it("separates the cast casing, rear mount, muffler and support rail", async () => {
     await python.run(`${setup}
+import math
 e=load_tool('scooter_engine')
-surfaces={name:rings for name,rings,_,_ in e._surfaces()}
-shell=surfaces['engine_pan_patch'][3]
-for ring in surfaces['engine_seam_patch']:
-    for lip,skin in zip(ring,shell):
-        assert abs(lip[0]-skin[0])<=0.05, 'Seam protrudes beyond the shell side'
-        assert abs(lip[2]-skin[2])<0.001, 'Seam extends past the shell ends'
-    assert abs(ring[0][1]-4.55)<=0.05, 'Seam must remain a thin middle lip'
+t=load_tool('cube_tilt')
+engine=e.build()
+def bounds(name):
+    points=[p for c in engine.assemblies[name] for p in t.corners(c)]
+    return tuple(min(p[i] for p in points) for i in range(3)), tuple(max(p[i] for p in points) for i in range(3))
+case_lo,case_hi=bounds('engine_casing_detail')
+arm_lo,arm_hi=bounds('engine_swing_arm')
+pan_lo,pan_hi=bounds('engine_muffler')
+assert case_hi[2]-case_lo[2]>2.0 and case_hi[1]-case_lo[1]>1.8, 'Needs a housing block behind the fan'
+assert arm_hi[2]>12.8 and arm_hi[2]-arm_lo[2]>2.5, 'Mount must extend beyond the axle into a rear lug'
+assert pan_hi[2]+0.6<case_lo[2], 'Muffler and casing must read as separate masses'
+rail=engine.assemblies['engine_support']
+assert len(rail)>=3, 'Needs a lengthwise support and two rubber hangers'
+assert max(p[2] for c in rail for p in t.corners(c))-min(p[2] for c in rail for p in t.corners(c))>7
+# Check the entire stand travel, including the intermediate foot sweep.
+stand=load_tool('scooter_stand').build()['stand']
+for degrees in range(86):
+    angle=-math.radians(degrees)
+    co,si=math.cos(angle),math.sin(angle)
+    for c in stand:
+        corners=[(x,d.STAND_PIVOT[1]+(y-d.STAND_PIVOT[1])*co-(z-d.STAND_PIVOT[2])*si,
+                  d.STAND_PIVOT[2]+(y-d.STAND_PIVOT[1])*si+(z-d.STAND_PIVOT[2])*co) for x,y,z in t.corners(c)]
+        edges=[k._sub(corners[j],corners[0]) for j in (1,2,4)]
+        axes=[(1,0,0),(0,1,0),(0,0,1)]
+        cross=lambda a,b:(a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0])
+        axes+=edges+[cross(a,b) for a in edges for b in axes]
+        pan=[tuple(pan_hi[i] if n>>i&1 else pan_lo[i] for i in range(3)) for n in range(8)]
+        separated=False
+        for axis in axes:
+            if sum(v*v for v in axis)<1e-10: continue
+            dot=lambda p:sum(a*b for a,b in zip(p,axis))
+            a,b=list(map(dot,corners)),list(map(dot,pan))
+            separated |= max(a)<min(b) or max(b)<min(a)
+        assert separated, 'Muffler intersects stand sweep at '+str(degrees)
 `);
   });
 
-  it("routes the exhaust forward below the rail and down into the tapered front-top", async () => {
+  it("routes a separate round exhaust from the port into the slab front-top", async () => {
     await python.run(`${setup}
 import math
 e=load_tool('scooter_engine')
 path=e.catmull_rom(e.HEADER_POINTS,100)
 assert math.dist(path[0],(2.23,6.02,8.55))<0.2, 'Pipe misses the cylinder exhaust port'
-assert 5.3<min(p[2] for p in path)<5.5, 'Pipe must end inside the muffler nose'
-assert all(5.15<p[1]<5.8 for p in path[20:70]), 'Pipe must follow the floor underside before bending'
-assert all(b[2]<=a[2] for a,b in zip(path,path[1:])), 'Pipe must never curl back around the muffler nose'
-assert max(p[2] for p in path[80:])-min(p[2] for p in path[80:])<0.4, 'Inlet bend must stay at the front'
+assert min(p[2] for p in path)<-0.3, 'Pipe must reach the forward inlet'
+assert all(p[1]>4.65 for p in path[25:75]), 'Pipe needs visible air above the muffler'
+assert max(p[0] for p in path)>4.6, 'Pipe must move outboard of the casing'
+assert all(b[2]<=a[2]+0.01 for a,b in zip(path,path[1:])), 'Pipe must run forward'
 end=path[-1]
-assert 5.3<=end[2]<=5.5 and 4.4<=end[1]<=4.9 and 3.0<=end[0]<=3.8, 'Pipe misses the tapered front-top inlet'
-assert sum(math.dist(a,b) for a,b in zip(path,path[1:]))<6.0, 'Exhaust should follow a compact forward route'
+assert -0.5<end[2]<-0.2 and 4.1<end[1]<4.35 and 4.0<end[0]<4.8, 'Pipe misses the slab front-top'
+assert max(p[1] for p in path)-min(p[1] for p in path)>1.7, 'Pipe needs a clear downward elbow'
 engine=e.build()
 for assembly in ('engine_muffler','engine_exhaust_pipe','engine_swing_arm','engine_kick'):
     for cube in engine.assemblies[assembly]:
