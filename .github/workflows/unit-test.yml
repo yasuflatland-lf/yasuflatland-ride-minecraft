@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
 
       # Install Node and pnpm as pinned in mise.toml
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
 
       - run: pnpm install --frozen-lockfile
 
@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
 
       - run: pnpm install --frozen-lockfile
 
@@ -99,7 +99,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
 
       - run: pnpm install --frozen-lockfile
 
@@ -114,7 +114,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
 
       - run: pnpm install --frozen-lockfile
 
@@ -180,7 +180,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
       - uses: ./.github/actions/generated-files
       - if: github.event_name == 'pull_request'
         run: python3 -I tools/run_generators.py --check --only gen_model.py gen_sportsboat.py gen_camper.py gen_bulldozer.py gen_scooter.py gen_build_tools.py gen_warp_art.py gen_camping_gear.py gen_item_catalog.py gen_low_chair.py gen_sofa.py gen_noga_chair.py gen_camp_table.py gen_fire_pit.py gen_dutch_oven.py gen_gas_lantern.py gen_tent.py gen_beach_parasol.py gen_beach_chair.py gen_dining_table.py gen_dining_chair.py gen_roof_tent.py gen_toilet.py gen_washstand.py
@@ -199,7 +199,7 @@ jobs:
         scene: ${{ fromJSON(needs.model-plan.outputs.scenes) }}
     steps:
       - uses: actions/checkout@v7
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
       - uses: ./.github/actions/generated-files
       - env:
           SCENE: ${{ matrix.scene }}
