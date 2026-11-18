@@ -7,6 +7,7 @@ docs/superpowers/*
 !docs/superpowers/specs/
 docs/superpowers/specs/*
 !docs/superpowers/specs/2026-11-18-scooter-underbody-detail-design.md
+!docs/superpowers/specs/2026-11-18-build-shape-menu-design.md
 .superpowers/
 packs/*/scripts/main.js
 server/data/
