@@ -12,7 +12,7 @@ The Build Wand of 0198 offers Fill, Frame, and two roofs on a horizontal rectang
 
 Behavior:
 
-1. The shape menu after the end points offers Cylinder and Cube on a horizontal rectangle (Fill, Frame, Gable roof, Hip roof, Cylinder, Cube, Cancel) and Cylinder on a box (Fill, Faces only, Walls only, Cylinder, Cancel). Cube is not offered on a box because Fill, Faces only, and Walls only already produce the same three results.
+1. The Build shape submenu after the end points offers Cylinder and Cube on a horizontal rectangle (Fill, Frame, Gable roof, Hip roof, Cylinder, Sideways cylinder, Sphere, Cube, Back) and Cylinder on a box (Fill, Faces only, Walls only, Cylinder, Sideways cylinder, Sphere, Back). Cube is not offered on a box because Fill, Faces only, and Walls only already produce the same three results.
 2. On a horizontal rectangle, Cylinder and Cube start the same height step as a roof: aim at the height, live preview, tap to confirm, and an optional slider fallback. The solid grows upward from the rectangle. On a box, Cylinder skips the height step and the box's own height is the cylinder's height.
 3. A contents menu follows: Fill (every block), Hollow (a one-block shell with top and bottom closed), Tube (the side wall only, top and bottom open), and Cancel, which returns to end-point selection (0198). Roofs keep Fill and Hollow only.
 4. The cylinder fits exactly inside the bounding box of the points and stands upright; a non-square box gives an ellipse. The cube fills the bounding box.

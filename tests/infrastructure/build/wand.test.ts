@@ -40,6 +40,7 @@ import {
 
 const menus = {
   showShapeMenu: vi.fn(),
+  showBuildMenu: vi.fn(),
   showContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
   showPasteMenu: vi.fn(),
@@ -231,6 +232,7 @@ function setupAir() {
   const execute = vi.spyOn(tapAir, "execute");
   const menus = {
     showShapeMenu: vi.fn(),
+    showBuildMenu: vi.fn(),
     showContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
     showPasteMenu: vi.fn(),
