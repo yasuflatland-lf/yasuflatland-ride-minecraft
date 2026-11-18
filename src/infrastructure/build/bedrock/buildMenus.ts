@@ -1,12 +1,15 @@
 import type { Player } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import {
+  type BuildMenuEntryId,
+  buildMenu,
   type ContentsEntryId,
   contentsMenu,
   type MenuEntry,
   type PasteEntryId,
   pasteMenu,
-  type ShapeEntryId,
+  type RootEntryId,
+  shapeMenu,
   type TerrainEntryId,
   terrainMenu,
   type UtilityEntryId,
@@ -29,20 +32,20 @@ import { asPlayerId } from "../../../domain/shared/ids";
 import { chooseFromForm } from "../../shared/choiceForm";
 import { createExclusiveGuard } from "../../shared/exclusiveForm";
 import { BUILD_FORM } from "../identifiers";
-import { flatShapeMenu } from "./flatShapeMenu";
 
 import { type MenuCases, MenuChoices } from "./menuChoices";
 
 function menuLabel(
   entry: MenuEntry<
-    | ShapeEntryId
+    | RootEntryId
+    | BuildMenuEntryId
     | ContentsEntryId
     | TerrainEntryId
     | UtilityEntryId
     | PasteEntryId
   >,
 ): string {
-  return BUILD_FORM[entry.id];
+  return BUILD_FORM[entry.id === "rotate" ? "rotateBox" : entry.id];
 }
 
 function heightSliderTitle(kind: HeightStepKind): string {
@@ -60,6 +63,7 @@ function heightSliderTitle(kind: HeightStepKind): string {
 
 export interface BuildMenus {
   showShapeMenu(player: Player): Promise<void>;
+  showBuildMenu(player: Player): Promise<void>;
   showContentsMenu(player: Player): Promise<void>;
   showUtilityMenu(player: Player): Promise<void>;
   showPasteMenu(player: Player): Promise<void>;
@@ -80,31 +84,52 @@ export class BedrockBuildMenus implements BuildMenus {
   }
 
   showShapeMenu(player: Player): Promise<void> {
-    return this.exclusive(player, async () => {
-      const playerId = asPlayerId(player.id);
-      const session = this.repo.get(playerId);
-      if (!session) return;
+    return this.exclusive(player, () => this.shapeMenus(player, "root"));
+  }
+
+  showBuildMenu(player: Player): Promise<void> {
+    return this.exclusive(player, () => this.shapeMenus(player, "build"));
+  }
+
+  private async shapeMenus(
+    player: Player,
+    level: "root" | "build",
+  ): Promise<void> {
+    const playerId = asPlayerId(player.id);
+    while (true) {
+      const flow = this.repo.get(playerId)?.flow;
+      if (flow?.kind !== "endpoint" || flow.menuLevel !== level) return;
       const id = await chooseFromForm(
         player,
-        BUILD_FORM.shapeTitle,
-        flatShapeMenu(session.flow).map((entry) => ({
+        level === "root" ? BUILD_FORM.shapeTitle : BUILD_FORM.buildShapeTitle,
+        (level === "root" ? shapeMenu(flow) : buildMenu(flow)).map((entry) => ({
           id: entry.id,
           textKey: menuLabel(entry),
         })),
       );
       if (!player.isValid) return;
-      const offered = this.choices.choose(playerId, "shape", id);
-      const flow = this.repo.get(playerId)?.flow;
-      if (offered && flow?.kind === "terrainConfirm")
-        await this.terrainConfirm(player);
-      if (offered && flow?.kind === "heightStep") {
-        if (isBoxStepKind(flow.heightedKind)) {
-          if (!flow.heightLocked && this.heightSliderFallback)
+      const current = this.repo.get(playerId)?.flow;
+      if (current?.kind !== "endpoint" || current.menuLevel !== level) return;
+      const choice =
+        level === "build" && (id === undefined || id === "cancel")
+          ? "back"
+          : id;
+      if (!this.choices.choose(playerId, "shape", choice)) return;
+      if (choice === "buildShape" || choice === "back") {
+        level = choice === "buildShape" ? "build" : "root";
+        continue;
+      }
+      const next = this.repo.get(playerId)?.flow;
+      if (next?.kind === "terrainConfirm") await this.terrainConfirm(player);
+      if (next?.kind === "heightStep") {
+        if (isBoxStepKind(next.heightedKind)) {
+          if (!next.heightLocked && this.heightSliderFallback)
             await this.heightSlider(player);
-        } else if (flow.heightLocked) await this.contents(player);
+        } else if (next.heightLocked) await this.contents(player);
         else if (this.heightSliderFallback) await this.heightSlider(player);
       }
-    });
+      return;
+    }
   }
 
   showContentsMenu(player: Player): Promise<void> {

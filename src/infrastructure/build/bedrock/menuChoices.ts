@@ -4,6 +4,7 @@ import type { ChooseHeighted } from "../../../application/build/chooseHeighted";
 import type { ChooseSideCylinder } from "../../../application/build/chooseSideCylinder";
 import type { ChooseTerrain } from "../../../application/build/chooseTerrain";
 import type { ClearSelection } from "../../../application/build/clearSelection";
+import type { CloseBuildMenu } from "../../../application/build/closeBuildMenu";
 import type { ConfirmBoxStep } from "../../../application/build/confirmBoxStep";
 import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
@@ -11,23 +12,25 @@ import type { ConfirmTerrain } from "../../../application/build/confirmTerrain";
 import type { CopySelection } from "../../../application/build/copySelection";
 import type { EndPasting } from "../../../application/build/endPasting";
 import type { NewCopy } from "../../../application/build/newCopy";
+import type { OpenBuildMenu } from "../../../application/build/openBuildMenu";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../application/build/undoEdit";
-import { type BuildFlow, openBuildMenu } from "../../../domain/build/flow/flow";
 import {
   type BuildEntryId,
+  buildMenu,
   contentsMenu,
   type EditEntryId,
   isBuildEntry,
   isEditEntry,
+  isShapeEntryOffered,
   type MenuEntry,
   pasteMenu,
+  shapeMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import type { PlayerId } from "../../../domain/shared/ids";
-import { flatShapeMenu } from "./flatShapeMenu";
 
 function isOffered<Id extends string>(
   entries: MenuEntry<Id>[],
@@ -37,6 +40,8 @@ function isOffered<Id extends string>(
 }
 
 export interface MenuCases {
+  openBuildMenu: Pick<OpenBuildMenu, "execute">;
+  closeBuildMenu: Pick<CloseBuildMenu, "execute">;
   chooseBoxStep: Pick<ChooseBoxStep, "execute">;
   confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   confirmShape: Pick<ConfirmShape, "execute">;
@@ -67,8 +72,19 @@ export class MenuChoices {
     const session = this.repo.get(playerId);
     if (!session) return false;
     if (menu === "shape") {
-      if (!isOffered(flatShapeMenu(session.flow), entryId)) return false;
-      if (isEditEntry(entryId)) {
+      if (
+        !isOffered(
+          [...shapeMenu(session.flow), ...buildMenu(session.flow)],
+          entryId,
+        ) ||
+        !isShapeEntryOffered(session.flow, entryId)
+      )
+        return false;
+      if (entryId === "buildShape") {
+        this.cases.openBuildMenu.execute({ playerId });
+      } else if (entryId === "back") {
+        this.cases.closeBuildMenu.execute({ playerId });
+      } else if (isEditEntry(entryId)) {
         this.dispatchEditEntry(entryId, playerId);
       } else if (isBuildEntry(entryId)) {
         this.dispatchBuildEntry(entryId, playerId);
@@ -188,21 +204,9 @@ export class MenuChoices {
       case "cube":
         this.cases.chooseHeighted.execute({ playerId, kind: id });
         break;
-      case "sideCylinder": {
-        const session = this.repo.get(playerId);
-        const before = session?.flow;
-        if (session && before) session.setFlow(openBuildMenu(before));
+      case "sideCylinder":
         this.cases.chooseSideCylinder.execute({ playerId });
-        // A refused choice leaves the flow on the opened menu level; put it back.
-        if (
-          session &&
-          before &&
-          isBuildMenuOpen(this.repo.get(playerId)?.flow)
-        ) {
-          session.setFlow(before);
-        }
         break;
-      }
 
       default: {
         const exhaustive: never = id;
@@ -210,8 +214,4 @@ export class MenuChoices {
       }
     }
   }
-}
-
-function isBuildMenuOpen(flow: BuildFlow | undefined): boolean {
-  return flow?.kind === "endpoint" && flow.menuLevel === "build";
 }
