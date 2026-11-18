@@ -38,6 +38,7 @@
     "name": "sofa_double",
     "item": "sofa_double_item",
     "geometry": "sofa_double",
+    "texture": "sofa_single",
     "textured": true,
     "cutout": false
   },
