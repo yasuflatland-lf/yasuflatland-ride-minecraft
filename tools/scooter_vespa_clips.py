@@ -1,18 +1,16 @@
 """Cut the owner's Vespa recordings into six unreferenced engine loops.
 
 Run by hand with FFmpeg 9.0.2; the private MP3s are never generator inputs.
-Rev bands use distinct windows ordered by measured spectral brightness as a
-relative rev proxy, not calibrated RPM. Measurements below are mean mono
-aspectralstats centroids and per-frame astats RMS over length + fade seconds
-(8192-sample spectral windows, no overlap, at 48 kHz).
-The owner supplied idoling.mp3 (8.088 s) and reving.mp3 (14.640 s) on
-2026-11-18. Exclude the falling rev at 2.0–4.0 s: the mean centroid drops
-from 1879 Hz over 2.0–4.25 s to 1598 Hz over 4.0–6.25 s. Overlapping
-post-drop windows retain the rising rev without including that fall.
-Idle uses a beat-aligned window found in the steady 4.0–8.0 s region,
-with a short fade to preserve the rhythm across the wrap.
-Offsets were refined after encoding to keep decoded endpoint jumps below
-local adjacent-sample differences and preserve centroid ordering.
+Rev bands use overlapping post-drop windows with increasing decoded
+fundamentals. All six seams use the beat-aligned waveform/envelope search
+recorded in docs/specs/sounds.md. Rev search regions span 4.0–14.6 s,
+excluding the falling rev at 2.0–4.0 s. Prefer longer 2–4 s candidates
+within 0.15 of the best seam score, subject to decoded verification:
+wrap gap inside the internal spread and within 10 ms of its median,
+endpoint jump below the local adjacent-difference 99th percentile,
+and <=3 Hz fundamental drift between the first and last 0.5 s.
+The 3 Hz bound limits measured drift; it is not a listening result.
+Idle is unchanged; private MP3s are never generator inputs.
 
 Normalize RMS to -21 dBFS + 0.2 dB per band: a 1 dB intended total rise.
 A -2 dBFS pre-encode peak ceiling leaves headroom for Vorbis overshoot.
@@ -41,11 +39,11 @@ SCOOTER_ENGINE_SLICES: tuple[SliceSpec, ...] = (
     # 0.246560 + 0.092780 + 10 * 0.019697 = 0.536310. Source wrap gap
     # 112.167 ms vs 110 ms median; decoded wrap 112.167 ms (see sounds spec).
     SliceSpec("idle", 4.289833, 2.226167, 0.03),
-    SliceSpec("rev", 4.01, 2.0, 0.25),  # Low rev: 1594 Hz, -21.92 dBFS.
-    SliceSpec("rev", 5.01, 2.0, 0.25),  # Early rise: 1609 Hz, -21.87 dBFS.
-    SliceSpec("rev", 6.53, 2.0, 0.25),  # Middle rise: 1656 Hz, -21.93 dBFS.
-    SliceSpec("rev", 6.65, 2.0, 0.25),  # Upper rise: 1702 Hz, -21.86 dBFS.
-    SliceSpec("rev", 7.75, 2.0, 0.25),  # High rev: 1742 Hz, -21.78 dBFS.
+    SliceSpec("rev", 4.471250000, 2.580750000, 0.03),
+    SliceSpec("rev", 6.018000000, 2.496000000, 0.03),
+    SliceSpec("rev", 7.813020833, 2.904145833, 0.03),
+    SliceSpec("rev", 9.498000000, 3.180000000, 0.03),
+    SliceSpec("rev", 10.780770833, 3.652145833, 0.03),
 )
 
 RATE = 48000

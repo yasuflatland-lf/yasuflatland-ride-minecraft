@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -37,6 +38,13 @@ const animations = JSON.parse(
 const sounds = "packs/yasu_ride_rp/sounds/yasu_ride";
 
 describe("recorded scooter engine clips", () => {
+  it("preserves the approved idle clip bytes", () => {
+    expect(
+      createHash("sha256")
+        .update(readFileSync(`${sounds}/scooter_engine_0.ogg`))
+        .digest("hex"),
+    ).toBe("d59d23f4e76c5939ef0a92a2f48effdd4a0243774517303acfca1216bc770605");
+  });
   it.each(clips)(
     "plays band $index from its own Ogg with matching duration and volume",
     ({ index, seconds, volume }) => {
@@ -123,9 +131,9 @@ const hasFFmpeg =
     ["-I", "-c", "import shutil; print(bool(shutil.which('ffmpeg')))"],
     { encoding: "utf8" },
   ).trim() === "True";
-it.skipIf(!hasFFmpeg)(
-  "keeps the decoded idle wrap beat within the internal gap spread and 10 ms of its median",
-  () => {
+it.skipIf(!hasFFmpeg).each([0, 1, 2, 3, 4, 5])(
+  "keeps decoded band %i within the beat, pitch stability and level limits",
+  (band) => {
     execFileSync(
       "python3",
       [
@@ -133,9 +141,10 @@ it.skipIf(!hasFFmpeg)(
         "-c",
         `
 import math, statistics, struct, subprocess
+band = ${band}
 pcm = subprocess.check_output([
     'ffmpeg', '-v', 'error', '-i',
-    'packs/yasu_ride_rp/sounds/yasu_ride/scooter_engine_0.ogg',
+    f'packs/yasu_ride_rp/sounds/yasu_ride/scooter_engine_{band}.ogg',
     '-ac', '1', '-ar', '48000', '-f', 'f32le', 'pipe:1',
 ])
 samples = struct.unpack(f'<{len(pcm) // 4}f', pcm)
@@ -165,8 +174,51 @@ assert min(gaps) <= wrap <= max(gaps), (wrap, gaps)
 assert abs(wrap - statistics.median(gaps)) <= 0.010, (wrap, statistics.median(gaps))
 rms_db = 20 * math.log10(math.sqrt(sum(v * v for v in samples) / len(samples)))
 peak_db = 20 * math.log10(max(abs(v) for v in samples))
-assert abs(rms_db - (-21)) < 0.15, rms_db
+assert abs(rms_db - (-21 + 0.2 * band)) < 0.15, (band, rms_db)
 assert peak_db < -1, peak_db
+if band:
+    # Low-pass before decimation; correlate 0.5 s endpoint windows over the
+    # measured 55–87 Hz fundamental range and interpolate the best lag.
+    filtered = subprocess.check_output([
+        'ffmpeg', '-v', 'error', '-i',
+        f'packs/yasu_ride_rp/sounds/yasu_ride/scooter_engine_{band}.ogg',
+        '-af', 'aformat=channel_layouts=mono,lowpass=f=1200,aresample=4000',
+        '-f', 'f32le', 'pipe:1',
+    ])
+    signal = struct.unpack(f'<{len(filtered) // 4}f', filtered)
+    def fundamental(frame):
+        mean = statistics.mean(frame)
+        frame = [v - mean for v in frame]
+        corr = {}
+        for lag in range(45, 75):
+            a, b = frame[:-lag], frame[lag:]
+            corr[lag] = sum(v*w for v,w in zip(a,b)) / math.sqrt(
+                sum(v*v for v in a) * sum(v*v for v in b))
+        lag = max(range(46, 74), key=corr.get)
+        assert corr[lag] > 0.8, (band, corr[lag])
+        delta = 0.5 * (corr[lag-1] - corr[lag+1]) / (
+            corr[lag-1] - 2*corr[lag] + corr[lag+1])
+        return 4000 / (lag + delta)
+    start, end = fundamental(signal[:2000]), fundamental(signal[-2000:])
+    assert abs(end - start) <= 3.0, (band, start, end)
+    assert 2 <= seconds <= 4, (band, seconds)
+    if band > 1:
+        previous_pcm = subprocess.check_output([
+            'ffmpeg', '-v', 'error', '-i',
+            f'packs/yasu_ride_rp/sounds/yasu_ride/scooter_engine_{band-1}.ogg',
+            '-af', 'aformat=channel_layouts=mono,lowpass=f=1200,aresample=4000',
+            '-f', 'f32le', 'pipe:1',
+        ])
+        previous = struct.unpack(f'<{len(previous_pcm) // 4}f', previous_pcm)
+        def mean_fundamental(values):
+            return statistics.mean(fundamental(values[i:i+2000])
+                                   for i in range(0, len(values)-1999, 2000))
+        assert mean_fundamental(previous) < mean_fundamental(signal), band
+    diffs = sorted([abs(samples[i+1] - samples[i]) for i in range(239)] +
+                   [abs(samples[i+1] - samples[i])
+                    for i in range(len(samples)-240, len(samples)-1)])
+    assert abs(samples[-1] - samples[0]) <= diffs[math.ceil(0.99*len(diffs))-1]
+
 `,
       ],
       { encoding: "utf8" },

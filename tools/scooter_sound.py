@@ -13,11 +13,11 @@ class EngineClip:
 # Band lower bounds in blocks/s: 0, 1, 4.5, 8, 11.5 and 15.
 ENGINE_CLIPS: tuple[EngineClip, ...] = (
     EngineClip(0, 2.226167, 0.5),
-    EngineClip(1, 2.0, 0.54),
-    EngineClip(2, 2.0, 0.58),
-    EngineClip(3, 2.0, 0.62),
-    EngineClip(4, 2.0, 0.66),
-    EngineClip(5, 2.0, 0.7),
+    EngineClip(1, 2.580750000, 0.54),
+    EngineClip(2, 2.496000000, 0.58),
+    EngineClip(3, 2.904145833, 0.62),
+    EngineClip(4, 3.180000000, 0.66),
+    EngineClip(5, 3.652145833, 0.7),
 )
 
 
