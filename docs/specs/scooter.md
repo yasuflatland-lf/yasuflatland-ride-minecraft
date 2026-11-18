@@ -123,7 +123,7 @@ The five scooter README previews include a running-board close-up; its framing i
 - Agreement: Proposed
 - Basis: [0193](../adr/0193-shared-texture-tooling.md) Decision; [0251](../adr/0251-add-the-scooter-kind.md) Decision
 - Implementation: `tools/gen_scooter.py`, `tools/geometry_passes.py`, `tools/region_atlas.py`, `tools/scooter_textures.py`, `tools/render_preview.py`, `tools/generators.json`; `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `packs/yasu_ride_rp/render_controllers/yasu_ride/scooter.rc.json`
-- Verification: `tests/packs/scooterClient.test.ts` checks the face partition, subset, bone contract and controller bindings; `tests/tools/scooterTextures.test.ts` audits lit regions and compares every face's sampled texels; `pnpm model:check` checks preview identity. Device checks remain with the owner: all 16 dyes near and far, watching paint/chrome seams, with headlights and tail lights on and off; hover glow with the gear up while steering and while folding the gear.
+- Verification: `tests/tools/scooterKit.test.ts` checks the face partition. `tests/packs/scooterClient.test.ts` checks the subset, bone contract and controller bindings; `tests/tools/scooterTextures.test.ts` audits lit regions and compares every face's sampled texels; `pnpm model:check` checks preview identity. Device checks remain with the owner: all 16 dyes near and far, watching paint/chrome seams, with headlights and tail lights on and off; hover glow with the gear up while steering and while folding the gear.
 
 ### Item and recipe
 

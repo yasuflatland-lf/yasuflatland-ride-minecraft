@@ -1,8 +1,8 @@
 import fc from "fast-check";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startPythonWorker } from "../support/pythonWorker";
 
-const python = startPythonWorker();
+const python = startPythonWorker({ hashSeed: 0 });
 afterAll(() => python.close());
 const setup = `import json, math, copy, sys
 sys.path.insert(0, 'tools')
@@ -12,8 +12,8 @@ a=load_tool('scooter_atlas')
 d=load_tool('scooter_dims')
 t=load_tool('cube_tilt')
 `;
-// Two full builds of every merged area run slowly under parallel CI load.
-const GENERATOR_TIMEOUT_MS = 300_000;
+// The shared build peaked at 10.090 s in three loaded runs. Four times that rounds up to 41 s.
+const GENERATOR_TIMEOUT_MS = 41_000;
 const scalar = fc.double({ min: -20, max: 20, noNaN: true });
 const angle = fc.double({ min: -170, max: 170, noNaN: true });
 
@@ -211,20 +211,62 @@ print(json.dumps(d.i2m(425,537)))
     );
     expect(result).toEqual([0, 0]);
   });
+});
 
-  it(
-    "builds identical geometry and atlas bytes twice",
-    async () => {
-      await python.run(`${setup}
-g=load_tool('gen_scooter')
-first,second=g.build(),g.build()
-assert json.dumps(first.full_geometry)==json.dumps(second.full_geometry)
-for before,after in zip(first[1:],second[1:],strict=True):
-    assert json.dumps(before.geometry)==json.dumps(after.geometry)
-    assert before.layout.size==after.layout.size and before.pixels==after.pixels
-    assert len(before.layout._faces)==len(after.layout._faces)
+describe("generated scooter", () => {
+  beforeAll(async () => {
+    await python.run(`${setup}
+import builtins
+assert sys.flags.hash_randomization == 0
+builtins.scooter_build = load_tool("gen_scooter").build()
 `);
-    },
-    GENERATOR_TIMEOUT_MS,
-  );
+  }, GENERATOR_TIMEOUT_MS);
+
+  const withBuild = (script: string) =>
+    python.run(`${setup}
+from pathlib import Path
+from builtins import scooter_build as built
+${script}
+`);
+
+  it("matches generated scooter geometry and atlas pixels with hash randomization disabled", async () => {
+    await withBuild(`
+rp = Path("packs/yasu_ride_rp")
+source = Path(".cache/generated/scooter_source.geo.json")
+assert built.full_geometry["minecraft:geometry"][0] == json.loads(source.read_text()), source
+for name, part in (("scooter", built.fixed), ("scooter_paint", built.paint), ("scooter_lit", built.lit)):
+    path = rp / "models/entity/yasu_ride" / (name + ".geo.json")
+    assert part.geometry == json.loads(path.read_text()), path
+decode = load_tool("render_preview").read_png_bytes
+for name, part in (("scooter_fixed", built.fixed), ("scooter_paint", built.paint)):
+    path = rp / "textures/entity/yasu_ride" / (name + ".png")
+    assert decode(path) == (*part.layout.size, part.pixels), path
+`);
+  });
+
+  // With the build ready, three loaded runs peaked at 0.666 s (four times, rounded up to 3 s).
+  it("partitions every source face into exactly one default-material pass", async () => {
+    await withBuild(`
+full = built.full_geometry["minecraft:geometry"][0]
+p = load_tool("render_preview")
+merged, texture = p.load_scooter_model(Path("packs/yasu_ride_rp"), built)
+paint_regions = {r.name for r in built.paint.layout.regions}
+faces = 0
+for original_bone, merged_bone in zip(full["bones"], merged["bones"], strict=True):
+    assert {k:v for k,v in original_bone.items() if k!="cubes"} == {k:v for k,v in merged_bone.items() if k!="cubes"}
+    for original, rejoined in zip(original_bone["cubes"], merged_bone["cubes"], strict=True):
+        assert {k:v for k,v in original.items() if k!="uv"} == {k:v for k,v in rejoined.items() if k!="uv"}
+        assert list(original["uv"]) == list(rejoined["uv"])
+        for name, face in original["uv"].items():
+            translated = dict(rejoined["uv"][name])
+            translated["uv"] = [translated["uv"][0], translated["uv"][1] - (built.fixed.layout.size[1] if face.region in paint_regions else 0)]
+            assert translated == face
+            faces += 1
+assert faces == 27816
+for name, render_pass in (("scooter", built.fixed), ("scooter_paint", built.paint)):
+    assert all((face.region in paint_regions) == (name == "scooter_paint")
+               for bone in render_pass.geometry["minecraft:geometry"][0]["bones"]
+               for cube in bone["cubes"] for face in cube["uv"].values())
+`);
+  }, 3_000);
 });

@@ -11,10 +11,7 @@ import {
   turnedCorners,
 } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
-import {
-  loadScooterGeo,
-  runWithScooterBuild,
-} from "../tools/helpers/scooterGeo";
+import { loadScooterGeo } from "../tools/helpers/scooterGeo";
 
 const RP = "packs/yasu_ride_rp";
 const read = (path: string) =>
@@ -317,36 +314,6 @@ describe("scooter controllers", () => {
       expect(state.blend_transition).toBeLessThan(1);
     }
   });
-
-  it("partitions every source face into exactly one default-material pass", async () => {
-    await runWithScooterBuild(`
-import json
-from pathlib import Path
-full = built.full_geometry["minecraft:geometry"][0]
-assert full == json.loads(Path(".cache/generated/scooter_source.geo.json").read_text(encoding="utf-8"))
-p = load_tool("render_preview")
-merged, texture = p.load_scooter_model(Path("packs/yasu_ride_rp"), built)
-paint_regions = {r.name for r in built.paint.layout.regions}
-faces = 0
-for original_bone, merged_bone in zip(full["bones"], merged["bones"], strict=True):
-    assert {k:v for k,v in original_bone.items() if k!="cubes"} == {k:v for k,v in merged_bone.items() if k!="cubes"}
-    for original, rejoined in zip(original_bone["cubes"], merged_bone["cubes"], strict=True):
-        assert {k:v for k,v in original.items() if k!="uv"} == {k:v for k,v in rejoined.items() if k!="uv"}
-        assert list(original["uv"]) == list(rejoined["uv"])
-        for name, face in original["uv"].items():
-            translated = dict(rejoined["uv"][name])
-            translated["uv"] = [translated["uv"][0], translated["uv"][1] - (built.fixed.layout.size[1] if face.region in paint_regions else 0)]
-            assert translated == face
-            faces += 1
-assert faces == 27816
-for name, render_pass in (("scooter", built.fixed), ("scooter_paint", built.paint)):
-    disk = json.loads(Path("packs/yasu_ride_rp/models/entity/yasu_ride/"+name+".geo.json").read_text())
-    assert disk == render_pass.geometry
-    assert all((face.region in paint_regions) == (name == "scooter_paint")
-               for bone in render_pass.geometry["minecraft:geometry"][0]["bones"]
-               for cube in bone["cubes"] for face in cube["uv"].values())
-`);
-  }, 60000);
 
   it("draws fixed and paint cutouts, a separate hover glow, then the lit lamps last", () => {
     const main = loadScooterGeo();

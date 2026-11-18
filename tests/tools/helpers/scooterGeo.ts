@@ -1,7 +1,5 @@
 import { readFileSync } from "node:fs";
-import { afterAll } from "vitest";
 import { type Triple, turnedCorners } from "../../support/geometry";
-import { startPythonWorker } from "../../support/pythonWorker";
 
 type Cube = {
   origin: Triple;
@@ -21,23 +19,6 @@ type Geometry = {
   }[];
   description: { texture_width: number; texture_height: number };
 };
-
-let python: ReturnType<typeof startPythonWorker> | undefined;
-afterAll(() => python?.close());
-
-// Worker requests have fresh globals; retain the atlas build across requests.
-export function runWithScooterBuild(script: string): Promise<string> {
-  python ??= startPythonWorker();
-  return python.run(`
-import builtins, sys
-sys.path.insert(0, "tools")
-from tool_loader import load_tool
-if not hasattr(builtins, "scooter_build"):
-    builtins.scooter_build = load_tool("gen_scooter").build()
-built = builtins.scooter_build
-${script}
-`);
-}
 
 const geometry: Geometry = JSON.parse(
   readFileSync(".cache/generated/scooter_source.geo.json", "utf8"),
