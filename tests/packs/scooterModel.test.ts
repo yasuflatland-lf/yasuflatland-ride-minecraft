@@ -1,4 +1,4 @@
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startPythonWorker } from "../support/pythonWorker";
 import {
@@ -122,14 +122,21 @@ beforeAll(async () => {
 merged=k.AreaCubes()
 for name in g.AREA_ORDER:
     merged.merge(load_tool('scooter_'+name).build())
-layout=load_tool('scooter_atlas').pack_layout()
-load_tool('scooter_atlas').resolve([c for cs in merged.values() for c in cs],layout)
+a=load_tool('scooter_atlas')
+regions=a.REGISTRY._regions
+fixed=g.pack_regions(r for r in regions.values() if r.material!=a.Material.PAINT)
+paint=g.pack_regions(r for r in regions.values() if r.material==a.Material.PAINT)
+for cs in merged.values():
+    for cube in cs:
+        for face in cube['uv'].values():
+            region=regions[face.region]
+            g.relocate_face(a.region_atlas.UvRect.of(face),region,paint if region.material==a.Material.PAINT else fixed,face)
 bones=[dict(name=name,pivot=[0,0,0],cubes=cs) for name,cs in merged.items()]
 k.mirror_to_game(bones)
 print(json.dumps(g.rounded(dict(areas=g.AREA_ORDER,table=g.ASSEMBLIES,assemblies=merged.assemblies,budget=d.CUBE_BUDGET,ceiling=d.CUBE_BUDGET_CEILING,axis=d.STEERING_AXIS_DEGREES,allocation=d.AREA_CUBE_ALLOCATION))))
 `),
   );
-}, 30_000);
+}, 60_000);
 
 // Size of the generated geometry on main at the time of issue 1914.
 const MAIN_GEOMETRY_BYTES = 1_390_072;
@@ -137,8 +144,14 @@ const MAIN_GEOMETRY_BYTES = 1_390_072;
 describe("scooter generated foundation", () => {
   it("keeps the generated geometry within twice the main baseline", () => {
     expect(
-      statSync("packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json")
-        .size,
+      ["scooter", "scooter_paint"].reduce(
+        (sum, name) =>
+          sum +
+          statSync(
+            `packs/yasu_ride_rp/models/entity/yasu_ride/${name}.geo.json`,
+          ).size,
+        0,
+      ),
     ).toBeLessThanOrEqual(2 * MAIN_GEOMETRY_BYTES);
   });
 
@@ -422,18 +435,27 @@ for strut in d.STRUT_BONES.values():
   }, 90_000);
 
   it("keeps all face rectangles inside the texture and respects the ceiling", () => {
-    const { texture_width: width, texture_height: height } =
-      geometry.description;
-    expect(width).toBeLessThanOrEqual(2048);
-    expect(height).toBeLessThanOrEqual(2048);
-    for (const cube of cubes) {
-      for (const face of Object.values(cube.uv)) {
-        const [u = Number.NaN, v = Number.NaN] = face.uv;
-        const [w = Number.NaN, h = Number.NaN] = face.uv_size;
-        expect(Math.min(u, u + w)).toBeGreaterThanOrEqual(0);
-        expect(Math.max(u, u + w)).toBeLessThanOrEqual(width);
-        expect(Math.min(v, v + h)).toBeGreaterThanOrEqual(0);
-        expect(Math.max(v, v + h)).toBeLessThanOrEqual(height);
+    for (const name of ["scooter", "scooter_paint", "scooter_lit"]) {
+      const pass = JSON.parse(
+        readFileSync(
+          `packs/yasu_ride_rp/models/entity/yasu_ride/${name}.geo.json`,
+          "utf8",
+        ),
+      )["minecraft:geometry"][0];
+      const { texture_width: width, texture_height: height } = pass.description;
+      expect(width).toBeLessThanOrEqual(2048);
+      expect(height).toBeLessThanOrEqual(2048);
+      for (const cube of pass.bones.flatMap(
+        (bone: { cubes: Cube[] }) => bone.cubes,
+      ) as Cube[]) {
+        for (const face of Object.values(cube.uv)) {
+          const [u = Number.NaN, v = Number.NaN] = face.uv;
+          const [w = Number.NaN, h = Number.NaN] = face.uv_size;
+          expect(Math.min(u, u + w)).toBeGreaterThanOrEqual(0);
+          expect(Math.max(u, u + w)).toBeLessThanOrEqual(width);
+          expect(Math.min(v, v + h)).toBeGreaterThanOrEqual(0);
+          expect(Math.max(v, v + h)).toBeLessThanOrEqual(height);
+        }
       }
     }
     expect(cubes.length).toBeLessThanOrEqual(metadata.ceiling);

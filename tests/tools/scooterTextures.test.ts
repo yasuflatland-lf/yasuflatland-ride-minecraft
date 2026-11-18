@@ -20,7 +20,11 @@ const built = `${setup}
 import builtins
 if not hasattr(builtins, "scooter_build"):
     builtins.scooter_build=g.build()
-geo,l,pixels,lit_geo,ll,lp=builtins.scooter_build
+result=builtins.scooter_build
+geo=result.full_geometry
+_,l,pixels=result.paint
+_,fl,fp=result.fixed
+lit_geo,ll,lp=result.lit
 `;
 type Region = {
   name: string;
@@ -38,12 +42,13 @@ let metadata: {
   regions: Region[];
   litRegions: Region[];
   litSize: number[];
+  fixedRegions: Region[];
 };
 const directory = "packs/yasu_ride_rp/textures/entity/yasu_ride/";
 beforeAll(async () => {
   metadata = JSON.parse(
     await python.run(`${built}
-print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,litSize=ll.size,litRegions=[dict(name=r.name,material=r.material.value,x=ll.placement(r.name).x,y=ll.placement(r.name).y,width=r.width,height=r.height) for r in ll.regions],regions=[dict(name=r.name,material=r.material.value,x=l.placement(r.name).x,y=l.placement(r.name).y,width=r.width,height=r.height) for r in l.regions])))
+print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,litSize=ll.size,fixedRegions=[dict(name=r.name,material=r.material.value,x=fl.placement(r.name).x,y=fl.placement(r.name).y,width=r.width,height=r.height) for r in fl.regions],litRegions=[dict(name=r.name,material=r.material.value,x=ll.placement(r.name).x,y=ll.placement(r.name).y,width=r.width,height=r.height) for r in ll.regions],regions=[dict(name=r.name,material=r.material.value,x=l.placement(r.name).x,y=l.placement(r.name).y,width=r.width,height=r.height) for r in l.regions])))
 `),
   );
 }, 60000);
@@ -59,8 +64,10 @@ assert t.recolor(l,a.render_atlas(l),t.PAINTS["white"]) == a.render_atlas(l)
 `);
 });
 
-it("preserves non-paint texels and alpha across every generated paint", () => {
-  const base = readRgbaPng(`${directory}scooter.png`);
+it("stores only paint regions in paint textures and preserves recoloured texels and alpha", () => {
+  expect(metadata.regions.every((r) => r.material === "paint")).toBe(true);
+  expect(metadata.fixedRegions.every((r) => r.material !== "paint")).toBe(true);
+  const base = readRgbaPng(`${directory}scooter_paint.png`);
   const mask = new Uint8Array(base.width * base.height);
   const slots = new Set<string>();
   for (const r of metadata.regions.filter((r) => r.material === "paint")) {
@@ -72,7 +79,9 @@ it("preserves non-paint texels and alpha across every generated paint", () => {
   }
   for (const paint of PAINTS) {
     const name =
-      paint === "khaki" || paint === "white" ? "scooter" : `scooter_${paint}`;
+      paint === "khaki" || paint === "white"
+        ? "scooter_paint"
+        : `scooter_paint_${paint}`;
     for (const suffix of [".png", ".texture_set.json"]) {
       const path = `${directory}${name}${suffix}`;
       expect(existsSync(path)).toBe(true);
@@ -113,7 +122,10 @@ it("preserves non-paint texels and alpha across every generated paint", () => {
       JSON.parse(readFileSync(`${directory}${name}.texture_set.json`, "utf8"))[
         "minecraft:texture_set"
       ],
-    ).toEqual({ color: name, metalness_emissive_roughness: "scooter_mer" });
+    ).toEqual({
+      color: name,
+      metalness_emissive_roughness: "scooter_paint_mer",
+    });
   }
 }, 60000);
 
@@ -151,8 +163,9 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
     "lens_amber",
     "glow",
   ]);
-  const mer = readRgbaPng(`${directory}scooter_mer.png`);
-  const base = readRgbaPng(`${directory}scooter.png`);
+  const mer = readRgbaPng(`${directory}scooter_fixed_mer.png`);
+  const paintMer = readRgbaPng(`${directory}scooter_paint_mer.png`);
+  const base = readRgbaPng(`${directory}scooter_fixed.png`);
   const lit = readRgbaPng(`${directory}scooter_lit.png`);
   const litMer = readRgbaPng(`${directory}scooter_lit_mer.png`);
   expect([lit.width, lit.height]).toEqual(metadata.litSize);
@@ -166,21 +179,25 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
     metalness_emissive_roughness: "scooter_lit_mer",
   });
   const mask = new Uint8Array(lit.width * lit.height);
-  for (const r of metadata.regions) {
-    const p = (r.y * mer.width + r.x) * 4;
+  for (const r of [...metadata.fixedRegions, ...metadata.regions]) {
+    const image = r.material === "paint" ? paintMer : mer;
+    const p = (r.y * image.width + r.x) * 4;
     if (r.material === "chrome") {
-      expect(mer.pixels[p]).toBeGreaterThan(200);
-      expect(mer.pixels[p + 2]).toBeLessThan(90);
+      expect(image.pixels[p]).toBeGreaterThan(200);
+      expect(image.pixels[p + 2]).toBeLessThan(90);
     }
     if (r.material === "paint") {
-      expect(mer.pixels[p]).toBe(0);
-      expect(mer.pixels[p + 2]).toBe(90);
+      expect(image.pixels[p]).toBe(0);
+      expect(image.pixels[p + 2]).toBe(90);
     }
-    if (r.material === "rubber") expect(mer.pixels[p + 2]).toBeGreaterThan(220);
+    if (r.material === "rubber")
+      expect(image.pixels[p + 2]).toBeGreaterThan(220);
   }
   for (const r of metadata.litRegions) {
     if (!metadata.lit.includes(r.name)) continue;
-    const original = metadata.regions.find((region) => region.name === r.name);
+    const original = metadata.fixedRegions.find(
+      (region) => region.name === r.name,
+    );
     expect(original).toBeDefined();
     if (!original) throw new Error(r.name);
     for (let y = 0; y < r.height; y++)
@@ -210,26 +227,40 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
   expect(alpha.includes(255)).toBe(true);
 });
 
-it("writes distinct paint colours and exactly one paint MER without white aliases", async () => {
-  await python.run(`${setup}
+it("writes one fixed atlas and distinct paint colours with one paint MER without white aliases", async () => {
+  await python.run(`${built}
 from pathlib import Path
 from tempfile import TemporaryDirectory
-l=a.pack_layout()
-p=a.render_atlas(l)
 with TemporaryDirectory() as temporary:
     root = Path(temporary)
-    t.write(load_tool("texture_io").Outputs(False),root,l,p,l,p)
+    names=t.write(load_tool("texture_io").Outputs(False),root,fl,fp,l,pixels,ll,lp)
+    client=json.loads(Path("packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json").read_text())["minecraft:client_entity"]["description"]
+    for paint in t.PAINTS:
+        name="scooter_paint" if paint=="khaki" else "scooter_paint_"+paint
+        key="default" if paint=="khaki" else paint
+        assert client["textures"][key]=="textures/entity/yasu_ride/"+names.color_of[name]
+    legacy = [root / "textures/entity/yasu_ride" / (name+suffix)
+              for name in ("scooter", *("scooter_"+paint for paint in t.PAINTS))
+              for suffix in (".png", "_mer.png", ".texture_set.json")]
+    for path in legacy:
+        path.write_bytes(b"obsolete")
+    check = load_tool("texture_io").Outputs(True)
+    t.write(check,root,fl,fp,l,pixels,ll,lp)
+    assert all(path.exists() for path in legacy)
+    assert all(any(str(path) in stale for stale in check.stale) for path in legacy)
+    t.write(load_tool("texture_io").Outputs(False),root,fl,fp,l,pixels,ll,lp)
+    assert all(not path.exists() for path in legacy)
     directory = root / "textures/entity/yasu_ride"
-    colours = sorted(p for p in directory.glob("scooter*.png")
+    colours = sorted(p for p in directory.glob("scooter_paint*.png")
                      if not p.stem.endswith("_mer") and p.stem != "scooter_lit")
     assert len(colours) == 15
     assert len({p.read_bytes() for p in colours}) == len(colours)
     assert sorted(p.name for p in directory.glob("*_mer.png")
-                  if p.stem != "scooter_lit_mer") == ["scooter_mer.png"]
-    assert not list(directory.glob("scooter_white*"))
+                  if p.stem != "scooter_lit_mer") == ["scooter_fixed_mer.png", "scooter_paint_mer.png"]
+    assert not list(directory.glob("scooter_paint_white*"))
     for colour in colours:
         texture_set = json.loads(colour.with_suffix(".texture_set.json").read_text())["minecraft:texture_set"]
-        assert texture_set == dict(color=colour.stem,metalness_emissive_roughness="scooter_mer")
+        assert texture_set == dict(color=colour.stem,metalness_emissive_roughness="scooter_paint_mer")
 `);
 }, 60000);
 
@@ -238,8 +269,8 @@ it("preserves every lit face texel in an audited compact atlas", async () => {
 import math
 assert a.audit(ll, lp) == []
 assert {r.name for r in ll.regions} == {name for name, face in ll._faces}
-assert len(lp) < len(pixels) / 20
-regions = {r.name: r for r in l.regions}
+assert len(lp) < (len(pixels)+len(fp)) / 20
+regions = {r.name: r for r in fl.regions}
 count = 0
 for base_bone, lit_bone in zip(geo["minecraft:geometry"][0]["bones"], lit_geo["minecraft:geometry"][0]["bones"]):
     for base_cube, lit_cube in zip(base_bone["cubes"], lit_bone["cubes"]):
@@ -247,7 +278,7 @@ for base_bone, lit_bone in zip(geo["minecraft:geometry"][0]["bones"], lit_geo["m
             original = base_cube["uv"][name]
             region = regions[original.region]
             # The base atlas may store a region mirrored; the lit atlas never shares.
-            base, lit = l.placement(region.name), ll.placement(region.name)
+            base, lit = fl.placement(region.name), ll.placement(region.name)
             assert not (lit.flip_x or lit.flip_y)
             assert [abs(s) for s in face["uv_size"]] == [abs(s) for s in original["uv_size"]]
             u,v = face["uv"]
@@ -257,9 +288,9 @@ for base_bone, lit_bone in zip(geo["minecraft:geometry"][0]["bones"], lit_geo["m
                     lu, lv = x - lit.x, y - lit.y
                     bx = base.x + (region.width - 1 - lu if base.flip_x else lu)
                     by = base.y + (region.height - 1 - lv if base.flip_y else lv)
-                    source = (by*l.size[0]+bx)*4
+                    source = (by*fl.size[0]+bx)*4
                     target = (y*ll.size[0]+x)*4
-                    assert lp[target:target+4] == pixels[source:source+4]
+                    assert lp[target:target+4] == fp[source:source+4]
             count += 1
 assert count == len(ll._faces) and count > 0
 `);
@@ -311,12 +342,15 @@ assert faces[0]["uv_size"] == faces[1]["uv_size"]
   );
 });
 
-it("reduces scooter storage by a quarter of the original atlas area", () => {
-  const image = readRgbaPng(`${directory}scooter.png`);
-  // The unshared atlas occupied 2048 x 1951 texels; sharing whole regions
-  // alone reached only 2048 x 1920, because mirrored panels sit inside sheets.
-  expect([image.width, image.height]).toEqual([1754, 1696]);
-  expect(image.width * image.height).toBeLessThan(0.75 * 2048 * 1951);
+it("reduces decoded colour storage by separating fixed and paint atlases", () => {
+  const fixed = readRgbaPng(`${directory}scooter_fixed.png`);
+  const paint = readRgbaPng(`${directory}scooter_paint.png`);
+  expect([fixed.width, fixed.height]).toEqual([1024, 908]);
+  expect([paint.width, paint.height]).toEqual([1168, 1992]);
+  const before = 1754 * 1696 * 4 * 15;
+  const after =
+    (fixed.width * fixed.height + paint.width * paint.height * 15) * 4;
+  expect(after).toBeLessThan(before * 0.85);
 });
 
 it("stores mirrored panel tiles once inside the scooter sheets", async () => {
@@ -354,13 +388,15 @@ print(json.dumps({name:[len(values),len({v.slot for v in values})] for name,valu
 
 it("shares storage only within matching finishes and lit membership", () => {
   const slots = new Map<string, string>();
-  for (const region of metadata.regions) {
-    const slot = `${region.x},${region.y},${region.width},${region.height}`;
+  for (const region of [...metadata.regions, ...metadata.fixedRegions]) {
+    const slot = `${region.material === "paint"},${region.x},${region.y},${region.width},${region.height}`;
     const key = `${region.material},${metadata.lit.includes(region.name)}`;
     expect(slots.get(slot) ?? key).toBe(key);
     slots.set(slot, key);
   }
-  expect(slots.size).toBeLessThan(metadata.regions.length);
+  expect(slots.size).toBeLessThan(
+    metadata.regions.length + metadata.fixedRegions.length,
+  );
 });
 
 it("keeps capped preview samples unchanged when atlas regions move", async () => {
@@ -399,5 +435,33 @@ for local in (r.UvRect(0,0,8,8),r.UvRect(8,8,-8,-8)):
 `);
     }),
     { numRuns: 10 },
+  );
+});
+
+it("projects lit texel centres correctly across independently mirrored atlases", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.integer({ min: 1, max: 8 }),
+      fc.integer({ min: 1, max: 8 }),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      async (width, height, baseX, baseY, litX, litY) => {
+        await python.run(`${setup}
+p=load_tool("render_preview")
+w,h=${width},${height}
+bx,by,lx,ly=${baseX ? "True" : "False"},${baseY ? "True" : "False"},${litX ? "True" : "False"},${litY ? "True" : "False"}
+def geo(fx,fy):
+    face={"uv":[w if fx else 0,h if fy else 0],"uv_size":[-w if fx else w,-h if fy else h]}
+    return {"description":{"texture_width":w,"texture_height":h},"bones":[{"cubes":[{"uv":{"north":face}}]}]}
+texture=[[(x,y,42,255) for x in range(w)] for y in range(h)]
+projected=p.project_lit_texture(geo(bx,by),geo(lx,ly),texture)
+expected=[list(reversed(row)) if bx!=lx else row for row in (reversed(texture) if by!=ly else texture)]
+assert projected==expected
+`);
+      },
+    ),
+    { numRuns: 30 },
   );
 });

@@ -217,10 +217,12 @@ print(json.dumps(d.i2m(425,537)))
     async () => {
       await python.run(`${setup}
 g=load_tool('gen_scooter')
-first,layout,pixels,*_=g.build()
-second,other,again,*_=g.build()
-assert json.dumps(first)==json.dumps(second)
-assert layout.size==other.size and pixels==again
+first,second=g.build(),g.build()
+assert json.dumps(first.full_geometry)==json.dumps(second.full_geometry)
+for before,after in zip(first[1:],second[1:],strict=True):
+    assert json.dumps(before.geometry)==json.dumps(after.geometry)
+    assert before.layout.size==after.layout.size and before.pixels==after.pixels
+    assert len(before.layout._faces)==len(after.layout._faces)
 `);
     },
     GENERATOR_TIMEOUT_MS,

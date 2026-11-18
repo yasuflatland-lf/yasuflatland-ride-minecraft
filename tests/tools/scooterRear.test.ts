@@ -158,11 +158,11 @@ from tool_loader import load_tool
 g=load_tool('gen_scooter')
 r=load_tool('scooter_rear')
 t=load_tool('cube_tilt')
-geo,layout,pixels,*_=g.build()
+geo,layout,pixels=g.build().fixed
 ox,oy=layout.origin('plate_text')
 w,h=128,140
 plates=[c for b in geo['minecraft:geometry'][0]['bones'] for c in b['cubes']
-        if c['uv']['south']['uv']==[ox+w,oy]]
+        if c.get('uv',{}).get('south',{}).get('uv')==[ox+w,oy]]
 assert len(plates)==1
 cube=plates[0]
 # Bedrock model +x points left on screen when looking toward the front from behind.

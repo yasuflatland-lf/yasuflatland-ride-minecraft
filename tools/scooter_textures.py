@@ -135,16 +135,27 @@ def icon(x, y):
     return atlas.CLEAR if color is None else (*color, CHANNEL_MAX)
 
 
-def write(outputs, rp, layout, pixels, lit_layout, lit_pixels):
+def write(outputs, rp, fixed_layout, fixed_pixels, layout, pixels, lit_layout, lit_pixels):
     directory = rp / "textures/entity/yasu_ride"
+    # Packaging walks the whole pack, including generated outputs from earlier builds.
+    for name in ("scooter", *(f"scooter_{paint}" for paint in PAINTS)):
+        for suffix in (".png", "_mer.png", ".texture_set.json"):
+            obsolete = directory / (name + suffix)
+            if obsolete.exists():
+                if outputs.check:
+                    outputs.stale.append(f"{obsolete} (obsolete combined scooter atlas)")
+                else:
+                    obsolete.unlink()
+    texture_variants.write_variants(outputs, directory, "scooter_fixed", *fixed_layout.size,
+                                    [texture_variants.Variant("scooter_fixed", fixed_pixels, mer_bytes(fixed_layout))])
     width, height = layout.size
     material_pixels = mer_bytes(layout)
     variants = []
     for paint, color in PAINTS.items():
-        name = "scooter" if paint == "khaki" else f"scooter_{paint}"
+        name = "scooter_paint" if paint == "khaki" else f"scooter_paint_{paint}"
         color_pixels = pixels if color == atlas.PAINT_IVORY else recolor(layout, pixels, color)
         variants.append(texture_variants.Variant(name, color_pixels, material_pixels))
-    texture_variants.write_variants(outputs, directory, "scooter", width, height, variants)
+    paint_textures = texture_variants.write_variants(outputs, directory, "scooter_paint", width, height, variants)
     width, height = lit_layout.size
     mask = bytearray(width * height)
     for region in lit_layout.regions:
@@ -159,3 +170,4 @@ def write(outputs, rp, layout, pixels, lit_layout, lit_pixels):
         texture_io.texel_reader(width, lit_pixels), lambda x, y: mask[y * width + x],
         opaque_unlit_cutouts=True)
     outputs.png(rp / "textures/items/yasu_ride/scooter_item.png", ICON_SIZE, ICON_SIZE, icon)
+    return paint_textures

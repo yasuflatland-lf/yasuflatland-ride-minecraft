@@ -6,20 +6,20 @@ import {
   PAINT_VARIANT,
   paintEvent,
 } from "../../src/infrastructure/shared/dyes";
+import { defined } from "../support/defined";
 import { type Bone, turnedCorners } from "../support/geometry";
+import { loadScooterGeo } from "../tools/helpers/scooterGeo";
 
 const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const pixelsPerBlock = 16;
+const fullGeometry = loadScooterGeo();
 
 describe("scooter Behavior Pack geometry", () => {
   const entity = () =>
     read("packs/yasu_ride_bp/entities/yasu_ride/scooter.se.json")[
       "minecraft:entity"
     ];
-  const geometry = () =>
-    read("packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json")[
-      "minecraft:geometry"
-    ][0];
+  const geometry = () => fullGeometry;
 
   it("matches the profile seats and the model seat locator heights", () => {
     const rideable = entity().components["minecraft:rideable"];
@@ -30,8 +30,9 @@ describe("scooter Behavior Pack geometry", () => {
       SCOOTER_PROFILE.seats.positions.map(({ x, z }) => [x, z]),
     );
     for (const [index, seat] of seats.entries()) {
-      const bone = geometry().bones.find(
-        (bone: Bone) => bone.name === `seat_${index}`,
+      const bone = defined(
+        geometry().bones.find((bone: Bone) => bone.name === `seat_${index}`),
+        "seat",
       );
       expect(seat.position[1]).toBe(bone.pivot[1] / pixelsPerBlock);
     }
