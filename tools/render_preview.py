@@ -204,7 +204,7 @@ SCOOTER_POSES = {
     # Framed on the tail lamp alone, so it is rendered apart from the shared scale (see render_scooter).
     "scooter-taillights.png": {"lamps": True, "dusk": True, "view": (0.7, 0.2, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "frame_bones": ("tail_lights",), "frame_pad": 2.7},
     "scooter-underbody.png": {"lamps": False, "dusk": False, "view": (1.0, -0.45, -0.65), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-4.5, 2.5, 2.5), (4.5, 8.5, 12.5))},
-    "scooter-floor.png": {"lamps": False, "dusk": False, "view": (-1.0, 1.8, -0.5), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((0.5, 4.3, -5.3), (4.5, 6.5, 4.0))},
+    "scooter-floor.png": {"lamps": False, "dusk": False, "view": (-1.0, 1.8, -0.5), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((0.5, 4.3, -5.3), (4.5, 6.5, 4.9))},
     "scooter-wheel-front.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.2, -0.55), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-2.0, -0.3, -16.5), (2.0, 10.7, -7.0))},
 }
 

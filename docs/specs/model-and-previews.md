@@ -49,7 +49,7 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 ### Scooter README previews
 
 - Applies to: The eight `scooter-*.png` previews only.
-- Rule: `render_scooter` draws the default white paint. The front-left, side and rear views stay in the road pose with the hover glow bones left out, as the render controller hides them on the ground. Only `scooter-flying-headlights.png` uses the flying pose: `build_flight_pose` reads the wheel folds from `animation.yasu_ride.scooter.wheels_folded` into a `FlightPose` with `SCOOTER_FLIGHT_LIFT` (24.0 model pixels), and `static_pose` raises the stand. The wheels are folded, the `glow_*` discs are drawn, rounded pools of light lie on the ground, and the shadow is fainter (`FLIGHT_SHADOW_ALPHA`). The `headlights` and `tail_lights` are on at dusk. These four views reuse the bulldozer's camera directions. Flight has its own frame, fitted to the vehicle and glow pools without the headlight beam, so it does not rescale the road views. A fifth picture, `scooter-taillights.png`, stays in the road pose without hover glow bones and lights the lamps at dusk from the rear three-quarter and frames only the `tail_lights` bone with padding (`frame_bones`, `frame_pad`), so it is rendered apart from the shared scale. Three more close-ups show the low underbody from below at the front-right (`scooter-underbody.png`), the running board from above at the front-left (`scooter-floor.png`), and the front wheel from the front-left (`scooter-wheel-front.png`). They use white paint in the road pose without hover discs, with lamps off, daylight and `MAIN_BRIGHTNESS`. Their optional `frame_box = ((x0,y0,z0), (x1,y1,z1))` selects a region in Bedrock model coordinates before the renderer mirrors x, overriding whole-bone framing without hiding geometry. `frame_pad` can expand either frame. Each close-up renders separately, preserving the camera and scale of all five existing previews. Only the lit lens glows: the lit texture and MER mask follow the opaque texels of the head lens and tail lens regions, so no bezel, hood, plate or rectangular panel glows. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
+- Rule: `render_scooter` draws the default white paint. The front-left, side and rear views stay in the road pose with the hover glow bones left out, as the render controller hides them on the ground. Only `scooter-flying-headlights.png` uses the flying pose: `build_flight_pose` reads the wheel folds from `animation.yasu_ride.scooter.wheels_folded` into a `FlightPose` with `SCOOTER_FLIGHT_LIFT` (24.0 model pixels), and `static_pose` raises the stand. The wheels are folded, the `glow_*` discs are drawn, rounded pools of light lie on the ground, and the shadow is fainter (`FLIGHT_SHADOW_ALPHA`). The `headlights` and `tail_lights` are on at dusk. These four views reuse the bulldozer's camera directions. Flight has its own frame, fitted to the vehicle and glow pools without the headlight beam, so it does not rescale the road views. A fifth picture, `scooter-taillights.png`, stays in the road pose without hover glow bones and lights the lamps at dusk from the rear three-quarter and frames only the `tail_lights` bone with padding (`frame_bones`, `frame_pad`), so it is rendered apart from the shared scale. Three more close-ups show the low underbody from below at the front-right (`scooter-underbody.png`), the running board from above at the front-left (`scooter-floor.png`), and the front wheel from the front-left (`scooter-wheel-front.png`). They use white paint in the road pose without hover discs, with lamps off, daylight and `MAIN_BRIGHTNESS`. Their optional `frame_box = ((x0,y0,z0), (x1,y1,z1))` selects a region in Bedrock model coordinates before the renderer mirrors x, overriding whole-bone framing without hiding geometry. `frame_pad` can expand either frame. The floor frame extends to z = 4.9 to include the raised rear tab. Each close-up renders separately, preserving the camera and scale of all five existing previews. Only the lit lens glows: the lit texture and MER mask follow the opaque texels of the head lens and tail lens regions, so no bezel, hood, plate or rectangular panel glows. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Generate it with `tools/gen_scooter.py`"; [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
 - Implementation: `tools/render_preview.py` (`render_scooter`, `FlightPose`, `build_flight_pose`, `static_pose`, `SCOOTER_POSES`, `SCOOTER_FLIGHT_LIFT`, `SCOOTER_LIT_TEXTURE`, `scooter_glow_pools`, `ground_layers`, `Scene`, `SCENES`); `docs/images/scooter-front-left.png`; `docs/images/scooter-flying-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`; `docs/images/scooter-taillights.png`; `docs/images/scooter-underbody.png`; `docs/images/scooter-floor.png`; `docs/images/scooter-wheel-front.png`
@@ -108,26 +108,34 @@ Scooter previews merge adjacent texels and cap dense faces at 16 cells per model
 
 The body area replaces the body placeholder with the tail, cowls, frame cover,
 and deck and roll skins. The floor area (`tools/scooter_floor.py`) supplies the edge tubes, chrome rails,
-and rubber treads. `FLOOR_STRIPS` in `tools/scooter_dims.py` declares three composite strips per
-side at x = 1.0, 1.9 and 2.8 px, followed by the outer chrome edge at 3.7 px.
-Each strip is 0.28 px wide: a 0.18 px `body_tread` rubber core between two
-0.05 px `chrome` lips. The lips are 0.14 px high and the core is 0.10 px high,
-with its top recessed 0.035 px below the lip tops. The 0.62 px paint gaps
-remain exposed. Rear ends are staggered at z = 1.2, 2.4 and 2.7 px, with
-0.22 px chrome rivet caps. Only the innermost strips follow the shield with
-the existing 2.19 px rise and 0.6 px offset. The outer strips and edge curl
-forward 0.5 px and down 0.9 px; strip curls end in matching rivet caps.
-The 0.14 px outer edge drops 0.55 px at the rear into a squared 0.6 px tab.
-The lower side edge tube remains unchanged. Deck and roll skins, rider foot
-positions and seat locators are unchanged; no bones or paint regions are added.
+and rubber treads. `FLOOR_STRIPS` in `tools/scooter_dims.py` declares three matching composite strips per
+side at x = 1.2, 2.35 and 3.5 px, inside the outer chrome edge at 3.95 px.
+Each strip is 0.28 px wide: a 0.08 px `body_tread` rubber line between two
+0.10 px `chrome` lips. The lips rise 0.24 px from the deck; the rubber rises
+0.225 px, leaving a shallow 0.015 px recess. The 1.15 px centre spacing
+leaves 0.87 px painted gaps. All three parallel deck runs extend from
+z = -4.5 to 3.95 px with matching 0.22 px rivet caps at the rear.
+Including the 0.65 px front curl, they cover roughly 90% of the board length.
+Only the innermost strips continue up the shield with the existing 2.19 px
+rise and 0.6 px offset. The outer strips curl forward 0.65 px and upward
+0.50 px, with rivet caps at their tips. The 0.14 px outer edge follows the
+curl and a rear step rising 0.35 px over 0.2 px, then continuing to z = 4.6 px
+and returning across the board. Painted backing supports both raised ends.
+The lower edge follows a smooth route outside the roll; both edge trims use
+the uniform `body_edge` chrome region, avoiding a repeated gradient at every
+tube segment. Curve sampling doubles to eight steps. The existing deck and
+roll skins, rider foot positions and seat locators remain unchanged; no bones
+or paint regions are added. The lower centre tunnel narrows to a 0.95 px
+half-width at y = 5.6 and blends back to its existing width at y = 8.65,
+exposing the innermost rails without lifting them off the deck.
 `tests/tools/scooterBody.test.ts` checks narrow cores, chrome lips, paint gaps,
-recess, staggered caps, table counts and floor bounds. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
+recess, aligned caps, raised painted ends, uniform edge chrome and floor bounds. Their `body_cowl`, `body_tail`, `body_frame`, and `body_floor` assemblies
 own all compound body panels and trim.
 Body regions register idempotently before faces are constructed. Neighboring
 mask tiles each contribute one transparent texel, preserving a two-texel gap. Curved surfaces
 use broad alpha-cut panels, with seven slot rows only on the rider's right cowl,
 grey joint piping, and chrome floor rails and opening trim. The combined body and floor budget is
-1,187 cubes (1,005 for body and 182 for floor; currently 1,002 and 182); the production sampling reduces the spike's surface
+1,297 cubes (1,005 for body and 292 for floor; currently 986 and 292); the production sampling reduces the spike's surface
 and trim segments. Warped or concave quads split into convex triangle masks to
 preserve closure coverage. Material sheets keep the mask regions cheap to pack;
 the paint gradient spans the shell instead of restarting on each panel.
@@ -154,8 +162,8 @@ mirror glass, and chrome mirror backs.
 
 The whole-vehicle budget is the sum of `AREA_CUBE_ALLOCATION` in
 `tools/scooter_dims.py`; generation enforces each allocation and the
-6,000-cube ceiling. The current allocations total 3,757 cubes; the generated model
-has 3,728 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
+6,000-cube ceiling. The current allocations total 3,867 cubes; the generated model
+has 3,822 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
 within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome

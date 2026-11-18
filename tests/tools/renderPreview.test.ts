@@ -914,6 +914,16 @@ describe("scooter previews (ADR 0251)", () => {
     ]);
     expect(result.size).toEqual([800, 600]);
   });
+  it("includes the raised rear tab in the floor close-up frame", () => {
+    expect(
+      previewPython(`
+lo, hi = r.SCOOTER_POSES['scooter-floor.png']['frame_box']
+assert lo[2] < -5.15 and hi[2] > 4.6
+assert lo[1] < 5.32 and hi[1] > 5.94
+print(json.dumps(True))
+`),
+    ).toBe(true);
+  });
   it("frames a model-space box independently of bone bounds without removing geometry", () => {
     expect(
       previewPython(`

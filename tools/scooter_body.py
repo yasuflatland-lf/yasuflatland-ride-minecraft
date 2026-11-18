@@ -154,6 +154,11 @@ def _geometry():
         tunnel.append((p[2],p[1],D.BODY_FRAME_WIDTH+D.BODY_FRAME_FLARE*t**D.BODY_FRAME_FLARE_POWER,
                        D.BODY_FRAME_RISE+D.BODY_FRAME_RISE_GAIN*math.sin(t*math.pi/2)))
     tunnel.extend(TUNNEL_EXTENSION)
+    # The lower cover must leave the innermost floor rail exposed on the deck.
+    low, high = D.FLOOR_STRIPS["tunnel_blend_y"]
+    tunnel = [(z,y,min(w,D.FLOOR_STRIPS["tunnel_half_width"])
+               +(w-min(w,D.FLOOR_STRIPS["tunnel_half_width"]))*kit.clamp((y-low)/(high-low)),rise)
+              for z,y,w,rise in tunnel]
     cover = []
     for i,(z,y,w,rise) in enumerate(tunnel):
         prev,nxt = tunnel[max(0,i-1)],tunnel[min(len(tunnel)-1,i+1)]

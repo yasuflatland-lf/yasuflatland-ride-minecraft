@@ -16,10 +16,11 @@
 
 The running board has three narrow chrome-lipped rubber strips and an outer chrome edge on each side,
 with wide exposed paint bands between them. The dimension table in
-`tools/scooter_dims.py` owns the 0.28 px strip width, 0.9 px spacing, 0.035 px groove depth,
-staggered riveted ends, downward outer front curls and squared rear tab;
-the floor uses 182 cubes of its 182-cube allocation.
-The body deck, rider foot position and seat locators are unchanged. See
+`tools/scooter_dims.py` owns the 0.28 px strip width, 1.15 px spacing, 0.015 px groove depth,
+aligned riveted rear ends, upward outer front curls and a raised chrome-edged rear tab.
+All three deck runs share an 8.45 px length, with painted backing at both raised ends;
+the floor uses 292 cubes of its 292-cube allocation.
+The lower centre tunnel narrows to expose the inner rails. The body deck, rider foot position and seat locators are unchanged. See
 [Model conventions and rendered previews](model-and-previews.md) for dimensions.
 
 The eight scooter README previews include underbody, running-board and front-wheel close-ups; their framing is specified in [Scooter README previews](model-and-previews.md#scooter-readme-previews).

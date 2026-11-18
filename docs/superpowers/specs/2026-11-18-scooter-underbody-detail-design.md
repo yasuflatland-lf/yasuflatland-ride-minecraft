@@ -26,7 +26,7 @@ Four areas, built in this order, each reviewed on a rendered preview before the 
 
 ## Constraints
 
-- The cube count is no longer a design limit. After the floor-board detail, the model has 3,728 cubes against the summed `CUBE_BUDGET = 3757` and `CUBE_BUDGET_CEILING = 6000` in `tools/scooter_dims.py`. The floor uses 182 cubes of its 182-cube allocation; other area allocations stay unchanged. Keep these guards, with the current numbers recorded in `docs/specs/model-and-previews.md` and ADR 0251, and in the tests that read them.
+- The cube count is no longer a design limit. After the floor-board detail, the model has 3,822 cubes against the summed `CUBE_BUDGET = 3867` and `CUBE_BUDGET_CEILING = 6000` in `tools/scooter_dims.py`. The floor uses 292 cubes of its 292-cube allocation; other area allocations stay unchanged. Keep these guards, with the current numbers recorded in `docs/specs/model-and-previews.md` and ADR 0251, and in the tests that read them.
 - Follow AGENTS.md: generated pack files come from the generator (`pnpm model`), Resource Pack manifest version is bumped when tracked Resource Pack files change, the previews are regenerated and committed, and `pnpm model:check`, lint, typecheck and tests pass. Everything committed is in English.
 - The fold animation drops each wheel and hub; new wheel and hub detail must stay inside the existing fold and strut ancestry rules (`tests/packs/scooterModel.test.ts`).
 - Underbody parts that sit near the rear wheel must keep clear of the rear tyre and the fold drop.
@@ -73,15 +73,23 @@ Acceptance is "matches these photos in proportion and detail layout", judged on 
 
 ## Floor board revision (#1917)
 
-`FLOOR_STRIPS` in `tools/scooter_dims.py` declares three composite strips per
-side at x = 1.0, 1.9 and 2.8 px, followed by the outer chrome edge at 3.7 px.
-Each strip is 0.28 px wide: a 0.18 px `body_tread` rubber core between two
-0.05 px `chrome` lips. The lips are 0.14 px high and the core is 0.10 px high,
-with its top recessed 0.035 px below the lip tops. The 0.62 px paint gaps
-remain exposed. Rear ends are staggered at z = 1.2, 2.4 and 2.7 px, with
-0.22 px chrome rivet caps. Only the innermost strips follow the shield with
-the existing 2.19 px rise and 0.6 px offset. The outer strips and edge curl
-forward 0.5 px and down 0.9 px; strip curls end in matching rivet caps.
-The 0.14 px outer edge drops 0.55 px at the rear into a squared 0.6 px tab.
-The lower side edge tube remains unchanged. Deck and roll skins, rider foot
-positions and seat locators are unchanged; no bones or paint regions are added.
+`FLOOR_STRIPS` in `tools/scooter_dims.py` declares three matching composite strips per
+side at x = 1.2, 2.35 and 3.5 px, inside the outer chrome edge at 3.95 px.
+Each strip is 0.28 px wide: a 0.08 px `body_tread` rubber line between two
+0.10 px `chrome` lips. The lips rise 0.24 px from the deck; the rubber rises
+0.225 px, leaving a shallow 0.015 px recess. The 1.15 px centre spacing
+leaves 0.87 px painted gaps. All three parallel deck runs extend from
+z = -4.5 to 3.95 px with matching 0.22 px rivet caps at the rear.
+Including the 0.65 px front curl, they cover roughly 90% of the board length.
+Only the innermost strips continue up the shield with the existing 2.19 px
+rise and 0.6 px offset. The outer strips curl forward 0.65 px and upward
+0.50 px, with rivet caps at their tips. The 0.14 px outer edge follows the
+curl and a rear step rising 0.35 px over 0.2 px, then continuing to z = 4.6 px
+and returning across the board. Painted backing supports both raised ends.
+The lower edge follows a smooth route outside the roll; both edge trims use
+the uniform `body_edge` chrome region, avoiding a repeated gradient at every
+tube segment. Curve sampling doubles to eight steps. The existing deck and
+roll skins, rider foot positions and seat locators remain unchanged; no bones
+or paint regions are added. The lower centre tunnel narrows to a 0.95 px
+half-width at y = 5.6 and blends back to its existing width at y = 8.65,
+exposing the innermost rails without lifting them off the deck.

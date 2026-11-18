@@ -25,6 +25,7 @@ def build() -> kit.AreaCubes:
     front = layout["front_z"]
     edge = layout["edge_x"]
     chrome = atlas.faces("chrome")
+    edge_chrome = atlas.faces("body_edge")
     rubber = atlas.faces("body_tread")
     lip_height = layout["chrome_lip_height"]
     core_y = y + lip_height/2 - layout["groove_depth"] - layout["rubber_height"]/2
@@ -54,14 +55,14 @@ def build() -> kit.AreaCubes:
 
     def curl(x):
         return kit.spline(((x,y,front),
-                           (x,y-layout["front_curl_drop"]/3,front-layout["front_curl_length"]*.7),
-                           (x,y-layout["front_curl_drop"],front-layout["front_curl_length"])),
+                           (x,y+layout["front_curl_rise"]/3,front-layout["front_curl_length"]*.7),
+                           (x,y+layout["front_curl_rise"],front-layout["front_curl_length"])),
                           layout["curve_steps"]//2)
 
     for side in (-1,1):
         result.add(BONE,kit.tube([(side*x,ey,z) for x,ey,z in
                                  kit.spline(D.FLOOR_LOWER_EDGE,layout["curve_steps"])],
-                                 layout["lower_edge_size"],chrome,assembly="body_floor"))
+                                 layout["lower_edge_size"],edge_chrome,assembly="body_floor"))
         for index,(x,rear) in enumerate(zip(layout["x_centres"],layout["rear_z"])):
             x *= side
             if index == 0:
@@ -75,7 +76,18 @@ def build() -> kit.AreaCubes:
         rear = max(layout["rear_z"])
         tab_end = rear + layout["rear_tab_length"]
         edge_path = [*reversed(curl(side*edge)),(side*edge,y,rear),
-                     (side*edge,y-layout["rear_tab_drop"],rear),
-                     (side*edge,y-layout["rear_tab_drop"],tab_end)]
-        result.add(BONE,kit.tube(edge_path,layout["edge_size"],chrome,assembly="body_floor"))
+                     (side*edge,y+layout["rear_tab_rise"],rear+layout["rear_tab_run"]),
+                     (side*edge,y+layout["rear_tab_rise"],tab_end),
+                     (side*layout["panel_inner_x"],y+layout["rear_tab_rise"],tab_end)]
+        result.add(BONE,kit.tube(edge_path,layout["edge_size"],edge_chrome,assembly="body_floor"))
+        # The trim needs a painted backing above the existing flat deck at both ends.
+        front_profile = curl(side*edge)
+        rear_profile = [(side*edge,y,rear),
+                        (side*edge,y+layout["rear_tab_rise"],rear+layout["rear_tab_run"]),
+                        (side*edge,y+layout["rear_tab_rise"],tab_end)]
+        for profile in (front_profile,rear_profile):
+            rings = [[(side*layout["panel_inner_x"],py-lip_height/2,pz),
+                      (side*edge,py-lip_height/2,pz)] for _,py,pz in profile]
+            result.add(BONE,kit.skin(rings,layout["panel_thickness"],atlas.faces("paint"),
+                                    inside=(0,D.BODY_DECK_Y-1,front),assembly="body_floor"))
     return result
