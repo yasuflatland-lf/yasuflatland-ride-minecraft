@@ -4,10 +4,10 @@ import { NAMESPACE } from "../../shared/identifiers";
 import type { EntityIndex } from "./entityIndex";
 import {
   RIDER_POSE_ANIMATION_PREFIX,
-  RIDER_POSE_BLEND_OUT_TIME,
+  RIDER_POSE_CLEAR_BLEND_OUT_TIME,
   RIDER_POSE_CLEAR_EXPRESSION,
   RIDER_POSE_CONTROLLER,
-  RIDER_POSE_REFRESH_BLEND_OUT_TIME,
+  RIDER_POSE_PLAY_BLEND_OUT_TIME,
   RIDER_POSE_STOP_EXPRESSION,
 } from "./identifiers";
 
@@ -17,11 +17,14 @@ export class BedrockRiderPose implements RiderPose {
   constructor(private readonly index: EntityIndex) {}
 
   play(playerId: PlayerId, pose: string): void {
-    const blendOutTime =
-      this.lastPose.get(playerId) === pose
-        ? RIDER_POSE_REFRESH_BLEND_OUT_TIME
-        : RIDER_POSE_BLEND_OUT_TIME;
-    if (this.animate(playerId, pose, RIDER_POSE_STOP_EXPRESSION, blendOutTime))
+    if (
+      this.animate(
+        playerId,
+        pose,
+        RIDER_POSE_STOP_EXPRESSION,
+        RIDER_POSE_PLAY_BLEND_OUT_TIME,
+      )
+    )
       this.lastPose.set(playerId, pose);
   }
 
@@ -33,7 +36,7 @@ export class BedrockRiderPose implements RiderPose {
         playerId,
         pose,
         RIDER_POSE_CLEAR_EXPRESSION,
-        RIDER_POSE_BLEND_OUT_TIME,
+        RIDER_POSE_CLEAR_BLEND_OUT_TIME,
       );
   }
 
