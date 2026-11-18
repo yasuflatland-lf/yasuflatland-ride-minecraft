@@ -38,7 +38,7 @@ Add the kind `scooter`: entity `yasu_ride:scooter`, item `yasu_ride:scooter_item
 
 **Step probe.** The step-up probe lane offset is a per-kind value (`stepLaneOffset`, 0.25 blocks for the scooter), so a narrow body does not step up on blocks beside it.
 
-**Everything else is shared.** Paint, the headlight switch (headlight, tail light and amber lamp on one `yasu_ride:headlights` property), ramming, fleet limits, placement, and the engine and hover sounds use the existing mechanisms. The scooter engine plays its own recorded Vespa clips (`yasu_ride.scooter_engine_0..5`), idle at band 0 and revving slices ordered from low to high above it, with per-clip loop lengths and volumes owned by `tools/scooter_sound.py`. Hover sounds remain shared.
+**Everything else is shared.** Paint, the headlight switch (headlight, tail light and amber lamp on one `yasu_ride:headlights` property), ramming, fleet limits, placement, and the engine and hover sounds use the existing mechanisms. The scooter engine plays its own recorded Vespa clips (`yasu_ride.scooter_engine_0..5`), idle at band 0 and revving slices ordered from low to high above it, with animation cycle lengths, Ogg lengths, overlap and volumes owned by `tools/scooter_sound.py`. Rev animations repeat every 1.0 s and their raw clips last 1.05 s, without edge fades, to test the unverified sound restart-gap hypothesis. Consecutive instances overlap for 50 ms; reduced clip gain reserves headroom, but the relative overlap loudness bump remains a listening risk. Idle is unchanged. Hover sounds remain shared.
 
 ## Consequences
 
