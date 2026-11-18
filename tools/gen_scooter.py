@@ -39,7 +39,7 @@ ASSEMBLIES = {
     "body_cowl": {"owner": "scooter", "cubes": 594},
     "body_tail": {"owner": "scooter", "cubes": 216},
     "body_frame": {"owner": "scooter", "cubes": 148},
-    "body_floor": {"owner": "scooter", "cubes": 164},
+    "body_floor": {"owner": "scooter", "cubes": 226},
     "rear_seat": {"owner": "scooter", "cubes": 162},
     "rear_lamp": {"owner": "scooter", "cubes": 130},
     "rear_dome": {"owner": "scooter", "cubes": 48},

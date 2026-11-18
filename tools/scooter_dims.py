@@ -59,7 +59,7 @@ AREA_CUBE_ALLOCATION: dict[str, int] = {
     "stand": 15,
     "struts": 10,
     "body": 1005,
-    "floor": 125,
+    "floor": 182,
     "rear": 370,
     "engine": 320,
     "head": 510,
@@ -255,21 +255,34 @@ BODY_DECK_Y = 5.32
 BODY_ROLL_X = 3.8
 BODY_ROLL_INSIDE_X = 3.5
 BODY_ROLL_INSIDE_Y = 4.9
-BODY_FLOOR_EDGE_STEPS = 4
-BODY_FLOOR_EDGE_SIZE = .09
-BODY_RAIL_X = (-3.7,-2.8,-1.9,-1,1,1.9,2.8,3.7)
-BODY_RAIL_STEPS = 6
-BODY_RAIL_Y = 5.46
-BODY_RAIL_RISE = 2.19
-BODY_RAIL_SHIELD_OFFSET = .6
-BODY_RAIL_REAR = 2.7
-BODY_RAIL_FRONT = -4.5
-BODY_RAIL_SIZE = .11
-BODY_TREAD_HALF_WIDTH = .04
-BODY_TREAD_BOTTOM = 5.51
-BODY_TREAD_TOP = 5.55
-BODY_TREAD_FRONT = -4.65
-BODY_TREAD_REAR = 2.3
+# Per-side layout: three chrome-lipped rubber strips, then the outer chrome edge.
+FLOOR_STRIPS = {
+    "count": 3,
+    "x_centres": (1.0, 1.9, 2.8),
+    "edge_x": 3.7,
+    "rubber_width": .18,
+    "chrome_lip_width": .05,
+    "chrome_lip_height": .14,
+    "rubber_height": .10,
+    "chrome_y": 5.47,
+    "groove_depth": .035,
+    "front_z": -4.5,
+    "rear_z": (1.2, 2.4, 2.7),
+    "rivet_size": .22,
+    "edge_size": .14,
+    "rear_tab_drop": .55,
+    "front_curl_length": .5,
+    "front_curl_drop": .9,
+    "rear_tab_length": .6,
+    "curve_steps": 4,
+    "shield_steps": 6,
+    "shield_rise": 2.19,
+    "shield_offset": .6,
+    "lower_edge_size": .12,
+}
+FLOOR_LOWER_EDGE = ((4.3,4.4322,-4.0338),(4.02,4.48,-3.5),(4.08,4.56,-2.5),
+                    (4.08,4.56,0),(4.08,4.59,3),(3.94,4.95,3.7),(3.8,5.32,4))
+
 
 BODY_PANEL_WARP_LIMIT = .02
 BODY_PAINT_TEXELS = 256

@@ -35,6 +35,51 @@ assert 1.4<p[0]<5 and 4<p[1]<13 and 4<p[2]<19
     );
   });
 
+  it("gives each floor strip a narrow rubber core recessed between chrome lips", async () => {
+    await python.run(`${setup}
+f=load_tool('scooter_floor')
+d=f.D.FLOOR_STRIPS
+cubes=f.build()['body']
+for side in (-1,1):
+    for x in d['x_centres']:
+        core=next(c for c in cubes if c['uv']['up'].region=='body_tread'
+                  and abs(c['origin'][0]+c['size'][0]/2-side*x)<1e-9
+                  and abs(c['origin'][2]-d['front_z'])<1e-9)
+        assert core['size'][0]<0.25, 'Rubber belongs inside a narrow strip, not across the paint gap'
+        lips=[c for c in cubes if c['uv']['up'].region=='chrome'
+              and abs(c['origin'][2]-core['origin'][2])<1e-9
+              and abs(c['size'][2]-core['size'][2])<1e-9
+              and abs(c['origin'][0]+c['size'][0]/2-side*x)<0.2]
+        assert len(lips)==2
+        for lip in lips:
+            assert math.isclose(lip['origin'][1]+lip['size'][1]-core['origin'][1]-core['size'][1],d['groove_depth'])
+`);
+  });
+
+  it("keeps wide paint gaps, staggered capped ends and floor bounds in the dimension table", async () => {
+    await python.run(`${setup}
+f=load_tool('scooter_floor')
+d=f.D.FLOOR_STRIPS
+assert d['count']==len(d['x_centres'])==len(d['rear_z'])==3
+width=d['rubber_width']+2*d['chrome_lip_width']
+assert 0.25<=width<=0.3
+centres=(*d['x_centres'],d['edge_x'])
+for left,right in zip(centres,centres[1:]):
+    assert right-left-width>2*width
+assert d['rear_z'][0]<d['rear_z'][1]<=d['rear_z'][2]
+area=f.build()
+for side in (-1,1):
+    for x,z in zip(d['x_centres'],d['rear_z']):
+        assert any(c['uv']['up'].region=='chrome' and
+                   all(math.isclose(v,d['rivet_size']) for v in c['size']) and
+                   math.isclose(c['origin'][0]+c['size'][0]/2,side*x) and
+                   math.isclose(c['origin'][2]+c['size'][2]/2,z) for c in area['body'])
+for c in area['body']:
+    for px,py,pz in t.corners(c):
+        assert abs(px)<4.6 and 4.3<py<7.8 and -6.5<pz<4.2
+`);
+  });
+
   it("keeps cutout panels convex so their masks cannot discard closure patches", async () => {
     await python.run(`${setup}
 for cube,points,material in b._prepared()[0]:
