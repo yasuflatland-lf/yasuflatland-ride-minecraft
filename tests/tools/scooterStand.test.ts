@@ -46,3 +46,28 @@ assert 4.6 <= d.STAND_PIVOT[1] <= 5.0, d.STAND_PIVOT
 assert 3.5 <= d.STAND_PIVOT[2] <= 5.0, d.STAND_PIVOT
 `);
 });
+
+it("spreads the grounded legs beneath their mounts with a slight rearward slant", async () => {
+  await python.run(`import sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+s=load_tool('scooter_stand')
+d=load_tool('scooter_dims')
+t=load_tool('cube_tilt')
+assert 2.6 <= s.STAND_HALF_WIDTH <= 3.0
+assert 8 <= s.STAND_TILT_DEGREES <= 12
+assert d.STAND_PIVOT == (0, 5.0, 3.5)
+cubes=s.build()['stand']
+assert len(cubes) <= 70
+for sign in (-1, 1):
+    feet=[c for c in cubes if min(p[1] for p in t.corners(c)) < .1
+          and sign * sum(p[0] for p in t.corners(c)) > 0]
+    assert len(feet)==4
+    low=min(p[1] for c in feet for p in t.corners(c))
+    assert abs(low)<1e-9, low
+    center=sum(p[0] for c in feet for p in t.corners(c))/(len(feet)*8)
+    assert 2.6 <= abs(center) <= 3.0
+hinge=[p for c in cubes for p in t.corners(c) if p[1]>=4.7]
+assert max(abs(p[0]) for p in hinge) <= s.STAND_HALF_WIDTH + .4
+`);
+});

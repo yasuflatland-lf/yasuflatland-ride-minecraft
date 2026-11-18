@@ -16,7 +16,7 @@ HEADSET_Y = 17.9
 SEAT_Y = 16.1
 DRIVER_SEAT_Z = 3.5
 PASSENGER_SEAT_Z = 9.5
-STAND_PIVOT = (0, 4.8, 3.5)
+STAND_PIVOT = (0, 5.0, 3.5)
 FOLD_DEGREES = 90
 # Turned cube corners require a drop greater than 3.353244 px; round up to a quarter pixel.
 FOLD_DROP = 3.5

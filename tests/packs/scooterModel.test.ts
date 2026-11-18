@@ -240,7 +240,7 @@ print(json.dumps(deviations))
       ["glow_rear", "wheel_rear_fold", [0, 4.3, 11.8]],
       ["wheel_rear_strut", "body", [0, 4.3, 11.8]],
       ["wheel_rear_stem", "body", [0, 13.26, 11.8]],
-      ["stand", "body", [0, 4.8, 3.5]],
+      ["stand", "body", [0, 5.0, 3.5]],
       ["tail_lights", "body", [0, 0, 0]],
       ["seat_0", "body", [0, 16.1, 3.5]],
       ["seat_1", "body", [0, 16.1, 9.5]],
@@ -303,16 +303,17 @@ for strut in d.STRUT_BONES.values():
     const feet = boneCubes("stand").filter(
       (cube) => cubeBounds(cube)[0][1] < 0.1,
     );
-    expect(feet).toHaveLength(16);
+    expect(feet).toHaveLength(8);
     for (const sign of [-1, 1]) {
       const side = feet.filter((cube) => sign * cubeBounds(cube)[0][0] > 0);
-      expect(side).toHaveLength(8);
+      expect(side).toHaveLength(4);
       const lowest = Math.min(...side.map((cube) => cubeBounds(cube)[0][1]));
       expect(lowest).toBeCloseTo(0, 3);
       for (const cube of side) {
         const [min, max] = cubeBounds(cube);
         expect(min[1]).toBeGreaterThanOrEqual(-0.0005);
-        expect(max[1] - min[1]).toBeGreaterThan(1.2);
+        expect(max[1] - min[1]).toBeGreaterThan(0.5);
+        expect(max[1] - min[1]).toBeLessThan(0.8);
       }
     }
   });

@@ -106,15 +106,19 @@ Scooter previews merge adjacent texels and cap dense faces at 16 cells per model
 
 `tools/scooter_stand.py` builds the centre stand independently of the wheel and fork area.
 Its 68 cubes fit a 70-cube allocation, all on the existing `stand` bone and in
-`running_stand`. Eight rolled squares give each tube a round envelope. The straight
-0.95 px diameter legs tilt 20 degrees rearward from vertical, spaced 8.6 px apart.
-Their 1.2 px diameter rubber feet continue along the leg axes for 1.4 px; each
-foot's lowest rotated corner touches y 0 (within 0.0005 px after JSON rounding).
-A 0.95 px diameter cross bar joins the legs at y 1.8, above the rubber feet.
-A horizontal 0.6 px shaft passes through 1.4 px diameter lugs. L-shaped mounting
-brackets reach inward to the floor underside at y 5.29. The hinge is (0, 4.8, 3.5).
+`running_stand`. Four rolled squares give each tube a round envelope. The straight
+0.5 px diameter legs tilt 8 degrees rearward from vertical, spaced 5.2 px apart.
+Each leg uses five collinear sections so conservative fold bounds follow the tube
+past the exhaust. Their 0.75 px diameter rubber caps continue along the leg axes
+for 0.6 px; each foot's lowest rotated corner touches y 0 (within 0.0005 px after
+JSON rounding). The spread legs form a bridged U beneath the floor.
+A 0.55 px diameter lower bridge joins the legs at y 0.95, just above the caps.
+A horizontal 0.6 px hinge shaft reaches x +/-2.65 and passes through 0.6 px diameter
+lugs at the leg tops and floor mounts (x +/-2.6). L-shaped brackets reach inward to x +/-2.2
+and up to the floor underside at y 5.29. Their 0.2 px depth sits 0.1 px forward of
+the hinge to clear the engine during folding. The hinge is (0, 5.0, 3.5).
 The stand folds forward by -85 degrees about x to avoid the engine and rear tyre;
-the wide stance keeps the deployed legs outside the muffler and exhaust.
+the slight leg tilt keeps the deployed legs ahead of the muffler and exhaust.
 All dimensions remain in `STAND_*` constants, with no new paint region.
 `tests/tools/scooterStand.test.ts` checks cube bounds throughout the fold at
 five-degree intervals against the rear wheel and every engine cube, including the muffler and exhaust, with a
@@ -514,7 +518,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 ### Scooter flight geometry and generated animations
 
 - Applies to: The scooter generator and Resource Pack client entity.
-- Rule: `gen_scooter.py` writes the geometry, textures and `scooter.anim.json`. Only the wheel and hub bones drop and fold; the fender, fork and suspension remain on `steer`. Both fold bones drop 3.5 px before turning +90 degrees about game z, with the drop complete at 0.4 seconds of the one-second deployment. Retraction reverses those stages. Turned cube corners require a drop strictly greater than 3.353244 px to clear the lowest fixed corner at y 2.666652 px, excluding the stand. The stand rotates -85 degrees about its real hinge bar at (0, 4.8, 3.5), lifting both feet above y 1 px. `glow_front` and `glow_rear` are children of the corresponding fold bones. Each disc has 16 squares rotated about x, corner radius 4.3 px and depth 0.5 px, separated from the wheel's game +x outer face by 0.1 px. Its `hover_front` or `hover_rear` locator is centred on the outer face, which faces down after folding. The solid (80, 170, 255) glow region participates in both the legacy lit alpha mask and the emissive MER mask, following the [camper hover display](camper-hover-display.md) approach. Steering rotates about the measured 20.9-degree inclined axis using the game Euler convention of ADR 0166. Positive steering moves the front of the wheel left. Root roll is lean minus bank; wheel roll uses distance travelled and the tyre radius. The generated animations also provide the shared engine and hover sound loops and hover particles at the two disc locators.
+- Rule: `gen_scooter.py` writes the geometry, textures and `scooter.anim.json`. Only the wheel and hub bones drop and fold; the fender, fork and suspension remain on `steer`. Both fold bones drop 3.5 px before turning +90 degrees about game z, with the drop complete at 0.4 seconds of the one-second deployment. Retraction reverses those stages. Turned cube corners require a drop strictly greater than 3.353244 px to clear the lowest fixed corner at y 2.666652 px, excluding the stand. The stand rotates -85 degrees about its real hinge bar at (0, 5.0, 3.5), lifting both feet above y 1 px. `glow_front` and `glow_rear` are children of the corresponding fold bones. Each disc has 16 squares rotated about x, corner radius 4.3 px and depth 0.5 px, separated from the wheel's game +x outer face by 0.1 px. Its `hover_front` or `hover_rear` locator is centred on the outer face, which faces down after folding. The solid (80, 170, 255) glow region participates in both the legacy lit alpha mask and the emissive MER mask, following the [camper hover display](camper-hover-display.md) approach. Steering rotates about the measured 20.9-degree inclined axis using the game Euler convention of ADR 0166. Positive steering moves the front of the wheel left. Root roll is lean minus bank; wheel roll uses distance travelled and the tyre radius. The generated animations also provide the shared engine and hover sound loops and hover particles at the two disc locators.
 
   The client uses `entity_alphatest` for the alpha-cut body and steering plates and the shared 16-paint variant order. The form controller has only ground, deploy, hover and retract states, with the SUV's engine and hover sound gates and no submarine mode. The independent stand controller blends between the resting stand and `stand_up` over 0.3 seconds. The base render pass hides glow discs and lit lamps; the gear-gated emissive glow overlay draws only `glow_*`, followed by the headlights-gated lamp overlay. Hover particles use both disc locators; there is no exhaust particle binding. The server entity remains a later issue.
 
