@@ -11,6 +11,8 @@ from 1879 Hz over 2.0–4.25 s to 1598 Hz over 4.0–6.25 s. Overlapping
 post-drop windows retain the rising rev without including that fall.
 Idle uses the steady 4.0–6.25 s region rather than the full recording,
 keeping the output within the pack's 2–6 second duration contract.
+Offsets were refined after encoding to keep decoded endpoint jumps below
+local adjacent-sample differences and preserve centroid ordering.
 
 Normalize RMS to -21 dBFS + 0.2 dB per band: a 1 dB intended total rise.
 A -2 dBFS pre-encode peak ceiling leaves headroom for Vorbis overshoot.
@@ -36,11 +38,11 @@ class SliceSpec:
 
 SCOOTER_ENGINE_SLICES: tuple[SliceSpec, ...] = (
     SliceSpec("idle", 4.0, 2.0, 0.25),  # Idle: 2167 Hz centroid, -29.84 dBFS RMS.
-    SliceSpec("rev", 4.0, 2.0, 0.25),  # Low rev: 1598 Hz, -21.86 dBFS.
-    SliceSpec("rev", 5.0, 2.0, 0.25),  # Early rise: 1644 Hz, -21.85 dBFS.
-    SliceSpec("rev", 6.0, 2.0, 0.25),  # Middle rise: 1701 Hz, -21.98 dBFS.
-    SliceSpec("rev", 6.5, 2.0, 0.25),  # Upper rise: 1721 Hz, -21.81 dBFS.
-    SliceSpec("rev", 7.0, 2.0, 0.25),  # High rev: 1760 Hz, -21.88 dBFS.
+    SliceSpec("rev", 4.01, 2.0, 0.25),  # Low rev: 1594 Hz, -21.92 dBFS.
+    SliceSpec("rev", 5.01, 2.0, 0.25),  # Early rise: 1609 Hz, -21.87 dBFS.
+    SliceSpec("rev", 6.53, 2.0, 0.25),  # Middle rise: 1656 Hz, -21.93 dBFS.
+    SliceSpec("rev", 6.65, 2.0, 0.25),  # Upper rise: 1702 Hz, -21.86 dBFS.
+    SliceSpec("rev", 7.75, 2.0, 0.25),  # High rev: 1742 Hz, -21.78 dBFS.
 )
 
 RATE = 48000
