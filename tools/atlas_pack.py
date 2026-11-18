@@ -1,10 +1,21 @@
-"""Pure deterministic MaxRects packing in texels, without rotation."""
+"""Deterministic MaxRects packing in texels, without rotation."""
 
+import hashlib
+import json
 import math
+import os
 import random
+from contextlib import suppress
 from dataclasses import dataclass
 from enum import IntEnum
+from itertools import combinations
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import NamedTuple
+
+
+ROOT = Path(__file__).resolve().parents[1]
+PACK_CACHE_DIR = ROOT / ".cache/atlas-pack"
 
 
 class Size(NamedTuple):
@@ -101,6 +112,84 @@ PACK_RANDOM_ORDERS = 40
 PACK_ORDER_WEIGHT_RANGE = (0.65, 1.4)
 
 
+def cache_key(request: PackRequest) -> str:
+    inputs = {
+        "sizes": request.sizes,
+        "gutter": request.gutter,
+        "max_side": request.max_side,
+        "PACK_WIDTHS": PACK_WIDTHS,
+        "PACK_SEED": PACK_SEED,
+        "PACK_RANDOM_ORDERS": PACK_RANDOM_ORDERS,
+        "PACK_ORDER_WEIGHT_RANGE": PACK_ORDER_WEIGHT_RANGE,
+    }
+    digest = hashlib.sha256(json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    digest.update(Path(__file__).read_bytes())
+    return digest.hexdigest()
+
+
+def _is_int_pair(value) -> bool:
+    return isinstance(value, list) and len(value) == 2 and all(type(n) is int for n in value)
+
+
+def _read_cached(path: Path, request: PackRequest) -> PackResult | None:
+    try:
+        entry = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, RecursionError):
+        return None
+
+    if not isinstance(entry, dict):
+        return None
+    size, origins = entry.get("size"), entry.get("origins")
+    if not _is_int_pair(size) or not isinstance(origins, list) or len(origins) != len(request.sizes):
+        return None
+    w, h = size
+    if min(w, h) <= 0 or (request.max_side is not None and max(w, h) > request.max_side):
+        return None
+
+    bounds = Rect(0, 0, w + request.gutter, h + request.gutter)
+    placed = []
+    for origin, dimensions in zip(origins, request.sizes):
+        if not _is_int_pair(origin):
+            return None
+        rect = Rect(*origin, *dimensions)
+        if not bounds.contains(rect):
+            return None
+        placed.append(rect)
+    if any(a.overlaps(b) for a, b in combinations(placed, 2)):
+        return None
+    return PackResult((w, h), tuple((rect.x, rect.y) for rect in placed))
+
+
+def _write_cached(path: Path, result: PackResult) -> None:
+    temp_path = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as temp:
+            temp_path = Path(temp.name)
+            json.dump({"size": result.size, "origins": result.origins}, temp, separators=(",", ":"))
+        os.replace(temp_path, path)
+    except OSError:
+        if temp_path is not None:
+            with suppress(OSError):
+                temp_path.unlink(missing_ok=True)
+
+
+def search(request: PackRequest) -> PackResult:
+    if os.environ.get("YASU_ATLAS_PACK_CACHE") == "0":
+        return _search_uncached(request)
+    try:
+        key = cache_key(request)
+    except OSError:
+        return _search_uncached(request)
+
+    path = PACK_CACHE_DIR / f"{key}.json"
+    result = _read_cached(path, request)
+    if result is None:
+        result = _search_uncached(request)
+        _write_cached(path, result)
+    return result
+
+
 def attempt(sizes, width, height, order, mode: ScoreMode) -> dict[int, Rect] | None:
     free = FreeSpace(width, height)
     placed = {}
@@ -113,7 +202,7 @@ def attempt(sizes, width, height, order, mode: ScoreMode) -> dict[int, Rect] | N
     return placed
 
 
-def search(request: PackRequest) -> PackResult:
+def _search_uncached(request: PackRequest) -> PackResult:
     sizes, gutter, max_side = request.sizes, request.gutter, request.max_side
     orders = []
     for key in (lambda s: math.prod(s), max, lambda s: s[1], lambda s: s[0], sum):
