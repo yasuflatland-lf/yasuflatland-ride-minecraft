@@ -61,7 +61,7 @@ AREA_CUBE_ALLOCATION: dict[str, int] = {
     "body": 1005,
     "floor": 125,
     "rear": 370,
-    "engine": 390,
+    "engine": 430,
     "head": 510,
     "shield": 585,
     "glow": 35,

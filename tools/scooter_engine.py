@@ -18,7 +18,7 @@ PANEL_THICKNESS = 0.04
 CAST_COLOR = (179, 187, 183)
 FIN_COLOR = (38, 42, 42)
 STEEL_COLOR = (57, 60, 62)
-SEAM_COLOR = (94, 99, 101)
+SEAM_COLOR = (67, 71, 73)
 SURFACE_COLORS = {"engine_cast": CAST_COLOR, "engine_fin": FIN_COLOR,
                   "engine_steel": STEEL_COLOR, "engine_seam": SEAM_COLOR,
                   "chrome": CAST_COLOR}
@@ -28,35 +28,8 @@ MASK_COLUMNS = 8
 MASK_GUTTER = 2
 SHADE_BASE = 0.75
 SHADE_RANGE = 0.25
-CRANK = ((8.65, 4.02), (8.8, 4.62), (9.25, 4.85), (9.65, 4.81),
-         (9.82, 5.09), (10.22, 5.02), (10.48, 4.58), (11.1, 4.43),
-         (11.7, 4.54), (12.02, 4.35), (12.85, 4.28), (13.12, 3.9),
-         (12.91, 3.31), (12.51, 3.19), (12.31, 2.91), (11.92, 2.82),
-         (11.7, 3.16), (10.84, 3.39), (10.22, 3.23), (9.48, 3.32), (8.85, 3.61))
-CASE_CENTER = (11.0, 3.95)
-CASE_SCALE = (0.94, 0.87)
-CAST_RING_X = (0.6, 1.45, 1.97)
-CAST_FACE_X = (0.62, 1.98)
-BOSSES = ((12.15, 3.82, 0.44, 2.03), (12.15, 3.82, 0.16, 2.16),
-          (9.25, 4.15, 0.29, 2.03), (9.98, 4.88, 0.17, 1.93),
-          (11.98, 3.0, 0.18, 1.98), (12.2, 3.02, 0.14, 1.6))
-BOLT_CENTERS = ((9.05, 3.72), (10.1, 3.45), (12.62, 3.48), (12.8, 4.05))
-BOLT_RADIUS = 0.15
-BOLT_X = 2.03
-BOSS_THICKNESS = 0.16
-BOLT_SLOT_LO_X = 2.12
-BOLT_SLOT_HI_X = 2.19
-BOLT_SLOT_HALF = 0.045
-RIB_COUNT = 4
-RIB_START_Z = 8.95
-RIB_STEP_Z = 0.25
-RIB_X = 1.98
-RIB_Y = (3.68, 4.43)
-RIB_LEAN_Z = 0.18
-RIB_SIZE = 0.07
-DRAIN_BOX = ((0.5, 2.88, 11.8), (1.55, 3.14, 12.65))
 FAN_CENTER = (10.65, 5.25)
-FAN_RINGS = ((0.75, 1.5), (1.55, 1.48), (1.86, 1.4))
+FAN_RINGS = ((0.75, 1.32), (1.55, 1.35), (1.86, 1.4))
 FAN_SEGMENTS = 16
 FAN_BACK_X = 0.77
 FAN_FACE_X = 1.89
@@ -90,53 +63,45 @@ KICK_PAD = ((3.35, 4.84, 5.35), (4.35, 5.26, 6.03))
 KICK_ENDS = (((3.28, 4.82, 5.32), (3.39, 5.28, 6.06)),
              ((4.31, 4.82, 5.32), (4.42, 5.28, 6.06)))
 # The right-hand pan stays outside the road tyre and above the horizontal folded wheel.
-KIDNEY = ((2.65, 1.8), (3.2, 1.8), (3.85, 2.25), (4.2, 3.15),
-          (4.2, 8.4), (3.85, 9.35), (3.2, 9.85), (2.65, 9.85),
-          (1.8, 9.2), (1.65, 8.4), (1.65, 3.15), (1.95, 2.25))
-KIDNEY = tuple((2.9+(x-2.9)*0.7, z) for x, z in KIDNEY)
-PAN_CENTER = (2.9, 3.95, 6.0)
+KIDNEY = ((3.12, 4.95), (3.5, 4.9), (3.92, 5.9), (4.02, 7.0),
+          (3.94, 9.3), (3.65, 10.25), (3.15, 10.5), (2.72, 10.1),
+          (2.4, 9.1), (2.4, 6.5), (2.72, 5.4))
+KIDNEY = tuple((x, 7.7+(z-7.7)*0.94) for x, z in KIDNEY)
+PAN_CENTER = (3.2, 4.4, 7.7)
 PAN_SEGMENTS = 18
-PAN_RINGS = ((2.85, 0.7), (2.98, 0.85), (3.2, 0.96), (3.5, 1),
-             (4.6, 1), (4.9, 0.96), (5.12, 0.85), (5.25, 0.7))
-PAN_SEAM_Y = (4.07, 4.13)
+PAN_RINGS = ((3.8, 0.72), (3.88, 0.86), (4.04, 0.96), (4.55, 1),
+             (4.8, 1), (4.96, 0.94), (5.04, 0.78))
+PAN_SEAM_Y = (4.52, 4.58)
 PAN_SEAM_SCALE = 1.0
 PAN_SEAM_SIDE_SCALE = 1.02
-HEADER_POINTS = ((2.23, 6.02, 8.55), (2.85, 5.95, 8.35),
-                 (3.55, 5.78, 7.95), (3.65, 5.5, 7.55),
-                 (3.4, 5.08, 7.1))
+HEADER_POINTS = ((2.23, 6.02, 8.55), (3.45, 5.45, 8.15),
+                 (3.85, 5.4, 6.6), (3.75, 5.38, 5.95),
+                 (3.55, 5.16, 5.55), (3.35, 4.72, 5.38))
 HEADER_STEPS = 10
 PIPE_SIDES = 6
-PIPE_RADIUS = 0.18
+PIPE_RADIUS = 0.24
 JOINT_OFFSETS = (0.11, 0.33)
 JOINT_RADIUS = 0.29
-OUTLET_CENTER = (3.05, 4.0)
-OUTLET_Z = (9.25, 10.45)
-OUTLET_RADIUS = 0.18
-OUTLET_CAP_Z = 10.43
-MOUNTS = ((4.0, 6.05), (8.5, 6.35))
-MOUNT_X = (3.05, 3.23)
-MOUNT_HALF_Z = 0.25
-MOUNT_BOTTOM = 4.8
-MOUNT_FOOT_X = (2.55, 3.7)
-MOUNT_FOOT_Y = (4.8, 4.98)
-MOUNT_BOLT_LO = (3.24, 5.18)
-MOUNT_BOLT_HI = (3.43, 5.42)
-MOUNT_BOLT_HALF_Z = 0.12
-# Stepped end sections fill the rounded skin without square corners protruding.
-MUFFLER_SOLIDS = tuple(((2.9-half_width, low, front), (2.9+half_width, high, rear))
+OUTLET_CENTER = (3.05, 4.55)
+OUTLET_Z = (9.95, 10.5)
+OUTLET_RADIUS = 0.14
+OUTLET_CAP_Z = 10.48
+MOUNTS = ((5.9, 6.05), (7.7, 6.2), (9.4, 6.35))
+MOUNT_X = (3.1, 3.24)
+MOUNT_HALF_Z = 0.12
+MOUNT_BOTTOM = 4.9
+MOUNT_FOOT_X = (2.9, 3.6)
+MOUNT_FOOT_Y = (4.9, 5.04)
+MOUNT_BOLT_LO = (3.25, 5.4)
+MOUNT_BOLT_HI = (3.4, 5.58)
+MOUNT_BOLT_HALF_Z = 0.09
+# Short nested cores preserve solid thickness inside the tapered pressed skin.
+MUFFLER_SOLIDS = tuple(((3.2-half_width, low, front), (3.2+half_width, high, rear))
                       for half_width, low, high, front, rear in (
-                          (0.83, 3.5, 4.6, 2.9, 8.6),
-                          (0.72, 3.2, 4.9, 3.05, 8.5),
-                          (0.6, 3.0, 5.1, 3.4, 8.2),
-                          (0.48, 2.9, 5.2, 3.8, 7.8),
-                          (0.62, 3.55, 4.55, 2.3, 9.15),
-                          (0.4, 3.7, 4.4, 1.95, 9.5)))
-SWING_PATH = ((1.85, 5.5, 6.4), (1.85, 5.0, 7.4), (1.85, 4.45, 9.25),
-              (1.85, 4.3, 11.8))
-SWING_SIZE = 0.62
-SWING_RIB_PATH = tuple((x+0.36, y+0.1, z) for x, y, z in SWING_PATH)
-SWING_PIVOT = ((1.5, 5.05, 6.0), (2.45, 5.95, 6.8))
-SWING_BOLT = ((2.45, 5.28, 6.22), (2.65, 5.7, 6.6))
+                          (0.61, 4.05, 4.78, 6.1, 9.55),
+                          (0.48, 3.87, 4.96, 6.5, 9.25),
+                          (0.34, 3.77, 5.05, 6.9, 8.95),
+                          (0.3, 4.1, 4.65, 5.3, 10.0)))
 FAN_RIB_COUNT = 16
 FAN_RIB_X = FAN_FACE_X+CAST_OFFSET_X+0.045
 
@@ -163,11 +128,6 @@ def catmull_rom(points, steps, closed=False):
 def _circle(center, radius, segments=CIRCLE_SEGMENTS):
     return [(center[0]+radius*math.cos(math.tau*j/segments),
              center[1]+radius*math.sin(math.tau*j/segments)) for j in range(segments)]
-
-
-def _case_face():
-    return [tuple(c+(p-c)*s for p, c, s in zip(point, CASE_CENTER, CASE_SCALE))
-            for point in CRANK]
 
 
 def _pan_ring(y, scale):
@@ -205,11 +165,11 @@ def register_regions(registry):
             registry.register(atlas.Region(name, width, height, material, pixel))
     for name, color in (("engine_cast", CAST_COLOR), ("engine_fin", FIN_COLOR),
                         ("engine_steel", STEEL_COLOR), ("engine_seam", SEAM_COLOR)):
-        register(name, TEXELS, TEXELS, atlas.Material.CHROME,
+        register(name, TEXELS, TEXELS,
+                 atlas.Material.CHROME if name == "engine_cast" else atlas.Material.RUBBER,
                  _steel_pixel if name == "engine_steel" else _shade(color))
-    outlines = [("engine_case_back", CRANK, CAST_COLOR),
-                ("engine_case_face", _case_face(), CAST_COLOR),
-                ("engine_boss", _circle((0, 0), 1), CAST_COLOR),
+    outlines = [("engine_boss", _circle((0, 0), 1), CAST_COLOR),
+                ("engine_dark_boss", _circle((0, 0), 1), STEEL_COLOR),
                 ("engine_fan_back", _circle(FAN_CENTER, FAN_RINGS[0][1]), FIN_COLOR),
                 ("engine_outlet", _circle(OUTLET_CENTER, OUTLET_RADIUS), FIN_COLOR)]
     for index in (0, -1):
@@ -240,8 +200,9 @@ def _pipe_rings(points, radius):
 
 
 def _surfaces():
-    casting = [[(x+CAST_OFFSET_X, y, z) for z, y in outline]
-               for x, outline in zip(CAST_RING_X, (CRANK, CRANK, _case_face()))]
+    casting = [[(x, y, z) for z, y in _circle(FAN_CENTER, radius, 16)]
+               for x, radius in ((1.55, 1.15), (1.75, 1.36), (2.08, 1.36),
+                                 (2.08, 1.55), (2.4, 1.55))]
     fan = [[(x+CAST_OFFSET_X, y, z) for z, y in _circle(FAN_CENTER, r, FAN_SEGMENTS)]
            for x, r in FAN_RINGS]
     pan = [_pan_ring(y, scale) for y, scale in PAN_RINGS]
@@ -257,7 +218,7 @@ def _surfaces():
             ("engine_fan_patch", fan, "engine_fin", "engine_fan"),
             ("engine_pan_patch", pan, "engine_steel", "engine_muffler"),
             ("engine_seam_patch", seam, "engine_seam", "engine_muffler"),
-            ("engine_joint_patch", joint, "chrome", "engine_exhaust_pipe"),
+            ("engine_joint_patch", joint, "engine_fin", "engine_exhaust_pipe"),
             ("engine_outlet_patch", outlet, "engine_steel", "engine_muffler"))
 
 
@@ -342,20 +303,14 @@ def _part(assembly):
 def _casing():
     result, add, box = _part("engine_casing_detail")
     _surface_cubes(result, ("engine_casting",))
-    for x, outline, name in zip(CAST_FACE_X, (CRANK, _case_face()),
-                                ("engine_case_back", "engine_case_face")):
-        add(kit.profile_plate(outline, x+CAST_OFFSET_X, PANEL_THICKNESS, name))
-    for z, y, radius, x in (*BOSSES, *((z, y, BOLT_RADIUS, BOLT_X) for z, y in BOLT_CENTERS)):
-        add(kit.profile_plate(_circle((z, y), radius), x+CAST_OFFSET_X,
-                              BOSS_THICKNESS, "engine_boss"))
-    for z, y in BOLT_CENTERS:
-        box(((BOLT_SLOT_LO_X+CAST_OFFSET_X, y-BOLT_SLOT_HALF, z-BOLT_SLOT_HALF),
-             (BOLT_SLOT_HI_X+CAST_OFFSET_X, y+BOLT_SLOT_HALF, z+BOLT_SLOT_HALF)), "engine_fin")
-    for i in range(RIB_COUNT):
-        z = RIB_START_Z+i*RIB_STEP_Z
-        add(kit.tube(((RIB_X+CAST_OFFSET_X, RIB_Y[0], z),
-                      (RIB_X+CAST_OFFSET_X, RIB_Y[1], z+RIB_LEAN_Z)), RIB_SIZE, atlas.faces("engine_cast")))
-    box(tuple((x+CAST_OFFSET_X, y, z) for x, y, z in DRAIN_BOX), "engine_cast")
+    box(((1.65, 3.8, 11.05), (2.6, 4.55, 12.35)), "engine_steel")
+    for center, radius, x in (((11.8, 4.3), 0.46, 2.62),
+                              ((11.8, 4.3), 0.2, 2.82)):
+        add(kit.profile_plate(_circle(center, radius, 16), x, 0.14, "engine_dark_boss"))
+    # The cooling cowl rises ahead of the fan, where the short pan leaves it exposed.
+    for roll in (0, 45):
+        add(kit.tube(((1.8, 6.15, 9.55), (2.15, 6.6, 9.0)), 0.85,
+                     atlas.faces("engine_steel"), assembly="engine_casing_detail", roll=roll))
     return result
 
 
@@ -373,6 +328,10 @@ def _fan():
         points = [(FAN_RIB_X, FAN_CENTER[1]+r*math.sin(angle),
                    FAN_CENTER[0]+r*math.cos(angle)) for r in (0.48, 1.3)]
         add(kit.tube(points, 0.065, atlas.faces("engine_cast")))
+    for x in (2.32, 2.46, 2.6):
+        points = [(x, FAN_CENTER[1]+1.5*math.sin(math.tau*i/16),
+                   FAN_CENTER[0]+1.5*math.cos(math.tau*i/16)) for i in range(17)]
+        add(kit.tube(points, 0.08, atlas.faces("engine_fin")))
     return result
 
 
@@ -399,10 +358,10 @@ def _cylinder_fins():
 def _kick():
     result, add, box = _part("engine_kick")
     add(kit.tube(catmull_rom(KICK_POINTS, KICK_STEPS), KICK_SIZE,
-                 atlas.faces("chrome"), assembly="engine_kick"))
+                 atlas.faces("engine_steel"), assembly="engine_kick"))
     box(KICK_PAD, "rubber")
     for bounds in KICK_ENDS:
-        box(bounds, "chrome")
+        box(bounds, "engine_steel")
     return result
 
 
@@ -431,9 +390,12 @@ def _muffler():
         box(((MOUNT_X[0], MOUNT_BOTTOM, z-MOUNT_HALF_Z),
              (MOUNT_X[1], top, z+MOUNT_HALF_Z)), "engine_fin")
         box(((MOUNT_FOOT_X[0], MOUNT_FOOT_Y[0], z-MOUNT_HALF_Z),
-             (MOUNT_FOOT_X[1], MOUNT_FOOT_Y[1], z+MOUNT_HALF_Z)), "engine_cast")
+             (MOUNT_FOOT_X[1], MOUNT_FOOT_Y[1], z+MOUNT_HALF_Z)), "engine_steel")
         box(((*MOUNT_BOLT_LO, z-MOUNT_BOLT_HALF_Z),
-             (*MOUNT_BOLT_HI, z+MOUNT_BOLT_HALF_Z)), "engine_cast")
+             (*MOUNT_BOLT_HI, z+MOUNT_BOLT_HALF_Z)), "engine_steel")
+    # A separate outer shield and lower rib break up the pressed shell.
+    box(((3.94, 4.6, 6.4), (4.06, 4.86, 9.2)), "engine_seam")
+    box(((3.55, 3.74, 6.8), (3.7, 3.94, 9.05)), "engine_fin")
     return result
 
 
@@ -449,14 +411,14 @@ def _exhaust_pipe():
 
 def _swing_arm():
     result, add, box = _part("engine_swing_arm")
-    add(kit.tube(SWING_PATH, SWING_SIZE, atlas.faces("engine_cast"),
-                 assembly="engine_swing_arm"))
-    add(kit.tube(SWING_RIB_PATH, 0.12, atlas.faces("engine_seam"),
-                 assembly="engine_swing_arm"))
-    box(SWING_PIVOT, "engine_cast")
-    box(SWING_BOLT, "chrome")
-    for z, y in ((6.4, 5.5), (11.8, 4.3)):
-        add(kit.profile_plate(_circle((z, y), 0.29, 8), 2.3, 0.18, "engine_boss"))
+    box(((1.55, 3.9, 10.2), (2.48, 4.85, 12.2)), "engine_fin")
+    box(((1.7, 4.65, 9.65), (2.32, 5.12, 11.5)), "engine_steel")
+    for radius, x in ((0.48, 2.5), (0.22, 2.7)):
+        add(kit.profile_plate(_circle((11.8, 4.3), radius, 16), x, 0.15,
+                              "engine_dark_boss"))
+    for roll in (0, 45):
+        add(kit.tube(((2.0, 4.8, 11.4), (1.8, 6.5, 10.1)), 0.16,
+                     atlas.faces("engine_fin"), assembly="engine_swing_arm", roll=roll))
     return result
 
 

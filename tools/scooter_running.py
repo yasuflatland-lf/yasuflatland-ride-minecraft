@@ -174,7 +174,8 @@ def _wheel(result, side, axle_z, scale):
     hub = [[[HUB_SIDE * x, cy + radius * math.sin(2 * math.pi * i / HUB_SEGMENTS),
              axle_z + radius * math.cos(2 * math.pi * i / HUB_SEGMENTS)] for i in range(HUB_SEGMENTS + 1)]
            for x, radius in zip(HUB_RING_X, (cap, cap * HUB_TAPER))]
-    result.add(bone, kit.skin(hub, HUB_THICKNESS, atlas.faces("chrome"), [0, cy, axle_z], assembly=name))
+    result.add(bone, kit.skin(hub, HUB_THICKNESS, atlas.faces("chrome"), [0, cy, axle_z], assembly=name,
+                              tangent_frame=side == "rear"))
     result.add(bone, kit.profile_plate(_circle(cap * HUB_TAPER, (axle_z, cy)), HUB_SIDE * HUB_PLATE_X,
                                        CAP_THICKNESS, f"running_cap_{side}"))
 

@@ -126,28 +126,13 @@ The rear area supplies the seat, lamp housing, tail lens, and plate through
 24 texels per model unit and pack in descending height order so the combined
 atlas fits the 2048-texel side limit. The rear allocation is 370 cubes, of which 363 are used.
 
-The engine area supplies 384 cubes on `body` within a 390-cube allocation.
-The rider's right carries a long pressed-steel muffler below the rear floor,
-with solid thickness, rounded stepped ends, a thin middle seam lip following the shell outline without end overhang, a rear outlet stub,
-and two mounting brackets. A short solid-core S-bend exhaust pipe runs down and outward from the
-cylinder exhaust flange into the muffler's top at its engine-side rear third
-(z 7.1 px), with a chrome joint at the flange. It never runs forward of the
-muffler's middle or hooks back. The seam is 0.06 px high at y 4.1 px and uses
-the widest shell ring at length scale 1.0 and side scale 1.02 (less than
-0.02 px side offset), keeping both ends within the shell outline. Its body is about 8 px long and 2.4 px
-high; the 2.85 px bottom preserves folded-wheel clearance. The cast hub casing retains
-its ribs and bosses; a solid round disk backs the slotted fan cover and raised radial ribs.
-The tilted cylinder has seven cooling fins. A cast swing arm runs from a
-bracket and bolt under the floor to the rear hub, with an outer reinforcing rib.
-The existing floor area supplies the chrome rail; the engine adds no duplicate rail.
-All parts clear the road tyre, its vertical fold drop and the horizontal folded
-wheel, stay above y 0, and stay inside the existing non-mirror width.
+The engine area uses 419 cubes within a 430-cube allocation, all on `body`. A compact pressed-steel muffler sits behind the floor end on the rider's right, around z 4.8-10.6 and y 3.7-5.1 px. Its narrow front tapers into the inlet; the stepped lower edge, thin seam, outer heat shield, bottom rib, rear outlet and three mounting straps separate the parts. A thick round dark exhaust runs forward from the cylinder flange below the floor rail, then makes one tight downward bend ending inside the muffler's tapered front-top without reversing or wrapping around the nose. The straps, clamp, kick lever, bottom rib and lower step use dark matte finishes; only the shield step line is slightly lighter. The fan retains its solid backing disk, slots and raised radial fins, with a more exposed stepped cylindrical cast barrel and a pronounced dark outer fin ring behind it. A cooling cowl rises ahead of the fan; the lower dark casing carries a mount bolt boss. A compact dark cast swing block has a rear hub boss and one thin tubular bracket rising to the frame. The cylinder retains seven cooling fins. Existing engine finishes and bones are reused; floor rails remain in the floor area. All engine parts clear the rear tyre, its 3.5 px fold drop and the horizontal folded wheel, stay above y 0 and within the existing non-mirror width. The area allocations total 3,810 cubes; the generated model uses 3,766, below the unchanged 6,000-cube ceiling.
 Engine surface masks use 16 texels per model pixel to fit the shared atlas;
-the existing steel region carries subtle seam and heat shading.
-Its assemblies are `engine_casting` (42), `engine_casing_detail` (21),
-`engine_fan` (32), `engine_fan_detail` (19), `engine_cylinder_fins` (12),
-`engine_kick` (21), `engine_muffler` (167), `engine_exhaust_pipe` (60),
-and `engine_swing_arm` (10).
+the steel region carries subtle seam and heat shading.
+Its assemblies are `engine_casting` (64), `engine_casing_detail` (5),
+`engine_fan` (32), `engine_fan_detail` (67), `engine_cylinder_fins` (12),
+`engine_kick` (21), `engine_muffler` (152), `engine_exhaust_pipe` (60),
+and `engine_swing_arm` (6).
 
 The head area replaces the steering and headlight placeholders with 510 cubes: 437 on `steer` and 73 on `headlights`.
 Its collar, horn casting, bib, instrument bezel, lamp rim, controls, levers, and
@@ -158,8 +143,8 @@ mirror glass, and chrome mirror backs.
 
 The whole-vehicle budget is the sum of `AREA_CUBE_ALLOCATION` in
 `tools/scooter_dims.py`; generation enforces each allocation and the
-6,000-cube ceiling. The current allocations total 3,770 cubes; the generated model
-has 3,731 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
+6,000-cube ceiling. The current allocations total 3,810 cubes; the generated model
+has 3,766 cubes, including 32 glow cubes. The kind's entity and driving rules are in [Scooter](scooter.md).
 
 `tools/scooter_shield.py` contributes 582 cubes: 284 on `body` and 298 on `steer`,
 within a 585-cube allocation. The crowned shield, shoulder, side plates, chrome

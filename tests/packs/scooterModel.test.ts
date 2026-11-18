@@ -86,7 +86,7 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(3770);
+    expect(metadata.budget).toBe(3810);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });
@@ -104,9 +104,19 @@ assert solid, 'Muffler needs solid pressed-steel thickness'
 pan=[c for c in muffler if max(p[1] for p in t.corners(c))<5.4]
 points=[p for c in pan for p in t.corners(c)]
 assert min(p[0] for p in points)>d.TYRE_HALF_WIDTH, 'Muffler must be on the rider right before mirroring'
-assert 7.5<max(p[2] for p in points)-min(p[2] for p in points)<9.5
-assert 2.0<max(p[1] for p in points)-min(p[1] for p in points)<3.1
-assert min(p[1] for p in points)<3.1
+assert 5.5<max(p[2] for p in points)-min(p[2] for p in points)<6.1
+assert 4.7<min(p[2] for p in points)<5.1
+assert 10.3<max(p[2] for p in points)<10.8
+assert 1.3<max(p[1] for p in points)-min(p[1] for p in points)<1.6
+assert 3.6<min(p[1] for p in points)<3.8
+shell=e._pan_ring(4.55,1)
+front=[p for p in shell if p[2]<5.6]
+middle=[p for p in shell if 6.5<p[2]<9.0]
+assert max(p[0] for p in front)-min(p[0] for p in front)<0.95, 'Front inlet must be narrower than the main chamber'
+assert max(p[0] for p in middle)-min(p[0] for p in middle)>1.4
+assert min(p[2] for p in e._pan_ring(*e.PAN_RINGS[-1]))>min(p[2] for p in shell)+0.4, 'Upper shell must taper down toward the front'
+straps=[c for c in muffler if min(p[1] for p in t.corners(c))<5.1 and max(p[1] for p in t.corners(c))>5.8]
+assert 2<=len(straps)<=3, 'Muffler needs separate mounts to the floor underside'
 wheel=r.build()['wheel_rear']
 body=load_tool('scooter_body').build()['body']
 width=max(abs(p[0]) for c in body for p in t.corners(c))
@@ -127,6 +137,17 @@ for c in engine['body']:
 `);
   });
 
+  it("keeps rear hub panels within the circular boss instead of chrome shards", async () => {
+    await python.run(`${setup}
+import math
+r=load_tool('scooter_running')
+t=load_tool('cube_tilt')
+hub=r.build()['wheel_rear'][r.RING_SEGMENTS*7+1:-1]
+radius=r.CAP_RADIUS['rear']*r.REAR_WHEEL_SCALE
+assert max(math.hypot(p[1]-d.AXLE_Y,p[2]-d.REAR_AXLE_Z) for c in hub for p in t.corners(c))<radius+0.06, 'Rear hub panels overhang the circular boss'
+`);
+  });
+
   it("keeps the muffler seam against the shell without end overhang", async () => {
     await python.run(`${setup}
 e=load_tool('scooter_engine')
@@ -136,21 +157,33 @@ for ring in surfaces['engine_seam_patch']:
     for lip,skin in zip(ring,shell):
         assert abs(lip[0]-skin[0])<=0.05, 'Seam protrudes beyond the shell side'
         assert abs(lip[2]-skin[2])<0.001, 'Seam extends past the shell ends'
-    assert abs(ring[0][1]-4.1)<=0.05, 'Seam must remain a thin middle lip'
+    assert abs(ring[0][1]-4.55)<=0.05, 'Seam must remain a thin middle lip'
 `);
   });
 
-  it("routes a short exhaust from the cylinder flange into the engine-side muffler top", async () => {
+  it("routes the exhaust forward below the rail and down into the tapered front-top", async () => {
     await python.run(`${setup}
 import math
 e=load_tool('scooter_engine')
 path=e.catmull_rom(e.HEADER_POINTS,100)
 assert math.dist(path[0],(2.23,6.02,8.55))<0.2, 'Pipe misses the cylinder exhaust port'
-assert all(p[2]>=6.0 for p in path), 'Pipe extends beyond the muffler middle'
-assert all(b[2]<=a[2] for a,b in zip(path,path[1:])), 'Pipe loops back along the muffler'
+assert 5.3<min(p[2] for p in path)<5.5, 'Pipe must end inside the muffler nose'
+assert all(5.15<p[1]<5.8 for p in path[20:70]), 'Pipe must follow the floor underside before bending'
+assert all(b[2]<=a[2] for a,b in zip(path,path[1:])), 'Pipe must never curl back around the muffler nose'
+assert max(p[2] for p in path[80:])-min(p[2] for p in path[80:])<0.4, 'Inlet bend must stay at the front'
 end=path[-1]
-assert 6.5<=end[2]<=8.0 and 4.9<=end[1]<=5.25 and 2.5<=end[0]<=3.6, 'Pipe misses the engine-side top inlet'
-assert sum(math.dist(a,b) for a,b in zip(path,path[1:]))<3.5, 'Exhaust should be a short S-bend'
+assert 5.3<=end[2]<=5.5 and 4.4<=end[1]<=4.9 and 3.0<=end[0]<=3.8, 'Pipe misses the tapered front-top inlet'
+assert sum(math.dist(a,b) for a,b in zip(path,path[1:]))<6.0, 'Exhaust should follow a compact forward route'
+engine=e.build()
+for assembly in ('engine_muffler','engine_exhaust_pipe','engine_swing_arm','engine_kick'):
+    for cube in engine.assemblies[assembly]:
+        for face in cube['uv'].values():
+            region=e.atlas.REGISTRY._regions[face.region]
+            assert region.material != e.atlas.Material.CHROME, 'Dark engine parts must not render as chrome'
+            for u in range(region.width):
+                for v in range(region.height):
+                    pixel=region.pixel(u,v)
+                    assert not pixel[3] or max(pixel[:3])<110, 'Dark engine parts must not contain white strips'
 `);
   });
 
