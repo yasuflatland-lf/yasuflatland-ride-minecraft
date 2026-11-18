@@ -1642,7 +1642,18 @@ it("applies scooter poses for both turning riders and none for an SUV", () => {
       }),
       snapshot("suv", { riders: [riderView("suv-driver")] }),
     ];
+    const callStart = world.calls.length;
     uc.execute(tick);
+    const plays = world.calls
+      .slice(callStart)
+      .filter((c) => c.startsWith("play:"));
+    if (tick % 20 === 0) expect(plays).toHaveLength(2);
+    expect(plays.length).toBeLessThanOrEqual(2);
+    expect(plays.filter((c) => c.startsWith("play:driver:"))).toEqual(
+      plays
+        .filter((c) => c.startsWith("play:passenger:"))
+        .map((c) => c.replace("play:passenger:", "play:driver:")),
+    );
   }
   expect(world.calls).toContain("play:driver:scooter_grip");
   expect(world.calls).toContain("play:passenger:scooter_grip");

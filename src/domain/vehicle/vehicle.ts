@@ -359,7 +359,7 @@ export class Vehicle {
       riderPoses: this.profile.riderPose
         ? this.riderPoses.next(
             this.profile.riderPose,
-            riders.map((r) => r.id),
+            riders.map((r) => ({ id: r.id, slot: r.slot })),
             step.riderLean ?? 0,
             sensors.tick,
           )
