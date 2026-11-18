@@ -4,7 +4,7 @@ import math
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable
+from typing import Callable, Hashable
 
 
 @dataclass(frozen=True)
@@ -105,6 +105,8 @@ class Layout:
         self._placements = dict(placements)
         self._uvs = []
         self._faces = []
+        self._pixels = {}
+        self._shared = {}
 
     def placement(self, name) -> Placement:
         return self._placements[name]
@@ -188,7 +190,7 @@ def _attempt(sizes, width, height, order, mode):
     return placed
 
 
-def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = None) -> Layout:
+def _pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = None) -> Layout:
     if type(gutter_px) is not int or gutter_px < 0:
         raise ValueError("Gutter must be a nonnegative texel count")
     if max_side is not None and (type(max_side) is not int or max_side <= 0):
@@ -248,28 +250,79 @@ def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = No
     return layout
 
 
-def _texel_indices(region: Region, placement: Placement):
-    columns = []
-    rows = []
-    for u in range(region.width):
-        rect = UvRect(u, 0, 1, 1).to_atlas(placement, region.width, region.height)
-        columns.append(min(rect.u, rect.u + rect.w))
-    for v in range(region.height):
-        rect = UvRect(0, v, 1, 1).to_atlas(placement, region.width, region.height)
-        rows.append(min(rect.v, rect.v + rect.h))
-    return columns, rows
+def _pixel_rows(layout, region):
+    if region.name not in layout._pixels:
+        layout._pixels[region.name] = tuple(
+            bytes(channel for u in range(region.width) for channel in region.pixel(u, v))
+            for v in range(region.height))
+    return layout._pixels[region.name]
+
+
+def _oriented_rows(rows, flip_x, flip_y):
+    if flip_x:
+        rows = tuple(b''.join(row[u:u + 4] for u in range(len(row) - 4, -1, -4)) for row in rows)
+    return tuple(reversed(rows)) if flip_y else rows
+
+
+def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = None,
+         share_key: Callable[[Region], Hashable] | None = None) -> Layout:
+    if share_key is None:
+        return _pack(registry, gutter_px, max_side)
+    regions = sorted(registry.regions(), key=lambda r: r.name)
+    cache = Layout(regions, (0, 0), {})
+    representatives = RegionRegistry()
+    matches = {}
+    signatures = {}
+    for region in regions:
+        rows = _pixel_rows(cache, region)
+        key = (share_key(region), region.width, region.height)
+        match = signatures.get((key, rows))
+        if match is None:
+            representatives.register(region)
+            match = (region.name, False, False)
+            for fx, fy in ((False, False), (True, False), (False, True), (True, True)):
+                signatures.setdefault((key, _oriented_rows(rows, fx, fy)), (region.name, fx, fy))
+        matches[region.name] = match
+    # Heuristic packing is not monotonic when rectangles are removed. Keeping
+    # the old representative slots is always a valid upper bound on area.
+    try:
+        plain = _pack(registry, gutter_px, max_side)
+    except ValueError:
+        plain = None
+    try:
+        packed = _pack(representatives, gutter_px, max_side)
+    except ValueError:
+        if plain is None:
+            raise
+        packed = plain
+    if plain is not None and math.prod(plain.size) < math.prod(packed.size):
+        packed = plain
+    placements = {}
+    for region in regions:
+        representative, fx, fy = matches[region.name]
+        p = packed.placement(representative)
+        placements[region.name] = Placement(p.x, p.y, fx, fy)
+    layout = Layout(regions, packed.size, placements)
+    layout._pixels = cache._pixels
+    layout._shared = {name: match[0] for name, match in matches.items()}
+    registry._layout = layout
+    return layout
 
 
 def render_atlas(layout: Layout) -> bytes:
     width, height = layout.size
     pixels = bytearray(width * height * 4)
+    written = set()
     for region in layout.regions:
-        placement = layout.placement(region.name)
-        columns, rows = _texel_indices(region, placement)
-        for v in range(region.height):
-            for u in range(region.width):
-                offset = (rows[v] * width + columns[u]) * 4
-                pixels[offset:offset + 4] = bytes(region.pixel(u, v))
+        p = layout.placement(region.name)
+        slot = (p.x, p.y, region.width, region.height)
+        if slot in written:
+            continue
+        written.add(slot)
+        rows = _oriented_rows(_pixel_rows(layout, region), p.flip_x, p.flip_y)
+        for v, row in enumerate(rows):
+            start = ((p.y + v) * width + p.x) * 4
+            pixels[start:start + len(row)] = row
     return bytes(pixels)
 
 
@@ -280,29 +333,34 @@ def audit(layout: Layout, atlas) -> list[str]:
     if len(pixels) != width * height * 4:
         errors.append("Atlas RGBA byte length does not match layout")
     rectangles = []
+    oriented = {}
     for region in layout.regions:
         placement = layout.placement(region.name)
-        columns, rows = _texel_indices(region, placement)
         x, y = placement.x, placement.y
         rect = (x, y, region.width, region.height)
         if x < 0 or y < 0 or x + region.width > width or y + region.height > height:
             errors.append(f"{region.name}: outside atlas")
         for name, other in rectangles:
-            if _overlap(rect, other):
+            shared = layout._shared.get(region.name, region.name) == layout._shared.get(name, name)
+            if _overlap(rect, other) and not (rect == other and shared):
                 errors.append(f"{region.name}: overlaps {name}")
         rectangles.append((region.name, rect))
-        mismatch = False
-        for v in range(region.height):
-            for u in range(region.width):
-                offset = (rows[v] * width + columns[u]) * 4
-                if pixels[offset:offset + 4] != bytes(region.pixel(u, v)):
-                    errors.append(f"{region.name}: pixel mismatch at ({u}, {v})")
-                    mismatch = True
-                    break
-            if mismatch:
+        expected = _oriented_rows(_pixel_rows(layout, region), placement.flip_x, placement.flip_y)
+        oriented[region.name] = expected
+        for v, row in enumerate(expected):
+            offset = ((y + v) * width + x) * 4
+            actual = pixels[offset:offset + len(row)]
+            if actual != row:
+                local_v = region.height - 1 - v if placement.flip_y else v
+                for u in range(region.width):
+                    local_u = region.width - 1 - u if placement.flip_x else u
+                    if actual[u * 4:u * 4 + 4] != row[u * 4:u * 4 + 4]:
+                        errors.append(f"{region.name}: pixel mismatch at ({local_u}, {local_v})")
+                        break
                 break
     points = list(layout._uvs)
     by_name = {r.name: r for r in layout.regions}
+    checked_faces = set()
     for name, face in layout._faces:
         placement = layout.placement(name)
         region = by_name[name]
@@ -310,6 +368,30 @@ def audit(layout: Layout, atlas) -> list[str]:
         local = UvRect(rect.u - placement.x, rect.v - placement.y, rect.w, rect.h).to_atlas(
             Placement(0, 0, placement.flip_x, placement.flip_y), region.width, region.height)
         points.extend(((name, (local.u, local.v)), (name, (local.u + local.w, local.v + local.h))))
+        if (name, rect) in checked_faces:
+            continue
+        checked_faces.add((name, rect))
+        endpoints = (local.u, local.v, local.u + local.w, local.v + local.h)
+        if not all(math.isfinite(n) for n in endpoints):
+            continue
+        if not (0 <= round(min(endpoints[0::2]), 6) <= round(max(endpoints[0::2]), 6) <= region.width
+                and 0 <= round(min(endpoints[1::2]), 6) <= round(max(endpoints[1::2]), 6) <= region.height):
+            continue
+        # Include intersected texel cells for fractional and reversed rectangles;
+        # a collapsed axis samples one cell, clamped at the outer region edge.
+        u0 = min(region.width - 1, max(0, math.floor(round(min(local.u, local.u + local.w), 6))))
+        u1 = min(region.width, max(u0 + 1, math.ceil(round(max(local.u, local.u + local.w), 6))))
+        v0 = min(region.height - 1, max(0, math.floor(round(min(local.v, local.v + local.h), 6))))
+        v1 = min(region.height, max(v0 + 1, math.ceil(round(max(local.v, local.v + local.h), 6))))
+        x0, x1 = (region.width - u1, region.width - u0) if placement.flip_x else (u0, u1)
+        y0, y1 = (region.height - v1, region.height - v0) if placement.flip_y else (v0, v1)
+        sample_x = math.floor(rect.u) if rect.w == 0 else placement.x + x0
+        sample_y = math.floor(rect.v) if rect.h == 0 else placement.y + y0
+        for row_index in range(y0, y1):
+            start = ((sample_y + row_index - y0) * width + sample_x) * 4
+            if pixels[start:start + (x1 - x0) * 4] != oriented[name][row_index][x0 * 4:x1 * 4]:
+                errors.append(f"{name}: face pixel mismatch")
+                break
     for name, (u, v) in points:
         region = by_name[name]
         # Face UVs are stored as origin + offset, so subtracting the origin

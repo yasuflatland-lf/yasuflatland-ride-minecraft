@@ -349,3 +349,107 @@ assert not any(hasattr(wrapper,name) for name in ('Region','Placement','UvRect',
     { uv: [2, 8], uv_size: [4, -3] },
   ]);
 });
+
+it("shares equal keyed pixels under every mirror and audits signed fractional faces", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.array(
+        fc.tuple(
+          fc.integer({ min: 2, max: 12 }),
+          fc.integer({ min: 2, max: 12 }),
+          fc.integer({ min: 0, max: 255 }),
+        ),
+        { minLength: 1, maxLength: 5 },
+      ),
+      fc.integer({ min: 0, max: 3 }),
+      async (entries, gutter) => {
+        expect(
+          await run(
+            `r = m.RegionRegistry()
+entries = ${JSON.stringify(entries)}
+for i,(w,h,seed) in enumerate(entries):
+    for j,(fx,fy) in enumerate(((False,False),(True,False),(False,True),(True,True),(False,False))):
+        material = M.METAL if j == 4 else M.WOOD
+        r.register(m.Region(f'{i}_{j}',w,h,material,lambda u,v,w=w,h=h,fx=fx,fy=fy,seed=seed: ((w-1-u if fx else u),(h-1-v if fy else v),seed,255)))
+plain = m.pack(r,${gutter})
+explicit = m.pack(r,${gutter},share_key=None)
+assert plain.size == explicit.size and plain._placements == explicit._placements
+shared = m.pack(r,${gutter},share_key=lambda region: region.material)
+assert shared.size[0]*shared.size[1] <= plain.size[0]*plain.size[1]
+for i in range(len(entries)):
+    p = shared.placement(f'{i}_0')
+    assert not p.flip_x and not p.flip_y
+    for j,(fx,fy) in enumerate(((False,False),(True,False),(False,True),(True,True))):
+        assert shared.placement(f'{i}_{j}') == m.Placement(p.x,p.y,fx,fy)
+for region in shared.regions:
+    p = shared.placement(region.name)
+    for other in shared.regions:
+        q = shared.placement(other.name)
+        if region.material != other.material: assert (p.x,p.y) != (q.x,q.y)
+    for local in (m.UvRect(0,0,region.width,region.height),m.UvRect(region.width-.25,region.height-.25,.5-region.width,.5-region.height),m.UvRect(.5,.5,0,0)):
+        face = {}
+        local.to_atlas(p,region.width,region.height).apply(face)
+        shared.bind_face(region.name,face)
+assert shared.face_region(dict(shared._faces[0][1])) == shared.regions[0].name`,
+            "m.audit(shared,m.render_atlas(shared))",
+          ),
+        ).toEqual([]);
+      },
+    ),
+    { numRuns: 20 },
+  );
+});
+
+it("detects corrupted shared orientation and texels sampled by a bound face", async () => {
+  expect(
+    await run(
+      `r = m.RegionRegistry()
+for name,fx in (('a',False),('b',True)):
+    r.register(m.Region(name,4,3,M.WOOD,lambda u,v,fx=fx: (3-u if fx else u,v,0,255)))
+l = m.pack(r,share_key=lambda region: region.material)
+pixels = bytearray(m.render_atlas(l))
+p = l.placement('b')
+face = {}
+m.UvRect(0,0,4,3).to_atlas(p,4,3).apply(face)
+l.bind_face('b',face)
+pixels[(p.y*l.size[0]+p.x)*4] ^= 1
+corrupt = m.audit(l,pixels)
+l._placements['b'] = m.Placement(p.x,p.y)
+wrong = m.audit(l,m.render_atlas(l))`,
+      "[any('face pixel mismatch' in e for e in corrupt),any('b: pixel mismatch' in e for e in wrong)]",
+    ),
+  ).toEqual([true, true]);
+});
+
+it("renders each shared region once and fits when the unshared registry cannot", async () => {
+  expect(
+    await run(
+      `r = m.RegionRegistry()
+calls = []
+def pixel(u,v):
+    calls.append((u,v))
+    return (u,v,0,255)
+for name in ('b','a'): r.register(m.Region(name,4,3,M.WOOD,pixel))
+l = m.pack(r,gutter_px=0,max_side=4,share_key=lambda region: region.material)
+pixels = m.render_atlas(l)
+assert not m.audit(l,pixels)
+assert not m.audit(l,m.render_atlas(l))`,
+      "[len(calls),l.size,l.placement('a')==l.placement('b'),l.regions[0].name]",
+    ),
+  ).toEqual([24, [4, 3], true, "a"]);
+});
+
+it("audits actual boundary samples on collapsed mirrored face axes", async () => {
+  expect(
+    await run(
+      `r = m.RegionRegistry()
+for name,fx in (('a',False),('b',True)):
+    r.register(m.Region(name,4,3,M.WOOD,lambda u,v,fx=fx:(3-u if fx else u,v,0,255)))
+l=m.pack(r,share_key=lambda region: region.material)
+face={}
+m.UvRect(1,1,0,1).to_atlas(l.placement('b'),4,3).apply(face)
+l.bind_face('b',face)`,
+      "m.audit(l,m.render_atlas(l))",
+    ),
+  ).toEqual(["b: face pixel mismatch"]);
+});
