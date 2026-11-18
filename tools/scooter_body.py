@@ -183,8 +183,12 @@ def _geometry():
         skin(rings,"body_tail",lambda k,j:(0,rings[k][0][1],rings[k][0][2]))
         tube([(side*(r[-1][0]+D.BODY_EDGE_OFFSET),r[-1][1],r[-1][2])
               for r in cover[:len(frame_ys)]],D.BODY_FRAME_EDGE_SIZE,"body_edge","body_frame")
+        tube([ring[0] for ring in rings],D.BODY_BEAD_SIZE,"paint","body_bead")
+        tube(list(rings[0]),D.BODY_BEAD_SIZE,"paint","body_bead")
+        tube(list(rings[-1]),D.BODY_BEAD_SIZE,"paint","body_bead")
     back = [[a[0],b[0]] for a,b in zip(*walls)]
     skin(back,"body_tail",lambda k,j:(0,back[k][0][1],back[k][0][2]-1))
+    tube([walls[0][0][0],walls[1][0][0]],D.BODY_BEAD_SIZE,"paint","body_bead")
     top = list(zip(walls[0][0],walls[1][0]))
     skin(top,"body_tail",lambda k,j:D.BODY_TAIL_INSIDE)
 

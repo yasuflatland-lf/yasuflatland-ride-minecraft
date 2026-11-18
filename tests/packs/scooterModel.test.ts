@@ -25,7 +25,7 @@ const AREAS: readonly AreaRow[] = [
   { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_pedal"] },
   { area: "stand", bones: ["stand"], assemblies: ["running_stand"] },
   { area: "struts", bones: ["steer", "body", "wheel_front_strut", "wheel_rear_strut", "wheel_rear_stem"], assemblies: [] },
-  { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"] },
+  { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor", "body_bead"] },
   { area: "floor", bones: ["body"], assemblies: ["body_floor"] },
   { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"] },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"] },
@@ -86,7 +86,7 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(5617);
+    expect(metadata.budget).toBe(5667);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });

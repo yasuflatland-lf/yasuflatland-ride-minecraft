@@ -62,7 +62,7 @@ AREA_CUBE_ALLOCATION: dict[str, int] = {
     "running": 2587,
     "stand": 15,
     "struts": 10,
-    "body": 1005,
+    "body": 1055,
     "floor": 125,
     "rear": 370,
     "engine": 320,
@@ -195,6 +195,8 @@ BODY_FRAME_RISE = .3
 BODY_FRAME_RISE_GAIN = .43
 BODY_FRAME_EDGE_SIZE = .055
 BODY_EDGE_OFFSET = .025
+# Paint bead along the rear and top rims of the tail; it hides the stepped edge of the cut-out panels.
+BODY_BEAD_SIZE = 0.5
 BODY_SEAT_MIN = 165.05
 BODY_SEAT_MAX = 396.95
 BODY_SADDLE_OVERHANG = .1

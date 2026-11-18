@@ -66,6 +66,10 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   `scooter_kit.py` builds panels and tubes in the spike frame, then mirrors their x
   coordinates and rotations into Bedrock coordinates without replacing cube objects.
   Compound rotations require named assemblies under ADR 0167.
+  Paint beads (0.5 px square tubes with paint faces) hide the stepped silhouette of the cut-out
+  panels along the rims: `shield_bead` (58 cubes) follows both lower lips and both end arches of the
+  front fender, and `body_bead` (49 cubes) follows the rear corners, the top rim and the lower rim
+  of each tail wall and the rear top edge. The `shield` and `body` area allocations hold them.
   The rear saddle uses thin, planar triangular panels with alpha-cut outlines in one
   leather region; cube bounding rectangles and panel margins must not extend its visible
   silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
