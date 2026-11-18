@@ -85,10 +85,14 @@ describe("texture variants writer", () => {
         }
         const colors = new Set(keeperOfPair.values());
         const mers = new Set(Object.values(result.merOf));
-        // A texture set exists exactly for each stored colour name.
-        expect(Object.keys(result.sets).sort()).toEqual([...colors].sort());
-        for (const color of colors) {
+        // A texture set exists exactly for each stored colour that has a MER,
+        // and it points at that MER's stored file.
+        const withMer = [...colors].filter((color) => color in result.merOf);
+        expect(Object.keys(result.sets).sort()).toEqual(withMer.sort());
+        for (const color of withMer) {
           expect(result.sets[color]?.color).toBe(color);
+          expect(result.sets[color]?.mer).toBe(result.merOf[color]);
+          expect(result.files[result.sets[color]?.mer as string]).toBeDefined();
         }
         // Every stored file is listed once and no two stored files of a role share content.
         expect(new Set(result.stored).size).toBe(result.stored.length);
@@ -111,6 +115,15 @@ describe("texture variants writer", () => {
     ]);
     expect(result.colorOf).toEqual({ a: "a", b: "a", c: "c" });
     expect(Object.keys(result.sets).sort()).toEqual(["a", "c"]);
+  });
+
+  it("writes no texture set for variants without a MER", async () => {
+    const result = await run([
+      { name: "a", color: "01000000", mer: null },
+      { name: "b", color: "02000000", mer: null },
+    ]);
+    expect(result.sets).toEqual({});
+    expect(result.stored).toEqual(["a", "b"]);
   });
 
   it("stores one kind_mer file when every variant has the same MER", async () => {

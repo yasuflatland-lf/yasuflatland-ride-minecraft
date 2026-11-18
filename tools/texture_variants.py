@@ -47,7 +47,7 @@ def write_variants(outputs, directory: Path, kind: str, width: int, height: int,
     color_by_pair: dict[tuple[bytes, bytes | None], str] = {}
     mer_by_content: dict[bytes, str] = {}
     written: list[str] = []
-    sets: list[tuple[str, str | None]] = []
+    sets: list[tuple[str, str]] = []
 
     def store(name: str, data: bytes) -> None:
         outputs.rgba(directory / f"{name}.png", width, height, data)
@@ -64,7 +64,9 @@ def write_variants(outputs, directory: Path, kind: str, width: int, height: int,
         if pair not in color_by_pair:
             color_by_pair[pair] = variant.name
             store(variant.name, variant.color)
-            sets.append((variant.name, mer_of.get(variant.name)))
+            # A kind without a MER ships no texture set: its default MER name would dangle.
+            if variant.name in mer_of:
+                sets.append((variant.name, mer_of[variant.name]))
         color_of[variant.name] = color_by_pair[pair]
 
     for stored, mer_name in sets:
