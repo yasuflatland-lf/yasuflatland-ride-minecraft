@@ -26,7 +26,7 @@ Four areas, built in this order, each reviewed on a rendered preview before the 
 
 ## Constraints
 
-- The cube count is no longer a design limit. The model has 3,661 cubes against `CUBE_BUDGET = 3700` and `CUBE_BUDGET_CEILING = 3800` in `tools/scooter_dims.py`. Raise both for the added detail and keep them as a guard, with the new numbers recorded in `docs/specs/model-and-previews.md` and ADR 0251, and in the tests that read them.
+- The wheel revision must stay within `CUBE_BUDGET_CEILING = 6000`. The area allocations total 5,635 cubes, including 2,660 reserved for running gear (2,647 used). Keep the guard and record the measured counts in the specs, ADR and tests.
 - Follow AGENTS.md: generated pack files come from the generator (`pnpm model`), Resource Pack manifest version is bumped when tracked Resource Pack files change, the previews are regenerated and committed, and `pnpm model:check`, lint, typecheck and tests pass. Everything committed is in English.
 - The fold animation drops each wheel and hub; new wheel and hub detail must stay inside the existing fold and strut ancestry rules (`tests/packs/scooterModel.test.ts`).
 - Underbody parts that sit near the rear wheel must keep clear of the rear tyre and the fold drop.
@@ -70,3 +70,9 @@ Acceptance is "matches these photos in proportion and detail layout", judged on 
 - The new cube budget numbers, chosen from the measured result after each area.
 - Whether the previews need new camera angles to show the underbody and floor.
 - Updating the affected spec text (`scooter.md`, `model-and-previews.md`) and ADR 0251 in the same change.
+
+## Wheel revision for issue #1918
+
+Both wheels retain white tyre walls, beige discs and chrome dishes. Three raised chrome hex nuts at 120-degree intervals share one bolt circle on each exposed negative-x face, opposite the fork and spring. Each prism has one plain hexagonal cutout face, without crossed reflection bands. A smaller round dark centre cap rises from a polished washer step and carries a small nut. Six small round screw heads are textured evenly around the outer flange. A geometric mid-ring step on the exposed negative-x face, clear of the fixed suspension, separates the flange from the raised inner hub plate; thin 64-segment polished bead lips use consistent shading. Three crown columns and two shoulder columns have 64 equally spaced shallow blocks each, over a smooth 64-segment tyre skin with narrow recessed grooves. Every tread corner remains within the original 4.3 px rolling radius; rear radial and hardware dimensions scale by 0.96. No bones, paint regions or material types are added, and roll and fold retain their clearance. Each running wheel assembly contains 1,253 cubes; each wheel bone contains 1,256 including its disc and hub plates. The running allocation is 2,660 (2,647 used); total allocation is 5,635 under the 6,000 ceiling. Front-left and rear-left close-ups show the hardware on both wheels.
+
+The revised mixed approach uses six-sided prism walls with a single flat hexagonal texture face for each nut, rather than overlapping rotated rectangles. Fine shallow blocks and a nearly full-radius carcass keep the tyre round. The bead uses a thin polished profile with constant shading to avoid serrated highlights. The dish has a mid ring at x 1.26 and an inner plate at x 1.4, above the flange at x 1.15; the separate offsets remain visible from oblique views.

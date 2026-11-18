@@ -55,7 +55,7 @@ VISIBLE_BOUNDS_HEIGHT = 2.5
 VISIBLE_BOUNDS_OFFSET = (0, 1, 0)
 # Area allocations share the model budget; the ceiling allows later detail work.
 AREA_CUBE_ALLOCATION: dict[str, int] = {
-    "running": 1785,
+    "running": 2660,
     "stand": 15,
     "struts": 10,
     "body": 1005,

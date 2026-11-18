@@ -13,15 +13,17 @@ atlas = load_tool("scooter_atlas")
 
 AREA = "running"
 
-RING_SEGMENTS = 40
+RING_SEGMENTS = 64
 HUB_SEGMENTS = 40
 CIRCLE_SEGMENTS = 64
+CAP_TEXELS_PER_UNIT = 32
+HARDWARE_TEXELS_PER_UNIT = 64
 REAR_WHEEL_SCALE = 0.96
 TYRE_THICKNESS = 0.3
 HUB_THICKNESS = 0.035
 # Revolved tyre profile (x across the tread, radius from the axle); the bead is hidden by the rim disc.
-TYRE_PROFILE = ((-1.05, 3.0), (-1.05, 3.4), (-1.0, 3.82), (-0.7, 4.08),
-                (0.7, 4.08), (1.0, 3.82), (1.05, 3.4), (1.05, 3.0))
+TYRE_PROFILE = ((-1.05, 3.0), (-1.05, 3.4), (-1.0, 3.96), (-0.7, 4.26),
+                (0.7, 4.26), (1.0, 3.96), (1.05, 3.4), (1.05, 3.0))
 DISC_HALF_WIDTH = 1.15
 DISC_HALF_SIZE = 3.74
 # Keep whitewall boundary error below 0.04 model units without adding wheel cubes.
@@ -30,24 +32,24 @@ DISC_TEXELS = 256
 WALL_OUTER, WALL_INNER = 3.71, 2.98
 LINE_OUTER, LINE_INNER, BEAD_INNER, DISH_OUTER = 3.0, 2.94, 2.89, 2.85
 DISH_RING = 2.12
-SCREW_CIRCLE, SCREW_RADIUS, SCREW_COUNT = 2.48, 0.19, 6
-SCREW_SLOT_HALF_WIDTH, SCREW_SLOT_HALF_LENGTH = 0.035, 0.14
-NUT_COUNT, NUT_CIRCLE, NUT_RADIUS, NUT_DEPTH = 5, 0.96, 0.3, 0.36
+SCREW_CIRCLE, SCREW_RADIUS, SCREW_COUNT = 2.48, 0.13, 6
+NUT_COUNT, NUT_CIRCLE, NUT_RADIUS, NUT_DEPTH = 3, 0.96, 0.28, 0.22
 NUT_PHASE = math.pi / 2
-CENTRE_RADIUS, CENTRE_DEPTH = 0.34, 0.36
-CENTRE_RING_RADIUS, CENTRE_RING_DEPTH = 0.45, 0.29
-BEAD_PROFILE = ((1.15, 2.8), (1.3, 2.9), (1.15, 3.0))
+CENTRE_RADIUS, CENTRE_DEPTH = 0.18, 0.10
+CENTRE_RING_RADIUS, CENTRE_RING_DEPTH = 0.37, 0.14
+BEAD_PROFILE = ((1.15, 2.88), (1.22, 2.93), (1.15, 2.98))
+DISH_PROFILE = ((1.16, 2.18), (1.26, 2.18), (1.26, 1.64))
 DISH_STEP_WIDTH, DISH_STEP_HIGHLIGHT = 0.15, 0.04
 FLANGE_RADIUS, FLANGE_HALF_WIDTH = 2.77, 0.045
-TREAD_ROWS, TREAD_HALF_LENGTH = 40, 0.23
-TREAD_OUTER, TREAD_DEPTH = 4.292, 0.20
-TREAD_SHOULDER = ((0.72, 4.28), (1.04, 3.94))
-TREAD_SHOULDER_THICKNESS = 0.16
+TREAD_ROWS, TREAD_HALF_LENGTH = 64, 0.18
+TREAD_OUTER, TREAD_DEPTH = 4.294, 0.045
+TREAD_SHOULDER = ((0.72, 4.28), (1.04, 3.96))
+TREAD_SHOULDER_THICKNESS = 0.035
 TREAD_COLUMNS = (-0.47, 0, 0.47)
 TREAD_HALF_WIDTH = 0.195
 HUB_SIDE = 1
 HUB_PLATE_X = 1.4
-HUB_RING_X = (1.17, 1.39)
+HUB_RING_X = (1.26, 1.39)
 HUB_TAPER = 0.81
 CAP_RADIUS = {"front": 1.65, "rear": 1.65}
 CAP_THICKNESS = 0.06
@@ -137,8 +139,6 @@ def _wheel_pixel(cap_radius):
                 radial = dy * math.cos(a) + dz * math.sin(a) - SCREW_CIRCLE
                 tangent = -dy * math.sin(a) + dz * math.cos(a)
                 if math.hypot(radial, tangent) < SCREW_RADIUS:
-                    if abs(radial) < SCREW_SLOT_HALF_WIDTH and abs(tangent) < SCREW_SLOT_HALF_LENGTH:
-                        return (*LUG_COLOR, 255)
                     return (*(CAP_COLOR if radial > 0 else CAP_RIM_COLOR), 255)
             if abs(r - DISH_RING) < FLANGE_HALF_WIDTH or abs(r - FLANGE_RADIUS) < FLANGE_HALF_WIDTH:
                 return (*DISH_RING_COLOR, 255)
@@ -153,8 +153,8 @@ def _wheel_pixel(cap_radius):
     return pixel
 
 
-def _outline_region(name, polygon, material, color):
-    width, height, pixel = atlas.outline_pixel(polygon, dims.OUTLINE_TEXELS_PER_PX, lambda u, v: color)
+def _outline_region(name, polygon, material, color, density=dims.OUTLINE_TEXELS_PER_PX):
+    width, height, pixel = atlas.outline_pixel(polygon, density, lambda u, v: color)
     return atlas.register(name, width, height, material, pixel)
 
 
@@ -165,7 +165,18 @@ def register_regions(registry=None):
     for side, cap in CAP_RADIUS.items():
         atlas.register(f"running_disc_{side}", DISC_TEXELS, DISC_TEXELS, atlas.Material.WHITEWALL,
                        _wheel_pixel(cap))
-        _outline_region(f"running_cap_{side}", _circle(cap * HUB_TAPER), atlas.Material.CHROME, CAP_RIM_COLOR)
+        _outline_region(f"running_cap_{side}", _circle(cap * HUB_TAPER), atlas.Material.CHROME, CAP_RIM_COLOR, CAP_TEXELS_PER_UNIT)
+    hexagon = [(math.cos(i * math.pi / 3), math.sin(i * math.pi / 3)) for i in range(6)]
+    # A single cutout face prevents overlapping prism faces from showing crossed chrome bands.
+    for name, radius, color, points in (
+            ("running_nut", NUT_RADIUS, CAP_COLOR, hexagon),
+            ("running_centre_nut", CENTRE_RADIUS, LUG_COLOR, hexagon),
+            ("running_centre", CENTRE_RING_RADIUS, LINE_COLOR, _circle(1))):
+        polygon = [(z * radius, y * radius) for z, y in points]
+        width, height, pixel = atlas.outline_pixel(polygon, HARDWARE_TEXELS_PER_UNIT, lambda u, v, c=color: c)
+        atlas.register(name, width, height, atlas.Material.CHROME, pixel)
+    atlas.register("running_polished", 4, 4, atlas.Material.CHROME, lambda u, v: (*BEAD_COLOR, 255))
+    atlas.register("running_dish", 4, 4, atlas.Material.CHROME, lambda u, v: (*CAP_RIM_COLOR, 255))
     _outline_region("running_leg", _leg_outline(), atlas.Material.PAINT, atlas.PAINT_IVORY)
     _outline_region("running_link", list(LINK_OUTLINE), atlas.Material.CHROME, dims.LINK_COLOR)
     _outline_region("running_link_shade", list(LINK_SHADE_OUTLINE), atlas.Material.CHROME, LINK_SHADE_COLOR)
@@ -198,7 +209,7 @@ def _wheel(result, side, axle_z, scale):
         hub = [[[face * x, cy + radius * math.sin(2 * math.pi * i / HUB_SEGMENTS),
                  axle_z + radius * math.cos(2 * math.pi * i / HUB_SEGMENTS)] for i in range(HUB_SEGMENTS + 1)]
                for x, radius in zip(HUB_RING_X, (cap, cap * HUB_TAPER))]
-        result.add(bone, kit.skin(hub, HUB_THICKNESS, atlas.faces("chrome"), [0, cy, axle_z],
+        result.add(bone, kit.skin(hub, HUB_THICKNESS, atlas.faces("running_polished"), [0, cy, axle_z],
                                   assembly=name, tangent_frame=face < 0))
         result.add(bone, kit.profile_plate(_circle(cap * HUB_TAPER, (axle_z, cy)), face * HUB_PLATE_X,
                                            CAP_THICKNESS, f"running_cap_{side}"))
@@ -207,32 +218,33 @@ def _wheel(result, side, axle_z, scale):
         bead = [[[face * x, cy + radius * scale * math.cos(2 * math.pi * i / RING_SEGMENTS),
                   axle_z + radius * scale * math.sin(2 * math.pi * i / RING_SEGMENTS)]
                  for x, radius in BEAD_PROFILE] for i in range(RING_SEGMENTS + 1)]
-        result.add(bone, kit.skin(bead, HUB_THICKNESS, atlas.faces("chrome"), [0, cy, axle_z],
+        result.add(bone, kit.skin(bead, HUB_THICKNESS, atlas.faces("running_polished"), [0, cy, axle_z],
                                   assembly=name, tangent_frame=True))
 
-    def nut(y, z, radius, depth, material="chrome"):
-        # Three rectangles at 60-degree intervals share the six vertices of a hexagon.
-        # Negative x is the exposed face, clear of the positive-x fork, spring and axle pin.
-        pivot = [-HUB_SIDE * (HUB_PLATE_X + CAP_THICKNESS / 2), y, z]
-        for turn in (0, 60, 120):
-            cube = kit.box((pivot[0] - depth * scale, y - radius * scale, z - radius * scale / math.sqrt(3)),
-                           (pivot[0], y + radius * scale, z + radius * scale / math.sqrt(3)),
-                           atlas.faces(material))
-            cube.update(pivot=pivot, rotation=[turn, 0, 0])
-            result.add(bone, cube, name)
+    # The fixed spring occupies the other face; only the exposed dish gains depth.
+    for face in (-HUB_SIDE,):
+        dish = [[[face * x, cy + radius * scale * math.cos(2 * math.pi * i / HUB_SEGMENTS),
+                  axle_z + radius * scale * math.sin(2 * math.pi * i / HUB_SEGMENTS)]
+                 for x, radius in DISH_PROFILE] for i in range(HUB_SEGMENTS + 1)]
+        result.add(bone, kit.skin(dish, HUB_THICKNESS, atlas.faces("running_dish"), [0, cy, axle_z],
+                                  assembly=name, tangent_frame=True))
 
-    nut(cy, axle_z, CENTRE_RADIUS, CENTRE_DEPTH, "rubber")
-    ring = [[[-HUB_PLATE_X - depth * scale, cy + radius * scale * math.sin(2 * math.pi * i / HUB_SEGMENTS),
-              axle_z + radius * scale * math.cos(2 * math.pi * i / HUB_SEGMENTS)]
-             for i in range(HUB_SEGMENTS + 1)]
-            for depth, radius in ((0, CENTRE_RING_RADIUS), (CENTRE_RING_DEPTH, CENTRE_RING_RADIUS),
-                                  (CENTRE_RING_DEPTH, CENTRE_RADIUS))]
-    result.add(bone, kit.skin(ring, HUB_THICKNESS, atlas.faces("chrome"), [0, cy, axle_z],
-                              assembly=name, tangent_frame=True))
+    def raised_face(y, z, radius, depth, region, base, segments):
+        polygon = [(z + radius * scale * math.cos(i * 2 * math.pi / segments),
+                    y + radius * scale * math.sin(i * 2 * math.pi / segments)) for i in range(segments)]
+        rings = [[(x, py, pz) for pz, py in (*polygon, polygon[0])] for x in (base, base - depth * scale)]
+        result.add(bone, kit.skin(rings, 0.012, atlas.faces("running_polished"), [0, y, z],
+                                  assembly=name, tangent_frame=True))
+        result.add(bone, kit.profile_plate(polygon, base - depth * scale, 0.012, region), name)
+
+    base = -HUB_PLATE_X - CAP_THICKNESS / 2
+    raised_face(cy, axle_z, CENTRE_RING_RADIUS, CENTRE_RING_DEPTH, "running_centre", base, HUB_SEGMENTS)
+    raised_face(cy, axle_z, CENTRE_RADIUS, CENTRE_DEPTH, "running_centre_nut",
+                base - CENTRE_RING_DEPTH * scale - 0.012, 6)
     for i in range(NUT_COUNT):
         a = 2 * math.pi * i / NUT_COUNT + NUT_PHASE
-        nut(cy + NUT_CIRCLE * scale * math.cos(a), axle_z + NUT_CIRCLE * scale * math.sin(a),
-            NUT_RADIUS, NUT_DEPTH)
+        raised_face(cy + NUT_CIRCLE * scale * math.cos(a), axle_z + NUT_CIRCLE * scale * math.sin(a),
+                    NUT_RADIUS, NUT_DEPTH, "running_nut", base, 6)
 
     # All block corners remain inside the original 4.3-radius tyre, including during roll and fold.
     for row in range(TREAD_ROWS):

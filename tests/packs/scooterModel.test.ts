@@ -86,7 +86,7 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(4760);
+    expect(metadata.budget).toBe(5635);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });
@@ -125,7 +125,7 @@ import math
 r=load_tool('scooter_running')
 t=load_tool('cube_tilt')
 built=r.build()
-assert r.RING_SEGMENTS>=40
+assert r.RING_SEGMENTS>=64
 out=[]
 for side,axle,radius in (('front',-11.8,4.3),('rear',11.8,4.3*0.96)):
     bins=[0.0]*360
@@ -152,7 +152,7 @@ print(json.dumps(out))
       // Grooves recess the carcass while the block corners stay inside the rolling circle.
       expect(high).toBeLessThanOrEqual(0.001);
       expect(high).toBeGreaterThan(-0.01);
-      expect(low).toBeGreaterThanOrEqual(-0.25);
+      expect(low).toBeGreaterThanOrEqual(-0.08);
     }
   });
 
