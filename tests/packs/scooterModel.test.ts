@@ -22,15 +22,76 @@ type AreaRow = {
 // One row per area module (issues 6 to 11 each append one row).
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
-  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_pedal"] },
+  {
+    area: "running",
+    bones: ["wheel_front", "wheel_rear", "steer", "body"],
+    assemblies: [
+      "running_wheel_front",
+      "running_wheel_rear",
+      "running_spring",
+      "running_pedal",
+    ],
+  },
   { area: "stand", bones: ["stand"], assemblies: ["running_stand"] },
-  { area: "struts", bones: ["steer", "body", "wheel_front_strut", "wheel_rear_strut", "wheel_rear_stem"], assemblies: [] },
-  { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"] },
+  {
+    area: "struts",
+    bones: [
+      "steer",
+      "body",
+      "wheel_front_strut",
+      "wheel_rear_strut",
+      "wheel_rear_stem",
+    ],
+    assemblies: [],
+  },
+  {
+    area: "body",
+    bones: ["body"],
+    assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"],
+  },
   { area: "floor", bones: ["body"], assemblies: ["body_floor"] },
-  { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"] },
-  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"] },
-  { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"] },
-  { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"] },
+  {
+    area: "rear",
+    bones: ["body", "tail_lights"],
+    assemblies: [
+      "rear_seat",
+      "rear_lamp",
+      "rear_dome",
+      "rear_cage",
+      "rear_flange",
+      "rear_plate",
+    ],
+  },
+  {
+    area: "engine",
+    bones: ["body"],
+    assemblies: [
+      "engine_casting",
+      "engine_fan",
+      "engine_kick",
+      "engine_muffler",
+      "engine_header",
+    ],
+  },
+  {
+    area: "head",
+    bones: ["steer", "headlights"],
+    assemblies: [
+      "head_collar",
+      "head_headset",
+      "head_bib",
+      "head_meter",
+      "head_lamp",
+      "head_controls",
+      "head_levers",
+      "head_mirrors",
+    ],
+  },
+  {
+    area: "shield",
+    bones: ["body", "steer"],
+    assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"],
+  },
   { area: "glow", bones: ["glow_front", "glow_rear"], assemblies: [] },
 ];
 
@@ -403,15 +464,14 @@ k.mirror_to_game([dict(name='steer',pivot=[0,0,0],cubes=panels)])
 region=next(r for r in registered if r.name=='head_panels')
 tile=d.HEAD_PANEL_TEXELS
 checked=0
-for index,cube in enumerate(panels):
+# Mirrored panels share one stored tile, so compare against each panel's own unshared texels.
+for panel,cube in zip(h._paint_panels(),panels,strict=True):
     u,v=cube['uv']['south']['uv']
     du,dv=cube['uv']['south']['uv_size']
-    tx=index % d.HEAD_PANEL_COLUMNS*tile
-    ty=index // d.HEAD_PANEL_COLUMNS*tile
     for x in range(tile):
         for y in range(tile):
             actual=region.pixel(int(u+(x+.5)*du/tile),int(v+(y+.5)*dv/tile))
-            expected=region.pixel(tx+x,ty+y)
+            expected=h._panel_texel(panel,x,y)
             assert actual==expected, (index,x,y,actual,expected)
             checked+=1
 print(checked)

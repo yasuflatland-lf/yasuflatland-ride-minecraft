@@ -43,7 +43,7 @@ const directory = "packs/yasu_ride_rp/textures/entity/yasu_ride/";
 beforeAll(async () => {
   metadata = JSON.parse(
     await python.run(`${built}
-print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,litSize=ll.size,litRegions=[dict(name=r.name,material=r.material.value,x=ll.origin(r.name)[0],y=ll.origin(r.name)[1],width=r.width,height=r.height) for r in ll.regions],regions=[dict(name=r.name,material=r.material.value,x=l.origin(r.name)[0],y=l.origin(r.name)[1],width=r.width,height=r.height) for r in l.regions])))
+print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,litSize=ll.size,litRegions=[dict(name=r.name,material=r.material.value,x=ll.placement(r.name).x,y=ll.placement(r.name).y,width=r.width,height=r.height) for r in ll.regions],regions=[dict(name=r.name,material=r.material.value,x=l.placement(r.name).x,y=l.placement(r.name).y,width=r.width,height=r.height) for r in l.regions])))
 `),
   );
 }, 60000);
@@ -62,7 +62,11 @@ assert t.recolor(l,a.render_atlas(l),t.PAINTS["white"]) == a.render_atlas(l)
 it("preserves non-paint texels and alpha across every generated paint", () => {
   const base = readRgbaPng(`${directory}scooter.png`);
   const mask = new Uint8Array(base.width * base.height);
+  const slots = new Set<string>();
   for (const r of metadata.regions.filter((r) => r.material === "paint")) {
+    const slot = `${r.x},${r.y},${r.width},${r.height}`;
+    if (slots.has(slot)) continue;
+    slots.add(slot);
     for (let y = r.y; y < r.y + r.height; y++)
       mask.fill(1, y * base.width + r.x, y * base.width + r.x + r.width);
   }
@@ -77,10 +81,27 @@ it("preserves non-paint texels and alpha across every generated paint", () => {
     const image =
       paint === "khaki" ? base : readRgbaPng(`${directory}${name}.png`);
     expect([image.width, image.height]).toEqual([base.width, base.height]);
+    const color = metadata.paints[paint] ?? [];
+    const tables = color.map((target, channel) =>
+      Array.from({ length: 256 }, (_, old) => {
+        const value = (target * old) / (metadata.ivory[channel] ?? 1);
+        const lower = Math.floor(value);
+        const rounded =
+          value - lower === 0.5 ? lower + (lower % 2) : Math.round(value);
+        return Math.min(255, rounded);
+      }),
+    );
     let invalid = 0;
     for (let i = 0; i < mask.length; i++) {
       const p = i * 4;
       if (image.pixels[p + 3] !== base.pixels[p + 3]) invalid++;
+      if (mask[i])
+        for (let channel = 0; channel < 3; channel++)
+          if (
+            image.pixels[p + channel] !==
+            tables[channel]?.[base.pixels[p + channel] ?? 0]
+          )
+            invalid++;
       if (
         !mask[i] &&
         !image.pixels.subarray(p, p + 4).equals(base.pixels.subarray(p, p + 4))
@@ -110,7 +131,7 @@ it("recolours arbitrary channels with the shaded ivory lookup", async () => {
         await python.run(`${setup}
 from types import SimpleNamespace
 p=bytes(${JSON.stringify(rgba)})
-l=SimpleNamespace(size=(2,1),regions=[SimpleNamespace(name="paint",width=1,height=1,material=a.Material.PAINT)],origin=lambda name:(0,0))
+l=SimpleNamespace(size=(2,1),regions=[SimpleNamespace(name="paint",width=1,height=1,material=a.Material.PAINT)],placement=lambda name:SimpleNamespace(x=0,y=0))
 c=t.PAINTS["${paint}"]
 result=t.recolor(l,p+p,c)
 assert result[4:]==p and result[3]==p[3]
@@ -218,18 +239,25 @@ import math
 assert a.audit(ll, lp) == []
 assert {r.name for r in ll.regions} == {name for name, face in ll._faces}
 assert len(lp) < len(pixels) / 20
+regions = {r.name: r for r in l.regions}
 count = 0
 for base_bone, lit_bone in zip(geo["minecraft:geometry"][0]["bones"], lit_geo["minecraft:geometry"][0]["bones"]):
     for base_cube, lit_cube in zip(base_bone["cubes"], lit_bone["cubes"]):
         for name, face in lit_cube["uv"].items():
             original = base_cube["uv"][name]
-            assert face["uv_size"] == original["uv_size"]
+            region = regions[original.region]
+            # The base atlas may store a region mirrored; the lit atlas never shares.
+            base, lit = l.placement(region.name), ll.placement(region.name)
+            assert not (lit.flip_x or lit.flip_y)
+            assert [abs(s) for s in face["uv_size"]] == [abs(s) for s in original["uv_size"]]
             u,v = face["uv"]
-            ou,ov = original["uv"]
             du,dv = face["uv_size"]
             for y in range(math.floor(min(v,v+dv)), math.ceil(max(v,v+dv))):
                 for x in range(math.floor(min(u,u+du)), math.ceil(max(u,u+du))):
-                    source = (round(y-v+ov)*l.size[0]+round(x-u+ou))*4
+                    lu, lv = x - lit.x, y - lit.y
+                    bx = base.x + (region.width - 1 - lu if base.flip_x else lu)
+                    by = base.y + (region.height - 1 - lv if base.flip_y else lv)
+                    source = (by*l.size[0]+bx)*4
                     target = (y*ll.size[0]+x)*4
                     assert lp[target:target+4] == pixels[source:source+4]
             count += 1
@@ -280,5 +308,96 @@ assert faces[0]["uv_size"] == faces[1]["uv_size"]
       },
     ),
     { numRuns: 20 },
+  );
+});
+
+it("reduces scooter storage by a quarter of the original atlas area", () => {
+  const image = readRgbaPng(`${directory}scooter.png`);
+  // The unshared atlas occupied 2048 x 1951 texels; sharing whole regions
+  // alone reached only 2048 x 1920, because mirrored panels sit inside sheets.
+  expect([image.width, image.height]).toEqual([1754, 1696]);
+  expect(image.width * image.height).toBeLessThan(0.75 * 2048 * 1951);
+});
+
+it("stores mirrored panel tiles once inside the scooter sheets", async () => {
+  const sheets = JSON.parse(
+    await python.run(`${setup}
+b=load_tool("scooter_body")
+s=load_tool("scooter_shield")
+h=load_tool("scooter_head")
+e=load_tool("scooter_engine")
+shares={}
+for sheet,*_,share in b._prepared()[4]:
+    shares.setdefault(sheet,[]).append(share)
+shares["shield_panels"]=s._prepared()[4]
+shares["head_panels"]=h._panel_sheet()[1]
+for name,*_ in e._surfaces():
+    shares[name]=e._surface_masks(name)[1]
+print(json.dumps({name:[len(values),len({v.slot for v in values})] for name,values in shares.items()}))
+`),
+  );
+  // [tiles, stored tiles] per sheet; left-right pairs dominate the savings.
+  expect(sheets).toEqual({
+    body_panels: [661, 434],
+    body_cowl_right: [179, 179],
+    shield_panels: [510, 362],
+    head_panels: [276, 135],
+    engine_cast_patch: [42, 33],
+    engine_fan_patch: [32, 8],
+    engine_pan_patch: [90, 80],
+    engine_seam_patch: [18, 12],
+    engine_header_patch: [60, 60],
+    engine_joint_patch: [6, 2],
+    engine_outlet_patch: [6, 2],
+  });
+}, 60000);
+
+it("shares storage only within matching finishes and lit membership", () => {
+  const slots = new Map<string, string>();
+  for (const region of metadata.regions) {
+    const slot = `${region.x},${region.y},${region.width},${region.height}`;
+    const key = `${region.material},${metadata.lit.includes(region.name)}`;
+    expect(slots.get(slot) ?? key).toBe(key);
+    slots.set(slot, key);
+  }
+  expect(slots.size).toBeLessThan(metadata.regions.length);
+});
+
+it("keeps capped preview samples unchanged when atlas regions move", async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.integer({ min: 256, max: 1900 }), async (origin) => {
+      await python.run(`${setup}
+p=load_tool("render_preview")
+quad=[(0,0,0),(1,0,0),(1,1,0),(0,1,0)]
+def patches(origin):
+    texture=[[(v-origin,0,0,255)] for v in range(origin+48)]
+    return list(p.textured_face(texture,{'uv':[0,origin],'uv_size':[1,48]},quad,'south',1,len(texture),merge=True,cells_per_unit=6))
+assert patches(${origin})==patches(1)
+`);
+    }),
+    { numRuns: 20 },
+  );
+});
+
+it("keeps capped samples on their original texels under mirrored storage", async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.boolean(), fc.boolean(), async (flipX, flipY) => {
+      await python.run(`${setup}
+p=load_tool("render_preview")
+r=load_tool("region_atlas")
+fx,fy=${flipX ? "True" : "False"},${flipY ? "True" : "False"}
+texture=[[(u,v,0,255) for u in range(8)] for v in range(8)]
+mirrored=[list(reversed(row)) if fx else row for row in (reversed(texture) if fy else texture)]
+quad=[(0,0,0),(1,0,0),(1,1,0),(0,1,0)]
+for local in (r.UvRect(0,0,8,8),r.UvRect(8,8,-8,-8)):
+    before={}
+    local.apply(before)
+    after={}
+    local.to_atlas(r.Placement(0,0,fx,fy),8,8).apply(after)
+    after=p.SampledUv(after,r.Placement(0,0,fx,fy))
+    assert list(p.textured_face(texture,before,quad,'south',8,8,merge=True,cells_per_unit=3))==list(p.textured_face(mirrored,after,quad,'south',8,8,merge=True,cells_per_unit=3))
+`);
+    }),
+    { numRuns: 10 },
   );
 });

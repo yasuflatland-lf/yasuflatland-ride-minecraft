@@ -2,6 +2,7 @@
 
 import math
 import sys
+from functools import cache
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -194,8 +195,8 @@ def register_regions(registry):
                                                  lambda u, v, c=color: (*c, 255))
         register(name, width, height, atlas.Material.CUTOUT, pixel)
     register("engine_fan", FAN_TEXELS, FAN_TEXELS, atlas.Material.CUTOUT, _fan_pixel)
-    for name, rings, material, assembly in _surfaces():
-        width, height, pixel, _ = _surface_sheet(rings, material, assembly)
+    for name, rings, _, assembly in _surfaces():
+        width, height, pixel, _ = _surface_sheet(name, rings, assembly)
         register(name, width, height, atlas.Material.CUTOUT, pixel)
 
 
@@ -269,9 +270,21 @@ def _patch_pixel(cube, polygon, color):
     return width, height, pixel
 
 
-def _surface_sheet(rings, material, assembly):
-    patches = list(_patches(rings, assembly))
-    masks = [_patch_pixel(cube, polygon, SURFACE_COLORS[material]) for cube, polygon in patches]
+@cache
+def _surface_masks(name):
+    rings, material, assembly = next((r, m, a) for n, r, m, a in _surfaces() if n == name)
+    masks = []
+    for cube, polygon in _patches(rings, assembly):
+        width, height, sample = _patch_pixel(cube, polygon, SURFACE_COLORS[material])
+        masks.append((width, height, bytes(c for v in range(height) for u in range(width)
+                                           for c in sample(u, v))))
+    # Rotationally symmetric skins repeat their patches; store each once.
+    stored, shares = atlas.region_atlas.share_tiles(masks)
+    return [masks[i] for i in stored], shares
+
+
+def _surface_sheet(name, rings, assembly):
+    masks, shares = _surface_masks(name)
     cell_width = max(w for w, _, _ in masks)+2*MASK_GUTTER
     cell_height = max(h for _, h, _ in masks)+2*MASK_GUTTER
     rows = math.ceil(len(masks)/MASK_COLUMNS)
@@ -280,11 +293,14 @@ def _surface_sheet(rings, material, assembly):
         x, y = u % cell_width-MASK_GUTTER, v % cell_height-MASK_GUTTER
         if index >= len(masks):
             return atlas.CLEAR
-        width, height, sample = masks[index]
-        return sample(x, y) if 0 <= x < width and 0 <= y < height else atlas.CLEAR
-    placed = [(cube, (i % MASK_COLUMNS)*cell_width+MASK_GUTTER,
-               (i//MASK_COLUMNS)*cell_height+MASK_GUTTER, masks[i][0], masks[i][1])
-              for i, (cube, _) in enumerate(patches)]
+        width, height, data = masks[index]
+        if not (0 <= x < width and 0 <= y < height):
+            return atlas.CLEAR
+        offset = (y*width+x)*4
+        return tuple(data[offset:offset+4])
+    placed = [(cube, (share.slot % MASK_COLUMNS)*cell_width+MASK_GUTTER,
+               (share.slot//MASK_COLUMNS)*cell_height+MASK_GUTTER, *masks[share.slot][:2], share)
+              for (cube, _), share in zip(_patches(rings, assembly), shares, strict=True)]
     return cell_width*MASK_COLUMNS, cell_height*rows, pixel, placed
 
 
@@ -295,10 +311,10 @@ def build() -> kit.AreaCubes:
         result.add(BONE, cubes)
     def box(bounds, material):
         add(kit.box(*bounds, atlas.faces(material)))
-    for name, rings, material, assembly in _surfaces():
-        _, _, _, patches = _surface_sheet(rings, material, assembly)
-        for cube, u, v, width, height in patches:
-            cube["uv"] = {face: (atlas.face(name, u, v, width, height)
+    for name, rings, _, assembly in _surfaces():
+        _, _, _, patches = _surface_sheet(name, rings, assembly)
+        for cube, u, v, width, height, share in patches:
+            cube["uv"] = {face: (atlas.tile_face(name, (u, v), share, width, height, 0, 0, width, height)
                                   if face in ("north", "south") else atlas.face("clear"))
                           for face in atlas.FACE_NAMES}
             add(cube)
