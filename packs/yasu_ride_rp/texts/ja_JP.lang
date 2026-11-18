@@ -289,8 +289,8 @@ yasu_build.warp.teleport_failed=ワープ地点に移動できませんでした
 item.yasu_build:warp_tool.name=ワープツール
 tile.yasu_build:warp_block.name=ワープブロック
 
-yasu_build.warp.hits_left=ワープブロックを壊すには、あと %s 回叩いてください
-yasu_build.warp.hit_left=ワープブロックを壊すには、あと %s 回叩いてください
+yasu_build.warp.taps_left=ワープブロックを壊すには、あと %s 回タップ（右クリック）してください
+yasu_build.warp.tap_left=ワープブロックを壊すには、あと %s 回タップ（右クリック）してください
 yasu_build.warp.block_broken=ワープブロックを壊しました
 yasu_build.form.build_shape=形を作る
 yasu_build.form.build_shape_title=形の選択
