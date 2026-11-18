@@ -26,7 +26,7 @@ If any owner check fails, stop and report to the owner. The fallback, where only
 
 ## Consequences
 
-The override gains seven animation entries, so the vanilla fixture comparison pins vanilla plus `lounge` plus these entries. The Resource Pack version is bumped (0015). The pose cannot be proven by unit tests; the roll sign and grip alignment are judged on devices. Automatic scooter pose wiring is implemented, but its grip alignment, lean and transition appearance remain unverified on devices while this ADR is Proposed.
+The override gains fourteen animation entries, so the vanilla fixture comparison pins vanilla plus `lounge` plus these entries. The Resource Pack version is bumped (0015). The pose cannot be proven by unit tests; the roll sign and grip alignment are judged on devices. Automatic scooter pose wiring is implemented, but its grip alignment, lean and transition appearance remain unverified on devices while this ADR is Proposed.
 
 ## Owner checks
 
