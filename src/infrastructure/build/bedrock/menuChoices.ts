@@ -13,7 +13,7 @@ import type { EndPasting } from "../../../application/build/endPasting";
 import type { NewCopy } from "../../../application/build/newCopy";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../application/build/undoEdit";
-import { openBuildMenu } from "../../../domain/build/flow/flow";
+import { type BuildFlow, openBuildMenu } from "../../../domain/build/flow/flow";
 import {
   type BuildEntryId,
   contentsMenu,
@@ -190,8 +190,17 @@ export class MenuChoices {
         break;
       case "sideCylinder": {
         const session = this.repo.get(playerId);
-        if (session) session.setFlow(openBuildMenu(session.flow));
+        const before = session?.flow;
+        if (session && before) session.setFlow(openBuildMenu(before));
         this.cases.chooseSideCylinder.execute({ playerId });
+        // A refused choice leaves the flow on the opened menu level; put it back.
+        if (
+          session &&
+          before &&
+          isBuildMenuOpen(this.repo.get(playerId)?.flow)
+        ) {
+          session.setFlow(before);
+        }
         break;
       }
 
@@ -201,4 +210,8 @@ export class MenuChoices {
       }
     }
   }
+}
+
+function isBuildMenuOpen(flow: BuildFlow | undefined): boolean {
+  return flow?.kind === "endpoint" && flow.menuLevel === "build";
 }
