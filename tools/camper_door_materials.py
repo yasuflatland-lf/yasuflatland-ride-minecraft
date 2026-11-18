@@ -3,8 +3,10 @@
 import math
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 regions = load_tool("camper_regions")
-RegionRegistry = regions.RegionRegistry
+RegionRegistry = region_atlas.RegionRegistry
 TEXELS_PER_PX = 8
 WOOD_HEIGHT = 42
 
@@ -46,7 +48,7 @@ def register(registry: RegionRegistry, palette: dict) -> dict:
     def cloth(u: int, v: int) -> tuple:
         return tint("ivory", 1.2 * _noise(u, v, 5) + 9 * math.cos(u * math.pi / 8) + (1 if u % 2 else -1))
 
-    return {name: registry.register(regions.Region(name, w, h, material, pixel))
+    return {name: registry.register(region_atlas.Region(name, w, h, material, pixel))
             for name, w, h, material, pixel in (
                 ("door wood", 111, 336, regions.Material.WOOD, wood),
                 ("door marble", 101, 41, regions.Material.STONE, marble),

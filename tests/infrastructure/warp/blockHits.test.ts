@@ -1,8 +1,9 @@
 import { Player } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import { BedrockWarpBlockHits } from "../../../src/infrastructure/warp/bedrock/bedrockWarpBlockHits";
+import { BedrockWarpBlockTaps } from "../../../src/infrastructure/warp/bedrock/bedrockWarpBlockTaps";
 import { registerWarpBlockHits } from "../../../src/infrastructure/warp/handlers/blockHits";
+import { WarpFormGuard } from "../../../src/infrastructure/warp/handlers/formGuard";
 import { WARP_BLOCK_TYPE } from "../../../src/infrastructure/warp/identifiers";
 import { WARP_MESSAGE } from "../../../src/infrastructure/warp/messages";
 
@@ -69,30 +70,51 @@ function fixture() {
   dimension.getBlock.mockReturnValue(block);
   return { player, block, dimension, addItem };
 }
-it("cancels creative breaks, defers hits and coalesces both paths once per player per tick", () => {
+const flush = async () => {
+  for (let n = 0; n < 5; n++) await Promise.resolve();
+};
+it("cancels creative breaks, defers the rename form and coalesces both paths", async () => {
   const f = fixture();
-  const useCase = { run: vi.fn() };
-  registerWarpBlockHits(useCase);
+  const rename = { run: vi.fn().mockResolvedValue(undefined) };
+  const guard = new WarpFormGuard();
+  registerWarpBlockHits(rename, guard);
   const event = { player: f.player, block: f.block, cancel: false };
   game.beforeBreak.mock.calls[0]?.[0](event);
   game.hit.mock.calls[0]?.[0]({ damagingEntity: f.player, hitBlock: f.block });
   expect(event.cancel).toBe(true);
   expect(game.run).toHaveBeenCalledOnce();
-  expect(useCase.run).not.toHaveBeenCalled();
+  expect(rename.run).not.toHaveBeenCalled();
   game.run.mock.calls[0]?.[0]();
-  expect(useCase.run).toHaveBeenCalledExactlyOnceWith({
+  await flush();
+  expect(rename.run).toHaveBeenCalledExactlyOnceWith({
     playerId: "player",
     dimension: f.dimension.id,
     cell: f.block.location,
-    now: 10,
   });
-  game.tick++;
+  game.tick += 100;
   game.hit.mock.calls[0]?.[0]({ damagingEntity: f.player, hitBlock: f.block });
   expect(game.run).toHaveBeenCalledTimes(2);
 });
+it("ignores hits while a warp form is open and skips a departed player", async () => {
+  const f = fixture();
+  const rename = { run: vi.fn().mockResolvedValue(undefined) };
+  const guard = new WarpFormGuard();
+  registerWarpBlockHits(rename, guard);
+  guard.hold(asPlayerId("player"), 0);
+  game.hit.mock.calls[0]?.[0]({ damagingEntity: f.player, hitBlock: f.block });
+  expect(game.run).not.toHaveBeenCalled();
+  guard.close(asPlayerId("player"));
+  game.tick += 100;
+  game.hit.mock.calls[0]?.[0]({ damagingEntity: f.player, hitBlock: f.block });
+  f.player.isValid = false;
+  game.run.mock.calls[0]?.[0]();
+  await flush();
+  expect(rename.run).not.toHaveBeenCalled();
+  expect(guard.tryOpen(asPlayerId("player"), game.tick + 100)).toBe(true);
+});
 it("filters nonplayers, other blocks and noncreative break events", () => {
   const f = fixture();
-  registerWarpBlockHits({ run: vi.fn() });
+  registerWarpBlockHits({ run: vi.fn() }, new WarpFormGuard());
   const hit = game.hit.mock.calls[0]?.[0];
   const before = game.beforeBreak.mock.calls[0]?.[0];
   hit({ damagingEntity: {}, hitBlock: f.block });
@@ -113,7 +135,7 @@ it("returns one item including creative, drops overflow, removes the block and t
   const f = fixture();
   const leftover = { typeId: WARP_BLOCK_TYPE, amount: 1 };
   f.addItem.mockReturnValue(leftover);
-  const effects = new BedrockWarpBlockHits().at(
+  const effects = new BedrockWarpBlockTaps().at(
     asPlayerId("player"),
     asDimensionId(f.dimension.id),
     f.block.location,
@@ -124,8 +146,8 @@ it("returns one item including creative, drops overflow, removes the block and t
   effects?.drop();
   effects?.remove();
   expect(f.player.onScreenDisplay.setActionBar.mock.calls).toEqual([
-    [{ translate: WARP_MESSAGE.hitsLeft, with: ["4"] }],
-    [{ translate: "yasu_build.warp.hit_left", with: ["1"] }],
+    [{ translate: WARP_MESSAGE.tapsLeft, with: ["4"] }],
+    [{ translate: "yasu_build.warp.tap_left", with: ["1"] }],
     [{ translate: WARP_MESSAGE.blockBroken }],
   ]);
   expect(f.addItem).toHaveBeenCalledExactlyOnceWith(
@@ -139,7 +161,7 @@ it("returns one item including creative, drops overflow, removes the block and t
 });
 it("ignores missing blocks, unloaded cells, lookup errors and departed players", () => {
   const f = fixture();
-  const adapter = new BedrockWarpBlockHits();
+  const adapter = new BedrockWarpBlockTaps();
   const at = () =>
     adapter.at(
       asPlayerId("player"),

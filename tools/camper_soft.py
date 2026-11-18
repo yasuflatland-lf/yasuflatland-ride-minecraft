@@ -9,9 +9,11 @@ from typing import TYPE_CHECKING
 
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 if TYPE_CHECKING:
     from camper_kit import AreaCubes
-    from camper_regions import RegionRegistry
+    from region_atlas import RegionRegistry
 
 regions = load_tool("camper_regions")
 AREA = "soft"
@@ -69,7 +71,7 @@ def register_regions(registry: RegionRegistry) -> None:
         if name in existing:
             continue
         pixels = fabric_pixels()[name]
-        registry.register(regions.Region(name, width, height, regions.Material.FABRIC,
+        registry.register(region_atlas.Region(name, width, height, regions.Material.FABRIC,
             lambda x, y, data=pixels, w=width: tuple(data[(y * w + x) * 4:(y * w + x + 1) * 4])))
 
 
