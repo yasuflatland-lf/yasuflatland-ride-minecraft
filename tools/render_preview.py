@@ -22,9 +22,9 @@ headlights at dusk, side, and rear, without water layers (ADR 0067).
 Four bulldozer pictures share a fourth scale: front-left, headlights at dusk, side, and rear,
 showing only the first grouser phase and no propeller (ADR 0136). The beacon stays unlit: it faces
 backward on the cab roof, so the cab hides it from the front-left dusk view.
-Eight scooter pictures show the default white paint (ADR 0251). The front-left, side and rear
-road views share a scale; flying headlights and the tail lamp at dusk have their own frames.
-Underbody, running board and front wheel close-ups each frame a model-space region in the road pose.
+Five scooter pictures show the default white paint (ADR 0251). The front-left, side and rear
+road views share a scale; flying headlights have their own frame. The running board close-up
+frames a model-space region in the road pose.
 
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
@@ -184,7 +184,6 @@ SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
 # The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
 SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter.png"
 SCOOTER_CELLS_PER_UNIT = 16
-SCOOTER_WHEEL_CELLS_PER_UNIT = 32
 SCOOTER_ANIMATIONS = "animations/yasu_ride/scooter.anim.json"
 # SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16 model pixels (ADR 0251).
 SCOOTER_FLIGHT_LIFT = 24.0
@@ -203,12 +202,7 @@ SCOOTER_POSES = {
     "scooter-flying-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT},
     "scooter-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": SIDE_BRIGHTNESS},
     "scooter-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS},
-    # Framed on the tail lamp alone, so it is rendered apart from the shared scale (see render_scooter).
-    "scooter-taillights.png": {"lamps": True, "dusk": True, "view": (0.7, 0.2, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "frame_bones": ("tail_lights",), "frame_pad": 2.7},
-    "scooter-underbody.png": {"lamps": False, "dusk": False, "view": (1.0, -0.45, -0.65), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-4.5, 2.5, 2.5), (4.5, 8.5, 12.5))},
     "scooter-floor.png": {"lamps": False, "dusk": False, "view": (-1.0, 1.8, -0.5), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((0.5, 4.3, -5.3), (4.5, 6.5, 4.0))},
-    "scooter-wheel-front.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.2, -0.55), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_WHEEL_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-2.0, -0.3, -16.5), (2.0, 10.7, -7.0))},
-    "scooter-wheel-rear.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.1, 0.55), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_WHEEL_CELLS_PER_UNIT, "brightness": MAIN_BRIGHTNESS, "frame_box": ((-2.0, -0.3, 7.0), (2.0, 10.7, 16.5))},
 }
 # The scooter's geometry already flips U on its four side faces for the device (tools/scooter_kit.py);
 # this renderer reads those faces the other way round, so the scooter poses flip them back to match the device.
@@ -1314,7 +1308,7 @@ def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     close = {n: p for n, p in SCOOTER_POSES.items() if "frame_bones" in p or "frame_box" in p}
     shared = {n: p for n, p in SCOOTER_POSES.items() if n not in close and n != flight_name}
     images = {}
-    # Separate cameras preserve the existing tail-lamp frame when new close-ups are added.
+    # Separate cameras keep each close-up from rescaling the shared road views.
     for poses in (shared, *({n: p} for n, p in close.items())):
         images.update(render_poses(ground_geo, texture, poses, {}, texture_mapping=True, cache_faces=True,
                                    defer_textures=True, texel_lit=True))
