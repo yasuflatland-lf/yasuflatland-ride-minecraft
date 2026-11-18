@@ -15,6 +15,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 STEERING = load_tool("camper_steering")
@@ -270,7 +272,7 @@ print("drawer item cubes added:", sum(len(b.get("cubes", [])) for b in drawer_it
 outputs.json(MODELS / "camper.geo.json", rounded(geo))
 
 
-atlas_pixels = kit.regions.render_atlas(LAYOUT)
+atlas_pixels = region_atlas.render_atlas(LAYOUT)
 bound_faces = {id(face) for _, face in LAYOUT._faces}
 for cube in model_cubes:
     for face in cube["uv"].values():
@@ -286,7 +288,7 @@ for cube in model_cubes:
                 break
         else:
             raise ValueError(f"Camper face outside registered regions: {face}")
-atlas_errors = kit.regions.audit(LAYOUT, atlas_pixels)
+atlas_errors = region_atlas.audit(LAYOUT, atlas_pixels)
 if atlas_errors:
     raise ValueError("Camper atlas audit failed: " + "; ".join(atlas_errors))
 

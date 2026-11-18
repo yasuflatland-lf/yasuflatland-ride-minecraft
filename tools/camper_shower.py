@@ -4,6 +4,8 @@ import math
 
 from tool_loader import load_tool
 
+region_atlas = load_tool("region_atlas")
+
 kit = load_tool("camper_kit")
 AreaCubes = kit.AreaCubes
 CEIL = kit.CEIL
@@ -69,8 +71,8 @@ HOSE_TEXTURE_STRIDE = 13
 HOSE_TEXTURE_WRAP = 230
 COLORS = {name: kit.PALETTE[name] for name in ("ivory", "white", "chrome", "steel", "black")}
 COLORS["dark"] = kit.PALETTE["grille"]
-RegionRegistry = kit.regions.RegionRegistry
-RegionRef = kit.regions.RegionRef
+RegionRegistry = region_atlas.RegionRegistry
+RegionRef = region_atlas.RegionRef
 
 def hash_noise(x: float, y: float, seed: int = 0) -> float:
     n = (int(x) * 374761393 + int(y) * 668265263 + seed * 144269) & 0xffffffff
@@ -143,7 +145,7 @@ def register_regions(registry: RegionRegistry) -> dict[str, RegionRef]:
     existing = {r.name: r for r in registry.regions()}
     refs = {}
     for name, width, height, material, pixel in REGIONS:
-        region = kit.regions.Region(name, width, height, material, pixel)
+        region = region_atlas.Region(name, width, height, material, pixel)
         if name in existing:
             refs[name] = RegionRef(registry, existing[name])
         else:
@@ -152,7 +154,7 @@ def register_regions(registry: RegionRegistry) -> dict[str, RegionRef]:
 
 
 def region_face(ref: RegionRef, u: float, v: float, width: float, height: float) -> dict:
-    return kit.regions.RegionFace(
+    return region_atlas.RegionFace(
         {'uv': list(ref.uv(u, v)), 'uv_size': [width, height]}, ref.region.name)
 
 

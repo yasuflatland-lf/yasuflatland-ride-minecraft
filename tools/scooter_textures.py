@@ -10,6 +10,7 @@ atlas = load_tool("scooter_atlas")
 mer = load_tool("mer")
 texture_io = load_tool("texture_io")
 lit_textures = load_tool("lit_textures")
+texture_variants = load_tool("texture_variants")
 
 DEFAULT_PAINT = "white"
 PAINTS = {
@@ -128,12 +129,12 @@ def write(outputs, rp, layout, pixels):
     directory = rp / "textures/entity/yasu_ride"
     width, height = layout.size
     material_pixels = mer_bytes(layout)
+    variants = []
     for paint, color in PAINTS.items():
         name = "scooter" if paint == "khaki" else f"scooter_{paint}"
         color_pixels = pixels if color == atlas.PAINT_IVORY else recolor(layout, pixels, color)
-        outputs.rgba(directory / f"{name}.png", width, height, color_pixels)
-        outputs.rgba(directory / f"{name}_mer.png", width, height, material_pixels)
-        texture_io.write_texture_set(outputs, directory, name)
+        variants.append(texture_variants.Variant(name, color_pixels, material_pixels))
+    texture_variants.write_variants(outputs, directory, "scooter", width, height, variants)
     mask = bytearray(width * height)
     for region in layout.regions:
         if region.name in LIT_REGIONS:

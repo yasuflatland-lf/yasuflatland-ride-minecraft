@@ -182,7 +182,7 @@ BULLDOZER_POSES = {
 
 SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
 # The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
-SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_white.png"
+SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter.png"
 SCOOTER_CELLS_PER_UNIT = 16
 SCOOTER_ANIMATIONS = "animations/yasu_ride/scooter.anim.json"
 # SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16 model pixels (ADR 0251).
