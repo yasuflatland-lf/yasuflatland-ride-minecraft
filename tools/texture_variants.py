@@ -30,7 +30,9 @@ class VariantTextures:
 
 
 def write_variants(outputs, directory: Path, kind: str, width: int, height: int,
-                   variants: Sequence[Variant], *, relief=None) -> VariantTextures:
+                   variants: Sequence[Variant], *, relief=None,
+                   retired: Sequence[str] = ()) -> VariantTextures:
+    """`retired` names extra PNG stems an earlier layout wrote that no variant name derives."""
     names = [variant.name for variant in variants]
     if len(set(names)) != len(names):
         raise ValueError("Variant names must be unique")
@@ -78,4 +80,14 @@ def write_variants(outputs, directory: Path, kind: str, width: int, height: int,
         outputs.rgba(directory / f"{name}.png", width, height, data)
     for stored, mer_name in sets:
         texture_io.write_texture_set(outputs, directory, stored, mer_name, relief)
+
+    # Generated textures are gitignored, so files from the one-file-per-variant layout
+    # survive regeneration unless removed here, and pnpm package zips the whole pack.
+    kept = {f"{name}.png" for name in written} | {f"{name}.texture_set.json" for name, _ in sets}
+    leftovers = {f"{kind}_mer.png", *(f"{stem}.png" for stem in retired)}
+    for variant in variants:
+        leftovers |= {f"{variant.name}.png", f"{variant.name}_mer.png",
+                      f"{variant.name}.texture_set.json"}
+    for name in sorted(leftovers - kept):
+        outputs.remove(directory / name)
     return VariantTextures(MappingProxyType(color_of), MappingProxyType(mer_of), tuple(written))

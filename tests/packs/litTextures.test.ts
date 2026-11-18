@@ -350,7 +350,7 @@ print(json.dumps(list(load_tool('suv_atlas').region('headlight', 'lens')[1:])))`
 
 it("binds an opaque non-emissive camper interior MER without changing the base pass", () => {
   const base = texels("camper");
-  const interior = texels("camper_interior_mer");
+  const interior = texels("camper_mer");
   for (const name of ["camper_mirror", "camper_mirror_mer"]) {
     const image = texels(name);
     expect([image.width, image.height]).toEqual([base.width, base.height]);
@@ -363,7 +363,7 @@ it("binds an opaque non-emissive camper interior MER without changing the base p
     format_version: "1.16.100",
     "minecraft:texture_set": {
       color: "camper",
-      metalness_emissive_roughness: "camper_interior_mer",
+      metalness_emissive_roughness: "camper_mer",
     },
   });
   const client = read("entity/yasu_ride/camper.ce.json")[

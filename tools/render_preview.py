@@ -1323,7 +1323,9 @@ def project_lit_texture(geo, lit_geo, lit_texture):
                 odu, odv = original["uv_size"]
                 for y in range(math.floor(min(v, v + dv)), math.ceil(max(v, v + dv))):
                     for x in range(math.floor(min(u, u + du)), math.ceil(max(u, u + du))):
-                        projected[math.floor(ov + (y + 0.5 - v) * odv / dv)][math.floor(ou + (x + 0.5 - u) * odu / du)] = lit_texture[y][x]
+                        target_y = math.floor(ov + (y + 0.5 - v) * odv / dv)
+                        target_x = math.floor(ou + (x + 0.5 - u) * odu / du)
+                        projected[target_y][target_x] = lit_texture[y][x]
     return projected
 
 
@@ -1517,7 +1519,7 @@ def render_photo_view(rp, name, lid=None) -> RasterJob:
         geo = open_lid(geo, degrees)
     textured = piece["textured"]
     polygons, glass = collect_boat(
-        geo, read_png(rp / RESORT_TEXTURE.format(piece["geometry"])),
+        geo, read_png(rp / RESORT_TEXTURE.format(piece.get("texture", piece["geometry"]))),
         {"lamps": False, "dusk": False, "outward_normals": textured,
          "merge_texels": piece["geometry"] in ("sofa_single", "sofa_double", "washstand")},
         texture_mapping=textured, cutout=piece["cutout"])
@@ -1590,7 +1592,7 @@ def small_models(rp):
     texture = read_png(rp / GEAR_TEXTURE)
     models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
     resort = [
-        (piece["name"], rp / RESORT_GEOMETRY.format(piece["geometry"]), read_png(rp / RESORT_TEXTURE.format(piece["geometry"])))
+        (piece["name"], rp / RESORT_GEOMETRY.format(piece["geometry"]), read_png(rp / RESORT_TEXTURE.format(piece.get("texture", piece["geometry"]))))
         for piece in RESORT_GEAR
     ]
     return models + resort + [

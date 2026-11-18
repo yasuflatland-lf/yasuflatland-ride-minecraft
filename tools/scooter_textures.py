@@ -158,9 +158,9 @@ def write(outputs, rp, fixed_layout, fixed_pixels, layout, pixels, lit_layout, l
     paint_textures = texture_variants.write_variants(outputs, directory, "scooter_paint", width, height, variants)
     width, height = lit_layout.size
     mask = bytearray(width * height)
-    for region in lit_layout.regions:
+    for region, placement in _unique_regions(lit_layout):
         if region.name in LIT_REGIONS:
-            ox, oy = lit_layout.origin(region.name)
+            ox, oy = placement.x, placement.y
             for y in range(oy, oy + region.height):
                 for x in range(ox, ox + region.width):
                     # Clear corners of a round lens must not glow as a square plate.

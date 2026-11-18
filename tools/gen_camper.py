@@ -23,6 +23,7 @@ STEERING = load_tool("camper_steering")
 ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owner": "camper", "cubes": 518}, "cab_seats": {"owner": "camper", "cubes": 464}, **STEERING.ASSEMBLIES}
 
 texture_io = load_tool("texture_io")
+texture_variants = load_tool("texture_variants")
 mer = load_tool("mer")
 outputs = texture_io.Outputs("--check" in sys.argv[2:])
 build_layout_lit_textures = load_tool("lit_textures").build_layout_lit_textures
@@ -297,8 +298,6 @@ def atlas_pixel(x, y):
     return tuple(atlas_pixels[offset:offset + 4])
 
 
-outputs.png(ENTITY_TEXTURES / "camper.png", *LAYOUT.size, atlas_pixel)
-
 build_layout_lit_textures(outputs, ENTITY_TEXTURES, "camper", LAYOUT,
                           atlas_pixel, "base", lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
 
@@ -307,15 +306,13 @@ MER_MIRROR_CHROME = mer.Mer(255, 0, 26)
 mirror_mask = mer.layout_mask(LAYOUT, "base", lambda x, y:
     MIRROR_CHROME_REGION.x <= x < MIRROR_CHROME_REGION.x + MIRROR_CHROME_REGION.w
     and MIRROR_CHROME_REGION.y <= y < MIRROR_CHROME_REGION.y + MIRROR_CHROME_REGION.h)
-outputs.png(ENTITY_TEXTURES / "camper_mirror.png", *LAYOUT.size, atlas_pixel)
-outputs.png(ENTITY_TEXTURES / "camper_mirror_mer.png", *LAYOUT.size, mer.mer_painter(
-    lambda x, y: MER_MIRROR_CHROME if mirror_mask(x, y) else None))
-texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "camper_mirror", "camper_mirror_mer")
-
 interior_mer = load_tool("camper_mer").build_interior_mer(LAYOUT)
-outputs.png(ENTITY_TEXTURES / "camper_interior_mer.png", *LAYOUT.size,
-            texture_io.texel_reader(LAYOUT.size[0], interior_mer))
-texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "camper", "camper_interior_mer")
+mirror_mer = texture_io.rgba_bytes(*LAYOUT.size, mer.mer_painter(
+    lambda x, y: MER_MIRROR_CHROME if mirror_mask(x, y) else None))
+texture_variants.write_variants(outputs, ENTITY_TEXTURES, "camper", *LAYOUT.size, [
+    texture_variants.Variant("camper", atlas_pixels, interior_mer),
+    texture_variants.Variant("camper_mirror", atlas_pixels, mirror_mer),
+], retired=("camper_interior_mer",))
 
 ICON = [
     "................",
