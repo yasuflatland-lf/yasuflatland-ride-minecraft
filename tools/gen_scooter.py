@@ -36,6 +36,7 @@ ASSEMBLIES = {
     "shield_trim": {"owner": "scooter", "cubes": 66},
     "shield_ridge": {"owner": "scooter", "cubes": 110},
     "shield_fender": {"owner": "scooter", "cubes": 295},
+    "shield_bead": {"owner": "scooter", "cubes": 58},
     "body_cowl": {"owner": "scooter", "cubes": 594},
     "body_tail": {"owner": "scooter", "cubes": 216},
     "body_frame": {"owner": "scooter", "cubes": 148},

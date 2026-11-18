@@ -13,7 +13,9 @@ AXLE_Y = TYRE_RADIUS
 TYRE_HALF_WIDTH = 1.05
 STEERING_AXIS_DEGREES = 20.9
 HEADSET_Y = 17.9
-SEAT_Y = 16.1
+# Bedrock seats a rider 0.4 blocks below the seat position (ADR 0029), so the hips sit 5.6 px above it:
+# 10.5 puts them on the 16.1 px seat top.
+SEAT_Y = 10.5
 DRIVER_SEAT_Z = 3.5
 PASSENGER_SEAT_Z = 9.5
 STAND_PIXEL = (400, 462)
@@ -29,7 +31,9 @@ STRUT_BONES = {"front": "wheel_front_strut", "rear": "wheel_rear_strut"}
 # on the ground so the open wheel well keeps its road silhouette; it extends with the fold drop.
 REAR_STEM_BONE = "wheel_rear_stem"
 REAR_STEM_TOP = 13.26
-STAND_UP_DEGREES = 85
+# At rest the stand legs lean about 28 degrees forward of straight down; turning the stand 62 degrees
+# more to the front lays the legs horizontal, parallel to the floor, pointing at the front tyre.
+STAND_UP_DEGREES = -62
 GLOW_DEPTH = 0.5
 GLOW_GAP = 0.1
 GLOW_SEGMENTS = 16
@@ -63,7 +67,7 @@ AREA_CUBE_ALLOCATION: dict[str, int] = {
     "rear": 370,
     "engine": 320,
     "head": 510,
-    "shield": 585,
+    "shield": 640,
     "glow": 35,
 }
 CUBE_BUDGET = sum(AREA_CUBE_ALLOCATION.values())
@@ -92,9 +96,6 @@ SHIELD_BOTTOM = i2m(0, 448)[1]
 SHIELD_CORNER_RADIUS = 1.7
 SHIELD_PANEL_THICKNESS = 0.055
 SHIELD_SPINE_THICKNESS = 0.045
-SHIELD_SIDE_THICKNESS = 0.08
-SHIELD_SIDE_FRONT = -0.06
-SHIELD_SIDE_REAR = 0.26
 SHIELD_RELIEF_Y = 10.0
 SHIELD_RELIEF_HEIGHT = 4.0
 SHIELD_RELIEF_MIN = 0.22
@@ -106,7 +107,6 @@ SHIELD_TRIM_OFFSET = -0.02
 SHIELD_TRIM_SIDE_STEPS = 24
 SHIELD_TRIM_CORNER_STEPS = 6
 SHIELD_TRIM_TOP_STEPS = 6
-SHIELD_SIDE_STEPS = 48
 SHIELD_SPINE_STEPS = 18
 SHIELD_SPINE_BACK_OFFSET = -0.045
 SHIELD_SPINE_END_DROP = 0.32
@@ -140,6 +140,8 @@ SHIELD_FENDER_LIP_UPPER = 18
 SHIELD_FENDER_LIP_END = 0.8
 SHIELD_FENDER_ARCH_DROP = 0.9
 SHIELD_FENDER_ARCH_STEPS = 12
+# Paint bead that follows the fender rim; it hides the stepped edge of the cut-out panels.
+SHIELD_BEAD_SIZE = 0.5
 SHIELD_FENDER_CURL_INSET = 0.07
 SHIELD_FENDER_CURL_RISE = 0.055
 SHIELD_FENDER_END_SCALE = 0.94
@@ -157,7 +159,6 @@ SHIELD_CROWN_THICKNESS = 0.025
 SHIELD_CROWN_STEPS = 32
 SHIELD_CROWN_DENSITY = 32
 SHIELD_CROWN_COLOR = (69, 68, 61)
-SHIELD_PLATE_DENSITY = 12
 SHIELD_PANEL_TEXELS = 24
 SHIELD_PANEL_COLUMNS = 16
 SHIELD_MASK_ALLOWANCE = 0.012

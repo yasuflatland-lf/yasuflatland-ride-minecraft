@@ -35,6 +35,16 @@ it("plays the full animation and clears the last pose once with immediate stop",
   adapter.clear(id);
   expect(player.playAnimation).toHaveBeenCalledTimes(2);
 });
+it("replays an unchanged pose without a blend so the arms do not jump", () => {
+  const { player, adapter, id } = fixture();
+  adapter.play(id, "scooter_grip");
+  adapter.play(id, "scooter_grip");
+  adapter.play(id, "scooter_lean_l1");
+  adapter.play(id, "scooter_lean_l1");
+  expect(
+    player.playAnimation.mock.calls.map(([, options]) => options.blendOutTime),
+  ).toEqual([0.15, 0, 0.15, 0]);
+});
 it("ignores missing and invalid players", () => {
   const { player, lookup, adapter, id } = fixture();
   lookup.mockReturnValueOnce(undefined);

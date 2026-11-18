@@ -67,7 +67,7 @@ assert set(first)=={'body','steer'}
 cubes=[c for cs in first.values() for c in cs]
 assert 0<len(cubes)<=s.D.SHIELD_BUDGET
 assert all(x is not y for bone in first for x,y in zip(first[bone],second[bone]))
-assert set(first.assemblies)=={'shield_face','shield_trim','shield_ridge','shield_fender'}
+assert set(first.assemblies)=={'shield_face','shield_trim','shield_ridge','shield_fender','shield_bead'}
 table=load_tool('gen_scooter').ASSEMBLIES
 t.assert_axes(cubes,first.assemblies,{name:table[name] for name in first.assemblies})
 for c in cubes:

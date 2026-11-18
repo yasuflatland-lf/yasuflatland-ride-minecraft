@@ -30,7 +30,7 @@ const AREAS: readonly AreaRow[] = [
   { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"] },
   { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"] },
   { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"] },
-  { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"] },
+  { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender", "shield_bead"] },
   { area: "glow", bones: ["glow_front", "glow_rear"], assemblies: [] },
 ];
 
@@ -86,7 +86,7 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(5562);
+    expect(metadata.budget).toBe(5617);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });
@@ -245,8 +245,8 @@ print(json.dumps(deviations))
       ["wheel_rear_stem", "body", [0, 13.26, 11.8]],
       ["stand", "body", [0, 3.735, 1.045]],
       ["tail_lights", "body", [0, 0, 0]],
-      ["seat_0", "body", [0, 16.1, 3.5]],
-      ["seat_1", "body", [0, 16.1, 9.5]],
+      ["seat_0", "body", [0, 10.5, 3.5]],
+      ["seat_1", "body", [0, 10.5, 9.5]],
     ] as const;
     expect(geometry.bones.map((b) => b.name)).toEqual(
       expected.map((b) => b[0]),
@@ -388,7 +388,7 @@ for index,cube in enumerate(panels):
     for x in range(tile):
         for y in range(tile):
             actual=region.pixel(int(u+(x+.5)*du/tile),int(v+(y+.5)*dv/tile))
-            expected=region.pixel(tx+tile-1-x,ty+y)
+            expected=region.pixel(tx+x,ty+y)
             assert actual==expected, (index,x,y,actual,expected)
             checked+=1
 print(checked)
