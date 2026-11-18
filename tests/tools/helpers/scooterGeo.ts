@@ -14,6 +14,7 @@ type Geometry = {
     parent?: string;
     pivot: Triple;
     rotation?: Triple;
+    locators?: Record<string, Triple>;
     cubes?: Cube[];
   }[];
   description: { texture_width: number; texture_height: number };

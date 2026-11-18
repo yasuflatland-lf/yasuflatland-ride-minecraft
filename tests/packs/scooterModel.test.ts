@@ -87,6 +87,7 @@ describe("scooter generated foundation", () => {
       metadata.budget,
     );
     expect(metadata.budget).toBe(5617);
+    expect(cubes).toHaveLength(5586);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });
@@ -279,6 +280,28 @@ print(json.dumps(deviations))
         expect(bone.parent.endsWith("_fold")).toBe(false);
         bone = geometry.bones.find((b) => b.name === bone?.parent);
       }
+    }
+  });
+
+  it("places one exhaust locator at the body-mounted tailpipe outlet", () => {
+    const owners = geometry.bones.filter((bone) => bone.locators?.exhaust);
+    expect(owners).toHaveLength(1);
+    const owner = owners[0];
+    expect(owner?.name).toBe("body");
+    // OUTLET_CENTER (-2.65, 4.18) and rear OUTLET_Z 11.15, after the x mirror.
+    const outletEnd = [2.65, 4.18, 11.15];
+    const locator = owner?.locators?.exhaust ?? [];
+    expect(locator).toHaveLength(3);
+    expect(
+      Math.hypot(
+        ...outletEnd.map((value, axis) => value - (locator[axis] ?? NaN)),
+      ),
+    ).toBeLessThanOrEqual(1);
+    let ancestor = owner;
+    while (ancestor) {
+      expect(ancestor.name).not.toMatch(/_fold$|_strut$|_stem$/);
+      const parent = ancestor.parent;
+      ancestor = geometry.bones.find((bone) => bone.name === parent);
     }
   });
 
