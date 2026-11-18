@@ -434,8 +434,7 @@ def _plate(result):
         return [base[i] + local[i] for i in range(3)]
     half_w, half_h = PLATE_WIDTH / 2, PLATE_HEIGHT / 2
     chrome = atlas.faces("chrome")
-    # Final x mirroring runs the south face's U the other way, so the text needs a flipped U to read left to right.
-    faces = {**chrome, "south": atlas.face(PLATE_NAME, PLATE_TEXELS[0], 0, -PLATE_TEXELS[0])}
+    faces = {**chrome, "south": atlas.face(PLATE_NAME)}
     corners = [place(x, y, PLATE_THICK / 2) for y in (-half_h, half_h) for x in (-half_w, half_w)]
     inside = place(0, 0, -PLATE_THICK)
     result.add("body", kit.quad(corners[0], corners[1], corners[2], corners[3], PLATE_THICK, faces, inside))

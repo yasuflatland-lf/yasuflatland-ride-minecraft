@@ -69,8 +69,11 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   The rear saddle uses thin, planar triangular panels with alpha-cut outlines in one
   leather region; cube bounding rectangles and panel margins must not extend its visible
   silhouette. Its 162 cubes belong to `rear_seat`. The south-facing licence plate reads
-  `MDR` over `39` from behind, with its horizontal raster reversed for Bedrock's rear-view
-  coordinate convention after the final x mirror.
+  `MDR` over `39` from behind. On the device a north or south face runs U along local x the
+  other way than the generators assume, so `mirror_to_game` flips U on every north and south
+  face (negative U width); the alpha-cut panel masks and the plate raster stay authored in
+  the generators' own orientation. The scooter preview poses flip those faces back because
+  the preview renderer reads them the other way round (`flip_ns_u` in `tools/render_preview.py`).
   The rear lamp uses the spike's 0.9 group scale and 16-point, n=3 superellipse
   housing rings, with half-widths 0.82 to 1.21 and half-heights 0.46 to 0.69 before
   scaling. Its broad red lens has a vertical gradient and top highlight, a pale

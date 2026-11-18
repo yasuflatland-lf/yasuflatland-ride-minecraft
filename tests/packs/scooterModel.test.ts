@@ -338,7 +338,7 @@ for index,cube in enumerate(panels):
     for x in range(tile):
         for y in range(tile):
             actual=region.pixel(int(u+(x+.5)*du/tile),int(v+(y+.5)*dv/tile))
-            expected=region.pixel(tx+tile-1-x,ty+y)
+            expected=region.pixel(tx+x,ty+y)
             assert actual==expected, (index,x,y,actual,expected)
             checked+=1
 print(checked)

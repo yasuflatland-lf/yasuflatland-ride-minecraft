@@ -206,6 +206,13 @@ def mirror_to_game(bones):
         for cube in bone.get("cubes", []):
             cube["origin"] = [-(cube["origin"][0]+cube["size"][0]), *cube["origin"][1:]]
             cube["uv"]["east"], cube["uv"]["west"] = cube["uv"]["west"], cube["uv"]["east"]
+            # On the device a north or south face runs U along local x in the other direction than the generators
+            # assume (the plate text and the seat masks read mirrored). A negative U width flips the face back.
+            for name in ("north", "south"):
+                face = cube["uv"][name]
+                (u, v), (du, dv) = face["uv"], face["uv_size"]
+                face["uv"] = [u + du, v]
+                face["uv_size"] = [-du, dv]
             if "pivot" in cube:
                 cube["pivot"] = [-cube["pivot"][0], *cube["pivot"][1:]]
             if "rotation" in cube:

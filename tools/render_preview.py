@@ -201,6 +201,10 @@ SCOOTER_POSES = {
     # Framed on the tail lamp alone, so it is rendered apart from the shared scale (see render_scooter).
     "scooter-taillights.png": {"lamps": True, "dusk": True, "view": (0.7, 0.2, 1.0), "screen_up": None, "merge_texels": True, "cells_per_unit": SCOOTER_CELLS_PER_UNIT, "frame_bones": ("tail_lights",), "frame_pad": 2.7},
 }
+# The scooter's geometry already flips U on its north and south faces for the device (tools/scooter_kit.py);
+# this renderer reads those faces the other way round, so the scooter poses flip them back to match the device.
+for _pose in SCOOTER_POSES.values():
+    _pose["flip_ns_u"] = True
 
 # Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,
 # filled to GEAR_FILL of the square so even the flat road map shows its detail (ADR 0093)
@@ -806,6 +810,9 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)
                 uv = cube["uv"][face]
+                if pose.get("flip_ns_u") and face in ("north", "south"):
+                    (u, v), (du, dv) = uv["uv"], uv["uv_size"]
+                    uv = {**uv, "uv": [u + du, v], "uv_size": [-du, dv]}
                 cache_key = (bone["name"], id(cube), face, pose.get("merge_texels", False), pose.get("cells_per_unit"))
                 if flight is not None:
                     cache_key = (*cache_key, tuple(quad))
