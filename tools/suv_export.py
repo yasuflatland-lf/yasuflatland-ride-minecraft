@@ -101,12 +101,7 @@ def paint_textures(out, directory):
     for other_kind in material.RELIEF_KINDS:
         if other_kind == material.RELIEF_KIND:
             continue
-        other_path = directory / f"suv_{other_kind}.png"
-        if other_path.exists():
-            if out.check:
-                out.stale.append(str(other_path))
-            else:
-                other_path.unlink()
+        out.remove(directory / f"suv_{other_kind}.png")
     variants = [texture_variants.Variant(
         "suv" if paint.name == "khaki" else f"suv_{paint.name}",
         texture_io.rgba_bytes(ATLAS.width, ATLAS.height, texture.paint_pixel(paint)),

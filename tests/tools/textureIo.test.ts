@@ -77,6 +77,33 @@ with tempfile.TemporaryDirectory() as d:
   );
 });
 
+it("removes an output no longer generated, or reports it under check", () => {
+  const script = `
+import sys, tempfile
+from pathlib import Path
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+io = load_tool('texture_io')
+with tempfile.TemporaryDirectory() as d:
+ p = Path(d)
+ io.Outputs(False).rgba(p / 'old.png', 1, 1, bytes(4))
+ check = io.Outputs(True)
+ check.remove(p / 'old.png')
+ check.remove(p / 'missing.png')
+ assert (p / 'old.png').exists()
+ assert check.stale == [f"{p / 'old.png'} (no longer generated)"], check.stale
+ write = io.Outputs(False)
+ write.remove(p / 'old.png')
+ write.remove(p / 'missing.png')
+ assert not (p / 'old.png').exists()
+ assert not write.stale and not write.touched
+print('ok')
+`;
+  expect(
+    execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }).trim(),
+  ).toBe("ok");
+});
+
 it("accepts one relief variant and preserves texture sets without relief", () => {
   execFileSync("python3", [
     "-I",

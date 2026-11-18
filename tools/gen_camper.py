@@ -310,7 +310,7 @@ mirror_mer = texture_io.rgba_bytes(*LAYOUT.size, mer.mer_painter(
 texture_variants.write_variants(outputs, ENTITY_TEXTURES, "camper", *LAYOUT.size, [
     texture_variants.Variant("camper", atlas_pixels, interior_mer),
     texture_variants.Variant("camper_mirror", atlas_pixels, mirror_mer),
-])
+], retired=("camper_interior_mer",))
 
 ICON = [
     "................",

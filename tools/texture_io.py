@@ -102,6 +102,17 @@ class Outputs:
         if self.report_writes:
             print(f"wrote {path}")
 
+    def remove(self, path):
+        """Delete an output a generator no longer writes, or report it as stale under --check."""
+        if not path.exists():
+            return
+        if self.check:
+            self.stale.append(f"{path} (no longer generated)")
+        else:
+            path.unlink()
+            if self.report_writes:
+                print(f"removed {path}")
+
     def finish(self, stale_header, ok_message=None):
         if self.stale:
             sys.exit(stale_header + "\n" + "\n".join(self.stale))
