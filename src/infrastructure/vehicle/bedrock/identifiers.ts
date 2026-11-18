@@ -233,7 +233,7 @@ export const RIDER_POSE_CONTROLLER = "yasu_ride.scooter_pose";
  * kicks the limbs for a moment (issues 1930 and 1993).
  */
 export const RIDER_POSE_PLAY_BLEND_OUT_TIME = 0;
-/** Seconds; only a dismount fades the pose out (ADR 0250 owner check 2 specifies 0.1 to 0.25). */
+/** Seconds; only a dismount fades the pose out; a tuning value no owner check pins. */
 export const RIDER_POSE_CLEAR_BLEND_OUT_TIME = 0.15;
 export const RIDER_POSE_STOP_EXPRESSION = "!query.is_riding";
 export const RIDER_POSE_CLEAR_EXPRESSION = "1";

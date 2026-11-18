@@ -113,7 +113,9 @@ it("quantizes body roll into bounded monotone odd-symmetric levels", () => {
     expect(rollLevel(angle, angles)).toBe(index + 1);
     expect(rollLevel(-angle, angles)).toBe(-(index + 1));
   }
-  expect(rollLevel(angles.at(-1) ?? 0 + 40, angles)).toBe(angles.length);
+  expect(rollLevel((angles.at(-1) ?? 0) + 40, angles)).toBe(angles.length);
+  expect(rollLevel(-((angles.at(-1) ?? 0) + 40), angles)).toBe(-angles.length);
+  expect(rollLevel(90, angles)).toBe(angles.length);
   expect(rollLevel((angles[0] ?? 0) / 2 - 0.01, angles)).toBe(0);
 });
 it("takes body roll as lean minus bank, matching the model's lean animation", () => {
