@@ -227,9 +227,9 @@ def _fork(result):
         result.add("steer", kit.tube([(PIN_X[0], y, z), (PIN_X[1], y, z)], PIN_SIZE, chrome))
         result.add("steer", kit.box((PIN_HEADS[0], y - PIN_HEAD_HALF, z - PIN_HEAD_HALF),
                                     (PIN_HEADS[1], y + PIN_HEAD_HALF, z + PIN_HEAD_HALF), chrome))
-    result.add("steer", kit.profile_plate(list(LINK_OUTLINE), LINK_X, LINK_THICKNESS, "running_link"))
+    result.add("steer", kit.profile_plate(list(LINK_OUTLINE), LINK_X, LINK_THICKNESS, "running_link", outer="east"))
     result.add("steer", kit.profile_plate(list(LINK_SHADE_OUTLINE), LINK_SHADE_X, LINK_SHADE_THICKNESS,
-                                          "running_link_shade"))
+                                          "running_link_shade", outer="east"))
 
 
 def _stand(result):

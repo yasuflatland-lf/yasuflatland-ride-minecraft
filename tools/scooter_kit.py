@@ -179,10 +179,15 @@ def extrude(poly_zy, x0, x1, step, uv_faces):
     return cubes
 
 
-def profile_plate(poly_zy, x, thick, region):
+def profile_plate(poly_zy, x, thick, region, outer=None):
+    """A thin cut-out plate. `outer` ("east" or "west") keeps only that face textured: the other face would
+    show through the transparent part of the outer one as a mirrored ghost of the outline."""
+    faces = atlas.plate_faces(region)
+    if outer is not None:
+        faces[{"east": "west", "west": "east"}[outer]] = atlas.face("clear")
     return box([x-thick/2, min(p[1] for p in poly_zy), min(p[0] for p in poly_zy)],
                [x+thick/2, max(p[1] for p in poly_zy), max(p[0] for p in poly_zy)],
-               atlas.plate_faces(region))
+               faces)
 
 
 def _mirror_rotation(rotation):
@@ -206,9 +211,9 @@ def mirror_to_game(bones):
         for cube in bone.get("cubes", []):
             cube["origin"] = [-(cube["origin"][0]+cube["size"][0]), *cube["origin"][1:]]
             cube["uv"]["east"], cube["uv"]["west"] = cube["uv"]["west"], cube["uv"]["east"]
-            # On the device a north or south face runs U along local x in the other direction than the generators
-            # assume (the plate text and the seat masks read mirrored). A negative U width flips the face back.
-            for name in ("north", "south"):
+            # On the device a side face runs U in the other direction than the generators assume (the plate text,
+            # the seat masks and the hub link read mirrored). A negative U width flips each side face back.
+            for name in ("north", "south", "east", "west"):
                 face = cube["uv"][name]
                 (u, v), (du, dv) = face["uv"], face["uv_size"]
                 face["uv"] = [u + du, v]

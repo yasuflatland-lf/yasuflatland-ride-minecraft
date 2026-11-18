@@ -123,7 +123,7 @@ assert bones[0]['locators']['seat']==[-2,3,4]
     );
   });
 
-  it("flips U on the north and south faces and leaves the other faces alone", async () => {
+  it("flips U on the four side faces and leaves the up and down faces alone", async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.integer({ min: 0, max: 60 }),
@@ -132,7 +132,7 @@ assert bones[0]['locators']['seat']==[-2,3,4]
           await python.run(`${setup}
 c=k.box([0,0,0],[1,1,1],a.faces('paint',${u},3,${du},5))
 k.mirror_to_game([dict(name='body',pivot=[0,0,0],cubes=[c])])
-for name in ('north','south'):
+for name in ('north','south','east','west'):
     assert c['uv'][name]['uv']==[${u}+${du},3] and c['uv'][name]['uv_size']==[-${du},5], name
 for name in ('up','down'):
     assert c['uv'][name]['uv']==[${u},3] and c['uv'][name]['uv_size']==[${du},5], name
