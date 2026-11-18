@@ -49,7 +49,6 @@ LUG_COLOR = (102, 106, 101)
 CAP_COLOR = (238, 242, 244)
 CAP_RIM_COLOR = (170, 183, 190)
 LINK_COLOR = (214, 220, 223)
-LINK_SHADE_COLOR = (75, 83, 84)
 
 STEER_LEAN = 0.4
 SUSPENSION_X = 1.22
@@ -61,8 +60,6 @@ SPRING_TURNS, SPRING_SEGMENTS_PER_TURN = 7, 8
 SPRING_RADIUS, SPRING_WIRE = 0.31, 0.13
 SPRING_TILT_Y, SPRING_TILT_Z = 0.3714, 0.9285
 SPRING_ROD = ((4.3, 8.05), 0.18)
-LINK_X, LINK_THICKNESS = 2.04, 0.2
-LINK_SHADE_X, LINK_SHADE_THICKNESS = 2.155, 0.025
 PIN_SIZE, PIN_X = 0.23, (1.2, 2.22)
 PIN_HEADS = (2.13, 2.25)
 PIN_HEAD_HALF = 0.27
@@ -81,9 +78,6 @@ STAND_LEG_SIZE, STAND_BAR_SIZE, STAND_PIVOT_SIZE = 0.32, 0.3, 0.28
 STAND_PIVOT_HALF_LENGTH = 0.24
 
 LEG_OUTLINE_OFFSETS = (0.3, -0.38, -0.34, -0.34)
-LINK_OUTLINE = ((-11.45, 3.65), (-11.04, 3.75), (-10.99, 4.13), (-13.45, 6.03),
-                (-13.85, 6.02), (-14.02, 5.69), (-13.77, 5.32), (-11.82, 3.73))
-LINK_SHADE_OUTLINE = ((-11.35, 3.95), (-11.3, 4.13), (-13.65, 5.84), (-13.74, 5.69))
 
 
 def _axis_z(y):
@@ -160,8 +154,6 @@ def register_regions(registry=None):
                        _wheel_pixel(cap))
         _outline_region(f"running_cap_{side}", _circle(cap * HUB_TAPER), atlas.Material.CHROME, CAP_COLOR)
     _outline_region("running_leg", _leg_outline(), atlas.Material.PAINT, atlas.PAINT_IVORY)
-    _outline_region("running_link", list(LINK_OUTLINE), atlas.Material.CHROME, LINK_COLOR)
-    _outline_region("running_link_shade", list(LINK_SHADE_OUTLINE), atlas.Material.CHROME, LINK_SHADE_COLOR)
     pivot_z, pivot_y = dims.i2m(*dims.STAND_PIXEL)
     _outline_region("running_stand_lug", _stand_lug(pivot_z, pivot_y), atlas.Material.CHROME, LINK_COLOR)
 
@@ -227,9 +219,6 @@ def _fork(result):
         result.add("steer", kit.tube([(PIN_X[0], y, z), (PIN_X[1], y, z)], PIN_SIZE, chrome))
         result.add("steer", kit.box((PIN_HEADS[0], y - PIN_HEAD_HALF, z - PIN_HEAD_HALF),
                                     (PIN_HEADS[1], y + PIN_HEAD_HALF, z + PIN_HEAD_HALF), chrome))
-    result.add("steer", kit.profile_plate(list(LINK_OUTLINE), LINK_X, LINK_THICKNESS, "running_link"))
-    result.add("steer", kit.profile_plate(list(LINK_SHADE_OUTLINE), LINK_SHADE_X, LINK_SHADE_THICKNESS,
-                                          "running_link_shade"))
 
 
 def _stand(result):
