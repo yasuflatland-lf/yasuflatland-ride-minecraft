@@ -1,4 +1,4 @@
-"""Scooter motion and sound animations in the Bedrock rotation convention."""
+"""Scooter motion, sound and particle animations in the Bedrock rotation convention."""
 
 import math
 import sys
@@ -88,6 +88,12 @@ def build():
         animations[f"engine_sound_{clip.index}"] = {
             "loop": True, "animation_length": clip.seconds,
             "sound_effects": {"0.0": {"effect": sound.engine_effect(clip.index)}}}
+    for band in sound.SPEED_BANDS:
+        rate = dims.EXHAUST_PUFFS_PER_SECOND[band.index]
+        animations[f"exhaust_{band.index}"] = {
+            "loop": True, "animation_length": 1.0,
+            "particle_effects": {str(round(puff / rate, 6)): {
+                "effect": "exhaust_smoke", "locator": "exhaust"} for puff in range(rate)}}
     for i in range(dims.HOVER_SOUND_COUNT):
         animations[f"hover_sound_{i}"] = {
             "loop": True, "animation_length": dims.HOVER_LOOP_SECONDS,

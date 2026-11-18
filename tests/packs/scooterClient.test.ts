@@ -120,7 +120,76 @@ describe("scooter client references", () => {
       ...suv.scripts.animate.filter((entry: Entry) =>
         nameOf(entry).startsWith("engine_sound_"),
       ),
+      ...Array.from({ length: 6 }, (_, i) => ({
+        [`exhaust_${i}`]: client.scripts.animate.find(
+          (entry: Entry) => nameOf(entry) === `engine_sound_${i}`,
+        )[`engine_sound_${i}`],
+      })),
     ]);
+  });
+
+  it("emits exhaust only with a rider in road form across all speed boundaries", () => {
+    const gates = Object.assign(
+      {},
+      ...client.scripts.animate.filter(
+        (entry: Entry) => typeof entry !== "string",
+      ),
+    );
+    const smoke = Object.keys(client.animations).filter((name) =>
+      name.startsWith("exhaust_"),
+    );
+    expect(smoke).toHaveLength(6);
+    for (const name of smoke) {
+      const index = name.slice("exhaust_".length);
+      expect(gates[name]).toBe(gates[`engine_sound_${index}`]);
+      for (const particle of effects(clip(name).particle_effects)) {
+        expect(particle).toEqual({
+          effect: "exhaust_smoke",
+          locator: "exhaust",
+        });
+        expect(client.particle_effects[particle.effect]).toBe(
+          "yasu_ride:exhaust_smoke",
+        );
+        expect(
+          bones.some((b) =>
+            Object.hasOwn(b.locators ?? {}, particle.locator ?? ""),
+          ),
+        ).toBe(true);
+      }
+    }
+    for (const hasRider of [false, true]) {
+      for (const currentForm of ["car", "takeoff", "hover", "landing"]) {
+        for (const speed of [
+          0, 0.999, 1, 4.499, 4.5, 7.999, 8, 11.499, 11.5, 14.999, 15, 30,
+        ]) {
+          const active = smoke.filter((name) => {
+            const expression = gates[name]
+              .replaceAll("query.has_rider", String(hasRider))
+              .replaceAll(
+                "query.property('yasu_ride:form')",
+                JSON.stringify(currentForm),
+              )
+              .replaceAll("query.ground_speed", String(speed));
+            return new Function(`return (${expression});`)();
+          });
+          const band =
+            speed < 1
+              ? 0
+              : speed < 4.5
+                ? 1
+                : speed < 8
+                  ? 2
+                  : speed < 11.5
+                    ? 3
+                    : speed < 15
+                      ? 4
+                      : 5;
+          expect(active).toEqual(
+            hasRider && currentForm === "car" ? [`exhaust_${band}`] : [],
+          );
+        }
+      }
+    }
   });
 
   it("binds every paint variant and texture in the SUV order", () => {
@@ -164,6 +233,8 @@ describe("scooter client references", () => {
       }
     }
     expect(client.particle_effects).toEqual({
+      exhaust_smoke: read("particles/yasu_ride/exhaust_smoke.particle.json")
+        .particle_effect.description.identifier,
       hover_glow: read("particles/yasu_ride/hover_glow.particle.json")
         .particle_effect.description.identifier,
     });
