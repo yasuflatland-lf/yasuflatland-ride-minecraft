@@ -47,8 +47,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, 8]
+        "root": {
+          "rotation": [0, 0, 7]
         }
       }
     },
@@ -67,8 +67,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, 16]
+        "root": {
+          "rotation": [0, 0, 13]
         }
       }
     },
@@ -87,8 +87,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, 24]
+        "root": {
+          "rotation": [0, 0, 20]
         }
       }
     },
@@ -107,8 +107,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, -8]
+        "root": {
+          "rotation": [0, 0, -7]
         }
       }
     },
@@ -127,8 +127,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, -16]
+        "root": {
+          "rotation": [0, 0, -13]
         }
       }
     },
@@ -147,8 +147,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, -24]
+        "root": {
+          "rotation": [0, 0, -20]
         }
       }
     },
@@ -184,8 +184,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, 8]
+        "root": {
+          "rotation": [0, 0, 7]
         }
       }
     },
@@ -204,8 +204,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, 16]
+        "root": {
+          "rotation": [0, 0, 13]
         }
       }
     },
@@ -224,8 +224,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, 24]
+        "root": {
+          "rotation": [0, 0, 20]
         }
       }
     },
@@ -244,8 +244,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, -8]
+        "root": {
+          "rotation": [0, 0, -7]
         }
       }
     },
@@ -264,8 +264,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, -16]
+        "root": {
+          "rotation": [0, 0, -13]
         }
       }
     },
@@ -284,8 +284,8 @@
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
-        "waist": {
-          "rotation": [0, 0, -24]
+        "root": {
+          "rotation": [0, 0, -20]
         }
       }
     }
