@@ -9,6 +9,10 @@ import {
   PAINT_VARIANT,
   paintEvent,
 } from "../../src/infrastructure/shared/dyes";
+import {
+  expectUniqueTextureBindings,
+  readTextureMer,
+} from "../support/textureBindings";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json")[
@@ -71,7 +75,7 @@ describe("vehicle paints (ADR 0031)", () => {
         paint === "khaki" ? /\/suv$/ : new RegExp(`/suv_${paint}$`),
       );
       expect(existsSync(`packs/yasu_ride_rp/${path}.png`), path).toBe(true);
-      expect(existsSync(`${RP}/${path}_mer.png`), path).toBe(true);
+      expect(readTextureMer(`${RP}/${path}`), path).toBeDefined();
       expect(existsSync(`${RP}/${path}.texture_set.json`), path).toBe(true);
     }
   });
@@ -191,4 +195,8 @@ describe("tent paints (ADR 0031, 0135)", () => {
       );
     expect(TENT_SPEC.defaultPaint).toBe("khaki");
   });
+});
+
+it("binds existing textures with unique colour and MER content", () => {
+  expectUniqueTextureBindings(client.textures);
 });

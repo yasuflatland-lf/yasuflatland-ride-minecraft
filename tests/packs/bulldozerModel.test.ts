@@ -26,8 +26,11 @@ const bone = (name: string): ModelBone => {
 };
 const points = (b: Bone) => (b.cubes ?? []).flatMap((c) => turnedCorners(b, c));
 const textureDir = `${RP}/textures/entity/yasu_ride`;
+const clientTextures: Record<string, string> = JSON.parse(
+  readFileSync(`${RP}/entity/yasu_ride/bulldozer.ce.json`, "utf8"),
+)["minecraft:client_entity"].description.textures;
 const texturePath = (paint: string) =>
-  `${textureDir}/bulldozer${paint === "khaki" ? "" : `_${paint}`}.png`;
+  `${RP}/${clientTextures[paint === "khaki" ? "default" : paint]}.png`;
 const texture = (paint = "khaki") => readRgbaPng(texturePath(paint));
 const swatch = (paint: string, slot: number) => [
   ...texture(paint).pixels.subarray(slot * 4, slot * 4 + 4),
@@ -248,7 +251,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
 });
 
 describe("bulldozer paints (ADR 0031, 0076)", () => {
-  it("generates one equally sized texture per paint", () => {
+  it("binds equally sized textures for every paint and stores yellow only once", () => {
     expect(
       readdirSync(textureDir)
         .filter(
@@ -261,7 +264,9 @@ describe("bulldozer paints (ADR 0031, 0076)", () => {
     ).toEqual(
       [
         "bulldozer.png",
-        ...PAINTS.slice(1).map((p) => `bulldozer_${p}.png`),
+        ...PAINTS.slice(1)
+          .filter((p) => p !== "yellow")
+          .map((p) => `bulldozer_${p}.png`),
       ].sort(),
     );
     for (const paint of PAINTS) {

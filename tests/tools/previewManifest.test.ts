@@ -111,7 +111,6 @@ const oldReads = [
   "packs/yasu_ride_rp/textures/entity/yasu_ride/dining_table.png",
   "packs/yasu_ride_rp/textures/entity/yasu_ride/dining_chair.png",
   "packs/yasu_ride_rp/textures/entity/yasu_ride/sofa_single.png",
-  "packs/yasu_ride_rp/textures/entity/yasu_ride/sofa_double.png",
   "packs/yasu_ride_rp/textures/entity/yasu_ride/toilet.png",
   "packs/yasu_ride_rp/textures/entity/yasu_ride/washstand.png",
   "packs/yasu_ride_rp/textures/entity/yasu_ride/suv_lit.png",

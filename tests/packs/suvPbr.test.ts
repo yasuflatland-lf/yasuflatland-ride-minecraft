@@ -23,7 +23,9 @@ function nameFor(paint: string): string {
 }
 
 function merFor(paint: string): Png {
-  return readRgbaPng(`${directory}/${nameFor(paint)}_mer.png`);
+  return readRgbaPng(
+    `${directory}/${textureSet(nameFor(paint)).metalness_emissive_roughness}.png`,
+  );
 }
 
 function swatchX(name: string): number {
@@ -58,7 +60,7 @@ describe("SUV paint texture sets", () => {
       format_version: "1.16.100",
       "minecraft:texture_set": {
         color: name,
-        metalness_emissive_roughness: `${name}_mer`,
+        metalness_emissive_roughness: "suv_mer",
         [reliefKind]: reliefName,
       },
     });

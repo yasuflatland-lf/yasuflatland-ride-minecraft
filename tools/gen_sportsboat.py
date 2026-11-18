@@ -25,6 +25,7 @@ ASSEMBLIES = {"wheel": {"owner": "sportsboat", "cubes": 146},
               "throttle_lever": {"owner": "sportsboat", "cubes": 8}}
 
 texture_io = load_tool("texture_io")
+texture_variants = load_tool("texture_variants")
 outputs = texture_io.Outputs("--check" in sys.argv[2:])
 build_lit_textures = load_tool("lit_textures").build_lit_textures
 mer = load_tool("mer")
@@ -1849,16 +1850,8 @@ def mirror_tile(x, y):
     return tuple(round(a + (b - a) * t) for a, b in zip(MIRROR_SKY, MIRROR_HORIZON))
 
 
-def mirror_textures(width, height, pixel):
-    def glass_mer(x, y):
-        return MER_MIRROR if in_mirror_glass(x, y) else None
-
-    outputs.png(ENTITY_TEXTURES / "sportsboat_mirror.png", width, height, pixel)
-    outputs.png(
-        ENTITY_TEXTURES / "sportsboat_mirror_mer.png", width, height,
-        cell_mer({MIRROR_SLOT: MER_MIRROR}, extra=glass_mer),
-    )
-    texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "sportsboat_mirror", "sportsboat_mirror_mer")
+def mirror_mer(x, y):
+    return MER_MIRROR if in_mirror_glass(x, y) else None
 
 
 def swatches(hull_color):
@@ -1877,18 +1870,21 @@ def swatches(hull_color):
     return lambda x, y: pixels[y][x]
 
 
-for paint, hull_color in HULL_PAINTS.items():
-    name = "sportsboat" if paint == "khaki" else f"sportsboat_{paint}"
-    outputs.png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
-    outputs.png(
-        ENTITY_TEXTURES / f"{name}_mer.png", TEXTURE_WIDTH, TEXTURE_HEIGHT,
-        cell_mer({HULL_SLOT: MER_HULL, **{slot: MER_GLOSS for slot in GLOSS_SLOTS}}),
-    )
-    texture_io.write_texture_set(outputs, ENTITY_TEXTURES, name, f"{name}_mer")
+paint_mer = texture_io.rgba_bytes(TEXTURE_WIDTH, TEXTURE_HEIGHT,
+    cell_mer({HULL_SLOT: MER_HULL, **{slot: MER_GLOSS for slot in GLOSS_SLOTS}}))
+variants = [texture_variants.Variant(
+    "sportsboat" if paint == "khaki" else f"sportsboat_{paint}",
+    texture_io.rgba_bytes(TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color)), paint_mer,
+) for paint, hull_color in HULL_PAINTS.items()]
+variants.append(texture_variants.Variant("sportsboat_mirror",
+    texture_io.rgba_bytes(TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"])),
+    texture_io.rgba_bytes(TEXTURE_WIDTH, TEXTURE_HEIGHT,
+                         cell_mer({MIRROR_SLOT: MER_MIRROR}, extra=mirror_mer))))
+texture_variants.write_variants(
+    outputs, ENTITY_TEXTURES, "sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT, variants)
 
 build_lit_textures(outputs, ENTITY_TEXTURES, "sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT,
                    swatches(HULL_PAINTS["khaki"]), is_lit=lambda x, y: swatch_cell(x, y) in LIT_SLOTS)
-mirror_textures(TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
 
 # Item icon: a 16-pixel side view, bow to the right, tower leaning forward, on transparency.
 ICON = [
