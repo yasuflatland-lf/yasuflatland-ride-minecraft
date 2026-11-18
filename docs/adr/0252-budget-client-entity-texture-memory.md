@@ -11,15 +11,17 @@ The iPad client was killed for memory shortly after joining from v0.54.0. Bisect
 
 Of 27,816 scooter faces, 20,550 already sampled shared swatches. Roughly 1,600 alpha-masked outline plates occupied about 94 percent of the atlas. Identical and mirrored region sharing reduced unique atlas area by about 35 percent; 15,844 faces already used negative UV sizes. Lit bones sampled only 0.78 percent of the full atlas. Paint occupied 62 percent, with the other 38 percent repeated across paints. Duplicate colour and MER files also occurred across the other generators.
 
-After the preceding texture changes, the collected 150 pack files total 197,041,792 decoded bytes (187.913696 MiB). Rounding upward to an 8 MiB multiple gives 192 MiB.
+After replacing the scooter paint MER map with a uniform value, the collected 149 pack files total 187,735,168 decoded bytes (179.038208 MiB). Rounding upward to an 8 MiB multiple gives 184 MiB.
 
 ## Decision
 
 `tests/packs/textureMemory.test.ts` collects every texture referenced by `description.textures` in Resource Pack `entity/**/*.ce.json`, plus each string-valued `metalness_emissive_roughness`, `heightmap` and `normal` companion in its texture set. Texture paths omit `.png`; companion names resolve beside the texture set. Count each distinct file once as PNG header width times height times four bytes. The player override's vanilla `steve` and `cape_invisible` references are excluded only when the pack supplies neither file; other missing files fail.
 
-Set `ENTITY_TEXTURE_BUDGET_BYTES` to 192 MiB. Assert both that the total fits and that the budget never exceeds 208 MiB. To update it, measure all collected files, round the total up to the next multiple of 8 MiB, and record the measurement. If the measurement exceeds 208 MiB, stop and report it in the issue; do not raise the ceiling.
+Set `ENTITY_TEXTURE_BUDGET_BYTES` to 184 MiB. Assert both that the total fits and that the budget never exceeds 208 MiB. To update it, measure all collected files, round the total up to the next multiple of 8 MiB, and record the measurement. If the measurement exceeds 208 MiB, stop and report it in the issue; do not raise the ceiling.
 
-A second test fails when two distinct files hold identical decoded pixels within the same role: a colour texture is identified by the pair of its pixels and its MER pixels, because the client resolves a texture set by the colour path (0193), and a MER map is identified by its pixels alone. PNG compression does not affect equality. Both tests report the ten largest files with decoded MiB so failures identify useful reduction targets.
+A second test fails when two distinct files hold identical decoded pixels within the same role: a colour texture is identified by the pair of its pixels and its MER pixels or uniform MER value, because the client resolves a texture set by the colour path (0193), and a MER map is identified by its pixels alone. PNG compression does not affect equality. Both tests report the ten largest files with decoded MiB so failures identify useful reduction targets.
+
+A variant may explicitly use `UniformMer` when every sampled texel in its pass has the same MER value. Write that value as a `[metalness, emissive, roughness]` list in the Bedrock texture set, without a companion PNG; do not infer uniformity automatically. Compare uniform MER values by value when deduplicating (colour, MER) pairs. Only scooter paint variants use `UniformMer(MER_BY_MATERIAL[Material.PAINT])`, producing `[0, 0, 90]`; the fixed pass retains its MER PNG. Existing leftover cleanup removes `scooter_paint_mer.png` and reports it stale under `--check`. This saves 9,306,624 decoded bytes (8.875488 MiB).
 
 Use shared regions and mirrored UV mappings for identical texels. Give lit passes their own geometry and compact atlas, and partition fixed and paint faces into their own geometries so fixed texels are not repeated for every paint. Preserve every face's sampled texels in every paint and render pass. Committed preview PNGs must remain byte-identical; the preview renderer and `pnpm model:check` remain part of appearance verification under 0193.
 
@@ -27,4 +29,4 @@ Multiplicative tint is rejected by owner decision. Rebuilding outlines with SUV-
 
 ## Consequences
 
-Pack tests prevent future models from silently consuming the device-tested memory allowance or duplicating colour and MER content. The budget has roughly 4 MiB of headroom over the measured baseline, and new textures may require sharing or pass partitioning. Decoded RGBA size is a reproducible guard, not a measurement of total GPU or process memory; mipmaps and engine allocations are outside it. Revisit device evidence if rendering or loading changes, while keeping the 208 MiB ceiling for this policy.
+Pack tests prevent future models from silently consuming the device-tested memory allowance or duplicating colour and MER content. The budget has roughly 5 MiB of headroom over the measured baseline, and new textures may require sharing or pass partitioning. Decoded RGBA size is a reproducible guard, not a measurement of total GPU or process memory; mipmaps and engine allocations are outside it. Revisit device evidence if rendering or loading changes, while keeping the 208 MiB ceiling for this policy.
