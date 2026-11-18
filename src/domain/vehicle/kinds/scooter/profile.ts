@@ -14,7 +14,7 @@ const body = Object.freeze({
   height: SCOOTER_SPEC.carHeight,
 });
 
-const riderSeatPose = Object.freeze({
+const driverSeatPose = Object.freeze({
   grip: "scooter_grip",
   lean: Object.freeze([
     "scooter_lean_l3",
@@ -26,11 +26,23 @@ const riderSeatPose = Object.freeze({
   ]),
 });
 
+const passengerSeatPose = Object.freeze({
+  grip: "scooter_pillion_grip",
+  lean: Object.freeze([
+    "scooter_pillion_lean_l3",
+    "scooter_pillion_lean_l2",
+    "scooter_pillion_lean_l1",
+    "scooter_pillion_lean_r1",
+    "scooter_pillion_lean_r2",
+    "scooter_pillion_lean_r3",
+  ]),
+});
+
 export const SCOOTER_PROFILE: VehicleProfile = Object.freeze({
   kind: "scooter",
   ridersFireProof: false,
   riderPose: Object.freeze({
-    seats: Object.freeze([riderSeatPose, riderSeatPose]),
+    seats: Object.freeze([driverSeatPose, passengerSeatPose]),
     refreshTicks: SCOOTER_SPEC.riderPoseRefreshTicks,
   }),
   fleetLimit: SCOOTER_SPEC.fleetLimit,
