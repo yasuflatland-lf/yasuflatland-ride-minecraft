@@ -1,12 +1,12 @@
 import { world } from "@minecraft/server";
-import { HitWarpBlock } from "../../application/warp/hitWarpBlock";
 import { OpenWarpList } from "../../application/warp/openWarpList";
 import { RegisterWarpPoint } from "../../application/warp/registerWarpPoint";
 import { RemoveWarpPoint } from "../../application/warp/removeWarpPoint";
 import { RenameWarpPoint } from "../../application/warp/renameWarpPoint";
+import { TapWarpBlock } from "../../application/warp/tapWarpBlock";
 import { WarpTo } from "../../application/warp/warpTo";
 import { asPlayerId } from "../../domain/shared/ids";
-import { BedrockWarpBlockHits } from "./bedrock/bedrockWarpBlockHits";
+import { BedrockWarpBlockTaps } from "./bedrock/bedrockWarpBlockTaps";
 import { BedrockWarpFeedback } from "./bedrock/bedrockWarpFeedback";
 import { BedrockWarpMenus } from "./bedrock/bedrockWarpMenus";
 import { BedrockWarpPlayers } from "./bedrock/bedrockWarpPlayers";
@@ -43,9 +43,12 @@ export function installWarp(): void {
   );
   const remove = new RemoveWarpPoint(store);
   registerWarpRemoval(remove);
-  registerWarpBlockHits(new HitWarpBlock(new BedrockWarpBlockHits(), remove));
-  registerWarpBlockInteract(
+  registerWarpBlockHits(
     new RenameWarpPoint(store, menus, feedback, ticks),
+    guard,
+  );
+  registerWarpBlockInteract(
+    new TapWarpBlock(new BedrockWarpBlockTaps(), remove, ticks),
     list,
     guard,
   );
