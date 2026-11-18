@@ -91,7 +91,7 @@ class UvRect:
     def texels(self) -> TexelRect:
         def axis(origin, size):
             if size == 0:
-                start = math.floor(origin)
+                start = math.floor(round(origin, 6))
                 return start, start + 1
             start = math.floor(round(min(origin, origin + size), 6))
             return start, max(start + 1, math.ceil(round(max(origin, origin + size), 6)))

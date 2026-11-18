@@ -560,7 +560,7 @@ assert r == m.UvRect(u+w,v+h,-w,-h).texels()
 assert r == m.UvRect(u+w,v,-w,h).texels()
 assert r == m.UvRect(u,v+h,w,-h).texels()
 for start,span,lo,hi in ((u,w,r.x0,r.x1),(v,h,r.y0,r.y1)):
-    low,high = sorted((start,start+span))
+    low,high = sorted((round(start,6),round(start+span,6)))
     assert lo <= math.floor(low) < hi
     # The upper edge is excluded when it lands exactly on a cell boundary.
     last = math.floor(high) if high != int(high) or span == 0 else int(high)-1
@@ -573,7 +573,7 @@ for start,span,lo,hi in ((u,w,r.x0,r.x1),(v,h,r.y0,r.y1)):
   );
 });
 
-it("samples exactly one cell on collapsed axes without rounding the origin", async () => {
+it("samples exactly one cell on collapsed axes after rounding the origin", async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.integer({ min: -20, max: 20 }),
@@ -586,7 +586,7 @@ it("samples exactly one cell on collapsed axes without rounding the origin", asy
 origin = ${base} + ${offset}
 x = m.UvRect(origin,2,0,${span}).texels()
 y = m.UvRect(2,origin,${span},0).texels()`,
-            "[x.x1-x.x0, y.y1-y.y0, x.x0 == math.floor(origin), y.y0 == math.floor(origin)]",
+            "[x.x1-x.x0, y.y1-y.y0, x.x0 == math.floor(round(origin, 6)), y.y0 == math.floor(round(origin, 6))]",
           ),
         ).toEqual([1, 1, true, true]);
       },

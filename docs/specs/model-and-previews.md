@@ -87,8 +87,8 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   visit each unique storage rectangle once. Audits verify every bound face's covered
   texels against its local region pixels; sharing preserves all preview bytes.
   `UvRect.texels()` returns half-open `TexelRect` cell bounds for signed UV sizes,
-  rounding noncollapsed edges to six decimals and sampling one cell at the
-  unrounded origin floor on collapsed axes. Audits clamp those bounds locally.
+  rounding all edges, including collapsed origins, to six decimals before floor/ceil.
+  A collapsed axis selects exactly one cell. Audits clamp those bounds locally.
   `AtlasImage` validates RGBA byte length and clips alpha queries to the image,
   returning tight nonzero-alpha bounds or reporting the query clear.
   Capped preview samples round midpoint coordinates to nine decimal places before
