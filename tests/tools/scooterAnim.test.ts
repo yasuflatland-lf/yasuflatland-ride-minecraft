@@ -131,7 +131,7 @@ from pathlib import Path
 output=load_tool('scooter_anim').build()
 assert json.loads(Path('packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json').read_text())==output
 assert output['format_version']=='1.8.0'
-assert len(a)==19
+assert len(a)==25
 start=str(d.FOLD_LAY_START)
 reverse=str(round(1-d.FOLD_LAY_START,6))
 for bone in ('wheel_front_fold','wheel_rear_fold'):
@@ -212,5 +212,25 @@ for clip in ('deploy','folded','retract'):
     for side,strut in d.STRUT_BONES.items():
         assert bones[strut]=={'position':module.fold_position_keys(clip)}
         assert bones[strut]['position']==bones[d.FOLD_BONES[side]]['position']
+`);
+});
+
+it("generates six evenly spaced exhaust loops with increasing puff rates", () => {
+  python(`
+rates=d.EXHAUST_PUFFS_PER_SECOND
+assert isinstance(rates, tuple) and len(rates)==6
+assert all(isinstance(rate, int) and rate>0 for rate in rates)
+assert all(low<high for low,high in zip(rates,rates[1:]))
+assert len([name for name in a if name.startswith('animation.yasu_ride.scooter.exhaust_')])==6
+for i,rate in enumerate(rates):
+    clip=anim(f'exhaust_{i}')
+    assert clip['loop'] is True and clip['animation_length']==1.0
+    keys=clip['particle_effects']
+    times=[float(key) for key in keys]
+    assert len(times)==rate and times==sorted(times)
+    assert times[0]==0 and times[-1]<1
+    gaps=[b-a for a,b in zip(times,times[1:]+[1.0])]
+    assert all(abs(gap-1/rate)<0.000002 for gap in gaps)
+    assert all(effect=={'effect':'exhaust_smoke','locator':'exhaust'} for effect in keys.values())
 `);
 });

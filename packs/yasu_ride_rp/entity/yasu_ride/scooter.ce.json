@@ -51,7 +51,13 @@
         "hover_sound_3": "animation.yasu_ride.scooter.hover_sound_3",
         "hover_sound_4": "animation.yasu_ride.scooter.hover_sound_4",
         "form": "controller.animation.yasu_ride.scooter.form",
-        "stand": "controller.animation.yasu_ride.scooter.stand"
+        "stand": "controller.animation.yasu_ride.scooter.stand",
+        "exhaust_0": "animation.yasu_ride.scooter.exhaust_0",
+        "exhaust_1": "animation.yasu_ride.scooter.exhaust_1",
+        "exhaust_2": "animation.yasu_ride.scooter.exhaust_2",
+        "exhaust_3": "animation.yasu_ride.scooter.exhaust_3",
+        "exhaust_4": "animation.yasu_ride.scooter.exhaust_4",
+        "exhaust_5": "animation.yasu_ride.scooter.exhaust_5"
       },
       "sound_effects": {
         "scooter_engine_0": "yasu_ride.scooter_engine_0",
@@ -68,7 +74,8 @@
         "hover_start": "yasu_ride.hover_start"
       },
       "particle_effects": {
-        "hover_glow": "yasu_ride:hover_glow"
+        "hover_glow": "yasu_ride:hover_glow",
+        "exhaust_smoke": "yasu_ride:exhaust_smoke"
       },
       "scripts": {
         "animate": [
@@ -93,6 +100,24 @@
           },
           {
             "engine_sound_5": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 15"
+          },
+          {
+            "exhaust_0": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed < 1"
+          },
+          {
+            "exhaust_1": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 1 && query.ground_speed < 4.5"
+          },
+          {
+            "exhaust_2": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 4.5 && query.ground_speed < 8"
+          },
+          {
+            "exhaust_3": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 8 && query.ground_speed < 11.5"
+          },
+          {
+            "exhaust_4": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 11.5 && query.ground_speed < 15"
+          },
+          {
+            "exhaust_5": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 15"
           }
         ]
       },

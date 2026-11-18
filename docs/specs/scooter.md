@@ -97,6 +97,15 @@ The nine scooter README previews include underbody, running-board, front-wheel a
 - Implementation: `tools/scooter_sound.py` (`ENGINE_CLIPS`, `engine_effect`), `tools/scooter_anim.py`, `packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json`, `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `packs/yasu_ride_rp/sounds/sound_definitions.json`
 - Verification: `tests/packs/scooterClient.test.ts` "resolves scooter engine sounds, shared hover sounds and the hover particle at both disc locators"; `tests/packs/scooterEngineClips.test.ts` "plays band $index from its own Ogg with matching duration and volume", "keeps all six band volumes non-decreasing with idle quietest"; `tests/tools/scooterAnim.test.ts` "generates reversible staged folds, wheel travel, lean, particles and per-clip engine sounds" checks per-clip engine and shared hover animations. Not verified: audibility on a device, because no device was available; manual rows E1 to E6 in `docs/manual-test.md` have empty result cells until someone listens.
 
+### Exhaust smoke
+
+- Applies to: Scooter client particle playback.
+- Rule: In road form (`yasu_ride:form == 'car'`) with a rider, the scooter emits `yasu_ride:exhaust_smoke` at the body-mounted `exhaust` locator, including idle. Six looping 1.0 s animations (`exhaust_0..5`) share exactly the engine sound speed gates from `SPEED_BANDS` and `band_condition`. `EXHAUST_PUFFS_PER_SECOND` sets 2, 4, 6, 8, 11 and 14 evenly spaced puffs per second for bands 0 through 5. The existing small, light-grey world-space particle leaves a trail as the scooter moves. No smoke is emitted without a rider or outside road form. Idle smoke should be faint, thicken with speed, and leave the rider and model visible from the chase camera. Playback is entirely in the Resource Pack, with no Script API calls or server tick work.
+- Agreement: Proposed
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Exhaust smoke."
+- Implementation: `tools/scooter_dims.py` (`EXHAUST_PUFFS_PER_SECOND`), `tools/scooter_anim.py`, `tools/scooter_sound.py` (`SPEED_BANDS`, `band_condition`), `tools/gen_scooter.py` (`exhaust` locator), `packs/yasu_ride_rp/entity/yasu_ride/scooter.ce.json`, `packs/yasu_ride_rp/particles/yasu_ride/exhaust_smoke.particle.json`
+- Verification: `tests/tools/scooterAnim.test.ts` "generates six evenly spaced exhaust loops with increasing puff rates"; `tests/tools/scooterSpeedBands.test.ts` "keeps six contiguous immutable speed bands aligned with the shipped engine and exhaust gates"; `tests/packs/scooterClient.test.ts` "emits exhaust only with a rider in road form across all speed boundaries"; `tests/packs/scooterModel.test.ts` "places one exhaust locator at the body-mounted tailpipe outlet"; `tests/packs/exhaustSmoke.test.ts`. Not verified: appearance on a device. The owner must confirm faint idle smoke, increasing density, a trailing plume and an unobstructed chase camera on PC and mobile.
+
 ### Paint and headlights
 
 - Applies to: Scooter paint, headlight switch and lamps.
