@@ -1,12 +1,12 @@
 import { type Block, ItemStack, world } from "@minecraft/server";
-import type { WarpBlockHits } from "../../../application/warp/ports/blockHits";
+import type { WarpBlockTaps } from "../../../application/warp/ports/blockTaps";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import { giveOrDrop, playerById } from "../../shared/players";
 import { WARP_BLOCK_TYPE } from "../identifiers";
 import { WARP_MESSAGE } from "../messages";
 
-export class BedrockWarpBlockHits implements WarpBlockHits {
+export class BedrockWarpBlockTaps implements WarpBlockTaps {
   at(playerId: PlayerId, dimension: DimensionId, cell: Cell) {
     const player = playerById(playerId);
     if (!player?.isValid) return undefined;
@@ -28,7 +28,7 @@ export class BedrockWarpBlockHits implements WarpBlockHits {
       },
       showRemaining: (left: number) =>
         player.onScreenDisplay.setActionBar({
-          translate: left === 1 ? WARP_MESSAGE.hitLeft : WARP_MESSAGE.hitsLeft,
+          translate: left === 1 ? WARP_MESSAGE.tapLeft : WARP_MESSAGE.tapsLeft,
           with: [String(left)],
         }),
     };
