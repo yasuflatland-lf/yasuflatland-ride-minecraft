@@ -37,11 +37,20 @@ for length, fade in ((float('nan'), 0), (1, float('nan')),
     else:
         raise AssertionError((length, fade))
 assert len(m.SCOOTER_ENGINE_SLICES) == 6
+SOURCE_SECONDS = {'idle': 8.088, 'rev': 14.64}
+# The falling rev spans 2.0–4.0 s; centroid falls from 1879 Hz over
+# 2.0–4.25 s to 1598 Hz over 4.0–6.25 s (8192 samples, no overlap).
+REV_DROP_START = 2.0
+REV_DROP_END = 4.0
 for i, spec in enumerate(m.SCOOTER_ENGINE_SLICES):
     assert spec.source == ('idle' if i == 0 else 'rev')
     assert 2 <= spec.length <= 6
     assert spec.start >= 0
     assert 0 <= spec.fade <= spec.length / 2
+    end = spec.start + spec.length + spec.fade
+    assert end <= SOURCE_SECONDS[spec.source], (i, end)
+    if spec.source == 'rev':
+        assert end <= REV_DROP_START or spec.start >= REV_DROP_END, (i, spec.start, end)
     assert m.crossfade_plan(spec.length, spec.fade) == (spec.length + spec.fade, spec.length)
 `,
     ],

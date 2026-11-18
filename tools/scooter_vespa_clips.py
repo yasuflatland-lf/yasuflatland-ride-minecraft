@@ -5,6 +5,12 @@ Rev bands use distinct windows ordered by measured spectral brightness as a
 relative rev proxy, not calibrated RPM. Measurements below are mean mono
 aspectralstats centroids and per-frame astats RMS over length + fade seconds
 (8192-sample spectral windows, no overlap, at 48 kHz).
+The owner supplied idoling.mp3 (8.088 s) and reving.mp3 (14.640 s) on
+2026-11-18. Exclude the falling rev at 2.0–4.0 s: the mean centroid drops
+from 1879 Hz over 2.0–4.25 s to 1598 Hz over 4.0–6.25 s. Overlapping
+post-drop windows retain the rising rev without including that fall.
+Idle uses the steady 4.0–6.25 s region rather than the full recording,
+keeping the output within the pack's 2–6 second duration contract.
 
 Normalize RMS to -21 dBFS + 0.2 dB per band: a 1 dB intended total rise.
 A -2 dBFS pre-encode peak ceiling leaves headroom for Vorbis overshoot.
@@ -29,12 +35,12 @@ class SliceSpec:
 
 
 SCOOTER_ENGINE_SLICES: tuple[SliceSpec, ...] = (
-    SliceSpec("idle", 5.0, 3.0, 0.25),  # Idle: 4355 Hz centroid, -20.02 dBFS RMS.
-    SliceSpec("rev", 13.25, 2.5, 0.25),  # Low return: 3263 Hz, -17.97 dBFS.
-    SliceSpec("rev", 4.0, 2.0, 0.25),  # Early hold: 3572 Hz, -15.68 dBFS.
-    SliceSpec("rev", 6.0, 2.0, 0.25),  # Middle hold: 3746 Hz, -15.43 dBFS.
-    SliceSpec("rev", 8.0, 2.0, 0.25),  # Upper hold: 3921 Hz, -16.18 dBFS.
-    SliceSpec("rev", 17.0, 2.0, 0.25),  # High rev: 4137 Hz, -14.66 dBFS.
+    SliceSpec("idle", 4.0, 2.0, 0.25),  # Idle: 2167 Hz centroid, -29.84 dBFS RMS.
+    SliceSpec("rev", 4.0, 2.0, 0.25),  # Low rev: 1598 Hz, -21.86 dBFS.
+    SliceSpec("rev", 5.0, 2.0, 0.25),  # Early rise: 1644 Hz, -21.85 dBFS.
+    SliceSpec("rev", 6.0, 2.0, 0.25),  # Middle rise: 1701 Hz, -21.98 dBFS.
+    SliceSpec("rev", 6.5, 2.0, 0.25),  # Upper rise: 1721 Hz, -21.81 dBFS.
+    SliceSpec("rev", 7.0, 2.0, 0.25),  # High rev: 1760 Hz, -21.88 dBFS.
 )
 
 RATE = 48000
