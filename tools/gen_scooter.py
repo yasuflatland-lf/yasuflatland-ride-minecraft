@@ -106,7 +106,8 @@ def rounded(value):
     if isinstance(value, (list, tuple)):
         return [rounded(v) for v in value]
     if isinstance(value, dict):
-        return {k: rounded(v) for k, v in value.items()}
+        values = {k: rounded(v) for k, v in value.items()}
+        return atlas.region_atlas.RegionFace(values, value.region) if isinstance(value, atlas.region_atlas.RegionFace) else values
     return value
 
 

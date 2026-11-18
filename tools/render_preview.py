@@ -37,6 +37,7 @@ and on the Linux CI runner. --check compares decoded pixels rather than PNG byte
 builds do not all compress identically.
 """
 import argparse
+import copy
 import json
 import math
 import multiprocessing
@@ -400,11 +401,31 @@ def rotate(point, pivot, rotation):
     return (x + pivot[0], y + pivot[1], z + pivot[2])
 
 
+class SampledUv(dict):
+    """Retain storage orientation for texel-boundary ties in preview sampling."""
+
+    def __init__(self, face, placement):
+        super().__init__(face)
+        self.flip_x, self.flip_y = placement.flip_x, placement.flip_y
+
+
+def _sample_index(position, limit, flipped=False, snap=False):
+    if snap or flipped:
+        position = round(position, 9)
+    index = math.floor(position)
+    # Reflection maps texel edges W-u, while their owning cells map W-1-u.
+    if flipped and position == index:
+        index -= 1
+    return max(0, min(limit - 1, index))
+
+
 # Correct only for single-color faces (as gen_model.py paints them); nonuniform UVs use textured_face.
 def face_color(texture, face, tex_w, tex_h):
     (u, v), (du, dv) = face["uv"], face["uv_size"]
-    x = min(int((u + du / 2) * len(texture[0]) / tex_w), len(texture[0]) - 1)
-    y = min(int((v + dv / 2) * len(texture) / tex_h), len(texture) - 1)
+    x = _sample_index((u + du / 2) * len(texture[0]) / tex_w, len(texture[0]),
+                      getattr(face, "flip_x", False))
+    y = _sample_index((v + dv / 2) * len(texture) / tex_h, len(texture),
+                      getattr(face, "flip_y", False))
     return texture[y][x]
 
 
@@ -434,16 +455,23 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False, cells_pe
         limited_us, limited_vs = limit(us, (tl, tr)), limit(vs, (tl, bl))
         capped = limited_us is not us or limited_vs is not vs
         us, vs = limited_us, limited_vs
+
+    def sample(start, length, a, b, limit, flipped):
+        position = start + length * (a + b) / 2
+        # Capped midpoints can land on an integer boundary. Translation must not
+        # expose float noise and select the preceding texel after atlas packing.
+        return _sample_index(position, limit, flipped, capped)
+
     if merge:
         # Merge equal texels before creating geometry: furniture atlases can otherwise
         # expand one face into hundreds of thousands of Python polygon objects.
         cells = []
         active = {}
         for a, b in zip(us, us[1:]):
-            x = max(0, min(len(texture[0]) - 1, int(u + du * (a + b) / 2)))
+            x = sample(u, du, a, b, len(texture[0]), getattr(face, "flip_x", False))
             runs = []
             for c, d in zip(vs, vs[1:]):
-                y = max(0, min(len(texture) - 1, int(v + dv * (c + d) / 2)))
+                y = sample(v, dv, c, d, len(texture), getattr(face, "flip_y", False))
                 color = texture[y][x]
                 if runs and runs[-1][2] == color:
                     runs[-1] = (runs[-1][0], d, color)
@@ -464,8 +492,8 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False, cells_pe
         cells = []
         for a, b in zip(us, us[1:]):
             for c, d in zip(vs, vs[1:]):
-                x = max(0, min(len(texture[0]) - 1, int(u + du * (a + b) / 2)))
-                y = max(0, min(len(texture) - 1, int(v + dv * (c + d) / 2)))
+                x = sample(u, du, a, b, len(texture[0]), getattr(face, "flip_x", False))
+                y = sample(v, dv, c, d, len(texture), getattr(face, "flip_y", False))
                 cells.append((a, b, c, d, texture[y][x]))
     if len({color for *_, color in cells}) == 1:
         yield quad, cells[0][-1] if capped else face_color(texture, face, tex_w, tex_h)
@@ -820,7 +848,8 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
                 uv = cube["uv"][face]
                 if pose.get("flip_side_u") and face in ("north", "south", "east", "west"):
                     (u, v), (du, dv) = uv["uv"], uv["uv_size"]
-                    uv = {**uv, "uv": [u + du, v], "uv_size": [-du, dv]}
+                    uv = copy.copy(uv)
+                    uv["uv"], uv["uv_size"] = [u + du, v], [-du, dv]
                 cache_key = (bone["name"], id(cube), face, pose.get("merge_texels", False), pose.get("cells_per_unit"))
                 if flight is not None:
                     cache_key = (*cache_key, tuple(quad))
@@ -1282,6 +1311,15 @@ def scooter_glow_pools(geo, texture, pose, flight, ground_y):
 
 def render_scooter(rp: Path, icon_path: Path | None) -> SceneResult:
     geo = json.loads((rp / SCOOTER_GEOMETRY).read_text())["minecraft:geometry"][0]
+    generated, layout, _ = load_tool("gen_scooter").build()
+    # Serialized UVs omit region ownership. Restore only sampling metadata;
+    # the geometry and UV values being rendered still come from the pack file.
+    for bone, source in zip(geo["bones"], generated["minecraft:geometry"][0]["bones"], strict=True):
+        if bone["name"] != source["name"]:
+            raise ValueError("Scooter preview region metadata does not match geometry")
+        for cube, original in zip(bone["cubes"], source["cubes"], strict=True):
+            cube["uv"] = {name: SampledUv(face, layout.placement(original["uv"][name].region))
+                          for name, face in cube["uv"].items()}
     texture = read_png(rp / SCOOTER_TEXTURE)
     # The road pose has no hover discs: the render controller hides the glow bones on the ground,
     # and the rear stem is squashed flat against the cowl by the ground animation.
