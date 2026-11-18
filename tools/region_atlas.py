@@ -32,6 +32,51 @@ class Placement:
 
 
 @dataclass(frozen=True)
+class TexelRect:
+    """Half-open texel cells [x0, x1) by [y0, y1)."""
+
+    x0: int
+    y0: int
+    x1: int
+    y1: int
+
+    @property
+    def area(self) -> int:
+        return max(0, self.x1 - self.x0) * max(0, self.y1 - self.y0)
+
+    def intersect(self, other: "TexelRect") -> "TexelRect | None":
+        rect = TexelRect(max(self.x0, other.x0), max(self.y0, other.y0),
+                         min(self.x1, other.x1), min(self.y1, other.y1))
+        return rect if rect.area else None
+
+
+@dataclass(frozen=True)
+class AtlasImage:
+    width: int
+    height: int
+    pixels: bytes
+
+    def __post_init__(self):
+        if len(self.pixels) != self.width * self.height * 4:
+            raise ValueError("Atlas RGBA bytes must match its dimensions")
+
+    def alpha_bounds(self, rect: TexelRect) -> TexelRect | None:
+        clipped = rect.intersect(TexelRect(0, 0, self.width, self.height))
+        if clipped is None:
+            return None
+        x0, y0, x1, y1 = clipped.x1, clipped.y1, clipped.x0, clipped.y0
+        for y in range(clipped.y0, clipped.y1):
+            for x in range(clipped.x0, clipped.x1):
+                if self.pixels[(y * self.width + x) * 4 + 3] > 0:
+                    x0, y0 = min(x0, x), min(y0, y)
+                    x1, y1 = max(x1, x + 1), max(y1, y + 1)
+        return TexelRect(x0, y0, x1, y1) if x0 < x1 and y0 < y1 else None
+
+    def is_clear(self, rect: TexelRect) -> bool:
+        return self.alpha_bounds(rect) is None
+
+
+@dataclass(frozen=True)
 class UvRect:
     u: float
     v: float
@@ -49,6 +94,18 @@ class UvRect:
             -self.w if placement.flip_x else self.w,
             -self.h if placement.flip_y else self.h,
         )
+
+    def texels(self) -> TexelRect:
+        def axis(origin, size):
+            if size == 0:
+                start = math.floor(round(origin, 6))
+                return start, start + 1
+            start = math.floor(round(min(origin, origin + size), 6))
+            return start, max(start + 1, math.ceil(round(max(origin, origin + size), 6)))
+
+        x0, x1 = axis(self.u, self.w)
+        y0, y1 = axis(self.v, self.h)
+        return TexelRect(x0, y0, x1, y1)
 
     def apply(self, face: dict) -> None:
         face['uv'] = [self.u, self.v]
@@ -333,12 +390,12 @@ def audit(layout: Layout, atlas) -> list[str]:
         if not (0 <= round(min(endpoints[0::2]), 6) <= round(max(endpoints[0::2]), 6) <= region.width
                 and 0 <= round(min(endpoints[1::2]), 6) <= round(max(endpoints[1::2]), 6) <= region.height):
             continue
-        # Include intersected texel cells for fractional and reversed rectangles;
-        # a collapsed axis samples one cell, clamped at the outer region edge.
-        u0 = min(region.width - 1, max(0, math.floor(round(min(local.u, local.u + local.w), 6))))
-        u1 = min(region.width, max(u0 + 1, math.ceil(round(max(local.u, local.u + local.w), 6))))
-        v0 = min(region.height - 1, max(0, math.floor(round(min(local.v, local.v + local.h), 6))))
-        v1 = min(region.height, max(v0 + 1, math.ceil(round(max(local.v, local.v + local.h), 6))))
+        # Clamp boundary samples to the owning region's outermost cell.
+        cells = local.texels()
+        u0 = min(region.width - 1, max(0, cells.x0))
+        u1 = min(region.width, max(u0 + 1, cells.x1))
+        v0 = min(region.height - 1, max(0, cells.y0))
+        v1 = min(region.height, max(v0 + 1, cells.y1))
         x0, x1 = (region.width - u1, region.width - u0) if placement.flip_x else (u0, u1)
         y0, y1 = (region.height - v1, region.height - v0) if placement.flip_y else (v0, v1)
         sample_x = math.floor(rect.u) if rect.w == 0 else placement.x + x0
