@@ -105,9 +105,9 @@ export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
   return flow.kind !== "rotateMode" && (sneaking || flow.kind === "idle");
 }
 
-/** True when a plain air press in this flow opens a menu that offers Undo (ADR 0229, 0203). */
+/** True when a plain air press in this flow opens the utility menu, which offers Undo when history exists (ADR 0229). */
 export function airPressOffersUndo(flow: BuildFlow): boolean {
-  return opensUtilityMenu(flow, false) || flow.kind === "pasteAim";
+  return opensUtilityMenu(flow, false);
 }
 
 export function cancel(_flow: BuildFlow): BuildFlow {

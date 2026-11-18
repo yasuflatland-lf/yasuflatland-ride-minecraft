@@ -861,9 +861,7 @@ it("accepts EndPasting only in paste aiming and exposes its own label", async ()
   expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
   session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   ui.answers.push({
-    selection: pasteMenu({
-      hasHistory: session.hasHistory,
-    }).findIndex((entry) => entry.id === "endPaste"),
+    selection: pasteMenu().findIndex((entry) => entry.id === "endPaste"),
   });
   await menus.showPasteMenu(player);
   expect(ui.forms[0]?.buttons).toContainEqual({
@@ -1129,10 +1127,7 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
             "undoable",
           );
         const offered =
-          aiming &&
-          pasteMenu({
-            hasHistory: session.hasHistory,
-          }).some((entry) => entry.id === entryId);
+          aiming && pasteMenu().some((entry) => entry.id === entryId);
         expect(choices.choose(playerId, "paste", entryId)).toBe(offered);
         for (const [name, useCase] of Object.entries(cases)) {
           const call =
@@ -1157,7 +1152,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
   await fc.assert(
     fc.asyncProperty(fc.boolean(), async (history) => {
       ui.forms.length = 0;
-      const { session, menus, player, cases } = setup();
+      const { session, menus, player, cases, choices } = setup();
       session.completeCopy(
         overworld,
         boxOf(from, from),
@@ -1173,12 +1168,16 @@ it("labels New copy and dispatches it through the paste menu with or without his
           },
           "undoable",
         );
-      const index = history ? 1 : 0;
+      expect(choices.choose(playerId, "paste", "undo")).toBe(false);
+      expect(cases.undo.execute).not.toHaveBeenCalled();
+      const index = 0;
       ui.answers.push({ selection: index });
       await menus.showPasteMenu(player);
-      expect(ui.forms[0]?.buttons[index]).toEqual({
-        translate: BUILD_FORM.newCopy,
-      });
+      expect(ui.forms[0]?.buttons).toEqual([
+        { translate: BUILD_FORM.newCopy },
+        { translate: BUILD_FORM.endPaste },
+        { translate: BUILD_FORM.cancel },
+      ]);
       expect(cases.newCopy.execute).toHaveBeenCalledExactlyOnceWith(playerId);
       expect(session.flow).toEqual({ kind: "idle" });
       expect(session.clipboard).toBe(clipboard);

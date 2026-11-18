@@ -74,12 +74,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
             pasteMenu:
               flow.kind === "rotateMode"
                 ? []
-                : [
-                    ...(history ? ["undo"] : []),
-                    "newCopy",
-                    "endPaste",
-                    "cancel",
-                  ],
+                : ["newCopy", "endPaste", "cancel"],
           });
           expect(session.flow).toBe(flow);
           expect(session.hasHistory).toBe(history);

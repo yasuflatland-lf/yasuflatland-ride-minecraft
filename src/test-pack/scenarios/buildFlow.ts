@@ -526,15 +526,14 @@ export function buildCopyEntersPasteAim(a: Arena): Promise<Outcome> {
       unchanged(f, target.cells, expected),
       "Copy did not allow immediate Paste",
     );
-    await f.menu("paste", "undo");
+    await f.edit("undo");
   });
 }
 
 export function buildPasteMenu(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     for (let i = 0; i < BUILD_SPEC.undoDepth; i++) {
-      if (!(await f.state()).pasteMenu.includes("undo")) break;
-      await f.edit("undo");
+      if ((await f.edit("undo")).message === "nothingToUndo") break;
     }
     await copyLine(f);
     const withoutHistory = await checkState(f, "pasteAim", true);
@@ -560,17 +559,17 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
     await pasteInto(f, target);
     const withHistory = await checkState(f, "pasteAim", true);
     check(
-      withHistory.pasteMenu.join() === "undo,newCopy,endPaste,cancel",
-      "Paste menu with history must have exactly four ordered entries",
+      withHistory.pasteMenu.join() === "newCopy,endPaste,cancel",
+      "Paste menu with history must have exactly three ordered entries",
     );
-    await f.menu("paste", "undo");
+    await f.menu("utility", "undo");
     check(
       unchanged(f, target.cells, target.before),
-      "menu Undo did not restore blocks",
+      "Utility Undo did not restore blocks",
     );
     check(
       (await f.state()).pasteMenu.join() === "newCopy,endPaste,cancel",
-      "Undo remained in the menu without history",
+      "Paste menu changed after Undo",
     );
   });
 }
@@ -613,7 +612,7 @@ export function buildNewCopyReplaces(a: Arena): Promise<Outcome> {
       unchanged(f, target.cells, expected),
       "New copy did not replace the clipboard",
     );
-    await f.menu("paste", "undo");
+    await f.edit("undo");
   });
 }
 
@@ -794,7 +793,7 @@ export function buildPasteUndoRepeat(a: Arena): Promise<Outcome> {
       unchanged(f, target.cells, expected),
       "first Paste did not write blocks",
     );
-    await f.menu("paste", "undo");
+    await f.edit("undo");
     check(
       unchanged(f, target.cells, target.before),
       "Undo did not restore blocks",
@@ -805,7 +804,7 @@ export function buildPasteUndoRepeat(a: Arena): Promise<Outcome> {
       "same-anchor re-paste was suppressed after Undo",
     );
     await checkState(f, "pasteAim", true);
-    await f.menu("paste", "undo");
+    await f.edit("undo");
   });
 }
 
@@ -858,7 +857,7 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
         face,
         true,
       );
-      check(pasted.message === "editDone", "aimed paste failed");
+      check(pasted.message === "editDoneCount", "aimed paste failed");
       if (face !== "up" && face !== "down")
         check(
           f.block(anchor).typeId === "minecraft:gold_block",
@@ -1026,7 +1025,7 @@ export function buildContinuousPaste(a: Arena): Promise<Outcome> {
         "up",
       );
       check(
-        pasted.message === "editDone" && pasted.flow.kind === "pasteAim",
+        pasted.message === "editDoneCount" && pasted.flow.kind === "pasteAim",
         "Paste did not continue",
       );
       check(
@@ -1036,7 +1035,7 @@ export function buildContinuousPaste(a: Arena): Promise<Outcome> {
     }
     const last = targets[targets.length - 1];
     if (!last) throw new Error("no paste targets");
-    const undone = await f.menu("paste", "undo");
+    const undone = await f.menu("utility", "undo");
     check(
       undone.offered === true &&
         undone.message === "undoDone" &&
@@ -1105,14 +1104,14 @@ export function buildPasteBlocked(a: Arena): Promise<Outcome> {
       "up",
     );
     check(
-      pasted.message === "editDone" && pasted.flow.kind === "pasteAim",
+      pasted.message === "editDoneCount" && pasted.flow.kind === "pasteAim",
       "clean Paste after refusal failed",
     );
     check(
       unchanged(f, clean.cells, expected),
       "clean Paste lost source states",
     );
-    await f.menu("paste", "undo");
+    await f.edit("undo");
     check(
       unchanged(f, clean.cells, clean.before),
       "clean Paste undo lost destination states",
@@ -1359,7 +1358,7 @@ export function buildCutShapes(a: Arena): Promise<Outcome> {
       const cut = await f.menu("shape", "cut");
       check(
         cut.offered === true &&
-          cut.message === "editDone" &&
+          cut.message === "editDoneCount" &&
           cut.flow.kind === "pasteAim",
         "Cut did not finish",
       );
@@ -1394,7 +1393,7 @@ export function buildCutHeight(a: Arena): Promise<Outcome> {
     );
     check(f.count(cells) === cells.length, "Cut wrote before confirmation");
     check(
-      (await f.edit("confirmbox")).message === "editDone",
+      (await f.edit("confirmbox")).message === "editDoneCount",
       "Height Cut did not finish",
     );
     check(
@@ -1418,7 +1417,7 @@ export function buildCutUndo(a: Arena): Promise<Outcome> {
     await f.select(f.cell(2, 2, 2));
     const before = snapshot(f, cells);
     check(
-      (await f.menu("shape", "cut")).message === "editDone",
+      (await f.menu("shape", "cut")).message === "editDoneCount",
       "Mixed Cut failed",
     );
     check(
@@ -1479,7 +1478,7 @@ export function buildCutKeepsProtected(a: Arena): Promise<Outcome> {
 }
 
 async function undoCut(f: Fixture, volume: number): Promise<void> {
-  const undo = await f.menu("paste", "undo");
+  const undo = await f.edit("undo");
   check(
     undo.message === "undoDone" && undo.count === volume,
     `Cut Undo reported ${undo.message} ${undo.count}`,
@@ -1500,7 +1499,7 @@ async function pasteCutClipboard(
     f.block(cell).setType("minecraft:stone");
   const pasted = await pasteStep(f, anchor.x, anchor.y - 1, anchor.z, "up");
   check(
-    pasted.message === "editDone" && pasted.count === volume,
+    pasted.message === "editDoneCount" && pasted.count === volume,
     `Cut clipboard paste reported ${pasted.message} ${pasted.count}`,
   );
 }
@@ -1552,7 +1551,7 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
         "Cow fixture missing",
       );
       check(
-        (await f.menu("shape", "cut")).message === "editDone",
+        (await f.menu("shape", "cut")).message === "editDoneCount",
         "Structure cut failed",
       );
       await wait(5);
@@ -1774,7 +1773,7 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
     });
     const before = snapshot(f, cells);
     check(
-      (await f.menu("shape", "cut")).message === "editDone",
+      (await f.menu("shape", "cut")).message === "editDoneCount",
       "Cut with clipboard failed",
     );
     const after = await checkState(f, "pasteAim", true);
@@ -2268,7 +2267,7 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
               await f.edit(
                 `pasteat ${anchor.x} ${anchor.y} ${anchor.z} up true ${facing} ${firstPaste ? 0 : 1}`,
               )
-            ).message === "editDone",
+            ).message === "editDoneCount",
             `Paste failed facing ${label}`,
           );
           firstPaste = false;
@@ -2547,7 +2546,7 @@ async function pasteControlOnce(
         bothRoutes ? "itemUse,blockInteract" : "blockInteract,blockInteract",
         bothRoutes ? 0 : 3,
       );
-      check(placed.message === "editDone", "Control paste did not finish");
+      check(placed.message === "editDoneCount", "Control paste did not finish");
       checkControlPaste(f, target);
       check(
         (await f.state()).pasteTurn === 1,
@@ -2628,7 +2627,7 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
       const anchor = f.cell(12, -1);
       const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
       check(
-        pasted.message === "editDone" && pasted.count === source.length,
+        pasted.message === "editDoneCount" && pasted.count === source.length,
         "structure paste failed",
       );
       const item = f
@@ -2867,7 +2866,7 @@ export async function buildPasteStructureDecor(
         const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
         record(
           "paste",
-          pasted.message === "editDone" && pasted.count === source.length,
+          pasted.message === "editDoneCount" && pasted.count === source.length,
           pasted.message,
         );
         await wait(2);
@@ -2899,7 +2898,8 @@ export async function buildPasteStructureDecor(
         const repeated = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
         record(
           "paste_repeat",
-          repeated.message === "editDone" && repeated.count === source.length,
+          repeated.message === "editDoneCount" &&
+            repeated.count === source.length,
           repeated.message,
         );
         await wait(2);
@@ -2960,7 +2960,10 @@ export function buildUndoMixedTen(a: Arena): Promise<Outcome> {
       "Fill failed",
     );
     await f.select(f.cell(1, 1, 1));
-    check((await f.menu("shape", "cut")).message === "editDone", "Cut failed");
+    check(
+      (await f.menu("shape", "cut")).message === "editDoneCount",
+      "Cut failed",
+    );
     check(
       f.count(source, "minecraft:air") === source.length,
       "Cut left blocks",
@@ -2973,7 +2976,7 @@ export function buildUndoMixedTen(a: Arena): Promise<Outcome> {
         target.anchor.z,
         "up",
       );
-      check(pasted.message === "editDone", "Paste failed");
+      check(pasted.message === "editDoneCount", "Paste failed");
       check(
         f.count(target.cells) === target.cells.length,
         "Paste lost filled blocks",

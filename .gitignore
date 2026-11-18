@@ -3,10 +3,7 @@ node_modules/
 dist/
 .DS_Store
 spike/
-docs/superpowers/*
-!docs/superpowers/specs/
-docs/superpowers/specs/*
-!docs/superpowers/specs/2026-11-18-scooter-underbody-detail-design.md
+docs/superpowers/
 .superpowers/
 packs/*/scripts/main.js
 server/data/
