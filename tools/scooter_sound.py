@@ -1,9 +1,35 @@
-"""Recorded Vespa engine clips indexed by the ground speed bands in scooter.ac.json."""
+"""Shared scooter ground speed bands and recorded Vespa engine clips."""
 
 from dataclasses import dataclass
 
 
 ENGINE_OVERLAP_SECONDS = 0.05
+
+
+@dataclass(frozen=True)
+class SpeedBand:
+    """Value object: ground speed in blocks/s, lower inclusive, upper exclusive."""
+
+    index: int
+    lower: float
+    upper: float | None
+
+
+_BAND_LOWERS = (0.0, 1.0, 4.5, 8.0, 11.5, 15.0)
+SPEED_BANDS: tuple[SpeedBand, ...] = tuple(
+    SpeedBand(index, lower, upper)
+    for index, (lower, upper) in enumerate(zip(_BAND_LOWERS, (*_BAND_LOWERS[1:], None)))
+)
+
+
+def band_condition(band: SpeedBand) -> str:
+    """Molang gate: rider, road form, and the speed range."""
+    conditions = ["query.has_rider", "query.property('yasu_ride:form') == 'car'"]
+    if band.index != 0:
+        conditions.append(f"query.ground_speed >= {band.lower:g}")
+    if band.upper is not None:
+        conditions.append(f"query.ground_speed < {band.upper:g}")
+    return " && ".join(conditions)
 
 
 @dataclass(frozen=True)
@@ -15,7 +41,6 @@ class EngineClip:
     clip_seconds: float
 
 
-# Band lower bounds in blocks/s: 0, 1, 4.5, 8, 11.5 and 15.
 ENGINE_CLIPS: tuple[EngineClip, ...] = (
     EngineClip(0, 2.226167, 0.5, 2.226167),
     EngineClip(1, 1.0, 0.54, 1.0 + ENGINE_OVERLAP_SECONDS),
