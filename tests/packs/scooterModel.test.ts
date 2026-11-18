@@ -1,3 +1,4 @@
+import { statSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startPythonWorker } from "../support/pythonWorker";
 import {
@@ -17,21 +18,20 @@ type AreaRow = {
   area: string;
   bones: readonly string[];
   assemblies: readonly string[];
-  cubes: number;
 };
 // One row per area module (issues 6 to 11 each append one row).
 // biome-ignore format: Keep independent area additions to a single line group.
 const AREAS: readonly AreaRow[] = [
-  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_pedal"], cubes: 733 },
-  { area: "stand", bones: ["stand"], assemblies: ["running_stand"], cubes: 10 },
-  { area: "struts", bones: ["steer", "body", "wheel_front_strut", "wheel_rear_strut", "wheel_rear_stem"], assemblies: [], cubes: 5 },
-  { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"], cubes: 1030 },
-  { area: "floor", bones: ["body"], assemblies: ["body_floor"], cubes: 120 },
-  { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"], cubes: 363 },
-  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"], cubes: 320 },
-  { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"], cubes: 520 },
-  { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"], cubes: 650 },
-  { area: "glow", bones: ["glow_front", "glow_rear"], assemblies: [], cubes: 32 },
+  { area: "running", bones: ["wheel_front", "wheel_rear", "steer", "body"], assemblies: ["running_wheel_front", "running_wheel_rear", "running_spring", "running_pedal"] },
+  { area: "stand", bones: ["stand"], assemblies: ["running_stand"] },
+  { area: "struts", bones: ["steer", "body", "wheel_front_strut", "wheel_rear_strut", "wheel_rear_stem"], assemblies: [] },
+  { area: "body", bones: ["body"], assemblies: ["body_cowl", "body_tail", "body_frame", "body_floor"] },
+  { area: "floor", bones: ["body"], assemblies: ["body_floor"] },
+  { area: "rear", bones: ["body", "tail_lights"], assemblies: ["rear_seat", "rear_lamp", "rear_dome", "rear_cage", "rear_flange", "rear_plate"] },
+  { area: "engine", bones: ["body"], assemblies: ["engine_casting", "engine_fan", "engine_kick", "engine_muffler", "engine_header"] },
+  { area: "head", bones: ["steer", "headlights"], assemblies: ["head_collar", "head_headset", "head_bib", "head_meter", "head_lamp", "head_controls", "head_levers", "head_mirrors"] },
+  { area: "shield", bones: ["body", "steer"], assemblies: ["shield_face", "shield_trim", "shield_ridge", "shield_fender"] },
+  { area: "glow", bones: ["glow_front", "glow_rear"], assemblies: [] },
 ];
 
 const python = startPythonWorker();
@@ -50,6 +50,7 @@ let metadata: {
   budget: number;
   ceiling: number;
   axis: number;
+  allocation: Record<string, number>;
 };
 const geometry = loadScooterGeo();
 const cubes = geometry.bones.flatMap((b) => b.cubes ?? []);
@@ -64,12 +65,59 @@ layout=load_tool('scooter_atlas').pack_layout()
 load_tool('scooter_atlas').resolve([c for cs in merged.values() for c in cs],layout)
 bones=[dict(name=name,pivot=[0,0,0],cubes=cs) for name,cs in merged.items()]
 k.mirror_to_game(bones)
-print(json.dumps(g.rounded(dict(areas=g.AREA_ORDER,table=g.ASSEMBLIES,assemblies=merged.assemblies,budget=d.CUBE_BUDGET,ceiling=d.CUBE_BUDGET_CEILING,axis=d.STEERING_AXIS_DEGREES))))
+print(json.dumps(g.rounded(dict(areas=g.AREA_ORDER,table=g.ASSEMBLIES,assemblies=merged.assemblies,budget=d.CUBE_BUDGET,ceiling=d.CUBE_BUDGET_CEILING,axis=d.STEERING_AXIS_DEGREES,allocation=d.AREA_CUBE_ALLOCATION))))
 `),
   );
 }, 30_000);
 
+// Size of the generated geometry on main at the time of issue 1914.
+const MAIN_GEOMETRY_BYTES = 1_390_072;
+
 describe("scooter generated foundation", () => {
+  it("keeps the generated geometry within twice the main baseline", () => {
+    expect(
+      statSync("packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json")
+        .size,
+    ).toBeLessThanOrEqual(2 * MAIN_GEOMETRY_BYTES);
+  });
+
+  it("derives the budget from all area allocations under the ceiling", () => {
+    expect(Object.keys(metadata.allocation)).toEqual(metadata.areas);
+    expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
+      metadata.budget,
+    );
+    expect(metadata.budget).toBe(3700);
+    expect(metadata.ceiling).toBe(6000);
+    expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
+  });
+
+  it("rejects an overallocated area and names it", async () => {
+    await python.run(`${setup}
+from unittest.mock import patch
+for name in g.AREA_ORDER:
+    with patch.dict(d.AREA_CUBE_ALLOCATION, {name: 0}):
+        try:
+            g.build()
+        except ValueError as error:
+            assert name in str(error), str(error)
+        else:
+            raise AssertionError('Accepted overallocated area: ' + name)
+`);
+  });
+
+  it("rejects missing or extra allocation keys", async () => {
+    await python.run(`${setup}
+from unittest.mock import patch
+for allocation in ({k:v for k,v in d.AREA_CUBE_ALLOCATION.items() if k != 'glow'}, {**d.AREA_CUBE_ALLOCATION, 'extra': 1}):
+    with patch.object(d, 'AREA_CUBE_ALLOCATION', allocation):
+        try:
+            g.build()
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Accepted mismatched area keys')
+`);
+  });
   it("keeps the black tread silhouette within 0.03 units of a true circle", async () => {
     const result: { side: string; low: number; high: number }[] = JSON.parse(
       await python.run(`${setup}
@@ -306,9 +354,6 @@ for strut in d.STRUT_BONES.values():
 
   it("aligns area order, whole-vehicle budgets, and assembly coverage", () => {
     expect(AREAS.map((row) => row.area)).toEqual(metadata.areas);
-    expect(
-      AREAS.reduce((total, row) => total + row.cubes, 0),
-    ).toBeLessThanOrEqual(metadata.ceiling);
     expect(cubes.length).toBeLessThanOrEqual(metadata.budget);
     expect([...new Set(AREAS.flatMap((row) => row.assemblies))].sort()).toEqual(
       Object.keys(metadata.table).sort(),
@@ -360,7 +405,9 @@ print(json.dumps(dict(bones=[name for name,cs in built.items() if cs],assemblies
         );
       expect(area.bones.sort()).toEqual([...row.bones].sort());
       expect(area.assemblies.sort()).toEqual([...row.assemblies].sort());
-      expect(area.cubes).toBeLessThanOrEqual(row.cubes);
+      expect(area.cubes).toBeLessThanOrEqual(
+        metadata.allocation[row.area] ?? -1,
+      );
     });
   }
 });

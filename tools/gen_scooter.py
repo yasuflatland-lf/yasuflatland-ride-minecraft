@@ -117,9 +117,13 @@ def build():
             if ancestor.endswith("_fold"):
                 raise ValueError(f"Strut bone {strut} must not descend from fold bone {ancestor}")
             ancestor = parents[ancestor]
+    if set(AREA_ORDER) != set(dims.AREA_CUBE_ALLOCATION):
+        raise ValueError("Scooter area order and allocation keys differ")
     merged = kit.AreaCubes()
     for name in AREA_ORDER:
         area = load_tool(f"scooter_{name}").build()
+        if sum(map(len, area.values())) > dims.AREA_CUBE_ALLOCATION[name]:
+            raise ValueError(f"Scooter area {name} exceeds its cube allocation")
         if name == "floor":
             # Body inner plates followed the floor solids before the areas were split.
             trailing = load_tool("scooter_body").trailing_cube_count()
