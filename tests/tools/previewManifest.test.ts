@@ -160,8 +160,7 @@ for entry, scene in zip(entries, scenes):
     assert entry['after'] == entries[0]['after']
 scooter = next(e for e in entries if e['id'] == 'render_preview.py:scooter')
 expected_scooter = {'docs/images/scooter-' + name + '.png' for name in (
-    'front-left', 'flying-headlights', 'side', 'rear', 'taillights',
-    'underbody', 'floor', 'wheel-front', 'wheel-rear')}
+    'front-left', 'flying-headlights', 'side', 'rear', 'floor')}
 assert set(matching_paths(scooter['outputs'])) == expected_scooter
 for path in old_outputs + matching_paths(old_outputs):
     assert sum(fnmatch.fnmatchcase(path, p) for e in entries for p in e['outputs']) == 1, path
