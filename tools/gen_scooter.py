@@ -15,6 +15,7 @@ scooter_textures = load_tool("scooter_textures")
 
 AREA_ORDER = (
     "running",
+    "stand",
     "struts",
     "body",
     "floor",

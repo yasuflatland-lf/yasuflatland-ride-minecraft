@@ -1,4 +1,4 @@
-"""Scooter running gear: both wheels, the leading-link front suspension and the centre stand."""
+"""Scooter running gear: both wheels, the leading-link front suspension."""
 
 import math
 import sys
@@ -13,7 +13,6 @@ atlas = load_tool("scooter_atlas")
 
 AREA = "running"
 
-OUTLINE_TEXELS_PER_PX = 8
 RING_SEGMENTS = 40
 HUB_SEGMENTS = 12
 CIRCLE_SEGMENTS = 24
@@ -48,7 +47,6 @@ DISH_RING_COLOR = (115, 113, 103)
 LUG_COLOR = (102, 106, 101)
 CAP_COLOR = (238, 242, 244)
 CAP_RIM_COLOR = (170, 183, 190)
-LINK_COLOR = (214, 220, 223)
 LINK_SHADE_COLOR = (75, 83, 84)
 
 STEER_LEAN = 0.4
@@ -71,15 +69,6 @@ FORK_TABS = (((1.5, 8.45), (1.75, 8.6), 8.55, 0.12), ((1.18, 7.98), (1.69, 8.13)
 SEAT_HALF = (0.3, 0.12, 0.4)
 SEAT_YS = (4.38, 8.02)
 
-STAND_FLOOR_Y = 5.29
-STAND_LUG_X = 1.6
-STAND_LUG_THICKNESS = 0.18
-STAND_BRACKET = (1.92, 5.17, 5.34, (-0.83, 0.43))
-STAND_FOOT = (3.8, 0.7, -0.6)
-STAND_PAD_HALF = (0.23, 0.9, (-0.95, -0.25))
-STAND_LEG_SIZE, STAND_BAR_SIZE, STAND_PIVOT_SIZE = 0.32, 0.3, 0.28
-STAND_PIVOT_HALF_LENGTH = 0.24
-
 LEG_OUTLINE_OFFSETS = (0.3, -0.38, -0.34, -0.34)
 LINK_OUTLINE = ((-11.45, 3.65), (-11.04, 3.75), (-10.99, 4.13), (-13.45, 6.03),
                 (-13.85, 6.02), (-14.02, 5.69), (-13.77, 5.32), (-11.82, 3.73))
@@ -99,11 +88,6 @@ def _leg_outline():
     return [(_axis_z(8.55) + top_a, 8.55), (_axis_z(8.55) + top_b, 8.55), (_axis_z(7.5) + mid, 7.5),
             (_axis_z(5.2) + low, 5.2), (-13.37, 5.32), (-13.03, 5.03), (-12.67, 5.37),
             (_axis_z(7.3) + 0.32, 7.3)]
-
-
-def _stand_lug(pivot_z, pivot_y):
-    return [(pivot_z - 0.8, STAND_FLOOR_Y), (pivot_z + 0.4, STAND_FLOOR_Y), (pivot_z + 0.25, pivot_y - 0.13),
-            (pivot_z - 0.2, pivot_y - 0.3), (pivot_z - 0.65, pivot_y - 0.13)]
 
 
 def _circle(radius, center=(0, 0)):
@@ -147,7 +131,7 @@ def _wheel_pixel(cap_radius):
 
 
 def _outline_region(name, polygon, material, color):
-    width, height, pixel = atlas.outline_pixel(polygon, OUTLINE_TEXELS_PER_PX, lambda u, v: color)
+    width, height, pixel = atlas.outline_pixel(polygon, dims.OUTLINE_TEXELS_PER_PX, lambda u, v: color)
     return atlas.register(name, width, height, material, pixel)
 
 
@@ -160,10 +144,8 @@ def register_regions(registry=None):
                        _wheel_pixel(cap))
         _outline_region(f"running_cap_{side}", _circle(cap * HUB_TAPER), atlas.Material.CHROME, CAP_COLOR)
     _outline_region("running_leg", _leg_outline(), atlas.Material.PAINT, atlas.PAINT_IVORY)
-    _outline_region("running_link", list(LINK_OUTLINE), atlas.Material.CHROME, LINK_COLOR)
+    _outline_region("running_link", list(LINK_OUTLINE), atlas.Material.CHROME, dims.LINK_COLOR)
     _outline_region("running_link_shade", list(LINK_SHADE_OUTLINE), atlas.Material.CHROME, LINK_SHADE_COLOR)
-    pivot_z, pivot_y = dims.i2m(*dims.STAND_PIXEL)
-    _outline_region("running_stand_lug", _stand_lug(pivot_z, pivot_y), atlas.Material.CHROME, LINK_COLOR)
 
 
 register_regions()
@@ -232,28 +214,6 @@ def _fork(result):
                                           "running_link_shade"))
 
 
-def _stand(result):
-    chrome = atlas.faces("chrome")
-    pivot_z, pivot_y = dims.i2m(*dims.STAND_PIXEL)
-    bar_z = dims.STAND_PIVOT[2]
-    half_x, floor_lo, floor_hi, (back, front) = STAND_BRACKET
-    result.add("stand", kit.box((-half_x, floor_lo, pivot_z + back), (half_x, floor_hi, pivot_z + front), chrome))
-    lug = _stand_lug(pivot_z, pivot_y)
-    foot_x, foot_y, foot_z = STAND_FOOT
-    pad_x, pad_height, (pad_back, pad_front) = STAND_PAD_HALF
-    for sign in (-1, 1):
-        x = sign * STAND_LUG_X
-        result.add("stand", kit.profile_plate(lug, x, STAND_LUG_THICKNESS, "running_stand_lug"))
-        result.add("stand", kit.tube([(x - STAND_PIVOT_HALF_LENGTH, pivot_y, bar_z),
-                                      (x + STAND_PIVOT_HALF_LENGTH, pivot_y, bar_z)], STAND_PIVOT_SIZE, chrome))
-        result.add("stand", kit.tube([(x, pivot_y, bar_z), (sign * foot_x, foot_y, foot_z)], STAND_LEG_SIZE,
-                                     chrome, assembly="running_stand"))
-        result.add("stand", kit.box((sign * foot_x - pad_x, 0, pad_back), (sign * foot_x + pad_x, pad_height, pad_front),
-                                    atlas.faces("rubber")))
-    result.add("stand", kit.tube([(-STAND_LUG_X, pivot_y, bar_z), (STAND_LUG_X, pivot_y, bar_z)], STAND_BAR_SIZE,
-                                 chrome))
-
-
 def _pedal(result):
     z0, y0 = dims.i2m(465, 415)
     z1, _ = dims.i2m(515, 415)
@@ -272,6 +232,5 @@ def build():
     _wheel(result, "front", dims.FRONT_AXLE_Z, 1.0)
     _wheel(result, "rear", dims.REAR_AXLE_Z, REAR_WHEEL_SCALE)
     _fork(result)
-    _stand(result)
     _pedal(result)
     return result
