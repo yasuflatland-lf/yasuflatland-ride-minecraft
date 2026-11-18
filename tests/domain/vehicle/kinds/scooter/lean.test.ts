@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
-  leanLevel,
+  bodyRoll,
+  rollLevel,
   stepLean,
 } from "../../../../../src/domain/vehicle/kinds/scooter/lean";
 import { SCOOTER_SPEC as limits } from "../../../../../src/domain/vehicle/kinds/scooter/spec";
@@ -82,35 +84,44 @@ it("settles at the speed-scaled and clamped steering target", () => {
     }),
   );
 });
-it("quantizes lean into bounded monotone signed levels", () => {
+const angles = limits.rollLevelAngles;
+const roll = fc.double({ min: -90, max: 90, noNaN: true });
+it("has ascending roll level angles that cover the ground range and the total roll", () => {
+  expect(angles).toHaveLength(5);
+  expect(angles.every((a, i) => i === 0 || a > (angles[i - 1] ?? 0))).toBe(
+    true,
+  );
+  expect(
+    angles.filter((a) => a <= limits.maxLean).length,
+  ).toBeGreaterThanOrEqual(3);
+  expect(angles.at(-1)).toBe(limits.maxLean + limits.maxBank);
+});
+it("quantizes body roll into bounded monotone odd-symmetric levels", () => {
   fc.assert(
-    fc.property(
-      angle,
-      angle,
-      fc.integer({ min: 1, max: 12 }),
-      (a, b, levels) => {
-        const low = leanLevel(
-          { angle: Math.min(a, b) },
-          levels,
-          limits.maxLean,
-        );
-        const high = leanLevel(
-          { angle: Math.max(a, b) },
-          levels,
-          limits.maxLean,
-        );
-        expect(Number.isInteger(low)).toBe(true);
-        expect(low).toBeGreaterThanOrEqual(-levels);
-        expect(high).toBeLessThanOrEqual(levels);
-        expect(low).toBeLessThanOrEqual(high);
-        expect(leanLevel({ angle: 0 }, levels, limits.maxLean)).toBe(0);
-        expect(
-          leanLevel({ angle: limits.maxLean }, levels, limits.maxLean),
-        ).toBe(levels);
-        expect(
-          leanLevel({ angle: -limits.maxLean }, levels, limits.maxLean),
-        ).toBe(-levels);
-      },
-    ),
+    fc.property(roll, roll, (a, b) => {
+      const low = rollLevel(Math.min(a, b), angles);
+      const high = rollLevel(Math.max(a, b), angles);
+      expect(Number.isInteger(low)).toBe(true);
+      expect(low).toBeGreaterThanOrEqual(-angles.length);
+      expect(high).toBeLessThanOrEqual(angles.length);
+      expect(low).toBeLessThanOrEqual(high);
+      expect(rollLevel(-a, angles) + rollLevel(a, angles)).toBe(0);
+    }),
+  );
+  expect(rollLevel(0, angles)).toBe(0);
+  for (const [index, angle] of angles.entries()) {
+    expect(rollLevel(angle, angles)).toBe(index + 1);
+    expect(rollLevel(-angle, angles)).toBe(-(index + 1));
+  }
+  expect(rollLevel(angles.at(-1) ?? 0 + 40, angles)).toBe(angles.length);
+  expect(rollLevel((angles[0] ?? 0) / 2 - 0.01, angles)).toBe(0);
+});
+it("takes body roll as lean minus bank, matching the model's lean animation", () => {
+  expect(bodyRoll({ angle: 20 }, -30)).toBe(50);
+  expect(bodyRoll({ angle: -20 }, 30)).toBe(-50);
+  expect(bodyRoll({ angle: 12 }, 0)).toBe(12);
+  const model = readFileSync("tools/scooter_anim.py", "utf8");
+  expect(model).toContain(
+    "query.property('yasu_ride:lean') - query.property('yasu_ride:bank')",
   );
 });

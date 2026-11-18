@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { ScooterDrive } from "../../../../../src/domain/vehicle/kinds/scooter/drive";
+import { rollLevel } from "../../../../../src/domain/vehicle/kinds/scooter/lean";
 import { SCOOTER_SPEC } from "../../../../../src/domain/vehicle/kinds/scooter/spec";
 import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
 import { engineStep } from "../../../../support/engineModel";
@@ -153,7 +154,15 @@ it("leans into hover and landing turns with the ground sign", () => {
           expect(Math.sign(drive.inspect().lean)).toBe(steer);
           if (initialForm !== "car") {
             expect(drive.inspect().lean).toBe(steer * SCOOTER_SPEC.maxLean);
-            expect(riderLean).toBe(steer * SCOOTER_SPEC.leanLevels);
+            const { lean, bank } = drive.inspect();
+            expect(riderLean).toBe(
+              rollLevel(lean - bank, SCOOTER_SPEC.rollLevelAngles),
+            );
+            expect(Math.sign(riderLean)).toBe(steer);
+            // Bank adds to lean in flight turns, so the rider follows the whole body roll.
+            if (form === "hover")
+              expect(Math.abs(lean - bank)).toBeGreaterThan(Math.abs(lean));
+            else expect(bank).toBe(0);
           }
           expect(drive.inspect().steer).toBe(steer * SCOOTER_SPEC.maxSteer);
         }
@@ -324,7 +333,7 @@ it("reports upright straight driving and signed rider lean in sustained turns", 
         for (let tick = 0; tick < duration; tick++) {
           const out = step(steer);
           if (tick >= SCOOTER_SPEC.maxLean / SCOOTER_SPEC.leanRate)
-            expect(out.riderLean).toBe(steer * SCOOTER_SPEC.leanLevels);
+            expect(out.riderLean).toBe(steer * 3);
         }
       },
     ),
