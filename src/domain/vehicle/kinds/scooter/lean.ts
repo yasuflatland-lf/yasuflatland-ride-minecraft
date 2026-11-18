@@ -29,6 +29,26 @@ export function stepLean(
   };
 }
 
-export function leanLevel(lean: Lean, levels: number, maxLean: number): number {
-  return Math.round(clamp(lean.angle / maxLean, -1, 1) * levels) || 0;
+/**
+ * Total body roll in degrees with the sign of the scooter model's `lean`
+ * animation, which rolls `root` by `lean - bank`: positive is left. In flight
+ * a left turn banks negative, so bank adds to the lean (ADR 0250).
+ */
+export function bodyRoll(lean: Lean, bank: number): number {
+  return lean.angle - bank;
+}
+
+/**
+ * Signed pose level of a body roll: the 1-based index of the nearest table
+ * angle, 0 below half the first angle, clamped to the table size.
+ */
+export function rollLevel(roll: number, angles: readonly number[]): number {
+  const magnitude = Math.abs(roll);
+  const first = angles[0];
+  if (first === undefined || magnitude < first / 2) return 0;
+  let best = 0;
+  for (const [index, angle] of angles.entries())
+    if (Math.abs(angle - magnitude) < Math.abs((angles[best] ?? 0) - magnitude))
+      best = index;
+  return Math.sign(roll) * (best + 1);
 }
