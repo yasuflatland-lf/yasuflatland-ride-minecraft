@@ -54,9 +54,9 @@ describe("camper atlas", () => {
           .sort(),
       ).toEqual([
         "camper.png",
-        "camper_interior_mer.png",
         "camper_lit.png",
         "camper_lit_mer.png",
+        "camper_mer.png",
         "camper_mirror.png",
         "camper_mirror_mer.png",
       ]);

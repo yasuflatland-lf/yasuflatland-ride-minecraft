@@ -4,6 +4,7 @@ interface ResortGearPiece {
   readonly name: string;
   readonly item: string;
   readonly geometry: string;
+  readonly texture?: string;
   readonly textured: boolean;
   readonly cutout: boolean;
 }

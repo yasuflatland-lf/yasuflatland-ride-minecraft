@@ -508,13 +508,12 @@
       "afterGenerators": true,
       "outputs": ["docs/images/scooter-*.png"],
       "reads": [
+        "packs/yasu_ride_bp/manifest.json",
+        "packs/yasu_ride_rp/manifest.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter.png",
-        "packs/yasu_ride_rp/manifest.json",
-        "packs/yasu_ride_bp/manifest.json",
-        "packs/yasu_ride_test_bp/manifest.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter_lit.png",
-        "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter_white.png"
+        "packs/yasu_ride_test_bp/manifest.json"
       ],
       "tracked": true,
       "after": [
@@ -644,7 +643,6 @@
         "packs/yasu_ride_rp/textures/entity/yasu_ride/dining_table.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/dining_chair.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/sofa_single.png",
-        "packs/yasu_ride_rp/textures/entity/yasu_ride/sofa_double.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/toilet.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/washstand.png",
         "packs/yasu_ride_rp/textures/blocks/yasu_ride/camping_gear.png",

@@ -17,10 +17,10 @@ As in 0159, "mirror" on Vibrant Visuals means environment reflections: sky, sun 
 
 ## Decision
 
-- Let the gloss follow the paint. Generate one texture set per paint atlas, including `sportsboat` for variant 0 and `sportsboat_black`, with no new bone, pass, render controller, or client entity change.
+- Let the gloss follow the paint. Generate one texture set per distinct paint atlas. Variant 0 and black both bind `sportsboat`; variant indices and render controller arrays stay unchanged, with no new bone or pass.
 - Use `MER_HULL = (0, 0, 16)`: metalness 0, emissive 0, roughness 16/255 (about 0.06). This is a smooth dielectric clear coat. A metal takes its reflection color from its albedo; a near-black `(20, 20, 22)` metal would reflect almost nothing and look dull dark gray. The dielectric reflects the environment at Fresnel strength over the black base, like piano-black paint.
 - Set `HULL_SLOT = NAMES.index("hull")`, cell 0, to MER_HULL on its 16 texels (x 0-3, y 0-3). Every other texel uses `MER_OFF = (0, 0, 255)`, as in 0147; alpha is 255 throughout. Each MER image is 128 x 32, matching its color atlas.
-- For each atlas N, write `N_mer.png` and `N.texture_set.json` with format `1.16.100`, color N, and `metalness_emissive_roughness` N_mer. Keep 16 identical MER copies because sharing one MER between texture sets is untested. The longest texture-set paths, light_blue and light_gray, are 77 characters including the pack folder.
+- For each stored atlas N, write `N.texture_set.json` with format `1.16.100`, color N, and `metalness_emissive_roughness` `sportsboat_mer`. The shared variant writer (0193) stores the equal paint MER content once. The mirror retains its own colour and MER because its texture set differs. The longest texture-set paths, light_blue and light_gray, are 77 characters including the pack folder.
 - Keep every color texel, geometry, lamps, mirror assets, and item icon unchanged. The non-PBR fallback remains flat paint with no baked highlight: a painted streak would read wrong as the boat rolls and pitches. Previews ignore MER and remain unchanged.
 - Bump the Resource Pack header and module and the Behavior Pack's Resource Pack dependency from 0.1.145 to 0.1.146 to invalidate client caches (0015).
 

@@ -12,7 +12,7 @@
         "default": "textures/entity/yasu_ride/scooter",
         "green": "textures/entity/yasu_ride/scooter_green",
         "red": "textures/entity/yasu_ride/scooter_red",
-        "white": "textures/entity/yasu_ride/scooter_white",
+        "white": "textures/entity/yasu_ride/scooter",
         "light_gray": "textures/entity/yasu_ride/scooter_light_gray",
         "gray": "textures/entity/yasu_ride/scooter_gray",
         "black": "textures/entity/yasu_ride/scooter_black",

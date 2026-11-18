@@ -183,7 +183,7 @@ BULLDOZER_POSES = {
 
 SCOOTER_GEOMETRY = "models/entity/yasu_ride/scooter.geo.json"
 # The default paint is white (ADR 0251); the rest pose has the wheels on the road and the stand down.
-SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter_white.png"
+SCOOTER_TEXTURE = "textures/entity/yasu_ride/scooter.png"
 SCOOTER_CELLS_PER_UNIT = 16
 SCOOTER_ANIMATIONS = "animations/yasu_ride/scooter.anim.json"
 # SCOOTER_SPEC.takeoffTicks * SCOOTER_SPEC.takeoffClimb * 16 model pixels (ADR 0251).
@@ -1455,7 +1455,7 @@ def render_photo_view(rp, name, lid=None) -> RasterJob:
         geo = open_lid(geo, degrees)
     textured = piece["textured"]
     polygons, glass = collect_boat(
-        geo, read_png(rp / RESORT_TEXTURE.format(piece["geometry"])),
+        geo, read_png(rp / RESORT_TEXTURE.format(piece.get("texture", piece["geometry"]))),
         {"lamps": False, "dusk": False, "outward_normals": textured,
          "merge_texels": piece["geometry"] in ("sofa_single", "sofa_double", "washstand")},
         texture_mapping=textured, cutout=piece["cutout"])
@@ -1528,7 +1528,7 @@ def small_models(rp):
     texture = read_png(rp / GEAR_TEXTURE)
     models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
     resort = [
-        (piece["name"], rp / RESORT_GEOMETRY.format(piece["geometry"]), read_png(rp / RESORT_TEXTURE.format(piece["geometry"])))
+        (piece["name"], rp / RESORT_GEOMETRY.format(piece["geometry"]), read_png(rp / RESORT_TEXTURE.format(piece.get("texture", piece["geometry"]))))
         for piece in RESORT_GEAR
     ]
     return models + resort + [

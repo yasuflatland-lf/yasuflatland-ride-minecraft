@@ -40,14 +40,15 @@ print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT
   );
 }, 60000);
 
-it("uses the dye order and preserves the ivory default bytes", () => {
+it("uses the dye order and preserves the ivory default bytes", async () => {
   expect(Object.keys(metadata.paints)).toEqual(PAINTS);
   expect(metadata.defaultPaint).toBe("white");
   expect(metadata.paints.khaki).toEqual(metadata.ivory);
   expect(metadata.paints.white).toEqual(metadata.ivory);
-  expect(readFileSync(`${directory}scooter.png`)).toEqual(
-    readFileSync(`${directory}scooter_white.png`),
-  );
+  await python.run(`${setup}
+l=a.pack_layout()
+assert t.recolor(l,a.render_atlas(l),t.PAINTS["white"]) == a.render_atlas(l)
+`);
 });
 
 it("preserves non-paint texels and alpha across every generated paint", () => {
@@ -62,8 +63,9 @@ it("preserves non-paint texels and alpha across every generated paint", () => {
       mask.fill(1, y * base.width + r.x, y * base.width + r.x + r.width);
   }
   for (const paint of PAINTS) {
-    const name = paint === "khaki" ? "scooter" : `scooter_${paint}`;
-    for (const suffix of [".png", "_mer.png", ".texture_set.json"]) {
+    const name =
+      paint === "khaki" || paint === "white" ? "scooter" : `scooter_${paint}`;
+    for (const suffix of [".png", ".texture_set.json"]) {
       const path = `${directory}${name}${suffix}`;
       expect(existsSync(path)).toBe(true);
       expect(path.slice("packs/".length).length).toBeLessThanOrEqual(80);
@@ -103,7 +105,7 @@ it("preserves non-paint texels and alpha across every generated paint", () => {
       JSON.parse(readFileSync(`${directory}${name}.texture_set.json`, "utf8"))[
         "minecraft:texture_set"
       ],
-    ).toEqual({ color: name, metalness_emissive_roughness: `${name}_mer` });
+    ).toEqual({ color: name, metalness_emissive_roughness: "scooter_mer" });
   }
 }, 60000);
 
@@ -282,3 +284,25 @@ for local in (r.UvRect(0,0,8,8),r.UvRect(8,8,-8,-8)):
     { numRuns: 10 },
   );
 });
+
+it("writes distinct paint colours and exactly one paint MER without white aliases", async () => {
+  await python.run(`${setup}
+from pathlib import Path
+from tempfile import TemporaryDirectory
+l=a.pack_layout()
+with TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    t.write(load_tool("texture_io").Outputs(False),root,l,a.render_atlas(l))
+    directory = root / "textures/entity/yasu_ride"
+    colours = sorted(p for p in directory.glob("scooter*.png")
+                     if not p.stem.endswith("_mer") and p.stem != "scooter_lit")
+    assert len(colours) == 15
+    assert len({p.read_bytes() for p in colours}) == len(colours)
+    assert sorted(p.name for p in directory.glob("*_mer.png")
+                  if p.stem != "scooter_lit_mer") == ["scooter_mer.png"]
+    assert not list(directory.glob("scooter_white*"))
+    for colour in colours:
+        texture_set = json.loads(colour.with_suffix(".texture_set.json").read_text())["minecraft:texture_set"]
+        assert texture_set == dict(color=colour.stem,metalness_emissive_roughness="scooter_mer")
+`);
+}, 60000);

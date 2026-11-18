@@ -202,11 +202,23 @@ describe("scooter client references", () => {
         "",
       );
       expect(client.textures[key]).toBe(
-        `textures/entity/yasu_ride/scooter${paint === "khaki" ? "" : `_${paint}`}`,
+        `textures/entity/yasu_ride/scooter${paint === "khaki" || paint === "white" ? "" : `_${paint}`}`,
       );
     }
-    for (const texture of Object.values(client.textures))
+    for (const texture of Object.values(client.textures)) {
       expect(existsSync(`${RP}/${texture}.png`), String(texture)).toBe(true);
+      const textureSet = read(`${texture}.texture_set.json`)[
+        "minecraft:texture_set"
+      ];
+      for (const name of [
+        textureSet.color,
+        textureSet.metalness_emissive_roughness,
+      ])
+        expect(
+          existsSync(`${RP}/textures/entity/yasu_ride/${name}.png`),
+          name,
+        ).toBe(true);
+    }
   });
 
   it("resolves scooter engine sounds, shared hover sounds and the hover particle at both disc locators", () => {
