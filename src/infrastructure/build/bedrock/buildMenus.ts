@@ -166,9 +166,10 @@ export class BedrockBuildMenus implements BuildMenus {
       const id = await chooseFromForm(
         player,
         BUILD_FORM.utilityTitle,
-        pasteMenu({
-          hasHistory: session.hasHistory,
-        }).map((entry) => ({ id: entry.id, textKey: menuLabel(entry) })),
+        pasteMenu().map((entry) => ({
+          id: entry.id,
+          textKey: menuLabel(entry),
+        })),
       );
       if (player.isValid) this.choices.choose(playerId, "paste", id);
     });

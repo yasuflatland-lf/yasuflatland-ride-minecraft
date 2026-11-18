@@ -122,15 +122,7 @@ export class MenuChoices {
         }
       }
     } else if (menu === "paste") {
-      if (
-        session.flow.kind !== "pasteAim" ||
-        !isOffered(
-          pasteMenu({
-            hasHistory: session.hasHistory,
-          }),
-          entryId,
-        )
-      )
+      if (session.flow.kind !== "pasteAim" || !isOffered(pasteMenu(), entryId))
         return false;
       switch (entryId) {
         case "cancel":
@@ -140,9 +132,6 @@ export class MenuChoices {
           break;
         case "newCopy":
           this.cases.newCopy.execute(playerId);
-          break;
-        case "undo":
-          this.cases.undo.execute({ playerId });
           break;
         default: {
           const exhaustive: never = entryId;

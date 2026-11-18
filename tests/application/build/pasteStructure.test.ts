@@ -118,8 +118,10 @@ it("captures before replacement, records only after place, retains older snapsho
           handle: old,
         },
       });
-      expect(e.feedback.messages).toEqual([{ message: "editDone", count }]);
-      expect(e.feedback.undoHints.length).toBe(count > 0 ? 1 : 0);
+      expect(e.feedback.messages).toEqual([
+        { message: "editDoneCount", count },
+      ]);
+      expect(e.feedback.undoHints).toEqual([]);
       expect(e.session.isEditing).toBe(false);
       expect(e.start).not.toHaveBeenCalled();
     }),
@@ -248,7 +250,7 @@ it("lifts only an occupant buried by a non-open cell inside the pasted box", () 
   );
 });
 
-it("allows another paste after the repeat window with just one undo hint", () => {
+it("allows another paste after the repeat window without an air-press undo hint", () => {
   const e = setup();
   e.paste.execute(e.cmd);
   expect(e.paste.execute({ ...e.cmd, tick: e.cmd.tick + 1 })).toBe("ignored");
@@ -258,7 +260,7 @@ it("allows another paste after the repeat window with just one undo hint", () =>
       tick: e.cmd.tick + BUILD_SPEC.pasteRepeatTicks,
     }),
   ).toBe("pasted");
-  expect(e.feedback.undoHints).toEqual([playerId]);
+  expect(e.feedback.undoHints).toEqual([]);
 });
 
 it("restores blocks and entities after a partially failed placement", () => {
