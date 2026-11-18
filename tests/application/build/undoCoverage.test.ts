@@ -8,6 +8,7 @@ import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateBoxAction } from "../../../src/application/build/rotateBoxAction";
+import { RotateModeTap } from "../../../src/application/build/rotateModeTap";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, type CellBox, cellsOf } from "../../../src/domain/build/box";
@@ -36,6 +37,14 @@ function setup() {
   const players = new FakeBuildPlayers();
   const log = { warn: () => {} };
   const jobs = new EditJobs(repo, world, feedback, log, players, structures);
+  const rotateBox = new RotateBox(
+    repo,
+    world,
+    players,
+    structures,
+    feedback,
+    log,
+  );
   const session = repo.getOrCreate(playerId);
   return {
     repo,
@@ -48,10 +57,8 @@ function setup() {
     terrain: new ConfirmTerrain(repo, feedback, jobs, world),
     copy: new CopyBox(repo, structures, feedback),
     cut: new CutBox(repo, world, structures, feedback, log),
-    rotate: new RotateBoxAction(
-      repo,
-      new RotateBox(repo, world, players, structures, feedback, log),
-    ),
+    rotate: new RotateBoxAction(repo, rotateBox),
+    tap: new RotateModeTap(repo, rotateBox),
     undo: new UndoEdit(repo, feedback, jobs, world, structures, log),
     drain: () => {
       for (let i = 0; i < 1000 && session.isEditing; i++) jobs.step();
@@ -209,6 +216,45 @@ it("RotateBoxAction then UndoEdit restores the original arrangement and overwrit
       expect(e.session.hasHistory).toBe(true);
       undoAndExpectEmpty(e);
       expect(snapshot(e, union)).toEqual(before);
+      expect(e.structures.live.size).toBe(0);
+    }),
+  );
+});
+
+it("RotateBoxAction then taps, then one UndoEdit per rotation restores each step back to the original", () => {
+  fc.assert(
+    fc.property(size, fc.integer({ min: 2, max: 4 }), (width, turns) => {
+      const e = setup();
+      const box = boxOf({ x: 0, y: 64, z: 0 }, { x: width - 1, y: 65, z: 1 });
+      const union = planRotationAboutCenter(box).union;
+      const states = [seed(e, union)];
+      select(e, box);
+      expect(
+        e.rotate.execute({
+          playerId,
+          dimensionId: overworld,
+          box,
+          facing: "east",
+        }),
+      ).toBe(true);
+      states.push(snapshot(e, union));
+      for (let n = 1; n < turns; n++) {
+        expect(e.tap.execute({ playerId, dimensionId: overworld })).toBe(
+          "rotated",
+        );
+        states.push(snapshot(e, union));
+      }
+      expect(e.session.flow).toMatchObject({
+        kind: "rotateMode",
+        turn: turns % 4,
+      });
+      for (let n = turns - 1; n >= 0; n--) {
+        e.undo.execute({ playerId });
+        e.drain();
+        expect(e.feedback.messages.at(-1)?.message).toBe("undoDone");
+        expect(snapshot(e, union)).toEqual(states[n]);
+      }
+      expect(e.session.hasHistory).toBe(false);
       expect(e.structures.live.size).toBe(0);
     }),
   );
