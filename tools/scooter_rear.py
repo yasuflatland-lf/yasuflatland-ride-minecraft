@@ -32,7 +32,7 @@ SEAT_SKIN = 0.012
 SEAT_CAP_SKIN = 0.012
 SEAT_CAP_SCALE = 0.0
 SEAT_MASK_DENSITY = 24
-SEAT_MASK_OVERLAP = 0.045
+SEAT_MASK_OVERLAP = 0.12
 SEAT_ATLAS_WIDTH = 512
 SEAT_MASK_GUTTER = 2
 
@@ -294,7 +294,9 @@ def _seat_skin(rings, thick, panels, interior=None):
                     x, y = x0 + (1 - (u + 0.5) / width) * w, y0 + (1 - (v + 0.5) / height) * h
                     crosses = [((q[0]-p[0])*(y-p[1]) - (q[1]-p[1])*(x-p[0])) / math.dist(p, q)
                                for p, q in zip(poly, (*poly[1:], poly[0])) if math.dist(p, q) > kit.FRAME_EPSILON]
-                    return (*atlas.LEATHER, 255) if min(crosses) >= -SEAT_MASK_OVERLAP or max(crosses) <= SEAT_MASK_OVERLAP else atlas.CLEAR
+                    # Transparent texels keep the leather colour so mipmaps and bilinear filtering blend leather, not black, at the cut edge.
+                    inside = min(crosses) >= -SEAT_MASK_OVERLAP or max(crosses) <= SEAT_MASK_OVERLAP
+                    return (*atlas.LEATHER, 255 if inside else 0)
 
                 data = (bytes(c for v in range(height) for u in range(width) for c in pixel(u, v))
                         if "seat_panels" not in atlas.REGISTRY._regions else None)

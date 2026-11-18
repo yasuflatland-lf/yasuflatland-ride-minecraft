@@ -30,7 +30,7 @@ Add the kind `scooter`: entity `yasu_ride:scooter`, item `yasu_ride:scooter_item
 
 **Lean and steer.** The drive eases a lean angle toward the steering input scaled by speed, up to 20 degrees at 2 degrees per tick, and writes `yasu_ride:lean`. It writes `yasu_ride:steer` (up to 30 degrees) from the stick. The client turns the steer bone about the measured 20.9-degree inclined axis and rolls the root by lean minus bank. Out of car form the lean eases back to upright. The riders' lean is stepped (0250): the drive reports a signed level of -3 to 3.
 
-**Stand.** `yasu_ride:stand` is true when nobody is aboard and no driver is awaited, the speed is under 0.01 blocks per tick and the scooter is not on water. The client lowers the stand then and raises it otherwise.
+**Stand.** `yasu_ride:stand` is true when nobody is aboard and no driver is awaited, the speed is under 0.01 blocks per tick and the scooter is not on water. The client lowers the stand then and raises it otherwise; the raised stand lies horizontal under the floor, pointing at the front tyre (62 degrees forward of its resting lean).
 
 **Flat-wheel flight.** The scooter reuses the transforming drive (takeoff, hover, landing) without a submarine form. On take-off each wheel and hub drops 3.5 px and turns 90 degrees until its plane is horizontal, with a glow disc and hover particles underneath; landing reverses it before touch-down. The fender, fork and suspension stay in place, and a chrome strut rod on its own bone follows the drop (not the roll) so each hub stays joined to the body. Two parallel hinged links were rejected because they move the wheel about 2 px inward. The shared drive gains no scooter branch: the kind passes its own `TransformingSpec`.
 

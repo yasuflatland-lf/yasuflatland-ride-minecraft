@@ -278,13 +278,6 @@ def _prepared():
                             atlas.Material.PAINT,pixel),
                atlas.Region("shield_horn",D.SHIELD_HORN_TEXELS,D.SHIELD_HORN_TEXELS,
                             atlas.Material.CHROME,_horn_pixel)]
-    heights = [D.SHIELD_BOTTOM+(D.SHIELD_TOP-D.SHIELD_CORNER_RADIUS-D.SHIELD_BOTTOM)
-               *(1-math.cos(math.pi*i/D.SHIELD_SIDE_STEPS))/2 for i in range(D.SHIELD_SIDE_STEPS+1)]
-    outline = [(_edge_z(y)+D.SHIELD_SIDE_FRONT,y) for y in heights]
-    outline += [(_edge_z(y)+D.SHIELD_SIDE_REAR,y) for y in reversed(heights)]
-    w,h,fn = atlas.outline_pixel(outline,D.SHIELD_PLATE_DENSITY,
-                                lambda u,v:(*D.SHIELD_PAINT,255))
-    regions.append(atlas.Region("shield_side",w,h,atlas.Material.PAINT,fn))
     arc = [(x,D.SHIELD_CROWN_Y-D.SHIELD_CROWN_DROP*(x/D.SHIELD_CROWN_HALF_WIDTH)**2)
            for x in [-D.SHIELD_CROWN_HALF_WIDTH+2*D.SHIELD_CROWN_HALF_WIDTH*i/D.SHIELD_CROWN_STEPS
                      for i in range(D.SHIELD_CROWN_STEPS+1)]]
@@ -292,7 +285,7 @@ def _prepared():
     w,h,fn = atlas.outline_pixel(crown,D.SHIELD_CROWN_DENSITY,
                                 lambda u,v:(*D.SHIELD_CROWN_COLOR,255))
     regions.append(atlas.Region("shield_crown",w,h,atlas.Material.RUBBER,fn))
-    return panels,solids,regions,outline,crown
+    return panels,solids,regions,crown
 
 
 def register_regions(registry):
@@ -305,7 +298,7 @@ def register_regions(registry):
 
 def build() -> kit.AreaCubes:
     register_regions(atlas.REGISTRY)
-    panels,solids,_,outline,crown = _prepared()
+    panels,solids,_,crown = _prepared()
     result = kit.AreaCubes()
     stride = D.SHIELD_PANEL_TEXELS+2*atlas.GUTTER_TEXELS
     for index,(bone,template,_,_) in enumerate(panels):
@@ -322,9 +315,9 @@ def build() -> kit.AreaCubes:
         cube = copy.deepcopy(template)
         cube["uv"] = atlas.faces(material)
         result.add(bone,cube)
-    for side in (-1,1):
-        result.add("body",kit.profile_plate(outline,side*D.SHIELD_HALF_WIDTH,
-                   D.SHIELD_SIDE_THICKNESS,"shield_side"))
+    rings = _fender_rings()
+    for path in ([r[0] for r in rings],[r[-1] for r in rings],rings[0],rings[-1]):
+        result.add("steer",kit.tube(path,D.SHIELD_BEAD_SIZE,atlas.faces("paint"),"shield_bead"))
     z,y = D.i2m(*HORN_POSITION)
     diameter = D.SHIELD_HORN_DIAMETER*D.SHIELD_HORN_SCALE
     depth = D.SHIELD_HORN_DEPTH*D.SHIELD_HORN_SCALE
