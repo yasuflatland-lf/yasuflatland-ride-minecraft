@@ -197,7 +197,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0190](0190-ribbed-camper-shell-atlas.md) | A ribbed camper shell atlas and trim | Proposed; superseded in part by [0197](0197-emit-camper-hover-particles-below-the-discs.md), [0199](0199-square-the-camper-front-and-fold-the-grille.md) |
 | [0191](0191-press-camp-gear-without-the-light-tool.md) | Press camp gear without the light tool | Proposed |
 | [0192](0192-suv-detailed-body.md) | Detail the SUV body, dashboard and lamps | Proposed; superseded in part by [0214](0214-replace-the-suv-with-the-rubicon-shape.md), [0219](0219-remove-the-suv-headlight-bezel-plate.md); extended by [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) |
-| [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed; extended by [0248](0248-treat-generated-pack-files-as-build-outputs.md) |
+| [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed; extended by [0248](0248-treat-generated-pack-files-as-build-outputs.md), [0252](0252-budget-client-entity-texture-memory.md) |
 | [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) | Enlarge the SUV for seated head clearance | Proposed; superseded in part by [0196](0196-raise-the-suv-seats-for-first-person-visibility.md), [0214](0214-replace-the-suv-with-the-rubicon-shape.md), [0215](0215-fit-the-suv-interior-to-the-rubicon-cabin.md), [0217](0217-derive-the-suv-spec-from-the-rubicon-body.md) |
 | [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) | Cut the body height ahead of a grounded blade | Proposed |
 | [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) | Raise the SUV seats for first-person visibility | Proposed; superseded in part by [0215](0215-fit-the-suv-interior-to-the-rubicon-cabin.md) |
@@ -254,7 +254,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0248](0248-treat-generated-pack-files-as-build-outputs.md) | Treat generated pack files as build outputs | Proposed |
 | [0249](0249-shared-warp-points-with-a-block-and-a-tool.md) | Shared warp points with a block and a tool | Proposed |
 | [0250](0250-scooter-rider-grip-pose-and-stepped-lean.md) | Scooter rider grip pose and stepped lean | Proposed; extended by [0251](0251-add-the-scooter-kind.md) |
-| [0251](0251-add-the-scooter-kind.md) | Add the scooter kind | Proposed |
+| [0251](0251-add-the-scooter-kind.md) | Add the scooter kind | Proposed; extended by [0252](0252-budget-client-entity-texture-memory.md) |
+| [0252](0252-budget-client-entity-texture-memory.md) | Budget client entity texture memory | Accepted |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
