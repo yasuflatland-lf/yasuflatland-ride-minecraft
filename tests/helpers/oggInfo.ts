@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 export function readOggInfo(path: string): {
   channels: number;
   sampleRate: number;
+  sampleCount: number;
   seconds: number;
 } {
   const bytes = readFileSync(path);
@@ -55,5 +56,10 @@ export function readOggInfo(path: string): {
   }
   if (granule < 0n || !sampleRate)
     throw new Error(`Missing Ogg duration: ${path}`);
-  return { channels, sampleRate, seconds: Number(granule) / sampleRate };
+  return {
+    channels,
+    sampleRate,
+    sampleCount: Number(granule),
+    seconds: Number(granule) / sampleRate,
+  };
 }

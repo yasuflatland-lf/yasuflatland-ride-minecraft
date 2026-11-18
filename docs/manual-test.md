@@ -443,7 +443,7 @@ Setup: craft the Scooter item from 3 iron ingots and 2 coal, or use `/give @s ya
 
 ### Scooter engine sound (Vespa recordings)
 
-Setup: run `pnpm server:restart`, then test on PC and on mobile with a lake and a flat road. E6 needs a second player who stays put and listens while the rider drives away. The result cells are empty on purpose: nobody has listened to these clips in game yet. If a row fails, adjust `SCOOTER_ENGINE_SLICES` in `tools/scooter_vespa_clips.py` or the volumes in `tools/scooter_sound.py`, regenerate, and bump the Resource Pack version.
+Setup: run `pnpm server:restart`, then test on PC and on mobile with a lake and a flat road. E6 needs a second player who stays put and listens while the rider drives away. Rows E1 to E6 stay empty until someone listens to the new `idoling.mp3` and `reving.mp3` clips in game on PC and mobile; the source recordings were supplied on 2026-11-18. If a row fails, adjust `SCOOTER_ENGINE_SLICES` in `tools/scooter_vespa_clips.py` or the volumes in `tools/scooter_sound.py`, regenerate, and bump the Resource Pack version.
 
 | #   | Steps                                                                                                           | Pass condition                                                                              | PC  | Mobile |
 | --- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --- | ------ |
