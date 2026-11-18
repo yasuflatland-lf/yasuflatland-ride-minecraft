@@ -16,6 +16,7 @@ scooter_textures = load_tool("scooter_textures")
 scooter_engine = load_tool("scooter_engine")
 region_atlas = load_tool("region_atlas")
 geometry_passes = load_tool("geometry_passes")
+face_crop = load_tool("face_crop")
 
 AREA_ORDER = (
     "running",
@@ -128,6 +129,7 @@ class AtlasPass(NamedTuple):
 
 
 class BuildResult(NamedTuple):
+    source_geometry: dict
     full_geometry: dict
     fixed: AtlasPass
     paint: AtlasPass
@@ -143,13 +145,64 @@ def pack_regions(regions, *, shared=True):
         share_key=(lambda r: (r.material, r.name in atlas.LIT_REGIONS)) if shared else None)
 
 
-def finish_pass(geometry, layout):
+def finish_pass(geometry, layout, pixels=None):
     geometry["description"].update(texture_width=layout.size[0], texture_height=layout.size[1])
-    pixels = atlas.render_atlas(layout)
+    if pixels is None:
+        pixels = atlas.render_atlas(layout)
     errors = atlas.audit(layout, pixels)
     if errors:
         raise ValueError(f"{geometry['description']['identifier']} atlas audit failed: " + "; ".join(errors))
     return AtlasPass(rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]}), layout, pixels)
+
+
+def _faces(geometry):
+    for bone in geometry["bones"]:
+        for cube in bone["cubes"]:
+            yield from cube["uv"].values()
+
+
+def _lit_bone(name):
+    return name in ("headlights", "tail_lights") or name.startswith("glow_")
+
+
+def _visible_faces(geometry, image):
+    visibility = {}
+
+    def keep(bone, cube, name):
+        if _lit_bone(bone):
+            return True
+        face = cube["uv"][name]
+        rect = region_atlas.UvRect.of(face).texels()
+        if rect not in visibility:
+            visibility[rect] = face_crop.is_visible(face, image)
+        return visibility[rect]
+
+    return geometry_passes.select_faces(
+        geometry, geometry_passes.PassSpec(geometry["description"]["identifier"], keep)), keep
+
+
+def _rejoin(source, fixed, paint, is_paint, keeps):
+    bones = []
+    for source_bone, fixed_bone, paint_bone in zip(
+            source["bones"], fixed["bones"], paint["bones"], strict=True):
+        cursors = (iter(fixed_bone["cubes"]), iter(paint_bone["cubes"]))
+        whole = []
+        for cube in source_bone["cubes"]:
+            names = [[], []]
+            for name, face in cube["uv"].items():
+                owner = is_paint(face)
+                if keeps[owner](source_bone["name"], cube, name):
+                    names[owner].append(name)
+            pieces = [next(cursor) for cursor, kept in zip(cursors, names) if kept]
+            if len(pieces) == 2:
+                fixed_cube, paint_cube = pieces
+                shape = {k: v for k, v in fixed_cube.items() if k != "uv"}
+                if shape == {k: v for k, v in paint_cube.items() if k != "uv"}:
+                    faces = fixed_cube["uv"] | paint_cube["uv"]
+                    pieces = [{**shape, "uv": {name: faces[name] for name in cube["uv"] if name in faces}}]
+            whole.extend(pieces)
+        bones.append({**source_bone, "cubes": whole})
+    return {**source, "bones": bones}
 
 
 def build():
@@ -215,7 +268,7 @@ def build():
     geometry = {"description": description, "bones": bones}
     lit_geometry = geometry_passes.select_faces(geometry, geometry_passes.PassSpec(
         "geometry.yasu_ride.scooter_lit",
-        lambda name, cube, face: name in ("headlights", "tail_lights") or name.startswith("glow_")))
+        lambda name, cube, face: _lit_bone(name)))
     bound = {face.region for bone in lit_geometry["bones"]
              for cube in bone.get("cubes", []) for face in cube["uv"].values()}
     lit_layout = pack_regions((r for r in regions.values() if r.name in bound), shared=False)
@@ -226,23 +279,45 @@ def build():
                 relocate_face(local_uvs[id(original)], regions[original.region], lit_layout, face)
     kit.mirror_to_game(bones)
     kit.mirror_to_game(lit_geometry["bones"])
+    cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
+    source = rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]})
+    geometry = source["minecraft:geometry"][0]
     fixed_geometry, paint_geometry = geometry_passes.partition_geometry(geometry, [
         geometry_passes.PassSpec("geometry.yasu_ride.scooter", lambda bone, cube, name: not is_paint(cube["uv"][name])),
         geometry_passes.PassSpec("geometry.yasu_ride.scooter_paint", lambda bone, cube, name: is_paint(cube["uv"][name])),
     ])
-    cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
-    fixed = finish_pass(fixed_geometry, fixed_layout)
-    paint = finish_pass(paint_geometry, paint_layout)
+    fixed_pixels = atlas.render_atlas(fixed_layout)
+    fixed_image = region_atlas.AtlasImage(*fixed_layout.size, fixed_pixels)
+    paint_image = region_atlas.AtlasImage(*paint_layout.size, atlas.render_atlas(paint_layout))
+    fixed_geometry, keep_fixed = _visible_faces(fixed_geometry, fixed_image)
+    paint_geometry, keep_paint = _visible_faces(paint_geometry, paint_image)
+    for bone in paint_geometry["bones"]:
+        if not _lit_bone(bone["name"]):
+            bone["cubes"] = [face_crop.crop_plate(cube, paint_image) or cube for cube in bone["cubes"]]
+    crops = face_crop.crop_regions(paint_layout, _faces(paint_geometry))
+    crop_layout = pack_regions(crops)
+    crops = {region.name: region for region in crops}
+    for bone in paint_geometry["bones"]:
+        for cube in bone["cubes"]:
+            for name, face in cube["uv"].items():
+                crop, uv = face_crop.crop_region_uv(paint_layout, regions[face.region], face)
+                relocated = region_atlas.RegionFace(face, crop, face.flip_x, face.flip_y)
+                relocate_face(uv, crops[crop], crop_layout, relocated)
+                cube["uv"][name] = relocated
+    fixed = finish_pass(fixed_geometry, fixed_layout, fixed_pixels)
+    paint = finish_pass(paint_geometry, crop_layout)
     lit = finish_pass(lit_geometry, lit_layout)
-    full = rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]})
-    return BuildResult(full, fixed, paint, lit)
+    full = {**source, "minecraft:geometry": [_rejoin(
+        geometry, fixed.geometry["minecraft:geometry"][0], paint.geometry["minecraft:geometry"][0],
+        is_paint, (keep_fixed, keep_paint))]}
+    return BuildResult(source, full, fixed, paint, lit)
 
 
 def main(argv):
     rp = Path(argv[0])
     outputs = texture_io.Outputs("--check" in argv[1:])
     built = build()
-    source_geometry = built.full_geometry["minecraft:geometry"][0]
+    source_geometry = built.source_geometry["minecraft:geometry"][0]
     outputs.json(Path(__file__).resolve().parent.parent / ".cache/generated/scooter_source.geo.json",
                  source_geometry)
     for name, render_pass in (("scooter", built.fixed), ("scooter_paint", built.paint), ("scooter_lit", built.lit)):
