@@ -16,7 +16,7 @@ import { blockStateOf } from "../../domain/build/blockState";
 import type { CellBox } from "../../domain/build/box";
 import { cellsOf, contains } from "../../domain/build/box";
 import { selectionBoxOf } from "../../domain/build/flow/flow";
-import { shapeMenu } from "../../domain/build/flow/menu";
+import { isShapeEntryOffered } from "../../domain/build/flow/menu";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
@@ -108,6 +108,7 @@ async function runRotateBox(
   const select = () =>
     session.setFlow({
       kind: "endpoint",
+      menuLevel: "root",
       dimensionId,
       from: source.min,
       to: source.max,
@@ -129,7 +130,7 @@ async function runRotateBox(
     check(
       "mode_or_menu",
       variant === "box"
-        ? shapeMenu(session.flow).some((entry) => entry.id === "rotate")
+        ? isShapeEntryOffered(session.flow, "rotate")
         : session.flow.kind === "rotateMode",
     );
   };

@@ -101,6 +101,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   const { session, preview, feedback, aim } = setup();
   session.setFlow({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: overworld,
     from: cell,
     to: end,
@@ -310,6 +311,7 @@ it("does not report sizes outside the height step", () => {
   preview.execute(interval);
   session.setFlow({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: overworld,
     from: cell,
     to: end,
@@ -402,6 +404,7 @@ it("never shows paste hints in other flows or outside build mode", () => {
     { kind: "point1", dimensionId: overworld, cell, material } as const,
     {
       kind: "endpoint",
+      menuLevel: "root",
       dimensionId: overworld,
       from: cell,
       to: end,

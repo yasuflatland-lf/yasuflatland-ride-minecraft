@@ -1,5 +1,5 @@
 import type { BuildSession } from "../session";
-import { shapeOf, stylesFor } from "../shape/shape";
+import { type Shape, shapeOf, stylesFor } from "../shape/shape";
 import {
   type FillStyle,
   fillStylesFor,
@@ -8,20 +8,23 @@ import {
 } from "../volume/kind";
 import type { BuildFlow } from "./flow";
 
-export type ShapeEntryId =
+export type EditEntryId =
+  | "cut"
+  | "removeAbove"
+  | "rotate"
+  | "fillBelow"
+  | "copy";
+export type BuildEntryId =
   | "place"
   | "fill"
   | "frame"
   | "faces"
   | "walls"
   | Exclude<HeightedKind, "sideCylinderX" | "sideCylinderZ">
-  | "sideCylinder"
-  | "fillBelow"
-  | "removeAbove"
-  | "cut"
-  | "copy"
-  | "rotate"
-  | "cancel";
+  | "sideCylinder";
+export type RootEntryId = EditEntryId | "buildShape" | "place" | "cancel";
+export type BuildMenuEntryId = BuildEntryId | "back";
+export type ShapeEntryId = EditEntryId | BuildEntryId | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
 export type TerrainEntryId = "confirm" | "cancel";
 export type UtilityEntryId = "copy" | "undo" | "clear";
@@ -33,7 +36,7 @@ export interface MenuEntry<Id extends string = string> {
   on?: boolean;
 }
 
-const RECT_SOLID_ENTRIES: readonly ShapeEntryId[] = [
+const RECT_SOLID_ENTRIES: readonly BuildEntryId[] = [
   "gable",
   "hip",
   "cylinder",
@@ -41,33 +44,72 @@ const RECT_SOLID_ENTRIES: readonly ShapeEntryId[] = [
   "sphere",
   "cube",
 ];
-const BOX_SOLID_ENTRIES: readonly ShapeEntryId[] = [
+const BOX_SOLID_ENTRIES: readonly BuildEntryId[] = [
   "cylinder",
   "sideCylinder",
   "sphere",
 ];
 
-export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
-  if (flow.kind !== "endpoint") return [];
-  const shape = shapeOf(flow.from, flow.to);
-  const extraEntries: readonly ShapeEntryId[] =
+export function editEntries(): MenuEntry<EditEntryId>[] {
+  return [
+    { id: "cut" },
+    { id: "removeAbove" },
+    { id: "rotate" },
+    { id: "fillBelow" },
+    { id: "copy" },
+  ];
+}
+
+export function buildEntries(shape: Shape): MenuEntry<BuildEntryId>[] {
+  const extraEntries: readonly BuildEntryId[] =
     shape.kind === "rect" && shape.flat === "y"
       ? RECT_SOLID_ENTRIES
       : shape.kind === "box"
         ? BOX_SOLID_ENTRIES
         : [];
   return [
-    { id: "cut" },
-    { id: "removeAbove" },
-    { id: "rotate" },
-    ...stylesFor(shape).map<MenuEntry<ShapeEntryId>>((style) => ({
+    ...stylesFor(shape).map<MenuEntry<BuildEntryId>>((style) => ({
       id: shape.kind === "line" ? "place" : style,
     })),
     ...extraEntries.map((id) => ({ id })),
-    { id: "fillBelow" },
+  ];
+}
+
+export function isEditEntry(id: ShapeEntryId): id is EditEntryId {
+  return editEntries().some((entry) => entry.id === id);
+}
+
+export function isBuildEntry(id: ShapeEntryId): id is BuildEntryId {
+  return id !== "cancel" && !isEditEntry(id);
+}
+
+export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
+  if (flow.kind !== "endpoint" || flow.menuLevel !== "root") return [];
+  return [
+    { id: "cut" },
+    { id: "removeAbove" },
+    {
+      id: shapeOf(flow.from, flow.to).kind === "line" ? "place" : "buildShape",
+    },
+    { id: "rotate" },
     { id: "copy" },
+    { id: "fillBelow" },
     { id: "cancel" },
   ];
+}
+
+export function buildMenu(flow: BuildFlow): MenuEntry<BuildMenuEntryId>[] {
+  if (flow.kind !== "endpoint" || flow.menuLevel !== "build") return [];
+  return [...buildEntries(shapeOf(flow.from, flow.to)), { id: "back" }];
+}
+
+export function isShapeEntryOffered(
+  flow: BuildFlow,
+  id: RootEntryId | BuildMenuEntryId,
+): boolean {
+  return [...shapeMenu(flow), ...buildMenu(flow)].some(
+    (entry) => entry.id === id,
+  );
 }
 
 export function utilityMenu(

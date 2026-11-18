@@ -10,9 +10,11 @@ import {
   cancel,
   chooseHeighted,
   chooseTerrain,
+  closeBuildMenu,
   enterRotateMode,
   finishHeightStep,
   finishRotateMode,
+  openBuildMenu,
   opensUtilityMenu,
   selectionBoxOf,
   setHeight,
@@ -20,14 +22,17 @@ import {
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import {
+  buildEntries,
+  buildMenu,
   contentsMenu,
+  isShapeEntryOffered,
   shapeMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { BuildSession } from "../../../src/domain/build/session";
-import { shapeOf, stylesFor } from "../../../src/domain/build/shape/shape";
+import { shapeOf } from "../../../src/domain/build/shape/shape";
 import {
   fillStylesFor,
   type HeightedKind,
@@ -104,6 +109,7 @@ it("replaces only the end on subsequent taps, keeping dimension, point 1 and mat
       const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
       const expected = {
         kind: "endpoint",
+        menuLevel: "root",
         dimensionId: dim,
         from: a,
         to: c,
@@ -116,78 +122,83 @@ it("replaces only the end on subsequent taps, keeping dimension, point 1 and mat
   );
 });
 
-it("offers only supported shape styles followed by Cancel", () => {
+it("offers the ordered root and build menus for every shape and returns unchanged from Back", () => {
   fc.assert(
-    fc.property(cell, cell, (a, b) => {
-      const first = tapBlock(idle, dim, a, stone);
-      const shape = shapeOf(a, b);
-      expect(shapeMenu(idle)).toEqual([]);
-      expect(shapeMenu(first)).toEqual([]);
-      expect(shapeMenu(tapAir(first, b)).map((e) => e.id)).toEqual([
-        "cut",
-        "removeAbove",
-        "rotate",
-        ...stylesFor(shape).map((style) =>
-          shape.kind === "line" ? "place" : style,
+    fc.property(cell, fc.integer({ min: 1, max: 20 }), (from, size) => {
+      for (const delta of [
+        { x: size, y: 0, z: 0 },
+        { x: 0, y: size, z: size },
+        { x: size, y: 0, z: size },
+        { x: size, y: size, z: 0 },
+        { x: size, y: size, z: size },
+      ]) {
+        const to = {
+          x: from.x + delta.x,
+          y: from.y + delta.y,
+          z: from.z + delta.z,
+        };
+        const flow = tapAir(tapBlock(idle, dim, from, stone), to);
+        const shape = shapeOf(from, to);
+        const before = structuredClone(flow);
+        const rootIds = [
+          "cut",
+          "removeAbove",
+          shape.kind === "line" ? "place" : "buildShape",
+          "rotate",
+          "copy",
+          "fillBelow",
+          "cancel",
+        ];
+        expect(shapeMenu(flow).map((e) => e.id)).toEqual(rootIds);
+        expect(buildMenu(flow)).toEqual([]);
+        const opened = openBuildMenu(flow);
+        expect(opened).toEqual({ ...flow, menuLevel: "build" });
+        expect(shapeMenu(opened)).toEqual([]);
+        expect(buildMenu(opened)).toEqual([
+          ...buildEntries(shape),
+          { id: "back" },
+        ]);
+        expect(closeBuildMenu(opened)).toEqual(flow);
+        expect(closeBuildMenu(flow)).toBe(flow);
+        expect(openBuildMenu(opened)).toBe(opened);
+        expect(tapAir(opened, to)).toEqual(flow);
+        expect(Object.isFrozen(opened)).toBe(true);
+        for (const entry of [...shapeMenu(flow), ...buildMenu(opened)]) {
+          expect(isShapeEntryOffered(flow, entry.id)).toBe(
+            rootIds.includes(entry.id),
+          );
+          expect(isShapeEntryOffered(opened, entry.id)).toBe(
+            buildMenu(opened).some((e) => e.id === entry.id),
+          );
+        }
+        expect(flow).toEqual(before);
+      }
+      for (const flow of [
+        idle,
+        tapBlock(idle, dim, from, stone),
+        beginPasteAim(),
+        chooseHeighted(
+          tapAir(tapBlock(idle, dim, from, stone), {
+            ...from,
+            x: from.x + 2,
+            z: from.z + 2,
+          }),
+          "gable",
         ),
-        ...(shape.kind === "rect" && shape.flat === "y"
-          ? ["gable", "hip", "cylinder", "sideCylinder", "sphere", "cube"]
-          : shape.kind === "box"
-            ? ["cylinder", "sideCylinder", "sphere"]
-            : []),
-        "fillBelow",
-        "copy",
-        "cancel",
-      ]);
+        chooseTerrain(
+          tapAir(tapBlock(idle, dim, from, stone), from),
+          "removeAbove",
+        ),
+        enterRotateMode(tapAir(tapBlock(idle, dim, from, stone), from)),
+      ]) {
+        expect(openBuildMenu(flow)).toBe(flow);
+        expect(closeBuildMenu(flow)).toBe(flow);
+        expect(shapeMenu(flow)).toEqual([]);
+        expect(buildMenu(flow)).toEqual([]);
+        expect(isShapeEntryOffered(flow, "cancel")).toBe(false);
+      }
     }),
   );
-  for (const [to, ids] of [
-    [
-      { x: 3, y: 0, z: 0 },
-      ["cut", "removeAbove", "rotate", "place", "fillBelow", "copy", "cancel"],
-    ],
-    [
-      { x: 3, y: 0, z: 3 },
-      [
-        "cut",
-        "removeAbove",
-        "rotate",
-        "fill",
-        "frame",
-        "gable",
-        "hip",
-        "cylinder",
-        "sideCylinder",
-        "sphere",
-        "cube",
-        "fillBelow",
-        "copy",
-        "cancel",
-      ],
-    ],
-    [
-      { x: 3, y: 3, z: 3 },
-      [
-        "cut",
-        "removeAbove",
-        "rotate",
-        "fill",
-        "faces",
-        "walls",
-        "cylinder",
-        "sideCylinder",
-        "sphere",
-        "fillBelow",
-        "copy",
-        "cancel",
-      ],
-    ],
-  ] as const)
-    expect(
-      shapeMenu(
-        tapAir(tapBlock(idle, dim, { x: 0, y: 0, z: 0 }, stone), to),
-      ).map((e) => e.id),
-    ).toEqual(ids);
 });
 
 it("offers utility entries exactly when their prerequisites exist", () => {
@@ -267,9 +278,6 @@ it("accepts every heighted kind only on its supported shapes", () => {
           [
             { x: dx, y: 0, z: dz },
             [
-              "cut",
-              "removeAbove",
-              "rotate",
               "fill",
               "frame",
               "gable",
@@ -278,90 +286,17 @@ it("accepts every heighted kind only on its supported shapes", () => {
               "sideCylinder",
               "sphere",
               "cube",
-              "fillBelow",
-              "copy",
-              "cancel",
             ],
           ],
           [
             { x: dx, y: dy, z: dz },
-            [
-              "cut",
-              "removeAbove",
-              "rotate",
-              "fill",
-              "faces",
-              "walls",
-              "cylinder",
-              "sideCylinder",
-              "sphere",
-              "fillBelow",
-              "copy",
-              "cancel",
-            ],
+            ["fill", "faces", "walls", "cylinder", "sideCylinder", "sphere"],
           ],
-          [
-            { x: dx, y: dy, z: 0 },
-            [
-              "cut",
-              "removeAbove",
-              "rotate",
-              "fill",
-              "frame",
-              "fillBelow",
-              "copy",
-              "cancel",
-            ],
-          ],
-          [
-            { x: 0, y: dy, z: dz },
-            [
-              "cut",
-              "removeAbove",
-              "rotate",
-              "fill",
-              "frame",
-              "fillBelow",
-              "copy",
-              "cancel",
-            ],
-          ],
-          [
-            { x: dx, y: 0, z: 0 },
-            [
-              "cut",
-              "removeAbove",
-              "rotate",
-              "place",
-              "fillBelow",
-              "copy",
-              "cancel",
-            ],
-          ],
-          [
-            { x: 0, y: dy, z: 0 },
-            [
-              "cut",
-              "removeAbove",
-              "rotate",
-              "place",
-              "fillBelow",
-              "copy",
-              "cancel",
-            ],
-          ],
-          [
-            { x: 0, y: 0, z: dz },
-            [
-              "cut",
-              "removeAbove",
-              "rotate",
-              "place",
-              "fillBelow",
-              "copy",
-              "cancel",
-            ],
-          ],
+          [{ x: dx, y: dy, z: 0 }, ["fill", "frame"]],
+          [{ x: 0, y: dy, z: dz }, ["fill", "frame"]],
+          [{ x: dx, y: 0, z: 0 }, ["place"]],
+          [{ x: 0, y: dy, z: 0 }, ["place"]],
+          [{ x: 0, y: 0, z: dz }, ["place"]],
         ] as const) {
           const end = {
             x: origin.x + offset.x,
@@ -371,7 +306,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
           const from = reverse ? end : origin;
           const to = reverse ? origin : end;
           const flow = tapAir(tapBlock(idle, dim, from, stone), to);
-          expect(shapeMenu(flow).map((e) => e.id)).toEqual(ids);
+          expect(buildEntries(shapeOf(from, to)).map((e) => e.id)).toEqual(ids);
           for (const kind of [
             "gable",
             "hip",
@@ -571,6 +506,7 @@ it("offers Undo on a plain air press only when idle or aiming a paste", () => {
     { kind: "point1", dimensionId: dim, cell, material: stone },
     {
       kind: "endpoint",
+      menuLevel: "root",
       dimensionId: dim,
       from: cell,
       to: cell,
@@ -663,6 +599,7 @@ it("enters rotation only from endpoints and keeps ordinary gestures and menus in
       expect(selectionBoxOf(mode)).toEqual(box);
       expect(finishRotateMode(mode)).toEqual({
         kind: "endpoint",
+        menuLevel: "root",
         dimensionId: dim,
         from: box.min,
         to: box.max,

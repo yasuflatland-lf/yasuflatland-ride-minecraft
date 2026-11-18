@@ -7,7 +7,6 @@ import {
   type PasteEntryId,
   pasteMenu,
   type ShapeEntryId,
-  shapeMenu,
   type TerrainEntryId,
   terrainMenu,
   type UtilityEntryId,
@@ -30,6 +29,7 @@ import { asPlayerId } from "../../../domain/shared/ids";
 import { chooseFromForm } from "../../shared/choiceForm";
 import { createExclusiveGuard } from "../../shared/exclusiveForm";
 import { BUILD_FORM } from "../identifiers";
+import { flatShapeMenu } from "./flatShapeMenu";
 
 import { type MenuCases, MenuChoices } from "./menuChoices";
 
@@ -87,7 +87,7 @@ export class BedrockBuildMenus implements BuildMenus {
       const id = await chooseFromForm(
         player,
         BUILD_FORM.shapeTitle,
-        shapeMenu(session.flow).map((entry) => ({
+        flatShapeMenu(session.flow).map((entry) => ({
           id: entry.id,
           textKey: menuLabel(entry),
         })),

@@ -278,6 +278,7 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
   }),
   fc.record({
     kind: fc.constant("endpoint" as const),
+    menuLevel: fc.constantFrom("root" as const, "build" as const),
     dimensionId: dimensionArb,
     from: cellArb,
     to: cellArb,
@@ -515,6 +516,7 @@ it("replaceSelection updates an existing confirmation in the endpoint dimension"
       session.confirmBox(dimensionId, before);
       session.setFlow({
         kind: "endpoint",
+        menuLevel: "root",
         dimensionId,
         from: before.max,
         to: before.min,
@@ -523,6 +525,7 @@ it("replaceSelection updates an existing confirmation in the endpoint dimension"
       session.replaceSelection(after);
       expect(session.flow).toEqual({
         kind: "endpoint",
+        menuLevel: "root",
         dimensionId,
         from: after.min,
         to: after.max,

@@ -33,6 +33,7 @@ it("finishes with the last box and material while preserving history and world",
       expect(finish.execute({ playerId })).toBe("finished");
       expect(session.flow).toEqual({
         kind: "endpoint",
+        menuLevel: "root",
         dimensionId: overworld,
         from: box.min,
         to: box.max,
@@ -68,6 +69,7 @@ it("ignores all non-rotation flow kinds without changing session state", () => {
     { kind: "point1", dimensionId: overworld, cell: box.min, material },
     {
       kind: "endpoint",
+      menuLevel: "root",
       dimensionId: overworld,
       from: box.min,
       to: box.max,

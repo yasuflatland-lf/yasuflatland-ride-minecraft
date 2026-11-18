@@ -29,6 +29,7 @@ it("reads facing at confirmation only when the height step has none", () => {
         chooseHeighted(
           {
             kind: "endpoint",
+            menuLevel: "root",
             dimensionId: overworld,
             from: { x: 0, y: 0, z: 0 },
             to: { x: 2, y: 0, z: 2 },
