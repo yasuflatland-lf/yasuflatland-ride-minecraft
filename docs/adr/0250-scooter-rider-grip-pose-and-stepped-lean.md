@@ -12,10 +12,11 @@ The scooter's riders should hold the handlebar and lean into turns with the vehi
 
 ## Decision
 
-Add seven looping animations to `animations/yasu_ride/player.anim.json` and register them in `description.animations` of `entity/yasu_ride/player.ce.json`, never in `scripts.animate`, as 0238 does for `lounge`:
+Add fourteen looping animations to `animations/yasu_ride/player.anim.json` and register them in `description.animations` of `entity/yasu_ride/player.ce.json`, never in `scripts.animate`, as 0238 does for `lounge`:
 
-- `animation.yasu_ride.player.scooter_grip`: arms rotated to x -70 degrees to reach the grips, legs standing straight on the floor board. Both cancel the vanilla riding rotation with the `this` expression.
+- `animation.yasu_ride.player.scooter_grip`: arms rotated to x -70 degrees to reach the grips, legs swung 35 degrees forward (x -35) so the feet land near the floor board. Both cancel the vanilla riding rotation with the `this` expression.
 - `animation.yasu_ride.player.scooter_lean_l1` to `_l3` and `_r1` to `_r3`: the grip pose plus a waist roll about z of 8, 16, and 24 degrees, positive for left and negative for right. The level count and angles are tuning values.
+- `animation.yasu_ride.player.scooter_pillion_grip` and `scooter_pillion_lean_l1` to `_l3` and `_r1` to `_r3`: the passenger set, copies of the driver ones with the arms at x 20 degrees (`20.0 - this`, swung backward to hold the rear edge of the seat). The legs and waist roll match the driver's.
 
 The test pack handles `scriptevent yasu_ride_test:scooter_pose <level>` (`grip`, `l1` to `l3`, `r1` to `r3`). It mounts the nearest rideable like the lounge probe and plays the pose on controller `yasu_ride.scooter_pose` with `stopExpression: "!query.is_riding"` and a blend-out time of 0.15 seconds. The level table and blend time live in one constant in `src/test-pack/scooterPoseProbe.ts`.
 
