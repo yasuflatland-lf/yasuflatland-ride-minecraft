@@ -49,7 +49,7 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 ### Scooter README previews
 
 - Applies to: The nine `scooter-*.png` previews only.
-- Rule: `render_scooter` draws the default white paint. The front-left, side and rear views stay in the road pose with the hover glow bones left out, as the render controller hides them on the ground. Only `scooter-flying-headlights.png` uses the flying pose: `build_flight_pose` reads the wheel folds from `animation.yasu_ride.scooter.wheels_folded` into a `FlightPose` with `SCOOTER_FLIGHT_LIFT` (24.0 model pixels), and `static_pose` raises the stand. The wheels are folded, the `glow_*` discs are drawn, rounded pools of light lie on the ground, and the shadow is fainter (`FLIGHT_SHADOW_ALPHA`). The `headlights` and `tail_lights` are on at dusk. These four views reuse the bulldozer's camera directions. Flight has its own frame, fitted to the vehicle and glow pools without the headlight beam, so it does not rescale the road views. A fifth picture, `scooter-taillights.png`, stays in the road pose without hover glow bones and lights the lamps at dusk from the rear three-quarter and frames only the `tail_lights` bone with padding (`frame_bones`, `frame_pad`), so it is rendered apart from the shared scale. Four more close-ups show the low underbody from below at the front-right (`scooter-underbody.png`), the running board from above at the front-left (`scooter-floor.png`), the front wheel from the front-left (`scooter-wheel-front.png`), and the rear wheel from the rear-left (`scooter-wheel-rear.png`). They use white paint in the road pose without hover discs, with lamps off, daylight and `MAIN_BRIGHTNESS`. Their optional `frame_box = ((x0,y0,z0), (x1,y1,z1))` selects a region in Bedrock model coordinates before the renderer mirrors x, overriding whole-bone framing without hiding geometry. `frame_pad` can expand either frame. Each close-up renders separately, preserving the camera and scale of all five existing previews. Only the lit lens glows: the lit texture and MER mask follow the opaque texels of the head lens and tail lens regions, so no bezel, hood, plate or rectangular panel glows. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
+- Rule: `render_scooter` draws the default white paint. It reads `scooter.geo.json`, `scooter_paint.geo.json`, `scooter_fixed.png` and `scooter_paint.png`, rejoins the pass faces in source order and stacks the textures. `scooter_lit.geo.json` and `scooter_lit.png` supply the separate lit projection through texel centres, including oppositely mirrored UVs. The front-left, side and rear views stay in the road pose with the hover glow bones left out, as the render controller hides them on the ground. Only `scooter-flying-headlights.png` uses the flying pose: `build_flight_pose` reads the wheel folds from `animation.yasu_ride.scooter.wheels_folded` into a `FlightPose` with `SCOOTER_FLIGHT_LIFT` (24.0 model pixels), and `static_pose` raises the stand. The wheels are folded, the `glow_*` discs are drawn, rounded pools of light lie on the ground, and the shadow is fainter (`FLIGHT_SHADOW_ALPHA`). The `headlights` and `tail_lights` are on at dusk. These four views reuse the bulldozer's camera directions. Flight has its own frame, fitted to the vehicle and glow pools without the headlight beam, so it does not rescale the road views. A fifth picture, `scooter-taillights.png`, stays in the road pose without hover glow bones and lights the lamps at dusk from the rear three-quarter and frames only the `tail_lights` bone with padding (`frame_bones`, `frame_pad`), so it is rendered apart from the shared scale. Four more close-ups show the low underbody from below at the front-right (`scooter-underbody.png`), the running board from above at the front-left (`scooter-floor.png`), the front wheel from the front-left (`scooter-wheel-front.png`), and the rear wheel from the rear-left (`scooter-wheel-rear.png`). They use white paint in the road pose without hover discs, with lamps off, daylight and `MAIN_BRIGHTNESS`. Their optional `frame_box = ((x0,y0,z0), (x1,y1,z1))` selects a region in Bedrock model coordinates before the renderer mirrors x, overriding whole-bone framing without hiding geometry. `frame_pad` can expand either frame. Each close-up renders separately, preserving the camera and scale of all five existing previews. Only the lit lens glows: the lit texture and MER mask follow the opaque texels of the head lens and tail lens regions, so no bezel, hood, plate or rectangular panel glows. Faces use the camper's texel mapping with merged texels and the same 16-cells-per-unit cap, so the alpha-cut panels keep their silhouettes. The scene is part of the shared renderer; there is no scooter pack icon.
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Generate it with `tools/gen_scooter.py`"; [0067](../adr/0067-camper.md) Decision, "Limit each face axis to `max(1, ceil(edge length * 16))` cells, replacing excessive texel breaks with uniform breaks and sampling each cell center."
 - Implementation: `tools/render_preview.py` (`render_scooter`, `FlightPose`, `build_flight_pose`, `static_pose`, `SCOOTER_POSES`, `SCOOTER_FLIGHT_LIFT`, `SCOOTER_LIT_TEXTURE`, `SCOOTER_LIT_GEOMETRY`, `project_lit_texture`, `scooter_glow_pools`, `ground_layers`, `Scene`, `SCENES`); `docs/images/scooter-front-left.png`; `docs/images/scooter-flying-headlights.png`; `docs/images/scooter-side.png`; `docs/images/scooter-rear.png`; `docs/images/scooter-taillights.png`; `docs/images/scooter-underbody.png`; `docs/images/scooter-floor.png`; `docs/images/scooter-wheel-front.png`; `docs/images/scooter-wheel-rear.png`
@@ -59,7 +59,7 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
 
 - Applies to: Scooter generator primitives, area geometry, placeholders, and texture regions.
 - Rule: `tools/gen_scooter.py` exposes an importable `build()` and writes the generated
-  base geometry, lit-only `scooter_lit.geo.json`, paint textures, material maps, compact lit textures, and item icon. Dimensions live in `scooter_dims.py`;
+  fixed `scooter.geo.json`, paint-only `scooter_paint.geo.json`, lit-only `scooter_lit.geo.json`, paint textures, material maps, compact lit textures, and item icon. Dimensions live in `scooter_dims.py`;
   `scooter_atlas.py` classifies paint separately from other materials and reuses the
   camper MaxRects packer. Area builders register local region faces before packing;
   each face resolves once and remains bound to its region for the atlas audit.
@@ -70,8 +70,10 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   patch sheets), which region sharing cannot see, so each sheet first passes its
   tiles through `region_atlas.share_tiles` and lays out only the stored ones; a
   face on a copy samples the stored tile through the same `UvRect.to_atlas` flip
-  rule. Together these shrink the colour atlas from 2048 x 1951 to 1754 x 1696
-  texels. Paint, MER and lit-mask writers
+  rule. The fixed and PAINT registries are packed separately, each within the existing
+  2048-side limit, and their disjoint alpha-test geometries preserve every face.
+  The fixed colour and MER are stored once; 15 stored paint colours share one paint MER.
+  Paint, MER and lit-mask writers
   visit each unique storage rectangle once. Audits verify every bound face's covered
   texels against its local region pixels; sharing preserves all preview bytes.
   Capped preview samples round midpoint coordinates to nine decimal places before
@@ -120,7 +122,7 @@ Whitewall discs use 256 by 256 texels over 7.48 model units, keeping both circul
 0.04 units of their ideal radii. The 64-segment black tyre skin preserves each
 panel's tangent frame and takes no panel margin, so its outer envelope stays within
 0.03 units of the 4.3-unit tread circle and cannot overlap the whitewall. Wheel and
-fold bones retain their axle pivots. The combined running, stand, body, floor, rear, engine, head, and shield atlas stays within 2048 by 2048
+fold bones retain their axle pivots. Each fixed or paint atlas across the running, stand, body, floor, rear, engine, head, and shield areas stays within 2048 by 2048
 texels. The scooter requests this side limit from the shared packer, which searches
 wider layouts and rejects regions that cannot fit without reducing texture detail.
 Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit,
@@ -186,9 +188,9 @@ A transparent 16 by 16 item icon shows the scooter facing right.
 - Agreement: Proposed
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md), front direction and model bones; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), named compound assemblies and the pending device confirmation of rotation order.
 - Implementation: `tools/scooter_textures.py`, `tools/gen_scooter.py`, `tools/scooter_dims.py`, `tools/scooter_atlas.py`, `tools/scooter_kit.py`, `tools/generators.json`.
-- Verification: `tests/tools/scooterTextures.test.ts` checks dye order, unchanged non-paint
+- Verification: `tests/tools/scooterTextures.test.ts` checks dye order, fixed and paint region separation, recoloured
   texels, ivory identity, material finishes, lamp masks, texture sets, and icon transparency,
-  plus the shared atlas size and the stored tile count of every panel sheet;
+  plus the separate atlas sizes and decoded colour storage and the stored tile count of every panel sheet;
   `tests/tools/regionAtlas.test.ts` checks that `share_tiles` stores no mirrored
   pair twice and maps every tile's faces onto its own texels.
   `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
