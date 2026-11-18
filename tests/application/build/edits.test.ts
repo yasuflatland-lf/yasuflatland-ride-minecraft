@@ -169,7 +169,7 @@ describe("EditJobs properties", () => {
       pasteAim: beginPasteAim(),
     } as const;
     for (const [name, flow] of Object.entries(flows)) {
-      const promises = name === "idle" || name === "pasteAim";
+      const promises = name === "idle";
       const env = setup();
       select(env, alex, 2);
       env.fill.execute({ playerId: alex, style: "fill" });

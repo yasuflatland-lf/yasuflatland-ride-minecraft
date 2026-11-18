@@ -98,7 +98,7 @@ it("records an immutable paste and suppresses only the same anchor within the wi
   );
 });
 
-it("offers ordered paste entries by history and never paste or endPaste in the utility menu", () => {
+it("offers ordered paste entries independent of history and never paste or endPaste in the utility menu", () => {
   fc.assert(
     fc.property(
       cell,
@@ -138,12 +138,8 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
           const entries = utilityMenu(session).map(({ id }) => id);
           expect(entries).not.toContain("endPaste");
           expect(entries).not.toContain("paste");
-          expect(
-            pasteMenu({
-              hasHistory: session.hasHistory,
-            }).map(({ id }) => id),
-          ).toEqual([
-            ...(history ? ["undo"] : []),
+          expect(entries.includes("undo")).toBe(history);
+          expect(pasteMenu().map(({ id }) => id)).toEqual([
             "newCopy",
             "endPaste",
             "cancel",

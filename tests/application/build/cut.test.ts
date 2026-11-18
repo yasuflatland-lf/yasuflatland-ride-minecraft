@@ -90,7 +90,7 @@ it("captures the whole box twice before removing anything and records a snapshot
           contents: { kind: "structure", handle: clipboard },
         });
         expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
-        expect(e.feedback.undoHints).toEqual([playerId]);
+        expect(e.feedback.undoHints).toEqual([]);
         expect(e.session.flow.kind).toBe("pasteAim");
         expect(e.session.isEditing).toBe(false);
         expect(e.session.takeUndo()).toEqual({
@@ -98,7 +98,7 @@ it("captures the whole box twice before removing anything and records a snapshot
           snapshot: { dimensionId: overworld, box, handle: snapshot },
         });
         expect(e.feedback.messages.at(-1)).toMatchObject({
-          message: "editDone",
+          message: "editDoneCount",
           count: x * y * z,
         });
       },
@@ -126,7 +126,7 @@ it("discards the old clipboard and retains its snapshot only after clearing succ
   expect(e.structures.live.size).toBe(3);
   expect(snapshot).toBeDefined();
   expect([...e.structures.live]).toContain(snapshot);
-  expect(e.feedback.undoHints).toEqual([playerId]);
+  expect(e.feedback.undoHints).toEqual([]);
 });
 
 it.each(["tooLarge", "unreadable"] as const)(
@@ -340,7 +340,7 @@ it.each([false, true])(
       { message: "cutIncomplete", count: undefined },
     ]);
     expect(e.feedback.undoHints).toEqual([]);
-    expect(e.session.takeUndoHint()).toBe(!previousCut);
+    expect(e.session.takeUndoHint()).toBe(true);
     expect(e.log.warn).toHaveBeenCalledOnce();
   },
 );

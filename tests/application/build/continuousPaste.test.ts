@@ -97,7 +97,7 @@ it("keeps aiming through successive synchronous pastes with the newest snapshots
       expect(e.world.writes).toBe(count);
       expect(e.feedback.messages).toEqual(
         Array.from({ length: count }, () => ({
-          message: "editDone",
+          message: "editDoneCount",
           count: 1,
         })),
       );

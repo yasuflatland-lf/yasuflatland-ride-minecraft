@@ -29,7 +29,7 @@ export type ContentsEntryId = FillStyle | "cancel";
 export type TerrainEntryId = "confirm" | "cancel";
 export type UtilityEntryId = "copy" | "undo" | "clear";
 
-export type PasteEntryId = "undo" | "newCopy" | "endPaste" | "cancel";
+export type PasteEntryId = "newCopy" | "endPaste" | "cancel";
 
 export interface MenuEntry<Id extends string = string> {
   id: Id;
@@ -139,13 +139,6 @@ export function terrainMenu(flow: BuildFlow): MenuEntry<TerrainEntryId>[] {
     : [];
 }
 
-export function pasteMenu(input: {
-  hasHistory: boolean;
-}): MenuEntry<PasteEntryId>[] {
-  return [
-    ...(input.hasHistory ? [{ id: "undo" as const }] : []),
-    { id: "newCopy" },
-    { id: "endPaste" },
-    { id: "cancel" },
-  ];
+export function pasteMenu(): MenuEntry<PasteEntryId>[] {
+  return [{ id: "newCopy" }, { id: "endPaste" }, { id: "cancel" }];
 }
