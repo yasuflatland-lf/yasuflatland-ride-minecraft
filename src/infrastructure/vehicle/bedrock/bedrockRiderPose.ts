@@ -7,6 +7,7 @@ import {
   RIDER_POSE_BLEND_OUT_TIME,
   RIDER_POSE_CLEAR_EXPRESSION,
   RIDER_POSE_CONTROLLER,
+  RIDER_POSE_REFRESH_BLEND_OUT_TIME,
   RIDER_POSE_STOP_EXPRESSION,
 } from "./identifiers";
 
@@ -16,7 +17,11 @@ export class BedrockRiderPose implements RiderPose {
   constructor(private readonly index: EntityIndex) {}
 
   play(playerId: PlayerId, pose: string): void {
-    if (this.animate(playerId, pose, RIDER_POSE_STOP_EXPRESSION))
+    const blendOutTime =
+      this.lastPose.get(playerId) === pose
+        ? RIDER_POSE_REFRESH_BLEND_OUT_TIME
+        : RIDER_POSE_BLEND_OUT_TIME;
+    if (this.animate(playerId, pose, RIDER_POSE_STOP_EXPRESSION, blendOutTime))
       this.lastPose.set(playerId, pose);
   }
 
@@ -24,20 +29,26 @@ export class BedrockRiderPose implements RiderPose {
     const pose = this.lastPose.get(playerId);
     this.lastPose.delete(playerId);
     if (pose !== undefined)
-      this.animate(playerId, pose, RIDER_POSE_CLEAR_EXPRESSION);
+      this.animate(
+        playerId,
+        pose,
+        RIDER_POSE_CLEAR_EXPRESSION,
+        RIDER_POSE_BLEND_OUT_TIME,
+      );
   }
 
   private animate(
     playerId: PlayerId,
     pose: string,
     stopExpression: string,
+    blendOutTime: number,
   ): boolean {
     try {
       const player = this.index.player(playerId);
       if (!player?.isValid) return false;
       player.playAnimation(RIDER_POSE_ANIMATION_PREFIX + pose, {
         controller: RIDER_POSE_CONTROLLER,
-        blendOutTime: RIDER_POSE_BLEND_OUT_TIME,
+        blendOutTime,
         stopExpression,
       });
       return true;
