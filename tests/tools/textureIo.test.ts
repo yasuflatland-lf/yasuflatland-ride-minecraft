@@ -1,5 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { expect, it } from "vitest";
+import fc from "fast-check";
+import { afterAll, expect, it } from "vitest";
+import { startPythonWorker } from "../support/pythonWorker";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
 
 it("records writes and checks, preserving rendered RGB and RGBA PNG bytes", () => {
   execFileSync("python3", [
@@ -134,4 +139,46 @@ with tempfile.TemporaryDirectory() as directory:
             assert check.stale[-1] == str(path)
 `,
   ]);
+});
+
+it("packs RGB and RGBA callbacks in row-major order and round-trips every texel", async () => {
+  const channel = fc.integer({ min: 0, max: 255 });
+  const texel = fc.oneof(
+    fc.tuple(channel, channel, channel),
+    fc.tuple(channel, channel, channel, channel),
+  );
+  await fc.assert(
+    fc.asyncProperty(
+      fc.integer({ min: 1, max: 8 }).chain((width) =>
+        fc.record({
+          width: fc.constant(width),
+          pixels: fc
+            .array(texel, { minLength: width, maxLength: width * 8 })
+            .filter((pixels) => pixels.length % width === 0),
+        }),
+      ),
+      async (input) => {
+        const result = JSON.parse(
+          await python.run(
+            `
+import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+io = load_tool('texture_io')
+data = json.loads(sys.stdin.read())
+w, pixels = data['width'], data['pixels']
+packed = io.rgba_bytes(w, len(pixels) // w, lambda x, y: pixels[y * w + x])
+read = io.texel_reader(w, packed)
+print(json.dumps([read(x, y) for y in range(len(pixels) // w) for x in range(w)]))
+`,
+            JSON.stringify(input),
+          ),
+        );
+        expect(result).toEqual(
+          input.pixels.map((pixel) => [...pixel, 255].slice(0, 4)),
+        );
+      },
+    ),
+    { numRuns: 40 },
+  );
 });

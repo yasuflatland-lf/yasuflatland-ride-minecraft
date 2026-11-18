@@ -15,6 +15,12 @@ def texel_reader(size, data):
     return lambda x, y: tuple(data[(y * size + x) * 4 : (y * size + x + 1) * 4])
 
 
+def rgba_bytes(width, height, pixel):
+    """Pack RGB or RGBA callbacks as row-major RGBA, padding RGB with opaque alpha."""
+    return bytes(channel for y in range(height) for x in range(width)
+                 for channel in (*pixel(x, y), 255)[:4])
+
+
 class Outputs:
     def __init__(self, check, report_writes=False):
         self.check = check
@@ -58,10 +64,7 @@ class Outputs:
 
     # Compare decoded RGBA rows so zlib packing differences do not affect --check.
     def png(self, path, width, height, pixel, compress_level=-1, *, rgb=False):
-        pixels = bytearray()
-        for y in range(height):
-            for x in range(width):
-                pixels += bytes((*pixel(x, y), 255)[:4])
+        pixels = rgba_bytes(width, height, pixel)
         self.rgba(path, width, height, pixels, rgb=rgb, compress_level=compress_level)
 
     def rgba(self, path, width, height, pixels, rgb=False, compress_level=9):
