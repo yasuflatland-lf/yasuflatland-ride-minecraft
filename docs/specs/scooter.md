@@ -53,7 +53,7 @@
 ### Centre stand
 
 - Applies to: Scooter in car form; the entity property `yasu_ride:stand`.
-- Rule: The stand is down when nobody is aboard and no driver is awaited, the speed is under `standSpeed` (0.01 blocks per tick) and the scooter is not on water; otherwise it is up. Outside car form it is up. The client lowers the stand on the property and raises it when the property is false, with short blends. A boarding rider folds it up.
+- Rule: The stand is down when nobody is aboard and no driver is awaited, the speed is under `standSpeed` (0.01 blocks per tick) and the scooter is not on water; otherwise it is up. Outside car form it is up. The client lowers the stand on the property and raises it when the property is false, with short blends. A boarding rider folds it up. The folded stand lies horizontal under the floor, pointing at the front tyre: the legs rest about 28 degrees forward of straight down, and `stand_up` turns the stand 62 degrees further forward (`STAND_UP_DEGREES` -62).
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "`yasu_ride:stand` is true when nobody is aboard"
 - Implementation: `src/domain/vehicle/kinds/scooter/stand.ts` (`standDown`), `src/domain/vehicle/kinds/scooter/drive.ts`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`
