@@ -227,7 +227,7 @@ for i,rate in enumerate(rates):
     assert clip['loop'] is True and clip['animation_length']==1.0
     keys=clip['particle_effects']
     times=[float(key) for key in keys]
-    assert len(times)==rate and times==sorted(times)
+    assert len(times)==(4, 6, 9, 12, 16, 20)[i] and times==sorted(times)
     assert times[0]==0 and times[-1]<1
     gaps=[b-a for a,b in zip(times,times[1:]+[1.0])]
     assert all(abs(gap-1/rate)<0.000002 for gap in gaps)
