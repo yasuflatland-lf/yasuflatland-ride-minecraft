@@ -59,12 +59,12 @@ Property and example tests in `tests/domain/build/flow.test.ts` and `tests/infra
 
 Tracked as issues #1957 to #1961 and implemented as stacked pull requests, each based on the previous one except 1/5:
 
-| Order | Issue | PR | Content |
-|---|---|---|---|
-| 1/5 | #1957 | #1963 | Undo coverage tests for Cut, shape builds and box Rotate |
-| 2/5 | #1958 | #1962 | Split menu entries into edit and build groups, no behavior change |
-| 3/5 | #1959 | #1964 | Submenu in the flow, domain menus and use cases |
-| 4/5 | #1960 | #1965 | Two-level forms in the Bedrock adapter, lang keys, Resource Pack version |
-| 5/5 | #1961 | #1966 | Paste menu without Undo |
+| Order | Issue | PR    | Content                                                                  |
+| ----- | ----- | ----- | ------------------------------------------------------------------------ |
+| 1/5   | #1957 | #1963 | Undo coverage tests for Cut, shape builds and box Rotate                 |
+| 2/5   | #1958 | #1962 | Split menu entries into edit and build groups, no behavior change        |
+| 3/5   | #1959 | #1964 | Submenu in the flow, domain menus and use cases                          |
+| 4/5   | #1960 | #1965 | Two-level forms in the Bedrock adapter, lang keys, Resource Pack version |
+| 5/5   | #1961 | #1966 | Paste menu without Undo                                                  |
 
 Final top-level shape menu: Cut, Remove above, Build shape, Rotate box, Copy, Fill below, Cancel (a line shows Place instead of Build shape). Undo covers Cut, every shape, roof and solid build, and box Rotate; Remove above and Copy stay out of the history.
