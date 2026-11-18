@@ -12,31 +12,46 @@ t=load_tool('cube_tilt')
 built=r.build()
 `;
 
-it("raises three plain hex nuts at 120 degrees around a smaller stepped centre cap", async () => {
+it("raises four bevelled hex nuts over washers around a two-step centre cap", async () => {
   await python.run(`${setup}
 for side, axle, scale in (('front', -11.8, 1), ('rear', 11.8, 0.96)):
     cubes=built['wheel_'+side]
     faces=[c for c in cubes if c['uv']['east'].region=='running_nut']
-    assert len(faces)==3
+    assert len(faces)==4
     centres=[(c['origin'][1]+c['size'][1]/2,c['origin'][2]+c['size'][2]/2) for c in faces]
     angles=sorted(math.atan2(z-axle,y-4.3)%(2*math.pi) for y,z in centres)
     for a,b in zip(angles,angles[1:]+[angles[0]+2*math.pi]):
-        assert abs(b-a-2*math.pi/3)<1e-5
+        assert abs(b-a-math.pi/2)<1e-5
     for y,z in centres:
-        assert 0.9*scale<math.hypot(y-4.3,z-axle)<1.1*scale
+        assert 0.75*scale<math.hypot(y-4.3,z-axle)<0.85*scale
+    assert all(abs(math.cos(a))>0.6 and abs(math.sin(a))>0.6 for a in angles)
+    assert r.NUT_DEPTH>=0.3
+    washers=[c for c in cubes if c["uv"]["east"].region=="running_nut_washer"]
+    assert len(washers)==4
+    for nut,washer in zip(faces,washers):
+        assert washer["size"][1]>nut["size"][1]
+        assert nut["origin"][0]<washer["origin"][0]
     region=r.atlas.REGISTRY._regions['running_nut']
     opaque=[region.pixel(u,v)[:3] for u in range(region.width) for v in range(region.height) if region.pixel(u,v)[3]]
-    assert len(set(opaque))==1, 'Nut faces must have no crossed chrome bands'
+    assert set(opaque)=={r.NUT_BORDER_COLOR,r.CAP_COLOR}
+    assert region.pixel(region.width//2,region.height//2)[:3]==r.CAP_COLOR
+    for u in range(region.width):
+        colors=[region.pixel(u,v)[:3] for v in range(region.height) if region.pixel(u,v)[3]]
+        if colors:
+            assert colors[0]==r.NUT_BORDER_COLOR and colors[-1]==r.NUT_BORDER_COLOR
     assert region.pixel(0,0)[3]==0 and region.pixel(region.width//2,region.height//2)[3]==255
     caps=[c for c in cubes if c['uv']['east'].region=='running_centre']
-    assert len(caps)==1 and max(caps[0]['size'][1:])<0.8*scale
+    assert len(caps)==1 and 0.8*scale<max(caps[0]['size'][1:])<0.9*scale
+    bosses=[c for c in cubes if c['uv']['east'].region=='running_centre_boss']
+    assert len(bosses)==1 and max(bosses[0]['size'][1:])>=1.09*scale
+    assert caps[0]['origin'][0]<bosses[0]['origin'][0]
     small=[c for c in cubes if c['uv']['east'].region=='running_centre_nut']
-    assert len(small)==1 and max(small[0]['size'][1:])<0.45*scale
+    assert len(small)==1 and 0.59*scale<=max(small[0]['size'][1:])<=0.61*scale
     assert small[0]['origin'][0]<caps[0]['origin'][0]
 `);
 });
 
-it("uses dense shallow full-width tread inside a smooth original rolling envelope", async () => {
+it("uses chunky per-wheel tread with deep transverse grooves and wrapping shoulders", async () => {
   await python.run(`${setup}
 for side, axle, scale in (('front', -11.8, 1), ('rear', 11.8, 0.96)):
     blocks=[c for c in built['wheel_'+side] if c['uv']['east'].region=='rubber'
@@ -51,22 +66,30 @@ for side, axle, scale in (('front', -11.8, 1), ('rear', 11.8, 0.96)):
     assert min(rows)<-0.8*scale and max(rows)>0.8*scale
     for cs in rows.values():
         angles=sorted(math.atan2(c['pivot'][2]-axle,c['pivot'][1]-4.3)%(2*math.pi) for c in cs)
-        assert len(angles)>=64
+        assert len(angles)==r.TREAD_SETTINGS[side]["rows"]
+        assert 36<=len(angles)<=40
         for a,b in zip(angles,angles[1:]+[angles[0]+2*math.pi]):
             assert abs(b-a-2*math.pi/len(angles))<1e-5
     for x in sorted(rows,key=abs)[:3]:
         for c in rows[x]:
-            assert c['size'][1]<=0.06*scale
-            assert c['size'][2]<=0.37*scale
+            assert c['size'][1]>=0.12*scale
+            assert 0.5*scale<c['size'][2]<2*math.pi*4.3*scale/r.TREAD_SETTINGS[side]['rows']-0.1*scale
     assert r.RING_SEGMENTS>=64
-    assert max(radius for x,radius in r.TYRE_PROFILE)>4.23
+    assert r.TREAD_OUTER-max(radius for x,radius in r.TYRE_PROFILE)>=0.12
+    shoulders=[c for x,cs in rows.items() if abs(x)>0.8*scale for c in cs]
+    assert min(math.hypot(p[1]-4.3,p[2]-axle) for c in shoulders for p in t.corners(c))<3.71*scale
+assert r.TREAD_SETTINGS['rear']['rows']<r.TREAD_SETTINGS['front']['rows']
+assert r.TREAD_SETTINGS['rear']['half_length']*r.REAR_WHEEL_SCALE>=r.TREAD_SETTINGS['front']['half_length']
 `);
 });
 
 it("keeps raised front hardware opposite the fork, spring and link throughout wheel roll", async () => {
   await python.run(`${setup}
-hardware=[c for c in built['wheel_front'] if c['uv']['east'].region in ('chrome','rubber','running_nut','running_centre','running_centre_nut','running_polished','running_dish')
-          and max(p[0] for p in t.corners(c))<=-1.429]
+raised_regions=('running_nut','running_nut_washer','running_centre','running_centre_nut','running_centre_boss')
+hardware=[c for c in built['wheel_front'] if c['uv']['east'].region in raised_regions]
+assert all(max(p[0] for p in t.corners(c))<=-1.429 for c in hardware)
+hardware += [c for c in built['wheel_front'] if c['uv']['east'].region=='running_dish'
+             or (c['uv']['east'].region=='running_polished' and c['pivot'][0]<0)]
 assert hardware
 fork_low=min(p[0] for c in built['steer'] for p in t.corners(c))
 assert fork_low>0
@@ -81,25 +104,31 @@ for step in range(72):
 `);
 });
 
-it("gives the dish geometric depth steps and a thin continuous polished bead on both faces", async () => {
+it("gives the exposed dish a boss, recess and rolled lip beside a wide polished bead", async () => {
   await python.run(`${setup}
 for side, axle, scale in (('front', -11.8, 1), ('rear', 11.8, 0.96)):
     cubes=built['wheel_'+side]
-    for sign in (-1,1):
+    for sign in (-1,):
         bead=[c for c in cubes if c['uv']['east'].region=='running_polished'
-              and min(math.hypot(p[1]-4.3,p[2]-axle)/scale for p in t.corners(c))>2.7
+              and min(math.hypot(p[1]-4.3,p[2]-axle)/scale for p in t.corners(c))>2.6
               and sign*c['pivot'][0]>0]
         assert len(bead)>=128
-        assert max(sign*p[0] for c in bead for p in t.corners(c))<1.27
+        assert max(sign*p[0] for c in bead for p in t.corners(c))<1.31
         angles=sorted(set(round(math.atan2(c['pivot'][2]-axle,c['pivot'][1]-4.3)%(2*math.pi),5) for c in bead))
         assert max(b-a for a,b in zip(angles,angles[1:]+[angles[0]+2*math.pi]))<0.11
     dish=[c for c in cubes if c['uv']['east'].region=='running_dish']
     points=[p for c in dish for p in t.corners(c)]
-    assert min(p[0] for p in points)<-1.25 and max(p[0] for p in points)>-1.17
+    assert min(p[0] for p in points)<-1.38 and max(p[0] for p in points)>-1.19
+    assert len(r.DISH_PROFILE)>=5 and len(r.DISH_LIP_PROFILE)>=3
+    assert r.DISH_LIP_PROFILE[1][0]>r.DISH_PROFILE[1][0]<r.DISH_PROFILE[-1][0]
+    assert r.DISH_PROFILE[0][1]<r.SCREW_CIRCLE-r.SCREW_RADIUS
+    assert r.DISH_LIP_PROFILE[-1][1]>r.SCREW_CIRCLE+r.SCREW_RADIUS
+    assert r.LINE_INNER-r.BEAD_INNER>=0.2
+    assert max(radius for x,radius in r.BEAD_PROFILE)-min(radius for x,radius in r.BEAD_PROFILE)>=0.2
     radii=[math.hypot(p[1]-4.3,p[2]-axle)/scale for p in points]
-    assert min(radii)<1.7 and max(radii)>2.1
+    assert min(radii)<1.4 and max(radii)>2.6
     cap=[c for c in cubes if c['uv']['east'].region=='running_cap_'+side and c['origin'][0]<0]
-    assert len(cap)==1 and cap[0]['origin'][0]<min(p[0] for p in points)-0.1
+    assert len(cap)==1 and cap[0]['origin'][0]<min(p[0] for p in points)
     region=r.atlas.REGISTRY._regions['running_cap_'+side]
     for i in range(72):
         a=2*math.pi*i/72
@@ -111,20 +140,20 @@ for side, axle, scale in (('front', -11.8, 1), ('rear', 11.8, 0.96)):
 `);
 });
 
-it("paints six small round rim screw heads evenly around the flange", async () => {
+it("paints six larger dark slotted screws on a distinct rim ring", async () => {
   await python.run(`${setup}
 for side in ('front','rear'):
     pixel=r._wheel_pixel(r.CAP_RADIUS[side])
     def sample(y,z):
         return pixel(round((y+3.74)/7.48*256-0.5),round((z+3.74)/7.48*256-0.5))[:3]
-    assert r.SCREW_COUNT==6 and r.SCREW_RADIUS<=0.14
-    for i in range(6):
-        a=2*math.pi*i/6
+    assert 5<=r.SCREW_COUNT<=6 and 0.18<=r.SCREW_RADIUS<=0.2
+    for i in range(r.SCREW_COUNT):
+        a=2*math.pi*i/r.SCREW_COUNT
         y,z=r.SCREW_CIRCLE*math.cos(a),r.SCREW_CIRCLE*math.sin(a)
-        assert min(sample(y,z))>=170, 'Round head must not have a dark slot'
-        for j in range(12):
-            b=2*math.pi*j/12
-            assert min(sample(y+0.05*math.cos(b),z+0.05*math.sin(b)))>=170
-            assert sample(y+0.19*math.cos(b),z+0.19*math.sin(b)) not in (r.CAP_COLOR,r.CAP_RIM_COLOR)
+        assert sample(y,z)==r.LINE_COLOR
+        for tangent in (-0.09,0.09):
+            assert sample(y-tangent*math.sin(a),z+tangent*math.cos(a))==r.SCREW_COLOR
+        assert sample(y+0.23*math.cos(a),z+0.23*math.sin(a))!=r.SCREW_COLOR
+    assert sample(r.SCREW_CIRCLE*math.cos(0.3),r.SCREW_CIRCLE*math.sin(0.3))==r.RIM_PAINT_COLOR
 `);
 });

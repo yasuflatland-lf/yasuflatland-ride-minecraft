@@ -86,7 +86,7 @@ describe("scooter generated foundation", () => {
     expect(Object.values(metadata.allocation).reduce((a, b) => a + b, 0)).toBe(
       metadata.budget,
     );
-    expect(metadata.budget).toBe(5635);
+    expect(metadata.budget).toBe(5562);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });
@@ -152,7 +152,7 @@ print(json.dumps(out))
       // Grooves recess the carcass while the block corners stay inside the rolling circle.
       expect(high).toBeLessThanOrEqual(0.001);
       expect(high).toBeGreaterThan(-0.01);
-      expect(low).toBeGreaterThanOrEqual(-0.08);
+      expect(low).toBeGreaterThanOrEqual(-0.18);
     }
   });
 
