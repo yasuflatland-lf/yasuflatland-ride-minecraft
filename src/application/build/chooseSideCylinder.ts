@@ -1,5 +1,5 @@
 import { dominantHorizontalAxis } from "../../domain/build/axis";
-import { shapeMenu } from "../../domain/build/flow/menu";
+import { isShapeEntryOffered } from "../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { ChooseHeighted } from "./chooseHeighted";
@@ -16,7 +16,7 @@ export class ChooseSideCylinder {
 
   execute({ playerId }: { playerId: PlayerId }): void {
     const flow = this.repo.get(playerId)?.flow;
-    if (!flow || !shapeMenu(flow).some(({ id }) => id === "sideCylinder")) {
+    if (!flow || !isShapeEntryOffered(flow, "sideCylinder")) {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }

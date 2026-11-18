@@ -34,6 +34,7 @@ it("rotates the shared height selection and preserves it on refusal", () => {
         const min = { x: 0, y: 60, z: 0 };
         session.setFlow({
           kind: "endpoint",
+          menuLevel: "root",
           dimensionId: overworld,
           from: min,
           to: { x: x - 1, y: 60, z: z - 1 },
@@ -105,6 +106,7 @@ it("enters rotate mode after an immediate rotation and restores a refused endpoi
       const box = { min: { x: 0, y: 60, z: 0 }, max: { x: 2, y: 62, z: 4 } };
       session.setFlow({
         kind: "endpoint",
+        menuLevel: "root",
         dimensionId: overworld,
         from: box.min,
         to: box.max,

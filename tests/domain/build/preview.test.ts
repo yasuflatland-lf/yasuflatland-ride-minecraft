@@ -52,7 +52,14 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
         const flows: BuildFlow[] = [
           { kind: "idle" },
           { kind: "point1", cell: a, dimensionId, material },
-          { kind: "endpoint", from: a, to: b, dimensionId, material },
+          {
+            kind: "endpoint",
+            menuLevel: "root",
+            from: a,
+            to: b,
+            dimensionId,
+            material,
+          },
           {
             kind: "heightStep",
             heightLocked: false,
@@ -102,7 +109,12 @@ it("draws the terrain confirmation like its end point", () => {
       { ...common, kind: "terrainConfirm", op: "removeAbove" },
       { blink: true },
     ),
-  ).toEqual(previewPoints({ ...common, kind: "endpoint" }, { blink: true }));
+  ).toEqual(
+    previewPoints(
+      { ...common, kind: "endpoint", menuLevel: "root" },
+      { blink: true },
+    ),
+  );
 });
 
 it("alternates the first-point marker with blink and removes it at the endpoint step", () => {
@@ -115,7 +127,14 @@ it("alternates the first-point marker with blink and removes it at the endpoint 
       expect(previewPoints(flow, { blink: false }).marker).toEqual([]);
       expect(
         previewPoints(
-          { kind: "endpoint", from: a, to: b, dimensionId, material },
+          {
+            kind: "endpoint",
+            menuLevel: "root",
+            from: a,
+            to: b,
+            dimensionId,
+            material,
+          },
           { blink: true },
         ).marker,
       ).toEqual([]);
@@ -251,6 +270,7 @@ it("draws a locked cylinder at the box height even when another height is aimed"
         const flow = chooseHeighted(
           {
             kind: "endpoint",
+            menuLevel: "root",
             dimensionId,
             material,
             from: { x: 0, y: 10, z: 0 },
@@ -356,6 +376,7 @@ it("draws rotation mode with the endpoint selection appearance", () => {
         previewPoints(
           {
             kind: "endpoint",
+            menuLevel: "root",
             dimensionId,
             from: box.min,
             to: box.max,

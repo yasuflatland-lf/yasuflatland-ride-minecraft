@@ -5,6 +5,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import {
   type BuildFlow,
   chooseHeighted,
+  openBuildMenu,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -125,7 +126,14 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
         const first = tapBlock(idle, dimensionId, at, stone);
         const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
         const height = chooseHeighted(endpoint, "gable");
-        for (const flow of [idle, first, endpoint, height, beginPasteAim()]) {
+        for (const flow of [
+          idle,
+          first,
+          endpoint,
+          openBuildMenu(endpoint),
+          height,
+          beginPasteAim(),
+        ]) {
           session.setFlow(flow);
           const entries = utilityMenu(session).map(({ id }) => id);
           expect(entries).not.toContain("endPaste");

@@ -13,7 +13,7 @@ The Build Wand already copies and pastes (0198), but it is unclear whether a sel
 
 Copy:
 
-1. Copy is an entry of the shape menu shown after the end point, before Cancel, for every shape (line, rectangle of any flat axis, box).
+1. Copy is an entry of the root shape menu shown after the end point, after Rotate and before Fill below, for every shape (line, rectangle of any flat axis, box). The root order is Cut, Remove above, Build shape (Place for a line), Rotate, Copy, Fill below, Cancel. Building styles and shape extras are in the Build shape submenu, followed by Back to the same root selection.
 2. On a horizontal rectangle, Copy starts the same height step as the roofs and solids: aim at the height, live outline, tap to confirm. On confirm the box is copied at once, with no Fill, Hollow, or Tube menu. The height grows upward only, from 1 up to the world top (`BUILD_SPEC.worldTopY`).
 3. On a box, a vertical rectangle, or a line, Copy copies the selected box as it is, with no height step.
 4. During the Copy height step the outline uses its own particle layer, distinct from the build outline and the paste outline. The size readout stays, and the outline shows an over-limit state when the box volume exceeds `BUILD_SPEC.maxCopyVolume` (32,768). Confirming an over-limit box shows the existing "too large" message and stays in the step.

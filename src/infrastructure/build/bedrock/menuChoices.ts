@@ -13,6 +13,7 @@ import type { EndPasting } from "../../../application/build/endPasting";
 import type { NewCopy } from "../../../application/build/newCopy";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../application/build/undoEdit";
+import { type BuildFlow, openBuildMenu } from "../../../domain/build/flow/flow";
 import {
   type BuildEntryId,
   contentsMenu,
@@ -21,12 +22,12 @@ import {
   isEditEntry,
   type MenuEntry,
   pasteMenu,
-  shapeMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import type { PlayerId } from "../../../domain/shared/ids";
+import { flatShapeMenu } from "./flatShapeMenu";
 
 function isOffered<Id extends string>(
   entries: MenuEntry<Id>[],
@@ -66,7 +67,7 @@ export class MenuChoices {
     const session = this.repo.get(playerId);
     if (!session) return false;
     if (menu === "shape") {
-      if (!isOffered(shapeMenu(session.flow), entryId)) return false;
+      if (!isOffered(flatShapeMenu(session.flow), entryId)) return false;
       if (isEditEntry(entryId)) {
         this.dispatchEditEntry(entryId, playerId);
       } else if (isBuildEntry(entryId)) {
@@ -187,9 +188,21 @@ export class MenuChoices {
       case "cube":
         this.cases.chooseHeighted.execute({ playerId, kind: id });
         break;
-      case "sideCylinder":
+      case "sideCylinder": {
+        const session = this.repo.get(playerId);
+        const before = session?.flow;
+        if (session && before) session.setFlow(openBuildMenu(before));
         this.cases.chooseSideCylinder.execute({ playerId });
+        // A refused choice leaves the flow on the opened menu level; put it back.
+        if (
+          session &&
+          before &&
+          isBuildMenuOpen(this.repo.get(playerId)?.flow)
+        ) {
+          session.setFlow(before);
+        }
         break;
+      }
 
       default: {
         const exhaustive: never = id;
@@ -197,4 +210,8 @@ export class MenuChoices {
       }
     }
   }
+}
+
+function isBuildMenuOpen(flow: BuildFlow | undefined): boolean {
+  return flow?.kind === "endpoint" && flow.menuLevel === "build";
 }

@@ -7,6 +7,7 @@ import {
   type BuildFlow,
   chooseHeighted,
   enterRotateMode,
+  openBuildMenu,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -58,6 +59,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           idle,
           first,
           endpoint,
+          openBuildMenu(endpoint),
           enterRotateMode(endpoint),
           chooseHeighted(endpoint, "copy"),
           { kind: "pasteAim", manualTurn: 0 },
@@ -66,6 +68,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           session.setFlow(flow);
           expect(describe.execute(playerId)).toEqual({
             flow: flow.kind,
+            menuLevel: flow.kind === "endpoint" ? flow.menuLevel : undefined,
             clipboardHeld: clipboard,
             pasteTurn: 0,
             pasteMenu:
@@ -98,6 +101,7 @@ it("describes a missing session as idle without creating it", () => {
   const describe = new DescribeBuild(repo);
   expect(describe.execute(playerId)).toEqual({
     flow: "idle",
+    menuLevel: undefined,
     clipboardHeld: false,
     pasteTurn: 0,
     pasteMenu: ["newCopy", "endPaste", "cancel"],

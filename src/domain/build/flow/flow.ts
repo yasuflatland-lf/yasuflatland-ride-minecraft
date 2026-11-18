@@ -19,6 +19,7 @@ export type BuildFlow =
     }
   | {
       readonly kind: "endpoint";
+      readonly menuLevel: "root" | "build";
       readonly dimensionId: DimensionId;
       readonly from: Cell;
       readonly to: Cell;
@@ -80,11 +81,24 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
   if (!end) return flow;
   return Object.freeze({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: flow.dimensionId,
     from: flow.kind === "point1" ? flow.cell : flow.from,
     to: Object.freeze({ ...end }),
     material: flow.material,
   });
+}
+
+export function openBuildMenu(flow: BuildFlow): BuildFlow {
+  return flow.kind === "endpoint" && flow.menuLevel === "root"
+    ? Object.freeze({ ...flow, menuLevel: "build" })
+    : flow;
+}
+
+export function closeBuildMenu(flow: BuildFlow): BuildFlow {
+  return flow.kind === "endpoint" && flow.menuLevel === "build"
+    ? Object.freeze({ ...flow, menuLevel: "root" })
+    : flow;
 }
 
 export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
@@ -195,6 +209,7 @@ export function finishRotateMode(flow: BuildFlow): BuildFlow {
   if (flow.kind !== "rotateMode") return flow;
   return Object.freeze({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: flow.dimensionId,
     from: flow.box.min,
     to: flow.box.max,

@@ -57,6 +57,7 @@ it("ignores absent sessions, every other flow, and rotation in another dimension
     { kind: "point1", dimensionId: overworld, cell: box.min, material: stone },
     {
       kind: "endpoint",
+      menuLevel: "root",
       dimensionId: overworld,
       from: box.min,
       to: box.max,

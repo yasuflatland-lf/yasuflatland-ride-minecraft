@@ -23,7 +23,6 @@ import {
 import {
   contentsMenu,
   pasteMenu,
-  shapeMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
@@ -31,6 +30,7 @@ import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
+import { flatShapeMenu } from "../../../src/infrastructure/build/bedrock/flatShapeMenu";
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import {
@@ -109,6 +109,7 @@ const from = { x: 0, y: 60, z: 0 };
 const to = { x: 4, y: 60, z: 6 };
 const endpoint: BuildFlow = {
   kind: "endpoint",
+  menuLevel: "root",
   dimensionId: overworld,
   from,
   to,
@@ -237,7 +238,7 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
       ]) {
         session.setFlow(flow);
         for (const [model, show] of [
-          [shapeMenu(flow), () => menus.showShapeMenu(player)],
+          [flatShapeMenu(flow), () => menus.showShapeMenu(player)],
           [contentsMenu(flow), () => menus.showContentsMenu(player)],
         ] as const) {
           ui.forms.length = 0;
@@ -297,7 +298,7 @@ it.each([
   const { session, menus, player, cases } = setup();
   session.setFlow({ ...endpoint, to: end });
   ui.answers.push({
-    selection: shapeMenu(session.flow).findIndex((e) => e.id === id),
+    selection: flatShapeMenu(session.flow).findIndex((e) => e.id === id),
   });
   await menus.showShapeMenu(player);
   expect(cases.confirmShape.execute).toHaveBeenCalledExactlyOnceWith({
@@ -311,7 +312,7 @@ it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   async (kind) => {
     const { menus, player, cases } = setup();
     ui.answers.push({
-      selection: shapeMenu(endpoint).findIndex((e) => e.id === kind),
+      selection: flatShapeMenu(endpoint).findIndex((e) => e.id === kind),
     });
     await menus.showShapeMenu(player);
     expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
@@ -342,7 +343,9 @@ it.each(["shape", "contents"] as const)(
       {
         selection:
           menu === "shape"
-            ? shapeMenu(endpoint).findIndex((entry) => entry.id === "cancel")
+            ? flatShapeMenu(endpoint).findIndex(
+                (entry) => entry.id === "cancel",
+              )
             : 2,
       },
     ]) {
@@ -457,7 +460,7 @@ it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   async (kind) => {
     const { menus, player, cases } = setup(true);
     ui.answers.push(
-      { selection: shapeMenu(endpoint).findIndex((e) => e.id === kind) },
+      { selection: flatShapeMenu(endpoint).findIndex((e) => e.id === kind) },
       { formValues: [3] },
       { selection: 0 },
     );
@@ -479,7 +482,11 @@ it("holds one lock across nested forms, allows other players, and releases on di
   session.setFlow(endpoint);
   let close!: (answer: Answer) => void;
   ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((entry) => entry.id === "hip") },
+    {
+      selection: flatShapeMenu(endpoint).findIndex(
+        (entry) => entry.id === "hip",
+      ),
+    },
     new Promise((resolve) => {
       close = resolve;
     }),
@@ -584,7 +591,7 @@ it("dispatches only entries offered by the current flow, including stale choices
         const { session, cases, choices } = setup();
         const flow: BuildFlow = { ...endpoint, from, to };
         session.setFlow(flow);
-        const offered = shapeMenu(flow).some((entry) => entry.id === id);
+        const offered = flatShapeMenu(flow).some((entry) => entry.id === id);
         expect(choices.choose(playerId, "shape", id)).toBe(offered);
         if (!offered) {
           for (const action of Object.values(cases))
@@ -692,7 +699,7 @@ it.each([false, true])(
     session.setFlow({ ...endpoint, to: { ...to, y: 71 } });
     ui.answers.push(
       {
-        selection: shapeMenu(session.flow).findIndex(
+        selection: flatShapeMenu(session.flow).findIndex(
           (e) => e.id === "cylinder",
         ),
       },
@@ -727,7 +734,9 @@ it.each([false, true])(
     session.setFlow({ ...endpoint, to: { ...to, y: 71 } });
     ui.answers.push(
       {
-        selection: shapeMenu(session.flow).findIndex((e) => e.id === "sphere"),
+        selection: flatShapeMenu(session.flow).findIndex(
+          (e) => e.id === "sphere",
+        ),
       },
       { selection: 1 },
     );
@@ -799,7 +808,7 @@ it.each([
   const { session, menus, player, cases } = setup();
   session.setFlow({ ...endpoint, to: end });
   ui.answers.push({
-    selection: shapeMenu(session.flow).findIndex((e) => e.id === "copy"),
+    selection: flatShapeMenu(session.flow).findIndex((e) => e.id === "copy"),
   });
   await menus.showShapeMenu(player);
   expect(cases.chooseBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
@@ -813,7 +822,7 @@ it.each([
 it("confirms Copy after the fallback slider without opening contents", async () => {
   const { menus, player, cases, session } = setup(true);
   ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "copy") },
+    { selection: flatShapeMenu(endpoint).findIndex((e) => e.id === "copy") },
     { formValues: [7] },
   );
   cases.confirmBoxStep.execute.mockImplementation(() => {
@@ -838,7 +847,7 @@ it.each([
   const { session, menus, player, cases } = setup();
   session.setFlow({ ...endpoint, to: end });
   ui.answers.push({
-    selection: shapeMenu(session.flow).findIndex((e) => e.id === "cut"),
+    selection: flatShapeMenu(session.flow).findIndex((e) => e.id === "cut"),
   });
   await menus.showShapeMenu(player);
   expect(cases.chooseBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
@@ -859,7 +868,7 @@ it.each([
   const { session, menus, player, cases } = setup();
   session.setFlow({ ...endpoint, to: end });
   ui.answers.push({
-    selection: shapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
+    selection: flatShapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
   });
   await menus.showShapeMenu(player);
   expect(cases.chooseBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
@@ -872,7 +881,7 @@ it.each([
 
 function removeAboveAnswer() {
   return {
-    selection: shapeMenu(endpoint).findIndex((e) => e.id === "removeAbove"),
+    selection: flatShapeMenu(endpoint).findIndex((e) => e.id === "removeAbove"),
   };
 }
 
@@ -888,7 +897,9 @@ it.each([320, 128, 256])(
     };
     session.setFlow(area);
     ui.answers.push(
-      { selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove") },
+      {
+        selection: flatShapeMenu(area).findIndex((e) => e.id === "removeAbove"),
+      },
       { selection: 0 },
     );
     await menus.showShapeMenu(player);
@@ -962,7 +973,7 @@ it("opens no confirmation when the area is too large", async () => {
   const area: BuildFlow = { ...endpoint, to: { x: 32, y: 60, z: 0 } };
   session.setFlow(area);
   ui.answers.push({
-    selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove"),
+    selection: flatShapeMenu(area).findIndex((e) => e.id === "removeAbove"),
   });
   await menus.showShapeMenu(player);
   expect(ui.forms).toHaveLength(1);
@@ -988,7 +999,7 @@ it("offers terrain entries only during the confirmation", () => {
 it("confirms Cut after the fallback slider without opening contents", async () => {
   const { menus, player, cases, session } = setup(true);
   ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "cut") },
+    { selection: flatShapeMenu(endpoint).findIndex((e) => e.id === "cut") },
     { formValues: [7] },
   );
   cases.confirmBoxStep.execute.mockImplementation(() => {
@@ -1121,7 +1132,7 @@ it.each([
     };
     session.setFlow(area);
     ui.answers.push(
-      { selection: shapeMenu(area).findIndex((e) => e.id === "fillBelow") },
+      { selection: flatShapeMenu(area).findIndex((e) => e.id === "fillBelow") },
       { selection: 0 },
     );
     await menus.showShapeMenu(player);
@@ -1150,7 +1161,7 @@ it.each([false, true])(
     session.setFlow({ ...endpoint, to: { ...to, y: 64 } });
     ui.answers.push(
       {
-        selection: shapeMenu(session.flow).findIndex(
+        selection: flatShapeMenu(session.flow).findIndex(
           ({ id }) => id === "sideCylinder",
         ),
       },
@@ -1178,7 +1189,9 @@ it.each([false, true])(
 it("returns to aiming when Fill below confirmation is dismissed", async () => {
   const { menus, player, cases, session } = setup();
   ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "fillBelow") },
+    {
+      selection: flatShapeMenu(endpoint).findIndex((e) => e.id === "fillBelow"),
+    },
     { canceled: true, cancelationReason: "UserClosed" },
   );
   await menus.showShapeMenu(player);
@@ -1191,7 +1204,7 @@ it.each([false, true])(
   async (fallback) => {
     const { session, menus, player, cases } = setup(fallback);
     ui.answers.push({
-      selection: shapeMenu(session.flow).findIndex(
+      selection: flatShapeMenu(session.flow).findIndex(
         ({ id }) => id === "sideCylinder",
       ),
     });
@@ -1219,7 +1232,7 @@ it.each([false, true])(
 it("confirms Rotate after the fallback slider without opening contents", async () => {
   const { menus, player, cases, session } = setup(true);
   ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "rotate") },
+    { selection: flatShapeMenu(endpoint).findIndex((e) => e.id === "rotate") },
     { formValues: [7] },
   );
   cases.confirmBoxStep.execute.mockImplementation(() => {
@@ -1251,7 +1264,7 @@ it("enters rotate mode through the immediate shape menu Rotate dispatch", async 
   const { menus, player, session } = setup();
   session.setFlow({ ...endpoint, to: { ...to, y: 63 } });
   ui.answers.push({
-    selection: shapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
+    selection: flatShapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
   });
   await menus.showShapeMenu(player);
   expect(session.flow).toMatchObject({ kind: "rotateMode", turn: 1 });

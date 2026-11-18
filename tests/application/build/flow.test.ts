@@ -92,6 +92,7 @@ it("samples material only for a new point 1, clears the confirmed box, and repor
   expect(material).toHaveBeenCalledTimes(1);
   expect(e.session.flow).toEqual({
     kind: "endpoint",
+    menuLevel: "root",
     dimensionId: overworld,
     from,
     to,
