@@ -270,8 +270,12 @@ def _prepared():
                                      for channel in region.pixel(u,v)))
         panel_uv.append(("body_panels" if material == "paint" else "body_cowl_right",slot))
     # Packing each mask independently makes MaxRects quadratic in the panel count.
-    for material,tiles in masks.items():
+    for material,masked in masks.items():
         name = "body_panels" if material == "paint" else "body_cowl_right"
+        # Left and right panels mirror each other inside one sheet; store each once.
+        stored,shares = atlas.region_atlas.share_tiles(
+            [(D.BODY_PANEL_TEXELS,D.BODY_PANEL_TEXELS,tile) for tile in masked])
+        tiles = [masked[i] for i in stored]
         # Neighboring tiles each supply half of the two-texel transparent gutter.
         gutter = atlas.GUTTER_TEXELS // 2
         stride = D.BODY_PANEL_TEXELS + 2*gutter
@@ -290,9 +294,9 @@ def _prepared():
             atlas.Material.PAINT,pixel)))
         for i,entry in enumerate(panel_uv):
             if entry[0] == name:
-                sheet,slot = entry
-                panel_uv[i] = (sheet,(slot%columns)*stride+gutter,
-                               (slot//columns)*stride+gutter)
+                sheet,share = entry[0],shares[entry[1]]
+                panel_uv[i] = (sheet,(share.slot%columns)*stride+gutter,
+                               (share.slot//columns)*stride+gutter,share)
     for index,(poly,x) in enumerate(plates):
         name = f"body_inner_{index}"
         w,h,pixel = atlas.outline_pixel(poly,D.BODY_PLATE_DENSITY,
@@ -405,10 +409,11 @@ def build() -> kit.AreaCubes:
     for index,(template,_,material) in enumerate(panels):
         cube = copy.deepcopy(template)
         cube["uv"] = atlas.faces("clear")
-        name,u,v = panel_uv[index]
+        name,u,v,share = panel_uv[index]
+        size = D.BODY_PANEL_TEXELS
         # The final x mirror reverses the local horizontal axis of both panel faces.
-        cube["uv"]["south"] = atlas.face(name,u+D.BODY_PANEL_TEXELS,v,-D.BODY_PANEL_TEXELS,D.BODY_PANEL_TEXELS)
-        cube["uv"]["north"] = atlas.face(name,u+D.BODY_PANEL_TEXELS,v,-D.BODY_PANEL_TEXELS,D.BODY_PANEL_TEXELS)
+        for side in ("south","north"):
+            cube["uv"][side] = atlas.tile_face(name,(u,v),share,size,size,size,0,-size,size)
         result.add("body",cube)
     for template,material in solids:
         cube = copy.deepcopy(template)

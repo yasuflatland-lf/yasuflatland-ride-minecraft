@@ -262,7 +262,11 @@ def _horn_pixel(u,v):
 @cache
 def _prepared():
     panels,solids = _geometry()
-    tiles = [_panel_pixels(cube,points,material) for _,cube,points,material in panels]
+    masked = [_panel_pixels(cube,points,material) for _,cube,points,material in panels]
+    # Left and right panels mirror each other inside one sheet; store each once.
+    stored,shares = atlas.region_atlas.share_tiles(
+        [(D.SHIELD_PANEL_TEXELS,D.SHIELD_PANEL_TEXELS,tile) for tile in masked])
+    tiles = [masked[i] for i in stored]
     columns = D.SHIELD_PANEL_COLUMNS
     stride = D.SHIELD_PANEL_TEXELS+2*atlas.GUTTER_TEXELS
     def pixel(u,v):
@@ -285,7 +289,7 @@ def _prepared():
     w,h,fn = atlas.outline_pixel(crown,D.SHIELD_CROWN_DENSITY,
                                 lambda u,v:(*D.SHIELD_CROWN_COLOR,255))
     regions.append(atlas.Region("shield_crown",w,h,atlas.Material.RUBBER,fn))
-    return panels,solids,regions,crown
+    return panels,solids,regions,crown,shares
 
 
 def register_regions(registry):
@@ -298,18 +302,18 @@ def register_regions(registry):
 
 def build() -> kit.AreaCubes:
     register_regions(atlas.REGISTRY)
-    panels,solids,_,crown = _prepared()
+    panels,solids,_,crown,shares = _prepared()
     result = kit.AreaCubes()
-    stride = D.SHIELD_PANEL_TEXELS+2*atlas.GUTTER_TEXELS
-    for index,(bone,template,_,_) in enumerate(panels):
+    size = D.SHIELD_PANEL_TEXELS
+    stride = size+2*atlas.GUTTER_TEXELS
+    for (bone,template,_,_),share in zip(panels,shares,strict=True):
         cube = copy.deepcopy(template)
         cube["uv"] = atlas.faces("clear")
-        u = (index%D.SHIELD_PANEL_COLUMNS)*stride+atlas.GUTTER_TEXELS
-        v = (index//D.SHIELD_PANEL_COLUMNS)*stride+atlas.GUTTER_TEXELS
+        u = (share.slot%D.SHIELD_PANEL_COLUMNS)*stride+atlas.GUTTER_TEXELS
+        v = (share.slot//D.SHIELD_PANEL_COLUMNS)*stride+atlas.GUTTER_TEXELS
         # The final x mirror reverses the local horizontal axis on these panel faces.
         for face in ("north","south"):
-            cube["uv"][face] = atlas.face("shield_panels",u+D.SHIELD_PANEL_TEXELS,v,
-                                          -D.SHIELD_PANEL_TEXELS,D.SHIELD_PANEL_TEXELS)
+            cube["uv"][face] = atlas.tile_face("shield_panels",(u,v),share,size,size,size,0,-size,size)
         result.add(bone,cube)
     for bone,template,material in solids:
         cube = copy.deepcopy(template)

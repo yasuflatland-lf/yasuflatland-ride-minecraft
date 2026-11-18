@@ -2,6 +2,7 @@
 
 import math
 import sys
+from functools import cache
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -281,30 +282,41 @@ def _paint_panels():
     return panels
 
 
-def _panel_region():
-    panels = _paint_panels()
+def _panel_texel(panel, u, v):
+    tile = dims.HEAD_PANEL_TEXELS
+    _, cube, outline, matrix = panel
+    pivot = cube.get("pivot", (0, 0, 0))
+    lo = [cube["origin"][i]-pivot[i] for i in range(2)]
+    sx, sy = cube["size"][:2]
+    x, y = lo[0]+(u+.5)*sx/tile, lo[1]+(1-(v+.5)/tile)*sy
+    allowance = dims.HEAD_PANEL_EDGE_PADDING*max(sx, sy)
+    if not _inside(x, y, outline) and not any(
+            _distance(x, y, a, b) <= allowance for a, b in zip(outline, (*outline[1:], outline[0]))):
+        return atlas.CLEAR
+    wx, wy = (pivot[i]+matrix[i][0]*x+matrix[i][1]*y for i in range(2))
+    return (*_paint(wx, wy), dims.HEAD_ALPHA)
+
+
+@cache
+def _panel_sheet():
     tile, columns = dims.HEAD_PANEL_TEXELS, dims.HEAD_PANEL_COLUMNS
-    width, height = columns*tile, math.ceil(len(panels)/columns)*tile
+    masked = [bytes(c for v in range(tile) for u in range(tile) for c in _panel_texel(panel, u, v))
+              for panel in _paint_panels()]
+    # Left and right panels mirror each other inside one sheet; store each once.
+    stored, shares = atlas.region_atlas.share_tiles([(tile, tile, data) for data in masked])
+    tiles = [masked[i] for i in stored]
+    width, height = columns*tile, math.ceil(len(tiles)/columns)*tile
     def pixel(u, v):
         index = v//tile*columns+u//tile
-        if index >= len(panels):
+        if index >= len(tiles):
             return atlas.CLEAR
-        _, cube, outline, matrix = panels[index]
-        pivot = cube.get("pivot", (0, 0, 0))
-        lo = [cube["origin"][i]-pivot[i] for i in range(2)]
-        sx, sy = cube["size"][:2]
-        x, y = lo[0]+(u % tile+.5)*sx/tile, lo[1]+(1-(v % tile+.5)/tile)*sy
-        allowance = dims.HEAD_PANEL_EDGE_PADDING*max(sx, sy)
-        if not _inside(x, y, outline) and not any(
-                _distance(x, y, a, b) <= allowance for a, b in zip(outline, (*outline[1:], outline[0]))):
-            return atlas.CLEAR
-        wx, wy = (pivot[i]+matrix[i][0]*x+matrix[i][1]*y for i in range(2))
-        return (*_paint(wx, wy), dims.HEAD_ALPHA)
-    return atlas.Region("head_panels", width, height, atlas.Material.PAINT, pixel)
+        offset = (v % tile*tile+u % tile)*4
+        return tuple(tiles[index][offset:offset+4])
+    return atlas.Region("head_panels", width, height, atlas.Material.PAINT, pixel), shares
 
 
 def register_regions(registry):
-    regions = [_panel_region()]
+    regions = [_panel_sheet()[0]]
     for name, outline, x in (("head_joint", _round_outline(JOINT), dims.HEAD_JOINT_X),
                               ("head_side", _side_outline(), dims.HEAD_SIDE_X)):
         low, high = min(p[1] for p in outline), max(p[1] for p in outline)
@@ -356,11 +368,11 @@ def build() -> kit.AreaCubes:
     chrome = atlas.faces("chrome")
     def skin(bone, rings, thickness, faces, assembly, inside=None):
         result.add(bone, _fitted_skin(rings, thickness, faces, assembly, inside))
-    for index, (assembly, cube, _, _) in enumerate(_paint_panels()):
-        tile = dims.HEAD_PANEL_TEXELS
-        u, v = index % dims.HEAD_PANEL_COLUMNS * tile, index // dims.HEAD_PANEL_COLUMNS * tile
+    tile = dims.HEAD_PANEL_TEXELS
+    for (assembly, cube, _, _), share in zip(_paint_panels(), _panel_sheet()[1], strict=True):
+        u, v = share.slot % dims.HEAD_PANEL_COLUMNS * tile, share.slot // dims.HEAD_PANEL_COLUMNS * tile
         cube["uv"] = atlas.faces("clear")
-        cube["uv"]["south"] = atlas.face("head_panels", u, v, tile, tile)
+        cube["uv"]["south"] = atlas.tile_face("head_panels", (u, v), share, tile, tile, 0, 0, tile, tile)
         result.add("steer", cube, assembly)
     for side in (-1, 1):
         result.add("steer", kit.profile_plate(_round_outline(JOINT), side*dims.HEAD_JOINT_X,

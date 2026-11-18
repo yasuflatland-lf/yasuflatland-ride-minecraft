@@ -55,7 +55,17 @@ MER_BY_MATERIAL = {
     atlas.Material.PLATE: mer.Mer(DIELECTRIC_METALNESS, 0, PLATE_ROUGHNESS),
     atlas.Material.CUTOUT: mer.Mer(CAST_METALNESS, 0, CAST_ROUGHNESS),
 }
-LIT_REGIONS = ("head_lens", "lens_head", "lens_tail_glow", "lens_amber", "glow")
+LIT_REGIONS = atlas.LIT_REGIONS
+
+
+def _unique_regions(layout):
+    seen = set()
+    for region in layout.regions:
+        p = layout.placement(region.name)
+        slot = (p.x, p.y, region.width, region.height)
+        if slot not in seen:
+            seen.add(slot)
+            yield region, p
 
 
 def recolor(layout, pixels, color):
@@ -66,10 +76,10 @@ def recolor(layout, pixels, color):
               for target, ivory in zip(color, atlas.PAINT_IVORY)]
     result = bytearray(pixels)
     width, _ = layout.size
-    for region in layout.regions:
+    for region, placement in _unique_regions(layout):
         if region.material != atlas.Material.PAINT:
             continue
-        ox, oy = layout.origin(region.name)
+        ox, oy = placement.x, placement.y
         for y in range(oy, oy + region.height):
             start = (y * width + ox) * RGBA_CHANNELS
             end = start + region.width * RGBA_CHANNELS
@@ -81,8 +91,8 @@ def recolor(layout, pixels, color):
 def mer_bytes(layout):
     width, height = layout.size
     result = bytearray(bytes(mer.MER_OFF.rgba()) * (width * height))
-    for region in layout.regions:
-        ox, oy = layout.origin(region.name)
+    for region, placement in _unique_regions(layout):
+        ox, oy = placement.x, placement.y
         row = bytes(MER_BY_MATERIAL[region.material].rgba()) * region.width
         for y in range(oy, oy + region.height):
             start = (y * width + ox) * RGBA_CHANNELS
@@ -136,9 +146,9 @@ def write(outputs, rp, layout, pixels):
         variants.append(texture_variants.Variant(name, color_pixels, material_pixels))
     texture_variants.write_variants(outputs, directory, "scooter", width, height, variants)
     mask = bytearray(width * height)
-    for region in layout.regions:
+    for region, placement in _unique_regions(layout):
         if region.name in LIT_REGIONS:
-            ox, oy = layout.origin(region.name)
+            ox, oy = placement.x, placement.y
             for y in range(oy, oy + region.height):
                 for x in range(ox, ox + region.width):
                     # Clear corners of a round lens must not glow as a square plate.
