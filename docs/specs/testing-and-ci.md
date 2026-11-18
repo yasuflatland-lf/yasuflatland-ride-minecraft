@@ -2,6 +2,7 @@
 
 - Scope: Unit properties, mutation and unused-code checks, dependency updates, CI jobs and coverage, and the in-game test pack, runner protocol, scheduling, and local scenario selection.
 - Verified at: 5ed1f579
+- Source: [0252](../adr/0252-budget-client-entity-texture-memory.md)
 - Source: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md)
 - Source: [0246](../adr/0246-toilet-and-washstand-shows-and-cutouts.md)
 - Source: [0010](../adr/0010-testing-strategy.md)
@@ -23,6 +24,15 @@
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): ADR metadata, spec structure, and documentation checks belong to the documentation specification
 
 ## Rules
+
+### Client entity texture memory
+
+- Applies to: Resource Pack client entity textures and their texture-set companion maps.
+- Rule: Collect `description.textures` from every `entity/**/*.ce.json` and the string-valued `metalness_emissive_roughness`, `heightmap` and `normal` companions. Count each distinct pack file once at PNG width x height x 4 bytes. Exclude the two absent vanilla player textures (`steve` and `cape_invisible`), not missing pack assets. The measured total is 197,041,792 bytes (187.913696 MiB); `ENTITY_TEXTURE_BUDGET_BYTES` is 192 MiB. To update the budget, measure again and round up to an 8 MiB multiple, never above 208 MiB. Stop and report measurements above that ceiling in the issue. Reject two files with identical decoded (colour, MER) pixel pairs, or identical MER pixels, regardless of PNG compression. Failures list the ten largest files with decoded MiB. Shared and mirrored regions and separate lit, fixed and paint geometries must preserve sampled texels and byte-identical committed previews.
+- Agreement: Accepted
+- Basis: [0252](../adr/0252-budget-client-entity-texture-memory.md) Decision; the iPad joined at view-distance 32 with about 162 MiB of scooter textures plus the rest of the pack without crashing.
+- Implementation: `tests/packs/textureMemory.test.ts`.
+- Verification: `pnpm exec vitest run tests/packs/textureMemory.test.ts` and the normal `pnpm test` suite. Temporarily enlarging one scooter paint texture to 2048 x 2048 must exceed the budget; restore it after checking the diagnostic.
 
 ### Pure logic and unit properties
 
