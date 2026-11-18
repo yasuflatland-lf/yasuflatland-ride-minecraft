@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterAll } from "vitest";
 import { type Triple, turnedCorners } from "../../support/geometry";
 import { startPythonWorker } from "../../support/pythonWorker";
@@ -21,11 +22,12 @@ type Geometry = {
   description: { texture_width: number; texture_height: number };
 };
 
-const python = startPythonWorker();
-afterAll(() => python.close());
+let python: ReturnType<typeof startPythonWorker> | undefined;
+afterAll(() => python?.close());
 
 // Worker requests have fresh globals; retain the atlas build across requests.
 export function runWithScooterBuild(script: string): Promise<string> {
+  python ??= startPythonWorker();
   return python.run(`
 import builtins, sys
 sys.path.insert(0, "tools")
@@ -38,10 +40,7 @@ ${script}
 }
 
 const geometry: Geometry = JSON.parse(
-  await runWithScooterBuild(`
-import json
-print(json.dumps(built.full_geometry["minecraft:geometry"][0]))
-`),
+  readFileSync(".cache/generated/scooter_source.geo.json", "utf8"),
 );
 
 export function loadScooterGeo(): Geometry {

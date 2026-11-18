@@ -242,12 +242,15 @@ def main(argv):
     rp = Path(argv[0])
     outputs = texture_io.Outputs("--check" in argv[1:])
     built = build()
+    source_geometry = built.full_geometry["minecraft:geometry"][0]
+    outputs.json(Path(__file__).resolve().parent.parent / ".cache/generated/scooter_source.geo.json",
+                 source_geometry)
     for name, render_pass in (("scooter", built.fixed), ("scooter_paint", built.paint), ("scooter_lit", built.lit)):
         outputs.json(rp / f"models/entity/yasu_ride/{name}.geo.json", render_pass.geometry)
     outputs.json(rp / "animations/yasu_ride/scooter.anim.json", load_tool("scooter_anim").build())
     scooter_textures.write(outputs, rp, built.fixed.layout, built.fixed.pixels,
                            built.paint.layout, built.paint.pixels, built.lit.layout, built.lit.pixels)
-    counts = [(b["name"], len(b["cubes"])) for b in built.full_geometry["minecraft:geometry"][0]["bones"]]
+    counts = [(b["name"], len(b["cubes"])) for b in source_geometry["bones"]]
     for name, count in counts:
         print(f"{name}: {count}")
     print(f"total cubes: {sum(count for _, count in counts)}")

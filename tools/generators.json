@@ -61,6 +61,7 @@
       "script": "gen_scooter.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        ".cache/generated/scooter_source.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter_paint.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter_lit.geo.json",
