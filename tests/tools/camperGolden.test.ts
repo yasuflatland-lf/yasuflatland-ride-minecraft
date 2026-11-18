@@ -79,10 +79,10 @@ function compare(change: Change, area?: string) {
       `
 from tool_loader import load_tool
 regions = load_tool('camper_regions')
-REGISTRY = regions.RegionRegistry()
+REGISTRY = load_tool('region_atlas').RegionRegistry()
 for region in ${JSON.stringify(currentRegions)}:
-    REGISTRY.register(regions.Region(region['name'], *region['size'], regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
-LAYOUT = regions.pack(REGISTRY)
+    REGISTRY.register(load_tool('region_atlas').Region(region['name'], *region['size'], regions.Material.SWATCHES_MIXED, lambda x,y: (0,0,0,255)))
+LAYOUT = load_tool('region_atlas').pack(REGISTRY)
 `,
     );
     const models = join(
