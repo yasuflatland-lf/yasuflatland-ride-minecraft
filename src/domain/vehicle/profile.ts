@@ -67,7 +67,7 @@ export interface VehicleProfile {
   readonly footprint: number;
   /** Riders of this kind are kept fire-protected while aboard (ADR 0050). */
   readonly ridersFireProof: boolean;
-  /** The players' grip pose and stepped lean poses; absent for kinds without one (ADR 0250). */
+  /** Per-seat grip and stepped lean poses; absent for kinds without them (ADR 0250). */
   readonly riderPose?: RiderPoseTable;
   readonly seats: SeatLayout;
   /** How a boarding player gets a seat, set per kind (ADR 0050). */
