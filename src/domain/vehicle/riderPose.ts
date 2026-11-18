@@ -1,13 +1,23 @@
 import type { PlayerId } from "../shared/ids";
 
-export interface RiderPoseTable {
+export interface SeatPoseTable {
   readonly grip: string;
   /** Strongest left to strongest right, with no upright entry. */
   readonly lean: readonly string[];
+}
+
+export interface RiderPoseTable {
+  /** Indexed by seat slot, the same index as RiderView.slot. */
+  readonly seats: readonly SeatPoseTable[];
   readonly refreshTicks: number;
 }
 
-export function riderPoseOf(table: RiderPoseTable, level: number): string {
+export interface PosedRider {
+  readonly id: PlayerId;
+  readonly slot: number;
+}
+
+export function riderPoseOf(table: SeatPoseTable, level: number): string {
   if (level === 0) return table.grip;
   const levels = table.lean.length / 2;
   const clamped = Math.max(-levels, Math.min(levels, level));
@@ -30,20 +40,26 @@ export class RiderPoseState {
 
   next(
     table: RiderPoseTable,
-    riders: readonly PlayerId[],
+    riders: readonly PosedRider[],
     level: number,
     tick: number,
   ): RiderPoseCommand[] {
     const commands: RiderPoseCommand[] = [];
-    const aboard = new Set(riders);
+    const aboard = new Set(
+      riders
+        .filter((rider) => table.seats[rider.slot])
+        .map((rider) => rider.id),
+    );
     for (const playerId of this.sent.keys()) {
       if (aboard.has(playerId)) continue;
       commands.push({ type: "clear", playerId });
       this.sent.delete(playerId);
     }
-    const pose = riderPoseOf(table, level);
     const refresh = tick % table.refreshTicks === 0;
-    for (const playerId of riders) {
+    for (const { id: playerId, slot } of riders) {
+      const seat = table.seats[slot];
+      if (!seat) continue;
+      const pose = riderPoseOf(seat, level);
       if (refresh || this.sent.get(playerId) !== pose) {
         commands.push({ type: "play", playerId, pose });
         this.sent.set(playerId, pose);

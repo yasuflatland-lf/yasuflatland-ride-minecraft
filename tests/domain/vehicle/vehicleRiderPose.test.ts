@@ -10,14 +10,18 @@ import { engineStep } from "../../support/engineModel";
 import { riderView } from "../../support/riders";
 
 it("matches the scooter pose table to its lean levels", () => {
-  expect(profileOf("scooter").riderPose?.lean.length).toBe(
-    2 * SCOOTER_SPEC.leanLevels,
-  );
+  const tables = profileOf("scooter").riderPose?.seats;
+  expect(tables).toHaveLength(2);
+  expect(tables?.[0]).toBe(tables?.[1]);
+  for (const table of tables ?? []) {
+    expect(table.lean.length).toBe(2 * SCOOTER_SPEC.leanLevels);
+  }
 });
 it("drives both scooter riders through grip, stepped lean, departure and resync", () => {
   const vehicle = createVehicle("scooter", asVehicleId("scooter"), 0);
   const table = profileOf("scooter").riderPose;
-  if (!table) throw new Error("scooter pose table required");
+  const seatTable = table?.seats[0];
+  if (!table || !seatTable) throw new Error("scooter pose table required");
   let previous = "";
   let changes = 0;
   let angle = 0;
@@ -48,7 +52,7 @@ it("drives both scooter riders through grip, stepped lean, departure and resync"
     if (lean?.type === "setProperty" && typeof lean.value === "number")
       angle = lean.value;
     const pose = riderPoseOf(
-      table,
+      seatTable,
       Math.round((angle / SCOOTER_SPEC.maxLean) * SCOOTER_SPEC.leanLevels),
     );
     if (tick <= 50) expect(pose).toBe("scooter_grip");
