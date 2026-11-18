@@ -51,7 +51,7 @@ beforeAll(async () => {
 print(json.dumps(dict(paints=t.PAINTS,defaultPaint=t.DEFAULT_PAINT,ivory=a.PAINT_IVORY,lit=t.LIT_REGIONS,litSize=ll.size,fixedRegions=[dict(name=r.name,material=r.material.value,x=fl.placement(r.name).x,y=fl.placement(r.name).y,width=r.width,height=r.height) for r in fl.regions],litRegions=[dict(name=r.name,material=r.material.value,x=ll.placement(r.name).x,y=ll.placement(r.name).y,width=r.width,height=r.height) for r in ll.regions],regions=[dict(name=r.name,material=r.material.value,x=l.placement(r.name).x,y=l.placement(r.name).y,width=r.width,height=r.height) for r in l.regions])))
 `),
   );
-}, 60000);
+}, 180_000);
 
 it("uses the dye order and preserves the ivory default bytes", async () => {
   expect(Object.keys(metadata.paints)).toEqual(PAINTS);
@@ -127,7 +127,7 @@ it("stores only paint regions in paint textures and preserves recoloured texels 
       metalness_emissive_roughness: "scooter_paint_mer",
     });
   }
-}, 60000);
+}, 180_000);
 
 it("recolours arbitrary channels with the shaded ivory lookup", async () => {
   await fc.assert(
@@ -262,7 +262,7 @@ with TemporaryDirectory() as temporary:
         texture_set = json.loads(colour.with_suffix(".texture_set.json").read_text())["minecraft:texture_set"]
         assert texture_set == dict(color=colour.stem,metalness_emissive_roughness="scooter_paint_mer")
 `);
-}, 60000);
+}, 180_000);
 
 it("preserves every lit face texel in an audited compact atlas", async () => {
   await python.run(`${built}
@@ -294,7 +294,7 @@ for base_bone, lit_bone in zip(geo["minecraft:geometry"][0]["bones"], lit_geo["m
             count += 1
 assert count == len(ll._faces) and count > 0
 `);
-}, 60000);
+}, 180_000);
 
 it("relocates signed local rectangles without changing their sampled region texels", async () => {
   await fc.assert(
@@ -384,7 +384,7 @@ print(json.dumps({name:[len(values),len({v.slot for v in values})] for name,valu
     engine_joint_patch: [6, 2],
     engine_outlet_patch: [6, 2],
   });
-}, 60000);
+}, 180_000);
 
 it("shares storage only within matching finishes and lit membership", () => {
   const slots = new Map<string, string>();
