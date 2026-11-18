@@ -27,9 +27,7 @@ export class DescribeBuild {
       pasteMenu:
         session?.flow.kind === "rotateMode"
           ? []
-          : pasteMenu({ hasHistory: session?.hasHistory ?? false }).map(
-              (entry) => entry.id,
-            ),
+          : pasteMenu().map((entry) => entry.id),
     };
   }
 

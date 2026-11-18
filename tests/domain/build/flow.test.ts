@@ -499,7 +499,7 @@ it("opens the utility menu when sneaking or idle, never otherwise", () => {
   );
 });
 
-it("offers Undo on a plain air press only when idle or aiming a paste", () => {
+it("offers Undo on a plain air press only when idle", () => {
   const cell = { x: 0, y: 0, z: 0 };
   const flows: BuildFlow[] = [
     { kind: "idle" },
@@ -527,14 +527,9 @@ it("offers Undo on a plain air press only when idle or aiming a paste", () => {
   ];
   fc.assert(
     fc.property(fc.constantFrom(...flows), (flow) => {
-      expect(airPressOffersUndo(flow)).toBe(
-        flow.kind === "idle" || flow.kind === "pasteAim",
-      );
-      if (flow.kind === "idle" || flow.kind === "pasteAim")
-        expect(airPressOffersUndo(flow)).toBe(true);
-      expect(airPressOffersUndo(flow)).toBe(
-        opensUtilityMenu(flow, false) || flow.kind === "pasteAim",
-      );
+      expect(airPressOffersUndo(flow)).toBe(flow.kind === "idle");
+      if (flow.kind === "idle") expect(airPressOffersUndo(flow)).toBe(true);
+      expect(airPressOffersUndo(flow)).toBe(opensUtilityMenu(flow, false));
     }),
   );
 });
