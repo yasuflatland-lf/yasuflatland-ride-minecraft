@@ -28,7 +28,8 @@
         "lit": "textures/entity/yasu_ride/scooter_lit"
       },
       "geometry": {
-        "default": "geometry.yasu_ride.scooter"
+        "default": "geometry.yasu_ride.scooter",
+        "lit": "geometry.yasu_ride.scooter_lit"
       },
       "animations": {
         "wheels": "animation.yasu_ride.scooter.wheels",

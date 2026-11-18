@@ -10,6 +10,7 @@ import {
   turn,
   turnedCorners,
 } from "../support/geometry";
+import { readRgbaPng } from "../support/png";
 
 const RP = "packs/yasu_ride_rp";
 const read = (path: string) =>
@@ -93,7 +94,10 @@ const effects = (timeline: Record<string, Effect | Effect[]> | undefined) =>
 describe("scooter client references", () => {
   it("resolves all animations, controllers, bones and playback entries", () => {
     expect(client.identifier).toBe("yasu_ride:scooter");
-    expect(client.geometry).toEqual({ default: "geometry.yasu_ride.scooter" });
+    expect(client.geometry).toEqual({
+      default: "geometry.yasu_ride.scooter",
+      lit: "geometry.yasu_ride.scooter_lit",
+    });
     const available = { ...animations, ...controllers };
     expect(Object.values(client.animations).sort()).toEqual(
       Object.keys(available).sort(),
@@ -307,6 +311,46 @@ describe("scooter controllers", () => {
   });
 
   it("draws cutout paint, a separate hover glow, then the lit lamps last", () => {
+    const main = read("models/entity/yasu_ride/scooter.geo.json")[
+      "minecraft:geometry"
+    ][0];
+    const lit = read("models/entity/yasu_ride/scooter_lit.geo.json")[
+      "minecraft:geometry"
+    ][0];
+    expect(client.geometry).toEqual({
+      default: "geometry.yasu_ride.scooter",
+      lit: "geometry.yasu_ride.scooter_lit",
+    });
+    expect(lit.description.identifier).toBe("geometry.yasu_ride.scooter_lit");
+    const image = readRgbaPng(
+      `${RP}/textures/entity/yasu_ride/scooter_lit.png`,
+    );
+    expect([
+      lit.description.texture_width,
+      lit.description.texture_height,
+    ]).toEqual([image.width, image.height]);
+    const litBones = lit.bones as (Omit<Bone, "cubes"> & {
+      cubes: (NonNullable<Bone["cubes"]>[number] & {
+        uv: Record<string, unknown>;
+      })[];
+    })[];
+    expect(litBones.map((b) => b.name)).toEqual(bones.map((b) => b.name));
+    for (const [index, b] of litBones.entries()) {
+      const original = main.bones[index];
+      const { cubes: _cubes, ...metadata } = b;
+      const { cubes: _originalCubes, ...originalMetadata } = original;
+      expect(metadata).toEqual(originalMetadata);
+      const kept =
+        ["headlights", "tail_lights"].includes(b.name) ||
+        b.name.startsWith("glow_");
+      expect(b.cubes?.length ?? 0).toBe(kept ? original.cubes.length : 0);
+      for (const [cubeIndex, cube] of (b.cubes ?? []).entries()) {
+        const { uv, ...shape } = cube;
+        const { uv: originalUv, ...originalShape } = original.cubes[cubeIndex];
+        expect(shape).toEqual(originalShape);
+        expect(Object.keys(uv ?? {})).toEqual(Object.keys(originalUv));
+      }
+    }
     const headlights = "query.property('yasu_ride:headlights')";
     const gearUp = "!query.property('yasu_ride:gear_down')";
     expect(client.materials).toEqual({
@@ -337,7 +381,7 @@ describe("scooter controllers", () => {
       ["lit", [{ "*": false }, { headlights }, { tail_lights: headlights }]],
     ] as const) {
       expect(renders[`${renderId}.${suffix}`]).toEqual({
-        geometry: "Geometry.default",
+        geometry: "Geometry.lit",
         textures: ["Texture.lit"],
         materials: [{ "*": "Material.lamp_lit" }],
         part_visibility: visibility,
