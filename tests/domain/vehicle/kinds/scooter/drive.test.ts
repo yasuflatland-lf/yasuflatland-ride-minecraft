@@ -80,7 +80,11 @@ it("never dives and sends visual properties only when their values change", () =
           expect(Math.abs(state.lean - lean)).toBeLessThanOrEqual(
             SCOOTER_SPEC.leanRate + 1e-12,
           );
-          if (drive.form !== "car" || drive.speed === 0)
+          if (
+            drive.form === "takeoff" ||
+            raw === undefined ||
+            drive.speed === 0
+          )
             expect(Math.abs(state.lean)).toBeLessThanOrEqual(Math.abs(lean));
           lean = state.lean;
         },
@@ -116,27 +120,161 @@ it("resends both inherited and scooter properties after resync", () => {
       out.commands.some((c) => c.type === "setProperty" && c.name === name),
     ).toBe(true);
 });
-it("leans and steers into a ground turn, then eases upright in flight", () => {
+it("leans into hover and landing turns with the ground sign", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("hover", "landing"),
+      fc.constantFrom(-1, 1),
+      (form, steer) => {
+        for (const initialForm of ["car", form] as const) {
+          const drive = new ScooterDrive(0, { form: initialForm });
+          let riderLean = 0;
+          let body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+          for (let tick = 0; tick < 30; tick++) {
+            const out = drive.step(
+              { ...idle, moveX: steer, moveY: 1 },
+              {
+                ...context(),
+                tick,
+                onGround: initialForm === "car",
+                velocity: { ...body.vel, y: 0 },
+              },
+            );
+            body = engineStep(
+              body,
+              out.impulse,
+              { mu: 0.688 },
+              initialForm === "car",
+            ).body;
+            riderLean = out.riderLean ?? 0;
+          }
+          expect(drive.form).toBe(initialForm);
+          expect(Math.sign(drive.yaw)).toBe(-steer);
+          expect(Math.sign(drive.inspect().lean)).toBe(steer);
+          if (initialForm !== "car") {
+            expect(drive.inspect().lean).toBe(steer * SCOOTER_SPEC.maxLean);
+            expect(riderLean).toBe(steer * SCOOTER_SPEC.leanLevels);
+          }
+          expect(drive.inspect().steer).toBe(steer * SCOOTER_SPEC.maxSteer);
+        }
+      },
+    ),
+  );
+});
+it("bounds flight lean by maxLean and each tick's change by leanRate", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("hover", "landing"),
+      fc.array(axis, { minLength: 20, maxLength: 80 }),
+      (form, turns) => {
+        const drive = new ScooterDrive(0, { form });
+        let previous = 0;
+        let body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+        turns.forEach((moveX, tick) => {
+          const out = drive.step(
+            { ...idle, moveX, moveY: 1 },
+            {
+              ...context(),
+              tick,
+              onGround: false,
+              velocity: { ...body.vel, y: 0 },
+            },
+          );
+          body = engineStep(body, out.impulse, { mu: 0.688 }, false).body;
+          expect(drive.form).toBe(form);
+          const lean = drive.inspect().lean;
+          expect(Math.abs(lean)).toBeLessThanOrEqual(SCOOTER_SPEC.maxLean);
+          expect(Math.abs(lean - previous)).toBeLessThanOrEqual(
+            SCOOTER_SPEC.leanRate + 1e-12,
+          );
+          previous = lean;
+        });
+      },
+    ),
+  );
+});
+it("eases flight lean upright when steering is released or the driver leaves", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("hover", "landing"),
+      fc.constantFrom(-1, 1),
+      fc.boolean(),
+      (form, steer, driverLeaves) => {
+        const drive = new ScooterDrive(0, { form });
+        let body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+        for (let tick = 0; tick < 60; tick++) {
+          const out = drive.step(
+            { ...idle, moveX: steer, moveY: 1 },
+            {
+              ...context(),
+              tick,
+              onGround: false,
+              velocity: { ...body.vel, y: 0 },
+            },
+          );
+          body = engineStep(body, out.impulse, { mu: 0.688 }, false).body;
+        }
+        expect(drive.inspect().lean).toBe(steer * SCOOTER_SPEC.maxLean);
+        let riderLean = 0;
+        for (
+          let tick = 0;
+          tick < SCOOTER_SPEC.maxLean / SCOOTER_SPEC.leanRate;
+          tick++
+        ) {
+          const previous = drive.inspect().lean;
+          const out = drive.step(
+            driverLeaves ? undefined : { ...idle, moveY: 1 },
+            {
+              ...context(),
+              tick: 60 + tick,
+              onGround: false,
+            },
+          );
+          expect(drive.inspect().lean).toBe(
+            previous - steer * SCOOTER_SPEC.leanRate,
+          );
+          riderLean = out.riderLean ?? 0;
+        }
+        expect(drive.inspect().lean).toBe(0);
+        expect(riderLean).toBe(0);
+      },
+    ),
+  );
+});
+it("eases upright during take-off even while steering is held", () => {
   const drive = new ScooterDrive(0, {});
-  for (let tick = 0; tick < 30; tick++)
-    drive.step(
-      { ...idle, moveX: 1, moveY: 1 },
-      { ...context(), tick, velocity: { x: 0, y: 0, z: drive.speed } },
-    );
-  expect(drive.yaw).toBeLessThan(0);
-  expect(drive.inspect().lean).toBeGreaterThan(0);
-  expect(drive.inspect().steer).toBe(SCOOTER_SPEC.maxSteer);
-  drive.step({ ...idle, jump: true }, { ...context(), tick: 30 });
-  drive.step(idle, { ...context(), tick: 31 });
-  drive.step({ ...idle, jump: true }, { ...context(), tick: 32 });
+  const turn = { ...idle, moveX: 1, moveY: 1 };
+  let body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+  const stepGround = (raw: RawInput, tick: number) => {
+    const out = drive.step(raw, {
+      ...context(),
+      tick,
+      velocity: { ...body.vel, y: 0 },
+    });
+    body = engineStep(body, out.impulse, { mu: 0.688 }).body;
+  };
+  for (let tick = 0; tick < 60; tick++) stepGround(turn, tick);
+  stepGround({ ...turn, jump: true }, 60);
+  stepGround(turn, 61);
+  const previous = drive.inspect().lean;
+  expect(previous).toBe(SCOOTER_SPEC.maxLean);
+  stepGround({ ...turn, jump: true }, 62);
   expect(drive.form).toBe("takeoff");
   expect(drive.inspect().stand).toBe(false);
+  expect(drive.inspect().lean).toBe(previous - SCOOTER_SPEC.leanRate);
   for (
-    let tick = 33;
-    tick <= 33 + SCOOTER_SPEC.maxLean / SCOOTER_SPEC.leanRate;
+    let tick = 63;
+    tick < 63 + SCOOTER_SPEC.maxLean / SCOOTER_SPEC.leanRate;
     tick++
-  )
-    drive.step(idle, { ...context(), tick });
+  ) {
+    const previous = drive.inspect().lean;
+    const out = drive.step(turn, { ...context(), tick, onGround: false });
+    expect(drive.form).toBe("takeoff");
+    expect(drive.inspect().lean).toBe(
+      Math.max(0, previous - SCOOTER_SPEC.leanRate),
+    );
+    if (drive.inspect().lean === 0) expect(out.riderLean).toBe(0);
+  }
   expect(drive.inspect().lean).toBe(0);
 });
 it("floats level without a driver and corrects depth toward the surface", () => {
