@@ -13,7 +13,7 @@ import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 const playerId = asPlayerId("p");
 const material = blockStateOf("minecraft:stone");
 const component = fc.integer({ min: -100, max: 100 });
-it("reads aim once at choice, ignores pitch, locks boxes and retains the axis on later height changes", () => {
+it("reads aim once at choice, ignores pitch, locks selected heights and retains the axis on later aim changes", () => {
   fc.assert(
     fc.property(
       fc.record({ x: component, y: component, z: component }),
@@ -54,7 +54,7 @@ it("reads aim once at choice, ignores pitch, locks boxes and retains the axis on
         expect(session.flow).toMatchObject({
           kind: "heightStep",
           heightedKind: kind,
-          heightLocked: box,
+          heightLocked: true,
           previous: box ? 5 : 1,
         });
         currentDirection = { x: 1000, y: 0, z: 2000 };
@@ -63,7 +63,7 @@ it("reads aim once at choice, ignores pitch, locks boxes and retains the axis on
         expect(aim.aim).toHaveBeenCalledTimes(1);
         expect(session.flow).toMatchObject({
           heightedKind: kind,
-          previous: box ? 5 : 7,
+          previous: box ? 5 : 1,
         });
         expect(contentsMenu(session.flow).map(({ id }) => id)).toEqual([
           "fill",

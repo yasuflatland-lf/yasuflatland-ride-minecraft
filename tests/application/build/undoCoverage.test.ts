@@ -10,7 +10,13 @@ import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateSelection } from "../../../src/application/build/rotateSelection";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf, type CellBox, cellsOf } from "../../../src/domain/build/box";
+import {
+  boxOf,
+  boxWithHeight,
+  type CellBox,
+  cellsOf,
+} from "../../../src/domain/build/box";
+import { chooseHeighted, setHeight } from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -103,6 +109,30 @@ function undoAndExpectEmpty(e: Env) {
   expect(e.feedback.messages.at(-1)?.message).toBe("nothingToUndo");
 }
 
+it("keeps the filled box selected and restores its pre-build selection on Undo", () => {
+  const e = setup();
+  const box = boxOf({ x: 1, y: 64, z: 2 }, { x: 3, y: 66, z: 5 });
+  const selected = {
+    kind: "selected",
+    menuLevel: "root",
+    selection: selectionOf(overworld, box, stone),
+  };
+  select(e, box);
+  e.shape.execute({ playerId, style: "fill" });
+  e.drain();
+  expect(e.session.flow).toMatchObject(selected);
+  const entry = e.session.takeUndo();
+  expect(entry).toMatchObject({
+    kind: "cells",
+    record: { selectionBefore: box, selectionAfter: box },
+  });
+  if (typeof entry === "string") throw new Error("Expected cell history");
+  e.session.putBackUndo(entry);
+  expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: box });
+  e.drain();
+  expect(e.session.flow).toMatchObject(selected);
+});
+
 it.each(["endpoint", "heightStep"] as const)(
   "undo reports the box selected at %s confirmation",
   (kind) => {
@@ -114,20 +144,81 @@ it.each(["endpoint", "heightStep"] as const)(
       select(e, base);
       e.shape.execute({ playerId, style: "frame" });
     } else {
-      e.session.setFlow({
-        kind,
-        dimensionId: overworld,
-        base,
-        from: base.min,
-        heightedKind: "cube",
-        previous: 4,
-        heightLocked: false,
-        material: stone,
-      });
+      select(e, box);
+      e.session.setFlow(chooseHeighted(e.session.flow, "cube"));
       e.heighted.execute({ playerId, fill: "fill" });
     }
     e.drain();
     expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: box });
+  },
+);
+
+it.each([
+  { kind: "gable", originalHeight: 5, builtHeight: 3 },
+  { kind: "hip", originalHeight: 1, builtHeight: 3 },
+  { kind: "sphere", originalHeight: 2, builtHeight: 2 },
+] as const)(
+  "undo restores the full pre-build $kind selection and confirmation",
+  ({ kind, originalHeight, builtHeight }) => {
+    const e = setup();
+    const base = boxOf({ x: 0, y: 64, z: 0 }, { x: 3, y: 64, z: 1 });
+    const before = boxWithHeight(base, originalHeight);
+    const built =
+      kind === "sphere"
+        ? boxOf({ x: 1, y: 64, z: 0 }, { x: 2, y: 65, z: 1 })
+        : boxWithHeight(base, builtHeight);
+    select(e, before);
+    e.session.setFlow(
+      setHeight(chooseHeighted(e.session.flow, kind), builtHeight),
+    );
+
+    e.heighted.execute({ playerId, fill: "fill" });
+    e.drain();
+    expect(e.session.flow).toMatchObject({
+      kind: "selected",
+      menuLevel: "root",
+      selection: selectionOf(overworld, built, stone),
+    });
+    expect(e.session.confirmedBox).toEqual(
+      selectionOf(overworld, built, stone),
+    );
+
+    expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: before });
+    e.drain();
+    expect(e.session.flow).toMatchObject({
+      kind: "selected",
+      menuLevel: "root",
+      selection: selectionOf(overworld, before, stone),
+    });
+    expect(e.session.confirmedBox).toEqual(
+      selectionOf(overworld, before, stone),
+    );
+  },
+);
+
+it.each(["frame", "gable"] as const)(
+  "undo of %s leaves an unrelated active selection and Copy bounds intact",
+  (kind) => {
+    const e = setup();
+    const base = boxOf({ x: 0, y: 64, z: 0 }, { x: 3, y: 64, z: 4 });
+    select(e, base);
+    if (kind === "frame") e.shape.execute({ playerId, style: kind });
+    else {
+      e.session.setFlow(setHeight(chooseHeighted(e.session.flow, kind), 3));
+      e.heighted.execute({ playerId, fill: "fill" });
+    }
+    e.drain();
+
+    const other = boxOf({ x: 10, y: 64, z: 10 }, { x: 13, y: 64, z: 14 });
+    const selection = selectionOf(overworld, other, stone);
+    e.session.confirmBox(selection, "selected");
+    const flow = e.session.flow;
+
+    expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: base });
+    e.drain();
+    expect(e.session.flow).toBe(flow);
+    expect(e.session.confirmedBox).toBe(selection);
+    expect(snapshot(e, base).every((state) => state === AIR)).toBe(true);
   },
 );
 
@@ -297,10 +388,9 @@ it.each(["Remove above", "Copy"] as const)(
     if (operation === "Remove above") {
       e.session.setFlow({
         kind: "terrainConfirm",
-        dimensionId: overworld,
+        selection: selectionOf(overworld, boxOf(floor, floor), stone),
         from: floor,
         to: floor,
-        material: stone,
         op: "removeAbove",
       });
       e.terrain.execute({ playerId });

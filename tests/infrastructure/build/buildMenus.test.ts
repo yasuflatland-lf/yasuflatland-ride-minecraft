@@ -146,6 +146,7 @@ function setup(fallback?: boolean) {
     closeBuildMenu: {
       execute: vi.fn((cmd) => new CloseBuildMenu(repo, preview).execute(cmd)),
     },
+    chooseAdjustHeight: { execute: vi.fn() },
     chooseBoxStep: {
       execute: vi.fn((cmd) =>
         new ChooseBoxStep(
@@ -169,7 +170,6 @@ function setup(fallback?: boolean) {
         ).execute(cmd),
       ),
     },
-    confirmBoxStep: { execute: vi.fn() },
     confirmShape: { execute: vi.fn() },
     chooseHeighted: {
       execute: vi.fn((cmd) =>
@@ -253,7 +253,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     const { session, menus, player, cases } = setup();
     const build = openBuildMenu(endpoint);
     ui.answers.push(
-      { selection: 2 },
+      { selection: 3 },
       answer === "back"
         ? {
             selection: buildMenu(build).findIndex(
@@ -272,9 +272,15 @@ it.each(["back", "dismiss", "unanswered"] as const)(
       { translate: BUILD_FORM.shapeTitle },
     ]);
     expect(ui.forms[0]?.buttons).toEqual(
-      ["cut", "removeAbove", "buildShape", "copy", "fillBelow", "cancel"].map(
-        (id) => ({ translate: BUILD_FORM[id as keyof typeof BUILD_FORM] }),
-      ),
+      [
+        "adjustHeight",
+        "cut",
+        "removeAbove",
+        "buildShape",
+        "copy",
+        "fillBelow",
+        "cancel",
+      ].map((id) => ({ translate: BUILD_FORM[id as keyof typeof BUILD_FORM] })),
     );
     expect(cases.closeBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
@@ -393,7 +399,7 @@ it.each([
   });
 });
 
-it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
+it.each(["gable", "hip"] as const)(
   "chooses %s without a slider by default",
   async (kind) => {
     const { menus, player, cases } = setup();
@@ -492,13 +498,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
     fc.asyncProperty(
       fc.integer({ min: 0, max: 319 }),
       fc.integer({ min: 1, max: 21 }),
-      fc.constantFrom(
-        "gable" as const,
-        "hip" as const,
-        "cylinder" as const,
-        "sphere" as const,
-        "cube" as const,
-      ),
+      fc.constantFrom("gable" as const, "hip" as const),
       async (y, requested, kind) => {
         const { session, menus, player, cases } = setup(true);
         const flow = chooseHeighted(
@@ -512,12 +512,12 @@ it("bounds the fallback slider, uses the previous height and applies it before t
         ui.forms.length = 0;
         ui.answers.push({ formValues: [max] }, { selection: 1 });
         await menus.showHeightSlider(player);
-        const title =
-          kind === "cylinder" || kind === "sphere" || kind === "cube"
-            ? BUILD_FORM.solidTitle
-            : BUILD_FORM.roofTitle;
-        expect(ui.forms[0]?.heading).toEqual({ translate: title });
-        expect(ui.forms[1]?.heading).toEqual({ translate: title });
+        expect(ui.forms[0]?.heading).toEqual({
+          translate: BUILD_FORM.roofTitle,
+        });
+        expect(ui.forms[1]?.heading).toEqual({
+          translate: BUILD_FORM.roofTitle,
+        });
         expect(ui.forms[0]?.sliders).toEqual([
           {
             label: { translate: BUILD_FORM.height },
@@ -543,7 +543,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
   );
 });
 
-it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
+it.each(["gable", "hip"] as const)(
   "chains %s through the enabled slider to the roof menu",
   async (kind) => {
     const { menus, player, cases } = setup(true);
@@ -784,18 +784,23 @@ it.each(["fill", "hollow", "cancel"] as const)(
   },
 );
 
-it.each([false, true])(
-  "opens locked cylinder contents directly with fallback=%s",
-  async (fallback) => {
+it.each([
+  { kind: "cylinder", y: from.y, fallback: false },
+  { kind: "cube", y: from.y, fallback: true },
+  { kind: "cylinder", y: 71, fallback: true },
+  { kind: "cube", y: 71, fallback: false },
+] as const)(
+  "opens locked $kind contents directly at y=$y with fallback=$fallback",
+  async ({ kind, y, fallback }) => {
     const { session, menus, player, cases } = setup(fallback);
-    session.setFlow(selected(from, { ...to, y: 71 }));
-    ui.answers.push(...shapeAnswers(session.flow, "cylinder"), {
+    session.setFlow(selected(from, { ...to, y }));
+    ui.answers.push(...shapeAnswers(session.flow, kind), {
       selection: 2,
     });
     await menus.showShapeMenu(player);
     expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
-      kind: "cylinder",
+      kind,
     });
     expect(ui.forms).toHaveLength(3);
     expect(ui.forms[2]?.heading).toEqual({ translate: BUILD_FORM.solidTitle });
@@ -805,7 +810,10 @@ it.each([false, true])(
       playerId,
       fill: "tube",
     });
-    expect(session.flow).toMatchObject({ heightLocked: true, previous: 12 });
+    expect(session.flow).toMatchObject({
+      heightLocked: true,
+      previous: y - from.y + 1,
+    });
     ui.answers.push({ selection: 0 });
     await menus.showHeightSlider(player);
     expect(ui.forms).toHaveLength(4);
@@ -814,11 +822,11 @@ it.each([false, true])(
   },
 );
 
-it.each([false, true])(
-  "opens locked sphere contents directly with fallback=%s",
-  async (fallback) => {
-    const { session, menus, player, cases } = setup(fallback);
-    session.setFlow(selected(from, { ...to, y: 71 }));
+it.each([from.y, 71])(
+  "opens locked sphere contents directly with top y=%s",
+  async (y) => {
+    const { session, menus, player, cases } = setup(true);
+    session.setFlow(selected(from, { ...to, y }));
     ui.answers.push(...shapeAnswers(session.flow, "sphere"), { selection: 1 });
     await menus.showShapeMenu(player);
     expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
@@ -896,23 +904,18 @@ it.each([
   expect(ui.forms).toHaveLength(1);
 });
 
-it("confirms Copy after the fallback slider without opening contents", async () => {
-  const { menus, player, cases, session } = setup(true);
-  ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "copy") },
-    { formValues: [7] },
-  );
-  cases.confirmBoxStep.execute.mockImplementation(() => {
-    expect(session.flow).toMatchObject({ heightedKind: "copy", previous: 7 });
-  });
-  await menus.showShapeMenu(player);
-  expect(ui.forms).toHaveLength(2);
-  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.copyTitle });
-  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
-});
+it.each(["copy", "cut"] as const)(
+  "enters paste aiming directly with %s when the fallback slider is enabled",
+  async (kind) => {
+    const { menus, player, cases, session } = setup(true);
+    ui.answers.push({
+      selection: shapeMenu(endpoint).findIndex((e) => e.id === kind),
+    });
+    await menus.showShapeMenu(player);
+    expect(session.flow.kind).toBe("pasteAim");
+    expect(ui.forms).toHaveLength(1);
+  },
+);
 
 it.each([
   ["line", { x: 4, y: 60, z: 0 }],
@@ -1045,34 +1048,6 @@ it("offers terrain entries only during the confirmation", () => {
   expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
     playerId,
   });
-});
-
-it("confirms Cut after the fallback slider without opening contents", async () => {
-  const { menus, player, cases, session } = setup(true);
-  ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "cut") },
-    { formValues: [7] },
-  );
-  cases.confirmBoxStep.execute.mockImplementation(() => {
-    expect(session.flow).toMatchObject({ heightedKind: "cut", previous: 7 });
-  });
-  await menus.showShapeMenu(player);
-  expect(ui.forms).toHaveLength(2);
-  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.cutTitle });
-  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
-});
-
-it("does not open contents or a slider for locked Copy", async () => {
-  const { menus, player, session } = setup(true);
-  const flow = chooseHeighted(endpoint, "copy");
-  if (flow.kind !== "heightStep") throw new Error("Expected height step");
-  session.setFlow({ ...flow, heightLocked: true });
-  await menus.showHeightSlider(player);
-  await menus.showContentsMenu(player);
-  expect(ui.forms).toHaveLength(0);
 });
 
 it("dispatches each offered paste entry exactly once and ignores all unoffered ids", () => {
@@ -1242,28 +1217,25 @@ it("returns to aiming when Fill below confirmation is dismissed", async () => {
 });
 
 it.each([false, true])(
-  "routes a sideways rectangle through the shared height step with fallback=%s",
+  "opens one-layer sideways cylinder contents directly with fallback=%s",
   async (fallback) => {
     const { session, menus, player, cases } = setup(fallback);
-    ui.answers.push(...shapeAnswers(session.flow, "sideCylinder"));
-    if (fallback) ui.answers.push({ formValues: [7] }, { selection: 0 });
+    ui.answers.push(...shapeAnswers(session.flow, "sideCylinder"), {
+      selection: 0,
+    });
     await menus.showShapeMenu(player);
     expect(session.flow).toMatchObject({
       heightedKind: "sideCylinderX",
-      heightLocked: false,
-      previous: fallback ? 7 : 1,
+      heightLocked: true,
+      previous: 1,
     });
-    expect(ui.forms).toHaveLength(fallback ? 4 : 2);
-    if (fallback) {
-      expect(cases.setHeight.execute).toHaveBeenCalledExactlyOnceWith({
-        playerId,
-        height: 7,
-      });
-      expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
-        playerId,
-        fill: "fill",
-      });
-    } else expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
+    expect(ui.forms).toHaveLength(3);
+    expect(ui.forms[2]?.buttons).toEqual(labels(contentsMenu(session.flow)));
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      fill: "fill",
+    });
   },
 );
 
@@ -1290,7 +1262,7 @@ it.each([
     const { session, menus, player, cases } = setup();
     session.setFlow(selected(from, { x: 4, y: 64, z: 0 }));
     const initial = session.flow;
-    ui.answers.push({ selection: 2 }, answer, { selection: 0 });
+    ui.answers.push({ selection: 3 }, answer, { selection: 4 });
     await menus.showShapeMenu(player);
     expect(cases.openBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
@@ -1343,7 +1315,7 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   let dismiss!: (value: Answer) => void;
   let finish!: (value: Answer) => void;
   ui.answers.push(
-    { selection: 2 },
+    { selection: 3 },
     new Promise((resolve) => {
       dismiss = resolve;
     }),
@@ -1366,4 +1338,13 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   await pending;
   expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
   expect(session.flow).toEqual(endpoint);
+});
+
+it("dispatches adjust height from the selected root menu", async () => {
+  const { menus, player, cases } = setup();
+  ui.answers.push({ selection: 0 });
+  await menus.showShapeMenu(player);
+  expect(cases.chooseAdjustHeight.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
 });

@@ -1,13 +1,14 @@
 import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
+import { ChooseAdjustHeight } from "../../application/build/chooseAdjustHeight";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
 import { ChooseTerrain } from "../../application/build/chooseTerrain";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { CloseBuildMenu } from "../../application/build/closeBuildMenu";
-import { ConfirmBoxStep } from "../../application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
+import { ConfirmLiveHeight } from "../../application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { ConfirmTerrain } from "../../application/build/confirmTerrain";
 import { CopyBox } from "../../application/build/copyBox";
@@ -124,7 +125,6 @@ export function installBuild(deps: {
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
     chooseBoxStep: new ChooseBoxStep(repo, actions, feedback, facing),
-    confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback, facing),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback, facing),
     endPasting: new EndPasting(repo, ports.structures),
@@ -153,6 +153,7 @@ export function installBuild(deps: {
   };
   const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const menuCases = {
+    chooseAdjustHeight: new ChooseAdjustHeight(repo),
     openSelectionMenu: new OpenSelectionMenu(repo),
     openBuildMenu: new OpenBuildMenu(repo, preview),
     closeBuildMenu: new CloseBuildMenu(repo, preview),
@@ -186,7 +187,7 @@ export function installBuild(deps: {
     tapAir: new TapAir(repo, feedback),
     pressPasteAim,
     aimHeight: cases.aimHeight,
-    confirmBoxStep: cases.confirmBoxStep,
+    confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
     repo,
     menus,
     aim,
@@ -207,7 +208,14 @@ export function installBuild(deps: {
     rotateDebounce,
     undoDebounce,
   );
-  registerTestTap(repo, feedback, blocks, menuCases.openSelectionMenu);
+  registerTestTap(
+    repo,
+    feedback,
+    blocks,
+    menuCases.openSelectionMenu,
+    aim,
+    cases.aimHeight,
+  );
   registerTestMode(modes, repo);
   registerEditTick(jobs);
   const describe = new DescribeBuild(repo);
@@ -215,7 +223,6 @@ export function installBuild(deps: {
   registerTestEdit(
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
-    menuCases.confirmBoxStep,
     pressPasteAim,
     cases.undo,
     describe,

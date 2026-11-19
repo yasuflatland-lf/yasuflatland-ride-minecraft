@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
+import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
@@ -22,6 +23,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -62,7 +64,9 @@ function setup() {
   );
   const endpoint = () =>
     session.setFlow(
-      tapAir(tapBlock({ kind: "idle" }, overworld, from, stone), to),
+      confirmEndpointHeight(
+        tapAir(tapBlock({ kind: "idle" }, overworld, from, stone), to),
+      ),
     );
   return {
     repo,
@@ -94,6 +98,8 @@ it("samples material only for a new point 1, clears the confirmed box, and repor
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
   expect(material).toHaveBeenCalledTimes(1);
+  expect(e.session.flow.kind).toBe("baseHeight");
+  new ConfirmLiveHeight(e.repo, e.feedback).execute({ playerId });
   expect(e.session.flow).toEqual({
     kind: "selected",
     menuLevel: "root",
@@ -149,6 +155,9 @@ it("air taps require a valid endpoint and preserve the fixed selection", () => {
   e.air.execute({ playerId });
   expect(e.session.flow).toBe(first);
   e.air.execute({ playerId, end: to });
+  expect(e.session.flow.kind).toBe("baseHeight");
+  expect(e.feedback.messages).toHaveLength(0);
+  new ConfirmLiveHeight(e.repo, e.feedback).execute({ playerId });
   expect(e.feedback.messages.at(-1)).toEqual({ message: "endSet", count: 9 });
   const selected = e.session.flow;
   e.air.execute({ playerId, end: { ...to, x: 3 } });
@@ -156,11 +165,11 @@ it("air taps require a valid endpoint and preserve the fixed selection", () => {
   expect(e.feedback.messages).toHaveLength(1);
 });
 
-it("confirms the chosen shape with the captured material, retaining its box only for Copy", () => {
+it("confirms the chosen shape with the captured material, keeping its box selected and available for Copy", () => {
   const e = setup();
   e.endpoint();
   e.confirm.execute({ playerId, style: "frame" });
-  expect(e.session.flow.kind).toBe("idle");
+  expect(e.session.flow.kind).toBe("selected");
   expect(e.session.confirmedBox).toEqual({
     material: stone,
     dimensionId: overworld,
@@ -182,7 +191,9 @@ it("refuses oversized shapes with their count, unsupported styles, and busy jobs
   const e = setup();
   const end = { x: 100, y: 164, z: 100 };
   e.session.setFlow(
-    tapAir(tapBlock(e.session.flow, overworld, from, stone), end),
+    confirmEndpointHeight(
+      tapAir(tapBlock(e.session.flow, overworld, from, stone), end),
+    ),
   );
   const huge = e.session.flow;
   e.confirm.execute({ playerId, style: "fill" });
@@ -208,11 +219,13 @@ it("applies the limit to the chosen style rather than the bounding volume", () =
   const e = setup();
   const end = { x: 49, y: 113, z: 49 };
   e.session.setFlow(
-    tapAir(tapBlock(e.session.flow, overworld, from, stone), end),
+    confirmEndpointHeight(
+      tapAir(tapBlock(e.session.flow, overworld, from, stone), end),
+    ),
   );
   e.confirm.execute({ playerId, style: "faces" });
   expect(e.session.isEditing).toBe(true);
-  expect(e.session.flow.kind).toBe("idle");
+  expect(e.session.flow.kind).toBe("selected");
 });
 
 it("CancelFlow cancels or returns to aiming without clearing the confirmed box, while Clear clears both", () => {

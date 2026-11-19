@@ -2,17 +2,14 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import {
   boxOf,
-  boxWithHeight,
   type CellBox,
   center,
   edgePoints,
-  volume,
 } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
-import type { BuildFlow } from "../flow/flow";
+import { type BuildFlow, liveHeightBox } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
 import { volumeOf } from "../volume/geometry";
-import { boxStepLimit, isBoxStepKind } from "../volume/kind";
 import { pasteOutline } from "./pasteOutline";
 
 export interface PreviewSet {
@@ -22,8 +19,6 @@ export interface PreviewSet {
   roof: Vec3[];
   paste: Vec3[];
   pasteVertical: Vec3[];
-  boxStep: Vec3[];
-  boxStepOver: Vec3[];
 }
 
 export interface PreviewAim {
@@ -45,8 +40,6 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
     roof: [],
     paste: [],
     pasteVertical: [],
-    boxStep: [],
-    boxStepOver: [],
   };
   switch (flow.kind) {
     case "idle":
@@ -58,12 +51,13 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         set.endCube = cornerMarkerPoints(aim.end);
       }
       break;
-    case "selected":
-      set.shape = outline(flow.selection.box);
+    case "baseHeight":
+      set.shape = outline(liveHeightBox(flow));
       set.endCube = cornerMarkerPoints(flow.to);
       break;
+    case "selected":
     case "terrainConfirm":
-      set.shape = outline(boxOf(flow.from, flow.to));
+      set.shape = outline(flow.selection.box);
       set.endCube = cornerMarkerPoints(flow.to);
       break;
     case "heightStep": {
@@ -78,12 +72,7 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         },
         BUILD_SPEC.outlineMaxPoints,
       );
-      if (isBoxStepKind(flow.heightedKind)) {
-        const box = boxWithHeight(flow.base, height);
-        if (volume(box) > boxStepLimit(flow.heightedKind))
-          set.boxStepOver = wireframe;
-        else set.boxStep = wireframe;
-      } else set.roof = wireframe;
+      set.roof = wireframe;
       break;
     }
     case "pasteAim":

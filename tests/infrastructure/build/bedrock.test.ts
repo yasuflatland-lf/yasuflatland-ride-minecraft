@@ -50,8 +50,6 @@ function preview(part: Partial<PreviewSet>): PreviewSet {
     roof: [],
     paste: [],
     pasteVertical: [],
-    boxStep: [],
-    boxStepOver: [],
     ...part,
   };
 }

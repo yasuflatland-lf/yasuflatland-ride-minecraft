@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf } from "../../../src/domain/build/box";
+import { boxOf, boxWithHeight } from "../../../src/domain/build/box";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import {
   airPressOffersUndo,
@@ -11,7 +11,6 @@ import {
   chooseHeighted,
   chooseTerrain,
   closeBuildMenu,
-  finishHeightStep,
   openBuildMenu,
   opensUtilityMenu,
   setHeight,
@@ -41,6 +40,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 
 const coord = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
@@ -55,7 +55,7 @@ const flows = fc
     fc.constantFrom(
       idle,
       tapBlock(idle, dim, a, stone),
-      tapAir(tapBlock(idle, dim, a, stone), b),
+      confirmEndpointHeight(tapAir(tapBlock(idle, dim, a, stone), b)),
     ),
   );
 
@@ -82,6 +82,12 @@ it("selects the same box from an air press or a second block tap", () => {
       });
       expect(tapBlock(aiming, dim, b, dirt)).toEqual(endpoint);
       expect(tapAir(aiming, b)).toEqual(endpoint);
+      expect(endpoint.kind).toBe(
+        shapeOf(a, b).kind === "line" ? "selected" : "baseHeight",
+      );
+      expect(selectionBoxOf(confirmEndpointHeight(endpoint))).toEqual(
+        boxOf(a, b),
+      );
     }),
   );
 });
@@ -105,7 +111,9 @@ it("a block tap in another dimension starts a fresh point 1 before selection", (
 it("keeps the selection on subsequent air and block taps", () => {
   fc.assert(
     fc.property(cell, cell, cell, (a, b, c) => {
-      const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
+      const endpoint = confirmEndpointHeight(
+        tapAir(tapBlock(idle, dim, a, stone), b),
+      );
       expect(tapBlock(endpoint, dim, c, dirt)).toBe(endpoint);
       expect(tapBlock(endpoint, other, c, dirt)).toBe(endpoint);
       expect(tapAir(endpoint, c)).toBe(endpoint);
@@ -129,10 +137,13 @@ it("offers the ordered root and build menus for every shape and returns unchange
           y: from.y + delta.y,
           z: from.z + delta.z,
         };
-        const flow = tapAir(tapBlock(idle, dim, from, stone), to);
+        const flow = confirmEndpointHeight(
+          tapAir(tapBlock(idle, dim, from, stone), to),
+        );
         const shape = shapeOf(from, to);
         const before = structuredClone(flow);
         const rootIds = [
+          ...(shape.kind === "line" ? [] : ["adjustHeight"]),
           "cut",
           "removeAbove",
           shape.kind === "line" ? "place" : "buildShape",
@@ -169,15 +180,17 @@ it("offers the ordered root and build menus for every shape and returns unchange
         tapBlock(idle, dim, from, stone),
         beginPasteAim(),
         chooseHeighted(
-          tapAir(tapBlock(idle, dim, from, stone), {
-            ...from,
-            x: from.x + 2,
-            z: from.z + 2,
-          }),
+          confirmEndpointHeight(
+            tapAir(tapBlock(idle, dim, from, stone), {
+              ...from,
+              x: from.x + 2,
+              z: from.z + 2,
+            }),
+          ),
           "gable",
         ),
         chooseTerrain(
-          tapAir(tapBlock(idle, dim, from, stone), from),
+          confirmEndpointHeight(tapAir(tapBlock(idle, dim, from, stone), from)),
           "removeAbove",
         ),
       ]) {
@@ -280,7 +293,17 @@ it("accepts every heighted kind only on its supported shapes", () => {
           ],
           [
             { x: dx, y: dy, z: dz },
-            ["fill", "faces", "walls", "cylinder", "sideCylinder", "sphere"],
+            [
+              "fill",
+              "faces",
+              "walls",
+              "gable",
+              "hip",
+              "cylinder",
+              "sideCylinder",
+              "sphere",
+              "cube",
+            ],
           ],
           [{ x: dx, y: dy, z: 0 }, ["fill", "frame"]],
           [{ x: 0, y: dy, z: dz }, ["fill", "frame"]],
@@ -295,7 +318,9 @@ it("accepts every heighted kind only on its supported shapes", () => {
           };
           const from = reverse ? end : origin;
           const to = reverse ? origin : end;
-          const flow = tapAir(tapBlock(idle, dim, from, stone), to);
+          const flow = confirmEndpointHeight(
+            tapAir(tapBlock(idle, dim, from, stone), to),
+          );
           expect(buildEntries(shapeOf(from, to)).map((e) => e.id)).toEqual(ids);
           for (const kind of [
             "gable",
@@ -309,7 +334,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
               expect(chosen).toBe(flow);
               continue;
             }
-            const locked = offset.y !== 0;
+            const locked = kind !== "gable" && kind !== "hip";
             expect(chosen).toEqual({
               kind: "heightStep",
               dimensionId: dim,
@@ -317,7 +342,10 @@ it("accepts every heighted kind only on its supported shapes", () => {
               material: stone,
               heightedKind: kind,
               base: { min: origin, max: { ...end, y: origin.y } },
-              previous: locked ? dy + 1 : 1,
+              previous: locked ? offset.y + 1 : 1,
+              ...(!locked && offset.y !== 0
+                ? { selectionBefore: boxOf(origin, end) }
+                : {}),
               heightLocked: locked,
             });
             expect(contentsMenu(chosen).map((e) => e.id)).toEqual(
@@ -346,17 +374,24 @@ it("roof and paste stages accept only their own transitions and ignore selection
       cell,
       fc.constantFrom("gable" as const, "hip" as const),
       fc.integer(),
-      fc.boolean(),
-      (a, b, kind, height, hollow) => {
-        const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
+      (a, b, kind, height) => {
+        const endpoint = confirmEndpointHeight(
+          tapAir(tapBlock(idle, dim, a, stone), b),
+        );
         const shape = shapeOf(a, b);
         const roof = chooseHeighted(endpoint, kind);
-        if (shape.kind === "rect" && shape.flat === "y") {
+        if (
+          shape.kind === "box" ||
+          (shape.kind === "rect" && shape.flat === "y")
+        ) {
           expect(roof).toEqual({
             kind: "heightStep",
             heightLocked: false,
             dimensionId: dim,
-            base: boxOf(a, b),
+            base: boxWithHeight(boxOf(a, b), 1),
+            ...(shape.kind === "box" && endpoint.kind === "selected"
+              ? { selectionBefore: endpoint.selection.box }
+              : {}),
             from: a,
             heightedKind: kind,
             previous: 1,
@@ -364,11 +399,13 @@ it("roof and paste stages accept only their own transitions and ignore selection
           });
         } else expect(roof).toBe(endpoint);
         const horizontal = chooseHeighted(
-          tapAir(tapBlock(idle, dim, a, stone), {
-            x: a.x + 2,
-            y: a.y,
-            z: a.z + 3,
-          }),
+          confirmEndpointHeight(
+            tapAir(tapBlock(idle, dim, a, stone), {
+              x: a.x + 2,
+              y: a.y,
+              z: a.z + 3,
+            }),
+          ),
           kind,
         );
         const paste = beginPasteAim();
@@ -379,9 +416,6 @@ it("roof and paste stages accept only their own transitions and ignore selection
           horizontal,
           paste,
         ]) {
-          expect(finishHeightStep(flow, hollow)).toEqual(
-            flow.kind === "heightStep" ? idle : flow,
-          );
           expect(setHeight(flow, height)).toEqual(
             flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
           );
@@ -424,7 +458,9 @@ it("roof Cancel preserves the original first point for either selection directio
         const b = { x: a.x + dx, y: a.y, z: a.z + dz };
         const from = reverse ? b : a;
         const to = reverse ? a : b;
-        const endpoint = tapAir(tapBlock(idle, dim, from, stone), to);
+        const endpoint = confirmEndpointHeight(
+          tapAir(tapBlock(idle, dim, from, stone), to),
+        );
         for (const kind of ["gable", "hip"] as const) {
           expect(backToAiming(chooseHeighted(endpoint, kind))).toEqual({
             kind: "point1",
@@ -528,16 +564,15 @@ it("enters the terrain confirmation only from an end point, keeps the points, an
   fc.assert(
     fc.property(cell, cell, cell, (a, b, c) => {
       const first = tapBlock(idle, dim, a, stone);
-      const endpoint = tapAir(first, b);
+      const endpoint = confirmEndpointHeight(tapAir(first, b));
       for (const flow of [idle, first, beginPasteAim()])
         expect(chooseTerrain(flow, "removeAbove")).toBe(flow);
       const confirming = chooseTerrain(endpoint, "removeAbove");
       expect(confirming).toEqual({
         kind: "terrainConfirm",
-        dimensionId: dim,
+        selection: selectionOf(dim, boxOf(a, b), stone),
         from: a,
         to: b,
-        material: stone,
         op: "removeAbove",
       });
       expect(chooseTerrain(confirming, "removeAbove")).toBe(confirming);
@@ -554,9 +589,14 @@ it("enters the terrain confirmation only from an end point, keeps the points, an
 it("offers Cut then Remove above first for every shape and the confirmation only in its state", () => {
   fc.assert(
     fc.property(cell, cell, (a, b) => {
-      const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
+      const endpoint = confirmEndpointHeight(
+        tapAir(tapBlock(idle, dim, a, stone), b),
+      );
       const ids = shapeMenu(endpoint).map((entry) => entry.id);
-      expect(ids.slice(0, 2)).toEqual(["cut", "removeAbove"]);
+      expect(ids.filter((id) => id !== "adjustHeight").slice(0, 2)).toEqual([
+        "cut",
+        "removeAbove",
+      ]);
       expect(terrainMenu(endpoint)).toEqual([]);
       const confirming = chooseTerrain(endpoint, "removeAbove");
       expect(shapeMenu(confirming)).toEqual([]);

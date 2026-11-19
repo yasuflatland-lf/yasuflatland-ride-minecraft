@@ -1,7 +1,6 @@
 // Applies queued edit plans in chunks, one shared budget per tick (ADR 0178).
 
 import { sameBlockState } from "../../domain/build/blockState";
-import type { CellBox } from "../../domain/build/box";
 import {
   type AppliedChange,
   type EditKind,
@@ -26,10 +25,12 @@ import type { BuildPlayers } from "./ports/players";
 import type { BuildStructureStore } from "./ports/structures";
 import { unstuck } from "./unstuck";
 
+type EditSelection = Pick<EditRecord, "selectionBefore" | "selectionAfter">;
+
 interface Job {
   readonly playerId: PlayerId;
   readonly dimensionId: DimensionId;
-  readonly selectionBefore?: CellBox;
+  readonly selection: EditSelection;
   readonly plan: Iterator<PlanStep>;
   readonly kind: EditKind;
   readonly applied: AppliedChange[];
@@ -39,10 +40,11 @@ interface Job {
 }
 
 function recordOf(job: Job): EditRecord {
-  const record = { dimensionId: job.dimensionId, changes: job.applied };
-  return job.selectionBefore
-    ? { ...record, selectionBefore: job.selectionBefore }
-    : record;
+  return {
+    dimensionId: job.dimensionId,
+    changes: job.applied,
+    ...job.selection,
+  };
 }
 
 export class EditJobs {
@@ -63,14 +65,14 @@ export class EditJobs {
     dimensionId: DimensionId,
     plan: Iterable<PlanStep>,
     kind: EditKind,
-    selectionBefore?: CellBox,
+    selection: EditSelection = {},
   ): void {
     this.jobs.push({
       playerId,
       dimensionId,
       plan: plan[Symbol.iterator](),
       kind,
-      selectionBefore,
+      selection,
       applied: [],
       buriedOwner: false,
       changed: 0,

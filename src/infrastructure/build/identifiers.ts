@@ -73,6 +73,7 @@ export const TEST_EDIT_EVENT = buildId("test_edit");
 export const TEST_RESULT_EVENT = buildId("test_result");
 
 export const BUILD_FORM = {
+  adjustHeight: "yasu_build.form.adjust_height",
   buildShape: "yasu_build.form.build_shape",
   buildShapeTitle: "yasu_build.form.build_shape_title",
   back: "yasu_build.form.back",
@@ -99,8 +100,6 @@ export const BUILD_FORM = {
   removeAboveBody: "yasu_build.form.remove_above_body",
   confirm: "yasu_build.form.confirm",
   cut: "yasu_build.form.cut",
-  cutTitle: "yasu_build.form.cut_title",
-  copyTitle: "yasu_build.form.copy_title",
   solidTitle: "yasu_build.form.solid_title",
   hollow: "yasu_build.form.hollow",
   cancel: "yasu_build.form.cancel",

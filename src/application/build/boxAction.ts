@@ -1,6 +1,5 @@
 import type { Facing } from "../../domain/build/rotation/facing";
 import type { Selection } from "../../domain/build/selection";
-import type { BoxStepKind } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
 
 export type BoxActionCommand = {
@@ -13,4 +12,4 @@ export interface BoxAction {
   execute(cmd: BoxActionCommand): boolean;
 }
 
-export type BoxActions = Readonly<Record<BoxStepKind, BoxAction>>;
+export type BoxActions = Readonly<Record<"copy" | "cut", BoxAction>>;

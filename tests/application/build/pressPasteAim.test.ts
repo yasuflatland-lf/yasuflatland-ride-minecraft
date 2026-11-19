@@ -21,6 +21,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
@@ -177,16 +178,18 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
     fc.property(cell, face, tick, (block, face, tick) => {
       const e = setup(block, face, tick);
       const first = tapBlock({ kind: "idle" }, nether, block, stone);
-      const endpoint = tapAir(first, {
-        ...block,
-        x: block.x + 2,
-        z: block.z + 2,
-      });
+      const endpoint = confirmEndpointHeight(
+        tapAir(first, {
+          ...block,
+          x: block.x + 2,
+          z: block.z + 2,
+        }),
+      );
       for (const flow of [
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "hip"),
       ]) {
         e.session.setFlow(flow);
         expect(e.execute()).toBe("ignored");
@@ -345,16 +348,18 @@ it("place hints without starting a paste outside aiming or without a clipboard",
       (block, face, tick, sneaking) => {
         const e = setup(block, face, tick);
         const first = tapBlock({ kind: "idle" }, nether, block, stone);
-        const endpoint = tapAir(first, {
-          ...block,
-          x: block.x + 2,
-          z: block.z + 2,
-        });
+        const endpoint = confirmEndpointHeight(
+          tapAir(first, {
+            ...block,
+            x: block.x + 2,
+            z: block.z + 2,
+          }),
+        );
         for (const flow of [
           { kind: "idle" } as const,
           first,
           endpoint,
-          chooseHeighted(endpoint, "copy"),
+          chooseHeighted(endpoint, "hip"),
         ]) {
           e.session.setFlow(flow);
           expect(e.execute(sneaking, "place")).toBe("ignored");

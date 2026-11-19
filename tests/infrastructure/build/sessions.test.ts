@@ -20,6 +20,7 @@ import {
   overworld,
 } from "../../application/build/fakes";
 import { FakeStructureStore } from "./../../application/build/fakes/structureStore";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 
 const engine = vi.hoisted(() => {
   const handlers = new Map<string, (event: unknown) => void>();
@@ -47,12 +48,14 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
       const at = { x, y: 10, z: 0 };
       const stone = blockStateOf("minecraft:stone");
       const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-      const endpoint = tapAir(first, { ...at, x: x + 2, z: 2 });
+      const endpoint = confirmEndpointHeight(
+        tapAir(first, { ...at, x: x + 2, z: 2 }),
+      );
       for (const flow of [
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "hip"),
         { kind: "pasteAim", manualTurn: 0 } as const,
       ]) {
         for (const event of ["dimension", "die"]) {

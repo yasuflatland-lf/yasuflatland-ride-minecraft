@@ -62,8 +62,11 @@ export class BuildSession {
   }
   setFlow(flow: BuildFlow): void {
     this.currentFlow = flow;
-    // Two fast taps can finish a selection before the wand enter delay expires.
-    if (flow.kind === "selected" && !this.currentMode.active)
+    // Two fast taps can fix the selection base before the wand enter delay expires.
+    if (
+      (flow.kind === "baseHeight" || flow.kind === "selected") &&
+      !this.currentMode.active
+    )
       this.currentMode = { active: true, streak: 0 };
   }
   replaceSelection(selection: Selection): void {
@@ -81,9 +84,19 @@ export class BuildSession {
     )
       this.currentConfirmedBox = selection;
   }
-  confirmBox(selection: Selection): void {
+  confirmBox(selection: Selection, next: "idle" | "selected" = "idle"): void {
     this.currentConfirmedBox = selection;
-    this.currentFlow = cancel(this.currentFlow);
+    this.setFlow(
+      next === "idle"
+        ? cancel(this.currentFlow)
+        : Object.freeze({
+            kind: "selected",
+            menuLevel: "root",
+            selection,
+            from: selection.box.min,
+            to: selection.box.max,
+          }),
+    );
   }
 
   completeCopy(

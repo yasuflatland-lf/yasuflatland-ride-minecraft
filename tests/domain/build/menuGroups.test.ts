@@ -90,7 +90,7 @@ describe("menu entry groups", () => {
     );
   });
 
-  it("adds only box-compatible solids after box styles", () => {
+  it("adds roofs and solids after box styles", () => {
     fc.assert(
       fc.property(
         cell,
@@ -108,9 +108,12 @@ describe("menu entry groups", () => {
               "fill",
               "faces",
               "walls",
+              "gable",
+              "hip",
               "cylinder",
               "sideCylinder",
               "sphere",
+              "cube",
             ].map((id) => ({ id })),
           );
         },

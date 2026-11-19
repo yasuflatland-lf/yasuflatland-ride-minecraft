@@ -24,6 +24,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
@@ -196,7 +197,9 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
   fc.assert(
     fc.property(cell, fc.nat({ max: 30 }), (at, extraTicks) => {
       const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+      const endpoint = confirmEndpointHeight(
+        tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+      );
       const height = chooseHeighted(endpoint, "gable");
       for (const flow of [
         { kind: "idle" } as const,
@@ -247,12 +250,14 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
   fc.assert(
     fc.property(cell, (at) => {
       const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+      const endpoint = confirmEndpointHeight(
+        tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+      );
       for (const flow of [
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "hip"),
         beginPasteAim(),
       ]) {
         const e = setup();

@@ -1,13 +1,12 @@
 import { type Player, system } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
-import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
+import type { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { TapAir } from "../../../../application/build/tapAir";
 import { virtualEndPoint } from "../../../../domain/build/aim/aim";
 import { routePress } from "../../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import { isBoxStepKind } from "../../../../domain/build/volume/kind";
 import type { Cell } from "../../../../domain/shared/cells";
 import { asDimensionId, type PlayerId } from "../../../../domain/shared/ids";
 import type { BuildMenus } from "../buildMenus";
@@ -19,7 +18,7 @@ type PressContext = {
   repo: BuildSessionRepository;
   pressPasteAim: PressPasteAim;
   aimHeight: AimHeight;
-  confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
+  confirmLiveHeight: ConfirmLiveHeight;
   menus: BuildMenus;
   pointOf(playerId: PlayerId): Cell | undefined;
   tapAir: TapAir;
@@ -41,13 +40,11 @@ function pasteAimPress(
 }
 
 function heightStepPress(
-  { source, playerId, aimHeight, confirmBoxStep, menus }: PressContext,
+  { source, playerId, aimHeight, menus }: PressContext,
   target: Target,
-  heightedKind: Parameters<typeof isBoxStepKind>[0],
 ): void {
   aimHeight.execute({ playerId, ray: target.ray });
-  if (isBoxStepKind(heightedKind)) confirmBoxStep.execute({ playerId });
-  else void menus.showContentsMenu(source);
+  void menus.showContentsMenu(source);
 }
 
 function airTapPress(
@@ -79,9 +76,15 @@ export function dispatchWandPress(context: PressContext): void {
     case "pasteAim":
       pasteAimPress(context, target);
       break;
+    case "confirmLiveHeight":
+      if (target) {
+        context.aimHeight.execute({ playerId, ray: target.ray });
+        context.confirmLiveHeight.execute({ playerId });
+      }
+      break;
     case "aimHeight":
       if (target && flow.kind === "heightStep")
-        heightStepPress(context, target, flow.heightedKind);
+        heightStepPress(context, target);
       break;
     case "openUtilityMenu":
       void menus.showUtilityMenu(source);

@@ -15,6 +15,7 @@ import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -76,7 +77,9 @@ function select(env: Env, player: typeof alex, size: number, y = 64) {
   const s = env.repo.getOrCreate(player);
   s.setFlow(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
   s.setFlow(
-    tapBlock(s.flow, overworld, { x: size - 1, y, z: size - 1 }, stone),
+    confirmEndpointHeight(
+      tapBlock(s.flow, overworld, { x: size - 1, y, z: size - 1 }, stone),
+    ),
   );
 }
 
@@ -96,6 +99,12 @@ function runAll(env: Env, maxSteps = 1000) {
   }
 }
 
+function fillAndClearBeforeCompletion(env: Env, playerId: typeof alex) {
+  env.fill.execute({ playerId, style: "fill" });
+  env.repo.getOrCreate(playerId).clearSelection();
+  runAll(env);
+}
+
 function snapshot(world: FakeWorld, size: number, y = 64) {
   const out: string[] = [];
   for (let x = 0; x < size; x++)
@@ -111,8 +120,7 @@ describe("EditJobs properties", () => {
         const env = setup();
         for (let i = 0; i < edits; i++) {
           select(env, alex, 2, 64 + i);
-          env.fill.execute({ playerId: alex, style: "fill" });
-          runAll(env);
+          fillAndClearBeforeCompletion(env, alex);
           expect(env.feedback.messages.at(-1)).toEqual({
             message: "editDone",
             count: 4,
@@ -120,8 +128,7 @@ describe("EditJobs properties", () => {
           expect(env.feedback.undoHints).toEqual([alex]);
         }
         select(env, blake, 2, 80);
-        env.fill.execute({ playerId: blake, style: "fill" });
-        runAll(env);
+        fillAndClearBeforeCompletion(env, blake);
         expect(env.feedback.undoHints).toEqual([alex, blake]);
       }),
     );
@@ -131,16 +138,14 @@ describe("EditJobs properties", () => {
     const env = setup();
     env.world.put({ x: 0, y: 64, z: 0 }, stone);
     select(env, alex, 1);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.messages.at(-1)).toEqual({
       message: "editDoneCount",
       count: 0,
     });
     expect(env.feedback.undoHints).toEqual([]);
     select(env, alex, 2);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.undoHints).toEqual([alex]);
   });
 
@@ -148,11 +153,13 @@ describe("EditJobs properties", () => {
     const cell = { x: 0, y: 64, z: 0 };
     const flows = {
       point1: tapBlock({ kind: "idle" }, overworld, cell, stone),
-      endpoint: tapBlock(
-        tapBlock({ kind: "idle" }, overworld, cell, stone),
-        overworld,
-        { x: 1, y: 64, z: 1 },
-        stone,
+      endpoint: confirmEndpointHeight(
+        tapBlock(
+          tapBlock({ kind: "idle" }, overworld, cell, stone),
+          overworld,
+          { x: 1, y: 64, z: 1 },
+          stone,
+        ),
       ),
       heightStep: {
         kind: "heightStep",
@@ -182,8 +189,7 @@ describe("EditJobs properties", () => {
       if (!promises) {
         env.repo.getOrCreate(alex).setFlow({ kind: "idle" });
         select(env, alex, 2, 70);
-        env.fill.execute({ playerId: alex, style: "fill" });
-        runAll(env);
+        fillAndClearBeforeCompletion(env, alex);
         expect(env.feedback.undoHints, name).toEqual([alex]);
       }
     }
@@ -208,21 +214,18 @@ describe("EditJobs properties", () => {
     });
     expect(env.feedback.undoHints).toEqual([]);
     select(env, alex, 1);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.undoHints).toEqual([alex]);
   });
 
   it("shows a new hint after the session is removed", () => {
     const env = setup();
     select(env, alex, 1);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.undoHints).toEqual([alex]);
     env.repo.remove(alex);
     select(env, alex, 2);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.undoHints).toEqual([alex, alex]);
   });
 
@@ -285,7 +288,7 @@ describe("EditJobs properties", () => {
         const unreadable = new Set(unreadableIdx);
         expect(env.world.writes).toBe(25 - unreadable.size);
         expect(env.feedback.messages.at(-1)).toEqual({
-          message: "editDone",
+          message: "editDoneCount",
           count: 25 - unreadable.size,
         });
       }),
@@ -296,7 +299,11 @@ describe("EditJobs properties", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
     s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone));
+    s.setFlow(
+      confirmEndpointHeight(
+        tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone),
+      ),
+    );
     env.fill.execute({ playerId: alex, style: "fill" });
     let last = 0;
     for (let i = 0; i < 5; i++) {
@@ -315,7 +322,11 @@ describe("EditJobs properties", () => {
       const s = env.repo.getOrCreate(p);
       const y = p === alex ? 0 : 100;
       s.setFlow(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
-      s.setFlow(tapBlock(s.flow, overworld, { x: 63, y: y + 3, z: 63 }, stone));
+      s.setFlow(
+        confirmEndpointHeight(
+          tapBlock(s.flow, overworld, { x: 63, y: y + 3, z: 63 }, stone),
+        ),
+      );
       env.fill.execute({ playerId: p, style: "fill" });
     }
     env.jobs.step();
@@ -381,7 +392,11 @@ describe("edit use cases", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
     s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(tapBlock(s.flow, overworld, { x: 99, y: 99, z: 99 }, stone));
+    s.setFlow(
+      confirmEndpointHeight(
+        tapBlock(s.flow, overworld, { x: 99, y: 99, z: 99 }, stone),
+      ),
+    );
     env.fill.execute({ playerId: alex, style: "fill" });
     expect(env.feedback.messages.at(-1)?.message).toBe("tooLarge");
   });
@@ -440,7 +455,11 @@ describe("edit use cases", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
     s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone));
+    s.setFlow(
+      confirmEndpointHeight(
+        tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone),
+      ),
+    );
     env.fill.execute({ playerId: alex, style: "fill" });
     env.jobs.step();
     const written = env.world.writes;
@@ -457,7 +476,7 @@ describe("edit use cases", () => {
     env.fill.execute({ playerId: alex, style: "fill" });
     runAll(env);
     expect(env.feedback.messages.at(-1)).toEqual({
-      message: "editDone",
+      message: "editDoneCount",
       count: 8,
     });
     env.undo.execute({ playerId: alex });

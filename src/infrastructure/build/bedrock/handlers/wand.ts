@@ -1,6 +1,6 @@
 import { system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
-import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
+import type { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { SetPoint } from "../../../../application/build/setPoint";
@@ -9,7 +9,6 @@ import type { BuildFlow } from "../../../../domain/build/flow/flow";
 import { routePress } from "../../../../domain/build/flow/press";
 import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import { isBoxStepKind } from "../../../../domain/build/volume/kind";
 import type { Cell } from "../../../../domain/shared/cells";
 import {
   asDimensionId,
@@ -26,7 +25,7 @@ export function registerWand({
   tapAir,
   pressPasteAim,
   aimHeight,
-  confirmBoxStep,
+  confirmLiveHeight,
   repo,
   menus,
   aim,
@@ -38,7 +37,7 @@ export function registerWand({
   tapAir: TapAir;
   pressPasteAim: PressPasteAim;
   aimHeight: AimHeight;
-  confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
+  confirmLiveHeight: ConfirmLiveHeight;
   repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
@@ -63,7 +62,8 @@ export function registerWand({
         target: "block",
         sneaking: player.isSneaking,
       });
-    if (routeBlockPress(repo.get(playerId)?.flow).kind === "ignore") return;
+    const intent = routeBlockPress(repo.get(playerId)?.flow).kind;
+    if (intent === "ignore") return;
     const command = {
       playerId,
       dimensionId: asDimensionId(ev.block.dimension.id),
@@ -72,15 +72,23 @@ export function registerWand({
     system.run(() => {
       if (!player.isValid) return;
       const flow = repo.get(command.playerId)?.flow;
-      switch (routeBlockPress(flow).kind) {
+      // A deferred confirmation can race an item-use event from the same press.
+      if (routeBlockPress(flow).kind !== intent) return;
+      switch (intent) {
+        case "confirmLiveHeight": {
+          const target = aim.aim(playerId);
+          if (!target) return;
+          debounce.press(playerId, system.currentTick);
+          aimHeight.execute({ playerId, ray: target.ray });
+          confirmLiveHeight.execute({ playerId });
+          break;
+        }
         case "aimHeight": {
           if (flow?.kind !== "heightStep") return;
           const target = aim.aim(command.playerId);
           if (!target) return;
           aimHeight.execute({ playerId: command.playerId, ray: target.ray });
-          if (isBoxStepKind(flow.heightedKind))
-            confirmBoxStep.execute({ playerId: command.playerId });
-          else void menus.showContentsMenu(player);
+          void menus.showContentsMenu(player);
           break;
         }
         case "selectPoint":
@@ -108,7 +116,7 @@ export function registerWand({
       repo,
       pressPasteAim,
       aimHeight,
-      confirmBoxStep,
+      confirmLiveHeight,
       menus,
       pointOf,
       tapAir,

@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
@@ -104,7 +105,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
         registerWand({
-          confirmBoxStep: { execute: vi.fn() },
+          confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
           aimHeight: new AimHeight(repo),
           repo,
           pressPasteAim: new PressPasteAim(
@@ -186,18 +187,24 @@ it("preserves blocks and defers point taps out of before events", () => {
         expect(pointCell()).toEqual(holding ? block.location : undefined);
         engine.handlers.get("interact")?.(interact);
         for (const callback of engine.scheduled.splice(0)) callback();
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(
+          holding ? "baseHeight" : undefined,
+        );
         expect(menus.showUtilityMenu).not.toHaveBeenCalled();
         player.isSneaking = true;
         engine.handlers.get("use")?.({
           source: player,
           itemStack: { typeId: SELECTION_WAND_TYPE },
         });
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(
+          holding ? "baseHeight" : undefined,
+        );
         engine.handlers.get("interact")?.(interact);
         player.isValid = false;
         for (const callback of engine.scheduled.splice(0)) callback();
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(
+          holding ? "baseHeight" : undefined,
+        );
       },
     ),
   );
@@ -218,7 +225,6 @@ function setupAir() {
   const setPoint = new SetPoint(repo, blocks, feedback);
   const tapAir = new TapAir(repo, feedback);
   const aimHeight = new AimHeight(repo);
-  const confirmBoxStep = { execute: vi.fn() };
   const roofExecute = vi.spyOn(aimHeight, "execute");
   const pointExecute = vi.spyOn(setPoint, "execute");
   const execute = vi.spyOn(tapAir, "execute");
@@ -272,7 +278,7 @@ function setupAir() {
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
   );
   registerWand({
-    confirmBoxStep,
+    confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
     aimHeight,
     repo,
     pressPasteAim,
@@ -301,7 +307,6 @@ function setupAir() {
     aim,
     debounce,
     pasteDebounce: new PressDebounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
-    confirmBoxStep,
     roofExecute,
     pointExecute,
     paste,
@@ -663,75 +668,6 @@ it.each([
   },
 );
 
-it.each(["block", "air"])(
-  "confirms Copy after aiming from a %s tap without contents",
-  (tap) => {
-    const e = setupRoof("gable");
-    if (e.flow.kind !== "heightStep") throw new Error("Expected height step");
-    e.session.setFlow({ ...e.flow, heightedKind: "copy" });
-    e.confirmBoxStep.execute.mockImplementation(() => {
-      expect(e.session.flow).toMatchObject({
-        heightedKind: "copy",
-        previous: 6,
-      });
-    });
-    if (tap === "air") e.use();
-    else {
-      engine.handlers.get("interact")?.({
-        player: e.player,
-        block: {
-          dimension: { id: "minecraft:nether" },
-          location: { x: 0, y: 0, z: 0 },
-        },
-        isFirstEvent: true,
-        cancel: false,
-      });
-      for (const callback of engine.scheduled.splice(0)) callback();
-    }
-    expect(e.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-      playerId: e.id,
-    });
-    expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
-      e.confirmBoxStep.execute.mock.invocationCallOrder[0] as number,
-    );
-    expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
-  },
-);
-it.each(["block", "air"])(
-  "confirms Cut after aiming from a %s tap without contents",
-  (tap) => {
-    const e = setupRoof("gable");
-    if (e.flow.kind !== "heightStep") throw new Error("Expected height step");
-    e.session.setFlow({ ...e.flow, heightedKind: "cut" });
-    e.confirmBoxStep.execute.mockImplementation(() => {
-      expect(e.session.flow).toMatchObject({
-        heightedKind: "cut",
-        previous: 6,
-      });
-    });
-    if (tap === "air") e.use();
-    else {
-      engine.handlers.get("interact")?.({
-        player: e.player,
-        block: {
-          dimension: { id: "minecraft:nether" },
-          location: { x: 0, y: 0, z: 0 },
-        },
-        isFirstEvent: true,
-        cancel: false,
-      });
-      for (const callback of engine.scheduled.splice(0)) callback();
-    }
-    expect(e.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-      playerId: e.id,
-    });
-    expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
-      e.confirmBoxStep.execute.mock.invocationCallOrder[0] as number,
-    );
-    expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
-  },
-);
-
 it("opens the paste menu even when the aim reader returns undefined", () => {
   const e = setupAir();
   holdClipboard(
@@ -779,3 +715,52 @@ it("accepts a commit immediately after the menu and suppresses a second commit a
   e.use();
   expect(paste).toHaveBeenCalledTimes(2);
 });
+
+it.each(["air", "block"] as const)(
+  "samples the final %s press and fixes live height without opening a menu",
+  (target) => {
+    const e = setupAir();
+    const min = { x: 0, y: 0, z: 0 };
+    const max = { x: 4, y: 0, z: 4 };
+    const material = blockStateOf("minecraft:stone");
+    e.session.setFlow({
+      kind: "baseHeight",
+      selection: selectionOf(nether, boxOf(min, max), material),
+      from: min,
+      to: max,
+      baseBox: boxOf(min, max),
+      previous: 2,
+    });
+    const ray = {
+      origin: { x: -1.5, y: 10, z: 2.5 },
+      direction: { x: 0.8, y: 0.6, z: 0 },
+    };
+    const event = {
+      player: e.player,
+      block: { dimension: { id: nether }, location: max },
+      isFirstEvent: true,
+      cancel: false,
+    };
+    e.aim.aim = () =>
+      target === "air" ? { ray } : { ray, block: { cell: max, face: "up" } };
+    if (target === "block") {
+      engine.handlers.get("interact")?.(event);
+      expect(event.cancel).toBe(true);
+      expect(e.session.flow.kind).toBe("baseHeight");
+    }
+    e.use();
+    for (const callback of engine.scheduled.splice(0)) callback();
+    expect(e.session.flow).toEqual({
+      kind: "selected",
+      menuLevel: "root",
+      selection: selectionOf(nether, boxOf(min, { ...max, y: 3 }), material),
+      from: min,
+      to: max,
+    });
+    e.aim.aim = () => ({ ray });
+    engine.tick += 4;
+    e.use();
+    expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
+    expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
+  },
+);

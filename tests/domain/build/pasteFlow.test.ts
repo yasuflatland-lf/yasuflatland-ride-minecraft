@@ -29,6 +29,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -125,7 +126,9 @@ it("offers ordered paste entries independent of history and never paste or endPa
           );
         const idle: BuildFlow = { kind: "idle" };
         const first = tapBlock(idle, dimensionId, at, stone);
-        const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+        const endpoint = confirmEndpointHeight(
+          tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+        );
         const height = chooseHeighted(endpoint, "gable");
         for (const flow of [
           idle,
@@ -246,12 +249,14 @@ it("resets manual rotation on a fresh copy and discards it on paste exits", () =
           expect(session.flow).toEqual(beginPasteAim());
         }
         const first = tapBlock({ kind: "idle" }, dimensionId, at, stone);
-        const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+        const endpoint = confirmEndpointHeight(
+          tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+        );
         for (const flow of [
           { kind: "idle" } as const,
           first,
           endpoint,
-          chooseHeighted(endpoint, "copy"),
+          chooseHeighted(endpoint, "hip"),
         ]) {
           session.setFlow(flow);
           expect(session.rotatePaste()).toBe(false);

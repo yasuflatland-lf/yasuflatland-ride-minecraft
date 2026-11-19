@@ -4,7 +4,6 @@ import {
   system,
   world,
 } from "@minecraft/server";
-import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
 import type { DescribeBuild } from "../../../../application/build/describeBuild";
 import { discardAll } from "../../../../application/build/discardAll";
 import type { EndBuildSession } from "../../../../application/build/endBuildSession";
@@ -94,7 +93,6 @@ export function recordMessages(feedback: BuildFeedback): {
 export function registerTestEdit(
   choices: MenuChoices,
   height: SetHeightTo,
-  confirmBoxStep: ConfirmBoxStep,
   paste: PressPasteAim,
   undo: UndoEdit,
   describe: DescribeBuild,
@@ -236,8 +234,6 @@ export function registerTestEdit(
           Number.isInteger(Number(args[0]))
         ) {
           height.execute({ playerId, height: Number(args[0]) });
-        } else if (command === "confirmbox" && args.length === 0) {
-          confirmBoxStep.execute({ playerId });
         } else if (
           command === "pasteat" &&
           (args.length === 4 ||

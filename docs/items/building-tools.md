@@ -22,25 +22,25 @@ Holding the wand enters build mode after a short grace delay; putting it away le
 
 ## Selecting and building
 
-Tap or right-click a block to set point 1 and choose that block's material. A blinking marker surrounds it and the action bar names the material. Aim at a block or at air to preview the end point; in air it follows a vertical plane through point 1. Tap again to fix the end point and open the shape menu:
+Tap or right-click a block to set point 1 and choose that block's material. A blinking marker surrounds it and the action bar names the material. Aim at a block or at air to preview the end point. In air the end point follows a vertical plane through point 1. Press the wand to fix the base. For a rectangle or box, aim to set the height and press again to fix it. A line is selected as soon as you fix the end point. With a fixed selection, press the wand to open the menu. Adjust height reopens live height aiming for rectangles and boxes.
 
-- A line offers Place.
-- A rectangle offers Fill and Frame; a horizontal rectangle also offers Gable roof, Hip roof, Cylinder, and Cube.
-- A box offers Fill, Faces only, Walls only, and Cylinder.
+- A line offers Place directly.
+- Under Build shape, a vertical rectangle offers Fill and Frame.
+- A horizontal rectangle offers Fill and Frame, and a box offers Fill, Faces only, and Walls only. Both also offer Gable roof, Hip roof, Cylinder, Sideways cylinder, Sphere, and Cube.
 
-On the iPad a short tap on air sends nothing to the add-on, so every air action (an end point in the air, confirming a roof height while looking at the sky, the utility menu) needs a long press of about one second. A tap on a block works as usual.
+On iPad, a short tap on air sends nothing to the add-on. Air actions need a long press of about one second. A tap on a block works as usual.
 
-Every shape also offers Copy and Cut. On a horizontal rectangle, aim to choose the height and tap to confirm; other shapes act immediately. Copy and Cut enter paste aiming automatically ([ADR 0203](../adr/0203-build-wand-paste-aiming.md), Proposed). Cut empties the box to air without dropping items and removes the animals and other entities in it.
+Copy and Cut act immediately on the selected layers and enter paste aiming. A one-layer horizontal rectangle copies or cuts one layer. Cut empties the box and removes its animals and other entities without dropping items. [ADR 0203](../adr/0203-build-wand-paste-aiming.md)
 
-Cancel returns to end-point selection. For a roof, aim to choose its height, tap to confirm, then choose Fill or Hollow. Roofs use full blocks of the selected material.
+For a roof, aim to choose its height from the lowest selected layer, press to confirm, then choose Fill or Hollow. Cylinder, Sideways cylinder, Sphere, and Cube open their contents menus at the selected height. Fill places every block in the shape. Hollow places a one-block shell. Cylinder, Sideways cylinder, and Cube also offer Tube, which leaves both ends open. Cancel from the contents menu returns to end-point selection. [ADR 0201](../adr/0201-build-wand-cylinder-and-cube.md)
 
-Cylinder and Cube grow upward from a horizontal rectangle: aim to choose the height and tap to confirm, as for a roof. On a box, Cylinder uses the box's own height and skips the height step. The cylinder fits exactly inside the rectangle (a non-square rectangle gives an ellipse) and the cube fills it. A contents menu then offers Fill (every block), Hollow (a one-block shell with the top and bottom closed), and Tube (the side wall only, top and bottom open); Cancel returns to end-point selection. Roofs offer Fill and Hollow only. See [ADR 0201](../adr/0201-build-wand-cylinder-and-cube.md). Switching items after the grace delay cancels unfinished selection or paste aiming. A confirmed selection remains available for Copy until a new point 1 or Clear selection.
+After a build, its bounds stay selected and available for Copy. Build Undo restores the pre-build bounds while the build result is still selected. Paste Rotate turns a fixed selection in place, and Build Undo restores the previous blocks and box after each turn. [ADR 0245](../adr/0245-rotate-build-wand-boxes-with-the-engine-structure.md)
 
 ## Utility menu and paste
 
-In selection, sneak and use the wand on air for applicable Copy, Undo, and Clear selection actions. After Copy, aim at a solid block and use the wand to paste at its viewed face; repeat as needed. On iPad, use a long press of about one second; on PC, right click. A block tap never pastes. The outline follows the aim, and the action bar shows the clipboard size and count.
+From idle, press the wand on air to open the utility menu for applicable Copy, Undo, and Clear selection actions. After Copy, aim at a block. The outline follows your aim and snaps to the ground under the clipboard footprint. Sneak and use the wand to paste, or use Paste Place. Repeat at another target as needed. [ADR 0203](../adr/0203-build-wand-paste-aiming.md)
 
-While pasting, use the wand on air without sneaking for Undo (when available), New copy, and End pasting. End pasting, switching items, death, or a dimension change discards the clipboard. Protected overlaps are refused. Undo after a paste or a cut restores the whole box as it was, including chest contents and animals; only the newest paste or cut can be undone this way. See [ADR 0203](../adr/0203-build-wand-paste-aiming.md) for the proposed interaction.
+While aiming a paste, a plain wand press opens New copy, End pasting, and Cancel. Use Build Undo to undo an edit from this mode. Ending paste, switching to an unrelated item, dying, or changing dimensions discards the clipboard. A protected overlap refuses the paste. Undo after a paste or cut restores the whole box, including chest contents and animals.
 
 Copy takes everything in the box: blocks and air, chest and other container contents, sign text, item frames, paintings, and animals and other entities, but not players or this add-on's vehicles. A paste replaces the whole destination box, including chests already there, and removes the animals and other entities in it first. Copying a chest with items and pasting it duplicates those items ([ADR 0243](../adr/0243-copy-the-build-wand-box-as-an-engine-structure.md), Proposed).
 
@@ -52,8 +52,8 @@ Vehicles and their space, tents and their space, and blocks laid by the add-on a
 
 - An edit covers at most 100,000 blocks.
 - A copy or cut covers at most 32,768 blocks, and at most 64 blocks along X and Z.
-- Each player keeps the last 10 shape and roof edits for Undo, plus the newest paste or cut.
-- Roof height is capped at 300 percent of the long side, world height, and the edit limit. Cylinder and Cube heights are capped by the world height and the edit limit only.
+- Each player keeps one history of up to 10 edits for Undo, shared across builds, pastes, cuts, and rotations.
+- Roof height is capped at 300 percent of the long side and the world height. The edit limit is checked when you confirm the contents.
 
 ## Survival and reload
 

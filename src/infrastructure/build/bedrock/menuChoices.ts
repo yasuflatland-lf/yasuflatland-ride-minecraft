@@ -1,11 +1,11 @@
 import type { CancelFlow } from "../../../application/build/cancelFlow";
+import type { ChooseAdjustHeight } from "../../../application/build/chooseAdjustHeight";
 import type { ChooseBoxStep } from "../../../application/build/chooseBoxStep";
 import type { ChooseHeighted } from "../../../application/build/chooseHeighted";
 import type { ChooseSideCylinder } from "../../../application/build/chooseSideCylinder";
 import type { ChooseTerrain } from "../../../application/build/chooseTerrain";
 import type { ClearSelection } from "../../../application/build/clearSelection";
 import type { CloseBuildMenu } from "../../../application/build/closeBuildMenu";
-import type { ConfirmBoxStep } from "../../../application/build/confirmBoxStep";
 import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
 import type { ConfirmTerrain } from "../../../application/build/confirmTerrain";
@@ -44,8 +44,8 @@ export interface MenuCases {
   openSelectionMenu: Pick<OpenSelectionMenu, "execute">;
   openBuildMenu: Pick<OpenBuildMenu, "execute">;
   closeBuildMenu: Pick<CloseBuildMenu, "execute">;
+  chooseAdjustHeight: Pick<ChooseAdjustHeight, "execute">;
   chooseBoxStep: Pick<ChooseBoxStep, "execute">;
-  confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   confirmShape: Pick<ConfirmShape, "execute">;
   chooseHeighted: Pick<ChooseHeighted, "execute">;
   chooseSideCylinder: Pick<ChooseSideCylinder, "execute">;
@@ -82,7 +82,9 @@ export class MenuChoices {
         !isShapeEntryOffered(session.flow, entryId)
       )
         return false;
-      if (entryId === "buildShape") {
+      if (entryId === "adjustHeight") {
+        this.cases.chooseAdjustHeight.execute({ playerId });
+      } else if (entryId === "buildShape") {
         this.cases.openBuildMenu.execute({ playerId });
       } else if (entryId === "back") {
         this.cases.closeBuildMenu.execute({ playerId });

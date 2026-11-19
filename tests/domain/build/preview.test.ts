@@ -1,7 +1,10 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf, type CellBox } from "../../../src/domain/build/box";
+import {
+  boxOf,
+  type CellBox,
+} from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import {
   type BuildFlow,
@@ -12,7 +15,6 @@ import { roofCells } from "../../../src/domain/build/roof/roof";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
-import { boxStepLimit } from "../../../src/domain/build/volume/kind";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 
@@ -99,10 +101,15 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
   );
 });
 
-it("draws the terrain confirmation like its end point", () => {
+it("draws the terrain confirmation at the confirmed selection height", () => {
   const from = { x: 0, y: 60, z: 0 };
   const to = { x: 3, y: 62, z: 3 };
-  const common = { dimensionId, from, to, material };
+  const selection = selectionOf(
+    dimensionId,
+    boxOf(from, { ...to, y: 68 }),
+    material,
+  );
+  const common = { from, to, selection };
   expect(
     previewPoints(
       { ...common, kind: "terrainConfirm", op: "removeAbove" },
@@ -113,7 +120,7 @@ it("draws the terrain confirmation like its end point", () => {
       {
         from,
         to,
-        selection: selectionOf(dimensionId, boxOf(from, to), material),
+        selection,
         kind: "selected",
         menuLevel: "root",
       },
@@ -299,54 +306,3 @@ it("draws a locked cylinder at the box height even when another height is aimed"
     ),
   );
 });
-
-it.each(["copy", "cut"] as const)(
-  "uses the box-step layers and %s volume limit",
-  (kind) => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 2, max: 128 }),
-        fc.integer({ min: 2, max: 128 }),
-        fc.integer({ min: 1, max: 256 }),
-        fc.option(fc.integer({ min: 1, max: 256 }), { nil: undefined }),
-        fc.boolean(),
-        (width, depth, previous, aimed, heightLocked) => {
-          const base = boxOf(
-            { x: 0, y: 0, z: 0 },
-            { x: width - 1, y: 0, z: depth - 1 },
-          );
-          const flow: BuildFlow = {
-            kind: "heightStep",
-            heightedKind: kind,
-            base,
-            from: base.min,
-            previous,
-            heightLocked,
-            dimensionId,
-            material,
-          };
-          const set = previewPoints(flow, {
-            blink: false,
-            ...(aimed === undefined ? {} : { height: aimed }),
-          });
-          const height = heightLocked ? previous : (aimed ?? previous);
-          const over = width * depth * height > boxStepLimit(kind);
-          expect(set.boxStepOver.length > 0).toBe(over);
-          expect(set.boxStep.length > 0).toBe(!over);
-          expect(set.roof).toEqual([]);
-          expect(set.shape).toEqual([]);
-          expect(set.marker).toEqual([]);
-          expect(set.endCube).toEqual([]);
-          expect(set.paste).toEqual([]);
-          const points = over ? set.boxStepOver : set.boxStep;
-          expect(points).toEqual(
-            volumeOf(kind).wireframe(
-              { base, kind, height },
-              BUILD_SPEC.outlineMaxPoints,
-            ),
-          );
-        },
-      ),
-    );
-  },
-);

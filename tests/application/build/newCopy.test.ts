@@ -18,6 +18,7 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
@@ -89,9 +90,11 @@ it("keeps the old clipboard and selection on an oversized new copy, and keeps it
     fc.property(cellArb, fc.integer({ min: 1, max: 100 }), (from, extra) => {
       const e = setup(from);
       e.newCopy.execute(playerId);
-      const selected = tapAir(
-        tapBlock(e.session.flow, overworld, from, stone),
-        { ...from, x: from.x + BUILD_SPEC.maxCopyVolume + extra },
+      const selected = confirmEndpointHeight(
+        tapAir(tapBlock(e.session.flow, overworld, from, stone), {
+          ...from,
+          x: from.x + BUILD_SPEC.maxCopyVolume + extra,
+        }),
       );
       e.session.setFlow(selected);
       e.chooseBoxStep.execute({ playerId, kind: "copy" });
@@ -115,12 +118,14 @@ it("acts only in paste aiming and never creates a missing session", () => {
       e.newCopy.execute(asPlayerId("absent"));
       expect(e.repo.get(asPlayerId("absent"))).toBeUndefined();
       const first = tapBlock({ kind: "idle" }, overworld, from, stone);
-      const endpoint = tapAir(first, { ...from, x: from.x + 1, z: from.z + 1 });
+      const endpoint = confirmEndpointHeight(
+        tapAir(first, { ...from, x: from.x + 1, z: from.z + 1 }),
+      );
       for (const flow of [
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "hip"),
       ]) {
         e.session.setFlow(flow);
         const confirmed = e.session.confirmedBox;

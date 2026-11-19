@@ -69,9 +69,6 @@ it("defines every feedback message in both locales", () => {
       expect(entries.get(key)).toBeTruthy();
     for (const key of Object.values(BUILD_FORM))
       expect(entries.get(key)).toBeTruthy();
-    expect(entries.get(BUILD_FORM.cut)).toEqual(
-      entries.get(BUILD_FORM.cutTitle),
-    );
     expect(entries.get(BUILD_MESSAGE.cutRestored)).toBeTruthy();
     expect(entries.get(BUILD_MESSAGE.cutIncomplete)).toBeTruthy();
     expect(entries.get(BUILD_MESSAGE.endSet)).toContain("%s");

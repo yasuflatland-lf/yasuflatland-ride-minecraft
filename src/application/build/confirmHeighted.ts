@@ -1,12 +1,11 @@
 import { planHeighted } from "../../domain/build/edit/plan";
-import { finishHeightStep, heightStepBox } from "../../domain/build/flow/flow";
+import { heightStepBox } from "../../domain/build/flow/flow";
 import { selectionOf } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import { placementOf } from "../../domain/build/volume/geometry";
+import { boundingBox, placementOf } from "../../domain/build/volume/geometry";
 import {
   type FillStyle,
   fillStylesFor,
-  isBoxStepKind,
 } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
 import { beginCheckedEdit } from "./beginCheckedEdit";
@@ -24,13 +23,13 @@ export class ConfirmHeighted {
     const flow = session.flow;
     if (
       flow.kind !== "heightStep" ||
-      isBoxStepKind(flow.heightedKind) ||
+      !Number.isInteger(flow.previous) ||
+      flow.previous < 1 ||
       !fillStylesFor(flow.heightedKind).includes(cmd.fill)
     ) {
       this.feedback.showMessage(cmd.playerId, "noSelection");
       return;
     }
-    const hollow = cmd.fill === "hollow";
     const spec = {
       base: flow.base,
       kind: flow.heightedKind,
@@ -38,15 +37,21 @@ export class ConfirmHeighted {
     };
     const count = placementOf(spec.kind).count(spec, cmd.fill);
     if (!beginCheckedEdit(session, this.feedback, cmd.playerId, count)) return;
-    const box = heightStepBox(flow);
-    session.setFlow(finishHeightStep(flow, hollow));
-    session.confirmBox(selectionOf(flow.dimensionId, box, flow.material));
+    const selectionBefore = flow.heightLocked
+      ? heightStepBox(flow)
+      : (flow.selectionBefore ?? flow.base);
+    const selection = selectionOf(
+      flow.dimensionId,
+      boundingBox(spec),
+      flow.material,
+    );
+    session.confirmBox(selection, "selected");
     this.jobs.start(
       cmd.playerId,
       flow.dimensionId,
       planHeighted(spec, cmd.fill, { state: flow.material }),
       "undoable",
-      box,
+      { selectionBefore, selectionAfter: selection.box },
     );
   }
 }

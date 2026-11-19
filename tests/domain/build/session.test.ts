@@ -294,7 +294,6 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
     base: boxArb,
     from: cellArb,
     heightedKind: fc.constantFrom(
-      "copy" as const,
       "cube" as const,
       "cylinder" as const,
       "sphere" as const,
@@ -480,6 +479,25 @@ it("returns only replaced or cleared structure handles and retains identical han
         expect(session[exit]()).toBeUndefined();
       },
     ),
+  );
+});
+
+it("confirms a box as an active root selection with matching Copy bounds", () => {
+  fc.assert(
+    fc.property(boxArb, dimensionArb, (box, dimensionId) => {
+      const session = new BuildSession(asPlayerId("p1"));
+      const selection = selectionOf(dimensionId, box, stone);
+      session.confirmBox(selection, "selected");
+      expect(session.flow).toEqual({
+        kind: "selected",
+        menuLevel: "root",
+        selection,
+        from: box.min,
+        to: box.max,
+      });
+      expect(session.confirmedBox).toBe(selection);
+      expect(session.isInBuildMode).toBe(true);
+    }),
   );
 });
 

@@ -4,7 +4,6 @@ import {
   type FillStyle,
   fillStylesFor,
   type HeightedKind,
-  isBoxStepKind,
 } from "../volume/kind";
 import type { BuildFlow } from "./flow";
 
@@ -17,7 +16,12 @@ export type BuildEntryId =
   | "walls"
   | Exclude<HeightedKind, "sideCylinderX" | "sideCylinderZ">
   | "sideCylinder";
-export type RootEntryId = EditEntryId | "buildShape" | "place" | "cancel";
+export type RootEntryId =
+  | EditEntryId
+  | "adjustHeight"
+  | "buildShape"
+  | "place"
+  | "cancel";
 export type BuildMenuEntryId = BuildEntryId | "back";
 export type ShapeEntryId = EditEntryId | BuildEntryId | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
@@ -31,18 +35,13 @@ export interface MenuEntry<Id extends string = string> {
   on?: boolean;
 }
 
-const RECT_SOLID_ENTRIES: readonly BuildEntryId[] = [
+const HEIGHTED_ENTRIES: readonly BuildEntryId[] = [
   "gable",
   "hip",
   "cylinder",
   "sideCylinder",
   "sphere",
   "cube",
-];
-const BOX_SOLID_ENTRIES: readonly BuildEntryId[] = [
-  "cylinder",
-  "sideCylinder",
-  "sphere",
 ];
 
 export function editEntries(): MenuEntry<EditEntryId>[] {
@@ -56,11 +55,9 @@ export function editEntries(): MenuEntry<EditEntryId>[] {
 
 export function buildEntries(shape: Shape): MenuEntry<BuildEntryId>[] {
   const extraEntries: readonly BuildEntryId[] =
-    shape.kind === "rect" && shape.flat === "y"
-      ? RECT_SOLID_ENTRIES
-      : shape.kind === "box"
-        ? BOX_SOLID_ENTRIES
-        : [];
+    shape.kind === "box" || (shape.kind === "rect" && shape.flat === "y")
+      ? HEIGHTED_ENTRIES
+      : [];
   return [
     ...stylesFor(shape).map<MenuEntry<BuildEntryId>>((style) => ({
       id: shape.kind === "line" ? "place" : style,
@@ -80,6 +77,9 @@ export function isBuildEntry(id: ShapeEntryId): id is BuildEntryId {
 export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
   if (flow.kind !== "selected" || flow.menuLevel !== "root") return [];
   return [
+    ...(shapeOf(flow.selection.box.min, flow.selection.box.max).kind === "line"
+      ? []
+      : [{ id: "adjustHeight" as const }]),
     { id: "cut" },
     { id: "removeAbove" },
     {
@@ -123,7 +123,7 @@ export function utilityMenu(
 }
 
 export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
-  return flow.kind === "heightStep" && !isBoxStepKind(flow.heightedKind)
+  return flow.kind === "heightStep"
     ? [
         ...fillStylesFor(flow.heightedKind).map((id) => ({ id })),
         { id: "cancel" },
