@@ -87,6 +87,7 @@ import {
   buildStructureStore,
   buildStructureStoreDecor,
   buildStructureStoreHosted,
+  buildStructureStoreUncopyable,
 } from "./buildStructureStore";
 import { buildBlockStates } from "./buildTools";
 import {
@@ -441,6 +442,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_structure_rotation: buildStructureRotation,
   build_structure_rotation_decor: buildStructureRotationDecor,
   build_structure_store_hosted: buildStructureStoreHosted,
+  build_structure_store_uncopyable: buildStructureStoreUncopyable,
   build_structure_store_decor: buildStructureStoreDecor,
   build_structure_decor_probe: buildStructureDecorProbe,
   build_roofs: buildRoofs,

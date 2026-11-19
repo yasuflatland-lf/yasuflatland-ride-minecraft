@@ -180,7 +180,7 @@ it("captures normalized snapshot corners in the player's dimension and discards 
   const dimensionId = asDimensionId("minecraft:overworld");
   const box = { min: { x: 1, y: 2, z: 3 }, max: { x: 3, y: 4, z: 5 } };
   expect(e.structures.calls).toEqual([
-    { kind: "capture", dimensionId, box, ownerId: player },
+    { kind: "capture", dimensionId, box, ownerId: player, mode: "exact" },
   ]);
   const first = [...e.structures.live][0];
   for (let i = 1; i < BUILD_SPEC.undoDepth; i++) {

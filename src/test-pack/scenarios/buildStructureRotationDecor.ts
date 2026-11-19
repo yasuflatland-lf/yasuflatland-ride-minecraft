@@ -155,6 +155,7 @@ export async function buildStructureRotationDecor(
       dim,
       source,
       asPlayerId(`rotation_decor_${a.lane.index}`),
+      "exact",
     );
     if (captured === "tooLarge" || captured === "unreadable")
       throw new Error(`capture ${captured}`);

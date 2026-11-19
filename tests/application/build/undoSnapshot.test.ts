@@ -41,7 +41,7 @@ function setup(box: CellBox) {
   );
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   const session = repo.getOrCreate(playerId);
-  const handle = structures.capture(overworld, box, playerId);
+  const handle = structures.capture(overworld, box, playerId, "exact");
   if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
   session.recordSnapshot({ dimensionId: overworld, box, handle });
   session.setFlow({
@@ -246,7 +246,7 @@ it("retries a blocked newest snapshot before older snapshot and cell entries", (
     "undoable",
   );
   e.session.putBackUndo(older);
-  const newest = e.structures.capture(overworld, box, playerId);
+  const newest = e.structures.capture(overworld, box, playerId, "exact");
   if (newest === "tooLarge" || newest === "unreadable") throw new Error(newest);
   e.session.recordSnapshot({ dimensionId: overworld, box, handle: newest });
   e.structures.calls.length = 0;

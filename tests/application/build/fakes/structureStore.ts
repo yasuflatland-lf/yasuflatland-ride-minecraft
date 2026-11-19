@@ -1,5 +1,6 @@
 import type {
   BuildStructureStore,
+  CaptureMode,
   CaptureRefusal,
 } from "../../../../src/application/build/ports/structures";
 import { AIR, type BlockState } from "../../../../src/domain/build/blockState";
@@ -23,6 +24,7 @@ export type StructureCall =
       dimensionId: DimensionId;
       box: CellBox;
       ownerId: PlayerId;
+      mode: CaptureMode;
     }
   | {
       kind: "place";
@@ -57,8 +59,9 @@ export class FakeStructureStore implements BuildStructureStore {
     dimensionId: DimensionId,
     box: CellBox,
     ownerId: PlayerId,
+    mode: CaptureMode = "exact",
   ) {
-    const handle = this.capture(dimensionId, box, ownerId);
+    const handle = this.capture(dimensionId, box, ownerId, mode);
     if (handle !== "tooLarge" && handle !== "unreadable")
       this.save(handle, source, dimensionId, box);
     return handle;
@@ -87,8 +90,9 @@ export class FakeStructureStore implements BuildStructureStore {
     dimensionId: DimensionId,
     box: CellBox,
     ownerId: PlayerId,
+    mode: CaptureMode,
   ): StructureHandle | CaptureRefusal {
-    this.calls.push({ kind: "capture", dimensionId, box, ownerId });
+    this.calls.push({ kind: "capture", dimensionId, box, ownerId, mode });
     const refusal =
       this.captureRefusals.length > 0
         ? this.captureRefusals.shift()

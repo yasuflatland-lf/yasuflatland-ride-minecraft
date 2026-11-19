@@ -11,6 +11,7 @@
 - Related: [0038](0038-keep-at-most-ten-vehicles-in-a-world.md): fleet spawn registration
 - Related: [0066](0066-limit-vehicles-per-player-and-kind.md): fleet limits must not be bypassed
 - Related: [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md): retain engine facts as permanent in-game tests
+- Related: [0249](0249-shared-warp-points-with-a-block-and-a-tool.md): only a player's placement registers a Warp Block, so clipboards leave it out
 
 ## Context
 
@@ -53,7 +54,7 @@ The scenario is exclusive because the maximum captures span the full world heigh
 
 ## Decision
 
-1. Use an engine structure in explicit Memory mode for the clipboard, with blocks and entities included. Capture the full box, including air and block entity contents. Use unique lowercase namespaced names under `yasu_build:` (0178), delete replaced clipboard/undo structures, and keep no disk persistence.
+1. Use an engine structure in explicit Memory mode for the clipboard, with blocks and entities included. Capture the full box, including air and block entity contents. A clipboard capture (Copy and Cut) saves every Warp Block (`yasu_build:warp_block`) as air: only a player's placement registers a warp point, so a pasted Warp Block would show up nowhere in the warp list. The structure save options can only include or drop all blocks, so the store finds those blocks with `Dimension.getBlocks` and overwrites them with air in the saved structure; Undo snapshots and the rotation move keep every block. Use unique lowercase namespaced names under `yasu_build:` (0178), delete replaced clipboard/undo structures, and keep no disk persistence.
 2. Keep the final copy/cut **volume limit at 32,768 blocks** (`BUILD_SPEC.maxCopyVolume`), inclusive. Also reject a box whose X or Z exceeds 64 or whose Y exceeds 384, the engine's per-axis structure maximum measured by the probe; volume alone does not bound a long thin box such as 512 x 1 x 64. Show the existing "too large" style message and leave state unchanged in both cases.
 3. Paste writes every cell including air; remove the Skip air toggle and `flow.skipAir`. Paste may overwrite containers and other kept block types. Existing vehicle-space, camp-space and laid-block protection still applies to the whole destination box.
 4. Choose capture with `includeEntities: true` followed by **synchronous removal of newly pasted excluded entities**, using the set of destination entity IDs recorded before place. Exclude every entity whose type starts with `yasu_ride:` or `yasu_build:`, plus every type matched by the fleet predicate, including vanilla stand-ins. Hosted entities store their host's entity ID in a dynamic property; copying that marker would leave the copy linked to the source host, and clearing only a host would leave its item linked to a dead entity. Never remove players or original excluded entities. This retains arbitrary eligible entity payload without a separate serializer; `includeEntities: false` would require a second capture/serialization mechanism for every decoration and animal.
@@ -63,6 +64,8 @@ The scenario is exclusive because the maximum captures span the full world heigh
 ## Consequences
 
 The add-on's own entities are excluded from the effective structure capture/place payload and from entity clearing. Pasted boxes therefore do not carry camp or resort gear; these entities stay in place in pasted or cut target boxes. Capture includes them internally because the engine cannot filter individual types, but place removes their new copies synchronously. The fleet predicate remains part of exclusion for vanilla stand-ins. The headless `build_structure_store_hosted` scenario checks a camp table and hosted oven survive clearing with a test-pack host marker unchanged, and that placement creates no copies. It has been added but not run on a BDS; pack-scoped properties prevent it from reading the production host marker.
+
+Cut and selected-box rotation already refuse a box that holds a Warp Block, because the block carries `yasu_ride:laid` and `mayEdit` denies it, so neither removes nor moves one; only Copy can see one, and it leaves it out. The build feature cannot import warp (0046), so bootstrap passes the Warp Block type to the build install as an uncopyable block type. A Warp Block that already exists without a registration, such as one pasted before this rule or put back by Undo, stays a decoration that the warp list does not show; nothing registers it automatically. The headless `build_structure_store_uncopyable` scenario checks the copy and exact captures on the engine.
 
 Ending a session on player leave or test reset discards every snapshot handle still held by its undo history before removing the session.
 

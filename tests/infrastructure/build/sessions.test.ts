@@ -132,7 +132,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
     selection: selectionOf(overworld, boxOf(at, at), AIR),
     facing: "east",
   });
-  const handle = structures.capture(overworld, boxOf(at, at), id);
+  const handle = structures.capture(overworld, boxOf(at, at), id, "exact");
   if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
   session.recordSnapshot({
     dimensionId: overworld,

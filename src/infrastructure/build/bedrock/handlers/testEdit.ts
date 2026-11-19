@@ -145,7 +145,12 @@ export function registerTestEdit(
             { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
           );
           const dimensionId = asDimensionId(player.dimension.id);
-          const handle = structures.capture(dimensionId, box, playerId);
+          const handle = structures.capture(
+            dimensionId,
+            box,
+            playerId,
+            "exact",
+          );
           if (handle === "tooLarge" || handle === "unreadable") {
             system.sendScriptEvent(
               TEST_RESULT_EVENT,
@@ -183,7 +188,7 @@ export function registerTestEdit(
             { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
           );
           const dimensionId = asDimensionId(player.dimension.id);
-          const handle = structures.capture(dimensionId, box, playerId);
+          const handle = structures.capture(dimensionId, box, playerId, "copy");
           if (handle === "tooLarge" || handle === "unreadable")
             throw new Error(handle);
           const previous = repo

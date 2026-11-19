@@ -21,7 +21,7 @@ export class CopyBox implements BoxAction {
       this.feedback.showMessage(playerId, "tooLarge", count);
       return false;
     }
-    const handle = this.structures.capture(dimensionId, box, playerId);
+    const handle = this.structures.capture(dimensionId, box, playerId, "copy");
     if (handle === "tooLarge" || handle === "unreadable") {
       if (handle === "tooLarge")
         this.feedback.showMessage(playerId, "tooLarge", count);

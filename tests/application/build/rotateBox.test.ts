@@ -111,8 +111,15 @@ it("rotates any selection with one union snapshot and never writes outside the u
           dimensionId: overworld,
           box: plan.union,
           ownerId: playerId,
+          mode: "exact",
         },
-        { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+        {
+          kind: "capture",
+          dimensionId: overworld,
+          box,
+          ownerId: playerId,
+          mode: "exact",
+        },
         { kind: "clearEntities", dimensionId: overworld, box },
         { kind: "clearBlocks", dimensionId: overworld, box },
         placed,
@@ -349,7 +356,12 @@ it.each(["clear", "place"] as const)(
   (failure) => {
     const e = setup();
     const { union } = planRotationAboutCenter(wideBox);
-    const previous = e.structures.capture(overworld, wideBox, playerId);
+    const previous = e.structures.capture(
+      overworld,
+      wideBox,
+      playerId,
+      "exact",
+    );
     if (previous === "tooLarge" || previous === "unreadable")
       throw new Error("Missing snapshot");
     e.session.recordSnapshot({
@@ -410,7 +422,7 @@ it.each(["clear", "place"] as const)(
 it("retains an earlier snapshot and frees a player buried in the rotated target", () => {
   const e = setup();
   const plan = planRotationAboutCenter(wideBox);
-  const previous = e.structures.capture(overworld, wideBox, playerId);
+  const previous = e.structures.capture(overworld, wideBox, playerId, "exact");
   if (previous === "tooLarge" || previous === "unreadable")
     throw new Error(previous);
   e.session.recordSnapshot({
