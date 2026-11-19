@@ -90,7 +90,11 @@ it.each([false, true])(
       }),
     });
     const isProtected = vi.fn(() => protectedCell);
-    installBuild({ isProtected, isExcludedEntityType: () => false });
+    installBuild({
+      isProtected,
+      isExcludedEntityType: () => false,
+      uncopyableBlockTypes: [],
+    });
     const wand = vi.mocked(registerWand).mock.calls[0]?.[0];
     const jobs = vi.mocked(registerEditTick).mock.calls[0]?.[0];
     expect(wand).toBeDefined();

@@ -56,7 +56,7 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
     return { x: anchor.x + p.x, y: anchor.y + p.y, z: anchor.z + p.z };
   };
   const capture = (box: CellBox) => {
-    const handle = store.capture(dim, box, owner);
+    const handle = store.capture(dim, box, owner, "exact");
     if (handle === "tooLarge" || handle === "unreadable")
       throw new Error(`capture ${handle}`);
     handles.push(handle);
@@ -381,7 +381,7 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
     clear(destination);
     const large = { min: a.at(8, a.gy, 8), max: a.at(71, a.gy + 63, 71) };
     const startCapture = Date.now();
-    const largeHandle = store.capture(dim, large, owner);
+    const largeHandle = store.capture(dim, large, owner, "exact");
     const captureMs = Date.now() - startCapture;
     record(
       "capture_64",

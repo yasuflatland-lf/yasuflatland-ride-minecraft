@@ -64,13 +64,17 @@ import { InMemorySessionRepository } from "./persistence/inMemorySessionReposito
 export function installBuild(deps: {
   isProtected: SpaceCheck;
   isExcludedEntityType: (typeId: string) => boolean;
+  uncopyableBlockTypes: readonly string[];
 }): void {
   const repo = new InMemorySessionRepository();
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
   const ports = {
     blocks: new BedrockBlockWorld(deps),
-    structures: new BedrockStructureStore(deps.isExcludedEntityType),
+    structures: new BedrockStructureStore(
+      deps.isExcludedEntityType,
+      deps.uncopyableBlockTypes,
+    ),
   };
   const { blocks } = ports;
   const aim = new TestAimReader(new BedrockAimReader());

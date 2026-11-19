@@ -5,6 +5,7 @@ import {
   fillChunks,
   isStructureTooLarge,
   structureIdentifier,
+  structureOffset,
 } from "../../../src/infrastructure/build/bedrock/structureGeometry";
 
 const boxArb = fc
@@ -81,4 +82,32 @@ it("keeps negative player IDs distinct from literal n and separator characters",
   expect(
     new Set(owners.map((owner) => structureIdentifier(owner, 1))).size,
   ).toBe(owners.length);
+});
+
+it("maps every cell of a box to a distinct structure offset inside its size", () => {
+  fc.assert(
+    fc.property(
+      boxArb.filter((box) => volume(box) <= 4096),
+      fc.nat(),
+      (box, pick) => {
+        const size = {
+          x: box.max.x - box.min.x + 1,
+          y: box.max.y - box.min.y + 1,
+          z: box.max.z - box.min.z + 1,
+        };
+        const cell = {
+          x: box.min.x + (pick % size.x),
+          y: box.min.y + (Math.floor(pick / size.x) % size.y),
+          z: box.min.z + (Math.floor(pick / (size.x * size.y)) % size.z),
+        };
+        expect(contains(box, cell)).toBe(true);
+        const offset = structureOffset(box, cell);
+        for (const axis of ["x", "y", "z"] as const) {
+          expect(offset[axis]).toBeGreaterThanOrEqual(0);
+          expect(offset[axis]).toBeLessThan(size[axis]);
+          expect(box.min[axis] + offset[axis]).toBe(cell[axis]);
+        }
+      },
+    ),
+  );
 });

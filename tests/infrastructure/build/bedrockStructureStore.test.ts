@@ -22,8 +22,17 @@ const engine = vi.hoisted(() => ({
   delete: vi.fn(),
   getEntities: vi.fn(),
   runCommand: vi.fn(),
+  getBlocks: vi.fn(),
+  setBlockPermutation: vi.fn(),
 }));
 vi.mock("@minecraft/server", () => ({
+  BlockPermutation: { resolve: (typeId: string) => ({ typeId }) },
+  BlockVolume: class {
+    constructor(
+      readonly from: unknown,
+      readonly to: unknown,
+    ) {}
+  },
   StructureRotation: {
     None: "None",
     Rotate90: "Rotate90",
@@ -37,12 +46,17 @@ const dimension = {
   heightRange: { min: -64, max: 320 },
   getEntities: engine.getEntities,
   runCommand: engine.runCommand,
+  getBlocks: engine.getBlocks,
 };
 const dim = asDimensionId("overworld");
 const owner = asPlayerId("-4294967295");
 const box = { min: { x: 10, y: 64, z: -5 }, max: { x: 12, y: 67, z: -1 } };
 const handle = structureHandle("yasu_build:box_test_1");
-const store = () => new BedrockStructureStore(isFleetEntityType);
+const WARP_BLOCK = "yasu_build:warp_block";
+const store = () => new BedrockStructureStore(isFleetEntityType, [WARP_BLOCK]);
+const listed = (cells: { x: number; y: number; z: number }[]) => ({
+  getBlockLocationIterator: () => cells[Symbol.iterator](),
+});
 const entity = (id: string, typeId: string, location = box.min) => ({
   id,
   typeId,
@@ -53,14 +67,22 @@ beforeEach(() => {
   vi.resetAllMocks();
   engine.getDimension.mockReturnValue(dimension);
   engine.getEntities.mockReturnValue([]);
+  engine.createFromWorld.mockReturnValue({
+    setBlockPermutation: engine.setBlockPermutation,
+  });
+  engine.getBlocks.mockReturnValue(listed([]));
 });
 
 it("captures Memory blocks and entities with unique names, skipping names surviving reload", () => {
   const first = structureIdentifier(owner, 1);
   engine.get.mockImplementation((name) => (name === first ? {} : undefined));
   const adapter = store();
-  expect(adapter.capture(dim, box, owner)).toBe(structureIdentifier(owner, 2));
-  expect(adapter.capture(dim, box, owner)).toBe(structureIdentifier(owner, 3));
+  expect(adapter.capture(dim, box, owner, "exact")).toBe(
+    structureIdentifier(owner, 2),
+  );
+  expect(adapter.capture(dim, box, owner, "exact")).toBe(
+    structureIdentifier(owner, 3),
+  );
   expect(engine.createFromWorld).toHaveBeenLastCalledWith(
     structureIdentifier(owner, 3),
     dimension,
@@ -77,6 +99,7 @@ it("refuses oversized and out-of-height captures without reading blocks", () => 
       dim,
       { min: box.min, max: { ...box.max, x: box.min.x + 64 } },
       owner,
+      "exact",
     ),
   ).toBe("tooLarge");
   expect(engine.getDimension).not.toHaveBeenCalled();
@@ -86,6 +109,7 @@ it("refuses oversized and out-of-height captures without reading blocks", () => 
         dim,
         { min: { ...box.min, y }, max: { ...box.max, y } },
         owner,
+        "exact",
       ),
     ).toBe("unreadable");
   expect(engine.createFromWorld).not.toHaveBeenCalled();
@@ -95,9 +119,55 @@ it("refuses oversized and out-of-height captures without reading blocks", () => 
         dim,
         { min: { ...box.min, y }, max: { ...box.max, y } },
         owner,
+        "exact",
       ),
     ).not.toBe("unreadable");
 });
+
+it("turns uncopyable blocks into air inside a copy, relative to the box minimum", () => {
+  engine.getBlocks.mockReturnValue(
+    listed([box.min, { x: 11, y: 66, z: -2 }, box.max]),
+  );
+  const name = structureIdentifier(owner, 1);
+  expect(store().capture(dim, box, owner, "copy")).toBe(name);
+  expect(engine.getBlocks).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ from: box.min, to: box.max }),
+    { includeTypes: [WARP_BLOCK] },
+  );
+  expect(engine.setBlockPermutation.mock.calls).toEqual([
+    [{ x: 0, y: 0, z: 0 }, { typeId: "minecraft:air" }],
+    [{ x: 1, y: 2, z: 3 }, { typeId: "minecraft:air" }],
+    [{ x: 2, y: 3, z: 4 }, { typeId: "minecraft:air" }],
+  ]);
+  expect(engine.delete).not.toHaveBeenCalled();
+});
+
+it("keeps every block in an exact capture and when no block type is uncopyable", () => {
+  engine.getBlocks.mockReturnValue(listed([box.min]));
+  expect(store().capture(dim, box, owner, "exact")).not.toBe("unreadable");
+  expect(
+    new BedrockStructureStore(isFleetEntityType, []).capture(
+      dim,
+      box,
+      owner,
+      "copy",
+    ),
+  ).not.toBe("unreadable");
+  expect(engine.getBlocks).not.toHaveBeenCalled();
+  expect(engine.setBlockPermutation).not.toHaveBeenCalled();
+});
+
+it.each(["getBlocks", "setBlockPermutation"] as const)(
+  "deletes a copy whose uncopyable blocks cannot be removed when %s throws",
+  (method) => {
+    engine.getBlocks.mockReturnValue(listed([box.min]));
+    engine[method].mockImplementation(() => {
+      throw new Error("unloaded");
+    });
+    expect(store().capture(dim, box, owner, "copy")).toBe("unreadable");
+    expect(engine.delete).toHaveBeenCalledWith(structureIdentifier(owner, 1));
+  },
+);
 
 it.each(["getDimension", "get", "createFromWorld"] as const)(
   "maps arbitrary throws from %s to unreadable",
@@ -107,7 +177,7 @@ it.each(["getDimension", "get", "createFromWorld"] as const)(
         engine[method].mockImplementation(() => {
           throw error;
         });
-        expect(store().capture(dim, box, owner)).toBe("unreadable");
+        expect(store().capture(dim, box, owner, "exact")).toBe("unreadable");
       }),
     );
   },

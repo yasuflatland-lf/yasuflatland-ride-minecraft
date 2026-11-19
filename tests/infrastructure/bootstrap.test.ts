@@ -199,6 +199,10 @@ it("installs build last and passes both space checks without requesting a camera
   isFleetEntityType.mockReturnValueOnce(true);
   expect(excluded?.("minecraft:armor_stand")).toBe(true);
   expect(excluded?.("minecraft:cow")).toBe(false);
+  // A pasted Warp Block would hold no registration (docs/specs/warp.md).
+  expect(
+    vi.mocked(installBuild).mock.lastCall?.[0].uncopyableBlockTypes,
+  ).toEqual(["yasu_build:warp_block"]);
   expect(installResort).toHaveBeenCalledExactlyOnceWith({
     topHosts: vi.mocked(installCamp).mock.lastCall?.[0].topHosts,
     isVehicleSpace,

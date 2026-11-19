@@ -92,6 +92,7 @@ it("captures before replacement, records only after place, retains older snapsho
         dimensionId: overworld,
         box: e.cmd.target.box,
         ownerId: playerId,
+        mode: "exact",
       });
       expect(e.store.calls[2]).toEqual({
         kind: "place",

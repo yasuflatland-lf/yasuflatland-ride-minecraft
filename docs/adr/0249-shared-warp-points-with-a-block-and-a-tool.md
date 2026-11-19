@@ -5,6 +5,7 @@
 - Date: 2026-11-16
 - Extends: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md): the `yasu_build:` namespace and the Building Tools group
 - Related: [0229](0229-open-build-utilities-with-a-plain-air-press.md): the plain air press that opens a build utility
+- Related: [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md): the Build Wand clipboard leaves Warp Blocks out
 
 ## Context
 
@@ -50,7 +51,7 @@ Alternatives considered for the block:
 - Any player may warp to, rename, or break any warp block. This is accepted on a trusted LAN; there are no permissions, cooldowns, or costs.
 - The name is shown in the list and the edit form only, not on the block.
 - A block removed by an entity or a world edit stays in the registry until a list opens with its chunk loaded, or until a player arrives at it.
-- Blocks placed without a player are not registered, so a structure paste of warp blocks leaves them unlisted.
+- Blocks placed without a player are not registered, so a structure paste of warp blocks would leave them unlisted. The Build Wand Copy therefore saves a Warp Block as air (0243), and its Paste cannot create one. A Warp Block that already exists without a registration, such as one pasted before that rule or put back by Undo, stays a decoration that the list does not show; nothing registers it automatically.
 - The Resource Pack manifest version must be bumped when the block texture, icon, and lang keys land (0015).
 - The Building Tools group order text in 0178 and the build-tools spec change together with the group change.
 - Revisit the decision if the 64-entry limit or the dynamic property size makes the registry too small, or if a permission model is needed.

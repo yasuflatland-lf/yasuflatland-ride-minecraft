@@ -7,6 +7,7 @@ import { installResort } from "./resort/install";
 import { NAMESPACE } from "./shared/identifiers";
 import { TopHostRegistry } from "./shared/tableTop/registry";
 import { installVehicles } from "./vehicle/install";
+import { WARP_BLOCK_TYPE } from "./warp/identifiers";
 import { installWarp } from "./warp/install";
 
 export function bootstrap(): void {
@@ -36,6 +37,9 @@ export function bootstrap(): void {
     isExcludedEntityType: excludedEntityType(vehicles.isFleetEntityType),
     isProtected: (d, c) =>
       vehicles.isVehicleSpace(d, c) || camp.isCampSpace(d, c),
+    // Only a player's placement registers a warp point, so Copy must not
+    // duplicate the block (docs/specs/warp.md, Registration).
+    uncopyableBlockTypes: [WARP_BLOCK_TYPE],
   });
   installWarp();
   console.warn(`[${NAMESPACE}] loaded`);

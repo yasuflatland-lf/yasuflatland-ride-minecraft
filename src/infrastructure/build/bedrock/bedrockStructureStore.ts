@@ -1,12 +1,16 @@
 import {
+  BlockPermutation,
+  BlockVolume,
   type Dimension,
   type Entity,
+  type Structure,
   StructureRotation,
   StructureSaveMode,
   world,
 } from "@minecraft/server";
 import type {
   BuildStructureStore,
+  CaptureMode,
   CaptureRefusal,
 } from "../../../application/build/ports/structures";
 import type { CellBox } from "../../../domain/build/box";
@@ -25,6 +29,7 @@ import {
   fillChunks,
   isStructureTooLarge,
   structureIdentifier,
+  structureOffset,
 } from "./structureGeometry";
 
 function entitiesInside(dimension: Dimension, box: CellBox): Entity[] {
@@ -49,12 +54,16 @@ function entitiesInside(dimension: Dimension, box: CellBox): Entity[] {
 export class BedrockStructureStore implements BuildStructureStore {
   private counter = 0;
 
-  constructor(private readonly isExcluded: (typeId: string) => boolean) {}
+  constructor(
+    private readonly isExcluded: (typeId: string) => boolean,
+    private readonly uncopyableBlockTypes: readonly string[] = [],
+  ) {}
 
   capture(
     dimensionId: DimensionId,
     box: CellBox,
     ownerId: PlayerId,
+    mode: CaptureMode,
   ): StructureHandle | CaptureRefusal {
     if (isStructureTooLarge(box)) return "tooLarge";
     try {
@@ -66,7 +75,7 @@ export class BedrockStructureStore implements BuildStructureStore {
       do {
         name = structureIdentifier(ownerId, ++this.counter);
       } while (world.structureManager.get(name) !== undefined);
-      world.structureManager.createFromWorld(
+      const structure = world.structureManager.createFromWorld(
         name,
         dimension,
         box.min,
@@ -77,9 +86,34 @@ export class BedrockStructureStore implements BuildStructureStore {
           includeEntities: true,
         },
       );
+      if (mode === "copy" && !this.clearUncopyable(structure, dimension, box)) {
+        this.discard(structureHandle(name));
+        return "unreadable";
+      }
       return structureHandle(name);
     } catch {
       return "unreadable";
+    }
+  }
+
+  // The save options can only drop all blocks, so uncopyable types are
+  // overwritten with air in the saved structure afterwards.
+  private clearUncopyable(
+    structure: Structure,
+    dimension: Dimension,
+    box: CellBox,
+  ): boolean {
+    if (this.uncopyableBlockTypes.length === 0) return true;
+    try {
+      const found = dimension.getBlocks(new BlockVolume(box.min, box.max), {
+        includeTypes: [...this.uncopyableBlockTypes],
+      });
+      const air = BlockPermutation.resolve("minecraft:air");
+      for (const cell of found.getBlockLocationIterator())
+        structure.setBlockPermutation(structureOffset(box, cell), air);
+      return true;
+    } catch {
+      return false;
     }
   }
 

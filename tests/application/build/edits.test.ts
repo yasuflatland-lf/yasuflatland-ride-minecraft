@@ -499,7 +499,7 @@ it.each([false, true])(
     const e = setup();
     const session = e.repo.getOrCreate(alex);
     const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 0, y: 64, z: 0 });
-    const handle = e.structures.capture(overworld, box, alex);
+    const handle = e.structures.capture(overworld, box, alex, "exact");
     if (handle === "tooLarge" || handle === "unreadable")
       throw new Error(handle);
     session.recordSnapshot({ dimensionId: overworld, box, handle });
@@ -537,7 +537,7 @@ it("finishes a cell job once with feedback when discarding an evicted snapshot t
   const e = setup();
   const session = e.repo.getOrCreate(alex);
   const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 0, y: 64, z: 0 });
-  const handle = e.structures.capture(overworld, box, alex);
+  const handle = e.structures.capture(overworld, box, alex, "exact");
   if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
   session.recordSnapshot({ dimensionId: overworld, box, handle });
   for (let i = 1; i < BUILD_SPEC.undoDepth; i++)
