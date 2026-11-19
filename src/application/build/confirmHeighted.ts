@@ -1,3 +1,4 @@
+import { uniformPattern } from "../../domain/build/edit/pattern";
 import { planHeighted } from "../../domain/build/edit/plan";
 import { heightStepBox } from "../../domain/build/flow/flow";
 import { selectionOf } from "../../domain/build/selection";
@@ -46,7 +47,7 @@ export class ConfirmHeighted {
     this.jobs.start(
       cmd.playerId,
       flow.dimensionId,
-      planHeighted(spec, cmd.fill, { state: flow.material }),
+      planHeighted(spec, cmd.fill, uniformPattern(flow.material)),
       "undoable",
       { selectionBefore, selectionAfter: selection.box },
     );
