@@ -613,6 +613,37 @@ assert actual.placement(str(len(sizes))) == plain.placement(str(len(sizes) - 1))
 );
 >>>>>>> 6cbb10fa4 (Skip the plain pack when the shared pack provably cannot lose)
 
+it("keeps shared representative slots when the plain pack ties on area", async () => {
+  expect(
+    await run(
+      `from unittest.mock import patch
+
+registry = m.RegionRegistry()
+representatives = m.RegionRegistry()
+for name, w, h in [('a', 1, 5), ('b', 1, 1), ('c', 5, 1), ('duplicate', 5, 1)]:
+    region = m.Region(name, w, h, M.WOOD, lambda x, y: (x, y, 0, 255))
+    registry.register(region)
+    if name != 'duplicate':
+        representatives.register(region)
+shared = m._pack(representatives, 0)
+plain = m._pack(registry, 0)
+assert m.plain_pack_can_win(shared.size, registry.regions())
+with patch.object(m, '_pack', wraps=m._pack) as counted:
+    actual = m.pack(registry, 0, share_key=lambda r: r.material)
+assert counted.call_count == 2
+assert not actual._plain_skipped
+assert actual.size == shared.size
+for r in representatives.regions():
+    assert actual.placement(r.name) == shared.placement(r.name)
+assert actual.placement('duplicate') == shared.placement('c')`,
+      "[shared.size, plain.size]",
+    ),
+  ).toEqual([
+    [5, 6],
+    [6, 5],
+  ]);
+});
+
 it("detects corrupted shared orientation and texels sampled by a bound face", async () => {
   expect(
     await run(
