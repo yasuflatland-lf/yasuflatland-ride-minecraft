@@ -57,6 +57,20 @@ describe("atlas packing", () => {
     );
   });
 
+  it("preserves the tuple packer's layouts for 200 to 400 rectangles", async () => {
+    const largeSide = fc.constantFrom(2, 4, 8);
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(fc.tuple(largeSide, largeSide), {
+          minLength: 200,
+          maxLength: 400,
+        }),
+        (sizes) => expectEquivalent([{ sizes, gutter: 0, maxSide: 128 }]),
+      ),
+      { numRuns: 2 },
+    );
+  });
+
   it("preserves exact limits, impossible fits, equal-size ties and forty-item orders", async () => {
     await expectEquivalent([
       { sizes: [[64, 64]], gutter: 2, maxSide: 64 },

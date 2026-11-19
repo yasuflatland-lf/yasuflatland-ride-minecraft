@@ -42,40 +42,56 @@ class FreeSpace:
 
     def best_fit(self, size: Size, mode: ScoreMode) -> Rect | None:
         w, h = size
-        choices = []
+        best = None
+        short_side = mode == ScoreMode.BEST_SHORT_SIDE
         for x, y, fw, fh in self._rects:
             if w <= fw and h <= fh:
                 score = ((min(fw - w, fh - h), max(fw - w, fh - h), y, x)
-                         if mode == ScoreMode.BEST_SHORT_SIDE else (y + h, x, fw * fh - w * h))
-                choices.append((score, x, y))
-        if not choices:
+                         if short_side else (y + h, x, fw * fh - w * h))
+                candidate = (score, x, y)
+                if best is None or candidate < best:
+                    best = candidate
+        if best is None:
             return None
-        _, x, y = min(choices)
+        _, x, y = best
         return Rect(x, y, w, h)
 
     def place(self, rect: Rect) -> None:
         x, y, w, h = rect
         right, bottom = x + w, y + h
-        remaining = []
+        survivors = []
+        pieces = []
         for free in self._rects:
             a, b, c, d = free
             # Inlined Rect.overlaps: this loop dominates the build time.
             if not (a < right and x < a + c and b < bottom and y < b + d):
-                remaining.append(free)
+                survivors.append(free)
                 continue
             if a < x:
-                remaining.append(Rect(a, b, x - a, d))
+                pieces.append(Rect(a, b, x - a, d))
             if right < a + c:
-                remaining.append(Rect(right, b, a + c - right, d))
+                pieces.append(Rect(right, b, a + c - right, d))
             if b < y:
-                remaining.append(Rect(a, b, c, y - b))
+                pieces.append(Rect(a, b, c, y - b))
             if bottom < b + d:
-                remaining.append(Rect(a, bottom, c, b + d - bottom))
-        unique = sorted(set(remaining))
-        self._rects = [a for a in unique
-                       if not any(a != b and b.x <= a.x and b.y <= a.y
-                                  and a.x + a.w <= b.x + b.w and a.y + a.h <= b.y + b.h
-                                  for b in unique)]
+                pieces.append(Rect(a, bottom, c, b + d - bottom))
+        # The old list is maximal, so no survivor contains another. Each new piece
+        # is a subset of an old rectangle that overlapped the placement, whereas
+        # survivors are disjoint from it. If a piece contained a survivor, its
+        # distinct parent would have contained that survivor in the old list,
+        # contradicting maximality. Only new pieces need containment checks
+        # against the survivors and the other new pieces.
+        candidates = survivors + pieces
+        for piece in pieces:
+            a, b, c, d = piece
+            end_x, end_y = a + c, b + d
+            for other in candidates:
+                x, y, w, h = other
+                if x <= a and y <= b and end_x <= x + w and end_y <= y + h and other != piece:
+                    break
+            else:
+                survivors.append(piece)
+        self._rects = sorted(set(survivors))
 
     def rects(self) -> list[Rect]:
         return list(self._rects)
