@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf } from "../../../src/domain/build/box";
+import { boxOf, boxWithHeight } from "../../../src/domain/build/box";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import {
   airPressOffersUndo,
@@ -12,7 +12,6 @@ import {
   chooseTerrain,
   closeBuildMenu,
   enterRotateMode,
-  finishHeightStep,
   finishRotateMode,
   openBuildMenu,
   opensUtilityMenu,
@@ -301,7 +300,17 @@ it("accepts every heighted kind only on its supported shapes", () => {
           ],
           [
             { x: dx, y: dy, z: dz },
-            ["fill", "faces", "walls", "cylinder", "sideCylinder", "sphere"],
+            [
+              "fill",
+              "faces",
+              "walls",
+              "gable",
+              "hip",
+              "cylinder",
+              "sideCylinder",
+              "sphere",
+              "cube",
+            ],
           ],
           [{ x: dx, y: dy, z: 0 }, ["fill", "frame"]],
           [{ x: 0, y: dy, z: dz }, ["fill", "frame"]],
@@ -332,7 +341,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
               expect(chosen).toBe(flow);
               continue;
             }
-            const locked = offset.y !== 0;
+            const locked = kind !== "gable" && kind !== "hip";
             expect(chosen).toEqual({
               kind: "heightStep",
               dimensionId: dim,
@@ -340,7 +349,10 @@ it("accepts every heighted kind only on its supported shapes", () => {
               material: stone,
               heightedKind: kind,
               base: { min: origin, max: { ...end, y: origin.y } },
-              previous: locked ? dy + 1 : 1,
+              previous: locked ? offset.y + 1 : 1,
+              ...(!locked && offset.y !== 0
+                ? { selectionBefore: boxOf(origin, end) }
+                : {}),
               heightLocked: locked,
             });
             expect(contentsMenu(chosen).map((e) => e.id)).toEqual(
@@ -369,19 +381,24 @@ it("roof and paste stages accept only their own transitions and ignore selection
       cell,
       fc.constantFrom("gable" as const, "hip" as const),
       fc.integer(),
-      fc.boolean(),
-      (a, b, kind, height, hollow) => {
+      (a, b, kind, height) => {
         const endpoint = confirmEndpointHeight(
           tapAir(tapBlock(idle, dim, a, stone), b),
         );
         const shape = shapeOf(a, b);
         const roof = chooseHeighted(endpoint, kind);
-        if (shape.kind === "rect" && shape.flat === "y") {
+        if (
+          shape.kind === "box" ||
+          (shape.kind === "rect" && shape.flat === "y")
+        ) {
           expect(roof).toEqual({
             kind: "heightStep",
             heightLocked: false,
             dimensionId: dim,
-            base: boxOf(a, b),
+            base: boxWithHeight(boxOf(a, b), 1),
+            ...(shape.kind === "box" && endpoint.kind === "selected"
+              ? { selectionBefore: endpoint.selection.box }
+              : {}),
             from: a,
             heightedKind: kind,
             previous: 1,
@@ -406,9 +423,6 @@ it("roof and paste stages accept only their own transitions and ignore selection
           horizontal,
           paste,
         ]) {
-          expect(finishHeightStep(flow, hollow)).toEqual(
-            flow.kind === "heightStep" ? idle : flow,
-          );
           expect(setHeight(flow, height)).toEqual(
             flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
           );

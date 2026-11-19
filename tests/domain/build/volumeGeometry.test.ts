@@ -12,6 +12,7 @@ import {
   roofCount,
 } from "../../../src/domain/build/roof/roof";
 import {
+  boundingBox,
   placementOf,
   volumeOf,
 } from "../../../src/domain/build/volume/geometry";
@@ -35,6 +36,29 @@ const height = fc.integer({ min: 1, max: 36 });
 const registeredKinds = ["gable", "hip"] as const satisfies readonly RoofKind[];
 
 describe("heighted geometry", () => {
+  it.each([
+    "gable",
+    "hip",
+    "cube",
+    "cylinder",
+    "sideCylinderX",
+    "sideCylinderZ",
+    "sphere",
+  ] as const)("bounds %s with a filled cell on every face", (kind) => {
+    fc.assert(
+      fc.property(base, height, (base, height) => {
+        const spec = { base, kind, height };
+        const cells = [...placementOf(kind).cells(spec, "fill")];
+        const box = boundingBox(spec);
+        expect(cells.every((cell) => contains(box, cell))).toBe(true);
+        for (const axis of ["x", "y", "z"] as const) {
+          expect(cells.some((cell) => cell[axis] === box.min[axis])).toBe(true);
+          expect(cells.some((cell) => cell[axis] === box.max[axis])).toBe(true);
+        }
+      }),
+    );
+  });
+
   it.each(registeredKinds)(
     "preserves %s roof cells, counts, and height caps",
     (kind) => {

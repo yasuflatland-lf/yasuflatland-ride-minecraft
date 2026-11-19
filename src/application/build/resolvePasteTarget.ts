@@ -1,4 +1,4 @@
-import type { CellBox } from "../../domain/build/box";
+import { type CellBox, sameBox } from "../../domain/build/box";
 import {
   aimedPasteTarget,
   type PasteTarget,
@@ -22,17 +22,6 @@ type Snap = {
   tick: number;
   snapped: CellBox | undefined;
 };
-
-function sameBox(a: CellBox, b: CellBox): boolean {
-  return (
-    a.min.x === b.min.x &&
-    a.min.y === b.min.y &&
-    a.min.z === b.min.z &&
-    a.max.x === b.max.x &&
-    a.max.y === b.max.y &&
-    a.max.z === b.max.z
-  );
-}
 
 export class ResolvePasteTarget {
   // The outline redraws every few ticks while the gaze often rests on one

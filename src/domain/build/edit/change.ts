@@ -24,6 +24,7 @@ export interface AppliedChange {
 
 export interface EditRecord {
   readonly selectionBefore?: CellBox;
+  readonly selectionAfter?: CellBox;
   readonly dimensionId: DimensionId;
   readonly changes: readonly AppliedChange[];
 }

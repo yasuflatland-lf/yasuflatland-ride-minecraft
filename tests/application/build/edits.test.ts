@@ -99,6 +99,12 @@ function runAll(env: Env, maxSteps = 1000) {
   }
 }
 
+function fillAndClearBeforeCompletion(env: Env, playerId: typeof alex) {
+  env.fill.execute({ playerId, style: "fill" });
+  env.repo.getOrCreate(playerId).clearSelection();
+  runAll(env);
+}
+
 function snapshot(world: FakeWorld, size: number, y = 64) {
   const out: string[] = [];
   for (let x = 0; x < size; x++)
@@ -114,8 +120,7 @@ describe("EditJobs properties", () => {
         const env = setup();
         for (let i = 0; i < edits; i++) {
           select(env, alex, 2, 64 + i);
-          env.fill.execute({ playerId: alex, style: "fill" });
-          runAll(env);
+          fillAndClearBeforeCompletion(env, alex);
           expect(env.feedback.messages.at(-1)).toEqual({
             message: "editDone",
             count: 4,
@@ -123,8 +128,7 @@ describe("EditJobs properties", () => {
           expect(env.feedback.undoHints).toEqual([alex]);
         }
         select(env, blake, 2, 80);
-        env.fill.execute({ playerId: blake, style: "fill" });
-        runAll(env);
+        fillAndClearBeforeCompletion(env, blake);
         expect(env.feedback.undoHints).toEqual([alex, blake]);
       }),
     );
@@ -134,16 +138,14 @@ describe("EditJobs properties", () => {
     const env = setup();
     env.world.put({ x: 0, y: 64, z: 0 }, stone);
     select(env, alex, 1);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.messages.at(-1)).toEqual({
       message: "editDoneCount",
       count: 0,
     });
     expect(env.feedback.undoHints).toEqual([]);
     select(env, alex, 2);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.undoHints).toEqual([alex]);
   });
 
@@ -187,8 +189,7 @@ describe("EditJobs properties", () => {
       if (!promises) {
         env.repo.getOrCreate(alex).setFlow({ kind: "idle" });
         select(env, alex, 2, 70);
-        env.fill.execute({ playerId: alex, style: "fill" });
-        runAll(env);
+        fillAndClearBeforeCompletion(env, alex);
         expect(env.feedback.undoHints, name).toEqual([alex]);
       }
     }
@@ -213,21 +214,18 @@ describe("EditJobs properties", () => {
     });
     expect(env.feedback.undoHints).toEqual([]);
     select(env, alex, 1);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.undoHints).toEqual([alex]);
   });
 
   it("shows a new hint after the session is removed", () => {
     const env = setup();
     select(env, alex, 1);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.undoHints).toEqual([alex]);
     env.repo.remove(alex);
     select(env, alex, 2);
-    env.fill.execute({ playerId: alex, style: "fill" });
-    runAll(env);
+    fillAndClearBeforeCompletion(env, alex);
     expect(env.feedback.undoHints).toEqual([alex, alex]);
   });
 
@@ -290,7 +288,7 @@ describe("EditJobs properties", () => {
         const unreadable = new Set(unreadableIdx);
         expect(env.world.writes).toBe(25 - unreadable.size);
         expect(env.feedback.messages.at(-1)).toEqual({
-          message: "editDone",
+          message: "editDoneCount",
           count: 25 - unreadable.size,
         });
       }),
@@ -478,7 +476,7 @@ describe("edit use cases", () => {
     env.fill.execute({ playerId: alex, style: "fill" });
     runAll(env);
     expect(env.feedback.messages.at(-1)).toEqual({
-      message: "editDone",
+      message: "editDoneCount",
       count: 8,
     });
     env.undo.execute({ playerId: alex });

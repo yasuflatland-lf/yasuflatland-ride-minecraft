@@ -41,18 +41,13 @@ export interface MenuEntry<Id extends string = string> {
   on?: boolean;
 }
 
-const RECT_SOLID_ENTRIES: readonly BuildEntryId[] = [
+const HEIGHTED_ENTRIES: readonly BuildEntryId[] = [
   "gable",
   "hip",
   "cylinder",
   "sideCylinder",
   "sphere",
   "cube",
-];
-const BOX_SOLID_ENTRIES: readonly BuildEntryId[] = [
-  "cylinder",
-  "sideCylinder",
-  "sphere",
 ];
 
 export function editEntries(): MenuEntry<EditEntryId>[] {
@@ -67,11 +62,9 @@ export function editEntries(): MenuEntry<EditEntryId>[] {
 
 export function buildEntries(shape: Shape): MenuEntry<BuildEntryId>[] {
   const extraEntries: readonly BuildEntryId[] =
-    shape.kind === "rect" && shape.flat === "y"
-      ? RECT_SOLID_ENTRIES
-      : shape.kind === "box"
-        ? BOX_SOLID_ENTRIES
-        : [];
+    shape.kind === "box" || (shape.kind === "rect" && shape.flat === "y")
+      ? HEIGHTED_ENTRIES
+      : [];
   return [
     ...stylesFor(shape).map<MenuEntry<BuildEntryId>>((style) => ({
       id: shape.kind === "line" ? "place" : style,

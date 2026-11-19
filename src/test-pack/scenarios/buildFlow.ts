@@ -13,7 +13,7 @@ import type { CellBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import type { Facing } from "../../domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../domain/build/spec";
-import type { Cell } from "../../domain/shared/cells";
+import { type Cell, cellKey } from "../../domain/shared/cells";
 import {
   BUILD_UNDO_TYPE,
   LAID_BLOCK_TAG,
@@ -60,6 +60,8 @@ interface Reply {
   flow: {
     kind: string;
     previous?: number;
+    menuLevel?: "root" | "build";
+    heightLocked?: boolean;
     heightedKind?: string;
     selection?: { box: CellBox };
   };
@@ -296,7 +298,8 @@ export function buildShapes(a: Arena): Promise<Outcome> {
         b.setType("minecraft:oak_log");
         b.setPermutation(b.permutation.withState("pillar_axis", "x"));
       }
-      await f.select(f.cell(sx - 1, sy - 1, sz - 1), id !== "fill");
+      const end = f.cell(sx - 1, sy - 1, sz - 1);
+      await f.select(end, id !== "fill");
       const before = snapshot(f, cells);
       for (const absent of sy === 5 ? ["frame"] : ["faces", "walls"])
         check(
@@ -305,9 +308,10 @@ export function buildShapes(a: Arena): Promise<Outcome> {
         );
       const result = await f.menu("shape", id);
       check(
-        result.offered === true && result.message === "editDone",
+        result.offered === true && result.message === "editDoneCount",
         `${id} did not finish`,
       );
+      checkSelection(result, { min: f.cell(), max: end }, id);
       check(
         f.count(cells) === expected,
         `${id}: expected ${expected} stone blocks, got ${f.count(cells)}`,
@@ -328,15 +332,20 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
     ] as const) {
       const cells = f.region(5, 4, 5);
       for (const c of cells) f.block(c).setType("minecraft:air");
-      await f.select(f.cell(4, 0, 4));
+      const end = f.cell(4, kind === "gable" ? 3 : 0, 4);
+      await f.select(end);
+      f.block(f.cell()).setType("minecraft:air");
       for (const id of ["fill", "hollow", "cancel"])
         check(
           (await f.menu("contents", id)).offered === false,
           "roof entry offered before roof choice",
         );
+      const step = (await f.menu("shape", kind)).flow;
       check(
-        (await f.menu("shape", kind)).flow.kind === "heightStep",
-        "roof height step missing",
+        step.kind === "heightStep" &&
+          step.heightLocked === false &&
+          step.previous === 1,
+        "roof did not start its own height step",
       );
       check(
         (await f.edit("height 3")).flow.previous === 3,
@@ -345,19 +354,21 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
       const before = snapshot(f, cells);
       const result = await f.menu("contents", style);
       check(
-        result.offered === true && result.message === "editDone",
+        result.offered === true && result.message === "editDoneCount",
         "roof did not finish",
       );
       check(
         f.count(cells) === expected,
         `${kind} ${style}: expected ${expected}, got ${f.count(cells)}`,
       );
+      checkSelection(result, { min: f.cell(), max: f.cell(4, 2, 4) }, kind);
       for (const id of ["fill", "hollow", "cancel"])
         check(
           (await f.menu("contents", id)).offered === false,
           "roof entry offered after confirmation",
         );
-      await f.edit("undo");
+      const undone = await f.edit("undo");
+      checkSelection(undone, { min: f.cell(), max: end }, "roof Undo");
       check(unchanged(f, cells, before), "roof undo changed original cells");
     }
   });
@@ -765,7 +776,7 @@ export function buildUndoItemShape(a: Arena): Promise<Outcome> {
     await f.select(f.cell(1, 1, 1), false);
     const before = snapshot(f, cells);
     check(
-      (await f.menu("shape", "fill")).message === "editDone",
+      (await f.menu("shape", "fill")).message === "editDoneCount",
       "Fill failed",
     );
     check(f.count(cells) === cells.length, "Fill did not write the box");
@@ -1222,61 +1233,71 @@ export function buildPasteBlocked(a: Arena): Promise<Outcome> {
   });
 }
 
+function checkSelection(reply: Reply, box: CellBox, detail: string): void {
+  const actual = reply.flow.selection?.box;
+  check(
+    reply.flow.kind === "selected" &&
+      reply.flow.menuLevel === "root" &&
+      actual !== undefined &&
+      cellKey(actual.min) === cellKey(box.min) &&
+      cellKey(actual.max) === cellKey(box.max),
+    `${detail}: expected root selection ${JSON.stringify(box)}, got ${JSON.stringify(reply.flow)}`,
+  );
+}
+
 async function placeSolid(
   f: Fixture,
   end: Cell,
   shape: string,
   fill: string,
-  height?: number,
-): Promise<void> {
+): Promise<Reply> {
   await f.select(end);
   f.block(f.cell()).setType("minecraft:air");
-  const step = await f.menu("shape", shape);
-  check(step.flow.kind === "heightStep", `${shape} height step missing`);
-  if (height !== undefined)
-    check(
-      (await f.edit(`height ${height}`)).flow.previous === height,
-      "height not applied",
-    );
+  const { flow } = await f.menu("shape", shape);
+  const height = end.y - f.cell().y + 1;
+  check(
+    flow.kind === "heightStep" &&
+      flow.heightLocked === true &&
+      flow.previous === height,
+    `${shape} did not lock the selected height ${height}`,
+  );
   const done = await f.menu("contents", fill);
   check(
-    done.offered === true && done.message === "editDone",
-    `${shape} ${fill} did not finish`,
+    done.offered === true &&
+      done.message === "editDoneCount" &&
+      done.flow.kind === "selected" &&
+      done.flow.menuLevel === "root",
+    `${shape} ${fill} did not finish with a root selection`,
   );
+  return done;
 }
 
 export function buildCylinderRect(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
-    const cells = f.region(7, 4, 7);
+    const cells = f.region(7, 2, 7);
     for (const [fill, expected] of [
-      ["fill", 148],
-      ["hollow", 106],
-      ["tube", 64],
+      ["fill", 37],
+      ["hollow", 37],
+      ["tube", 16],
     ] as const) {
       for (const c of cells) f.block(c).setType("minecraft:air");
-      await placeSolid(f, f.cell(6, 0, 6), "cylinder", fill, 4);
+      await placeSolid(f, f.cell(6, 0, 6), "cylinder", fill);
       check(
         f.count(cells) === expected,
-        `cylinder ${fill}: expected ${expected}, got ${f.count(cells)}`,
-      );
-      const stone = (x: number, y: number, z: number) =>
-        f.block(f.cell(x, y, z)).typeId === "minecraft:stone";
-      check(stone(0, 1, 3) && stone(6, 2, 3), `cylinder ${fill} wall missing`);
-      check(!stone(0, 1, 0), `cylinder ${fill} filled a corner`);
-      const centers = [0, 1, 2, 3].map((y) => stone(3, y, 3));
-      const wanted =
-        fill === "fill"
-          ? [true, true, true, true]
-          : fill === "hollow"
-            ? [true, false, false, true]
-            : [false, false, false, false];
-      check(
-        centers.every((v, i) => v === wanted[i]),
-        `cylinder ${fill} inside layers wrong: ${centers.join()}`,
+        `flat cylinder ${fill}: expected ${expected}, got ${f.count(cells)}`,
       );
       await f.edit("undo");
-      check(f.count(cells) === 0, `cylinder ${fill} undo left blocks`);
+      check(f.count(cells) === 0, `flat cylinder ${fill} undo left blocks`);
     }
+  });
+}
+
+export function buildCylinderSelection(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const c of f.region(8, 3, 2)) f.block(c).setType("minecraft:air");
+    const done = await placeSolid(f, f.cell(7, 2, 1), "cylinder", "fill");
+    checkSelection(done, { min: f.cell(1), max: f.cell(6, 2, 1) }, "cylinder");
+    await f.edit("undo");
   });
 }
 
@@ -1301,7 +1322,22 @@ export function buildCylinderBox(a: Arena): Promise<Outcome> {
         "locked cylinder height changed",
       );
       const done = await f.menu("contents", fill);
-      check(done.message === "editDone", `box cylinder ${fill} failed`);
+      check(done.message === "editDoneCount", `box cylinder ${fill} failed`);
+      checkSelection(
+        done,
+        { min: f.cell(), max: f.cell(4, 4, 4) },
+        "box cylinder",
+      );
+      const stone = (x: number, y: number, z: number) =>
+        f.block(f.cell(x, y, z)).typeId === "minecraft:stone";
+      check(stone(0, 1, 2) && stone(4, 2, 2), `cylinder ${fill} wall missing`);
+      check(!stone(0, 1, 0), `cylinder ${fill} filled a corner`);
+      check(
+        stone(2, 0, 2) === (fill !== "tube") &&
+          stone(2, 4, 2) === (fill !== "tube") &&
+          stone(2, 2, 2) === (fill === "fill"),
+        `cylinder ${fill} inside layers wrong`,
+      );
       check(
         f.count(cells) === expected,
         `box cylinder ${fill}: expected ${expected}, got ${f.count(cells)}`,
@@ -1332,7 +1368,8 @@ export function buildSphereBox(a: Arena): Promise<Outcome> {
           "locked sphere height changed",
         );
         const done = await f.menu("contents", fill);
-        check(done.message === "editDone", `box sphere ${fill} failed`);
+        check(done.message === "editDoneCount", `box sphere ${fill} failed`);
+        checkSelection(done, { min: f.cell(), max: end }, "box sphere");
         check(
           f.count(cells) === counts[fill],
           `box sphere ${fill}: expected ${counts[fill]}, got ${f.count(cells)}`,
@@ -1348,10 +1385,10 @@ export function buildSphereRect(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(5, 5, 5);
     for (const c of cells) f.block(c).setType("minecraft:air");
-    await placeSolid(f, f.cell(4, 0, 4), "sphere", "fill", 5);
+    await placeSolid(f, f.cell(4, 0, 4), "sphere", "fill");
     check(
-      f.count(cells) === 81,
-      `rect sphere: expected 81, got ${f.count(cells)}`,
+      f.count(cells) === 21,
+      `rect sphere: expected 21, got ${f.count(cells)}`,
     );
     await f.edit("undo");
     check(f.count(cells) === 0, "rect sphere undo left blocks");
@@ -1376,7 +1413,12 @@ export function buildSphereHollow(a: Arena): Promise<Outcome> {
       (await f.menu("contents", "tube")).offered === false,
       "tube offered on a sphere",
     );
-    await f.menu("contents", "hollow");
+    const done = await f.menu("contents", "hollow");
+    checkSelection(
+      done,
+      { min: f.cell(), max: f.cell(6, 6, 6) },
+      "hollow sphere",
+    );
     check(
       f.count(cells) === 98,
       `hollow sphere: expected 98, got ${f.count(cells)}`,
@@ -1398,12 +1440,12 @@ export function buildCubeRect(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(4, 3, 4);
     for (const [fill, expected] of [
-      ["fill", 48],
-      ["hollow", 44],
-      ["tube", 36],
+      ["fill", 16],
+      ["hollow", 16],
+      ["tube", 12],
     ] as const) {
       for (const c of cells) f.block(c).setType("minecraft:air");
-      await placeSolid(f, f.cell(3, 0, 3), "cube", fill, 3);
+      await placeSolid(f, f.cell(3, 0, 3), "cube", fill);
       check(
         f.count(cells) === expected,
         `cube ${fill}: expected ${expected}, got ${f.count(cells)}`,
@@ -1411,19 +1453,18 @@ export function buildCubeRect(a: Arena): Promise<Outcome> {
       await f.edit("undo");
       check(f.count(cells) === 0, `cube ${fill} undo left blocks`);
     }
-    await f.select(f.cell(3, 3, 3));
-    check(
-      (await f.menu("shape", "cube")).offered === false,
-      "cube offered on a box",
-    );
+    await placeSolid(f, f.cell(3, 2, 3), "cube", "fill");
+    check(f.count(cells) === 48, "cube did not fill the selected box");
+    await f.edit("undo");
   });
 }
 
 export function buildSolidCancelUndo(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
-    const cells = f.region(5, 3, 5);
+    const cells = f.region(8, 3, 2);
     for (const c of cells) f.block(c).setType("minecraft:air");
-    await f.select(f.cell(4, 0, 4));
+    const flatEnd = f.cell(7, 0, 1);
+    await f.select(flatEnd);
     f.block(f.cell()).setType("minecraft:air");
     for (const shape of ["cylinder", "cube"]) {
       check(
@@ -1434,15 +1475,17 @@ export function buildSolidCancelUndo(a: Arena): Promise<Outcome> {
         (await f.menu("contents", "cancel")).flow.kind === "point1",
         `${shape} Cancel did not return to end-point selection`,
       );
-      await f.tap("air", f.cell(4, 0, 4));
+      await f.tap("air", flatEnd);
       await f.tap("fixHeight");
     }
-    f.block(f.cell()).setType("minecraft:air");
-    await f.menu("shape", "cylinder");
-    await f.edit("height 3");
-    await f.menu("contents", "fill");
+    const end = f.cell(7, 2, 1);
+    const built = await placeSolid(f, end, "cylinder", "fill");
+    checkSelection(built, { min: f.cell(1), max: f.cell(6, 2, 1) }, "cylinder");
     check(f.count(cells) > 0, "cylinder was not built");
-    check((await f.menu("utility", "undo")).offered === true, "undo absent");
+    f.holdControl(BUILD_UNDO_TYPE);
+    const undone = await f.press("itemUse");
+    check(undone.message === "undoDone", "Build Undo did not run");
+    checkSelection(undone, { min: f.cell(), max: end }, "cylinder Undo");
     check(f.count(cells) === 0, "undo did not remove the cylinder");
   });
 }
@@ -1734,8 +1777,13 @@ export function buildRemoveAbove(a: Arena): Promise<Outcome> {
       check(f.count([f.cell(2, 2, 2)]) === 1, "Wrote before confirmation");
       const done = await f.menu("terrain", "confirm");
       check(
-        done.message === "editDoneCount" && done.flow.kind === "idle",
+        done.message === "editDoneCount",
         `Remove above did not finish: ${done.message}`,
+      );
+      checkSelection(
+        done,
+        { min: f.cell(0, -3, 0), max: f.cell(2, 0, 2) },
+        "Remove above",
       );
       check(done.count === 3, `Changed-cell count wrong: ${done.count}`);
       check(f.count(floor) === floor.length, "Remove above changed the floor");
@@ -1796,7 +1844,7 @@ export function buildRemoveAboveNoUndo(a: Arena): Promise<Outcome> {
     // The select helper places the first corner itself, so place the blocks afterwards.
     for (const cell of line) f.block(cell).setType("minecraft:dirt");
     check(
-      (await f.menu("shape", "place")).message === "editDone",
+      (await f.menu("shape", "place")).message === "editDoneCount",
       "Earlier edit did not finish",
     );
     check(f.count(line) === line.length, "Earlier edit left dirt behind");
@@ -1887,29 +1935,25 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
   });
 }
 
-export function buildUndoHintOnce(a: Arena): Promise<Outcome> {
+export function buildSelectedLineFeedback(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     await f.edit("reset");
     const cells = f.region(2, 1, 1);
-    for (const expectedHints of [1, 0]) {
-      for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
-      await f.select(f.cell(1));
-      f.block(f.cell()).setType("minecraft:gold_block");
-      const result = await f.menu("shape", "place");
-      check(
-        result.message === "editDone" && result.count === 2,
-        "Edit feedback missing",
-      );
-      check(
-        result.undoHints === expectedHints,
-        "Undo hint was missing or repeated",
-      );
-      const undo = await f.menu("utility", "undo");
-      check(
-        undo.message === "undoDone" && undo.undoHints === 0,
-        "Undo emitted first-edit hint",
-      );
-    }
+
+    for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
+    await f.select(f.cell(1));
+    f.block(f.cell()).setType("minecraft:gold_block");
+    const result = await f.menu("shape", "place");
+    check(
+      result.message === "editDoneCount" && result.count === 2,
+      "Edit feedback missing",
+    );
+    check(result.undoHints === 0, "Selected line promised air-press Undo");
+    const undo = await f.menu("utility", "undo");
+    check(
+      undo.message === "undoDone" && undo.undoHints === 0,
+      "Undo emitted first-edit hint",
+    );
   });
 }
 
@@ -1924,7 +1968,7 @@ export function buildUnstuckFill(a: Arena): Promise<Outcome> {
     f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
     const rotation = f.player.getRotation();
     const result = await f.menu("shape", "fill");
-    check(result.message === "editDone", "Fill did not complete");
+    check(result.message === "editDoneCount", "Fill did not complete");
     const actual = f.player.location;
     check(
       Math.abs(actual.x - (feet.x + 0.5)) < 0.01 &&
@@ -1961,7 +2005,7 @@ export function buildUnstuckNotTouched(a: Arena): Promise<Outcome> {
     await f.select(f.cell(2, 3, 2));
     f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
     const result = await f.menu("shape", "fill");
-    check(result.message === "editDone", "Remote Fill did not complete");
+    check(result.message === "editDoneCount", "Remote Fill did not complete");
     const actual = f.player.location;
     check(
       Math.abs(actual.x - (feet.x + 0.5)) < 0.01 &&
@@ -2003,6 +2047,7 @@ export function buildFillBelowPit(a: Arena): Promise<Outcome> {
       done.message === "editDoneCount" && done.count === pit.length,
       "Wrong fill completion count",
     );
+    checkSelection(done, { min: f.cell(), max: f.cell(4, 0, 4) }, "Fill below");
     check(f.count(pit) === pit.length, "Fill left a hole in the pit");
   });
 }
@@ -2135,7 +2180,8 @@ function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
       ["tube", 84],
     ] as const) {
       for (const cell of cells) f.block(cell).setType("minecraft:air");
-      await f.select(at(6, axis === "x" ? 4 : 0, 4));
+      const end = at(6, 4, 4);
+      await f.select(end);
       f.block(f.cell()).setType("minecraft:air");
       await f.lookSettled(axis === "x" ? -90 : 0);
       const step = await f.menu("shape", "sideCylinder");
@@ -2150,20 +2196,17 @@ function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
       );
       await f.lookSettled(axis === "x" ? 0 : -90);
       check(
-        (await f.edit("height 5")).flow.previous === 5,
-        "sideways cylinder height incorrect",
-      );
-      if (axis === "x")
-        check(
+        step.flow.heightLocked === true &&
           (await f.edit("height 2")).flow.previous === 5,
-          "box height was not locked",
-        );
+        "sideways cylinder height was not locked",
+      );
       const done = await f.menu("contents", fill);
       const n = f.count(cells);
       check(
-        done.message === "editDone" && n === expected,
+        done.message === "editDoneCount" && n === expected,
         `sideways ${axis} ${fill} count incorrect: got ${n}, expected ${expected}, kind ${step.flow.heightedKind}`,
       );
+      checkSelection(done, { min: f.cell(), max: end }, "sideways cylinder");
       const stone = (along: number, y: number, across: number) =>
         f.block(at(along, y, across)).typeId === "minecraft:stone";
       check(stone(3, 2, 0) && stone(3, 0, 2), "sideways wall missing");
@@ -2830,9 +2873,6 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
     }
   });
 }
-
-const cellKey = (p: { x: number; y: number; z: number }): string =>
-  `${p.x},${p.y},${p.z}`;
 
 export async function buildPasteStructureDecor(
   a: Arena,

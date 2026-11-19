@@ -418,7 +418,7 @@ it.each([
   });
 });
 
-it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
+it.each(["gable", "hip"] as const)(
   "chooses %s without a slider by default",
   async (kind) => {
     const { menus, player, cases } = setup();
@@ -517,13 +517,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
     fc.asyncProperty(
       fc.integer({ min: 0, max: 319 }),
       fc.integer({ min: 1, max: 21 }),
-      fc.constantFrom(
-        "gable" as const,
-        "hip" as const,
-        "cylinder" as const,
-        "sphere" as const,
-        "cube" as const,
-      ),
+      fc.constantFrom("gable" as const, "hip" as const),
       async (y, requested, kind) => {
         const { session, menus, player, cases } = setup(true);
         const flow = chooseHeighted(
@@ -537,12 +531,12 @@ it("bounds the fallback slider, uses the previous height and applies it before t
         ui.forms.length = 0;
         ui.answers.push({ formValues: [max] }, { selection: 1 });
         await menus.showHeightSlider(player);
-        const title =
-          kind === "cylinder" || kind === "sphere" || kind === "cube"
-            ? BUILD_FORM.solidTitle
-            : BUILD_FORM.roofTitle;
-        expect(ui.forms[0]?.heading).toEqual({ translate: title });
-        expect(ui.forms[1]?.heading).toEqual({ translate: title });
+        expect(ui.forms[0]?.heading).toEqual({
+          translate: BUILD_FORM.roofTitle,
+        });
+        expect(ui.forms[1]?.heading).toEqual({
+          translate: BUILD_FORM.roofTitle,
+        });
         expect(ui.forms[0]?.sliders).toEqual([
           {
             label: { translate: BUILD_FORM.height },
@@ -568,7 +562,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
   );
 });
 
-it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
+it.each(["gable", "hip"] as const)(
   "chains %s through the enabled slider to the roof menu",
   async (kind) => {
     const { menus, player, cases } = setup(true);
@@ -809,18 +803,23 @@ it.each(["fill", "hollow", "cancel"] as const)(
   },
 );
 
-it.each([false, true])(
-  "opens locked cylinder contents directly with fallback=%s",
-  async (fallback) => {
+it.each([
+  { kind: "cylinder", y: from.y, fallback: false },
+  { kind: "cube", y: from.y, fallback: true },
+  { kind: "cylinder", y: 71, fallback: true },
+  { kind: "cube", y: 71, fallback: false },
+] as const)(
+  "opens locked $kind contents directly at y=$y with fallback=$fallback",
+  async ({ kind, y, fallback }) => {
     const { session, menus, player, cases } = setup(fallback);
-    session.setFlow(selected(from, { ...to, y: 71 }));
-    ui.answers.push(...shapeAnswers(session.flow, "cylinder"), {
+    session.setFlow(selected(from, { ...to, y }));
+    ui.answers.push(...shapeAnswers(session.flow, kind), {
       selection: 2,
     });
     await menus.showShapeMenu(player);
     expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
-      kind: "cylinder",
+      kind,
     });
     expect(ui.forms).toHaveLength(3);
     expect(ui.forms[2]?.heading).toEqual({ translate: BUILD_FORM.solidTitle });
@@ -830,7 +829,10 @@ it.each([false, true])(
       playerId,
       fill: "tube",
     });
-    expect(session.flow).toMatchObject({ heightLocked: true, previous: 12 });
+    expect(session.flow).toMatchObject({
+      heightLocked: true,
+      previous: y - from.y + 1,
+    });
     ui.answers.push({ selection: 0 });
     await menus.showHeightSlider(player);
     expect(ui.forms).toHaveLength(4);
@@ -839,11 +841,11 @@ it.each([false, true])(
   },
 );
 
-it.each([false, true])(
-  "opens locked sphere contents directly with fallback=%s",
-  async (fallback) => {
-    const { session, menus, player, cases } = setup(fallback);
-    session.setFlow(selected(from, { ...to, y: 71 }));
+it.each([from.y, 71])(
+  "opens locked sphere contents directly with top y=%s",
+  async (y) => {
+    const { session, menus, player, cases } = setup(true);
+    session.setFlow(selected(from, { ...to, y }));
     ui.answers.push(...shapeAnswers(session.flow, "sphere"), { selection: 1 });
     await menus.showShapeMenu(player);
     expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
@@ -1266,28 +1268,25 @@ it("returns to aiming when Fill below confirmation is dismissed", async () => {
 });
 
 it.each([false, true])(
-  "routes a sideways rectangle through the shared height step with fallback=%s",
+  "opens one-layer sideways cylinder contents directly with fallback=%s",
   async (fallback) => {
     const { session, menus, player, cases } = setup(fallback);
-    ui.answers.push(...shapeAnswers(session.flow, "sideCylinder"));
-    if (fallback) ui.answers.push({ formValues: [7] }, { selection: 0 });
+    ui.answers.push(...shapeAnswers(session.flow, "sideCylinder"), {
+      selection: 0,
+    });
     await menus.showShapeMenu(player);
     expect(session.flow).toMatchObject({
       heightedKind: "sideCylinderX",
-      heightLocked: false,
-      previous: fallback ? 7 : 1,
+      heightLocked: true,
+      previous: 1,
     });
-    expect(ui.forms).toHaveLength(fallback ? 4 : 2);
-    if (fallback) {
-      expect(cases.setHeight.execute).toHaveBeenCalledExactlyOnceWith({
-        playerId,
-        height: 7,
-      });
-      expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
-        playerId,
-        fill: "fill",
-      });
-    } else expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
+    expect(ui.forms).toHaveLength(3);
+    expect(ui.forms[2]?.buttons).toEqual(labels(contentsMenu(session.flow)));
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      fill: "fill",
+    });
   },
 );
 

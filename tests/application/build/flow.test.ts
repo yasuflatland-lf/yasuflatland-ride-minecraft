@@ -166,11 +166,11 @@ it("air taps require a valid endpoint and preserve the fixed selection", () => {
   expect(e.feedback.messages).toHaveLength(1);
 });
 
-it("confirms the chosen shape with the captured material, retaining its box only for Copy", () => {
+it("confirms the chosen shape with the captured material, keeping its box selected and available for Copy", () => {
   const e = setup();
   e.endpoint();
   e.confirm.execute({ playerId, style: "frame" });
-  expect(e.session.flow.kind).toBe("idle");
+  expect(e.session.flow.kind).toBe("selected");
   expect(e.session.confirmedBox).toEqual({
     material: stone,
     dimensionId: overworld,
@@ -226,7 +226,7 @@ it("applies the limit to the chosen style rather than the bounding volume", () =
   );
   e.confirm.execute({ playerId, style: "faces" });
   expect(e.session.isEditing).toBe(true);
-  expect(e.session.flow.kind).toBe("idle");
+  expect(e.session.flow.kind).toBe("selected");
 });
 
 it("CancelFlow cancels or returns to aiming without clearing the confirmed box, while Clear clears both", () => {

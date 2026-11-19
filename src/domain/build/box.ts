@@ -70,6 +70,17 @@ export function boxOf(a: Cell, b: Cell): CellBox {
   };
 }
 
+export function sameBox(a: CellBox, b: CellBox): boolean {
+  return (
+    a.min.x === b.min.x &&
+    a.min.y === b.min.y &&
+    a.min.z === b.min.z &&
+    a.max.x === b.max.x &&
+    a.max.y === b.max.y &&
+    a.max.z === b.max.z
+  );
+}
+
 export function volume(box: CellBox): number {
   const { x, y, z } = sizeOf(box);
   return x * y * z;

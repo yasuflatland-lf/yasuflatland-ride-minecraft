@@ -1,7 +1,8 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import type { CellBox } from "../box";
+import { boxWithHeight, type CellBox } from "../box";
 import { roofPlacement, roofVolume } from "../roof/geometry";
+import { isRoofKind } from "../roof/roof";
 import { boxStepVolume } from "./boxStep";
 import { cubePlacement, cubeVolume } from "./cube";
 import { cylinderPlacement, cylinderVolume } from "./cylinder";
@@ -56,4 +57,29 @@ export function volumeOf(kind: HeightStepKind): HeightedVolume {
 
 export function placementOf(kind: HeightedKind): HeightedPlacement {
   return PLACEMENTS[kind];
+}
+
+export function boundingBox(spec: HeightedSpec): CellBox {
+  if (spec.height < 1)
+    throw new Error("A heighted volume must contain at least one cell");
+  // Roofs cover the entire base and keep at least one cell on the top layer.
+  if (spec.kind === "cube" || isRoofKind(spec.kind))
+    return boxWithHeight(spec.base, spec.height);
+
+  const cells = placementOf(spec.kind).cells(spec, "fill")[Symbol.iterator]();
+  const first = cells.next();
+  if (first.done)
+    throw new Error("A heighted volume must contain at least one cell");
+  const min = { ...first.value };
+  const max = { ...first.value };
+  for (let next = cells.next(); !next.done; next = cells.next()) {
+    const { x, y, z } = next.value;
+    min.x = Math.min(min.x, x);
+    min.y = Math.min(min.y, y);
+    min.z = Math.min(min.z, z);
+    max.x = Math.max(max.x, x);
+    max.y = Math.max(max.y, y);
+    max.z = Math.max(max.z, z);
+  }
+  return { min, max };
 }

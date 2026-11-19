@@ -11,7 +11,11 @@ import {
 } from "../selection";
 import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
-import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
+import {
+  type HeightStepKind,
+  isBoxStepKind,
+  locksBoxHeight,
+} from "../volume/kind";
 import type { PasteAim } from "./paste";
 import { beginRotateMode, type RotateMode } from "./rotateMode";
 
@@ -43,6 +47,7 @@ export type BuildFlow =
       readonly kind: "heightStep";
       readonly dimensionId: DimensionId;
       readonly base: CellBox;
+      readonly selectionBefore?: CellBox;
       readonly from: Cell;
       readonly heightedKind: HeightStepKind;
       readonly facing?: Facing;
@@ -210,18 +215,19 @@ export function chooseHeighted(
   if (flow.kind !== "selected") return flow;
   const { box, dimensionId, material } = flow.selection;
   const shape = shapeOf(box.min, box.max);
-  const locked = shape.kind === "box" && locksBoxHeight(kind);
-  if (!locked && (shape.kind !== "rect" || shape.flat !== "y")) return flow;
+  const horizontal = shape.kind === "rect" && shape.flat === "y";
+  if (!horizontal && !(shape.kind === "box" && !isBoxStepKind(kind)))
+    return flow;
+  const locked = locksBoxHeight(kind);
   return Object.freeze({
     kind: "heightStep",
     dimensionId,
-    base: locked
-      ? { min: shape.box.min, max: { ...shape.box.max, y: shape.box.min.y } }
-      : shape.box,
+    base: boxWithHeight(box, 1),
+    ...(!locked && shape.kind === "box" ? { selectionBefore: box } : {}),
     from: flow.from,
     heightedKind: kind,
     facing,
-    previous: locked ? sizeOf(shape.box).y : 1,
+    previous: locked ? sizeOf(box).y : 1,
     heightLocked: locked,
     material,
   });
@@ -243,9 +249,6 @@ export function setHeight(flow: BuildFlow, height: number): BuildFlow {
     (flow.kind === "heightStep" && !flow.heightLocked)
     ? Object.freeze({ ...flow, previous: height })
     : flow;
-}
-export function finishHeightStep(flow: BuildFlow, _hollow: boolean): BuildFlow {
-  return flow.kind === "heightStep" ? cancel(flow) : flow;
 }
 
 export function selectionBoxOf(flow: BuildFlow): CellBox | undefined {

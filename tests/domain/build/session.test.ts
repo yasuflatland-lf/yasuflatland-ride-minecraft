@@ -484,6 +484,25 @@ it("returns only replaced or cleared structure handles and retains identical han
   );
 });
 
+it("confirms a box as an active root selection with matching Copy bounds", () => {
+  fc.assert(
+    fc.property(boxArb, dimensionArb, (box, dimensionId) => {
+      const session = new BuildSession(asPlayerId("p1"));
+      const selection = selectionOf(dimensionId, box, stone);
+      session.confirmBox(selection, "selected");
+      expect(session.flow).toEqual({
+        kind: "selected",
+        menuLevel: "root",
+        selection,
+        from: box.min,
+        to: box.max,
+      });
+      expect(session.confirmedBox).toBe(selection);
+      expect(session.isInBuildMode).toBe(true);
+    }),
+  );
+});
+
 it("replaceSelection preserves the flow state and replaces frozen endpoint corners and same-dimension confirmation", () => {
   fc.assert(
     fc.property(
