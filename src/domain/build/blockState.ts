@@ -16,10 +16,30 @@ export function blockStateOf(
   return Object.freeze({ typeId, states: Object.freeze(sorted) });
 }
 
+// Bedrock recomputes stair corners from neighboring blocks after placement.
+const DERIVED_STATE_KEYS: ReadonlySet<string> = new Set(["minecraft:corner"]);
+
 export function sameBlockState(a: BlockState, b: BlockState): boolean {
+  return sameBlockStateByKeys(a, b, Object.keys);
+}
+
+export function sameBlockStateIgnoringDerived(
+  a: BlockState,
+  b: BlockState,
+): boolean {
+  return sameBlockStateByKeys(a, b, (states) =>
+    Object.keys(states).filter((key) => !DERIVED_STATE_KEYS.has(key)),
+  );
+}
+
+function sameBlockStateByKeys(
+  a: BlockState,
+  b: BlockState,
+  keysOf: (states: BlockState["states"]) => string[],
+): boolean {
   if (a.typeId !== b.typeId) return false;
-  const keys = Object.keys(a.states);
-  if (keys.length !== Object.keys(b.states).length) return false;
+  const keys = keysOf(a.states);
+  if (keys.length !== keysOf(b.states).length) return false;
   return keys.every(
     (key) => Object.hasOwn(b.states, key) && a.states[key] === b.states[key],
   );
