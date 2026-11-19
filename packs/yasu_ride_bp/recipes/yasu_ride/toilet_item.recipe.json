@@ -5,6 +5,9 @@
       "identifier": "yasu_ride:toilet_item"
     },
     "tags": ["crafting_table"],
+    "unlock": {
+      "context": "AlwaysUnlocked"
+    },
     "pattern": ["QIQ", "Q Q", " Q "],
     "key": {
       "Q": {

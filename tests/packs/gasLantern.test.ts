@@ -289,6 +289,7 @@ describe("Gas Lantern item and ground entity", () => {
     expect(recipe).toEqual({
       description: { identifier: "yasu_ride:gas_lantern_item" },
       tags: ["crafting_table"],
+      unlock: { context: "AlwaysUnlocked" },
       pattern: [" G ", "GTG", " I "],
       key: {
         G: { item: "minecraft:glass_pane" },
