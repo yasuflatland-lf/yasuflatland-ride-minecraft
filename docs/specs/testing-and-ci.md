@@ -52,6 +52,15 @@
 - Implementation: `tools/run_generators.py`; `scripts/generated-files.mjs`; `scripts/build.mjs`; `scripts/package.mjs`; `scripts/server-up.mjs`; `scripts/game-test.mjs`; `tests/support/generatedSetup.ts`; `vitest.config.ts`; `package.json`.
 - Verification: `tests/tools/runGeneratorsOwnership.test.ts` checks full-run ownership failures, stamp behavior, explicit touched reports, and the ensure exemption in temporary roots. `tests/tools/ensureGenerated.test.ts` checks caching, regeneration, failure behavior, concurrency, and ordering in temporary roots. `tests/scripts/generatedFiles.test.ts` checks conditional builds and missing-output packaging errors without starting BDS. Selected runner tests also cover `--only` ownership, dependency bypass, stamp preservation, unknown ids, and incompatible modes without rendering. The manual recovery check deletes all non-retained manifest outputs, runs `pnpm test` and `pnpm build`, and checks that Git status stays clean. Server startup and live in-game behavior require a separate BDS run.
 
+### Atlas packing cache
+
+- Applies to: Atlas packing in generators and model checks.
+- Rule: `tools/atlas_pack.py` caches atlas dimensions and origins in the ignored `.cache/atlas-pack` directory. The key covers the packing request, the packing constants, and the packer source. Entries with invalid placements are recomputed and replaced. The cache has no generator output ownership. `YASU_ATLAS_PACK_CACHE=0` bypasses cache reads and writes. `pnpm model:check` sets it for both generation and verification, and CI sets it for the entire `model-others` and `model-scene` jobs.
+- Agreement: Proposed
+- Basis: [0193](../adr/0193-shared-texture-tooling.md) Decision, atlas packing.
+- Implementation: `tools/atlas_pack.py`; `package.json`; `.github/workflows/unit-test.yml`.
+- Verification: `tests/tools/atlasPack.test.ts` checks hit parity, request key changes, recovery from invalid entries, and the disable switch in temporary cache directories.
+
 ### Manual device checks
 
 - Applies to: occupant safety, camera feel, and rendering on PC and mobile.
