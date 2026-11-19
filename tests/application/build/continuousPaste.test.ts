@@ -17,6 +17,7 @@ import {
   recordPaste,
 } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -210,7 +211,7 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
         const modes = new UpdateBuildModes(e.repo, leave);
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           modes.execute([{ playerId, held: "wand" }]);
-        e.session.confirmBox(overworld, boxOf(at, at));
+        e.session.confirmBox(selectionOf(overworld, boxOf(at, at), stone));
         e.session.setFlow(flow);
         const clipboard = e.session.clipboard;
         const box = e.session.confirmedBox;
@@ -255,7 +256,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         beginPasteAim(),
       ]) {
         const e = setup();
-        e.session.confirmBox(overworld, boxOf(at, at));
+        e.session.confirmBox(selectionOf(overworld, boxOf(at, at), stone));
         e.session.setFlow(flow);
         const leave = new LeaveBuild(e.repo, e.structures);
         const end = vi.spyOn(e.session, "endPasting");

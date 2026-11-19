@@ -6,6 +6,7 @@ import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { ShowPreview } from "../../../src/application/build/showPreview";
 import type { Face } from "../../../src/domain/build/aim/face";
+import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
@@ -16,6 +17,7 @@ import {
   facingVector,
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -327,8 +329,11 @@ it("uses the clipboard facing for an initial vertical gaze", () => {
     fc.property(facing, (facing) => {
       const { repo, session, clipboard } = setup();
       session.completeCopy(
-        nether,
-        boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 2, z: 3 }),
+        selectionOf(
+          nether,
+          boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 2, z: 3 }),
+          AIR,
+        ),
         { ...clipboard, facing },
       );
       new ResolvePasteTarget(repo, new FakeGroundProbe()).execute({

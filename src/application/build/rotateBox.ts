@@ -1,6 +1,10 @@
 import { cellsOf, volume } from "../../domain/build/box";
-import { selectionBoxOf } from "../../domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
+import {
+  endpointSelection,
+  inDimension,
+  withBox,
+} from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -30,13 +34,12 @@ export class RotateBox {
     const session = this.repo.get(playerId);
     if (!session) return "ignored";
     const flow = session.flow;
-    if (
-      (flow.kind !== "endpoint" && flow.kind !== "rotateMode") ||
-      flow.dimensionId !== dimensionId
-    )
+    if (flow.kind !== "endpoint" && flow.kind !== "rotateMode")
       return "ignored";
-    const selectedBox = selectionBoxOf(flow);
-    if (!selectedBox) return "ignored";
+    const selection =
+      flow.kind === "endpoint" ? endpointSelection(flow) : flow.selection;
+    if (!inDimension(selection, dimensionId)) return "ignored";
+    const selectedBox = selection.box;
     const plan = planRotationAboutCenter(selectedBox);
     const count = volume(plan.union);
     if (count > BUILD_SPEC.maxCopyVolume) {
@@ -89,7 +92,7 @@ export class RotateBox {
       }),
     );
     this.structures.discard(source);
-    session.replaceSelection(plan.target);
+    session.replaceSelection(withBox(selection, plan.target));
     unstuck(this.world, this.players, playerId, dimensionId, plan.target);
     this.feedback.showMessage(playerId, "rotateDone", volume(selectedBox));
     return "rotated";

@@ -1,7 +1,9 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { CopyBox } from "../../../src/application/build/copyBox";
+import { AIR } from "../../../src/domain/build/blockState";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -21,7 +23,11 @@ it("stores the passed facing in the clipboard", () => {
           max: { x: side, y: side, z: side },
         };
         const action = new CopyBox(repo, structures, feedback);
-        action.execute({ playerId, dimensionId: overworld, box, facing });
+        action.execute({
+          playerId,
+          selection: selectionOf(overworld, box, AIR),
+          facing,
+        });
         expect(repo.get(playerId)?.clipboard?.facing).toBe(facing);
       },
     ),

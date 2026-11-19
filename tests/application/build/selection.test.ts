@@ -5,9 +5,10 @@ import {
   type HeldBuildItem,
   UpdateBuildModes,
 } from "../../../src/application/build/updateBuildModes";
-import { blockStateOf } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { tapBlock } from "../../../src/domain/build/flow/flow";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, overworld } from "./fakes";
@@ -108,7 +109,7 @@ it("cancels in-progress selections when build mode leaves after its grace delay"
       enterBuildMode(modes);
       const session = repo.getOrCreate(alex);
       const material = blockStateOf("minecraft:stone");
-      session.confirmBox(overworld, boxOf(a, b));
+      session.confirmBox(selectionOf(overworld, boxOf(a, b), AIR));
       session.setFlow(tapBlock(session.flow, overworld, a, material));
       if (endpoint)
         session.setFlow(tapBlock(session.flow, overworld, b, material));

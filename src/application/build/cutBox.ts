@@ -1,12 +1,10 @@
-import { type CellBox, cellsOf, sizeOf, volume } from "../../domain/build/box";
+import { cellsOf, sizeOf, volume } from "../../domain/build/box";
 import { completionMessage } from "../../domain/build/edit/completion";
 import { airPressOffersUndo } from "../../domain/build/flow/flow";
-import type { Facing } from "../../domain/build/rotation/facing";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
-import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Logger } from "../shared/ports/logger";
-import type { BoxAction } from "./boxAction";
+import type { BoxAction, BoxActionCommand } from "./boxAction";
 import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
@@ -21,13 +19,9 @@ export class CutBox implements BoxAction {
     private readonly log: Logger,
   ) {}
 
-  execute(cmd: {
-    playerId: PlayerId;
-    dimensionId: DimensionId;
-    box: CellBox;
-    facing: Facing;
-  }): boolean {
-    const { playerId, dimensionId, box } = cmd;
+  execute(cmd: BoxActionCommand): boolean {
+    const { playerId, selection } = cmd;
+    const { dimensionId, box } = selection;
     const count = volume(box);
     if (count > BUILD_SPEC.maxCopyVolume) {
       this.feedback.showMessage(playerId, "tooLarge", count);
@@ -64,7 +58,7 @@ export class CutBox implements BoxAction {
       this.feedback.showMessage(playerId, "cutRestored");
       return false;
     }
-    const previous = session.completeCopy(dimensionId, box, {
+    const previous = session.completeCopy(selection, {
       facing: cmd.facing,
       size: sizeOf(box),
       blockCount: count,

@@ -5,8 +5,9 @@ import { ConfirmShape } from "../../../src/application/build/confirmShape";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
 import { EditJobs } from "../../../src/application/build/editJobs";
-import { blockStateOf } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   FakeBuildPlayers,
@@ -81,7 +82,7 @@ it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
 
 it("does not announce building when copying or cancelling", () => {
   const e = setup();
-  e.session.confirmBox(overworld, boxOf(from, flat));
+  e.session.confirmBox(selectionOf(overworld, boxOf(from, flat), AIR));
   new CopySelection(
     e.repo,
     new CopyBox(e.repo, new FakeStructureStore(), e.feedback),

@@ -5,6 +5,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import type { BuildFlow } from "../../../src/domain/build/flow/flow";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -28,7 +29,9 @@ it("finishes with the last box and material while preserving history and world",
         throw new Error("Missing snapshot");
       session.recordSnapshot({ dimensionId: overworld, box, handle });
       structures.calls.length = 0;
-      session.setFlow(beginRotateMode(overworld, box, material, 3));
+      session.setFlow(
+        beginRotateMode(selectionOf(overworld, box, material), 3),
+      );
       const finish = new FinishRotateMode(repo);
       expect(finish.execute({ playerId })).toBe("finished");
       expect(session.flow).toEqual({

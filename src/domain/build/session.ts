@@ -1,7 +1,6 @@
 // Everything one player has in the build feature. Every change to the
 // selection, clipboard, history, mode, or running edit goes through here.
-import type { DimensionId, PlayerId } from "../shared/ids";
-import type { CellBox } from "./box";
+import type { PlayerId } from "../shared/ids";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
@@ -19,6 +18,7 @@ import {
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
 import { effectiveTurn, type Facing } from "./rotation/facing";
 import { NO_TURN, type QuarterTurn } from "./rotation/quarterTurn";
+import { inDimension, type Selection } from "./selection";
 import { BUILD_SPEC } from "./spec";
 import type { StructureHandle } from "./structure/handle";
 
@@ -37,9 +37,7 @@ export function isEditRefusal(value: unknown): value is EditRefusal {
 
 export class BuildSession {
   private currentFlow: BuildFlow = { kind: "idle" };
-  private currentConfirmedBox:
-    | { dimensionId: DimensionId; box: CellBox }
-    | undefined;
+  private currentConfirmedBox: Selection | undefined;
   private currentClipboard: Clipboard | undefined;
   private currentMode: BuildMode = MODE_OFF;
   private history: UndoHistory = EMPTY_HISTORY;
@@ -57,7 +55,7 @@ export class BuildSession {
   get flow(): BuildFlow {
     return this.currentFlow;
   }
-  get confirmedBox(): { dimensionId: DimensionId; box: CellBox } | undefined {
+  get confirmedBox(): Selection | undefined {
     return this.currentConfirmedBox;
   }
   get hasHistory(): boolean {
@@ -66,36 +64,37 @@ export class BuildSession {
   setFlow(flow: BuildFlow): void {
     this.currentFlow = flow;
   }
-  replaceSelection(box: CellBox): void {
+  replaceSelection(selection: Selection): void {
     const flow = this.currentFlow;
     if (flow.kind !== "endpoint" && flow.kind !== "rotateMode") return;
-    const selection = Object.freeze({
-      min: Object.freeze({ ...box.min }),
-      max: Object.freeze({ ...box.max }),
-    });
     this.currentFlow =
       flow.kind === "rotateMode"
         ? turnRotateMode(flow, selection)
-        : Object.freeze({ ...flow, from: selection.min, to: selection.max });
-    if (this.currentConfirmedBox?.dimensionId === flow.dimensionId)
-      this.currentConfirmedBox = {
-        dimensionId: flow.dimensionId,
-        box: selection,
-      };
+        : Object.freeze({
+            ...flow,
+            dimensionId: selection.dimensionId,
+            material: selection.material,
+            from: selection.box.min,
+            to: selection.box.max,
+          });
+    if (
+      this.currentConfirmedBox &&
+      inDimension(this.currentConfirmedBox, selection.dimensionId)
+    )
+      this.currentConfirmedBox = selection;
   }
-  confirmBox(dimensionId: DimensionId, box: CellBox): void {
-    this.currentConfirmedBox = { dimensionId, box };
+  confirmBox(selection: Selection): void {
+    this.currentConfirmedBox = selection;
     this.currentFlow = cancel(this.currentFlow);
   }
 
   completeCopy(
-    dimensionId: DimensionId,
-    box: CellBox,
+    selection: Selection,
     clipboard: Clipboard,
   ): StructureHandle | undefined {
     const previous = structureOf(this.currentClipboard);
     this.currentClipboard = clipboard;
-    this.confirmBox(dimensionId, box);
+    this.confirmBox(selection);
     this.currentFlow = beginPasteAim();
     return previous !== structureOf(clipboard) ? previous : undefined;
   }

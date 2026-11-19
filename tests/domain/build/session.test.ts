@@ -19,6 +19,7 @@ import {
   stepMode,
 } from "../../../src/domain/build/mode";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
@@ -328,8 +329,11 @@ it("completeCopy replaces the clipboard and box and enters paste aiming from any
       (flow, dimensionId, box, clipboard, records) => {
         const session = new BuildSession(asPlayerId("p1"));
         session.confirmBox(
-          dim,
-          boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+          selectionOf(
+            dim,
+            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+            stone,
+          ),
         );
         holdClipboard(
           session,
@@ -337,10 +341,14 @@ it("completeCopy replaces the clipboard and box and enters paste aiming from any
         );
         session.setFlow(flow);
         for (const record of records) session.finishEdit(record, "undoable");
-        session.completeCopy(dimensionId, box, clipboard);
+        session.completeCopy(selectionOf(dimensionId, box, stone), clipboard);
         expect(session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
         expect(session.clipboard).toBe(clipboard);
-        expect(session.confirmedBox).toEqual({ dimensionId, box });
+        expect(session.confirmedBox).toEqual({
+          material: stone,
+          dimensionId,
+          box,
+        });
         for (const record of [...records].reverse())
           expect(undoRecord(session.takeUndo())).toBe(record);
         expect(undoRecord(session.takeUndo())).toBe("nothingToUndo");
@@ -358,7 +366,7 @@ it("leaveBuildMode discards the clipboard in every flow and is idempotent", () =
       fc.option(clipboardArb, { nil: undefined }),
       (flow, dimensionId, box, clipboard) => {
         const session = new BuildSession(asPlayerId("p1"));
-        if (box) session.confirmBox(dimensionId, box);
+        if (box) session.confirmBox(selectionOf(dimensionId, box, stone));
         if (clipboard) holdClipboard(session, clipboard);
         const confirmed = session.confirmedBox;
         session.setFlow(flow);
@@ -386,7 +394,7 @@ it("endPasting clears every flow, clipboard and confirmed box without changing h
       recordArb,
       (flow, dimensionId, box, clipboard, record) => {
         const session = new BuildSession(asPlayerId("p1"));
-        if (box) session.confirmBox(dimensionId, box);
+        if (box) session.confirmBox(selectionOf(dimensionId, box, stone));
         if (clipboard) holdClipboard(session, clipboard);
         session.setFlow(flow);
         session.finishEdit(record, "undoable");
@@ -410,7 +418,7 @@ it("startNewCopy idles any paste aiming, clears the box and repeat window, and k
       recordArb,
       (clipboard, box, anchor, tick, record) => {
         const session = new BuildSession(asPlayerId("p1"));
-        session.completeCopy(dim, box, clipboard);
+        session.completeCopy(selectionOf(dim, box, stone), clipboard);
         session.finishEdit(record, "undoable");
         session.setFlow({
           kind: "pasteAim",
@@ -450,17 +458,21 @@ it("returns only replaced or cleared structure handles and retains identical han
         });
         const a = clipboard(first);
         const b = clipboard(second);
-        expect(session.completeCopy(dim, box, a)).toBeUndefined();
         expect(
-          session.completeCopy(dim, box, clipboard(first)),
+          session.completeCopy(selectionOf(dim, box, stone), a),
         ).toBeUndefined();
-        expect(session.completeCopy(dim, box, b)).toBe(
+        expect(
+          session.completeCopy(selectionOf(dim, box, stone), clipboard(first)),
+        ).toBeUndefined();
+        expect(session.completeCopy(selectionOf(dim, box, stone), b)).toBe(
           first === second ? undefined : a.contents.handle,
         );
         expect(session[exit]()).toBe(b.contents.handle);
         expect(session[exit]()).toBeUndefined();
         const next = structureClipboard(box, () => stone);
-        expect(session.completeCopy(dim, box, next)).toBeUndefined();
+        expect(
+          session.completeCopy(selectionOf(dim, box, stone), next),
+        ).toBeUndefined();
         expect(session[exit]()).toBe(next.contents.handle);
         expect(session[exit]()).toBeUndefined();
       },
@@ -479,12 +491,21 @@ it("replaceSelection preserves the flow state and replaces frozen endpoint corne
         const session = new BuildSession(asPlayerId("p1"));
         if (confirmed)
           session.confirmBox(
-            confirmedDimension,
-            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+            selectionOf(
+              confirmedDimension,
+              boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+              stone,
+            ),
           );
         const previous = session.confirmedBox;
         session.setFlow(flow);
-        session.replaceSelection(box);
+        session.replaceSelection(
+          selectionOf(
+            flow.kind === "endpoint" ? flow.dimensionId : confirmedDimension,
+            box,
+            flow.kind === "endpoint" ? flow.material : stone,
+          ),
+        );
         expect(session.flow.kind).toBe(flow.kind);
         if (flow.kind === "endpoint") {
           expect(session.flow).toEqual({ ...flow, from: box.min, to: box.max });
@@ -500,6 +521,7 @@ it("replaceSelection preserves the flow state and replaces frozen endpoint corne
           previous?.dimensionId === flow.dimensionId
         )
           expect(session.confirmedBox).toEqual({
+            material: flow.material,
             dimensionId: flow.dimensionId,
             box,
           });
@@ -513,7 +535,7 @@ it("replaceSelection updates an existing confirmation in the endpoint dimension"
   fc.assert(
     fc.property(boxArb, boxArb, dimensionArb, (before, after, dimensionId) => {
       const session = new BuildSession(asPlayerId("p1"));
-      session.confirmBox(dimensionId, before);
+      session.confirmBox(selectionOf(dimensionId, before, stone));
       session.setFlow({
         kind: "endpoint",
         menuLevel: "root",
@@ -522,7 +544,7 @@ it("replaceSelection updates an existing confirmation in the endpoint dimension"
         to: before.min,
         material: stone,
       });
-      session.replaceSelection(after);
+      session.replaceSelection(selectionOf(dimensionId, after, stone));
       expect(session.flow).toEqual({
         kind: "endpoint",
         menuLevel: "root",
@@ -531,7 +553,11 @@ it("replaceSelection updates an existing confirmation in the endpoint dimension"
         to: after.max,
         material: stone,
       });
-      expect(session.confirmedBox).toEqual({ dimensionId, box: after });
+      expect(session.confirmedBox).toEqual({
+        material: stone,
+        dimensionId,
+        box: after,
+      });
       expect(session.confirmedBox?.box).not.toBe(after);
     }),
   );
@@ -548,18 +574,17 @@ it("advances rotation selections and only updates confirmed boxes in the same di
         const confirmedDimension = sameDimension
           ? dim
           : asDimensionId("nether");
-        session.confirmBox(confirmedDimension, box);
-        session.setFlow(beginRotateMode(dim, box, stone, 1));
+        session.confirmBox(selectionOf(confirmedDimension, box, stone));
+        session.setFlow(beginRotateMode(selectionOf(dim, box, stone), 1));
         const target = planRotationAboutCenter(box).target;
-        session.replaceSelection(target);
+        session.replaceSelection(selectionOf(dim, target, stone));
         expect(session.flow).toEqual({
           kind: "rotateMode",
-          dimensionId: dim,
-          box: target,
+          selection: selectionOf(dim, target, stone),
           turn: 2,
-          material: stone,
         });
         expect(session.confirmedBox).toEqual({
+          material: stone,
           dimensionId: confirmedDimension,
           box: sameDimension ? target : box,
         });
@@ -575,8 +600,8 @@ it.each(["endPasting", "leaveBuildMode", "clearSelection"] as const)(
       fc.property(recordArb, (record) => {
         const session = new BuildSession(asPlayerId("alex"));
         const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 2, z: 1 });
-        session.confirmBox(dim, box);
-        session.setFlow(beginRotateMode(dim, box, stone, 1));
+        session.confirmBox(selectionOf(dim, box, stone));
+        session.setFlow(beginRotateMode(selectionOf(dim, box, stone), 1));
         session.finishEdit(record, "undoable");
         session[exit]();
         expect(session.flow).toEqual({ kind: "idle" });

@@ -3,9 +3,10 @@ import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { PasteAt } from "../../../src/application/build/pasteAt";
-import { blockStateOf } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { recordPaste } from "../../../src/domain/build/flow/paste";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -40,7 +41,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
     y: anchor.y + 1,
     z: anchor.z + 1,
   });
-  session.completeCopy(overworld, box, {
+  session.completeCopy(selectionOf(overworld, box, AIR), {
     size: { x: 2, y: 2, z: 2 },
     blockCount,
     facing: "east",
