@@ -4,18 +4,20 @@ import { SCOOTER_SPEC } from "../../src/domain/vehicle/kinds/scooter/spec";
 
 const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const vanilla = read("tests/packs/fixtures/vanilla-player.ce.json");
-const override = read("packs/yasu_ride_rp/entity/yasu_ride/player.ce.json");
+const overrideText = readFileSync(
+  "packs/yasu_ride_rp/entity/yasu_ride/player.ce.json",
+  "utf8",
+);
+const override = JSON.parse(overrideText);
 const vanillaDescription = vanilla["minecraft:client_entity"].description;
 const animationId = "animation.yasu_ride.player.lounge";
 const firstPersonArmAngles = ["-85.0", "0.0", "0.0"] as const;
-const emptyHandedScooterRider =
+const sharedCondition =
   "query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == ''";
 
 const firstPersonId = "controller.render.player.first_person";
 const scooterControllerId =
   "controller.render.yasu_ride.player.first_person_scooter";
-const emptyHandedScooter =
-  "query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == ''";
 
 const driverNames = [
   "grip",
@@ -43,8 +45,8 @@ describe("vanilla player override (ADR 0238)", () => {
         const condition = entry[firstPersonId];
         if (!condition) return [entry];
         return [
-          { [firstPersonId]: `${condition} && !(${emptyHandedScooter})` },
-          { [scooterControllerId]: `${condition} && (${emptyHandedScooter})` },
+          { [firstPersonId]: `${condition} && !(${sharedCondition})` },
+          { [scooterControllerId]: `${condition} && (${sharedCondition})` },
         ];
       },
     );
@@ -59,6 +61,38 @@ describe("vanilla player override (ADR 0238)", () => {
         },
       },
     });
+  });
+
+  it("shares the first-person scooter condition between render controllers and driver arm animations", () => {
+    expect(overrideText).toContain(sharedCondition);
+    const controllers = Object.assign(
+      {},
+      ...override["minecraft:client_entity"].description.render_controllers,
+    );
+    expect(controllers[scooterControllerId]).toContain(`(${sharedCondition})`);
+    expect(controllers[firstPersonId]).toContain(`!(${sharedCondition})`);
+
+    const animations = read(
+      "packs/yasu_ride_rp/animations/yasu_ride/player.anim.json",
+    ).animations;
+    const prefix = `variable.is_first_person ? ((${sharedCondition}) ? `;
+    for (const name of driverNames) {
+      const { bones } =
+        animations[`animation.yasu_ride.player.scooter_${name}`];
+      for (const arm of [bones.leftarm, bones.rightarm]) {
+        for (const axes of [arm.rotation, arm.position]) {
+          expect(axes).toHaveLength(3);
+          for (const expression of axes) {
+            expect(expression.startsWith(prefix)).toBe(true);
+          }
+        }
+      }
+    }
+    for (const [id, animation] of Object.entries(animations)) {
+      if (id.startsWith("animation.yasu_ride.player.scooter_pillion_")) {
+        expect(JSON.stringify(animation)).not.toContain(sharedCondition);
+      }
+    }
   });
 
   it("draws only both arms and sleeves with the vanilla first-person geometry, materials and textures", () => {
@@ -95,7 +129,7 @@ describe("vanilla player override (ADR 0238)", () => {
     ).animations;
     const grip = animations["animation.yasu_ride.player.scooter_grip"];
     const armBranch = (firstPerson: string, thirdPerson: string) =>
-      `variable.is_first_person ? ((${emptyHandedScooterRider}) ? ${firstPerson} : 0.0) : ${thirdPerson}`;
+      `variable.is_first_person ? ((${sharedCondition}) ? ${firstPerson} : 0.0) : ${thirdPerson}`;
     const [pitch, yaw, roll] = firstPersonArmAngles;
     const arm = {
       rotation: [
