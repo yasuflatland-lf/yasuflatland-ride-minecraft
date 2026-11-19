@@ -501,7 +501,36 @@ it("confirms a box as an active root selection with matching Copy bounds", () =>
   );
 });
 
-it("replaceSelection preserves the flow state and replaces frozen endpoint corners and same-dimension confirmation", () => {
+it("confirming a box from a selection or terrain confirmation keeps the tapped points", () => {
+  fc.assert(
+    fc.property(
+      cellArb,
+      cellArb,
+      boxArb,
+      fc.constantFrom("selected" as const, "terrainConfirm" as const),
+      (from, to, box, kind) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        const selection = selectionOf(dim, boxOf(from, to), stone);
+        session.setFlow(
+          kind === "selected"
+            ? { kind, menuLevel: "build", selection, from, to }
+            : { kind, selection, from, to, op: "fillBelow" },
+        );
+        const next = selectionOf(dim, box, stone);
+        session.confirmBox(next, "selected");
+        expect(session.flow).toEqual({
+          kind: "selected",
+          menuLevel: "root",
+          selection: next,
+          from,
+          to,
+        });
+      },
+    ),
+  );
+});
+
+it("replaceSelection preserves the flow state and tapped points and replaces the same-dimension confirmation", () => {
   fc.assert(
     fc.property(
       flowArb,
@@ -538,15 +567,11 @@ it("replaceSelection preserves the flow state and replaces frozen endpoint corne
               box,
               flow.selection.material,
             ),
-            from: box.min,
-            to: box.max,
           });
           if (session.flow.kind !== "selected")
             throw new Error("Missing endpoint flow");
-          expect(session.flow.from).not.toBe(box.min);
-          expect(session.flow.to).not.toBe(box.max);
-          expect(Object.isFrozen(session.flow.from)).toBe(true);
-          expect(Object.isFrozen(session.flow.to)).toBe(true);
+          expect(session.flow.from).toBe(flow.from);
+          expect(session.flow.to).toBe(flow.to);
         } else expect(session.flow).toBe(flow);
         if (
           flow.kind === "selected" &&
@@ -580,8 +605,8 @@ it("replaceSelection updates an existing confirmation in the endpoint dimension"
         kind: "selected",
         menuLevel: "root",
         selection: selectionOf(dimensionId, after, stone),
-        from: after.min,
-        to: after.max,
+        from: before.max,
+        to: before.min,
       });
       expect(session.confirmedBox).toEqual({
         material: stone,
@@ -617,8 +642,8 @@ it("advances rotation selections and only updates confirmed boxes in the same di
         expect(session.flow).toEqual({
           kind: "selected",
           menuLevel: "root",
-          from: target.min,
-          to: target.max,
+          from: box.min,
+          to: box.max,
           selection: selectionOf(dim, target, stone),
         });
         expect(session.confirmedBox).toEqual({
