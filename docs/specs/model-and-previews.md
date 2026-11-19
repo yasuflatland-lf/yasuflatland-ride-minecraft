@@ -39,7 +39,7 @@
 ### Client entity texture memory
 
 - Applies to: Resource Pack client entity textures and their texture-set companion maps.
-- Rule: Collect `description.textures` from every `entity/**/*.ce.json` and the string-valued `metalness_emissive_roughness`, `heightmap` and `normal` companions. Count each distinct pack file once at PNG width x height x 4 bytes. Exclude the two absent vanilla player textures (`steve` and `cape_invisible`), not missing pack assets. The measured total is 187,735,168 bytes (179.038208 MiB); `ENTITY_TEXTURE_BUDGET_BYTES` is 184 MiB. To update the budget, measure again and round up to an 8 MiB multiple, never above 208 MiB. Stop and report measurements above that ceiling in the issue. Reject two files with identical decoded colour and MER pairs (MER pixels or uniform values), or identical MER pixels, regardless of PNG compression. Failures list the ten largest files with decoded MiB. Shared and mirrored regions and separate lit, fixed and paint geometries must preserve sampled texels and byte-identical committed previews.
+- Rule: Collect `description.textures` from every `entity/**/*.ce.json` and the string-valued `metalness_emissive_roughness`, `heightmap` and `normal` companions. Count each distinct pack file once at PNG width x height x 4 bytes. Exclude the two absent vanilla player textures (`steve` and `cape_invisible`), not missing pack assets. The measured total is 142,175,904 bytes (135.589508 MiB) and `ENTITY_TEXTURE_BUDGET_BYTES` is 136 MiB. To update the budget, measure again and round up to an 8 MiB multiple, never above 208 MiB. Stop and report measurements above that ceiling in the issue. Reject two files with identical decoded colour and MER pairs (MER pixels or uniform values), or identical MER pixels, regardless of PNG compression. Failures list the ten largest files with decoded MiB. Shared and mirrored regions and separate lit, fixed and paint geometries must preserve sampled texels and byte-identical committed previews.
 - Agreement: Accepted
 - Basis: [0252](../adr/0252-budget-client-entity-texture-memory.md) Decision; the iPad joined at view-distance 32 with about 162 MiB of scooter textures plus the rest of the pack without crashing.
 - Implementation: `tests/packs/textureMemory.test.ts`.
@@ -85,8 +85,12 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   from `build().source_geometry`. `partition_geometry` assigns every source face
   to exactly one of the fixed and paint passes. `select_faces` then removes faces
   that sample only alpha-0 texels and drops cubes with no faces left. Every face on
-  `headlights`, `tail_lights` and `glow_*` stays in its assigned pass. Filtering
-  preserves the pass atlases and the UVs of retained faces (0252).
+  `headlights`, `tail_lights` and `glow_*` stays in its assigned pass. The paint atlas then uses one region per distinct retained-face texel rectangle,
+  dropping unreferenced texels inside sheets. Identical or mirrored rectangles within
+  a `share_key` group occupy one slot. Relocating the UVs preserves the sampled texels
+  of every shipped face, including transparent borders, with the same geometry, quads
+  and absolute UV sizes. The atlas shrinks from 1168 x 1992 to 1302 x 1204,
+  saving 3,036,192 decoded bytes per stored paint (0252).
   The fixed colour and MER are stored once; 15 stored paint colours share the uniform
   paint MER value `[0, 0, 90]` in their texture sets, with no paint MER PNG.
   Paint, MER and lit-mask writers
@@ -215,6 +219,7 @@ A transparent 16 by 16 item icon shows the scooter facing right.
   pair twice and maps every tile's faces onto its own texels.
   `tests/tools/scooterKit.test.ts` checks panel planes, tube alignment, mirrored
   corners, local UV resolution, measured dimensions, and deterministic builds.
+  `tests/tools/scooterPaintRegions.test.ts` verifies pass ownership and recoloured face samples.
   `tests/packs/scooterModel.test.ts` pins the bone contract, assembly membership,
   whitewall circularity and tyre clearance, atlas bounds, and per-area budgets
   against the generated model and Python builders. `pnpm model:check` checks

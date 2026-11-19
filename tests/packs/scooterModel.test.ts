@@ -127,7 +127,7 @@ for name in g.AREA_ORDER:
 a=load_tool('scooter_atlas')
 regions=a.REGISTRY._regions
 fixed=built.fixed.layout
-paint=built.paint.layout
+paint=built.paint_source.layout
 for cs in merged.values():
     for cube in cs:
         for face in cube['uv'].values():

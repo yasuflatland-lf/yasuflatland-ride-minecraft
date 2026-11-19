@@ -123,7 +123,7 @@ def relocate_face(local, region, layout, face):
 
 
 class AtlasPass(NamedTuple):
-    geometry: dict
+    geometry: dict | None
     layout: region_atlas.Layout
     pixels: bytes
 
@@ -134,6 +134,7 @@ class BuildResult(NamedTuple):
     fixed: AtlasPass
     paint: AtlasPass
     lit: AtlasPass
+    paint_source: AtlasPass
 
 
 def pack_regions(regions, *, shared=True):
@@ -176,6 +177,43 @@ def _visible_pass(geometry, image):
 
     spec = geometry_passes.PassSpec(geometry["description"]["identifier"], keep)
     return geometry_passes.select_faces(geometry, spec), kept_cubes
+
+
+def _paint_region(rect, image):
+    x0, y0 = rect.x0, rect.y0
+    width, height = rect.x1 - x0, rect.y1 - y0
+
+    def pixel(u, v):
+        offset = ((y0 + v) * image.width + x0 + u) * 4
+        return tuple(image.pixels[offset:offset + 4])
+
+    return region_atlas.Region(f"paint_{x0}_{y0}_{width}_{height}",
+                               width, height, atlas.Material.PAINT, pixel)
+
+
+def _share_paint_regions(geometry, source_layout, source_image):
+    regions = {}
+    faces = []
+    for bone in geometry["bones"]:
+        for cube in bone["cubes"]:
+            for face in cube["uv"].values():
+                uv = region_atlas.UvRect.of(face)
+                rect = uv.texels()
+                if rect not in regions:
+                    regions[rect] = _paint_region(rect, source_image)
+                faces.append((face, uv, rect))
+    layout = pack_regions(regions.values())
+    for face, uv, rect in faces:
+        region = regions[rect]
+        local = region_atlas.UvRect(uv.u - rect.x0, uv.v - rect.y0, uv.w, uv.h)
+        # The preview combines the new placement flip with the source sampling orientation.
+        source_placement = source_layout.placement(face.region)
+        face.flip_x = face.flip_x != source_placement.flip_x
+        face.flip_y = face.flip_y != source_placement.flip_y
+        relocate_face(local, region, layout, face)
+        face["uv"] = rounded(face["uv"])
+        face.region = region.name
+    return layout
 
 
 def _rejoin(source, partitioned, visible, is_paint):
@@ -286,12 +324,15 @@ def build():
     paint_image = region_atlas.AtlasImage(*paint_layout.size, paint_pixels)
     fixed_pass = _visible_pass(partitioned[0], fixed_image)
     paint_pass = _visible_pass(partitioned[1], paint_image)
+    # Source faces already live in source_geometry, so this pass only retains the atlas.
+    paint_source = AtlasPass(None, paint_layout, paint_pixels)
+    shared_paint_layout = _share_paint_regions(paint_pass[0], paint_layout, paint_image)
     fixed = finish_pass(fixed_pass[0], fixed_layout, fixed_pixels)
-    paint = finish_pass(paint_pass[0], paint_layout, paint_pixels)
+    paint = finish_pass(paint_pass[0], shared_paint_layout)
     lit = finish_pass(rounded(lit_geometry), lit_layout)
     full = {**source, "minecraft:geometry": [_rejoin(
         geometry, partitioned, (fixed_pass, paint_pass), is_paint)]}
-    return BuildResult(source, full, fixed, paint, lit)
+    return BuildResult(source, full, fixed, paint, lit, paint_source)
 
 
 def main(argv):

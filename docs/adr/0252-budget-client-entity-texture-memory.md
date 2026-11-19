@@ -11,13 +11,13 @@ The iPad client was killed for memory shortly after joining from v0.54.0. Bisect
 
 Of 27,816 scooter faces, 20,550 already sampled shared swatches. Roughly 1,600 alpha-masked outline plates occupied about 94 percent of the atlas. Identical and mirrored region sharing reduced unique atlas area by about 35 percent; 15,844 faces already used negative UV sizes. Lit bones sampled only 0.78 percent of the full atlas. Paint occupied 62 percent, with the other 38 percent repeated across paints. Duplicate colour and MER files also occurred across the other generators.
 
-After replacing the scooter paint MER map with a uniform value, the collected 149 pack files total 187,735,168 decoded bytes (179.038208 MiB). Rounding upward to an 8 MiB multiple gives 184 MiB.
+With a uniform scooter paint MER value and a shared paint atlas, the collected pack files total 142,175,904 decoded bytes (135.589508 MiB). Rounding upward to an 8 MiB multiple gives 136 MiB.
 
 ## Decision
 
 `tests/packs/textureMemory.test.ts` collects every texture referenced by `description.textures` in Resource Pack `entity/**/*.ce.json`, plus each string-valued `metalness_emissive_roughness`, `heightmap` and `normal` companion in its texture set. Texture paths omit `.png`; companion names resolve beside the texture set. Count each distinct file once as PNG header width times height times four bytes. The player override's vanilla `steve` and `cape_invisible` references are excluded only when the pack supplies neither file; other missing files fail.
 
-Set `ENTITY_TEXTURE_BUDGET_BYTES` to 184 MiB. Assert both that the total fits and that the budget never exceeds 208 MiB. To update it, measure all collected files, round the total up to the next multiple of 8 MiB, and record the measurement. If the measurement exceeds 208 MiB, stop and report it in the issue; do not raise the ceiling.
+Set `ENTITY_TEXTURE_BUDGET_BYTES` to 136 MiB. Assert both that the total fits and that the budget never exceeds 208 MiB. To update it, measure all collected files, round the total up to the next multiple of 8 MiB, and record the measurement. If the measurement exceeds 208 MiB, stop and report it in the issue; do not raise the ceiling.
 
 A second test fails when two distinct files hold identical decoded pixels within the same role: a colour texture is identified by the pair of its pixels and its MER pixels or uniform MER value, because the client resolves a texture set by the colour path (0193), and a MER map is identified by its pixels alone. PNG compression does not affect equality. Both tests report the ten largest files with decoded MiB so failures identify useful reduction targets.
 
@@ -27,10 +27,10 @@ Use shared regions and mirrored UV mappings for identical texels. Give lit passe
 
 After packing and relocating UVs, use `partition_geometry` to assign every scooter source face to exactly one of the fixed and paint passes. Use `select_faces` on each partition to drop fully transparent faces before finishing the passes. A face is clear when every texel in its `UvRect.texels()` rectangle has alpha 0 on its pass atlas. Both passes use `entity_alphatest`, so those faces draw nothing. Drop a cube from the pass when all its faces are removed. Keep every face of `headlights`, `tail_lights` and `glow_*` in their respective passes because those bones use materials without alpha testing.
 
-The fixed and paint atlas layouts, regions and surviving face UVs stay the same. This decision saves no decoded paint atlas memory because the paint atlas is reused without repacking. Paint plate cropping is future work in [#2017](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/2017).
+Repack the paint atlas with one region per distinct retained-face texel rectangle. This drops unreferenced texels inside sheets. Within each `share_key` group, store identical or mirrored rectangles once and relocate face UVs to their shared slot. Packing the rectangles without sharing saves 357,038 texels. Sharing saves a further 402,010. The atlas shrinks from 1168 x 1992 to 1302 x 1204, saving 3,036,192 decoded bytes per stored paint. Keep the retained geometry, quads and absolute UV sizes intact. Preserve transparent borders inside each rectangle and use signed UV sizes to account for placement flips.
 
 Multiplicative tint is rejected by owner decision. Rebuilding outlines with SUV-style geometry changes silhouettes and adds about 27,000 cubes, so it is rejected. Downscaling provided diagnostic evidence but changes appearance and is not the production solution.
 
 ## Consequences
 
-Pack tests prevent future models from silently consuming the device-tested memory allowance or duplicating colour and MER content. The budget has roughly 5 MiB of headroom over the measured baseline, and new textures may require sharing or pass partitioning. Decoded RGBA size is a reproducible guard, not a measurement of total GPU or process memory; mipmaps and engine allocations are outside it. Revisit device evidence if rendering or loading changes, while keeping the 208 MiB ceiling for this policy.
+Pack tests prevent future models from silently consuming the device-tested memory allowance or duplicating colour and MER content. The budget has 430,432 bytes (0.410 MiB) of headroom over the measured baseline, and new textures may require sharing or pass partitioning. Decoded RGBA size is a reproducible guard, not a measurement of total GPU or process memory; mipmaps and engine allocations are outside it. Revisit device evidence if rendering or loading changes, while keeping the 208 MiB ceiling for this policy.

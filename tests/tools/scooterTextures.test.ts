@@ -354,11 +354,11 @@ assert faces[0]["uv_size"] == faces[1]["uv_size"]
   );
 });
 
-it("reduces decoded colour storage by separating fixed and paint atlases", () => {
+it("reduces decoded colour storage with a separate, shared paint atlas", () => {
   const fixed = readRgbaPng(`${directory}scooter_fixed.png`);
   const paint = readRgbaPng(`${directory}scooter_paint.png`);
   expect([fixed.width, fixed.height]).toEqual([1024, 906]);
-  expect([paint.width, paint.height]).toEqual([1168, 1992]);
+  expect(paint.width * paint.height).toBeLessThan(1168 * 1992);
   const before = 1754 * 1696 * 4 * 15;
   const after =
     (fixed.width * fixed.height + paint.width * paint.height * 15) * 4;
