@@ -69,7 +69,7 @@ from tool_loader import load_tool
 textures = load_tool('scooter_textures')
 _, layout, pixels = load_tool('gen_scooter').build().lit
 print(json.dumps(dict(width=layout.size[0],height=layout.size[1],pixels=pixels.hex(),
-    rects=[[*layout.origin(r.name),r.width,r.height] for r in layout.regions if r.name in textures.LIT_REGIONS])))
+    rects=[[*layout.origin(r.name),r.width,r.height] for r in layout.regions if textures.is_lit_region(r.name)])))
 `),
   );
   scooterLitRects = result.rects;

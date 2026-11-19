@@ -13,10 +13,10 @@ interface VariantInput {
 
 interface Result {
   colorOf: Record<string, string>;
-  merOf: Record<string, string>;
+  merOf: Record<string, string | number[]>;
   stored: string[];
   files: Record<string, string>;
-  sets: Record<string, { color: string; mer: string }>;
+  sets: Record<string, { color: string; mer: string | number[] }>;
   stale: string[];
 }
 
@@ -30,7 +30,7 @@ interface RunOptions {
 
 // Textures are 1x1, so each content is one RGBA texel written as 8 hex digits.
 const run = async (
-  variants: VariantInput[],
+  variants: (Omit<VariantInput, "mer"> & { mer: string | number[] | null })[],
   { seed = [], check = false, retired = [] }: RunOptions = {},
 ): Promise<Result> => {
   const script = [
@@ -44,7 +44,8 @@ const run = async (
     "request = json.loads(sys.stdin.read())",
     "items = request['variants']",
     "variants = [tv.Variant(v['name'], bytes.fromhex(v['color']),",
-    "                       None if v['mer'] is None else bytes.fromhex(v['mer'])) for v in items]",
+    "                       tv.UniformMer(load_tool('mer').Mer(*v['mer'])) if isinstance(v['mer'], list)",
+    "                       else None if v['mer'] is None else bytes.fromhex(v['mer'])) for v in items]",
     "with tempfile.TemporaryDirectory() as directory:",
     "    d = Path(directory)",
     "    seeder = io.Outputs(False)",
@@ -159,7 +160,7 @@ describe("texture variants writer", () => {
           expect(mer).toBe(keeperOfMer.get(variant.mer));
         }
         const colors = new Set(keeperOfPair.values());
-        const mers = new Set(Object.values(result.merOf));
+        const mers = new Set(Object.values(result.merOf) as string[]);
         // A texture set exists exactly for each stored colour that has a MER,
         // and it points at that MER's stored file.
         const withMer = [...colors].filter((color) => color in result.merOf);
@@ -181,6 +182,37 @@ describe("texture variants writer", () => {
         expect(new Set(merContents).size).toBe(merContents.length);
       }),
       { numRuns: 40 },
+    );
+  });
+
+  it("stores uniform MER values without maps and deduplicates by value", async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.integer({ min: 0, max: 254 }), async (roughness) => {
+        const variants = [
+          { name: "a", color: "010000ff", mer: [0, 0, roughness] },
+          { name: "b", color: "010000ff", mer: [0, 0, roughness] },
+          { name: "c", color: "010000ff", mer: [0, 0, roughness + 1] },
+        ];
+        const seed = [
+          "kind_mer.png",
+          "a_mer.png",
+          "b.png",
+          "b.texture_set.json",
+        ];
+        const result = await run(variants, { seed });
+        expect(result.colorOf).toEqual({ a: "a", b: "a", c: "c" });
+        expect(result.stored).toEqual(["a", "c"]);
+        expect(Object.keys(result.files)).toEqual(["a", "c"]);
+        expect(result.sets).toEqual({
+          a: { color: "a", mer: [0, 0, roughness] },
+          c: { color: "c", mer: [0, 0, roughness + 1] },
+        });
+        const checked = await run(variants, { seed, check: true });
+        for (const name of seed) {
+          expect(checked.stale).toContain(`${name} (no longer generated)`);
+        }
+      }),
+      { numRuns: 10 },
     );
   });
 

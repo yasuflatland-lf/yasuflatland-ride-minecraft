@@ -18,7 +18,9 @@ Full write and --check runs verify output ownership against the manifest; --ensu
 --only runs and verifies selected ids without dependency waits; generate their inputs first.
 It supports write and --check modes, rejects ensure/status/listing modes, and leaves the stamp unchanged.
 A generator never reads a file it or another generator writes, except render_preview.py, which
-runs after the generators and reads their outputs.
+runs after the generators and reads their outputs. atlas_pack.py reads its own cache in
+.cache/atlas-pack. The cache is safe to reuse because entries are keyed by the exact request and
+packer source and validated on read. The cache has no generator output ownership.
 """
 
 import argparse
