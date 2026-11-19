@@ -126,7 +126,7 @@ it("stores only paint regions in paint textures and preserves recoloured texels 
       ],
     ).toEqual({
       color: name,
-      metalness_emissive_roughness: "scooter_paint_mer",
+      metalness_emissive_roughness: [0, 0, 90],
     });
   }
 }, 180_000);
@@ -161,12 +161,15 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
   expect(metadata.lit).toEqual([
     "head_lens",
     "lens_head",
+    "lens_tail",
     "lens_tail_glow",
     "lens_amber",
     "glow",
   ]);
   const mer = readRgbaPng(`${directory}scooter_fixed_mer.png`);
-  const paintMer = readRgbaPng(`${directory}scooter_paint_mer.png`);
+  const paintMer = JSON.parse(
+    readFileSync(`${directory}scooter_paint.texture_set.json`, "utf8"),
+  )["minecraft:texture_set"].metalness_emissive_roughness;
   const base = readRgbaPng(`${directory}scooter_fixed.png`);
   const lit = readRgbaPng(`${directory}scooter_lit.png`);
   const litMer = readRgbaPng(`${directory}scooter_lit_mer.png`);
@@ -182,21 +185,21 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
   });
   const mask = new Uint8Array(lit.width * lit.height);
   for (const r of [...metadata.fixedRegions, ...metadata.regions]) {
-    const image = r.material === "paint" ? paintMer : mer;
+    if (r.material === "paint") {
+      expect(paintMer).toEqual([0, 0, 90]);
+      continue;
+    }
+    const image = mer;
     const p = (r.y * image.width + r.x) * 4;
     if (r.material === "chrome") {
       expect(image.pixels[p]).toBeGreaterThan(200);
       expect(image.pixels[p + 2]).toBeLessThan(90);
     }
-    if (r.material === "paint") {
-      expect(image.pixels[p]).toBe(0);
-      expect(image.pixels[p + 2]).toBe(90);
-    }
     if (r.material === "rubber")
       expect(image.pixels[p + 2]).toBeGreaterThan(220);
   }
   for (const r of metadata.litRegions) {
-    if (!metadata.lit.includes(r.name)) continue;
+    if (!metadata.lit.includes(r.name.split("_panel_")[0] ?? "")) continue;
     const original = metadata.fixedRegions.find(
       (region) => region.name === r.name,
     );
@@ -234,7 +237,7 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
   expect(alpha.includes(255)).toBe(true);
 });
 
-it("writes one fixed atlas and distinct paint colours with one paint MER without white aliases", async () => {
+it("writes one fixed atlas and distinct paint colours with uniform paint MER without white aliases", async () => {
   await python.run(`${built}
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -249,6 +252,7 @@ with TemporaryDirectory() as temporary:
     legacy = [root / "textures/entity/yasu_ride" / (name+suffix)
               for name in ("scooter", *("scooter_"+paint for paint in t.PAINTS))
               for suffix in (".png", "_mer.png", ".texture_set.json")]
+    legacy.append(root / "textures/entity/yasu_ride/scooter_paint_mer.png")
     for path in legacy:
         path.write_bytes(b"obsolete")
     check = load_tool("texture_io").Outputs(True)
@@ -263,11 +267,11 @@ with TemporaryDirectory() as temporary:
     assert len(colours) == 15
     assert len({p.read_bytes() for p in colours}) == len(colours)
     assert sorted(p.name for p in directory.glob("*_mer.png")
-                  if p.stem != "scooter_lit_mer") == ["scooter_fixed_mer.png", "scooter_paint_mer.png"]
+                  if p.stem != "scooter_lit_mer") == ["scooter_fixed_mer.png"]
     assert not list(directory.glob("scooter_paint_white*"))
     for colour in colours:
         texture_set = json.loads(colour.with_suffix(".texture_set.json").read_text())["minecraft:texture_set"]
-        assert texture_set == dict(color=colour.stem,metalness_emissive_roughness="scooter_paint_mer")
+        assert texture_set == dict(color=colour.stem,metalness_emissive_roughness=list(t.MER_BY_MATERIAL[a.Material.PAINT].rgba()[:3]))
 `);
 }, 180_000);
 
@@ -353,7 +357,7 @@ assert faces[0]["uv_size"] == faces[1]["uv_size"]
 it("reduces decoded colour storage by separating fixed and paint atlases", () => {
   const fixed = readRgbaPng(`${directory}scooter_fixed.png`);
   const paint = readRgbaPng(`${directory}scooter_paint.png`);
-  expect([fixed.width, fixed.height]).toEqual([1024, 908]);
+  expect([fixed.width, fixed.height]).toEqual([1024, 906]);
   expect([paint.width, paint.height]).toEqual([1168, 1992]);
   const before = 1754 * 1696 * 4 * 15;
   const after =

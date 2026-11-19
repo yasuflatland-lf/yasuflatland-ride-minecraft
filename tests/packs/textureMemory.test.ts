@@ -11,8 +11,8 @@ const ROOT = join(
   "../../packs/yasu_ride_rp",
 );
 const MIB = 1024 * 1024;
-// 197,041,792 decoded bytes, rounded up to 8 MiB (ADR 0252).
-const ENTITY_TEXTURE_BUDGET_BYTES = 192 * MIB;
+// 187,735,168 decoded bytes, rounded up to 8 MiB (ADR 0252).
+const ENTITY_TEXTURE_BUDGET_BYTES = 184 * MIB;
 // The player override retains these vanilla assets; the pack does not supply them.
 const VANILLA_TEXTURES = new Set([
   "textures/entity/steve",
@@ -20,7 +20,7 @@ const VANILLA_TEXTURES = new Set([
 ]);
 type Role = "colour" | "MER" | "heightmap" | "normal";
 
-const merOfColour = new Map<string, string>();
+const merOfColour = new Map<string, string | number[]>();
 
 function collectTextures() {
   const files = new Map<string, Set<Role>>();
@@ -52,6 +52,8 @@ function collectTextures() {
         ["normal", "normal"],
       ] as const) {
         const companion = textureSet[key];
+        if (role === "MER" && Array.isArray(companion))
+          merOfColour.set(`${path}.png`, companion);
         if (typeof companion !== "string") continue;
         add(join(dirname(path), `${companion}.png`), role);
         if (role === "MER")
@@ -102,10 +104,12 @@ describe("client entity texture memory (ADR 0252)", () => {
       groups.set(key, [...(groups.get(key) ?? []), path]);
     for (const { path, roles } of files) {
       // The client resolves a texture set by its colour path, so a colour is
-      // distinct when either its pixels or its MER pixels differ (ADR 0193).
+      // distinct when its pixels, MER pixels or uniform MER value differ (ADR 0193).
       if (roles.has("colour")) {
         const mer = merOfColour.get(path);
-        group(`colour+MER:${hashOf(path)}:${mer ? hashOf(mer) : "none"}`, path);
+        const finish =
+          typeof mer === "string" ? hashOf(mer) : JSON.stringify(mer ?? null);
+        group(`colour+MER:${hashOf(path)}:${finish}`, path);
       }
       if (roles.has("MER")) group(`MER:${hashOf(path)}`, path);
     }
