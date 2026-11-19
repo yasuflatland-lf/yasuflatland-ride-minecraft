@@ -5,7 +5,8 @@ import sys
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Hashable
+from types import MappingProxyType
+from typing import Callable, Hashable, Mapping, Sequence
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -216,6 +217,58 @@ class Layout:
         self._faces.append((name, face))
 
 
+@dataclass(frozen=True)
+class RegionShare:
+    """The slot owner and flips that recover a region's original texels."""
+
+    representative: str
+    flip_x: bool = False
+    flip_y: bool = False
+
+
+@dataclass(frozen=True)
+class SharingPlan:
+    """Region sharing by key and oriented texels, independent of packing."""
+
+    shares: Mapping[str, RegionShare]
+    representatives: tuple[Region, ...]
+
+    @classmethod
+    def plan(cls, regions: Sequence[Region], share_key, pixel_rows) -> "SharingPlan":
+        shares = {}
+        representatives = []
+        signatures = {}
+        for region in sorted(regions, key=lambda r: r.name):
+            rows = pixel_rows(region)
+            key = (share_key(region), region.width, region.height)
+            share = signatures.get((key, rows))
+            if share is None:
+                representatives.append(region)
+                share = RegionShare(region.name)
+                # Symmetric texels can match several flips. Keep the earliest orientation.
+                for fx, fy in _ORIENTATIONS:
+                    signatures.setdefault((key, _oriented_rows(rows, fx, fy)),
+                                          RegionShare(region.name, fx, fy))
+            shares[region.name] = share
+        return cls(MappingProxyType(shares), tuple(representatives))
+
+    def registry(self) -> RegionRegistry:
+        registry = RegionRegistry()
+        for region in self.representatives:
+            registry.register(region)
+        return registry
+
+    def placements(self, packed: Layout) -> dict[str, Placement]:
+        placements = {}
+        for name, share in self.shares.items():
+            slot = packed.placement(share.representative)
+            placements[name] = Placement(slot.x, slot.y, share.flip_x, share.flip_y)
+        return placements
+
+    def shared_map(self) -> dict[str, str]:
+        return {name: share.representative for name, share in self.shares.items()}
+
+
 def _pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = None) -> Layout:
     if type(gutter_px) is not int or gutter_px < 0:
         raise ValueError("Gutter must be a nonnegative texel count")
@@ -292,41 +345,23 @@ def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = No
         return _pack(registry, gutter_px, max_side)
     regions = sorted(registry.regions(), key=lambda r: r.name)
     cache = Layout(regions, (0, 0), {})
-    representatives = RegionRegistry()
-    matches = {}
-    signatures = {}
-    for region in regions:
-        rows = _pixel_rows(cache, region)
-        key = (share_key(region), region.width, region.height)
-        match = signatures.get((key, rows))
-        if match is None:
-            representatives.register(region)
-            match = (region.name, False, False)
-            for fx, fy in _ORIENTATIONS:
-                signatures.setdefault((key, _oriented_rows(rows, fx, fy)), (region.name, fx, fy))
-        matches[region.name] = match
-    # Heuristic packing is not monotonic when rectangles are removed. Keeping
-    # the old representative slots is always a valid upper bound on area.
+    plan = SharingPlan.plan(regions, share_key, lambda region: _pixel_rows(cache, region))
+    # Removing rectangles can make the heuristic choose a larger atlas.
     try:
         plain = _pack(registry, gutter_px, max_side)
     except ValueError:
         plain = None
     try:
-        packed = _pack(representatives, gutter_px, max_side)
+        packed = _pack(plan.registry(), gutter_px, max_side)
     except ValueError:
         if plain is None:
             raise
         packed = plain
     if plain is not None and math.prod(plain.size) < math.prod(packed.size):
         packed = plain
-    placements = {}
-    for region in regions:
-        representative, fx, fy = matches[region.name]
-        p = packed.placement(representative)
-        placements[region.name] = Placement(p.x, p.y, fx, fy)
-    layout = Layout(regions, packed.size, placements)
+    layout = Layout(regions, packed.size, plan.placements(packed))
     layout._pixels = cache._pixels
-    layout._shared = {name: match[0] for name, match in matches.items()}
+    layout._shared = plan.shared_map()
     registry._layout = layout
     return layout
 
