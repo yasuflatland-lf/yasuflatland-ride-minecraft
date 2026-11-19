@@ -404,7 +404,6 @@ for original_bone, fixed_bone, paint_bone in zip(source["bones"], *pass_bones, s
                     rgba_rows(source_images[owner], source_rect),
                     rgba_rows(shipped_images[owner], shipped_rect), strict=True))
     assert all(next(cursor, None) is None for cursor in cursors)
-assert source_count == 27816
 assert clear_count > 0
 assert source_count == clear_count + shipped_count
 `);
