@@ -7,7 +7,7 @@ import type { PressPasteAim } from "../../../../application/build/pressPasteAim"
 import type { RotateModeTap } from "../../../../application/build/rotateModeTap";
 import type { TapAir } from "../../../../application/build/tapAir";
 import { virtualEndPoint } from "../../../../domain/build/aim/aim";
-import { opensUtilityMenu } from "../../../../domain/build/flow/flow";
+import { routePress } from "../../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { isBoxStepKind } from "../../../../domain/build/volume/kind";
 import type { Cell } from "../../../../domain/shared/cells";
@@ -72,29 +72,40 @@ export function dispatchWandPress(context: PressContext): void {
   const { source, playerId, aim, repo, menus } = context;
   const target = aim.aim(playerId);
   const flow = repo.get(playerId)?.flow;
-  if (flow?.kind === "pasteAim") {
-    pasteAimPress(context, target);
+  if (!flow) {
+    // TapAir already handles a missing session without offering idle utilities.
+    if (target && !target.block) airTapPress(context, target);
     return;
   }
-  if (flow?.kind === "rotateMode") {
-    if (source.isSneaking) context.finishRotateMode.execute({ playerId });
-    else
+  const intent = routePress({
+    flow,
+    role: "wand",
+    route: "itemUse",
+    target: target ? (target.block ? "block" : "air") : "none",
+    sneaking: source.isSneaking,
+  });
+  switch (intent.kind) {
+    case "pasteAim":
+      pasteAimPress(context, target);
+      break;
+    case "finishRotate":
+      context.finishRotateMode.execute({ playerId });
+      break;
+    case "rotateTap":
       context.rotateModeTap.execute({
         playerId,
         dimensionId: asDimensionId(source.dimension.id),
       });
-    return;
+      break;
+    case "aimHeight":
+      if (target && flow.kind === "heightStep")
+        heightStepPress(context, target, flow.heightedKind);
+      break;
+    case "openUtilityMenu":
+      void menus.showUtilityMenu(source);
+      break;
+    case "fixEndpoint":
+      if (target) airTapPress(context, target);
+      break;
   }
-  if (!target) return;
-  // A block tap can also emit itemUse; only the interact handler owns that tap.
-  if (target.block) return;
-  if (flow?.kind === "heightStep") {
-    heightStepPress(context, target, flow.heightedKind);
-    return;
-  }
-  if (flow && opensUtilityMenu(flow, source.isSneaking)) {
-    void menus.showUtilityMenu(source);
-    return;
-  }
-  airTapPress(context, target);
 }
