@@ -7,6 +7,8 @@ import type { PressPasteAim } from "../../../../application/build/pressPasteAim"
 import type { RotateModeTap } from "../../../../application/build/rotateModeTap";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
+import type { BuildFlow } from "../../../../domain/build/flow/flow";
+import { routePress } from "../../../../domain/build/flow/press";
 import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { isBoxStepKind } from "../../../../domain/build/volume/kind";
@@ -58,35 +60,45 @@ export function registerWand({
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (heldBuildItem(ev.player) !== "wand") return;
     ev.cancel = true;
-    // itemUse owns mode presses, including duplicate block-interaction events.
-    const kind = repo.get(asPlayerId(ev.player.id))?.flow.kind;
-    if (kind === "pasteAim" || kind === "rotateMode") return;
     if (!ev.isFirstEvent) return;
     const player = ev.player;
+    const playerId = asPlayerId(player.id);
+    const routeBlockPress = (flow: BuildFlow | undefined) =>
+      routePress({
+        flow: flow ?? { kind: "idle" },
+        role: "wand",
+        route: "blockInteract",
+        target: "block",
+        sneaking: player.isSneaking,
+      });
+    if (routeBlockPress(repo.get(playerId)?.flow).kind === "ignore") return;
     const command = {
-      playerId: asPlayerId(player.id),
+      playerId,
       dimensionId: asDimensionId(ev.block.dimension.id),
       cell: ev.block.location,
     };
     system.run(() => {
       if (!player.isValid) return;
       const flow = repo.get(command.playerId)?.flow;
-      if (flow?.kind === "pasteAim" || flow?.kind === "rotateMode") return;
-      if (flow?.kind === "heightStep") {
-        const target = aim.aim(command.playerId);
-        if (!target) return;
-        aimHeight.execute({ playerId: command.playerId, ray: target.ray });
-        if (isBoxStepKind(flow.heightedKind))
-          confirmBoxStep.execute({ playerId: command.playerId });
-        else void menus.showContentsMenu(player);
-      } else {
-        const before = repo.get(command.playerId)?.flow.kind;
-        setPoint.execute(command);
-        if (
-          before !== "endpoint" &&
-          repo.get(command.playerId)?.flow.kind === "endpoint"
-        )
-          void menus.showShapeMenu(player);
+      switch (routeBlockPress(flow).kind) {
+        case "aimHeight": {
+          if (flow?.kind !== "heightStep") return;
+          const target = aim.aim(command.playerId);
+          if (!target) return;
+          aimHeight.execute({ playerId: command.playerId, ray: target.ray });
+          if (isBoxStepKind(flow.heightedKind))
+            confirmBoxStep.execute({ playerId: command.playerId });
+          else void menus.showContentsMenu(player);
+          break;
+        }
+        case "selectPoint":
+          setPoint.execute(command);
+          if (
+            flow?.kind !== "endpoint" &&
+            repo.get(command.playerId)?.flow.kind === "endpoint"
+          )
+            void menus.showShapeMenu(player);
+          break;
       }
     });
   });

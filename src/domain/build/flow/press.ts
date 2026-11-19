@@ -1,0 +1,55 @@
+import { type BuildFlow, opensUtilityMenu } from "./flow";
+
+export type PressRole = "wand" | "pasteRotate" | "pastePlace" | "undo";
+export type PressRoute = "itemUse" | "blockInteract";
+export type PressTarget = "air" | "block" | "none";
+export type PressIntent =
+  | { kind: "selectPoint" } // Send the tapped block to point selection.
+  | { kind: "fixEndpoint" } // Try to fix the virtual endpoint from the aim ray.
+  | { kind: "openUtilityMenu" } // Offer the available utility actions.
+  | { kind: "aimHeight" } // Confirm the aimed height and advance the height step.
+  | { kind: "pasteAim" } // Handle the wand's paste gesture or direct Paste Place.
+  | { kind: "rotateTap" } // Apply one turn in rotate mode.
+  | { kind: "finishRotate" } // Exit rotate mode with the current box.
+  | { kind: "undo" } // Request undo of the last edit.
+  | { kind: "rotateClipboard" } // Turn the clipboard for the next paste.
+  | { kind: "ignore" }; // Take no build action, even if the event is canceled.
+
+export function routePress({
+  flow,
+  role,
+  route,
+  target,
+  sneaking,
+}: {
+  flow: BuildFlow;
+  role: PressRole;
+  route: PressRoute;
+  target: PressTarget;
+  sneaking: boolean;
+}): PressIntent {
+  switch (role) {
+    case "undo":
+      return { kind: "undo" };
+    case "pasteRotate":
+      return { kind: "rotateClipboard" };
+    case "pastePlace":
+      return { kind: "pasteAim" };
+  }
+
+  switch (flow.kind) {
+    case "pasteAim":
+      return { kind: route === "itemUse" ? "pasteAim" : "ignore" };
+    case "rotateMode":
+      if (route === "blockInteract") return { kind: "ignore" };
+      return { kind: sneaking ? "finishRotate" : "rotateTap" };
+  }
+
+  // An aimed block tap can emit both events. Only blockInteract handles it.
+  if (route === "itemUse" && target !== "air") return { kind: "ignore" };
+  if (flow.kind === "heightStep") return { kind: "aimHeight" };
+  if (route === "blockInteract") return { kind: "selectPoint" };
+  return {
+    kind: opensUtilityMenu(flow, sneaking) ? "openUtilityMenu" : "fixEndpoint",
+  };
+}
