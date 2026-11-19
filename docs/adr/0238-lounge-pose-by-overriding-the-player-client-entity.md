@@ -27,7 +27,7 @@ If checks 1–3 fail, stop the chair pose work and report to the owner for a dec
 
 ## Consequences
 
-This override conflicts with other add-ons that override `player.entity.json`. The copy must follow vanilla updates: on every BDS update, compare the fixture against bedrock-samples and update the fixture and override together. The contract test pins the shape and preserves all vanilla animation, controller, material, geometry, texture, and script entries; it cannot prove runtime visual compatibility.
+This override conflicts with other add-ons that override `player.entity.json`. The copy must follow vanilla updates: on every BDS update, compare the fixture against bedrock-samples and update the fixture and override together. For a first-person scooter rider with both hands empty, the override swaps in a render controller that draws both arms and sleeves (0250). The contract test checks the full player definition against vanilla with the rider animations and this controller switch applied; it cannot prove runtime visual compatibility.
 
 This is a separate judgment from the roof tent's statement that overriding is fragile in [Camping gear](../specs/camping-gear.md). The roof tent keeps its current rideable seat, invisibility, and sleeping bag representation (0206). This spike does not change that approach.
 

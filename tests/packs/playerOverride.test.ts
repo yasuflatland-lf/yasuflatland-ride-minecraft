@@ -6,10 +6,15 @@ const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const vanilla = read("tests/packs/fixtures/vanilla-player.ce.json");
 const override = read("packs/yasu_ride_rp/entity/yasu_ride/player.ce.json");
 const vanillaDescription = vanilla["minecraft:client_entity"].description;
-const description = override["minecraft:client_entity"].description;
 const animationId = "animation.yasu_ride.player.lounge";
 const firstPersonArmAngles = ["-85.0", "0.0", "0.0"] as const;
 const emptyHandedScooterRider =
+  "query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == ''";
+
+const firstPersonId = "controller.render.player.first_person";
+const scooterControllerId =
+  "controller.render.yasu_ride.player.first_person_scooter";
+const emptyHandedScooter =
   "query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == ''";
 
 const driverNames = [
@@ -32,29 +37,43 @@ const addedAnimations: Record<string, string> = {
 };
 
 describe("vanilla player override (ADR 0238)", () => {
-  it("preserves the entire vanilla definition with only lounge and the 22 scooter animations added", () => {
-    expect(override.format_version).toBe(vanilla.format_version);
-    expect(Object.keys(description).sort()).toEqual(
-      Object.keys(vanillaDescription).sort(),
+  it("preserves vanilla except for the added rider animations and the first-person scooter controller switch", () => {
+    const renderControllers = vanillaDescription.render_controllers.flatMap(
+      (entry: Record<string, string>) => {
+        const condition = entry[firstPersonId];
+        if (!condition) return [entry];
+        return [
+          { [firstPersonId]: `${condition} && !(${emptyHandedScooter})` },
+          { [scooterControllerId]: `${condition} && (${emptyHandedScooter})` },
+        ];
+      },
     );
-    for (const key of Object.keys(vanillaDescription)) {
-      if (key !== "animations")
-        expect(description[key], key).toEqual(vanillaDescription[key]);
-    }
-    expect(vanillaDescription.animations).not.toHaveProperty("lounge");
-    expect(description.animations).toEqual({
-      ...vanillaDescription.animations,
-      ...addedAnimations,
-    });
     expect(override).toEqual({
       ...vanilla,
       "minecraft:client_entity": {
         ...vanilla["minecraft:client_entity"],
         description: {
           ...vanillaDescription,
+          render_controllers: renderControllers,
           animations: { ...vanillaDescription.animations, ...addedAnimations },
         },
       },
+    });
+  });
+
+  it("draws only both arms and sleeves with the vanilla first-person geometry, materials and textures", () => {
+    const pack = read(
+      "packs/yasu_ride_rp/render_controllers/yasu_ride/player.rc.json",
+    );
+    expect(pack.render_controllers[scooterControllerId]).toEqual({
+      ...read("tests/packs/fixtures/vanilla-player-first-person.rc.json"),
+      part_visibility: [
+        { "*": false },
+        { rightArm: true },
+        { rightSleeve: true },
+        { leftArm: true },
+        { leftSleeve: true },
+      ],
     });
   });
 
