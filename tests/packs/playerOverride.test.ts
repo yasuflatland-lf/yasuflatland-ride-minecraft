@@ -7,6 +7,9 @@ const vanilla = read("tests/packs/fixtures/vanilla-player.ce.json");
 const override = read("packs/yasu_ride_rp/entity/yasu_ride/player.ce.json");
 const vanillaDescription = vanilla["minecraft:client_entity"].description;
 const animationId = "animation.yasu_ride.player.lounge";
+const firstPersonArmAngles = ["-85.0", "0.0", "0.0"] as const;
+const emptyHandedScooterRider =
+  "query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == ''";
 
 const firstPersonId = "controller.render.player.first_person";
 const scooterControllerId =
@@ -91,11 +94,22 @@ describe("vanilla player override (ADR 0238)", () => {
       "packs/yasu_ride_rp/animations/yasu_ride/player.anim.json",
     ).animations;
     const grip = animations["animation.yasu_ride.player.scooter_grip"];
+    const armBranch = (firstPerson: string, thirdPerson: string) =>
+      `variable.is_first_person ? ((${emptyHandedScooterRider}) ? ${firstPerson} : 0.0) : ${thirdPerson}`;
+    const [pitch, yaw, roll] = firstPersonArmAngles;
+    const arm = {
+      rotation: [
+        armBranch(`${pitch} - this`, "-70.0 - this"),
+        armBranch(`${yaw} - this`, "-this"),
+        armBranch(`${roll} - this`, "-this"),
+      ],
+      position: Array.from({ length: 3 }, () => armBranch("0.0 - this", "0.0")),
+    };
     expect(grip).toEqual({
       loop: true,
       bones: {
-        leftarm: { rotation: ["-70.0 - this", "-this", "-this"] },
-        rightarm: { rotation: ["-70.0 - this", "-this", "-this"] },
+        leftarm: arm,
+        rightarm: arm,
         leftleg: { rotation: ["-35.0 - this", "-this", "-this"] },
         rightleg: { rotation: ["-35.0 - this", "-this", "-this"] },
       },

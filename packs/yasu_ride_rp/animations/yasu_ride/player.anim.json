@@ -19,10 +19,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -53,10 +71,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -73,10 +109,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -93,10 +147,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -113,10 +185,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -133,10 +223,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -153,10 +261,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -173,10 +299,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -193,10 +337,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -213,10 +375,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
@@ -233,10 +413,28 @@
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "rightarm": {
-          "rotation": ["-70.0 - this", "-this", "-this"]
+          "rotation": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? -85.0 - this : 0.0) : -70.0 - this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : -this"
+          ],
+          "position": [
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0",
+            "variable.is_first_person ? ((query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '') ? 0.0 - this : 0.0) : 0.0"
+          ]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
