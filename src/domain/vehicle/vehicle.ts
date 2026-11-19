@@ -37,7 +37,7 @@ import {
   ramHalfWidthLimit,
   type VehicleProfile,
 } from "./profile";
-import { type RamHit, type RamTarget, selectHits } from "./ram";
+import { type RamHit, type RamTarget, ramsAt, selectHits } from "./ram";
 import { type RiderPoseCommand, RiderPoseState } from "./riderPose";
 import type { SeatAssignment } from "./seatChoice";
 import type { SeatLeaver } from "./seating";
@@ -444,8 +444,8 @@ export class Vehicle {
   ): RamHit[] {
     this.ramCooldowns.prune(tick);
     // selectHits checks the speed too; checking here skips the targets() query.
-    if (Math.abs(this.drive.speed) <= SPEC.ramMinSpeed) return [];
-    const { body } = this.profile;
+    const { body, ramMinReverseSpeed } = this.profile;
+    if (!ramsAt(this.drive.speed, ramMinReverseSpeed)) return [];
     const hits = selectHits(
       f,
       this.drive.speed,
@@ -459,6 +459,7 @@ export class Vehicle {
           ramHalfWidthLimit(this.profile),
         ),
       },
+      ramMinReverseSpeed,
     );
     this.ramCooldowns.record(hits, tick);
     return hits;

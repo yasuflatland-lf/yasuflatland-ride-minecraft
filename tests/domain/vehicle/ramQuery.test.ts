@@ -67,6 +67,7 @@ describe("RAM_QUERY_RADIUS", () => {
             new Map(),
             0,
             body,
+            SUV_SPEC.ramMinReverseSpeed,
           );
           fc.pre(hits.length === 1);
           expect(Math.hypot(offset.x, offset.y, offset.z)).toBeLessThanOrEqual(

@@ -60,6 +60,11 @@ export interface VehicleProfile {
   /** The widest ram half width any step of this kind may report; absent = body.halfWidth. The ram query radius covers it (ADR 0180). */
   readonly maxRamHalfWidth?: number;
   /**
+   * Reversing faster than this (blocks/tick) rams. Set per kind below its full
+   * reverse speed; moving forward always uses SPEC.ramMinSpeed (ADR 0006).
+   */
+  readonly ramMinReverseSpeed: number;
+  /**
    * The farthest any part of the body, or a stand-in box, reaches from the center
    * across the ground, in blocks: a circle the vehicle covers at any heading. Things
    * placed beside vehicles keep out of it (ADR 0122).

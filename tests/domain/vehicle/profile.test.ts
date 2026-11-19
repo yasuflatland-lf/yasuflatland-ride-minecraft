@@ -162,6 +162,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         },
       },
       footprint: 3.18,
+      ramMinReverseSpeed: 0.15,
       seats: {
         positions: [
           { x: -0.463, z: -0.089 },
@@ -246,6 +247,7 @@ describe("vehicle profiles (ADR 0050)", () => {
       fleetLimit: 1,
       body: { front: 3.0, halfWidth: 1.06, height: 1.2 },
       footprint: 3.5,
+      ramMinReverseSpeed: 0.15,
       seats: {
         positions: [
           { x: -0.38, z: 0.1625 },

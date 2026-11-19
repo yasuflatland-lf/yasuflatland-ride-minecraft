@@ -32,6 +32,15 @@ export function ramDamage(speed: number): number {
   return Math.max(1, Math.round(Math.abs(speed) * SPEC.ramDamagePerSpeed));
 }
 
+/**
+ * Forward, the shared SPEC.ramMinSpeed keeps creeping and the step bump (both at
+ * or below it) from ramming. Reverse never creeps or bumps, so each kind sets a
+ * threshold below its own full reverse speed (ADR 0006, 0050).
+ */
+export function ramsAt(speed: number, minReverseSpeed: number): boolean {
+  return speed > SPEC.ramMinSpeed || -speed > minReverseSpeed;
+}
+
 export function selectHits(
   f: Vec2,
   speed: number,
@@ -39,8 +48,9 @@ export function selectHits(
   lastHit: ReadonlyMap<string, number>,
   tick: number,
   body: Pick<VehicleBody, "front" | "halfWidth">,
+  minReverseSpeed: number,
 ): RamHit[] {
-  if (Math.abs(speed) <= SPEC.ramMinSpeed) return [];
+  if (!ramsAt(speed, minReverseSpeed)) return [];
   const dir = Math.sign(speed);
   const right = rightOf(f);
   const reach = body.front + SPEC.targetHalfWidth;

@@ -75,8 +75,6 @@ export class BuildSession {
     this.currentFlow = Object.freeze({
       ...flow,
       selection,
-      from: selection.box.min,
-      to: selection.box.max,
     });
     if (
       this.currentConfirmedBox &&
@@ -84,17 +82,20 @@ export class BuildSession {
     )
       this.currentConfirmedBox = selection;
   }
+  /** Confirming from a selection keeps its tapped points (terrain heights and Cancel use them); otherwise the box corners become them. */
   confirmBox(selection: Selection, next: "idle" | "selected" = "idle"): void {
     this.currentConfirmedBox = selection;
+    const flow = this.currentFlow;
     this.setFlow(
       next === "idle"
-        ? cancel(this.currentFlow)
+        ? cancel(flow)
         : Object.freeze({
             kind: "selected",
             menuLevel: "root",
             selection,
-            from: selection.box.min,
-            to: selection.box.max,
+            ...(flow.kind === "selected" || flow.kind === "terrainConfirm"
+              ? { from: flow.from, to: flow.to }
+              : { from: selection.box.min, to: selection.box.max }),
           }),
     );
   }

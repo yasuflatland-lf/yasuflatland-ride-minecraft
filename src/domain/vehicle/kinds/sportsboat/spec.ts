@@ -5,6 +5,7 @@ export const SPORTSBOAT_SPEC = Object.freeze({
   // Driving (ADR 0051)
   maxSpeed: 1.12, // ADR 0051
   maxReverse: 0.2, // ADR 0051
+  ramMinReverseSpeed: 0.15, // blocks/tick; rams only while reversing faster than this (ADR 0006)
   accel: 0.0225, // ADR 0051
   reverseAccel: 0.01125, // Half of accel, as on land
   brake: 0.04,
