@@ -76,6 +76,7 @@ describe("RamCooldowns (ADR 0006)", () => {
               c.recent,
               t,
               SUV_PROFILE.body,
+              SUV_PROFILE.ramMinReverseSpeed,
             );
             c.record(hits, t);
             const expected =

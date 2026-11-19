@@ -41,6 +41,8 @@ export const BULLDOZER_SPEC = Object.freeze({
   brake: 0.02,
   drag: 0.01,
   maxReverse: 0.1,
+  // Reverse ram threshold, as the shared forward one (ADR 0006)
+  ramMinReverseSpeed: 0.15,
   reverseAccel: 0.005625,
   turnRate: 3,
   pivotStick: 0.35,
