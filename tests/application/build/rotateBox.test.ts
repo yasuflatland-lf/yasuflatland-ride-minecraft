@@ -121,7 +121,12 @@ it("rotates any selection with one union snapshot and never writes outside the u
       expect(e.structures.live.has(placed.handle)).toBe(false);
       expect(e.session.takeUndo()).toEqual({
         kind: "snapshot",
-        snapshot: { dimensionId: overworld, box: plan.union, handle: snapshot },
+        snapshot: {
+          dimensionId: overworld,
+          box: plan.union,
+          handle: snapshot,
+          selectionBefore: box,
+        },
       });
       expect(e.session.takeUndo()).toBe("nothingToUndo");
       expect(selectionBoxOf(e.session.flow)).toEqual(plan.target);
@@ -135,6 +140,15 @@ it("rotates any selection with one union snapshot and never writes outside the u
       ]);
       expect(e.log.warn).not.toHaveBeenCalled();
     }),
+  );
+});
+
+it("undo reports the pre-rotation selection and keeps the rotated selection active", () => {
+  const e = setup();
+  e.rotate.execute({ playerId, dimensionId: overworld });
+  expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: wideBox });
+  expect(selectionBoxOf(e.session.flow)).toEqual(
+    planRotationAboutCenter(wideBox).target,
   );
 });
 
