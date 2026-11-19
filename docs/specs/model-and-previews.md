@@ -82,7 +82,8 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   face on a copy samples the stored tile through the same `UvRect.to_atlas` flip
   rule. The fixed and PAINT registries are packed separately, each within the existing
   2048-side limit, and their disjoint alpha-test geometries preserve every face.
-  The fixed colour and MER are stored once; 15 stored paint colours share one paint MER.
+  The fixed colour and MER are stored once; 15 stored paint colours share the uniform
+  paint MER value `[0, 0, 90]` in their texture sets, with no paint MER PNG.
   Paint, MER and lit-mask writers
   visit each unique storage rectangle once. Audits verify every bound face's covered
   texels against its local region pixels; sharing preserves all preview bytes.
