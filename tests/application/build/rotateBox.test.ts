@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { RotateBox } from "../../../src/application/build/rotateBox";
+import { RotateSelection } from "../../../src/application/build/rotateSelection";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
@@ -70,6 +71,7 @@ function setup(box: CellBox = wideBox) {
     log,
     session,
     rotate,
+    rotateSelection: new RotateSelection(repo, rotate, feedback),
     undo,
   };
 }
@@ -143,13 +145,68 @@ it("rotates any selection with one union snapshot and never writes outside the u
   );
 });
 
-it("undo reports the pre-rotation selection and keeps the rotated selection active", () => {
+it("rotates the selected box once per press and undoes each turn with its selection", () => {
+  const e = setup();
+  const cmd = { playerId, dimensionId: overworld };
+  const { union, target } = planRotationAboutCenter(wideBox);
+  e.world.put(wideBox.min, stone);
+  const states = () =>
+    [...cellsOf(union)].map((cell) => e.world.stateAt(overworld, cell));
+  const original = states();
+  for (const [i, box] of [target, wideBox].entries()) {
+    expect(e.rotateSelection.execute(cmd)).toBe("rotated");
+    expect(e.session.flow).toMatchObject({
+      kind: "selected",
+      selection: selectionOf(overworld, box, stone),
+    });
+    expect(e.structures.live.size).toBe(i + 1);
+  }
+  for (const box of [target, wideBox]) {
+    expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: box });
+    expect(e.session.flow).toMatchObject({
+      kind: "selected",
+      selection: selectionOf(overworld, box, stone),
+      from: box.min,
+      to: box.max,
+    });
+  }
+  expect(states()).toEqual(original);
+  expect(e.session.hasHistory).toBe(false);
+});
+
+it("keeps a refused selection and reports the rotation guard's reason", () => {
+  const e = setup();
+  const before = e.session.flow;
+  e.world.protectedCells.add(cellKey(wideBox.min));
+  expect(e.rotateSelection.execute({ playerId, dimensionId: overworld })).toBe(
+    "refused",
+  );
+  expect(e.feedback.messages.at(-1)?.message).toBe("rotateBlocked");
+  expect(e.session.flow).toBe(before);
+  expect(e.session.hasHistory).toBe(false);
+});
+
+it("reports no selection outside selected flow or in a different dimension", () => {
+  const e = setup();
+  expect(e.rotateSelection.execute({ playerId, dimensionId: nether })).toBe(
+    "noSelection",
+  );
+  e.session.setFlow({ kind: "idle" });
+  expect(e.rotateSelection.execute({ playerId, dimensionId: overworld })).toBe(
+    "noSelection",
+  );
+  expect(e.feedback.messages.map((m) => m.message)).toEqual([
+    "noSelection",
+    "noSelection",
+  ]);
+  expect(e.structures.calls).toEqual([]);
+});
+
+it("undo reports the pre-rotation selection and restores its box", () => {
   const e = setup();
   e.rotate.execute({ playerId, dimensionId: overworld });
   expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: wideBox });
-  expect(selectionBoxOf(e.session.flow)).toEqual(
-    planRotationAboutCenter(wideBox).target,
-  );
+  expect(selectionBoxOf(e.session.flow)).toEqual(wideBox);
 });
 
 it("undo restores every original union cell, including overwritten neighbors", () => {
