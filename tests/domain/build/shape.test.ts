@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf, contains } from "../../../src/domain/build/box";
+import { uniformPattern } from "../../../src/domain/build/edit/pattern";
 import { planShape } from "../../../src/domain/build/edit/plan";
 import {
   cellsOfShape,
@@ -25,9 +26,8 @@ const anyCell = fc.record({
 const styles: ShapeStyle[] = ["fill", "frame", "faces", "walls"];
 const keys = (cells: Iterable<Cell>) => [...cells].map(cellKey).sort();
 const smallShape = fc.tuple(cell, cell).map(([a, b]) => shapeOf(a, b));
-const pattern = {
-  state: blockStateOf("minecraft:stone", { variant: "granite" }),
-};
+const granite = blockStateOf("minecraft:stone", { variant: "granite" });
+const pattern = uniformPattern(granite);
 
 describe("Shape", () => {
   it("derives its kind and available styles from the differing axes", () => {
@@ -229,9 +229,7 @@ describe("shape planning", () => {
           expect(plan.map((change) => change.cell)).toEqual([
             ...cellsOfShape(shape, style),
           ]);
-          expect(plan.every((change) => change.after === pattern.state)).toBe(
-            true,
-          );
+          expect(plan.every((change) => change.after === granite)).toBe(true);
         }
       }),
     );
@@ -247,7 +245,7 @@ describe("shape planning", () => {
       expect(cells.next().value).toEqual({ x, y: 0, z: 0 });
       expect(plan.next().value).toEqual({
         cell: { x, y: 0, z: 0 },
-        after: pattern.state,
+        after: granite,
       });
     }
   });

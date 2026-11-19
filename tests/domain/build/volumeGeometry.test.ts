@@ -64,7 +64,7 @@ describe("heighted geometry", () => {
     (kind) => {
       fc.assert(
         fc.property(base, height, coordinate, (base, height, worldTopY) => {
-          const spec = { base, kind, height };
+          const spec = { base, kind, height, style: "stepped" as const };
           const placement = placementOf(kind);
           for (const fill of fillStylesFor(kind)) {
             const hollow = fill === "hollow";

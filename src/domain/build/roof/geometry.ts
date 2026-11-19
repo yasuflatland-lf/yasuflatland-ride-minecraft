@@ -16,7 +16,7 @@ import {
 
 function roofSpec(spec: HeightStepSpec): RoofSpec {
   if (!isRoofKind(spec.kind)) throw new Error(`Not a roof kind: ${spec.kind}`);
-  return { ...spec, kind: spec.kind };
+  return { ...spec, kind: spec.kind, style: spec.roofStyle ?? "stepped" };
 }
 
 export const roofPlacement: HeightedPlacement = {

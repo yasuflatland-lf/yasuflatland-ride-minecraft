@@ -1,3 +1,4 @@
+import { uniformPattern } from "../../domain/build/edit/pattern";
 import { planShape } from "../../domain/build/edit/plan";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import {
@@ -39,7 +40,7 @@ export class ConfirmShape {
     this.jobs.start(
       cmd.playerId,
       flow.selection.dimensionId,
-      planShape(shape, cmd.style, { state: flow.selection.material }),
+      planShape(shape, cmd.style, uniformPattern(flow.selection.material)),
       "undoable",
       { selectionBefore: box, selectionAfter: box },
     );
