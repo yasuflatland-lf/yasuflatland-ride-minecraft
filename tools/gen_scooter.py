@@ -142,7 +142,7 @@ def pack_regions(regions, *, shared=True):
         registry.register(region)
     return region_atlas.pack(
         registry, gutter_px=atlas.GUTTER_TEXELS, max_side=atlas.MAX_SIDE_TEXELS,
-        share_key=(lambda r: (r.material, r.name in atlas.LIT_REGIONS)) if shared else None)
+        share_key=(lambda r: (r.material, atlas.is_lit_region(r.name))) if shared else None)
 
 
 def finish_pass(geometry, layout, pixels=None):
