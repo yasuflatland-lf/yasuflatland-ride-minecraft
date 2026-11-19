@@ -114,20 +114,23 @@ it("keeps the floor and clears everything above it to the world top, whichever p
   );
 });
 
-it("confirms the selected box and returns to idle when the job starts", () => {
+it("keeps the original box selected after Remove above", () => {
   const e = setup();
   const from = { x: 0, y: 60, z: 0 };
   const to = { x: 2, y: 64, z: 2 };
   e.select(from, to);
   removeAbove(e);
-  expect(e.session.flow.kind).toBe("idle");
+  expect(e.session.isEditing).toBe(true);
+  e.drain();
+  expect(e.session.flow).toMatchObject({
+    kind: "selected",
+    selection: { box: boxOf(from, to) },
+  });
   expect(e.session.confirmedBox).toEqual({
     material: stone,
     dimensionId: overworld,
     box: boxOf(from, to),
   });
-  expect(e.session.isEditing).toBe(true);
-  e.drain();
 });
 
 it("finishes with the count message, adds no history, and takes no Undo hint", () => {
@@ -249,7 +252,10 @@ it("starts no edit when the floor is the world top", () => {
   e.select(from, to);
   removeAbove(e);
   expect(e.session.isEditing).toBe(false);
-  expect(e.session.flow.kind).toBe("idle");
+  expect(e.session.flow).toMatchObject({
+    kind: "selected",
+    selection: { box: boxOf(from, to) },
+  });
   expect(e.session.confirmedBox?.box).toEqual(boxOf(from, to));
   expect(e.feedback.messages.at(-1)).toMatchObject({
     message: "editDoneCount",
@@ -344,17 +350,21 @@ it("keeps earlier history and moves its buried owner above the inclusive top lay
   e.drain();
   const feet = { x: 0, y: -63, z: 0 };
   e.players.occupants.set(playerId, { dimensionId: overworld, feet });
-  e.select({ x: 0, y: -64, z: 0 }, { x: 0, y: -61, z: 0 });
+  const box = boxOf({ x: 0, y: -64, z: 0 }, { x: 0, y: -61, z: 0 });
+  e.select(box.min, box.max);
   fillBelow(e);
-  expect(e.session.confirmedBox?.box.max.y).toBe(-61);
-  expect(e.session.flow.kind).toBe("idle");
   e.drain();
+  expect(e.session.confirmedBox?.box).toEqual(box);
+  expect(e.session.flow).toMatchObject({
+    kind: "selected",
+    selection: { box },
+  });
   expect(e.feedback.messages.at(-1)).toMatchObject({
     message: "editDoneCount",
     count: 4,
   });
   expect(e.players.moves).toEqual([{ playerId, cell: { x: 0, y: -60, z: 0 } }]);
-  expect(e.feedback.undoHints).toHaveLength(1);
+  expect(e.feedback.undoHints).toHaveLength(0);
   e.undo.execute({ playerId });
   e.drain();
   expect(e.world.stateAt(overworld, old)).toEqual(AIR);

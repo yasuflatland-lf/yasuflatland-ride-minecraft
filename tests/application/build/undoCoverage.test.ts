@@ -111,6 +111,30 @@ function undoAndExpectEmpty(e: Env) {
   expect(e.feedback.messages.at(-1)?.message).toBe("nothingToUndo");
 }
 
+it("keeps the filled box selected and restores its pre-build selection on Undo", () => {
+  const e = setup();
+  const box = boxOf({ x: 1, y: 64, z: 2 }, { x: 3, y: 66, z: 5 });
+  const selected = {
+    kind: "selected",
+    menuLevel: "root",
+    selection: selectionOf(overworld, box, stone),
+  };
+  select(e, box);
+  e.shape.execute({ playerId, style: "fill" });
+  e.drain();
+  expect(e.session.flow).toMatchObject(selected);
+  const entry = e.session.takeUndo();
+  expect(entry).toMatchObject({
+    kind: "cells",
+    record: { selectionBefore: box, selectionAfter: box },
+  });
+  if (typeof entry === "string") throw new Error("Expected cell history");
+  e.session.putBackUndo(entry);
+  expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: box });
+  e.drain();
+  expect(e.session.flow).toMatchObject(selected);
+});
+
 it.each(["endpoint", "heightStep"] as const)(
   "undo reports the box selected at %s confirmation",
   (kind) => {

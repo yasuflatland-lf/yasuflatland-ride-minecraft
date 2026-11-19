@@ -29,7 +29,7 @@ export class ConfirmShape {
     if (!stylesFor(shape).includes(cmd.style)) return;
     const count = shapeCount(shape, cmd.style);
     if (!beginCheckedEdit(session, this.feedback, cmd.playerId, count)) return;
-    session.confirmBox(flow.selection);
+    session.confirmBox(flow.selection, "selected");
     this.feedback.showMessage(
       cmd.playerId,
       "building",
@@ -41,7 +41,7 @@ export class ConfirmShape {
       flow.selection.dimensionId,
       planShape(shape, cmd.style, { state: flow.selection.material }),
       "undoable",
-      { selectionBefore: flow.selection.box },
+      { selectionBefore: box, selectionAfter: box },
     );
   }
 }

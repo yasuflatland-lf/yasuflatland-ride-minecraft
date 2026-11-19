@@ -37,13 +37,13 @@ export class ConfirmTerrain {
     const area = terrainAreaOf(flow.from, flow.to);
     const box = removeAboveBox(area);
     if (flow.op === "removeAbove" && !box) {
-      session.confirmBox(selection);
+      session.confirmBox(selection, "selected");
       this.feedback.showMessage(playerId, "editDoneCount", 0);
       return;
     }
     // beginCheckedEdit applies maxVolume, which terrain operations replace with a side limit (ADR 0233).
     session.beginEdit();
-    session.confirmBox(selection);
+    session.confirmBox(selection, "selected");
     this.feedback.showMessage(
       playerId,
       flow.op === "fillBelow" ? "building" : "removing",

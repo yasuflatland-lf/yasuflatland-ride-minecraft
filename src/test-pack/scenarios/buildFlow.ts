@@ -298,7 +298,8 @@ export function buildShapes(a: Arena): Promise<Outcome> {
         b.setType("minecraft:oak_log");
         b.setPermutation(b.permutation.withState("pillar_axis", "x"));
       }
-      await f.select(f.cell(sx - 1, sy - 1, sz - 1), id !== "fill");
+      const end = f.cell(sx - 1, sy - 1, sz - 1);
+      await f.select(end, id !== "fill");
       const before = snapshot(f, cells);
       for (const absent of sy === 5 ? ["frame"] : ["faces", "walls"])
         check(
@@ -307,9 +308,10 @@ export function buildShapes(a: Arena): Promise<Outcome> {
         );
       const result = await f.menu("shape", id);
       check(
-        result.offered === true && result.message === "editDone",
+        result.offered === true && result.message === "editDoneCount",
         `${id} did not finish`,
       );
+      checkSelection(result, { min: f.cell(), max: end }, id);
       check(
         f.count(cells) === expected,
         `${id}: expected ${expected} stone blocks, got ${f.count(cells)}`,
@@ -792,7 +794,7 @@ export function buildUndoItemShape(a: Arena): Promise<Outcome> {
     await f.select(f.cell(1, 1, 1), false);
     const before = snapshot(f, cells);
     check(
-      (await f.menu("shape", "fill")).message === "editDone",
+      (await f.menu("shape", "fill")).message === "editDoneCount",
       "Fill failed",
     );
     check(f.count(cells) === cells.length, "Fill did not write the box");
@@ -1800,8 +1802,13 @@ export function buildRemoveAbove(a: Arena): Promise<Outcome> {
       check(f.count([f.cell(2, 2, 2)]) === 1, "Wrote before confirmation");
       const done = await f.menu("terrain", "confirm");
       check(
-        done.message === "editDoneCount" && done.flow.kind === "idle",
+        done.message === "editDoneCount",
         `Remove above did not finish: ${done.message}`,
+      );
+      checkSelection(
+        done,
+        { min: f.cell(0, -3, 0), max: f.cell(2, 0, 2) },
+        "Remove above",
       );
       check(done.count === 3, `Changed-cell count wrong: ${done.count}`);
       check(f.count(floor) === floor.length, "Remove above changed the floor");
@@ -1862,7 +1869,7 @@ export function buildRemoveAboveNoUndo(a: Arena): Promise<Outcome> {
     // The select helper places the first corner itself, so place the blocks afterwards.
     for (const cell of line) f.block(cell).setType("minecraft:dirt");
     check(
-      (await f.menu("shape", "place")).message === "editDone",
+      (await f.menu("shape", "place")).message === "editDoneCount",
       "Earlier edit did not finish",
     );
     check(f.count(line) === line.length, "Earlier edit left dirt behind");
@@ -1953,29 +1960,25 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
   });
 }
 
-export function buildUndoHintOnce(a: Arena): Promise<Outcome> {
+export function buildSelectedLineFeedback(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     await f.edit("reset");
     const cells = f.region(2, 1, 1);
-    for (const expectedHints of [1, 0]) {
-      for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
-      await f.select(f.cell(1));
-      f.block(f.cell()).setType("minecraft:gold_block");
-      const result = await f.menu("shape", "place");
-      check(
-        result.message === "editDone" && result.count === 2,
-        "Edit feedback missing",
-      );
-      check(
-        result.undoHints === expectedHints,
-        "Undo hint was missing or repeated",
-      );
-      const undo = await f.menu("utility", "undo");
-      check(
-        undo.message === "undoDone" && undo.undoHints === 0,
-        "Undo emitted first-edit hint",
-      );
-    }
+
+    for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
+    await f.select(f.cell(1));
+    f.block(f.cell()).setType("minecraft:gold_block");
+    const result = await f.menu("shape", "place");
+    check(
+      result.message === "editDoneCount" && result.count === 2,
+      "Edit feedback missing",
+    );
+    check(result.undoHints === 0, "Selected line promised air-press Undo");
+    const undo = await f.menu("utility", "undo");
+    check(
+      undo.message === "undoDone" && undo.undoHints === 0,
+      "Undo emitted first-edit hint",
+    );
   });
 }
 
@@ -1990,7 +1993,7 @@ export function buildUnstuckFill(a: Arena): Promise<Outcome> {
     f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
     const rotation = f.player.getRotation();
     const result = await f.menu("shape", "fill");
-    check(result.message === "editDone", "Fill did not complete");
+    check(result.message === "editDoneCount", "Fill did not complete");
     const actual = f.player.location;
     check(
       Math.abs(actual.x - (feet.x + 0.5)) < 0.01 &&
@@ -2027,7 +2030,7 @@ export function buildUnstuckNotTouched(a: Arena): Promise<Outcome> {
     await f.select(f.cell(2, 3, 2));
     f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
     const result = await f.menu("shape", "fill");
-    check(result.message === "editDone", "Remote Fill did not complete");
+    check(result.message === "editDoneCount", "Remote Fill did not complete");
     const actual = f.player.location;
     check(
       Math.abs(actual.x - (feet.x + 0.5)) < 0.01 &&
@@ -2069,6 +2072,7 @@ export function buildFillBelowPit(a: Arena): Promise<Outcome> {
       done.message === "editDoneCount" && done.count === pit.length,
       "Wrong fill completion count",
     );
+    checkSelection(done, { min: f.cell(), max: f.cell(4, 0, 4) }, "Fill below");
     check(f.count(pit) === pit.length, "Fill left a hole in the pit");
   });
 }
