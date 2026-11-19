@@ -13,6 +13,7 @@ import {
   closeBuildMenu,
   openBuildMenu,
   opensUtilityMenu,
+  selectionBoxOf,
   setHeight,
   tapAir,
   tapBlock,

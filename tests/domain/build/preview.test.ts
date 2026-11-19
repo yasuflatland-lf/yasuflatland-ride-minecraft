@@ -1,10 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import {
-  boxOf,
-  type CellBox,
-} from "../../../src/domain/build/box";
+import { boxOf, type CellBox } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import {
   type BuildFlow,

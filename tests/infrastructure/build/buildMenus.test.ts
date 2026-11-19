@@ -907,7 +907,7 @@ it.each([
 it.each(["copy", "cut"] as const)(
   "enters paste aiming directly with %s when the fallback slider is enabled",
   async (kind) => {
-    const { menus, player, cases, session } = setup(true);
+    const { menus, player, session } = setup(true);
     ui.answers.push({
       selection: shapeMenu(endpoint).findIndex((e) => e.id === kind),
     });
@@ -1262,7 +1262,15 @@ it.each([
     const { session, menus, player, cases } = setup();
     session.setFlow(selected(from, { x: 4, y: 64, z: 0 }));
     const initial = session.flow;
-    ui.answers.push({ selection: 3 }, answer, { selection: 4 });
+    ui.answers.push(
+      {
+        selection: shapeMenu(initial).findIndex(
+          ({ id }) => id === "buildShape",
+        ),
+      },
+      answer,
+      { selection: shapeMenu(initial).findIndex(({ id }) => id === "cut") },
+    );
     await menus.showShapeMenu(player);
     expect(cases.openBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,

@@ -1,11 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import {
-  boxOf,
-  type CellBox,
-  center,
-  edgePoints,
-} from "../box";
+import { boxOf, type CellBox, center, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import { type BuildFlow, liveHeightBox } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";

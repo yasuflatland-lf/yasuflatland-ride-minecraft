@@ -6,7 +6,6 @@ import {
   type HeightStepFlow,
   heightStepBox,
 } from "../../../src/domain/build/flow/flow";
-import { cubeVolume } from "../../../src/domain/build/volume/cube";
 import type { HeightStepKind } from "../../../src/domain/build/volume/kind";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 

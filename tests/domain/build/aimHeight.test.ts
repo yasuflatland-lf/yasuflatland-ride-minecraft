@@ -2,10 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { aimedHeight } from "../../../src/domain/build/aim/height";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import {
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 

@@ -3,10 +3,7 @@ import { heightStepBox } from "../../domain/build/flow/flow";
 import { selectionOf } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { boundingBox, placementOf } from "../../domain/build/volume/geometry";
-import {
-  type FillStyle,
-  fillStylesFor,
-} from "../../domain/build/volume/kind";
+import { type FillStyle, fillStylesFor } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
 import { beginCheckedEdit } from "./beginCheckedEdit";
 import type { EditJobs } from "./editJobs";

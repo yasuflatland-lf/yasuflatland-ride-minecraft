@@ -11,10 +11,7 @@ import {
 } from "../selection";
 import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
-import {
-  type HeightStepKind,
-  locksBoxHeight,
-} from "../volume/kind";
+import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
 import type { PasteAim } from "./paste";
 
 export type BuildFlow =

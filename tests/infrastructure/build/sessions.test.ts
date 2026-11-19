@@ -141,7 +141,11 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   });
   expect(structures.live.size).toBe(2);
   const clipboard = session.clipboard;
-  session.setFlow(tapAir(tapBlock({ kind: "idle" }, overworld, at, AIR), at));
+  session.setFlow(
+    confirmEndpointHeight(
+      tapAir(tapBlock({ kind: "idle" }, overworld, at, AIR), at),
+    ),
+  );
   registerSessions(
     new EndBuildSession(repo, structures),
     new EndPasting(repo, structures),

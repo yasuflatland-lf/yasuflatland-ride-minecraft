@@ -151,9 +151,8 @@ function snapshotHook() {
   registerTestEdit(
     {} as Args[0],
     {} as Args[1],
-    {} as Args[2],
-    { execute } as unknown as Args[3],
-    {} as Args[4],
+    { execute } as unknown as Args[2],
+    {} as Args[3],
     new DescribeBuild(repo),
     messages,
     repo,
