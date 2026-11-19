@@ -81,10 +81,12 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   tiles through `region_atlas.share_tiles` and lays out only the stored ones; a
   face on a copy samples the stored tile through the same `UvRect.to_atlas` flip
   rule. The fixed and PAINT registries are packed separately, each within the existing
-  2048-side limit. After UV relocation, `partition_geometry` assigns every source
-  face to exactly one of the fixed and paint alpha-test passes. `select_faces` then
-  removes fully transparent faces from each pass while keeping every lamp and glow
-  face.
+  2048-side limit. After UV relocation, the generator writes `.cache/generated/scooter_source.geo.json`
+  from `build().source_geometry`. `partition_geometry` assigns every source face
+  to exactly one of the fixed and paint passes. `select_faces` then removes faces
+  that sample only alpha-0 texels and drops cubes with no faces left. Every face on
+  `headlights`, `tail_lights` and `glow_*` stays in its assigned pass. Filtering
+  preserves the pass atlases and the UVs of retained faces (0252).
   The fixed colour and MER are stored once; 15 stored paint colours share the uniform
   paint MER value `[0, 0, 90]` in their texture sets, with no paint MER PNG.
   Paint, MER and lit-mask writers
@@ -144,12 +146,6 @@ panel's tangent frame and takes no panel margin, so its outer envelope stays wit
 fold bones retain their axle pivots. Each fixed or paint atlas across the running, stand, body, floor, rear, engine, head, and shield areas stays within 2048 by 2048
 texels. The scooter requests this side limit from the shared packer, which searches
 wider layouts and rejects regions that cannot fit without reducing texture detail.
-The generator writes `.cache/generated/scooter_source.geo.json` from
-`build().source_geometry`, the full source geometry before face filtering. The shipped
-fixed and paint geometries omit faces that sample only alpha-0 texels and cubes with no
-faces left. Every face on `headlights`, `tail_lights` and `glow_*` stays in its
-assigned pass. The filter preserves the pass atlases and the UVs of retained faces
-(0252).
 Scooter previews merge adjacent texels and cap dense faces at 16 cells per model unit.
 
 `tools/scooter_stand.py` builds the centre stand independently of the wheel and fork area.
@@ -232,7 +228,7 @@ A transparent 16 by 16 item icon shows the scooter facing right.
 ### Camper generator modules
 
 - Applies to: Camper geometry generation and the final cube ownership fixture.
-- Rule: `region_atlas.RegionRegistry` owns immutable named texture regions and material classifications. `region_atlas` delegates deterministic MaxRects packing to the pure `atlas_pack.search` module interface, preserving order trials, width candidates and tie-breaking. Packing resolves `RegionRef.uv` in atlas texels without rotation or resampling; default gutters are two transparent texels between regions. The nested swatch atlas remains the 114 by 228 `base` region, with local swatch/hardware coordinates unchanged. A base-only pack keeps origin `(0, 0)`, geometry and texture bytes. `camper_kit.prepare_layout()` calls each area's optional `register_regions(registry)` hook in `AREA_ORDER` before a single shared pack. Layout access and the first swatch face prepare this final layout lazily, so independent `build()` calls use the same coordinates. No area resolves UVs during registration. The base region may move, and the lit swatch mask, mirror texture and mirror MER mask follow its final origin. `render_atlas` returns RGBA bytes; generation retains explicit face bindings, assigns remaining faces to the registered region containing their complete UV rectangle, and rejects faces outside all regions. It audits exact pixel-function output, region bounds/separation, and both endpoints of every emitted face. Area builders return fresh bone cube lists without file writes. The orchestrator preserves bone order and writes final ownership ranges alongside the assets. The soft-furnishing area replaces the original dinette and bedding upholstery; its three FABRIC regions join the interior materials before packing, so base UVs and companion maps follow the resulting relocated origin. Generate only `camper.png` as the khaki colour atlas, with the existing lit and mirror companion maps; do not generate per-paint files. The client base pass uses `Texture.default` directly. Item, README, and pack-icon previews use the same khaki atlas. Camper previews cap dense textured faces at `CAMPER_CELLS_PER_UNIT = 16` cells per model pixel along each edge. Round rotated edge lengths to six decimal places before taking the cell-count ceiling so trigonometric noise cannot change tessellation. Lower-density UVs retain their texel boundaries; generated pack textures retain full resolution.
+- Rule: `region_atlas.RegionRegistry` owns immutable named texture regions and material classifications. `region_atlas` delegates deterministic MaxRects packing to `atlas_pack.search`. See [Atlas packing and cache](testing-and-ci.md#atlas-packing-and-cache) for the order trials and disk cache. Packing resolves `RegionRef.uv` in atlas texels without rotation or resampling; default gutters are two transparent texels between regions. The nested swatch atlas remains the 114 by 228 `base` region, with local swatch/hardware coordinates unchanged. A base-only pack keeps origin `(0, 0)`, geometry and texture bytes. `camper_kit.prepare_layout()` calls each area's optional `register_regions(registry)` hook in `AREA_ORDER` before a single shared pack. Layout access and the first swatch face prepare this final layout lazily, so independent `build()` calls use the same coordinates. No area resolves UVs during registration. The base region may move, and the lit swatch mask, mirror texture and mirror MER mask follow its final origin. `render_atlas` returns RGBA bytes; generation retains explicit face bindings, assigns remaining faces to the registered region containing their complete UV rectangle, and rejects faces outside all regions. It audits exact pixel-function output, region bounds/separation, and both endpoints of every emitted face. Area builders return fresh bone cube lists without file writes. The orchestrator preserves bone order and writes final ownership ranges alongside the assets. The soft-furnishing area replaces the original dinette and bedding upholstery; its three FABRIC regions join the interior materials before packing, so base UVs and companion maps follow the resulting relocated origin. Generate only `camper.png` as the khaki colour atlas, with the existing lit and mirror companion maps; do not generate per-paint files. The client base pass uses `Texture.default` directly. Item, README, and pack-icon previews use the same khaki atlas. Camper previews cap dense textured faces at `CAMPER_CELLS_PER_UNIT = 16` cells per model pixel along each edge. Round rotated edge lengths to six decimal places before taking the cell-count ceiling so trigonometric noise cannot change tessellation. Lower-density UVs retain their texel boundaries; generated pack textures retain full resolution.
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "The orchestrator preserves bone order and writes final ownership ranges to `tests/packs/fixtures/camper-areas.json` without adding cube fields"
 - Implementation: `tools/gen_camper.py`; `tools/camper_kit.py`; `tools/region_atlas.py`; `tools/atlas_pack.py`; `tools/camper_regions.py`; `tools/camper_golden.py`; `tools/generators.json`; `tests/packs/fixtures/camper-areas.json`; area modules listed below.

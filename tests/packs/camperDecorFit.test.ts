@@ -63,7 +63,10 @@ print(json.dumps(camper_decor_fit.SLOTS))
   }
 });
 
-it("derives dashboard acceptance from deterministic clearance checks of the generated models", () => {
+// Three main runs peaked at 9.556 s, giving a 39 s timeout at 4x.
+it("derives dashboard acceptance from deterministic clearance checks of the generated models", {
+  timeout: 39_000,
+}, () => {
   expect(table()).toBe(output);
   const rows: FitRow[] = JSON.parse(output);
   expect(rows.map((r) => r.id)).toEqual(

@@ -423,6 +423,7 @@ describe("render_preview.py --scene CLI", () => {
     expect(result.stderr).toContain(args[0]);
   });
 
+  // Three main runs peaked at 21.724 s, giving an 87 s timeout at 4x.
   it("checks only SUV images without writing or requiring other scenes", () => {
     expect(
       previewPython(`
@@ -448,7 +449,7 @@ with tempfile.TemporaryDirectory() as directory:
 print(json.dumps(True))
 `),
     ).toBe(true);
-  });
+  }, 87_000);
 
   it("partitions checked outputs and owned icons across all six CLI selections", () => {
     expect(

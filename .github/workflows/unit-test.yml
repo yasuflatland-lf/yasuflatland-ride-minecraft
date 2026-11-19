@@ -178,6 +178,8 @@ jobs:
     if: needs.model-plan.outputs.others == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      YASU_ATLAS_PACK_CACHE: "0"
     steps:
       - uses: actions/checkout@v7
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
@@ -193,6 +195,8 @@ jobs:
     name: model (${{ matrix.scene }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      YASU_ATLAS_PACK_CACHE: "0"
     strategy:
       fail-fast: false
       matrix:
