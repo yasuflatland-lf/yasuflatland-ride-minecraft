@@ -64,6 +64,7 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
           base: flow.base,
           kind: flow.heightedKind,
           height,
+          roofStyle: flow.roofStyle,
         },
         BUILD_SPEC.outlineMaxPoints,
       );

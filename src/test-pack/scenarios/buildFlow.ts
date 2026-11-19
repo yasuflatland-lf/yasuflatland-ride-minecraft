@@ -11,6 +11,11 @@ import {
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
 import type { CellBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
+import {
+  type RoofSpec,
+  roofCells,
+  roofSlopeAt,
+} from "../../domain/build/roof/roof";
 import type { Facing } from "../../domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { type Cell, cellKey } from "../../domain/shared/cells";
@@ -370,6 +375,101 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
       const undone = await f.edit("undo");
       checkSelection(undone, { min: f.cell(), max: end }, "roof Undo");
       check(unchanged(f, cells, before), "roof undo changed original cells");
+    }
+  });
+}
+
+export function buildStairRoofs(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const material = "minecraft:oak_stairs";
+    const directionByDescent = { east: 1, west: 0, south: 3, north: 2 };
+    const height = 3;
+    for (const [kind, fill, sx, sz, expected] of [
+      ["gable", "fill", 5, 7, 63],
+      ["gable", "hollow", 6, 7, 54],
+      ["hip", "hollow", 5, 5, 25],
+    ] as const) {
+      const label = `${kind} ${sx}x${sz} ${fill}`;
+      const cells = f.region(sx, 4, sz);
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+      const min = f.cell();
+      const end = f.cell(sx - 1, fill === "fill" ? 3 : 0, sz - 1);
+      const first = f.block(min);
+      first.setType(material);
+      first.setPermutation(
+        first.permutation
+          .withState("weirdo_direction", 3)
+          .withState("upside_down_bit", true),
+      );
+      await f.tap("block");
+      await f.tap("air", end);
+      checkSelection(await f.tap("fixHeight"), { min, max: end }, label);
+      first.setType("minecraft:oak_log");
+      first.setPermutation(first.permutation.withState("pillar_axis", "x"));
+      const before = snapshot(f, cells);
+
+      const step = (await f.menu("shape", kind)).flow;
+      check(
+        step.kind === "heightStep" &&
+          step.heightLocked === true &&
+          step.previous === height,
+        `${label}: expected locked height ${height}`,
+      );
+      check(
+        (await f.edit("height 1")).flow.previous === height,
+        `${label}: height changed`,
+      );
+      const result = await f.menu("contents", fill);
+      check(
+        result.offered === true &&
+          result.message === "editDoneCount" &&
+          result.count === expected,
+        `${label}: expected ${expected} reported placements, got ${result.count}`,
+      );
+      checkSelection(
+        result,
+        { min, max: f.cell(sx - 1, height - 1, sz - 1) },
+        label,
+      );
+      check(
+        f.count(cells, material) === expected,
+        `${label}: stair count differs from ${expected}`,
+      );
+
+      const spec: RoofSpec = {
+        base: { min, max: f.cell(sx - 1, 0, sz - 1) },
+        kind,
+        height,
+        style: "stair",
+      };
+      for (const cell of roofCells(spec, fill === "hollow")) {
+        const slope = roofSlopeAt(spec, cell);
+        const ridge = slope.kind === "ridge";
+        const direction = ridge ? 3 : directionByDescent[slope.descends];
+        const block = f.block(cell);
+        check(
+          block.typeId === material &&
+            block.permutation.getState("weirdo_direction") === direction &&
+            block.permutation.getState("upside_down_bit") === ridge,
+          `${label}: wrong stair permutation at ${cellKey(cell)}`,
+        );
+      }
+      if (fill === "hollow") {
+        for (let x = 1; x < sx - 1; x++) {
+          for (let z = 1; z < sz - 1; z++) {
+            check(
+              f.block(f.cell(x, 0, z)).typeId === "minecraft:air",
+              `${label}: bottom is closed at ${x},${z}`,
+            );
+          }
+        }
+      }
+      checkSelection(await f.edit("undo"), { min, max: end }, `${label} Undo`);
+      check(
+        unchanged(f, cells, before),
+        `${label}: Undo lost original block states`,
+      );
+      await f.tap("clear");
     }
   });
 }

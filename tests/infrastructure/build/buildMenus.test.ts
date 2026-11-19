@@ -784,6 +784,39 @@ it.each(["fill", "hollow", "cancel"] as const)(
   },
 );
 
+it.each(["gable", "hip"] as const)(
+  "opens locked stair %s contents under the roof title",
+  async (kind) => {
+    const { session, menus, player, cases } = setup(true);
+    const box = boxOf(from, to);
+    session.setFlow({
+      kind: "selected",
+      menuLevel: "root",
+      selection: selectionOf(
+        overworld,
+        box,
+        blockStateOf("minecraft:oak_stairs", {
+          weirdo_direction: 0,
+          upside_down_bit: false,
+        }),
+      ),
+      from,
+      to,
+    });
+    ui.answers.push(...shapeAnswers(session.flow, kind), { selection: 1 });
+    await menus.showShapeMenu(player);
+    expect(ui.forms).toHaveLength(3);
+    expect(ui.forms[2]?.heading).toEqual({ translate: BUILD_FORM.roofTitle });
+    expect(ui.forms[2]?.buttons).toEqual(labels(contentsMenu(session.flow)));
+    expect(ui.forms[2]?.sliders).toEqual([]);
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      fill: "hollow",
+    });
+  },
+);
+
 it.each([
   { kind: "cylinder", y: from.y, fallback: false },
   { kind: "cube", y: from.y, fallback: true },
