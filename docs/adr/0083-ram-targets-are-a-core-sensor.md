@@ -10,7 +10,7 @@
 
 ## Decision
 
-- `TickContext` no longer has `targets()`. `VehicleTickInput` declares `targets(): readonly RamTarget[]`, still lazy and still called only when the speed exceeds `SPEC.ramMinSpeed`
+- `TickContext` no longer has `targets()`. `VehicleTickInput` declares `targets(): readonly RamTarget[]`, still lazy and still called only when the speed is fast enough to ram (`ramsAt`, ADR 0006)
 - `Vehicle.tick` removes `riders`, `testInput`, and `targets` from its input before it calls `Drive.step`, and passes `targets` to the ram step itself
 - A kind that needs nearby entities for its own movement asks for a new, kind-specific sensor in a new ADR instead of reading the ram query
 - This replaces the part of 0055's Drive contract that lists `targets()` in `TickContext`; the rest of 0055 stands
