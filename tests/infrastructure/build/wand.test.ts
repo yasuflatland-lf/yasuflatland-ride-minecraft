@@ -3,7 +3,6 @@ import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
-import { FinishRotateMode } from "../../../src/application/build/finishRotateMode";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
@@ -14,7 +13,6 @@ import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -107,13 +105,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
         registerWand({
-          rotateModeTap: { execute: vi.fn() },
-          finishRotateMode: { execute: vi.fn() },
-          rotateDebounce: new PressDebounces<PlayerId>(
-            BUILD_SPEC.rotateDebounceTicks,
-          ),
           confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
-          confirmBoxStep: { execute: vi.fn() },
           aimHeight: new AimHeight(repo),
           repo,
           pressPasteAim: new PressPasteAim(
@@ -233,7 +225,6 @@ function setupAir() {
   const setPoint = new SetPoint(repo, blocks, feedback);
   const tapAir = new TapAir(repo, feedback);
   const aimHeight = new AimHeight(repo);
-  const confirmBoxStep = { execute: vi.fn() };
   const roofExecute = vi.spyOn(aimHeight, "execute");
   const pointExecute = vi.spyOn(setPoint, "execute");
   const execute = vi.spyOn(tapAir, "execute");
@@ -286,16 +277,7 @@ function setupAir() {
     feedback,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
   );
-  const rotateModeTap = { execute: vi.fn() };
-  const finishRotateMode = new FinishRotateMode(repo);
-  const finishExecute = vi.spyOn(finishRotateMode, "execute");
   registerWand({
-    rotateModeTap,
-    finishRotateMode,
-    rotateDebounce: new PressDebounces<PlayerId>(
-      BUILD_SPEC.rotateDebounceTicks,
-    ),
-    confirmBoxStep,
     confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
     aimHeight,
     repo,
@@ -315,8 +297,6 @@ function setupAir() {
       itemStack: { typeId: SELECTION_WAND_TYPE },
     });
   return {
-    rotateModeTap,
-    finishExecute,
     repo,
     session,
     id,
@@ -327,7 +307,6 @@ function setupAir() {
     aim,
     debounce,
     pasteDebounce: new PressDebounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
-    confirmBoxStep,
     roofExecute,
     pointExecute,
     paste,
@@ -689,41 +668,6 @@ it.each([
   },
 );
 
-it.each(["block", "air"])(
-  "confirms Rotate after aiming from a %s tap without contents",
-  (tap) => {
-    const e = setupRoof("gable");
-    if (e.flow.kind !== "heightStep") throw new Error("Expected height step");
-    e.session.setFlow({ ...e.flow, heightedKind: "rotate" });
-    e.confirmBoxStep.execute.mockImplementation(() => {
-      expect(e.session.flow).toMatchObject({
-        heightedKind: "rotate",
-        previous: 6,
-      });
-    });
-    if (tap === "air") e.use();
-    else {
-      engine.handlers.get("interact")?.({
-        player: e.player,
-        block: {
-          dimension: { id: "minecraft:nether" },
-          location: { x: 0, y: 0, z: 0 },
-        },
-        isFirstEvent: true,
-        cancel: false,
-      });
-      for (const callback of engine.scheduled.splice(0)) callback();
-    }
-    expect(e.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-      playerId: e.id,
-    });
-    expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
-      e.confirmBoxStep.execute.mock.invocationCallOrder[0] as number,
-    );
-    expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
-  },
-);
-
 it("opens the paste menu even when the aim reader returns undefined", () => {
   const e = setupAir();
   holdClipboard(
@@ -770,116 +714,6 @@ it("accepts a commit immediately after the menu and suppresses a second commit a
   engine.tick += BUILD_SPEC.pasteRepeatTicks;
   e.use();
   expect(paste).toHaveBeenCalledTimes(2);
-});
-
-function setupRotate() {
-  const e = setupAir();
-  const cell = { x: 0, y: 60, z: 0 };
-  e.session.setFlow(
-    beginRotateMode(
-      selectionOf(
-        nether,
-        boxOf(cell, { ...cell, x: 2, z: 4 }),
-        blockStateOf("minecraft:stone"),
-      ),
-      1,
-    ),
-  );
-  return e;
-}
-
-it.each(["air", "block", "missing"])(
-  "routes one rotate tap with %s aim and cancels duplicate interactions",
-  (target) => {
-    const e = setupRotate();
-    if (target === "missing") e.aim.aim = () => undefined;
-    if (target === "block")
-      e.aim.aim = () => ({
-        ray: { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-        block: { cell: { x: 1, y: 0, z: 0 }, face: "up" },
-      });
-    const event = {
-      player: e.player,
-      block: {
-        dimension: { id: "minecraft:nether" },
-        location: { x: 0, y: 0, z: 0 },
-      },
-      isFirstEvent: true,
-      cancel: false,
-    };
-    engine.handlers.get("interact")?.(event);
-    expect(event.cancel).toBe(true);
-    expect(engine.scheduled).toHaveLength(0);
-    expect(e.rotateModeTap.execute).not.toHaveBeenCalled();
-    e.use();
-    expect(e.rotateModeTap.execute).toHaveBeenCalledExactlyOnceWith({
-      playerId: e.id,
-      dimensionId: nether,
-    });
-    expect(e.pointExecute).not.toHaveBeenCalled();
-    expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
-  },
-);
-
-it("rechecks rotate mode before a deferred block interaction", () => {
-  const e = setupAir();
-  engine.handlers.get("interact")?.({
-    player: e.player,
-    block: {
-      dimension: { id: "minecraft:nether" },
-      location: { x: 0, y: 0, z: 0 },
-    },
-    isFirstEvent: true,
-  });
-  e.session.setFlow(
-    beginRotateMode(
-      selectionOf(
-        nether,
-        boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 2 }),
-        blockStateOf("minecraft:stone"),
-      ),
-      1,
-    ),
-  );
-  for (const callback of engine.scheduled.splice(0)) callback();
-  expect(e.pointExecute).not.toHaveBeenCalled();
-  expect(e.rotateModeTap.execute).not.toHaveBeenCalled();
-});
-
-it.each([7, 8, 9])("accepts separate rotate taps %s ticks apart", (gap) => {
-  const e = setupRotate();
-  for (const tick of [0, gap, gap * 2]) {
-    engine.tick = tick;
-    e.use();
-  }
-  expect(e.rotateModeTap.execute).toHaveBeenCalledTimes(3);
-});
-
-it.each([4, 5, 6])("suppresses held rotate repeats every %s ticks", (gap) => {
-  const e = setupRotate();
-  for (let tick = 0; tick < 40; tick += gap) {
-    engine.tick = tick;
-    e.use();
-  }
-  expect(e.rotateModeTap.execute).toHaveBeenCalledTimes(1);
-});
-
-it("finishes on sneak and suppresses held repeats from opening utilities", () => {
-  const e = setupRotate();
-  e.player.isSneaking = true;
-  e.aim.aim = () => undefined;
-  e.use();
-  expect(e.finishExecute).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
-  expect(e.session.flow.kind).toBe("selected");
-  e.aim.aim = () => ({
-    ray: { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-  });
-  for (const tick of [4, 9, 15, 20]) {
-    engine.tick = tick;
-    e.use();
-  }
-  expect(e.rotateModeTap.execute).not.toHaveBeenCalled();
-  expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
 });
 
 it.each(["air", "block"] as const)(

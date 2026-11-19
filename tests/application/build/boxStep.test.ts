@@ -1,12 +1,9 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
-import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
-import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
 import { CutBox } from "../../../src/application/build/cutBox";
-import { EditJobs } from "../../../src/application/build/editJobs";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
 import {
@@ -24,7 +21,6 @@ import {
 } from "../../support/buildClipboard";
 import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
-  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -48,7 +44,6 @@ function setup() {
   const feedback = new FakeFeedback();
   const session = repo.getOrCreate(playerId);
   const actions = {
-    rotate: { execute: vi.fn(() => true) },
     copy: new CopyBox(repo, new FakeStructureStore(), feedback),
     cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
       warn: () => {},
@@ -60,9 +55,6 @@ function setup() {
     feedback,
     session,
     choose: new ChooseBoxStep(repo, actions, feedback, {
-      facingOf: () => "east",
-    }),
-    confirm: new ConfirmBoxStep(repo, actions, feedback, {
       facingOf: () => "east",
     }),
   };
@@ -148,61 +140,27 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
   );
 });
 
-it("refuses the wrong copy stage and refuses Rotate in the placement confirm", () => {
+it("refuses Copy when the selection is not confirmed", () => {
   fc.assert(
     fc.property(cell, (from) => {
       const e = setup();
-      const horizontal = endpoint(from, {
-        x: from.x + 1,
-        y: from.y,
-        z: from.z + 1,
-      });
-      const rotate = chooseHeighted(horizontal, "rotate");
-      const roof = chooseHeighted(horizontal, "gable");
+      const to = { x: from.x + 1, y: from.y, z: from.z + 1 };
       const point = tapBlock({ kind: "idle" }, overworld, from, stone);
+      const baseHeight = tapAir(point, to);
+      const roof = chooseHeighted(endpoint(from, to), "gable");
       for (const flow of [
         { kind: "idle" },
         point,
-        horizontal,
-        rotate,
+        baseHeight,
         roof,
         { kind: "pasteAim", manualTurn: 0 },
       ] as BuildFlow[]) {
-        for (const useCase of [e.choose, e.confirm]) {
-          if (
-            useCase === e.choose
-              ? flow.kind === "selected"
-              : flow.kind === "heightStep" && flow.heightedKind === "rotate"
-          )
-            continue;
-          e.session.setFlow(flow);
-          useCase.execute({ playerId, kind: "copy" });
-          expect(e.feedback.messages.at(-1)?.message).toBe("noSelection");
-          expect(e.session.flow).toBe(flow);
-          expect(e.session.clipboard).toBeUndefined();
-        }
+        e.session.setFlow(flow);
+        e.choose.execute({ playerId, kind: "copy" });
+        expect(e.feedback.messages.at(-1)?.message).toBe("noSelection");
+        expect(e.session.flow).toBe(flow);
+        expect(e.session.clipboard).toBeUndefined();
       }
-      e.session.setFlow(rotate);
-      const jobs = new EditJobs(
-        e.repo,
-        e.world,
-        e.feedback,
-        {
-          warn: () => {},
-        },
-        new FakeBuildPlayers(),
-        { discard: () => {} },
-      );
-      const start = vi.spyOn(jobs, "start");
-      const begin = vi.spyOn(e.session, "beginEdit");
-      new ConfirmHeighted(e.repo, e.feedback, jobs).execute({
-        playerId,
-        fill: "fill",
-      });
-      expect(e.feedback.messages.at(-1)?.message).toBe("noSelection");
-      expect(e.session.flow).toBe(rotate);
-      expect(start).not.toHaveBeenCalled();
-      expect(begin).not.toHaveBeenCalled();
     }),
   );
 });
@@ -217,7 +175,6 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         { kind: "idle" },
         tapBlock({ kind: "idle" }, overworld, from, stone),
         selected,
-        chooseHeighted(selected, "rotate"),
         chooseHeighted(selected, "hip"),
         {
           kind: "pasteAim",

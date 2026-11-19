@@ -12,4 +12,4 @@ export interface BoxAction {
   execute(cmd: BoxActionCommand): boolean;
 }
 
-export type BoxActions = Readonly<Record<"copy" | "cut" | "rotate", BoxAction>>;
+export type BoxActions = Readonly<Record<"copy" | "cut", BoxAction>>;

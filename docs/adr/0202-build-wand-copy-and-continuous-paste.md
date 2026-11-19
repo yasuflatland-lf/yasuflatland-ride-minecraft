@@ -13,7 +13,7 @@ The Build Wand already copies and pastes (0198), but it is unclear whether a sel
 
 Copy:
 
-1. Copy is an entry of the root shape menu opened by the wand after the selection is fixed (ADR 0253), after Rotate and before Fill below, for every shape (line, rectangle of any flat axis, box). The root order is Cut, Remove above, Build shape (Place for a line), Rotate box, Copy, Fill below, Cancel. Building styles and shape extras are in the Build shape submenu, followed by Back to the same root selection.
+1. Copy is an entry of the root shape menu opened by the wand after the selection is fixed (ADR 0253), before Fill below, for every shape (line, rectangle of any flat axis, box). The root order is Cut, Remove above, Build shape (Place for a line), Copy, Fill below, Cancel. Building styles and shape extras are in the Build shape submenu, followed by Back to the same root selection.
 2. Choosing Copy captures the inclusive selected box immediately for every shape. A horizontal rectangle copies one layer. The recorded facing is the player's cardinal facing at menu choice time.
 3. Utility-menu Copy captures the confirmed box in its recorded dimension through the same copy operation.
 4. If the box volume exceeds `BUILD_SPEC.maxCopyVolume` (32,768), show the existing "too large" message and preserve the selection and previous clipboard.

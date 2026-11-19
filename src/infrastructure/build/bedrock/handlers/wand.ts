@@ -1,18 +1,14 @@
 import { system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
-import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
 import type { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
-import type { FinishRotateMode } from "../../../../application/build/finishRotateMode";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
-import type { RotateModeTap } from "../../../../application/build/rotateModeTap";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
 import type { BuildFlow } from "../../../../domain/build/flow/flow";
 import { routePress } from "../../../../domain/build/flow/press";
 import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import { isBoxStepKind } from "../../../../domain/build/volume/kind";
 import type { Cell } from "../../../../domain/shared/cells";
 import {
   asDimensionId,
@@ -28,33 +24,25 @@ export function registerWand({
   setPoint,
   tapAir,
   pressPasteAim,
-  rotateModeTap,
-  finishRotateMode,
   aimHeight,
-  confirmBoxStep,
   confirmLiveHeight,
   repo,
   menus,
   aim,
   debounce,
   pasteDebounce,
-  rotateDebounce,
   pointOf,
 }: {
   setPoint: SetPoint;
   tapAir: TapAir;
   pressPasteAim: PressPasteAim;
-  rotateModeTap: Pick<RotateModeTap, "execute">;
-  finishRotateMode: Pick<FinishRotateMode, "execute">;
   aimHeight: AimHeight;
   confirmLiveHeight: ConfirmLiveHeight;
-  confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
   debounce: PressDebounces<PlayerId>;
   pasteDebounce: PressDebounces<PlayerId>;
-  rotateDebounce: PressDebounces<PlayerId>;
   pointOf(playerId: PlayerId): Cell | undefined;
 }): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
@@ -100,9 +88,7 @@ export function registerWand({
           const target = aim.aim(command.playerId);
           if (!target) return;
           aimHeight.execute({ playerId: command.playerId, ray: target.ray });
-          if (isBoxStepKind(flow.heightedKind))
-            confirmBoxStep.execute({ playerId: command.playerId });
-          else void menus.showContentsMenu(player);
+          void menus.showContentsMenu(player);
           break;
         }
         case "selectPoint":
@@ -121,13 +107,7 @@ export function registerWand({
     const flow = repo.get(playerId)?.flow;
     const tick = system.currentTick;
     const presses =
-      flow?.kind === "rotateMode"
-        ? rotateDebounce
-        : source.isSneaking && flow?.kind === "pasteAim"
-          ? pasteDebounce
-          : debounce;
-    // A held finish press must not open utilities after returning to the selection.
-    if (flow?.kind === "rotateMode") debounce.press(playerId, tick);
+      source.isSneaking && flow?.kind === "pasteAim" ? pasteDebounce : debounce;
     if (!presses.press(playerId, tick)) return;
     dispatchWandPress({
       source,
@@ -135,11 +115,8 @@ export function registerWand({
       aim,
       repo,
       pressPasteAim,
-      rotateModeTap,
-      finishRotateMode,
       aimHeight,
       confirmLiveHeight,
-      confirmBoxStep,
       menus,
       pointOf,
       tapAir,

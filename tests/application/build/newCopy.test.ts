@@ -44,7 +44,6 @@ function setup(from: { x: number; y: number; z: number }) {
   const chooseBoxStep = new ChooseBoxStep(
     repo,
     {
-      rotate: { execute: () => false },
       copy: new CopyBox(repo, new FakeStructureStore(), feedback),
       cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
         warn: () => {},
@@ -126,7 +125,7 @@ it("acts only in paste aiming and never creates a missing session", () => {
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "rotate"),
+        chooseHeighted(endpoint, "hip"),
       ]) {
         e.session.setFlow(flow);
         const confirmed = e.session.confirmedBox;

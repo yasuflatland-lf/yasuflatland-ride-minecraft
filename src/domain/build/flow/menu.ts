@@ -4,16 +4,10 @@ import {
   type FillStyle,
   fillStylesFor,
   type HeightedKind,
-  isBoxStepKind,
 } from "../volume/kind";
 import type { BuildFlow } from "./flow";
 
-export type EditEntryId =
-  | "cut"
-  | "removeAbove"
-  | "rotate"
-  | "fillBelow"
-  | "copy";
+export type EditEntryId = "cut" | "removeAbove" | "fillBelow" | "copy";
 export type BuildEntryId =
   | "place"
   | "fill"
@@ -54,7 +48,6 @@ export function editEntries(): MenuEntry<EditEntryId>[] {
   return [
     { id: "cut" },
     { id: "removeAbove" },
-    { id: "rotate" },
     { id: "fillBelow" },
     { id: "copy" },
   ];
@@ -95,7 +88,6 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
           ? "place"
           : "buildShape",
     },
-    { id: "rotate" },
     { id: "copy" },
     { id: "fillBelow" },
     { id: "cancel" },
@@ -122,7 +114,6 @@ export function isShapeEntryOffered(
 export function utilityMenu(
   session: BuildSession,
 ): MenuEntry<UtilityEntryId>[] {
-  if (session.flow.kind === "rotateMode") return [];
   const entries: MenuEntry<UtilityEntryId>[] = [];
   if (session.confirmedBox) entries.push({ id: "copy" });
   if (session.hasHistory) entries.push({ id: "undo" });
@@ -132,7 +123,7 @@ export function utilityMenu(
 }
 
 export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
-  return flow.kind === "heightStep" && !isBoxStepKind(flow.heightedKind)
+  return flow.kind === "heightStep"
     ? [
         ...fillStylesFor(flow.heightedKind).map((id) => ({ id })),
         { id: "cancel" },

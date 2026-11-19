@@ -13,7 +13,7 @@ Undo restores an earlier wand edit, but cannot empty an arbitrary selected range
 
 ## Decision
 
-1. Offer Cut on every root shape menu, ordered as Adjust height (except for a line), Cut, Remove above, Build shape (Place for a line), Rotate box, Copy, Fill below, Cancel. Build shape opens the applicable styles and shape extras, followed by Back to the unchanged root selection. Cut is absent from the build submenu and utility menu.
+1. Offer Cut on every root shape menu, ordered as Adjust height (except for a line), Cut, Remove above, Build shape (Place for a line), Copy, Fill below, Cancel. Build shape opens the applicable styles and shape extras, followed by Back to the unchanged root selection. Cut is absent from the build submenu and utility menu.
 2. Choosing Cut acts immediately on the entire selected box, including a one-layer horizontal rectangle. The clipboard records the player's cardinal facing at choice time.
 3. Cut works in two steps. It captures the inclusive box as a structure clipboard and takes a separate undo snapshot before clearing blocks and eligible entities (0243). Fluids outside the box may flow back afterward.
 4. A successful Cut replaces the clipboard and enters paste aiming, ending the active selection (0253). The clipboard contains the source as it was before clearing and can be pasted elsewhere at once.

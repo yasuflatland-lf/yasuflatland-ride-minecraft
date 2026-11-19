@@ -6,7 +6,6 @@ import {
   chooseHeighted,
   chooseTerrain,
   confirmLiveHeight,
-  enterRotateMode,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -38,7 +37,6 @@ const flows = {
   heightStep: chooseHeighted(selected, "gable"),
   terrainConfirm: chooseTerrain(selected, "removeAbove"),
   pasteAim: beginPasteAim(),
-  rotateMode: enterRotateMode(selected),
 } satisfies Record<BuildFlow["kind"], BuildFlow>;
 
 type Kind = PressIntent["kind"];
@@ -75,13 +73,6 @@ const wandTable = {
     "ignore",
   ],
   pasteAim: ["ignore", "pasteAim", "pasteAim", "pasteAim", "pasteAim"],
-  rotateMode: [
-    "ignore",
-    "rotateTap",
-    "finishRotate",
-    "rotateTap",
-    "finishRotate",
-  ],
 } satisfies Record<BuildFlow["kind"], [Kind, Kind, Kind, Kind, Kind]>;
 const routes: PressRoute[] = ["itemUse", "blockInteract"];
 const targets: PressTarget[] = ["air", "block", "none"];

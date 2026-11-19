@@ -23,10 +23,6 @@ import {
   terrainSides,
 } from "../../../domain/build/terrain/area";
 import { volumeOf } from "../../../domain/build/volume/geometry";
-import {
-  type HeightStepKind,
-  isBoxStepKind,
-} from "../../../domain/build/volume/kind";
 import { asPlayerId } from "../../../domain/shared/ids";
 import { chooseFromForm, chooseFromFormResult } from "../../shared/choiceForm";
 import { createExclusiveGuard } from "../../shared/exclusiveForm";
@@ -44,16 +40,7 @@ function menuLabel(
     | PasteEntryId
   >,
 ): string {
-  return BUILD_FORM[entry.id === "rotate" ? "rotateBox" : entry.id];
-}
-
-function heightSliderTitle(kind: HeightStepKind): string {
-  switch (kind) {
-    case "rotate":
-      return BUILD_FORM.rotateTitle;
-    default:
-      return isRoofKind(kind) ? BUILD_FORM.roofTitle : BUILD_FORM.solidTitle;
-  }
+  return BUILD_FORM[entry.id];
 }
 
 export interface BuildMenus {
@@ -127,10 +114,7 @@ export class BedrockBuildMenus implements BuildMenus {
       const next = this.repo.get(playerId)?.flow;
       if (next?.kind === "terrainConfirm") await this.terrainConfirm(player);
       if (next?.kind === "heightStep") {
-        if (isBoxStepKind(next.heightedKind)) {
-          if (!next.heightLocked && this.heightSliderFallback)
-            await this.heightSlider(player);
-        } else if (next.heightLocked) await this.contents(player);
+        if (next.heightLocked) await this.contents(player);
         else if (this.heightSliderFallback) await this.heightSlider(player);
       }
       return;
@@ -185,11 +169,7 @@ export class BedrockBuildMenus implements BuildMenus {
   private async contents(player: Player): Promise<void> {
     const playerId = asPlayerId(player.id);
     const session = this.repo.get(playerId);
-    if (
-      session?.flow.kind !== "heightStep" ||
-      isBoxStepKind(session.flow.heightedKind)
-    )
-      return;
+    if (session?.flow.kind !== "heightStep") return;
     const id = await chooseFromForm(
       player,
       isRoofKind(session.flow.heightedKind)
@@ -251,13 +231,15 @@ export class BedrockBuildMenus implements BuildMenus {
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "heightStep") return;
     if (flow.heightLocked) {
-      if (!isBoxStepKind(flow.heightedKind)) await this.contents(player);
+      await this.contents(player);
       return;
     }
     // A modal cannot update the preview while the player adjusts its slider.
     const answer = await new ModalFormData()
       .title({
-        translate: heightSliderTitle(flow.heightedKind),
+        translate: isRoofKind(flow.heightedKind)
+          ? BUILD_FORM.roofTitle
+          : BUILD_FORM.solidTitle,
       })
       .slider(
         { translate: BUILD_FORM.height },
@@ -276,8 +258,6 @@ export class BedrockBuildMenus implements BuildMenus {
     const height = answer.formValues?.[0];
     if (typeof height !== "number") return;
     this.cases.setHeight.execute({ playerId, height });
-    if (isBoxStepKind(flow.heightedKind))
-      this.cases.confirmBoxStep.execute({ playerId });
-    else await this.contents(player);
+    await this.contents(player);
   }
 }

@@ -181,13 +181,3 @@ it.each([0, 90, 180, 270] as const)(
     ).toMatchObject({ pasteReadyDegrees: degrees });
   },
 );
-
-it("omits paste-ready degrees when the latest mode is rotation", () => {
-  const e = setup();
-  e.messages.lastMode.mockReturnValue({ kind: "rotate", degrees: 90 });
-  e.send("player itemUse");
-  e.advance(2);
-  expect(
-    JSON.parse(vi.mocked(system.sendScriptEvent).mock.calls[0]?.[1] ?? "{}"),
-  ).not.toHaveProperty("pasteReadyDegrees");
-});

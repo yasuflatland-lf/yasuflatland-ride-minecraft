@@ -32,7 +32,6 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const cut = new CutBox(repo, world, structures, feedback, log);
   const actions = {
-    rotate: { execute: () => false },
     copy: new CopyBox(repo, new FakeStructureStore(), feedback),
     cut,
   };

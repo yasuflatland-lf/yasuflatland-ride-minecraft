@@ -44,11 +44,6 @@ export class ShowPreview {
     if (session.flow.kind === "baseHeight" && aim)
       this.aimHeight.execute({ playerId: id, ray: aim.ray });
     const { flow } = session;
-    if (flow.kind === "rotateMode")
-      this.feedback.showMode(id, {
-        kind: "rotate",
-        degrees: degreesOf(flow.turn),
-      });
     const preview: PreviewAim = { blink };
     if (flow.kind === "point1" && aim)
       preview.end = aim.block?.cell ?? virtualEndPoint(flow.cell, aim.ray);

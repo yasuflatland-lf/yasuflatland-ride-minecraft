@@ -256,7 +256,7 @@ it("resets manual rotation on a fresh copy and discards it on paste exits", () =
           { kind: "idle" } as const,
           first,
           endpoint,
-          chooseHeighted(endpoint, "rotate"),
+          chooseHeighted(endpoint, "hip"),
         ]) {
           session.setFlow(flow);
           expect(session.rotatePaste()).toBe(false);

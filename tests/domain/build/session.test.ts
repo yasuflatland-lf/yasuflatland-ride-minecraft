@@ -4,7 +4,6 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
 import type { BuildFlow } from "../../../src/domain/build/flow/flow";
-import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -295,7 +294,6 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
     base: boxArb,
     from: cellArb,
     heightedKind: fc.constantFrom(
-      "rotate" as const,
       "cube" as const,
       "cylinder" as const,
       "sphere" as const,
@@ -607,13 +605,21 @@ it("advances rotation selections and only updates confirmed boxes in the same di
           ? dim
           : asDimensionId("nether");
         session.confirmBox(selectionOf(confirmedDimension, box, stone));
-        session.setFlow(beginRotateMode(selectionOf(dim, box, stone), 1));
+        session.setFlow({
+          kind: "selected",
+          menuLevel: "root",
+          selection: selectionOf(dim, box, stone),
+          from: box.min,
+          to: box.max,
+        });
         const target = planRotationAboutCenter(box).target;
         session.replaceSelection(selectionOf(dim, target, stone));
         expect(session.flow).toEqual({
-          kind: "rotateMode",
+          kind: "selected",
+          menuLevel: "root",
+          from: target.min,
+          to: target.max,
           selection: selectionOf(dim, target, stone),
-          turn: 2,
         });
         expect(session.confirmedBox).toEqual({
           material: stone,
@@ -626,14 +632,20 @@ it("advances rotation selections and only updates confirmed boxes in the same di
 });
 
 it.each(["endPasting", "leaveBuildMode", "clearSelection"] as const)(
-  "%s exits rotation while retaining history",
+  "%s clears the selection while retaining history",
   (exit) => {
     fc.assert(
       fc.property(recordArb, (record) => {
         const session = new BuildSession(asPlayerId("alex"));
         const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 2, z: 1 });
         session.confirmBox(selectionOf(dim, box, stone));
-        session.setFlow(beginRotateMode(selectionOf(dim, box, stone), 1));
+        session.setFlow({
+          kind: "selected",
+          menuLevel: "root",
+          selection: selectionOf(dim, box, stone),
+          from: box.min,
+          to: box.max,
+        });
         session.finishEdit(record, "undoable");
         session[exit]();
         expect(session.flow).toEqual({ kind: "idle" });

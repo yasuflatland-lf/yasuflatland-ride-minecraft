@@ -30,8 +30,7 @@ export class RotateBox {
     const session = this.repo.get(playerId);
     if (!session) return "ignored";
     const flow = session.flow;
-    if (flow.kind !== "selected" && flow.kind !== "rotateMode")
-      return "ignored";
+    if (flow.kind !== "selected") return "ignored";
     const { selection } = flow;
     if (!inDimension(selection, dimensionId)) return "ignored";
     const selectedBox = selection.box;

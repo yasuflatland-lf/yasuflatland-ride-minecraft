@@ -151,9 +151,8 @@ function snapshotHook() {
   registerTestEdit(
     {} as Args[0],
     {} as Args[1],
-    {} as Args[2],
-    { execute } as unknown as Args[3],
-    {} as Args[4],
+    { execute } as unknown as Args[2],
+    {} as Args[3],
     new DescribeBuild(repo),
     messages,
     repo,
@@ -341,15 +340,14 @@ it("records and forwards the last mode independently per player and clears it on
         degrees,
       };
       expect(messages.lastMode(player)).toBeUndefined();
-      messages.feedback.showMode(player, { kind: "rotate", degrees: 0 });
-      messages.feedback.showMode(other, { kind: "rotate", degrees: 90 });
+      messages.feedback.showMode(other, { ...mode, degrees: 90 });
       messages.feedback.showMode(player, mode);
       expect(feedback.showMode).toHaveBeenLastCalledWith(player, mode);
       expect(messages.lastMode(player)).toEqual(mode);
-      expect(messages.lastMode(other)).toEqual({ kind: "rotate", degrees: 90 });
+      expect(messages.lastMode(other)).toEqual({ ...mode, degrees: 90 });
       messages.forget(player);
       expect(messages.lastMode(player)).toBeUndefined();
-      expect(messages.lastMode(other)).toEqual({ kind: "rotate", degrees: 90 });
+      expect(messages.lastMode(other)).toEqual({ ...mode, degrees: 90 });
     }),
   );
 });

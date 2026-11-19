@@ -24,10 +24,7 @@ export class DescribeBuild {
         session?.flow.kind === "selected" ? session.flow.menuLevel : undefined,
       clipboardHeld: session?.clipboard !== undefined,
       pasteTurn: session?.pasteTurn ?? NO_TURN,
-      pasteMenu:
-        session?.flow.kind === "rotateMode"
-          ? []
-          : pasteMenu().map((entry) => entry.id),
+      pasteMenu: pasteMenu().map((entry) => entry.id),
     };
   }
 

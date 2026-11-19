@@ -7,11 +7,7 @@ export type SolidKind =
   | "sideCylinderZ"
   | "sphere";
 export type HeightedKind = RoofKind | SolidKind;
-export type HeightStepKind = HeightedKind | "rotate";
-
-export function isBoxStepKind(kind: HeightStepKind): kind is "rotate" {
-  return kind === "rotate";
-}
+export type HeightStepKind = HeightedKind;
 
 export type FillStyle = "fill" | "hollow" | "tube";
 
@@ -42,5 +38,5 @@ export function fillStylesFor(kind: HeightedKind): readonly FillStyle[] {
 }
 
 export function locksBoxHeight(kind: HeightStepKind): boolean {
-  return !isBoxStepKind(kind) && HEIGHTED_TRAITS[kind].locksBoxHeight;
+  return HEIGHTED_TRAITS[kind].locksBoxHeight;
 }

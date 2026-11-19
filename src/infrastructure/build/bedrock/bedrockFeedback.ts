@@ -88,19 +88,16 @@ export class BedrockFeedback implements BuildFeedback {
   showMode(playerId: PlayerId, mode: BuildMode): void {
     const player = playerById(playerId);
     if (!player?.isValid) return;
-    const line =
-      mode.kind === "pasteReady"
-        ? {
-            translate: BUILD_MESSAGE.pasteReady,
-            with: [
-              String(mode.size.x),
-              String(mode.size.y),
-              String(mode.size.z),
-              String(mode.blockCount),
-              String(mode.degrees),
-            ],
-          }
-        : { translate: BUILD_MESSAGE.rotateMode, with: [String(mode.degrees)] };
+    const line = {
+      translate: BUILD_MESSAGE.pasteReady,
+      with: [
+        String(mode.size.x),
+        String(mode.size.y),
+        String(mode.size.z),
+        String(mode.blockCount),
+        String(mode.degrees),
+      ],
+    };
     player.onScreenDisplay.setActionBar(
       player.isSneaking
         ? {
@@ -129,8 +126,6 @@ export class BedrockFeedback implements BuildFeedback {
       roof: "minecraft:villager_happy",
       paste: "minecraft:blue_flame_particle",
       pasteVertical: "minecraft:basic_flame_particle",
-      boxStep: "minecraft:balloon_gas_particle",
-      boxStepOver: "minecraft:redstone_wire_dust_particle",
     };
     for (const key of Object.keys(styles) as (keyof PreviewSet)[]) {
       if (!this.spawnAll(player, styles[key], set[key])) return;

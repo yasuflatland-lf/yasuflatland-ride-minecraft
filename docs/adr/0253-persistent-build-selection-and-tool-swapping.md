@@ -10,7 +10,7 @@
 
 ## Context
 
-Fixing the second point currently opens the shape menu, and rotating a box requires choosing Rotate box and entering a mode that must be finished before another tool can be used. A player who wants to build and repeatedly turn a selection needs to navigate the menu and manage that mode. The selection should instead remain available while the player switches between build tools, on both PC and touch devices.
+The original wand opened the shape menu when the player fixed the second point. To rotate a box, the player chose a menu entry and entered a mode that had to be finished before switching tools. The selection should instead remain available while the player switches between build tools, on both PC and touch devices.
 
 The approved persistent selection design describes the intended interaction and the delivery series. The current implementation and build tools specification remain authoritative until the corresponding behavior changes are delivered.
 

@@ -26,7 +26,6 @@ it("captures the selected layers and choice facing immediately for Copy and Cut"
           cut: new CutBox(repo, new FakeWorld(), structures, feedback, {
             warn: () => {},
           }),
-          rotate: { execute: () => true },
         };
         const playerId = asPlayerId("builder");
         const session = repo.getOrCreate(playerId);

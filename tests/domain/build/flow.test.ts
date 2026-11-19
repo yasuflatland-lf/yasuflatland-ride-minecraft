@@ -11,8 +11,6 @@ import {
   chooseHeighted,
   chooseTerrain,
   closeBuildMenu,
-  enterRotateMode,
-  finishRotateMode,
   openBuildMenu,
   opensUtilityMenu,
   selectionBoxOf,
@@ -150,7 +148,6 @@ it("offers the ordered root and build menus for every shape and returns unchange
           "cut",
           "removeAbove",
           shape.kind === "line" ? "place" : "buildShape",
-          "rotate",
           "copy",
           "fillBelow",
           "cancel",
@@ -196,9 +193,6 @@ it("offers the ordered root and build menus for every shape and returns unchange
         chooseTerrain(
           confirmEndpointHeight(tapAir(tapBlock(idle, dim, from, stone), from)),
           "removeAbove",
-        ),
-        enterRotateMode(
-          confirmEndpointHeight(tapAir(tapBlock(idle, dim, from, stone), from)),
         ),
       ]) {
         expect(openBuildMenu(flow)).toBe(flow);
@@ -611,58 +605,6 @@ it("offers Cut then Remove above first for every shape and the confirmation only
         "confirm",
         "cancel",
       ]);
-    }),
-  );
-});
-
-it("enters rotation only from endpoints and keeps ordinary gestures and menus inactive", () => {
-  fc.assert(
-    fc.property(cell, cell, fc.boolean(), (a, b, sneaking) => {
-      const endpoint = confirmEndpointHeight(
-        tapAir(tapBlock(idle, dim, a, stone), b),
-      );
-      const mode = enterRotateMode(endpoint);
-      const box = boxOf(a, b);
-      expect(mode).toEqual({
-        kind: "rotateMode",
-        selection: selectionOf(dim, box, stone),
-        turn: 1,
-      });
-      expect(selectionBoxOf(mode)).toEqual(box);
-      expect(finishRotateMode(mode)).toEqual({
-        kind: "selected",
-        menuLevel: "root",
-        selection: selectionOf(dim, box, stone),
-        from: box.min,
-        to: box.max,
-      });
-      for (const flow of [
-        idle,
-        tapBlock(idle, dim, a, stone),
-        chooseHeighted(endpoint, "rotate"),
-        chooseTerrain(endpoint, "fillBelow"),
-        beginPasteAim(),
-        mode,
-      ]) {
-        if (flow.kind !== "selected") expect(enterRotateMode(flow)).toBe(flow);
-        if (flow.kind !== "rotateMode")
-          expect(finishRotateMode(flow)).toBe(flow);
-      }
-      expect(tapBlock(mode, other, a, dirt)).toBe(mode);
-      expect(tapAir(mode, b)).toBe(mode);
-      expect(backToAiming(mode)).toBe(mode);
-      expect(chooseHeighted(mode, "rotate")).toBe(mode);
-      expect(chooseTerrain(mode, "fillBelow")).toBe(mode);
-      expect(setHeight(mode, 5)).toBe(mode);
-      expect(cancel(mode)).toEqual(idle);
-      expect(opensUtilityMenu(mode, sneaking)).toBe(false);
-      expect(airPressOffersUndo(mode)).toBe(false);
-      expect(shapeMenu(mode)).toEqual([]);
-      expect(contentsMenu(mode)).toEqual([]);
-      expect(terrainMenu(mode)).toEqual([]);
-      const session = new BuildSession(asPlayerId("alex"));
-      session.setFlow(mode);
-      expect(utilityMenu(session)).toEqual([]);
     }),
   );
 });

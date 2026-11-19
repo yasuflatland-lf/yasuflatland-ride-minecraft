@@ -1,21 +1,14 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import {
-  boxOf,
-  boxWithHeight,
-  type CellBox,
-  volume,
-} from "../../../src/domain/build/box";
+import { boxOf, type CellBox } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import {
   type BuildFlow,
   chooseHeighted,
 } from "../../../src/domain/build/flow/flow";
-import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
-import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
@@ -308,103 +301,5 @@ it("draws a locked cylinder at the box height even when another height is aimed"
         ).toEqual(expected);
       },
     ),
-  );
-});
-
-it("measures the rotate limit on the union of the old and new boxes", () => {
-  const base = boxOf({ x: 0, y: 0, z: 0 }, { x: 39, y: 0, z: 1 });
-  const at = (height: number) =>
-    previewPoints(
-      {
-        kind: "heightStep",
-        heightedKind: "rotate",
-        base,
-        from: base.min,
-        previous: height,
-        heightLocked: false,
-        dimensionId: asDimensionId("overworld"),
-        material: blockStateOf("minecraft:stone"),
-      },
-      { blink: false },
-    );
-  expect(at(20).boxStepOver).toEqual([]);
-  expect(at(21).boxStepOver.length).toBeGreaterThan(0);
-});
-
-it("uses the box-step layers for the rotated union volume", () => {
-  const kind = "rotate";
-  fc.assert(
-    fc.property(
-      fc.integer({ min: 2, max: 128 }),
-      fc.integer({ min: 2, max: 128 }),
-      fc.integer({ min: 1, max: 256 }),
-      fc.option(fc.integer({ min: 1, max: 256 }), { nil: undefined }),
-      fc.boolean(),
-      (width, depth, previous, aimed, heightLocked) => {
-        const base = boxOf(
-          { x: 0, y: 0, z: 0 },
-          { x: width - 1, y: 0, z: depth - 1 },
-        );
-        const flow: BuildFlow = {
-          kind: "heightStep",
-          heightedKind: kind,
-          base,
-          from: base.min,
-          previous,
-          heightLocked,
-          dimensionId,
-          material,
-        };
-        const set = previewPoints(flow, {
-          blink: false,
-          ...(aimed === undefined ? {} : { height: aimed }),
-        });
-        const height = heightLocked ? previous : (aimed ?? previous);
-        const over =
-          volume(planRotationAboutCenter(boxWithHeight(base, height)).union) >
-          BUILD_SPEC.maxCopyVolume;
-        expect(set.boxStepOver.length > 0).toBe(over);
-        expect(set.boxStep.length > 0).toBe(!over);
-        expect(set.roof).toEqual([]);
-        expect(set.shape).toEqual([]);
-        expect(set.marker).toEqual([]);
-        expect(set.endCube).toEqual([]);
-        expect(set.paste).toEqual([]);
-        const points = over ? set.boxStepOver : set.boxStep;
-        expect(points).toEqual(
-          volumeOf(kind).wireframe(
-            { base, kind, height },
-            BUILD_SPEC.outlineMaxPoints,
-          ),
-        );
-      },
-    ),
-  );
-});
-
-it("draws rotation mode with the endpoint selection appearance", () => {
-  fc.assert(
-    fc.property(cell, cell, fc.boolean(), (a, b, blink) => {
-      const box = boxOf(a, b);
-      expect(
-        previewPoints(
-          beginRotateMode(selectionOf(dimensionId, box, material), 1),
-          {
-            blink,
-          },
-        ),
-      ).toEqual(
-        previewPoints(
-          {
-            kind: "selected",
-            menuLevel: "root",
-            selection: selectionOf(dimensionId, box, material),
-            from: box.min,
-            to: box.max,
-          },
-          { blink },
-        ),
-      );
-    }),
   );
 });

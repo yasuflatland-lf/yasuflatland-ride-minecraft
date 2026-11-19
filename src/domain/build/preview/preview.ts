@@ -1,19 +1,10 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import {
-  boxOf,
-  boxWithHeight,
-  type CellBox,
-  center,
-  edgePoints,
-  volume,
-} from "../box";
+import { boxOf, type CellBox, center, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import { type BuildFlow, liveHeightBox } from "../flow/flow";
-import { planRotationAboutCenter } from "../rotation/rotateBox";
 import { BUILD_SPEC } from "../spec";
 import { volumeOf } from "../volume/geometry";
-import { isBoxStepKind } from "../volume/kind";
 import { pasteOutline } from "./pasteOutline";
 
 export interface PreviewSet {
@@ -23,8 +14,6 @@ export interface PreviewSet {
   roof: Vec3[];
   paste: Vec3[];
   pasteVertical: Vec3[];
-  boxStep: Vec3[];
-  boxStepOver: Vec3[];
 }
 
 export interface PreviewAim {
@@ -46,8 +35,6 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
     roof: [],
     paste: [],
     pasteVertical: [],
-    boxStep: [],
-    boxStepOver: [],
   };
   switch (flow.kind) {
     case "idle":
@@ -68,10 +55,6 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       set.shape = outline(flow.selection.box);
       set.endCube = cornerMarkerPoints(flow.to);
       break;
-    case "rotateMode":
-      set.shape = outline(flow.selection.box);
-      set.endCube = cornerMarkerPoints(flow.selection.box.max);
-      break;
     case "heightStep": {
       const height = flow.heightLocked
         ? flow.previous
@@ -84,14 +67,7 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         },
         BUILD_SPEC.outlineMaxPoints,
       );
-      if (isBoxStepKind(flow.heightedKind)) {
-        const box = boxWithHeight(flow.base, height);
-        if (
-          volume(planRotationAboutCenter(box).union) > BUILD_SPEC.maxCopyVolume
-        )
-          set.boxStepOver = wireframe;
-        else set.boxStep = wireframe;
-      } else set.roof = wireframe;
+      set.roof = wireframe;
       break;
     }
     case "pasteAim":

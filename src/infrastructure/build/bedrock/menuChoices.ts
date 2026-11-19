@@ -6,7 +6,6 @@ import type { ChooseSideCylinder } from "../../../application/build/chooseSideCy
 import type { ChooseTerrain } from "../../../application/build/chooseTerrain";
 import type { ClearSelection } from "../../../application/build/clearSelection";
 import type { CloseBuildMenu } from "../../../application/build/closeBuildMenu";
-import type { ConfirmBoxStep } from "../../../application/build/confirmBoxStep";
 import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
 import type { ConfirmTerrain } from "../../../application/build/confirmTerrain";
@@ -47,7 +46,6 @@ export interface MenuCases {
   closeBuildMenu: Pick<CloseBuildMenu, "execute">;
   chooseAdjustHeight: Pick<ChooseAdjustHeight, "execute">;
   chooseBoxStep: Pick<ChooseBoxStep, "execute">;
-  confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   confirmShape: Pick<ConfirmShape, "execute">;
   chooseHeighted: Pick<ChooseHeighted, "execute">;
   chooseSideCylinder: Pick<ChooseSideCylinder, "execute">;
@@ -167,7 +165,6 @@ export class MenuChoices {
       case "removeAbove":
         this.cases.chooseTerrain.execute({ playerId, op: id });
         break;
-      case "rotate":
       case "cut":
       case "copy":
         this.cases.chooseBoxStep.execute({ playerId, kind: id });

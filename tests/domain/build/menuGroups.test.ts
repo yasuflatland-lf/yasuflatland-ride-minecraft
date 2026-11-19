@@ -13,7 +13,7 @@ const coord = fc.integer({ min: -1000, max: 1000 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
 const offset = fc.integer({ min: 1, max: 100 });
 const axes = ["x", "y", "z"] as const;
-const editIds = ["cut", "removeAbove", "rotate", "fillBelow", "copy"] as const;
+const editIds = ["cut", "removeAbove", "fillBelow", "copy"] as const;
 const buildIds = [
   "place",
   "fill",

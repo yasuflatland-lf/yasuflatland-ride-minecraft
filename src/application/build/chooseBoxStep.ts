@@ -1,4 +1,3 @@
-import { chooseHeighted } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { BoxActions } from "./boxAction";
@@ -27,13 +26,6 @@ export class ChooseBoxStep {
       return;
     }
     const facing = this.facing.facingOf(playerId);
-    if (kind === "rotate") {
-      const next = chooseHeighted(flow, kind, facing);
-      if (next.kind === "heightStep") {
-        session.setFlow(next);
-        return;
-      }
-    }
     this.actions[kind].execute({
       playerId,
       selection: flow.selection,

@@ -440,7 +440,7 @@ export function buildPersistentSelection(a: Arena): Promise<Outcome> {
         const opened = await f.tap(route, target);
         check(
           opened.menu?.map(({ id }) => id).join() ===
-            "cut,removeAbove,buildShape,rotate,copy,fillBelow,cancel",
+            "adjustHeight,cut,removeAbove,buildShape,copy,fillBelow,cancel",
           "selection menu missing",
         );
         const dismissed = await f.edit("menu shape");

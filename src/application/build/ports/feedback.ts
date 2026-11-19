@@ -34,14 +34,12 @@ export type BuildMessage =
   | "undoDone"
   | "undoDonePartial";
 
-export type BuildMode =
-  | {
-      kind: "pasteReady";
-      size: { x: number; y: number; z: number };
-      blockCount: number;
-      degrees: 0 | 90 | 180 | 270;
-    }
-  | { kind: "rotate"; degrees: 0 | 90 | 180 | 270 };
+export type BuildMode = {
+  kind: "pasteReady";
+  size: { x: number; y: number; z: number };
+  blockCount: number;
+  degrees: 0 | 90 | 180 | 270;
+};
 
 export interface BuildFeedback {
   /** Chat message so the undo gesture stays visible beyond the action bar. */

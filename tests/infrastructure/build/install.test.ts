@@ -101,7 +101,7 @@ it.each([false, true])(
     expect(controls?.repo).toBe(wand.repo);
     expect(controls?.aim).toBe(wand.aim);
     expect(controls?.pressPasteAim).toBe(wand.pressPasteAim);
-    expect(controls?.rotateDebounce).toBe(wand.rotateDebounce);
+    expect(controls?.rotateDebounce).toBeDefined();
     expect(controls?.pasteDebounce).toBe(wand.pasteDebounce);
     expect(controls?.undoDebounce).toBeDefined();
     controls?.undo.execute({ playerId });

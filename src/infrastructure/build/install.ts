@@ -7,7 +7,6 @@ import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
 import { ChooseTerrain } from "../../application/build/chooseTerrain";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { CloseBuildMenu } from "../../application/build/closeBuildMenu";
-import { ConfirmBoxStep } from "../../application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmLiveHeight } from "../../application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../application/build/confirmShape";
@@ -19,7 +18,6 @@ import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
-import { FinishRotateMode } from "../../application/build/finishRotateMode";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
 import { OpenBuildMenu } from "../../application/build/openBuildMenu";
@@ -28,8 +26,6 @@ import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
-import { RotateBoxAction } from "../../application/build/rotateBoxAction";
-import { RotateModeTap } from "../../application/build/rotateModeTap";
 import { RotatePasteAim } from "../../application/build/rotatePasteAim";
 import { RotateSelection } from "../../application/build/rotateSelection";
 import { SetHeightTo } from "../../application/build/setHeightTo";
@@ -125,12 +121,10 @@ export function installBuild(deps: {
   const actions = {
     copy: copyBox,
     cut: cutBox,
-    rotate: new RotateBoxAction(repo, rotateBox),
   };
   const chooseHeighted = new ChooseHeighted(repo, feedback);
   const cases = {
     chooseBoxStep: new ChooseBoxStep(repo, actions, feedback, facing),
-    confirmBoxStep: new ConfirmBoxStep(repo, actions, feedback, facing),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback, facing),
     endPasting: new EndPasting(repo, ports.structures),
@@ -189,15 +183,11 @@ export function installBuild(deps: {
     refresh: (id, tick) => preview.refresh(id, tick),
   });
   registerWand({
-    rotateModeTap: new RotateModeTap(repo, rotateBox),
-    finishRotateMode: new FinishRotateMode(repo),
-    rotateDebounce,
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
     pressPasteAim,
     aimHeight: cases.aimHeight,
     confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
-    confirmBoxStep: cases.confirmBoxStep,
     repo,
     menus,
     aim,
@@ -233,7 +223,6 @@ export function installBuild(deps: {
   registerTestEdit(
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
-    menuCases.confirmBoxStep,
     pressPasteAim,
     cases.undo,
     describe,

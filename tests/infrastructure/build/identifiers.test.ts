@@ -52,7 +52,6 @@ it("defines every feedback message in both locales", () => {
     ).toEqual(Object.values(BUILD_FORM).sort());
     expect(entries.get(BUILD_FORM.fillBelowBody)?.match(/%s/g)).toHaveLength(4);
     expect(entries.get(BUILD_MESSAGE.pasteReady)?.match(/%s/g)).toHaveLength(5);
-    expect(entries.get(BUILD_MESSAGE.rotateMode)?.match(/%s/g)).toHaveLength(1);
     expect(entries.get(BUILD_MESSAGE.copied)?.match(/%s/g)).toHaveLength(1);
     expect(
       entries.get(BUILD_MESSAGE.undoDonePartial)?.match(/%s/g),
@@ -70,9 +69,6 @@ it("defines every feedback message in both locales", () => {
       expect(entries.get(key)).toBeTruthy();
     for (const key of Object.values(BUILD_FORM))
       expect(entries.get(key)).toBeTruthy();
-    expect(entries.get(BUILD_FORM.cut)).toEqual(
-      entries.get(BUILD_FORM.cutTitle),
-    );
     expect(entries.get(BUILD_MESSAGE.cutRestored)).toBeTruthy();
     expect(entries.get(BUILD_MESSAGE.cutIncomplete)).toBeTruthy();
     expect(entries.get(BUILD_MESSAGE.endSet)).toContain("%s");
