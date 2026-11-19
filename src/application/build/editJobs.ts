@@ -1,9 +1,11 @@
 // Applies queued edit plans in chunks, one shared budget per tick (ADR 0178).
 
 import { sameBlockState } from "../../domain/build/blockState";
+import type { CellBox } from "../../domain/build/box";
 import {
   type AppliedChange,
   type EditKind,
+  type EditRecord,
   type PlannedChange,
   type PlanStep,
   SCAN_STEP,
@@ -27,12 +29,20 @@ import { unstuck } from "./unstuck";
 interface Job {
   readonly playerId: PlayerId;
   readonly dimensionId: DimensionId;
+  readonly selectionBefore?: CellBox;
   readonly plan: Iterator<PlanStep>;
   readonly kind: EditKind;
   readonly applied: AppliedChange[];
   buriedOwner: boolean;
   changed: number;
   skipped: number;
+}
+
+function recordOf(job: Job): EditRecord {
+  const record = { dimensionId: job.dimensionId, changes: job.applied };
+  return job.selectionBefore
+    ? { ...record, selectionBefore: job.selectionBefore }
+    : record;
 }
 
 export class EditJobs {
@@ -53,12 +63,14 @@ export class EditJobs {
     dimensionId: DimensionId,
     plan: Iterable<PlanStep>,
     kind: EditKind,
+    selectionBefore?: CellBox,
   ): void {
     this.jobs.push({
       playerId,
       dimensionId,
       plan: plan[Symbol.iterator](),
       kind,
+      selectionBefore,
       applied: [],
       buriedOwner: false,
       changed: 0,
@@ -91,10 +103,7 @@ export class EditJobs {
                 this.structures,
                 this.repo
                   .get(job.playerId)
-                  ?.finishEdit(
-                    { dimensionId: job.dimensionId, changes: job.applied },
-                    job.kind,
-                  ) ?? [],
+                  ?.finishEdit(recordOf(job), job.kind) ?? [],
               );
             },
             this.log,
@@ -123,10 +132,7 @@ export class EditJobs {
       const next = job.plan.next();
       if (next.done) {
         this.drop(job);
-        const evicted = session.finishEdit(
-          { dimensionId: job.dimensionId, changes: job.applied },
-          job.kind,
-        );
+        const evicted = session.finishEdit(recordOf(job), job.kind);
         // A throwing discard must not skip unstuck and the completion feedback below.
         attempt(
           () => discardAll(this.structures, evicted),
