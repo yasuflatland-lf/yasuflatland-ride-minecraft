@@ -31,6 +31,7 @@ import {
   terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -350,7 +351,7 @@ it("shows exactly the applicable utility entries", async () => {
         const { session, menus, player } = setup();
         session.setFlow({ kind: "idle" });
         const box = boxOf(from, to);
-        if (confirmed) session.confirmBox(overworld, box);
+        if (confirmed) session.confirmBox(selectionOf(overworld, box, stone));
         if (clipboard)
           holdClipboard(
             session,
@@ -461,7 +462,7 @@ it("opens no form for an idle session without history or a confirmed box", async
 
 it.each(["copy", "undo", "clear"] as const)("routes utility %s", async (id) => {
   const { session, menus, player, cases } = setup();
-  session.confirmBox(overworld, boxOf(from, to));
+  session.confirmBox(selectionOf(overworld, boxOf(from, to), stone));
   session.finishEdit(
     {
       dimensionId: overworld,
@@ -478,7 +479,7 @@ it.each(["copy", "undo", "clear"] as const)("routes utility %s", async (id) => {
 
 it("does nothing on utility dismissal", async () => {
   const { session, menus, player, cases } = setup();
-  session.confirmBox(overworld, boxOf(from, to));
+  session.confirmBox(selectionOf(overworld, boxOf(from, to), stone));
   ui.answers.push({ canceled: true });
   await menus.showUtilityMenu(player);
   expect(cases.copy.execute).not.toHaveBeenCalled();
@@ -725,7 +726,7 @@ it("validates utility availability before dispatching", () => {
         const { session, cases, choices } = setup();
         session.setFlow({ kind: "idle" });
         const box = boxOf(from, to);
-        if (confirmed) session.confirmBox(overworld, box);
+        if (confirmed) session.confirmBox(selectionOf(overworld, box, stone));
         if (clipboard)
           holdClipboard(
             session,
@@ -847,8 +848,7 @@ it("accepts EndPasting only in paste aiming and exposes its own label", async ()
   }
   expect(cases.endPasting.execute).not.toHaveBeenCalled();
   session.completeCopy(
-    overworld,
-    boxOf(from, to),
+    selectionOf(overworld, boxOf(from, to), stone),
     structureClipboard(boxOf(from, to), () => stone),
   );
   session.setFlow({ kind: "pasteAim", manualTurn: 0 });
@@ -1154,8 +1154,7 @@ it("labels New copy and dispatches it through the paste menu with or without his
       ui.forms.length = 0;
       const { session, menus, player, cases, choices } = setup();
       session.completeCopy(
-        overworld,
-        boxOf(from, from),
+        selectionOf(overworld, boxOf(from, from), stone),
         structureClipboard(boxOf(from, from), () => stone),
       );
       const clipboard = session.clipboard;

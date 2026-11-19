@@ -57,8 +57,8 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       set.endCube = cornerMarkerPoints(flow.to);
       break;
     case "rotateMode":
-      set.shape = outline(flow.box);
-      set.endCube = cornerMarkerPoints(flow.box.max);
+      set.shape = outline(flow.selection.box);
+      set.endCube = cornerMarkerPoints(flow.selection.box.max);
       break;
     case "heightStep": {
       const height = flow.heightLocked

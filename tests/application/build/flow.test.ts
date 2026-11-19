@@ -12,6 +12,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -76,7 +77,7 @@ function setup() {
 
 it("samples material only for a new point 1, clears the confirmed box, and reports the end count", () => {
   const e = setup();
-  e.session.confirmBox(overworld, boxOf(from, to));
+  e.session.confirmBox(selectionOf(overworld, boxOf(from, to), stone));
   e.world.put(from, stone);
   const material = vi.spyOn(e.world, "materialOf");
   e.point.execute({ playerId, dimensionId: overworld, cell: from });
@@ -122,7 +123,7 @@ it("material refusal changes neither the flow nor the confirmed box", () => {
     blockStateOf("minecraft:chest"),
   ]) {
     const e = setup();
-    e.session.confirmBox(overworld, boxOf(from, to));
+    e.session.confirmBox(selectionOf(overworld, boxOf(from, to), stone));
     if (state) e.world.put(from, state);
     else e.world.unreadableCells.add(cellKey(from));
     const box = e.session.confirmedBox;
@@ -157,6 +158,7 @@ it("confirms the chosen shape with the captured material, retaining its box only
   e.confirm.execute({ playerId, style: "frame" });
   expect(e.session.flow.kind).toBe("idle");
   expect(e.session.confirmedBox).toEqual({
+    material: stone,
     dimensionId: overworld,
     box: boxOf(from, to),
   });
@@ -211,7 +213,7 @@ it("applies the limit to the chosen style rather than the bounding volume", () =
 
 it("CancelFlow cancels or returns to aiming without clearing the confirmed box, while Clear clears both", () => {
   const e = setup();
-  e.session.confirmBox(nether, boxOf(from, to));
+  e.session.confirmBox(selectionOf(nether, boxOf(from, to), stone));
   e.endpoint();
   const box = e.session.confirmedBox;
   const cancel = new CancelFlow(e.repo);
@@ -244,7 +246,7 @@ it("Copy refuses an unconfirmed endpoint and enforces the confirmed copy limit",
         e.copy.execute({ playerId });
         expect(e.feedback.messages.at(-1)?.message).toBe("noSelection");
         const box = boxOf(from, { ...from, x: size - 1 });
-        e.session.confirmBox(overworld, box);
+        e.session.confirmBox(selectionOf(overworld, box, stone));
         e.copy.execute({ playerId });
         if (size > BUILD_SPEC.maxCopyVolume) {
           expect(e.feedback.messages.at(-1)).toEqual({
@@ -267,8 +269,8 @@ it("ignores ordinary block and air selection input during rotation without sampl
     fc.property(fc.constantFrom(overworld, nether), (dimensionId) => {
       const e = setup();
       const box = boxOf(from, to);
-      e.session.confirmBox(overworld, box);
-      const flow = beginRotateMode(overworld, box, stone, 1);
+      e.session.confirmBox(selectionOf(overworld, box, stone));
+      const flow = beginRotateMode(selectionOf(overworld, box, stone), 1);
       e.session.setFlow(flow);
       const material = vi.spyOn(e.world, "materialOf");
       e.point.execute({ playerId, dimensionId, cell: from });

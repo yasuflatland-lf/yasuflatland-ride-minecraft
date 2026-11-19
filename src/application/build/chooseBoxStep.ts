@@ -1,4 +1,5 @@
-import { chooseHeighted, selectionBoxOf } from "../../domain/build/flow/flow";
+import { chooseHeighted } from "../../domain/build/flow/flow";
+import { endpointSelection } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { shapeOf } from "../../domain/build/shape/shape";
 import type { BoxStepKind } from "../../domain/build/volume/kind";
@@ -28,13 +29,10 @@ export class ChooseBoxStep {
       session.setFlow(chooseHeighted(flow, kind, facing));
       return;
     }
-    const box = selectionBoxOf(flow);
-    if (box)
-      this.actions[kind].execute({
-        playerId,
-        dimensionId: flow.dimensionId,
-        box,
-        facing,
-      });
+    this.actions[kind].execute({
+      playerId,
+      selection: endpointSelection(flow),
+      facing,
+    });
   }
 }

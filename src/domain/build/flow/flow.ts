@@ -3,6 +3,7 @@ import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
 import type { Facing } from "../rotation/facing";
+import { endpointSelection } from "../selection";
 import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
@@ -179,7 +180,7 @@ export function finishHeightStep(flow: BuildFlow, _hollow: boolean): BuildFlow {
 
 export function selectionBoxOf(flow: BuildFlow): CellBox | undefined {
   return flow.kind === "rotateMode"
-    ? flow.box
+    ? flow.selection.box
     : flow.kind === "endpoint"
       ? boxOf(flow.from, flow.to)
       : undefined;
@@ -197,12 +198,7 @@ export function clearLastPaste(flow: BuildFlow): BuildFlow {
 
 export function enterRotateMode(flow: BuildFlow): BuildFlow {
   if (flow.kind !== "endpoint") return flow;
-  return beginRotateMode(
-    flow.dimensionId,
-    boxOf(flow.from, flow.to),
-    flow.material,
-    1,
-  );
+  return beginRotateMode(endpointSelection(flow), 1);
 }
 
 export function finishRotateMode(flow: BuildFlow): BuildFlow {
@@ -210,9 +206,9 @@ export function finishRotateMode(flow: BuildFlow): BuildFlow {
   return Object.freeze({
     kind: "endpoint",
     menuLevel: "root",
-    dimensionId: flow.dimensionId,
-    from: flow.box.min,
-    to: flow.box.max,
-    material: flow.material,
+    dimensionId: flow.selection.dimensionId,
+    from: flow.selection.box.min,
+    to: flow.selection.box.max,
+    material: flow.selection.material,
   });
 }

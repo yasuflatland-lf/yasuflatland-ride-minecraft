@@ -13,6 +13,7 @@ import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, type CellBox, cellsOf } from "../../../src/domain/build/box";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -117,8 +118,7 @@ it("CutBox then UndoEdit restores the box and consumes only its snapshot", () =>
       expect(
         e.cut.execute({
           playerId,
-          dimensionId: overworld,
-          box,
+          selection: selectionOf(overworld, box, stone),
           facing: "east",
         }),
       ).toBe(true);
@@ -207,8 +207,7 @@ it("RotateBoxAction then UndoEdit restores the original arrangement and overwrit
       expect(
         e.rotate.execute({
           playerId,
-          dimensionId: overworld,
-          box,
+          selection: selectionOf(overworld, box, stone),
           facing: "east",
         }),
       ).toBe(true);
@@ -233,8 +232,7 @@ it("RotateBoxAction then taps, then one UndoEdit per rotation restores each step
       expect(
         e.rotate.execute({
           playerId,
-          dimensionId: overworld,
-          box,
+          selection: selectionOf(overworld, box, stone),
           facing: "east",
         }),
       ).toBe(true);
@@ -291,8 +289,7 @@ it.each(["Remove above", "Copy"] as const)(
       expect(
         e.copy.execute({
           playerId,
-          dimensionId: overworld,
-          box,
+          selection: selectionOf(overworld, box, stone),
           facing: "east",
         }),
       ).toBe(true);

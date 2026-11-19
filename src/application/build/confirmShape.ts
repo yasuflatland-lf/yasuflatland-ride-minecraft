@@ -1,5 +1,5 @@
-import { boxOf } from "../../domain/build/box";
 import { planShape } from "../../domain/build/edit/plan";
+import { endpointSelection } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import {
   type ShapeStyle,
@@ -29,7 +29,7 @@ export class ConfirmShape {
     if (!stylesFor(shape).includes(cmd.style)) return;
     const count = shapeCount(shape, cmd.style);
     if (!beginCheckedEdit(session, this.feedback, cmd.playerId, count)) return;
-    session.confirmBox(flow.dimensionId, boxOf(flow.from, flow.to));
+    session.confirmBox(endpointSelection(flow));
     this.feedback.showMessage(
       cmd.playerId,
       "building",

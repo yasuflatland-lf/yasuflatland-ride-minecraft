@@ -1,4 +1,5 @@
 import { heightStepBox } from "../../domain/build/flow/flow";
+import { selectionOf } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { isBoxStepKind } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -23,8 +24,11 @@ export class ConfirmBoxStep {
     }
     this.actions[flow.heightedKind].execute({
       playerId,
-      dimensionId: flow.dimensionId,
-      box: heightStepBox(flow),
+      selection: selectionOf(
+        flow.dimensionId,
+        heightStepBox(flow),
+        flow.material,
+      ),
       facing: flow.facing ?? this.facing.facingOf(playerId),
     });
   }

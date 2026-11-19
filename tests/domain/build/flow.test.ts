@@ -31,6 +31,7 @@ import {
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import {
@@ -212,7 +213,7 @@ it("offers utility entries exactly when their prerequisites exist", () => {
       (confirmed, clipboard, history, aiming, at) => {
         const session = new BuildSession(asPlayerId("p"));
         const box = boxOf(at, at);
-        if (confirmed) session.confirmBox(dim, box);
+        if (confirmed) session.confirmBox(selectionOf(dim, box, stone));
         if (clipboard)
           holdClipboard(
             session,
@@ -586,9 +587,7 @@ it("enters rotation only from endpoints and keeps ordinary gestures and menus in
       const box = boxOf(a, b);
       expect(mode).toEqual({
         kind: "rotateMode",
-        dimensionId: dim,
-        box,
-        material: stone,
+        selection: selectionOf(dim, box, stone),
         turn: 1,
       });
       expect(selectionBoxOf(mode)).toEqual(box);
