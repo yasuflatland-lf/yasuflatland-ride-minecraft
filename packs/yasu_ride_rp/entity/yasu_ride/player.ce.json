@@ -154,7 +154,10 @@
           "controller.render.player.third_person_spectator": "!variable.is_first_person && !variable.map_face_icon && query.is_spectator"
         },
         {
-          "controller.render.player.first_person": "variable.is_first_person && !query.is_spectator"
+          "controller.render.player.first_person": "variable.is_first_person && !query.is_spectator && !(query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '')"
+        },
+        {
+          "controller.render.yasu_ride.player.first_person_scooter": "variable.is_first_person && !query.is_spectator && (query.is_riding_any_entity_of_type('yasu_ride:scooter') && query.get_equipped_item_name(0, 1) == '' && query.get_equipped_item_name('off_hand') == '')"
         },
         {
           "controller.render.player.third_person": "!variable.is_first_person && !variable.map_face_icon && !query.is_spectator"
