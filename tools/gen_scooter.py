@@ -152,55 +152,49 @@ def finish_pass(geometry, layout, pixels=None):
     errors = atlas.audit(layout, pixels)
     if errors:
         raise ValueError(f"{geometry['description']['identifier']} atlas audit failed: " + "; ".join(errors))
-    return AtlasPass(rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]}), layout, pixels)
-
-
-def _faces(geometry):
-    for bone in geometry["bones"]:
-        for cube in bone["cubes"]:
-            yield from cube["uv"].values()
+    return AtlasPass({"format_version": "1.12.0", "minecraft:geometry": [geometry]}, layout, pixels)
 
 
 def _lit_bone(name):
     return name in ("headlights", "tail_lights") or name.startswith("glow_")
 
 
-def _visible_faces(geometry, image):
+def _visible_pass(geometry, image):
     visibility = {}
+    kept_cubes = set()
 
     def keep(bone, cube, name):
-        if _lit_bone(bone):
-            return True
-        face = cube["uv"][name]
-        rect = region_atlas.UvRect.of(face).texels()
-        if rect not in visibility:
-            visibility[rect] = face_crop.is_visible(face, image)
-        return visibility[rect]
+        if not _lit_bone(bone):
+            face = cube["uv"][name]
+            uv = (*face["uv"], *face["uv_size"])
+            if uv not in visibility:
+                visibility[uv] = face_crop.is_visible(face, image)
+            if not visibility[uv]:
+                return False
+        kept_cubes.add(id(cube))
+        return True
 
-    return geometry_passes.select_faces(
-        geometry, geometry_passes.PassSpec(geometry["description"]["identifier"], keep)), keep
+    spec = geometry_passes.PassSpec(geometry["description"]["identifier"], keep)
+    return geometry_passes.select_faces(geometry, spec), kept_cubes
 
 
-def _rejoin(source, fixed, paint, is_paint, keeps):
+def _rejoin(source, partitioned, visible, is_paint):
+    passes = [(iter(part["bones"]), iter(filtered["bones"]), kept)
+              for part, (filtered, kept) in zip(partitioned, visible, strict=True)]
     bones = []
-    for source_bone, fixed_bone, paint_bone in zip(
-            source["bones"], fixed["bones"], paint["bones"], strict=True):
-        cursors = (iter(fixed_bone["cubes"]), iter(paint_bone["cubes"]))
+    for source_bone in source["bones"]:
+        cubes = [(iter(next(part)["cubes"]), iter(next(filtered)["cubes"]), kept)
+                 for part, filtered, kept in passes]
         whole = []
         for cube in source_bone["cubes"]:
-            names = [[], []]
-            for name, face in cube["uv"].items():
-                owner = is_paint(face)
-                if keeps[owner](source_bone["name"], cube, name):
-                    names[owner].append(name)
-            pieces = [next(cursor) for cursor, kept in zip(cursors, names) if kept]
-            if len(pieces) == 2:
-                fixed_cube, paint_cube = pieces
-                shape = {k: v for k, v in fixed_cube.items() if k != "uv"}
-                if shape == {k: v for k, v in paint_cube.items() if k != "uv"}:
-                    faces = fixed_cube["uv"] | paint_cube["uv"]
-                    pieces = [{**shape, "uv": {name: faces[name] for name in cube["uv"] if name in faces}}]
-            whole.extend(pieces)
+            faces = {}
+            # Each partition emits one piece per owning source cube, in source order.
+            for owner in {is_paint(face) for face in cube["uv"].values()}:
+                partitioned_cubes, visible_cubes, kept = cubes[owner]
+                if id(next(partitioned_cubes)) in kept:
+                    faces.update(next(visible_cubes)["uv"])
+            if faces:
+                whole.append({**cube, "uv": {name: faces[name] for name in cube["uv"] if name in faces}})
         bones.append({**source_bone, "cubes": whole})
     return {**source, "bones": bones}
 
@@ -282,34 +276,21 @@ def build():
     cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
     source = rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]})
     geometry = source["minecraft:geometry"][0]
-    fixed_geometry, paint_geometry = geometry_passes.partition_geometry(geometry, [
+    partitioned = geometry_passes.partition_geometry(geometry, [
         geometry_passes.PassSpec("geometry.yasu_ride.scooter", lambda bone, cube, name: not is_paint(cube["uv"][name])),
         geometry_passes.PassSpec("geometry.yasu_ride.scooter_paint", lambda bone, cube, name: is_paint(cube["uv"][name])),
     ])
     fixed_pixels = atlas.render_atlas(fixed_layout)
+    paint_pixels = atlas.render_atlas(paint_layout)
     fixed_image = region_atlas.AtlasImage(*fixed_layout.size, fixed_pixels)
-    paint_image = region_atlas.AtlasImage(*paint_layout.size, atlas.render_atlas(paint_layout))
-    fixed_geometry, keep_fixed = _visible_faces(fixed_geometry, fixed_image)
-    paint_geometry, keep_paint = _visible_faces(paint_geometry, paint_image)
-    for bone in paint_geometry["bones"]:
-        if not _lit_bone(bone["name"]):
-            bone["cubes"] = [face_crop.crop_plate(cube, paint_image) or cube for cube in bone["cubes"]]
-    crops = face_crop.crop_regions(paint_layout, _faces(paint_geometry))
-    crop_layout = pack_regions(crops)
-    crops = {region.name: region for region in crops}
-    for bone in paint_geometry["bones"]:
-        for cube in bone["cubes"]:
-            for name, face in cube["uv"].items():
-                crop, uv = face_crop.crop_region_uv(paint_layout, regions[face.region], face)
-                relocated = region_atlas.RegionFace(face, crop, face.flip_x, face.flip_y)
-                relocate_face(uv, crops[crop], crop_layout, relocated)
-                cube["uv"][name] = relocated
-    fixed = finish_pass(fixed_geometry, fixed_layout, fixed_pixels)
-    paint = finish_pass(paint_geometry, crop_layout)
-    lit = finish_pass(lit_geometry, lit_layout)
+    paint_image = region_atlas.AtlasImage(*paint_layout.size, paint_pixels)
+    fixed_pass = _visible_pass(partitioned[0], fixed_image)
+    paint_pass = _visible_pass(partitioned[1], paint_image)
+    fixed = finish_pass(fixed_pass[0], fixed_layout, fixed_pixels)
+    paint = finish_pass(paint_pass[0], paint_layout, paint_pixels)
+    lit = finish_pass(rounded(lit_geometry), lit_layout)
     full = {**source, "minecraft:geometry": [_rejoin(
-        geometry, fixed.geometry["minecraft:geometry"][0], paint.geometry["minecraft:geometry"][0],
-        is_paint, (keep_fixed, keep_paint))]}
+        geometry, partitioned, (fixed_pass, paint_pass), is_paint)]}
     return BuildResult(source, full, fixed, paint, lit)
 
 

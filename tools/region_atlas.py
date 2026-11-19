@@ -73,7 +73,16 @@ class AtlasImage:
         return TexelRect(x0, y0, x1, y1) if x0 < x1 and y0 < y1 else None
 
     def is_clear(self, rect: TexelRect) -> bool:
-        return self.alpha_bounds(rect) is None
+        clipped = rect.intersect(TexelRect(0, 0, self.width, self.height))
+        if clipped is None:
+            return True
+        clear_row = bytes(clipped.x1 - clipped.x0)
+        for y in range(clipped.y0, clipped.y1):
+            start = (y * self.width + clipped.x0) * 4 + 3
+            end = start + len(clear_row) * 4
+            if self.pixels[start:end:4] != clear_row:
+                return False
+        return True
 
 
 @dataclass(frozen=True)
