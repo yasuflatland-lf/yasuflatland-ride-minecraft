@@ -75,10 +75,9 @@ it("ignores absent sessions, every other flow, and rotation in another dimension
     },
     {
       kind: "terrainConfirm",
-      dimensionId: overworld,
+      selection: selectionOf(overworld, box, stone),
       from: box.min,
       to: box.max,
-      material: stone,
       op: "fillBelow",
     },
     { kind: "pasteAim", manualTurn: 0 },

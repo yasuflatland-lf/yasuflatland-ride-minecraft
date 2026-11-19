@@ -9,6 +9,7 @@ import {
   world,
 } from "@minecraft/server";
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
+import type { CellBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import type { Facing } from "../../domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../domain/build/spec";
@@ -56,7 +57,12 @@ interface Reply {
   undoHints?: number;
   pasteReadyDegrees?: number;
   timedOut?: boolean;
-  flow: { kind: string; previous?: number; heightedKind?: string };
+  flow: {
+    kind: string;
+    previous?: number;
+    heightedKind?: string;
+    selection?: { box: CellBox };
+  };
   mode?: boolean;
   sessionPresent?: boolean;
 }
@@ -122,7 +128,7 @@ async function withBuilder(
     y: origin.y + y,
     z: origin.z + z,
   });
-  const tap = (tap: "block" | "air" | "clear", at = cell()) =>
+  const tap = (tap: "block" | "air" | "clear" | "fixHeight", at = cell()) =>
     query(TEST_TAP_EVENT, JSON.stringify({ player: player.name, tap, ...at }));
   const edit = (command: string) =>
     query(TEST_EDIT_EVENT, `${player.id} ${command}`);
@@ -205,7 +211,8 @@ async function withBuilder(
       await tap("clear");
       block(cell()).setType("minecraft:stone");
       await tap("block");
-      await tap(air ? "air" : "block", end);
+      const endpoint = await tap(air ? "air" : "block", end);
+      if (endpoint.flow.kind === "baseHeight") await tap("fixHeight");
     },
     count: (cells: Cell[], type = "minecraft:stone") =>
       cells.filter((c) => block(c).typeId === type).length,
@@ -240,7 +247,10 @@ type Fixture = {
   lookSettled(yaw: number, pitch?: number): Promise<void>;
   cell(x?: number, y?: number, z?: number): Cell;
   block(cell: Cell): NonNullable<ReturnType<Arena["dim"]["getBlock"]>>;
-  tap(tap: "block" | "air" | "clear", cell?: Cell): Promise<Reply>;
+  tap(
+    tap: "block" | "air" | "clear" | "fixHeight",
+    cell?: Cell,
+  ): Promise<Reply>;
   edit(command: string): Promise<Reply>;
   press(routes: string, gapTicks?: number): Promise<Reply>;
   holdControl(typeId: string): void;
@@ -400,10 +410,15 @@ export function buildPersistentSelection(a: Arena): Promise<Outcome> {
       await f.tap("clear");
       f.block(f.cell()).setType("minecraft:stone");
       await f.tap("block");
-      const fixed = await f.tap(input, end);
+      const base = await f.tap(input, end);
+      check(
+        base.flow.kind === "baseHeight" && base.menu === undefined,
+        "fixing the second corner skipped live height or opened a menu",
+      );
+      const fixed = await f.tap("fixHeight");
       check(
         fixed.flow.kind === "selected" && fixed.menu === undefined,
-        "fixing the second corner opened a menu",
+        "fixing the height failed or opened a menu",
       );
 
       for (const [route, target] of [
@@ -455,6 +470,46 @@ export function buildPersistentSelection(a: Arena): Promise<Outcome> {
         );
       }
     }
+  });
+}
+
+export function buildLiveHeight(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    f.block(f.cell()).setType("minecraft:stone");
+    const end = f.cell(4, 0, 4);
+    f.block(end).setType("minecraft:stone");
+    f.player.teleport(f.cell(-6, 0, 2.5), { dimension: a.dim });
+    await f.lookSettled(-90, 0);
+    check((await f.tap("block")).flow.kind === "point1", "first tap missing");
+    const base = await f.tap("block", end);
+    check(
+      base.flow.kind === "baseHeight" &&
+        base.flow.previous === 1 &&
+        base.menu === undefined,
+      "second tap did not start a one-layer live outline",
+    );
+    await f.lookSettled(-90, -30);
+    await wait(BUILD_SPEC.outlineInterval);
+    const raised = (await f.mode()).flow;
+    check(
+      raised.kind === "baseHeight" && (raised.previous ?? 0) > 1,
+      "looking up did not raise the live outline",
+    );
+    const fixed = await f.tap("air");
+    const top = fixed.flow.selection?.box.max.y;
+    check(
+      fixed.flow.kind === "selected" &&
+        fixed.menu === undefined &&
+        raised.previous !== undefined &&
+        top === f.cell().y + raised.previous - 1,
+      "press did not fix the outlined height without a menu",
+    );
+    await f.lookSettled(-90, 0);
+    await wait(BUILD_SPEC.outlineInterval);
+    check(
+      (await f.mode()).flow.selection?.box.max.y === top,
+      "looking down moved the fixed outline",
+    );
   });
 }
 
@@ -665,6 +720,7 @@ export function buildNewCopyReplaces(a: Arena): Promise<Outcome> {
     await f.tap("block");
     await checkState(f, "point1", true);
     await f.tap("air", f.cell(1, 0, 1));
+    await f.tap("fixHeight");
     await checkState(f, "selected", true);
     await f.menu("shape", "copy");
     await checkState(f, "heightStep", true);
@@ -1399,6 +1455,7 @@ export function buildSolidCancelUndo(a: Arena): Promise<Outcome> {
         `${shape} Cancel did not return to end-point selection`,
       );
       await f.tap("air", f.cell(4, 0, 4));
+      await f.tap("fixHeight");
     }
     f.block(f.cell()).setType("minecraft:air");
     await f.menu("shape", "cylinder");
@@ -2040,6 +2097,7 @@ export function buildFillBelowMaterialRefused(a: Arena): Promise<Outcome> {
     f.block(f.cell()).setType("minecraft:sand");
     await f.tap("block");
     await f.tap("air", f.cell(4, 0, 4));
+    await f.tap("fixHeight");
     const refused = await f.menu("shape", "fillBelow");
     check(
       refused.message === "fillMaterialRefused" &&

@@ -25,6 +25,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -75,7 +76,9 @@ function endpoint(
   to: { x: number; y: number; z: number },
   dimensionId = overworld,
 ) {
-  return tapAir(tapBlock({ kind: "idle" }, dimensionId, from, stone), to);
+  return confirmEndpointHeight(
+    tapAir(tapBlock({ kind: "idle" }, dimensionId, from, stone), to),
+  );
 }
 
 it("copies a base grown through any allowed height without beginning an edit", () => {

@@ -3,7 +3,12 @@ import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
 import type { Facing } from "../rotation/facing";
-import { type Selection, selectionOf } from "../selection";
+import {
+  type Selection,
+  selectionHeightLimit,
+  selectionOf,
+  withBox,
+} from "../selection";
 import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
@@ -17,6 +22,14 @@ export type BuildFlow =
       readonly dimensionId: DimensionId;
       readonly cell: Cell;
       readonly material: BlockState;
+    }
+  | {
+      readonly kind: "baseHeight";
+      readonly selection: Selection;
+      readonly baseBox: CellBox;
+      readonly previous: number;
+      readonly from: Cell;
+      readonly to: Cell;
     }
   | {
       readonly kind: "selected";
@@ -39,15 +52,15 @@ export type BuildFlow =
     }
   | {
       readonly kind: "terrainConfirm";
-      readonly dimensionId: DimensionId;
+      readonly selection: Selection;
       readonly from: Cell;
       readonly to: Cell;
-      readonly material: BlockState;
       readonly op: TerrainOp;
     }
   | PasteAim
   | RotateMode;
 
+export type BaseHeightFlow = Extract<BuildFlow, { kind: "baseHeight" }>;
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
 
 export function heightStepBox(flow: HeightStepFlow): CellBox {
@@ -61,6 +74,7 @@ export function tapBlock(
   material: BlockState,
 ): BuildFlow {
   if (
+    flow.kind === "baseHeight" ||
     flow.kind === "selected" ||
     flow.kind === "heightStep" ||
     flow.kind === "pasteAim" ||
@@ -80,16 +94,47 @@ export function tapBlock(
 
 export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
   if (flow.kind !== "point1" || !end) return flow;
+  const selection = selectionOf(
+    flow.dimensionId,
+    boxOf(flow.cell, end),
+    flow.material,
+  );
+  const from = flow.cell;
+  const to = Object.freeze({ ...end });
+  if (shapeOf(from, to).kind === "line")
+    return Object.freeze({
+      kind: "selected",
+      menuLevel: "root",
+      selection,
+      from,
+      to,
+    });
+  return Object.freeze({
+    kind: "baseHeight",
+    selection,
+    from,
+    to,
+    baseBox: boxWithHeight(selection.box, 1),
+    previous: Math.min(
+      sizeOf(selection.box).y,
+      selectionHeightLimit(selection.box),
+    ),
+  });
+}
+
+export function liveHeightBox(flow: BaseHeightFlow): CellBox {
+  return boxWithHeight(flow.baseBox, flow.previous);
+}
+
+export function confirmLiveHeight(
+  flow: BaseHeightFlow,
+): Extract<BuildFlow, { kind: "selected" }> {
   return Object.freeze({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(
-      flow.dimensionId,
-      boxOf(flow.cell, end),
-      flow.material,
-    ),
-    from: flow.cell,
-    to: Object.freeze({ ...end }),
+    selection: withBox(flow.selection, liveHeightBox(flow)),
+    from: flow.from,
+    to: flow.to,
   });
 }
 
@@ -132,9 +177,9 @@ export function backToAiming(flow: BuildFlow): BuildFlow {
   return flow.kind === "terrainConfirm"
     ? Object.freeze({
         kind: "point1",
-        dimensionId: flow.dimensionId,
+        dimensionId: flow.selection.dimensionId,
         cell: flow.from,
-        material: flow.material,
+        material: flow.selection.material,
       })
     : flow;
 }
@@ -168,16 +213,16 @@ export function chooseTerrain(flow: BuildFlow, op: TerrainOp): BuildFlow {
   if (flow.kind !== "selected") return flow;
   return Object.freeze({
     kind: "terrainConfirm",
-    dimensionId: flow.selection.dimensionId,
+    selection: flow.selection,
     from: flow.from,
     to: flow.to,
-    material: flow.selection.material,
     op,
   });
 }
 
 export function setHeight(flow: BuildFlow, height: number): BuildFlow {
-  return flow.kind === "heightStep" && !flow.heightLocked
+  return (flow.kind === "baseHeight" && height !== flow.previous) ||
+    (flow.kind === "heightStep" && !flow.heightLocked)
     ? Object.freeze({ ...flow, previous: height })
     : flow;
 }

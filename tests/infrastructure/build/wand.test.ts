@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
 import { FinishRotateMode } from "../../../src/application/build/finishRotateMode";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
@@ -111,6 +112,7 @@ it("preserves blocks and defers point taps out of before events", () => {
           rotateDebounce: new PressDebounces<PlayerId>(
             BUILD_SPEC.rotateDebounceTicks,
           ),
+          confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
           confirmBoxStep: { execute: vi.fn() },
           aimHeight: new AimHeight(repo),
           repo,
@@ -193,18 +195,24 @@ it("preserves blocks and defers point taps out of before events", () => {
         expect(pointCell()).toEqual(holding ? block.location : undefined);
         engine.handlers.get("interact")?.(interact);
         for (const callback of engine.scheduled.splice(0)) callback();
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(
+          holding ? "baseHeight" : undefined,
+        );
         expect(menus.showUtilityMenu).not.toHaveBeenCalled();
         player.isSneaking = true;
         engine.handlers.get("use")?.({
           source: player,
           itemStack: { typeId: SELECTION_WAND_TYPE },
         });
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(
+          holding ? "baseHeight" : undefined,
+        );
         engine.handlers.get("interact")?.(interact);
         player.isValid = false;
         for (const callback of engine.scheduled.splice(0)) callback();
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(
+          holding ? "baseHeight" : undefined,
+        );
       },
     ),
   );
@@ -288,6 +296,7 @@ function setupAir() {
       BUILD_SPEC.rotateDebounceTicks,
     ),
     confirmBoxStep,
+    confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
     aimHeight,
     repo,
     pressPasteAim,
@@ -906,3 +915,52 @@ it("finishes on sneak and suppresses held repeats from opening utilities", () =>
   expect(e.rotateModeTap.execute).not.toHaveBeenCalled();
   expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
 });
+
+it.each(["air", "block"] as const)(
+  "samples the final %s press and fixes live height without opening a menu",
+  (target) => {
+    const e = setupAir();
+    const min = { x: 0, y: 0, z: 0 };
+    const max = { x: 4, y: 0, z: 4 };
+    const material = blockStateOf("minecraft:stone");
+    e.session.setFlow({
+      kind: "baseHeight",
+      selection: selectionOf(nether, boxOf(min, max), material),
+      from: min,
+      to: max,
+      baseBox: boxOf(min, max),
+      previous: 2,
+    });
+    const ray = {
+      origin: { x: -1.5, y: 10, z: 2.5 },
+      direction: { x: 0.8, y: 0.6, z: 0 },
+    };
+    const event = {
+      player: e.player,
+      block: { dimension: { id: nether }, location: max },
+      isFirstEvent: true,
+      cancel: false,
+    };
+    e.aim.aim = () =>
+      target === "air" ? { ray } : { ray, block: { cell: max, face: "up" } };
+    if (target === "block") {
+      engine.handlers.get("interact")?.(event);
+      expect(event.cancel).toBe(true);
+      expect(e.session.flow.kind).toBe("baseHeight");
+    }
+    e.use();
+    for (const callback of engine.scheduled.splice(0)) callback();
+    expect(e.session.flow).toEqual({
+      kind: "selected",
+      menuLevel: "root",
+      selection: selectionOf(nether, boxOf(min, { ...max, y: 3 }), material),
+      from: min,
+      to: max,
+    });
+    e.aim.aim = () => ({ ray });
+    engine.tick += 4;
+    e.use();
+    expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
+    expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
+  },
+);

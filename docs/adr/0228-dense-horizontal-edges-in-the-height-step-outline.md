@@ -12,7 +12,7 @@ While aiming a roof or a solid height with the view ray, the outline is a wirefr
 
 ## Decision
 
-- In the height-step outline, sample the horizontal curves at the top and bottom of the shape four times per block (`BUILD_SPEC.denseOutlinePerBlock`), so the top reads as a continuous ring. Every other curve stays at one particle per block. The curves are the box's top and bottom edges for Cube and Copy, the two ellipses for Cylinder, and the eaves and the ridge for roofs. The vertical edges and the roof hips stay sparse.
+- Live selection height (ADR 0253) uses the ordinary selection outline. In the operation-specific height-step outline, sample the horizontal curves at the top and bottom of the shape four times per block (`BUILD_SPEC.denseOutlinePerBlock`), so the top reads as a continuous ring. Every other curve stays at one particle per block. The curves are the box's top and bottom edges for Cube and Copy, the two ellipses for Cylinder, and the eaves and the ridge for roofs. The vertical edges and the roof hips stay sparse.
 - Keep the 512-particle budget (`outlineMaxPoints`). When the dense curves alone exceed it, they share the whole budget in proportion to their length and the sparse curves get nothing; otherwise the sparse curves share what is left.
 - Leave the outline of the start and end points as it is.
 

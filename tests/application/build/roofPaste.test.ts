@@ -32,6 +32,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -79,7 +80,9 @@ function roof(
   kind: "gable" | "hip",
 ) {
   e.session.setFlow(
-    tapAir(tapBlock({ kind: "idle" }, overworld, base.min, stone), base.max),
+    confirmEndpointHeight(
+      tapAir(tapBlock({ kind: "idle" }, overworld, base.min, stone), base.max),
+    ),
   );
   new ChooseHeighted(e.repo, e.feedback).execute({ playerId, kind });
 }
@@ -376,9 +379,11 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
         e.session.setFlow(
           setHeight(
             chooseHeighted(
-              tapAir(
-                tapBlock({ kind: "idle" }, overworld, base.min, stone),
-                base.max,
+              confirmEndpointHeight(
+                tapAir(
+                  tapBlock({ kind: "idle" }, overworld, base.min, stone),
+                  base.max,
+                ),
               ),
               kind,
             ),
@@ -407,9 +412,11 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
           const large = { ...base, max: { x: 100, y: 60, z: 100 } };
           const flow = setHeight(
             chooseHeighted(
-              tapAir(
-                tapBlock({ kind: "idle" }, overworld, large.min, stone),
-                large.max,
+              confirmEndpointHeight(
+                tapAir(
+                  tapBlock({ kind: "idle" }, overworld, large.min, stone),
+                  large.max,
+                ),
               ),
               kind,
             ),

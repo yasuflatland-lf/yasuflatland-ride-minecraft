@@ -63,8 +63,11 @@ export class BuildSession {
   }
   setFlow(flow: BuildFlow): void {
     this.currentFlow = flow;
-    // Two fast taps can finish a selection before the wand enter delay expires.
-    if (flow.kind === "selected" && !this.currentMode.active)
+    // Two fast taps can fix the selection base before the wand enter delay expires.
+    if (
+      (flow.kind === "baseHeight" || flow.kind === "selected") &&
+      !this.currentMode.active
+    )
       this.currentMode = { active: true, streak: 0 };
   }
   replaceSelection(selection: Selection): void {
