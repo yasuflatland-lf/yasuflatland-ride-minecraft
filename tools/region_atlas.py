@@ -1,10 +1,17 @@
 """Kind-neutral region registry, deterministic atlas packing, rendering and audits."""
 
 import math
-import random
+import sys
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Callable, Hashable
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+atlas_pack = load_tool("atlas_pack")
 
 
 @dataclass(frozen=True)
@@ -25,6 +32,51 @@ class Placement:
 
 
 @dataclass(frozen=True)
+class TexelRect:
+    """Half-open texel cells [x0, x1) by [y0, y1)."""
+
+    x0: int
+    y0: int
+    x1: int
+    y1: int
+
+    @property
+    def area(self) -> int:
+        return max(0, self.x1 - self.x0) * max(0, self.y1 - self.y0)
+
+    def intersect(self, other: "TexelRect") -> "TexelRect | None":
+        rect = TexelRect(max(self.x0, other.x0), max(self.y0, other.y0),
+                         min(self.x1, other.x1), min(self.y1, other.y1))
+        return rect if rect.area else None
+
+
+@dataclass(frozen=True)
+class AtlasImage:
+    width: int
+    height: int
+    pixels: bytes
+
+    def __post_init__(self):
+        if len(self.pixels) != self.width * self.height * 4:
+            raise ValueError("Atlas RGBA bytes must match its dimensions")
+
+    def alpha_bounds(self, rect: TexelRect) -> TexelRect | None:
+        clipped = rect.intersect(TexelRect(0, 0, self.width, self.height))
+        if clipped is None:
+            return None
+        x0, y0, x1, y1 = clipped.x1, clipped.y1, clipped.x0, clipped.y0
+        for y in range(clipped.y0, clipped.y1):
+            for x in range(clipped.x0, clipped.x1):
+                if self.pixels[(y * self.width + x) * 4 + 3] > 0:
+                    x0, y0 = min(x0, x), min(y0, y)
+                    x1, y1 = max(x1, x + 1), max(y1, y + 1)
+        return TexelRect(x0, y0, x1, y1) if x0 < x1 and y0 < y1 else None
+
+    def is_clear(self, rect: TexelRect) -> bool:
+        return self.alpha_bounds(rect) is None
+
+
+@dataclass(frozen=True)
 class UvRect:
     u: float
     v: float
@@ -42,6 +94,18 @@ class UvRect:
             -self.w if placement.flip_x else self.w,
             -self.h if placement.flip_y else self.h,
         )
+
+    def texels(self) -> TexelRect:
+        def axis(origin, size):
+            if size == 0:
+                start = math.floor(round(origin, 6))
+                return start, start + 1
+            start = math.floor(round(min(origin, origin + size), 6))
+            return start, max(start + 1, math.ceil(round(max(origin, origin + size), 6)))
+
+        x0, x1 = axis(self.u, self.w)
+        y0, y1 = axis(self.v, self.h)
+        return TexelRect(x0, y0, x1, y1)
 
     def apply(self, face: dict) -> None:
         face['uv'] = [self.u, self.v]
@@ -143,59 +207,6 @@ class Layout:
         self._faces.append((name, face))
 
 
-# The spike searched these widths and orders; dimensions remain unconstrained.
-PACK_WIDTHS = (416, 448, 480, 512, 576, 640, 704, 768, 896, 1024)
-PACK_SEED = 27729
-PACK_RANDOM_ORDERS = 40
-PACK_ORDER_WEIGHT_RANGE = (0.65, 1.4)
-
-
-def _overlap(a, b):
-    x, y, w, h = a
-    xx, yy, ww, hh = b
-    return x < xx + ww and xx < x + w and y < yy + hh and yy < y + h
-
-
-def _contains(a, b):
-    x, y, w, h = a
-    xx, yy, ww, hh = b
-    return x <= xx and y <= yy and xx + ww <= x + w and yy + hh <= y + h
-
-
-def _attempt(sizes, width, height, order, mode):
-    free = [(0, 0, width, height)]
-    placed = {}
-    for i in order:
-        w, h = sizes[i]
-        choices = []
-        for x, y, fw, fh in free:
-            if w <= fw and h <= fh:
-                score = ((min(fw - w, fh - h), max(fw - w, fh - h), y, x)
-                         if mode == 0 else (y + h, x, fw * fh - w * h))
-                choices.append((score, x, y))
-        if not choices:
-            return None
-        _, x, y = min(choices)
-        rect = (x, y, w, h)
-        placed[i] = rect
-        remaining = []
-        for a, b, c, d in free:
-            if not _overlap((a, b, c, d), rect):
-                remaining.append((a, b, c, d))
-                continue
-            if a < x:
-                remaining.append((a, b, x - a, d))
-            if x + w < a + c:
-                remaining.append((x + w, b, a + c - x - w, d))
-            if b < y:
-                remaining.append((a, b, c, y - b))
-            if y + h < b + d:
-                remaining.append((a, y + h, c, b + d - y - h))
-        unique = sorted(set(remaining))
-        free = [a for a in unique if not any(a != b and _contains(b, a) for b in unique)]
-    return placed
-
-
 def _pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = None) -> Layout:
     if type(gutter_px) is not int or gutter_px < 0:
         raise ValueError("Gutter must be a nonnegative texel count")
@@ -204,54 +215,12 @@ def _pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = N
     regions = sorted(registry.regions(), key=lambda r: r.name)
     if not regions:
         raise ValueError("Cannot pack an empty registry")
-    sizes = [(r.width + gutter_px, r.height + gutter_px) for r in regions]
-    orders = []
-    for key in (lambda s: math.prod(s), max, lambda s: s[1], lambda s: s[0], sum):
-        orders.append(sorted(range(len(sizes)), key=lambda i: key(sizes[i]), reverse=True))
-    rng = random.Random(PACK_SEED)
-    for _ in range(PACK_RANDOM_ORDERS):
-        scores = [math.prod(s) * rng.uniform(*PACK_ORDER_WEIGHT_RANGE) for s in sizes]
-        orders.append(sorted(range(len(sizes)), key=lambda i: scores[i], reverse=True))
-    area = sum(math.prod(s) for s in sizes)
-    min_width = max(w for w, _ in sizes)
-    widths = sorted({min_width, max(min_width, math.ceil(math.sqrt(area))),
-                     *(w for w in PACK_WIDTHS if w >= min_width)})
-    if max_side is not None:
-        # Minimum area alone can pick a tall narrow atlas that exceeds a texture limit.
-        # Packing includes a trailing gutter that is omitted from the final atlas.
-        limit = max_side + gutter_px
-        widths = sorted({*widths, *range(min_width, limit + 1, 64), limit})
-        widths = [w for w in widths if w <= limit]
-    best = None
-    for width in widths:
-        low = max(max(h for _, h in sizes), math.ceil(area / width))
-        high = sum(h for _, h in sizes)
-        if max_side is not None:
-            high = min(high, limit)
-        while low <= high:
-            height = (low + high) // 2
-            found = None
-            for order in orders:
-                for mode in (0, 1):
-                    found = _attempt(sizes, width, height, order, mode)
-                    if found is not None:
-                        break
-                if found is not None:
-                    break
-            if found is None:
-                low = height + 1
-                continue
-            used_w = max(x + w for x, y, w, h in found.values()) - gutter_px
-            used_h = max(y + h for x, y, w, h in found.values()) - gutter_px
-            origins = tuple(found[i][:2] for i in range(len(regions)))
-            candidate = (used_w * used_h, used_w, used_h, origins)
-            if best is None or candidate < best:
-                best = candidate
-            high = height - 1
-    if best is None:
-        raise ValueError(f"Regions do not fit within a {max_side} by {max_side} atlas")
-    _, width, height, origins = best
-    layout = Layout(regions, (width, height), {r.name: Placement(*origin) for r, origin in zip(regions, origins)})
+    request = atlas_pack.PackRequest(
+        tuple(atlas_pack.Size(r.width + gutter_px, r.height + gutter_px) for r in regions),
+        gutter_px, max_side)
+    result = atlas_pack.search(request)
+    layout = Layout(regions, result.size,
+                    {r.name: Placement(*origin) for r, origin in zip(regions, result.origins)})
     registry._layout = layout
     return layout
 
@@ -381,12 +350,12 @@ def audit(layout: Layout, atlas) -> list[str]:
     for region in layout.regions:
         placement = layout.placement(region.name)
         x, y = placement.x, placement.y
-        rect = (x, y, region.width, region.height)
+        rect = atlas_pack.Rect(x, y, region.width, region.height)
         if x < 0 or y < 0 or x + region.width > width or y + region.height > height:
             errors.append(f"{region.name}: outside atlas")
         for name, other in rectangles:
             shared = layout._shared.get(region.name, region.name) == layout._shared.get(name, name)
-            if _overlap(rect, other) and not (rect == other and shared):
+            if rect.overlaps(other) and not (rect == other and shared):
                 errors.append(f"{region.name}: overlaps {name}")
         rectangles.append((region.name, rect))
         expected = _oriented_rows(_pixel_rows(layout, region), placement.flip_x, placement.flip_y)
@@ -421,12 +390,12 @@ def audit(layout: Layout, atlas) -> list[str]:
         if not (0 <= round(min(endpoints[0::2]), 6) <= round(max(endpoints[0::2]), 6) <= region.width
                 and 0 <= round(min(endpoints[1::2]), 6) <= round(max(endpoints[1::2]), 6) <= region.height):
             continue
-        # Include intersected texel cells for fractional and reversed rectangles;
-        # a collapsed axis samples one cell, clamped at the outer region edge.
-        u0 = min(region.width - 1, max(0, math.floor(round(min(local.u, local.u + local.w), 6))))
-        u1 = min(region.width, max(u0 + 1, math.ceil(round(max(local.u, local.u + local.w), 6))))
-        v0 = min(region.height - 1, max(0, math.floor(round(min(local.v, local.v + local.h), 6))))
-        v1 = min(region.height, max(v0 + 1, math.ceil(round(max(local.v, local.v + local.h), 6))))
+        # Clamp boundary samples to the owning region's outermost cell.
+        cells = local.texels()
+        u0 = min(region.width - 1, max(0, cells.x0))
+        u1 = min(region.width, max(u0 + 1, cells.x1))
+        v0 = min(region.height - 1, max(0, cells.y0))
+        v1 = min(region.height, max(v0 + 1, cells.y1))
         x0, x1 = (region.width - u1, region.width - u0) if placement.flip_x else (u0, u1)
         y0, y1 = (region.height - v1, region.height - v0) if placement.flip_y else (v0, v1)
         sample_x = math.floor(rect.u) if rect.w == 0 else placement.x + x0

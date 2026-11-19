@@ -161,6 +161,7 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
   expect(metadata.lit).toEqual([
     "head_lens",
     "lens_head",
+    "lens_tail",
     "lens_tail_glow",
     "lens_amber",
     "glow",
@@ -198,7 +199,7 @@ it("assigns material finishes and lights exactly the opaque lamp texels", () => 
       expect(image.pixels[p + 2]).toBeGreaterThan(220);
   }
   for (const r of metadata.litRegions) {
-    if (!metadata.lit.includes(r.name)) continue;
+    if (!metadata.lit.includes(r.name.split("_panel_")[0] ?? "")) continue;
     const original = metadata.fixedRegions.find(
       (region) => region.name === r.name,
     );
@@ -356,7 +357,7 @@ assert faces[0]["uv_size"] == faces[1]["uv_size"]
 it("reduces decoded colour storage by separating fixed and paint atlases", () => {
   const fixed = readRgbaPng(`${directory}scooter_fixed.png`);
   const paint = readRgbaPng(`${directory}scooter_paint.png`);
-  expect([fixed.width, fixed.height]).toEqual([1024, 908]);
+  expect([fixed.width, fixed.height]).toEqual([1024, 906]);
   expect([paint.width, paint.height]).toEqual([1168, 1992]);
   const before = 1754 * 1696 * 4 * 15;
   const after =

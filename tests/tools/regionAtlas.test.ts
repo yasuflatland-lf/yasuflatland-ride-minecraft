@@ -532,3 +532,128 @@ except ValueError as e:
     ),
   ).toBe("A tile's RGBA bytes must match its dimensions");
 });
+
+it("intersects half-open texel rectangles and measures their area", async () => {
+  expect(
+    await run(
+      `from dataclasses import astuple
+r = m.TexelRect(-2,1,4,5)
+intersection = r.intersect(m.TexelRect(1,-1,8,3))`,
+      "[r.area, astuple(intersection), intersection.area, r.intersect(m.TexelRect(4,1,6,5)), r.intersect(m.TexelRect(0,2,0,4)), m.TexelRect(0,0,0,3).area]",
+    ),
+  ).toEqual([24, [1, 1, 4, 3], 6, null, null, 0]);
+});
+
+it("preserves sampled cells under reversal and covers endpoint cells", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.tuple(
+        ...Array.from({ length: 4 }, () => fc.integer({ min: -160, max: 160 })),
+      ),
+      async ([a, b, c, d]) => {
+        expect(
+          await run(
+            `import math
+u,v,w,h = [n/8 for n in ${JSON.stringify([a, b, c, d])}]
+r = m.UvRect(u,v,w,h).texels()
+assert r == m.UvRect(u+w,v+h,-w,-h).texels()
+assert r == m.UvRect(u+w,v,-w,h).texels()
+assert r == m.UvRect(u,v+h,w,-h).texels()
+for start,span,lo,hi in ((u,w,r.x0,r.x1),(v,h,r.y0,r.y1)):
+    low,high = sorted((round(start,6),round(start+span,6)))
+    assert lo <= math.floor(low) < hi
+    # The upper edge is excluded when it lands exactly on a cell boundary.
+    last = math.floor(high) if high != int(high) or span == 0 else int(high)-1
+    assert lo <= last < hi`,
+            "True",
+          ),
+        ).toBe(true);
+      },
+    ),
+  );
+});
+
+it("samples exactly one cell on collapsed axes after rounding the origin", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.integer({ min: -20, max: 20 }),
+      fc.constantFrom(-0.0000001, 0, 0.25, 0.9999999),
+      fc.integer({ min: -20, max: 20 }),
+      async (base, offset, span) => {
+        expect(
+          await run(
+            `import math
+origin = ${base} + ${offset}
+x = m.UvRect(origin,2,0,${span}).texels()
+y = m.UvRect(2,origin,${span},0).texels()`,
+            "[x.x1-x.x0, y.y1-y.y0, x.x0 == math.floor(round(origin, 6)), y.y0 == math.floor(round(origin, 6))]",
+          ),
+        ).toEqual([1, 1, true, true]);
+      },
+    ),
+  );
+});
+
+it("rounds noncollapsed edges to six decimals before selecting cells", async () => {
+  expect(
+    await run(
+      `from dataclasses import astuple`,
+      "[astuple(m.UvRect(0.9999999,-1.0000001,2.0000002,2.0000002).texels()), astuple(m.UvRect(2,3,0.0000001,-0.0000001).texels())]",
+    ),
+  ).toEqual([
+    [1, -1, 3, 1],
+    [2, 3, 3, 4],
+  ]);
+});
+
+it("finds tight alpha bounds inside clipped queries and leaves only clear texels outside", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.array(fc.constantFrom(0, 0, 1, 128, 255), {
+        minLength: 20,
+        maxLength: 20,
+      }),
+      fc.tuple(
+        ...Array.from({ length: 4 }, () => fc.integer({ min: -3, max: 8 })),
+      ),
+      async (alphas, edges) => {
+        expect(
+          await run(
+            `alphas = ${JSON.stringify(alphas)}
+a,b,c,d = ${JSON.stringify(edges)}
+query = m.TexelRect(min(a,c),min(b,d),max(a,c),max(b,d))
+image = m.AtlasImage(5,4,bytes(channel for alpha in alphas for channel in (255,128,64,alpha)))
+bounds = image.alpha_bounds(query)
+opaque = [(x,y) for y in range(4) for x in range(5) if query.x0 <= x < query.x1 and query.y0 <= y < query.y1 and alphas[y*5+x] > 0]
+assert image.is_clear(query) == (not opaque)
+if bounds is None:
+    assert not opaque
+else:
+    assert max(0,query.x0) <= bounds.x0 < bounds.x1 <= min(5,query.x1)
+    assert max(0,query.y0) <= bounds.y0 < bounds.y1 <= min(4,query.y1)
+    assert all(bounds.x0 <= x < bounds.x1 and bounds.y0 <= y < bounds.y1 for x,y in opaque)
+    assert any(x == bounds.x0 for x,y in opaque)
+    assert any(x == bounds.x1-1 for x,y in opaque)
+    assert any(y == bounds.y0 for x,y in opaque)
+    assert any(y == bounds.y1-1 for x,y in opaque)`,
+            "True",
+          ),
+        ).toBe(true);
+      },
+    ),
+  );
+});
+
+it("validates RGBA byte lengths and accepts clear and empty images", async () => {
+  expect(
+    await run(
+      `rejected = []
+for length in (0,15,17):
+    try: m.AtlasImage(2,2,bytes(length))
+    except ValueError: rejected.append(length)
+image = m.AtlasImage(2,2,bytes(16))
+empty = m.AtlasImage(0,0,b'')`,
+      "[rejected,image.is_clear(m.TexelRect(-1,-1,3,3)),empty.alpha_bounds(m.TexelRect(0,0,1,1))]",
+    ),
+  ).toEqual([[0, 15, 17], true, null]);
+});

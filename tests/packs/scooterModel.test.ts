@@ -5,6 +5,7 @@ import {
   boneCubes,
   cubeBounds,
   loadScooterGeo,
+  runWithScooterBuild,
 } from "../tools/helpers/scooterGeo";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
@@ -118,14 +119,14 @@ const cubes = geometry.bones.flatMap((b) => b.cubes ?? []);
 
 beforeAll(async () => {
   metadata = JSON.parse(
-    await python.run(`${setup}
+    await runWithScooterBuild(`${setup}
 merged=k.AreaCubes()
 for name in g.AREA_ORDER:
     merged.merge(load_tool('scooter_'+name).build())
 a=load_tool('scooter_atlas')
 regions=a.REGISTRY._regions
-fixed=g.pack_regions(r for r in regions.values() if r.material!=a.Material.PAINT)
-paint=g.pack_regions(r for r in regions.values() if r.material==a.Material.PAINT)
+fixed=built.fixed.layout
+paint=built.paint.layout
 for cs in merged.values():
     for cube in cs:
         for face in cube['uv'].values():
