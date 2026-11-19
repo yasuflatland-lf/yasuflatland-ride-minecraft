@@ -16,6 +16,7 @@ import {
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
@@ -49,7 +50,7 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
   const players = new FakeBuildPlayers();
   const source = boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 3 });
   const clipboard = structureClipboard(source, () => stone, store);
-  session.completeCopy(overworld, source, clipboard);
+  session.completeCopy(selectionOf(overworld, source, stone), clipboard);
   const facing = (["east", "south", "west", "north"] as const)[turn];
   session.followPasteFacing(facing);
   store.calls.length = 0;
@@ -219,7 +220,10 @@ it("resets the turn on New copy, a completed copy and End pasting", () => {
           const e = setup(block, turn);
           if (action === "newCopy") new NewCopy(e.repo).execute(playerId);
           if (action === "completeCopy")
-            e.session.completeCopy(overworld, e.source, e.clipboard);
+            e.session.completeCopy(
+              selectionOf(overworld, e.source, stone),
+              e.clipboard,
+            );
           if (action === "endPasting")
             new EndPasting(e.repo, e.store).execute(playerId);
           expect(e.session.pasteTurn).toBe(0);

@@ -8,8 +8,10 @@ import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
+import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerPasteControls } from "../../../src/infrastructure/build/bedrock/handlers/pasteControls";
@@ -75,8 +77,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const cell = { x: 0, y: 60, z: 0 };
   if (active)
     session.completeCopy(
-      nether,
-      boxOf(cell, cell),
+      selectionOf(nether, boxOf(cell, cell), AIR),
       structureClipboard(boxOf(cell, cell), undefined, structures),
     );
   structures.calls.length = 0;

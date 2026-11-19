@@ -16,6 +16,7 @@ import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard"
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
   asDimensionId,
@@ -805,9 +806,11 @@ function setupRotate() {
   const cell = { x: 0, y: 60, z: 0 };
   e.session.setFlow(
     beginRotateMode(
-      nether,
-      boxOf(cell, { ...cell, x: 2, z: 4 }),
-      blockStateOf("minecraft:stone"),
+      selectionOf(
+        nether,
+        boxOf(cell, { ...cell, x: 2, z: 4 }),
+        blockStateOf("minecraft:stone"),
+      ),
       1,
     ),
   );
@@ -859,9 +862,11 @@ it("rechecks rotate mode before a deferred block interaction", () => {
   });
   e.session.setFlow(
     beginRotateMode(
-      nether,
-      boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 2 }),
-      blockStateOf("minecraft:stone"),
+      selectionOf(
+        nether,
+        boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 2 }),
+        blockStateOf("minecraft:stone"),
+      ),
       1,
     ),
   );

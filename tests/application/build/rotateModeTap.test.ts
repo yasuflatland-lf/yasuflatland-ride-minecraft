@@ -9,6 +9,7 @@ import { boxOf, type CellBox, cellsOf } from "../../../src/domain/build/box";
 import type { BuildFlow } from "../../../src/domain/build/flow/flow";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
@@ -33,7 +34,7 @@ function setup(source: CellBox = box) {
   const players = new FakeBuildPlayers();
   const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
-  session.setFlow(beginRotateMode(overworld, source, stone, 1));
+  session.setFlow(beginRotateMode(selectionOf(overworld, source, stone), 1));
   const rotate = new RotateBox(repo, world, players, structures, feedback, log);
   const jobs = new EditJobs(repo, world, feedback, log, players, structures);
   return {
@@ -82,7 +83,7 @@ it("ignores absent sessions, every other flow, and rotation in another dimension
       op: "fillBelow",
     },
     { kind: "pasteAim", manualTurn: 0 },
-    beginRotateMode(nether, box, stone, 1),
+    beginRotateMode(selectionOf(nether, box, stone), 1),
   ];
   for (const flow of flows) {
     repo.getOrCreate(playerId).setFlow(flow);
@@ -113,9 +114,7 @@ it("three taps accumulate from turn one to zero and record three snapshots", () 
         expect(e.tap.execute(cmd)).toBe("rotated");
         expect(e.session.flow).toEqual(
           beginRotateMode(
-            overworld,
-            target,
-            stone,
+            selectionOf(overworld, target, stone),
             ((1 + step) % 4) as 0 | 1 | 2 | 3,
           ),
         );

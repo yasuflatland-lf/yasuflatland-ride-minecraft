@@ -7,6 +7,7 @@ import {
   volume,
 } from "../../src/domain/build/box";
 import type { Clipboard } from "../../src/domain/build/clipboard/clipboard";
+import { selectionOf } from "../../src/domain/build/selection";
 import type { BuildSession } from "../../src/domain/build/session";
 import type { Cell } from "../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../src/domain/shared/ids";
@@ -26,9 +27,12 @@ export function holdClipboard(
 ): void {
   const confirmed = session.confirmedBox;
   const flow = session.flow;
-  session.completeCopy(COPY_DIMENSION, boxOf(ORIGIN, ORIGIN), clipboard);
+  session.completeCopy(
+    selectionOf(COPY_DIMENSION, boxOf(ORIGIN, ORIGIN), AIR),
+    clipboard,
+  );
   session.clearSelection();
-  if (confirmed) session.confirmBox(confirmed.dimensionId, confirmed.box);
+  if (confirmed) session.confirmBox(confirmed);
   session.setFlow(flow);
 }
 

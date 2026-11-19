@@ -2,7 +2,9 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
+import { AIR } from "../../../src/domain/build/blockState";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -27,7 +29,7 @@ it("stores the passed facing in the clipboard", () => {
           feedback,
           { facingOf: () => facing },
         );
-        repo.getOrCreate(playerId).confirmBox(overworld, box);
+        repo.getOrCreate(playerId).confirmBox(selectionOf(overworld, box, AIR));
         action.execute({ playerId });
         expect(repo.get(playerId)?.clipboard?.facing).toBe(facing);
       },

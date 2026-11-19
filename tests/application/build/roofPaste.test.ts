@@ -168,6 +168,7 @@ it("confirms roof cells and retains their bounding box for copying", () => {
         });
         expect(e.session.flow).toEqual({ kind: "idle" });
         expect(e.session.confirmedBox).toEqual({
+          material: stone,
           dimensionId: overworld,
           box: { min: base.min, max: { ...base.max, y: 64 + height - 1 } },
         });
@@ -391,6 +392,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
         });
         expect(e.session.flow).toEqual({ kind: "idle" });
         expect(e.session.confirmedBox).toEqual({
+          material: stone,
           dimensionId: overworld,
           box: {
             min: base.min,

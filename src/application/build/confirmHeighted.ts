@@ -1,5 +1,6 @@
 import { planHeighted } from "../../domain/build/edit/plan";
 import { finishHeightStep, heightStepBox } from "../../domain/build/flow/flow";
+import { selectionOf } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { placementOf } from "../../domain/build/volume/geometry";
 import {
@@ -38,7 +39,9 @@ export class ConfirmHeighted {
     const count = placementOf(spec.kind).count(spec, cmd.fill);
     if (!beginCheckedEdit(session, this.feedback, cmd.playerId, count)) return;
     session.setFlow(finishHeightStep(flow, hollow));
-    session.confirmBox(flow.dimensionId, heightStepBox(flow));
+    session.confirmBox(
+      selectionOf(flow.dimensionId, heightStepBox(flow), flow.material),
+    );
     this.jobs.start(
       cmd.playerId,
       flow.dimensionId,

@@ -16,6 +16,7 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
@@ -112,7 +113,11 @@ it("copies a base grown through any allowed height without beginning an edit", (
           min: base.min,
           max: { ...base.max, y: base.min.y + height - 1 },
         };
-        expect(e.session.confirmedBox).toEqual({ dimensionId: nether, box });
+        expect(e.session.confirmedBox).toEqual({
+          material: stone,
+          dimensionId: nether,
+          box,
+        });
         expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
         expect(e.session.clipboard?.size).toEqual({
           x: dx + 1,
@@ -153,7 +158,11 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
       e.choose.execute({ playerId, kind: "copy" });
       const box = boxOf(from, to);
       expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
-      expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
+      expect(e.session.confirmedBox).toEqual({
+        material: stone,
+        dimensionId: overworld,
+        box,
+      });
       expect(e.session.clipboard?.blockCount).toBe(volume(box));
       expect(e.session.clipboard?.contents.kind).toBe("structure");
       expect(e.feedback.messages.at(-1)).toEqual({
@@ -176,7 +185,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         const previous = boxOf(from, from);
         const clip = structureClipboard(previous, () => stone);
         holdClipboard(e.session, clip);
-        e.session.confirmBox(nether, previous);
+        e.session.confirmBox(selectionOf(nether, previous, stone));
         const size = BUILD_SPEC.maxCopyVolume + extra;
         if (path === "height") {
           e.session.setFlow({
@@ -191,7 +200,8 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
           });
         } else {
           const box = boxOf(from, { ...from, x: from.x + size - 1 });
-          if (path === "selection") e.session.confirmBox(overworld, box);
+          if (path === "selection")
+            e.session.confirmBox(selectionOf(overworld, box, stone));
           else e.session.setFlow(endpoint(box.min, box.max));
         }
         const flow = e.session.flow;
@@ -305,7 +315,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
       );
       const old = structureClipboard(boxOf(from, from), () => stone);
       for (const flow of flows) {
-        e.session.confirmBox(overworld, box);
+        e.session.confirmBox(selectionOf(overworld, box, stone));
         holdClipboard(e.session, old);
         e.session.setFlow(flow);
         copy.execute({ playerId });
@@ -321,7 +331,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
           ...from,
           x: from.x + BUILD_SPEC.maxCopyVolume,
         });
-        e.session.confirmBox(overworld, oversized);
+        e.session.confirmBox(selectionOf(overworld, oversized, stone));
         e.session.setFlow(flow);
         const clipboard = e.session.clipboard;
         const confirmed = e.session.confirmedBox;

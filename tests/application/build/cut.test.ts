@@ -12,6 +12,7 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -71,8 +72,7 @@ it("captures the whole box twice before removing anything and records a snapshot
         expect(
           e.cut.execute({
             playerId,
-            dimensionId: overworld,
-            box: box,
+            selection: selectionOf(overworld, box, stone),
             facing: "east",
           }),
         ).toBe(true);
@@ -89,7 +89,11 @@ it("captures the whole box twice before removing anything and records a snapshot
           facing: "east",
           contents: { kind: "structure", handle: clipboard },
         });
-        expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
+        expect(e.session.confirmedBox).toEqual({
+          material: stone,
+          dimensionId: overworld,
+          box,
+        });
         expect(e.feedback.undoHints).toEqual([]);
         expect(e.session.flow.kind).toBe("pasteAim");
         expect(e.session.isEditing).toBe(false);
@@ -109,10 +113,18 @@ it("captures the whole box twice before removing anything and records a snapshot
 it("discards the old clipboard and retains its snapshot only after clearing succeeds", () => {
   const e = setup();
   const box = boxOf(origin, origin);
-  e.cut.execute({ playerId, dimensionId: overworld, box: box, facing: "east" });
+  e.cut.execute({
+    playerId,
+    selection: selectionOf(overworld, box, stone),
+    facing: "east",
+  });
   const [clipboard, snapshot] = [...e.structures.live];
   e.structures.calls.length = 0;
-  e.cut.execute({ playerId, dimensionId: overworld, box: box, facing: "east" });
+  e.cut.execute({
+    playerId,
+    selection: selectionOf(overworld, box, stone),
+    facing: "east",
+  });
   expect(e.structures.calls.map((c) => c.kind)).toEqual([
     "capture",
     "capture",
@@ -136,7 +148,7 @@ it.each(["tooLarge", "unreadable"] as const)(
       const e = setup();
       const box = boxOf(origin, origin);
       const clipboard = structureClipboard(box, () => stone);
-      e.session.completeCopy(overworld, box, clipboard);
+      e.session.completeCopy(selectionOf(overworld, box, stone), clipboard);
       e.session.beginEdit();
       const record = {
         dimensionId: overworld,
@@ -151,8 +163,7 @@ it.each(["tooLarge", "unreadable"] as const)(
       expect(
         e.cut.execute({
           playerId,
-          dimensionId: overworld,
-          box: box,
+          selection: selectionOf(overworld, box, stone),
           facing: "east",
         }),
       ).toBe(false);
@@ -184,8 +195,7 @@ it("refuses the entire box when any cell is protected", () => {
       expect(
         e.cut.execute({
           playerId,
-          dimensionId: overworld,
-          box: box,
+          selection: selectionOf(overworld, box, stone),
           facing: "east",
         }),
       ).toBe(false);
@@ -208,8 +218,7 @@ it("restores failed cuts without changing the session or discarding prior handle
         if (previousCut)
           e.cut.execute({
             playerId,
-            dimensionId: overworld,
-            box: oldBox,
+            selection: selectionOf(overworld, oldBox, stone),
             facing: "east",
           });
         const previousHandles = [...e.structures.live];
@@ -229,8 +238,7 @@ it("restores failed cuts without changing the session or discarding prior handle
         expect(
           e.cut.execute({
             playerId,
-            dimensionId: overworld,
-            box: box,
+            selection: selectionOf(overworld, box, stone),
             facing: "east",
           }),
         ).toBe(false);
@@ -291,8 +299,7 @@ it.each([false, true])(
     if (previousCut)
       e.cut.execute({
         playerId,
-        dimensionId: overworld,
-        box: box,
+        selection: selectionOf(overworld, box, stone),
         facing: "east",
       });
     const previousHandles = [...e.structures.live];
@@ -304,8 +311,7 @@ it.each([false, true])(
     expect(
       e.cut.execute({
         playerId,
-        dimensionId: overworld,
-        box: box,
+        selection: selectionOf(overworld, box, stone),
         facing: "east",
       }),
     ).toBe(true);
@@ -330,7 +336,11 @@ it.each([false, true])(
       kind: "structure",
       handle: clipboard,
     });
-    expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
+    expect(e.session.confirmedBox).toEqual({
+      material: stone,
+      dimensionId: overworld,
+      box,
+    });
     expect(e.session.takeUndo()).toEqual({
       kind: "snapshot",
       snapshot: { dimensionId: overworld, box, handle: snapshot },
@@ -357,7 +367,7 @@ it.each(["direct", "height"] as const)(
       );
       const box = boxOf(origin, origin);
       const clipboard = structureClipboard(box, () => stone);
-      e.session.completeCopy(overworld, box, clipboard);
+      e.session.completeCopy(selectionOf(overworld, box, stone), clipboard);
       const flow =
         path === "height"
           ? setHeight(
@@ -436,6 +446,7 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
           expect(e.session.isEditing).toBe(false);
           expect(e.structures.calls.at(-1)?.kind).toBe("clearBlocks");
           expect(e.session.confirmedBox).toEqual({
+            material: stone,
             dimensionId: overworld,
             box,
           });
@@ -453,8 +464,7 @@ it("accepts the copy-volume boundary even when the entire box is air", () => {
   expect(
     e.cut.execute({
       playerId,
-      dimensionId: overworld,
-      box: box,
+      selection: selectionOf(overworld, box, stone),
       facing: "east",
     }),
   ).toBe(true);

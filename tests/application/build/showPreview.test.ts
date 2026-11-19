@@ -8,7 +8,7 @@ import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteT
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
-import { blockStateOf } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
@@ -17,6 +17,7 @@ import {
   type Facing,
   facingVector,
 } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -138,7 +139,7 @@ it("draws only in build mode and on the interval, and clears the preview with th
   expect(feedback.previews).toHaveLength(1);
   feedback.previews.length = 0;
   new ClearSelection(repo, feedback).execute({ playerId: alex });
-  session.confirmBox(overworld, boxOf(cell, end));
+  session.confirmBox(selectionOf(overworld, boxOf(cell, end), AIR));
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
 });
@@ -463,8 +464,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
     fc.property(fc.boolean(), fc.nat({ max: 100 }), (hit, redraw) => {
       const { session, feedback, aim, preview } = setup();
       session.completeCopy(
-        overworld,
-        boxOf(cell, end),
+        selectionOf(overworld, boxOf(cell, end), AIR),
         structureClipboard(boxOf(cell, end), () => material),
       );
       session.setFlow({ kind: "pasteAim", manualTurn: 0 });
@@ -492,7 +492,7 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           z: cell.z + z - 1,
         });
         const clipboard = structureClipboard(box, () => material);
-        session.completeCopy(overworld, box, clipboard);
+        session.completeCopy(selectionOf(overworld, box, AIR), clipboard);
         aim.mockReturnValue(
           hit ? { ray, block: { cell: end, face: "up" } } : { ray },
         );
@@ -508,7 +508,11 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
             },
           },
         ]);
-        expect(session.confirmedBox).toEqual({ dimensionId: overworld, box });
+        expect(session.confirmedBox).toEqual({
+          material: AIR,
+          dimensionId: overworld,
+          box,
+        });
         if (hit) {
           expect(feedback.previews).toHaveLength(1);
           const set = feedback.previews[0]?.set;
@@ -534,8 +538,7 @@ it("outlines the rotated paste box at each heading", () => {
     fc.property(fc.constantFrom(0, 1, 2, 3), (turn) => {
       const { session, preview, feedback, aim } = setup();
       session.completeCopy(
-        overworld,
-        boxOf(cell, end),
+        selectionOf(overworld, boxOf(cell, end), AIR),
         structureClipboard(boxOf(cell, end)),
       );
       const facing = (["east", "south", "west", "north"] as const)[
@@ -567,7 +570,7 @@ it("outlines the rotated paste box at each heading", () => {
 it("draws the rotation box in its dimension without requiring an aim or modifying the mode", () => {
   const e = setup();
   const box = boxOf(cell, end);
-  const flow = beginRotateMode(nether, box, material, 2);
+  const flow = beginRotateMode(selectionOf(nether, box, material), 2);
   e.session.setFlow(flow);
   e.aim.mockReturnValue(undefined);
   e.preview.execute(0);
@@ -591,7 +594,7 @@ it.each([
   (turn, degrees) => {
     const { session, preview, feedback } = setup();
     session.setFlow(
-      beginRotateMode(overworld, boxOf(cell, end), material, turn),
+      beginRotateMode(selectionOf(overworld, boxOf(cell, end), material), turn),
     );
     const show = vi.spyOn(feedback, "showMode");
     preview.execute(1);
@@ -607,8 +610,7 @@ it.each([
 it("refreshes only the requested player's rotated paste between outline ticks", () => {
   const e = setup();
   e.session.completeCopy(
-    overworld,
-    boxOf(cell, end),
+    selectionOf(overworld, boxOf(cell, end), AIR),
     structureClipboard(boxOf(cell, end)),
   );
   e.aim.mockReturnValue({ ray, block: { cell, face: "up" } });
@@ -645,7 +647,7 @@ it("shows the effective degrees for every facing and manual turn, including air 
       (copied, gaze, manualTurn, hit) => {
         const e = setup();
         const box = boxOf(cell, end);
-        e.session.completeCopy(overworld, box, {
+        e.session.completeCopy(selectionOf(overworld, box, AIR), {
           ...structureClipboard(box),
           facing: copied,
         });

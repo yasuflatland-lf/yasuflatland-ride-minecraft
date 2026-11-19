@@ -14,6 +14,7 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
@@ -32,7 +33,7 @@ function setup(from: { x: number; y: number; z: number }) {
   const feedback = new FakeFeedback();
   const box = boxOf(from, from);
   const old = structureClipboard(box, () => stone);
-  session.completeCopy(overworld, box, old);
+  session.completeCopy(selectionOf(overworld, box, stone), old);
   session.setFlow({
     kind: "pasteAim",
     manualTurn: 0,
