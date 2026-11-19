@@ -1,4 +1,5 @@
 import { AIR } from "../../domain/build/blockState";
+import { uniformPattern } from "../../domain/build/edit/pattern";
 import { planFillBelow, planShape } from "../../domain/build/edit/plan";
 import { backToAiming } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -68,7 +69,7 @@ export class ConfirmTerrain {
             BUILD_SPEC.worldBottomY,
           )
         : box
-          ? planShape(shapeOf(box.min, box.max), "fill", { state: AIR })
+          ? planShape(shapeOf(box.min, box.max), "fill", uniformPattern(AIR))
           : [],
       "irreversible",
     );

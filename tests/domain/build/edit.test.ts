@@ -14,6 +14,7 @@ import {
   BUILD_KEPT_BLOCKS,
   isKeptState,
 } from "../../../src/domain/build/edit/guard";
+import { uniformPattern } from "../../../src/domain/build/edit/pattern";
 import { planHeighted, planShape } from "../../../src/domain/build/edit/plan";
 import { roofCount } from "../../../src/domain/build/roof/roof";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
@@ -42,10 +43,34 @@ describe("edit planning", () => {
   it("fill yields exactly the box cells with the pattern", () => {
     fc.assert(
       fc.property(smallBox, stateArb, (box, state) => {
-        const plan = [...planShape({ kind: "box", box }, "fill", { state })];
+        const plan = [
+          ...planShape({ kind: "box", box }, "fill", uniformPattern(state)),
+        ];
         expect(keys(plan.map((c) => c.cell))).toEqual(keys(cellsOf(box)));
         expect(plan.every((c) => c.after === state)).toBe(true);
       }),
+    );
+  });
+
+  it("applies a uniform state to every cell of a heighted plan", () => {
+    fc.assert(
+      fc.property(
+        smallBox,
+        fc.integer({ min: 1, max: 8 }),
+        stateArb,
+        (box, height, state) => {
+          const base = boxOf(box.min, { ...box.max, y: box.min.y });
+          const plan = [
+            ...planHeighted(
+              { kind: "cube", base, height },
+              "fill",
+              uniformPattern(state),
+            ),
+          ];
+          expect(plan.length).toBeGreaterThan(0);
+          expect(plan.every(({ after }) => after === state)).toBe(true);
+        },
+      ),
     );
   });
 
@@ -121,9 +146,14 @@ it("roof plans have exactly the roof count and selected material", () => {
           base: boxOf(box.min, { ...box.max, y: box.min.y }),
           height,
           kind,
+          style: "stepped" as const,
         };
         const plan = [
-          ...planHeighted(spec, hollow ? "hollow" : "fill", { state }),
+          ...planHeighted(
+            spec,
+            hollow ? "hollow" : "fill",
+            uniformPattern(state),
+          ),
         ];
         expect(plan).toHaveLength(roofCount(spec, hollow));
         expect(plan.every((change) => change.after === state)).toBe(true);

@@ -4,6 +4,7 @@ import {
   AIR,
   blockStateOf,
   sameBlockState,
+  sameBlockStateIgnoringDerived,
 } from "../../../src/domain/build/blockState";
 import {
   boxOf,
@@ -159,6 +160,37 @@ describe("BlockState", () => {
     expect(
       sameBlockState(blockStateOf("a:b", { k: 1 }), blockStateOf("a:b")),
     ).toBe(false);
+  });
+
+  it("ignores derived corner values and their absence", () => {
+    const corners = fc.constantFrom("none", "inner_left", "outer_right");
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 3 }),
+        fc.boolean(),
+        corners,
+        corners,
+        (direction, upsideDown, firstCorner, secondCorner) => {
+          const typeId = "minecraft:oak_stairs";
+          const states = {
+            weirdo_direction: direction,
+            upside_down_bit: upsideDown,
+          };
+          const base = blockStateOf(typeId, states);
+          const first = blockStateOf(typeId, {
+            ...states,
+            "minecraft:corner": firstCorner,
+          });
+          const second = blockStateOf(typeId, {
+            ...states,
+            "minecraft:corner": secondCorner,
+          });
+          expect(sameBlockStateIgnoringDerived(first, second)).toBe(true);
+          expect(sameBlockStateIgnoringDerived(base, first)).toBe(true);
+          expect(sameBlockStateIgnoringDerived(first, base)).toBe(true);
+        },
+      ),
+    );
   });
 });
 

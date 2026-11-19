@@ -1,6 +1,9 @@
 // Applies queued edit plans in chunks, one shared budget per tick (ADR 0178).
 
-import { sameBlockState } from "../../domain/build/blockState";
+import {
+  sameBlockState,
+  sameBlockStateIgnoringDerived,
+} from "../../domain/build/blockState";
 import {
   type AppliedChange,
   type EditKind,
@@ -194,7 +197,10 @@ export class EditJobs {
       if (job.kind === "undo") job.skipped++;
       return;
     }
-    if (change.expected && !sameBlockState(before, change.expected)) {
+    if (
+      change.expected &&
+      !sameBlockStateIgnoringDerived(before, change.expected)
+    ) {
       if (!sameBlockState(before, change.after)) job.skipped++;
       return;
     }

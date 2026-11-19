@@ -1,7 +1,12 @@
 import type { Cell } from "../../shared/cells";
 import { type CellBox, sizeOf } from "../box";
+import type { Facing } from "../rotation/facing";
 
 export type RoofKind = "gable" | "hip";
+export type RoofStyle = "stepped" | "stair";
+export type RoofSlope =
+  | { readonly kind: "slope"; readonly descends: Facing }
+  | { readonly kind: "ridge" };
 
 export function isRoofKind(kind: string): kind is RoofKind {
   return kind === "gable" || kind === "hip";
@@ -11,6 +16,7 @@ export interface RoofSpec {
   readonly base: CellBox;
   readonly kind: RoofKind;
   readonly height: number;
+  readonly style: RoofStyle;
 }
 
 interface Rectangle {
@@ -32,13 +38,22 @@ export function maxRoofHeight(base: CellBox, worldTopY?: number): number {
   );
 }
 
+function maxInset(sx: number, sz: number): number {
+  return Math.floor((Math.min(sx, sz) - 1) / 2);
+}
+
+/** Height at which every layer steps in by exactly one cell: floor((min(sx, sz) - 1) / 2) + 1. */
+export function stairRoofHeight(base: CellBox): number {
+  const { x, z } = sizeOf(base);
+  return maxInset(x, z) + 1;
+}
+
 function layerAt(spec: RoofSpec, layer: number): Rectangle {
   const { base, kind, height } = spec;
   const { x: sx, z: sz } = sizeOf(base);
   // An even square ends in a 2x2 apex: a single cell cannot preserve symmetry.
   const inset = Math.round(
-    (height === 1 ? 0 : layer / (height - 1)) *
-      Math.floor((Math.min(sx, sz) - 1) / 2),
+    (height === 1 ? 0 : layer / (height - 1)) * maxInset(sx, sz),
   );
   const dx = kind === "hip" || sx < sz ? inset : 0;
   const dz = kind === "hip" || sx >= sz ? inset : 0;
@@ -50,14 +65,37 @@ function layerAt(spec: RoofSpec, layer: number): Rectangle {
   };
 }
 
+/** Precondition: `cell` is one of roofCells(spec, false). */
+export function roofSlopeAt(spec: RoofSpec, cell: Cell): RoofSlope {
+  const { x: sx, z: sz } = sizeOf(spec.base);
+  const slopesX = spec.kind === "hip" || sx < sz;
+  const slopesZ = spec.kind === "hip" || sx >= sz;
+  const { minX, maxX, minZ, maxZ } = layerAt(spec, cell.y - spec.base.min.y);
+  if ((slopesX && minX === maxX) || (slopesZ && minZ === maxZ)) {
+    return { kind: "ridge" };
+  }
+
+  const west = slopesX ? cell.x - minX : Infinity;
+  const east = slopesX ? maxX - cell.x : Infinity;
+  const north = slopesZ ? cell.z - minZ : Infinity;
+  const south = slopesZ ? maxZ - cell.z : Infinity;
+  const nearest = Math.min(west, east, north, south);
+  if (west === nearest) return { kind: "slope", descends: "west" };
+  if (east === nearest) return { kind: "slope", descends: "east" };
+  if (north === nearest) return { kind: "slope", descends: "north" };
+  return { kind: "slope", descends: "south" };
+}
+
 function interiorAt(
   spec: RoofSpec,
   layer: number,
   current: Rectangle,
 ): Rectangle | undefined {
-  if (layer === 0 || layer === spec.height - 1) return undefined;
+  if (layer === spec.height - 1 || (layer === 0 && spec.style === "stepped")) {
+    return undefined;
+  }
   const above = layerAt(spec, layer + 1);
-  // Nested layers guarantee the neighbour below; only the sides and above constrain the interior.
+  // Layers above the eaves have a neighbour below because the rectangles nest.
   return {
     minX: Math.max(current.minX + 1, above.minX),
     maxX: Math.min(current.maxX - 1, above.maxX),
