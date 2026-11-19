@@ -4,6 +4,7 @@ import {
   createVehicle,
   profileOf,
 } from "../../../src/domain/vehicle/kinds/index";
+import { rollLevel } from "../../../src/domain/vehicle/kinds/scooter/lean";
 import { SCOOTER_SPEC } from "../../../src/domain/vehicle/kinds/scooter/spec";
 import { riderPoseOf } from "../../../src/domain/vehicle/riderPose";
 import { engineStep } from "../../support/engineModel";
@@ -16,28 +17,36 @@ it("matches the scooter pose table to its lean levels", () => {
     {
       grip: "scooter_grip",
       lean: [
+        "scooter_lean_l5",
+        "scooter_lean_l4",
         "scooter_lean_l3",
         "scooter_lean_l2",
         "scooter_lean_l1",
         "scooter_lean_r1",
         "scooter_lean_r2",
         "scooter_lean_r3",
+        "scooter_lean_r4",
+        "scooter_lean_r5",
       ],
     },
     {
       grip: "scooter_pillion_grip",
       lean: [
+        "scooter_pillion_lean_l5",
+        "scooter_pillion_lean_l4",
         "scooter_pillion_lean_l3",
         "scooter_pillion_lean_l2",
         "scooter_pillion_lean_l1",
         "scooter_pillion_lean_r1",
         "scooter_pillion_lean_r2",
         "scooter_pillion_lean_r3",
+        "scooter_pillion_lean_r4",
+        "scooter_pillion_lean_r5",
       ],
     },
   ]);
   for (const table of tables ?? []) {
-    expect(table.lean.length).toBe(2 * SCOOTER_SPEC.leanLevels);
+    expect(table.lean.length).toBe(2 * SCOOTER_SPEC.rollLevelAngles.length);
   }
 });
 it("drives both scooter riders through grip, stepped lean, departure and resync", () => {
@@ -76,7 +85,7 @@ it("drives both scooter riders through grip, stepped lean, departure and resync"
       angle = lean.value;
     const pose = riderPoseOf(
       seatTable,
-      Math.round((angle / SCOOTER_SPEC.maxLean) * SCOOTER_SPEC.leanLevels),
+      rollLevel(angle, SCOOTER_SPEC.rollLevelAngles),
     );
     if (tick <= 50) expect(pose).toBe("scooter_grip");
     const passengerPose = pose.replace("scooter_", "scooter_pillion_");

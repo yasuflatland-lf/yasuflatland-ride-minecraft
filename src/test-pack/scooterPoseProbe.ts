@@ -3,29 +3,41 @@ import { type Player, system } from "@minecraft/server";
 const SCOOTER_POSE_PROBE = {
   event: "yasu_ride_test:scooter_pose",
   searchRadius: 4,
-  blendOutTime: 0.15,
+  blendOutTime: 0,
   levels: {
     grip: "scooter_grip",
     "0": "scooter_grip",
     l1: "scooter_lean_l1",
-    l2: "scooter_lean_l2",
-    l3: "scooter_lean_l3",
     "-1": "scooter_lean_l1",
+    l2: "scooter_lean_l2",
     "-2": "scooter_lean_l2",
+    l3: "scooter_lean_l3",
     "-3": "scooter_lean_l3",
+    l4: "scooter_lean_l4",
+    "-4": "scooter_lean_l4",
+    l5: "scooter_lean_l5",
+    "-5": "scooter_lean_l5",
     r1: "scooter_lean_r1",
-    r2: "scooter_lean_r2",
-    r3: "scooter_lean_r3",
     "1": "scooter_lean_r1",
+    r2: "scooter_lean_r2",
     "2": "scooter_lean_r2",
+    r3: "scooter_lean_r3",
     "3": "scooter_lean_r3",
+    r4: "scooter_lean_r4",
+    "4": "scooter_lean_r4",
+    r5: "scooter_lean_r5",
+    "5": "scooter_lean_r5",
     pgrip: "scooter_pillion_grip",
     pl1: "scooter_pillion_lean_l1",
     pl2: "scooter_pillion_lean_l2",
     pl3: "scooter_pillion_lean_l3",
+    pl4: "scooter_pillion_lean_l4",
+    pl5: "scooter_pillion_lean_l5",
     pr1: "scooter_pillion_lean_r1",
     pr2: "scooter_pillion_lean_r2",
     pr3: "scooter_pillion_lean_r3",
+    pr4: "scooter_pillion_lean_r4",
+    pr5: "scooter_pillion_lean_r5",
   },
   controller: "yasu_ride.scooter_pose",
 } as const;
@@ -37,7 +49,7 @@ system.afterEvents.scriptEventReceive.subscribe((event) => {
   const level = event.message.trim();
   if (!Object.hasOwn(SCOOTER_POSE_PROBE.levels, level)) {
     player.sendMessage(
-      "[scooter_pose] Driver: grip (0), l1/l2/l3 (-1/-2/-3), r1/r2/r3 (1/2/3). Passenger: pgrip, pl1/pl2/pl3, pr1/pr2/pr3.",
+      "[scooter_pose] Driver: grip (0), l1 to l5 (-1 to -5), r1 to r5 (1 to 5). Passenger: pgrip, pl1 to pl5, pr1 to pr5.",
     );
     return;
   }

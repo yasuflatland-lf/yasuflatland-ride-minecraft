@@ -127,16 +127,24 @@
         "scooter_lean_l1": "animation.yasu_ride.player.scooter_lean_l1",
         "scooter_lean_l2": "animation.yasu_ride.player.scooter_lean_l2",
         "scooter_lean_l3": "animation.yasu_ride.player.scooter_lean_l3",
+        "scooter_lean_l4": "animation.yasu_ride.player.scooter_lean_l4",
+        "scooter_lean_l5": "animation.yasu_ride.player.scooter_lean_l5",
         "scooter_lean_r1": "animation.yasu_ride.player.scooter_lean_r1",
         "scooter_lean_r2": "animation.yasu_ride.player.scooter_lean_r2",
         "scooter_lean_r3": "animation.yasu_ride.player.scooter_lean_r3",
+        "scooter_lean_r4": "animation.yasu_ride.player.scooter_lean_r4",
+        "scooter_lean_r5": "animation.yasu_ride.player.scooter_lean_r5",
         "scooter_pillion_grip": "animation.yasu_ride.player.scooter_pillion_grip",
         "scooter_pillion_lean_l1": "animation.yasu_ride.player.scooter_pillion_lean_l1",
         "scooter_pillion_lean_l2": "animation.yasu_ride.player.scooter_pillion_lean_l2",
         "scooter_pillion_lean_l3": "animation.yasu_ride.player.scooter_pillion_lean_l3",
+        "scooter_pillion_lean_l4": "animation.yasu_ride.player.scooter_pillion_lean_l4",
+        "scooter_pillion_lean_l5": "animation.yasu_ride.player.scooter_pillion_lean_l5",
         "scooter_pillion_lean_r1": "animation.yasu_ride.player.scooter_pillion_lean_r1",
         "scooter_pillion_lean_r2": "animation.yasu_ride.player.scooter_pillion_lean_r2",
-        "scooter_pillion_lean_r3": "animation.yasu_ride.player.scooter_pillion_lean_r3"
+        "scooter_pillion_lean_r3": "animation.yasu_ride.player.scooter_pillion_lean_r3",
+        "scooter_pillion_lean_r4": "animation.yasu_ride.player.scooter_pillion_lean_r4",
+        "scooter_pillion_lean_r5": "animation.yasu_ride.player.scooter_pillion_lean_r5"
       },
       "render_controllers": [
         {
