@@ -496,7 +496,6 @@ if actual is not None:
   );
 });
 
-<<<<<<< HEAD
 const plainSlotFixture = `sys.path.insert(0, 'tests/tools/helpers')
 import reference_pack_shared
 
@@ -551,7 +550,7 @@ for module in (m, reference_pack_shared):
     ),
   ).toBe(true);
 });
-=======
+
 it.each([
   {
     reason: "removing a duplicate increases the packed area",
@@ -611,7 +610,6 @@ assert actual.placement(str(len(sizes))) == plain.placement(str(len(sizes) - 1))
     ).toEqual([plainSize, sharedSize]);
   },
 );
->>>>>>> 6cbb10fa4 (Skip the plain pack when the shared pack provably cannot lose)
 
 it("keeps shared representative slots when the plain pack ties on area", async () => {
   expect(
