@@ -921,23 +921,19 @@ it.each([
   expect(ui.forms).toHaveLength(1);
 });
 
-it("confirms Copy after the fallback slider without opening contents", async () => {
-  const { menus, player, cases, session } = setup(true);
-  ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "copy") },
-    { formValues: [7] },
-  );
-  cases.confirmBoxStep.execute.mockImplementation(() => {
-    expect(session.flow).toMatchObject({ heightedKind: "copy", previous: 7 });
-  });
-  await menus.showShapeMenu(player);
-  expect(ui.forms).toHaveLength(2);
-  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.copyTitle });
-  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
-});
+it.each(["copy", "cut"] as const)(
+  "enters paste aiming directly with %s when the fallback slider is enabled",
+  async (kind) => {
+    const { menus, player, cases, session } = setup(true);
+    ui.answers.push({
+      selection: shapeMenu(endpoint).findIndex((e) => e.id === kind),
+    });
+    await menus.showShapeMenu(player);
+    expect(session.flow.kind).toBe("pasteAim");
+    expect(ui.forms).toHaveLength(1);
+    expect(cases.confirmBoxStep.execute).not.toHaveBeenCalled();
+  },
+);
 
 it.each([
   ["line", { x: 4, y: 60, z: 0 }],
@@ -1093,27 +1089,9 @@ it("offers terrain entries only during the confirmation", () => {
   });
 });
 
-it("confirms Cut after the fallback slider without opening contents", async () => {
-  const { menus, player, cases, session } = setup(true);
-  ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "cut") },
-    { formValues: [7] },
-  );
-  cases.confirmBoxStep.execute.mockImplementation(() => {
-    expect(session.flow).toMatchObject({ heightedKind: "cut", previous: 7 });
-  });
-  await menus.showShapeMenu(player);
-  expect(ui.forms).toHaveLength(2);
-  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.cutTitle });
-  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
-});
-
-it("does not open contents or a slider for locked Copy", async () => {
+it("does not open contents or a slider for locked Rotate", async () => {
   const { menus, player, session } = setup(true);
-  const flow = chooseHeighted(endpoint, "copy");
+  const flow = chooseHeighted(endpoint, "rotate");
   if (flow.kind !== "heightStep") throw new Error("Expected height step");
   session.setFlow({ ...flow, heightLocked: true });
   await menus.showHeightSlider(player);

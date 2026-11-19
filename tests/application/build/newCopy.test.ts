@@ -126,7 +126,7 @@ it("acts only in paste aiming and never creates a missing session", () => {
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "rotate"),
       ]) {
         e.session.setFlow(flow);
         const confirmed = e.session.confirmedBox;

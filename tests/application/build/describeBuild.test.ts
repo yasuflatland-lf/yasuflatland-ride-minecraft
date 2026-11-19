@@ -64,7 +64,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           endpoint,
           openBuildMenu(endpoint),
           enterRotateMode(endpoint),
-          chooseHeighted(endpoint, "copy"),
+          chooseHeighted(endpoint, "rotate"),
           { kind: "pasteAim", manualTurn: 0 },
         ];
         for (const flow of flows) {

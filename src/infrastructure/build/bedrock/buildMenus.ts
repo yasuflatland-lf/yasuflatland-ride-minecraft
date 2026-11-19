@@ -51,10 +51,6 @@ function heightSliderTitle(kind: HeightStepKind): string {
   switch (kind) {
     case "rotate":
       return BUILD_FORM.rotateTitle;
-    case "cut":
-      return BUILD_FORM.cutTitle;
-    case "copy":
-      return BUILD_FORM.copyTitle;
     default:
       return isRoofKind(kind) ? BUILD_FORM.roofTitle : BUILD_FORM.solidTitle;
   }

@@ -549,24 +549,9 @@ export function buildRefusals(a: Arena): Promise<Outcome> {
   });
 }
 
-async function startPasteStep(
-  f: Fixture,
-  {
-    height,
-  }: {
-    height?: number;
-  } = {},
-): Promise<Reply> {
-  let copied = await f.menu("shape", "copy");
+async function startPasteStep(f: Fixture): Promise<Reply> {
+  const copied = await f.menu("shape", "copy");
   check(copied.offered === true, "Copy absent");
-  if (height !== undefined) {
-    check(copied.flow.kind === "heightStep", "Copy height step missing");
-    check(
-      (await f.edit(`height ${height}`)).flow.previous === height,
-      "Copy height not applied",
-    );
-    copied = await f.edit("confirmbox");
-  }
   check(
     copied.message === "copied" && copied.flow.kind === "pasteAim",
     "Copy did not enter paste aiming",
@@ -719,14 +704,11 @@ export function buildNewCopyReplaces(a: Arena): Promise<Outcome> {
     for (const cell of source) f.block(cell).setType("minecraft:gold_block");
     await f.tap("block");
     await checkState(f, "point1", true);
-    await f.tap("air", f.cell(1, 0, 1));
+    await f.tap("air", f.cell(1, 1, 1));
     await f.tap("fixHeight");
     await checkState(f, "selected", true);
-    await f.menu("shape", "copy");
-    await checkState(f, "heightStep", true);
-    await f.edit("height 2");
     const expected = snapshot(f, source);
-    await f.edit("confirmbox");
+    await startPasteStep(f);
     await checkState(f, "pasteAim", true);
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 2, 2);
     await pasteInto(f, target);
@@ -1037,19 +1019,17 @@ function pasteTarget(
 
 export function buildCopyShapes(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
-    for (const [sy, sz, heightStep] of [
-      [3, 3, false],
-      [3, 1, false],
-      [3, 3, true],
+    for (const [sy, sz] of [
+      [3, 3],
+      [3, 1],
+      [1, 3],
     ] as const) {
       const source = f.region(3, sy, sz);
       mixedSource(f, source);
-      await f.select(f.cell(2, heightStep ? 0 : sy - 1, sz - 1));
+      await f.select(f.cell(2, sy - 1, sz - 1));
       // Kept blocks and air both count toward the inclusive box volume.
       f.block(f.cell(1)).setType("minecraft:chest");
-      const copied = await startPasteStep(f, {
-        height: heightStep ? 3 : undefined,
-      });
+      const copied = await startPasteStep(f);
       check(copied.count === source.length, "Copy count wrong");
       const clipboard = (await f.state()).clipboard;
       check(
@@ -1471,6 +1451,7 @@ export function buildCutShapes(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     for (const [sx, sy, sz] of [
       [5, 1, 1],
+      [3, 1, 3],
       [3, 3, 1],
       [3, 3, 3],
     ] as const) {
@@ -1505,19 +1486,13 @@ export function buildCutHeight(a: Arena): Promise<Outcome> {
       (c) => !cells.some((s) => s.x === c.x && s.y === c.y && s.z === c.z),
     );
     const before = snapshot(f, outside);
-    await f.select(f.cell(2, 0, 2));
+    await f.select(f.cell(2, 2, 2));
+    const cut = await f.menu("shape", "cut");
     check(
-      (await f.menu("shape", "cut")).flow.kind === "heightStep",
-      "Cut height step missing",
-    );
-    check(
-      (await f.edit("height 3")).flow.previous === 3,
-      "Cut height not applied",
-    );
-    check(f.count(cells) === cells.length, "Cut wrote before confirmation");
-    check(
-      (await f.edit("confirmbox")).message === "editDoneCount",
-      "Height Cut did not finish",
+      cut.message === "editDoneCount" &&
+        cut.count === cells.length &&
+        cut.flow.kind === "pasteAim",
+      "Cut did not clear the selected three layers immediately",
     );
     check(
       f.count(cells, "minecraft:air") === cells.length,

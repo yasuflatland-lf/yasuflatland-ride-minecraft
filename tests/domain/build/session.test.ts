@@ -295,7 +295,7 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
     base: boxArb,
     from: cellArb,
     heightedKind: fc.constantFrom(
-      "copy" as const,
+      "rotate" as const,
       "cube" as const,
       "cylinder" as const,
       "sphere" as const,

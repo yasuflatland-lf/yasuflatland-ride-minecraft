@@ -189,7 +189,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "rotate"),
       ]) {
         e.session.setFlow(flow);
         expect(e.execute()).toBe("ignored");
@@ -359,7 +359,7 @@ it("place hints without starting a paste outside aiming or without a clipboard",
           { kind: "idle" } as const,
           first,
           endpoint,
-          chooseHeighted(endpoint, "copy"),
+          chooseHeighted(endpoint, "rotate"),
         ]) {
           e.session.setFlow(flow);
           expect(e.execute(sneaking, "place")).toBe("ignored");

@@ -257,7 +257,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "rotate"),
         beginPasteAim(),
       ]) {
         const e = setup();

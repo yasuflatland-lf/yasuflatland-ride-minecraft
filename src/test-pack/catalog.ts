@@ -1630,7 +1630,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_cut_shapes",
     file: "buildFlow",
-    ticks: 120,
+    ticks: 160,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,

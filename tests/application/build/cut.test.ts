@@ -1,19 +1,12 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
-import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import {
-  chooseHeighted,
-  setHeight,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { selectionOf } from "../../../src/domain/build/selection";
-import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
@@ -52,9 +45,6 @@ function setup() {
     structures,
     log,
     choose: new ChooseBoxStep(repo, actions, feedback, {
-      facingOf: () => "east",
-    }),
-    confirm: new ConfirmBoxStep(repo, actions, feedback, {
       facingOf: () => "east",
     }),
   };
@@ -359,68 +349,33 @@ it.each([false, true])(
   },
 );
 
-it.each(["direct", "height"] as const)(
-  "refuses oversized and busy %s cuts without changing selection or the old clipboard",
-  (path) => {
-    for (const refusal of ["tooLarge", "busy"] as const) {
-      const e = setup();
-      const end = { x: 1, y: 64, z: 1 };
-      const endpoint = confirmEndpointHeight(
-        tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
-      );
-      const box = boxOf(origin, origin);
-      const clipboard = structureClipboard(box, () => stone);
-      e.session.completeCopy(selectionOf(overworld, box, stone), clipboard);
-      const flow =
-        path === "height"
-          ? setHeight(
-              chooseHeighted(endpoint, "cut"),
-              refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
-            )
-          : confirmEndpointHeight(
-              tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), {
-                ...origin,
-                x: refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
-              }),
-            );
-      e.session.setFlow(flow);
-      const confirmed = e.session.confirmedBox;
-      if (refusal === "busy") e.session.beginEdit();
-      if (path === "height") e.confirm.execute({ playerId });
-      else e.choose.execute({ playerId, kind: "cut" });
-      expect(e.feedback.messages.at(-1)?.message).toBe(refusal);
-      expect(e.session.flow).toBe(flow);
-      expect(e.session.confirmedBox).toBe(confirmed);
-      expect(e.session.clipboard).toBe(clipboard);
-      expect(e.world.writes).toBe(0);
-      expect(e.structures.calls).toEqual([]);
-    }
+it.each(["tooLarge", "busy"] as const)(
+  "preserves the selection and old clipboard when Cut reports %s",
+  (refusal) => {
+    const e = setup();
+    const end = {
+      ...origin,
+      x: refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
+      z: 1,
+    };
+    const flow = confirmEndpointHeight(
+      tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
+    );
+    const previous = boxOf(origin, origin);
+    const clipboard = structureClipboard(previous, () => stone);
+    e.session.completeCopy(selectionOf(overworld, previous, stone), clipboard);
+    e.session.setFlow(flow);
+    const confirmed = e.session.confirmedBox;
+    if (refusal === "busy") e.session.beginEdit();
+    e.choose.execute({ playerId, kind: "cut" });
+    expect(e.feedback.messages.at(-1)?.message).toBe(refusal);
+    expect(e.session.flow).toBe(flow);
+    expect(e.session.confirmedBox).toBe(confirmed);
+    expect(e.session.clipboard).toBe(clipboard);
+    expect(e.structures.calls).toEqual([]);
   },
 );
-
-it("shares the upward height step and cuts immediately on confirmation", () => {
-  const e = setup();
-  const end = { x: 1, y: 64, z: 1 };
-  e.session.setFlow(
-    confirmEndpointHeight(
-      tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
-    ),
-  );
-  e.world.put({ ...origin, y: 66 }, stone);
-  e.choose.execute({ playerId, kind: "cut" });
-  expect(e.session.flow).toMatchObject({
-    kind: "heightStep",
-    heightedKind: "cut",
-    previous: 1,
-  });
-  expect(e.session.isEditing).toBe(false);
-  e.session.setFlow(setHeight(e.session.flow, 3));
-  e.confirm.execute({ playerId });
-  expect(e.structures.calls.at(-1)?.kind).toBe("clearBlocks");
-  expect(e.session.confirmedBox?.box.max.y).toBe(66);
-});
-
-it("cuts all other shapes directly and reserves height selection for horizontal rectangles", () => {
+it("cuts every selected shape directly", () => {
   fc.assert(
     fc.property(
       fc.record({
@@ -443,25 +398,16 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
           ),
         );
         e.choose.execute({ playerId, kind: "cut" });
-        const shape = shapeOf(origin, end);
-        if (shape.kind === "rect" && shape.flat === "y") {
-          expect(e.session.flow).toMatchObject({
-            kind: "heightStep",
-            heightedKind: "cut",
-          });
-          expect(e.session.isEditing).toBe(false);
-        } else {
-          expect(e.session.flow.kind).toBe("pasteAim");
-          expect(e.session.isEditing).toBe(false);
-          expect(e.structures.calls.at(-1)?.kind).toBe("clearBlocks");
-          expect(e.session.confirmedBox).toEqual({
-            material: stone,
-            dimensionId: overworld,
-            box,
-          });
-        }
-        if (!(shape.kind === "rect" && shape.flat === "y"))
-          expect(e.session.clipboard?.contents.kind).toBe("structure");
+        expect(e.session.flow.kind).toBe("pasteAim");
+        expect(e.session.isEditing).toBe(false);
+        expect(e.structures.calls.at(-1)?.kind).toBe("clearBlocks");
+        expect(e.session.confirmedBox).toEqual({
+          material: stone,
+          dimensionId: overworld,
+          box,
+        });
+
+        expect(e.session.clipboard?.contents.kind).toBe("structure");
       },
     ),
   );

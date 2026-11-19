@@ -10,4 +10,4 @@ Items other than vehicles, one page per group. Back to the [README](../../README
 | **Sports Boat Equipment**  | 1     | [Icebreaker Switch](sportsboat-equipment.md)                                                                                                 |
 | **Building Tools**         | 9     | [Selection Wand, Paste Rotate, Paste Place, Build Undo, Blade Up/Down, Wide Blade, Road Paver, Warp Tool, and Warp Block](building-tools.md) |
 
-The Selection Wand (Build Wand) works on foot or while riding. Choose Copy in the shape menu; a horizontal rectangle adds a height step, while other shapes copy immediately. Copy starts repeated gaze-aimed pasting; use the wand on air for paste controls. See [ADR 0203](../adr/0203-build-wand-paste-aiming.md) (Proposed).
+The Selection Wand (Build Wand) works on foot or while riding. Choosing Copy or Cut in the shape menu acts immediately on the selected box. Copy starts repeated gaze-aimed pasting; use the wand on air for paste controls. See [ADR 0203](../adr/0203-build-wand-paste-aiming.md) (Proposed).
