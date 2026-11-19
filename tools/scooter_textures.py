@@ -56,6 +56,7 @@ MER_BY_MATERIAL = {
     atlas.Material.CUTOUT: mer.Mer(CAST_METALNESS, 0, CAST_ROUGHNESS),
 }
 LIT_REGIONS = atlas.LIT_REGIONS
+is_lit_region = atlas.is_lit_region
 
 
 def _unique_regions(layout):
@@ -159,7 +160,7 @@ def write(outputs, rp, fixed_layout, fixed_pixels, layout, pixels, lit_layout, l
     width, height = lit_layout.size
     mask = bytearray(width * height)
     for region, placement in _unique_regions(lit_layout):
-        if region.name in LIT_REGIONS:
+        if is_lit_region(region.name):
             ox, oy = placement.x, placement.y
             for y in range(oy, oy + region.height):
                 for x in range(ox, ox + region.width):
