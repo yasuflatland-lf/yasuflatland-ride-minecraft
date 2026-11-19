@@ -272,6 +272,37 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
   );
 });
 
+it.each([
+  ["gable", { x: 2.5, y: 12.5, z: 0.5 }],
+  ["hip", { x: 2.5, y: 12.5, z: 2.5 }],
+] as const)(
+  "draws a locked stair %s wireframe at its fixed pitch",
+  (kind, ridge) => {
+    const box = boxOf({ x: 0, y: 10, z: 0 }, { x: 4, y: 15, z: 6 });
+    const flow = chooseHeighted(
+      {
+        kind: "selected",
+        menuLevel: "build",
+        selection: selectionOf(
+          dimensionId,
+          box,
+          blockStateOf("minecraft:oak_stairs", {
+            weirdo_direction: 0,
+            upside_down_bit: false,
+          }),
+        ),
+        from: box.min,
+        to: box.max,
+      },
+      kind,
+    );
+    const { roof } = previewPoints(flow, { blink: false, height: 8 });
+    expect(roof).toContainEqual(ridge);
+    expect(roof).toContainEqual({ x: 0.5, y: 10.5, z: 0.5 });
+    expect(Math.max(...roof.map((point) => point.y))).toBe(ridge.y);
+  },
+);
+
 it("draws a locked cylinder at the box height even when another height is aimed", () => {
   fc.assert(
     fc.property(

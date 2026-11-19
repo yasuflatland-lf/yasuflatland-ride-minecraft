@@ -2,9 +2,10 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import type {
-  EditKind,
-  PlannedChange,
+import {
+  type EditKind,
+  type PlannedChange,
+  undoPlan,
 } from "../../../src/domain/build/edit/change";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
@@ -53,6 +54,44 @@ function setup() {
   }
   return { repo, world, feedback, log, jobs, start };
 }
+
+describe("EditJobs undo expectations", () => {
+  it.each([
+    ["a derived corner change", "minecraft:oak_stairs", 0, true],
+    ["a different block type", "minecraft:birch_stairs", 0, false],
+    ["a different stair direction", "minecraft:oak_stairs", 1, false],
+  ] as const)("checks %s", (_label, typeId, direction, restored) => {
+    const e = setup();
+    const cell = { x: 0, y: 64, z: 0 };
+    const after = blockStateOf("minecraft:oak_stairs", {
+      "minecraft:corner": "none",
+      weirdo_direction: 0,
+    });
+    const current = blockStateOf(typeId, {
+      "minecraft:corner": "outer_right",
+      weirdo_direction: direction,
+    });
+    e.world.put(cell, current);
+    e.start(
+      alex,
+      undoPlan({
+        dimensionId: overworld,
+        changes: [{ cell, before: stone, after }],
+      }),
+      "undo",
+    );
+    e.jobs.step();
+
+    expect(e.world.stateAt(overworld, cell)).toEqual(
+      restored ? stone : current,
+    );
+    expect(e.feedback.messages).toEqual([
+      restored
+        ? { message: "undoDone", count: 1 }
+        : { message: "undoDonePartial", count: 0, skippedCount: 1 },
+    ]);
+  });
+});
 
 describe("EditJobs failure isolation", () => {
   it.each(["undo", "irreversible"] as const)(

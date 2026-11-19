@@ -31,6 +31,7 @@ import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
+import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
   fillStylesFor,
   type HeightedKind,
@@ -367,6 +368,50 @@ it("accepts every heighted kind only on its supported shapes", () => {
     ),
   );
 });
+
+it.each(["gable", "hip"] as const)(
+  "locks a stair %s to its pitch and keeps the original box for Undo",
+  (kind) => {
+    const min = { x: 0, y: BUILD_SPEC.worldTopY - 2, z: 0 };
+    const box = boxOf(min, { x: 4, y: min.y + 1, z: 6 });
+    const stair = blockStateOf("minecraft:oak_stairs", {
+      weirdo_direction: 3,
+      upside_down_bit: true,
+    });
+    const selected = {
+      kind: "selected",
+      menuLevel: "build",
+      selection: selectionOf(dim, box, stair),
+      from: box.min,
+      to: box.max,
+    } as const;
+    const flow = chooseHeighted(selected, kind);
+    expect(flow).toMatchObject({
+      kind: "heightStep",
+      base: boxWithHeight(box, 1),
+      selectionBefore: box,
+      heightLocked: true,
+      roofStyle: "stair",
+      previous: 3,
+    });
+    expect(setHeight(flow, 1)).toBe(flow);
+    expect(chooseHeighted(selected, "cube")).toMatchObject({ previous: 2 });
+    expect(chooseHeighted(selected, "cube")).not.toHaveProperty("roofStyle");
+
+    const aboveTop = {
+      ...selected,
+      selection: selectionOf(
+        dim,
+        {
+          min: { ...box.min, y: min.y + 1 },
+          max: { ...box.max, y: min.y + 1 },
+        },
+        stair,
+      ),
+    };
+    expect(chooseHeighted(aboveTop, kind)).toBe(aboveTop);
+  },
+);
 
 it("roof and paste stages accept only their own transitions and ignore selection taps", () => {
   fc.assert(
