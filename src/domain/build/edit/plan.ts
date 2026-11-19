@@ -16,7 +16,7 @@ export function* planShape(
   pattern: Pattern,
 ): Iterable<PlannedChange> {
   for (const cell of cellsOfShape(shape, style))
-    yield { cell, after: pattern.state };
+    yield { cell, after: pattern.stateAt(cell) };
 }
 
 export function* planHeighted(
@@ -25,7 +25,7 @@ export function* planHeighted(
   pattern: Pattern,
 ): Iterable<PlannedChange> {
   for (const cell of placementOf(spec.kind).cells(spec, fill))
-    yield { cell, after: pattern.state };
+    yield { cell, after: pattern.stateAt(cell) };
 }
 
 /** Scan marks survive writes, so filling cannot disconnect the remaining search. */
