@@ -22,7 +22,12 @@ export type BuildEntryId =
   | "walls"
   | Exclude<HeightedKind, "sideCylinderX" | "sideCylinderZ">
   | "sideCylinder";
-export type RootEntryId = EditEntryId | "buildShape" | "place" | "cancel";
+export type RootEntryId =
+  | EditEntryId
+  | "adjustHeight"
+  | "buildShape"
+  | "place"
+  | "cancel";
 export type BuildMenuEntryId = BuildEntryId | "back";
 export type ShapeEntryId = EditEntryId | BuildEntryId | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
@@ -86,6 +91,9 @@ export function isBuildEntry(id: ShapeEntryId): id is BuildEntryId {
 export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
   if (flow.kind !== "selected" || flow.menuLevel !== "root") return [];
   return [
+    ...(shapeOf(flow.selection.box.min, flow.selection.box.max).kind === "line"
+      ? []
+      : [{ id: "adjustHeight" as const }]),
     { id: "cut" },
     { id: "removeAbove" },
     {

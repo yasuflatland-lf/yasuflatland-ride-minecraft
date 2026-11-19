@@ -147,6 +147,7 @@ it("offers the ordered root and build menus for every shape and returns unchange
         const shape = shapeOf(from, to);
         const before = structuredClone(flow);
         const rootIds = [
+          ...(shape.kind === "line" ? [] : ["adjustHeight"]),
           "cut",
           "removeAbove",
           shape.kind === "line" ? "place" : "buildShape",
@@ -585,7 +586,10 @@ it("offers Cut then Remove above first for every shape and the confirmation only
         tapAir(tapBlock(idle, dim, a, stone), b),
       );
       const ids = shapeMenu(endpoint).map((entry) => entry.id);
-      expect(ids.slice(0, 2)).toEqual(["cut", "removeAbove"]);
+      expect(ids.filter((id) => id !== "adjustHeight").slice(0, 2)).toEqual([
+        "cut",
+        "removeAbove",
+      ]);
       expect(terrainMenu(endpoint)).toEqual([]);
       const confirming = chooseTerrain(endpoint, "removeAbove");
       expect(shapeMenu(confirming)).toEqual([]);
