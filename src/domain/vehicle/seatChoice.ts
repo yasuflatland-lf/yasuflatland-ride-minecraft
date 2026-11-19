@@ -106,16 +106,18 @@ interface SettledSeats {
 
 /**
  * The seats after this tick's boarding and leaving. `previous` comes from the last settle,
- * whose `boarding` players were only about to get in:
+ * whose `boarding` players were only about to get in. A seat `held` for a player, such as
+ * by a player on its deck seat (ADR 0063), is free only to that player:
  * - A rider who stays keeps their seat. When the driver left, the rider of seat 1 moves
- *   into seat 0, as the engine would move them (ADR 0019); a rider behind stays. A player
- *   who was about to get in and did not is not a driver who left.
- * - A rider the engine seated without a request takes their rider-list slot when it is a
- *   free seat, else the lowest free seat, in slot order.
+ *   into seat 0, as the engine would move them (ADR 0019), unless seat 0 is held for
+ *   another player; a rider behind stays. A player who was about to get in and did not
+ *   is not a driver who left.
+ * - A rider the engine seated without a request, such as by `/ride`, takes their
+ *   rider-list slot when it is free to them, else the lowest seat free to them, in slot
+ *   order. One who finds none goes without a seat, which leaves them off the rider list.
  * - A requested player who is not aboard yet takes the free seat they aim at, in request
  *   order; a request of a player already aboard is ignored, and one that finds every
- *   seat taken is dropped. A seat `held` for a player, such as by a player on its deck
- *   seat (ADR 0063), is free only to that player.
+ *   seat taken is dropped.
  */
 export function settleSeats(
   previous: SettledSeats,
@@ -130,17 +132,17 @@ export function settleSeats(
     const id = previous.seats[seat];
     return id !== undefined && aboardIds.has(id) ? id : undefined;
   });
+  const freeTo = (seat: number, id: PlayerId) =>
+    seats[seat] === undefined &&
+    (held[seat] === undefined || held[seat] === id);
   const driver = previous.seats[DRIVER_SEAT];
   const driverLeft =
     driver !== undefined &&
     !aboardIds.has(driver) &&
     !previous.boarding.has(driver);
-  if (
-    driverLeft &&
-    seats[DRIVER_SEAT] === undefined &&
-    seats[DRIVER_SEAT + 1] !== undefined
-  ) {
-    seats[DRIVER_SEAT] = seats[DRIVER_SEAT + 1];
+  const front = seats[DRIVER_SEAT + 1];
+  if (driverLeft && front !== undefined && freeTo(DRIVER_SEAT, front)) {
+    seats[DRIVER_SEAT] = front;
     seats[DRIVER_SEAT + 1] = undefined;
   }
   const seated = new Set(seats.filter((id) => id !== undefined));
@@ -154,9 +156,9 @@ export function settleSeats(
   for (const rider of unseated) {
     const slot = rider.slot;
     const seat =
-      slot !== undefined && slot < seats.length && seats[slot] === undefined
+      slot !== undefined && slot < seats.length && freeTo(slot, rider.id)
         ? slot
-        : seats.indexOf(undefined);
+        : seats.findIndex((_, at) => freeTo(at, rider.id));
     if (seat >= 0) seats[seat] = rider.id;
   }
   const boarding = new Set<PlayerId>();
@@ -194,8 +196,8 @@ export class ChosenSeats {
 
   /**
    * Settles the seats with the riders aboard now and the requests since the last settle,
-   * which it then forgets, and returns the rider list to keep. Requests skip the seats
-   * `held` for other players.
+   * which it then forgets, and returns the rider list to keep. Riders and requests skip
+   * the seats `held` for other players.
    */
   settle(
     aboard: readonly AboardRider[],

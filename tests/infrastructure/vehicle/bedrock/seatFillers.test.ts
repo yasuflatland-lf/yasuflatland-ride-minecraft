@@ -296,6 +296,18 @@ describe("SeatFillers (ADR 0120)", () => {
     expect(f.dimension.spawnEntity).not.toHaveBeenCalled();
   });
 
+  it("takes off a rider the layout leaves without a seat, such as one put on by /ride while the only free seat is held", () => {
+    const f = fixture();
+    seat(f, [undefined, "p1", "p2", "p4"]);
+    layOn(f, new SeatFillers(), [
+      undefined,
+      asPlayerId("p1"),
+      asPlayerId("p2"),
+    ]);
+    expect(listOf(f.vehicle)).toEqual(["F", "p1", "p2"]);
+    expect((f.players.get("p4") as Fake).mount).toBeUndefined();
+  });
+
   it("holds the seat of a player who cannot get in with a filler, so the riders after them keep their seats", () => {
     const f = fixture();
     const far = f.players.get("p1") as Fake;
