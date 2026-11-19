@@ -5,6 +5,7 @@ import json
 import math
 import os
 import random
+from collections.abc import Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from enum import IntEnum
@@ -125,6 +126,7 @@ class PackResult:
 PACK_WIDTHS = (416, 448, 480, 512, 576, 640, 704, 768, 896, 1024)
 PACK_SEED = 27729
 PACK_RANDOM_ORDERS = 40
+FULL_SEARCH_MAX_REGIONS = 256
 PACK_ORDER_WEIGHT_RANGE = (0.65, 1.4)
 
 
@@ -218,15 +220,29 @@ def attempt(sizes, width, height, order, mode: ScoreMode) -> dict[int, Rect] | N
     return placed
 
 
-def _search_uncached(request: PackRequest) -> PackResult:
-    sizes, gutter, max_side = request.sizes, request.gutter, request.max_side
+@dataclass(frozen=True)
+class SearchEffort:
+    random_orders: int
+
+    @classmethod
+    def for_request(cls, region_count: int) -> "SearchEffort":
+        return cls(PACK_RANDOM_ORDERS if region_count <= FULL_SEARCH_MAX_REGIONS else 0)
+
+
+def search_orders(sizes: Sequence[Size]) -> list[list[int]]:
     orders = []
     for key in (lambda s: math.prod(s), max, lambda s: s[1], lambda s: s[0], sum):
         orders.append(sorted(range(len(sizes)), key=lambda i: key(sizes[i]), reverse=True))
     rng = random.Random(PACK_SEED)
-    for _ in range(PACK_RANDOM_ORDERS):
+    for _ in range(SearchEffort.for_request(len(sizes)).random_orders):
         scores = [math.prod(s) * rng.uniform(*PACK_ORDER_WEIGHT_RANGE) for s in sizes]
         orders.append(sorted(range(len(sizes)), key=lambda i: scores[i], reverse=True))
+    return orders
+
+
+def _search_uncached(request: PackRequest) -> PackResult:
+    sizes, gutter, max_side = request.sizes, request.gutter, request.max_side
+    orders = search_orders(sizes)
     area = sum(math.prod(s) for s in sizes)
     min_width = max(w for w, _ in sizes)
     widths = sorted({min_width, max(min_width, math.ceil(math.sqrt(area))),
