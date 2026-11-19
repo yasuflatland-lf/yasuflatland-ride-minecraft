@@ -73,9 +73,9 @@ The camping gear item texture atlas generation and ordering are specified in [Ca
   `scooter_atlas.py` classifies paint separately from other materials and reuses the
   camper MaxRects packer. Area builders register local region faces before packing;
   each face resolves once and remains bound to its region for the atlas audit.
-  Packing shares exact and mirrored pixel rows only within equal material and lit-membership
-  keys. The first region in name order owns the storage; copies use its position and
-  placement flips, expressed as signed face UV sizes. Most repeated content is a
+  `region_atlas.SharingPlan` matches exact and mirrored pixel rows within equal
+  material and lit-membership keys. The first region in name order owns the slot.
+  Copies use its position and placement flips, expressed as signed face UV sizes. Most repeated content is a
   mirrored panel tile inside a sheet region (body, cowl, shield, head and engine
   patch sheets), which region sharing cannot see, so each sheet first passes its
   tiles through `region_atlas.share_tiles` and lays out only the stored ones; a

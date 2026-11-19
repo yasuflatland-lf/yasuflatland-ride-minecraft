@@ -400,6 +400,76 @@ assert shared.face_region(dict(shared._faces[0][1])) == shared.regions[0].name`,
   );
 });
 
+it("matches the frozen sharing packer and reconstructs every region from its representative", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.array(
+        fc.tuple(
+          fc.integer({ min: 1, max: 8 }),
+          fc.integer({ min: 1, max: 8 }),
+          fc.integer({ min: 0, max: 3 }),
+          fc.integer({ min: 0, max: 3 }),
+        ),
+        { minLength: 1, maxLength: 4 },
+      ),
+      fc.integer({ min: 0, max: 3 }),
+      fc.option(fc.integer({ min: 1, max: 24 }), { nil: null }),
+      async (entries, gutter, maxSide) => {
+        expect(
+          await run(
+            `sys.path.insert(0, 'tests/tools/helpers')
+from reference_pack_shared import pack as reference_pack
+
+registry = m.RegionRegistry()
+for i, (width, height, color, orientation) in enumerate(${JSON.stringify(entries)}):
+    for j in reversed(range(6)):
+        flip = orientation ^ (j % 4)
+        material = M.METAL if j == 5 else M.WOOD
+        def pixel(x, y, w=width, h=height, c=color, flip=flip):
+            return (w - 1 - x if flip & 1 else x, h - 1 - y if flip & 2 else y, c, 255)
+        registry.register(m.Region(f'{i}_{j}', width, height, material, pixel))
+
+regions = registry.regions()
+key = lambda region: region.material
+cache = m.Layout(regions, (0, 0), {})
+plan = m.SharingPlan.plan(regions, key, lambda region: m._pixel_rows(cache, region))
+assert sorted(plan.shares) == sorted(region.name for region in regions)
+assert plan.registry().regions() == list(plan.representatives)
+assert [r.name for r in plan.representatives] == sorted({s.representative for s in plan.shares.values()})
+for representative in plan.representatives:
+    assert plan.shares[representative.name] == m.RegionShare(representative.name)
+by_name = {region.name: region for region in regions}
+for region in regions:
+    share = plan.shares[region.name]
+    representative = by_name[share.representative]
+    assert (representative.width, representative.height) == (region.width, region.height)
+    assert key(representative) == key(region)
+    xs = range(region.width)
+    ys = range(region.height)
+    if share.flip_x:
+        xs = xs[::-1]
+    if share.flip_y:
+        ys = ys[::-1]
+    flipped_rows = tuple(bytes(c for x in xs for c in representative.pixel(x, y)) for y in ys)
+    assert flipped_rows == m._pixel_rows(cache, region)
+
+def outcome(pack):
+    try:
+        layout = pack(registry, ${gutter}, ${maxSide ?? "None"}, share_key=key)
+    except ValueError as error:
+        return str(error)
+    return layout.size, {r.name: layout.placement(r.name) for r in regions}, layout._shared
+
+assert outcome(m.pack) == outcome(reference_pack)`,
+            "True",
+          ),
+        ).toBe(true);
+      },
+    ),
+    { numRuns: 40 },
+  );
+});
+
 it("detects corrupted shared orientation and texels sampled by a bound face", async () => {
   expect(
     await run(
