@@ -20,6 +20,8 @@ ${script}`,
   );
 
 const side = fc.integer({ min: 1, max: 64 });
+const smallSide = fc.constantFrom(2, 4, 8);
+const smallRect = fc.tuple(smallSide, smallSide);
 const packCase = fc.record({
   sizes: fc.array(fc.tuple(side, side), { minLength: 1, maxLength: 40 }),
   gutter: fc.integer({ min: 0, max: 2 }),
@@ -47,6 +49,31 @@ const expectEquivalent = async (cases: unknown) => {
 };
 
 describe("atlas packing", () => {
+  it("adds seeded orders only for requests of at most 256 regions", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.integer({ min: 1, max: 300 }),
+        fc.array(smallRect, { minLength: 1, maxLength: 12 }),
+        async (count, sample) => {
+          const [orders, randomOrders] = await run(
+            `count, sample = cases
+sizes = tuple(m.Size(*sample[i % len(sample)]) for i in range(count))
+print(json.dumps([len(m.search_orders(sizes)), m.PACK_RANDOM_ORDERS]))`,
+            [count, sample],
+          );
+          expect(orders).toBe(count <= 256 ? 5 + randomOrders : 5);
+        },
+      ),
+      {
+        numRuns: 16,
+        examples: [
+          [256, [[2, 2]]],
+          [257, [[2, 2]]],
+        ],
+      },
+    );
+  });
+
   it("preserves the tuple packer's layouts and bounded failures", async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -57,17 +84,46 @@ describe("atlas packing", () => {
     );
   });
 
-  it("preserves the tuple packer's layouts for 200 to 400 rectangles", async () => {
-    const largeSide = fc.constantFrom(2, 4, 8);
+  it("preserves the tuple packer's layouts for 200 to 256 rectangles", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.array(fc.tuple(largeSide, largeSide), {
+        fc.array(smallRect, {
           minLength: 200,
-          maxLength: 400,
+          maxLength: 256,
         }),
         (sizes) => expectEquivalent([{ sizes, gutter: 0, maxSide: 128 }]),
       ),
       { numRuns: 2 },
+    );
+  });
+
+  it("packs large requests deterministically within 10% of the full-effort area", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(smallRect, { minLength: 257, maxLength: 300 }),
+        async (sizes) => {
+          const valid = await run(
+            `sizes = tuple(m.Size(*s) for s in cases)
+request = m.PackRequest(sizes, 0, 128)
+result = m.search(request)
+assert result == m.search(request)
+width, height = result.size
+assert width <= request.max_side and height <= request.max_side
+assert len(result.origins) == len(sizes)
+placed = []
+for (x, y), (w, h) in zip(result.origins, sizes):
+    assert 0 <= x <= width - w and 0 <= y <= height - h
+    rect = m.Rect(x, y, w, h)
+    assert not any(rect.overlaps(other) for other in placed)
+    placed.append(rect)
+(ref_width, ref_height), _ = reference_pack(sizes, 0, request.max_side)
+print(json.dumps(width * height * 10 <= ref_width * ref_height * 11))`,
+            sizes,
+          );
+          expect(valid).toBe(true);
+        },
+      ),
+      { numRuns: 3 },
     );
   });
 

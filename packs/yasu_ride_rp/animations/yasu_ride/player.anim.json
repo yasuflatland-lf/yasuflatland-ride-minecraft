@@ -32,6 +32,23 @@
         }
       }
     },
+    "animation.yasu_ride.player.scooter_pillion_grip": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        }
+      }
+    },
     "animation.yasu_ride.player.scooter_lean_l1": {
       "loop": true,
       "bones": {
@@ -68,7 +85,7 @@
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
         "root": {
-          "rotation": [0, 0, 13]
+          "rotation": [0, 0, 14]
         }
       }
     },
@@ -89,6 +106,46 @@
         },
         "root": {
           "rotation": [0, 0, 20]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_l4": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "root": {
+          "rotation": [0, 0, 35]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_l5": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "root": {
+          "rotation": [0, 0, 50]
         }
       }
     },
@@ -128,7 +185,7 @@
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
         "root": {
-          "rotation": [0, 0, -13]
+          "rotation": [0, 0, -14]
         }
       }
     },
@@ -152,20 +209,43 @@
         }
       }
     },
-    "animation.yasu_ride.player.scooter_pillion_grip": {
+    "animation.yasu_ride.player.scooter_lean_r4": {
       "loop": true,
       "bones": {
         "leftarm": {
-          "rotation": ["20.0 - this", "-this", "-this"]
+          "rotation": ["-70.0 - this", "-this", "-this"]
         },
         "rightarm": {
-          "rotation": ["20.0 - this", "-this", "-this"]
+          "rotation": ["-70.0 - this", "-this", "-this"]
         },
         "leftleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
         "rightleg": {
           "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "root": {
+          "rotation": [0, 0, -35]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_lean_r5": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["-70.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "root": {
+          "rotation": [0, 0, -50]
         }
       }
     },
@@ -205,7 +285,7 @@
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
         "root": {
-          "rotation": [0, 0, 13]
+          "rotation": [0, 0, 14]
         }
       }
     },
@@ -226,6 +306,46 @@
         },
         "root": {
           "rotation": [0, 0, 20]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_pillion_lean_l4": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "root": {
+          "rotation": [0, 0, 35]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_pillion_lean_l5": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "root": {
+          "rotation": [0, 0, 50]
         }
       }
     },
@@ -265,7 +385,7 @@
           "rotation": ["-35.0 - this", "-this", "-this"]
         },
         "root": {
-          "rotation": [0, 0, -13]
+          "rotation": [0, 0, -14]
         }
       }
     },
@@ -286,6 +406,46 @@
         },
         "root": {
           "rotation": [0, 0, -20]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_pillion_lean_r4": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "root": {
+          "rotation": [0, 0, -35]
+        }
+      }
+    },
+    "animation.yasu_ride.player.scooter_pillion_lean_r5": {
+      "loop": true,
+      "bones": {
+        "leftarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "rightarm": {
+          "rotation": ["20.0 - this", "-this", "-this"]
+        },
+        "leftleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "rightleg": {
+          "rotation": ["-35.0 - this", "-this", "-this"]
+        },
+        "root": {
+          "rotation": [0, 0, -50]
         }
       }
     }
