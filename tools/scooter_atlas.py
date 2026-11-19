@@ -33,7 +33,14 @@ SMALL_TEXELS = 4
 SEAM_PERIOD_TEXELS = 8
 GUTTER_TEXELS = 2
 MAX_SIDE_TEXELS = 2048
-LIT_REGIONS = ("head_lens", "lens_head", "lens_tail_glow", "lens_amber", "glow")
+LIT_REGIONS = ("head_lens", "lens_head", "lens_tail", "lens_tail_glow", "lens_amber", "glow")
+
+
+def is_lit_region(name):
+    # Lamp skin panels are cut from a source lens region and keep its name as a prefix.
+    return name in LIT_REGIONS or name.rpartition("_panel_")[0] in LIT_REGIONS
+
+
 FACE_NAMES = ("north", "south", "east", "west", "up", "down")
 
 
@@ -148,7 +155,7 @@ def plate_faces(region):
 def pack_layout():
     if REGISTRY._layout is None:
         region_atlas.pack(REGISTRY, gutter_px=GUTTER_TEXELS, max_side=MAX_SIDE_TEXELS,
-                          share_key=lambda r: (r.material, r.name in LIT_REGIONS))
+                          share_key=lambda r: (r.material, is_lit_region(r.name)))
     packed = REGISTRY._layout
     # Bindings belong to a build; cached placement must not retain earlier cubes.
     layout = region_atlas.Layout(packed.regions, packed.size, {r.name: packed.placement(r.name) for r in packed.regions})
