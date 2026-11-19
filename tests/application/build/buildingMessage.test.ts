@@ -30,12 +30,11 @@ function setup(to = flat) {
   const world = new FakeWorld();
   const session = repo.getOrCreate(playerId);
   session.setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: overworld,
+    selection: selectionOf(overworld, boxOf(from, to), material),
     from,
     to,
-    material,
   });
   return { repo, feedback, world, session };
 }

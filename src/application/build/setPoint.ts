@@ -1,6 +1,6 @@
+import { volume } from "../../domain/build/box";
 import { tapBlock } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import { shapeCount, shapeOf } from "../../domain/build/shape/shape";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { BuildBlockWorld } from "./ports/blocks";
@@ -20,6 +20,7 @@ export class SetPoint {
     const session = this.repo.getOrCreate(cmd.playerId);
     const flow = session.flow;
     if (
+      flow.kind === "selected" ||
       flow.kind === "heightStep" ||
       flow.kind === "pasteAim" ||
       flow.kind === "terrainConfirm" ||
@@ -40,10 +41,8 @@ export class SetPoint {
     session.setFlow(next);
     this.feedback.showMessage(
       cmd.playerId,
-      next.kind === "endpoint" ? "endSet" : "pointSet",
-      next.kind === "endpoint"
-        ? shapeCount(shapeOf(next.from, next.to), "fill")
-        : undefined,
+      next.kind === "selected" ? "endSet" : "pointSet",
+      next.kind === "selected" ? volume(next.selection.box) : undefined,
     );
   }
 }

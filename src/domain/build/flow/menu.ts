@@ -84,12 +84,15 @@ export function isBuildEntry(id: ShapeEntryId): id is BuildEntryId {
 }
 
 export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
-  if (flow.kind !== "endpoint" || flow.menuLevel !== "root") return [];
+  if (flow.kind !== "selected" || flow.menuLevel !== "root") return [];
   return [
     { id: "cut" },
     { id: "removeAbove" },
     {
-      id: shapeOf(flow.from, flow.to).kind === "line" ? "place" : "buildShape",
+      id:
+        shapeOf(flow.selection.box.min, flow.selection.box.max).kind === "line"
+          ? "place"
+          : "buildShape",
     },
     { id: "rotate" },
     { id: "copy" },
@@ -99,8 +102,11 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
 }
 
 export function buildMenu(flow: BuildFlow): MenuEntry<BuildMenuEntryId>[] {
-  if (flow.kind !== "endpoint" || flow.menuLevel !== "build") return [];
-  return [...buildEntries(shapeOf(flow.from, flow.to)), { id: "back" }];
+  if (flow.kind !== "selected" || flow.menuLevel !== "build") return [];
+  return [
+    ...buildEntries(shapeOf(flow.selection.box.min, flow.selection.box.max)),
+    { id: "back" },
+  ];
 }
 
 export function isShapeEntryOffered(

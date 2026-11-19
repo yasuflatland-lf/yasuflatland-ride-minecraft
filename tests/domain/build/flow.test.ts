@@ -67,16 +67,16 @@ it("cancel always reaches idle, and air without an endpoint changes nothing", ()
     fc.property(flows, (flow) => {
       expect(cancel(flow)).toEqual(idle);
       expect(tapAir(flow)).toBe(flow);
-      if (flow.kind !== "endpoint") expect(backToAiming(flow)).toBe(flow);
+      expect(backToAiming(flow)).toBe(flow);
     }),
   );
 });
 
-it("menu Cancel keeps point 1 and tapping the same end restores the endpoint", () => {
+it("selects the same box from an air press or a second block tap", () => {
   fc.assert(
     fc.property(cell, cell, (a, b) => {
       const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
-      const aiming = backToAiming(endpoint);
+      const aiming = tapBlock(idle, dim, a, stone);
       expect(aiming).toEqual({
         kind: "point1",
         dimensionId: dim,
@@ -89,9 +89,10 @@ it("menu Cancel keeps point 1 and tapping the same end restores the endpoint", (
   );
 });
 
-it("a block tap in another dimension starts a fresh point 1", () => {
+it("a block tap in another dimension starts a fresh point 1 before selection", () => {
   fc.assert(
     fc.property(flows, cell, (flow, at) => {
+      if (flow.kind === "selected") return;
       const before = structuredClone(flow);
       expect(tapBlock(flow, other, at, dirt)).toEqual({
         kind: "point1",
@@ -104,20 +105,13 @@ it("a block tap in another dimension starts a fresh point 1", () => {
   );
 });
 
-it("replaces only the end on subsequent taps, keeping dimension, point 1 and material", () => {
+it("keeps the selection on subsequent air and block taps", () => {
   fc.assert(
     fc.property(cell, cell, cell, (a, b, c) => {
       const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
-      const expected = {
-        kind: "endpoint",
-        menuLevel: "root",
-        dimensionId: dim,
-        from: a,
-        to: c,
-        material: stone,
-      };
-      expect(tapBlock(endpoint, dim, c, dirt)).toEqual(expected);
-      expect(tapAir(endpoint, c)).toEqual(expected);
+      expect(tapBlock(endpoint, dim, c, dirt)).toBe(endpoint);
+      expect(tapBlock(endpoint, other, c, dirt)).toBe(endpoint);
+      expect(tapAir(endpoint, c)).toBe(endpoint);
       expect(tapAir(idle, c)).toBe(idle);
     }),
   );
@@ -162,7 +156,7 @@ it("offers the ordered root and build menus for every shape and returns unchange
         expect(closeBuildMenu(opened)).toEqual(flow);
         expect(closeBuildMenu(flow)).toBe(flow);
         expect(openBuildMenu(opened)).toBe(opened);
-        expect(tapAir(opened, to)).toEqual(flow);
+        expect(tapAir(opened, to)).toBe(opened);
         expect(Object.isFrozen(opened)).toBe(true);
         for (const entry of [...shapeMenu(flow), ...buildMenu(opened)]) {
           expect(isShapeEntryOffered(flow, entry.id)).toBe(
@@ -396,7 +390,7 @@ it("roof and paste stages accept only their own transitions and ignore selection
           expect(setHeight(flow, height)).toEqual(
             flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
           );
-          if (flow.kind !== "endpoint")
+          if (flow.kind !== "selected")
             expect(chooseHeighted(flow, kind)).toBe(flow);
           expect(contentsMenu(flow)).toEqual(
             flow.kind === "heightStep"
@@ -506,12 +500,11 @@ it("offers Undo on a plain air press only when idle", () => {
     { kind: "idle" },
     { kind: "point1", dimensionId: dim, cell, material: stone },
     {
-      kind: "endpoint",
+      kind: "selected",
       menuLevel: "root",
-      dimensionId: dim,
+      selection: selectionOf(dim, boxOf(cell, cell), stone),
       from: cell,
       to: cell,
-      material: stone,
     },
     {
       kind: "heightStep",
@@ -530,7 +523,8 @@ it("offers Undo on a plain air press only when idle", () => {
     fc.property(fc.constantFrom(...flows), (flow) => {
       expect(airPressOffersUndo(flow)).toBe(flow.kind === "idle");
       if (flow.kind === "idle") expect(airPressOffersUndo(flow)).toBe(true);
-      expect(airPressOffersUndo(flow)).toBe(opensUtilityMenu(flow, false));
+      if (flow.kind === "selected")
+        expect(opensUtilityMenu(flow, false)).toBe(true);
     }),
   );
 });
@@ -592,12 +586,11 @@ it("enters rotation only from endpoints and keeps ordinary gestures and menus in
       });
       expect(selectionBoxOf(mode)).toEqual(box);
       expect(finishRotateMode(mode)).toEqual({
-        kind: "endpoint",
+        kind: "selected",
         menuLevel: "root",
-        dimensionId: dim,
+        selection: selectionOf(dim, box, stone),
         from: box.min,
         to: box.max,
-        material: stone,
       });
       for (const flow of [
         idle,
@@ -607,7 +600,7 @@ it("enters rotation only from endpoints and keeps ordinary gestures and menus in
         beginPasteAim(),
         mode,
       ]) {
-        if (flow.kind !== "endpoint") expect(enterRotateMode(flow)).toBe(flow);
+        if (flow.kind !== "selected") expect(enterRotateMode(flow)).toBe(flow);
         if (flow.kind !== "rotateMode")
           expect(finishRotateMode(flow)).toBe(flow);
       }

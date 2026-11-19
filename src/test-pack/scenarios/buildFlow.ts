@@ -52,6 +52,7 @@ interface Reply {
   count?: number;
   skippedCount?: number;
   offered?: boolean;
+  menu?: readonly { id: string }[];
   undoHints?: number;
   pasteReadyDegrees?: number;
   timedOut?: boolean;
@@ -374,21 +375,86 @@ export function buildFlowCancel(a: Arena): Promise<Outcome> {
     await wait(BUILD_SPEC.modeLeaveTicks + 2);
     check(
       (await f.mode()).flow.kind === "idle",
-      "item switch did not cancel endpoint",
+      "item switch did not clear the selection",
     );
     f.hold(true);
     await wait(BUILD_SPEC.modeEnterTicks + 2);
     await f.select(f.cell(4, 0, 4));
     check(
-      (await f.menu("shape", "cancel")).flow.kind === "point1",
-      "shape Cancel did not resume aiming",
+      (await f.menu("shape", "cancel")).flow.kind === "idle",
+      "shape Cancel did not clear the selection",
     );
-    await f.tap("air", f.cell(4, 0, 4));
+    await f.select(f.cell(4, 0, 4));
     await f.menu("shape", "gable");
     check(
       (await f.menu("contents", "cancel")).flow.kind === "point1",
       "roof Cancel did not resume aiming",
     );
+  });
+}
+
+export function buildPersistentSelection(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const end = f.cell(4, 0, 4);
+    for (const input of ["air", "block"] as const) {
+      await f.tap("clear");
+      f.block(f.cell()).setType("minecraft:stone");
+      await f.tap("block");
+      const fixed = await f.tap(input, end);
+      check(
+        fixed.flow.kind === "selected" && fixed.menu === undefined,
+        "fixing the second corner opened a menu",
+      );
+
+      for (const [route, target] of [
+        ["air", end],
+        ["block", f.cell(1, 0, 1)],
+        ["block", f.cell(8, 0, 8)],
+      ] as const) {
+        const opened = await f.tap(route, target);
+        check(
+          opened.menu?.map(({ id }) => id).join() ===
+            "cut,removeAbove,buildShape,rotate,copy,fillBelow,cancel",
+          "selection menu missing",
+        );
+        const dismissed = await f.edit("menu shape");
+        check(
+          dismissed.offered === false &&
+            JSON.stringify(dismissed.flow) === JSON.stringify(fixed.flow),
+          "dismissal changed the selection",
+        );
+      }
+
+      for (const type of [
+        PASTE_ROTATE_TYPE,
+        PASTE_PLACE_TYPE,
+        BUILD_UNDO_TYPE,
+      ]) {
+        f.holdControl(type);
+        await wait(BUILD_SPEC.modeLeaveTicks + 2);
+        const mode = await f.mode();
+        check(
+          mode.mode === true &&
+            JSON.stringify(mode.flow) === JSON.stringify(fixed.flow),
+          `holding ${type} changed the selection`,
+        );
+      }
+      f.hold(true);
+      if (input === "air") {
+        check(
+          (await f.menu("shape", "cancel")).flow.kind === "idle",
+          "Cancel did not clear the selection",
+        );
+      } else {
+        f.holdControl("minecraft:stick");
+        await wait(BUILD_SPEC.modeLeaveTicks + 2);
+        const mode = await f.mode();
+        check(
+          mode.mode === false && mode.flow.kind === "idle",
+          "holding a non-build item did not clear the selection",
+        );
+      }
+    }
   });
 }
 
@@ -599,7 +665,7 @@ export function buildNewCopyReplaces(a: Arena): Promise<Outcome> {
     await f.tap("block");
     await checkState(f, "point1", true);
     await f.tap("air", f.cell(1, 0, 1));
-    await checkState(f, "endpoint", true);
+    await checkState(f, "selected", true);
     await f.menu("shape", "copy");
     await checkState(f, "heightStep", true);
     await f.edit("height 2");
@@ -1673,7 +1739,7 @@ export function buildRemoveAboveTooLarge(a: Arena): Promise<Outcome> {
     const before = snapshot(f, cells);
     const refused = await f.menu("shape", "removeAbove");
     check(
-      refused.message === "tooLarge" && refused.flow.kind === "endpoint",
+      refused.message === "tooLarge" && refused.flow.kind === "selected",
       "Over-limit Remove above was accepted",
     );
     check(unchanged(f, cells, before), "Over-limit Remove above wrote blocks");
@@ -1977,7 +2043,7 @@ export function buildFillBelowMaterialRefused(a: Arena): Promise<Outcome> {
     const refused = await f.menu("shape", "fillBelow");
     check(
       refused.message === "fillMaterialRefused" &&
-        refused.flow.kind === "endpoint",
+        refused.flow.kind === "selected",
       "Unstable fill material was accepted",
     );
     check(

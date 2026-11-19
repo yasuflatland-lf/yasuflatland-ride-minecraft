@@ -93,11 +93,9 @@ export function registerWand({
         }
         case "selectPoint":
           setPoint.execute(command);
-          if (
-            flow?.kind !== "endpoint" &&
-            repo.get(command.playerId)?.flow.kind === "endpoint"
-          )
-            void menus.showShapeMenu(player);
+          break;
+        case "openUtilityMenu":
+          void menus.showUtilityMenu(player);
           break;
       }
     });
@@ -114,7 +112,7 @@ export function registerWand({
         : source.isSneaking && flow?.kind === "pasteAim"
           ? pasteDebounce
           : debounce;
-    // A held finish press must not open utilities after returning to endpoint.
+    // A held finish press must not open utilities after returning to the selection.
     if (flow?.kind === "rotateMode") debounce.press(playerId, tick);
     if (!presses.press(playerId, tick)) return;
     dispatchWandPress({

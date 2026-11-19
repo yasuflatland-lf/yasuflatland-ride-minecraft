@@ -10,7 +10,11 @@ import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
+import {
+  chooseTerrain,
+  tapAir,
+  tapBlock,
+} from "../../../src/domain/build/flow/flow";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -92,18 +96,17 @@ it("samples material only for a new point 1, clears the confirmed box, and repor
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
   expect(material).toHaveBeenCalledTimes(1);
   expect(e.session.flow).toEqual({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: overworld,
+    selection: selectionOf(overworld, boxOf(from, to), stone),
     from,
     to,
-    material: stone,
   });
   expect(e.feedback.messages).toEqual([
     { message: "pointSet", count: undefined },
     { message: "endSet", count: 9 },
-    { message: "endSet", count: 9 },
   ]);
+  e.session.clearSelection();
   e.world.put(to, dirt);
   e.point.execute({ playerId, dimensionId: nether, cell: to });
   expect(e.session.flow).toEqual({
@@ -138,7 +141,7 @@ it("material refusal changes neither the flow nor the confirmed box", () => {
   }
 });
 
-it("air taps without an end are inert, while an end fixes or updates the endpoint", () => {
+it("air taps require a valid endpoint and preserve the fixed selection", () => {
   const e = setup();
   e.air.execute({ playerId, end: to });
   expect(e.session.flow.kind).toBe("idle");
@@ -148,8 +151,10 @@ it("air taps without an end are inert, while an end fixes or updates the endpoin
   expect(e.session.flow).toBe(first);
   e.air.execute({ playerId, end: to });
   expect(e.feedback.messages.at(-1)).toEqual({ message: "endSet", count: 9 });
+  const selected = e.session.flow;
   e.air.execute({ playerId, end: { ...to, x: 3 } });
-  expect(e.feedback.messages.at(-1)).toEqual({ message: "endSet", count: 12 });
+  expect(e.session.flow).toBe(selected);
+  expect(e.feedback.messages).toHaveLength(1);
 });
 
 it("confirms the chosen shape with the captured material, retaining its box only for Copy", () => {
@@ -217,6 +222,7 @@ it("CancelFlow cancels or returns to aiming without clearing the confirmed box, 
   e.endpoint();
   const box = e.session.confirmedBox;
   const cancel = new CancelFlow(e.repo);
+  e.session.setFlow(chooseTerrain(e.session.flow, "removeAbove"));
   cancel.backToAiming({ playerId });
   expect(e.session.flow).toEqual({
     kind: "point1",

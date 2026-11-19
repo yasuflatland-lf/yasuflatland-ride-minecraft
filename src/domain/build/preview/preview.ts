@@ -51,7 +51,10 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         set.endCube = cornerMarkerPoints(aim.end);
       }
       break;
-    case "endpoint":
+    case "selected":
+      set.shape = outline(flow.selection.box);
+      set.endCube = cornerMarkerPoints(flow.to);
+      break;
     case "terrainConfirm":
       set.shape = outline(boxOf(flow.from, flow.to));
       set.endCube = cornerMarkerPoints(flow.to);

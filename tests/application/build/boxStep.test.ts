@@ -253,7 +253,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         for (const useCase of [e.choose, e.confirm]) {
           if (
             useCase === e.choose
-              ? flow.kind === "endpoint"
+              ? flow.kind === "selected"
               : flow.kind === "heightStep" && flow.heightedKind === "copy"
           )
             continue;

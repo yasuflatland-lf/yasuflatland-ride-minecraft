@@ -13,6 +13,7 @@ import type { CopySelection } from "../../../application/build/copySelection";
 import type { EndPasting } from "../../../application/build/endPasting";
 import type { NewCopy } from "../../../application/build/newCopy";
 import type { OpenBuildMenu } from "../../../application/build/openBuildMenu";
+import type { OpenSelectionMenu } from "../../../application/build/openSelectionMenu";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import {
@@ -40,6 +41,7 @@ function isOffered<Id extends string>(
 }
 
 export interface MenuCases {
+  openSelectionMenu: Pick<OpenSelectionMenu, "execute">;
   openBuildMenu: Pick<OpenBuildMenu, "execute">;
   closeBuildMenu: Pick<CloseBuildMenu, "execute">;
   chooseBoxStep: Pick<ChooseBoxStep, "execute">;
@@ -89,7 +91,7 @@ export class MenuChoices {
       } else if (isBuildEntry(entryId)) {
         this.dispatchBuildEntry(entryId, playerId);
       } else {
-        this.cases.cancel.backToAiming({ playerId });
+        this.cases.clear.execute({ playerId });
       }
     } else if (menu === "contents") {
       if (!isOffered(contentsMenu(session.flow), entryId)) return false;

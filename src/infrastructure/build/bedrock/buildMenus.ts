@@ -9,7 +9,6 @@ import {
   type PasteEntryId,
   pasteMenu,
   type RootEntryId,
-  shapeMenu,
   type TerrainEntryId,
   terrainMenu,
   type UtilityEntryId,
@@ -29,7 +28,7 @@ import {
   isBoxStepKind,
 } from "../../../domain/build/volume/kind";
 import { asPlayerId } from "../../../domain/shared/ids";
-import { chooseFromForm } from "../../shared/choiceForm";
+import { chooseFromForm, chooseFromFormResult } from "../../shared/choiceForm";
 import { createExclusiveGuard } from "../../shared/exclusiveForm";
 import { BUILD_FORM } from "../identifiers";
 
@@ -62,7 +61,6 @@ function heightSliderTitle(kind: HeightStepKind): string {
 }
 
 export interface BuildMenus {
-  showShapeMenu(player: Player): Promise<void>;
   showBuildMenu(player: Player): Promise<void>;
   showContentsMenu(player: Player): Promise<void>;
   showUtilityMenu(player: Player): Promise<void>;
@@ -84,7 +82,13 @@ export class BedrockBuildMenus implements BuildMenus {
   }
 
   showShapeMenu(player: Player): Promise<void> {
-    return this.exclusive(player, () => this.shapeMenus(player, "root"));
+    return this.exclusive(player, () => {
+      const playerId = asPlayerId(player.id);
+      const flow = this.repo.get(playerId)?.flow;
+      if (flow?.kind === "selected" && flow.menuLevel === "build")
+        this.cases.closeBuildMenu.execute({ playerId });
+      return this.shapeMenus(player, "root");
+    });
   }
 
   showBuildMenu(player: Player): Promise<void> {
@@ -98,22 +102,27 @@ export class BedrockBuildMenus implements BuildMenus {
     const playerId = asPlayerId(player.id);
     while (true) {
       const flow = this.repo.get(playerId)?.flow;
-      if (flow?.kind !== "endpoint" || flow.menuLevel !== level) return;
-      const id = await chooseFromForm(
+      if (flow?.kind !== "selected" || flow.menuLevel !== level) return;
+      const answer = await chooseFromFormResult(
         player,
         level === "root" ? BUILD_FORM.shapeTitle : BUILD_FORM.buildShapeTitle,
-        (level === "root" ? shapeMenu(flow) : buildMenu(flow)).map((entry) => ({
+        (level === "root"
+          ? this.cases.openSelectionMenu.execute({ playerId })
+          : buildMenu(flow)
+        ).map((entry) => ({
           id: entry.id,
           textKey: menuLabel(entry),
         })),
       );
       if (!player.isValid) return;
       const current = this.repo.get(playerId)?.flow;
-      if (current?.kind !== "endpoint" || current.menuLevel !== level) return;
+      if (current !== flow) return;
       const choice =
-        level === "build" && (id === undefined || id === "cancel")
-          ? "back"
-          : id;
+        answer.status === "answered"
+          ? answer.choice
+          : level === "build"
+            ? "back"
+            : undefined;
       if (!this.choices.choose(playerId, "shape", choice)) return;
       if (choice === "buildShape" || choice === "back") {
         level = choice === "buildShape" ? "build" : "root";
@@ -141,6 +150,8 @@ export class BedrockBuildMenus implements BuildMenus {
   }
 
   showUtilityMenu(player: Player): Promise<void> {
+    if (this.repo.get(asPlayerId(player.id))?.flow.kind === "selected")
+      return this.showShapeMenu(player);
     return this.exclusive(player, async () => {
       const playerId = asPlayerId(player.id);
       const session = this.repo.get(playerId);

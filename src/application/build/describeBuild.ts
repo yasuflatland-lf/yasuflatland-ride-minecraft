@@ -21,7 +21,7 @@ export class DescribeBuild {
     return {
       flow: session?.flow.kind ?? "idle",
       menuLevel:
-        session?.flow.kind === "endpoint" ? session.flow.menuLevel : undefined,
+        session?.flow.kind === "selected" ? session.flow.menuLevel : undefined,
       clipboardHeld: session?.clipboard !== undefined,
       pasteTurn: session?.pasteTurn ?? NO_TURN,
       pasteMenu:

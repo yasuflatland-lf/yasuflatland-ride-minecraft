@@ -30,7 +30,7 @@ it("opens and closes the build menu before refreshing the preview without changi
           expect(id).toBe(playerId);
           expect(tick).toBe(12);
           levels.push(
-            session.flow.kind === "endpoint"
+            session.flow.kind === "selected"
               ? session.flow.menuLevel
               : undefined,
           );

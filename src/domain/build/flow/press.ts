@@ -48,7 +48,10 @@ export function routePress({
   // An aimed block tap can emit both events. Only blockInteract handles it.
   if (route === "itemUse" && target !== "air") return { kind: "ignore" };
   if (flow.kind === "heightStep") return { kind: "aimHeight" };
-  if (route === "blockInteract") return { kind: "selectPoint" };
+  if (route === "blockInteract")
+    return {
+      kind: flow.kind === "selected" ? "openUtilityMenu" : "selectPoint",
+    };
   return {
     kind: opensUtilityMenu(flow, sneaking) ? "openUtilityMenu" : "fixEndpoint",
   };

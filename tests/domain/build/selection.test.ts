@@ -2,8 +2,8 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import {
-  endpointSelection,
   inDimension,
   selectionOf,
   withBox,
@@ -48,16 +48,12 @@ it("uses inclusive bounds for both endpoint orders", () => {
         [a, b],
         [b, a],
       ] as const) {
-        expect(
-          endpointSelection({
-            kind: "endpoint",
-            menuLevel: "root",
-            dimensionId,
-            from,
-            to,
-            material,
-          }),
-        ).toEqual(expected);
+        const flow = tapAir(
+          tapBlock({ kind: "idle" }, dimensionId, from, material),
+          to,
+        );
+        if (flow.kind !== "selected") throw new Error("Missing selection");
+        expect(flow.selection).toEqual(expected);
       }
     }),
   );

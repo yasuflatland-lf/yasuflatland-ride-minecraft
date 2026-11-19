@@ -99,8 +99,8 @@ it("keeps the old clipboard and selection on an oversized new copy, and keeps it
       expect(e.feedback.messages.at(-1)?.message).toBe("tooLarge");
       expect(e.session.flow).toBe(selected);
       expect(e.session.clipboard).toBe(e.old);
-      new CancelFlow(e.repo).backToAiming({ playerId });
-      expect(e.session.flow.kind).toBe("point1");
+      new CancelFlow(e.repo).execute({ playerId });
+      expect(e.session.flow.kind).toBe("idle");
       expect(e.session.clipboard).toBe(e.old);
       new ClearSelection(e.repo, e.feedback).execute({ playerId });
       expect(e.session.flow).toEqual({ kind: "idle" });

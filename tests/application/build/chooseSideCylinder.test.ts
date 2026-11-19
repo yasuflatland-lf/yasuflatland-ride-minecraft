@@ -4,7 +4,9 @@ import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
 import { contentsMenu } from "../../../src/domain/build/flow/menu";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 
@@ -21,12 +23,15 @@ it("reads aim once at choice, ignores pitch, locks boxes and retains the axis on
         const feedback = new FakeFeedback();
         const session = repo.getOrCreate(playerId);
         session.setFlow({
-          kind: "endpoint",
+          kind: "selected",
           menuLevel: "build",
           from: { x: 0, y: 60, z: 0 },
           to: { x: 6, y: box ? 64 : 60, z: 8 },
-          dimensionId: overworld,
-          material,
+          selection: selectionOf(
+            overworld,
+            boxOf({ x: 0, y: 60, z: 0 }, { x: 6, y: box ? 64 : 60, z: 8 }),
+            material,
+          ),
         });
         let currentDirection = direction;
         const aim = {
@@ -74,12 +79,15 @@ it("reads aim once at choice, ignores pitch, locks boxes and retains the axis on
 it("falls back to x when aim is unavailable", () => {
   const repo = new FakeSessions();
   repo.getOrCreate(playerId).setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "build",
     from: { x: 0, y: 60, z: 0 },
     to: { x: 4, y: 64, z: 4 },
-    dimensionId: overworld,
-    material,
+    selection: selectionOf(
+      overworld,
+      boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 64, z: 4 }),
+      material,
+    ),
   });
   const delegate = { execute: vi.fn() };
   new ChooseSideCylinder(
@@ -112,12 +120,15 @@ it("does not read aim or delegate for missing selections, unsupported shapes or 
     [{ x: 4, y: 64, z: 4 }, "root"],
   ] as const) {
     repo.getOrCreate(playerId).setFlow({
-      kind: "endpoint",
+      kind: "selected",
       menuLevel,
       from: { x: 0, y: 60, z: 0 },
       to,
-      dimensionId: overworld,
-      material,
+      selection: selectionOf(
+        overworld,
+        boxOf({ x: 0, y: 60, z: 0 }, to),
+        material,
+      ),
     });
     choose.execute({ playerId });
   }
@@ -131,12 +142,15 @@ it.each([
 ])("chooses x for a horizontal tie with direction %j", (direction) => {
   const repo = new FakeSessions();
   repo.getOrCreate(playerId).setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "build",
     from: { x: 0, y: 60, z: 0 },
     to: { x: 4, y: 64, z: 4 },
-    dimensionId: overworld,
-    material,
+    selection: selectionOf(
+      overworld,
+      boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 64, z: 4 }),
+      material,
+    ),
   });
   const delegate = { execute: vi.fn() };
   new ChooseSideCylinder(

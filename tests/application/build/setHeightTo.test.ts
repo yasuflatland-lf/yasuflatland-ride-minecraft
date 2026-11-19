@@ -3,10 +3,12 @@ import { expect, it } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
 import {
   type BuildFlow,
   chooseHeighted,
 } from "../../../src/domain/build/flow/flow";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeSessions, overworld } from "./fakes";
 
@@ -25,12 +27,15 @@ it("sets only a roof flow's height and leaves other players and missing sessions
         expect(repo.get(playerId)).toBeUndefined();
         const session = repo.getOrCreate(playerId);
         const endpoint: BuildFlow = {
-          kind: "endpoint",
+          kind: "selected",
           menuLevel: "root",
-          dimensionId: overworld,
+          selection: selectionOf(
+            overworld,
+            boxOf({ x: 0, y: 60, z: 0 }, { x: 3, y: 60, z: 4 }),
+            blockStateOf("minecraft:stone"),
+          ),
           from: { x: 0, y: 60, z: 0 },
           to: { x: 3, y: 60, z: 4 },
-          material: blockStateOf("minecraft:stone"),
         };
         for (const flow of [
           { kind: "idle" } as const,
@@ -63,10 +68,13 @@ it("keeps locked box heights and other players unchanged for aiming and explicit
         const session = repo.getOrCreate(playerId);
         const flow = chooseHeighted(
           {
-            kind: "endpoint",
+            kind: "selected",
             menuLevel: "root",
-            dimensionId: overworld,
-            material: blockStateOf("minecraft:stone"),
+            selection: selectionOf(
+              overworld,
+              boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60 + height - 1, z: 5 }),
+              blockStateOf("minecraft:stone"),
+            ),
             from: { x: 0, y: 60, z: 0 },
             to: { x: 4, y: 60 + height - 1, z: 5 },
           },

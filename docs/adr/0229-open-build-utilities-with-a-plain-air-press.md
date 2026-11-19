@@ -12,8 +12,8 @@ A player on iPad made a mistake and could not work out how to undo. Outside past
 
 ## Decision
 
-1. An air press in `idle` opens the utility menu without sneaking. Sneaking plus an air press still opens it in every flow that reaches that check. During `point1` and `endpoint`, a plain air press keeps fixing the virtual end point. `opensUtilityMenu(flow, sneaking)` in the domain returns `sneaking || flow.kind === "idle"`.
-2. The undo hint names this gesture in a short action bar message, plus one chat line the first time per session. The hint is implemented separately from this decision's gesture change. It names the gesture only when it is true at the moment the edit finishes: `airPressOffersUndo(flow)` (idle only) holds for the session flow. Otherwise the action bar shows the count only, and the chat line and its once-per-session flag are left for a later edit.
+1. An air press in `idle` opens the utility menu at either sneak state. In `point1`, a plain air press fixes the virtual end point and a sneak air press opens the utility menu. In `selected`, the wand opens the root shape menu on an air press or an interaction with any block at either sneak state. `opensUtilityMenu(flow, sneaking)` admits air presses in `idle` and `selected` and sneak air presses in other flows that reach the check. Height confirmation, paste aiming, and rotate mode have their own routing.
+2. The undo hint names the idle air press in a short action bar message, plus one chat line the first time per session. `airPressOffersUndo(flow)` is true only in `idle`. The selected root menu offers the shape actions, and Build Undo remains available as a held item. In other flows the action bar shows the count and the first-use chat hint remains available for a later edit.
 
 ## Consequences
 

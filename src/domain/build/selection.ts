@@ -1,7 +1,6 @@
 import type { DimensionId } from "../shared/ids";
 import type { BlockState } from "./blockState";
-import { boxOf, type CellBox } from "./box";
-import type { BuildFlow } from "./flow/flow";
+import type { CellBox } from "./box";
 
 export type Selection = Readonly<{
   dimensionId: DimensionId;
@@ -33,14 +32,4 @@ export function inDimension(
   dimensionId: DimensionId,
 ): boolean {
   return selection.dimensionId === dimensionId;
-}
-
-export function endpointSelection(
-  flow: Extract<BuildFlow, { kind: "endpoint" }>,
-): Selection {
-  return selectionOf(
-    flow.dimensionId,
-    boxOf(flow.from, flow.to),
-    flow.material,
-  );
 }

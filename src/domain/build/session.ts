@@ -63,17 +63,19 @@ export class BuildSession {
   }
   setFlow(flow: BuildFlow): void {
     this.currentFlow = flow;
+    // Two fast taps can finish a selection before the wand enter delay expires.
+    if (flow.kind === "selected" && !this.currentMode.active)
+      this.currentMode = { active: true, streak: 0 };
   }
   replaceSelection(selection: Selection): void {
     const flow = this.currentFlow;
-    if (flow.kind !== "endpoint" && flow.kind !== "rotateMode") return;
+    if (flow.kind !== "selected" && flow.kind !== "rotateMode") return;
     this.currentFlow =
       flow.kind === "rotateMode"
         ? turnRotateMode(flow, selection)
         : Object.freeze({
             ...flow,
-            dimensionId: selection.dimensionId,
-            material: selection.material,
+            selection,
             from: selection.box.min,
             to: selection.box.max,
           });
