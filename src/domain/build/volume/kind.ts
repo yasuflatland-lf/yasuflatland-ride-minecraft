@@ -54,7 +54,7 @@ const HEIGHTED_TRAITS: Readonly<Record<HeightedKind, HeightedTraits>> = {
   cylinder: { fills: SOLID_FILLS, locksBoxHeight: true },
   sideCylinderX: { fills: SOLID_FILLS, locksBoxHeight: true },
   sideCylinderZ: { fills: SOLID_FILLS, locksBoxHeight: true },
-  cube: { fills: SOLID_FILLS, locksBoxHeight: false },
+  cube: { fills: SOLID_FILLS, locksBoxHeight: true },
   sphere: { fills: CLOSED_FILLS, locksBoxHeight: true },
 };
 

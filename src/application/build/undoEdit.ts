@@ -1,7 +1,8 @@
 // Use case: undo the player's last edit (ADR 0178).
-import { type CellBox, cellsOf, volume } from "../../domain/build/box";
+import { type CellBox, cellsOf, sameBox, volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
 import { clearLastPaste } from "../../domain/build/flow/flow";
+import { inDimension, withBox } from "../../domain/build/selection";
 import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -63,6 +64,18 @@ export class UndoEdit {
     this.jobs.start(playerId, record.dimensionId, undoPlan(record), "undo");
     // ADR 0203: undo must allow an immediate paste at the same anchor.
     session.setFlow(clearLastPaste(session.flow));
+    const flow = session.flow;
+    // A freshly selected box has no matching confirmation from the build.
+    if (
+      record.selectionBefore &&
+      record.selectionAfter &&
+      flow.kind === "selected" &&
+      flow.selection === session.confirmedBox &&
+      inDimension(flow.selection, record.dimensionId) &&
+      sameBox(flow.selection.box, record.selectionAfter)
+    ) {
+      session.replaceSelection(withBox(flow.selection, record.selectionBefore));
+    }
     return { restoredSelection: record.selectionBefore };
   }
 }

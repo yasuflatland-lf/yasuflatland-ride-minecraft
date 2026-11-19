@@ -2016,6 +2016,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_cylinder_selection",
+    file: "buildFlow",
+    ticks: 120,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "build_sphere_box",
     file: "buildFlow",
     ticks: 260,

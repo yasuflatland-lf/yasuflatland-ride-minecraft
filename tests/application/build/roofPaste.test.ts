@@ -10,7 +10,7 @@ import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf, cellsOf } from "../../../src/domain/build/box";
+import { boxOf, boxWithHeight, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
@@ -25,6 +25,7 @@ import {
   roofCount,
 } from "../../../src/domain/build/roof/roof";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -169,7 +170,14 @@ it("confirms roof cells and retains their bounding box for copying", () => {
           playerId,
           fill: hollow ? "hollow" : "fill",
         });
-        expect(e.session.flow).toEqual({ kind: "idle" });
+        expect(e.session.flow).toMatchObject({
+          kind: "selected",
+          menuLevel: "root",
+        });
+        expect(e.session.flow).toHaveProperty(
+          "selection",
+          e.session.confirmedBox,
+        );
         expect(e.session.confirmedBox).toEqual({
           material: stone,
           dimensionId: overworld,
@@ -204,6 +212,19 @@ it("refuses oversized and busy roofs without consuming the height stage", () => 
   expect(e.feedback.messages.at(-1)?.message).toBe("busy");
   expect(e.session.flow).toBe(small);
   expect(e.world.writes).toBe(0);
+});
+
+it("refuses an invalid roof height without starting an edit", () => {
+  const e = setup();
+  roof(e, boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }), "hip");
+  const flow = setHeight(e.session.flow, 0);
+  e.session.setFlow(flow);
+  new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
+    playerId,
+    fill: "fill",
+  });
+  expect(e.session.flow).toBe(flow);
+  expect(e.session.isEditing).toBe(false);
 });
 
 it("pastes clipboard-relative cells at the hit face including air", () => {
@@ -376,26 +397,31 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
       (kind, height) => {
         const e = setup();
         const base = boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60, z: 5 });
-        e.session.setFlow(
-          setHeight(
-            chooseHeighted(
-              confirmEndpointHeight(
-                tapAir(
-                  tapBlock({ kind: "idle" }, overworld, base.min, stone),
-                  base.max,
-                ),
-              ),
-              kind,
-            ),
-            height,
-          ),
-        );
+        const choose = (box: ReturnType<typeof boxOf>) =>
+          chooseHeighted(
+            {
+              kind: "selected",
+              menuLevel: "build",
+              selection: selectionOf(overworld, box, stone),
+              from: box.min,
+              to: box.max,
+            },
+            kind,
+          );
+        e.session.setFlow(choose(boxWithHeight(base, height)));
         const spec = { base, kind, height };
         new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
           playerId,
           fill: "tube",
         });
-        expect(e.session.flow).toEqual({ kind: "idle" });
+        expect(e.session.flow).toMatchObject({
+          kind: "selected",
+          menuLevel: "root",
+        });
+        expect(e.session.flow).toHaveProperty(
+          "selection",
+          e.session.confirmedBox,
+        );
         expect(e.session.confirmedBox).toEqual({
           material: stone,
           dimensionId: overworld,
@@ -410,18 +436,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
           expect(e.world.stateAt(overworld, at)).toEqual(stone);
         for (const fill of ["fill", "hollow", "tube"] as const) {
           const large = { ...base, max: { x: 100, y: 60, z: 100 } };
-          const flow = setHeight(
-            chooseHeighted(
-              confirmEndpointHeight(
-                tapAir(
-                  tapBlock({ kind: "idle" }, overworld, large.min, stone),
-                  large.max,
-                ),
-              ),
-              kind,
-            ),
-            1000,
-          );
+          const flow = choose(boxWithHeight(large, 1000));
           e.session.setFlow(flow);
           const count = placementOf(kind).count(
             { base: large, kind, height: 1000 },

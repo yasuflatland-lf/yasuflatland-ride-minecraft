@@ -88,9 +88,19 @@ export class BuildSession {
     )
       this.currentConfirmedBox = selection;
   }
-  confirmBox(selection: Selection): void {
+  confirmBox(selection: Selection, next: "idle" | "selected" = "idle"): void {
     this.currentConfirmedBox = selection;
-    this.currentFlow = cancel(this.currentFlow);
+    this.setFlow(
+      next === "idle"
+        ? cancel(this.currentFlow)
+        : Object.freeze({
+            kind: "selected",
+            menuLevel: "root",
+            selection,
+            from: selection.box.min,
+            to: selection.box.max,
+          }),
+    );
   }
 
   completeCopy(
