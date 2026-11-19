@@ -149,6 +149,7 @@ function setup(fallback?: boolean) {
     closeBuildMenu: {
       execute: vi.fn((cmd) => new CloseBuildMenu(repo, preview).execute(cmd)),
     },
+    chooseAdjustHeight: { execute: vi.fn() },
     chooseBoxStep: {
       execute: vi.fn((cmd) =>
         new ChooseBoxStep(
@@ -270,7 +271,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     const { session, menus, player, cases } = setup();
     const build = openBuildMenu(endpoint);
     ui.answers.push(
-      { selection: 2 },
+      { selection: 3 },
       answer === "back"
         ? {
             selection: buildMenu(build).findIndex(
@@ -290,6 +291,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     ]);
     expect(ui.forms[0]?.buttons).toEqual(
       [
+        "adjustHeight",
         "cut",
         "removeAbove",
         "buildShape",
@@ -1340,7 +1342,7 @@ it.each([
     const { session, menus, player, cases } = setup();
     session.setFlow(selected(from, { x: 4, y: 64, z: 0 }));
     const initial = session.flow;
-    ui.answers.push({ selection: 2 }, answer, { selection: 3 });
+    ui.answers.push({ selection: 3 }, answer, { selection: 4 });
     await menus.showShapeMenu(player);
     expect(cases.openBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
@@ -1393,7 +1395,7 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   let dismiss!: (value: Answer) => void;
   let finish!: (value: Answer) => void;
   ui.answers.push(
-    { selection: 2 },
+    { selection: 3 },
     new Promise((resolve) => {
       dismiss = resolve;
     }),
@@ -1416,4 +1418,13 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   await pending;
   expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
   expect(session.flow).toEqual(endpoint);
+});
+
+it("dispatches adjust height from the selected root menu", async () => {
+  const { menus, player, cases } = setup();
+  ui.answers.push({ selection: 0 });
+  await menus.showShapeMenu(player);
+  expect(cases.chooseAdjustHeight.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
 });

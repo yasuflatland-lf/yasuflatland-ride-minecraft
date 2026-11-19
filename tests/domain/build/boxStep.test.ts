@@ -41,12 +41,18 @@ it("offers Copy and Cut on every shape and Rotate height on horizontal rectangle
         tapAir(tapBlock({ kind: "idle" }, dimensionId, from, stone), to),
       );
       const entries = shapeMenu(endpoint).map((entry) => entry.id);
-      expect(entries.slice(0, 2)).toEqual(["cut", "removeAbove"]);
-      expect(entries[3]).toBe("rotate");
-      expect(entries.slice(-3)).toEqual(["copy", "fillBelow", "cancel"]);
-      expect(entries.filter((id) => id === kind)).toHaveLength(1);
-      expect(selectionBoxOf(endpoint)).toEqual(boxOf(a, b));
       const shape = shapeOf(a, b);
+      expect(entries).toEqual([
+        ...(shape.kind === "line" ? [] : ["adjustHeight"]),
+        "cut",
+        "removeAbove",
+        shape.kind === "line" ? "place" : "buildShape",
+        "rotate",
+        "copy",
+        "fillBelow",
+        "cancel",
+      ]);
+      expect(selectionBoxOf(endpoint)).toEqual(boxOf(a, b));
       const chosen = chooseHeighted(endpoint, kind);
       if (shape.kind === "rect" && shape.flat === "y") {
         expect(chosen).toEqual({

@@ -296,3 +296,4 @@ yasu_build.form.build_shape=形を作る
 yasu_build.form.build_shape_title=形の選択
 yasu_build.form.back=戻る
 yasu_build.form.rotate_box=範囲を回転
+yasu_build.form.adjust_height=高さを調整

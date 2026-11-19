@@ -83,6 +83,7 @@ export class RotateBox {
       session.recordSnapshot({
         dimensionId,
         box: plan.union,
+        selectionBefore: selectedBox,
         handle: snapshot,
       }),
     );

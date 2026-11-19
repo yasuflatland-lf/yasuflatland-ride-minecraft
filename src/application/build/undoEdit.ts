@@ -1,7 +1,8 @@
 // Use case: undo the player's last edit (ADR 0178).
-import { cellsOf, volume } from "../../domain/build/box";
+import { type CellBox, cellsOf, volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
 import { clearLastPaste } from "../../domain/build/flow/flow";
+import { inDimension, withBox } from "../../domain/build/selection";
 import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -21,25 +22,26 @@ export class UndoEdit {
     private readonly log: Logger,
   ) {}
 
-  execute(cmd: { playerId: PlayerId }): void {
+  execute(cmd: { playerId: PlayerId }): { restoredSelection?: CellBox } {
     const { playerId } = cmd;
     const session = this.repo.get(playerId);
     if (!session) {
       this.feedback.showMessage(playerId, "nothingToUndo");
-      return;
+      return {};
     }
     const entry = session.takeUndo();
     if (isEditRefusal(entry)) {
       this.feedback.showMessage(playerId, entry);
-      return;
+      return {};
     }
+    const edit = entry.kind === "snapshot" ? entry.snapshot : entry.record;
     if (entry.kind === "snapshot") {
       const { dimensionId, box, handle } = entry.snapshot;
       for (const cell of cellsOf(box)) {
         if (!this.world.mayRestore(dimensionId, cell)) {
           session.putBackUndo(entry);
           this.feedback.showMessage(playerId, "pasteBlocked");
-          return;
+          return {};
         }
       }
       this.structures.clearEntities(dimensionId, box);
@@ -48,20 +50,34 @@ export class UndoEdit {
       if (!placed) {
         this.log.warn(`Snapshot undo failed for ${playerId}: ${handle}`);
         this.feedback.showMessage(playerId, "undoFailed");
-        return;
+        return {};
       }
-      session.setFlow(clearLastPaste(session.flow));
-      this.feedback.showMessage(playerId, "undoDone", volume(box));
-      return;
+    } else {
+      const record = entry.record;
+      const busy = session.beginEdit();
+      if (busy) {
+        this.feedback.showMessage(playerId, busy);
+        return {};
+      }
+      this.jobs.start(playerId, record.dimensionId, undoPlan(record), "undo");
     }
-    const record = entry.record;
-    const busy = session.beginEdit();
-    if (busy) {
-      this.feedback.showMessage(playerId, busy);
-      return;
+    const flow = session.flow;
+    if (
+      edit.selectionBefore &&
+      flow.kind === "selected" &&
+      inDimension(flow.selection, edit.dimensionId)
+    ) {
+      session.replaceSelection(withBox(flow.selection, edit.selectionBefore));
+    } else {
+      // ADR 0203: undo must allow an immediate paste at the same anchor.
+      session.setFlow(clearLastPaste(flow));
     }
-    this.jobs.start(playerId, record.dimensionId, undoPlan(record), "undo");
-    // ADR 0203: undo must allow an immediate paste at the same anchor.
-    session.setFlow(clearLastPaste(session.flow));
+    if (entry.kind === "snapshot")
+      this.feedback.showMessage(
+        playerId,
+        "undoDone",
+        volume(entry.snapshot.box),
+      );
+    return { restoredSelection: edit.selectionBefore };
   }
 }
