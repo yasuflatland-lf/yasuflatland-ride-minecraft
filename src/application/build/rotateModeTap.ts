@@ -1,3 +1,4 @@
+import { inDimension } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { RotateBox } from "./rotateBox";
@@ -13,7 +14,10 @@ export class RotateModeTap {
     dimensionId: DimensionId;
   }): "rotated" | "refused" | "busy" | "ignored" {
     const flow = this.repo.get(cmd.playerId)?.flow;
-    if (flow?.kind !== "rotateMode" || flow.dimensionId !== cmd.dimensionId)
+    if (
+      flow?.kind !== "rotateMode" ||
+      !inDimension(flow.selection, cmd.dimensionId)
+    )
       return "ignored";
     return this.rotate.execute(cmd);
   }

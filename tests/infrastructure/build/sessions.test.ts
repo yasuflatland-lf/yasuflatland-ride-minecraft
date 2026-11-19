@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { EndPasting } from "../../../src/application/build/endPasting";
-import { blockStateOf } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
   chooseHeighted,
@@ -12,6 +12,7 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerSessions } from "../../../src/infrastructure/build/bedrock/handlers/sessions";
 import {
@@ -52,7 +53,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
         { kind: "idle" } as const,
         first,
         endpoint,
-        beginRotateMode(overworld, boxOf(at, at), stone, 1),
+        beginRotateMode(selectionOf(overworld, boxOf(at, at), stone), 1),
         chooseHeighted(endpoint, "copy"),
         { kind: "pasteAim", manualTurn: 0 } as const,
       ]) {
@@ -66,8 +67,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           const undoDebounce = new PressDebounces<PlayerId>(10);
           new CopyBox(repo, structures, new FakeFeedback()).execute({
             playerId: id,
-            dimensionId: overworld,
-            box: boxOf(at, at),
+            selection: selectionOf(overworld, boxOf(at, at), AIR),
             facing: "east",
           });
           session.finishEdit(
@@ -128,8 +128,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   const structures = new FakeStructureStore();
   new CopyBox(repo, structures, new FakeFeedback()).execute({
     playerId: id,
-    dimensionId: overworld,
-    box: boxOf(at, at),
+    selection: selectionOf(overworld, boxOf(at, at), AIR),
     facing: "east",
   });
   const handle = structures.capture(overworld, boxOf(at, at), id);
@@ -143,9 +142,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   const clipboard = session.clipboard;
   session.setFlow(
     beginRotateMode(
-      overworld,
-      boxOf(at, at),
-      blockStateOf("minecraft:stone"),
+      selectionOf(overworld, boxOf(at, at), blockStateOf("minecraft:stone")),
       1,
     ),
   );

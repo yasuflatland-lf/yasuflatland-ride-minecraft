@@ -22,11 +22,9 @@ export class CopySelection {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
-    const { box, dimensionId } = confirmed;
     this.copy.execute({
       playerId,
-      dimensionId,
-      box,
+      selection: confirmed,
       facing: this.facing.facingOf(playerId),
     });
   }

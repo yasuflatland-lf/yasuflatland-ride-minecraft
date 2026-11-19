@@ -20,11 +20,13 @@ import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { ShowPreview } from "../../../../application/build/showPreview";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import { parseFace } from "../../../../domain/build/aim/face";
+import { AIR } from "../../../../domain/build/blockState";
 import { boxOf, sizeOf, volume } from "../../../../domain/build/box";
 import {
   facingVector,
   parseFacing,
 } from "../../../../domain/build/rotation/facing";
+import { selectionOf } from "../../../../domain/build/selection";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
@@ -188,7 +190,7 @@ export function registerTestEdit(
             throw new Error(handle);
           const previous = repo
             .getOrCreate(playerId)
-            .completeCopy(dimensionId, box, {
+            .completeCopy(selectionOf(dimensionId, box, AIR), {
               facing,
               size: sizeOf(box),
               blockCount: volume(box),
@@ -351,10 +353,8 @@ export function replyWhenSettled({
   const started = system.currentTick;
   const reply = () => {
     if (!player.isValid) return;
-    if (
-      describe.editStatus(playerId).isEditing &&
-      system.currentTick - started < 200
-    ) {
+    const { flow, isEditing } = describe.editStatus(playerId);
+    if (isEditing && system.currentTick - started < 200) {
       system.runTimeout(reply, 1);
       return;
     }
@@ -365,8 +365,11 @@ export function replyWhenSettled({
       JSON.stringify({
         player: player.name,
         offered,
-        flow: describe.editStatus(playerId).flow,
-        timedOut: describe.editStatus(playerId).isEditing,
+        flow:
+          flow.kind === "rotateMode"
+            ? { kind: flow.kind, ...flow.selection, turn: flow.turn }
+            : flow,
+        timedOut: isEditing,
         message: last?.message,
         count: last?.count,
         skippedCount: last?.skippedCount,

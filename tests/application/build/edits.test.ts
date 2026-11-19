@@ -12,6 +12,7 @@ import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
+import { endpointSelection } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
@@ -83,8 +84,7 @@ function select(env: Env, player: typeof alex, size: number, y = 64) {
 function confirmForCopy(env: Env) {
   const s = env.repo.getOrCreate(alex);
   const flow = s.flow;
-  if (flow.kind === "endpoint")
-    s.confirmBox(flow.dimensionId, boxOf(flow.from, flow.to));
+  if (flow.kind === "endpoint") s.confirmBox(endpointSelection(flow));
 }
 
 function runAll(env: Env, maxSteps = 1000) {

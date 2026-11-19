@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
-import { blockStateOf } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
   chooseHeighted,
@@ -11,6 +11,7 @@ import {
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { nextQuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
 import { FakeFeedback, FakeSessions, nether } from "./fakes";
@@ -31,7 +32,10 @@ it("hints and preserves every inactive flow, including a missing session or clip
       const create = vi.spyOn(repo, "getOrCreate");
       const box = boxOf(at, at);
       if (hasClipboard)
-        session.completeCopy(nether, box, structureClipboard(box));
+        session.completeCopy(
+          selectionOf(nether, box, AIR),
+          structureClipboard(box),
+        );
       const clipboard = session.clipboard;
       const first = tapBlock(
         { kind: "idle" },
@@ -78,7 +82,7 @@ it("advances the effective turn for any copy and gaze facing without editing", (
         const session = repo.getOrCreate(playerId);
         const box = boxOf(at, at);
         const clipboard = { ...structureClipboard(box), facing: copied };
-        session.completeCopy(nether, box, clipboard);
+        session.completeCopy(selectionOf(nether, box, AIR), clipboard);
         session.followPasteFacing(gaze);
         for (let i = 0; i < turns; i++) session.rotatePaste();
         const before = session.pasteTurn;
@@ -87,7 +91,11 @@ it("advances the effective turn for any copy and gaze facing without editing", (
         );
         expect(session.pasteTurn).toBe(nextQuarterTurn(before));
         expect(session.clipboard).toBe(clipboard);
-        expect(session.confirmedBox).toEqual({ dimensionId: nether, box });
+        expect(session.confirmedBox).toEqual({
+          material: AIR,
+          dimensionId: nether,
+          box,
+        });
         expect(session.hasHistory).toBe(false);
         expect(session.isEditing).toBe(false);
         expect(feedback.messages).toEqual([]);

@@ -4,9 +4,10 @@ import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateBoxAction } from "../../../src/application/build/rotateBoxAction";
-import { blockStateOf } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { selectionBoxOf, setHeight } from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   FakeBuildPlayers,
@@ -85,8 +86,7 @@ it("rotates the shared height selection and preserves it on refusal", () => {
           expect(session.flow).toMatchObject({
             kind: "rotateMode",
             turn: 1,
-            dimensionId: overworld,
-            material,
+            selection: { dimensionId: overworld, material },
           });
           expect(session.hasHistory).toBe(true);
           expect(feedback.messages.at(-1)?.message).toBe("rotateDone");
@@ -128,8 +128,7 @@ it("enters rotate mode after an immediate rotation and restores a refused endpoi
       expect(
         action.execute({
           playerId,
-          dimensionId: overworld,
-          box: box,
+          selection: selectionOf(overworld, box, AIR),
           facing: "east",
         }),
       ).toBe(!blocked);
@@ -138,7 +137,7 @@ it("enters rotate mode after an immediate rotation and restores a refused endpoi
         expect(session.flow).toMatchObject({
           kind: "rotateMode",
           turn: 1,
-          box: planRotationAboutCenter(box).target,
+          selection: { box: planRotationAboutCenter(box).target },
         });
     }),
   );

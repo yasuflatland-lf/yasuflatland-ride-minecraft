@@ -18,6 +18,7 @@ import { cellsOf, contains } from "../../domain/build/box";
 import { selectionBoxOf } from "../../domain/build/flow/flow";
 import { isShapeEntryOffered } from "../../domain/build/flow/menu";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
+import { endpointSelection } from "../../domain/build/selection";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
@@ -114,15 +115,17 @@ async function runRotateBox(
       to: source.max,
       material: blockStateOf("minecraft:stone"),
     });
+  const currentSelection = () => {
+    const flow = session.flow;
+    if (flow.kind !== "endpoint") throw new Error("endpoint selection lost");
+    return endpointSelection(flow);
+  };
   const turn = () => {
-    const box = selectionBoxOf(session.flow);
-    if (!box) throw new Error("selection lost");
     check(
       "rotate",
       rotate.execute({
         playerId,
-        dimensionId: dimensionId,
-        box: box,
+        selection: currentSelection(),
         facing: "east",
       }),
     );
@@ -224,7 +227,7 @@ async function runRotateBox(
           `flow_${turn}`,
           session.flow.kind === "rotateMode" &&
             session.flow.turn === turn &&
-            JSON.stringify(session.flow.box) === JSON.stringify(box),
+            JSON.stringify(session.flow.selection.box) === JSON.stringify(box),
         );
         check(`contents_${turn}`, contents(chest, sign));
         check(
@@ -325,8 +328,7 @@ async function runRotateBox(
         "protected_refused",
         !rotate.execute({
           playerId,
-          dimensionId: dimensionId,
-          box: source,
+          selection: currentSelection(),
           facing: "east",
         }) && message === "rotateBlocked",
       );

@@ -1,15 +1,16 @@
-import type { CellBox } from "../../domain/build/box";
 import type { Facing } from "../../domain/build/rotation/facing";
+import type { Selection } from "../../domain/build/selection";
 import type { BoxStepKind } from "../../domain/build/volume/kind";
-import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import type { PlayerId } from "../../domain/shared/ids";
+
+export type BoxActionCommand = {
+  playerId: PlayerId;
+  selection: Selection;
+  facing: Facing;
+};
 
 export interface BoxAction {
-  execute(cmd: {
-    playerId: PlayerId;
-    dimensionId: DimensionId;
-    box: CellBox;
-    facing: Facing;
-  }): boolean;
+  execute(cmd: BoxActionCommand): boolean;
 }
 
 export type BoxActions = Readonly<Record<BoxStepKind, BoxAction>>;

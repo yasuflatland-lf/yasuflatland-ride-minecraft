@@ -22,6 +22,7 @@ import {
   FACINGS,
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -108,7 +109,7 @@ it("offers ordered paste entries independent of history and never paste or endPa
       (at, confirmed, clipboard, history) => {
         const session = new BuildSession(asPlayerId("p"));
         const box = boxOf(at, at);
-        if (confirmed) session.confirmBox(dimensionId, box);
+        if (confirmed) session.confirmBox(selectionOf(dimensionId, box, stone));
         if (clipboard)
           holdClipboard(
             session,
@@ -166,7 +167,7 @@ it("derives the session turn from copy and paste facings, and ignores following 
         session.followPasteFacing(currentFacing);
         expect(session.pasteTurn).toBe(0);
         const box = boxOf(at, at);
-        session.completeCopy(dimensionId, box, {
+        session.completeCopy(selectionOf(dimensionId, box, stone), {
           ...structureClipboard(box),
           facing: copiedFacing,
         });
@@ -228,20 +229,20 @@ it("resets manual rotation on a fresh copy and discards it on paste exits", () =
           () => session.endPasting(),
           () => session.leaveBuildMode(),
         ]) {
-          session.completeCopy(dimensionId, box, clipboard);
+          session.completeCopy(selectionOf(dimensionId, box, stone), clipboard);
           session.followPasteFacing(gaze);
           for (let i = 0; i < turns; i++)
             expect(session.rotatePaste()).toBe(true);
           expect(session.pasteTurn).toBe(
             effectiveTurn(copied, gaze, turns as 1 | 2 | 3),
           );
-          session.completeCopy(dimensionId, box, clipboard);
+          session.completeCopy(selectionOf(dimensionId, box, stone), clipboard);
           expect(session.flow).toEqual(beginPasteAim());
           session.rotatePaste();
           exit();
           expect(session.flow).toEqual({ kind: "idle" });
           expect(session.pasteTurn).toBe(0);
-          session.completeCopy(dimensionId, box, clipboard);
+          session.completeCopy(selectionOf(dimensionId, box, stone), clipboard);
           expect(session.flow).toEqual(beginPasteAim());
         }
         const first = tapBlock({ kind: "idle" }, dimensionId, at, stone);

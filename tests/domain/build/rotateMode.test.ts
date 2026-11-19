@@ -11,6 +11,7 @@ import {
   type QuarterTurn,
 } from "../../../src/domain/build/rotation/quarterTurn";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
+import { selectionOf, withBox } from "../../../src/domain/build/selection";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 
 const coordinate = fc.integer({ min: -1000, max: 1000 });
@@ -22,19 +23,27 @@ it("preserves box after two turns and restores the full mode after four turns", 
     fc.property(cell, cell, turn, (a, b, initialTurn) => {
       const box = boxOf(a, b);
       const initial = beginRotateMode(
-        asDimensionId("overworld"),
-        box,
-        blockStateOf("minecraft:stone"),
+        selectionOf(
+          asDimensionId("overworld"),
+          box,
+          blockStateOf("minecraft:stone"),
+        ),
         initialTurn,
       );
       let mode = initial;
       for (let step = 1; step <= 4; step++) {
         const previous = mode;
-        mode = turnRotateMode(mode, planRotationAboutCenter(mode.box).target);
+        mode = turnRotateMode(
+          mode,
+          withBox(
+            mode.selection,
+            planRotationAboutCenter(mode.selection.box).target,
+          ),
+        );
         expect(mode).not.toBe(previous);
         expect(previous.turn).toBe((initialTurn + step - 1) % 4);
         expect(degreesOf(mode.turn)).toBe(((initialTurn + step) * 90) % 360);
-        if (step % 2 === 0) expect(mode.box).toEqual(box);
+        if (step % 2 === 0) expect(mode.selection.box).toEqual(box);
       }
       expect(mode).toEqual(initial);
     }),

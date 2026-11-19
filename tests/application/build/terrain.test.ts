@@ -117,6 +117,7 @@ it("confirms the selected box and returns to idle when the job starts", () => {
   removeAbove(e);
   expect(e.session.flow.kind).toBe("idle");
   expect(e.session.confirmedBox).toEqual({
+    material: stone,
     dimensionId: overworld,
     box: boxOf(from, to),
   });

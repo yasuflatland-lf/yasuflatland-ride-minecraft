@@ -6,11 +6,13 @@ import { EndBuildSession } from "../../../src/application/build/endBuildSession"
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { NewCopy } from "../../../src/application/build/newCopy";
+import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
 import {
   type Clipboard,
   structureOf,
 } from "../../../src/domain/build/clipboard/clipboard";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { StructureHandle } from "../../../src/domain/build/structure/handle";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -41,8 +43,7 @@ it("captures exactly once with the owner and dimension and stores the full box s
       expect(
         e.copy.execute({
           playerId,
-          dimensionId: overworld,
-          box: box,
+          selection: selectionOf(overworld, box, AIR),
           facing: "east",
         }),
       ).toBe(true);
@@ -73,8 +74,7 @@ it("keeps the old structure live during New copy and discards it only after succ
       const e = setup();
       e.copy.execute({
         playerId,
-        dimensionId: overworld,
-        box: box,
+        selection: selectionOf(overworld, box, AIR),
         facing: "east",
       });
       const session = e.repo.getOrCreate(playerId);
@@ -88,8 +88,7 @@ it("keeps the old structure live during New copy and discards it only after succ
             warn: () => {},
           }).execute({
             playerId,
-            dimensionId: overworld,
-            box: box,
+            selection: selectionOf(overworld, box, AIR),
             facing: "east",
           }),
         ).toBe(true);
@@ -104,8 +103,7 @@ it("keeps the old structure live during New copy and discards it only after succ
       } else {
         e.copy.execute({
           playerId,
-          dimensionId: overworld,
-          box: box,
+          selection: selectionOf(overworld, box, AIR),
           facing: "east",
         });
         expect(e.structures.live).toEqual(
@@ -129,8 +127,7 @@ it("discards cleared structures once through every exit and leaves no live clipb
         const session = e.repo.getOrCreate(playerId);
         e.copy.execute({
           playerId,
-          dimensionId: overworld,
-          box: box,
+          selection: selectionOf(overworld, box, AIR),
           facing: "east",
         });
         const old = structureOf(session.clipboard);
@@ -170,8 +167,7 @@ it("refuses without changing a present session or creating an absent one, preser
         if (present) {
           e.copy.execute({
             playerId,
-            dimensionId: overworld,
-            box: box,
+            selection: selectionOf(overworld, box, AIR),
             facing: "east",
           });
           new NewCopy(e.repo).execute(playerId);
@@ -194,8 +190,7 @@ it("refuses without changing a present session or creating an absent one, preser
         expect(
           e.copy.execute({
             playerId,
-            dimensionId: overworld,
-            box: target,
+            selection: selectionOf(overworld, target, AIR),
             facing: "east",
           }),
         ).toBe(false);
@@ -324,8 +319,7 @@ it.each(["absent", "structure"] as const)(
               expect(
                 (operation === "cut" ? cut : e.copy).execute({
                   playerId,
-                  dimensionId: overworld,
-                  box: target,
+                  selection: selectionOf(overworld, target, AIR),
                   facing: "east",
                 }),
               ).toBe(!refused);

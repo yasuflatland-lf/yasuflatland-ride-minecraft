@@ -10,6 +10,7 @@ import {
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { boxStepLimit } from "../../../src/domain/build/volume/kind";
@@ -369,9 +370,12 @@ it("draws rotation mode with the endpoint selection appearance", () => {
     fc.property(cell, cell, fc.boolean(), (a, b, blink) => {
       const box = boxOf(a, b);
       expect(
-        previewPoints(beginRotateMode(dimensionId, box, material, 1), {
-          blink,
-        }),
+        previewPoints(
+          beginRotateMode(selectionOf(dimensionId, box, material), 1),
+          {
+            blink,
+          },
+        ),
       ).toEqual(
         previewPoints(
           {
