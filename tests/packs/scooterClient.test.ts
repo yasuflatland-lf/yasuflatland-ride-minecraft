@@ -150,6 +150,9 @@ describe("scooter client references", () => {
     expect(smoke).toHaveLength(6);
     for (const name of smoke) {
       const index = name.slice("exhaust_".length);
+      expect(effects(clip(name).particle_effects)).toHaveLength(
+        defined([4, 6, 9, 12, 16, 20][Number(index)], name),
+      );
       expect(gates[name]).toBe(gates[`engine_sound_${index}`]);
       for (const particle of effects(clip(name).particle_effects)) {
         expect(particle).toEqual({
