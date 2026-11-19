@@ -2,6 +2,7 @@
 import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
+import type { CellBox } from "../box";
 
 export type EditKind = "undoable" | "undo" | "irreversible";
 
@@ -22,6 +23,7 @@ export interface AppliedChange {
 }
 
 export interface EditRecord {
+  readonly selectionBefore?: CellBox;
   readonly dimensionId: DimensionId;
   readonly changes: readonly AppliedChange[];
 }
