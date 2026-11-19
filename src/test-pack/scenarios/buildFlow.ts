@@ -2451,7 +2451,7 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
   });
 }
 
-async function copyControlSource(f: Fixture, source: Cell[]): Promise<void> {
+function placeControlFurniture(f: Fixture, source: Cell[]): void {
   for (const c of source)
     f.block(c).setType(
       c.y === f.cell().y ? "minecraft:stone" : "minecraft:air",
@@ -2465,6 +2465,10 @@ async function copyControlSource(f: Fixture, source: Cell[]): Promise<void> {
   sign.setType("minecraft:standing_sign");
   sign.getComponent("minecraft:sign")?.setText("Rotate front", SignSide.Front);
   sign.getComponent("minecraft:sign")?.setText("Rotate back", SignSide.Back);
+}
+
+async function copyControlSource(f: Fixture, source: Cell[]): Promise<void> {
+  placeControlFurniture(f, source);
   await f.lookSettled(-90);
   await f.select(f.cell(4, 2, 2));
   check(
@@ -2527,8 +2531,7 @@ async function aimControlTarget(
   );
 }
 
-function checkControlPaste(f: Fixture, target: Cell[]): void {
-  const min = f.cell(16, 0, 12);
+function checkRotatedFurniture(f: Fixture, target: Cell[], min: Cell): void {
   for (const c of target) {
     const x = c.x - min.x;
     const y = c.y - min.y;
@@ -2546,20 +2549,65 @@ function checkControlPaste(f: Fixture, target: Cell[]): void {
       `Rotated footprint mismatch at ${JSON.stringify(c)}: expected ${expected}, got ${f.block(c).typeId}`,
     );
   }
+  checkFurniturePayload(
+    f,
+    { x: min.x + 1, y: min.y + 1, z: min.z + 1 },
+    { x: min.x + 1, y: min.y + 1, z: min.z + 3 },
+  );
+}
+
+function checkFurniturePayload(f: Fixture, chest: Cell, signCell: Cell): void {
   const item = f
-    .block(f.cell(17, 1, 13))
+    .block(chest)
     .getComponent("minecraft:inventory")
     ?.container?.getItem(0);
   check(
     item?.typeId === "minecraft:diamond" && item.amount === 7,
     "Control paste lost chest items",
   );
-  const sign = f.block(f.cell(17, 1, 15)).getComponent("minecraft:sign");
+  const sign = f.block(signCell).getComponent("minecraft:sign");
   check(
     sign?.getText(SignSide.Front) === "Rotate front" &&
       sign.getText(SignSide.Back) === "Rotate back",
     "Control paste lost sign text",
   );
+}
+
+export function buildRotateSelection(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const union = f.region(5, 3, 5, f.cell(0, 0, -1));
+    try {
+      for (const c of union) f.block(c).setType("minecraft:air");
+      placeControlFurniture(f, f.region(5, 3, 3));
+      const end = f.cell(4, 2, 2);
+      await f.select(end);
+      const before = snapshot(f, union);
+      await holdPasteControl(f, PASTE_ROTATE_TYPE);
+      const rotated = await f.press("blockInteract,itemUse");
+      const min = f.cell(1, 0, -1);
+      check(
+        rotated.flow.kind === "selected" &&
+          rotated.message === "rotateDone" &&
+          JSON.stringify(rotated.flow.selection?.box) ===
+            JSON.stringify({ min, max: f.cell(3, 2, 3) }),
+        "Paste Rotate did not select the rotated footprint",
+      );
+      checkRotatedFurniture(f, f.region(3, 3, 5, min), min);
+      await holdPasteControl(f, BUILD_UNDO_TYPE);
+      const undone = await f.press("itemUse");
+      check(
+        undone.flow.kind === "selected" &&
+          undone.message === "undoDone" &&
+          JSON.stringify(undone.flow.selection?.box) ===
+            JSON.stringify({ min: f.cell(), max: end }),
+        "Build Undo did not restore the original selection",
+      );
+      check(unchanged(f, union, before), "Undo did not restore the union");
+      checkFurniturePayload(f, f.cell(1, 1, 1), f.cell(3, 1, 1));
+    } finally {
+      await releaseControlFixture(f, union);
+    }
+  });
 }
 
 export function buildPasteControlInactive(a: Arena): Promise<Outcome> {
@@ -2671,7 +2719,7 @@ async function pasteControlOnce(
         bothRoutes ? 0 : 3,
       );
       check(placed.message === "editDoneCount", "Control paste did not finish");
-      checkControlPaste(f, target);
+      checkRotatedFurniture(f, target, f.cell(16, 0, 12));
       check(
         (await f.state()).pasteTurn === 1,
         "Control paste lost manual turn",

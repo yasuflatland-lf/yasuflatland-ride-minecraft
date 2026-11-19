@@ -2,6 +2,7 @@ import { type Player, system, world } from "@minecraft/server";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
+import type { RotateSelection } from "../../../../application/build/rotateSelection";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import {
   type PressRole,
@@ -34,6 +35,7 @@ export function registerPasteControls({
   repo,
   aim,
   rotatePasteAim,
+  rotateSelection,
   pressPasteAim,
   undo,
   undoDebounce,
@@ -44,6 +46,7 @@ export function registerPasteControls({
   repo: BuildSessionRepository;
   aim: AimReader;
   rotatePasteAim: RotatePasteAim;
+  rotateSelection: Pick<RotateSelection, "execute">;
   pressPasteAim: PressPasteAim;
   undo: UndoEdit;
   undoDebounce: PressDebounces<PlayerId>;
@@ -91,6 +94,13 @@ export function registerPasteControls({
       case "undo":
         if (!undoDebounce.press(playerId, tick)) return;
         undo.execute({ playerId });
+        break;
+      case "rotateSelection":
+        if (!rotateDebounce.press(playerId, tick)) return;
+        rotateSelection.execute({
+          playerId,
+          dimensionId: asDimensionId(source.dimension.id),
+        });
         break;
       case "rotateClipboard":
         if (!rotateDebounce.press(playerId, tick)) return;

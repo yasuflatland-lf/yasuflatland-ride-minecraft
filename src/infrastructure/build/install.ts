@@ -31,6 +31,7 @@ import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
 import { RotateModeTap } from "../../application/build/rotateModeTap";
 import { RotatePasteAim } from "../../application/build/rotatePasteAim";
+import { RotateSelection } from "../../application/build/rotateSelection";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -182,6 +183,7 @@ export function installBuild(deps: {
     aim,
     pressPasteAim,
     rotatePasteAim,
+    rotateSelection: new RotateSelection(repo, rotateBox, feedback),
     pasteDebounce,
     rotateDebounce,
     refresh: (id, tick) => preview.refresh(id, tick),
