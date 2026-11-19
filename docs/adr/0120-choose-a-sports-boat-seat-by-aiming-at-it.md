@@ -41,10 +41,10 @@ Because the seat is the list index, a player reaches seat k only if k riders are
   - A press on a boat that has not ticked yet is left to the engine.
 - **Keeping the seats (`settleSeats` in `seatChoice.ts`).** Every tick the boat settles who sits where, and then lays out the rider list to match:
   - A rider who stays keeps their seat.
-  - When the driver gets out and seat 1 has a player, that player moves to seat 0 as before (0019). The rear riders stay where they are.
-  - A player the engine seated without a request (for example after `/reload`) keeps their list slot if that seat is free, and otherwise takes the lowest free seat.
+  - When the driver gets out and seat 1 has a player, that player moves to seat 0 as before (0019), unless seat 0 is held for another player (below). The rear riders stay where they are.
+  - A player the engine seated without a request (for example after `/reload`, or by the `/ride` command) keeps their list slot if that seat is free to them, and otherwise takes the lowest seat free to them. One who finds no such seat gets none, so the rider list leaves them out and `SeatFillers.lay` takes them off.
   - Requests are seated last, each in the free seat it aims at.
-  - While the boat is docked, the seat of each deck seat with a player on it is held for that player. A request from anyone else skips it, because seating them there would remove the deck seat and drop its player (0063).
+  - While the boat is docked, the seat of each deck seat with a player on it is held for that player. Nobody else takes it, neither a request nor a player the engine seated without one, because seating them there would remove the deck seat and drop its player (0063).
   - A player seated by a request who did not get in is dropped. This does not count as a driver getting out.
 - **Rider list.** The list holds each seat's player up to the last taken seat, with an invisible `yasu_ride:seat_filler` in each free seat below it. Nothing follows the last player. On each tick, before the deck riders board:
   - `SeatFillers.lay` keeps the riders that are already in order.

@@ -216,11 +216,27 @@ describe("settleSeats (ADR 0120)", () => {
           );
           const taken = seats.filter((id) => id !== undefined);
           expect(new Set(taken).size).toBe(taken.length);
-          // Every rider aboard has a seat while seats last.
-          const seatedAboard = aboardIds.filter((id) => seats.includes(id));
-          expect(seatedAboard.length).toBe(
-            Math.min(aboardIds.length, SEATS.length),
-          );
+          // A rider aboard goes without a seat only when every seat is taken or held
+          // for another player, so all of them are seated while unheld seats last.
+          for (const id of aboardIds) {
+            if (seats.includes(id)) continue;
+            for (const [seat, at] of seats.entries())
+              expect(
+                at !== undefined ||
+                  (held[seat] !== undefined && held[seat] !== id),
+              ).toBe(true);
+          }
+          const unheld = SEATS.filter((_, seat) => held[seat] === undefined);
+          if (aboardIds.length <= unheld.length)
+            expect(aboardIds.every((id) => seats.includes(id))).toBe(true);
+          // Nobody but its holder takes a held seat (ADR 0063); a rider already in it
+          // stays.
+          for (const [seat, holder] of held.entries()) {
+            const id = seats[seat];
+            if (holder === undefined || id === undefined || id === holder)
+              continue;
+            expect(previous[seat]).toBe(id);
+          }
           const driverLeft =
             previous[0] !== undefined && !aboardIds.includes(previous[0]);
           for (const [seat, id] of previous.entries()) {
@@ -288,6 +304,60 @@ describe("settleSeats (ADR 0120)", () => {
       TARGETS,
     );
     expect(after.seats).toEqual([b, undefined, a, c]);
+  });
+
+  it("leaves a seat held for a deck-seat rider to them when the engine seats someone else (ADR 0063)", () => {
+    const [deck, ridden, front, mid, rear] = IDS as [
+      PlayerId,
+      PlayerId,
+      PlayerId,
+      PlayerId,
+      PlayerId,
+    ];
+    const held = [deck];
+    const after = settleSeats(
+      NONE,
+      [{ id: ridden, slot: 0 }],
+      new Map(),
+      TARGETS,
+      held,
+    );
+    expect(after.seats).toEqual([undefined, ridden, undefined, undefined]);
+    const boarded = settleSeats(
+      after,
+      [{ id: ridden, slot: 0 }],
+      new Map([[deck, { eye: { x: 0, y: AIM_HEIGHT, z: 0 } }]]),
+      TARGETS,
+      held,
+    );
+    expect(boarded.seats[0]).toBe(deck);
+    // With every other seat taken, the rider stays without a seat and is left off the
+    // rider list.
+    const full = settleSeats(
+      { seats: [undefined, front, mid, rear], boarding: new Set() },
+      [
+        { id: front, slot: 0 },
+        { id: mid, slot: 1 },
+        { id: rear, slot: 2 },
+        { id: ridden, slot: 3 },
+      ],
+      new Map(),
+      TARGETS,
+      held,
+    );
+    expect(full.seats).toEqual([undefined, front, mid, rear]);
+  });
+
+  it("keeps the front passenger in their seat when the driver leaves and the driver's seat is held for another player", () => {
+    const [driver, front, deck] = IDS as [PlayerId, PlayerId, PlayerId];
+    const after = settleSeats(
+      { seats: [driver, front], boarding: new Set() },
+      [{ id: front, slot: 0 }],
+      new Map(),
+      TARGETS,
+      [deck],
+    );
+    expect(after.seats).toEqual([undefined, front, undefined, undefined]);
   });
 });
 
