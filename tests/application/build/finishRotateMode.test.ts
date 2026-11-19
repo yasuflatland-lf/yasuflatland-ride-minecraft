@@ -88,10 +88,9 @@ it("ignores all non-rotation flow kinds without changing session state", () => {
     },
     {
       kind: "terrainConfirm",
-      dimensionId: overworld,
+      selection: selectionOf(overworld, box, material),
       from: box.min,
       to: box.max,
-      material,
       op: "fillBelow",
     },
     { kind: "pasteAim", manualTurn: 0, facing: "west" },

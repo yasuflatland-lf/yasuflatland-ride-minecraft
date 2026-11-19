@@ -1844,6 +1844,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_live_height",
+    file: "buildFlow",
+    ticks: 130,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "build_refusals",
     file: "buildFlow",
     ticks: 80,

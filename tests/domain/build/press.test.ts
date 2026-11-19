@@ -5,6 +5,7 @@ import {
   type BuildFlow,
   chooseHeighted,
   chooseTerrain,
+  confirmLiveHeight,
   enterRotateMode,
   tapAir,
   tapBlock,
@@ -26,10 +27,13 @@ const point1 = tapBlock(
   { x: 0, y: 0, z: 0 },
   blockStateOf("minecraft:stone"),
 );
-const selected = tapAir(point1, { x: 2, y: 0, z: 2 });
+const baseHeight = tapAir(point1, { x: 2, y: 0, z: 2 });
+if (baseHeight.kind !== "baseHeight") throw new Error("Expected live height");
+const selected = confirmLiveHeight(baseHeight);
 const flows = {
   idle,
   point1,
+  baseHeight,
   selected,
   heightStep: chooseHeighted(selected, "gable"),
   terrainConfirm: chooseTerrain(selected, "removeAbove"),
@@ -52,6 +56,13 @@ const wandTable = {
     "openUtilityMenu",
     "openUtilityMenu",
     "openUtilityMenu",
+    "ignore",
+    "ignore",
+  ],
+  baseHeight: [
+    "confirmLiveHeight",
+    "confirmLiveHeight",
+    "confirmLiveHeight",
     "ignore",
     "ignore",
   ],

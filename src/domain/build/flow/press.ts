@@ -7,6 +7,7 @@ export type PressIntent =
   | { kind: "selectPoint" } // Send the tapped block to point selection.
   | { kind: "fixEndpoint" } // Try to fix the virtual endpoint from the aim ray.
   | { kind: "openUtilityMenu" } // Offer the available utility actions.
+  | { kind: "confirmLiveHeight" }
   | { kind: "aimHeight" } // Confirm the aimed height and advance the height step.
   | { kind: "pasteAim" } // Handle the wand's paste gesture or direct Paste Place.
   | { kind: "rotateTap" } // Apply one turn in rotate mode.
@@ -47,6 +48,7 @@ export function routePress({
 
   // An aimed block tap can emit both events. Only blockInteract handles it.
   if (route === "itemUse" && target !== "air") return { kind: "ignore" };
+  if (flow.kind === "baseHeight") return { kind: "confirmLiveHeight" };
   if (flow.kind === "heightStep") return { kind: "aimHeight" };
   if (route === "blockInteract")
     return {

@@ -2,7 +2,7 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { boxOf, boxWithHeight, type CellBox, center, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
-import type { BuildFlow } from "../flow/flow";
+import { type BuildFlow, liveHeightBox } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
 import { volumeOf } from "../volume/geometry";
 import { boxStepLimit, boxStepVolume, isBoxStepKind } from "../volume/kind";
@@ -51,12 +51,13 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         set.endCube = cornerMarkerPoints(aim.end);
       }
       break;
-    case "selected":
-      set.shape = outline(flow.selection.box);
+    case "baseHeight":
+      set.shape = outline(liveHeightBox(flow));
       set.endCube = cornerMarkerPoints(flow.to);
       break;
+    case "selected":
     case "terrainConfirm":
-      set.shape = outline(boxOf(flow.from, flow.to));
+      set.shape = outline(flow.selection.box);
       set.endCube = cornerMarkerPoints(flow.to);
       break;
     case "rotateMode":

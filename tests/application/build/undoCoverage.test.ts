@@ -271,10 +271,9 @@ it.each(["Remove above", "Copy"] as const)(
     if (operation === "Remove above") {
       e.session.setFlow({
         kind: "terrainConfirm",
-        dimensionId: overworld,
+        selection: selectionOf(overworld, boxOf(floor, floor), stone),
         from: floor,
         to: floor,
-        material: stone,
         op: "removeAbove",
       });
       e.terrain.execute({ playerId });

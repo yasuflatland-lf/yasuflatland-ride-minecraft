@@ -7,9 +7,13 @@ export class AimHeight {
   constructor(private readonly repo: BuildSessionRepository) {}
   execute(cmd: { playerId: PlayerId; ray: Ray }): void {
     const session = this.repo.get(cmd.playerId);
-    if (session?.flow.kind !== "heightStep" || session.flow.heightLocked)
-      return;
+    if (!session) return;
     const flow = session.flow;
+    if (
+      flow.kind !== "baseHeight" &&
+      (flow.kind !== "heightStep" || flow.heightLocked)
+    )
+      return;
     const height = aimedHeight(flow, cmd.ray);
     session.setFlow(setHeight(flow, height));
   }

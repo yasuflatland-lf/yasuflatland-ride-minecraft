@@ -1,8 +1,6 @@
 import { AIR } from "../../domain/build/blockState";
-import { boxOf } from "../../domain/build/box";
 import { planFillBelow, planShape } from "../../domain/build/edit/plan";
 import { backToAiming } from "../../domain/build/flow/flow";
-import { selectionOf } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { shapeOf } from "../../domain/build/shape/shape";
 import { BUILD_SPEC } from "../../domain/build/spec";
@@ -34,11 +32,8 @@ export class ConfirmTerrain {
       this.feedback.showMessage(playerId, "busy");
       return;
     }
-    const selection = selectionOf(
-      flow.dimensionId,
-      boxOf(flow.from, flow.to),
-      flow.material,
-    );
+    const { selection } = flow;
+    const { dimensionId, material } = selection;
     const area = terrainAreaOf(flow.from, flow.to);
     const box = removeAboveBox(area);
     if (flow.op === "removeAbove" && !box) {
@@ -53,21 +48,21 @@ export class ConfirmTerrain {
       playerId,
       flow.op === "fillBelow" ? "building" : "removing",
       undefined,
-      flow.material,
+      material,
     );
     this.jobs.start(
       playerId,
-      flow.dimensionId,
+      dimensionId,
       flow.op === "fillBelow"
         ? planFillBelow(
             area,
-            flow.material,
+            material,
             (cell) => {
-              const state = this.world.stateAt(flow.dimensionId, cell);
+              const state = this.world.stateAt(dimensionId, cell);
               return (
                 state !== undefined &&
                 isOpenBlock(state.typeId) &&
-                this.world.mayEdit(flow.dimensionId, cell)
+                this.world.mayEdit(dimensionId, cell)
               );
             },
             BUILD_SPEC.worldBottomY,

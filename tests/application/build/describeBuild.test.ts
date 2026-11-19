@@ -16,6 +16,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import { FakeSessions, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
@@ -50,11 +51,13 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           );
         const idle: BuildFlow = { kind: "idle" };
         const first = tapBlock(idle, overworld, cell, stone);
-        const endpoint = tapAir(first, {
-          ...cell,
-          x: cell.x + 2,
-          z: cell.z + 2,
-        });
+        const endpoint = confirmEndpointHeight(
+          tapAir(first, {
+            ...cell,
+            x: cell.x + 2,
+            z: cell.z + 2,
+          }),
+        );
         const flows: BuildFlow[] = [
           idle,
           first,

@@ -20,6 +20,7 @@ export class SetPoint {
     const session = this.repo.getOrCreate(cmd.playerId);
     const flow = session.flow;
     if (
+      flow.kind === "baseHeight" ||
       flow.kind === "selected" ||
       flow.kind === "heightStep" ||
       flow.kind === "pasteAim" ||
@@ -39,6 +40,7 @@ export class SetPoint {
     if (starting) session.clearSelection();
     const next = tapBlock(flow, cmd.dimensionId, cmd.cell, material);
     session.setFlow(next);
+    if (next.kind === "baseHeight") return;
     this.feedback.showMessage(
       cmd.playerId,
       next.kind === "selected" ? "endSet" : "pointSet",

@@ -9,6 +9,7 @@ import {
   withBox,
 } from "../../../src/domain/build/selection";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 
 const cell = fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() });
 const dimensionId = asDimensionId("minecraft:overworld");
@@ -48,9 +49,8 @@ it("uses inclusive bounds for both endpoint orders", () => {
         [a, b],
         [b, a],
       ] as const) {
-        const flow = tapAir(
-          tapBlock({ kind: "idle" }, dimensionId, from, material),
-          to,
+        const flow = confirmEndpointHeight(
+          tapAir(tapBlock({ kind: "idle" }, dimensionId, from, material), to),
         );
         if (flow.kind !== "selected") throw new Error("Missing selection");
         expect(flow.selection).toEqual(expected);
