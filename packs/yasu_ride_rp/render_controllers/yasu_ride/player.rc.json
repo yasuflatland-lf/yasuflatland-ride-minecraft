@@ -1,0 +1,31 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.yasu_ride.player.first_person_scooter": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": ["Texture.default"],
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "rightArm": true
+        },
+        {
+          "rightSleeve": true
+        },
+        {
+          "leftArm": true
+        },
+        {
+          "leftSleeve": true
+        }
+      ]
+    }
+  }
+}
