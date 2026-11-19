@@ -5,6 +5,7 @@ import type { TransformingSpec } from "../../motion/transforming";
 export const SCOOTER_SPEC = Object.freeze({
   maxSpeed: 0.9,
   maxReverse: 0.2,
+  ramMinReverseSpeed: 0.15, // blocks/tick; rams only while reversing faster than this (ADR 0006)
   accel: 0.0225,
   reverseAccel: 0.01125,
   brake: 0.04,

@@ -56,6 +56,8 @@ export const CAMPER_SPEC = Object.freeze({
   // Driving (ADR 0002, 0067)
   maxSpeed: 0.9, // blocks/tick, as the SUV (owner's choice)
   maxReverse: 0.15,
+  // Three quarters of maxReverse, the SUV's ratio (0.15 / 0.2), so full reverse rams (ADR 0006)
+  ramMinReverseSpeed: 0.1125,
   accel: 0.012, // 0.9 / 0.012 = 75 ticks, about 3.75 s to full speed at 20 tps; about half the SUV's 0.0225, for a heavy body
   reverseAccel: 0.006,
   brake: 0.04, // as the SUV

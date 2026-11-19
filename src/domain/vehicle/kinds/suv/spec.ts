@@ -14,6 +14,7 @@ export const SUV_SPEC = Object.freeze({
   // Driving (ADR 0002)
   maxSpeed: 0.9, // blocks/tick
   maxReverse: 0.2,
+  ramMinReverseSpeed: 0.15, // blocks/tick; rams only while reversing faster than this (ADR 0006)
   accel: 0.0225,
   reverseAccel: 0.01125,
   brake: 0.04,

@@ -21,6 +21,7 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
   body,
   maxRamHalfWidth: BULLDOZER_WIDE_BLADE.halfWidth,
   footprint: BULLDOZER_SPEC.footprint,
+  ramMinReverseSpeed: BULLDOZER_SPEC.ramMinReverseSpeed,
   seats: Object.freeze({ positions: Object.freeze([{ x: 0, z: -1.35 }]) }),
   boarding: Object.freeze({ order: "engine" }),
   seatExits: Object.freeze([BULLDOZER_SPEC.doorExit]),

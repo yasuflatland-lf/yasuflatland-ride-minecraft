@@ -56,6 +56,7 @@ export const SCOOTER_PROFILE: VehicleProfile = Object.freeze({
   fleetLimit: SCOOTER_SPEC.fleetLimit,
   body,
   footprint: SCOOTER_SPEC.footprint,
+  ramMinReverseSpeed: SCOOTER_SPEC.ramMinReverseSpeed,
   seats: Object.freeze({
     positions: Object.freeze([
       Object.freeze({ x: 0, z: SCOOTER_SPEC.driverSeatZ }),
