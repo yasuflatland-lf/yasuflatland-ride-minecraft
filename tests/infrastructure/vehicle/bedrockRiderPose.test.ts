@@ -19,7 +19,7 @@ it("plays the full animation and clears the last pose once with immediate stop",
     "animation.yasu_ride.player.scooter_lean_l2",
     {
       controller: "yasu_ride.scooter_pose",
-      blendOutTime: 0.15,
+      blendOutTime: 0,
       stopExpression: "!query.is_riding",
     },
   );
@@ -35,7 +35,7 @@ it("plays the full animation and clears the last pose once with immediate stop",
   adapter.clear(id);
   expect(player.playAnimation).toHaveBeenCalledTimes(2);
 });
-it("replays an unchanged pose without a blend so the arms do not jump", () => {
+it("plays changed and unchanged poses without a blend-out so the limbs do not kick", () => {
   const { player, adapter, id } = fixture();
   adapter.play(id, "scooter_grip");
   adapter.play(id, "scooter_grip");
@@ -43,7 +43,7 @@ it("replays an unchanged pose without a blend so the arms do not jump", () => {
   adapter.play(id, "scooter_lean_l1");
   expect(
     player.playAnimation.mock.calls.map(([, options]) => options.blendOutTime),
-  ).toEqual([0.15, 0, 0.15, 0]);
+  ).toEqual([0, 0, 0, 0]);
 });
 it("ignores missing and invalid players", () => {
   const { player, lookup, adapter, id } = fixture();
