@@ -211,7 +211,7 @@ A transparent 16 by 16 item icon shows the scooter facing right.
 
 - Agreement: Proposed
 - Basis: [0009](../adr/0009-vehicle-model-conventions.md), front direction and model bones; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), named compound assemblies and the pending device confirmation of rotation order.
-- Implementation: `tools/scooter_textures.py`, `tools/gen_scooter.py`, `tools/scooter_dims.py`, `tools/scooter_atlas.py`, `tools/scooter_kit.py`, `tools/generators.json`.
+- Implementation: `tools/scooter_textures.py`, `tools/gen_scooter.py`, `tools/face_crop.py`, `tools/scooter_dims.py`, `tools/scooter_atlas.py`, `tools/scooter_kit.py`, `tools/generators.json`.
 - Verification: `tests/tools/scooterTextures.test.ts` checks dye order, fixed and paint region separation, recoloured
   texels, ivory identity, material finishes, lamp masks, texture sets, and icon transparency,
   plus the separate atlas sizes and decoded colour storage and the stored tile count of every panel sheet;
