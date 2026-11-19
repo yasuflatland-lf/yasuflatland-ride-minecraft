@@ -1,5 +1,6 @@
 import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
+import { ChooseAdjustHeight } from "../../application/build/chooseAdjustHeight";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
@@ -157,6 +158,7 @@ export function installBuild(deps: {
   };
   const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const menuCases = {
+    chooseAdjustHeight: new ChooseAdjustHeight(repo),
     openSelectionMenu: new OpenSelectionMenu(repo),
     openBuildMenu: new OpenBuildMenu(repo, preview),
     closeBuildMenu: new CloseBuildMenu(repo, preview),
