@@ -1,5 +1,5 @@
 // Use case: undo the player's last edit (ADR 0178).
-import { cellsOf, volume } from "../../domain/build/box";
+import { type CellBox, cellsOf, volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
 import { clearLastPaste } from "../../domain/build/flow/flow";
 import { isEditRefusal } from "../../domain/build/session";
@@ -21,17 +21,17 @@ export class UndoEdit {
     private readonly log: Logger,
   ) {}
 
-  execute(cmd: { playerId: PlayerId }): void {
+  execute(cmd: { playerId: PlayerId }): { restoredSelection?: CellBox } {
     const { playerId } = cmd;
     const session = this.repo.get(playerId);
     if (!session) {
       this.feedback.showMessage(playerId, "nothingToUndo");
-      return;
+      return {};
     }
     const entry = session.takeUndo();
     if (isEditRefusal(entry)) {
       this.feedback.showMessage(playerId, entry);
-      return;
+      return {};
     }
     if (entry.kind === "snapshot") {
       const { dimensionId, box, handle } = entry.snapshot;
@@ -39,7 +39,7 @@ export class UndoEdit {
         if (!this.world.mayRestore(dimensionId, cell)) {
           session.putBackUndo(entry);
           this.feedback.showMessage(playerId, "pasteBlocked");
-          return;
+          return {};
         }
       }
       this.structures.clearEntities(dimensionId, box);
@@ -48,20 +48,21 @@ export class UndoEdit {
       if (!placed) {
         this.log.warn(`Snapshot undo failed for ${playerId}: ${handle}`);
         this.feedback.showMessage(playerId, "undoFailed");
-        return;
+        return {};
       }
       session.setFlow(clearLastPaste(session.flow));
       this.feedback.showMessage(playerId, "undoDone", volume(box));
-      return;
+      return { restoredSelection: entry.snapshot.selectionBefore };
     }
     const record = entry.record;
     const busy = session.beginEdit();
     if (busy) {
       this.feedback.showMessage(playerId, busy);
-      return;
+      return {};
     }
     this.jobs.start(playerId, record.dimensionId, undoPlan(record), "undo");
     // ADR 0203: undo must allow an immediate paste at the same anchor.
     session.setFlow(clearLastPaste(session.flow));
+    return { restoredSelection: record.selectionBefore };
   }
 }

@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { AIR } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -51,5 +52,42 @@ it("take then put back restores every entry in order without trimming or replaci
         expect(session.takeUndo()).toBe(entry);
       expect(session.takeUndo()).toBe("nothingToUndo");
     }),
+  );
+});
+
+it("retains optional pre-edit selections on the newest entries after eviction", () => {
+  const selection = fc.option(
+    fc.tuple(cell, cell).map(([a, b]) => boxOf(a, b)),
+    { nil: undefined },
+  );
+  const historyEntry = fc
+    .tuple(entry, selection)
+    .map(([item, selectionBefore]): UndoEntry => {
+      if (!selectionBefore) return item;
+      return item.kind === "cells"
+        ? { kind: "cells", record: { ...item.record, selectionBefore } }
+        : { kind: "snapshot", snapshot: { ...item.snapshot, selectionBefore } };
+    });
+  const depth = BUILD_SPEC.undoDepth;
+  fc.assert(
+    fc.property(
+      fc.array(historyEntry, { minLength: depth + 1, maxLength: depth * 2 }),
+      (entries) => {
+        let history = entries.reduce(
+          (h, item) => withEntry(h, item, depth).history,
+          EMPTY_HISTORY,
+        );
+        for (const expected of entries.slice(-depth).reverse()) {
+          const { entry: taken, rest } = takeLast(history);
+          expect(taken).toStrictEqual(expected);
+          if (!taken) throw new Error("Missing entry");
+          expect(takeLast(withPutBack(rest, taken)).entry).toStrictEqual(
+            expected,
+          );
+          history = rest;
+        }
+        expect(history).toStrictEqual(EMPTY_HISTORY);
+      },
+    ),
   );
 });

@@ -41,6 +41,7 @@ export class ConfirmShape {
       flow.selection.dimensionId,
       planShape(shape, cmd.style, { state: flow.selection.material }),
       "undoable",
+      box,
     );
   }
 }

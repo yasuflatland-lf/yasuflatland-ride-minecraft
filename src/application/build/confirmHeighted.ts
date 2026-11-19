@@ -38,15 +38,15 @@ export class ConfirmHeighted {
     };
     const count = placementOf(spec.kind).count(spec, cmd.fill);
     if (!beginCheckedEdit(session, this.feedback, cmd.playerId, count)) return;
+    const box = heightStepBox(flow);
     session.setFlow(finishHeightStep(flow, hollow));
-    session.confirmBox(
-      selectionOf(flow.dimensionId, heightStepBox(flow), flow.material),
-    );
+    session.confirmBox(selectionOf(flow.dimensionId, box, flow.material));
     this.jobs.start(
       cmd.playerId,
       flow.dimensionId,
       planHeighted(spec, cmd.fill, { state: flow.material }),
       "undoable",
+      box,
     );
   }
 }
