@@ -11,8 +11,8 @@ const ROOT = join(
   "../../packs/yasu_ride_rp",
 );
 const MIB = 1024 * 1024;
-// 187,735,168 decoded bytes, rounded up to 8 MiB (ADR 0252).
-const ENTITY_TEXTURE_BUDGET_BYTES = 184 * MIB;
+// 142,175,904 decoded bytes, rounded up to 8 MiB (ADR 0252).
+const ENTITY_TEXTURE_BUDGET_BYTES = 136 * MIB;
 // The player override retains these vanilla assets; the pack does not supply them.
 const VANILLA_TEXTURES = new Set([
   "textures/entity/steve",

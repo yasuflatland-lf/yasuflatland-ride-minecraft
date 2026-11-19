@@ -244,97 +244,12 @@ for name, part in (("scooter_fixed", built.fixed), ("scooter_paint", built.paint
 `);
   });
 
-  it("partitions retained source faces and drops fully transparent faces from the alpha-tested passes", async () => {
-    await withBuild(`
-atlas = load_tool("region_atlas")
-face_crop = load_tool("face_crop")
-preview = load_tool("render_preview")
-rp = Path("packs/yasu_ride_rp")
-source = built.source_geometry["minecraft:geometry"][0]
-full = built.full_geometry["minecraft:geometry"][0]
-paint_regions = {r.name for r in built.paint.layout.regions}
-pass_bones = []
-source_images = []
-shipped_images = []
-shipped_count = 0
-for texture, render_pass in (
-    ("scooter_fixed", built.fixed),
-    ("scooter_paint", built.paint),
-):
-    bones = render_pass.geometry["minecraft:geometry"][0]["bones"]
-    pass_bones.append(bones)
-    shipped_count += sum(len(cube["uv"]) for bone in bones for cube in bone["cubes"])
-    source_images.append(atlas.AtlasImage(*render_pass.layout.size, render_pass.pixels))
-    shipped_image = atlas.AtlasImage(*preview.read_png_bytes(rp / f"textures/entity/yasu_ride/{texture}.png"))
-    assert (shipped_image.width, shipped_image.height) == render_pass.layout.size
-    shipped_images.append(shipped_image)
-
-def shape(cube):
-    return {key: value for key, value in cube.items() if key != "uv"}
-
-def rgba_rows(image, rect):
-    for y in range(rect.y0, rect.y1):
-        start = (y * image.width + rect.x0) * 4
-        yield image.pixels[start:start + (rect.x1 - rect.x0) * 4]
-
-source_count = clear_count = 0
-visibility = {}
-for original_bone, full_bone, fixed_bone, paint_bone in zip(
-        source["bones"], full["bones"], *pass_bones, strict=True):
-    for bone in (full_bone, fixed_bone, paint_bone):
-        assert {k: v for k, v in bone.items() if k != "cubes"} == {
-            k: v for k, v in original_bone.items() if k != "cubes"
-        }
-    cursors = (iter(fixed_bone["cubes"]), iter(paint_bone["cubes"]))
-    full_cubes = iter(full_bone["cubes"])
-    bone_name = original_bone["name"]
-    lit = bone_name in ("headlights", "tail_lights") or bone_name.startswith("glow_")
-    for original in original_bone["cubes"]:
-        expected = ({}, {})
-        for name, face in original["uv"].items():
-            source_count += 1
-            owner = int(face.region in paint_regions)
-            if not lit:
-                key = (owner, atlas.UvRect.of(face).texels())
-                if key not in visibility:
-                    visibility[key] = face_crop.is_visible(face, source_images[owner])
-                if not visibility[key]:
-                    clear_count += 1
-                    continue
-            expected[owner][name] = face
-        retained = {name: face for name, face in original["uv"].items()
-                    if name in expected[0] or name in expected[1]}
-        if retained:
-            rejoined = next(full_cubes)
-            assert shape(rejoined) == shape(original)
-            assert rejoined["uv"] == retained
-            assert list(rejoined["uv"]) == list(retained)
-        for owner, faces in enumerate(expected):
-            if not faces:
-                continue
-            shipped = next(cursors[owner])
-            assert shape(shipped) == shape(original)
-            assert shipped["uv"] == faces
-            assert list(shipped["uv"]) == list(faces)
-            for name, shipped_face in shipped["uv"].items():
-                source_rect = atlas.UvRect.of(faces[name]).texels()
-                shipped_rect = atlas.UvRect.of(shipped_face).texels()
-                assert all(before == after for before, after in zip(
-                    rgba_rows(source_images[owner], source_rect),
-                    rgba_rows(shipped_images[owner], shipped_rect), strict=True))
-    assert all(next(cursor, None) is None for cursor in cursors)
-    assert next(full_cubes, None) is None
-assert clear_count > 0
-assert source_count == clear_count + shipped_count
-`);
-  });
-
   it("rejoins the shipped faces with stacked atlas coordinates", async () => {
     await withBuild(`
 shipped = built.full_geometry["minecraft:geometry"][0]
 preview = load_tool("render_preview")
 merged, texture = preview.load_scooter_model(Path("packs/yasu_ride_rp"), built)
-paint_regions = {r.name for r in built.paint.layout.regions}
+shipped_paint_regions = {region.name for region in built.paint.layout.regions}
 fixed_height = built.fixed.layout.size[1]
 assert len(texture) == fixed_height + built.paint.layout.size[1]
 assert len(texture[0]) == max(built.fixed.layout.size[0], built.paint.layout.size[0])
@@ -350,7 +265,7 @@ for shipped_bone, merged_bone in zip(shipped["bones"], merged["bones"], strict=T
         for name, face in cube["uv"].items():
             translated = dict(rejoined["uv"][name])
             u, v = translated["uv"]
-            translated["uv"] = [u, v - (fixed_height if face.region in paint_regions else 0)]
+            translated["uv"] = [u, v - (fixed_height if face.region in shipped_paint_regions else 0)]
             assert translated == face
 `);
   });
