@@ -228,11 +228,16 @@ describe("scooter client references", () => {
       for (const name of [
         textureSet.color,
         textureSet.metalness_emissive_roughness,
-      ])
+      ]) {
+        if (typeof name !== "string") {
+          expect(name).toEqual([0, 0, 90]);
+          continue;
+        }
         expect(
           existsSync(`${RP}/textures/entity/yasu_ride/${name}.png`),
           name,
         ).toBe(true);
+      }
     }
   });
 
