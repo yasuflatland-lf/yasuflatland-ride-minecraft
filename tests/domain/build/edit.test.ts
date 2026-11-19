@@ -146,6 +146,7 @@ it("roof plans have exactly the roof count and selected material", () => {
           base: boxOf(box.min, { ...box.max, y: box.min.y }),
           height,
           kind,
+          style: "stepped" as const,
         };
         const plan = [
           ...planHeighted(

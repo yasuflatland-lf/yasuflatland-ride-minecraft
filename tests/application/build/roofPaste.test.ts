@@ -165,7 +165,7 @@ it("confirms roof cells and retains their bounding box for copying", () => {
         const base = boxOf({ x: 2, y: 64, z: 3 }, { x: 8, y: 64, z: 9 });
         roof(e, base, kind);
         e.session.setFlow(setHeight(e.session.flow, height));
-        const spec = { base, kind, height };
+        const spec = { base, kind, height, style: "stepped" as const };
         new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
           playerId,
           fill: hollow ? "hollow" : "fill",

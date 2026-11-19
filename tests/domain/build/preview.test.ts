@@ -241,7 +241,10 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
           expect(p.y).toBeLessThanOrEqual(origin.y + height - 0.5);
         }
         const top = [
-          ...roofCells({ base, kind: heightedKind, height }, false),
+          ...roofCells(
+            { base, kind: heightedKind, height, style: "stepped" },
+            false,
+          ),
         ].filter((c) => c.y === origin.y + height - 1);
         const ridge = points.filter((p) => p.y === origin.y + height - 0.5);
         const minX = Math.min(...top.map((c) => c.x)) + 0.5;

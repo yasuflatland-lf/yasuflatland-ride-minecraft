@@ -2,7 +2,7 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { boxWithHeight, type CellBox } from "../box";
 import { roofPlacement, roofVolume } from "../roof/geometry";
-import { isRoofKind } from "../roof/roof";
+import { isRoofKind, type RoofStyle } from "../roof/roof";
 import { cubePlacement, cubeVolume } from "./cube";
 import { cylinderPlacement, cylinderVolume } from "./cylinder";
 import type { FillStyle, HeightedKind, HeightStepKind } from "./kind";
@@ -13,6 +13,7 @@ export interface HeightStepSpec {
   readonly base: CellBox;
   readonly kind: HeightStepKind;
   readonly height: number;
+  readonly roofStyle?: RoofStyle;
 }
 
 export interface HeightedSpec extends HeightStepSpec {
