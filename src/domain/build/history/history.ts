@@ -5,6 +5,7 @@ import type { EditRecord } from "../edit/change";
 import type { StructureHandle } from "../structure/handle";
 
 export interface SnapshotRecord {
+  readonly selectionBefore?: CellBox;
   readonly dimensionId: DimensionId;
   /** The box that was overwritten. */
   readonly box: CellBox;
