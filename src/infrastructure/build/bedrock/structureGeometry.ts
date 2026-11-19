@@ -1,4 +1,5 @@
 import type { CellBox } from "../../../domain/build/box";
+import type { Cell } from "../../../domain/shared/cells";
 import { buildId } from "../identifiers";
 
 const STRUCTURE_PURPOSE = "box";
@@ -19,6 +20,15 @@ export function isStructureTooLarge(box: CellBox): boolean {
   return (Object.keys(AXIS_LIMITS) as (keyof typeof AXIS_LIMITS)[]).some(
     (axis) => box.max[axis] - box.min[axis] + 1 > AXIS_LIMITS[axis],
   );
+}
+
+/** The structure-relative location of `cell`, whose structure was saved from `box`. */
+export function structureOffset(box: CellBox, cell: Cell): Cell {
+  return {
+    x: cell.x - box.min.x,
+    y: cell.y - box.min.y,
+    z: cell.z - box.min.z,
+  };
 }
 
 export function* fillChunks(box: CellBox): Generator<CellBox> {

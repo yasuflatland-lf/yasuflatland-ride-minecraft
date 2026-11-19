@@ -48,7 +48,13 @@ it("captures exactly once with the owner and dimension and stores the full box s
         }),
       ).toBe(true);
       expect(e.structures.calls).toEqual([
-        { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+        {
+          kind: "capture",
+          dimensionId: overworld,
+          box,
+          ownerId: playerId,
+          mode: "copy",
+        },
       ]);
       const clipboard = e.repo.get(playerId)?.clipboard;
       expect(clipboard).toEqual({
@@ -208,6 +214,7 @@ it("refuses without changing a present session or creating an absent one, preser
                   dimensionId: overworld,
                   box,
                   ownerId: playerId,
+                  mode: "copy",
                 },
               ],
         );
@@ -257,8 +264,8 @@ it.each(["absent", "structure"] as const)(
           const discarded = new Set<StructureHandle>();
           const captures: StructureHandle[] = [];
           const capture = e.structures.capture.bind(e.structures);
-          e.structures.capture = (dimensionId, box, ownerId) => {
-            const result = capture(dimensionId, box, ownerId);
+          e.structures.capture = (dimensionId, box, ownerId, mode) => {
+            const result = capture(dimensionId, box, ownerId, mode);
             if (result !== "tooLarge" && result !== "unreadable") {
               expect(captured.has(result)).toBe(false);
               captured.add(result);
@@ -404,6 +411,7 @@ it.each(["absent", "structure"] as const)(
                         dimensionId: overworld,
                         box,
                         ownerId: playerId,
+                        mode: "copy",
                       },
                     ],
               );

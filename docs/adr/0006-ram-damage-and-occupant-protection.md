@@ -12,7 +12,8 @@ In the spike, every tick the script searched an area in front of the vehicle and
 ## Decision
 
 - The detection area is a rectangle in front of the vehicle. Its depth is the front of the visible body (1.85 from the center) plus half the target's body width (0.45); its width is the body's half-width (1.1) plus 0.45
-- On a hit at speed 0.15 or higher, deal `round(20 × speed)` damage and knock the target in the direction of travel (horizontal `0.5 + 2.5 × speed`, upward 0.35). Do not hit the same target again within 10 ticks
+- Hit only while moving forward faster than 0.15 blocks/tick (`SPEC.ramMinSpeed`), or reversing faster than the kind's `ramMinReverseSpeed`. The forward threshold is shared so that creeping (0.12, ADR 0018) and the step bump (`MOTION.stepMinSpeed`, 0.15) never ram. Reversing has neither, so each kind sets its reverse threshold at three quarters of its full reverse speed: 0.15 for the SUV, scooter and sports boat, 0.1125 for the camper and 0.075 for the bulldozer. A single 0.15 kept the camper (full reverse 0.15) and the bulldozer (0.1) from ever ramming in reverse
+- On a hit, deal `round(20 × speed)` damage and knock the target in the direction of travel (horizontal `0.5 + 2.5 × speed`, upward 0.35). Do not hit the same target again within 10 ticks
 - Always protect riders. Never hit the occupants of your own vehicle or of another vehicle
 - Make the vehicle immune to all damage with `minecraft:damage_sensor`
 - Leave rider damage immunity to the engine's behavior and catch regressions with in-game tests. If a test shows it broken, design an additional mechanism that cancels occupant damage only while riding

@@ -68,8 +68,20 @@ it("captures the whole box twice before removing anything and records a snapshot
         ).toBe(true);
         const [clipboard, snapshot] = [...e.structures.live];
         expect(e.structures.calls).toEqual([
-          { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
-          { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+          {
+            kind: "capture",
+            dimensionId: overworld,
+            box,
+            ownerId: playerId,
+            mode: "copy",
+          },
+          {
+            kind: "capture",
+            dimensionId: overworld,
+            box,
+            ownerId: playerId,
+            mode: "exact",
+          },
           { kind: "clearEntities", dimensionId: overworld, box },
           { kind: "clearBlocks", dimensionId: overworld, box },
         ]);
@@ -310,8 +322,20 @@ it.each([false, true])(
     ).toBe(true);
     const [clipboard, snapshot] = [...e.structures.live].slice(-2);
     expect(e.structures.calls).toEqual([
-      { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
-      { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+      {
+        kind: "capture",
+        dimensionId: overworld,
+        box,
+        ownerId: playerId,
+        mode: "copy",
+      },
+      {
+        kind: "capture",
+        dimensionId: overworld,
+        box,
+        ownerId: playerId,
+        mode: "exact",
+      },
       { kind: "clearEntities", dimensionId: overworld, box },
       { kind: "clearBlocks", dimensionId: overworld, box },
       {

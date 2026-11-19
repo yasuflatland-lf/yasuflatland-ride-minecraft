@@ -6,12 +6,21 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type CaptureRefusal = "tooLarge" | "unreadable";
 
+/**
+ * `copy` is for a clipboard: block types that must not be duplicated, such as
+ * the Warp Block, are saved as air, because a pasted copy would hold no warp
+ * registration. `exact` keeps every block, for Undo snapshots and the
+ * selected-box rotation, which put the same blocks back or move them.
+ */
+export type CaptureMode = "copy" | "exact";
+
 export interface BuildStructureStore {
   /** Saves the blocks and entities inside `box` as one structure. Players and this add-on's entities are not saved. Never throws. */
   capture(
     dimensionId: DimensionId,
     box: CellBox,
     ownerId: PlayerId,
+    mode: CaptureMode,
   ): StructureHandle | CaptureRefusal;
   /** Places the structure with the minimum corner of its rotated box at `anchor`. False when the engine refuses. */
   place(

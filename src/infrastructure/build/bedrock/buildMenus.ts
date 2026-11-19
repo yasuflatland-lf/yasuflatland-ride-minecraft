@@ -188,7 +188,7 @@ export class BedrockBuildMenus implements BuildMenus {
     const playerId = asPlayerId(player.id);
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "terrainConfirm") return;
-    const area = terrainAreaOf(flow.from, flow.to);
+    const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
     const bottomY = player.dimension.heightRange.min;
     const topY = player.dimension.heightRange.max - 1;
     if (

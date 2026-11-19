@@ -8,6 +8,7 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
+import { UndoEdit } from "../../../src/application/build/undoEdit";
 import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight, cellsOf } from "../../../src/domain/build/box";
@@ -48,6 +49,10 @@ import { FakeStructureStore } from "./fakes/structureStore";
 const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
 const dirt = blockStateOf("minecraft:dirt");
+const stairs = blockStateOf("minecraft:oak_stairs", {
+  weirdo_direction: 3,
+  upside_down_bit: true,
+});
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const face = fc.constantFrom<Face>(
@@ -79,13 +84,14 @@ function roof(
   e: ReturnType<typeof setup>,
   base: ReturnType<typeof boxOf>,
   kind: "gable" | "hip",
+  material = stone,
 ) {
-  e.session.setFlow(
-    confirmEndpointHeight(
-      tapAir(tapBlock({ kind: "idle" }, overworld, base.min, stone), base.max),
-    ),
+  const selected = confirmEndpointHeight(
+    tapAir(tapBlock({ kind: "idle" }, overworld, base.min, material), base.max),
   );
+  e.session.setFlow(selected);
   new ChooseHeighted(e.repo, e.feedback).execute({ playerId, kind });
+  return selected;
 }
 
 it("aims through cell centers and clamps roof layers to the side and world caps", () => {
@@ -165,7 +171,7 @@ it("confirms roof cells and retains their bounding box for copying", () => {
         const base = boxOf({ x: 2, y: 64, z: 3 }, { x: 8, y: 64, z: 9 });
         roof(e, base, kind);
         e.session.setFlow(setHeight(e.session.flow, height));
-        const spec = { base, kind, height };
+        const spec = { base, kind, height, style: "stepped" as const };
         new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
           playerId,
           fill: hollow ? "hollow" : "fill",
@@ -190,6 +196,86 @@ it("confirms roof cells and retains their bounding box for copying", () => {
       },
     ),
   );
+});
+
+it.each([1, 5])(
+  "builds an outward stair gable with an open bottom and restores the original %s-layer selection",
+  (selectedHeight) => {
+    const e = setup();
+    const base = boxOf({ x: 0, y: 64, z: 0 }, { x: 4, y: 64, z: 6 });
+    const original = boxWithHeight(base, selectedHeight);
+    roof(e, original, "gable", stairs);
+    expect(e.feedback.messages.at(-1)).toMatchObject({
+      message: "building",
+      material: stairs,
+    });
+    new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
+      playerId,
+      fill: "hollow",
+    });
+    e.jobs.step();
+    expect(e.world.writes).toBe(43);
+    expect(e.session.confirmedBox?.box).toEqual(boxWithHeight(base, 3));
+    const stateAt = (x: number, y: number, z: number) =>
+      e.world.stateAt(overworld, { x, y, z });
+    expect(stateAt(0, 64, 3)).toEqual(
+      blockStateOf(stairs.typeId, {
+        weirdo_direction: 0,
+        upside_down_bit: false,
+      }),
+    );
+    expect(stateAt(3, 65, 3)).toEqual(
+      blockStateOf(stairs.typeId, {
+        weirdo_direction: 1,
+        upside_down_bit: false,
+      }),
+    );
+    expect(stateAt(2, 66, 3)).toEqual(stairs);
+    expect(stateAt(2, 64, 3)).toEqual(AIR);
+    const undo = new UndoEdit(
+      e.repo,
+      e.feedback,
+      e.jobs,
+      e.world,
+      e.structures,
+      {
+        warn: () => {},
+      },
+    );
+    expect(undo.execute({ playerId }).restoredSelection).toEqual(original);
+    e.jobs.step();
+    expect(e.session.confirmedBox?.box).toEqual(original);
+    for (const at of cellsOf(boxWithHeight(base, 3)))
+      expect(e.world.stateAt(overworld, at)).toEqual(AIR);
+  },
+);
+
+it("counts only the open-bottom shell when refusing an oversized stair roof", () => {
+  const e = setup();
+  const base = boxOf({ x: 0, y: 64, z: 0 }, { x: 319, y: 64, z: 319 });
+  roof(e, base, "hip", stairs);
+  const flow = e.session.flow;
+  new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
+    playerId,
+    fill: "hollow",
+  });
+  expect(e.feedback.messages.at(-1)).toEqual({
+    message: "tooLarge",
+    count: 320 ** 2,
+  });
+  expect(e.session.flow).toBe(flow);
+  expect(e.session.isEditing).toBe(false);
+});
+
+it("reports tooLarge when the fixed pitch would cross the world top", () => {
+  const e = setup();
+  const y = BUILD_SPEC.worldTopY - 1;
+  const base = boxOf({ x: 0, y, z: 0 }, { x: 4, y, z: 6 });
+  const selected = roof(e, base, "gable", stairs);
+  expect(e.session.flow).toBe(selected);
+  expect(e.feedback.messages.map(({ message }) => message)).toEqual([
+    "tooLarge",
+  ]);
 });
 
 it("refuses oversized and busy roofs without consuming the height stage", () => {

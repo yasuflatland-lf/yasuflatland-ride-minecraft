@@ -155,6 +155,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_structure_store_uncopyable",
+    file: "buildStructureStore",
+    ticks: 2, // Estimate until the first BDS run.
+    features: ["build", "warp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "dining_table_top_overlap",
     file: "diningTable",
     ticks: 32, // Estimate until the first BDS run.
@@ -1800,6 +1809,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
   },
   {
     name: "build_roofs",
+    file: "buildFlow",
+    ticks: 180,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
+    name: "build_stair_roofs",
     file: "buildFlow",
     ticks: 180,
     features: ["build"],

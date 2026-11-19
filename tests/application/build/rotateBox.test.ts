@@ -111,8 +111,15 @@ it("rotates any selection with one union snapshot and never writes outside the u
           dimensionId: overworld,
           box: plan.union,
           ownerId: playerId,
+          mode: "exact",
         },
-        { kind: "capture", dimensionId: overworld, box, ownerId: playerId },
+        {
+          kind: "capture",
+          dimensionId: overworld,
+          box,
+          ownerId: playerId,
+          mode: "exact",
+        },
         { kind: "clearEntities", dimensionId: overworld, box },
         { kind: "clearBlocks", dimensionId: overworld, box },
         placed,
@@ -145,7 +152,7 @@ it("rotates any selection with one union snapshot and never writes outside the u
   );
 });
 
-it("rotates the selected box once per press and undoes each turn with its selection", () => {
+it("rotates the selected box once per press, undoes each turn with its selection, and keeps the tapped points", () => {
   const e = setup();
   const cmd = { playerId, dimensionId: overworld };
   const { union, target } = planRotationAboutCenter(wideBox);
@@ -158,6 +165,8 @@ it("rotates the selected box once per press and undoes each turn with its select
     expect(e.session.flow).toMatchObject({
       kind: "selected",
       selection: selectionOf(overworld, box, stone),
+      from: wideBox.min,
+      to: wideBox.max,
     });
     expect(e.structures.live.size).toBe(i + 1);
   }
@@ -166,8 +175,8 @@ it("rotates the selected box once per press and undoes each turn with its select
     expect(e.session.flow).toMatchObject({
       kind: "selected",
       selection: selectionOf(overworld, box, stone),
-      from: box.min,
-      to: box.max,
+      from: wideBox.min,
+      to: wideBox.max,
     });
   }
   expect(states()).toEqual(original);
@@ -349,7 +358,12 @@ it.each(["clear", "place"] as const)(
   (failure) => {
     const e = setup();
     const { union } = planRotationAboutCenter(wideBox);
-    const previous = e.structures.capture(overworld, wideBox, playerId);
+    const previous = e.structures.capture(
+      overworld,
+      wideBox,
+      playerId,
+      "exact",
+    );
     if (previous === "tooLarge" || previous === "unreadable")
       throw new Error("Missing snapshot");
     e.session.recordSnapshot({
@@ -410,7 +424,7 @@ it.each(["clear", "place"] as const)(
 it("retains an earlier snapshot and frees a player buried in the rotated target", () => {
   const e = setup();
   const plan = planRotationAboutCenter(wideBox);
-  const previous = e.structures.capture(overworld, wideBox, playerId);
+  const previous = e.structures.capture(overworld, wideBox, playerId, "exact");
   if (previous === "tooLarge" || previous === "unreadable")
     throw new Error(previous);
   e.session.recordSnapshot({

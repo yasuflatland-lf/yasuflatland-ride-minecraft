@@ -113,6 +113,7 @@ it("uses the current turn for successive pastes and restores the entire rotated 
       expect(e.store.calls[0]).toMatchObject({
         kind: "capture",
         box: e.target.box,
+        mode: "exact",
       });
       expect(e.store.calls[1]).toEqual({
         kind: "clearEntities",
@@ -187,7 +188,12 @@ it("refuses a blocked cell inside only the rotated footprint without changing fl
       );
       if (!blocked) throw new Error("Missing rotated-only cell");
       e.world.protectedCells.add(cellKey(blocked));
-      const previous = e.store.capture(overworld, original.box, playerId);
+      const previous = e.store.capture(
+        overworld,
+        original.box,
+        playerId,
+        "exact",
+      );
       if (previous === "tooLarge" || previous === "unreadable")
         throw new Error(previous);
       const snapshot = {

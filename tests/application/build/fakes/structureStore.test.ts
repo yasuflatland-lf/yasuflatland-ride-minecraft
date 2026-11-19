@@ -10,7 +10,7 @@ const anchor = { x: 5, y: 5, z: 5 };
 
 it("captures, places, and discards while recording every call", () => {
   const store = new FakeStructureStore();
-  const handle = store.capture(dim, box, owner);
+  const handle = store.capture(dim, box, owner, "exact");
   expect(handle).not.toBe("tooLarge");
   expect(handle).not.toBe("unreadable");
   if (handle === "tooLarge" || handle === "unreadable") return;
@@ -31,7 +31,7 @@ it("captures, places, and discards while recording every call", () => {
 it("returns the configured refusal and saves nothing", () => {
   const store = new FakeStructureStore();
   store.captureRefusal = "tooLarge";
-  expect(store.capture(dim, box, owner)).toBe("tooLarge");
+  expect(store.capture(dim, box, owner, "exact")).toBe("tooLarge");
   expect(store.live.size).toBe(0);
 });
 
@@ -50,7 +50,7 @@ it.each([undefined, 0, 1, 2, 3] as const)(
   "records turn %s with a zero default",
   (turn) => {
     const store = new FakeStructureStore();
-    const handle = store.capture(dim, box, owner);
+    const handle = store.capture(dim, box, owner, "exact");
     if (handle === "tooLarge" || handle === "unreadable")
       throw new Error(handle);
     expect(store.place(handle, dim, anchor, turn)).toBe(true);

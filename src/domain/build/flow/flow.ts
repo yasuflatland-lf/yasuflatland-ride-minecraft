@@ -2,6 +2,7 @@ import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
+import { isRoofKind, stairRoofHeight } from "../roof/roof";
 import type { Facing } from "../rotation/facing";
 import {
   type Selection,
@@ -9,7 +10,9 @@ import {
   selectionOf,
   withBox,
 } from "../selection";
-import { shapeOf } from "../shape/shape";
+import { type Shape, shapeOf } from "../shape/shape";
+import { BUILD_SPEC } from "../spec";
+import { stairMaterialOf } from "../stair";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
 import type { PasteAim } from "./paste";
@@ -48,6 +51,7 @@ export type BuildFlow =
       readonly facing?: Facing;
       readonly previous: number;
       readonly heightLocked: boolean;
+      readonly roofStyle?: "stair";
       readonly material: BlockState;
     }
   | {
@@ -197,6 +201,22 @@ export function backToAiming(flow: BuildFlow): BuildFlow {
     : flow;
 }
 
+function acceptsHeightedShape(shape: Shape): boolean {
+  return shape.kind === "box" || (shape.kind === "rect" && shape.flat === "y");
+}
+
+export function stairRoofFits(
+  { box, material }: Selection,
+  kind: HeightStepKind,
+): boolean {
+  return (
+    !isRoofKind(kind) ||
+    !stairMaterialOf(material) ||
+    !acceptsHeightedShape(shapeOf(box.min, box.max)) ||
+    box.min.y + stairRoofHeight(box) - 1 <= BUILD_SPEC.worldTopY
+  );
+}
+
 export function chooseHeighted(
   flow: BuildFlow,
   kind: HeightStepKind,
@@ -205,19 +225,29 @@ export function chooseHeighted(
   if (flow.kind !== "selected") return flow;
   const { box, dimensionId, material } = flow.selection;
   const shape = shapeOf(box.min, box.max);
-  const horizontal = shape.kind === "rect" && shape.flat === "y";
-  if (!horizontal && shape.kind !== "box") return flow;
+  if (!acceptsHeightedShape(shape)) return flow;
   const locked = locksBoxHeight(kind);
+  const base = boxWithHeight(box, 1);
+  const stairRoof = isRoofKind(kind) && stairMaterialOf(material) !== undefined;
+  const previous = stairRoof
+    ? stairRoofHeight(base)
+    : locked
+      ? sizeOf(box).y
+      : 1;
+  if (stairRoof && !stairRoofFits(flow.selection, kind)) return flow;
   return Object.freeze({
     kind: "heightStep",
     dimensionId,
-    base: boxWithHeight(box, 1),
-    ...(!locked && shape.kind === "box" ? { selectionBefore: box } : {}),
+    base,
+    ...(stairRoof || (!locked && shape.kind === "box")
+      ? { selectionBefore: box }
+      : {}),
     from: flow.from,
     heightedKind: kind,
     facing,
-    previous: locked ? sizeOf(box).y : 1,
-    heightLocked: locked,
+    previous,
+    heightLocked: locked || stairRoof,
+    ...(stairRoof ? { roofStyle: "stair" as const } : {}),
     material,
   });
 }

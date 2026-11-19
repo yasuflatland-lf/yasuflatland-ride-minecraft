@@ -50,12 +50,22 @@ export class RotateBox {
         return "refused";
       }
     }
-    const snapshot = this.structures.capture(dimensionId, plan.union, playerId);
+    const snapshot = this.structures.capture(
+      dimensionId,
+      plan.union,
+      playerId,
+      "exact",
+    );
     if (snapshot === "tooLarge" || snapshot === "unreadable") {
       this.feedback.showMessage(playerId, "rotateTooLarge", count);
       return "refused";
     }
-    const source = this.structures.capture(dimensionId, selectedBox, playerId);
+    const source = this.structures.capture(
+      dimensionId,
+      selectedBox,
+      playerId,
+      "exact",
+    );
     if (source === "tooLarge" || source === "unreadable") {
       this.structures.discard(snapshot);
       this.feedback.showMessage(playerId, "rotateTooLarge", count);

@@ -38,12 +38,17 @@ export class CutBox implements BoxAction {
         return false;
       }
     }
-    const handle = this.structures.capture(dimensionId, box, playerId);
+    const handle = this.structures.capture(dimensionId, box, playerId, "copy");
     if (handle === "tooLarge" || handle === "unreadable") {
       this.feedback.showMessage(playerId, "tooLarge", count);
       return false;
     }
-    const snapshot = this.structures.capture(dimensionId, box, playerId);
+    const snapshot = this.structures.capture(
+      dimensionId,
+      box,
+      playerId,
+      "exact",
+    );
     if (snapshot === "tooLarge" || snapshot === "unreadable") {
       this.structures.discard(handle);
       this.feedback.showMessage(playerId, "tooLarge", count);

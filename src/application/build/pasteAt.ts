@@ -50,7 +50,12 @@ export class PasteAt {
       this.feedback.showMessage(playerId, "busy");
       return "refused";
     }
-    const snapshot = this.structures.capture(cmd.dimensionId, box, playerId);
+    const snapshot = this.structures.capture(
+      cmd.dimensionId,
+      box,
+      playerId,
+      "exact",
+    );
     if (snapshot === "tooLarge" || snapshot === "unreadable") {
       this.feedback.showMessage(playerId, "pasteFailed");
       return "refused";

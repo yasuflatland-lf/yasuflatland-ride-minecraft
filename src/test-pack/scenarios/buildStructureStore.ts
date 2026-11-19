@@ -21,6 +21,7 @@ import {
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { isFleetEntityType } from "../../infrastructure/vehicle/bedrock/identifiers";
+import { WARP_BLOCK_TYPE } from "../../infrastructure/warp/identifiers";
 import { type Arena, wait } from "../arena";
 import {
   SETUP_LIMIT_TICKS,
@@ -90,7 +91,7 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
     sign.setText("Store back", SignSide.Back);
     const cow = summon("minecraft:cow", 27.5);
     const excluded = summon("minecraft:armor_stand", 23.5);
-    const handle = store.capture(dim, box, owner);
+    const handle = store.capture(dim, box, owner, "exact");
     if (handle === "tooLarge" || handle === "unreadable")
       throw new Error(`capture refused: ${handle}`);
     handles.push(handle);
@@ -142,6 +143,7 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
         dim,
         { min: box.min, max: { ...box.max, x: box.min.x + 64 } },
         owner,
+        "exact",
       ) === "tooLarge",
     );
   } catch (error) {
@@ -343,7 +345,7 @@ export async function buildStructureStoreDecor(
       const states = frame.permutation.getAllStates();
       player.teleport(a.at(16.5, bottom, 23.5), { dimension: a.dim });
       removeItems();
-      const handle = store.capture(dim, box, owner);
+      const handle = store.capture(dim, box, owner, "exact");
       if (handle === "tooLarge" || handle === "unreadable") {
         record("capture", false, handle);
       } else {
@@ -509,6 +511,7 @@ export async function buildStructureStoreHosted(a: Arena): Promise<Outcome> {
       dim,
       source,
       asPlayerId(`hosted_store_${a.lane.index}`),
+      "exact",
     );
     if (handle === "tooLarge" || handle === "unreadable")
       throw new Error(`capture: ${handle}`);
@@ -544,4 +547,60 @@ export async function buildStructureStoreHosted(a: Arena): Promise<Outcome> {
       store.clearBlocks(dim, box);
     }
   }
+}
+
+// A Warp Block set without a player holds no registration, like one a paste
+// would create, so a copy capture must leave it out (docs/specs/warp.md).
+export async function buildStructureStoreUncopyable(
+  a: Arena,
+): Promise<Outcome> {
+  const store = new BedrockStructureStore(() => false, [WARP_BLOCK_TYPE]);
+  const dim = asDimensionId(a.dim.id);
+  const owner = asPlayerId(`store_uncopyable_${a.lane.index}`);
+  const row = (z: number) => ({
+    min: a.at(20, a.gy, z),
+    max: a.at(21, a.gy, z),
+  });
+  const source = row(20);
+  const copied = row(23);
+  const exact = row(26);
+  const results: string[] = [];
+  let pass = true;
+  const record = (name: string, ok: boolean, value: unknown = ok) => {
+    pass &&= ok;
+    results.push(`${name}=${ok ? "PASS" : "FAIL"}(${String(value)})`);
+  };
+  const typeAt = (x: number, z: number) =>
+    a.dim.getBlock(a.at(x, a.gy, z))?.typeId;
+  const handles: StructureHandle[] = [];
+  try {
+    a.dim.getBlock(a.at(20, a.gy, 20))?.setType(WARP_BLOCK_TYPE);
+    a.dim.getBlock(a.at(21, a.gy, 20))?.setType("minecraft:stone_bricks");
+    const copy = store.capture(dim, source, owner, "copy");
+    if (copy === "tooLarge" || copy === "unreadable")
+      throw new Error(`copy capture refused: ${copy}`);
+    handles.push(copy);
+    const kept = store.capture(dim, source, owner, "exact");
+    if (kept === "tooLarge" || kept === "unreadable")
+      throw new Error(`exact capture refused: ${kept}`);
+    handles.push(kept);
+    record("source_kept", typeAt(20, 20) === WARP_BLOCK_TYPE, typeAt(20, 20));
+    record("place_copy", store.place(copy, dim, copied.min));
+    record("place_exact", store.place(kept, dim, exact.min));
+    await wait(1);
+    record("copy_warp_air", typeAt(20, 23) === "minecraft:air", typeAt(20, 23));
+    record(
+      "copy_other",
+      typeAt(21, 23) === "minecraft:stone_bricks",
+      typeAt(21, 23),
+    );
+    record("exact_warp", typeAt(20, 26) === WARP_BLOCK_TYPE, typeAt(20, 26));
+  } catch (error) {
+    record("round_trip", false, errorText(error));
+  } finally {
+    for (const handle of handles) store.discard(handle);
+    for (const box of [source, copied, exact])
+      record("cleanup", store.clearBlocks(dim, box));
+  }
+  return { pass, detail: results.join("; ") };
 }

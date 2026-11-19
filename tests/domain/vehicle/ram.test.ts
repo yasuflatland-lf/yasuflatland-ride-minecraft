@@ -94,6 +94,12 @@ describe("selectHits (ADR 0006)", () => {
     fastReverse,
     number(-SUV_SPEC.maxReverse, SUV_SPEC.maxSpeed),
   );
+  const minReverse = fc.oneof(
+    fc.constantFrom(
+      ...VEHICLE_KINDS.map((k) => profileOf(k).ramMinReverseSpeed),
+    ),
+    number(0, SUV_SPEC.maxReverse),
+  );
   const mount = fc.constantFrom<RamMount | undefined>(
     undefined,
     "deckSeat",
@@ -110,48 +116,57 @@ describe("selectHits (ADR 0006)", () => {
   it("hits a target exactly when it is inside the hit box of any body, unprotected, and off cooldown", () => {
     const tick = 1000;
     fc.assert(
-      fc.property(target, speed, mount, sinceLastHit, (t, s, m, since) => {
-        const f = forward(t.yaw);
-        const r = rightOf(f);
-        // Behind the vehicle when reversing, so `ahead` is always measured
-        // along the direction of travel.
-        const along = t.ahead * (s < 0 ? -1 : 1);
-        const offset = {
-          x: f.x * along + r.x * t.side,
-          y: t.dy,
-          z: f.z * along + r.z * t.side,
-        };
-        const lastHit =
-          since === undefined ? new Map() : new Map([["t", tick - since]]);
-        const hits = selectHits(
-          f,
-          s,
-          [{ id: "t", offset, mount: m }],
-          lastHit,
-          tick,
-          t.body,
-        );
-        const expected =
-          Math.abs(s) > SPEC.ramMinSpeed &&
-          t.ahead >= 0 &&
-          t.ahead <= t.reach &&
-          Math.abs(t.side) <= t.halfWidth &&
-          t.dy >= SPEC.ramMinDy &&
-          t.dy <= SPEC.ramMaxDy &&
-          m !== "vehicle" &&
-          (since === undefined || since >= SPEC.ramCooldown);
-        expect(hits).toHaveLength(expected ? 1 : 0);
-        for (const { id, damage, push, pushUp } of hits) {
-          expect(id).toBe("t");
-          expect(damage).toBe(ramDamage(s));
-          expect(dot(push, f) * Math.sign(s)).toBeGreaterThan(0);
-          expect(Math.hypot(push.x, push.z)).toBeCloseTo(
-            expectedPushMagnitude(s),
-            9,
+      fc.property(
+        target,
+        speed,
+        minReverse,
+        mount,
+        sinceLastHit,
+        (t, s, minRev, m, since) => {
+          const f = forward(t.yaw);
+          const r = rightOf(f);
+          // Behind the vehicle when reversing, so `ahead` is always measured
+          // along the direction of travel.
+          const along = t.ahead * (s < 0 ? -1 : 1);
+          const offset = {
+            x: f.x * along + r.x * t.side,
+            y: t.dy,
+            z: f.z * along + r.z * t.side,
+          };
+          const lastHit =
+            since === undefined ? new Map() : new Map([["t", tick - since]]);
+          const hits = selectHits(
+            f,
+            s,
+            [{ id: "t", offset, mount: m }],
+            lastHit,
+            tick,
+            t.body,
+            minRev,
           );
-          expect(pushUp).toBe(SPEC.ramPushUp);
-        }
-      }),
+          // Forward keeps the shared threshold; reversing uses the kind's own.
+          const expected =
+            (s > SPEC.ramMinSpeed || -s > minRev) &&
+            t.ahead >= 0 &&
+            t.ahead <= t.reach &&
+            Math.abs(t.side) <= t.halfWidth &&
+            t.dy >= SPEC.ramMinDy &&
+            t.dy <= SPEC.ramMaxDy &&
+            m !== "vehicle" &&
+            (since === undefined || since >= SPEC.ramCooldown);
+          expect(hits).toHaveLength(expected ? 1 : 0);
+          for (const { id, damage, push, pushUp } of hits) {
+            expect(id).toBe("t");
+            expect(damage).toBe(ramDamage(s));
+            expect(dot(push, f) * Math.sign(s)).toBeGreaterThan(0);
+            expect(Math.hypot(push.x, push.z)).toBeCloseTo(
+              expectedPushMagnitude(s),
+              9,
+            );
+            expect(pushUp).toBe(SPEC.ramPushUp);
+          }
+        },
+      ),
       { numRuns: 1000 },
     );
   });
@@ -217,6 +232,7 @@ describe("selectHits (ADR 0006)", () => {
                 lastHit,
                 now,
                 SUV_PROFILE.body,
+                SUV_PROFILE.ramMinReverseSpeed,
               ),
             ).toEqual(
               selectHits(
@@ -226,6 +242,7 @@ describe("selectHits (ADR 0006)", () => {
                 lastHit,
                 now,
                 SUV_PROFILE.body,
+                SUV_PROFILE.ramMinReverseSpeed,
               ),
             );
           },

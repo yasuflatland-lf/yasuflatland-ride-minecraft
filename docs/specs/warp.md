@@ -3,17 +3,19 @@
 - Scope: The shared warp registry, the warp block and warp tool, naming, the warp list, teleport, removal and pruning, storage, and limits.
 - Verified at: ae691fa7
 - Source: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md)
+- Source: [0243](../adr/0243-copy-the-build-wand-box-as-an-engine-structure.md)
+- Excluded: [0245](../adr/0245-rotate-build-wand-boxes-with-the-engine-structure.md): selected-box rotation belongs to the build-tools spec; this spec relies only on 0243's clipboard exclusion
 
 ## Rules
 
 ### Registration
 
 - Applies to: Placing `yasu_build:warp_block`.
-- Rule: A block placed by a player registers one warp point holding a unique id, the name, the owner's player name, the dimension id, and the block cell. Blocks placed without a player are not registered. A full registry removes the placed block and returns one item through the inventory, dropping overflow at the player; Creative players need no refund. Placement flows hold the shared form guard until they finish, without suppressing registration. The default name is saved before the name form opens, so cancellation or a never-answered form leaves the registered point intact. The registry rejects duplicate ids and occupied dimension/cell pairs; the placement use case treats an already registered cell as registered.
+- Rule: A block placed by a player registers one warp point holding a unique id, the name, the owner's player name, the dimension id, and the block cell. Blocks placed without a player are not registered. The Build Wand Copy (and the clipboard of Cut) saves a Warp Block as air, so its Paste never creates one; Cut and Rotate refuse a box that holds one (build-tools spec, Copy). A Warp Block that already exists without a registration, such as one pasted before that rule or put back by Undo, stays a decoration: the list does not show it, a hit does not rename it, and nothing registers it automatically. A full registry removes the placed block and returns one item through the inventory, dropping overflow at the player; Creative players need no refund. Placement flows hold the shared form guard until they finish, without suppressing registration. The default name is saved before the name form opens, so cancellation or a never-answered form leaves the registered point intact. The registry rejects duplicate ids and occupied dimension/cell pairs; the placement use case treats an already registered cell as registered.
 - Agreement: Proposed
-- Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decision 4.
-- Implementation: `src/infrastructure/warp/handlers/placement.ts`, `src/application/warp/registerWarpPoint.ts`, `src/infrastructure/warp/install.ts`, and `src/infrastructure/bootstrap.ts`.
-- Verification: `tests/infrastructure/warp/handlers.test.ts` covers placement filtering and full-registry rollback; `tests/application/warp/registerWarpPoint.test.ts` covers registration. `warp_flow` exercises the use cases with a connected player and scripted menu answers; actual placement and break events and PC/touch input remain a manual check.
+- Basis: [0249](../adr/0249-shared-warp-points-with-a-block-and-a-tool.md) Decision 4 and Consequences; [0243](../adr/0243-copy-the-build-wand-box-as-an-engine-structure.md) Decision 1 for the clipboard exclusion.
+- Implementation: `src/infrastructure/warp/handlers/placement.ts`, `src/application/warp/registerWarpPoint.ts`, `src/infrastructure/warp/install.ts`, and `src/infrastructure/bootstrap.ts`, which also passes the Warp Block type to the build install as an uncopyable block type (`src/infrastructure/build/bedrock/bedrockStructureStore.ts`).
+- Verification: `tests/infrastructure/warp/handlers.test.ts` covers placement filtering and full-registry rollback; `tests/application/warp/registerWarpPoint.test.ts` covers registration. `tests/infrastructure/bootstrap.test.ts` checks the uncopyable wiring and `tests/infrastructure/build/bedrockStructureStore.test.ts` the copy capture; the headless `build_structure_store_uncopyable` scenario covers it on the engine and has not run on a BDS yet. `warp_flow` exercises the use cases with a connected player and scripted menu answers; actual placement and break events and PC/touch input remain a manual check.
 
 ### Naming
 

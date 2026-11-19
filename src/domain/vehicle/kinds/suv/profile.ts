@@ -34,6 +34,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
     }),
   }),
   footprint: SUV_SPEC.footprint,
+  ramMinReverseSpeed: SUV_SPEC.ramMinReverseSpeed,
   /**
    * Coordinates aligned with the vehicle's facing (x = left, z = forward).
    * 0 = driver's seat (front right), 1 = front passenger, 2 = behind the driver,

@@ -14,12 +14,17 @@ export interface TerrainArea {
   readonly higherY: number;
 }
 
-export function terrainAreaOf(from: Cell, to: Cell): TerrainArea {
+/**
+ * The footprint follows the selected box, which Rotate can turn, while the
+ * heights stay those of the two tapped points whatever the live height or
+ * later confirms did to the box.
+ */
+export function terrainAreaOf(box: CellBox, from: Cell, to: Cell): TerrainArea {
   return {
-    minX: Math.min(from.x, to.x),
-    maxX: Math.max(from.x, to.x),
-    minZ: Math.min(from.z, to.z),
-    maxZ: Math.max(from.z, to.z),
+    minX: box.min.x,
+    maxX: box.max.x,
+    minZ: box.min.z,
+    maxZ: box.max.z,
     lowerY: Math.min(from.y, to.y),
     higherY: Math.max(from.y, to.y),
   };

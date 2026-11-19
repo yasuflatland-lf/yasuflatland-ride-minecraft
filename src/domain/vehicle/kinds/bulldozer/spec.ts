@@ -41,6 +41,8 @@ export const BULLDOZER_SPEC = Object.freeze({
   brake: 0.02,
   drag: 0.01,
   maxReverse: 0.1,
+  // Three quarters of maxReverse, the SUV's ratio (0.15 / 0.2), so full reverse rams (ADR 0006)
+  ramMinReverseSpeed: 0.075,
   reverseAccel: 0.005625,
   turnRate: 3,
   pivotStick: 0.35,

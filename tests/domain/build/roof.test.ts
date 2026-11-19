@@ -1,13 +1,17 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { type CellBox, cellsOf } from "../../../src/domain/build/box";
+import { type CellBox, cellsOf, sizeOf } from "../../../src/domain/build/box";
 import {
   maxRoofHeight,
   type RoofKind,
   type RoofSpec,
   roofCells,
   roofCount,
+  roofSlopeAt,
+  stairRoofHeight,
 } from "../../../src/domain/build/roof/roof";
+import type { Facing } from "../../../src/domain/build/rotation/facing";
+import { placementOf } from "../../../src/domain/build/volume/geometry";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 
 const coord = fc.integer({ min: -10, max: 10 });
@@ -21,7 +25,20 @@ const baseOf = (min: Cell, sx: number, sz: number): CellBox => ({
 const base = fc
   .tuple(origin, side, side)
   .map(([min, sx, sz]) => baseOf(min, sx, sz));
-const spec = fc.record({ base, kind, height: fc.integer({ min: 1, max: 12 }) });
+const spec = fc.record({
+  base,
+  kind,
+  height: fc.integer({ min: 1, max: 12 }),
+  style: fc.constant("stepped" as const),
+});
+const stairSpec = fc.record({ base, kind }).map(
+  ({ base, kind }): RoofSpec => ({
+    base,
+    kind,
+    height: stairRoofHeight(base),
+    style: "stair",
+  }),
+);
 const directions: readonly Cell[] = [
   { x: -1, y: 0, z: 0 },
   { x: 1, y: 0, z: 0 },
@@ -121,6 +138,7 @@ describe("roof", () => {
             base: baseOf(min, 2 * radius + 1, 2 * radius + 1),
             kind: "hip",
             height,
+            style: "stepped",
           };
           expect(
             [...roofCells(roof, false)].filter(
@@ -137,7 +155,7 @@ describe("roof", () => {
   it("gives height one exactly the base plate in either mode", () => {
     fc.assert(
       fc.property(base, kind, (base, kind) => {
-        const roof = { base, kind, height: 1 };
+        const roof = { base, kind, height: 1, style: "stepped" as const };
         for (const hollow of [false, true])
           expect([...roofCells(roof, hollow)]).toEqual([...cellsOf(base)]);
       }),
@@ -166,6 +184,7 @@ describe("roof", () => {
       base: baseOf({ x: 0, y: 0, z: 0 }, 5, 3),
       kind: "gable",
       height: 2,
+      style: "stepped",
     };
     const expected = [
       "0,0,0",
@@ -197,6 +216,7 @@ describe("roof", () => {
       base: baseOf({ x: 0, y: 0, z: 0 }, 5, 5),
       kind: "hip",
       height: 3,
+      style: "stepped",
     };
     const expected = [
       "0,0,0",
@@ -245,6 +265,7 @@ describe("roof", () => {
       base: baseOf({ x: 0, y: 0, z: 0 }, 4, 4),
       kind: "hip",
       height: 2,
+      style: "stepped",
     };
     const expected = [
       "0,0,0",
@@ -271,4 +292,96 @@ describe("roof", () => {
     expect([...roofCells(roof, false)].map(cellKey)).toEqual(expected);
     expect([...roofCells(roof, true)].map(cellKey)).toEqual(expected);
   });
+});
+
+describe("stair roof", () => {
+  it("insets every layer by one cell per step on the sloped axes", () => {
+    fc.assert(
+      fc.property(stairSpec, (roof) => {
+        const { min, max } = roof.base;
+        const { x: sx, z: sz } = sizeOf(roof.base);
+        expect(roof.height).toBe(Math.ceil(Math.min(sx, sz) / 2));
+
+        const solid = [...roofCells(roof, false)];
+        for (let layer = 0; layer < roof.height; layer++) {
+          const y = min.y + layer;
+          const dx = roof.kind === "gable" && sx >= sz ? 0 : layer;
+          const dz = roof.kind === "gable" && sz > sx ? 0 : layer;
+          const expected = cellsOf({
+            min: { x: min.x + dx, y, z: min.z + dz },
+            max: { x: max.x - dx, y, z: max.z - dz },
+          });
+          expect(solid.filter((cell) => cell.y === y)).toEqual([...expected]);
+        }
+      }),
+    );
+  });
+
+  it("descends toward the nearest sloped edge and gives only odd spans a ridge", () => {
+    fc.assert(
+      fc.property(stairSpec, (roof) => {
+        const { min, max } = roof.base;
+        const { x: sx, z: sz } = sizeOf(roof.base);
+
+        for (const cell of roofCells(roof, false)) {
+          const layer = cell.y - min.y;
+          const slope = roofSlopeAt(roof, cell);
+          if (layer === roof.height - 1 && Math.min(sx, sz) % 2 === 1) {
+            expect(slope).toEqual({ kind: "ridge" });
+            continue;
+          }
+
+          const sides: [Facing, number][] = [];
+          if (roof.kind === "hip" || sx < sz) {
+            sides.push(["west", cell.x - min.x], ["east", max.x - cell.x]);
+          }
+          if (roof.kind === "hip" || sx >= sz) {
+            sides.push(["north", cell.z - min.z], ["south", max.z - cell.z]);
+          }
+          const [nearest] = sides.sort((a, b) => a[1] - b[1]);
+          expect(slope).toEqual({ kind: "slope", descends: nearest?.[0] });
+        }
+      }),
+    );
+  });
+
+  it("opens the eaves of Hollow while retaining the perimeter and top layer", () => {
+    fc.assert(
+      fc.property(stairSpec, (roof) => {
+        const { min, max } = roof.base;
+        const solid = [...roofCells(roof, false)];
+        const hollow = [...roofCells(roof, true)];
+        const baseLayer = solid.filter((cell) => cell.y === min.y);
+        expect(hollow.filter((cell) => cell.y === min.y)).toEqual(
+          roof.height === 1
+            ? baseLayer
+            : baseLayer.filter(
+                ({ x, z }) =>
+                  x === min.x || x === max.x || z === min.z || z === max.z,
+              ),
+        );
+        const topY = min.y + roof.height - 1;
+        expect(hollow.filter((cell) => cell.y === topY)).toEqual(
+          solid.filter((cell) => cell.y === topY),
+        );
+      }),
+    );
+  });
+
+  it.each(["fill", "hollow"] as const)(
+    "enumerates and counts the stair %s through heighted placement",
+    (fill) => {
+      fc.assert(
+        fc.property(stairSpec, (roof) => {
+          const spec = { ...roof, roofStyle: roof.style };
+          const placement = placementOf(roof.kind);
+          const hollow = fill === "hollow";
+          const cells = [...roofCells(roof, hollow)];
+          expect(roofCount(roof, hollow)).toBe(cells.length);
+          expect([...placement.cells(spec, fill)]).toEqual(cells);
+          expect(placement.count(spec, fill)).toBe(cells.length);
+        }),
+      );
+    },
+  );
 });
