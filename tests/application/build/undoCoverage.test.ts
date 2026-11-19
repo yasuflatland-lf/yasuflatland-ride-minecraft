@@ -106,6 +106,34 @@ function undoAndExpectEmpty(e: Env) {
   expect(e.feedback.messages.at(-1)?.message).toBe("nothingToUndo");
 }
 
+it.each(["endpoint", "heightStep"] as const)(
+  "undo reports the box selected at %s confirmation",
+  (kind) => {
+    const e = setup();
+    const base = boxOf({ x: 1, y: 64, z: 2 }, { x: 3, y: 64, z: 5 });
+    const box =
+      kind === "endpoint" ? base : boxOf(base.min, { ...base.max, y: 67 });
+    if (kind === "endpoint") {
+      select(e, base);
+      e.shape.execute({ playerId, style: "frame" });
+    } else {
+      e.session.setFlow({
+        kind,
+        dimensionId: overworld,
+        base,
+        from: base.min,
+        heightedKind: "cube",
+        previous: 4,
+        heightLocked: false,
+        material: stone,
+      });
+      e.heighted.execute({ playerId, fill: "fill" });
+    }
+    e.drain();
+    expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: box });
+  },
+);
+
 it("CutBox then UndoEdit restores the box and consumes only its snapshot", () => {
   fc.assert(
     fc.property(size, size, (width, depth) => {
