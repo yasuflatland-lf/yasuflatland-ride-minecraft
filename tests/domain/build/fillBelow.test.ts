@@ -2,6 +2,7 @@ import { MinecraftBlockTypes } from "@minecraft/vanilla-data";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
 import { SCAN_STEP } from "../../../src/domain/build/edit/change";
 import {
   isFillMaterial,
@@ -11,6 +12,7 @@ import { planFillBelow } from "../../../src/domain/build/edit/plan";
 import { terrainAreaOf } from "../../../src/domain/build/terrain/area";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 
+const areaOf = (a: Cell, b: Cell) => terrainAreaOf(boxOf(a, b), a, b);
 const stone = blockStateOf("minecraft:stone");
 
 it("fills exactly the top-connected open cells, reads once, and budgets every read", () => {
@@ -65,7 +67,7 @@ it("fills exactly the top-connected open cells, reads once, and budgets every re
         const reads = new Set<string>();
         const written = new Set<string>();
         let scans = 0;
-        const area = terrainAreaOf(origin, {
+        const area = areaOf(origin, {
           x: origin.x + w - 1,
           y: origin.y + h - 1,
           z: origin.z + d - 1,
@@ -122,10 +124,7 @@ it.each([
     23,
   ],
 ] as const)("fills a %s", (_name, w, h, open, count) => {
-  const area = terrainAreaOf(
-    { x: 0, y: 0, z: 0 },
-    { x: w - 1, y: h - 1, z: 0 },
-  );
+  const area = areaOf({ x: 0, y: 0, z: 0 }, { x: w - 1, y: h - 1, z: 0 });
   const writes = [
     ...planFillBelow(area, stone, (c) => open(c.x, c.y), 0),
   ].filter((s) => s !== SCAN_STEP);

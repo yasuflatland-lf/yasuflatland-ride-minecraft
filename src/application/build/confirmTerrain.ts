@@ -35,7 +35,7 @@ export class ConfirmTerrain {
     }
     const { selection } = flow;
     const { dimensionId, material } = selection;
-    const area = terrainAreaOf(flow.from, flow.to);
+    const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
     const box = removeAboveBox(area);
     if (flow.op === "removeAbove" && !box) {
       session.confirmBox(selection, "selected");

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { contains } from "../../../src/domain/build/box";
+import { boxOf, contains } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
   fitsTerrainLimit,
@@ -8,7 +8,9 @@ import {
   terrainAreaOf,
   terrainSides,
 } from "../../../src/domain/build/terrain/area";
+import type { Cell } from "../../../src/domain/shared/cells";
 
+const areaOf = (a: Cell, b: Cell) => terrainAreaOf(boxOf(a, b), a, b);
 const cell = fc.record({
   x: fc.integer({ min: -100, max: 100 }),
   y: fc.integer({ min: -64, max: BUILD_SPEC.worldTopY }),
@@ -19,7 +21,7 @@ describe("terrainAreaOf", () => {
   it("does not depend on the order of the two points", () => {
     fc.assert(
       fc.property(cell, cell, (a, b) => {
-        expect(terrainAreaOf(a, b)).toEqual(terrainAreaOf(b, a));
+        expect(areaOf(a, b)).toEqual(areaOf(b, a));
       }),
     );
   });
@@ -27,7 +29,7 @@ describe("terrainAreaOf", () => {
   it("spans the x and z extents and orders the two heights", () => {
     fc.assert(
       fc.property(cell, cell, (a, b) => {
-        const area = terrainAreaOf(a, b);
+        const area = areaOf(a, b);
         expect(area.minX).toBeLessThanOrEqual(area.maxX);
         expect(area.minZ).toBeLessThanOrEqual(area.maxZ);
         expect(area.lowerY).toBe(Math.min(a.y, b.y));
@@ -39,13 +41,28 @@ describe("terrainAreaOf", () => {
       }),
     );
   });
+  it("takes the footprint from the box and the heights from the tapped points", () => {
+    fc.assert(
+      fc.property(cell, cell, cell, cell, (a, b, c, d) => {
+        const box = boxOf(c, d);
+        expect(terrainAreaOf(box, a, b)).toEqual({
+          minX: box.min.x,
+          maxX: box.max.x,
+          minZ: box.min.z,
+          maxZ: box.max.z,
+          lowerY: Math.min(a.y, b.y),
+          higherY: Math.max(a.y, b.y),
+        });
+      }),
+    );
+  });
 });
 
 describe("removeAboveBox", () => {
   it("excludes the floor layer and reaches the world top over the whole footprint", () => {
     fc.assert(
       fc.property(cell, cell, (a, b) => {
-        const area = terrainAreaOf(a, b);
+        const area = areaOf(a, b);
         const box = removeAboveBox(area);
         if (area.lowerY >= BUILD_SPEC.worldTopY) {
           expect(box).toBeUndefined();
@@ -66,7 +83,7 @@ describe("removeAboveBox", () => {
 
   it("leaves nothing to remove only when the floor is the top layer", () => {
     const at = (y: number) =>
-      removeAboveBox(terrainAreaOf({ x: 0, y, z: 0 }, { x: 1, y, z: 1 }));
+      removeAboveBox(areaOf({ x: 0, y, z: 0 }, { x: 1, y, z: 1 }));
     expect(at(BUILD_SPEC.worldTopY)).toBeUndefined();
     expect(at(BUILD_SPEC.worldTopY - 1)).toEqual({
       min: { x: 0, y: BUILD_SPEC.worldTopY, z: 0 },
@@ -85,7 +102,7 @@ describe("fitsTerrainLimit", () => {
           y: BUILD_SPEC.worldTopY,
           z: origin.z + sz - 1,
         };
-        expect(fitsTerrainLimit(terrainAreaOf(origin, to))).toBe(
+        expect(fitsTerrainLimit(areaOf(origin, to))).toBe(
           sx <= BUILD_SPEC.maxTerrainSide && sz <= BUILD_SPEC.maxTerrainSide,
         );
       }),
@@ -95,7 +112,7 @@ describe("fitsTerrainLimit", () => {
   it("holds exactly at the boundary", () => {
     const fits = (sx: number, sz: number) =>
       fitsTerrainLimit(
-        terrainAreaOf({ x: 0, y: 0, z: 0 }, { x: sx - 1, y: 0, z: sz - 1 }),
+        areaOf({ x: 0, y: 0, z: 0 }, { x: sx - 1, y: 0, z: sz - 1 }),
       );
     expect(BUILD_SPEC.maxTerrainSide).toBe(32);
     expect(fits(32, 32)).toBe(true);
