@@ -1,11 +1,19 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import { boxOf, boxWithHeight, type CellBox, center, edgePoints } from "../box";
+import {
+  boxOf,
+  boxWithHeight,
+  type CellBox,
+  center,
+  edgePoints,
+  volume,
+} from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import { type BuildFlow, liveHeightBox } from "../flow/flow";
+import { planRotationAboutCenter } from "../rotation/rotateBox";
 import { BUILD_SPEC } from "../spec";
 import { volumeOf } from "../volume/geometry";
-import { boxStepLimit, boxStepVolume, isBoxStepKind } from "../volume/kind";
+import { isBoxStepKind } from "../volume/kind";
 import { pasteOutline } from "./pasteOutline";
 
 export interface PreviewSet {
@@ -79,8 +87,7 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       if (isBoxStepKind(flow.heightedKind)) {
         const box = boxWithHeight(flow.base, height);
         if (
-          boxStepVolume(flow.heightedKind, box) >
-          boxStepLimit(flow.heightedKind)
+          volume(planRotationAboutCenter(box).union) > BUILD_SPEC.maxCopyVolume
         )
           set.boxStepOver = wireframe;
         else set.boxStep = wireframe;

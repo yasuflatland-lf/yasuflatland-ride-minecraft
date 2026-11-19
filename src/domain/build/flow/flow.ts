@@ -127,6 +127,24 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
   });
 }
 
+export function adjustHeight(flow: BuildFlow): BuildFlow {
+  if (
+    flow.kind !== "selected" ||
+    flow.menuLevel !== "root" ||
+    shapeOf(flow.selection.box.min, flow.selection.box.max).kind === "line"
+  )
+    return flow;
+  const box = flow.selection.box;
+  return Object.freeze({
+    kind: "baseHeight",
+    selection: flow.selection,
+    from: flow.from,
+    to: flow.to,
+    baseBox: boxWithHeight(box, 1),
+    previous: Math.min(sizeOf(box).y, selectionHeightLimit(box)),
+  });
+}
+
 export function liveHeightBox(flow: BaseHeightFlow): CellBox {
   return boxWithHeight(flow.baseBox, flow.previous);
 }

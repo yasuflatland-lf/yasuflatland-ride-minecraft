@@ -12,14 +12,11 @@ import { boxOf, volume } from "../../../src/domain/build/box";
 import {
   type BuildFlow,
   chooseHeighted,
-  setHeight,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import { selectionOf } from "../../../src/domain/build/selection";
-import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -40,7 +37,6 @@ const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone");
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
-const side = fc.integer({ min: 1, max: 5 });
 const offset = fc.record({
   x: fc.integer({ min: 0, max: 5 }),
   y: fc.integer({ min: 0, max: 5 }),
@@ -81,71 +77,7 @@ function endpoint(
   );
 }
 
-it("copies a base grown through any allowed height without beginning an edit", () => {
-  fc.assert(
-    fc.property(
-      cell,
-      side,
-      side,
-      fc.nat(),
-      fc.boolean(),
-      (from, dx, dz, seed, reverse) => {
-        const e = setup();
-        const to = { x: from.x + dx, y: from.y, z: from.z + dz };
-        const base = boxOf(from, to);
-        const height =
-          1 + (seed % boxStepVolume.maxHeight(base, BUILD_SPEC.worldTopY));
-        e.session.setFlow(
-          endpoint(reverse ? to : from, reverse ? from : to, nether),
-        );
-        e.choose.execute({ playerId, kind: "copy" });
-        expect(e.session.flow).toEqual(
-          chooseHeighted(
-            endpoint(reverse ? to : from, reverse ? from : to, nether),
-            "copy",
-            "east",
-          ),
-        );
-        expect(e.session.clipboard).toBeUndefined();
-        e.session.setFlow(setHeight(e.session.flow, height));
-        const begin = vi.spyOn(e.session, "beginEdit");
-        const read = vi.spyOn(e.world, "stateAt");
-        e.world.put(base.min, stone);
-        e.confirm.execute({ playerId });
-        const box = {
-          min: base.min,
-          max: { ...base.max, y: base.min.y + height - 1 },
-        };
-        expect(e.session.confirmedBox).toEqual({
-          material: stone,
-          dimensionId: nether,
-          box,
-        });
-        expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
-        expect(e.session.clipboard?.size).toEqual({
-          x: dx + 1,
-          y: height,
-          z: dz + 1,
-        });
-        expect(e.session.clipboard?.blockCount).toBe(volume(box));
-        expect(e.session.clipboard?.contents.kind).toBe("structure");
-        expect(read).not.toHaveBeenCalled();
-        expect(
-          read.mock.calls.every(([dimensionId]) => dimensionId === nether),
-        ).toBe(true);
-        expect(e.feedback.messages.at(-1)).toEqual({
-          message: "copied",
-          count: volume(box),
-        });
-        expect(begin).not.toHaveBeenCalled();
-        expect(e.session.isEditing).toBe(false);
-        expect(e.world.writes).toBe(0);
-      },
-    ),
-  );
-});
-
-it("copies other endpoint shapes directly and confirms their bounding box", () => {
+it("copies every selected shape directly and confirms their bounding box", () => {
   fc.assert(
     fc.property(cell, offset, fc.boolean(), (from, delta, reverse) => {
       const e = setup();
@@ -154,8 +86,6 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
         y: from.y + delta.y,
         z: from.z + delta.z,
       };
-      const shape = shapeOf(from, to);
-      fc.pre(shape.kind !== "rect" || shape.flat !== "y");
       e.session.setFlow(endpoint(reverse ? to : from, reverse ? from : to));
       const begin = vi.spyOn(e.session, "beginEdit");
       e.choose.execute({ playerId, kind: "copy" });
@@ -182,7 +112,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
     fc.property(
       cell,
       fc.integer({ min: 1, max: 100 }),
-      fc.constantFrom("direct", "height", "selection"),
+      fc.constantFrom("direct", "selection"),
       (from, extra, path) => {
         const e = setup();
         const previous = boxOf(from, from);
@@ -190,29 +120,14 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         holdClipboard(e.session, clip);
         e.session.confirmBox(selectionOf(nether, previous, stone));
         const size = BUILD_SPEC.maxCopyVolume + extra;
-        if (path === "height") {
-          e.session.setFlow({
-            kind: "heightStep",
-            dimensionId: overworld,
-            base: previous,
-            from,
-            heightedKind: "copy",
-            previous: size,
-            heightLocked: false,
-            material: stone,
-          });
-        } else {
-          const box = boxOf(from, { ...from, x: from.x + size - 1 });
-          if (path === "selection")
-            e.session.confirmBox(selectionOf(overworld, box, stone));
-          else e.session.setFlow(endpoint(box.min, box.max));
-        }
+        const box = boxOf(from, { ...from, x: from.x + size - 1 });
+        if (path === "selection")
+          e.session.confirmBox(selectionOf(overworld, box, stone));
+        else e.session.setFlow(endpoint(box.min, box.max));
         const flow = e.session.flow;
         const confirmed = e.session.confirmedBox;
         const read = vi.spyOn(e.world, "stateAt");
-        if (path === "height") e.confirm.execute({ playerId });
-        else if (path === "direct")
-          e.choose.execute({ playerId, kind: "copy" });
+        if (path === "direct") e.choose.execute({ playerId, kind: "copy" });
         else
           new CopySelection(
             e.repo,
@@ -233,7 +148,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
   );
 });
 
-it("refuses the wrong copy stage and refuses Copy in the placement confirm", () => {
+it("refuses the wrong copy stage and refuses Rotate in the placement confirm", () => {
   fc.assert(
     fc.property(cell, (from) => {
       const e = setup();
@@ -242,14 +157,14 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         y: from.y,
         z: from.z + 1,
       });
-      const copy = chooseHeighted(horizontal, "copy");
+      const rotate = chooseHeighted(horizontal, "rotate");
       const roof = chooseHeighted(horizontal, "gable");
       const point = tapBlock({ kind: "idle" }, overworld, from, stone);
       for (const flow of [
         { kind: "idle" },
         point,
         horizontal,
-        copy,
+        rotate,
         roof,
         { kind: "pasteAim", manualTurn: 0 },
       ] as BuildFlow[]) {
@@ -257,7 +172,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
           if (
             useCase === e.choose
               ? flow.kind === "selected"
-              : flow.kind === "heightStep" && flow.heightedKind === "copy"
+              : flow.kind === "heightStep" && flow.heightedKind === "rotate"
           )
             continue;
           e.session.setFlow(flow);
@@ -267,7 +182,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
           expect(e.session.clipboard).toBeUndefined();
         }
       }
-      e.session.setFlow(copy);
+      e.session.setFlow(rotate);
       const jobs = new EditJobs(
         e.repo,
         e.world,
@@ -285,7 +200,7 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
         fill: "fill",
       });
       expect(e.feedback.messages.at(-1)?.message).toBe("noSelection");
-      expect(e.session.flow).toBe(copy);
+      expect(e.session.flow).toBe(rotate);
       expect(start).not.toHaveBeenCalled();
       expect(begin).not.toHaveBeenCalled();
     }),
@@ -302,7 +217,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         { kind: "idle" },
         tapBlock({ kind: "idle" }, overworld, from, stone),
         selected,
-        chooseHeighted(selected, "copy"),
+        chooseHeighted(selected, "rotate"),
         chooseHeighted(selected, "hip"),
         {
           kind: "pasteAim",

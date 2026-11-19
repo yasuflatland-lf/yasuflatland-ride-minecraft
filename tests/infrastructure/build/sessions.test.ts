@@ -57,7 +57,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
         first,
         endpoint,
         beginRotateMode(selectionOf(overworld, boxOf(at, at), stone), 1),
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "rotate"),
         { kind: "pasteAim", manualTurn: 0 } as const,
       ]) {
         for (const event of ["dimension", "die"]) {

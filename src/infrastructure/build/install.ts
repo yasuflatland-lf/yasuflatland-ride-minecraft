@@ -1,5 +1,6 @@
 import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
+import { ChooseAdjustHeight } from "../../application/build/chooseAdjustHeight";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
@@ -30,6 +31,7 @@ import { RotateBox } from "../../application/build/rotateBox";
 import { RotateBoxAction } from "../../application/build/rotateBoxAction";
 import { RotateModeTap } from "../../application/build/rotateModeTap";
 import { RotatePasteAim } from "../../application/build/rotatePasteAim";
+import { RotateSelection } from "../../application/build/rotateSelection";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -157,6 +159,7 @@ export function installBuild(deps: {
   };
   const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const menuCases = {
+    chooseAdjustHeight: new ChooseAdjustHeight(repo),
     openSelectionMenu: new OpenSelectionMenu(repo),
     openBuildMenu: new OpenBuildMenu(repo, preview),
     closeBuildMenu: new CloseBuildMenu(repo, preview),
@@ -180,6 +183,7 @@ export function installBuild(deps: {
     aim,
     pressPasteAim,
     rotatePasteAim,
+    rotateSelection: new RotateSelection(repo, rotateBox, feedback),
     pasteDebounce,
     rotateDebounce,
     refresh: (id, tick) => preview.refresh(id, tick),

@@ -125,10 +125,12 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const pasteDebounce = new PressDebounces<PlayerId>(
     BUILD_SPEC.pasteRepeatTicks,
   );
+  const rotateSelection = { execute: vi.fn(() => "rotated" as const) };
   const pressPasteControl = registerPasteControls({
     repo,
     aim,
     rotatePasteAim,
+    rotateSelection,
     pressPasteAim,
     undo: undoEdit,
     undoDebounce,
@@ -166,6 +168,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     undo,
     interact,
     pressPasteControl,
+    rotateSelection,
     repo,
     session,
     id,
@@ -186,6 +189,26 @@ function flush() {
   engine.tick += 1;
   for (const fn of engine.queue.splice(0)) fn();
 }
+
+it("debounces Paste Rotate across block and item events for the selected box", () => {
+  const e = setup();
+  const box = boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60, z: 1 });
+  e.session.setFlow({
+    kind: "selected",
+    menuLevel: "root",
+    selection: selectionOf(nether, box, AIR),
+    from: box.min,
+    to: box.max,
+  });
+  expect(e.interact().cancel).toBe(true);
+  flush();
+  e.use();
+  expect(e.rotateSelection.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: e.id,
+    dimensionId: nether,
+  });
+  expect(e.rotate).not.toHaveBeenCalled();
+});
 
 it("rotates the clipboard and immediately refreshes only its owner", () => {
   const e = setup();

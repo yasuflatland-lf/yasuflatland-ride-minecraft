@@ -31,8 +31,6 @@ export interface HeightedPlacement {
 }
 
 const VOLUMES: Record<HeightStepKind, HeightedVolume> = {
-  copy: boxStepVolume,
-  cut: boxStepVolume,
   rotate: boxStepVolume,
   gable: roofVolume,
   hip: roofVolume,

@@ -13,15 +13,10 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import { contentsMenu, shapeMenu } from "../../../src/domain/build/flow/menu";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
-import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { boxStepVolume } from "../../../src/domain/build/volume/boxStep";
 import { cubeVolume } from "../../../src/domain/build/volume/cube";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
-import {
-  boxStepLimit,
-  type HeightStepKind,
-  isBoxStepKind,
-} from "../../../src/domain/build/volume/kind";
+import type { HeightStepKind } from "../../../src/domain/build/volume/kind";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { confirmEndpointHeight } from "../../support/buildSelection";
 
@@ -35,57 +30,59 @@ const offset = fc.record({
 const dimensionId = asDimensionId("minecraft:overworld");
 const stone = blockStateOf("minecraft:stone");
 
-it.each(["copy", "cut", "rotate"] as const)(
-  "offers Cut first and Copy before Fill below, and starts %s height only for horizontal rectangles",
-  (kind) => {
-    fc.assert(
-      fc.property(cell, offset, fc.boolean(), (a, delta, reverse) => {
-        const b = { x: a.x + delta.x, y: a.y + delta.y, z: a.z + delta.z };
-        const from = reverse ? b : a;
-        const to = reverse ? a : b;
-        const endpoint = confirmEndpointHeight(
-          tapAir(tapBlock({ kind: "idle" }, dimensionId, from, stone), to),
-        );
-        const entries = shapeMenu(endpoint).map((entry) => entry.id);
-        expect(entries.slice(0, 2)).toEqual(["cut", "removeAbove"]);
-        expect(entries[3]).toBe("rotate");
-        expect(entries.slice(-3)).toEqual(["copy", "fillBelow", "cancel"]);
-        expect(entries.filter((id) => id === kind)).toHaveLength(1);
-        expect(selectionBoxOf(endpoint)).toEqual(boxOf(a, b));
-        const shape = shapeOf(a, b);
-        const chosen = chooseHeighted(endpoint, kind);
-        if (shape.kind === "rect" && shape.flat === "y") {
-          expect(chosen).toEqual({
-            kind: "heightStep",
-            dimensionId,
-            base: boxOf(a, b),
-            from,
-            heightedKind: kind,
-            previous: 1,
-            heightLocked: false,
-            material: stone,
-          });
-          expect(contentsMenu(chosen)).toEqual([]);
-        } else expect(chosen).toBe(endpoint);
-        for (const flow of [
-          { kind: "idle" },
-          tapBlock({ kind: "idle" }, dimensionId, from, stone),
-          chosen.kind === "heightStep"
-            ? chosen
-            : { kind: "pasteAim", manualTurn: 0 },
-        ] as BuildFlow[]) {
-          expect(shapeMenu(flow)).toEqual([]);
-          expect(chooseHeighted(flow, kind)).toBe(flow);
-          expect(selectionBoxOf(flow)).toBeUndefined();
-        }
-      }),
-    );
-  },
-);
+it("offers Copy and Cut on every shape and Rotate height on horizontal rectangles", () => {
+  const kind = "rotate";
+  fc.assert(
+    fc.property(cell, offset, fc.boolean(), (a, delta, reverse) => {
+      const b = { x: a.x + delta.x, y: a.y + delta.y, z: a.z + delta.z };
+      const from = reverse ? b : a;
+      const to = reverse ? a : b;
+      const endpoint = confirmEndpointHeight(
+        tapAir(tapBlock({ kind: "idle" }, dimensionId, from, stone), to),
+      );
+      const entries = shapeMenu(endpoint).map((entry) => entry.id);
+      const shape = shapeOf(a, b);
+      expect(entries).toEqual([
+        ...(shape.kind === "line" ? [] : ["adjustHeight"]),
+        "cut",
+        "removeAbove",
+        shape.kind === "line" ? "place" : "buildShape",
+        "rotate",
+        "copy",
+        "fillBelow",
+        "cancel",
+      ]);
+      expect(selectionBoxOf(endpoint)).toEqual(boxOf(a, b));
+      const chosen = chooseHeighted(endpoint, kind);
+      if (shape.kind === "rect" && shape.flat === "y") {
+        expect(chosen).toEqual({
+          kind: "heightStep",
+          dimensionId,
+          base: boxOf(a, b),
+          from,
+          heightedKind: kind,
+          previous: 1,
+          heightLocked: false,
+          material: stone,
+        });
+        expect(contentsMenu(chosen)).toEqual([]);
+      } else expect(chosen).toBe(endpoint);
+      for (const flow of [
+        { kind: "idle" },
+        tapBlock({ kind: "idle" }, dimensionId, from, stone),
+        chosen.kind === "heightStep"
+          ? chosen
+          : { kind: "pasteAim", manualTurn: 0 },
+      ] as BuildFlow[]) {
+        expect(shapeMenu(flow)).toEqual([]);
+        expect(chooseHeighted(flow, kind)).toBe(flow);
+        expect(selectionBoxOf(flow)).toBeUndefined();
+      }
+    }),
+  );
+});
 
-it("registers Copy with the same height cap and grown-box wireframe as Cube", () => {
-  expect(volumeOf("copy")).toBe(boxStepVolume);
-  expect(volumeOf("cut")).toBe(boxStepVolume);
+it("registers Rotate with the same height cap and grown-box wireframe as Cube", () => {
   expect(volumeOf("rotate")).toBe(boxStepVolume);
   fc.assert(
     fc.property(
@@ -99,7 +96,7 @@ it("registers Copy with the same height cap and grown-box wireframe as Cube", ()
         expect(cap).toBe(Math.max(1, top - base.min.y + 1));
         expect(cap).toBe(cubeVolume.maxHeight(base, top));
         for (const height of [1, cap]) {
-          const spec = { base, height, kind: "copy" as const };
+          const spec = { base, height, kind: "rotate" as const };
           expect(boxStepVolume.wireframe(spec, budget)).toEqual(
             cubeVolume.wireframe({ ...spec, kind: "cube" }, budget),
           );
@@ -110,8 +107,6 @@ it("registers Copy with the same height cap and grown-box wireframe as Cube", ()
 });
 
 const heightStepKind = fc.constantFrom<HeightStepKind>(
-  "copy",
-  "cut",
   "rotate",
   "gable",
   "hip",
@@ -119,18 +114,6 @@ const heightStepKind = fc.constantFrom<HeightStepKind>(
   "cylinder",
   "sphere",
 );
-
-it("identifies box steps among all height-step kinds and supplies their limit", () => {
-  fc.assert(
-    fc.property(heightStepKind, (kind) => {
-      expect(isBoxStepKind(kind)).toBe(
-        kind === "copy" || kind === "cut" || kind === "rotate",
-      );
-      if (isBoxStepKind(kind))
-        expect(boxStepLimit(kind)).toBe(BUILD_SPEC.maxCopyVolume);
-    }),
-  );
-});
 
 it("grows the inclusive height-step box from its base without changing the flow", () => {
   fc.assert(

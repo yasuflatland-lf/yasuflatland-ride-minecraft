@@ -296,3 +296,4 @@ yasu_build.form.build_shape=Build shape
 yasu_build.form.build_shape_title=Shape
 yasu_build.form.back=Back
 yasu_build.form.rotate_box=Rotate box
+yasu_build.form.adjust_height=Adjust height

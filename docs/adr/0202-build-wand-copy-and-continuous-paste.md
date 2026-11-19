@@ -3,21 +3,21 @@
 - Status: Accepted
 - Date: 2026-11-01
 - Extends: [0198](0198-one-build-wand-without-a-bulldozer.md): Decision 10: one paste, then done
-- Extends: [0201](0201-build-wand-cylinder-and-cube.md): the height step gains a Copy kind
+- Extends: [0201](0201-build-wand-cylinder-and-cube.md): shared volume and placement registries
 
 ## Context
 
-The Build Wand already copies and pastes (0198), but it is unclear whether a selected region is for building or for copying, tall regions are hard to select for a copy, and a paste cannot be repeated. A tappable always-visible button is not possible with the stable Script API (0001), so the wand stays one item and the shape menu and utility menu carry the new choices. The height step of 0201 already has the steps a tall copy needs, so Copy reuses it instead of duplicating the aim, slider, preview, and confirm code. Copy places no cells, so the height step's registry is split into the part every height-step kind has (volume) and the part only building kinds have (placement).
+The Build Wand already copies and pastes (0198), but it is unclear whether a selected region is for building or for copying, tall regions are hard to select for a copy, and a paste cannot be repeated. A tappable always-visible button is not possible with the stable Script API (0001), so the wand stays one item and the shape menu and utility menu carry the new choices. Players can set the height while selecting the box (0253).
 
 ## Decision
 
 Copy:
 
 1. Copy is an entry of the root shape menu opened by the wand after the selection is fixed (ADR 0253), after Rotate and before Fill below, for every shape (line, rectangle of any flat axis, box). The root order is Cut, Remove above, Build shape (Place for a line), Rotate box, Copy, Fill below, Cancel. Building styles and shape extras are in the Build shape submenu, followed by Back to the same root selection.
-2. On a horizontal rectangle, Copy starts the same height step as the roofs and solids: aim at the height, live outline, tap to confirm. On confirm the box is copied at once, with no Fill, Hollow, or Tube menu. The height grows upward only, from 1 up to the world top (`BUILD_SPEC.worldTopY`).
-3. On a box, a vertical rectangle, or a line, Copy copies the selected box as it is, with no height step.
-4. During the Copy height step the outline uses its own particle layer, distinct from the build outline and the paste outline. The size readout stays, and the outline shows an over-limit state when the box volume exceeds `BUILD_SPEC.maxCopyVolume` (32,768). Confirming an over-limit box shows the existing "too large" message and stays in the step.
-5. After a copy the action bar reports the block count and how to paste. The first tapped block stays the build material for the whole selection; choosing Copy does not change it.
+2. Choosing Copy captures the inclusive selected box immediately for every shape. A horizontal rectangle copies one layer. The recorded facing is the player's cardinal facing at menu choice time.
+3. Utility-menu Copy captures the confirmed box in its recorded dimension through the same copy operation.
+4. If the box volume exceeds `BUILD_SPEC.maxCopyVolume` (32,768), show the existing "too large" message and preserve the selection and previous clipboard.
+5. Success replaces the clipboard and enters paste aiming, ending the active selection (0253). After a copy the action bar reports the block count and how to paste. The first tapped block stays the build material for the whole selection; choosing Copy does not change it.
 
 Paste:
 
@@ -28,14 +28,14 @@ Paste:
 
 Structure:
 
-10. The height-step registry of 0201 Decision 9 is split: `HeightedVolume` (maximum height and wireframe) and `HeightedPlacement` (cells and count), reached through `volumeOf` and `placementOf`. The height step's kind becomes `HeightStepKind`, `HeightedKind` plus `copy`. The preview, height aim, and slider use the volume; the edit plan and confirm use the placement. The split lands first as a refactor that changes no behavior.
+10. The height-step registry of 0201 Decision 9 is split: `HeightedVolume` (maximum height and wireframe) and `HeightedPlacement` (cells and count), reached through `volumeOf` and `placementOf`. The height step's kind becomes `HeightStepKind`, `HeightedKind` plus `rotate`. The preview, height aim, and slider use the volume; the edit plan and confirm use the placement. The split lands first as a refactor that changes no behavior.
 11. Not included: a second item, a mode toggle, a Resource Pack screen, rotation, flip, cut, stack, underground copy, and block entity contents in the clipboard.
 
 ## Consequences
 
-- Copy reuses the height step, so a new height-step kind that places no cells needs no placement entry.
+- A flat selection copies exactly one layer, including when the height slider fallback is enabled.
 - Continuous Paste changes the one-paste-then-done behavior of 0198 Decision 10 without rewriting its text.
-- Touch behavior (the aim for the Copy height, repeated block taps, the utility menu with sneak) is unverified until checked on the iPad.
+- Touch behavior (live selection height, repeated block taps, the utility menu with sneak) is unverified until checked on the iPad.
 - `build_copy_shapes`, `build_continuous_paste`, and `build_paste_blocked` cover real block permutations, exact undo restoration, laid-block protection, and item-switch timing through the engine hooks, following [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) and [0010](0010-testing-strategy.md). Client taps, forms, outlines, and action-bar readability still require manual checks.
 - During normal play, the paste hint points to Stop pasting and item switching as the only ways to leave paste aiming; successful or refused pastes keep it active. Death, disconnect, and dimension changes still cancel it.
 - The undo stack is unchanged: each paste adds one entry, with the same ten-entry limit per player.

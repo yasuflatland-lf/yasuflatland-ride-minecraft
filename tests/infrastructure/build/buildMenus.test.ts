@@ -149,6 +149,7 @@ function setup(fallback?: boolean) {
     closeBuildMenu: {
       execute: vi.fn((cmd) => new CloseBuildMenu(repo, preview).execute(cmd)),
     },
+    chooseAdjustHeight: { execute: vi.fn() },
     chooseBoxStep: {
       execute: vi.fn((cmd) =>
         new ChooseBoxStep(
@@ -270,7 +271,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     const { session, menus, player, cases } = setup();
     const build = openBuildMenu(endpoint);
     ui.answers.push(
-      { selection: 2 },
+      { selection: 3 },
       answer === "back"
         ? {
             selection: buildMenu(build).findIndex(
@@ -290,6 +291,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     ]);
     expect(ui.forms[0]?.buttons).toEqual(
       [
+        "adjustHeight",
         "cut",
         "removeAbove",
         "buildShape",
@@ -921,23 +923,19 @@ it.each([
   expect(ui.forms).toHaveLength(1);
 });
 
-it("confirms Copy after the fallback slider without opening contents", async () => {
-  const { menus, player, cases, session } = setup(true);
-  ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "copy") },
-    { formValues: [7] },
-  );
-  cases.confirmBoxStep.execute.mockImplementation(() => {
-    expect(session.flow).toMatchObject({ heightedKind: "copy", previous: 7 });
-  });
-  await menus.showShapeMenu(player);
-  expect(ui.forms).toHaveLength(2);
-  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.copyTitle });
-  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
-});
+it.each(["copy", "cut"] as const)(
+  "enters paste aiming directly with %s when the fallback slider is enabled",
+  async (kind) => {
+    const { menus, player, cases, session } = setup(true);
+    ui.answers.push({
+      selection: shapeMenu(endpoint).findIndex((e) => e.id === kind),
+    });
+    await menus.showShapeMenu(player);
+    expect(session.flow.kind).toBe("pasteAim");
+    expect(ui.forms).toHaveLength(1);
+    expect(cases.confirmBoxStep.execute).not.toHaveBeenCalled();
+  },
+);
 
 it.each([
   ["line", { x: 4, y: 60, z: 0 }],
@@ -1093,27 +1091,9 @@ it("offers terrain entries only during the confirmation", () => {
   });
 });
 
-it("confirms Cut after the fallback slider without opening contents", async () => {
-  const { menus, player, cases, session } = setup(true);
-  ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "cut") },
-    { formValues: [7] },
-  );
-  cases.confirmBoxStep.execute.mockImplementation(() => {
-    expect(session.flow).toMatchObject({ heightedKind: "cut", previous: 7 });
-  });
-  await menus.showShapeMenu(player);
-  expect(ui.forms).toHaveLength(2);
-  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.cutTitle });
-  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
-});
-
-it("does not open contents or a slider for locked Copy", async () => {
+it("does not open contents or a slider for locked Rotate", async () => {
   const { menus, player, session } = setup(true);
-  const flow = chooseHeighted(endpoint, "copy");
+  const flow = chooseHeighted(endpoint, "rotate");
   if (flow.kind !== "heightStep") throw new Error("Expected height step");
   session.setFlow({ ...flow, heightLocked: true });
   await menus.showHeightSlider(player);
@@ -1361,7 +1341,7 @@ it.each([
     const { session, menus, player, cases } = setup();
     session.setFlow(selected(from, { x: 4, y: 64, z: 0 }));
     const initial = session.flow;
-    ui.answers.push({ selection: 2 }, answer, { selection: 3 });
+    ui.answers.push({ selection: 3 }, answer, { selection: 4 });
     await menus.showShapeMenu(player);
     expect(cases.openBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
@@ -1414,7 +1394,7 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   let dismiss!: (value: Answer) => void;
   let finish!: (value: Answer) => void;
   ui.answers.push(
-    { selection: 2 },
+    { selection: 3 },
     new Promise((resolve) => {
       dismiss = resolve;
     }),
@@ -1437,4 +1417,13 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   await pending;
   expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
   expect(session.flow).toEqual(endpoint);
+});
+
+it("dispatches adjust height from the selected root menu", async () => {
+  const { menus, player, cases } = setup();
+  ui.answers.push({ selection: 0 });
+  await menus.showShapeMenu(player);
+  expect(cases.chooseAdjustHeight.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
 });

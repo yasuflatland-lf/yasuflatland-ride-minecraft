@@ -1,19 +1,17 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
-import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { setHeight } from "../../../src/domain/build/flow/flow";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
-it("retains the choice facing through height changes and a different confirmation gaze", () => {
+it("captures the selected layers and choice facing immediately for Copy and Cut", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(...FACINGS),
@@ -43,7 +41,7 @@ it("retains the choice facing through height changes and a different confirmatio
           menuLevel: "root",
           selection: selectionOf(
             overworld,
-            boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 2 }),
+            boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: height - 1, z: 2 }),
             blockStateOf("minecraft:stone"),
           ),
           from: { x: 0, y: 0, z: 0 },
@@ -53,10 +51,8 @@ it("retains the choice facing through height changes and a different confirmatio
           playerId,
           kind,
         });
-        session.setFlow(setHeight(session.flow, height));
-        new ConfirmBoxStep(repo, actions, feedback, reader).execute({
-          playerId,
-        });
+        expect(session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
+        expect(session.clipboard?.size).toEqual({ x: 3, y: height, z: 3 });
         expect(session.clipboard?.facing).toBe(facing);
         expect(reader.facingOf).toHaveBeenCalledExactlyOnceWith(playerId);
       },

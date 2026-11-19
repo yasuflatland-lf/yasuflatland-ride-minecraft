@@ -75,6 +75,7 @@ export const TEST_EDIT_EVENT = buildId("test_edit");
 export const TEST_RESULT_EVENT = buildId("test_result");
 
 export const BUILD_FORM = {
+  adjustHeight: "yasu_build.form.adjust_height",
   buildShape: "yasu_build.form.build_shape",
   buildShapeTitle: "yasu_build.form.build_shape_title",
   back: "yasu_build.form.back",

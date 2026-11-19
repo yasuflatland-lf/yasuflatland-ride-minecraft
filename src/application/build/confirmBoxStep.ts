@@ -10,7 +10,7 @@ import type { BuildFeedback } from "./ports/feedback";
 export class ConfirmBoxStep {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly actions: BoxActions,
+    private readonly actions: Pick<BoxActions, "rotate">,
     private readonly feedback: BuildFeedback,
     private readonly facing: FacingReader,
   ) {}
@@ -22,7 +22,7 @@ export class ConfirmBoxStep {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
-    this.actions[flow.heightedKind].execute({
+    this.actions.rotate.execute({
       playerId,
       selection: selectionOf(
         flow.dimensionId,

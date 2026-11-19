@@ -146,6 +146,7 @@ it("offers the ordered root and build menus for every shape and returns unchange
         const shape = shapeOf(from, to);
         const before = structuredClone(flow);
         const rootIds = [
+          ...(shape.kind === "line" ? [] : ["adjustHeight"]),
           "cut",
           "removeAbove",
           shape.kind === "line" ? "place" : "buildShape",
@@ -599,7 +600,10 @@ it("offers Cut then Remove above first for every shape and the confirmation only
         tapAir(tapBlock(idle, dim, a, stone), b),
       );
       const ids = shapeMenu(endpoint).map((entry) => entry.id);
-      expect(ids.slice(0, 2)).toEqual(["cut", "removeAbove"]);
+      expect(ids.filter((id) => id !== "adjustHeight").slice(0, 2)).toEqual([
+        "cut",
+        "removeAbove",
+      ]);
       expect(terrainMenu(endpoint)).toEqual([]);
       const confirming = chooseTerrain(endpoint, "removeAbove");
       expect(shapeMenu(confirming)).toEqual([]);
@@ -635,7 +639,7 @@ it("enters rotation only from endpoints and keeps ordinary gestures and menus in
       for (const flow of [
         idle,
         tapBlock(idle, dim, a, stone),
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "rotate"),
         chooseTerrain(endpoint, "fillBelow"),
         beginPasteAim(),
         mode,
@@ -647,7 +651,7 @@ it("enters rotation only from endpoints and keeps ordinary gestures and menus in
       expect(tapBlock(mode, other, a, dirt)).toBe(mode);
       expect(tapAir(mode, b)).toBe(mode);
       expect(backToAiming(mode)).toBe(mode);
-      expect(chooseHeighted(mode, "copy")).toBe(mode);
+      expect(chooseHeighted(mode, "rotate")).toBe(mode);
       expect(chooseTerrain(mode, "fillBelow")).toBe(mode);
       expect(setHeight(mode, 5)).toBe(mode);
       expect(cancel(mode)).toEqual(idle);

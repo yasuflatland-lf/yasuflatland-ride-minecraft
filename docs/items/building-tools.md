@@ -30,7 +30,7 @@ Tap or right-click a block to set point 1 and choose that block's material. A bl
 
 On the iPad a short tap on air sends nothing to the add-on, so every air action (an end point in the air, confirming a roof height while looking at the sky, the utility menu) needs a long press of about one second. A tap on a block works as usual.
 
-Every shape also offers Copy and Cut. On a horizontal rectangle, aim to choose the height and tap to confirm; other shapes act immediately. Copy and Cut enter paste aiming automatically ([ADR 0203](../adr/0203-build-wand-paste-aiming.md), Proposed). Cut empties the box to air without dropping items and removes the animals and other entities in it.
+Every shape also offers Copy and Cut. Both act immediately on the selected box. A horizontal rectangle copies or cuts one layer. Copy and Cut enter paste aiming automatically ([ADR 0203](../adr/0203-build-wand-paste-aiming.md), Proposed). Cut empties the box to air without dropping items and removes the animals and other entities in it.
 
 Cancel returns to end-point selection. For a roof, aim to choose its height, tap to confirm, then choose Fill or Hollow. Roofs use full blocks of the selected material.
 

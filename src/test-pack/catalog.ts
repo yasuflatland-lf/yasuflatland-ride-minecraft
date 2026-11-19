@@ -1630,7 +1630,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_cut_shapes",
     file: "buildFlow",
-    ticks: 120,
+    ticks: 160,
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,
@@ -1937,6 +1937,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     name: "build_paste_rotation_display",
     file: "buildFlow",
     ticks: 220, // Estimate until the first BDS run.
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
+    name: "build_rotate_selection",
+    file: "buildFlow",
+    ticks: 100, // Estimate until the first BDS run.
     features: ["build"],
     isolation: "exclusive",
     needsPlayer: true,

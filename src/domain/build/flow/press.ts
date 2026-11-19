@@ -13,6 +13,7 @@ export type PressIntent =
   | { kind: "rotateTap" } // Apply one turn in rotate mode.
   | { kind: "finishRotate" } // Exit rotate mode with the current box.
   | { kind: "undo" } // Request undo of the last edit.
+  | { kind: "rotateSelection" }
   | { kind: "rotateClipboard" } // Turn the clipboard for the next paste.
   | { kind: "ignore" }; // Take no build action, even if the event is canceled.
 
@@ -33,7 +34,9 @@ export function routePress({
     case "undo":
       return { kind: "undo" };
     case "pasteRotate":
-      return { kind: "rotateClipboard" };
+      return {
+        kind: flow.kind === "selected" ? "rotateSelection" : "rotateClipboard",
+      };
     case "pastePlace":
       return { kind: "pasteAim" };
   }

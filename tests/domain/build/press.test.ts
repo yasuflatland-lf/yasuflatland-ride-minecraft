@@ -141,6 +141,7 @@ it("returns a known intent for every combination of press inputs", () => {
   const knownKinds = [
     ...Object.values(wandTable).flat(),
     ...Object.values(controlTable),
+    "rotateSelection",
   ];
   const choices = Object.values(flows);
   const examples = choices.flatMap((flow) =>
@@ -171,7 +172,7 @@ it("returns a known intent for every combination of press inputs", () => {
   );
 });
 
-it("routes control roles independently of flow, target, and sneaking", () => {
+it("routes Paste Rotate to the selected box and otherwise to the clipboard on either route", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(...Object.values(flows)),
@@ -181,7 +182,10 @@ it("routes control roles independently of flow, target, and sneaking", () => {
       (flow, route, target, sneaking) => {
         for (const role of controlRoles)
           expect(routePress({ flow, role, route, target, sneaking })).toEqual({
-            kind: controlTable[role],
+            kind:
+              role === "pasteRotate" && flow.kind === "selected"
+                ? "rotateSelection"
+                : controlTable[role],
           });
       },
     ),
