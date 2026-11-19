@@ -16,6 +16,7 @@ scooter_textures = load_tool("scooter_textures")
 scooter_engine = load_tool("scooter_engine")
 region_atlas = load_tool("region_atlas")
 geometry_passes = load_tool("geometry_passes")
+face_crop = load_tool("face_crop")
 
 AREA_ORDER = (
     "running",
@@ -128,6 +129,7 @@ class AtlasPass(NamedTuple):
 
 
 class BuildResult(NamedTuple):
+    source_geometry: dict
     full_geometry: dict
     fixed: AtlasPass
     paint: AtlasPass
@@ -143,13 +145,58 @@ def pack_regions(regions, *, shared=True):
         share_key=(lambda r: (r.material, atlas.is_lit_region(r.name))) if shared else None)
 
 
-def finish_pass(geometry, layout):
+def finish_pass(geometry, layout, pixels=None):
     geometry["description"].update(texture_width=layout.size[0], texture_height=layout.size[1])
-    pixels = atlas.render_atlas(layout)
+    if pixels is None:
+        pixels = atlas.render_atlas(layout)
     errors = atlas.audit(layout, pixels)
     if errors:
         raise ValueError(f"{geometry['description']['identifier']} atlas audit failed: " + "; ".join(errors))
-    return AtlasPass(rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]}), layout, pixels)
+    return AtlasPass({"format_version": "1.12.0", "minecraft:geometry": [geometry]}, layout, pixels)
+
+
+def _lit_bone(name):
+    return name in ("headlights", "tail_lights") or name.startswith("glow_")
+
+
+def _visible_pass(geometry, image):
+    visibility = {}
+    kept_cubes = set()
+
+    def keep(bone, cube, name):
+        if not _lit_bone(bone):
+            face = cube["uv"][name]
+            uv = (*face["uv"], *face["uv_size"])
+            if uv not in visibility:
+                visibility[uv] = face_crop.is_visible(face, image)
+            if not visibility[uv]:
+                return False
+        kept_cubes.add(id(cube))
+        return True
+
+    spec = geometry_passes.PassSpec(geometry["description"]["identifier"], keep)
+    return geometry_passes.select_faces(geometry, spec), kept_cubes
+
+
+def _rejoin(source, partitioned, visible, is_paint):
+    passes = [(iter(part["bones"]), iter(filtered["bones"]), kept)
+              for part, (filtered, kept) in zip(partitioned, visible, strict=True)]
+    bones = []
+    for source_bone in source["bones"]:
+        cubes = [(iter(next(part)["cubes"]), iter(next(filtered)["cubes"]), kept)
+                 for part, filtered, kept in passes]
+        whole = []
+        for cube in source_bone["cubes"]:
+            faces = {}
+            # Each partition emits one piece per owning source cube, in source order.
+            for owner in {is_paint(face) for face in cube["uv"].values()}:
+                partitioned_cubes, visible_cubes, kept = cubes[owner]
+                if id(next(partitioned_cubes)) in kept:
+                    faces.update(next(visible_cubes)["uv"])
+            if faces:
+                whole.append({**cube, "uv": {name: faces[name] for name in cube["uv"] if name in faces}})
+        bones.append({**source_bone, "cubes": whole})
+    return {**source, "bones": bones}
 
 
 def build():
@@ -215,7 +262,7 @@ def build():
     geometry = {"description": description, "bones": bones}
     lit_geometry = geometry_passes.select_faces(geometry, geometry_passes.PassSpec(
         "geometry.yasu_ride.scooter_lit",
-        lambda name, cube, face: name in ("headlights", "tail_lights") or name.startswith("glow_")))
+        lambda name, cube, face: _lit_bone(name)))
     bound = {face.region for bone in lit_geometry["bones"]
              for cube in bone.get("cubes", []) for face in cube["uv"].values()}
     lit_layout = pack_regions((r for r in regions.values() if r.name in bound), shared=False)
@@ -226,23 +273,32 @@ def build():
                 relocate_face(local_uvs[id(original)], regions[original.region], lit_layout, face)
     kit.mirror_to_game(bones)
     kit.mirror_to_game(lit_geometry["bones"])
-    fixed_geometry, paint_geometry = geometry_passes.partition_geometry(geometry, [
+    cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
+    source = rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]})
+    geometry = source["minecraft:geometry"][0]
+    partitioned = geometry_passes.partition_geometry(geometry, [
         geometry_passes.PassSpec("geometry.yasu_ride.scooter", lambda bone, cube, name: not is_paint(cube["uv"][name])),
         geometry_passes.PassSpec("geometry.yasu_ride.scooter_paint", lambda bone, cube, name: is_paint(cube["uv"][name])),
     ])
-    cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
-    fixed = finish_pass(fixed_geometry, fixed_layout)
-    paint = finish_pass(paint_geometry, paint_layout)
-    lit = finish_pass(lit_geometry, lit_layout)
-    full = rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]})
-    return BuildResult(full, fixed, paint, lit)
+    fixed_pixels = atlas.render_atlas(fixed_layout)
+    paint_pixels = atlas.render_atlas(paint_layout)
+    fixed_image = region_atlas.AtlasImage(*fixed_layout.size, fixed_pixels)
+    paint_image = region_atlas.AtlasImage(*paint_layout.size, paint_pixels)
+    fixed_pass = _visible_pass(partitioned[0], fixed_image)
+    paint_pass = _visible_pass(partitioned[1], paint_image)
+    fixed = finish_pass(fixed_pass[0], fixed_layout, fixed_pixels)
+    paint = finish_pass(paint_pass[0], paint_layout, paint_pixels)
+    lit = finish_pass(rounded(lit_geometry), lit_layout)
+    full = {**source, "minecraft:geometry": [_rejoin(
+        geometry, partitioned, (fixed_pass, paint_pass), is_paint)]}
+    return BuildResult(source, full, fixed, paint, lit)
 
 
 def main(argv):
     rp = Path(argv[0])
     outputs = texture_io.Outputs("--check" in argv[1:])
     built = build()
-    source_geometry = built.full_geometry["minecraft:geometry"][0]
+    source_geometry = built.source_geometry["minecraft:geometry"][0]
     outputs.json(Path(__file__).resolve().parent.parent / ".cache/generated/scooter_source.geo.json",
                  source_geometry)
     for name, render_pass in (("scooter", built.fixed), ("scooter_paint", built.paint), ("scooter_lit", built.lit)):

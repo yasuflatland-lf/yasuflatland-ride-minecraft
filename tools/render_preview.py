@@ -821,6 +821,8 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False, 
         color = lit.get(bone["name"]) if pose["lamps"] else None
         for cube in bone.get("cubes", []):
             for face, quad in cube_faces({**cube, "rotation": game_turn(cube.get("rotation", [0, 0, 0]))}):
+                if face not in cube["uv"]:
+                    continue
                 for pivot, rotation, offset in turns[bone["name"]]:
                     quad = apply_bone_motion(quad, pivot, rotation, offset)
                 if flight is not None:
@@ -1330,7 +1332,7 @@ def project_lit_texture(geo, lit_geo, lit_texture):
 
 
 def load_scooter_model(rp: Path, built=None):
-    """Rejoin serialized passes in source order, retaining their own atlas sampling."""
+    """Rejoin serialized passes in shipped cube order, retaining their atlas sampling."""
     built = built or load_tool("gen_scooter").build()
     passes = [json.loads((rp / path).read_text())["minecraft:geometry"][0]
               for path in (SCOOTER_GEOMETRY, SCOOTER_PAINT_GEOMETRY)]
@@ -1339,11 +1341,11 @@ def load_scooter_model(rp: Path, built=None):
     width = max(len(t[0]) for t in textures)
     offsets = [0, len(textures[0])]
     texture = [row + [(0, 0, 0, 0)] * (width - len(row)) for t in textures for row in t]
-    source = built.full_geometry["minecraft:geometry"][0]
-    geo = {**source, "description": {**source["description"], "texture_width": width,
+    shipped = built.full_geometry["minecraft:geometry"][0]
+    geo = {**shipped, "description": {**shipped["description"], "texture_width": width,
                                      "texture_height": len(texture)}, "bones": []}
     paint_regions = {r.name for r in built.paint.layout.regions}
-    for index, original_bone in enumerate(source["bones"]):
+    for index, original_bone in enumerate(shipped["bones"]):
         pass_bones = [p["bones"][index] for p in passes]
         metadata = {k: v for k, v in original_bone.items() if k != "cubes"}
         if any({k: v for k, v in b.items() if k != "cubes"} != metadata for b in pass_bones):
@@ -1359,7 +1361,7 @@ def load_scooter_model(rp: Path, built=None):
                 if piece is None or {k: v for k, v in piece.items() if k != "uv"} != shape:
                     raise ValueError("Scooter preview cube shape does not match geometry")
                 if list(piece["uv"]) != [name for name, value in owners.items() if value == owner]:
-                    raise ValueError("Scooter preview pass faces do not partition the source")
+                    raise ValueError("Scooter preview pass faces do not match shipped geometry")
                 pieces[owner] = piece
             uv = {}
             for name, original_face in original["uv"].items():
