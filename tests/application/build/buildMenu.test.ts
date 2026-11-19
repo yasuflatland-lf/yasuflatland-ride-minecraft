@@ -5,6 +5,7 @@ import { OpenBuildMenu } from "../../../src/application/build/openBuildMenu";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import { FakeSessions, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
@@ -14,14 +15,16 @@ it("opens and closes the build menu before refreshing the preview without changi
     fc.property(fc.integer({ min: -100, max: 100 }), (x) => {
       const repo = new FakeSessions();
       const session = repo.getOrCreate(playerId);
-      const endpoint = tapAir(
-        tapBlock(
-          session.flow,
-          overworld,
-          { x, y: 60, z: 0 },
-          blockStateOf("minecraft:stone"),
+      const endpoint = confirmEndpointHeight(
+        tapAir(
+          tapBlock(
+            session.flow,
+            overworld,
+            { x, y: 60, z: 0 },
+            blockStateOf("minecraft:stone"),
+          ),
+          { x: x + 3, y: 60, z: 4 },
         ),
-        { x: x + 3, y: 60, z: 4 },
       );
       session.setFlow(endpoint);
       const levels: unknown[] = [];

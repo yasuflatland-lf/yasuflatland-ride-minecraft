@@ -15,6 +15,7 @@ import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -76,7 +77,9 @@ function select(env: Env, player: typeof alex, size: number, y = 64) {
   const s = env.repo.getOrCreate(player);
   s.setFlow(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
   s.setFlow(
-    tapBlock(s.flow, overworld, { x: size - 1, y, z: size - 1 }, stone),
+    confirmEndpointHeight(
+      tapBlock(s.flow, overworld, { x: size - 1, y, z: size - 1 }, stone),
+    ),
   );
 }
 
@@ -148,11 +151,13 @@ describe("EditJobs properties", () => {
     const cell = { x: 0, y: 64, z: 0 };
     const flows = {
       point1: tapBlock({ kind: "idle" }, overworld, cell, stone),
-      endpoint: tapBlock(
-        tapBlock({ kind: "idle" }, overworld, cell, stone),
-        overworld,
-        { x: 1, y: 64, z: 1 },
-        stone,
+      endpoint: confirmEndpointHeight(
+        tapBlock(
+          tapBlock({ kind: "idle" }, overworld, cell, stone),
+          overworld,
+          { x: 1, y: 64, z: 1 },
+          stone,
+        ),
       ),
       heightStep: {
         kind: "heightStep",
@@ -296,7 +301,11 @@ describe("EditJobs properties", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
     s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone));
+    s.setFlow(
+      confirmEndpointHeight(
+        tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone),
+      ),
+    );
     env.fill.execute({ playerId: alex, style: "fill" });
     let last = 0;
     for (let i = 0; i < 5; i++) {
@@ -315,7 +324,11 @@ describe("EditJobs properties", () => {
       const s = env.repo.getOrCreate(p);
       const y = p === alex ? 0 : 100;
       s.setFlow(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
-      s.setFlow(tapBlock(s.flow, overworld, { x: 63, y: y + 3, z: 63 }, stone));
+      s.setFlow(
+        confirmEndpointHeight(
+          tapBlock(s.flow, overworld, { x: 63, y: y + 3, z: 63 }, stone),
+        ),
+      );
       env.fill.execute({ playerId: p, style: "fill" });
     }
     env.jobs.step();
@@ -381,7 +394,11 @@ describe("edit use cases", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
     s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(tapBlock(s.flow, overworld, { x: 99, y: 99, z: 99 }, stone));
+    s.setFlow(
+      confirmEndpointHeight(
+        tapBlock(s.flow, overworld, { x: 99, y: 99, z: 99 }, stone),
+      ),
+    );
     env.fill.execute({ playerId: alex, style: "fill" });
     expect(env.feedback.messages.at(-1)?.message).toBe("tooLarge");
   });
@@ -440,7 +457,11 @@ describe("edit use cases", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
     s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone));
+    s.setFlow(
+      confirmEndpointHeight(
+        tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone),
+      ),
+    );
     env.fill.execute({ playerId: alex, style: "fill" });
     env.jobs.step();
     const written = env.world.writes;

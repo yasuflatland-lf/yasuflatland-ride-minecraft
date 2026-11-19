@@ -14,6 +14,7 @@ import { nextQuarterTurn } from "../../../src/domain/build/rotation/quarterTurn"
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, nether } from "./fakes";
 
 const playerId = asPlayerId("p");
@@ -43,7 +44,9 @@ it("hints and preserves every inactive flow, including a missing session or clip
         at,
         blockStateOf("minecraft:stone"),
       );
-      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+      const endpoint = confirmEndpointHeight(
+        tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+      );
       const flows = [
         { kind: "idle" } as const,
         first,

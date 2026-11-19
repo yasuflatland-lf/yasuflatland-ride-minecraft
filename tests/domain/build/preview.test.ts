@@ -100,10 +100,15 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
   );
 });
 
-it("draws the terrain confirmation like its end point", () => {
+it("draws the terrain confirmation at the confirmed selection height", () => {
   const from = { x: 0, y: 60, z: 0 };
   const to = { x: 3, y: 62, z: 3 };
-  const common = { dimensionId, from, to, material };
+  const selection = selectionOf(
+    dimensionId,
+    boxOf(from, { ...to, y: 68 }),
+    material,
+  );
+  const common = { from, to, selection };
   expect(
     previewPoints(
       { ...common, kind: "terrainConfirm", op: "removeAbove" },
@@ -114,7 +119,7 @@ it("draws the terrain confirmation like its end point", () => {
       {
         from,
         to,
-        selection: selectionOf(dimensionId, boxOf(from, to), material),
+        selection,
         kind: "selected",
         menuLevel: "root",
       },

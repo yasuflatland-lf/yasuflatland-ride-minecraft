@@ -11,6 +11,7 @@ import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
@@ -112,7 +113,9 @@ it("cancels in-progress selections when build mode leaves after its grace delay"
       session.confirmBox(selectionOf(overworld, boxOf(a, b), AIR));
       session.setFlow(tapBlock(session.flow, overworld, a, material));
       if (endpoint)
-        session.setFlow(tapBlock(session.flow, overworld, b, material));
+        session.setFlow(
+          confirmEndpointHeight(tapBlock(session.flow, overworld, b, material)),
+        );
       const flow = session.flow;
       for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
         modes.execute([{ playerId: alex, held: "none" }]);
@@ -143,7 +146,9 @@ it("retains the selection across build tool swaps and resets the leave grace", (
         const session = repo.getOrCreate(alex);
         const material = blockStateOf("minecraft:stone");
         const first = tapBlock(session.flow, overworld, a, material);
-        const selection = tapBlock(first, overworld, b, material);
+        const selection = confirmEndpointHeight(
+          tapBlock(first, overworld, b, material),
+        );
         session.setFlow(selection);
         const tick = (held: HeldBuildItem) =>
           modes.execute([{ playerId: alex, held }]);

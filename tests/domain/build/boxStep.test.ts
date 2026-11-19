@@ -23,6 +23,7 @@ import {
   isBoxStepKind,
 } from "../../../src/domain/build/volume/kind";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -42,9 +43,8 @@ it.each(["copy", "cut", "rotate"] as const)(
         const b = { x: a.x + delta.x, y: a.y + delta.y, z: a.z + delta.z };
         const from = reverse ? b : a;
         const to = reverse ? a : b;
-        const endpoint = tapAir(
-          tapBlock({ kind: "idle" }, dimensionId, from, stone),
-          to,
+        const endpoint = confirmEndpointHeight(
+          tapAir(tapBlock({ kind: "idle" }, dimensionId, from, stone), to),
         );
         const entries = shapeMenu(endpoint).map((entry) => entry.id);
         expect(entries.slice(0, 2)).toEqual(["cut", "removeAbove"]);

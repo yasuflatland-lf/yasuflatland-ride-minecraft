@@ -1,6 +1,7 @@
 import { system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
+import type { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
 import type { FinishRotateMode } from "../../../../application/build/finishRotateMode";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
@@ -31,6 +32,7 @@ export function registerWand({
   finishRotateMode,
   aimHeight,
   confirmBoxStep,
+  confirmLiveHeight,
   repo,
   menus,
   aim,
@@ -45,6 +47,7 @@ export function registerWand({
   rotateModeTap: Pick<RotateModeTap, "execute">;
   finishRotateMode: Pick<FinishRotateMode, "execute">;
   aimHeight: AimHeight;
+  confirmLiveHeight: ConfirmLiveHeight;
   confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   repo: BuildSessionRepository;
   menus: BuildMenus;
@@ -71,7 +74,8 @@ export function registerWand({
         target: "block",
         sneaking: player.isSneaking,
       });
-    if (routeBlockPress(repo.get(playerId)?.flow).kind === "ignore") return;
+    const intent = routeBlockPress(repo.get(playerId)?.flow).kind;
+    if (intent === "ignore") return;
     const command = {
       playerId,
       dimensionId: asDimensionId(ev.block.dimension.id),
@@ -80,7 +84,17 @@ export function registerWand({
     system.run(() => {
       if (!player.isValid) return;
       const flow = repo.get(command.playerId)?.flow;
-      switch (routeBlockPress(flow).kind) {
+      // A deferred confirmation can race an item-use event from the same press.
+      if (routeBlockPress(flow).kind !== intent) return;
+      switch (intent) {
+        case "confirmLiveHeight": {
+          const target = aim.aim(playerId);
+          if (!target) return;
+          debounce.press(playerId, system.currentTick);
+          aimHeight.execute({ playerId, ray: target.ray });
+          confirmLiveHeight.execute({ playerId });
+          break;
+        }
         case "aimHeight": {
           if (flow?.kind !== "heightStep") return;
           const target = aim.aim(command.playerId);
@@ -124,6 +138,7 @@ export function registerWand({
       rotateModeTap,
       finishRotateMode,
       aimHeight,
+      confirmLiveHeight,
       confirmBoxStep,
       menus,
       pointOf,

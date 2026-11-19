@@ -17,6 +17,7 @@ import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
   cellKey,
   FakeFeedback,
@@ -224,9 +225,12 @@ it("restores failed cuts without changing the session or discarding prior handle
         const previousHandles = [...e.structures.live];
         const clipboard = e.session.clipboard;
         const confirmed = e.session.confirmedBox;
-        const flow = tapAir(
-          tapBlock({ kind: "idle" }, overworld, origin, stone),
-          { x, y: 65, z: 1 },
+        const flow = confirmEndpointHeight(
+          tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), {
+            x,
+            y: 65,
+            z: 1,
+          }),
         );
         e.session.setFlow(flow);
         const before = structuredClone(e.session);
@@ -361,9 +365,8 @@ it.each(["direct", "height"] as const)(
     for (const refusal of ["tooLarge", "busy"] as const) {
       const e = setup();
       const end = { x: 1, y: 64, z: 1 };
-      const endpoint = tapAir(
-        tapBlock({ kind: "idle" }, overworld, origin, stone),
-        end,
+      const endpoint = confirmEndpointHeight(
+        tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
       );
       const box = boxOf(origin, origin);
       const clipboard = structureClipboard(box, () => stone);
@@ -374,10 +377,12 @@ it.each(["direct", "height"] as const)(
               chooseHeighted(endpoint, "cut"),
               refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
             )
-          : tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), {
-              ...origin,
-              x: refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
-            });
+          : confirmEndpointHeight(
+              tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), {
+                ...origin,
+                x: refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
+              }),
+            );
       e.session.setFlow(flow);
       const confirmed = e.session.confirmedBox;
       if (refusal === "busy") e.session.beginEdit();
@@ -397,7 +402,9 @@ it("shares the upward height step and cuts immediately on confirmation", () => {
   const e = setup();
   const end = { x: 1, y: 64, z: 1 };
   e.session.setFlow(
-    tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
+    confirmEndpointHeight(
+      tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
+    ),
   );
   e.world.put({ ...origin, y: 66 }, stone);
   e.choose.execute({ playerId, kind: "cut" });
@@ -431,7 +438,9 @@ it("cuts all other shapes directly and reserves height selection for horizontal 
         const box = boxOf(origin, end);
         e.world.put(origin, stone);
         e.session.setFlow(
-          tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
+          confirmEndpointHeight(
+            tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
+          ),
         );
         e.choose.execute({ playerId, kind: "cut" });
         const shape = shapeOf(origin, end);

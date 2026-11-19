@@ -1,6 +1,7 @@
 import { type Player, system } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
+import type { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
 import type { FinishRotateMode } from "../../../../application/build/finishRotateMode";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
@@ -23,6 +24,7 @@ type PressContext = {
   rotateModeTap: Pick<RotateModeTap, "execute">;
   finishRotateMode: Pick<FinishRotateMode, "execute">;
   aimHeight: AimHeight;
+  confirmLiveHeight: ConfirmLiveHeight;
   confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   menus: BuildMenus;
   pointOf(playerId: PlayerId): Cell | undefined;
@@ -91,6 +93,12 @@ export function dispatchWandPress(context: PressContext): void {
         playerId,
         dimensionId: asDimensionId(source.dimension.id),
       });
+      break;
+    case "confirmLiveHeight":
+      if (target) {
+        context.aimHeight.execute({ playerId, ray: target.ray });
+        context.confirmLiveHeight.execute({ playerId });
+      }
       break;
     case "aimHeight":
       if (target && flow.kind === "heightStep")

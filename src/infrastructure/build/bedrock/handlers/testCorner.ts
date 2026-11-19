@@ -1,7 +1,10 @@
 // Exercises the same tap use cases and feedback adapter with a named player (ADR 0010, 0178).
 import { ScriptEventSource, system, world } from "@minecraft/server";
+import type { AimHeight } from "../../../../application/build/aimHeight";
 import { ClearSelection } from "../../../../application/build/clearSelection";
+import { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
 import type { OpenSelectionMenu } from "../../../../application/build/openSelectionMenu";
+import type { AimReader } from "../../../../application/build/ports/aim";
 import type { BuildBlockWorld } from "../../../../application/build/ports/blocks";
 import type {
   BuildFeedback,
@@ -9,6 +12,8 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import { SetPoint } from "../../../../application/build/setPoint";
 import { TapAir } from "../../../../application/build/tapAir";
+import { sizeOf } from "../../../../domain/build/box";
+import { setHeight } from "../../../../domain/build/flow/flow";
 import { routePress } from "../../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
@@ -23,6 +28,8 @@ export function registerTestTap(
   feedback: BuildFeedback,
   blocks: BuildBlockWorld,
   openSelectionMenu: OpenSelectionMenu,
+  aim: AimReader,
+  aimHeight: AimHeight,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -47,7 +54,10 @@ export function registerTestTap(
       if (
         !input ||
         typeof input.player !== "string" ||
-        (input.tap !== "block" && input.tap !== "air" && input.tap !== "clear")
+        (input.tap !== "block" &&
+          input.tap !== "air" &&
+          input.tap !== "clear" &&
+          input.tap !== "fixHeight")
       )
         return;
       const { x, y, z } = input;
@@ -77,9 +87,12 @@ export function registerTestTap(
         drawPreview: (id, dimension, set) =>
           feedback.drawPreview(id, dimension, set),
       };
-      const flow = repo.get(playerId)?.flow;
+      const session = repo.get(playerId);
+      const flow = session?.flow;
       const press =
-        flow?.kind === "selected" && input.tap !== "clear"
+        flow &&
+        (input.tap === "air" || input.tap === "block") &&
+        (flow.kind === "selected" || flow.kind === "baseHeight")
           ? routePress({
               flow,
               role: "wand",
@@ -94,7 +107,18 @@ export function registerTestTap(
           : undefined;
       if (input.tap === "clear")
         new ClearSelection(repo, observed).execute({ playerId });
-      else if (menu === undefined && input.tap === "air")
+      else if (input.tap === "fixHeight") {
+        // Edit fixtures use the supplied corners independently of the client's gaze.
+        if (session && flow?.kind === "baseHeight")
+          session.setFlow(setHeight(flow, sizeOf(flow.selection.box).y));
+        new ConfirmLiveHeight(repo, observed).execute({ playerId });
+      } else if (press?.kind === "confirmLiveHeight") {
+        const sample = aim.aim(playerId);
+        if (sample) {
+          aimHeight.execute({ playerId, ray: sample.ray });
+          new ConfirmLiveHeight(repo, observed).execute({ playerId });
+        }
+      } else if (menu === undefined && input.tap === "air")
         new TapAir(repo, observed).execute({ playerId, end: cell });
       else if (menu === undefined)
         new SetPoint(repo, blocks, observed).execute({

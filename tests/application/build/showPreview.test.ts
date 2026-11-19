@@ -10,6 +10,7 @@ import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import { tapAir } from "../../../src/domain/build/flow/flow";
 import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import {
@@ -676,4 +677,28 @@ it("shows the effective degrees for every facing and manual turn, including air 
       },
     ),
   );
+});
+
+it("redraws the live selection outline and retains its last height for a vertical gaze", () => {
+  const { session, preview, feedback, aim } = setup(false);
+  const from = { x: 0, y: 64, z: 0 };
+  const to = { x: 4, y: 64, z: 4 };
+  session.setFlow(
+    tapAir(
+      { kind: "point1", dimensionId: overworld, cell: from, material },
+      to,
+    ),
+  );
+  const origin = { x: -1.5, y: 80, z: 2.5 };
+  aim.mockReturnValue({ ray: { origin, direction: { x: 1, y: 0, z: 0 } } });
+  preview.execute(0);
+  aim.mockReturnValue({ ray: { origin, direction: { x: 0.8, y: 0.6, z: 0 } } });
+  preview.execute(interval - 1);
+  preview.execute(interval);
+  aim.mockReturnValue({ ray: { origin, direction: { x: 0, y: 1, z: 0 } } });
+  preview.execute(2 * interval);
+  expect(
+    feedback.previews.map(({ set }) => Math.max(...set.shape.map((p) => p.y))),
+  ).toEqual([64.5, 67.5, 67.5]);
+  expect(session.flow).toMatchObject({ kind: "baseHeight", previous: 4 });
 });

@@ -8,6 +8,7 @@ import { ClearSelection } from "../../application/build/clearSelection";
 import { CloseBuildMenu } from "../../application/build/closeBuildMenu";
 import { ConfirmBoxStep } from "../../application/build/confirmBoxStep";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
+import { ConfirmLiveHeight } from "../../application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { ConfirmTerrain } from "../../application/build/confirmTerrain";
 import { CopyBox } from "../../application/build/copyBox";
@@ -193,6 +194,7 @@ export function installBuild(deps: {
     tapAir: new TapAir(repo, feedback),
     pressPasteAim,
     aimHeight: cases.aimHeight,
+    confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
     confirmBoxStep: cases.confirmBoxStep,
     repo,
     menus,
@@ -214,7 +216,14 @@ export function installBuild(deps: {
     rotateDebounce,
     undoDebounce,
   );
-  registerTestTap(repo, feedback, blocks, menuCases.openSelectionMenu);
+  registerTestTap(
+    repo,
+    feedback,
+    blocks,
+    menuCases.openSelectionMenu,
+    aim,
+    cases.aimHeight,
+  );
   registerTestMode(modes, repo);
   registerEditTick(jobs);
   const describe = new DescribeBuild(repo);

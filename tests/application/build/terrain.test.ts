@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
+import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
 import { ConfirmTerrain } from "../../../src/application/build/confirmTerrain";
 import { EditJobs } from "../../../src/application/build/editJobs";
@@ -11,12 +12,14 @@ import { boxOf, cellsOf, volume } from "../../../src/domain/build/box";
 import { SCAN_STEP } from "../../../src/domain/build/edit/change";
 import {
   type BuildFlow,
+  setHeight,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { Cell } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -48,7 +51,9 @@ function setup() {
   const session = repo.getOrCreate(playerId);
   const select = (from: Cell, to: Cell) => {
     session.setFlow(
-      tapAir(tapBlock({ kind: "idle" }, overworld, from, stone), to),
+      confirmEndpointHeight(
+        tapAir(tapBlock({ kind: "idle" }, overworld, from, stone), to),
+      ),
     );
   };
   return {
@@ -312,14 +317,16 @@ it("fills air and liquids but treats protected, unreadable, and solid cells as b
 it("refuses an unstable material at menu choice without changing flow", () => {
   const e = setup();
   e.session.setFlow(
-    tapAir(
-      tapBlock(
-        { kind: "idle" },
-        overworld,
-        { x: 0, y: 0, z: 0 },
-        blockStateOf("minecraft:sand"),
+    confirmEndpointHeight(
+      tapAir(
+        tapBlock(
+          { kind: "idle" },
+          overworld,
+          { x: 0, y: 0, z: 0 },
+          blockStateOf("minecraft:sand"),
+        ),
+        { x: 1, y: 0, z: 1 },
       ),
-      { x: 1, y: 0, z: 1 },
     ),
   );
   const flow = e.session.flow;
@@ -443,4 +450,25 @@ it("reports the entire Fill below prism at the world ceiling and across unequal 
       });
     }
   }
+});
+
+it("keeps the confirmed box for Copy while Fill below uses the original corners", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 2, max: 8 }), (height) => {
+      const e = setup();
+      const from = { x: 0, y: 60, z: 0 };
+      const to = { x: 2, y: 60, z: 2 };
+      const above = { ...from, y: from.y + 1 };
+      const point = tapBlock({ kind: "idle" }, overworld, from, stone);
+      e.session.setFlow(setHeight(tapAir(point, to), height));
+      new ConfirmLiveHeight(e.repo, e.feedback).execute({ playerId });
+      e.choose.execute({ playerId, op: "fillBelow" });
+      e.confirm.execute({ playerId });
+      e.drain();
+      expect(e.world.stateAt(overworld, above)).toEqual(AIR);
+      expect(e.session.confirmedBox?.box).toEqual(
+        boxOf(from, { ...to, y: from.y + height - 1 }),
+      );
+    }),
+  );
 });

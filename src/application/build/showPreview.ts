@@ -9,18 +9,22 @@ import type { BuildSessionRepository } from "../../domain/build/sessionRepositor
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { volumeSize } from "../../domain/build/volume/size";
 import type { PlayerId } from "../../domain/shared/ids";
+import { AimHeight } from "./aimHeight";
 import type { AimReader } from "./ports/aim";
 import type { BuildFeedback } from "./ports/feedback";
 import type { ResolvePasteTarget } from "./resolvePasteTarget";
 
 export class ShowPreview {
+  private readonly aimHeight: AimHeight;
   private readonly sizes = new Map<PlayerId, ReturnType<typeof volumeSize>>();
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly feedback: BuildFeedback,
     private readonly aimReader: AimReader,
     private readonly resolveTarget: ResolvePasteTarget,
-  ) {}
+  ) {
+    this.aimHeight = new AimHeight(repo);
+  }
 
   execute(tick: number): void {
     for (const id of this.sizes.keys()) {
@@ -36,13 +40,15 @@ export class ShowPreview {
     const blink = Math.floor(tick / BUILD_SPEC.outlineInterval) % 2 === 0;
     const session = this.repo.get(id);
     if (!session?.isInBuildMode) return;
+    const aim = this.aimReader.aim(id);
+    if (session.flow.kind === "baseHeight" && aim)
+      this.aimHeight.execute({ playerId: id, ray: aim.ray });
     const { flow } = session;
     if (flow.kind === "rotateMode")
       this.feedback.showMode(id, {
         kind: "rotate",
         degrees: degreesOf(flow.turn),
       });
-    const aim = this.aimReader.aim(id);
     const preview: PreviewAim = { blink };
     if (flow.kind === "point1" && aim)
       preview.end = aim.block?.cell ?? virtualEndPoint(flow.cell, aim.ray);
@@ -82,7 +88,7 @@ export class ShowPreview {
     if (Object.values(set).some((points) => points.length > 0))
       this.feedback.drawPreview(
         id,
-        flow.kind === "rotateMode" || flow.kind === "selected"
+        "selection" in flow
           ? flow.selection.dimensionId
           : "dimensionId" in flow
             ? flow.dimensionId
