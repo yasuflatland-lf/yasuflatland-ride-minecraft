@@ -1,10 +1,8 @@
 import { system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
 import type { ConfirmBoxStep } from "../../../../application/build/confirmBoxStep";
-import type { FinishRotateMode } from "../../../../application/build/finishRotateMode";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
-import type { RotateModeTap } from "../../../../application/build/rotateModeTap";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
 import type { BuildFlow } from "../../../../domain/build/flow/flow";
@@ -27,8 +25,6 @@ export function registerWand({
   setPoint,
   tapAir,
   pressPasteAim,
-  rotateModeTap,
-  finishRotateMode,
   aimHeight,
   confirmBoxStep,
   repo,
@@ -36,14 +32,11 @@ export function registerWand({
   aim,
   debounce,
   pasteDebounce,
-  rotateDebounce,
   pointOf,
 }: {
   setPoint: SetPoint;
   tapAir: TapAir;
   pressPasteAim: PressPasteAim;
-  rotateModeTap: Pick<RotateModeTap, "execute">;
-  finishRotateMode: Pick<FinishRotateMode, "execute">;
   aimHeight: AimHeight;
   confirmBoxStep: Pick<ConfirmBoxStep, "execute">;
   repo: BuildSessionRepository;
@@ -51,7 +44,6 @@ export function registerWand({
   aim: AimReader;
   debounce: PressDebounces<PlayerId>;
   pasteDebounce: PressDebounces<PlayerId>;
-  rotateDebounce: PressDebounces<PlayerId>;
   pointOf(playerId: PlayerId): Cell | undefined;
 }): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
@@ -107,13 +99,7 @@ export function registerWand({
     const flow = repo.get(playerId)?.flow;
     const tick = system.currentTick;
     const presses =
-      flow?.kind === "rotateMode"
-        ? rotateDebounce
-        : source.isSneaking && flow?.kind === "pasteAim"
-          ? pasteDebounce
-          : debounce;
-    // A held finish press must not open utilities after returning to the selection.
-    if (flow?.kind === "rotateMode") debounce.press(playerId, tick);
+      source.isSneaking && flow?.kind === "pasteAim" ? pasteDebounce : debounce;
     if (!presses.press(playerId, tick)) return;
     dispatchWandPress({
       source,
@@ -121,8 +107,6 @@ export function registerWand({
       aim,
       repo,
       pressPasteAim,
-      rotateModeTap,
-      finishRotateMode,
       aimHeight,
       confirmBoxStep,
       menus,

@@ -5,7 +5,6 @@ import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
 import { beginPasteAim, followFacing, rotatePasteAim } from "./flow/paste";
-import { turnRotateMode } from "./flow/rotateMode";
 import {
   EMPTY_HISTORY,
   type SnapshotRecord,
@@ -69,16 +68,13 @@ export class BuildSession {
   }
   replaceSelection(selection: Selection): void {
     const flow = this.currentFlow;
-    if (flow.kind !== "selected" && flow.kind !== "rotateMode") return;
-    this.currentFlow =
-      flow.kind === "rotateMode"
-        ? turnRotateMode(flow, selection)
-        : Object.freeze({
-            ...flow,
-            selection,
-            from: selection.box.min,
-            to: selection.box.max,
-          });
+    if (flow.kind !== "selected") return;
+    this.currentFlow = Object.freeze({
+      ...flow,
+      selection,
+      from: selection.box.min,
+      to: selection.box.max,
+    });
     if (
       this.currentConfirmedBox &&
       inDimension(this.currentConfirmedBox, selection.dimensionId)

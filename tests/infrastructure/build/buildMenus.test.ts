@@ -14,8 +14,6 @@ import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { OpenBuildMenu } from "../../../src/application/build/openBuildMenu";
 import { OpenSelectionMenu } from "../../../src/application/build/openSelectionMenu";
-import { RotateBox } from "../../../src/application/build/rotateBox";
-import { RotateBoxAction } from "../../../src/application/build/rotateBoxAction";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
@@ -42,7 +40,6 @@ import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/bui
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import {
-  FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -154,17 +151,6 @@ function setup(fallback?: boolean) {
         new ChooseBoxStep(
           repo,
           {
-            rotate: new RotateBoxAction(
-              repo,
-              new RotateBox(
-                repo,
-                new FakeWorld(),
-                new FakeBuildPlayers(),
-                new FakeStructureStore(),
-                new FakeFeedback(),
-                { warn: () => {} },
-              ),
-            ),
             copy: new CopyBox(
               repo,
               new FakeStructureStore(),
@@ -258,10 +244,7 @@ function shapeAnswers(flow: BuildFlow, id: string): Answer[] {
 
 const labels = (entries: { id: string }[]) =>
   entries.map(({ id }) => ({
-    translate:
-      BUILD_FORM[
-        (id === "rotate" ? "rotateBox" : id) as keyof typeof BUILD_FORM
-      ],
+    translate: BUILD_FORM[id as keyof typeof BUILD_FORM],
   }));
 
 it.each(["back", "dismiss", "unanswered"] as const)(
@@ -289,15 +272,9 @@ it.each(["back", "dismiss", "unanswered"] as const)(
       { translate: BUILD_FORM.shapeTitle },
     ]);
     expect(ui.forms[0]?.buttons).toEqual(
-      [
-        "cut",
-        "removeAbove",
-        "buildShape",
-        "rotateBox",
-        "copy",
-        "fillBelow",
-        "cancel",
-      ].map((id) => ({ translate: BUILD_FORM[id as keyof typeof BUILD_FORM] })),
+      ["cut", "removeAbove", "buildShape", "copy", "fillBelow", "cancel"].map(
+        (id) => ({ translate: BUILD_FORM[id as keyof typeof BUILD_FORM] }),
+      ),
     );
     expect(cases.closeBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
@@ -958,27 +935,6 @@ it.each([
   expect(ui.forms).toHaveLength(1);
 });
 
-it.each([
-  ["line", { x: 4, y: 60, z: 0 }],
-  ["horizontal rectangle", to],
-  ["x-flat rectangle", { x: 0, y: 64, z: 6 }],
-  ["z-flat rectangle", { x: 4, y: 64, z: 0 }],
-  ["box", { x: 4, y: 64, z: 6 }],
-] as const)("routes Rotate on a %s to ChooseBoxStep", async (_shape, end) => {
-  const { session, menus, player, cases } = setup();
-  session.setFlow(selected(from, end));
-  ui.answers.push({
-    selection: shapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
-  });
-  await menus.showShapeMenu(player);
-  expect(cases.chooseBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-    kind: "rotate",
-  });
-  expect(cases.copy.execute).not.toHaveBeenCalled();
-  expect(ui.forms).toHaveLength(1);
-});
-
 function removeAboveAnswer() {
   return {
     selection: shapeMenu(endpoint).findIndex((e) => e.id === "removeAbove"),
@@ -1311,24 +1267,6 @@ it.each([false, true])(
   },
 );
 
-it("confirms Rotate after the fallback slider without opening contents", async () => {
-  const { menus, player, cases, session } = setup(true);
-  ui.answers.push(
-    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "rotate") },
-    { formValues: [7] },
-  );
-  cases.confirmBoxStep.execute.mockImplementation(() => {
-    expect(session.flow).toMatchObject({ heightedKind: "rotate", previous: 7 });
-  });
-  await menus.showShapeMenu(player);
-  expect(ui.forms).toHaveLength(2);
-  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.rotateTitle });
-  expect(cases.confirmBoxStep.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
-});
-
 it("Cancel closes the paste menu and keeps paste aiming", async () => {
   const { session, menus, player, cases } = setup();
   session.setFlow({ kind: "pasteAim", manualTurn: 0 });
@@ -1342,16 +1280,6 @@ it("Cancel closes the paste menu and keeps paste aiming", async () => {
   expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
 });
 
-it("enters rotate mode through the immediate shape menu Rotate dispatch", async () => {
-  const { menus, player, session } = setup();
-  session.setFlow(selected(from, { ...to, y: 63 }));
-  ui.answers.push({
-    selection: shapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
-  });
-  await menus.showShapeMenu(player);
-  expect(session.flow).toMatchObject({ kind: "rotateMode", turn: 1 });
-});
-
 it.each([
   { selection: 2 },
   { canceled: true },
@@ -1362,7 +1290,7 @@ it.each([
     const { session, menus, player, cases } = setup();
     session.setFlow(selected(from, { x: 4, y: 64, z: 0 }));
     const initial = session.flow;
-    ui.answers.push({ selection: 2 }, answer, { selection: 3 });
+    ui.answers.push({ selection: 2 }, answer, { selection: 0 });
     await menus.showShapeMenu(player);
     expect(cases.openBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
@@ -1379,7 +1307,7 @@ it.each([
     expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
     expect(cases.chooseBoxStep.execute).toHaveBeenCalledWith({
       playerId,
-      kind: "rotate",
+      kind: "cut",
     });
   },
 );

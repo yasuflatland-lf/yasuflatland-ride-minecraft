@@ -163,7 +163,6 @@ export class MenuChoices {
       case "removeAbove":
         this.cases.chooseTerrain.execute({ playerId, op: id });
         break;
-      case "rotate":
       case "cut":
       case "copy":
         this.cases.chooseBoxStep.execute({ playerId, kind: id });

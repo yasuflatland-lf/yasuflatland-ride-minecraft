@@ -216,8 +216,7 @@ export function registerTestEdit(
               player: player.name,
               ...describe.execute(playerId),
               clipboard: repo.get(playerId)?.clipboard,
-              pasteReadyDegrees:
-                mode?.kind === "pasteReady" ? mode.degrees : undefined,
+              pasteReadyDegrees: mode?.degrees,
             }),
           );
           return;
@@ -365,17 +364,13 @@ export function replyWhenSettled({
       JSON.stringify({
         player: player.name,
         offered,
-        flow:
-          flow.kind === "rotateMode"
-            ? { kind: flow.kind, ...flow.selection, turn: flow.turn }
-            : flow,
+        flow,
         timedOut: isEditing,
         message: last?.message,
         count: last?.count,
         skippedCount: last?.skippedCount,
         undoHints: messages.hints(playerId),
-        pasteReadyDegrees:
-          mode?.kind === "pasteReady" ? mode.degrees : undefined,
+        pasteReadyDegrees: mode?.degrees,
         ticks: system.currentTick - started,
       }),
     );

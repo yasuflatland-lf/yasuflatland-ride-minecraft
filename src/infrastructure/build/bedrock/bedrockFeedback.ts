@@ -88,19 +88,16 @@ export class BedrockFeedback implements BuildFeedback {
   showMode(playerId: PlayerId, mode: BuildMode): void {
     const player = playerById(playerId);
     if (!player?.isValid) return;
-    const line =
-      mode.kind === "pasteReady"
-        ? {
-            translate: BUILD_MESSAGE.pasteReady,
-            with: [
-              String(mode.size.x),
-              String(mode.size.y),
-              String(mode.size.z),
-              String(mode.blockCount),
-              String(mode.degrees),
-            ],
-          }
-        : { translate: BUILD_MESSAGE.rotateMode, with: [String(mode.degrees)] };
+    const line = {
+      translate: BUILD_MESSAGE.pasteReady,
+      with: [
+        String(mode.size.x),
+        String(mode.size.y),
+        String(mode.size.z),
+        String(mode.blockCount),
+        String(mode.degrees),
+      ],
+    };
     player.onScreenDisplay.setActionBar(
       player.isSneaking
         ? {

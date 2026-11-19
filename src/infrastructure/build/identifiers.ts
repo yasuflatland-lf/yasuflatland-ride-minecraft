@@ -25,7 +25,6 @@ export const BUILD_MESSAGE: Readonly<
     | "heightSize"
     | "pasteInactive"
     | "pasteReady"
-    | "rotateMode"
     | "sneakingPrefix"
     | "undoHint",
     string
@@ -37,7 +36,6 @@ export const BUILD_MESSAGE: Readonly<
   building: "yasu_build.message.building",
   pasteInactive: "yasu_build.message.paste_inactive",
   pasteReady: "yasu_build.message.paste_ready",
-  rotateMode: "yasu_build.message.rotate_mode",
   sneakingPrefix: "yasu_build.message.sneaking_prefix",
   pasteNoTarget: "yasu_build.message.paste_no_target",
   heightSize: "yasu_build.message.height_size",
@@ -78,7 +76,6 @@ export const BUILD_FORM = {
   buildShape: "yasu_build.form.build_shape",
   buildShapeTitle: "yasu_build.form.build_shape_title",
   back: "yasu_build.form.back",
-  rotateBox: "yasu_build.form.rotate_box",
   shapeTitle: "yasu_build.form.shape_title",
   roofTitle: "yasu_build.form.roof_title",
   utilityTitle: "yasu_build.form.title",
@@ -103,7 +100,6 @@ export const BUILD_FORM = {
   confirm: "yasu_build.form.confirm",
   cut: "yasu_build.form.cut",
   cutTitle: "yasu_build.form.cut_title",
-  rotateTitle: "yasu_build.form.rotate_title",
   copyTitle: "yasu_build.form.copy_title",
   solidTitle: "yasu_build.form.solid_title",
   hollow: "yasu_build.form.hollow",
@@ -112,9 +108,6 @@ export const BUILD_FORM = {
   fill: "yasu_build.form.fill",
   copy: "yasu_build.form.copy",
   endPaste: "yasu_build.form.end_paste",
-  rotate: "yasu_build.form.rotate",
-  rotateBody: "yasu_build.form.rotate_body",
-  done: "yasu_build.form.done",
   newCopy: "yasu_build.form.new_copy",
   undo: "yasu_build.form.undo",
   clear: "yasu_build.form.clear_selection",

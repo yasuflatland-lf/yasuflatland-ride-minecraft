@@ -37,11 +37,6 @@ export class ShowPreview {
     const session = this.repo.get(id);
     if (!session?.isInBuildMode) return;
     const { flow } = session;
-    if (flow.kind === "rotateMode")
-      this.feedback.showMode(id, {
-        kind: "rotate",
-        degrees: degreesOf(flow.turn),
-      });
     const aim = this.aimReader.aim(id);
     const preview: PreviewAim = { blink };
     if (flow.kind === "point1" && aim)
@@ -82,7 +77,7 @@ export class ShowPreview {
     if (Object.values(set).some((points) => points.length > 0))
       this.feedback.drawPreview(
         id,
-        flow.kind === "rotateMode" || flow.kind === "selected"
+        flow.kind === "selected"
           ? flow.selection.dimensionId
           : "dimensionId" in flow
             ? flow.dimensionId

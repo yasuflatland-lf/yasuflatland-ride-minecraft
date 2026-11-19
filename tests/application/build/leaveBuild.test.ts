@@ -3,13 +3,12 @@ import { expect, it } from "vitest";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeSessions, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
-it("ends rotate mode on an item switch while retaining history", () => {
+it("clears the selection on an item switch while retaining history", () => {
   fc.assert(
     fc.property(fc.integer({ min: -100, max: 100 }), (x) => {
       const repo = new FakeSessions();
@@ -24,9 +23,13 @@ it("ends rotate mode on an item switch while retaining history", () => {
         ],
       };
       session.finishEdit(history, "undoable");
-      session.setFlow(
-        beginRotateMode(selectionOf(overworld, boxOf(cell, cell), stone), 1),
-      );
+      session.setFlow({
+        kind: "selected",
+        menuLevel: "root",
+        selection: selectionOf(overworld, boxOf(cell, cell), stone),
+        from: cell,
+        to: cell,
+      });
       new LeaveBuild(repo, new FakeStructureStore()).execute(id);
       expect(session.flow).toEqual({ kind: "idle" });
       expect(session.takeUndo()).toEqual({ kind: "cells", record: history });

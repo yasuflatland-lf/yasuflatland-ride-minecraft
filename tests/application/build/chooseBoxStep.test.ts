@@ -28,7 +28,6 @@ it("retains the choice facing through height changes and a different confirmatio
           cut: new CutBox(repo, new FakeWorld(), structures, feedback, {
             warn: () => {},
           }),
-          rotate: { execute: () => true },
         };
         const playerId = asPlayerId("builder");
         const session = repo.getOrCreate(playerId);

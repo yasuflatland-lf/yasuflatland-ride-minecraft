@@ -6,7 +6,6 @@ import { boxOf } from "../../../src/domain/build/box";
 import {
   type BuildFlow,
   chooseHeighted,
-  enterRotateMode,
   openBuildMenu,
   tapAir,
   tapBlock,
@@ -60,7 +59,6 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           first,
           endpoint,
           openBuildMenu(endpoint),
-          enterRotateMode(endpoint),
           chooseHeighted(endpoint, "copy"),
           { kind: "pasteAim", manualTurn: 0 },
         ];
@@ -71,10 +69,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
             menuLevel: flow.kind === "selected" ? flow.menuLevel : undefined,
             clipboardHeld: clipboard,
             pasteTurn: 0,
-            pasteMenu:
-              flow.kind === "rotateMode"
-                ? []
-                : ["newCopy", "endPaste", "cancel"],
+            pasteMenu: ["newCopy", "endPaste", "cancel"],
           });
           expect(session.flow).toBe(flow);
           expect(session.hasHistory).toBe(history);

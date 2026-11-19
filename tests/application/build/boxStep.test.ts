@@ -51,7 +51,6 @@ function setup() {
   const feedback = new FakeFeedback();
   const session = repo.getOrCreate(playerId);
   const actions = {
-    rotate: { execute: vi.fn(() => true) },
     copy: new CopyBox(repo, new FakeStructureStore(), feedback),
     cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
       warn: () => {},

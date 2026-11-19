@@ -8,7 +8,6 @@ import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
 import type { PasteAim } from "./paste";
-import { beginRotateMode, type RotateMode } from "./rotateMode";
 
 export type BuildFlow =
   | { readonly kind: "idle" }
@@ -45,8 +44,7 @@ export type BuildFlow =
       readonly material: BlockState;
       readonly op: TerrainOp;
     }
-  | PasteAim
-  | RotateMode;
+  | PasteAim;
 
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
 
@@ -64,8 +62,7 @@ export function tapBlock(
     flow.kind === "selected" ||
     flow.kind === "heightStep" ||
     flow.kind === "pasteAim" ||
-    flow.kind === "terrainConfirm" ||
-    flow.kind === "rotateMode"
+    flow.kind === "terrainConfirm"
   )
     return flow;
   if (flow.kind === "idle" || flow.dimensionId !== dimensionId)
@@ -106,10 +103,7 @@ export function closeBuildMenu(flow: BuildFlow): BuildFlow {
 }
 
 export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
-  return (
-    flow.kind !== "rotateMode" &&
-    (sneaking || flow.kind === "idle" || flow.kind === "selected")
-  );
+  return sneaking || flow.kind === "idle" || flow.kind === "selected";
 }
 
 /** True when a plain air press in this flow opens the utility menu, which offers Undo when history exists (ADR 0229). */
@@ -186,9 +180,7 @@ export function finishHeightStep(flow: BuildFlow, _hollow: boolean): BuildFlow {
 }
 
 export function selectionBoxOf(flow: BuildFlow): CellBox | undefined {
-  return flow.kind === "rotateMode" || flow.kind === "selected"
-    ? flow.selection.box
-    : undefined;
+  return flow.kind === "selected" ? flow.selection.box : undefined;
 }
 
 export function clearLastPaste(flow: BuildFlow): BuildFlow {
@@ -199,20 +191,4 @@ export function clearLastPaste(flow: BuildFlow): BuildFlow {
         facing: flow.facing,
       })
     : flow;
-}
-
-export function enterRotateMode(flow: BuildFlow): BuildFlow {
-  if (flow.kind !== "selected") return flow;
-  return beginRotateMode(flow.selection, 1);
-}
-
-export function finishRotateMode(flow: BuildFlow): BuildFlow {
-  if (flow.kind !== "rotateMode") return flow;
-  return Object.freeze({
-    kind: "selected",
-    menuLevel: "root",
-    selection: flow.selection,
-    from: flow.selection.box.min,
-    to: flow.selection.box.max,
-  });
 }

@@ -23,7 +23,6 @@ it("reads facing at confirmation only when the height step has none", () => {
         cut: new CutBox(repo, new FakeWorld(), structures, feedback, {
           warn: () => {},
         }),
-        rotate: { execute: () => true },
       };
       const playerId = asPlayerId("builder");
       const session = repo.getOrCreate(playerId);

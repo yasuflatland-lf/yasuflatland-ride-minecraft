@@ -1,22 +1,16 @@
 import { ItemStack, SignSide, type Vector3 } from "@minecraft/server";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndBuildSession } from "../../application/build/endBuildSession";
-import { EndPasting } from "../../application/build/endPasting";
-import { FinishRotateMode } from "../../application/build/finishRotateMode";
-import { LeaveBuild } from "../../application/build/leaveBuild";
 import type {
   BuildFeedback,
   BuildMessage,
 } from "../../application/build/ports/feedback";
 import { RotateBox } from "../../application/build/rotateBox";
-import { RotateBoxAction } from "../../application/build/rotateBoxAction";
-import { RotateModeTap } from "../../application/build/rotateModeTap";
+import { RotateSelection } from "../../application/build/rotateSelection";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { blockStateOf } from "../../domain/build/blockState";
-import type { CellBox } from "../../domain/build/box";
 import { cellsOf, contains } from "../../domain/build/box";
 import { selectionBoxOf } from "../../domain/build/flow/flow";
-import { isShapeEntryOffered } from "../../domain/build/flow/menu";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { selectionOf } from "../../domain/build/selection";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
@@ -26,22 +20,7 @@ import { InMemorySessionRepository } from "../../infrastructure/build/persistenc
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
-export function buildRotateBox(a: Arena): Promise<Outcome> {
-  return runRotateBox(a, "box");
-}
-
-export function buildRotateMode(a: Arena): Promise<Outcome> {
-  return runRotateBox(a, "mode");
-}
-
-export function buildRotateModeExit(a: Arena): Promise<Outcome> {
-  return runRotateBox(a, "exit");
-}
-
-async function runRotateBox(
-  a: Arena,
-  variant: "box" | "mode" | "exit",
-): Promise<Outcome> {
+export async function buildRotateBox(a: Arena): Promise<Outcome> {
   const repo = new InMemorySessionRepository();
   const playerId = asPlayerId(`rotate_box_${a.lane.index}`);
   const dimensionId = asDimensionId(a.dim.id);
@@ -70,9 +49,7 @@ async function runRotateBox(
   };
   const log = { warn: (value: string) => console.warn(value) };
   const core = new RotateBox(repo, world, players, structures, feedback, log);
-  const rotate = new RotateBoxAction(repo, core);
-  const tap = new RotateModeTap(repo, core);
-  const finish = new FinishRotateMode(repo);
+  const rotate = new RotateSelection(repo, core, feedback);
   const undo = new UndoEdit(
     repo,
     feedback,
@@ -118,28 +95,8 @@ async function runRotateBox(
       from: source.min,
       to: source.max,
     });
-  const currentSelection = () => {
-    const flow = session.flow;
-    if (flow.kind !== "selected") throw new Error("endpoint selection lost");
-    return flow.selection;
-  };
-  const turn = () => {
-    check(
-      "rotate",
-      rotate.execute({
-        playerId,
-        selection: currentSelection(),
-        facing: "east",
-      }),
-    );
-    if (variant === "box") finish.execute({ playerId });
-    check(
-      "mode_or_menu",
-      variant === "box"
-        ? isShapeEntryOffered(session.flow, "rotate")
-        : session.flow.kind === "rotateMode",
-    );
-  };
+  const turn = () =>
+    check("rotate", rotate.execute({ playerId, dimensionId }) === "rotated");
   const originalChest = a.at(20, a.gy + 1, 20);
   const originalSign = a.at(20, a.gy + 1, 22);
   const states = () =>
@@ -201,147 +158,38 @@ async function runRotateBox(
         { x: plan.target.min.x + 4, y: a.gy + 1, z: plan.target.min.z },
       ),
     );
-    if (variant !== "box") {
-      const mapCell = (
-        cell: Vector3,
-        box: CellBox,
-        target: CellBox,
-      ): Vector3 => ({
-        x: target.min.x + box.max.z - cell.z,
-        y: cell.y,
-        z: target.min.z + cell.x - box.min.x,
-      });
-      let box = source;
-      let chest = originalChest;
-      let sign = originalSign;
-      const snapshots = [before];
-      const locations = [{ chest, sign }];
-      for (let turn = 1; turn <= 3; turn++) {
-        const next = planRotationAboutCenter(box).target;
-        if (turn > 1)
-          check(
-            `tap_${turn}`,
-            tap.execute({ playerId, dimensionId }) === "rotated",
-          );
-        chest = mapCell(chest, box, next);
-        sign = mapCell(sign, box, next);
-        box = next;
+    undo.execute({ playerId });
+    check(
+      "undo_union",
+      message === "undoDone" &&
+        JSON.stringify(states()) === JSON.stringify(before),
+    );
+    check("undo_contents", contents(originalChest, originalSign));
+    select();
+    for (let i = 1; i <= 4; i++) {
+      turn();
+      if (i === 2 || i === 4)
         check(
-          `flow_${turn}`,
-          session.flow.kind === "rotateMode" &&
-            session.flow.turn === turn &&
-            JSON.stringify(session.flow.selection.box) === JSON.stringify(box),
+          `box_after_${i}`,
+          JSON.stringify(selectionBoxOf(session.flow)) ===
+            JSON.stringify(source),
         );
-        check(`contents_${turn}`, contents(chest, sign));
-        check(
-          `floor_${turn}`,
-          [...cellsOf(plan.union)]
-            .filter((cell) => cell.y === a.gy)
-            .every((cell) =>
-              contains(box, cell)
-                ? block(cell).typeId === "minecraft:oak_planks"
-                : block(cell).isAir,
-            ),
-        );
-        check(
-          `facing_${turn}`,
-          block(chest).permutation.getState("minecraft:cardinal_direction") ===
-            ["north", "east", "south", "west"][turn],
-        );
-        check(
-          `sign_${turn}`,
-          block(sign).permutation.getState("ground_sign_direction") ===
-            (4 + turn * 4) % 16,
-        );
-        snapshots.push(states());
-        locations.push({ chest, sign });
-      }
-      const last = JSON.stringify(states());
-      if (variant === "mode") {
-        check("finish", finish.execute({ playerId }) === "finished");
-        check(
-          "selected",
-          session.flow.kind === "selected" &&
-            JSON.stringify(selectionBoxOf(session.flow)) ===
-              JSON.stringify(box),
-        );
-      } else new LeaveBuild(repo, structures).execute(playerId);
-      check(
-        "exit_no_write",
-        JSON.stringify(states()) === last && contents(chest, sign),
-      );
-      if (variant === "exit") check("leave_idle", session.flow.kind === "idle");
-      for (let step = 2; step >= 0; step--) {
-        undo.execute({ playerId });
-        const location = locations[step];
-        check(
-          `undo_${step}`,
-          message === "undoDone" &&
-            JSON.stringify(states()) === JSON.stringify(snapshots[step]) &&
-            location !== undefined &&
-            contents(location.chest, location.sign),
-        );
-      }
-      check("history_empty", !session.hasHistory);
-      if (variant === "exit") {
-        select();
-        turn();
-        const rotated = JSON.stringify(states());
-        new EndPasting(repo, structures).execute(playerId);
-        check("death_idle", session.flow.kind === "idle");
-        check(
-          "death_no_write",
-          JSON.stringify(states()) === rotated &&
-            contents(
-              { x: plan.target.min.x + 6, y: a.gy + 1, z: plan.target.min.z },
-              { x: plan.target.min.x + 4, y: a.gy + 1, z: plan.target.min.z },
-            ),
-        );
-        undo.execute({ playerId });
-        check(
-          "death_undo",
-          message === "undoDone" &&
-            JSON.stringify(states()) === JSON.stringify(before) &&
-            contents(originalChest, originalSign),
-        );
-      }
-    } else {
-      undo.execute({ playerId });
-      check(
-        "undo_union",
-        message === "undoDone" &&
-          JSON.stringify(states()) === JSON.stringify(before),
-      );
-      check("undo_contents", contents(originalChest, originalSign));
-      select();
-      for (let i = 1; i <= 4; i++) {
-        turn();
-        if (i === 2 || i === 4)
-          check(
-            `box_after_${i}`,
-            JSON.stringify(selectionBoxOf(session.flow)) ===
-              JSON.stringify(source),
-          );
-      }
-      check("four_turn_contents", contents(originalChest, originalSign));
-      const protectedBefore = states();
-      const previousFlow = session.flow;
-      protectedCell = neighbor;
-      check(
-        "protected_refused",
-        !rotate.execute({
-          playerId,
-          selection: currentSelection(),
-          facing: "east",
-        }) && message === "rotateBlocked",
-      );
-      check(
-        "protected_unchanged",
-        session.flow === previousFlow &&
-          JSON.stringify(states()) === JSON.stringify(protectedBefore) &&
-          contents(originalChest, originalSign),
-      );
     }
+    check("four_turn_contents", contents(originalChest, originalSign));
+    const protectedBefore = states();
+    const previousFlow = session.flow;
+    protectedCell = neighbor;
+    check(
+      "protected_refused",
+      rotate.execute({ playerId, dimensionId }) === "refused" &&
+        message === "rotateBlocked",
+    );
+    check(
+      "protected_unchanged",
+      session.flow === previousFlow &&
+        JSON.stringify(states()) === JSON.stringify(protectedBefore) &&
+        contents(originalChest, originalSign),
+    );
   } catch (error) {
     check(String(error), false);
   } finally {

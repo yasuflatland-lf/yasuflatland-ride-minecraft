@@ -209,24 +209,6 @@ it("sends translated counts and bounded player-only particles at block centers",
         });
         for (const sneaking of [false, true]) {
           Object.assign(player, { isSneaking: sneaking });
-          for (const degrees of [0, 90, 180, 270] as const) {
-            feedback.showMode(playerId, { kind: "rotate", degrees });
-            const line = {
-              translate: BUILD_MESSAGE.rotateMode,
-              with: [String(degrees)],
-            };
-            expect(setActionBar).toHaveBeenLastCalledWith(
-              sneaking
-                ? {
-                    rawtext: [
-                      { translate: BUILD_MESSAGE.sneakingPrefix },
-                      { text: " " },
-                      line,
-                    ],
-                  }
-                : line,
-            );
-          }
           feedback.showMode(playerId, {
             kind: "pasteReady",
             size: { x: 9, y: 12, z: 5 },

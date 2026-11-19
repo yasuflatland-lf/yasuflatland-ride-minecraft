@@ -9,8 +9,6 @@ export type PressIntent =
   | { kind: "openUtilityMenu" } // Offer the available utility actions.
   | { kind: "aimHeight" } // Confirm the aimed height and advance the height step.
   | { kind: "pasteAim" } // Handle the wand's paste gesture or direct Paste Place.
-  | { kind: "rotateTap" } // Apply one turn in rotate mode.
-  | { kind: "finishRotate" } // Exit rotate mode with the current box.
   | { kind: "undo" } // Request undo of the last edit.
   | { kind: "rotateSelection" }
   | { kind: "rotateClipboard" } // Turn the clipboard for the next paste.
@@ -40,13 +38,8 @@ export function routePress({
       return { kind: "pasteAim" };
   }
 
-  switch (flow.kind) {
-    case "pasteAim":
-      return { kind: route === "itemUse" ? "pasteAim" : "ignore" };
-    case "rotateMode":
-      if (route === "blockInteract") return { kind: "ignore" };
-      return { kind: sneaking ? "finishRotate" : "rotateTap" };
-  }
+  if (flow.kind === "pasteAim")
+    return { kind: route === "itemUse" ? "pasteAim" : "ignore" };
 
   // An aimed block tap can emit both events. Only blockInteract handles it.
   if (route === "itemUse" && target !== "air") return { kind: "ignore" };

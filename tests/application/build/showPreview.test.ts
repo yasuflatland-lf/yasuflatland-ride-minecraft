@@ -10,7 +10,6 @@ import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import {
   FACINGS,
@@ -563,46 +562,6 @@ it("outlines the rotated paste box at each heading", () => {
     }),
   );
 });
-
-it("draws the rotation box in its dimension without requiring an aim or modifying the mode", () => {
-  const e = setup();
-  const box = boxOf(cell, end);
-  const flow = beginRotateMode(selectionOf(nether, box, material), 2);
-  e.session.setFlow(flow);
-  e.aim.mockReturnValue(undefined);
-  e.preview.execute(0);
-  expect(e.feedback.previews).toEqual([
-    {
-      playerId: alex,
-      dimensionId: nether,
-      set: previewPoints(flow, { blink: true }),
-    },
-  ]);
-  expect(e.session.flow).toBe(flow);
-});
-
-it.each([
-  [1, 90],
-  [2, 180],
-  [3, 270],
-  [0, 0],
-] as const)(
-  "shows rotate turn %s as %s degrees on the outline interval",
-  (turn, degrees) => {
-    const { session, preview, feedback } = setup();
-    session.setFlow(
-      beginRotateMode(selectionOf(overworld, boxOf(cell, end), material), turn),
-    );
-    const show = vi.spyOn(feedback, "showMode");
-    preview.execute(1);
-    expect(show).not.toHaveBeenCalled();
-    preview.execute(interval);
-    expect(show).toHaveBeenCalledExactlyOnceWith(alex, {
-      kind: "rotate",
-      degrees,
-    });
-  },
-);
 
 it("refreshes only the requested player's rotated paste between outline ticks", () => {
   const e = setup();

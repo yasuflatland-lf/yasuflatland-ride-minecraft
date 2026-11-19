@@ -7,7 +7,6 @@ import {
   type BuildFlow,
   chooseHeighted,
 } from "../../../src/domain/build/flow/flow";
-import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -301,26 +300,6 @@ it("draws a locked cylinder at the box height even when another height is aimed"
   );
 });
 
-it("measures the rotate limit on the union of the old and new boxes", () => {
-  const base = boxOf({ x: 0, y: 0, z: 0 }, { x: 39, y: 0, z: 1 });
-  const at = (height: number) =>
-    previewPoints(
-      {
-        kind: "heightStep",
-        heightedKind: "rotate",
-        base,
-        from: base.min,
-        previous: height,
-        heightLocked: false,
-        dimensionId: asDimensionId("overworld"),
-        material: blockStateOf("minecraft:stone"),
-      },
-      { blink: false },
-    );
-  expect(at(20).boxStepOver).toEqual([]);
-  expect(at(21).boxStepOver.length).toBeGreaterThan(0);
-});
-
 it.each(["copy", "cut"] as const)(
   "uses the box-step layers and %s volume limit",
   (kind) => {
@@ -371,30 +350,3 @@ it.each(["copy", "cut"] as const)(
     );
   },
 );
-
-it("draws rotation mode with the endpoint selection appearance", () => {
-  fc.assert(
-    fc.property(cell, cell, fc.boolean(), (a, b, blink) => {
-      const box = boxOf(a, b);
-      expect(
-        previewPoints(
-          beginRotateMode(selectionOf(dimensionId, box, material), 1),
-          {
-            blink,
-          },
-        ),
-      ).toEqual(
-        previewPoints(
-          {
-            kind: "selected",
-            menuLevel: "root",
-            selection: selectionOf(dimensionId, box, material),
-            from: box.min,
-            to: box.max,
-          },
-          { blink },
-        ),
-      );
-    }),
-  );
-});

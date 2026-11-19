@@ -1,11 +1,18 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import { boxOf, boxWithHeight, type CellBox, center, edgePoints } from "../box";
+import {
+  boxOf,
+  boxWithHeight,
+  type CellBox,
+  center,
+  edgePoints,
+  volume,
+} from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import type { BuildFlow } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
 import { volumeOf } from "../volume/geometry";
-import { boxStepLimit, boxStepVolume, isBoxStepKind } from "../volume/kind";
+import { boxStepLimit, isBoxStepKind } from "../volume/kind";
 import { pasteOutline } from "./pasteOutline";
 
 export interface PreviewSet {
@@ -59,10 +66,6 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       set.shape = outline(boxOf(flow.from, flow.to));
       set.endCube = cornerMarkerPoints(flow.to);
       break;
-    case "rotateMode":
-      set.shape = outline(flow.selection.box);
-      set.endCube = cornerMarkerPoints(flow.selection.box.max);
-      break;
     case "heightStep": {
       const height = flow.heightLocked
         ? flow.previous
@@ -77,10 +80,7 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       );
       if (isBoxStepKind(flow.heightedKind)) {
         const box = boxWithHeight(flow.base, height);
-        if (
-          boxStepVolume(flow.heightedKind, box) >
-          boxStepLimit(flow.heightedKind)
-        )
+        if (volume(box) > boxStepLimit(flow.heightedKind))
           set.boxStepOver = wireframe;
         else set.boxStep = wireframe;
       } else set.roof = wireframe;

@@ -7,8 +7,7 @@ import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { RotateBox } from "../../../src/application/build/rotateBox";
-import { RotateBoxAction } from "../../../src/application/build/rotateBoxAction";
-import { RotateModeTap } from "../../../src/application/build/rotateModeTap";
+import { RotateSelection } from "../../../src/application/build/rotateSelection";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, type CellBox, cellsOf } from "../../../src/domain/build/box";
@@ -58,8 +57,7 @@ function setup() {
     terrain: new ConfirmTerrain(repo, feedback, jobs, world),
     copy: new CopyBox(repo, structures, feedback),
     cut: new CutBox(repo, world, structures, feedback, log),
-    rotate: new RotateBoxAction(repo, rotateBox),
-    tap: new RotateModeTap(repo, rotateBox),
+    rotate: new RotateSelection(repo, rotateBox, feedback),
     undo: new UndoEdit(repo, feedback, jobs, world, structures, log),
     drain: () => {
       for (let i = 0; i < 1000 && session.isEditing; i++) jobs.step();
@@ -223,7 +221,7 @@ it.each(heightedBuilds)(
   },
 );
 
-it("RotateBoxAction then UndoEdit restores the original arrangement and overwritten neighbors", () => {
+it("RotateSelection then UndoEdit restores the original arrangement and overwritten neighbors", () => {
   fc.assert(
     fc.property(size, (width) => {
       const e = setup();
@@ -234,11 +232,10 @@ it("RotateBoxAction then UndoEdit restores the original arrangement and overwrit
       expect(
         e.rotate.execute({
           playerId,
-          selection: selectionOf(overworld, box, stone),
-          facing: "east",
+          dimensionId: overworld,
         }),
-      ).toBe(true);
-      expect(e.session.flow).toMatchObject({ kind: "rotateMode", turn: 1 });
+      ).toBe("rotated");
+      expect(e.session.flow.kind).toBe("selected");
       expect(snapshot(e, union)).not.toEqual(before);
       expect(e.session.hasHistory).toBe(true);
       undoAndExpectEmpty(e);
@@ -248,7 +245,7 @@ it("RotateBoxAction then UndoEdit restores the original arrangement and overwrit
   );
 });
 
-it("RotateBoxAction then taps, then one UndoEdit per rotation restores each step back to the original", () => {
+it("RotateSelection then taps, then one UndoEdit per rotation restores each step back to the original", () => {
   fc.assert(
     fc.property(size, fc.integer({ min: 2, max: 4 }), (width, turns) => {
       const e = setup();
@@ -259,20 +256,21 @@ it("RotateBoxAction then taps, then one UndoEdit per rotation restores each step
       expect(
         e.rotate.execute({
           playerId,
-          selection: selectionOf(overworld, box, stone),
-          facing: "east",
+          dimensionId: overworld,
         }),
-      ).toBe(true);
+      ).toBe("rotated");
       states.push(snapshot(e, union));
       for (let n = 1; n < turns; n++) {
-        expect(e.tap.execute({ playerId, dimensionId: overworld })).toBe(
+        expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
           "rotated",
         );
         states.push(snapshot(e, union));
       }
       expect(e.session.flow).toMatchObject({
-        kind: "rotateMode",
-        turn: turns % 4,
+        kind: "selected",
+        selection: {
+          box: turns % 2 === 0 ? box : planRotationAboutCenter(box).target,
+        },
       });
       for (let n = turns - 1; n >= 0; n--) {
         e.undo.execute({ playerId });

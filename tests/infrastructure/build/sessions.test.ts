@@ -10,7 +10,6 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
-import { beginRotateMode } from "../../../src/domain/build/flow/rotateMode";
 import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
@@ -53,7 +52,6 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
         { kind: "idle" } as const,
         first,
         endpoint,
-        beginRotateMode(selectionOf(overworld, boxOf(at, at), stone), 1),
         chooseHeighted(endpoint, "copy"),
         { kind: "pasteAim", manualTurn: 0 } as const,
       ]) {
@@ -140,12 +138,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   });
   expect(structures.live.size).toBe(2);
   const clipboard = session.clipboard;
-  session.setFlow(
-    beginRotateMode(
-      selectionOf(overworld, boxOf(at, at), blockStateOf("minecraft:stone")),
-      1,
-    ),
-  );
+  session.setFlow(tapAir(tapBlock({ kind: "idle" }, overworld, at, AIR), at));
   registerSessions(
     new EndBuildSession(repo, structures),
     new EndPasting(repo, structures),
@@ -155,7 +148,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
     undoDebounce,
   );
   engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
-  expect(session.flow.kind).toBe("rotateMode");
+  expect(session.flow.kind).toBe("selected");
   expect(session.clipboard).toBe(clipboard);
   expect(debounce.press(id, 0)).toBe(true);
   expect(pasteDebounce.press(id, 0)).toBe(true);

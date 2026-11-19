@@ -34,7 +34,7 @@ const offset = fc.record({
 const dimensionId = asDimensionId("minecraft:overworld");
 const stone = blockStateOf("minecraft:stone");
 
-it.each(["copy", "cut", "rotate"] as const)(
+it.each(["copy", "cut"] as const)(
   "offers Cut first and Copy before Fill below, and starts %s height only for horizontal rectangles",
   (kind) => {
     fc.assert(
@@ -48,7 +48,6 @@ it.each(["copy", "cut", "rotate"] as const)(
         );
         const entries = shapeMenu(endpoint).map((entry) => entry.id);
         expect(entries.slice(0, 2)).toEqual(["cut", "removeAbove"]);
-        expect(entries[3]).toBe("rotate");
         expect(entries.slice(-3)).toEqual(["copy", "fillBelow", "cancel"]);
         expect(entries.filter((id) => id === kind)).toHaveLength(1);
         expect(selectionBoxOf(endpoint)).toEqual(boxOf(a, b));
@@ -86,7 +85,6 @@ it.each(["copy", "cut", "rotate"] as const)(
 it("registers Copy with the same height cap and grown-box wireframe as Cube", () => {
   expect(volumeOf("copy")).toBe(boxStepVolume);
   expect(volumeOf("cut")).toBe(boxStepVolume);
-  expect(volumeOf("rotate")).toBe(boxStepVolume);
   fc.assert(
     fc.property(
       cell,
@@ -112,7 +110,6 @@ it("registers Copy with the same height cap and grown-box wireframe as Cube", ()
 const heightStepKind = fc.constantFrom<HeightStepKind>(
   "copy",
   "cut",
-  "rotate",
   "gable",
   "hip",
   "cube",
@@ -123,9 +120,7 @@ const heightStepKind = fc.constantFrom<HeightStepKind>(
 it("identifies box steps among all height-step kinds and supplies their limit", () => {
   fc.assert(
     fc.property(heightStepKind, (kind) => {
-      expect(isBoxStepKind(kind)).toBe(
-        kind === "copy" || kind === "cut" || kind === "rotate",
-      );
+      expect(isBoxStepKind(kind)).toBe(kind === "copy" || kind === "cut");
       if (isBoxStepKind(kind))
         expect(boxStepLimit(kind)).toBe(BUILD_SPEC.maxCopyVolume);
     }),
