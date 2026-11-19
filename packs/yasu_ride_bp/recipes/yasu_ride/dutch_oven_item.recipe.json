@@ -5,6 +5,9 @@
       "identifier": "yasu_ride:dutch_oven_item"
     },
     "tags": ["crafting_table"],
+    "unlock": {
+      "context": "AlwaysUnlocked"
+    },
     "pattern": [" I ", "ICI", "III"],
     "key": {
       "I": {
