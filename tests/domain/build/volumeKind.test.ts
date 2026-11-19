@@ -27,8 +27,7 @@ it.each<[HeightStepKind, boolean]>([
   ["sideCylinderZ", true],
   ["cube", false],
   ["sphere", true],
-  ["copy", false],
-  ["cut", false],
+  ["rotate", false],
 ])("reports whether %s locks a box height", (kind, locked) => {
   expect(locksBoxHeight(kind)).toBe(locked);
 });

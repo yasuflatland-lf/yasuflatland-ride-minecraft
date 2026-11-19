@@ -1,7 +1,5 @@
 import { chooseHeighted } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import { shapeOf } from "../../domain/build/shape/shape";
-import type { BoxStepKind } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { BoxActions } from "./boxAction";
 import type { FacingReader } from "./ports/facing";
@@ -15,7 +13,13 @@ export class ChooseBoxStep {
     private readonly facing: FacingReader,
   ) {}
 
-  execute({ playerId, kind }: { playerId: PlayerId; kind: BoxStepKind }): void {
+  execute({
+    playerId,
+    kind,
+  }: {
+    playerId: PlayerId;
+    kind: keyof BoxActions;
+  }): void {
     const session = this.repo.getOrCreate(playerId);
     const flow = session.flow;
     if (flow.kind !== "selected") {
@@ -23,11 +27,12 @@ export class ChooseBoxStep {
       return;
     }
     const facing = this.facing.facingOf(playerId);
-    const { box } = flow.selection;
-    const shape = shapeOf(box.min, box.max);
-    if (shape.kind === "rect" && shape.flat === "y") {
-      session.setFlow(chooseHeighted(flow, kind, facing));
-      return;
+    if (kind === "rotate") {
+      const next = chooseHeighted(flow, kind, facing);
+      if (next.kind === "heightStep") {
+        session.setFlow(next);
+        return;
+      }
     }
     this.actions[kind].execute({
       playerId,

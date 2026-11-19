@@ -11,7 +11,7 @@ import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { confirmEndpointHeight } from "../../support/buildSelection";
 
-it("keeps the Copy outline top layer at the looked-at block's layer", () => {
+it("keeps the Rotate outline top layer at the looked-at block's layer", () => {
   fc.assert(
     fc.property(
       fc.integer({ min: BUILD_SPEC.worldBottomY, max: BUILD_SPEC.worldTopY }),
@@ -30,11 +30,11 @@ it("keeps the Copy outline top layer at the looked-at block's layer", () => {
               { x: 3, y: baseY, z: 3 },
             ),
           ),
-          "copy",
+          "rotate",
         );
         expect(flow.kind).toBe("heightStep");
         if (flow.kind !== "heightStep")
-          throw new Error("Expected Copy height step");
+          throw new Error("Expected Rotate height step");
         expect(flow.heightLocked).toBe(false);
         const k = Math.min(index, BUILD_SPEC.worldTopY - baseY);
         const lookY = baseY + k + fraction / 1024;

@@ -621,7 +621,7 @@ it("enters rotation only from endpoints and keeps ordinary gestures and menus in
       for (const flow of [
         idle,
         tapBlock(idle, dim, a, stone),
-        chooseHeighted(endpoint, "copy"),
+        chooseHeighted(endpoint, "rotate"),
         chooseTerrain(endpoint, "fillBelow"),
         beginPasteAim(),
         mode,
@@ -633,7 +633,7 @@ it("enters rotation only from endpoints and keeps ordinary gestures and menus in
       expect(tapBlock(mode, other, a, dirt)).toBe(mode);
       expect(tapAir(mode, b)).toBe(mode);
       expect(backToAiming(mode)).toBe(mode);
-      expect(chooseHeighted(mode, "copy")).toBe(mode);
+      expect(chooseHeighted(mode, "rotate")).toBe(mode);
       expect(chooseTerrain(mode, "fillBelow")).toBe(mode);
       expect(setHeight(mode, 5)).toBe(mode);
       expect(cancel(mode)).toEqual(idle);
