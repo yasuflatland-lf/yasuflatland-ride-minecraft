@@ -315,6 +315,7 @@ it("rejects flipped origins, packs without flips and catches incorrect orientati
       `r = m.RegionRegistry()
 r.register(m.Region('panel',4,3,M.WOOD,lambda u,v: (u,v,0,255)))
 packed = m.pack(r)
+assert not packed._plain_skipped
 assert not packed.placement('panel').flip_x and not packed.placement('panel').flip_y
 right = m.Layout(r.regions(),(4,3),{'panel':m.Placement(0,0,True,False)})
 wrong = m.Layout(r.regions(),(4,3),{'panel':m.Placement(0,0)})
@@ -453,14 +454,39 @@ for region in regions:
     flipped_rows = tuple(bytes(c for x in xs for c in representative.pixel(x, y)) for y in ys)
     assert flipped_rows == m._pixel_rows(cache, region)
 
-def outcome(pack):
-    try:
-        layout = pack(registry, ${gutter}, ${maxSide ?? "None"}, share_key=key)
-    except ValueError as error:
-        return str(error)
-    return layout.size, {r.name: layout.placement(r.name) for r in regions}, layout._shared
+from math import prod
+from unittest.mock import patch
 
-assert outcome(m.pack) == outcome(reference_pack)`,
+args = (${gutter}, ${maxSide ?? "None"})
+def attempt(pack, registry, **kwargs):
+    try:
+        return pack(registry, *args, **kwargs)
+    except ValueError:
+        return None
+
+shared = attempt(m._pack, plan.registry())
+plain = attempt(m._pack, registry)
+total_area = sum(r.width * r.height for r in regions)
+assert not m.plain_pack_can_win((1, total_area), regions)
+assert m.plain_pack_can_win((1, total_area + 1), regions)
+skip = shared is not None and prod(shared.size) <= total_area
+if shared is not None:
+    assert m.plain_pack_can_win(shared.size, regions) == (not skip)
+    if skip and plain is not None:
+        assert prod(shared.size) <= prod(plain.size)
+
+expected = attempt(reference_pack, registry, share_key=key)
+with patch.object(m, '_pack', wraps=m._pack) as counted:
+    actual = attempt(m.pack, registry, share_key=key)
+assert counted.call_count == (1 if skip else 2)
+assert counted.call_args_list[0].args[0].regions() == plan.registry().regions()
+if not skip:
+    assert counted.call_args_list[1].args[0] is registry
+assert (actual is None) == (expected is None)
+if actual is not None:
+    assert actual._plain_skipped == skip
+    assert actual.size == expected.size and actual._shared == expected._shared
+    assert all(actual.placement(r.name) == expected.placement(r.name) for r in regions)`,
             "True",
           ),
         ).toBe(true);
@@ -523,6 +549,97 @@ for module in (m, reference_pack_shared):
       "True",
     ),
   ).toBe(true);
+});
+
+it.each([
+  {
+    reason: "removing a duplicate increases the packed area",
+    sizes: [
+      [2, 5],
+      [18, 12],
+      [19, 6],
+      [11, 10],
+      [1, 3],
+    ],
+    maxSide: null,
+    sharedSize: [19, 28],
+    plainSize: [29, 18],
+  },
+  {
+    reason: "only the plain registry fits within the side limit",
+    sizes: [
+      [20, 11],
+      [16, 8],
+      [7, 15],
+      [8, 17],
+      [3, 14],
+      [1, 3],
+    ],
+    maxSide: 28,
+    sharedSize: null,
+    plainSize: [28, 26],
+  },
+])(
+  "uses plain representative slots when $reason",
+  async ({ sizes, maxSide, sharedSize, plainSize }) => {
+    expect(
+      await run(
+        `registry = m.RegionRegistry()
+representatives = m.RegionRegistry()
+sizes = ${JSON.stringify(sizes)}
+for i, (w, h) in enumerate([*sizes, sizes[-1]]):
+    region = m.Region(str(i), w, h, M.WOOD, lambda x, y: (x, y, 0, 255))
+    registry.register(region)
+    if i < len(sizes):
+        representatives.register(region)
+args = (0, ${maxSide ?? "None"})
+try:
+    shared = m._pack(representatives, *args)
+except ValueError:
+    shared = None
+if shared is not None:
+    assert m.plain_pack_can_win(shared.size, registry.regions())
+plain = m._pack(registry, *args)
+actual = m.pack(registry, *args, share_key=lambda r: r.material)
+assert not actual._plain_skipped and actual.size == plain.size
+for r in representatives.regions():
+    assert actual.placement(r.name) == plain.placement(r.name)
+assert actual.placement(str(len(sizes))) == plain.placement(str(len(sizes) - 1))`,
+        "[plain.size, shared and shared.size]",
+      ),
+    ).toEqual([plainSize, sharedSize]);
+  },
+);
+
+it("keeps shared representative slots when the plain pack ties on area", async () => {
+  expect(
+    await run(
+      `from unittest.mock import patch
+
+registry = m.RegionRegistry()
+representatives = m.RegionRegistry()
+for name, w, h in [('a', 1, 5), ('b', 1, 1), ('c', 5, 1), ('duplicate', 5, 1)]:
+    region = m.Region(name, w, h, M.WOOD, lambda x, y: (x, y, 0, 255))
+    registry.register(region)
+    if name != 'duplicate':
+        representatives.register(region)
+shared = m._pack(representatives, 0)
+plain = m._pack(registry, 0)
+assert m.plain_pack_can_win(shared.size, registry.regions())
+with patch.object(m, '_pack', wraps=m._pack) as counted:
+    actual = m.pack(registry, 0, share_key=lambda r: r.material)
+assert counted.call_count == 2
+assert not actual._plain_skipped
+assert actual.size == shared.size
+for r in representatives.regions():
+    assert actual.placement(r.name) == shared.placement(r.name)
+assert actual.placement('duplicate') == shared.placement('c')`,
+      "[shared.size, plain.size]",
+    ),
+  ).toEqual([
+    [5, 6],
+    [6, 5],
+  ]);
 });
 
 it("detects corrupted shared orientation and texels sampled by a bound face", async () => {

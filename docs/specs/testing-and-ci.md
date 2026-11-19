@@ -56,10 +56,11 @@
 
 - Applies to: Atlas packing in generators and model checks.
 - Rule: `tools/atlas_pack.py` caches atlas dimensions and origins in the ignored `.cache/atlas-pack` directory. The key covers the packing request, the packing constants, and the packer source. Entries with invalid placements are recomputed and replaced. The cache has no generator output ownership. `YASU_ATLAS_PACK_CACHE=0` bypasses cache reads and writes. `pnpm model:check` sets it for both generation and verification, and CI sets it for the entire `model-others` and `model-scene` jobs.
+- With a sharing key, pack representatives first. The plain atlas must contain every non-overlapping region even after the outer gutter is trimmed. If the shared area is at most the sum of all region areas, skip the plain pack because only a strictly smaller plain atlas wins. Otherwise compare both layouts, falling back to the successful pack if only one fits. Without a sharing key, pack the full registry once.
 - Agreement: Proposed
 - Basis: [0193](../adr/0193-shared-texture-tooling.md) Decision, atlas packing.
-- Implementation: `tools/atlas_pack.py`; `package.json`; `.github/workflows/unit-test.yml`.
-- Verification: `tests/tools/atlasPack.test.ts` checks hit parity, request key changes, recovery from invalid entries, and the disable switch in temporary cache directories.
+- Implementation: `tools/region_atlas.py`; `tools/atlas_pack.py`; `package.json`; `.github/workflows/unit-test.yml`.
+- Verification: `tests/tools/atlasPack.test.ts` checks hit parity, request key changes, recovery from invalid entries, and the disable switch in temporary cache directories. `tests/tools/regionAtlas.test.ts` compares sizes, placements, sharing and failures with the frozen sharing packer, checks the area bound and pack call count, and covers plain wins and side-limit fallback.
 
 `tests/tools/atlasPack.test.ts` compares layouts with a frozen full-effort packer. Requests of at most 256 regions use five sorted orders plus 40 seeded random orders, preserving byte-identical outputs for all current requests (the largest has 215 regions). Larger requests use only the five sorted orders. Tests check both sides of the cutoff and verify placement, repeatability and an area within 10% of the reference for 257 to 300 small rectangles. For 1,116 regions, gutter 2 and `max_side` 2048 at a load average of about 13, the full search took 81 s and failed on 98% of its 5,664 attempts. The five sorted orders took 6.4 s and produced the same 1883 x 1048 atlas at 99.5% fill. The search uses no wall-clock budget, so results are independent of machine load.
 

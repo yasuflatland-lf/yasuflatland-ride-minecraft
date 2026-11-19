@@ -2,6 +2,7 @@
 
 import math
 import sys
+from contextlib import suppress
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -187,6 +188,7 @@ class Layout:
         self._faces = []
         self._pixels = {}
         self._shared = {}
+        self._plain_skipped = False
 
     def placement(self, name) -> Placement:
         return self._placements[name]
@@ -339,6 +341,13 @@ def share_tiles(tiles) -> tuple[list[int], list[TileShare]]:
     return stored, shares
 
 
+def plain_pack_can_win(shared_size: tuple[int, int], regions: Sequence[Region]) -> bool:
+    # Plain rectangles do not overlap and only the outer gutter is trimmed, so
+    # used_w * used_h is at least the sum of their areas. Plain must be strictly
+    # smaller to win, which is impossible when shared already meets that bound.
+    return math.prod(shared_size) > sum(r.width * r.height for r in regions)
+
+
 def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = None,
          share_key: Callable[[Region], Hashable] | None = None) -> Layout:
     if share_key is None:
@@ -346,20 +355,21 @@ def pack(registry: RegionRegistry, gutter_px: int = 2, max_side: int | None = No
     regions = sorted(registry.regions(), key=lambda r: r.name)
     cache = Layout(regions, (0, 0), {})
     plan = SharingPlan.plan(regions, share_key, lambda region: _pixel_rows(cache, region))
-    # Removing rectangles can make the heuristic choose a larger atlas.
-    try:
-        plain = _pack(registry, gutter_px, max_side)
-    except ValueError:
-        plain = None
+    plain_skipped = False
     try:
         packed = _pack(plan.registry(), gutter_px, max_side)
     except ValueError:
-        if plain is None:
-            raise
-        packed = plain
-    if plain is not None and math.prod(plain.size) < math.prod(packed.size):
-        packed = plain
+        packed = _pack(registry, gutter_px, max_side)
+    else:
+        plain_skipped = not plain_pack_can_win(packed.size, regions)
+        # Removing rectangles can make the heuristic choose a larger atlas.
+        if not plain_skipped:
+            with suppress(ValueError):
+                plain = _pack(registry, gutter_px, max_side)
+                if math.prod(plain.size) < math.prod(packed.size):
+                    packed = plain
     layout = Layout(regions, packed.size, plan.placements(packed))
+    layout._plain_skipped = plain_skipped
     layout._pixels = cache._pixels
     layout._shared = plan.shared_map()
     registry._layout = layout
