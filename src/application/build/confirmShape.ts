@@ -1,5 +1,4 @@
 import { planShape } from "../../domain/build/edit/plan";
-import { endpointSelection } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import {
   type ShapeStyle,
@@ -21,25 +20,26 @@ export class ConfirmShape {
   execute(cmd: { playerId: PlayerId; style: ShapeStyle }): void {
     const session = this.repo.getOrCreate(cmd.playerId);
     const flow = session.flow;
-    if (flow.kind !== "endpoint") {
+    if (flow.kind !== "selected") {
       this.feedback.showMessage(cmd.playerId, "noSelection");
       return;
     }
-    const shape = shapeOf(flow.from, flow.to);
+    const { box } = flow.selection;
+    const shape = shapeOf(box.min, box.max);
     if (!stylesFor(shape).includes(cmd.style)) return;
     const count = shapeCount(shape, cmd.style);
     if (!beginCheckedEdit(session, this.feedback, cmd.playerId, count)) return;
-    session.confirmBox(endpointSelection(flow));
+    session.confirmBox(flow.selection);
     this.feedback.showMessage(
       cmd.playerId,
       "building",
       undefined,
-      flow.material,
+      flow.selection.material,
     );
     this.jobs.start(
       cmd.playerId,
-      flow.dimensionId,
-      planShape(shape, cmd.style, { state: flow.material }),
+      flow.selection.dimensionId,
+      planShape(shape, cmd.style, { state: flow.selection.material }),
       "undoable",
     );
   }

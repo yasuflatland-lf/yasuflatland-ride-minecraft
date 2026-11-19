@@ -228,7 +228,7 @@ export function registerTestEdit(
             args[0] === "terrain" ||
             args[0] === "utility" ||
             args[0] === "paste") &&
-          args.length === 2
+          (args.length === 2 || (args.length === 1 && args[0] === "shape"))
         ) {
           offered = choices.choose(playerId, args[0], args[1]);
         } else if (

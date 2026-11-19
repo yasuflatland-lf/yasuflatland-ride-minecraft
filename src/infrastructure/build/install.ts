@@ -21,6 +21,7 @@ import { FinishRotateMode } from "../../application/build/finishRotateMode";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
 import { OpenBuildMenu } from "../../application/build/openBuildMenu";
+import { OpenSelectionMenu } from "../../application/build/openSelectionMenu";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
@@ -155,6 +156,7 @@ export function installBuild(deps: {
   };
   const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const menuCases = {
+    openSelectionMenu: new OpenSelectionMenu(repo),
     openBuildMenu: new OpenBuildMenu(repo, preview),
     closeBuildMenu: new CloseBuildMenu(repo, preview),
     ...cases,
@@ -210,7 +212,7 @@ export function installBuild(deps: {
     rotateDebounce,
     undoDebounce,
   );
-  registerTestTap(repo, feedback, blocks);
+  registerTestTap(repo, feedback, blocks, menuCases.openSelectionMenu);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
   const describe = new DescribeBuild(repo);

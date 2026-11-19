@@ -82,7 +82,7 @@ export class ShowPreview {
     if (Object.values(set).some((points) => points.length > 0))
       this.feedback.drawPreview(
         id,
-        flow.kind === "rotateMode"
+        flow.kind === "rotateMode" || flow.kind === "selected"
           ? flow.selection.dimensionId
           : "dimensionId" in flow
             ? flow.dimensionId

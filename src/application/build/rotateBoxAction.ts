@@ -15,21 +15,22 @@ export class RotateBoxAction implements BoxAction {
     const session = this.repo.get(playerId);
     if (!session) return false;
     const flow = session.flow;
-    if (
-      (flow.kind !== "endpoint" &&
-        !(flow.kind === "heightStep" && flow.heightedKind === "rotate")) ||
+    if (flow.kind === "selected") {
+      if (flow.selection.dimensionId !== dimensionId) return false;
+    } else if (
+      flow.kind !== "heightStep" ||
+      flow.heightedKind !== "rotate" ||
       flow.dimensionId !== dimensionId
     )
       return false;
-    // RotateBox consumes an endpoint; retain the height step if it refuses.
+    // RotateBox consumes a selection; retain the height step if it refuses.
     if (flow.kind === "heightStep")
       session.setFlow({
-        kind: "endpoint",
+        kind: "selected",
         menuLevel: "root",
-        dimensionId,
+        selection,
         from: box.min,
         to: box.max,
-        material: flow.material,
       });
     const rotated =
       this.rotate.execute({ playerId, dimensionId }) === "rotated";

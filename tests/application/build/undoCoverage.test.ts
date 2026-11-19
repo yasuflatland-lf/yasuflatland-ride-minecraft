@@ -88,12 +88,11 @@ function seed(e: Env, box: CellBox) {
 
 function select(e: Env, box: CellBox) {
   e.session.setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "build",
-    dimensionId: overworld,
+    selection: selectionOf(overworld, box, stone),
     from: box.min,
     to: box.max,
-    material: stone,
   });
 }
 

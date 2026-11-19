@@ -5,6 +5,7 @@ import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateBoxAction } from "../../../src/application/build/rotateBoxAction";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
 import { selectionBoxOf, setHeight } from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -34,12 +35,15 @@ it("rotates the shared height selection and preserves it on refusal", () => {
         const material = blockStateOf("minecraft:stone");
         const min = { x: 0, y: 60, z: 0 };
         session.setFlow({
-          kind: "endpoint",
+          kind: "selected",
           menuLevel: "root",
-          dimensionId: overworld,
+          selection: selectionOf(
+            overworld,
+            boxOf(min, { x: x - 1, y: 60, z: z - 1 }),
+            material,
+          ),
           from: min,
           to: { x: x - 1, y: 60, z: z - 1 },
-          material,
         });
         const rotate = new RotateBoxAction(
           repo,
@@ -105,12 +109,11 @@ it("enters rotate mode after an immediate rotation and restores a refused endpoi
       const session = repo.getOrCreate(playerId);
       const box = { min: { x: 0, y: 60, z: 0 }, max: { x: 2, y: 62, z: 4 } };
       session.setFlow({
-        kind: "endpoint",
+        kind: "selected",
         menuLevel: "root",
-        dimensionId: overworld,
+        selection: selectionOf(overworld, box, blockStateOf("minecraft:stone")),
         from: box.min,
         to: box.max,
-        material: blockStateOf("minecraft:stone"),
       });
       const before = session.flow;
       if (blocked) world.mayEdit = () => false;

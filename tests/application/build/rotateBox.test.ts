@@ -16,6 +16,7 @@ import {
   selectionBoxOf,
 } from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -51,12 +52,11 @@ function setup(box: CellBox = wideBox) {
   const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
   session.setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: overworld,
+    selection: selectionOf(overworld, box, stone),
     from: box.min,
     to: box.max,
-    material: stone,
   });
   const rotate = new RotateBox(repo, world, players, structures, feedback, log);
   const jobs = new EditJobs(repo, world, feedback, log, players, structures);
@@ -126,10 +126,9 @@ it("rotates any selection with one union snapshot and never writes outside the u
       expect(e.session.takeUndo()).toBe("nothingToUndo");
       expect(selectionBoxOf(e.session.flow)).toEqual(plan.target);
       expect(e.session.flow).toMatchObject({
-        kind: "endpoint",
+        kind: "selected",
         menuLevel: "root",
-        dimensionId: overworld,
-        material: stone,
+        selection: { dimensionId: overworld, material: stone },
       });
       expect(e.feedback.messages).toEqual([
         { message: "rotateDone", count: volume(box) },
@@ -242,12 +241,11 @@ it("ignores idle, incomplete and other-dimension selections", () => {
     { kind: "idle" },
     { kind: "point1", dimensionId: overworld, cell: origin, material: stone },
     {
-      kind: "endpoint",
+      kind: "selected",
       menuLevel: "root",
-      dimensionId: nether,
+      selection: selectionOf(nether, wideBox, stone),
       from: wideBox.min,
       to: wideBox.max,
-      material: stone,
     },
   ];
   for (const flow of flows) {

@@ -277,14 +277,18 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
     cell: cellArb,
     material: fc.constant(stone),
   }),
-  fc.record({
-    kind: fc.constant("endpoint" as const),
-    menuLevel: fc.constantFrom("root" as const, "build" as const),
-    dimensionId: dimensionArb,
-    from: cellArb,
-    to: cellArb,
-    material: fc.constant(stone),
-  }),
+  fc
+    .record({
+      kind: fc.constant("selected" as const),
+      menuLevel: fc.constantFrom("root" as const, "build" as const),
+      dimensionId: dimensionArb,
+      from: cellArb,
+      to: cellArb,
+    })
+    .map(({ dimensionId, ...flow }) => ({
+      ...flow,
+      selection: selectionOf(dimensionId, boxOf(flow.from, flow.to), stone),
+    })),
   fc.record({
     kind: fc.constant("heightStep" as const),
     dimensionId: dimensionArb,
@@ -501,15 +505,26 @@ it("replaceSelection preserves the flow state and replaces frozen endpoint corne
         session.setFlow(flow);
         session.replaceSelection(
           selectionOf(
-            flow.kind === "endpoint" ? flow.dimensionId : confirmedDimension,
+            flow.kind === "selected"
+              ? flow.selection.dimensionId
+              : confirmedDimension,
             box,
-            flow.kind === "endpoint" ? flow.material : stone,
+            flow.kind === "selected" ? flow.selection.material : stone,
           ),
         );
         expect(session.flow.kind).toBe(flow.kind);
-        if (flow.kind === "endpoint") {
-          expect(session.flow).toEqual({ ...flow, from: box.min, to: box.max });
-          if (session.flow.kind !== "endpoint")
+        if (flow.kind === "selected") {
+          expect(session.flow).toEqual({
+            ...flow,
+            selection: selectionOf(
+              flow.selection.dimensionId,
+              box,
+              flow.selection.material,
+            ),
+            from: box.min,
+            to: box.max,
+          });
+          if (session.flow.kind !== "selected")
             throw new Error("Missing endpoint flow");
           expect(session.flow.from).not.toBe(box.min);
           expect(session.flow.to).not.toBe(box.max);
@@ -517,12 +532,12 @@ it("replaceSelection preserves the flow state and replaces frozen endpoint corne
           expect(Object.isFrozen(session.flow.to)).toBe(true);
         } else expect(session.flow).toBe(flow);
         if (
-          flow.kind === "endpoint" &&
-          previous?.dimensionId === flow.dimensionId
+          flow.kind === "selected" &&
+          previous?.dimensionId === flow.selection.dimensionId
         )
           expect(session.confirmedBox).toEqual({
-            material: flow.material,
-            dimensionId: flow.dimensionId,
+            material: flow.selection.material,
+            dimensionId: flow.selection.dimensionId,
             box,
           });
         else expect(session.confirmedBox).toBe(previous);
@@ -537,21 +552,19 @@ it("replaceSelection updates an existing confirmation in the endpoint dimension"
       const session = new BuildSession(asPlayerId("p1"));
       session.confirmBox(selectionOf(dimensionId, before, stone));
       session.setFlow({
-        kind: "endpoint",
+        kind: "selected",
         menuLevel: "root",
-        dimensionId,
+        selection: selectionOf(dimensionId, before, stone),
         from: before.max,
         to: before.min,
-        material: stone,
       });
       session.replaceSelection(selectionOf(dimensionId, after, stone));
       expect(session.flow).toEqual({
-        kind: "endpoint",
+        kind: "selected",
         menuLevel: "root",
-        dimensionId,
+        selection: selectionOf(dimensionId, after, stone),
         from: after.min,
         to: after.max,
-        material: stone,
       });
       expect(session.confirmedBox).toEqual({
         material: stone,

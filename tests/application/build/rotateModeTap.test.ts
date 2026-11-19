@@ -57,12 +57,11 @@ it("ignores absent sessions, every other flow, and rotation in another dimension
     { kind: "idle" },
     { kind: "point1", dimensionId: overworld, cell: box.min, material: stone },
     {
-      kind: "endpoint",
+      kind: "selected",
       menuLevel: "root",
-      dimensionId: overworld,
+      selection: selectionOf(overworld, box, stone),
       from: box.min,
       to: box.max,
-      material: stone,
     },
     {
       kind: "heightStep",

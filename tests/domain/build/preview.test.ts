@@ -54,12 +54,11 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
           { kind: "idle" },
           { kind: "point1", cell: a, dimensionId, material },
           {
-            kind: "endpoint",
+            kind: "selected",
             menuLevel: "root",
             from: a,
             to: b,
-            dimensionId,
-            material,
+            selection: selectionOf(dimensionId, boxOf(a, b), material),
           },
           {
             kind: "heightStep",
@@ -93,7 +92,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
           expect(
             set.paste.length + set.pasteVertical.length,
           ).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
-          if (flow.kind === "point1" || flow.kind === "endpoint")
+          if (flow.kind === "point1" || flow.kind === "selected")
             expect(set.endCube).toEqual(cornerMarkerPoints(b));
         }
       },
@@ -112,7 +111,13 @@ it("draws the terrain confirmation like its end point", () => {
     ),
   ).toEqual(
     previewPoints(
-      { ...common, kind: "endpoint", menuLevel: "root" },
+      {
+        from,
+        to,
+        selection: selectionOf(dimensionId, boxOf(from, to), material),
+        kind: "selected",
+        menuLevel: "root",
+      },
       { blink: true },
     ),
   );
@@ -129,12 +134,11 @@ it("alternates the first-point marker with blink and removes it at the endpoint 
       expect(
         previewPoints(
           {
-            kind: "endpoint",
+            kind: "selected",
             menuLevel: "root",
             from: a,
             to: b,
-            dimensionId,
-            material,
+            selection: selectionOf(dimensionId, boxOf(a, b), material),
           },
           { blink: true },
         ).marker,
@@ -270,10 +274,13 @@ it("draws a locked cylinder at the box height even when another height is aimed"
       (height, aimed) => {
         const flow = chooseHeighted(
           {
-            kind: "endpoint",
+            kind: "selected",
             menuLevel: "root",
-            dimensionId,
-            material,
+            selection: selectionOf(
+              dimensionId,
+              boxOf({ x: 0, y: 10, z: 0 }, { x: 4, y: 10 + height - 1, z: 5 }),
+              material,
+            ),
             from: { x: 0, y: 10, z: 0 },
             to: { x: 4, y: 10 + height - 1, z: 5 },
           },
@@ -379,12 +386,11 @@ it("draws rotation mode with the endpoint selection appearance", () => {
       ).toEqual(
         previewPoints(
           {
-            kind: "endpoint",
+            kind: "selected",
             menuLevel: "root",
-            dimensionId,
+            selection: selectionOf(dimensionId, box, material),
             from: box.min,
             to: box.max,
-            material,
           },
           { blink },
         ),

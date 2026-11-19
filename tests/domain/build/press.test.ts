@@ -26,15 +26,15 @@ const point1 = tapBlock(
   { x: 0, y: 0, z: 0 },
   blockStateOf("minecraft:stone"),
 );
-const endpoint = tapAir(point1, { x: 2, y: 0, z: 2 });
+const selected = tapAir(point1, { x: 2, y: 0, z: 2 });
 const flows = {
   idle,
   point1,
-  endpoint,
-  heightStep: chooseHeighted(endpoint, "gable"),
-  terrainConfirm: chooseTerrain(endpoint, "removeAbove"),
+  selected,
+  heightStep: chooseHeighted(selected, "gable"),
+  terrainConfirm: chooseTerrain(selected, "removeAbove"),
   pasteAim: beginPasteAim(),
-  rotateMode: enterRotateMode(endpoint),
+  rotateMode: enterRotateMode(selected),
 } satisfies Record<BuildFlow["kind"], BuildFlow>;
 
 type Kind = PressIntent["kind"];
@@ -48,9 +48,9 @@ const wandTable = {
     "ignore",
   ],
   point1: ["selectPoint", "fixEndpoint", "openUtilityMenu", "ignore", "ignore"],
-  endpoint: [
-    "selectPoint",
-    "fixEndpoint",
+  selected: [
+    "openUtilityMenu",
+    "openUtilityMenu",
     "openUtilityMenu",
     "ignore",
     "ignore",

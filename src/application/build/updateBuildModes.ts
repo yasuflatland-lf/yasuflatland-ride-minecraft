@@ -26,7 +26,9 @@ export class UpdateBuildModes {
           : this.repo.get(playerId);
       const holding =
         held === "wand" ||
-        (held === "pasteControl" && session?.flow.kind === "pasteAim") ||
+        (held === "pasteControl" &&
+          (session?.flow.kind === "pasteAim" ||
+            session?.flow.kind === "selected")) ||
         (held === "undo" && session?.isInBuildMode === true);
       if (
         session?.tickMode({ holding }) &&

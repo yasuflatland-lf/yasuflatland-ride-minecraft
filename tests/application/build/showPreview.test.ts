@@ -101,12 +101,11 @@ it("follows the aimed block and falls back to the air plane without changing the
 it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   const { session, preview, feedback, aim } = setup();
   session.setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: overworld,
+    selection: selectionOf(overworld, boxOf(cell, end), material),
     from: cell,
     to: end,
-    material,
   });
   holdClipboard(
     session,
@@ -311,12 +310,11 @@ it("does not report sizes outside the height step", () => {
   session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
   preview.execute(interval);
   session.setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: overworld,
+    selection: selectionOf(overworld, boxOf(cell, end), material),
     from: cell,
     to: end,
-    material,
   });
   preview.execute(2 * interval);
   session.setFlow({ kind: "pasteAim", manualTurn: 0 });
@@ -404,12 +402,11 @@ it("never shows paste hints in other flows or outside build mode", () => {
     { kind: "idle" } as const,
     { kind: "point1", dimensionId: overworld, cell, material } as const,
     {
-      kind: "endpoint",
+      kind: "selected",
       menuLevel: "root",
-      dimensionId: overworld,
+      selection: selectionOf(overworld, boxOf(cell, end), material),
       from: cell,
       to: end,
-      material,
     } as const,
     {
       kind: "heightStep",

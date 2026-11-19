@@ -35,12 +35,11 @@ it("finishes with the last box and material while preserving history and world",
       const finish = new FinishRotateMode(repo);
       expect(finish.execute({ playerId })).toBe("finished");
       expect(session.flow).toEqual({
-        kind: "endpoint",
+        kind: "selected",
         menuLevel: "root",
-        dimensionId: overworld,
+        selection: selectionOf(overworld, box, material),
         from: box.min,
         to: box.max,
-        material,
       });
       expect(session.hasHistory).toBe(true);
       expect(structures.calls).toEqual([]);
@@ -71,12 +70,11 @@ it("ignores all non-rotation flow kinds without changing session state", () => {
     { kind: "idle" },
     { kind: "point1", dimensionId: overworld, cell: box.min, material },
     {
-      kind: "endpoint",
+      kind: "selected",
       menuLevel: "root",
-      dimensionId: overworld,
+      selection: selectionOf(overworld, box, material),
       from: box.min,
       to: box.max,
-      material,
     },
     {
       kind: "heightStep",

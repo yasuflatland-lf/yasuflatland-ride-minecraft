@@ -1,6 +1,7 @@
 // Exercises the same tap use cases and feedback adapter with a named player (ADR 0010, 0178).
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import { ClearSelection } from "../../../../application/build/clearSelection";
+import type { OpenSelectionMenu } from "../../../../application/build/openSelectionMenu";
 import type { BuildBlockWorld } from "../../../../application/build/ports/blocks";
 import type {
   BuildFeedback,
@@ -8,6 +9,7 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import { SetPoint } from "../../../../application/build/setPoint";
 import { TapAir } from "../../../../application/build/tapAir";
+import { routePress } from "../../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
 import {
@@ -20,6 +22,7 @@ export function registerTestTap(
   repo: BuildSessionRepository,
   feedback: BuildFeedback,
   blocks: BuildBlockWorld,
+  openSelectionMenu: OpenSelectionMenu,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -74,11 +77,26 @@ export function registerTestTap(
         drawPreview: (id, dimension, set) =>
           feedback.drawPreview(id, dimension, set),
       };
+      const flow = repo.get(playerId)?.flow;
+      const press =
+        flow?.kind === "selected" && input.tap !== "clear"
+          ? routePress({
+              flow,
+              role: "wand",
+              route: input.tap === "air" ? "itemUse" : "blockInteract",
+              target: input.tap,
+              sneaking: player.isSneaking,
+            })
+          : undefined;
+      const menu =
+        press?.kind === "openUtilityMenu"
+          ? openSelectionMenu.execute({ playerId })
+          : undefined;
       if (input.tap === "clear")
         new ClearSelection(repo, observed).execute({ playerId });
-      else if (input.tap === "air")
+      else if (menu === undefined && input.tap === "air")
         new TapAir(repo, observed).execute({ playerId, end: cell });
-      else
+      else if (menu === undefined)
         new SetPoint(repo, blocks, observed).execute({
           playerId,
           dimensionId,
@@ -90,6 +108,7 @@ export function registerTestTap(
           player: player.name,
           message,
           count,
+          menu,
           flow: repo.get(playerId)?.flow ?? null,
           state: blocks.stateAt(dimensionId, cell) ?? null,
           mayEdit: blocks.mayEdit(dimensionId, cell),

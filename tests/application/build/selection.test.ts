@@ -123,3 +123,44 @@ it("cancels in-progress selections when build mode leaves after its grace delay"
     }),
   );
 });
+
+it("retains the selection across build tool swaps and resets the leave grace", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      cell,
+      fc.array(fc.constantFrom<HeldBuildItem>("wand", "pasteControl", "undo"), {
+        minLength: 1,
+      }),
+      fc.boolean(),
+      (a, b, tools, active) => {
+        const { repo } = setup();
+        const modes = new UpdateBuildModes(
+          repo,
+          new LeaveBuild(repo, new FakeStructureStore()),
+        );
+        if (active) enterBuildMode(modes);
+        const session = repo.getOrCreate(alex);
+        const material = blockStateOf("minecraft:stone");
+        const first = tapBlock(session.flow, overworld, a, material);
+        const selection = tapBlock(first, overworld, b, material);
+        session.setFlow(selection);
+        const tick = (held: HeldBuildItem) =>
+          modes.execute([{ playerId: alex, held }]);
+        const almostLeave = () => {
+          for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++) tick("none");
+          expect(session.flow).toBe(selection);
+        };
+        for (const tool of tools) {
+          almostLeave();
+          for (let i = 0; i < BUILD_SPEC.modeLeaveTicks; i++) tick(tool);
+          expect(session.flow).toBe(selection);
+        }
+        almostLeave();
+        tick("none");
+        expect(session.flow.kind).toBe("idle");
+        expect(session.isInBuildMode).toBe(false);
+      },
+    ),
+  );
+});

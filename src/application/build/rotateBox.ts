@@ -1,10 +1,6 @@
 import { cellsOf, volume } from "../../domain/build/box";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
-import {
-  endpointSelection,
-  inDimension,
-  withBox,
-} from "../../domain/build/selection";
+import { inDimension, withBox } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -34,10 +30,9 @@ export class RotateBox {
     const session = this.repo.get(playerId);
     if (!session) return "ignored";
     const flow = session.flow;
-    if (flow.kind !== "endpoint" && flow.kind !== "rotateMode")
+    if (flow.kind !== "selected" && flow.kind !== "rotateMode")
       return "ignored";
-    const selection =
-      flow.kind === "endpoint" ? endpointSelection(flow) : flow.selection;
+    const { selection } = flow;
     if (!inDimension(selection, dimensionId)) return "ignored";
     const selectedBox = selection.box;
     const plan = planRotationAboutCenter(selectedBox);

@@ -55,17 +55,12 @@ function heightStepPress(
 }
 
 function airTapPress(
-  { source, playerId, repo, pointOf, tapAir, menus }: PressContext,
+  { playerId, pointOf, tapAir }: PressContext,
   target: Target,
 ): void {
-  const before = repo.get(playerId)?.flow.kind;
   const point1 = pointOf(playerId);
   const end = point1 ? virtualEndPoint(point1, target.ray) : undefined;
   tapAir.execute({ playerId, end });
-  if (before !== "endpoint" && repo.get(playerId)?.flow.kind === "endpoint")
-    system.run(() => {
-      if (source.isValid) void menus.showShapeMenu(source);
-    });
 }
 
 export function dispatchWandPress(context: PressContext): void {

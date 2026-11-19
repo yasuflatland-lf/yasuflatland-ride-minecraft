@@ -4,8 +4,10 @@ import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
 import { chooseHeighted } from "../../../src/domain/build/flow/flow";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -28,12 +30,15 @@ it("reads facing at confirmation only when the height step has none", () => {
       session.setFlow(
         chooseHeighted(
           {
-            kind: "endpoint",
+            kind: "selected",
             menuLevel: "root",
-            dimensionId: overworld,
+            selection: selectionOf(
+              overworld,
+              boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 2 }),
+              blockStateOf("minecraft:stone"),
+            ),
             from: { x: 0, y: 0, z: 0 },
             to: { x: 2, y: 0, z: 2 },
-            material: blockStateOf("minecraft:stone"),
           },
           "copy",
         ),

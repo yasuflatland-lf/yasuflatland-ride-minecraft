@@ -3,7 +3,7 @@ import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
 import type { Facing } from "../rotation/facing";
-import { endpointSelection } from "../selection";
+import { type Selection, selectionOf } from "../selection";
 import { shapeOf } from "../shape/shape";
 import type { TerrainOp } from "../terrain/area";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
@@ -19,12 +19,12 @@ export type BuildFlow =
       readonly material: BlockState;
     }
   | {
-      readonly kind: "endpoint";
+      readonly kind: "selected";
       readonly menuLevel: "root" | "build";
-      readonly dimensionId: DimensionId;
+      readonly selection: Selection;
+      // Aiming can resume from the first tap, which need not be the minimum corner.
       readonly from: Cell;
       readonly to: Cell;
-      readonly material: BlockState;
     }
   | {
       readonly kind: "heightStep";
@@ -61,6 +61,7 @@ export function tapBlock(
   material: BlockState,
 ): BuildFlow {
   if (
+    flow.kind === "selected" ||
     flow.kind === "heightStep" ||
     flow.kind === "pasteAim" ||
     flow.kind === "terrainConfirm" ||
@@ -78,37 +79,42 @@ export function tapBlock(
 }
 
 export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
-  if (flow.kind !== "point1" && flow.kind !== "endpoint") return flow;
-  if (!end) return flow;
+  if (flow.kind !== "point1" || !end) return flow;
   return Object.freeze({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: flow.dimensionId,
-    from: flow.kind === "point1" ? flow.cell : flow.from,
+    selection: selectionOf(
+      flow.dimensionId,
+      boxOf(flow.cell, end),
+      flow.material,
+    ),
+    from: flow.cell,
     to: Object.freeze({ ...end }),
-    material: flow.material,
   });
 }
 
 export function openBuildMenu(flow: BuildFlow): BuildFlow {
-  return flow.kind === "endpoint" && flow.menuLevel === "root"
+  return flow.kind === "selected" && flow.menuLevel === "root"
     ? Object.freeze({ ...flow, menuLevel: "build" })
     : flow;
 }
 
 export function closeBuildMenu(flow: BuildFlow): BuildFlow {
-  return flow.kind === "endpoint" && flow.menuLevel === "build"
+  return flow.kind === "selected" && flow.menuLevel === "build"
     ? Object.freeze({ ...flow, menuLevel: "root" })
     : flow;
 }
 
 export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
-  return flow.kind !== "rotateMode" && (sneaking || flow.kind === "idle");
+  return (
+    flow.kind !== "rotateMode" &&
+    (sneaking || flow.kind === "idle" || flow.kind === "selected")
+  );
 }
 
 /** True when a plain air press in this flow opens the utility menu, which offers Undo when history exists (ADR 0229). */
 export function airPressOffersUndo(flow: BuildFlow): boolean {
-  return opensUtilityMenu(flow, false);
+  return flow.kind === "idle";
 }
 
 export function cancel(_flow: BuildFlow): BuildFlow {
@@ -123,7 +129,7 @@ export function backToAiming(flow: BuildFlow): BuildFlow {
       cell: flow.from,
       material: flow.material,
     });
-  return flow.kind === "endpoint" || flow.kind === "terrainConfirm"
+  return flow.kind === "terrainConfirm"
     ? Object.freeze({
         kind: "point1",
         dimensionId: flow.dimensionId,
@@ -138,13 +144,14 @@ export function chooseHeighted(
   kind: HeightStepKind,
   facing?: Facing,
 ): BuildFlow {
-  if (flow.kind !== "endpoint") return flow;
-  const shape = shapeOf(flow.from, flow.to);
+  if (flow.kind !== "selected") return flow;
+  const { box, dimensionId, material } = flow.selection;
+  const shape = shapeOf(box.min, box.max);
   const locked = shape.kind === "box" && locksBoxHeight(kind);
   if (!locked && (shape.kind !== "rect" || shape.flat !== "y")) return flow;
   return Object.freeze({
     kind: "heightStep",
-    dimensionId: flow.dimensionId,
+    dimensionId,
     base: locked
       ? { min: shape.box.min, max: { ...shape.box.max, y: shape.box.min.y } }
       : shape.box,
@@ -153,18 +160,18 @@ export function chooseHeighted(
     facing,
     previous: locked ? sizeOf(shape.box).y : 1,
     heightLocked: locked,
-    material: flow.material,
+    material,
   });
 }
 
 export function chooseTerrain(flow: BuildFlow, op: TerrainOp): BuildFlow {
-  if (flow.kind !== "endpoint") return flow;
+  if (flow.kind !== "selected") return flow;
   return Object.freeze({
     kind: "terrainConfirm",
-    dimensionId: flow.dimensionId,
+    dimensionId: flow.selection.dimensionId,
     from: flow.from,
     to: flow.to,
-    material: flow.material,
+    material: flow.selection.material,
     op,
   });
 }
@@ -179,11 +186,9 @@ export function finishHeightStep(flow: BuildFlow, _hollow: boolean): BuildFlow {
 }
 
 export function selectionBoxOf(flow: BuildFlow): CellBox | undefined {
-  return flow.kind === "rotateMode"
+  return flow.kind === "rotateMode" || flow.kind === "selected"
     ? flow.selection.box
-    : flow.kind === "endpoint"
-      ? boxOf(flow.from, flow.to)
-      : undefined;
+    : undefined;
 }
 
 export function clearLastPaste(flow: BuildFlow): BuildFlow {
@@ -197,18 +202,17 @@ export function clearLastPaste(flow: BuildFlow): BuildFlow {
 }
 
 export function enterRotateMode(flow: BuildFlow): BuildFlow {
-  if (flow.kind !== "endpoint") return flow;
-  return beginRotateMode(endpointSelection(flow), 1);
+  if (flow.kind !== "selected") return flow;
+  return beginRotateMode(flow.selection, 1);
 }
 
 export function finishRotateMode(flow: BuildFlow): BuildFlow {
   if (flow.kind !== "rotateMode") return flow;
   return Object.freeze({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: flow.selection.dimensionId,
+    selection: flow.selection,
     from: flow.selection.box.min,
     to: flow.selection.box.max,
-    material: flow.selection.material,
   });
 }

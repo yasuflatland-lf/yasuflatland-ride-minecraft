@@ -6,12 +6,14 @@ import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
 import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
+import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { CloseBuildMenu } from "../../../src/application/build/closeBuildMenu";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
 import { OpenBuildMenu } from "../../../src/application/build/openBuildMenu";
+import { OpenSelectionMenu } from "../../../src/application/build/openSelectionMenu";
 import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateBoxAction } from "../../../src/application/build/rotateBoxAction";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
@@ -34,6 +36,7 @@ import {
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
+import type { Cell } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
@@ -112,14 +115,20 @@ const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
 const from = { x: 0, y: 60, z: 0 };
 const to = { x: 4, y: 60, z: 6 };
-const endpoint: BuildFlow = {
-  kind: "endpoint",
-  menuLevel: "root",
-  dimensionId: overworld,
-  from,
-  to,
-  material: stone,
-};
+function selected(
+  from: Cell,
+  to: Cell,
+  menuLevel: "root" | "build" = "root",
+): BuildFlow {
+  return {
+    kind: "selected",
+    menuLevel,
+    selection: selectionOf(overworld, boxOf(from, to), stone),
+    from,
+    to,
+  };
+}
+const endpoint = selected(from, to);
 const cell = fc.record({
   x: fc.integer({ min: -20, max: 20 }),
   y: fc.integer({ min: 0, max: 319 }),
@@ -131,6 +140,9 @@ function setup(fallback?: boolean) {
   session.setFlow(endpoint);
   const preview = { refresh: vi.fn() };
   const cases = {
+    openSelectionMenu: {
+      execute: vi.fn((cmd) => new OpenSelectionMenu(repo).execute(cmd)),
+    },
     openBuildMenu: {
       execute: vi.fn((cmd) => new OpenBuildMenu(repo, preview).execute(cmd)),
     },
@@ -206,7 +218,11 @@ function setup(fallback?: boolean) {
       ),
     },
     undo: { execute: vi.fn() },
-    clear: { execute: vi.fn() },
+    clear: {
+      execute: vi.fn((cmd) =>
+        new ClearSelection(repo, new FakeFeedback()).execute(cmd),
+      ),
+    },
     setHeight: {
       execute: vi.fn((cmd) => new SetHeightTo(repo).execute(cmd)),
     },
@@ -286,7 +302,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     expect(cases.closeBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
     });
-    expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+    expect(session.flow).toEqual(endpoint);
   },
 );
 
@@ -296,23 +312,19 @@ it("keeps a refused side-cylinder choice at the build level", async () => {
   ui.answers.push(...shapeAnswers(endpoint, "sideCylinder"));
   await menus.showShapeMenu(player);
   expect(session.flow).toEqual(openBuildMenu(endpoint));
-  ui.answers.push(
-    {
-      selection: buildMenu(session.flow).findIndex(
-        (entry) => entry.id === "back",
-      ),
-    },
-    { canceled: true },
-  );
-  await menus.showBuildMenu(player);
-  expect(session.flow.kind).toBe("point1");
+  ui.answers.push({ canceled: true });
+  await menus.showUtilityMenu(player);
+  expect(ui.forms.at(-1)?.heading).toEqual({
+    translate: BUILD_FORM.shapeTitle,
+  });
+  expect(session.flow).toEqual(endpoint);
 });
 
 it("rebuilds shape and roof entries from the live flow, including empty models", async () => {
   await fc.assert(
     fc.asyncProperty(cell, cell, async (a, b) => {
       const { session, menus, player } = setup();
-      const end: BuildFlow = { ...endpoint, from: a, to: b };
+      const end: BuildFlow = selected(a, b);
       for (const flow of [
         { kind: "idle" } as const,
         {
@@ -365,7 +377,13 @@ it("shows exactly the applicable utility entries", async () => {
             },
             "undoable",
           );
-        if (aiming) session.setFlow(endpoint);
+        if (aiming)
+          session.setFlow({
+            kind: "point1",
+            dimensionId: overworld,
+            cell: from,
+            material: stone,
+          });
         ui.forms.length = 0;
         await menus.showUtilityMenu(player);
         const entries = utilityMenu(session);
@@ -385,7 +403,7 @@ it.each([
   ["walls", { x: 4, y: 64, z: 6 }, "walls"],
 ] as const)("routes shape %s to ConfirmShape", async (id, end, style) => {
   const { session, menus, player, cases } = setup();
-  session.setFlow({ ...endpoint, to: end });
+  session.setFlow(selected(from, end));
   ui.answers.push(...shapeAnswers(session.flow, id));
   await menus.showShapeMenu(player);
   if (id === "place") {
@@ -423,33 +441,39 @@ it.each([false, true])("confirms roof hollow=%s", async (hollow) => {
   });
 });
 
-it.each(["shape", "contents"] as const)(
-  "returns to aiming for Cancel and dismissal in the %s menu",
-  async (menu) => {
-    for (const answer of [
-      { canceled: true },
-      { cancelationReason: "UserClosed" },
-      {
-        selection:
-          menu === "shape"
-            ? shapeMenu(endpoint).findIndex((entry) => entry.id === "cancel")
-            : 2,
-      },
-    ]) {
-      const { session, menus, player, cases } = setup();
-      if (menu === "contents")
-        session.setFlow(chooseHeighted(endpoint, "gable"));
-      ui.answers.push(answer);
-      await (menu === "shape"
-        ? menus.showShapeMenu(player)
-        : menus.showContentsMenu(player));
-      expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
-        playerId,
-      });
-      expect(session.flow.kind).toBe("point1");
-    }
-  },
-);
+it("keeps a dismissed root selection and clears it on Cancel", async () => {
+  const { session, menus, player, cases } = setup();
+  for (const answer of [
+    { canceled: true },
+    { cancelationReason: "UserClosed" },
+  ]) {
+    ui.answers.push(answer);
+    await menus.showUtilityMenu(player);
+    expect(session.flow).toBe(endpoint);
+    expect(cases.clear.execute).not.toHaveBeenCalled();
+  }
+  expect(ui.forms.map((form) => form.buttons)).toEqual([
+    labels(shapeMenu(endpoint)),
+    labels(shapeMenu(endpoint)),
+  ]);
+  ui.answers.push({
+    selection: shapeMenu(endpoint).findIndex((entry) => entry.id === "cancel"),
+  });
+  await menus.showUtilityMenu(player);
+  expect(cases.clear.execute).toHaveBeenCalledExactlyOnceWith({ playerId });
+  expect(session.flow.kind).toBe("idle");
+});
+
+it("returns to aiming on contents Cancel", async () => {
+  const { session, menus, player, cases } = setup();
+  session.setFlow(chooseHeighted(endpoint, "gable"));
+  ui.answers.push({ selection: 2 });
+  await menus.showContentsMenu(player);
+  expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
+  expect(session.flow.kind).toBe("point1");
+});
 
 it("opens no form for an idle session without history or a confirmed box", async () => {
   const { session, menus, player } = setup();
@@ -501,7 +525,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
       async (y, requested, kind) => {
         const { session, menus, player, cases } = setup(true);
         const flow = chooseHeighted(
-          { ...endpoint, from: { ...from, y }, to: { ...to, y } },
+          selected({ ...from, y }, { ...to, y }),
           kind,
         );
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
@@ -623,7 +647,9 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
     Object.assign(player, { isValid: false });
     close({ selection: 0, formValues: [3] });
     await pending;
-    for (const action of Object.values(cases))
+    for (const action of Object.values(cases).filter(
+      (action) => action !== cases.openSelectionMenu,
+    ))
       expect(Object.values(action)[0]).not.toHaveBeenCalled();
   },
 );
@@ -674,17 +700,19 @@ it("dispatches only entries offered by the current flow, including stale choices
       fc.constantFrom("root", "build"),
       (from, to, id, menuLevel) => {
         const { session, cases, choices } = setup();
-        const flow: BuildFlow = { ...endpoint, from, to, menuLevel };
+        const flow: BuildFlow = selected(from, to, menuLevel);
         session.setFlow(flow);
         const offered = [...shapeMenu(flow), ...buildMenu(flow)].some(
           (entry) => entry.id === id,
         );
         expect(choices.choose(playerId, "shape", id)).toBe(offered);
         if (!offered) {
-          for (const action of Object.values(cases))
+          for (const action of Object.values(cases).filter(
+            (action) => action !== cases.openSelectionMenu,
+          ))
             expect(Object.values(action)[0]).not.toHaveBeenCalled();
         } else if (id === "cancel") {
-          expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
+          expect(cases.clear.execute).toHaveBeenCalledExactlyOnceWith({
             playerId,
           });
         } else if (id === "sideCylinder") {
@@ -783,7 +811,7 @@ it.each([false, true])(
   "opens locked cylinder contents directly with fallback=%s",
   async (fallback) => {
     const { session, menus, player, cases } = setup(fallback);
-    session.setFlow({ ...endpoint, to: { ...to, y: 71 } });
+    session.setFlow(selected(from, { ...to, y: 71 }));
     ui.answers.push(...shapeAnswers(session.flow, "cylinder"), {
       selection: 2,
     });
@@ -813,7 +841,7 @@ it.each([false, true])(
   "opens locked sphere contents directly with fallback=%s",
   async (fallback) => {
     const { session, menus, player, cases } = setup(fallback);
-    session.setFlow({ ...endpoint, to: { ...to, y: 71 } });
+    session.setFlow(selected(from, { ...to, y: 71 }));
     ui.answers.push(...shapeAnswers(session.flow, "sphere"), { selection: 1 });
     await menus.showShapeMenu(player);
     expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
@@ -878,7 +906,7 @@ it.each([
   ["box", { x: 4, y: 64, z: 6 }],
 ] as const)("routes Copy on a %s to ChooseBoxStep", async (_shape, end) => {
   const { session, menus, player, cases } = setup();
-  session.setFlow({ ...endpoint, to: end });
+  session.setFlow(selected(from, end));
   ui.answers.push({
     selection: shapeMenu(session.flow).findIndex((e) => e.id === "copy"),
   });
@@ -917,7 +945,7 @@ it.each([
   ["box", { x: 4, y: 64, z: 6 }],
 ] as const)("routes Cut on a %s to ChooseBoxStep", async (_shape, end) => {
   const { session, menus, player, cases } = setup();
-  session.setFlow({ ...endpoint, to: end });
+  session.setFlow(selected(from, end));
   ui.answers.push({
     selection: shapeMenu(session.flow).findIndex((e) => e.id === "cut"),
   });
@@ -938,7 +966,7 @@ it.each([
   ["box", { x: 4, y: 64, z: 6 }],
 ] as const)("routes Rotate on a %s to ChooseBoxStep", async (_shape, end) => {
   const { session, menus, player, cases } = setup();
-  session.setFlow({ ...endpoint, to: end });
+  session.setFlow(selected(from, end));
   ui.answers.push({
     selection: shapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
   });
@@ -962,11 +990,10 @@ it.each([320, 128, 256])(
   async (ceiling) => {
     const { menus, player, cases, session } = setup();
     player.dimension.heightRange.max = ceiling;
-    const area: BuildFlow = {
-      ...endpoint,
-      from: { x: 0, y: 64, z: 0 },
-      to: { x: 4, y: 60, z: 6 },
-    };
+    const area: BuildFlow = selected(
+      { x: 0, y: 64, z: 0 },
+      { x: 4, y: 60, z: 6 },
+    );
     session.setFlow(area);
     ui.answers.push(
       {
@@ -1010,11 +1037,7 @@ it.each([
   async (ceiling, floor) => {
     const { menus, player, cases, session } = setup();
     player.dimension.heightRange.max = ceiling;
-    session.setFlow({
-      ...endpoint,
-      from: { ...from, y: floor },
-      to: { ...to, y: floor },
-    });
+    session.setFlow(selected({ ...from, y: floor }, { ...to, y: floor }));
     ui.answers.push(removeAboveAnswer());
     await menus.showShapeMenu(player);
     expect(ui.forms).toHaveLength(1);
@@ -1042,7 +1065,7 @@ it.each([
 
 it("opens no confirmation when the area is too large", async () => {
   const { menus, player, cases, session } = setup();
-  const area: BuildFlow = { ...endpoint, to: { x: 32, y: 60, z: 0 } };
+  const area: BuildFlow = selected(from, { x: 32, y: 60, z: 0 });
   session.setFlow(area);
   ui.answers.push({
     selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove"),
@@ -1197,11 +1220,7 @@ it.each([
     const { menus, player, cases, session } = setup();
     player.dimension.heightRange.min = bottom;
     player.dimension.heightRange.max = ceiling;
-    const area: BuildFlow = {
-      ...endpoint,
-      from: { x: 0, y, z: 0 },
-      to: { x: 4, y: 60, z: 6 },
-    };
+    const area: BuildFlow = selected({ x: 0, y, z: 0 }, { x: 4, y: 60, z: 6 });
     session.setFlow(area);
     ui.answers.push(
       { selection: shapeMenu(area).findIndex((e) => e.id === "fillBelow") },
@@ -1230,7 +1249,7 @@ it.each([false, true])(
   "routes a sideways box directly to contents with fallback=%s",
   async (fallback) => {
     const { session, menus, player, cases } = setup(fallback);
-    session.setFlow({ ...endpoint, to: { ...to, y: 64 } });
+    session.setFlow(selected(from, { ...to, y: 64 }));
     ui.answers.push(...shapeAnswers(session.flow, "sideCylinder"), {
       selection: 2,
     });
@@ -1325,7 +1344,7 @@ it("Cancel closes the paste menu and keeps paste aiming", async () => {
 
 it("enters rotate mode through the immediate shape menu Rotate dispatch", async () => {
   const { menus, player, session } = setup();
-  session.setFlow({ ...endpoint, to: { ...to, y: 63 } });
+  session.setFlow(selected(from, { ...to, y: 63 }));
   ui.answers.push({
     selection: shapeMenu(session.flow).findIndex((e) => e.id === "rotate"),
   });
@@ -1341,7 +1360,7 @@ it.each([
   "returns from the build submenu to the same root selection (%s)",
   async (answer) => {
     const { session, menus, player, cases } = setup();
-    session.setFlow({ ...endpoint, to: { x: 4, y: 64, z: 0 } });
+    session.setFlow(selected(from, { x: 4, y: 64, z: 0 }));
     const initial = session.flow;
     ui.answers.push({ selection: 2 }, answer, { selection: 3 });
     await menus.showShapeMenu(player);
@@ -1369,7 +1388,7 @@ it.each(["root", "build"] as const)(
   "ignores an off-level response from the %s form",
   async (level) => {
     const { session, menus, player, cases } = setup();
-    session.setFlow({ ...endpoint, menuLevel: level });
+    session.setFlow(selected(from, to, level));
     let answer!: (value: Answer) => void;
     ui.answers.push(
       new Promise((resolve) => {
@@ -1381,13 +1400,12 @@ it.each(["root", "build"] as const)(
         ? menus.showShapeMenu(player)
         : menus.showBuildMenu(player);
     await vi.waitFor(() => expect(ui.forms).toHaveLength(1));
-    session.setFlow({
-      ...endpoint,
-      menuLevel: level === "root" ? "build" : "root",
-    });
+    session.setFlow(selected(from, to, level === "root" ? "build" : "root"));
     answer({ selection: 0 });
     await pending;
-    for (const action of Object.values(cases))
+    for (const action of Object.values(cases).filter(
+      (action) => action !== cases.openSelectionMenu,
+    ))
       expect(Object.values(action)[0]).not.toHaveBeenCalled();
   },
 );
@@ -1418,5 +1436,6 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   expect(ui.forms).toHaveLength(3);
   finish({ canceled: true });
   await pending;
-  expect(cases.cancel.backToAiming).toHaveBeenCalledOnce();
+  expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
+  expect(session.flow).toEqual(endpoint);
 });

@@ -28,7 +28,6 @@ import { SELECTION_WAND_TYPE } from "../../../src/infrastructure/build/identifie
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
 import {
   FakeBuildPlayers,
-  FakeFeedback,
   FakeGroundProbe,
   FakeWorld,
   nether,
@@ -40,7 +39,6 @@ import {
 } from "../../support/buildClipboard";
 
 const menus = {
-  showShapeMenu: vi.fn(),
   showBuildMenu: vi.fn(),
   showContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
@@ -195,18 +193,18 @@ it("preserves blocks and defers point taps out of before events", () => {
         expect(pointCell()).toEqual(holding ? block.location : undefined);
         engine.handlers.get("interact")?.(interact);
         for (const callback of engine.scheduled.splice(0)) callback();
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "endpoint" : undefined);
-        expect(menus.showShapeMenu).toHaveBeenCalledTimes(holding ? 1 : 0);
+        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
+        expect(menus.showUtilityMenu).not.toHaveBeenCalled();
         player.isSneaking = true;
         engine.handlers.get("use")?.({
           source: player,
           itemStack: { typeId: SELECTION_WAND_TYPE },
         });
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "endpoint" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
         engine.handlers.get("interact")?.(interact);
         player.isValid = false;
         for (const callback of engine.scheduled.splice(0)) callback();
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "endpoint" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(holding ? "selected" : undefined);
       },
     ),
   );
@@ -232,7 +230,6 @@ function setupAir() {
   const pointExecute = vi.spyOn(setPoint, "execute");
   const execute = vi.spyOn(tapAir, "execute");
   const menus = {
-    showShapeMenu: vi.fn(),
     showBuildMenu: vi.fn(),
     showContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
@@ -332,21 +329,23 @@ function setupAir() {
 }
 
 it("computes a virtual air endpoint and ignores held repeats", () => {
-  const { session, use, execute } = setupAir();
+  const { session, use, execute, menus } = setupAir();
   use();
   expect(execute).toHaveBeenCalledWith({
     playerId: asPlayerId("p"),
     end: { x: 10, y: 5, z: 0 },
   });
-  expect(session.flow.kind).toBe("endpoint");
+  expect(session.flow.kind).toBe("selected");
   for (const tick of [4, 10, 15]) {
     engine.tick = tick;
     use();
   }
   expect(execute).toHaveBeenCalledTimes(1);
+  expect(menus.showUtilityMenu).not.toHaveBeenCalled();
   engine.tick = 25;
   use();
-  expect(execute).toHaveBeenCalledTimes(2);
+  expect(execute).toHaveBeenCalledTimes(1);
+  expect(menus.showUtilityMenu).toHaveBeenCalledOnce();
 });
 
 it.each(["gable", "hip"] as const)(
@@ -401,12 +400,15 @@ it.each(["gable", "hip"] as const)(
 function setupRoof(kind: "gable" | "hip") {
   const e = setupAir();
   e.session.setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: nether,
+    selection: selectionOf(
+      nether,
+      boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }),
+      blockStateOf("minecraft:stone"),
+    ),
     from: { x: 0, y: 0, z: 0 },
     to: { x: 4, y: 0, z: 4 },
-    material: blockStateOf("minecraft:stone"),
   });
   new ChooseHeighted(e.repo, e.feedback).execute({ playerId: e.id, kind });
   const flow = e.session.flow;
@@ -433,7 +435,6 @@ function expectRoofTap(e: ReturnType<typeof setupRoof>) {
   expect(e.session.flow).toEqual({ ...e.flow, previous: 6 });
   expect(e.pointExecute).not.toHaveBeenCalled();
   expect(e.execute).not.toHaveBeenCalled();
-  expect(e.menus.showShapeMenu).not.toHaveBeenCalled();
   expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
 }
 
@@ -458,29 +459,30 @@ it("opens the utility menu on a plain air press when idle", () => {
   expect(session.flow.kind).toBe("idle");
 });
 
-it("still fixes the virtual end point on a plain air press during point1 and endpoint", () => {
+it("fixes the virtual end point on a plain air press during point1", () => {
   const { use, menus, execute, session } = setupAir();
   use();
-  expect(session.flow.kind).toBe("endpoint");
-  engine.tick = 10;
-  use();
-  expect(execute).toHaveBeenCalledTimes(2);
+  expect(session.flow.kind).toBe("selected");
+  expect(execute).toHaveBeenCalledOnce();
   expect(menus.showUtilityMenu).not.toHaveBeenCalled();
 });
 
-it("opens the utility menu on a sneak air press in point1 and endpoint", () => {
+it("opens the menu on a sneak air press in point1 and selected", () => {
   const { player, use, menus, session } = setupAir();
   player.isSneaking = true;
   use();
   expect(session.flow.kind).toBe("point1");
   expect(menus.showUtilityMenu).toHaveBeenCalledTimes(1);
   session.setFlow({
-    kind: "endpoint",
+    kind: "selected",
     menuLevel: "root",
-    dimensionId: asDimensionId("minecraft:overworld"),
+    selection: selectionOf(
+      asDimensionId("minecraft:overworld"),
+      boxOf({ x: 10, y: 0, z: 0 }, { x: 12, y: 0, z: 0 }),
+      blockStateOf("minecraft:stone"),
+    ),
     from: { x: 10, y: 0, z: 0 },
     to: { x: 12, y: 0, z: 0 },
-    material: blockStateOf("minecraft:stone"),
   });
   engine.tick = 10;
   use();
@@ -610,79 +612,73 @@ it("routes paste aiming through itemUse with live aim and separate commit deboun
   );
 });
 
-it("opens only on entering endpoint and defers an air-triggered menu safely", () => {
-  engine.tick = 0;
-  engine.scheduled.length = 0;
-  vi.clearAllMocks();
-  const repo = new InMemorySessionRepository();
-  const feedback = new FakeFeedback();
-  const blocks = new FakeWorld();
-  const id = asPlayerId("p");
-  const session = repo.getOrCreate(id);
-  const from = { x: 0, y: 60, z: 0 };
-  const to = { x: 4, y: 60, z: 4 };
-  const point1 = {
-    kind: "point1" as const,
-    dimensionId: nether,
-    cell: from,
-    material: blockStateOf("minecraft:stone"),
-  };
-  session.setFlow(point1);
-  const air = new TapAir(repo, feedback);
-  const execute = air.execute.bind(air);
-  vi.spyOn(air, "execute").mockImplementation((cmd) =>
-    execute({ ...cmd, end: to }),
-  );
-  registerWand({
-    rotateModeTap: { execute: vi.fn() },
-    finishRotateMode: { execute: vi.fn() },
-    rotateDebounce: new PressDebounces<PlayerId>(
-      BUILD_SPEC.rotateDebounceTicks,
-    ),
-    confirmBoxStep: { execute: vi.fn() },
-    aimHeight: new AimHeight(repo),
-    setPoint: new SetPoint(repo, blocks, feedback),
-    tapAir: air,
-    repo,
-    pressPasteAim: new PressPasteAim(
-      repo,
-      new PasteAt(
-        repo,
-        blocks,
-        feedback,
-        new FakeStructureStore(),
-        new FakeBuildPlayers(),
-      ),
-      feedback,
-      new ResolvePasteTarget(repo, new FakeGroundProbe()),
-    ),
-    menus,
-    aim: {
-      dimensionOf: () => nether,
-      aim: () => ({ ray: { origin: from, direction: { x: 1, y: 0, z: 0 } } }),
-    },
-    debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
-    pasteDebounce: new PressDebounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
-    pointOf: () =>
-      session.flow.kind === "point1" ? session.flow.cell : undefined,
-  });
-  const player = { id, isValid: true, isSneaking: false };
-  const event = { source: player, itemStack: { typeId: SELECTION_WAND_TYPE } };
-  engine.handlers.get("use")?.(event);
-  expect(session.flow.kind).toBe("endpoint");
-  expect(menus.showShapeMenu).not.toHaveBeenCalled();
-  for (const callback of engine.scheduled.splice(0)) callback();
-  expect(menus.showShapeMenu).toHaveBeenCalledExactlyOnceWith(player);
-  engine.tick = BUILD_SPEC.pressDebounceTicks;
-  engine.handlers.get("use")?.(event);
-  expect(engine.scheduled).toHaveLength(0);
-  session.setFlow(point1);
-  engine.tick += BUILD_SPEC.pressDebounceTicks;
-  engine.handlers.get("use")?.(event);
-  player.isValid = false;
-  for (const callback of engine.scheduled.splice(0)) callback();
-  expect(menus.showShapeMenu).toHaveBeenCalledTimes(1);
-});
+it.each([false, true])(
+  "opens the selection menu on a later air press (sneaking: %s)",
+  (sneaking) => {
+    const e = setupAir();
+    e.session.setFlow({
+      kind: "point1",
+      dimensionId: nether,
+      cell: { x: 4, y: 60, z: 0 },
+      material: blockStateOf("minecraft:stone"),
+    });
+    e.aim.aim = () => ({
+      ray: { origin: { x: 0, y: 60, z: 2 }, direction: { x: 1, y: 0, z: 0 } },
+    });
+    e.use();
+    expect(e.session.flow.kind).toBe("selected");
+    expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
+    expect(engine.scheduled).toHaveLength(0);
+    const selection = e.session.flow;
+    e.player.isSneaking = sneaking;
+    engine.tick += BUILD_SPEC.pressDebounceTicks;
+    e.use();
+    expect(e.menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(e.player);
+    expect(e.session.flow).toBe(selection);
+  },
+);
+
+it.each([
+  {
+    typeId: "minecraft:chest",
+    location: { x: 10, y: 2, z: 0 },
+    sneaking: false,
+  },
+  {
+    typeId: "minecraft:oak_door",
+    location: { x: 12, y: 2, z: 4 },
+    sneaking: true,
+  },
+])(
+  "cancels $typeId interaction and opens the selected menu once",
+  ({ typeId, location, sneaking }) => {
+    const e = setupAir();
+    e.use();
+    const selection = e.session.flow;
+    expect(selection.kind).toBe("selected");
+    e.player.isSneaking = sneaking;
+    e.aim.aim = () => ({
+      ray: { origin: { x: 0, y: 2, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+      block: { cell: location, face: "up" },
+    });
+    const event = {
+      player: e.player,
+      block: { typeId, location, dimension: e.player.dimension },
+      isFirstEvent: true,
+      cancel: false,
+    };
+    engine.handlers.get("interact")?.(event);
+    engine.handlers.get("interact")?.({ ...event, isFirstEvent: false });
+    engine.tick += BUILD_SPEC.pressDebounceTicks;
+    e.use();
+    expect(event.cancel).toBe(true);
+    expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
+    for (const callback of engine.scheduled.splice(0)) callback();
+    expect(e.menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(e.player);
+    expect(e.pointExecute).not.toHaveBeenCalled();
+    expect(e.session.flow).toBe(selection);
+  },
+);
 
 it.each(["block", "air"])(
   "confirms Copy after aiming from a %s tap without contents",
@@ -899,7 +895,7 @@ it("finishes on sneak and suppresses held repeats from opening utilities", () =>
   e.aim.aim = () => undefined;
   e.use();
   expect(e.finishExecute).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
-  expect(e.session.flow.kind).toBe("endpoint");
+  expect(e.session.flow.kind).toBe("selected");
   e.aim.aim = () => ({
     ray: { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
   });

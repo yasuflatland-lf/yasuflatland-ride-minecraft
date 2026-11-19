@@ -21,15 +21,16 @@ export class ChooseTerrain {
   execute({ playerId, op }: { playerId: PlayerId; op: TerrainOp }): void {
     const session = this.repo.getOrCreate(playerId);
     const flow = session.flow;
-    if (flow.kind !== "endpoint") {
+    if (flow.kind !== "selected") {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
-    if (op === "fillBelow" && !isFillMaterial(flow.material)) {
+    if (op === "fillBelow" && !isFillMaterial(flow.selection.material)) {
       this.feedback.showMessage(playerId, "fillMaterialRefused");
       return;
     }
-    const area = terrainAreaOf(flow.from, flow.to);
+    const { box } = flow.selection;
+    const area = terrainAreaOf(box.min, box.max);
     if (!fitsTerrainLimit(area)) {
       const box =
         op === "fillBelow"

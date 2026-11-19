@@ -5,8 +5,10 @@ import { ConfirmBoxStep } from "../../../src/application/build/confirmBoxStep";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
 import { setHeight } from "../../../src/domain/build/flow/flow";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -37,12 +39,15 @@ it("retains the choice facing through height changes and a different confirmatio
             .mockReturnValue(FACINGS[(FACINGS.indexOf(facing) + 1) % 4]),
         };
         session.setFlow({
-          kind: "endpoint",
+          kind: "selected",
           menuLevel: "root",
-          dimensionId: overworld,
+          selection: selectionOf(
+            overworld,
+            boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 2 }),
+            blockStateOf("minecraft:stone"),
+          ),
           from: { x: 0, y: 0, z: 0 },
           to: { x: 2, y: 0, z: 2 },
-          material: blockStateOf("minecraft:stone"),
         });
         new ChooseBoxStep(repo, actions, feedback, reader).execute({
           playerId,
