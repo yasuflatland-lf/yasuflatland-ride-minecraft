@@ -228,11 +228,16 @@ describe("scooter client references", () => {
       for (const name of [
         textureSet.color,
         textureSet.metalness_emissive_roughness,
-      ])
+      ]) {
+        if (typeof name !== "string") {
+          expect(name).toEqual([0, 0, 90]);
+          continue;
+        }
         expect(
           existsSync(`${RP}/textures/entity/yasu_ride/${name}.png`),
           name,
         ).toBe(true);
+      }
     }
   });
 
@@ -326,6 +331,7 @@ describe("scooter controllers", () => {
 import json
 from pathlib import Path
 full = built.full_geometry["minecraft:geometry"][0]
+assert full == json.loads(Path(".cache/generated/scooter_source.geo.json").read_text(encoding="utf-8"))
 p = load_tool("render_preview")
 merged, texture = p.load_scooter_model(Path("packs/yasu_ride_rp"), built)
 paint_regions = {r.name for r in built.paint.layout.regions}
