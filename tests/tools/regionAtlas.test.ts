@@ -470,6 +470,61 @@ assert outcome(m.pack) == outcome(reference_pack)`,
   );
 });
 
+const plainSlotFixture = `sys.path.insert(0, 'tests/tools/helpers')
+import reference_pack_shared
+
+registry = m.RegionRegistry()
+representatives = m.RegionRegistry()
+for name, width, height in (('a',5,10), ('b',11,9), ('c',1,11), ('d',9,5), ('e',1,1), ('f',1,1)):
+    region = m.Region(name, width, height, M.WOOD, lambda x,y: (0,0,0,255))
+    registry.register(region)
+    if name != 'f':
+        representatives.register(region)
+
+plain = m.pack(registry, gutter_px=0)
+def check_plain_slots(module):
+    layout = module.pack(registry, gutter_px=0, share_key=lambda region: region.material)
+    assert layout.size == plain.size
+    for region in registry.regions():
+        owner = 'e' if region.name == 'f' else region.name
+        assert layout._shared[region.name] == owner
+        assert layout.placement(region.name) == plain.placement(owner)`;
+
+it("uses the plain slots when packing representatives takes strictly more area", async () => {
+  expect(
+    await run(
+      `${plainSlotFixture}
+import math
+shared = m.pack(representatives, gutter_px=0)
+assert math.prod(plain.size) < math.prod(shared.size)
+check_plain_slots(m)
+check_plain_slots(reference_pack_shared)`,
+      "True",
+    ),
+  ).toBe(true);
+});
+
+it("falls back to the plain slots when packing representatives raises ValueError", async () => {
+  expect(
+    await run(
+      `${plainSlotFixture}
+from unittest.mock import patch
+for module in (m, reference_pack_shared):
+    original_pack = module._pack
+    rejected = []
+    def pack_plain_only(candidate, gutter_px, max_side):
+        if candidate is not registry:
+            rejected.append([r.name for r in candidate.regions()])
+            raise ValueError("Cannot pack representatives")
+        return original_pack(candidate, gutter_px, max_side)
+    with patch.object(module, '_pack', pack_plain_only):
+        check_plain_slots(module)
+    assert rejected == [[r.name for r in representatives.regions()]]`,
+      "True",
+    ),
+  ).toBe(true);
+});
+
 it("detects corrupted shared orientation and texels sampled by a bound face", async () => {
   expect(
     await run(
