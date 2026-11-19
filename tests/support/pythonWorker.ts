@@ -13,9 +13,28 @@ type Pending = {
   reject: (error: Error) => void;
 };
 
-export function startPythonWorker(): PythonWorker {
-  const child = spawn("python3", ["-I", "tests/support/python_worker.py"], {
+export function startPythonWorker({
+  hashSeed,
+}: {
+  hashSeed?: number;
+} = {}): PythonWorker {
+  // Isolated mode ignores PYTHONHASHSEED. Keep the seeded worker's import path
+  // isolated and discard other Python environment overrides.
+  const flags = hashSeed === undefined ? ["-I"] : ["-P", "-s"];
+  const env =
+    hashSeed === undefined
+      ? process.env
+      : {
+          ...Object.fromEntries(
+            Object.entries(process.env).filter(
+              ([name]) => !name.startsWith("PYTHON"),
+            ),
+          ),
+          PYTHONHASHSEED: String(hashSeed),
+        };
+  const child = spawn("python3", [...flags, "tests/support/python_worker.py"], {
     cwd: fileURLToPath(new URL("../../", import.meta.url)),
+    env,
     stdio: ["pipe", "pipe", "inherit"],
   });
   const pending: Pending[] = [];

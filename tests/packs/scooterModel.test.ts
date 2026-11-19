@@ -5,6 +5,7 @@ import {
   boneCubes,
   cubeBounds,
   loadScooterGeo,
+  runWithScooterBuild,
 } from "../tools/helpers/scooterGeo";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
@@ -116,16 +117,17 @@ let metadata: {
 const geometry = loadScooterGeo();
 const cubes = geometry.bones.flatMap((b) => b.cubes ?? []);
 
+// Metadata setup peaked at 12.029 s in three loaded runs. Four times that rounds up to 49 s.
 beforeAll(async () => {
   metadata = JSON.parse(
-    await python.run(`${setup}
+    await runWithScooterBuild(`${setup}
 merged=k.AreaCubes()
 for name in g.AREA_ORDER:
     merged.merge(load_tool('scooter_'+name).build())
 a=load_tool('scooter_atlas')
 regions=a.REGISTRY._regions
-fixed=g.pack_regions(r for r in regions.values() if r.material!=a.Material.PAINT)
-paint=g.pack_regions(r for r in regions.values() if r.material==a.Material.PAINT)
+fixed=built.fixed.layout
+paint=built.paint.layout
 for cs in merged.values():
     for cube in cs:
         for face in cube['uv'].values():
@@ -136,7 +138,7 @@ k.mirror_to_game(bones)
 print(json.dumps(g.rounded(dict(areas=g.AREA_ORDER,table=g.ASSEMBLIES,assemblies=merged.assemblies,budget=d.CUBE_BUDGET,ceiling=d.CUBE_BUDGET_CEILING,axis=d.STEERING_AXIS_DEGREES,allocation=d.AREA_CUBE_ALLOCATION))))
 `),
   );
-}, 60_000);
+}, 49_000);
 
 // Size of the generated geometry on main at the time of issue 1914.
 const MAIN_GEOMETRY_BYTES = 1_390_072;

@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { afterAll, expect, it } from "vitest";
-import { startPythonWorker } from "../support/pythonWorker";
+import { expect, it } from "vitest";
 
 const python = (script: string) =>
   execFileSync(
@@ -11,34 +10,21 @@ const python = (script: string) =>
       "-c",
       `
 import math, json, sys, unittest
+from pathlib import Path
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 d=load_tool('scooter_dims')
 t=load_tool('cube_tilt')
-k=load_tool('scooter_kit')
 a=load_tool('scooter_anim').build()['animations']
 def anim(name): return a['animation.yasu_ride.scooter.'+name]
+def source_bones():
+    geo=json.loads(Path('.cache/generated/scooter_source.geo.json').read_text())
+    return {b['name']:b for b in geo['bones']}
 ${script}
 `,
     ],
     { encoding: "utf8" },
   );
-
-const modelWorker = startPythonWorker();
-afterAll(() => modelWorker.close());
-
-const modelPython = (script: string) =>
-  modelWorker.run(`
-import math, json, sys, unittest
-from functools import cache
-sys.path.insert(0, 'tools')
-from tool_loader import load_tool
-d=load_tool('scooter_dims')
-t=load_tool('cube_tilt')
-g=load_tool('gen_scooter')
-if not hasattr(g.build, 'cache_info'): g.build=cache(g.build)
-${script}
-`);
 
 it("decomposes steering about the inclined axis with positive left steering", () => {
   python(`
@@ -72,11 +58,9 @@ assert unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTes
 `);
 });
 
-it("retains the wheel fold drop, clears fixed geometry and raises the stand feet", async () => {
-  await modelPython(`
-g=load_tool('gen_scooter')
-geo=g.build().full_geometry
-bones={b['name']:b for b in geo['minecraft:geometry'][0]['bones']}
+it("retains the wheel fold drop, clears fixed geometry and raises the stand feet", () => {
+  python(`
+bones=source_bones()
 low=min(p[1] for name in ('body','steer','headlights','tail_lights') for c in bones[name]['cubes'] for p in t.corners(c))
 threshold=max(d.AXLE_Y-p[0]-low for name in ('wheel_front','wheel_rear') for c in bones[name]['cubes'] for p in t.corners(c))
 assert threshold<d.FOLD_DROP
@@ -92,10 +76,10 @@ for cube in feet:
         assert q[1]+pivot[1]>1 and q[2]+pivot[2]<p[2]
 assert sum(len(b['cubes']) for b in bones.values())<=d.CUBE_BUDGET
 `);
-}, 90_000);
+});
 
-it("centres single-axis glow squares at the axles with radius-sized corners and lower-face locators", async () => {
-  await modelPython(`
+it("centres single-axis glow squares at the axles with radius-sized corners and lower-face locators", () => {
+  python(`
 glow=load_tool('scooter_glow').build()
 running=load_tool('scooter_running').build()
 assert not glow.assemblies
@@ -104,8 +88,7 @@ region=next(r for r in atlas.REGISTRY.regions() if r.name=='glow')
 assert region.material==atlas.Material.LENS
 for x in range(region.width):
     for y in range(region.height): assert region.pixel(x,y)==(80,170,255,255)
-geo=load_tool('gen_scooter').build().full_geometry
-bones={b['name']:b for b in geo['minecraft:geometry'][0]['bones']}
+bones=source_bones()
 for side,z in (('front',d.FRONT_AXLE_Z),('rear',d.REAR_AXLE_Z)):
     cubes=glow['glow_'+side]
     assert len(cubes)==d.GLOW_SEGMENTS
@@ -127,7 +110,6 @@ for side,z in (('front',d.FRONT_AXLE_Z),('rear',d.REAR_AXLE_Z)):
 
 it("generates reversible staged folds, wheel travel, lean, particles and per-clip engine sounds", () => {
   python(`
-from pathlib import Path
 output=load_tool('scooter_anim').build()
 assert json.loads(Path('packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json').read_text())==output
 assert output['format_version']=='1.8.0'
@@ -153,7 +135,6 @@ assert anim('lean')['bones']['root']['rotation']==[0,0,"query.property('yasu_rid
 assert anim('stand_up')['bones']['stand']['rotation']==[d.STAND_UP_DEGREES,0,0]
 assert anim('hover_glow')['animation_length']==d.GLOW_SECONDS
 assert anim('hover_glow')['particle_effects']=={'0.0':[{'effect':'hover_glow','locator':'hover_front'},{'effect':'hover_glow','locator':'hover_rear'}]}
-from pathlib import Path
 suv=json.loads(Path('tools/templates/suv.anim.json').read_text())['animations']
 sound=load_tool('scooter_sound')
 assert isinstance(sound.ENGINE_CLIPS, tuple)
@@ -227,7 +208,7 @@ for i,rate in enumerate(rates):
     assert clip['loop'] is True and clip['animation_length']==1.0
     keys=clip['particle_effects']
     times=[float(key) for key in keys]
-    assert len(times)==rate and times==sorted(times)
+    assert len(times)==(4, 6, 9, 12, 16, 20)[i] and times==sorted(times)
     assert times[0]==0 and times[-1]<1
     gaps=[b-a for a,b in zip(times,times[1:]+[1.0])]
     assert all(abs(gap-1/rate)<0.000002 for gap in gaps)

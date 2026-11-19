@@ -121,7 +121,7 @@ class Outputs:
 
 
 def texture_set_doc(color, mer, relief=None):
-    """Build a texture set with at most one relief map (Bedrock 1.16.100)."""
+    """Preserve a MER texture name or uniform [r, g, b], with at most one relief map."""
     textures = {"color": color, "metalness_emissive_roughness": mer}
     if relief is not None:
         kind, name = relief

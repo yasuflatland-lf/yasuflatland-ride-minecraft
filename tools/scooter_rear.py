@@ -369,7 +369,8 @@ def _lamp(result):
         for a, b in zip(rings, rings[1:]):
             for j in range(len(a)):
                 cube = _lamp_panel(a[j], a[(j+1) % len(a)], b[j], b[(j+1) % len(a)],
-                                   LAMP_SKIN, faces, kit._centroid(a+b), f"lamp_panel_{panel_index}")
+                                   LAMP_SKIN, faces, kit._centroid(a+b),
+                                   f"{faces['south'].region}_panel_{panel_index}")
                 panel_index += 1
                 if cube is not None:
                     cubes.append(cube)
@@ -392,7 +393,7 @@ def _lamp(result):
         result.add(bone, kit.quad(*corners, 0.015, faces, place([0, 0, 0]), LAMP_ASSEMBLY))
 
     hood = rings(LAMP_HOOD, points=8, n=2)
-    skin(hood, atlas.faces("lens_tail"), "tail_lights", LAMP_DOME_ASSEMBLY)
+    skin(hood, atlas.faces("lens_amber"), "tail_lights", LAMP_DOME_ASSEMBLY)
     base = [[place([0.5 * math.cos(j*math.pi/4), y, 0.2 + 0.48 * math.sin(j*math.pi/4)])
              for j in range(8)] for y in (0.66, 0.8)]
     skin(base, chrome, assembly=LAMP_DOME_ASSEMBLY)

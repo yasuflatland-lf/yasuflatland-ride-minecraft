@@ -10,19 +10,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 texture_io = load_tool("texture_io")
+mer = load_tool("mer")
+
+
+@dataclass(frozen=True)
+class UniformMer:
+    value: "mer.Mer"
 
 
 @dataclass(frozen=True)
 class Variant:
     name: str
     color: bytes
-    mer: bytes | None
+    mer: bytes | UniformMer | None
 
 
 @dataclass(frozen=True)
 class VariantTextures:
     color_of: Mapping[str, str]
-    mer_of: Mapping[str, str]
+    mer_of: Mapping[str, str | list[int]]
     written: tuple[str, ...] = ()
 
     def stored(self) -> tuple[str, ...]:
@@ -38,28 +44,30 @@ def write_variants(outputs, directory: Path, kind: str, width: int, height: int,
         raise ValueError("Variant names must be unique")
     for variant in variants:
         for label, data in (("color", variant.color), ("mer", variant.mer)):
-            if data is not None and len(data) != width * height * 4:
+            if isinstance(data, bytes) and len(data) != width * height * 4:
                 raise ValueError(f"{variant.name} {label} is not {width}x{height} RGBA")
 
     mers = {variant.mer for variant in variants if variant.mer is not None}
     single_mer = len(mers) == 1 and all(variant.mer is not None for variant in variants)
 
     color_of: dict[str, str] = {}
-    mer_of: dict[str, str] = {}
-    color_by_pair: dict[tuple[bytes, bytes | None], str] = {}
+    mer_of: dict[str, str | list[int]] = {}
+    color_by_pair: dict[tuple[bytes, bytes | UniformMer | None], str] = {}
     mer_by_content: dict[bytes, str] = {}
     planned: list[tuple[str, bytes]] = []
-    sets: list[tuple[str, str]] = []
+    sets: list[tuple[str, str | list[int]]] = []
 
     def store(name: str, data: bytes) -> None:
         planned.append((name, data))
 
     for variant in variants:
-        if variant.mer is not None and variant.mer not in mer_by_content:
+        if isinstance(variant.mer, bytes) and variant.mer not in mer_by_content:
             mer_name = f"{kind}_mer" if single_mer else f"{variant.name}_mer"
             mer_by_content[variant.mer] = mer_name
             store(mer_name, variant.mer)
-        if variant.mer is not None:
+        if isinstance(variant.mer, UniformMer):
+            mer_of[variant.name] = list(variant.mer.value.rgba()[:3])
+        elif variant.mer is not None:
             mer_of[variant.name] = mer_by_content[variant.mer]
         pair = (variant.color, variant.mer)
         if pair not in color_by_pair:

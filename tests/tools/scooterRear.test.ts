@@ -110,6 +110,25 @@ assert abs(lamp_bottom-max(p[1] for p in top))<0.2
 `);
   });
 
+  it("textures the dome lamp with the amber lens and the lamp ring with the red lens", async () => {
+    await python.run(`import sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+r=load_tool('scooter_rear')
+a=load_tool('scooter_atlas')
+result=r.kit.AreaCubes()
+r._lamp(result)
+regions=lambda cubes:{c['uv']['south'].region for c in cubes if any(c is x for x in result['tail_lights'])}
+dome=regions(result.assemblies[r.LAMP_DOME_ASSEMBLY])
+ring=regions(result.assemblies[r.LAMP_ASSEMBLY])
+assert dome and all(n.startswith('lens_amber_panel_') for n in dome)
+assert ring and all(n.startswith(('lens_tail_panel_','lens_tail_glow')) for n in ring)
+t=load_tool('scooter_textures')
+assert all(t.is_lit_region(n) for n in dome|ring)
+assert not t.is_lit_region('chrome_panel_3') and not t.is_lit_region('lens_tail_housing')
+`);
+  });
+
   it("closes the chrome bezel around the lens with uniform superellipse coverage", async () => {
     await python.run(`import math, sys
 sys.path.insert(0, 'tools')
