@@ -16,6 +16,19 @@ export const DOCK = Object.freeze({
   stick: 0.1,
 });
 
+export class StillTimer {
+  private count = 0;
+
+  tick(still: boolean): boolean {
+    this.count = still ? Math.min(this.count + 1, DOCK.ticks) : 0;
+    return this.count >= DOCK.ticks;
+  }
+
+  reset(): void {
+    this.count = 0;
+  }
+}
+
 export function pushesStick(input: RawInput | undefined): boolean {
   return (
     input !== undefined &&
