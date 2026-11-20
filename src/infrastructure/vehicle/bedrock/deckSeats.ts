@@ -132,28 +132,34 @@ export class DeckSeats {
         seat.remove();
         seat = undefined;
       }
-      if (!seat) {
-        seat = vehicle.dimension.spawnEntity(DECK_SEAT_TYPE, {
-          x: at.x,
-          y: at.y,
-          z: at.z,
-        });
-        seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, vehicleId);
-        seat.setRotation({ x: 0, y: yaw });
-        if (at.compact) seat.triggerEvent(DECK_SEAT_COMPACT_EVENT);
-        if (at.driver) seat.triggerEvent(DECK_SEAT_DRIVER_EVENT);
-        ids[index] = seat.id;
-      } else if (
-        Math.hypot(
-          seat.location.x - at.x,
-          seat.location.y - at.y,
-          seat.location.z - at.z,
-        ) > TELEPORT_TOLERANCE
-      ) {
-        seat.teleport(
-          { x: at.x, y: at.y, z: at.z },
-          { rotation: { x: 0, y: yaw } },
-        );
+      try {
+        if (!seat) {
+          seat = vehicle.dimension.spawnEntity(DECK_SEAT_TYPE, {
+            x: at.x,
+            y: at.y,
+            z: at.z,
+          });
+          ids[index] = seat.id;
+          seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, vehicleId);
+          seat.setRotation({ x: 0, y: yaw });
+          if (at.compact) seat.triggerEvent(DECK_SEAT_COMPACT_EVENT);
+          if (at.driver) seat.triggerEvent(DECK_SEAT_DRIVER_EVENT);
+        } else if (
+          Math.hypot(
+            seat.location.x - at.x,
+            seat.location.y - at.y,
+            seat.location.z - at.z,
+          ) > TELEPORT_TOLERANCE
+        ) {
+          seat.teleport(
+            { x: at.x, y: at.y, z: at.z },
+            { rotation: { x: 0, y: yaw } },
+          );
+        }
+      } catch {
+        // The spot is in an unloaded chunk; the next tick tries again, and the rest of the
+        // vehicle's tick goes on.
+        if (!seat) ids[index] = null;
       }
     }
     ids.length = wanted.length;

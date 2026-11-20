@@ -231,6 +231,85 @@ it("restores seat ownership, replaces missing seats, moves drifted seats and cle
   );
 });
 
+it("skips a deck seat spot in an unloaded chunk without throwing, keeps the other seats, and spawns it once it loads", () => {
+  const { boat, car, dimension, entities } = fixture();
+  const seats = new DeckSeats(isStandableRoomBlock);
+  const vehicleId = asVehicleId(car.id);
+  const spots = [0, 1, 2].map((x) => ({ x, y: 0, z: 0 }));
+  const spawn = dimension.spawnEntity.getMockImplementation();
+  if (!spawn) throw new Error("missing spawn implementation");
+  let unloaded = true;
+  dimension.spawnEntity.mockImplementation((type, at) => {
+    if (unloaded && at.x === 1) throw new Error("LocationInUnloadedChunkError");
+    return spawn(type, at);
+  });
+
+  expect(() => seats.keep(vehicleId, car, spots, 0)).not.toThrow();
+  const [first, missing, last] = JSON.parse(
+    String(boat.saved.get(DECK_SEATS_PROPERTY)),
+  );
+  expect(missing).toBeNull();
+  expect(entities.get(first)?.location).toEqual(spots[0]);
+  expect(entities.get(last)?.location).toEqual(spots[2]);
+
+  unloaded = false;
+  dimension.spawnEntity.mockClear();
+  seats.keep(vehicleId, car, spots, 0);
+  expect(dimension.spawnEntity).toHaveBeenCalledExactlyOnceWith(
+    DECK_SEAT_TYPE,
+    spots[1],
+  );
+  const spawned = dimension.spawnEntity.mock.results[0]?.value;
+  expect(boat.saved.get(DECK_SEATS_PROPERTY)).toBe(
+    JSON.stringify([first, spawned.id, last]),
+  );
+});
+
+it("keeps a drifted deck seat when teleport fails and moves it on the next tick", () => {
+  const { f, seats, seat, vehicleId, spot } = seatedOnce();
+  const moved = { x: 1, y: spot.y, z: spot.z };
+  seat.teleport.mockImplementationOnce(() => {
+    throw new Error("LocationInUnloadedChunkError");
+  });
+
+  expect(() => seats.keep(vehicleId, f.car, [moved], 0)).not.toThrow();
+  expect(seat.location).toEqual({ x: spot.x, y: spot.y, z: spot.z });
+  expect(f.boat.saved.get(DECK_SEATS_PROPERTY)).toBe(JSON.stringify([seat.id]));
+
+  seats.keep(vehicleId, f.car, [moved], 0);
+  expect(seat.teleport).toHaveBeenCalledTimes(2);
+  expect(seat.location).toEqual(moved);
+  expect(f.dimension.spawnEntity).toHaveBeenCalledOnce();
+  expect(f.boat.saved.get(DECK_SEATS_PROPERTY)).toBe(JSON.stringify([seat.id]));
+});
+
+it("saves a spawned deck seat id when setting its rotation fails", () => {
+  const { boat, car, dimension } = fixture();
+  const seats = new DeckSeats(isStandableRoomBlock);
+  const vehicleId = asVehicleId(car.id);
+  const spot = { x: 0, y: 0, z: 0 };
+  const spawn = dimension.spawnEntity.getMockImplementation();
+  if (!spawn) throw new Error("missing spawn implementation");
+  dimension.spawnEntity.mockImplementationOnce((type, at) => {
+    const seat = spawn(type, at);
+    seat.setRotation.mockImplementationOnce(() => {
+      throw new Error("LocationInUnloadedChunkError");
+    });
+    return seat;
+  });
+
+  expect(() => seats.keep(vehicleId, car, [spot], 0)).not.toThrow();
+  const spawned = dimension.spawnEntity.mock.results[0]?.value;
+  expect(boat.saved.get(DECK_SEATS_PROPERTY)).toBe(
+    JSON.stringify([spawned.id]),
+  );
+
+  const moved = { ...spot, x: 1 };
+  seats.keep(vehicleId, car, [moved], 0);
+  expect(dimension.spawnEntity).toHaveBeenCalledOnce();
+  expect(spawned.location).toEqual(moved);
+});
+
 it("boards occupied deck seats in index order across gaps", () => {
   fc.assert(
     fc.property(fc.subarray([0, 1, 2, 3]), (occupied) => {
