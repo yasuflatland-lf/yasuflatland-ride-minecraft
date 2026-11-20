@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
+import { readLang } from "../support/lang";
 
 const CHAIR = CHAIR_KINDS.low_chair.typeId;
 const ITEM = CHAIR_KINDS.low_chair.itemId;
@@ -51,12 +52,6 @@ function corners(cube: Cube): [number, number, number][] {
   });
 }
 
-const langValue = (locale: string, key: string): string | undefined =>
-  readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
-    .split(/\r?\n/)
-    .find((line) => line.startsWith(`${key}=`))
-    ?.slice(key.length + 1);
-
 describe("low chair entity (ADR 0122)", () => {
   const entity = readJson(`${BP}/entities/yasu_ride/low_chair.se.json`)[
     "minecraft:entity"
@@ -80,8 +75,12 @@ describe("low chair entity (ADR 0122)", () => {
       crouching_skip_interact: true,
     });
     expect(rideable.seats).toHaveLength(1);
-    expect(langValue("en_US", rideable.interact_text)).toBe("Sit");
-    expect(langValue("ja_JP", rideable.interact_text)).toBeTruthy();
+    expect(readLang(`${RP}/texts/en_US.lang`).get(rideable.interact_text)).toBe(
+      "Sit",
+    );
+    expect(
+      readLang(`${RP}/texts/ja_JP.lang`).get(rideable.interact_text),
+    ).toBeTruthy();
   });
 
   it("puts the seat about as far below the sling top as the camper's cushions sit above theirs", () => {
@@ -174,16 +173,11 @@ describe("low chair item (ADR 0122)", () => {
     ]);
   });
 
-  it.each(["en_US", "ja_JP"])(
-    "names the item, the entity, and the take-back hint in %s",
-    (locale) => {
-      for (const key of [
-        `item.${ITEM}.name`,
-        `entity.${CHAIR}.name`,
+  it.each(["en_US", "ja_JP"])("formats the take-back hint in %s", (locale) => {
+    expect(
+      readLang(`${RP}/texts/${locale}.lang`).get(
         CHAIR_KINDS.low_chair.hitsHint,
-      ])
-        expect(langValue(locale, key), key).toBeTruthy();
-      expect(langValue(locale, CHAIR_KINDS.low_chair.hitsHint)).toContain("%s");
-    },
-  );
+      ),
+    ).toContain("%s");
+  });
 });

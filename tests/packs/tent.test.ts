@@ -26,6 +26,7 @@ import {
   TENT_WALL_BLOCK,
 } from "../../src/infrastructure/camp/identifiers";
 import { paintEvent } from "../../src/infrastructure/shared/dyes";
+import { readLang } from "../support/lang";
 
 const LEAN_WIDTH = TENT_SPEC.leanWidth * 16;
 const LEAN_DEPTH = TENT_SPEC.leanDepth * 16;
@@ -838,17 +839,10 @@ describe("tent item", () => {
       },
     });
   });
-  it.each(["en_US", "ja_JP"])("names the entity and item in %s", (locale) => {
-    const lines = readFileSync(`${RP}/texts/${locale}.lang`, "utf8").split(
-      /\r?\n/,
-    );
-    for (const key of [`item.${TENT_ITEM}.name`, `entity.${TENT_TYPE}.name`]) {
-      const value = lines
-        .find((l) => l.startsWith(`${key}=`))
-        ?.slice(key.length + 1);
-      expect(value).toBeTruthy();
-      if (locale === "en_US") expect(value).toBe("Tent");
-    }
+  it("names the tent in English", () => {
+    const lang = readLang(`${RP}/texts/en_US.lang`);
+    expect(lang.get(`item.${TENT_ITEM}.name`)).toBe("Tent");
+    expect(lang.get(`entity.${TENT_TYPE}.name`)).toBe("Tent");
   });
 });
 

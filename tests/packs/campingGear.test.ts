@@ -25,6 +25,7 @@ import {
   ROOM_OPEN_STATE,
 } from "../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { defined } from "../support/defined";
+import { readLang } from "../support/lang";
 import { readTableRows } from "../support/markdown";
 import { startPythonWorker } from "../support/pythonWorker";
 import { RESORT_GEAR } from "../support/resortGear";
@@ -626,19 +627,6 @@ function expectedDecor(g: Gear) {
   };
 }
 
-function langValues(locale: string): Map<string, string[]> {
-  const values = new Map<string, string[]>();
-  for (const line of readFileSync(`${RP}/texts/${locale}.lang`, "utf8").split(
-    "\n",
-  )) {
-    const at = line.indexOf("=");
-    if (at < 0 || line.startsWith("#")) continue;
-    const key = line.slice(0, at);
-    values.set(key, [...(values.get(key) ?? []), line.slice(at + 1)]);
-  }
-  return values;
-}
-
 describe("camping gear blocks and items (ADR 0093)", () => {
   it("defines one decor block per gear with no collision, a selection box over its cell or its hanging model, and the decor component (ADR 0093, 0102, 0105)", () => {
     for (const g of SPEC) {
@@ -1119,7 +1107,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
   it.each(["en_US", "ja_JP"])(
     "names the group, every gear item, and every decor block in %s",
     (locale) => {
-      const values = langValues(locale);
+      const values = readLang(`${RP}/texts/${locale}.lang`);
       const name = (g: Gear) => (locale === "en_US" ? g.name_en : g.name_ja);
       const expected = new Map<string, string>([
         [
@@ -1146,7 +1134,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       expect(expected.size).toBe(2 + 2 * SPEC.length);
       expect(values.has("yasu_ride:camping_gear")).toBe(false);
       for (const [key, value] of expected)
-        expect(values.get(key), key).toEqual([value]);
+        expect(values.get(key), key).toBe(value);
     },
   );
 });

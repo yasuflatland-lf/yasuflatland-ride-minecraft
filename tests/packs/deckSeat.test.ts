@@ -1,10 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-
 import {
   DECK_SEAT_COMPACT_EVENT,
   DECK_SEAT_DRIVER_EVENT,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { readLang } from "../support/lang";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 
@@ -12,13 +12,6 @@ const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
 const entityFile = read(`${BP}/entities/yasu_ride/deck_seat.se.json`);
 const entity = entityFile["minecraft:entity"];
-
-function langValues(locale: string, key: string): string[] {
-  return readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
-    .split(/\r?\n/)
-    .filter((line) => line.startsWith(`${key}=`))
-    .map((line) => line.slice(line.indexOf("=") + 1));
-}
 
 describe("Boat deck seat (ADR 0063)", () => {
   it("is summonable but not spawnable and excluded from the vehicle family", () => {
@@ -103,9 +96,11 @@ describe("Boat deck seat (ADR 0063)", () => {
     ["en_US", "Drive"],
     ["ja_JP", "\u904b\u8ee2\u3059\u308b"],
   ])("labels the driver seat's interact button in %s", (locale, label) => {
-    expect(langValues(locale, "action.interact.yasu_ride.drive")).toEqual([
-      label,
-    ]);
+    expect(
+      readLang(`${RP}/texts/${locale}.lang`).get(
+        "action.interact.yasu_ride.drive",
+      ),
+    ).toBe(label);
   });
 
   it("keeps enough health for a mounted player", () => {
@@ -146,11 +141,10 @@ describe("Boat deck seat (ADR 0063)", () => {
     expect(geometry.bones).toEqual([{ name: "root", pivot: [0, 0, 0] }]);
   });
 
-  it.each(["en_US", "ja_JP"])("names the entity in %s", (locale) => {
-    const names = langValues(locale, "entity.yasu_ride:deck_seat.name");
-    expect(names).toHaveLength(1);
-    expect(names[0]?.trim()).not.toBe("");
-    if (locale === "en_US") expect(names[0]).toBe("Boat Seat");
+  it("names the deck seat Boat Seat in English", () => {
+    expect(
+      readLang(`${RP}/texts/en_US.lang`).get("entity.yasu_ride:deck_seat.name"),
+    ).toBe("Boat Seat");
   });
 
   it.each([
@@ -160,6 +154,6 @@ describe("Boat deck seat (ADR 0063)", () => {
   ])("labels the seat's interact button in %s", (locale, label) => {
     const key = entity.components["minecraft:rideable"].interact_text;
     expect(key).toMatch(/^action\.interact\.yasu_ride\.[a-z_]+$/);
-    expect(langValues(locale, key)).toEqual([label]);
+    expect(readLang(`${RP}/texts/${locale}.lang`).get(key)).toBe(label);
   });
 });

@@ -147,12 +147,10 @@ describe("Sofa (Single) pack contract", () => {
   });
 
   it.each(["en_US", "ja_JP"])(
-    "localizes item, entity, sitting and all shared furniture hints in %s",
+    "localizes sitting and the shared furniture hints in %s",
     (locale) => {
       const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
       for (const key of [
-        "item.yasu_ride:sofa_single_item.name",
-        "entity.yasu_ride:sofa_single.name",
         "action.interact.yasu_ride.sit",
         ...[
           "blocked",

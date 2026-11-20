@@ -278,7 +278,7 @@ describe("Gas Lantern item and ground entity", () => {
     });
   });
 
-  it("uses the outdoor icon size and atlas entry and translates all four UI keys", () => {
+  it("uses the outdoor icon size and atlas entry and translates the interaction and hit hint", () => {
     const icon = readRgbaPng(
       `${rp}/textures/items/yasu_ride/gas_lantern_item.png`,
     );
@@ -297,8 +297,6 @@ describe("Gas Lantern item and ground entity", () => {
     for (const locale of ["en_US", "ja_JP"]) {
       const lang = readFileSync(`${rp}/texts/${locale}.lang`, "utf8");
       for (const key of [
-        "item.yasu_ride:gas_lantern_item.name",
-        "entity.yasu_ride:gas_lantern.name",
         "yasu_ride.hint.gas_lantern_hits",
         "action.interact.yasu_ride.gas_lantern",
       ]) {

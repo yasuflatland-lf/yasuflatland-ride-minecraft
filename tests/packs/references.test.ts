@@ -15,6 +15,7 @@ import {
   MONITOR_TOOL_TYPES,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { readLang } from "../support/lang";
 import { type Json, jsonFileEntries, jsonFiles } from "../support/packFiles";
 
 import { expectUniqueTextureBindings } from "../support/textureBindings";
@@ -24,7 +25,9 @@ const RP = join(REPO_ROOT, "packs/yasu_ride_rp");
 const BP = join(REPO_ROOT, "packs/yasu_ride_bp");
 // Textures the game ships, so the pack has no PNG for them.
 const VANILLA_TEXTURES = new Set(["textures/particle/particles"]);
-const LOCALES = ["en_US", "ja_JP"];
+const locales: string[] = JSON.parse(
+  readFileSync(join(RP, "texts/languages.json"), "utf8"),
+);
 
 function definedKeys(dir: string, key: string): Set<string> {
   return new Set(
@@ -115,13 +118,6 @@ const bpItems = jsonFiles(join(BP, "items")).map(
       components: { "minecraft:icon"?: string | { texture?: string } };
     },
 );
-const lang = (locale: string): Set<string> =>
-  new Set(
-    readFileSync(join(RP, `texts/${locale}.lang`), "utf8")
-      .split("\n")
-      .filter((line) => line.includes("=") && !line.startsWith("##"))
-      .map((line) => line.slice(0, line.indexOf("="))),
-  );
 
 it("covers at least 25 client entities for texture bindings", () => {
   expect(clientEntities.length).toBeGreaterThanOrEqual(25);
@@ -187,10 +183,13 @@ describe("Resource Pack and Behavior Pack references", () => {
       ...bpEntityIds.map((id) => `entity.${id}.name`),
       ...bpItems.map((i) => `item.${i.description.identifier}.name`),
     ];
-    for (const locale of LOCALES) {
-      const defined = lang(locale);
+    expect(bpEntityIds.length).toBeGreaterThanOrEqual(25);
+    expect(bpItems.length).toBeGreaterThanOrEqual(53);
+    expect(locales).toEqual(expect.arrayContaining(["en_US", "ja_JP"]));
+    for (const locale of locales) {
+      const defined = readLang(join(RP, `texts/${locale}.lang`));
       expect(
-        keys.filter((k) => !defined.has(k)),
+        keys.filter((key) => !defined.get(key)?.trim()),
         locale,
       ).toEqual([]);
     }

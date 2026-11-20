@@ -349,8 +349,6 @@ describe("Toilet pack contract", () => {
     for (const locale of ["en_US", "ja_JP"]) {
       const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
       for (const key of [
-        "item.yasu_ride:toilet_item.name",
-        "entity.yasu_ride:toilet.name",
         "yasu_ride.toilet.occupied",
         "yasu_ride.toilet.flushing",
       ])

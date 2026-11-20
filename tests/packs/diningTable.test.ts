@@ -217,8 +217,6 @@ it("links the client, render controller, item icon, recipe and translations", ()
   for (const locale of ["en_US", "ja_JP"]) {
     const lang = readFileSync(`${RP}texts/${locale}.lang`, "utf8");
     for (const key of [
-      "item.yasu_ride:dining_table_item.name",
-      "entity.yasu_ride:dining_table.name",
       ...["full", "overlap", "too_big"].map(
         (reason) => `yasu_ride.dining_table_top_${reason}`,
       ),

@@ -159,12 +159,10 @@ describe("Sofa (Double) pack contract", () => {
   });
 
   it.each(["en_US", "ja_JP"])(
-    "localizes item, entity, sitting and all shared furniture hints in %s",
+    "localizes sitting and the shared furniture hints in %s",
     (locale) => {
       const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
       for (const key of [
-        "item.yasu_ride:sofa_double_item.name",
-        "entity.yasu_ride:sofa_double.name",
         "action.interact.yasu_ride.sit",
         ...[
           "blocked",

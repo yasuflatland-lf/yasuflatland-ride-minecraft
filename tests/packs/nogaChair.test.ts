@@ -6,6 +6,7 @@ import {
   CHAIR_KIND_BY_TYPE,
   CHAIR_KINDS,
 } from "../../src/infrastructure/camp/identifiers";
+import { readLang } from "../support/lang";
 import { assertOneAxis } from "./oneAxis";
 
 const BP = "packs/yasu_ride_bp";
@@ -47,12 +48,6 @@ const topCenter = (c: Cube): Vec => {
 const entity = read(`${BP}/entities/yasu_ride/noga_chair.se.json`)[
   "minecraft:entity"
 ];
-const lang = (locale: string, key: string) =>
-  readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
-    .split(/\r?\n/)
-    .find((line) => line.startsWith(`${key}=`))
-    ?.slice(key.length + 1);
-
 // Game convention: x and z have reversed signs, with x then y then z (ADR 0167).
 function corners(cube: Cube): Vec[] {
   const [rx, ry, rz] = (cube.rotation ?? [0, 0, 0]).map(
@@ -373,18 +368,11 @@ describe("Noga Chair (ADR 0169)", () => {
       );
   });
 
-  it.each(["en_US", "ja_JP"])(
-    "names the chair and its fold hint in %s",
-    (locale) => {
-      for (const key of [
-        `entity.${profile.typeId}.name`,
-        `item.${profile.itemId}.name`,
-        "action.interact.yasu_ride.sit",
-      ])
-        expect(lang(locale, key)).toBeTruthy();
-      expect(lang(locale, profile.hitsHint)).toContain("%s");
-      if (locale === "en_US")
-        expect(lang(locale, `item.${profile.itemId}.name`)).toBe("Noga Chair");
-    },
-  );
+  it.each(["en_US", "ja_JP"])("formats the fold hint in %s", (locale) => {
+    const lang = readLang(`${RP}/texts/${locale}.lang`);
+    expect(lang.get("action.interact.yasu_ride.sit")).toBeTruthy();
+    expect(lang.get(profile.hitsHint)).toContain("%s");
+    if (locale === "en_US")
+      expect(lang.get(`item.${profile.itemId}.name`)).toBe("Noga Chair");
+  });
 });
