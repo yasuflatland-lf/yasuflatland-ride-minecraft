@@ -8,10 +8,7 @@ import {
   CAMPER_SPEC,
   PX_PER_BLOCK,
 } from "../../../src/domain/vehicle/kinds/camper/spec";
-import {
-  type Bone as GeometryBone,
-  turnedCorners,
-} from "../../support/geometry";
+import { turnedCorners } from "../../support/geometry";
 import { areaCubes, areaRanges, bones, type Cube, end } from "./helpers";
 
 const width = CAMPER_SPEC.bodyHalfWidth * PX_PER_BLOCK;
@@ -93,11 +90,7 @@ function wellFormed(c: Cube) {
 const shape = (c: Cube) =>
   JSON.stringify([c.origin, c.size, c.rotation ?? [0, 0, 0]]);
 type Entry = ReturnType<typeof areaCubes>[number];
-const corners = ({ owner, cube }: Entry) =>
-  turnedCorners(
-    owner as GeometryBone,
-    cube as NonNullable<GeometryBone["cubes"]>[number],
-  );
+const corners = ({ owner, cube }: Entry) => turnedCorners(owner, cube);
 function inside(entry: Entry, z: Zone) {
   // Only absorb floating-point error at a face exactly on the boundary.
   const eps = 1e-9;

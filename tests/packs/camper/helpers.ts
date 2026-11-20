@@ -5,6 +5,7 @@ import {
   DECOR_SPOTS,
   type DecorSlot,
 } from "../../../src/domain/vehicle/kinds/camper/furniture";
+import type { Cube as GeometryCube, Triple } from "../../support/geometry";
 import { readRgbaPng } from "../../support/png";
 import type { PythonWorker } from "../../support/pythonWorker";
 export const RP = "packs/yasu_ride_rp";
@@ -12,18 +13,14 @@ const geometryText = readFileSync(
   `${RP}/models/entity/yasu_ride/camper.geo.json`,
   "utf8",
 );
-export interface Cube {
-  origin: number[];
-  size: number[];
-  pivot?: number[];
-  rotation?: number[];
+export interface Cube extends GeometryCube {
   uv: Record<string, { uv: number[]; uv_size: number[] }>;
 }
 export interface Bone {
   name: string;
   parent?: string;
-  pivot: number[];
-  rotation?: number[];
+  pivot: Triple;
+  rotation?: Triple;
   cubes?: Cube[];
   locators?: Record<string, number[]>;
 }

@@ -46,9 +46,11 @@ function pose(cubes: Cube[], offset: number[]): Cube[] {
   // As in suvFold, positive animation x adds to geometry x, toward the aisle.
   return cubes.map((cube) => ({
     ...cube,
-    origin: cube.origin.map(
-      (value, axis) => value + defined(offset[axis], "offset"),
-    ),
+    origin: [
+      cube.origin[0] + defined(offset[0], "x offset"),
+      cube.origin[1] + defined(offset[1], "y offset"),
+      cube.origin[2] + defined(offset[2], "z offset"),
+    ],
   }));
 }
 
