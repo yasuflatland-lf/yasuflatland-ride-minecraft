@@ -1,5 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
+import { length3 } from "../../shared/vec";
 import { dominantHorizontalAxis } from "../axis";
 import { BUILD_SPEC } from "../spec";
 
@@ -17,10 +18,7 @@ export function virtualEndPoint(point1: Cell, ray: Ray): Cell | undefined {
   const axis = dominantHorizontalAxis(direction);
   if (Math.abs(direction[axis]) < PLANE_PARALLEL_EPSILON) return undefined;
   const t = (point1[axis] + 0.5 - origin[axis]) / direction[axis];
-  if (
-    t < 0 ||
-    t * Math.hypot(direction.x, direction.y, direction.z) > BUILD_SPEC.reach
-  ) {
+  if (t < 0 || t * length3(direction) > BUILD_SPEC.reach) {
     return undefined;
   }
   return {

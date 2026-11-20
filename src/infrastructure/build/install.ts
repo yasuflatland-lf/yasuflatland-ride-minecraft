@@ -35,8 +35,8 @@ import { TapAir } from "../../application/build/tapAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
-import { PressDebounces } from "../../domain/build/pressDebounce";
 import { BUILD_SPEC } from "../../domain/build/spec";
+import { Debounces } from "../../domain/shared/debounce";
 import type { PlayerId } from "../../domain/shared/ids";
 import { consoleLogger } from "../shared/consoleLogger";
 import { BedrockAimReader } from "./bedrock/bedrockAimReader";
@@ -80,16 +80,12 @@ export function installBuild(deps: {
   const aim = new TestAimReader(new BedrockAimReader());
   const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
   const cancel = new CancelFlow(repo);
-  const pasteDebounce = new PressDebounces<PlayerId>(
-    BUILD_SPEC.pasteRepeatTicks,
-  );
-  const undoDebounce = new PressDebounces<PlayerId>(
-    BUILD_SPEC.pasteRepeatTicks,
-  );
-  const rotateDebounce = new PressDebounces<PlayerId>(
+  const pasteDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
+  const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
+  const rotateDebounce = new Debounces<PlayerId>(
     BUILD_SPEC.rotateDebounceTicks,
   );
-  const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
+  const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const endSession = new EndBuildSession(repo, ports.structures);
   const modes = new UpdateBuildModes(
     repo,

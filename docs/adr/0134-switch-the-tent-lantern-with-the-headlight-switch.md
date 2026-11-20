@@ -30,7 +30,7 @@ the tent stays out of scope.
   every repeat of a long press included, so the switch never also opens a flap or starts
   a sleep, as in the camper room (0115). Entity presses keep their default
   (`claimsEntityPress` is false), so a Low Chair can still be pressed.
-- **One cooldown per tent.** `SwitchLantern` keeps one `SwitchCooldown` per tent, shared by
+- **One cooldown per tent.** `SwitchLantern` keeps one `Debounce` per tent, shared by
   everyone in it, with the 10-tick cooldown of 0024. A cooldown idle for its full length
   is dropped, which behaves exactly like a fresh one.
 - **The lantern cell.** The front-room ceiling cell in front of the bedroom door (local

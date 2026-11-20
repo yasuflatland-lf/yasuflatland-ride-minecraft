@@ -2,6 +2,7 @@ import type { Entity } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { asDimensionId, type VehicleId } from "../../../domain/shared/ids";
 import type { LightLevel } from "../../../domain/shared/laidCells";
+import { ticks } from "../../../domain/shared/ticks";
 import {
   FULL_LIGHT_LEVEL,
   type LitCell,
@@ -26,7 +27,7 @@ export const HEADLIGHT_CELL_CODEC: CellCodec<LightLevel> = lightCellCodec(
 
 // Each laid cell costs one getBlock to recheck, so read them once a second per
 // vehicle and keep unchanged beams off the per-tick block-read path (ADR 0096).
-export const HEADLIGHT_RECHECK_TICKS = 20;
+export const HEADLIGHT_RECHECK_TICKS = ticks(20);
 
 export class HeadlightBlocks {
   private readonly layer = new CellLayer<VehicleId, LightLevel>(

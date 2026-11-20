@@ -10,9 +10,9 @@ import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerPasteControls } from "../../../src/infrastructure/build/bedrock/handlers/pasteControls";
 import { registerTestPress } from "../../../src/infrastructure/build/bedrock/handlers/testPress";
@@ -108,9 +108,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   );
   const undoEdit = new UndoEdit(repo, feedback, jobs, blocks, structures, log);
   const undo = vi.spyOn(undoEdit, "execute");
-  const undoDebounce = new PressDebounces<PlayerId>(
-    BUILD_SPEC.pasteRepeatTicks,
-  );
+  const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const refresh = vi.fn();
   const aim = {
     dimensionOf: () => nether,
@@ -119,12 +117,10 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
       block: { cell, face: "up" as const },
     })),
   };
-  const rotateDebounce = new PressDebounces<PlayerId>(
+  const rotateDebounce = new Debounces<PlayerId>(
     BUILD_SPEC.rotateDebounceTicks,
   );
-  const pasteDebounce = new PressDebounces<PlayerId>(
-    BUILD_SPEC.pasteRepeatTicks,
-  );
+  const pasteDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const rotateSelection = { execute: vi.fn(() => "rotated" as const) };
   const pressPasteControl = registerPasteControls({
     repo,

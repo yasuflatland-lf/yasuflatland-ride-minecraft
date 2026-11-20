@@ -13,10 +13,10 @@ import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { Debounces } from "../../../src/domain/shared/debounce";
 import {
   asDimensionId,
   asPlayerId,
@@ -133,10 +133,8 @@ it("preserves blocks and defers point taps out of before events", () => {
               block: { cell: { x, y, z }, face: "up" as const },
             }),
           },
-          debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
-          pasteDebounce: new PressDebounces<PlayerId>(
-            BUILD_SPEC.pasteRepeatTicks,
-          ),
+          debounce: new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
+          pasteDebounce: new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
           pointOf: () => undefined,
         });
         const player = {
@@ -244,7 +242,7 @@ function setupAir() {
       },
     }),
   };
-  const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
+  const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const player = {
     id: "p",
     dimension: { id: "minecraft:nether" },
@@ -287,7 +285,7 @@ function setupAir() {
     menus,
     aim,
     debounce,
-    pasteDebounce: new PressDebounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
+    pasteDebounce: new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
     pointOf: () =>
       session.flow.kind === "point1" ? session.flow.cell : undefined,
   });
@@ -306,7 +304,7 @@ function setupAir() {
     menus,
     aim,
     debounce,
-    pasteDebounce: new PressDebounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
+    pasteDebounce: new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
     roofExecute,
     pointExecute,
     paste,

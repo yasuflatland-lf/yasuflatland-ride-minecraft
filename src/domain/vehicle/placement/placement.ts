@@ -1,6 +1,7 @@
 // Where a vehicle goes when its item is used on a block (ADR 0008, ADR 0051),
 // and whether there is room for it there.
 import type { Vec3 } from "../../shared/vec";
+import { add3 } from "../../shared/vec";
 import type { VehicleBody } from "../profile";
 import { SPEC } from "../spec";
 
@@ -127,11 +128,7 @@ function liquidSurfaceCell(
   maxClimb: number,
 ): Vec3 | undefined {
   const offset = FACE_OFFSET[face];
-  const next = {
-    x: clicked.x + offset.x,
-    y: clicked.y + offset.y,
-    z: clicked.z + offset.z,
-  };
+  const next = add3(clicked, offset);
   for (const cell of [clicked, next]) {
     if (!isWaterAt(cell)) continue;
     const { x, z } = cell;

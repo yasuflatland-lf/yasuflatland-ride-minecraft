@@ -6,6 +6,7 @@ import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { ticks } from "../../../../domain/shared/ticks";
+import { distance3 } from "../../../../domain/shared/vec";
 import { heldDye } from "../../../shared/dyes";
 import {
   ROOF_TENT_SEATED_HINT,
@@ -119,8 +120,7 @@ export function registerRoofTentEnter(
       const a = player.location;
       const b = target.location;
       if (
-        Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) >
-          ROOF_TENT_SPEC.interactReach &&
+        distance3(a, b) > ROOF_TENT_SPEC.interactReach &&
         !entranceReach(target, player)
       )
         return;

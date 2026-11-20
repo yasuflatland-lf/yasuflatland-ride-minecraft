@@ -15,10 +15,10 @@ import {
   TABLE_SPOTS,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/debounce";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { decodeHost as decodeSharedHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/switchCooldown";
 import type { TopItem } from "../../../src/domain/shared/tableTop";
 
 const oven = asDutchOvenId("oven");

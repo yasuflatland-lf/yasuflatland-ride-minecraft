@@ -2,7 +2,7 @@
 import { type Entity, world } from "@minecraft/server";
 import { cellCenter } from "../../../domain/shared/cells";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
-import type { Vec3 } from "../../../domain/shared/vec";
+import { distanceToRectXZ, type Vec3 } from "../../../domain/shared/vec";
 import { VEHICLE_KINDS } from "../../../domain/vehicle/kind";
 import { profileOf } from "../../../domain/vehicle/kinds/index";
 import type { DockLayer } from "./dockLayer";
@@ -16,13 +16,6 @@ const SPACE_QUERY_RADIUS = Math.max(
     return Math.hypot(footprint + 1, placement.clearance.height + 1);
   }),
 );
-
-/** How far `cell`'s ground square lies from `point` across the ground. */
-function groundGap(cell: Vec3, point: Vec3): number {
-  const dx = Math.max(cell.x - point.x, 0, point.x - (cell.x + 1));
-  const dz = Math.max(cell.z - point.z, 0, point.z - (cell.z + 1));
-  return Math.hypot(dx, dz);
-}
 
 export class BedrockVehicleSpace {
   constructor(
@@ -83,7 +76,12 @@ export class BedrockVehicleSpace {
       return (
         dy >= 0 &&
         dy <= placement.clearance.height &&
-        groundGap(cell, vehicle.location) < footprint
+        distanceToRectXZ(vehicle.location, {
+          minX: cell.x,
+          maxX: cell.x + 1,
+          minZ: cell.z,
+          maxZ: cell.z + 1,
+        }) < footprint
       );
     });
   }

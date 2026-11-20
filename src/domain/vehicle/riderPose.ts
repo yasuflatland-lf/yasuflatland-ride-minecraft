@@ -1,4 +1,5 @@
 import type { PlayerId } from "../shared/ids";
+import type { Ticks } from "../shared/ticks";
 
 interface SeatPoseTable {
   readonly grip: string;
@@ -9,7 +10,7 @@ interface SeatPoseTable {
 export interface RiderPoseTable {
   /** Indexed by seat slot, the same index as RiderView.slot. */
   readonly seats: readonly SeatPoseTable[];
-  readonly refreshTicks: number;
+  readonly refreshTicks: Ticks;
 }
 
 export interface PosedRider {

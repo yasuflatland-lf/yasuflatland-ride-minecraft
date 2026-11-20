@@ -1,5 +1,6 @@
 import { BlockTypes, Direction, system, world } from "@minecraft/server";
 import { asDimensionId } from "../../../../domain/shared/ids";
+import { add3 } from "../../../../domain/shared/vec";
 import type { PlaceHostedOnTop } from "../../../shared/tableTop/hosted";
 import { DINING_TABLE_TOP } from "../../identifiers";
 import type { BedrockFurnitureWorld } from "../bedrockFurnitureWorld";
@@ -32,11 +33,7 @@ export function registerFurnitureTopInteraction(
     };
     const offset = offsets[ev.blockFace];
     const at = ev.block.location;
-    const destination = {
-      x: at.x + offset.x,
-      y: at.y + offset.y,
-      z: at.z + offset.z,
-    };
+    const destination = add3(at, offset);
     if (!adapter.hostedAbove(asDimensionId(ev.block.dimension.id), destination))
       return;
     ev.cancel = true;
