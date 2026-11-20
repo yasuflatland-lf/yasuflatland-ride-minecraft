@@ -59,6 +59,13 @@ export interface RoomStorageHost {
 }
 
 export interface RoomFixturesHost {
+  /**
+   * Every use by a player away from the wheel restarts the idle time (ADR 0024).
+   * After SPEC.headlightSwitchCooldown idle ticks, feet inside the parked room can switch the lights (ADR 0115).
+   */
+  switchCeilingLights(feet: Vec3, tick: number): boolean;
+  /** Read-only reach check for block presses, independent of the cooldown. */
+  ceilingLightsReachable(feet: Vec3): boolean;
   /** Opens or closes the door of a held vehicle's room at `tick`; false when it has none or the tap is ignored (ADR 0068, 0105). */
   useDockDoor(tick: number): boolean;
   /** The spawn cell for a press on bed block `cell` of this held vehicle; undefined when it is none of its beds (ADR 0182). */

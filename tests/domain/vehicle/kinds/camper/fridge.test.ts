@@ -276,7 +276,13 @@ it("lights the top door's plate in place of the front ceiling light while the li
     fc.property(fc.subarray([...DOORS]), fc.boolean(), (open, lightsOn) => {
       const f = fixture();
       f.park();
-      if (lightsOn) expect(f.drive.switchCeilingLights(f.inside)).toBe(true);
+      if (lightsOn)
+        expect(
+          camperRoom(f.drive).fixtures.switchCeilingLights(
+            f.inside,
+            f.ctx.tick,
+          ),
+        ).toBe(true);
       for (const door of open) f.press(door, "compartment");
       const cells = f.step().dock?.cells ?? [];
       const front = localCellAt(f.pose, defined(CEILING_LIGHTS[0], "front"));
