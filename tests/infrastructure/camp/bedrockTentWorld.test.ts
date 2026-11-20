@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
+import { removeTent } from "../../../src/application/camp/removeTent";
 import type { SpaceCheck } from "../../../src/application/shared/ports/space";
 import { legacyTentClearCells } from "../../../src/domain/camp/legacyTent";
 import { TENT_LAYOUT_VERSION } from "../../../src/domain/camp/spec";
@@ -240,7 +241,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const { dimension, world, registry, blocks } = fixture([ENTRY]);
     game.getEntity.mockReturnValue(undefined);
     dimension.getBlock.mockReturnValue({ typeId: "minecraft:air" });
-    expect(world.foldInto(ENTRY)).toBe("folded");
+    expect(new FoldLegacyTents(world).execute()).toBe(0);
     expect(blocks.lay).toHaveBeenCalledExactlyOnceWith(TENT, undefined, []);
     expect(dimension.spawnItem).toHaveBeenCalledExactlyOnceWith(
       { typeId: TENT_ITEM, amount: 1 },
@@ -483,7 +484,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
 
   it("takes down by clearing with the entity, forgetting, then removing", () => {
     const { blocks, order, registry, tent, world } = fixture([ENTRY]);
-    world.takeDown(TENT);
+    removeTent(world, TENT);
     expect(blocks.lay).toHaveBeenCalledWith(TENT, tent, []);
     expect(registry.remove).toHaveBeenCalledWith(TENT);
     expect(order).toEqual(["lay", "forget", "remove"]);
@@ -512,7 +513,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
         };
       },
     );
-    world.takeDown(TENT);
+    removeTent(world, TENT);
     expect(blocks.lay).toHaveBeenCalledWith(TENT, undefined, []);
     expect(registry.remove).toHaveBeenCalledWith(TENT);
     const cleared = [...set].filter(([, f]) => f.mock.calls.length > 0);
@@ -524,7 +525,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
 
   it("does not read the world by pose when the entity is loaded", () => {
     const { dimension, world } = fixture([ENTRY]);
-    world.takeDown(TENT);
+    removeTent(world, TENT);
     expect(dimension.getBlock).not.toHaveBeenCalled();
   });
 
@@ -851,7 +852,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(world.flapsOf(TENT)).toBe(built);
     expect(world.flapsOf(asTentId("other"))).toBeUndefined();
     const forget = vi.spyOn(flaps, "forget");
-    world.takeDown(TENT);
+    removeTent(world, TENT);
     expect(forget).toHaveBeenCalledWith(TENT);
     expect(flaps.flapsOf(tent as never)).not.toBe(built);
     world.showFlapBlocked(asPlayerId("player"));

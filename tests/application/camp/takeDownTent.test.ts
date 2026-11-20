@@ -30,7 +30,9 @@ describe("TakeDownTent (ADR 0131)", () => {
       ["showHitsLeft", PLAYER, 2],
       ["showHitsLeft", PLAYER, 1],
       ["returnTentItem", TENT, PLAYER],
-      ["takeDown", TENT],
+      ["entityLoaded", TENT],
+      ["unlayBlocks", TENT],
+      ["removeTent", TENT],
     ]);
   });
 
@@ -44,7 +46,9 @@ describe("TakeDownTent (ADR 0131)", () => {
     expect(take.execute({ tentId: TENT, tick: 160 })).toBe(true);
     expect(world.calls).toEqual([
       ["returnTentItem", TENT, undefined],
-      ["takeDown", TENT],
+      ["entityLoaded", TENT],
+      ["unlayBlocks", TENT],
+      ["removeTent", TENT],
     ]);
   });
 
@@ -76,9 +80,13 @@ describe("TakeDownTent (ADR 0131)", () => {
             world.occupied = occupied;
             const r = registerHit(counter, tick, occupied, TENT_SPEC.recovery);
             if (!occupied) counter = r.counter;
-            const before = world.names().filter((n) => n === "takeDown").length;
+            const before = world
+              .names()
+              .filter((n) => n === "removeTent").length;
             expect(take.execute({ tentId: TENT, tick })).toBe(r.broken);
-            const after = world.names().filter((n) => n === "takeDown").length;
+            const after = world
+              .names()
+              .filter((n) => n === "removeTent").length;
             expect(after - before).toBe(r.broken ? 1 : 0);
           }
         },
