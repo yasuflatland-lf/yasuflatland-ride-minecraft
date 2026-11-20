@@ -76,7 +76,7 @@ it("draws the marker for its owner in the flow dimension on alternate redraws", 
   for (const entry of feedback.previews) {
     expect(entry.playerId).toBe(alex);
     expect(entry.dimensionId).toBe(nether);
-    expect(entry.set.marker).toHaveLength(20);
+    expect(entry.set.startMarker).toHaveLength(20);
   }
 });
 
@@ -116,7 +116,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(session.flow, { blink: true }),
   );
-  expect(feedback.previews[0]?.set.marker).toEqual([]);
+  expect(feedback.previews[0]?.set.startMarker).toEqual([]);
   expect(feedback.previews[0]?.set.paste).toEqual([]);
 });
 
@@ -515,7 +515,12 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           const set = feedback.previews[0]?.set;
           expect(set?.paste.length).toBeGreaterThan(0);
           expect((set?.pasteVertical.length ?? 0) > 0).toBe(y > 1);
-          for (const layer of ["marker", "shape", "endCube", "roof"] as const)
+          for (const layer of [
+            "startMarker",
+            "shape",
+            "endMarker",
+            "roof",
+          ] as const)
             expect(set?.[layer]).toEqual([]);
         } else expect(feedback.previews).toEqual([]);
       },

@@ -11,6 +11,7 @@ server/data/
 .claude/settings.local.json
 CLAUDE.local.md
 coverage/
+test-results/
 .vitest-reports/
 reports/
 .stryker-tmp/
