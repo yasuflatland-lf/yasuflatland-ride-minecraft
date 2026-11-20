@@ -17,6 +17,7 @@
 - Source: [0243](../adr/0243-copy-the-build-wand-box-as-an-engine-structure.md)
 - Source: [0245](../adr/0245-rotate-build-wand-boxes-with-the-engine-structure.md)
 - Source: [0253](../adr/0253-persistent-build-selection-and-tool-swapping.md)
+- Source: [0254](../adr/0254-build-wand-stairs-and-terrace.md)
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): defines the documentation format and checks, not build behavior
 - Excluded: [0180](../adr/0180-a-wide-bulldozer-blade.md): extends the Building Tools group with Wide Blade; switch behavior belongs to the bulldozer spec
 - Excluded: [0181](../adr/0181-a-road-paver-on-the-bulldozer.md): extends the Building Tools group with Road Paver; paving and switch behavior belong to the bulldozer spec
