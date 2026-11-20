@@ -1,3 +1,4 @@
+import { sameCell } from "../../../shared/cells";
 import type { Vec3 } from "../../../shared/vec";
 import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
@@ -178,9 +179,7 @@ export function drawerHit(
     if (
       !pressCell ||
       !drawerPressCell(pose, pressCell) ||
-      (pressCell.x === cell.x &&
-        pressCell.y === cell.y &&
-        pressCell.z === cell.z) ||
+      sameCell(pressCell, cell) ||
       end[0] < half - margin ||
       end[0] > HIT.frontLeftMax + DRAWER_SLIDE_PX + margin ||
       end[2] < HIT.frontAheadMin - margin ||
@@ -215,9 +214,7 @@ export function drawerPressCell(pose: HoldPose, cell: Vec3): Vec3 | undefined {
     localCellAt(pose, { x: 0, z: DRAWER_COMPARTMENT.z, layer: 1 }),
     localCellAt(pose, { x: 0, z: DRAWER_COMPARTMENT.z, layer: 0 }),
   ];
-  return cells.some((c) => c.x === cell.x && c.y === cell.y && c.z === cell.z)
-    ? counter
-    : undefined;
+  return cells.some((c) => sameCell(c, cell)) ? counter : undefined;
 }
 
 export function drawerBlockHit(

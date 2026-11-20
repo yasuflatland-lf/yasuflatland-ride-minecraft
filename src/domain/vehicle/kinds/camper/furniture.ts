@@ -9,6 +9,7 @@ import {
   storageDoors,
   storageFurniture,
 } from "./dooredStorage";
+import type { LocalCell } from "./localCell";
 import {
   COUNTER_HEIGHT,
   DRAWER_BOTTOM_Y,
@@ -20,6 +21,8 @@ import {
   DRAWER_WALL_PX,
   PX_PER_BLOCK,
 } from "./spec";
+
+export { type LocalCell, sameLocalCell } from "./localCell";
 
 type FurnitureKind =
   | "dashboard"
@@ -33,13 +36,6 @@ type FurnitureKind =
   | "ceiling_hook"
   | "shower_toilet"
   | "wall_cabinet";
-
-/** A cell in roomGeometry.ts coordinates: x = left (-1..1), z = forward (-3..3), layer = cells above the floor layer. */
-export interface LocalCell {
-  readonly x: number;
-  readonly z: number;
-  readonly layer: number;
-}
 
 /**
  * A furniture whose one cell holds two items, each drawn by the cell's one pair block (ADR 0108),

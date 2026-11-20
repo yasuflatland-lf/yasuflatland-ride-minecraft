@@ -49,7 +49,11 @@ export interface VehicleSnapshot {
 }
 
 export interface LoadedVehicleWorld {
+  /** Queries the loaded vehicles and their current state. */
   loadedVehicles(): VehicleSnapshot[];
+
+  /** Releases world state for vehicles absent from live, once per tick after the vehicles ticked. */
+  sweepGone(live: ReadonlySet<VehicleId>): void;
 
   /**
    * Releases everything the world keeps for a vehicle that is no longer loaded:

@@ -8,12 +8,7 @@ import { CAMPER_SPEC } from "../../../../src/domain/vehicle/kinds/camper/spec";
 import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
-import {
-  headlightCells,
-  type LitCell,
-  litCellKey,
-  relight,
-} from "../../../../src/domain/vehicle/lighting/headlights";
+import { headlightCells } from "../../../../src/domain/vehicle/lighting/headlights";
 
 const number = (min: number, max: number) =>
   fc.double({ min, max, noNaN: true });
@@ -27,15 +22,7 @@ const location = fc.record({
 // vehicle off the z axis. Whole hundredths of a degree cover every heading.
 const yaw = fc.integer({ min: -18_000, max: 18_000 }).map((c) => c / 100);
 const level = fc.integer({ min: 0, max: 15 });
-const litCell = fc.record({
-  level,
-  x: fc.integer({ min: -3, max: 3 }),
-  y: fc.integer({ min: -3, max: 3 }),
-  z: fc.integer({ min: -3, max: 3 }),
-});
-const cells = fc.uniqueArray(litCell, { selector: cellKey });
 const keys = (cs: readonly Cell[]) => new Set(cs.map(cellKey));
-const litKeys = (cs: readonly LitCell[]) => new Set(cs.map(litCellKey));
 const beams = fc.oneof(
   fc.constantFrom(...VEHICLE_KINDS.map((k) => profileOf(k).beams)),
   fc.array(number(0, 40), { maxLength: 8 }).chain((reach) =>
@@ -195,44 +182,4 @@ describe("headlightCells (ADR 0020)", () => {
       );
     },
   );
-});
-
-describe("relight (ADR 0020)", () => {
-  it("clears exactly the lit cells no longer wanted at their level and lights exactly the wanted cells not lit at their level", () => {
-    fc.assert(
-      fc.property(cells, cells, (lit, wanted) => {
-        const { clear, light } = relight(lit, wanted);
-        const after = new Set([
-          ...[...litKeys(lit)].filter((k) => !litKeys(clear).has(k)),
-          ...litKeys(light),
-        ]);
-        expect(after).toEqual(litKeys(wanted));
-        for (const c of clear) {
-          expect(litKeys(lit).has(litCellKey(c))).toBe(true);
-          expect(litKeys(wanted).has(litCellKey(c))).toBe(false);
-        }
-        for (const c of light) {
-          expect(litKeys(lit).has(litCellKey(c))).toBe(false);
-          expect(litKeys(wanted).has(litCellKey(c))).toBe(true);
-        }
-      }),
-    );
-  });
-
-  it("clears and lays again a lit cell whose wanted level changed", () => {
-    fc.assert(
-      fc.property(cells, fc.integer({ min: 1, max: 15 }), (lit, d) => {
-        const wanted = lit.map((c) => ({ ...c, level: (c.level + d) % 16 }));
-        expect(relight(lit, wanted)).toEqual({ clear: lit, light: wanted });
-      }),
-    );
-  });
-
-  it("changes nothing when the wanted cells are already lit", () => {
-    fc.assert(
-      fc.property(cells, (lit) => {
-        expect(relight(lit, lit)).toEqual({ clear: [], light: [] });
-      }),
-    );
-  });
 });

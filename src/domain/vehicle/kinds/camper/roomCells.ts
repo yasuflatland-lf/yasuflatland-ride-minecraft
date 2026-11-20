@@ -1,4 +1,6 @@
 // The parked camper's room: its pose, its cells, and what may stand in them (ADR 0068).
+import { cellCenter, sameCell } from "../../../shared/cells";
+import { QUARTER_TURN } from "../../../shared/facing";
 import { normalizeYaw, type Vec2, type Vec3 } from "../../../shared/vec";
 import {
   type DeckSeatSpot,
@@ -21,7 +23,7 @@ import {
   SLEEP_BLOCKS,
   STORAGE_DOORS,
 } from "./furniture";
-import { axes, cellAt, localCellAt, QUARTER_TURN } from "./parkPose";
+import { axes, cellAt, localCellAt } from "./parkPose";
 import { CAMPER_PARKED_SEATS, CAMPER_PROFILE } from "./profile";
 import {
   CEILING_LAYER,
@@ -221,7 +223,7 @@ export function bedSpawnCell(pose: HoldPose, cell: Vec3): Vec3 | undefined {
       SLEEP_BLOCKS.has(block.type) &&
       cells.some((c) => {
         const at = localCellAt(pose, c);
-        return at.x === cell.x && at.y === cell.y && at.z === cell.z;
+        return sameCell(at, cell);
       }),
   );
   if (pressed === undefined) return undefined;
@@ -282,7 +284,7 @@ function vehicleDeckSeats(pose: HoldPose): Vec3[] {
 /** The middle of a local cell's bottom: where a player standing in it has their feet. */
 function standPoint(pose: HoldPose, cell: LocalCell): Vec3 {
   const at = cellAt(pose, cell.x, cell.z, cell.layer);
-  return { x: at.x + 0.5, y: at.y, z: at.z + 0.5 };
+  return cellCenter(at);
 }
 
 /**

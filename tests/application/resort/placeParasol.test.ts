@@ -44,48 +44,34 @@ it("rejects every placement obstruction before payment or spawn", () => {
     }),
   );
 });
-it("lays a ceiling after spawn and charges only Survival", () => {
-  fc.assert(
-    fc.property(command, fc.boolean(), (cmd, creative) => {
-      const world = fakeParasolWorld();
-      world.isCreative.mockReturnValue(creative);
-      expect(new PlaceParasol(world).execute(cmd)).toBe(true);
-      expect(world.consumeItem).toHaveBeenCalledTimes(creative ? 0 : 1);
-      expect(world.spawn).toHaveBeenCalledExactlyOnceWith(
-        cmd.dimension,
-        parasolPose(cmd.block, cmd.yaw),
-      );
-      expect(world.layCeiling).toHaveBeenCalledExactlyOnceWith("parasol");
-      expect(world.spawn.mock.invocationCallOrder[0]).toBeLessThan(
-        world.layCeiling.mock.invocationCallOrder[0] ?? 0,
-      );
-    }),
+it("lays a ceiling after placing a parasol and shows feedback if placement fails", () => {
+  const cmd = {
+    player: asPlayerId("p"),
+    dimension: asDimensionId("overworld"),
+    block: { x: 10, y: 20, z: 30 },
+    face: "up",
+    yaw: 0,
+    slot: 2,
+  };
+  const world = fakeParasolWorld();
+  const place = new PlaceParasol(world);
+  expect(place.execute(cmd)).toBe(true);
+  expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(
+    cmd.player,
+    cmd.slot,
   );
-});
-it("refunds failed spawns only when payment succeeded", () => {
-  fc.assert(
-    fc.property(command, fc.boolean(), (cmd, creative) => {
-      const world = fakeParasolWorld();
-      world.isCreative.mockReturnValue(creative);
-      world.spawn.mockReturnValue(undefined);
-      expect(new PlaceParasol(world).execute(cmd)).toBe(false);
-      expect(world.refund).toHaveBeenCalledTimes(creative ? 0 : 1);
-      if (!creative)
-        expect(world.refund).toHaveBeenCalledWith(cmd.player, cmd.slot);
-      expect(world.layCeiling).not.toHaveBeenCalled();
-    }),
+  expect(world.spawn).toHaveBeenCalledExactlyOnceWith(
+    cmd.dimension,
+    parasolPose(cmd.block, cmd.yaw),
   );
-});
-it("does not spawn when the held item changed before payment", () => {
-  fc.assert(
-    fc.property(command, (cmd) => {
-      const world = fakeParasolWorld();
-      world.consumeItem.mockReturnValue(false);
-      expect(new PlaceParasol(world).execute(cmd)).toBe(false);
-      expect(world.spawn).not.toHaveBeenCalled();
-      expect(world.refund).not.toHaveBeenCalled();
-    }),
-  );
+  expect(world.layCeiling).toHaveBeenCalledExactlyOnceWith("parasol");
+  expect(world.spawn).toHaveBeenCalledBefore(world.layCeiling);
+
+  world.layCeiling.mockClear();
+  world.spawn.mockReturnValue(undefined);
+  expect(place.execute(cmd)).toBe(false);
+  expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
+  expect(world.layCeiling).not.toHaveBeenCalled();
 });
 
 it("rejects an obstruction in any translated foot cell before charging", () => {

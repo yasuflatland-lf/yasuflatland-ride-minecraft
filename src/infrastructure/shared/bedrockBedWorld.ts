@@ -1,6 +1,7 @@
 // Implements BedWorld with @minecraft/server (ADR 0012, 0092).
 import { type Player, system, world } from "@minecraft/server";
 import type { BedWorld } from "../../application/shared/ports/bed";
+import { sameCell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { SLEEP } from "../../domain/shared/sleep";
 import type { Vec3 } from "../../domain/shared/vec";
@@ -39,12 +40,7 @@ export class BedrockBedWorld implements BedWorld {
     if (!player) return;
     try {
       const spawn = player.getSpawnPoint();
-      if (
-        spawn?.dimension.id === dimensionId &&
-        spawn.x === cell.x &&
-        spawn.y === cell.y &&
-        spawn.z === cell.z
-      ) {
+      if (spawn?.dimension.id === dimensionId && sameCell(spawn, cell)) {
         player.setSpawnPoint();
       }
     } catch {

@@ -32,11 +32,6 @@ export class EntityIndex {
     this.current.set(asVehicleId(entity.id), entity);
   }
 
-  /** Ids of the vehicles tracked since the last clear(). */
-  trackedIds(): Set<VehicleId> {
-    return new Set(this.current.keys());
-  }
-
   /** The vehicles tracked since the last clear(). */
   tracked(): Entity[] {
     return [...this.current.values()];

@@ -1,9 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, expectTypeOf, it } from "vitest";
+import { quarterOf } from "../../../../src/domain/shared/facing";
 import {
   type DecorItemId,
   type DecorSlotId,
-  decorFace,
   isDecorItem,
   parseDecor,
   parseDecorSlotId,
@@ -74,11 +74,11 @@ describe("decor (ADR 0093)", () => {
         fc.integer({ min: -8, max: 8 }),
         fc.double({ min: -44, max: 44, noNaN: true }),
         (k, o) => {
-          expect(decorFace(k * 90 + o)).toBe(((k % 4) + 4) % 4);
+          expect(quarterOf(k * 90 + o)).toBe(((k % 4) + 4) % 4);
         },
       ),
     );
-    expect([0, 90, 180, -180, -90, 270].map(decorFace)).toEqual([
+    expect([0, 90, 180, -180, -90, 270].map(quarterOf)).toEqual([
       0, 1, 2, 2, 3, 3,
     ]);
   });

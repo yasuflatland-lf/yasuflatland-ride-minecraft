@@ -10,6 +10,7 @@ import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import { mountOf } from "../../shared/mount";
 import { isVehicleEntity, SEAT_FILLER_TYPE } from "./identifiers";
+import type { PerVehicleState } from "./ownedEntities";
 
 // A player boards on the tick after their press, so they stand within the engine's
 // interaction reach of the vehicle as it was, and the vehicle moves at most about one
@@ -97,7 +98,7 @@ interface Waiting {
   readonly ticks: number;
 }
 
-export class SeatFillers {
+export class SeatFillers implements PerVehicleState {
   /** The filler ids each vehicle had after its last layout, to remove when it is gone. */
   private readonly kept = new Map<VehicleId, readonly string[]>();
   /** The players each vehicle's last layout took off and could not put back yet. */
@@ -194,7 +195,7 @@ export class SeatFillers {
   }
 
   /** Removes the fillers of a vehicle that is removed or no longer loaded. */
-  release(vehicleId: VehicleId): void {
+  release(vehicleId: VehicleId, _vehicle: Entity | undefined): void {
     for (const id of this.kept.get(vehicleId) ?? []) {
       const filler = world.getEntity(id);
       if (filler?.isValid && isFiller(filler)) filler.remove();
@@ -204,8 +205,8 @@ export class SeatFillers {
   }
 
   /** Removes the fillers of vehicles that were laid before and are not loaded now. */
-  clearGone(live: ReadonlySet<VehicleId>): void {
+  sweepGone(live: ReadonlySet<VehicleId>): void {
     for (const id of new Set([...this.kept.keys(), ...this.waiting.keys()]))
-      if (!live.has(id)) this.release(id);
+      if (!live.has(id)) this.release(id, undefined);
   }
 }

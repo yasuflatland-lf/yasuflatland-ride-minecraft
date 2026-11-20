@@ -6,6 +6,7 @@ import {
   chairCell,
   chairYaw,
 } from "../../domain/camp/chair";
+import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { ChairWorld } from "./ports/chair";
@@ -70,7 +71,7 @@ export class PlaceChair {
     this.world.spawnChair(
       cmd.kind,
       cmd.dimensionId,
-      { x: block.x + 0.5, y: block.y + 1, z: block.z + 0.5 },
+      cellCenter(block, 1),
       chairYaw(cmd.yaw),
     );
     return true;

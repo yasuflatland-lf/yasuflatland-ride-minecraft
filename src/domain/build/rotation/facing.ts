@@ -1,3 +1,4 @@
+import { QUARTER_TURN, quarterOf } from "../../shared/facing";
 import type { Vec3 } from "../../shared/vec";
 import { BUILD_SPEC } from "../spec";
 import type { QuarterTurn } from "./quarterTurn";
@@ -28,15 +29,14 @@ export function facingFromDirection(
   const angle = (Math.atan2(direction.x, -direction.z) * 180) / Math.PI;
   if (current !== undefined) {
     const difference =
-      ((angle - FACINGS.indexOf(current) * 90 + 540) % 360) - 180;
+      ((angle - FACINGS.indexOf(current) * QUARTER_TURN + 540) % 360) - 180;
     if (Math.abs(difference) <= 45 + hysteresisDegrees) return current;
   }
-  return FACINGS[((Math.round(angle / 90) % 4) + 4) % 4];
+  return FACINGS[quarterOf(angle)];
 }
 
 export function facingFromYaw(yawDegrees: number): Facing {
-  const index = ((Math.round(yawDegrees / 90) % 4) + 4) % 4;
-  return FACINGS[(index + 2) % 4] as Facing;
+  return FACINGS[(quarterOf(yawDegrees) + 2) % 4] as Facing;
 }
 
 export function parseFacing(value: string): Facing | undefined {

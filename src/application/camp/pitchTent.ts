@@ -2,6 +2,7 @@
 import { planPitch, tentGround, tentPose } from "../../domain/camp/tent";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+import { placePaid } from "../shared/paidPlacement";
 import type { TentWorld } from "./ports/tent";
 
 export interface PitchTentCommand {
@@ -38,16 +39,18 @@ export class PitchTent {
         this.world.showPitchRefusal(playerId, plan.reason);
       return false;
     }
-    // Taking the item first means a player who moved it in the meantime gets
-    // no tent, instead of a tent and the item (ADR 0024).
-    let taken = false;
-    if (playerId !== undefined && !this.world.isCreative(playerId)) {
-      if (!this.world.consumeTentItem(playerId, cmd.slot)) return false;
-      taken = true;
-    }
-    this.world.clearDecorations(cmd.dimensionId, plan.clearTopFirst);
-    if (this.world.pitch(cmd.dimensionId, pose) !== undefined) return true;
-    if (taken && playerId !== undefined) this.world.giveTentItem(playerId);
-    return false;
+    const result = placePaid(
+      {
+        isCreative: (player) => this.world.isCreative(player),
+        consumeItem: (player, slot) => this.world.consumeTentItem(player, slot),
+        refund: (player) => this.world.giveTentItem(player),
+      },
+      { player: playerId, slot: cmd.slot },
+      () => {
+        this.world.clearDecorations(cmd.dimensionId, plan.clearTopFirst);
+        return this.world.pitch(cmd.dimensionId, pose);
+      },
+    );
+    return result.placed;
   }
 }

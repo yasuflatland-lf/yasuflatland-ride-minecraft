@@ -1,4 +1,5 @@
 // Placing camping gear on the parked camper's furniture (ADR 0093, 0097, 0105, 0110, 0114).
+import { sameCell } from "../../../shared/cells";
 import { distanceSq, type Vec3 } from "../../../shared/vec";
 import type { DecorItemId, DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
@@ -112,7 +113,7 @@ export function nearestFreeSlot(
 export function slotsAt(pose: HoldPose, cell: Vec3): DecorSlot[] {
   return DECOR_SLOTS.filter((slot) => {
     const c = decorSlotCell(pose, slot);
-    return c.x === cell.x && c.y === cell.y && c.z === cell.z;
+    return sameCell(c, cell);
   });
 }
 

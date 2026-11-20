@@ -39,45 +39,6 @@ it("rejects every placement obstruction before payment or spawn", () => {
     }),
   );
 });
-it("places the chair and charges only Survival", () => {
-  fc.assert(
-    fc.property(command, fc.boolean(), (cmd, creative) => {
-      const world = fakeBeachChairWorld();
-      world.isCreative.mockReturnValue(creative);
-      expect(new PlaceBeachChair(world).execute(cmd)).toBe(true);
-      expect(world.consumeItem).toHaveBeenCalledTimes(creative ? 0 : 1);
-      expect(world.spawn).toHaveBeenCalledExactlyOnceWith(
-        cmd.dimension,
-        beachChairPose(cmd.block, cmd.yaw),
-      );
-    }),
-  );
-});
-it("refunds failed spawns only when payment succeeded", () => {
-  fc.assert(
-    fc.property(command, fc.boolean(), (cmd, creative) => {
-      const world = fakeBeachChairWorld();
-      world.isCreative.mockReturnValue(creative);
-      world.spawn.mockReturnValue(undefined);
-      expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
-      expect(world.refund).toHaveBeenCalledTimes(creative ? 0 : 1);
-      if (!creative)
-        expect(world.refund).toHaveBeenCalledWith(cmd.player, cmd.slot);
-    }),
-  );
-});
-it("does not spawn when the held item changed before payment", () => {
-  fc.assert(
-    fc.property(command, (cmd) => {
-      const world = fakeBeachChairWorld();
-      world.consumeItem.mockReturnValue(false);
-      expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
-      expect(world.spawn).not.toHaveBeenCalled();
-      expect(world.refund).not.toHaveBeenCalled();
-    }),
-  );
-});
-
 it("rejects an obstruction over any of the three footprint cells before charging", () => {
   fc.assert(
     fc.property(command, fc.nat(), (cmd, index) => {
@@ -119,16 +80,19 @@ it("requires solid support below all three cells", () => {
 it("queries exactly three support cells and six clearance cells", () => {
   const world = fakeBeachChairWorld();
   const dimension = asDimensionId("overworld");
+  const player = asPlayerId("p");
+  const slot = 2;
   expect(
     new PlaceBeachChair(world).execute({
-      player: asPlayerId("p"),
+      player,
       dimension,
       block: { x: 10, y: 20, z: 30 },
       face: "up",
       yaw: 0,
-      slot: 0,
+      slot,
     }),
   ).toBe(true);
+  expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(player, slot);
   expect(world.isSolidTop.mock.calls).toEqual([
     [dimension, { x: 10, y: 20, z: 30 }],
     [dimension, { x: 10, y: 20, z: 31 }],

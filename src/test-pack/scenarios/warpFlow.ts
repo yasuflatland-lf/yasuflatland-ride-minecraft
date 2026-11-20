@@ -11,6 +11,7 @@ import { RemoveWarpPoint } from "../../application/warp/removeWarpPoint";
 import { RenameWarpPoint } from "../../application/warp/renameWarpPoint";
 import { TapWarpBlock } from "../../application/warp/tapWarpBlock";
 import { WarpTo } from "../../application/warp/warpTo";
+import { cellCenter } from "../../domain/shared/cells";
 import { asPlayerId } from "../../domain/shared/ids";
 import { WARP_SPEC } from "../../domain/warp/spec";
 import { parseWarpName } from "../../domain/warp/warpName";
@@ -145,11 +146,7 @@ export async function warpFlow(a: Arena): Promise<Outcome> {
         await list.run(command.playerId);
         checkWarp(
           listed &&
-            sameWarpPosition(player.location, {
-              x: point.cell.x + 0.5,
-              y: point.cell.y + 1,
-              z: point.cell.z + 0.5,
-            }),
+            sameWarpPosition(player.location, cellCenter(point.cell, 1)),
           "list selection teleport failed",
         );
         checkWarp(
