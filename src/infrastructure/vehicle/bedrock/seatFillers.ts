@@ -8,6 +8,7 @@ import type {
 import { world } from "@minecraft/server";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import { ticks } from "../../../domain/shared/ticks";
+import { distance3 } from "../../../domain/shared/vec";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import { mountOf } from "../../shared/mount";
 import { isVehicleEntity, SEAT_FILLER_TYPE } from "./identifiers";
@@ -35,11 +36,7 @@ function canBoard(player: Player, vehicle: Entity): boolean {
     player.isValid &&
     player.dimension.id === vehicle.dimension.id &&
     (player.getComponent("minecraft:health")?.currentValue ?? 1) > 0 &&
-    Math.hypot(
-      player.location.x - vehicle.location.x,
-      player.location.y - vehicle.location.y,
-      player.location.z - vehicle.location.z,
-    ) <= BOARD_REACH
+    distance3(player.location, vehicle.location) <= BOARD_REACH
   );
 }
 

@@ -7,6 +7,7 @@ import {
   type VehicleId,
 } from "../../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../../domain/shared/vec";
+import { add3 } from "../../../../../domain/shared/vec";
 import { heldTypeId } from "../../../../shared/heldItem";
 import { CAMPER_CABINET_COMPONENT } from "../identifiers";
 
@@ -36,10 +37,7 @@ export function registerStorage(
           playerId: asPlayerId(player.id),
           vehicleId,
           cell: at,
-          point:
-            face === undefined
-              ? undefined
-              : { x: at.x + face.x, y: at.y + face.y, z: at.z + face.z },
+          point: face === undefined ? undefined : add3(at, face),
         });
       },
     });

@@ -1,5 +1,6 @@
 import { QUARTER_TURN, quarterOf } from "../../shared/facing";
 import type { Vec3 } from "../../shared/vec";
+import { length } from "../../shared/vec";
 import { BUILD_SPEC } from "../spec";
 import type { QuarterTurn } from "./quarterTurn";
 
@@ -24,8 +25,7 @@ export function facingFromDirection(
   current?: Facing,
   hysteresisDegrees = BUILD_SPEC.pasteFacingHysteresisDegrees,
 ): Facing | undefined {
-  if (Math.hypot(direction.x, direction.z) < BUILD_SPEC.facingMinHorizontal)
-    return undefined;
+  if (length(direction) < BUILD_SPEC.facingMinHorizontal) return undefined;
   const angle = (Math.atan2(direction.x, -direction.z) * 180) / Math.PI;
   if (current !== undefined) {
     const difference =

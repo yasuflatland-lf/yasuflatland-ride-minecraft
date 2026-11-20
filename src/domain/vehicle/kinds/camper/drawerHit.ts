@@ -1,5 +1,6 @@
 import { sameCell } from "../../../shared/cells";
 import type { Vec3 } from "../../../shared/vec";
+import { add3, sub3 } from "../../../shared/vec";
 import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import {
@@ -85,7 +86,7 @@ export function drawerHit(
     ];
   };
   const origin = local(eye);
-  const end = local({ x: eye.x + ray.x, y: eye.y + ray.y, z: eye.z + ray.z });
+  const end = local(add3(eye, ray));
   const direction: Point = [
     end[0] - origin[0],
     end[1] - origin[1],
@@ -226,12 +227,6 @@ export function drawerBlockHit(
   open: ReadonlySet<StorageDoorId>,
 ) {
   if (!drawerPressCell(pose, cell)) return undefined;
-  const hit = drawerHit(
-    pose,
-    eye,
-    { x: point.x - eye.x, y: point.y - eye.y, z: point.z - eye.z },
-    decor,
-    open,
-  );
+  const hit = drawerHit(pose, eye, sub3(point, eye), decor, open);
   return hit?.point ? { ...hit, point: hit.point } : undefined;
 }

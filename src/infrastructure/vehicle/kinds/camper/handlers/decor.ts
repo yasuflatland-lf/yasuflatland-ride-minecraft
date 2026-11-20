@@ -16,6 +16,7 @@ import {
   type VehicleId,
 } from "../../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../../domain/shared/vec";
+import { add3, sub3 } from "../../../../../domain/shared/vec";
 import type { DecorItemId } from "../../../../../domain/vehicle/dock/decor";
 import {
   DRAWER_GEAR_IDS,
@@ -102,11 +103,7 @@ export function registerDecor(
         playerId,
         vehicleId,
         cell: target.cell,
-        point: {
-          x: eye.x + direction.x,
-          y: eye.y + direction.y,
-          z: eye.z + direction.z,
-        },
+        point: add3(eye, direction),
         eye,
         openOnly: true,
         takeContents: false,
@@ -156,10 +153,7 @@ export function registerDecor(
           playerId: asPlayerId(player.id),
           vehicleId,
           cell: at,
-          point:
-            face === undefined
-              ? undefined
-              : { x: at.x + face.x, y: at.y + face.y, z: at.z + face.z },
+          point: face === undefined ? undefined : add3(at, face),
         });
       },
     });
@@ -307,16 +301,7 @@ function drawerPress(
     ev.blockFace !== "Down";
   if (ev.block.typeId === id("camper_floor")) {
     if (item !== undefined && !DRAWER_GEAR_IDS.has(item)) return;
-    const hit = storage.drawerTarget(
-      vehicleId,
-      eye,
-      {
-        x: point.x - eye.x,
-        y: point.y - eye.y,
-        z: point.z - eye.z,
-      },
-      cell,
-    );
+    const hit = storage.drawerTarget(vehicleId, eye, sub3(point, eye), cell);
     if (!hit) return;
     cell = hit.cell;
     if (hit.floorFootprint) {
