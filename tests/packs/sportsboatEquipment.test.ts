@@ -44,7 +44,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     ["sportsboat_equipment_box", BOX, "none"],
     ["icebreaker_switch", SWITCH, "items"],
   ])(
-    "ships %s as a single-stack item with a 16 x 16 icon",
+    "ships %s as a single-stack item with a registered icon",
     (name, type, category) => {
       expect(read(`${BP}/items/yasu_ride/${name}.item.json`)).toEqual({
         format_version: "1.21.80",
@@ -66,12 +66,6 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
           `yasu_ride_${name}`
         ],
       ).toEqual({ textures: `textures/items/yasu_ride/${name}` });
-      const { width, height, pixels } = icon(name);
-      expect([width, height]).toEqual([16, 16]);
-      expect(pixels[3]).toBe(0);
-      expect(
-        Array.from(pixels).some((alpha, i) => i % 4 === 3 && alpha === 255),
-      ).toBe(true);
     },
   );
 

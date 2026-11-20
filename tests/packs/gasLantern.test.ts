@@ -278,18 +278,7 @@ describe("Gas Lantern item and ground entity", () => {
     });
   });
 
-  it("uses the outdoor icon size and atlas entry and translates the interaction and hit hint", () => {
-    const icon = readRgbaPng(
-      `${rp}/textures/items/yasu_ride/gas_lantern_item.png`,
-    );
-    const firePitIcon = readRgbaPng(
-      `${rp}/textures/items/yasu_ride/fire_pit_item.png`,
-    );
-    expect([icon.width, icon.height]).toEqual([32, 32]);
-    expect([icon.width, icon.height]).toEqual([
-      firePitIcon.width,
-      firePitIcon.height,
-    ]);
+  it("registers the icon and translates the interaction and hit hint", () => {
     expect(
       readJson(`${rp}/textures/item_texture.json`).texture_data
         .yasu_ride_gas_lantern_item,

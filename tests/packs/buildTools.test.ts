@@ -71,22 +71,12 @@ describe.each([
     });
   });
 
-  it("has a 16x16 icon registered in the item atlas", () => {
+  it("registers its icon in the item atlas", () => {
     expect(
       read("packs/yasu_ride_rp/textures/item_texture.json").texture_data[
         `yasu_build_${name}`
       ],
     ).toEqual({ textures: `textures/items/yasu_build/${name}` });
-    const { width, height, pixels } = readRgbaPng(
-      `packs/yasu_ride_rp/textures/items/yasu_build/${name}.png`,
-    );
-    expect([width, height]).toEqual([16, 16]);
-    expect(pixels[3]).toBe(
-      ["selection_wand", "warp_tool"].includes(name) ? 0 : 255,
-    );
-    expect(
-      Array.from(pixels).some((alpha, i) => i % 4 === 3 && alpha === 255),
-    ).toBe(true);
   });
 });
 

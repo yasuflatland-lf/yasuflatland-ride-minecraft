@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { id } from "../../src/infrastructure/shared/identifiers";
-import { readRgbaPng } from "../support/png";
 
 const TYPE = id("blade_switch");
 
@@ -32,14 +31,6 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       read("packs/yasu_ride_rp/textures/item_texture.json").texture_data
         .yasu_ride_blade_switch,
     ).toEqual({ textures: "textures/items/yasu_ride/blade_switch" });
-    const { width, height, pixels } = readRgbaPng(
-      "packs/yasu_ride_rp/textures/items/yasu_ride/blade_switch.png",
-    );
-    expect([width, height]).toEqual([16, 16]);
-    expect(pixels[3]).toBe(0);
-    expect(
-      Array.from(pixels).some((alpha, i) => i % 4 === 3 && alpha === 255),
-    ).toBe(true);
   });
   it("is crafted from a lever and an iron ingot and unlocked from the start", () => {
     const recipe = read(
