@@ -13,6 +13,7 @@ The core `Drive` interface has nine optional methods for room doors, beds, showe
 - Define `CapabilityKey<T>` in the vehicle core. Each key is frozen and compared by identity. The name describes the capability, and the type parameter identifies its value type.
 - Add the optional `Drive.capability(key)` hook. `Vehicle.capability(key)` forwards the request and returns undefined when the drive has no match. A kind uses `offer` to return a capability value for its key.
 - Declare `CAMPER_ROOM` in the camper kind with decor, storage and fixture interfaces. The fixtures host handles the entry door, bed, shower-toilet and ceiling-light switch, including its read-only reach check. The camper drive creates one frozen room object per drive. Application and infrastructure callers obtain the key and types through `kinds/index.ts`.
+- The application use cases of the room capability live in `src/application/vehicle/room/`; it is a capability folder inside the vehicle feature, not a per-kind folder (0055).
 - Pass a `StoragePressRequest` object to `pressStorage` with the press cell, tick and optional targeting and interaction fields.
 - Preserve unsupported-vehicle results. Room operations return false or undefined and have no effects. Pickup uses an empty decor list, and gear placement on a known vehicle without a room shows the no-slot message.
 - Keep seat-taken and tool-state hooks on `Drive`. Preserve game behavior, saved data and event order.

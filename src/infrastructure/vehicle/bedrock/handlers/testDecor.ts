@@ -1,5 +1,5 @@
 import { ScriptEventSource, system } from "@minecraft/server";
-import type { SetDecor } from "../../../../application/vehicle/setDecor";
+import type { SetDecor } from "../../../../application/vehicle/room/setDecor";
 import { NAMESPACE } from "../../../shared/identifiers";
 import { parseTestDecorMessage } from "../../testInput/testDecorMessage";
 import { TEST_DECOR_EVENT } from "../identifiers";

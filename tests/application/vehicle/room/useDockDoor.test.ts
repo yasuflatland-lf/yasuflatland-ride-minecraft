@@ -1,9 +1,9 @@
 import { expect, it } from "vitest";
-import { UseDockDoor } from "../../../src/application/vehicle/useDockDoor";
-import { asVehicleId } from "../../../src/domain/shared/ids";
-import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
-import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
-import { FakeClock, InMemoryRepo, stillTick } from "./fakes";
+import { UseDockDoor } from "../../../../src/application/vehicle/room/useDockDoor";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { CAMPER_SPEC } from "../../../../src/domain/vehicle/kinds/camper/spec";
+import { createVehicle } from "../../../../src/domain/vehicle/kinds/index";
+import { FakeClock, InMemoryRepo, stillTick } from "../fakes";
 
 it("ignores unknown vehicles and SUVs, and toggles the parked camper's door both ways, once per swing (ADR 0068, 0105)", () => {
   const repo = new InMemoryRepo();

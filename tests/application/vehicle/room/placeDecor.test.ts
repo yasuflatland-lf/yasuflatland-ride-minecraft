@@ -2,18 +2,18 @@ import { describe, expect, it, vi } from "vitest";
 import {
   PlaceDecor,
   type PlaceDecorCommand,
-} from "../../../src/application/vehicle/placeDecor";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
-import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
-import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/decorCells";
-import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
+} from "../../../../src/application/vehicle/room/placeDecor";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
+import { decorSlot } from "../../../../src/domain/vehicle/kinds/camper/decor";
+import { decorSlotCell } from "../../../../src/domain/vehicle/kinds/camper/decorCells";
+import { slotPoint } from "../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
   CAMPER_ROOM,
   createVehicle,
-} from "../../../src/domain/vehicle/kinds/index";
-import { decorItemId, decorSlotId } from "../../support/decorIds";
-import { defined } from "../../support/defined";
-import { FakeWorld, parkedCamper } from "./fakes";
+} from "../../../../src/domain/vehicle/kinds/index";
+import { decorItemId, decorSlotId } from "../../../support/decorIds";
+import { defined } from "../../../support/defined";
+import { FakeWorld, parkedCamper } from "../fakes";
 
 function slot(id: string) {
   const s = decorSlot(decorSlotId(id));

@@ -3,9 +3,9 @@ import type {
   PlayerInteractWithBlockBeforeEvent,
 } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
-import type { PlaceDecor } from "../../../../../src/application/vehicle/placeDecor";
-import type { PressStorage } from "../../../../../src/application/vehicle/pressStorage";
-import type { RemoveDecor } from "../../../../../src/application/vehicle/removeDecor";
+import type { PlaceDecor } from "../../../../../src/application/vehicle/room/placeDecor";
+import type { PressStorage } from "../../../../../src/application/vehicle/room/pressStorage";
+import type { RemoveDecor } from "../../../../../src/application/vehicle/room/removeDecor";
 import { asVehicleId } from "../../../../../src/domain/shared/ids";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
