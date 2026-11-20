@@ -1,6 +1,7 @@
+import { seconds } from "../domain/shared/ticks";
 import type { StepResult } from "./outcome";
 
-export const SETUP_LIMIT_TICKS = 1200;
+export const SETUP_LIMIT_TICKS = seconds(60);
 export const SETUP_POLL_TICKS = 10;
 export const SETUP_REPORT_TICKS = 200;
 

@@ -20,7 +20,8 @@ The vitest runner 10.0.0 was built against Vitest 4. Under Vitest 5 its per-test
 - Do not run mutation testing in CI. Run it by hand when changing tests or domain logic
 - Fail the run below a 60% score (`thresholds.break`). The first run scored 69%, so a far lower score more likely means the runner patch stopped working than that the tests got worse
 - Keep Renovate from merging `@stryker-mutator/*` updates automatically, so a person moves or drops the patch and the TypeScript 6 pin with each update
-- Run knip through `pnpm lint:unused`, configured in `knip.json`, with `src/main.ts` and `src/test-pack/runner.ts` as entries (the esbuild script names them, which knip cannot read). Run it in CI after the other lint checks
+- Run knip through `pnpm lint:unused`, configured in `knip.json`. The full run includes unit tests and the four script declaration entries and ignores the indirect dependency `@swc/core`. The production run checks files, exports, and types in `src/**/*.ts!`. The `!` suffix marks its project files and entries. Both esbuild bundles count as consumers because the release pack and the in-game test pack run on BDS. Mark their entries (`src/main.ts!` and `src/test-pack/runner.ts!`) and the host-side test driver (`scripts/game-test.mjs!`) so knip follows all three import graphs. Leave dependency checks to the full run because the game supplies `@minecraft/server`, installed here as a devDependency.
+- Set `ignoreExportsUsedInFile` to `true` so unit tests can directly import pure functions and tuning tables used within their defining file. CI runs both checks after formatting, language, and documentation checks and before type checking and dependency-cruiser.
 
 ## Consequences
 
@@ -29,7 +30,7 @@ The vitest runner 10.0.0 was built against Vitest 4. Under Vitest 5 its per-test
 - The checker type-checks mutants with TypeScript 6, so it can disagree with `pnpm typecheck` on TypeScript 7 behavior. Renovate does not update the 6.0.3 pin in `.pnpmfile.cjs`; bump it by hand
 - Drop the hook once #6110 is resolved and Stryker can use TypeScript 7
 - A Renovate update of the vitest runner fails `pnpm install` until the patch is moved to the new version or dropped. Drop it once a fix for #6210 is released. A score below the break threshold with "0.00 tests per mutant" means the patch no longer matches Vitest's naming
-- knip fails CI on a new unused file, export, or dependency, so remove it or add it to `knip.json` with a reason
+- knip fails CI on a new unused file, export, or dependency, including source code used only by unit tests. Remove unused code and move test-only helpers or expected values into their consuming test or `tests/support/`
 - The first run (2026-10-12) took about 1.5 minutes for 1,830 mutants. The checker dropped 598 of them, 248 had no unit test coverage (mostly `src/infrastructure/bedrock`), and the score was 69% overall and 86% of the covered mutants (domain 87%, application 92%)
 - Per-test coverage is not fully deterministic: two runs of the same commit differed by two survivors, so compare scores loosely
 - Raise the break threshold as the surviving mutants are fixed. Revisit running mutation testing in CI once the runner fixes are released and the workarounds are gone
