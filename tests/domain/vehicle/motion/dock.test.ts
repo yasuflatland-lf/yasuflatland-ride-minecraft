@@ -7,7 +7,35 @@ import {
   DOCK,
   heldStep,
   pushesStick,
+  StillTimer,
 } from "../../../../src/domain/vehicle/motion/dock";
+
+it("reaches the hold threshold after consecutive still ticks since movement or reset", () => {
+  const action = fc.oneof(
+    fc.constant("reset" as const),
+    fc.record({
+      still: fc.boolean(),
+      ticks: fc.integer({ min: 1, max: 2 * DOCK.ticks }),
+    }),
+  );
+  fc.assert(
+    fc.property(fc.array(action), (actions) => {
+      const timer = new StillTimer();
+      let count = 0;
+      for (const action of actions) {
+        if (action === "reset") {
+          timer.reset();
+          count = 0;
+          continue;
+        }
+        for (let i = 0; i < action.ticks; i++) {
+          count = action.still ? count + 1 : 0;
+          expect(timer.tick(action.still)).toBe(count >= DOCK.ticks);
+        }
+      }
+    }),
+  );
+});
 
 const dock: Dock = {
   hold: { x: 0, y: 64, z: 0, yaw: 0 },
