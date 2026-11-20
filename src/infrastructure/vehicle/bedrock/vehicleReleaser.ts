@@ -5,20 +5,29 @@
 import type { Entity } from "@minecraft/server";
 import type { VehicleId } from "../../../domain/shared/ids";
 import type { HoldPose } from "../../../domain/vehicle/dock/floor";
-import type { DeckSeats } from "./deckSeats";
 import type { DockLayer } from "./dockLayer";
 import type { HeadlightBlocks } from "./headlightBlocks";
-import type { SeatFillers } from "./seatFillers";
-import type { StandIns } from "./standIns";
+import type { PerVehicleState } from "./ownedEntities";
+
+/** Runs every cleanup step before passing the first error to the caller. */
+export function runReleaseSteps(steps: Iterable<() => void>): void {
+  let failure: { error: unknown } | undefined;
+  for (const step of steps) {
+    try {
+      step();
+    } catch (error) {
+      failure ??= { error };
+    }
+  }
+  if (failure) throw failure.error;
+}
 
 export class VehicleReleaser {
   constructor(
     private readonly headlightBlocks: Pick<HeadlightBlocks, "shine">,
     private readonly dockBlocks: Pick<DockLayer, "lay">,
-    private readonly deckSeats: Pick<DeckSeats, "keep">,
-    private readonly standIns: Pick<StandIns, "keep">,
+    private readonly helpers: readonly PerVehicleState[],
     private readonly holds: Map<VehicleId, HoldPose>,
-    private readonly seatFillers: Pick<SeatFillers, "release">,
   ) {}
 
   /**
@@ -27,21 +36,11 @@ export class VehicleReleaser {
    * the first error is rethrown afterwards.
    */
   release(vehicleId: VehicleId, vehicle: Entity | undefined): void {
-    let failure: { error: unknown } | undefined;
-    for (const step of [
+    runReleaseSteps([
       () => this.headlightBlocks.shine(vehicleId, vehicle, []),
       () => this.dockBlocks.lay(vehicleId, vehicle, []),
-      () => this.deckSeats.keep(vehicleId, vehicle, [], 0),
-      () => this.standIns.keep(vehicleId, vehicle, undefined),
-      () => this.seatFillers.release(vehicleId),
+      ...this.helpers.map((helper) => () => helper.release(vehicleId, vehicle)),
       () => this.holds.delete(vehicleId),
-    ]) {
-      try {
-        step();
-      } catch (e) {
-        failure ??= { error: e };
-      }
-    }
-    if (failure) throw failure.error;
+    ]);
   }
 }

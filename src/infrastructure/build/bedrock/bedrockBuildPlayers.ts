@@ -1,5 +1,5 @@
 import type { BuildPlayers } from "../../../application/build/ports/players";
-import { type Cell, cellOf } from "../../../domain/shared/cells";
+import { type Cell, cellCenter, cellOf } from "../../../domain/shared/cells";
 import { asDimensionId, type PlayerId } from "../../../domain/shared/ids";
 import { playerById } from "../../shared/players";
 
@@ -17,6 +17,6 @@ export class BedrockBuildPlayers implements BuildPlayers {
   moveTo(playerId: PlayerId, cell: Cell): void {
     const player = playerById(playerId);
     if (!player?.isValid || player.getComponent("minecraft:riding")) return;
-    player.teleport({ x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 });
+    player.teleport(cellCenter(cell));
   }
 }

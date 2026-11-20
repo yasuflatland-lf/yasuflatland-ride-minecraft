@@ -1,6 +1,6 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellCenter } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import { boxOf, type CellBox, center, edgePoints } from "../box";
+import { boxOf, type CellBox, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import { type BuildFlow, liveHeightBox } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
@@ -24,7 +24,9 @@ export interface PreviewAim {
 }
 
 function outline(box: CellBox): Vec3[] {
-  return edgePoints(box, BUILD_SPEC.outlineMaxPoints).map(center);
+  return edgePoints(box, BUILD_SPEC.outlineMaxPoints).map((p) =>
+    cellCenter(p, 0.5),
+  );
 }
 
 export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {

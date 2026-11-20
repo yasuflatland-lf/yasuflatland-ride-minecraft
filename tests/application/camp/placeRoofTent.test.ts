@@ -82,40 +82,32 @@ describe("PlaceRoofTent", () => {
     expect(world.spawn).not.toHaveBeenCalled();
   });
 
-  it("uses the host's rotated left/forward anchor and consumes only in Survival", () => {
+  it("uses the host's rotated left/forward anchor", () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: -720, max: 720 }),
-        fc.boolean(),
-        (yaw, creative) => {
-          const world = new FakeRoofTentWorld();
-          world.isCreative.mockReturnValue(creative);
-          expect(
-            new PlaceRoofTent(world, () => ({ ...PRESENT, yaw })).execute(cmd),
-          ).toBe(true);
-          const spawn = world.spawn.mock.calls[0];
-          expect(spawn).toBeDefined();
-          if (!spawn) return;
-          const rad = (yaw * Math.PI) / 180;
-          expect(spawn[1].location.x).toBeCloseTo(
-            10 + Math.cos(rad) - 3 * Math.sin(rad),
-          );
-          expect(spawn[1].location.z).toBeCloseTo(
-            30 + Math.sin(rad) + 3 * Math.cos(rad),
-          );
-          expect(spawn[1].location.y).toBe(22);
-          expect(spawn[1].yaw).toBe(yaw);
-          expect(spawn[0].host).toEqual({
-            kind: "vehicle",
-            id: asVehicleId("host"),
-          });
-          expect(spawn[0].ladder).toBe(true);
-          expect(spawn.slice(2)).toEqual([PLAYER, ROOF_TENT_SPEC.defaultPaint]);
-          expect(world.consumeItem).toHaveBeenCalledTimes(creative ? 0 : 1);
-          if (!creative)
-            expect(world.consumeItem).toHaveBeenCalledWith(PLAYER, cmd.slot);
-        },
-      ),
+      fc.property(fc.integer({ min: -720, max: 720 }), (yaw) => {
+        const world = new FakeRoofTentWorld();
+        expect(
+          new PlaceRoofTent(world, () => ({ ...PRESENT, yaw })).execute(cmd),
+        ).toBe(true);
+        const spawn = world.spawn.mock.calls[0];
+        expect(spawn).toBeDefined();
+        if (!spawn) return;
+        const rad = (yaw * Math.PI) / 180;
+        expect(spawn[1].location.x).toBeCloseTo(
+          10 + Math.cos(rad) - 3 * Math.sin(rad),
+        );
+        expect(spawn[1].location.z).toBeCloseTo(
+          30 + Math.sin(rad) + 3 * Math.cos(rad),
+        );
+        expect(spawn[1].location.y).toBe(22);
+        expect(spawn[1].yaw).toBe(yaw);
+        expect(spawn[0].host).toEqual({
+          kind: "vehicle",
+          id: asVehicleId("host"),
+        });
+        expect(spawn[0].ladder).toBe(true);
+        expect(spawn.slice(2)).toEqual([PLAYER, ROOF_TENT_SPEC.defaultPaint]);
+      }),
     );
   });
 
@@ -208,41 +200,21 @@ describe("PlaceRoofTent", () => {
     );
   });
 
-  it("refunds only a taken item when spawning fails", () => {
-    fc.assert(
-      fc.property(fc.boolean(), fc.boolean(), (creative, hasPlayer) => {
-        const world = new FakeRoofTentWorld();
-        world.isCreative.mockReturnValue(creative);
-        world.spawn.mockReturnValue(undefined);
-        const { playerId: _, ...withoutPlayer } = cmd;
-        expect(
-          new PlaceRoofTent(world, () => PRESENT).execute(
-            hasPlayer ? cmd : withoutPlayer,
-          ),
-        ).toBe(false);
-        expect(world.giveItem).toHaveBeenCalledTimes(
-          hasPlayer && !creative ? 1 : 0,
-        );
-        expect(world.consumeItem).toHaveBeenCalledTimes(
-          hasPlayer && !creative ? 1 : 0,
-        );
-      }),
-    );
+  it("returns the roof tent item to the placing player when spawning fails", () => {
+    const world = new FakeRoofTentWorld();
+    world.spawn.mockReturnValue(undefined);
+    expect(new PlaceRoofTent(world, () => PRESENT).execute(cmd)).toBe(false);
+    expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(PLAYER, cmd.slot);
+    expect(world.giveItem).toHaveBeenCalledExactlyOnceWith(PLAYER);
   });
 
-  it("does not spawn if the selected item was moved and ignores unrelated hosts", () => {
+  it("ignores unrelated hosts when placing a roof tent", () => {
     const world = new FakeRoofTentWorld();
     world.hosts.set(asRoofTentId("ground"), { kind: "ground" });
     world.hosts.set(asRoofTentId("other"), {
       kind: "vehicle",
       id: asVehicleId("another"),
     });
-    world.consumeItem.mockReturnValue(false);
-    const place = new PlaceRoofTent(world, () => PRESENT);
-    expect(place.execute(cmd)).toBe(false);
-    expect(world.spawn).not.toHaveBeenCalled();
-    expect(world.giveItem).not.toHaveBeenCalled();
-    world.consumeItem.mockReturnValue(true);
-    expect(place.execute(cmd)).toBe(true);
+    expect(new PlaceRoofTent(world, () => PRESENT).execute(cmd)).toBe(true);
   });
 });

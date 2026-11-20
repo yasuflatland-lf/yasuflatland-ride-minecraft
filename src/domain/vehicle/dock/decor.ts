@@ -1,11 +1,9 @@
 // Items a player set out in a held vehicle's room, saved on the vehicle (ADR 0093).
 import type { Brand } from "../../shared/ids";
-import type { Face } from "./floor";
 
 export type DecorSlotId = Brand<string, "DecorSlotId">;
 export type DecorItemId = Brand<string, "DecorItemId">;
 
-const QUARTER_TURN = 90;
 const ITEM_ID = /^[a-z][a-z0-9_]*$/;
 
 /** One decor item in one slot; `item` is a gear id without the namespace. */
@@ -29,11 +27,6 @@ export function parseDecorSlotId(raw: string): DecorSlotId | undefined {
 
 export function isDecorItem(raw: string): raw is DecorItemId {
   return ITEM_ID.test(raw);
-}
-
-/** The quarter turn of a snapped yaw: 0 at yaw 0, 1 at 90, 2 at 180, 3 at -90 (yasu_ride:face of a decor block). */
-export function decorFace(yaw: number): Face {
-  return (((Math.round(yaw / QUARTER_TURN) % 4) + 4) % 4) as Face;
 }
 
 /**

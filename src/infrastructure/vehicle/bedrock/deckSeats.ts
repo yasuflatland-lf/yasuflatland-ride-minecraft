@@ -13,17 +13,25 @@ import {
   isVehicleEntity,
   PLAYER_TYPE,
 } from "./identifiers";
+import {
+  loadedOwnerNear,
+  type OwnedEntityKind,
+  ownedEntity,
+  ownerIdOf,
+  type PerVehicleState,
+  placeOwned,
+} from "./ownedEntities";
 import { openCellSpot, standUp } from "./standUp";
 
-// Under a pixel (1/16 block): a seat this close to its spot is left alone, so a
-// seated player is not teleported every tick for drift nobody can see.
-const TELEPORT_TOLERANCE = 0.05;
 // A deck seat stays within TELEPORT_TOLERANCE of its spot, at most
 // DECK_SEAT_REACH from its vehicle; the margin finds a loaded owner even
-// when the seat loads a tick before the owner has been moved back to its
-// hold pose.
+// when the seat loads a tick before the owner moves back to its hold pose.
 const ORPHAN_MARGIN = 5;
-const ORPHAN_RADIUS = DECK_SEAT_REACH + ORPHAN_MARGIN;
+const DECK_SEAT_KIND: OwnedEntityKind = {
+  ownerProperty: DECK_SEAT_OF_PROPERTY,
+  isType: (typeId) => typeId === DECK_SEAT_TYPE,
+  searchRadius: DECK_SEAT_REACH + ORPHAN_MARGIN,
+};
 
 function savedIds(vehicle: Entity): (string | null)[] {
   const raw = vehicle.getDynamicProperty(DECK_SEATS_PROPERTY);
@@ -36,18 +44,6 @@ function savedIds(vehicle: Entity): (string | null)[] {
   } catch {
     return [];
   }
-}
-
-function seatEntity(
-  id: string | null | undefined,
-  vehicleId: string,
-): Entity | undefined {
-  const seat = id ? world.getEntity(id) : undefined;
-  return seat?.isValid &&
-    seat.typeId === DECK_SEAT_TYPE &&
-    seat.getDynamicProperty(DECK_SEAT_OF_PROPERTY) === vehicleId
-    ? seat
-    : undefined;
 }
 
 function seatedPlayer(seat: Entity | undefined): Player | undefined {
@@ -65,11 +61,7 @@ interface Seated {
 
 export function removeOrphanDeckSeat(seat: Entity): void {
   if (!seat.isValid || seat.typeId !== DECK_SEAT_TYPE) return;
-  const owner = seat.getDynamicProperty(DECK_SEAT_OF_PROPERTY);
-  const found = seat.dimension
-    .getEntities({ location: seat.location, maxDistance: ORPHAN_RADIUS })
-    .some((entity) => entity.id === owner && isVehicleEntity(entity.typeId));
-  if (!found) seat.remove();
+  if (!loadedOwnerNear(seat, DECK_SEAT_KIND)) seat.remove();
 }
 
 /** The vehicle and seat index of a player riding one of its parked deck seats. */
@@ -78,15 +70,15 @@ export function deckSeatRide(
 ): { vehicle: Entity; seat: number } | undefined {
   const mount = mountOf(player);
   if (!mount?.isValid || mount.typeId !== DECK_SEAT_TYPE) return undefined;
-  const owner = mount.getDynamicProperty(DECK_SEAT_OF_PROPERTY);
-  if (typeof owner !== "string") return undefined;
+  const owner = ownerIdOf(mount, DECK_SEAT_KIND);
+  if (owner === undefined) return undefined;
   const vehicle = world.getEntity(owner);
   if (!vehicle?.isValid || !isVehicleEntity(vehicle.typeId)) return undefined;
   const seat = savedIds(vehicle).indexOf(mount.id);
   return seat < 0 ? undefined : { vehicle, seat };
 }
 
-export class DeckSeats {
+export class DeckSeats implements PerVehicleState {
   constructor(
     private readonly isStandableRoomBlock: (typeId: string) => boolean,
   ) {}
@@ -97,10 +89,7 @@ export class DeckSeats {
   private readonly seated = new Map<VehicleId, (Seated | undefined)[]>();
 
   private ids(vehicle: Entity): (string | null)[] {
-    const id = asVehicleId(vehicle.id);
-    const seatIds = this.kept.get(id) ?? savedIds(vehicle);
-    this.kept.set(id, seatIds);
-    return seatIds;
+    return this.kept.get(asVehicleId(vehicle.id)) ?? savedIds(vehicle);
   }
 
   keep(
@@ -110,11 +99,12 @@ export class DeckSeats {
     yaw: number,
   ): void {
     const ids = vehicle ? this.ids(vehicle) : (this.kept.get(vehicleId) ?? []);
+    if (vehicle) this.kept.set(vehicleId, ids);
     const before = JSON.stringify(ids);
     const wanted = vehicle ? positions : [];
     const wasSeated = this.seated.get(vehicleId) ?? [];
     for (let index = 0; index < Math.max(ids.length, wanted.length); index++) {
-      let seat = seatEntity(ids[index], vehicleId);
+      const seat = ownedEntity(ids[index], vehicleId, DECK_SEAT_KIND);
       const at = wanted[index];
       if (!at || !vehicle) {
         seat?.remove();
@@ -128,39 +118,26 @@ export class DeckSeats {
         standUp(was.player, seat, at.stand, (dimension, at) =>
           openCellSpot(dimension, at, this.isStandableRoomBlock),
         );
-      if (seat && seat.dimension.id !== vehicle.dimension.id) {
-        seat.remove();
-        seat = undefined;
-      }
-      try {
-        if (!seat) {
-          seat = vehicle.dimension.spawnEntity(DECK_SEAT_TYPE, {
-            x: at.x,
-            y: at.y,
-            z: at.z,
-          });
-          ids[index] = seat.id;
-          seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, vehicleId);
-          seat.setRotation({ x: 0, y: yaw });
-          if (at.compact) seat.triggerEvent(DECK_SEAT_COMPACT_EVENT);
-          if (at.driver) seat.triggerEvent(DECK_SEAT_DRIVER_EVENT);
-        } else if (
-          Math.hypot(
-            seat.location.x - at.x,
-            seat.location.y - at.y,
-            seat.location.z - at.z,
-          ) > TELEPORT_TOLERANCE
-        ) {
-          seat.teleport(
-            { x: at.x, y: at.y, z: at.z },
-            { rotation: { x: 0, y: yaw } },
-          );
-        }
-      } catch {
-        // The spot is in an unloaded chunk; the next tick tries again, and the rest of the
-        // vehicle's tick goes on.
-        if (!seat) ids[index] = null;
-      }
+      const rotation = { x: 0, y: yaw };
+      const placed = placeOwned(
+        seat,
+        vehicle,
+        { x: at.x, y: at.y, z: at.z },
+        (dimension, spot) => {
+          const spawned = dimension.spawnEntity(DECK_SEAT_TYPE, spot);
+          spawned.setDynamicProperty(DECK_SEAT_OF_PROPERTY, vehicleId);
+          try {
+            spawned.setRotation(rotation);
+            if (at.compact) spawned.triggerEvent(DECK_SEAT_COMPACT_EVENT);
+            if (at.driver) spawned.triggerEvent(DECK_SEAT_DRIVER_EVENT);
+          } catch {
+            // A chunk can unload after spawning. Keep the owned seat's id for the next tick.
+          }
+          return spawned;
+        },
+        { rotation },
+      );
+      ids[index] = placed?.id ?? (seat?.isValid ? seat.id : null);
     }
     ids.length = wanted.length;
     if (ids.length > 0) this.kept.set(vehicleId, ids);
@@ -178,7 +155,7 @@ export class DeckSeats {
     ids: readonly (string | null)[],
   ): void {
     const seated = ids.map((id): Seated | undefined => {
-      const seat = seatEntity(id, vehicleId);
+      const seat = ownedEntity(id, vehicleId, DECK_SEAT_KIND);
       const player = seatedPlayer(seat);
       return seat && player ? { seatId: seat.id, player } : undefined;
     });
@@ -188,7 +165,7 @@ export class DeckSeats {
 
   riders(vehicle: Entity): (Player | undefined)[] {
     return this.ids(vehicle).map((id) =>
-      seatedPlayer(seatEntity(id, vehicle.id)),
+      seatedPlayer(ownedEntity(id, vehicle.id, DECK_SEAT_KIND)),
     );
   }
 
@@ -196,7 +173,7 @@ export class DeckSeats {
     const rideable = vehicle.getComponent("minecraft:rideable");
     if (!rideable) return;
     for (const id of this.ids(vehicle)) {
-      const seat = seatEntity(id, vehicle.id);
+      const seat = ownedEntity(id, vehicle.id, DECK_SEAT_KIND);
       const seatRideable = seat?.getComponent("minecraft:rideable");
       const player = seatedPlayer(seat);
       if (!player || !seatRideable) continue;
@@ -209,7 +186,7 @@ export class DeckSeats {
   eject(vehicle: Entity): Player[] {
     const players: Player[] = [];
     for (const id of this.ids(vehicle)) {
-      const seat = seatEntity(id, vehicle.id);
+      const seat = ownedEntity(id, vehicle.id, DECK_SEAT_KIND);
       const player = seatedPlayer(seat);
       if (!seat || !player) continue;
       seat.getComponent("minecraft:rideable")?.ejectRider(player);
@@ -218,8 +195,12 @@ export class DeckSeats {
     return players;
   }
 
-  clearGone(live: ReadonlySet<VehicleId>): void {
+  release(vehicleId: VehicleId, vehicle: Entity | undefined): void {
+    this.keep(vehicleId, vehicle, [], 0);
+  }
+
+  sweepGone(live: ReadonlySet<VehicleId>): void {
     for (const id of this.kept.keys())
-      if (!live.has(id)) this.keep(id, undefined, [], 0);
+      if (!live.has(id)) this.release(id, undefined);
   }
 }

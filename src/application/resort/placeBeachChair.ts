@@ -6,6 +6,7 @@ import {
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { canUseBlockTop } from "../shared/groundPlacement";
+import { placePaid } from "../shared/paidPlacement";
 import type { BeachChairWorld } from "./ports/beachChairWorld";
 
 export class PlaceBeachChair {
@@ -35,13 +36,9 @@ export class PlaceBeachChair {
       )
         return blocked();
     }
-    const paid = !this.world.isCreative(player);
-    if (paid && !this.world.consumeItem(player, slot)) return blocked();
-    const id = this.world.spawn(dimension, pose);
-    if (id === undefined) {
-      if (paid) this.world.refund(player, slot);
-      return blocked();
-    }
-    return true;
+    const result = placePaid(this.world, { player, slot }, () =>
+      this.world.spawn(dimension, pose),
+    );
+    return result.placed || blocked();
   }
 }

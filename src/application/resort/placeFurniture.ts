@@ -8,6 +8,7 @@ import {
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { canUseBlockTop } from "../shared/groundPlacement";
+import { placePaid } from "../shared/paidPlacement";
 import type { FurnitureWorld } from "./ports/furnitureWorld";
 
 export class PlaceFurniture {
@@ -38,14 +39,17 @@ export class PlaceFurniture {
       )
         return blocked();
     }
-    const paid = !this.world.isCreative(player);
-    if (paid && !this.world.consumeItem(player, kind, slot)) return blocked();
-    const id = this.world.spawn(dimension, pose);
-    if (id === undefined) {
-      if (paid) this.world.refund(player, kind, slot);
-      return blocked();
-    }
-    if (FURNITURE_SPEC[kind].top) this.world.layTop(id);
+    const result = placePaid(
+      {
+        isCreative: (p) => this.world.isCreative(p),
+        consumeItem: (p, s) => this.world.consumeItem(p, kind, s),
+        refund: (p, s) => this.world.refund(p, kind, s),
+      },
+      { player, slot },
+      () => this.world.spawn(dimension, pose),
+    );
+    if (!result.placed) return blocked();
+    if (FURNITURE_SPEC[kind].top) this.world.layTop(result.id);
     return true;
   }
 }

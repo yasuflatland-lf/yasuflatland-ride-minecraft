@@ -2,6 +2,7 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { ChairWorld } from "../../../application/camp/ports/chair";
 import type { ChairId, ChairKindId } from "../../../domain/camp/chair";
+import { cellCenter } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
@@ -66,7 +67,7 @@ export class BedrockChairWorld implements ChairWorld {
       return (
         world.getDimension(dimensionId).getEntities({
           type: CHAIR_KINDS[kind].typeId,
-          location: { x: cell.x + 0.5, y: cell.y - 0.5, z: cell.z + 0.5 },
+          location: cellCenter(cell, -0.5),
           maxDistance: SAME_CELL_DISTANCE,
         }).length > 0
       );

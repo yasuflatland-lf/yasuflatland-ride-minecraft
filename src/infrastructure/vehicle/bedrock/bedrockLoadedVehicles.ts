@@ -42,9 +42,9 @@ import {
   HEADLIGHTS_PROPERTY,
   kindOfEntity,
 } from "./identifiers";
+import type { PerVehicleState } from "./ownedEntities";
 import type { SeatFillers } from "./seatFillers";
-import type { StandIns } from "./standIns";
-import type { VehicleReleaser } from "./vehicleReleaser";
+import { runReleaseSteps, type VehicleReleaser } from "./vehicleReleaser";
 
 function rawInputOf(player: Player): RawInput {
   const movement = player.inputInfo.getMovementVector();
@@ -64,8 +64,8 @@ export class BedrockLoadedVehicles implements LoadedVehicleWorld {
     private readonly headlightBlocks: HeadlightBlocks,
     private readonly dockBlocks: DockLayer,
     private readonly deckSeats: DeckSeats,
-    private readonly standIns: StandIns,
     private readonly seatFillers: SeatFillers,
+    private readonly helpers: readonly PerVehicleState[],
     private readonly holds: Map<VehicleId, HoldPose>,
     private readonly releaser: VehicleReleaser,
   ) {}
@@ -113,17 +113,21 @@ export class BedrockLoadedVehicles implements LoadedVehicleWorld {
         testHeld: riderHeldOf(this.testHeldItems.get(id)),
       });
     }
-    const live = this.index.trackedIds();
-    this.testInputs.retain(live);
-    this.testHeldItems.retain(live);
-    this.headlightBlocks.clearGone(live);
-    this.dockBlocks.clearGone(live);
-    this.deckSeats.clearGone(live);
-    this.standIns.clearGone(live);
-    this.seatFillers.clearGone(live);
-    for (const id of this.holds.keys())
-      if (!live.has(id)) this.holds.delete(id);
     return snapshots;
+  }
+
+  sweepGone(live: ReadonlySet<VehicleId>): void {
+    runReleaseSteps([
+      () => this.testInputs.retain(live),
+      () => this.testHeldItems.retain(live),
+      () => this.headlightBlocks.clearGone(live),
+      () => this.dockBlocks.clearGone(live),
+      ...this.helpers.map((helper) => () => helper.sweepGone(live)),
+      () => {
+        for (const id of this.holds.keys())
+          if (!live.has(id)) this.holds.delete(id);
+      },
+    ]);
   }
 
   releaseVehicle(vehicleId: VehicleId): void {

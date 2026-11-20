@@ -407,9 +407,9 @@ describe("SeatFillers (ADR 0120)", () => {
     );
     const laid = f.vehicle.riders.filter((r) => r.typeId === SEAT_FILLER_TYPE);
     expect(laid).toHaveLength(2);
-    fillers.clearGone(new Set([asVehicleId("boat")]));
+    fillers.sweepGone(new Set([asVehicleId("boat")]));
     expect(laid.every((filler) => filler.isValid)).toBe(true);
-    fillers.clearGone(new Set());
+    fillers.sweepGone(new Set());
     expect(laid.every((filler) => !filler.isValid)).toBe(true);
   });
 

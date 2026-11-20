@@ -61,7 +61,7 @@ Because the seat is the list index, a player reaches seat k only if k riders are
   - Its client entity draws the deck seat's empty model.
   - The boat's `minecraft:rideable` lets `yasu_ride_seat_filler` ride besides players.
   - A press or hit on a filler counts as one on the boat it rides (`vehicleOfTarget`).
-  - Fillers are removed when the boat is released (broken, removed by the vehicle limit, or no longer loaded). A filler that loads without riding a vehicle is also removed.
+  - Releasing a boat that breaks or is removed by the vehicle limit removes its fillers. The post-tick `sweepGone` releases session-kept fillers when their boat is no longer loaded. A filler that loads without riding a vehicle is also removed.
 - **In-game test.** `boat_seat_fillers` checks this on `yasu_ride_test:boat_seat_probe`, which has the boat's `minecraft:rideable` but seats cows and fillers:
   - With `SeatFillers` laying driver, filler, rear, the rear cow sits in seat 2.
   - After the driver is ejected and the list is laid again every tick, as the boat does, the rear cow waits a tick and gets back into seat 2, with two fillers holding seats 0 and 1 and no third one.

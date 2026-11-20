@@ -1,3 +1,4 @@
+import { facePlayer } from "../shared/facing";
 import type { Brand } from "../shared/ids";
 import type { Vec3 } from "../shared/vec";
 
@@ -9,9 +10,7 @@ export function asTableId(raw: string): TableId {
 
 /** The long axis follows the player's nearest quarter turn. */
 export function tableYaw(playerYaw: number): number {
-  const snapped = Math.round((playerYaw + 180) / 90) * 90;
-  const yaw = ((snapped % 360) + 360) % 360;
-  return yaw > 180 ? yaw - 360 : yaw;
+  return facePlayer(playerYaw);
 }
 
 /** The clicked ground cell and its neighbor under the other end. */

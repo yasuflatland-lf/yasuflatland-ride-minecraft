@@ -1,4 +1,4 @@
-import { type Cell, cellKey, cellOf } from "../shared/cells";
+import { type Cell, cellCenter, cellKey, cellOf } from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
 import { footprintColumns, regularOctagonFootprint } from "../shared/footprint";
 import { forward, leftOf, type Vec3 } from "../shared/vec";
@@ -30,7 +30,7 @@ export function parasolPose(pressed: Cell, playerYaw: number): ParasolPose {
   const toCanopy = quarterStep(yaw);
   return {
     yaw,
-    canopyCenter: { x: pressed.x + 0.5, y: pressed.y + 1, z: pressed.z + 0.5 },
+    canopyCenter: cellCenter(pressed, 1),
     base: {
       x: pressed.x - toCanopy.x * PARASOL_SPEC.baseOffset,
       y: pressed.y + 1,
@@ -75,11 +75,7 @@ export function parasolFootCells(pose: ParasolPose): Cell[] {
 
 /** The cell below the base, whose top face must be solid. */
 export function parasolSupportCell(pose: ParasolPose): Cell {
-  return cellOf({
-    x: pose.base.x + 0.5,
-    y: pose.base.y - 1,
-    z: pose.base.z + 0.5,
-  });
+  return cellOf(cellCenter(pose.base, -1));
 }
 
 /** The columns that get a rain ceiling, in the first cell above the canopy's top (ADR 0207). */

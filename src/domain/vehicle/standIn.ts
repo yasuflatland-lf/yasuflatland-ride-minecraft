@@ -4,6 +4,7 @@
 // stand-in comes as two entity types with fixed boxes: one with its row of boxes along
 // world x and one along world z. The vehicle keeps the type whose row lies across its
 // heading at the spot `ahead` of its location.
+import { QUARTER_TURN, quarterOf } from "../shared/facing";
 import { forward, type Vec3 } from "../shared/vec";
 
 /** The world axis a stand-in's row of boxes lies along. */
@@ -38,7 +39,6 @@ export interface StandInPose extends Vec3 {
   readonly axis: StandInAxis;
 }
 
-const QUARTER_TURN = 90;
 const FULL_TURN = 360;
 // A yaw a whole number of quarters turned gives sines like 6e-17; rounding them away puts
 // a parked vehicle's stand-in exactly on its cell row.
@@ -52,7 +52,7 @@ export function yawGap(a: number, b: number): number {
 
 /** The row axis across the heading nearest `yaw`: x when it faces along z, else z. */
 export function nearestAxis(yaw: number): StandInAxis {
-  return Math.abs(Math.round(yaw / QUARTER_TURN)) % 2 === 0 ? "x" : "z";
+  return quarterOf(yaw) % 2 === 0 ? "x" : "z";
 }
 
 /** The angle in degrees from `yaw` to the nearest heading whose row lies along `axis`. */

@@ -16,8 +16,9 @@ An entity cannot emit block light. The only way to light up the world with the s
 - A new item, the headlight switch (`mycar:headlight_switch`), is crafted shapeless from a lever and glowstone dust. Using it while riding a vehicle switches that vehicle's headlights. The script listens to `world.afterEvents.itemUse`, and also to `world.beforeEvents.playerInteractWithEntity` when the rider aims at the vehicle they ride; that interaction is cancelled so it does nothing else
 - Only the driver (0019) can switch them. A switch within `SPEC.headlightSwitchCooldown` (5 ticks) of the last one is ignored, so one tap that reaches the script through both events counts once
 - The state lives in the entity property `mycar:headlights` (bool, default `false`, `client_sync`), so it survives `/reload` and restarts. A placed vehicle starts with them off
-- While they are on, the script keeps a `minecraft:light_block_15` in each cell `SPEC.headlightReach` (4 and 9 blocks) ahead of the vehicle's center, one block above the ground it stands on. Every tick it clears the cells it lit that are no longer wanted and lights the new ones. It only places a light block in air, and only clears a cell that still holds a light block, so it never removes a block a player built
-- The cells a vehicle lit are saved in its dynamic property `mycar:lit_cells`, so they can be cleared after a `/reload` or a restart. They are also cleared when the vehicle is broken (0008) or stops being loaded
+- The vehicle's beam pattern picks cells ahead of its center, one block above the ground it stands on. Each tick while the headlights are on, `CellLayer` updates those cells outside camp space (0129). It places lights into air or another light block and clears a cell only if it still holds the exact light block id the vehicle laid. This preserves solid blocks and replacement lights of a different level
+- The layer rechecks wanted lights every 20 lays (0096). It restores lights replaced by air or a different light block
+- The cells a vehicle lit are saved in its dynamic property `yasu_ride:lit_cells` as entries of the form `{ x, y, z, block: { level } }`, so they can be cleared after a `/reload` or a restart. Older flat entries still load and default to level 15 when the level is absent. The layer also clears tracked cells when the vehicle is broken (0008), stops being loaded, or leaves the dimension (0024)
 - Light blocks count as air for the step-up look-ahead (0004) and for placing a vehicle (0008), so a vehicle never climbs or refuses its own light
 - The lamp lenses (cubes with the `light` swatch: headlights and fog lamps) move from `body` to a new bone `headlights`, a child of `body`. The `light` swatch has alpha 0 in every paint texture. The render controller gives the `headlights` bone the material `entity` (ignores alpha) while the headlights are off and `entity_emissive` (alpha 0 is fully lit) while they are on
 
@@ -25,6 +26,6 @@ An entity cannot emit block light. The only way to light up the world with the s
 
 - The road ahead is lit at night, and the lamps glow even in the dark
 - `headlights` joins the bone names of 0009. A Blockbench model needs that bone, and an emissive mask in the alpha channel of its lamp texels
-- A vehicle that vanishes without being broken while its chunk is unloaded (for example `/kill` far from players) can leave its light blocks behind. They are invisible and harmless, and any block placed there replaces them
-- Each moving vehicle with its headlights on rewrites up to four blocks per tick, which makes the engine recompute light. Revisit the reach or the cell count if many vehicles drive at night on a server
+- A vehicle removed before the script can read its saved cells can leave its light blocks behind. Any block placed there replaces them
+- Clearing and placing cells as the beam moves makes the engine recompute light. Revisit the reach or the cell count if many vehicles drive at night on a server
 - The in-game tests cannot use an item without a player, so they set the property directly; the item handling is covered by unit tests and the manual test

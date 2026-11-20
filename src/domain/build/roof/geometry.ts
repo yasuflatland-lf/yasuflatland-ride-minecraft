@@ -1,5 +1,5 @@
+import { cellCenter } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import { center } from "../box";
 import type {
   HeightedPlacement,
   HeightedVolume,
@@ -42,10 +42,10 @@ export const roofVolume: HeightedVolume = {
 function roofWireframe(spec: RoofSpec, maxPoints: number): Vec3[] {
   const { min, max } = spec.base;
   const corners = [
-    center(min),
-    center({ ...min, x: max.x }),
-    center({ ...max, y: min.y }),
-    center({ ...min, z: max.z }),
+    cellCenter(min, 0.5),
+    cellCenter({ ...min, x: max.x }, 0.5),
+    cellCenter({ ...max, y: min.y }, 0.5),
+    cellCenter({ ...min, z: max.z }, 0.5),
   ];
   const alongX = max.x - min.x >= max.z - min.z;
   const shortSpan = Math.min(max.x - min.x, max.z - min.z);

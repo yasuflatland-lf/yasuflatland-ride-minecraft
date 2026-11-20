@@ -22,6 +22,7 @@ it("ticks accepts exactly the non-negative integers", () => {
 });
 
 it("seconds converts whole seconds to twenty ticks each", () => {
+  expect(seconds(30)).toBe(600);
   fc.assert(
     fc.property(fc.nat(100000), (s) => {
       expect(seconds(s)).toBe(s * TICKS_PER_SECOND);

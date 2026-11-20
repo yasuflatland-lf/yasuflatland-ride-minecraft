@@ -76,13 +76,12 @@ export class BedrockVehicleWorld implements DriveWorld {
     const roadPaver = new RoadPaver(drops, campSpace);
     const headlightBlocks = new HeadlightBlocks(campSpace);
     const deckSeats = new DeckSeats(isStandableRoomBlock);
+    const helpers = [deckSeats, standIns, seatFillers];
     this.releaser = new VehicleReleaser(
       headlightBlocks,
       dockBlocks,
-      deckSeats,
-      standIns,
+      helpers,
       holds,
-      seatFillers,
     );
     this.loaded = new BedrockLoadedVehicles(
       index,
@@ -91,8 +90,8 @@ export class BedrockVehicleWorld implements DriveWorld {
       headlightBlocks,
       dockBlocks,
       deckSeats,
-      standIns,
       seatFillers,
+      helpers,
       holds,
       this.releaser,
     );
@@ -152,6 +151,10 @@ export class BedrockVehicleWorld implements DriveWorld {
 
   loadedVehicles(): VehicleSnapshot[] {
     return this.loaded.loadedVehicles();
+  }
+
+  sweepGone(live: ReadonlySet<VehicleId>): void {
+    this.loaded.sweepGone(live);
   }
 
   waterAt(vehicleId: VehicleId, offset: Vec3): boolean {

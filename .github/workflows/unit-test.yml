@@ -37,7 +37,7 @@ jobs:
       # ADR metadata, the generated ADR index, and doc links (ADR 0205)
       - run: pnpm run lint:docs
 
-      # Unused files, exports, and dependencies (ADR 0048)
+      # Unused files, exports, and dependencies, including source used only by unit tests (ADR 0048)
       - run: pnpm run lint:unused
 
       # main has no source code yet, so only run these once tsconfig.json exists
