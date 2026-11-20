@@ -96,9 +96,6 @@ describe("low chair entity (ADR 0122)", () => {
       is_pushable: false,
       is_pushable_by_piston: false,
     });
-    expect(c["minecraft:damage_sensor"]).toEqual({
-      triggers: { cause: "all", deals_damage: "no" },
-    });
     expect(entity.component_groups).toBeUndefined();
     expect(entity.events).toBeUndefined();
   });

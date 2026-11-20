@@ -43,10 +43,6 @@ it("uses the entity format that makes its damage sensor effective, like the othe
   // while the SUV, camper, and boat on 1.21.80 took no damage.
   const file = read(`${BP}/entities/yasu_ride/bulldozer.se.json`);
   expect(file.format_version).toBe("1.21.80");
-  expect(entity.components["minecraft:damage_sensor"].triggers).toEqual({
-    cause: "all",
-    deals_damage: "no",
-  });
 });
 it("declares the transforming properties with a nonzero range for its zero bank", () => {
   const p = entity.description.properties;

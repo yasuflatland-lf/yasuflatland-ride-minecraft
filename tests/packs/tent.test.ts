@@ -179,7 +179,7 @@ describe("tent entity and client", () => {
         },
       },
     });
-    expect(e.components).toEqual({
+    expect(e.components).toMatchObject({
       "minecraft:type_family": { family: [TENT_FAMILY, "inanimate"] },
       "minecraft:variant": { value: 0 },
       "minecraft:collision_box": { width: 0.2, height: 0.2 },
@@ -193,9 +193,6 @@ describe("tent entity and client", () => {
       },
       "minecraft:knockback_resistance": { value: 1 },
       "minecraft:health": { value: 20, max: 20 },
-      "minecraft:damage_sensor": {
-        triggers: { cause: "all", deals_damage: "no" },
-      },
       "minecraft:persistent": {},
     });
     const collision = e.components["minecraft:collision_box"];

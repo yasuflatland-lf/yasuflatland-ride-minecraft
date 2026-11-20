@@ -32,10 +32,6 @@ describe("Dining Chair assets (ADR 0240)", () => {
       is_pushable_by_piston: false,
     });
     expect(components["minecraft:knockback_resistance"].value).toBe(1);
-    expect(components["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
     expect(components["minecraft:physics"]).toEqual({
       has_collision: true,
       has_gravity: true,

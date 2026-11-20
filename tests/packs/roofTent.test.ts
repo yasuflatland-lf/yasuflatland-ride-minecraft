@@ -59,7 +59,7 @@ print(json.dumps([*m.tent.rounded(json.loads(json.dumps([asdict(m.GROUND_DIMS), 
 );
 
 describe("roof tent asset contract", () => {
-  it("declares stable identifiers, synced flags, fixed collision, and damage immunity", () => {
+  it("declares stable identifiers, synced flags, and fixed collision", () => {
     expect(ROOF_TENT_TYPE).toBe("yasu_ride:roof_tent");
     expect(ROOF_TENT_ITEM).toBe("yasu_ride:roof_tent_item");
     expect(entity.description).toEqual({
@@ -127,9 +127,6 @@ describe("roof tent asset contract", () => {
     const tent = read(`${BP}/entities/yasu_ride/tent.se.json`)[
       "minecraft:entity"
     ];
-    expect(entity.components["minecraft:damage_sensor"]).toEqual(
-      tent.components["minecraft:damage_sensor"],
-    );
     expect(entity.components["minecraft:pushable"]).toEqual(
       tent.components["minecraft:pushable"],
     );

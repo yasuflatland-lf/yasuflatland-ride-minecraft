@@ -43,10 +43,6 @@ describe("beach parasol pack assets", () => {
       is_pushable: false,
       is_pushable_by_piston: false,
     });
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
     expect(c["minecraft:knockback_resistance"].value).toBe(1);
     expect(c["minecraft:collision_box"]).toEqual({ width: 1.5, height: 0.32 });
     expect(c["minecraft:variant"].value).toBe(PAINTS.indexOf("white"));

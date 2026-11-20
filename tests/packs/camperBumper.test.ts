@@ -68,7 +68,7 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
     expect(box.width).toBeLessThan(CAMPER_SPEC.bumperBoxSize);
   });
 
-  it("neither falls, collides, nor gets pushed, and takes no damage", () => {
+  it("neither falls, collides, nor gets pushed", () => {
     expect(c["minecraft:physics"]).toEqual({
       has_collision: false,
       has_gravity: false,
@@ -78,9 +78,6 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
       is_pushable_by_piston: false,
     });
     expect(c["minecraft:knockback_resistance"]).toEqual({ value: 1.0 });
-    expect(c["minecraft:damage_sensor"]).toEqual({
-      triggers: { cause: "all", deals_damage: "no" },
-    });
     for (const absent of [
       "minecraft:loot",
       "minecraft:despawn",

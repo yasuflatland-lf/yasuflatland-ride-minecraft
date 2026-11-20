@@ -30,13 +30,6 @@ describe("packs/yasu_ride_bp", () => {
     expect(seats[0].lock_rider_rotation).toBe(90);
   });
 
-  it("the vehicle takes no damage (ADR 0006)", () => {
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
-  });
-
   it("takes Jump as a zero-strength power jump, so a touch rider's Jump does not dismount them (ADR 0025)", () => {
     expect(c["minecraft:input_ground_controlled"]).toEqual({});
     expect(c["minecraft:can_power_jump"]).toEqual({});

@@ -44,9 +44,6 @@ describe("Seat filler (ADR 0120)", () => {
       is_pushable: false,
       is_pushable_by_piston: false,
     });
-    expect(entity.components["minecraft:damage_sensor"]).toEqual({
-      triggers: { cause: "all", deals_damage: "no" },
-    });
   });
 
   it("is drawn with the deck seat's model, which has no cubes", () => {

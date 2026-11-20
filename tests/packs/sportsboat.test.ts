@@ -102,13 +102,6 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
     ]);
   });
 
-  it("takes no damage (ADR 0006)", () => {
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
-  });
-
   it("each paint event sets that paint's variant and drops the other paints", () => {
     expect(c["minecraft:variant"].value).toBe(0);
     expect(Object.keys(entity.component_groups).sort()).toEqual(

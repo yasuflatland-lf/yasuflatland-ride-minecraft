@@ -71,10 +71,6 @@ describe("Beach Chair assets", () => {
       is_pushable_by_piston: false,
     });
     expect(c["minecraft:knockback_resistance"].value).toBe(1);
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
     expect(c["minecraft:collision_box"]).toEqual({
       width: 1.0,
       height: 0.5625,

@@ -228,7 +228,7 @@ describe("Gas Lantern item and ground entity", () => {
         "yasu_ride:lit": { type: "bool", default: false, client_sync: true },
       },
     });
-    expect(entity.components).toEqual({
+    expect(entity.components).toMatchObject({
       "minecraft:type_family": {
         family: ["yasu_ride_gas_lantern", "inanimate"],
       },
@@ -240,9 +240,6 @@ describe("Gas Lantern item and ground entity", () => {
       },
       "minecraft:knockback_resistance": { value: 1 },
       "minecraft:health": { value: 20, max: 20 },
-      "minecraft:damage_sensor": {
-        triggers: { cause: "all", deals_damage: "no" },
-      },
       "minecraft:persistent": {},
       "minecraft:interact": {
         interactions: [

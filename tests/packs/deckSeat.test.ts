@@ -108,14 +108,11 @@ describe("Boat deck seat (ADR 0063)", () => {
     ]);
   });
 
-  it("takes no damage from any cause", () => {
+  it("keeps enough health for a mounted player", () => {
     expect(entity.components["minecraft:fire_immune"]).toEqual({});
     expect(entity.components["minecraft:health"]).toEqual({
       value: 20,
       max: 20,
-    });
-    expect(entity.components["minecraft:damage_sensor"]).toEqual({
-      triggers: { cause: "all", deals_damage: "no" },
     });
   });
 

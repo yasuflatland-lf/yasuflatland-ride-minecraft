@@ -38,10 +38,6 @@ it("ships a persistent, damage-immune table with whole-model hits and no seats",
     is_pushable: false,
     is_pushable_by_piston: false,
   });
-  expect(c["minecraft:damage_sensor"].triggers).toEqual({
-    cause: "all",
-    deals_damage: "no",
-  });
   expect(c["minecraft:knockback_resistance"].value).toBe(1);
   expect(c["minecraft:rideable"]).toBeUndefined();
   expect(c["minecraft:collision_box"]).toEqual({

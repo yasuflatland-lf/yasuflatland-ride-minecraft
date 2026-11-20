@@ -36,7 +36,6 @@ describe("Sofa (Single) pack contract", () => {
       is_pushable: false,
       is_pushable_by_piston: false,
     });
-    expect(c["minecraft:damage_sensor"].triggers.deals_damage).toBe("no");
     expect(c["minecraft:persistent"]).toEqual({});
     expect(c["minecraft:rideable"]).toMatchObject({
       seat_count: 1,

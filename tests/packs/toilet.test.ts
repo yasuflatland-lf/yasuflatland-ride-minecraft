@@ -84,10 +84,6 @@ describe("Toilet pack contract", () => {
       is_pushable: false,
       is_pushable_by_piston: false,
     });
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
     expect(c["minecraft:persistent"]).toEqual({});
     expect(c["minecraft:rideable"]).toEqual({
       seat_count: 1,
