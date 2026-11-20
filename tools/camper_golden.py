@@ -1,4 +1,4 @@
-"""Compare current camper counts and region placements with an explicit golden directory."""
+"""Capture and compare camper cube geometry and atlas region placements."""
 
 import argparse
 import difflib
@@ -29,22 +29,69 @@ def _current():
     return model, regions, areas
 
 
-def _counts(model, area=None, ranges=None):
-    counts = {}
-    for bone in model["bones"]:
-        cubes = bone.get("cubes", [])
-        if area is None:
-            counts[bone["name"]] = len(cubes)
-        elif ranges is None:
-            count = sum(c.get("_area") in GOLDEN_AREA_LABELS.get(area, (area,)) for c in cubes)
-            if count:
-                counts[bone["name"]] = count
-        elif bone["name"] in ranges.get(area, {}):
-            spans = ranges[area][bone["name"]]
+def _tag_current(model, ranges):
+    bones = {b["name"]: b.get("cubes", []) for b in model["bones"]}
+    for area, selections in ranges.items():
+        for name, spans in selections.items():
             if isinstance(spans[0], int):
                 spans = [spans]
-            counts[bone["name"]] = sum(len(cubes[start:end + 1]) for start, end in spans)
-    return counts
+            for first, last in spans:
+                for cube in bones.get(name, [])[first:last + 1]:
+                    cube["_area"] = area
+
+
+def _region_usage(model, regions):
+    # Many cubes share swatches. Resolve each distinct UV rectangle just once.
+    owners = {}
+    for bone in model["bones"]:
+        for cube in bone.get("cubes", []):
+            for face in cube.get("uv", {}).values():
+                u, v = face["uv"]
+                du, dv = face["uv_size"]
+                rect = (min(u, u + du), min(v, v + dv), max(u, u + du), max(v, v + dv))
+                if rect not in owners:
+                    owners[rect] = []
+                    for region in regions:
+                        x, y = region["origin"]
+                        w, h = region["size"]
+                        if x <= rect[0] and y <= rect[1] and rect[2] <= x + w and rect[3] <= y + h:
+                            owners[rect].append(region)
+                for region in owners[rect]:
+                    region.setdefault("used_by", {})[cube.get("_area", "unassigned")] = True
+
+
+def _comparison_lines(model, regions, area):
+    labels = {alias: name for name, aliases in GOLDEN_AREA_LABELS.items() for alias in aliases}
+    cubes = []
+    counts = {}
+    for bone in model["bones"]:
+        if area is None:
+            counts[bone["name"]] = 0
+        for cube in bone.get("cubes", []):
+            tag = cube.get("_area", "unassigned")
+            if area is not None and tag not in GOLDEN_AREA_LABELS.get(area, (area,)):
+                continue
+            owner = labels.get(tag, tag)
+            rotation = cube.get("rotation", [0, 0, 0])
+            vectors = [cube["origin"], cube["size"], rotation]
+            if any(rotation):
+                vectors.append(cube["pivot"])
+            # JSON permits both 1 and 1.0 for the same coordinate.
+            shape = [[int(n) if n == int(n) else n for n in v] for v in vectors]
+            name = bone["name"]
+            counts[name] = counts.get(name, 0) + 1
+            cubes.append(f"{owner} {name} {json.dumps(shape)}")
+    summary = json.dumps({"bones": counts, "regions": regions}, indent=2, sort_keys=True)
+    return summary.splitlines() + sorted(cubes)
+
+
+def capture(golden_dir):
+    model, regions, ranges = _current()
+    _tag_current(model, ranges)
+    _region_usage(model, regions)
+    golden_dir.mkdir(parents=True)
+    (golden_dir / "final-model.json.gz").write_bytes(gzip.compress(json.dumps(model).encode()))
+    (golden_dir / "final-regions.json").write_text(json.dumps(regions))
 
 
 def _regions(regions, area=None):
@@ -63,46 +110,35 @@ def compare(golden_dir: Path, area=None) -> list[str]:
     for region in golden_regions:
         if region.get("source") == "base":
             region["name"] = "base"
+    _tag_current(current, ranges)
+    _region_usage(current, current_regions)
     expected_regions = _regions(golden_regions, area)
-    actual_regions = _regions(current_regions)
-    if area is not None:
-        selected = set(expected_regions)
-        # Current faces have no spike tags; the registry supplies their owning rectangle.
-        layout_regions = {r["name"]: r for r in current_regions}
-        for bone in current["bones"]:
-            spans = ranges.get(area, {}).get(bone["name"], [])
-            if spans and isinstance(spans[0], int):
-                spans = [spans]
-            for start, end in spans:
-                for cube in bone.get("cubes", [])[start:end + 1]:
-                    for face in cube.get("uv", {}).values():
-                        u, v = face["uv"]
-                        du, dv = face["uv_size"]
-                        for name, region in layout_regions.items():
-                            x, y = region["origin"]
-                            w, h = region["size"]
-                            if x <= min(u, u + du) and max(u, u + du) <= x + w and y <= min(v, v + dv) and max(v, v + dv) <= y + h:
-                                selected.add(name)
-        actual_regions = {k: v for k, v in actual_regions.items() if k in selected}
-    expected = {"bones": _counts(golden, area), "regions": expected_regions}
-    actual = {"bones": _counts(current, area, ranges), "regions": actual_regions}
-    lines = lambda value: json.dumps(value, indent=2, sort_keys=True).splitlines()
-    return list(difflib.unified_diff(lines(expected), lines(actual), fromfile="golden", tofile="current", lineterm="", n=DIFF_CONTEXT_LINES))
+    selected = set(expected_regions) | set(_regions(current_regions, area))
+    actual_regions = {k: v for k, v in _regions(current_regions).items() if k in selected}
+
+    expected = _comparison_lines(golden, expected_regions, area)
+    actual = _comparison_lines(current, actual_regions, area)
+    return list(difflib.unified_diff(expected, actual, fromfile="golden", tofile="current",
+                                     lineterm="", n=DIFF_CONTEXT_LINES))
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("capture").add_argument("--golden-dir", type=Path, required=True)
     command = commands.add_parser("compare")
     command.add_argument("--golden-dir", type=Path, required=True)
     command.add_argument("--area")
     args = parser.parse_args(argv)
     try:
+        if args.command == "capture":
+            capture(args.golden_dir)
+            return 0
         differences = compare(args.golden_dir, args.area)
     except (OSError, ValueError, KeyError) as error:
         print(f"Cannot compare camper golden: {error}")
         return 1
-    print("\n".join(differences) if differences else "Camper counts and regions match")
+    print("\n".join(differences) if differences else "Camper cubes and regions match")
     return int(bool(differences))
 
 

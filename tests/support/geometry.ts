@@ -1,6 +1,6 @@
 export type Triple = [number, number, number];
 
-interface Cube {
+export interface Cube {
   origin: Triple;
   size: Triple;
   inflate?: number;
