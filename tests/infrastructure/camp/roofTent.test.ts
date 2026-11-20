@@ -2,9 +2,14 @@ import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
+import { LeaveRoofTent } from "../../../src/application/camp/leaveRoofTent";
 import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
+import {
+  ClearRoofTentSpawn,
+  RoofTentCleanup,
+} from "../../../src/application/camp/roofTentRemoved";
 import type { VehicleHostState } from "../../../src/application/shared/ports/vehicleHost";
 import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { roofTentCeilingCells } from "../../../src/domain/camp/roofTent/ceiling";
@@ -99,6 +104,19 @@ let state: VehicleHostState;
 const host = vi.fn(() => state);
 const bed = { clearSpawnPoint: vi.fn() };
 let occupants: BedrockRoofTentOccupantWorld;
+let leave: LeaveRoofTent;
+let cleanup: RoofTentCleanup;
+
+function cleanupFor(
+  adapter: BedrockRoofTentOccupantWorld,
+  ejector = new LeaveRoofTent(adapter),
+) {
+  return new RoofTentCleanup(
+    adapter,
+    ejector,
+    new ClearRoofTentSpawn(adapter, bed as never, { warn: vi.fn() }),
+  );
+}
 let tents: BedrockRoofTentWorld;
 
 function entity(id = "tent", typeId = ids.ROOF_TENT_TYPE) {
@@ -122,6 +140,7 @@ function entity(id = "tent", typeId = ids.ROOF_TENT_TYPE) {
     addEffect: vi.fn(),
     removeEffect: vi.fn(),
     remove: vi.fn(() => {
+      game.handlers.get("before:entityRemove")?.({ removedEntity: value });
       value.isValid = false;
       game.entities.delete(id);
     }),
@@ -147,6 +166,15 @@ function fire(name: string, event: unknown) {
   if (!callback) throw new Error(`No handler: ${name}`);
   callback(event);
 }
+function registerLifecycle(
+  guard = new RoofTentHostGuard(tents, host, leave, cleanup),
+  hosts = new RoofTentHosts(host),
+) {
+  registerRoofTentLifecycle(occupants, guard, hosts, cleanup, (id) =>
+    tents.isRemoving(id),
+  );
+}
+
 function spawn(hosted = true) {
   const tent = entity();
   game.dimension.spawnEntity.mockReturnValue(tent);
@@ -189,18 +217,16 @@ beforeEach(() => {
   }));
   occupants = new BedrockRoofTentOccupantWorld(
     host,
-    bed as never,
     () => false,
     () => false,
   );
+  leave = new LeaveRoofTent(occupants);
+  cleanup = cleanupFor(occupants, leave);
   tents = new BedrockRoofTentWorld({
     isVehicleSpace: () => false,
     isCampSpace: () => false,
     spawned: (e) => occupants.remember(e, true),
-    beforeRemove: (id) => {
-      occupants.eject(id);
-      occupants.removed(id, undefined);
-    },
+    beforeRemove: (id) => cleanup.removed(id, undefined),
   });
 });
 
@@ -463,7 +489,7 @@ it("keeps unknown hosts and ejects, returns and clears spawn before removing a m
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
   occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   expect(tent.getProperty(ids.ROOF_TENT_OCCUPIED_PROPERTY)).toBe(true);
-  const guard = new RoofTentHostGuard(tents, host, occupants, occupants);
+  const guard = new RoofTentHostGuard(tents, host, leave, cleanup);
   state = { status: "unknown" };
   guard.check();
   expect(tent.remove).not.toHaveBeenCalled();
@@ -486,9 +512,9 @@ it("keeps unknown hosts and ejects, returns and clears spawn before removing a m
   );
 });
 it("runs the host guard at the specified interval and preserves unload bookkeeping", () => {
-  const guard = new RoofTentHostGuard(tents, host, occupants, occupants);
+  const guard = new RoofTentHostGuard(tents, host, leave, cleanup);
   const check = vi.spyOn(guard, "check");
-  registerRoofTentLifecycle(occupants, guard, new RoofTentHosts(host));
+  registerLifecycle(guard);
   expect(game.runInterval).toHaveBeenCalledWith(
     expect.any(Function),
     ROOF_TENT_SPEC.hostCheckTicks,
@@ -497,7 +523,6 @@ it("runs the host guard at the specified interval and preserves unload bookkeepi
   expect(check).toHaveBeenCalledOnce();
   const tent = spawn();
   occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
-  fire("before:entityRemove", { removedEntity: tent });
   tent.remove();
   game.dimension.getBlock.mockReturnValue(undefined);
   game.run.mock.calls[0]?.[0]();
@@ -508,21 +533,47 @@ it("cleans occupancy and spawn after an external removal in a loaded chunk", () 
   const cow = entity("cow", "minecraft:cow");
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
   occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
-  registerRoofTentLifecycle(
-    occupants,
-    new RoofTentHostGuard(tents, host, occupants, occupants),
-    new RoofTentHosts(host),
-  );
-  fire("before:entityRemove", { removedEntity: tent });
+  registerLifecycle();
   tent.remove();
   game.run.mock.calls[0]?.[0]();
   expect(cow.teleport).toHaveBeenCalledOnce();
   expect(bed.clearSpawnPoint).toHaveBeenCalledOnce();
 });
+it.each(["fold", "host removal", "external removal"] as const)(
+  "clears each saved spawn exactly once during %s",
+  (path) => {
+    const tent = spawn();
+    const id = asRoofTentId(tent.id);
+    occupants.addSpawnSetter(id, PLAYER);
+    occupants.addSpawnSetter(id, asPlayerId("other"));
+    const removed = vi.spyOn(cleanup, "removed");
+    registerLifecycle();
+
+    if (path === "fold") {
+      const fold = new FoldRoofTent(tents);
+      for (let tick = 0; tick < ROOF_TENT_SPEC.hitsToFoldUp; tick++)
+        fold.execute({ tentId: id, tick });
+    } else if (path === "host removal") {
+      state = { status: "removed" };
+      game.runInterval.mock.calls[0]?.[0]();
+    } else {
+      tent.remove();
+    }
+    for (const [run] of game.run.mock.calls) run();
+
+    const cell = { x: 0, y: 2, z: 0 };
+    expect(removed).toHaveBeenCalledExactlyOnceWith(id, undefined);
+    expect(bed.clearSpawnPoint.mock.calls).toEqual([
+      [PLAYER, DIM, cell],
+      [asPlayerId("other"), DIM, cell],
+    ]);
+    expect(occupants.spawnSetters(id)).toEqual([]);
+  },
+);
 it("restricts test hooks to the server and seats stand-ins through the adapters", () => {
   const place = new PlaceRoofTent(tents, host);
   const execute = vi.spyOn(place, "execute").mockReturnValue(true);
-  const guard = new RoofTentHostGuard(tents, host, occupants, occupants);
+  const guard = new RoofTentHostGuard(tents, host, leave, cleanup);
   registerTestRoofTent(
     place,
     new FoldRoofTent(tents),
@@ -551,16 +602,10 @@ it("restricts test hooks to the server and seats stand-ins through the adapters"
 
 it("converts a positively loaded host removal into guard evidence without treating unloads as removals", () => {
   const hosts = new RoofTentHosts(host);
-  const guard = new RoofTentHostGuard(
-    tents,
-    hosts.lookup,
-    occupants,
-    occupants,
-  );
-  registerRoofTentLifecycle(occupants, guard, hosts);
+  const guard = new RoofTentHostGuard(tents, hosts.lookup, leave, cleanup);
+  registerLifecycle(guard, hosts);
   const vehicle = entity("host", "yasu_ride:suv");
   const tent = spawn();
-  fire("before:entityRemove", { removedEntity: vehicle });
   vehicle.remove();
   state = { status: "unknown" };
   game.dimension.getBlock.mockReturnValue(undefined);
@@ -578,7 +623,6 @@ it("converts a positively loaded host removal into guard evidence without treati
   };
   const loaded = entity("host", "yasu_ride:suv");
   fire("after:entityLoad", { entity: loaded });
-  fire("before:entityRemove", { removedEntity: loaded });
   loaded.remove();
   state = { status: "unknown" };
   game.dimension.getBlock.mockReturnValue({ isAir: true });
@@ -680,7 +724,7 @@ it.each(["moving", "driverPresent"] as const)(
   (flag) => {
     const tent = spawn();
     state = { ...state, [flag]: true } as VehicleHostState;
-    new RoofTentHostGuard(tents, host, occupants, occupants).check();
+    new RoofTentHostGuard(tents, host, leave, cleanup).check();
     expect(tent.remove).toHaveBeenCalledOnce();
   },
 );
@@ -690,16 +734,11 @@ it("rebuilds saved occupant state and rejects vehicle-space exit candidates", ()
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
   occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   const space = vi.fn((_d: unknown, cell: { x: number }) => cell.x === 3);
-  const restored = new BedrockRoofTentOccupantWorld(
-    host,
-    bed as never,
-    space,
-    () => false,
-  );
+  const restored = new BedrockRoofTentOccupantWorld(host, space, () => false);
   restored.remember(tent as never);
   expect(restored.occupantOf(asRoofTentId("tent"))).toBe("cow");
   expect(restored.spawnSetters(asRoofTentId("tent"))).toEqual([PLAYER]);
-  restored.eject(asRoofTentId("tent"));
+  new LeaveRoofTent(restored).eject(asRoofTentId("tent"));
   expect(cow.teleport).toHaveBeenCalledWith(
     expect.objectContaining({ x: 2.5 }),
     expect.anything(),
@@ -826,7 +865,6 @@ it.each(["head in vehicle space", "feet in camp space"] as const)(
     const atEntrance = (cell: Cell) => cell.x === 3 && cell.z === 0;
     const adapter = new BedrockRoofTentOccupantWorld(
       host,
-      bed as never,
       (d, c) =>
         d === DIM &&
         obstruction === "head in vehicle space" &&
@@ -854,7 +892,6 @@ it("leaves the rider seated when no safe exit exists", () => {
   p.getComponent.mockReturnValue({ entityRidingOn: tent });
   const adapter = new BedrockRoofTentOccupantWorld(
     host,
-    bed as never,
     () => false,
     () => true,
   );
@@ -909,7 +946,7 @@ it("reveals on ejection even when no safe exit exists, and on forgetting an unlo
   const p = player();
   occupants.setOccupant(asRoofTentId("tent"), PLAYER);
   game.dimension.getBlock.mockReturnValue(undefined);
-  occupants.eject(asRoofTentId("tent"));
+  leave.eject(asRoofTentId("tent"));
   expect(p.teleport).not.toHaveBeenCalled();
   expect(p.removeEffect).toHaveBeenCalledExactlyOnceWith("invisibility");
   expect(occupants.occupantOf(asRoofTentId("tent"))).toBeUndefined();
@@ -987,12 +1024,7 @@ it("skips occupied, missing, unloaded and vehicle-space cells without losing suc
   const space = vi.fn(
     (_dimension: unknown, cell: Cell) => cellKey(cell) === cellKey(vehicle),
   );
-  const adapter = new BedrockRoofTentOccupantWorld(
-    host,
-    bed as never,
-    space,
-    () => false,
-  );
+  const adapter = new BedrockRoofTentOccupantWorld(host, space, () => false);
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   try {
     adapter.setOccupant(asRoofTentId("tent"), PLAYER);
@@ -1006,7 +1038,7 @@ it("skips occupied, missing, unloaded and vehicle-space cells without losing suc
   }
 });
 
-it.each(["forget", "removed"] as const)(
+it.each(["unload", "removed"] as const)(
   "clears a saved ceiling through %s after the entity is gone",
   (method) => {
     const tent = spawn();
@@ -1016,14 +1048,17 @@ it.each(["forget", "removed"] as const)(
     // A fresh adapter must recover the cells from the persisted entity property.
     const restored = new BedrockRoofTentOccupantWorld(
       host,
-      bed as never,
       () => false,
       () => false,
     );
     restored.remember(tent as never);
     tent.remove();
-    if (method === "removed") restored.removed(asRoofTentId("tent"), undefined);
-    else restored.forget(asRoofTentId("tent"));
+    const id = asRoofTentId("tent");
+    if (method === "removed") cleanupFor(restored).removed(id, undefined);
+    else {
+      restored.clearCeiling(id);
+      restored.forget(id);
+    }
     for (const cell of cells)
       expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
     expect(
@@ -1040,7 +1075,6 @@ it("restores occupied ceilings and clears unoccupied saved ceilings after reload
   const cells = savedCeiling(tent);
   const restored = new BedrockRoofTentOccupantWorld(
     host,
-    bed as never,
     () => false,
     () => false,
   );
@@ -1105,7 +1139,6 @@ it.each([
     tent.setDynamicProperty(ids.ROOF_TENT_SPAWN_SETTERS_PROPERTY, stored);
     const restored = new BedrockRoofTentOccupantWorld(
       host,
-      bed as never,
       () => false,
       () => false,
     );

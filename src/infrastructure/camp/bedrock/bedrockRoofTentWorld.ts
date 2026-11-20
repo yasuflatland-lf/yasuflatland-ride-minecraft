@@ -50,6 +50,8 @@ export function roofTentEntity(id: RoofTentId): Entity | undefined {
 }
 
 export class BedrockRoofTentWorld implements RoofTentWorld {
+  private readonly removing = new Set<RoofTentId>();
+
   constructor(
     private readonly deps: {
       isVehicleSpace: SpaceCheck;
@@ -88,9 +90,20 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     }
   }
 
-  remove(id: RoofTentId): void {
+  remove(id: RoofTentId): boolean {
     this.deps.beforeRemove(id);
-    roofTentEntity(id)?.remove();
+    // The entity's before-remove event fires during removal. Cleanup has run.
+    this.removing.add(id);
+    try {
+      roofTentEntity(id)?.remove();
+    } finally {
+      this.removing.delete(id);
+    }
+    return true;
+  }
+
+  isRemoving(id: RoofTentId): boolean {
+    return this.removing.has(id);
   }
   ownerOf(id: RoofTentId): PlayerId | undefined {
     const value = roofTentEntity(id)?.getDynamicProperty(

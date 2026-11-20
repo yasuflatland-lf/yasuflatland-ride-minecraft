@@ -26,15 +26,15 @@ that block while a roof tent is occupied, removing it on every exit path.
   again. An unrecorded ceiling block is not adopted from another shelter.
 - Record exactly the successfully laid cells as JSON in the tent's dynamic
   property `yasu_ride:roof_tent_ceiling`, merging earlier recorded cells. Keep
-  them in the occupant adapter snapshot too, so removal can clear them after the
-  entity has gone. Parse saved cells defensively. Handle failures per cell and
-  log at most one warning per lay or clear operation.
+  them in the adapter's private roof tent record so removal can clear them after
+  the entity has gone. Parse saved cells defensively. Handle failures per cell
+  and log at most one warning per lay or clear operation.
 - `setOccupant` synchronizes the ceiling after updating occupancy. Leaving,
   folding, host removal or host use, death, logout, dimension change, and expired
-  offline grace all reach occupant clearing or removal. Both `removed` and
-  `forget` clear snapshot cells. Clear only cells still holding
-  `yasu_ride:tent_ceiling`, preserving any replacement block, then forget the
-  cell property.
+  offline grace all reach occupant clearing or removal. `RoofTentCleanup` and
+  the unload handler clear recorded cells before forgetting the tent. Clear
+  only cells still holding `yasu_ride:tent_ceiling`, preserving any replacement
+  block, then forget the cell property.
 - Every 20 ticks, the restore scan synchronizes every loaded tent: occupied tents
   re-lay missing ceiling cells idempotently and unoccupied tents clear stray
   recorded ceilings after script reload or restart. An empty unoccupied tent

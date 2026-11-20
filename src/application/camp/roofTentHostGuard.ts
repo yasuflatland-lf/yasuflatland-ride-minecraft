@@ -28,8 +28,7 @@ export class RoofTentHostGuard {
       this.ejector.eject(id);
       const owner = this.world.ownerOf(id);
       this.world.returnItem(id, owner);
-      this.world.remove(id);
-      this.removed.removed(id, owner);
+      if (!this.world.remove(id)) this.removed.removed(id, owner);
     }
   }
 }

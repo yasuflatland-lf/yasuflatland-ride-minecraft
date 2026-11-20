@@ -1,32 +1,20 @@
 import type { Entity } from "@minecraft/server";
-import { LeaveRoofTent } from "../../../application/camp/leaveRoofTent";
-import type {
-  OccupantEjector,
-  RoofTentRemoved,
-} from "../../../application/camp/ports/roofTent";
 import type { RoofTentOccupantWorld } from "../../../application/camp/ports/roofTentOccupant";
-import { ClearRoofTentSpawn } from "../../../application/camp/roofTentRemoved";
-import type { BedWorld } from "../../../application/shared/ports/bed";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
 import type { RoofTentId } from "../../../domain/camp/ids";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { NAMESPACE } from "../../shared/identifiers";
 import { RoofTentCeiling } from "./roofTentCeiling";
 import { RoofTentOccupants } from "./roofTentOccupants";
 import { RoofTentSpawn } from "./roofTentSpawn";
-export class BedrockRoofTentOccupantWorld
-  implements RoofTentOccupantWorld, OccupantEjector, RoofTentRemoved
-{
+export class BedrockRoofTentOccupantWorld implements RoofTentOccupantWorld {
   private readonly occupants: RoofTentOccupants;
   private readonly ceiling: RoofTentCeiling;
   private readonly spawn: RoofTentSpawn;
-  private readonly clearSpawn: ClearRoofTentSpawn;
   constructor(
     vehicleHost: VehicleHostLookup,
-    bed: BedWorld,
     isVehicleSpace: SpaceCheck,
     isCampSpace: SpaceCheck,
   ) {
@@ -38,17 +26,17 @@ export class BedrockRoofTentOccupantWorld
     );
     this.ceiling = new RoofTentCeiling(this.occupants, isVehicleSpace);
     this.spawn = new RoofTentSpawn(this.occupants);
-    this.clearSpawn = new ClearRoofTentSpawn(this, bed, {
-      warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`),
-    });
   }
 
   remember(entity: Entity, saveExit = false, spawnYaw?: number): void {
     this.occupants.remember(entity, saveExit, spawnYaw);
   }
 
-  forget(id: RoofTentId): void {
+  clearCeiling(id: RoofTentId): void {
     this.ceiling.clearCeiling(id);
+  }
+
+  forget(id: RoofTentId): void {
     this.occupants.forget(id);
   }
 
@@ -114,16 +102,5 @@ export class BedrockRoofTentOccupantWorld
 
   showMessage(playerId: PlayerId, name: string): void {
     this.occupants.showMessage(playerId, name);
-  }
-
-  eject(id: RoofTentId): void {
-    new LeaveRoofTent(this).eject(id);
-  }
-
-  removed(id: RoofTentId, ownerId: PlayerId | undefined): void {
-    this.eject(id);
-    this.ceiling.clearCeiling(id);
-    this.clearSpawn.removed(id, ownerId);
-    this.forget(id);
   }
 }

@@ -21,6 +21,10 @@ import { PlaceRoofTent } from "../../application/camp/placeRoofTent";
 import { PlaceTable } from "../../application/camp/placeTable";
 import { RoofTentHostGuard } from "../../application/camp/roofTentHostGuard";
 import { RoofTentMenu } from "../../application/camp/roofTentMenu";
+import {
+  ClearRoofTentSpawn,
+  RoofTentCleanup,
+} from "../../application/camp/roofTentRemoved";
 import { SleepInRoofTent } from "../../application/camp/sleepInRoofTent";
 import { SwitchLantern } from "../../application/camp/switchLantern";
 import { TakeDownTent } from "../../application/camp/takeDownTent";
@@ -32,6 +36,7 @@ import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHo
 import { SleepInBed } from "../../application/shared/sleepInBed";
 import { registerBedBlock } from "../shared/bedBlock";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
+import { consoleLogger } from "../shared/consoleLogger";
 import { registerLaidBlockGuard } from "../shared/laidBlockGuard";
 import { playerById } from "../shared/players";
 import {
@@ -161,32 +166,37 @@ export function installCamp(deps: {
   const roofHosts = new RoofTentHosts(deps.vehicleHost);
   const roofOccupants = new BedrockRoofTentOccupantWorld(
     roofHosts.lookup,
-    new BedrockBedWorld({ player: playerById }),
     deps.isVehicleSpace,
     (d, c) => tents.isCampSpace(d, c),
+  );
+  const leave = new LeaveRoofTent(roofOccupants);
+  const cleanup = new RoofTentCleanup(
+    roofOccupants,
+    leave,
+    new ClearRoofTentSpawn(
+      roofOccupants,
+      new BedrockBedWorld({ player: playerById }),
+      consoleLogger,
+    ),
   );
   const roofTents = new BedrockRoofTentWorld({
     isVehicleSpace: deps.isVehicleSpace,
     isCampSpace: (d, c) => tents.isCampSpace(d, c),
     spawned: (entity, yaw) => roofOccupants.remember(entity, true, yaw),
-    beforeRemove: (id) => {
-      roofOccupants.eject(id);
-      roofOccupants.removed(id, undefined);
-    },
+    beforeRemove: (id) => cleanup.removed(id, undefined),
   });
   const placeRoofTent = new PlaceRoofTent(roofTents, roofHosts.lookup);
   const foldRoofTent = new FoldRoofTent(roofTents);
   const roofGuard = new RoofTentHostGuard(
     roofTents,
     roofHosts.lookup,
-    roofOccupants,
-    roofOccupants,
+    leave,
+    cleanup,
   );
   const sleep = new SleepInRoofTent(
     roofOccupants,
     new SleepInBed(new BedrockBedWorld({ player: playerById })),
   );
-  const leave = new LeaveRoofTent(roofOccupants);
   const trackOccupant = registerRoofTentOccupantCleanup(
     leave,
     roofOccupants,
@@ -202,7 +212,13 @@ export function installCamp(deps: {
   );
   registerRoofTentPlacement(placeRoofTent, roofHosts.lookup);
   registerRoofTentHits(foldRoofTent, new PaintRoofTent(roofTents));
-  registerRoofTentLifecycle(roofOccupants, roofGuard, roofHosts);
+  registerRoofTentLifecycle(
+    roofOccupants,
+    roofGuard,
+    roofHosts,
+    cleanup,
+    (id) => roofTents.isRemoving(id),
+  );
   registerTestRoofTent(
     placeRoofTent,
     foldRoofTent,

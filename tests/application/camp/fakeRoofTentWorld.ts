@@ -28,10 +28,11 @@ export class FakeRoofTentWorld implements RoofTentWorld {
   readonly paints = new Map<RoofTentId, Paint>();
   readonly calls: string[] = [];
   spawn = vi.fn<RoofTentWorld["spawn"]>(() => asRoofTentId("tent"));
-  remove = vi.fn((id: RoofTentId) => {
+  remove = vi.fn<RoofTentWorld["remove"]>((id) => {
     this.calls.push(`remove:${id}`);
     this.hosts.delete(id);
     this.paints.delete(id);
+    return false;
   });
   ownerOf = vi.fn<RoofTentWorld["ownerOf"]>(() => PLAYER);
   hostOf = (id: RoofTentId): Host => this.hosts.get(id) ?? { kind: "ground" };
