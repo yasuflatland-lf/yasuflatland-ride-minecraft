@@ -9,10 +9,13 @@ import {
   TABLE_SPOTS,
 } from "../../domain/camp/spec";
 import type { TableId } from "../../domain/camp/table";
+import {
+  Debounces,
+  LIGHT_SWITCH_COOLDOWN_TICKS,
+} from "../../domain/shared/debounce";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import { decodeHost } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
 import type { LocalPoint, TopSurface } from "../../domain/shared/tableTop";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
@@ -62,7 +65,9 @@ export function gasLanternHostedKind(world: GasLanternWorld): HostedKindPort {
 export class GasLanternActions {
   private readonly hits = new HitCounters<GasLanternId>(RULE);
 
-  private readonly switches = new SwitchCooldowns<GasLanternId>();
+  private readonly switches = new Debounces<GasLanternId>(
+    LIGHT_SWITCH_COOLDOWN_TICKS,
+  );
 
   constructor(private readonly world: GasLanternWorld) {}
 
@@ -103,7 +108,7 @@ export class GasLanternActions {
   switch(id: GasLanternId, tick: number): boolean {
     this.switches.forgetIdle(tick);
     const lit = this.world.isLit(id);
-    if (lit === undefined || !this.switches.tryUse(id, tick)) return false;
+    if (lit === undefined || !this.switches.press(id, tick)) return false;
     this.world.setLit(id, !lit);
     this.world.relayLight(id, !lit);
     return true;
