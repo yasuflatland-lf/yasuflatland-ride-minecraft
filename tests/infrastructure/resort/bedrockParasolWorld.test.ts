@@ -11,6 +11,7 @@ import {
   PARASOL_CEILING_BLOCK,
   PARASOL_CEILING_PROPERTY,
 } from "../../../src/infrastructure/resort/identifiers";
+import * as blocks from "../../../src/infrastructure/shared/blocks";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -177,26 +178,6 @@ it("skips vehicle space and never claims an unrelated ceiling", () => {
     [...f.blocks.values()].every((b) => b.typeId === PARASOL_CEILING_BLOCK),
   ).toBe(true);
 });
-it("requires a ray to meet the requested block's full top face", () => {
-  const f = fixture();
-  const cell = { x: 1, y: 2, z: 3 };
-  // faceLocation.y is inverted: a full top reads 0 and a bottom slab 0.5 (ADR 0111).
-  for (const reported of [0.5, 0]) {
-    f.dimension.getBlockFromRay.mockReturnValue({
-      face: "Up",
-      faceLocation: { y: reported },
-      block: { location: cell },
-    });
-    expect(f.adapter.isSolidTop(dimensionId, cell)).toBe(reported === 0);
-  }
-  expect(f.dimension.getBlockFromRay).toHaveBeenCalledWith(
-    { x: 1.5, y: 3.5, z: 3.5 },
-    { x: 0, y: -1, z: 0 },
-    expect.objectContaining({ maxDistance: 1 }),
-  );
-  f.dimension.getBlockFromRay.mockReturnValue(undefined);
-  expect(f.adapter.isSolidTop(dimensionId, cell)).toBe(false);
-});
 it("rolls back an entity when rotation fails and refunds through inventory overflow handling", () => {
   const f = fixture();
   f.dimension.spawnEntity.mockReturnValue(f.entity);
@@ -235,4 +216,13 @@ it("clears stale saved cells outside the current footprint after restoration", (
   expect(JSON.parse(String(f.saved.get(PARASOL_CEILING_PROPERTY)))).toEqual(
     f.wanted,
   );
+});
+
+it("delegates the support check to the shared solid-top read", () => {
+  const { adapter } = fixture();
+  const at = { x: 1, y: 2, z: 3 };
+  const support = vi.spyOn(blocks, "isSolidTop").mockReturnValueOnce(true);
+  expect(adapter.isSolidTop(dimensionId, at)).toBe(true);
+  expect(support).toHaveBeenCalledExactlyOnceWith(dimensionId, at);
+  support.mockRestore();
 });

@@ -39,7 +39,7 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { chunkLoadedAt, safeBlockAt } from "../../shared/blocks";
 import { dimensionById } from "../../shared/dimensions";
-import { AIR_BLOCK, NAMESPACE } from "../../shared/identifiers";
+import { AIR_BLOCK, isOwnTypeId, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
 import { giveOrDrop, playerById } from "../../shared/players";
@@ -83,7 +83,7 @@ export class TentLayout {
   }
 
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean {
-    return this.typeIdAt(dimensionId, at)?.startsWith(`${NAMESPACE}:`) === true;
+    return isOwnTypeId(this.typeIdAt(dimensionId, at));
   }
 
   typeIdAt(dimensionId: DimensionId, at: Vec3): string | undefined {

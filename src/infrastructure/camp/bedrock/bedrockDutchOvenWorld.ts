@@ -19,13 +19,8 @@ import type {
 } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
-import {
-  consumeHeld,
-  isCreative,
-  playerById,
-  showHitsLeftHint,
-} from "../../shared/players";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
+import { showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DUTCH_OVEN_GROUND_EVENT,
@@ -66,37 +61,20 @@ export function setOvenHost(
   oven.clearVelocity();
 }
 
-export class BedrockDutchOvenWorld implements DutchOvenWorld {
+export class BedrockDutchOvenWorld
+  extends BedrockPaidGroundCells
+  implements DutchOvenWorld
+{
   constructor(
     private readonly vehicles: {
       topHosts: TopHostRegistry;
       isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
     },
-  ) {}
-
-  isAir(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return world.getDimension(dimension).getBlock(at)?.isAir === true;
-    } catch {
-      return false;
-    }
-  }
-
-  isOwnBlock(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return (
-        world
-          .getDimension(dimension)
-          .getBlock(at)
-          ?.typeId.startsWith(`${NAMESPACE}:`) === true
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  isVehicleSpace(dimension: DimensionId, at: Vec3): boolean {
-    return this.vehicles.isVehicleSpace(dimension, at);
+  ) {
+    super(
+      (dimension, cell) => vehicles.isVehicleSpace(dimension, cell),
+      DUTCH_OVEN_ITEM,
+    );
   }
 
   hasDutchOvenNear(dimension: DimensionId, at: Vec3): boolean {
@@ -106,15 +84,6 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
         .getEntities({ type: DUTCH_OVEN_TYPE, location: at, maxDistance: 0.5 })
         .length > 0
     );
-  }
-
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
-  }
-
-  consumeItem(player: PlayerId, slot: number): boolean {
-    const entity = playerById(player);
-    return entity !== undefined && consumeHeld(entity, DUTCH_OVEN_ITEM, slot);
   }
 
   spawnDutchOven(dimension: DimensionId, at: Vec3, yaw: number): DutchOvenId {

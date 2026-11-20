@@ -29,6 +29,8 @@ export const DUTCH_OVEN_SPEC = Object.freeze({
 });
 
 export const FIRE_PIT_SPEC = Object.freeze({
+  /** Minimum spacing in blocks between fire pits at placement. */
+  spacing: 1.25,
   /** The item's yaw snaps to this many degrees. */
   yawStep: 90,
   clearance: 2,

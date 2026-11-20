@@ -1,12 +1,11 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { FirePitWorld } from "../../../application/camp/ports/firePit";
 import type { FirePitId } from "../../../domain/camp/firePit";
+import { FIRE_PIT_SPEC } from "../../../domain/camp/spec";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { NAMESPACE } from "../../shared/identifiers";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import {
-  consumeHeld,
-  isCreative,
   playerById,
   showActionBar,
   showHitsLeftHint,
@@ -24,54 +23,27 @@ import {
   setFirePitCovered,
 } from "./firePitCovered";
 
-export class BedrockFirePitWorld implements FirePitWorld {
-  constructor(
-    private readonly vehicles: {
-      isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
-    },
-  ) {}
-
-  isAir(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return world.getDimension(dimension).getBlock(at)?.isAir === true;
-    } catch {
-      return false;
-    }
-  }
-
-  isOwnBlock(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return (
-        world
-          .getDimension(dimension)
-          .getBlock(at)
-          ?.typeId.startsWith(`${NAMESPACE}:`) === true
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  isVehicleSpace(dimension: DimensionId, at: Vec3): boolean {
-    return this.vehicles.isVehicleSpace(dimension, at);
+export class BedrockFirePitWorld
+  extends BedrockPaidGroundCells
+  implements FirePitWorld
+{
+  constructor(vehicles: {
+    isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
+  }) {
+    super(
+      (dimension, cell) => vehicles.isVehicleSpace(dimension, cell),
+      FIRE_PIT_ITEM,
+    );
   }
 
   hasFirePitNear(dimension: DimensionId, at: Vec3): boolean {
     return (
-      world
-        .getDimension(dimension)
-        .getEntities({ type: FIRE_PIT_TYPE, location: at, maxDistance: 1.25 })
-        .length > 0
+      world.getDimension(dimension).getEntities({
+        type: FIRE_PIT_TYPE,
+        location: at,
+        maxDistance: FIRE_PIT_SPEC.spacing,
+      }).length > 0
     );
-  }
-
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
-  }
-
-  consumeItem(player: PlayerId, slot: number): boolean {
-    const entity = playerById(player);
-    return entity !== undefined && consumeHeld(entity, FIRE_PIT_ITEM, slot);
   }
 
   spawnFirePit(dimension: DimensionId, at: Vec3, yaw: number): void {

@@ -4,6 +4,11 @@ export function id(name: string): string {
   return `${NAMESPACE}:${name}`;
 }
 
+/** Whether `typeId` is one of this add-on's blocks or entities (`yasu_ride:*`). */
+export function isOwnTypeId(typeId: string | undefined): boolean {
+  return typeId?.startsWith(`${NAMESPACE}:`) === true;
+}
+
 /** The name after `yasu_ride:`, or undefined for an id in another namespace. */
 export function bareId(typeId: string): string | undefined {
   const prefix = `${NAMESPACE}:`;
