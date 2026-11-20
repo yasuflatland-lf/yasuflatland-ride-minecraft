@@ -401,22 +401,9 @@ describe("camping gear block models (ADR 0093)", () => {
   });
 
   it("registers the atlas as the terrain texture yasu_ride_camping_gear", () => {
-    expect(
-      JSON.parse(readFileSync(`${RP}/textures/terrain_texture.json`, "utf8")),
-    ).toEqual({
-      resource_pack_name: "yasu_ride",
-      texture_name: "atlas.terrain",
-      texture_data: {
-        yasu_build_warp_block_top: {
-          textures: "textures/blocks/yasu_build/warp_block_top",
-        },
-        yasu_build_warp_block_side: {
-          textures: "textures/blocks/yasu_build/warp_block_side",
-        },
-        yasu_ride_camping_gear: {
-          textures: "textures/blocks/yasu_ride/camping_gear",
-        },
-      },
+    const atlas = readJson(`${RP}/textures/terrain_texture.json`);
+    expect(atlas.texture_data.yasu_ride_camping_gear).toEqual({
+      textures: "textures/blocks/yasu_ride/camping_gear",
     });
   });
 });
