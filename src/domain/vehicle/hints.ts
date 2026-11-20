@@ -1,5 +1,11 @@
 // Action-bar hints for players on foot near a vehicle (ADR 0086).
-import { distanceXZ, forward, type Vec2, type Vec3 } from "../shared/vec";
+import {
+  distanceToRectXZ,
+  distanceXZ,
+  forward,
+  type Vec2,
+  type Vec3,
+} from "../shared/vec";
 import type { VehicleKind } from "./kind";
 import { DRIVER_SEAT, toLocal } from "./seats";
 import { SPEC } from "./spec";
@@ -119,7 +125,13 @@ export function hintAt(
     !within(view.offset.y, bumper.feet) ||
     (Math.abs(local.x) < bumper.bodyHalfWidth - margin &&
       local.z < bumper.boxZ - margin) ||
-    distanceToBumper(local, bumper) > bumper.reach + margin
+    distanceToRectXZ(local, {
+      minX: Math.min(...bumper.boxXs) - bumper.boxHalf,
+      maxX: Math.max(...bumper.boxXs) + bumper.boxHalf,
+      minZ: bumper.boxZ - bumper.boxHalf,
+      maxZ: bumper.boxZ + bumper.boxHalf,
+    }) >
+      bumper.reach + margin
   )
     return undefined;
   const vehicle: HintArg = { vehicle: view.kind };
@@ -144,17 +156,6 @@ export function zoneOf(zones: HintZones, name: HintName): HintZones {
   return DRIVE_HINTS.has(name)
     ? { driverSeat: zones.driverSeat }
     : { bumper: zones.bumper };
-}
-
-function distanceToBumper(
-  p: Vec2,
-  b: NonNullable<HintZones["bumper"]>,
-): number {
-  const minX = Math.min(...b.boxXs) - b.boxHalf;
-  const maxX = Math.max(...b.boxXs) + b.boxHalf;
-  const dx = Math.max(minX - p.x, 0, p.x - maxX);
-  const dz = Math.max(b.boxZ - b.boxHalf - p.z, 0, p.z - b.boxZ - b.boxHalf);
-  return Math.hypot(dx, dz);
 }
 
 /** What one player was last shown, and when. */

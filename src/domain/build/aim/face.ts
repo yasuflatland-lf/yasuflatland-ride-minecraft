@@ -1,4 +1,5 @@
 import type { Cell } from "../../shared/cells";
+import { add3 } from "../../shared/vec";
 
 export type Face = "up" | "down" | "north" | "south" | "east" | "west";
 
@@ -12,11 +13,7 @@ export function anchorCell(block: Cell, face: Face): Cell {
     west: { x: -1, y: 0, z: 0 },
   };
   const offset = offsets[face];
-  return {
-    x: block.x + offset.x,
-    y: block.y + offset.y,
-    z: block.z + offset.z,
-  };
+  return add3(block, offset);
 }
 
 export function parseFace(value: string): Face | undefined {

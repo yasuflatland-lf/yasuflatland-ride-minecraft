@@ -1,4 +1,5 @@
 import type { Vec3 } from "../shared/vec";
+import { distance3, length3 } from "../shared/vec";
 import { BUILD_SPEC } from "./spec";
 
 /** A path the height-step outline samples; `at` takes t in [0, 1]. */
@@ -10,7 +11,7 @@ export interface Curve {
 
 export function line(from: Vec3, to: Vec3): Curve {
   return {
-    length: Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z),
+    length: distance3(to, from),
     closed: false,
     at: (t) => ({
       x: from.x + t * (to.x - from.x),
@@ -35,8 +36,8 @@ export function ellipse(
 }
 
 export function ellipseOn(center: Vec3, a: Vec3, b: Vec3): Curve {
-  const rx = Math.hypot(a.x, a.y, a.z);
-  const rz = Math.hypot(b.x, b.y, b.z);
+  const rx = length3(a);
+  const rz = length3(b);
   // Ramanujan's approximation; the outline only needs a sampling density.
   const h = ((rx - rz) / (rx + rz)) ** 2;
   const length =
