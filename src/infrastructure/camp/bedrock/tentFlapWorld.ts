@@ -12,7 +12,7 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
 import { AIR_BLOCK } from "../../shared/identifiers";
-import { playerById } from "../../shared/players";
+import { showActionBar } from "../../shared/players";
 import {
   FLAP_BLOCKED_HINT,
   TENT_FLAP_BLOCK,
@@ -107,7 +107,7 @@ export class BedrockTentFlapWorld {
   }
 
   showFlapBlocked(playerId: PlayerId): void {
-    playerById(playerId)?.onScreenDisplay.setActionBar({
+    showActionBar(playerId, {
       translate: FLAP_BLOCKED_HINT,
     });
   }

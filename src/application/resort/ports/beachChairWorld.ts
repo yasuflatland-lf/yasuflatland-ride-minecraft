@@ -6,6 +6,7 @@ import type { BeachChairId } from "../../../domain/resort/ids";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
+import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
 export interface BeachChairWorld extends GroundCellsWorld {
   isSolidTop(dimension: DimensionId, cell: Cell): boolean;
@@ -14,11 +15,10 @@ export interface BeachChairWorld extends GroundCellsWorld {
   refund(player: PlayerId, slot: number): void;
   showBlocked(player: PlayerId): void;
 }
-export interface BeachChairTakeBackWorld {
+export interface BeachChairTakeBackWorld extends HitsLeftFeedback {
   state(id: BeachChairId): ChairState | undefined;
   showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void;
   dropItem(id: BeachChairId, player: PlayerId | undefined): void;
   remove(id: BeachChairId): void;
-  showRemaining(player: PlayerId, left: number): void;
   showTaken(player: PlayerId): void;
 }

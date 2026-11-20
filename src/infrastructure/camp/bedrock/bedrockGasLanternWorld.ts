@@ -23,7 +23,12 @@ import { allDimensions } from "../../shared/dimensions";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
-import { consumeHeld, isCreative, playerById } from "../../shared/players";
+import {
+  consumeHeld,
+  isCreative,
+  playerById,
+  showHitsLeftHint,
+} from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   GAS_LANTERN_HITS_LEFT_HINT,
@@ -209,9 +214,6 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
   }
 
   showHitsLeft(player: PlayerId, hitsLeft: number): void {
-    playerById(player)?.onScreenDisplay.setActionBar({
-      translate: GAS_LANTERN_HITS_LEFT_HINT,
-      with: [String(hitsLeft)],
-    });
+    showHitsLeftHint(player, GAS_LANTERN_HITS_LEFT_HINT, hitsLeft);
   }
 }

@@ -20,7 +20,7 @@ it("clears the ceiling, returns a plain item to the hitter, removes and announce
         take.execute({ id, player, tick });
         take.execute({ id, player, tick: tick + gap });
         expect(world.remove).not.toHaveBeenCalled();
-        expect(world.showRemaining.mock.calls).toEqual([
+        expect(world.showHitsLeft.mock.calls).toEqual([
           [player, 2],
           [player, 1],
         ]);
@@ -51,8 +51,8 @@ it("resets after a gap of 101 ticks", () => {
   take.execute({ ...cmd, tick: 100 });
   take.execute({ ...cmd, tick: 201 });
   expect(world.remove).not.toHaveBeenCalled();
-  expect(world.showRemaining).toHaveBeenNthCalledWith(2, cmd.player, 1);
-  expect(world.showRemaining).toHaveBeenLastCalledWith(cmd.player, 2);
+  expect(world.showHitsLeft).toHaveBeenNthCalledWith(2, cmd.player, 1);
+  expect(world.showHitsLeft).toHaveBeenLastCalledWith(cmd.player, 2);
 });
 it("restores every loaded parasol ceiling", () => {
   fc.assert(

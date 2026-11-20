@@ -31,6 +31,7 @@ import {
   giveOrDrop,
   isCreative,
   playerById,
+  showActionBar,
 } from "../../shared/players";
 import {
   BEACH_PARASOL,
@@ -262,7 +263,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
   showBlocked(player: PlayerId): void {
     this.show(player, "blocked");
   }
-  showRemaining(player: PlayerId, left: number): void {
+  showHitsLeft(player: PlayerId, left: number): void {
     this.show(player, "hits_left", [String(left)]);
   }
   showTaken(player: PlayerId): void {
@@ -273,7 +274,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
     message: string,
     withArgs: string[] = [],
   ): void {
-    playerById(player)?.onScreenDisplay.setActionBar({
+    showActionBar(player, {
       translate: `yasu_ride.parasol.${message}`,
       with: withArgs,
     });

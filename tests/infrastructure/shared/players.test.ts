@@ -3,10 +3,13 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
+  type ActionBarMessage,
   consumeHeld,
   giveOrDrop,
   isCreative,
   playerById,
+  showActionBar,
+  showHitsLeftHint,
 } from "../../../src/infrastructure/shared/players";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
@@ -151,4 +154,45 @@ describe("giveOrDrop", () => {
       );
     },
   );
+});
+
+describe("action bar feedback", () => {
+  const setActionBar = vi.fn();
+  beforeEach(() => setActionBar.mockClear());
+
+  it("forwards the original message to the requested player", () => {
+    game.getEntity.mockReturnValue({
+      typeId: "minecraft:player",
+      isValid: true,
+      onScreenDisplay: { setActionBar },
+    });
+    const message: ActionBarMessage = { translate: "example.hint", with: [] };
+    showActionBar(id, message);
+    expect(game.getEntity).toHaveBeenCalledWith(id);
+    expect(setActionBar.mock.calls[0]?.[0]).toBe(message);
+  });
+
+  it("uses the remaining count as the only translation argument", () => {
+    game.getEntity.mockReturnValue({
+      typeId: "minecraft:player",
+      isValid: true,
+      onScreenDisplay: { setActionBar },
+    });
+    showHitsLeftHint(id, "example.remaining", 12);
+    expect(setActionBar).toHaveBeenCalledExactlyOnceWith({
+      translate: "example.remaining",
+      with: ["12"],
+    });
+  });
+
+  it("skips missing and invalid players", () => {
+    game.getEntity.mockReturnValueOnce(undefined).mockReturnValueOnce({
+      typeId: "minecraft:player",
+      isValid: false,
+      onScreenDisplay: { setActionBar },
+    });
+    showActionBar(id, "hello");
+    showActionBar(id, "hello");
+    expect(setActionBar).not.toHaveBeenCalled();
+  });
 });

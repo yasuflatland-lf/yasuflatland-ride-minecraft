@@ -18,7 +18,6 @@ import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/reg
 const game = vi.hoisted(() => ({
   getEntity: vi.fn(),
   getDimension: vi.fn(),
-  playerById: vi.fn(),
   giveOrDrop: vi.fn(),
   consumeHeld: vi.fn(),
 }));
@@ -33,12 +32,15 @@ vi.mock("@minecraft/server", () => ({
     ) {}
   },
 }));
-vi.mock("../../../src/infrastructure/shared/players", () => ({
-  playerById: game.playerById,
-  giveOrDrop: game.giveOrDrop,
-  consumeHeld: game.consumeHeld,
-  isCreative: () => false,
-}));
+vi.mock(
+  import("../../../src/infrastructure/shared/players"),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    giveOrDrop: game.giveOrDrop,
+    consumeHeld: game.consumeHeld,
+    isCreative: () => false,
+  }),
+);
 beforeEach(() => vi.resetAllMocks());
 describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
   function fixture() {
@@ -126,8 +128,14 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
   });
   it("charges and returns the matching item, with a fallback drop for server test hooks", () => {
     const f = fixture();
-    const receiver = { onScreenDisplay: { setActionBar: vi.fn() } };
-    game.playerById.mockReturnValue(receiver);
+    const receiver = {
+      typeId: "minecraft:player",
+      isValid: true,
+      onScreenDisplay: { setActionBar: vi.fn() },
+    };
+    game.getEntity.mockImplementation((entityId) =>
+      entityId === player ? receiver : f.entity,
+    );
     game.consumeHeld.mockReturnValue(true);
     expect(f.adapter.consumeItem(player, kind, 2)).toBe(true);
     expect(game.consumeHeld).toHaveBeenCalledExactlyOnceWith(
@@ -146,7 +154,9 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
       translate: "yasu_ride.furniture.hits_left",
       with: ["2"],
     });
-    game.playerById.mockReturnValue(undefined);
+    game.getEntity.mockImplementation((entityId) =>
+      entityId === player ? undefined : f.entity,
+    );
     f.adapter.dropItem(id, player);
     expect(f.dimension.spawnItem).toHaveBeenCalledExactlyOnceWith(
       { typeId: FURNITURE_IDS[kind].item, amount: 1 },

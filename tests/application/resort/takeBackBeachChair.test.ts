@@ -19,7 +19,7 @@ it("returns a plain item to the hitter, removes and announces on the third hit",
         take.execute({ id, player, tick });
         take.execute({ id, player, tick: tick + gap });
         expect(world.remove).not.toHaveBeenCalled();
-        expect(world.showRemaining.mock.calls).toEqual([
+        expect(world.showHitsLeft.mock.calls).toEqual([
           [player, 2],
           [player, 1],
         ]);
@@ -49,8 +49,8 @@ it("resets after a gap of 101 ticks", () => {
   take.execute({ ...cmd, tick: 100 });
   take.execute({ ...cmd, tick: 201 });
   expect(world.remove).not.toHaveBeenCalled();
-  expect(world.showRemaining).toHaveBeenNthCalledWith(2, cmd.player, 1);
-  expect(world.showRemaining).toHaveBeenLastCalledWith(cmd.player, 2);
+  expect(world.showHitsLeft).toHaveBeenNthCalledWith(2, cmd.player, 1);
+  expect(world.showHitsLeft).toHaveBeenLastCalledWith(cmd.player, 2);
 });
 
 it("refused hits leave the counter unchanged in either form", () => {
@@ -77,7 +77,7 @@ it("refused hits leave the counter unchanged in either form", () => {
           take.execute({ ...cmd, tick });
         expect(world.showRefused).toHaveBeenCalledTimes(refusedHits);
         expect(world.showRefused).toHaveBeenLastCalledWith(cmd.player, reason);
-        expect(world.showRemaining).toHaveBeenCalledTimes(1);
+        expect(world.showHitsLeft).toHaveBeenCalledTimes(1);
         expect(world.dropItem).not.toHaveBeenCalled();
         world.state.mockReturnValue({
           form,
@@ -85,7 +85,7 @@ it("refused hits leave the counter unchanged in either form", () => {
           somethingOnTop: false,
         });
         take.execute({ ...cmd, tick: refusedHits + 1 });
-        expect(world.showRemaining).toHaveBeenLastCalledWith(cmd.player, 1);
+        expect(world.showHitsLeft).toHaveBeenLastCalledWith(cmd.player, 1);
         take.execute({ ...cmd, tick: refusedHits + 2 });
         expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(
           cmd.id,
@@ -103,6 +103,6 @@ it("ignores a chair that no longer exists", () => {
     player: asPlayerId("p"),
     tick: 0,
   });
-  expect(world.showRemaining).not.toHaveBeenCalled();
+  expect(world.showHitsLeft).not.toHaveBeenCalled();
   expect(world.dropItem).not.toHaveBeenCalled();
 });

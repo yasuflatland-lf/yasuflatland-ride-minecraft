@@ -24,7 +24,7 @@ export class FoldRoofTent {
       return true;
     }
     if (cmd.playerId !== undefined)
-      this.world.showMessage(cmd.playerId, `hits_left:${result.hitsLeft}`);
+      this.world.showHitsLeft(cmd.playerId, result.hitsLeft);
     return false;
   }
 }
