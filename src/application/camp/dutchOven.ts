@@ -32,6 +32,7 @@ import {
   hasClearance,
   placeOnGround,
 } from "../shared/groundPlacement";
+import { placePaid } from "../shared/paidPlacement";
 import {
   placeOnTop,
   type TopOutcome,
@@ -86,7 +87,7 @@ export class DutchOvenActions {
   }
 
   place(cmd: {
-    player: PlayerId;
+    player?: PlayerId;
     dimension: DimensionId;
     block: Vec3;
     yaw: number;
@@ -111,16 +112,20 @@ export class DutchOvenActions {
       !hasClearance(this.world, pit.dimension, cell, DUTCH_OVEN_SPEC.clearance)
     )
       return false;
-    if (!this.takeItem(cmd.player, cmd.slot)) return false;
     const [spot] = FIRE_PIT_SPOTS;
-    this.spawnHosted(pit, hostSpotPoint(pit, spot, FIRE_PIT_TOP_PX), {
-      kind: "spot",
-      hostType: "fire_pit",
-      id: cmd.pit,
-      spot: 0,
-    });
-    this.world.setCovered(cmd.pit, true);
-    return true;
+    const result = placePaid(
+      this.world,
+      { player: cmd.player, slot: cmd.slot },
+      () =>
+        this.spawnHosted(pit, hostSpotPoint(pit, spot, FIRE_PIT_TOP_PX), {
+          kind: "spot",
+          hostType: "fire_pit",
+          id: cmd.pit,
+          spot: 0,
+        }),
+    );
+    if (result.placed) this.world.setCovered(cmd.pit, true);
+    return result.placed;
   }
 
   placeOnTop(surface: TopSurface, cmd: TopRequest): TopOutcome {
@@ -140,26 +145,19 @@ export class DutchOvenActions {
     });
   }
 
-  /** A missing player is the server test hook, which pays nothing. */
-  private takeItem(player: PlayerId | undefined, slot: number): boolean {
-    return (
-      !player ||
-      this.world.isCreative(player) ||
-      this.world.consumeItem(player, slot)
-    );
-  }
-
   private spawnHosted(
     hostEntity: { dimension: DimensionId; yaw: number },
     at: Vec3,
     host: Host,
-  ): void {
-    const oven = this.world.spawnDutchOven(
+  ): DutchOvenId | undefined {
+    const marker = encodeHost(host);
+    const simmering = initialSimmering(host);
+    return this.world.spawnDutchOven(
       hostEntity.dimension,
       at,
       hostEntity.yaw,
+      (oven) => this.world.setHost(oven, marker, simmering),
     );
-    this.world.setHost(oven, encodeHost(host), initialSimmering(host));
   }
 
   /** Clears the covered flag of every loaded Fire Pit no oven stands on. */

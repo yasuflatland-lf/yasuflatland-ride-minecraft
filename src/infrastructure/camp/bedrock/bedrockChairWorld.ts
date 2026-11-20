@@ -2,14 +2,19 @@
 
 import { ItemStack, world } from "@minecraft/server";
 import type { ChairWorld } from "../../../application/camp/ports/chair";
-import type { ChairId, ChairKindId } from "../../../domain/camp/chair";
+import {
+  asChairId,
+  type ChairId,
+  type ChairKindId,
+} from "../../../domain/camp/chair";
 import { cellCenter } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
 import { BedrockGroundCells } from "../../shared/groundCells";
 import {
   consumeHeld,
+  giveOrDrop,
   playerById,
   showHitsLeftHint,
 } from "../../shared/players";
@@ -68,16 +73,25 @@ export class BedrockChairWorld
     );
   }
 
+  refundChairItem(kind: ChairKindId, playerId: PlayerId): void {
+    const player = playerById(playerId);
+    if (player)
+      giveOrDrop(player, [new ItemStack(CHAIR_KINDS[kind].itemId, 1)]);
+  }
+
   spawnChair(
     kind: ChairKindId,
     dimensionId: DimensionId,
     at: Vec3,
     yaw: number,
-  ): void {
-    const chair = world
-      .getDimension(dimensionId)
-      .spawnEntity(CHAIR_KINDS[kind].typeId, at);
-    chair.setRotation({ x: 0, y: yaw });
+  ): ChairId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimensionId),
+      CHAIR_KINDS[kind].typeId,
+      at,
+      yaw,
+    );
+    return entity && asChairId(entity.id);
   }
 
   isOccupied(chairId: ChairId): boolean {

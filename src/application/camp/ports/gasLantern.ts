@@ -6,7 +6,11 @@ import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
 export interface GasLanternWorld extends HitsLeftFeedback, TopHostWorld {
   hasGasLanternNear(dimension: DimensionId, at: Vec3): boolean;
-  spawnGasLantern(dimension: DimensionId, at: Vec3, yaw: number): void;
+  spawnGasLantern(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): GasLanternId | undefined;
   isLit(id: GasLanternId): boolean | undefined;
   setLit(id: GasLanternId, on: boolean): void;
   relayLight(id: GasLanternId, lit: boolean): void;

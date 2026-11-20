@@ -18,7 +18,7 @@ import type {
   TopRect,
 } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
@@ -86,10 +86,20 @@ export class BedrockDutchOvenWorld
     );
   }
 
-  spawnDutchOven(dimension: DimensionId, at: Vec3, yaw: number): DutchOvenId {
-    const oven = world.getDimension(dimension).spawnEntity(DUTCH_OVEN_TYPE, at);
-    oven.setRotation({ x: 0, y: yaw });
-    return asDutchOvenId(oven.id);
+  spawnDutchOven(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+    setup?: (id: DutchOvenId) => void,
+  ): DutchOvenId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      DUTCH_OVEN_TYPE,
+      at,
+      yaw,
+      setup && ((oven) => setup(asDutchOvenId(oven.id))),
+    );
+    return entity && asDutchOvenId(entity.id);
   }
 
   topHost(hostType: string, id: string) {
@@ -115,8 +125,15 @@ export class BedrockDutchOvenWorld
     at: Vec3,
     yaw: number,
     host: string,
-  ): void {
-    this.setHost(this.spawnDutchOven(dimension, at, yaw), host, false);
+  ): DutchOvenId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      DUTCH_OVEN_TYPE,
+      at,
+      yaw,
+      (oven) => setOvenHost(oven, host, false),
+    );
+    return entity && asDutchOvenId(entity.id);
   }
 
   firePit(id: FirePitId) {

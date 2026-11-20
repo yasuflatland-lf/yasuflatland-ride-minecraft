@@ -20,12 +20,13 @@ export interface ChairWorld {
     playerId: PlayerId,
     slot: number,
   ): boolean;
+  refundChairItem(kind: ChairKindId, playerId: PlayerId): void;
   spawnChair(
     kind: ChairKindId,
     dimensionId: DimensionId,
     at: Vec3,
     yaw: number,
-  ): void;
+  ): ChairId | undefined;
   /** Whether someone sits on the chair. */
   isOccupied(chairId: ChairId): boolean;
   removeChair(chairId: ChairId): void;

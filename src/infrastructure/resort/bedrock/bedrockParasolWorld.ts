@@ -23,7 +23,7 @@ import {
 } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import { isSolidTop, safeBlockAt } from "../../shared/blocks";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import {
   LaidBlockLayer,
@@ -94,26 +94,17 @@ export class BedrockParasolWorld
         z: entity.location.z - 0.5,
       }));
   }
-  refund(player: PlayerId, _slot: number): void {
-    const entity = playerById(player);
-    if (entity) giveOrDrop(entity, [new ItemStack(BEACH_PARASOL_ITEM, 1)]);
-  }
   spawn(dimension: DimensionId, pose: ParasolPose): ParasolId | undefined {
-    let entity: Entity | undefined;
+    const at = cellCenter(pose.base);
+    const typeId = BEACH_PARASOL;
+    let spawnDimension: Dimension;
     try {
-      entity = world
-        .getDimension(dimension)
-        .spawnEntity(BEACH_PARASOL, cellCenter(pose.base));
-      entity.setRotation({ x: 0, y: pose.yaw });
-      return asParasolId(entity.id);
+      spawnDimension = world.getDimension(dimension);
     } catch {
-      try {
-        entity?.remove();
-      } catch {
-        // A chunk can unload between a failed spawn setter and its rollback.
-      }
       return undefined;
     }
+    const entity = spawnWithRollback(spawnDimension, typeId, at, pose.yaw);
+    return entity && asParasolId(entity.id);
   }
   remember(entity: Entity): CeilingRecord {
     const id = asParasolId(entity.id);

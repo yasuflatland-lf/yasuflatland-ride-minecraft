@@ -4,6 +4,7 @@ import type {
 } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
+import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
@@ -78,7 +79,8 @@ function fixture() {
     isCreative: () => false,
     consumeItem: () => true,
     hasGasLanternNear: () => false,
-    spawnGasLantern: vi.fn(),
+    refund: vi.fn(),
+    spawnGasLantern: vi.fn(() => asGasLanternId("lantern")),
     isLit: () => false,
     setLit: vi.fn(),
     relayLight: vi.fn(),
@@ -93,7 +95,7 @@ function fixture() {
       yaw: 0,
     }),
     itemsOnTop: () => [],
-    spawnHosted: vi.fn(),
+    spawnHosted: vi.fn(() => asGasLanternId("lantern")),
     loadedGasLanterns: () => [],
     host: () => "",
     isHostAreaLoaded: () => true,

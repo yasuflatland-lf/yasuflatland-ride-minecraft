@@ -1,9 +1,10 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { FirePitWorld } from "../../../application/camp/ports/firePit";
-import type { FirePitId } from "../../../domain/camp/firePit";
+import { asFirePitId, type FirePitId } from "../../../domain/camp/firePit";
 import { FIRE_PIT_SPEC } from "../../../domain/camp/spec";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { spawnWithRollback } from "../../shared/entities";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import {
   playerById,
@@ -46,11 +47,18 @@ export class BedrockFirePitWorld
     );
   }
 
-  spawnFirePit(dimension: DimensionId, at: Vec3, yaw: number): void {
-    world
-      .getDimension(dimension)
-      .spawnEntity(FIRE_PIT_TYPE, at)
-      .setRotation({ x: 0, y: yaw });
+  spawnFirePit(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): FirePitId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      FIRE_PIT_TYPE,
+      at,
+      yaw,
+    );
+    return entity && asFirePitId(entity.id);
   }
 
   isCovered(id: FirePitId): boolean {

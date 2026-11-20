@@ -1,9 +1,9 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { TableWorld } from "../../../application/camp/ports/table";
-import type { TableId } from "../../../domain/camp/table";
+import { asTableId, type TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { showActionBar, showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
@@ -44,11 +44,18 @@ export class BedrockTableWorld
     );
   }
 
-  spawnTable(dimensionId: DimensionId, at: Vec3, yaw: number): void {
-    const table = world
-      .getDimension(dimensionId)
-      .spawnEntity(CAMP_TABLE_TYPE, at);
-    table.setRotation({ x: 0, y: yaw });
+  spawnTable(
+    dimensionId: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): TableId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimensionId),
+      CAMP_TABLE_TYPE,
+      at,
+      yaw,
+    );
+    return entity && asTableId(entity.id);
   }
 
   itemsOnTable(id: TableId): number {

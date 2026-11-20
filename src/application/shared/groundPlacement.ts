@@ -2,7 +2,9 @@ import { cellCenter } from "../../domain/shared/cells";
 import { snapYaw } from "../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+import { placePaid } from "./paidPlacement";
 import type { GroundCellsWorld } from "./ports/groundCells";
+import type { ItemPayment } from "./ports/itemPayment";
 
 /** Accept only block tops outside the add-on's laid blocks. */
 export function canUseBlockTop(
@@ -31,10 +33,10 @@ export function hasClearance(
 
 /** Check clearance and spacing before payment, then spawn with the item's yaw snap. */
 export function placeOnGround(
-  world: GroundCellsWorld,
+  world: GroundCellsWorld & ItemPayment,
   spec: { clearance: number; yawStep: number },
   cmd: {
-    player: PlayerId;
+    player?: PlayerId;
     dimension: DimensionId;
     block: Vec3;
     yaw: number;
@@ -42,7 +44,7 @@ export function placeOnGround(
   },
   item: {
     isNear(dimension: DimensionId, at: Vec3): boolean;
-    spawn(dimension: DimensionId, at: Vec3, yaw: number): void;
+    spawn(dimension: DimensionId, at: Vec3, yaw: number): string | undefined;
   },
 ): boolean {
   const { player, dimension, block, yaw, slot } = cmd;
@@ -57,8 +59,7 @@ export function placeOnGround(
     return false;
   const at = cellCenter(block, 1);
   if (item.isNear(dimension, at)) return false;
-  if (!world.isCreative(player) && !world.consumeItem(player, slot))
-    return false;
-  item.spawn(dimension, at, snapYaw(yaw, spec.yawStep));
-  return true;
+  return placePaid(world, { player, slot }, () =>
+    item.spawn(dimension, at, snapYaw(yaw, spec.yawStep)),
+  ).placed;
 }

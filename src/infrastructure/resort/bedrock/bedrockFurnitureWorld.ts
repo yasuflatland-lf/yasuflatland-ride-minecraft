@@ -32,6 +32,7 @@ import {
   type TopRect,
 } from "../../../domain/shared/tableTop";
 import { blockIn, isSolidTop, safeBlockAt } from "../../shared/blocks";
+import { spawnWithRollback } from "../../shared/entities";
 import { BedrockGroundCells } from "../../shared/groundCells";
 import {
   LaidBlockLayer,
@@ -130,21 +131,16 @@ export class BedrockFurnitureWorld
       giveOrDrop(entity, [new ItemStack(FURNITURE_IDS[kind].item, 1)]);
   }
   spawn(dimension: DimensionId, pose: FurniturePose): FurnitureId | undefined {
-    let entity: Entity | undefined;
+    const at = pose.origin;
+    const typeId = FURNITURE_IDS[pose.kind].entity;
+    let spawnDimension: Dimension;
     try {
-      entity = world
-        .getDimension(dimension)
-        .spawnEntity(FURNITURE_IDS[pose.kind].entity, pose.origin);
-      entity.setRotation({ x: 0, y: pose.yaw });
-      return asFurnitureId(entity.id);
+      spawnDimension = world.getDimension(dimension);
     } catch {
-      try {
-        entity?.remove();
-      } catch {
-        // A chunk can unload between a failed spawn setter and its rollback.
-      }
       return undefined;
     }
+    const entity = spawnWithRollback(spawnDimension, typeId, at, pose.yaw);
+    return entity && asFurnitureId(entity.id);
   }
   remember(entity: Entity): { dimension: Dimension; cells: Cell[] } {
     const id = asFurnitureId(entity.id);
