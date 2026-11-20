@@ -20,7 +20,7 @@ Option 2 has to estimate the engine's gravity and drag and fight them every tick
 ## Decision
 
 - The `Vehicle` aggregate has four flight modes, `ground`, `takeoff`, `flying`, and `landing`, mirrored to the client-synced enum entity property `mycar:flight`
-- Two Jump presses within 8 ticks toggle flight: `ground` to `takeoff`, and `flying` to `landing`. Takeoff and landing ignore Jump. On the ground the first press still pulls the handbrake for a moment
+- Two Jump presses within 8 ticks toggle flight: `ground` to `takeoff`, and `flying` to `landing`. Both presses must come from the same driver, so a driver change clears any pending tap. Takeoff and landing ignore Jump. On the ground the first press still pulls the handbrake for a moment
 - `takeoff` lasts 20 ticks, rises at 0.075 blocks/tick (1.5 blocks), and ignores the controls
 - `flying` keeps the ground handling (throttle, steering, grip 0.6, max speed 0.9) without the handbrake. The vertical speed is `-sin(sign(pitch) * (|pitch| - 10°)) * forward speed`, capped at ±0.3 blocks/tick. It is 0 within 10° of level and whenever the vehicle is not moving forward, so a parked vehicle holds its altitude while the driver looks around
 - `landing` sinks at 0.15 blocks/tick and returns to `ground` when the vehicle touches the ground. A flying vehicle with neither a driver nor test input starts landing at once
