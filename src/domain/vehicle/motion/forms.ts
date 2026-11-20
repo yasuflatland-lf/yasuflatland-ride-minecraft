@@ -27,7 +27,7 @@ export interface FormState {
   /** Ticks spent in form, counting the tick that entered it; 0 for a state built by initialForm. */
   readonly formTicks: number;
   readonly jumpHeld: boolean;
-  /** Tick of the last Jump press in this form that has not completed a double tap. */
+  /** Tick of the last Jump press by the current driver, in this form, that has not completed a double tap. */
   readonly lastTap: number | undefined;
 }
 
@@ -57,6 +57,11 @@ export function isDry(waterDepth: number): boolean {
 
 export function initialForm(form: Form = "car"): FormState {
   return { form, formTicks: 0, jumpHeld: false, lastTap: undefined };
+}
+
+/** The same state with no pending tap: a new driver's first press starts a new double tap. */
+export function forgetTap(state: FormState): FormState {
+  return { ...state, lastTap: undefined };
 }
 
 /**

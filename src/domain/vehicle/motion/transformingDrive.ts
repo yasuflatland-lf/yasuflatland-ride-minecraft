@@ -16,6 +16,7 @@ import {
   climbInput,
   type Form,
   type FormState,
+  forgetTap,
   initialForm,
   isDry,
   isForm,
@@ -252,6 +253,12 @@ export class TransformingDrive implements Drive {
   }
 
   onDriverMounted(driverYaw: number): void {
+    this.formState = forgetTap(this.formState);
+    this.alignToDriver(driverYaw);
+  }
+
+  /** Turns the drive to a newly mounted driver's view; kinds that hold their heading override this. */
+  protected alignToDriver(driverYaw: number): void {
     this.motion = alignOnMount(this.motion, driverYaw);
   }
 

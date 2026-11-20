@@ -412,6 +412,17 @@ it("restores a laid open room immediately without a scan or dock event", () => {
   expect(drive.yaw).toBe(90);
 });
 
+it("forgets the previous driver's tap when a new driver mounts while parked", () => {
+  const f = fixture();
+  for (let i = 0; i < DOCK.ticks - 2; i++) f.step();
+  f.step({ ...PUSH, moveY: 0, jump: true });
+  expect(f.step().dock?.hold).toEqual(f.pose);
+  f.drive.onDriverMounted(-123);
+  expect(f.drive.yaw).toBe(f.pose.yaw);
+  expect(f.step({ ...PUSH, jump: true }).depart).toBeDefined();
+  expect(f.drive.form).toBe("car");
+});
+
 it("keeps the snapped yaw when a parked driver's mount changes and boards from deck seat zero", () => {
   const f = fixture();
   f.park();
