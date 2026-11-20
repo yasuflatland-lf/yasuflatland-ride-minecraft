@@ -6,6 +6,7 @@
 import { type Entity, InputMode, type Player, world } from "@minecraft/server";
 import type { BoardVehicle } from "../../../../application/vehicle/boardVehicle";
 import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
+import { sub3 } from "../../../../domain/shared/vec";
 import { mountOf } from "../../../shared/mount";
 import { isStandInEntity } from "../identifiers";
 import { vehicleOfTarget } from "../standIns";
@@ -35,7 +36,7 @@ export function requestBoarding(
   return boardVehicle.execute({
     playerId: asPlayerId(player.id),
     vehicleId: asVehicleId(vehicle.id),
-    eye: { x: head.x - at.x, y: head.y - at.y, z: head.z - at.z },
+    eye: sub3(head, at),
     view:
       player.inputInfo.lastInputModeUsed === InputMode.Touch
         ? undefined

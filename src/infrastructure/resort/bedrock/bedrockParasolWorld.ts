@@ -27,8 +27,8 @@ import { entityOfType } from "../../shared/entities";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import {
   LaidBlockLayer,
-  readCeilingCells,
-  writeCeilingCells,
+  readSavedCells,
+  writeSavedCells,
 } from "../../shared/laidBlockLayer";
 import { giveOrDrop, playerById, showActionBar } from "../../shared/players";
 import {
@@ -121,7 +121,7 @@ export class BedrockParasolWorld
     if (!record) {
       record = {
         dimension: entity.dimension,
-        cells: readCeilingCells(
+        cells: readSavedCells(
           entity.getDynamicProperty(PARASOL_CEILING_PROPERTY),
         ),
       };
@@ -161,7 +161,7 @@ export class BedrockParasolWorld
       );
       entity.setDynamicProperty(
         PARASOL_CEILING_PROPERTY,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);
@@ -183,7 +183,7 @@ export class BedrockParasolWorld
     try {
       entity?.setDynamicProperty(
         PARASOL_CEILING_PROPERTY,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);

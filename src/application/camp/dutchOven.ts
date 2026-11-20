@@ -14,10 +14,13 @@ import {
 } from "../../domain/camp/spec";
 import type { TableId } from "../../domain/camp/table";
 import { cellOf } from "../../domain/shared/cells";
+import {
+  Debounces,
+  LIGHT_SWITCH_COOLDOWN_TICKS,
+} from "../../domain/shared/debounce";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import { decodeHost, encodeHost, type Host } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
 import {
   hostSpotPoint,
   type LocalPoint,
@@ -38,11 +41,6 @@ import type { HostedItemKind } from "../shared/ports/hostedItem";
 import type { HostedKindPort } from "../shared/ports/hostedKind";
 import { handleHit } from "../shared/takeBackByHits";
 import type { DutchOvenWorld } from "./ports/dutchOven";
-
-const RULE = {
-  hits: DUTCH_OVEN_SPEC.hitsToTakeBack,
-  resetTicks: DUTCH_OVEN_SPEC.hitResetTicks,
-};
 
 const ON_TABLE: HostedItemKind = {
   id: "dutch_oven",
@@ -65,17 +63,20 @@ export function dutchOvenHostedKind(world: DutchOvenWorld): HostedKindPort {
 }
 
 export class DutchOvenActions {
-  private readonly hits = new HitCounters<DutchOvenId>(RULE);
+  private readonly hits = new HitCounters<DutchOvenId>(
+    DUTCH_OVEN_SPEC.recovery,
+  );
 
-  private readonly switches = new SwitchCooldowns<DutchOvenId>();
+  private readonly switches = new Debounces<DutchOvenId>(
+    LIGHT_SWITCH_COOLDOWN_TICKS,
+  );
 
   constructor(private readonly world: DutchOvenWorld) {}
 
   toggleLid(id: DutchOvenId, tick: number): boolean {
     this.switches.forgetIdle(tick);
     const simmering = this.world.simmering(id);
-    if (simmering === undefined || !this.switches.tryUse(id, tick))
-      return false;
+    if (simmering === undefined || !this.switches.press(id, tick)) return false;
     this.world.setSimmering(id, !simmering);
     return true;
   }

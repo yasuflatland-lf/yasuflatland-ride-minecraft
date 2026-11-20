@@ -1,3 +1,4 @@
+import { ticks } from "../../../shared/ticks";
 import type { CutRect } from "../../cutArea";
 import { MOTION } from "../../motion/constants";
 import type { Medium } from "../../motion/motion";
@@ -57,8 +58,8 @@ export const BULLDOZER_SPEC = Object.freeze({
   // The blade's front-most point, -38.4 px / 16. The body ends at 2.04, so the ram box covers the blade.
   bodyFront: 2.4,
   bodyHalfWidth: blade.halfWidth,
-  doubleTapTicks: 8,
-  takeoffTicks: 20,
+  doubleTapTicks: ticks(8),
+  takeoffTicks: ticks(20),
   takeoffClimb: 0.075,
   landingSink: 0.15,
   maxClimb: 0.3,
@@ -78,13 +79,13 @@ export const BULLDOZER_SPEC = Object.freeze({
   maxBank: 0,
   bankRate: 3,
   bankSink: 0.03,
-  doorOpenTicks: 40,
+  doorOpenTicks: ticks(40),
   doorSteps: 10,
   // Beside the left door, outside the track (outer edge 18.8/16) by a player's half width
   // (0.3) and a margin, clear of the open door's edge (about x 1.01) and behind the blade (ADR 0141).
   doorExit: Object.freeze({ x: 1.75, z: -0.7 }),
   // Ticks the blade takes to travel fully up or down; the rig animation follows the property (ADR 0138).
-  bladeLiftTicks: 10,
+  bladeLiftTicks: ticks(10),
   // A placed bulldozer starts raised, so it climbs steps and cuts nothing until the driver lowers it (ADR 0138).
   // Keep in step with the yasu_ride:blade default (1.0) in bulldozer.se.json.
   bladeRaisedOnSpawn: true,

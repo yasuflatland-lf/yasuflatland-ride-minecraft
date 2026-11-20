@@ -8,6 +8,38 @@ export interface Vec3 {
   readonly z: number;
 }
 
+export function add3(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+
+export function sub3(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+
+export function length3(v: Vec3): number {
+  return Math.hypot(v.x, v.y, v.z);
+}
+
+export function distance3(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+/** An XZ rectangle, edges inclusive. */
+export interface RectXZ {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minZ: number;
+  readonly maxZ: number;
+}
+
+/** 0 inside the rectangle, otherwise the ground distance to its nearest edge. */
+export function distanceToRectXZ(p: Vec2, r: RectXZ): number {
+  return Math.hypot(
+    Math.max(r.minX - p.x, 0, p.x - r.maxX),
+    Math.max(r.minZ - p.z, 0, p.z - r.maxZ),
+  );
+}
+
 export function distanceSq(a: Vec3, b: Vec3): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 }

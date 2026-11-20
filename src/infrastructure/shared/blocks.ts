@@ -2,6 +2,7 @@ import {
   type Block,
   type Dimension,
   Direction,
+  type Vector3,
   world,
 } from "@minecraft/server";
 import { type Cell, cellCenter, sameCell } from "../../domain/shared/cells";
@@ -55,4 +56,12 @@ export function isSolidTop(dimensionId: DimensionId, cell: Cell): boolean {
   } catch {
     return false;
   }
+}
+
+/** Whether the chunk is loaded; getBlock can return undefined or throw LocationInUnloadedChunkError (ADR 0125). */
+export function chunkLoadedAt(
+  dimension: Dimension,
+  location: Vector3,
+): boolean {
+  return safeBlockAt(dimension, location) !== undefined;
 }

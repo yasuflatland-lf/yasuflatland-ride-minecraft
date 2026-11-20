@@ -1,6 +1,6 @@
 import type { Facing4 } from "../../shared/facing";
 import type { RoofTentMount } from "../../shared/roofTent";
-import { forward, leftOf, type Vec3 } from "../../shared/vec";
+import { distanceXZ, forward, leftOf, type Vec3 } from "../../shared/vec";
 import { entranceWorld } from "./access";
 
 const EXIT_STEP = 1;
@@ -24,10 +24,7 @@ export function exitCell(
           x: l.x * (dx / length) + f.x * (dz / length),
           z: l.z * (dx / length) + f.z * (dz / length),
         };
-  const radius = Math.hypot(
-    entrance.x - host.location.x,
-    entrance.z - host.location.z,
-  );
+  const radius = distanceXZ(entrance, host.location);
   const cellAt = (distance: number): Vec3 => ({
     x: Math.floor(entrance.x + direction.x * distance) || 0,
     y: Math.floor(host.location.y) || 0,
@@ -35,7 +32,7 @@ export function exitCell(
   });
   const cell = cellAt(EXIT_STEP);
   if (
-    Math.hypot(cell.x - host.location.x, cell.z - host.location.z) > radius &&
+    distanceXZ(cell, host.location) > radius &&
     (cell.x !== Math.floor(entrance.x) || cell.z !== Math.floor(entrance.z))
   )
     return cell;

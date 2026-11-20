@@ -11,13 +11,8 @@ import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
 import { handleHit } from "../shared/takeBackByHits";
 import type { FirePitWorld } from "./ports/firePit";
 
-const RULE = {
-  hits: FIRE_PIT_SPEC.hitsToTakeBack,
-  resetTicks: FIRE_PIT_SPEC.hitResetTicks,
-};
-
 export class FirePitActions {
-  private readonly hits = new HitCounters<FirePitId>(RULE);
+  private readonly hits = new HitCounters<FirePitId>(FIRE_PIT_SPEC.recovery);
 
   constructor(private readonly world: FirePitWorld) {}
 

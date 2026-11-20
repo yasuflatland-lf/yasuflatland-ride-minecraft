@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { ticks } from "../../../../src/domain/shared/ticks";
 import {
   SUV_SPEC,
   SUV_TRANSFORMING,
@@ -484,25 +485,28 @@ describe("submarine form transitions", () => {
 describe("per-kind transforming values", () => {
   it("first enters hover on the call after takeoffTicks is reached", () => {
     fc.assert(
-      fc.property(fc.integer({ min: 1, max: 60 }), (takeoffTicks) => {
-        const spec = { ...SUV_TRANSFORMING, takeoffTicks };
-        let state = initialForm("takeoff");
-        const input = {
-          tick: 0,
-          jump: false,
-          controlled: true,
-          onGround: false,
-          waterDepth: 0,
-        };
-        for (let tick = 1; tick <= takeoffTicks; tick++) {
-          state = stepForm(state, { ...input, tick }, spec);
-          expect(state.form).toBe("takeoff");
-          expect(state.formTicks).toBe(tick);
-        }
-        expect(
-          stepForm(state, { ...input, tick: takeoffTicks + 1 }, spec).form,
-        ).toBe("hover");
-      }),
+      fc.property(
+        fc.integer({ min: 1, max: 60 }).map(ticks),
+        (takeoffTicks) => {
+          const spec = { ...SUV_TRANSFORMING, takeoffTicks };
+          let state = initialForm("takeoff");
+          const input = {
+            tick: 0,
+            jump: false,
+            controlled: true,
+            onGround: false,
+            waterDepth: 0,
+          };
+          for (let tick = 1; tick <= takeoffTicks; tick++) {
+            state = stepForm(state, { ...input, tick }, spec);
+            expect(state.form).toBe("takeoff");
+            expect(state.formTicks).toBe(tick);
+          }
+          expect(
+            stepForm(state, { ...input, tick: takeoffTicks + 1 }, spec).form,
+          ).toBe("hover");
+        },
+      ),
     );
   });
 
@@ -547,7 +551,7 @@ describe("per-kind transforming values", () => {
   it("takes off on two presses within the supplied doubleTapTicks, and not further apart", () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 2, max: 40 }),
+        fc.integer({ min: 2, max: 40 }).map(ticks),
         fc.integer({ min: 2, max: 60 }),
         (doubleTapTicks, gap) => {
           const spec = { ...SUV_TRANSFORMING, doubleTapTicks };

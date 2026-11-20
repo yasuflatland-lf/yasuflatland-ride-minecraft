@@ -1,7 +1,8 @@
 import { type Cell, cellOf } from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
+import { GEAR_RECOVERY, type HitRule } from "../shared/hitCounter";
 import type { TopSurface } from "../shared/tableTop";
-import { type Ticks, ticks } from "../shared/ticks";
+import { ticks } from "../shared/ticks";
 import { forward, localOffset, type Vec2, type Vec3 } from "../shared/vec";
 
 export type FurnitureKind =
@@ -31,8 +32,7 @@ export interface FurnitureSpec {
   /** Layers of air needed above each support cell. */
   readonly clearance: number;
   readonly seats: readonly SeatOffset[];
-  readonly hitsToTakeBack: number;
-  readonly hitResetTicks: Ticks;
+  readonly recovery: HitRule;
   /** Only furniture that hosts lanterns and ovens has a top. */
   readonly top?: TopSurface;
 }
@@ -44,8 +44,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
       clearance: 2,
       seats: Object.freeze([]),
-      hitsToTakeBack: 3,
-      hitResetTicks: ticks(100),
+      recovery: GEAR_RECOVERY,
       top: Object.freeze({
         half: Object.freeze({ halfX: 6, halfZ: 6 }),
         topPx: 12,
@@ -57,15 +56,13 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
       clearance: 2,
       seats: Object.freeze([Object.freeze({ x: 0, y: 0.21, z: -0.00625 })]),
-      hitsToTakeBack: 3,
-      hitResetTicks: ticks(100),
+      recovery: GEAR_RECOVERY,
     }),
     sofa_single: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
       clearance: 2,
       seats: Object.freeze([Object.freeze({ x: 0, y: 0.2475, z: -0.1 })]),
-      hitsToTakeBack: 3,
-      hitResetTicks: ticks(100),
+      recovery: GEAR_RECOVERY,
     }),
     sofa_double: Object.freeze({
       cells: Object.freeze([
@@ -77,23 +74,20 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
         Object.freeze({ x: -0.5, y: 0.2475, z: -0.1 }),
         Object.freeze({ x: 0.5, y: 0.2475, z: -0.1 }),
       ]),
-      hitsToTakeBack: 3,
-      hitResetTicks: ticks(100),
+      recovery: GEAR_RECOVERY,
     }),
     toilet: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
       clearance: 2,
       // The 8.06 px seat top minus the 0.24-block rider offset (ADR 0122), rounded.
       seats: Object.freeze([Object.freeze({ x: 0, y: 0.264, z: -0.1 })]),
-      hitsToTakeBack: 3,
-      hitResetTicks: ticks(100),
+      recovery: GEAR_RECOVERY,
     }),
     washstand: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
       clearance: 2,
       seats: Object.freeze([]),
-      hitsToTakeBack: 3,
-      hitResetTicks: ticks(100),
+      recovery: GEAR_RECOVERY,
     }),
   });
 

@@ -106,7 +106,7 @@ async function course(a: Arena, mode: "fold" | "empty"): Promise<Outcome> {
     )
       failures.push("unfolding a chair changed its form or position");
     await form(entity, "fold");
-    for (let hit = 0; hit < BEACH_CHAIR_SPEC.hitsToTakeBack; hit++) {
+    for (let hit = 0; hit < BEACH_CHAIR_SPEC.recovery.hits; hit++) {
       system.sendScriptEvent(TEST_BEACH_CHAIR_HIT, entity.id);
       await wait(2);
     }

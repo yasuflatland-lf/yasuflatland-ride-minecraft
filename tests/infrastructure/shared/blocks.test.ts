@@ -1,6 +1,10 @@
-import { expect, it, vi } from "vitest";
+import type { Dimension } from "@minecraft/server";
+import { describe, expect, it, vi } from "vitest";
 import { asDimensionId } from "../../../src/domain/shared/ids";
-import { isSolidTop } from "../../../src/infrastructure/shared/blocks";
+import {
+  chunkLoadedAt,
+  isSolidTop,
+} from "../../../src/infrastructure/shared/blocks";
 
 const game = vi.hoisted(() => ({
   getDimension: vi.fn(),
@@ -46,4 +50,29 @@ it("refuses support when the dimension lookup throws", () => {
     throw new Error("unknown dimension");
   });
   expect(isSolidTop(dimension, cell)).toBe(false);
+});
+
+describe("chunkLoadedAt", () => {
+  const location = { x: 1.5, y: 64, z: -2.5 };
+
+  it.each([
+    ["a defined block", {}, true],
+    ["an undefined block", undefined, false],
+  ])("handles %s", (_name, block, expected) => {
+    const getBlock = vi.fn(() => block);
+    expect(chunkLoadedAt({ getBlock } as unknown as Dimension, location)).toBe(
+      expected,
+    );
+    expect(getBlock).toHaveBeenCalledExactlyOnceWith(location);
+  });
+
+  it("returns false when the block read throws", () => {
+    const getBlock = vi.fn(() => {
+      throw new Error("unloaded");
+    });
+    expect(chunkLoadedAt({ getBlock } as unknown as Dimension, location)).toBe(
+      false,
+    );
+    expect(getBlock).toHaveBeenCalledExactlyOnceWith(location);
+  });
 });

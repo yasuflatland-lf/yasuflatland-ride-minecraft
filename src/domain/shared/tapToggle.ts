@@ -1,3 +1,5 @@
+import type { Ticks } from "./ticks";
+
 /**
  * One tap can reach a block twice, 3-4 ticks apart, both as a first event, so a
  * tap toggles only when the last toggle was at least `windowTicks` earlier.
@@ -7,7 +9,7 @@
 export class TapToggle {
   private lastToggleTick = Number.NEGATIVE_INFINITY;
 
-  constructor(private readonly windowTicks: number) {}
+  constructor(private readonly windowTicks: Ticks) {}
 
   /** Records a tap at `tick`; true when it toggles. */
   tryToggle(tick: number): boolean {

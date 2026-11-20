@@ -3,7 +3,7 @@ import type { RoofTentId } from "../../../domain/camp/ids";
 import { roofTentCeilingCells } from "../../../domain/camp/roofTent/ceiling";
 import { type Cell, sameCell } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
-import { LaidBlockLayer, writeCeilingCells } from "../../shared/laidBlockLayer";
+import { LaidBlockLayer, writeSavedCells } from "../../shared/laidBlockLayer";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_LADDER_PROPERTY,
@@ -53,7 +53,7 @@ export class RoofTentCeiling {
       );
       entity.setDynamicProperty(
         ROOF_TENT_CEILING_PROPERTY,
-        writeCeilingCells(tent.ceiling),
+        writeSavedCells(tent.ceiling),
       );
     } catch (error) {
       warn(error);

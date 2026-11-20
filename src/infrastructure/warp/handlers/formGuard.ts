@@ -1,23 +1,24 @@
+import { Debounces } from "../../../domain/shared/debounce";
 import type { PlayerId } from "../../../domain/shared/ids";
 import { WARP_SPEC } from "../../../domain/warp/spec";
 import { consoleLogger } from "../../shared/consoleLogger";
 
 export class WarpFormGuard {
   private readonly active = new Map<PlayerId, number>();
-  private readonly lastPress = new Map<PlayerId, number>();
+  private readonly presses = new Debounces<PlayerId>(
+    WARP_SPEC.pressDebounceTicks,
+  );
 
   tryOpen(playerId: PlayerId, tick: number): boolean {
     if (this.active.has(playerId)) return false;
-    const last = this.lastPress.get(playerId);
-    if (last !== undefined && tick - last < WARP_SPEC.pressDebounceTicks)
-      return false;
+    if (!this.presses.ready(playerId, tick)) return false;
     this.hold(playerId, tick);
     return true;
   }
 
   hold(playerId: PlayerId, tick: number): void {
     this.active.set(playerId, (this.active.get(playerId) ?? 0) + 1);
-    this.lastPress.set(playerId, tick);
+    this.presses.record(playerId, tick);
   }
 
   close(playerId: PlayerId): void {
@@ -27,7 +28,7 @@ export class WarpFormGuard {
   }
 
   forget(playerId: PlayerId): void {
-    this.lastPress.delete(playerId);
+    this.presses.forget(playerId);
   }
 
   async run(playerId: PlayerId, flow: () => Promise<unknown>): Promise<void> {

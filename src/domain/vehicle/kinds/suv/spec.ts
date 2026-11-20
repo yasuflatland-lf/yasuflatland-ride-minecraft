@@ -1,3 +1,4 @@
+import { ticks } from "../../../shared/ticks";
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
@@ -46,8 +47,8 @@ export const SUV_SPEC = Object.freeze({
   // Headlights (ADR 0020)
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // blocks ahead of the vehicle's center, one light block each; 6 apart, the road surface between them stays at level 9 or brighter (ADR 0024)
   // Flight (ADR 0021)
-  doubleTapTicks: 8, // A second Jump press within this many ticks toggles flight
-  takeoffTicks: 20,
+  doubleTapTicks: ticks(8), // A second Jump press within this many ticks toggles flight
+  takeoffTicks: ticks(20),
   takeoffClimb: 0.075, // blocks/tick; 20 ticks lift the vehicle 1.5 blocks
   landingSink: 0.15, // blocks/tick
   maxClimb: 0.3, // blocks/tick, up or down, with Jump held or the stick pulled back (ADR 0032)

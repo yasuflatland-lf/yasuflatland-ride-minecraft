@@ -63,7 +63,7 @@ export class LaidBlockLayer {
   }
 }
 
-export function readCeilingCells(saved: unknown): Cell[] {
+export function readSavedCells(saved: unknown): Cell[] {
   if (typeof saved !== "string") return [];
   try {
     const value: unknown = JSON.parse(saved);
@@ -79,6 +79,6 @@ export function readCeilingCells(saved: unknown): Cell[] {
   }
 }
 
-export function writeCeilingCells(cells: readonly Cell[]): string | undefined {
+export function writeSavedCells(cells: readonly Cell[]): string | undefined {
   return cells.length > 0 ? JSON.stringify(cells) : undefined;
 }

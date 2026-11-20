@@ -1,8 +1,8 @@
 // Reads the blocks and targets surrounding a vehicle (ADR 0012).
-import type { Entity } from "@minecraft/server";
 import type { SurroundingsWorld } from "../../../application/vehicle/ports/drive";
 import type { VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { add3, sub3 } from "../../../domain/shared/vec";
 import { RAM_QUERY_RADIUS } from "../../../domain/vehicle/kinds/index";
 import type { RamTarget } from "../../../domain/vehicle/ram";
 import { AIR_BLOCK } from "../../shared/identifiers";
@@ -12,34 +12,26 @@ import type { EntityIndex } from "./entityIndex";
 import { ramMountOf } from "./identifiers";
 import { isLavaAt, isWaterAt } from "./water";
 
-function offsetFrom(vehicle: Entity, offset: Vec3): Vec3 {
-  return {
-    x: vehicle.location.x + offset.x,
-    y: vehicle.location.y + offset.y,
-    z: vehicle.location.z + offset.z,
-  };
-}
-
 export class BedrockSurroundings implements SurroundingsWorld {
   constructor(private readonly index: EntityIndex) {}
 
   waterAt(vehicleId: VehicleId, offset: Vec3): boolean {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return false;
-    return isWaterAt(vehicle.dimension, offsetFrom(vehicle, offset));
+    return isWaterAt(vehicle.dimension, add3(vehicle.location, offset));
   }
 
   lavaAt(vehicleId: VehicleId, offset: Vec3): boolean {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return false;
-    return isLavaAt(vehicle.dimension, offsetFrom(vehicle, offset));
+    return isLavaAt(vehicle.dimension, add3(vehicle.location, offset));
   }
 
   solidAt(vehicleId: VehicleId, offset: Vec3): boolean {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return false;
     try {
-      const at = offsetFrom(vehicle, offset);
+      const at = add3(vehicle.location, offset);
       const b = vehicle.dimension.getBlock(at);
       if (!b || b.isAir || b.isLiquid || isLightBlock(b)) return false;
       // A ray that starts inside a block finds nothing, so a cell under
@@ -93,11 +85,7 @@ export class BedrockSurroundings implements SurroundingsWorld {
       .filter((e) => e.id !== vehicle.id)
       .map((e) => ({
         id: e.id,
-        offset: {
-          x: e.location.x - vehicle.location.x,
-          y: e.location.y - vehicle.location.y,
-          z: e.location.z - vehicle.location.z,
-        },
+        offset: sub3(e.location, vehicle.location),
         mount: ramMountOf(mountOf(e)?.typeId),
       }));
   }

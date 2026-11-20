@@ -15,7 +15,7 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: 10000 }),
-        fc.integer({ min: 1, max: spec.hitResetTicks }),
+        fc.integer({ min: 1, max: spec.recovery.resetTicks }),
         (now, gap) => {
           const world = fakeFurnitureWorld(kind);
           const take = new TakeBackFurniture(world);
