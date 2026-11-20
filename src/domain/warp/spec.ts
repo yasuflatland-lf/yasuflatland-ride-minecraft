@@ -9,6 +9,8 @@ export const WARP_SPEC = {
   formRetryTicks: ticks(10),
   formMaxRetries: 5,
   pageSize: 16,
+  landingRadius: 2,
+  landingRises: [0, 1],
   arrivalCheckTicks: ticks(5),
   arrivalCheckMaxTicks: ticks(100),
 } as const;

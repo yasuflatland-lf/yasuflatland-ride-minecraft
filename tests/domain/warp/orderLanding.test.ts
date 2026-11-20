@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { distanceSq } from "../../../src/domain/shared/vec";
 import { asWarpPointId } from "../../../src/domain/warp/ids";
@@ -98,30 +99,85 @@ it("pages cover every item exactly once and clamp out-of-range indices", () => {
   );
 });
 
-it("searches top, four lower sides, then four upper sides and takes the first standable cell", () => {
+it("covers both rises of the 5x5 square in landing priority order", () => {
   fc.assert(
-    fc.property(cell, fc.func(fc.boolean()), (c, standable) => {
-      const candidates = landingCandidates(c);
-      expect(candidates).toHaveLength(9);
-      expect(candidates[0]).toEqual({ ...c, y: c.y + 1 });
-      for (let i = 1; i < candidates.length; i++) {
-        const p = candidates[i];
-        if (!p) throw Error("missing candidate");
-        expect(p.y).toBe(c.y + (i > 4 ? 1 : 0));
-        expect(Math.abs(p.x - c.x) + Math.abs(p.z - c.z)).toBe(1);
-      }
-      expect(new Set(candidates.map((p) => JSON.stringify(p))).size).toBe(9);
-      const visited: unknown[] = [];
-      const chosen = chooseLanding(c, (p) => {
-        visited.push(p);
-        return standable(p);
+    fc.property(cell, (origin) => {
+      const candidates = landingCandidates(origin);
+      expect(candidates).toHaveLength(49);
+      expect(new Set(candidates.map(cellKey)).size).toBe(49);
+      const keys = candidates.map((feet) => {
+        const dx = feet.x - origin.x;
+        const dz = feet.z - origin.z;
+        const rise = feet.y - origin.y;
+        expect(Number.isInteger(dx) && Math.abs(dx) <= 2).toBe(true);
+        expect(Number.isInteger(dz) && Math.abs(dz) <= 2).toBe(true);
+        expect([0, 1]).toContain(rise);
+        expect(feet).not.toEqual(origin);
+        return [
+          distanceSq(origin, feet),
+          Number(dx !== 0 || dz !== 0),
+          rise,
+          dx,
+          dz,
+        ];
       });
-      const first = candidates.findIndex((p) => standable(p));
-      expect(chosen).toEqual(first < 0 ? candidates[0] : candidates[first]);
-      expect(visited).toEqual(
-        candidates.slice(0, first < 0 ? candidates.length : first + 1),
-      );
-      expect(chooseLanding(c, () => false)).toEqual(candidates[0]);
+      for (const [index, key] of keys.slice(1).entries()) {
+        const previous = keys[index];
+        if (!previous) throw Error("missing previous key");
+        const firstDifference = key
+          .map((part, i) => part - Number(previous[i]))
+          .find((delta) => delta !== 0);
+        expect(firstDifference).toBeGreaterThan(0);
+      }
     }),
   );
+});
+
+it("stops at the earliest standable candidate", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.uniqueArray(fc.integer({ min: 0, max: 48 }), { minLength: 1 }),
+      (origin, indices) => {
+        const candidates = landingCandidates(origin);
+        const standable = new Set(
+          indices
+            .map((index) => candidates[index])
+            .filter((feet): feet is Cell => feet !== undefined)
+            .map(cellKey),
+        );
+        const visited: Cell[] = [];
+        const chosen = chooseLanding(origin, (feet) => {
+          visited.push(feet);
+          return standable.has(cellKey(feet));
+        });
+        const first = Math.min(...indices);
+        expect(chosen).toEqual(candidates[first]);
+        expect(visited).toEqual(candidates.slice(0, first + 1));
+      },
+    ),
+  );
+});
+
+it("falls back above the block after exhausting the candidates", () => {
+  fc.assert(
+    fc.property(cell, (origin) => {
+      const visited: Cell[] = [];
+      expect(
+        chooseLanding(origin, (feet) => {
+          visited.push(feet);
+          return false;
+        }),
+      ).toEqual({ ...origin, y: origin.y + 1 });
+      expect(visited).toEqual(landingCandidates(origin));
+    }),
+  );
+});
+
+it("lands on top when every candidate is standable", () => {
+  expect(chooseLanding({ x: 3, y: 64, z: -7 }, () => true)).toEqual({
+    x: 3,
+    y: 65,
+    z: -7,
+  });
 });
