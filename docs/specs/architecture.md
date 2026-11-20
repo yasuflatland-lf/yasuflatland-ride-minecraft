@@ -205,10 +205,10 @@
 ### Docked property and held attitude resend
 
 - Applies to: Sports boat and camper after resync.
-- Rule: Each drive keeps its own resend flag and appends the current docked property on the next step after resync, unless that step's dock or departure commands already sent it. A drive that has never held sends no extra docked property. A held sports boat also resends its level trim and roll through their latches once; an ordinary held step sends no attitude, and dock/undock events remain one-shot.
+- Rule: Each drive owns its own `DockedResend` and appends the current docked property on the next step after resync, unless that step's dock or departure commands already sent it. A drive that has never held sends no extra docked property. A held sports boat also resends its level trim and roll through their latches once; an ordinary held step sends no attitude, and dock/undock events remain one-shot.
 - Agreement: Proposed
 - Basis: [0156](../adr/0156-resend-the-docked-property-after-a-failed-send.md) Decision, "After `resync()`, the next step of a sports boat or camper drive appends the `docked` property with its current held state, once."; [0156](../adr/0156-resend-the-docked-property-after-a-failed-send.md) Decision, "The dock and undock events stay one-shot, as 0127 decided. Only the property is resent."
-- Implementation: `src/domain/vehicle/kinds/sportsboat/drive.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/domain/vehicle/motion/dockEntity.ts`
+- Implementation: `src/domain/vehicle/kinds/sportsboat/drive.ts` and `src/domain/vehicle/kinds/camper/drive.ts` each use `DockedResend` from `src/domain/vehicle/motion/dockEntity.ts`.
 - Verification: `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "resends the docked property once after a failed send while held or after departing, and never before the first hold" and "resends level trim and roll once after a failed send while a boat that had tilted is held"; `tests/application/vehicle/driveVehicles.test.ts` `it.each` title "keeps every entity property equal to the drive's last value once the world stops failing, for %s". Not verified: owner acceptance of Proposed 0156 or recovery from lost component-group events in game.
 
 ### Namespace, IDs and vehicle tables
