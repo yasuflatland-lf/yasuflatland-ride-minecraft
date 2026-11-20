@@ -10,9 +10,10 @@ import { pasteOutline } from "./pasteOutline";
 import { stairPreviewPoints } from "./stairPreview";
 
 export interface PreviewSet {
-  marker: Vec3[];
+  startMarker: Vec3[];
+  endMarker: Vec3[];
+  sharedMarker: Vec3[];
   shape: Vec3[];
-  endCube: Vec3[];
   roof: Vec3[];
   stairs: Vec3[];
   paste: Vec3[];
@@ -35,9 +36,10 @@ function outline(box: CellBox): Vec3[] {
 
 export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
   const set: PreviewSet = {
-    marker: [],
+    startMarker: [],
+    endMarker: [],
+    sharedMarker: [],
     shape: [],
-    endCube: [],
     roof: [],
     stairs: [],
     paste: [],
@@ -47,20 +49,20 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
     case "idle":
       break;
     case "point1":
-      if (aim.blink) set.marker = cornerMarkerPoints(flow.cell);
+      if (aim.blink) set.startMarker = cornerMarkerPoints(flow.cell);
       if (aim.end) {
         set.shape = outline(boxOf(flow.cell, aim.end));
-        set.endCube = cornerMarkerPoints(aim.end);
+        set.endMarker = cornerMarkerPoints(aim.end);
       }
       break;
     case "baseHeight":
       set.shape = outline(liveHeightBox(flow));
-      set.endCube = cornerMarkerPoints(flow.to);
+      set.endMarker = cornerMarkerPoints(flow.to);
       break;
     case "selected":
     case "terrainConfirm":
       set.shape = outline(flow.selection.box);
-      set.endCube = cornerMarkerPoints(flow.to);
+      set.endMarker = cornerMarkerPoints(flow.to);
       break;
     case "heightStep": {
       const height = flow.heightLocked

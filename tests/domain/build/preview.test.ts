@@ -91,7 +91,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
             set.paste.length + set.pasteVertical.length,
           ).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
           if (flow.kind === "point1" || flow.kind === "selected")
-            expect(set.endCube).toEqual(cornerMarkerPoints(b));
+            expect(set.endMarker).toEqual(cornerMarkerPoints(b));
         }
       },
     ),
@@ -130,10 +130,10 @@ it("alternates the first-point marker with blink and removes it at the endpoint 
   fc.assert(
     fc.property(cell, cell, (a, b) => {
       const flow = { kind: "point1" as const, cell: a, dimensionId, material };
-      expect(previewPoints(flow, { blink: true }).marker).toEqual(
+      expect(previewPoints(flow, { blink: true }).startMarker).toEqual(
         cornerMarkerPoints(a),
       );
-      expect(previewPoints(flow, { blink: false }).marker).toEqual([]);
+      expect(previewPoints(flow, { blink: false }).startMarker).toEqual([]);
       expect(
         previewPoints(
           {
@@ -144,7 +144,7 @@ it("alternates the first-point marker with blink and removes it at the endpoint 
             selection: selectionOf(dimensionId, boxOf(a, b), material),
           },
           { blink: true },
-        ).marker,
+        ).startMarker,
       ).toEqual([]);
     }),
   );
