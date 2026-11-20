@@ -167,6 +167,44 @@ describe("DriveVehicles", () => {
     expect(world.calls).toContain("motion:a:0");
   });
 
+  it("sweeps once after every snapshot tick, including one that failed, and before releasing gone vehicles", () => {
+    const world = new FakeWorld();
+    const repo = new InMemoryRepo();
+    const log = logger();
+    const tick = vi.spyOn(world, "keepDeckSeats");
+    tick.mockImplementationOnce(() => {
+      throw new Error("tick");
+    });
+    const sweep = vi.spyOn(world, "sweepGone");
+    sweep.mockImplementationOnce(() => {
+      throw new Error("sweep");
+    });
+    const release = vi.spyOn(world, "releaseVehicle");
+    const ids = [asVehicleId("a"), asVehicleId("b")];
+    world.snapshots = ids.map((id) => snapshot(id));
+    repo.save(createVehicle("suv", asVehicleId("gone"), 0));
+    const drive = new DriveVehicles(world, repo, log, () => false);
+
+    drive.execute(0);
+    expect(tick.mock.calls.map(([id]) => id)).toEqual(ids);
+    expect(sweep).toHaveBeenCalledExactlyOnceWith(new Set(ids));
+    expect(sweep.mock.invocationCallOrder[0]).toBeGreaterThan(
+      tick.mock.invocationCallOrder[1] ?? 0,
+    );
+    expect(release).toHaveBeenCalledExactlyOnceWith("gone");
+    expect(release.mock.invocationCallOrder[0]).toBeGreaterThan(
+      sweep.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(log.lines).toEqual([
+      "a: Error: tick",
+      "sweep gone vehicles: Error: sweep",
+    ]);
+
+    world.snapshots = [];
+    drive.execute(1);
+    expect(sweep.mock.calls).toEqual([[new Set(ids)], [new Set()]]);
+  });
+
   it("releases each vehicle that is no longer loaded once, and logs a failed release without skipping the others", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();

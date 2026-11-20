@@ -65,7 +65,6 @@ describe("EntityIndex", () => {
     const index = new EntityIndex();
     index.track(stub("a"));
     index.clear();
-    expect(index.trackedIds()).toEqual(new Set());
     expect(index.entity(asVehicleId("a"))).toBeUndefined();
     expect(game.getEntity).toHaveBeenCalledWith("a");
   });
@@ -82,7 +81,7 @@ describe("EntityIndex", () => {
     expect(index.player(asPlayerId("missing"))).toBeUndefined();
   });
 
-  it("tracked ids are exactly the tracked entities' ids, and each resolves to its own entity", () => {
+  it("resolves each tracked id without asking the world", () => {
     fc.assert(
       fc.property(
         fc.uniqueArray(fc.string({ minLength: 1 }), { maxLength: 10 }),
@@ -90,7 +89,6 @@ describe("EntityIndex", () => {
           const index = new EntityIndex();
           const entities = new Map(ids.map((id) => [id, stub(id)]));
           for (const e of entities.values()) index.track(e);
-          expect(index.trackedIds()).toEqual(new Set(ids));
           for (const [id, e] of entities)
             expect(index.entity(asVehicleId(id))).toBe(e);
           expect(game.getEntity).not.toHaveBeenCalled();

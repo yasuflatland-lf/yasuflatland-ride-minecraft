@@ -632,7 +632,7 @@ export async function boatSeatFillers(a: Arena): Promise<Outcome> {
       detail: `seated=${seated} before=${before} waited=${waited} backAt=${backAt} afterLeave=${afterLeave} after=${after} left=${left}`,
     };
   } finally {
-    fillers.release(probe ? asVehicleId(probe.id) : asVehicleId(""));
+    fillers.release(probe ? asVehicleId(probe.id) : asVehicleId(""), probe);
     for (const cow of cows) if (cow?.isValid) cow.remove();
     if (probe?.isValid) probe.remove();
   }
