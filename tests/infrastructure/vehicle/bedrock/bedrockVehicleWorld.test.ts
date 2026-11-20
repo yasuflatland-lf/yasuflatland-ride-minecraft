@@ -498,7 +498,9 @@ describe("BedrockVehicleWorld snapshots", () => {
     expect(world.loadedVehicles()[0]?.testInput).toEqual(input);
     expect(world.loadedVehicles()[0]?.testInput).toEqual(input);
     dimension.getEntities.mockReturnValue([]);
-    world.loadedVehicles();
+    expect(world.loadedVehicles()).toEqual([]);
+    expect(inputs.get(asVehicleId(car.id))).toEqual(input);
+    world.sweepGone(new Set());
     dimension.getEntities.mockReturnValue([car]);
     expect(world.loadedVehicles()[0]?.testInput).toBeUndefined();
   });
@@ -509,7 +511,9 @@ describe("BedrockVehicleWorld snapshots", () => {
     testHeldItems.set(id, "yasu_ride:blade_switch");
     expect(world.loadedVehicles()[0]?.testHeld?.tool).toBe("blade_switch");
     dimension.getEntities.mockReturnValue([]);
-    world.loadedVehicles();
+    expect(world.loadedVehicles()).toEqual([]);
+    expect(testHeldItems.get(id)).toBe("yasu_ride:blade_switch");
+    world.sweepGone(new Set());
     expect(testHeldItems.get(id)).toBeUndefined();
   });
 
@@ -523,7 +527,8 @@ describe("BedrockVehicleWorld snapshots", () => {
     world.loadedVehicles();
     expect(grid.typeAt(cell)).toBe("minecraft:light_block_15");
     dimension.getEntities.mockReturnValue([]);
-    world.loadedVehicles();
+    expect(world.loadedVehicles()).toEqual([]);
+    world.sweepGone(new Set());
     expect(grid.typeAt(cell)).toBe("minecraft:air");
   });
 });
@@ -774,7 +779,8 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
     world.holdAt(asVehicleId(car.id), pose);
     world.layDock(asVehicleId(car.id), [cell]);
     dimension.getEntities.mockReturnValue([]);
-    world.loadedVehicles();
+    expect(world.loadedVehicles()).toEqual([]);
+    world.sweepGone(new Set());
     expect(grid.typeAt(cell)).toBe("minecraft:air");
     dimension.getEntities.mockReturnValue([car]);
     world.loadedVehicles();

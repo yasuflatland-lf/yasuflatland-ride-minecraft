@@ -13,33 +13,29 @@ import {
   STAND_IN_PROPERTY,
   standInType,
 } from "./identifiers";
+import {
+  loadedOwnerNear,
+  type OwnedEntityKind,
+  ownedEntity,
+  ownerIdOf,
+  type PerVehicleState,
+  placeOwned,
+} from "./ownedEntities";
 import { vehicleOfSeatFiller } from "./seatFillers";
 
-// Under a pixel (1/16 block), as the deck seats: a parked vehicle's stand-in is not
-// teleported every tick for drift nobody can see.
-const TELEPORT_TOLERANCE = 0.05;
 // A driving stand-in trails its vehicle by one tick's move, up to about 1.3 blocks on
 // default ground (ADR 0067); the margin finds a loaded owner, or another stand-in of the
 // same vehicle, past that.
 const SEARCH_MARGIN = 5;
-const SEARCH_RADIUS = STAND_IN_REACH + SEARCH_MARGIN;
+const STAND_IN_KIND: OwnedEntityKind = {
+  ownerProperty: STAND_IN_OF_PROPERTY,
+  isType: isStandInEntity,
+  searchRadius: STAND_IN_REACH + SEARCH_MARGIN,
+};
 
-function ownerOf(standIn: Entity): string | undefined {
-  const owner = standIn.getDynamicProperty(STAND_IN_OF_PROPERTY);
-  return typeof owner === "string" ? owner : undefined;
-}
-
-function standInEntity(
-  id: string | undefined,
-  vehicleId: string,
-): Entity | undefined {
-  const standIn = id ? world.getEntity(id) : undefined;
-  return standIn?.isValid &&
-    isStandInEntity(standIn.typeId) &&
-    ownerOf(standIn) === vehicleId
-    ? standIn
-    : undefined;
-}
+// Entity loads already check for orphans (handlers/fleet.ts), so scanning for strays
+// that were already loaded can wait about a second between sweeps.
+const STRAY_STAND_IN_SCAN_SWEEPS = 20;
 
 /**
  * The vehicle an entity a player hit or used stands for: the vehicle itself, the vehicle a
@@ -51,7 +47,7 @@ export function vehicleOfTarget(target: Entity): Entity | undefined {
   const filled = vehicleOfSeatFiller(target);
   if (filled) return filled;
   if (!isStandInEntity(target.typeId)) return undefined;
-  const owner = ownerOf(target);
+  const owner = ownerIdOf(target, STAND_IN_KIND);
   const vehicle = owner ? world.getEntity(owner) : undefined;
   return vehicle?.isValid && isVehicleEntity(vehicle.typeId)
     ? vehicle
@@ -65,19 +61,17 @@ export function vehicleOfTarget(target: Entity): Entity | undefined {
  */
 export function removeOrphanStandIn(standIn: Entity): void {
   if (!standIn.isValid || !isStandInEntity(standIn.typeId)) return;
-  const owner = ownerOf(standIn);
-  const vehicle = standIn.dimension
-    .getEntities({ location: standIn.location, maxDistance: SEARCH_RADIUS })
-    .find((entity) => entity.id === owner && isVehicleEntity(entity.typeId));
+  const vehicle = loadedOwnerNear(standIn, STAND_IN_KIND);
   if (vehicle?.getDynamicProperty(STAND_IN_PROPERTY) !== standIn.id)
     standIn.remove();
 }
 
-export class StandIns {
+export class StandIns implements PerVehicleState {
   /** The stand-in entity id of each vehicle kept this session. */
   private readonly kept = new Map<VehicleId, string>();
   /** Vehicles whose other stand-ins were looked for since they were last seen. */
   private readonly swept = new Set<VehicleId>();
+  private sweepsUntilStrayScan = 0;
 
   keep(
     vehicleId: VehicleId,
@@ -87,49 +81,40 @@ export class StandIns {
     const savedId = vehicle?.isValid
       ? vehicle.getDynamicProperty(STAND_IN_PROPERTY)
       : undefined;
-    let standIn = standInEntity(
+    let existing = ownedEntity(
       this.kept.get(vehicleId) ??
         (typeof savedId === "string" ? savedId : undefined),
       vehicleId,
+      STAND_IN_KIND,
     );
     if (!vehicle?.isValid || !pose) {
-      standIn?.remove();
+      existing?.remove();
       this.forget(vehicleId, vehicle);
       return;
     }
     const type = standInType(pose.name, pose.axis);
-    if (
-      standIn &&
-      (standIn.typeId !== type || standIn.dimension.id !== vehicle.dimension.id)
-    ) {
-      standIn.remove();
-      standIn = undefined;
+    if (existing && existing.typeId !== type) {
+      existing.remove();
+      existing = undefined;
     }
     if (!this.swept.has(vehicleId)) {
       // After /reload or a restart, or when a stand-in's id was not saved before the
       // world stopped, others of this vehicle may stand nearby.
-      this.removeOthers(vehicle, standIn?.id);
+      this.removeOthers(vehicle, existing?.id);
       this.swept.add(vehicleId);
     }
-    const at = { x: pose.x, y: pose.y, z: pose.z };
-    try {
-      if (!standIn) {
-        standIn = vehicle.dimension.spawnEntity(type, at);
-        standIn.setDynamicProperty(STAND_IN_OF_PROPERTY, vehicleId);
-      } else if (
-        Math.hypot(
-          standIn.location.x - at.x,
-          standIn.location.y - at.y,
-          standIn.location.z - at.z,
-        ) > TELEPORT_TOLERANCE
-      ) {
-        standIn.teleport(at);
-      }
-    } catch {
-      // The spot is in an unloaded chunk; the next tick tries again, and the rest of the
-      // vehicle's tick goes on.
-      if (!standIn) return;
-    }
+    const placed = placeOwned(
+      existing,
+      vehicle,
+      { x: pose.x, y: pose.y, z: pose.z },
+      (dimension, at) => {
+        const spawned = dimension.spawnEntity(type, at);
+        spawned.setDynamicProperty(STAND_IN_OF_PROPERTY, vehicleId);
+        return spawned;
+      },
+    );
+    const standIn = placed ?? (existing?.isValid ? existing : undefined);
+    if (!standIn) return;
     // The stand-in offers a seat only so a phone shows the interact button; every
     // interaction is cancelled and passed to the vehicle (ADR 0116).
     standIn.getComponent("minecraft:rideable")?.ejectRiders();
@@ -142,9 +127,10 @@ export class StandIns {
     for (const other of vehicle.dimension.getEntities({
       families: [STAND_IN_FAMILY],
       location: vehicle.location,
-      maxDistance: SEARCH_RADIUS,
+      maxDistance: STAND_IN_KIND.searchRadius,
     }))
-      if (other.id !== keepId && ownerOf(other) === vehicle.id) other.remove();
+      if (other.id !== keepId && ownerIdOf(other, STAND_IN_KIND) === vehicle.id)
+        other.remove();
   }
 
   private forget(vehicleId: VehicleId, vehicle: Entity | undefined): void {
@@ -154,20 +140,30 @@ export class StandIns {
       vehicle.setDynamicProperty(STAND_IN_PROPERTY, undefined);
   }
 
-  /**
-   * Removes the stand-ins of vehicles that are not loaded: those kept this session, and any
-   * other loaded stand-in, such as one whose vehicle was removed while the script was
-   * reloading, which no load event reports again.
-   */
-  clearGone(live: ReadonlySet<VehicleId>): void {
-    for (const id of [...this.kept.keys()])
-      if (!live.has(id)) this.keep(id, undefined, undefined);
-    for (const id of [...this.swept]) if (!live.has(id)) this.swept.delete(id);
+  release(vehicleId: VehicleId, vehicle: Entity | undefined): void {
+    this.keep(vehicleId, vehicle, undefined);
+  }
+
+  sweepGone(live: ReadonlySet<VehicleId>): void {
+    for (const id of this.kept.keys())
+      if (!live.has(id)) this.release(id, undefined);
+    for (const id of this.swept) if (!live.has(id)) this.swept.delete(id);
+
+    if (this.sweepsUntilStrayScan > 0) {
+      this.sweepsUntilStrayScan--;
+      return;
+    }
+    this.sweepsUntilStrayScan = STRAY_STAND_IN_SCAN_SWEEPS - 1;
+    this.removeStrays(live);
+  }
+
+  /** Covers already-loaded stand-ins left behind while the script was offline. */
+  private removeStrays(live: ReadonlySet<VehicleId>): void {
     for (const dimension of allDimensions())
       for (const standIn of dimension.getEntities({
         families: [STAND_IN_FAMILY],
       })) {
-        const owner = ownerOf(standIn);
+        const owner = ownerIdOf(standIn, STAND_IN_KIND);
         if (owner === undefined || !live.has(owner as VehicleId))
           standIn.remove();
       }

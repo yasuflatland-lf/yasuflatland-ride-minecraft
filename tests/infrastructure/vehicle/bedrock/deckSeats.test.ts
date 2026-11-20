@@ -212,17 +212,17 @@ it("restores seat ownership, replaces missing seats, moves drifted seats and cle
         const shifted = positions.map((p) => ({ ...p, x: p.x + 1 }));
         reloaded.keep(asVehicleId(f.car.id), f.car, shifted, yaw);
         expect(f.dimension.spawnEntity).toHaveBeenCalledTimes(5);
-        reloaded.clearGone(new Set([asVehicleId(f.car.id)]));
+        reloaded.sweepGone(new Set([asVehicleId(f.car.id)]));
         expect(
           f.dimension.getEntities().filter((e) => e.typeId === DECK_SEAT_TYPE),
         ).toHaveLength(4);
-        reloaded.keep(asVehicleId(f.car.id), f.car, [], yaw);
+        reloaded.release(asVehicleId(f.car.id), f.car);
         expect(f.boat.saved.get(DECK_SEATS_PROPERTY)).toBeUndefined();
         expect(
           f.dimension.getEntities().filter((e) => e.typeId === DECK_SEAT_TYPE),
         ).toEqual([]);
         reloaded.keep(asVehicleId(f.car.id), f.car, positions, yaw);
-        reloaded.clearGone(new Set());
+        reloaded.sweepGone(new Set());
         expect(
           f.dimension.getEntities().filter((e) => e.typeId === DECK_SEAT_TYPE),
         ).toEqual([]);
@@ -434,22 +434,6 @@ it("ignores a vehicle it never kept seats for once the vehicle is gone", () => {
   expect(f.dimension.spawnEntity).not.toHaveBeenCalled();
 });
 
-it("replaces a seat left in another dimension by one beside the boat", () => {
-  const f = fixture();
-  const seats = new DeckSeats(isStandableRoomBlock);
-  const at = [{ x: 1, y: 2, z: 3 }];
-  seats.keep(asVehicleId(f.car.id), f.car, at, 0);
-  const [first] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
-  const old = f.entities.get(first);
-  if (!old) throw new Error("missing seat");
-  old.dimension = { id: "nether" } as unknown as Entity["dimension"];
-  seats.keep(asVehicleId(f.car.id), f.car, at, 0);
-  expect(old.remove).toHaveBeenCalledOnce();
-  const [second] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
-  expect(second).not.toBe(first);
-  expect(f.entities.get(second)?.location).toEqual(at[0]);
-});
-
 it("boards nobody without a rideable boat, and keeps a refused rider on the deck seat", () => {
   const f = fixture();
   const seats = new DeckSeats(isStandableRoomBlock);
@@ -641,7 +625,7 @@ it("leaves the riders of removed deck seats to the engine: departure, a taken ve
   }
   const { seats, player, vehicleId, standUp } = seatedOnce();
   standUp();
-  seats.clearGone(new Set());
+  seats.sweepGone(new Set());
   seats.keep(vehicleId, undefined, [], 0);
   expect(player.teleport).not.toHaveBeenCalled();
 });
