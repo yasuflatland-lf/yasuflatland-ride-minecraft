@@ -24,10 +24,8 @@ function stubs(throwing: readonly Step[] = []) {
   const releaser = new VehicleReleaser(
     { shine },
     { lay },
-    { keep },
-    { keep: stand },
+    [keep, stand, fill].map((release) => ({ release, sweepGone: vi.fn() })),
     holds,
-    { release: fill },
   );
   return { shine, lay, keep, stand, fill, holds, releaser };
 }
@@ -46,9 +44,9 @@ describe("VehicleReleaser", () => {
         }
         expect(shine.mock.calls).toEqual([["v", undefined, []]]);
         expect(lay.mock.calls).toEqual([["v", undefined, []]]);
-        expect(keep.mock.calls).toEqual([["v", undefined, [], 0]]);
-        expect(stand.mock.calls).toEqual([["v", undefined, undefined]]);
-        expect(fill.mock.calls).toEqual([["v"]]);
+        expect(keep.mock.calls).toEqual([["v", undefined]]);
+        expect(stand.mock.calls).toEqual([["v", undefined]]);
+        expect(fill.mock.calls).toEqual([["v", undefined]]);
         const order = [shine, lay, keep, stand, fill].map(
           (stub) => stub.mock.invocationCallOrder[0] ?? 0,
         );
@@ -62,12 +60,13 @@ describe("VehicleReleaser", () => {
   });
 
   it("passes the entity to every step", () => {
-    const { shine, lay, keep, stand, releaser } = stubs();
+    const { shine, lay, keep, stand, fill, releaser } = stubs();
     const vehicle = { id: "v" } as unknown as Entity;
     releaser.release(asVehicleId("v"), vehicle);
     expect(shine).toHaveBeenCalledWith("v", vehicle, []);
     expect(lay).toHaveBeenCalledWith("v", vehicle, []);
-    expect(keep).toHaveBeenCalledWith("v", vehicle, [], 0);
-    expect(stand).toHaveBeenCalledWith("v", vehicle, undefined);
+    expect(keep).toHaveBeenCalledWith("v", vehicle);
+    expect(stand).toHaveBeenCalledWith("v", vehicle);
+    expect(fill).toHaveBeenCalledWith("v", vehicle);
   });
 });

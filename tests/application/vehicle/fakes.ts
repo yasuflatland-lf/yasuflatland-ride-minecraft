@@ -221,6 +221,7 @@ export class FakeWorld
   loadedVehicles() {
     return this.snapshots;
   }
+  sweepGone(_live: ReadonlySet<VehicleId>) {}
   loadedFleetEntries() {
     return this.loaded;
   }

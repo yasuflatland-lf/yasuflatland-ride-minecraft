@@ -5,7 +5,6 @@ import type { BeamPattern } from "../profile";
 
 export const FULL_LIGHT_LEVEL = 15;
 export type LitCell = Cell & { readonly level: number };
-export const litCellKey = (c: LitCell): string => `${cellKey(c)}@${c.level}`;
 
 /**
  * Cells ahead of a vehicle at `location` facing `yaw`: the distinct cells
@@ -33,17 +32,4 @@ export function headlightCells(
     }
   }
   return [...cells.values()];
-}
-
-/** Which lit cells to clear and which to light to go from `lit` to `wanted`. */
-export function relight(
-  lit: readonly LitCell[],
-  wanted: readonly LitCell[],
-): { clear: LitCell[]; light: LitCell[] } {
-  const litKeys = new Set(lit.map(litCellKey));
-  const wantedKeys = new Set(wanted.map(litCellKey));
-  return {
-    clear: lit.filter((c) => !wantedKeys.has(litCellKey(c))),
-    light: wanted.filter((c) => !litKeys.has(litCellKey(c))),
-  };
 }

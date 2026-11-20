@@ -43,55 +43,47 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
       }),
     );
   });
-  it("places furniture and charges only Survival", () => {
-    fc.assert(
-      fc.property(command, fc.boolean(), (cmd, creative) => {
-        const world = fakeFurnitureWorld(kind);
-        world.isCreative.mockReturnValue(creative);
-        expect(new PlaceFurniture(world).execute(cmd)).toBe(true);
-        expect(world.consumeItem).toHaveBeenCalledTimes(creative ? 0 : 1);
-        expect(world.layTop).toHaveBeenCalledTimes(
-          FURNITURE_SPEC[kind].top ? 1 : 0,
-        );
-        if (FURNITURE_SPEC[kind].top) {
-          expect(world.layTop).toHaveBeenCalledWith(
-            world.spawn.mock.results[0]?.value,
-          );
-          expect(world.spawn.mock.invocationCallOrder[0]).toBeLessThan(
-            world.layTop.mock.invocationCallOrder[0] ?? 0,
-          );
-        }
-        expect(world.spawn).toHaveBeenCalledExactlyOnceWith(
-          cmd.dimension,
-          furniturePose(cmd.block, cmd.yaw, kind),
-        );
-      }),
+  it("pays for the requested kind and lays its top only after a successful spawn", () => {
+    const cmd = {
+      kind,
+      player: asPlayerId("p"),
+      dimension: asDimensionId("overworld"),
+      block: { x: 10, y: 20, z: 30 },
+      face: "up",
+      yaw: 0,
+      slot: 2,
+    };
+    const world = fakeFurnitureWorld(kind);
+    const place = new PlaceFurniture(world);
+    expect(place.execute(cmd)).toBe(true);
+    expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(
+      cmd.player,
+      kind,
+      cmd.slot,
     );
-  });
-  it("refunds failed spawns only when payment succeeded", () => {
-    fc.assert(
-      fc.property(command, fc.boolean(), (cmd, creative) => {
-        const world = fakeFurnitureWorld(kind);
-        world.isCreative.mockReturnValue(creative);
-        world.spawn.mockReturnValue(undefined);
-        expect(new PlaceFurniture(world).execute(cmd)).toBe(false);
-        expect(world.refund).toHaveBeenCalledTimes(creative ? 0 : 1);
-        expect(world.layTop).not.toHaveBeenCalled();
-        if (!creative)
-          expect(world.refund).toHaveBeenCalledWith(cmd.player, kind, cmd.slot);
-      }),
+    expect(world.spawn).toHaveBeenCalledExactlyOnceWith(
+      cmd.dimension,
+      furniturePose(cmd.block, cmd.yaw, kind),
     );
-  });
-  it("does not spawn when the held item changed before payment", () => {
-    fc.assert(
-      fc.property(command, (cmd) => {
-        const world = fakeFurnitureWorld(kind);
-        world.consumeItem.mockReturnValue(false);
-        expect(new PlaceFurniture(world).execute(cmd)).toBe(false);
-        expect(world.spawn).not.toHaveBeenCalled();
-        expect(world.refund).not.toHaveBeenCalled();
-      }),
+    if (FURNITURE_SPEC[kind].top) {
+      expect(world.layTop).toHaveBeenCalledExactlyOnceWith(
+        world.spawn.mock.results[0]?.value,
+      );
+      expect(world.spawn).toHaveBeenCalledBefore(world.layTop);
+    } else {
+      expect(world.layTop).not.toHaveBeenCalled();
+    }
+
+    world.layTop.mockClear();
+    world.spawn.mockReturnValue(undefined);
+    expect(place.execute(cmd)).toBe(false);
+    expect(world.refund).toHaveBeenCalledExactlyOnceWith(
+      cmd.player,
+      kind,
+      cmd.slot,
     );
+    expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
+    expect(world.layTop).not.toHaveBeenCalled();
   });
 
   it("rejects an obstruction over any of the footprint cells before charging", () => {

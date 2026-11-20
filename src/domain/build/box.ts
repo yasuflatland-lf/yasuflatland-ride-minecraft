@@ -1,6 +1,5 @@
 // An axis-aligned box of block cells, both corners inclusive (unlike dock WorldBox, whose max is exclusive).
 import type { Cell } from "../shared/cells";
-import type { Vec3 } from "../shared/vec";
 
 export interface CellBox {
   readonly min: Cell;
@@ -162,8 +161,4 @@ export function edgePoints(box: CellBox, maxPoints: number): Cell[] {
     picked.push(cellAt(Math.floor((i * total) / count)));
   }
   return picked;
-}
-
-export function center(p: Vec3): Vec3 {
-  return { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 };
 }

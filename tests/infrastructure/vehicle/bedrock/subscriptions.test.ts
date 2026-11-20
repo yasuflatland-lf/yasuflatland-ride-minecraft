@@ -2039,6 +2039,7 @@ describe("camper bumper stand-in (ADR 0116)", () => {
     const camper = {
       id: "camper",
       typeId: ENTITY_TYPE.camper,
+      isValid: true,
       getDynamicProperty: (key: string) =>
         key === STAND_IN_PROPERTY ? "kept" : undefined,
     };

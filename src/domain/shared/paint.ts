@@ -49,9 +49,3 @@ export function fixed(paint: Paint): PaintPolicy {
 export function isDyeable(policy: PaintPolicy): boolean {
   return policy.kind === "dyeable";
 }
-
-export function shownPaint(policy: PaintPolicy, stored: Paint): Paint {
-  return policy.kind === "fixed"
-    ? policy.paint
-    : effectivePaint(stored, policy.defaultPaint);
-}

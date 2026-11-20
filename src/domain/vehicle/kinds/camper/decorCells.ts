@@ -1,10 +1,7 @@
 import { cellKey } from "../../../shared/cells";
+import { quarterOf } from "../../../shared/facing";
 import type { Vec2, Vec3 } from "../../../shared/vec";
-import {
-  type DecorItemId,
-  type DecorPlacement,
-  decorFace,
-} from "../../dock/decor";
+import type { DecorItemId, DecorPlacement } from "../../dock/decor";
 import type { DockBlock, DockCell, HoldPose } from "../../dock/floor";
 import { DECOR_CELLS, DECOR_SLOTS, decorInCell, decorSlot } from "./decor";
 import { compartmentDoorAt } from "./dooredStorage";
@@ -85,7 +82,7 @@ export function decorCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
 ): DecorCell[] {
-  const face = decorFace(pose.yaw);
+  const face = quarterOf(pose.yaw);
   const laid = new Set<string>();
   return decor.flatMap(({ slot, item }) => {
     const s = decorSlot(slot);

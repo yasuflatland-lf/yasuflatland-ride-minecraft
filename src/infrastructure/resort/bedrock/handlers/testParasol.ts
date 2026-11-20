@@ -4,6 +4,7 @@ import type { TakeBackParasol } from "../../../../application/resort/takeBackPar
 import type { SpaceCheck } from "../../../../application/shared/ports/space";
 import { asParasolId, type ParasolId } from "../../../../domain/resort/ids";
 import type { ParasolPose } from "../../../../domain/resort/parasolPose";
+import { cellCenter } from "../../../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -30,7 +31,7 @@ export function registerTestParasol(
     ): ParasolId | undefined {
       // Summon keeps entities spawned far from players alive in the test arena (ADR 0010).
       const dimension = world.getDimension(dimensionId);
-      const at = { x: pose.base.x + 0.5, y: pose.base.y, z: pose.base.z + 0.5 };
+      const at = cellCenter(pose.base);
       dimension.runCommand(`summon ${BEACH_PARASOL} ${at.x} ${at.y} ${at.z}`);
       const entity = dimension.getEntities({
         type: BEACH_PARASOL,

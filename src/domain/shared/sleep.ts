@@ -1,3 +1,5 @@
+import { ticks } from "./ticks";
+
 // Sleeping in a bed block laid by any feature: the camper bed, later the tent mattresses (ADR 0092).
 
 export const SLEEP = Object.freeze({
@@ -9,7 +11,7 @@ export const SLEEP = Object.freeze({
   holdSeconds: 1,
   fadeOutSeconds: 0.5,
   // The end of the fade-in at 20 ticks per second, so the sky changes while the screen is black.
-  wakeDelayTicks: 10,
+  wakeDelayTicks: ticks(10),
   dimension: "minecraft:overworld",
 });
 

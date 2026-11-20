@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
+import { quarterOf, snapYaw } from "../../../../../src/domain/shared/facing";
 import {
   dot,
   forward,
@@ -9,7 +10,6 @@ import {
   normalizeYaw,
   rightOf,
 } from "../../../../../src/domain/shared/vec";
-import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import { inBox } from "../../../../../src/domain/vehicle/dock/dock";
 import {
   DECOR_CELLS,
@@ -35,7 +35,6 @@ import {
 import {
   localCellAt,
   parkPose,
-  snapYaw,
 } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
 import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import {
@@ -698,14 +697,14 @@ it("lays each decor at its slot's cell, the yaw quarter, the slot height, and th
             ? {
                 type: "decorPair",
                 pair: slot.pair.kind,
-                face: decorFace(p.yaw),
+                face: quarterOf(p.yaw),
                 height: slot.height,
                 [`end${slot.pair.end}`]: item,
               }
             : {
                 type: "decor",
                 item: item,
-                face: decorFace(p.yaw),
+                face: quarterOf(p.yaw),
                 height: slot.height,
                 spot: slot.spot ?? 0,
               },

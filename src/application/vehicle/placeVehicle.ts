@@ -1,3 +1,4 @@
+import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 // Use case: place a vehicle from its item on the cell its kind's placement rule
 // (profile.placement) picks (ADR 0008, ADR 0050): the SUV and the camper on the top
@@ -93,7 +94,7 @@ export class PlaceVehicle {
       return false;
     const result = this.world.spawnVehicle(
       cmd.dimensionId,
-      { x: block.x + 0.5, y: block.y + 1, z: block.z + 0.5 },
+      cellCenter(block, 1),
       cmd.yaw,
       cmd.kind,
       cmd.playerId,

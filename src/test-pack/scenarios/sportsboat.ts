@@ -1,4 +1,5 @@
 import { type Entity, type Player, system } from "@minecraft/server";
+import { cellOf } from "../../domain/shared/cells";
 import { asPlayerId, asVehicleId } from "../../domain/shared/ids";
 import { dot, forward, length, type Vec3 } from "../../domain/shared/vec";
 import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
@@ -303,12 +304,7 @@ function isWater(typeId: string | undefined): boolean {
 }
 
 function feetInWater(boat: Entity): boolean {
-  const { x, y, z } = boat.location;
-  const block = boat.dimension.getBlock({
-    x: Math.floor(x),
-    y: Math.floor(y),
-    z: Math.floor(z),
-  });
+  const block = boat.dimension.getBlock(cellOf(boat.location));
   return isWater(block?.typeId);
 }
 
@@ -632,7 +628,7 @@ export async function boatSeatFillers(a: Arena): Promise<Outcome> {
       detail: `seated=${seated} before=${before} waited=${waited} backAt=${backAt} afterLeave=${afterLeave} after=${after} left=${left}`,
     };
   } finally {
-    fillers.release(probe ? asVehicleId(probe.id) : asVehicleId(""));
+    fillers.release(probe ? asVehicleId(probe.id) : asVehicleId(""), probe);
     for (const cow of cows) if (cow?.isValid) cow.remove();
     if (probe?.isValid) probe.remove();
   }
@@ -848,11 +844,7 @@ async function boatIcebreakerMountain(
           for (let tick = 0; tick < 80; tick++) {
             await wait(1);
             const p = boat.location;
-            const feet = dim.getBlock({
-              x: Math.floor(p.x),
-              y: Math.floor(p.y),
-              z: Math.floor(p.z),
-            });
+            const feet = dim.getBlock(cellOf(p));
             const depth = depthAt(p);
             lowest = Math.min(lowest, p.y);
             deepest = Math.max(deepest, depth);

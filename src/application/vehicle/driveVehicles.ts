@@ -4,7 +4,7 @@ import { profileOf, rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import type { TickOutcome } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import { forEachIsolated } from "../shared/isolated";
+import { attempt, forEachIsolated } from "../shared/isolated";
 import type { ChaseCameraWish } from "../shared/ports/chaseCamera";
 import type { Logger } from "../shared/ports/logger";
 import type { DriveWorld, VehicleSnapshot } from "./ports/drive";
@@ -43,6 +43,7 @@ export class DriveVehicles {
       this.log,
       (snap) => snap.id,
     );
+    attempt(() => this.world.sweepGone(seen), this.log, "sweep gone vehicles");
     this.releaseGone(seen);
     this.riders.syncCameras(thirdPersonRiders);
     this.riders.refreshWaterBreathing(underwater, tick);

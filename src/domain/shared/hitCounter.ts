@@ -1,3 +1,5 @@
+import type { Ticks } from "./ticks";
+
 // Counts the hits that take something down: a vehicle back into its item (ADR
 // 0008) and camp gear take-back: chair, table, tent, fire pit and Dutch oven
 // (ADR 0122, 0131). Each caller passes its own rule.
@@ -10,8 +12,8 @@ export interface HitCounter {
 export interface HitRule {
   /** Hits in a row that take it down. */
   readonly hits: number;
-  /** A gap longer than this, in ticks, starts the count again. */
-  readonly resetTicks: number;
+  /** A gap longer than this starts the count again. */
+  readonly resetTicks: Ticks;
 }
 
 export const EMPTY_COUNTER: HitCounter = Object.freeze({

@@ -11,6 +11,7 @@ export interface Ray {
   direction: Vec3;
 }
 
+/** The floored hit on the plane through point 1; y is clamped to the build height range. */
 export function virtualEndPoint(point1: Cell, ray: Ray): Cell | undefined {
   const { origin, direction } = ray;
   const axis = dominantHorizontalAxis(direction);
@@ -24,7 +25,10 @@ export function virtualEndPoint(point1: Cell, ray: Ray): Cell | undefined {
   }
   return {
     x: Math.floor(origin.x + t * direction.x),
-    y: Math.floor(origin.y + t * direction.y),
+    y: Math.max(
+      BUILD_SPEC.worldBottomY,
+      Math.min(BUILD_SPEC.worldTopY, Math.floor(origin.y + t * direction.y)),
+    ),
     z: Math.floor(origin.z + t * direction.z),
     [axis]: point1[axis],
   };
