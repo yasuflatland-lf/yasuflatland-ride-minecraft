@@ -21,6 +21,10 @@ export function legacyTentClearCells(pose: TentPose): Cell[] {
   return cells;
 }
 
+export function legacyTentExit(pose: TentPose): Cell {
+  return tentCellAt(pose, { x: 0, depth: -1, layer: 0 });
+}
+
 export function isTentBlockTypeId(typeId: string | undefined): boolean {
   return typeId?.startsWith("yasu_ride:tent_") === true;
 }

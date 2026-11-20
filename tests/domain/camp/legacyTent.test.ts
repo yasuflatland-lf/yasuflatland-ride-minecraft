@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import {
   LEGACY_CLEAR_BOX,
   legacyTentClearCells,
+  legacyTentExit,
 } from "../../../src/domain/camp/legacyTent";
 import type { TentYaw } from "../../../src/domain/camp/tent";
 import { cellKey } from "../../../src/domain/shared/cells";
@@ -37,6 +38,26 @@ it("covers exactly layout 1's cleanup box at every pose and yaw", () => {
             for (let layer = 0; layer < 4; layer++)
               expected.push({ x, depth, layer });
         expect(local).toEqual(expected);
+      },
+    ),
+  );
+});
+
+it("puts the exit outside the legacy cleanup box at every yaw", () => {
+  fc.assert(
+    fc.property(
+      fc.record({
+        x: fc.integer({ min: -10000, max: 10000 }),
+        y: fc.integer({ min: -60, max: 300 }),
+        z: fc.integer({ min: -10000, max: 10000 }),
+      }),
+      (anchor) => {
+        for (const yaw of [0, 90, 180, -90] as const) {
+          const pose = { ...anchor, yaw };
+          expect(legacyTentClearCells(pose).map(cellKey)).not.toContain(
+            cellKey(legacyTentExit(pose)),
+          );
+        }
       },
     ),
   );
