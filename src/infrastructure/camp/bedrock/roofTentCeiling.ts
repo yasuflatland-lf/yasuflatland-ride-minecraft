@@ -1,7 +1,7 @@
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { RoofTentId } from "../../../domain/camp/ids";
 import { roofTentCeilingCells } from "../../../domain/camp/roofTent/ceiling";
-import { type Cell, cellKey } from "../../../domain/shared/cells";
+import { type Cell, sameCell } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
 import { LaidBlockLayer, writeCeilingCells } from "../../shared/laidBlockLayer";
 import {
@@ -85,7 +85,7 @@ export class RoofTentCeiling {
     for (const [id, tent] of this.occupants.snapshots) {
       if (
         tent.dimension.id === dimensionId &&
-        tent.ceiling.some((at) => cellKey(at) === cellKey(cell))
+        tent.ceiling.some((at) => sameCell(at, cell))
       )
         return id;
     }

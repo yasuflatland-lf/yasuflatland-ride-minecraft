@@ -9,3 +9,17 @@ export function cellOf(v: Vec3): Cell {
 }
 
 export const cellKey = (c: Cell): string => `${c.x},${c.y},${c.z}`;
+
+export function sameCell(a: Vec3, b: Vec3): boolean {
+  return a.x === b.x && a.y === b.y && a.z === b.z;
+}
+
+/** The horizontal midpoint, dy above the cell floor. */
+export function cellCenter(c: Cell, dy = 0): Vec3 {
+  return { x: c.x + 0.5, y: c.y + dy, z: c.z + 0.5 };
+}
+
+export function offsetToCellCenter(from: Vec3, cell: Cell): Vec3 {
+  const center = cellCenter(cell, 0.5);
+  return { x: center.x - from.x, y: center.y - from.y, z: center.z - from.z };
+}

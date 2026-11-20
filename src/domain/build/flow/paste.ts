@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, sameCell } from "../../shared/cells";
 import type { Facing } from "../rotation/facing";
 import {
   NO_TURN,
@@ -56,9 +56,7 @@ export function isRepeat(
   const last = aim.lastPaste;
   return (
     last.turn === turn &&
-    last.anchor.x === anchor.x &&
-    last.anchor.y === anchor.y &&
-    last.anchor.z === anchor.z &&
+    sameCell(last.anchor, anchor) &&
     tick - last.tick < window
   );
 }

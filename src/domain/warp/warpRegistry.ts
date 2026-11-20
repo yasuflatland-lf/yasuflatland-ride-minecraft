@@ -1,4 +1,4 @@
-import type { Cell } from "../shared/cells";
+import { type Cell, sameCell } from "../shared/cells";
 import type { DimensionId } from "../shared/ids";
 import type { WarpPointId } from "./ids";
 import { WARP_SPEC } from "./spec";
@@ -59,11 +59,7 @@ export function pointAt(
   cell: Cell,
 ): WarpPoint | undefined {
   return reg.points.find(
-    (p) =>
-      p.dimension === dimension &&
-      p.cell.x === cell.x &&
-      p.cell.y === cell.y &&
-      p.cell.z === cell.z,
+    (p) => p.dimension === dimension && sameCell(p.cell, cell),
   );
 }
 

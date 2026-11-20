@@ -4,6 +4,7 @@ import {
   parasolPose,
 } from "../../domain/resort/parasolPose";
 import { PARASOL_SPEC } from "../../domain/resort/spec";
+import { cellCenter } from "../../domain/shared/cells";
 import { snapYaw4 } from "../../domain/shared/facing";
 import { PAINTS } from "../../domain/shared/paint";
 import {
@@ -24,7 +25,7 @@ async function course(a: Arena, rain: boolean): Promise<Outcome> {
   const near = (type: string) =>
     a.dim.getEntities({
       type,
-      location: { x: pose.base.x + 0.5, y: pose.base.y, z: pose.base.z + 0.5 },
+      location: cellCenter(pose.base),
       maxDistance: 2,
     });
   const drops = () =>
@@ -98,7 +99,7 @@ export async function parasolPaint(a: Arena): Promise<Outcome> {
   const near = () =>
     a.dim.getEntities({
       type: BEACH_PARASOL,
-      location: { x: pose.base.x + 0.5, y: pose.base.y, z: pose.base.z + 0.5 },
+      location: cellCenter(pose.base),
       maxDistance: 2,
     });
   try {

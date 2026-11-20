@@ -1,4 +1,4 @@
-import { type Cell, cellOf } from "../shared/cells";
+import { type Cell, cellCenter, cellOf } from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
 import { forward, type Vec3 } from "../shared/vec";
 import { BEACH_CHAIR_SPEC } from "./spec";
@@ -53,11 +53,7 @@ export function beachChairPoseAt(origin: Vec3, yaw: Facing4): BeachChairPose {
 
 /** The centre of the middle cell, at floor height. */
 export function beachChairOrigin(pose: BeachChairPose): Vec3 {
-  return {
-    x: pose.middle.x + 0.5,
-    y: pose.middle.y,
-    z: pose.middle.z + 0.5,
-  };
+  return cellCenter(pose.middle);
 }
 
 /** The three floor cells, from the foot to the head. */

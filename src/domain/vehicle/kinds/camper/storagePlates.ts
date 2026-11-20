@@ -1,4 +1,4 @@
-import { cellKey } from "../../../shared/cells";
+import { cellKey, sameCell } from "../../../shared/cells";
 import type { Vec2, Vec3 } from "../../../shared/vec";
 import { type DecorPlacement, decorFace } from "../../dock/decor";
 import type { DockCell, Face, HoldPose } from "../../dock/floor";
@@ -168,7 +168,7 @@ export function storagePressTarget<Id extends string>(
 ): { door: StorageDoor<Id>; onCompartment: boolean } | undefined {
   const at = (local: LocalCell) => {
     const c = localCellAt(pose, local);
-    return c.x === cell.x && c.y === cell.y && c.z === cell.z;
+    return sameCell(c, cell);
   };
   const door = doors.find(
     (d) =>

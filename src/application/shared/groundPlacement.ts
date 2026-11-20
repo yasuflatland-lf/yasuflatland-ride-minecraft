@@ -1,3 +1,4 @@
+import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { GroundCellsWorld } from "./ports/groundCells";
@@ -53,7 +54,7 @@ export function placeOnGround(
     )
   )
     return false;
-  const at = { x: block.x + 0.5, y: block.y + 1, z: block.z + 0.5 };
+  const at = cellCenter(block, 1);
   if (item.isNear(dimension, at)) return false;
   if (!world.isCreative(player) && !world.consumeItem(player, slot))
     return false;
