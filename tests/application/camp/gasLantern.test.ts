@@ -16,6 +16,7 @@ import {
   TABLE_TOP_LIMIT,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { decodeHost, encodeHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { TopItem } from "../../../src/domain/shared/tableTop";
@@ -92,7 +93,7 @@ it("spawns above the pressed block with yaw snapped to quarter turns", () => {
       expect(world.spawnGasLantern).toHaveBeenCalledExactlyOnceWith(
         dimension,
         { x: 4.5, y: 61, z: 5.5 },
-        Math.round(yaw / 90) * 90,
+        snapYaw(yaw),
       );
     }),
   );

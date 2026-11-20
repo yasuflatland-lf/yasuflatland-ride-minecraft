@@ -1,3 +1,4 @@
+import { sameCell } from "../../../shared/cells";
 import { SyncedValue } from "../../../shared/syncedValue";
 import { TapToggle } from "../../../shared/tapToggle";
 import type { Vec3 } from "../../../shared/vec";
@@ -827,8 +828,4 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       ...(running === undefined ? [] : [showerCommand(running)]),
     ];
   }
-}
-
-function sameCell(a: Vec3, b: Vec3): boolean {
-  return a.x === b.x && a.y === b.y && a.z === b.z;
 }

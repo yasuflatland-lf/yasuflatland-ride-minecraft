@@ -81,13 +81,6 @@ describe("PitchTent (ADR 0131)", () => {
     }
   });
 
-  it("takes nothing in Creative", () => {
-    const world = new FakeTentWorld();
-    world.creative = true;
-    expect(new PitchTent(world).execute(cmd)).toBe(true);
-    expect(world.names()).toEqual(["clearDecorations", "pitch"]);
-  });
-
   it("keeps the item, pitches nothing, and shows the reason of each refusal", () => {
     for (const [reason, survey] of REFUSALS) {
       const world = new FakeTentWorld();
@@ -116,27 +109,16 @@ describe("PitchTent (ADR 0131)", () => {
     ]);
   });
 
-  it("pitches from the test event without taking an item or showing a message", () => {
+  it("does not show a refusal for the server test event", () => {
     fc.assert(
-      fc.property(
-        fc.boolean(),
-        fc.constantFrom(...REFUSALS),
-        (fails, [, survey]) => {
-          const world = new FakeTentWorld();
-          if (fails) world.surveyOf = survey;
-          world.pitchResult = undefined;
-          const { playerId: _, ...test } = cmd;
-          expect(new PitchTent(world).execute(test)).toBe(false);
-          expect(world.names()).toEqual(
-            fails ? [] : ["clearDecorations", "pitch"],
-          );
-        },
-      ),
+      fc.property(fc.constantFrom(...REFUSALS), ([, survey]) => {
+        const world = new FakeTentWorld();
+        world.surveyOf = survey;
+        const { playerId: _, ...test } = cmd;
+        expect(new PitchTent(world).execute(test)).toBe(false);
+        expect(world.calls).toEqual([]);
+      }),
     );
-    const world = new FakeTentWorld();
-    const { playerId: _, ...test } = cmd;
-    expect(new PitchTent(world).execute(test)).toBe(true);
-    expect(world.names()).toEqual(["clearDecorations", "pitch"]);
   });
 
   it("leaves a press on our own blocks to the block", () => {

@@ -15,6 +15,7 @@ import {
   TABLE_SPOTS,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { decodeHost as decodeSharedHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/switchCooldown";
@@ -114,7 +115,7 @@ it("consumes only outside Creative and snaps any yaw to quarter turns", () => {
         expect(world.spawnDutchOven).toHaveBeenCalledWith(
           dimension,
           { x: 4.5, y: 61, z: 5.5 },
-          Math.round(yaw / 90) * 90,
+          snapYaw(yaw),
         );
       },
     ),

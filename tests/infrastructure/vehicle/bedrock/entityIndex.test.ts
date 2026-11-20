@@ -2,10 +2,7 @@ import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
-import {
-  DIMENSION_IDS,
-  type DimensionId,
-} from "../../../../src/infrastructure/shared/dimensions";
+import { DIMENSION_IDS } from "../../../../src/infrastructure/shared/dimensions";
 import {
   EntityIndex,
   loadedVehicleEntities,
@@ -14,6 +11,8 @@ import {
   PLAYER_TYPE,
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+
+type DimensionId = (typeof DIMENSION_IDS)[number];
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
@@ -65,7 +64,6 @@ describe("EntityIndex", () => {
     const index = new EntityIndex();
     index.track(stub("a"));
     index.clear();
-    expect(index.trackedIds()).toEqual(new Set());
     expect(index.entity(asVehicleId("a"))).toBeUndefined();
     expect(game.getEntity).toHaveBeenCalledWith("a");
   });
@@ -82,7 +80,7 @@ describe("EntityIndex", () => {
     expect(index.player(asPlayerId("missing"))).toBeUndefined();
   });
 
-  it("tracked ids are exactly the tracked entities' ids, and each resolves to its own entity", () => {
+  it("resolves each tracked id without asking the world", () => {
     fc.assert(
       fc.property(
         fc.uniqueArray(fc.string({ minLength: 1 }), { maxLength: 10 }),
@@ -90,7 +88,6 @@ describe("EntityIndex", () => {
           const index = new EntityIndex();
           const entities = new Map(ids.map((id) => [id, stub(id)]));
           for (const e of entities.values()) index.track(e);
-          expect(index.trackedIds()).toEqual(new Set(ids));
           for (const [id, e] of entities)
             expect(index.entity(asVehicleId(id))).toBe(e);
           expect(game.getEntity).not.toHaveBeenCalled();

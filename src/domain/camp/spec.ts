@@ -1,5 +1,6 @@
 import type { Paint } from "../shared/paint";
 import type { TopRect, TopSurface } from "../shared/tableTop";
+import { ticks } from "../shared/ticks";
 
 // Every tuning value of the low chair (ADR 0122).
 export const CHAIR_SPEC = Object.freeze({
@@ -10,13 +11,13 @@ export const CHAIR_SPEC = Object.freeze({
   /** Hits in a row that fold the chair back into its item, as for vehicles (ADR 0008). */
   hitsToTakeBack: 3,
   /** A gap longer than this, in ticks, starts the hit count again. */
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
 });
 
 export const TABLE_SPEC = Object.freeze({
   clearance: 2,
   hitsToTakeBack: 3,
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
 });
 
 export const DUTCH_OVEN_SPEC = Object.freeze({
@@ -26,8 +27,8 @@ export const DUTCH_OVEN_SPEC = Object.freeze({
   yawStep: 90,
   clearance: 2,
   hitsToTakeBack: 3,
-  hitResetTicks: 100,
-  hostCheckTicks: 20,
+  hitResetTicks: ticks(100),
+  hostCheckTicks: ticks(20),
 });
 
 export const FIRE_PIT_SPEC = Object.freeze({
@@ -35,7 +36,7 @@ export const FIRE_PIT_SPEC = Object.freeze({
   yawStep: 90,
   clearance: 2,
   hitsToTakeBack: 3,
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
 });
 
 // Bump when the laid cells or clear box change.
@@ -62,7 +63,7 @@ export const TENT_SPEC = Object.freeze({
   /** Hits in a row from outside that take the tent down, as for the Low Chair (ADR 0122). */
   hitsToTakeDown: 3,
   /** A gap longer than this, in ticks, starts the hit count again. */
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
   /** Pitched tents a world may hold, in all dimensions together. */
   maxTents: 4,
   /** The tent's yaw snaps to this many degrees. */
@@ -72,9 +73,9 @@ export const TENT_SPEC = Object.freeze({
   /** light_emission of yasu_ride:tent_lantern while the lantern is on: the camper's fridge plate and ceiling light level. */
   lanternLight: 15,
   /** A loaded tent re-lays the cells the world lost once every this many lays, as the dock does (ADR 0096). */
-  cellRecheckTicks: 20,
+  cellRecheckTicks: ticks(20),
   /** Ticks a flap takes to roll up or drop, one step per tick; also each flap's tap window (ADR 0105). */
-  flapSwingTicks: 10,
+  flapSwingTicks: ticks(10),
   /** The paint the variant-0 slot shows: the tan-brown fly, restored by brown dye (ADR 0076). */
   defaultPaint: "khaki" satisfies Paint,
 });
@@ -124,9 +125,9 @@ export const GAS_LANTERN_SPEC = Object.freeze({
   /** Reaches the air above partial blocks while keeping full-block light in its own cell. */
   lightLift: 0.95,
   /** Follows falling lanterns and repairs lost light within one second. */
-  lightTicks: 20,
+  lightTicks: ticks(20),
   /** Re-reads the single light cell on every lay to repair lost or shared light promptly. */
-  cellRecheckTicks: 1,
+  cellRecheckTicks: ticks(1),
   /** One air cell fits the 11.3 px lantern (ADR 0173). */
   clearance: 1,
   /**
@@ -139,7 +140,7 @@ export const GAS_LANTERN_SPEC = Object.freeze({
   /** Radius in blocks also finds lanterns settled onto partial blocks. */
   spacing: 0.75,
   hitsToTakeBack: 3,
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
 });
 
 export const ROOF_TENT_SPEC = Object.freeze({
@@ -157,17 +158,17 @@ export const ROOF_TENT_SPEC = Object.freeze({
   /** Ground and camper shell ridge (19 px, GROUND_DIMS in tools/gen_roof_tent.py), in blocks above the tent origin. */
   groundShellRidge: 19 / 16,
   /** Short expiry bounds invisibility after a crash or lost tracking. */
-  concealTicks: 30,
+  concealTicks: ticks(30),
   /** Refresh before expiry while the tracked occupant is seated. */
-  concealRefreshTicks: 10,
+  concealRefreshTicks: ticks(10),
   // Variant 0 must resolve to the visible fly color for dye comparisons (ADR 0076).
   defaultPaint: TENT_SPEC.defaultPaint,
   /** Matches ground gear recovery so the same three deliberate hits fold it (ADR 0200). */
   hitsToFoldUp: 3,
   /** Matches the ground tent's five-second window for consecutive recovery hits. */
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
   /** Checks faster than tabletop gear so a departing host promptly ejects its sleeper. */
-  hostCheckTicks: 4,
+  hostCheckTicks: ticks(4),
   /** Preserves direct interaction reach for ground and roof tents. */
   interactReach: 3,
   /** Horizontal allowance around either end of the entrance ladder (ADR 0200). */

@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import type { Cell } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { ticks } from "../../../src/domain/shared/ticks";
 import { asWarpPointId } from "../../../src/domain/warp/ids";
 import type { WarpName } from "../../../src/domain/warp/warpName";
 import { BedrockWarpPlayers } from "../../../src/infrastructure/warp/bedrock/bedrockWarpPlayers";
@@ -268,7 +269,7 @@ it("reads the player's name, dimension and fractional position", () => {
 
 it("waits for the requested tick callback before resolving", async () => {
   const resolved = vi.fn();
-  const waiting = new SystemWarpTicks().wait(7).then(resolved);
+  const waiting = new SystemWarpTicks().wait(ticks(7)).then(resolved);
   expect(game.runTimeout).toHaveBeenCalledExactlyOnceWith(
     expect.any(Function),
     7,

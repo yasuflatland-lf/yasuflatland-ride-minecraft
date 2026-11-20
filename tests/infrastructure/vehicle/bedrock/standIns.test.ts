@@ -44,13 +44,11 @@ interface Fake {
 function fixture() {
   const entities = new Map<string, Fake>();
   let next = 0;
-  let unloaded = false;
   const dimension = {
     id: "overworld",
-    spawnEntity: vi.fn((type: string, at: Vec3) => {
-      if (unloaded) throw new Error("LocationInUnloadedChunkError");
-      return entity(`standIn${next++}`, type, at);
-    }),
+    spawnEntity: vi.fn((type: string, at: Vec3) =>
+      entity(`standIn${next++}`, type, at),
+    ),
     getEntities: vi.fn((options: { families?: string[] }) =>
       [...entities.values()].filter(
         (e) =>
@@ -110,9 +108,6 @@ function fixture() {
     entities,
     dimension,
     entity,
-    setUnloaded(value: boolean) {
-      unloaded = value;
-    },
     /** The valid stand-ins naming the camper. */
     standIns: () =>
       [...entities.values()].filter(
@@ -183,12 +178,12 @@ describe("StandIns (ADR 0116)", () => {
               break;
             }
             case "gone":
-              standIns.clearGone(new Set());
+              standIns.sweepGone(new Set());
               if (last) expect(f.standIns()).toHaveLength(0);
               last = undefined;
               break;
             case "release":
-              standIns.keep(f.vehicleId, f.car, undefined);
+              standIns.release(f.vehicleId, f.car);
               expect(f.standIns()).toHaveLength(0);
               expect(f.camper.saved.has(STAND_IN_PROPERTY)).toBe(false);
               last = undefined;
@@ -211,21 +206,42 @@ describe("StandIns (ADR 0116)", () => {
     );
   });
 
-  it("teleports a stand-in only past the tolerance, and never spawns another while it stands", () => {
+  it("scans for strays on the first sweep and every 20 sweeps thereafter while releasing session stand-ins on every sweep", () => {
     const f = fixture();
     const standIns = new StandIns();
-    const at: StandInPose = { name: NAME, axis: "x", x: 0, y: 64, z: 3.7 };
-    standIns.keep(f.vehicleId, f.car, at);
-    const [standIn] = f.standIns();
-    standIns.keep(f.vehicleId, f.car, { ...at, z: 3.72 });
-    expect(standIn?.teleport).not.toHaveBeenCalled();
-    standIns.keep(f.vehicleId, f.car, { ...at, z: 4.5 });
-    expect(standIn?.teleport).toHaveBeenCalledExactlyOnceWith({
-      x: 0,
-      y: 64,
-      z: 4.5,
+    const addStray = (id: string) => f.entity(id, standInType(NAME, "x"));
+    const first = addStray("first");
+    const live = new Set([f.vehicleId]);
+
+    standIns.sweepGone(live);
+    expect(first.remove).toHaveBeenCalledOnce();
+    expect(f.dimension.getEntities).toHaveBeenCalledExactlyOnceWith({
+      families: [STAND_IN_FAMILY],
     });
-    expect(f.dimension.spawnEntity).toHaveBeenCalledOnce();
+
+    const later = addStray("later");
+    for (let sweep = 1; sweep < 20; sweep++) {
+      standIns.keep(f.vehicleId, f.car, {
+        name: NAME,
+        axis: "x",
+        x: 0,
+        y: 64,
+        z: 0,
+      });
+      const [kept] = f.standIns();
+      expect(kept).toBeDefined();
+      f.dimension.getEntities.mockClear();
+      standIns.sweepGone(new Set());
+      expect(kept?.remove).toHaveBeenCalledOnce();
+      expect(later.remove).not.toHaveBeenCalled();
+      expect(f.dimension.getEntities).not.toHaveBeenCalled();
+    }
+
+    standIns.sweepGone(live);
+    expect(later.remove).toHaveBeenCalledOnce();
+    expect(f.dimension.getEntities).toHaveBeenCalledExactlyOnceWith({
+      families: [STAND_IN_FAMILY],
+    });
   });
 
   it("swaps the entity type when the row axis changes", () => {
@@ -248,19 +264,6 @@ describe("StandIns (ADR 0116)", () => {
     expect(f.standIns()[0]?.rideable.ejectRiders).toHaveBeenCalledTimes(2);
   });
 
-  it("skips a spot in an unloaded chunk without throwing, and spawns there once it loads", () => {
-    const f = fixture();
-    const standIns = new StandIns();
-    const at: StandInPose = { name: NAME, axis: "x", x: 0, y: 64, z: 3.7 };
-    f.setUnloaded(true);
-    expect(() => standIns.keep(f.vehicleId, f.car, at)).not.toThrow();
-    expect(f.standIns()).toHaveLength(0);
-    expect(f.camper.saved.has(STAND_IN_PROPERTY)).toBe(false);
-    f.setUnloaded(false);
-    standIns.keep(f.vehicleId, f.car, at);
-    expectOneAt(f, at);
-  });
-
   it("removes the stand-in of a vehicle that is gone even when the vehicle entity is not given", () => {
     const f = fixture();
     const standIns = new StandIns();
@@ -272,7 +275,7 @@ describe("StandIns (ADR 0116)", () => {
       z: 3.7,
     });
     f.camper.isValid = false;
-    standIns.keep(f.vehicleId, undefined, undefined);
+    standIns.release(f.vehicleId, undefined);
     expect(f.standIns()).toHaveLength(0);
   });
 });

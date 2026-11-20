@@ -5,12 +5,16 @@ import { beforeAll, expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { slotsFor } from "../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
-  DASHBOARD_RECTANGLES,
   DASHBOARD_SLOT_ITEMS,
   DECOR_SPOTS,
 } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { decorItemId } from "../support/decorIds";
 import { defined } from "../support/defined";
+
+const DASHBOARD_RECTANGLES = {
+  dashboard_center: { width: 7, depth: 4.73 },
+  dashboard_left: { width: 7, depth: 3.5 },
+} as const;
 
 type FitRow = {
   id: string;

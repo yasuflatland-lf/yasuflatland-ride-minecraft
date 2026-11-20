@@ -1,3 +1,4 @@
+import { cellOf } from "../../domain/shared/cells";
 import { BULLDOZER_PROFILE } from "../../domain/vehicle/kinds/bulldozer/profile";
 import { seatWorldPositions } from "../../domain/vehicle/seats";
 import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
@@ -35,11 +36,7 @@ export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
             const dz = at.z - location.z;
             const left = dx * f.z - dz * f.x;
             const forward = dx * f.x + dz * f.z;
-            const feet = {
-              x: Math.floor(at.x),
-              y: Math.floor(at.y),
-              z: Math.floor(at.z),
-            };
+            const feet = cellOf(at);
             const [feetBlock, headBlock, belowBlock] = [0, 1, -1].map(
               (dy) => dim.getBlock(a.at(feet.x, feet.y + dy, feet.z))?.typeId,
             );

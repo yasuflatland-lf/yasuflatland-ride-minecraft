@@ -6,6 +6,7 @@ import type {
   RoofTentPlan,
   RoofTentRefusal,
 } from "../../../domain/camp/roofTent/placement";
+import { cellCenter } from "../../../domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import { decodeHost, encodeHost } from "../../../domain/shared/hosted";
 import {
@@ -138,7 +139,7 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
       return (
         dimension.getEntities({
           type: ROOF_TENT_TYPE,
-          location: { x: cell.x + 0.5, y: cell.y + 1, z: cell.z + 0.5 },
+          location: cellCenter(cell, 1),
           maxDistance: 2,
         }).length === 0
       );

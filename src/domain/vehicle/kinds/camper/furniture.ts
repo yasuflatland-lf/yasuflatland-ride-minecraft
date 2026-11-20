@@ -9,6 +9,7 @@ import {
   storageDoors,
   storageFurniture,
 } from "./dooredStorage";
+import type { LocalCell } from "./localCell";
 import {
   COUNTER_HEIGHT,
   DRAWER_BOTTOM_Y,
@@ -20,6 +21,8 @@ import {
   DRAWER_WALL_PX,
   PX_PER_BLOCK,
 } from "./spec";
+
+export { type LocalCell, sameLocalCell } from "./localCell";
 
 type FurnitureKind =
   | "dashboard"
@@ -33,13 +36,6 @@ type FurnitureKind =
   | "ceiling_hook"
   | "shower_toilet"
   | "wall_cabinet";
-
-/** A cell in roomGeometry.ts coordinates: x = left (-1..1), z = forward (-3..3), layer = cells above the floor layer. */
-export interface LocalCell {
-  readonly x: number;
-  readonly z: number;
-  readonly layer: number;
-}
 
 /**
  * A furniture whose one cell holds two items, each drawn by the cell's one pair block (ADR 0108),
@@ -417,12 +413,6 @@ export const CEILING_LIGHTS: readonly LocalCell[] = [
   { x: 0, z: 1, layer: 2 },
   { x: 0, z: -3, layer: 2 },
 ];
-
-// Kept in the domain for the cross-check with tools/camper_decor_fit.py.
-export const DASHBOARD_RECTANGLES = {
-  dashboard_center: { width: 7, depth: 4.73 },
-  dashboard_left: { width: 7, depth: 3.5 },
-} as const;
 
 // Derived from python3 -I tools/camper_decor_fit.py --json; tests verify the table.
 export const DASHBOARD_SLOT_ITEMS = {
