@@ -24,6 +24,6 @@ This is the first feature that removes arbitrary blocks. The existing per-cell `
 
 ## Consequences
 
-A headlight light block cut from a parked vehicle is not laid again until the beam moves or the headlights are switched: `relight` compares cell keys. Camper ceiling lights are rechecked and return within 20 ticks (0096). This change accepts that gap and leaves headlights unchanged.
+`CellLayer` rechecks both headlight cells and camper ceiling light cells. If the blade cuts a light the vehicle still needs, it returns within 20 ticks (ADR 0096).
 
 The upward scan costs one `getBlock` per cell of hill height plus at most one fill per column. The brief drop sweep can also remove an unrelated newly spawned item in its box and window; loaded items survive. Revisit the shared keep rule if a future kind needs a different list.

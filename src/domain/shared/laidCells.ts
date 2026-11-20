@@ -5,6 +5,11 @@ export interface LaidCell<B> extends Cell {
   readonly block: B;
 }
 
+/** A light block of one level (0 to 15) laid by a feature. */
+export interface LightLevel {
+  readonly level: number;
+}
+
 /**
  * Cells to clear and cells to place or replace to go from laid to wanted. A laid
  * cell that `lost` says the world no longer holds is placed again (ADR 0063, 0096).
