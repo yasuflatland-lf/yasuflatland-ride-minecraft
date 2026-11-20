@@ -6,10 +6,7 @@ import { handleHit } from "../shared/takeBackByHits";
 import type { ParasolTakeBackWorld } from "./ports/parasolWorld";
 
 export class TakeBackParasol {
-  private readonly hits = new HitCounters<ParasolId>({
-    hits: PARASOL_SPEC.hitsToTakeBack,
-    resetTicks: PARASOL_SPEC.hitResetTicks,
-  });
+  private readonly hits = new HitCounters<ParasolId>(PARASOL_SPEC.recovery);
   constructor(private readonly world: ParasolTakeBackWorld) {}
   execute(cmd: { id: ParasolId; player: PlayerId; tick: number }): void {
     handleHit(this.hits, cmd.id, cmd.tick, {

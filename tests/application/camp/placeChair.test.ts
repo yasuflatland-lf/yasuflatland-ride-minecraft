@@ -151,3 +151,40 @@ describe("PlaceChair (ADR 0122)", () => {
     });
   });
 });
+
+it("refunds only a paid chair item when spawning fails", () => {
+  fc.assert(
+    fc.property(
+      command,
+      fc.constantFrom("low_chair", "noga_chair"),
+      fc.record({
+        creative: fc.boolean(),
+        hasPlayer: fc.boolean(),
+        consumeOk: fc.boolean(),
+        spawnOk: fc.boolean(),
+      }),
+      (input, kind, { creative, hasPlayer, consumeOk, spawnOk }) => {
+        const world = new FakeChairWorld();
+        world.creative = creative;
+        world.consumeResult = consumeOk;
+        world.failSpawn = !spawnOk;
+        const playerId = hasPlayer ? asPlayerId("player") : undefined;
+        const owesPayment = hasPlayer && !creative;
+        const paid = owesPayment && consumeOk;
+        const placed = new PlaceChair(world).execute({
+          ...cmdOf(input),
+          kind,
+          playerId,
+        });
+        expect(placed).toBe((!owesPayment || paid) && spawnOk);
+        expect(world.consumed).toEqual(
+          paid ? [{ kind, playerId, slot: input.slot }] : [],
+        );
+        expect(world.refunded).toEqual(
+          paid && !spawnOk ? [{ kind, playerId }] : [],
+        );
+        expect(world.spawned).toHaveLength(placed ? 1 : 0);
+      },
+    ),
+  );
+});

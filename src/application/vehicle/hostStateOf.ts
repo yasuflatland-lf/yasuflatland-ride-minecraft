@@ -1,4 +1,5 @@
 import type { DimensionId } from "../../domain/shared/ids";
+import { length } from "../../domain/shared/vec";
 import type { VehicleProfile } from "../../domain/vehicle/profile";
 import { DRIVER_SEAT } from "../../domain/vehicle/seats";
 import { SPEC } from "../../domain/vehicle/spec";
@@ -17,8 +18,6 @@ export function hostStateOf(
     yaw: snapshot.yaw,
     mount: profile.roofTent,
     driverPresent: snapshot.riders.some((rider) => rider.slot === DRIVER_SEAT),
-    moving:
-      Math.hypot(snapshot.velocity.x, snapshot.velocity.z) >
-      SPEC.hostMovingSpeed,
+    moving: length(snapshot.velocity) > SPEC.hostMovingSpeed,
   };
 }

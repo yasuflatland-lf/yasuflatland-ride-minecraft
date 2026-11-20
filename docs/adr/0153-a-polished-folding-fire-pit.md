@@ -13,7 +13,7 @@ The outside camping catalog includes a chair, tent, and table. The owner supplie
 
 ## Decision
 
-Add `yasu_ride:fire_pit_item` to the outside catalog and craft it from iron ingots and iron bars. Place its persistent entity on a clear ground cell outside vehicle space; three hits fold it back into one item, as with the other portable camp gear. A client-synced `yasu_ride:lit` boolean begins false. An unlit pit accepts only `minecraft:flint_and_steel`; ignition costs one durability in Survival. Any tap on a lit pit extinguishes it. Creative mode leaves the tool undamaged.
+Add `yasu_ride:fire_pit_item` to the outside catalog and craft it from iron ingots and iron bars. Place its persistent entity on a clear ground cell outside vehicle space; three hits fold it back into one item, as with the other portable camp gear. Take the item only after the placement checks pass in Survival. A failed spawn refunds any item taken and removes any partially configured entity. A client-synced `yasu_ride:lit` boolean begins false. An unlit pit accepts only `minecraft:flint_and_steel`; ignition costs one durability in Survival. Any tap on a lit pit extinguishes it. Creative mode leaves the tool undamaged.
 
 Generate the folding frame, shallow faceted basin, shelf, and handle as a 32-pixel atlas model. Its texture set has metalness 255 and roughness 0 or near zero on the polished steel. The ember bone is visible only while lit, and a server interval emits flame and smoke particles for each loaded lit pit. The Resource Pack version advances to 0.1.136 (0015).
 

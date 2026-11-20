@@ -30,7 +30,10 @@ const command = {
   slot: 2,
 };
 
-function fixture(overrides: Partial<Omit<TopHostWorld, "spawnHosted">> = {}) {
+function fixture(
+  overrides: Partial<Omit<TopHostWorld, "spawnHosted" | "refund">> = {},
+  failSpawn = false,
+) {
   const world = {
     topHost: () => ({ dimension, at: { x: 10.5, y: 64, z: 20.5 }, yaw: 0 }),
     itemsOnTop: (): readonly TopItem[] => [],
@@ -39,8 +42,11 @@ function fixture(overrides: Partial<Omit<TopHostWorld, "spawnHosted">> = {}) {
     isVehicleSpace: () => false,
     isCreative: () => false,
     consumeItem: vi.fn(() => true),
+    refund: vi.fn(),
     ...overrides,
-    spawnHosted: vi.fn<TopHostWorld["spawnHosted"]>(),
+    spawnHosted: vi.fn<TopHostWorld["spawnHosted"]>(() =>
+      failSpawn ? undefined : "item",
+    ),
   } satisfies TopHostWorld;
   return world;
 }
@@ -326,5 +332,40 @@ it("checks host obstruction at the clamped footprint before payment or clearance
       expect(world.spawnHosted).toHaveBeenCalledTimes(blocked ? 0 : 1);
       if (blocked) expect(world.isAir).not.toHaveBeenCalled();
     }),
+  );
+});
+
+it("refunds only a paid item when tabletop spawning fails", () => {
+  fc.assert(
+    fc.property(
+      fc.record({
+        creative: fc.boolean(),
+        hasPlayer: fc.boolean(),
+        consumeOk: fc.boolean(),
+        spawnOk: fc.boolean(),
+      }),
+      ({ creative, hasPlayer, consumeOk, spawnOk }) => {
+        const world = fixture(
+          { isCreative: () => creative, consumeItem: vi.fn(() => consumeOk) },
+          !spawnOk,
+        );
+        const payer = hasPlayer ? player : undefined;
+        const cmd = { ...command, player: payer };
+        const owesPayment = hasPlayer && !creative;
+        const paid = owesPayment && consumeOk;
+        const spawns = !owesPayment || paid;
+        expect(placeOnTop(world, CAMP_TABLE_TOP, kind, cmd)).toBe(
+          spawns && spawnOk ? "placed" : "refused",
+        );
+        expect(world.consumeItem).toHaveBeenCalledTimes(owesPayment ? 1 : 0);
+        expect(world.spawnHosted).toHaveBeenCalledTimes(spawns ? 1 : 0);
+        if (paid && !spawnOk) {
+          expect(world.refund).toHaveBeenCalledExactlyOnceWith(payer, cmd.slot);
+          expect(world.spawnHosted).toHaveBeenCalledBefore(world.refund);
+        } else {
+          expect(world.refund).not.toHaveBeenCalled();
+        }
+      },
+    ),
   );
 });

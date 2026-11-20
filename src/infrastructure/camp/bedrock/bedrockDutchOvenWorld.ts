@@ -18,14 +18,9 @@ import type {
   TopRect,
 } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { entityOfType } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
-import {
-  consumeHeld,
-  isCreative,
-  playerById,
-  showHitsLeftHint,
-} from "../../shared/players";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
+import { showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DUTCH_OVEN_GROUND_EVENT,
@@ -66,37 +61,20 @@ export function setOvenHost(
   oven.clearVelocity();
 }
 
-export class BedrockDutchOvenWorld implements DutchOvenWorld {
+export class BedrockDutchOvenWorld
+  extends BedrockPaidGroundCells
+  implements DutchOvenWorld
+{
   constructor(
     private readonly vehicles: {
       topHosts: TopHostRegistry;
       isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
     },
-  ) {}
-
-  isAir(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return world.getDimension(dimension).getBlock(at)?.isAir === true;
-    } catch {
-      return false;
-    }
-  }
-
-  isOwnBlock(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return (
-        world
-          .getDimension(dimension)
-          .getBlock(at)
-          ?.typeId.startsWith(`${NAMESPACE}:`) === true
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  isVehicleSpace(dimension: DimensionId, at: Vec3): boolean {
-    return this.vehicles.isVehicleSpace(dimension, at);
+  ) {
+    super(
+      (dimension, cell) => vehicles.isVehicleSpace(dimension, cell),
+      DUTCH_OVEN_ITEM,
+    );
   }
 
   hasDutchOvenNear(dimension: DimensionId, at: Vec3): boolean {
@@ -108,19 +86,20 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
     );
   }
 
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
-  }
-
-  consumeItem(player: PlayerId, slot: number): boolean {
-    const entity = playerById(player);
-    return entity !== undefined && consumeHeld(entity, DUTCH_OVEN_ITEM, slot);
-  }
-
-  spawnDutchOven(dimension: DimensionId, at: Vec3, yaw: number): DutchOvenId {
-    const oven = world.getDimension(dimension).spawnEntity(DUTCH_OVEN_TYPE, at);
-    oven.setRotation({ x: 0, y: yaw });
-    return asDutchOvenId(oven.id);
+  spawnDutchOven(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+    setup?: (id: DutchOvenId) => void,
+  ): DutchOvenId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      DUTCH_OVEN_TYPE,
+      at,
+      yaw,
+      setup && ((oven) => setup(asDutchOvenId(oven.id))),
+    );
+    return entity && asDutchOvenId(entity.id);
   }
 
   topHost(hostType: string, id: string) {
@@ -146,8 +125,15 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
     at: Vec3,
     yaw: number,
     host: string,
-  ): void {
-    this.setHost(this.spawnDutchOven(dimension, at, yaw), host, false);
+  ): DutchOvenId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      DUTCH_OVEN_TYPE,
+      at,
+      yaw,
+      (oven) => setOvenHost(oven, host, false),
+    );
+    return entity && asDutchOvenId(entity.id);
   }
 
   firePit(id: FirePitId) {

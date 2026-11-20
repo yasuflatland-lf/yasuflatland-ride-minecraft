@@ -39,7 +39,7 @@ function fixture() {
       name === "minecraft:rideable" ? { getRiders: () => riders } : undefined,
     ),
   };
-  const container = { getItem: vi.fn(), setItem: vi.fn() };
+  const container = { getItem: vi.fn(), setItem: vi.fn(), addItem: vi.fn() };
   const player = {
     id: "player",
     typeId: "minecraft:player",
@@ -166,6 +166,30 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     );
     expect(chair.setRotation).toHaveBeenCalledWith({ x: 0, y: 135 });
   });
+
+  it("removes a chair and returns undefined when its rotation fails", () => {
+    const { dimension, chair, chairs } = fixture();
+    dimension.spawnEntity.mockReturnValue(chair);
+    chair.setRotation.mockImplementation(() => {
+      throw new Error("unloaded chunk");
+    });
+    expect(
+      chairs.spawnChair("low_chair", DIM, chair.location, 135),
+    ).toBeUndefined();
+    expect(chair.remove).toHaveBeenCalledOnce();
+  });
+
+  it.each(["low_chair", "noga_chair"] as const)(
+    "refunds one %s item to the player",
+    (kind) => {
+      const { container, chairs } = fixture();
+      chairs.refundChairItem(kind, asPlayerId("player"));
+      expect(container.addItem).toHaveBeenCalledExactlyOnceWith({
+        typeId: CHAIR_KINDS[kind].itemId,
+        amount: 1,
+      });
+    },
+  );
 
   it("is occupied while it has a rider", () => {
     const { chairs, riders } = fixture();

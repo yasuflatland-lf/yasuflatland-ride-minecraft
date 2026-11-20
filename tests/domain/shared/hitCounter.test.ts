@@ -5,6 +5,7 @@ import {
   type HitCounter,
   HitCounters,
   type HitRule,
+  hitRule,
   registerHit,
 } from "../../../src/domain/shared/hitCounter";
 import { ticks } from "../../../src/domain/shared/ticks";
@@ -14,6 +15,42 @@ const VEHICLE_RULE: HitRule = {
   hits: SPEC.hitsToBreak,
   resetTicks: SPEC.hitResetTicks,
 };
+
+describe("hitRule", () => {
+  it("preserves valid inputs in a frozen rule", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: Number.MAX_SAFE_INTEGER }),
+        fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }).map(ticks),
+        (hits, resetTicks) => {
+          const rule = hitRule(hits, resetTicks);
+          expect(rule).toEqual({ hits, resetTicks });
+          expect(Object.isFrozen(rule)).toBe(true);
+        },
+      ),
+    );
+  });
+
+  it("rejects hit counts below one or that are not integers", () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.integer({ max: 0 }),
+          fc.double().filter((hits) => !Number.isInteger(hits)),
+          fc.constantFrom(
+            Number.NaN,
+            Number.NEGATIVE_INFINITY,
+            Number.POSITIVE_INFINITY,
+          ),
+        ),
+        fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }).map(ticks),
+        (hits, resetTicks) => {
+          expect(() => hitRule(hits, resetTicks)).toThrow(RangeError);
+        },
+      ),
+    );
+  });
+});
 
 const rules = fc.record({
   hits: fc.integer({ min: 1, max: 6 }),
@@ -95,7 +132,6 @@ const stepsFor = (rule: HitRule) => {
         kind: fc.constant("hit" as const),
         key: fc.integer({ min: 0, max: 3 }),
         gap,
-        occupied: fc.boolean(),
       }),
       fc.record({ kind: fc.constant("forget" as const), gap }),
     ),
@@ -123,32 +159,26 @@ describe("HitCounters", () => {
               hits.forgetStale(tick);
               continue;
             }
-            const { key, occupied } = step;
+            const { key } = step;
             const expected = registerHit(
               model.get(key) ?? EMPTY_COUNTER,
               tick,
-              occupied,
+              false,
               rule,
             );
-            if (!occupied)
-              model.set(
-                key,
-                expected.broken ? EMPTY_COUNTER : expected.counter,
-              );
+            model.set(key, expected.counter);
             const alone = isolated[key];
             if (!alone) throw new Error("Missing isolated counter");
             const results = [
-              hits.hit(key, tick, occupied),
-              unpruned.hit(key, tick, occupied),
-              alone.hit(key, tick, occupied),
+              hits.hit(key, tick),
+              unpruned.hit(key, tick),
+              alone.hit(key, tick),
             ];
             for (const result of results) {
-              expect(result.broken).toBe(expected.broken);
-              if (occupied) expect(result.broken).toBe(false);
-              else if (!result.broken)
-                expect(result.hitsLeft).toBe(
-                  rule.hits - expected.counter.count,
-                );
+              expect(result).toEqual({
+                broken: expected.broken,
+                hitsLeft: rule.hits - expected.counter.count,
+              });
             }
           }
         },

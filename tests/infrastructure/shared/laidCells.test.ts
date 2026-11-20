@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { LaidCell } from "../../../src/domain/shared/laidCells";
+import { ticks } from "../../../src/domain/shared/ticks";
 import {
   type CellCodec,
   type CellHolder,
@@ -85,7 +86,7 @@ function fakeDimension(id = "overworld") {
     },
   };
 }
-function fixture(recheckTicks = 1) {
+function fixture(recheckTicks = ticks(1)) {
   const world = fakeDimension();
   const saved = new Map<string, unknown>();
   const holder: CellHolder = {
@@ -165,7 +166,7 @@ describe("CellLayer", () => {
 
   it("rechecks at the configured cadence", () => {
     fc.assert(
-      fc.property(fc.integer({ min: 1, max: 5 }), (ticks) => {
+      fc.property(fc.integer({ min: 1, max: 5 }).map(ticks), (ticks) => {
         const f = fixture(ticks);
         f.layer.lay("one", f.holder, [cell()]);
         for (let k = 1; k <= ticks * 3; k++) {

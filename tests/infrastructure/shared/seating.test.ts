@@ -8,6 +8,8 @@ import {
   seatRider,
 } from "../../../src/infrastructure/shared/seating";
 
+vi.mock("@minecraft/server", () => ({}));
+
 function seatingFixture() {
   const dimension = { id: "overworld" };
   const addRider = vi.fn(() => true);

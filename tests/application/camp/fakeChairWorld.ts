@@ -1,5 +1,9 @@
 import type { ChairWorld } from "../../../src/application/camp/ports/chair";
-import type { ChairId, ChairKindId } from "../../../src/domain/camp/chair";
+import {
+  asChairId,
+  type ChairId,
+  type ChairKindId,
+} from "../../../src/domain/camp/chair";
 import type { DimensionId, PlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 
@@ -17,6 +21,8 @@ export class FakeChairWorld implements ChairWorld {
   chairs = new Set<string>();
   creative = false;
   consumeResult = true;
+  failSpawn = false;
+  readonly refunded: { kind: ChairKindId; playerId: PlayerId }[] = [];
   occupied = new Set<ChairId>();
   readonly consumed: { kind: ChairKindId; playerId: PlayerId; slot: number }[] =
     [];
@@ -52,8 +58,18 @@ export class FakeChairWorld implements ChairWorld {
     if (this.consumeResult) this.consumed.push({ kind, playerId, slot });
     return this.consumeResult;
   }
-  spawnChair(kind: ChairKindId, _d: DimensionId, at: Vec3, yaw: number): void {
+  refundChairItem(kind: ChairKindId, playerId: PlayerId): void {
+    this.refunded.push({ kind, playerId });
+  }
+  spawnChair(
+    kind: ChairKindId,
+    _d: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): ChairId | undefined {
+    if (this.failSpawn) return undefined;
     this.spawned.push({ kind, at, yaw });
+    return asChairId("chair");
   }
   isOccupied(chairId: ChairId): boolean {
     return this.occupied.has(chairId);

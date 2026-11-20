@@ -1,6 +1,6 @@
 import type { PlayerId } from "../../domain/shared/ids";
 // Use case: hint players on foot near a vehicle where to hit it and how to drive it (ADR 0086).
-import { distanceSq, type Vec3 } from "../../domain/shared/vec";
+import { distanceSq, sub3 } from "../../domain/shared/vec";
 import {
   type Hint,
   type HintState,
@@ -16,12 +16,6 @@ interface Near {
   view: HintVehicleView;
   vehicle: Vehicle;
 }
-
-const offset = (a: Vec3, b: Vec3): Vec3 => ({
-  x: a.x - b.x,
-  y: a.y - b.y,
-  z: a.z - b.z,
-});
 
 export class ShowVehicleHints {
   private readonly states = new Map<PlayerId, HintState>();
@@ -74,7 +68,7 @@ export class ShowVehicleHints {
       );
     for (const { view, vehicle } of near) {
       const hint = vehicle.hint(
-        offset(player.location, view.location),
+        sub3(player.location, view.location),
         player.held,
         player.controls,
         state.shown,

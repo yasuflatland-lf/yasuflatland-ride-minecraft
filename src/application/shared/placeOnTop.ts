@@ -12,13 +12,15 @@ import {
 } from "../../domain/shared/tableTop";
 import type { Vec3 } from "../../domain/shared/vec";
 import { hasClearance } from "./groundPlacement";
+import { placePaid } from "./paidPlacement";
 import type { GroundCellsWorld } from "./ports/groundCells";
 import type { HostedItemKind, HostedKindId } from "./ports/hostedItem";
+import type { ItemPayment } from "./ports/itemPayment";
 
 /** A refusal of the table top rule, which the player sees as a hint. */
 export type TopRefusal = Extract<TopPlacement, { ok: false }>["reason"];
 
-/** `refused` covers a missing table, a blocked column, and an unpaid item. */
+/** `refused` covers a missing table, a blocked column, an unpaid item, and a failed spawn. */
 export type TopOutcome = "placed" | "refused" | TopRefusal;
 
 export interface TopRequest {
@@ -55,28 +57,24 @@ export function placeOnTop(
   };
   if (!hasClearance(world, host.dimension, cell, kind.clearance))
     return "refused";
-  if (
-    cmd.player &&
-    !world.isCreative(cmd.player) &&
-    !world.consumeItem(cmd.player, cmd.slot)
-  )
-    return "refused";
-  world.spawnHosted(
-    kind.id,
-    host.dimension,
-    at,
-    host.yaw,
-    encodeHost({
-      kind: "top",
-      hostType: cmd.hostType,
-      id: cmd.host,
-      at: placement.at,
-    }),
+  const result = placePaid(world, { player: cmd.player, slot: cmd.slot }, () =>
+    world.spawnHosted(
+      kind.id,
+      host.dimension,
+      at,
+      host.yaw,
+      encodeHost({
+        kind: "top",
+        hostType: cmd.hostType,
+        id: cmd.host,
+        at: placement.at,
+      }),
+    ),
   );
-  return "placed";
+  return result.placed ? "placed" : "refused";
 }
 
-export interface TopHostWorld extends GroundCellsWorld {
+export interface TopHostWorld extends GroundCellsWorld, ItemPayment {
   topHost(
     hostType: string,
     id: string,
@@ -95,5 +93,5 @@ export interface TopHostWorld extends GroundCellsWorld {
     at: Vec3,
     yaw: number,
     host: string,
-  ): void;
+  ): string | undefined;
 }

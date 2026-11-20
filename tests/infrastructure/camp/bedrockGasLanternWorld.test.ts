@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { createGasLanternLight } from "../../../src/infrastructure/camp/bedrock/gasLanternLight";
 import {
@@ -25,6 +26,7 @@ function fixture() {
   const dimension = {
     id: "minecraft:overworld",
     playSound: vi.fn(),
+    spawnEntity: vi.fn(),
     getEntities: vi.fn(() => [entity]),
     getBlock: (c: Cell) => ({
       get typeId() {
@@ -45,6 +47,11 @@ function fixture() {
     id: "lantern",
     typeId: GAS_LANTERN_TYPE,
     isValid: true,
+    setRotation: vi.fn(),
+    triggerEvent: vi.fn(),
+    remove: () => {
+      entity.isValid = false;
+    },
     dimension,
     location: { x: 2.5, y: 64, z: -3.5 },
     getProperty: (key: string) => properties.get(key),
@@ -155,4 +162,36 @@ it("reads a lantern's host marker, its loaded host area, and whether a host exis
   f.entity.isValid = false;
   expect(f.world.host(f.id)).toBe("");
   expect(f.world.isHostAreaLoaded(f.id)).toBe(false);
+});
+
+it("returns undefined and leaves no ground lantern when rotation fails", () => {
+  const f = fixture();
+  f.dimension.spawnEntity.mockReturnValue(f.entity);
+  f.entity.setRotation.mockImplementation(() => {
+    throw new Error("unloaded chunk");
+  });
+  expect(
+    f.world.spawnGasLantern(asDimensionId("overworld"), f.entity.location, 90),
+  ).toBeUndefined();
+  expect(f.world.isLit(f.id)).toBeUndefined();
+});
+
+it("returns undefined and leaves no tabletop lantern when a host setter fails", () => {
+  const f = fixture();
+  f.dimension.spawnEntity.mockReturnValue(f.entity);
+  f.entity.triggerEvent.mockImplementation(() => {
+    throw new Error("unloaded chunk");
+  });
+  const host = "camp_table:table:@1,0";
+  expect(
+    f.world.spawnHosted(
+      "gas_lantern",
+      asDimensionId("overworld"),
+      f.entity.location,
+      90,
+      host,
+    ),
+  ).toBeUndefined();
+  expect(f.saved.get(GAS_LANTERN_HOST_PROPERTY)).toBe(host);
+  expect(f.world.isLit(f.id)).toBeUndefined();
 });
