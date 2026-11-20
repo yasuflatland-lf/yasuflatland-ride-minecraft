@@ -9,6 +9,10 @@ export interface RoofTentOccupantWorld {
   setOccupant(tentId: RoofTentId, playerId: PlayerId | undefined): void;
   /** Lays the ceiling if occupied (idempotent), or removes it if not. */
   syncCeiling(tentId: RoofTentId): void;
+  /** Removes the tent's rain ceiling, occupied or not (ADR 0207). */
+  clearCeiling(tentId: RoofTentId): void;
+  /** Drops what the adapter remembers about the tent and reveals a still-recorded occupant. */
+  forget(tentId: RoofTentId): void;
   /** Moves the player to the tent's interior position. */
   moveInside(playerId: PlayerId, tentId: RoofTentId): void;
   /** Hides the occupant with an idempotent, expiring timer refresh. */

@@ -3,18 +3,27 @@ import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
 import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
+import {
+  chooseExit,
+  fallbackExit,
+  mergeSpawnSetters,
+  type RoofTentState,
+  roofTentState,
+  withOccupant,
+} from "../../../domain/camp/roofTent/occupancy";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
-import { type Cell, cellCenter, cellOf } from "../../../domain/shared/cells";
+import { type Cell, cellCenter, sameCell } from "../../../domain/shared/cells";
 import { searchExitCell } from "../../../domain/shared/exitSearch";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import { decodeHost } from "../../../domain/shared/hosted";
 import {
   asDimensionId,
   asPlayerId,
+  type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import { forward, type Vec3 } from "../../../domain/shared/vec";
+import type { Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
 import { readSavedCells } from "../../shared/laidBlockLayer";
 import { playerById, showActionBar } from "../../shared/players";
@@ -29,19 +38,22 @@ import {
   ROOF_TENT_SPAWN_SET_BY_PROPERTY,
   ROOF_TENT_SPAWN_SETTERS_PROPERTY,
 } from "../identifiers";
+import {
+  decodeExit,
+  decodeSpawnSetters,
+  encodeExit,
+} from "../persistence/roofTentState";
 import { roofTentEntity } from "./bedrockRoofTentWorld";
 
-export interface RoofTentSnapshot {
-  ceiling: Cell[];
-  dimension: Dimension;
-  location: Vec3;
-  exit: Vec3;
-  occupant: PlayerId | undefined;
-  spawnSetters: readonly PlayerId[];
+interface RoofTentRecord {
+  state: RoofTentState;
+  readonly dimension: Dimension;
+  readonly location: Vec3;
+  ceiling: readonly Cell[];
 }
 
 export class RoofTentOccupants {
-  readonly snapshots = new Map<RoofTentId, RoofTentSnapshot>();
+  private readonly records = new Map<RoofTentId, RoofTentRecord>();
   constructor(
     private readonly vehicleHost: VehicleHostLookup,
     private readonly isVehicleSpace: SpaceCheck,
@@ -53,76 +65,84 @@ export class RoofTentOccupants {
     const hostMarker = entity.getDynamicProperty(ROOF_TENT_HOST_PROPERTY);
     const host = decodeHost(typeof hostMarker === "string" ? hostMarker : "");
     const yaw = spawnYaw ?? entity.getRotation().y;
-    const direction = forward(yaw);
-    let exit = cellOf({
-      x: entity.location.x + direction.x * ROOF_TENT_SPEC.exitFallbackDistance,
-      y: entity.location.y,
-      z: entity.location.z + direction.z * ROOF_TENT_SPEC.exitFallbackDistance,
+    const location = { ...entity.location };
+    const vehicle =
+      host.kind === "vehicle" ? this.vehicleHost(host.id) : undefined;
+    const exit = chooseExit({
+      host:
+        vehicle?.status === "present" && vehicle.mount
+          ? exitCell(vehicle.mount, vehicle, snapYaw4(yaw))
+          : undefined,
+      saved: decodeExit(entity.getDynamicProperty(ROOF_TENT_EXIT_PROPERTY)),
+      fallback: fallbackExit(location, yaw),
     });
-    const saved = entity.getDynamicProperty(ROOF_TENT_EXIT_PROPERTY);
-    if (typeof saved === "string") {
-      try {
-        const value = JSON.parse(saved) as Vec3;
-        if ([value.x, value.y, value.z].every(Number.isFinite)) exit = value;
-      } catch {
-        /* Ignore a malformed saved exit and derive it from the pose. */
-      }
-    }
-    if (host.kind === "vehicle") {
-      const state = this.vehicleHost(host.id);
-      if (state.status === "present" && state.mount)
-        exit = exitCell(state.mount, state, snapYaw4(yaw));
-    }
     if (saveExit)
-      entity.setDynamicProperty(ROOF_TENT_EXIT_PROPERTY, JSON.stringify(exit));
+      entity.setDynamicProperty(ROOF_TENT_EXIT_PROPERTY, encodeExit(exit));
     const occupant = entity.getDynamicProperty(ROOF_TENT_OCCUPANT_PROPERTY);
     const legacy = entity.getDynamicProperty(ROOF_TENT_SPAWN_SET_BY_PROPERTY);
-    let stored: PlayerId[] = [];
-    const savedSetters = entity.getDynamicProperty(
-      ROOF_TENT_SPAWN_SETTERS_PROPERTY,
+    const stored = decodeSpawnSetters(
+      entity.getDynamicProperty(ROOF_TENT_SPAWN_SETTERS_PROPERTY),
     );
-    if (typeof savedSetters === "string") {
-      try {
-        const value: unknown = JSON.parse(savedSetters);
-        if (Array.isArray(value) && value.every((id) => typeof id === "string"))
-          stored = value.map(asPlayerId);
-      } catch {
-        /* A malformed array still leaves the legacy setter below. */
-      }
-    }
-    // The legacy key is merged rather than used as a fallback only, because an
-    // older pack may have written a newer sleeper there without updating the array.
-    const spawnSetters = [
-      ...new Set(
-        typeof legacy === "string" ? [...stored, asPlayerId(legacy)] : stored,
-      ),
-    ];
-    this.snapshots.set(asRoofTentId(entity.id), {
+    this.records.set(asRoofTentId(entity.id), {
       ceiling: readSavedCells(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
       ),
       dimension: entity.dimension,
-      location: { ...entity.location },
-      exit,
-      occupant: typeof occupant === "string" ? asPlayerId(occupant) : undefined,
-      spawnSetters,
+      location,
+      state: roofTentState({
+        exit,
+        occupant:
+          typeof occupant === "string" ? asPlayerId(occupant) : undefined,
+        spawnSetters: mergeSpawnSetters(
+          stored,
+          typeof legacy === "string" ? asPlayerId(legacy) : undefined,
+        ),
+      }),
     });
   }
 
-  forget(id: RoofTentId): void {
-    const occupant = this.snapshots.get(id)?.occupant;
-    if (occupant !== undefined) this.reveal(occupant);
-    this.snapshots.delete(id);
-  }
-
-  snapshot(id: RoofTentId): RoofTentSnapshot | undefined {
+  record(id: RoofTentId): Readonly<RoofTentRecord> | undefined {
     const entity = roofTentEntity(id);
     if (entity) this.remember(entity);
-    return this.snapshots.get(id);
+    return this.peek(id);
+  }
+
+  peek(id: RoofTentId): Readonly<RoofTentRecord> | undefined {
+    return this.records.get(id);
+  }
+
+  updateState(
+    id: RoofTentId,
+    change: (state: RoofTentState) => RoofTentState,
+  ): void {
+    const record = this.records.get(id);
+    if (record) record.state = change(record.state);
+  }
+
+  setCeiling(id: RoofTentId, cells: readonly Cell[]): void {
+    const record = this.records.get(id);
+    if (record) record.ceiling = [...cells];
+  }
+
+  ceilingOwner(dimensionId: DimensionId, cell: Cell): RoofTentId | undefined {
+    for (const [id, tent] of this.records) {
+      if (
+        tent.dimension.id === dimensionId &&
+        tent.ceiling.some((at) => sameCell(at, cell))
+      )
+        return id;
+    }
+    return undefined;
+  }
+
+  forget(id: RoofTentId): void {
+    const occupant = this.peek(id)?.state.occupant;
+    if (occupant !== undefined) this.reveal(occupant);
+    this.records.delete(id);
   }
 
   occupantOf(id: RoofTentId): PlayerId | undefined {
-    return this.snapshot(id)?.occupant;
+    return this.record(id)?.state.occupant;
   }
 
   setOccupant(id: RoofTentId, playerId: PlayerId | undefined): void {
@@ -131,13 +151,12 @@ export class RoofTentOccupants {
     entity?.setDynamicProperty(ROOF_TENT_OCCUPANT_PROPERTY, playerId);
     entity?.setProperty(ROOF_TENT_OCCUPIED_PROPERTY, playerId !== undefined);
     entity?.setProperty(ROOF_TENT_FLAP_OPEN_PROPERTY, playerId !== undefined);
-    const saved = this.snapshots.get(id);
-    if (saved) saved.occupant = playerId;
+    this.updateState(id, (state) => withOccupant(state, playerId));
     this.syncCeiling(id);
   }
 
   moveInside(playerId: PlayerId, id: RoofTentId): void {
-    const tent = this.snapshot(id);
+    const tent = this.record(id);
     const entity = roofTentEntity(id);
     const player = world.getEntity(playerId);
     if (!tent || !player?.isValid) return;
@@ -194,7 +213,7 @@ export class RoofTentOccupants {
   }
 
   placeOutside(playerId: PlayerId, id: RoofTentId): void {
-    const tent = this.snapshot(id);
+    const tent = this.record(id);
     const occupant = world.getEntity(playerId);
     if (!tent || !occupant?.isValid) return;
     // Search around the saved entrance at ground height, including when the host
@@ -205,7 +224,7 @@ export class RoofTentOccupants {
       isCampSpace: (c) => this.isCampSpace(dimensionId, c),
     });
     const feet = searchExitCell(
-      tent.exit,
+      tent.state.exit,
       () => false,
       ROOF_TENT_SPEC.exitSearch,
       (c) => isSafe(tent.dimension, c),

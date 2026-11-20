@@ -16,7 +16,8 @@ export interface RoofTentWorld extends HitsLeftFeedback {
     ownerId: PlayerId | undefined,
     paint: Paint,
   ): RoofTentId | undefined;
-  remove(tentId: RoofTentId): void;
+  /** Returns whether the removal already dispatched occupant cleanup. */
+  remove(tentId: RoofTentId): boolean;
   ownerOf(tentId: RoofTentId): PlayerId | undefined;
   hostOf(tentId: RoofTentId): Host;
   /** Without an owner, drop the item at the tent before it is removed. */

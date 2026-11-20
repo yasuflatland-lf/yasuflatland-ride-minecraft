@@ -42,14 +42,17 @@ cannot assume either vehicle's dimensions.
   vehicle hosts; roof tent removal uses this host rule. Camp supplements a lookup
   that reports absent hosts as unknown with session-local evidence from deferred
   block probes on host removal (0125); load and spawn events clear that evidence.
-- Removal first ejects an occupant to safe ground beside the vehicle, never onto
-  the roof or into the vehicle. Removing the roof tent clears its sleeper's spawn
-  point through `BedWorld.clearSpawnPoint`, so a later respawn cannot target a
-  vanished roof shelter. The roof tent sleep lifecycle uses that port operation and clears only a
-  matching spawn point, preserving a later spawn elsewhere.
-- One immutable occupancy value tracks a single player. Entry fails while occupied;
-  leaving by another player has no effect. Three hits within 100 ticks fold the
-  tent. Host checks run every 4 ticks, faster than ordinary hosted gear checks.
+- The application use case `RoofTentCleanup` ejects the occupant to safe ground,
+  clears the rain ceiling (0207), releases recorded spawn points (0231), and
+  forgets the tent, in that order. Folding and host removal run this cleanup
+  before deleting the entity. The removal handler runs it for external removals
+  in loaded chunks. Safe exits are on ground beside the vehicle, outside the
+  vehicle body. Spawn cleanup uses `BedWorld.clearSpawnPoint` to clear matching
+  spawn points and preserve any later spawn set elsewhere.
+- An immutable `RoofTentState` holds one occupant, the exit cell, and the spawn
+  setters. Entry fails while occupied, and leaving by another player has no
+  effect. Three hits within 100 ticks fold the tent. Host checks run every 4
+  ticks, faster than ordinary hosted gear checks.
 - Roof tents lay no room blocks and claim no camp-space cells. A hosted tent
   therefore overlaps its host without the ground tent's vehicle-space refusal;
   it does not prevent the host from departing. Ground placement checks vehicle

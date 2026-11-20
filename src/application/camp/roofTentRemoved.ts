@@ -3,7 +3,7 @@ import type { PlayerId } from "../../domain/shared/ids";
 import { forEachIsolated } from "../shared/isolated";
 import type { BedWorld } from "../shared/ports/bed";
 import type { Logger } from "../shared/ports/logger";
-import type { RoofTentRemoved } from "./ports/roofTent";
+import type { OccupantEjector, RoofTentRemoved } from "./ports/roofTent";
 import type { RoofTentOccupantWorld } from "./ports/roofTentOccupant";
 
 export class ClearRoofTentSpawn implements RoofTentRemoved {
@@ -25,5 +25,21 @@ export class ClearRoofTentSpawn implements RoofTentRemoved {
       (player) => `Roof tent ${tentId} spawn cleanup for ${player}`,
     );
     this.occupantWorld.clearSpawnSetters(tentId);
+  }
+}
+
+/** Cleans up a roof tent after folding, host removal, or external entity removal. */
+export class RoofTentCleanup implements RoofTentRemoved {
+  constructor(
+    private readonly world: RoofTentOccupantWorld,
+    private readonly ejector: OccupantEjector,
+    private readonly spawn: RoofTentRemoved,
+  ) {}
+
+  removed(tentId: RoofTentId, ownerId: PlayerId | undefined): void {
+    this.ejector.eject(tentId);
+    this.world.clearCeiling(tentId);
+    this.spawn.removed(tentId, ownerId);
+    this.world.forget(tentId);
   }
 }
