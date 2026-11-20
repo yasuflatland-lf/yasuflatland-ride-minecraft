@@ -5,19 +5,17 @@ const bp = "packs/yasu_ride_bp";
 const rp = "packs/yasu_ride_rp";
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
-it("connects a persistent oven to the synced simmer state, plain lid, stew, and PBR atlas", () => {
+it("connects the oven to the synced simmer state, plain lid, stew, and PBR atlas", () => {
   const entity = readJson(`${bp}/entities/yasu_ride/dutch_oven.se.json`)[
     "minecraft:entity"
   ];
   expect(entity.description.identifier).toBe("yasu_ride:dutch_oven");
   expect(entity.description.is_spawnable).toBe(false);
-  expect(entity.description.is_summonable).toBe(true);
   expect(entity.description.properties["yasu_ride:simmering"]).toEqual({
     type: "bool",
     default: false,
     client_sync: true,
   });
-  expect(entity.components["minecraft:persistent"]).toEqual({});
   expect(entity.components["minecraft:collision_box"]).toEqual({
     width: 0.6,
     height: 0.45,

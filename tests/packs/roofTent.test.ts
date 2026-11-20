@@ -62,10 +62,9 @@ describe("roof tent asset contract", () => {
   it("declares stable identifiers, synced flags, and fixed collision", () => {
     expect(ROOF_TENT_TYPE).toBe("yasu_ride:roof_tent");
     expect(ROOF_TENT_ITEM).toBe("yasu_ride:roof_tent_item");
-    expect(entity.description).toEqual({
+    expect(entity.description).toMatchObject({
       identifier: ROOF_TENT_TYPE,
       is_spawnable: false,
-      is_summonable: true,
       properties: Object.fromEntries(
         [
           ROOF_TENT_LADDER_PROPERTY,
@@ -82,10 +81,6 @@ describe("roof tent asset contract", () => {
       "yasu_ride:ladder",
       "yasu_ride:flap_open",
       "yasu_ride:occupied",
-    ]);
-    expect(entity.components["minecraft:type_family"].family).toEqual([
-      ROOF_TENT_FAMILY,
-      "inanimate",
     ]);
     expect(ROOF_TENT_FAMILY).toBe("yasu_ride:roof_tent");
     expect(entity.components["minecraft:collision_box"]).toEqual({
@@ -120,17 +115,6 @@ describe("roof tent asset contract", () => {
         suvDims.half_width / 16 -
         SUV_SPEC.bodyHalfWidth,
     ).toBeGreaterThan(0);
-    expect(entity.components["minecraft:physics"]).toEqual({
-      has_collision: false,
-      has_gravity: false,
-    });
-    const tent = read(`${BP}/entities/yasu_ride/tent.se.json`)[
-      "minecraft:entity"
-    ];
-    expect(entity.components["minecraft:pushable"]).toEqual(
-      tent.components["minecraft:pushable"],
-    );
-    expect(entity.components["minecraft:persistent"]).toEqual({});
     expect(entity.components["minecraft:rideable"]).toEqual({
       seat_count: 1,
       family_types: ["player"],

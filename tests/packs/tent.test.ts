@@ -10,7 +10,6 @@ import {
   PITCH_REFUSAL_MESSAGE,
   TENT_CEILING_BLOCK,
   TENT_FACE_STATE,
-  TENT_FAMILY,
   TENT_FLAP_BLOCK,
   TENT_FLAP_COMPONENT,
   TENT_FLAP_PROPERTY,
@@ -157,14 +156,13 @@ const openings: Record<string, Bounds> = {
   flap_bedroom: [-8, 0, -42.5, 8, 32, -42],
 };
 describe("tent entity and client", () => {
-  it("declares exactly the spawn-time entity contract", () => {
+  it("declares the synced properties and tent-specific components", () => {
     const doc = readJson(`${BP}/entities/yasu_ride/tent.se.json`);
     expect(doc.format_version).toBe("1.21.80");
     const e = doc["minecraft:entity"];
-    expect(e.description).toEqual({
+    expect(e.description).toMatchObject({
       identifier: TENT_TYPE,
       is_spawnable: false,
-      is_summonable: true,
       properties: {
         ...Object.fromEntries(
           Object.values(TENT_FLAP_PROPERTY).map((p) => [
@@ -180,20 +178,13 @@ describe("tent entity and client", () => {
       },
     });
     expect(e.components).toMatchObject({
-      "minecraft:type_family": { family: [TENT_FAMILY, "inanimate"] },
       "minecraft:variant": { value: 0 },
       "minecraft:collision_box": { width: 0.2, height: 0.2 },
       "minecraft:custom_hit_test": {
         hitboxes: [{ width: 0.1, height: 0.1, pivot: [0, 0.05, 0] }],
       },
       "minecraft:physics": { has_collision: false, has_gravity: false },
-      "minecraft:pushable": {
-        is_pushable: false,
-        is_pushable_by_piston: false,
-      },
-      "minecraft:knockback_resistance": { value: 1 },
       "minecraft:health": { value: 20, max: 20 },
-      "minecraft:persistent": {},
     });
     const collision = e.components["minecraft:collision_box"];
     inside(

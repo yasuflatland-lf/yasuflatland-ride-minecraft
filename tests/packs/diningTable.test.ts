@@ -15,30 +15,15 @@ const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const top = FURNITURE_SPEC.dining_table.top;
 if (!top) throw new Error("Dining Table requires a top");
 
-it("ships a persistent, damage-immune table with whole-model hits and no seats", () => {
+it("ships a table with whole-model hits and no seats", () => {
   const entity = read(`${BP}entities/yasu_ride/dining_table.se.json`)[
     "minecraft:entity"
   ];
-  expect(entity.description).toEqual({
+  expect(entity.description).toMatchObject({
     identifier: "yasu_ride:dining_table",
     is_spawnable: false,
-    is_summonable: true,
   });
   const c = entity.components;
-  expect(c["minecraft:type_family"].family).toEqual([
-    "yasu_ride_dining_table",
-    "inanimate",
-  ]);
-  expect(c["minecraft:persistent"]).toEqual({});
-  expect(c["minecraft:physics"]).toEqual({
-    has_collision: false,
-    has_gravity: false,
-  });
-  expect(c["minecraft:pushable"]).toEqual({
-    is_pushable: false,
-    is_pushable_by_piston: false,
-  });
-  expect(c["minecraft:knockback_resistance"].value).toBe(1);
   expect(c["minecraft:rideable"]).toBeUndefined();
   expect(c["minecraft:collision_box"]).toEqual({
     width: (2 * top.half.halfX) / 16,

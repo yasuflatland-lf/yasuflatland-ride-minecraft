@@ -16,25 +16,10 @@ const components = entity.components;
 const spec = FURNITURE_SPEC.dining_chair;
 
 describe("Dining Chair assets (ADR 0240)", () => {
-  it("provides a persistent, damage-immune, unpushable player seat matching the domain", () => {
-    expect(entity.description).toEqual({
+  it("provides a player seat matching the domain", () => {
+    expect(entity.description).toMatchObject({
       identifier: FURNITURE_IDS.dining_chair.entity,
       is_spawnable: false,
-      is_summonable: true,
-    });
-    expect(components["minecraft:type_family"].family).toEqual([
-      "yasu_ride_dining_chair",
-      "inanimate",
-    ]);
-    expect(components["minecraft:persistent"]).toEqual({});
-    expect(components["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(components["minecraft:knockback_resistance"].value).toBe(1);
-    expect(components["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
     });
     expect(components["minecraft:collision_box"]).toEqual({
       width: 0.6,

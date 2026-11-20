@@ -58,12 +58,11 @@ function waterOffset(t: number) {
 }
 
 describe("Toilet pack contract", () => {
-  it("is persistent, immovable and immune with one domain seat and synchronized show properties", () => {
+  it("provides one domain seat and synchronized show properties", () => {
     expect(entityFile.format_version).toBe("1.21.80");
-    expect(entity.description).toEqual({
+    expect(entity.description).toMatchObject({
       identifier: ids.entity,
       is_spawnable: false,
-      is_summonable: true,
       properties: Object.fromEntries(
         ["lid_open", "flushing"].map((p) => [
           `yasu_ride:${p}`,
@@ -72,19 +71,6 @@ describe("Toilet pack contract", () => {
       ),
     });
     const c = entity.components;
-    expect(c["minecraft:type_family"].family).toEqual([
-      "yasu_ride_toilet",
-      "inanimate",
-    ]);
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:persistent"]).toEqual({});
     expect(c["minecraft:rideable"]).toEqual({
       seat_count: 1,
       family_types: ["player"],

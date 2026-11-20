@@ -114,7 +114,7 @@
 - Agreement: Proposed
 - Basis: [0122](../adr/0122-a-low-chair-to-sit-on-outside-the-vehicles.md) Decision, "`minecraft:rideable` seats one player"; [0169](../adr/0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) Decision 3, "It never appears in the camping gear box and is never decor."
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/low_chair.se.json`; `packs/yasu_ride_bp/entities/yasu_ride/noga_chair.se.json`; `packs/yasu_ride_bp/items/yasu_ride/low_chair_item.item.json`; `packs/yasu_ride_bp/items/yasu_ride/noga_chair_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/low_chair_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/noga_chair_item.recipe.json`
-- Verification: `tests/packs/lowChair.test.ts` "seats one player with the Sit interaction" and "is crafted from leather, sticks, and iron ingots"; `tests/packs/nogaChair.test.ts` "provides a persistent, damage-proof one-player seat with gravity" and "uses a distinct wool-and-iron recipe". The Low Chair recipe test checks ingredients and output, not the exact pattern. Not verified: actual crafting, rider pose, look-induced rotation, and mobile Sit-button behavior.
+- Verification: `tests/packs/lowChair.test.ts` "seats one player with the Sit interaction" and "is crafted from leather, sticks, and iron ingots"; `tests/packs/nogaChair.test.ts` "provides one player seat matching the chair profile" and "uses a distinct wool-and-iron recipe". The Low Chair recipe test checks ingredients and output, not the exact pattern. Not verified: actual crafting, rider pose, look-induced rotation, and mobile Sit-button behavior.
 
 ### Chair take-back and test hits
 
@@ -141,7 +141,7 @@
 - Agreement: Proposed
 - Basis: [0185](../adr/0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) Decision 1, "The table has no seats"; [0185](../adr/0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) Decision 7, "Both ovens and lanterns count"
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/camp_table.se.json`; `src/application/camp/hitTable.ts`; `src/infrastructure/shared/tableTop/registry.ts`; `src/infrastructure/camp/bedrock/bedrockTableWorld.ts`
-- Verification: `tests/packs/campTable.test.ts` "has no seats and remains persistent with gravity"; `tests/application/camp/hitTable.test.ts` "takes the table back on the third hit in a row, dropping one item" and "leaves the table and its counter alone while either half holds an oven" (mocked count); `tests/infrastructure/shared/tableItems.test.ts` "returns ovens and lanterns standing on the table together, and no ground lantern". Not verified: a saved world's stale rider after seats were removed; `camp_table_no_seats` and `camp_table_lantern` scenarios were not run here.
+- Verification: `tests/packs/campTable.test.ts` "has no seats"; `tests/application/camp/hitTable.test.ts` "takes the table back on the third hit in a row, dropping one item" and "leaves the table and its counter alone while either half holds an oven" (mocked count); `tests/infrastructure/shared/tableItems.test.ts` "returns ovens and lanterns standing on the table together, and no ground lantern". Not verified: a saved world's stale rider after seats were removed; `camp_table_no_seats` and `camp_table_lantern` scenarios were not run here.
 
 ### Tabletop aim, fit, clearance, and payment
 
@@ -186,7 +186,7 @@
 - Agreement: Proposed
 - Basis: [0153](../adr/0153-a-polished-folding-fire-pit.md) Decision, "Any tap on a lit pit extinguishes it."; [0153](../adr/0153-a-polished-folding-fire-pit.md) Consequences, "The fire is visual"
 - Implementation: `src/application/camp/firePit.ts`; `src/domain/camp/firePit.ts`; `src/infrastructure/camp/bedrock/handlers/firePit.ts`; `src/infrastructure/camp/bedrock/bedrockFirePitWorld.ts`; `packs/yasu_ride_rp/render_controllers/yasu_ride/fire_pit.rc.json`
-- Verification: `tests/application/camp/firePit.test.ts` "requires ordinary flint and steel to light an unlit pit, then extinguishes on any tap" checks the wear request, not actual tool durability; `tests/infrastructure/camp/dutchOven.test.ts` "oven interactions win over pit interactions and dedupe before deferred placement" checks routing priority; `tests/packs/firePit.test.ts` "connects the persistent fire pit, synced flame state, model, and PBR atlas" checks visibility wiring. Not verified: rendered particles, durability on a live player, held-press behavior, or reflective appearance on a device; `fire_pit_ignition` was not run here.
+- Verification: `tests/application/camp/firePit.test.ts` "requires ordinary flint and steel to light an unlit pit, then extinguishes on any tap" checks the wear request, not actual tool durability; `tests/infrastructure/camp/dutchOven.test.ts` "oven interactions win over pit interactions and dedupe before deferred placement" checks routing priority; `tests/packs/firePit.test.ts` "connects the fire pit, synced flame state, model, and PBR atlas" checks visibility wiring. Not verified: rendered particles, durability on a live player, held-press behavior, or reflective appearance on a device; `fire_pit_ignition` was not run here.
 
 ### Fire Pit grill and recovery guard
 
@@ -267,7 +267,7 @@
 - Agreement: Proposed
 - Basis: [0130](../adr/0130-a-tent-entity-whose-hits-land-on-its-blocks.md) Entity and hit surface, "No stand-ins are needed at any of the four yaws, and taps inside" (the sentence continues on the next line).
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/tent.se.json`; `src/infrastructure/camp/bedrock/handlers/tentHits.ts`; `src/infrastructure/camp/bedrock/bedrockTentWorld.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/infrastructure/shared/laidBlockGuard.ts`
-- Verification: `tests/packs/tent.test.ts` "declares exactly the spawn-time entity contract", "keeps the entity's hidden box and hit test in its base components", and "keeps the tiny hidden boxes whatever the footprint size"; `tests/infrastructure/camp/handlers.test.ts` "counts a player's hit on an owned tent block, and ignores other blocks and hitters". Not verified: hit accessibility at every heading and Creative break visuals on devices; `tent_entity_contract` was not run here.
+- Verification: `tests/packs/tent.test.ts` "declares the synced properties and tent-specific components", "keeps the entity's hidden box and hit test in its base components", and "keeps the tiny hidden boxes whatever the footprint size"; `tests/infrastructure/camp/handlers.test.ts` "counts a player's hit on an owned tent block, and ignores other blocks and hitters". Not verified: hit accessibility at every heading and Creative break visuals on devices; `tent_entity_contract` was not run here.
 
 ### Tent layout and coordinate frames
 

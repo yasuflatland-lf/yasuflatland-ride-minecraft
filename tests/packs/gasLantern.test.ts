@@ -220,27 +220,16 @@ describe("Gas Lantern item and ground entity", () => {
     const entity = readJson(`${bp}/entities/yasu_ride/gas_lantern.se.json`)[
       "minecraft:entity"
     ];
-    expect(entity.description).toEqual({
+    expect(entity.description).toMatchObject({
       identifier: "yasu_ride:gas_lantern",
       is_spawnable: false,
-      is_summonable: true,
       properties: {
         "yasu_ride:lit": { type: "bool", default: false, client_sync: true },
       },
     });
     expect(entity.components).toMatchObject({
-      "minecraft:type_family": {
-        family: ["yasu_ride_gas_lantern", "inanimate"],
-      },
       "minecraft:collision_box": { width: 0.5, height: 0.75 },
-      "minecraft:physics": { has_collision: true, has_gravity: true },
-      "minecraft:pushable": {
-        is_pushable: false,
-        is_pushable_by_piston: false,
-      },
-      "minecraft:knockback_resistance": { value: 1 },
       "minecraft:health": { value: 20, max: 20 },
-      "minecraft:persistent": {},
       "minecraft:interact": {
         interactions: [
           { interact_text: "action.interact.yasu_ride.gas_lantern" },

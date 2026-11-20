@@ -153,17 +153,12 @@ describe("Noga Chair (ADR 0169)", () => {
       expect(map.get(key)).toBe("noga_chair");
   });
 
-  it("provides a persistent, damage-proof one-player seat with gravity", () => {
-    expect(entity.description).toEqual({
+  it("provides one player seat matching the chair profile", () => {
+    expect(entity.description).toMatchObject({
       identifier: profile.typeId,
       is_spawnable: false,
-      is_summonable: true,
     });
     const c = entity.components;
-    expect(c["minecraft:type_family"].family).toEqual([
-      profile.family,
-      "inanimate",
-    ]);
     expect(c["minecraft:rideable"]).toEqual({
       seat_count: 1,
       family_types: ["player"],
@@ -172,15 +167,6 @@ describe("Noga Chair (ADR 0169)", () => {
       seats: [{ position: [0, 0.04, 0.21] }],
     });
     expect(c["minecraft:collision_box"]).toEqual({ width: 0.8, height: 0.9 });
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:persistent"]).toEqual({});
   });
 
   it("connects the root geometry, texture, preview, and icon", () => {

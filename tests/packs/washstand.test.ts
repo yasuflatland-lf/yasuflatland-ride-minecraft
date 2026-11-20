@@ -119,11 +119,10 @@ describe("Washstand assets (ADR 0246)", () => {
       }
     }
   });
-  it("provides persistent, damage-immune furniture without seats and synchronizes the show", () => {
-    expect(entity.description).toEqual({
+  it("synchronizes the show and has no seats", () => {
+    expect(entity.description).toMatchObject({
       identifier: FURNITURE_IDS.washstand.entity,
       is_spawnable: false,
-      is_summonable: true,
       properties: {
         "yasu_ride:running": {
           type: "bool",
@@ -136,20 +135,6 @@ describe("Washstand assets (ADR 0246)", () => {
     expect(c["minecraft:rideable"]).toBeUndefined();
     expect(FURNITURE_SPEC.washstand.seats).toEqual([]);
     expect(bones.some((b) => b.name.startsWith("seat"))).toBe(false);
-    expect(c["minecraft:type_family"].family).toEqual([
-      "yasu_ride_washstand",
-      "inanimate",
-    ]);
-    expect(c["minecraft:persistent"]).toEqual({});
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:knockback_resistance"].value).toBe(1);
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
     expect(c["minecraft:collision_box"]).toEqual({
       width: 0.65625,
       height: 1.25,

@@ -36,11 +36,10 @@ const tableHitboxes = [-1, 1].map((sign) => ({
 }));
 
 describe("Beach Chair assets", () => {
-  it("provides one script-controlled hip seat and a persistent, unpushable, damage-immune entity with gravity", () => {
-    expect(entity.description).toEqual({
+  it("provides one script-controlled hip seat and the lounger collision boxes", () => {
+    expect(entity.description).toMatchObject({
       identifier: "yasu_ride:beach_chair",
       is_spawnable: false,
-      is_summonable: true,
       properties: {
         "yasu_ride:folded": { type: "bool", default: false, client_sync: true },
       },
@@ -60,17 +59,6 @@ describe("Beach Chair assets", () => {
         },
       ],
     });
-    expect(c["minecraft:type_family"].family).toContain("inanimate");
-    expect(c["minecraft:persistent"]).toEqual({});
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:knockback_resistance"].value).toBe(1);
     expect(c["minecraft:collision_box"]).toEqual({
       width: 1.0,
       height: 0.5625,

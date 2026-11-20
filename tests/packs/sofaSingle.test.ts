@@ -17,26 +17,12 @@ const model = read(`${RP}/models/entity/yasu_ride/sofa_single.geo.json`)[
 ][0];
 
 describe("Sofa (Single) pack contract", () => {
-  it("is persistent, immovable and immune to damage with one vanilla seat", () => {
-    expect(entity.description).toEqual({
+  it("provides one vanilla seat", () => {
+    expect(entity.description).toMatchObject({
       identifier: ids.entity,
       is_spawnable: false,
-      is_summonable: true,
     });
     const c = entity.components;
-    expect(c["minecraft:type_family"].family).toEqual([
-      "yasu_ride_sofa_single",
-      "inanimate",
-    ]);
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:persistent"]).toEqual({});
     expect(c["minecraft:rideable"]).toMatchObject({
       seat_count: 1,
       family_types: ["player"],

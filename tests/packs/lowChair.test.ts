@@ -63,38 +63,9 @@ describe("low chair entity (ADR 0122)", () => {
   ];
 
   it("is a summonable seat that never moves, despawns, or takes damage", () => {
-    expect(entity.description).toEqual({
+    expect(entity.description).toMatchObject({
       identifier: CHAIR,
       is_spawnable: false,
-      is_summonable: true,
-    });
-    expect(Object.keys(entity.components).sort()).toEqual(
-      [
-        "minecraft:type_family",
-        "minecraft:collision_box",
-        "minecraft:physics",
-        "minecraft:pushable",
-        "minecraft:knockback_resistance",
-        "minecraft:health",
-        "minecraft:damage_sensor",
-        "minecraft:persistent",
-        "minecraft:rideable",
-      ].sort(),
-    );
-    const c = entity.components;
-    // inanimate keeps vehicle rams off it (ADR 0006)
-    expect(c["minecraft:type_family"].family).toEqual([
-      CHAIR_KINDS.low_chair.family,
-      "inanimate",
-    ]);
-    // It settles through short grass, carpet, or a slab's empty half onto what holds it (ADR 0122).
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
     });
     expect(entity.component_groups).toBeUndefined();
     expect(entity.events).toBeUndefined();

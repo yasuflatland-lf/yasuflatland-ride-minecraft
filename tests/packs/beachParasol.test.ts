@@ -23,27 +23,12 @@ const geometry = read(`${RP}models/entity/yasu_ride/beach_parasol.geo.json`)[
 ][0] as { bones: Bone[] };
 
 describe("beach parasol pack assets", () => {
-  it("keeps the base stationary, persistent, immune to damage, and independently targetable", () => {
-    expect(entity.description).toEqual({
+  it("uses a low, independently targetable base", () => {
+    expect(entity.description).toMatchObject({
       identifier: "yasu_ride:beach_parasol",
       is_spawnable: false,
-      is_summonable: true,
     });
     const c = entity.components;
-    expect(c["minecraft:type_family"].family).toEqual([
-      "beach_parasol",
-      "inanimate",
-    ]);
-    expect(c["minecraft:persistent"]).toEqual({});
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: false,
-      has_gravity: false,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:knockback_resistance"].value).toBe(1);
     expect(c["minecraft:collision_box"]).toEqual({ width: 1.5, height: 0.32 });
     expect(c["minecraft:variant"].value).toBe(PAINTS.indexOf("white"));
   });

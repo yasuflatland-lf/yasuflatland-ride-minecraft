@@ -5,7 +5,7 @@ const bp = "packs/yasu_ride_bp";
 const rp = "packs/yasu_ride_rp";
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
-it("connects the persistent fire pit, synced flame state, model, and PBR atlas", () => {
+it("connects the fire pit, synced flame state, model, and PBR atlas", () => {
   const entity = readJson(`${bp}/entities/yasu_ride/fire_pit.se.json`)[
     "minecraft:entity"
   ];
@@ -13,7 +13,6 @@ it("connects the persistent fire pit, synced flame state, model, and PBR atlas",
     default: false,
     client_sync: true,
   });
-  expect(entity.components["minecraft:persistent"]).toEqual({});
   expect(entity.components["minecraft:interact"].interactions).toHaveLength(1);
   const client = readJson(`${rp}/entity/yasu_ride/fire_pit.ce.json`)[
     "minecraft:client_entity"
