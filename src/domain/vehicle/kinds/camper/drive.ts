@@ -1,13 +1,7 @@
 import type { Vec3 } from "../../../shared/vec";
-import type {
-  DecorItemId,
-  DecorPlacement,
-  DecorSlotId,
-  StoragePress,
-} from "../../dock/decor";
+import { type CapabilityKey, offer } from "../../capability";
 import type { Dock } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
-import type { RoomDrive } from "../../dock/roomDrive";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
@@ -24,6 +18,7 @@ import { PARK_MESSAGES } from "./groundCheck";
 import { CamperParking } from "./parking";
 import { parkPose } from "./parkPose";
 import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
+import { CAMPER_ROOM, type CamperRoom } from "./room";
 import {
   ceilingLightCells,
   deckSeats,
@@ -35,7 +30,7 @@ import {
 import { CamperRoomDecor } from "./roomDecor";
 import { CAMPER_SAVED, type CamperRestored } from "./saved";
 import { CAMPER_SPEC, CAMPER_TRANSFORMING } from "./spec";
-import { CamperStorage, type DrawerTarget } from "./storage";
+import { CamperStorage } from "./storage";
 import { compartmentCells, storagePlateCells } from "./storagePlates";
 
 const CAMPER_ENDS: BodyEnds = {
@@ -45,11 +40,12 @@ const CAMPER_ENDS: BodyEnds = {
   height: CAMPER_SPEC.carHeight,
 };
 
-export class CamperDrive extends TransformingDrive implements RoomDrive {
+export class CamperDrive extends TransformingDrive {
   private readonly parking: CamperParking;
   private readonly fixtures: CamperFixtures;
   private readonly storage: CamperStorage;
   private readonly roomDecor: CamperRoomDecor;
+  private readonly room: CamperRoom;
   private resendDocked = false;
   // Until the drive first holds, the entity keeps its default docked value and needs no resend.
   private heldOnce = false;
@@ -71,6 +67,83 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     this.storage = new CamperStorage(restored, docked);
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     this.roomDecor = CamperRoomDecor.restore(restored[CAMPER_SAVED.decor]);
+    this.room = Object.freeze<CamperRoom>({
+      decor: {
+        decor: () => this.roomDecor.all(),
+        setDecor: (slot, item) => this.roomDecor.set(slot, item),
+        // Decor placed on the parking tick is laid with the room on the next step (ADR 0068, 0093).
+        decorSlotFor: (item, point, cell, exact, eye) => {
+          const pose = this.parking.pose;
+          if (!pose) return undefined;
+          return this.roomDecor.slotFor(
+            { pose, open: this.storage.open() },
+            item,
+            point,
+            cell,
+            exact,
+            eye,
+          );
+        },
+        placeDecor: (slot, item) => {
+          const pose = this.parking.pose;
+          if (!pose) return false;
+          return this.roomDecor.place(
+            { pose, open: this.storage.open() },
+            slot,
+            item,
+          );
+        },
+        removeDecor: (cell, point, eye) => {
+          const pose = this.parking.pose;
+          if (!pose) return undefined;
+          return this.roomDecor.remove(
+            { pose, open: this.storage.open() },
+            cell,
+            point,
+            eye,
+          );
+        },
+      },
+      storage: {
+        drawerTarget: (eye, direction, cell, item, feet) => {
+          const pose = this.parking.pose;
+          if (!pose) return undefined;
+          return this.storage.drawerTarget(
+            pose,
+            this.roomDecor,
+            eye,
+            direction,
+            cell,
+            item,
+            feet,
+          );
+        },
+        pressStorage: (request) => {
+          const pose = this.parking.pose;
+          if (!pose) return undefined;
+          return this.storage.press(pose, this.roomDecor, request);
+        },
+      },
+      fixtures: {
+        useDockDoor: (tick) =>
+          this.parking.pose !== undefined && this.fixtures.useDockDoor(tick),
+        bedSpawnCell: (cell) => {
+          const pose = this.parking.pose;
+          return pose === undefined ? undefined : roomBedSpawnCell(pose, cell);
+        },
+        pressShowerToilet: (feet, tick) => {
+          const pose = this.parking.pose;
+          return (
+            pose !== undefined &&
+            this.fixtures.pressShowerToilet(pose, feet, tick, this)
+          );
+        },
+      },
+    });
+  }
+
+  capability<T>(key: CapabilityKey<T>): T | undefined {
+    return offer(key, CAMPER_ROOM, this.room);
   }
 
   /** Unit-test snapshot. */
@@ -88,34 +161,8 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     super.alignToDriver(driverYaw);
   }
 
-  useDockDoor(tick: number): boolean {
-    return this.parking.pose !== undefined && this.fixtures.useDockDoor(tick);
-  }
-
   useShowerDoor(tick: number): boolean {
     return this.parking.pose !== undefined && this.fixtures.useShowerDoor(tick);
-  }
-
-  pressStorage(
-    cell: Vec3,
-    point: Vec3 | undefined,
-    tick: number,
-    takeContents?: boolean,
-    eye?: Vec3,
-    openOnly = false,
-    drawersSideFace = false,
-  ): StoragePress | undefined {
-    const pose = this.parking.pose;
-    if (!pose) return undefined;
-    return this.storage.press(pose, this.roomDecor, {
-      cell,
-      point,
-      tick,
-      takeContents,
-      eye,
-      openOnly,
-      drawersSideFace,
-    });
   }
 
   switchCeilingLights(feet: Vec3): boolean {
@@ -130,89 +177,8 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     );
   }
 
-  bedSpawnCell(cell: Vec3): Vec3 | undefined {
-    return this.parking.pose === undefined
-      ? undefined
-      : roomBedSpawnCell(this.parking.pose, cell);
-  }
-
   runShower(): boolean {
     return this.parking.pose !== undefined && this.fixtures.runShower();
-  }
-
-  pressShowerToilet(feet: Vec3, tick: number): boolean {
-    const pose = this.parking.pose;
-    // Keep the guarded drive methods as the entry points for either action.
-    return (
-      pose !== undefined &&
-      this.fixtures.pressShowerToilet(pose, feet, tick, this)
-    );
-  }
-
-  decor(): readonly DecorPlacement[] {
-    return this.roomDecor.all();
-  }
-
-  setDecor(slot: DecorSlotId, item: DecorItemId | undefined): boolean {
-    return this.roomDecor.set(slot, item);
-  }
-
-  // Decor placed on the parking tick is laid with the room on the next step (ADR 0068, 0093).
-  decorSlotFor(
-    item: DecorItemId,
-    point: Vec3,
-    cell: Vec3,
-    exact: boolean,
-    eye?: Vec3,
-  ): DecorSlotId | undefined {
-    if (!this.parking.pose) return undefined;
-    return this.roomDecor.slotFor(
-      { pose: this.parking.pose, open: this.storage.open() },
-      item,
-      point,
-      cell,
-      exact,
-      eye,
-    );
-  }
-
-  drawerTarget(
-    eye: Vec3,
-    direction: Vec3,
-    cell?: Vec3,
-    item?: DecorItemId,
-    feet?: Vec3,
-  ): DrawerTarget | undefined {
-    const pose = this.parking.pose;
-    if (!pose) return undefined;
-    return this.storage.drawerTarget(
-      pose,
-      this.roomDecor,
-      eye,
-      direction,
-      cell,
-      item,
-      feet,
-    );
-  }
-
-  placeDecor(slot: DecorSlotId, item: DecorItemId): boolean {
-    if (!this.parking.pose) return false;
-    return this.roomDecor.place(
-      { pose: this.parking.pose, open: this.storage.open() },
-      slot,
-      item,
-    );
-  }
-
-  removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): DecorItemId | undefined {
-    if (!this.parking.pose) return undefined;
-    return this.roomDecor.remove(
-      { pose: this.parking.pose, open: this.storage.open() },
-      cell,
-      point,
-      eye,
-    );
   }
 
   override resync(): void {

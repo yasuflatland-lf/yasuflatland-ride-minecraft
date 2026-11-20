@@ -7,7 +7,10 @@ import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
 import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/decorCells";
 import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
-import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
+import {
+  CAMPER_ROOM,
+  createVehicle,
+} from "../../../src/domain/vehicle/kinds/index";
 import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { defined } from "../../support/defined";
 import { FakeWorld, parkedCamper } from "./fakes";
@@ -44,7 +47,7 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
       "consumeDecor:p:4:percolator",
       "saveDecor:car:stove=percolator",
     ]);
-    expect(car.asRoom()?.decor()).toEqual([
+    expect(car.capability(CAMPER_ROOM)?.decor.decor()).toEqual([
       { slot: "stove", item: "percolator" },
     ]);
     const at = decorSlotCell(pose, stove);
@@ -149,7 +152,7 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
       name: "decor_no_slot",
     });
     expect(world.calls).toEqual(["showMessage"]);
-    expect(car.asRoom()?.decor()).toEqual([
+    expect(car.capability(CAMPER_ROOM)?.decor.decor()).toEqual([
       { slot: "stove", item: "percolator" },
     ]);
   });
@@ -159,15 +162,16 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     world.itemInSlot = false;
     expect(place.execute(cmd)).toBe(false);
     expect(world.calls).toEqual([]);
-    expect(car.asRoom()?.decor()).toEqual([]);
+    expect(car.capability(CAMPER_ROOM)?.decor.decor()).toEqual([]);
   });
 
   it("saves nothing when the vehicle refuses the slot it offered", () => {
     const { car, world, place, cmd } = setup();
     world.creativePlayers.add("p");
-    vi.spyOn(defined(car.asRoom(), "room"), "placeDecor").mockReturnValue(
-      false,
-    );
+    vi.spyOn(
+      defined(car.capability(CAMPER_ROOM)?.decor, "room decor"),
+      "placeDecor",
+    ).mockReturnValue(false);
     expect(place.execute(cmd)).toBe(false);
     expect(world.calls).toEqual([]);
   });

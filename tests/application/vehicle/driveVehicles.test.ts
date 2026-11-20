@@ -13,6 +13,7 @@ import type { RawInput } from "../../../src/domain/vehicle/driveInput";
 import { MONITOR_PROPERTY_NAME } from "../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
+  CAMPER_ROOM,
   CAMPER_SAVED,
   createVehicle,
   entityContractOf,
@@ -1592,7 +1593,9 @@ it("silently drops saved oil lamps and removed decor, and saves it after the nex
     new DriveVehicles(world, repo, log, () => false).execute(0),
   ).not.toThrow();
   const vehicleId = asVehicleId("car");
-  expect(repo.get(vehicleId)?.asRoom()?.decor()).toEqual([]);
+  expect(repo.get(vehicleId)?.capability(CAMPER_ROOM)?.decor.decor()).toEqual(
+    [],
+  );
   expect(log.lines).toEqual([]);
   const saveDecor = vi.fn();
   expect(

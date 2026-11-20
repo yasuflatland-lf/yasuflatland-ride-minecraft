@@ -10,6 +10,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { dockedCommand } from "../../../../../src/domain/vehicle/motion/dockEntity";
+import { camperRoom } from "../../../../support/camperRoom";
 import { type Body, engineStep } from "../../../../support/engineModel";
 
 function context(): TickContext {
@@ -310,11 +311,13 @@ it("drops a saved oil lamp and a saved lantern at every heading", () => {
             { slot: "shelf", item: "lantern" },
           ]),
         });
-        expect(drive.decor()).toEqual([]);
+        expect(camperRoom(drive).decor.decor()).toEqual([]);
         const restored = new CamperDrive(yaw, {
-          [CAMPER_SAVED.decor]: JSON.stringify(drive.decor()),
+          [CAMPER_SAVED.decor]: JSON.stringify(camperRoom(drive).decor.decor()),
         });
-        expect(restored.decor()).toEqual(drive.decor());
+        expect(camperRoom(restored).decor.decor()).toEqual(
+          camperRoom(drive).decor.decor(),
+        );
       },
     ),
   );
@@ -326,7 +329,9 @@ it("has no bed spawn cell before parking (ADR 0182)", () => {
       fc.integer({ min: -720, max: 720 }),
       fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
       (yaw, cell) => {
-        expect(new CamperDrive(yaw, {}).bedSpawnCell(cell)).toBeUndefined();
+        expect(
+          camperRoom(new CamperDrive(yaw, {})).fixtures.bedSpawnCell(cell),
+        ).toBeUndefined();
       },
     ),
   );

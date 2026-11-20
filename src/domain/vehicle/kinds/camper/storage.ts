@@ -3,7 +3,6 @@ import { SyncedValue } from "../../../shared/syncedValue";
 import type { Vec3 } from "../../../shared/vec";
 import {
   type DecorItemId,
-  type DecorSlotId,
   parseDecorSlotId,
   type StoragePress,
 } from "../../dock/decor";
@@ -27,28 +26,10 @@ import {
   type StorageDoorId,
 } from "./furniture";
 import { localCellAt } from "./parkPose";
+import type { DrawerTarget, StoragePressRequest } from "./room";
 import type { CamperRoomDecor } from "./roomDecor";
 import { DRAWER_GEAR_IDS } from "./spec";
 import { storagePressTarget } from "./storagePlates";
-
-export interface StoragePressRequest {
-  readonly cell: Vec3;
-  readonly point?: Vec3;
-  readonly tick: number;
-  readonly takeContents?: boolean;
-  readonly eye?: Vec3;
-  readonly openOnly?: boolean;
-  /** Set only for a side face of the drawers block itself. */
-  readonly drawersSideFace?: boolean;
-}
-
-export interface DrawerTarget {
-  readonly cell: Vec3;
-  readonly point: Vec3;
-  readonly slot?: DecorSlotId;
-  readonly open: boolean;
-  readonly floorFootprint?: boolean;
-}
 
 export class CamperStorage {
   // The storage doors share the entry door's swing length, each on its own (ADR 0114, 0121).

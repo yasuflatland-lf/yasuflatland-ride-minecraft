@@ -18,11 +18,13 @@ import {
   DRAWER_GEAR_IDS,
   DRAWER_HIT_PROFILE as HIT,
 } from "../../../../../src/domain/vehicle/kinds/camper/spec";
+import { CAMPER_ROOM } from "../../../../../src/domain/vehicle/kinds/index";
 import {
   FakeClock,
   FakeWorld,
   parkedCamper,
 } from "../../../../application/vehicle/fakes";
+import { camperRoom } from "../../../../support/camperRoom";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 
@@ -35,7 +37,7 @@ function fixture() {
   const press = new PressStorage(world, f.repo, clock);
   const place = new PlaceDecor(world, f.repo);
   const remove = new RemoveDecor(world, f.repo);
-  const room = defined(f.car.asRoom(), "room");
+  const room = defined(f.car.capability(CAMPER_ROOM)?.decor, "room decor");
   const slot = (id: string) =>
     defined(
       DECOR_SLOTS.find((s) => s.id === id),
@@ -179,7 +181,7 @@ it("places and removes counter decor by view ray independently of populated draw
 
 it("loads an old save without drawer properties or placements as closed and empty", () => {
   const restored = new CamperDrive(0, { docked: true });
-  expect(restored.decor()).toEqual([]);
+  expect(camperRoom(restored).decor.decor()).toEqual([]);
   const out = restored.step(undefined, {
     tick: 0,
     location: { x: 0.5, y: 64, z: 0.5 },
@@ -332,13 +334,13 @@ it("closes both drawers on departure and after an undocked reload, keeping saved
             name,
             value: 0,
           });
-        expect(parked.decor()).toEqual(saved);
+        expect(camperRoom(parked).decor.decor()).toEqual(saved);
         const restored = new CamperDrive(0, {
           docked: false,
           [CAMPER_SAVED.decor]: JSON.stringify(saved),
           ...{ drawer_top: 1, drawer_bottom: 1 },
         });
-        expect(restored.decor()).toEqual(saved);
+        expect(camperRoom(restored).decor.decor()).toEqual(saved);
         const reload = restored.step(undefined, ctx);
         for (const command of itemCommands)
           expect(reload.commands).toContainEqual(command);
@@ -364,14 +366,16 @@ it("preserves unknown saved slot ids when all known slots are occupied", () => {
       const restored = new CamperDrive(0, {
         [CAMPER_SAVED.decor]: JSON.stringify(saved),
       });
-      expect(restored.decor()).toContainEqual({
+      expect(camperRoom(restored).decor.decor()).toContainEqual({
         slot: unknown,
         item: "mug_pair",
       });
       for (const door of KITCHEN_DRAWERS.doors)
-        expect(restored.decor().some((d) => d.slot === door.slots[0]?.id)).toBe(
-          true,
-        );
+        expect(
+          camperRoom(restored)
+            .decor.decor()
+            .some((d) => d.slot === door.slots[0]?.id),
+        ).toBe(true);
     }),
   );
 });
@@ -464,12 +468,21 @@ it("refuses a decor placement before consuming its item when preserved save entr
     [CAMPER_SAVED.decor]: JSON.stringify([...known, unknown]),
   });
   // Keep the unknown entry stowed while freeing one known slot for the attempted placement.
-  expect(restored.setDecor(decorSlotId("counter"), undefined)).toBe(true);
   expect(
-    restored.setDecor(decorSlotId("counter"), decorItemId("mug_pair")),
+    camperRoom(restored).decor.setDecor(decorSlotId("counter"), undefined),
+  ).toBe(true);
+  expect(
+    camperRoom(restored).decor.setDecor(
+      decorSlotId("counter"),
+      decorItemId("mug_pair"),
+    ),
   ).toBe(false);
-  expect(restored.decor()).toContainEqual(unknown);
-  expect(restored.decor().some((d) => d.slot === "counter")).toBe(false);
+  expect(camperRoom(restored).decor.decor()).toContainEqual(unknown);
+  expect(
+    camperRoom(restored)
+      .decor.decor()
+      .some((d) => d.slot === "counter"),
+  ).toBe(false);
 });
 
 it("syncs independent drawer item codes on changes and resync, including while opening", () => {
