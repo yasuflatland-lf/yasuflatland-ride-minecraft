@@ -1,7 +1,9 @@
-/** Ticks a light switch must sit idle before a use counts (ADR 0024). */
-export const LIGHT_SWITCH_COOLDOWN_TICKS = 10;
+import { type Ticks, ticks } from "./ticks";
 
-function validateWindow(window: number): void {
+/** Ticks a light switch must sit idle before a use counts (ADR 0024). */
+export const LIGHT_SWITCH_COOLDOWN_TICKS = ticks(10);
+
+function validateWindow(window: Ticks): void {
   if (!Number.isInteger(window) || window < 0)
     throw new RangeError("Invalid debounce window");
 }
@@ -10,7 +12,7 @@ function validateWindow(window: number): void {
 export class Debounce {
   private lastTick = Number.NEGATIVE_INFINITY;
 
-  constructor(private readonly window: number) {
+  constructor(private readonly window: Ticks) {
     validateWindow(window);
   }
 
@@ -33,7 +35,7 @@ export class Debounce {
 export class Debounces<K> {
   private readonly presses = new Map<K, Debounce>();
 
-  constructor(private readonly window: number) {
+  constructor(private readonly window: Ticks) {
     validateWindow(window);
   }
 

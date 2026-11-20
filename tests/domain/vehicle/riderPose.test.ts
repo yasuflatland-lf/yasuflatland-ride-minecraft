@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { ticks } from "../../../src/domain/shared/ticks";
 import {
   RiderPoseState,
   riderPoseOf,
@@ -14,7 +15,7 @@ const passengerTable = {
   grip: "passenger_grip",
   lean: ["p_l3", "p_l2", "p_l1", "p_r1", "p_r2", "p_r3"],
 };
-const table = { seats: [driverTable, passengerTable], refreshTicks: 20 };
+const table = { seats: [driverTable, passengerTable], refreshTicks: ticks(20) };
 const riders = [
   { id: asPlayerId("driver"), slot: 0 },
   { id: asPlayerId("passenger"), slot: 1 },
@@ -79,7 +80,7 @@ it("refreshes every rider and resync re-sends every pose", () => {
     fc.property(
       fc.integer({ min: -3, max: 3 }),
       fc.integer({ min: 1, max: 100 }),
-      fc.integer({ min: 2, max: 40 }),
+      fc.integer({ min: 2, max: 40 }).map(ticks),
       (level, interval, refreshTicks) => {
         const table = { seats: [driverTable, passengerTable], refreshTicks };
         const state = new RiderPoseState();

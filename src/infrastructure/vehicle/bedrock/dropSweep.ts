@@ -1,10 +1,11 @@
 import type { Entity } from "@minecraft/server";
 import type { Clock } from "../../../application/vehicle/ports/shared";
+import { ticks } from "../../../domain/shared/ticks";
 import type { Vec3 } from "../../../domain/shared/vec";
 
 // ADR 0137 records the drop distance and delay measured in game.
 const DROP_MARGIN = 1;
-const DROP_WINDOW_TICKS = 1;
+const DROP_WINDOW_TICKS = ticks(1);
 
 interface FillRecord {
   dimensionId: string;

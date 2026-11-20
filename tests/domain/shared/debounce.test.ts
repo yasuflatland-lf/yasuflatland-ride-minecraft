@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { Debounce, Debounces } from "../../../src/domain/shared/debounce";
+import { type Ticks, ticks } from "../../../src/domain/shared/ticks";
 
 it("counts presses from the previous recorded press, including rejected presses", () => {
   fc.assert(
@@ -8,7 +9,7 @@ it("counts presses from the previous recorded press, including rejected presses"
       fc.integer({ min: 0, max: 100 }),
       fc.array(fc.nat({ max: 200 })),
       (window, gaps) => {
-        const debounce = new Debounce(window);
+        const debounce = new Debounce(ticks(window));
         let tick = 0;
         expect(debounce.press(tick)).toBe(true);
         for (const gap of gaps) {
@@ -26,7 +27,7 @@ it("counts a long press only once", () => {
       fc.integer({ min: 1, max: 100 }),
       fc.nat({ max: 100 }),
       (window, n) => {
-        const debounce = new Debounce(window);
+        const debounce = new Debounce(ticks(window));
         const gap = n % window;
         expect(debounce.press(0)).toBe(true);
         for (let i = 1; i <= 50; i++)
@@ -42,8 +43,8 @@ it("press matches ready followed by record, and ready does not change state", ()
       fc.nat({ max: 100 }),
       fc.array(fc.nat({ max: 100 })),
       (window, gaps) => {
-        const pressed = new Debounce(window);
-        const recorded = new Debounce(window);
+        const pressed = new Debounce(ticks(window));
+        const recorded = new Debounce(ticks(window));
         let tick = 0;
         for (const gap of gaps) {
           tick += gap;
@@ -72,9 +73,9 @@ const steps = fc.array(
 it("keeps keys independent and forgetting idle keys preserves future answers", () => {
   fc.assert(
     fc.property(fc.nat({ max: 40 }), steps, (window, sequence: Step[]) => {
-      const all = new Debounces<number>(window);
-      const retained = new Debounces<number>(window);
-      const alone = new Debounces<number>(window);
+      const all = new Debounces<number>(ticks(window));
+      const retained = new Debounces<number>(ticks(window));
+      const alone = new Debounces<number>(ticks(window));
       let tick = 0;
       for (const step of sequence) {
         tick += step.gap;
@@ -88,7 +89,7 @@ it("keeps keys independent and forgetting idle keys preserves future answers", (
 });
 
 it("forgets one key and supports checking and recording without a press", () => {
-  const debounces = new Debounces<string>(10);
+  const debounces = new Debounces<string>(ticks(10));
   debounces.record("a", 5);
   expect(debounces.ready("a", 14)).toBe(false);
   expect(debounces.ready("b", 14)).toBe(true);
@@ -99,7 +100,7 @@ it("forgets one key and supports checking and recording without a press", () => 
 
 it("rejects invalid windows", () => {
   for (const window of [-1, 0.5, Number.NaN, Infinity]) {
-    expect(() => new Debounce(window)).toThrow(RangeError);
-    expect(() => new Debounces(window)).toThrow(RangeError);
+    expect(() => new Debounce(window as Ticks)).toThrow(RangeError);
+    expect(() => new Debounces(window as Ticks)).toThrow(RangeError);
   }
 });

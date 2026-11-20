@@ -3,6 +3,7 @@ import type {
   PlayerId,
   VehicleId,
 } from "../../../domain/shared/ids";
+import type { Ticks } from "../../../domain/shared/ticks";
 // Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { CutColumn } from "../../../domain/vehicle/cut";
@@ -158,7 +159,7 @@ export interface RiderEffectWorld {
   setChaseCamera(playerId: PlayerId, camera: ChaseCamera | undefined): void;
 
   /** Refreshes water breathing; does nothing for a missing player (ADR 0040). */
-  giveWaterBreathing(playerId: PlayerId, ticks: number): void;
+  giveWaterBreathing(playerId: PlayerId, duration: Ticks): void;
 
   protectFromFire(playerId: PlayerId): void;
 }
