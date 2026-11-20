@@ -18,7 +18,6 @@ import { localCellAt } from "../../../../../src/domain/vehicle/kinds/camper/park
 import {
   CAMPER_SPEC,
   DRAWER_GEAR_IDS,
-  DRAWER_INNER_HEIGHT_PX,
 } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import {
   compartmentCells,
@@ -28,11 +27,13 @@ import {
 
 const doors = storageDoors([KITCHEN_DRAWERS]);
 const pose = { x: 0.5, y: 64, z: 0.5, yaw: 0 };
+// Drawer boxes have 4.5 px of inside height (tools/camper_kitchen_fronts.py).
+const DRAWER_INNER_HEIGHT_PX = 4.5;
+
 const catalogue: { id: string; hanging: boolean; height_px: number }[] =
   JSON.parse(readFileSync("tools/camping_gear.json", "utf8"));
 
 it("lists exactly the standing catalogue gear no taller than the drawer interior", () => {
-  expect(DRAWER_INNER_HEIGHT_PX).toBe(4.5);
   expect([...DRAWER_GEAR_IDS]).toEqual(
     catalogue
       .filter((g) => !g.hanging && g.height_px <= DRAWER_INNER_HEIGHT_PX)
