@@ -202,7 +202,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) | Cut the body height ahead of a grounded blade | Proposed |
 | [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) | Raise the SUV seats for first-person visibility | Proposed; superseded in part by [0215](0215-fit-the-suv-interior-to-the-rubicon-cabin.md) |
 | [0197](0197-emit-camper-hover-particles-below-the-discs.md) | Emit camper hover particles below the discs | Proposed |
-| [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed; superseded in part by [0233](0233-round-shapes-and-terrain-operations.md); extended by [0201](0201-build-wand-cylinder-and-cube.md), [0202](0202-build-wand-copy-and-continuous-paste.md), [0229](0229-open-build-utilities-with-a-plain-air-press.md), [0230](0230-cut-a-selection-with-the-build-wand.md), [0253](0253-persistent-build-selection-and-tool-swapping.md) |
+| [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed; superseded in part by [0233](0233-round-shapes-and-terrain-operations.md); extended by [0201](0201-build-wand-cylinder-and-cube.md), [0202](0202-build-wand-copy-and-continuous-paste.md), [0229](0229-open-build-utilities-with-a-plain-air-press.md), [0230](0230-cut-a-selection-with-the-build-wand.md), [0253](0253-persistent-build-selection-and-tool-swapping.md), [0254](0254-build-wand-stairs-and-terrace.md) |
 | [0199](0199-square-the-camper-front-and-fold-the-grille.md) | Square the camper front and fold the grille | Proposed; superseded in part by [0226](0226-lean-and-fold-the-camper-front-panels.md) |
 | [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) | Roof tent as a host-bound camp entity | Proposed; superseded in part by [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md); extended by [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md), [0231](0231-release-every-roof-tent-spawn-setter.md) |
 | [0201](0201-build-wand-cylinder-and-cube.md) | Build Wand cylinder and cube | Accepted; superseded in part by [0233](0233-round-shapes-and-terrain-operations.md); extended by [0202](0202-build-wand-copy-and-continuous-paste.md) |
@@ -257,6 +257,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0251](0251-add-the-scooter-kind.md) | Add the scooter kind | Proposed; extended by [0252](0252-budget-client-entity-texture-memory.md) |
 | [0252](0252-budget-client-entity-texture-memory.md) | Budget client entity texture memory | Accepted |
 | [0253](0253-persistent-build-selection-and-tool-swapping.md) | Persistent build selection and tool swapping | Proposed |
+| [0254](0254-build-wand-stairs-and-terrace.md) | Build Wand stairs and terrace from a row and a gaze goal | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
