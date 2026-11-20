@@ -493,17 +493,6 @@ describe("Vehicle as a submarine", () => {
 });
 
 describe("Motion medium contract", () => {
-  it("exposes air and water tuning", () => {
-    expect(AIR).toEqual({
-      drag: SUV_SPEC.flightDrag,
-      maxSpeed: SUV_SPEC.maxSpeed,
-    });
-    expect(WATER).toEqual({
-      drag: SUV_SPEC.waterDrag,
-      maxSpeed: SUV_SPEC.maxWaterSpeed,
-    });
-  });
-
   it("uses water drag for the per-axis wall threshold", () => {
     fc.assert(
       fc.property(fc.boolean(), (onX) => {

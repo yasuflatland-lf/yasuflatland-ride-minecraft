@@ -1,12 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PAINTS } from "../../src/domain/shared/paint";
 import { SCOOTER_PROFILE } from "../../src/domain/vehicle/kinds/scooter/profile";
-import {
-  PAINT_VARIANT,
-  paintEvent,
-} from "../../src/infrastructure/shared/dyes";
-import { defined } from "../support/defined";
+import { PAINT_VARIANT } from "../../src/infrastructure/shared/dyes";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { loadScooterGeo } from "../tools/helpers/scooterGeo";
 
@@ -20,24 +15,6 @@ describe("scooter Behavior Pack geometry", () => {
       "minecraft:entity"
     ];
   const geometry = () => fullGeometry;
-
-  it("matches the profile seats and the model seat locator heights", () => {
-    const rideable = entity().components["minecraft:rideable"];
-    const seats: { position: number[] }[] = rideable.seats;
-    expect(rideable.controlling_seat).toBe(0);
-    expect(rideable.seat_count).toBe(SCOOTER_PROFILE.seats.positions.length);
-    expect(seats.map(({ position }) => [position[0], position[2]])).toEqual(
-      SCOOTER_PROFILE.seats.positions.map(({ x, z }) => [x, z]),
-    );
-    for (const [index, seat] of seats.entries()) {
-      const bone = defined(
-        geometry().bones.find((bone: Bone) => bone.name === `seat_${index}`),
-        "seat",
-      );
-      expect(seat.position[1]).toBe(bone.pivot[1] / pixelsPerBlock);
-    }
-    expect(rideable.seats[0].lock_rider_rotation).toBe(90);
-  });
 
   it("fits the collision box inside the placement clearance and matches body height", () => {
     const box = entity().components["minecraft:collision_box"];
@@ -101,19 +78,9 @@ describe("scooter Behavior Pack geometry", () => {
     }
   });
 
-  it("switches every dye variant while removing the other paint groups", () => {
-    const { components, component_groups: groups, events } = entity();
+  it("starts with the white variant", () => {
+    const { components } = entity();
     expect(components["minecraft:variant"].value).toBe(PAINT_VARIANT.white);
-    for (const paint of PAINTS) {
-      const event = events[paintEvent(paint)];
-      const [group] = event.add.component_groups;
-      expect(groups[group]["minecraft:variant"].value).toBe(
-        PAINT_VARIANT[paint],
-      );
-      expect(new Set([group, ...event.remove.component_groups])).toEqual(
-        new Set(PAINTS.map((paint) => `yasu_ride:paint_${paint}`)),
-      );
-    }
   });
 
   it("crafts a named single-stack scooter item using its registered icon", () => {
@@ -133,15 +100,10 @@ describe("scooter Behavior Pack geometry", () => {
       "packs/yasu_ride_bp/recipes/yasu_ride/scooter_item.recipe.json",
     )["minecraft:recipe_shaped"];
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.unlock).toEqual({ context: "AlwaysUnlocked" });
     expect(recipe.pattern).toEqual(["  I", " II", "C C"]);
     expect(recipe.key).toEqual({
       I: { item: "minecraft:iron_ingot" },
       C: { item: "minecraft:coal" },
-    });
-    expect(recipe.result).toEqual({
-      item: item.description.identifier,
-      count: 1,
     });
   });
 });

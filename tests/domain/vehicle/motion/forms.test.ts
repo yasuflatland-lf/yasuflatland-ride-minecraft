@@ -10,6 +10,7 @@ import {
   type Form,
   type FormInput,
   type FormState,
+  forgetTap,
   initialForm,
   isDry,
   isForm,
@@ -347,19 +348,47 @@ describe("verticalImpulse", () => {
   });
 });
 
-describe("submarine form transitions", () => {
-  const input = fc.record({
-    tick: fc.nat(),
-    jump: fc.boolean(),
-    controlled: fc.boolean(),
-    onGround: fc.boolean(),
-    waterDepth: fc.oneof(waterDepth, fc.double()),
+const input = fc.record({
+  tick: fc.nat(),
+  jump: fc.boolean(),
+  controlled: fc.boolean(),
+  onGround: fc.boolean(),
+  waterDepth: fc.oneof(waterDepth, fc.double()),
+});
+const stateFields = {
+  formTicks: fc.nat(),
+  jumpHeld: fc.boolean(),
+  lastTap: fc.option(fc.nat(), { nil: undefined }),
+};
+
+describe("forgetTap", () => {
+  const state = fc.record({ form: fc.constantFrom(...FORMS), ...stateFields });
+
+  it("clears only the pending tap", () => {
+    fc.assert(
+      fc.property(state, (s) => {
+        const expected = { ...s, lastTap: undefined };
+        expect(forgetTap(Object.freeze(s))).toEqual(expected);
+      }),
+    );
   });
+
+  it("prevents a tap from toggling flight on the next step", () => {
+    fc.assert(
+      fc.property(state, input, (s, i) => {
+        const next = stepForm(forgetTap(s), i, SUV_TRANSFORMING);
+        if (s.form === "car") expect(next.form).not.toBe("takeoff");
+        if (s.form === "hover" && i.controlled)
+          expect(next.form).not.toBe("landing");
+      }),
+    );
+  });
+});
+
+describe("submarine form transitions", () => {
   const submarine = fc.record({
     form: fc.constant<Form>("submarine"),
-    formTicks: fc.nat(),
-    jumpHeld: fc.boolean(),
-    lastTap: fc.option(fc.nat(), { nil: undefined }),
+    ...stateFields,
   });
 
   it("detects submerged and dry depths, including non-finite values", () => {

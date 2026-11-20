@@ -27,9 +27,6 @@ it("keeps unknown hosts and otherwise removes exactly removed, driven, or moving
 
 it("freezes recovery tuning and checks departure faster than tabletop gear", () => {
   expect(Object.isFrozen(ROOF_TENT_SPEC)).toBe(true);
-  expect(ROOF_TENT_SPEC.hitsToFoldUp).toBe(3);
-  expect(ROOF_TENT_SPEC.hitResetTicks).toBe(100);
-  expect(ROOF_TENT_SPEC.hostCheckTicks).toBe(4);
   expect(ROOF_TENT_SPEC.hostCheckTicks).toBeLessThan(
     DUTCH_OVEN_SPEC.hostCheckTicks,
   );

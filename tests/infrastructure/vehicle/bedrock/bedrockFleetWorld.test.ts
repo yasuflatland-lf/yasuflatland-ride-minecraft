@@ -12,86 +12,24 @@ import {
   ENTITY_TYPE,
   ITEM_TYPE,
   OWNER_PROPERTY,
-  VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import type { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
 import { DockBlocks } from "../../../../src/infrastructure/vehicle/kinds/camper/dockBlocks";
 import { isStandableRoomBlock } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
+import {
+  fakeVehicleEntities,
+  bedrockVehicleGame as game,
+} from "../../../support/bedrockVehicleMocks";
 import { blockGrid } from "../../../support/blockGrid";
 import { decorItemId } from "../../../support/decorIds";
 
-const game = vi.hoisted(() => ({
-  getDimension: vi.fn(),
-  getEntity: vi.fn(),
-}));
-vi.mock("@minecraft/server", () => ({
-  world: game,
-  ButtonState: {},
-  InputButton: {},
-  EntityDamageCause: {},
-  BlockPermutation: {
-    resolve: (typeId: string, states: Record<string, number>) => ({
-      typeId,
-      states,
-    }),
-  },
-  ItemStack: class {
-    constructor(
-      public typeId: string,
-      public amount: number,
-    ) {}
-  },
-}));
+vi.mock("@minecraft/server", async () =>
+  (await import("../../../support/bedrockVehicleMocks")).bedrockVehicleEngine(),
+);
 
 function fixture() {
-  const dimension = {
-    getBlock: vi.fn(),
-    getPlayers: vi.fn(),
-    getEntities: vi.fn(),
-    spawnItem: vi.fn(),
-    spawnEntity: vi.fn(),
-    playSound: vi.fn(),
-  };
-  const car = {
-    id: "car",
-    typeId: ENTITY_TYPE.suv,
-    families: [VEHICLE_FAMILY],
-    isValid: true,
-    location: { x: -1.25, y: 64.25, z: 2.75 },
-    dimension,
-    isOnGround: false,
-    getVelocity: () => ({ x: 0, y: 0, z: 0 }),
-    getRotation: () => ({ y: 0 }),
-    getProperty: vi.fn((_key: string): unknown => undefined),
-    getComponent: vi.fn((_name: string): unknown => undefined),
-    getDynamicProperty: vi.fn(),
-    setDynamicProperty: vi.fn(),
-    teleport: vi.fn(),
-    clearVelocity: vi.fn(),
-    applyImpulse: vi.fn(),
-    setRotation: vi.fn(),
-    remove: vi.fn(),
-    triggerEvent: vi.fn(),
-    playAnimation: vi.fn(),
-    setProperty: vi.fn(),
-  };
-  const entities = [car];
-  dimension.getEntities.mockImplementation(
-    (query: { type?: string; families?: string[] } = {}) =>
-      entities.filter(
-        (e) =>
-          (query.type === undefined || e.typeId === query.type) &&
-          (query.families === undefined ||
-            query.families.every((family) => e.families.includes(family))),
-      ),
-  );
-  game.getDimension.mockImplementation((id: string) =>
-    id === "overworld" ? dimension : { getEntities: () => [] },
-  );
-  game.getEntity.mockImplementation((id: string) =>
-    id === car.id ? car : undefined,
-  );
+  const { car, dimension, entities } = fakeVehicleEntities();
   const inputs = new VehicleTestStore<RawInput>();
   const index = new EntityIndex();
   const world = new BedrockVehicleWorld(

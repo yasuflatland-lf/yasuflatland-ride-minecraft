@@ -32,6 +32,7 @@ import {
   giveOrDrop,
   isCreative,
   playerById,
+  showActionBar,
 } from "../../shared/players";
 import { makeSafeStand, seatRider } from "../../shared/seating";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
@@ -261,7 +262,7 @@ export class BedrockBeachChairWorld
   showBlocked(player: PlayerId): void {
     this.show(player, "blocked");
   }
-  showRemaining(player: PlayerId, left: number): void {
+  showHitsLeft(player: PlayerId, left: number): void {
     this.show(player, "hits_left", [String(left)]);
   }
   showTaken(player: PlayerId): void {
@@ -272,7 +273,7 @@ export class BedrockBeachChairWorld
     message: string,
     withArgs: string[] = [],
   ): void {
-    playerById(player)?.onScreenDisplay.setActionBar({
+    showActionBar(player, {
       translate: `yasu_ride.beach_chair.${message}`,
       with: withArgs,
     });

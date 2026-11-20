@@ -15,7 +15,10 @@ const layersOf = (kind: string): number[] =>
   kind === "wall_cabinet" ? [3] : [1, 2];
 
 it("keeps every furniture cell inside the room interior above the floor, the wall cabinet in the ceiling layer (ADR 0093, 0114)", () => {
-  for (const row of CAMPER_FURNITURE)
+  for (const row of CAMPER_FURNITURE) {
+    expect(row.block !== undefined).toBe(
+      row.kind === "bed" || row.kind === "bunk" || row.kind === "shower_toilet",
+    );
     for (const { x, z, layer } of row.cells) {
       expect(Number.isInteger(x)).toBe(true);
       expect(Number.isInteger(z)).toBe(true);
@@ -25,7 +28,9 @@ it("keeps every furniture cell inside the room interior above the floor, the wal
       expect(z).toBeGreaterThanOrEqual(-3);
       expect(z).toBeLessThanOrEqual(3);
       expect(layersOf(row.kind)).toContain(layer);
+      expect(x === -1 && z === 0).toBe(false);
     }
+  }
 });
 
 it("gives each cell to at most one furniture row", () => {
@@ -134,31 +139,31 @@ it("lists the eleven furniture kinds once each, in order, the storage last: the 
   ]);
 });
 
-it("keeps the saved slot ids, cells, and heights", () => {
+it("keeps the saved slot ids and cells", () => {
   expect(
     CAMPER_FURNITURE.flatMap((f) =>
-      f.slots.map((s) => [s.id, s.cell.x, s.cell.z, s.cell.layer, s.height]),
+      f.slots.map((s) => [s.id, s.cell.x, s.cell.z, s.cell.layer]),
     ),
   ).toEqual([
-    ["dashboard_center", 0, 3, 2, 3],
-    ["dashboard_left", 1, 3, 2, 3],
-    ["table", 1, 0, 1, 12],
-    ["table_aisle", 1, 0, 1, 12],
-    ["dinette_front", 1, 1, 1, 7],
-    ["dinette_rear", 1, -1, 1, 7],
-    ["stove", -1, -2, 1, 15],
-    ["counter", -1, -1, 1, 14],
-    ["drawer_top_0", -1, -1, 1, 7.099999999999998],
-    ["drawer_bottom_0", -1, -1, 1, 1.6999999999999993],
-    ["ceiling_hook", 1, 0, 2, 6],
-    ["cabinet_sink_rear", -1, -1, 3, 3],
-    ["cabinet_sink_front", -1, -1, 3, 3],
-    ["cabinet_stove_rear", -1, -2, 3, 3],
-    ["cabinet_stove_front", -1, -2, 3, 3],
-    ["fridge_bottom_rear", -1, 1, 1, 3],
-    ["fridge_bottom_front", -1, 1, 1, 3],
-    ["fridge_top_rear", -1, 1, 2, 4],
-    ["fridge_top_front", -1, 1, 2, 4],
+    ["dashboard_center", 0, 3, 2],
+    ["dashboard_left", 1, 3, 2],
+    ["table", 1, 0, 1],
+    ["table_aisle", 1, 0, 1],
+    ["dinette_front", 1, 1, 1],
+    ["dinette_rear", 1, -1, 1],
+    ["stove", -1, -2, 1],
+    ["counter", -1, -1, 1],
+    ["drawer_top_0", -1, -1, 1],
+    ["drawer_bottom_0", -1, -1, 1],
+    ["ceiling_hook", 1, 0, 2],
+    ["cabinet_sink_rear", -1, -1, 3],
+    ["cabinet_sink_front", -1, -1, 3],
+    ["cabinet_stove_rear", -1, -2, 3],
+    ["cabinet_stove_front", -1, -2, 3],
+    ["fridge_bottom_rear", -1, 1, 1],
+    ["fridge_bottom_front", -1, 1, 1],
+    ["fridge_top_rear", -1, 1, 2],
+    ["fridge_top_front", -1, 1, 2],
   ]);
 });
 
@@ -227,37 +232,4 @@ it("marks only the ceiling hook as hanging (ADR 0102)", () => {
       .filter((s) => s.hanging === true)
       .map((s) => s.id),
   ).toEqual(["ceiling_hook"]);
-});
-
-it("puts every slot in a cell of its own furniture, 0 to 15 px up", () => {
-  for (const row of CAMPER_FURNITURE) {
-    for (const slot of row.slots) {
-      expect(row.cells).toContainEqual(slot.cell);
-      expect(Number.isFinite(slot.height)).toBe(true);
-      expect(Number.isInteger(slot.height)).toBe(
-        !slot.id.startsWith("drawer_"),
-      );
-      expect(slot.height).toBeGreaterThanOrEqual(0);
-      expect(slot.height).toBeLessThanOrEqual(15);
-    }
-  }
-});
-
-it("keeps every furniture cell inside the interior, apart from the others, and off the cell inside the door", () => {
-  const cells = new Set<string>();
-  for (const row of CAMPER_FURNITURE) {
-    expect(row.block !== undefined).toBe(
-      row.kind === "bed" || row.kind === "bunk" || row.kind === "shower_toilet",
-    );
-    for (const cell of row.cells) {
-      expect(cell.x).toBeGreaterThanOrEqual(-1);
-      expect(cell.x).toBeLessThanOrEqual(1);
-      expect(cell.z).toBeGreaterThanOrEqual(-3);
-      expect(cell.z).toBeLessThanOrEqual(3);
-      expect(layersOf(row.kind)).toContain(cell.layer);
-      expect(cells.has(key(cell))).toBe(false);
-      cells.add(key(cell));
-      expect(cell.x === -1 && cell.z === 0).toBe(false);
-    }
-  }
 });

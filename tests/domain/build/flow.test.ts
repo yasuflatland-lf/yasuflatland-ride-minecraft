@@ -4,6 +4,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight } from "../../../src/domain/build/box";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import {
+  adjustHeight,
   airPressOffersUndo,
   type BuildFlow,
   backToAiming,
@@ -163,6 +164,9 @@ it("offers the ordered root and build menus for every shape and returns unchange
           { id: "back" },
         ]);
         expect(closeBuildMenu(opened)).toEqual(flow);
+        expect(adjustHeight(opened)).toBe(opened);
+        expect(adjustHeight(idle)).toBe(idle);
+        if (shape.kind === "line") expect(adjustHeight(flow)).toBe(flow);
         expect(closeBuildMenu(flow)).toBe(flow);
         expect(openBuildMenu(opened)).toBe(opened);
         expect(tapAir(opened, to)).toBe(opened);

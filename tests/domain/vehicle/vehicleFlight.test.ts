@@ -510,6 +510,28 @@ function riddenFlyingSim(
 }
 
 describe("Driver handover in flight (ADR 0078)", () => {
+  it.each(["car", "hover"] as const)(
+    "requires two taps by the new SUV driver in %s",
+    (form) => {
+      const sim = form === "car" ? new FlightSim() : flyingSim();
+      sim.tick = 101;
+      sim.riders = [
+        { id: "P2", seat: 0 },
+        { id: "P1", seat: 1 },
+      ];
+      sim.step(IDLE);
+      sim.step(HOLD_JUMP);
+      sim.riders = [{ id: "P1", seat: 1 }];
+      sim.run(undefined, 3);
+      sim.riders = [{ id: "P1", seat: 0 }];
+      sim.step(HOLD_JUMP);
+      expect(sim.form).toBe(form);
+      sim.step(IDLE);
+      sim.step(HOLD_JUMP);
+      expect(sim.form).toBe(form === "car" ? "takeoff" : "landing");
+    },
+  );
+
   for (const kind of ["suv", "camper"] as const) {
     it(`keeps hovering while a passenger moves up within the handover ticks, and the new driver climbs (${kind})`, () => {
       fc.assert(

@@ -2,11 +2,7 @@ import { SyncedValue } from "../../../shared/syncedValue";
 import type { DriveStep, RestoredValues, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import { isDry } from "../../motion/forms";
-import {
-  groundInputFor,
-  TransformingDrive,
-} from "../../motion/transformingDrive";
-import { waterDepthAt } from "../../motion/water";
+import { TransformingDrive } from "../../motion/transformingDrive";
 import { leanCommand, standCommand, steerCommand } from "./entity";
 import { bodyRoll, type Lean, rollLevel, stepLean } from "./lean";
 import { SCOOTER_MOTION, SCOOTER_TYRES } from "./profile";
@@ -29,14 +25,12 @@ export class ScooterDrive extends TransformingDrive {
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     const step = super.step(raw, ctx);
     const car = this.form === "car";
-    const input = groundInputFor(raw, this.form);
+    const { input, waterDepth } = this.readings;
     // Ground and flight share lean tuning; neutral input during take-off or
     // without a driver eases the body and riders upright without a jump.
     this.lean = stepLean(this.lean, input.steer, this.speed, SCOOTER_SPEC);
     this.steer = steerAngle(input.steer, SCOOTER_SPEC);
-    const onWater = !isDry(
-      waterDepthAt(ctx.location, ctx.waterAt, SCOOTER_SPEC.carHeight),
-    );
+    const onWater = !isDry(waterDepth);
     this.stand =
       car &&
       standDown(
@@ -50,7 +44,7 @@ export class ScooterDrive extends TransformingDrive {
     return {
       ...step,
       riderLean: rollLevel(
-        bodyRoll(this.lean, this.inspect().bank),
+        bodyRoll(this.lean, this.bankAngle),
         SCOOTER_SPEC.rollLevelAngles,
       ),
       commands: [

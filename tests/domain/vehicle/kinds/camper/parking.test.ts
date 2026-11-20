@@ -27,6 +27,7 @@ import {
   slotPoint,
   slotsFor,
 } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { DOOR_STEPS } from "../../../../../src/domain/vehicle/kinds/camper/doorSwing";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import { STORAGE_DOORS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
@@ -53,6 +54,7 @@ import {
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
+import { hingedOpening } from "../../../../support/storageOpening";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
 // The fridge's plate cells in the inside layers, read on departure after the slot cells
@@ -329,28 +331,114 @@ it("refuses cargo only on each press and requires a new press after cargo is cle
   );
 });
 
-it("toggles all three door cells and swings the model in ten bounded steps each way", () => {
-  const f = fixture();
-  expect(f.drive.useDockDoor(f.ctx.tick)).toBe(false);
-  f.park();
-  expect(f.drive.useDockDoor(f.ctx.tick)).toBe(true);
-  for (const open of [true, false]) {
-    if (!open) expect(f.drive.useDockDoor(f.ctx.tick)).toBe(true);
-    for (let tick = 1; tick <= 10; tick++) {
-      const out = f.step();
-      const doors = out.dock?.cells.filter((c) => c.block.type === "door");
-      expect(doors).toHaveLength(3);
-      expect(
-        doors?.every((c) => c.block.type === "door" && c.block.open === open),
-      ).toBe(true);
-      expect(out.commands).toContainEqual({
-        type: "setProperty",
-        name: "door",
-        value: (open ? tick : 10 - tick) / 10,
-      });
-    }
-    expect(f.step().commands).toEqual([]);
-  }
+it("swings the entry, shower, and cabinet doors one step per tick until their target", () => {
+  const cabinetDoors = {
+    sink: "cabinet_sink_door",
+    stove: "cabinet_stove_door",
+  } as const;
+  const names = ["door", "shower_door", ...Object.values(cabinetDoors)];
+  fc.assert(
+    fc.property(
+      fc.constantFrom("door", "shower_door", "sink", "stove"),
+      fc.array(fc.integer({ min: 0, max: 2 * DOOR_STEPS }), {
+        minLength: 1,
+        maxLength: 8,
+      }),
+      (door, gaps) => {
+        const f = fixture();
+        const storage = (id: string) =>
+          defined(
+            STORAGE_DOORS.find((row) => row.id === id),
+            id,
+          );
+        const cabinet =
+          door === "sink" || door === "stove" ? storage(door) : undefined;
+        const other = cabinet
+          ? storage(door === "sink" ? "stove" : "sink")
+          : undefined;
+        const name =
+          door === "sink" || door === "stove" ? cabinetDoors[door] : door;
+        const tap = (open: boolean) => {
+          if (cabinet) {
+            const hit = open
+              ? hingedOpening(cabinet).plate
+              : cabinet.compartment;
+            return (
+              f.drive.pressStorage(
+                localCellAt(f.pose, hit),
+                undefined,
+                f.ctx.tick,
+              )?.kind === "door"
+            );
+          }
+          return door === "door"
+            ? f.drive.useDockDoor(f.ctx.tick)
+            : f.drive.useShowerDoor(f.ctx.tick);
+        };
+        expect(tap(false)).toBe(false);
+        f.park();
+        f.step();
+        const taps = new Map<number, number>();
+        let end = f.ctx.tick;
+        for (const gap of gaps) {
+          end += gap;
+          taps.set(end, (taps.get(end) ?? 0) + 1);
+        }
+        let open = false;
+        let lastTap = -Infinity;
+        while (f.ctx.tick <= end + DOOR_STEPS) {
+          const tick = f.ctx.tick;
+          for (let count = taps.get(tick) ?? 0; count > 0; count--) {
+            const accepted = tick - lastTap >= DOOR_STEPS;
+            expect(tap(open)).toBe(accepted);
+            if (accepted) {
+              lastTap = tick;
+              open = !open;
+            }
+          }
+          const out = f.step();
+          const elapsed = tick - lastTap + 1;
+          const moving = elapsed <= DOOR_STEPS;
+          const step = open ? elapsed : DOOR_STEPS - elapsed;
+          expect(
+            out.commands.filter((cmd) => names.includes(cmd.name)),
+          ).toEqual(
+            moving
+              ? [{ type: "setProperty", name, value: step / DOOR_STEPS }]
+              : [],
+          );
+          if (!moving) continue;
+          const cells = defined(out.dock, "laid room").cells;
+          const entry = cells.filter(({ block }) => block.type === "door");
+          expect(entry).toHaveLength(3);
+          expect(
+            entry.every(
+              ({ block }) =>
+                block.type === "door" &&
+                block.open === (door === "door" && open),
+            ),
+          ).toBe(true);
+          if (!cabinet || !other) continue;
+          const at = (cell: typeof cabinet.compartment) => {
+            const key = cellKey(localCellAt(f.pose, cell));
+            return cells.find((cell) => cellKey(cell) === key)?.block;
+          };
+          expect(at(cabinet.compartment)).toMatchObject({
+            type: "cabinet",
+            open: open || elapsed < DOOR_STEPS,
+          });
+          expect(at(other.compartment)).toMatchObject({
+            type: "cabinet",
+            open: false,
+          });
+          expect(at(hingedOpening(cabinet).plate)?.type).toBe(
+            open ? "cabinetDoor" : "ceiling",
+          );
+          expect(at(hingedOpening(other).plate)?.type).toBe("ceiling");
+        }
+      },
+    ),
+  );
 });
 
 it("toggles each door once for two taps within a swing and twice for taps a swing apart (ADR 0105)", () => {
@@ -410,6 +498,17 @@ it("restores a laid open room immediately without a scan or dock event", () => {
   expect(f.blockTypes).not.toHaveBeenCalled();
   drive.onDriverMounted(-45);
   expect(drive.yaw).toBe(90);
+});
+
+it("forgets the previous driver's tap when a new driver mounts while parked", () => {
+  const f = fixture();
+  for (let i = 0; i < DOCK.ticks - 2; i++) f.step();
+  f.step({ ...PUSH, moveY: 0, jump: true });
+  expect(f.step().dock?.hold).toEqual(f.pose);
+  f.drive.onDriverMounted(-123);
+  expect(f.drive.yaw).toBe(f.pose.yaw);
+  expect(f.step({ ...PUSH, jump: true }).depart).toBeDefined();
+  expect(f.drive.form).toBe("car");
 });
 
 it("keeps the snapped yaw when a parked driver's mount changes and boards from deck seat zero", () => {
@@ -788,34 +887,6 @@ it("restores each new standing item in every accepting standing slot", () => {
   );
 });
 
-it("retains items when a stowed entry shares a placed slot on restore", () => {
-  const entries = [
-    { slot: "wall_cabinet_rear", item: "potted_plant" },
-    { slot: "dashboard_center", item: "macrame_planter" },
-    { slot: "ceiling_hook", item: "potted_plant" },
-  ];
-  const drive = new CamperDrive(0, { dockDecor: JSON.stringify(entries) });
-  const restored = drive.decor();
-  const placed = restored.filter(
-    (e, i) =>
-      !restored
-        .slice(0, i)
-        .some((previous) => placeOf(previous.slot) === placeOf(e.slot)),
-  );
-  expect(restored).toHaveLength(3);
-  expect(new Set(placed.map((e) => e.slot)).size).toBe(placed.length);
-  expect(restored.map((e) => e.item).sort()).toEqual(
-    entries.map((e) => e.item).sort(),
-  );
-  const roundTrip = new CamperDrive(0, { dockDecor: JSON.stringify(restored) });
-  expect(
-    roundTrip
-      .decor()
-      .map((e) => e.item)
-      .sort(),
-  ).toEqual(entries.map((e) => e.item).sort());
-});
-
 it("stows dashboard items unchanged when clearance refuses them and the hook is taken", () => {
   const entries = [
     { slot: "dashboard_center", item: "macrame_planter" },
@@ -858,6 +929,8 @@ it("never loses a saved item when restoring (ADR 0103)", () => {
       const items = (list: readonly { item: string }[]) =>
         list.map((e) => e.item).sort();
       expect(items(d)).toEqual(items(parsed));
+      const roundTrip = new CamperDrive(0, { dockDecor: JSON.stringify(d) });
+      expect(items(roundTrip.decor())).toEqual(items(parsed));
       // A known slot keeps its entry unless an earlier entry took its place: its cell, or
       // its own end of a shelf board or the table (ADR 0107, 0108).
       for (const [i, e] of parsed.entries()) {
@@ -1248,29 +1321,6 @@ describe("shower-toilet (ADR 0094)", () => {
     const f = fixture();
     expect(f.drive.useShowerDoor(f.ctx.tick)).toBe(false);
     expect(f.drive.runShower()).toBe(false);
-  });
-
-  it("swings the shower door in ten bounded steps each way and leaves the entry door shut", () => {
-    const f = fixture();
-    f.park();
-    expect(f.drive.useShowerDoor(f.ctx.tick)).toBe(true);
-    for (const open of [true, false]) {
-      if (!open) expect(f.drive.useShowerDoor(f.ctx.tick)).toBe(true);
-      for (let tick = 1; tick <= 10; tick++) {
-        const out = f.step();
-        expect(out.commands).toContainEqual({
-          type: "setProperty",
-          name: "shower_door",
-          value: (open ? tick : 10 - tick) / 10,
-        });
-        expect(
-          out.dock?.cells
-            .filter((c) => c.block.type === "door")
-            .every((c) => c.block.type === "door" && c.block.open === false),
-        ).toBe(true);
-      }
-      expect(f.step().commands).toEqual([]);
-    }
   });
 
   it("runs the shower for exactly showerTicks ticks and starts over on a new tap", () => {

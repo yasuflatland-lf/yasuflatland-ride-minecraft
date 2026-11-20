@@ -19,7 +19,6 @@ import {
   fold,
   unfold,
 } from "../../../src/domain/resort/beachChair";
-import { asBeachChairId } from "../../../src/domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
 import type { Facing4 } from "../../../src/domain/shared/facing";
 import {
@@ -248,15 +247,6 @@ describe("folded table top", () => {
 });
 
 describe("form rules", () => {
-  it("folds a free chair and unfolds a clear table", () => {
-    expect(
-      fold({ form: "chair", occupied: false, somethingOnTop: false }),
-    ).toEqual({ ok: true, to: "table" });
-    expect(
-      unfold({ form: "table", occupied: false, somethingOnTop: false }),
-    ).toEqual({ ok: true, to: "chair" });
-  });
-
   it("fold and unfold undo each other and refuse for the stated reasons", () => {
     fc.assert(
       fc.property(stateArb, (s) => {
@@ -298,9 +288,5 @@ describe("form rules", () => {
 
   it("lists the menu choices in display order", () => {
     expect(CHAIR_MENU_CHOICES).toEqual(["lie_down", "fold"]);
-  });
-
-  it("brands chair ids without changing them", () => {
-    expect(asBeachChairId("abc")).toBe("abc");
   });
 });

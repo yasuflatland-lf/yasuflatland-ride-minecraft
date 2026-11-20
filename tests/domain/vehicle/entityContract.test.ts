@@ -2,8 +2,6 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import { PAINTS, paintEventName } from "../../../src/domain/shared/paint";
 import {
   commandsFor,
-  HEADLIGHTS_PROPERTY_NAME,
-  MONITOR_PROPERTY_NAME,
   type PropertyValue,
   type RestoredOf,
 } from "../../../src/domain/vehicle/entityContract";
@@ -13,10 +11,7 @@ import {
   TRANSFORMING_EVENTS,
   transformingProperties,
 } from "../../../src/domain/vehicle/motion/transformingEntity";
-import {
-  CORE_EVENT_PREFIXES,
-  CORE_PROPERTY_NAMES,
-} from "../../support/coreContract";
+import { CORE_EVENT_PREFIXES } from "../../support/coreContract";
 
 const TRACKS = {
   properties: { phase: { type: "int", range: [0, 2] } },
@@ -101,13 +96,6 @@ describe("entity contract types (ADR 0055)", () => {
 });
 
 describe("reserved core names (ADR 0055)", () => {
-  it("reserves the headlights and monitor properties", () => {
-    expect(CORE_PROPERTY_NAMES).toEqual([
-      HEADLIGHTS_PROPERTY_NAME,
-      MONITOR_PROPERTY_NAME,
-    ]);
-  });
-
   it.each(PAINTS)(
     "names the paint event of %s under a core prefix",
     (paint) => {

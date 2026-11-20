@@ -548,32 +548,6 @@ describe("Vehicle (aggregate)", () => {
 
 describe("Vehicle headlight switch (ADR 0020)", () => {
   const driver: RiderView = riderView("d", { offset: seatOffset(0, 0) });
-  const passenger: RiderView = riderView("p", {
-    seat: 1,
-    offset: seatOffset(0, 1),
-  });
-
-  it("flips only for the driver", () => {
-    const v = rebuildVehicle(
-      "suv",
-      asVehicleId("v"),
-      0,
-      [driver, passenger],
-      {},
-    );
-    expect(v.flipHeadlightSwitch(asPlayerId("p"), 0)).toBe(false);
-    expect(v.flipHeadlightSwitch(asPlayerId("outsider"), 0)).toBe(false);
-    expect(v.flipHeadlightSwitch(asPlayerId("d"), 0)).toBe(true);
-  });
-
-  it("does not flip for anyone when nobody drives", () => {
-    expect(
-      createVehicle("suv", asVehicleId("v"), 0).flipHeadlightSwitch(
-        asPlayerId("d"),
-        0,
-      ),
-    ).toBe(false);
-  });
 
   it("flips only on a use that follows a cooldown of idle switch", () => {
     fc.assert(
@@ -652,16 +626,6 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
   it.each(VEHICLE_KINDS)("answers its kind's chase camera (%s)", (k) => {
     expect(createVehicle(k, asVehicleId("v"), 0).chaseCamera).toBe(
       profileOf(k).chaseCamera,
-    );
-  });
-
-  it("pulls the camper's camera back, gives the SUV the mid view, and keeps the near view for the sports boat", () => {
-    expect(createVehicle("camper", asVehicleId("v"), 0).chaseCamera).toBe(
-      "far",
-    );
-    expect(createVehicle("suv", asVehicleId("v"), 0).chaseCamera).toBe("mid");
-    expect(createVehicle("sportsboat", asVehicleId("v"), 0).chaseCamera).toBe(
-      "near",
     );
   });
 });

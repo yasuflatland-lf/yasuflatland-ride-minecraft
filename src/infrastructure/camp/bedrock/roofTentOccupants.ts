@@ -17,7 +17,7 @@ import {
 import { forward, type Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
 import { readCeilingCells } from "../../shared/laidBlockLayer";
-import { playerById } from "../../shared/players";
+import { playerById, showActionBar } from "../../shared/players";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_EXIT_PROPERTY,
@@ -242,7 +242,7 @@ export class RoofTentOccupants {
   }
 
   showMessage(playerId: PlayerId, name: string): void {
-    playerById(playerId)?.onScreenDisplay.setActionBar({
+    showActionBar(playerId, {
       translate: messageKey(name),
     });
   }

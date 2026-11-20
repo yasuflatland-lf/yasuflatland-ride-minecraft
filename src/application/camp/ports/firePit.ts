@@ -2,8 +2,9 @@ import type { FirePitId } from "../../../domain/camp/firePit";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
+import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
-export interface FirePitWorld extends GroundCellsWorld {
+export interface FirePitWorld extends HitsLeftFeedback, GroundCellsWorld {
   hasFirePitNear(dimension: DimensionId, at: Vec3): boolean;
   spawnFirePit(dimension: DimensionId, at: Vec3, yaw: number): void;
   isCovered(id: FirePitId): boolean;
@@ -14,5 +15,4 @@ export interface FirePitWorld extends GroundCellsWorld {
   wearFlintAndSteel(player: PlayerId, slot: number): void;
   dropItem(id: FirePitId): void;
   removeFirePit(id: FirePitId): void;
-  showHitsLeft(player: PlayerId, hitsLeft: number): void;
 }

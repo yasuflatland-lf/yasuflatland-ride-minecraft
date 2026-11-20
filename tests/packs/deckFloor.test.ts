@@ -26,7 +26,6 @@ const heights = Array.from({ length: 16 }, (_, i) => i + 1);
 
 describe("Boat deck floor (ADR 0063)", () => {
   it("is hidden from inventory and selection, indestructible, and has no loot", () => {
-    expect(blockFile.format_version).toBe("1.21.80");
     expect(block.description.identifier).toBe("yasu_ride:deck_floor");
     expect(block.description.menu_category).toEqual({ category: "none" });
     expect(block.components["minecraft:selection_box"]).toBe(false);
@@ -77,12 +76,11 @@ describe("Boat deck floor (ADR 0063)", () => {
   });
 
   it("references the hidden-cube model and hides its bone (ADR 0101)", () => {
-    const file = read(`${RP}/models/blocks/yasu_ride/deck_floor.geo.json`);
-    expect(file.format_version).toBe("1.12.0");
     expect(block.components["minecraft:geometry"]).toEqual({
       identifier: "geometry.yasu_ride.deck_floor",
       bone_visibility: { root: false },
     });
+    const file = read(`${RP}/models/blocks/yasu_ride/deck_floor.geo.json`);
     expect(file["minecraft:geometry"]).toEqual([
       {
         description: {

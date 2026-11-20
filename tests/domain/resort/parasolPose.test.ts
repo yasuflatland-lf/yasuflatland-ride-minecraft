@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asParasolId } from "../../../src/domain/resort/ids";
 import {
   type ParasolPose,
   parasolCeilingCells,
@@ -164,31 +163,32 @@ describe("parasolPose", () => {
 });
 
 describe("tooCloseToOtherBase", () => {
-  const base = { x: 10, y: 64, z: 10 };
-
-  it("is true at distance 1 and false at distance 2", () => {
-    expect(tooCloseToOtherBase(base, [{ x: 11, y: 64, z: 11 }])).toBe(true);
-    expect(tooCloseToOtherBase(base, [{ x: 10, y: 64, z: 10 }])).toBe(true);
-    expect(tooCloseToOtherBase(base, [{ x: 12, y: 64, z: 10 }])).toBe(false);
-    expect(tooCloseToOtherBase(base, [{ x: 12, y: 64, z: 12 }])).toBe(false);
-  });
-
-  it("is false with no other base", () => {
-    expect(tooCloseToOtherBase(base, [])).toBe(false);
-  });
-
-  it("matches the Chebyshev distance for any pair", () => {
+  it("checks every nearby base against the Chebyshev distance threshold", () => {
+    const limit = PARASOL_SPEC.minBaseDistance;
+    const delta = fc.integer({ min: -2 * limit, max: 2 * limit });
+    const offsets = fc.array(fc.record({ x: delta, y: delta, z: delta }));
+    const origin = { x: 10, y: 64, z: 10 };
     fc.assert(
-      fc.property(cellArb, cellArb, (a, b) => {
-        const d = Math.max(
-          Math.abs(a.x - b.x),
-          Math.abs(a.y - b.y),
-          Math.abs(a.z - b.z),
-        );
-        expect(tooCloseToOtherBase(a, [b])).toBe(
-          d < PARASOL_SPEC.minBaseDistance,
+      fc.property(cellArb, offsets, (base, offsets) => {
+        const others = offsets.map(({ x, y, z }) => ({
+          x: base.x + x,
+          y: base.y + y,
+          z: base.z + z,
+        }));
+        expect(tooCloseToOtherBase(base, others)).toBe(
+          offsets.some(
+            ({ x, y, z }) =>
+              Math.max(Math.abs(x), Math.abs(y), Math.abs(z)) < limit,
+          ),
         );
       }),
+      {
+        examples: [
+          [origin, []],
+          [origin, [{ x: limit - 1, y: 0, z: 0 }]],
+          [origin, [{ x: limit, y: 0, z: 0 }]],
+        ],
+      },
     );
   });
 });
@@ -201,11 +201,5 @@ describe("parasolPoseAt", () => {
         expect(parasolPoseAt(placed.base, placed.yaw)).toEqual(placed);
       }),
     );
-  });
-});
-
-describe("asParasolId", () => {
-  it("returns its argument", () => {
-    expect(asParasolId("abc")).toBe("abc");
   });
 });

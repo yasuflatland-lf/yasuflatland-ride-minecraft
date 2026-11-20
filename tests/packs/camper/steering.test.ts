@@ -148,48 +148,70 @@ const minimum = (a: Box[], b: Box[]) => {
 };
 
 describe("camper steering clearances", () => {
-  it("clears the dash face by at least 1.5 px", () => {
-    // Approved face top and normal are measured independently of the builder.
-    const origin: Triple = [0, 35, -50.59285714285714];
-    const angle = (57.50556662216273 * Math.PI) / 180;
-    const normal: Triple = [0, Math.sin(angle), Math.cos(angle)];
-    expect(
-      Math.min(
-        ...rim.flatMap((b) =>
-          b.corners.map((p) => dot(subtract(p, origin), normal)),
+  it.each([
+    [
+      "dash face",
+      () => {
+        // Approved face top and normal are measured independently of the builder.
+        const origin: Triple = [0, 35, -50.59285714285714];
+        const angle = (57.50556662216273 * Math.PI) / 180;
+        const normal: Triple = [0, Math.sin(angle), Math.cos(angle)];
+        return Math.min(
+          ...rim.flatMap((box) =>
+            box.corners.map((point) => dot(subtract(point, origin), normal)),
+          ),
+        );
+      },
+      1.5,
+    ],
+    [
+      "seat cushion",
+      () => {
+        const seat = bone("seat_0");
+        const cushion = (seat.cubes ?? []).filter(
+          (cube) => (cube.origin[1] ?? 0) < 28,
+        );
+        return minimum(
+          rim,
+          cushion.map((cube) => prepare(cube, seat)),
+        );
+      },
+      1,
+    ],
+    [
+      "side wall",
+      () =>
+        Math.min(
+          ...rim.flatMap((box) => box.corners.map((point) => point[0] + 22.5)),
         ),
-      ),
-    ).toBeGreaterThanOrEqual(1.5);
-  });
-  it("clears the seat cushion by at least 1 px", () => {
-    const cushion = (bone("seat_0").cubes ?? []).filter(
-      (c) => (c.origin[1] ?? 0) < 28,
-    );
-    expect(
-      minimum(
-        rim,
-        cushion.map((c) => prepare(c, bone("seat_0"))),
-      ),
-    ).toBeGreaterThanOrEqual(1);
-  });
-  it("clears the side wall by at least 0.6 px", () => {
-    expect(
-      Math.min(...rim.flatMap((b) => b.corners.map((p) => p[0] + 22.5))),
-    ).toBeGreaterThanOrEqual(0.6);
-  });
-  it("clears the lever from the wheel and dash by at least 0.3 px", () => {
+      0.6,
+    ],
+    [
+      "lever to wheel",
+      () =>
+        minimum(
+          lever(),
+          (wheel.cubes ?? []).map((cube) => prepare(cube, wheel)),
+        ),
+      0.3,
+    ],
+    [
+      "lever to dash",
+      () =>
+        minimum(
+          lever(),
+          area("cab").map((cube) => prepare(cube)),
+        ),
+      0.3,
+    ],
+  ] as const)(
+    "keeps the %s clearance at or above its minimum",
+    (_name, measure, min) => {
+      expect(measure()).toBeGreaterThanOrEqual(min);
+    },
+  );
+
+  it("keeps all thirty steering lever cubes", () => {
     expect(lever()).toHaveLength(30);
-    expect(
-      minimum(
-        lever(),
-        (wheel.cubes ?? []).map((c) => prepare(c, wheel)),
-      ),
-    ).toBeGreaterThanOrEqual(0.3);
-    expect(
-      minimum(
-        lever(),
-        area("cab").map((c) => prepare(c)),
-      ),
-    ).toBeGreaterThanOrEqual(0.3);
   });
 });

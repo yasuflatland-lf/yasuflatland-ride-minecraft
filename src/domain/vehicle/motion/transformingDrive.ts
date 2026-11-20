@@ -16,6 +16,7 @@ import {
   climbInput,
   type Form,
   type FormState,
+  forgetTap,
   initialForm,
   isDry,
   isForm,
@@ -181,7 +182,17 @@ export interface TransformingOptions {
   readonly guard?: StepGuard;
 }
 
+/** Readings the last step derived from its raw input and sensors. */
+interface StepReadings {
+  readonly input: GroundInput;
+  readonly waterDepth: number;
+}
+
 export class TransformingDrive implements Drive {
+  private stepReadings: StepReadings = {
+    input: groundInputFor(undefined, "car"),
+    waterDepth: 0,
+  };
   private motion: MotionState;
   private formState: FormState;
   private readonly formSync: SyncedValue<Form>;
@@ -225,6 +236,16 @@ export class TransformingDrive implements Drive {
     return this.formState.form;
   }
 
+  /** The readings of the current or last step; neutral input and 0 before the first step. */
+  protected get readings(): StepReadings {
+    return this.stepReadings;
+  }
+
+  /** The body bank in degrees after the last step (ADR 0026). */
+  protected get bankAngle(): number {
+    return this.bank;
+  }
+
   /**
    * A read-only snapshot of state the engine never reads back, for unit tests
    * only. Production code must not call it. Kinds may extend the snapshot.
@@ -252,6 +273,12 @@ export class TransformingDrive implements Drive {
   }
 
   onDriverMounted(driverYaw: number): void {
+    this.formState = forgetTap(this.formState);
+    this.alignToDriver(driverYaw);
+  }
+
+  /** Turns the drive to a newly mounted driver's view; kinds that hold their heading override this. */
+  protected alignToDriver(driverYaw: number): void {
     this.motion = alignOnMount(this.motion, driverYaw);
   }
 
@@ -280,6 +307,7 @@ export class TransformingDrive implements Drive {
     const jumpTapped = (raw?.jump ?? false) && !this.formState.jumpHeld;
     const form = this.advanceForm(raw, ctx, controlled, waterDepth);
     const input = this.inputFor(raw, form);
+    this.stepReadings = { input, waterDepth };
     const yawBefore = this.motion.yaw;
     const step = this.moveHorizontally(
       input,

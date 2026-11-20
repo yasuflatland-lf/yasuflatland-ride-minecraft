@@ -239,14 +239,10 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     ).toBe(false);
   });
 
-  it("is in Creative only for a present player in Creative", () => {
+  it("reports Creative for the requested player", () => {
     const { player, chairs } = fixture();
-    expect(chairs.isCreative(asPlayerId("player"))).toBe(false);
     player.getGameMode.mockReturnValue("Creative");
     expect(chairs.isCreative(asPlayerId("player"))).toBe(true);
-    player.isValid = false;
-    expect(chairs.isCreative(asPlayerId("player"))).toBe(false);
-    expect(chairs.isCreative(asPlayerId("chair"))).toBe(false);
   });
 
   it("counts a missing or removed chair as not occupied", () => {

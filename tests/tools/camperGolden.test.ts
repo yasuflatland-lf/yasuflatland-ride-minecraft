@@ -39,6 +39,7 @@ const cube = {
 };
 type Change =
   | "none"
+  | "moved"
   | "counts"
   | "origin"
   | "size"
@@ -48,8 +49,12 @@ type Change =
   | "steering";
 
 describe("camper golden comparison", () => {
-  it("returns zero for matching counts and region sizes and origins", () =>
+  it("returns zero for matching cubes and region sizes and origins", () =>
     compare("none"));
+  it("reports a moved cube in the selected area", () =>
+    compare("moved", "shell"));
+  it("ignores a moved cube outside the selected area", () =>
+    compare("moved", "cab"));
   it.each(["counts", "origin", "size", "extra"] as const)(
     "returns one with a diff for changed %s",
     (change) => compare(change),
@@ -116,13 +121,11 @@ LAYOUT = load_tool('region_atlas').pack(REGISTRY)
     );
     writeFileSync(
       join(fixtures, "camper-areas.json"),
-      JSON.stringify({
-        shell: { body: [0, 0] },
-        cab: { steering: [0, 0] },
-        ...(change === "steering"
+      JSON.stringify(
+        change === "steering"
           ? { steering: { body: [0, 1], steering: [0, 0] } }
-          : {}),
-      }),
+          : { shell: { body: [0, 0] }, cab: { steering: [0, 0] } },
+      ),
     );
     writeFileSync(
       join(golden, "final-model.json.gz"),
@@ -135,6 +138,7 @@ LAYOUT = load_tool('region_atlas').pack(REGISTRY)
                 { length: ["counts", "steering"].includes(change) ? 2 : 1 },
                 (_, index) => ({
                   ...cube,
+                  origin: change === "moved" ? [1, 0, 0] : cube.origin,
                   _area:
                     change === "steering"
                       ? index === 0
@@ -222,18 +226,17 @@ LAYOUT = load_tool('region_atlas').pack(REGISTRY)
       expect(result.stdout).toContain("Unknown area: missing");
     } else if (
       !["none", "steering"].includes(change) &&
-      !(area === "cab" && ["counts", "extra"].includes(change))
+      !(area === "cab" && ["counts", "extra", "moved"].includes(change))
     ) {
       expect(result.status).toBe(1);
-      expect(result.stdout).toContain(
-        change === "counts" || change === "deleted"
-          ? "body"
-          : change === "labels"
-            ? "steering"
-            : change === "extra"
-              ? "extra"
-              : "base",
-      );
+      const markers: Partial<Record<Change, string>> = {
+        moved: "-shell body [[1, 0, 0]",
+        counts: "body",
+        deleted: "body",
+        labels: "steering",
+        extra: "extra",
+      };
+      expect(result.stdout).toContain(markers[change] ?? "base");
       expect(result.stdout).toContain("--- golden");
       expect(result.stdout).toContain("+++ current");
     } else {

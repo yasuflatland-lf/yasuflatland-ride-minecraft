@@ -66,16 +66,26 @@ import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInp
 import { FakeClock, FakeWorld } from "../../../application/vehicle/fakes";
 import { defined } from "../../../support/defined";
 
-function registerSubscriptions(
-  useCases: Parameters<typeof registerCoreSubscriptions>[0] &
-    Parameters<typeof installCamper>[0],
-  testInputs: VehicleTestStore<RawInput>,
-  testHeldItems: VehicleTestStore<string>,
-  doorOwner: Parameters<typeof installCamper>[1],
-  cellOwner: Parameters<typeof installCamper>[2],
-  blockOwner: Parameters<typeof registerDockGuard>[0],
-  laterSwitchTargets: () => readonly SwitchTarget[],
-): void {
+type UseCases = Parameters<typeof registerCoreSubscriptions>[0] &
+  Parameters<typeof installCamper>[0];
+
+function register({
+  useCases = {} as UseCases,
+  testInputs = new VehicleTestStore<RawInput>(),
+  testHeldItems = new VehicleTestStore<string>(),
+  doorOwner = () => undefined,
+  cellOwner = () => undefined,
+  blockOwner = () => undefined,
+  laterSwitchTargets = () => [],
+}: {
+  useCases?: UseCases;
+  testInputs?: VehicleTestStore<RawInput>;
+  testHeldItems?: VehicleTestStore<string>;
+  doorOwner?: Parameters<typeof installCamper>[1];
+  cellOwner?: Parameters<typeof installCamper>[2];
+  blockOwner?: Parameters<typeof registerDockGuard>[0];
+  laterSwitchTargets?: () => readonly SwitchTarget[];
+} = {}): void {
   registerCoreSubscriptions(
     useCases,
     testInputs,
@@ -213,17 +223,9 @@ function fixture(
   const headlights = { execute: vi.fn() };
   const ceilingLights = { execute: vi.fn() };
   const usesBefore = game.use.mock.calls.length;
-  registerSubscriptions(
-    { place, headlights, ceilingLights } as unknown as Parameters<
-      typeof registerSubscriptions
-    >[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { place, headlights, ceilingLights } as unknown as UseCases,
+  });
   // Placement subscribes to block interactions last.
   const before = game.before.mock.calls.at(-1)?.[0];
   const uses = game.use.mock.calls
@@ -483,15 +485,9 @@ it("leaves the headlights alone when the switch is used without riding a vehicle
 it("paints a hit vehicle with a held dye and otherwise damages it, ignoring other hits", () => {
   const hit = { execute: vi.fn() };
   const paint = { execute: vi.fn() };
-  registerSubscriptions(
-    { hit, paint } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { hit, paint } as unknown as UseCases,
+  });
   const onHit = vi
     .mocked(world.afterEvents.entityHitEntity.subscribe)
     .mock.calls.at(-1)?.[0];
@@ -598,17 +594,11 @@ function lightSwitchFixture(
     world.beforeEvents.playerInteractWithEntity.subscribe,
   );
   const entityPressesBefore = entityPresses.mock.calls.length;
-  registerSubscriptions(
-    { headlights, ceilingLights, board } as unknown as Parameters<
-      typeof registerSubscriptions
-    >[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    (_, cell) => owner(cell),
-    () => undefined,
+  register({
+    useCases: { headlights, ceilingLights, board } as unknown as UseCases,
+    cellOwner: (_, cell) => owner(cell),
     laterSwitchTargets,
-  );
+  });
   // Decor, gifts, the switch, then placement subscribe to block presses.
   const onBlock = defined(game.before.mock.calls.at(-2)?.[0], "block press");
   // The stand-ins, then the switch subscribe to entity presses (ADR 0115, 0116).
@@ -860,15 +850,9 @@ it("leaves block and vehicle presses alone on a dock cell from which the switch 
 
 it("removes an orphan deck seat that loads with a chunk, but not one that is just spawned", () => {
   const limit = { start: vi.fn(), found: vi.fn(), spawned: vi.fn() };
-  registerSubscriptions(
-    { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { limit } as unknown as UseCases,
+  });
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
     .mock.calls.at(-1)?.[0];
@@ -900,15 +884,9 @@ it("removes an orphan deck seat that loads with a chunk, but not one that is jus
 
 it("passes fleet metadata on spawn and load and skips invalid or unrelated entities", () => {
   const limit = { start: vi.fn(), found: vi.fn(), spawned: vi.fn() };
-  registerSubscriptions(
-    { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { limit } as unknown as UseCases,
+  });
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
     .mock.calls.at(-1)?.[0];
@@ -945,15 +923,9 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
 
 it("forgets a removed vehicle by the chunk at its location, and passes vehicle deaths (ADR 0125)", () => {
   const limit = { start: vi.fn(), removed: vi.fn(), died: vi.fn() };
-  registerSubscriptions(
-    { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { limit } as unknown as UseCases,
+  });
   const remove = vi
     .mocked(world.beforeEvents.entityRemove.subscribe)
     .mock.calls.at(-1)?.[0];
@@ -996,15 +968,9 @@ it("cancels a player's break only of a block a held vehicle laid (ADR 0096)", ()
     vi.fn<
       (dimensionId: string, cell: At, typeId: string) => VehicleId | undefined
     >();
-  registerSubscriptions(
-    {} as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    owner,
-    () => [],
-  );
+  register({
+    blockOwner: owner,
+  });
   const handler = game.breakBlock.mock.calls.at(-1)?.[0];
   if (!handler) throw new Error("playerBreakBlock not subscribed");
   // Registration itself schedules work through system.run; only the guard is checked.
@@ -1035,15 +1001,10 @@ it("registers door interactions during startup and dispatches only owned doors",
   const door = { execute: vi.fn() };
   const owner =
     vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>();
-  registerSubscriptions(
-    { door } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    owner,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { door } as unknown as UseCases,
+    doorOwner: owner,
+  });
   const startups = game.startup.mock.calls.slice(before);
   if (startups.length === 0)
     throw new Error("startup not subscribed synchronously");
@@ -1073,15 +1034,10 @@ it("registers door interactions during startup and dispatches only owned doors",
 it("registers bed interactions during startup and passes the player, dimension, and cell (ADR 0092)", () => {
   const before = game.startup.mock.calls.length;
   const bed = { execute: vi.fn() };
-  registerSubscriptions(
-    { bed } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    vi.fn(),
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { bed } as unknown as UseCases,
+    doorOwner: vi.fn(),
+  });
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
   for (const [startup] of game.startup.mock.calls.slice(before)) {
@@ -1125,17 +1081,11 @@ it("resolves an owned camper bed press to its spawn cell (ADR 0182)", () => {
   const bedSpawnCell = { execute: vi.fn(() => spawn) };
   const owner = asVehicleId("camper");
   const dockCellOwner = vi.fn(() => owner);
-  registerSubscriptions(
-    { bed, bedSpawnCell } as unknown as Parameters<
-      typeof registerSubscriptions
-    >[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    vi.fn(),
-    dockCellOwner,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { bed, bedSpawnCell } as unknown as UseCases,
+    doorOwner: vi.fn(),
+    cellOwner: dockCellOwner,
+  });
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
   for (const [startup] of game.startup.mock.calls.slice(before)) {
@@ -1177,15 +1127,10 @@ it("registers shower-toilet presses during startup and sends an empty hand's pre
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
     () => asVehicleId("camper"),
   );
-  registerSubscriptions(
-    { showerToilet } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    owner,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { showerToilet } as unknown as UseCases,
+    cellOwner: owner,
+  });
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
   for (const [startup] of game.startup.mock.calls.slice(before))
@@ -1250,15 +1195,9 @@ it("registers shower-toilet presses during startup and sends an empty hand's pre
 it("checks the hints every hint interval, after the drive on the same tick (ADR 0086)", () => {
   const drive = { execute: vi.fn() };
   const hints = { execute: vi.fn() };
-  registerSubscriptions(
-    { drive, hints } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { drive, hints } as unknown as UseCases,
+  });
   const intervals = vi.mocked(system.runInterval).mock.calls;
   expect(intervals.map(([, ticks]) => ticks)).toEqual([
     1,
@@ -1274,15 +1213,9 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
 
 it("gives the starter vehicle only on a player's initial spawn", () => {
   const starter = { execute: vi.fn() };
-  registerSubscriptions(
-    { starter } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { starter } as unknown as UseCases,
+  });
   const spawn = vi
     .mocked(world.afterEvents.playerSpawn.subscribe)
     .mock.calls.at(-1)?.[0];
@@ -1294,140 +1227,110 @@ it("gives the starter vehicle only on a player's initial spawn", () => {
   expect(starter.execute).toHaveBeenCalledExactlyOnceWith("player");
 });
 
-it("stores and clears test input only from server script events", () => {
-  const inputs = new VehicleTestStore<RawInput>();
-  registerSubscriptions(
-    {} as unknown as Parameters<typeof registerSubscriptions>[0],
-    inputs,
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
-  const receive = vi
-    .mocked(system.afterEvents.scriptEventReceive.subscribe)
-    .mock.calls.at(-2)?.[0];
-  if (!receive) throw new Error("scriptEventReceive not subscribed");
-  const send = (
-    message: string,
-    sourceType = "Server",
-    id = TEST_INPUT_EVENT,
-  ) =>
-    receive({
-      id,
-      message,
-      sourceType,
-    } as unknown as ScriptEventCommandMessageAfterEvent);
-  send("suv,1,0,1", "Entity");
-  send("suv,1,0,1", "Server", "minecraft:other");
-  expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
-  send("suv,1,-1,1");
-  expect(inputs.get(asVehicleId("suv"))).toEqual({
-    moveX: 1,
-    moveY: -1,
-    jump: true,
-  });
-  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-  send("suv,bad");
-  expect(warn).toHaveBeenCalledOnce();
-  warn.mockRestore();
-  expect(inputs.get(asVehicleId("suv"))).toEqual({
-    moveX: 1,
-    moveY: -1,
-    jump: true,
-  });
-  send("suv,clear");
-  expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
-});
-
-it("sets the tool only from server test tool script events (ADR 0138)", () => {
-  const tool = { force: vi.fn() };
-  registerSubscriptions(
-    { tool } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
-  const receive = vi
-    .mocked(system.afterEvents.scriptEventReceive.subscribe)
-    .mock.calls.at(-4)?.[0];
-  if (!receive) throw new Error("scriptEventReceive not subscribed");
-  const send = (message: string, sourceType = "Server", id = TEST_TOOL_EVENT) =>
-    receive({
-      id,
-      message,
-      sourceType,
-    } as unknown as ScriptEventCommandMessageAfterEvent);
-  send("car,blade_switch,up", "Entity");
-  send("car,blade_switch,up", "Server", "minecraft:other");
-  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-  send("car,bad");
-  expect(warn).toHaveBeenCalledOnce();
-  warn.mockRestore();
-  expect(tool.force).not.toHaveBeenCalled();
-  send("car,blade_switch,up");
-  expect(tool.force).toHaveBeenCalledExactlyOnceWith({
-    vehicleId: "car",
-    item: "blade_switch",
-    state: "up",
-  });
-  send("car,blade_switch,down");
-  expect(tool.force).toHaveBeenLastCalledWith({
-    vehicleId: "car",
-    item: "blade_switch",
-    state: "down",
-  });
-});
-
-it("sets decor only from server test decor script events (ADR 0093)", () => {
-  const decor = { execute: vi.fn() };
-  registerSubscriptions(
-    { decor } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
-  const receive = vi
-    .mocked(system.afterEvents.scriptEventReceive.subscribe)
-    .mock.calls.at(-3)?.[0];
-  if (!receive) throw new Error("scriptEventReceive not subscribed");
-  const send = (
-    message: string,
-    sourceType = "Server",
-    id = TEST_DECOR_EVENT,
-  ) =>
-    receive({
-      id,
-      message,
-      sourceType,
-    } as unknown as ScriptEventCommandMessageAfterEvent);
-  send("car,table,potted_plant", "Entity");
-  send("car,table,potted_plant", "Server", "minecraft:other");
-  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-  send("car,bad");
-  expect(warn).toHaveBeenCalledOnce();
-  warn.mockRestore();
-  expect(decor.execute).not.toHaveBeenCalled();
-  send("car,table,potted_plant");
-  expect(decor.execute).toHaveBeenCalledExactlyOnceWith({
-    vehicleId: "car",
-    slot: "table",
-    item: "potted_plant",
-  });
-  send("car,table,clear");
-  expect(decor.execute).toHaveBeenLastCalledWith({
-    vehicleId: "car",
-    slot: "table",
-    item: undefined,
-  });
-});
+it.each([
+  {
+    eventId: TEST_INPUT_EVENT,
+    target: "input",
+    message: "car,1,-1,1",
+    expected: { moveX: 1, moveY: -1, jump: true },
+    invalid: "car,bad",
+    next: "car,clear",
+    nextExpected: undefined,
+  },
+  {
+    eventId: TEST_TOOL_EVENT,
+    target: "tool",
+    message: "car,blade_switch,up",
+    expected: { vehicleId: "car", item: "blade_switch", state: "up" },
+    invalid: "car,bad",
+    next: "car,blade_switch,down",
+    nextExpected: { vehicleId: "car", item: "blade_switch", state: "down" },
+  },
+  {
+    eventId: TEST_DECOR_EVENT,
+    target: "decor",
+    message: "car,table,potted_plant",
+    expected: { vehicleId: "car", slot: "table", item: "potted_plant" },
+    invalid: "car,bad",
+    next: "car,table,clear",
+    nextExpected: { vehicleId: "car", slot: "table", item: undefined },
+  },
+  {
+    eventId: TEST_HELD_ITEM_EVENT,
+    target: "held",
+    message: "car,yasu_ride:blade_switch",
+    expected: "yasu_ride:blade_switch",
+    invalid: "car,",
+    next: "car,clear",
+    nextExpected: undefined,
+  },
+] as const)(
+  "dispatches $eventId only from valid server events",
+  ({ eventId, target, message, expected, invalid, next, nextExpected }) => {
+    const testInputs = new VehicleTestStore<RawInput>();
+    const testHeldItems = new VehicleTestStore<string>();
+    const tool = { force: vi.fn() };
+    const decor = { execute: vi.fn() };
+    const subscriptions = vi.mocked(
+      system.afterEvents.scriptEventReceive.subscribe,
+    ).mock.calls;
+    const firstNew = subscriptions.length;
+    register({
+      useCases: { tool, decor } as unknown as UseCases,
+      testInputs,
+      testHeldItems,
+    });
+    const added = subscriptions.slice(firstNew);
+    const id = asVehicleId("car");
+    const read = () =>
+      ({
+        input: testInputs.get(id),
+        held: testHeldItems.get(id),
+        tool: tool.force.mock.lastCall?.[0],
+        decor: decor.execute.mock.lastCall?.[0],
+      })[target];
+    const expectCalls = (count: number) => {
+      expect(tool.force).toHaveBeenCalledTimes(target === "tool" ? count : 0);
+      expect(decor.execute).toHaveBeenCalledTimes(
+        target === "decor" ? count : 0,
+      );
+    };
+    const send = (
+      text: string,
+      sourceType = "Server",
+      id = eventId as string,
+    ) => {
+      for (const [receive] of added) {
+        receive({
+          id,
+          message: text,
+          sourceType,
+        } as unknown as ScriptEventCommandMessageAfterEvent);
+      }
+    };
+    if (target === "held")
+      expect(added.at(-1)?.[1]).toEqual({ namespaces: ["yasu_ride"] });
+    send(message, "Entity");
+    send(message, "Server", "minecraft:other");
+    expect(read()).toBeUndefined();
+    expectCalls(0);
+    send(message);
+    expect(read()).toEqual(expected);
+    expectCalls(1);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      send(invalid);
+      expect(warn).toHaveBeenCalledOnce();
+    } finally {
+      warn.mockRestore();
+    }
+    expect(read()).toEqual(expected);
+    expectCalls(1);
+    send(next);
+    expect(read()).toEqual(nextExpected);
+    expectCalls(2);
+  },
+);
 
 function decorFixture() {
   const storage = { execute: vi.fn(), drawerTarget: vi.fn() };
@@ -1438,17 +1341,10 @@ function decorFixture() {
   );
   const before = game.before.mock.calls.length;
   const startupsBefore = game.startup.mock.calls.length;
-  registerSubscriptions(
-    { placeDecor, removeDecor, storage } as unknown as Parameters<
-      typeof registerSubscriptions
-    >[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    owner,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { placeDecor, removeDecor, storage } as unknown as UseCases,
+    cellOwner: owner,
+  });
   // registerDecor subscribes first.
   const handler = defined(game.before.mock.calls[before], "decor handler")[0];
   game.run.mockClear();
@@ -1770,17 +1666,10 @@ it("sends an empty-hand press on the wall cabinet, with the pressed point, to th
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
     () => asVehicleId("car"),
   );
-  registerSubscriptions(
-    { storage: cabinet } as unknown as Parameters<
-      typeof registerSubscriptions
-    >[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    owner,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { storage: cabinet } as unknown as UseCases,
+    cellOwner: owner,
+  });
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
   for (const [startup] of game.startup.mock.calls.slice(before))
@@ -1836,17 +1725,9 @@ it("sends an empty-hand press on the wall cabinet, with the pressed point, to th
 function registerGiftFixture() {
   const gift = { execute: vi.fn() };
   const headlights = { execute: vi.fn() };
-  registerSubscriptions(
-    { gift, headlights } as unknown as Parameters<
-      typeof registerSubscriptions
-    >[0],
-    new VehicleTestStore<RawInput>(),
-    new VehicleTestStore<string>(),
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
+  register({
+    useCases: { gift, headlights } as unknown as UseCases,
+  });
   return gift;
 }
 
@@ -1959,15 +1840,9 @@ describe("camper bumper stand-in (ADR 0116)", () => {
   }
 
   function subscribe(useCases: object) {
-    registerSubscriptions(
-      useCases as Parameters<typeof registerSubscriptions>[0],
-      new VehicleTestStore<RawInput>(),
-      new VehicleTestStore<string>(),
-      () => undefined,
-      () => undefined,
-      () => undefined,
-      () => [],
-    );
+    register({
+      useCases: useCases as UseCases,
+    });
   }
 
   it("passes a hit or a dye on the stand-in to its camper, and drops one whose camper is gone", () => {
@@ -2216,20 +2091,15 @@ describe("monitor tool switch (ADR 0171)", () => {
       world.beforeEvents.playerInteractWithEntity.subscribe,
     );
     const entitiesBefore = entities.mock.calls.length;
-    registerSubscriptions(
-      {
+    register({
+      useCases: {
         tool,
         headlights,
         ceilingLights,
         board: { execute: vi.fn(() => false) },
-      } as unknown as Parameters<typeof registerSubscriptions>[0],
-      new VehicleTestStore<RawInput>(),
-      new VehicleTestStore<string>(),
-      () => undefined,
-      () => undefined,
-      () => undefined,
-      () => [later],
-    );
+      } as unknown as UseCases,
+      laterSwitchTargets: () => [later],
+    });
     const onBlock = defined(game.before.mock.calls.at(-2)?.[0], "block press");
     const onEntity = entities.mock.calls.slice(entitiesBefore).map(([h]) => h);
     const uses = game.use.mock.calls.slice(usesBefore).map(([h]) => h);
@@ -2388,47 +2258,6 @@ describe("monitor tool switch (ADR 0171)", () => {
       }),
     );
   });
-});
-
-it("stores and clears held items only from server script events", () => {
-  const testHeldItems = new VehicleTestStore<string>();
-  registerSubscriptions(
-    {} as unknown as Parameters<typeof registerSubscriptions>[0],
-    new VehicleTestStore<RawInput>(),
-    testHeldItems,
-    () => undefined,
-    () => undefined,
-    () => undefined,
-    () => [],
-  );
-  const subscription = vi
-    .mocked(system.afterEvents.scriptEventReceive.subscribe)
-    .mock.calls.at(-1);
-  if (!subscription) throw new Error("scriptEventReceive not subscribed");
-  const [receive, options] = subscription;
-  expect(options).toEqual({ namespaces: ["yasu_ride"] });
-  const send = (
-    message: string,
-    sourceType = "Server",
-    id = TEST_HELD_ITEM_EVENT,
-  ) =>
-    receive({
-      id,
-      message,
-      sourceType,
-    } as unknown as ScriptEventCommandMessageAfterEvent);
-  send("car,yasu_ride:blade_switch", "Entity");
-  send("car,yasu_ride:blade_switch", "Server", "minecraft:other");
-  expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
-  send("car,yasu_ride:blade_switch");
-  expect(testHeldItems.get(asVehicleId("car"))).toBe("yasu_ride:blade_switch");
-  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-  send("car,");
-  expect(warn).toHaveBeenCalledOnce();
-  warn.mockRestore();
-  expect(testHeldItems.get(asVehicleId("car"))).toBe("yasu_ride:blade_switch");
-  send("car,clear");
-  expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
 });
 
 it("routes corrected touch floor side-face points through the drawer ray", () => {

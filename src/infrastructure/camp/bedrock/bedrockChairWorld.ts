@@ -7,7 +7,12 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
-import { consumeHeld, isCreative, playerById } from "../../shared/players";
+import {
+  consumeHeld,
+  isCreative,
+  playerById,
+  showHitsLeftHint,
+} from "../../shared/players";
 import { CHAIR_KIND_BY_TYPE, CHAIR_KINDS } from "../identifiers";
 
 // A chair spawns at the bottom of its cell and may settle up to a block lower,
@@ -121,9 +126,6 @@ export class BedrockChairWorld implements ChairWorld {
   }
 
   showHitsLeft(kind: ChairKindId, playerId: PlayerId, hitsLeft: number): void {
-    playerById(playerId)?.onScreenDisplay.setActionBar({
-      translate: CHAIR_KINDS[kind].hitsHint,
-      with: [String(hitsLeft)],
-    });
+    showHitsLeftHint(playerId, CHAIR_KINDS[kind].hitsHint, hitsLeft);
   }
 }

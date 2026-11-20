@@ -11,12 +11,6 @@ import {
   type UndoHistory,
   withEntry,
 } from "../../../src/domain/build/history/history";
-import {
-  type BuildMode,
-  MODE_OFF,
-  type ModeInput,
-  stepMode,
-} from "../../../src/domain/build/mode";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
@@ -50,8 +44,6 @@ const snapshotAt = (n: number): UndoEntry => ({
     handle: handleOf(n),
   },
 });
-const run = (inputs: ModeInput[], from = MODE_OFF) =>
-  inputs.reduce<BuildMode>(stepMode, from);
 
 describe("undo history", () => {
   it("never exceeds depth and keeps the newest records in order", () => {
@@ -170,48 +162,54 @@ describe("undo history", () => {
 });
 
 describe("build mode", () => {
-  it("does not turn on before modeEnterTicks of holding", () => {
+  it("enters and leaves build mode after consecutive inputs and reports each transition once", () => {
+    const { modeEnterTicks, modeLeaveTicks } = BUILD_SPEC;
+    const runLength = fc.integer({
+      min: 1,
+      max: 2 * Math.max(modeEnterTicks, modeLeaveTicks),
+    });
     fc.assert(
       fc.property(
-        fc.integer({ min: 0, max: BUILD_SPEC.modeEnterTicks - 1 }),
-        (n) => {
-          const held = { holding: true };
-          expect(run(Array(n).fill(held)).active).toBe(false);
-          expect(run(Array(BUILD_SPEC.modeEnterTicks).fill(held)).active).toBe(
-            true,
+        fc.array(fc.tuple(fc.boolean(), runLength), {
+          minLength: 1,
+          maxLength: 20,
+        }),
+        (runs) => {
+          const inputs = runs.flatMap(([holding, length]) =>
+            Array<boolean>(length).fill(holding),
           );
+          const session = new BuildSession(asPlayerId("p1"));
+          let active = false;
+          for (const [tick, holding] of inputs.entries()) {
+            const before = active;
+            const threshold = active ? modeLeaveTicks : modeEnterTicks;
+            const recent = inputs.slice(
+              Math.max(0, tick + 1 - threshold),
+              tick + 1,
+            );
+            if (
+              holding !== active &&
+              recent.length === threshold &&
+              recent.every((input) => input === holding)
+            )
+              active = holding;
+            expect(session.tickMode({ holding })).toBe(before !== active);
+            expect(session.isInBuildMode).toBe(active);
+          }
         },
       ),
+      {
+        examples: [
+          [
+            [
+              [true, modeEnterTicks],
+              [false, modeLeaveTicks],
+              [true, modeEnterTicks],
+            ],
+          ],
+        ],
+      },
     );
-  });
-
-  it("stays on through a hotbar flick shorter than modeLeaveTicks", () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: BUILD_SPEC.modeLeaveTicks - 1 }),
-        (flick) => {
-          const on = run(
-            Array(BUILD_SPEC.modeEnterTicks).fill({
-              holding: true,
-            }),
-          );
-          const after = run(
-            [...Array(flick).fill({ holding: false }), { holding: true }],
-            on,
-          );
-          expect(after.active).toBe(true);
-        },
-      ),
-    );
-  });
-
-  it("turns off after modeLeaveTicks without holding", () => {
-    const on = run(Array(BUILD_SPEC.modeEnterTicks).fill({ holding: true }));
-    const off = run(
-      Array(BUILD_SPEC.modeLeaveTicks).fill({ holding: false }),
-      on,
-    );
-    expect(off.active).toBe(false);
   });
 });
 
@@ -251,16 +249,6 @@ describe("BuildSession", () => {
       expect(undoRecord(s.takeUndo())).toBe("nothingToUndo");
     },
   );
-
-  it("reports when build mode turns on", () => {
-    const s = session();
-    const input = { holding: true };
-    const flips = Array.from({ length: BUILD_SPEC.modeEnterTicks }, () =>
-      s.tickMode(input),
-    );
-    expect(flips.filter(Boolean)).toHaveLength(1);
-    expect(s.isInBuildMode).toBe(true);
-  });
 });
 
 const coordinate = fc.integer({ min: -10, max: 10 });

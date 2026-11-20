@@ -30,16 +30,17 @@ describe("FoldRoofTent", () => {
             };
             expect(fold.execute(cmd)).toBe(index === hits - 1);
             if (index < hits - 1 && withPlayer)
-              expect(world.showMessage).toHaveBeenLastCalledWith(
+              expect(world.showHitsLeft).toHaveBeenLastCalledWith(
                 PLAYER,
-                `hits_left:${hits - index - 1}`,
+                hits - index - 1,
               );
           });
+          expect(world.showRefusal).not.toHaveBeenCalled();
           expect(world.calls).toEqual([
             `return:tent:${withPlayer ? PLAYER : "drop"}`,
             "remove:tent",
           ]);
-          expect(world.showMessage).toHaveBeenCalledTimes(
+          expect(world.showHitsLeft).toHaveBeenCalledTimes(
             withPlayer ? hits - 1 : 0,
           );
         },

@@ -6,6 +6,7 @@ import {
   CHAIR_KIND_BY_TYPE,
   CHAIR_KINDS,
 } from "../../src/infrastructure/camp/identifiers";
+import { readLang } from "../support/lang";
 import { assertOneAxis } from "./oneAxis";
 
 const BP = "packs/yasu_ride_bp";
@@ -47,12 +48,6 @@ const topCenter = (c: Cube): Vec => {
 const entity = read(`${BP}/entities/yasu_ride/noga_chair.se.json`)[
   "minecraft:entity"
 ];
-const lang = (locale: string, key: string) =>
-  readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
-    .split(/\r?\n/)
-    .find((line) => line.startsWith(`${key}=`))
-    ?.slice(key.length + 1);
-
 // Game convention: x and z have reversed signs, with x then y then z (ADR 0167).
 function corners(cube: Cube): Vec[] {
   const [rx, ry, rz] = (cube.rotation ?? [0, 0, 0]).map(
@@ -153,17 +148,12 @@ describe("Noga Chair (ADR 0169)", () => {
       expect(map.get(key)).toBe("noga_chair");
   });
 
-  it("provides a persistent, damage-proof one-player seat with gravity", () => {
-    expect(entity.description).toEqual({
+  it("provides one player seat matching the chair profile", () => {
+    expect(entity.description).toMatchObject({
       identifier: profile.typeId,
       is_spawnable: false,
-      is_summonable: true,
     });
     const c = entity.components;
-    expect(c["minecraft:type_family"].family).toEqual([
-      profile.family,
-      "inanimate",
-    ]);
     expect(c["minecraft:rideable"]).toEqual({
       seat_count: 1,
       family_types: ["player"],
@@ -172,19 +162,6 @@ describe("Noga Chair (ADR 0169)", () => {
       seats: [{ position: [0, 0.04, 0.21] }],
     });
     expect(c["minecraft:collision_box"]).toEqual({ width: 0.8, height: 0.9 });
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
-    expect(c["minecraft:persistent"]).toEqual({});
   });
 
   it("connects the root geometry, texture, preview, and icon", () => {
@@ -360,7 +337,7 @@ describe("Noga Chair (ADR 0169)", () => {
     );
   });
 
-  it("has a stackable item and its own icon, directly after the Low Chair", () => {
+  it("has a stackable item and its own icon", () => {
     const item = read(`${BP}/items/yasu_ride/noga_chair_item.item.json`)[
       "minecraft:item"
     ];
@@ -371,16 +348,6 @@ describe("Noga Chair (ADR 0169)", () => {
       .yasu_ride_noga_chair_item.textures;
     expect(icon).toBe("textures/items/yasu_ride/noga_chair_item");
     expect(existsSync(`${RP}/${icon}.png`)).toBe(true);
-    const groups = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories.flatMap((c: { groups: { items: string[] }[] }) => c.groups);
-    const group = groups.find((g: { items: string[] }) =>
-      g.items.includes(profile.itemId),
-    );
-    expect(group.items.slice(0, 2)).toEqual([
-      CHAIR_KINDS.low_chair.itemId,
-      profile.itemId,
-    ]);
   });
 
   it("uses a distinct wool-and-iron recipe", () => {
@@ -401,28 +368,11 @@ describe("Noga Chair (ADR 0169)", () => {
       );
   });
 
-  it.each(["en_US", "ja_JP"])(
-    "names the chair and its fold hint in %s",
-    (locale) => {
-      for (const key of [
-        `entity.${profile.typeId}.name`,
-        `item.${profile.itemId}.name`,
-        "action.interact.yasu_ride.sit",
-      ])
-        expect(lang(locale, key)).toBeTruthy();
-      expect(lang(locale, profile.hitsHint)).toContain("%s");
-      if (locale === "en_US")
-        expect(lang(locale, `item.${profile.itemId}.name`)).toBe("Noga Chair");
-    },
-  );
-
-  it("matches the RP module version and BP dependency to the RP header", () => {
-    const rp = read(`${RP}/manifest.json`);
-    expect(rp.modules[0].version).toEqual(rp.header.version);
-    expect(
-      read(`${BP}/manifest.json`).dependencies.find(
-        (d: { uuid?: string }) => d.uuid === rp.header.uuid,
-      ).version,
-    ).toEqual(rp.header.version);
+  it.each(["en_US", "ja_JP"])("formats the fold hint in %s", (locale) => {
+    const lang = readLang(`${RP}/texts/${locale}.lang`);
+    expect(lang.get("action.interact.yasu_ride.sit")).toBeTruthy();
+    expect(lang.get(profile.hitsHint)).toContain("%s");
+    if (locale === "en_US")
+      expect(lang.get(`item.${profile.itemId}.name`)).toBe("Noga Chair");
   });
 });

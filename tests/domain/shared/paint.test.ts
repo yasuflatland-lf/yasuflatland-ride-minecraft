@@ -55,9 +55,9 @@ it("preserves the saved variant order", () => {
 });
 
 it("builds every paint event with the reserved prefix", () => {
+  expect(PAINT_EVENT_PREFIX).toBe("paint_");
   fc.assert(
     fc.property(fc.constantFrom(...PAINTS), (paint) => {
-      expect(PAINT_EVENT_PREFIX).toBe("paint_");
       expect(paintEventName(paint)).toBe(PAINT_EVENT_PREFIX + paint);
     }),
   );

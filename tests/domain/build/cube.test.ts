@@ -6,10 +6,6 @@ import {
   cubePlacement,
   cubeVolume,
 } from "../../../src/domain/build/volume/cube";
-import {
-  placementOf,
-  volumeOf,
-} from "../../../src/domain/build/volume/geometry";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import type { Cell } from "../../../src/domain/shared/cells";
 
@@ -32,11 +28,6 @@ const cellSet = (cells: Iterable<Cell>) =>
   new Set([...cells].map(({ x, y, z }) => `${x},${y},${z}`));
 
 describe("cube geometry", () => {
-  it("is registered", () => {
-    expect(volumeOf("cube")).toBe(cubeVolume);
-    expect(placementOf("cube")).toBe(cubePlacement);
-  });
-
   it("fills the footprint through the height with nested shells", () => {
     fc.assert(
       fc.property(spec, (spec) => {

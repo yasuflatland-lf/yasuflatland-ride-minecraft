@@ -39,6 +39,7 @@ import {
   giveOrDrop,
   isCreative,
   playerById,
+  showActionBar,
 } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
@@ -344,7 +345,7 @@ export class BedrockFurnitureWorld
     message: string,
     withArgs: string[] = [],
   ): void {
-    playerById(player)?.onScreenDisplay.setActionBar({
+    showActionBar(player, {
       translate: `yasu_ride.furniture.${message}`,
       with: withArgs,
     });
