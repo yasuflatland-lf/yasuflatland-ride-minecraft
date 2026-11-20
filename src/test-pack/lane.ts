@@ -69,13 +69,6 @@ export function inside(b: Bounds, p: XZ, halfWidth: number): boolean {
   );
 }
 
-export function chunksOf(b: Bounds): number {
-  return (
-    (Math.floor(b.maxX / 16) - Math.floor(b.minX / 16) + 1) *
-    (Math.floor(b.maxZ / 16) - Math.floor(b.minZ / 16) + 1)
-  );
-}
-
 export const UNLOAD_AREA = "yasu_ride_unload_spike";
 export const SERIES_AREAS: readonly string[] = [
   ...Array.from({ length: MAX_LANES }, (_, index) => laneOf(index).tickingArea),

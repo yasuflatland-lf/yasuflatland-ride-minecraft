@@ -1,9 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../../src/test-pack/catalog";
-import { MAX_SCENARIO_TICKS } from "../../src/test-pack/deadline";
+import { STALL_MS, TPS } from "../../src/test-pack/deadline";
 import { isFeatureTag } from "../../src/test-pack/features";
 import { coverageGaps } from "../../src/test-pack/plan";
+
+// A scenario of at most 300 ticks only looks stalled when TPS falls to about 5.
+const MAX_SCENARIO_TICKS = ((STALL_MS / 1000) * TPS) / 4;
 
 const playerDecorScenarios = new Set([
   "build_structure_decor_probe",

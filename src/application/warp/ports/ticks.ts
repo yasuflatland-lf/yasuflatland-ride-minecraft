@@ -1,3 +1,5 @@
+import type { Ticks } from "../../../domain/shared/ticks";
+
 export interface WarpTicks {
-  wait(ticks: number): Promise<void>;
+  wait(duration: Ticks): Promise<void>;
 }

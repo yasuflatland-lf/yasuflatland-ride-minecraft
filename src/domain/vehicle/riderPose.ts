@@ -1,6 +1,6 @@
 import type { PlayerId } from "../shared/ids";
 
-export interface SeatPoseTable {
+interface SeatPoseTable {
   readonly grip: string;
   /** Strongest left to strongest right, with no upright entry. */
   readonly lean: readonly string[];

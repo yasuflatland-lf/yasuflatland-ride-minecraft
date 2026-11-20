@@ -2,9 +2,6 @@ export const TPS = 20;
 export const DEADLINE_FACTOR = 1.5;
 export const SETUP_MARGIN_MS = 30_000;
 export const STALL_MS = 60_000;
-// A scenario of at most 300 ticks only looks stalled when TPS falls to about 5.
-export const MAX_SCENARIO_TICKS = ((STALL_MS / 1000) * TPS) / 4;
-
 export function deadlineMsOf(expectedTicks: number): number {
   return (
     Math.ceil((expectedTicks / TPS) * DEADLINE_FACTOR * 1000) + SETUP_MARGIN_MS
