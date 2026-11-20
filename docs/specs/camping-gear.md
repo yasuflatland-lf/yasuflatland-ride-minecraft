@@ -78,7 +78,7 @@
 - Agreement: Proposed
 - Basis: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) Rotation rule, Atlas layout, and cube budget.
 - Implementation: `tools/gear_items/cactus_pot.py`; `tools/gen_camping_gear.py`
-- Verification: `tests/packs/gearCactusPot.test.ts` checks geometry bounds, cube budget, rotations, UV ownership, and opacity. Client appearance remains unverified.
+- Verification: `tests/packs/gearItems.test.ts` checks geometry bounds, cube budget, rotations, UV ownership, and opacity. Client appearance remains unverified.
 
 ### Roof tent starter item
 
