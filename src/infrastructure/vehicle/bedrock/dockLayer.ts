@@ -17,5 +17,4 @@ export interface DockLayer {
     wanted: readonly DockCell[],
   ): void;
   clearGone(live: ReadonlySet<VehicleId>): void;
-  saved(vehicle: Entity): { laid: boolean; doorOpen: boolean | undefined };
 }

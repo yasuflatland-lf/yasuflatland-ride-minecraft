@@ -26,6 +26,7 @@ import {
   roomCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
 import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import {
   cargoCells,
   compartmentCells,
@@ -179,7 +180,11 @@ describe("CamperDrive ceiling lights (ADR 0115)", () => {
 
   it("restores lights that were on only while the camper was docked", () => {
     for (const docked of [true, false]) {
-      const f = fixture({ docked, ceiling_lights: true, dockLaid: true });
+      const f = fixture({
+        docked,
+        ceiling_lights: true,
+        [CAMPER_SAVED.laid]: true,
+      });
       const out = f.step();
       expect(lightValues(out.commands)).toEqual([docked]);
       expect(lightCells(out.dock?.cells)).toHaveLength(

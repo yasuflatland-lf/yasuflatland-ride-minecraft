@@ -6,6 +6,10 @@ import {
   type RestoredOf,
 } from "../../../src/domain/vehicle/entityContract";
 import type { CAMPER_ENTITY } from "../../../src/domain/vehicle/kinds/camper/entity";
+import {
+  CAMPER_SAVED,
+  type CamperRestored,
+} from "../../../src/domain/vehicle/kinds/camper/saved";
 import type { SPORTSBOAT_ENTITY } from "../../../src/domain/vehicle/kinds/sportsboat/entity";
 import {
   TRANSFORMING_EVENTS,
@@ -59,19 +63,25 @@ describe("entity contract types (ADR 0055)", () => {
     b.property("headlights", true);
   });
 
-  it("accepts only the restored keys of a kind plus the dock keys", () => {
-    const r: RestoredOf<typeof CAMPER_ENTITY> = {};
+  it("accepts camper saved keys through the camper restore type", () => {
+    const r: CamperRestored = {};
     // @ts-expect-error misspelt key
     expect(r.dokced).toBeUndefined();
     // @ts-expect-error not in the camper's list
-    const bad: RestoredOf<typeof CAMPER_ENTITY> = { trim: 1 };
+    const bad: CamperRestored = { trim: 1 };
     expect(bad).toEqual({ trim: 1 });
-    const good: RestoredOf<typeof CAMPER_ENTITY> = {
+    expectTypeOf<keyof RestoredOf<typeof CAMPER_ENTITY>>()
+      .extract<(typeof CAMPER_SAVED)[keyof typeof CAMPER_SAVED]>()
+      .toBeNever();
+    expectTypeOf<keyof RestoredOf<typeof SPORTSBOAT_ENTITY>>()
+      .extract<(typeof CAMPER_SAVED)[keyof typeof CAMPER_SAVED]>()
+      .toBeNever();
+    const good: CamperRestored = {
       form: "car",
       docked: true,
       door: 1,
-      dockLaid: true,
-      dockDoorOpen: false,
+      [CAMPER_SAVED.laid]: true,
+      [CAMPER_SAVED.doorOpen]: false,
     };
     expect(good.door).toBe(1);
   });

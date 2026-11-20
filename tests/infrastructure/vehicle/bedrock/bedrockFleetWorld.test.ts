@@ -38,6 +38,7 @@ function fixture() {
     new VehicleTestStore<string>(),
     noCampSpace,
     new DockBlocks(noCampSpace),
+    {},
     isStandableRoomBlock,
   );
   const inventory = { giveItems: vi.fn() };

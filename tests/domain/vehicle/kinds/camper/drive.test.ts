@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import {
   CAMPER_AIR,
   CAMPER_SPEC,
@@ -304,14 +305,14 @@ it("drops a saved oil lamp and a saved lantern at every heading", () => {
       (yaw, docked) => {
         const drive = new CamperDrive(yaw, {
           docked,
-          dockDecor: JSON.stringify([
+          [CAMPER_SAVED.decor]: JSON.stringify([
             { slot: "table", item: "oil_lamp" },
             { slot: "shelf", item: "lantern" },
           ]),
         });
         expect(drive.decor()).toEqual([]);
         const restored = new CamperDrive(yaw, {
-          dockDecor: JSON.stringify(drive.decor()),
+          [CAMPER_SAVED.decor]: JSON.stringify(drive.decor()),
         });
         expect(restored.decor()).toEqual(drive.decor());
       },

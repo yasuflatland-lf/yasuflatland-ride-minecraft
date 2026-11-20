@@ -43,6 +43,7 @@ import {
   roomCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
 import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import {
   cargoCells,
@@ -104,7 +105,7 @@ function fixture(dockDecor?: string, yaw = 37) {
   };
   const drive = new CamperDrive(
     yaw,
-    dockDecor === undefined ? {} : { dockDecor },
+    dockDecor === undefined ? {} : { [CAMPER_SAVED.decor]: dockDecor },
   );
   const pose = parkPose(ctx.location, drive.yaw);
   const step = (raw?: RawInput): DriveStep =>
@@ -474,7 +475,7 @@ it("restores a laid open room immediately without a scan or dock event", () => {
     form: "car",
     docked: true,
     door: 1,
-    dockLaid: true,
+    [CAMPER_SAVED.laid]: true,
   });
   drive.onDriverMounted(-45);
   const out = drive.step(undefined, f.ctx);
@@ -564,7 +565,7 @@ it("recovers an unlaid parked room once, clearing matching plants before laying 
         const drive = new CamperDrive(f.pose.yaw, {
           form: "car",
           docked: true,
-          dockLaid: false,
+          [CAMPER_SAVED.laid]: false,
         });
         const lower = defined(wallFootCells(f.pose)[index], "wall foot");
         const upper = { ...lower, y: lower.y + 1 };
@@ -604,9 +605,9 @@ it("restores the saved door target through either direction of a partial swing",
       const drive = new CamperDrive(0, {
         form: "car",
         docked: true,
-        dockLaid: true,
+        [CAMPER_SAVED.laid]: true,
         door: step / 10,
-        dockDoorOpen: open,
+        [CAMPER_SAVED.doorOpen]: open,
       });
       for (let tick = 1; tick <= (open ? 10 - step : step); tick++) {
         const out = drive.step(undefined, f.ctx);
@@ -795,12 +796,14 @@ it("restores saved decor and moves an entry of a removed slot to the first free 
     { slot: decorSlotId("dashboard_left"), item: decorItemId("mug_pair") },
     { slot: decorSlotId("table"), item: decorItemId("potted_plant") },
   ];
-  expect(new CamperDrive(37, { dockDecor: saved }).decor()).toEqual(expected);
+  expect(new CamperDrive(37, { [CAMPER_SAVED.decor]: saved }).decor()).toEqual(
+    expected,
+  );
   expect(
     new CamperDrive(37, {
-      dockDecor: saved,
+      [CAMPER_SAVED.decor]: saved,
       docked: true,
-      dockLaid: true,
+      [CAMPER_SAVED.laid]: true,
       form: "car",
     }).decor(),
   ).toEqual(expected);
@@ -813,7 +816,7 @@ it("moves a hanging item of a removed slot to the free ceiling hook (ADR 0103)",
       item: decorItemId("macrame_planter"),
     },
   ]);
-  expect(new CamperDrive(37, { dockDecor: saved }).decor()).toEqual([
+  expect(new CamperDrive(37, { [CAMPER_SAVED.decor]: saved }).decor()).toEqual([
     { slot: "ceiling_hook", item: "macrame_planter" },
   ]);
 });
@@ -865,7 +868,7 @@ it("restores each new standing item in every accepting standing slot", () => {
         )) {
           const entries = [{ slot: slot.id, item }];
           const restored = new CamperDrive(yaw, {
-            dockDecor: JSON.stringify(entries),
+            [CAMPER_SAVED.decor]: JSON.stringify(entries),
           });
           expect(restored.decor()).toEqual(entries);
         }
@@ -876,7 +879,7 @@ it("restores each new standing item in every accepting standing slot", () => {
           ["shelf_high_front", "fridge_top_front"],
         ]) {
           const restored = new CamperDrive(yaw, {
-            dockDecor: JSON.stringify([{ slot: oldSlot, item }]),
+            [CAMPER_SAVED.decor]: JSON.stringify([{ slot: oldSlot, item }]),
           });
           expect(restored.decor()).toEqual([{ slot: currentSlot, item }]);
         }
@@ -923,11 +926,13 @@ it("never loses a saved item when restoring (ADR 0103)", () => {
     fc.property(fc.array(entry, { maxLength: 16 }), (entries) => {
       const saved = JSON.stringify(entries);
       const parsed = parseDecor(saved);
-      const d = new CamperDrive(0, { dockDecor: saved }).decor();
+      const d = new CamperDrive(0, { [CAMPER_SAVED.decor]: saved }).decor();
       const items = (list: readonly { item: string }[]) =>
         list.map((e) => e.item).sort();
       expect(items(d)).toEqual(items(parsed));
-      const roundTrip = new CamperDrive(0, { dockDecor: JSON.stringify(d) });
+      const roundTrip = new CamperDrive(0, {
+        [CAMPER_SAVED.decor]: JSON.stringify(d),
+      });
       expect(items(roundTrip.decor())).toEqual(items(parsed));
       // A known slot keeps its entry unless an earlier entry took its place: its cell, or
       // its own end of a shelf board or the table (ADR 0107, 0108).
@@ -1145,9 +1150,9 @@ it("loads decor saved on a removed stove burner slot onto the stove (ADR 0112)",
         const saved = JSON.stringify([
           { slot: decorSlotId(old), item: decorItemId(item) },
         ]);
-        expect(new CamperDrive(0, { dockDecor: saved }).decor()).toEqual([
-          { slot: "stove", item: item },
-        ]);
+        expect(
+          new CamperDrive(0, { [CAMPER_SAVED.decor]: saved }).decor(),
+        ).toEqual([{ slot: "stove", item: item }]);
       },
     ),
   );
@@ -1256,7 +1261,7 @@ it("moves a second saved entry of the stove, under any of its old slot ids, to a
     { slot: decorSlotId("stove_wall"), item: decorItemId("percolator") },
     { slot: decorSlotId("stove_rear"), item: decorItemId("saucepan") },
   ]);
-  expect(new CamperDrive(0, { dockDecor: saved }).decor()).toEqual([
+  expect(new CamperDrive(0, { [CAMPER_SAVED.decor]: saved }).decor()).toEqual([
     { slot: "dashboard_center", item: "saucepan" },
     { slot: "stove", item: "percolator" },
   ]);
@@ -1376,7 +1381,7 @@ describe("shower-toilet (ADR 0094)", () => {
         form: "car",
         docked: true,
         door: 0,
-        dockLaid: true,
+        [CAMPER_SAVED.laid]: true,
         shower_door: showerDoor,
       });
     const open = restored(1).step(undefined, f.ctx);
@@ -1425,7 +1430,9 @@ it("restores dashboard saves at the new spots in every facing and relocates gear
       { slot: "dashboard_left", item: "mug_pair" },
       { slot: "table", item: "cushion" },
     ];
-    const drive = new CamperDrive(yaw, { dockDecor: JSON.stringify(saved) });
+    const drive = new CamperDrive(yaw, {
+      [CAMPER_SAVED.decor]: JSON.stringify(saved),
+    });
     expect(drive.decor()).toEqual(saved);
     const blocks = decorCells(
       parkPose({ x: 0, y: 0, z: 0 }, yaw),
@@ -1438,7 +1445,7 @@ it("restores dashboard saves at the new spots in every facing and relocates gear
       ]),
     );
     const oversized = new CamperDrive(yaw, {
-      dockDecor: JSON.stringify([
+      [CAMPER_SAVED.decor]: JSON.stringify([
         { slot: "dashboard_center", item: "cushion" },
         { slot: "dashboard_left", item: "binoculars" },
       ]),

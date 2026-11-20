@@ -17,6 +17,7 @@ import {
   axes,
   localCellAt,
 } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import {
   DRAWER_SLIDE_PX,
   DRAWER_HIT_PROFILE as HIT,
@@ -40,7 +41,7 @@ function drive(full = false, open = true) {
   const d = new CamperDrive(0, {
     docked: true,
     drawer_bottom: open ? 1 : 0,
-    dockDecor: JSON.stringify(full ? contents : []),
+    [CAMPER_SAVED.decor]: JSON.stringify(full ? contents : []),
   });
   d.step(undefined, {
     tick: 100,

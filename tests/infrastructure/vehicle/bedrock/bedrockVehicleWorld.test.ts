@@ -12,7 +12,10 @@ import type { Departure } from "../../../../src/domain/vehicle/dock/dock";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
-import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
+import {
+  entityContractOf,
+  profileOf,
+} from "../../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
@@ -28,12 +31,14 @@ import {
   DECK_SEATS_PROPERTY,
   DECOR_PROPERTY,
   ENTITY_TYPE,
+  entityPropertyId,
   HEADLIGHTS_PROPERTY,
   ITEM_TYPE,
   OWNER_PROPERTY,
   PLAYER_TYPE,
   SEAT_FILLER_TYPE,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import type { RestoredReaders } from "../../../../src/infrastructure/vehicle/bedrock/restoredReaders";
 import { RoadPaver } from "../../../../src/infrastructure/vehicle/bedrock/roadPaver";
 import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
 import { DockBlocks } from "../../../../src/infrastructure/vehicle/kinds/camper/dockBlocks";
@@ -41,6 +46,7 @@ import {
   CAMPER_FLOOR_BLOCK,
   isStandableRoomBlock,
 } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { readCamperRestored } from "../../../../src/infrastructure/vehicle/kinds/camper/restored";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import {
   fakeVehicleEntities,
@@ -74,7 +80,7 @@ function seatIdlePlayer(
   );
 }
 
-function fixture() {
+function fixture(restoredReaders: RestoredReaders = {}) {
   const { car, dimension, entities } = fakeVehicleEntities();
   const inputs = new VehicleTestStore<RawInput>();
   const testHeldItems = new VehicleTestStore<string>();
@@ -96,6 +102,7 @@ function fixture() {
       testHeldItems,
       noCampSpace,
       new DockBlocks(noCampSpace),
+      restoredReaders,
       isStandableRoomBlock,
     ),
   };
@@ -725,14 +732,55 @@ it.each([
     const snapshot = world.loadedVehicles()[0];
     expect(car.getProperty.mock.calls).toEqual([[HEADLIGHTS_PROPERTY]]);
     car.getProperty.mockClear();
-    expect(snapshot?.restored()).toStrictEqual({
-      ...values,
-      dockLaid: false,
-      dockDoorOpen: undefined,
-      dockDecor: undefined,
-    });
+    car.getDynamicProperty.mockClear();
+    expect(snapshot?.restored()).toStrictEqual(values);
+    expect(car.getDynamicProperty).not.toHaveBeenCalled();
     expect(car.getProperty.mock.calls).toEqual(
       names.map((name) => [`${NAMESPACE}:${name}`]),
+    );
+  },
+);
+
+it.each(VEHICLE_KINDS)(
+  "runs the %s reader only on restore for its kind and gives entity properties precedence",
+  (registeredKind) => {
+    vi.resetAllMocks();
+    fc.assert(
+      fc.property(fc.string(), fc.integer(), (readerValue, entityValue) => {
+        const reader = vi.fn(() => ({
+          readerValue,
+          ...Object.fromEntries(
+            entityContractOf(registeredKind).restored.map((name) => [
+              name,
+              readerValue,
+            ]),
+          ),
+        }));
+        for (const kind of VEHICLE_KINDS) {
+          reader.mockClear();
+          const { world, car } = fixture({ [registeredKind]: reader });
+          car.typeId = ENTITY_TYPE[kind];
+          const names = entityContractOf(kind).restored;
+          car.getProperty.mockImplementation((key) =>
+            names.some((name) => entityPropertyId(name) === key)
+              ? entityValue
+              : undefined,
+          );
+          const [snapshot] = world.loadedVehicles();
+          expect(reader).not.toHaveBeenCalled();
+          expect(car.getProperty.mock.calls).toEqual([[HEADLIGHTS_PROPERTY]]);
+          car.getDynamicProperty.mockClear();
+
+          expect(snapshot?.restored()).toStrictEqual({
+            ...(kind === registeredKind ? { readerValue } : {}),
+            ...Object.fromEntries(names.map((name) => [name, entityValue])),
+          });
+          if (kind === registeredKind)
+            expect(reader).toHaveBeenCalledExactlyOnceWith(car);
+          else expect(reader).not.toHaveBeenCalled();
+          expect(car.getDynamicProperty).not.toHaveBeenCalled();
+        }
+      }),
     );
   },
 );
@@ -1104,7 +1152,7 @@ describe("BedrockVehicleWorld dock ports", () => {
 
 it("restores dock values and decor lazily from saved dynamic properties instead of entity properties", () => {
   vi.resetAllMocks();
-  const { world, car } = fixture();
+  const { world, car } = fixture({ camper: readCamperRestored });
   car.typeId = ENTITY_TYPE.camper;
   const decor = '[{"slot":"table","item":"potted_plant"}]';
   car.getDynamicProperty.mockImplementation((key: string) => {
@@ -1116,6 +1164,8 @@ it("restores dock values and decor lazily from saved dynamic properties instead 
     return undefined;
   });
   const snapshot = world.loadedVehicles()[0];
+  expect(car.getDynamicProperty).not.toHaveBeenCalledWith(DECK_CELLS_PROPERTY);
+  expect(car.getDynamicProperty).not.toHaveBeenCalledWith(DECOR_PROPERTY);
   car.getDynamicProperty.mockClear();
   expect(snapshot?.restored()).toMatchObject({
     dockLaid: true,

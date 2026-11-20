@@ -17,7 +17,6 @@ import {
   asVehicleId,
   type VehicleId,
 } from "../../../domain/shared/ids";
-import { DOCK_RESTORED } from "../../../domain/vehicle/dock/dock";
 import type { HoldPose } from "../../../domain/vehicle/dock/floor";
 import type { RawInput } from "../../../domain/vehicle/driveInput";
 import {
@@ -27,7 +26,6 @@ import {
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import { heldTypeId } from "../../shared/heldItem";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
-import { savedDecor } from "./bedrockDecorWorld";
 import type { DeckSeats } from "./deckSeats";
 import type { DockLayer } from "./dockLayer";
 import {
@@ -43,6 +41,7 @@ import {
   kindOfEntity,
 } from "./identifiers";
 import type { PerVehicleState } from "./ownedEntities";
+import type { RestoredReaders } from "./restoredReaders";
 import type { SeatFillers } from "./seatFillers";
 import { runReleaseSteps, type VehicleReleaser } from "./vehicleReleaser";
 
@@ -63,6 +62,7 @@ export class BedrockLoadedVehicles implements LoadedVehicleWorld {
     private readonly testHeldItems: VehicleTestStore<string>,
     private readonly headlightBlocks: HeadlightBlocks,
     private readonly dockBlocks: DockLayer,
+    private readonly restoredReaders: RestoredReaders,
     private readonly deckSeats: DeckSeats,
     private readonly seatFillers: SeatFillers,
     private readonly helpers: readonly PerVehicleState[],
@@ -94,20 +94,15 @@ export class BedrockLoadedVehicles implements LoadedVehicleWorld {
         deckSeatRiders: deckRiders.map((player) =>
           player ? asPlayerId(player.id) : undefined,
         ),
-        restored: () => {
-          const dock = this.dockBlocks.saved(vehicle);
-          return {
-            [DOCK_RESTORED.laid]: dock.laid,
-            [DOCK_RESTORED.doorOpen]: dock.doorOpen,
-            [DOCK_RESTORED.decor]: savedDecor(vehicle),
-            ...Object.fromEntries(
-              entityContractOf(kind).restored.map((name) => [
-                name,
-                vehicle.getProperty(entityPropertyId(name)),
-              ]),
-            ),
-          };
-        },
+        restored: () => ({
+          ...this.restoredReaders[kind]?.(vehicle),
+          ...Object.fromEntries(
+            entityContractOf(kind).restored.map((name) => [
+              name,
+              vehicle.getProperty(entityPropertyId(name)),
+            ]),
+          ),
+        }),
         headlights: vehicle.getProperty(HEADLIGHTS_PROPERTY) === true,
         testInput: this.testInputs.get(id),
         testHeld: riderHeldOf(this.testHeldItems.get(id)),

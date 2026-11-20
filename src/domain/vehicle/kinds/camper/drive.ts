@@ -11,12 +11,11 @@ import {
   parseDecorSlotId,
   type StoragePress,
 } from "../../dock/decor";
-import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
+import type { ClearCell } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import type { RoomDrive } from "../../dock/roomDrive";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
-import type { RestoredOf } from "../../entityContract";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import {
   dockCommands,
@@ -53,7 +52,6 @@ import { StorageDoors } from "./dooredStorage";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
 import { drawerBlockHit, drawerHit, drawerPressCell } from "./drawerHit";
 import {
-  type CAMPER_ENTITY,
   ceilingLightsCommand,
   doorCommand,
   drawerItemCommand,
@@ -90,6 +88,7 @@ import {
   bedSpawnCell as roomBedSpawnCell,
   roomCells,
 } from "./roomCells";
+import { CAMPER_SAVED, type CamperRestored } from "./saved";
 import { CAMPER_SPEC, CAMPER_TRANSFORMING, DRAWER_GEAR_IDS } from "./spec";
 import {
   cargoCells,
@@ -151,14 +150,14 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
   // kept, saved, and given back when the camper breaks (ADR 0103).
   private readonly stowedDecor: DecorPlacement[] = [];
 
-  constructor(yaw: number, restored: RestoredOf<typeof CAMPER_ENTITY>) {
+  constructor(yaw: number, restored: CamperRestored) {
     super(yaw, restored, CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES, {
       guard: (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
     });
     this.restoredDocked = restored.docked === true;
-    this.restoredLaid = restored[DOCK_RESTORED.laid] === true;
+    this.restoredLaid = restored[CAMPER_SAVED.laid] === true;
     this.doorStep = restoredDoorStep(restored.door, this.restoredDocked);
-    const savedTarget = restored[DOCK_RESTORED.doorOpen];
+    const savedTarget = restored[CAMPER_SAVED.doorOpen];
     this.doorOpen =
       this.restoredDocked && typeof savedTarget === "boolean"
         ? savedTarget
@@ -169,7 +168,7 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105). Decor
     // saved in a renamed slot loads as if saved in its new one (ADR 0112), and an item that
     // left the catalog is dropped without being handed back (ADR 0169).
-    const saved = parseDecor(restored[DOCK_RESTORED.decor]).flatMap((entry) => {
+    const saved = parseDecor(restored[CAMPER_SAVED.decor]).flatMap((entry) => {
       const item = currentGearId(entry.item);
       return item === undefined
         ? []
