@@ -12,10 +12,10 @@ import {
 } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import { MOTION } from "../../motion/constants";
-import { DOCK, heldStep, pushesStick } from "../../motion/dock";
+import { DOCK, heldStep, pushesStick, StillTimer } from "../../motion/dock";
 import {
+  DockedResend,
   dockCommands,
-  dockedCommand,
   undockCommands,
 } from "../../motion/dockEntity";
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
@@ -144,11 +144,9 @@ export class SportsboatDrive implements Drive {
   private trim = 0;
   private roll = 0;
   private docked: HoldPose | undefined;
-  private stillTicks = 0;
+  private readonly still = new StillTimer();
   private lastCut: LastCut | undefined;
-  private resendDocked = false;
-  // Until the drive first holds, the entity keeps its default docked value and needs no resend.
-  private heldOnce = false;
+  private readonly dockedResend = new DockedResend();
   private restoredDocked: boolean;
   private readonly trimSync = new SyncedValue<number>();
   private readonly rollSync = new SyncedValue<number>();
@@ -241,7 +239,7 @@ export class SportsboatDrive implements Drive {
 
   resync(): void {
     this.icebreakerSync.resync();
-    this.resendDocked = this.heldOnce;
+    this.dockedResend.resync();
     this.trimSync.resync();
     this.rollSync.resync();
   }
@@ -258,18 +256,14 @@ export class SportsboatDrive implements Drive {
             commands: [...hull.commands, icebreakerCommand(icebreaker)],
           };
     const held = this.docked !== undefined;
-    this.heldOnce ||= held;
-    if (!this.resendDocked) return step;
-    this.resendDocked = false;
-    // The docked property goes out only when the hull docks or departs, so after a failed
-    // send it goes out again unless this step docks or departs and sends it anyway (ADR 0156).
+    const resend = this.dockedResend.next(wasDocked, held);
+    if (resend === undefined) return step;
     // A held step skips the attitude latches, so it resends trim and roll here too.
-    if (held !== wasDocked) return step;
     return {
       ...step,
       commands: [
         ...step.commands,
-        dockedCommand(held),
+        resend,
         ...(held ? this.attitudeCommands() : []),
       ],
     };
@@ -302,7 +296,7 @@ export class SportsboatDrive implements Drive {
       boardDeckRiders = true;
       commands.push(...undockCommands());
       this.docked = undefined;
-      this.stillTicks = 0;
+      this.still.reset();
     }
     // The boat maps the controls itself: no handbrake, creep only afloat (ADR 0089).
     const control = toDriveInput(raw);
@@ -352,11 +346,13 @@ export class SportsboatDrive implements Drive {
       );
     }
     this.motion = step.state;
-    this.stillTicks =
-      afloat && raw === undefined && Math.abs(step.state.speed) < DOCK.maxSpeed
-        ? this.stillTicks + 1
-        : 0;
-    if (this.stillTicks >= DOCK.ticks) {
+    if (
+      this.still.tick(
+        afloat &&
+          raw === undefined &&
+          Math.abs(step.state.speed) < DOCK.maxSpeed,
+      )
+    ) {
       const holdY = holdHeight(ctx.location.y, (dy) =>
         liquidAt({ x: 0, y: dy, z: 0 }),
       );
