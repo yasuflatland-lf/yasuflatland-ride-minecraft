@@ -16,7 +16,12 @@ import {
   type CellBox,
   cellsOf,
 } from "../../../src/domain/build/box";
-import { chooseHeighted, setHeight } from "../../../src/domain/build/flow/flow";
+import {
+  chooseHeighted,
+  cornerTaps,
+  setHeight,
+  tapsOf,
+} from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -211,7 +216,11 @@ it.each(["frame", "gable"] as const)(
 
     const other = boxOf({ x: 10, y: 64, z: 10 }, { x: 13, y: 64, z: 14 });
     const selection = selectionOf(overworld, other, stone);
-    e.session.confirmBox(selection, "selected");
+    e.session.confirmBox(
+      selection,
+      "selected",
+      tapsOf(e.session.flow) ?? cornerTaps(selection.box),
+    );
     const flow = e.session.flow;
 
     expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: base });

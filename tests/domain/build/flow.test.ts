@@ -12,12 +12,14 @@ import {
   chooseHeighted,
   chooseTerrain,
   closeBuildMenu,
+  cornerTaps,
   openBuildMenu,
   opensUtilityMenu,
   selectionBoxOf,
   setHeight,
   tapAir,
   tapBlock,
+  tapsOf,
 } from "../../../src/domain/build/flow/flow";
 import {
   buildEntries,
@@ -61,6 +63,41 @@ const flows = fc
       confirmEndpointHeight(tapAir(tapBlock(idle, dim, a, stone), b)),
     ),
   );
+
+it("uses the minimum and maximum box corners as taps", () => {
+  fc.assert(
+    fc.property(cell, cell, (a, b) => {
+      const box = boxOf(a, b);
+      expect(cornerTaps(box)).toEqual({ from: box.min, to: box.max });
+    }),
+  );
+});
+
+it("keeps taps only in the selected and terrain confirmation flows", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.integer({ min: 1, max: 20 }),
+      fc.integer({ min: 1, max: 20 }),
+      (from, dx, dz) => {
+        const to = { x: from.x - dx, y: from.y, z: from.z + dz };
+        const point = tapBlock(idle, dim, from, stone);
+        const base = tapAir(point, to);
+        const selected = confirmEndpointHeight(base);
+        for (const flow of [selected, chooseTerrain(selected, "fillBelow")])
+          expect(tapsOf(flow)).toEqual({ from, to });
+        for (const flow of [
+          idle,
+          point,
+          base,
+          chooseHeighted(selected, "cube"),
+          beginPasteAim(),
+        ])
+          expect(tapsOf(flow)).toBeUndefined();
+      },
+    ),
+  );
+});
 
 it("cancel always reaches idle, and air without an endpoint changes nothing", () => {
   fc.assert(

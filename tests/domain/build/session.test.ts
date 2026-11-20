@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
-import type { BuildFlow } from "../../../src/domain/build/flow/flow";
+import {
+  type BuildFlow,
+  cornerTaps,
+  tapsOf,
+} from "../../../src/domain/build/flow/flow";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -475,7 +479,11 @@ it("confirms a box as an active root selection with matching Copy bounds", () =>
     fc.property(boxArb, dimensionArb, (box, dimensionId) => {
       const session = new BuildSession(asPlayerId("p1"));
       const selection = selectionOf(dimensionId, box, stone);
-      session.confirmBox(selection, "selected");
+      session.confirmBox(
+        selection,
+        "selected",
+        tapsOf(session.flow) ?? cornerTaps(selection.box),
+      );
       expect(session.flow).toEqual({
         kind: "selected",
         menuLevel: "root",
@@ -485,6 +493,33 @@ it("confirms a box as an active root selection with matching Copy bounds", () =>
       });
       expect(session.confirmedBox).toBe(selection);
       expect(session.isInBuildMode).toBe(true);
+    }),
+  );
+});
+
+it("uses the supplied taps even when replacing a selected box, and defaults to idle", () => {
+  fc.assert(
+    fc.property(boxArb, cellArb, cellArb, (box, from, to) => {
+      const session = new BuildSession(asPlayerId("p1"));
+      const selection = selectionOf(dim, box, stone);
+      session.setFlow({
+        kind: "selected",
+        menuLevel: "build",
+        selection,
+        from: box.min,
+        to: box.max,
+      });
+      session.confirmBox(selection, "selected", { from, to });
+      expect(session.flow).toEqual({
+        kind: "selected",
+        menuLevel: "root",
+        selection,
+        from,
+        to,
+      });
+      session.confirmBox(selection);
+      expect(session.flow).toEqual({ kind: "idle" });
+      expect(session.confirmedBox).toBe(selection);
     }),
   );
 });
@@ -505,7 +540,11 @@ it("confirming a box from a selection or terrain confirmation keeps the tapped p
             : { kind, selection, from, to, op: "fillBelow" },
         );
         const next = selectionOf(dim, box, stone);
-        session.confirmBox(next, "selected");
+        session.confirmBox(
+          next,
+          "selected",
+          tapsOf(session.flow) ?? cornerTaps(next.box),
+        );
         expect(session.flow).toEqual({
           kind: "selected",
           menuLevel: "root",

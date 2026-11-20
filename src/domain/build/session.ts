@@ -3,7 +3,7 @@
 import type { PlayerId } from "../shared/ids";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
-import { type BuildFlow, cancel } from "./flow/flow";
+import { type BuildFlow, cancel, type Taps } from "./flow/flow";
 import { beginPasteAim, followFacing, rotatePasteAim } from "./flow/paste";
 import {
   EMPTY_HISTORY,
@@ -82,21 +82,20 @@ export class BuildSession {
     )
       this.currentConfirmedBox = selection;
   }
-  /** Confirming from a selection keeps its tapped points (terrain heights and Cancel use them); otherwise the box corners become them. */
-  confirmBox(selection: Selection, next: "idle" | "selected" = "idle"): void {
+  confirmBox(selection: Selection): void;
+  confirmBox(selection: Selection, next: "selected", taps: Taps): void;
+  confirmBox(selection: Selection, _next?: "selected", taps?: Taps): void {
     this.currentConfirmedBox = selection;
-    const flow = this.currentFlow;
     this.setFlow(
-      next === "idle"
-        ? cancel(flow)
-        : Object.freeze({
+      taps
+        ? Object.freeze({
             kind: "selected",
             menuLevel: "root",
             selection,
-            ...(flow.kind === "selected" || flow.kind === "terrainConfirm"
-              ? { from: flow.from, to: flow.to }
-              : { from: selection.box.min, to: selection.box.max }),
-          }),
+            from: taps.from,
+            to: taps.to,
+          })
+        : cancel(this.currentFlow),
     );
   }
 

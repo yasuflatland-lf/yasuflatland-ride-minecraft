@@ -1,7 +1,7 @@
 import { AIR } from "../../domain/build/blockState";
 import { uniformPattern } from "../../domain/build/edit/pattern";
 import { planFillBelow, planShape } from "../../domain/build/edit/plan";
-import { backToAiming } from "../../domain/build/flow/flow";
+import { backToAiming, cornerTaps, tapsOf } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { shapeOf } from "../../domain/build/shape/shape";
 import { BUILD_SPEC } from "../../domain/build/spec";
@@ -35,16 +35,17 @@ export class ConfirmTerrain {
     }
     const { selection } = flow;
     const { dimensionId, material } = selection;
+    const taps = tapsOf(flow) ?? cornerTaps(selection.box);
     const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
     const box = removeAboveBox(area);
     if (flow.op === "removeAbove" && !box) {
-      session.confirmBox(selection, "selected");
+      session.confirmBox(selection, "selected", taps);
       this.feedback.showMessage(playerId, "editDoneCount", 0);
       return;
     }
     // beginCheckedEdit applies maxVolume, which terrain operations replace with a side limit (ADR 0233).
     session.beginEdit();
-    session.confirmBox(selection, "selected");
+    session.confirmBox(selection, "selected", taps);
     this.feedback.showMessage(
       playerId,
       flow.op === "fillBelow" ? "building" : "removing",
