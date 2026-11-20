@@ -154,12 +154,12 @@ export async function warpWorld(a: Arena): Promise<Outcome> {
   const point = warpPoint(a);
   let entity: Entity | undefined;
   const clear = () =>
-    a.dim.runCommand(`fill ${a.box(23, a.gy, 23, 25, a.gy + 3, 25)} air`);
+    a.dim.runCommand(`fill ${a.box(22, a.gy, 22, 26, a.gy + 3, 26)} air`);
   return withCleanup(
     async () => {
       clear();
       a.dim.runCommand(
-        `fill ${a.box(23, a.gy - 1, 23, 25, a.gy - 1, 25)} stone`,
+        `fill ${a.box(22, a.gy - 1, 22, 26, a.gy - 1, 26)} stone`,
       );
       a.dim.getBlock(point.cell)?.setType(WARP_BLOCK_TYPE);
       checkWarp(
@@ -178,10 +178,17 @@ export async function warpWorld(a: Arena): Promise<Outcome> {
       );
       a.dim.getBlock(top)?.setType("minecraft:stone");
       checkWarp(
-        sameWarpPosition(pick(), { ...point.cell, x: point.cell.x + 1 }),
-        "blocked top must choose east side",
+        sameWarpPosition(pick(), { ...point.cell, x: point.cell.x - 1 }),
+        "blocked top must choose west side",
       );
-      a.dim.runCommand(`fill ${a.box(23, a.gy, 23, 25, a.gy + 3, 25)} stone`);
+      a.dim.runCommand(
+        `fill ${a.box(22, a.gy + 1, 22, 26, a.gy + 1, 26)} stone`,
+      );
+      const outer = { ...point.cell, x: point.cell.x + 2 };
+      const outerHead = a.dim.getBlock({ ...outer, y: outer.y + 1 });
+      outerHead?.setType("minecraft:air");
+      checkWarp(sameWarpPosition(pick(), outer), "must land two blocks away");
+      outerHead?.setType("minecraft:stone");
       checkWarp(
         landingCandidates(point.cell).every(
           (cell) => !adapter.isStandable(point.dimension, cell),
@@ -189,6 +196,7 @@ export async function warpWorld(a: Arena): Promise<Outcome> {
         "fallback fixture has a standable cell",
       );
       checkWarp(sameWarpPosition(pick(), top), "fallback must be top");
+      a.dim.getBlock(point.cell)?.setType("minecraft:stone");
       checkWarp(adapter.presence(point) === "gone", "stone must be gone");
       checkWarp(
         adapter.presence(farPoint(a)) === "unloaded",
@@ -215,7 +223,7 @@ export async function warpWorld(a: Arena): Promise<Outcome> {
       return {
         pass: true,
         detail:
-          "presence=present/gone/unloaded; landing=top/east/fallback; entity teleport location and rotation kept",
+          "presence=present/gone/unloaded; landing=top/west/two blocks away/fallback; entity teleport location and rotation kept",
       };
     },
     () =>
