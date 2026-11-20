@@ -263,6 +263,26 @@ it("refuses protection on any union cell outside the source without capturing or
   );
 });
 
+it("refuses a laid cell anywhere in the selection before capturing or writing", () => {
+  fc.assert(
+    fc.property(fc.nat(), (index) => {
+      const e = setup();
+      const cells = [...cellsOf(wideBox)];
+      const cell = cells[index % cells.length];
+      if (!cell) throw new Error("Missing source cell");
+      e.world.laidCells.add(cellKey(cell));
+      const before = structuredClone(e.session);
+      expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
+        "refused",
+      );
+      expect(e.feedback.messages.at(-1)?.message).toBe("rotateBlocked");
+      expect(e.structures.calls).toEqual([]);
+      expect(e.world.writes).toBe(0);
+      expect(e.session).toEqual(before);
+    }),
+  );
+});
+
 it.each(["tooLarge", "unreadable"] as const)(
   "discards new handles on either capture refusal: %s",
   (refusal) => {

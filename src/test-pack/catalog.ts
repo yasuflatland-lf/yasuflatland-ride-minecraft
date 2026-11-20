@@ -218,6 +218,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_warp_block_guard",
+    file: "buildWarpBlockGuard",
+    ticks: 2, // Estimate until the first BDS run.
+    features: ["build", "warp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "build_rotate_box",
     file: "buildRotateBox",
     ticks: 2, // Measured on the first BDS run.
