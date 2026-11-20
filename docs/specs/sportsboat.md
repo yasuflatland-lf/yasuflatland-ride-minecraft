@@ -240,7 +240,7 @@
 - Agreement: Proposed
 - Basis: [0165](../adr/0165-cylindrical-sports-boat-tower-speakers.md) Decision, "The speaker block no longer calls `disc()`."; [0165](../adr/0165-cylindrical-sports-boat-tower-speakers.md) Decision, "Make the back and hub solid."
 - Implementation: `tools/gen_sportsboat.py` (`speaker`, `cylinder`, `SPEAKER_SECTIONS`, `SPEAKER_SPOKES`, `SPEAKER_MOUNT`), `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`
-- Verification: `tests/packs/sportsboat.test.ts` "builds each speaker from 74 panels, 12 spokes and a mount", "contains only section panels, spokes and mounts within the existing bounds", "splits the round sections by swatch". Not verified: roundness, LED visibility or whether the four pod steps interrupt the taper on PC/mobile; the boat-specific manual B27 row is empty (the table also contains unrelated rows with reused B numbers).
+- Verification: `tests/packs/sportsboat.test.ts` "keeps both speakers within budget with 12 spokes and a mount each", "contains only section panels, spokes and mounts within the existing bounds", "splits the round sections by swatch". Not verified: roundness, LED visibility or whether the four pod steps interrupt the taper on PC/mobile; the boat-specific manual B27 row is empty (the table also contains unrelated rows with reused B numbers).
 
 ### Helm assemblies
 

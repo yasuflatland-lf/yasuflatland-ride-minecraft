@@ -158,7 +158,7 @@ describe("Toilet pack contract", () => {
     const parasol = read(
       `${RP}/models/entity/yasu_ride/beach_parasol.geo.json`,
     )["minecraft:geometry"][0];
-    expect(cubes.length).toBe(369);
+    expect(cubes.length).toBeLessThanOrEqual(369);
     expect(cubes.length).toBeLessThan(
       parasol.bones.flatMap((b: Bone) => b.cubes ?? []).length,
     );

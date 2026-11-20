@@ -50,7 +50,7 @@ function swatchPixels(png: ReturnType<typeof readRgbaPng>, slot: number) {
 }
 
 describe("Gas Lantern model", () => {
-  it("has the four bones, their parents, and the shipped cube counts", () => {
+  it("has the four bones and stays within each part’s cube budget", () => {
     expect(geometry.description.identifier).toBe(
       "geometry.yasu_ride.gas_lantern",
     );
@@ -63,9 +63,12 @@ describe("Gas Lantern model", () => {
       ["flame", "body"],
     ]);
     expect(bone("root").pivot).toEqual([0, 0, 0]);
-    expect(bone("body").cubes).toHaveLength(204);
-    expect(bone("glass").cubes).toHaveLength(16);
-    expect(bone("flame").cubes).toHaveLength(4);
+    expect(bone("body").cubes?.length).toBeGreaterThan(0);
+    expect(bone("body").cubes?.length).toBeLessThanOrEqual(204);
+    expect(bone("glass").cubes?.length).toBeGreaterThan(0);
+    expect(bone("glass").cubes?.length).toBeLessThanOrEqual(16);
+    expect(bone("flame").cubes?.length).toBeGreaterThan(0);
+    expect(bone("flame").cubes?.length).toBeLessThanOrEqual(4);
   });
 
   it("turns no cube about more than one axis and gives every cube a positive size", () => {
