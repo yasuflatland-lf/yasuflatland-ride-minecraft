@@ -538,7 +538,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Agreement: Proposed
 - Basis: [0240](../adr/0240-resort-furniture-family.md); Dining set design.
 - Implementation: `tools/gen_sofa.py`; `tools/render_preview.py` (`small_models`, `ICON_NAMES`, `render_gear`); `package.json`.
-- Verification: `tests/tools/sofa.test.ts`; `tests/packs/sofaSingle.test.ts`; `tests/packs/sofaDouble.test.ts`; `tests/tools/renderPreview.test.ts`. Owner review against the reference photos and PC/mobile checks remain pending.
+- Verification: `tests/tools/sofa.test.ts`; `tests/packs/sofas.test.ts`; `tests/tools/renderPreview.test.ts`. Owner review against the reference photos and PC/mobile checks remain pending.
 
 ### Camper companion maps and interior finishes
 
