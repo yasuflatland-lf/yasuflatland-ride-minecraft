@@ -1,5 +1,6 @@
 // Tuning values the vehicle core reads (ADR 0055). See docs/adr/0002-0008 for the rationale.
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../shared/switchCooldown";
+import { ticks } from "../shared/ticks";
 
 export const SPEC = Object.freeze({
   // Input (ADR 0018)
@@ -21,7 +22,7 @@ export const SPEC = Object.freeze({
   // Placing and picking up vehicles (ADR 0008)
   placementWaterClimb: 16, // cells a placement climbs a water column to find its surface (ADR 0051)
   hitsToBreak: 3,
-  hitResetTicks: 100,
+  hitResetTicks: ticks(100),
   headlightSwitchCooldown: LIGHT_SWITCH_COOLDOWN_TICKS,
   toolSwitchCooldown: LIGHT_SWITCH_COOLDOWN_TICKS, // shared by monitor tools, separate from lights (ADR 0171)
   waterBreathingInterval: 20, // ticks

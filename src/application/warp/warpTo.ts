@@ -1,4 +1,5 @@
 import type { PlayerId } from "../../domain/shared/ids";
+import { ticks } from "../../domain/shared/ticks";
 import type { WarpPointId } from "../../domain/warp/ids";
 import { chooseLanding } from "../../domain/warp/landing";
 import { WARP_SPEC } from "../../domain/warp/spec";
@@ -47,12 +48,14 @@ export class WarpTo {
       }
       if (arrival === "present" || elapsed >= WARP_SPEC.arrivalCheckMaxTicks)
         return;
-      const ticks = Math.min(
-        WARP_SPEC.arrivalCheckTicks,
-        WARP_SPEC.arrivalCheckMaxTicks - elapsed,
+      const step = ticks(
+        Math.min(
+          WARP_SPEC.arrivalCheckTicks,
+          WARP_SPEC.arrivalCheckMaxTicks - elapsed,
+        ),
       );
-      await this.ticks.wait(ticks);
-      elapsed += ticks;
+      await this.ticks.wait(step);
+      elapsed += step;
     }
   }
 
