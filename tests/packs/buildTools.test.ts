@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { expectSingleStackUseItem } from "../support/itemContract";
 import { readRgbaPng } from "../support/png";
 
 const WAND = "yasu_build:selection_wand";
@@ -39,25 +40,7 @@ describe.each([
   ["warp_tool", TOOL],
 ])("the %s item", (name, type) => {
   it("is a single-stack item with its icon and display name", () => {
-    expect(
-      read(`packs/yasu_ride_bp/items/yasu_build/${name}.item.json`),
-    ).toMatchObject({
-      "minecraft:item": {
-        description: {
-          identifier: type,
-          menu_category: { category: "items" },
-        },
-        components: {
-          "minecraft:icon": `yasu_build_${name}`,
-          "minecraft:max_stack_size": 1,
-          "minecraft:use_modifiers": {
-            use_duration: 0.1,
-            movement_modifier: 1.0,
-          },
-          "minecraft:display_name": { value: `item.${type}.name` },
-        },
-      },
-    });
+    expectSingleStackUseItem(type);
   });
 
   it("registers its icon in the item atlas", () => {

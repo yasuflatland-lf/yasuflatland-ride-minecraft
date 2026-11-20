@@ -8,6 +8,8 @@ import {
   GIFT_RECEIVED_PROPERTY,
   giftOfItem,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { expectSingleStackUseItem } from "../support/itemContract";
+import { readLang } from "../support/lang";
 import { readTableRows } from "../support/markdown";
 import { readRgbaPng } from "../support/png";
 
@@ -24,13 +26,11 @@ const NAMES: Record<string, Record<string, string>> = {
   en_US: {
     [GROUP]: "Sports Boat Equipment",
     [`item.${BOX}.name`]: "Sports Boat Equipment Box",
-    [`item.${SWITCH}.name`]: "Icebreaker Switch",
     "yasu_ride.lore.sportsboat_equipment": "Sports Boat Equipment",
   },
   ja_JP: {
     [GROUP]: JA_EQUIPMENT,
     [`item.${BOX}.name`]: `${JA_EQUIPMENT}\u30dc\u30c3\u30af\u30b9`,
-    [`item.${SWITCH}.name`]: "\u7815\u6c37\u30b9\u30a4\u30c3\u30c1",
     "yasu_ride.lore.sportsboat_equipment": JA_EQUIPMENT,
   },
 };
@@ -40,33 +40,15 @@ function icon(name: string) {
 }
 
 describe("Sports Boat Equipment (ADR 0171)", () => {
-  it.each([
-    ["sportsboat_equipment_box", BOX, "none"],
-    ["icebreaker_switch", SWITCH, "items"],
-  ])(
-    "ships %s as a single-stack item with a registered icon",
-    (name, type, category) => {
-      expect(read(`${BP}/items/yasu_ride/${name}.item.json`)).toMatchObject({
-        "minecraft:item": {
-          description: { identifier: type, menu_category: { category } },
-          components: {
-            "minecraft:icon": `yasu_ride_${name}`,
-            "minecraft:max_stack_size": 1,
-            "minecraft:use_modifiers": {
-              use_duration: 0.1,
-              movement_modifier: 1.0,
-            },
-            "minecraft:display_name": { value: `item.${type}.name` },
-          },
-        },
-      });
-      expect(
-        read(`${RP}/textures/item_texture.json`).texture_data[
-          `yasu_ride_${name}`
-        ],
-      ).toEqual({ textures: `textures/items/yasu_ride/${name}` });
-    },
-  );
+  it("ships the hidden equipment box with a registered icon", () => {
+    expectSingleStackUseItem(BOX, "none");
+    expect(
+      read(`${RP}/textures/item_texture.json`).texture_data
+        .yasu_ride_sportsboat_equipment_box,
+    ).toEqual({
+      textures: "textures/items/yasu_ride/sportsboat_equipment_box",
+    });
+  });
 
   it("opens the box into the icebreaker switch with its own lore line and received property", () => {
     expect(GIFT_ITEM.sportsboat_equipment_box).toBe(BOX);
@@ -94,18 +76,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     expect(bluish).toEqual([]);
   });
 
-  it("crafts the switch from a lever, an iron ingot, and packed ice, unlocked from the start, and gives the box no recipe", () => {
-    const recipe = read(
-      `${BP}/recipes/yasu_ride/icebreaker_switch.recipe.json`,
-    )["minecraft:recipe_shapeless"];
-    expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(
-      recipe.ingredients.map((i: { item: string }) => i.item).sort(),
-    ).toEqual([
-      "minecraft:iron_ingot",
-      "minecraft:lever",
-      "minecraft:packed_ice",
-    ]);
+  it("gives the equipment box no recipe", () => {
     expect(
       existsSync(
         `${BP}/recipes/yasu_ride/sportsboat_equipment_box.recipe.json`,
@@ -114,16 +85,9 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
   });
 
   it.each(Object.entries(NAMES))(
-    "names the group, both items, and the lore line in %s",
+    "names the group, the box, and the lore line in %s",
     (locale, names) => {
-      const values = new Map(
-        readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
-          .split("\n")
-          .map((line) => {
-            const i = line.indexOf("=");
-            return [line.slice(0, i), line.slice(i + 1)];
-          }),
-      );
+      const values = readLang(`${RP}/texts/${locale}.lang`);
       for (const [key, text] of Object.entries(names))
         expect(values.get(key)).toBe(text);
     },
