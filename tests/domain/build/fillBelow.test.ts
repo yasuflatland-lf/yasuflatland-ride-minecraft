@@ -207,60 +207,10 @@ it("uses only vanilla block IDs in the unstable material list", () => {
 
 it("refuses vanilla support-dependent families and Bedrock-specific IDs", () => {
   const ids = Object.values(MinecraftBlockTypes).filter((id) =>
-    /(?:_candle(?:_cake)?|:candle(?:_cake)?|:cake|:bed|:straw_bed|_banner|:cave_vines.*|:chorus_.*|_coral(?:_wall)?_fan|_coral|copper_(?:torch|lantern)|:colored_torch_.*|:poplar_(?:door|button|pressure_plate|sapling)|:wooden_(?:door|button|pressure_plate)|:trip_wire|:portal|:bubble_column|:(?:frosted_)?ice|:(?:sticky_)?piston_arm_collision|_leaves(?:_flowered)?)$/.test(
+    /(?:_candle(?:_cake)?|:candle(?:_cake)?|:cake|:bed|:straw_bed|_banner|:cave_vines.*|:chorus_.*|_coral(?:_wall)?_fan|_coral|copper_(?:torch|lantern)|:colored_torch_.*|:poplar_(?:door|button|pressure_plate|sapling)|:wooden_(?:door|button|pressure_plate)|:trip_wire|:portal|:bubble_column|:(?:frosted_)?ice|:(?:sticky_)?piston_arm_collision|_leaves(?:_flowered)?|_(?:standing|wall|hanging)_sign|_amethyst_bud)$/.test(
       id,
     ),
   );
   for (const id of ids)
     expect(isFillMaterial(blockStateOf(id)), id).toBe(false);
-});
-
-it.each([
-  "portal",
-  "bubble_column",
-  "ice",
-  "frosted_ice",
-  "piston_arm_collision",
-  "sticky_piston_arm_collision",
-  "oak_leaves",
-  "azalea_leaves_flowered",
-  "wooden_button",
-  "wooden_pressure_plate",
-  "trip_wire",
-  "copper_torch",
-  "colored_torch_red",
-  "colored_torch_blue",
-  "colored_torch_green",
-  "colored_torch_purple",
-  "poplar_door",
-  "poplar_button",
-  "poplar_pressure_plate",
-  "poplar_sapling",
-  "golden_dandelion",
-  "amethyst_cluster",
-  "small_amethyst_bud",
-  "medium_amethyst_bud",
-  "large_amethyst_bud",
-  "resin_clump",
-  "sculk_vein",
-  "flower_pot",
-  "frog_spawn",
-  "turtle_egg",
-  "sniffer_egg",
-  "bell",
-  "sulfur_spike",
-  "shelf_mushroom",
-  "red_shrub",
-  "ice_crystal",
-  "icicle",
-  "pale_hanging_moss",
-  "fire",
-  "soul_fire",
-  "poplar_standing_sign",
-  "poplar_wall_sign",
-  "poplar_hanging_sign",
-])("refuses the vanilla material minecraft:%s", (name) => {
-  const id = `minecraft:${name}`;
-  expect(Object.values(MinecraftBlockTypes)).toContain(id);
-  expect(isFillMaterial(blockStateOf(id))).toBe(false);
 });

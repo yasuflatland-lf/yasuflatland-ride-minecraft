@@ -60,17 +60,28 @@ describe("stepTrim (ADR 0059)", () => {
     );
   });
 
-  it("settles at maxTrim when gaining the injected accel per tick", () => {
-    const limits = { accel: 0.01 };
-    let t = 0;
-    for (let i = 0; i < 30; i++) t = stepTrim(t, 0.2, 0.21, true, limits);
-    expect(t).toBeCloseTo(maxTrim, 9);
-  });
-
-  it("levels the trim target when the injected accel is zero", () => {
-    expect(stepTrim(0, 0.2, 0.21, true, { accel: 0 })).toBe(0);
-    expect(stepTrim(0, 0, 0, true, { accel: 0 })).toBe(0);
-    expect(stepTrim(3, 0.2, 0.21, true, { accel: 0 })).toBe(3 - trimSettleRate);
+  it("reaches the trim target set by the injected acceleration", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 10 }), trim, (hundredths, prev) => {
+        const accel = hundredths / 100;
+        const next = stepTrim(prev, 0.2, 0.2 + accel, true, { accel });
+        const target = accel === 0 ? 0 : maxTrim;
+        expect(next).toBeCloseTo(
+          Math.min(
+            prev + trimRiseRate,
+            Math.max(prev - trimSettleRate, target),
+          ),
+          9,
+        );
+      }),
+      {
+        examples: [
+          [1, 0],
+          [0, 0],
+          [0, 3],
+        ],
+      },
+    );
   });
 });
 
@@ -128,18 +139,11 @@ describe("stepRoll (ADR 0059, ADR 0079)", () => {
     expect(settle(SPORTSBOAT_MOTION.maxSpeed, false)).toBe(0);
   });
 
-  it("rolls fully at the injected full turn rate and top speed", () => {
-    const limits = { turnRate: 3, maxSpeed: 0.5 };
-    let r = 0;
-    for (let i = 0; i < 30; i++) r = stepRoll(r, 0, 3, 0.5, true, limits);
-    expect(r).toBe(maxRoll);
-  });
-
   it("scales the roll target by the injected limits", () => {
     fc.assert(
       fc.property(
         fc.double({ min: 1, max: 12, noNaN: true }),
-        fc.double({ min: 0.2, max: 2, noNaN: true }),
+        fc.oneof(fc.constant(0), number(0.2, 2)),
         fc.integer({ min: -10, max: 10 }),
         (turnRate, maxSpeed, tenths) => {
           let r = 0;
@@ -148,17 +152,17 @@ describe("stepRoll (ADR 0059, ADR 0079)", () => {
               turnRate,
               maxSpeed,
             });
-          expect(r).toBeCloseTo((tenths / 10) * maxRoll, 9);
+          expect(r).toBeCloseTo(
+            maxSpeed === 0 ? 0 : (tenths / 10) * maxRoll,
+            9,
+          );
+          if (maxSpeed === 0)
+            expect(
+              stepRoll(5, 0, turnRate, 0.5, true, { turnRate, maxSpeed }),
+            ).toBe(5 - rollRate);
         },
       ),
     );
-  });
-
-  it("holds level when the injected top speed is zero", () => {
-    const limits = { turnRate: 3, maxSpeed: 0 };
-    expect(stepRoll(0, 0, 3, 0.5, true, limits)).toBe(0);
-    expect(stepRoll(0, 0, 3, 0, true, limits)).toBe(0);
-    expect(stepRoll(5, 0, 3, 0.5, true, limits)).toBe(5 - rollRate);
   });
 
   it("afloat and reversing, lowers the left side when the heading turns right and the right side when it turns left", () => {

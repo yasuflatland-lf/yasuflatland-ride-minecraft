@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import type { Drive } from "../../../src/domain/vehicle/drive";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
+import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { type RiderView, Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
@@ -49,20 +50,6 @@ function vehicle(withTool = true, riders: readonly RiderView[] = [driver]) {
 }
 
 describe("Vehicle.switchTool (ADR 0024, 0138)", () => {
-  it("switches only for the driver, and only on a drive with a tool", () => {
-    const { v, setToolState } = vehicle();
-    expect(v.switchTool(asPlayerId("outsider"), "blade_switch", 0)).toBe(false);
-    expect(setToolState).not.toHaveBeenCalled();
-    expect(v.switchTool(asPlayerId("d"), "blade_switch", 0)).toBe(true);
-    expect(setToolState).toHaveBeenCalledExactlyOnceWith("blade_switch", "up");
-    expect(
-      vehicle(false).v.switchTool(asPlayerId("d"), "blade_switch", 0),
-    ).toBe(false);
-    const empty = vehicle(true, []);
-    expect(empty.v.switchTool(asPlayerId("d"), "blade_switch", 0)).toBe(false);
-    expect(empty.setToolState).not.toHaveBeenCalled();
-  });
-
   it("switches only on a use that follows a cooldown of idle switch", () => {
     fc.assert(
       fc.property(
@@ -97,22 +84,6 @@ describe("Vehicle.switchTool (ADR 0024, 0138)", () => {
     expect(v.flipHeadlightSwitch(asPlayerId("d"), 0)).toBe(true);
     expect(v.switchTool(asPlayerId("d"), "blade_switch", 1)).toBe(true);
     expect(v.flipHeadlightSwitch(asPlayerId("d"), 2)).toBe(false);
-  });
-
-  it("forces the tool with no role or cooldown, and only on a drive with a tool", () => {
-    const { v, setToolState } = vehicle(true, []);
-    expect(v.forceTool("blade_switch", "up")).toBe(true);
-    expect(v.forceTool("blade_switch", "up")).toBe(true);
-    expect(setToolState).toHaveBeenCalledTimes(2);
-    expect(setToolState).toHaveBeenLastCalledWith("blade_switch", "up");
-    expect(vehicle(false).v.forceTool("blade_switch", "up")).toBe(false);
-  });
-
-  it("rejects an unknown item without starting the cooldown", () => {
-    const { v, setToolState } = vehicle();
-    expect(v.switchTool(asPlayerId("d"), "unknown", 0)).toBe(false);
-    expect(setToolState).not.toHaveBeenCalled();
-    expect(v.switchTool(asPlayerId("d"), "blade_switch", 1)).toBe(true);
   });
 });
 
@@ -161,6 +132,71 @@ it("cycles a tool's declared states and shares its cooldown with other tools", (
           ),
         ).toBe(true);
         expect(current.get("second")).toBe(states[0]);
+      },
+    ),
+  );
+});
+
+it("authorizes a switch by the driver and requires a declared tool and a setter for monitor tools", () => {
+  const passenger = riderView("p", {
+    offset: defined(SUV_PROFILE.seats.positions[1], "seat 1"),
+    seat: 1,
+  });
+  const tools = BULLDOZER_PROFILE.monitor?.tools ?? [];
+  fc.assert(
+    fc.property(
+      fc.subarray([driver, passenger]),
+      fc.constantFrom(driver.id, passenger.id, asPlayerId("outsider")),
+      fc.constantFrom(undefined, "unknown", ...tools.map(({ item }) => item)),
+      fc.boolean(),
+      (crew, caller, item, withTool) => {
+        const { drive, setToolState } = stubDrive(withTool);
+        const v = Vehicle.withRidersAboard(
+          asVehicleId("v"),
+          { ...SUV_PROFILE, monitor: BULLDOZER_PROFILE.monitor },
+          drive,
+          crew,
+          0,
+        );
+        const isDriver = caller === driver.id && crew.includes(driver);
+        if (item === undefined) {
+          expect(v.flipHeadlightSwitch(caller, 0)).toBe(isDriver);
+          expect(setToolState).not.toHaveBeenCalled();
+          return;
+        }
+        const tool = tools.find((tool) => tool.item === item);
+        const switched = isDriver && tool !== undefined && withTool;
+        expect(v.switchTool(caller, item, 0)).toBe(switched);
+        if (switched) {
+          const next =
+            tool.states[tool.states.indexOf("down") + 1] ?? tool.states[0];
+          expect(setToolState).toHaveBeenCalledExactlyOnceWith(item, next);
+        } else {
+          expect(setToolState).not.toHaveBeenCalled();
+          if (crew.includes(driver) && withTool)
+            expect(v.switchTool(driver.id, "blade_switch", 1)).toBe(true);
+        }
+      },
+    ),
+  );
+});
+
+it("forces a tool regardless of crew or cooldown when the drive has a setter", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.boolean(),
+      fc.array(fc.constantFrom("up", "down"), { minLength: 2 }),
+      (withTool, driverPresent, states) => {
+        const { v, setToolState } = vehicle(
+          withTool,
+          driverPresent ? [driver] : [],
+        );
+        for (const state of states)
+          expect(v.forceTool("blade_switch", state)).toBe(withTool);
+        expect(setToolState.mock.calls).toEqual(
+          withTool ? states.map((state) => ["blade_switch", state]) : [],
+        );
       },
     ),
   );

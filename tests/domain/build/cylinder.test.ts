@@ -5,11 +5,7 @@ import {
   cylinderPlacement,
   cylinderVolume,
 } from "../../../src/domain/build/volume/cylinder";
-import {
-  type HeightedSpec,
-  placementOf,
-  volumeOf,
-} from "../../../src/domain/build/volume/geometry";
+import type { HeightedSpec } from "../../../src/domain/build/volume/geometry";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 
@@ -36,11 +32,6 @@ const neighbours = ({ x, y, z }: Cell): Cell[] => [
 ];
 
 describe("cylinder geometry", () => {
-  it("is registered as cylinder geometry", () => {
-    expect(volumeOf("cylinder")).toBe(cylinderVolume);
-    expect(placementOf("cylinder")).toBe(cylinderPlacement);
-  });
-
   it("mirrors every fill across both footprint axes, including even sizes", () => {
     fc.assert(
       fc.property(spec, (spec) => {

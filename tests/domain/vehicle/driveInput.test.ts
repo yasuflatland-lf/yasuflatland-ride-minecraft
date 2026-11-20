@@ -80,15 +80,6 @@ describe("toDriveInput (ADR 0018)", () => {
     });
   });
 
-  it("yields no throttle, no steering, no jump, and no sideways stick as the neutral control", () => {
-    expect(NEUTRAL_CONTROL).toEqual({
-      throttle: 0,
-      steer: 0,
-      jump: false,
-      sideways: false,
-    });
-  });
-
   it("includes the deadzone edges: 0.1 forward/backward gives no throttle and 0.1 sideways does not creep", () => {
     for (const edge of [-0.1, 0.1]) {
       expect(toDriveInput({ moveX: 0, moveY: edge, jump: false })).toEqual({

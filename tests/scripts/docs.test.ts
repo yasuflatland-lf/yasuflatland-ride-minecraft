@@ -169,6 +169,7 @@ describe("spec documentation checks", () => {
     expect(checkSpecAgreement([], [])).toEqual([]);
     expect(checkSpecBasisSources([])).toEqual([]);
     expect(checkSpecClosure([], [])).toEqual([]);
+    expect(checkSpecCoverage([], [])).toEqual([]);
     expect(checkSpecIndex({}, [])).toEqual([]);
   });
 
@@ -429,10 +430,6 @@ describe("spec documentation checks", () => {
     },
   );
 
-  it("accepts empty inputs for live ADR coverage", () => {
-    expect(checkSpecCoverage([], [])).toEqual([]);
-  });
-
   it("does not count a link inside an Excluded reason as included", () => {
     const adrs = parseAdrs({
       [path(1)]: document(1),
@@ -521,7 +518,41 @@ describe("ADR documentation properties", () => {
     );
   });
 
-  it("keeps all six checks silent on valid graphs and reports planted violations", () => {
+  it("reports malformed ADRs and broken links", () => {
+    const planted = (fields: string) => [
+      parseAdr(path(2), document(2, fields)),
+    ];
+    expect(
+      checkAdrIdentity([
+        parseAdr(path(1), document(1)),
+        parseAdr("docs/adr/0001-duplicate.md", document(1)),
+      ]),
+    ).not.toEqual([]);
+    expect(
+      checkAdrIdentity([parseAdr("docs/adr/wrong.md", document(1))]),
+    ).not.toEqual([]);
+    expect(checkMetadata(planted("- Unknown: value\n"))).not.toEqual([]);
+    expect(
+      checkRelationTargets(planted(`- Extends: ${link(9999)}\n`)),
+    ).not.toEqual([]);
+    expect(
+      checkRelationConflicts(
+        planted(`- Extends: ${link(1)}\n- Extends: ${link(1)}\n`),
+      ),
+    ).not.toEqual([]);
+    const errors = checkLinks({
+      "README.md": "Heading\n[broken](missing.md#section)\n",
+    });
+    expect(errors).toEqual([
+      {
+        path: "README.md",
+        line: 2,
+        message: "Broken relative link: missing.md",
+      },
+    ]);
+  });
+
+  it("keeps all six checks silent on valid graphs and rejects a stale index", () => {
     fc.assert(
       fc.property(graph, ({ files }) => {
         const adrs = parseAdrs(files);
@@ -536,27 +567,6 @@ describe("ADR documentation properties", () => {
         expect(checkRelationConflicts(adrs)).toEqual([]);
         expect(checkIndex(valid, adrs)).toEqual([]);
         expect(checkLinks(valid)).toEqual([]);
-        const planted = (fields: string) => [
-          parseAdr(path(2), document(2, fields)),
-        ];
-        expect(
-          checkAdrIdentity([
-            ...adrs,
-            parseAdr("docs/adr/0001-duplicate.md", document(1)),
-          ]),
-        ).not.toEqual([]);
-        expect(
-          checkAdrIdentity([parseAdr("docs/adr/wrong.md", document(1))]),
-        ).not.toEqual([]);
-        expect(checkMetadata(planted("- Unknown: value\n"))).not.toEqual([]);
-        expect(
-          checkRelationTargets(planted(`- Extends: ${link(9999)}\n`)),
-        ).not.toEqual([]);
-        expect(
-          checkRelationConflicts(
-            planted(`- Extends: ${link(1)}\n- Extends: ${link(1)}\n`),
-          ),
-        ).not.toEqual([]);
         expect(
           checkIndex(
             {
@@ -566,17 +576,6 @@ describe("ADR documentation properties", () => {
             adrs,
           ),
         ).not.toEqual([]);
-        const errors = checkLinks({
-          ...valid,
-          "README.md": "Heading\n[broken](missing.md#section)\n",
-        });
-        expect(errors).toEqual([
-          {
-            path: "README.md",
-            line: 2,
-            message: "Broken relative link: missing.md",
-          },
-        ]);
       }),
     );
   });

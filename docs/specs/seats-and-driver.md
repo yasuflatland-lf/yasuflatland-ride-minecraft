@@ -152,7 +152,7 @@
 - Agreement: Proposed
 - Basis: [0136](../adr/0136-bulldozer.md) Decision, "One driver sits at `[0, 1.4, -1.35]`."
 - Implementation: `src/domain/vehicle/kinds/bulldozer/profile.ts` (`BULLDOZER_PROFILE.seats`, `boarding`); `packs/yasu_ride_bp/entities/yasu_ride/bulldozer.se.json`; `src/domain/vehicle/seating.ts`; `src/domain/vehicle/crew.ts`
-- Verification: `tests/packs/bulldozer.test.ts` "seats one driver at the cab seat", "matches the seat and collision box to the profile"; `tests/domain/vehicle/kinds/bulldozer/profile.test.ts` "gives the bulldozer its body, one seat, beams, fleet limit, and yellow paint (ADR 0136)". Not verified: the manual Bulldozer checks on PC and mobile (0136 Acceptance condition, #533, #542).
+- Verification: `tests/packs/bulldozer.test.ts` "seats one driver at the cab seat", "matches the seat and collision box to the profile"; `tests/domain/vehicle/kinds/bulldozer/profile.test.ts` "preserves the bulldozer seat and placement clearance (ADR 0136)". Not verified: the manual Bulldozer checks on PC and mobile (0136 Acceptance condition, #533, #542).
 
 ### Bulldozer driver exit
 

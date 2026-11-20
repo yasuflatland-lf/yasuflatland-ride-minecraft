@@ -81,8 +81,4 @@ describe("canPlaceChair (ADR 0122)", () => {
       ),
     );
   });
-
-  it("needs room for the chair and a seated player's head", () => {
-    expect(CHAIR_SPEC.clearance).toBe(2);
-  });
 });

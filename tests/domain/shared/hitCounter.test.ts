@@ -31,16 +31,6 @@ const hitsFor = (rule: HitRule) =>
   });
 
 describe("registerHit (ADR 0008, 0122)", () => {
-  it("breaks after 3 hits in quick succession with the vehicle rule", () => {
-    let c = EMPTY_COUNTER;
-    const results = [0, 10, 20].map((t) => {
-      const r = registerHit(c, t, false, VEHICLE_RULE);
-      c = r.counter;
-      return r.broken;
-    });
-    expect(results).toEqual([false, false, true]);
-  });
-
   it("ignores occupied hits and breaks exactly on the n-th free hit within the reset window", () => {
     fc.assert(
       fc.property(

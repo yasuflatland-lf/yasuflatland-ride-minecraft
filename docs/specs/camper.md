@@ -42,7 +42,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "Add the kind `camper`, entity `yasu_ride:camper`, item `yasu_ride:camper_item`"; [0067](../adr/0067-camper.md) Decision, "One camper per player (0066)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `packs/yasu_ride_bp/items/yasu_ride/camper_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`
-- Verification: `tests/domain/vehicle/profile.test.ts` "limits each player to one camper". Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
+- Verification: `tests/domain/vehicle/profile.test.ts` "sets the %s fleet limit and chase camera". Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
 
 ### Camper tuning
 

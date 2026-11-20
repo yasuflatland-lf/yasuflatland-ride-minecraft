@@ -54,19 +54,25 @@ describe("nearestAxis", () => {
     );
   });
 
-  it.each([
-    [0, "x"],
-    [180, "x"],
-    [-180, "x"],
-    [90, "z"],
-    [-90, "z"],
-    [270, "z"],
-    [44, "x"],
-    [136, "x"],
-    [-46, "z"],
-  ] as const)("puts yaw %d on axis %s", (y, a) => {
-    expect(nearestAxis(y)).toBe(a);
+  it("selects the axis with the larger component across the heading", () => {
+    fc.assert(
+      fc.property(yaw, (heading) => {
+        const radians = (heading * Math.PI) / 180;
+        const x = Math.abs(Math.cos(radians));
+        const z = Math.abs(Math.sin(radians));
+        fc.pre(Math.abs(x - z) > 1e-12);
+        expect(nearestAxis(heading)).toBe(x > z ? "x" : "z");
+      }),
+    );
   });
+
+  it.each([
+    [45, "z"],
+    [-45, "x"],
+  ] as const)(
+    "rounds the diagonal at yaw %d onto axis %s",
+    (heading, expected) => expect(nearestAxis(heading)).toBe(expected),
+  );
 });
 
 describe("standInAxis", () => {
