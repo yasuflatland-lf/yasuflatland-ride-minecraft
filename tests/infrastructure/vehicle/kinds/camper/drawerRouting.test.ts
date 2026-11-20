@@ -3,14 +3,18 @@ import type {
   PlayerInteractWithBlockBeforeEvent,
 } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
-import type { PlaceDecor } from "../../../../../src/application/vehicle/placeDecor";
-import type { PressStorage } from "../../../../../src/application/vehicle/pressStorage";
-import type { RemoveDecor } from "../../../../../src/application/vehicle/removeDecor";
+import type { PlaceDecor } from "../../../../../src/application/vehicle/room/placeDecor";
+import type { PressStorage } from "../../../../../src/application/vehicle/room/pressStorage";
+import type { RemoveDecor } from "../../../../../src/application/vehicle/room/removeDecor";
 import { asVehicleId } from "../../../../../src/domain/shared/ids";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
-import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/index";
+import {
+  CAMPER_SAVED,
+  type RoomStorageHost,
+} from "../../../../../src/domain/vehicle/kinds/index";
 import { registerDecor } from "../../../../../src/infrastructure/vehicle/kinds/camper/handlers/decor";
 import { pairDecorBlockId } from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { camperRoom } from "../../../../support/camperRoom";
 
 const game = vi.hoisted(() => ({
   block: vi.fn(),
@@ -76,8 +80,8 @@ function fixture(
   const storage = {
     execute: vi.fn((_press: Parameters<PressStorage["execute"]>[0]) => true),
     drawerTarget: vi.fn(
-      (_id, ...args: Parameters<CamperDrive["drawerTarget"]>) =>
-        drive.drawerTarget(...args),
+      (_id, ...args: Parameters<RoomStorageHost["drawerTarget"]>) =>
+        camperRoom(drive).storage.drawerTarget(...args),
     ),
   };
   const owner = vi.fn(() => vehicleId);
@@ -269,15 +273,15 @@ for (const [top, bottom] of drawerStates) {
       if (!press?.point) throw new Error("Expected a storage press point");
       expect(press.point.y - counter.y).toBeCloseTo(1 - reportedPx / 16, 12);
       expect(
-        f.drive.pressStorage(
-          press.cell,
-          press.point,
-          200,
-          press.takeContents,
-          press.eye,
-          press.openOnly,
-          press.drawersSideFace,
-        ),
+        camperRoom(f.drive).storage.pressStorage({
+          cell: press.cell,
+          point: press.point,
+          tick: 200,
+          takeContents: press.takeContents,
+          eye: press.eye,
+          openOnly: press.openOnly,
+          drawersSideFace: press.drawersSideFace,
+        }),
       ).toMatchObject({ kind: "door" });
       f.drive.resync();
       const out = f.drive.step(undefined, {
@@ -345,15 +349,15 @@ it.each([
     expect(press).toMatchObject({ cell: counter });
     if (!press) throw new Error("Expected storage press");
     expect(
-      f.drive.pressStorage(
-        press.cell,
-        press.point,
-        200,
-        press.takeContents,
-        press.eye,
-        press.openOnly,
-        press.drawersSideFace,
-      ),
+      camperRoom(f.drive).storage.pressStorage({
+        cell: press.cell,
+        point: press.point,
+        tick: 200,
+        takeContents: press.takeContents,
+        eye: press.eye,
+        openOnly: press.openOnly,
+        drawersSideFace: press.drawersSideFace,
+      }),
     ).toMatchObject({ kind: "door" });
     f.drive.resync();
     const out = f.drive.step(undefined, {
@@ -376,7 +380,7 @@ it.each([
         value: name === drawer ? 0.9 : wasOpen ? 1 : 0,
       });
     }
-    expect(f.drive.decor()).toEqual([
+    expect(camperRoom(f.drive).decor.decor()).toEqual([
       { slot: "drawer_bottom_0", item: "mug_pair" },
     ]);
   },
@@ -407,18 +411,18 @@ it("closes an occupied footprint drawer with allowlisted gear without placing or
   const press = f.storage.execute.mock.calls[0]?.[0];
   if (!press) throw new Error("Expected storage press");
   expect(
-    f.drive.pressStorage(
-      press.cell,
-      press.point,
-      200,
-      press.takeContents,
-      press.eye,
-      press.openOnly,
-      press.drawersSideFace,
-    ),
+    camperRoom(f.drive).storage.pressStorage({
+      cell: press.cell,
+      point: press.point,
+      tick: 200,
+      takeContents: press.takeContents,
+      eye: press.eye,
+      openOnly: press.openOnly,
+      drawersSideFace: press.drawersSideFace,
+    }),
   ).toMatchObject({ kind: "door" });
   expect(f.place.execute).not.toHaveBeenCalled();
-  expect(f.drive.decor()).toEqual([
+  expect(camperRoom(f.drive).decor.decor()).toEqual([
     { slot: "drawer_bottom_0", item: "mug_pair" },
   ]);
 });
@@ -448,15 +452,15 @@ for (const [top, bottom] of drawerStates) {
       if (!press) throw new Error("Expected recorded floor storage press");
       expect(press.cell).toEqual({ x: -2, y: -59, z: 4 });
       expect(
-        f.drive.pressStorage(
-          press.cell,
-          press.point,
-          200,
-          press.takeContents,
-          press.eye,
-          press.openOnly,
-          press.drawersSideFace,
-        ),
+        camperRoom(f.drive).storage.pressStorage({
+          cell: press.cell,
+          point: press.point,
+          tick: 200,
+          takeContents: press.takeContents,
+          eye: press.eye,
+          openOnly: press.openOnly,
+          drawersSideFace: press.drawersSideFace,
+        }),
       ).toMatchObject({ kind: "door" });
       f.drive.resync();
       const out = f.drive.step(undefined, {

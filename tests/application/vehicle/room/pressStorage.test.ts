@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { PressStorage } from "../../../src/application/vehicle/pressStorage";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
-import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
-import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/decorCells";
-import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
-import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
-import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
-import { decorItemId, decorSlotId } from "../../support/decorIds";
-import { FakeClock, FakeWorld, parkedCamper } from "./fakes";
+import { PressStorage } from "../../../../src/application/vehicle/room/pressStorage";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
+import { decorSlot } from "../../../../src/domain/vehicle/kinds/camper/decor";
+import { decorSlotCell } from "../../../../src/domain/vehicle/kinds/camper/decorCells";
+import { slotPoint } from "../../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { CAMPER_SPEC } from "../../../../src/domain/vehicle/kinds/camper/spec";
+import {
+  CAMPER_ROOM,
+  createVehicle,
+} from "../../../../src/domain/vehicle/kinds/index";
+import { decorItemId, decorSlotId } from "../../../support/decorIds";
+import { FakeClock, FakeWorld, parkedCamper } from "../fakes";
 
 function setup() {
   const { car, pose, repo } = parkedCamper();
@@ -32,11 +35,17 @@ describe("PressStorage (ADR 0114)", () => {
   it("opens the door without saving, then takes the pressed item back to the player and saves the rest", () => {
     const { car, world, at } = setup();
     car
-      .asRoom()
-      ?.setDecor(decorSlotId("cabinet_sink_front"), decorItemId("toaster"));
+      .capability(CAMPER_ROOM)
+      ?.decor.setDecor(
+        decorSlotId("cabinet_sink_front"),
+        decorItemId("toaster"),
+      );
     car
-      .asRoom()
-      ?.setDecor(decorSlotId("cabinet_sink_rear"), decorItemId("mug_pair"));
+      .capability(CAMPER_ROOM)
+      ?.decor.setDecor(
+        decorSlotId("cabinet_sink_rear"),
+        decorItemId("mug_pair"),
+      );
     expect(at(100)).toBe(true);
     expect(world.calls).toEqual([]);
     expect(at(100 + CAMPER_SPEC.doorSwingTicks)).toBe(true);

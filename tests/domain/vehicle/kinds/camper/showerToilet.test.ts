@@ -8,6 +8,7 @@ import { roomCells } from "../../../../../src/domain/vehicle/kinds/camper/roomCe
 import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
+import { camperRoom } from "../../../../support/camperRoom";
 import { defined } from "../../../../support/defined";
 
 const SWING = CAMPER_SPEC.doorSwingTicks;
@@ -66,7 +67,10 @@ it("closes an open shower door from either side, opens a shut one from outside, 
           const toDoor = open || within || !f.inside(feet);
           door.mockClear();
           shower.mockClear();
-          const used = f.drive.pressShowerToilet(feet, tick);
+          const used = camperRoom(f.drive).fixtures.pressShowerToilet(
+            feet,
+            tick,
+          );
           if (toDoor) {
             expect(shower).not.toHaveBeenCalled();
             expect(used).toBe(!within);
@@ -105,5 +109,7 @@ it("closes an open shower door from either side, opens a shut one from outside, 
 
 it("ignores a press on the shower-toilet until parked", () => {
   const drive = new CamperDrive(0, {});
-  expect(drive.pressShowerToilet({ x: 0, y: 0, z: 0 }, 0)).toBe(false);
+  expect(
+    camperRoom(drive).fixtures.pressShowerToilet({ x: 0, y: 0, z: 0 }, 0),
+  ).toBe(false);
 });

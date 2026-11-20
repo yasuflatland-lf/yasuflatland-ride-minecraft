@@ -4,6 +4,7 @@ import { HitVehicle } from "../../../src/application/vehicle/hitVehicle";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { DECOR_CELLS } from "../../../src/domain/vehicle/kinds/camper/decor";
 import {
+  CAMPER_ROOM,
   CAMPER_SAVED,
   createVehicle,
   fleetLimitOf,
@@ -109,7 +110,9 @@ describe("HitVehicle (ADR 0008)", () => {
 
   it("gives the placed decor to the hitter when the camper breaks (ADR 0093)", () => {
     const { car, repo } = parkedCamper();
-    car.asRoom()?.placeDecor(decorSlotId("stove"), decorItemId("percolator"));
+    car
+      .capability(CAMPER_ROOM)
+      ?.decor.placeDecor(decorSlotId("stove"), decorItemId("percolator"));
     const world = new FakeWorld();
     const clock = new FakeClock();
     const uc = new HitVehicle(

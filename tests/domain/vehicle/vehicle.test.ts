@@ -15,6 +15,7 @@ import { HINTS } from "../../../src/domain/vehicle/hints";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import {
+  CAMPER_ROOM,
   createVehicle,
   profileOf,
   rebuildVehicle,
@@ -1089,15 +1090,20 @@ it("exposes a room only for kinds with the room capability", () => {
       fc.integer(),
       (kind, yaw) => {
         const vehicle = createVehicle(kind, asVehicleId("a"), yaw);
-        const room = vehicle.asRoom();
+        const room = vehicle.capability(CAMPER_ROOM);
         expect(room !== undefined).toBe(kind === "camper");
         if (room) {
-          expect(room.decor()).toEqual([]);
+          expect(room.decor.decor()).toEqual([]);
           expect(
-            room.setDecor(decorSlotId("stove"), decorItemId("percolator")),
+            room.decor.setDecor(
+              decorSlotId("stove"),
+              decorItemId("percolator"),
+            ),
           ).toBe(true);
-          expect(vehicle.asRoom()).toBe(room);
-          expect(room.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
+          expect(vehicle.capability(CAMPER_ROOM)).toBe(room);
+          expect(room.decor.decor()).toEqual([
+            { slot: "stove", item: "percolator" },
+          ]);
         }
       },
     ),

@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import { quarterOf, snapYaw } from "../../../../../src/domain/shared/facing";
+import { asVehicleId } from "../../../../../src/domain/shared/ids";
 import {
   dot,
   forward,
@@ -11,6 +12,7 @@ import {
   rightOf,
 } from "../../../../../src/domain/shared/vec";
 import { inBox } from "../../../../../src/domain/vehicle/dock/dock";
+import { VEHICLE_KINDS } from "../../../../../src/domain/vehicle/kind";
 import {
   DECOR_CELLS,
   DECOR_SLOTS,
@@ -23,6 +25,7 @@ import {
   ownSlotBlock,
   slotCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
+import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
   STORAGE_DOORS,
   type StorageDoorId,
@@ -45,6 +48,7 @@ import {
   roomCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
 import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import { seatSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/seatPress";
 import {
   cargoCells,
@@ -52,7 +56,12 @@ import {
   holdsCargo,
   storagePlateChecks,
 } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
+import {
+  CAMPER_ROOM,
+  createVehicle,
+} from "../../../../../src/domain/vehicle/kinds/index";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
+import { camperRoom } from "../../../../support/camperRoom";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 import { hingedOpening } from "../../../../support/storageOpening";
@@ -1091,3 +1100,139 @@ it("maps each level's cells to its own aisle cell on the floor, and rejects ever
     }),
   );
 });
+
+it("preserves the results of generated storage press sequences", () => {
+  const location = { x: 180.5, y: -60, z: 90.5 };
+  const cell = { x: 179, y: -59, z: 89 };
+  const eye = { x: 180.7, y: -58.48, z: 89.7 };
+  const requests = fc.record({
+    hit: fc.constantFrom("top", "bottom", "miss", "unknown"),
+    wait: fc.integer({ min: 0, max: 30 }),
+    takeContents: fc.option(fc.boolean(), { nil: undefined }),
+    openOnly: fc.option(fc.boolean(), { nil: undefined }),
+    drawersSideFace: fc.option(fc.boolean(), { nil: undefined }),
+    eye: fc.constantFrom(eye, undefined),
+  });
+  const sequences = fc.sample(
+    fc.array(requests, { minLength: 8, maxLength: 20 }),
+    {
+      seed: 2095,
+      numRuns: 32,
+    },
+  );
+  const results = sequences.map((presses) => {
+    const drive = new CamperDrive(0, {
+      docked: true,
+      [CAMPER_SAVED.decor]: JSON.stringify([
+        { slot: "drawer_top_0", item: "mug_pair" },
+        { slot: "drawer_bottom_0", item: "book_stack" },
+      ]),
+    });
+    drive.step(undefined, {
+      tick: 100,
+      location,
+      velocity: { x: 0, y: 0, z: 0 },
+      onGround: true,
+      deckSeatInputs: [],
+      solidAt: () => false,
+      waterAt: () => false,
+      blockTypes: (cells) => cells.map(() => "minecraft:air"),
+    });
+
+    let tick = 100;
+    return presses
+      .map(({ hit, wait, takeContents, openOnly, drawersSideFace, eye }) => {
+        tick += wait;
+        const target = hit === "miss" ? { ...cell, y: cell.y - 2 } : cell;
+        const point =
+          hit === "unknown"
+            ? undefined
+            : {
+                x: target.x,
+                y: target.y + (hit === "top" ? 0.7 : 0.3),
+                z: target.z + 0.5,
+              };
+        const result = camperRoom(drive).storage.pressStorage({
+          cell: target,
+          point,
+          tick,
+          takeContents,
+          eye,
+          openOnly,
+          drawersSideFace,
+        });
+        return result?.kind === "item" ? result.item : (result?.kind ?? "-");
+      })
+      .join(" ");
+  });
+  // Recorded against the positional storage call before changing the drive contract.
+  expect(results).toMatchInlineSnapshot(`
+    [
+      "- - - door door - - door book_stack - - - -",
+      "door - mug_pair - - door - door -",
+      "door - - - - - door -",
+      "door door book_stack - - - mug_pair door door - - - door - - door door",
+      "door - - - - - door door - - - - - - - door -",
+      "- door - mug_pair - - - door door",
+      "- door - door door mug_pair - door - - - door",
+      "- - - - door door door door - - - - - door - door - - door",
+      "- door - - door door - - - - - mug_pair door - - -",
+      "- door - - door - door door - book_stack - - - - door door door",
+      "door - book_stack - door door door - mug_pair door door",
+      "door door - - - - door - door",
+      "- door - door - - - - - - - -",
+      "door - - - - door - -",
+      "door mug_pair - - door - - door - -",
+      "- door - door door - door door - door mug_pair - - - - - - - -",
+      "- door - - door - door - door door door - - mug_pair",
+      "- door - door - door door - door - door - - - - door - door -",
+      "- - door door mug_pair - - - - - - book_stack - - - - door - door -",
+      "door - - door - - - door door door - - - - - - door -",
+      "door - - - door door - - - - - - mug_pair door - book_stack - - door",
+      "- door - mug_pair - door - door - door door - -",
+      "- - - door mug_pair - - - door - - door - -",
+      "door door - - - mug_pair book_stack - - - - door - - - door - - door",
+      "- door door - - door door door - door - - door - door - - mug_pair -",
+      "- door - - door - - - - - - - - - - door - - door",
+      "door - - - door - - - - door - - door - mug_pair - -",
+      "door - door - door - door - - - - - - mug_pair - - - - door",
+      "- door door - - book_stack door - - - - door door -",
+      "- - door - - - door - - - - book_stack - - - - -",
+      "- - - - door book_stack - -",
+      "- - - door - - - mug_pair - door",
+    ]
+  `);
+});
+
+it.each(VEHICLE_KINDS)(
+  "offers the room capability only to the camper (%s)",
+  (kind) => {
+    const vehicle = createVehicle(kind, asVehicleId("room-test"), 0);
+    const room = vehicle.capability(CAMPER_ROOM);
+    if (kind !== "camper") {
+      expect(room).toBeUndefined();
+      return;
+    }
+
+    expect(room).toMatchObject({
+      decor: {
+        decor: expect.any(Function),
+        setDecor: expect.any(Function),
+        decorSlotFor: expect.any(Function),
+        placeDecor: expect.any(Function),
+        removeDecor: expect.any(Function),
+      },
+      storage: {
+        drawerTarget: expect.any(Function),
+        pressStorage: expect.any(Function),
+      },
+      fixtures: {
+        useDockDoor: expect.any(Function),
+        pressShowerToilet: expect.any(Function),
+        bedSpawnCell: expect.any(Function),
+      },
+    });
+    expect(Object.isFrozen(room)).toBe(true);
+    expect(vehicle.capability(CAMPER_ROOM)).toBe(room);
+  },
+);

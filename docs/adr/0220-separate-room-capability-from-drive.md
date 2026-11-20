@@ -10,12 +10,14 @@ The core `Drive` interface has nine optional methods for room doors, beds, showe
 
 ## Decision
 
-- Keep kind-specific capabilities in separate interfaces, detected through type guards, rather than adding optional methods to `Drive`.
-- Define `RoomDrive` in `src/domain/vehicle/dock/roomDrive.ts` with required `useDockDoor`, `bedSpawnCell`, `pressShowerToilet`, `decor`, `setDecor`, `decorSlotFor`, `placeDecor`, `removeDecor` and `pressStorage` methods. Keep `DecorPlacement` and `StoragePress` alongside it in `dock/decor.ts`.
-- The camper drive implements `RoomDrive`. The core's `isRoomDrive` checks that all nine methods are functions without importing kinds. `Vehicle.asRoom()` returns that drive as `RoomDrive`, or undefined.
-- Remove the nine delegates from `Vehicle`. Callers obtain the capability through `asRoom()` and preserve unsupported-vehicle results: false, undefined or no action, and an empty decor list where needed. Gear placement still shows the no-slot message for a known vehicle without a room.
-- Leave the optional seat-taken, ceiling-light and tool-state methods on `Drive` unchanged in this split. Game behavior and saved data remain unchanged.
+- Define `CapabilityKey<T>` in the vehicle core. Each key is frozen and compared by identity. The name describes the capability, and the type parameter identifies its value type.
+- Add the optional `Drive.capability(key)` hook. `Vehicle.capability(key)` forwards the request and returns undefined when the drive has no match. A kind uses `offer` to return a capability value for its key.
+- Declare `CAMPER_ROOM` in the camper kind with decor, storage and fixture interfaces. The fixtures host handles the entry door, bed, shower-toilet and ceiling-light switch, including its read-only reach check. The camper drive creates one frozen room object per drive. Application and infrastructure callers obtain the key and types through `kinds/index.ts`.
+- The application use cases of the room capability live in `src/application/vehicle/room/`; it is a capability folder inside the vehicle feature, not a per-kind folder (0055).
+- Pass a `StoragePressRequest` object to `pressStorage` with the press cell, tick and optional targeting and interaction fields.
+- Preserve unsupported-vehicle results. Room operations return false or undefined and have no effects. Pickup uses an empty decor list, and gear placement on a known vehicle without a room shows the no-slot message.
+- Keep seat-taken and tool-state hooks on `Drive`. Preserve game behavior, saved data and event order.
 
 ## Consequences
 
-Room callers narrow once to an interface whose methods are all available. Non-room drives carry no room methods, and the core depends only on capability contracts. Adding a room method requires updating the interface, guard and implementations together. Revisit the capability boundary if a future kind supports only part of the room operations.
+The core forwards capability requests without importing any kinds. Each capability's key gives callers the types for the operations they can use. Adding a capability requires a key and an offer from each drive that supports it. A change to a room operation is local to its host contract, implementation and callers.

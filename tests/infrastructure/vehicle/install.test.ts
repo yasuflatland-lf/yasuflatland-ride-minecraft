@@ -1,8 +1,8 @@
 import { world } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
-import { PlaceDecor } from "../../../src/application/vehicle/placeDecor";
-import { RemoveDecor } from "../../../src/application/vehicle/removeDecor";
-import { SetDecor } from "../../../src/application/vehicle/setDecor";
+import { PlaceDecor } from "../../../src/application/vehicle/room/placeDecor";
+import { RemoveDecor } from "../../../src/application/vehicle/room/removeDecor";
+import { SetDecor } from "../../../src/application/vehicle/room/setDecor";
 import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { registerDockGuard } from "../../../src/infrastructure/vehicle/bedrock/handlers/dockGuard";

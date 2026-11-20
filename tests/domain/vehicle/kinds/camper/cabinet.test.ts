@@ -1,4 +1,5 @@
 import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
+import { camperRoom } from "../../../../support/camperRoom";
 // The wall cabinet's two doors and the items behind them (ADR 0114).
 
 import fc from "fast-check";
@@ -73,11 +74,11 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
     at: "compartment" | "aisle",
     point?: Vec3,
   ) =>
-    drive.pressStorage(
-      at === "compartment" ? compartment(door) : aisle(door),
+    camperRoom(drive).storage.pressStorage({
+      cell: at === "compartment" ? compartment(door) : aisle(door),
       point,
-      ctx.tick,
-    );
+      tick: ctx.tick,
+    });
   // Steps past the door's tap window, so the next press counts (ADR 0105).
   const settle = () => {
     for (let i = 0; i < SWING; i++) step();
@@ -103,7 +104,10 @@ it("ignores presses on the cabinet until parked, and on cells that are not the c
   f.park();
   const c = f.compartment("sink");
   expect(
-    f.drive.pressStorage({ ...c, y: c.y - 1 }, undefined, f.ctx.tick),
+    camperRoom(f.drive).storage.pressStorage({
+      cell: { ...c, y: c.y - 1 },
+      tick: f.ctx.tick,
+    }),
   ).toBeUndefined();
 });
 
@@ -140,9 +144,12 @@ it("takes back the item at the pressed end of an open compartment, and shuts the
         const ends = DECOR_SLOTS.filter((s) => s.door === door);
         const heldEnd = defined(ends[held], "held end");
         const emptyEnd = defined(ends[1 - held], "empty end");
-        expect(f.drive.setDecor(heldEnd.id, decorItemId("mug_pair"))).toBe(
-          true,
-        );
+        expect(
+          camperRoom(f.drive).decor.setDecor(
+            heldEnd.id,
+            decorItemId("mug_pair"),
+          ),
+        ).toBe(true);
         f.park();
         // Shut, a press opens the door and takes nothing.
         expect(
@@ -152,7 +159,7 @@ it("takes back the item at the pressed end of an open compartment, and shuts the
         expect(
           f.press(door, "compartment", slotPoint(f.pose, heldEnd)),
         ).toEqual({ kind: "item", item: "mug_pair" });
-        expect(f.drive.decor()).toEqual([]);
+        expect(camperRoom(f.drive).decor.decor()).toEqual([]);
         f.settle();
         expect(
           f.press(door, "compartment", slotPoint(f.pose, emptyEnd)),
@@ -176,7 +183,7 @@ it("places gear behind an open door only, and never takes a cabinet item through
   const sink = slotNamed("cabinet_sink_rear");
   const point = slotPoint(f.pose, sink);
   const cell = f.compartment("sink");
-  const shut = f.drive.decorSlotFor(
+  const shut = camperRoom(f.drive).decor.decorSlotFor(
     decorItemId("mug_pair"),
     point,
     cell,
@@ -185,19 +192,40 @@ it("places gear behind an open door only, and never takes a cabinet item through
   expect(shut).toBeDefined();
   expect(slotNamed(defined(shut, "slot")).door).toBeUndefined();
   expect(
-    f.drive.decorSlotFor(decorItemId("mug_pair"), point, cell, true),
+    camperRoom(f.drive).decor.decorSlotFor(
+      decorItemId("mug_pair"),
+      point,
+      cell,
+      true,
+    ),
   ).toBeUndefined();
-  expect(f.drive.placeDecor(sink.id, decorItemId("mug_pair"))).toBe(false);
+  expect(
+    camperRoom(f.drive).decor.placeDecor(sink.id, decorItemId("mug_pair")),
+  ).toBe(false);
   f.press("sink", "compartment");
   expect(
-    f.drive.decorSlotFor(decorItemId("mug_pair"), point, cell, false),
+    camperRoom(f.drive).decor.decorSlotFor(
+      decorItemId("mug_pair"),
+      point,
+      cell,
+      false,
+    ),
   ).toBe(sink.id);
-  expect(f.drive.placeDecor(sink.id, decorItemId("mug_pair"))).toBe(true);
-  expect(f.drive.decorSlotFor(decorItemId("cushion"), point, cell, false)).toBe(
-    "cabinet_sink_front",
-  );
-  expect(f.drive.removeDecor(cell, point)).toBeUndefined();
-  expect(f.drive.decor()).toEqual([{ slot: sink.id, item: "mug_pair" }]);
+  expect(
+    camperRoom(f.drive).decor.placeDecor(sink.id, decorItemId("mug_pair")),
+  ).toBe(true);
+  expect(
+    camperRoom(f.drive).decor.decorSlotFor(
+      decorItemId("cushion"),
+      point,
+      cell,
+      false,
+    ),
+  ).toBe("cabinet_sink_front");
+  expect(camperRoom(f.drive).decor.removeDecor(cell, point)).toBeUndefined();
+  expect(camperRoom(f.drive).decor.decor()).toEqual([
+    { slot: sink.id, item: "mug_pair" },
+  ]);
   f.step();
   const laid = blockAt(f.step().dock?.cells, cell);
   expect(laid).toEqual({
@@ -207,7 +235,7 @@ it("places gear behind an open door only, and never takes a cabinet item through
     end0: decorItemId("mug_pair"),
   } satisfies DockBlock);
   // The stove's compartment stays shut, so a press on it sends the item elsewhere.
-  const stoveSide = f.drive.decorSlotFor(
+  const stoveSide = camperRoom(f.drive).decor.decorSlotFor(
     decorItemId("cushion"),
     slotPoint(f.pose, slotNamed("cabinet_stove_rear")),
     f.compartment("stove"),
@@ -218,7 +246,10 @@ it("places gear behind an open door only, and never takes a cabinet item through
 
 it("shuts both doors at once on departure, keeps their items, and lays them shut on the next park (ADR 0114)", () => {
   const f = fixture();
-  f.drive.setDecor(decorSlotId("cabinet_stove_front"), decorItemId("toaster"));
+  camperRoom(f.drive).decor.setDecor(
+    decorSlotId("cabinet_stove_front"),
+    decorItemId("toaster"),
+  );
   f.park();
   f.press("sink", "compartment");
   f.press("stove", "compartment");
@@ -227,7 +258,7 @@ it("shuts both doors at once on departure, keeps their items, and lays them shut
   expect(out.depart).toBeDefined();
   for (const door of DOORS)
     expect(propertyValues(out, PROPERTY[door])).toEqual([0]);
-  expect(f.drive.decor()).toEqual([
+  expect(camperRoom(f.drive).decor.decor()).toEqual([
     { slot: "cabinet_stove_front", item: "toaster" },
   ]);
   let cells: readonly DockCell[] = [];
@@ -283,7 +314,7 @@ it("stores saved decor of a removed slot in a shut cabinet once every open spot 
       { slot: "wall_cabinet_front", item: "book_stack" },
     ]),
   });
-  expect(drive.decor()).toEqual([
+  expect(camperRoom(drive).decor.decor()).toEqual([
     ...full,
     { slot: "cabinet_sink_rear", item: "book_stack" },
   ]);

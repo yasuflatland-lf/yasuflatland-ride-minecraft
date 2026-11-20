@@ -10,11 +10,11 @@ import type { PlayerId, VehicleId } from "../shared/ids";
 import { isDyeable } from "../shared/paint";
 import { SyncedValue } from "../shared/syncedValue";
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
+import type { CapabilityKey } from "./capability";
 import { RamCooldowns } from "./cooldowns";
 import { Crew } from "./crew";
 import type { CutColumn } from "./cut";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
-import { isRoomDrive, type RoomDrive } from "./dock/roomDrive";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
 import { MONITOR_PROPERTY_NAME } from "./entityContract";
@@ -165,17 +165,13 @@ export class Vehicle {
   private readonly monitorSync = new SyncedValue<number>();
   private readonly ramCooldowns = new RamCooldowns();
   private readonly switchCooldown = new Debounce(SPEC.headlightSwitchCooldown);
-  // Its own cooldown, so a driver's headlight switch and a ceiling light switch in the room never block each other (ADR 0115).
-  private readonly ceilingLightCooldown = new Debounce(
-    SPEC.headlightSwitchCooldown,
-  );
   // Its own cooldown, so monitor tools and light switches never block each other (ADR 0171).
   private readonly toolCooldown = new Debounce(SPEC.toolSwitchCooldown);
   private hitCounter: HitCounter = EMPTY_COUNTER;
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private docked = false;
   private driverSeatFree = true;
-  /** The parked camper's wheel deck seat rider, who operates its headlights (ADR 0149). */
+  /** The held vehicle's wheel deck seat rider when the profile enables headlights there (ADR 0149). */
   private deckDriverId: PlayerId | undefined;
   /** The row axis of the stand-in kept last tick; a rebuilt vehicle starts with none (ADR 0116). */
   private standInAxis: StandInAxis | undefined;
@@ -287,8 +283,8 @@ export class Vehicle {
     });
   }
 
-  asRoom(): RoomDrive | undefined {
-    return isRoomDrive(this.drive) ? this.drive : undefined;
+  capability<T>(key: CapabilityKey<T>): T | undefined {
+    return this.drive.capability?.(key);
   }
 
   /** Called by the application when this tick's step commands may not have reached the entity (ADR 0055, 0127). */
@@ -469,43 +465,16 @@ export class Vehicle {
   }
 
   /**
-   * A player uses the headlight switch. Only the driver or the rider of the parked
-   * camper's wheel deck seat may flip it (ADR 0149), and only
-   * after the switch has been idle for the cooldown, so a burst of uses from
-   * one touch flips it once (ADR 0024). Returns whether it flipped.
+   * The driver holds the wheel, as does the wheel deck seat rider of a held vehicle
+   * whose profile enables deckSeatDriverHeadlights (ADR 0149). Their switch operates the headlights only.
    */
+  atTheWheel(playerId: PlayerId): boolean {
+    return playerId === this.crew.driver || playerId === this.deckDriverId;
+  }
+
+  /** A burst of uses from one touch at the wheel flips the headlights once (ADR 0024). */
   flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
-    if (playerId !== this.crew.driver && playerId !== this.deckDriverId)
-      return false;
-    return this.switchCooldown.press(tick);
-  }
-
-  /**
-   * A player who is not at the wheel uses the light switch with their feet at `feet`: inside a
-   * parked room, it turns the ceiling lights on or off. The wheel seat rider's switch stays the
-   * headlights' (ADR 0020). It uses its own cooldown with the headlight switch's duration, so
-   * one touch flips once (ADR 0024, 0115). Returns whether it flipped.
-   */
-  switchCeilingLights(playerId: PlayerId, feet: Vec3, tick: number): boolean {
-    if (
-      playerId === this.crew.driver ||
-      playerId === this.deckDriverId ||
-      !this.drive.switchCeilingLights
-    )
-      return false;
-    if (!this.ceilingLightCooldown.press(tick)) return false;
-    return this.drive.switchCeilingLights(feet);
-  }
-
-  /**
-   * Whether a use of the light switch by `playerId` with feet at `feet` is one for the ceiling
-   * lights: not the driver's, and from inside a room that has them. It ignores the cooldown
-   * and changes nothing, so a press is taken over only where the switch can work (ADR 0115).
-   */
-  canSwitchCeilingLights(playerId: PlayerId, feet: Vec3): boolean {
-    if (playerId === this.crew.driver || playerId === this.deckDriverId)
-      return false;
-    return this.drive.ceilingLightsReachable?.(feet) ?? false;
+    return this.atTheWheel(playerId) && this.switchCooldown.press(tick);
   }
 
   /** Only the driver may advance a monitor tool; all tools share an idle cooldown (ADR 0024, 0171). */

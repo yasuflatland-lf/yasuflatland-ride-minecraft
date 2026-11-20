@@ -1,5 +1,7 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
+
 import type { Vec2, Vec3 } from "../shared/vec";
+import type { CapabilityKey } from "./capability";
 import type { CutColumn } from "./cut";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { RawInput } from "./driveInput";
@@ -81,6 +83,7 @@ export interface DriveStep {
 }
 
 export interface Drive {
+  capability?<T>(key: CapabilityKey<T>): T | undefined;
   /** Forgets which entity values were sent, so the next step sends all of them again; called when a tick's commands may not have reached the entity. */
   resync(): void;
   /** Internal forward/reverse speed in blocks/tick; negative means reverse. */
@@ -91,10 +94,6 @@ export interface Drive {
   onSeatVacated(seat: number): readonly EngineCommand[];
   /** Called before `step` for each seat a newly boarded rider takes this tick, ascending; its commands go into `finalCommands` after the vacated seats' commands. Absent means none. */
   onSeatTaken?(seat: number): readonly EngineCommand[];
-  /** Turns the ceiling lights of a held vehicle's room on or off for a player with feet at `feet`; false when it has none or the player is not inside (ADR 0115). */
-  switchCeilingLights?(feet: Vec3): boolean;
-  /** Whether `switchCeilingLights` would take a use from feet at `feet` now, without switching (ADR 0115). */
-  ceilingLightsReachable?(feet: Vec3): boolean;
   /** Sets a monitor tool's state; false for an unknown item or state (ADR 0171). */
   setToolState?(item: string, state: string): boolean;
   /** The state name of one of the kind's monitor tools; undefined when `item` is not one of them (ADR 0139). */

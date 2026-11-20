@@ -19,6 +19,7 @@ import {
   localCellAt,
   parkPose,
 } from "../../domain/vehicle/kinds/camper/parkPose";
+import { CAMPER_ROOM } from "../../domain/vehicle/kinds/camper/room";
 import {
   CAMPER_SPEC,
   DRAWER_GEAR_IDS,
@@ -55,6 +56,8 @@ function fixture(
 ) {
   const pose = parkPose(a.at(108.5, a.gy, 78.5), 90);
   const drive = new CamperDrive(pose.yaw, restored);
+  const room = drive.capability(CAMPER_ROOM);
+  if (!room) throw new Error("Missing camper room capability");
   const top = KITCHEN_DRAWERS.doors[0]?.slots[0];
   const bottom = KITCHEN_DRAWERS.doors[1]?.slots[0];
   if (!top || !bottom) throw new Error("Missing drawer fixture slots");
@@ -79,7 +82,7 @@ function fixture(
         if (cmd.name.startsWith("drawer_"))
           carrier.setProperty(id(cmd.name), cmd.value);
       }
-    carrier.setDynamicProperty(id("decor"), JSON.stringify(drive.decor()));
+    carrier.setDynamicProperty(id("decor"), JSON.stringify(room.decor.decor()));
     const drawer = out.dock?.cells.find((c) => c.block.type === "drawers");
     if (drawer?.block.type === "drawers")
       a.dim
@@ -132,12 +135,18 @@ function fixture(
     const target = contents
       ? rayPoint(DRAWER_HIT_PROFILE.contentLeft, 0)
       : rayPoint(0, height);
-    return drive.pressStorage(cell, target, tick, undefined, eye, openOnly);
+    return room.storage.pressStorage({
+      cell,
+      point: target,
+      tick,
+      eye,
+      openOnly,
+    });
   };
   const place = (which: "top" | "bottom", item: string) => {
     if (!isDecorItem(item)) throw new Error(`Invalid fixture item ${item}`);
-    const slot = drive.decorSlotFor(item, point(which), cell, false);
-    return slot !== undefined && drive.placeDecor(slot, item);
+    const slot = room.decor.decorSlotFor(item, point(which), cell, false);
+    return slot !== undefined && room.decor.placeDecor(slot, item);
   };
   const itemCode = (which: "top" | "bottom") =>
     carrier.getProperty(id(`drawer_${which}_item`));
@@ -167,7 +176,7 @@ function fixture(
     }
   };
   return {
-    drive,
+    room,
     carrier,
     pose,
     cell,
@@ -175,13 +184,12 @@ function fixture(
     point,
     press,
     floorPress: () =>
-      drive.pressStorage(
-        localCellAt(pose, { x: 0, z: -1, layer: 0 }),
-        rayPoint(10.336, 0, -6),
+      room.storage.pressStorage({
+        cell: localCellAt(pose, { x: 0, z: -1, layer: 0 }),
+        point: rayPoint(10.336, 0, -6),
         tick,
-        undefined,
-        rayPoint(20.544, 24.32, 5.152),
-      ),
+        eye: rayPoint(20.544, 24.32, 5.152),
+      }),
     place,
     opened,
     holds,
@@ -272,7 +280,7 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
     if (!counter || !isDecorItem(counterItem))
       throw new Error("Missing counter fixture");
     requireCheck(
-      f.drive.placeDecor(counter.id, counterItem),
+      f.room.decor.placeDecor(counter.id, counterItem),
       "Counter remains usable",
     );
     await f.advance(CAMPER_SPEC.doorSwingTicks);
@@ -295,7 +303,7 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
       "Only top must start closing",
     );
     requireCheck(
-      f.drive.decor().length === 3,
+      f.room.decor.decor().length === 3,
       "Closing must preserve both items and counter decor",
     );
     requireCheck(
@@ -305,13 +313,13 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
     await f.advance(1);
     requireCheck(
       !f.holds("bottom") &&
-        f.drive
+        f.room.decor
           .decor()
           .some((d) => d.slot === "drawer_top_0" && d.item === "mug_pair"),
       "Removal must empty only bottom",
     );
     requireCheck(
-      f.drive
+      f.room.decor
         .decor()
         .some((d) => d.slot === "counter" && d.item === "potted_plant"),
       "Counter decor must survive",
@@ -342,7 +350,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
     if (typeof saved !== "string")
       throw new Error("Missing persisted drawer decor");
     requireCheck(
-      saved === JSON.stringify(f.drive.decor()),
+      saved === JSON.stringify(f.room.decor.decor()),
       "Engine dynamic property must persist all decor",
     );
     const reloaded = fixture(a, f.carrier, {
@@ -358,7 +366,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
       "Parked reload must restore open states",
     );
     requireCheck(
-      JSON.stringify(reloaded.drive.decor()) === saved,
+      JSON.stringify(reloaded.room.decor.decor()) === saved,
       "Reload must restore contents",
     );
     requireCheck(
@@ -380,7 +388,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
       "Departure must close both properties",
     );
     requireCheck(
-      JSON.stringify(reloaded.drive.decor()) === saved,
+      JSON.stringify(reloaded.room.decor.decor()) === saved,
       "Departure must keep contents",
     );
     requireCheck(
@@ -416,7 +424,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
       "Undocked reload must close both",
     );
     requireCheck(
-      JSON.stringify(undocked.drive.decor()) === saved,
+      JSON.stringify(undocked.room.decor.decor()) === saved,
       "Undocked reload must retain contents",
     );
     requireCheck(
@@ -439,7 +447,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
       "Next park must hide stored contents",
     );
     requireCheck(
-      JSON.stringify(parkedAgain.drive.decor()) === saved,
+      JSON.stringify(parkedAgain.room.decor.decor()) === saved,
       "Next park must retain both contents in saved decor",
     );
     requireCheck(

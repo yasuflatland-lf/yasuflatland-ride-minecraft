@@ -1,4 +1,5 @@
 import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
+import { camperRoom } from "../../../../support/camperRoom";
 // The fridge in place of the shelf: two doors hinged at its front end, a compartment behind
 // each, and plates in the aisle in the room's inside layers, all from the doored storage
 // mechanism (ADR 0121, 0123).
@@ -79,11 +80,11 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
     at: "compartment" | "plate",
     point?: Vec3,
   ) =>
-    drive.pressStorage(
-      at === "compartment" ? compartment(id) : plate(id),
+    camperRoom(drive).storage.pressStorage({
+      cell: at === "compartment" ? compartment(id) : plate(id),
       point,
-      ctx.tick,
-    );
+      tick: ctx.tick,
+    });
   // Steps past the door's tap window, so the next press counts (ADR 0105).
   const settle = () => {
     for (let i = 0; i < SWING; i++) step();
@@ -196,7 +197,12 @@ it("takes back the item at the pressed end of an open compartment, and shuts the
         const ends = DECOR_SLOTS.filter((s) => s.door === door);
         const heldEnd = defined(ends[held], "held end");
         const emptyEnd = defined(ends[1 - held], "empty end");
-        expect(f.drive.setDecor(heldEnd.id, decorItemId("toaster"))).toBe(true);
+        expect(
+          camperRoom(f.drive).decor.setDecor(
+            heldEnd.id,
+            decorItemId("toaster"),
+          ),
+        ).toBe(true);
         f.park();
         expect(
           f.press(door, "compartment", slotPoint(f.pose, heldEnd)),
@@ -205,7 +211,7 @@ it("takes back the item at the pressed end of an open compartment, and shuts the
         expect(
           f.press(door, "compartment", slotPoint(f.pose, heldEnd)),
         ).toEqual({ kind: "item", item: "toaster" });
-        expect(f.drive.decor()).toEqual([]);
+        expect(camperRoom(f.drive).decor.decor()).toEqual([]);
         f.settle();
         expect(
           f.press(door, "compartment", slotPoint(f.pose, emptyEnd)),
@@ -232,15 +238,29 @@ it("places gear behind an open fridge door only, and lays it in the open compart
   const point = slotPoint(f.pose, top);
   const cell = f.compartment("fridge_top");
   expect(
-    f.drive.decorSlotFor(decorItemId("mug_pair"), point, cell, true),
+    camperRoom(f.drive).decor.decorSlotFor(
+      decorItemId("mug_pair"),
+      point,
+      cell,
+      true,
+    ),
   ).toBeUndefined();
-  expect(f.drive.placeDecor(top.id, decorItemId("mug_pair"))).toBe(false);
+  expect(
+    camperRoom(f.drive).decor.placeDecor(top.id, decorItemId("mug_pair")),
+  ).toBe(false);
   f.press("fridge_top", "compartment");
   expect(
-    f.drive.decorSlotFor(decorItemId("mug_pair"), point, cell, false),
+    camperRoom(f.drive).decor.decorSlotFor(
+      decorItemId("mug_pair"),
+      point,
+      cell,
+      false,
+    ),
   ).toBe(top.id);
-  expect(f.drive.placeDecor(top.id, decorItemId("mug_pair"))).toBe(true);
-  expect(f.drive.removeDecor(cell, point)).toBeUndefined();
+  expect(
+    camperRoom(f.drive).decor.placeDecor(top.id, decorItemId("mug_pair")),
+  ).toBe(true);
+  expect(camperRoom(f.drive).decor.removeDecor(cell, point)).toBeUndefined();
   f.step();
   expect(blockAt(f.step().dock?.cells, cell)).toEqual({
     type: "fridge",
@@ -256,7 +276,13 @@ it("lights the top door's plate in place of the front ceiling light while the li
     fc.property(fc.subarray([...DOORS]), fc.boolean(), (open, lightsOn) => {
       const f = fixture();
       f.park();
-      if (lightsOn) expect(f.drive.switchCeilingLights(f.inside)).toBe(true);
+      if (lightsOn)
+        expect(
+          camperRoom(f.drive).fixtures.switchCeilingLights(
+            f.inside,
+            f.ctx.tick,
+          ),
+        ).toBe(true);
       for (const door of open) f.press(door, "compartment");
       const cells = f.step().dock?.cells ?? [];
       const front = localCellAt(f.pose, defined(CEILING_LIGHTS[0], "front"));
@@ -283,7 +309,10 @@ it("lights the top door's plate in place of the front ceiling light while the li
 
 it("shuts both fridge doors on departure past their own plates, keeps their items, and lays them shut on the next park (ADR 0114, 0121, 0123)", () => {
   const f = fixture();
-  f.drive.setDecor(decorSlotId("fridge_bottom_front"), decorItemId("toaster"));
+  camperRoom(f.drive).decor.setDecor(
+    decorSlotId("fridge_bottom_front"),
+    decorItemId("toaster"),
+  );
   f.park();
   for (const door of DOORS) f.press(door, "compartment");
   f.settle();
@@ -292,7 +321,7 @@ it("shuts both fridge doors on departure past their own plates, keeps their item
   expect(out.depart).toBeDefined();
   for (const door of DOORS)
     expect(propertyValues(out, STORAGE_DOOR_PROPERTY[door])).toEqual([0]);
-  expect(f.drive.decor()).toEqual([
+  expect(camperRoom(f.drive).decor.decor()).toEqual([
     { slot: "fridge_bottom_front", item: "toaster" },
   ]);
   f.blocks.clear();
@@ -360,7 +389,7 @@ it("loads decor saved on the shelf boards at the same end of the fridge compartm
     { slot: "shelf_high_front", item: "mug_pair" },
   ];
   const f = fixture(0, { [CAMPER_SAVED.decor]: JSON.stringify(saved) });
-  expect(f.drive.decor()).toEqual([
+  expect(camperRoom(f.drive).decor.decor()).toEqual([
     { slot: "fridge_bottom_rear", item: "book_stack" },
     { slot: "fridge_bottom_front", item: "cushion" },
     { slot: "fridge_top_rear", item: "photo_frame" },
