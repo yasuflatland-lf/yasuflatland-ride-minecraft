@@ -9,7 +9,10 @@ import type { ClearSelection } from "../../../application/build/clearSelection";
 import type { CloseBuildMenu } from "../../../application/build/closeBuildMenu";
 import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
-import type { ConfirmStairs } from "../../../application/build/confirmStairs";
+import type {
+  ConfirmStairs,
+  ConfirmTerrace,
+} from "../../../application/build/confirmStairs";
 import type { ConfirmTerrain } from "../../../application/build/confirmTerrain";
 import type { CopySelection } from "../../../application/build/copySelection";
 import type { EndPasting } from "../../../application/build/endPasting";
@@ -29,6 +32,7 @@ import {
   shapeChoiceOf,
   shapeMenu,
   stairContentsMenu,
+  terraceMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
@@ -53,6 +57,7 @@ export interface MenuCases {
   chooseSideCylinder: Pick<ChooseSideCylinder, "execute">;
   confirmHeighted: Pick<ConfirmHeighted, "execute">;
   chooseStairs: Pick<ChooseStairs, "execute">;
+  confirmTerrace: Pick<ConfirmTerrace, "execute">;
   confirmStairs: Pick<ConfirmStairs, "execute">;
   chooseTerrain: Pick<ChooseTerrain, "execute">;
   confirmTerrain: Pick<ConfirmTerrain, "execute">;
@@ -76,6 +81,7 @@ export class MenuChoices {
       | "shape"
       | "contents"
       | "stairContents"
+      | "terrace"
       | "terrain"
       | "utility"
       | "paste",
@@ -95,7 +101,7 @@ export class MenuChoices {
       const choice = shapeChoiceOf(entryId);
       switch (choice.kind) {
         case "stairs":
-          this.cases.chooseStairs.execute({ playerId });
+          this.cases.chooseStairs.execute({ playerId, op: choice.op });
           return true;
         case "adjustHeight":
           this.cases.chooseAdjustHeight.execute({ playerId });
@@ -138,6 +144,10 @@ export class MenuChoices {
       if (!isOffered(stairContentsMenu(session.flow), entryId)) return false;
       if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
       else this.cases.confirmStairs.execute({ playerId, contents: entryId });
+    } else if (menu === "terrace") {
+      if (!isOffered(terraceMenu(session.flow), entryId)) return false;
+      if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
+      else this.cases.confirmTerrace.execute({ playerId });
     } else if (menu === "terrain") {
       if (!isOffered(terrainMenu(session.flow), entryId)) return false;
       switch (entryId) {

@@ -30,6 +30,7 @@ import {
   isShapeEntryOffered,
   shapeMenu,
   stairContentsMenu,
+  terraceMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
@@ -191,7 +192,9 @@ it("offers the ordered root and build menus for every shape and returns unchange
           "cut",
           "removeAbove",
           shape.kind === "line" ? "place" : "buildShape",
-          ...(shape.kind === "line" && from.y === to.y ? ["stairs"] : []),
+          ...(shape.kind === "line" && from.y === to.y
+            ? ["stairs", "terrace"]
+            : []),
           "copy",
           "fillBelow",
           "cancel",
@@ -704,7 +707,7 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
   const from = { x: 2, y: 5, z: 0 };
   const point = tapBlock(idle, dim, from, stone);
   const chosen = tapAir(point, { ...from, x: 0 });
-  const aim = chooseStairs(chosen);
+  const aim = chooseStairs(chosen, "stairs");
   if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
   expect(aim.taps.from).toEqual(from);
   expect(aim.selectionBefore).toEqual(selectionBoxOf(chosen));
@@ -719,6 +722,8 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
   expect(backToAiming(contents)).toEqual(point);
   expect(stairContentsMenu(aim)).toEqual([]);
   expect(stairContentsMenu(contents)).toEqual([
+    { id: "passage" },
+    { id: "fillBelow" },
     { id: "stepsOnly" },
     { id: "cancel" },
   ]);
@@ -728,20 +733,21 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
   ]) {
     const other = confirmEndpointHeight(tapAir(point, to));
     expect(isShapeEntryOffered(other, "stairs")).toBe(false);
-    expect(chooseStairs(other)).toBe(other);
+    expect(chooseStairs(other, "stairs")).toBe(other);
   }
   expect(shapeMenu(chosen).map(({ id }) => id)).toEqual([
     "cut",
     "removeAbove",
     "place",
     "stairs",
+    "terrace",
     "copy",
     "fillBelow",
     "cancel",
   ]);
 });
 
-it("offers Stairs after Build shape for a single-cell box only when both taps match it", () => {
+it("offers Stairs and Terrace after Build shape for a single-cell box only when both taps match it", () => {
   fc.assert(
     fc.property(cell, (foot) => {
       const point = tapBlock(idle, dim, foot, stone);
@@ -754,6 +760,7 @@ it("offers Stairs after Build shape for a single-cell box only when both taps ma
         "removeAbove",
         "buildShape",
         "stairs",
+        "terrace",
         "copy",
         "fillBelow",
         "cancel",
@@ -772,11 +779,28 @@ it("offers Stairs after Build shape for a single-cell box only when both taps ma
           ),
         },
       ]) {
-        expect(isShapeEntryOffered(flow, "stairs")).toBe(false);
-        expect(chooseStairs(flow)).toBe(flow);
+        for (const op of ["stairs", "terrace"] as const) {
+          expect(isShapeEntryOffered(flow, op)).toBe(false);
+          expect(chooseStairs(flow, op)).toBe(flow);
+        }
       }
     }),
   );
+});
+
+it("opens Terrace confirmation from a single-cell foot", () => {
+  const foot = { x: 2, y: 5, z: 1 };
+  const point = tapBlock(idle, dim, foot, stone);
+  const selected = confirmEndpointHeight(tapBlock(point, dim, foot, stone));
+  const aim = chooseStairs(selected, "terrace");
+  if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
+  expect(aim.op).toBe("terrace");
+  expect(aim.row).toEqual({ min: foot, max: foot, y: 5, along: undefined });
+  const staircase = staircaseToward(aim.row, { x: 6, y: 7, z: 2 });
+  if (!staircase) throw new Error("Expected staircase");
+  const contents = fixStairGoal(aim, staircase);
+  expect(terraceMenu(contents)).toEqual([{ id: "confirm" }, { id: "cancel" }]);
+  expect(stairContentsMenu(contents)).toEqual([]);
 });
 
 it("uses the rotated selection as the stair foot and keeps the tapped point for Cancel", () => {
@@ -787,7 +811,7 @@ it("uses the rotated selection as the stair foot and keeps the tapped point for 
   session.setFlow(tapAir(point, to));
   const rotated = boxOf({ x: 2, y: 5, z: -1 }, { x: 2, y: 5, z: 1 });
   session.replaceSelection(selectionOf(dim, rotated, stone));
-  const aim = chooseStairs(session.flow);
+  const aim = chooseStairs(session.flow, "stairs");
   expect(aim).toMatchObject({
     kind: "stairAim",
     row: { ...rotated, along: "z", y: 5 },

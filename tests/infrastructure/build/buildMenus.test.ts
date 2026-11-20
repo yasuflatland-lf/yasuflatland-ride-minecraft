@@ -195,6 +195,7 @@ function setup(fallback?: boolean) {
         new ChooseStairs(repo, new FakeFeedback()).execute(cmd),
       ),
     },
+    confirmTerrace: { execute: vi.fn() },
     confirmStairs: { execute: vi.fn() },
     chooseTerrain: {
       execute: vi.fn((cmd) =>
@@ -1400,19 +1401,22 @@ it("dispatches adjust height from the selected root menu", async () => {
 });
 
 it.each([
-  { answer: { selection: 0 }, builds: true },
-  { answer: { selection: 1 }, builds: false },
-  { answer: { canceled: true }, builds: false },
-  { answer: {}, builds: false },
+  { answer: { selection: 0 }, contents: "passage" },
+  { answer: { selection: 1 }, contents: "fillBelow" },
+  { answer: { selection: 2 }, contents: "stepsOnly" },
+  { answer: { selection: 3 }, contents: undefined },
+  { answer: { canceled: true }, contents: undefined },
+  { answer: {}, contents: undefined },
 ])(
   "dispatches the stair form and returns to aiming when it closes without a build",
-  async ({ answer, builds }) => {
+  async ({ answer, contents }) => {
     const { session, menus, player, cases } = setup();
     session.setFlow(selected(from, { ...from, x: 2 }));
     ui.answers.push(...shapeAnswers(session.flow, "stairs"));
     await menus.showShapeMenu(player);
     expect(cases.chooseStairs.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
+      op: "stairs",
     });
     const flow = session.flow;
     if (flow.kind !== "stairAim") throw new Error("Expected stair aim");
@@ -1423,7 +1427,7 @@ it.each([
     });
     if (!staircase) throw new Error("Expected staircase");
     session.setFlow(fixStairGoal(flow, staircase));
-    if (builds)
+    if (contents)
       cases.confirmStairs.execute.mockImplementation(() =>
         session.setFlow(endpoint),
       );
@@ -1433,17 +1437,60 @@ it.each([
       translate: BUILD_FORM.stairContentsTitle,
     });
     expect(ui.forms[1]?.buttons).toEqual([
+      { translate: BUILD_FORM.stairPassage },
+      { translate: BUILD_FORM.stairFillBelow },
       { translate: BUILD_FORM.stepsOnly },
       { translate: BUILD_FORM.cancel },
     ]);
-    if (builds) {
+    if (contents) {
       expect(cases.confirmStairs.execute).toHaveBeenCalledExactlyOnceWith({
         playerId,
-        contents: "stepsOnly",
+        contents,
       });
       expect(session.flow).toBe(endpoint);
     } else {
       expect(cases.confirmStairs.execute).not.toHaveBeenCalled();
+      expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+    }
+  },
+);
+
+it.each([{ selection: 0 }, { selection: 1 }, { canceled: true }])(
+  "shows the terrace count and routes its answer %o",
+  async (answer) => {
+    const { session, menus, player, cases } = setup();
+    session.setFlow(selected(from, { ...from, x: 2 }));
+    ui.answers.push(...shapeAnswers(session.flow, "terrace"));
+    await menus.showShapeMenu(player);
+    const flow = session.flow;
+    if (flow.kind !== "stairAim") throw new Error("Expected terrace aim");
+    const staircase = staircaseToward(flow.row, {
+      ...from,
+      y: from.y + 2,
+      z: 4,
+    });
+    if (!staircase) throw new Error("Expected terrace profile");
+    session.setFlow(fixStairGoal(flow, staircase));
+    cases.confirmTerrace.execute.mockImplementation(() =>
+      session.setFlow(endpoint),
+    );
+    ui.answers.push(answer);
+    await menus.showTerraceMenu(player);
+    expect(ui.forms[1]).toMatchObject({
+      heading: { translate: BUILD_FORM.terraceTitle },
+      message: { translate: BUILD_FORM.terraceBody, with: ["57"] },
+      buttons: [
+        { translate: BUILD_FORM.confirm },
+        { translate: BUILD_FORM.cancel },
+      ],
+    });
+    if (answer.selection === 0) {
+      expect(cases.confirmTerrace.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+      });
+      expect(session.flow).toBe(endpoint);
+    } else {
+      expect(cases.confirmTerrace.execute).not.toHaveBeenCalled();
       expect(session.flow).toMatchObject({ kind: "point1", cell: from });
     }
   },

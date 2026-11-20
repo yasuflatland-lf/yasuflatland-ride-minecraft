@@ -1,6 +1,6 @@
 import type { BuildSession } from "../session";
 import { type Shape, shapeOf, stylesFor } from "../shape/shape";
-import type { StairContents } from "../stairs/contents";
+import type { StairContents, StairOp } from "../stairs/contents";
 import {
   type FillStyle,
   fillStylesFor,
@@ -20,14 +20,14 @@ export type BuildEntryId =
 export type RootEntryId =
   | EditEntryId
   | "adjustHeight"
-  | "stairs"
+  | StairOp
   | "buildShape"
   | "place"
   | "cancel";
 export type BuildMenuEntryId = BuildEntryId | "back";
 /** What a shape-menu (root or build level) entry asks for. */
 export type ShapeChoice =
-  | { readonly kind: "stairs" }
+  | { readonly kind: "stairs"; readonly op: StairOp }
   | { readonly kind: "adjustHeight" }
   | { readonly kind: "openBuild" }
   | { readonly kind: "closeBuild" }
@@ -71,6 +71,8 @@ export function buildEntries(shape: Shape): MenuEntry<BuildEntryId>[] {
 export function shapeChoiceOf(id: RootEntryId | BuildMenuEntryId): ShapeChoice {
   switch (id) {
     case "stairs":
+    case "terrace":
+      return { kind: "stairs", op: id };
     case "adjustHeight":
     case "cancel":
       return { kind: id };
@@ -107,7 +109,9 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
     { id: "cut" },
     { id: "removeAbove" },
     { id: isLine ? "place" : "buildShape" },
-    ...(selectedStairRow(flow) ? [{ id: "stairs" as const }] : []),
+    ...(selectedStairRow(flow)
+      ? [{ id: "stairs" as const }, { id: "terrace" as const }]
+      : []),
     { id: "copy" },
     { id: "fillBelow" },
     { id: "cancel" },
@@ -154,8 +158,21 @@ export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
 export function stairContentsMenu(
   flow: BuildFlow,
 ): MenuEntry<StairContents | "cancel">[] {
-  return flow.kind === "stairContents"
-    ? [{ id: "stepsOnly" }, { id: "cancel" }]
+  return flow.kind === "stairContents" && flow.op === "stairs"
+    ? [
+        { id: "passage" },
+        { id: "fillBelow" },
+        { id: "stepsOnly" },
+        { id: "cancel" },
+      ]
+    : [];
+}
+
+export function terraceMenu(
+  flow: BuildFlow,
+): MenuEntry<"confirm" | "cancel">[] {
+  return flow.kind === "stairContents" && flow.op === "terrace"
+    ? [{ id: "confirm" }, { id: "cancel" }]
     : [];
 }
 

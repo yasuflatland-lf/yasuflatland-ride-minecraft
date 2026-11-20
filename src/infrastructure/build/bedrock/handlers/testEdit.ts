@@ -243,6 +243,7 @@ export function registerTestEdit(
           (args[0] === "shape" ||
             args[0] === "contents" ||
             args[0] === "stairContents" ||
+            args[0] === "terrace" ||
             args[0] === "terrain" ||
             args[0] === "utility" ||
             args[0] === "paste") &&
