@@ -1,4 +1,4 @@
-import type { Player } from "@minecraft/server";
+import { MolangVariableMap, type Player, type RGB } from "@minecraft/server";
 import type {
   BuildFeedback,
   BuildMessage,
@@ -11,6 +11,18 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { playerById } from "../../shared/players";
 import { BUILD_MESSAGE } from "../identifiers";
+import { MARKER_COLORS, MARKER_PARTICLE } from "./markerStyle";
+
+const PREVIEW_STYLES: Readonly<Record<keyof PreviewSet, string | RGB>> = {
+  startMarker: MARKER_COLORS.startMarker,
+  shape: "minecraft:villager_happy",
+  endMarker: MARKER_COLORS.endMarker,
+  sharedMarker: MARKER_COLORS.sharedMarker,
+  roof: "minecraft:villager_happy",
+  stairs: "minecraft:villager_happy",
+  paste: "minecraft:blue_flame_particle",
+  pasteVertical: "minecraft:basic_flame_particle",
+};
 
 function messageArgs(
   message: BuildMessage,
@@ -119,18 +131,17 @@ export class BedrockFeedback implements BuildFeedback {
   ): void {
     const player = viewerIn(playerId, dimensionId);
     if (!player) return;
-    const styles: Record<keyof PreviewSet, string> = {
-      startMarker: "minecraft:endrod",
-      shape: "minecraft:villager_happy",
-      endMarker: "minecraft:endrod",
-      sharedMarker: "minecraft:endrod",
-      roof: "minecraft:villager_happy",
-      stairs: "minecraft:villager_happy",
-      paste: "minecraft:blue_flame_particle",
-      pasteVertical: "minecraft:basic_flame_particle",
-    };
-    for (const key of Object.keys(styles) as (keyof PreviewSet)[]) {
-      if (!this.spawnAll(player, styles[key], set[key])) return;
+    for (const layer of Object.keys(PREVIEW_STYLES) as (keyof PreviewSet)[]) {
+      const points = set[layer];
+      if (points.length === 0) continue;
+      const style = PREVIEW_STYLES[layer];
+      if (typeof style === "string") {
+        if (!this.spawnAll(player, style, points)) return;
+      } else {
+        const molang = new MolangVariableMap();
+        molang.setColorRGB("variable.color", style);
+        if (!this.spawnAll(player, MARKER_PARTICLE, points, molang)) return;
+      }
     }
   }
 
@@ -138,11 +149,12 @@ export class BedrockFeedback implements BuildFeedback {
     player: Player,
     particle: string,
     points: readonly Vec3[],
+    molang?: MolangVariableMap,
   ): boolean {
     for (const point of points) {
       if (!player.isValid) return false;
       try {
-        player.spawnParticle(particle, point);
+        player.spawnParticle(particle, point, molang);
       } catch {
         // The engine can throw for a point in an unloaded chunk. Skip this
         // player's outline for the tick so the other players still get theirs.
