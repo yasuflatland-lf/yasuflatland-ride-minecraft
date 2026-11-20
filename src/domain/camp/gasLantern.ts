@@ -1,3 +1,4 @@
+import { cellOf } from "../shared/cells";
 import type { Brand } from "../shared/ids";
 import type { LaidCell } from "../shared/laidCells";
 import type { Vec3 } from "../shared/vec";
@@ -20,9 +21,10 @@ export function gasLanternLightCells(
   return lit
     ? [
         {
-          x: Math.floor(location.x),
-          y: Math.floor(location.y + GAS_LANTERN_SPEC.lightLift),
-          z: Math.floor(location.z),
+          ...cellOf({
+            ...location,
+            y: location.y + GAS_LANTERN_SPEC.lightLift,
+          }),
           block: { level: GAS_LANTERN_SPEC.light },
         },
       ]

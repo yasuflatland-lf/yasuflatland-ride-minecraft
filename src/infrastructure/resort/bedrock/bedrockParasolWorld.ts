@@ -16,7 +16,12 @@ import {
   parasolCeilingCells,
   parasolPoseAt,
 } from "../../../domain/resort/parasolPose";
-import { type Cell, cellKey } from "../../../domain/shared/cells";
+import {
+  type Cell,
+  cellCenter,
+  cellKey,
+  sameCell,
+} from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
@@ -87,7 +92,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
       // Stable 2.x has no solidity flag; a non-passable ray must meet the top at full height.
       // A ray that ends exactly on the face misses it on BDS, so it starts half a block above.
       const hit = world.getDimension(dimension).getBlockFromRay(
-        { x: cell.x + 0.5, y: cell.y + 1.5, z: cell.z + 0.5 },
+        cellCenter(cell, 1.5),
         { x: 0, y: -1, z: 0 },
         {
           maxDistance: 1,
@@ -99,7 +104,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
         hit?.face === Direction.Up &&
         // The engine reports faceLocation.y inverted, so a full top reads 0 (ADR 0111).
         hit.faceLocation.y === 0 &&
-        cellKey(hit.block.location) === cellKey(cell)
+        sameCell(hit.block.location, cell)
       );
     } catch {
       return false;
@@ -142,11 +147,9 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
   spawn(dimension: DimensionId, pose: ParasolPose): ParasolId | undefined {
     let entity: Entity | undefined;
     try {
-      entity = world.getDimension(dimension).spawnEntity(BEACH_PARASOL, {
-        x: pose.base.x + 0.5,
-        y: pose.base.y,
-        z: pose.base.z + 0.5,
-      });
+      entity = world
+        .getDimension(dimension)
+        .spawnEntity(BEACH_PARASOL, cellCenter(pose.base));
       entity.setRotation({ x: 0, y: pose.yaw });
       return asParasolId(entity.id);
     } catch {
@@ -243,7 +246,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
     for (const [id, record] of this.ceilings) {
       if (
         record.dimension.id === dimension &&
-        record.cells.some((at) => cellKey(at) === cellKey(cell))
+        record.cells.some((at) => sameCell(at, cell))
       )
         return id;
     }

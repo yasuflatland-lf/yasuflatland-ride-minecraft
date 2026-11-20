@@ -1,10 +1,5 @@
-import {
-  forward,
-  leftOf,
-  normalizeYaw,
-  type Vec2,
-  type Vec3,
-} from "../../../shared/vec";
+import { snapYaw } from "../../../shared/facing";
+import { forward, leftOf, type Vec2, type Vec3 } from "../../../shared/vec";
 import type { HoldPose } from "../../dock/floor";
 import type { LocalCell } from "./furniture";
 
@@ -13,13 +8,6 @@ const FEET_EPSILON = 0.01;
 
 // Path, farmland, mud and soul sand tops need the floor in the next cell (ADR 0068).
 const LOW_GROUND_THRESHOLD = 0.85;
-
-export const QUARTER_TURN = 90;
-
-export function snapYaw(yaw: number): number {
-  // + 0 turns -0 into 0, so it never leaks into a pose.
-  return normalizeYaw(Math.round(yaw / QUARTER_TURN) * QUARTER_TURN) + 0;
-}
 
 export function parkPose(location: Vec3, yaw: number): HoldPose {
   return {

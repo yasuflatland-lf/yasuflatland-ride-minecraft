@@ -7,6 +7,7 @@ import {
 import type { PlaceDecor } from "../../../../../application/vehicle/placeDecor";
 import type { PressStorage } from "../../../../../application/vehicle/pressStorage";
 import type { RemoveDecor } from "../../../../../application/vehicle/removeDecor";
+import { cellOf } from "../../../../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -76,11 +77,7 @@ export function registerDecor(
     const previous = handled.get(playerId);
     if (previous !== undefined && system.currentTick - previous <= 1) return;
     const feet = player.location;
-    const cell = {
-      x: Math.floor(feet.x),
-      y: Math.floor(feet.y),
-      z: Math.floor(feet.z),
-    };
+    const cell = cellOf(feet);
     const dimension = asDimensionId(player.dimension.id);
     const vehicleId =
       dockCellOwner(dimension, cell) ??

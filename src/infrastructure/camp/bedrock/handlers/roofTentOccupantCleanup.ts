@@ -4,12 +4,13 @@ import type { RoofTentOccupantWorld } from "../../../../application/camp/ports/r
 import type { RoofTentId } from "../../../../domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
+import { seconds, ticks } from "../../../../domain/shared/ticks";
 import { playerById } from "../../../shared/players";
 
-const RESTORE_SCAN_TICKS = 20;
-const ENTRY_GRACE_TICKS = 10;
+const RESTORE_SCAN_TICKS = ticks(20);
+const ENTRY_GRACE_TICKS = ticks(10);
 const MAX_RESEAT_ATTEMPTS = 40;
-const OFFLINE_GRACE_TICKS = 20 * 30;
+const OFFLINE_GRACE_TICKS = seconds(30);
 
 export function registerRoofTentOccupantCleanup(
   leave: LeaveRoofTent,

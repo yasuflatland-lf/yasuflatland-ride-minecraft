@@ -5,6 +5,7 @@ import { asRoofTentId, type RoofTentId } from "../../../../domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
+import { ticks } from "../../../../domain/shared/ticks";
 import { heldDye } from "../../../shared/dyes";
 import {
   ROOF_TENT_SEATED_HINT,
@@ -13,7 +14,7 @@ import {
 } from "../../identifiers";
 import type { RoofTentMenuResult } from "./roofTentMenu";
 
-const MENU_POLL_TICKS = 5;
+const MENU_POLL_TICKS = ticks(5);
 const MAX_SEATING_POLLS = 20;
 const MAX_MENU_ATTEMPTS = 5;
 

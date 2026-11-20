@@ -1,11 +1,12 @@
 // Storage with doors, over the camper's definitions: the wall cabinet, whose plates stand under
 // the ceiling, and the fridge, two doors hinged at the front, compartments in the old shelf's
 // cells, and plates in the aisle in the room's inside layers (ADR 0121, 0123).
+
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
+import { quarterOf } from "../../../../../src/domain/shared/facing";
 import { forward } from "../../../../../src/domain/shared/vec";
-import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import type { EngineCommand } from "../../../../../src/domain/vehicle/drive";
 import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import {
@@ -524,7 +525,7 @@ describe("cells", () => {
         }
         expect(looks).toEqual(
           FRIDGE.doors.map((d) => ({
-            face: decorFace(p.yaw),
+            face: quarterOf(p.yaw),
             open: shown.has(d.id),
             height: d.slots[0]?.height,
           })),

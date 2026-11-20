@@ -10,10 +10,10 @@ import type { EngineCommand } from "../../drive";
 import { DOOR_STEPS, restoredDoorStep, stepOpening } from "./doorSwing";
 import type {
   DecorSlot,
-  LocalCell,
   StorageCompartmentBlock,
   StoragePlateBlock,
 } from "./furniture";
+import { type LocalCell, sameLocalCell } from "./localCell";
 import { CAMPER_SPEC } from "./spec";
 
 /** A slot behind `door`; its pair end routes decor in the domain, including entity-only drawer items. */
@@ -104,14 +104,11 @@ export function storageFurniture<Id extends string>(
     cells: unit.doors
       .map(({ compartment }) => compartment)
       .filter(
-        (cell, i, cells) => cells.findIndex((c) => sameLocal(c, cell)) === i,
+        (cell, i, cells) =>
+          cells.findIndex((c) => sameLocalCell(c, cell)) === i,
       ),
     slots: unit.doors.flatMap(({ slots }) => slots),
   };
-}
-
-function sameLocal(a: LocalCell, b: LocalCell): boolean {
-  return a.x === b.x && a.z === b.z && a.layer === b.layer;
 }
 
 /** The door whose compartment is `cell`, if any. */
@@ -119,7 +116,7 @@ export function compartmentDoorAt<Id extends string>(
   cell: LocalCell,
   doors: readonly StorageDoor<Id>[],
 ): StorageDoor<Id> | undefined {
-  return doors.find((d) => sameLocal(d.compartment, cell));
+  return doors.find((d) => sameLocalCell(d.compartment, cell));
 }
 
 /** The door in `open` whose plate stands in `cell`, if any. */
@@ -132,7 +129,7 @@ export function openPlateAt<Id extends string>(
     (d): d is HingedStorageDoor<Id> =>
       d.opening.kind === "hinged" &&
       open.has(d.id) &&
-      sameLocal(d.opening.plate, cell),
+      sameLocalCell(d.opening.plate, cell),
   );
 }
 

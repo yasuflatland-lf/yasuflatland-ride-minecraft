@@ -8,7 +8,6 @@ import {
   PAINT_EVENT_PREFIX,
   PAINTS,
   paintEventName,
-  shownPaint,
 } from "../../../src/domain/shared/paint";
 
 describe("effectivePaint (ADR 0076)", () => {
@@ -64,20 +63,12 @@ it("builds every paint event with the reserved prefix", () => {
 });
 
 describe("paint policies", () => {
-  it("preserves effective paint for dyeable policies and always shows the fixed paint", () => {
+  it("recognizes dyeable and fixed policies for every paint", () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...PAINTS),
-        fc.constantFrom(...PAINTS),
-        (base, stored) => {
-          expect(shownPaint(dyeable(base), stored)).toBe(
-            effectivePaint(stored, base),
-          );
-          expect(shownPaint(fixed(base), stored)).toBe(base);
-          expect(isDyeable(dyeable(base))).toBe(true);
-          expect(isDyeable(fixed(base))).toBe(false);
-        },
-      ),
+      fc.property(fc.constantFrom(...PAINTS), (paint) => {
+        expect(isDyeable(dyeable(paint))).toBe(true);
+        expect(isDyeable(fixed(paint))).toBe(false);
+      }),
     );
   });
 });

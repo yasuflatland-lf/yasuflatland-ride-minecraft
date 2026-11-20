@@ -1,4 +1,5 @@
 // Kind-neutral hold pose and the cells a stopped vehicle lays (ADR 0063, 0068).
+import type { Quarter } from "../../shared/facing";
 import type { LaidCell } from "../../shared/laidCells";
 import type { DecorItemId } from "./decor";
 
@@ -10,7 +11,7 @@ export interface HoldPose {
 }
 
 /** The side of its cell a plate sits on, toward the room: 0 -z, 1 +z, 2 -x, 3 +x. */
-export type Face = 0 | 1 | 2 | 3;
+export type Face = Quarter;
 
 export type DockBlock =
   /** Combined counter-decor block; drawer contents render on the entity (ADR 0121). */
@@ -45,7 +46,7 @@ export type DockBlock =
   | { readonly type: "showerDoor"; readonly face: Face }
   /**
    * A decor item laid as yasu_ride:<item>_decor: `face` is the vehicle's yaw
-   * quarter (decorFace), not a side of the cell, `height` is 0..15 px, and `spot`
+   * quarter (quarterOf), `height` is 0..15 px, and `spot`
    * is where on the cell the item stands, 0 for the middle (ADR 0093, 0105).
    */
   | {
