@@ -6,8 +6,8 @@ import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import {
+  DockedResend,
   dockCommands,
-  dockedCommand,
   undockCommands,
 } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
@@ -46,9 +46,7 @@ export class CamperDrive extends TransformingDrive {
   private readonly storage: CamperStorage;
   private readonly roomDecor: CamperRoomDecor;
   private readonly room: CamperRoom;
-  private resendDocked = false;
-  // Until the drive first holds, the entity keeps its default docked value and needs no resend.
-  private heldOnce = false;
+  private readonly dockedResend = new DockedResend();
 
   constructor(yaw: number, restored: CamperRestored) {
     super(yaw, restored, CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES, {
@@ -179,7 +177,7 @@ export class CamperDrive extends TransformingDrive {
 
   override resync(): void {
     super.resync();
-    this.resendDocked = this.heldOnce;
+    this.dockedResend.resync();
     this.fixtures.resync();
     this.storage.resync();
   }
@@ -188,15 +186,13 @@ export class CamperDrive extends TransformingDrive {
     const wasParked =
       this.parking.pose !== undefined || this.parking.recovering;
     const step = this.stepCamper(raw, ctx);
-    const held = this.parking.pose !== undefined;
-    this.heldOnce ||= held;
-    if (!this.resendDocked) return step;
-    this.resendDocked = false;
-    // The docked property goes out only when the camper parks or departs, so after a failed
-    // send it goes out again unless this step docks or departs and sends it anyway (ADR 0156).
-    return held === wasParked
-      ? { ...step, commands: [...step.commands, dockedCommand(held)] }
-      : step;
+    const resend = this.dockedResend.next(
+      wasParked,
+      this.parking.pose !== undefined,
+    );
+    return resend === undefined
+      ? step
+      : { ...step, commands: [...step.commands, resend] };
   }
 
   private stepCamper(raw: RawInput | undefined, ctx: TickContext): DriveStep {
