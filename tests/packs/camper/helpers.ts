@@ -34,6 +34,27 @@ export const bone = (name: string) => {
   expect(found, name).toBeDefined();
   return found as Bone;
 };
+type Span = [number, number];
+export const areaRanges: Record<
+  string,
+  Record<string, Span | Span[]>
+> = JSON.parse(readFileSync("tests/packs/fixtures/camper-areas.json", "utf8"));
+export function areaCubes(area: string) {
+  return Object.entries(areaRanges[area] ?? {}).flatMap(([name, spans]) => {
+    if (name.startsWith("glow_")) return [];
+    const owner = bone(name);
+    const selected =
+      typeof spans[0] === "number" ? [spans as Span] : (spans as Span[]);
+    return selected.flatMap(([first, last]) =>
+      (owner.cubes ?? []).slice(first, last + 1).map((cube, i) => ({
+        owner,
+        cube,
+        index: first + i,
+      })),
+    );
+  });
+}
+
 export const end = (cube: Cube, axis: number) =>
   (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
 

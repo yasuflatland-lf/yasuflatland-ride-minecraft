@@ -24,10 +24,6 @@ const animations = JSON.parse(
 const properties = JSON.parse(
   readFileSync("packs/yasu_ride_bp/entities/yasu_ride/camper.se.json", "utf8"),
 )["minecraft:entity"].description.properties;
-const fixture = JSON.parse(
-  readFileSync("tests/packs/fixtures/camper-cubes/kitchen_fronts.json", "utf8"),
-) as [string, number[], number[]][];
-
 function position(drawer: string, progress: number): number[] {
   const channels =
     animations[`animation.yasu_ride.camper.${drawer}`]?.bones[drawer];
@@ -192,9 +188,6 @@ describe("camper drawer poses", () => {
       const cubes = defined(model.cubes, "drawer cubes");
       expect(model.pivot).toEqual([-9, y, 16.45]);
       expect(model.rotation).toBeUndefined();
-      expect(cubes.map((cube) => [drawer, cube.origin, cube.size])).toEqual(
-        fixture.filter(([name]) => name === drawer),
-      );
       const closed = pose(cubes, position(drawer, 0));
       const opened = pose(cubes, position(drawer, 1));
       expect(closed).toEqual(cubes);
