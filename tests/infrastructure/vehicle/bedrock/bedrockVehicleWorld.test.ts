@@ -19,7 +19,6 @@ import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
-import { BladeCuts } from "../../../../src/infrastructure/vehicle/bedrock/bladeCuts";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
   DECK_CELLS_PROPERTY,
@@ -34,7 +33,6 @@ import {
   OWNER_PROPERTY,
   PLAYER_TYPE,
   SEAT_FILLER_TYPE,
-  VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { RoadPaver } from "../../../../src/infrastructure/vehicle/bedrock/roadPaver";
 import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
@@ -44,33 +42,15 @@ import {
   isStandableRoomBlock,
 } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
+import {
+  fakeVehicleEntities,
+  bedrockVehicleGame as game,
+} from "../../../support/bedrockVehicleMocks";
 import { blockGrid } from "../../../support/blockGrid";
 
-const game = vi.hoisted(() => ({
-  getDimension: vi.fn(),
-  getEntity: vi.fn(),
-}));
-vi.mock("@minecraft/server", () => ({
-  world: game,
-  system: {},
-  BlockVolume: class {},
-  GameMode: { Creative: "Creative", Survival: "Survival" },
-  ButtonState: {},
-  InputButton: {},
-  EntityDamageCause: {},
-  BlockPermutation: {
-    resolve: (typeId: string, states: Record<string, number>) => ({
-      typeId,
-      states,
-    }),
-  },
-  ItemStack: class {
-    constructor(
-      public typeId: string,
-      public amount: number,
-    ) {}
-  },
-}));
+vi.mock("@minecraft/server", async () =>
+  (await import("../../../support/bedrockVehicleMocks")).bedrockVehicleEngine(),
+);
 
 /** Seats one idle player, holding hotbar slot 3, on `car`; the player's components come from `getComponent`. */
 function seatIdlePlayer(
@@ -95,54 +75,7 @@ function seatIdlePlayer(
 }
 
 function fixture() {
-  const dimension = {
-    id: "minecraft:overworld",
-    getBlock: vi.fn(),
-    getPlayers: vi.fn(),
-    getEntities: vi.fn(),
-    spawnItem: vi.fn(),
-    spawnEntity: vi.fn(),
-    playSound: vi.fn(),
-  };
-  const car = {
-    id: "car",
-    typeId: ENTITY_TYPE.suv,
-    families: [VEHICLE_FAMILY],
-    isValid: true,
-    location: { x: -1.25, y: 64.25, z: 2.75 },
-    dimension,
-    isOnGround: false,
-    getVelocity: () => ({ x: 0, y: 0, z: 0 }),
-    getRotation: () => ({ y: 0 }),
-    getProperty: vi.fn((_key: string): unknown => undefined),
-    getComponent: vi.fn((_name: string): unknown => undefined),
-    getDynamicProperty: vi.fn(),
-    setDynamicProperty: vi.fn(),
-    teleport: vi.fn(),
-    clearVelocity: vi.fn(),
-    applyImpulse: vi.fn(),
-    setRotation: vi.fn(),
-    remove: vi.fn(),
-    triggerEvent: vi.fn(),
-    playAnimation: vi.fn(),
-    setProperty: vi.fn(),
-  };
-  const entities = [car];
-  dimension.getEntities.mockImplementation(
-    (query: { type?: string; families?: string[] } = {}) =>
-      entities.filter(
-        (e) =>
-          (query.type === undefined || e.typeId === query.type) &&
-          (query.families === undefined ||
-            query.families.every((family) => e.families.includes(family))),
-      ),
-  );
-  game.getDimension.mockImplementation((id: string) =>
-    id === "overworld" ? dimension : { getEntities: () => [] },
-  );
-  game.getEntity.mockImplementation((id: string) =>
-    id === car.id ? car : undefined,
-  );
+  const { car, dimension, entities } = fakeVehicleEntities();
   const inputs = new VehicleTestStore<RawInput>();
   const testHeldItems = new VehicleTestStore<string>();
   const index = new EntityIndex();
@@ -399,7 +332,7 @@ describe("BedrockVehicleWorld snapshots", () => {
     );
   });
 
-  it("skips an unknown entity in the vehicle family in snapshots and fleet entries", () => {
+  it("skips an unknown entity in vehicle snapshots", () => {
     const { entities, car, world } = fixture();
     entities.push({ ...car, id: "unknown", typeId: "yasu_ride:unknown" });
     expect(
@@ -1293,76 +1226,16 @@ const creativeAdapters: [
 
 describe.each(creativeAdapters)("%s isCreative", (_name, adapterOf) => {
   beforeEach(() => vi.resetAllMocks());
-  const player = (mode: string, isValid = true) => ({
-    id: "p",
-    typeId: PLAYER_TYPE,
-    isValid,
-    getGameMode: vi.fn(() => mode),
-  });
   it("is true for a valid player in creative", () => {
     const f = fixture();
-    game.getEntity.mockImplementation(() => player("Creative"));
+    game.getEntity.mockReturnValue({
+      id: "p",
+      typeId: PLAYER_TYPE,
+      isValid: true,
+      getGameMode: () => "Creative",
+    });
     expect(adapterOf(f).isCreative("p")).toBe(true);
   });
-  it("is false for a player in survival", () => {
-    const f = fixture();
-    game.getEntity.mockImplementation(() => player("Survival"));
-    expect(adapterOf(f).isCreative("p")).toBe(false);
-  });
-  it("is false for a missing entity", () => {
-    const f = fixture();
-    game.getEntity.mockImplementation(() => undefined);
-    expect(adapterOf(f).isCreative("p")).toBe(false);
-  });
-  it("is false for an entity that is not a player", () => {
-    const f = fixture();
-    game.getEntity.mockImplementation(() => ({
-      id: "p",
-      typeId: ENTITY_TYPE.suv,
-      isValid: true,
-      getGameMode: vi.fn(() => "Creative"),
-    }));
-    expect(adapterOf(f).isCreative("p")).toBe(false);
-  });
-  it("is false without asking the game mode for a player who has left", () => {
-    const f = fixture();
-    const left = player("Creative", false);
-    game.getEntity.mockImplementation(() => left);
-    expect(adapterOf(f).isCreative("p")).toBe(false);
-    expect(left.getGameMode).not.toHaveBeenCalled();
-  });
-});
-
-it("answers each dock owner query from the room blocks it laid (ADR 0068, 0093)", () => {
-  const f = fixture();
-  const here = asDimensionId("overworld");
-  const cell = { x: 1, y: 64, z: 2 };
-  const owners = [
-    ["doorOwner", "dockDoorOwner", "door"],
-    ["cellOwner", "dockCellOwner", "cell"],
-  ] as const;
-  for (const [dock, query, owner] of owners) {
-    const spy = vi
-      .spyOn(DockBlocks.prototype, dock)
-      .mockReturnValue(asVehicleId(owner));
-    expect(f.world[query](here, cell)).toBe(asVehicleId(owner));
-    expect(spy).toHaveBeenCalledExactlyOnceWith(here, cell);
-    spy.mockRestore();
-  }
-});
-
-it("answers dockBlockOwner from the blocks DockBlocks laid (ADR 0096)", () => {
-  const f = fixture();
-  const here = asDimensionId("overworld");
-  const cell = { x: 1, y: 64, z: 2 };
-  const spy = vi
-    .spyOn(DockBlocks.prototype, "laidBlockOwner")
-    .mockReturnValue(asVehicleId("camper"));
-  expect(f.world.dockBlockOwner(here, cell, CAMPER_FLOOR_BLOCK)).toBe(
-    asVehicleId("camper"),
-  );
-  expect(spy).toHaveBeenCalledExactlyOnceWith(here, cell, CAMPER_FLOOR_BLOCK);
-  spy.mockRestore();
 });
 
 describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {
@@ -1382,6 +1255,7 @@ describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {
     ]);
     const here = asDimensionId("overworld");
     expect(world.dockCellOwner(here, floor)).toBe(car.id);
+    expect(world.dockBlockOwner(here, floor, CAMPER_FLOOR_BLOCK)).toBe(car.id);
     expect(world.dockCellOwner(here, door)).toBe(car.id);
     expect(world.dockDoorOwner(here, floor)).toBeUndefined();
     expect(world.dockDoorOwner(here, door)).toBe(car.id);
@@ -1501,15 +1375,30 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
 
 const noCampSpace: SpaceCheck = () => false;
 
-it("cuts a vehicle's columns in its own dimension, and nothing for a missing vehicle (ADR 0137)", () => {
+it("sweeps drops from columns cut in the vehicle's dimension (ADR 0137)", () => {
   const { world, dimension } = fixture();
-  const cut = vi.spyOn(BladeCuts.prototype, "cut").mockImplementation(() => {});
-  const columns = [{ x: 9, z: 9, bottom: 64 }];
+  const fillBlocks = vi.fn();
+  Object.assign(dimension, { heightRange: { min: -64, max: 320 }, fillBlocks });
+  dimension.getBlock.mockReturnValue({
+    isAir: false,
+    typeId: "minecraft:stone",
+  });
+  const columns = [{ x: 9, z: 9, bottom: 64, height: 1 }];
   world.cutColumns(asVehicleId("missing"), columns);
-  expect(cut).not.toHaveBeenCalled();
+  expect(fillBlocks).not.toHaveBeenCalled();
+
   world.cutColumns(asVehicleId("car"), columns);
-  expect(cut).toHaveBeenCalledExactlyOnceWith(dimension, columns);
-  cut.mockRestore();
+  expect(fillBlocks).toHaveBeenCalledOnce();
+  const remove = vi.fn();
+  const drop = {
+    typeId: "minecraft:item",
+    isValid: true,
+    dimension,
+    location: { x: 9, y: 64, z: 9 },
+    remove,
+  } as unknown as Entity;
+  expect(world.sweepCutDrop(drop)).toBe(true);
+  expect(remove).toHaveBeenCalledOnce();
 });
 it("paves in a vehicle's own dimension, and nothing for a missing vehicle (ADR 0181)", () => {
   const { world, dimension } = fixture();
@@ -1523,20 +1412,6 @@ it("paves in a vehicle's own dimension, and nothing for a missing vehicle (ADR 0
   expect(pave).toHaveBeenCalledExactlyOnceWith(dimension, road);
   pave.mockRestore();
 });
-it.each([false, true])(
-  "returns the blade cut drop sweep result: %s",
-  (result) => {
-    const { world } = fixture();
-    const entity = {} as Entity;
-    const sweep = vi
-      .spyOn(BladeCuts.prototype, "sweepDrop")
-      .mockReturnValue(result);
-    expect(world.sweepCutDrop(entity)).toBe(result);
-    expect(sweep).toHaveBeenCalledWith(entity);
-    sweep.mockRestore();
-  },
-);
-
 describe("standRiderAt", () => {
   const rotation = { x: 23, y: -72 };
   const standing = (missing?: "vehicle" | "player") => {

@@ -8,16 +8,8 @@ describe("canSleep (ADR 0092)", () => {
       fc.property(fc.integer({ min: 0, max: 23999 }), (t) => {
         expect(canSleep(t)).toBe(t >= 12542 && t <= 23459);
       }),
+      { examples: [[12541], [12542], [23459], [23460]] },
     );
-  });
-
-  it.each([
-    [12541, false],
-    [12542, true],
-    [23459, true],
-    [23460, false],
-  ])("returns %s -> %s at the edges of the night", (t, expected) => {
-    expect(canSleep(t)).toBe(expected);
   });
 
   it("does not let the player sleep again right after waking", () => {

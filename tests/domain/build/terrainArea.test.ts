@@ -94,7 +94,11 @@ describe("removeAboveBox", () => {
 
 describe("fitsTerrainLimit", () => {
   it("accepts each side up to the limit, inclusive, and ignores height", () => {
-    const side = fc.integer({ min: 1, max: BUILD_SPEC.maxTerrainSide * 2 });
+    const limit = BUILD_SPEC.maxTerrainSide;
+    const side = fc.oneof(
+      fc.integer({ min: 1, max: limit * 2 }),
+      fc.constantFrom(limit - 1, limit, limit + 1),
+    );
     fc.assert(
       fc.property(side, side, cell, (sx, sz, origin) => {
         const to = {
@@ -107,16 +111,5 @@ describe("fitsTerrainLimit", () => {
         );
       }),
     );
-  });
-
-  it("holds exactly at the boundary", () => {
-    const fits = (sx: number, sz: number) =>
-      fitsTerrainLimit(
-        areaOf({ x: 0, y: 0, z: 0 }, { x: sx - 1, y: 0, z: sz - 1 }),
-      );
-    expect(BUILD_SPEC.maxTerrainSide).toBe(32);
-    expect(fits(32, 32)).toBe(true);
-    expect(fits(33, 32)).toBe(false);
-    expect(fits(32, 33)).toBe(false);
   });
 });

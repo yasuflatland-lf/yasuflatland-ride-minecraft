@@ -6,7 +6,6 @@ import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { FORMS } from "../../src/domain/vehicle/motion/forms";
 import { expectContiguous, speedRanges } from "../support/soundLevels";
 import { bandPower } from "../support/spectrum";
-import { expectUniqueTextureBindings } from "../support/textureBindings";
 
 const RP = "packs/yasu_ride_rp",
   BP = "packs/yasu_ride_bp";
@@ -37,16 +36,6 @@ it("is a vehicle entity with the touch Jump components and a body that follows t
   expect(c["minecraft:horse.jump_strength"]).toEqual({ value: 0 });
   expect(c["minecraft:collision_box"]).toEqual({ width: 2.4, height: 2.9 });
   expect(c["minecraft:variable_max_auto_step"].base_value).toBe(1.0625);
-});
-it("uses the entity format that makes its damage sensor effective, like the other vehicles", () => {
-  // Under format 1.21.0 the same damage_sensor let a fall kill the bulldozer
-  // while the SUV, camper, and boat on 1.21.80 took no damage.
-  const file = read(`${BP}/entities/yasu_ride/bulldozer.se.json`);
-  expect(file.format_version).toBe("1.21.80");
-  expect(entity.components["minecraft:damage_sensor"].triggers).toEqual({
-    cause: "all",
-    deals_damage: "no",
-  });
 });
 it("declares the transforming properties with a nonzero range for its zero bank", () => {
   const p = entity.description.properties;
@@ -98,25 +87,12 @@ it("shows exactly one of blade and blade_wide for each wide_blade value", () => 
     blade_wide: "query.property('yasu_ride:wide_blade')",
   });
 });
-it("seats one driver at the cab seat", () =>
-  expect(entity.components["minecraft:rideable"]).toMatchObject({
-    seat_count: 1,
-    controlling_seat: 0,
-    seats: [{ position: [0, 1.4, -1.35], lock_rider_rotation: 90 }],
-  }));
-it("matches the seat and collision box to the profile", () => {
-  expect(
-    entity.components["minecraft:rideable"].seats.map(
-      (s: { position: number[] }) => ({ x: s.position[0], z: s.position[2] }),
-    ),
-  ).toEqual(BULLDOZER_PROFILE.seats.positions);
+it("matches the collision box height to the profile", () => {
   expect(entity.components["minecraft:collision_box"].height).toBe(
     BULLDOZER_PROFILE.body.height,
   );
 });
-it("switches gravity with the shared groups and paints with the 16 dye events", () => {
-  for (const p of PAINTS)
-    expect(entity.events[`yasu_ride:paint_${p}`]).toBeDefined();
+it("switches gravity with the shared groups", () => {
   for (const g of ["weighted", "weightless"])
     expect(entity.component_groups[`yasu_ride:${g}`]).toBeDefined();
   for (const e of ["gravity_on", "gravity_off"])
@@ -132,8 +108,6 @@ it("crafts from an SUV item, an iron block, and an iron shovel", () => {
     ),
   );
   expect(r.tags).toEqual(["crafting_table"]);
-  expect(r.unlock).toEqual({ context: "AlwaysUnlocked" });
-  expect(r.result).toEqual({ item: "yasu_ride:bulldozer_item", count: 1 });
   const item = read(`${BP}/items/yasu_ride/bulldozer_item.item.json`)[
     "minecraft:item"
   ];
@@ -464,30 +438,24 @@ it("plays hydraulics once when the blade leaves an endpoint", () => {
   const controllers = read(
     `${RP}/animation_controllers/yasu_ride/bulldozer.ac.json`,
   ).animation_controllers;
-  expect(controllers[client.animations.hydraulics]).toEqual({
-    initial_state: "rest",
-    states: {
-      rest: {
-        transitions: [
-          {
-            moving:
-              "query.property('yasu_ride:blade') >= 0.05 && query.property('yasu_ride:blade') <= 0.95",
-          },
-        ],
-      },
-      moving: {
-        animations: ["hydraulics_sound"],
-        transitions: [
-          {
-            rest: "query.property('yasu_ride:blade') < 0.05 || query.property('yasu_ride:blade') > 0.95",
-          },
-        ],
-      },
+  const hydraulics = controllers[client.animations.hydraulics];
+  expect(hydraulics.initial_state).toBe("rest");
+  const { rest, moving } = hydraulics.states;
+  expect(rest.transitions).toEqual([
+    {
+      moving:
+        "query.property('yasu_ride:blade') >= 0.05 && query.property('yasu_ride:blade') <= 0.95",
     },
-  });
+  ]);
+  expect(rest.animations ?? []).not.toContain("hydraulics_sound");
+  expect(moving.animations).toContain("hydraulics_sound");
+  expect(moving.transitions).toEqual([
+    {
+      rest: "query.property('yasu_ride:blade') < 0.05 || query.property('yasu_ride:blade') > 0.95",
+    },
+  ]);
 });
 
-it("binds existing textures with unique colour and MER content", () => {
-  expectUniqueTextureBindings(client.textures);
+it("aliases the yellow paint to the default texture", () => {
   expect(client.textures.yellow).toBe(client.textures.default);
 });

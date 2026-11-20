@@ -2,11 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { boxOf, type CellBox, contains } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import {
-  type HeightedSpec,
-  placementOf,
-  volumeOf,
-} from "../../../src/domain/build/volume/geometry";
+import type { HeightedSpec } from "../../../src/domain/build/volume/geometry";
 import {
   spherePlacement,
   sphereVolume,
@@ -85,11 +81,6 @@ const reachesEveryEnd = (spec: HeightedSpec): void => {
 };
 
 describe("sphere geometry", () => {
-  it("is registered as sphere geometry", () => {
-    expect(volumeOf("sphere")).toBe(sphereVolume);
-    expect(placementOf("sphere")).toBe(spherePlacement);
-  });
-
   it("selects exactly the cells the ellipsoid rule accepts, inside the box", () => {
     fc.assert(
       fc.property(spec, (spec) => {
@@ -258,32 +249,6 @@ describe("sphere outline", () => {
     expect(points.some((point) => point.z === 4 && point.y !== 4)).toBe(true);
   });
 
-  it.each([
-    [1, 326, 8],
-    [326, 1, 8],
-    [1, 479, 12],
-    [479, 1, 12],
-  ])(
-    "reaches both poles on a %ix%i footprint at height %i",
-    (width, depth, height) => {
-      const points = sphereVolume.wireframe(
-        specOf({ x: 0, y: 0, z: 0 }, width, height, depth),
-        BUILD_SPEC.outlineMaxPoints,
-      );
-      expect(points.length).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
-      for (const [axis, center] of [
-        ["x", width / 2],
-        ["z", depth / 2],
-      ] as const) {
-        const ys = points
-          .filter((point) => point[axis] === center && point.y !== height / 2)
-          .map((point) => point.y);
-        expect(Math.min(...ys)).toBe(0);
-        expect(Math.max(...ys)).toBe(height);
-      }
-    },
-  );
-
   it("keeps both vertical ellipses reaching the top and bottom on large spheres", () => {
     const largeSide = fc.integer({ min: 41, max: 512 });
     const thinSide = fc.integer({ min: 1, max: 4 });
@@ -324,6 +289,10 @@ describe("sphere outline", () => {
       ),
       {
         examples: [
+          [{ x: 0, y: 0, z: 0 }, [1, 326], 8],
+          [{ x: 0, y: 0, z: 0 }, [326, 1], 8],
+          [{ x: 0, y: 0, z: 0 }, [1, 479], 12],
+          [{ x: 0, y: 0, z: 0 }, [479, 1], 12],
           [{ x: 0, y: 0, z: 0 }, [2, 355], 2],
           [{ x: 0, y: 0, z: 0 }, [512, 2], 2],
           [{ x: 0, y: 0, z: 0 }, [1, 254], 2],

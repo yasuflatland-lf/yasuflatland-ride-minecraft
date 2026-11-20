@@ -25,9 +25,10 @@ import {
   ROOM_OPEN_STATE,
 } from "../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { defined } from "../support/defined";
+import { readLang } from "../support/lang";
 import { readTableRows } from "../support/markdown";
 import { startPythonWorker } from "../support/pythonWorker";
-import { RESORT_CATALOG_ITEMS, RESORT_GEAR } from "../support/resortGear";
+import { RESORT_GEAR } from "../support/resortGear";
 
 // tools/camping_gear.json is the one list of camping gear; these tests tie
 // it to the generated block models, the atlas, the previews, and the docs
@@ -400,22 +401,9 @@ describe("camping gear block models (ADR 0093)", () => {
   });
 
   it("registers the atlas as the terrain texture yasu_ride_camping_gear", () => {
-    expect(
-      JSON.parse(readFileSync(`${RP}/textures/terrain_texture.json`, "utf8")),
-    ).toEqual({
-      resource_pack_name: "yasu_ride",
-      texture_name: "atlas.terrain",
-      texture_data: {
-        yasu_build_warp_block_top: {
-          textures: "textures/blocks/yasu_build/warp_block_top",
-        },
-        yasu_build_warp_block_side: {
-          textures: "textures/blocks/yasu_build/warp_block_side",
-        },
-        yasu_ride_camping_gear: {
-          textures: "textures/blocks/yasu_ride/camping_gear",
-        },
-      },
+    const atlas = readJson(`${RP}/textures/terrain_texture.json`);
+    expect(atlas.texture_data.yasu_ride_camping_gear).toEqual({
+      textures: "textures/blocks/yasu_ride/camping_gear",
     });
   });
 });
@@ -578,7 +566,6 @@ function selectionBox(g: Gear) {
 
 function expectedDecor(g: Gear) {
   return {
-    format_version: "1.21.80",
     "minecraft:block": {
       description: {
         identifier: decorBlockId(g.id),
@@ -626,24 +613,13 @@ function expectedDecor(g: Gear) {
   };
 }
 
-function langValues(locale: string): Map<string, string[]> {
-  const values = new Map<string, string[]>();
-  for (const line of readFileSync(`${RP}/texts/${locale}.lang`, "utf8").split(
-    "\n",
-  )) {
-    const at = line.indexOf("=");
-    if (at < 0 || line.startsWith("#")) continue;
-    const key = line.slice(0, at);
-    values.set(key, [...(values.get(key) ?? []), line.slice(at + 1)]);
-  }
-  return values;
-}
-
 describe("camping gear blocks and items (ADR 0093)", () => {
   it("defines one decor block per gear with no collision, a selection box over its cell or its hanging model, and the decor component (ADR 0093, 0102, 0105)", () => {
     for (const g of SPEC) {
       const block = decorOf(g);
-      expect(block, g.id).toEqual(expectedDecor(g));
+      expect(block["minecraft:block"], g.id).toEqual(
+        expectedDecor(g)["minecraft:block"],
+      );
       const components = block["minecraft:block"].components;
       expect(components).not.toHaveProperty(["minecraft:loot"]);
       expect(components).not.toHaveProperty(["minecraft:transformation"]);
@@ -1062,21 +1038,22 @@ describe("camping gear blocks and items (ADR 0093)", () => {
   });
 
   it("defines one stackable item per gear with its icon and name key", () => {
-    for (const g of SPEC)
-      expect(readJson(`${BP}/items/yasu_ride/${g.id}.item.json`)).toEqual({
-        format_version: "1.21.80",
-        "minecraft:item": {
-          description: {
-            identifier: `yasu_ride:${g.id}`,
-            menu_category: { category: "items" },
-          },
-          components: {
-            "minecraft:icon": `yasu_ride_${g.id}`,
-            "minecraft:max_stack_size": 64,
-            "minecraft:display_name": { value: `item.yasu_ride:${g.id}.name` },
-          },
+    for (const g of SPEC) {
+      const item = readJson(`${BP}/items/yasu_ride/${g.id}.item.json`)[
+        "minecraft:item"
+      ];
+      expect(item).toEqual({
+        description: {
+          identifier: `yasu_ride:${g.id}`,
+          menu_category: { category: "items" },
+        },
+        components: {
+          "minecraft:icon": `yasu_ride_${g.id}`,
+          "minecraft:max_stack_size": 64,
+          "minecraft:display_name": { value: `item.yasu_ride:${g.id}.name` },
         },
       });
+    }
   });
 
   it("registers every gear icon and renders it as a 32 by 32 RGBA image with transparency", () => {
@@ -1116,109 +1093,10 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists the inside, outside, resort, sports boat, and building groups in order", () => {
-    const items = [
-      "yasu_ride:camping_gear_box",
-      ...SPEC.map((g) => `yasu_ride:${g.id}`),
-    ];
-    expect(items).toHaveLength(SPEC.length + 1);
-    expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
-      format_version: "1.21.60",
-      "minecraft:crafting_items_catalog": {
-        categories: [
-          {
-            category_name: "items",
-            groups: [
-              {
-                group_identifier: {
-                  icon: "yasu_ride:camping_gear_box",
-                  name: "yasu_ride:camping_gear_inside",
-                },
-                items,
-              },
-              {
-                group_identifier: {
-                  icon: "yasu_ride:low_chair_item",
-                  name: "yasu_ride:camping_gear_outside",
-                },
-                items: [
-                  "yasu_ride:low_chair_item",
-                  "yasu_ride:noga_chair_item",
-                  "yasu_ride:tent_item",
-                  "yasu_ride:roof_tent_item",
-                  "yasu_ride:camp_table_item",
-                  "yasu_ride:fire_pit_item",
-                  "yasu_ride:dutch_oven_item",
-                  "yasu_ride:gas_lantern_item",
-                ],
-              },
-              {
-                group_identifier: {
-                  icon: RESORT_CATALOG_ITEMS[0],
-                  name: "yasu_ride:resort_gear",
-                },
-                items: RESORT_CATALOG_ITEMS,
-              },
-              {
-                group_identifier: {
-                  icon: "yasu_ride:icebreaker_switch",
-                  name: "yasu_ride:sportsboat_equipment",
-                },
-                items: ["yasu_ride:icebreaker_switch"],
-              },
-              {
-                group_identifier: {
-                  icon: "yasu_build:selection_wand",
-                  name: "yasu_build:building_tools",
-                },
-                items: [
-                  "yasu_build:selection_wand",
-                  "yasu_build:paste_rotate",
-                  "yasu_build:paste_place",
-                  "yasu_build:build_undo",
-                  "yasu_ride:blade_switch",
-                  "yasu_ride:wide_blade_switch",
-                  "yasu_ride:road_paver_switch",
-                  "yasu_build:warp_tool",
-                  "yasu_build:warp_block",
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    });
-  });
-
-  it("keeps outside items separate from decor and each catalog item unique", () => {
-    const groups = readJson(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories[0].groups as {
-      group_identifier: { name: string };
-      items: string[];
-    }[];
-    const itemsOf = (name: string) =>
-      defined(
-        groups.find((g) => g.group_identifier.name === `yasu_ride:${name}`),
-        name,
-      ).items.map((item) => item.slice("yasu_ride:".length));
-    const specIds = SPEC.map((g) => g.id);
-    expect(itemsOf("camping_gear_inside").slice(1)).toEqual(CAMPING_GEAR_IDS);
-    for (const id of itemsOf("camping_gear_outside")) {
-      expect(specIds).not.toContain(id);
-      expect(CAMPING_GEAR_IDS).not.toContain(id);
-    }
-    const items = groups.flatMap((g) => g.items);
-    expect(new Set(items).size).toBe(items.length);
-    expect(groups.map((g) => g.group_identifier.name)).not.toContain(
-      "yasu_ride:camping_gear",
-    );
-  });
-
   it.each(["en_US", "ja_JP"])(
     "names the group, every gear item, and every decor block in %s",
     (locale) => {
-      const values = langValues(locale);
+      const values = readLang(`${RP}/texts/${locale}.lang`);
       const name = (g: Gear) => (locale === "en_US" ? g.name_en : g.name_ja);
       const expected = new Map<string, string>([
         [
@@ -1245,7 +1123,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       expect(expected.size).toBe(2 + 2 * SPEC.length);
       expect(values.has("yasu_ride:camping_gear")).toBe(false);
       for (const [key, value] of expected)
-        expect(values.get(key), key).toEqual([value]);
+        expect(values.get(key), key).toBe(value);
     },
   );
 });

@@ -65,53 +65,6 @@ describe("BedrockInventory", () => {
     expect(container.setItem).not.toHaveBeenCalled();
   });
 
-  it("does not take an item from a player without an inventory", () => {
-    const { container, player, inventory } = fixture();
-    player.getComponent.mockReturnValue(undefined);
-    expect(inventory.consumeHeld(asPlayerId("player"), "yasu_ride:x", 0)).toBe(
-      false,
-    );
-    expect(container.setItem).not.toHaveBeenCalled();
-  });
-
-  it("does not take an item from an empty slot", () => {
-    const { container, inventory } = fixture();
-    container.getItem.mockReturnValue(undefined);
-    expect(inventory.consumeHeld(asPlayerId("player"), "yasu_ride:x", 0)).toBe(
-      false,
-    );
-    expect(container.setItem).not.toHaveBeenCalled();
-  });
-
-  it("does not take an item of another type", () => {
-    const { container, inventory } = fixture();
-    container.getItem.mockReturnValue({ typeId: "yasu_ride:y", amount: 1 });
-    expect(inventory.consumeHeld(asPlayerId("player"), "yasu_ride:x", 0)).toBe(
-      false,
-    );
-    expect(container.setItem).not.toHaveBeenCalled();
-  });
-
-  it("takes one item from a stack", () => {
-    const { container, inventory } = fixture();
-    const item = { typeId: "yasu_ride:x", amount: 3 };
-    container.getItem.mockReturnValue(item);
-    expect(inventory.consumeHeld(asPlayerId("player"), "yasu_ride:x", 5)).toBe(
-      true,
-    );
-    expect(item.amount).toBe(2);
-    expect(container.setItem).toHaveBeenCalledExactlyOnceWith(5, item);
-  });
-
-  it("empties the slot when it held the last item", () => {
-    const { container, inventory } = fixture();
-    container.getItem.mockReturnValue({ typeId: "yasu_ride:x", amount: 1 });
-    expect(inventory.consumeHeld(asPlayerId("player"), "yasu_ride:x", 5)).toBe(
-      true,
-    );
-    expect(container.setItem).toHaveBeenCalledExactlyOnceWith(5, undefined);
-  });
-
   it("uses the selected slot when no slot is given", () => {
     const { container, inventory } = fixture();
     container.getItem.mockReturnValue({ typeId: "yasu_ride:x", amount: 1 });

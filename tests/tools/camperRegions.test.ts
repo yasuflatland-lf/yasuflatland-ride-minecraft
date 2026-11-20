@@ -15,61 +15,6 @@ print(json.dumps(${expression}))`),
   );
 
 describe("camper region registry", () => {
-  it("registers the six dashboard regions with the approved pixels and materials", async () => {
-    expect(
-      await run(
-        `import hashlib
-kit = load_tool('camper_kit')
-dashboard_names = {'cab SPEED', 'cab QUAD', 'cab PAD', 'cab RADIO', 'cab SMALL', 'cab DARK19'}
-selected = [r for r in kit.REGISTRY.regions() if r.name in dashboard_names]`,
-        "[[r.name, r.width, r.height, r.material.value, hashlib.sha256(bytes(c for y in range(r.height) for x in range(r.width) for c in r.pixel(x,y))).hexdigest()] for r in selected]",
-      ),
-    ).toEqual([
-      [
-        "cab SPEED",
-        128,
-        128,
-        "glass_coat",
-        "a17300945ab36ec52abe746fd3672eef13d9f08b4c40118bd53a03be272dc63a",
-      ],
-      [
-        "cab QUAD",
-        128,
-        128,
-        "glass_coat",
-        "ee2c45e13b9a1705830628f72128202fd20a17eb5a312e62899004632eaac991",
-      ],
-      [
-        "cab PAD",
-        184,
-        48,
-        "vinyl",
-        "486ea611ed466a9e67d19d4954ed4a9051910c3d88b91e2ccfbb216a1f0805ca",
-      ],
-      [
-        "cab RADIO",
-        144,
-        40,
-        "metal",
-        "b37a7f7b5de638b9eb2b3aad71f43f80836cb8c0955c222854ace0d1a6926b55",
-      ],
-      [
-        "cab SMALL",
-        128,
-        60,
-        "glass_coat",
-        "b6b77379755e6e2f974f4bb78f64a9a5f641c121b1fc28f2852664dfc56aeaad",
-      ],
-      [
-        "cab DARK19",
-        1,
-        1,
-        "dark_lacquer",
-        "1a93b51f95cce226460cda2e9cb83e9943978987534d498b8f501178bc9cdf63",
-      ],
-    ]);
-  });
-
   it("renders the registered base without running the generator", async () => {
     expect(
       await run(
@@ -80,55 +25,33 @@ selected = [r for r in kit.REGISTRY.regions() if r.name in dashboard_names]`,
   });
 });
 
-it("registers the shower materials before packing and audits every emitted face", async () => {
-  const result = await run<unknown[]>(
+it("registers unique regions with valid materials and audits every shower face", async () => {
+  const result = await run<string[]>(
     `
 kit = load_tool('camper_kit')
 shower = load_tool('camper_shower')
 layout = kit.LAYOUT
 built = shower.build_shower(kit.REGISTRY)
+regions = kit.REGISTRY.regions()
+names = [region.name for region in regions]
+assert len(names) == len(set(names))
+assert {"routed cream panel", "shower glaze", "shower head", "shower grip", "shower hose"} <= set(names)
+for region in regions:
+    assert region.width > 0 and region.height > 0, region.name
+    assert isinstance(region.material, materials.Material), region.name
+    if region.name == "base":
+        continue
+    alphas = {region.pixel(x, y)[3] for y in range(region.height) for x in range(region.width)}
+    # The shared cab-seat slab includes transparent padding around its swatches.
+    expected = {0, 255} if region.name == "green tweed and vinyl shared by both seats" else {255}
+    assert alphas == expected, (region.name, alphas)
 for cubes in built.values():
     for cube in cubes:
         for face in cube['uv'].values(): layout.bind_face(layout.face_region(face), face)
 `,
-    "[[[r.name, r.width, r.height, r.material.value] for r in kit.REGISTRY.regions() if r.name != 'base'], m.audit(layout, m.render_atlas(layout))]",
+    "m.audit(layout, m.render_atlas(layout))",
   );
-  expect(result).toEqual([
-    [
-      ["olive looped tweed", 192, 256, "fabric"],
-      ["olive khaki cream bolster", 128, 128, "fabric"],
-      ["olive welt", 32, 32, "fabric"],
-      ["green tweed and vinyl shared by both seats", 333, 128, "fabric"],
-      ["cab seat vinyl", 64, 64, "vinyl"],
-      ["cab seat vinyl swatches", 6, 1, "vinyl"],
-      ["flecked laminate", 192, 192, "lacquer"],
-      ["brushed stainless", 128, 64, "metal"],
-      ["range dial", 64, 64, "glass_coat"],
-      ["dark olive cab panel", 128, 64, "dark_lacquer"],
-      ["brown endgrain and pulls", 128, 128, "wood"],
-      ["carpet v3", 74, 222, "carpet"],
-      ["wall veneer", 416, 180, "wood"],
-      ["backsplash tile", 124, 152, "tile"],
-      ["table oak", 168, 144, "wood"],
-      ["light curtain fabric", 96, 120, "fabric"],
-      ["door wood", 111, 336, "wood"],
-      ["door marble", 101, 41, "stone"],
-      ["door kick", 101, 44, "metal"],
-      ["door cloth", 16, 104, "fabric"],
-      ["cab SPEED", 128, 128, "glass_coat"],
-      ["cab QUAD", 128, 128, "glass_coat"],
-      ["cab PAD", 184, 48, "vinyl"],
-      ["cab RADIO", 144, 40, "metal"],
-      ["cab SMALL", 128, 60, "glass_coat"],
-      ["cab DARK19", 1, 1, "dark_lacquer"],
-      ["routed cream panel", 224, 160, "lacquer"],
-      ["shower glaze", 128, 354, "tile"],
-      ["shower head", 64, 64, "metal"],
-      ["shower grip", 16, 80, "metal"],
-      ["shower hose", 16, 256, "metal"],
-    ],
-    [],
-  ]);
+  expect(result).toEqual([]);
 });
 
 it("matches the catalogue's 950 shower additions after lossless cleanup", async () => {

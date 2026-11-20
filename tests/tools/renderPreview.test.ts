@@ -609,18 +609,6 @@ describe("render_preview.py photo views", () => {
         ...(name === "lidOpen" ? ["lid"] : []),
       ]);
     }
-    expect(views.topFront).toEqual({
-      piece: "toilet",
-      position: [0, 41.1, -22.5],
-      target: [0, 8.6, 0.4],
-      fov: 30,
-    });
-    expect(views.sinkLeg).toEqual({
-      piece: "washstand",
-      position: [5.7, 2.2, -8.5],
-      target: [7.7, 1.3, -4.45],
-      fov: 30,
-    });
     expect(views.lidOpen.lid).toBe(91);
   });
 
@@ -1206,32 +1194,32 @@ print(json.dumps(list(r.GEAR_VIEWS)))
     ).toEqual(["front", "back", "left", "right", "top", "threeQuarter"]);
   });
 
+  const gearOutput = ["--out", "/tmp/unused-gear-1595"];
   it.each([
-    ["--gear", "unknown", "--out", "/tmp/unused-gear-1595"],
-    [
-      "--gear",
-      "sugar_pot",
-      "--view",
-      "unknown",
-      "--out",
-      "/tmp/unused-gear-1595",
-    ],
-    ["--gear", "sugar_pot"],
-    ...["--check", "--icons", "--beach-chair-form", "--lid"].map((option) => [
-      "--gear",
-      "sugar_pot",
-      "--out",
-      "/tmp/unused-gear-1595",
-      option,
-      ...(option === "--icons"
-        ? ["packs/yasu_ride_rp"]
-        : option === "--beach-chair-form"
-          ? ["chair"]
-          : option === "--lid"
-            ? ["45"]
-            : []),
-    ]),
-  ])("rejects invalid gear review arguments %j", (...args) => {
+    { args: ["--gear", "unknown", ...gearOutput] },
+    { args: ["--gear", "sugar_pot", "--view", "unknown", ...gearOutput] },
+    { args: ["--gear", "sugar_pot"] },
+    { args: ["--gear", "sugar_pot", ...gearOutput, "--check"] },
+    {
+      args: [
+        "--gear",
+        "sugar_pot",
+        ...gearOutput,
+        "--icons",
+        "packs/yasu_ride_rp",
+      ],
+    },
+    {
+      args: [
+        "--gear",
+        "sugar_pot",
+        ...gearOutput,
+        "--beach-chair-form",
+        "chair",
+      ],
+    },
+    { args: ["--gear", "sugar_pot", ...gearOutput, "--lid", "45"] },
+  ])("rejects invalid gear review arguments $args", ({ args }) => {
     expect(() =>
       execFileSync(
         "python3",

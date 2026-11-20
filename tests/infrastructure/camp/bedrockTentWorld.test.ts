@@ -481,38 +481,6 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(registry.all).toHaveBeenCalled();
   });
 
-  it("reads the game mode, takes the held tent item, and gives one back only to a player", () => {
-    const { container, player, tent, world } = fixture();
-    const id = asPlayerId("player");
-    const held = { typeId: TENT_ITEM, amount: 1 };
-    const inventory = Object.assign(container, {
-      getItem: vi.fn(() => held),
-      setItem: vi.fn(),
-    });
-    const withMode = Object.assign(player, {
-      getGameMode: vi.fn(() => "Creative"),
-    });
-    expect(world.isCreative(id)).toBe(true);
-    withMode.getGameMode.mockReturnValue("Survival");
-    expect(world.isCreative(id)).toBe(false);
-    expect(world.consumeTentItem(id, 3)).toBe(true);
-    expect(inventory.getItem).toHaveBeenCalledWith(3);
-    expect(inventory.setItem).toHaveBeenCalledWith(3, undefined);
-    world.giveTentItem(id);
-    expect(container.addItem).toHaveBeenCalledWith({
-      typeId: TENT_ITEM,
-      amount: 1,
-    });
-    // The tent entity shares the id space but is not a player.
-    const notPlayer = asPlayerId(tent.id);
-    expect(world.isCreative(notPlayer)).toBe(false);
-    expect(world.consumeTentItem(notPlayer, 3)).toBe(false);
-    container.addItem.mockClear();
-    world.giveTentItem(notPlayer);
-    world.giveTentItem(asPlayerId("gone"));
-    expect(container.addItem).not.toHaveBeenCalled();
-  });
-
   it("takes down by clearing with the entity, forgetting, then removing", () => {
     const { blocks, order, registry, tent, world } = fixture([ENTRY]);
     world.takeDown(TENT);
@@ -946,7 +914,6 @@ describe("BedrockTentWorld (ADR 0131)", () => {
   it("reads Creative, takes one held tent item, and gives one back, only for a player", () => {
     const { container, player, world } = fixture();
     const id = asPlayerId("player");
-    expect(world.isCreative(id)).toBe(false);
     player.getGameMode.mockReturnValue("Creative");
     expect(world.isCreative(id)).toBe(true);
     container.getItem.mockReturnValueOnce({ typeId: TENT_ITEM, amount: 2 });
@@ -968,7 +935,6 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     });
     // The tent entity is no player, and a missing entity is none either.
     for (const notPlayer of [asPlayerId(TENT), asPlayerId("gone")]) {
-      expect(world.isCreative(notPlayer)).toBe(false);
       expect(world.consumeTentItem(notPlayer, 0)).toBe(false);
       world.giveTentItem(notPlayer);
     }

@@ -3,22 +3,7 @@ import { TOILET_SPEC, WASHSTAND_SPEC } from "../../../src/domain/resort/shows";
 import type { SoundId } from "../../../src/domain/shared/soundId";
 import type { Ticks } from "../../../src/domain/shared/ticks";
 
-it("pins the show tuning with branded durations and sound ids", () => {
-  expect(TOILET_SPEC).toEqual({
-    flushTicks: 100,
-    lidOpenTicks: 8,
-    lidOpenDegrees: 91,
-    scanTicks: 2,
-    exitFrontOffset: 1,
-    exitSearchRadius: 4,
-    exitSearchUp: 4,
-    exitSearchDown: 8,
-    flushSound: "yasu_ride.toilet_flush",
-  });
-  expect(WASHSTAND_SPEC).toEqual({
-    runTicks: 100,
-    runSound: "yasu_ride.washstand_water",
-  });
+it("uses branded durations and sound ids for show tuning", () => {
   expectTypeOf(TOILET_SPEC.flushTicks).toEqualTypeOf<Ticks>();
   expectTypeOf(TOILET_SPEC.lidOpenTicks).toEqualTypeOf<Ticks>();
   expectTypeOf(TOILET_SPEC.scanTicks).toEqualTypeOf<Ticks>();

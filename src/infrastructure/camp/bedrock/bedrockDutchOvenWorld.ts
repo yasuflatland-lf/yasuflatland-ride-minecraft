@@ -20,7 +20,12 @@ import type {
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
-import { consumeHeld, isCreative, playerById } from "../../shared/players";
+import {
+  consumeHeld,
+  isCreative,
+  playerById,
+  showHitsLeftHint,
+} from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DUTCH_OVEN_GROUND_EVENT,
@@ -217,9 +222,6 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
   }
 
   showHitsLeft(player: PlayerId, hitsLeft: number): void {
-    playerById(player)?.onScreenDisplay.setActionBar({
-      translate: DUTCH_OVEN_HITS_LEFT_HINT,
-      with: [String(hitsLeft)],
-    });
+    showHitsLeftHint(player, DUTCH_OVEN_HITS_LEFT_HINT, hitsLeft);
   }
 }

@@ -17,8 +17,6 @@ describe("run watch", () => {
   const ticks = fc.nat({ max: 1_000_000 });
 
   it("allows at least 75 ms per declared tick and grows monotonically", () => {
-    expect(TPS).toBe(20);
-    expect(DEADLINE_FACTOR).toBe(1.5);
     fc.assert(
       fc.property(ticks, ticks, (a, b) => {
         expect(deadlineMsOf(a)).toBeGreaterThanOrEqual(
@@ -27,9 +25,8 @@ describe("run watch", () => {
         expect(deadlineMsOf(Math.max(a, b))).toBeGreaterThanOrEqual(
           deadlineMsOf(Math.min(a, b)),
         );
-        expect(deadlineMsOf(a) - (a * 75 + SETUP_MARGIN_MS)).toBeLessThan(
-          1.000001,
-        );
+        const budget = a * (1000 / TPS) * DEADLINE_FACTOR + SETUP_MARGIN_MS;
+        expect(deadlineMsOf(a) - budget).toBeLessThan(1.000001);
       }),
     );
   });

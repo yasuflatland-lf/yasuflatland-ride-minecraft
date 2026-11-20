@@ -1,7 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  AIR,
   blockStateOf,
   sameBlockState,
   sameBlockStateIgnoringDerived,
@@ -197,9 +196,5 @@ describe("BlockState", () => {
 describe("BUILD_SPEC", () => {
   it("lets a copy fit inside an edit", () => {
     expect(BUILD_SPEC.maxCopyVolume).toBeLessThanOrEqual(BUILD_SPEC.maxVolume);
-  });
-
-  it("names air with no states", () => {
-    expect(AIR).toEqual({ typeId: "minecraft:air", states: {} });
   });
 });

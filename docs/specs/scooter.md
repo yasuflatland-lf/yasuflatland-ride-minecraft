@@ -34,7 +34,7 @@ The five scooter README previews include a running-board close-up; its framing i
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "The collision box is 0.8125 blocks wide and 1.5625 high, with a 1.3-block footprint."
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/scooter.se.json`, `src/domain/vehicle/kinds/scooter/entity.ts` (`SCOOTER_ENTITY`)
-- Verification: `tests/packs/scooter.test.ts` "matches the profile seats and the model seat locator heights", "fits the collision box inside the placement clearance and matches body height", "covers the collision box and every rotated model corner with its footprint", "starts in road form with wheels down and synchronizes the visual defaults"; `tests/domain/vehicle/kinds/scooter/entity.test.ts` "reserves core properties and fits the entity property budget"; `tests/packs/entityContract.test.ts`. Tests were read, not run for this spec.
+- Verification: `tests/packs/scooter.test.ts` "fits the collision box inside the placement clearance and matches body height", "covers the collision box and every rotated model corner with its footprint", "starts in road form with wheels down and synchronizes the visual defaults"; `tests/domain/vehicle/kinds/scooter/entity.test.ts` "reserves core properties and fits the entity property budget"; `tests/packs/entityContract.test.ts` checks seat positions and locator heights. Tests were read, not run for this spec.
 
 ### Ground driving and step probe
 
@@ -115,7 +115,7 @@ The five scooter README previews include a running-board close-up; its framing i
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Paint, the headlight switch"; [0252](../adr/0252-budget-client-entity-texture-memory.md) Decision
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/scooter.se.json`, `packs/yasu_ride_rp/render_controllers/yasu_ride/scooter.rc.json`, `tools/scooter_textures.py`, `src/domain/vehicle/kinds/scooter/profile.ts` (`paintPolicy`, `beams`)
-- Verification: `tests/packs/scooter.test.ts` "switches every dye variant while removing the other paint groups"; `tests/packs/scooterClient.test.ts` "binds every paint variant and texture in the SUV order", "draws fixed and paint cutouts, a separate hover glow, then the lit lamps last"; `tests/tools/scooterTextures.test.ts`. Tests were read, not run for this spec.
+- Verification: `tests/packs/scooter.test.ts` "starts with the white variant"; `tests/packs/paint.test.ts` checks scooter paint events; `tests/packs/scooterClient.test.ts` "binds every paint variant and texture in the SUV order", "draws fixed and paint cutouts, a separate hover glow, then the lit lamps last"; `tests/tools/scooterTextures.test.ts`. Tests were read, not run for this spec.
 
 ### Render passes
 

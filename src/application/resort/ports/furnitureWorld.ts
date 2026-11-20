@@ -6,6 +6,7 @@ import type { FurnitureId } from "../../../domain/resort/ids";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
+import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
 import type { FurnitureTopBlocksWorld } from "./furnitureTopBlocks";
 
@@ -20,13 +21,13 @@ export interface FurnitureWorld
   showBlocked(player: PlayerId): void;
 }
 export interface FurnitureTakeBackWorld
-  extends Pick<FurnitureTopBlocksWorld, "clearTop" | "blockAboveTop"> {
+  extends HitsLeftFeedback,
+    Pick<FurnitureTopBlocksWorld, "clearTop" | "blockAboveTop"> {
   kindOf(id: FurnitureId): FurnitureKind | undefined;
   isOccupied(id: FurnitureId): boolean;
   somethingOnTop(id: FurnitureId): boolean;
   dropItem(id: FurnitureId, player: PlayerId): void;
   remove(id: FurnitureId): void;
-  showHitsLeft(player: PlayerId, left: number): void;
   showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void;
   showTaken(player: PlayerId): void;
 }
