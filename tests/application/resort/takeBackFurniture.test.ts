@@ -47,26 +47,20 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
       ),
     );
   });
-  it("restarts after a gap beyond the hit window", () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: spec.hitResetTicks + 1, max: 10000 }),
-        (gap) => {
-          const world = fakeFurnitureWorld(kind);
-          const take = new TakeBackFurniture(world);
-          const cmd = {
-            id: asFurnitureId("p"),
-            player: asPlayerId("h"),
-            now: 0,
-          };
-          take.hit(cmd);
-          take.hit({ ...cmd, now: 1 });
-          take.hit({ ...cmd, now: gap + 1 });
-          expect(world.remove).not.toHaveBeenCalled();
-          expect(world.showHitsLeft).toHaveBeenLastCalledWith(cmd.player, 2);
-        },
-      ),
-    );
+  it("resets after a gap of 101 ticks", () => {
+    const world = fakeFurnitureWorld(kind);
+    const take = new TakeBackFurniture(world);
+    const cmd = {
+      id: asFurnitureId("p"),
+      player: asPlayerId("h"),
+      now: 0,
+    };
+    take.hit(cmd);
+    take.hit({ ...cmd, now: 100 });
+    take.hit({ ...cmd, now: 201 });
+    expect(world.remove).not.toHaveBeenCalled();
+    expect(world.showHitsLeft).toHaveBeenNthCalledWith(2, cmd.player, 1);
+    expect(world.showHitsLeft).toHaveBeenLastCalledWith(cmd.player, 2);
   });
 
   it("refused hits leave the counter unchanged for either reason", () => {

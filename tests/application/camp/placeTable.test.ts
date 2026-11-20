@@ -1,28 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { PlaceTable } from "../../../src/application/camp/placeTable";
-import type { TableWorld } from "../../../src/application/camp/ports/table";
 import { TABLE_SPEC } from "../../../src/domain/camp/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { fakeTableWorld as fakeWorld } from "./fakeTableWorld";
 
 const dimensionId = asDimensionId("overworld");
 const playerId = asPlayerId("player");
-
-function fakeWorld(): TableWorld {
-  return {
-    itemsOnTable: vi.fn(() => 0),
-    showOvenOnTop: vi.fn(),
-    isAir: vi.fn(() => true),
-    isOwnBlock: vi.fn(() => false),
-    isVehicleSpace: vi.fn(() => false),
-    hasTableNear: vi.fn(() => false),
-    isCreative: vi.fn(() => false),
-    consumeItem: vi.fn(() => true),
-    spawnTable: vi.fn(),
-    dropItem: vi.fn(),
-    removeTable: vi.fn(),
-    showHitsLeft: vi.fn(),
-  };
-}
 
 describe("placing a camp table", () => {
   it("centers it between two ground cells so two chairs align under its ends", () => {

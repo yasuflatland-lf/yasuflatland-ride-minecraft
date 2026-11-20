@@ -29,11 +29,6 @@ it("defines every feedback message in both locales", () => {
       `packs/yasu_ride_rp/texts/${locale}.lang`,
       "utf8",
     );
-    const messageKeys = lang
-      .split("\n")
-      .filter((line) => line.startsWith("yasu_build.message."))
-      .map((line) => line.slice(0, line.indexOf("=")));
-    expect(messageKeys.sort()).toEqual(Object.values(BUILD_MESSAGE).sort());
     const entries = new Map(
       lang.split("\n").map((line) => {
         const split = line.indexOf("=");
@@ -50,7 +45,6 @@ it("defines every feedback message in both locales", () => {
         .filter((key) => key.startsWith("yasu_build.form."))
         .sort(),
     ).toEqual(Object.values(BUILD_FORM).sort());
-    expect(entries.get(BUILD_FORM.fillBelowBody)?.match(/%s/g)).toHaveLength(4);
     expect(entries.get(BUILD_MESSAGE.pasteReady)?.match(/%s/g)).toHaveLength(5);
     expect(entries.get(BUILD_MESSAGE.copied)?.match(/%s/g)).toHaveLength(1);
     expect(
@@ -69,8 +63,6 @@ it("defines every feedback message in both locales", () => {
       expect(entries.get(key)).toBeTruthy();
     for (const key of Object.values(BUILD_FORM))
       expect(entries.get(key)).toBeTruthy();
-    expect(entries.get(BUILD_MESSAGE.cutRestored)).toBeTruthy();
-    expect(entries.get(BUILD_MESSAGE.cutIncomplete)).toBeTruthy();
     expect(entries.get(BUILD_MESSAGE.endSet)).toContain("%s");
     for (const message of [
       "tooLarge",

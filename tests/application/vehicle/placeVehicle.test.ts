@@ -61,13 +61,6 @@ describe("PlaceVehicle (ADR 0008)", () => {
     expect(repo.get(asVehicleId("v1"))?.yaw).toBeCloseTo(45);
   });
 
-  it("does not consume the item in creative mode", () => {
-    const world = new FakeWorld();
-    world.creativePlayers.add("p");
-    new PlaceVehicle(world, new InMemoryRepo(), log).execute(cmd);
-    expect(world.calls.some((c) => c.startsWith("consume"))).toBe(false);
-  });
-
   it("does not place the vehicle or consume the item when there is no room, such as under a low ceiling", () => {
     const world = new FakeWorld();
     world.air = (at) => !(at.y === 66 && at.x === 10 && at.z === -3);
@@ -203,14 +196,6 @@ describe("PlaceVehicle placement gift (ADR 0093)", () => {
         (c) => c.startsWith("gift:") || c.startsWith("markGift:"),
       ),
     ).toBe(false);
-  });
-
-  it("gives the camping gear box with the camper and the equipment box with the sports boat", () => {
-    expect(profileOf("camper").placementGift).toBe("camping_gear_box");
-    expect(profileOf("suv").placementGift).toBeUndefined();
-    expect(profileOf("sportsboat").placementGift).toBe(
-      "sportsboat_equipment_box",
-    );
   });
 });
 

@@ -34,17 +34,36 @@ describe("handleHit", () => {
     );
   });
 
-  it("starts counting again after a gap longer than resetTicks", () => {
-    const rule = { hits: 3, resetTicks: 40 };
-    const counters = new HitCounters<string>(rule);
-    const log: number[] = [];
-    const effects = {
-      drop: () => log.push(-1),
-      remove: () => {},
-      showRemaining: (n: number) => log.push(n),
-    };
-    handleHit(counters, "a", 0, effects);
-    handleHit(counters, "a", 100, effects);
-    expect(log).toEqual([2, 2]);
+  it("resets the count exactly when a hit gap exceeds resetTicks", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 100 }),
+        fc.array(fc.integer({ min: -1, max: 1 }), {
+          minLength: 1,
+          maxLength: 20,
+        }),
+        (resetTicks, offsets) => {
+          const hits = offsets.length + 2;
+          const counters = new HitCounters<string>({ hits, resetTicks });
+          const log: number[] = [];
+          const effects = {
+            drop: () => log.push(-1),
+            remove: () => log.push(-2),
+            showRemaining: (n: number) => log.push(n),
+          };
+          let tick = 0;
+          let runLength = 1;
+          const expected = [hits - 1];
+          handleHit(counters, "a", tick, effects);
+          for (const offset of offsets) {
+            tick += resetTicks + offset;
+            runLength = offset > 0 ? 1 : runLength + 1;
+            expected.push(hits - runLength);
+            handleHit(counters, "a", tick, effects);
+          }
+          expect(log).toEqual(expected);
+        },
+      ),
+    );
   });
 });

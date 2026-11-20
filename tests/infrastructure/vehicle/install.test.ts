@@ -104,7 +104,7 @@ it("hands the camp's space check to vehicle placement (ADR 0129)", () => {
   );
 });
 
-it("hands the later switch targets to the subscriptions (ADR 0134)", () => {
+it("passes the later targets and monitor tool to the subscriptions (ADR 0134, 0138)", () => {
   const laterSwitchTargets = () => [];
   installVehicles({
     isCampSpace: () => false,
@@ -114,14 +114,6 @@ it("hands the later switch targets to the subscriptions (ADR 0134)", () => {
   expect(vi.mocked(registerSubscriptions).mock.lastCall?.[5]).toBe(
     laterSwitchTargets,
   );
-});
-
-it("hands the monitor tool switch use case to the subscriptions (ADR 0138)", () => {
-  installVehicles({
-    isCampSpace: () => false,
-    wantsChaseCamera: () => false,
-    laterSwitchTargets: () => [],
-  });
   expect(
     vi.mocked(registerSubscriptions).mock.lastCall?.[0].tool,
   ).toBeInstanceOf(SwitchTool);
