@@ -1,4 +1,4 @@
-import type { SetDecorCommand } from "../../../application/vehicle/setDecor";
+import type { SetDecorCommand } from "../../../application/vehicle/room/setDecor";
 import { asVehicleId } from "../../../domain/shared/ids";
 import {
   isDecorItem,

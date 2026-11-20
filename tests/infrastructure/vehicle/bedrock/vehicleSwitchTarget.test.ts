@@ -1,6 +1,6 @@
 import type { Block, Player } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
-import { SwitchCeilingLights } from "../../../../src/application/vehicle/switchCeilingLights";
+import { SwitchCeilingLights } from "../../../../src/application/vehicle/room/switchCeilingLights";
 import { SwitchHeadlights } from "../../../../src/application/vehicle/switchHeadlights";
 import { asDimensionId } from "../../../../src/domain/shared/ids";
 import { vehicleSwitchTarget } from "../../../../src/infrastructure/vehicle/bedrock/handlers/headlights";

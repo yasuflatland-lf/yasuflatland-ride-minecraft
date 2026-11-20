@@ -1,5 +1,5 @@
 import { system } from "@minecraft/server";
-import type { PressStorage } from "../../../../../application/vehicle/pressStorage";
+import type { PressStorage } from "../../../../../application/vehicle/room/pressStorage";
 import {
   asDimensionId,
   asPlayerId,

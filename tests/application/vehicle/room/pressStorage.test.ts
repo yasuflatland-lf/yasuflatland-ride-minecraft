@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { PressStorage } from "../../../src/application/vehicle/pressStorage";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
-import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
-import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/decorCells";
-import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
-import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
+import { PressStorage } from "../../../../src/application/vehicle/room/pressStorage";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
+import { decorSlot } from "../../../../src/domain/vehicle/kinds/camper/decor";
+import { decorSlotCell } from "../../../../src/domain/vehicle/kinds/camper/decorCells";
+import { slotPoint } from "../../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { CAMPER_SPEC } from "../../../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_ROOM,
   createVehicle,
-} from "../../../src/domain/vehicle/kinds/index";
-import { decorItemId, decorSlotId } from "../../support/decorIds";
-import { FakeClock, FakeWorld, parkedCamper } from "./fakes";
+} from "../../../../src/domain/vehicle/kinds/index";
+import { decorItemId, decorSlotId } from "../../../support/decorIds";
+import { FakeClock, FakeWorld, parkedCamper } from "../fakes";
 
 function setup() {
   const { car, pose, repo } = parkedCamper();

@@ -1,9 +1,9 @@
-import type { VehicleId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
-import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
+import type { VehicleId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
+import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
 // Use case: a press on a held vehicle's shower-toilet swings its door or runs its shower (ADR 0094, 0098, 0118).
-import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { Clock } from "./ports/shared";
+import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
+import type { Clock } from "../ports/shared";
 
 interface PressShowerToiletCommand {
   vehicleId: VehicleId;

@@ -1,5 +1,5 @@
 import { system } from "@minecraft/server";
-import type { UseDockDoor } from "../../../../../application/vehicle/useDockDoor";
+import type { UseDockDoor } from "../../../../../application/vehicle/room/useDockDoor";
 import {
   asDimensionId,
   type DimensionId,

@@ -1,8 +1,8 @@
-import type { VehicleId } from "../../domain/shared/ids";
-import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
+import type { VehicleId } from "../../../domain/shared/ids";
+import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
 // Use case: a player tapped the door of a held vehicle's room (ADR 0068, 0105).
-import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { Clock } from "./ports/shared";
+import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
+import type { Clock } from "../ports/shared";
 
 interface UseDockDoorCommand {
   vehicleId: VehicleId;

@@ -4,9 +4,9 @@ import {
   system,
   world,
 } from "@minecraft/server";
-import type { PlaceDecor } from "../../../../../application/vehicle/placeDecor";
-import type { PressStorage } from "../../../../../application/vehicle/pressStorage";
-import type { RemoveDecor } from "../../../../../application/vehicle/removeDecor";
+import type { PlaceDecor } from "../../../../../application/vehicle/room/placeDecor";
+import type { PressStorage } from "../../../../../application/vehicle/room/pressStorage";
+import type { RemoveDecor } from "../../../../../application/vehicle/room/removeDecor";
 import { cellOf } from "../../../../../domain/shared/cells";
 import {
   asDimensionId,

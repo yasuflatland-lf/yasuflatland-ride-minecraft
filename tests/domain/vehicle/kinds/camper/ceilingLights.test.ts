@@ -33,6 +33,8 @@ import {
   storagePlateChecks,
 } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
+import { SPEC } from "../../../../../src/domain/vehicle/spec";
+import { camperRoom } from "../../../../support/camperRoom";
 
 const PUSH: RawInput = { moveX: 0, moveY: 1, jump: false };
 const pose = fc
@@ -115,7 +117,7 @@ function fixture(restored: Record<string, unknown> = {}) {
     for (let i = 0; i <= DOCK.ticks; i++) step();
   };
   const inside = middle(ceilingLightCells(p)[0] ?? p, -1);
-  return { drive, pose: p, step, park, inside };
+  return { drive, room: camperRoom(drive), pose: p, step, park, inside };
 }
 
 const lightCells = (cells: readonly DockCell[] | undefined) =>
@@ -131,13 +133,20 @@ describe("CamperDrive ceiling lights (ADR 0115)", () => {
   it("switches only while parked, and only for a player inside the room", () => {
     const f = fixture();
     const roof = { ...f.inside, y: f.inside.y + 3 };
-    expect(f.drive.ceilingLightsReachable(f.inside)).toBe(false);
-    expect(f.drive.switchCeilingLights(f.inside)).toBe(false);
+    expect(f.room.fixtures.ceilingLightsReachable(f.inside)).toBe(false);
+    expect(f.room.fixtures.switchCeilingLights(f.inside, 0)).toBe(false);
     f.park();
-    expect(f.drive.ceilingLightsReachable(roof)).toBe(false);
-    expect(f.drive.switchCeilingLights(roof)).toBe(false);
-    expect(f.drive.ceilingLightsReachable(f.inside)).toBe(true);
-    expect(f.drive.switchCeilingLights(f.inside)).toBe(true);
+    expect(f.room.fixtures.ceilingLightsReachable(roof)).toBe(false);
+    expect(
+      f.room.fixtures.switchCeilingLights(roof, SPEC.headlightSwitchCooldown),
+    ).toBe(false);
+    expect(f.room.fixtures.ceilingLightsReachable(f.inside)).toBe(true);
+    expect(
+      f.room.fixtures.switchCeilingLights(
+        f.inside,
+        2 * SPEC.headlightSwitchCooldown,
+      ),
+    ).toBe(true);
   });
 
   it("lays a light under each ceiling light, lights the panels, and clicks once per switch, until switched off", () => {
@@ -146,8 +155,11 @@ describe("CamperDrive ceiling lights (ADR 0115)", () => {
     const dark = f.step();
     expect(lightCells(dark.dock?.cells)).toEqual([]);
     expect(lightValues(dark.commands)).toEqual([]);
-    for (const on of [true, false, true]) {
-      f.drive.switchCeilingLights(f.inside);
+    for (const [index, on] of [true, false, true].entries()) {
+      f.room.fixtures.switchCeilingLights(
+        f.inside,
+        index * SPEC.headlightSwitchCooldown,
+      );
       const out = f.step();
       expect(lightValues(out.commands)).toEqual([on]);
       expect(out.commands.filter((c) => c === SWITCH_CLICK)).toHaveLength(1);
@@ -166,7 +178,7 @@ describe("CamperDrive ceiling lights (ADR 0115)", () => {
   it("turns the lights off on departure and parks dark the next time", () => {
     const f = fixture();
     f.park();
-    f.drive.switchCeilingLights(f.inside);
+    f.room.fixtures.switchCeilingLights(f.inside, 0);
     f.step();
     const out = f.step(PUSH);
     expect(out.depart).toBeDefined();
