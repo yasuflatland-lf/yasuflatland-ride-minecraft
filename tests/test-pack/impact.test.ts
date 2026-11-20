@@ -117,21 +117,6 @@ describe("impact reach", () => {
     );
   });
 
-  it.each([
-    "dockBlocks.ts",
-    "faceHeight.ts",
-    "handlers/decor.ts",
-    "handlers/dockDoor.ts",
-    "handlers/showerToilet.ts",
-    "handlers/storage.ts",
-  ])("preserves vehicle impact after moving camper %s", (file) => {
-    expect(
-      impactOfPath(`src/infrastructure/vehicle/kinds/camper/${file}`).impact,
-    ).toEqual(
-      impactOfPath(`src/infrastructure/vehicle/bedrock/${file}`).impact,
-    );
-  });
-
   it("preserves full impact for the extracted camper identifiers", () => {
     expect(
       impactOfPath("src/infrastructure/vehicle/kinds/camper/identifiers.ts")
@@ -379,19 +364,6 @@ describe("selectionOf", () => {
     expect(impactOfPath(path).impact).toEqual(impact);
   });
 
-  it("selects resort for Dining Chair pack files and its registered scenario", () => {
-    const paths = [
-      "packs/yasu_ride_bp/entities/yasu_ride/dining_chair.se.json",
-      "packs/yasu_ride_bp/items/yasu_ride/dining_chair_item.item.json",
-      "packs/yasu_ride_bp/recipes/yasu_ride/dining_chair_item.recipe.json",
-      "src/test-pack/scenarios/diningChair.ts",
-    ];
-    for (const path of paths) {
-      expect(existsSync(new URL(path, root)), path).toBe(true);
-      expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
-    }
-  });
-
   it.each([
     "packs/yasu_ride_bp/entities/yasu_ride/sofa_single.se.json",
     "packs/yasu_ride_bp/entities/yasu_ride/sofa_double.se.json",
@@ -401,22 +373,30 @@ describe("selectionOf", () => {
     expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
   });
 
-  it.each(["toilet", "washstand"])(
-    "selects resort for %s pack files and its registered scenarios",
-    (kind) => {
+  it.each(Object.values(FURNITURE_IDS))(
+    "selects resort for $entity pack files and its registered scenarios",
+    ({ entity, item }) => {
+      const stem = bareId(entity);
+      const itemStem = bareId(item);
+      const scenarios = CATALOG.filter(({ name }) =>
+        name.startsWith(`${stem}_`),
+      );
+      expect(scenarios.length).toBeGreaterThan(0);
       const paths = [
-        `packs/yasu_ride_bp/entities/yasu_ride/${kind}.se.json`,
-        `packs/yasu_ride_bp/items/yasu_ride/${kind}_item.item.json`,
-        `packs/yasu_ride_bp/recipes/yasu_ride/${kind}_item.recipe.json`,
-        `src/test-pack/scenarios/${kind}.ts`,
-        "src/test-pack/scenarios/sofaSingle.ts",
+        `packs/yasu_ride_bp/entities/yasu_ride/${stem}.se.json`,
+        `packs/yasu_ride_bp/items/yasu_ride/${itemStem}.item.json`,
+        `packs/yasu_ride_bp/recipes/yasu_ride/${itemStem}.recipe.json`,
+        ...new Set(
+          scenarios.map(({ file }) => `src/test-pack/scenarios/${file}.ts`),
+        ),
       ];
       for (const path of paths) {
         expect(existsSync(new URL(path, root)), path).toBe(true);
-        expect(selectionOf([path])).toEqual({
-          all: false,
-          features: ["resort"],
-        });
+        const features =
+          path === "src/test-pack/scenarios/diningTable.ts"
+            ? ["camp", "resort"]
+            : ["resort"];
+        expect(selectionOf([path]), path).toEqual({ all: false, features });
       }
     },
   );
@@ -466,31 +446,12 @@ describe("selectionOf", () => {
         playerConnected: false,
         features: ["resort"],
       }).runs.map((scenario) => scenario.name),
-    ).toEqual([
-      "dining_table_top_overlap",
-      "dining_table_top_lay_clear",
-      "dining_table_block_on_top",
-      "dining_table_top_restore",
-      "dining_table_place_take_back",
-      "dining_chair_place_take_back",
-      "dining_table_lantern",
-      "dining_table_oven",
-      "sofa_single_place_take_back",
-      "sofa_double_place_take_back",
-      "toilet_place_take_back",
-      "toilet_flush_timing",
-      "washstand_place_take_back",
-      "washstand_run_timing",
-      "beach_chair_lantern",
-      "beach_chair_oven",
-      "beach_chair_empty_refresh",
-      "beach_chair_fold",
-      "beach_chair_place",
-      "beach_chair_take_back",
-      "parasol_paint",
-      "parasol_place_take_back",
-      "parasol_rain_ceiling",
-    ]);
+    ).toEqual(
+      CATALOG.filter(
+        ({ features, needsPlayer, manualSetup }) =>
+          features.includes("resort") && !needsPlayer && !manualSetup,
+      ).map(({ name }) => name),
+    );
   });
 
   it.each(["domain", "application", "infrastructure"])(

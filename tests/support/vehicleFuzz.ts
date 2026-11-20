@@ -9,7 +9,7 @@ import { defined } from "./defined";
 import { riderView } from "./riders";
 import { waterDepth } from "./waterDepth";
 
-export interface RiderSample {
+interface RiderSample {
   readonly seat: number;
   readonly yaw: number;
   readonly raw: RawInput;

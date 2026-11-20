@@ -240,11 +240,8 @@ describe("token validators", () => {
         expect(lanesFrom(String(n))).toBe(n >= 1 && n <= 8 ? n : undefined);
         expect(laneIndexFrom(String(n))).toBe(n >= 0 && n <= 7 ? n : undefined);
       }),
+      { examples: [[-1], [0], [1], [7], [8], [9]] },
     );
-    for (let n = 0; n <= 9; n++) {
-      expect(lanesFrom(String(n))).toBe(n >= 1 && n <= 8 ? n : undefined);
-      expect(laneIndexFrom(String(n))).toBe(n <= 7 ? n : undefined);
-    }
     for (const text of [
       "",
       "01",

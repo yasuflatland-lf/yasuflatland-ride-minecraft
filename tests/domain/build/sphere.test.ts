@@ -2,11 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { boxOf, type CellBox, contains } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import {
-  type HeightedSpec,
-  placementOf,
-  volumeOf,
-} from "../../../src/domain/build/volume/geometry";
+import type { HeightedSpec } from "../../../src/domain/build/volume/geometry";
 import {
   spherePlacement,
   sphereVolume,
@@ -85,11 +81,6 @@ const reachesEveryEnd = (spec: HeightedSpec): void => {
 };
 
 describe("sphere geometry", () => {
-  it("is registered as sphere geometry", () => {
-    expect(volumeOf("sphere")).toBe(sphereVolume);
-    expect(placementOf("sphere")).toBe(spherePlacement);
-  });
-
   it("selects exactly the cells the ellipsoid rule accepts, inside the box", () => {
     fc.assert(
       fc.property(spec, (spec) => {

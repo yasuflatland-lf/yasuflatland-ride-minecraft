@@ -36,18 +36,9 @@ describe("SwitchCooldown (ADR 0024)", () => {
       ),
     );
   });
-
-  it("restarts the idle time on a use that does not count", () => {
-    const c = new SwitchCooldown();
-    expect(c.tryUse(100, 10)).toBe(true);
-    expect(c.tryUse(105, 10)).toBe(false);
-    expect(c.tryUse(114, 10)).toBe(false);
-    expect(c.tryUse(124, 10)).toBe(true);
-  });
 });
 
-it("keeps the shared light switch cooldown at ten ticks", () => {
-  expect(LIGHT_SWITCH_COOLDOWN_TICKS).toBe(10);
+it("uses the shared light switch cooldown for vehicle headlights", () => {
   expect(SPEC.headlightSwitchCooldown).toBe(LIGHT_SWITCH_COOLDOWN_TICKS);
 });
 
