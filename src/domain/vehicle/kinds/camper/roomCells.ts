@@ -1,4 +1,5 @@
 // The parked camper's room: its pose, its cells, and what may stand in them (ADR 0068).
+import { QUARTER_TURN } from "../../../shared/facing";
 import { normalizeYaw, type Vec2, type Vec3 } from "../../../shared/vec";
 import {
   type DeckSeatSpot,
@@ -21,7 +22,7 @@ import {
   SLEEP_BLOCKS,
   STORAGE_DOORS,
 } from "./furniture";
-import { axes, cellAt, localCellAt, QUARTER_TURN } from "./parkPose";
+import { axes, cellAt, localCellAt } from "./parkPose";
 import { CAMPER_PARKED_SEATS, CAMPER_PROFILE } from "./profile";
 import {
   CEILING_LAYER,

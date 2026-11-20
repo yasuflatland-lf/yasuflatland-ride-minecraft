@@ -1,9 +1,10 @@
 // The wall cabinet's two doors and the items behind them (ADR 0114).
+
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
+import { quarterOf } from "../../../../../src/domain/shared/facing";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import type {
   DockBlock,
   DockCell,
@@ -160,7 +161,7 @@ it("takes back the item at the pressed end of an open compartment, and shuts the
         expect(propertyValues(last, PROPERTY[door])).toEqual([]);
         expect(blockAt(last.dock?.cells, f.compartment(door))).toEqual({
           type: "cabinet",
-          face: decorFace(f.pose.yaw),
+          face: quarterOf(f.pose.yaw),
           open: false,
         });
       },
@@ -200,7 +201,7 @@ it("places gear behind an open door only, and never takes a cabinet item through
   const laid = blockAt(f.step().dock?.cells, cell);
   expect(laid).toEqual({
     type: "cabinet",
-    face: decorFace(f.pose.yaw),
+    face: quarterOf(f.pose.yaw),
     open: true,
     end0: decorItemId("mug_pair"),
   } satisfies DockBlock);
@@ -233,7 +234,7 @@ it("shuts both doors at once on departure, keeps their items, and lays them shut
     cells = f.step().dock?.cells ?? [];
   expect(blockAt(cells, f.compartment("stove"))).toEqual({
     type: "cabinet",
-    face: decorFace(f.pose.yaw),
+    face: quarterOf(f.pose.yaw),
     open: false,
     end1: "toaster",
   });

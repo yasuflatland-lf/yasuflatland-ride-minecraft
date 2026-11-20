@@ -2,10 +2,8 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
-import {
-  decorFace,
-  parseDecor,
-} from "../../../../../src/domain/vehicle/dock/decor";
+import { quarterOf } from "../../../../../src/domain/shared/facing";
+import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
 import type {
   DriveStep,
   TickContext,
@@ -1110,7 +1108,7 @@ it("puts the stove item on its one burner and takes no second item while it hold
           block: {
             type: "decor",
             item: "saucepan",
-            face: decorFace(f.pose.yaw),
+            face: quarterOf(f.pose.yaw),
             height: 15,
             spot: 0,
           },
@@ -1202,7 +1200,7 @@ it("holds two items on the table: a press on its cell sends the next item to the
         expect(laid[0]?.block).toEqual({
           type: "decorPair",
           pair: first.pair.kind,
-          face: decorFace(f.pose.yaw),
+          face: quarterOf(f.pose.yaw),
           height: first.height,
           [`end${first.pair.end}`]: "cushion",
           [`end${second.pair.end}`]: "book_stack",

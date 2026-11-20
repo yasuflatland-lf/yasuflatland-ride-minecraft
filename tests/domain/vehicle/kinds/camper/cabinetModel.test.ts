@@ -1,11 +1,12 @@
 // The wall cabinet's doors against a small reference model, over arbitrary press and tick
 // sequences: what each press returns, the door properties each tick, the compartment and
 // plate blocks, and the decor (ADR 0105, 0114).
+
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
+import { quarterOf } from "../../../../../src/domain/shared/facing";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import type {
   DockBlock,
   DockCell,
@@ -118,7 +119,7 @@ it("matches a reference model of the cabinet doors over any press and tick seque
             const [end0, end1] = endsOf(id).map((s) => decor.get(s.id));
             expect(blockAt(out.dock?.cells, compartment(id))).toEqual({
               type: "cabinet",
-              face: decorFace(pose.yaw),
+              face: quarterOf(pose.yaw),
               open: d.step > 0,
               ...(end0 === undefined ? {} : { end0: decorItemId(end0) }),
               ...(end1 === undefined ? {} : { end1: decorItemId(end1) }),
