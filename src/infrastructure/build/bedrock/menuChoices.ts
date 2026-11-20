@@ -21,11 +21,10 @@ import {
   buildMenu,
   contentsMenu,
   type EditEntryId,
-  isBuildEntry,
-  isEditEntry,
   isShapeEntryOffered,
   type MenuEntry,
   pasteMenu,
+  shapeChoiceOf,
   shapeMenu,
   terrainMenu,
   utilityMenu,
@@ -82,19 +81,29 @@ export class MenuChoices {
         !isShapeEntryOffered(session.flow, entryId)
       )
         return false;
-      if (entryId === "adjustHeight") {
-        this.cases.chooseAdjustHeight.execute({ playerId });
-      } else if (entryId === "buildShape") {
-        this.cases.openBuildMenu.execute({ playerId });
-      } else if (entryId === "back") {
-        this.cases.closeBuildMenu.execute({ playerId });
-      } else if (isEditEntry(entryId)) {
-        this.dispatchEditEntry(entryId, playerId);
-      } else if (isBuildEntry(entryId)) {
-        this.dispatchBuildEntry(entryId, playerId);
-      } else {
-        this.cases.clear.execute({ playerId });
+      const choice = shapeChoiceOf(entryId);
+      switch (choice.kind) {
+        case "adjustHeight":
+          this.cases.chooseAdjustHeight.execute({ playerId });
+          return true;
+        case "openBuild":
+          this.cases.openBuildMenu.execute({ playerId });
+          return true;
+        case "closeBuild":
+          this.cases.closeBuildMenu.execute({ playerId });
+          return true;
+        case "edit":
+          this.dispatchEditEntry(choice.id, playerId);
+          return true;
+        case "build":
+          this.dispatchBuildEntry(choice.id, playerId);
+          return true;
+        case "cancel":
+          this.cases.clear.execute({ playerId });
+          return true;
       }
+      const exhaustive: never = choice;
+      return exhaustive;
     } else if (menu === "contents") {
       if (!isOffered(contentsMenu(session.flow), entryId)) return false;
       switch (entryId) {

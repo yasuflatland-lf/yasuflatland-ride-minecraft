@@ -23,7 +23,15 @@ export type RootEntryId =
   | "place"
   | "cancel";
 export type BuildMenuEntryId = BuildEntryId | "back";
-export type ShapeEntryId = EditEntryId | BuildEntryId | "cancel";
+/** What a shape-menu (root or build level) entry asks for. */
+export type ShapeChoice =
+  | { readonly kind: "adjustHeight" }
+  | { readonly kind: "openBuild" }
+  | { readonly kind: "closeBuild" }
+  | { readonly kind: "edit"; readonly id: EditEntryId }
+  | { readonly kind: "build"; readonly id: BuildEntryId }
+  | { readonly kind: "cancel" };
+
 export type ContentsEntryId = FillStyle | "cancel";
 export type TerrainEntryId = "confirm" | "cancel";
 export type UtilityEntryId = "copy" | "undo" | "clear";
@@ -44,15 +52,6 @@ const HEIGHTED_ENTRIES: readonly BuildEntryId[] = [
   "cube",
 ];
 
-export function editEntries(): MenuEntry<EditEntryId>[] {
-  return [
-    { id: "cut" },
-    { id: "removeAbove" },
-    { id: "fillBelow" },
-    { id: "copy" },
-  ];
-}
-
 export function buildEntries(shape: Shape): MenuEntry<BuildEntryId>[] {
   const extraEntries: readonly BuildEntryId[] =
     shape.kind === "box" || (shape.kind === "rect" && shape.flat === "y")
@@ -66,12 +65,33 @@ export function buildEntries(shape: Shape): MenuEntry<BuildEntryId>[] {
   ];
 }
 
-export function isEditEntry(id: ShapeEntryId): id is EditEntryId {
-  return editEntries().some((entry) => entry.id === id);
-}
-
-export function isBuildEntry(id: ShapeEntryId): id is BuildEntryId {
-  return id !== "cancel" && !isEditEntry(id);
+export function shapeChoiceOf(id: RootEntryId | BuildMenuEntryId): ShapeChoice {
+  switch (id) {
+    case "adjustHeight":
+    case "cancel":
+      return { kind: id };
+    case "buildShape":
+      return { kind: "openBuild" };
+    case "back":
+      return { kind: "closeBuild" };
+    case "cut":
+    case "removeAbove":
+    case "fillBelow":
+    case "copy":
+      return { kind: "edit", id };
+    case "place":
+    case "fill":
+    case "frame":
+    case "faces":
+    case "walls":
+    case "gable":
+    case "hip":
+    case "cylinder":
+    case "sideCylinder":
+    case "sphere":
+    case "cube":
+      return { kind: "build", id };
+  }
 }
 
 export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {

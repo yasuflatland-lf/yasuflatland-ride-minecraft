@@ -1,11 +1,11 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  type BuildMenuEntryId,
   buildEntries,
-  editEntries,
-  isBuildEntry,
-  isEditEntry,
-  type ShapeEntryId,
+  type RootEntryId,
+  type ShapeChoice,
+  shapeChoiceOf,
 } from "../../../src/domain/build/flow/menu";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 
@@ -13,30 +13,35 @@ const coord = fc.integer({ min: -1000, max: 1000 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
 const offset = fc.integer({ min: 1, max: 100 });
 const axes = ["x", "y", "z"] as const;
-const editIds = ["cut", "removeAbove", "fillBelow", "copy"] as const;
-const buildIds = [
-  "place",
-  "fill",
-  "frame",
-  "faces",
-  "walls",
-  "gable",
-  "hip",
-  "cylinder",
-  "sideCylinder",
-  "sphere",
-  "cube",
-] as const;
-const entryId = fc.constantFrom<ShapeEntryId>(
-  ...editIds,
-  ...buildIds,
-  "cancel",
-);
+const choices = {
+  adjustHeight: { kind: "adjustHeight" },
+  buildShape: { kind: "openBuild" },
+  back: { kind: "closeBuild" },
+  cancel: { kind: "cancel" },
+  cut: { kind: "edit", id: "cut" },
+  removeAbove: { kind: "edit", id: "removeAbove" },
+  fillBelow: { kind: "edit", id: "fillBelow" },
+  copy: { kind: "edit", id: "copy" },
+  place: { kind: "build", id: "place" },
+  fill: { kind: "build", id: "fill" },
+  frame: { kind: "build", id: "frame" },
+  faces: { kind: "build", id: "faces" },
+  walls: { kind: "build", id: "walls" },
+  gable: { kind: "build", id: "gable" },
+  hip: { kind: "build", id: "hip" },
+  cylinder: { kind: "build", id: "cylinder" },
+  sideCylinder: { kind: "build", id: "sideCylinder" },
+  sphere: { kind: "build", id: "sphere" },
+  cube: { kind: "build", id: "cube" },
+} satisfies Record<RootEntryId | BuildMenuEntryId, ShapeChoice>;
 
 describe("menu entry groups", () => {
-  it("returns the edit entries in order", () => {
-    expect(editEntries()).toEqual(editIds.map((id) => ({ id })));
-  });
+  it.each(Object.keys(choices) as (keyof typeof choices)[])(
+    "maps %s to its shape-menu choice",
+    (id) => {
+      expect(shapeChoiceOf(id)).toEqual(choices[id]);
+    },
+  );
 
   it("offers Place for lines along every axis in either direction", () => {
     fc.assert(
@@ -118,38 +123,6 @@ describe("menu entry groups", () => {
           );
         },
       ),
-    );
-  });
-
-  it("classifies every entry into its group and excludes Cancel from both", () => {
-    fc.assert(
-      fc.property(
-        fc.shuffledSubarray(
-          [...editIds, ...buildIds, "cancel"] as ShapeEntryId[],
-          {
-            minLength: editIds.length + buildIds.length + 1,
-          },
-        ),
-        (ids) => {
-          for (const id of ids) {
-            expect(isEditEntry(id)).toBe(editIds.some((edit) => edit === id));
-            expect(isBuildEntry(id)).toBe(
-              buildIds.some((build) => build === id),
-            );
-          }
-        },
-      ),
-    );
-  });
-
-  it("keeps subsequent edit entries independent of returned entry mutations", () => {
-    fc.assert(
-      fc.property(entryId, (id) => {
-        const entries = editEntries();
-        entries.splice(0);
-        expect(isEditEntry(id)).toBe(editIds.some((edit) => edit === id));
-        expect(editEntries()).toEqual(editIds.map((entry) => ({ id: entry })));
-      }),
     );
   });
 });
