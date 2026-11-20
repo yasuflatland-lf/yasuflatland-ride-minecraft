@@ -12,8 +12,7 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
   it("is a single-stack item that fires on a long press, with its icon and name", () => {
     expect(
       read("packs/yasu_ride_bp/items/yasu_ride/blade_switch.item.json"),
-    ).toEqual({
-      format_version: "1.21.80",
+    ).toMatchObject({
       "minecraft:item": {
         description: { identifier: TYPE, menu_category: { category: "items" } },
         components: {

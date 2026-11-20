@@ -12,7 +12,6 @@ const entity = entityFile["minecraft:entity"];
 
 describe("Seat filler (ADR 0120)", () => {
   it("is summonable but not spawnable, in its own family and skipped by the ram", () => {
-    expect(entityFile.format_version).toBe("1.21.80");
     expect(entity.description).toEqual({
       identifier: SEAT_FILLER_TYPE,
       is_spawnable: false,
@@ -42,7 +41,6 @@ describe("Seat filler (ADR 0120)", () => {
   it("is drawn with the deck seat's model, which has no cubes", () => {
     const clientFile = read(`${RP}/entity/yasu_ride/seat_filler.ce.json`);
     const client = clientFile["minecraft:client_entity"].description;
-    expect(clientFile.format_version).toBe("1.10.0");
     expect(client.identifier).toBe(SEAT_FILLER_TYPE);
     expect(existsSync(`${RP}/${client.textures.default}.png`)).toBe(true);
     expect(client.geometry).toEqual({

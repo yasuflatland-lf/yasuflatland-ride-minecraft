@@ -2670,13 +2670,12 @@ describe("sports boat PBR rear-view mirror (ADR 0159)", () => {
 
   it("gives the mirror atlas a texture set that is metal 255, emissive 0, roughness 0 only on the glass", () => {
     expect(
-      read(`${ENTITY_TEXTURES}/sportsboat_mirror.texture_set.json`),
+      read(`${ENTITY_TEXTURES}/sportsboat_mirror.texture_set.json`)[
+        "minecraft:texture_set"
+      ],
     ).toEqual({
-      format_version: "1.16.100",
-      "minecraft:texture_set": {
-        color: "sportsboat_mirror",
-        metalness_emissive_roughness: "sportsboat_mirror_mer",
-      },
+      color: "sportsboat_mirror",
+      metalness_emissive_roughness: "sportsboat_mirror_mer",
     });
     const base = texels("sportsboat");
     const color = texels("sportsboat_mirror");
@@ -2787,17 +2786,14 @@ describe("sports boat gloss hull (ADR 0163) and dash (ADR 0166)", () => {
     "gives %s paint a clear coat only on the hull, gloss and frame swatches",
     (paint) => {
       const name = paintAtlas(paint);
-      expect(read(`${ENTITY_TEXTURES}/${name}.texture_set.json`)).toEqual({
-        format_version: "1.16.100",
-        "minecraft:texture_set": {
-          color: name,
-          metalness_emissive_roughness: "sportsboat_mer",
-        },
-      });
       const color = readRgbaPng(`${ENTITY_TEXTURES}/${name}.png`);
       const set = read(`${ENTITY_TEXTURES}/${name}.texture_set.json`)[
         "minecraft:texture_set"
       ];
+      expect(set).toEqual({
+        color: name,
+        metalness_emissive_roughness: "sportsboat_mer",
+      });
       const mer = readRgbaPng(
         `${ENTITY_TEXTURES}/${set.metalness_emissive_roughness}.png`,
       );

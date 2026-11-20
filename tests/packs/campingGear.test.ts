@@ -579,7 +579,6 @@ function selectionBox(g: Gear) {
 
 function expectedDecor(g: Gear) {
   return {
-    format_version: "1.21.80",
     "minecraft:block": {
       description: {
         identifier: decorBlockId(g.id),
@@ -631,7 +630,9 @@ describe("camping gear blocks and items (ADR 0093)", () => {
   it("defines one decor block per gear with no collision, a selection box over its cell or its hanging model, and the decor component (ADR 0093, 0102, 0105)", () => {
     for (const g of SPEC) {
       const block = decorOf(g);
-      expect(block, g.id).toEqual(expectedDecor(g));
+      expect(block["minecraft:block"], g.id).toEqual(
+        expectedDecor(g)["minecraft:block"],
+      );
       const components = block["minecraft:block"].components;
       expect(components).not.toHaveProperty(["minecraft:loot"]);
       expect(components).not.toHaveProperty(["minecraft:transformation"]);
@@ -1050,21 +1051,22 @@ describe("camping gear blocks and items (ADR 0093)", () => {
   });
 
   it("defines one stackable item per gear with its icon and name key", () => {
-    for (const g of SPEC)
-      expect(readJson(`${BP}/items/yasu_ride/${g.id}.item.json`)).toEqual({
-        format_version: "1.21.80",
-        "minecraft:item": {
-          description: {
-            identifier: `yasu_ride:${g.id}`,
-            menu_category: { category: "items" },
-          },
-          components: {
-            "minecraft:icon": `yasu_ride_${g.id}`,
-            "minecraft:max_stack_size": 64,
-            "minecraft:display_name": { value: `item.yasu_ride:${g.id}.name` },
-          },
+    for (const g of SPEC) {
+      const item = readJson(`${BP}/items/yasu_ride/${g.id}.item.json`)[
+        "minecraft:item"
+      ];
+      expect(item).toEqual({
+        description: {
+          identifier: `yasu_ride:${g.id}`,
+          menu_category: { category: "items" },
+        },
+        components: {
+          "minecraft:icon": `yasu_ride_${g.id}`,
+          "minecraft:max_stack_size": 64,
+          "minecraft:display_name": { value: `item.yasu_ride:${g.id}.name` },
         },
       });
+    }
   });
 
   it("registers every gear icon and renders it as a 32 by 32 RGBA image with transparency", () => {

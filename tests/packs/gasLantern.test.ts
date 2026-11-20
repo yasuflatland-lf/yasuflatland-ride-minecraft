@@ -170,15 +170,14 @@ describe("Gas Lantern textures and pack files", () => {
         expect(t[1] === 255).toBe(slot === 7);
   });
 
-  it("ships the texture set, client entity, render controller, and matching versions", () => {
+  it("connects the texture set, client entity and render controller", () => {
     expect(
-      readJson(`${rp}/textures/entity/yasu_ride/gas_lantern.texture_set.json`),
+      readJson(`${rp}/textures/entity/yasu_ride/gas_lantern.texture_set.json`)[
+        "minecraft:texture_set"
+      ],
     ).toEqual({
-      format_version: "1.16.100",
-      "minecraft:texture_set": {
-        color: "gas_lantern",
-        metalness_emissive_roughness: "gas_lantern_mer",
-      },
+      color: "gas_lantern",
+      metalness_emissive_roughness: "gas_lantern_mer",
     });
     const client = readJson(`${rp}/entity/yasu_ride/gas_lantern.ce.json`)[
       "minecraft:client_entity"

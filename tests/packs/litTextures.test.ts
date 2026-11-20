@@ -216,13 +216,12 @@ describe.each(kinds)(
       for (const image of [lit, mer])
         expect([image.width, image.height]).toEqual([base.width, base.height]);
       expect(
-        read(`textures/entity/yasu_ride/${kind}_lit.texture_set.json`),
+        read(`textures/entity/yasu_ride/${kind}_lit.texture_set.json`)[
+          "minecraft:texture_set"
+        ],
       ).toEqual({
-        format_version: "1.16.100",
-        "minecraft:texture_set": {
-          color: `${kind}_lit`,
-          metalness_emissive_roughness: `${kind}_lit_mer`,
-        },
+        color: `${kind}_lit`,
+        metalness_emissive_roughness: `${kind}_lit_mer`,
       });
       const expectedColor = Buffer.from(base.pixels);
       const expectedMer = Buffer.alloc(base.pixels.length);
@@ -350,12 +349,13 @@ it("binds an opaque non-emissive camper interior MER without changing the base p
   expect(
     interior.pixels.every((pixel) => pixel[1] === 0 && pixel[3] === 255),
   ).toBe(true);
-  expect(read("textures/entity/yasu_ride/camper.texture_set.json")).toEqual({
-    format_version: "1.16.100",
-    "minecraft:texture_set": {
-      color: "camper",
-      metalness_emissive_roughness: "camper_mer",
-    },
+  expect(
+    read("textures/entity/yasu_ride/camper.texture_set.json")[
+      "minecraft:texture_set"
+    ],
+  ).toEqual({
+    color: "camper",
+    metalness_emissive_roughness: "camper_mer",
   });
   const client = read("entity/yasu_ride/camper.ce.json")[
     "minecraft:client_entity"

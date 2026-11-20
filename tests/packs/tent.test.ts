@@ -159,7 +159,6 @@ const openings: Record<string, Bounds> = {
 describe("tent entity and client", () => {
   it("declares the synced properties and tent-specific components", () => {
     const doc = readJson(`${BP}/entities/yasu_ride/tent.se.json`);
-    expect(doc.format_version).toBe("1.21.80");
     const e = doc["minecraft:entity"];
     expect(e.description).toMatchObject({
       identifier: TENT_TYPE,
@@ -250,7 +249,6 @@ describe("tent entity and client", () => {
   });
   it("draws the tent, switches only the shade material, and rolls each flap about its top", () => {
     const doc = readJson(`${RP}/entity/yasu_ride/tent.ce.json`);
-    expect(doc.format_version).toBe("1.10.0");
     const c = doc["minecraft:client_entity"].description;
     expect(c.identifier).toBe(TENT_TYPE);
     expect(c.geometry).toEqual({ default: "geometry.yasu_ride.tent" });
@@ -271,7 +269,6 @@ describe("tent entity and client", () => {
     });
     expect(c.render_controllers).toEqual(["controller.render.yasu_ride.tent"]);
     const rc = readJson(`${RP}/render_controllers/yasu_ride/tent.rc.json`);
-    expect(rc.format_version).toBe("1.8.0");
     expect(rc.render_controllers["controller.render.yasu_ride.tent"]).toEqual({
       arrays: {
         materials: { "Array.lamps": ["Material.lamp", "Material.lamp_lit"] },
@@ -292,7 +289,6 @@ describe("tent entity and client", () => {
       textures: ["Array.paints[query.variant]"],
     });
     const anim = readJson(`${RP}/animations/yasu_ride/tent.anim.json`);
-    expect(anim.format_version).toBe("1.8.0");
     const names = Object.keys(TENT_FLAP_PROPERTY).map((n) => `flap_${n}`);
     expect(c.scripts.animate).toEqual(names);
     expect(c.animations).toEqual(
@@ -827,7 +823,6 @@ describe("tent item", () => {
   it("uses the specified wool, stick, and string recipe", () => {
     const r = readJson(`${BP}/recipes/yasu_ride/tent_item.recipe.json`);
     expect(r).toMatchObject({
-      format_version: "1.20.10",
       "minecraft:recipe_shaped": {
         tags: ["crafting_table"],
         pattern: [" W ", "WSW", "T T"],

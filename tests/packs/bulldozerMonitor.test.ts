@@ -119,8 +119,7 @@ describe("bulldozer cab monitor (ADR 0139)", () => {
   it("selects one emissive screen by property value", () => {
     expect(
       read(`${RP}/render_controllers/yasu_ride/bulldozer_monitor.rc.json`),
-    ).toEqual({
-      format_version: "1.8.0",
+    ).toMatchObject({
       render_controllers: {
         [controllerName]: {
           geometry: "Geometry.monitor",

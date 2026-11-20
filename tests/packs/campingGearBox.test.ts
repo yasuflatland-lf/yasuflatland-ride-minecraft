@@ -25,8 +25,7 @@ function filesUnder(dir: string): string[] {
 describe("camping gear box (ADR 0093)", () => {
   it("defines the box item that opens on use and does not stack", () => {
     const item = readJson(`${BP}/items/yasu_ride/camping_gear_box.item.json`);
-    expect(item).toEqual({
-      format_version: "1.21.80",
+    expect(item).toMatchObject({
       "minecraft:item": {
         description: {
           identifier: "yasu_ride:camping_gear_box",

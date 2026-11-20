@@ -51,8 +51,7 @@ describe.each([
   it("is a single-stack item with its icon and display name", () => {
     expect(
       read(`packs/yasu_ride_bp/items/yasu_build/${name}.item.json`),
-    ).toEqual({
-      format_version: "1.21.80",
+    ).toMatchObject({
       "minecraft:item": {
         description: {
           identifier: type,

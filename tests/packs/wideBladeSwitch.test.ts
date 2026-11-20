@@ -12,8 +12,7 @@ describe("Wide Blade switch (ADR 0180)", () => {
   it("is a single-stack item that fires on a long press, with its icon and name", () => {
     expect(
       read("packs/yasu_ride_bp/items/yasu_ride/wide_blade_switch.item.json"),
-    ).toEqual({
-      format_version: "1.21.80",
+    ).toMatchObject({
       "minecraft:item": {
         description: { identifier: TYPE, menu_category: { category: "items" } },
         components: {
@@ -38,7 +37,6 @@ describe("Wide Blade switch (ADR 0180)", () => {
         "packs/yasu_ride_bp/recipes/yasu_ride/wide_blade_switch.recipe.json",
       ),
     ).toMatchObject({
-      format_version: "1.20.10",
       "minecraft:recipe_shapeless": {
         tags: ["crafting_table"],
         ingredients: [

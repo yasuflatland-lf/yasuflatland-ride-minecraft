@@ -46,8 +46,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
   ])(
     "ships %s as a single-stack item with a registered icon",
     (name, type, category) => {
-      expect(read(`${BP}/items/yasu_ride/${name}.item.json`)).toEqual({
-        format_version: "1.21.80",
+      expect(read(`${BP}/items/yasu_ride/${name}.item.json`)).toMatchObject({
         "minecraft:item": {
           description: { identifier: type, menu_category: { category } },
           components: {

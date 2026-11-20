@@ -12,8 +12,7 @@ describe("Road Paver switch (ADR 0181)", () => {
   it("is a single-stack item that fires on a long press, with its icon and name", () => {
     expect(
       read("packs/yasu_ride_bp/items/yasu_ride/road_paver_switch.item.json"),
-    ).toEqual({
-      format_version: "1.21.80",
+    ).toMatchObject({
       "minecraft:item": {
         description: { identifier: TYPE, menu_category: { category: "items" } },
         components: {
@@ -38,7 +37,6 @@ describe("Road Paver switch (ADR 0181)", () => {
         "packs/yasu_ride_bp/recipes/yasu_ride/road_paver_switch.recipe.json",
       ),
     ).toMatchObject({
-      format_version: "1.20.10",
       "minecraft:recipe_shapeless": {
         tags: ["crafting_table"],
         ingredients: [

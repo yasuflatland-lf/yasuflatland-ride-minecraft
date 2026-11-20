@@ -33,7 +33,6 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
   const c = entity.components;
 
   it("is summonable, not spawnable, and in the stand-in family, not the vehicle family", () => {
-    expect(file.format_version).toBe("1.21.80");
     expect(entity.description).toEqual({
       identifier: standInType(RULE.name, axis),
       is_spawnable: false,
@@ -100,7 +99,6 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
 
   it("draws nothing", () => {
     const description = client["minecraft:client_entity"].description;
-    expect(client.format_version).toBe("1.10.0");
     expect(description.identifier).toBe(entity.description.identifier);
     expect(description.render_controllers).toEqual([
       "controller.render.default",

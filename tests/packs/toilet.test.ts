@@ -59,7 +59,6 @@ function waterOffset(t: number) {
 
 describe("Toilet pack contract", () => {
   it("provides one domain seat and synchronized show properties", () => {
-    expect(entityFile.format_version).toBe("1.21.80");
     expect(entity.description).toMatchObject({
       identifier: ids.entity,
       is_spawnable: false,

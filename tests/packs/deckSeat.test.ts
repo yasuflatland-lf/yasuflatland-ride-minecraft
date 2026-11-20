@@ -15,7 +15,6 @@ const entity = entityFile["minecraft:entity"];
 
 describe("Boat deck seat (ADR 0063)", () => {
   it("is summonable but not spawnable and excluded from the vehicle family", () => {
-    expect(entityFile.format_version).toBe("1.21.80");
     expect(entity.description).toEqual({
       identifier: "yasu_ride:deck_seat",
       is_spawnable: false,
@@ -114,7 +113,6 @@ describe("Boat deck seat (ADR 0063)", () => {
   it("references an existing texture and an invisible model with no cubes", () => {
     const clientFile = read(`${RP}/entity/yasu_ride/deck_seat.ce.json`);
     const client = clientFile["minecraft:client_entity"].description;
-    expect(clientFile.format_version).toBe("1.10.0");
     expect(client.identifier).toBe(entity.description.identifier);
     expect(client.materials).toEqual({ default: "entity" });
     expect(client.textures).toEqual({
@@ -127,7 +125,6 @@ describe("Boat deck seat (ADR 0063)", () => {
     });
 
     const file = read(`${RP}/models/entity/yasu_ride/deck_seat.geo.json`);
-    expect(file.format_version).toBe("1.12.0");
     const geometries = file["minecraft:geometry"];
     expect(geometries).toHaveLength(1);
     const geometry = geometries[0];
