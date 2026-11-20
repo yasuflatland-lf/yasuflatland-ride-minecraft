@@ -172,7 +172,7 @@
 - Agreement: Accepted
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`DriveVehicles` runs the step's commands first, in order, and the seat commands last, through `DriveWorld.run(vehicleId, commands)`."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "A throw skips the rest of that vehicle's tick"
 - Implementation: `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/isolated.ts`
-- Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` "still writes a vehicle form change when moving the vehicle throws on that tick", "stands each leaving rider at their exit after the final commands", and "keeps moving the other vehicles and logs the error when one vehicle throws". Not verified: every possible failure position in every world operation.
+- Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` the form and bank cases of "still writes $property when moving the vehicle throws", "stands each leaving rider at their exit after the final commands", and "keeps moving the other vehicles and logs the error when one vehicle throws". Not verified: every possible failure position in every world operation.
 
 ### Release of vehicles that are no longer loaded
 
