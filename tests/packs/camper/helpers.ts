@@ -8,7 +8,7 @@ import {
 import { readRgbaPng } from "../../support/png";
 import type { PythonWorker } from "../../support/pythonWorker";
 export const RP = "packs/yasu_ride_rp";
-export const geometryText = readFileSync(
+const geometryText = readFileSync(
   `${RP}/models/entity/yasu_ride/camper.geo.json`,
   "utf8",
 );

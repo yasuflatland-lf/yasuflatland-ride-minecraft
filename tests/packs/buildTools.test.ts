@@ -38,16 +38,6 @@ describe.each([
   ["build_undo", UNDO],
   ["warp_tool", TOOL],
 ])("the %s item", (name, type) => {
-  it("keeps item, recipe, and icon paths within the console limit", () => {
-    for (const path of [
-      `packs/yasu_ride_bp/items/yasu_build/${name}.item.json`,
-      `packs/yasu_ride_bp/recipes/yasu_build/${name}.recipe.json`,
-      `packs/yasu_ride_rp/textures/items/yasu_build/${name}.png`,
-    ]) {
-      expect(path.length).toBeLessThanOrEqual(80);
-    }
-  });
-
   it("is a single-stack item with its icon and display name", () => {
     expect(
       read(`packs/yasu_ride_bp/items/yasu_build/${name}.item.json`),

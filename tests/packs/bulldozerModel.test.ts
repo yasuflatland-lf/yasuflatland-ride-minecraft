@@ -94,11 +94,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
     ).not.toThrow();
   });
 
-  it("uses the production geometry identifier with no test namespace", () => {
-    expect(geometry().description.identifier).toBe(
-      "geometry.yasu_ride.bulldozer",
-    );
-    expect(geometryText()).not.toContain("yasu_ride_test");
+  it("uses a 32-by-1 geometry atlas", () => {
     expect(geometry().description.texture_width).toBe(32);
     expect(geometry().description.texture_height).toBe(1);
   });

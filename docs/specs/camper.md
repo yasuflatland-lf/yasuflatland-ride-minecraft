@@ -96,7 +96,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "with bones `root`, `body`, `headlights`, `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `seat_0`-`seat_3`, `door_entry`, and `steering` (0009)"; [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "This extends the bone contract of 0009 for the camper with `glass` and `door_glass`."
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `tools/gen_camper.py`; `tools/camper_kit.py`; area modules and final cube ranges are listed in [Model conventions and rendered previews](model-and-previews.md#camper-generator-modules)
-- Verification: `tests/packs/camper/shell.test.ts` "uses the production geometry identifier with no test namespace", "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
+- Verification: `tests/packs/layout.test.ts` "namespaces every definition identifier"; `tests/packs/camper/shell.test.ts` "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
 
 ### Glass material and draw order
 
