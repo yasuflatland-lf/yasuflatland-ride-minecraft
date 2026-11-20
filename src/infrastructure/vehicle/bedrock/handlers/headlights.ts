@@ -1,6 +1,6 @@
 // The vehicle's target for the shared switch router (ADR 0020, 0024, 0115, 0116).
 import type { Player } from "@minecraft/server";
-import type { SwitchCeilingLights } from "../../../../application/vehicle/switchCeilingLights";
+import type { SwitchCeilingLights } from "../../../../application/vehicle/room/switchCeilingLights";
 import type { SwitchHeadlights } from "../../../../application/vehicle/switchHeadlights";
 import {
   asDimensionId,

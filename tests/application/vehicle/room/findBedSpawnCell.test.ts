@@ -1,11 +1,11 @@
 import { expect, it, vi } from "vitest";
-import { FindBedSpawnCell } from "../../../src/application/vehicle/findBedSpawnCell";
-import { asVehicleId } from "../../../src/domain/shared/ids";
-import { localCellAt } from "../../../src/domain/vehicle/kinds/camper/parkPose";
-import { roomCells } from "../../../src/domain/vehicle/kinds/camper/roomCells";
-import { CAMPER_ROOM } from "../../../src/domain/vehicle/kinds/index";
-import { defined } from "../../support/defined";
-import { parkedCamper } from "./fakes";
+import { FindBedSpawnCell } from "../../../../src/application/vehicle/room/findBedSpawnCell";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { localCellAt } from "../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { roomCells } from "../../../../src/domain/vehicle/kinds/camper/roomCells";
+import { CAMPER_ROOM } from "../../../../src/domain/vehicle/kinds/index";
+import { defined } from "../../../support/defined";
+import { parkedCamper } from "../fakes";
 
 it("returns the parked camper's aisle spawn cell and ignores unknown vehicles and other cells (ADR 0182)", () => {
   const { car, pose, repo } = parkedCamper();

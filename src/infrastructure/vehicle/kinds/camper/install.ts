@@ -1,11 +1,11 @@
 import type { SleepInBed } from "../../../../application/shared/sleepInBed";
-import type { FindBedSpawnCell } from "../../../../application/vehicle/findBedSpawnCell";
 import type { NormalizePaint } from "../../../../application/vehicle/normalizePaint";
-import type { PlaceDecor } from "../../../../application/vehicle/placeDecor";
-import type { PressShowerToilet } from "../../../../application/vehicle/pressShowerToilet";
-import type { PressStorage } from "../../../../application/vehicle/pressStorage";
-import type { RemoveDecor } from "../../../../application/vehicle/removeDecor";
-import type { UseDockDoor } from "../../../../application/vehicle/useDockDoor";
+import type { FindBedSpawnCell } from "../../../../application/vehicle/room/findBedSpawnCell";
+import type { PlaceDecor } from "../../../../application/vehicle/room/placeDecor";
+import type { PressShowerToilet } from "../../../../application/vehicle/room/pressShowerToilet";
+import type { PressStorage } from "../../../../application/vehicle/room/pressStorage";
+import type { RemoveDecor } from "../../../../application/vehicle/room/removeDecor";
+import type { UseDockDoor } from "../../../../application/vehicle/room/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import { registerBedBlock } from "../../../shared/bedBlock";

@@ -1,8 +1,8 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { PlaceDecor } from "../../../../../src/application/vehicle/placeDecor";
-import { PressStorage } from "../../../../../src/application/vehicle/pressStorage";
-import { RemoveDecor } from "../../../../../src/application/vehicle/removeDecor";
+import { PlaceDecor } from "../../../../../src/application/vehicle/room/placeDecor";
+import { PressStorage } from "../../../../../src/application/vehicle/room/pressStorage";
+import { RemoveDecor } from "../../../../../src/application/vehicle/room/removeDecor";
 import { asPlayerId } from "../../../../../src/domain/shared/ids";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";

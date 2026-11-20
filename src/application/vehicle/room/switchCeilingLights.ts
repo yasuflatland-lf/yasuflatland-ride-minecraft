@@ -1,9 +1,9 @@
-import type { PlayerId, VehicleId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
+import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
 // Use case: a player in a parked camper's room uses the headlight switch to turn its ceiling lights on or off (ADR 0115).
-import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
-import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { Clock } from "./ports/shared";
+import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
+import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
+import type { Clock } from "../ports/shared";
 
 interface SwitchCeilingLightsCommand {
   playerId: PlayerId;

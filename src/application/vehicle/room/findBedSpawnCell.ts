@@ -1,7 +1,7 @@
-import type { VehicleId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
-import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
-import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
+import type { VehicleId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
+import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
+import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
 
 interface FindBedSpawnCellCommand {
   vehicleId: VehicleId;

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { PlaceDecor } from "../../../../../src/application/vehicle/placeDecor";
+import { PlaceDecor } from "../../../../../src/application/vehicle/room/placeDecor";
 import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
 import { serializeDecor } from "../../../../../src/domain/vehicle/dock/decor";
 import {

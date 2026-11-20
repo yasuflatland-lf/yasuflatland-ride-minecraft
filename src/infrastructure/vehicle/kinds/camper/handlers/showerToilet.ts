@@ -1,5 +1,5 @@
 import { system } from "@minecraft/server";
-import type { PressShowerToilet } from "../../../../../application/vehicle/pressShowerToilet";
+import type { PressShowerToilet } from "../../../../../application/vehicle/room/pressShowerToilet";
 import {
   asDimensionId,
   type DimensionId,

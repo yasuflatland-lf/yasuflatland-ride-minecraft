@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
-import { SetDecor } from "../../../src/application/vehicle/setDecor";
+import { SetDecor } from "../../../src/application/vehicle/room/setDecor";
 import {
   asPlayerId,
   asVehicleId,

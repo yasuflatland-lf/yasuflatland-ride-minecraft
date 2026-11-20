@@ -1,20 +1,20 @@
 import { expect, it } from "vitest";
-import { SwitchCeilingLights } from "../../../src/application/vehicle/switchCeilingLights";
-import { SwitchHeadlights } from "../../../src/application/vehicle/switchHeadlights";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import { SwitchCeilingLights } from "../../../../src/application/vehicle/room/switchCeilingLights";
+import { SwitchHeadlights } from "../../../../src/application/vehicle/switchHeadlights";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import {
   CAMPER_ROOM,
   createVehicle,
-} from "../../../src/domain/vehicle/kinds/index";
-import { SPEC } from "../../../src/domain/vehicle/spec";
-import { defined } from "../../support/defined";
+} from "../../../../src/domain/vehicle/kinds/index";
+import { SPEC } from "../../../../src/domain/vehicle/spec";
+import { defined } from "../../../support/defined";
 import {
   FakeClock,
   FakeWorld,
   InMemoryRepo,
   parkedCamper,
   stillTick,
-} from "./fakes";
+} from "../fakes";
 
 // stillTick parks the camper at (0.5, 64, 0.5): its floor top is 65.
 const FEET = { x: 0.5, y: 65, z: 0.5 };

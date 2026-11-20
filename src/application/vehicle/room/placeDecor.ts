@@ -1,11 +1,14 @@
-import type { PlayerId, VehicleId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
-import type { DecorItemId, DecorSlotId } from "../../domain/vehicle/dock/decor";
+import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
+import type {
+  DecorItemId,
+  DecorSlotId,
+} from "../../../domain/vehicle/dock/decor";
 // Use case: a player long-pressed a parked vehicle's room holding a camping gear item (ADR 0093, 0097).
-import { DECOR_MESSAGES } from "../../domain/vehicle/dock/decorMessages";
-import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
-import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { DecorPlacingWorld } from "./ports/decor";
+import { DECOR_MESSAGES } from "../../../domain/vehicle/dock/decorMessages";
+import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
+import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
+import type { DecorPlacingWorld } from "../ports/decor";
 
 export interface PlaceDecorCommand {
   /** Require this exact resolved slot for itemUse drawer placement. */
