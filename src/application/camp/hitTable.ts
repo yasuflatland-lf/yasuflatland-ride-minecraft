@@ -5,13 +5,8 @@ import type { PlayerId } from "../../domain/shared/ids";
 import { handleHit } from "../shared/takeBackByHits";
 import type { TableWorld } from "./ports/table";
 
-const RULE = {
-  hits: TABLE_SPEC.hitsToTakeBack,
-  resetTicks: TABLE_SPEC.hitResetTicks,
-};
-
 export class HitTable {
-  private readonly hits = new HitCounters<TableId>(RULE);
+  private readonly hits = new HitCounters<TableId>(TABLE_SPEC.recovery);
 
   constructor(private readonly world: TableWorld) {}
 

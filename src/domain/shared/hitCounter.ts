@@ -1,8 +1,4 @@
-import type { Ticks } from "./ticks";
-
-// Counts the hits that take something down: a vehicle back into its item (ADR
-// 0008) and camp gear take-back: chair, table, tent, fire pit and Dutch oven
-// (ADR 0122, 0131). Each caller passes its own rule.
+import { type Ticks, ticks } from "./ticks";
 
 export interface HitCounter {
   readonly count: number;
@@ -10,11 +6,21 @@ export interface HitCounter {
 }
 
 export interface HitRule {
-  /** Hits in a row that take it down. */
+  /** Consecutive hits required, as an integer of at least one. */
   readonly hits: number;
   /** A gap longer than this starts the count again. */
   readonly resetTicks: Ticks;
 }
+
+/** Validates the hit count and freezes the rule. */
+export function hitRule(hits: number, resetTicks: Ticks): HitRule {
+  if (!Number.isInteger(hits) || hits < 1)
+    throw new RangeError(`Hits must be a positive integer, got ${hits}`);
+  return Object.freeze({ hits, resetTicks });
+}
+
+/** Three hits with gaps of at most 100 ticks for camp and resort gear (ADR 0122, 0131, 0200, 0240). */
+export const GEAR_RECOVERY: HitRule = hitRule(3, ticks(100));
 
 export const EMPTY_COUNTER: HitCounter = Object.freeze({
   count: 0,
@@ -46,24 +52,17 @@ export class HitCounters<K> {
 
   /**
    * Registers a hit on `key` at `tick`. A broken result drops the key.
-   * When `occupied`, nothing is stored or dropped and the result is never broken.
-   * `hitsLeft` is meaningful only when neither broken nor occupied.
+   * `hitsLeft` describes progress toward the next break.
    */
-  hit(
-    key: K,
-    tick: number,
-    occupied: boolean,
-  ): { broken: boolean; hitsLeft: number } {
+  hit(key: K, tick: number): { broken: boolean; hitsLeft: number } {
     const result = registerHit(
       this.counters.get(key) ?? EMPTY_COUNTER,
       tick,
-      occupied,
+      false,
       this.rule,
     );
-    if (!occupied) {
-      if (result.broken) this.counters.delete(key);
-      else this.counters.set(key, result.counter);
-    }
+    if (result.broken) this.counters.delete(key);
+    else this.counters.set(key, result.counter);
     return {
       broken: result.broken,
       hitsLeft: this.rule.hits - result.counter.count,

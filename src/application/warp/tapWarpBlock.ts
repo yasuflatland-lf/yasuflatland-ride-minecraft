@@ -38,7 +38,7 @@ export class TapWarpBlock {
     if (!effects) return false;
     const key = `${dimension}:${cellKey(cell)}`;
     this.counters.forgetStale(now);
-    const result = this.counters.hit(key, now, false);
+    const result = this.counters.hit(key, now);
     if (result.broken) {
       this.lastTaps.delete(key);
       effects.remove();

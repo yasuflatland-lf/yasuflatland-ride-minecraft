@@ -100,13 +100,13 @@ async function course(
             0.01
         )
           failures.push(`${kind} not on tabletop`);
-        for (let n = 0; n < spec.hitsToTakeBack; n++) await hit(table.id);
+        for (let n = 0; n < spec.recovery.hits; n++) await hit(table.id);
         if (!table.isValid || drops().length)
           return { pass: false, detail: "occupied table recovered" };
         for (const entity of hosted) entity.remove();
         await wait(2);
       }
-      for (let n = 0; n < spec.hitsToTakeBack - 1; n++) await hit(table.id);
+      for (let n = 0; n < spec.recovery.hits - 1; n++) await hit(table.id);
       if (!table.isValid || drops().length)
         failures.push("recovery before third unoccupied hit");
       await hit(table.id);
@@ -175,7 +175,7 @@ async function topCourse(
     if (a.dim.getBlock(cell)?.typeId !== DINING_TABLE_TOP)
       failures.push("top not laid");
     const recover = async () => {
-      for (let n = 0; n < FURNITURE_SPEC.dining_table.hitsToTakeBack; n++) {
+      for (let n = 0; n < FURNITURE_SPEC.dining_table.recovery.hits; n++) {
         system.sendScriptEvent(TEST_FURNITURE_HIT, table.id);
         await wait(2);
       }

@@ -100,7 +100,7 @@ async function course(
     await form("unfold");
     if (chair.getProperty(BEACH_CHAIR_FOLDED) !== true)
       failures.push("loaded table unfolded");
-    for (let hit = 0; hit < BEACH_CHAIR_SPEC.hitsToTakeBack; hit++) {
+    for (let hit = 0; hit < BEACH_CHAIR_SPEC.recovery.hits; hit++) {
       system.sendScriptEvent(TEST_BEACH_CHAIR_HIT, chairId);
       await wait(2);
     }

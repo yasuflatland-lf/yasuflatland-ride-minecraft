@@ -28,8 +28,8 @@ import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import {
   LaidBlockLayer,
-  readCeilingCells,
-  writeCeilingCells,
+  readSavedCells,
+  writeSavedCells,
 } from "../../shared/laidBlockLayer";
 import {
   consumeHeld,
@@ -167,7 +167,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
     if (!record) {
       record = {
         dimension: entity.dimension,
-        cells: readCeilingCells(
+        cells: readSavedCells(
           entity.getDynamicProperty(PARASOL_CEILING_PROPERTY),
         ),
       };
@@ -207,7 +207,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
       );
       entity.setDynamicProperty(
         PARASOL_CEILING_PROPERTY,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);
@@ -229,7 +229,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
     try {
       entity?.setDynamicProperty(
         PARASOL_CEILING_PROPERTY,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);

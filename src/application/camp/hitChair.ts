@@ -14,19 +14,13 @@ interface HitChairCommand {
   playerId?: PlayerId;
 }
 
-const RULE = {
-  hits: CHAIR_SPEC.hitsToTakeBack,
-  resetTicks: CHAIR_SPEC.hitResetTicks,
-};
-
 export class HitChair {
-  private readonly hits = new HitCounters<ChairId>(RULE);
+  private readonly hits = new HitCounters<ChairId>(CHAIR_SPEC.recovery);
 
   constructor(private readonly world: ChairWorld) {}
 
   /** Returns whether the chair was taken back. */
   execute(cmd: HitChairCommand): boolean {
-    this.hits.forgetStale(cmd.tick);
     if (this.world.kindOf(cmd.chairId) !== cmd.kind) return false;
     if (this.world.isOccupied(cmd.chairId)) return false;
     let taken = false;

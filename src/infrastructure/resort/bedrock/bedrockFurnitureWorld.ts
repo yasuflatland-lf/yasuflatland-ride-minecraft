@@ -36,8 +36,8 @@ import { safeBlockAt } from "../../shared/blocks";
 import { NAMESPACE } from "../../shared/identifiers";
 import {
   LaidBlockLayer,
-  readCeilingCells,
-  writeCeilingCells,
+  readSavedCells,
+  writeSavedCells,
 } from "../../shared/laidBlockLayer";
 import {
   consumeHeld,
@@ -189,7 +189,7 @@ export class BedrockFurnitureWorld
     if (!record) {
       record = {
         dimension: entity.dimension,
-        cells: readCeilingCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS)),
+        cells: readSavedCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS)),
       };
       this.tops.set(id, record);
     }
@@ -220,7 +220,7 @@ export class BedrockFurnitureWorld
       );
       entity.setDynamicProperty(
         FURNITURE_TOP_CELLS,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);
@@ -242,7 +242,7 @@ export class BedrockFurnitureWorld
     try {
       entity?.setDynamicProperty(
         FURNITURE_TOP_CELLS,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);
@@ -315,7 +315,7 @@ export class BedrockFurnitureWorld
     const cells = [
       ...this.topCells(entity),
       ...(this.tops.get(id)?.cells ??
-        readCeilingCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS))),
+        readSavedCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS))),
     ];
     return cells.some(
       (cell) =>

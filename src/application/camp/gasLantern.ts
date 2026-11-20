@@ -26,11 +26,6 @@ import type { HostedKindPort } from "../shared/ports/hostedKind";
 import { handleHit } from "../shared/takeBackByHits";
 import type { GasLanternWorld } from "./ports/gasLantern";
 
-const RULE = {
-  hits: GAS_LANTERN_SPEC.hitsToTakeBack,
-  resetTicks: GAS_LANTERN_SPEC.hitResetTicks,
-};
-
 const ON_TABLE: HostedItemKind = {
   id: "gas_lantern",
   footprint: GAS_LANTERN_FOOTPRINT_PX,
@@ -60,7 +55,9 @@ export function gasLanternHostedKind(world: GasLanternWorld): HostedKindPort {
 }
 
 export class GasLanternActions {
-  private readonly hits = new HitCounters<GasLanternId>(RULE);
+  private readonly hits = new HitCounters<GasLanternId>(
+    GAS_LANTERN_SPEC.recovery,
+  );
 
   private readonly switches = new SwitchCooldowns<GasLanternId>();
 

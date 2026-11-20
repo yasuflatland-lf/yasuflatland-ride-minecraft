@@ -171,8 +171,8 @@ describe("furniture spec", () => {
     for (const kind of kinds) {
       const spec = FURNITURE_SPEC[kind];
       expect(spec.clearance).toBe(2);
-      expect(spec.hitsToTakeBack).toBe(3);
-      expect(spec.hitResetTicks).toBe(100);
+      expect(spec.recovery.hits).toBe(3);
+      expect(spec.recovery.resetTicks).toBe(100);
       if (kind !== "dining_table") expect(spec.top).toBeUndefined();
     }
     const doubleCells: readonly CellOffset[] = [

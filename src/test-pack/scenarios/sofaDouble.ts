@@ -73,11 +73,11 @@ export async function sofaDoublePlaceTakeBack(a: Arena): Promise<Outcome> {
         Math.abs(entity.location.z - pose.origin.z) > 0.01
       )
         failures.push(`pose yaw=${yaw}`);
-      for (let hit = 1; hit <= FURNITURE_SPEC[kind].hitsToTakeBack; hit++) {
+      for (let hit = 1; hit <= FURNITURE_SPEC[kind].recovery.hits; hit++) {
         system.sendScriptEvent(TEST_FURNITURE_HIT, entity.id);
         await wait(2);
         if (
-          hit < FURNITURE_SPEC[kind].hitsToTakeBack &&
+          hit < FURNITURE_SPEC[kind].recovery.hits &&
           (!entity.isValid || drops().length)
         )
           failures.push(`early recovery yaw=${yaw}`);
