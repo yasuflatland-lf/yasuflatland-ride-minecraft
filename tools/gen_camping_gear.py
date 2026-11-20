@@ -131,10 +131,10 @@ OPEN_STATE = "yasu_ride:open"
 CABINET_COMPONENT = "yasu_ride:camper_cabinet"
 CABINET_BOX_PX = 10
 CEILING_PLATE_PX = 3
-# A block state holds at most 16 values, and an end takes 17: empty, or one of the 16 standing
-# items. So an end's code, 0 for empty and 1 + the item's index among the standing items, is
-# split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item (code % PAIR_PAGE_SIZE), as
-# pairEndStates in src/infrastructure/vehicle/bedrock/identifiers.ts.
+# A block state holds at most 16 values, and an end takes 1 + the number of standing items
+# (empty or one standing item). So an end's code, 0 for empty and 1 + the item's index among
+# the standing items, is split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item
+# (code % PAIR_PAGE_SIZE), as pairEndStates in src/infrastructure/vehicle/kinds/camper/identifiers.ts.
 PAIR_PAGE_SIZE = 10
 MAX_STATE_VALUES = 16
 # BDS rejects a block whose enum state lists one value ("Block State enum array must have more

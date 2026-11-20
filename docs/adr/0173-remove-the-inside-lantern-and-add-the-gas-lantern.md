@@ -19,7 +19,7 @@ The legacy-id mechanism of 0169 remains one explicit table read at the single sa
 
 ### Removal (Topic B)
 
-1. `lantern` leaves `CAMPING_GEAR_IDS`: 17 decor items, 16 standing, pages stay `ceil(17/10) = 2`. Standing codes after it drop by one (desk_fan 17 -> 16).
+1. `lantern` leaves `CAMPING_GEAR_IDS`: at the time of this change, 17 decor items remained, 16 standing, and pages stayed `ceil(17/10) = 2`. The current list is `CAMPING_GEAR_IDS`. Standing codes after it drop by one (desk_fan 17 -> 16).
 2. `LEGACY_GEAR_IDS = { lava_lamp: null, oil_lamp: null, lantern: null }`. A camper saved with a Lantern or an Oil Lamp on its furniture loads without them; nothing is refunded. The table stays explicit, as 0169 wants, although an unknown id already resolves to `undefined`.
 3. Deleted: the `lantern` row of `tools/camping_gear.json`, `def lantern()` and `SHAPES["lantern"]` in `tools/gen_camping_gear.py` and its now-unused `panels` import, the item `yasu_ride:lantern`, the block `yasu_ride:lantern_decor`, `geometry.yasu_ride.lantern`, its icon, the atlas key `yasu_ride_lantern` (by hand: the generator keeps entries it does not own), the preview, and four lang lines. The camping gear PALETTE keeps all 16 swatches (none is lantern-only).
 4. Lantern decor items that players already hold become unknown items, as 0169 section 1 records for removed ids. They do not turn into the Gas Lantern.
