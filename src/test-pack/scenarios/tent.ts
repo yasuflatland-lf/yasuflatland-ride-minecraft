@@ -185,9 +185,9 @@ function clearTentStrip(a: Arena): void {
   );
 }
 
-/** Sends the TENT_SPEC.hitsToTakeDown test hits that take the tent down, two ticks apart. */
+/** Sends the TENT_SPEC.recovery.hits test hits that take the tent down, two ticks apart. */
 async function takeDownTestTent(tentId: string): Promise<void> {
-  for (let i = 0; i < TENT_SPEC.hitsToTakeDown; i++) {
+  for (let i = 0; i < TENT_SPEC.recovery.hits; i++) {
     system.sendScriptEvent(TEST_TENT_HIT_EVENT, tentId);
     await wait(2);
   }
@@ -514,7 +514,7 @@ export async function tentPaintEvents(a: Arena): Promise<Outcome> {
         wrong.push(`${paint}=${variant()}`);
     }
     const id = tent.id;
-    for (let i = 0; i < TENT_SPEC.hitsToTakeDown; i++) {
+    for (let i = 0; i < TENT_SPEC.recovery.hits; i++) {
       system.sendScriptEvent(TEST_TENT_HIT_EVENT, id);
       await wait(2);
     }

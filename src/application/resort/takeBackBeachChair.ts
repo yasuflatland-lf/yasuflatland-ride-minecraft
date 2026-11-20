@@ -7,10 +7,9 @@ import { handleHit } from "../shared/takeBackByHits";
 import type { BeachChairTakeBackWorld } from "./ports/beachChairWorld";
 
 export class TakeBackBeachChair {
-  private readonly hits = new HitCounters<BeachChairId>({
-    hits: BEACH_CHAIR_SPEC.hitsToTakeBack,
-    resetTicks: BEACH_CHAIR_SPEC.hitResetTicks,
-  });
+  private readonly hits = new HitCounters<BeachChairId>(
+    BEACH_CHAIR_SPEC.recovery,
+  );
   constructor(private readonly world: BeachChairTakeBackWorld) {}
   execute(cmd: { id: BeachChairId; player: PlayerId; tick: number }): void {
     const state = this.world.state(cmd.id);

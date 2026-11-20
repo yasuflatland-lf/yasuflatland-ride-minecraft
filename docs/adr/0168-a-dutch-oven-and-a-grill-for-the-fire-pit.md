@@ -29,7 +29,7 @@ This ADR fixes one contract of ids, states, and rules that the later pull reques
 | Oven property         | `yasu_ride:simmering`                                                | Boolean, default false, `client_sync`. True: lid off, stew visible, bubbling animation, steam. False: lid on, stew hidden |
 | Fire pit property     | `yasu_ride:covered`                                                  | Boolean, default false, `client_sync`. True: the `grill` bone is visible                                                  |
 | Oven dynamic property | `yasu_ride:host`                                                     | String. Empty on the ground; `<hostEntityId>:<spot>` while standing on a Fire Pit or a Camp Table                         |
-| Spec                  | `DUTCH_OVEN_SPEC` in `src/domain/camp/spec.ts`                       | `clearance: 2`, `hitsToTakeBack: 3`, `hitResetTicks: 100`, `hostCheckTicks: 20`                                           |
+| Spec                  | `DUTCH_OVEN_SPEC` in `src/domain/camp/spec.ts`                       | `clearance: 2`, `recovery: GEAR_RECOVERY`, `hostCheckTicks: 20`                                                           |
 | Hint keys             | `yasu_ride.hint.dutch_oven_hits`, `yasu_ride.hint.dutch_oven_on_top` | Hits left, and "Take the Dutch oven off first"                                                                            |
 
 ### Rules

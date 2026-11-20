@@ -3,8 +3,8 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import {
   LaidBlockLayer,
-  readCeilingCells,
-  writeCeilingCells,
+  readSavedCells,
+  writeSavedCells,
 } from "../../../src/infrastructure/shared/laidBlockLayer";
 
 vi.mock("@minecraft/server", () => ({
@@ -18,11 +18,11 @@ it("round trips integer ceiling records and omits empty records", () => {
         fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
       ),
       (cells) => {
-        expect(readCeilingCells(writeCeilingCells(cells))).toEqual(cells);
+        expect(readSavedCells(writeSavedCells(cells))).toEqual(cells);
       },
     ),
   );
-  expect(writeCeilingCells([])).toBeUndefined();
+  expect(writeSavedCells([])).toBeUndefined();
 });
 
 it("shares one warning across block failures and persistence failures for each operation", () => {

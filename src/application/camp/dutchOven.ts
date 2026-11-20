@@ -42,11 +42,6 @@ import type { HostedKindPort } from "../shared/ports/hostedKind";
 import { handleHit } from "../shared/takeBackByHits";
 import type { DutchOvenWorld } from "./ports/dutchOven";
 
-const RULE = {
-  hits: DUTCH_OVEN_SPEC.hitsToTakeBack,
-  resetTicks: DUTCH_OVEN_SPEC.hitResetTicks,
-};
-
 const ON_TABLE: HostedItemKind = {
   id: "dutch_oven",
   footprint: DUTCH_OVEN_FOOTPRINT_PX,
@@ -68,7 +63,9 @@ export function dutchOvenHostedKind(world: DutchOvenWorld): HostedKindPort {
 }
 
 export class DutchOvenActions {
-  private readonly hits = new HitCounters<DutchOvenId>(RULE);
+  private readonly hits = new HitCounters<DutchOvenId>(
+    DUTCH_OVEN_SPEC.recovery,
+  );
 
   private readonly switches = new Debounces<DutchOvenId>(
     LIGHT_SWITCH_COOLDOWN_TICKS,

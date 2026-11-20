@@ -126,12 +126,12 @@ it("returns exactly one item on the third quick hit and resets after a long gap"
   fc.assert(
     fc.property(
       fc.integer({ min: 0, max: 10000 }),
-      fc.integer({ min: 1, max: DUTCH_OVEN_SPEC.hitResetTicks }),
+      fc.integer({ min: 1, max: DUTCH_OVEN_SPEC.recovery.resetTicks }),
       (tick, gap) => {
         const { actions, world } = fixture();
         expect(actions.hit(oven, player, tick)).toBe(false);
         expect(world.showHitsLeft).toHaveBeenLastCalledWith(player, 2);
-        const restart = tick + DUTCH_OVEN_SPEC.hitResetTicks + 1;
+        const restart = tick + DUTCH_OVEN_SPEC.recovery.resetTicks + 1;
         expect(actions.hit(oven, player, restart)).toBe(false);
         expect(world.showHitsLeft).toHaveBeenLastCalledWith(player, 2);
         expect(actions.hit(oven, player, restart + gap)).toBe(false);
