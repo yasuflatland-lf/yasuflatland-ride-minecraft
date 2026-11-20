@@ -28,7 +28,10 @@ import type { BuildPlayers } from "./ports/players";
 import type { BuildStructureStore } from "./ports/structures";
 import { unstuck } from "./unstuck";
 
-type EditSelection = Pick<EditRecord, "selectionBefore" | "selectionAfter">;
+type EditSelection = Pick<
+  EditRecord,
+  "selectionBefore" | "selectionAfter" | "selectionBeforeTaps"
+>;
 
 interface Job {
   readonly playerId: PlayerId;
