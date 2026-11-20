@@ -5,7 +5,7 @@ import type { Taps } from "../flow/flow";
 
 export interface StairRow {
   readonly y: number;
-  readonly along: HorizontalAxis;
+  readonly along: HorizontalAxis | undefined;
   readonly min: Cell;
   readonly max: Cell;
 }
@@ -13,8 +13,12 @@ export interface StairRow {
 export function stairRowOf({ from, to }: Taps): StairRow | undefined {
   const differsX = from.x !== to.x;
   const differsZ = from.z !== to.z;
-  if (from.y !== to.y || differsX === differsZ) return undefined;
-  return { ...boxOf(from, to), y: from.y, along: differsX ? "x" : "z" };
+  if (from.y !== to.y || (differsX && differsZ)) return undefined;
+  return {
+    ...boxOf(from, to),
+    y: from.y,
+    along: differsX ? "x" : differsZ ? "z" : undefined,
+  };
 }
 
 export function rowCells(row: StairRow): Iterable<Cell> {

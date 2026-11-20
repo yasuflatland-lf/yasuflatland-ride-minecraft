@@ -1,13 +1,12 @@
 import type { BuildSession } from "../session";
 import { type Shape, shapeOf, stylesFor } from "../shape/shape";
 import type { StairContents } from "../stairs/contents";
-import { stairRowOf } from "../stairs/row";
 import {
   type FillStyle,
   fillStylesFor,
   type HeightedKind,
 } from "../volume/kind";
-import type { BuildFlow } from "./flow";
+import { type BuildFlow, selectedStairRow } from "./flow";
 
 export type EditEntryId = "cut" | "removeAbove" | "fillBelow" | "copy";
 export type BuildEntryId =
@@ -108,11 +107,7 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
     { id: "cut" },
     { id: "removeAbove" },
     { id: isLine ? "place" : "buildShape" },
-    ...(isLine &&
-    min.y === max.y &&
-    stairRowOf({ from: flow.from, to: flow.to })
-      ? [{ id: "stairs" as const }]
-      : []),
+    ...(selectedStairRow(flow) ? [{ id: "stairs" as const }] : []),
     { id: "copy" },
     { id: "fillBelow" },
     { id: "cancel" },

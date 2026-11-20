@@ -476,6 +476,51 @@ export function buildStairs(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildStairsSingle(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(5, 3, 3, f.cell(0, 0, -1));
+    for (const cell of cells) f.block(cell).setType("minecraft:air");
+    const foot = f.cell();
+    f.block(foot).setType("minecraft:stone");
+    await f.tap("block", foot);
+    check(
+      (await f.tap("block", foot)).flow.kind === "baseHeight",
+      "same-cell taps skipped live height",
+    );
+    checkSelection(
+      await f.tap("air"),
+      { min: foot, max: foot },
+      "Single-cell foot",
+    );
+    check(
+      (await f.menu("shape", "stairs")).flow.kind === "stairAim",
+      "single-cell foot did not enter stair aiming",
+    );
+    const hit = f.cell(4, 2, 1);
+    try {
+      await f.edit(`aim ${hit.x} ${hit.y} ${hit.z}`);
+      check(
+        (await f.tap("block", hit)).flow.kind === "stairContents",
+        "press did not fix the goal",
+      );
+      const built = await f.menu("stairContents", "stepsOnly");
+      const goal = f.cell(4, 2, 0);
+      checkSelection(built, { min: goal, max: goal }, "Single-cell goal");
+      for (const cell of cells) {
+        const step =
+          cell.z === foot.z &&
+          cell.y === foot.y + Math.ceil((cell.x - foot.x) / 2);
+        check(
+          f.block(cell).typeId === (step ? "minecraft:stone" : "minecraft:air"),
+          `incorrect one-wide staircase at ${cellKey(cell)}`,
+        );
+      }
+    } finally {
+      await f.edit("aim clear");
+    }
+  });
+}
+
 export function buildStairRoofs(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const material = "minecraft:oak_stairs";

@@ -32,8 +32,8 @@ const rows = fc
     const to = { x, y, z };
     const from = { ...to, [along]: to[along] + span };
     const row = stairRowOf({ from, to });
-    if (!row) throw new Error("Expected a horizontal row");
-    return row;
+    if (!row?.along) throw new Error("Expected a horizontal line");
+    return { ...row, along: row.along };
   });
 const side = fc.constantFrom(-1, 1);
 const valid = fc
@@ -83,6 +83,53 @@ it("uses only the perpendicular hit offset and clamps the signed rise", () => {
         y: row.y + s.rise,
       });
     }),
+  );
+});
+
+it("projects a single-cell row onto the dominant horizontal offset, preferring x on ties", () => {
+  fc.assert(
+    fc.property(
+      fc.record({ x: coord, y: fc.integer({ min: 0, max: 100 }), z: coord }),
+      coord,
+      coord,
+      coord,
+      (cell, dx, dz, dy) => {
+        const row = stairRowOf({ from: cell, to: cell });
+        if (!row) throw new Error("Expected a single-cell row");
+        expect(row.along).toBeUndefined();
+        expect([...rowCells(row)]).toEqual([cell]);
+        for (const zOffset of [dz, dx, -dx]) {
+          const hit = { x: cell.x + dx, y: cell.y + dy, z: cell.z + zOffset };
+          const s = staircaseToward(row, hit);
+          const run = Math.max(Math.abs(dx), Math.abs(zOffset));
+          if (!run || !dy) {
+            expect(s).toBeUndefined();
+            continue;
+          }
+          if (!s) throw new Error("Expected a one-wide staircase");
+          const alongX = Math.abs(dx) >= Math.abs(zOffset);
+          const rise = Math.sign(dy) * Math.min(run, Math.abs(dy));
+          expect(s).toMatchObject({
+            run,
+            rise,
+            toward: alongX
+              ? dx > 0
+                ? "east"
+                : "west"
+              : zOffset > 0
+                ? "south"
+                : "north",
+          });
+          const goal = {
+            x: alongX ? hit.x : cell.x,
+            y: cell.y + rise,
+            z: alongX ? cell.z : hit.z,
+          };
+          expect(goalRowTaps(s)).toEqual({ from: goal, to: goal });
+          expect(stairCellCount(s, new Set(["step"]))).toBe(run + 1);
+        }
+      },
+    ),
   );
 });
 

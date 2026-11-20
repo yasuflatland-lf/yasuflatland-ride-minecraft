@@ -722,7 +722,10 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
     { id: "stepsOnly" },
     { id: "cancel" },
   ]);
-  for (const to of [from, { ...from, y: 7 }, { ...from, x: 0, z: 2 }]) {
+  for (const to of [
+    { ...from, y: 7 },
+    { ...from, x: 0, z: 2 },
+  ]) {
     const other = confirmEndpointHeight(tapAir(point, to));
     expect(isShapeEntryOffered(other, "stairs")).toBe(false);
     expect(chooseStairs(other)).toBe(other);
@@ -736,6 +739,44 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
     "fillBelow",
     "cancel",
   ]);
+});
+
+it("offers Stairs after Build shape for a single-cell box only when both taps match it", () => {
+  fc.assert(
+    fc.property(cell, (foot) => {
+      const point = tapBlock(idle, dim, foot, stone);
+      const selected = confirmEndpointHeight(tapBlock(point, dim, foot, stone));
+      if (selected.kind !== "selected")
+        throw new Error("Expected a selected cell");
+      expect(shapeMenu(selected).map(({ id }) => id)).toEqual([
+        "adjustHeight",
+        "cut",
+        "removeAbove",
+        "buildShape",
+        "stairs",
+        "copy",
+        "fillBelow",
+        "cancel",
+      ]);
+      const next = { ...foot, x: foot.x + 1 };
+      for (const flow of [
+        { ...selected, from: next },
+        { ...selected, to: next },
+        { ...selected, from: next, to: next },
+        {
+          ...selected,
+          selection: selectionOf(
+            dim,
+            boxWithHeight(boxOf(foot, foot), 2),
+            stone,
+          ),
+        },
+      ]) {
+        expect(isShapeEntryOffered(flow, "stairs")).toBe(false);
+        expect(chooseStairs(flow)).toBe(flow);
+      }
+    }),
+  );
 });
 
 it("uses the rotated selection as the stair foot and keeps the tapped point for Cancel", () => {
