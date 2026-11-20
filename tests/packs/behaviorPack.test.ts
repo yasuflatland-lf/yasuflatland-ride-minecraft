@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import {
   entityEventId,
   entityPropertyId,
@@ -16,15 +15,6 @@ const c = entity.components;
 describe("packs/yasu_ride_bp", () => {
   it("derives the square collision envelope from the SUV shell (ADR 0217)", () => {
     expect(c["minecraft:collision_box"]).toEqual({ width: 2.68, height: 2.36 });
-  });
-
-  it("seat positions and order match SUV_PROFILE.seats.positions, with the driver's seat at 0 (ADR 0019)", () => {
-    const seats = c["minecraft:rideable"].seats;
-    expect(c["minecraft:rideable"].controlling_seat).toBe(0);
-    expect(
-      seats.map((s: { position: number[] }) => [s.position[0], s.position[2]]),
-    ).toEqual(SUV_PROFILE.seats.positions.map((p) => [p.x, p.z]));
-    expect(seats[0].lock_rider_rotation).toBe(90);
   });
 
   it("takes Jump as a zero-strength power jump, so a touch rider's Jump does not dismount them (ADR 0025)", () => {

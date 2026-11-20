@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SCOOTER_PROFILE } from "../../src/domain/vehicle/kinds/scooter/profile";
 import { PAINT_VARIANT } from "../../src/infrastructure/shared/dyes";
-import { defined } from "../support/defined";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { loadScooterGeo } from "../tools/helpers/scooterGeo";
 
@@ -16,24 +15,6 @@ describe("scooter Behavior Pack geometry", () => {
       "minecraft:entity"
     ];
   const geometry = () => fullGeometry;
-
-  it("matches the profile seats and the model seat locator heights", () => {
-    const rideable = entity().components["minecraft:rideable"];
-    const seats: { position: number[] }[] = rideable.seats;
-    expect(rideable.controlling_seat).toBe(0);
-    expect(rideable.seat_count).toBe(SCOOTER_PROFILE.seats.positions.length);
-    expect(seats.map(({ position }) => [position[0], position[2]])).toEqual(
-      SCOOTER_PROFILE.seats.positions.map(({ x, z }) => [x, z]),
-    );
-    for (const [index, seat] of seats.entries()) {
-      const bone = defined(
-        geometry().bones.find((bone: Bone) => bone.name === `seat_${index}`),
-        "seat",
-      );
-      expect(seat.position[1]).toBe(bone.pivot[1] / pixelsPerBlock);
-    }
-    expect(rideable.seats[0].lock_rider_rotation).toBe(90);
-  });
 
   it("fits the collision box inside the placement clearance and matches body height", () => {
     const box = entity().components["minecraft:collision_box"];

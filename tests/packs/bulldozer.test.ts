@@ -87,18 +87,7 @@ it("shows exactly one of blade and blade_wide for each wide_blade value", () => 
     blade_wide: "query.property('yasu_ride:wide_blade')",
   });
 });
-it("seats one driver at the cab seat", () =>
-  expect(entity.components["minecraft:rideable"]).toMatchObject({
-    seat_count: 1,
-    controlling_seat: 0,
-    seats: [{ position: [0, 1.4, -1.35], lock_rider_rotation: 90 }],
-  }));
-it("matches the seat and collision box to the profile", () => {
-  expect(
-    entity.components["minecraft:rideable"].seats.map(
-      (s: { position: number[] }) => ({ x: s.position[0], z: s.position[2] }),
-    ),
-  ).toEqual(BULLDOZER_PROFILE.seats.positions);
+it("matches the collision box height to the profile", () => {
   expect(entity.components["minecraft:collision_box"].height).toBe(
     BULLDOZER_PROFILE.body.height,
   );

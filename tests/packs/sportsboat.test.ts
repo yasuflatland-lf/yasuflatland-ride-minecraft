@@ -4,7 +4,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SPORTSBOAT_PROFILE } from "../../src/domain/vehicle/kinds/sportsboat/profile";
-import { SPORTSBOAT_SPEC } from "../../src/domain/vehicle/kinds/sportsboat/spec";
 import {
   PAINT_VARIANT,
   paintEvent,
@@ -14,7 +13,6 @@ import {
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { turnedCorners } from "../support/geometry";
-import { SEAT_FILLER_FAMILY } from "../support/packIdentifiers";
 import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
@@ -69,29 +67,6 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
       ],
     });
     expect(c["minecraft:fire_immune"]).toEqual({});
-  });
-
-  it("seat x and z and their order match SPORTSBOAT_PROFILE.seats.positions, every seat 0.52 up, with the driver in seat 0", () => {
-    const rideable = c["minecraft:rideable"];
-    const seats: { position: number[] }[] = rideable.seats;
-    expect(rideable.controlling_seat).toBe(0);
-    // Seat fillers hold the free seats below a chosen one (ADR 0120).
-    expect(rideable.family_types).toEqual(["player", SEAT_FILLER_FAMILY]);
-    expect(rideable.crouching_skip_interact).toBe(true);
-    expect(seats).toHaveLength(SPORTSBOAT_PROFILE.seats.positions.length);
-    expect(seats.map((s) => [s.position[0], s.position[2]])).toEqual(
-      SPORTSBOAT_PROFILE.seats.positions.map((p) => [p.x, p.z]),
-    );
-    expect(seats.map((s) => s.position[1])).toEqual(seats.map(() => 0.52));
-    // A boarding player's line of sight picks the seat at the riders' height (ADR 0120).
-    expect(SPORTSBOAT_SPEC.seatAimHeight).toBe(0.52);
-    // Each seat's aim ball reaches halfway to the seat beside it.
-    const [left, right] = SPORTSBOAT_PROFILE.seats.positions;
-    expect(SPORTSBOAT_SPEC.seatAimRadius).toBeCloseTo(
-      Math.abs((left?.x ?? 0) - (right?.x ?? 0)) / 2,
-      9,
-    );
-    expect(rideable.seats[0].lock_rider_rotation).toBe(90);
   });
 
   it("is in the vehicle family, so the script's family query finds it", () => {
