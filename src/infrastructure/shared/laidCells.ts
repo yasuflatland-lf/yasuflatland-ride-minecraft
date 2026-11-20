@@ -2,6 +2,7 @@ import type { BlockPermutation, Dimension, Entity } from "@minecraft/server";
 import { type Cell, cellKey } from "../../domain/shared/cells";
 import type { DimensionId } from "../../domain/shared/ids";
 import { type LaidCell, relayCells } from "../../domain/shared/laidCells";
+import type { Ticks } from "../../domain/shared/ticks";
 import { AIR_BLOCK } from "./identifiers";
 import { isLightBlock } from "./lightBlocks";
 
@@ -59,7 +60,7 @@ export class CellLayer<Owner extends string, B> {
 
   constructor(
     private readonly codec: CellCodec<B>,
-    private readonly recheckTicks: number,
+    private readonly recheckTicks: Ticks,
   ) {}
 
   /** The owner that laid this cell, while the world still holds the block it laid there (ADR 0096). */

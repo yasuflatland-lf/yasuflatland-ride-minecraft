@@ -1,3 +1,4 @@
+import { ticks } from "../../../shared/ticks";
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
@@ -26,8 +27,8 @@ export const SCOOTER_SPEC = Object.freeze({
   passengerSeatZ: -9.5 / 16,
   fleetLimit: 10,
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const),
-  doubleTapTicks: 8,
-  takeoffTicks: 20,
+  doubleTapTicks: ticks(8),
+  takeoffTicks: ticks(20),
   takeoffClimb: 0.075,
   landingSink: 0.15,
   maxClimb: 0.3,
@@ -51,7 +52,7 @@ export const SCOOTER_SPEC = Object.freeze({
   leanFullSpeed: 0.3, // blocks/tick; slower turns lean proportionally less
   maxSteer: 30, // degrees of handlebar turn about the steering axis
   // Late joiners see the pose within a second, matching the beach chair poseRefreshTicks.
-  riderPoseRefreshTicks: 20,
+  riderPoseRefreshTicks: ticks(20),
   // Stepped rider poses per side; players cannot read the lean property (ADR 0238).
   // Degrees of total body roll (lean - bank): three steps fit the ground range
   // (maxLean 20), the last equals maxLean + maxBank. The Resource Pack's lean animations use these angles.

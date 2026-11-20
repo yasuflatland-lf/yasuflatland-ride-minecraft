@@ -5,6 +5,7 @@ import {
   SwitchCooldown,
   SwitchCooldowns,
 } from "../../../src/domain/shared/switchCooldown";
+import { type Ticks, ticks } from "../../../src/domain/shared/ticks";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 
 /** Ticks from gaps: the first tick is `gaps[0]`, each next one adds its gap. */
@@ -20,7 +21,7 @@ describe("SwitchCooldown (ADR 0024)", () => {
   it("counts a use only after the switch was idle for the cooldown", () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 1, max: 40 }),
+        fc.integer({ min: 1, max: 40 }).map(ticks),
         fc.array(fc.integer({ min: 0, max: 10 }), {
           minLength: 1,
           maxLength: 30,
@@ -64,7 +65,7 @@ const stepsArb = fc.array(
 /** Results of every use, in order, optionally skipping the forgetIdle steps. */
 function run(
   steps: readonly Step[],
-  cooldown: number,
+  cooldown: Ticks,
   withForget: boolean,
 ): boolean[] {
   const cooldowns = new SwitchCooldowns<number>(cooldown);
@@ -83,7 +84,7 @@ describe("SwitchCooldowns", () => {
   it("answers like one SwitchCooldown per key", () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 1, max: 40 }),
+        fc.integer({ min: 1, max: 40 }).map(ticks),
         stepsArb,
         (cooldown, steps) => {
           const model = new Map<number, SwitchCooldown>();
@@ -108,7 +109,7 @@ describe("SwitchCooldowns", () => {
   it("never changes a result by forgetting idle keys", () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 1, max: 40 }),
+        fc.integer({ min: 1, max: 40 }).map(ticks),
         stepsArb,
         (cooldown, steps) => {
           expect(run(steps, cooldown, true)).toEqual(
@@ -122,7 +123,7 @@ describe("SwitchCooldowns", () => {
   it("keeps the keys independent of each other", () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 1, max: 40 }),
+        fc.integer({ min: 1, max: 40 }).map(ticks),
         stepsArb,
         (cooldown, steps) => {
           const all = new SwitchCooldowns<number>(cooldown);

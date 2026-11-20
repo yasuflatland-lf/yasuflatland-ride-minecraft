@@ -1,17 +1,18 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { TapToggle } from "../../../src/domain/shared/tapToggle";
+import { type Ticks, ticks } from "../../../src/domain/shared/ticks";
 import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 
 const windows = fc.oneof(
   fc.constant(CAMPER_SPEC.doorSwingTicks),
-  fc.integer({ min: 1, max: 40 }),
+  fc.integer({ min: 1, max: 40 }).map(ticks),
 );
 
 /** A window and a gap of up to `maxWindows` windows after a tap. */
 function windowAndGap(
   maxWindows: number,
-): fc.Arbitrary<readonly [number, number]> {
+): fc.Arbitrary<readonly [Ticks, number]> {
   return windows.chain((w) =>
     fc.tuple(fc.constant(w), fc.integer({ min: 0, max: maxWindows * w })),
   );

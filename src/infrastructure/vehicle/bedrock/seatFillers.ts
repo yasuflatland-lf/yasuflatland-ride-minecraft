@@ -7,6 +7,7 @@ import type {
 } from "@minecraft/server";
 import { world } from "@minecraft/server";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
+import { ticks } from "../../../domain/shared/ticks";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import { mountOf } from "../../shared/mount";
 import { isVehicleEntity, SEAT_FILLER_TYPE } from "./identifiers";
@@ -20,7 +21,7 @@ const BOARD_REACH = 8;
 // How many layouts in a row a player taken off to lay the riders again may wait to get
 // back on before their seat goes to a filler. The engine refuses them in the tick they
 // got off (ADR 0120); the margin covers a slower release.
-const WAIT_TICKS = 5;
+const WAIT_TICKS = ticks(5);
 
 const isFiller = (entity: Entity): boolean =>
   entity.typeId === SEAT_FILLER_TYPE;

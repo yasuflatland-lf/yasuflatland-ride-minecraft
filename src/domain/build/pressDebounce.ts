@@ -1,7 +1,9 @@
+import type { Ticks } from "../shared/ticks";
+
 export class PressDebounce {
   private lastTick = Number.NEGATIVE_INFINITY;
 
-  constructor(private readonly windowTicks: number) {}
+  constructor(private readonly windowTicks: Ticks) {}
 
   press(tick: number): boolean {
     const gap = tick - this.lastTick;
@@ -13,7 +15,7 @@ export class PressDebounce {
 export class PressDebounces<K> {
   private readonly presses = new Map<K, PressDebounce>();
 
-  constructor(private readonly windowTicks: number) {}
+  constructor(private readonly windowTicks: Ticks) {}
 
   press(key: K, tick: number): boolean {
     let debounce = this.presses.get(key);
