@@ -4,7 +4,7 @@ import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { FURNITURE_SPEC } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
 import { TOILET_SPEC } from "../../../domain/resort/shows";
-import { cellOf } from "../../../domain/shared/cells";
+import { cellCenter, cellOf } from "../../../domain/shared/cells";
 import { searchExitCell } from "../../../domain/shared/exitSearch";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import {
@@ -112,11 +112,7 @@ export class BedrockToiletWorld implements ToiletWorld {
       },
       (cell) => isSafe(dimension, cell),
     );
-    if (feet)
-      player.teleport(
-        { x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 },
-        { dimension },
-      );
+    if (feet) player.teleport(cellCenter(feet), { dimension });
   }
 
   showRefused(playerId: PlayerId, reason: "occupied" | "flushing"): void {

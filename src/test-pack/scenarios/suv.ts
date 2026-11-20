@@ -1,4 +1,5 @@
 import type { Entity } from "@minecraft/server";
+import { cellOf } from "../../domain/shared/cells";
 import { PAINTS } from "../../domain/shared/paint";
 import { dot, forward, length, type Vec2 } from "../../domain/shared/vec";
 import { SUV_PROFILE } from "../../domain/vehicle/kinds/suv/profile";
@@ -217,12 +218,7 @@ export async function suvSoulSand(a: Arena): Promise<Outcome> {
         max = Math.max(max, speed);
         if (reach < 0 && speed >= 0.3) reach = t;
         if (t === 5)
-          under =
-            a.dim.getBlock({
-              x: Math.floor(car.location.x),
-              y: Math.floor(car.location.y),
-              z: Math.floor(car.location.z),
-            })?.typeId ?? "none";
+          under = a.dim.getBlock(cellOf(car.location))?.typeId ?? "none";
         if (a.local(car.location).z > 54) break;
       }
       return {

@@ -108,6 +108,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/vehicle/kinds/camper/drive.ts",
   "src/domain/vehicle/kinds/camper/entity.ts",
   "src/domain/vehicle/kinds/camper/furniture.ts",
+  "src/domain/vehicle/kinds/camper/localCell.ts",
   "src/domain/vehicle/kinds/camper/profile.ts",
   "src/domain/vehicle/kinds/camper/parkPose.ts",
   "src/domain/vehicle/kinds/camper/roomGeometry.ts",

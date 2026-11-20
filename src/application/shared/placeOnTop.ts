@@ -1,3 +1,4 @@
+import { cellOf } from "../../domain/shared/cells";
 import { encodeHost } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import {
@@ -49,9 +50,8 @@ export function placeOnTop(
   if (host.blockedAt?.(placement.at, kind.footprint)) return "overlap";
   const at = hostSpotPoint(host, placement.at, surface.topPx);
   const cell = {
-    x: Math.floor(at.x),
+    ...cellOf(at),
     y: Math.floor(host.at.y) + surface.clearanceBase,
-    z: Math.floor(at.z),
   };
   if (!hasClearance(world, host.dimension, cell, kind.clearance))
     return "refused";
