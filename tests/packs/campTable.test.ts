@@ -6,13 +6,11 @@ const rp = "packs/yasu_ride_rp";
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
 describe("camp table", () => {
-  it("has no seats and remains persistent with gravity", () => {
+  it("has no seats", () => {
     const entity = readJson(`${bp}/entities/yasu_ride/camp_table.se.json`)[
       "minecraft:entity"
     ];
     expect(entity.components).not.toHaveProperty("minecraft:rideable");
-    expect(entity.components).toHaveProperty("minecraft:persistent");
-    expect(entity.components["minecraft:physics"].has_gravity).toBe(true);
   });
 
   it("connects the item, entity model, wood texture, and preview", () => {

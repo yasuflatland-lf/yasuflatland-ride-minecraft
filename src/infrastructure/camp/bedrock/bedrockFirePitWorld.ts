@@ -4,7 +4,13 @@ import type { FirePitId } from "../../../domain/camp/firePit";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { NAMESPACE } from "../../shared/identifiers";
-import { consumeHeld, isCreative, playerById } from "../../shared/players";
+import {
+  consumeHeld,
+  isCreative,
+  playerById,
+  showActionBar,
+  showHitsLeftHint,
+} from "../../shared/players";
 import {
   DUTCH_OVEN_ON_TOP_HINT,
   FIRE_PIT_HITS_LEFT_HINT,
@@ -84,7 +90,7 @@ export class BedrockFirePitWorld implements FirePitWorld {
   }
 
   showCoveredHint(player: PlayerId): void {
-    playerById(player)?.onScreenDisplay.setActionBar({
+    showActionBar(player, {
       translate: DUTCH_OVEN_ON_TOP_HINT,
     });
   }
@@ -126,9 +132,6 @@ export class BedrockFirePitWorld implements FirePitWorld {
   }
 
   showHitsLeft(player: PlayerId, hitsLeft: number): void {
-    playerById(player)?.onScreenDisplay.setActionBar({
-      translate: FIRE_PIT_HITS_LEFT_HINT,
-      with: [String(hitsLeft)],
-    });
+    showHitsLeftHint(player, FIRE_PIT_HITS_LEFT_HINT, hitsLeft);
   }
 }

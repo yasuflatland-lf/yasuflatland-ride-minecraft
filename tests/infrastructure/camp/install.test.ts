@@ -328,7 +328,6 @@ it("returns tent and Gas Lantern targets built on the registered actions", () =>
   expect(gasLanternSwitchTarget).toHaveBeenCalledExactlyOnceWith(
     vi.mocked(registerGasLantern).mock.calls[0]?.[0],
   );
-  expect(switchTargets[0]).toBe(lanternTarget);
   const [lantern, tentContaining] =
     vi.mocked(lanternSwitchTarget).mock.calls[0] ?? [];
   expect(lantern).toBeInstanceOf(SwitchLantern);

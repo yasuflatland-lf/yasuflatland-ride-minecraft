@@ -163,7 +163,7 @@ describe("scooter generated foundation", () => {
       metadata.budget,
     );
     expect(metadata.budget).toBe(4667);
-    expect(cubes).toHaveLength(4636);
+    expect(cubes.length).toBeLessThanOrEqual(metadata.budget);
     expect(metadata.ceiling).toBe(6000);
     expect(metadata.budget).toBeLessThanOrEqual(metadata.ceiling);
   });

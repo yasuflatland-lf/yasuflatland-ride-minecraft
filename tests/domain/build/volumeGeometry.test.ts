@@ -12,11 +12,23 @@ import {
   roofCount,
 } from "../../../src/domain/build/roof/roof";
 import {
+  cubePlacement,
+  cubeVolume,
+} from "../../../src/domain/build/volume/cube";
+import {
+  cylinderPlacement,
+  cylinderVolume,
+} from "../../../src/domain/build/volume/cylinder";
+import {
   boundingBox,
   placementOf,
   volumeOf,
 } from "../../../src/domain/build/volume/geometry";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
+import {
+  spherePlacement,
+  sphereVolume,
+} from "../../../src/domain/build/volume/sphere";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const base = fc
@@ -36,6 +48,18 @@ const height = fc.integer({ min: 1, max: 36 });
 const registeredKinds = ["gable", "hip"] as const satisfies readonly RoofKind[];
 
 describe("heighted geometry", () => {
+  it.each([
+    ["cube", cubeVolume, cubePlacement],
+    ["cylinder", cylinderVolume, cylinderPlacement],
+    ["sphere", sphereVolume, spherePlacement],
+  ] as const)(
+    "registers %s volume and placement geometry",
+    (kind, volume, placement) => {
+      expect(volumeOf(kind)).toBe(volume);
+      expect(placementOf(kind)).toBe(placement);
+    },
+  );
+
   it.each([
     "gable",
     "hip",

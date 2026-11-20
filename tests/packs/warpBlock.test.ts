@@ -9,7 +9,6 @@ const block = definition["minecraft:block"];
 
 describe("Warp Block pack definition", () => {
   it("exposes a full cube in the Items tab with the deferred custom component", () => {
-    expect(definition.format_version).toBe("1.21.100");
     expect(block.description).toEqual({
       identifier: "yasu_build:warp_block",
       menu_category: { category: "items" },

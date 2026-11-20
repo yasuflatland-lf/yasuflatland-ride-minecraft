@@ -708,13 +708,17 @@ it("checks neighboring cells within the fixed ground collision box", () => {
 
 it("maps roof placement refusals and fold counts to existing localized tent messages", () => {
   const p = player();
-  for (const name of ["blocked", "roof_taken"]) {
-    tents.showMessage(PLAYER, name);
+  for (const name of ["blocked", "roof_taken", "host_in_use"] as const) {
+    tents.showRefusal(PLAYER, name);
     expect(p.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
       translate: ids.PITCH_REFUSAL_MESSAGE.blocked,
     });
   }
-  tents.showMessage(PLAYER, "hits_left:2");
+  tents.showRefusal(PLAYER, "unsupported_vehicle");
+  expect(p.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
+    translate: ids.PITCH_REFUSAL_MESSAGE.vehicle,
+  });
+  tents.showHitsLeft(PLAYER, 2);
   expect(p.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
     translate: ids.TENT_HITS_LEFT_HINT,
     with: ["2"],

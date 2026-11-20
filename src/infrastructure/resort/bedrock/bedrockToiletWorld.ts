@@ -16,7 +16,7 @@ import { forward } from "../../../domain/shared/vec";
 import { allDimensions } from "../../shared/dimensions";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
-import { playerById } from "../../shared/players";
+import { playerById, showActionBar } from "../../shared/players";
 import { makeSafeStand, seatRider } from "../../shared/seating";
 import {
   FURNITURE_IDS,
@@ -120,10 +120,8 @@ export class BedrockToiletWorld implements ToiletWorld {
   }
 
   showRefused(playerId: PlayerId, reason: "occupied" | "flushing"): void {
-    const player = playerById(playerId);
-    if (player?.isValid)
-      player.onScreenDisplay.setActionBar({
-        translate: `yasu_ride.toilet.${reason}`,
-      });
+    showActionBar(playerId, {
+      translate: `yasu_ride.toilet.${reason}`,
+    });
   }
 }

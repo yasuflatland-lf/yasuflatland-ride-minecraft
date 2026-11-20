@@ -1,9 +1,10 @@
 import type { GasLanternId } from "../../../domain/camp/gasLantern";
-import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import type { DimensionId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { TopHostWorld } from "../../shared/placeOnTop";
+import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
-export interface GasLanternWorld extends TopHostWorld {
+export interface GasLanternWorld extends HitsLeftFeedback, TopHostWorld {
   hasGasLanternNear(dimension: DimensionId, at: Vec3): boolean;
   spawnGasLantern(dimension: DimensionId, at: Vec3, yaw: number): void;
   isLit(id: GasLanternId): boolean | undefined;
@@ -18,5 +19,4 @@ export interface GasLanternWorld extends TopHostWorld {
   /** See HostedKindPort.isHostAreaLoaded. */
   isHostAreaLoaded(id: GasLanternId): boolean;
   hostExists(hostId: string): boolean;
-  showHitsLeft(player: PlayerId, hitsLeft: number): void;
 }

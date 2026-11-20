@@ -25,7 +25,7 @@ export function fakeParasolWorld() {
     clearCeiling: vi.fn(),
     dropItem: vi.fn(),
     remove: vi.fn(),
-    showRemaining: vi.fn(),
+    showHitsLeft: vi.fn(),
     showTaken: vi.fn(),
   } satisfies ParasolWorld & ParasolTakeBackWorld;
 }

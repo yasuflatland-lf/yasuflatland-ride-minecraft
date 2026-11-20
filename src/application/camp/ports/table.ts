@@ -2,8 +2,9 @@ import type { TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
+import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
-export interface TableWorld extends GroundCellsWorld {
+export interface TableWorld extends HitsLeftFeedback, GroundCellsWorld {
   /** How many items of any kind stand on the table. */
   itemsOnTable(id: TableId): number;
   showOvenOnTop(player: PlayerId): void;
@@ -11,5 +12,4 @@ export interface TableWorld extends GroundCellsWorld {
   spawnTable(dimensionId: DimensionId, at: Vec3, yaw: number): void;
   dropItem(tableId: TableId): void;
   removeTable(tableId: TableId): void;
-  showHitsLeft(playerId: PlayerId, hitsLeft: number): void;
 }

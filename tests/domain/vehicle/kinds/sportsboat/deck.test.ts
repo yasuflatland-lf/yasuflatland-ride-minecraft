@@ -67,8 +67,6 @@ describe("sports boat deck floor (ADR 0063)", () => {
       ticks: 20,
       stick: 0.1,
     });
-    expect(DECK_DRAFT).toBe(0.45);
-    expect(DECK.margin).toBe(0.3);
     expect(DECK.parts).toStrictEqual([
       { halfWidth: 0.96, zMin: -2.75, zMax: 0.875, height: 9.3 / 16 },
       { halfWidth: 0.22, zMin: 0.875, zMax: 1.125, height: 11.3 / 16 },

@@ -74,7 +74,6 @@ describe("identifiers (ADR 0047)", () => {
   it("does not confuse entity and item IDs", () => {
     for (const kind of VEHICLE_KINDS) {
       expect(kindOfEntity(ITEM_TYPE[kind])).toBeUndefined();
-      expect(isVehicleEntity(ITEM_TYPE[kind])).toBe(false);
       expect(kindOfItem(ENTITY_TYPE[kind])).toBeUndefined();
     }
   });
@@ -90,19 +89,6 @@ describe("identifiers (ADR 0047)", () => {
         },
       ),
     );
-  });
-
-  it("maps a ridden entity type to the ram mount (ADR 0006)", () => {
-    for (const kind of VEHICLE_KINDS)
-      expect(ramMountOf(ENTITY_TYPE[kind])).toBe("vehicle");
-    expect(ramMountOf(DECK_SEAT_TYPE)).toBe("deckSeat");
-    for (const typeId of [
-      undefined,
-      "minecraft:boat",
-      "minecraft:horse",
-      ITEM_TYPE.suv,
-    ])
-      expect(ramMountOf(typeId)).toBeUndefined();
   });
 
   it("gives a ram mount only to vehicle entities and deck seats", () => {

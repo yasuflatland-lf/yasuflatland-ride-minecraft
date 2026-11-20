@@ -152,6 +152,39 @@ describe("roof", () => {
     );
   });
 
+  it("gives even square hip roofs a centered 2x2 apex", () => {
+    fc.assert(
+      fc.property(
+        origin,
+        fc.integer({ min: 1, max: 8 }),
+        fc.integer({ min: 2, max: 12 }),
+        (min, half, height) => {
+          const roof: RoofSpec = {
+            base: baseOf(min, 2 * half, 2 * half),
+            kind: "hip",
+            height,
+            style: "stepped",
+          };
+          const y = min.y + height - 1;
+          const expected = [half - 1, half]
+            .flatMap((x) =>
+              [half - 1, half].map((z) =>
+                cellKey({ x: min.x + x, y, z: min.z + z }),
+              ),
+            )
+            .sort();
+          for (const hollow of [false, true])
+            expect(
+              [...roofCells(roof, hollow)]
+                .filter((c) => c.y === y)
+                .map(cellKey)
+                .sort(),
+            ).toEqual(expected);
+        },
+      ),
+    );
+  });
+
   it("gives height one exactly the base plate in either mode", () => {
     fc.assert(
       fc.property(base, kind, (base, kind) => {
@@ -259,38 +292,6 @@ describe("roof", () => {
     expect([...roofCells(roof, true)].map(cellKey)).toEqual(
       expected.filter((key) => key !== "2,1,2"),
     );
-  });
-  it("preserves a symmetric 2x2 apex on an even square", () => {
-    const roof: RoofSpec = {
-      base: baseOf({ x: 0, y: 0, z: 0 }, 4, 4),
-      kind: "hip",
-      height: 2,
-      style: "stepped",
-    };
-    const expected = [
-      "0,0,0",
-      "1,0,0",
-      "2,0,0",
-      "3,0,0",
-      "0,0,1",
-      "1,0,1",
-      "2,0,1",
-      "3,0,1",
-      "0,0,2",
-      "1,0,2",
-      "2,0,2",
-      "3,0,2",
-      "0,0,3",
-      "1,0,3",
-      "2,0,3",
-      "3,0,3",
-      "1,1,1",
-      "2,1,1",
-      "1,1,2",
-      "2,1,2",
-    ];
-    expect([...roofCells(roof, false)].map(cellKey)).toEqual(expected);
-    expect([...roofCells(roof, true)].map(cellKey)).toEqual(expected);
   });
 });
 

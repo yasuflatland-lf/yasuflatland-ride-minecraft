@@ -54,15 +54,10 @@ const reliefName = khakiSet[reliefKind];
 describe("SUV paint texture sets", () => {
   it.each(PAINTS)("%s has the exact texture set", (paint) => {
     const name = nameFor(paint);
-    expect(
-      JSON.parse(readFileSync(`${directory}/${name}.texture_set.json`, "utf8")),
-    ).toEqual({
-      format_version: "1.16.100",
-      "minecraft:texture_set": {
-        color: name,
-        metalness_emissive_roughness: "suv_mer",
-        [reliefKind]: reliefName,
-      },
+    expect(textureSet(name)).toEqual({
+      color: name,
+      metalness_emissive_roughness: "suv_mer",
+      [reliefKind]: reliefName,
     });
   });
 

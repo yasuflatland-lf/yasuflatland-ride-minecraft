@@ -6,7 +6,13 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
-import { consumeHeld, isCreative, playerById } from "../../shared/players";
+import {
+  consumeHeld,
+  isCreative,
+  playerById,
+  showActionBar,
+  showHitsLeftHint,
+} from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   CAMP_TABLE_ITEM,
@@ -80,7 +86,7 @@ export class BedrockTableWorld implements TableWorld {
   }
 
   showOvenOnTop(player: PlayerId): void {
-    playerById(player)?.onScreenDisplay.setActionBar({
+    showActionBar(player, {
       translate: DUTCH_OVEN_ON_TOP_HINT,
     });
   }
@@ -98,9 +104,6 @@ export class BedrockTableWorld implements TableWorld {
   }
 
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void {
-    playerById(playerId)?.onScreenDisplay.setActionBar({
-      translate: TABLE_HITS_LEFT_HINT,
-      with: [String(hitsLeft)],
-    });
+    showHitsLeftHint(playerId, TABLE_HITS_LEFT_HINT, hitsLeft);
   }
 }

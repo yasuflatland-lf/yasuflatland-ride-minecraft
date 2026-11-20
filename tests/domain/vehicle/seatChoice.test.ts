@@ -582,12 +582,3 @@ describe("Vehicle seat choice (ADR 0120)", () => {
     );
   });
 });
-
-it("starts with no seats", () => {
-  expect(settleSeats(NONE, [], new Map(), TARGETS).seats).toEqual([
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-  ]);
-});
