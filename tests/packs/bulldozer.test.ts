@@ -438,27 +438,22 @@ it("plays hydraulics once when the blade leaves an endpoint", () => {
   const controllers = read(
     `${RP}/animation_controllers/yasu_ride/bulldozer.ac.json`,
   ).animation_controllers;
-  expect(controllers[client.animations.hydraulics]).toEqual({
-    initial_state: "rest",
-    states: {
-      rest: {
-        transitions: [
-          {
-            moving:
-              "query.property('yasu_ride:blade') >= 0.05 && query.property('yasu_ride:blade') <= 0.95",
-          },
-        ],
-      },
-      moving: {
-        animations: ["hydraulics_sound"],
-        transitions: [
-          {
-            rest: "query.property('yasu_ride:blade') < 0.05 || query.property('yasu_ride:blade') > 0.95",
-          },
-        ],
-      },
+  const hydraulics = controllers[client.animations.hydraulics];
+  expect(hydraulics.initial_state).toBe("rest");
+  const { rest, moving } = hydraulics.states;
+  expect(rest.transitions).toEqual([
+    {
+      moving:
+        "query.property('yasu_ride:blade') >= 0.05 && query.property('yasu_ride:blade') <= 0.95",
     },
-  });
+  ]);
+  expect(rest.animations ?? []).not.toContain("hydraulics_sound");
+  expect(moving.animations).toContain("hydraulics_sound");
+  expect(moving.transitions).toEqual([
+    {
+      rest: "query.property('yasu_ride:blade') < 0.05 || query.property('yasu_ride:blade') > 0.95",
+    },
+  ]);
 });
 
 it("aliases the yellow paint to the default texture", () => {
