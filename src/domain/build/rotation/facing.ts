@@ -43,6 +43,16 @@ export function parseFacing(value: string): Facing | undefined {
   return FACINGS.find((facing) => facing === value.toLowerCase());
 }
 
+export function oppositeFacing(facing: Facing): Facing {
+  const opposite: Record<Facing, Facing> = {
+    north: "south",
+    east: "west",
+    south: "north",
+    west: "east",
+  };
+  return opposite[facing];
+}
+
 export function facingVector(facing: Facing): Vec3 {
   switch (facing) {
     case "north":

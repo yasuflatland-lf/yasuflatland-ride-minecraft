@@ -4,8 +4,10 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   type BuildFlow,
   chooseHeighted,
+  chooseStairs,
   chooseTerrain,
   confirmLiveHeight,
+  fixStairGoal,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -17,6 +19,7 @@ import {
   type PressTarget,
   routePress,
 } from "../../../src/domain/build/flow/press";
+import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 
 const idle: BuildFlow = { kind: "idle" };
@@ -29,7 +32,13 @@ const point1 = tapBlock(
 const baseHeight = tapAir(point1, { x: 2, y: 0, z: 2 });
 if (baseHeight.kind !== "baseHeight") throw new Error("Expected live height");
 const selected = confirmLiveHeight(baseHeight);
+const stairAim = chooseStairs(tapAir(point1, { x: 2, y: 0, z: 0 }));
+if (stairAim.kind !== "stairAim") throw new Error("Expected stair aim");
+const staircase = staircaseToward(stairAim.row, { x: 0, y: 2, z: 4 });
+if (!staircase) throw new Error("Expected staircase");
 const flows = {
+  stairAim,
+  stairContents: fixStairGoal(stairAim, staircase),
   idle,
   point1,
   baseHeight,
@@ -72,6 +81,14 @@ const wandTable = {
     "ignore",
     "ignore",
   ],
+  stairAim: [
+    "fixStairGoal",
+    "fixStairGoal",
+    "fixStairGoal",
+    "fixStairGoal",
+    "fixStairGoal",
+  ],
+  stairContents: ["ignore", "ignore", "ignore", "ignore", "ignore"],
   pasteAim: ["ignore", "pasteAim", "pasteAim", "pasteAim", "pasteAim"],
 } satisfies Record<BuildFlow["kind"], [Kind, Kind, Kind, Kind, Kind]>;
 const routes: PressRoute[] = ["itemUse", "blockInteract"];

@@ -2,8 +2,12 @@
 // The edit job rechecks protection when applying each write; terrain scans also
 // treat protected cells as barriers.
 import type { Cell } from "../../shared/cells";
-import type { BlockState } from "../blockState";
+import { AIR, type BlockState } from "../blockState";
+import { oppositeFacing } from "../rotation/facing";
 import { cellsOfShape, type Shape, type ShapeStyle } from "../shape/shape";
+import { stairDescending, stairFlatTop, stairMaterialOf } from "../stair";
+import { type StairRole, stairCells } from "../stairs/roles";
+import type { Staircase } from "../stairs/staircase";
 import type { TerrainArea } from "../terrain/area";
 import { type HeightedSpec, placementOf } from "../volume/geometry";
 import type { FillStyle } from "../volume/kind";
@@ -26,6 +30,26 @@ export function* planHeighted(
 ): Iterable<PlannedChange> {
   for (const cell of placementOf(spec.kind).cells(spec, fill))
     yield { cell, after: pattern.stateAt(cell) };
+}
+
+export function* planStairs(
+  s: Staircase,
+  roles: ReadonlySet<StairRole>,
+  material: BlockState,
+): Iterable<PlannedChange> {
+  const stair = stairMaterialOf(material);
+  const lowerEnd = s.rise > 0 ? oppositeFacing(s.toward) : s.toward;
+  const noseState = stair ? stairDescending(stair, lowerEnd) : material;
+  const flatState = stair ? stairFlatTop(stair) : material;
+  for (const { cell, role, nose } of stairCells(s, roles)) {
+    const after =
+      role === "step" || role === "below"
+        ? nose
+          ? noseState
+          : flatState
+        : AIR;
+    yield { cell, after };
+  }
 }
 
 /** Scan marks survive writes, so filling cannot disconnect the remaining search. */

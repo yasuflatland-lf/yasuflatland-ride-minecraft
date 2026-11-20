@@ -77,6 +77,38 @@ function sample(curve: Curve, count: number): Vec3[] {
   return Array.from({ length: count }, (_, i) => curve.at(i / divisor));
 }
 
+/** Samples across the whole outline even when the budget is smaller than the number of edges. */
+export function evenlyThinnedPoints(
+  curves: readonly Curve[],
+  perBlock: number,
+  maxPoints: number,
+): Vec3[] {
+  const counts = curves.map((curve) => wanted(curve, perBlock));
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  const count = Math.min(total, Math.floor(maxPoints));
+  const points: Vec3[] = [];
+  let edge = 0;
+  let start = 0;
+  let edgeCount = counts[edge] ?? 0;
+  for (let i = 0; i < count; i++) {
+    const index =
+      count === 1
+        ? Math.floor(total / 2)
+        : Math.round((i * (total - 1)) / (count - 1));
+    while (index >= start + edgeCount) {
+      start += edgeCount;
+      edgeCount = counts[++edge] as number;
+    }
+    const curve = curves[edge] as Curve;
+    const t =
+      edgeCount === 1
+        ? 0.5
+        : (index - start) / (curve.closed ? edgeCount : edgeCount - 1);
+    points.push(curve.at(t));
+  }
+  return points;
+}
+
 /** Shares `budget` across the curves in proportion to what they want, by largest remainder. */
 function scaled(curves: readonly Curve[], perBlock: number, budget: number) {
   const counts = curves.map((curve) => wanted(curve, perBlock));
