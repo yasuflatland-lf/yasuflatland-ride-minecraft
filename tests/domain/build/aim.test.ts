@@ -30,7 +30,14 @@ describe("virtualEndPoint", () => {
   it("floors intersections on the dominant plane, unchanged by horizontal sign flips", () => {
     fc.assert(
       fc.property(
-        cell,
+        fc.record({
+          x: coord,
+          y: fc.integer({
+            min: BUILD_SPEC.worldBottomY,
+            max: BUILD_SPEC.worldTopY - 2,
+          }),
+          z: coord,
+        }),
         oblique,
         fc.integer({ min: 1, max: 60 }),
         (point, d, distance) => {
@@ -60,6 +67,64 @@ describe("virtualEndPoint", () => {
         },
       ),
     );
+  });
+
+  it("clamps height while preserving the plane and horizontal intersection", () => {
+    fc.assert(
+      fc.property(
+        fc.record({
+          x: coord,
+          y: fc.integer({
+            min: BUILD_SPEC.worldBottomY,
+            max: BUILD_SPEC.worldTopY,
+          }),
+          z: coord,
+        }),
+        direction,
+        coord,
+        fc.integer({ min: 1, max: 60 }),
+        (point, d, originY, distance) => {
+          const axis = Math.abs(d.x) >= Math.abs(d.z) ? "x" : "z";
+          const origin = {
+            x: point.x + 0.25 - distance * d.x,
+            y: originY,
+            z: point.z + 0.25 - distance * d.z,
+          };
+          origin[axis] = point[axis] + 0.5 - distance * d[axis];
+          const ray = { origin, direction: d };
+          const result = virtualEndPoint(point, ray);
+          if (!result) return;
+          const other = axis === "x" ? "z" : "x";
+          const t =
+            (point[axis] + 0.5 - ray.origin[axis]) / ray.direction[axis];
+          const y = Math.floor(ray.origin.y + t * ray.direction.y);
+          expect(result.y).toBeGreaterThanOrEqual(BUILD_SPEC.worldBottomY);
+          expect(result.y).toBeLessThanOrEqual(BUILD_SPEC.worldTopY);
+          expect(result[axis]).toBe(point[axis]);
+          expect(result[other]).toBe(
+            Math.floor(ray.origin[other] + t * ray.direction[other]),
+          );
+          if (y >= BUILD_SPEC.worldBottomY && y <= BUILD_SPEC.worldTopY) {
+            expect(result.y).toBe(y);
+          }
+        },
+      ),
+    );
+  });
+
+  it("clamps high and low intersections to the world bounds", () => {
+    const point = { x: 0, y: 300, z: 0 };
+    for (const [y, expected] of [
+      [330, BUILD_SPEC.worldTopY],
+      [BUILD_SPEC.worldBottomY - 10, BUILD_SPEC.worldBottomY],
+    ] as const) {
+      expect(
+        virtualEndPoint(point, {
+          origin: { x: -0.5, y: y - 1, z: 0 },
+          direction: { x: 1, y: 1, z: 0 },
+        })?.y,
+      ).toBe(expected);
+    }
   });
 
   it("rejects intersections behind the origin or beyond reach", () => {
