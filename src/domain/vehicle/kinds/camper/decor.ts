@@ -5,7 +5,12 @@ import {
   parseDecorSlotId,
   serializeDecor,
 } from "../../dock/decor";
-import { CAMPER_FURNITURE, type DecorSlot, type LocalCell } from "./furniture";
+import {
+  CAMPER_FURNITURE,
+  type DecorSlot,
+  type LocalCell,
+  sameLocalCell,
+} from "./furniture";
 import { CAMPER_SPEC } from "./spec";
 
 export const DECOR_SLOTS: readonly DecorSlot[] = CAMPER_FURNITURE.flatMap(
@@ -46,13 +51,9 @@ export function savedSlotId(id: DecorSlotId): DecorSlotId {
   return renamed === undefined ? id : (parseDecorSlotId(renamed) ?? id);
 }
 
-function sameCell(a: LocalCell, b: LocalCell): boolean {
-  return a.x === b.x && a.z === b.z && a.layer === b.layer;
-}
-
 /** The slots in `cell`, in DECOR_SLOTS order. */
 function cellSlots(cell: LocalCell): DecorSlot[] {
-  return DECOR_SLOTS.filter((s) => sameCell(s.cell, cell));
+  return DECOR_SLOTS.filter((s) => sameLocalCell(s.cell, cell));
 }
 
 /** A cell that holds decor slots, with its slots in DECOR_SLOTS order. */
@@ -67,7 +68,8 @@ export interface DecorCell {
  * ends of the table or a storage compartment share one pair block (ADR 0108, 0121).
  */
 export const DECOR_CELLS: readonly DecorCell[] = DECOR_SLOTS.filter(
-  (slot, i) => DECOR_SLOTS.findIndex((s) => sameCell(s.cell, slot.cell)) === i,
+  (slot, i) =>
+    DECOR_SLOTS.findIndex((s) => sameLocalCell(s.cell, slot.cell)) === i,
 ).map(({ cell }) => ({ cell, slots: cellSlots(cell) }));
 
 /** The decor in a known slot of `cell`, if any; the first one when the list holds several. */
@@ -77,7 +79,7 @@ export function decorInCell(
 ): DecorPlacement | undefined {
   return decor.find((d) => {
     const s = decorSlot(d.slot);
-    return s !== undefined && sameCell(s.cell, cell);
+    return s !== undefined && sameLocalCell(s.cell, cell);
   });
 }
 

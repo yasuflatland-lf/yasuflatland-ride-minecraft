@@ -1,4 +1,5 @@
 import { BlockPermutation, type Entity } from "@minecraft/server";
+import { cellOf } from "../../domain/shared/cells";
 import { forward, length, type Vec3 } from "../../domain/shared/vec";
 import {
   type DecorPlacement,
@@ -929,11 +930,7 @@ async function camperStandSpots(a: Arena, car: Entity): Promise<Outcome> {
   const pose = carPose(car);
   const wrong = deckSeats(pose).filter(({ stand }) => {
     if (!stand) return true;
-    const feet = {
-      x: Math.floor(stand.x),
-      y: Math.floor(stand.y),
-      z: Math.floor(stand.z),
-    };
+    const feet = cellOf(stand);
     return (
       a.dim.getBlock({ ...feet, y: feet.y - 1 })?.typeId !==
         CAMPER_FLOOR_BLOCK ||

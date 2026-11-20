@@ -9,7 +9,7 @@ import {
   world,
 } from "@minecraft/server";
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
-import type { CellBox } from "../../domain/build/box";
+import { type CellBox, sameBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import {
   type RoofSpec,
@@ -18,7 +18,12 @@ import {
 } from "../../domain/build/roof/roof";
 import type { Facing } from "../../domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../domain/build/spec";
-import { type Cell, cellKey } from "../../domain/shared/cells";
+import {
+  type Cell,
+  cellCenter,
+  cellKey,
+  sameCell,
+} from "../../domain/shared/cells";
 import {
   BUILD_UNDO_TYPE,
   LAID_BLOCK_TAG,
@@ -1339,8 +1344,7 @@ function checkSelection(reply: Reply, box: CellBox, detail: string): void {
     reply.flow.kind === "selected" &&
       reply.flow.menuLevel === "root" &&
       actual !== undefined &&
-      cellKey(actual.min) === cellKey(box.min) &&
-      cellKey(actual.max) === cellKey(box.max),
+      sameBox(actual, box),
     `${detail}: expected root selection ${JSON.stringify(box)}, got ${JSON.stringify(reply.flow)}`,
   );
 }
@@ -1625,9 +1629,7 @@ export function buildCutHeight(a: Arena): Promise<Outcome> {
     const surround = f.region(5, 5, 5, f.cell(-1, -1, -1));
     for (const cell of surround) f.block(cell).setType("minecraft:stone");
     const cells = f.region(3, 3, 3);
-    const outside = surround.filter(
-      (c) => !cells.some((s) => s.x === c.x && s.y === c.y && s.z === c.z),
-    );
+    const outside = surround.filter((c) => !cells.some((s) => sameCell(s, c)));
     const before = snapshot(f, outside);
     await f.select(f.cell(2, 2, 2));
     const cut = await f.menu("shape", "cut");
@@ -2065,7 +2067,7 @@ export function buildUnstuckFill(a: Arena): Promise<Outcome> {
       f.block(cell).setType("minecraft:stone");
     await f.select(f.cell(2, 3, 2));
     const feet = f.cell(1, 1, 1);
-    f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
+    f.player.teleport(cellCenter(feet));
     const rotation = f.player.getRotation();
     const result = await f.menu("shape", "fill");
     check(result.message === "editDoneCount", "Fill did not complete");
@@ -2103,7 +2105,7 @@ export function buildUnstuckNotTouched(a: Arena): Promise<Outcome> {
       f.block(feet).permutation.withState("upper_block_bit", true),
     );
     await f.select(f.cell(2, 3, 2));
-    f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
+    f.player.teleport(cellCenter(feet));
     const result = await f.menu("shape", "fill");
     check(result.message === "editDoneCount", "Remote Fill did not complete");
     const actual = f.player.location;
@@ -2256,7 +2258,7 @@ export function buildFillBelowUnstuck(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     await fillBelowPit(f);
     const feet = f.cell(2, -4, 2);
-    f.player.teleport({ x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 });
+    f.player.teleport(cellCenter(feet));
     await f.menu("shape", "fillBelow");
     await f.menu("terrain", "confirm");
     const position = f.player.location;
@@ -2640,11 +2642,7 @@ async function aimControlTarget(
     maxDistance: BUILD_SPEC.reach,
   });
   check(
-    !!hit &&
-      hit.block.x === anchor.x &&
-      hit.block.y === anchor.y &&
-      hit.block.z === anchor.z &&
-      hit.face === Direction.Up,
+    !!hit && sameCell(hit.block, anchor) && hit.face === Direction.Up,
     `Expected anchor ${JSON.stringify(anchor)} Up; hit ${hit ? `${JSON.stringify(hit.block.location)} ${hit.face} ${hit.block.typeId}` : "nothing"}`,
   );
 }

@@ -5,7 +5,7 @@ import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
-import type { Cell } from "../../../domain/shared/cells";
+import { type Cell, cellCenter, cellOf } from "../../../domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import { decodeHost } from "../../../domain/shared/hosted";
@@ -52,11 +52,11 @@ export class RoofTentOccupants {
     const host = decodeHost(typeof hostMarker === "string" ? hostMarker : "");
     const yaw = spawnYaw ?? entity.getRotation().y;
     const direction = forward(yaw);
-    let exit = {
-      x: Math.floor(entity.location.x + direction.x * 2),
-      y: Math.floor(entity.location.y),
-      z: Math.floor(entity.location.z + direction.z * 2),
-    };
+    let exit = cellOf({
+      x: entity.location.x + direction.x * 2,
+      y: entity.location.y,
+      z: entity.location.z + direction.z * 2,
+    });
     const saved = entity.getDynamicProperty(ROOF_TENT_EXIT_PROPERTY);
     if (typeof saved === "string") {
       try {
@@ -228,10 +228,9 @@ export class RoofTentOccupants {
                 .getComponent("minecraft:riding")
                 ?.entityRidingOn?.getComponent("minecraft:rideable")
                 ?.ejectRider(occupant);
-              occupant.teleport(
-                { x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 },
-                { dimension: tent.dimension },
-              );
+              occupant.teleport(cellCenter(feet), {
+                dimension: tent.dimension,
+              });
               return;
             } catch {
               /* Unloaded terrain cannot be a safe exit. */

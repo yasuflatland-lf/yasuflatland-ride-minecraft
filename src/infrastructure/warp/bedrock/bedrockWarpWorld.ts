@@ -1,6 +1,6 @@
 import { type Block, type Dimension, world } from "@minecraft/server";
 import type { WarpWorld } from "../../../application/warp/ports/world";
-import type { Cell } from "../../../domain/shared/cells";
+import { type Cell, cellCenter, sameCell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import {
   isStandableLanding,
@@ -18,12 +18,7 @@ function isSolid(dimension: Dimension, cell: Cell): boolean {
     includeLiquidBlocks: false,
     includePassableBlocks: false,
   });
-  return (
-    block !== undefined &&
-    block.location.x === cell.x &&
-    block.location.y === cell.y &&
-    block.location.z === cell.z
-  );
+  return block !== undefined && sameCell(block.location, cell);
 }
 
 function sample(dimension: Dimension, cell: Cell, block: Block): LandingSample {
@@ -70,10 +65,9 @@ export class BedrockWarpWorld implements WarpWorld {
       const player = playerById(playerId);
       if (!player?.isValid) return false;
       // An unloaded target does not throw on BDS 1.26.63.1 (ADR 0249 probe); a throw still reports failure.
-      player.teleport(
-        { x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 },
-        { dimension: world.getDimension(dimensionId) },
-      );
+      player.teleport(cellCenter(feet), {
+        dimension: world.getDimension(dimensionId),
+      });
       return true;
     } catch {
       return false;

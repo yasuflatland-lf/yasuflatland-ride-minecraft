@@ -19,7 +19,7 @@ pnpm lint:fix      # apply Biome fixes
 pnpm run docs      # regenerate the ADR index
 pnpm lint:docs     # check ADR metadata, the generated index, and doc links
 pnpm lint:lang     # fail on Japanese/CJK text in tracked and unignored files
-pnpm lint:unused   # knip: fail on unused files, exports, and dependencies
+pnpm lint:unused   # knip: fail on unused files, exports, and dependencies, and on src code only tests use
 pnpm lint:deps     # dependency-cruiser: fail on imports that break the layer, feature, or kind rules
 pnpm typecheck     # tsc --noEmit
 pnpm test          # vitest + fast-check

@@ -1,6 +1,7 @@
-import { cellKey } from "../../../shared/cells";
+import { cellKey, sameCell } from "../../../shared/cells";
+import { quarterOf } from "../../../shared/facing";
 import type { Vec2, Vec3 } from "../../../shared/vec";
-import { type DecorPlacement, decorFace } from "../../dock/decor";
+import type { DecorPlacement } from "../../dock/decor";
 import type { DockCell, Face, HoldPose } from "../../dock/floor";
 import { decorSlot } from "./decor";
 import { pairItems, slotCells } from "./decorCells";
@@ -62,7 +63,7 @@ export function compartmentCells(
   shown: ReadonlySet<string>,
   doors: readonly StorageDoor[] = STORAGE_DOORS,
 ): CompartmentCell[] {
-  const face = decorFace(pose.yaw);
+  const face = quarterOf(pose.yaw);
   const groups = new Map<string, StorageDoor[]>();
   for (const door of doors) {
     const { x, z, layer } = door.compartment;
@@ -168,7 +169,7 @@ export function storagePressTarget<Id extends string>(
 ): { door: StorageDoor<Id>; onCompartment: boolean } | undefined {
   const at = (local: LocalCell) => {
     const c = localCellAt(pose, local);
-    return c.x === cell.x && c.y === cell.y && c.z === cell.z;
+    return sameCell(c, cell);
   };
   const door = doors.find(
     (d) =>

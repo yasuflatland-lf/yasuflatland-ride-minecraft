@@ -1,12 +1,12 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
+import { quarterOf } from "../../../../../src/domain/shared/facing";
 import {
   forward,
   leftOf,
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
-import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import { HANGING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import {
   cellTaken,
@@ -307,7 +307,7 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
           if (slot.pair?.kind === "drawers" || slot.id === "counter") {
             expect(compartment.block).toMatchObject({
               type: "drawers",
-              face: decorFace(p.yaw),
+              face: quarterOf(p.yaw),
               ...(slot.id === "counter" ? { counter: item } : {}),
             });
             continue;
@@ -315,7 +315,7 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
           expect(compartment.block).toEqual(
             compartmentBlock(
               defined(slot.door, "hinged compartment door"),
-              decorFace(p.yaw),
+              quarterOf(p.yaw),
               false,
               slot.height,
               {
@@ -373,7 +373,7 @@ it("lays one block per cell: the first placement in it, or the pair block with t
               return {
                 type: "decor",
                 item: item,
-                face: decorFace(p.yaw),
+                face: quarterOf(p.yaw),
                 height: s.height,
                 spot: s.spot ?? 0,
               };
@@ -381,7 +381,7 @@ it("lays one block per cell: the first placement in it, or the pair block with t
             return {
               type: "decorPair",
               pair: s.pair.kind,
-              face: decorFace(p.yaw),
+              face: quarterOf(p.yaw),
               height: s.height,
               ...Object.fromEntries(
                 ends.map((t) => [`end${t.pair?.end}`, item]),
@@ -828,7 +828,7 @@ it("lays a compartment block in every compartment, full or empty, with each end'
           expect(cell.block).toEqual(
             compartmentBlock(
               door,
-              decorFace(p.yaw),
+              quarterOf(p.yaw),
               shown.has(door),
               defined(ends[0], "end").height,
               Object.fromEntries(

@@ -42,21 +42,6 @@ export function formatResult(r: ResultLine): string {
   return `${r.verdict} ${r.name} ticks=${r.ticks}${r.lane === undefined ? "" : ` lane=${r.lane}`} ${r.detail}`;
 }
 
-export function resultOf(text: string): ResultLine | undefined {
-  const match =
-    /^(PASS|FAIL) ([a-z0-9_]+) ticks=(\d+)(?: lane=(\d+))? ([^\r\n]*)$/.exec(
-      text,
-    );
-  if (!match) return undefined;
-  return {
-    verdict: match[1] as Verdict,
-    name: match[2] ?? "",
-    ticks: Number(match[3]),
-    ...(match[4] === undefined ? {} : { lane: Number(match[4]) }),
-    detail: match[5] ?? "",
-  };
-}
-
 export interface PlanLine {
   readonly runs: number;
   readonly skipped: number;

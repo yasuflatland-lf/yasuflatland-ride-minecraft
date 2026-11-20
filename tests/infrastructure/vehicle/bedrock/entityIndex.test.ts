@@ -2,10 +2,7 @@ import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
-import {
-  DIMENSION_IDS,
-  type DimensionId,
-} from "../../../../src/infrastructure/shared/dimensions";
+import { DIMENSION_IDS } from "../../../../src/infrastructure/shared/dimensions";
 import {
   EntityIndex,
   loadedVehicleEntities,
@@ -14,6 +11,8 @@ import {
   PLAYER_TYPE,
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+
+type DimensionId = (typeof DIMENSION_IDS)[number];
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));

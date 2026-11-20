@@ -1,11 +1,12 @@
 // The fridge in place of the shelf: two doors hinged at its front end, a compartment behind
 // each, and plates in the aisle in the room's inside layers, all from the doored storage
 // mechanism (ADR 0121, 0123).
+
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
+import { quarterOf } from "../../../../../src/domain/shared/facing";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
 import type {
   DriveStep,
@@ -135,7 +136,7 @@ it("opens one fridge door per press, swings it in ten bounded steps each way, st
             // The items show while the door is open or still swinging shut.
             expect(blockAt(cells, f.compartment(door))).toEqual({
               type: "fridge",
-              face: decorFace(f.pose.yaw),
+              face: quarterOf(f.pose.yaw),
               height: HEIGHT[door],
               open: open || tick < SWING,
             });
@@ -211,7 +212,7 @@ it("takes back the item at the pressed end of an open compartment, and shuts the
         f.settle();
         expect(blockAt(f.step().dock?.cells, f.compartment(door))).toEqual({
           type: "fridge",
-          face: decorFace(f.pose.yaw),
+          face: quarterOf(f.pose.yaw),
           height: HEIGHT[door],
           open: false,
         });
@@ -242,7 +243,7 @@ it("places gear behind an open fridge door only, and lays it in the open compart
   f.step();
   expect(blockAt(f.step().dock?.cells, cell)).toEqual({
     type: "fridge",
-    face: decorFace(f.pose.yaw),
+    face: quarterOf(f.pose.yaw),
     height: HEIGHT.fridge_top,
     open: true,
     end0: "mug_pair",
@@ -299,7 +300,7 @@ it("shuts both fridge doors on departure past their own plates, keeps their item
     cells = f.step().dock?.cells ?? [];
   expect(blockAt(cells, f.compartment("fridge_bottom"))).toEqual({
     type: "fridge",
-    face: decorFace(f.pose.yaw),
+    face: quarterOf(f.pose.yaw),
     height: HEIGHT.fridge_bottom,
     open: false,
     end1: "toaster",
@@ -368,7 +369,7 @@ it("loads decor saved on the shelf boards at the same end of the fridge compartm
   const shut = f.step().dock?.cells;
   expect(blockAt(shut, f.compartment("fridge_top"))).toEqual({
     type: "fridge",
-    face: decorFace(f.pose.yaw),
+    face: quarterOf(f.pose.yaw),
     height: HEIGHT.fridge_top,
     open: false,
     end0: "photo_frame",
