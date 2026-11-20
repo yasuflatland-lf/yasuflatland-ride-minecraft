@@ -1,29 +1,12 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { HitTable } from "../../../src/application/camp/hitTable";
-import type { TableWorld } from "../../../src/application/camp/ports/table";
 import { asTableId } from "../../../src/domain/camp/table";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { fakeTableWorld as fakeWorld } from "./fakeTableWorld";
 
 const TABLE = asTableId("table");
 const PLAYER = asPlayerId("player");
-
-function fakeWorld(): TableWorld {
-  return {
-    itemsOnTable: vi.fn(() => 0),
-    showOvenOnTop: vi.fn(),
-    isAir: vi.fn(() => true),
-    isOwnBlock: vi.fn(() => false),
-    isVehicleSpace: vi.fn(() => false),
-    hasTableNear: vi.fn(() => false),
-    isCreative: vi.fn(() => false),
-    consumeItem: vi.fn(() => true),
-    spawnTable: vi.fn(),
-    dropItem: vi.fn(),
-    removeTable: vi.fn(),
-    showHitsLeft: vi.fn(),
-  };
-}
 
 describe("HitTable (ADR 0152)", () => {
   it("takes the table back on the third hit in a row, dropping one item", () => {
