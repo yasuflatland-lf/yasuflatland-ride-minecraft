@@ -41,6 +41,71 @@ const ENGINE_FIXED_FILES = new Set([
   "pack_icon.png",
 ]);
 
+const versionsBySuffix = new Map<string, string | number>([
+  [".ac.json", "1.10.0"],
+  [".anim.json", "1.8.0"],
+  [".block.json", "1.21.80"],
+  [".ce.json", "1.10.0"],
+  [".geo.json", "1.12.0"],
+  [".item.json", "1.21.80"],
+  [".particle.json", "1.10.0"],
+  [".rc.json", "1.8.0"],
+  [".recipe.json", "1.20.10"],
+  // On 1.21.0, falling could kill the bulldozer despite its damage sensor.
+  [".se.json", "1.21.80"],
+  [".texture_set.json", "1.16.100"],
+  ["manifest.json", 2],
+  ["item_catalog/crafting_item_catalog.json", "1.21.60"],
+  ["sounds/sound_definitions.json", "1.14.0"],
+]);
+
+const versionOverrides = new Map([
+  // ADR 0238 keeps the vanilla player definition at its upstream format.
+  ["yasu_ride_rp/entity/yasu_ride/player.ce.json", "1.26.0"],
+  // The Warp Block uses the direct custom component syntax.
+  ["yasu_ride_bp/blocks/yasu_build/warp_block.block.json", "1.21.100"],
+  // Vehicle chase cameras use the preset schema added in 1.21.40.
+  ["yasu_ride_bp/cameras/presets/yasu_ride/far_chase.json", "1.21.40"],
+  ["yasu_ride_bp/cameras/presets/yasu_ride/mid_chase.json", "1.21.40"],
+  // These recipes were authored against the newer version of the recipe schema.
+  ...["fire_pit", "gas_lantern", "dutch_oven", "toilet"].map(
+    (item) =>
+      [
+        `yasu_ride_bp/recipes/yasu_ride/${item}_item.recipe.json`,
+        "1.21.80",
+      ] as const,
+  ),
+]);
+
+const versionedFiles = PACKS.flatMap(({ folder }) =>
+  jsonFileEntries(join(REPO_ROOT, "packs", folder)).flatMap(
+    ({ path, json }) => {
+      const qualifiedPath = `${folder}/${path}`;
+      const expected =
+        versionOverrides.get(qualifiedPath) ??
+        [...versionsBySuffix].find(([suffix]) => path.endsWith(suffix))?.[1];
+      return expected !== undefined || json.format_version !== undefined
+        ? [{ path: qualifiedPath, actual: json.format_version, expected }]
+        : [];
+    },
+  ),
+);
+
+it("checks format versions for at least 354 pack files", () => {
+  expect(versionedFiles.length).toBeGreaterThanOrEqual(354);
+  expect(versionedFiles.map(({ path }) => path)).toEqual(
+    expect.arrayContaining([...versionOverrides.keys()]),
+  );
+});
+
+it.each(versionedFiles)(
+  "$path uses its expected format version",
+  ({ actual, expected }) => {
+    expect(expected, "add a format version rule for this file").toBeDefined();
+    expect(actual).toBe(expected);
+  },
+);
+
 interface Definition {
   kind: string;
   identifier: string;

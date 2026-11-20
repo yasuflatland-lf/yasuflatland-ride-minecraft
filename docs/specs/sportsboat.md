@@ -60,7 +60,7 @@
 - Agreement: Accepted
 - Basis: [0051](../adr/0051-sports-boat.md) Decision, "Mobs take ram damage; the boat and riders do not (0006)"; [0051](../adr/0051-sports-boat.md) Decision, "Use bones `root`, `body`, `headlights`, and `windshield`, with the front at -z and no logo or model name (0009)"
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json`, `src/domain/vehicle/kinds/sportsboat/profile.ts`, `src/domain/vehicle/vehicle.ts`, `packs/yasu_ride_rp/render_controllers/yasu_ride/sportsboat.rc.json`, `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`
-- Verification: `tests/packs/sportsboat.test.ts` "has a collision box 2.2 wide and 1.2 high", "has three hit boxes along the 6-block hull, since hits outside the square collision box miss", "takes no damage (ADR 0006)", "each paint event sets that paint's variant and drops the other paints"; `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "rams a target 3.2 blocks ahead at speed and not one 3.6 ahead, while an SUV at the same speed rams neither". Not verified: real rider damage and beam appearance on devices (manual B6-B8).
+- Verification: `tests/packs/sportsboat.test.ts` "has a collision box 2.2 wide and 1.2 high", "has three hit boxes along the 6-block hull, since hits outside the square collision box miss"; `tests/packs/paint.test.ts` checks every boat paint event; `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "rams a target 3.2 blocks ahead at speed and not one 3.6 ahead, while an SUV at the same speed rams neither". Not verified: real rider damage and beam appearance on devices (manual B6-B8).
 
 ### Buoyancy and horizontal liquid drive
 
@@ -96,7 +96,7 @@
 - Agreement: Proposed
 - Basis: [0150](../adr/0150-run-the-sports-boat-on-lava.md) Decision, "Make the hull and its dock seats fire immune. Refresh fire resistance and extinguish fire every tick for seated boat and dock-seat players. The effect lasts two ticks, so it ends shortly after dismounting."
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json`, `packs/yasu_ride_bp/entities/yasu_ride/deck_seat.se.json`, `src/application/vehicle/driveVehicles.ts`, `src/application/vehicle/riderEffects.ts`, `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts` (`protectFromFire`)
-- Verification: `tests/application/vehicle/driveVehicles.test.ts` "protects sports boat riders and occupied deck seats from fire each tick" checks requested effects; `tests/packs/deckSeat.test.ts` "takes no damage from any cause" checks deck-seat fire immunity. Not verified: actual damage, flames, effect expiry after dismount, or all four players on lava; `boat_lava` has no real riders and manual B23-B24 remain empty.
+- Verification: `tests/application/vehicle/driveVehicles.test.ts` "protects sports boat riders and occupied deck seats from fire each tick" checks requested effects; `tests/packs/entityComponents.test.ts` checks deck-seat fire immunity. Not verified: actual damage, flames, effect expiry after dismount, or all four players on lava; `boat_lava` has no real riders and manual B23-B24 remain empty.
 
 ### Beached reverse-only motion
 
@@ -240,7 +240,7 @@
 - Agreement: Proposed
 - Basis: [0165](../adr/0165-cylindrical-sports-boat-tower-speakers.md) Decision, "The speaker block no longer calls `disc()`."; [0165](../adr/0165-cylindrical-sports-boat-tower-speakers.md) Decision, "Make the back and hub solid."
 - Implementation: `tools/gen_sportsboat.py` (`speaker`, `cylinder`, `SPEAKER_SECTIONS`, `SPEAKER_SPOKES`, `SPEAKER_MOUNT`), `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`
-- Verification: `tests/packs/sportsboat.test.ts` "builds each speaker from 74 panels, 12 spokes and a mount", "contains only section panels, spokes and mounts within the existing bounds", "splits the round sections by swatch". Not verified: roundness, LED visibility or whether the four pod steps interrupt the taper on PC/mobile; the boat-specific manual B27 row is empty (the table also contains unrelated rows with reused B numbers).
+- Verification: `tests/packs/sportsboat.test.ts` "keeps both speakers within budget with 12 spokes and a mount each", "contains only section panels, spokes and mounts within the existing bounds", "splits the round sections by swatch". Not verified: roundness, LED visibility or whether the four pod steps interrupt the taper on PC/mobile; the boat-specific manual B27 row is empty (the table also contains unrelated rows with reused B numbers).
 
 ### Helm assemblies
 

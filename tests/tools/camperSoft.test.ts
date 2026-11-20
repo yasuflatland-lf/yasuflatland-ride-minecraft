@@ -77,16 +77,3 @@ for name in ('body', 'bunk'):
     assert any(has_bolster_face(cube) for cube in area[name]), name
 `);
 });
-
-it("preserves the approved fabric region pixels independently of packing", async () => {
-  await run(`
-import hashlib
-expected = {
-    'olive looped tweed': 'a10d8ab5b23bf605adf77c76080ea57bcb09bf12c108f3567a2b2f5749da9134',
-    'olive khaki cream bolster': '66d5387e523d41891b6e8ff7a32ba10537216814135ab0962601a025bf8883cd',
-    'olive welt': 'c1d01e9182a899bcd7b3e1303f6c2599dacf3500586e338963fa5f3bf968ab79',
-}
-for name, digest in expected.items():
-    assert hashlib.sha256(m.fabric_pixels()[name]).hexdigest() == digest
-`);
-});

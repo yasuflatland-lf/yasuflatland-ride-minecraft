@@ -116,7 +116,7 @@
 - Agreement: Proposed
 - Basis: [0215](../adr/0215-fit-the-suv-interior-to-the-rubicon-cabin.md) Decision, "Centre each rider in their half of the usable cabin"; "Put the front rider as far forward as the grown head permits"; "Put the rear rider as far back as the rear arch permits"; "Keep every rider 5.2 construction pixels ahead of the seat back."
 - Implementation: `tools/suv_dims.py`; `tools/gen_model.py`; `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json`; `src/domain/vehicle/kinds/suv/profile.ts`; `packs/yasu_ride_test_bp/entities/yasu_ride_test/seat_probe.se.json`
-- Verification: `tests/tools/suvDimensions.test.ts` "keeps scaled SUV dimensions with cabin-derived seat positions (ADR 0215)"; `tests/packs/behaviorPack.test.ts` "seat positions and order match SUV_PROFILE.seats.positions, with the driver's seat at 0 (ADR 0019)" and "the seat probe copies the SUV's rideable, but seats cows instead of players"; `tests/packs/model.test.ts` "keeps every seated torso clear of the body and doors except seat upholstery". Not verified: rider poses and legroom in game.
+- Verification: `tests/tools/suvDimensions.test.ts` "keeps scaled SUV dimensions with cabin-derived seat positions (ADR 0215)"; `tests/packs/entityContract.test.ts` checks the SUV seat positions and driver slot; `tests/packs/behaviorPack.test.ts` "the seat probe copies the SUV's rideable, but seats cows instead of players"; `tests/packs/model.test.ts` "keeps every seated torso clear of the body and doors except seat upholstery". Not verified: rider poses and legroom in game.
 
 ### Seat height
 

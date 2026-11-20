@@ -112,7 +112,7 @@ describe("SUV tail lights", () => {
 });
 
 describe("headlight switch (ADR 0020)", () => {
-  it("has a switch item with an icon, a name, and a recipe unlocked from the start", () => {
+  it("has a named switch item and crafts it from a lever and glowstone dust", () => {
     const item = read(
       "packs/yasu_ride_bp/items/yasu_ride/headlight_switch.item.json",
     )["minecraft:item"];
@@ -129,8 +129,10 @@ describe("headlight switch (ADR 0020)", () => {
     const recipe = read(
       "packs/yasu_ride_bp/recipes/yasu_ride/headlight_switch.recipe.json",
     )["minecraft:recipe_shapeless"];
-    expect(recipe.result.item).toBe(HEADLIGHT_SWITCH_TYPE);
-    expect(recipe.unlock).toEqual({ context: "AlwaysUnlocked" });
+    expect(recipe.ingredients).toEqual([
+      { item: "minecraft:lever" },
+      { item: "minecraft:glowstone_dust" },
+    ]);
   });
 });
 

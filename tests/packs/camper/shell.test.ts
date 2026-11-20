@@ -2,15 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { type Triple, turn } from "../../support/geometry";
 import { assertOneAxis, multipleAxes } from "../oneAxis";
-import {
-  bone,
-  bones,
-  type Cube,
-  cubeCenter,
-  geometry,
-  geometryText,
-  swatch,
-} from "./helpers";
+import { bone, bones, type Cube, cubeCenter, swatch } from "./helpers";
 
 describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
@@ -45,11 +37,6 @@ describe("camper model assets (ADR 0067)", () => {
     expect(assemblies.steering_lever.filter(multipleAxes)).toHaveLength(29);
     expect(assemblies.cab_seats).toHaveLength(464);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
-  });
-
-  it("uses the production geometry identifier with no test namespace", () => {
-    expect(geometry.description.identifier).toBe("geometry.yasu_ride.camper");
-    expect(geometryText).not.toContain("yasu_ride_test");
   });
 
   it("connects every standard bone to root without cycles", () => {

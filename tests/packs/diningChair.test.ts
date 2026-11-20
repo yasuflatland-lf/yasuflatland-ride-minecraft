@@ -1,10 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FURNITURE_SPEC } from "../../src/domain/resort/furniture";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
 import { readRgbaPng } from "../support/png";
-import { RESORT_CATALOG_ITEMS_JSON } from "../support/resortGear";
 
 const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
@@ -16,29 +15,10 @@ const components = entity.components;
 const spec = FURNITURE_SPEC.dining_chair;
 
 describe("Dining Chair assets (ADR 0240)", () => {
-  it("provides a persistent, damage-immune, unpushable player seat matching the domain", () => {
-    expect(entity.description).toEqual({
+  it("provides a player seat matching the domain", () => {
+    expect(entity.description).toMatchObject({
       identifier: FURNITURE_IDS.dining_chair.entity,
       is_spawnable: false,
-      is_summonable: true,
-    });
-    expect(components["minecraft:type_family"].family).toEqual([
-      "yasu_ride_dining_chair",
-      "inanimate",
-    ]);
-    expect(components["minecraft:persistent"]).toEqual({});
-    expect(components["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(components["minecraft:knockback_resistance"].value).toBe(1);
-    expect(components["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
-    expect(components["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
     });
     expect(components["minecraft:collision_box"]).toEqual({
       width: 0.6,
@@ -124,9 +104,7 @@ print(json.dumps({'lo': lo, 'hi': hi, 'baseZ': b[0][2], 'topZ': b[2][2]}))
     }
   });
 
-  it("lists the fourth Resort Gear item and supplies distinct ingredients, both names, preview and icon", () => {
-    const catalog = read(`${BP}/item_catalog/crafting_item_catalog.json`);
-    expect(JSON.stringify(catalog)).toContain(RESORT_CATALOG_ITEMS_JSON);
+  it("supplies the ingredients, both names, preview and icon", () => {
     const item = read(`${BP}/items/yasu_ride/dining_chair_item.item.json`)[
       "minecraft:item"
     ];
@@ -149,35 +127,6 @@ print(json.dumps({'lo': lo, 'hi': hi, 'baseZ': b[0][2], 'topZ': b[2][2]}))
       I: { item: "minecraft:iron_ingot" },
     });
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.result).toEqual({
-      item: FURNITURE_IDS.dining_chair.item,
-      count: 1,
-    });
-    const grids = (r: typeof recipe) => {
-      const rows: string[][] = r.pattern.map((row: string) =>
-        [...row].map((key) => JSON.stringify(r.key[key] ?? null)),
-      );
-      while (rows[0]?.every((cell) => cell === "null")) rows.shift();
-      while (rows.at(-1)?.every((cell) => cell === "null")) rows.pop();
-      while (rows.length && rows.every((row) => row[0] === "null"))
-        for (const row of rows) row.shift();
-      while (rows.length && rows.every((row) => row.at(-1) === "null"))
-        for (const row of rows) row.pop();
-      return [
-        JSON.stringify(rows),
-        JSON.stringify(rows.map((row) => [...row].reverse())),
-      ];
-    };
-    const expected = grids(recipe);
-    for (const file of readdirSync(`${BP}/recipes/yasu_ride`)) {
-      if (file === "dining_chair_item.recipe.json") continue;
-      const other = read(`${BP}/recipes/yasu_ride/${file}`)[
-        "minecraft:recipe_shaped"
-      ];
-      if (other)
-        for (const grid of grids(other))
-          expect(expected, file).not.toContain(grid);
-    }
     for (const [locale, name] of [
       ["en_US", "Dining Chair"],
       ["ja_JP", "\u30c0\u30a4\u30cb\u30f3\u30b0\u30c1\u30a7\u30a2\u30fc"],

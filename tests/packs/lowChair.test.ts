@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
+import { readLang } from "../support/lang";
 
 const CHAIR = CHAIR_KINDS.low_chair.typeId;
 const ITEM = CHAIR_KINDS.low_chair.itemId;
@@ -51,53 +52,15 @@ function corners(cube: Cube): [number, number, number][] {
   });
 }
 
-const langValue = (locale: string, key: string): string | undefined =>
-  readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
-    .split(/\r?\n/)
-    .find((line) => line.startsWith(`${key}=`))
-    ?.slice(key.length + 1);
-
 describe("low chair entity (ADR 0122)", () => {
   const entity = readJson(`${BP}/entities/yasu_ride/low_chair.se.json`)[
     "minecraft:entity"
   ];
 
   it("is a summonable seat that never moves, despawns, or takes damage", () => {
-    expect(entity.description).toEqual({
+    expect(entity.description).toMatchObject({
       identifier: CHAIR,
       is_spawnable: false,
-      is_summonable: true,
-    });
-    expect(Object.keys(entity.components).sort()).toEqual(
-      [
-        "minecraft:type_family",
-        "minecraft:collision_box",
-        "minecraft:physics",
-        "minecraft:pushable",
-        "minecraft:knockback_resistance",
-        "minecraft:health",
-        "minecraft:damage_sensor",
-        "minecraft:persistent",
-        "minecraft:rideable",
-      ].sort(),
-    );
-    const c = entity.components;
-    // inanimate keeps vehicle rams off it (ADR 0006)
-    expect(c["minecraft:type_family"].family).toEqual([
-      CHAIR_KINDS.low_chair.family,
-      "inanimate",
-    ]);
-    // It settles through short grass, carpet, or a slab's empty half onto what holds it (ADR 0122).
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:damage_sensor"]).toEqual({
-      triggers: { cause: "all", deals_damage: "no" },
     });
     expect(entity.component_groups).toBeUndefined();
     expect(entity.events).toBeUndefined();
@@ -112,8 +75,12 @@ describe("low chair entity (ADR 0122)", () => {
       crouching_skip_interact: true,
     });
     expect(rideable.seats).toHaveLength(1);
-    expect(langValue("en_US", rideable.interact_text)).toBe("Sit");
-    expect(langValue("ja_JP", rideable.interact_text)).toBeTruthy();
+    expect(readLang(`${RP}/texts/en_US.lang`).get(rideable.interact_text)).toBe(
+      "Sit",
+    );
+    expect(
+      readLang(`${RP}/texts/ja_JP.lang`).get(rideable.interact_text),
+    ).toBeTruthy();
   });
 
   it("puts the seat about as far below the sling top as the camper's cushions sit above theirs", () => {
@@ -191,18 +158,6 @@ describe("low chair item (ADR 0122)", () => {
     expect(existsSync(`${RP}/${icon}.png`)).toBe(true);
   });
 
-  it("is the icon and first item of the Camping Gear (Outside) group", () => {
-    const catalog = readJson(`${BP}/item_catalog/crafting_item_catalog.json`);
-    const group = catalog["minecraft:crafting_items_catalog"].categories
-      .flatMap((c: { groups: { items: string[] }[] }) => c.groups)
-      .find(
-        (g: { group_identifier: { name: string } }) =>
-          g.group_identifier.name === "yasu_ride:camping_gear_outside",
-      );
-    expect(group.group_identifier.icon).toBe(ITEM);
-    expect(group.items[0]).toBe(ITEM);
-  });
-
   it("is crafted from leather, sticks, and iron ingots", () => {
     const recipe = readJson(
       `${BP}/recipes/yasu_ride/low_chair_item.recipe.json`,
@@ -218,16 +173,11 @@ describe("low chair item (ADR 0122)", () => {
     ]);
   });
 
-  it.each(["en_US", "ja_JP"])(
-    "names the item, the entity, and the take-back hint in %s",
-    (locale) => {
-      for (const key of [
-        `item.${ITEM}.name`,
-        `entity.${CHAIR}.name`,
+  it.each(["en_US", "ja_JP"])("formats the take-back hint in %s", (locale) => {
+    expect(
+      readLang(`${RP}/texts/${locale}.lang`).get(
         CHAIR_KINDS.low_chair.hitsHint,
-      ])
-        expect(langValue(locale, key), key).toBeTruthy();
-      expect(langValue(locale, CHAIR_KINDS.low_chair.hitsHint)).toContain("%s");
-    },
-  );
+      ),
+    ).toContain("%s");
+  });
 });

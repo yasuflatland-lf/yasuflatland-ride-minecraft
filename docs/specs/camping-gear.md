@@ -60,7 +60,7 @@
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, Resort Gear catalog; [0144](../adr/0144-split-camping-gear-into-inside-and-outside-groups.md) Decision, "Keep `OUTSIDE_IDS` separate from `GEAR_IDS`"; [0173](../adr/0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) Decision 7, "The group icon stays `low_chair_item`."
 - Implementation: `tools/gen_item_catalog.py`; `tools/camping_gear.json`; `packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
-- Verification: `tests/packs/campingGear.test.ts` "lists the inside, outside, resort, sports boat, and building groups in order" asserts the current complete catalog; "keeps outside items separate from decor and each catalog item unique" checks separation and old-group removal. Not verified: generator rejection cases by those assertions, and the client inventory order (manual-test C159/C160 have no recorded result).
+- Verification: `tests/packs/creativeCatalog.test.ts` "lists all five creative groups and their items in order" checks the complete catalog, including the separate inside and outside groups and unique entries. Not verified: generator rejection cases by those assertions, and the client inventory order (manual-test C159/C160 have no recorded result).
 
 ### Inside gear dimensions
 
@@ -78,7 +78,7 @@
 - Agreement: Proposed
 - Basis: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) Rotation rule, Atlas layout, and cube budget.
 - Implementation: `tools/gear_items/cactus_pot.py`; `tools/gen_camping_gear.py`
-- Verification: `tests/packs/gearCactusPot.test.ts` checks geometry bounds, cube budget, rotations, UV ownership, and opacity. Client appearance remains unverified.
+- Verification: `tests/packs/gearItems.test.ts` checks geometry bounds, cube budget, rotations, UV ownership, and opacity. Client appearance remains unverified.
 
 ### Roof tent starter item
 
@@ -96,7 +96,7 @@
 - Agreement: Proposed
 - Basis: [0144](../adr/0144-split-camping-gear-into-inside-and-outside-groups.md) Decision, "never enter the box."; [0173](../adr/0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) Decision 2, "`LEGACY_GEAR_IDS = { lava_lamp: null, oil_lamp: null, lantern: null }`."
 - Implementation: `src/domain/vehicle/kinds/camper/campingGear.ts`; `src/domain/vehicle/kinds/camper/drive.ts` (constructor saved-decor decode); `src/infrastructure/vehicle/bedrock/identifiers.ts` (`GIFT_CONTENTS`, `GIFT_LORE`); `tools/camping_gear.json`; `packs/yasu_ride_bp/items/yasu_ride`
-- Verification: `tests/packs/campingGearBox.test.ts` "holds the gear items of the spec, in spec order" checks catalog order and item existence; "names the box and the lore line in English" checks lore. `tests/packs/campingGear.test.ts` "lists the items in the contract's order" checks catalog contents. `tests/domain/vehicle/kinds/camper/campingGear.test.ts` "drops lava_lamp, oil_lamp and lantern" checks the legacy decoder. Not verified by these tests: a saved world restoring removed decor without refunds, or the appearance of unknown held items on a client.
+- Verification: `tests/packs/campingGearBox.test.ts` "holds the gear items of the spec, in spec order" checks gift order and item existence; "names the box and the lore line in English" checks lore. `tests/packs/creativeCatalog.test.ts` checks catalog contents. `tests/domain/vehicle/kinds/camper/campingGear.test.ts` "drops lava_lamp, oil_lamp and lantern" checks the legacy decoder. Not verified by these tests: a saved world restoring removed decor without refunds, or the appearance of unknown held items on a client.
 
 ### Chair placement by kind
 
@@ -114,7 +114,7 @@
 - Agreement: Proposed
 - Basis: [0122](../adr/0122-a-low-chair-to-sit-on-outside-the-vehicles.md) Decision, "`minecraft:rideable` seats one player"; [0169](../adr/0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) Decision 3, "It never appears in the camping gear box and is never decor."
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/low_chair.se.json`; `packs/yasu_ride_bp/entities/yasu_ride/noga_chair.se.json`; `packs/yasu_ride_bp/items/yasu_ride/low_chair_item.item.json`; `packs/yasu_ride_bp/items/yasu_ride/noga_chair_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/low_chair_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/noga_chair_item.recipe.json`
-- Verification: `tests/packs/lowChair.test.ts` "seats one player with the Sit interaction" and "is crafted from leather, sticks, and iron ingots"; `tests/packs/nogaChair.test.ts` "provides a persistent, damage-proof one-player seat with gravity" and "uses a distinct wool-and-iron recipe". The Low Chair recipe test checks ingredients and output, not the exact pattern. Not verified: actual crafting, rider pose, look-induced rotation, and mobile Sit-button behavior.
+- Verification: `tests/packs/lowChair.test.ts` "seats one player with the Sit interaction" and "is crafted from leather, sticks, and iron ingots"; `tests/packs/nogaChair.test.ts` "provides one player seat matching the chair profile" and "uses a distinct wool-and-iron recipe". The Low Chair recipe test checks ingredients and output, not the exact pattern. Not verified: actual crafting, rider pose, look-induced rotation, and mobile Sit-button behavior.
 
 ### Chair take-back and test hits
 
@@ -141,7 +141,7 @@
 - Agreement: Proposed
 - Basis: [0185](../adr/0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) Decision 1, "The table has no seats"; [0185](../adr/0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) Decision 7, "Both ovens and lanterns count"
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/camp_table.se.json`; `src/application/camp/hitTable.ts`; `src/infrastructure/shared/tableTop/registry.ts`; `src/infrastructure/camp/bedrock/bedrockTableWorld.ts`
-- Verification: `tests/packs/campTable.test.ts` "has no seats and remains persistent with gravity"; `tests/application/camp/hitTable.test.ts` "takes the table back on the third hit in a row, dropping one item" and "leaves the table and its counter alone while either half holds an oven" (mocked count); `tests/infrastructure/shared/tableItems.test.ts` "returns ovens and lanterns standing on the table together, and no ground lantern". Not verified: a saved world's stale rider after seats were removed; `camp_table_no_seats` and `camp_table_lantern` scenarios were not run here.
+- Verification: `tests/packs/campTable.test.ts` "has no seats"; `tests/application/camp/hitTable.test.ts` "takes the table back on the third hit in a row, dropping one item" and "leaves the table and its counter alone while either half holds an oven" (mocked count); `tests/infrastructure/shared/tableItems.test.ts` "returns ovens and lanterns standing on the table together, and no ground lantern". Not verified: a saved world's stale rider after seats were removed; `camp_table_no_seats` and `camp_table_lantern` scenarios were not run here.
 
 ### Tabletop aim, fit, clearance, and payment
 
@@ -186,7 +186,7 @@
 - Agreement: Proposed
 - Basis: [0153](../adr/0153-a-polished-folding-fire-pit.md) Decision, "Any tap on a lit pit extinguishes it."; [0153](../adr/0153-a-polished-folding-fire-pit.md) Consequences, "The fire is visual"
 - Implementation: `src/application/camp/firePit.ts`; `src/domain/camp/firePit.ts`; `src/infrastructure/camp/bedrock/handlers/firePit.ts`; `src/infrastructure/camp/bedrock/bedrockFirePitWorld.ts`; `packs/yasu_ride_rp/render_controllers/yasu_ride/fire_pit.rc.json`
-- Verification: `tests/application/camp/firePit.test.ts` "requires ordinary flint and steel to light an unlit pit, then extinguishes on any tap" checks the wear request, not actual tool durability; `tests/infrastructure/camp/dutchOven.test.ts` "oven interactions win over pit interactions and dedupe before deferred placement" checks routing priority; `tests/packs/firePit.test.ts` "connects the persistent fire pit, synced flame state, model, and PBR atlas" checks visibility wiring. Not verified: rendered particles, durability on a live player, held-press behavior, or reflective appearance on a device; `fire_pit_ignition` was not run here.
+- Verification: `tests/application/camp/firePit.test.ts` "requires ordinary flint and steel to light an unlit pit, then extinguishes on any tap" checks the wear request, not actual tool durability; `tests/infrastructure/camp/dutchOven.test.ts` "oven interactions win over pit interactions and dedupe before deferred placement" checks routing priority; `tests/packs/firePit.test.ts` "connects the fire pit, synced flame state, model, and PBR atlas" checks visibility wiring. Not verified: rendered particles, durability on a live player, held-press behavior, or reflective appearance on a device; `fire_pit_ignition` was not run here.
 
 ### Fire Pit grill and recovery guard
 
@@ -204,7 +204,7 @@
 - Agreement: Proposed
 - Basis: [0168](../adr/0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) Rules 1, "the ground (the top of a block outside vehicle space), a Fire Pit"; [0185](../adr/0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) Decision 12, "Keep its single fixed oven spot and today's placement."
 - Implementation: `src/application/camp/dutchOven.ts`; `src/infrastructure/camp/bedrock/bedrockDutchOvenWorld.ts`; `packs/yasu_ride_bp/entities/yasu_ride/dutch_oven.se.json`; `packs/yasu_ride_bp/items/yasu_ride/dutch_oven_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/dutch_oven_item.recipe.json`
-- Verification: `tests/application/camp/dutchOven.test.ts` "places on the grill, consumes outside Creative, and covers the pit" and "refuses missing or covered pits, blocked clearance, vehicle space, and a changed item"; `tests/packs/dutchOven.test.ts` "crafts six iron and one coal into a stackable outside item after the fire pit". `tests/packs/dutchOvenHost.test.ts` "anchors hosted ovens and restores collision and gravity on host loss" checks event definitions only, not the current host-loss behavior. Not verified: placement and crafting on devices; `dutch_oven_on_pit` was not run here.
+- Verification: `tests/application/camp/dutchOven.test.ts` "places on the grill, consumes outside Creative, and covers the pit" and "refuses missing or covered pits, blocked clearance, vehicle space, and a changed item"; `tests/packs/dutchOven.test.ts` "crafts six iron and one coal into a stackable outside item". `tests/packs/dutchOvenHost.test.ts` "anchors hosted ovens and restores collision and gravity on host loss" checks event definitions only, not the current host-loss behavior. Not verified: placement and crafting on devices; `dutch_oven_on_pit` was not run here.
 
 ### Oven lid state, cooldown, and persistence
 
@@ -267,7 +267,7 @@
 - Agreement: Proposed
 - Basis: [0130](../adr/0130-a-tent-entity-whose-hits-land-on-its-blocks.md) Entity and hit surface, "No stand-ins are needed at any of the four yaws, and taps inside" (the sentence continues on the next line).
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/tent.se.json`; `src/infrastructure/camp/bedrock/handlers/tentHits.ts`; `src/infrastructure/camp/bedrock/bedrockTentWorld.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/infrastructure/shared/laidBlockGuard.ts`
-- Verification: `tests/packs/tent.test.ts` "declares exactly the spawn-time entity contract", "keeps the entity's hidden box and hit test in its base components", and "keeps the tiny hidden boxes whatever the footprint size"; `tests/infrastructure/camp/handlers.test.ts` "counts a player's hit on an owned tent block, and ignores other blocks and hitters". Not verified: hit accessibility at every heading and Creative break visuals on devices; `tent_entity_contract` was not run here.
+- Verification: `tests/packs/tent.test.ts` "declares the synced properties and tent-specific components", which covers the tiny base collision and hit boxes; `tests/infrastructure/camp/handlers.test.ts` "counts a player's hit on an owned tent block, and ignores other blocks and hitters". Not verified: hit accessibility at every heading and Creative break visuals on devices; `tent_entity_contract` was not run here.
 
 ### Tent layout and coordinate frames
 

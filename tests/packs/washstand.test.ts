@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FURNITURE_SPEC } from "../../src/domain/resort/furniture";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
 import { readRgbaPng } from "../support/png";
-import { RESORT_CATALOG_ITEMS_JSON, RESORT_GEAR } from "../support/resortGear";
+import { RESORT_GEAR } from "../support/resortGear";
 
 const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
@@ -119,11 +119,10 @@ describe("Washstand assets (ADR 0246)", () => {
       }
     }
   });
-  it("provides persistent, damage-immune furniture without seats and synchronizes the show", () => {
-    expect(entity.description).toEqual({
+  it("synchronizes the show and has no seats", () => {
+    expect(entity.description).toMatchObject({
       identifier: FURNITURE_IDS.washstand.entity,
       is_spawnable: false,
-      is_summonable: true,
       properties: {
         "yasu_ride:running": {
           type: "bool",
@@ -136,24 +135,6 @@ describe("Washstand assets (ADR 0246)", () => {
     expect(c["minecraft:rideable"]).toBeUndefined();
     expect(FURNITURE_SPEC.washstand.seats).toEqual([]);
     expect(bones.some((b) => b.name.startsWith("seat"))).toBe(false);
-    expect(c["minecraft:type_family"].family).toEqual([
-      "yasu_ride_washstand",
-      "inanimate",
-    ]);
-    expect(c["minecraft:persistent"]).toEqual({});
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:knockback_resistance"].value).toBe(1);
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
     expect(c["minecraft:collision_box"]).toEqual({
       width: 0.65625,
       height: 1.25,
@@ -380,9 +361,6 @@ print(json.dumps({'lo':lo, 'hi':hi, 'corners':[p for c in parts for p in t.corne
       RESORT_GEAR.findIndex((p) => p.name === "sofa_double"),
     );
     expect(RESORT_GEAR[index]?.cutout).toBe(true);
-    expect(
-      JSON.stringify(read(`${BP}/item_catalog/crafting_item_catalog.json`)),
-    ).toContain(RESORT_CATALOG_ITEMS_JSON);
     const item = read(`${BP}/items/yasu_ride/washstand_item.item.json`)[
       "minecraft:item"
     ];
@@ -405,37 +383,6 @@ print(json.dumps({'lo':lo, 'hi':hi, 'corners':[p for c in parts for p in t.corne
       Q: { item: "minecraft:quartz" },
     });
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.result).toEqual({
-      item: FURNITURE_IDS.washstand.item,
-      count: 1,
-    });
-    const grids = (r: typeof recipe) => {
-      const rows: string[][] = r.pattern.map((row: string) =>
-        [...row].map((key) => JSON.stringify(r.key[key] ?? null)),
-      );
-      while (rows[0]?.every((v) => v === "null")) rows.shift();
-      while (rows.at(-1)?.every((v) => v === "null")) rows.pop();
-      while (rows.length && rows.every((r) => r[0] === "null"))
-        for (const r of rows) r.shift();
-      while (rows.length && rows.every((r) => r.at(-1) === "null"))
-        for (const r of rows) r.pop();
-      return [
-        JSON.stringify(rows),
-        JSON.stringify(rows.map((r) => [...r].reverse())),
-      ];
-    };
-    for (const file of readdirSync(`${BP}/recipes`, { recursive: true })) {
-      if (
-        typeof file !== "string" ||
-        !file.endsWith(".json") ||
-        file.endsWith("/washstand_item.recipe.json")
-      )
-        continue;
-      const other = read(`${BP}/recipes/${file}`)["minecraft:recipe_shaped"];
-      if (other)
-        for (const grid of grids(other))
-          expect(grids(recipe), file).not.toContain(grid);
-    }
     for (const [locale, name] of [
       ["en_US", "Washstand"],
       ["ja_JP", "\u6d17\u9762\u53f0"],

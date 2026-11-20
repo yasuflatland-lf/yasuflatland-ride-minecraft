@@ -96,7 +96,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "with bones `root`, `body`, `headlights`, `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `seat_0`-`seat_3`, `door_entry`, and `steering` (0009)"; [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "This extends the bone contract of 0009 for the camper with `glass` and `door_glass`."
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `tools/gen_camper.py`; `tools/camper_kit.py`; area modules and final cube ranges are listed in [Model conventions and rendered previews](model-and-previews.md#camper-generator-modules)
-- Verification: `tests/packs/camper/shell.test.ts` "uses the production geometry identifier with no test namespace", "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
+- Verification: `tests/packs/layout.test.ts` "namespaces every definition identifier"; `tests/packs/camper/shell.test.ts` "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
 
 ### Glass material and draw order
 
@@ -240,7 +240,7 @@
 - Agreement: Proposed
 - Basis: [0147](../adr/0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md), [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md), [0190](../adr/0190-ribbed-camper-shell-atlas.md), [0193](../adr/0193-shared-texture-tooling.md).
 - Implementation: `tools/camper_mer.py`; `tools/lit_textures.py`; `tools/mer.py`; `tools/gen_camper.py`; `tools/texture_variants.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride/camper.texture_set.json`.
-- Verification: `tests/tools/mer.test.ts` exercises shifted region origins, exact material values, bounded lamp/mirror masks, hardware, gutters and opaque zero-emission interiors. `tests/packs/litTextures.test.ts` and `tests/packs/camperGlow.test.ts` check dimensions, texture-set binding and unchanged switched-pass contracts. Client highlights and diffuse fallback are not verifiable offline; no device acceptance is claimed. `tests/packs/camper/glass.test.ts` "binds existing textures with unique colour and MER content" checks that every bound texture exists and that no two bound paths share colour and MER bytes.
+- Verification: `tests/tools/mer.test.ts` exercises shifted region origins, exact material values, bounded lamp/mirror masks, hardware, gutters and opaque zero-emission interiors. `tests/packs/litTextures.test.ts` and `tests/packs/camperGlow.test.ts` check dimensions, texture-set binding and unchanged switched-pass contracts. Client highlights and diffuse fallback are not verifiable offline; no device acceptance is claimed. `tests/packs/references.test.ts` checks that every bound texture exists and that no two bound paths share colour and MER bytes.
 
 ## Open issues
 

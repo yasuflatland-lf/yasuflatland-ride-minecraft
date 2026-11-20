@@ -67,7 +67,6 @@ describe("Camper room blocks (ADR 0068)", () => {
     (name, identifier) => {
       const file = readBlock(name);
       const block = file["minecraft:block"];
-      expect(file.format_version).toBe("1.21.80");
       expect(block.description.identifier).toBe(identifier);
       expect(block.description.menu_category).toEqual({ category: "none" });
       expect(block.components["minecraft:geometry"]).toEqual({

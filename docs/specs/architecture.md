@@ -108,7 +108,7 @@
 - Agreement: Accepted
 - Basis: [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "`PAINTS` order is the saved `minecraft:variant` of every painted entity, the tent included, so its order never changes."
 - Implementation: `src/domain/shared/paint.ts`; `src/infrastructure/shared/dyes.ts`; `packs/yasu_ride_bp/entities/yasu_ride`; `packs/yasu_ride_rp/render_controllers/yasu_ride`
-- Verification: `tests/domain/shared/paint.test.ts` "preserves the saved variant order"; `tests/packs/paint.test.ts` "each paint event sets that paint's variant and drops the other paints" (SUV and tent describes). Not verified: loading a previously painted world in game.
+- Verification: `tests/domain/shared/paint.test.ts` "preserves the saved variant order"; `tests/packs/paint.test.ts` checks every paint event and variant in its table of paintable entities. Not verified: loading a previously painted world in game.
 
 ### Vehicle core, motion and kinds
 

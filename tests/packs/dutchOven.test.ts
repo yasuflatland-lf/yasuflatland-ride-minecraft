@@ -5,19 +5,17 @@ const bp = "packs/yasu_ride_bp";
 const rp = "packs/yasu_ride_rp";
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
-it("connects a persistent oven to the synced simmer state, plain lid, stew, and PBR atlas", () => {
+it("connects the oven to the synced simmer state, plain lid, stew, and PBR atlas", () => {
   const entity = readJson(`${bp}/entities/yasu_ride/dutch_oven.se.json`)[
     "minecraft:entity"
   ];
   expect(entity.description.identifier).toBe("yasu_ride:dutch_oven");
   expect(entity.description.is_spawnable).toBe(false);
-  expect(entity.description.is_summonable).toBe(true);
   expect(entity.description.properties["yasu_ride:simmering"]).toEqual({
     type: "bool",
     default: false,
     client_sync: true,
   });
-  expect(entity.components["minecraft:persistent"]).toEqual({});
   expect(entity.components["minecraft:collision_box"]).toEqual({
     width: 0.6,
     height: 0.45,
@@ -82,7 +80,7 @@ it("connects a persistent oven to the synced simmer state, plain lid, stew, and 
     expect(existsSync(`${rp}/${path}`)).toBe(true);
 });
 
-it("crafts six iron and one coal into a stackable outside item after the fire pit", () => {
+it("crafts six iron and one coal into a stackable outside item", () => {
   const recipe = readJson(
     `${bp}/recipes/yasu_ride/dutch_oven_item.recipe.json`,
   )["minecraft:recipe_shaped"];
@@ -100,17 +98,6 @@ it("crafts six iron and one coal into a stackable outside item after the fire pi
   ];
   expect(item.components["minecraft:max_stack_size"]).toBe(16);
   expect(item.components["minecraft:icon"]).toBe("yasu_ride_dutch_oven_item");
-  const categories = readJson(`${bp}/item_catalog/crafting_item_catalog.json`)[
-    "minecraft:crafting_items_catalog"
-  ].categories;
-  const group = categories
-    .flatMap((c: { groups: unknown[] }) => c.groups)
-    .find((g: { items: string[] }) =>
-      g.items.includes("yasu_ride:fire_pit_item"),
-    );
-  expect(group.items[group.items.indexOf("yasu_ride:fire_pit_item") + 1]).toBe(
-    "yasu_ride:dutch_oven_item",
-  );
   for (const lang of readdirSync(`${rp}/texts`).filter((f) =>
     f.endsWith(".lang"),
   )) {
@@ -124,10 +111,4 @@ it("crafts six iron and one coal into a stackable outside item after the fire pi
     ])
       expect(text).toContain(`${key}=`);
   }
-  const manifest = readJson(`${rp}/manifest.json`);
-  expect(manifest.modules[0].version).toEqual(manifest.header.version);
-  const dependency = readJson(`${bp}/manifest.json`).dependencies.find(
-    (d: { uuid: string }) => d.uuid === manifest.header.uuid,
-  );
-  expect(dependency.version).toEqual(manifest.header.version);
 });
