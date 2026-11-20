@@ -4,7 +4,6 @@ import {
   AREA_MARGIN,
   areaBounds,
   type Bounds,
-  chunksOf,
   inside,
   LANE_STRIDE,
   LOCAL_ARENA,
@@ -44,6 +43,13 @@ const bounds = fc
 const distinctLanes = fc
   .tuple(lane, lane)
   .filter(([a, b]) => a.index !== b.index);
+
+function chunksOf(b: Bounds): number {
+  return (
+    (Math.floor(b.maxX / 16) - Math.floor(b.minX / 16) + 1) *
+    (Math.floor(b.maxZ / 16) - Math.floor(b.minZ / 16) + 1)
+  );
+}
 
 function overlaps(a: Bounds, b: Bounds): boolean {
   return (

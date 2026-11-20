@@ -1,6 +1,7 @@
 import { type Cell, cellKey } from "../../domain/shared/cells";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import { ticks } from "../../domain/shared/ticks";
 import { WARP_SPEC } from "../../domain/warp/spec";
 import type { WarpBlockTaps } from "./ports/blockTaps";
 import type { WarpTicks } from "./ports/ticks";
@@ -49,7 +50,7 @@ export class TapWarpBlock {
     const taps = this.lastTaps.get(key) ?? new Map<PlayerId, number>();
     taps.set(playerId, now);
     this.lastTaps.set(key, taps);
-    await this.ticks.wait(WARP_SPEC.tapWindowTicks + 1);
+    await this.ticks.wait(ticks(WARP_SPEC.tapWindowTicks + 1));
     const pending = this.lastTaps.get(key);
     if (pending?.get(playerId) !== now) return false;
     pending.delete(playerId);
