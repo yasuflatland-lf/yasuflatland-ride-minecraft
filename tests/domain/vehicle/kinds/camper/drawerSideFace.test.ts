@@ -5,6 +5,7 @@ import {
   DRAWER_SPLIT_HEIGHT,
   drawerAtHeight,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 
 const pose = { x: 180.5, y: -60, z: 90.5, yaw: 0 };
 // Device cell (-2,-59,4) translated to the parked pose's counter cell, aisle +x.
@@ -26,7 +27,7 @@ function drive(top: boolean, bottom: boolean) {
     docked: true,
     drawer_top: top ? 1 : 0,
     drawer_bottom: bottom ? 1 : 0,
-    dockDecor: "[]",
+    [CAMPER_SAVED.decor]: "[]",
   });
   d.step(undefined, ctx(100));
   return d;

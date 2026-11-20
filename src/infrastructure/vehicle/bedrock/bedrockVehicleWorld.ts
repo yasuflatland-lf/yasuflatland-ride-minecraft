@@ -42,6 +42,7 @@ import type { DockLayer } from "./dockLayer";
 import { DropSweep } from "./dropSweep";
 import type { EntityIndex } from "./entityIndex";
 import { HeadlightBlocks } from "./headlightBlocks";
+import type { RestoredReaders } from "./restoredReaders";
 import { RoadPaver } from "./roadPaver";
 import { SeatFillers } from "./seatFillers";
 import { StandIns } from "./standIns";
@@ -66,6 +67,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     testHeldItems: VehicleTestStore<string>,
     campSpace: SpaceCheck,
     dockBlocks: DockLayer,
+    restoredReaders: RestoredReaders,
     isStandableRoomBlock: (typeId: string) => boolean,
   ) {
     const standIns = new StandIns();
@@ -89,6 +91,7 @@ export class BedrockVehicleWorld implements DriveWorld {
       testHeldItems,
       headlightBlocks,
       dockBlocks,
+      restoredReaders,
       deckSeats,
       seatFillers,
       helpers,

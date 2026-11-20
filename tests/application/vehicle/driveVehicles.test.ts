@@ -13,6 +13,7 @@ import type { RawInput } from "../../../src/domain/vehicle/driveInput";
 import { MONITOR_PROPERTY_NAME } from "../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
+  CAMPER_SAVED,
   createVehicle,
   entityContractOf,
   profileOf,
@@ -1580,7 +1581,7 @@ it("silently drops saved oil lamps and removed decor, and saves it after the nex
     snapshot("car", {
       kind: "camper",
       restored: () => ({
-        dockDecor: JSON.stringify([
+        [CAMPER_SAVED.decor]: JSON.stringify([
           { slot: "stove", item: "lava_lamp" },
           { slot: "table", item: "oil_lamp" },
         ]),

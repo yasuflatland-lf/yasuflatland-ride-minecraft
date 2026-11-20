@@ -49,6 +49,7 @@ import { systemClock } from "./bedrock/systemClock";
 import { DockBlocks } from "./kinds/camper/dockBlocks";
 import { isStandableRoomBlock } from "./kinds/camper/identifiers";
 import { installCamper } from "./kinds/camper/install";
+import { readCamperRestored } from "./kinds/camper/restored";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
 import { InMemoryVehicleRepository } from "./persistence/inMemoryVehicleRepository";
 import { VehicleTestStore } from "./testInput/vehicleTestStore";
@@ -81,6 +82,7 @@ export function installVehicles(deps: {
     testHeldItems,
     deps.isCampSpace,
     new DockBlocks(deps.isCampSpace),
+    { camper: readCamperRestored },
     isStandableRoomBlock,
   );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);

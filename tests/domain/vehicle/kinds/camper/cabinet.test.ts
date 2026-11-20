@@ -1,3 +1,4 @@
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 // The wall cabinet's two doors and the items behind them (ADR 0114).
 
 import fc from "fast-check";
@@ -252,7 +253,7 @@ it("restores each door's swing after a reload of a parked camper, and shuts it w
         const drive = new CamperDrive(37, {
           form: "car",
           docked,
-          dockLaid: true,
+          [CAMPER_SAVED.laid]: true,
           cabinet_sink_door: swing,
           cabinet_stove_door: 1 - swing,
         });
@@ -277,7 +278,7 @@ it("stores saved decor of a removed slot in a shut cabinet once every open spot 
   );
   const full = open.map((s) => ({ slot: s.id, item: "mug_pair" }));
   const drive = new CamperDrive(0, {
-    dockDecor: JSON.stringify([
+    [CAMPER_SAVED.decor]: JSON.stringify([
       ...full,
       { slot: "wall_cabinet_front", item: "book_stack" },
     ]),

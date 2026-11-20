@@ -1,7 +1,7 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
 import type { Vec2, Vec3 } from "../shared/vec";
 import type { CutColumn } from "./cut";
-import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
+import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { RawInput } from "./driveInput";
 import type { Pave } from "./pave";
 
@@ -43,14 +43,11 @@ export type EngineCommand =
 
 /**
  * Values read back when an aggregate is rebuilt (ADR 0021, 0055): the entity
- * properties the kind's entity contract lists in `restored`, plus the dock
- * values infrastructure reads from the vehicle's dynamic properties (laid
- * cells, decor; DOCK_RESTORED, ADR 0068, 0093).
- * K narrows the keys to one kind's restored list; the default accepts any key
- * at the boundary.
+ * properties the kind's contract lists, plus any values the kind's
+ * infrastructure reader adds. The default accepts any key at the boundary.
  */
 export type RestoredValues<K extends string = string> = Readonly<
-  Partial<Record<K | DockRestoredKey, string | number | boolean>>
+  Partial<Record<K, string | number | boolean>>
 >;
 
 export interface RiderState {

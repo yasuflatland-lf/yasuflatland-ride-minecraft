@@ -355,10 +355,6 @@ export function savedDock(vehicle: Entity): {
 }
 
 export class DockBlocks implements DockLayer {
-  saved(vehicle: Entity): ReturnType<DockLayer["saved"]> {
-    return savedDock(vehicle);
-  }
-
   private readonly layer = new CellLayer<VehicleId, DockBlock>(
     DOCK_CODEC,
     DOCK_RECHECK_TICKS,

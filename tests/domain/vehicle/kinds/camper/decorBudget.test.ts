@@ -12,6 +12,7 @@ import {
   localCellAt,
   parkPose,
 } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { rebuildVehicle } from "../../../../../src/domain/vehicle/kinds/index";
 import {
@@ -88,7 +89,7 @@ it("refuses an overflowing placement before consuming survival gear and preserve
   expect(Buffer.byteLength(saved)).toBe(CAMPER_SPEC.decorMaxBytes);
   const car = rebuildVehicle("camper", asVehicleId("car"), 0, [], {
     docked: true,
-    dockDecor: saved,
+    [CAMPER_SAVED.decor]: saved,
   });
   stillTick(car, 100);
   const room = defined(car.asRoom(), "room");

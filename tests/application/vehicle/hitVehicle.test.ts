@@ -4,6 +4,7 @@ import { HitVehicle } from "../../../src/application/vehicle/hitVehicle";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { DECOR_CELLS } from "../../../src/domain/vehicle/kinds/camper/decor";
 import {
+  CAMPER_SAVED,
   createVehicle,
   fleetLimitOf,
   rebuildVehicle,
@@ -152,7 +153,7 @@ describe("HitVehicle (ADR 0008)", () => {
     ];
     const repo = new InMemoryRepo();
     const car = rebuildVehicle("camper", asVehicleId("car"), 0, [], {
-      dockDecor: JSON.stringify(saved),
+      [CAMPER_SAVED.decor]: JSON.stringify(saved),
     });
     repo.save(car);
     const world = new FakeWorld();

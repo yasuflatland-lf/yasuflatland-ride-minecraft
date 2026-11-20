@@ -3,16 +3,6 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { DockCell, HoldPose } from "./floor";
 
-/** Values infrastructure reads from the vehicle's dynamic properties (laid cells, decor), not entity properties. */
-export const DOCK_RESTORED = {
-  laid: "dockLaid",
-  doorOpen: "dockDoorOpen",
-  decor: "dockDecor",
-} as const;
-
-export type DockRestoredKey =
-  (typeof DOCK_RESTORED)[keyof typeof DOCK_RESTORED];
-
 /** Present only while a drive holds its vehicle; a kind that never holds never returns one. */
 export interface Dock {
   readonly hold: HoldPose;

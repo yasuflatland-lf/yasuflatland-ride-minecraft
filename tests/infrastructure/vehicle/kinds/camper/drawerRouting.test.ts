@@ -8,6 +8,7 @@ import type { PressStorage } from "../../../../../src/application/vehicle/pressS
 import type { RemoveDecor } from "../../../../../src/application/vehicle/removeDecor";
 import { asVehicleId } from "../../../../../src/domain/shared/ids";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/index";
 import { registerDecor } from "../../../../../src/infrastructure/vehicle/kinds/camper/handlers/decor";
 import { pairDecorBlockId } from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 
@@ -56,7 +57,9 @@ function fixture(
     docked: true,
     drawer_top: top ? 1 : 0,
     drawer_bottom: bottom ? 1 : 0,
-    dockDecor: full ? '[{"slot":"drawer_bottom_0","item":"mug_pair"}]' : "[]",
+    [CAMPER_SAVED.decor]: full
+      ? '[{"slot":"drawer_bottom_0","item":"mug_pair"}]'
+      : "[]",
   });
   drive.step(undefined, {
     tick: 10,

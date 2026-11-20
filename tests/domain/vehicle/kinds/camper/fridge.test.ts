@@ -1,3 +1,4 @@
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 // The fridge in place of the shelf: two doors hinged at its front end, a compartment behind
 // each, and plates in the aisle in the room's inside layers, all from the doored storage
 // mechanism (ADR 0121, 0123).
@@ -332,7 +333,7 @@ it("restores each fridge door's swing after a reload of a parked camper, and shu
         const drive = new CamperDrive(37, {
           form: "car",
           docked,
-          dockLaid: true,
+          [CAMPER_SAVED.laid]: true,
           fridge_top_door: swing,
           fridge_bottom_door: 1 - swing,
         });
@@ -358,7 +359,7 @@ it("loads decor saved on the shelf boards at the same end of the fridge compartm
     { slot: "shelf_high", item: "photo_frame" },
     { slot: "shelf_high_front", item: "mug_pair" },
   ];
-  const f = fixture(0, { dockDecor: JSON.stringify(saved) });
+  const f = fixture(0, { [CAMPER_SAVED.decor]: JSON.stringify(saved) });
   expect(f.drive.decor()).toEqual([
     { slot: "fridge_bottom_rear", item: "book_stack" },
     { slot: "fridge_bottom_front", item: "cushion" },

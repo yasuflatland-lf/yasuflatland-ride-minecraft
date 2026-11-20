@@ -13,6 +13,7 @@ import {
   axes,
   localCellAt,
 } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import {
   DRAWER_GEAR_IDS,
   DRAWER_HIT_PROFILE as HIT,
@@ -297,7 +298,7 @@ it("closes both drawers on departure and after an undocked reload, keeping saved
         };
         const parked = new CamperDrive(0, {
           docked: true,
-          dockDecor: JSON.stringify(saved),
+          [CAMPER_SAVED.decor]: JSON.stringify(saved),
           ...{ drawer_top: 1, drawer_bottom: 1 },
         });
         const initial = parked.step(undefined, ctx);
@@ -334,7 +335,7 @@ it("closes both drawers on departure and after an undocked reload, keeping saved
         expect(parked.decor()).toEqual(saved);
         const restored = new CamperDrive(0, {
           docked: false,
-          dockDecor: JSON.stringify(saved),
+          [CAMPER_SAVED.decor]: JSON.stringify(saved),
           ...{ drawer_top: 1, drawer_bottom: 1 },
         });
         expect(restored.decor()).toEqual(saved);
@@ -360,7 +361,9 @@ it("preserves unknown saved slot ids when all known slots are occupied", () => {
         item: s.hanging ? "macrame_planter" : "mug_pair",
       }));
       saved.push({ slot: decorSlotId(unknown), item: decorItemId("mug_pair") });
-      const restored = new CamperDrive(0, { dockDecor: JSON.stringify(saved) });
+      const restored = new CamperDrive(0, {
+        [CAMPER_SAVED.decor]: JSON.stringify(saved),
+      });
       expect(restored.decor()).toContainEqual({
         slot: unknown,
         item: "mug_pair",
@@ -458,7 +461,7 @@ it("refuses a decor placement before consuming its item when preserved save entr
   }));
   const unknown = { slot: `future_${"x".repeat(32700)}`, item: "mug_pair" };
   const restored = new CamperDrive(0, {
-    dockDecor: JSON.stringify([...known, unknown]),
+    [CAMPER_SAVED.decor]: JSON.stringify([...known, unknown]),
   });
   // Keep the unknown entry stowed while freeing one known slot for the attempted placement.
   expect(restored.setDecor(decorSlotId("counter"), undefined)).toBe(true);
