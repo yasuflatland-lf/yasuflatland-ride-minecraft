@@ -129,7 +129,7 @@ export class BulldozerDrive extends TransformingDrive {
   private readonly bladeSync = new SyncedValue<number>();
   private wideBlade: boolean;
   private readonly wideSync = new SyncedValue<boolean>();
-  /** Whether the road paver switch is on; saved but not yet acted on until the paving rule lands (ADR 0181). */
+  /** Whether the road paver switch is on; while on and driven, step paves (ADR 0181). */
   private roadPaverOn: boolean;
   private readonly roadPaverSync = new SyncedValue<boolean>();
   private readonly phaseSync = {
