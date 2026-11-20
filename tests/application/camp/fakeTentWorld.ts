@@ -74,8 +74,21 @@ export class FakeTentWorld implements TentWorld {
   returnTentItem(tentId: TentId, playerId: PlayerId | undefined): void {
     this.calls.push(["returnTentItem", tentId, playerId]);
   }
-  takeDown(tentId: TentId): void {
-    this.calls.push(["takeDown", tentId]);
+  entityLoaded(tentId: TentId): boolean {
+    this.calls.push(["entityLoaded", tentId]);
+    return true;
+  }
+  unlayBlocks(tentId: TentId): void {
+    this.calls.push(["unlayBlocks", tentId]);
+  }
+  clearBlocksByPose(tentId: TentId): void {
+    this.calls.push(["clearBlocksByPose", tentId]);
+  }
+  clearTentBlocks(dimensionId: DimensionId, cells: readonly Cell[]): void {
+    this.calls.push(["clearTentBlocks", dimensionId, cells]);
+  }
+  removeTent(tentId: TentId): void {
+    this.calls.push(["removeTent", tentId]);
   }
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void {
     this.calls.push(["showHitsLeft", playerId, hitsLeft]);
