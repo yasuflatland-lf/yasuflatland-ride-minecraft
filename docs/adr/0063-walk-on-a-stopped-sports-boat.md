@@ -27,7 +27,7 @@ Getting into a seat from the deck failed through the boat itself. On touch, a sh
 
 ## Consequences
 
-- A parked sports boat writes up to 17 floor blocks and spawns up to four deck seats while it floats still. The spike measured 13 to 16 cells at a 30 degree heading; sweeping the cell-center rule over every heading and sub-cell offset gives 10 to 17, with 17 at a heading of 0. They are cleared when the boat leaves, breaks, or is removed by the vehicle limit (0038).
+- A parked sports boat always has a floor, and a deck seat at each boat seat without a rider, while it floats still, so a parked boat now writes up to 17 blocks and spawns up to four extra entities. The spike measured 13 to 16 cells at a 30 degree heading; sweeping the cell-center rule over every heading and sub-cell offset gives 10 to 17, with 17 at a heading of 0. They are cleared when the boat leaves, breaks, or is removed by the vehicle limit (0038).
 - Players standing on the deck when the boat sets off fall into the water when the floor is cleared.
 - A seated rider may move to a lower seat on departure (see Setting off from the deck).
 - A deck-seat rider who did not fit in the boat is left on the deck when the boat sets off, and falls into the water like a player standing on it.
