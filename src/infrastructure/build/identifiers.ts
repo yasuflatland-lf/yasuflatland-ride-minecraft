@@ -83,6 +83,8 @@ export const BUILD_FORM = {
   roofTitle: "yasu_build.form.roof_title",
   stairs: "yasu_build.form.stairs",
   stairContentsTitle: "yasu_build.form.stair_contents_title",
+  stairPassage: "yasu_build.form.stair_passage",
+  stairFillBelow: "yasu_build.form.stair_fill_below",
   stepsOnly: "yasu_build.form.stair_steps_only",
   utilityTitle: "yasu_build.form.title",
   height: "yasu_build.form.height",
