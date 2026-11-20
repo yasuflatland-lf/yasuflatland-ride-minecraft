@@ -25,6 +25,7 @@ The driver also asked for the light to reach three times as far, ahead of the ve
 - The headlight switch gets `minecraft:use_modifiers` with `use_duration` 0.1 s and `movement_modifier` 1.0, so a tap counts as a use and holding it does not slow the player
 - The switch flips only when it has been idle for `SPEC.headlightSwitchCooldown` (now 10 ticks) since the driver's previous use, whether or not that use flipped it. A burst of repeated uses from one touch flips once; two taps need half a second between them. This replaces the cooldown rule of 0020
 - `SPEC.headlightReach` becomes 4, 9, 15, 21, and 27 blocks ahead of the vehicle's center: three times the old 9, still in a single line straight ahead. The light blocks sit one block above the vehicle's feet, so midway between two of them 6 blocks apart the road surface is 4 steps away and gets level 11; heading diagonally, the floored cells spread up to 8 steps apart and the midpoint gets level 10 (corrected under Consequences: 10 steps and level 9)
+- Clearing a light stays pending when `Dimension.getBlock` throws or returns `undefined`. On a dimension change, `CellLayer` keeps pending clears in the old dimension and retries them on later ticks, even while the vehicle is live in its new dimension
 
 ## Consequences
 
@@ -33,6 +34,6 @@ The driver also asked for the light to reach three times as far, ahead of the ve
 - The cells stay one block above the ground the vehicle stands on (0020). On a slope, the far cells can end up inside the ground, where no light is placed, or high above a dip. Revisit by following the terrain if this shows on real roads
 - A driver who taps the switch twice within half a second only flips it once
 - A tap with the vehicle item on the top of any block never opens or uses that block, even when there is no room for the vehicle
-- When a light cell's chunk is unloaded, `Dimension.getBlock` may return `undefined` instead of throwing. Clearing now keeps such a cell for a later tick in both cases; before, an `undefined` counted as cleared and could leave the light block behind, which the longer reach makes more likely
+- A longer beam reaches unloaded chunks more often. Pending clears can finish when those chunks become readable again
 - The item handling is still covered only by unit tests and the manual test
 - Correction (2026-10-23): the diagonal figures above were wrong. Flooring both cells can spread two of them 10 steps apart, so at headings about 30 to 33 and 42 to 48 degrees off an axis (and their mirrors) one road cell between them gets level 9, not 10. A brute force over heading and position puts such a cell in about 0.9% of vehicle positions and 0.03% of lit road cells. The reach stays as decided: keeping 10 everywhere needs 5-block spacing, which shortens the reach to 24 blocks or adds a sixth light block per tick, for a difference the driver cannot see
