@@ -5,6 +5,7 @@ import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
 import { handleHit } from "../shared/takeBackByHits";
 import type { TentWorld } from "./ports/tent";
+import { removeTent } from "./removeTent";
 
 interface TakeDownTentCommand {
   tentId: TentId;
@@ -26,10 +27,10 @@ export class TakeDownTent {
     }
     let takenDown = false;
     handleHit(this.hits, cmd.tentId, cmd.tick, {
-      // Before takeDown: without a player the item drops where the tent is.
+      // The playerless refund needs the entity or registry location.
       drop: () => this.world.returnTentItem(cmd.tentId, cmd.playerId),
       remove: () => {
-        this.world.takeDown(cmd.tentId);
+        removeTent(this.world, cmd.tentId);
         takenDown = true;
       },
       showRemaining: (left) => {

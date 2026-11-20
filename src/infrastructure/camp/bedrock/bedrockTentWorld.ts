@@ -143,16 +143,40 @@ export class BedrockTentWorld
     this.layout.returnTentItem(tentId, playerId);
   }
 
-  takeDown(tentId: TentId, legacy?: TentEntry): void {
-    this.layout.takeDown(tentId, legacy);
+  entityLoaded(tentId: TentId): boolean {
+    return this.layout.entityLoaded(tentId);
+  }
+
+  unlayBlocks(tentId: TentId): void {
+    this.layout.unlayBlocks(tentId);
+  }
+
+  clearBlocksByPose(tentId: TentId): void {
+    this.layout.clearBlocksByPose(tentId);
+  }
+
+  clearTentBlocks(dimensionId: DimensionId, cells: readonly Cell[]): void {
+    this.layout.clearTentBlocks(dimensionId, cells);
+  }
+
+  removeTent(tentId: TentId): void {
+    this.layout.removeTent(tentId);
   }
 
   listTents(): readonly TentEntry[] {
     return this.layout.listTents();
   }
 
-  foldInto(entry: TentEntry): "folded" | "deferred" {
-    return this.layout.foldInto(entry);
+  anchorLoaded(entry: TentEntry): boolean {
+    return this.layout.anchorLoaded(entry);
+  }
+
+  ejectPlayers(
+    dimensionId: DimensionId,
+    cells: readonly Cell[],
+    exit: Cell,
+  ): void {
+    this.layout.ejectPlayers(dimensionId, cells, exit);
   }
 
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void {

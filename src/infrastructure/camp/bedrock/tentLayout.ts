@@ -5,10 +5,7 @@ import {
   world,
 } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import {
-  isTentBlockTypeId,
-  legacyTentClearCells,
-} from "../../../domain/camp/legacyTent";
+import { isTentBlockTypeId } from "../../../domain/camp/legacyTent";
 import { TENT_LAYOUT_VERSION } from "../../../domain/camp/spec";
 import {
   asTentId,
@@ -21,7 +18,6 @@ import {
   type TentId,
   type TentPose,
   tentBlockAt,
-  tentCellAt,
   tentCells,
   tentClearCells,
   tentEntityLocation,
@@ -212,44 +208,35 @@ export class TentLayout {
       );
   }
 
-  takeDown(tentId: TentId, legacy?: TentEntry): void {
-    const tent = tentEntityOf(tentId);
-    const entry = this.entryOf(tentId);
+  entityLoaded(tentId: TentId): boolean {
+    return tentEntityOf(tentId) !== undefined;
+  }
+
+  unlayBlocks(tentId: TentId): void {
     // Cells the layer holds in unloaded chunks are left to the loop's clearGone.
-    this.deps.blocks.lay(tentId, tent, []);
-    // Hits count from the registry before the entity loads after /reload or a
-    // restart, and the layer then holds nothing for the tent: clear its loaded
-    // cells by pose. Cells in chunks still unloaded are cleared from the
-    // entity's saved cells when it loads as an orphan.
-    if (legacy) {
-      for (const cell of legacyTentClearCells(legacy.pose))
-        this.clearTentBlock(legacy.dimensionId, cell);
-    } else if (!tent && entry) this.clearByPose(entry);
-    this.removeTent(tentId);
+    this.deps.blocks.lay(tentId, tentEntityOf(tentId), []);
   }
 
   listTents(): readonly TentEntry[] {
     return this.deps.registry.all();
   }
 
-  foldInto(entry: TentEntry): "folded" | "deferred" {
+  anchorLoaded(entry: TentEntry): boolean {
     const dimension = dimensionById(entry.dimensionId);
-    if (!dimension || !chunkLoadedAt(dimension, entry.pose)) return "deferred";
-    this.ejectOccupants(entry);
-    // The playerless refund needs the entity or registry location before removal.
-    this.returnTentItem(entry.id, undefined);
-    this.takeDown(entry.id, entry);
-    return "folded";
+    return dimension !== undefined && chunkLoadedAt(dimension, entry.pose);
   }
 
-  private ejectOccupants(entry: TentEntry): void {
-    const dimension = dimensionById(entry.dimensionId);
+  ejectPlayers(
+    dimensionId: DimensionId,
+    cells: readonly Cell[],
+    exit: Cell,
+  ): void {
+    const dimension = dimensionById(dimensionId);
     if (!dimension) return;
-    const cells = new Set(legacyTentClearCells(entry.pose).map(cellKey));
-    const exit = tentCellAt(entry.pose, { x: 0, depth: -1, layer: 0 });
+    const cellKeys = new Set(cells.map(cellKey));
     for (const player of dimension.getPlayers()) {
       const feet = player.location;
-      if (!cells.has(cellKey(cellOf(feet)))) continue;
+      if (!cellKeys.has(cellKey(cellOf(feet)))) continue;
       player
         .getComponent("minecraft:riding")
         ?.entityRidingOn?.getComponent("minecraft:rideable")
@@ -259,20 +246,28 @@ export class TentLayout {
     }
   }
 
-  private clearTentBlock(dimensionId: DimensionId, cell: Cell): void {
+  clearTentBlocks(dimensionId: DimensionId, cells: readonly Cell[]): void {
+    for (const cell of cells) this.clearTentBlock(dimensionId, cell);
+  }
+
+  clearTentBlock(dimensionId: DimensionId, cell: Cell): void {
     const block = safeBlockAt(dimensionById(dimensionId), cell);
     if (isTentBlockTypeId(block?.typeId)) block?.setType(AIR_BLOCK);
   }
 
-  private removeTent(tentId: TentId): void {
+  removeTent(tentId: TentId): void {
     const tent = tentEntityOf(tentId);
     this.deps.registry.remove(tentId);
     this.deps.flaps.forget(tentId);
     tent?.remove();
   }
 
-  private clearByPose(entry: TentEntry): void {
+  clearBlocksByPose(tentId: TentId): void {
+    const entry = this.entryOf(tentId);
+    if (!entry) return;
     const dimension = dimensionById(entry.dimensionId);
+    // Still-unloaded cells are cleared from the entity's saved cells when it
+    // loads as an orphan.
     // Open or closed, lit or not, a flap or lantern cell holds the same block
     // id, so the pitched state finds it.
     for (const c of tentCells(entry.pose, PITCHED_STATE)) {
