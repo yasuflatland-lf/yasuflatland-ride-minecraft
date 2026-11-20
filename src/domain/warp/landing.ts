@@ -1,17 +1,33 @@
 import type { Cell } from "../shared/cells";
+import { add3 } from "../shared/vec";
+import { WARP_SPEC } from "./spec";
+
+function landingOffsets(): readonly Cell[] {
+  const { landingRadius, landingRises } = WARP_SPEC;
+  const offsets: Cell[] = [];
+  for (let x = -landingRadius; x <= landingRadius; x++) {
+    for (let z = -landingRadius; z <= landingRadius; z++) {
+      for (const y of landingRises) {
+        if (x !== 0 || z !== 0 || y !== 0) offsets.push({ x, y, z });
+      }
+    }
+  }
+  const distanceSquared = ({ x, y, z }: Cell) => x * x + y * y + z * z;
+  const ownColumn = ({ x, z }: Cell) => Number(x === 0 && z === 0);
+  return offsets.sort(
+    (a, b) =>
+      distanceSquared(a) - distanceSquared(b) ||
+      ownColumn(b) - ownColumn(a) ||
+      a.y - b.y ||
+      a.x - b.x ||
+      a.z - b.z,
+  );
+}
+
+const LANDING_OFFSETS = landingOffsets();
 
 export function landingCandidates(cell: Cell): readonly Cell[] {
-  const sides = [
-    { x: cell.x + 1, y: cell.y, z: cell.z },
-    { x: cell.x - 1, y: cell.y, z: cell.z },
-    { x: cell.x, y: cell.y, z: cell.z + 1 },
-    { x: cell.x, y: cell.y, z: cell.z - 1 },
-  ];
-  return [
-    { ...cell, y: cell.y + 1 },
-    ...sides,
-    ...sides.map((side) => ({ ...side, y: side.y + 1 })),
-  ];
+  return LANDING_OFFSETS.map((offset) => add3(cell, offset));
 }
 
 export function chooseLanding(

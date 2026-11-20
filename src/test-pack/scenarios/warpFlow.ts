@@ -161,11 +161,11 @@ export async function warpFlow(a: Arena): Promise<Outcome> {
         await list.run(command.playerId);
         checkWarp(
           sameWarpPosition(player.location, {
-            x: point.cell.x + 1.5,
+            x: point.cell.x - 0.5,
             y: point.cell.y,
             z: point.cell.z + 0.5,
           }),
-          "blocked top must teleport to east side",
+          "blocked top must teleport to west side",
         );
         const taps = new TapWarpBlock(
           new BedrockWarpBlockTaps(),

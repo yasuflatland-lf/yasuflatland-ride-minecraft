@@ -8,7 +8,7 @@ function warp(e: ReturnType<typeof setup>) {
   return new WarpTo(e.store, e.world, e.feedback, e.ticks);
 }
 
-it("teleports to a standable side in the target dimension or falls back above", async () => {
+it("teleports two blocks away in the target dimension or falls back above", async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.boolean(),
@@ -20,7 +20,7 @@ it("teleports to a standable side in the target dimension or falls back above", 
           cell: { x, y: 70, z: -3 },
         };
         const e = setup({ points: [target] });
-        const side = { ...target.cell, x: x + 1 };
+        const side = { ...target.cell, x: x + 2 };
         if (safe) e.world.standable.add(JSON.stringify([nether, side]));
         await warp(e).run(player, target.id);
         expect(e.world.teleports).toEqual([
