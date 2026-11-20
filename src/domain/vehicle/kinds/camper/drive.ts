@@ -16,10 +16,10 @@ import type { HoldPose } from "../../dock/floor";
 import type { RoomDrive } from "../../dock/roomDrive";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
-import { DOCK, heldStep, pushesStick } from "../../motion/dock";
+import { DOCK, heldStep, pushesStick, StillTimer } from "../../motion/dock";
 import {
+  DockedResend,
   dockCommands,
-  dockedCommand,
   undockCommands,
 } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
@@ -112,16 +112,14 @@ const CAMPER_ENDS: BodyEnds = {
 export class CamperDrive extends TransformingDrive implements RoomDrive {
   private parked: HoldPose | undefined;
   private restoredDocked: boolean;
-  private resendDocked = false;
-  // Until the drive first holds, the entity keeps its default docked value and needs no resend.
-  private heldOnce = false;
+  private readonly dockedResend = new DockedResend();
   private readonly restoredLaid: boolean;
   // False on the parking tick: its teleport and dock event take effect only at
   // the end of the tick, and a floor laid under a body that still collides would
   // push it up (ADR 0068).
   private roomLaid = false;
   private pendingClear: readonly ClearCell[] = [];
-  private stillTicks = 0;
+  private readonly still = new StillTimer();
   private parkTried = false;
   private stickWasPushed = false;
   private doorOpen: boolean;
@@ -569,7 +567,7 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
 
   override resync(): void {
     super.resync();
-    this.resendDocked = this.heldOnce;
+    this.dockedResend.resync();
     this.doorStepSync.resync();
     this.showerDoorStepSync.resync();
     this.showerSync.resync();
@@ -582,14 +580,10 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     const wasParked = this.parked !== undefined || this.restoredDocked;
     const step = this.stepCamper(raw, ctx);
     const held = this.parked !== undefined;
-    this.heldOnce ||= held;
-    if (!this.resendDocked) return step;
-    this.resendDocked = false;
-    // The docked property goes out only when the camper parks or departs, so after a failed
-    // send it goes out again unless this step docks or departs and sends it anyway (ADR 0156).
-    return held === wasParked
-      ? { ...step, commands: [...step.commands, dockedCommand(held)] }
-      : step;
+    const resend = this.dockedResend.next(wasParked, held);
+    return resend === undefined
+      ? step
+      : { ...step, commands: [...step.commands, resend] };
   }
 
   private stepCamper(raw: RawInput | undefined, ctx: TickContext): DriveStep {
@@ -653,13 +647,8 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
       ctx.onGround &&
       !pushed &&
       Math.abs(this.speed) < DOCK.maxSpeed;
-    if (!still) {
-      this.stillTicks = 0;
-      this.parkTried = false;
-      return this.withProperties(step);
-    }
-    this.stillTicks = Math.min(this.stillTicks + 1, DOCK.ticks);
-    if (this.stillTicks < DOCK.ticks || this.parkTried)
+    if (!still) this.parkTried = false;
+    if (!this.still.tick(still) || this.parkTried)
       return this.withProperties(step);
     this.parkTried = true;
     const pose = parkPose(ctx.location, this.yaw);
@@ -698,7 +687,7 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     this.parked = pose;
     this.pendingClear = clear;
     this.roomLaid = false;
-    this.stillTicks = 0;
+    this.still.reset();
     this.parkTried = false;
     this.restartAt(pose.yaw);
   }

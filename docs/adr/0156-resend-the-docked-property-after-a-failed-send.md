@@ -16,7 +16,7 @@ A held sports boat also skips its `trim` and `roll` latches: the held step retur
 - After `resync()`, the next step of a sports boat or camper drive appends the `docked` property with its current held state, once.
 - A step that docks or departs already sends the property in its dock or undock commands, so it sends nothing extra.
 - A drive that has never held sends nothing, so the entity keeps its default value and no new property is written.
-- Each kind keeps its own flag in its drive (0050); the shared `dockedCommand` in `motion/dockEntity.ts` builds the command.
+- Each holding drive owns a `DockedResend` from `motion/dockEntity.ts` (0050). It tracks the pending resend and builds the docked command. The drive appends any kind-specific resends.
 - On that step a held sports boat also resends `trim` and `roll` through their `SyncedValue`s, so both go out once with their held value of 0. A held step without a resync still sends no attitude. The camper has no attitude to resend.
 - The dock and undock events stay one-shot, as 0127 decided. Only the property is resent.
 
