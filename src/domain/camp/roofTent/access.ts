@@ -1,5 +1,5 @@
 import type { RoofTentMount } from "../../shared/roofTent";
-import { forward, leftOf, type Vec3 } from "../../shared/vec";
+import { distanceXZ, forward, leftOf, type Vec3 } from "../../shared/vec";
 import { ROOF_TENT_SPEC } from "../spec";
 
 export function entranceWorld(
@@ -21,8 +21,7 @@ export function canReachEntrance(
 ): boolean {
   const entrance = entranceWorld(mount, host);
   return (
-    Math.hypot(player.x - entrance.x, player.z - entrance.z) <=
-      ROOF_TENT_SPEC.entranceReach &&
+    distanceXZ(player, entrance) <= ROOF_TENT_SPEC.entranceReach &&
     ((mount.ladder &&
       Math.abs(player.y - host.location.y) <= ROOF_TENT_SPEC.entranceBand) ||
       Math.abs(player.y - (host.location.y + mount.roofHeight)) <=
@@ -39,7 +38,7 @@ function nearLadderFoot(
   const entrance = entranceWorld(mount, host);
   return (
     mount.ladder &&
-    Math.hypot(player.x - entrance.x, player.z - entrance.z) <= radius &&
+    distanceXZ(player, entrance) <= radius &&
     Math.abs(player.y - host.location.y) <= ROOF_TENT_SPEC.entranceBand
   );
 }

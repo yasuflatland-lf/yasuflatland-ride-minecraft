@@ -4,9 +4,18 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
 import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
-export interface FirePitWorld extends HitsLeftFeedback, GroundCellsWorld {
+import type { ItemPayment } from "../../shared/ports/itemPayment";
+
+export interface FirePitWorld
+  extends HitsLeftFeedback,
+    GroundCellsWorld,
+    ItemPayment {
   hasFirePitNear(dimension: DimensionId, at: Vec3): boolean;
-  spawnFirePit(dimension: DimensionId, at: Vec3, yaw: number): void;
+  spawnFirePit(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): FirePitId | undefined;
   isCovered(id: FirePitId): boolean;
   setCovered(id: FirePitId, covered: boolean): void;
   showCoveredHint(player: PlayerId): void;

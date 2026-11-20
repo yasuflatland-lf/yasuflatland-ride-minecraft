@@ -5,7 +5,7 @@ import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import { FakeRoofTentWorld, PLAYER } from "./fakeRoofTentWorld";
 
-const { hitsToFoldUp: hits, hitResetTicks: window } = ROOF_TENT_SPEC;
+const { hits, resetTicks: window } = ROOF_TENT_SPEC.recovery;
 
 describe("FoldRoofTent", () => {
   it("requires the configured consecutive hits and returns before removing", () => {

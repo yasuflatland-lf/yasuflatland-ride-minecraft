@@ -1,4 +1,4 @@
-import { SwitchCooldowns } from "../../../shared/switchCooldown";
+import { Debounces } from "../../../shared/debounce";
 import type { Vec3 } from "../../../shared/vec";
 import { CAMPER_SPEC } from "./spec";
 
@@ -28,12 +28,10 @@ export function seatSlotCell(
  * time, so one long-press places one item (ADR 0024, 0097).
  */
 export class SeatPresses<K> {
-  private readonly cooldowns = new SwitchCooldowns<K>(
-    CAMPER_SPEC.seatPressIdleTicks,
-  );
+  private readonly cooldowns = new Debounces<K>(CAMPER_SPEC.seatPressIdleTicks);
 
   /** Records a press by `player` at `tick`; true when it starts a new press. */
   press(tick: number, player: K): boolean {
-    return this.cooldowns.tryUse(player, tick);
+    return this.cooldowns.press(player, tick);
   }
 }

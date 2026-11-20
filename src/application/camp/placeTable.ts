@@ -3,10 +3,11 @@ import { tableCells, tableYaw } from "../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop } from "../shared/groundPlacement";
+import { placePaid } from "../shared/paidPlacement";
 import type { TableWorld } from "./ports/table";
 
 interface PlaceTableCommand {
-  playerId: PlayerId;
+  playerId?: PlayerId;
   dimensionId: DimensionId;
   blockLocation: Vec3;
   yaw: number;
@@ -40,12 +41,8 @@ export class PlaceTable {
       z: cmd.blockLocation.z + (Math.abs(yaw) % 180 === 0 ? 0.5 : 1),
     };
     if (this.world.hasTableNear(cmd.dimensionId, at)) return false;
-    if (
-      !this.world.isCreative(cmd.playerId) &&
-      !this.world.consumeItem(cmd.playerId, cmd.slot)
-    )
-      return false;
-    this.world.spawnTable(cmd.dimensionId, at, yaw);
-    return true;
+    return placePaid(this.world, { player: cmd.playerId, slot: cmd.slot }, () =>
+      this.world.spawnTable(cmd.dimensionId, at, yaw),
+    ).placed;
   }
 }

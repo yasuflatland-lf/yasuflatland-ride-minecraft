@@ -130,3 +130,28 @@ describe("placing a camp table", () => {
     expect(place.canUseBlock(dimensionId, block, "up")).toBe(false);
   });
 });
+
+it.each(["Survival", "Creative", "playerless"])(
+  "refunds only a paid Camp Table item when spawning fails (%s)",
+  (mode) => {
+    const world = fakeWorld(true);
+    world.isCreative.mockReturnValue(mode === "Creative");
+    const payer = mode === "playerless" ? undefined : playerId;
+    expect(
+      new PlaceTable(world).execute({
+        playerId: payer,
+        dimensionId,
+        blockLocation: { x: 0, y: 60, z: 0 },
+        yaw: 0,
+        slot: 3,
+      }),
+    ).toBe(false);
+    expect(world.spawnTable).toHaveBeenCalledOnce();
+    expect(world.consumeItem.mock.calls).toEqual(
+      mode === "Survival" ? [[payer, 3]] : [],
+    );
+    expect(world.refund.mock.calls).toEqual(
+      mode === "Survival" ? [[payer, 3]] : [],
+    );
+  },
+);

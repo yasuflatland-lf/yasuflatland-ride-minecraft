@@ -163,6 +163,7 @@ export function installCamp(deps: {
     roofHosts.lookup,
     new BedrockBedWorld({ player: playerById }),
     deps.isVehicleSpace,
+    (d, c) => tents.isCampSpace(d, c),
   );
   const roofTents = new BedrockRoofTentWorld({
     isVehicleSpace: deps.isVehicleSpace,

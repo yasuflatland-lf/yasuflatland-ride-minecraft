@@ -1,16 +1,20 @@
 // Implements ChairWorld with @minecraft/server (ADR 0012, 0122).
+
 import { ItemStack, world } from "@minecraft/server";
 import type { ChairWorld } from "../../../application/camp/ports/chair";
-import type { ChairId, ChairKindId } from "../../../domain/camp/chair";
+import {
+  asChairId,
+  type ChairId,
+  type ChairKindId,
+} from "../../../domain/camp/chair";
 import { cellCenter } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { safeBlockAt } from "../../shared/blocks";
-import { entityOfType } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { BedrockGroundCells } from "../../shared/groundCells";
 import {
   consumeHeld,
-  isCreative,
+  giveOrDrop,
   playerById,
   showHitsLeftHint,
 } from "../../shared/players";
@@ -26,40 +30,21 @@ function chairOf(chairId: ChairId) {
   return entityOfType(world, chairId, CHAIR_KIND_BY_TYPE);
 }
 
-function blockAt(dimensionId: DimensionId, at: Vec3) {
-  try {
-    return safeBlockAt(world.getDimension(dimensionId), at);
-  } catch {
-    return undefined; // Unknown dimension id
+export class BedrockChairWorld
+  extends BedrockGroundCells
+  implements ChairWorld
+{
+  constructor(vehicles: {
+    isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+  }) {
+    super((dimension, cell) => vehicles.isVehicleSpace(dimension, cell));
   }
-}
-
-export class BedrockChairWorld implements ChairWorld {
-  constructor(
-    private readonly vehicles: {
-      isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
-    },
-  ) {}
 
   kindOf(chairId: ChairId): ChairKindId | undefined {
     const chair = chairOf(chairId);
     return chair === undefined
       ? undefined
       : CHAIR_KIND_BY_TYPE.get(chair.typeId);
-  }
-
-  isAir(dimensionId: DimensionId, at: Vec3): boolean {
-    return blockAt(dimensionId, at)?.isAir === true;
-  }
-
-  isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean {
-    return this.vehicles.isVehicleSpace(dimensionId, cell);
-  }
-
-  isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean {
-    return (
-      blockAt(dimensionId, at)?.typeId.startsWith(`${NAMESPACE}:`) === true
-    );
   }
 
   hasChairAt(kind: ChairKindId, dimensionId: DimensionId, cell: Vec3): boolean {
@@ -76,10 +61,6 @@ export class BedrockChairWorld implements ChairWorld {
     }
   }
 
-  isCreative(playerId: PlayerId): boolean {
-    return isCreative(playerById(playerId));
-  }
-
   consumeChairItem(
     kind: ChairKindId,
     playerId: PlayerId,
@@ -92,16 +73,25 @@ export class BedrockChairWorld implements ChairWorld {
     );
   }
 
+  refundChairItem(kind: ChairKindId, playerId: PlayerId): void {
+    const player = playerById(playerId);
+    if (player)
+      giveOrDrop(player, [new ItemStack(CHAIR_KINDS[kind].itemId, 1)]);
+  }
+
   spawnChair(
     kind: ChairKindId,
     dimensionId: DimensionId,
     at: Vec3,
     yaw: number,
-  ): void {
-    const chair = world
-      .getDimension(dimensionId)
-      .spawnEntity(CHAIR_KINDS[kind].typeId, at);
-    chair.setRotation({ x: 0, y: yaw });
+  ): ChairId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimensionId),
+      CHAIR_KINDS[kind].typeId,
+      at,
+      yaw,
+    );
+    return entity && asChairId(entity.id);
   }
 
   isOccupied(chairId: ChairId): boolean {

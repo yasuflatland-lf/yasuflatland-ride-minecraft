@@ -70,7 +70,8 @@ it.each(["lantern", "oven"] as const)(
         yaw: 0,
       })),
       itemsOnTop: () => [],
-      spawnHosted: vi.fn(),
+      refund: vi.fn(),
+      spawnHosted: vi.fn(() => kind),
       relayLoaded: vi.fn(),
     };
     kind === "lantern"

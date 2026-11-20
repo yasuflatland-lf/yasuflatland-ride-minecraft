@@ -11,6 +11,7 @@ import type {
   PlayerId,
   VehicleId,
 } from "../../../domain/shared/ids";
+import type { Ticks } from "../../../domain/shared/ticks";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { CutColumn } from "../../../domain/vehicle/cut";
 import type {
@@ -259,8 +260,8 @@ export class BedrockVehicleWorld implements DriveWorld {
     this.effects.setChaseCamera(playerId, chase);
   }
 
-  giveWaterBreathing(playerId: PlayerId, ticks: number): void {
-    this.effects.giveWaterBreathing(playerId, ticks);
+  giveWaterBreathing(playerId: PlayerId, duration: Ticks): void {
+    this.effects.giveWaterBreathing(playerId, duration);
   }
 
   protectFromFire(playerId: PlayerId): void {

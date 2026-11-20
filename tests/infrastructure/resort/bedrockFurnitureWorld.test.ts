@@ -12,6 +12,7 @@ import {
   FURNITURE_IDS,
   FURNITURE_TOP_CELLS,
 } from "../../../src/infrastructure/resort/identifiers";
+import * as blocks from "../../../src/infrastructure/shared/blocks";
 
 import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
@@ -234,6 +235,14 @@ describe("furniture top blocks", () => {
       isVehicleSpace,
     };
   }
+  it("delegates the support check to the shared solid-top read", () => {
+    const { adapter } = fixture();
+    const at = { x: 1, y: 2, z: 3 };
+    const support = vi.spyOn(blocks, "isSolidTop").mockReturnValueOnce(true);
+    expect(adapter.isSolidTop(dimensionId, at)).toBe(true);
+    expect(support).toHaveBeenCalledExactlyOnceWith(dimensionId, at);
+    support.mockRestore();
+  });
   it("blocks only owned destination cells overlapping hosted gear", () => {
     const f = fixture();
     f.adapter.layTop(id);

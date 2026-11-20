@@ -1,3 +1,4 @@
+import { GEAR_RECOVERY } from "../shared/hitCounter";
 import type { Paint } from "../shared/paint";
 import { ticks } from "../shared/ticks";
 
@@ -34,9 +35,7 @@ export const PARASOL_SPEC = Object.freeze({
   /** Smallest Chebyshev distance between two bases, in blocks. */
   minBaseDistance: 2,
   /** Hits in a row that fold the parasol back into its item, as for camp gear (ADR 0008). */
-  hitsToTakeBack: 3,
-  /** A gap longer than this, in ticks, starts the hit count again. */
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
   /** How often, in ticks, loaded parasols lay their rain ceiling again. */
   ceilingSyncTicks: ticks(20),
   defaultPaint: "white" satisfies Paint,
@@ -70,9 +69,7 @@ export const BEACH_CHAIR_SPEC = Object.freeze({
   /** Layers of air needed above the floor so a lying player fits. */
   headroom: 2,
   /** Hits in a row that take the chair back, as for camp gear (ADR 0008). */
-  hitsToTakeBack: 3,
-  /** A gap longer than this, in ticks, starts the hit count again. */
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
   /** How often, in ticks, the leaning pose is sent again for late viewers. */
   poseRefreshTicks: ticks(20),
   /** Cells to the right of the middle cell; one clears the one-cell-wide bed. */

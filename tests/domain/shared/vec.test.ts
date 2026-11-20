@@ -1,19 +1,24 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  add3,
   approach,
   clampLength,
   degToRad,
+  distance3,
   distanceSq,
+  distanceToRectXZ,
   distanceXZ,
   dot,
   forward,
   leftOf,
   length,
+  length3,
   localOffset,
   localPoint,
   normalizeYaw,
   rightOf,
+  sub3,
 } from "../../../src/domain/shared/vec";
 import { toLocal } from "../../../src/domain/vehicle/seats";
 
@@ -246,6 +251,80 @@ describe("distances", () => {
         expect(distanceXZ(a, b)).toBe(Math.hypot(a.x - b.x, a.z - b.z));
         const above = { ...a, y: b.y };
         expect(distanceXZ(a, above)).toBe(0);
+      }),
+    );
+  });
+});
+
+describe("3D vectors and rectangles", () => {
+  const n = fc.integer({ min: -10000, max: 10000 });
+  const v = fc.record({ x: n, y: n, z: n });
+  const p = fc.record({ x: n, z: n });
+  it("reverses addition and measures symmetric 3D distance", () => {
+    fc.assert(
+      fc.property(v, v, (a, b) => {
+        expect(sub3(add3(a, b), b)).toEqual(a);
+        expect(distance3(a, b)).toBe(length3(sub3(a, b)));
+        expect(distance3(a, b)).toBe(distance3(b, a));
+      }),
+    );
+  });
+  it("is zero inside and measures distance to an outside corner", () => {
+    fc.assert(
+      fc.property(p, p, p, (a, b, point) => {
+        const r = {
+          minX: Math.min(a.x, b.x),
+          maxX: Math.max(a.x, b.x),
+          minZ: Math.min(a.z, b.z),
+          maxZ: Math.max(a.z, b.z),
+        };
+        const inside = {
+          x: Math.max(r.minX, Math.min(r.maxX, point.x)),
+          z: Math.max(r.minZ, Math.min(r.maxZ, point.z)),
+        };
+        expect(distanceToRectXZ(inside, r)).toBe(0);
+        if (
+          (point.x < r.minX || point.x > r.maxX) &&
+          (point.z < r.minZ || point.z > r.maxZ)
+        )
+          expect(distanceToRectXZ(point, r)).toBe(distanceXZ(point, inside));
+      }),
+    );
+  });
+  it("matches the former ground gap and bumper formulas", () => {
+    const d = fc.double({ min: -100, max: 100, noNaN: true });
+    fc.assert(
+      fc.property(d, d, d, d, d, d, (x, z, px, pz, boxZ, halfRaw) => {
+        const half = Math.abs(halfRaw);
+        const point = { x: px, z: pz };
+        const gap = Math.hypot(
+          Math.max(x - px, 0, px - (x + 1)),
+          Math.max(z - pz, 0, pz - (z + 1)),
+        );
+        expect(
+          Math.abs(
+            distanceToRectXZ(point, {
+              minX: x,
+              maxX: x + 1,
+              minZ: z,
+              maxZ: z + 1,
+            }) - gap,
+          ),
+        ).toBeLessThanOrEqual(1e-12);
+        const bumper = Math.hypot(
+          Math.max(x - half - px, 0, px - (x + half)),
+          Math.max(boxZ - half - pz, 0, pz - boxZ - half),
+        );
+        expect(
+          Math.abs(
+            distanceToRectXZ(point, {
+              minX: x - half,
+              maxX: x + half,
+              minZ: boxZ - half,
+              maxZ: boxZ + half,
+            }) - bumper,
+          ),
+        ).toBeLessThanOrEqual(1e-12);
       }),
     );
   });

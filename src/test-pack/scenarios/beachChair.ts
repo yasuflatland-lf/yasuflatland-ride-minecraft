@@ -107,7 +107,7 @@ export async function beachChairTakeBack(a: Arena): Promise<Outcome> {
     await wait(2);
     const entity = near(BEACH_CHAIR)[0];
     if (!entity) return { pass: false, detail: "chair not placed" };
-    for (let hit = 0; hit < BEACH_CHAIR_SPEC.hitsToTakeBack - 1; hit++) {
+    for (let hit = 0; hit < BEACH_CHAIR_SPEC.recovery.hits - 1; hit++) {
       system.sendScriptEvent(TEST_BEACH_CHAIR_HIT, entity.id);
       await wait(2);
     }

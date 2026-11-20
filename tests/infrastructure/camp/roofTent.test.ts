@@ -187,7 +187,12 @@ beforeEach(() => {
     isLiquid: false,
     setPermutation: vi.fn(),
   }));
-  occupants = new BedrockRoofTentOccupantWorld(host, bed as never, () => false);
+  occupants = new BedrockRoofTentOccupantWorld(
+    host,
+    bed as never,
+    () => false,
+    () => false,
+  );
   tents = new BedrockRoofTentWorld({
     isVehicleSpace: () => false,
     isCampSpace: () => false,
@@ -685,7 +690,12 @@ it("rebuilds saved occupant state and rejects vehicle-space exit candidates", ()
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
   occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   const space = vi.fn((_d: unknown, cell: { x: number }) => cell.x === 3);
-  const restored = new BedrockRoofTentOccupantWorld(host, bed as never, space);
+  const restored = new BedrockRoofTentOccupantWorld(
+    host,
+    bed as never,
+    space,
+    () => false,
+  );
   restored.remember(tent as never);
   expect(restored.occupantOf(asRoofTentId("tent"))).toBe("cow");
   expect(restored.spawnSetters(asRoofTentId("tent"))).toEqual([PLAYER]);
@@ -807,6 +817,51 @@ it.each([true, false])(
     );
   },
 );
+
+it.each(["head in vehicle space", "feet in camp space"] as const)(
+  "skips an exit with %s and uses the next safe cell",
+  (obstruction) => {
+    const tent = spawn();
+    const p = player();
+    const atEntrance = (cell: Cell) => cell.x === 3 && cell.z === 0;
+    const adapter = new BedrockRoofTentOccupantWorld(
+      host,
+      bed as never,
+      (d, c) =>
+        d === DIM &&
+        obstruction === "head in vehicle space" &&
+        atEntrance(c) &&
+        c.y === 1,
+      (d, c) =>
+        d === DIM &&
+        obstruction === "feet in camp space" &&
+        atEntrance(c) &&
+        c.y === 0,
+    );
+    adapter.placeOutside(PLAYER, asRoofTentId(tent.id));
+    expect(p.teleport).toHaveBeenCalledExactlyOnceWith(
+      { x: 2.5, y: 0, z: -0.5 },
+      { dimension: game.dimension },
+    );
+  },
+);
+
+it("leaves the rider seated when no safe exit exists", () => {
+  const tent = spawn();
+  const p = player();
+  const ejectRider = vi.fn();
+  tent.getComponent.mockReturnValue({ ejectRider });
+  p.getComponent.mockReturnValue({ entityRidingOn: tent });
+  const adapter = new BedrockRoofTentOccupantWorld(
+    host,
+    bed as never,
+    () => false,
+    () => true,
+  );
+  adapter.placeOutside(PLAYER, asRoofTentId(tent.id));
+  expect(ejectRider).not.toHaveBeenCalled();
+  expect(p.teleport).not.toHaveBeenCalled();
+});
 
 it("conceals with a short particle-free effect and reveals the occupant", () => {
   const p = player();
@@ -932,7 +987,12 @@ it("skips occupied, missing, unloaded and vehicle-space cells without losing suc
   const space = vi.fn(
     (_dimension: unknown, cell: Cell) => cellKey(cell) === cellKey(vehicle),
   );
-  const adapter = new BedrockRoofTentOccupantWorld(host, bed as never, space);
+  const adapter = new BedrockRoofTentOccupantWorld(
+    host,
+    bed as never,
+    space,
+    () => false,
+  );
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   try {
     adapter.setOccupant(asRoofTentId("tent"), PLAYER);
@@ -958,6 +1018,7 @@ it.each(["forget", "removed"] as const)(
       host,
       bed as never,
       () => false,
+      () => false,
     );
     restored.remember(tent as never);
     tent.remove();
@@ -980,6 +1041,7 @@ it("restores occupied ceilings and clears unoccupied saved ceilings after reload
   const restored = new BedrockRoofTentOccupantWorld(
     host,
     bed as never,
+    () => false,
     () => false,
   );
   tent.setDynamicProperty(ids.ROOF_TENT_OCCUPANT_PROPERTY, undefined);
@@ -1044,6 +1106,7 @@ it.each([
     const restored = new BedrockRoofTentOccupantWorld(
       host,
       bed as never,
+      () => false,
       () => false,
     );
     restored.remember(tent as never);

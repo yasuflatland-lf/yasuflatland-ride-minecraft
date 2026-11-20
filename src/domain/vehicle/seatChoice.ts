@@ -2,6 +2,7 @@
 // seat they chose while others get in and out (ADR 0120).
 import type { PlayerId } from "../shared/ids";
 import type { Vec2, Vec3 } from "../shared/vec";
+import { distanceXZ, length3 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
 import { DRIVER_SEAT } from "./seats";
 
@@ -47,12 +48,12 @@ export function aimReach(
   targets: SeatTargets,
 ): { readonly hit: boolean; readonly along: number; readonly miss: number } {
   const { eye, view } = aim;
-  const length = view ? Math.hypot(view.x, view.y, view.z) : 0;
+  const length = view ? length3(view) : 0;
   if (!view || length === 0)
     return {
       hit: false,
       along: 0,
-      miss: Math.hypot(seat.x - eye.x, seat.z - eye.z),
+      miss: distanceXZ(seat, eye),
     };
   const u = { x: view.x / length, y: view.y / length, z: view.z / length };
   const d = { x: seat.x - eye.x, y: targets.height - eye.y, z: seat.z - eye.z };

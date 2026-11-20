@@ -1,18 +1,11 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { TableWorld } from "../../../application/camp/ports/table";
-import type { TableId } from "../../../domain/camp/table";
+import { asTableId, type TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { safeBlockAt } from "../../shared/blocks";
-import { entityOfType } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
-import {
-  consumeHeld,
-  isCreative,
-  playerById,
-  showActionBar,
-  showHitsLeftHint,
-} from "../../shared/players";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
+import { showActionBar, showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   CAMP_TABLE_ITEM,
@@ -25,34 +18,20 @@ function tableOf(id: TableId) {
   return entityOfType(world, id, CAMP_TABLE_TYPE);
 }
 
-function blockAt(dimensionId: DimensionId, at: Vec3) {
-  try {
-    return safeBlockAt(world.getDimension(dimensionId), at);
-  } catch {
-    return undefined; // Unknown dimension id
-  }
-}
-
-export class BedrockTableWorld implements TableWorld {
+export class BedrockTableWorld
+  extends BedrockPaidGroundCells
+  implements TableWorld
+{
   constructor(
     private readonly vehicles: {
       topHosts: TopHostRegistry;
       isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
     },
-  ) {}
-
-  isAir(dimensionId: DimensionId, at: Vec3): boolean {
-    return blockAt(dimensionId, at)?.isAir === true;
-  }
-
-  isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean {
-    return (
-      blockAt(dimensionId, at)?.typeId.startsWith(`${NAMESPACE}:`) === true
+  ) {
+    super(
+      (dimension, cell) => vehicles.isVehicleSpace(dimension, cell),
+      CAMP_TABLE_ITEM,
     );
-  }
-
-  isVehicleSpace(dimensionId: DimensionId, at: Vec3): boolean {
-    return this.vehicles.isVehicleSpace(dimensionId, at);
   }
 
   hasTableNear(dimensionId: DimensionId, at: Vec3): boolean {
@@ -65,20 +44,18 @@ export class BedrockTableWorld implements TableWorld {
     );
   }
 
-  isCreative(playerId: PlayerId): boolean {
-    return isCreative(playerById(playerId));
-  }
-
-  consumeItem(playerId: PlayerId, slot: number): boolean {
-    const player = playerById(playerId);
-    return player !== undefined && consumeHeld(player, CAMP_TABLE_ITEM, slot);
-  }
-
-  spawnTable(dimensionId: DimensionId, at: Vec3, yaw: number): void {
-    const table = world
-      .getDimension(dimensionId)
-      .spawnEntity(CAMP_TABLE_TYPE, at);
-    table.setRotation({ x: 0, y: yaw });
+  spawnTable(
+    dimensionId: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): TableId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimensionId),
+      CAMP_TABLE_TYPE,
+      at,
+      yaw,
+    );
+    return entity && asTableId(entity.id);
   }
 
   itemsOnTable(id: TableId): number {

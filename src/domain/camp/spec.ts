@@ -1,3 +1,4 @@
+import { GEAR_RECOVERY } from "../shared/hitCounter";
 import type { Paint } from "../shared/paint";
 import type { TopRect, TopSurface } from "../shared/tableTop";
 import { ticks } from "../shared/ticks";
@@ -9,15 +10,12 @@ export const CHAIR_SPEC = Object.freeze({
   /** Air blocks needed above the clicked block: the chair, then a seated player's head. */
   clearance: 2,
   /** Hits in a row that fold the chair back into its item, as for vehicles (ADR 0008). */
-  hitsToTakeBack: 3,
-  /** A gap longer than this, in ticks, starts the hit count again. */
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
 });
 
 export const TABLE_SPEC = Object.freeze({
   clearance: 2,
-  hitsToTakeBack: 3,
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
 });
 
 export const DUTCH_OVEN_SPEC = Object.freeze({
@@ -26,17 +24,17 @@ export const DUTCH_OVEN_SPEC = Object.freeze({
   /** The item's yaw snaps to this many degrees. */
   yawStep: 90,
   clearance: 2,
-  hitsToTakeBack: 3,
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
   hostCheckTicks: ticks(20),
 });
 
 export const FIRE_PIT_SPEC = Object.freeze({
+  /** Minimum spacing in blocks between fire pits at placement. */
+  spacing: 1.25,
   /** The item's yaw snaps to this many degrees. */
   yawStep: 90,
   clearance: 2,
-  hitsToTakeBack: 3,
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
 });
 
 // Bump when the laid cells or clear box change.
@@ -61,9 +59,7 @@ export const TENT_SPEC = Object.freeze({
    */
   leanDepth: 1.3,
   /** Hits in a row from outside that take the tent down, as for the Low Chair (ADR 0122). */
-  hitsToTakeDown: 3,
-  /** A gap longer than this, in ticks, starts the hit count again. */
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
   /** Pitched tents a world may hold, in all dimensions together. */
   maxTents: 4,
   /** The tent's yaw snaps to this many degrees. */
@@ -139,11 +135,14 @@ export const GAS_LANTERN_SPEC = Object.freeze({
   yawStep: 90,
   /** Radius in blocks also finds lanterns settled onto partial blocks. */
   spacing: 0.75,
-  hitsToTakeBack: 3,
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
 });
 
 export const ROOF_TENT_SPEC = Object.freeze({
+  /** Blocks in front of the tent where the exit search starts when no host gives an entrance. */
+  exitFallbackDistance: 2,
+  /** Ring search around the saved entrance; the same reach as the toilet and the beach chair. */
+  exitSearch: Object.freeze({ radius: 4, up: 4, down: 8 }),
   /** SUV shell lift (5 px) plus sleeping-bag rise above its platform (2.4 px), from tools/gen_roof_tent.py. */
   seatLift: (5 + 2.4) / 16,
   /** A riding player's feet sit about 0.35 blocks below the seat point (Java ridingOffset convention).
@@ -164,9 +163,7 @@ export const ROOF_TENT_SPEC = Object.freeze({
   // Variant 0 must resolve to the visible fly color for dye comparisons (ADR 0076).
   defaultPaint: TENT_SPEC.defaultPaint,
   /** Matches ground gear recovery so the same three deliberate hits fold it (ADR 0200). */
-  hitsToFoldUp: 3,
-  /** Matches the ground tent's five-second window for consecutive recovery hits. */
-  hitResetTicks: ticks(100),
+  recovery: GEAR_RECOVERY,
   /** Checks faster than tabletop gear so a departing host promptly ejects its sleeper. */
   hostCheckTicks: ticks(4),
   /** Preserves direct interaction reach for ground and roof tents. */

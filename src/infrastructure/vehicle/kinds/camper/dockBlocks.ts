@@ -7,6 +7,7 @@ import {
   type DimensionId,
   type VehicleId,
 } from "../../../../domain/shared/ids";
+import { ticks } from "../../../../domain/shared/ticks";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import {
   type DecorItemId,
@@ -67,7 +68,7 @@ const MAX_DECOR_HEIGHT = 15;
 const MAX_DECOR_SPOT = 10;
 // Reading a laid cell costs one getBlock call, and a parked camper lays about 107
 // to 121 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
-export const DOCK_RECHECK_TICKS = 20;
+export const DOCK_RECHECK_TICKS = ticks(20);
 
 function isHeight(v: unknown): v is number {
   return (

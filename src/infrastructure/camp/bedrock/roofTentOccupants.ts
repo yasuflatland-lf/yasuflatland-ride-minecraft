@@ -6,7 +6,7 @@ import { exitCell } from "../../../domain/camp/roofTent/exitCell";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
 import { type Cell, cellCenter, cellOf } from "../../../domain/shared/cells";
-import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
+import { searchExitCell } from "../../../domain/shared/exitSearch";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import { decodeHost } from "../../../domain/shared/hosted";
 import {
@@ -16,8 +16,9 @@ import {
 } from "../../../domain/shared/ids";
 import { forward, type Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
-import { readCeilingCells } from "../../shared/laidBlockLayer";
+import { readSavedCells } from "../../shared/laidBlockLayer";
 import { playerById, showActionBar } from "../../shared/players";
+import { makeSafeStand } from "../../shared/seating";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_EXIT_PROPERTY,
@@ -44,6 +45,7 @@ export class RoofTentOccupants {
   constructor(
     private readonly vehicleHost: VehicleHostLookup,
     private readonly isVehicleSpace: SpaceCheck,
+    private readonly isCampSpace: SpaceCheck,
     private readonly syncCeiling: (id: RoofTentId) => void,
   ) {}
 
@@ -53,9 +55,9 @@ export class RoofTentOccupants {
     const yaw = spawnYaw ?? entity.getRotation().y;
     const direction = forward(yaw);
     let exit = cellOf({
-      x: entity.location.x + direction.x * 2,
+      x: entity.location.x + direction.x * ROOF_TENT_SPEC.exitFallbackDistance,
       y: entity.location.y,
-      z: entity.location.z + direction.z * 2,
+      z: entity.location.z + direction.z * ROOF_TENT_SPEC.exitFallbackDistance,
     });
     const saved = entity.getDynamicProperty(ROOF_TENT_EXIT_PROPERTY);
     if (typeof saved === "string") {
@@ -96,7 +98,7 @@ export class RoofTentOccupants {
       ),
     ];
     this.snapshots.set(asRoofTentId(entity.id), {
-      ceiling: readCeilingCells(
+      ceiling: readSavedCells(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
       ),
       dimension: entity.dimension,
@@ -197,47 +199,23 @@ export class RoofTentOccupants {
     if (!tent || !occupant?.isValid) return;
     // Search around the saved entrance at ground height, including when the host
     // has already disappeared. Never fall back to teleporting onto the roof.
-    for (let radius = 0; radius <= 4; radius++) {
-      for (let dx = -radius; dx <= radius; dx++)
-        for (let dz = -radius; dz <= radius; dz++) {
-          if (Math.max(Math.abs(dx), Math.abs(dz)) !== radius) continue;
-          for (let dy = 4; dy >= -8; dy--) {
-            const feet = {
-              x: tent.exit.x + dx,
-              y: tent.exit.y + dy,
-              z: tent.exit.z + dz,
-            };
-            try {
-              const floor = tent.dimension.getBlock({ ...feet, y: feet.y - 1 });
-              if (this.isVehicleSpace(asDimensionId(tent.dimension.id), feet))
-                continue;
-              if (
-                !floor ||
-                floor.isAir ||
-                floor.isLiquid ||
-                CLEARABLE_DECORATIONS.has(floor.typeId)
-              )
-                continue;
-              if (
-                tent.dimension.getBlock(feet)?.isAir !== true ||
-                tent.dimension.getBlock({ ...feet, y: feet.y + 1 })?.isAir !==
-                  true
-              )
-                continue;
-              occupant
-                .getComponent("minecraft:riding")
-                ?.entityRidingOn?.getComponent("minecraft:rideable")
-                ?.ejectRider(occupant);
-              occupant.teleport(cellCenter(feet), {
-                dimension: tent.dimension,
-              });
-              return;
-            } catch {
-              /* Unloaded terrain cannot be a safe exit. */
-            }
-          }
-        }
-    }
+    const dimensionId = asDimensionId(tent.dimension.id);
+    const isSafe = makeSafeStand({
+      isVehicleSpace: (c) => this.isVehicleSpace(dimensionId, c),
+      isCampSpace: (c) => this.isCampSpace(dimensionId, c),
+    });
+    const feet = searchExitCell(
+      tent.exit,
+      () => false,
+      ROOF_TENT_SPEC.exitSearch,
+      (c) => isSafe(tent.dimension, c),
+    );
+    if (!feet) return;
+    occupant
+      .getComponent("minecraft:riding")
+      ?.entityRidingOn?.getComponent("minecraft:rideable")
+      ?.ejectRider(occupant);
+    occupant.teleport(cellCenter(feet), { dimension: tent.dimension });
   }
 
   showMessage(playerId: PlayerId, name: string): void {

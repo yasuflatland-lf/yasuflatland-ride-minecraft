@@ -9,11 +9,13 @@ import {
 import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+import { placePaid } from "../shared/paidPlacement";
+import type { ItemPayment } from "../shared/ports/itemPayment";
 import type { ChairWorld } from "./ports/chair";
 
 export interface PlaceChairCommand {
   kind: ChairKindId;
-  playerId: PlayerId;
+  playerId?: PlayerId;
   dimensionId: DimensionId;
   /** The block the chair stands on (integer coordinates); the chair appears one block above it. */
   blockLocation: Vec3;
@@ -61,20 +63,20 @@ export class PlaceChair {
       return false;
     if (this.world.hasChairAt(cmd.kind, cmd.dimensionId, above(block, 1)))
       return false;
-    // Taking the item first means a player who moved or dropped it in the
-    // meantime gets no chair, instead of a chair and the item (ADR 0024).
-    if (
-      !this.world.isCreative(cmd.playerId) &&
-      !this.world.consumeChairItem(cmd.kind, cmd.playerId, cmd.slot)
-    )
-      return false;
-    this.world.spawnChair(
-      cmd.kind,
-      cmd.dimensionId,
-      cellCenter(block, 1),
-      chairYaw(cmd.yaw),
-    );
-    return true;
+    const payment: ItemPayment = {
+      isCreative: (player) => this.world.isCreative(player),
+      consumeItem: (player, slot) =>
+        this.world.consumeChairItem(cmd.kind, player, slot),
+      refund: (player) => this.world.refundChairItem(cmd.kind, player),
+    };
+    return placePaid(payment, { player: cmd.playerId, slot: cmd.slot }, () =>
+      this.world.spawnChair(
+        cmd.kind,
+        cmd.dimensionId,
+        cellCenter(block, 1),
+        chairYaw(cmd.yaw),
+      ),
+    ).placed;
   }
 
   private blockedByVehicle(dimensionId: DimensionId, block: Vec3): boolean {

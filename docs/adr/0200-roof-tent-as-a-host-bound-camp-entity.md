@@ -74,7 +74,9 @@ bag menu with Sleep and Get out. Cancelling leaves the player inside. To leave
 by sneaking, first release the entry sneak and then sneak again; this release
 requirement prevents the entry gesture from immediately ejecting the player.
 Player leave, death and dimension-change events also invoke the exit use case.
-Outside placement uses only the occupant adapter's loaded-terrain search.
+The occupant adapter searches loaded terrain around the saved entrance with
+`searchExitCell`. Both feet and head must be in air outside vehicle and camp
+space, over a solid, non-liquid floor free of clearable decorations.
 
 ### Ladder mechanism
 

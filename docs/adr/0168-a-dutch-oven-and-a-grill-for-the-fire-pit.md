@@ -29,7 +29,7 @@ This ADR fixes one contract of ids, states, and rules that the later pull reques
 | Oven property         | `yasu_ride:simmering`                                                | Boolean, default false, `client_sync`. True: lid off, stew visible, bubbling animation, steam. False: lid on, stew hidden |
 | Fire pit property     | `yasu_ride:covered`                                                  | Boolean, default false, `client_sync`. True: the `grill` bone is visible                                                  |
 | Oven dynamic property | `yasu_ride:host`                                                     | String. Empty on the ground; `<hostEntityId>:<spot>` while standing on a Fire Pit or a Camp Table                         |
-| Spec                  | `DUTCH_OVEN_SPEC` in `src/domain/camp/spec.ts`                       | `clearance: 2`, `hitsToTakeBack: 3`, `hitResetTicks: 100`, `hostCheckTicks: 20`                                           |
+| Spec                  | `DUTCH_OVEN_SPEC` in `src/domain/camp/spec.ts`                       | `clearance: 2`, `recovery: GEAR_RECOVERY`, `hostCheckTicks: 20`                                                           |
 | Hint keys             | `yasu_ride.hint.dutch_oven_hits`, `yasu_ride.hint.dutch_oven_on_top` | Hits left, and "Take the Dutch oven off first"                                                                            |
 
 ### Rules
@@ -41,7 +41,7 @@ This ADR fixes one contract of ids, states, and rules that the later pull reques
 5. **Host vanishes.** Every `hostCheckTicks`, an oven whose host id does not resolve clears `host`, sets `simmering` false, and falls to the ground with gravity, but only when the chunk at the oven's own position is loaded and the host's block position is too. If either is unloaded, the host may only be out of reach, so the oven changes nothing and checks again on the next interval.
 6. **Lighting is independent.** Flint and steel still lights and puts out the pit with an oven on it (0153).
 7. **No cooking.** Like the fire (0153), simmering is visual: nothing is consumed and nothing burns.
-8. **Placement refuses** a spot inside vehicle space; a spot without `clearance` free blocks above; a spot within 0.5 block of another oven that is also on the ground; and a host spot that already holds an oven.
+8. **Placement refuses** a spot inside vehicle space; a spot without `clearance` free blocks above; a spot within 0.5 block of another oven that is also on the ground; and a host spot that already holds an oven. Take the item only after the placement checks pass in Survival. A failed spawn refunds any item taken and removes any partially configured entity. Cover the Fire Pit only after the oven is spawned and its host is set.
 
 ### Models
 

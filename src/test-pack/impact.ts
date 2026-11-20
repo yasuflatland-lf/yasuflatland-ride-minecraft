@@ -55,9 +55,11 @@ export const MOTION_TAGS: Readonly<Record<string, readonly FeatureTag[]>> = {
 
 export const HARNESS_IMPORTS: readonly string[] = [
   "src/application/shared/groundPlacement.ts",
+  "src/application/shared/paidPlacement.ts",
   "src/application/shared/placeOnTop.ts",
   "src/application/shared/ports/groundCells.ts",
   "src/application/shared/ports/hostedItem.ts",
+  "src/application/shared/ports/itemPayment.ts",
   "src/domain/camp/chair.ts",
   "src/domain/camp/spec.ts",
   "src/domain/camp/tent.ts",
@@ -72,7 +74,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/shared/laidCells.ts",
   "src/domain/shared/paint.ts",
   "src/domain/shared/roofTent.ts",
-  "src/domain/shared/switchCooldown.ts",
+  "src/domain/shared/debounce.ts",
   "src/domain/shared/syncedValue.ts",
   "src/domain/shared/tableTop.ts",
   "src/domain/shared/tapToggle.ts",
