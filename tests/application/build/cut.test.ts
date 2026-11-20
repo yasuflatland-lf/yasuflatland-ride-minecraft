@@ -209,6 +209,47 @@ it("refuses the entire box when any cell is protected", () => {
   );
 });
 
+it("refuses a laid cell anywhere in the box before capturing or clearing", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 0, max: 26 }), (index) => {
+      const e = setup();
+      const box = boxOf(origin, { x: 2, y: 66, z: 2 });
+      const cell = [...cellsOf(box)][index];
+      if (!cell) throw new Error("Missing source cell");
+      const clipboard = structureClipboard(box, () => stone);
+      e.session.completeCopy(selectionOf(overworld, box, stone), clipboard);
+      e.session.beginEdit();
+      e.session.finishEdit(
+        {
+          dimensionId: overworld,
+          changes: [
+            {
+              cell: origin,
+              before: blockStateOf("minecraft:air"),
+              after: stone,
+            },
+          ],
+        },
+        "undoable",
+      );
+      const before = structuredClone(e.session);
+      e.world.laidCells.add(cellKey(cell));
+      expect(
+        e.cut.execute({
+          playerId,
+          selection: selectionOf(overworld, box, stone),
+          facing: "east",
+        }),
+      ).toBe(false);
+      expect(e.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
+      expect(e.structures.calls).toEqual([]);
+      expect(e.world.writes).toBe(0);
+      expect(e.session).toEqual(before);
+      expect(e.session.clipboard).toBe(clipboard);
+    }),
+  );
+});
+
 it("restores failed cuts without changing the session or discarding prior handles", () => {
   fc.assert(
     fc.property(

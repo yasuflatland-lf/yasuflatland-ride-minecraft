@@ -91,6 +91,7 @@ import {
   buildStructureStoreUncopyable,
 } from "./buildStructureStore";
 import { buildBlockStates } from "./buildTools";
+import { buildWarpBlockGuard } from "./buildWarpBlockGuard";
 import {
   bulldozerClearHill,
   bulldozerDirtPath,
@@ -439,6 +440,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   warp_engine_probes: warpEngineProbes,
   warp_flow: warpFlow,
   build_structure_store: buildStructureStore,
+  build_warp_block_guard: buildWarpBlockGuard,
   build_rotate_box: buildRotateBox,
   build_structure_rotation: buildStructureRotation,
   build_structure_rotation_decor: buildStructureRotationDecor,

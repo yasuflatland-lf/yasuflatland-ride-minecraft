@@ -99,6 +99,7 @@ describe("impact reach", () => {
       "warp_world",
       "warp_engine_probes",
       "build_structure_store_uncopyable",
+      "build_warp_block_guard",
     ]);
     expect(headless.skipped.map((scenario) => scenario.name)).toContain(
       "warp_flow",

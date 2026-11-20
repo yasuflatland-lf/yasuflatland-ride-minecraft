@@ -22,7 +22,7 @@ describe("Warp Block pack definition", () => {
     expect(block.components).not.toHaveProperty("minecraft:custom_components");
   });
 
-  it("resists mining, explosions, pistons, blade cuts and wand edits", () => {
+  it("resists mining, explosions, pistons, blade cuts, Rotate and Cut", () => {
     expect(block.components["minecraft:movable"]).toEqual({
       movement_type: "immovable",
     });
