@@ -10,10 +10,11 @@ export function readTextureMer(path: string) {
   if (!existsSync(setPath)) return undefined;
   const set = JSON.parse(readFileSync(setPath, "utf8"))[
     "minecraft:texture_set"
-  ];
-  return readRgbaPng(
-    join(dirname(path), `${set.metalness_emissive_roughness}.png`),
-  );
+  ] as { metalness_emissive_roughness: string | [number, number, number] };
+  const mer = set.metalness_emissive_roughness;
+  return typeof mer === "string"
+    ? readRgbaPng(join(dirname(path), `${mer}.png`))
+    : mer;
 }
 
 export function expectUniqueTextureBindings(textures: Record<string, string>) {
@@ -27,7 +28,9 @@ export function expectUniqueTextureBindings(textures: Record<string, string>) {
       color.width,
       color.height,
       color.pixels.toString("hex"),
-      mer ? [mer.width, mer.height, mer.pixels.toString("hex")] : null,
+      mer && !Array.isArray(mer)
+        ? [mer.width, mer.height, mer.pixels.toString("hex")]
+        : mer,
     ]);
     expect(
       contents.get(content),

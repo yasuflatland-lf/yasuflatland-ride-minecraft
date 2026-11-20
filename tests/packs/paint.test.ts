@@ -15,10 +15,7 @@ import {
 } from "../../src/infrastructure/shared/dyes";
 import { ENTITY_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { type Json, jsonFileEntries } from "../support/packFiles";
-import {
-  expectUniqueTextureBindings,
-  readTextureMer,
-} from "../support/textureBindings";
+import { readTextureMer } from "../support/textureBindings";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json")[
@@ -236,8 +233,4 @@ describe("tent paints (ADR 0031, 0135)", () => {
       );
     expect(TENT_SPEC.defaultPaint).toBe("khaki");
   });
-});
-
-it("binds existing textures with unique colour and MER content", () => {
-  expectUniqueTextureBindings(client.textures);
 });

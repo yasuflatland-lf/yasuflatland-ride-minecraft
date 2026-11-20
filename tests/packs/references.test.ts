@@ -17,6 +17,8 @@ import {
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { type Json, jsonFileEntries, jsonFiles } from "../support/packFiles";
 
+import { expectUniqueTextureBindings } from "../support/textureBindings";
+
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RP = join(REPO_ROOT, "packs/yasu_ride_rp");
 const BP = join(REPO_ROOT, "packs/yasu_ride_bp");
@@ -53,16 +55,22 @@ interface ClientEntity {
   render_controllers?: (string | Json)[];
 }
 
-// ADR 0238: vanilla supplies this override's references and server entity.
-// playerOverride.test.ts pins its full definition and checks the added animation.
+const clientEntityExceptions = new Map([
+  [
+    "yasu_ride/player.ce.json",
+    {
+      identifier: "minecraft:player",
+      reason:
+        "Bedrock supplies this override's assets and server entity (ADR 0238).",
+    },
+  ],
+]);
 const clientEntities: ClientEntity[] = jsonFileEntries(join(RP, "entity"))
   .filter(
     ({ path, json }) =>
-      !(
-        path === "yasu_ride/player.ce.json" &&
-        (json["minecraft:client_entity"] as { description: ClientEntity })
-          .description.identifier === "minecraft:player"
-      ),
+      (json["minecraft:client_entity"] as { description: ClientEntity })
+        .description.identifier !==
+      clientEntityExceptions.get(path)?.identifier,
   )
   .map(
     ({ json }) =>
@@ -114,6 +122,18 @@ const lang = (locale: string): Set<string> =>
       .filter((line) => line.includes("=") && !line.startsWith("##"))
       .map((line) => line.slice(0, line.indexOf("="))),
   );
+
+it("covers at least 25 client entities for texture bindings", () => {
+  expect(clientEntities.length).toBeGreaterThanOrEqual(25);
+});
+
+it.each(clientEntities)(
+  "$identifier binds textures with unique colour and MER content",
+  ({ textures }) => {
+    expect(Object.keys(textures ?? {})).not.toHaveLength(0);
+    expectUniqueTextureBindings(textures ?? {});
+  },
+);
 
 describe("Resource Pack and Behavior Pack references", () => {
   it("finds the content to check", () => {

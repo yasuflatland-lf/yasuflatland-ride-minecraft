@@ -6,7 +6,6 @@ import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { FORMS } from "../../src/domain/vehicle/motion/forms";
 import { expectContiguous, speedRanges } from "../support/soundLevels";
 import { bandPower } from "../support/spectrum";
-import { expectUniqueTextureBindings } from "../support/textureBindings";
 
 const RP = "packs/yasu_ride_rp",
   BP = "packs/yasu_ride_bp";
@@ -479,7 +478,6 @@ it("plays hydraulics once when the blade leaves an endpoint", () => {
   });
 });
 
-it("binds existing textures with unique colour and MER content", () => {
-  expectUniqueTextureBindings(client.textures);
+it("aliases the yellow paint to the default texture", () => {
   expect(client.textures.yellow).toBe(client.textures.default);
 });

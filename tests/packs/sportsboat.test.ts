@@ -16,7 +16,6 @@ import {
 import { turnedCorners } from "../support/geometry";
 import { SEAT_FILLER_FAMILY } from "../support/packIdentifiers";
 import { readRgbaPng } from "../support/png";
-import { expectUniqueTextureBindings } from "../support/textureBindings";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
@@ -2917,7 +2916,6 @@ print(json.dumps({name: {"uv": list(uv), "size": list(size)}
   });
 });
 
-it("binds existing textures with unique colour and MER content", () => {
-  expectUniqueTextureBindings(client.textures);
+it("aliases the black paint to the default texture", () => {
   expect(client.textures.black).toBe(client.textures.default);
 });
