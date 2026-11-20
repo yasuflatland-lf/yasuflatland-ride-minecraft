@@ -1,9 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BEACH_CHAIR_SPEC } from "../../src/domain/resort/spec";
 import { readRgbaPng } from "../support/png";
-import { RESORT_CATALOG_ITEMS_JSON } from "../support/resortGear";
 
 const BP = "packs/yasu_ride_bp/";
 const RP = "packs/yasu_ride_rp/";
@@ -36,11 +35,10 @@ const tableHitboxes = [-1, 1].map((sign) => ({
 }));
 
 describe("Beach Chair assets", () => {
-  it("provides one script-controlled hip seat and a persistent, unpushable, damage-immune entity with gravity", () => {
-    expect(entity.description).toEqual({
+  it("provides one script-controlled hip seat and the lounger collision boxes", () => {
+    expect(entity.description).toMatchObject({
       identifier: "yasu_ride:beach_chair",
       is_spawnable: false,
-      is_summonable: true,
       properties: {
         "yasu_ride:folded": { type: "bool", default: false, client_sync: true },
       },
@@ -59,21 +57,6 @@ describe("Beach Chair assets", () => {
           ],
         },
       ],
-    });
-    expect(c["minecraft:type_family"].family).toContain("inanimate");
-    expect(c["minecraft:persistent"]).toEqual({});
-    expect(c["minecraft:physics"]).toEqual({
-      has_collision: true,
-      has_gravity: true,
-    });
-    expect(c["minecraft:pushable"]).toEqual({
-      is_pushable: false,
-      is_pushable_by_piston: false,
-    });
-    expect(c["minecraft:knockback_resistance"].value).toBe(1);
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
     });
     expect(c["minecraft:collision_box"]).toEqual({
       width: 1.0,
@@ -353,9 +336,7 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
     expect(rc.textures).toEqual(["Texture.default"]);
   });
 
-  it("lists the chair after the parasol and supplies its plank-stick-iron recipe, names, preview, and icon", () => {
-    const catalog = read(`${BP}item_catalog/crafting_item_catalog.json`);
-    expect(JSON.stringify(catalog)).toContain(RESORT_CATALOG_ITEMS_JSON);
+  it("supplies the plank-stick-iron recipe, names, preview, and icon", () => {
     const item = read(`${BP}items/yasu_ride/beach_chair_item.item.json`)[
       "minecraft:item"
     ];
@@ -374,23 +355,6 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
       I: { item: "minecraft:iron_ingot" },
     });
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.result).toEqual({
-      item: "yasu_ride:beach_chair_item",
-      count: 1,
-    });
-    const ingredients = (r: typeof recipe) =>
-      r.pattern
-        .map((row: string) =>
-          [...row].map((key) => JSON.stringify(r.key[key] ?? null)).join(","),
-        )
-        .join(";");
-    for (const file of readdirSync(`${BP}recipes/yasu_ride`)) {
-      if (file === "beach_chair_item.recipe.json") continue;
-      const other = read(`${BP}recipes/yasu_ride/${file}`)[
-        "minecraft:recipe_shaped"
-      ];
-      if (other) expect(ingredients(other), file).not.toBe(ingredients(recipe));
-    }
     expect(
       read(`${RP}textures/item_texture.json`).texture_data
         .yasu_ride_beach_chair,

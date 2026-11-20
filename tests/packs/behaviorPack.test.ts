@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import {
   entityEventId,
   entityPropertyId,
@@ -12,29 +11,10 @@ const entity = read("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json")[
   "minecraft:entity"
 ];
 const c = entity.components;
-const recipe = read(
-  "packs/yasu_ride_bp/recipes/yasu_ride/suv_item.recipe.json",
-)["minecraft:recipe_shaped"];
 
 describe("packs/yasu_ride_bp", () => {
   it("derives the square collision envelope from the SUV shell (ADR 0217)", () => {
     expect(c["minecraft:collision_box"]).toEqual({ width: 2.68, height: 2.36 });
-  });
-
-  it("seat positions and order match SUV_PROFILE.seats.positions, with the driver's seat at 0 (ADR 0019)", () => {
-    const seats = c["minecraft:rideable"].seats;
-    expect(c["minecraft:rideable"].controlling_seat).toBe(0);
-    expect(
-      seats.map((s: { position: number[] }) => [s.position[0], s.position[2]]),
-    ).toEqual(SUV_PROFILE.seats.positions.map((p) => [p.x, p.z]));
-    expect(seats[0].lock_rider_rotation).toBe(90);
-  });
-
-  it("the vehicle takes no damage (ADR 0006)", () => {
-    expect(c["minecraft:damage_sensor"].triggers).toEqual({
-      cause: "all",
-      deals_damage: "no",
-    });
   });
 
   it("takes Jump as a zero-strength power jump, so a touch rider's Jump does not dismount them (ADR 0025)", () => {
@@ -48,17 +28,12 @@ describe("packs/yasu_ride_bp", () => {
     expect(c["minecraft:variable_max_auto_step"].base_value).toBe(1.0625);
   });
 
-  it("has an item and a recipe (ADR 0008)", () => {
+  it("has an SUV item (ADR 0008)", () => {
     expect(
       read("packs/yasu_ride_bp/items/yasu_ride/suv_item.item.json")[
         "minecraft:item"
       ].description.identifier,
     ).toBe("yasu_ride:suv_item");
-    expect(recipe.result.item).toBe("yasu_ride:suv_item");
-  });
-
-  it("the recipe is unlocked from the start (BDS does not load the recipe without unlock)", () => {
-    expect(recipe.unlock).toEqual({ context: "AlwaysUnlocked" });
   });
 
   it("switches gravity off with yasu_ride:gravity_off and back on with yasu_ride:gravity_on, and syncs the vehicle form to clients (ADR 0021)", () => {

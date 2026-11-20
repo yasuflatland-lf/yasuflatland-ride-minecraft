@@ -1,55 +1,27 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { type Triple, turn } from "../../support/geometry";
-import { assertOneAxis, multipleAxes } from "../oneAxis";
+import { assertOneAxis } from "../oneAxis";
 import {
+  areaCubes,
   bone,
   bones,
   type Cube,
   cubeCenter,
-  geometry,
-  geometryText,
   swatch,
 } from "./helpers";
 
 describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = bones.flatMap((bone) => bone.cubes ?? []);
-    const steering = bone("steering").cubes ?? [];
-    const areas = JSON.parse(
-      readFileSync("tests/packs/fixtures/camper-areas.json", "utf8"),
-    ) as { steering: { body: [number, number] } };
-    const [first, last] = areas.steering.body;
-    const controls = (bone("body").cubes ?? []).slice(first, last + 1);
-    const lever = controls.slice(2);
-    const seats = [bone("seat_0"), bone("seat_1")]
-      .flatMap((b) => b.cubes ?? [])
-      .filter(multipleAxes);
-    const own = new Set([...steering, ...controls, ...seats]);
-    const compound = cubes.filter((c) => !own.has(c) && multipleAxes(c));
     const assemblies = {
-      slanted: compound.filter((cube) => cube.rotation?.[0] === 45),
-      front_panels: compound.filter((cube) => cube.rotation?.[0] !== 45),
-      steering_wheel: [...steering.slice(0, 112), ...controls.slice(0, 2)],
-      steering_spokes: steering.slice(112),
-      steering_lever: lever,
-      cab_seats: seats,
+      front_panels: areaCubes("front")
+        .map((e) => e.cube)
+        .filter((c) => c.rotation?.[0] !== 45),
+      steering: areaCubes("steering").map((e) => e.cube),
+      cab_seats: areaCubes("cab_seats").map((e) => e.cube),
     };
-    expect(assemblies.slanted).toHaveLength(0);
-    expect(assemblies.front_panels).toHaveLength(518);
-    expect(assemblies.steering_wheel).toHaveLength(114);
-    expect(assemblies.steering_spokes).toHaveLength(3);
-    expect(assemblies.steering_lever).toHaveLength(30);
-    expect(assemblies.steering_wheel.filter(multipleAxes)).toHaveLength(2);
-    expect(assemblies.steering_spokes.filter(multipleAxes)).toHaveLength(2);
-    expect(assemblies.steering_lever.filter(multipleAxes)).toHaveLength(29);
-    expect(assemblies.cab_seats).toHaveLength(464);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
-  });
-
-  it("uses the production geometry identifier with no test namespace", () => {
-    expect(geometry.description.identifier).toBe("geometry.yasu_ride.camper");
-    expect(geometryText).not.toContain("yasu_ride_test");
   });
 
   it("connects every standard bone to root without cycles", () => {

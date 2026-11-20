@@ -426,56 +426,49 @@ function expectRoofTap(e: ReturnType<typeof setupRoof>) {
   expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
 }
 
-it("opens the utility menu once for a held sneak air press without clearing the flow", () => {
-  const { player, use, menus, execute, session } = setupAir();
-  player.isSneaking = true;
-  for (const tick of [0, 4, 10]) {
-    engine.tick = tick;
-    use();
-  }
-  expect(menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(player);
-  expect(execute).not.toHaveBeenCalled();
-  expect(session.flow.kind).toBe("point1");
-});
-
-it("opens the utility menu on a plain air press when idle", () => {
-  const { player, use, menus, execute, session } = setupAir();
-  session.setFlow({ kind: "idle" });
-  use();
-  expect(menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(player);
-  expect(execute).not.toHaveBeenCalled();
-  expect(session.flow.kind).toBe("idle");
-});
-
-it("fixes the virtual end point on a plain air press during point1", () => {
-  const { use, menus, execute, session } = setupAir();
-  use();
-  expect(session.flow.kind).toBe("selected");
-  expect(execute).toHaveBeenCalledOnce();
-  expect(menus.showUtilityMenu).not.toHaveBeenCalled();
-});
-
-it("opens the menu on a sneak air press in point1 and selected", () => {
-  const { player, use, menus, session } = setupAir();
-  player.isSneaking = true;
-  use();
-  expect(session.flow.kind).toBe("point1");
-  expect(menus.showUtilityMenu).toHaveBeenCalledTimes(1);
-  session.setFlow({
-    kind: "selected",
-    menuLevel: "root",
-    selection: selectionOf(
-      asDimensionId("minecraft:overworld"),
-      boxOf({ x: 10, y: 0, z: 0 }, { x: 12, y: 0, z: 0 }),
-      blockStateOf("minecraft:stone"),
-    ),
-    from: { x: 10, y: 0, z: 0 },
-    to: { x: 12, y: 0, z: 0 },
-  });
-  engine.tick = 10;
-  use();
-  expect(menus.showUtilityMenu).toHaveBeenCalledTimes(2);
-});
+it.each([
+  { flow: "idle", sneak: false, menu: true },
+  { flow: "idle", sneak: true, menu: true },
+  { flow: "point1", sneak: false, menu: false },
+  { flow: "point1", sneak: true, menu: true },
+  { flow: "selected", sneak: false, menu: true },
+  { flow: "selected", sneak: true, menu: true },
+] as const)(
+  "routes a held air press in $flow with sneak=$sneak",
+  ({ flow, sneak, menu }) => {
+    const { player, use, menus, execute, session } = setupAir();
+    const from = { x: 10, y: 0, z: 0 };
+    const to = { x: 12, y: 0, z: 0 };
+    if (flow === "idle") session.setFlow({ kind: flow });
+    if (flow === "selected")
+      session.setFlow({
+        kind: flow,
+        menuLevel: "root",
+        selection: selectionOf(
+          asDimensionId("minecraft:overworld"),
+          boxOf(from, to),
+          blockStateOf("minecraft:stone"),
+        ),
+        from,
+        to,
+      });
+    const before = session.flow;
+    player.isSneaking = sneak;
+    for (const tick of [0, 4, 10]) {
+      engine.tick = tick;
+      use();
+    }
+    if (menu) {
+      expect(menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(player);
+      expect(execute).not.toHaveBeenCalled();
+      expect(session.flow).toBe(before);
+    } else {
+      expect(menus.showUtilityMenu).not.toHaveBeenCalled();
+      expect(execute).toHaveBeenCalledOnce();
+      expect(session.flow.kind).toBe("selected");
+    }
+  },
+);
 
 it("does nothing on an air press without a session", () => {
   const { repo, id, use, menus } = setupAir();

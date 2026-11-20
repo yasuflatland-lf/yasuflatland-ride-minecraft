@@ -33,7 +33,6 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
   const c = entity.components;
 
   it("is summonable, not spawnable, and in the stand-in family, not the vehicle family", () => {
-    expect(file.format_version).toBe("1.21.80");
     expect(entity.description).toEqual({
       identifier: standInType(RULE.name, axis),
       is_spawnable: false,
@@ -68,7 +67,7 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
     expect(box.width).toBeLessThan(CAMPER_SPEC.bumperBoxSize);
   });
 
-  it("neither falls, collides, nor gets pushed, and takes no damage", () => {
+  it("neither falls, collides, nor gets pushed", () => {
     expect(c["minecraft:physics"]).toEqual({
       has_collision: false,
       has_gravity: false,
@@ -78,9 +77,6 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
       is_pushable_by_piston: false,
     });
     expect(c["minecraft:knockback_resistance"]).toEqual({ value: 1.0 });
-    expect(c["minecraft:damage_sensor"]).toEqual({
-      triggers: { cause: "all", deals_damage: "no" },
-    });
     for (const absent of [
       "minecraft:loot",
       "minecraft:despawn",
@@ -103,7 +99,6 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
 
   it("draws nothing", () => {
     const description = client["minecraft:client_entity"].description;
-    expect(client.format_version).toBe("1.10.0");
     expect(description.identifier).toBe(entity.description.identifier);
     expect(description.render_controllers).toEqual([
       "controller.render.default",

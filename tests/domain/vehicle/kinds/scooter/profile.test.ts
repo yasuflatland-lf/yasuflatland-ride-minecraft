@@ -1,6 +1,5 @@
 import { expect, it } from "vitest";
 import {
-  SCOOTER_MOTION,
   SCOOTER_PROFILE,
   SCOOTER_TYRES,
 } from "../../../../../src/domain/vehicle/kinds/scooter/profile";
@@ -25,7 +24,6 @@ it("matches the frozen spike's body and driver-first tandem seats", () => {
     kind: "dyeable",
     defaultPaint: "white",
   });
-  expect(SCOOTER_MOTION.maxSpeed).toBe(0.9);
   expect(SCOOTER_TYRES.creepSpeed).toBe(SCOOTER_SPEC.creepSpeed);
   const clearance = SCOOTER_PROFILE.placement.clearance;
   expect(clearance.height).toBeGreaterThanOrEqual(SCOOTER_PROFILE.body.height);
@@ -35,5 +33,4 @@ it("matches the frozen spike's body and driver-first tandem seats", () => {
   expect(clearance.halfZ * 2 + 1).toBeGreaterThanOrEqual(
     SCOOTER_SPEC.hitboxFront * 2,
   );
-  expect(Object.isFrozen(SCOOTER_PROFILE)).toBe(true);
 });

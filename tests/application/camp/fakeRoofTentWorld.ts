@@ -43,7 +43,8 @@ export class FakeRoofTentWorld implements RoofTentWorld {
   isCreative = vi.fn<RoofTentWorld["isCreative"]>(() => false);
   consumeItem = vi.fn<RoofTentWorld["consumeItem"]>(() => true);
   giveItem = vi.fn<RoofTentWorld["giveItem"]>();
-  showMessage = vi.fn<RoofTentWorld["showMessage"]>();
+  showRefusal = vi.fn<RoofTentWorld["showRefusal"]>();
+  showHitsLeft = vi.fn<RoofTentWorld["showHitsLeft"]>();
   paintOf = (id: RoofTentId) => this.paints.get(id);
   paint = vi.fn<RoofTentWorld["paint"]>((id, paint) => {
     this.paints.set(id, paint);

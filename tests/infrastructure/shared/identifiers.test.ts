@@ -14,10 +14,6 @@ it("builds an action bar message key for any name", () => {
   );
 });
 
-it("builds the night-only bed message key", () => {
-  expect(messageKey("sleep_at_night")).toBe("yasu_ride.message.sleep_at_night");
-});
-
 it("recovers bare snake_case names from add-on ids", () => {
   fc.assert(
     fc.property(fc.stringMatching(/^[a-z]+(_[a-z]+)*$/), (name) => {

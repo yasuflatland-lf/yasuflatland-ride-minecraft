@@ -45,7 +45,7 @@ it("does not count dye hits toward recovery and gates a second swing in the tick
     dropItem: vi.fn(),
     remove,
     showTaken: vi.fn(),
-    showRemaining: vi.fn(),
+    showHitsLeft: vi.fn(),
   } as never);
   const paint = new PaintParasol(
     new Repaint({

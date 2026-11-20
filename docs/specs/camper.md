@@ -33,7 +33,7 @@
 - Agreement: Proposed
 - Basis: [0067](../adr/0067-camper.md) Decision; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision.
 - Implementation: `tools/camper_surfaces.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `tests/packs/fixtures/camper-areas.json`.
-- Verification: `tests/tools/camperSurfaces.test.ts` checks UV bounds, direction, fragment registration, backsplash coverage, native texture bytes and table dimensions. The camper pack tests retain the standing-slot surface and clearance checks. Ownership snapshots separate `floor`, `walls`, `tile`, and `table`; golden comparisons retain placement differences while later regions await porting. Not verified: client texture filtering and PC/mobile appearance.
+- Verification: `tests/tools/camperSurfaces.test.ts` checks UV bounds, direction, fragment registration, backsplash coverage, native texture bytes and table dimensions. The camper pack tests retain the standing-slot surface and clearance checks. Ownership ranges separate `floor`, `walls`, `tile`, and `table`; golden comparisons retain placement differences while later regions await porting. Not verified: client texture filtering and PC/mobile appearance.
 
 ### Kind, item, and fleet limit
 
@@ -42,7 +42,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "Add the kind `camper`, entity `yasu_ride:camper`, item `yasu_ride:camper_item`"; [0067](../adr/0067-camper.md) Decision, "One camper per player (0066)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `packs/yasu_ride_bp/items/yasu_ride/camper_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`
-- Verification: `tests/domain/vehicle/profile.test.ts` "limits each player to one camper". Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
+- Verification: `tests/domain/vehicle/profile.test.ts` "sets the %s fleet limit and chase camera". Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
 
 ### Camper tuning
 
@@ -96,7 +96,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "with bones `root`, `body`, `headlights`, `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `seat_0`-`seat_3`, `door_entry`, and `steering` (0009)"; [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "This extends the bone contract of 0009 for the camper with `glass` and `door_glass`."
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `tools/gen_camper.py`; `tools/camper_kit.py`; area modules and final cube ranges are listed in [Model conventions and rendered previews](model-and-previews.md#camper-generator-modules)
-- Verification: `tests/packs/camper/shell.test.ts` "uses the production geometry identifier with no test namespace", "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
+- Verification: `tests/packs/layout.test.ts` "namespaces every definition identifier"; `tests/packs/camper/shell.test.ts` "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
 
 ### Glass material and draw order
 
@@ -154,12 +154,16 @@
 
 ### Squared front and folded grille
 
-- Applies to: Camper front model and geometry regression fixture.
-- Rule: The generated front has no 45-degree corner chamfers or corner glass. The windshield and grille span the front, with a black light surround extending to its edge. The face from the bumper to the sill is two flat panels, each leaning by `FRONT_LEAN_SLOPE` and yawed by `FRONT_YAW`, so they meet on the windshield's centre line seen from above with the nose forward. Rows stay level and start on the nose; strips close the sill above them up to an upright windshield folded by the same angle (`WS_YAW`), so the sill's short edges are parallel. The cab-over's upper face is one flat panel down to a V, lowest and furthest forward on the centre line, with two lower panels from the V to the windshield header and a chevron on each side wall. The right wall behind the door carries a water fill, a placard, and an oval lamp in place of the former plain square. The outer trim uses `EDGE_INSET`. Every non-glow cube’s bone, origin, and size is compared with the golden fixture, including the squared front.
+- Applies to: Camper front model and geometry regression checks.
+- Rule: The generated front has no 45-degree corner chamfers or corner glass. The windshield and grille span the front, with a black light surround extending to its edge. The face from the bumper to the sill is two flat panels, each leaning by `FRONT_LEAN_SLOPE` and yawed by `FRONT_YAW`, so they meet on the windshield's centre line seen from above with the nose forward. Rows stay level and start on the nose; strips close the sill above them up to an upright windshield folded by the same angle (`WS_YAW`), so the sill's short edges are parallel. The cab-over's upper face is one flat panel down to a V, lowest and furthest forward on the centre line, with two lower panels from the V to the windshield header and a chevron on each side wall. The right wall behind the door carries a water fill, a placard, and an oval lamp in place of the former plain square. The outer trim uses `EDGE_INSET`.
 - Agreement: Proposed
 - Basis: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md) Decision, "Generate the front with `tools/gen_camper.py` without 45-degree corners."; [0226](../adr/0226-lean-and-fold-the-camper-front-panels.md) Decision, "Build the front from the bumper top (y = 8) to the sill (y = 31.5) as two flat panels."
-- Implementation: `tools/camper_front.py`; `tools/camper_shell.py`; `tools/gen_camper.py`; `tests/packs/fixtures/camper-cubes/`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper/snapshot.test.ts` and `tests/packs/camper/front.test.ts` "leans both panels at one slope and folds them like the windshield, nose forward", "keeps every face cube on one plane per side, from the bumper to the sill", "drops the sill from the windshield base to the panels' top edge", "stands the windshield panes upright, parallel to the panels' top edge", "runs the cab-over's upper panel flat down to a V on the centre line", "replaces the plain square behind the door with the water fill, placard, and lamp", "paints the wall below the entry door like the skirt beside it", "starts every grille row exactly on the nose so the panels leave no gap", "mirrors the left panel onto the right one", "keeps every cube's bone, origin, and size equal to the snapshot in tests/packs/fixtures/camper-cubes/". Regenerate the snapshot with `CAMPER_SNAPSHOT_UPDATE=1 pnpm vitest run tests/packs/camper/snapshot.test.ts`. The snapshot checks bone, origin, and size, not UVs or rotations. Not verified: client shimmer or z-fighting; the owner checks in 0199 and 0226 are pending.
+- Implementation: `tools/camper_front.py`; `tools/camper_shell.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
+- Verification: `tests/packs/camper/front.test.ts` "leans both panels at one slope and folds them like the windshield, nose forward", "keeps every face cube on one plane per side, from the bumper to the sill", "drops the sill from the windshield base to the panels' top edge", "stands the windshield panes upright, parallel to the panels' top edge", "runs the cab-over's upper panel flat down to a V on the centre line", "replaces the plain square behind the door with the water fill, placard, and lamp", "paints the wall below the entry door like the skirt beside it", "starts every grille row exactly on the nose so the panels leave no gap", "mirrors the left panel onto the right one". Not verified: client shimmer or z-fighting; the owner checks in 0199 and 0226 are pending.
+
+The per-area camper tests check interior fixtures and structural details. Across all areas, `tests/packs/camper/geometry.test.ts` checks non-glow cube dimensions and rotations, duplicates within a bone, area and total cube budgets, and rotated corners against each area's zone. The floor and running gear must also mirror across the center line. CI runs `pnpm model:check` against the tracked front-left, headlights, rear and side renders in `docs/images/camper-*.png`. An exterior change visible in those views requires deliberate preview regeneration and review.
+
+For a refactor that must preserve every cube, run `pnpm generate` at the base commit, then `python3 -I tools/camper_golden.py capture --golden-dir DIR`. Choose a new directory outside the repository and use its absolute path for both commands. After the refactor, run `pnpm generate` again and `python3 -I tools/camper_golden.py compare --golden-dir DIR`. The comparison checks each area's cubes by bone, origin, size, rotation and rotation pivot against `final-model.json.gz`, along with atlas region sizes and placements. Add `--area NAME` to inspect one area. A difference prints a unified diff and exits with status 1.
 
 ### Door trim, fold-out step, and storage hatch
 
@@ -240,7 +244,7 @@
 - Agreement: Proposed
 - Basis: [0147](../adr/0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md), [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md), [0190](../adr/0190-ribbed-camper-shell-atlas.md), [0193](../adr/0193-shared-texture-tooling.md).
 - Implementation: `tools/camper_mer.py`; `tools/lit_textures.py`; `tools/mer.py`; `tools/gen_camper.py`; `tools/texture_variants.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride/camper.texture_set.json`.
-- Verification: `tests/tools/mer.test.ts` exercises shifted region origins, exact material values, bounded lamp/mirror masks, hardware, gutters and opaque zero-emission interiors. `tests/packs/litTextures.test.ts` and `tests/packs/camperGlow.test.ts` check dimensions, texture-set binding and unchanged switched-pass contracts. Client highlights and diffuse fallback are not verifiable offline; no device acceptance is claimed. `tests/packs/camper/glass.test.ts` "binds existing textures with unique colour and MER content" checks that every bound texture exists and that no two bound paths share colour and MER bytes.
+- Verification: `tests/tools/mer.test.ts` exercises shifted region origins, exact material values, bounded lamp/mirror masks, hardware, gutters and opaque zero-emission interiors. `tests/packs/litTextures.test.ts` and `tests/packs/camperGlow.test.ts` check dimensions, texture-set binding and unchanged switched-pass contracts. Client highlights and diffuse fallback are not verifiable offline; no device acceptance is claimed. `tests/packs/references.test.ts` checks that every bound texture exists and that no two bound paths share colour and MER bytes.
 
 ## Open issues
 

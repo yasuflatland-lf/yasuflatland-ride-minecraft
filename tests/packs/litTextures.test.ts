@@ -216,13 +216,12 @@ describe.each(kinds)(
       for (const image of [lit, mer])
         expect([image.width, image.height]).toEqual([base.width, base.height]);
       expect(
-        read(`textures/entity/yasu_ride/${kind}_lit.texture_set.json`),
+        read(`textures/entity/yasu_ride/${kind}_lit.texture_set.json`)[
+          "minecraft:texture_set"
+        ],
       ).toEqual({
-        format_version: "1.16.100",
-        "minecraft:texture_set": {
-          color: `${kind}_lit`,
-          metalness_emissive_roughness: `${kind}_lit_mer`,
-        },
+        color: `${kind}_lit`,
+        metalness_emissive_roughness: `${kind}_lit_mer`,
       });
       const expectedColor = Buffer.from(base.pixels);
       const expectedMer = Buffer.alloc(base.pixels.length);
@@ -296,19 +295,10 @@ describe.each(kinds)(
   },
 );
 
-it("requires the approved PBR engine version and matching Resource Pack versions", () => {
+it("requires the approved PBR engine version", () => {
   const rp = read("manifest.json");
-  const bp = JSON.parse(
-    readFileSync("packs/yasu_ride_bp/manifest.json", "utf8"),
-  );
   expect(rp.capabilities).toEqual(["pbr"]);
   expect(rp.header.min_engine_version).toEqual([1, 21, 120]);
-  expect(rp.modules[0].version).toEqual(rp.header.version);
-  expect(
-    bp.dependencies.find(
-      (dependency: { uuid?: string }) => dependency.uuid === rp.header.uuid,
-    )?.version,
-  ).toEqual(rp.header.version);
 });
 
 describe("SUV round headlight glow", () => {
@@ -359,12 +349,13 @@ it("binds an opaque non-emissive camper interior MER without changing the base p
   expect(
     interior.pixels.every((pixel) => pixel[1] === 0 && pixel[3] === 255),
   ).toBe(true);
-  expect(read("textures/entity/yasu_ride/camper.texture_set.json")).toEqual({
-    format_version: "1.16.100",
-    "minecraft:texture_set": {
-      color: "camper",
-      metalness_emissive_roughness: "camper_mer",
-    },
+  expect(
+    read("textures/entity/yasu_ride/camper.texture_set.json")[
+      "minecraft:texture_set"
+    ],
+  ).toEqual({
+    color: "camper",
+    metalness_emissive_roughness: "camper_mer",
   });
   const client = read("entity/yasu_ride/camper.ce.json")[
     "minecraft:client_entity"

@@ -95,9 +95,9 @@ it("recovers every local seat from its world position at any hold pose", () => {
 });
 
 it("keeps the driver's seat at index zero for every facing (ADR 0019)", () => {
+  expect(DRIVER_SEAT).toBe(0);
   fc.assert(
     fc.property(yaw, (y) => {
-      expect(DRIVER_SEAT).toBe(0);
       expect(
         nearestSeat(toLocal(worldOffset(y, DRIVER_SEAT), forward(y)), SEATS),
       ).toBe(DRIVER_SEAT);

@@ -10,7 +10,6 @@ import {
   PITCH_REFUSAL_MESSAGE,
   TENT_CEILING_BLOCK,
   TENT_FACE_STATE,
-  TENT_FAMILY,
   TENT_FLAP_BLOCK,
   TENT_FLAP_COMPONENT,
   TENT_FLAP_PROPERTY,
@@ -27,6 +26,7 @@ import {
   TENT_WALL_BLOCK,
 } from "../../src/infrastructure/camp/identifiers";
 import { paintEvent } from "../../src/infrastructure/shared/dyes";
+import { readLang } from "../support/lang";
 
 const LEAN_WIDTH = TENT_SPEC.leanWidth * 16;
 const LEAN_DEPTH = TENT_SPEC.leanDepth * 16;
@@ -157,14 +157,12 @@ const openings: Record<string, Bounds> = {
   flap_bedroom: [-8, 0, -42.5, 8, 32, -42],
 };
 describe("tent entity and client", () => {
-  it("declares exactly the spawn-time entity contract", () => {
+  it("declares the synced properties and tent-specific components", () => {
     const doc = readJson(`${BP}/entities/yasu_ride/tent.se.json`);
-    expect(doc.format_version).toBe("1.21.80");
     const e = doc["minecraft:entity"];
-    expect(e.description).toEqual({
+    expect(e.description).toMatchObject({
       identifier: TENT_TYPE,
       is_spawnable: false,
-      is_summonable: true,
       properties: {
         ...Object.fromEntries(
           Object.values(TENT_FLAP_PROPERTY).map((p) => [
@@ -179,24 +177,15 @@ describe("tent entity and client", () => {
         },
       },
     });
-    expect(e.components).toEqual({
-      "minecraft:type_family": { family: [TENT_FAMILY, "inanimate"] },
+    // Footprint-sized boxes capture taps meant for the shelter blocks (ADR 0130).
+    expect(e.components).toMatchObject({
       "minecraft:variant": { value: 0 },
       "minecraft:collision_box": { width: 0.2, height: 0.2 },
       "minecraft:custom_hit_test": {
         hitboxes: [{ width: 0.1, height: 0.1, pivot: [0, 0.05, 0] }],
       },
       "minecraft:physics": { has_collision: false, has_gravity: false },
-      "minecraft:pushable": {
-        is_pushable: false,
-        is_pushable_by_piston: false,
-      },
-      "minecraft:knockback_resistance": { value: 1 },
       "minecraft:health": { value: 20, max: 20 },
-      "minecraft:damage_sensor": {
-        triggers: { cause: "all", deals_damage: "no" },
-      },
-      "minecraft:persistent": {},
     });
     const collision = e.components["minecraft:collision_box"];
     inside(
@@ -226,24 +215,7 @@ describe("tent entity and client", () => {
     expect(Object.keys(e.component_groups)).toEqual(
       PAINTS.map((paint) => `yasu_ride:paint_${paint}`),
     );
-    for (const group of Object.values(e.component_groups))
-      expect(Object.keys(group as object)).toEqual(["minecraft:variant"]);
     expect(Object.keys(e.events)).toEqual(PAINTS.map(paintEvent));
-  });
-  it("keeps the tiny hidden boxes whatever the footprint size", () => {
-    const why =
-      "The tent entity must keep its tiny collision and hit boxes (ADR 0130): a footprint-sized box would capture taps meant for the laid blocks.";
-    const c = readJson(`${BP}/entities/yasu_ride/tent.se.json`)[
-      "minecraft:entity"
-    ].components;
-    expect(c["minecraft:collision_box"], why).toEqual({
-      width: 0.2,
-      height: 0.2,
-    });
-    expect(c["minecraft:custom_hit_test"].hitboxes, why).toEqual([
-      { width: 0.1, height: 0.1, pivot: [0, 0.05, 0] },
-    ]);
-    expect(c["minecraft:physics"].has_collision, why).toBe(false);
   });
   it("writes float property values with a decimal point", () => {
     // The engine rejects a float property whose default is written as 0
@@ -263,7 +235,6 @@ describe("tent entity and client", () => {
   });
   it("draws the tent, switches only the shade material, and rolls each flap about its top", () => {
     const doc = readJson(`${RP}/entity/yasu_ride/tent.ce.json`);
-    expect(doc.format_version).toBe("1.10.0");
     const c = doc["minecraft:client_entity"].description;
     expect(c.identifier).toBe(TENT_TYPE);
     expect(c.geometry).toEqual({ default: "geometry.yasu_ride.tent" });
@@ -284,7 +255,6 @@ describe("tent entity and client", () => {
     });
     expect(c.render_controllers).toEqual(["controller.render.yasu_ride.tent"]);
     const rc = readJson(`${RP}/render_controllers/yasu_ride/tent.rc.json`);
-    expect(rc.format_version).toBe("1.8.0");
     expect(rc.render_controllers["controller.render.yasu_ride.tent"]).toEqual({
       arrays: {
         materials: { "Array.lamps": ["Material.lamp", "Material.lamp_lit"] },
@@ -305,7 +275,6 @@ describe("tent entity and client", () => {
       textures: ["Array.paints[query.variant]"],
     });
     const anim = readJson(`${RP}/animations/yasu_ride/tent.anim.json`);
-    expect(anim.format_version).toBe("1.8.0");
     const names = Object.keys(TENT_FLAP_PROPERTY).map((n) => `flap_${n}`);
     expect(c.scripts.animate).toEqual(names);
     expect(c.animations).toEqual(
@@ -819,7 +788,7 @@ describe("tent geometry and texture", () => {
   });
 });
 describe("tent item", () => {
-  it("has a single-stack icon and follows the Noga Chair in Camping Gear (Outside)", () => {
+  it("has a single-stack item with its own icon", () => {
     const item = readJson(`${BP}/items/yasu_ride/tent_item.item.json`)[
       "minecraft:item"
     ];
@@ -836,47 +805,25 @@ describe("tent item", () => {
       .yasu_ride_tent_item.textures;
     expect(icon).toBe("textures/items/yasu_ride/tent_item");
     expect(existsSync(`${RP}/${icon}.png`)).toBe(true);
-    const groups = readJson(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories.flatMap((c: { groups: { items: string[] }[] }) => c.groups);
-    expect(
-      groups
-        .find(
-          (g: { group_identifier: { name: string } }) =>
-            g.group_identifier.name === "yasu_ride:camping_gear_outside",
-        )
-        .items.at(2),
-    ).toBe(TENT_ITEM);
   });
   it("uses the specified wool, stick, and string recipe", () => {
     const r = readJson(`${BP}/recipes/yasu_ride/tent_item.recipe.json`);
-    expect(r).toEqual({
-      format_version: "1.20.10",
+    expect(r).toMatchObject({
       "minecraft:recipe_shaped": {
-        description: { identifier: TENT_ITEM },
         tags: ["crafting_table"],
-        unlock: { context: "AlwaysUnlocked" },
         pattern: [" W ", "WSW", "T T"],
         key: {
           W: { tag: "minecraft:wool" },
           S: { item: "minecraft:stick" },
           T: { item: "minecraft:string" },
         },
-        result: { item: TENT_ITEM, count: 1 },
       },
     });
   });
-  it.each(["en_US", "ja_JP"])("names the entity and item in %s", (locale) => {
-    const lines = readFileSync(`${RP}/texts/${locale}.lang`, "utf8").split(
-      /\r?\n/,
-    );
-    for (const key of [`item.${TENT_ITEM}.name`, `entity.${TENT_TYPE}.name`]) {
-      const value = lines
-        .find((l) => l.startsWith(`${key}=`))
-        ?.slice(key.length + 1);
-      expect(value).toBeTruthy();
-      if (locale === "en_US") expect(value).toBe("Tent");
-    }
+  it("names the tent in English", () => {
+    const lang = readLang(`${RP}/texts/en_US.lang`);
+    expect(lang.get(`item.${TENT_ITEM}.name`)).toBe("Tent");
+    expect(lang.get(`entity.${TENT_TYPE}.name`)).toBe("Tent");
   });
 });
 

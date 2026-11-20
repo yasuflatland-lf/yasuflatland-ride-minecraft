@@ -3,6 +3,7 @@ import type { ParasolPose } from "../../../domain/resort/parasolPose";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
+import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
 export interface ParasolWorld extends GroundCellsWorld {
   isSolidTop(dimension: DimensionId, cell: Cell): boolean;
@@ -14,10 +15,9 @@ export interface ParasolWorld extends GroundCellsWorld {
   layCeiling(id: ParasolId): void;
   clearCeiling(id: ParasolId): void;
 }
-export interface ParasolTakeBackWorld {
+export interface ParasolTakeBackWorld extends HitsLeftFeedback {
   dropItem(id: ParasolId, player: PlayerId | undefined): void;
   remove(id: ParasolId): void;
   clearCeiling(id: ParasolId): void;
-  showRemaining(player: PlayerId, left: number): void;
   showTaken(player: PlayerId): void;
 }

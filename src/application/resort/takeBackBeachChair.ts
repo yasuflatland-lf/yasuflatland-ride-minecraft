@@ -28,7 +28,7 @@ export class TakeBackBeachChair {
         this.world.remove(cmd.id);
         this.world.showTaken(cmd.player);
       },
-      showRemaining: (left) => this.world.showRemaining(cmd.player, left),
+      showRemaining: (left) => this.world.showHitsLeft(cmd.player, left),
     });
   }
 }

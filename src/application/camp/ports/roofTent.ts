@@ -1,11 +1,15 @@
 import type { RoofTentId } from "../../../domain/camp/ids";
-import type { RoofTentPlan } from "../../../domain/camp/roofTent/placement";
+import type {
+  RoofTentPlan,
+  RoofTentRefusal,
+} from "../../../domain/camp/roofTent/placement";
 import type { Host } from "../../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
-export interface RoofTentWorld {
+export interface RoofTentWorld extends HitsLeftFeedback {
   spawn(
     plan: RoofTentPlan,
     at: { dimensionId: DimensionId; location: Vec3; yaw: number },
@@ -22,7 +26,7 @@ export interface RoofTentWorld {
   isCreative(playerId: PlayerId): boolean;
   consumeItem(playerId: PlayerId, slot: number): boolean;
   giveItem(playerId: PlayerId): void;
-  showMessage(playerId: PlayerId, name: string): void;
+  showRefusal(playerId: PlayerId, reason: RoofTentRefusal): void;
   paintOf(tentId: RoofTentId): Paint | undefined;
   paint(tentId: RoofTentId, paint: Paint): void;
   consumeDye(playerId: PlayerId, paint: Paint): void;

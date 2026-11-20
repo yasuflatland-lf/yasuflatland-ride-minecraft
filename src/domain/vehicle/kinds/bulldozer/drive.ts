@@ -267,7 +267,7 @@ export class BulldozerDrive extends TransformingDrive {
   ): CutColumn[] | undefined {
     if (raw === undefined || this.bladeTargetRaised || this.bladeSteps !== 0)
       return undefined;
-    const cut = [...this.forwardCut(raw, ctx), ...this.shaftCut(raw, ctx)];
+    const cut = [...this.forwardCut(ctx), ...this.shaftCut(raw, ctx)];
     return cut.length === 0 ? undefined : cut;
   }
 
@@ -302,11 +302,11 @@ export class BulldozerDrive extends TransformingDrive {
     return this.wideBlade ? BULLDOZER_WIDE_BLADE : BULLDOZER_SPEC.blade;
   }
 
-  private forwardCut(raw: RawInput, ctx: TickContext): CutColumn[] {
+  private forwardCut(ctx: TickContext): CutColumn[] {
     const rule = this.bladeRule();
     const reach = cutReach(this.form, ctx.onGround);
     if (
-      bulldozerInput(raw, this.form).steer === 0 &&
+      this.readings.input.steer === 0 &&
       this.speed > rule.minSpeed &&
       reach !== undefined
     )

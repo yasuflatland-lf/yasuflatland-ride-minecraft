@@ -90,7 +90,7 @@ export class PlaceRoofTent {
     const plan = planRoofTent({ target, yaw: at.yaw });
     if (typeof plan === "string") {
       if (cmd.playerId !== undefined)
-        this.world.showMessage(cmd.playerId, plan);
+        this.world.showRefusal(cmd.playerId, plan);
       return false;
     }
     if (target.type === "ground") at.yaw = plan.facing;

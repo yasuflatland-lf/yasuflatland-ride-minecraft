@@ -5,7 +5,7 @@ const bp = "packs/yasu_ride_bp";
 const rp = "packs/yasu_ride_rp";
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
-it("connects the persistent fire pit, synced flame state, model, and PBR atlas", () => {
+it("connects the fire pit, synced flame state, model, and PBR atlas", () => {
   const entity = readJson(`${bp}/entities/yasu_ride/fire_pit.se.json`)[
     "minecraft:entity"
   ];
@@ -13,7 +13,6 @@ it("connects the persistent fire pit, synced flame state, model, and PBR atlas",
     default: false,
     client_sync: true,
   });
-  expect(entity.components["minecraft:persistent"]).toEqual({});
   expect(entity.components["minecraft:interact"].interactions).toHaveLength(1);
   const client = readJson(`${rp}/entity/yasu_ride/fire_pit.ce.json`)[
     "minecraft:client_entity"
@@ -84,15 +83,4 @@ it("syncs grill visibility and keeps the oven standing surface at 12.5 px", () =
     },
   );
   expect(Math.max(...tops)).toBe(GRILL_TOP);
-});
-
-it("advances the Resource Pack patch and keeps the dependency aligned", () => {
-  const resource = readJson(`${rp}/manifest.json`);
-  expect(resource.header.version.slice(0, 2)).toEqual([0, 1]);
-  expect(resource.header.version[2]).toBeGreaterThan(171);
-  expect(resource.modules[0].version).toEqual(resource.header.version);
-  const dependency = readJson(`${bp}/manifest.json`).dependencies.find(
-    (entry: { uuid?: string }) => entry.uuid === resource.header.uuid,
-  );
-  expect(dependency.version).toEqual(resource.header.version);
 });

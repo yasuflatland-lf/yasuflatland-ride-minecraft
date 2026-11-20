@@ -10,10 +10,6 @@ import {
   furniturePose,
   furnitureSupportCells,
 } from "../../../src/domain/resort/furniture";
-import {
-  asFurnitureId,
-  type FurnitureId,
-} from "../../../src/domain/resort/ids";
 import { cellKey } from "../../../src/domain/shared/cells";
 import type { Facing4 } from "../../../src/domain/shared/facing";
 import { forward } from "../../../src/domain/shared/vec";
@@ -186,15 +182,6 @@ describe("furniture spec", () => {
     expect(FURNITURE_SPEC.sofa_double.cells).toEqual(doubleCells);
     for (const kind of ["toilet", "washstand"] as const)
       expect(FURNITURE_SPEC[kind].cells).toEqual([{ ahead: 0, left: 0 }]);
-  });
-
-  it("brands furniture ids without changing them", () => {
-    fc.assert(
-      fc.property(fc.string(), (raw) => {
-        const id: FurnitureId = asFurnitureId(raw);
-        expect(id).toBe(raw);
-      }),
-    );
   });
 });
 

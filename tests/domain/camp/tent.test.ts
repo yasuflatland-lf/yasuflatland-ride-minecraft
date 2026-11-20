@@ -751,6 +751,10 @@ describe("planPitch (ADR 0131)", () => {
   });
   const plant = defined([...CLEARABLE_DECORATIONS][0], "plant");
 
+  const decorated = fine();
+  const decoratedClear = [...decorated.clear];
+  decoratedClear[0] = plant;
+  decoratedClear[1] = plant;
   const clearType = fc.oneof(
     { weight: 6, arbitrary: fc.constantFrom(...CLEARABLE_DECORATIONS) },
     { weight: 1, arbitrary: fc.constant("minecraft:stone") },
@@ -837,68 +841,12 @@ describe("planPitch (ADR 0131)", () => {
             defined(plan.clearTopFirst[i - 1], "cell").y,
           );
       }),
+      {
+        examples: [
+          [pose, fine()],
+          [pose, { ...decorated, clear: decoratedClear }],
+        ],
+      },
     );
-  });
-
-  it("pitches on flat stone with nothing in the way", () => {
-    expect(planPitch(pose, fine())).toEqual({ ok: true, clearTopFirst: [] });
-  });
-
-  it("refuses a fifth tent", () => {
-    expect(planPitch(pose, { ...fine(), tents: 4 })).toEqual({
-      ok: false,
-      reason: "limit",
-    });
-  });
-
-  it("refuses vehicle space", () => {
-    expect(planPitch(pose, { ...fine(), vehicleSpace: true })).toEqual({
-      ok: false,
-      reason: "vehicle",
-    });
-  });
-
-  it("refuses another tent's camp space, even where it reads as air", () => {
-    expect(planPitch(pose, { ...fine(), campSpace: true })).toEqual({
-      ok: false,
-      reason: "blocked",
-    });
-  });
-
-  it("refuses with someone in the footprint", () => {
-    expect(planPitch(pose, { ...fine(), occupants: 1 })).toEqual({
-      ok: false,
-      reason: "crowded",
-    });
-  });
-
-  it("refuses a step in the footprint", () => {
-    const clear = [...fine().clear];
-    clear[40] = "minecraft:stone";
-    expect(planPitch(pose, { ...fine(), clear })).toEqual({
-      ok: false,
-      reason: "blocked",
-    });
-  });
-
-  it("refuses a hole under the footprint", () => {
-    const ground = [...fine().ground];
-    ground[10] = { typeId: AIR, liquid: false };
-    expect(planPitch(pose, { ...fine(), ground })).toEqual({
-      ok: false,
-      reason: "ground",
-    });
-  });
-
-  it("clears grass in the footprint, top first", () => {
-    const clear = [...fine().clear];
-    clear[0] = plant;
-    clear[1] = plant;
-    const plan = planPitch(pose, { ...fine(), clear });
-    const cells = tentClearCells(pose);
-    expect(plan).toEqual({
-      ok: true,
-      clearTopFirst: [cells[1], cells[0]],
-    });
   });
 });

@@ -164,12 +164,8 @@ describe("BedrockTentPaintWorld (ADR 0031)", () => {
     );
   });
 
-  it("is Creative only for a present player in Creative", () => {
+  it("reports Creative for the requested player", () => {
     const world = new BedrockTentPaintWorld();
-    game.getEntity.mockReturnValue(undefined);
-    expect(world.isCreative(PLAYER)).toBe(false);
-    game.getEntity.mockReturnValue(fakeTent());
-    expect(world.isCreative(PLAYER)).toBe(false);
     const { player } = fakePlayer([]);
     (player as { getGameMode: () => string }).getGameMode = () => "Creative";
     game.getEntity.mockReturnValue(player);

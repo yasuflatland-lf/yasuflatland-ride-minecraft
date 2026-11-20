@@ -2,7 +2,10 @@ import { type Entity, ItemStack, world } from "@minecraft/server";
 import type { RoofTentWorld } from "../../../application/camp/ports/roofTent";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
-import type { RoofTentPlan } from "../../../domain/camp/roofTent/placement";
+import type {
+  RoofTentPlan,
+  RoofTentRefusal,
+} from "../../../domain/camp/roofTent/placement";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import { decodeHost, encodeHost } from "../../../domain/shared/hosted";
 import {
@@ -14,12 +17,14 @@ import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
 import { entityOfType } from "../../shared/entities";
-import { id, messageKey } from "../../shared/identifiers";
+import { id } from "../../shared/identifiers";
 import {
   consumeHeld,
   giveOrDrop,
   isCreative,
   playerById,
+  showActionBar,
+  showHitsLeftHint,
 } from "../../shared/players";
 import {
   PITCH_REFUSAL_MESSAGE,
@@ -31,6 +36,13 @@ import {
   TENT_HITS_LEFT_HINT,
 } from "../identifiers";
 import { loadedEntityIds } from "./hostedEntities";
+
+const ROOF_TENT_REFUSAL_MESSAGE: Readonly<Record<RoofTentRefusal, string>> = {
+  blocked: PITCH_REFUSAL_MESSAGE.blocked,
+  roof_taken: PITCH_REFUSAL_MESSAGE.blocked,
+  host_in_use: PITCH_REFUSAL_MESSAGE.blocked,
+  unsupported_vehicle: PITCH_REFUSAL_MESSAGE.vehicle,
+};
 
 export function roofTentEntity(id: RoofTentId): Entity | undefined {
   return entityOfType(world, id, ROOF_TENT_TYPE);
@@ -148,19 +160,11 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     const player = playerById(id);
     if (player?.isValid) giveOrDrop(player, [new ItemStack(ROOF_TENT_ITEM, 1)]);
   }
-  showMessage(id: PlayerId, name: string): void {
-    const hits = name.split(":")[1];
-    const refusals: Readonly<Record<string, string>> = {
-      blocked: PITCH_REFUSAL_MESSAGE.blocked,
-      roof_taken: PITCH_REFUSAL_MESSAGE.blocked,
-      host_in_use: PITCH_REFUSAL_MESSAGE.blocked,
-      unsupported_vehicle: PITCH_REFUSAL_MESSAGE.vehicle,
-    };
-    playerById(id)?.onScreenDisplay.setActionBar(
-      hits === undefined
-        ? { translate: refusals[name] ?? messageKey(name) }
-        : { translate: TENT_HITS_LEFT_HINT, with: [hits] },
-    );
+  showHitsLeft(id: PlayerId, hitsLeft: number): void {
+    showHitsLeftHint(id, TENT_HITS_LEFT_HINT, hitsLeft);
+  }
+  showRefusal(id: PlayerId, reason: RoofTentRefusal): void {
+    showActionBar(id, { translate: ROOF_TENT_REFUSAL_MESSAGE[reason] });
   }
   paintOf(id: RoofTentId): Paint | undefined {
     const tent = roofTentEntity(id);

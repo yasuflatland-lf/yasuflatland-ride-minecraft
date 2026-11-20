@@ -224,10 +224,10 @@ export class CamperDrive extends TransformingDrive implements RoomDrive {
     return { ...super.inspect(), parked: this.parked !== undefined };
   }
 
-  override onDriverMounted(driverYaw: number): void {
+  protected override alignToDriver(driverYaw: number): void {
     // A parked body keeps its snapped yaw, so its room, seats, and headlights stay put.
     if (this.parked || this.restoredDocked) return;
-    super.onDriverMounted(driverYaw);
+    super.alignToDriver(driverYaw);
   }
 
   useDockDoor(tick: number): boolean {
