@@ -21,8 +21,8 @@ import {
 } from "../../domain/camp/tent";
 import { TRAPEZOID_LAYOUT } from "../../domain/camp/tentLayout";
 import type { Cell } from "../../domain/shared/cells";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/debounce";
 import { PAINTS } from "../../domain/shared/paint";
-import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/switchCooldown";
 import {
   TENT_CEILING_BLOCK,
   TENT_FAMILY,
