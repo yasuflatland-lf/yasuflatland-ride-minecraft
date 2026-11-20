@@ -44,9 +44,10 @@ const cell = fc.record({
 
 function preview(part: Partial<PreviewSet>): PreviewSet {
   return {
-    marker: [],
+    startMarker: [],
     shape: [],
-    endCube: [],
+    endMarker: [],
+    sharedMarker: [],
     roof: [],
     stairs: [],
     paste: [],
@@ -283,7 +284,7 @@ it("draws 20 endrod particles on the corner boundary for the owner only", () => 
       feedback.drawPreview(
         playerId,
         dimension,
-        preview({ marker: cornerMarkerPoints(at) }),
+        preview({ startMarker: cornerMarkerPoints(at) }),
       );
       expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
       expect(spawnParticle).toHaveBeenCalledTimes(20);
@@ -294,21 +295,21 @@ it("draws 20 endrod particles on the corner boundary for the owner only", () => 
       feedback.drawPreview(
         playerId,
         asDimensionId("minecraft:nether"),
-        preview({ marker: cornerMarkerPoints(at) }),
+        preview({ startMarker: cornerMarkerPoints(at) }),
       );
       expect(spawnParticle).not.toHaveBeenCalled();
       player.isValid = false;
       feedback.drawPreview(
         playerId,
         dimension,
-        preview({ marker: cornerMarkerPoints(at) }),
+        preview({ startMarker: cornerMarkerPoints(at) }),
       );
       expect(spawnParticle).not.toHaveBeenCalled();
       engine.getEntity.mockReturnValue(undefined);
       feedback.drawPreview(
         playerId,
         dimension,
-        preview({ marker: cornerMarkerPoints(at) }),
+        preview({ startMarker: cornerMarkerPoints(at) }),
       );
       expect(spawnParticle).not.toHaveBeenCalled();
     }),
@@ -337,9 +338,9 @@ it("stops a corner marker at the first rejected particle without throwing", () =
             playerId,
             dimension,
             preview({
-              marker: cornerMarkerPoints(at),
+              startMarker: cornerMarkerPoints(at),
               shape: [{ x: 0, y: 0, z: 0 }],
-              endCube: cornerMarkerPoints(at),
+              endMarker: cornerMarkerPoints(at),
             }),
           ),
         ).not.toThrow();
@@ -377,7 +378,7 @@ it("draws every preview style in the viewer dimension when no dimension is fixed
     playerId,
     undefined,
     preview({
-      endCube: [point],
+      endMarker: [point],
       roof: [point],
       paste: [point],
       pasteVertical: [point],
