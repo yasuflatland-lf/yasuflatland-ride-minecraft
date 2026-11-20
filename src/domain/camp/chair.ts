@@ -1,3 +1,4 @@
+import { facePlayer } from "../shared/facing";
 import type { Brand } from "../shared/ids";
 // Where a chair goes when its item is used on a block, and which way it faces (ADR 0122).
 import type { Vec3 } from "../shared/vec";
@@ -26,10 +27,7 @@ export function chairCell(clicked: Vec3, face: ChairFace): Vec3 | undefined {
  * half a circle, snapped to CHAIR_SPEC.yawStep, in (-180, 180].
  */
 export function chairYaw(playerYaw: number): number {
-  const step = CHAIR_SPEC.yawStep;
-  const snapped = Math.round((playerYaw + 180) / step) * step;
-  const yaw = (((snapped % 360) + 360) % 360) + 0;
-  return yaw > 180 ? yaw - 360 : yaw;
+  return facePlayer(playerYaw, CHAIR_SPEC.yawStep);
 }
 
 /** Whether every block from 1 to CHAIR_SPEC.clearance above the clicked one is air. */

@@ -1,4 +1,5 @@
 import { cellCenter } from "../../domain/shared/cells";
+import { snapYaw } from "../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { GroundCellsWorld } from "./ports/groundCells";
@@ -58,6 +59,6 @@ export function placeOnGround(
   if (item.isNear(dimension, at)) return false;
   if (!world.isCreative(player) && !world.consumeItem(player, slot))
     return false;
-  item.spawn(dimension, at, Math.round(yaw / spec.yawStep) * spec.yawStep);
+  item.spawn(dimension, at, snapYaw(yaw, spec.yawStep));
   return true;
 }

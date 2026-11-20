@@ -1,15 +1,10 @@
 // Where a pitched tent stands, which cells it lays, and when it may be pitched (ADR 0130, 0131).
 import { type Cell, cellCenter, cellKey, cellOf } from "../shared/cells";
 import { CLEARABLE_DECORATIONS } from "../shared/decorations";
+import { facePlayer } from "../shared/facing";
 import type { Brand } from "../shared/ids";
 import type { LaidCell } from "../shared/laidCells";
-import {
-  forward,
-  leftOf,
-  normalizeYaw,
-  type Vec2,
-  type Vec3,
-} from "../shared/vec";
+import { forward, leftOf, type Vec2, type Vec3 } from "../shared/vec";
 import { TENT_SPEC } from "./spec";
 import {
   type FlapId,
@@ -96,9 +91,7 @@ export function tentGround(
 
 /** The tent faces the player who pitches it, with its front edge on the clicked column. */
 export function tentPose(clicked: Vec3, playerYaw: number): TentPose {
-  const step = TENT_SPEC.yawStep;
-  const yaw = (normalizeYaw(Math.round((playerYaw + 180) / step) * step) +
-    0) as TentYaw;
+  const yaw = facePlayer(playerYaw, TENT_SPEC.yawStep) as TentYaw;
   return { x: clicked.x, y: clicked.y + 1, z: clicked.z, yaw };
 }
 

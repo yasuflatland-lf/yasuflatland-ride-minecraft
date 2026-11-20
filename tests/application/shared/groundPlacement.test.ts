@@ -6,6 +6,7 @@ import {
   placeOnGround,
 } from "../../../src/application/shared/groundPlacement";
 import type { GroundCellsWorld } from "../../../src/application/shared/ports/groundCells";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 
@@ -143,12 +144,11 @@ it("refuses failed payment outside Creative and otherwise spawns once with cente
           expect(item.isNear).toHaveBeenCalledExactlyOnceWith(dimension, at);
           expect(item.spawn).toHaveBeenCalledTimes(accepted ? 1 : 0);
           if (accepted) {
-            const yaw = Math.round(cmd.yaw / spec.yawStep) * spec.yawStep;
+            const yaw = snapYaw(cmd.yaw, spec.yawStep);
             expect(item.spawn).toHaveBeenCalledWith(dimension, at, yaw);
             expect(Math.abs(yaw % spec.yawStep)).toBe(0);
-            expect(Math.abs(yaw - cmd.yaw)).toBeLessThanOrEqual(
-              spec.yawStep / 2,
-            );
+            const delta = ((((yaw - cmd.yaw) % 360) + 540) % 360) - 180;
+            expect(Math.abs(delta)).toBeLessThanOrEqual(spec.yawStep / 2);
           }
         }
       }
