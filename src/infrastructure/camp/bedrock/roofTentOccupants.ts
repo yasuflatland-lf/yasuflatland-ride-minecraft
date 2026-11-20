@@ -25,7 +25,7 @@ import {
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
-import { readCeilingCells } from "../../shared/laidBlockLayer";
+import { readSavedCells } from "../../shared/laidBlockLayer";
 import { playerById, showActionBar } from "../../shared/players";
 import { makeSafeStand } from "../../shared/seating";
 import {
@@ -84,7 +84,7 @@ export class RoofTentOccupants {
       entity.getDynamicProperty(ROOF_TENT_SPAWN_SETTERS_PROPERTY),
     );
     this.records.set(asRoofTentId(entity.id), {
-      ceiling: readCeilingCells(
+      ceiling: readSavedCells(
         entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
       ),
       dimension: entity.dimension,

@@ -16,7 +16,7 @@ Bootstrap creates one `TopHostRegistry` and passes it to camp and resort install
 
 Shared infrastructure resolves registered hosts and scans their dimension for registered hosted entities. A host must currently pass its availability predicate. Shared aiming uses the registered surface height. Camp handlers expose a placement callback for future block forwarding and use the same tick deduplication and deferred execution for entity and callback interactions.
 
-Fire Pit placement and the hosted-items guard retain their existing rules. The guard checks host existence regardless of host type; a change of table availability alone does not remove hosted items.
+The shared tabletop rule uses the payment and spawn rollback in 0185 for every registered host. The Fire Pit keeps its fixed oven spot. The guard checks host existence regardless of host type; a change of table availability alone does not remove hosted items.
 
 ## Consequences
 

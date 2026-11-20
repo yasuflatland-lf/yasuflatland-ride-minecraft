@@ -37,16 +37,15 @@ import {
 } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { safeBlockAt } from "../../shared/blocks";
-import { AIR_BLOCK, NAMESPACE } from "../../shared/identifiers";
+import { chunkLoadedAt, safeBlockAt } from "../../shared/blocks";
+import { dimensionById } from "../../shared/dimensions";
+import { AIR_BLOCK, isOwnTypeId, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
 import { giveOrDrop, playerById } from "../../shared/players";
-import { chunkLoadedAt } from "../chunkLoadedAt";
 import { TENT_ITEM, TENT_TYPE } from "../identifiers";
 import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 import { TENT_CELL_CODEC } from "./tentBlocks";
-import { dimensionOf } from "./tentDimension";
 import { tentEntityOf } from "./tentEntity";
 import type { TentFlapStore } from "./tentFlapStore";
 
@@ -84,15 +83,15 @@ export class TentLayout {
   }
 
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean {
-    return this.typeIdAt(dimensionId, at)?.startsWith(`${NAMESPACE}:`) === true;
+    return isOwnTypeId(this.typeIdAt(dimensionId, at));
   }
 
   typeIdAt(dimensionId: DimensionId, at: Vec3): string | undefined {
-    return safeBlockAt(dimensionOf(dimensionId), at)?.typeId;
+    return safeBlockAt(dimensionById(dimensionId), at)?.typeId;
   }
 
   survey(dimensionId: DimensionId, pose: TentPose): PitchSurvey {
-    const dimension = dimensionOf(dimensionId);
+    const dimension = dimensionById(dimensionId);
     const clearCells = tentClearCells(pose);
     const clear = clearCells.map((c) => {
       const b = safeBlockAt(dimension, c);
@@ -119,7 +118,7 @@ export class TentLayout {
   }
 
   clearDecorations(dimensionId: DimensionId, cells: readonly Cell[]): void {
-    const dimension = dimensionOf(dimensionId);
+    const dimension = dimensionById(dimensionId);
     for (const c of cells) {
       try {
         safeBlockAt(dimension, c)?.setType(AIR_BLOCK);
@@ -187,7 +186,7 @@ export class TentLayout {
     const entry = this.entryOf(tentId);
     if (!entry) return false;
     return (
-      dimensionOf(entry.dimensionId)
+      dimensionById(entry.dimensionId)
         ?.getPlayers()
         .some((p) => insideTent(entry.pose, p.location)) === true
     );
@@ -207,7 +206,7 @@ export class TentLayout {
     }
     const entry = this.entryOf(tentId);
     if (entry)
-      dimensionOf(entry.dimensionId)?.spawnItem(
+      dimensionById(entry.dimensionId)?.spawnItem(
         item,
         tentEntityLocation(entry.pose),
       );
@@ -234,7 +233,7 @@ export class TentLayout {
   }
 
   foldInto(entry: TentEntry): "folded" | "deferred" {
-    const dimension = dimensionOf(entry.dimensionId);
+    const dimension = dimensionById(entry.dimensionId);
     if (!dimension || !chunkLoadedAt(dimension, entry.pose)) return "deferred";
     this.ejectOccupants(entry);
     // The playerless refund needs the entity or registry location before removal.
@@ -244,7 +243,7 @@ export class TentLayout {
   }
 
   private ejectOccupants(entry: TentEntry): void {
-    const dimension = dimensionOf(entry.dimensionId);
+    const dimension = dimensionById(entry.dimensionId);
     if (!dimension) return;
     const cells = new Set(legacyTentClearCells(entry.pose).map(cellKey));
     const exit = tentCellAt(entry.pose, { x: 0, depth: -1, layer: 0 });
@@ -261,7 +260,7 @@ export class TentLayout {
   }
 
   private clearTentBlock(dimensionId: DimensionId, cell: Cell): void {
-    const block = safeBlockAt(dimensionOf(dimensionId), cell);
+    const block = safeBlockAt(dimensionById(dimensionId), cell);
     if (isTentBlockTypeId(block?.typeId)) block?.setType(AIR_BLOCK);
   }
 
@@ -273,7 +272,7 @@ export class TentLayout {
   }
 
   private clearByPose(entry: TentEntry): void {
-    const dimension = dimensionOf(entry.dimensionId);
+    const dimension = dimensionById(entry.dimensionId);
     // Open or closed, lit or not, a flap or lantern cell holds the same block
     // id, so the pitched state finds it.
     for (const c of tentCells(entry.pose, PITCHED_STATE)) {

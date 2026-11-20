@@ -1,4 +1,5 @@
 import type { Vec3 } from "../../../shared/vec";
+import { distanceXZ } from "../../../shared/vec";
 import type { CutColumn } from "../../cut";
 import { boxColumns, rectCells } from "../../cutArea";
 import { SPORTSBOAT_SPEC } from "./spec";
@@ -57,10 +58,7 @@ export function recutDue(
   location: Vec3,
 ): boolean {
   if (last === undefined) return true;
-  const moved = Math.hypot(
-    location.x - last.location.x,
-    location.z - last.location.z,
-  );
+  const moved = distanceXZ(location, last.location);
   return (
     moved >= icebreaker.recutDistance ||
     tick - last.tick >= icebreaker.recutTicks

@@ -20,15 +20,10 @@ import type {
 } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { allDimensions } from "../../shared/dimensions";
-import { entityOfType } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import type { CellLayer } from "../../shared/laidCells";
-import {
-  consumeHeld,
-  isCreative,
-  playerById,
-  showHitsLeftHint,
-} from "../../shared/players";
+import { showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   GAS_LANTERN_HITS_LEFT_HINT,
@@ -49,46 +44,21 @@ function gasLantern(id: GasLanternId) {
   return entityOfType(world, id, GAS_LANTERN_TYPE);
 }
 
-function spawnLantern(dimension: DimensionId, at: Vec3, yaw: number) {
-  const lantern = world
-    .getDimension(dimension)
-    .spawnEntity(GAS_LANTERN_TYPE, at);
-  lantern.setRotation({ x: 0, y: yaw });
-  return lantern;
-}
-
-export class BedrockGasLanternWorld implements GasLanternWorld {
+export class BedrockGasLanternWorld
+  extends BedrockPaidGroundCells
+  implements GasLanternWorld
+{
   constructor(
     private readonly vehicles: {
       topHosts: TopHostRegistry;
       isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
     },
     private readonly light: CellLayer<GasLanternId, GasLanternLight>,
-  ) {}
-
-  isAir(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return world.getDimension(dimension).getBlock(at)?.isAir === true;
-    } catch {
-      return false;
-    }
-  }
-
-  isOwnBlock(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return (
-        world
-          .getDimension(dimension)
-          .getBlock(at)
-          ?.typeId.startsWith(`${NAMESPACE}:`) === true
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  isVehicleSpace(dimension: DimensionId, at: Vec3): boolean {
-    return this.vehicles.isVehicleSpace(dimension, at);
+  ) {
+    super(
+      (dimension, cell) => vehicles.isVehicleSpace(dimension, cell),
+      GAS_LANTERN_ITEM,
+    );
   }
 
   hasGasLanternNear(dimension: DimensionId, at: Vec3): boolean {
@@ -101,17 +71,18 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
     );
   }
 
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
-  }
-
-  consumeItem(player: PlayerId, slot: number): boolean {
-    const entity = playerById(player);
-    return entity !== undefined && consumeHeld(entity, GAS_LANTERN_ITEM, slot);
-  }
-
-  spawnGasLantern(dimension: DimensionId, at: Vec3, yaw: number): void {
-    spawnLantern(dimension, at, yaw);
+  spawnGasLantern(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): GasLanternId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      GAS_LANTERN_TYPE,
+      at,
+      yaw,
+    );
+    return entity && asGasLanternId(entity.id);
   }
 
   topHost(hostType: string, id: string) {
@@ -137,12 +108,20 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
     at: Vec3,
     yaw: number,
     host: string,
-  ): void {
-    const lantern = spawnLantern(dimension, at, yaw);
-    lantern.setDynamicProperty(GAS_LANTERN_HOST_PROPERTY, host);
-    // Entities do not provide a supporting block surface for another entity.
-    lantern.triggerEvent(GAS_LANTERN_HOSTED_EVENT);
-    lantern.clearVelocity();
+  ): GasLanternId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      GAS_LANTERN_TYPE,
+      at,
+      yaw,
+      (lantern) => {
+        lantern.setDynamicProperty(GAS_LANTERN_HOST_PROPERTY, host);
+        // Entities do not provide a supporting block surface for another entity.
+        lantern.triggerEvent(GAS_LANTERN_HOSTED_EVENT);
+        lantern.clearVelocity();
+      },
+    );
+    return entity && asGasLanternId(entity.id);
   }
 
   isLit(id: GasLanternId): boolean | undefined {

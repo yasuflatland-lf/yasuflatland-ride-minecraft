@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { handleHit } from "../../../src/application/shared/takeBackByHits";
-import { HitCounters } from "../../../src/domain/shared/hitCounter";
+import { HitCounters, hitRule } from "../../../src/domain/shared/hitCounter";
 import { ticks } from "../../../src/domain/shared/ticks";
 
 describe("handleHit", () => {
@@ -11,7 +11,7 @@ describe("handleHit", () => {
         fc.integer({ min: 1, max: 6 }),
         fc.integer({ min: 0, max: 1000 }),
         (hits, start) => {
-          const rule = { hits, resetTicks: ticks(40) };
+          const rule = hitRule(hits, ticks(40));
           const counters = new HitCounters<string>(rule);
           const log: string[] = [];
           const effects = {
@@ -45,7 +45,7 @@ describe("handleHit", () => {
         }),
         (resetTicks, offsets) => {
           const hits = offsets.length + 2;
-          const counters = new HitCounters<string>({ hits, resetTicks });
+          const counters = new HitCounters<string>(hitRule(hits, resetTicks));
           const log: number[] = [];
           const effects = {
             drop: () => log.push(-1),

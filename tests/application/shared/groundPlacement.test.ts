@@ -6,6 +6,7 @@ import {
   placeOnGround,
 } from "../../../src/application/shared/groundPlacement";
 import type { GroundCellsWorld } from "../../../src/application/shared/ports/groundCells";
+import type { ItemPayment } from "../../../src/application/shared/ports/itemPayment";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
@@ -30,7 +31,7 @@ const commandArbitrary = fc.record({
   slot: fc.integer({ min: 0, max: 8 }),
 });
 
-function fixture(creative = false, consumeResult = true) {
+function fixture(creative = false, consumeResult = true, failSpawn = false) {
   const nonAir = new Set<string>();
   const own = new Set<string>();
   const vehicle = new Set<string>();
@@ -40,8 +41,12 @@ function fixture(creative = false, consumeResult = true) {
     isVehicleSpace: vi.fn((_dimension, at) => vehicle.has(cellKey(at))),
     isCreative: vi.fn(() => creative),
     consumeItem: vi.fn(() => consumeResult),
-  } satisfies GroundCellsWorld;
-  const item = { isNear: vi.fn(() => false), spawn: vi.fn() };
+    refund: vi.fn(),
+  } satisfies GroundCellsWorld & ItemPayment;
+  const item = {
+    isNear: vi.fn(() => false),
+    spawn: vi.fn(() => (failSpawn ? undefined : "item")),
+  };
   return { world, nonAir, own, vehicle, item };
 }
 
@@ -153,5 +158,43 @@ it("refuses failed payment outside Creative and otherwise spawns once with cente
         }
       }
     }),
+  );
+});
+
+it("refunds only a paid item when ground spawning fails", () => {
+  fc.assert(
+    fc.property(
+      fc.record({
+        creative: fc.boolean(),
+        hasPlayer: fc.boolean(),
+        consumeOk: fc.boolean(),
+        spawnOk: fc.boolean(),
+      }),
+      ({ creative, hasPlayer, consumeOk, spawnOk }) => {
+        const { world, item } = fixture(creative, consumeOk, !spawnOk);
+        const payer = hasPlayer ? player : undefined;
+        const cmd = {
+          player: payer,
+          slot: 2,
+          dimension,
+          block: { x: 0, y: 60, z: 0 },
+          yaw: 0,
+        };
+        const owesPayment = hasPlayer && !creative;
+        const paid = owesPayment && consumeOk;
+        const spawns = !owesPayment || paid;
+        expect(
+          placeOnGround(world, { clearance: 1, yawStep: 90 }, cmd, item),
+        ).toBe(spawns && spawnOk);
+        expect(world.consumeItem).toHaveBeenCalledTimes(owesPayment ? 1 : 0);
+        expect(item.spawn).toHaveBeenCalledTimes(spawns ? 1 : 0);
+        if (paid && !spawnOk) {
+          expect(world.refund).toHaveBeenCalledExactlyOnceWith(payer, cmd.slot);
+          expect(item.spawn).toHaveBeenCalledBefore(world.refund);
+        } else {
+          expect(world.refund).not.toHaveBeenCalled();
+        }
+      },
+    ),
   );
 });

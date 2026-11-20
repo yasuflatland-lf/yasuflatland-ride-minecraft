@@ -1,12 +1,7 @@
-import {
-  type Dimension,
-  EntityInitializationCause,
-  system,
-  type Vector3,
-  world,
-} from "@minecraft/server";
+import { EntityInitializationCause, system, world } from "@minecraft/server";
 import type { LimitVehicles } from "../../../../application/vehicle/limitVehicles";
 import { asVehicleId } from "../../../../domain/shared/ids";
+import { chunkLoadedAt } from "../../../shared/blocks";
 import { removeOrphanDeckSeat } from "../deckSeats";
 import { ENTITY_TYPE, fleetEntryOf, isVehicleEntity } from "../identifiers";
 import { removeOrphanSeatFiller } from "../seatFillers";
@@ -56,14 +51,4 @@ export function registerFleet(limit: LimitVehicles): void {
     (ev) => limit.died(asVehicleId(ev.deadEntity.id)),
     { entityTypes: Object.values(ENTITY_TYPE) },
   );
-}
-
-// getBlock returns undefined in an unloaded chunk but can also throw
-// LocationInUnloadedChunkError; both mean the chunk unloaded (ADR 0125).
-function chunkLoadedAt(dimension: Dimension, location: Vector3): boolean {
-  try {
-    return dimension.getBlock(location) !== undefined;
-  } catch {
-    return false;
-  }
 }

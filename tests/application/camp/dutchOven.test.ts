@@ -15,10 +15,10 @@ import {
   TABLE_SPOTS,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/debounce";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { decodeHost as decodeSharedHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/switchCooldown";
 import type { TopItem } from "../../../src/domain/shared/tableTop";
 
 const oven = asDutchOvenId("oven");
@@ -27,23 +27,34 @@ const dimension = asDimensionId("overworld");
 const block = { x: 4, y: 60, z: 5 };
 const command = { player, dimension, block, yaw: 47, slot: 1 };
 
-function fixture(overrides: Partial<DutchOvenWorld> = {}) {
+function fixture(
+  overrides: Partial<Omit<DutchOvenWorld, "refund">> = {},
+  failSpawn = false,
+) {
+  const setHost = overrides.setHost ?? vi.fn();
   const world = {
     topHost: () => ({ dimension, at: { x: 4.5, y: 61, z: 5.5 }, yaw: 90 }),
     itemsOnTop: (): readonly TopItem[] => [],
-    spawnHosted: vi.fn(),
+    spawnHosted: vi.fn(() => (failSpawn ? undefined : oven)),
     isAir: vi.fn(() => true),
     isOwnBlock: () => false,
     isVehicleSpace: () => false,
     hasDutchOvenNear: () => false,
     isCreative: () => false,
     consumeItem: vi.fn(() => true),
-    spawnDutchOven: vi.fn(() => oven),
+    refund: vi.fn(),
+    spawnDutchOven: vi.fn<DutchOvenWorld["spawnDutchOven"]>(
+      (_dimension, _at, _yaw, setup) => {
+        if (failSpawn) return undefined;
+        setup?.(oven);
+        return oven;
+      },
+    ),
     firePit: () => ({ dimension, at: { x: 4.5, y: 61, z: 5.5 }, yaw: 90 }),
     isCovered: () => false,
     setCovered: vi.fn(),
     host: () => "",
-    setHost: vi.fn(),
+    setHost,
     simmering: () => false,
     setSimmering: vi.fn(),
     loadedOvens: () => [],
@@ -126,12 +137,12 @@ it("returns exactly one item on the third quick hit and resets after a long gap"
   fc.assert(
     fc.property(
       fc.integer({ min: 0, max: 10000 }),
-      fc.integer({ min: 1, max: DUTCH_OVEN_SPEC.hitResetTicks }),
+      fc.integer({ min: 1, max: DUTCH_OVEN_SPEC.recovery.resetTicks }),
       (tick, gap) => {
         const { actions, world } = fixture();
         expect(actions.hit(oven, player, tick)).toBe(false);
         expect(world.showHitsLeft).toHaveBeenLastCalledWith(player, 2);
-        const restart = tick + DUTCH_OVEN_SPEC.hitResetTicks + 1;
+        const restart = tick + DUTCH_OVEN_SPEC.recovery.resetTicks + 1;
         expect(actions.hit(oven, player, restart)).toBe(false);
         expect(world.showHitsLeft).toHaveBeenLastCalledWith(player, 2);
         expect(actions.hit(oven, player, restart + gap)).toBe(false);
@@ -156,6 +167,7 @@ it("places on the grill, consumes outside Creative, and covers the pit", () => {
       dimension,
       { x: 4.5, y: 61 + FIRE_PIT_TOP_PX / 16, z: 5.5 },
       90,
+      expect.any(Function),
     );
     expect(world.setHost).toHaveBeenCalledWith(oven, "fire_pit:pit:0", true);
     expect(world.setCovered).toHaveBeenCalledWith(pit, true);
@@ -319,7 +331,9 @@ it("taking back an oven frees its place for a replacement", () => {
   let serial = 0;
   const { actions, world } = fixture({
     spawnHosted: (_kind, _dimension, _at, _yaw, host) => {
-      hosts.set(`oven${serial++}`, host);
+      const id = asDutchOvenId(`oven${serial++}`);
+      hosts.set(id, host);
+      return id;
     },
     host: (id) => hosts.get(id) ?? "",
     itemsOnTop: () =>
@@ -407,3 +421,62 @@ function decodeHost(text: string) {
     type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
   );
 }
+
+it.each(["Survival", "Creative", "playerless"])(
+  "refunds only a paid Dutch Oven item when spawning fails on the ground (%s)",
+  (mode) => {
+    const { actions, world } = fixture(
+      { isCreative: () => mode === "Creative" },
+      true,
+    );
+    const payer = mode === "playerless" ? undefined : player;
+    expect(actions.place({ ...command, player: payer })).toBe(false);
+    expect(world.spawnDutchOven).toHaveBeenCalledOnce();
+    expect(world.consumeItem).toHaveBeenCalledTimes(
+      mode === "Survival" ? 1 : 0,
+    );
+    expect(world.refund.mock.calls).toEqual(
+      mode === "Survival" ? [[payer, command.slot]] : [],
+    );
+  },
+);
+
+it.each(["Survival", "Creative", "playerless"])(
+  "refunds only a paid Dutch Oven item when spawning fails on a fire pit (%s)",
+  (mode) => {
+    const { actions, world } = fixture(
+      { isCreative: () => mode === "Creative" },
+      true,
+    );
+    const payer = mode === "playerless" ? undefined : player;
+    expect(actions.placeOnFirePit({ ...onPit, player: payer })).toBe(false);
+    expect(world.spawnDutchOven).toHaveBeenCalledOnce();
+    expect(world.setHost).not.toHaveBeenCalled();
+    expect(world.setCovered).not.toHaveBeenCalled();
+    expect(world.consumeItem).toHaveBeenCalledTimes(
+      mode === "Survival" ? 1 : 0,
+    );
+    expect(world.refund.mock.calls).toEqual(
+      mode === "Survival" ? [[payer, onPit.slot]] : [],
+    );
+  },
+);
+
+it.each(["Survival", "Creative", "playerless"])(
+  "refunds only a paid Dutch Oven item when spawning fails on a table (%s)",
+  (mode) => {
+    const { actions, world } = fixture(
+      { isCreative: () => mode === "Creative" },
+      true,
+    );
+    const payer = mode === "playerless" ? undefined : player;
+    expect(actions.placeOnTable({ ...onTable, player: payer })).toBe("refused");
+    expect(world.spawnHosted).toHaveBeenCalledOnce();
+    expect(world.consumeItem).toHaveBeenCalledTimes(
+      mode === "Survival" ? 1 : 0,
+    );
+    expect(world.refund.mock.calls).toEqual(
+      mode === "Survival" ? [[payer, onTable.slot]] : [],
+    );
+  },
+);

@@ -16,6 +16,7 @@ import {
   BEACH_CHAIR_LOUNGE_CONTROLLER,
   BEACH_CHAIR_UNFOLD_EVENT,
 } from "../../../src/infrastructure/resort/identifiers";
+import * as blocks from "../../../src/infrastructure/shared/blocks";
 import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
@@ -292,4 +293,13 @@ it.each([
     translate: `yasu_ride.beach_chair.${key}`,
     with: [],
   });
+});
+
+it("delegates the support check to the shared solid-top read", () => {
+  const { adapter } = fixture();
+  const at = { x: 1, y: 2, z: 3 };
+  const support = vi.spyOn(blocks, "isSolidTop").mockReturnValueOnce(true);
+  expect(adapter.isSolidTop(dimensionId, at)).toBe(true);
+  expect(support).toHaveBeenCalledExactlyOnceWith(dimensionId, at);
+  support.mockRestore();
 });

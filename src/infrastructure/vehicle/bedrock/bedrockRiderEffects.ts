@@ -2,6 +2,7 @@
 
 import type { RiderEffectWorld } from "../../../application/vehicle/ports/drive";
 import type { PlayerId } from "../../../domain/shared/ids";
+import type { Ticks } from "../../../domain/shared/ticks";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { EntityIndex } from "./entityIndex";
 import { CHASE_CAMERAS } from "./identifiers";
@@ -16,8 +17,8 @@ export class BedrockRiderEffects implements RiderEffectWorld {
     else camera.clear();
   }
 
-  giveWaterBreathing(playerId: PlayerId, ticks: number): void {
-    this.index.player(playerId)?.addEffect("water_breathing", ticks, {
+  giveWaterBreathing(playerId: PlayerId, duration: Ticks): void {
+    this.index.player(playerId)?.addEffect("water_breathing", duration, {
       showParticles: false,
     });
   }

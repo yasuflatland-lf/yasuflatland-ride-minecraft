@@ -12,10 +12,6 @@ import { FakeTentWorld } from "./fakeTentWorld";
 
 const TENT = asTentId("tent");
 const PLAYER = asPlayerId("p");
-const RULE = {
-  hits: TENT_SPEC.hitsToTakeDown,
-  resetTicks: TENT_SPEC.hitResetTicks,
-};
 
 describe("TakeDownTent (ADR 0131)", () => {
   it("takes the tent down on the third hit, returning the item first, with 2 and 1 hits left before", () => {
@@ -78,7 +74,7 @@ describe("TakeDownTent (ADR 0131)", () => {
           for (const [gap, occupied] of steps) {
             tick += gap;
             world.occupied = occupied;
-            const r = registerHit(counter, tick, occupied, RULE);
+            const r = registerHit(counter, tick, occupied, TENT_SPEC.recovery);
             if (!occupied) counter = r.counter;
             const before = world.names().filter((n) => n === "takeDown").length;
             expect(take.execute({ tentId: TENT, tick })).toBe(r.broken);

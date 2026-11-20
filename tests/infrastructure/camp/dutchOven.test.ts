@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import type { DutchOvenActions } from "../../../src/application/camp/dutchOven";
+import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import type { FirePitActions } from "../../../src/application/camp/firePit";
 import type { FirePitWorld } from "../../../src/application/camp/ports/firePit";
 import type { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
@@ -570,4 +570,49 @@ it("reads the persisted lid property and writes it with sound without changing t
   expect(world.simmering(id)).toBeUndefined();
   world.setSimmering(id, true);
   expect(entity.setProperty).toHaveBeenCalledTimes(1);
+});
+
+it("rolls back an oven when a fire pit host setter fails and leaves the pit uncovered", () => {
+  const dimension = {
+    id: "overworld",
+    getBlock: () => ({ isAir: true }),
+    spawnEntity: vi.fn(),
+  };
+  const pit = {
+    id: "pit",
+    isValid: true,
+    typeId: FIRE_PIT_TYPE,
+    dimension,
+    location: { x: 1.5, y: 64, z: 2.5 },
+    getRotation: () => ({ x: 0, y: 90 }),
+    getProperty: () => false,
+    setProperty: vi.fn(),
+  };
+  const oven = {
+    id: "oven",
+    isValid: true,
+    typeId: DUTCH_OVEN_TYPE,
+    setRotation: vi.fn(),
+    setDynamicProperty: vi.fn(),
+    setProperty: () => {
+      throw new Error("unloaded chunk");
+    },
+    remove: vi.fn(),
+  };
+  game.entity.mockImplementation((id: string) => (id === pit.id ? pit : oven));
+  game.dimension.mockReturnValue(dimension);
+  dimension.spawnEntity.mockReturnValue(oven);
+  const world = new BedrockDutchOvenWorld({
+    isVehicleSpace: () => false,
+    topHosts: campTopHosts(),
+  });
+
+  expect(
+    new DutchOvenActions(world).placeOnFirePit({
+      pit: asFirePitId(pit.id),
+      slot: 0,
+    }),
+  ).toBe(false);
+  expect(oven.remove).toHaveBeenCalledOnce();
+  expect(pit.setProperty).not.toHaveBeenCalled();
 });

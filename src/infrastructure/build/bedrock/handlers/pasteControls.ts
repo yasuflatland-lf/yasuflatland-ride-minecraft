@@ -9,8 +9,8 @@ import {
   type PressRoute,
   routePress,
 } from "../../../../domain/build/flow/press";
-import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
+import type { Debounces } from "../../../../domain/shared/debounce";
 import {
   asDimensionId,
   asPlayerId,
@@ -49,9 +49,9 @@ export function registerPasteControls({
   rotateSelection: Pick<RotateSelection, "execute">;
   pressPasteAim: PressPasteAim;
   undo: UndoEdit;
-  undoDebounce: PressDebounces<PlayerId>;
-  rotateDebounce: PressDebounces<PlayerId>;
-  pasteDebounce: PressDebounces<PlayerId>;
+  undoDebounce: Debounces<PlayerId>;
+  rotateDebounce: Debounces<PlayerId>;
+  pasteDebounce: Debounces<PlayerId>;
   refresh(playerId: PlayerId, tick: number): void;
 }): PasteControlRoutes {
   function pressFromBlockTap(player: Player, isFirstEvent: boolean): boolean {

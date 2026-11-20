@@ -1,5 +1,6 @@
 import type { Dimension, Entity, Player } from "@minecraft/server";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { distance3 } from "../../../domain/shared/vec";
 import { isLightBlock } from "../../shared/lightBlocks";
 
 // The engine drops a dismounting rider next to the box of the entity the rider
@@ -58,11 +59,7 @@ export function standUp(
     player.dimension.id !== from.dimension.id ||
     player.getComponent("minecraft:riding") ||
     (player.getComponent("minecraft:health")?.currentValue ?? 1) <= 0 ||
-    Math.hypot(
-      player.location.x - from.location.x,
-      player.location.y - from.location.y,
-      player.location.z - from.location.z,
-    ) > STAND_UP_REACH
+    distance3(player.location, from.location) > STAND_UP_REACH
   )
     return false;
   const spot = place(from.dimension, at);

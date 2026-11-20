@@ -551,7 +551,7 @@ it.each(["fold", "host removal", "external removal"] as const)(
 
     if (path === "fold") {
       const fold = new FoldRoofTent(tents);
-      for (let tick = 0; tick < ROOF_TENT_SPEC.hitsToFoldUp; tick++)
+      for (let tick = 0; tick < ROOF_TENT_SPEC.recovery.hits; tick++)
         fold.execute({ tentId: id, tick });
     } else if (path === "host removal") {
       state = { status: "removed" };
