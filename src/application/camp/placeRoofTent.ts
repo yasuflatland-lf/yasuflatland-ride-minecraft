@@ -5,6 +5,7 @@ import {
   type RoofTentTarget,
 } from "../../domain/camp/roofTent/placement";
 import { ROOF_TENT_SPEC } from "../../domain/camp/spec";
+import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { RoofTentMount } from "../../domain/shared/roofTent";
 import { forward, localOffset, type Vec3 } from "../../domain/shared/vec";
@@ -83,7 +84,7 @@ export class PlaceRoofTent {
       };
       at = {
         dimensionId: cmd.dimensionId,
-        location: { x: clicked.x + 0.5, y: clicked.y + 1, z: clicked.z + 0.5 },
+        location: cellCenter(clicked, 1),
         yaw: cmd.yaw,
       };
     }

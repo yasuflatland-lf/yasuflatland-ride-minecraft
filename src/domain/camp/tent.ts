@@ -1,6 +1,5 @@
 // Where a pitched tent stands, which cells it lays, and when it may be pitched (ADR 0130, 0131).
-
-import { type Cell, cellKey, cellOf } from "../shared/cells";
+import { type Cell, cellCenter, cellKey, cellOf } from "../shared/cells";
 import { CLEARABLE_DECORATIONS } from "../shared/decorations";
 import { facePlayer } from "../shared/facing";
 import type { Brand } from "../shared/ids";
@@ -241,7 +240,7 @@ export function insideTent(pose: TentPose, feet: Vec3): boolean {
  */
 export function tentEntityLocation(pose: TentPose): Vec3 {
   const c = tentCellAt(pose, LAYOUT.anchor);
-  return { x: c.x + 0.5, y: c.y, z: c.z + 0.5 };
+  return cellCenter(c);
 }
 
 /** The wall cells each flap takes; tentCells lays them as flap cells (ADR 0132). */

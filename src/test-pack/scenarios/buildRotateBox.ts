@@ -13,6 +13,7 @@ import { cellsOf, contains } from "../../domain/build/box";
 import { selectionBoxOf } from "../../domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { selectionOf } from "../../domain/build/selection";
+import { sameCell } from "../../domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
@@ -30,10 +31,7 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
   let protectedCell: Vector3 | undefined;
   const world = new BedrockBlockWorld({
     isProtected: (_dim, cell) =>
-      protectedCell !== undefined &&
-      cell.x === protectedCell.x &&
-      cell.y === protectedCell.y &&
-      cell.z === protectedCell.z,
+      protectedCell !== undefined && sameCell(cell, protectedCell),
   });
   const structures = new BedrockStructureStore(() => false);
   const players = { occupantOf: () => undefined, moveTo: () => {} };

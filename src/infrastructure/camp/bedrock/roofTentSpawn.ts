@@ -1,4 +1,5 @@
 import type { RoofTentId } from "../../../domain/camp/ids";
+import { cellOf } from "../../../domain/shared/cells";
 import { asDimensionId, type PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
@@ -13,11 +14,7 @@ export class RoofTentSpawn {
   spawnCellOf(id: RoofTentId): Vec3 {
     const location = this.occupants.snapshot(id)?.location;
     if (!location) throw new Error(`Unknown roof tent: ${id}`);
-    return {
-      x: Math.floor(location.x),
-      y: Math.floor(location.y),
-      z: Math.floor(location.z),
-    };
+    return cellOf(location);
   }
 
   spawnSetters(id: RoofTentId): readonly PlayerId[] {

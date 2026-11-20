@@ -1,14 +1,11 @@
 import type { Dimension } from "@minecraft/server";
+import { cellOf } from "../../../domain/shared/cells";
 import type { Vec3 } from "../../../domain/shared/vec";
 
 /** Whether the block cell at `at` holds water, including a waterlogged block. */
 export function isWaterAt(dimension: Dimension, at: Vec3): boolean {
   try {
-    const block = dimension.getBlock({
-      x: Math.floor(at.x),
-      y: Math.floor(at.y),
-      z: Math.floor(at.z),
-    });
+    const block = dimension.getBlock(cellOf(at));
     return (
       block !== undefined &&
       (block.typeId === "minecraft:water" ||
@@ -23,11 +20,7 @@ export function isWaterAt(dimension: Dimension, at: Vec3): boolean {
 
 export function isLavaAt(dimension: Dimension, at: Vec3): boolean {
   try {
-    const block = dimension.getBlock({
-      x: Math.floor(at.x),
-      y: Math.floor(at.y),
-      z: Math.floor(at.z),
-    });
+    const block = dimension.getBlock(cellOf(at));
     return (
       block?.typeId === "minecraft:lava" ||
       block?.typeId === "minecraft:flowing_lava"

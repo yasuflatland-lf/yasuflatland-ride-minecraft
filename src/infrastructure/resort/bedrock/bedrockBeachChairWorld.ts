@@ -16,7 +16,7 @@ import {
 import { beachChairExit } from "../../../domain/resort/beachChairExit";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../domain/resort/spec";
-import { type Cell, cellKey } from "../../../domain/shared/cells";
+import { type Cell, cellCenter, sameCell } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import {
   asDimensionId,
@@ -132,11 +132,7 @@ export class BedrockBeachChairWorld
       beachChairPoseAt(chair.location, snapYaw4(chair.getRotation().y)),
       (cell) => isSafe(dimension, cell),
     );
-    if (feet)
-      player.teleport(
-        { x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 },
-        { dimension },
-      );
+    if (feet) player.teleport(cellCenter(feet), { dimension });
   }
   entity(id: BeachChairId): Entity | undefined {
     try {
@@ -165,7 +161,7 @@ export class BedrockBeachChairWorld
       // Stable 2.x has no solidity flag; a non-passable ray must meet the top at full height.
       // A ray that ends exactly on the face misses it on BDS, so it starts half a block above.
       const hit = world.getDimension(dimension).getBlockFromRay(
-        { x: cell.x + 0.5, y: cell.y + 1.5, z: cell.z + 0.5 },
+        cellCenter(cell, 1.5),
         { x: 0, y: -1, z: 0 },
         {
           maxDistance: 1,
@@ -177,7 +173,7 @@ export class BedrockBeachChairWorld
         hit?.face === Direction.Up &&
         // The engine reports faceLocation.y inverted, so a full top reads 0 (ADR 0111).
         hit.faceLocation.y === 0 &&
-        cellKey(hit.block.location) === cellKey(cell)
+        sameCell(hit.block.location, cell)
       );
     } catch {
       return false;

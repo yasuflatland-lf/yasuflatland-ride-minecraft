@@ -1,4 +1,5 @@
 import { type Entity, type Vector3, world } from "@minecraft/server";
+import { cellCenter } from "../../domain/shared/cells";
 import { asDimensionId } from "../../domain/shared/ids";
 import { asWarpPointId } from "../../domain/warp/ids";
 import { chooseLanding, landingCandidates } from "../../domain/warp/landing";
@@ -199,7 +200,7 @@ export async function warpWorld(a: Arena): Promise<Outcome> {
       entity.setRotation({ x: 0, y: 37 });
       const rotation = entity.getRotation();
       const feet = pick();
-      const target = { x: feet.x + 0.5, y: feet.y, z: feet.z + 0.5 };
+      const target = cellCenter(feet);
       // The adapter accepts players only; this headless check measures the engine call.
       entity.teleport(target, { dimension: a.dim });
       checkWarp(
@@ -275,10 +276,7 @@ export async function warpEngineProbes(a: Arena): Promise<Outcome> {
       entity = summon(a);
       entityId = entity.id;
       try {
-        entity.teleport(
-          { x: point.cell.x + 0.5, y: point.cell.y, z: point.cell.z + 0.5 },
-          { dimension: a.dim },
-        );
+        entity.teleport(cellCenter(point.cell), { dimension: a.dim });
         lines.push("unloaded_teleport: succeeded");
       } catch (error) {
         lines.push(`unloaded_teleport: threw ${String(error)}`);

@@ -258,6 +258,8 @@
 
 ## Open issues
 
+- `Cell` is an unbranded alias of `Vec3`, so TypeScript accepts fractional coordinates where a block cell is expected. A brand could catch these mistakes, but Bedrock block locations, generated cells, and integer offsets would all need explicit construction or casts.
+
 - ADR 0001 says to use only stable `@minecraft/server` 2.x; the implementation also imports stable server-ui forms and declares that module in the main manifest, as introduced by Proposed 0178 and retained by Proposed 0198 (`src/infrastructure/build/bedrock/buildMenus.ts`, `package.json`, `packs/yasu_ride_bp/manifest.json`); the ADR needs an edit or a superseding ADR.
 - ADR 0012 says import direction is checked by a test inspecting import statements, and ADR 0046 says the architecture test resolves relative imports and tests its parser; the implementation uses dependency-cruiser for the repository graph and architecture fixtures, as decided in 0065 (`.dependency-cruiser.cjs`, `tests/architecture.test.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0065 says dependency-cruiser 18.5.0 and swc 1.16.13; the implementation pins newer versions in the `dependency-cruiser` and `@swc/core` package definitions, while its TypeScript definition still matches the ADR's TypeScript version (`package.json`); the ADR needs an edit or a superseding ADR.

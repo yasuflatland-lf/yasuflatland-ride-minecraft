@@ -29,7 +29,12 @@ import {
   tentGroundCells,
 } from "../../../domain/camp/tent";
 import type { TentEntry } from "../../../domain/camp/tentRegistry";
-import { type Cell, cellKey } from "../../../domain/shared/cells";
+import {
+  type Cell,
+  cellCenter,
+  cellKey,
+  cellOf,
+} from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
@@ -245,25 +250,13 @@ export class TentLayout {
     const exit = tentCellAt(entry.pose, { x: 0, depth: -1, layer: 0 });
     for (const player of dimension.getPlayers()) {
       const feet = player.location;
-      if (
-        !cells.has(
-          cellKey({
-            x: Math.floor(feet.x),
-            y: Math.floor(feet.y),
-            z: Math.floor(feet.z),
-          }),
-        )
-      )
-        continue;
+      if (!cells.has(cellKey(cellOf(feet)))) continue;
       player
         .getComponent("minecraft:riding")
         ?.entityRidingOn?.getComponent("minecraft:rideable")
         ?.ejectRider(player);
       // Teleport also moves sleepers off the mattresses before their blocks disappear.
-      player.teleport(
-        { x: exit.x + 0.5, y: exit.y, z: exit.z + 0.5 },
-        { dimension },
-      );
+      player.teleport(cellCenter(exit), { dimension });
     }
   }
 
