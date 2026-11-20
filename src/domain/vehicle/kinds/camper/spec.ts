@@ -1,3 +1,4 @@
+import { ticks } from "../../../shared/ticks";
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
@@ -110,8 +111,8 @@ export const CAMPER_SPEC = Object.freeze({
   seatHintReach: 1.5,
   seatHintFeet: [0.5, 3.5], // on the parked room's floor, below its roof (ADR 0068)
   // Flight (ADR 0021, 0032), as the SUV
-  doubleTapTicks: 8,
-  takeoffTicks: 20,
+  doubleTapTicks: ticks(8),
+  takeoffTicks: ticks(20),
   takeoffClimb: 0.075,
   landingSink: 0.15,
   maxClimb: 0.3,
@@ -132,11 +133,11 @@ export const CAMPER_SPEC = Object.freeze({
   gearProbeOffset: 1.2, // inside the 3-wide collision box, as the SUV's 0.8 inside 1.8
   bankSink: 0.03,
   // Doors (ADR 0068, 0094, 0105)
-  doorSwingTicks: 10, // one step of 0.1 per tick: half a second
+  doorSwingTicks: ticks(10), // one step of 0.1 per tick: half a second
   // Shower-toilet (ADR 0094)
-  showerTicks: 100, // 5 s at 20 ticks per second
+  showerTicks: ticks(100), // 5 s at 20 ticks per second
   // Decor (ADR 0097)
-  seatPressIdleTicks: 10, // a held touch repeats every 4-6 ticks on mobile (ADR 0024)
+  seatPressIdleTicks: ticks(10), // a held touch repeats every 4-6 ticks on mobile (ADR 0024)
 } as const);
 
 export const DRAWER_GEAR_IDS: ReadonlySet<string> = new Set([

@@ -1,4 +1,5 @@
 // Action-bar hints for players on foot near a vehicle (ADR 0086).
+import type { Ticks } from "../shared/ticks";
 import {
   distanceToRectXZ,
   distanceXZ,
@@ -173,9 +174,9 @@ export const NO_HINT: HintState = Object.freeze({
 
 interface HintTiming {
   /** Ticks between sends of the same hint. */
-  readonly refresh: number;
+  readonly refresh: Ticks;
   /** Ticks after the first send during which the hint is re-sent. */
-  readonly showFor: number;
+  readonly showFor: Ticks;
 }
 
 export const HINT_TIMING: HintTiming = Object.freeze({

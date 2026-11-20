@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { asTentId } from "../../../src/domain/camp/tent";
-import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/switchCooldown";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/debounce";
 import { FakeLanternWorld } from "./fakeLanternWorld";
 
 const A = asTentId("-1");
