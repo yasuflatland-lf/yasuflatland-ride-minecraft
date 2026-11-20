@@ -8,6 +8,7 @@ import {
   bowBlocked,
   hullFloorRow,
   icebreakerColumns,
+  type LastCut,
   recutDue,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/icebreaker";
 import { SPORTSBOAT_SPEC as spec } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
@@ -279,43 +280,63 @@ it("cuts a still blocked bow again only after the boat moves or the recut delay 
   );
 });
 
-function blockedRun(
-  ticks: number,
-  { move = 0, clearOn = -1 }: { move?: number; clearOn?: number } = {},
-): number[] {
-  const drive = new SportsboatDrive(0, { icebreaker: true });
-  const cuts: number[] = [];
-  for (let tick = 0; tick < ticks; tick++) {
-    const step = drive.step(
-      { moveX: 0, moveY: 1, jump: false },
-      {
-        tick,
-        location: { x: 0.5, y: 64, z: 0.5 - tick * move },
-        velocity: { x: 0, y: 0, z: 0 },
-        onGround: false,
-        deckSeatInputs: [],
-        blockTypes: () => [],
-        waterAt: () => true,
-        solidAt: () => tick !== clearOn,
+it("recuts only after the bow clears, the boat moves, or the interval elapses", () => {
+  const step = fc.record({
+    blocked: fc.boolean(),
+    move: fc.constantFrom(0, rule.recutDistance / 2, rule.recutDistance),
+  });
+  fc.assert(
+    fc.property(
+      fc.array(step, { minLength: 1, maxLength: rule.recutTicks * 4 }),
+      (steps) => {
+        const drive = new SportsboatDrive(0, { icebreaker: true });
+        let z = 0.5;
+        let last: LastCut | undefined;
+        for (const [tick, { blocked, move }] of steps.entries()) {
+          z -= move;
+          const location = { x: 0.5, y: 64, z };
+          const out = drive.step(
+            { moveX: 0, moveY: 1, jump: false },
+            {
+              tick,
+              location,
+              velocity: { x: 0, y: 0, z: 0 },
+              onGround: false,
+              deckSeatInputs: [],
+              blockTypes: () => [],
+              waterAt: () => true,
+              solidAt: () => blocked,
+            },
+          );
+          const due = blocked && recutDue(last, tick, location);
+          expect(out.cut !== undefined).toBe(due);
+          if (due) last = { tick, location };
+          if (!blocked) last = undefined;
+        }
       },
-    );
-    if (step.cut) cuts.push(tick);
-  }
-  return cuts;
-}
-
-it("does not repeat the cut every tick while a kept block holds the bow", () => {
-  expect(blockedRun(rule.recutTicks * 2 + 1)).toEqual([
-    0,
-    rule.recutTicks,
-    rule.recutTicks * 2,
-  ]);
-});
-
-it("cuts on the next blocked tick once the bow has been clear", () => {
-  expect(blockedRun(3, { clearOn: 1 })).toEqual([0, 2]);
-});
-
-it("cuts every blocked tick while the boat keeps moving", () => {
-  expect(blockedRun(5, { move: rule.recutDistance })).toEqual([0, 1, 2, 3, 4]);
+    ),
+    {
+      examples: [
+        [
+          Array.from({ length: rule.recutTicks * 2 + 1 }, () => ({
+            blocked: true,
+            move: 0,
+          })),
+        ],
+        [
+          [
+            { blocked: true, move: 0 },
+            { blocked: false, move: 0 },
+            { blocked: true, move: 0 },
+          ],
+        ],
+        [
+          Array.from({ length: 5 }, () => ({
+            blocked: true,
+            move: rule.recutDistance,
+          })),
+        ],
+      ],
+    },
+  );
 });

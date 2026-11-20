@@ -7,7 +7,9 @@ import { NEUTRAL_CONTROL } from "../../../src/domain/vehicle/driveInput";
 import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
+  BULLDOZER_AIR,
   BULLDOZER_SPEC,
+  BULLDOZER_WATER,
   BULLDOZER_WIDE_BLADE,
 } from "../../../src/domain/vehicle/kinds/bulldozer/spec";
 import {
@@ -253,6 +255,8 @@ describe("vehicle profiles (ADR 0050)", () => {
       SPORTSBOAT_DRAG,
       SPORTSBOAT_WATER,
       BULLDOZER_SPEC,
+      BULLDOZER_AIR,
+      BULLDOZER_WATER,
       BULLDOZER_WIDE_BLADE,
       SCOOTER_SPEC,
       suvStepLanes: stepLanes(SUV_TRANSFORMING.stepLaneOffset),

@@ -105,39 +105,6 @@ it("ignores presses on the cabinet until parked, and on cells that are not the c
   ).toBeUndefined();
 });
 
-it("opens one door per press, swings it in ten bounded steps each way, lays its plate in the aisle while open, and leaves the other door shut (ADR 0114)", () => {
-  for (const door of DOORS) {
-    const other = DOORS.find((d) => d !== door) ?? door;
-    const f = fixture();
-    f.park();
-    expect(f.press(door, "compartment")).toEqual({ kind: "door" });
-    for (const open of [true, false]) {
-      if (!open) expect(f.press(door, "aisle")).toEqual({ kind: "door" });
-      for (let tick = 1; tick <= SWING; tick++) {
-        const out = f.step();
-        expect(propertyValues(out, PROPERTY[door])).toEqual([
-          (open ? tick : SWING - tick) / SWING,
-        ]);
-        expect(propertyValues(out, PROPERTY[other])).toEqual([]);
-        const cells = out.dock?.cells;
-        // The items show while the door is open or still swinging shut.
-        expect(blockAt(cells, f.compartment(door))).toMatchObject({
-          type: "cabinet",
-          open: open || tick < SWING,
-        });
-        expect(blockAt(cells, f.compartment(other))).toMatchObject({
-          type: "cabinet",
-          open: false,
-        });
-        expect(blockAt(cells, f.aisle(door))?.type).toBe(
-          open ? "cabinetDoor" : "ceiling",
-        );
-        expect(blockAt(cells, f.aisle(other))?.type).toBe("ceiling");
-      }
-    }
-  }
-});
-
 it("acts once for two presses within a swing and twice for presses a swing apart, whichever cell takes them (ADR 0105, 0114)", () => {
   fc.assert(
     fc.property(

@@ -57,15 +57,21 @@ function importsOf(path: string): string[] {
 }
 
 describe("impact reach", () => {
-  it.each(["domain", "application", "infrastructure"])(
-    "selects warp scenarios for the %s warp layer",
-    (layer) => {
-      expect(impactOfPath(`src/${layer}/warp/future.ts`)).toEqual({
-        impact: ["warp"],
-        rule: "warp",
-      });
-    },
-  );
+  it("selects the feature for a source file in any of its layers", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom("warp", "resort"),
+        fc.constantFrom("domain", "application", "infrastructure"),
+        fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]{0,15}$/),
+        (feature, layer, name) => {
+          expect(impactOfPath(`src/${layer}/${feature}/${name}.ts`)).toEqual({
+            impact: [feature],
+            rule: feature,
+          });
+        },
+      ),
+    );
+  });
 
   it.each([
     "packs/yasu_ride_bp/blocks/yasu_build/warp_block.block.json",
@@ -453,16 +459,6 @@ describe("selectionOf", () => {
       ).map(({ name }) => name),
     );
   });
-
-  it.each(["domain", "application", "infrastructure"])(
-    "selects resort for the %s resort layer",
-    (layer) => {
-      expect(impactOfPath(`src/${layer}/resort/future.ts`)).toEqual({
-        impact: ["resort"],
-        rule: "resort",
-      });
-    },
-  );
 
   it("selects camp when its scenario and registry change together", () => {
     expect(

@@ -610,10 +610,22 @@ it("stops the tracks out of car form", () => {
         .commands.filter((c) => /^(track|spin)_/.test(c.name)),
     ).toEqual([]);
 });
+function propertyUpdates() {
+  const last = new Map<string, unknown>();
+  return {
+    forValue(name: string, value: unknown) {
+      const changed = !last.has(name) || !Object.is(last.get(name), value);
+      last.set(name, value);
+      return changed ? [{ type: "setProperty", name, value }] : [];
+    },
+    resync: () => last.clear(),
+  };
+}
+
 it("sends each track value only when it changes, and all again after resync", () => {
   const d = new BulldozerDrive(0, {});
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  const last: Record<string, unknown> = {};
+  const updates = propertyUpdates();
   let onlyRight = false;
   for (let tick = 0; tick < 200; tick++) {
     const raw =
@@ -622,7 +634,6 @@ it("sends each track value only when it changes, and all again after resync", ()
         : tick % 37 < 9
           ? { ...IDLE, moveY: 0.11 }
           : IDLE;
-    const before = { ...last };
     const out = d.step(raw, {
       ...context(),
       tick,
@@ -631,17 +642,21 @@ it("sends each track value only when it changes, and all again after resync", ()
     b = engineStep(b, out.impulse, { mu: 0.69 }).body;
     const tracks = out.commands.filter((c) => /^(track|spin)_/.test(c.name));
     for (const c of tracks)
-      if (c.type === "setProperty") {
-        if (tick > 0) expect(c.value).not.toBe(before[c.name]);
-        last[c.name] = c.value;
-      }
+      if (c.type === "setProperty")
+        expect(updates.forValue(c.name, c.value)).toEqual([c]);
     if (tracks.length === 1 && tracks[0]?.name === "spin_r") onlyRight = true;
   }
   expect(onlyRight).toBe(true);
+  updates.resync();
   d.resync();
   const out = d.step(IDLE, context());
-  for (const key of ["door", "track_r", "track_l", "spin_r", "spin_l"])
-    expect(propertyValue(out.commands, key)).toBeDefined();
+  for (const name of ["door", "track_r", "track_l", "spin_r", "spin_l"]) {
+    const value = propertyValue(out.commands, name);
+    expect(value).toBeDefined();
+    expect(out.commands.filter((c) => c.name === name)).toEqual(
+      updates.forValue(name, value),
+    );
+  }
 });
 it("opens the left door for 2 seconds when the seat is taken or left", () => {
   for (const hook of ["onSeatTaken", "onSeatVacated"] as const) {
@@ -900,34 +915,65 @@ it("a placed bulldozer starts raised: it steps up and never cuts", () => {
     }),
   );
 });
-it("restores the wide blade flag, defaulting to normal", () => {
-  for (const [saved, shown] of [
-    [true, "wide"],
-    [false, "normal"],
-    [undefined, "normal"],
-  ] as const)
-    expect(
-      new BulldozerDrive(0, { wide_blade: saved }).toolState(
-        "wide_blade_switch",
-      ),
-    ).toBe(shown);
+const toggles = fc.constantFrom(
+  {
+    property: "wide_blade",
+    item: WIDE_BLADE_SWITCH_ITEM,
+    off: "normal",
+    on: "wide",
+  },
+  {
+    property: "road_paver",
+    item: ROAD_PAVER_SWITCH_ITEM,
+    off: "off",
+    on: "on",
+  },
+);
+
+it("restores either tool flag, defaulting to its off state", () => {
+  fc.assert(
+    fc.property(
+      toggles,
+      fc.option(fc.boolean(), { nil: undefined }),
+      ({ property, item, off, on }, saved) => {
+        expect(
+          new BulldozerDrive(0, { [property]: saved }).toolState(item),
+        ).toBe(saved ? on : off);
+      },
+    ),
+  );
 });
-it("sends wide_blade once per toggle, and again after resync", () => {
-  const d = new BulldozerDrive(0, {});
-  const sent = (tick: number) =>
-    d
-      .step(IDLE, { ...context(), tick })
-      .commands.filter((c) => c.name === "wide_blade")
-      .map((c) => (c.type === "setProperty" ? c.value : undefined));
-  expect(sent(0)).toEqual([false]);
-  expect(sent(1)).toEqual([]);
-  d.setToolState("wide_blade_switch", "wide");
-  expect(sent(2)).toEqual([true]);
-  expect(sent(3)).toEqual([]);
-  d.resync();
-  expect(sent(4)).toEqual([true]);
-  d.setToolState("wide_blade_switch", "normal");
-  expect(sent(5)).toEqual([false]);
+
+it("sends tool flags only when changed or resynced", () => {
+  fc.assert(
+    fc.property(
+      toggles,
+      fc.array(fc.constantFrom("idle", "toggle", "resync"), {
+        minLength: 1,
+        maxLength: 60,
+      }),
+      ({ property, item, off, on }, steps) => {
+        const drive = new BulldozerDrive(0, {});
+        const updates = propertyUpdates();
+        let enabled = false;
+        for (const [tick, action] of steps.entries()) {
+          if (action === "toggle") {
+            enabled = !enabled;
+            expect(drive.setToolState(item, enabled ? on : off)).toBe(true);
+          }
+          if (action === "resync") {
+            drive.resync();
+            updates.resync();
+          }
+          expect(
+            drive
+              .step(IDLE, { ...context(), tick })
+              .commands.filter((c) => c.name === property),
+          ).toEqual(updates.forValue(property, enabled));
+        }
+      },
+    ),
+  );
 });
 
 it("keeps the blade, wide blade, and road paver tools independent", () => {
@@ -996,36 +1042,6 @@ it("uses the current blade rule for cuts and ram width across toggles", () => {
       },
     ),
   );
-});
-
-it("restores the road paver flag, defaulting to off", () => {
-  for (const [saved, shown] of [
-    [true, "on"],
-    [false, "off"],
-    [undefined, "off"],
-  ] as const)
-    expect(
-      new BulldozerDrive(0, { road_paver: saved }).toolState(
-        "road_paver_switch",
-      ),
-    ).toBe(shown);
-});
-it("sends road_paver once per toggle, and again after resync", () => {
-  const d = new BulldozerDrive(0, {});
-  const sent = (tick: number) =>
-    d
-      .step(IDLE, { ...context(), tick })
-      .commands.filter((c) => c.name === "road_paver")
-      .map((c) => (c.type === "setProperty" ? c.value : undefined));
-  expect(sent(0)).toEqual([false]);
-  expect(sent(1)).toEqual([]);
-  d.setToolState("road_paver_switch", "on");
-  expect(sent(2)).toEqual([true]);
-  expect(sent(3)).toEqual([]);
-  d.resync();
-  expect(sent(4)).toEqual([true]);
-  d.setToolState("road_paver_switch", "off");
-  expect(sent(5)).toEqual([false]);
 });
 
 function paveContext(form: string, tick: number, b: Body): TickContext {
