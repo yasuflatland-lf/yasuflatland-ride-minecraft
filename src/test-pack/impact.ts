@@ -75,6 +75,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/shared/syncedValue.ts",
   "src/domain/shared/tableTop.ts",
   "src/domain/shared/tapToggle.ts",
+  "src/domain/shared/ticks.ts",
   "src/domain/shared/vec.ts",
   "src/domain/vehicle/cooldowns.ts",
   "src/domain/vehicle/crew.ts",

@@ -1,12 +1,14 @@
+import { ticks } from "../shared/ticks";
+
 export const WARP_SPEC = {
   breakTaps: 3,
-  tapWindowTicks: 10,
+  tapWindowTicks: ticks(10),
   maxPoints: 64,
   nameMaxLength: 32,
-  pressDebounceTicks: 5,
-  formRetryTicks: 10,
+  pressDebounceTicks: ticks(5),
+  formRetryTicks: ticks(10),
   formMaxRetries: 5,
   pageSize: 16,
-  arrivalCheckTicks: 5,
-  arrivalCheckMaxTicks: 100,
+  arrivalCheckTicks: ticks(5),
+  arrivalCheckMaxTicks: ticks(100),
 } as const;

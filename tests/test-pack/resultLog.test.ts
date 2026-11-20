@@ -8,7 +8,7 @@ import {
   linePrefix,
   linesOfRun,
   planLineOf,
-  resultOf,
+  type ResultLine,
   summaryOfRun,
   summaryPassed,
   type Verdict,
@@ -19,6 +19,21 @@ const twoRunIds = fc
   .tuple(runId, runId)
   .filter(([a, b]) => a !== b && !a.endsWith(b) && !b.endsWith(a));
 const counts = fc.nat({ max: 6 });
+
+function resultOf(text: string): ResultLine | undefined {
+  const match =
+    /^(PASS|FAIL) ([a-z0-9_]+) ticks=(\d+)(?: lane=(\d+))? ([^\r\n]*)$/.exec(
+      text,
+    );
+  if (!match) return undefined;
+  return {
+    verdict: match[1] as Verdict,
+    name: match[2] ?? "",
+    ticks: Number(match[3]),
+    ...(match[4] === undefined ? {} : { lane: Number(match[4]) }),
+    detail: match[5] ?? "",
+  };
+}
 
 function summaryLine(id: string, fail: number): string {
   return `2026 WARN ${linePrefix(id)}SUMMARY pass=${6 - fail} fail=${fail}`;
