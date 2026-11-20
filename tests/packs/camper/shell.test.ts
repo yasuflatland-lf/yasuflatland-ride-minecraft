@@ -1,15 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { type Triple, turn } from "../../support/geometry";
-import { assertOneAxis, multipleAxes } from "../oneAxis";
+import { assertOneAxis } from "../oneAxis";
 import {
   areaCubes,
   bone,
   bones,
   type Cube,
   cubeCenter,
-  geometry,
-  geometryText,
   swatch,
 } from "./helpers";
 
