@@ -23,13 +23,17 @@ Read the set as the union of a valid array and the legacy single ID in
 `yasu_ride:roof_tent_spawn_set_by`, so a tent with only the legacy key is a set of
 one, and a malformed array leaves only the legacy ID. The legacy ID is merged
 rather than used only as a fallback because an older pack may have written a
-newer sleeper there without touching the array. On each addition, also write the legacy key with that player ID
-so older packs still see the latest sleeper. Clearing removes both properties.
-Keep the set in the removal snapshot so cleanup works after entity loss.
+newer sleeper there without touching the array. On each addition, also write the
+legacy key with that player ID so older packs still see the latest sleeper.
+Clearing removes both properties.
+The persistence codec handles the saved JSON, and the immutable
+`RoofTentState` keeps the merged setter list in the adapter's private record
+so cleanup works after entity loss.
 
-On removal, request `BedWorld.clearSpawnPoint` for every recorded setter with
-the tent's dimension and cell. Isolate each request with the shared application
-helper and log a warning on failure, then clear the setter collection. Keep the
+On removal, `RoofTentCleanup` delegates to `ClearRoofTentSpawn`, which requests
+`BedWorld.clearSpawnPoint` for every recorded setter with the tent's dimension
+and cell. Isolate each request with the shared application helper and log a
+warning on failure, then clear the setter collection. Keep the
 existing bed port: its compare-before-clear rule preserves later spawn points
 elsewhere, and offline or unavailable players remain a no-op.
 

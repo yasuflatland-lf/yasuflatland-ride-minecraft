@@ -17,6 +17,7 @@ import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { PlaceTable } from "../../../src/application/camp/placeTable";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
 import { RoofTentMenu } from "../../../src/application/camp/roofTentMenu";
+import { RoofTentCleanup } from "../../../src/application/camp/roofTentRemoved";
 import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
@@ -401,7 +402,7 @@ it("shares roof tent actions, occupant adapters and the vehicle host lookup acro
   const [place, lookup] =
     vi.mocked(registerRoofTentPlacement).mock.calls[0] ?? [];
   const [fold, paint] = vi.mocked(registerRoofTentHits).mock.calls[0] ?? [];
-  const [occupants, guard, hosts] =
+  const [occupants, guard, hosts, cleanup] =
     vi.mocked(registerRoofTentLifecycle).mock.calls[0] ?? [];
   expect(place).toBeInstanceOf(PlaceRoofTent);
   expect(fold).toBeInstanceOf(FoldRoofTent);
@@ -423,6 +424,7 @@ it("shares roof tent actions, occupant adapters and the vehicle host lookup acro
   );
   ceilingOwner.mockRestore();
   expect(guard).toBeInstanceOf(RoofTentHostGuard);
+  expect(cleanup).toBeInstanceOf(RoofTentCleanup);
   expect(registerTestRoofTent).toHaveBeenCalledExactlyOnceWith(
     place,
     fold,

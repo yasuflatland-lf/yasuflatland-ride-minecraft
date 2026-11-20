@@ -164,6 +164,8 @@ beforeEach(() => {
       else occupied.delete(id);
     }),
     syncCeiling: vi.fn(),
+    clearCeiling: vi.fn(),
+    forget: vi.fn(),
     conceal: vi.fn(),
     reveal: vi.fn(),
     moveInside: vi.fn(),
