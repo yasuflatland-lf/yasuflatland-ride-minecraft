@@ -63,6 +63,20 @@ export type BuildFlow =
     }
   | PasteAim;
 
+/** The two tapped cells of a selection. The first tap need not be the minimum corner. */
+export type Taps = Readonly<{ from: Cell; to: Cell }>;
+
+/** Selected and terrain confirmation flows keep their taps for terrain heights and Cancel. */
+export function tapsOf(flow: BuildFlow): Taps | undefined {
+  if (flow.kind === "selected" || flow.kind === "terrainConfirm")
+    return { from: flow.from, to: flow.to };
+}
+
+/** Uses the minimum and maximum corners as the first and second taps. */
+export function cornerTaps(box: CellBox): Taps {
+  return { from: box.min, to: box.max };
+}
+
 export type BaseHeightFlow = Extract<BuildFlow, { kind: "baseHeight" }>;
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
 

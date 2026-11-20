@@ -7,8 +7,10 @@ import {
   backToAiming,
   chooseTerrain,
   confirmLiveHeight,
+  cornerTaps,
   setHeight,
   tapAir,
+  tapsOf,
 } from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { withBox } from "../../../src/domain/build/selection";
@@ -66,11 +68,19 @@ function apply(session: BuildSession, step: Step): void {
       );
       return;
     case "shape":
-      session.confirmBox(flow.selection, "selected");
+      session.confirmBox(
+        flow.selection,
+        "selected",
+        tapsOf(session.flow) ?? cornerTaps(flow.selection.box),
+      );
       return;
     case "terrain":
       session.setFlow(chooseTerrain(flow, step.op));
-      session.confirmBox(flow.selection, "selected");
+      session.confirmBox(
+        flow.selection,
+        "selected",
+        tapsOf(session.flow) ?? cornerTaps(flow.selection.box),
+      );
   }
 }
 
