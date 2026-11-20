@@ -2,82 +2,59 @@ vi.mock("../../../src/infrastructure/shared/choiceForm", () => ({
   chooseFromFormResult: vi.fn(),
 }));
 
-import { beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PlaceBeachChair } from "../../../src/application/resort/placeBeachChair";
+import { PlaceFurniture } from "../../../src/application/resort/placeFurniture";
 import { PlaceParasol } from "../../../src/application/resort/placeParasol";
 import { SyncParasolCeilings } from "../../../src/application/resort/syncParasolCeilings";
+import { TakeBackBeachChair } from "../../../src/application/resort/takeBackBeachChair";
+import { TakeBackFurniture } from "../../../src/application/resort/takeBackFurniture";
 import { TakeBackParasol } from "../../../src/application/resort/takeBackParasol";
-import { asParasolId } from "../../../src/domain/resort/ids";
+import type { FurnitureKind } from "../../../src/domain/resort/furniture";
+import { asFurnitureId, asParasolId } from "../../../src/domain/resort/ids";
 import { PARASOL_SPEC } from "../../../src/domain/resort/spec";
 import { BedrockParasolWorld } from "../../../src/infrastructure/resort/bedrock/bedrockParasolWorld";
+import { registerBeachChairHits } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairHits";
+import { registerBeachChairPlacement } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairPlacement";
+import { registerFurnitureHits } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits";
+import { registerFurniturePlacement } from "../../../src/infrastructure/resort/bedrock/handlers/furniturePlacement";
 import {
+  BEACH_CHAIR,
+  BEACH_CHAIR_ITEM,
   BEACH_PARASOL,
   BEACH_PARASOL_ITEM,
+  DINING_TABLE_TOP,
+  FURNITURE_IDS,
   PARASOL_CEILING_BLOCK,
 } from "../../../src/infrastructure/resort/identifiers";
 import { installResort } from "../../../src/infrastructure/resort/install";
+import { fakeBeachChairWorld } from "../../application/resort/fakeBeachChairWorld";
+import { fakeFurnitureWorld } from "../../application/resort/fakeFurnitureWorld";
 import { campTopHosts } from "../../support/campTopHosts";
 
+import { resortHandlerGame } from "../../support/resortHandlerMocks";
+
+vi.mock("@minecraft/server", async () =>
+  (await import("../../support/resortHandlerMocks")).bedrockResortHandlers(),
+);
 vi.mock("../../../src/infrastructure/shared/dyes", async (importOriginal) => ({
   ...(await importOriginal<
     typeof import("../../../src/infrastructure/shared/dyes")
   >()),
-  heldDye: () => undefined,
+  heldDye: () => (game.dye ? "red" : undefined),
 }));
 
-const game = vi.hoisted(() => {
-  const handlers = new Map<string, (ev: unknown) => void>();
-  const events = new Proxy(
-    {},
-    {
-      get: (_target, name: string) => ({
-        subscribe: (fn: (ev: unknown) => void) => handlers.set(name, fn),
-      }),
-    },
-  );
-  class Player {
-    id = "p";
-    selectedSlotIndex = 2;
-    getRotation() {
-      return { y: 90 };
-    }
-  }
-  return {
-    handlers,
-    Player,
-    events,
-    run: vi.fn(),
-    runInterval: vi.fn(),
-    getDimension: vi.fn(),
-    getEntity: vi.fn(),
-    tick: 0,
-  };
-});
-vi.mock("@minecraft/server", () => ({
-  Direction: { Up: "Up" },
-  Player: game.Player,
-  world: {
-    beforeEvents: game.events,
-    afterEvents: game.events,
-    getDimension: game.getDimension,
-    getEntity: game.getEntity,
-  },
-  system: {
-    get currentTick() {
-      return game.tick;
-    },
-    run: game.run,
-    runInterval: game.runInterval,
-    beforeEvents: game.events,
-    afterEvents: game.events,
-  },
-}));
+const game = resortHandlerGame();
+
 beforeEach(() => {
   vi.restoreAllMocks();
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   game.handlers.clear();
   game.tick = 10;
+  game.dye = false;
 });
-function setup() {
+
+function setupParasol() {
   const deps = {
     topHosts: campTopHosts(),
     isVehicleSpace: vi.fn(() => true),
@@ -87,61 +64,214 @@ function setup() {
   installResort(deps);
   return deps;
 }
-it("defers placement, captures the command, cancels duplicates and ignores unrelated presses", () => {
-  const execute = vi
-    .spyOn(PlaceParasol.prototype, "execute")
-    .mockReturnValue(true);
-  setup();
-  const press = game.handlers.get("playerInteractWithBlock");
-  const ev = {
-    isFirstEvent: true,
-    itemStack: { typeId: BEACH_PARASOL_ITEM },
-    player: new game.Player(),
-    block: { dimension: { id: "overworld" }, location: { x: 1, y: 2, z: 3 } },
-    blockFace: "Up",
+
+const handlerCases = [
+  {
+    name: "beach chair",
+    item: BEACH_CHAIR_ITEM,
+    entity: BEACH_CHAIR,
+    placementFields: {},
+    hitTime: { tick: 10 },
+    defersHit: true,
+    setup: () => {
+      const world = fakeBeachChairWorld();
+      const place = new PlaceBeachChair(world);
+      const recover = new TakeBackBeachChair(world);
+      registerBeachChairPlacement(place);
+      registerBeachChairHits(recover);
+      return {
+        place: vi.spyOn(place, "execute").mockReturnValue(true),
+        recover: vi.spyOn(recover, "execute").mockImplementation(() => {}),
+      };
+    },
+  },
+  {
+    name: "parasol",
+    item: BEACH_PARASOL_ITEM,
+    entity: BEACH_PARASOL,
+    placementFields: {},
+    hitTime: { tick: 10 },
+    defersHit: false,
+    setup: () => {
+      setupParasol();
+      return {
+        place: vi
+          .spyOn(PlaceParasol.prototype, "execute")
+          .mockReturnValue(true),
+        recover: vi
+          .spyOn(TakeBackParasol.prototype, "execute")
+          .mockImplementation(() => {}),
+      };
+    },
+  },
+  ...(Object.keys(FURNITURE_IDS) as FurnitureKind[]).map((kind) => ({
+    name: kind,
+    item: FURNITURE_IDS[kind].item,
+    entity: FURNITURE_IDS[kind].entity,
+    placementFields: { kind },
+    hitTime: { now: 10 },
+    defersHit: true,
+    setup: () => {
+      const world = fakeFurnitureWorld(kind);
+      const place = new PlaceFurniture(world);
+      const recover = new TakeBackFurniture(world);
+      registerFurniturePlacement(place);
+      registerFurnitureHits(recover, { ownerAt: () => undefined });
+      return {
+        place: vi.spyOn(place, "execute").mockReturnValue(true),
+        recover: vi.spyOn(recover, "hit").mockImplementation(() => {}),
+      };
+    },
+  })),
+];
+
+describe.each(handlerCases)(
+  "$name handlers",
+  ({ item, entity, placementFields, hitTime, defersHit, setup }) => {
+    it("defers placement, captures the command, cancels duplicates and ignores unrelated presses", () => {
+      const { place } = setup();
+      const press = game.handlers.get("playerInteractWithBlock");
+      const ev = {
+        isFirstEvent: true,
+        itemStack: { typeId: item },
+        player: new game.Player(),
+        block: {
+          dimension: { id: "overworld" },
+          location: { x: 1, y: 2, z: 3 },
+        },
+        blockFace: "Up",
+        cancel: false,
+      };
+      press?.({ ...ev, isFirstEvent: false });
+      press?.({ ...ev, itemStack: { typeId: "other" } });
+      expect(game.run).not.toHaveBeenCalled();
+      press?.(ev);
+      press?.(ev);
+      expect(ev.cancel).toBe(true);
+      expect(place).not.toHaveBeenCalled();
+      expect(game.run).toHaveBeenCalledOnce();
+      ev.block.location.x = 99;
+      game.run.mock.calls[0]?.[0]();
+      expect(place).toHaveBeenCalledExactlyOnceWith({
+        player: "p",
+        dimension: "overworld",
+        block: { x: 1, y: 2, z: 3 },
+        face: "up",
+        yaw: 90,
+        slot: 2,
+        ...placementFields,
+      });
+      game.tick++;
+      press?.(ev);
+      expect(game.run).toHaveBeenCalledTimes(2);
+    });
+
+    it("recovers only matching entities hit by a player, once per tick", () => {
+      const { recover } = setup();
+      const hit = game.handlers.get("entityHitEntity");
+      const ev = {
+        damagingEntity: new game.Player(),
+        hitEntity: { id: "furniture", typeId: entity },
+      };
+      hit?.({ ...ev, hitEntity: { typeId: "other" } });
+      hit?.({ ...ev, damagingEntity: { id: "mob" } });
+      expect(recover).not.toHaveBeenCalled();
+      expect(game.run).not.toHaveBeenCalled();
+      const strike = (call: number) => {
+        hit?.(ev);
+        hit?.(ev);
+        if (defersHit) {
+          expect(recover).toHaveBeenCalledTimes(call - 1);
+          expect(game.run).toHaveBeenCalledTimes(call);
+          game.run.mock.calls[call - 1]?.[0]();
+        }
+        expect(recover).toHaveBeenCalledTimes(call);
+      };
+      strike(1);
+      expect(recover).toHaveBeenCalledWith({
+        id: "furniture",
+        player: "p",
+        ...hitTime,
+      });
+      game.tick++;
+      strike(2);
+    });
+
+    it("skips recovery on a dye hit", () => {
+      const { recover } = setup();
+      game.dye = true;
+      game.handlers.get("entityHitEntity")?.({
+        damagingEntity: new game.Player(),
+        hitEntity: { id: "furniture", typeId: entity },
+      });
+      expect(game.run).not.toHaveBeenCalled();
+      expect(recover).not.toHaveBeenCalled();
+    });
+  },
+);
+
+it("forwards owned block hits and Creative breaks with shared deduplication and dye exclusion", () => {
+  const world = fakeFurnitureWorld("dining_table");
+  const take = new TakeBackFurniture(world);
+  const hit = vi.spyOn(take, "hit").mockImplementation(() => {});
+  const ownerAt = vi.fn(
+    () =>
+      asFurnitureId("table") as ReturnType<
+        import("../../../src/application/resort/ports/furnitureTopBlocks").FurnitureTopBlocksWorld["ownerAt"]
+      >,
+  );
+  registerFurnitureHits(take, { ownerAt });
+  const player = new game.Player();
+  const block = {
+    typeId: DINING_TABLE_TOP,
+    dimension: { id: "overworld" },
+    location: { x: 1, y: 2, z: 3 },
+  };
+  const swing = () =>
+    game.handlers.get("entityHitBlock")?.({
+      damagingEntity: player,
+      hitBlock: block,
+    });
+  const breakEvent = {
+    player,
+    block,
+    dimension: block.dimension,
     cancel: false,
   };
-  press?.({ ...ev, isFirstEvent: false });
-  press?.({ ...ev, itemStack: { typeId: "other" } });
+  const breaking = () => game.handlers.get("playerBreakBlock")?.(breakEvent);
+  game.dye = true;
+  swing();
+  breaking();
   expect(game.run).not.toHaveBeenCalled();
-  press?.(ev);
-  press?.(ev);
-  expect(ev.cancel).toBe(true);
-  expect(execute).not.toHaveBeenCalled();
-  expect(game.run).toHaveBeenCalledTimes(1);
-  ev.block.location.x = 99;
-  game.run.mock.calls[0]?.[0]();
-  expect(execute).toHaveBeenCalledWith({
-    player: "p",
-    dimension: "overworld",
-    block: { x: 1, y: 2, z: 3 },
-    face: "up",
-    yaw: 90,
-    slot: 2,
+  game.dye = false;
+  ownerAt.mockReturnValue(undefined);
+  swing();
+  breaking();
+  expect(game.run).not.toHaveBeenCalled();
+  ownerAt.mockReturnValue(asFurnitureId("table"));
+  swing();
+  breaking();
+  game.handlers.get("entityHitEntity")?.({
+    damagingEntity: player,
+    hitEntity: { typeId: FURNITURE_IDS.dining_table.entity, id: "table" },
   });
+  expect(game.run).toHaveBeenCalledTimes(1);
+  expect(hit).not.toHaveBeenCalled();
+  game.run.mock.calls[0]?.[0]();
+  expect(hit).toHaveBeenCalledWith({ player: "p", id: "table", now: 10 });
+  expect(breakEvent.cancel).toBe(false);
   game.tick++;
-  press?.(ev);
+  breaking();
+  expect(game.run).toHaveBeenCalledTimes(2);
+  game.tick++;
+  vi.spyOn(player, "getGameMode").mockReturnValue("Survival");
+  breaking();
+  expect(game.run).toHaveBeenCalledTimes(2);
+  block.typeId = "minecraft:stone";
+  swing();
   expect(game.run).toHaveBeenCalledTimes(2);
 });
-it("counts hits only on parasols once per player per tick", () => {
-  const execute = vi
-    .spyOn(TakeBackParasol.prototype, "execute")
-    .mockImplementation(() => {});
-  setup();
-  const hit = game.handlers.get("entityHitEntity");
-  const ev = {
-    damagingEntity: new game.Player(),
-    hitEntity: { id: "parasol", typeId: BEACH_PARASOL },
-  };
-  hit?.({ ...ev, hitEntity: { typeId: "other" } });
-  hit?.({ ...ev, damagingEntity: { id: "mob" } });
-  hit?.(ev);
-  hit?.(ev);
-  expect(execute).toHaveBeenCalledTimes(1);
-  game.tick++;
-  hit?.(ev);
-  expect(execute).toHaveBeenCalledTimes(2);
-});
+
 it("wires the scan interval, shared block guard and both space checks", () => {
   const sync = vi
     .spyOn(SyncParasolCeilings.prototype, "execute")
@@ -149,7 +279,7 @@ it("wires the scan interval, shared block guard and both space checks", () => {
   const owner = vi
     .spyOn(BedrockParasolWorld.prototype, "ceilingOwner")
     .mockReturnValue("p");
-  const deps = setup();
+  const deps = setupParasol();
   expect(game.runInterval).toHaveBeenCalledTimes(5);
   expect(game.handlers.has("startup")).toBe(false);
   const loaded = { id: "p" };
@@ -184,7 +314,7 @@ it("clears confirmed removals but preserves unloaded chunks and still-loaded ent
   const clear = vi
     .spyOn(BedrockParasolWorld.prototype, "clearCeiling")
     .mockReturnValue(true);
-  setup();
+  setupParasol();
   const dimension = { getBlock: vi.fn() };
   const entity = {
     id: "p",

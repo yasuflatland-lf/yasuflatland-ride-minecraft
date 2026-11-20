@@ -18,6 +18,7 @@ import {
   profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
+import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights";
@@ -456,93 +457,99 @@ describe("DriveVehicles", () => {
     expect(world.calls.some((c) => c.startsWith("form:"))).toBe(false);
   });
 
-  it("writes the vehicle form to the world only on the tick it changes (ADR 0021)", () => {
-    const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
+  it("writes form, bank and landing gear only when their values change", () => {
+    const id = asVehicleId("a");
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            moveX: fc.integer({ min: -1, max: 1 }),
+            moveY: fc.integer({ min: -1, max: 1 }),
+            jump: fc.boolean(),
+            onGround: fc.boolean(),
+            duration: fc.integer({ min: 1, max: 12 }),
+          }),
+          { minLength: 1, maxLength: 25 },
+        ),
+        (inputs) => {
+          const world = new FakeWorld();
+          const repo = new InMemoryRepo();
+          const drive = new SuvDrive(0, { form: "car" });
+          repo.save(new Vehicle(id, SUV_PROFILE, drive));
+          const uc = new DriveVehicles(world, repo, logger(), () => false);
+          const run = vi.spyOn(world, "run");
+          const propertyNames = ["form", "bank", "gear_down"] as const;
+          let previous: Partial<
+            Record<(typeof propertyNames)[number], unknown>
+          > = { form: "car" };
+          let tick = 0;
+          for (const { onGround, duration, ...input } of inputs) {
+            for (let i = 0; i < duration; i++) {
+              const heading = forward(drive.yaw);
+              const velocity = {
+                x: heading.x * drive.speed,
+                y: 0,
+                z: heading.z * drive.speed,
+              };
+              world.snapshots = [
+                snapshot(id, { testInput: input, onGround, velocity }),
+              ];
+              run.mockClear();
+              uc.execute(tick++);
+              const { bank, wheelsDown } = drive.inspect();
+              const values = { form: drive.form, bank, gear_down: wheelsDown };
+              const expected = propertyNames
+                .filter((name) => values[name] !== previous[name])
+                .map((name) => ({
+                  type: "setProperty",
+                  name,
+                  value: values[name],
+                }));
+              const writes = run.mock.calls
+                .flatMap(([, commands]) => commands)
+                .filter(
+                  (command) =>
+                    command.type === "setProperty" &&
+                    propertyNames.some((name) => name === command.name),
+                );
+              expect(writes).toEqual(expected);
+              previous = values;
+            }
+          }
+        },
+      ),
     );
-    const idle = { moveX: 0, moveY: 0, jump: false };
-    const pressed = { ...idle, jump: true };
-    [pressed, idle, pressed, idle, idle].forEach((input, tick) => {
-      world.snapshots = [snapshot("a", { testInput: input })];
-      uc.execute(tick);
-    });
-    expect(world.calls.filter((c) => c.startsWith("form:"))).toEqual([
-      "form:a:takeoff",
-    ]);
   });
 
-  it("writes the bank angle on the first tick and then only when it changes (ADR 0026)", () => {
-    const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
-    for (let tick = 0; tick < 3; tick++) {
-      world.snapshots = [snapshot("a", { testInput: FULL_THROTTLE })];
-      uc.execute(tick);
-    }
-    expect(world.calls.filter((c) => c.startsWith("bank:"))).toEqual([
-      "bank:a:0",
-    ]);
-  });
-
-  it("writes the landing gear on the first tick and then only when it changes (ADR 0033)", () => {
-    const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
-    const idle = { moveX: 0, moveY: 0, jump: false };
-    const pressed = { ...idle, jump: true };
-    [idle, idle, pressed, idle, pressed, idle].forEach((input, tick) => {
-      world.snapshots = [snapshot("a", { testInput: input })];
-      uc.execute(tick);
-    });
-    expect(world.calls.filter((c) => c.startsWith("gear:"))).toEqual([
-      "gear:a:down",
-      "gear:a:up",
-    ]);
-  });
-
-  it("still writes a vehicle form change when moving the vehicle throws on that tick", () => {
-    const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
-    const idle = { moveX: 0, moveY: 0, jump: false };
-    const pressed = { ...idle, jump: true };
-    world.failOn = "a";
-    [pressed, idle, pressed].forEach((input, tick) => {
-      world.snapshots = [snapshot("a", { testInput: input })];
-      uc.execute(tick);
-    });
-    expect(world.calls).toContain("form:a:takeoff");
-  });
-
-  it("still writes the bank angle when moving the vehicle throws on that tick (ADR 0026)", () => {
-    const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
-    world.failOn = "a";
-    world.snapshots = [snapshot("a", { testInput: FULL_THROTTLE })];
-    uc.execute(0);
-    expect(world.calls).toContain("bank:a:0");
-  });
+  it.each([
+    {
+      property: "form",
+      inputs: [
+        { moveX: 0, moveY: 0, jump: true },
+        { moveX: 0, moveY: 0, jump: false },
+        { moveX: 0, moveY: 0, jump: true },
+      ],
+      value: "takeoff",
+    },
+    { property: "bank", inputs: [FULL_THROTTLE], value: "0" },
+  ])(
+    "still writes $property when moving the vehicle throws",
+    ({ property, inputs, value }) => {
+      const world = new FakeWorld();
+      const uc = new DriveVehicles(
+        world,
+        new InMemoryRepo(),
+        logger(),
+        () => false,
+      );
+      world.failOn = "a";
+      inputs.forEach((input, tick) => {
+        world.snapshots = [snapshot("a", { testInput: input })];
+        uc.execute(tick);
+      });
+      expect(world.calls).toContain(`${property}:a:${value}`);
+    },
+  );
 
   it("writes the bank of a turn in flight as it builds, and nothing more once it holds (ADR 0026)", () => {
     const world = new FakeWorld();
