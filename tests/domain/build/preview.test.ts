@@ -7,11 +7,15 @@ import {
   type BuildFlow,
   chooseHeighted,
 } from "../../../src/domain/build/flow/flow";
-import { previewPoints } from "../../../src/domain/build/preview/preview";
+import {
+  endpointMarkers,
+  previewPoints,
+} from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
+import { sameCell } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 
@@ -73,7 +77,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
         for (const flow of flows) {
           const set = previewPoints(flow, {
             blink,
-            end: b,
+            end: flow.kind === "selected" ? a : b,
             pasteBox: box,
             height: height,
           });
@@ -91,7 +95,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
             set.paste.length + set.pasteVertical.length,
           ).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
           if (flow.kind === "point1" || flow.kind === "selected")
-            expect(set.endMarker).toEqual(cornerMarkerPoints(b));
+            expect(set).toMatchObject(endpointMarkers(a, b, blink));
         }
       },
     ),
@@ -126,26 +130,46 @@ it("draws the terrain confirmation at the confirmed selection height", () => {
   );
 });
 
-it("alternates the first-point marker with blink and removes it at the endpoint step", () => {
+it("blinks the start marker while the end is undefined", () => {
   fc.assert(
-    fc.property(cell, cell, (a, b) => {
-      const flow = { kind: "point1" as const, cell: a, dimensionId, material };
-      expect(previewPoints(flow, { blink: true }).startMarker).toEqual(
-        cornerMarkerPoints(a),
-      );
-      expect(previewPoints(flow, { blink: false }).startMarker).toEqual([]);
+    fc.property(cell, fc.boolean(), (start, blink) => {
+      const markers = endpointMarkers(start, undefined, blink);
+      expect(markers).toEqual({
+        startMarker: blink ? cornerMarkerPoints(start) : [],
+        endMarker: [],
+        sharedMarker: [],
+      });
       expect(
         previewPoints(
-          {
-            kind: "selected",
-            menuLevel: "root",
-            from: a,
-            to: b,
-            selection: selectionOf(dimensionId, boxOf(a, b), material),
-          },
-          { blink: true },
-        ).startMarker,
-      ).toEqual([]);
+          { kind: "point1", cell: start, dimensionId, material },
+          { blink },
+        ),
+      ).toMatchObject(markers);
+    }),
+  );
+});
+
+it("draws one shared marker on every redraw for coincident endpoints", () => {
+  fc.assert(
+    fc.property(cell, fc.boolean(), (start, blink) => {
+      expect(endpointMarkers(start, { ...start }, blink)).toEqual({
+        startMarker: [],
+        endMarker: [],
+        sharedMarker: cornerMarkerPoints(start),
+      });
+    }),
+  );
+});
+
+it("draws both distinct endpoint markers on every redraw", () => {
+  fc.assert(
+    fc.property(cell, cell, fc.boolean(), (start, end, blink) => {
+      fc.pre(!sameCell(start, end));
+      expect(endpointMarkers(start, end, blink)).toEqual({
+        startMarker: cornerMarkerPoints(start),
+        endMarker: cornerMarkerPoints(end),
+        sharedMarker: [],
+      });
     }),
   );
 });

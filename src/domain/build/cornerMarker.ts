@@ -1,18 +1,24 @@
-// Unlike the selection outline, which is drawn at block centers, the lone-corner
+// Unlike the selection outline, which is drawn at block centers, the endpoint
 // marker sits on the block boundary so it surrounds the block (ADR 0183).
 import type { Cell } from "../shared/cells";
 import type { Vec3 } from "../shared/vec";
+import { BUILD_SPEC } from "./spec";
 
 const BLOCK_BOUNDARIES = [0, 1] as const;
 const EDGE_MIDPOINT = [0.5] as const;
 
-/** Points on the unit cube of a block cell: its 8 corners, then the midpoint of each of its 12 edges. */
+const horizontalSteps = BUILD_SPEC.markerHorizontalEdgeSteps;
+const horizontalInterior = Array.from(
+  { length: horizontalSteps - 1 },
+  (_, i) => (i + 1) / horizontalSteps,
+);
+
 export function cornerMarkerPoints(cell: Cell): Vec3[] {
   return [
     ...pointsOver(cell, BLOCK_BOUNDARIES, BLOCK_BOUNDARIES, BLOCK_BOUNDARIES),
-    ...pointsOver(cell, EDGE_MIDPOINT, BLOCK_BOUNDARIES, BLOCK_BOUNDARIES),
+    ...pointsOver(cell, horizontalInterior, BLOCK_BOUNDARIES, BLOCK_BOUNDARIES),
+    ...pointsOver(cell, BLOCK_BOUNDARIES, BLOCK_BOUNDARIES, horizontalInterior),
     ...pointsOver(cell, BLOCK_BOUNDARIES, EDGE_MIDPOINT, BLOCK_BOUNDARIES),
-    ...pointsOver(cell, BLOCK_BOUNDARIES, BLOCK_BOUNDARIES, EDGE_MIDPOINT),
   ];
 }
 
