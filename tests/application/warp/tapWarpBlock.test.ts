@@ -85,6 +85,116 @@ function fixture(blocks?: WarpBlockTaps) {
 
 const gap = fc.integer({ min: 1, max: WARP_SPEC.tapWindowTicks });
 
+it.each([
+  ["alice", "bob"],
+  ["bob", "alice"],
+])(
+  "opens the list for %s and %s tapping in the same tick",
+  async (first, second) => {
+    const f = fixture();
+    await f.run(0, { playerId: asPlayerId(first) });
+    await f.run(0, { playerId: asPlayerId(second) });
+    await f.clock.advanceTo(WARP_SPEC.tapWindowTicks + 1);
+    expect(f.settled).toEqual([true, true]);
+  },
+);
+
+it("settles each player's taps independently while the block remains intact", async () => {
+  const events = fc
+    .array(
+      fc.record({
+        player: fc.integer({ min: 0, max: 2 }),
+        gap: fc.integer({ min: 0, max: 25 }),
+      }),
+      { minLength: 1, maxLength: 30 },
+    )
+    .map((steps) => {
+      let tick = 0;
+      return steps.map((step) => {
+        tick += step.gap;
+        return { player: step.player, tick };
+      });
+    })
+    .filter((taps) =>
+      taps.every(
+        (tap, i) =>
+          taps
+            .slice(0, i)
+            .every(
+              (prior) =>
+                prior.player !== tap.player ||
+                (tap.tick !== prior.tick &&
+                  tap.tick - prior.tick !== WARP_SPEC.tapWindowTicks + 1),
+            ) &&
+          (i < 2 ||
+            (taps[i - 1]?.tick ?? 0) - (taps[i - 2]?.tick ?? 0) >
+              WARP_SPEC.tapWindowTicks ||
+            tap.tick - (taps[i - 1]?.tick ?? 0) > WARP_SPEC.tapWindowTicks),
+      ),
+    );
+  await fc.assert(
+    fc.asyncProperty(events, async (taps) => {
+      const f = fixture();
+      const results: Promise<boolean>[] = [];
+      const useCase = new TapWarpBlock(
+        { at: () => ({ drop() {}, remove() {}, showRemaining() {} }) },
+        new RemoveWarpPoint(f.store),
+        f.clock,
+      );
+      for (const tap of taps) {
+        await f.clock.advanceTo(tap.tick);
+        results.push(
+          useCase.run({
+            playerId: asPlayerId(`player-${tap.player}`),
+            dimension: f.p.dimension,
+            cell: f.p.cell,
+            now: tap.tick,
+          }),
+        );
+      }
+      await f.clock.advanceTo(
+        (taps.at(-1)?.tick ?? 0) + WARP_SPEC.tapWindowTicks + 1,
+      );
+      const expected = taps.map(
+        (tap, i) =>
+          !taps
+            .slice(i + 1)
+            .some(
+              (later) =>
+                later.player === tap.player &&
+                later.tick - tap.tick <= WARP_SPEC.tapWindowTicks,
+            ),
+      );
+      expect(await Promise.all(results)).toEqual(expected);
+    }),
+  );
+});
+
+it("cancels all pending players' taps when their shared count breaks the block", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.tuple(
+        fc.integer({ min: 0, max: 2 }),
+        fc.integer({ min: 0, max: 2 }),
+        fc.integer({ min: 0, max: 2 }),
+      ),
+      fc.integer({ min: 1, max: WARP_SPEC.tapWindowTicks - 1 }),
+      async (players, first) => {
+        const f = fixture();
+        await f.run(0, { playerId: asPlayerId(`player-${players[0]}`) });
+        await f.run(first, { playerId: asPlayerId(`player-${players[1]}`) });
+        await f.run(WARP_SPEC.tapWindowTicks, {
+          playerId: asPlayerId(`player-${players[2]}`),
+        });
+        await f.clock.advanceTo(100);
+        expect(f.counts()).toEqual({ drops: 1, removals: 1 });
+        expect(f.settled).toHaveLength(3);
+        expect(f.settled.every((open) => !open)).toBe(true);
+      },
+    ),
+  );
+});
+
 it("breaks and removes the entry exactly once after three taps inside the window", async () => {
   await fc.assert(
     fc.asyncProperty(gap, gap, async (first, second) => {
