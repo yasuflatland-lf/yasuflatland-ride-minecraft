@@ -9,6 +9,7 @@ import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { RoofTentMount } from "../../domain/shared/roofTent";
 import { forward, localOffset, type Vec3 } from "../../domain/shared/vec";
+import { placePaid } from "../shared/paidPlacement";
 import type { VehicleHostLookup } from "../shared/ports/vehicleHost";
 import type { RoofTentWorld } from "./ports/roofTent";
 
@@ -95,17 +96,16 @@ export class PlaceRoofTent {
       return false;
     }
     if (target.type === "ground") at.yaw = plan.facing;
-    let taken = false;
-    if (cmd.playerId !== undefined && !this.world.isCreative(cmd.playerId)) {
-      if (!this.world.consumeItem(cmd.playerId, cmd.slot)) return false;
-      taken = true;
-    }
-    if (
-      this.world.spawn(plan, at, cmd.playerId, ROOF_TENT_SPEC.defaultPaint) !==
-      undefined
-    )
-      return true;
-    if (taken && cmd.playerId !== undefined) this.world.giveItem(cmd.playerId);
-    return false;
+    const result = placePaid(
+      {
+        isCreative: (player) => this.world.isCreative(player),
+        consumeItem: (player, slot) => this.world.consumeItem(player, slot),
+        refund: (player) => this.world.giveItem(player),
+      },
+      { player: cmd.playerId, slot: cmd.slot },
+      () =>
+        this.world.spawn(plan, at, cmd.playerId, ROOF_TENT_SPEC.defaultPaint),
+    );
+    return result.placed;
   }
 }
