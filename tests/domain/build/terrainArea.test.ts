@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { virtualEndPoint } from "../../../src/domain/build/aim/aim";
 import { boxOf, contains } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
@@ -18,6 +19,28 @@ const cell = fc.record({
 });
 
 describe("terrainAreaOf", () => {
+  it("keeps terrain heights in bounds for virtual endpoints and any box", () => {
+    fc.assert(
+      fc.property(
+        cell,
+        cell,
+        cell,
+        fc.integer({ min: -500, max: 500 }),
+        (point, a, b, hitY) => {
+          const end = virtualEndPoint(point, {
+            origin: { x: point.x - 0.5, y: hitY - 1, z: point.z },
+            direction: { x: 1, y: 1, z: 0 },
+          });
+          expect(end).toBeDefined();
+          if (!end) return;
+          const area = terrainAreaOf(boxOf(a, b), point, end);
+          expect(area.higherY).toBeLessThanOrEqual(BUILD_SPEC.worldTopY);
+          expect(area.lowerY).toBeGreaterThanOrEqual(BUILD_SPEC.worldBottomY);
+        },
+      ),
+    );
+  });
+
   it("does not depend on the order of the two points", () => {
     fc.assert(
       fc.property(cell, cell, (a, b) => {
