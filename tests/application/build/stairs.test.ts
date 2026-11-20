@@ -266,3 +266,39 @@ it("refuses an oversized terrace using its above-cell count", () => {
   expect(f.session.hasHistory).toBe(false);
   expect(f.world.writes).toBe(0);
 });
+
+it("counts Passage steps, fill and cleared headroom in the completed edit", () => {
+  const f = fixture();
+  const dirt = blockStateOf("minecraft:dirt");
+  for (let x = 0; x <= 2; x++)
+    for (let z = 0; z <= 4; z++)
+      for (let y = 10; y <= 15; y++) f.world.put({ x, y, z }, dirt);
+  f.select();
+  f.choose.execute({ ...command, op: "stairs" });
+  f.aimAt();
+  expect(f.fix.execute(command)).toBe(true);
+  f.confirm.execute({ ...command, contents: "passage" });
+  f.jobs.step();
+  expect(f.feedback.messages.at(-1)).toEqual({
+    message: "editDoneCount",
+    count: 15 + 6 + 45,
+  });
+});
+
+it("refuses Passage when headroom puts the edit over maxVolume", () => {
+  const f = fixture();
+  const width = Math.floor(BUILD_SPEC.maxVolume / 8) + 1;
+  f.select(stone, { ...from, x: from.x + width - 1 });
+  f.choose.execute({ ...command, op: "stairs" });
+  f.aimAt({ ...hit, z: 1 });
+  expect(f.fix.execute(command)).toBe(true);
+  f.confirm.execute({ ...command, contents: "passage" });
+  expect(f.feedback.messages.at(-1)).toEqual({
+    message: "tooLarge",
+    count: width * 8,
+  });
+  f.jobs.step();
+  expect(f.world.writes).toBe(0);
+  expect(f.session.isEditing).toBe(false);
+  expect(f.session.hasHistory).toBe(false);
+});

@@ -24,3 +24,20 @@ export function undockCommands(): EngineCommand[] {
 export function dockedCommand(docked: boolean): EngineCommand {
   return property("docked", docked);
 }
+
+export class DockedResend {
+  private heldOnce = false;
+  private pending = false;
+
+  resync(): void {
+    // Before the first hold, the entity still has its default docked value (ADR 0156).
+    this.pending = this.heldOnce;
+  }
+
+  next(wasHeld: boolean, held: boolean): EngineCommand | undefined {
+    this.heldOnce ||= held;
+    if (!this.pending) return undefined;
+    this.pending = false;
+    return held === wasHeld ? dockedCommand(held) : undefined;
+  }
+}

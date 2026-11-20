@@ -43,7 +43,6 @@ function menuLabel(
     | RootEntryId
     | BuildMenuEntryId
     | ContentsEntryId
-    | StairContents
     | TerrainEntryId
     | UtilityEntryId
     | PasteEntryId
@@ -51,6 +50,13 @@ function menuLabel(
 ): string {
   return BUILD_FORM[entry.id];
 }
+
+const stairLabels = {
+  passage: BUILD_FORM.stairPassage,
+  fillBelow: BUILD_FORM.stairFillBelow,
+  stepsOnly: BUILD_FORM.stepsOnly,
+  cancel: BUILD_FORM.cancel,
+} satisfies Record<StairContents | "cancel", string>;
 
 export interface BuildMenus {
   showBuildMenu(player: Player): Promise<void>;
@@ -150,16 +156,20 @@ export class BedrockBuildMenus implements BuildMenus {
       const flow = this.repo.get(playerId)?.flow;
       if (flow?.kind !== "stairContents" || flow.op !== op) return;
       const terrace = op === "terrace";
-      const entries = terrace ? terraceMenu(flow) : stairContentsMenu(flow);
       let id: StairContents | "confirm" | "cancel" | undefined;
       try {
         id = await chooseFromForm(
           player,
           terrace ? BUILD_FORM.terraceTitle : BUILD_FORM.stairContentsTitle,
-          entries.map((entry) => ({
-            id: entry.id,
-            textKey: menuLabel(entry),
-          })),
+          terrace
+            ? terraceMenu(flow).map((entry) => ({
+                id: entry.id,
+                textKey: menuLabel(entry),
+              }))
+            : stairContentsMenu(flow).map(({ id }) => ({
+                id,
+                textKey: stairLabels[id],
+              })),
           terrace
             ? {
                 translate: BUILD_FORM.terraceBody,

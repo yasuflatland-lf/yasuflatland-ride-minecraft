@@ -1,12 +1,49 @@
+import fc from "fast-check";
 import { expect, it } from "vitest";
 import { CAMPER_ENTITY } from "../../../../src/domain/vehicle/kinds/camper/entity";
 import { SPORTSBOAT_ENTITY } from "../../../../src/domain/vehicle/kinds/sportsboat/entity";
 import {
   DOCK_EVENTS,
   DOCK_PROPERTIES,
+  DockedResend,
   dockCommands,
   undockCommands,
 } from "../../../../src/domain/vehicle/motion/dockEntity";
+
+it("resends once after resync when a drive has held and the step keeps its held state", () => {
+  const action = fc.oneof(
+    fc.constant("resync" as const),
+    fc.record({ wasHeld: fc.boolean(), held: fc.boolean() }),
+  );
+  fc.assert(
+    fc.property(fc.array(action), (actions) => {
+      const resend = new DockedResend();
+      let heldOnce = false;
+      let resendDocked = false;
+      let sends = 0;
+      for (const action of actions) {
+        if (action === "resync") {
+          resend.resync();
+          resendDocked = heldOnce;
+          sends = 0;
+          continue;
+        }
+        const { wasHeld, held } = action;
+        const command = resend.next(wasHeld, held);
+        heldOnce ||= held;
+        expect(command).toStrictEqual(
+          resendDocked && held === wasHeld
+            ? { type: "setProperty", name: "docked", value: held }
+            : undefined,
+        );
+        resendDocked = false;
+        if (!heldOnce || held !== wasHeld) expect(command).toBeUndefined();
+        if (command !== undefined) sends++;
+        expect(sends).toBeLessThanOrEqual(1);
+      }
+    }),
+  );
+});
 
 it("triggers dock before recording the docked state", () => {
   expect(dockCommands()).toStrictEqual([

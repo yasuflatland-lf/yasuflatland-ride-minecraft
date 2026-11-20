@@ -721,6 +721,8 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
   expect(backToAiming(contents)).toEqual(point);
   expect(stairContentsMenu(aim)).toEqual([]);
   expect(stairContentsMenu(contents)).toEqual([
+    { id: "passage" },
+    { id: "fillBelow" },
     { id: "stepsOnly" },
     { id: "cancel" },
   ]);

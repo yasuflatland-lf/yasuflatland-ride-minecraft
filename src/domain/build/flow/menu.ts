@@ -162,7 +162,12 @@ export function stairContentsMenu(
   flow: BuildFlow,
 ): MenuEntry<StairContents | "cancel">[] {
   return flow.kind === "stairContents" && flow.op === "stairs"
-    ? [{ id: "stepsOnly" }, { id: "cancel" }]
+    ? [
+        { id: "passage" },
+        { id: "fillBelow" },
+        { id: "stepsOnly" },
+        { id: "cancel" },
+      ]
     : [];
 }
 

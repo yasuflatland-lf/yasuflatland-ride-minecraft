@@ -86,6 +86,8 @@ export const BUILD_FORM = {
   terraceTitle: "yasu_build.form.terrace_title",
   terraceBody: "yasu_build.form.terrace_body",
   stairContentsTitle: "yasu_build.form.stair_contents_title",
+  stairPassage: "yasu_build.form.stair_passage",
+  stairFillBelow: "yasu_build.form.stair_fill_below",
   stepsOnly: "yasu_build.form.stair_steps_only",
   utilityTitle: "yasu_build.form.title",
   height: "yasu_build.form.height",

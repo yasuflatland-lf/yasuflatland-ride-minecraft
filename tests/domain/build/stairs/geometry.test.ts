@@ -5,7 +5,10 @@ import { planStairs } from "../../../../src/domain/build/edit/plan";
 import { stairPreviewPoints } from "../../../../src/domain/build/preview/stairPreview";
 import { facingVector } from "../../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../../src/domain/build/spec";
-import { TERRACE_ROLES } from "../../../../src/domain/build/stairs/contents";
+import {
+  rolesOf,
+  TERRACE_ROLES,
+} from "../../../../src/domain/build/stairs/contents";
 import {
   type StairRole,
   stairCellCount,
@@ -243,5 +246,56 @@ it("terraces exactly the above cells with air", () => {
         ...planStairs(s, TERRACE_ROLES, blockStateOf("minecraft:sand")),
       ]).toEqual(expected);
     }),
+  );
+});
+
+it.each([
+  ["passage", ["step", "below", "headroom"]],
+  ["fillBelow", ["step", "below"]],
+  ["stepsOnly", ["step"]],
+] as const)("%s selects its stair roles", (contents, expected) => {
+  expect(rolesOf(contents)).toEqual(new Set(expected));
+});
+
+it("writes air exactly on Passage headroom cells", () => {
+  fc.assert(
+    fc.property(valid, (s) => {
+      const airCells = [
+        ...planStairs(s, rolesOf("passage"), blockStateOf("minecraft:stone")),
+      ]
+        .filter(({ after }) => after.typeId === AIR.typeId)
+        .map(({ cell }) => cell);
+      expect(airCells).toEqual(
+        [...stairCells(s, new Set(["headroom"]))].map(({ cell }) => cell),
+      );
+    }),
+  );
+});
+
+it("fills below with flat-top stairs for either filled contents choice", () => {
+  fc.assert(
+    fc.property(
+      valid,
+      fc.constantFrom("passage" as const, "fillBelow" as const),
+      fc.integer({ min: 0, max: 3 }),
+      (s, contents, direction) => {
+        const oak = blockStateOf("minecraft:oak_stairs", {
+          weirdo_direction: direction,
+          upside_down_bit: false,
+        });
+        const plan = new Map(
+          [...planStairs(s, rolesOf(contents), oak)].map(({ cell, after }) => [
+            cellKey(cell),
+            after,
+          ]),
+        );
+        const flat = blockStateOf(oak.typeId, {
+          weirdo_direction: direction,
+          upside_down_bit: true,
+        });
+        for (const { cell } of stairCells(s, new Set(["below"])))
+          expect(plan.get(cellKey(cell))).toEqual(flat);
+      },
+    ),
   );
 });
