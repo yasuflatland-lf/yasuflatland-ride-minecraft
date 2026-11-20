@@ -1,5 +1,7 @@
+import { ticks } from "./ticks";
+
 /** Ticks a light switch must sit idle before a use counts; a held touch repeats the use every 4-6 ticks on mobile (ADR 0024). */
-export const LIGHT_SWITCH_COOLDOWN_TICKS = 10;
+export const LIGHT_SWITCH_COOLDOWN_TICKS = ticks(10);
 
 /** The headlight switch: a use counts only after the switch has been idle for the cooldown (ADR 0024). */
 export class SwitchCooldown {
@@ -27,7 +29,9 @@ interface KeyUse {
 export class SwitchCooldowns<K> {
   private readonly uses = new Map<K, KeyUse>();
 
-  constructor(private readonly cooldown = LIGHT_SWITCH_COOLDOWN_TICKS) {}
+  constructor(
+    private readonly cooldown: number = LIGHT_SWITCH_COOLDOWN_TICKS,
+  ) {}
 
   /** Records a use of `key` at `tick`; true when that key had been idle for the cooldown. */
   tryUse(key: K, tick: number): boolean {

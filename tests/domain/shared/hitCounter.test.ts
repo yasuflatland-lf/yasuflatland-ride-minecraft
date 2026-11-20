@@ -7,6 +7,7 @@ import {
   type HitRule,
   registerHit,
 } from "../../../src/domain/shared/hitCounter";
+import { ticks } from "../../../src/domain/shared/ticks";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 
 const VEHICLE_RULE: HitRule = {
@@ -16,7 +17,7 @@ const VEHICLE_RULE: HitRule = {
 
 const rules = fc.record({
   hits: fc.integer({ min: 1, max: 6 }),
-  resetTicks: fc.integer({ min: 1, max: 200 }),
+  resetTicks: fc.integer({ min: 1, max: 200 }).map(ticks),
 });
 
 const gapFor = (rule: HitRule) =>
