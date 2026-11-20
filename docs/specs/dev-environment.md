@@ -38,6 +38,15 @@
 - Implementation: `scripts/server-up.mjs` (`UDP_RANGE`, `lanAddresses`), `server/compose.yaml` (`SERVER_UDP_PORTS`)
 - Verification: Owner check recorded in 0015 Context (a LAN client joined over NetherNet, `GET /v1/join` on the LAN IP answered 200). Not verified: no test; the several-addresses and zero-addresses exits; a changed LAN IP after restart.
 
+### World terrain
+
+- Applies to: the dev BDS started with `pnpm server:up` or `pnpm server:restart`.
+- Rule: The world is flat by default. `BDS_LEVEL_TYPE=DEFAULT pnpm server:up` generates natural terrain (mountains, rivers, valleys); any value other than `FLAT` or `DEFAULT` stops `scripts/server-up.mjs` with an error. `server/compose.yaml` passes the value to BDS as `LEVEL_TYPE`. BDS reads the type only when it creates a world, so an existing world keeps its terrain: stop the server and delete `level.dat`, `level.dat_old`, `levelname.txt`, and `db/` in `server/data/worlds/yasuflatland-ride-dev` before starting with a different value. The in-game tests assume the flat world, so use `DEFAULT` for manual driving only.
+- Agreement: Accepted
+- Basis: [0015](../adr/0015-dev-server-docker-nethernet.md) Decision, "The dev world is flat by default. `BDS_LEVEL_TYPE=DEFAULT pnpm server:up` generates natural terrain for manual driving; BDS applies it only to a new world, and the in-game tests expect the flat world"
+- Implementation: `scripts/server-up.mjs` (`levelType`), `server/compose.yaml` (`LEVEL_TYPE`)
+- Verification: Owner request only. The `DEFAULT` start was run on the dev BDS and the server reported `level-type` `DEFAULT`; the generated terrain was not inspected, and no test covers the script or the compose file.
+
 ### Published ports and network mode
 
 - Applies to: `server/compose.yaml`, for either transport.
