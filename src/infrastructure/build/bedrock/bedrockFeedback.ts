@@ -120,9 +120,10 @@ export class BedrockFeedback implements BuildFeedback {
     const player = viewerIn(playerId, dimensionId);
     if (!player) return;
     const styles: Record<keyof PreviewSet, string> = {
-      marker: "minecraft:endrod",
+      startMarker: "minecraft:endrod",
       shape: "minecraft:villager_happy",
-      endCube: "minecraft:endrod",
+      endMarker: "minecraft:endrod",
+      sharedMarker: "minecraft:endrod",
       roof: "minecraft:villager_happy",
       stairs: "minecraft:villager_happy",
       paste: "minecraft:blue_flame_particle",
