@@ -177,6 +177,7 @@ describe("tent entity and client", () => {
         },
       },
     });
+    // Footprint-sized boxes capture taps meant for the shelter blocks (ADR 0130).
     expect(e.components).toMatchObject({
       "minecraft:variant": { value: 0 },
       "minecraft:collision_box": { width: 0.2, height: 0.2 },
@@ -215,21 +216,6 @@ describe("tent entity and client", () => {
       PAINTS.map((paint) => `yasu_ride:paint_${paint}`),
     );
     expect(Object.keys(e.events)).toEqual(PAINTS.map(paintEvent));
-  });
-  it("keeps the tiny hidden boxes whatever the footprint size", () => {
-    const why =
-      "The tent entity must keep its tiny collision and hit boxes (ADR 0130): a footprint-sized box would capture taps meant for the laid blocks.";
-    const c = readJson(`${BP}/entities/yasu_ride/tent.se.json`)[
-      "minecraft:entity"
-    ].components;
-    expect(c["minecraft:collision_box"], why).toEqual({
-      width: 0.2,
-      height: 0.2,
-    });
-    expect(c["minecraft:custom_hit_test"].hitboxes, why).toEqual([
-      { width: 0.1, height: 0.1, pivot: [0, 0.05, 0] },
-    ]);
-    expect(c["minecraft:physics"].has_collision, why).toBe(false);
   });
   it("writes float property values with a decimal point", () => {
     // The engine rejects a float property whose default is written as 0

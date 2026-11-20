@@ -210,7 +210,7 @@ describe("Gas Lantern textures and pack files", () => {
 });
 
 describe("Gas Lantern item and ground entity", () => {
-  it("stands under gravity, stays off, and offers an inert interact button", () => {
+  it("starts unlit and offers an inert interact button", () => {
     const entity = readJson(`${bp}/entities/yasu_ride/gas_lantern.se.json`)[
       "minecraft:entity"
     ];
