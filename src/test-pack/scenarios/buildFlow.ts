@@ -384,6 +384,98 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildStairs(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(5, 6, 7, f.cell(-1, -1, -1));
+    for (const cell of cells) f.block(cell).setType("minecraft:air");
+    const min = f.cell();
+    const max = f.cell(2);
+    const goal = f.cell(1, 2, 4);
+    const material = "minecraft:oak_stairs";
+    const first = f.block(min);
+    first.setType(material);
+    first.setPermutation(
+      first.permutation
+        .withState("weirdo_direction", 0)
+        .withState("upside_down_bit", true),
+    );
+    await f.tap("block", min);
+    checkSelection(await f.tap("air", max), { min, max }, "Stair foot");
+    first.setType("minecraft:stone");
+    f.block(f.cell(0, 2, 1)).setType("minecraft:oak_log");
+    const before = snapshot(f, cells);
+    const aim = await f.menu("shape", "stairs");
+    check(
+      aim.offered === true && aim.flow.kind === "stairAim",
+      "stairs did not enter aiming",
+    );
+    check(
+      (await f.menu("stairContents", "stepsOnly")).offered === false,
+      "contents offered before goal",
+    );
+    try {
+      await f.edit(`aim ${goal.x} ${goal.y} ${goal.z}`);
+      const fixed = await f.tap("block", goal);
+      check(
+        fixed.flow.kind === "stairContents",
+        "press did not fix stair goal",
+      );
+      const built = await f.menu("stairContents", "stepsOnly");
+      check(
+        built.offered === true &&
+          built.message === "editDoneCount" &&
+          built.count === 15,
+        "steps did not finish",
+      );
+      const expected = new Map<string, boolean>();
+      for (let x = 0; x <= 2; x++)
+        for (const [z, y, nose] of [
+          [0, 0, true],
+          [1, 1, true],
+          [2, 1, false],
+          [3, 2, true],
+          [4, 2, false],
+        ] as const)
+          expected.set(cellKey(f.cell(x, y, z)), nose);
+      const untouched: Cell[] = [];
+      const untouchedBefore: typeof before = [];
+      cells.forEach((cell, i) => {
+        const nose = expected.get(cellKey(cell));
+        if (nose === undefined) {
+          const prior = before[i];
+          check(prior !== undefined, "missing block snapshot");
+          untouched.push(cell);
+          untouchedBefore.push(prior);
+          return;
+        }
+        const block = f.block(cell);
+        check(
+          block.typeId === material &&
+            block.permutation.getState("upside_down_bit") === !nose &&
+            block.permutation.getState("weirdo_direction") === (nose ? 2 : 0),
+          `incorrect stair at ${cellKey(cell)}`,
+        );
+      });
+      check(
+        unchanged(f, untouched, untouchedBefore),
+        "Steps only changed a cell outside its treads",
+      );
+      checkSelection(
+        built,
+        { min: f.cell(0, 2, 4), max: f.cell(2, 2, 4) },
+        "Stair goal",
+      );
+      checkSelection(await f.edit("undo"), { min, max }, "Stair Undo");
+      check(
+        unchanged(f, cells, before),
+        "Undo did not restore the stair cells",
+      );
+    } finally {
+      await f.edit("aim clear");
+    }
+  });
+}
+
 export function buildStairRoofs(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const material = "minecraft:oak_stairs";

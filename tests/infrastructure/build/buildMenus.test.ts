@@ -5,6 +5,7 @@ import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
+import { ChooseStairs } from "../../../src/application/build/chooseStairs";
 import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { CloseBuildMenu } from "../../../src/application/build/closeBuildMenu";
@@ -21,6 +22,7 @@ import {
   type BuildFlow,
   chooseHeighted,
   chooseTerrain,
+  fixStairGoal,
   openBuildMenu,
 } from "../../../src/domain/build/flow/flow";
 import {
@@ -33,6 +35,7 @@ import {
 } from "../../../src/domain/build/flow/menu";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import type { Cell } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -187,6 +190,12 @@ function setup(fallback?: boolean) {
       ),
     },
     confirmHeighted: { execute: vi.fn() },
+    chooseStairs: {
+      execute: vi.fn((cmd) =>
+        new ChooseStairs(repo, new FakeFeedback()).execute(cmd),
+      ),
+    },
+    confirmStairs: { execute: vi.fn() },
     chooseTerrain: {
       execute: vi.fn((cmd) =>
         new ChooseTerrain(repo, new FakeFeedback()).execute(cmd),
@@ -1389,3 +1398,53 @@ it("dispatches adjust height from the selected root menu", async () => {
     playerId,
   });
 });
+
+it.each([
+  { answer: { selection: 0 }, builds: true },
+  { answer: { selection: 1 }, builds: false },
+  { answer: { canceled: true }, builds: false },
+  { answer: {}, builds: false },
+])(
+  "dispatches the stair form and returns to aiming when it closes without a build",
+  async ({ answer, builds }) => {
+    const { session, menus, player, cases } = setup();
+    session.setFlow(selected(from, { ...from, x: 2 }));
+    ui.answers.push(...shapeAnswers(session.flow, "stairs"));
+    await menus.showShapeMenu(player);
+    expect(cases.chooseStairs.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+    });
+    const flow = session.flow;
+    if (flow.kind !== "stairAim") throw new Error("Expected stair aim");
+    const staircase = staircaseToward(flow.row, {
+      ...from,
+      y: from.y + 2,
+      z: from.z + 4,
+    });
+    if (!staircase) throw new Error("Expected staircase");
+    session.setFlow(fixStairGoal(flow, staircase));
+    if (builds)
+      cases.confirmStairs.execute.mockImplementation(() =>
+        session.setFlow(endpoint),
+      );
+    ui.answers.push(answer);
+    await menus.showStairContentsMenu(player);
+    expect(ui.forms[1]?.heading).toEqual({
+      translate: BUILD_FORM.stairContentsTitle,
+    });
+    expect(ui.forms[1]?.buttons).toEqual([
+      { translate: BUILD_FORM.stepsOnly },
+      { translate: BUILD_FORM.cancel },
+    ]);
+    if (builds) {
+      expect(cases.confirmStairs.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+        contents: "stepsOnly",
+      });
+      expect(session.flow).toBe(endpoint);
+    } else {
+      expect(cases.confirmStairs.execute).not.toHaveBeenCalled();
+      expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+    }
+  },
+);

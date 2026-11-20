@@ -48,6 +48,7 @@ function preview(part: Partial<PreviewSet>): PreviewSet {
     shape: [],
     endCube: [],
     roof: [],
+    stairs: [],
     paste: [],
     pasteVertical: [],
     ...part,

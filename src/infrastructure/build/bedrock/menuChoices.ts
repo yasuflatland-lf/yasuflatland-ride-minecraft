@@ -3,11 +3,13 @@ import type { ChooseAdjustHeight } from "../../../application/build/chooseAdjust
 import type { ChooseBoxStep } from "../../../application/build/chooseBoxStep";
 import type { ChooseHeighted } from "../../../application/build/chooseHeighted";
 import type { ChooseSideCylinder } from "../../../application/build/chooseSideCylinder";
+import type { ChooseStairs } from "../../../application/build/chooseStairs";
 import type { ChooseTerrain } from "../../../application/build/chooseTerrain";
 import type { ClearSelection } from "../../../application/build/clearSelection";
 import type { CloseBuildMenu } from "../../../application/build/closeBuildMenu";
 import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
+import type { ConfirmStairs } from "../../../application/build/confirmStairs";
 import type { ConfirmTerrain } from "../../../application/build/confirmTerrain";
 import type { CopySelection } from "../../../application/build/copySelection";
 import type { EndPasting } from "../../../application/build/endPasting";
@@ -26,6 +28,7 @@ import {
   pasteMenu,
   shapeChoiceOf,
   shapeMenu,
+  stairContentsMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
@@ -49,6 +52,8 @@ export interface MenuCases {
   chooseHeighted: Pick<ChooseHeighted, "execute">;
   chooseSideCylinder: Pick<ChooseSideCylinder, "execute">;
   confirmHeighted: Pick<ConfirmHeighted, "execute">;
+  chooseStairs: Pick<ChooseStairs, "execute">;
+  confirmStairs: Pick<ConfirmStairs, "execute">;
   chooseTerrain: Pick<ChooseTerrain, "execute">;
   confirmTerrain: Pick<ConfirmTerrain, "execute">;
   cancel: Pick<CancelFlow, "backToAiming">;
@@ -67,7 +72,13 @@ export class MenuChoices {
   ) {}
   choose(
     playerId: PlayerId,
-    menu: "shape" | "contents" | "terrain" | "utility" | "paste",
+    menu:
+      | "shape"
+      | "contents"
+      | "stairContents"
+      | "terrain"
+      | "utility"
+      | "paste",
     entryId: string | undefined,
   ): boolean {
     const session = this.repo.get(playerId);
@@ -83,6 +94,9 @@ export class MenuChoices {
         return false;
       const choice = shapeChoiceOf(entryId);
       switch (choice.kind) {
+        case "stairs":
+          this.cases.chooseStairs.execute({ playerId });
+          return true;
         case "adjustHeight":
           this.cases.chooseAdjustHeight.execute({ playerId });
           return true;
@@ -120,6 +134,10 @@ export class MenuChoices {
           return exhaustive;
         }
       }
+    } else if (menu === "stairContents") {
+      if (!isOffered(stairContentsMenu(session.flow), entryId)) return false;
+      if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
+      else this.cases.confirmStairs.execute({ playerId, contents: entryId });
     } else if (menu === "terrain") {
       if (!isOffered(terrainMenu(session.flow), entryId)) return false;
       switch (entryId) {

@@ -1,6 +1,7 @@
 import { system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
 import type { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
+import type { FixStairGoal } from "../../../../application/build/fixStairGoal";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { SetPoint } from "../../../../application/build/setPoint";
@@ -26,6 +27,7 @@ export function registerWand({
   pressPasteAim,
   aimHeight,
   confirmLiveHeight,
+  fixStairGoal,
   repo,
   menus,
   aim,
@@ -38,6 +40,7 @@ export function registerWand({
   pressPasteAim: PressPasteAim;
   aimHeight: AimHeight;
   confirmLiveHeight: ConfirmLiveHeight;
+  fixStairGoal: FixStairGoal;
   repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
@@ -83,6 +86,13 @@ export function registerWand({
           confirmLiveHeight.execute({ playerId });
           break;
         }
+        case "fixStairGoal":
+          if (
+            debounce.press(playerId, system.currentTick) &&
+            fixStairGoal.execute({ playerId })
+          )
+            void menus.showStairContentsMenu(player);
+          break;
         case "aimHeight": {
           if (flow?.kind !== "heightStep") return;
           const target = aim.aim(command.playerId);
@@ -117,6 +127,7 @@ export function registerWand({
       pressPasteAim,
       aimHeight,
       confirmLiveHeight,
+      fixStairGoal,
       menus,
       pointOf,
       tapAir,

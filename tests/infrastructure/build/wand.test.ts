@@ -2,7 +2,9 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { ChooseStairs } from "../../../src/application/build/chooseStairs";
 import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
+import { FixStairGoal } from "../../../src/application/build/fixStairGoal";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
@@ -40,6 +42,7 @@ import {
 const menus = {
   showBuildMenu: vi.fn(),
   showContentsMenu: vi.fn(),
+  showStairContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
   showPasteMenu: vi.fn(),
   showHeightSlider: vi.fn(),
@@ -104,7 +107,18 @@ it("preserves blocks and defers point taps out of before events", () => {
         };
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
+        const aim = {
+          dimensionOf: () => nether,
+          aim: () => ({
+            ray: {
+              origin: { x: 0, y: 0, z: 0 },
+              direction: { x: 1, y: 0, z: 0 },
+            },
+            block: { cell: { x, y, z }, face: "up" as const },
+          }),
+        };
         registerWand({
+          fixStairGoal: new FixStairGoal(repo, feedback, aim),
           confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
           aimHeight: new AimHeight(repo),
           repo,
@@ -123,16 +137,7 @@ it("preserves blocks and defers point taps out of before events", () => {
           setPoint: new SetPoint(repo, blocks, feedback),
           tapAir: new TapAir(repo, feedback),
           menus,
-          aim: {
-            dimensionOf: () => nether,
-            aim: () => ({
-              ray: {
-                origin: { x: 0, y: 0, z: 0 },
-                direction: { x: 1, y: 0, z: 0 },
-              },
-              block: { cell: { x, y, z }, face: "up" as const },
-            }),
-          },
+          aim,
           debounce: new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
           pasteDebounce: new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
           pointOf: () => undefined,
@@ -229,6 +234,7 @@ function setupAir() {
   const menus = {
     showBuildMenu: vi.fn(),
     showContentsMenu: vi.fn(),
+    showStairContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
     showPasteMenu: vi.fn(),
     showHeightSlider: vi.fn(),
@@ -276,6 +282,7 @@ function setupAir() {
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
   );
   registerWand({
+    fixStairGoal: new FixStairGoal(repo, feedback, aim),
     confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
     aimHeight,
     repo,
@@ -753,5 +760,51 @@ it.each(["air", "block"] as const)(
     e.use();
     expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
     expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
+  },
+);
+
+it.each([false, true])(
+  "fixes a stair goal from a block press with itemUse=%s",
+  (paired) => {
+    const e = setupAir();
+    const from = { x: 0, y: 5, z: 0 };
+    const to = { ...from, x: 2 };
+    e.session.setFlow({
+      kind: "selected",
+      menuLevel: "root",
+      selection: selectionOf(
+        nether,
+        boxOf(from, to),
+        blockStateOf("minecraft:stone"),
+      ),
+      from,
+      to,
+    });
+    new ChooseStairs(e.repo, e.feedback).execute({ playerId: e.id });
+    const goal = { x: 1, y: 7, z: 4 };
+    const { ray } = e.aim.aim(e.id) ?? {};
+    if (!ray) throw new Error("Expected fixture ray");
+    vi.spyOn(e.aim, "aim").mockReturnValue({
+      ray,
+      block: { cell: goal, face: "up" },
+    });
+    const event = {
+      player: e.player,
+      block: { dimension: e.player.dimension, location: goal },
+      isFirstEvent: true,
+      cancel: false,
+    };
+    engine.handlers.get("interact")?.(event);
+    expect(event.cancel).toBe(true);
+    if (paired) e.use();
+    for (const callback of engine.scheduled.splice(0)) callback();
+    expect(e.aim.aim).toHaveBeenCalledExactlyOnceWith(e.id);
+    expect(e.session.flow).toMatchObject({
+      kind: "stairContents",
+      staircase: { toward: "south", rise: 2, run: 4 },
+    });
+    expect(e.menus.showStairContentsMenu).toHaveBeenCalledExactlyOnceWith(
+      e.player,
+    );
   },
 );
