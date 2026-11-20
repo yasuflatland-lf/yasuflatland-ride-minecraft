@@ -15,8 +15,8 @@ WorldEdit-BE, which 0178 names as the model for the behavior, has the same gap f
 
 ## Decision
 
-1. While a selection holds exactly one corner, whether pos1 or pos2, the build mode outline shows that corner. Nothing changes once both corners exist: the selection outline of 0178 is drawn and the marker is not.
-2. The marker is the outline of the corner's unit cube: its eight corners and the midpoint of each of its twelve edges, twenty particles in all. The points sit on the block's boundary, so the marker surrounds the block instead of sitting in its middle.
+1. With only a start cell, the start marker blinks on alternate redraws. With a live or fixed endpoint, every redraw shows both endpoint markers alongside the selection outline. If both endpoints occupy the same cell, every redraw shows one shared marker there.
+2. Each marker traces the cell's unit cube. Draw its eight corners first, then the interior points of the eight horizontal edges, then the four vertical edge midpoints. Each horizontal edge has `BUILD_SPEC.markerHorizontalEdgeSteps` equal intervals. Four intervals place points at one quarter, one half, and three quarters of the edge, giving 36 distinct points per cube.
 3. Endpoint markers use one custom Resource Pack particle, `yasu_build:marker`. The script supplies a white tint for the start, red for the end, and orange for a shared cell so the player can distinguish the three roles from each other and from the selection and paste outlines. The particle uses alpha blending to preserve the tint in daylight and lasts 0.6 seconds to cover the 10-tick redraw interval. The new particle required a Resource Pack version bump and a matching Behavior Pack dependency update (0015).
 4. Only the owner of the selection sees the marker, spawned through `player.spawnParticle`, and only in the dimension the corner was set in. It is redrawn on the same interval as the selection outline, `BUILD_SPEC.outlineInterval`.
 5. `selectionBox` keeps its meaning: it returns a box only when both corners exist. Fill, replace, copy, and the other edits still report no selection with one corner. The marker reads `pos1` and `pos2` directly instead of widening that function.
@@ -24,7 +24,7 @@ WorldEdit-BE, which 0178 names as the model for the behavior, has the same gap f
 
 ## Consequences
 
-A player can see where the first corner is while looking for the second. The cost is twenty more particles per redraw for each player who holds a lone corner, well under the 512-point cap of a selection outline.
+A player can see where the first corner is while looking for the second. A visible lone or shared marker costs 36 particles. Two distinct endpoints cost 72 particles per redraw. These particles are separate from the selection outline's 512-point budget.
 
 The script can tune endpoint colors through the stable `MolangVariableMap` API. Changes to the particle itself require a Resource Pack version bump (0015). Daylight visibility needs a check on PC and iPad.
 

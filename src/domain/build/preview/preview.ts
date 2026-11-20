@@ -1,4 +1,4 @@
-import { type Cell, cellCenter } from "../../shared/cells";
+import { type Cell, cellCenter, sameCell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { boxOf, type CellBox, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
@@ -34,6 +34,24 @@ function outline(box: CellBox): Vec3[] {
   );
 }
 
+export function endpointMarkers(
+  start: Cell,
+  end: Cell | undefined,
+  blink: boolean,
+): Pick<PreviewSet, "startMarker" | "endMarker" | "sharedMarker"> {
+  if (end && sameCell(start, end))
+    return {
+      startMarker: [],
+      endMarker: [],
+      sharedMarker: cornerMarkerPoints(start),
+    };
+  return {
+    startMarker: end || blink ? cornerMarkerPoints(start) : [],
+    endMarker: end ? cornerMarkerPoints(end) : [],
+    sharedMarker: [],
+  };
+}
+
 export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
   const set: PreviewSet = {
     startMarker: [],
@@ -49,20 +67,17 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
     case "idle":
       break;
     case "point1":
-      if (aim.blink) set.startMarker = cornerMarkerPoints(flow.cell);
-      if (aim.end) {
-        set.shape = outline(boxOf(flow.cell, aim.end));
-        set.endMarker = cornerMarkerPoints(aim.end);
-      }
+      Object.assign(set, endpointMarkers(flow.cell, aim.end, aim.blink));
+      if (aim.end) set.shape = outline(boxOf(flow.cell, aim.end));
       break;
     case "baseHeight":
       set.shape = outline(liveHeightBox(flow));
-      set.endMarker = cornerMarkerPoints(flow.to);
+      Object.assign(set, endpointMarkers(flow.from, flow.to, false));
       break;
     case "selected":
     case "terrainConfirm":
       set.shape = outline(flow.selection.box);
-      set.endMarker = cornerMarkerPoints(flow.to);
+      Object.assign(set, endpointMarkers(flow.from, flow.to, false));
       break;
     case "heightStep": {
       const height = flow.heightLocked

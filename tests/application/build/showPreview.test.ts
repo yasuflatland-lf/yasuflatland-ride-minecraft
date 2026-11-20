@@ -76,7 +76,7 @@ it("draws the marker for its owner in the flow dimension on alternate redraws", 
   for (const entry of feedback.previews) {
     expect(entry.playerId).toBe(alex);
     expect(entry.dimensionId).toBe(nether);
-    expect(entry.set.startMarker).toHaveLength(20);
+    expect(entry.set.startMarker).toHaveLength(36);
   }
 });
 
@@ -116,7 +116,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(session.flow, { blink: true }),
   );
-  expect(feedback.previews[0]?.set.startMarker).toEqual([]);
+  expect(feedback.previews[0]?.set.startMarker).toHaveLength(36);
   expect(feedback.previews[0]?.set.paste).toEqual([]);
 });
 
