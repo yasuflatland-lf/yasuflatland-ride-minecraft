@@ -28,9 +28,13 @@ export class BedrockRoofTentOccupantWorld
     vehicleHost: VehicleHostLookup,
     bed: BedWorld,
     isVehicleSpace: SpaceCheck,
+    isCampSpace: SpaceCheck,
   ) {
-    this.occupants = new RoofTentOccupants(vehicleHost, isVehicleSpace, (id) =>
-      this.syncCeiling(id),
+    this.occupants = new RoofTentOccupants(
+      vehicleHost,
+      isVehicleSpace,
+      isCampSpace,
+      (id) => this.syncCeiling(id),
     );
     this.ceiling = new RoofTentCeiling(this.occupants, isVehicleSpace);
     this.spawn = new RoofTentSpawn(this.occupants);

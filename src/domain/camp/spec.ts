@@ -139,6 +139,10 @@ export const GAS_LANTERN_SPEC = Object.freeze({
 });
 
 export const ROOF_TENT_SPEC = Object.freeze({
+  /** Blocks in front of the tent where the exit search starts when no host gives an entrance. */
+  exitFallbackDistance: 2,
+  /** Ring search around the saved entrance; the same reach as the toilet and the beach chair. */
+  exitSearch: Object.freeze({ radius: 4, up: 4, down: 8 }),
   /** SUV shell lift (5 px) plus sleeping-bag rise above its platform (2.4 px), from tools/gen_roof_tent.py. */
   seatLift: (5 + 2.4) / 16,
   /** A riding player's feet sit about 0.35 blocks below the seat point (Java ridingOffset convention).
