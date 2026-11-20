@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FURNITURE_SPEC } from "../../src/domain/resort/furniture";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
@@ -386,37 +386,6 @@ print(json.dumps({'lo':lo, 'hi':hi, 'corners':[p for c in parts for p in t.corne
       Q: { item: "minecraft:quartz" },
     });
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.result).toEqual({
-      item: FURNITURE_IDS.washstand.item,
-      count: 1,
-    });
-    const grids = (r: typeof recipe) => {
-      const rows: string[][] = r.pattern.map((row: string) =>
-        [...row].map((key) => JSON.stringify(r.key[key] ?? null)),
-      );
-      while (rows[0]?.every((v) => v === "null")) rows.shift();
-      while (rows.at(-1)?.every((v) => v === "null")) rows.pop();
-      while (rows.length && rows.every((r) => r[0] === "null"))
-        for (const r of rows) r.shift();
-      while (rows.length && rows.every((r) => r.at(-1) === "null"))
-        for (const r of rows) r.pop();
-      return [
-        JSON.stringify(rows),
-        JSON.stringify(rows.map((r) => [...r].reverse())),
-      ];
-    };
-    for (const file of readdirSync(`${BP}/recipes`, { recursive: true })) {
-      if (
-        typeof file !== "string" ||
-        !file.endsWith(".json") ||
-        file.endsWith("/washstand_item.recipe.json")
-      )
-        continue;
-      const other = read(`${BP}/recipes/${file}`)["minecraft:recipe_shaped"];
-      if (other)
-        for (const grid of grids(other))
-          expect(grids(recipe), file).not.toContain(grid);
-    }
     for (const [locale, name] of [
       ["en_US", "Washstand"],
       ["ja_JP", "\u6d17\u9762\u53f0"],

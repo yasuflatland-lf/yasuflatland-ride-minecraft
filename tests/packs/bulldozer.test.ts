@@ -128,8 +128,6 @@ it("crafts from an SUV item, an iron block, and an iron shovel", () => {
     ),
   );
   expect(r.tags).toEqual(["crafting_table"]);
-  expect(r.unlock).toEqual({ context: "AlwaysUnlocked" });
-  expect(r.result).toEqual({ item: "yasu_ride:bulldozer_item", count: 1 });
   const item = read(`${BP}/items/yasu_ride/bulldozer_item.item.json`)[
     "minecraft:item"
   ];

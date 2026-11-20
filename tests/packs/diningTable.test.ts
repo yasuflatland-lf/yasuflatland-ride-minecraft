@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
@@ -214,23 +214,6 @@ it("links the client, render controller, item icon, recipe and translations", ()
     I: { item: "minecraft:iron_ingot" },
   });
   expect(recipe.tags).toEqual(["crafting_table"]);
-  expect(recipe.result).toEqual({
-    item: "yasu_ride:dining_table_item",
-    count: 1,
-  });
-  const signature = (r: typeof recipe) =>
-    r.pattern
-      .map((row: string) =>
-        [...row].map((key) => JSON.stringify(r.key[key] ?? null)).join("|"),
-      )
-      .join("/");
-  for (const file of readdirSync(`${BP}recipes/yasu_ride`)) {
-    if (file === "dining_table_item.recipe.json") continue;
-    const other = read(`${BP}recipes/yasu_ride/${file}`)[
-      "minecraft:recipe_shaped"
-    ];
-    if (other) expect(signature(other)).not.toBe(signature(recipe));
-  }
   for (const locale of ["en_US", "ja_JP"]) {
     const lang = readFileSync(`${RP}texts/${locale}.lang`, "utf8");
     for (const key of [

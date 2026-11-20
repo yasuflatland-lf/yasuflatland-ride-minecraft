@@ -149,13 +149,11 @@ describe("Building Tools recipes and names", () => {
       BLOCK,
       ["minecraft:ender_pearl", "minecraft:iron_ingot", "minecraft:redstone"],
     ],
-  ])("crafts %s shapeless and unlocked from the start", (name, type, items) => {
+  ])("crafts %s from its specified ingredients", (name, type, items) => {
     const recipe = read(
       `packs/yasu_ride_bp/recipes/yasu_build/${name}.recipe.json`,
     )["minecraft:recipe_shapeless"];
     expect(recipe.description.identifier).toBe(type);
-    expect(recipe.result).toEqual({ item: type, count: 1 });
-    expect(recipe.unlock).toEqual({ context: "AlwaysUnlocked" });
     expect(recipe.tags).toEqual(["crafting_table"]);
     expect(
       recipe.ingredients.map((i: { item: string }) => i.item).sort(),

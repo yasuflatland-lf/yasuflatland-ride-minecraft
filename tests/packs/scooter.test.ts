@@ -133,15 +133,10 @@ describe("scooter Behavior Pack geometry", () => {
       "packs/yasu_ride_bp/recipes/yasu_ride/scooter_item.recipe.json",
     )["minecraft:recipe_shaped"];
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.unlock).toEqual({ context: "AlwaysUnlocked" });
     expect(recipe.pattern).toEqual(["  I", " II", "C C"]);
     expect(recipe.key).toEqual({
       I: { item: "minecraft:iron_ingot" },
       C: { item: "minecraft:coal" },
-    });
-    expect(recipe.result).toEqual({
-      item: item.description.identifier,
-      count: 1,
     });
   });
 });

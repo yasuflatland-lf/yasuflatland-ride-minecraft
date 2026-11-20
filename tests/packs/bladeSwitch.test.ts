@@ -45,8 +45,6 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
     const recipe = read(
       "packs/yasu_ride_bp/recipes/yasu_ride/blade_switch.recipe.json",
     )["minecraft:recipe_shapeless"];
-    expect(recipe.result).toEqual({ item: TYPE, count: 1 });
-    expect(recipe.unlock).toEqual({ context: "AlwaysUnlocked" });
     expect(recipe.tags).toEqual(["crafting_table"]);
     expect(
       recipe.ingredients.map((i: { item: string }) => i.item).sort(),

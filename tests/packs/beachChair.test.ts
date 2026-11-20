@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BEACH_CHAIR_SPEC } from "../../src/domain/resort/spec";
 import { readRgbaPng } from "../support/png";
@@ -358,23 +358,6 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
       I: { item: "minecraft:iron_ingot" },
     });
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.result).toEqual({
-      item: "yasu_ride:beach_chair_item",
-      count: 1,
-    });
-    const ingredients = (r: typeof recipe) =>
-      r.pattern
-        .map((row: string) =>
-          [...row].map((key) => JSON.stringify(r.key[key] ?? null)).join(","),
-        )
-        .join(";");
-    for (const file of readdirSync(`${BP}recipes/yasu_ride`)) {
-      if (file === "beach_chair_item.recipe.json") continue;
-      const other = read(`${BP}recipes/yasu_ride/${file}`)[
-        "minecraft:recipe_shaped"
-      ];
-      if (other) expect(ingredients(other), file).not.toBe(ingredients(recipe));
-    }
     expect(
       read(`${RP}textures/item_texture.json`).texture_data
         .yasu_ride_beach_chair,

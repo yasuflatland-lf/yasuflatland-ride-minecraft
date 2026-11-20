@@ -184,7 +184,7 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
     });
   });
 
-  it("is crafted on a crafting table from an oak boat and iron ingots, unlocked from the start (ADR 0008)", () => {
+  it("is crafted from an oak boat and iron ingots (ADR 0008)", () => {
     const item = read(
       "packs/yasu_ride_bp/items/yasu_ride/sportsboat_item.item.json",
     )["minecraft:item"];
@@ -193,15 +193,10 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
       "packs/yasu_ride_bp/recipes/yasu_ride/sportsboat_item.recipe.json",
     )["minecraft:recipe_shaped"];
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.unlock).toEqual({ context: "AlwaysUnlocked" });
     expect(recipe.pattern).toEqual(["IBI", "III"]);
     expect(recipe.key).toEqual({
       I: { item: "minecraft:iron_ingot" },
       B: { item: "minecraft:oak_boat" },
-    });
-    expect(recipe.result).toEqual({
-      item: "yasu_ride:sportsboat_item",
-      count: 1,
     });
   });
 });

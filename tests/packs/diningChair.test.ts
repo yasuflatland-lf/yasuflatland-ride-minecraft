@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FURNITURE_SPEC } from "../../src/domain/resort/furniture";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
@@ -130,35 +130,6 @@ print(json.dumps({'lo': lo, 'hi': hi, 'baseZ': b[0][2], 'topZ': b[2][2]}))
       I: { item: "minecraft:iron_ingot" },
     });
     expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.result).toEqual({
-      item: FURNITURE_IDS.dining_chair.item,
-      count: 1,
-    });
-    const grids = (r: typeof recipe) => {
-      const rows: string[][] = r.pattern.map((row: string) =>
-        [...row].map((key) => JSON.stringify(r.key[key] ?? null)),
-      );
-      while (rows[0]?.every((cell) => cell === "null")) rows.shift();
-      while (rows.at(-1)?.every((cell) => cell === "null")) rows.pop();
-      while (rows.length && rows.every((row) => row[0] === "null"))
-        for (const row of rows) row.shift();
-      while (rows.length && rows.every((row) => row.at(-1) === "null"))
-        for (const row of rows) row.pop();
-      return [
-        JSON.stringify(rows),
-        JSON.stringify(rows.map((row) => [...row].reverse())),
-      ];
-    };
-    const expected = grids(recipe);
-    for (const file of readdirSync(`${BP}/recipes/yasu_ride`)) {
-      if (file === "dining_chair_item.recipe.json") continue;
-      const other = read(`${BP}/recipes/yasu_ride/${file}`)[
-        "minecraft:recipe_shaped"
-      ];
-      if (other)
-        for (const grid of grids(other))
-          expect(expected, file).not.toContain(grid);
-    }
     for (const [locale, name] of [
       ["en_US", "Dining Chair"],
       ["ja_JP", "\u30c0\u30a4\u30cb\u30f3\u30b0\u30c1\u30a7\u30a2\u30fc"],

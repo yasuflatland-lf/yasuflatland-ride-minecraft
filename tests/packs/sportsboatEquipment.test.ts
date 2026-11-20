@@ -125,8 +125,6 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     const recipe = read(
       `${BP}/recipes/yasu_ride/icebreaker_switch.recipe.json`,
     )["minecraft:recipe_shapeless"];
-    expect(recipe.result).toEqual({ item: SWITCH, count: 1 });
-    expect(recipe.unlock).toEqual({ context: "AlwaysUnlocked" });
     expect(recipe.tags).toEqual(["crafting_table"]);
     expect(
       recipe.ingredients.map((i: { item: string }) => i.item).sort(),

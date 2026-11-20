@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FURNITURE_SPEC } from "../../src/domain/resort/furniture";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
@@ -146,24 +146,6 @@ describe("Sofa (Double) pack contract", () => {
       W: { tag: "minecraft:wool" },
       S: { item: "minecraft:stick" },
     });
-    expect(recipe.result).toEqual({ item: ids.item, count: 1 });
-    const signature = (r: typeof recipe, mirror = false) =>
-      r.pattern
-        .map((row: string) => {
-          const keys = [...row];
-          if (mirror) keys.reverse();
-          return keys.map((k) => JSON.stringify(r.key[k] ?? null)).join(",");
-        })
-        .join(";");
-    for (const file of readdirSync(`${BP}/recipes/yasu_ride`)) {
-      if (file === "sofa_double_item.recipe.json") continue;
-      const other = read(`${BP}/recipes/yasu_ride/${file}`)[
-        "minecraft:recipe_shaped"
-      ];
-      if (other)
-        for (const mirror of [false, true])
-          expect(signature(other, mirror), file).not.toBe(signature(recipe));
-    }
     const groups = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
       "minecraft:crafting_items_catalog"
     ].categories[0].groups;

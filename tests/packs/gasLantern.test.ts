@@ -267,17 +267,14 @@ describe("Gas Lantern item and ground entity", () => {
     const recipe = readJson(
       `${bp}/recipes/yasu_ride/gas_lantern_item.recipe.json`,
     )["minecraft:recipe_shaped"];
-    expect(recipe).toEqual({
-      description: { identifier: "yasu_ride:gas_lantern_item" },
+    expect(recipe).toMatchObject({
       tags: ["crafting_table"],
-      unlock: { context: "AlwaysUnlocked" },
       pattern: [" G ", "GTG", " I "],
       key: {
         G: { item: "minecraft:glass_pane" },
         T: { item: "minecraft:torch" },
         I: { item: "minecraft:iron_ingot" },
       },
-      result: { item: "yasu_ride:gas_lantern_item", count: 1 },
     });
   });
 

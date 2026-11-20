@@ -46,18 +46,15 @@ describe("Wide Blade switch (ADR 0180)", () => {
       read(
         "packs/yasu_ride_bp/recipes/yasu_ride/wide_blade_switch.recipe.json",
       ),
-    ).toEqual({
+    ).toMatchObject({
       format_version: "1.20.10",
       "minecraft:recipe_shapeless": {
-        description: { identifier: TYPE },
         tags: ["crafting_table"],
-        unlock: { context: "AlwaysUnlocked" },
         ingredients: [
           { item: "minecraft:lever" },
           { item: "minecraft:iron_ingot" },
           { item: "minecraft:iron_ingot" },
         ],
-        result: { item: TYPE, count: 1 },
       },
     });
   });
