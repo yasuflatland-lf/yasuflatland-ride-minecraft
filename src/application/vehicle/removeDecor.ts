@@ -1,5 +1,6 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
 // Use case: a player long-pressed a decor block with an empty hand (ADR 0093).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DecorPlacingWorld } from "./ports/decor";
@@ -25,10 +26,10 @@ export class RemoveDecor {
 
   /** Returns whether decor was taken out; only then is the decor saved and the item given. */
   execute(cmd: RemoveDecorCommand): boolean {
-    const room = this.repo.get(cmd.vehicleId)?.asRoom();
-    const item = room?.removeDecor(cmd.cell, cmd.point, cmd.eye);
-    if (!room || item === undefined) return false;
-    this.world.saveDecor(cmd.vehicleId, room.decor());
+    const decor = this.repo.get(cmd.vehicleId)?.capability(CAMPER_ROOM)?.decor;
+    const item = decor?.removeDecor(cmd.cell, cmd.point, cmd.eye);
+    if (!decor || item === undefined) return false;
+    this.world.saveDecor(cmd.vehicleId, decor.decor());
     this.world.giveDecorItems(cmd.playerId, [item]);
     return true;
   }

@@ -4,6 +4,7 @@ import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
 import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/decorCells";
 import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { CAMPER_ROOM } from "../../../src/domain/vehicle/kinds/index";
 import { decorItemId, decorSlotId } from "../../support/decorIds";
 import { FakeWorld, parkedCamper } from "./fakes";
 
@@ -18,8 +19,12 @@ function setup() {
 describe("RemoveDecor (ADR 0093)", () => {
   it("takes the decor at the cell back to the player and saves the rest (ADR 0093)", () => {
     const { car, pose, world, remove, stove } = setup();
-    car.asRoom()?.placeDecor(decorSlotId("stove"), decorItemId("percolator"));
-    car.asRoom()?.placeDecor(decorSlotId("table"), decorItemId("mug_pair"));
+    car
+      .capability(CAMPER_ROOM)
+      ?.decor.placeDecor(decorSlotId("stove"), decorItemId("percolator"));
+    car
+      .capability(CAMPER_ROOM)
+      ?.decor.placeDecor(decorSlotId("table"), decorItemId("mug_pair"));
     expect(
       remove.execute({
         playerId: asPlayerId("p"),
@@ -31,17 +36,19 @@ describe("RemoveDecor (ADR 0093)", () => {
       "saveDecor:car:table=mug_pair",
       "giveDecor:p:percolator",
     ]);
-    expect(car.asRoom()?.decor()).toEqual([
+    expect(car.capability(CAMPER_ROOM)?.decor.decor()).toEqual([
       { slot: "table", item: "mug_pair" },
     ]);
   });
 
   it("takes back the end of the table nearest the pressed point (ADR 0108)", () => {
     const { car, pose, world, remove } = setup();
-    car.asRoom()?.placeDecor(decorSlotId("table"), decorItemId("fruit_bowl"));
     car
-      .asRoom()
-      ?.placeDecor(decorSlotId("table_aisle"), decorItemId("mug_pair"));
+      .capability(CAMPER_ROOM)
+      ?.decor.placeDecor(decorSlotId("table"), decorItemId("fruit_bowl"));
+    car
+      .capability(CAMPER_ROOM)
+      ?.decor.placeDecor(decorSlotId("table_aisle"), decorItemId("mug_pair"));
     const aisle = decorSlot(decorSlotId("table_aisle"));
     if (!aisle) throw new Error("no table_aisle slot");
     expect(
@@ -65,7 +72,9 @@ describe("RemoveDecor (ADR 0093)", () => {
     expect(
       remove.execute({ playerId: asPlayerId("p"), vehicleId: car.id, cell }),
     ).toBe(false);
-    car.asRoom()?.placeDecor(decorSlotId("stove"), decorItemId("percolator"));
+    car
+      .capability(CAMPER_ROOM)
+      ?.decor.placeDecor(decorSlotId("stove"), decorItemId("percolator"));
     expect(
       remove.execute({
         playerId: asPlayerId("p"),

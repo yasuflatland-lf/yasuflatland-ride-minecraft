@@ -22,6 +22,7 @@ import {
   DRAWER_SLIDE_PX,
   DRAWER_HIT_PROFILE as HIT,
 } from "../../../../../src/domain/vehicle/kinds/camper/spec";
+import { camperRoom } from "../../../../support/camperRoom";
 
 import { decorItemId } from "../../../../support/decorIds";
 
@@ -70,17 +71,31 @@ it("closes empty open drawers and returns populated contents for each recorded f
         drawerBlockHit(pose, floor, eye, point, full ? contents : [], opened),
       ).toMatchObject({ door: "drawer_bottom", takeContents: full });
       const d = drive(full);
-      const press = d.pressStorage(floor, point, 104760, undefined, eye);
+      const press = camperRoom(d).storage.pressStorage({
+        cell: floor,
+        point,
+        tick: 104760,
+        eye,
+      });
       expect(press).toMatchObject(
         full ? { kind: "item", item: "mug_pair" } : { kind: "door" },
       );
       expect(
-        d.pressStorage(floor, point, 104764, undefined, eye),
+        camperRoom(d).storage.pressStorage({
+          cell: floor,
+          point,
+          tick: 104764,
+          eye,
+        }),
       ).toBeUndefined();
-      expect(d.decor()).toEqual([]);
+      expect(camperRoom(d).decor.decor()).toEqual([]);
       if (!full)
         expect(
-          d.drawerTarget(eye, { x: -0.43, y: -0.903, z: 0.014 })?.open,
+          camperRoom(d).storage.drawerTarget(eye, {
+            x: -0.43,
+            y: -0.903,
+            z: 0.014,
+          })?.open,
         ).not.toBe(true);
     }),
   );
@@ -88,14 +103,20 @@ it("closes empty open drawers and returns populated contents for each recorded f
 it("places in the hit bottom slot and cannot fall back from a missed floor ray", () => {
   fc.assert(
     fc.property(fc.constantFrom(...points), (point) => {
-      expect(drive().decorSlotFor(mug, point, floor, false, eye)).toBe(
-        "drawer_bottom_0",
-      );
+      expect(
+        camperRoom(drive()).decor.decorSlotFor(mug, point, floor, false, eye),
+      ).toBe("drawer_bottom_0");
       expect(
         drawerBlockHit(pose, floor, eye, point, [], new Set()),
       ).toBeUndefined();
       expect(
-        drive(false, false).decorSlotFor(mug, point, floor, false, eye),
+        camperRoom(drive(false, false)).decor.decorSlotFor(
+          mug,
+          point,
+          floor,
+          false,
+          eye,
+        ),
       ).toBeUndefined();
     }),
   );
@@ -106,24 +127,42 @@ it("uses the recorded itemUse view ray and confines the touch fallback to a sole
     door: "drawer_bottom",
     takeContents: false,
   });
-  expect(drive().drawerTarget(eye, direction, undefined, mug)).toMatchObject({
+  expect(
+    camperRoom(drive()).storage.drawerTarget(eye, direction, undefined, mug),
+  ).toMatchObject({
     slot: "drawer_bottom_0",
     open: true,
   });
   const away = { x: 1, y: 0, z: 0 };
   const feet = { x: eye.x, y: -59, z: eye.z };
-  expect(drive().drawerTarget(eye, away, undefined, mug, feet)?.slot).toBe(
-    "drawer_bottom_0",
-  );
   expect(
-    drive(true).drawerTarget(eye, away, undefined, mug, feet),
+    camperRoom(drive()).storage.drawerTarget(eye, away, undefined, mug, feet)
+      ?.slot,
+  ).toBe("drawer_bottom_0");
+  expect(
+    camperRoom(drive(true)).storage.drawerTarget(
+      eye,
+      away,
+      undefined,
+      mug,
+      feet,
+    ),
   ).toBeUndefined();
   expect(
-    drive().drawerTarget(eye, away, undefined, mug, { ...feet, z: feet.z + 1 }),
+    camperRoom(drive()).storage.drawerTarget(eye, away, undefined, mug, {
+      ...feet,
+      z: feet.z + 1,
+    }),
   ).toBeUndefined();
   const both = drive();
-  both.pressStorage(counter, { ...counter, y: counter.y + 0.6 }, 500);
-  expect(both.drawerTarget(eye, away, undefined, mug, feet)).toBeUndefined();
+  camperRoom(both).storage.pressStorage({
+    cell: counter,
+    point: { ...counter, y: counter.y + 0.6 },
+    tick: 500,
+  });
+  expect(
+    camperRoom(both).storage.drawerTarget(eye, away, undefined, mug, feet),
+  ).toBeUndefined();
 });
 it("ignores other floor cells and rays missing every target", () => {
   fc.assert(
@@ -141,7 +180,12 @@ it("ignores other floor cells and rays missing every target", () => {
         ),
       ).toBeUndefined();
       expect(
-        drive().pressStorage(other, points[0], 500, undefined, eye),
+        camperRoom(drive()).storage.pressStorage({
+          cell: other,
+          point: points[0],
+          tick: 500,
+          eye,
+        }),
       ).toBeUndefined();
     }),
   );

@@ -10,11 +10,11 @@ import type { PlayerId, VehicleId } from "../shared/ids";
 import { isDyeable } from "../shared/paint";
 import { SyncedValue } from "../shared/syncedValue";
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
+import type { CapabilityKey } from "./capability";
 import { RamCooldowns } from "./cooldowns";
 import { Crew } from "./crew";
 import type { CutColumn } from "./cut";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
-import { isRoomDrive, type RoomDrive } from "./dock/roomDrive";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
 import { MONITOR_PROPERTY_NAME } from "./entityContract";
@@ -287,8 +287,8 @@ export class Vehicle {
     });
   }
 
-  asRoom(): RoomDrive | undefined {
-    return isRoomDrive(this.drive) ? this.drive : undefined;
+  capability<T>(key: CapabilityKey<T>): T | undefined {
+    return this.drive.capability?.(key);
   }
 
   /** Called by the application when this tick's step commands may not have reached the entity (ADR 0055, 0127). */

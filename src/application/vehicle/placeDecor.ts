@@ -3,6 +3,7 @@ import type { Vec3 } from "../../domain/shared/vec";
 import type { DecorItemId, DecorSlotId } from "../../domain/vehicle/dock/decor";
 // Use case: a player long-pressed a parked vehicle's room holding a camping gear item (ADR 0093, 0097).
 import { DECOR_MESSAGES } from "../../domain/vehicle/dock/decorMessages";
+import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DecorPlacingWorld } from "./ports/decor";
 
@@ -35,8 +36,8 @@ export class PlaceDecor {
   execute(cmd: PlaceDecorCommand): boolean {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
-    const room = vehicle.asRoom();
-    const slot = room?.decorSlotFor(
+    const decor = vehicle.capability(CAMPER_ROOM)?.decor;
+    const slot = decor?.decorSlotFor(
       cmd.item,
       cmd.point,
       cmd.cell,
@@ -53,8 +54,8 @@ export class PlaceDecor {
       !this.world.consumeDecorItem(cmd.playerId, cmd.hotbarSlot, cmd.item)
     )
       return false;
-    if (!room?.placeDecor(slot, cmd.item)) return false;
-    this.world.saveDecor(cmd.vehicleId, room.decor());
+    if (!decor?.placeDecor(slot, cmd.item)) return false;
+    this.world.saveDecor(cmd.vehicleId, decor.decor());
     return true;
   }
 }

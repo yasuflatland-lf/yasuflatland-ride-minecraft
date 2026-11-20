@@ -1,6 +1,10 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { DecorItemId } from "../../domain/vehicle/dock/decor";
+import {
+  CAMPER_ROOM,
+  type DrawerTarget,
+} from "../../domain/vehicle/kinds/index";
 // Use case: a player pressed a parked vehicle's storage with doors, such as the wall cabinet,
 // with an empty hand (ADR 0114, 0121).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
@@ -41,28 +45,28 @@ export class PressStorage {
     cell?: Vec3,
     item?: DecorItemId,
     feet?: Vec3,
-  ) {
+  ): DrawerTarget | undefined {
     return this.repo
       .get(vehicleId)
-      ?.asRoom()
-      ?.drawerTarget?.(eye, direction, cell, item, feet);
+      ?.capability(CAMPER_ROOM)
+      ?.storage.drawerTarget(eye, direction, cell, item, feet);
   }
 
   /** Returns whether the press did anything; an item taken out is saved and given. */
   execute(cmd: PressStorageCommand): boolean {
-    const room = this.repo.get(cmd.vehicleId)?.asRoom();
-    const press = room?.pressStorage(
-      cmd.cell,
-      cmd.point,
-      this.clock.now(),
-      cmd.takeContents,
-      cmd.eye,
-      cmd.openOnly,
-      cmd.drawersSideFace,
-    );
+    const room = this.repo.get(cmd.vehicleId)?.capability(CAMPER_ROOM);
+    const press = room?.storage.pressStorage({
+      cell: cmd.cell,
+      point: cmd.point,
+      tick: this.clock.now(),
+      takeContents: cmd.takeContents,
+      eye: cmd.eye,
+      openOnly: cmd.openOnly,
+      drawersSideFace: cmd.drawersSideFace,
+    });
     if (!room || !press) return false;
     if (press.kind === "item") {
-      this.world.saveDecor(cmd.vehicleId, room.decor());
+      this.world.saveDecor(cmd.vehicleId, room.decor.decor());
       this.world.giveDecorItems(cmd.playerId, [press.item]);
     }
     return true;

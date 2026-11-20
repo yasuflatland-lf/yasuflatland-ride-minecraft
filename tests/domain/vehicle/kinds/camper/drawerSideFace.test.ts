@@ -6,6 +6,7 @@ import {
   drawerAtHeight,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
+import { camperRoom } from "../../../../support/camperRoom";
 
 const pose = { x: 180.5, y: -60, z: 90.5, yaw: 0 };
 // Device cell (-2,-59,4) translated to the parked pose's counter cell, aisle +x.
@@ -49,7 +50,14 @@ function state(d: CamperDrive, tick: number) {
 
 function tap(d: CamperDrive, faceY: number, faceX = 0, faceZ = 0.5) {
   const point = { x: cell.x + faceX, y: cell.y + faceY, z: cell.z + faceZ };
-  return d.pressStorage(cell, point, 200, undefined, eye, false, true);
+  return camperRoom(d).storage.pressStorage({
+    cell,
+    point,
+    tick: 200,
+    eye,
+    openOnly: false,
+    drawersSideFace: true,
+  });
 }
 
 const combos = [
@@ -69,22 +77,32 @@ it("uses the ray through an open upper drawer when a rerouted floor side face ha
   };
   const d = drive(true, false);
   expect(
-    d.drawerTarget(head, direction, { x: 180, y: -60, z: 89 }),
+    camperRoom(d).storage.drawerTarget(head, direction, {
+      x: 180,
+      y: -60,
+      z: 89,
+    }),
   ).toMatchObject({ cell });
   expect(drawerAtHeight(floorPoint.y - cell.y)).toBeUndefined();
   expect(
-    drive(true, false).pressStorage(
+    camperRoom(drive(true, false)).storage.pressStorage({
       cell,
-      floorPoint,
-      200,
-      undefined,
-      head,
-      false,
-      true,
-    ),
+      point: floorPoint,
+      tick: 200,
+      eye: head,
+      openOnly: false,
+      drawersSideFace: true,
+    }),
   ).toBeUndefined();
   expect(
-    d.pressStorage(cell, floorPoint, 200, undefined, head, false, false),
+    camperRoom(d).storage.pressStorage({
+      cell,
+      point: floorPoint,
+      tick: 200,
+      eye: head,
+      openOnly: false,
+      drawersSideFace: false,
+    }),
   ).toMatchObject({ kind: "door" });
   expect(state(d, 300)).toEqual({ top: false, bottom: false });
 });

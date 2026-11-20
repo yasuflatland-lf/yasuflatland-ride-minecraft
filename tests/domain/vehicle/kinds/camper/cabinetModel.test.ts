@@ -1,3 +1,4 @@
+import { camperRoom } from "../../../../support/camperRoom";
 // The wall cabinet's doors against a small reference model, over arbitrary press and tick
 // sequences: what each press returns, the door properties each tick, the compartment and
 // plate blocks, and the decor (ADR 0105, 0114).
@@ -86,7 +87,7 @@ it("matches a reference model of the cabinet doors over any press and tick seque
         const pose = parkPose(ctx.location, drive.yaw);
         const decor = new Map<string, string>();
         for (const [slot, item] of initial) {
-          drive.setDecor(slot.id, decorItemId(item));
+          camperRoom(drive).decor.setDecor(slot.id, decorItemId(item));
           decor.set(slot.id, item);
         }
         const step = () => drive.step(undefined, { ...ctx, tick: ctx.tick++ });
@@ -137,11 +138,12 @@ it("matches a reference model of the cabinet doors over any press and tick seque
             const d = door(a.door);
             const ends = endsOf(a.door);
             const endSlot = a.end === undefined ? undefined : ends[a.end];
-            const got = drive.pressStorage(
-              a.at === "compartment" ? compartment(a.door) : plate(a.door),
-              endSlot && slotPoint(pose, endSlot),
-              ctx.tick,
-            );
+            const got = camperRoom(drive).storage.pressStorage({
+              cell:
+                a.at === "compartment" ? compartment(a.door) : plate(a.door),
+              point: endSlot && slotPoint(pose, endSlot),
+              tick: ctx.tick,
+            });
             let want: unknown;
             if (ctx.tick - d.last < SWING) want = undefined;
             else {
@@ -161,7 +163,7 @@ it("matches a reference model of the cabinet doors over any press and tick seque
             }
             expect(got).toEqual(want);
           }
-          expect(drive.decor()).toEqual(
+          expect(camperRoom(drive).decor.decor()).toEqual(
             DECOR_SLOTS.flatMap(({ id }) => {
               const item = decor.get(id);
               return item === undefined ? [] : [{ slot: id, item: item }];

@@ -1,5 +1,7 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
+
 import type { Vec2, Vec3 } from "../shared/vec";
+import type { CapabilityKey } from "./capability";
 import type { CutColumn } from "./cut";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { RawInput } from "./driveInput";
@@ -81,6 +83,7 @@ export interface DriveStep {
 }
 
 export interface Drive {
+  capability?<T>(key: CapabilityKey<T>): T | undefined;
   /** Forgets which entity values were sent, so the next step sends all of them again; called when a tick's commands may not have reached the entity. */
   resync(): void;
   /** Internal forward/reverse speed in blocks/tick; negative means reverse. */

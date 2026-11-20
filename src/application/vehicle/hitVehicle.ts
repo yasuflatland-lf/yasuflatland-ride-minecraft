@@ -1,4 +1,5 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
+import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
 // Use case: a player hit a vehicle (ADR 0008).
 
 import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
@@ -28,7 +29,9 @@ export class HitVehicle {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
     if (!vehicle.receiveHit(this.clock.now())) return false;
-    const decor = (vehicle.asRoom()?.decor() ?? []).map((d) => d.item);
+    const decor = (vehicle.capability(CAMPER_ROOM)?.decor.decor() ?? []).map(
+      (d) => d.item,
+    );
     this.world.dropVehicleItem(cmd.vehicleId);
     if (decor.length > 0) this.world.giveDecorItems(cmd.playerId, decor);
     const fleet = this.fleets.load();

@@ -14,7 +14,10 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
 import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
-import { rebuildVehicle } from "../../../../../src/domain/vehicle/kinds/index";
+import {
+  CAMPER_ROOM,
+  rebuildVehicle,
+} from "../../../../../src/domain/vehicle/kinds/index";
 import {
   FakeWorld,
   InMemoryRepo,
@@ -92,7 +95,7 @@ it("refuses an overflowing placement before consuming survival gear and preserve
     [CAMPER_SAVED.decor]: saved,
   });
   stillTick(car, 100);
-  const room = defined(car.asRoom(), "room");
+  const room = defined(car.capability(CAMPER_ROOM)?.decor, "room decor");
   expect(room.setDecor(decorSlotId("counter"), undefined)).toBe(true);
   const before = room.decor();
   const repo = new InMemoryRepo();
