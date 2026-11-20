@@ -1,4 +1,4 @@
-import { Direction, type Entity, ItemStack, world } from "@minecraft/server";
+import { type Entity, ItemStack, world } from "@minecraft/server";
 import type { BeachChairFormWorld } from "../../../application/resort/ports/beachChairForm";
 import type { BeachChairRiderWorld } from "../../../application/resort/ports/beachChairRider";
 import type {
@@ -16,7 +16,7 @@ import {
 import { beachChairExit } from "../../../domain/resort/beachChairExit";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../domain/resort/spec";
-import { type Cell, cellCenter, sameCell } from "../../../domain/shared/cells";
+import { type Cell, cellCenter } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import {
   asDimensionId,
@@ -24,16 +24,11 @@ import {
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import { safeBlockAt } from "../../shared/blocks";
+import { isSolidTop } from "../../shared/blocks";
 import { entityOfType } from "../../shared/entities";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { NAMESPACE } from "../../shared/identifiers";
-import {
-  consumeHeld,
-  giveOrDrop,
-  isCreative,
-  playerById,
-  showActionBar,
-} from "../../shared/players";
+import { giveOrDrop, playerById, showActionBar } from "../../shared/players";
 import { makeSafeStand, seatRider } from "../../shared/seating";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
@@ -46,6 +41,7 @@ import {
   BEACH_CHAIR_UNFOLD_EVENT,
 } from "../identifiers";
 export class BedrockBeachChairWorld
+  extends BedrockPaidGroundCells
   implements
     BeachChairWorld,
     BeachChairTakeBackWorld,
@@ -58,7 +54,12 @@ export class BedrockBeachChairWorld
       isVehicleSpace: SpaceCheck;
       isCampSpace: SpaceCheck;
     },
-  ) {}
+  ) {
+    super(
+      (dimension, cell) => deps.isVehicleSpace(dimension, cell),
+      BEACH_CHAIR_ITEM,
+    );
+  }
   state(id: BeachChairId): ChairState | undefined {
     const entity = this.entity(id);
     if (!entity) return undefined;
@@ -141,56 +142,11 @@ export class BedrockBeachChairWorld
       return undefined;
     }
   }
-  private block(dimension: DimensionId, cell: Cell) {
-    try {
-      return safeBlockAt(world.getDimension(dimension), cell);
-    } catch {
-      return undefined;
-    }
-  }
-  isAir(dimension: DimensionId, cell: Cell): boolean {
-    return this.block(dimension, cell)?.isAir === true;
-  }
-  isOwnBlock(dimension: DimensionId, cell: Cell): boolean {
-    return (
-      this.block(dimension, cell)?.typeId.startsWith(`${NAMESPACE}:`) === true
-    );
-  }
   isSolidTop(dimension: DimensionId, cell: Cell): boolean {
-    try {
-      // Stable 2.x has no solidity flag; a non-passable ray must meet the top at full height.
-      // A ray that ends exactly on the face misses it on BDS, so it starts half a block above.
-      const hit = world.getDimension(dimension).getBlockFromRay(
-        cellCenter(cell, 1.5),
-        { x: 0, y: -1, z: 0 },
-        {
-          maxDistance: 1,
-          includeLiquidBlocks: false,
-          includePassableBlocks: false,
-        },
-      );
-      return (
-        hit?.face === Direction.Up &&
-        // The engine reports faceLocation.y inverted, so a full top reads 0 (ADR 0111).
-        hit.faceLocation.y === 0 &&
-        sameCell(hit.block.location, cell)
-      );
-    } catch {
-      return false;
-    }
-  }
-  isVehicleSpace(dimension: DimensionId, cell: Cell): boolean {
-    return this.deps.isVehicleSpace(dimension, cell);
+    return isSolidTop(dimension, cell);
   }
   isCampSpace(dimension: DimensionId, cell: Cell): boolean {
     return this.deps.isCampSpace(dimension, cell);
-  }
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
-  }
-  consumeItem(player: PlayerId, slot: number): boolean {
-    const entity = playerById(player);
-    return entity !== undefined && consumeHeld(entity, BEACH_CHAIR_ITEM, slot);
   }
   refund(player: PlayerId, _slot: number): void {
     const entity = playerById(player);

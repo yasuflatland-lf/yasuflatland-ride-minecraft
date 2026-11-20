@@ -21,14 +21,9 @@ import type {
 import type { Vec3 } from "../../../domain/shared/vec";
 import { allDimensions } from "../../shared/dimensions";
 import { entityOfType } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import type { CellLayer } from "../../shared/laidCells";
-import {
-  consumeHeld,
-  isCreative,
-  playerById,
-  showHitsLeftHint,
-} from "../../shared/players";
+import { showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   GAS_LANTERN_HITS_LEFT_HINT,
@@ -57,38 +52,21 @@ function spawnLantern(dimension: DimensionId, at: Vec3, yaw: number) {
   return lantern;
 }
 
-export class BedrockGasLanternWorld implements GasLanternWorld {
+export class BedrockGasLanternWorld
+  extends BedrockPaidGroundCells
+  implements GasLanternWorld
+{
   constructor(
     private readonly vehicles: {
       topHosts: TopHostRegistry;
       isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
     },
     private readonly light: CellLayer<GasLanternId, GasLanternLight>,
-  ) {}
-
-  isAir(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return world.getDimension(dimension).getBlock(at)?.isAir === true;
-    } catch {
-      return false;
-    }
-  }
-
-  isOwnBlock(dimension: DimensionId, at: Vec3): boolean {
-    try {
-      return (
-        world
-          .getDimension(dimension)
-          .getBlock(at)
-          ?.typeId.startsWith(`${NAMESPACE}:`) === true
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  isVehicleSpace(dimension: DimensionId, at: Vec3): boolean {
-    return this.vehicles.isVehicleSpace(dimension, at);
+  ) {
+    super(
+      (dimension, cell) => vehicles.isVehicleSpace(dimension, cell),
+      GAS_LANTERN_ITEM,
+    );
   }
 
   hasGasLanternNear(dimension: DimensionId, at: Vec3): boolean {
@@ -99,15 +77,6 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
         maxDistance: GAS_LANTERN_SPEC.spacing,
       }).length > 0
     );
-  }
-
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
-  }
-
-  consumeItem(player: PlayerId, slot: number): boolean {
-    const entity = playerById(player);
-    return entity !== undefined && consumeHeld(entity, GAS_LANTERN_ITEM, slot);
   }
 
   spawnGasLantern(dimension: DimensionId, at: Vec3, yaw: number): void {
