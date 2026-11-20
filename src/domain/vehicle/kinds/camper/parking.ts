@@ -2,7 +2,7 @@ import type { DecorPlacement } from "../../dock/decor";
 import type { ClearCell } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import type { TickContext } from "../../drive";
-import { DOCK } from "../../motion/dock";
+import { StillTimer } from "../../motion/dock";
 import { readBlockGroups } from "./blockGroups";
 import { DECOR_CELLS } from "./decor";
 import { decorBlockName, ownSlotBlock, slotCells } from "./decorCells";
@@ -29,7 +29,7 @@ export class CamperParking {
   // A newly parked body still collides until the dock event takes effect (ADR 0068).
   private roomLaid = false;
   private pendingClear: readonly ClearCell[] = [];
-  private stillTicks = 0;
+  private readonly still = new StillTimer();
   private parkTried = false;
   private stickWasPushed = false;
 
@@ -81,7 +81,7 @@ export class CamperParking {
     this.parked = pose;
     this.pendingClear = clear;
     this.roomLaid = false;
-    this.stillTicks = 0;
+    this.still.reset();
     this.parkTried = false;
   }
 
@@ -97,13 +97,8 @@ export class CamperParking {
   }
 
   observe(still: boolean): boolean {
-    if (!still) {
-      this.stillTicks = 0;
-      this.parkTried = false;
-      return false;
-    }
-    this.stillTicks = Math.min(this.stillTicks + 1, DOCK.ticks);
-    if (this.stillTicks < DOCK.ticks || this.parkTried) return false;
+    if (!still) this.parkTried = false;
+    if (!this.still.tick(still) || this.parkTried) return false;
     this.parkTried = true;
     return true;
   }
