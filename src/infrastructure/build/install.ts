@@ -11,7 +11,10 @@ import { CloseBuildMenu } from "../../application/build/closeBuildMenu";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmLiveHeight } from "../../application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../application/build/confirmShape";
-import { ConfirmStairs } from "../../application/build/confirmStairs";
+import {
+  ConfirmStairs,
+  ConfirmTerrace,
+} from "../../application/build/confirmStairs";
 import { ConfirmTerrain } from "../../application/build/confirmTerrain";
 import { CopyBox } from "../../application/build/copyBox";
 import { CopySelection } from "../../application/build/copySelection";
@@ -143,6 +146,7 @@ export function installBuild(deps: {
     aimHeight: new AimHeight(repo),
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     chooseStairs: new ChooseStairs(repo, feedback),
+    confirmTerrace: new ConfirmTerrace(repo, feedback, jobs),
     confirmStairs: new ConfirmStairs(repo, feedback, jobs),
     chooseTerrain: new ChooseTerrain(repo, feedback),
     confirmTerrain: new ConfirmTerrain(repo, feedback, jobs, blocks),

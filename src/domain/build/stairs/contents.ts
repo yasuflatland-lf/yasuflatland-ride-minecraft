@@ -12,3 +12,6 @@ export function rolesOf(contents: StairContents): ReadonlySet<StairRole> {
       return new Set(["step"]);
   }
 }
+
+export type StairOp = "stairs" | "terrace";
+export const TERRACE_ROLES: ReadonlySet<StairRole> = new Set(["above"]);

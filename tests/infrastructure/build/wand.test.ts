@@ -42,6 +42,7 @@ import {
 const menus = {
   showBuildMenu: vi.fn(),
   showContentsMenu: vi.fn(),
+  showTerraceMenu: vi.fn(),
   showStairContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
   showPasteMenu: vi.fn(),
@@ -234,6 +235,7 @@ function setupAir() {
   const menus = {
     showBuildMenu: vi.fn(),
     showContentsMenu: vi.fn(),
+    showTerraceMenu: vi.fn(),
     showStairContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
     showPasteMenu: vi.fn(),
@@ -763,9 +765,14 @@ it.each(["air", "block"] as const)(
   },
 );
 
-it.each([false, true])(
-  "fixes a stair goal from a block press with itemUse=%s",
-  (paired) => {
+it.each([
+  ["stairs", false],
+  ["stairs", true],
+  ["terrace", false],
+  ["terrace", true],
+] as const)(
+  "fixes a %s goal from a block press with itemUse=%s",
+  (op, paired) => {
     const e = setupAir();
     const from = { x: 0, y: 5, z: 0 };
     const to = { ...from, x: 2 };
@@ -780,7 +787,7 @@ it.each([false, true])(
       from,
       to,
     });
-    new ChooseStairs(e.repo, e.feedback).execute({ playerId: e.id });
+    new ChooseStairs(e.repo, e.feedback).execute({ playerId: e.id, op });
     const goal = { x: 1, y: 7, z: 4 };
     const { ray } = e.aim.aim(e.id) ?? {};
     if (!ray) throw new Error("Expected fixture ray");
@@ -803,8 +810,8 @@ it.each([false, true])(
       kind: "stairContents",
       staircase: { toward: "south", rise: 2, run: 4 },
     });
-    expect(e.menus.showStairContentsMenu).toHaveBeenCalledExactlyOnceWith(
-      e.player,
-    );
+    expect(
+      op === "stairs" ? e.menus.showStairContentsMenu : e.menus.showTerraceMenu,
+    ).toHaveBeenCalledExactlyOnceWith(e.player);
   },
 );

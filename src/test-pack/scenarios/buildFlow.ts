@@ -384,6 +384,63 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildTerrace(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const hill = f.region(3, 6, 6);
+    for (const cell of hill) f.block(cell).setType("minecraft:stone");
+    const overhang = f.block(f.cell(1, 6, 1));
+    overhang.setType("minecraft:stone");
+    const foot = { min: f.cell(), max: f.cell(2) };
+    const goal = f.cell(0, 2, 5);
+    await f.select(foot.max);
+    const aim = await f.menu("shape", "terrace");
+    check(
+      aim.offered === true && aim.flow.kind === "stairAim",
+      "Terrace did not enter aiming",
+    );
+    try {
+      await f.edit(`aim ${goal.x} ${goal.y} ${goal.z}`);
+      check(
+        (await f.tap("block", goal)).flow.kind === "stairContents",
+        "Terrace did not fix the goal",
+      );
+      const built = await f.menu("terrace", "confirm");
+      check(
+        built.offered === true &&
+          built.message === "editDoneCount" &&
+          built.count === 69,
+        "Terrace did not remove 69 blocks",
+      );
+      checkSelection(
+        built,
+        { min: goal, max: f.cell(2, 2, 5) },
+        "Terrace goal",
+      );
+      for (const cell of hill) {
+        const z = cell.z - foot.min.z;
+        const surface = foot.min.y + (z === 0 ? 0 : z <= 3 ? 1 : 2);
+        const expected =
+          cell.y <= surface ? "minecraft:stone" : "minecraft:air";
+        check(
+          f.block(cell).typeId === expected,
+          `Unexpected terrace block at ${cellKey(cell)}`,
+        );
+      }
+      check(
+        overhang.typeId === "minecraft:stone",
+        "Terrace removed the overhang",
+      );
+      checkSelection(await f.edit("undo"), foot, "Terrace Undo");
+      check(
+        f.count(hill) === hill.length,
+        "Undo did not restore the stone hill",
+      );
+    } finally {
+      await f.edit("aim clear");
+    }
+  });
+}
+
 export function buildStairs(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = f.region(5, 8, 7, f.cell(-1, -1, -1));

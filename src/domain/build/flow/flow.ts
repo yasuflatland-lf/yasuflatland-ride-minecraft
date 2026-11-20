@@ -13,6 +13,7 @@ import {
 import { type Shape, shapeOf } from "../shape/shape";
 import { BUILD_SPEC } from "../spec";
 import { stairMaterialOf } from "../stair";
+import type { StairOp } from "../stairs/contents";
 import { type StairRow, stairRowOf } from "../stairs/row";
 import type { Staircase } from "../stairs/staircase";
 import type { TerrainOp } from "../terrain/area";
@@ -65,6 +66,7 @@ export type BuildFlow =
     }
   | {
       readonly kind: "stairAim";
+      readonly op: StairOp;
       readonly dimensionId: DimensionId;
       readonly row: StairRow;
       readonly taps: Taps;
@@ -73,6 +75,7 @@ export type BuildFlow =
     }
   | {
       readonly kind: "stairContents";
+      readonly op: StairOp;
       readonly dimensionId: DimensionId;
       readonly staircase: Staircase;
       readonly taps: Taps;
@@ -293,7 +296,7 @@ export function chooseHeighted(
   });
 }
 
-export function chooseStairs(flow: BuildFlow): BuildFlow {
+export function chooseStairs(flow: BuildFlow, op: StairOp): BuildFlow {
   if (flow.kind !== "selected") return flow;
   const taps = { from: flow.from, to: flow.to };
   const tappedRow = stairRowOf(taps);
@@ -301,6 +304,7 @@ export function chooseStairs(flow: BuildFlow): BuildFlow {
   const { dimensionId, material, box } = flow.selection;
   return Object.freeze({
     kind: "stairAim",
+    op,
     dimensionId,
     // The foot follows the selection after Rotate, while Cancel needs the original tap (ADR 0254).
     row: stairRowOf(cornerTaps(box)) ?? tappedRow,
@@ -315,6 +319,7 @@ export function fixStairGoal(flow: BuildFlow, staircase: Staircase): BuildFlow {
   const { dimensionId, taps, material, selectionBefore } = flow;
   return Object.freeze({
     kind: "stairContents",
+    op: flow.op,
     dimensionId,
     staircase,
     taps,

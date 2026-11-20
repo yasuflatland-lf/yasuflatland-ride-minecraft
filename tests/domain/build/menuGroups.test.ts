@@ -14,7 +14,8 @@ const cell = fc.record({ x: coord, y: coord, z: coord });
 const offset = fc.integer({ min: 1, max: 100 });
 const axes = ["x", "y", "z"] as const;
 const choices = {
-  stairs: { kind: "stairs" },
+  stairs: { kind: "stairs", op: "stairs" },
+  terrace: { kind: "stairs", op: "terrace" },
   adjustHeight: { kind: "adjustHeight" },
   buildShape: { kind: "openBuild" },
   back: { kind: "closeBuild" },

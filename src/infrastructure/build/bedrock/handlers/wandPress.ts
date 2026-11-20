@@ -8,8 +8,13 @@ import type { TapAir } from "../../../../application/build/tapAir";
 import { virtualEndPoint } from "../../../../domain/build/aim/aim";
 import { routePress } from "../../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
+import type { StairOp } from "../../../../domain/build/stairs/contents";
 import type { Cell } from "../../../../domain/shared/cells";
-import { asDimensionId, type PlayerId } from "../../../../domain/shared/ids";
+import {
+  asDimensionId,
+  asPlayerId,
+  type PlayerId,
+} from "../../../../domain/shared/ids";
 import type { BuildMenus } from "../buildMenus";
 
 type PressContext = {
@@ -58,6 +63,17 @@ function airTapPress(
   tapAir.execute({ playerId, end });
 }
 
+export function pressStairGoal(
+  player: Player,
+  op: StairOp,
+  fix: FixStairGoal,
+  menus: BuildMenus,
+): void {
+  if (!fix.execute({ playerId: asPlayerId(player.id) })) return;
+  if (op === "terrace") void menus.showTerraceMenu(player);
+  else void menus.showStairContentsMenu(player);
+}
+
 export function dispatchWandPress(context: PressContext): void {
   const { source, playerId, aim, repo, menus } = context;
   const flow = repo.get(playerId)?.flow;
@@ -88,8 +104,8 @@ export function dispatchWandPress(context: PressContext): void {
       }
       break;
     case "fixStairGoal":
-      if (context.fixStairGoal.execute({ playerId }))
-        void menus.showStairContentsMenu(source);
+      if (flow.kind === "stairAim")
+        pressStairGoal(source, flow.op, context.fixStairGoal, menus);
       break;
     case "aimHeight":
       if (target && flow.kind === "heightStep")
