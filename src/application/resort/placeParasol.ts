@@ -8,6 +8,7 @@ import { PARASOL_SPEC } from "../../domain/resort/spec";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { canUseBlockTop } from "../shared/groundPlacement";
+import { placePaid } from "../shared/paidPlacement";
 import type { ParasolWorld } from "./ports/parasolWorld";
 
 export class PlaceParasol {
@@ -48,14 +49,11 @@ export class PlaceParasol {
       )
     )
       return blocked();
-    const paid = !this.world.isCreative(player);
-    if (paid && !this.world.consumeItem(player, slot)) return blocked();
-    const id = this.world.spawn(dimension, pose);
-    if (id === undefined) {
-      if (paid) this.world.refund(player, slot);
-      return blocked();
-    }
-    this.world.layCeiling(id);
+    const result = placePaid(this.world, { player, slot }, () =>
+      this.world.spawn(dimension, pose),
+    );
+    if (!result.placed) return blocked();
+    this.world.layCeiling(result.id);
     return true;
   }
 }
