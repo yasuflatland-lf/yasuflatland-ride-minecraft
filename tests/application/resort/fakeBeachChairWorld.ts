@@ -27,7 +27,7 @@ export function fakeBeachChairWorld() {
     showRefused: vi.fn(),
     dropItem: vi.fn(),
     remove: vi.fn(),
-    showRemaining: vi.fn(),
+    showHitsLeft: vi.fn(),
     showTaken: vi.fn(),
   } satisfies BeachChairWorld & BeachChairTakeBackWorld;
 }

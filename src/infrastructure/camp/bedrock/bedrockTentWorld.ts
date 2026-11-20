@@ -24,6 +24,8 @@ import {
   giveOrDrop,
   isCreative,
   playerById,
+  showActionBar,
+  showHitsLeftHint,
 } from "../../shared/players";
 import {
   PITCH_REFUSAL_MESSAGE,
@@ -120,7 +122,8 @@ export class BedrockTentWorld
 
   showPitchRefusal(playerId: PlayerId, reason: PitchRefusal): void {
     const translate = PITCH_REFUSAL_MESSAGE[reason];
-    playerById(playerId)?.onScreenDisplay.setActionBar(
+    showActionBar(
+      playerId,
       reason === "limit"
         ? { translate, with: [String(TENT_SPEC.maxTents)] }
         : { translate },
@@ -153,14 +156,11 @@ export class BedrockTentWorld
   }
 
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void {
-    playerById(playerId)?.onScreenDisplay.setActionBar({
-      translate: TENT_HITS_LEFT_HINT,
-      with: [String(hitsLeft)],
-    });
+    showHitsLeftHint(playerId, TENT_HITS_LEFT_HINT, hitsLeft);
   }
 
   showOccupied(playerId: PlayerId): void {
-    playerById(playerId)?.onScreenDisplay.setActionBar({
+    showActionBar(playerId, {
       translate: TENT_OCCUPIED_HINT,
     });
   }

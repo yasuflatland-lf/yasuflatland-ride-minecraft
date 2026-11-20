@@ -8,8 +8,9 @@ import type {
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
-export interface TentWorld {
+export interface TentWorld extends HitsLeftFeedback {
   /** Whether the block at `at` is one of this add-on's blocks (yasu_ride:*). */
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean;
   /** The block type at `at`; undefined when unreadable (unloaded, outside the world). */
@@ -32,6 +33,5 @@ export interface TentWorld {
   returnTentItem(tentId: TentId, playerId: PlayerId | undefined): void;
   /** Clears the tent's cells that still hold its own blocks, removes it from the registry, and removes the entity. */
   takeDown(tentId: TentId): void;
-  showHitsLeft(playerId: PlayerId, hitsLeft: number): void;
   showOccupied(playerId: PlayerId): void;
 }

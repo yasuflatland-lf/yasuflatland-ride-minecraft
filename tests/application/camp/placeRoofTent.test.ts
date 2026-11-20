@@ -55,7 +55,7 @@ describe("PlaceRoofTent", () => {
           expect(world.giveItem).not.toHaveBeenCalled();
           expect(world.spawn).not.toHaveBeenCalled();
           expect(world.remove).not.toHaveBeenCalled();
-          expect(world.showMessage).not.toHaveBeenCalled();
+          expect(world.showRefusal).not.toHaveBeenCalled();
           expect([...world.hosts]).toEqual(hosts);
         },
       ),
@@ -77,7 +77,7 @@ describe("PlaceRoofTent", () => {
         ),
       ).toBeUndefined();
     }
-    expect(world.showMessage).not.toHaveBeenCalled();
+    expect(world.showRefusal).not.toHaveBeenCalled();
     expect(world.consumeItem).not.toHaveBeenCalled();
     expect(world.spawn).not.toHaveBeenCalled();
   });
@@ -140,7 +140,7 @@ describe("PlaceRoofTent", () => {
         mount: taken ? PRESENT.mount : undefined,
       });
       expect(new PlaceRoofTent(world, lookup).execute(cmd)).toBe(false);
-      expect(world.showMessage).toHaveBeenCalledWith(
+      expect(world.showRefusal).toHaveBeenCalledWith(
         PLAYER,
         taken ? "roof_taken" : "unsupported_vehicle",
       );
@@ -160,7 +160,7 @@ describe("PlaceRoofTent", () => {
         })).execute(cmd);
         expect(placed).toBe(!driverPresent && !moving);
         if (driverPresent || moving) {
-          expect(world.showMessage).toHaveBeenCalledWith(PLAYER, "host_in_use");
+          expect(world.showRefusal).toHaveBeenCalledWith(PLAYER, "host_in_use");
           expect(world.consumeItem).not.toHaveBeenCalled();
           expect(world.spawn).not.toHaveBeenCalled();
         }
@@ -201,7 +201,7 @@ describe("PlaceRoofTent", () => {
             );
           else {
             expect(world.consumeItem).not.toHaveBeenCalled();
-            expect(world.showMessage).toHaveBeenCalledWith(PLAYER, "blocked");
+            expect(world.showRefusal).toHaveBeenCalledWith(PLAYER, "blocked");
           }
         },
       ),

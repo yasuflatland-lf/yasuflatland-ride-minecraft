@@ -1,4 +1,3 @@
-// Inventory and game mode helpers for any feature that hands items to players or takes them back.
 import {
   GameMode,
   type ItemStack,
@@ -53,4 +52,25 @@ export function playerById(playerId: PlayerId): Player | undefined {
     return undefined;
   }
   return entity?.typeId === PLAYER_TYPE ? (entity as Player) : undefined;
+}
+
+export type ActionBarMessage = Parameters<
+  Player["onScreenDisplay"]["setActionBar"]
+>[0];
+
+/** A player can leave between the interaction and its feedback. */
+export function showActionBar(
+  playerId: PlayerId,
+  message: ActionBarMessage,
+): void {
+  const player = playerById(playerId);
+  if (player?.isValid) player.onScreenDisplay.setActionBar(message);
+}
+
+export function showHitsLeftHint(
+  playerId: PlayerId,
+  translate: string,
+  hitsLeft: number,
+): void {
+  showActionBar(playerId, { translate, with: [String(hitsLeft)] });
 }
