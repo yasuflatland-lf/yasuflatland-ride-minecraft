@@ -1,6 +1,5 @@
 import {
   type Dimension,
-  Direction,
   type Entity,
   ItemStack,
   world,
@@ -23,21 +22,15 @@ import {
   sameCell,
 } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
-import { safeBlockAt } from "../../shared/blocks";
+import { isSolidTop, safeBlockAt } from "../../shared/blocks";
 import { entityOfType, spawnWithRollback } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import {
   LaidBlockLayer,
-  readCeilingCells,
-  writeCeilingCells,
+  readSavedCells,
+  writeSavedCells,
 } from "../../shared/laidBlockLayer";
-import {
-  consumeHeld,
-  giveOrDrop,
-  isCreative,
-  playerById,
-  showActionBar,
-} from "../../shared/players";
+import { giveOrDrop, playerById, showActionBar } from "../../shared/players";
 import {
   BEACH_PARASOL,
   BEACH_PARASOL_ITEM,
@@ -50,7 +43,10 @@ interface CeilingRecord {
   cells: Cell[];
 }
 
-export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
+export class BedrockParasolWorld
+  extends BedrockPaidGroundCells
+  implements ParasolWorld, ParasolTakeBackWorld
+{
   private readonly layer: LaidBlockLayer;
   private readonly ceilings = new Map<ParasolId, CeilingRecord>();
   constructor(
@@ -59,6 +55,11 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
       isCampSpace: SpaceCheck;
     },
   ) {
+    super(
+      (dimension, cell) => deps.isVehicleSpace(dimension, cell),
+      BEACH_PARASOL_ITEM,
+    );
+
     this.layer = new LaidBlockLayer(
       PARASOL_CEILING_BLOCK,
       deps.isVehicleSpace,
@@ -72,46 +73,8 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
       return undefined;
     }
   }
-  private block(dimension: DimensionId, cell: Cell) {
-    try {
-      return safeBlockAt(world.getDimension(dimension), cell);
-    } catch {
-      return undefined;
-    }
-  }
-  isAir(dimension: DimensionId, cell: Cell): boolean {
-    return this.block(dimension, cell)?.isAir === true;
-  }
-  isOwnBlock(dimension: DimensionId, cell: Cell): boolean {
-    return (
-      this.block(dimension, cell)?.typeId.startsWith(`${NAMESPACE}:`) === true
-    );
-  }
   isSolidTop(dimension: DimensionId, cell: Cell): boolean {
-    try {
-      // Stable 2.x has no solidity flag; a non-passable ray must meet the top at full height.
-      // A ray that ends exactly on the face misses it on BDS, so it starts half a block above.
-      const hit = world.getDimension(dimension).getBlockFromRay(
-        cellCenter(cell, 1.5),
-        { x: 0, y: -1, z: 0 },
-        {
-          maxDistance: 1,
-          includeLiquidBlocks: false,
-          includePassableBlocks: false,
-        },
-      );
-      return (
-        hit?.face === Direction.Up &&
-        // The engine reports faceLocation.y inverted, so a full top reads 0 (ADR 0111).
-        hit.faceLocation.y === 0 &&
-        sameCell(hit.block.location, cell)
-      );
-    } catch {
-      return false;
-    }
-  }
-  isVehicleSpace(dimension: DimensionId, cell: Cell): boolean {
-    return this.deps.isVehicleSpace(dimension, cell);
+    return isSolidTop(dimension, cell);
   }
   isCampSpace(dimension: DimensionId, cell: Cell): boolean {
     return this.deps.isCampSpace(dimension, cell);
@@ -131,19 +94,6 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
         z: entity.location.z - 0.5,
       }));
   }
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
-  }
-  consumeItem(player: PlayerId, slot: number): boolean {
-    const entity = playerById(player);
-    return (
-      entity !== undefined && consumeHeld(entity, BEACH_PARASOL_ITEM, slot)
-    );
-  }
-  refund(player: PlayerId, _slot: number): void {
-    const entity = playerById(player);
-    if (entity) giveOrDrop(entity, [new ItemStack(BEACH_PARASOL_ITEM, 1)]);
-  }
   spawn(dimension: DimensionId, pose: ParasolPose): ParasolId | undefined {
     const at = cellCenter(pose.base);
     const typeId = BEACH_PARASOL;
@@ -162,7 +112,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
     if (!record) {
       record = {
         dimension: entity.dimension,
-        cells: readCeilingCells(
+        cells: readSavedCells(
           entity.getDynamicProperty(PARASOL_CEILING_PROPERTY),
         ),
       };
@@ -202,7 +152,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
       );
       entity.setDynamicProperty(
         PARASOL_CEILING_PROPERTY,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);
@@ -224,7 +174,7 @@ export class BedrockParasolWorld implements ParasolWorld, ParasolTakeBackWorld {
     try {
       entity?.setDynamicProperty(
         PARASOL_CEILING_PROPERTY,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);

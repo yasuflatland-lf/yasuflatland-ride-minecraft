@@ -7,9 +7,9 @@ import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
 import type { BuildFlow } from "../../../../domain/build/flow/flow";
 import { routePress } from "../../../../domain/build/flow/press";
-import type { PressDebounces } from "../../../../domain/build/pressDebounce";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import type { Cell } from "../../../../domain/shared/cells";
+import type { Debounces } from "../../../../domain/shared/debounce";
 import {
   asDimensionId,
   asPlayerId,
@@ -41,8 +41,8 @@ export function registerWand({
   repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
-  debounce: PressDebounces<PlayerId>;
-  pasteDebounce: PressDebounces<PlayerId>;
+  debounce: Debounces<PlayerId>;
+  pasteDebounce: Debounces<PlayerId>;
   pointOf(playerId: PlayerId): Cell | undefined;
 }): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {

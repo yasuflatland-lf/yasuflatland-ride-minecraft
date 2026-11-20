@@ -11,7 +11,7 @@ it("clears the ceiling, returns a plain item to the hitter, removes and announce
   fc.assert(
     fc.property(
       fc.integer({ min: 0, max: 10000 }),
-      fc.integer({ min: 1, max: PARASOL_SPEC.hitResetTicks }),
+      fc.integer({ min: 1, max: PARASOL_SPEC.recovery.resetTicks }),
       (tick, gap) => {
         const world = fakeParasolWorld();
         const take = new TakeBackParasol(world);

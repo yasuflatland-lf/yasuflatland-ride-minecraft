@@ -58,7 +58,7 @@ async function course(a: Arena, rain: boolean): Promise<Outcome> {
       await wait(PARASOL_SPEC.ceilingSyncTicks + 2);
       restored = a.dim.getBlock(cell)?.typeId === PARASOL_CEILING_BLOCK;
     }
-    for (let hit = 0; hit < PARASOL_SPEC.hitsToTakeBack - 1; hit++) {
+    for (let hit = 0; hit < PARASOL_SPEC.recovery.hits - 1; hit++) {
       system.sendScriptEvent(TEST_PARASOL_HIT, entity.id);
       await wait(2);
     }

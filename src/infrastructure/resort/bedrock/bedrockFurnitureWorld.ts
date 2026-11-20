@@ -1,6 +1,5 @@
 import {
   type Dimension,
-  Direction,
   type Entity,
   ItemStack,
   world,
@@ -32,18 +31,17 @@ import {
   overlaps,
   type TopRect,
 } from "../../../domain/shared/tableTop";
-import { safeBlockAt } from "../../shared/blocks";
+import { blockIn, isSolidTop, safeBlockAt } from "../../shared/blocks";
 import { spawnWithRollback } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
+import { BedrockGroundCells } from "../../shared/groundCells";
 import {
   LaidBlockLayer,
-  readCeilingCells,
-  writeCeilingCells,
+  readSavedCells,
+  writeSavedCells,
 } from "../../shared/laidBlockLayer";
 import {
   consumeHeld,
   giveOrDrop,
-  isCreative,
   playerById,
   showActionBar,
 } from "../../shared/players";
@@ -55,7 +53,11 @@ import {
   furnitureKindOf,
 } from "../identifiers";
 
+// A block spans 16 px on each horizontal axis.
+const CELL_FOOTPRINT_PX = { halfX: 8, halfZ: 8 };
+
 export class BedrockFurnitureWorld
+  extends BedrockGroundCells
   implements FurnitureWorld, FurnitureTakeBackWorld, FurnitureTopBlocksWorld
 {
   private readonly layer: LaidBlockLayer;
@@ -70,6 +72,8 @@ export class BedrockFurnitureWorld
       isCampSpace: SpaceCheck;
     },
   ) {
+    super((dimension, cell) => deps.isVehicleSpace(dimension, cell));
+
     this.layer = new LaidBlockLayer(
       DINING_TABLE_TOP,
       deps.isVehicleSpace,
@@ -108,52 +112,11 @@ export class BedrockFurnitureWorld
   showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void {
     this.show(player, reason === "occupied" ? "occupied" : "something_on_top");
   }
-  private block(dimension: DimensionId, cell: Cell) {
-    try {
-      return safeBlockAt(world.getDimension(dimension), cell);
-    } catch {
-      return undefined;
-    }
-  }
-  isAir(dimension: DimensionId, cell: Cell): boolean {
-    return this.block(dimension, cell)?.isAir === true;
-  }
-  isOwnBlock(dimension: DimensionId, cell: Cell): boolean {
-    return (
-      this.block(dimension, cell)?.typeId.startsWith(`${NAMESPACE}:`) === true
-    );
-  }
   isSolidTop(dimension: DimensionId, cell: Cell): boolean {
-    try {
-      // Stable 2.x has no solidity flag; a non-passable ray must meet the top at full height.
-      // A ray that ends exactly on the face misses it on BDS, so it starts half a block above.
-      const hit = world.getDimension(dimension).getBlockFromRay(
-        cellCenter(cell, 1.5),
-        { x: 0, y: -1, z: 0 },
-        {
-          maxDistance: 1,
-          includeLiquidBlocks: false,
-          includePassableBlocks: false,
-        },
-      );
-      return (
-        hit?.face === Direction.Up &&
-        // The engine reports faceLocation.y inverted, so a full top reads 0 (ADR 0111).
-        hit.faceLocation.y === 0 &&
-        sameCell(hit.block.location, cell)
-      );
-    } catch {
-      return false;
-    }
-  }
-  isVehicleSpace(dimension: DimensionId, cell: Cell): boolean {
-    return this.deps.isVehicleSpace(dimension, cell);
+    return isSolidTop(dimension, cell);
   }
   isCampSpace(dimension: DimensionId, cell: Cell): boolean {
     return this.deps.isCampSpace(dimension, cell);
-  }
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
   }
   consumeItem(player: PlayerId, kind: FurnitureKind, slot: number): boolean {
     const entity = playerById(player);
@@ -185,7 +148,7 @@ export class BedrockFurnitureWorld
     if (!record) {
       record = {
         dimension: entity.dimension,
-        cells: readCeilingCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS)),
+        cells: readSavedCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS)),
       };
       this.tops.set(id, record);
     }
@@ -216,7 +179,7 @@ export class BedrockFurnitureWorld
       );
       entity.setDynamicProperty(
         FURNITURE_TOP_CELLS,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);
@@ -238,7 +201,7 @@ export class BedrockFurnitureWorld
     try {
       entity?.setDynamicProperty(
         FURNITURE_TOP_CELLS,
-        writeCeilingCells(record.cells),
+        writeSavedCells(record.cells),
       );
     } catch (error) {
       warn(error);
@@ -247,8 +210,7 @@ export class BedrockFurnitureWorld
     return record.cells.length === 0;
   }
   ownerAt(dimension: DimensionId, cell: Cell): FurnitureId | undefined {
-    if (this.block(dimension, cell)?.typeId !== DINING_TABLE_TOP)
-      return undefined;
+    if (blockIn(dimension, cell)?.typeId !== DINING_TABLE_TOP) return undefined;
     for (const [id, record] of this.tops) {
       if (
         record.dimension.id === dimension &&
@@ -279,7 +241,7 @@ export class BedrockFurnitureWorld
     );
     return overlaps(
       { at, footprint },
-      { at: centre, footprint: { halfX: 8, halfZ: 8 } },
+      { at: centre, footprint: CELL_FOOTPRINT_PX },
     );
   }
   blockedAt(entity: Entity, at: LocalPoint, footprint: TopRect): boolean {
@@ -311,7 +273,7 @@ export class BedrockFurnitureWorld
     const cells = [
       ...this.topCells(entity),
       ...(this.tops.get(id)?.cells ??
-        readCeilingCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS))),
+        readSavedCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS))),
     ];
     return cells.some(
       (cell) =>

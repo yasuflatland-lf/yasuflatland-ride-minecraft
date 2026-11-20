@@ -15,10 +15,10 @@ import {
   TABLE_SPOTS,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/debounce";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { decodeHost as decodeSharedHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/switchCooldown";
 import type { TopItem } from "../../../src/domain/shared/tableTop";
 
 const oven = asDutchOvenId("oven");
@@ -137,12 +137,12 @@ it("returns exactly one item on the third quick hit and resets after a long gap"
   fc.assert(
     fc.property(
       fc.integer({ min: 0, max: 10000 }),
-      fc.integer({ min: 1, max: DUTCH_OVEN_SPEC.hitResetTicks }),
+      fc.integer({ min: 1, max: DUTCH_OVEN_SPEC.recovery.resetTicks }),
       (tick, gap) => {
         const { actions, world } = fixture();
         expect(actions.hit(oven, player, tick)).toBe(false);
         expect(world.showHitsLeft).toHaveBeenLastCalledWith(player, 2);
-        const restart = tick + DUTCH_OVEN_SPEC.hitResetTicks + 1;
+        const restart = tick + DUTCH_OVEN_SPEC.recovery.resetTicks + 1;
         expect(actions.hit(oven, player, restart)).toBe(false);
         expect(world.showHitsLeft).toHaveBeenLastCalledWith(player, 2);
         expect(actions.hit(oven, player, restart + gap)).toBe(false);

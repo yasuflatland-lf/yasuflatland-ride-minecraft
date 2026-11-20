@@ -1,8 +1,10 @@
 import type { Dimension } from "@minecraft/server";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Vec3 } from "../../../../src/domain/shared/vec";
 import { seatExitSpot } from "../../../../src/infrastructure/vehicle/bedrock/seatExitSpot";
+
+vi.mock("@minecraft/server", () => ({}));
 
 const GROUND_TOP = 64;
 

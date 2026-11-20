@@ -1,3 +1,4 @@
+import type { Ticks } from "../../shared/ticks";
 import type { Medium } from "./motion";
 import type { WaterPolicy } from "./water";
 
@@ -11,8 +12,8 @@ type BankEasing = "constant" | "smooth";
 export interface TransformingSpec {
   /** Body height in blocks; the vehicle counts as submerged at this water depth. */
   readonly carHeight: number;
-  readonly doubleTapTicks: number;
-  readonly takeoffTicks: number;
+  readonly doubleTapTicks: Ticks;
+  readonly takeoffTicks: Ticks;
   readonly takeoffClimb: number;
   readonly landingSink: number;
   readonly maxClimb: number;

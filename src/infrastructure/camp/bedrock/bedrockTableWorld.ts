@@ -3,17 +3,9 @@ import type { TableWorld } from "../../../application/camp/ports/table";
 import { asTableId, type TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { safeBlockAt } from "../../shared/blocks";
 import { entityOfType, spawnWithRollback } from "../../shared/entities";
-import { NAMESPACE } from "../../shared/identifiers";
-import {
-  consumeHeld,
-  giveOrDrop,
-  isCreative,
-  playerById,
-  showActionBar,
-  showHitsLeftHint,
-} from "../../shared/players";
+import { BedrockPaidGroundCells } from "../../shared/groundCells";
+import { showActionBar, showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   CAMP_TABLE_ITEM,
@@ -26,34 +18,20 @@ function tableOf(id: TableId) {
   return entityOfType(world, id, CAMP_TABLE_TYPE);
 }
 
-function blockAt(dimensionId: DimensionId, at: Vec3) {
-  try {
-    return safeBlockAt(world.getDimension(dimensionId), at);
-  } catch {
-    return undefined; // Unknown dimension id
-  }
-}
-
-export class BedrockTableWorld implements TableWorld {
+export class BedrockTableWorld
+  extends BedrockPaidGroundCells
+  implements TableWorld
+{
   constructor(
     private readonly vehicles: {
       topHosts: TopHostRegistry;
       isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
     },
-  ) {}
-
-  isAir(dimensionId: DimensionId, at: Vec3): boolean {
-    return blockAt(dimensionId, at)?.isAir === true;
-  }
-
-  isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean {
-    return (
-      blockAt(dimensionId, at)?.typeId.startsWith(`${NAMESPACE}:`) === true
+  ) {
+    super(
+      (dimension, cell) => vehicles.isVehicleSpace(dimension, cell),
+      CAMP_TABLE_ITEM,
     );
-  }
-
-  isVehicleSpace(dimensionId: DimensionId, at: Vec3): boolean {
-    return this.vehicles.isVehicleSpace(dimensionId, at);
   }
 
   hasTableNear(dimensionId: DimensionId, at: Vec3): boolean {
@@ -64,20 +42,6 @@ export class BedrockTableWorld implements TableWorld {
         maxDistance: 1.75,
       }).length > 0
     );
-  }
-
-  isCreative(playerId: PlayerId): boolean {
-    return isCreative(playerById(playerId));
-  }
-
-  consumeItem(playerId: PlayerId, slot: number): boolean {
-    const player = playerById(playerId);
-    return player !== undefined && consumeHeld(player, CAMP_TABLE_ITEM, slot);
-  }
-
-  refund(player: PlayerId, _slot: number): void {
-    const entity = playerById(player);
-    if (entity) giveOrDrop(entity, [new ItemStack(CAMP_TABLE_ITEM, 1)]);
   }
 
   spawnTable(

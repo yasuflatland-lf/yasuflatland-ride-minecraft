@@ -7,6 +7,8 @@ import type {
 } from "@minecraft/server";
 import { world } from "@minecraft/server";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
+import { ticks } from "../../../domain/shared/ticks";
+import { distance3 } from "../../../domain/shared/vec";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import { mountOf } from "../../shared/mount";
 import { isVehicleEntity, SEAT_FILLER_TYPE } from "./identifiers";
@@ -20,7 +22,7 @@ const BOARD_REACH = 8;
 // How many layouts in a row a player taken off to lay the riders again may wait to get
 // back on before their seat goes to a filler. The engine refuses them in the tick they
 // got off (ADR 0120); the margin covers a slower release.
-const WAIT_TICKS = 5;
+const WAIT_TICKS = ticks(5);
 
 const isFiller = (entity: Entity): boolean =>
   entity.typeId === SEAT_FILLER_TYPE;
@@ -34,11 +36,7 @@ function canBoard(player: Player, vehicle: Entity): boolean {
     player.isValid &&
     player.dimension.id === vehicle.dimension.id &&
     (player.getComponent("minecraft:health")?.currentValue ?? 1) > 0 &&
-    Math.hypot(
-      player.location.x - vehicle.location.x,
-      player.location.y - vehicle.location.y,
-      player.location.z - vehicle.location.z,
-    ) <= BOARD_REACH
+    distance3(player.location, vehicle.location) <= BOARD_REACH
   );
 }
 

@@ -1,4 +1,6 @@
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
+
+import { Debounce } from "../shared/debounce";
 import {
   EMPTY_COUNTER,
   type HitCounter,
@@ -6,7 +8,6 @@ import {
 } from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
 import { isDyeable } from "../shared/paint";
-import { SwitchCooldown } from "../shared/switchCooldown";
 import { SyncedValue } from "../shared/syncedValue";
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns } from "./cooldowns";
@@ -163,11 +164,13 @@ export class Vehicle {
   private readonly riderPoses = new RiderPoseState();
   private readonly monitorSync = new SyncedValue<number>();
   private readonly ramCooldowns = new RamCooldowns();
-  private readonly switchCooldown = new SwitchCooldown();
+  private readonly switchCooldown = new Debounce(SPEC.headlightSwitchCooldown);
   // Its own cooldown, so a driver's headlight switch and a ceiling light switch in the room never block each other (ADR 0115).
-  private readonly ceilingLightCooldown = new SwitchCooldown();
+  private readonly ceilingLightCooldown = new Debounce(
+    SPEC.headlightSwitchCooldown,
+  );
   // Its own cooldown, so monitor tools and light switches never block each other (ADR 0171).
-  private readonly toolCooldown = new SwitchCooldown();
+  private readonly toolCooldown = new Debounce(SPEC.toolSwitchCooldown);
   private hitCounter: HitCounter = EMPTY_COUNTER;
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private docked = false;
@@ -474,7 +477,7 @@ export class Vehicle {
   flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
     if (playerId !== this.crew.driver && playerId !== this.deckDriverId)
       return false;
-    return this.switchCooldown.tryUse(tick, SPEC.headlightSwitchCooldown);
+    return this.switchCooldown.press(tick);
   }
 
   /**
@@ -490,8 +493,7 @@ export class Vehicle {
       !this.drive.switchCeilingLights
     )
       return false;
-    if (!this.ceilingLightCooldown.tryUse(tick, SPEC.headlightSwitchCooldown))
-      return false;
+    if (!this.ceilingLightCooldown.press(tick)) return false;
     return this.drive.switchCeilingLights(feet);
   }
 
@@ -511,7 +513,7 @@ export class Vehicle {
     const tool = monitorTool(this.profile.monitor, item);
     if (playerId !== this.crew.driver || !tool || !this.drive.setToolState)
       return false;
-    if (!this.toolCooldown.tryUse(tick, SPEC.toolSwitchCooldown)) return false;
+    if (!this.toolCooldown.press(tick)) return false;
     return this.drive.setToolState(
       item,
       nextToolState(tool, this.drive.toolState?.(item)),

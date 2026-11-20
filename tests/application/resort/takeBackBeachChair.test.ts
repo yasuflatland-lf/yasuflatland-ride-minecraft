@@ -10,7 +10,7 @@ it("returns a plain item to the hitter, removes and announces on the third hit",
   fc.assert(
     fc.property(
       fc.integer({ min: 0, max: 10000 }),
-      fc.integer({ min: 1, max: BEACH_CHAIR_SPEC.hitResetTicks }),
+      fc.integer({ min: 1, max: BEACH_CHAIR_SPEC.recovery.resetTicks }),
       (tick, gap) => {
         const world = fakeBeachChairWorld();
         const take = new TakeBackBeachChair(world);

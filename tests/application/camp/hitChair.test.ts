@@ -87,9 +87,12 @@ describe("HitChair (ADR 0122)", () => {
   it("never takes back a chair hit more than the reset window apart", () => {
     fc.assert(
       fc.property(
-        fc.array(fc.integer({ min: CHAIR_SPEC.hitResetTicks + 1, max: 1000 }), {
-          maxLength: 20,
-        }),
+        fc.array(
+          fc.integer({ min: CHAIR_SPEC.recovery.resetTicks + 1, max: 1000 }),
+          {
+            maxLength: 20,
+          },
+        ),
         (gaps) => {
           const world = new FakeChairWorld();
           const hit = new HitChair(world);
@@ -106,7 +109,7 @@ describe("HitChair (ADR 0122)", () => {
           expect(world.removed).toEqual([]);
           expect(
             world.hints.every(
-              (h) => h.hitsLeft === CHAIR_SPEC.hitsToTakeBack - 1,
+              (h) => h.hitsLeft === CHAIR_SPEC.recovery.hits - 1,
             ),
           ).toBe(true);
         },
@@ -120,7 +123,10 @@ describe("HitChair (ADR 0122)", () => {
         fc.array(
           fc.record({
             chair: fc.constantFrom("a", "b"),
-            gap: fc.integer({ min: 0, max: CHAIR_SPEC.hitResetTicks * 2 }),
+            gap: fc.integer({
+              min: 0,
+              max: CHAIR_SPEC.recovery.resetTicks * 2,
+            }),
           }),
           { maxLength: 40 },
         ),
@@ -133,13 +139,15 @@ describe("HitChair (ADR 0122)", () => {
             tick += gap;
             const s = streaks.get(chair);
             const n =
-              s && tick - s.last <= CHAIR_SPEC.hitResetTicks ? s.n + 1 : 1;
+              s && tick - s.last <= CHAIR_SPEC.recovery.resetTicks
+                ? s.n + 1
+                : 1;
             const removed = hit.execute({
               kind: "low_chair",
               chairId: asChairId(chair),
               tick,
             });
-            expect(removed).toBe(n >= CHAIR_SPEC.hitsToTakeBack);
+            expect(removed).toBe(n >= CHAIR_SPEC.recovery.hits);
             if (removed) streaks.delete(chair);
             else streaks.set(chair, { n, last: tick });
           }

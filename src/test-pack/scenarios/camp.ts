@@ -6,7 +6,7 @@ import {
   TABLE_SPOTS,
   TABLE_TOP_PX,
 } from "../../domain/camp/spec";
-import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/switchCooldown";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/debounce";
 import { hostLocalPx, hostSpotPoint } from "../../domain/shared/tableTop";
 import {
   CAMP_TABLE_ITEM,

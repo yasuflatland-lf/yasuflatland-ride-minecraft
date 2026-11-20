@@ -24,11 +24,7 @@ export class TakeBackFurniture {
     }
     let counters = this.hits.get(kind);
     if (!counters) {
-      const spec = FURNITURE_SPEC[kind];
-      counters = new HitCounters<FurnitureId>({
-        hits: spec.hitsToTakeBack,
-        resetTicks: spec.hitResetTicks,
-      });
+      counters = new HitCounters<FurnitureId>(FURNITURE_SPEC[kind].recovery);
       this.hits.set(kind, counters);
     }
     handleHit(counters, cmd.id, cmd.now, {

@@ -1,4 +1,3 @@
-// Shared flow of the camp items taken back by hitting them a few times in a row (ADR 0122, 0131).
 import type { HitCounters } from "../../domain/shared/hitCounter";
 
 export interface TakeBackEffects {
@@ -15,7 +14,7 @@ export function handleHit<Id>(
   effects: TakeBackEffects,
 ): void {
   counters.forgetStale(now);
-  const result = counters.hit(id, now, false);
+  const result = counters.hit(id, now);
   if (result.broken) {
     effects.drop();
     effects.remove();
