@@ -1,9 +1,11 @@
+import { Debounce } from "../../../shared/debounce";
 import { SyncedValue } from "../../../shared/syncedValue";
 import { TapToggle } from "../../../shared/tapToggle";
 import type { Vec3 } from "../../../shared/vec";
 import type { HoldPose } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
 import type { RestoredOf } from "../../entityContract";
+import { SPEC } from "../../spec";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
 import {
   type CAMPER_ENTITY,
@@ -24,6 +26,9 @@ export class CamperFixtures {
   private readonly showerDoorStepSync = new SyncedValue<number>();
   private showerTicks = 0;
   private readonly showerSync = new SyncedValue<boolean>();
+  private readonly ceilingLightSwitch = new Debounce(
+    SPEC.headlightSwitchCooldown,
+  );
   private readonly ceilingLightsSync = new SyncedValue<boolean>();
   private clickPending = false;
 
@@ -102,9 +107,12 @@ export class CamperFixtures {
     return doorTakesIt ? actions.useShowerDoor(tick) : actions.runShower();
   }
 
-  switchCeilingLights(): void {
+  /** Even an unreachable use restarts the idle time of a held switch (ADR 0024, 0115). */
+  trySwitchCeilingLights(tick: number, reachable: boolean): boolean {
+    if (!this.ceilingLightSwitch.press(tick) || !reachable) return false;
     this.lightsOn = !this.lightsOn;
     this.clickPending = true;
+    return true;
   }
 
   doorCommands(): EngineCommand[] {

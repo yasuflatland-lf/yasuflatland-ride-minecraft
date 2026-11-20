@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { Debounce } from "../../../../../src/domain/shared/debounce";
 import { CamperFixtures } from "../../../../../src/domain/vehicle/kinds/camper/fixtures";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
+import { SPEC } from "../../../../../src/domain/vehicle/spec";
 
 const swing = CAMPER_SPEC.doorSwingTicks;
 
@@ -47,5 +49,36 @@ it("matches the original camper entry-door trace for arbitrary tap schedules", (
   // Captured from the original CamperDrive with the same generated inputs.
   expect(recorded.digest("hex")).toBe(
     "8fc4a2eedaa9d8bcc9a3d429227ac69a0f857054cd80a1fdaf021a132cc5472b",
+  );
+});
+
+it("records every ceiling-light use and flips only after idle time when reachable", () => {
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.record({
+          gap: fc.integer({ min: 1, max: 2 * SPEC.headlightSwitchCooldown }),
+          reachable: fc.boolean(),
+        }),
+      ),
+      fc.boolean(),
+      (uses, initiallyOn) => {
+        const fixtures = CamperFixtures.restore(
+          { ceiling_lights: initiallyOn },
+          true,
+          undefined,
+        );
+        const cooldown = new Debounce(SPEC.headlightSwitchCooldown);
+        let on = initiallyOn;
+        let tick = 0;
+        for (const { gap, reachable } of uses) {
+          tick += gap;
+          const flip = cooldown.press(tick) && reachable;
+          expect(fixtures.trySwitchCeilingLights(tick, reachable)).toBe(flip);
+          if (flip) on = !on;
+          expect(fixtures.ceilingLightsOn).toBe(on);
+        }
+      },
+    ),
   );
 });

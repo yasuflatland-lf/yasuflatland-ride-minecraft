@@ -67,6 +67,8 @@ export class CamperDrive extends TransformingDrive {
     this.storage = new CamperStorage(restored, docked);
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     this.roomDecor = CamperRoomDecor.restore(restored[CAMPER_SAVED.decor]);
+    const ceilingLightsReachable = (feet: Vec3) =>
+      this.parking.pose !== undefined && insideRoom(this.parking.pose, feet);
     this.room = Object.freeze<CamperRoom>({
       decor: {
         decor: () => this.roomDecor.all(),
@@ -125,6 +127,12 @@ export class CamperDrive extends TransformingDrive {
         },
       },
       fixtures: {
+        ceilingLightsReachable,
+        switchCeilingLights: (feet, tick) =>
+          this.fixtures.trySwitchCeilingLights(
+            tick,
+            ceilingLightsReachable(feet),
+          ),
         useDockDoor: (tick) =>
           this.parking.pose !== undefined && this.fixtures.useDockDoor(tick),
         bedSpawnCell: (cell) => {
@@ -163,18 +171,6 @@ export class CamperDrive extends TransformingDrive {
 
   useShowerDoor(tick: number): boolean {
     return this.parking.pose !== undefined && this.fixtures.useShowerDoor(tick);
-  }
-
-  switchCeilingLights(feet: Vec3): boolean {
-    if (!this.ceilingLightsReachable(feet)) return false;
-    this.fixtures.switchCeilingLights();
-    return true;
-  }
-
-  ceilingLightsReachable(feet: Vec3): boolean {
-    return (
-      this.parking.pose !== undefined && insideRoom(this.parking.pose, feet)
-    );
   }
 
   runShower(): boolean {
