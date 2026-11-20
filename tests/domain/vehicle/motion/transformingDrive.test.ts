@@ -338,6 +338,54 @@ const tickSample = fc.record({
 });
 const tickSequence = fc.array(tickSample, { minLength: 1, maxLength: 80 });
 
+it("exposes each step's mapped input, water depth and resulting bank to a kind", () => {
+  class RecordingDrive extends TransformingDrive {
+    observed = this.readings;
+    bankAfterStep = this.bankAngle;
+
+    override step(raw: RawInput | undefined, ctx: TickContext) {
+      const result = super.step(raw, ctx);
+      this.observed = this.readings;
+      this.bankAfterStep = this.bankAngle;
+      return result;
+    }
+  }
+
+  const inputFor: InputMapping = (raw, form) => ({
+    ...groundInputFor(raw, form),
+    steer: -(raw?.moveX ?? 0),
+  });
+  fc.assert(
+    fc.property(fc.constantFrom(...FORMS), tickSequence, (form, ticks) => {
+      const drive = new RecordingDrive(
+        0,
+        { form },
+        SUV_TRANSFORMING,
+        SUV_MOTION,
+        SUV_TYRES,
+        { inputFor },
+      );
+      expect(drive.observed).toEqual({
+        input: groundInputFor(undefined, "car"),
+        waterDepth: 0,
+      });
+      ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+        const ctx = { ...context(depth), velocity, onGround, tick };
+        drive.step(raw, ctx);
+        expect(drive.observed).toEqual({
+          input: inputFor(raw, drive.form),
+          waterDepth: waterDepthAt(
+            ctx.location,
+            ctx.waterAt,
+            SUV_TRANSFORMING.carHeight,
+          ),
+        });
+        expect(drive.bankAfterStep).toBe(drive.inspect().bank);
+      });
+    }),
+  );
+});
+
 for (const [name, create] of [
   ["SUV", (form?: Form) => new SuvDrive(0, form ? { form } : {})],
   [
