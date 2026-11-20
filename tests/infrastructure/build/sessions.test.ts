@@ -10,8 +10,8 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
-import { PressDebounces } from "../../../src/domain/build/pressDebounce";
 import { selectionOf } from "../../../src/domain/build/selection";
+import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { ticks } from "../../../src/domain/shared/ticks";
 import { registerSessions } from "../../../src/infrastructure/build/bedrock/handlers/sessions";
@@ -63,10 +63,10 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           const repo = new FakeSessions();
           const structures = new FakeStructureStore();
           const session = repo.getOrCreate(id);
-          const debounce = new PressDebounces<PlayerId>(ticks(10));
-          const pasteDebounce = new PressDebounces<PlayerId>(ticks(10));
-          const rotateDebounce = new PressDebounces<PlayerId>(ticks(7));
-          const undoDebounce = new PressDebounces<PlayerId>(ticks(10));
+          const debounce = new Debounces<PlayerId>(ticks(10));
+          const pasteDebounce = new Debounces<PlayerId>(ticks(10));
+          const rotateDebounce = new Debounces<PlayerId>(ticks(7));
+          const undoDebounce = new Debounces<PlayerId>(ticks(10));
           new CopyBox(repo, structures, new FakeFeedback()).execute({
             playerId: id,
             selection: selectionOf(overworld, boxOf(at, at), AIR),
@@ -122,10 +122,10 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   const repo = new FakeSessions();
   const id = asPlayerId("p");
   const session = repo.getOrCreate(id);
-  const debounce = new PressDebounces<PlayerId>(ticks(10));
-  const pasteDebounce = new PressDebounces<PlayerId>(ticks(10));
-  const rotateDebounce = new PressDebounces<PlayerId>(ticks(7));
-  const undoDebounce = new PressDebounces<PlayerId>(ticks(10));
+  const debounce = new Debounces<PlayerId>(ticks(10));
+  const pasteDebounce = new Debounces<PlayerId>(ticks(10));
+  const rotateDebounce = new Debounces<PlayerId>(ticks(7));
+  const undoDebounce = new Debounces<PlayerId>(ticks(10));
   const at = { x: 0, y: 0, z: 0 };
   const structures = new FakeStructureStore();
   new CopyBox(repo, structures, new FakeFeedback()).execute({

@@ -1,5 +1,5 @@
 // Tuning values the vehicle core reads (ADR 0055). See docs/adr/0002-0008 for the rationale.
-import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../shared/switchCooldown";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../shared/debounce";
 import { ticks } from "../shared/ticks";
 
 export const SPEC = Object.freeze({
