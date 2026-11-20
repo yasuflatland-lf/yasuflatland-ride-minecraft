@@ -115,7 +115,7 @@ The five scooter README previews include a running-board close-up; its framing i
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "Paint, the headlight switch"; [0252](../adr/0252-budget-client-entity-texture-memory.md) Decision
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/scooter.se.json`, `packs/yasu_ride_rp/render_controllers/yasu_ride/scooter.rc.json`, `tools/scooter_textures.py`, `src/domain/vehicle/kinds/scooter/profile.ts` (`paintPolicy`, `beams`)
-- Verification: `tests/packs/scooter.test.ts` "switches every dye variant while removing the other paint groups"; `tests/packs/scooterClient.test.ts` "binds every paint variant and texture in the SUV order", "draws fixed and paint cutouts, a separate hover glow, then the lit lamps last"; `tests/tools/scooterTextures.test.ts`. Tests were read, not run for this spec.
+- Verification: `tests/packs/scooter.test.ts` "starts with the white variant"; checks scooter paint events; `tests/packs/scooterClient.test.ts` "binds every paint variant and texture in the SUV order", "draws fixed and paint cutouts, a separate hover glow, then the lit lamps last"; `tests/tools/scooterTextures.test.ts`. Tests were read, not run for this spec.
 
 ### Render passes
 

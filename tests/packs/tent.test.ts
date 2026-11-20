@@ -214,8 +214,6 @@ describe("tent entity and client", () => {
     expect(Object.keys(e.component_groups)).toEqual(
       PAINTS.map((paint) => `yasu_ride:paint_${paint}`),
     );
-    for (const group of Object.values(e.component_groups))
-      expect(Object.keys(group as object)).toEqual(["minecraft:variant"]);
     expect(Object.keys(e.events)).toEqual(PAINTS.map(paintEvent));
   });
   it("keeps the tiny hidden boxes whatever the footprint size", () => {

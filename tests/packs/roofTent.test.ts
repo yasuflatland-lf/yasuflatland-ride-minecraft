@@ -197,7 +197,7 @@ describe("roof tent asset contract", () => {
     }
   });
 
-  it("switches every paint variant in shared PAINTS order", () => {
+  it("starts at variant zero and declares the SUV bounds group and event", () => {
     expect(entity.components["minecraft:variant"]).toEqual({ value: 0 });
     const groups = PAINTS.map((paint) => `yasu_ride:paint_${paint}`);
     expect(Object.keys(entity.component_groups)).toEqual([
@@ -208,15 +208,6 @@ describe("roof tent asset contract", () => {
       "yasu_ride:suv_bounds",
       ...groups,
     ]);
-    for (const [index, group] of groups.entries()) {
-      expect(entity.component_groups[group]).toEqual({
-        "minecraft:variant": { value: index },
-      });
-      expect(entity.events[group]).toEqual({
-        add: { component_groups: [group] },
-        remove: { component_groups: groups.filter((g) => g !== group) },
-      });
-    }
   });
 
   it("selects paint textures, blends mesh, hides the ladder, and rolls the entrance flap", () => {

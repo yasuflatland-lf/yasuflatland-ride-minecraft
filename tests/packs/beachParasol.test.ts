@@ -33,19 +33,11 @@ describe("beach parasol pack assets", () => {
     expect(c["minecraft:variant"].value).toBe(PAINTS.indexOf("white"));
   });
 
-  it("selects every paint in the shared variant order and removes the previous paint group", () => {
+  it("renders each paint texture in the shared variant order", () => {
     const groups = PAINTS.map((paint) => `yasu_ride:paint_${paint}`);
     expect(Object.keys(entity.component_groups)).toEqual(groups);
     expect(Object.keys(entity.events)).toEqual(groups);
-    for (const [index, group] of groups.entries()) {
-      expect(entity.component_groups[group]).toEqual({
-        "minecraft:variant": { value: index },
-      });
-      expect(entity.events[group]).toEqual({
-        add: { component_groups: [group] },
-        remove: { component_groups: groups.filter((other) => other !== group) },
-      });
-    }
+
     expect(controller.arrays.textures["Array.paints"]).toEqual(
       PAINTS.map((paint) => `Texture.${paint}`),
     );

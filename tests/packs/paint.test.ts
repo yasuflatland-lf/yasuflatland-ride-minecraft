@@ -5,10 +5,16 @@ import { PAINTS, type Paint, shownPaint } from "../../src/domain/shared/paint";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
 import {
+  ROOF_TENT_TYPE,
+  TENT_TYPE,
+} from "../../src/infrastructure/camp/identifiers";
+import {
   PAINT_BY_DYE,
   PAINT_VARIANT,
   paintEvent,
 } from "../../src/infrastructure/shared/dyes";
+import { ENTITY_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { type Json, jsonFileEntries } from "../support/packFiles";
 import {
   expectUniqueTextureBindings,
   readTextureMer,
@@ -44,25 +50,69 @@ function textureOf(entity: string, paint: Paint): string {
   return `${RP}/${ce.textures[slot.replace("Texture.", "")]}.png`;
 }
 
+interface PaintEntity {
+  description: { identifier: string };
+  component_groups?: Record<string, Json>;
+  events?: Record<string, Json>;
+}
+
+const requiredPaintIds = [
+  ...VEHICLE_KINDS.filter(
+    (kind) => profileOf(kind).paintPolicy.kind === "dyeable",
+  ).map((kind) => ENTITY_TYPE[kind]),
+  TENT_TYPE,
+  ROOF_TENT_TYPE,
+  "yasu_ride:beach_parasol",
+];
+const paintGroups = PAINTS.map(paintEvent);
+const paintedEntities = jsonFileEntries("packs/yasu_ride_bp/entities")
+  .map(({ json }) => json["minecraft:entity"] as PaintEntity)
+  .filter(
+    ({ description, component_groups, events }) =>
+      requiredPaintIds.includes(description.identifier) ||
+      [
+        ...Object.keys(component_groups ?? {}),
+        ...Object.keys(events ?? {}),
+      ].some((name) => name.startsWith("yasu_ride:paint_")),
+  );
+
+it("covers at least seven paintable entities, including every dyeable vehicle", () => {
+  const ids = paintedEntities.map(({ description }) => description.identifier);
+  expect(ids.length).toBeGreaterThanOrEqual(7);
+  expect(ids).toEqual(expect.arrayContaining(requiredPaintIds));
+});
+
+it.each(paintedEntities)(
+  "$description.identifier paint events set the variant and remove the other groups",
+  ({ component_groups, events }) => {
+    for (const [variant, group] of paintGroups.entries()) {
+      expect(component_groups?.[group], group).toEqual({
+        "minecraft:variant": { value: variant },
+      });
+      const event = events?.[group] as {
+        add: { component_groups: string[] };
+        remove: { component_groups: string[] };
+      };
+      expect(event, group).toEqual({
+        add: { component_groups: [group] },
+        remove: {
+          component_groups: expect.arrayContaining(
+            paintGroups.filter((other) => other !== group),
+          ),
+        },
+      });
+      expect(event.remove.component_groups, group).toHaveLength(
+        paintGroups.length - 1,
+      );
+    }
+  },
+);
+
 describe("vehicle paints (ADR 0031)", () => {
   it("a new SUV starts at variant 0, its khaki default paint", () => {
     expect(entity.components["minecraft:variant"].value).toBe(
       PAINT_VARIANT.khaki,
     );
-  });
-
-  it("each paint event sets that paint's variant and drops the other paints", () => {
-    for (const paint of PAINTS) {
-      const event = entity.events[paintEvent(paint)];
-      const [group] = event.add.component_groups;
-      expect(
-        entity.component_groups[group]["minecraft:variant"].value,
-        paint,
-      ).toBe(PAINT_VARIANT[paint]);
-      expect(new Set([group, ...event.remove.component_groups])).toEqual(
-        new Set(PAINTS.map((p) => `yasu_ride:paint_${p}`)),
-      );
-    }
   });
 
   it("the render controller picks each paint's texture by its variant, and the texture exists", () => {
@@ -156,22 +206,6 @@ describe("tent paints (ADR 0031, 0135)", () => {
     expect(tent.components["minecraft:variant"].value).toBe(
       PAINT_VARIANT.khaki,
     );
-  });
-
-  it("each paint event sets that paint's variant and drops the other paints", () => {
-    for (const paint of PAINTS) {
-      const event = tent.events[paintEvent(paint)];
-      expect(event.add.component_groups).toEqual([`yasu_ride:paint_${paint}`]);
-      const [group] = event.add.component_groups;
-      expect(
-        tent.component_groups[group]["minecraft:variant"].value,
-        paint,
-      ).toBe(PAINT_VARIANT[paint]);
-      expect(event.remove.component_groups).toHaveLength(PAINTS.length - 1);
-      expect(new Set([group, ...event.remove.component_groups])).toEqual(
-        new Set(PAINTS.map((p) => `yasu_ride:paint_${p}`)),
-      );
-    }
   });
 
   it("the render controller picks 16 textures in PAINTS order by the variant", () => {

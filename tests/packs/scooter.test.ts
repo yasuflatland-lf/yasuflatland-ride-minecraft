@@ -1,11 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PAINTS } from "../../src/domain/shared/paint";
 import { SCOOTER_PROFILE } from "../../src/domain/vehicle/kinds/scooter/profile";
-import {
-  PAINT_VARIANT,
-  paintEvent,
-} from "../../src/infrastructure/shared/dyes";
+import { PAINT_VARIANT } from "../../src/infrastructure/shared/dyes";
 import { defined } from "../support/defined";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { loadScooterGeo } from "../tools/helpers/scooterGeo";
@@ -101,19 +97,9 @@ describe("scooter Behavior Pack geometry", () => {
     }
   });
 
-  it("switches every dye variant while removing the other paint groups", () => {
-    const { components, component_groups: groups, events } = entity();
+  it("starts with the white variant", () => {
+    const { components } = entity();
     expect(components["minecraft:variant"].value).toBe(PAINT_VARIANT.white);
-    for (const paint of PAINTS) {
-      const event = events[paintEvent(paint)];
-      const [group] = event.add.component_groups;
-      expect(groups[group]["minecraft:variant"].value).toBe(
-        PAINT_VARIANT[paint],
-      );
-      expect(new Set([group, ...event.remove.component_groups])).toEqual(
-        new Set(PAINTS.map((paint) => `yasu_ride:paint_${paint}`)),
-      );
-    }
   });
 
   it("crafts a named single-stack scooter item using its registered icon", () => {

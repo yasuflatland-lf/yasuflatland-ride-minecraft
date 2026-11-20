@@ -60,7 +60,7 @@
 - Agreement: Accepted
 - Basis: [0051](../adr/0051-sports-boat.md) Decision, "Mobs take ram damage; the boat and riders do not (0006)"; [0051](../adr/0051-sports-boat.md) Decision, "Use bones `root`, `body`, `headlights`, and `windshield`, with the front at -z and no logo or model name (0009)"
 - Implementation: `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json`, `src/domain/vehicle/kinds/sportsboat/profile.ts`, `src/domain/vehicle/vehicle.ts`, `packs/yasu_ride_rp/render_controllers/yasu_ride/sportsboat.rc.json`, `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`
-- Verification: `tests/packs/sportsboat.test.ts` "has a collision box 2.2 wide and 1.2 high", "has three hit boxes along the 6-block hull, since hits outside the square collision box miss", "each paint event sets that paint's variant and drops the other paints"; `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "rams a target 3.2 blocks ahead at speed and not one 3.6 ahead, while an SUV at the same speed rams neither". Not verified: real rider damage and beam appearance on devices (manual B6-B8).
+- Verification: `tests/packs/sportsboat.test.ts` "has a collision box 2.2 wide and 1.2 high", "has three hit boxes along the 6-block hull, since hits outside the square collision box miss"; `tests/packs/paint.test.ts` checks every boat paint event; `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "rams a target 3.2 blocks ahead at speed and not one 3.6 ahead, while an SUV at the same speed rams neither". Not verified: real rider damage and beam appearance on devices (manual B6-B8).
 
 ### Buoyancy and horizontal liquid drive
 

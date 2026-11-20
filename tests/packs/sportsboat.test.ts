@@ -102,7 +102,7 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
     ]);
   });
 
-  it("each paint event sets that paint's variant and drops the other paints", () => {
+  it("starts at variant zero and declares the docking groups and events", () => {
     expect(c["minecraft:variant"].value).toBe(0);
     expect(Object.keys(entity.component_groups).sort()).toEqual(
       [
@@ -114,17 +114,6 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
     expect(Object.keys(entity.events).sort()).toEqual(
       [...PAINTS.map(paintEvent), "yasu_ride:dock", "yasu_ride:undock"].sort(),
     );
-    for (const paint of PAINTS) {
-      const event = entity.events[paintEvent(paint)];
-      const [group] = event.add.component_groups;
-      expect(
-        entity.component_groups[group]["minecraft:variant"].value,
-        paint,
-      ).toBe(PAINT_VARIANT[paint]);
-      expect(new Set([group, ...event.remove.component_groups])).toEqual(
-        new Set(PAINTS.map((p) => `yasu_ride:paint_${p}`)),
-      );
-    }
   });
 
   it("defaults to undocked with headlights off and level attitude, syncing only the visual properties", () => {

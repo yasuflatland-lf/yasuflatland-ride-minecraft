@@ -110,9 +110,7 @@ it("matches the seat and collision box to the profile", () => {
     BULLDOZER_PROFILE.body.height,
   );
 });
-it("switches gravity with the shared groups and paints with the 16 dye events", () => {
-  for (const p of PAINTS)
-    expect(entity.events[`yasu_ride:paint_${p}`]).toBeDefined();
+it("switches gravity with the shared groups", () => {
   for (const g of ["weighted", "weightless"])
     expect(entity.component_groups[`yasu_ride:${g}`]).toBeDefined();
   for (const e of ["gravity_on", "gravity_off"])
