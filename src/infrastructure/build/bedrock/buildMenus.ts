@@ -37,7 +37,6 @@ function menuLabel(
     | RootEntryId
     | BuildMenuEntryId
     | ContentsEntryId
-    | StairContents
     | TerrainEntryId
     | UtilityEntryId
     | PasteEntryId
@@ -45,6 +44,13 @@ function menuLabel(
 ): string {
   return BUILD_FORM[entry.id];
 }
+
+const stairLabels = {
+  passage: BUILD_FORM.stairPassage,
+  fillBelow: BUILD_FORM.stairFillBelow,
+  stepsOnly: BUILD_FORM.stepsOnly,
+  cancel: BUILD_FORM.cancel,
+} satisfies Record<StairContents | "cancel", string>;
 
 export interface BuildMenus {
   showBuildMenu(player: Player): Promise<void>;
@@ -139,9 +145,9 @@ export class BedrockBuildMenus implements BuildMenus {
         id = await chooseFromForm(
           player,
           BUILD_FORM.stairContentsTitle,
-          stairContentsMenu(flow).map((entry) => ({
-            id: entry.id,
-            textKey: menuLabel(entry),
+          stairContentsMenu(flow).map(({ id }) => ({
+            id,
+            textKey: stairLabels[id],
           })),
         );
       } finally {
