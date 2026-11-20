@@ -29,10 +29,10 @@ Remove the corner glass from 0091's `glass` bone. The windshield, side windows,
 mirror, and rear window stay in that alpha-blended bone.
 
 The squaring changed only cubes whose origins were ahead of z = -47.5; every
-previous cube at or behind that boundary remains unchanged. The golden snapshot
-in `tests/packs/fixtures/camper-cubes/` was regenerated deliberately for the
-new geometry. `tests/packs/camper/snapshot.test.ts` now compares every non-glow cube
-against that snapshot in full, including the squared front.
+previous cube at or behind that boundary remained unchanged. The front tests
+check the crease and panel geometry, and the tracked exterior previews cover
+the squared front. Geometry-preserving refactors compare against the base
+commit as described in the [camper spec](../specs/camper.md).
 
 ## Consequences
 
