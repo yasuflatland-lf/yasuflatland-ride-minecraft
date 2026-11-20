@@ -1,14 +1,23 @@
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
 import type { LegacyTentWorld } from "../../../src/application/camp/ports/legacyTent";
+import {
+  legacyTentClearCells,
+  legacyTentExit,
+} from "../../../src/domain/camp/legacyTent";
 import { TENT_LAYOUT_VERSION } from "../../../src/domain/camp/spec";
 import { asTentId, type TentId } from "../../../src/domain/camp/tent";
 import {
   parseTents,
   type TentEntry,
 } from "../../../src/domain/camp/tentRegistry";
-import { asDimensionId } from "../../../src/domain/shared/ids";
+import type { Cell } from "../../../src/domain/shared/cells";
+import {
+  asDimensionId,
+  type DimensionId,
+  type PlayerId,
+} from "../../../src/domain/shared/ids";
 
 class FakeLegacyTentWorld implements LegacyTentWorld {
   readonly refunds: TentId[] = [];
@@ -22,14 +31,30 @@ class FakeLegacyTentWorld implements LegacyTentWorld {
     return [...this.entries];
   }
 
-  foldInto(entry: TentEntry): "folded" | "deferred" {
+  anchorLoaded = vi.fn((entry: TentEntry): boolean => {
     this.attempts.push(entry.id);
-    if (this.unloaded.has(entry.id)) return "deferred";
-    if (this.failing.has(entry.id)) throw new Error("fold failed");
-    this.refunds.push(entry.id);
-    this.entries = this.entries.filter((tent) => tent.id !== entry.id);
-    return "folded";
-  }
+    return !this.unloaded.has(entry.id);
+  });
+
+  ejectPlayers = vi.fn(
+    (_dimensionId: DimensionId, _cells: readonly Cell[], _exit: Cell) => {},
+  );
+
+  returnTentItem = vi.fn((tentId: TentId, _playerId: PlayerId | undefined) => {
+    if (this.failing.has(tentId)) throw new Error("fold failed");
+    this.refunds.push(tentId);
+  });
+
+  entityLoaded = vi.fn((_tentId: TentId) => true);
+  unlayBlocks = vi.fn((_tentId: TentId) => {});
+  clearBlocksByPose = vi.fn((_tentId: TentId) => {});
+  clearTentBlocks = vi.fn(
+    (_dimensionId: DimensionId, _cells: readonly Cell[]) => {},
+  );
+
+  removeTent = vi.fn((tentId: TentId) => {
+    this.entries = this.entries.filter((tent) => tent.id !== tentId);
+  });
 }
 
 it("isolates failures, preserves deferred tents, and converges once every legacy tent loads", () => {
@@ -127,3 +152,55 @@ it("folds unversioned tunnel and version-2 trapezoid tents and preserves current
   expect(world.entries.map(({ id }) => id)).toEqual(["current", "future"]);
   expect(world.refunds).toEqual(["legacy", "trapezoid"]);
 });
+
+it.each([false, true])(
+  "folds in order when the anchor is loaded (%s)",
+  (loaded) => {
+    const entry: TentEntry = {
+      id: asTentId("legacy"),
+      layout: 1,
+      dimensionId: asDimensionId("minecraft:overworld"),
+      pose: { x: 10, y: 64, z: -20, yaw: 90 },
+    };
+    const world = new FakeLegacyTentWorld([entry]);
+    if (!loaded) world.unloaded.add(entry.id);
+
+    expect(new FoldLegacyTents(world).execute()).toBe(loaded ? 0 : 1);
+    expect(world.anchorLoaded).toHaveBeenCalledExactlyOnceWith(entry);
+    expect(world.clearBlocksByPose).not.toHaveBeenCalled();
+
+    const steps = [
+      world.anchorLoaded,
+      world.ejectPlayers,
+      world.returnTentItem,
+      world.entityLoaded,
+      world.unlayBlocks,
+      world.clearTentBlocks,
+      world.removeTent,
+    ];
+    if (!loaded) {
+      for (const step of steps.slice(1)) expect(step).not.toHaveBeenCalled();
+      return;
+    }
+
+    const cells = legacyTentClearCells(entry.pose);
+    expect(world.ejectPlayers).toHaveBeenCalledExactlyOnceWith(
+      entry.dimensionId,
+      cells,
+      legacyTentExit(entry.pose),
+    );
+    expect(world.returnTentItem).toHaveBeenCalledExactlyOnceWith(
+      entry.id,
+      undefined,
+    );
+    expect(world.entityLoaded).toHaveBeenCalledExactlyOnceWith(entry.id);
+    expect(world.unlayBlocks).toHaveBeenCalledExactlyOnceWith(entry.id);
+    expect(world.clearTentBlocks).toHaveBeenCalledExactlyOnceWith(
+      entry.dimensionId,
+      cells,
+    );
+    expect(world.removeTent).toHaveBeenCalledExactlyOnceWith(entry.id);
+    for (const [index, step] of steps.slice(1).entries())
+      expect(steps[index]).toHaveBeenCalledBefore(step);
+  },
+);

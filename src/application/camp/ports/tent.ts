@@ -9,8 +9,9 @@ import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
+import type { TentRemovalWorld } from "./tentRemoval";
 
-export interface TentWorld extends HitsLeftFeedback {
+export interface TentWorld extends HitsLeftFeedback, TentRemovalWorld {
   /** Whether the block at `at` is one of this add-on's blocks (yasu_ride:*). */
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean;
   /** The block type at `at`; undefined when unreadable (unloaded, outside the world). */
@@ -31,7 +32,5 @@ export interface TentWorld extends HitsLeftFeedback {
   isOccupied(tentId: TentId): boolean;
   /** One tent item to the player (inventory, else dropped at their feet); with no player, dropped at the tent. */
   returnTentItem(tentId: TentId, playerId: PlayerId | undefined): void;
-  /** Clears the tent's cells that still hold its own blocks, removes it from the registry, and removes the entity. */
-  takeDown(tentId: TentId): void;
   showOccupied(playerId: PlayerId): void;
 }

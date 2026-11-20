@@ -17,7 +17,11 @@ import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { PlaceTable } from "../../../src/application/camp/placeTable";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
 import { RoofTentMenu } from "../../../src/application/camp/roofTentMenu";
-import { RoofTentCleanup } from "../../../src/application/camp/roofTentRemoved";
+import {
+  ClearRoofTentSpawn,
+  RoofTentCleanup,
+} from "../../../src/application/camp/roofTentRemoved";
+import { SleepInRoofTent } from "../../../src/application/camp/sleepInRoofTent";
 import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
@@ -69,11 +73,21 @@ import {
 } from "../../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../../src/infrastructure/camp/install";
 import { registerBedBlock } from "../../../src/infrastructure/shared/bedBlock";
+import { BedrockBedWorld } from "../../../src/infrastructure/shared/bedrockBedWorld";
 import { registerLaidBlockGuard } from "../../../src/infrastructure/shared/laidBlockGuard";
 import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
 import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 import { campTopHosts } from "../../support/campTopHosts";
 import { defined } from "../../support/defined";
+
+const registrations = vi.hoisted(() => {
+  const log: string[] = [];
+  const handler = (name: string) =>
+    vi.fn(() => {
+      log.push(name);
+    });
+  return { log, handler };
+});
 
 const game = vi.hoisted(() => ({
   getDynamicProperty: vi.fn(),
@@ -97,62 +111,62 @@ vi.mock("../../../src/infrastructure/camp/bedrock/lanternSwitch", () => ({
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/testTentLantern",
   () => ({
-    registerTestTentLantern: vi.fn(),
+    registerTestTentLantern: registrations.handler("registerTestTentLantern"),
   }),
 );
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/tentHits", () => ({
-  registerTentHits: vi.fn(),
+  registerTentHits: registrations.handler("registerTentHits"),
 }));
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/tentPlacement",
   () => ({
-    registerTentPlacement: vi.fn(),
+    registerTentPlacement: registrations.handler("registerTentPlacement"),
   }),
 );
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/tentLoop", () => ({
-  registerTentLoop: vi.fn(),
+  registerTentLoop: registrations.handler("registerTentLoop"),
 }));
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/tentLifecycle",
   () => ({
-    registerTentLifecycle: vi.fn(),
+    registerTentLifecycle: registrations.handler("registerTentLifecycle"),
   }),
 );
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testTent", () => ({
-  registerTestTent: vi.fn(),
+  registerTestTent: registrations.handler("registerTestTent"),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/tentFlap", () => ({
-  registerTentFlap: vi.fn(),
+  registerTentFlap: registrations.handler("registerTentFlap"),
 }));
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/testTentFlap",
   () => ({
-    registerTestTentFlap: vi.fn(),
+    registerTestTentFlap: registrations.handler("registerTestTentFlap"),
   }),
 );
 vi.mock("../../../src/infrastructure/shared/bedBlock", () => ({
-  registerBedBlock: vi.fn(),
+  registerBedBlock: registrations.handler("registerBedBlock"),
 }));
 vi.mock("../../../src/infrastructure/shared/laidBlockGuard", () => ({
-  registerLaidBlockGuard: vi.fn(),
+  registerLaidBlockGuard: registrations.handler("registerLaidBlockGuard"),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/hits", () => ({
-  registerChairHits: vi.fn(),
+  registerChairHits: registrations.handler("registerChairHits"),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/placement", () => ({
-  registerChairPlacement: vi.fn(),
+  registerChairPlacement: registrations.handler("registerChairPlacement"),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testHit", () => ({
-  registerTestChairHit: vi.fn(),
+  registerTestChairHit: registrations.handler("registerTestChairHit"),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/table", () => ({
-  registerTable: vi.fn(),
+  registerTable: registrations.handler("registerTable"),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/firePit", () => ({
-  registerFirePit: vi.fn(),
+  registerFirePit: registrations.handler("registerFirePit"),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/dutchOven", () => ({
-  registerDutchOven: vi.fn(),
+  registerDutchOven: registrations.handler("registerDutchOven"),
 }));
 
 it("wires one hit use case into both hit handlers and asks the vehicles for their space (ADR 0122)", () => {
@@ -353,7 +367,7 @@ it("registers oven interactions before fire pit interactions", () => {
 });
 
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/gasLantern", () => ({
-  registerGasLantern: vi.fn(),
+  registerGasLantern: registrations.handler("registerGasLantern"),
 }));
 it("registers one Gas Lantern use case after the Fire Pit", () => {
   installCamp({
@@ -373,19 +387,31 @@ it("registers one Gas Lantern use case after the Fire Pit", () => {
 
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/roofTentPlacement",
-  () => ({ registerRoofTentPlacement: vi.fn() }),
+  () => ({
+    registerRoofTentPlacement: registrations.handler(
+      "registerRoofTentPlacement",
+    ),
+  }),
 );
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits",
-  () => ({ registerRoofTentHits: vi.fn() }),
+  () => ({
+    registerRoofTentHits: registrations.handler("registerRoofTentHits"),
+  }),
 );
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle",
-  () => ({ registerRoofTentLifecycle: vi.fn() }),
+  () => ({
+    registerRoofTentLifecycle: registrations.handler(
+      "registerRoofTentLifecycle",
+    ),
+  }),
 );
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/testRoofTent",
-  () => ({ registerTestRoofTent: vi.fn() }),
+  () => ({
+    registerTestRoofTent: registrations.handler("registerTestRoofTent"),
+  }),
 );
 
 it("shares roof tent actions, occupant adapters and the vehicle host lookup across handlers", () => {
@@ -436,7 +462,9 @@ it("shares roof tent actions, occupant adapters and the vehicle host lookup acro
 
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/roofTentEnter",
-  () => ({ registerRoofTentEnter: vi.fn(() => vi.fn()) }),
+  () => ({
+    registerRoofTentEnter: registrations.handler("registerRoofTentEnter"),
+  }),
 );
 
 vi.mock(
@@ -446,7 +474,12 @@ vi.mock(
 
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup",
-  () => ({ registerRoofTentOccupantCleanup: vi.fn(() => vi.fn()) }),
+  () => ({
+    registerRoofTentOccupantCleanup: vi.fn(() => {
+      registrations.log.push("registerRoofTentOccupantCleanup");
+      return vi.fn();
+    }),
+  }),
 );
 
 it("wires roof tent entry, menu and cleanup to the same occupant adapter", () => {
@@ -478,7 +511,7 @@ it("wires roof tent entry, menu and cleanup to the same occupant adapter", () =>
 
 const starterArgs = vi.hoisted(() => [] as unknown[][]);
 vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
-  registerStarterItem: vi.fn(),
+  registerStarterItem: registrations.handler("registerStarterItem"),
   BedrockStarterItemWorld: class {
     constructor(...args: unknown[]) {
       starterArgs.push(args);
@@ -499,4 +532,99 @@ it("registers the roof tent starter with its camp use case", () => {
   expect(starterArgs).toEqual([
     [ROOF_TENT_ITEM, ROOF_TENT_STARTER_RECEIVED_PROPERTY],
   ]);
+});
+
+it("preserves handler registration order on each engine signal", () => {
+  registrations.log.length = 0;
+  vi.mocked(registerLaidBlockGuard).mockImplementation((owner) => {
+    const tentOwner = vi.mocked(registerTentHits).mock.calls[0]?.[2];
+    registrations.log.push(owner === tentOwner ? "tentGuard" : "ceilingGuard");
+  });
+  installCamp({
+    topHosts: campTopHosts(),
+    isVehicleSpace: () => false,
+    vehicleHost: () => ({ status: "unknown" }),
+  });
+
+  const lifecycle = [
+    "registerRoofTentLifecycle",
+    "registerTentLoop",
+    "registerTentLifecycle",
+  ];
+  const expected = {
+    playerInteractWithBlock: [
+      "registerChairPlacement",
+      "registerTable",
+      "registerDutchOven",
+      "registerFirePit",
+      "registerGasLantern",
+      "registerRoofTentPlacement",
+      "registerTentPlacement",
+    ],
+    playerInteractWithEntity: [
+      "registerDutchOven",
+      "registerFirePit",
+      "registerGasLantern",
+      "registerRoofTentEnter",
+      "registerRoofTentPlacement",
+    ],
+    entityHitEntity: [
+      "registerChairHits",
+      "registerTable",
+      "registerDutchOven",
+      "registerFirePit",
+      "registerGasLantern",
+      "registerRoofTentHits",
+      "registerTentHits",
+    ],
+    scriptEventReceive: [
+      "registerTestChairHit",
+      "registerTable",
+      "registerDutchOven",
+      "registerFirePit",
+      "registerGasLantern",
+      "registerTestRoofTent",
+      "registerTestTent",
+      "registerTestTentFlap",
+      "registerTestTentLantern",
+    ],
+    entityLoad: lifecycle,
+    entitySpawn: lifecycle,
+    entityRemove: ["registerRoofTentLifecycle", "registerTentLifecycle"],
+    playerBreakBlock: ["registerTentHits", "tentGuard", "ceilingGuard"],
+    startup: ["registerBedBlock", "registerTentFlap"],
+    playerSpawn: ["registerStarterItem"],
+    playerLeave: ["registerRoofTentOccupantCleanup"],
+    entityDie: ["registerRoofTentOccupantCleanup"],
+    playerDimensionChange: ["registerRoofTentOccupantCleanup"],
+    itemUse: ["registerRoofTentEnter"],
+    entityHitBlock: ["registerTentHits"],
+  };
+  for (const [signal, handlers] of Object.entries(expected)) {
+    expect(
+      registrations.log.filter((name) => handlers.includes(name)),
+      signal,
+    ).toEqual(handlers);
+  }
+});
+
+vi.mock("../../../src/infrastructure/shared/bedrockBedWorld", { spy: true });
+vi.mock("../../../src/application/shared/sleepInBed", { spy: true });
+vi.mock("../../../src/application/camp/sleepInRoofTent", { spy: true });
+vi.mock("../../../src/application/camp/roofTentRemoved", { spy: true });
+
+it("shares one bed world and sleep use case between the mattress and roof tent", () => {
+  installCamp({
+    topHosts: campTopHosts(),
+    isVehicleSpace: () => false,
+    vehicleHost: () => ({ status: "unknown" }),
+  });
+  expect(BedrockBedWorld).toHaveBeenCalledTimes(1);
+  const beds = vi.mocked(BedrockBedWorld).mock.instances[0];
+  expect(SleepInBed).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(SleepInBed).mock.calls[0]?.[0]).toBe(beds);
+  expect(vi.mocked(ClearRoofTentSpawn).mock.calls[0]?.[1]).toBe(beds);
+  const sleep = vi.mocked(SleepInBed).mock.instances[0];
+  expect(vi.mocked(registerBedBlock).mock.calls[0]?.[1]).toBe(sleep);
+  expect(vi.mocked(SleepInRoofTent).mock.calls[0]?.[1]).toBe(sleep);
 });
