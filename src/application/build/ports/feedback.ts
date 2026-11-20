@@ -11,6 +11,8 @@ export type BuildMessage =
   | "removing"
   | "pointSet"
   | "endSet"
+  | "aimStairGoal"
+  | "noStairGoal"
   | "materialRefused"
   | "fillMaterialRefused"
   | "selectionCleared"

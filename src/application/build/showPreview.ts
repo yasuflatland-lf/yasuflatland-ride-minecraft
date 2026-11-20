@@ -1,5 +1,6 @@
 import { virtualEndPoint } from "../../domain/build/aim/aim";
 import { aimedHeight } from "../../domain/build/aim/height";
+import type { BuildFlow } from "../../domain/build/flow/flow";
 import {
   type PreviewAim,
   previewPoints,
@@ -7,6 +8,10 @@ import {
 import { degreesOf } from "../../domain/build/rotation/quarterTurn";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
+import {
+  type Staircase,
+  staircaseToward,
+} from "../../domain/build/stairs/staircase";
 import { volumeSize } from "../../domain/build/volume/size";
 import type { PlayerId } from "../../domain/shared/ids";
 import { AimHeight } from "./aimHeight";
@@ -17,6 +22,13 @@ import type { ResolvePasteTarget } from "./resolvePasteTarget";
 export class ShowPreview {
   private readonly aimHeight: AimHeight;
   private readonly sizes = new Map<PlayerId, ReturnType<typeof volumeSize>>();
+  private readonly staircases = new Map<
+    PlayerId,
+    {
+      flow: Extract<BuildFlow, { kind: "stairAim" }>;
+      staircase: Staircase;
+    }
+  >();
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly feedback: BuildFeedback,
@@ -32,6 +44,11 @@ export class ShowPreview {
       if (!session?.isInBuildMode || session.flow.kind !== "heightStep")
         this.sizes.delete(id);
     }
+    for (const id of this.staircases.keys()) {
+      const session = this.repo.get(id);
+      if (!session?.isInBuildMode || session.flow.kind !== "stairAim")
+        this.staircases.delete(id);
+    }
     if (tick % BUILD_SPEC.outlineInterval !== 0) return;
     for (const id of this.repo.ids()) this.refresh(id, tick);
   }
@@ -39,6 +56,8 @@ export class ShowPreview {
   refresh(id: PlayerId, tick: number): void {
     const blink = Math.floor(tick / BUILD_SPEC.outlineInterval) % 2 === 0;
     const session = this.repo.get(id);
+    if (!session?.isInBuildMode || session.flow.kind !== "stairAim")
+      this.staircases.delete(id);
     if (!session?.isInBuildMode) return;
     const aim = this.aimReader.aim(id);
     if (session.flow.kind === "baseHeight" && aim)
@@ -60,6 +79,14 @@ export class ShowPreview {
         this.feedback.showSize(id, size);
         this.sizes.set(id, size);
       }
+    }
+    if (flow.kind === "stairAim") {
+      const hit = aim?.block?.cell;
+      const staircase = hit && staircaseToward(flow.row, hit);
+      if (staircase) this.staircases.set(id, { flow, staircase });
+      const cached = this.staircases.get(id);
+      if (cached?.flow === flow) preview.staircase = cached.staircase;
+      else this.staircases.delete(id);
     }
     const dimensionId =
       flow.kind === "pasteAim" ? this.aimReader.dimensionOf(id) : undefined;

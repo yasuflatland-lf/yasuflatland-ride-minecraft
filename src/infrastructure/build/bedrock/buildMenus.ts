@@ -9,6 +9,7 @@ import {
   type PasteEntryId,
   pasteMenu,
   type RootEntryId,
+  stairContentsMenu,
   type TerrainEntryId,
   terrainMenu,
   type UtilityEntryId,
@@ -17,6 +18,7 @@ import {
 import { isRoofKind } from "../../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
+import type { StairContents } from "../../../domain/build/stairs/contents";
 import {
   removeAboveBox,
   terrainAreaOf,
@@ -35,6 +37,7 @@ function menuLabel(
     | RootEntryId
     | BuildMenuEntryId
     | ContentsEntryId
+    | StairContents
     | TerrainEntryId
     | UtilityEntryId
     | PasteEntryId
@@ -46,6 +49,7 @@ function menuLabel(
 export interface BuildMenus {
   showBuildMenu(player: Player): Promise<void>;
   showContentsMenu(player: Player): Promise<void>;
+  showStairContentsMenu(player: Player): Promise<void>;
   showUtilityMenu(player: Player): Promise<void>;
   showPasteMenu(player: Player): Promise<void>;
   showHeightSlider(player: Player): Promise<void>;
@@ -123,6 +127,32 @@ export class BedrockBuildMenus implements BuildMenus {
 
   showContentsMenu(player: Player): Promise<void> {
     return this.exclusive(player, () => this.contents(player));
+  }
+
+  showStairContentsMenu(player: Player): Promise<void> {
+    return this.exclusive(player, async () => {
+      const playerId = asPlayerId(player.id);
+      const flow = this.repo.get(playerId)?.flow;
+      if (flow?.kind !== "stairContents") return;
+      let id: StairContents | "cancel" | undefined;
+      try {
+        id = await chooseFromForm(
+          player,
+          BUILD_FORM.stairContentsTitle,
+          stairContentsMenu(flow).map((entry) => ({
+            id: entry.id,
+            textKey: menuLabel(entry),
+          })),
+        );
+      } finally {
+        if (player.isValid && this.repo.get(playerId)?.flow === flow) {
+          this.choices.choose(playerId, "stairContents", id ?? "cancel");
+          // A refused edit leaves the fixed goal in place, but the form has closed.
+          if (this.repo.get(playerId)?.flow === flow)
+            this.cases.cancel.backToAiming({ playerId });
+        }
+      }
+    });
   }
 
   showHeightSlider(player: Player): Promise<void> {

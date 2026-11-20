@@ -23,16 +23,18 @@ export function startUndoableBuild(
     readonly count: number;
     readonly plan: Iterable<PlanStep>;
     readonly selectionBefore: CellBox;
+    readonly selectionBeforeTaps?: Taps;
     readonly after: Selection;
     readonly taps: Taps;
   },
 ): boolean {
   const { playerId, session, count } = cmd;
   if (!beginCheckedEdit(session, deps.feedback, playerId, count)) return false;
-  const { plan, selectionBefore, after, taps } = cmd;
+  const { plan, selectionBefore, selectionBeforeTaps, after, taps } = cmd;
   session.confirmBox(after, "selected", taps);
   deps.jobs.start(playerId, after.dimensionId, plan, "undoable", {
     selectionBefore,
+    ...(selectionBeforeTaps && { selectionBeforeTaps }),
     selectionAfter: after.box,
   });
   return true;

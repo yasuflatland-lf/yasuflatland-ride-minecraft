@@ -37,3 +37,17 @@ it("overrides only the requested player's gaze with air aim until cleared", () =
     }),
   );
 });
+
+it("overrides the hit with an upward face until the test aim is cleared", () => {
+  const base = new FakeAimReader();
+  const ray = { origin: { x: 1, y: 2, z: 3 }, direction: { x: 1, y: 0, z: 0 } };
+  base.target = { ray, block: { cell: { x: 1, y: 1, z: 3 }, face: "north" } };
+  const aim = new TestAimReader(base);
+  const player = asPlayerId("player");
+  const cell = { x: -10, y: 9, z: 7 };
+  aim.setHit(player, cell);
+  expect(aim.aim(player)).toEqual({ ray, block: { cell, face: "up" } });
+  expect(aim.aim(asPlayerId("other"))).toEqual(base.target);
+  aim.setHit(player, undefined);
+  expect(aim.aim(player)).toEqual(base.target);
+});

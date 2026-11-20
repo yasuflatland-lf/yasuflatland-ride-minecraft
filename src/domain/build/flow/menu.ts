@@ -1,5 +1,7 @@
 import type { BuildSession } from "../session";
 import { type Shape, shapeOf, stylesFor } from "../shape/shape";
+import type { StairContents } from "../stairs/contents";
+import { stairRowOf } from "../stairs/row";
 import {
   type FillStyle,
   fillStylesFor,
@@ -19,12 +21,14 @@ export type BuildEntryId =
 export type RootEntryId =
   | EditEntryId
   | "adjustHeight"
+  | "stairs"
   | "buildShape"
   | "place"
   | "cancel";
 export type BuildMenuEntryId = BuildEntryId | "back";
 /** What a shape-menu (root or build level) entry asks for. */
 export type ShapeChoice =
+  | { readonly kind: "stairs" }
   | { readonly kind: "adjustHeight" }
   | { readonly kind: "openBuild" }
   | { readonly kind: "closeBuild" }
@@ -67,6 +71,7 @@ export function buildEntries(shape: Shape): MenuEntry<BuildEntryId>[] {
 
 export function shapeChoiceOf(id: RootEntryId | BuildMenuEntryId): ShapeChoice {
   switch (id) {
+    case "stairs":
     case "adjustHeight":
     case "cancel":
       return { kind: id };
@@ -96,18 +101,18 @@ export function shapeChoiceOf(id: RootEntryId | BuildMenuEntryId): ShapeChoice {
 
 export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
   if (flow.kind !== "selected" || flow.menuLevel !== "root") return [];
+  const { min, max } = flow.selection.box;
+  const isLine = shapeOf(min, max).kind === "line";
   return [
-    ...(shapeOf(flow.selection.box.min, flow.selection.box.max).kind === "line"
-      ? []
-      : [{ id: "adjustHeight" as const }]),
+    ...(isLine ? [] : [{ id: "adjustHeight" as const }]),
     { id: "cut" },
     { id: "removeAbove" },
-    {
-      id:
-        shapeOf(flow.selection.box.min, flow.selection.box.max).kind === "line"
-          ? "place"
-          : "buildShape",
-    },
+    { id: isLine ? "place" : "buildShape" },
+    ...(isLine &&
+    min.y === max.y &&
+    stairRowOf({ from: flow.from, to: flow.to })
+      ? [{ id: "stairs" as const }]
+      : []),
     { id: "copy" },
     { id: "fillBelow" },
     { id: "cancel" },
@@ -148,6 +153,14 @@ export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
         ...fillStylesFor(flow.heightedKind).map((id) => ({ id })),
         { id: "cancel" },
       ]
+    : [];
+}
+
+export function stairContentsMenu(
+  flow: BuildFlow,
+): MenuEntry<StairContents | "cancel">[] {
+  return flow.kind === "stairContents"
+    ? [{ id: "stepsOnly" }, { id: "cancel" }]
     : [];
 }
 

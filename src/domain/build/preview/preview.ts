@@ -4,14 +4,17 @@ import { boxOf, type CellBox, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import { type BuildFlow, liveHeightBox } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
+import type { Staircase } from "../stairs/staircase";
 import { volumeOf } from "../volume/geometry";
 import { pasteOutline } from "./pasteOutline";
+import { stairPreviewPoints } from "./stairPreview";
 
 export interface PreviewSet {
   marker: Vec3[];
   shape: Vec3[];
   endCube: Vec3[];
   roof: Vec3[];
+  stairs: Vec3[];
   paste: Vec3[];
   pasteVertical: Vec3[];
 }
@@ -20,6 +23,7 @@ export interface PreviewAim {
   blink: boolean;
   end?: Cell;
   height?: number;
+  staircase?: Staircase;
   pasteBox?: CellBox;
 }
 
@@ -35,6 +39,7 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
     shape: [],
     endCube: [],
     roof: [],
+    stairs: [],
     paste: [],
     pasteVertical: [],
   };
@@ -73,6 +78,19 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       set.roof = wireframe;
       break;
     }
+    case "stairAim":
+      if (aim.staircase)
+        set.stairs = stairPreviewPoints(
+          aim.staircase,
+          BUILD_SPEC.outlineMaxPoints,
+        );
+      break;
+    case "stairContents":
+      set.stairs = stairPreviewPoints(
+        flow.staircase,
+        BUILD_SPEC.outlineMaxPoints,
+      );
+      break;
     case "pasteAim":
       if (aim.pasteBox) {
         const { horizontal, vertical } = pasteOutline(

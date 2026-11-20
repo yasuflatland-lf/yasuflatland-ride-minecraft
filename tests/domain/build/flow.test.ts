@@ -10,9 +10,11 @@ import {
   backToAiming,
   cancel,
   chooseHeighted,
+  chooseStairs,
   chooseTerrain,
   closeBuildMenu,
   cornerTaps,
+  fixStairGoal,
   openBuildMenu,
   opensUtilityMenu,
   selectionBoxOf,
@@ -27,6 +29,7 @@ import {
   contentsMenu,
   isShapeEntryOffered,
   shapeMenu,
+  stairContentsMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
@@ -35,6 +38,7 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import {
   fillStylesFor,
   type HeightedKind,
@@ -187,6 +191,7 @@ it("offers the ordered root and build menus for every shape and returns unchange
           "cut",
           "removeAbove",
           shape.kind === "line" ? "place" : "buildShape",
+          ...(shape.kind === "line" && from.y === to.y ? ["stairs"] : []),
           "copy",
           "fillBelow",
           "cancel",
@@ -693,4 +698,59 @@ it("offers Cut then Remove above first for every shape and the confirmation only
       ]);
     }),
   );
+});
+
+it("offers Stairs only for a horizontal row and returns from either stair flow to point 1", () => {
+  const from = { x: 2, y: 5, z: 0 };
+  const point = tapBlock(idle, dim, from, stone);
+  const chosen = tapAir(point, { ...from, x: 0 });
+  const aim = chooseStairs(chosen);
+  if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
+  expect(aim.taps.from).toEqual(from);
+  expect(aim.selectionBefore).toEqual(selectionBoxOf(chosen));
+  const staircase = staircaseToward(aim.row, { x: 50, y: 7, z: -4 });
+  if (!staircase) throw new Error("Expected staircase");
+  const contents = fixStairGoal(aim, staircase);
+  const session = new BuildSession(asPlayerId("p"));
+  session.setFlow(contents);
+  expect(session.isInBuildMode).toBe(true);
+  expect(fixStairGoal(chosen, staircase)).toBe(chosen);
+  expect(backToAiming(aim)).toEqual(point);
+  expect(backToAiming(contents)).toEqual(point);
+  expect(stairContentsMenu(aim)).toEqual([]);
+  expect(stairContentsMenu(contents)).toEqual([
+    { id: "stepsOnly" },
+    { id: "cancel" },
+  ]);
+  for (const to of [from, { ...from, y: 7 }, { ...from, x: 0, z: 2 }]) {
+    const other = confirmEndpointHeight(tapAir(point, to));
+    expect(isShapeEntryOffered(other, "stairs")).toBe(false);
+    expect(chooseStairs(other)).toBe(other);
+  }
+  expect(shapeMenu(chosen).map(({ id }) => id)).toEqual([
+    "cut",
+    "removeAbove",
+    "place",
+    "stairs",
+    "copy",
+    "fillBelow",
+    "cancel",
+  ]);
+});
+
+it("uses the rotated selection as the stair foot and keeps the tapped point for Cancel", () => {
+  const from = { x: 3, y: 5, z: 0 };
+  const to = { ...from, x: 1 };
+  const point = tapBlock(idle, dim, from, stone);
+  const session = new BuildSession(asPlayerId("p"));
+  session.setFlow(tapAir(point, to));
+  const rotated = boxOf({ x: 2, y: 5, z: -1 }, { x: 2, y: 5, z: 1 });
+  session.replaceSelection(selectionOf(dim, rotated, stone));
+  const aim = chooseStairs(session.flow);
+  expect(aim).toMatchObject({
+    kind: "stairAim",
+    row: { ...rotated, along: "z", y: 5 },
+    selectionBefore: rotated,
+  });
+  expect(backToAiming(aim)).toEqual(point);
 });

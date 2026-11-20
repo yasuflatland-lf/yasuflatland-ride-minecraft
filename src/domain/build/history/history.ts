@@ -29,7 +29,12 @@ export function withEntry(
   entry: UndoEntry,
   depth: number,
 ): { history: UndoHistory; dropped: readonly StructureHandle[] } {
-  if (entry.kind === "cells" && entry.record.changes.length === 0)
+  // Stairs advance the selection even over existing steps (ADR 0254).
+  if (
+    entry.kind === "cells" &&
+    entry.record.changes.length === 0 &&
+    !entry.record.selectionBeforeTaps
+  )
     return { history, dropped: [] };
   const entries = [...history.entries, entry];
   const excess = Math.max(0, entries.length - Math.max(depth, 0));

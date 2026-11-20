@@ -71,7 +71,10 @@ export class UndoEdit {
           flow.selection === session.confirmedBox &&
           sameBox(flow.selection.box, entry.record.selectionAfter)))
     ) {
-      session.replaceSelection(withBox(flow.selection, edit.selectionBefore));
+      session.replaceSelection(
+        withBox(flow.selection, edit.selectionBefore),
+        entry.kind === "cells" ? entry.record.selectionBeforeTaps : undefined,
+      );
     } else {
       // ADR 0203: undo must allow an immediate paste at the same anchor.
       session.setFlow(clearLastPaste(flow));

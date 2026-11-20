@@ -3,6 +3,7 @@ import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
 import { ClearSelection } from "../../../../application/build/clearSelection";
 import { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
+import { FixStairGoal } from "../../../../application/build/fixStairGoal";
 import type { OpenSelectionMenu } from "../../../../application/build/openSelectionMenu";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { BuildBlockWorld } from "../../../../application/build/ports/blocks";
@@ -92,7 +93,10 @@ export function registerTestTap(
       const press =
         flow &&
         (input.tap === "air" || input.tap === "block") &&
-        (flow.kind === "selected" || flow.kind === "baseHeight")
+        (flow.kind === "selected" ||
+          flow.kind === "baseHeight" ||
+          flow.kind === "stairAim" ||
+          flow.kind === "stairContents")
           ? routePress({
               flow,
               role: "wand",
@@ -118,14 +122,18 @@ export function registerTestTap(
           aimHeight.execute({ playerId, ray: sample.ray });
           new ConfirmLiveHeight(repo, observed).execute({ playerId });
         }
-      } else if (menu === undefined && input.tap === "air")
-        new TapAir(repo, observed).execute({ playerId, end: cell });
-      else if (menu === undefined)
-        new SetPoint(repo, blocks, observed).execute({
-          playerId,
-          dimensionId,
-          cell,
-        });
+      } else if (press?.kind === "fixStairGoal")
+        new FixStairGoal(repo, observed, aim).execute({ playerId });
+      else if (press?.kind !== "ignore" && menu === undefined) {
+        if (input.tap === "air")
+          new TapAir(repo, observed).execute({ playerId, end: cell });
+        else
+          new SetPoint(repo, blocks, observed).execute({
+            playerId,
+            dimensionId,
+            cell,
+          });
+      }
       system.sendScriptEvent(
         TEST_RESULT_EVENT,
         JSON.stringify({

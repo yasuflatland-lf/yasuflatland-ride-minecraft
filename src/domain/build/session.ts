@@ -64,16 +64,20 @@ export class BuildSession {
     this.currentFlow = flow;
     // Two fast taps can fix the selection base before the wand enter delay expires.
     if (
-      (flow.kind === "baseHeight" || flow.kind === "selected") &&
+      (flow.kind === "baseHeight" ||
+        flow.kind === "selected" ||
+        flow.kind === "stairAim" ||
+        flow.kind === "stairContents") &&
       !this.currentMode.active
     )
       this.currentMode = { active: true, streak: 0 };
   }
-  replaceSelection(selection: Selection): void {
+  replaceSelection(selection: Selection, taps?: Taps): void {
     const flow = this.currentFlow;
     if (flow.kind !== "selected") return;
     this.currentFlow = Object.freeze({
       ...flow,
+      ...taps,
       selection,
     });
     if (

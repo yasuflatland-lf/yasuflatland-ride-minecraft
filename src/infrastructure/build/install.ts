@@ -4,12 +4,14 @@ import { ChooseAdjustHeight } from "../../application/build/chooseAdjustHeight";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
+import { ChooseStairs } from "../../application/build/chooseStairs";
 import { ChooseTerrain } from "../../application/build/chooseTerrain";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { CloseBuildMenu } from "../../application/build/closeBuildMenu";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmLiveHeight } from "../../application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../application/build/confirmShape";
+import { ConfirmStairs } from "../../application/build/confirmStairs";
 import { ConfirmTerrain } from "../../application/build/confirmTerrain";
 import { CopyBox } from "../../application/build/copyBox";
 import { CopySelection } from "../../application/build/copySelection";
@@ -18,6 +20,7 @@ import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
+import { FixStairGoal } from "../../application/build/fixStairGoal";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { NewCopy } from "../../application/build/newCopy";
 import { OpenBuildMenu } from "../../application/build/openBuildMenu";
@@ -139,6 +142,8 @@ export function installBuild(deps: {
     ),
     aimHeight: new AimHeight(repo),
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
+    chooseStairs: new ChooseStairs(repo, feedback),
+    confirmStairs: new ConfirmStairs(repo, feedback, jobs),
     chooseTerrain: new ChooseTerrain(repo, feedback),
     confirmTerrain: new ConfirmTerrain(repo, feedback, jobs, blocks),
     undo: new UndoEdit(
@@ -188,6 +193,7 @@ export function installBuild(deps: {
     pressPasteAim,
     aimHeight: cases.aimHeight,
     confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
+    fixStairGoal: new FixStairGoal(repo, feedback, aim),
     repo,
     menus,
     aim,

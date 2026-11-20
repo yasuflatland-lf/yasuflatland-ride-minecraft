@@ -124,6 +124,7 @@ export class BedrockFeedback implements BuildFeedback {
       shape: "minecraft:villager_happy",
       endCube: "minecraft:endrod",
       roof: "minecraft:villager_happy",
+      stairs: "minecraft:villager_happy",
       paste: "minecraft:blue_flame_particle",
       pasteVertical: "minecraft:basic_flame_particle",
     };

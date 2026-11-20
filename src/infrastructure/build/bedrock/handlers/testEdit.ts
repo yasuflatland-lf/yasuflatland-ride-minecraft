@@ -127,6 +127,7 @@ export function registerTestEdit(
         ) {
           if (describe.editStatus(playerId).isEditing) return;
           previewAim?.aim.setFacing(playerId, undefined);
+          previewAim?.aim.setHit(playerId, undefined);
           endSession.execute(playerId);
           if (args.length === 0) repo.getOrCreate(playerId);
         } else if (command === "aim" && args.length === 1 && previewAim) {
@@ -134,6 +135,20 @@ export function registerTestEdit(
             args[0] === "clear" ? undefined : parseFacing(args[0] ?? "");
           if (args[0] !== "clear" && !facing) return;
           previewAim.aim.setFacing(playerId, facing);
+          previewAim.aim.setHit(playerId, undefined);
+          previewAim.preview.refresh(playerId, system.currentTick);
+        } else if (
+          command === "aim" &&
+          args.length === 3 &&
+          args.every((value) => Number.isSafeInteger(Number(value))) &&
+          previewAim
+        ) {
+          previewAim.aim.setFacing(playerId, undefined);
+          previewAim.aim.setHit(playerId, {
+            x: Number(args[0]),
+            y: Number(args[1]),
+            z: Number(args[2]),
+          });
           previewAim.preview.refresh(playerId, system.currentTick);
         } else if (
           command === "snapshot" &&
@@ -227,6 +242,7 @@ export function registerTestEdit(
           command === "menu" &&
           (args[0] === "shape" ||
             args[0] === "contents" ||
+            args[0] === "stairContents" ||
             args[0] === "terrain" ||
             args[0] === "utility" ||
             args[0] === "paste") &&
