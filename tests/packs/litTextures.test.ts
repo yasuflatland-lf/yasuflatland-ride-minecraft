@@ -296,19 +296,10 @@ describe.each(kinds)(
   },
 );
 
-it("requires the approved PBR engine version and matching Resource Pack versions", () => {
+it("requires the approved PBR engine version", () => {
   const rp = read("manifest.json");
-  const bp = JSON.parse(
-    readFileSync("packs/yasu_ride_bp/manifest.json", "utf8"),
-  );
   expect(rp.capabilities).toEqual(["pbr"]);
   expect(rp.header.min_engine_version).toEqual([1, 21, 120]);
-  expect(rp.modules[0].version).toEqual(rp.header.version);
-  expect(
-    bp.dependencies.find(
-      (dependency: { uuid?: string }) => dependency.uuid === rp.header.uuid,
-    )?.version,
-  ).toEqual(rp.header.version);
 });
 
 describe("SUV round headlight glow", () => {

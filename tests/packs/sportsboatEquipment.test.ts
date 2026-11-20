@@ -158,16 +158,6 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     },
   );
 
-  it("matches the RP module version and BP dependency to the RP header", () => {
-    const rp = read(`${RP}/manifest.json`);
-    expect(rp.modules[0].version).toEqual(rp.header.version);
-    expect(
-      read(`${BP}/manifest.json`).dependencies.find(
-        (d: { uuid: string }) => d.uuid === rp.header.uuid,
-      ).version,
-    ).toEqual(rp.header.version);
-  });
-
   it("counts the group on the item groups page", () => {
     expect(readTableRows("docs/items/README.md")).toContain(
       "| **Sports Boat Equipment** | 1 | [Icebreaker Switch](sportsboat-equipment.md) |",

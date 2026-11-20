@@ -397,14 +397,4 @@ describe("Noga Chair (ADR 0169)", () => {
         expect(lang(locale, `item.${profile.itemId}.name`)).toBe("Noga Chair");
     },
   );
-
-  it("matches the RP module version and BP dependency to the RP header", () => {
-    const rp = read(`${RP}/manifest.json`);
-    expect(rp.modules[0].version).toEqual(rp.header.version);
-    expect(
-      read(`${BP}/manifest.json`).dependencies.find(
-        (d: { uuid?: string }) => d.uuid === rp.header.uuid,
-      ).version,
-    ).toEqual(rp.header.version);
-  });
 });

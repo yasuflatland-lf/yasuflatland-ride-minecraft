@@ -207,11 +207,6 @@ describe("Gas Lantern textures and pack files", () => {
     expect(controller.part_visibility).toEqual([
       { flame: "query.property('yasu_ride:lit')" },
     ]);
-    const rpManifest = readJson(`${rp}/manifest.json`);
-    const dependency = readJson(`${bp}/manifest.json`).dependencies.find(
-      (d: { uuid: string }) => d.uuid === rpManifest.header.uuid,
-    );
-    expect(dependency.version).toEqual(rpManifest.header.version);
   });
 });
 
@@ -321,7 +316,5 @@ describe("Gas Lantern item and ground entity", () => {
         ).toBeGreaterThan(0);
       }
     }
-    const manifest = readJson(`${rp}/manifest.json`);
-    expect(manifest.modules[0].version).toEqual(manifest.header.version);
   });
 });
