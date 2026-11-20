@@ -11,6 +11,7 @@ import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
+import { dimensionById } from "../../shared/dimensions";
 import { AIR_BLOCK } from "../../shared/identifiers";
 import { showActionBar } from "../../shared/players";
 import {
@@ -18,7 +19,6 @@ import {
   TENT_FLAP_BLOCK,
   TENT_OPEN_STATE,
 } from "../identifiers";
-import { dimensionOf } from "./tentDimension";
 import { tentEntityOf } from "./tentEntity";
 import type { TentFlapStore } from "./tentFlapStore";
 import type { TentLayout } from "./tentLayout";
@@ -64,7 +64,7 @@ export class BedrockTentFlapWorld {
   clearPlayersForClose(tentId: TentId, flap: FlapId): boolean {
     const entry = this.layout.entryOf(tentId);
     if (!entry) return true;
-    const dimension = dimensionOf(entry.dimensionId);
+    const dimension = dimensionById(entry.dimensionId);
     if (!dimension) return true;
     const cells = flapCells(entry.pose, flap);
     const moves = new Map<Player, Vec3>();
