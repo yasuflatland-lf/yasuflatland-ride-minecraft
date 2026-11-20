@@ -20,11 +20,12 @@ import type {
 } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { allDimensions } from "../../shared/dimensions";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import {
   consumeHeld,
+  giveOrDrop,
   isCreative,
   playerById,
   showHitsLeftHint,
@@ -47,14 +48,6 @@ import {
 
 function gasLantern(id: GasLanternId) {
   return entityOfType(world, id, GAS_LANTERN_TYPE);
-}
-
-function spawnLantern(dimension: DimensionId, at: Vec3, yaw: number) {
-  const lantern = world
-    .getDimension(dimension)
-    .spawnEntity(GAS_LANTERN_TYPE, at);
-  lantern.setRotation({ x: 0, y: yaw });
-  return lantern;
 }
 
 export class BedrockGasLanternWorld implements GasLanternWorld {
@@ -110,8 +103,23 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
     return entity !== undefined && consumeHeld(entity, GAS_LANTERN_ITEM, slot);
   }
 
-  spawnGasLantern(dimension: DimensionId, at: Vec3, yaw: number): void {
-    spawnLantern(dimension, at, yaw);
+  refund(player: PlayerId, _slot: number): void {
+    const entity = playerById(player);
+    if (entity) giveOrDrop(entity, [new ItemStack(GAS_LANTERN_ITEM, 1)]);
+  }
+
+  spawnGasLantern(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): GasLanternId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      GAS_LANTERN_TYPE,
+      at,
+      yaw,
+    );
+    return entity && asGasLanternId(entity.id);
   }
 
   topHost(hostType: string, id: string) {
@@ -137,12 +145,20 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
     at: Vec3,
     yaw: number,
     host: string,
-  ): void {
-    const lantern = spawnLantern(dimension, at, yaw);
-    lantern.setDynamicProperty(GAS_LANTERN_HOST_PROPERTY, host);
-    // Entities do not provide a supporting block surface for another entity.
-    lantern.triggerEvent(GAS_LANTERN_HOSTED_EVENT);
-    lantern.clearVelocity();
+  ): GasLanternId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      GAS_LANTERN_TYPE,
+      at,
+      yaw,
+      (lantern) => {
+        lantern.setDynamicProperty(GAS_LANTERN_HOST_PROPERTY, host);
+        // Entities do not provide a supporting block surface for another entity.
+        lantern.triggerEvent(GAS_LANTERN_HOSTED_EVENT);
+        lantern.clearVelocity();
+      },
+    );
+    return entity && asGasLanternId(entity.id);
   }
 
   isLit(id: GasLanternId): boolean | undefined {

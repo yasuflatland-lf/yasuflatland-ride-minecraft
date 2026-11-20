@@ -18,10 +18,11 @@ import type {
   TopRect,
 } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import {
   consumeHeld,
+  giveOrDrop,
   isCreative,
   playerById,
   showHitsLeftHint,
@@ -117,10 +118,25 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
     return entity !== undefined && consumeHeld(entity, DUTCH_OVEN_ITEM, slot);
   }
 
-  spawnDutchOven(dimension: DimensionId, at: Vec3, yaw: number): DutchOvenId {
-    const oven = world.getDimension(dimension).spawnEntity(DUTCH_OVEN_TYPE, at);
-    oven.setRotation({ x: 0, y: yaw });
-    return asDutchOvenId(oven.id);
+  refund(player: PlayerId, _slot: number): void {
+    const entity = playerById(player);
+    if (entity) giveOrDrop(entity, [new ItemStack(DUTCH_OVEN_ITEM, 1)]);
+  }
+
+  spawnDutchOven(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+    setup?: (id: DutchOvenId) => void,
+  ): DutchOvenId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      DUTCH_OVEN_TYPE,
+      at,
+      yaw,
+      setup && ((oven) => setup(asDutchOvenId(oven.id))),
+    );
+    return entity && asDutchOvenId(entity.id);
   }
 
   topHost(hostType: string, id: string) {
@@ -146,8 +162,15 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
     at: Vec3,
     yaw: number,
     host: string,
-  ): void {
-    this.setHost(this.spawnDutchOven(dimension, at, yaw), host, false);
+  ): DutchOvenId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      DUTCH_OVEN_TYPE,
+      at,
+      yaw,
+      (oven) => setOvenHost(oven, host, false),
+    );
+    return entity && asDutchOvenId(entity.id);
   }
 
   firePit(id: FirePitId) {

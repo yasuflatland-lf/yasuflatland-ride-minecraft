@@ -1,4 +1,10 @@
-import { Direction, type Entity, ItemStack, world } from "@minecraft/server";
+import {
+  type Dimension,
+  Direction,
+  type Entity,
+  ItemStack,
+  world,
+} from "@minecraft/server";
 import type { BeachChairFormWorld } from "../../../application/resort/ports/beachChairForm";
 import type { BeachChairRiderWorld } from "../../../application/resort/ports/beachChairRider";
 import type {
@@ -25,7 +31,7 @@ import {
   type PlayerId,
 } from "../../../domain/shared/ids";
 import { safeBlockAt } from "../../shared/blocks";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import {
   consumeHeld,
@@ -200,21 +206,16 @@ export class BedrockBeachChairWorld
     dimension: DimensionId,
     pose: BeachChairPose,
   ): BeachChairId | undefined {
-    let entity: Entity | undefined;
+    const at = beachChairOrigin(pose);
+    const typeId = BEACH_CHAIR;
+    let spawnDimension: Dimension;
     try {
-      entity = world
-        .getDimension(dimension)
-        .spawnEntity(BEACH_CHAIR, beachChairOrigin(pose));
-      entity.setRotation({ x: 0, y: pose.yaw });
-      return asBeachChairId(entity.id);
+      spawnDimension = world.getDimension(dimension);
     } catch {
-      try {
-        entity?.remove();
-      } catch {
-        // A chunk can unload between a failed spawn setter and its rollback.
-      }
       return undefined;
     }
+    const entity = spawnWithRollback(spawnDimension, typeId, at, pose.yaw);
+    return entity && asBeachChairId(entity.id);
   }
   setForm(id: BeachChairId, form: ChairForm): void {
     const entity = this.entity(id);

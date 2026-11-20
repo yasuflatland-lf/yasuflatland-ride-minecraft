@@ -4,12 +4,21 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
 import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
-export interface TableWorld extends HitsLeftFeedback, GroundCellsWorld {
+import type { ItemPayment } from "../../shared/ports/itemPayment";
+
+export interface TableWorld
+  extends HitsLeftFeedback,
+    GroundCellsWorld,
+    ItemPayment {
   /** How many items of any kind stand on the table. */
   itemsOnTable(id: TableId): number;
   showOvenOnTop(player: PlayerId): void;
   hasTableNear(dimensionId: DimensionId, at: Vec3): boolean;
-  spawnTable(dimensionId: DimensionId, at: Vec3, yaw: number): void;
+  spawnTable(
+    dimensionId: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): TableId | undefined;
   dropItem(tableId: TableId): void;
   removeTable(tableId: TableId): void;
 }

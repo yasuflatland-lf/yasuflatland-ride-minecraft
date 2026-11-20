@@ -71,7 +71,7 @@ export class GasLanternActions {
   }
 
   place(cmd: {
-    player: PlayerId;
+    player?: PlayerId;
     dimension: DimensionId;
     block: Vec3;
     yaw: number;

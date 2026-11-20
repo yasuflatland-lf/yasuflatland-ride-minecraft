@@ -1,13 +1,14 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { TableWorld } from "../../../application/camp/ports/table";
-import type { TableId } from "../../../domain/camp/table";
+import { asTableId, type TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, spawnWithRollback } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import {
   consumeHeld,
+  giveOrDrop,
   isCreative,
   playerById,
   showActionBar,
@@ -74,11 +75,23 @@ export class BedrockTableWorld implements TableWorld {
     return player !== undefined && consumeHeld(player, CAMP_TABLE_ITEM, slot);
   }
 
-  spawnTable(dimensionId: DimensionId, at: Vec3, yaw: number): void {
-    const table = world
-      .getDimension(dimensionId)
-      .spawnEntity(CAMP_TABLE_TYPE, at);
-    table.setRotation({ x: 0, y: yaw });
+  refund(player: PlayerId, _slot: number): void {
+    const entity = playerById(player);
+    if (entity) giveOrDrop(entity, [new ItemStack(CAMP_TABLE_ITEM, 1)]);
+  }
+
+  spawnTable(
+    dimensionId: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): TableId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimensionId),
+      CAMP_TABLE_TYPE,
+      at,
+      yaw,
+    );
+    return entity && asTableId(entity.id);
   }
 
   itemsOnTable(id: TableId): number {

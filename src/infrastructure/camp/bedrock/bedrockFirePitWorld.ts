@@ -1,11 +1,13 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { FirePitWorld } from "../../../application/camp/ports/firePit";
-import type { FirePitId } from "../../../domain/camp/firePit";
+import { asFirePitId, type FirePitId } from "../../../domain/camp/firePit";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { spawnWithRollback } from "../../shared/entities";
 import { NAMESPACE } from "../../shared/identifiers";
 import {
   consumeHeld,
+  giveOrDrop,
   isCreative,
   playerById,
   showActionBar,
@@ -74,11 +76,23 @@ export class BedrockFirePitWorld implements FirePitWorld {
     return entity !== undefined && consumeHeld(entity, FIRE_PIT_ITEM, slot);
   }
 
-  spawnFirePit(dimension: DimensionId, at: Vec3, yaw: number): void {
-    world
-      .getDimension(dimension)
-      .spawnEntity(FIRE_PIT_TYPE, at)
-      .setRotation({ x: 0, y: yaw });
+  refund(player: PlayerId, _slot: number): void {
+    const entity = playerById(player);
+    if (entity) giveOrDrop(entity, [new ItemStack(FIRE_PIT_ITEM, 1)]);
+  }
+
+  spawnFirePit(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+  ): FirePitId | undefined {
+    const entity = spawnWithRollback(
+      world.getDimension(dimension),
+      FIRE_PIT_TYPE,
+      at,
+      yaw,
+    );
+    return entity && asFirePitId(entity.id);
   }
 
   isCovered(id: FirePitId): boolean {

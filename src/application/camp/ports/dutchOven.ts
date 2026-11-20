@@ -7,7 +7,12 @@ import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
 export interface DutchOvenWorld extends HitsLeftFeedback, TopHostWorld {
   hasDutchOvenNear(dimension: DimensionId, at: Vec3): boolean;
-  spawnDutchOven(dimension: DimensionId, at: Vec3, yaw: number): DutchOvenId;
+  spawnDutchOven(
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+    setup?: (id: DutchOvenId) => void,
+  ): DutchOvenId | undefined;
   firePit(
     id: FirePitId,
   ): { dimension: DimensionId; at: Vec3; yaw: number } | undefined;
