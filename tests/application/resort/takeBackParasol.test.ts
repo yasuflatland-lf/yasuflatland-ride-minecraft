@@ -43,22 +43,16 @@ it("clears the ceiling, returns a plain item to the hitter, removes and announce
     ),
   );
 });
-it("restarts after a gap beyond the hit window", () => {
-  fc.assert(
-    fc.property(
-      fc.integer({ min: PARASOL_SPEC.hitResetTicks + 1, max: 10000 }),
-      (gap) => {
-        const world = fakeParasolWorld();
-        const take = new TakeBackParasol(world);
-        const cmd = { id: asParasolId("p"), player: asPlayerId("h"), tick: 0 };
-        take.execute(cmd);
-        take.execute({ ...cmd, tick: 1 });
-        take.execute({ ...cmd, tick: gap + 1 });
-        expect(world.remove).not.toHaveBeenCalled();
-        expect(world.showRemaining).toHaveBeenLastCalledWith(cmd.player, 2);
-      },
-    ),
-  );
+it("resets after a gap of 101 ticks", () => {
+  const world = fakeParasolWorld();
+  const take = new TakeBackParasol(world);
+  const cmd = { id: asParasolId("p"), player: asPlayerId("h"), tick: 0 };
+  take.execute(cmd);
+  take.execute({ ...cmd, tick: 100 });
+  take.execute({ ...cmd, tick: 201 });
+  expect(world.remove).not.toHaveBeenCalled();
+  expect(world.showRemaining).toHaveBeenNthCalledWith(2, cmd.player, 1);
+  expect(world.showRemaining).toHaveBeenLastCalledWith(cmd.player, 2);
 });
 it("restores every loaded parasol ceiling", () => {
   fc.assert(

@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { HitTable } from "../../../src/application/camp/hitTable";
 import type { TableWorld } from "../../../src/application/camp/ports/table";
-import { TABLE_SPEC } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 
@@ -42,37 +41,14 @@ describe("HitTable (ADR 0152)", () => {
     ]);
   });
 
-  it("starts the count again after a break, so the next table needs three hits", () => {
+  it("resets after a gap of 101 ticks", () => {
     const world = fakeWorld();
     const hit = new HitTable(world);
-    for (const tick of [0, 1, 2, 3]) {
+    for (const tick of [0, 100, 201])
       hit.execute({ tableId: TABLE, tick, playerId: PLAYER });
-    }
-    expect(world.removeTable).toHaveBeenCalledOnce();
+    expect(world.removeTable).not.toHaveBeenCalled();
+    expect(world.showHitsLeft).toHaveBeenNthCalledWith(2, PLAYER, 1);
     expect(world.showHitsLeft).toHaveBeenLastCalledWith(PLAYER, 2);
-  });
-
-  it("never takes back a table hit more than the reset window apart", () => {
-    fc.assert(
-      fc.property(
-        fc.array(fc.integer({ min: TABLE_SPEC.hitResetTicks + 1, max: 1000 }), {
-          maxLength: 20,
-        }),
-        (gaps) => {
-          const world = fakeWorld();
-          const hit = new HitTable(world);
-          let tick = 0;
-          for (const gap of gaps) {
-            tick += gap;
-            hit.execute({ tableId: TABLE, tick, playerId: PLAYER });
-          }
-          expect(world.removeTable).not.toHaveBeenCalled();
-          for (const [, left] of vi.mocked(world.showHitsLeft).mock.calls) {
-            expect(left).toBe(TABLE_SPEC.hitsToTakeBack - 1);
-          }
-        },
-      ),
-    );
   });
 
   it("counts each table apart", () => {

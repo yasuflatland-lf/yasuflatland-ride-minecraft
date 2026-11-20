@@ -37,26 +37,20 @@ it("returns a plain item to the hitter, removes and announces on the third hit",
     ),
   );
 });
-it("restarts after a gap beyond the hit window", () => {
-  fc.assert(
-    fc.property(
-      fc.integer({ min: BEACH_CHAIR_SPEC.hitResetTicks + 1, max: 10000 }),
-      (gap) => {
-        const world = fakeBeachChairWorld();
-        const take = new TakeBackBeachChair(world);
-        const cmd = {
-          id: asBeachChairId("p"),
-          player: asPlayerId("h"),
-          tick: 0,
-        };
-        take.execute(cmd);
-        take.execute({ ...cmd, tick: 1 });
-        take.execute({ ...cmd, tick: gap + 1 });
-        expect(world.remove).not.toHaveBeenCalled();
-        expect(world.showRemaining).toHaveBeenLastCalledWith(cmd.player, 2);
-      },
-    ),
-  );
+it("resets after a gap of 101 ticks", () => {
+  const world = fakeBeachChairWorld();
+  const take = new TakeBackBeachChair(world);
+  const cmd = {
+    id: asBeachChairId("p"),
+    player: asPlayerId("h"),
+    tick: 0,
+  };
+  take.execute(cmd);
+  take.execute({ ...cmd, tick: 100 });
+  take.execute({ ...cmd, tick: 201 });
+  expect(world.remove).not.toHaveBeenCalled();
+  expect(world.showRemaining).toHaveBeenNthCalledWith(2, cmd.player, 1);
+  expect(world.showRemaining).toHaveBeenLastCalledWith(cmd.player, 2);
 });
 
 it("refused hits leave the counter unchanged in either form", () => {

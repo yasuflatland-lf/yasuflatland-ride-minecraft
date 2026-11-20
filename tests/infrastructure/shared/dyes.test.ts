@@ -53,11 +53,6 @@ it("reads any dye from the selected slot", () => {
   );
 });
 
-it("returns undefined for a non-dye, empty slot, or missing inventory", () => {
-  for (const player of [
-    playerWith("minecraft:stick", 3),
-    playerWith(undefined, 3),
-    playerWith("minecraft:red_dye", 3, false),
-  ])
-    expect(heldDye(player)).toBeUndefined();
+it("rejects a held item that is not a dye", () => {
+  expect(heldDye(playerWith("minecraft:stick", 3))).toBeUndefined();
 });

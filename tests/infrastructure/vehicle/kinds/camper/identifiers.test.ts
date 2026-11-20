@@ -181,8 +181,6 @@ describe("camper identifiers", () => {
 
   it("names the shower-toilet block and its custom component (ADR 0098)", () => {
     expect(CAMPER_SHOWER_TOILET_BLOCK).toBe("yasu_ride:camper_shower_toilet");
-    expect(CAMPER_SHOWER_TOILET_COMPONENT).toBe(
-      "yasu_ride:camper_shower_toilet",
-    );
+    expect(CAMPER_SHOWER_TOILET_COMPONENT).toBe(CAMPER_SHOWER_TOILET_BLOCK);
   });
 });

@@ -1270,79 +1270,6 @@ describe("DriveVehicles stand-ins (ADR 0116)", () => {
   });
 });
 
-const retryTick = fc.record({
-  input: fc.record({
-    moveX: fc.integer({ min: -1, max: 1 }),
-    moveY: fc.integer({ min: -1, max: 1 }),
-    jump: fc.boolean(),
-  }),
-  failure: fc.option(
-    fc.record({
-      id: fc.constant("a"),
-      name: fc.constantFrom(
-        "form",
-        "bank",
-        "gear_down",
-        "gravity_on",
-        "gravity_off",
-      ),
-    }),
-    { nil: undefined },
-  ),
-});
-
-it("converges to the reference entity after every successful tick despite failed sends", () => {
-  fc.assert(
-    fc.property(
-      fc.array(retryTick, { minLength: 60, maxLength: 100 }),
-      (ticks) => {
-        const reference = new FakeWorld();
-        const failing = new FakeWorld();
-        // The restored entity already has car form; its primed latch need not send it.
-        reference.properties.set("a", { form: "car" });
-        failing.properties.set("a", { form: "car" });
-        const log = logger();
-        const good = new DriveVehicles(
-          reference,
-          new InMemoryRepo(),
-          logger(),
-          () => false,
-        );
-        const retry = new DriveVehicles(
-          failing,
-          new InMemoryRepo(),
-          log,
-          () => false,
-        );
-        let throws = 0;
-        const forms = new Set<unknown>();
-        ticks.forEach(({ input, failure }, tick) => {
-          const snap = snapshot("a", {
-            testInput: input,
-            onGround: tick % 40 >= 30,
-          });
-          reference.snapshots = [snap];
-          failing.snapshots = [snap];
-          failing.failRunOn = failure;
-          const before = log.lines.length;
-          good.execute(tick);
-          retry.execute(tick);
-          forms.add(reference.properties.get("a")?.form);
-          if (log.lines.length > before) throws++;
-          else {
-            for (const name of ["form", "bank", "gear_down"]) {
-              expect(failing.properties.get("a")?.[name]).toEqual(
-                reference.properties.get("a")?.[name],
-              );
-            }
-          }
-        });
-        fc.pre(throws > 0 && forms.size > 1);
-      },
-    ),
-  );
-});
-
 it("retries gravity_on after a failed landing send and logs the failure once", () => {
   const world = new FakeWorld();
   const repo = new InMemoryRepo();
@@ -1431,6 +1358,14 @@ describe("entity mirror (ADR 0055)", () => {
     { minLength: 2 * MAX_TICKS, maxLength: 2 * MAX_TICKS },
   );
 
+  const namedFaults = fc.array(
+    fc.option(
+      fc.constantFrom("form", "bank", "gear_down", "gravity_on", "gravity_off"),
+      { nil: undefined },
+    ),
+    { minLength: MAX_TICKS, maxLength: MAX_TICKS },
+  );
+
   it.each(VEHICLE_KINDS)(
     "keeps every entity property equal to the drive's last value once the world stops failing, for %s",
     (kind) => {
@@ -1455,7 +1390,8 @@ describe("entity mirror (ADR 0055)", () => {
           entityAtStart,
           tickSamples(kind, MAX_TICKS),
           faultPlan,
-          (yaw, start, samples, plan) => {
+          namedFaults,
+          (yaw, start, samples, plan, names) => {
             const reference = new FakeWorld();
             const faulty = new FakeWorld();
             reference.properties.set(id, { ...start });
@@ -1467,10 +1403,11 @@ describe("entity mirror (ADR 0055)", () => {
               logger(),
               () => false,
             );
+            const log = logger();
             const failing = new DriveVehicles(
               faulty,
               new InMemoryRepo(),
-              logger(),
+              log,
               () => false,
             );
             // Both drives get the same snapshots and a failed send changes no vehicle
@@ -1506,10 +1443,14 @@ describe("entity mirror (ADR 0055)", () => {
             };
             samples.forEach((s, tick) => {
               faulted = false;
+              const name = names[tick];
+              faulty.failRunOn = name === undefined ? undefined : { id, name };
+              const warnings = log.lines.length;
               tickBoth(s, tick);
-              if (!faulted) expectMirrored();
+              if (!faulted && log.lines.length === warnings) expectMirrored();
             });
             faulty.runFault = undefined;
+            faulty.failRunOn = undefined;
             const last = defined(samples.at(-1), "last sample");
             for (let extra = 0; extra < RESYNC_TICKS; extra++)
               tickBoth(last, samples.length + extra);
