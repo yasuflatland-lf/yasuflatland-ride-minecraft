@@ -549,6 +549,96 @@ export function buildStairs(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildStairsSingle(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(5, 6, 3, f.cell(0, 0, -1));
+    for (const cell of cells) f.block(cell).setType("minecraft:air");
+    const foot = f.cell();
+    f.block(foot).setType("minecraft:stone");
+    await f.tap("block", foot);
+    check(
+      (await f.tap("block", foot)).flow.kind === "baseHeight",
+      "same-cell taps skipped live height",
+    );
+    checkSelection(
+      await f.tap("air"),
+      { min: foot, max: foot },
+      "Single-cell foot",
+    );
+    check(
+      (await f.menu("shape", "stairs")).flow.kind === "stairAim",
+      "single-cell foot did not enter stair aiming",
+    );
+    const hit = f.cell(4, 2, 1);
+    const goal = f.cell(4, 2, 0);
+    try {
+      await f.edit(`aim ${hit.x} ${hit.y} ${hit.z}`);
+      check(
+        (await f.tap("block", hit)).flow.kind === "stairContents",
+        "press did not fix the goal",
+      );
+      const built = await f.menu("stairContents", "stepsOnly");
+      checkSelection(built, { min: goal, max: goal }, "Single-cell goal");
+      for (const cell of cells) {
+        const step =
+          cell.z === foot.z &&
+          cell.y === foot.y + Math.ceil((cell.x - foot.x) / 2);
+        check(
+          f.block(cell).typeId === (step ? "minecraft:stone" : "minecraft:air"),
+          `incorrect one-wide staircase at ${cellKey(cell)}`,
+        );
+      }
+      checkSelection(
+        await f.edit("undo"),
+        { min: foot, max: foot },
+        "Single-cell Stairs Undo",
+      );
+      const aboveFoot = f.block(f.cell(0, 1, 0));
+      const besideRow = f.block(f.cell(0, 1, 1));
+      aboveFoot.setType("minecraft:stone");
+      besideRow.setType("minecraft:stone");
+      const aim = await f.menu("shape", "terrace");
+      check(
+        aim.offered === true && aim.flow.kind === "stairAim",
+        "single-cell foot did not enter Terrace aiming",
+      );
+      check(
+        (await f.tap("block", hit)).flow.kind === "stairContents",
+        "Terrace did not fix the single-cell goal",
+      );
+      const terrace = await f.menu("terrace", "confirm");
+      check(
+        terrace.offered === true &&
+          terrace.message === "editDoneCount" &&
+          terrace.count === 1,
+        "single-cell Terrace did not clear one block",
+      );
+      checkSelection(
+        terrace,
+        { min: goal, max: goal },
+        "Single-cell Terrace goal",
+      );
+      check(aboveFoot.isAir, "single-cell Terrace left a block above the foot");
+      check(
+        besideRow.typeId === "minecraft:stone" &&
+          f.block(foot).typeId === "minecraft:stone",
+        "single-cell Terrace changed the foot or an adjacent column",
+      );
+      checkSelection(
+        await f.edit("undo"),
+        { min: foot, max: foot },
+        "Single-cell Terrace Undo",
+      );
+      check(
+        aboveFoot.typeId === "minecraft:stone",
+        "Terrace Undo did not restore the cleared block",
+      );
+    } finally {
+      await f.edit("aim clear");
+    }
+  });
+}
+
 export function buildStairRoofs(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const material = "minecraft:oak_stairs";

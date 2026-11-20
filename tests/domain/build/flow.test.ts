@@ -30,6 +30,7 @@ import {
   isShapeEntryOffered,
   shapeMenu,
   stairContentsMenu,
+  terraceMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
@@ -726,7 +727,10 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
     { id: "stepsOnly" },
     { id: "cancel" },
   ]);
-  for (const to of [from, { ...from, y: 7 }, { ...from, x: 0, z: 2 }]) {
+  for (const to of [
+    { ...from, y: 7 },
+    { ...from, x: 0, z: 2 },
+  ]) {
     const other = confirmEndpointHeight(tapAir(point, to));
     expect(isShapeEntryOffered(other, "stairs")).toBe(false);
     expect(chooseStairs(other, "stairs")).toBe(other);
@@ -741,6 +745,62 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
     "fillBelow",
     "cancel",
   ]);
+});
+
+it("offers Stairs and Terrace after Build shape for a single-cell box only when both taps match it", () => {
+  fc.assert(
+    fc.property(cell, (foot) => {
+      const point = tapBlock(idle, dim, foot, stone);
+      const selected = confirmEndpointHeight(tapBlock(point, dim, foot, stone));
+      if (selected.kind !== "selected")
+        throw new Error("Expected a selected cell");
+      expect(shapeMenu(selected).map(({ id }) => id)).toEqual([
+        "adjustHeight",
+        "cut",
+        "removeAbove",
+        "buildShape",
+        "stairs",
+        "terrace",
+        "copy",
+        "fillBelow",
+        "cancel",
+      ]);
+      const next = { ...foot, x: foot.x + 1 };
+      for (const flow of [
+        { ...selected, from: next },
+        { ...selected, to: next },
+        { ...selected, from: next, to: next },
+        {
+          ...selected,
+          selection: selectionOf(
+            dim,
+            boxWithHeight(boxOf(foot, foot), 2),
+            stone,
+          ),
+        },
+      ]) {
+        for (const op of ["stairs", "terrace"] as const) {
+          expect(isShapeEntryOffered(flow, op)).toBe(false);
+          expect(chooseStairs(flow, op)).toBe(flow);
+        }
+      }
+    }),
+  );
+});
+
+it("opens Terrace confirmation from a single-cell foot", () => {
+  const foot = { x: 2, y: 5, z: 1 };
+  const point = tapBlock(idle, dim, foot, stone);
+  const selected = confirmEndpointHeight(tapBlock(point, dim, foot, stone));
+  const aim = chooseStairs(selected, "terrace");
+  if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
+  expect(aim.op).toBe("terrace");
+  expect(aim.row).toEqual({ min: foot, max: foot, y: 5, along: undefined });
+  const staircase = staircaseToward(aim.row, { x: 6, y: 7, z: 2 });
+  if (!staircase) throw new Error("Expected staircase");
+  const contents = fixStairGoal(aim, staircase);
+  expect(terraceMenu(contents)).toEqual([{ id: "confirm" }, { id: "cancel" }]);
+  expect(stairContentsMenu(contents)).toEqual([]);
 });
 
 it("uses the rotated selection as the stair foot and keeps the tapped point for Cancel", () => {

@@ -1,4 +1,6 @@
 import type { Cell } from "../../shared/cells";
+import { sub3 } from "../../shared/vec";
+import { dominantHorizontalAxis } from "../axis";
 import type { Taps } from "../flow/flow";
 import { type Facing, facingVector } from "../rotation/facing";
 import type { StairRow } from "./row";
@@ -14,7 +16,12 @@ export function staircaseToward(
   row: StairRow,
   hit: Cell,
 ): Staircase | undefined {
-  const axis = row.along === "x" ? "z" : "x";
+  const axis =
+    row.along === undefined
+      ? dominantHorizontalAxis(sub3(hit, row.min))
+      : row.along === "x"
+        ? "z"
+        : "x";
   const offset = hit[axis] - row.min[axis];
   const run = Math.abs(offset);
   const rise = Math.max(-run, Math.min(run, hit.y - row.y));

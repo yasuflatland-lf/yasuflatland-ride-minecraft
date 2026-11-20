@@ -64,5 +64,7 @@ export function stairCellCount(
   let columnCount = 0;
   for (const { start, end, min, max } of treadRanges(s, roles))
     columnCount += (end - start + 1) * (max - min + 1);
-  return columnCount * (s.row.max[s.row.along] - s.row.min[s.row.along] + 1);
+  const { along, min, max } = s.row;
+  const width = along === undefined ? 1 : max[along] - min[along] + 1;
+  return columnCount * width;
 }

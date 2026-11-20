@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, sameCell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
@@ -296,18 +296,31 @@ export function chooseHeighted(
   });
 }
 
+export function selectedStairRow(
+  flow: Extract<BuildFlow, { kind: "selected" }>,
+): StairRow | undefined {
+  const row = stairRowOf(cornerTaps(flow.selection.box));
+  if (!row) return undefined;
+  if (row.along === undefined) {
+    return sameCell(flow.from, row.min) && sameCell(flow.to, row.min)
+      ? row
+      : undefined;
+  }
+  // Rotate can change the row axis while preserving the original taps.
+  return stairRowOf(flow)?.along ? row : undefined;
+}
+
 export function chooseStairs(flow: BuildFlow, op: StairOp): BuildFlow {
   if (flow.kind !== "selected") return flow;
   const taps = { from: flow.from, to: flow.to };
-  const tappedRow = stairRowOf(taps);
-  if (!tappedRow) return flow;
+  const row = selectedStairRow(flow);
+  if (!row) return flow;
   const { dimensionId, material, box } = flow.selection;
   return Object.freeze({
     kind: "stairAim",
     op,
     dimensionId,
-    // The foot follows the selection after Rotate, while Cancel needs the original tap (ADR 0254).
-    row: stairRowOf(cornerTaps(box)) ?? tappedRow,
+    row,
     taps,
     material,
     selectionBefore: box,
