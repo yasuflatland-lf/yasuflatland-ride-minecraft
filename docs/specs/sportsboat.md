@@ -51,7 +51,7 @@
 - Agreement: Accepted
 - Basis: [0087](../adr/0087-sports-boat-spec-table.md) Decision, "It is frozen and imports nothing"; [0051](../adr/0051-sports-boat.md) Decision, "Store these in its own profile (0050)"
 - Implementation: `src/domain/vehicle/kinds/sportsboat/spec.ts` (`SPORTSBOAT_SPEC`), `src/domain/vehicle/kinds/sportsboat/profile.ts` (`SPORTSBOAT_PROFILE`, `SPORTSBOAT_MOTION`), `src/domain/vehicle/kinds/sportsboat/drive.ts`, `src/domain/vehicle/kinds/sportsboat/attitude.ts`, `src/domain/vehicle/kinds/sportsboat/deck.ts`, `src/domain/vehicle/kinds/sportsboat/entity.ts`
-- Verification: `tests/domain/vehicle/kinds/sportsboat/spec.test.ts` "freezes the table and every object derived from it", "reads every motion limit from the spec", "reads the ram reach, water drag, attitude and deck from the spec"; `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "is the sports boat's drive and keeps no form, gear, or bank whatever form it is given". Tests were read, not run for this spec.
+- Verification: `tests/domain/vehicle/profile.test.ts` "keeps the frozen vehicle tables and their frozen descendants"; `tests/domain/vehicle/kinds/sportsboat/spec.test.ts` "reads every motion limit from the spec", "reads the ram reach, water drag, attitude and deck from the spec"; `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "is the sports boat's drive and keeps no form, gear, or bank whatever form it is given". Tests were read, not run for this spec.
 
 ### Hull collision, paints, ram and beams
 

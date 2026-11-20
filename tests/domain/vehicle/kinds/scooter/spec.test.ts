@@ -18,5 +18,4 @@ it("uses ground speed on the surface with probes inside its narrow body", () => 
   expect(SCOOTER_SPEC.footprint).toBeGreaterThanOrEqual(
     Math.hypot(SCOOTER_SPEC.bodyFront, SCOOTER_SPEC.bodyHalfWidth),
   );
-  expect(Object.isFrozen(SCOOTER_SPEC)).toBe(true);
 });

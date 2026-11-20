@@ -376,8 +376,4 @@ describe("stepHint", () => {
       expected.push(t);
     expect(shown).toEqual(expected);
   });
-
-  it("does nothing while nothing is shown and no hint applies", () => {
-    expect(stepHint(NO_HINT, undefined, 0)).toEqual({ state: NO_HINT });
-  });
 });

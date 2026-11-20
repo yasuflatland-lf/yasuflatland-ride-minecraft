@@ -65,7 +65,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0121](../adr/0121-doored-storage-in-the-camper.md) Decision / A definition per unit, "The units' furniture rows come last in `CAMPER_FURNITURE`, in `CAMPER_STORAGE` order."
 - Basis: [0182](../adr/0182-a-bunk-bed-in-the-parked-camper.md) Decision, "a furniture row may carry an optional `spawn` cell"
 - Implementation: `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/dooredStorage.ts`; `src/domain/vehicle/kinds/camper/roomCells.ts`; `src/domain/vehicle/kinds/camper/decorCells.ts`; `src/domain/vehicle/kinds/camper/storagePlates.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/furniture.test.ts` "keeps slots off furniture that lays a block", "gives each cell to at most one furniture row", and "keeps the saved slot ids, cells, and heights" check table invariants and current data. `tests/domain/vehicle/kinds/camper/dooredStorage.test.ts` "builds a unit's furniture row from its compartments and their ends, door by door" checks storage rows. Not verified: furniture appearance in game.
+- Verification: `tests/domain/vehicle/kinds/camper/furniture.test.ts` "keeps slots off furniture that lays a block", "gives each cell to at most one furniture row", and "keeps the saved slot ids and cells" check table invariants and current data. `tests/domain/vehicle/kinds/camper/dooredStorage.test.ts` "builds a unit's furniture row from its compartments and their ends, door by door" checks storage rows. Not verified: furniture appearance in game.
 
 ### Soft furnishings
 
@@ -100,7 +100,7 @@ Room use cases obtain the required door, bed, shower, decor and storage methods 
 - Basis: [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md) Decision / Slots, "The table gets two slots across the camper"
 - Basis: [0114](../adr/0114-open-the-camper-wall-cabinet.md) Decision / Slots and presses, "The wall cabinet is a furniture row, listed last, with four slots"
 - Implementation: `src/domain/vehicle/kinds/camper/furniture.ts`; `src/domain/vehicle/kinds/camper/decor.ts`; `src/domain/vehicle/kinds/camper/decorPlacing.ts`; `src/domain/vehicle/kinds/camper/campingGear.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/furniture.test.ts` "keeps the saved slot ids, cells, and heights" checks ids. `tests/domain/vehicle/kinds/camper/decorPlacing.test.ts` "accepts standing items on fitting standing slots and hanging items only on the hook" checks classes. `tests/packs/campingGear.test.ts` "lifts every hanging item to the top of the hook cell" checks lift. `tests/packs/camperDecorFit.test.ts` checks the dashboard clearance table and slot geometry. Not verified: placement and hanging appearance on devices.
+- Verification: `tests/domain/vehicle/kinds/camper/furniture.test.ts` "keeps the saved slot ids and cells" checks ids. `tests/domain/vehicle/kinds/camper/decorPlacing.test.ts` "accepts standing items on fitting standing slots and hanging items only on the hook" checks classes. `tests/packs/campingGear.test.ts` "lifts every hanging item to the top of the hook cell" checks lift. `tests/packs/camperDecorFit.test.ts` checks the dashboard clearance table and slot geometry. Not verified: placement and hanging appearance on devices.
 
 ### Furniture and individual decor block shapes
 

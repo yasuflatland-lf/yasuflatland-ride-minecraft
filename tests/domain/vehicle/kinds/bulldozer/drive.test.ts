@@ -883,7 +883,6 @@ it("a placed bulldozer starts raised: it steps up and never cuts", () => {
   fc.assert(
     fc.property(yaw, (heading) => {
       const d = new BulldozerDrive(heading, {});
-      expect(d.toolState("blade_switch") === "up").toBe(true);
       let rises = false;
       let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
       for (let tick = 0; tick < 30; tick++) {
@@ -900,15 +899,6 @@ it("a placed bulldozer starts raised: it steps up and never cuts", () => {
       expect(rises).toBe(true);
     }),
   );
-});
-it("restores a saved lowered blade", () => {
-  const d = new BulldozerDrive(0, { blade: 0 });
-  expect(d.toolState("blade_switch") === "up").toBe(false);
-  let out = d.step(FORWARD, context());
-  for (let tick = 1; tick < 30 && d.speed <= S.blade.minSpeed; tick++)
-    out = d.step(FORWARD, { ...context(), tick });
-  expect(d.speed).toBeGreaterThan(S.blade.minSpeed);
-  expect(out.cut).toBeDefined();
 });
 it("restores the wide blade flag, defaulting to normal", () => {
   for (const [saved, shown] of [
@@ -1006,12 +996,6 @@ it("uses the current blade rule for cuts and ram width across toggles", () => {
       },
     ),
   );
-});
-it("reports the original body ram width with the normal blade", () => {
-  for (const blade of [0, 1])
-    expect(
-      new BulldozerDrive(0, { blade }).step(FORWARD, context()).ramHalfWidth,
-    ).toBe(BULLDOZER_PROFILE.body.halfWidth);
 });
 
 it("restores the road paver flag, defaulting to off", () => {

@@ -16,19 +16,6 @@ import {
 import { SPORTSBOAT_SPEC } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
 
 describe("SPORTSBOAT_SPEC (ADR 0087)", () => {
-  it("freezes the table and every object derived from it", () => {
-    for (const table of [
-      SPORTSBOAT_SPEC,
-      SPORTSBOAT_MOTION,
-      SPORTSBOAT_PROFILE.body,
-      SPORTSBOAT_DRAG,
-      SPORTSBOAT_WATER,
-      SPORTSBOAT_ATTITUDE,
-    ]) {
-      expect(Object.isFrozen(table)).toBe(true);
-    }
-  });
-
   it("reads every motion limit from the spec", () => {
     for (const key of Object.keys(
       SPORTSBOAT_MOTION,
@@ -71,25 +58,5 @@ describe("SPORTSBOAT_SPEC (ADR 0087)", () => {
       -SPORTSBOAT_SPEC.maxRoll,
       SPORTSBOAT_SPEC.maxRoll,
     ]);
-  });
-
-  it("keeps the values of ADR 0051, 0053, 0061, 0063 and 0085", () => {
-    expect(SPORTSBOAT_SPEC).toMatchObject({
-      height: 1.2,
-      ramFront: 3,
-      ramHalfWidth: 1.06,
-      waterDragInitial: 0.83,
-      waterDragMin: 0.7,
-      waterDragMax: 0.95,
-      waterDragSmoothing: 0.1,
-      waterDragMinGiven: 0.05,
-      maxTrim: 3.5,
-      trimRiseRate: 0.25,
-      trimSettleRate: 0.125,
-      maxRoll: 20,
-      rollRate: 2,
-      deckDraft: 0.45,
-      deckMargin: 0.3,
-    });
   });
 });

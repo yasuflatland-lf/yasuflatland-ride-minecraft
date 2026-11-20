@@ -788,34 +788,6 @@ it("restores each new standing item in every accepting standing slot", () => {
   );
 });
 
-it("retains items when a stowed entry shares a placed slot on restore", () => {
-  const entries = [
-    { slot: "wall_cabinet_rear", item: "potted_plant" },
-    { slot: "dashboard_center", item: "macrame_planter" },
-    { slot: "ceiling_hook", item: "potted_plant" },
-  ];
-  const drive = new CamperDrive(0, { dockDecor: JSON.stringify(entries) });
-  const restored = drive.decor();
-  const placed = restored.filter(
-    (e, i) =>
-      !restored
-        .slice(0, i)
-        .some((previous) => placeOf(previous.slot) === placeOf(e.slot)),
-  );
-  expect(restored).toHaveLength(3);
-  expect(new Set(placed.map((e) => e.slot)).size).toBe(placed.length);
-  expect(restored.map((e) => e.item).sort()).toEqual(
-    entries.map((e) => e.item).sort(),
-  );
-  const roundTrip = new CamperDrive(0, { dockDecor: JSON.stringify(restored) });
-  expect(
-    roundTrip
-      .decor()
-      .map((e) => e.item)
-      .sort(),
-  ).toEqual(entries.map((e) => e.item).sort());
-});
-
 it("stows dashboard items unchanged when clearance refuses them and the hook is taken", () => {
   const entries = [
     { slot: "dashboard_center", item: "macrame_planter" },
@@ -858,6 +830,8 @@ it("never loses a saved item when restoring (ADR 0103)", () => {
       const items = (list: readonly { item: string }[]) =>
         list.map((e) => e.item).sort();
       expect(items(d)).toEqual(items(parsed));
+      const roundTrip = new CamperDrive(0, { dockDecor: JSON.stringify(d) });
+      expect(items(roundTrip.decor())).toEqual(items(parsed));
       // A known slot keeps its entry unless an earlier entry took its place: its cell, or
       // its own end of a shelf board or the table (ADR 0107, 0108).
       for (const [i, e] of parsed.entries()) {
