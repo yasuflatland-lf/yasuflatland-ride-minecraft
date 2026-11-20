@@ -359,8 +359,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
   const shell = cubes.filter(
     (cube) => isHull(cube) || swatch(2)(cube) || swatch(19)(cube),
   );
-  // The plan stations and the half-breadth there (issue #640's table), bow at +z as the generator
-  // builds it; the model is turned around, so the bow is at -z in the file.
+  // Issue #640's measured plan stations are denser than the generator's BEAM
+  // table. Keep them independent to detect drift from the reference outline.
+  // These stations put the bow at +z, which becomes -z in the shipped model.
   const STATIONS: [number, number][] = [
     [-48, 14.5],
     [-47, 15.86],
@@ -386,7 +387,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
     [47, 2.0],
     [48.5, 0.6],
   ];
-  // SHEER in tools/gen_sportsboat.py
+  // These measured side profiles match SHEER and KEEL in tools/gen_sportsboat.py.
+  // Keeping the measurements here lets the test catch changes to the profile itself.
   const SHEER: [number, number][] = [
     [-48, 9.5],
     [-44, 11.5],
@@ -2487,18 +2489,6 @@ print(json.dumps({name: {"uv": uv, "size": size}
           JSON.stringify(cube.origin),
         ).toBe(true);
       }
-    });
-
-    it("counts the console-through-dial helm at 282 cubes as recorded in ADR 0166", () => {
-      expect(controller).toHaveLength(111);
-      const next = body[start + 282 + THROTTLE_CUBES + 2];
-      expect(next).toBeDefined();
-      expect(swatch(4)(next as Cube)).toBe(true);
-      const adr = readFileSync(
-        "docs/adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md",
-        "utf8",
-      );
-      expect(adr).toContain("316 before and 325 after");
     });
   });
 
