@@ -101,26 +101,6 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     expect(bluish).toEqual([]);
   });
 
-  it("lists only the Icebreaker Switch in a group after Resort Gear, with the switch as its icon", () => {
-    const categories = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories;
-    const groups = categories.find(
-      (c: { category_name: string }) => c.category_name === "items",
-    ).groups;
-    const names = groups.map(
-      (g: { group_identifier: { name: string } }) => g.group_identifier.name,
-    );
-    expect(names.indexOf(GROUP)).toBe(names.indexOf(id("resort_gear")) + 1);
-    expect(groups[names.indexOf(GROUP)]).toEqual({
-      group_identifier: { icon: SWITCH, name: GROUP },
-      items: [SWITCH],
-    });
-    for (const category of categories)
-      for (const group of category.groups)
-        expect(group.items).not.toContain(BOX);
-  });
-
   it("crafts the switch from a lever, an iron ingot, and packed ice, unlocked from the start, and gives the box no recipe", () => {
     const recipe = read(
       `${BP}/recipes/yasu_ride/icebreaker_switch.recipe.json`,

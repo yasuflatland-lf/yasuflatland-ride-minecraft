@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BEACH_CHAIR_SPEC } from "../../src/domain/resort/spec";
 import { readRgbaPng } from "../support/png";
-import { RESORT_CATALOG_ITEMS_JSON } from "../support/resortGear";
 
 const BP = "packs/yasu_ride_bp/";
 const RP = "packs/yasu_ride_rp/";
@@ -337,9 +336,7 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
     expect(rc.textures).toEqual(["Texture.default"]);
   });
 
-  it("lists the chair after the parasol and supplies its plank-stick-iron recipe, names, preview, and icon", () => {
-    const catalog = read(`${BP}item_catalog/crafting_item_catalog.json`);
-    expect(JSON.stringify(catalog)).toContain(RESORT_CATALOG_ITEMS_JSON);
+  it("supplies the plank-stick-iron recipe, names, preview, and icon", () => {
     const item = read(`${BP}items/yasu_ride/beach_chair_item.item.json`)[
       "minecraft:item"
     ];

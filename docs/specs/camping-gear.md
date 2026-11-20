@@ -60,7 +60,7 @@
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision, Resort Gear catalog; [0144](../adr/0144-split-camping-gear-into-inside-and-outside-groups.md) Decision, "Keep `OUTSIDE_IDS` separate from `GEAR_IDS`"; [0173](../adr/0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) Decision 7, "The group icon stays `low_chair_item`."
 - Implementation: `tools/gen_item_catalog.py`; `tools/camping_gear.json`; `packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
-- Verification: `tests/packs/campingGear.test.ts` "lists the inside, outside, resort, sports boat, and building groups in order" asserts the current complete catalog; "keeps outside items separate from decor and each catalog item unique" checks separation and old-group removal. Not verified: generator rejection cases by those assertions, and the client inventory order (manual-test C159/C160 have no recorded result).
+- Verification: `tests/packs/creativeCatalog.test.ts` "lists all five creative groups and their items in order" checks the complete catalog, including the separate inside and outside groups and unique entries. Not verified: generator rejection cases by those assertions, and the client inventory order (manual-test C159/C160 have no recorded result).
 
 ### Inside gear dimensions
 
@@ -96,7 +96,7 @@
 - Agreement: Proposed
 - Basis: [0144](../adr/0144-split-camping-gear-into-inside-and-outside-groups.md) Decision, "never enter the box."; [0173](../adr/0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) Decision 2, "`LEGACY_GEAR_IDS = { lava_lamp: null, oil_lamp: null, lantern: null }`."
 - Implementation: `src/domain/vehicle/kinds/camper/campingGear.ts`; `src/domain/vehicle/kinds/camper/drive.ts` (constructor saved-decor decode); `src/infrastructure/vehicle/bedrock/identifiers.ts` (`GIFT_CONTENTS`, `GIFT_LORE`); `tools/camping_gear.json`; `packs/yasu_ride_bp/items/yasu_ride`
-- Verification: `tests/packs/campingGearBox.test.ts` "holds the gear items of the spec, in spec order" checks catalog order and item existence; "names the box and the lore line in English" checks lore. `tests/packs/campingGear.test.ts` "lists the items in the contract's order" checks catalog contents. `tests/domain/vehicle/kinds/camper/campingGear.test.ts` "drops lava_lamp, oil_lamp and lantern" checks the legacy decoder. Not verified by these tests: a saved world restoring removed decor without refunds, or the appearance of unknown held items on a client.
+- Verification: `tests/packs/campingGearBox.test.ts` "holds the gear items of the spec, in spec order" checks gift order and item existence; "names the box and the lore line in English" checks lore. `tests/packs/creativeCatalog.test.ts` checks catalog contents. `tests/domain/vehicle/kinds/camper/campingGear.test.ts` "drops lava_lamp, oil_lamp and lantern" checks the legacy decoder. Not verified by these tests: a saved world restoring removed decor without refunds, or the appearance of unknown held items on a client.
 
 ### Chair placement by kind
 
@@ -204,7 +204,7 @@
 - Agreement: Proposed
 - Basis: [0168](../adr/0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) Rules 1, "the ground (the top of a block outside vehicle space), a Fire Pit"; [0185](../adr/0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) Decision 12, "Keep its single fixed oven spot and today's placement."
 - Implementation: `src/application/camp/dutchOven.ts`; `src/infrastructure/camp/bedrock/bedrockDutchOvenWorld.ts`; `packs/yasu_ride_bp/entities/yasu_ride/dutch_oven.se.json`; `packs/yasu_ride_bp/items/yasu_ride/dutch_oven_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/dutch_oven_item.recipe.json`
-- Verification: `tests/application/camp/dutchOven.test.ts` "places on the grill, consumes outside Creative, and covers the pit" and "refuses missing or covered pits, blocked clearance, vehicle space, and a changed item"; `tests/packs/dutchOven.test.ts` "crafts six iron and one coal into a stackable outside item after the fire pit". `tests/packs/dutchOvenHost.test.ts` "anchors hosted ovens and restores collision and gravity on host loss" checks event definitions only, not the current host-loss behavior. Not verified: placement and crafting on devices; `dutch_oven_on_pit` was not run here.
+- Verification: `tests/application/camp/dutchOven.test.ts` "places on the grill, consumes outside Creative, and covers the pit" and "refuses missing or covered pits, blocked clearance, vehicle space, and a changed item"; `tests/packs/dutchOven.test.ts` "crafts six iron and one coal into a stackable outside item". `tests/packs/dutchOvenHost.test.ts` "anchors hosted ovens and restores collision and gravity on host loss" checks event definitions only, not the current host-loss behavior. Not verified: placement and crafting on devices; `dutch_oven_on_pit` was not run here.
 
 ### Oven lid state, cooldown, and persistence
 

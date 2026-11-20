@@ -80,7 +80,7 @@ it("connects the oven to the synced simmer state, plain lid, stew, and PBR atlas
     expect(existsSync(`${rp}/${path}`)).toBe(true);
 });
 
-it("crafts six iron and one coal into a stackable outside item after the fire pit", () => {
+it("crafts six iron and one coal into a stackable outside item", () => {
   const recipe = readJson(
     `${bp}/recipes/yasu_ride/dutch_oven_item.recipe.json`,
   )["minecraft:recipe_shaped"];
@@ -98,17 +98,6 @@ it("crafts six iron and one coal into a stackable outside item after the fire pi
   ];
   expect(item.components["minecraft:max_stack_size"]).toBe(16);
   expect(item.components["minecraft:icon"]).toBe("yasu_ride_dutch_oven_item");
-  const categories = readJson(`${bp}/item_catalog/crafting_item_catalog.json`)[
-    "minecraft:crafting_items_catalog"
-  ].categories;
-  const group = categories
-    .flatMap((c: { groups: unknown[] }) => c.groups)
-    .find((g: { items: string[] }) =>
-      g.items.includes("yasu_ride:fire_pit_item"),
-    );
-  expect(group.items[group.items.indexOf("yasu_ride:fire_pit_item") + 1]).toBe(
-    "yasu_ride:dutch_oven_item",
-  );
   for (const lang of readdirSync(`${rp}/texts`).filter((f) =>
     f.endsWith(".lang"),
   )) {

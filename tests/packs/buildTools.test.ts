@@ -193,31 +193,4 @@ describe("Building Tools recipes and names", () => {
     expect(values.get(`tile.${BLOCK}.name`)).toBe(names[BLOCK]);
     expect(values.get(GROUP)).toBe(names[GROUP]);
   });
-
-  it("places the group after the sports boat equipment, with the crane as icon", () => {
-    const groups = read(
-      "packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json",
-    )["minecraft:crafting_items_catalog"].categories.find(
-      (c: { category_name: string }) => c.category_name === "items",
-    ).groups;
-    const names = groups.map(
-      (g: { group_identifier: { name: string } }) => g.group_identifier.name,
-    );
-    expect(names.at(-1)).toBe(GROUP);
-    expect(names.at(-2)).toBe("yasu_ride:sportsboat_equipment");
-    expect(groups.at(-1)).toEqual({
-      group_identifier: { icon: WAND, name: GROUP },
-      items: [
-        WAND,
-        ROTATE,
-        PLACE,
-        UNDO,
-        "yasu_ride:blade_switch",
-        "yasu_ride:wide_blade_switch",
-        "yasu_ride:road_paver_switch",
-        TOOL,
-        BLOCK,
-      ],
-    });
-  });
 });

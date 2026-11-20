@@ -20,6 +20,3 @@ export const RESORT_GEAR: readonly ResortGearPiece[] = JSON.parse(
 export const RESORT_CATALOG_ITEMS: readonly string[] = RESORT_GEAR.map(
   (piece) => `yasu_ride:${piece.item}`,
 );
-
-/** The catalog items as the compact JSON text `JSON.stringify` writes. */
-export const RESORT_CATALOG_ITEMS_JSON = `"items":${JSON.stringify(RESORT_CATALOG_ITEMS)}`;

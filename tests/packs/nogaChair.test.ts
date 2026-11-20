@@ -342,7 +342,7 @@ describe("Noga Chair (ADR 0169)", () => {
     );
   });
 
-  it("has a stackable item and its own icon, directly after the Low Chair", () => {
+  it("has a stackable item and its own icon", () => {
     const item = read(`${BP}/items/yasu_ride/noga_chair_item.item.json`)[
       "minecraft:item"
     ];
@@ -353,16 +353,6 @@ describe("Noga Chair (ADR 0169)", () => {
       .yasu_ride_noga_chair_item.textures;
     expect(icon).toBe("textures/items/yasu_ride/noga_chair_item");
     expect(existsSync(`${RP}/${icon}.png`)).toBe(true);
-    const groups = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories.flatMap((c: { groups: { items: string[] }[] }) => c.groups);
-    const group = groups.find((g: { items: string[] }) =>
-      g.items.includes(profile.itemId),
-    );
-    expect(group.items.slice(0, 2)).toEqual([
-      CHAIR_KINDS.low_chair.itemId,
-      profile.itemId,
-    ]);
   });
 
   it("uses a distinct wool-and-iron recipe", () => {

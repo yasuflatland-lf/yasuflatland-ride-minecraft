@@ -128,7 +128,7 @@ describe("Sofa (Double) pack contract", () => {
     );
   });
 
-  it("supplies an unstackable item, a unique plank-stick-wool recipe and catalog position", () => {
+  it("supplies an unstackable item and a plank-stick-wool recipe", () => {
     const item = read(`${BP}/items/yasu_ride/sofa_double_item.item.json`)[
       "minecraft:item"
     ];
@@ -146,16 +146,6 @@ describe("Sofa (Double) pack contract", () => {
       W: { tag: "minecraft:wool" },
       S: { item: "minecraft:stick" },
     });
-    const groups = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories[0].groups;
-    const group = groups.find(
-      (g: { group_identifier: { name: string } }) =>
-        g.group_identifier.name === "yasu_ride:resort_gear",
-    );
-    expect(group.items.indexOf(ids.item)).toBe(
-      group.items.indexOf("yasu_ride:sofa_single_item") + 1,
-    );
     expect(
       read(`${RP}/textures/item_texture.json`).texture_data
         .yasu_ride_sofa_double,

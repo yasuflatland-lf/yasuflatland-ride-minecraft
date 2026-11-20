@@ -27,7 +27,7 @@ import {
 import { defined } from "../support/defined";
 import { readTableRows } from "../support/markdown";
 import { startPythonWorker } from "../support/pythonWorker";
-import { RESORT_CATALOG_ITEMS, RESORT_GEAR } from "../support/resortGear";
+import { RESORT_GEAR } from "../support/resortGear";
 
 // tools/camping_gear.json is the one list of camping gear; these tests tie
 // it to the generated block models, the atlas, the previews, and the docs
@@ -1114,105 +1114,6 @@ describe("camping gear blocks and items (ADR 0093)", () => {
           "minecraft:material_instances"
         ]["*"]?.texture,
       ).toBe(ATLAS_KEY);
-  });
-
-  it("lists the inside, outside, resort, sports boat, and building groups in order", () => {
-    const items = [
-      "yasu_ride:camping_gear_box",
-      ...SPEC.map((g) => `yasu_ride:${g.id}`),
-    ];
-    expect(items).toHaveLength(SPEC.length + 1);
-    expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
-      format_version: "1.21.60",
-      "minecraft:crafting_items_catalog": {
-        categories: [
-          {
-            category_name: "items",
-            groups: [
-              {
-                group_identifier: {
-                  icon: "yasu_ride:camping_gear_box",
-                  name: "yasu_ride:camping_gear_inside",
-                },
-                items,
-              },
-              {
-                group_identifier: {
-                  icon: "yasu_ride:low_chair_item",
-                  name: "yasu_ride:camping_gear_outside",
-                },
-                items: [
-                  "yasu_ride:low_chair_item",
-                  "yasu_ride:noga_chair_item",
-                  "yasu_ride:tent_item",
-                  "yasu_ride:roof_tent_item",
-                  "yasu_ride:camp_table_item",
-                  "yasu_ride:fire_pit_item",
-                  "yasu_ride:dutch_oven_item",
-                  "yasu_ride:gas_lantern_item",
-                ],
-              },
-              {
-                group_identifier: {
-                  icon: RESORT_CATALOG_ITEMS[0],
-                  name: "yasu_ride:resort_gear",
-                },
-                items: RESORT_CATALOG_ITEMS,
-              },
-              {
-                group_identifier: {
-                  icon: "yasu_ride:icebreaker_switch",
-                  name: "yasu_ride:sportsboat_equipment",
-                },
-                items: ["yasu_ride:icebreaker_switch"],
-              },
-              {
-                group_identifier: {
-                  icon: "yasu_build:selection_wand",
-                  name: "yasu_build:building_tools",
-                },
-                items: [
-                  "yasu_build:selection_wand",
-                  "yasu_build:paste_rotate",
-                  "yasu_build:paste_place",
-                  "yasu_build:build_undo",
-                  "yasu_ride:blade_switch",
-                  "yasu_ride:wide_blade_switch",
-                  "yasu_ride:road_paver_switch",
-                  "yasu_build:warp_tool",
-                  "yasu_build:warp_block",
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    });
-  });
-
-  it("keeps outside items separate from decor and each catalog item unique", () => {
-    const groups = readJson(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories[0].groups as {
-      group_identifier: { name: string };
-      items: string[];
-    }[];
-    const itemsOf = (name: string) =>
-      defined(
-        groups.find((g) => g.group_identifier.name === `yasu_ride:${name}`),
-        name,
-      ).items.map((item) => item.slice("yasu_ride:".length));
-    const specIds = SPEC.map((g) => g.id);
-    expect(itemsOf("camping_gear_inside").slice(1)).toEqual(CAMPING_GEAR_IDS);
-    for (const id of itemsOf("camping_gear_outside")) {
-      expect(specIds).not.toContain(id);
-      expect(CAMPING_GEAR_IDS).not.toContain(id);
-    }
-    const items = groups.flatMap((g) => g.items);
-    expect(new Set(items).size).toBe(items.length);
-    expect(groups.map((g) => g.group_identifier.name)).not.toContain(
-      "yasu_ride:camping_gear",
-    );
   });
 
   it.each(["en_US", "ja_JP"])(

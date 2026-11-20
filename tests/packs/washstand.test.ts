@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { FURNITURE_SPEC } from "../../src/domain/resort/furniture";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
 import { readRgbaPng } from "../support/png";
-import { RESORT_CATALOG_ITEMS_JSON, RESORT_GEAR } from "../support/resortGear";
+import { RESORT_GEAR } from "../support/resortGear";
 
 const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
@@ -361,9 +361,6 @@ print(json.dumps({'lo':lo, 'hi':hi, 'corners':[p for c in parts for p in t.corne
       RESORT_GEAR.findIndex((p) => p.name === "sofa_double"),
     );
     expect(RESORT_GEAR[index]?.cutout).toBe(true);
-    expect(
-      JSON.stringify(read(`${BP}/item_catalog/crafting_item_catalog.json`)),
-    ).toContain(RESORT_CATALOG_ITEMS_JSON);
     const item = read(`${BP}/items/yasu_ride/washstand_item.item.json`)[
       "minecraft:item"
     ];

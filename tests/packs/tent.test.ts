@@ -807,7 +807,7 @@ describe("tent geometry and texture", () => {
   });
 });
 describe("tent item", () => {
-  it("has a single-stack icon and follows the Noga Chair in Camping Gear (Outside)", () => {
+  it("has a single-stack item with its own icon", () => {
     const item = readJson(`${BP}/items/yasu_ride/tent_item.item.json`)[
       "minecraft:item"
     ];
@@ -824,17 +824,6 @@ describe("tent item", () => {
       .yasu_ride_tent_item.textures;
     expect(icon).toBe("textures/items/yasu_ride/tent_item");
     expect(existsSync(`${RP}/${icon}.png`)).toBe(true);
-    const groups = readJson(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories.flatMap((c: { groups: { items: string[] }[] }) => c.groups);
-    expect(
-      groups
-        .find(
-          (g: { group_identifier: { name: string } }) =>
-            g.group_identifier.name === "yasu_ride:camping_gear_outside",
-        )
-        .items.at(2),
-    ).toBe(TENT_ITEM);
   });
   it("uses the specified wool, stick, and string recipe", () => {
     const r = readJson(`${BP}/recipes/yasu_ride/tent_item.recipe.json`);

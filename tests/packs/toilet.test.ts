@@ -304,7 +304,7 @@ describe("Toilet pack contract", () => {
       expect(evaluate(flush[`swirl_${i}`].scale, 5)).toBe(0);
   });
 
-  it("binds the item, unique mirrored recipe, ordered catalog, texture and previews", () => {
+  it("binds the item, recipe ingredients, texture and previews", () => {
     const item = read(`${BP}/items/yasu_ride/toilet_item.item.json`)[
       "minecraft:item"
     ];
@@ -334,16 +334,6 @@ describe("Toilet pack contract", () => {
       cutout: true,
     });
     expect(gear[at - 1]?.name).toBe("sofa_double");
-    const groups = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
-      "minecraft:crafting_items_catalog"
-    ].categories[0].groups;
-    const group = groups.find(
-      (g: { group_identifier: { name: string } }) =>
-        g.group_identifier.name === "yasu_ride:resort_gear",
-    );
-    expect(group.items.indexOf(ids.item)).toBe(
-      group.items.indexOf("yasu_ride:sofa_double_item") + 1,
-    );
     expect(
       read(`${RP}/textures/item_texture.json`).texture_data.yasu_ride_toilet,
     ).toEqual({ textures: "textures/items/yasu_ride/toilet_item" });

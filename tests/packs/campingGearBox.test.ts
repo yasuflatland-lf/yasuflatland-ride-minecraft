@@ -78,27 +78,6 @@ describe("camping gear box (ADR 0093)", () => {
       expect(items.has(typeId)).toBe(true);
   });
 
-  it("shows the box as the camping gear group's icon and first item", () => {
-    const catalog = readJson(`${BP}/item_catalog/crafting_item_catalog.json`);
-    const category = catalog[
-      "minecraft:crafting_items_catalog"
-    ].categories.find(
-      (c: { category_name: string }) => c.category_name === "items",
-    );
-    const group = category.groups.find(
-      (g: { group_identifier: { name: string } }) =>
-        g.group_identifier.name === "yasu_ride:camping_gear_inside",
-    );
-    const items: string[] = group.items;
-    expect(group.group_identifier.icon).toBe(BOX);
-    expect(items[0]).toBe(BOX);
-    expect(items.filter((i) => i === BOX)).toHaveLength(1);
-    expect(items).not.toContain("yasu_ride:low_chair_item");
-    expect(items).not.toContain("yasu_ride:tent_item");
-    expect(items).not.toContain("yasu_ride:camp_table_item");
-    expect(items.slice(1)).toEqual(GIFT_CONTENTS.camping_gear_box);
-  });
-
   it("maps the box icon to its texture, ahead of the gear icons", () => {
     const data = readJson(`${RP}/textures/item_texture.json`).texture_data;
     expect(data.yasu_ride_camping_gear_box.textures).toBe(

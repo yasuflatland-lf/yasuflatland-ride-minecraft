@@ -20,7 +20,7 @@
 - Agreement: Proposed
 - Basis: [0174](../adr/0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) Decision 1, "The creative group `yasu_ride:sportsboat_equipment` holds only `icebreaker_switch` and uses it as its icon."; [0174](../adr/0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) Decision 2, "It is not listed in the creative grid or in search"; [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md) Decision 15, "The group order is Camping Gear (Inside), Camping Gear (Outside), Sports Boat Equipment, Building Tools."
 - Implementation: `tools/gen_item_catalog.py` (`GROUPS`, `catalog`); `packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json`; `packs/yasu_ride_bp/items/yasu_ride/sportsboat_equipment_box.item.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
-- Verification: `tests/packs/sportsboatEquipment.test.ts` checks the group, switch icon, position after outside gear, absence of the box from groups, item categories and localized names. These assertions were inspected, not run for this document. Not verified: the creative grid, search and `/give` on a device; manual row B37 is `unverified`.
+- Verification: `tests/packs/creativeCatalog.test.ts` checks the group, its switch icon, its position after Resort Gear and the absence of the box from groups. `tests/packs/sportsboatEquipment.test.ts` checks item categories and localized names. These assertions were inspected, not run for this document. Not verified: the creative grid, search and `/give` on a device; manual row B37 is `unverified`.
 
 ### Hidden equipment box gift and unpacking
 

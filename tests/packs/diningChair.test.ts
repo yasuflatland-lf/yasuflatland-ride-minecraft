@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { FURNITURE_SPEC } from "../../src/domain/resort/furniture";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
 import { readRgbaPng } from "../support/png";
-import { RESORT_CATALOG_ITEMS_JSON } from "../support/resortGear";
 
 const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
@@ -105,9 +104,7 @@ print(json.dumps({'lo': lo, 'hi': hi, 'baseZ': b[0][2], 'topZ': b[2][2]}))
     }
   });
 
-  it("lists the fourth Resort Gear item and supplies distinct ingredients, both names, preview and icon", () => {
-    const catalog = read(`${BP}/item_catalog/crafting_item_catalog.json`);
-    expect(JSON.stringify(catalog)).toContain(RESORT_CATALOG_ITEMS_JSON);
+  it("supplies the ingredients, both names, preview and icon", () => {
     const item = read(`${BP}/items/yasu_ride/dining_chair_item.item.json`)[
       "minecraft:item"
     ];
