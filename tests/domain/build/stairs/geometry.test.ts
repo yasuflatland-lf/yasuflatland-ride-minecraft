@@ -5,6 +5,7 @@ import { planStairs } from "../../../../src/domain/build/edit/plan";
 import { stairPreviewPoints } from "../../../../src/domain/build/preview/stairPreview";
 import { facingVector } from "../../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../../src/domain/build/spec";
+import { TERRACE_ROLES } from "../../../../src/domain/build/stairs/contents";
 import {
   type StairRole,
   stairCellCount,
@@ -230,4 +231,17 @@ it("outlines the tread tops and keeps the goal end under a tight preview budget"
     { x: 0, y: 1, z: 0 },
     { x: 2.5, y: 3, z: 4.5 },
   ]);
+});
+
+it("terraces exactly the above cells with air", () => {
+  fc.assert(
+    fc.property(valid, (s) => {
+      const expected = [...stairCells(s, new Set(["above"]))].map(
+        ({ cell }) => ({ cell, after: AIR }),
+      );
+      expect([
+        ...planStairs(s, TERRACE_ROLES, blockStateOf("minecraft:sand")),
+      ]).toEqual(expected);
+    }),
+  );
 });

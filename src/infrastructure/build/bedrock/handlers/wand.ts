@@ -19,7 +19,7 @@ import {
 import { buildItemRole } from "../../identifiers";
 import type { BuildMenus } from "../buildMenus";
 import { heldBuildItem } from "../heldBuildItem";
-import { dispatchWandPress } from "./wandPress";
+import { dispatchWandPress, pressStairGoal } from "./wandPress";
 
 export function registerWand({
   setPoint,
@@ -88,10 +88,10 @@ export function registerWand({
         }
         case "fixStairGoal":
           if (
-            debounce.press(playerId, system.currentTick) &&
-            fixStairGoal.execute({ playerId })
+            flow?.kind === "stairAim" &&
+            debounce.press(playerId, system.currentTick)
           )
-            void menus.showStairContentsMenu(player);
+            pressStairGoal(player, flow.op, fixStairGoal, menus);
           break;
         case "aimHeight": {
           if (flow?.kind !== "heightStep") return;

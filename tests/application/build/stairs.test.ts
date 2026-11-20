@@ -1,7 +1,10 @@
 import { expect, it } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseStairs } from "../../../src/application/build/chooseStairs";
-import { ConfirmStairs } from "../../../src/application/build/confirmStairs";
+import {
+  ConfirmStairs,
+  ConfirmTerrace,
+} from "../../../src/application/build/confirmStairs";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { FixStairGoal } from "../../../src/application/build/fixStairGoal";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
@@ -72,6 +75,7 @@ function fixture() {
     choose,
     fix,
     confirm,
+    terrace: new ConfirmTerrace(repo, feedback, jobs),
     undo,
     cancel,
     preview,
@@ -87,21 +91,21 @@ function fixture() {
 
 it("refuses a missing row, an unstable material, and a missing or invalid goal", () => {
   const f = fixture();
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   f.confirm.execute({ ...command, contents: "stepsOnly" });
   expect(f.feedback.messages.map(({ message }) => message)).toEqual([
     "noSelection",
     "noSelection",
   ]);
   f.select(stone, { ...from, y: from.y + 2 });
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   expect(f.feedback.messages.at(-1)?.message).toBe("noSelection");
   f.select(blockStateOf("minecraft:sand"));
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   expect(f.feedback.messages.at(-1)?.message).toBe("fillMaterialRefused");
   expect(f.session.flow.kind).toBe("selected");
   f.select();
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   expect(f.feedback.messages.at(-1)?.message).toBe("aimStairGoal");
   const aiming = f.session.flow;
   expect(f.fix.execute(command)).toBe(false);
@@ -115,7 +119,7 @@ it("refuses a missing row, an unstable material, and a missing or invalid goal",
 it("refuses writes above maxVolume before starting the job", () => {
   const f = fixture();
   f.select(stone, { ...from, x: from.x - BUILD_SPEC.maxVolume });
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   f.aimAt({ ...hit, z: 1 });
   expect(f.fix.execute(command)).toBe(true);
   f.confirm.execute({ ...command, contents: "stepsOnly" });
@@ -132,7 +136,7 @@ it("refuses writes above maxVolume before starting the job", () => {
 it("builds the step cells, selects the goal row, and restores the original row and cells on Undo", () => {
   const f = fixture();
   f.select();
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   f.aimAt();
   expect(f.fix.execute(command)).toBe(true);
   f.confirm.execute({ ...command, contents: "stepsOnly" });
@@ -161,7 +165,7 @@ it("builds the step cells, selects the goal row, and restores the original row a
 it("keeps the last valid preview while aiming and uses the fixed goal in contents", () => {
   const f = fixture();
   f.select();
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   f.aimAt();
   f.preview.refresh(playerId, 0);
   const first = f.feedback.previews.at(-1)?.set.stairs;
@@ -179,7 +183,7 @@ it("keeps the last valid preview while aiming and uses the fixed goal in content
   expect(f.feedback.previews.at(-1)?.set.stairs).toEqual(latest);
   f.cancel.backToAiming(command);
   f.select();
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   f.aim.target = undefined;
   const previews = f.feedback.previews.length;
   f.preview.refresh(playerId, 0);
@@ -198,7 +202,7 @@ it("can Undo a goal-row advance when the steps already match", () => {
     ] as const)
       f.world.put({ x, y, z }, stone);
   f.select();
-  f.choose.execute(command);
+  f.choose.execute({ ...command, op: "stairs" });
   f.aimAt();
   expect(f.fix.execute(command)).toBe(true);
   f.confirm.execute({ ...command, contents: "stepsOnly" });
@@ -209,5 +213,56 @@ it("can Undo a goal-row advance when the steps already match", () => {
   f.jobs.step();
   expect(f.session.flow).toMatchObject({ kind: "selected", from, to });
   expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
+  expect(f.world.writes).toBe(0);
+});
+
+it("terraces with sand selected and restores the stone and original taps on Undo", () => {
+  const f = fixture();
+  const cells = [];
+  for (const [z, surface] of [10, 11, 11, 12, 12].entries()) {
+    for (let x = 0; x < 3; x++)
+      for (let y = surface + 1; y <= 15; y++) {
+        const cell = { x, y, z };
+        cells.push(cell);
+        f.world.put(cell, stone);
+      }
+  }
+  f.select(blockStateOf("minecraft:sand"));
+  f.choose.execute({ ...command, op: "terrace" });
+  f.aimAt();
+  expect(f.fix.execute(command)).toBe(true);
+  f.confirm.execute({ ...command, contents: "stepsOnly" });
+  expect(f.feedback.messages.at(-1)?.message).toBe("noSelection");
+  f.terrace.execute(command);
+  f.jobs.step();
+  expect(f.world.writes).toBe(57);
+  for (const cell of cells) expect(f.world.stateAt(overworld, cell)).toBe(AIR);
+  expect(f.session.flow).toMatchObject({
+    kind: "selected",
+    from: { x: 0, y: 12, z: 4 },
+    to: { x: 2, y: 12, z: 4 },
+  });
+  f.undo.execute(command);
+  f.jobs.step();
+  for (const cell of cells)
+    expect(f.world.stateAt(overworld, cell)).toBe(stone);
+  expect(f.session.flow).toMatchObject({ kind: "selected", from, to });
+  expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
+});
+
+it("refuses an oversized terrace using its above-cell count", () => {
+  const f = fixture();
+  const width = Math.floor(BUILD_SPEC.maxVolume / 7) + 1;
+  f.select(stone, { ...from, x: from.x + width - 1 });
+  f.choose.execute({ ...command, op: "terrace" });
+  f.aimAt({ ...hit, z: 1 });
+  expect(f.fix.execute(command)).toBe(true);
+  f.terrace.execute(command);
+  f.jobs.step();
+  expect(f.feedback.messages.at(-1)).toEqual({
+    message: "tooLarge",
+    count: width * 7,
+  });
+  expect(f.session.hasHistory).toBe(false);
   expect(f.world.writes).toBe(0);
 });

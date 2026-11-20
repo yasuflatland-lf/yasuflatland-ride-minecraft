@@ -191,7 +191,9 @@ it("offers the ordered root and build menus for every shape and returns unchange
           "cut",
           "removeAbove",
           shape.kind === "line" ? "place" : "buildShape",
-          ...(shape.kind === "line" && from.y === to.y ? ["stairs"] : []),
+          ...(shape.kind === "line" && from.y === to.y
+            ? ["stairs", "terrace"]
+            : []),
           "copy",
           "fillBelow",
           "cancel",
@@ -704,7 +706,7 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
   const from = { x: 2, y: 5, z: 0 };
   const point = tapBlock(idle, dim, from, stone);
   const chosen = tapAir(point, { ...from, x: 0 });
-  const aim = chooseStairs(chosen);
+  const aim = chooseStairs(chosen, "stairs");
   if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
   expect(aim.taps.from).toEqual(from);
   expect(aim.selectionBefore).toEqual(selectionBoxOf(chosen));
@@ -725,13 +727,14 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
   for (const to of [from, { ...from, y: 7 }, { ...from, x: 0, z: 2 }]) {
     const other = confirmEndpointHeight(tapAir(point, to));
     expect(isShapeEntryOffered(other, "stairs")).toBe(false);
-    expect(chooseStairs(other)).toBe(other);
+    expect(chooseStairs(other, "stairs")).toBe(other);
   }
   expect(shapeMenu(chosen).map(({ id }) => id)).toEqual([
     "cut",
     "removeAbove",
     "place",
     "stairs",
+    "terrace",
     "copy",
     "fillBelow",
     "cancel",
@@ -746,7 +749,7 @@ it("uses the rotated selection as the stair foot and keeps the tapped point for 
   session.setFlow(tapAir(point, to));
   const rotated = boxOf({ x: 2, y: 5, z: -1 }, { x: 2, y: 5, z: 1 });
   session.replaceSelection(selectionOf(dim, rotated, stone));
-  const aim = chooseStairs(session.flow);
+  const aim = chooseStairs(session.flow, "stairs");
   expect(aim).toMatchObject({
     kind: "stairAim",
     row: { ...rotated, along: "z", y: 5 },

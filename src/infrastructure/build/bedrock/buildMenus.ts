@@ -11,6 +11,7 @@ import {
   type RootEntryId,
   stairContentsMenu,
   type TerrainEntryId,
+  terraceMenu,
   terrainMenu,
   type UtilityEntryId,
   utilityMenu,
@@ -18,7 +19,12 @@ import {
 import { isRoofKind } from "../../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
-import type { StairContents } from "../../../domain/build/stairs/contents";
+import {
+  type StairContents,
+  type StairOp,
+  TERRACE_ROLES,
+} from "../../../domain/build/stairs/contents";
+import { stairCellCount } from "../../../domain/build/stairs/roles";
 import {
   removeAboveBox,
   terrainAreaOf,
@@ -50,6 +56,7 @@ export interface BuildMenus {
   showBuildMenu(player: Player): Promise<void>;
   showContentsMenu(player: Player): Promise<void>;
   showStairContentsMenu(player: Player): Promise<void>;
+  showTerraceMenu(player: Player): Promise<void>;
   showUtilityMenu(player: Player): Promise<void>;
   showPasteMenu(player: Player): Promise<void>;
   showHeightSlider(player: Player): Promise<void>;
@@ -130,23 +137,43 @@ export class BedrockBuildMenus implements BuildMenus {
   }
 
   showStairContentsMenu(player: Player): Promise<void> {
+    return this.stairForm(player, "stairs");
+  }
+
+  showTerraceMenu(player: Player): Promise<void> {
+    return this.stairForm(player, "terrace");
+  }
+
+  private stairForm(player: Player, op: StairOp): Promise<void> {
     return this.exclusive(player, async () => {
       const playerId = asPlayerId(player.id);
       const flow = this.repo.get(playerId)?.flow;
-      if (flow?.kind !== "stairContents") return;
-      let id: StairContents | "cancel" | undefined;
+      if (flow?.kind !== "stairContents" || flow.op !== op) return;
+      const terrace = op === "terrace";
+      const entries = terrace ? terraceMenu(flow) : stairContentsMenu(flow);
+      let id: StairContents | "confirm" | "cancel" | undefined;
       try {
         id = await chooseFromForm(
           player,
-          BUILD_FORM.stairContentsTitle,
-          stairContentsMenu(flow).map((entry) => ({
+          terrace ? BUILD_FORM.terraceTitle : BUILD_FORM.stairContentsTitle,
+          entries.map((entry) => ({
             id: entry.id,
             textKey: menuLabel(entry),
           })),
+          terrace
+            ? {
+                translate: BUILD_FORM.terraceBody,
+                with: [String(stairCellCount(flow.staircase, TERRACE_ROLES))],
+              }
+            : undefined,
         );
       } finally {
         if (player.isValid && this.repo.get(playerId)?.flow === flow) {
-          this.choices.choose(playerId, "stairContents", id ?? "cancel");
+          this.choices.choose(
+            playerId,
+            terrace ? "terrace" : "stairContents",
+            id ?? "cancel",
+          );
           // A refused edit leaves the fixed goal in place, but the form has closed.
           if (this.repo.get(playerId)?.flow === flow)
             this.cases.cancel.backToAiming({ playerId });
