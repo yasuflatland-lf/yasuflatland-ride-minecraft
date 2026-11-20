@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { TENT_SPEC } from "../../src/domain/camp/spec";
-import { PAINTS, type Paint, shownPaint } from "../../src/domain/shared/paint";
+import { PAINTS, type Paint } from "../../src/domain/shared/paint";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
 import {
@@ -166,12 +166,12 @@ describe("vehicle paints (ADR 0031)", () => {
 
   it("each painted entity's default paint matches the texture its variant-0 slot shows (ADR 0076)", () => {
     const painted: { entity: string; defaultPaint: Paint }[] = [
-      ...VEHICLE_KINDS.filter(
-        (kind) => profileOf(kind).paintPolicy.kind === "dyeable",
-      ).map((kind) => ({
-        entity: kind,
-        defaultPaint: shownPaint(profileOf(kind).paintPolicy, PAINTS[0]),
-      })),
+      ...VEHICLE_KINDS.flatMap((entity) => {
+        const policy = profileOf(entity).paintPolicy;
+        return policy.kind === "dyeable"
+          ? [{ entity, defaultPaint: policy.defaultPaint }]
+          : [];
+      }),
       { entity: "tent", defaultPaint: TENT_SPEC.defaultPaint },
     ];
     for (const { entity, defaultPaint } of painted) {
