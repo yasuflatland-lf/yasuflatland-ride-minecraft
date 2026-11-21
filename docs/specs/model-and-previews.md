@@ -24,6 +24,7 @@
 - Source: [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md)
 - Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md)
+- Source: [0255](../adr/0255-cull-buried-faces-at-generation.md)
 - Excluded: [0241](../adr/0241-dining-table-top-blocks.md): Dining Table physics and hosted-item clearance belong to the resort gear topic
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
@@ -341,6 +342,15 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Basis: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "`tilt_assembly(cubes, pivot, axis, degrees, assembly=None, assemblies=None)` requires the name to be a key in the supplied table whenever a result carries multiple axes."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "The default table is empty; unknown or missing names fail with `ValueError`, including a zero-degree tilt of an already compound cube."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "Preserve the rotation-order assumption from 0166: `Rz(-rz) * Ry(ry) * Rx(-rx)`, z outermost and x innermost."
 - Implementation: `tools/cube_tilt.py` (`tilt_assembly`, `cube_matrix`); `tools/gen_sportsboat.py` (calls with `assembly="wheel"` and `assembly="throttle_lever"`); `tools/gen_noga_chair.py`
 - Verification: `tests/tools/cubeTilt.test.ts` "tilt_assembly (ADR 0166)" cases, including "composes the tilt after the cube's own z turn, Rx * Rz", "changes nothing for 0 degrees" and "requires a declared assembly for compound tilt results". Not verified: that the rotation order matches the game for a compound cube; 0167 says confirmation on a device is pending and no check is recorded.
+
+### Buried face culling
+
+- Applies to: per-face UV geometry passed to the shared generation pass.
+- Rule: Cull a face only when a distinct, solid, opaque cube in the same non-excluded bone contains all four corners after a 0.001 px outward shift. Check containment in the occluder's local frame. The normal axis is strict and the two lateral axes allow an inclusive 1e-6 px tolerance. Verify opacity across every texture that can draw each occluder face. Exclude bones that bind blend materials, and exclude all bones of a block using the blend render method.
+- Agreement: Proposed
+- Basis: [0255](../adr/0255-cull-buried-faces-at-generation.md).
+- Implementation: [tools/face_cull.py](../../tools/face_cull.py). Generators opt in and write a tracked policy record.
+- Verification: [tests/tools/faceCull.test.ts](../../tests/tools/faceCull.test.ts) checks containment and opacity. [tests/packs/faceCullPolicy.test.ts](../../tests/packs/faceCullPolicy.test.ts) checks recorded textures and exclusions against the pack's render bindings.
 
 ### Camping gear geometry kit
 
