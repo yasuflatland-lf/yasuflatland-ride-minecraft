@@ -30,11 +30,7 @@ export class UpdateBuildModes {
           (session?.flow.kind === "pasteAim" ||
             session?.flow.kind === "selected")) ||
         (held === "undo" && session?.isInBuildMode === true);
-      if (
-        session?.tickMode({ holding }) &&
-        !session.isInBuildMode &&
-        (session.flow.kind !== "idle" || session.clipboard !== undefined)
-      ) {
+      if (session?.tickMode({ holding }) && !session.isInBuildMode) {
         this.leave.execute(playerId);
       }
     }

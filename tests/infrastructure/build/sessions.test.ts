@@ -18,6 +18,7 @@ import { registerSessions } from "../../../src/infrastructure/build/bedrock/hand
 import {
   FakeFeedback,
   FakeSessions,
+  FakeTapTargets,
   overworld,
 } from "../../application/build/fakes";
 import { FakeStructureStore } from "./../../application/build/fakes/structureStore";
@@ -91,12 +92,13 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           expect(rotateDebounce.press(id, 0)).toBe(true);
           expect(undoDebounce.press(id, 0)).toBe(true);
           registerSessions(
-            new EndBuildSession(repo, structures),
+            new EndBuildSession(repo, structures, new FakeTapTargets()),
             new EndPasting(repo, structures),
             debounce,
             pasteDebounce,
             rotateDebounce,
             undoDebounce,
+            vi.fn(),
           );
           engine.handlers.get(event)?.({
             player: { id },
@@ -147,13 +149,17 @@ it("ignores non-player deaths and drops the session, history and all debounces o
       tapAir(tapBlock({ kind: "idle" }, overworld, at, AIR), at),
     ),
   );
+  const targets = new FakeTapTargets();
+  targets.show(id, { dimensionId: overworld, cell: at });
+  const clearTestInput = vi.fn();
   registerSessions(
-    new EndBuildSession(repo, structures),
+    new EndBuildSession(repo, structures, targets),
     new EndPasting(repo, structures),
     debounce,
     pasteDebounce,
     rotateDebounce,
     undoDebounce,
+    clearTestInput,
   );
   engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
   expect(session.flow.kind).toBe("selected");
@@ -164,6 +170,8 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   expect(undoDebounce.press(id, 0)).toBe(true);
   engine.handlers.get("leave")?.({ playerId: id });
   expect(repo.get(id)).toBeUndefined();
+  expect(targets.placements.has(id)).toBe(false);
+  expect(clearTestInput).toHaveBeenCalledExactlyOnceWith(id);
   expect(session.hasHistory).toBe(false);
   expect(structures.live.size).toBe(0);
   expect(debounce.press(id, 0)).toBe(true);

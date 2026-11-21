@@ -115,6 +115,15 @@ it("checks only space protection for snapshot restoration without reading blocks
   );
 });
 
+it("reports air only when the engine can read an air block", () => {
+  const blocks = new BedrockBlockWorld({ isProtected: () => false });
+  const at = { x: 0, y: 0, z: 0 };
+  engine.getBlock.mockReturnValue({ isAir: true });
+  expect(blocks.isAir(dimension, at)).toBe(true);
+  engine.getBlock.mockReturnValue({ isAir: false });
+  expect(blocks.isAir(dimension, at)).toBe(false);
+});
+
 it("fails closed for unreadable blocks and rejected permutations", () => {
   const blocks = new BedrockBlockWorld({ isProtected: () => false });
   const at = { x: 0, y: 0, z: 0 };
@@ -126,6 +135,7 @@ it("fails closed for unreadable blocks and rejected permutations", () => {
   ]) {
     engine.getBlock.mockImplementation(get);
     expect(blocks.stateAt(dimension, at)).toBeUndefined();
+    expect(blocks.isAir(dimension, at)).toBe(false);
     expect(blocks.materialOf(dimension, at)).toBe("refused");
     expect(
       blocks.setState(dimension, at, blockStateOf("minecraft:stone")),

@@ -22,6 +22,7 @@ import {
   FakeGroundProbe,
   FakeSessions,
   FakeWorld,
+  fakeSyncTapTarget,
   overworld,
 } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -58,6 +59,7 @@ function fixture() {
     feedback,
     aim,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
+    fakeSyncTapTarget(),
   );
   const session = repo.getOrCreate(playerId);
   const select = (material = stone, end = to) => {

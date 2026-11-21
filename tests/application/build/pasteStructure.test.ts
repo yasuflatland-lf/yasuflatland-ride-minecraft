@@ -15,6 +15,7 @@ import {
   FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
+  FakeTapTargets,
   FakeWorld,
   nether,
   overworld,
@@ -303,7 +304,7 @@ it("discards the clipboard and paste snapshot before removing the session, and t
       expect(e.store.live.has(snapshot)).toBe(true);
       const discard = vi.spyOn(e.store, "discard");
       const remove = vi.spyOn(e.repo, "remove");
-      const end = new EndBuildSession(e.repo, e.store);
+      const end = new EndBuildSession(e.repo, e.store, new FakeTapTargets());
       end.execute(playerId);
       expect(discard.mock.calls).toEqual([[handle], [snapshot]]);
       expect(discard.mock.invocationCallOrder[1]).toBeLessThan(

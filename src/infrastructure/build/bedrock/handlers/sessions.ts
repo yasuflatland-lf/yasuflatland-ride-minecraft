@@ -11,10 +11,12 @@ export function registerSessions(
   pasteDebounce: Debounces<PlayerId>,
   rotateDebounce: Debounces<PlayerId>,
   undoDebounce: Debounces<PlayerId>,
+  clearTestInput: (id: PlayerId) => void,
 ): void {
   world.afterEvents.playerLeave.subscribe(({ playerId }) => {
     const id = asPlayerId(playerId);
     endSession.execute(id);
+    clearTestInput(id);
     debounce.forget(id);
     pasteDebounce.forget(id);
     rotateDebounce.forget(id);

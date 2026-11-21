@@ -15,6 +15,13 @@ export function readInputKind(readMode: () => unknown): InputKind {
 }
 
 export class BedrockAimReader implements AimReader {
+  private readonly touchOverrides = new Set<PlayerId>();
+
+  setTouchOverride(playerId: PlayerId, enabled: boolean): void {
+    if (enabled) this.touchOverrides.add(playerId);
+    else this.touchOverrides.delete(playerId);
+  }
+
   dimensionOf(playerId: PlayerId) {
     try {
       const player = playerById(playerId);
@@ -38,7 +45,9 @@ export class BedrockAimReader implements AimReader {
         block: hit
           ? { cell: hit.block.location, face: FACES[hit.face] }
           : undefined,
-        input: readInputKind(() => player.inputInfo.lastInputModeUsed),
+        input: this.touchOverrides.has(playerId)
+          ? "touch"
+          : readInputKind(() => player.inputInfo.lastInputModeUsed),
       };
     } catch {
       return undefined;

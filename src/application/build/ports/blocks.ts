@@ -6,6 +6,8 @@ export interface BuildBlockWorld {
   /** The highest block-cell Y in the dimension, inclusive. */
   topY(dimensionId: DimensionId): number;
   materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused";
+  /** False for unreadable cells. */
+  isAir(dimensionId: DimensionId, cell: Cell): boolean;
   /** The block state at `cell`; undefined when unreadable (unloaded, outside the world). */
   stateAt(dimensionId: DimensionId, cell: Cell): BlockState | undefined;
   /** Sets the block without drops; false when the cell is unreadable or the engine refuses. */

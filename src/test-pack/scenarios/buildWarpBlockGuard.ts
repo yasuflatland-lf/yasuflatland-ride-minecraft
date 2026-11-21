@@ -14,6 +14,7 @@ import { selectionOf } from "../../domain/build/selection";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
+import { BedrockTapTargets } from "../../infrastructure/build/bedrock/bedrockTapTargets";
 import { InMemorySessionRepository } from "../../infrastructure/build/persistence/inMemorySessionRepository";
 import { WARP_BLOCK_TYPE } from "../../infrastructure/warp/identifiers";
 import type { Arena } from "../arena";
@@ -101,7 +102,9 @@ export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
   } catch (error) {
     check(String(error), false);
   } finally {
-    new EndBuildSession(repo, structures).execute(playerId);
+    new EndBuildSession(repo, structures, new BedrockTapTargets()).execute(
+      playerId,
+    );
     structures.clearEntities(dimensionId, plan.union);
     check("cleanup", structures.clearBlocks(dimensionId, plan.union));
   }

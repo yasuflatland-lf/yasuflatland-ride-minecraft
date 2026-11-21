@@ -7,6 +7,7 @@ import type { AimReader } from "../../../src/application/build/ports/aim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { ShowPreview } from "../../../src/application/build/showPreview";
+import { SyncTapTarget } from "../../../src/application/build/syncTapTarget";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
@@ -29,6 +30,9 @@ import {
   FakeFeedback,
   FakeGroundProbe,
   FakeSessions,
+  FakeTapTargets,
+  FakeWorld,
+  fakeSyncTapTarget,
   nether,
   overworld,
 } from "./fakes";
@@ -50,20 +54,71 @@ function setup(active = true) {
   const session = repo.getOrCreate(alex);
   const modes = new UpdateBuildModes(
     repo,
-    new LeaveBuild(repo, new FakeStructureStore()),
+    new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
   );
   if (active)
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
       modes.execute([{ playerId: alex, held: "wand" }]);
   const aim = vi.fn<AimReader["aim"]>();
+  const targets = new FakeTapTargets();
+  const syncTapTarget = new SyncTapTarget(new FakeWorld(), targets);
   const preview = new ShowPreview(
     repo,
     feedback,
     { aim, dimensionOf: () => nether },
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
+    syncTapTarget,
   );
-  return { repo, feedback, session, aim, preview };
+  return { repo, feedback, session, aim, preview, targets, syncTapTarget };
 }
+
+it("shares one aim sample between the preview and tap target placement", () => {
+  const { session, preview, feedback, aim, targets, syncTapTarget } = setup();
+  const flow = { kind: "point1", dimensionId: nether, cell, material } as const;
+  session.setFlow(flow);
+  const sample = {
+    input: "touch",
+    ray: { ...ray, origin: { ...ray.origin, x: -2 } },
+  } as const;
+  aim.mockReturnValueOnce(sample);
+  const sync = vi.spyOn(syncTapTarget, "execute");
+
+  preview.refresh(alex, 0);
+
+  expect(aim).toHaveBeenCalledExactlyOnceWith(alex);
+  expect(sync.mock.calls[0]?.[0].aim).toBe(sample);
+  expect(targets.placements.get(alex)).toEqual({
+    dimensionId: nether,
+    cell: end,
+  });
+  expect(feedback.previews[0]?.set).toEqual(
+    previewPoints(flow, { blink: true, end }),
+  );
+});
+
+it("hides an inactive player's target without reading aim", () => {
+  const { preview, aim, targets } = setup(false);
+  targets.show(alex, { dimensionId: nether, cell });
+
+  preview.refresh(alex, 0);
+
+  expect(aim).not.toHaveBeenCalled();
+  expect(targets.placements.has(alex)).toBe(false);
+});
+
+it("hides a target when the marked dimension differs from the player's dimension", () => {
+  const { session, preview, aim, targets } = setup();
+  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
+  targets.show(alex, { dimensionId: overworld, cell: end });
+  aim.mockReturnValue({
+    input: "touch",
+    ray: { ...ray, origin: { ...ray.origin, x: -2 } },
+  });
+
+  preview.refresh(alex, 0);
+
+  expect(targets.placements.has(alex)).toBe(false);
+});
 
 it("draws the marker for its owner in the flow dimension on alternate redraws", () => {
   const { session, preview, feedback, aim } = setup();
@@ -143,7 +198,7 @@ it("draws only in build mode and on the interval, and clears the preview with th
   expect(aim).not.toHaveBeenCalled();
   const modes = new UpdateBuildModes(
     repo,
-    new LeaveBuild(repo, new FakeStructureStore()),
+    new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([{ playerId: alex, held: "wand" }]);
@@ -232,7 +287,7 @@ it("keeps concurrent players and their aim targets separate", () => {
   other.setFlow({ kind: "point1", dimensionId: nether, cell: end, material });
   const modes = new UpdateBuildModes(
     repo,
-    new LeaveBuild(repo, new FakeStructureStore()),
+    new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
@@ -349,7 +404,7 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
   const other = repo.getOrCreate(bob);
   const modes = new UpdateBuildModes(
     repo,
-    new LeaveBuild(repo, new FakeStructureStore()),
+    new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([
@@ -468,6 +523,7 @@ it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed
     feedback,
     aim,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
+    fakeSyncTapTarget(),
   );
   for (const target of [{ input: "pointer" as const, ray }, undefined]) {
     aim.target = target;

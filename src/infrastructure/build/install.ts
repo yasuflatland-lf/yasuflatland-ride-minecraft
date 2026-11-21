@@ -1,3 +1,4 @@
+import { system } from "@minecraft/server";
 import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
 import { ChooseAdjustHeight } from "../../application/build/chooseAdjustHeight";
@@ -37,6 +38,7 @@ import { RotateSelection } from "../../application/build/rotateSelection";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
+import { SyncTapTarget } from "../../application/build/syncTapTarget";
 import { TapAir } from "../../application/build/tapAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
@@ -52,6 +54,7 @@ import { BedrockFacingReader } from "./bedrock/bedrockFacingReader";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
 import { BedrockGroundProbe } from "./bedrock/bedrockGroundProbe";
 import { BedrockStructureStore } from "./bedrock/bedrockStructureStore";
+import { BedrockTapTargets } from "./bedrock/bedrockTapTargets";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
 import { registerEditTick } from "./bedrock/handlers/editTick";
 import { registerModeTick } from "./bedrock/handlers/modeTick";
@@ -61,6 +64,7 @@ import { registerSessions } from "./bedrock/handlers/sessions";
 import { TestAimReader } from "./bedrock/handlers/testAim";
 import { registerTestTap } from "./bedrock/handlers/testCorner";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
+import { registerTestInput } from "./bedrock/handlers/testInput";
 import { registerTestMode } from "./bedrock/handlers/testMode";
 import { registerTestPress } from "./bedrock/handlers/testPress";
 import { registerWand } from "./bedrock/handlers/wand";
@@ -83,7 +87,10 @@ export function installBuild(deps: {
     ),
   };
   const { blocks } = ports;
-  const aim = new TestAimReader(new BedrockAimReader());
+  const bedrockAim = new BedrockAimReader();
+  const aim = new TestAimReader(bedrockAim);
+  const tapTargets = new BedrockTapTargets();
+  system.run(() => tapTargets.sweep());
   const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
   const cancel = new CancelFlow(repo);
   const pasteDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
@@ -92,10 +99,10 @@ export function installBuild(deps: {
     BUILD_SPEC.rotateDebounceTicks,
   );
   const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const endSession = new EndBuildSession(repo, ports.structures);
+  const endSession = new EndBuildSession(repo, ports.structures, tapTargets);
   const modes = new UpdateBuildModes(
     repo,
-    new LeaveBuild(repo, ports.structures),
+    new LeaveBuild(repo, ports.structures, tapTargets),
   );
   const players = new BedrockBuildPlayers();
   const facing = new BedrockFacingReader();
@@ -160,7 +167,13 @@ export function installBuild(deps: {
     ),
     clear,
   };
-  const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
+  const preview = new ShowPreview(
+    repo,
+    feedback,
+    aim,
+    resolveTarget,
+    new SyncTapTarget(blocks, tapTargets),
+  );
   const menuCases = {
     chooseAdjustHeight: new ChooseAdjustHeight(repo),
     openSelectionMenu: new OpenSelectionMenu(repo),
@@ -217,7 +230,9 @@ export function installBuild(deps: {
     pasteDebounce,
     rotateDebounce,
     undoDebounce,
+    (id) => bedrockAim.setTouchOverride(id, false),
   );
+  registerTestInput(bedrockAim);
   registerTestTap(
     repo,
     feedback,

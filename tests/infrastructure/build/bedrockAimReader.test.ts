@@ -1,4 +1,4 @@
-import { InputMode } from "@minecraft/server";
+import { InputMode, ScriptEventSource, system } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -6,8 +6,14 @@ import {
   BedrockAimReader,
   readInputKind,
 } from "../../../src/infrastructure/build/bedrock/bedrockAimReader";
+import { registerTestInput } from "../../../src/infrastructure/build/bedrock/handlers/testInput";
+import { TEST_INPUT_EVENT } from "../../../src/infrastructure/build/identifiers";
 
-const engine = vi.hoisted(() => ({ getEntity: vi.fn() }));
+const engine = vi.hoisted(() => ({
+  getEntity: vi.fn(),
+  getAllPlayers: vi.fn(),
+  subscribe: vi.fn(),
+}));
 vi.mock("@minecraft/server", () => ({
   GameMode: {},
   InputMode: {
@@ -24,7 +30,11 @@ vi.mock("@minecraft/server", () => ({
     East: "East",
     West: "West",
   },
-  world: { getEntity: engine.getEntity },
+  ScriptEventSource: { Server: "Server", Entity: "Entity" },
+  system: {
+    afterEvents: { scriptEventReceive: { subscribe: engine.subscribe } },
+  },
+  world: { getEntity: engine.getEntity, getAllPlayers: engine.getAllPlayers },
 }));
 
 const id = asPlayerId("p");
@@ -63,6 +73,41 @@ it("reads the head ray and optional block hit within build reach", () => {
   expect(p.getBlockFromViewDirection).toHaveBeenCalledWith({
     maxDistance: BUILD_SPEC.reach,
   });
+});
+
+it("applies and clears the server's touch override for only the named player", () => {
+  const builder = {
+    ...player(),
+    id,
+    name: "Test Builder",
+    inputInfo: { lastInputModeUsed: InputMode.KeyboardAndMouse },
+  };
+  const otherId = asPlayerId("other");
+  const other = { ...builder, id: otherId, name: "Other" };
+  engine.getAllPlayers.mockReturnValue([builder, other]);
+  engine.getEntity.mockImplementation((playerId) =>
+    playerId === id ? builder : other,
+  );
+  const reader = new BedrockAimReader();
+  registerTestInput(reader);
+  const receive = vi
+    .mocked(system.afterEvents.scriptEventReceive.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!receive) throw new Error("Missing test input subscription");
+  const send = (sourceType: ScriptEventSource, touch: boolean) =>
+    receive({
+      sourceType,
+      id: TEST_INPUT_EVENT,
+      message: JSON.stringify({ player: builder.name, touch }),
+    });
+
+  send(ScriptEventSource.Entity, true);
+  expect(reader.aim(id)?.input).toBe("pointer");
+  send(ScriptEventSource.Server, true);
+  expect(reader.aim(id)?.input).toBe("touch");
+  expect(reader.aim(otherId)?.input).toBe("pointer");
+  send(ScriptEventSource.Server, false);
+  expect(reader.aim(id)?.input).toBe("pointer");
 });
 
 it.each([

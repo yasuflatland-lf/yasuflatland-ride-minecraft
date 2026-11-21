@@ -7,6 +7,11 @@ import type {
 } from "../../../src/application/build/ports/feedback";
 import type { GroundProbe } from "../../../src/application/build/ports/ground";
 import type { BuildPlayers } from "../../../src/application/build/ports/players";
+import type {
+  TapTargetPlacement,
+  TapTargets,
+} from "../../../src/application/build/ports/tapTargets";
+import { SyncTapTarget } from "../../../src/application/build/syncTapTarget";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import type { PreviewSet } from "../../../src/domain/build/preview/preview";
@@ -111,6 +116,9 @@ export class FakeWorld implements BuildBlockWorld {
     if (this.unreadableCells.has(cellKey(cell))) return undefined;
     return this.blocks.get(cellKey(cell)) ?? AIR;
   }
+  isAir(dimensionId: DimensionId, cell: Cell) {
+    return this.stateAt(dimensionId, cell)?.typeId === AIR.typeId;
+  }
   setState(_d: DimensionId, cell: Cell, state: BlockState) {
     if (this.refusedCells.has(cellKey(cell))) return false;
     this.writes++;
@@ -181,4 +189,20 @@ export class FakeGroundProbe implements GroundProbe {
     const top = this.topOf(x, z, fromY);
     return top !== undefined && top >= toY && top <= fromY ? top : undefined;
   }
+}
+
+export class FakeTapTargets implements TapTargets {
+  readonly placements = new Map<PlayerId, TapTargetPlacement>();
+
+  show(playerId: PlayerId, at: TapTargetPlacement): void {
+    this.placements.set(playerId, at);
+  }
+
+  hide(playerId: PlayerId): void {
+    this.placements.delete(playerId);
+  }
+}
+
+export function fakeSyncTapTarget(): SyncTapTarget {
+  return new SyncTapTarget(new FakeWorld(), new FakeTapTargets());
 }

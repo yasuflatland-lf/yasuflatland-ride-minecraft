@@ -18,6 +18,7 @@ import { AimHeight } from "./aimHeight";
 import type { AimReader } from "./ports/aim";
 import type { BuildFeedback } from "./ports/feedback";
 import type { ResolvePasteTarget } from "./resolvePasteTarget";
+import type { SyncTapTarget } from "./syncTapTarget";
 
 export class ShowPreview {
   private readonly aimHeight: AimHeight;
@@ -34,6 +35,7 @@ export class ShowPreview {
     private readonly feedback: BuildFeedback,
     private readonly aimReader: AimReader,
     private readonly resolveTarget: ResolvePasteTarget,
+    private readonly syncTapTarget: SyncTapTarget,
   ) {
     this.aimHeight = new AimHeight(repo);
   }
@@ -58,7 +60,16 @@ export class ShowPreview {
     const session = this.repo.get(id);
     if (!session?.isInBuildMode || session.flow.kind !== "stairAim")
       this.staircases.delete(id);
-    if (!session?.isInBuildMode) return;
+    if (!session?.isInBuildMode) {
+      this.syncTapTarget.execute({
+        playerId: id,
+        inBuildMode: false,
+        flow: session?.flow,
+        aim: undefined,
+        dimensionId: undefined,
+      });
+      return;
+    }
     const aim = this.aimReader.aim(id);
     if (session.flow.kind === "baseHeight" && aim)
       this.aimHeight.execute({ playerId: id, ray: aim.ray });
@@ -88,12 +99,33 @@ export class ShowPreview {
       if (cached?.flow === flow) preview.staircase = cached.staircase;
       else this.staircases.delete(id);
     }
-    const dimensionId =
-      flow.kind === "pasteAim" ? this.aimReader.dimensionOf(id) : undefined;
-    if (flow.kind === "pasteAim" && aim && session.clipboard && dimensionId) {
+    const playerDimension =
+      flow.kind === "pasteAim" || aim?.input === "touch"
+        ? this.aimReader.dimensionOf(id)
+        : undefined;
+    const markerDimension =
+      "selection" in flow
+        ? flow.selection.dimensionId
+        : "dimensionId" in flow
+          ? flow.dimensionId
+          : playerDimension;
+    this.syncTapTarget.execute({
+      playerId: id,
+      inBuildMode: true,
+      flow,
+      aim,
+      dimensionId:
+        markerDimension === playerDimension ? markerDimension : undefined,
+    });
+    if (
+      flow.kind === "pasteAim" &&
+      aim &&
+      session.clipboard &&
+      playerDimension
+    ) {
       const result = this.resolveTarget.execute({
         playerId: id,
-        dimensionId,
+        dimensionId: playerDimension,
         aim,
         tick,
       });
@@ -108,14 +140,6 @@ export class ShowPreview {
       });
     const set = previewPoints(flow, preview);
     if (Object.values(set).some((points) => points.length > 0))
-      this.feedback.drawPreview(
-        id,
-        "selection" in flow
-          ? flow.selection.dimensionId
-          : "dimensionId" in flow
-            ? flow.dimensionId
-            : dimensionId,
-        set,
-      );
+      this.feedback.drawPreview(id, markerDimension, set);
   }
 }

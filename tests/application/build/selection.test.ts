@@ -12,7 +12,7 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { confirmEndpointHeight } from "../../support/buildSelection";
-import { FakeFeedback, FakeSessions, overworld } from "./fakes";
+import { FakeFeedback, FakeSessions, FakeTapTargets, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const alex = asPlayerId("alex");
@@ -33,7 +33,7 @@ describe("UpdateBuildModes", () => {
     const { repo } = setup();
     const modes = new UpdateBuildModes(
       repo,
-      new LeaveBuild(repo, new FakeStructureStore()),
+      new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
     );
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks - 1; i++) {
       modes.execute([{ playerId: alex, held: "wand" }]);
@@ -59,7 +59,11 @@ describe("UpdateBuildModes", () => {
               repo,
               modes: new UpdateBuildModes(
                 repo,
-                new LeaveBuild(repo, new FakeStructureStore()),
+                new LeaveBuild(
+                  repo,
+                  new FakeStructureStore(),
+                  new FakeTapTargets(),
+                ),
               ),
             };
           };
@@ -92,7 +96,7 @@ describe("UpdateBuildModes", () => {
     const { repo } = setup();
     const modes = new UpdateBuildModes(
       repo,
-      new LeaveBuild(repo, new FakeStructureStore()),
+      new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
     );
     modes.execute([{ playerId: alex, held: "none" }]);
     expect(repo.get(alex)).toBeUndefined();
@@ -105,7 +109,7 @@ it("cancels in-progress selections when build mode leaves after its grace delay"
       const { repo } = setup();
       const modes = new UpdateBuildModes(
         repo,
-        new LeaveBuild(repo, new FakeStructureStore()),
+        new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
       );
       enterBuildMode(modes);
       const session = repo.getOrCreate(alex);
@@ -140,7 +144,7 @@ it("retains the selection across build tool swaps and resets the leave grace", (
         const { repo } = setup();
         const modes = new UpdateBuildModes(
           repo,
-          new LeaveBuild(repo, new FakeStructureStore()),
+          new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
         );
         if (active) enterBuildMode(modes);
         const session = repo.getOrCreate(alex);
