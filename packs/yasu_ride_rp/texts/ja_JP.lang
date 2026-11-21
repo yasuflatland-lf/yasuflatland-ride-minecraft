@@ -299,3 +299,5 @@ yasu_build.form.stair_fill_below=下を埋める
 yasu_build.form.stair_steps_only=段だけ
 yasu_build.message.aim_stair_goal=ゴールを見て押す
 yasu_build.message.no_stair_goal=そこはゴールにできない
+entity.yasu_build:tap_target.name=範囲選択ワンドのタップ対象
+action.interact.yasu_build.tap_target=タップ

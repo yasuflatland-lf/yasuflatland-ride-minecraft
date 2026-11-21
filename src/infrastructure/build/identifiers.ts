@@ -2,6 +2,8 @@ import type { BuildMessage } from "../../application/build/ports/feedback";
 
 export const BUILD_NAMESPACE = "yasu_build";
 export const buildId = (name: string): string => `${BUILD_NAMESPACE}:${name}`;
+/** @public Temporary Knip exception until tap target placement and input use this export (#2208, #2209). */
+export const TAP_TARGET_TYPE = buildId("tap_target");
 export const SELECTION_WAND_TYPE = buildId("selection_wand");
 export const PASTE_ROTATE_TYPE = buildId("paste_rotate");
 export const PASTE_PLACE_TYPE = buildId("paste_place");
