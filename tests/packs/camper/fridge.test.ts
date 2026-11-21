@@ -2,7 +2,14 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CAMPER_FURNITURE } from "../../../src/domain/vehicle/kinds/camper/furniture";
 import {
+  modelFaces,
+  overlapArea,
+  PLANE_TOLERANCE,
+} from "../../support/modelFaces";
+import { MIN_OVERLAP_AREA } from "../coplanarFaces.config";
+import {
   bone,
+  bones,
   type Cube,
   end,
   readPng,
@@ -12,13 +19,13 @@ import {
   turn,
 } from "./helpers";
 
-const fridgeCubes = () => {
-  const areas = JSON.parse(
-    readFileSync("tests/packs/fixtures/camper-areas.json", "utf8"),
-  ) as { fridge: Record<string, [number, number]> };
-  return Object.entries(areas.fridge).flatMap(([name, [first, last]]) =>
-    (bone(name).cubes ?? []).slice(first, last + 1),
-  );
+const { fridge: fridgeRanges } = JSON.parse(
+  readFileSync("tests/packs/fixtures/camper-areas.json", "utf8"),
+) as { fridge: Record<string, [number, number]> };
+
+const fridgeCubes = (name: string) => {
+  const range = fridgeRanges[name];
+  return range ? (bone(name).cubes ?? []).slice(range[0], range[1] + 1) : [];
 };
 
 describe("fridge surface continuity", () => {
@@ -44,26 +51,31 @@ describe("fridge surface continuity", () => {
   });
 
   it("has no same-direction coplanar overlapping faces, including between fridge bones", () => {
-    const cubes = fridgeCubes();
+    const faces = modelFaces({
+      bones: bones.map((owner) => ({
+        ...owner,
+        cubes: fridgeCubes(owner.name),
+      })),
+    });
+    const byOffset = [...faces.entries()].sort(
+      ([, a], [, b]) => a.offset - b.offset,
+    );
     const conflicts: string[] = [];
-    for (const [i, a] of cubes.entries()) {
-      for (const [j, b] of cubes.slice(0, i).entries()) {
-        for (let axis = 0; axis < 3; axis++) {
-          for (const side of [0, 1]) {
-            const plane = (c: Cube) =>
-              (c.origin[axis] ?? 0) + side * (c.size[axis] ?? 0);
-            if (Math.abs(plane(a) - plane(b)) > 1e-6) continue;
-            if (
-              [0, 1, 2].every(
-                (k) =>
-                  k === axis ||
-                  Math.min(end(a, k), end(b, k)) -
-                    Math.max(a.origin[k] ?? 0, b.origin[k] ?? 0) >
-                    1e-6,
-              )
-            )
-              conflicts.push(`${i}/${j} axis ${axis} side ${side}`);
-          }
+    for (const [index, [faceIndex, face]] of byOffset.entries()) {
+      for (let previous = index - 1; previous >= 0; previous--) {
+        const neighbor = byOffset[previous];
+        if (!neighbor || face.offset - neighbor[1].offset > PLANE_TOLERANCE)
+          break;
+        // Keep the original clipping and diagnostic order within each pair.
+        const [a, b] =
+          faceIndex > neighbor[0] ? [face, neighbor[1]] : [neighbor[1], face];
+        if (
+          (a.bone !== b.bone || a.cubeIndex !== b.cubeIndex) &&
+          overlapArea(a, b) > MIN_OVERLAP_AREA
+        ) {
+          conflicts.push(
+            `${a.bone}/${a.cubeIndex}/${a.side} and ${b.bone}/${b.cubeIndex}/${b.side}`,
+          );
         }
       }
     }
@@ -73,7 +85,9 @@ describe("fridge surface continuity", () => {
   it("keeps every face's filtering footprint inside a light opaque texel", () => {
     const atlas = readPng("textures/entity/yasu_ride/camper");
     const bad: string[] = [];
-    for (const [i, cube] of fridgeCubes().entries()) {
+    for (const [i, cube] of Object.keys(fridgeRanges)
+      .flatMap(fridgeCubes)
+      .entries()) {
       for (const [name, face] of Object.entries(cube.uv)) {
         const [u = 0, v = 0] = face.uv;
         const [du = 0, dv = 0] = face.uv_size;

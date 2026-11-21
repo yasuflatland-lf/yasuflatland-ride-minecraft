@@ -36,12 +36,15 @@
 
 ### Pure logic and unit properties
 
+- `tests/packs/renderBudget.test.ts` checks each geometry in both Resource Packs against its exact face and cube counts.
 - Applies to: unit tests under `tests/`.
 - Rule: `pnpm test` runs Vitest over `tests/**/*.test.ts`. Pure domain computation is separate from the game API. Tests use fast-check properties as well as examples; movement properties run generated input sequences against a simplified engine that applies friction or air drag and zeroes horizontal velocity at a wall. Engine-model constants are separate from controller tuning so some incorrect assumptions can be detected independently.
 - Agreement: Accepted
 - Basis: [0010](../adr/0010-testing-strategy.md) Decision, "Put pure computation (input conversion, driving computation, step detection, collision detection, choosing the driver) in modules that do not depend on the game API"; [0010](../adr/0010-testing-strategy.md) Decision, "Keep example-based tests for these to a minimum and use property-based tests (fast-check, vitest)."
 - Implementation: `package.json` (`test`), `vitest.config.ts`, `tests/support/engineModel.ts`, `src/domain/vehicle/`, `.dependency-cruiser.cjs`
 - Verification: `tests/domain/vehicle/motion/motion.test.ts` exercises generated sequences, friction, walls, speed bounds, and input conversion; `tests/domain/vehicle/motion/forms.test.ts` checks form transitions and vertical motion. Not verified: properties do not reproduce the whole engine, and no test enforces a maximum number of examples or requires every unit test to be a property. No tests were run for this spec.
+
+The pack suite includes the [per-geometry visible coplanar face ratchet](../../tests/packs/coplanarFaces.test.ts) from [ADR 0255](../adr/0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md).
 
 ### Generated assets before tests and dev commands
 
