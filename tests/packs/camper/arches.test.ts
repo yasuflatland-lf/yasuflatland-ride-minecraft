@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bones, swatch } from "./helpers";
+import { bones, swatch, swatchUv } from "./helpers";
 
 describe("camper model assets (ADR 0067)", () => {
   it("clears furniture and wall lining from all four wheel housings", () => {
@@ -15,7 +15,16 @@ describe("camper model assets (ADR 0067)", () => {
         const high = [x1, 18.4, axle + 10.3 + 0.3];
         for (const b of interior) {
           for (const cube of b.cubes ?? []) {
-            if (swatch(cube, "black") || swatch(cube, "wood")) continue;
+            if (
+              ["black", "wood"].some((name) => {
+                if (cube.uv.north) return swatch(cube, name);
+                const [u, v] = swatchUv(name);
+                return Object.values(cube.uv).every(
+                  (face) => face.uv[0] === u && face.uv[1] === v,
+                );
+              })
+            )
+              continue;
             const overlaps = cube.origin.every(
               (start, axis) =>
                 start < (high[axis] ?? 0) - 0.001 &&

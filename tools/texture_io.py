@@ -66,6 +66,7 @@ class Outputs:
     def png(self, path, width, height, pixel, compress_level=-1, *, rgb=False):
         pixels = rgba_bytes(width, height, pixel)
         self.rgba(path, width, height, pixels, rgb=rgb, compress_level=compress_level)
+        return pixels
 
     def rgba(self, path, width, height, pixels, rgb=False, compress_level=9):
         """Write rendered RGBA bytes, preserving the renderer's RGB icons and zlib level."""

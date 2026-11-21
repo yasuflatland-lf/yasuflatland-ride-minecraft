@@ -1,0 +1,12 @@
+{
+  "excludedBones": [
+    "glass",
+    "door_glass",
+    "drawer_*_item_sugar_pot"
+  ],
+  "textures": [
+    "textures/blocks/yasu_ride/camping_gear"
+  ],
+  "removedFaces": 678,
+  "removedCubes": 8
+}

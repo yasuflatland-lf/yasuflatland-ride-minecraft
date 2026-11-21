@@ -223,7 +223,8 @@ def _face_opaque(face, texture, uv_space):
     ys = _texels(v, dv, height, uv_space[1])
     if not xs or not ys:
         return False
-    return all(pixels[(y * width + x) * 4 + 3] == 255 for y in ys for x in xs)
+    return all(pixels[(y * width + xs.start) * 4 + 3:(y * width + xs.stop) * 4:4]
+               .count(b"\xff") == len(xs) for y in ys)
 
 
 def opaque_occluder(

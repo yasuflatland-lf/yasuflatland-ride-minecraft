@@ -12,12 +12,17 @@ import {
   swatchUv,
 } from "./helpers";
 
+const matchesSwatch = (face: Cube["uv"][string] | undefined, name: string) => {
+  const [u, v] = swatchUv(name);
+  return face?.uv[0] === u && face.uv[1] === v;
+};
+const hasAmberFace = (c: Cube) =>
+  Object.values(c.uv).some((face) => matchesSwatch(face, "amber"));
+
 describe("camper model assets (ADR 0067)", () => {
   it("replaces the mid-body amber box with symmetric static rear signals (#596)", () => {
     const body = bone("body").cubes ?? [];
-    const amber = bones
-      .flatMap((b) => b.cubes ?? [])
-      .filter((c) => swatch(c, "amber"));
+    const amber = bones.flatMap((b) => b.cubes ?? []).filter(hasAmberFace);
     expect(
       amber.filter(
         (c) =>
@@ -34,7 +39,7 @@ describe("camper model assets (ADR 0067)", () => {
     for (const material of ["chrome", "amber"]) {
       const signals = body.filter(
         (c) =>
-          swatch(c, material) &&
+          (material === "amber" ? hasAmberFace(c) : swatch(c, material)) &&
           Math.abs(Math.abs(cubeCenter(c, 0)) - 22.9) < 0.05 &&
           Math.abs(cubeCenter(c, 1) - 15) < 0.05 &&
           cubeCenter(c, 2) > 50,
@@ -42,6 +47,8 @@ describe("camper model assets (ADR 0067)", () => {
       const left = signals.filter((c) => cubeCenter(c, 0) < 0);
       const right = signals.filter((c) => cubeCenter(c, 0) > 0);
       expect(left.length).toBeGreaterThan(0);
+      for (const c of signals)
+        expect(matchesSwatch(c.uv.south, material)).toBe(true);
       expect(left.map((c) => c.size)).toEqual(right.map((c) => c.size));
       for (const c of left)
         expect(
@@ -52,9 +59,7 @@ describe("camper model assets (ADR 0067)", () => {
           ),
         ).toBe(true);
     }
-    expect(
-      (bone("headlights").cubes ?? []).filter((c) => swatch(c, "amber")),
-    ).toEqual([]);
+    expect((bone("headlights").cubes ?? []).filter(hasAmberFace)).toEqual([]);
   });
 
   it("lights only the roof clearance, rear roof, and tail lamps with the headlights (ADR 0184)", () => {
@@ -110,15 +115,15 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
           (c.origin[0] ?? 0) < -23 && (c.origin[2] ?? 0) < 50 && end(c, 2) > 38,
       ),
     ).toEqual([]);
-    for (const [slot, x] of [
-      [WHITE_SLOT, -23.5],
-      [WALL_IN_SLOT, -22.9],
-      [KHAKI_SLOT, -24.05],
+    for (const [face, slot, x] of [
+      ["north", WHITE_SLOT, -23.5],
+      ["south", WALL_IN_SLOT, -22.9],
+      ["north", KHAKI_SLOT, -24.05],
     ] as const) {
       expect(
         (bone("body").cubes ?? []).some(
           (c) =>
-            c.uv.north?.uv[0] === slot &&
+            c.uv[face]?.uv[0] === slot &&
             [x, 42, 45].every(
               (v, axis) => v >= (c.origin[axis] ?? 0) && v <= end(c, axis),
             ),
@@ -189,7 +194,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
       expect(c.origin[0]).toBeCloseTo(-24.3, 4);
   });
   it("cuts two columns of twelve recessed slits above a plain lower part", () => {
-    const slits = lid().filter((c) => c.uv.north?.uv[0] === BLACK_SLOT);
+    const slits = lid().filter((c) => matchesSwatch(c.uv.west, "black"));
     expect(slits).toHaveLength(24);
     for (const c of slits) {
       expect(c.origin[0]).toBeCloseTo(-24.2, 4);
@@ -200,7 +205,9 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
     const right = slits.filter((c) => (c.origin[2] ?? 0) > 45);
     expect(left).toHaveLength(12);
     expect(right).toHaveLength(12);
-    const panel = lid().filter((c) => c.uv.north?.uv[0] === TRIM_BEIGE_SLOT);
+    const panel = lid().filter((c) =>
+      Object.values(c.uv).some((face) => face.uv[0] === TRIM_BEIGE_SLOT),
+    );
     for (const c of slits)
       expect(
         panel.some((p) =>

@@ -24,6 +24,7 @@ ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owne
 
 texture_io = load_tool("texture_io")
 texture_variants = load_tool("texture_variants")
+face_cull = load_tool("face_cull")
 mer = load_tool("mer")
 outputs = texture_io.Outputs("--check" in sys.argv[2:])
 build_layout_lit_textures = load_tool("lit_textures").build_layout_lit_textures
@@ -222,22 +223,6 @@ def rounded(value):
     return value
 
 
-# Area ownership is retained through the final coordinate mirror.
-area_ranges = {name: {} for name in dict.fromkeys(owners.values())}
-for bone in camper_bones:
-    source = merged.get(bone["name"], [])
-    for i, cube in enumerate(source):
-        ranges = area_ranges[owners[id(cube)]].setdefault(bone["name"], [])
-        if ranges and ranges[-1][1] == i - 1:
-            ranges[-1][1] = i
-        else:
-            ranges.append([i, i])
-for bones in area_ranges.values():
-    for bone, ranges in bones.items():
-        if len(ranges) == 1:
-            bones[bone] = ranges[0]
-outputs.fixture_json(Path(__file__).resolve().parent.parent / "tests/packs/fixtures/camper-areas.json", area_ranges)
-
 mirror_x(camper_bones)
 geo = {
     "format_version": "1.12.0",
@@ -268,8 +253,7 @@ assert_axes(model_cubes, {"slanted": slanted,
 drawer_items = load_tool("camper_drawer_items").geometry(
     [bone for bone in camper_bones if bone["name"] in areas["kitchen_fronts"].DRAWER_PIVOTS])
 geo["minecraft:geometry"].append(drawer_items)
-print("drawer item cubes added:", sum(len(b.get("cubes", [])) for b in drawer_items["bones"]))
-outputs.json(MODELS / "camper.geo.json", rounded(geo))
+geo = rounded(geo)
 
 
 atlas_pixels = region_atlas.render_atlas(LAYOUT)
@@ -298,8 +282,8 @@ def atlas_pixel(x, y):
     return tuple(atlas_pixels[offset:offset + 4])
 
 
-build_layout_lit_textures(outputs, ENTITY_TEXTURES, "camper", LAYOUT,
-                          atlas_pixel, "base", lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
+lit_pixels = build_layout_lit_textures(outputs, ENTITY_TEXTURES, "camper", LAYOUT,
+                                       atlas_pixel, "base", lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
 
 # Polished plate, not a perfect mirror: Vibrant Visuals keeps a soft highlight along the housing.
 MER_MIRROR_CHROME = mer.Mer(255, 0, 26)
@@ -313,6 +297,53 @@ texture_variants.write_variants(outputs, ENTITY_TEXTURES, "camper", *LAYOUT.size
     texture_variants.Variant("camper", atlas_pixels, interior_mer),
     texture_variants.Variant("camper_mirror", atlas_pixels, mirror_mer),
 ], retired=("camper_interior_mer",))
+
+
+def cull_geometry(geometry, textures, excluded_bones):
+    description = geometry["description"]
+    uv_space = (description["texture_width"], description["texture_height"])
+    samples = tuple((texture, uv_space) for texture in textures.values())
+    policy = face_cull.CullPolicy(
+        excluded_bones, face_cull.opaque_occluder(lambda _bone, _cube, _side: samples))
+    result = face_cull.cull_buried_faces(geometry, policy)
+    face_cull.write_record(outputs, description["identifier"], textures, result, excluded_bones)
+    return result
+
+
+glass_bones = ("glass", "door_glass")
+camper_texture = (*LAYOUT.size, atlas_pixels)
+camper = cull_geometry(geo["minecraft:geometry"][0], {
+    "textures/entity/yasu_ride/camper": camper_texture,
+    "textures/entity/yasu_ride/camper_lit": (*LAYOUT.size, lit_pixels),
+    "textures/entity/yasu_ride/camper_mirror": camper_texture,
+}, glass_bones)
+
+# The drawer builders already populated their disjoint cells in the gear atlas.
+gear_atlas = load_tool("gear_atlas")
+gear_size = gear_atlas.ATLAS_SIZE
+drawers = cull_geometry(geo["minecraft:geometry"][1], {
+    "textures/blocks/yasu_ride/camping_gear": (gear_size, gear_size, gear_atlas.atlas_pixels()),
+}, (*glass_bones, "drawer_*_item_sugar_pot"))
+geo["minecraft:geometry"] = [camper.geometry, drawers.geometry]
+outputs.json(MODELS / "camper.geo.json", geo)
+
+area_ranges = {name: {} for name in dict.fromkeys(owners.values())}
+for bone in camper_bones:
+    name = bone["name"]
+    for source_index, cube in enumerate(bone.get("cubes", [])):
+        index = camper.index_map[name, source_index]
+        if index is None:
+            continue
+        ranges = area_ranges[owners[id(cube)]].setdefault(name, [])
+        if ranges and ranges[-1][1] == index - 1:
+            ranges[-1][1] = index
+        else:
+            ranges.append([index, index])
+for bones in area_ranges.values():
+    for bone, ranges in bones.items():
+        if len(ranges) == 1:
+            bones[bone] = ranges[0]
+outputs.fixture_json(Path(__file__).resolve().parent.parent / "tests/packs/fixtures/camper-areas.json", area_ranges)
 
 ICON = [
     "................",
@@ -359,6 +390,7 @@ BOX_ICON_COLORS = {"L": (222, 184, 135, 255), "C": (196, 150, 98, 255), "O": (11
                    "G": (218, 165, 32, 255), "R": (204, 85, 0, 255), "A": (86, 130, 3, 255),
                    ".": (0, 0, 0, 0)}
 outputs.png(ITEM_TEXTURES / "camping_gear_box.png", 16, 16, lambda x, y: BOX_ICON_COLORS[BOX_ICON[y][x]])
-print("cubes:", sum(len(b.get("cubes", [])) for b in camper_bones))
+print("cubes:", len(model_cubes) - camper.removed_cubes)
+print("drawer item cubes:", sum(len(b.get("cubes", [])) for b in drawers.geometry["bones"]))
 
 outputs.finish("Stale camper outputs:", "camper model and textures are up to date")
