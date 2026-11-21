@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { KITCHEN_DRAWERS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { DRAWER_GEAR_IDS } from "../../src/domain/vehicle/kinds/camper/spec";
 import { defined } from "../support/defined";
+import { startPythonWorker } from "../support/pythonWorker";
 
 const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const block = read(
@@ -57,8 +58,22 @@ describe("drawer compartment art", () => {
     ]);
   });
 
-  it("uses independently selected entity item bones with the gear atlas", () => {
+  it("uses independently selected entity item bones with the gear atlas", async () => {
     const items = [...DRAWER_GEAR_IDS];
+    const python = startPythonWorker();
+    const sourceCubes = await python
+      .run(
+        `
+import json, sys
+sys.path.insert(0, "tools")
+from tool_loader import load_tool
+gear = load_tool("gen_camping_gear")
+print(json.dumps({item: gear.rounded(gear.SHAPES[item]) for item in json.load(sys.stdin)}))
+`,
+        JSON.stringify(items),
+      )
+      .then(JSON.parse)
+      .finally(() => python.close());
     const buriedCubes = new Map([
       ["saucepan", [157]],
       ["transistor_radio", [93]],
@@ -108,9 +123,7 @@ describe("drawer compartment art", () => {
         expect(controller.part_visibility).toContainEqual({
           [`${door.id}_item_${item}`]: `q.property('yasu_ride:${door.id}_item') == ${index + 1}`,
         });
-        const source = read(
-          `packs/yasu_ride_rp/models/blocks/yasu_ride/${item}.geo.json`,
-        )["minecraft:geometry"][0].bones[0].cubes.filter(
+        const source = sourceCubes[item].filter(
           (_cube: unknown, i: number) => !buriedCubes.get(item)?.includes(i),
         );
         const group = contents.bones.find(

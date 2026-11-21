@@ -47,6 +47,7 @@ box = gear_atlas.box
 atlas_pixels = gear_atlas.atlas_pixels
 
 cube_tilt = load_tool("cube_tilt")
+face_cull = load_tool("face_cull")
 
 LAID_TAG = "tag:yasu_ride:laid"
 
@@ -54,7 +55,8 @@ SPEC = Path(__file__).resolve().parent / "camping_gear.json"
 ITEM_TEXTURE_BASE = Path(__file__).resolve().parent / "item_texture_base.json"
 TERRAIN_TEXTURE_BASE = Path(__file__).resolve().parent / "terrain_texture_base.json"
 MODELS = "models/blocks/yasu_ride"
-ATLAS = "textures/blocks/yasu_ride/camping_gear.png"
+ATLAS_TEXTURE = "textures/blocks/yasu_ride/camping_gear"
+ATLAS = f"{ATLAS_TEXTURE}.png"
 TERRAIN = "textures/terrain_texture.json"
 BLOCKS = "blocks/yasu_ride"
 ITEMS = "items/yasu_ride"
@@ -388,7 +390,7 @@ def validate(spec):
 
 def terrain(base: dict) -> dict:
     data = dict(base["texture_data"])
-    data[ATLAS_KEY] = {"textures": "textures/blocks/yasu_ride/camping_gear"}
+    data[ATLAS_KEY] = {"textures": ATLAS_TEXTURE}
     return {
         "resource_pack_name": base["resource_pack_name"],
         "texture_name": base["texture_name"],
@@ -616,6 +618,27 @@ def item_textures(base: dict, spec: list[dict]) -> dict:
     }
 
 
+def write_geometries(out, geometries, blocks):
+    blended = set()
+    for block in blocks.values():
+        components = block["minecraft:block"]["components"]
+        materials = components["minecraft:material_instances"]
+        if any(material["render_method"] == "blend" for material in materials.values()):
+            binding = components["minecraft:geometry"]
+            blended.add(binding if isinstance(binding, str) else binding["identifier"])
+
+    atlas = (ATLAS_SIZE, ATLAS_SIZE, ATLAS_PIXELS)
+    texture_binding = ((atlas, (ATLAS_SIZE, ATLAS_SIZE)),)
+    opaque = face_cull.opaque_occluder(lambda _bone, _cube, _side: texture_binding)
+    for path, document in geometries.items():
+        geo = document["minecraft:geometry"][0]
+        identifier = geo["description"]["identifier"]
+        excluded = ("*",) if identifier in blended else ()
+        result = face_cull.cull_buried_faces(geo, face_cull.CullPolicy(excluded, opaque))
+        out.json(path, {**document, "minecraft:geometry": [result.geometry]})
+        face_cull.write_record(out, identifier, (ATLAS_TEXTURE,), result, excluded)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
@@ -625,33 +648,34 @@ def main():
     spec = json.loads(SPEC.read_text())
     validate(spec)
     rp = args.resource_pack
-    documents = {rp / MODELS / f"{item_id}.geo.json": geometry(item_id, cubes) for item_id, cubes in SHAPES.items()}
+    geometries = {rp / MODELS / f"{item_id}.geo.json": geometry(item_id, cubes) for item_id, cubes in SHAPES.items()}
     for layout in PAIR_LAYOUTS.values():
-        documents[rp / MODELS / f"{layout.name}_decor_pair.geo.json"] = pair_geometry(layout, spec)
-    documents[rp / MODELS / "drawers_decor_pair.geo.json"] = drawers_geometry(spec)
-    documents[rp / TERRAIN] = terrain(json.loads(TERRAIN_TEXTURE_BASE.read_text()))
+        geometries[rp / MODELS / f"{layout.name}_decor_pair.geo.json"] = pair_geometry(layout, spec)
+    geometries[rp / MODELS / "drawers_decor_pair.geo.json"] = drawers_geometry(spec)
+    documents = {rp / TERRAIN: terrain(json.loads(TERRAIN_TEXTURE_BASE.read_text()))}
     bp = args.behavior_pack
+    blocks = {}
     for item in spec:
         gid = item["id"]
-        documents[bp / BLOCKS / f"{gid}_decor.block.json"] = decor_block(item)
+        blocks[bp / BLOCKS / f"{gid}_decor.block.json"] = decor_block(item)
         documents[bp / ITEMS / f"{gid}.item.json"] = gear_item(item)
     for kind in PAIRS:
-        documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
-    documents[bp / BLOCKS / "drawers_decor_pair.block.json"] = drawers_block(spec)
+        blocks[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
+    blocks[bp / BLOCKS / "drawers_decor_pair.block.json"] = drawers_block(spec)
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads(ITEM_TEXTURE_BASE.read_text()), spec)
     atlas = rp / ATLAS
     out = texture_io.Outputs(args.check, report_writes=True)
 
-    # The drawers geometry is independently generated and remains in documents.
     for path in sorted((rp / MODELS).glob("*_decor_pair.geo.json")):
-        if path not in documents:
+        if path not in geometries:
             if args.check:
                 out.stale.append(f"{path} (orphan decor pair geometry)")
             else:
                 path.unlink()
                 print(f"removed {path}")
 
-    for path, document in documents.items():
+    write_geometries(out, geometries, blocks)
+    for path, document in (documents | blocks).items():
         out.json(path, document)
     out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, ATLAS_PIXELS), compress_level=9)
     out.finish("Camping gear outputs are out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result:", "camping gear models, atlas, blocks, and items are up to date")

@@ -71,7 +71,8 @@ class OutputManifest:
         )
         self._generators = tuple(ids)
         self._outputs = tuple(
-            GeneratedOutput(entry.id, pattern, entry.tracked or pattern in entry.tracked_outputs)
+            GeneratedOutput(entry.id, pattern, entry.tracked or any(
+                fnmatch.fnmatchcase(pattern, tracked) for tracked in entry.tracked_outputs))
             for entry in self._entries for pattern in entry.outputs
         )
         self._inputs = tuple(dict.fromkeys(
