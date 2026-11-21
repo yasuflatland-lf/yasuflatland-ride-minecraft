@@ -178,7 +178,7 @@ export function installBuild(deps: {
     new SyncTapTarget(blocks, tapTargets),
   );
   const menuCases = {
-    chooseAdjustHeight: new ChooseAdjustHeight(repo),
+    chooseAdjustHeight: new ChooseAdjustHeight(repo, feedback),
     openSelectionMenu: new OpenSelectionMenu(repo),
     openBuildMenu: new OpenBuildMenu(repo, preview),
     closeBuildMenu: new CloseBuildMenu(repo, preview),

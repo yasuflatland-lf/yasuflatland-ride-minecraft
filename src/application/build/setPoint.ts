@@ -1,5 +1,5 @@
 import { volume } from "../../domain/build/box";
-import { tapBlock } from "../../domain/build/flow/flow";
+import { enteredBaseHeight, tapBlock } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -39,7 +39,10 @@ export class SetPoint {
     if (starting) session.clearSelection();
     const next = tapBlock(flow, cmd.dimensionId, cmd.cell, material);
     session.setFlow(next);
-    if (next.kind === "baseHeight") return;
+    if (enteredBaseHeight(flow, next)) {
+      this.feedback.showMessage(cmd.playerId, "heightAim");
+      return;
+    }
     this.feedback.showMessage(
       cmd.playerId,
       next.kind === "selected" ? "endSet" : "pointSet",
