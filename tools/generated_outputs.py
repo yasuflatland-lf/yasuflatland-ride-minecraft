@@ -47,8 +47,8 @@ class ManifestEntry:
     outputs: tuple[str, ...]
     reads: tuple[str, ...]
     tracked: bool
-    tracked_outputs: tuple[str, ...]
     after_generators: bool
+    tracked_outputs: tuple[str, ...] = ()
 
 
 def entry_id(entry) -> str:
@@ -65,8 +65,8 @@ class OutputManifest:
         self._entries = tuple(
             ManifestEntry(entry_id(entry), entry["script"], tuple(entry.get("args", ())),
                           tuple(entry["outputs"]), tuple(entry["reads"]),
-                          entry.get("tracked", False), tuple(entry.get("trackedOutputs", ())),
-                          entry.get("afterGenerators", False))
+                          entry.get("tracked", False), entry.get("afterGenerators", False),
+                          tuple(entry.get("trackedOutputs", ())))
             for entry in entries
         )
         self._generators = tuple(ids)

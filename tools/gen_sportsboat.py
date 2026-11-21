@@ -24,6 +24,7 @@ assert_axes = load_tool("cube_tilt").assert_axes
 ASSEMBLIES = {"wheel": {"owner": "sportsboat", "cubes": 146},
               "throttle_lever": {"owner": "sportsboat", "cubes": 8}}
 
+face_cull = load_tool("face_cull")
 texture_io = load_tool("texture_io")
 texture_variants = load_tool("texture_variants")
 outputs = texture_io.Outputs("--check" in sys.argv[2:])
@@ -1819,7 +1820,6 @@ def rounded(value):
 turn_around(geo["minecraft:geometry"][0]["bones"])
 assert_axes([cube for bone in geo["minecraft:geometry"][0]["bones"]
              for cube in bone.get("cubes", [])], {"wheel": wheel, "throttle_lever": lever}, ASSEMBLIES)
-outputs.json(MODELS / "sportsboat.geo.json", rounded(geo))
 
 
 def swatch_cell(x, y):
@@ -1880,11 +1880,25 @@ variants.append(texture_variants.Variant("sportsboat_mirror",
     texture_io.rgba_bytes(TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"])),
     texture_io.rgba_bytes(TEXTURE_WIDTH, TEXTURE_HEIGHT,
                          cell_mer({MIRROR_SLOT: MER_MIRROR}, extra=mirror_mer))))
-texture_variants.write_variants(
+boat_textures = texture_variants.write_variants(
     outputs, ENTITY_TEXTURES, "sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT, variants)
 
-build_lit_textures(outputs, ENTITY_TEXTURES, "sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT,
-                   swatches(HULL_PAINTS["khaki"]), is_lit=lambda x, y: swatch_cell(x, y) in LIT_SLOTS)
+lit_pixels = build_lit_textures(
+    outputs, ENTITY_TEXTURES, "sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT,
+    swatches(HULL_PAINTS["khaki"]), is_lit=lambda x, y: swatch_cell(x, y) in LIT_SLOTS)
+
+uv_space = (TEXTURE_WIDTH, TEXTURE_HEIGHT)
+pixels_by_name = {boat_textures.color_of[v.name]: v.color for v in variants}
+pixels_by_name["sportsboat_lit"] = lit_pixels
+texture_paths = [(ENTITY_TEXTURES / name).relative_to(RP).as_posix() for name in sorted(pixels_by_name)]
+bound_textures = [((*uv_space, pixels), uv_space) for pixels in pixels_by_name.values()]
+policy = face_cull.CullPolicy(("windshield",), face_cull.opaque_occluder(
+    lambda bone, cube, side: bound_textures))
+result = face_cull.cull_buried_faces(rounded(geo["minecraft:geometry"][0]), policy)
+geo["minecraft:geometry"][0] = result.geometry
+outputs.json(MODELS / "sportsboat.geo.json", geo)
+face_cull.write_record(outputs, result.geometry["description"]["identifier"], texture_paths,
+                       result, policy.excluded_bones)
 
 # Item icon: a 16-pixel side view, bow to the right, tower leaning forward, on transparency.
 ICON = [
@@ -2006,5 +2020,5 @@ outputs.stale.extend(monitor.write_monitor(
     "sportsboat", SPORTSBOAT_MONITOR_LAYOUT,
     {"icebreaker_switch": monitor_icon}, outputs.check, RP,
 ))
-print("cubes:", len(body) + len(headlights) + len(glass) + len(mirror))
+print("cubes:", sum(len(bone.get("cubes", [])) for bone in result.geometry["bones"]))
 outputs.finish("Stale sports boat outputs:", "sports boat model and textures are up to date")

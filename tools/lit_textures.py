@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 mer = load_tool("mer")
-write_texture_set = load_tool("texture_io").write_texture_set
+texture_io = load_tool("texture_io")
 
 
 def build_lit_textures(out, directory, kind, width, height, pixel, is_lit,
@@ -19,12 +19,13 @@ def build_lit_textures(out, directory, kind, width, height, pixel, is_lit,
         # Cutout bones never draw in the lit pass; their holes must not mark extra glow.
         return (*rgba[:3], 255) if opaque_unlit_cutouts and rgba[3] == 0 else rgba
 
-    out.png(directory / f"{kind}_lit.png", width, height, color)
+    pixels = out.png(directory / f"{kind}_lit.png", width, height, color)
     out.png(directory / f"{kind}_lit_mer.png", width, height,
             mer.mer_painter(lambda x, y: lit_mer if is_lit(x, y) else off_mer))
-    write_texture_set(out, directory, f"{kind}_lit")
+    texture_io.write_texture_set(out, directory, f"{kind}_lit")
+    return pixels
 
 
 def build_layout_lit_textures(out, directory, kind, layout, pixel, region_name, local_mask):
-    build_lit_textures(out, directory, kind, *layout.size, pixel,
-                       mer.layout_mask(layout, region_name, local_mask))
+    return build_lit_textures(out, directory, kind, *layout.size, pixel,
+                              mer.layout_mask(layout, region_name, local_mask))

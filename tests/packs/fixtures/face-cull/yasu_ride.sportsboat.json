@@ -1,0 +1,26 @@
+{
+  "excludedBones": [
+    "windshield"
+  ],
+  "textures": [
+    "textures/entity/yasu_ride/sportsboat",
+    "textures/entity/yasu_ride/sportsboat_blue",
+    "textures/entity/yasu_ride/sportsboat_cyan",
+    "textures/entity/yasu_ride/sportsboat_gray",
+    "textures/entity/yasu_ride/sportsboat_green",
+    "textures/entity/yasu_ride/sportsboat_light_blue",
+    "textures/entity/yasu_ride/sportsboat_light_gray",
+    "textures/entity/yasu_ride/sportsboat_lime",
+    "textures/entity/yasu_ride/sportsboat_lit",
+    "textures/entity/yasu_ride/sportsboat_magenta",
+    "textures/entity/yasu_ride/sportsboat_mirror",
+    "textures/entity/yasu_ride/sportsboat_orange",
+    "textures/entity/yasu_ride/sportsboat_pink",
+    "textures/entity/yasu_ride/sportsboat_purple",
+    "textures/entity/yasu_ride/sportsboat_red",
+    "textures/entity/yasu_ride/sportsboat_white",
+    "textures/entity/yasu_ride/sportsboat_yellow"
+  ],
+  "removedFaces": 953,
+  "removedCubes": 2
+}

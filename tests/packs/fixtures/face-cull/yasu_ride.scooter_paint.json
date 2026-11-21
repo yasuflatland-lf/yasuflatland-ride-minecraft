@@ -1,0 +1,26 @@
+{
+  "excludedBones": [
+    "glow_*",
+    "headlights",
+    "tail_lights"
+  ],
+  "textures": [
+    "textures/entity/yasu_ride/scooter_paint",
+    "textures/entity/yasu_ride/scooter_paint_green",
+    "textures/entity/yasu_ride/scooter_paint_red",
+    "textures/entity/yasu_ride/scooter_paint_light_gray",
+    "textures/entity/yasu_ride/scooter_paint_gray",
+    "textures/entity/yasu_ride/scooter_paint_black",
+    "textures/entity/yasu_ride/scooter_paint_orange",
+    "textures/entity/yasu_ride/scooter_paint_yellow",
+    "textures/entity/yasu_ride/scooter_paint_lime",
+    "textures/entity/yasu_ride/scooter_paint_cyan",
+    "textures/entity/yasu_ride/scooter_paint_light_blue",
+    "textures/entity/yasu_ride/scooter_paint_blue",
+    "textures/entity/yasu_ride/scooter_paint_purple",
+    "textures/entity/yasu_ride/scooter_paint_magenta",
+    "textures/entity/yasu_ride/scooter_paint_pink"
+  ],
+  "removedFaces": 4,
+  "removedCubes": 0
+}

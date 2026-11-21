@@ -4,6 +4,9 @@ export interface Cube {
   origin: Triple;
   size: Triple;
   inflate?: number;
+  uv?:
+    | Record<string, { uv: [number, number]; uv_size: [number, number] }>
+    | [number, number];
   pivot?: Triple;
   rotation?: Triple;
 }
@@ -16,7 +19,7 @@ export interface Bone {
   rotation?: Triple;
 }
 
-function corners(cube: Cube): Triple[] {
+function corners(cube: Omit<Cube, "uv">): Triple[] {
   const grow = cube.inflate ?? 0;
   const [x0, y0, z0] = cube.origin;
   const [w, h, d] = cube.size;
@@ -61,7 +64,10 @@ export function turn(point: Triple, pivot: Triple, rotation: Triple): Triple {
  * Ancestor bone rotations are not applied, so this is only right for models that nest no rotated
  * bone inside another.
  */
-export function turnedCorners(bone: Bone, cube: Cube): Triple[] {
+export function turnedCorners<
+  B extends Omit<Bone, "cubes">,
+  C extends Omit<Cube, "uv">,
+>(bone: B, cube: C): Triple[] {
   return corners(cube).map((point) => {
     if (cube.rotation && cube.pivot)
       point = turn(point, cube.pivot, cube.rotation);
@@ -69,4 +75,48 @@ export function turnedCorners(bone: Bone, cube: Cube): Triple[] {
       point = turn(point, bone.pivot, bone.rotation);
     return point;
   });
+}
+
+export function boneChain(bones: Bone[], bone: Bone): Bone[] {
+  const chain = [bone];
+  const visited = new Set([bone.name]);
+  let current = bone;
+  while (current.parent !== undefined) {
+    if (visited.has(current.parent)) {
+      throw new Error(
+        `Bone "${bone.name}" has a parent cycle at "${current.parent}"`,
+      );
+    }
+    const parent = bones.find(({ name }) => name === current.parent);
+    if (!parent) {
+      throw new Error(
+        `Bone "${bone.name}" has missing parent "${current.parent}"`,
+      );
+    }
+    chain.push(parent);
+    visited.add(parent.name);
+    current = parent;
+  }
+  return chain;
+}
+
+type Corners = [Triple, Triple, Triple, Triple, Triple, Triple, Triple, Triple];
+
+/** Corners in x + 2y + 4z order, as in tools/cube_tilt.py. */
+export function worldCorners(bones: Bone[], bone: Bone, cube: Cube): Corners {
+  const grow = cube.inflate ?? 0;
+  const [x, y, z] = cube.origin;
+  const [w, h, d] = cube.size;
+  const transforms = [cube, ...boneChain(bones, bone)];
+  return [0, 1, 2, 3, 4, 5, 6, 7].map((bits) => {
+    let point: Triple = [
+      x - grow + (bits & 1) * (w + 2 * grow),
+      y - grow + ((bits >> 1) & 1) * (h + 2 * grow),
+      z - grow + ((bits >> 2) & 1) * (d + 2 * grow),
+    ];
+    for (const { rotation, pivot } of transforms) {
+      if (rotation && pivot) point = turn(point, pivot, rotation);
+    }
+    return point;
+  }) as Corners;
 }

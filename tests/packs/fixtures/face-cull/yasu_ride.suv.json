@@ -1,0 +1,24 @@
+{
+  "excludedBones": [],
+  "textures": [
+    "textures/entity/yasu_ride/suv",
+    "textures/entity/yasu_ride/suv_green",
+    "textures/entity/yasu_ride/suv_red",
+    "textures/entity/yasu_ride/suv_white",
+    "textures/entity/yasu_ride/suv_light_gray",
+    "textures/entity/yasu_ride/suv_gray",
+    "textures/entity/yasu_ride/suv_black",
+    "textures/entity/yasu_ride/suv_orange",
+    "textures/entity/yasu_ride/suv_yellow",
+    "textures/entity/yasu_ride/suv_lime",
+    "textures/entity/yasu_ride/suv_cyan",
+    "textures/entity/yasu_ride/suv_light_blue",
+    "textures/entity/yasu_ride/suv_blue",
+    "textures/entity/yasu_ride/suv_purple",
+    "textures/entity/yasu_ride/suv_magenta",
+    "textures/entity/yasu_ride/suv_pink",
+    "textures/entity/yasu_ride/suv_lit"
+  ],
+  "removedFaces": 1457,
+  "removedCubes": 9
+}

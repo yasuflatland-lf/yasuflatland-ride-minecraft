@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
+cube_ops = load_tool("cube_ops")
 cube_tilt = load_tool("cube_tilt")
 monitor = load_tool("monitor")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
@@ -97,9 +98,10 @@ def face(color):
 
 
 def box(x0, y0, z0, x1, y1, z1, color, rotation=None, pivot=None):
+    origin, size = cube_ops.ordered_extent(x0, y0, z0, x1, y1, z1)
     c = {
-        "origin": [round(min(x0, x1), 3), round(min(y0, y1), 3), round(min(z0, z1), 3)],
-        "size": [round(abs(x1 - x0), 3), round(abs(y1 - y0), 3), round(abs(z1 - z0), 3)],
+        "origin": [round(value, 3) for value in origin],
+        "size": [round(value, 3) for value in size],
         "uv": {f: face(color) for f in ("north", "south", "east", "west", "up", "down")},
     }
     if rotation:
@@ -382,7 +384,9 @@ while z < SIDE_REAR - 1e-6:
     z1 = min(z + 0.5, SIDE_REAR)
     zm = (z + z1) / 2
     top, bottom = side_top(zm), side_bottom(zm)
-    side.append(box(SIDE_IN, bottom + 2.0, z, SIDE_OUT, min(top, CAB_SILL), z1, "yellow"))
+    skin_top = min(top, CAB_SILL)
+    if skin_top > bottom + 2.0:
+        side.append(box(SIDE_IN, bottom + 2.0, z, SIDE_OUT, skin_top, z1, "yellow"))
     side.append(box(SIDE_IN, bottom + 1.0, z, SIDE_OUT - 1.0, bottom + 2.0, z1, "yellow_dark"))
     if top > CAB_SILL:  # beside the cab the body stays outside its wall
         side.append(box(CAB_HALF, CAB_SILL, z, SIDE_OUT,
@@ -656,6 +660,7 @@ def blade_top(x):
 
 
 BACK = BLADE_FRONT + 6.6
+SIDE_PLATE_THICKNESS = 0.8
 
 
 def blade_cubes(half: float) -> list:
@@ -677,15 +682,18 @@ def blade_cubes(half: float) -> list:
     for i, (x0, x1) in enumerate(zip(edge_cuts, edge_cuts[1:])):
         x0, x1 = x0 + (0.1 if i else 0.0), x1 - (0.1 if i < 4 else 0.0)
         blade.append(box(x0, 0.0, BLADE_FRONT, x1, 3.0, BLADE_FRONT + 1.4, "yellow"))
-        blade.append(box(x0, 0.6, BLADE_FRONT + 1.4, x1, 3.0, BLADE_FRONT + 4.6, "yellow_dark"))
+        strip_start = -half + SIDE_PLATE_THICKNESS if i == 0 else x0
+        strip_end = half - SIDE_PLATE_THICKNESS if i == 4 else x1
+        blade.append(box(strip_start, 0.6, BLADE_FRONT + 1.4, strip_end, 3.0, BLADE_FRONT + 4.6, "yellow_dark"))
         n = max(2, round((x1 - x0) / 2.2))
         for k in range(n):
             bx = x0 + (k + 0.5) * (x1 - x0) / n
             blade.append(box(bx - 0.25, 1.3, BLADE_FRONT - 0.1, bx + 0.25, 1.8, BLADE_FRONT, "bolt"))
-    blade.append(box(-half, 3.0, BLADE_FRONT + 0.6, half, 3.6, BLADE_FRONT + 2.2, "yellow_dark"))
+    blade.append(box(-half + SIDE_PLATE_THICKNESS, 3.0, BLADE_FRONT + 0.6,
+                     half - SIDE_PLATE_THICKNESS, 3.6, BLADE_FRONT + 2.2, "yellow_dark"))
     # Side plates, leaning forward at the top like the drawing
     for sx in (1, -1):
-        x0, x1 = (half - 0.8, half) if sx > 0 else (-half, -half + 0.8)
+        x0, x1 = (half - SIDE_PLATE_THICKNESS, half) if sx > 0 else (-half, -half + SIDE_PLATE_THICKNESS)
         blade.append(box(x0, 0.0, BLADE_FRONT + 0.3, x1, 3.0, BLADE_FRONT + 6.0, "yellow"))
         y = 3.0
         while y < BLADE_TOP - 1e-6:
@@ -696,7 +704,8 @@ def blade_cubes(half: float) -> list:
             y = y1
     # Back of the moldboard: vertical ribs and two horizontal box beams
     blade.append(box(-half + 0.8, 4.0, BACK - 1.6, half - 0.8, 7.0, BACK + 1.2, "yellow"))
-    blade.append(box(-half + 0.8, 13.0, BACK - 1.0, half - 0.8, 16.0, BACK + 0.8, "yellow"))
+    # Extend below the center pivot pin so their undersides do not share a plane.
+    blade.append(box(-half + 0.8, 12.9, BACK - 1.0, half - 0.8, 16.0, BACK + 0.8, "yellow"))
     rib_count = int((half - 3.6) / 5.8) + 1
     for rx in [-2.4 - 5.8 * k for k in range(rib_count)] + [2.4 + 5.8 * k for k in range(rib_count)]:
         blade.append(box(rx - 0.4, 3.6, BACK - 0.6, rx + 0.4, 18.6, BACK + 1.4, "yellow_dark"))

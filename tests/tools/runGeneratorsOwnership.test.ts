@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import {
+  appendFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -282,3 +283,13 @@ it.each(["--ensure", "--status", "--list-outputs", "--list-inputs"])(
     expect(existsSync(join(root, "packs/a.json"))).toBe(false);
   },
 );
+
+it("invalidates a fresh generation stamp after an edit to cube_ops.py", () => {
+  const root = fixture();
+  expect(run(root).status).toBe(0);
+  const fresh = () => JSON.parse(run(root, "--status").stdout).fresh;
+  expect(fresh()).toBe(true);
+  const helper = join(root, "tools/cube_ops.py");
+  appendFileSync(helper, "\n# fixture edit\n");
+  expect(fresh()).toBe(false);
+});
