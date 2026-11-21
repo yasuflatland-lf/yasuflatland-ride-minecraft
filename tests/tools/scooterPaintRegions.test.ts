@@ -28,6 +28,7 @@ face_crop = load_tool("face_crop")
 preview = load_tool("render_preview")
 rp = Path("packs/yasu_ride_rp")
 source = built.source_geometry["minecraft:geometry"][0]
+culled = built.cull.geometry
 full = built.full_geometry["minecraft:geometry"][0]
 paint_regions = {r.name for r in built.paint_source.layout.regions}
 pass_bones = []
@@ -49,13 +50,13 @@ for texture, source_pass, render_pass in (
 def shape(cube):
     return {key: value for key, value in cube.items() if key != "uv"}
 
-source_count = clear_count = 0
+source_count = clear_count = buried_count = 0
 visibility = {}
 region_for_rect = {}
 paint_faces = []
 clear_paint_faces = {}
-for original_bone, full_bone, fixed_bone, paint_bone in zip(
-        source["bones"], full["bones"], *pass_bones, strict=True):
+for original_bone, culled_bone, full_bone, fixed_bone, paint_bone in zip(
+        source["bones"], culled["bones"], full["bones"], *pass_bones, strict=True):
     for bone in (full_bone, fixed_bone, paint_bone):
         assert {k: v for k, v in bone.items() if k != "cubes"} == {
             k: v for k, v in original_bone.items() if k != "cubes"
@@ -64,7 +65,9 @@ for original_bone, full_bone, fixed_bone, paint_bone in zip(
     full_cubes = iter(full_bone["cubes"])
     bone_name = original_bone["name"]
     lit = bone_name in ("headlights", "tail_lights") or bone_name.startswith("glow_")
-    for original in original_bone["cubes"]:
+    for index, original in enumerate(original_bone["cubes"]):
+        kept_index = built.cull.index_map[(bone_name, index)]
+        kept_faces = {} if kept_index is None else culled_bone["cubes"][kept_index]["uv"]
         expected = ({}, {})
         for name, face in original["uv"].items():
             source_count += 1
@@ -76,6 +79,9 @@ for original_bone, full_bone, fixed_bone, paint_bone in zip(
                 if not visibility[key]:
                     clear_count += 1
                     continue
+            if name not in kept_faces:
+                buried_count += 1
+                continue
             expected[owner][name] = face
         shipped_faces = {}
         for owner, faces in enumerate(expected):
@@ -116,7 +122,8 @@ for original_bone, full_bone, fixed_bone, paint_bone in zip(
     assert all(next(cursor, None) is None for cursor in cursors)
     assert next(full_cubes, None) is None
 assert clear_count > 0
-assert source_count == clear_count + shipped_count
+assert buried_count == sum(count.removed_faces for count in built.removals)
+assert source_count == clear_count + buried_count + shipped_count
 assert set(region_for_rect.values()) == {r.name for r in built.paint.layout.regions}
 slots = set()
 for region in built.paint.layout.regions:

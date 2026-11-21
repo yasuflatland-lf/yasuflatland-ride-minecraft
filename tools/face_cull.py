@@ -50,6 +50,7 @@ class _Box:
             for corner in range(8)
         ]
         self.corners = [self.to_world(point) for point in self.local_corners]
+        self.bounds = _bounds(self.corners)
 
     def _transform(self, matrix, point):
         if self.rotation is _IDENTITY:
@@ -97,14 +98,25 @@ def _grid_cell(point):
     return tuple(floor(value / _CELL_SIZE) for value in point)
 
 
+def _bounds(points):
+    xs, ys, zs = zip(*points)
+    return min(xs), min(ys), min(zs), max(xs), max(ys), max(zs)
+
+
+def _contains_bounds(outer, inner):
+    x0, y0, z0, x1, y1, z1 = outer
+    a0, b0, c0, a1, b1, c1 = inner
+    return x0 <= a0 and y0 <= b0 and z0 <= c0 and a1 <= x1 and b1 <= y1 and c1 <= z1
+
+
 def _occluder_grid(boxes, indices):
     grid = defaultdict(set)
     # Allow for the lateral tolerance even when rotated onto several world axes.
     padding = 2 * _LATERAL_TOLERANCE
     for index in indices:
-        axes = tuple(zip(*boxes[index].corners))
-        low = _grid_cell(min(values) - padding for values in axes)
-        high = _grid_cell(max(values) + padding for values in axes)
+        bounds = boxes[index].bounds
+        low = _grid_cell(value - padding for value in bounds[:3])
+        high = _grid_cell(value + padding for value in bounds[3:])
         for cell in product(*(range(lo, hi + 1) for lo, hi in zip(low, high))):
             grid[cell].add(index)
     return grid
@@ -113,6 +125,15 @@ def _occluder_grid(boxes, indices):
 def _cull_bone(bone_name, cubes, faces, policy):
     boxes = {index: _Box(cubes[index]) for index in faces}
     solid = [index for index in faces if all(size > 0 for size in cubes[index]["size"])]
+    # The grid admits all nearby boxes. Reject candidates that cannot contain the
+    # shifted face before transforming its corners into the candidate's frame.
+    padding = 2 * _LATERAL_TOLERANCE + 32 * ulp(max(
+        (box.coordinate_scale for box in boxes.values()), default=0))
+    padded = {
+        index: tuple(value + offset for value, offset in zip(
+            boxes[index].bounds, (-padding,) * 3 + (padding,) * 3))
+        for index in solid
+    }
     active = {index: cubes[index] for index in faces}
 
     # Culling a face can change the result of an opacity check on the remaining UVs.
@@ -131,9 +152,11 @@ def _cull_bone(bone_name, cubes, faces, policy):
                 axis, points = box.shifted_face(side, policy.epsilon)
                 world_points = [box.to_world(point) for point in points]
                 cells = [grid.get(_grid_cell(point), set()) for point in world_points]
-                candidates = cells[0].intersection(*cells[1:])
-                if any(boxes[other].contains(box, axis, points, world_points)
-                       for other in sorted(candidates - {index})):
+                candidates = cells[0].intersection(*cells[1:]) - {index}
+                bounds = _bounds(world_points)
+                if any(_contains_bounds(padded[other], bounds)
+                       and boxes[other].contains(box, axis, points, world_points)
+                       for other in sorted(candidates)):
                     removals.append((index, side))
         if not removals:
             break
@@ -200,7 +223,8 @@ def _face_opaque(face, texture, uv_space):
     ys = _texels(v, dv, height, uv_space[1])
     if not xs or not ys:
         return False
-    return all(pixels[(y * width + x) * 4 + 3] == 255 for y in ys for x in xs)
+    return all(pixels[(y * width + xs.start) * 4 + 3:(y * width + xs.stop) * 4:4]
+               .count(b"\xff") == len(xs) for y in ys)
 
 
 def opaque_occluder(

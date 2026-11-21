@@ -26,7 +26,7 @@
 - Source: [0172](../adr/0172-smooth-sports-boat-headlight-lenses.md)
 - Source: [0176](../adr/0176-move-the-sports-boat-front-seats-back.md)
 - Source: [0177](../adr/0177-drive-text-on-the-sports-boat-driver-deck-seat.md)
-- Source: [0255](../adr/0255-cull-buried-faces-at-generation.md)
+- Source: [0256](../adr/0256-cull-buried-faces-at-generation.md)
 - Excluded: [0009](../adr/0009-vehicle-model-conventions.md): vehicle model conventions; the boat-specific axes and registered helm assemblies are described below
 - Excluded: [0055](../adr/0055-kind-neutral-vehicle-core.md): kind-neutral architecture; this spec covers the sports boat implementation
 - Excluded: [0066](../adr/0066-limit-vehicles-per-player-and-kind.md): replaces the world fleet limit in 0051; belongs to vehicle-items-and-fleet

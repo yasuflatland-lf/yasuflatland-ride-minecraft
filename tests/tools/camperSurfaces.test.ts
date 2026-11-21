@@ -248,33 +248,56 @@ for c in a['body']:
       expect(hiV).toBeLessThanOrEqual(179.5);
     }
   });
-  it("exports positive, opaque veneer on both broad faces of the lining", () => {
-    const faces = inspect(
-      "faces",
+  it("exports positive, opaque veneer on the visible lining", () => {
+    const { faces, inwardCounts } = inspect(
+      "{'faces': faces, 'inwardCounts': inward_counts}",
       `
 from pathlib import Path
 texture = load_tool('render_preview').read_png(Path('packs/yasu_ride_rp/textures/entity/yasu_ride/camper.png'))
 geometry = json.loads(Path('packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json').read_text())['minecraft:geometry'][0]
-faces = []
-for bone in geometry['bones']:
-    if bone['name'] != 'body': continue
-    for c in bone.get('cubes', []):
+def lining(cubes):
+    for c in cubes:
         x,y,z = c['origin']
         w,h,d = c['size']
         if abs(w-0.2)>1e-6 or not (abs(x+23)<1e-6 or abs(x-22.8)<1e-6): continue
         if h*d < 1500/16: continue
         # The four backsplash fragments intentionally use tile, not veneer.
         if x<0 and z>=24 and z+d<=39.5 and y>=30 and y+h<=49: continue
-        for side in ('east', 'west'):
-            f = c['uv'][side]
-            u,v = f['uv']
-            du,dv = f['uv_size']
-            valid = du>1 and dv>1 and u>=0.5 and v>=0.5 and u+du<=415.50001 and v+dv<=179.50001
-            samples = [texture[int(v+dv*j/16)][int(u+du*i/16)] for j in range(17) for i in range(17)] if valid else []
-            faces.append([valid, all(p[3]==255 for p in samples)])
+        yield c
+def buried_by_shell(c, shell):
+    x, y, z = c['origin']
+    w, h, d = c['size']
+    sx, sy, sz = shell['origin']
+    sw, sh, sd = shell['size']
+    outward_x = x - 0.001 if x < 0 else x + w + 0.001
+    return (not any(shell.get('rotation', [])) and min(sw, sh, sd) > 0
+            and sx < outward_x < sx + sw
+            and sy - 1e-6 <= y and y + h <= sy + sh + 1e-6
+            and sz - 1e-6 <= z and z + d <= sz + sd + 1e-6)
+body = next(b['cubes'] for b in geometry['bones'] if b['name'] == 'body')
+faces = []
+inward_counts = {'east': 0, 'west': 0}
+for c in lining(body):
+    inward, outward = ('east', 'west') if c['origin'][0] < 0 else ('west', 'east')
+    broad_faces = [c['uv'][inward]]
+    inward_counts[inward] += 1
+    # The outer body panels bury the outward face of the lining.
+    if outward in c['uv']:
+        broad_faces.append(c['uv'][outward])
+    else:
+        assert any(buried_by_shell(c, shell) for shell in body), (c['origin'], outward)
+    for f in broad_faces:
+        u,v = f['uv']
+        du,dv = f['uv_size']
+        valid = du>1 and dv>1 and u>=0.5 and v>=0.5 and u+du<=415.50001 and v+dv<=179.50001
+        samples = [texture[int(v+dv*j/16)][int(u+du*i/16)] for j in range(17) for i in range(17)] if valid else []
+        faces.append([valid, all(p[3]==255 for p in samples)])
 `,
-    ) as [boolean, boolean][];
-    expect(faces.length).toBeGreaterThanOrEqual(30);
+    ) as {
+      faces: [boolean, boolean][];
+      inwardCounts: { east: number; west: number };
+    };
+    expect(inwardCounts).toEqual({ east: 10, west: 9 });
     for (const [valid, opaque] of faces) {
       expect(valid).toBe(true);
       expect(opaque).toBe(true);

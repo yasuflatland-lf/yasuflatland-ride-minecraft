@@ -1,0 +1,12 @@
+{
+  "excludedBones": [
+    "glow_*",
+    "headlights",
+    "tail_lights"
+  ],
+  "textures": [
+    "textures/entity/yasu_ride/scooter_fixed"
+  ],
+  "removedFaces": 423,
+  "removedCubes": 5
+}

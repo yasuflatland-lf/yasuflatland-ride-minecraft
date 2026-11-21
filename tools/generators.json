@@ -4,6 +4,7 @@
       "script": "gen_model.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.suv.json",
         "packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/suv*.png",
@@ -11,7 +12,8 @@
         "packs/yasu_ride_rp/textures/items/yasu_ride/suv_item.png",
         "packs/yasu_ride_rp/textures/items/yasu_ride/headlight_switch.png"
       ],
-      "reads": []
+      "trackedOutputs": ["tests/packs/fixtures/face-cull/yasu_ride.suv.json"],
+      "reads": ["packs/yasu_ride_rp/entity/yasu_ride/suv.ce.json"]
     },
     {
       "script": "gen_sportsboat.py",
@@ -37,11 +39,17 @@
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
         "tests/packs/fixtures/camper-areas.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.camper.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.camper.drawer_items.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/camper*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/camper*.texture_set.json",
         "packs/yasu_ride_rp/textures/items/yasu_ride/camper_item.png",
         "packs/yasu_ride_rp/textures/items/yasu_ride/camping_gear_box.png"
+      ],
+      "trackedOutputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.camper.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.camper.drawer_items.json"
       ],
       "reads": []
     },
@@ -64,6 +72,10 @@
     {
       "script": "gen_scooter.py",
       "args": ["packs/yasu_ride_rp"],
+      "trackedOutputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter_paint.json"
+      ],
       "outputs": [
         ".cache/generated/scooter_source.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
@@ -72,7 +84,9 @@
         "packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.texture_set.json",
-        "packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png"
+        "packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter_paint.json"
       ],
       "reads": [
         "tools/scooter_running.py",
