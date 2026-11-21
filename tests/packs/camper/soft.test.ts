@@ -14,7 +14,7 @@ it("builds the piped dinette, bed and bunk inside their original furniture cells
     const [first = 0, last = -1] = areas[area]?.body ?? [];
     return (bone("body").cubes ?? []).slice(first, last + 1);
   });
-  expect(bed).toHaveLength(30);
+  expect(bed).toHaveLength(29);
   for (const c of bed) {
     expect(c.size.every((n) => n > 0)).toBe(true);
     for (const [axis, low, high] of [
