@@ -248,8 +248,10 @@
     },
     {
       "script": "gen_tent.py",
+      "trackedOutputs": ["tests/packs/fixtures/face-cull/yasu_ride.tent.json"],
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.tent.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/tent.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/tent*.png"
       ],

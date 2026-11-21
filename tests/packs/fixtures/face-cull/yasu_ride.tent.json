@@ -1,0 +1,25 @@
+{
+  "excludedBones": [
+    "lantern_glass"
+  ],
+  "textures": [
+    "textures/entity/yasu_ride/tent",
+    "textures/entity/yasu_ride/tent_green",
+    "textures/entity/yasu_ride/tent_red",
+    "textures/entity/yasu_ride/tent_white",
+    "textures/entity/yasu_ride/tent_light_gray",
+    "textures/entity/yasu_ride/tent_gray",
+    "textures/entity/yasu_ride/tent_black",
+    "textures/entity/yasu_ride/tent_orange",
+    "textures/entity/yasu_ride/tent_yellow",
+    "textures/entity/yasu_ride/tent_lime",
+    "textures/entity/yasu_ride/tent_cyan",
+    "textures/entity/yasu_ride/tent_light_blue",
+    "textures/entity/yasu_ride/tent_blue",
+    "textures/entity/yasu_ride/tent_purple",
+    "textures/entity/yasu_ride/tent_magenta",
+    "textures/entity/yasu_ride/tent_pink"
+  ],
+  "removedFaces": 1158,
+  "removedCubes": 0
+}
