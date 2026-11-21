@@ -14,7 +14,7 @@ const geometryText = readFileSync(
   "utf8",
 );
 export interface Cube extends GeometryCube {
-  uv: Record<string, { uv: number[]; uv_size: number[] }>;
+  uv: Record<string, { uv: [number, number]; uv_size: [number, number] }>;
 }
 export interface Bone {
   name: string;

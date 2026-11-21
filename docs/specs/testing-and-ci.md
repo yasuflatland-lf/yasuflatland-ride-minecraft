@@ -43,6 +43,8 @@
 - Implementation: `package.json` (`test`), `vitest.config.ts`, `tests/support/engineModel.ts`, `src/domain/vehicle/`, `.dependency-cruiser.cjs`
 - Verification: `tests/domain/vehicle/motion/motion.test.ts` exercises generated sequences, friction, walls, speed bounds, and input conversion; `tests/domain/vehicle/motion/forms.test.ts` checks form transitions and vertical motion. Not verified: properties do not reproduce the whole engine, and no test enforces a maximum number of examples or requires every unit test to be a property. No tests were run for this spec.
 
+The pack suite includes the [per-geometry visible coplanar face ratchet](../../tests/packs/coplanarFaces.test.ts) from [ADR 0255](../adr/0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md).
+
 ### Generated assets before tests and dev commands
 
 - Applies to: Vitest runs, build, packaging, the dev server, and the in-game driver.
