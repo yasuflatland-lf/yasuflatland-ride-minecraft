@@ -96,6 +96,7 @@ it("preserves blocks and defers point taps out of before events", () => {
       fc.integer(),
       fc.boolean(),
       (x, y, z, holding) => {
+        engine.tick = 0;
         engine.scheduled.length = 0;
         vi.clearAllMocks();
         const repo = new InMemorySessionRepository();
@@ -203,6 +204,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         expect(repo.get(id)?.flow.kind).toBe(
           holding ? "baseHeight" : undefined,
         );
+        engine.tick += BUILD_SPEC.pressDebounceTicks;
         engine.handlers.get("interact")?.(interact);
         player.isValid = false;
         for (const callback of engine.scheduled.splice(0)) callback();
@@ -638,7 +640,7 @@ it.each([
     sneaking: true,
   },
 ])(
-  "cancels $typeId interaction and opens the selected menu once",
+  "cancels $typeId interaction and opens the selected menu once with paired item use",
   ({ typeId, location, sneaking }) => {
     const e = setupAir();
     e.use();
@@ -655,11 +657,13 @@ it.each([
       isFirstEvent: true,
       cancel: false,
     };
+    engine.tick += BUILD_SPEC.pressDebounceTicks;
     engine.handlers.get("interact")?.(event);
     engine.handlers.get("interact")?.({ ...event, isFirstEvent: false });
-    engine.tick += BUILD_SPEC.pressDebounceTicks;
     e.use();
+    engine.handlers.get("interact")?.(event);
     expect(event.cancel).toBe(true);
+    expect(engine.scheduled).toHaveLength(1);
     expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
     for (const callback of engine.scheduled.splice(0)) callback();
     expect(e.menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(e.player);
@@ -667,6 +671,42 @@ it.each([
     expect(e.session.flow).toBe(selection);
   },
 );
+
+it("opens the selected menu once during held item use aimed at a block", () => {
+  const e = setupAir();
+  e.use();
+  expect(e.session.flow.kind).toBe("selected");
+  const cell = { x: 10, y: 2, z: 0 };
+  e.aim.aim = () => ({
+    ray: { origin: { x: 0, y: 2, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+    block: { cell, face: "up" },
+  });
+  const start = BUILD_SPEC.pressDebounceTicks;
+  for (const elapsed of [0, 4, 8, 12, 16]) {
+    engine.tick = start + elapsed;
+    e.use();
+  }
+  expect(e.menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(e.player);
+});
+
+it("accepts a point1 block tap within the item-use debounce window", () => {
+  const e = setupAir();
+  const cell = { x: 12, y: 0, z: 2 };
+  e.aim.aim = () => ({
+    ray: { origin: { x: 0, y: 0, z: 2 }, direction: { x: 1, y: 0, z: 0 } },
+    block: { cell, face: "up" },
+  });
+  e.use();
+  expect(e.session.flow.kind).toBe("point1");
+  engine.handlers.get("interact")?.({
+    player: e.player,
+    block: { location: cell, dimension: { id: "minecraft:overworld" } },
+    isFirstEvent: true,
+    cancel: false,
+  });
+  for (const callback of engine.scheduled.splice(0)) callback();
+  expect(e.session.flow.kind).toBe("baseHeight");
+});
 
 it("opens the paste menu even when the aim reader returns undefined", () => {
   const e = setupAir();
@@ -749,6 +789,7 @@ it.each(["air", "block"] as const)(
       expect(e.session.flow.kind).toBe("baseHeight");
     }
     e.use();
+    if (target === "block") expect(e.session.flow.kind).toBe("baseHeight");
     for (const callback of engine.scheduled.splice(0)) callback();
     expect(e.session.flow).toEqual({
       kind: "selected",
