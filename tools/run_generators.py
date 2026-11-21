@@ -9,7 +9,7 @@
     python3 -I tools/run_generators.py --list-inputs
 
 tools/generators.json declares dependencies, arguments, output globs, and reads outside tools/.
-All tools/** files are implicit inputs except __pycache__. Output patterns use POSIX fnmatch;
+Shared helpers such as cube_ops.py are fingerprinted through tools/**, excluding __pycache__. Output patterns use POSIX fnmatch;
 stars match across folders. Outputs writes compact JSON; afterGenerators entries run after
 every other generator. --check compares parsed JSON and decoded pixels. --report-touched
 FILE writes JSON Lines containing generator and repo-relative path for every write or check,

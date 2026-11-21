@@ -5,6 +5,7 @@ import "./inputProbe";
 import "./loungeProbe";
 import "./scooterPoseProbe";
 import "./manualProbes";
+import "./renderBench";
 import { type Arena, prepareRun, removeVehicles } from "./arena";
 import { CATALOG, type ScenarioSpec } from "./catalog";
 import { isFeatureTag } from "./features";
