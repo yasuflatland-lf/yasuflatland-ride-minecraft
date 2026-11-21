@@ -38,7 +38,7 @@ export class TestAimReader implements AimReader {
     const ray = facing
       ? { origin: aim.ray.origin, direction: facingVector(facing) }
       : aim.ray;
-    if (hit) return { ray, block: { cell: hit, face: "up" } };
-    return facing ? { ray } : aim;
+    if (hit) return { ray, block: { cell: hit, face: "up" }, input: "pointer" };
+    return facing ? { ray, input: "pointer" } : aim;
   }
 }
