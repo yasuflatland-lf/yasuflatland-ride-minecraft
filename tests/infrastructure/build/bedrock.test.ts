@@ -269,7 +269,7 @@ it("sends translated counts and bounded player-only particles at block centers",
   );
 });
 
-it("draws 20 endrod particles on the corner boundary for the owner only", () => {
+it("draws 36 endrod particles on the corner boundary for the owner only", () => {
   fc.assert(
     fc.property(cell, (at) => {
       const spawnParticle = vi.fn();
@@ -287,7 +287,7 @@ it("draws 20 endrod particles on the corner boundary for the owner only", () => 
         preview({ startMarker: cornerMarkerPoints(at) }),
       );
       expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
-      expect(spawnParticle).toHaveBeenCalledTimes(20);
+      expect(spawnParticle).toHaveBeenCalledTimes(36);
       expect(spawnParticle.mock.calls).toEqual(
         cornerMarkerPoints(at).map((point) => ["minecraft:endrod", point]),
       );
