@@ -19,6 +19,7 @@
       "script": "gen_sportsboat.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.sportsboat.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat*.texture_set.json",
@@ -27,6 +28,9 @@
         "packs/yasu_ride_rp/textures/items/yasu_ride/icebreaker_switch.png",
         "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat_monitor.geo.json",
         "packs/yasu_ride_rp/render_controllers/yasu_ride/sportsboat_monitor.rc.json"
+      ],
+      "trackedOutputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.sportsboat.json"
       ],
       "reads": ["packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json"]
     },

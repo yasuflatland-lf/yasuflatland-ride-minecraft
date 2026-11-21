@@ -26,6 +26,7 @@
 - Source: [0172](../adr/0172-smooth-sports-boat-headlight-lenses.md)
 - Source: [0176](../adr/0176-move-the-sports-boat-front-seats-back.md)
 - Source: [0177](../adr/0177-drive-text-on-the-sports-boat-driver-deck-seat.md)
+- Source: [0256](../adr/0256-cull-buried-faces-at-generation.md)
 - Excluded: [0009](../adr/0009-vehicle-model-conventions.md): vehicle model conventions; the boat-specific axes and registered helm assemblies are described below
 - Excluded: [0055](../adr/0055-kind-neutral-vehicle-core.md): kind-neutral architecture; this spec covers the sports boat implementation
 - Excluded: [0066](../adr/0066-limit-vehicles-per-player-and-kind.md): replaces the world fleet limit in 0051; belongs to vehicle-items-and-fleet
@@ -174,6 +175,7 @@
 
 - Applies to: Generated boat interior and exterior fittings.
 - Rule: The model uses `PALETTE` swatches for the black paintable hull, stripe, tan seats, charcoal trim, teak deck, gray platform, ladder, twin jet nozzles and raked tower, with no logo. The aft cockpit is a U lounge with inboard-facing benches at `U_SIDE`, a transom bench and forward-facing rear seats with hinged backrests. The front buckets have shells, tall wings, headrests and folded-down bolsters. Bow lounge piping and caps surround fixed filler cushions starting beyond `BOW_FILLER`. `WALK_HALF` sets the aisle; the closed windshield door and fillers are fixed geometry. `QUILT` and `paint_quilt` draw honeycomb stitching. The separate glass, mirror, bimini, speakers and helm follow the refinements below.
+- The generator culls faces buried in another cube of the same bone only when the covering cube is opaque across all paint, lit, and mirror textures. The alpha-blended windshield retains every face. The monitor uses separate geometry.
 - Agreement: Accepted
 - Basis: [0058](../adr/0058-refine-the-sports-boat-interior.md) Decision, "Give the helm and passenger buckets a charcoal shell, tall tan wings, a headrest, and a flip-up bolster, folded down, at the front of the cushion"; [0058](../adr/0058-refine-the-sports-boat-interior.md) Consequences, "The closed door and the filler cushions are fixed geometry. Riders cannot open the door or remove the cushions"
 - Implementation: `tools/gen_sportsboat.py` (`PALETTE`, `U_SIDE`, `BOW_FILLER`, `WALK_HALF`, `QUILT`, `striped`), `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`

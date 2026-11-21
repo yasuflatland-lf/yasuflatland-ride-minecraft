@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 mer = load_tool("mer")
-write_texture_set = load_tool("texture_io").write_texture_set
+texture_io = load_tool("texture_io")
 
 
 def build_lit_textures(out, directory, kind, width, height, pixel, is_lit,
@@ -22,7 +22,7 @@ def build_lit_textures(out, directory, kind, width, height, pixel, is_lit,
     pixels = out.png(directory / f"{kind}_lit.png", width, height, color)
     out.png(directory / f"{kind}_lit_mer.png", width, height,
             mer.mer_painter(lambda x, y: lit_mer if is_lit(x, y) else off_mer))
-    write_texture_set(out, directory, f"{kind}_lit")
+    texture_io.write_texture_set(out, directory, f"{kind}_lit")
     return pixels
 
 
