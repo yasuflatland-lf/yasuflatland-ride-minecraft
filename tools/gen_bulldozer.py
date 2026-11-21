@@ -23,6 +23,7 @@ from tool_loader import load_tool
 
 cube_ops = load_tool("cube_ops")
 cube_tilt = load_tool("cube_tilt")
+face_cull = load_tool("face_cull")
 monitor = load_tool("monitor")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 ASSEMBLIES = {
@@ -37,6 +38,8 @@ outputs = texture_io.Outputs("--check" in sys.argv[2:])
 build_lit_textures = load_tool("lit_textures").build_lit_textures
 
 RP = Path(sys.argv[1])
+BULLDOZER_CLIENT = (Path(__file__).resolve().parent.parent
+                    / "packs/yasu_ride_rp/entity/yasu_ride/bulldozer.ce.json")
 MODELS = RP / "models/entity/yasu_ride"
 ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
 ITEM_TEXTURES = RP / "textures/items/yasu_ride"
@@ -1430,7 +1433,6 @@ assert_axes(model_cubes, {
     "yawed_pair": [c for c in compound if c["rotation"][0] == -15],
     "propeller": [c for c in compound if c["rotation"][1] == -18],
 }, ASSEMBLIES)
-outputs.json(MODELS / "bulldozer.geo.json", rounded(geo))
 
 
 # Variant 0, khaki on the SUV, is yellow here, so a new bulldozer is yellow (ADR 0076); khaki writes bulldozer.png, the others bulldozer_<paint>.png.
@@ -1479,8 +1481,27 @@ for paint, base in BODY_PAINTS.items():
 texture_variants.write_variants(
     outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1, variants)
 
-build_lit_textures(outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1,
-                   lambda x, y: PALETTE[SLOTS[x]], is_lit=lambda x, y: x in LIT_SLOTS)
+lit_pixels = build_lit_textures(outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1,
+                               lambda x, y: PALETTE[SLOTS[x]], is_lit=lambda x, y: x in LIT_SLOTS)
+
+client_textures = json.loads(BULLDOZER_CLIENT.read_text(encoding="utf-8"))[
+    "minecraft:client_entity"]["description"]["textures"]
+# The monitor controller draws its own geometry.
+policy_textures = sorted({path for key, path in client_textures.items() if key != "monitor"})
+pixels_by_path = {f"textures/entity/yasu_ride/{variant.name}": variant.color for variant in variants}
+uv_space = (len(SLOTS), 1)
+pixels_by_path["textures/entity/yasu_ride/bulldozer_lit"] = lit_pixels
+texture_samples = [((*uv_space, pixels_by_path[path]), uv_space) for path in policy_textures]
+policy = face_cull.CullPolicy(
+    excluded_bones=("glass", "door_glass"),
+    occluder_opaque=face_cull.opaque_occluder(lambda _bone, _cube, _side: texture_samples),
+)
+geo = rounded(geo)
+result = face_cull.cull_buried_faces(geo["minecraft:geometry"][0], policy)
+geo["minecraft:geometry"][0] = result.geometry
+outputs.json(MODELS / "bulldozer.geo.json", geo)
+face_cull.write_record(outputs, result.geometry["description"]["identifier"],
+                       policy_textures, result, policy.excluded_bones)
 
 ICON = [
     "................",
@@ -1588,7 +1609,7 @@ outputs.png(
     lambda x, y: ICON_COLORS[ROAD_PAVER_SWITCH_ICON[y][x]],
 )
 
-print("cubes:", sum(len(b.get("cubes", [])) for b in bones))
+print("cubes:", sum(len(b.get("cubes", [])) for b in result.geometry["bones"]))
 
 MONITOR_PLATE = mirror_x([{"pivot": [0, 0, 0], "cubes": [
     on_face(*SCREEN_SPAN, 0.02, "screen", 0.66),

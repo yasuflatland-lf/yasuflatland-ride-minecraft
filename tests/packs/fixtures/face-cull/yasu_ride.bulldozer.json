@@ -1,0 +1,26 @@
+{
+  "excludedBones": [
+    "glass",
+    "door_glass"
+  ],
+  "textures": [
+    "textures/entity/yasu_ride/bulldozer",
+    "textures/entity/yasu_ride/bulldozer_black",
+    "textures/entity/yasu_ride/bulldozer_blue",
+    "textures/entity/yasu_ride/bulldozer_cyan",
+    "textures/entity/yasu_ride/bulldozer_gray",
+    "textures/entity/yasu_ride/bulldozer_green",
+    "textures/entity/yasu_ride/bulldozer_light_blue",
+    "textures/entity/yasu_ride/bulldozer_light_gray",
+    "textures/entity/yasu_ride/bulldozer_lime",
+    "textures/entity/yasu_ride/bulldozer_lit",
+    "textures/entity/yasu_ride/bulldozer_magenta",
+    "textures/entity/yasu_ride/bulldozer_orange",
+    "textures/entity/yasu_ride/bulldozer_pink",
+    "textures/entity/yasu_ride/bulldozer_purple",
+    "textures/entity/yasu_ride/bulldozer_red",
+    "textures/entity/yasu_ride/bulldozer_white"
+  ],
+  "removedFaces": 3153,
+  "removedCubes": 24
+}
