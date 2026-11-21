@@ -162,7 +162,7 @@ export function installBuild(deps: {
   };
   const preview = new ShowPreview(repo, feedback, aim, resolveTarget);
   const menuCases = {
-    chooseAdjustHeight: new ChooseAdjustHeight(repo),
+    chooseAdjustHeight: new ChooseAdjustHeight(repo, feedback),
     openSelectionMenu: new OpenSelectionMenu(repo),
     openBuildMenu: new OpenBuildMenu(repo, preview),
     closeBuildMenu: new CloseBuildMenu(repo, preview),

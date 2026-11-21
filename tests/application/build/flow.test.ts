@@ -109,6 +109,7 @@ it("samples material only for a new point 1, clears the confirmed box, and repor
   });
   expect(e.feedback.messages).toEqual([
     { message: "pointSet", count: undefined },
+    { message: "heightAim" },
     { message: "endSet", count: 9 },
   ]);
   e.session.clearSelection();
@@ -156,14 +157,32 @@ it("air taps require a valid endpoint and preserve the fixed selection", () => {
   expect(e.session.flow).toBe(first);
   e.air.execute({ playerId, end: to });
   expect(e.session.flow.kind).toBe("baseHeight");
-  expect(e.feedback.messages).toHaveLength(0);
+  e.air.execute({ playerId, end: to });
+  expect(e.feedback.messages).toEqual([{ message: "heightAim" }]);
   new ConfirmLiveHeight(e.repo, e.feedback).execute({ playerId });
   expect(e.feedback.messages.at(-1)).toEqual({ message: "endSet", count: 9 });
   const selected = e.session.flow;
   e.air.execute({ playerId, end: { ...to, x: 3 } });
   expect(e.session.flow).toBe(selected);
-  expect(e.feedback.messages).toHaveLength(1);
+  expect(e.feedback.messages).toHaveLength(2);
 });
+
+it.each(["block", "air"] as const)(
+  "selects a line by %s without a height hint",
+  (route) => {
+    const e = setup();
+    e.world.put(from, stone);
+    e.point.execute({ playerId, dimensionId: overworld, cell: from });
+    const end = { ...from, x: 2 };
+    if (route === "air") e.air.execute({ playerId, end });
+    else e.point.execute({ playerId, dimensionId: overworld, cell: end });
+    expect(e.session.flow.kind).toBe("selected");
+    expect(e.feedback.messages).toEqual([
+      { message: "pointSet" },
+      { message: "endSet", count: 3 },
+    ]);
+  },
+);
 
 it("confirms the chosen shape with the captured material, keeping its box selected and available for Copy", () => {
   const e = setup();

@@ -14,6 +14,7 @@ import {
   chooseTerrain,
   closeBuildMenu,
   cornerTaps,
+  enteredBaseHeight,
   fixStairGoal,
   openBuildMenu,
   opensUtilityMenu,
@@ -68,6 +69,20 @@ const flows = fc
       confirmEndpointHeight(tapAir(tapBlock(idle, dim, a, stone), b)),
     ),
   );
+
+it("detects only transitions into base height", () => {
+  const endpoint = fc
+    .tuple(cell, cell)
+    .map(([from, to]) => tapAir(tapBlock(idle, dim, from, stone), to));
+  const flow = fc.oneof(flows, endpoint);
+  fc.assert(
+    fc.property(flow, flow, (before, after) => {
+      expect(enteredBaseHeight(before, after)).toBe(
+        after.kind === "baseHeight" && before.kind !== "baseHeight",
+      );
+    }),
+  );
+});
 
 it("uses the minimum and maximum box corners as taps", () => {
   fc.assert(
