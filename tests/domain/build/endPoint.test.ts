@@ -1,4 +1,6 @@
+import fc from "fast-check";
 import { expect, it } from "vitest";
+import { virtualEndPoint } from "../../../src/domain/build/aim/aim";
 import {
   aimedEndPoint,
   endPointReach,
@@ -29,9 +31,49 @@ it("computes the virtual point even when the ray hits a block", () => {
   expect(virtualAimedEndPoint(point1, { ...aim, block })).toEqual(end);
 });
 
-it.each(["pointer", "touch"] as const)(
-  "uses build reach for %s input",
-  (input) => {
-    expect(endPointReach(input)).toBe(BUILD_SPEC.reach);
-  },
-);
+it("keeps touch tap reach below pointer reach", () => {
+  expect(endPointReach("touch")).toBe(BUILD_SPEC.touchTapReach);
+  expect(BUILD_SPEC.touchTapReach).toBeLessThan(BUILD_SPEC.reach);
+  expect(endPointReach("pointer")).toBe(BUILD_SPEC.reach);
+});
+
+const planeDistance = fc.integer({ min: 0, max: BUILD_SPEC.reach + 1 });
+const slope = fc.integer({ min: -2, max: 2 });
+
+it("returns a touch virtual point only within tap reach along the ray", () => {
+  fc.assert(
+    fc.property(planeDistance, slope, (distance, rise) => {
+      const plane = { ...point1, x: distance };
+      const ray = { ...aim.ray, direction: { x: 1, y: rise, z: 0 } };
+      const result = aimedEndPoint(plane, { input: "touch", ray });
+      expect(result !== undefined).toBe(
+        distance * Math.hypot(1, rise) <= BUILD_SPEC.touchTapReach,
+      );
+    }),
+  );
+});
+
+it("uses the full virtual end point reach for pointer rays", () => {
+  fc.assert(
+    fc.property(planeDistance, slope, (distance, rise) => {
+      const plane = { ...point1, x: distance };
+      const ray = { ...aim.ray, direction: { x: 1, y: rise, z: 0 } };
+      expect(aimedEndPoint(plane, { input: "pointer", ray })).toEqual(
+        virtualEndPoint(plane, ray, BUILD_SPEC.reach),
+      );
+    }),
+  );
+});
+
+it("prefers block hits throughout build reach for both input kinds", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 0, max: BUILD_SPEC.reach }), (distance) => {
+      const hit = { ...block, cell: { ...block.cell, x: distance } };
+      for (const input of ["touch", "pointer"] as const) {
+        expect(aimedEndPoint(point1, { ...aim, input, block: hit })).toEqual(
+          hit.cell,
+        );
+      }
+    }),
+  );
+});
