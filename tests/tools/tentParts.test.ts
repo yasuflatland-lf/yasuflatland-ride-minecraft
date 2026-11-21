@@ -35,9 +35,12 @@ for name in ('tent_body', 'tent_entrance', 'tent_tarp', 'tent_inner'):
 it("assembles the committed tent bones and cubes in their original order", async () => {
   await run(`from pathlib import Path
 committed = json.loads((Path('packs/yasu_ride_rp') / tent.GEOMETRY).read_text())
-bones = committed['minecraft:geometry'][0]['bones']
-assert tent.rounded(tent.assemble()) == bones
-assert tent.geometry() == committed
+document = tent.geometry()
+entry = document['minecraft:geometry'][0]
+assert tent.rounded(tent.assemble()) == entry['bones']
+textures = {tent.texture_path(paint): tent.texture_pixels(paint) for paint in tent.FLY_PAINTS}
+document['minecraft:geometry'][0] = tent.face_cull.cull_buried_faces(entry, tent.cull_policy(textures)).geometry
+assert document == committed
 for bone in tent.assemble()[1:]:
     assert list(bone) == ['name', 'parent', 'pivot', 'cubes']
     for cube in bone['cubes']:

@@ -46,9 +46,9 @@ print('ok')
   ).toBe("ok\n");
 });
 
-// Main maximum 27.64 s (three runs); 4 x 27.64 = 110.56 s, rounded up to 120 s.
+// Each run takes about 40 s with the buried-face cull (27.64 s on main before it); 4 x 40 = 160 s, rounded up to 200 s.
 it("reports orphan pair geometries without rewriting in check mode and removes them on regeneration", {
-  timeout: 120_000,
+  timeout: 200_000,
 }, async () => {
   expect(
     await python.run(`

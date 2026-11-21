@@ -206,9 +206,18 @@ const cabinParts = JSON.parse(
       "gauges = load_tool('suv_gauges')",
       "export = load_tool('suv_export')",
       "cubes = load_tool('suv_cubes')",
-      "geometry = {'description': {'visible_bounds_width': 1, 'visible_bounds_height': 1, 'visible_bounds_offset': [0, 0, 0]}, 'bones': [{'name': 'body', 'pivot': [0, 0, 0], 'cubes': [*dash.dash_slab_cubes(), *dash.dash_fittings_cubes(), *gauges.gauge_cluster_cubes()]}]}",
+      "fittings = dash.dash_fittings_cubes()",
+      "cluster = gauges.gauge_cluster_cubes()",
+      "geometry = {'description': {'visible_bounds_width': 1, 'visible_bounds_height': 1, 'visible_bounds_offset': [0, 0, 0]}, 'bones': [{'name': 'body', 'pivot': [0, 0, 0], 'cubes': [*dash.dash_slab_cubes(), *fittings, *(cube for i, cube in enumerate(cluster) if i != 21)]}]}",
       "export.turn_around(geometry['bones'])",
       "export.scale_geometry(geometry)",
+      // Pin the buried sides in export coordinates. The missing cube (cluster[21])
+      // is the bottom chrome segment of the middle dial.
+      "def omit(parts, sides):",
+      "    for side, indices in sides.items():",
+      "        for i in indices: del parts[i]['uv'][side]",
+      "omit(fittings, {'west': [0], 'north': [0, 1, *range(4, 37)], 'south': [4, 5]})",
+      "omit(cluster, {'down': [0], 'north': [10, 14, 28, 42], 'east': [13, 22], 'up': [18, 24], 'west': [20]})",
       "print(json.dumps({'dashboard': geometry['bones'][0]['cubes'], 'seatUvs': [cubes.uv(name) for name in ('seat', 'seat_pleat')]}))",
     ].join("\n"),
   ),
@@ -282,8 +291,10 @@ it("keeps every seated torso clear of the body and doors except seat upholstery"
     (bone) => bone.name === "body" || bone.name.startsWith("door_"),
   );
   const isSeat = (cube: Cube) =>
-    cabinParts.seatUvs.some(
-      (uv) => JSON.stringify(uv) === JSON.stringify(cube.uv),
+    cabinParts.seatUvs.some((uv) =>
+      Object.entries(cube.uv ?? {}).every(
+        ([side, face]) => JSON.stringify(face) === JSON.stringify(uv?.[side]),
+      ),
     );
   expect(
     shell.flatMap((bone) => bone.cubes ?? []).filter(isSeat).length,
@@ -355,7 +366,7 @@ describe("SUV model (ADR 0009)", () => {
         !faces.includes(c) &&
         nearCenter(c.origin[0] + c.size[0] / 2, c.origin[1] + c.size[1] / 2),
     );
-    expect(rings).toHaveLength(36);
+    expect(rings).toHaveLength(35);
     expect(hubs).toHaveLength(3);
     for (const cube of [...textured, ...rings, ...hubs]) {
       const nearestZ = Math.min(...turnedCorners(body, cube).map((p) => p[2]));

@@ -4,6 +4,7 @@
       "script": "gen_model.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.suv.json",
         "packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/suv*.png",
@@ -11,12 +12,14 @@
         "packs/yasu_ride_rp/textures/items/yasu_ride/suv_item.png",
         "packs/yasu_ride_rp/textures/items/yasu_ride/headlight_switch.png"
       ],
-      "reads": []
+      "trackedOutputs": ["tests/packs/fixtures/face-cull/yasu_ride.suv.json"],
+      "reads": ["packs/yasu_ride_rp/entity/yasu_ride/suv.ce.json"]
     },
     {
       "script": "gen_sportsboat.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.sportsboat.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat*.texture_set.json",
@@ -26,6 +29,9 @@
         "packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat_monitor.geo.json",
         "packs/yasu_ride_rp/render_controllers/yasu_ride/sportsboat_monitor.rc.json"
       ],
+      "trackedOutputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.sportsboat.json"
+      ],
       "reads": ["packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json"]
     },
     {
@@ -33,11 +39,17 @@
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
         "tests/packs/fixtures/camper-areas.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.camper.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.camper.drawer_items.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/camper*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/camper*.texture_set.json",
         "packs/yasu_ride_rp/textures/items/yasu_ride/camper_item.png",
         "packs/yasu_ride_rp/textures/items/yasu_ride/camping_gear_box.png"
+      ],
+      "trackedOutputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.camper.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.camper.drawer_items.json"
       ],
       "reads": []
     },
@@ -64,6 +76,10 @@
     {
       "script": "gen_scooter.py",
       "args": ["packs/yasu_ride_rp"],
+      "trackedOutputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter_paint.json"
+      ],
       "outputs": [
         ".cache/generated/scooter_source.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
@@ -72,7 +88,9 @@
         "packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.texture_set.json",
-        "packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png"
+        "packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter_paint.json"
       ],
       "reads": [
         "tools/scooter_running.py",
@@ -109,6 +127,7 @@
     {
       "script": "gen_camping_gear.py",
       "args": ["packs/yasu_ride_rp", "packs/yasu_ride_bp"],
+      "trackedOutputs": ["tests/packs/fixtures/face-cull/*.json"],
       "outputs": [
         "packs/yasu_ride_rp/models/blocks/yasu_ride/potted_plant.geo.json",
         "packs/yasu_ride_rp/models/blocks/yasu_ride/macrame_planter.geo.json",
@@ -131,6 +150,29 @@
         "packs/yasu_ride_rp/models/blocks/yasu_ride/instant_camera.geo.json",
         "packs/yasu_ride_rp/models/blocks/yasu_ride/binoculars.geo.json",
         "packs/yasu_ride_rp/models/blocks/yasu_ride/*_decor_pair.geo.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.potted_plant.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.macrame_planter.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.cactus_pot.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.percolator.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.enamel_kettle.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.saucepan.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.mug_pair.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.sugar_pot.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.fruit_bowl.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.toaster.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.transistor_radio.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.book_stack.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.road_map.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.photo_frame.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.cushion.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.tissue_box.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.desk_fan.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.alarm_clock.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.instant_camera.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.binoculars.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.board_decor_pair.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.drawers_decor_pair.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.table_decor_pair.json",
         "packs/yasu_ride_rp/textures/terrain_texture.json",
         "packs/yasu_ride_bp/blocks/yasu_ride/*_decor.block.json",
         "packs/yasu_ride_bp/items/yasu_ride/potted_plant.item.json",
@@ -234,8 +276,10 @@
     },
     {
       "script": "gen_tent.py",
+      "trackedOutputs": ["tests/packs/fixtures/face-cull/yasu_ride.tent.json"],
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.tent.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/tent.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/tent*.png"
       ],

@@ -660,6 +660,8 @@ def collect(geo, texture, turns, pose, lit_texture=None, lit_bones=SUV_LIT_BONES
             # In game a cube's x and z rotations turn the other way from this rotate() (ADR 0051, 0058)
             rx, ry, rz = cube.get("rotation", [0, 0, 0])
             for face, quad in cube_faces({**cube, "rotation": [-rx, ry, -rz]}):
+                if face not in cube["uv"]:
+                    continue
                 if motion:
                     rotation, offset = motion
                     quad = apply_bone_motion(quad, bone["pivot"], rotation, offset)

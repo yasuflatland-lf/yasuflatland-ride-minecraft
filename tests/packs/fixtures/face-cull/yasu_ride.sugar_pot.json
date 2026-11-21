@@ -1,0 +1,10 @@
+{
+  "excludedBones": [
+    "*"
+  ],
+  "textures": [
+    "textures/blocks/yasu_ride/camping_gear"
+  ],
+  "removedFaces": 0,
+  "removedCubes": 0
+}

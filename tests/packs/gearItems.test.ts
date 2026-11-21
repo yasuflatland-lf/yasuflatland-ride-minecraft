@@ -161,9 +161,11 @@ atlas = load_tool("gear_atlas")
 tilt = load_tool("cube_tilt")
 validate = load_tool("gear_validate")
 generator = load_tool("gen_camping_gear")
+face_cull = load_tool("face_cull")
 row = json.loads(sys.stdin.read())
 item_id = row["id"]
 model = registry.build(item_id)
+item = next(item for item in json.loads(generator.SPEC.read_text()) if item["id"] == item_id)
 assemblies = registry.assemblies(item_id)
 assert row["minCubes"] <= len(model.cubes) <= validate.MAX_CUBES_PER_ITEM
 assert 2 * len(model.cubes) <= validate.MAX_CUBES_PER_PAIR_BLOCK
@@ -194,12 +196,20 @@ root = rp / "models/blocks/yasu_ride"
 def bones_of(path):
     return json.loads(path.read_text())["minecraft:geometry"][0]["bones"]
 shipped = [cube for bone in bones_of(root / (item_id + ".geo.json")) for cube in bone.get("cubes", [])]
-assert shipped == generator.rounded(list(model.cubes))
 if not hasattr(builtins, "gear_pack_pixels"):
     png = load_tool("render_preview").read_png(rp / "textures/blocks/yasu_ride/camping_gear.png")
     builtins.gear_pack_pixels = bytes(channel for line in png for pixel in line for channel in pixel)
     builtins.gear_pair_bones = {}
+atlas_size = atlas.ATLAS_SIZE
+atlas_binding = ((atlas_size, atlas_size, builtins.gear_pack_pixels), (atlas_size, atlas_size))
+opaque = face_cull.opaque_occluder(lambda _bone, _cube, _side: (atlas_binding,))
+def culled(cubes, excluded=()):
+    geo = generator.geometry(item_id, cubes)["minecraft:geometry"][0]
+    result = face_cull.cull_buried_faces(geo, face_cull.CullPolicy(excluded, opaque))
+    return result.geometry["bones"][0]["cubes"]
+assert shipped == culled(list(model.cubes), ("*",) if item["glass"] else ())
 assert validate.sampled_alphas(shipped, builtins.gear_pack_pixels, atlas.ATLAS_SIZE) == expected_alpha
+expected_by_offset = {}
 for kind, pair in generator.PAIRS.items():
     layout = generator.PAIR_LAYOUTS[pair["layout"]]
     if kind not in builtins.gear_pair_bones:
@@ -209,10 +219,13 @@ for kind, pair in generator.PAIRS.items():
         builtins.gear_pair_bones[kind] = {bone["name"]: bone["cubes"] for bone in bones_of(root / (name + ".geo.json"))}
     for end, (left, ahead) in enumerate(layout.ends):
         cubes = builtins.gear_pair_bones[kind][f"end{end}_{item_id}"]
-        assert cubes == generator.rounded([generator.moved(cube, left, ahead) for cube in model.cubes])
+        uncut = generator.rounded([generator.moved(cube, left, ahead) for cube in model.cubes])
+        if (left, ahead) not in expected_by_offset:
+            expected_by_offset[left, ahead] = culled(uncut)
+        assert cubes == expected_by_offset[left, ahead]
         members = {name: generator.rounded([generator.moved(cube, left, ahead) for cube in part])
                    for name, part in model.assemblies.items()}
-        tilt.assert_axes(cubes, members, assemblies)
+        tilt.assert_axes(uncut, members, assemblies)
         lower, upper = tilt.bounds(cubes)
         assert all(-8 <= lower[axis] <= upper[axis] <= 8 for axis in (0, 2))
         assert 0 <= lower[1] <= upper[1] <= pair.get("inside_px", 16)

@@ -1481,7 +1481,7 @@ for paint, base in BODY_PAINTS.items():
 texture_variants.write_variants(
     outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1, variants)
 
-lit_color = build_lit_textures(outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1,
+lit_pixels = build_lit_textures(outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1,
                                lambda x, y: PALETTE[SLOTS[x]], is_lit=lambda x, y: x in LIT_SLOTS)
 
 client_textures = json.loads(BULLDOZER_CLIENT.read_text(encoding="utf-8"))[
@@ -1490,7 +1490,7 @@ client_textures = json.loads(BULLDOZER_CLIENT.read_text(encoding="utf-8"))[
 policy_textures = sorted({path for key, path in client_textures.items() if key != "monitor"})
 pixels_by_path = {f"textures/entity/yasu_ride/{variant.name}": variant.color for variant in variants}
 uv_space = (len(SLOTS), 1)
-pixels_by_path["textures/entity/yasu_ride/bulldozer_lit"] = texture_io.rgba_bytes(*uv_space, lit_color)
+pixels_by_path["textures/entity/yasu_ride/bulldozer_lit"] = lit_pixels
 texture_samples = [((*uv_space, pixels_by_path[path]), uv_space) for path in policy_textures]
 policy = face_cull.CullPolicy(
     excluded_bones=("glass", "door_glass"),

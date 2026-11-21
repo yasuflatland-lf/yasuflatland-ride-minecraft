@@ -17,6 +17,9 @@ scooter_engine = load_tool("scooter_engine")
 region_atlas = load_tool("region_atlas")
 geometry_passes = load_tool("geometry_passes")
 face_crop = load_tool("face_crop")
+face_cull = load_tool("face_cull")
+
+UNCULLED_BONES = ("glow_*", "headlights", "tail_lights")
 
 AREA_ORDER = (
     "running",
@@ -135,6 +138,8 @@ class BuildResult(NamedTuple):
     paint: AtlasPass
     lit: AtlasPass
     paint_source: AtlasPass
+    cull: face_cull.CullResult
+    removals: tuple
 
 
 def pack_regions(regions, *, shared=True):
@@ -160,9 +165,8 @@ def _lit_bone(name):
     return name in ("headlights", "tail_lights") or name.startswith("glow_")
 
 
-def _visible_pass(geometry, image):
+def _face_visibility(image):
     visibility = {}
-    kept_cubes = set()
 
     def keep(bone, cube, name):
         if not _lit_bone(bone):
@@ -172,11 +176,37 @@ def _visible_pass(geometry, image):
                 visibility[uv] = face_crop.is_visible(face, image)
             if not visibility[uv]:
                 return False
+        return True
+
+    return keep
+
+
+def _visible_pass(geometry, is_visible):
+    kept_cubes = set()
+
+    def keep(bone, cube, name):
+        if not is_visible(bone, cube, name):
+            return False
         kept_cubes.add(id(cube))
         return True
 
     spec = geometry_passes.PassSpec(geometry["description"]["identifier"], keep)
     return geometry_passes.select_faces(geometry, spec), kept_cubes
+
+
+class RemovalCounts(NamedTuple):
+    removed_faces: int
+    removed_cubes: int
+
+
+def _count_faces_and_cubes(geometry, keeps_face):
+    faces = cubes = 0
+    for bone in geometry["bones"]:
+        for cube in bone["cubes"]:
+            count = sum(keeps_face(bone["name"], cube, side) for side in cube["uv"])
+            faces += count
+            cubes += count > 0
+    return faces, cubes
 
 
 def _paint_region(rect, image):
@@ -298,6 +328,24 @@ def build():
                    "visible_bounds_height": dims.VISIBLE_BOUNDS_HEIGHT,
                    "visible_bounds_offset": dims.VISIBLE_BOUNDS_OFFSET}
     geometry = {"description": description, "bones": bones}
+    cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
+    kit.mirror_to_game(bones)
+    source = rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]})
+    uncull = source["minecraft:geometry"][0]
+    fixed_pixels = atlas.render_atlas(fixed_layout)
+    paint_pixels = atlas.render_atlas(paint_layout)
+    fixed_image = region_atlas.AtlasImage(*fixed_layout.size, fixed_pixels)
+    paint_image = region_atlas.AtlasImage(*paint_layout.size, paint_pixels)
+    fixed_textures = [((*fixed_layout.size, fixed_pixels), fixed_layout.size)]
+    paint_textures = [
+        ((*paint_layout.size, scooter_textures.recolor(paint_layout, paint_pixels, color)),
+         paint_layout.size)
+        for color in scooter_textures.PAINTS.values()
+    ]
+    cull = face_cull.cull_buried_faces(uncull, face_cull.CullPolicy(
+        UNCULLED_BONES, face_cull.opaque_occluder(
+            lambda bone, cube, side: paint_textures if is_paint(cube["uv"][side]) else fixed_textures)))
+    geometry = cull.geometry
     lit_geometry = geometry_passes.select_faces(geometry, geometry_passes.PassSpec(
         "geometry.yasu_ride.scooter_lit",
         lambda name, cube, face: _lit_bone(name)))
@@ -308,22 +356,27 @@ def build():
         for original_cube, lit_cube in zip(original_bone["cubes"], lit_bone["cubes"]):
             for name, face in lit_cube["uv"].items():
                 original = original_cube["uv"][name]
-                relocate_face(local_uvs[id(original)], regions[original.region], lit_layout, face)
-    kit.mirror_to_game(bones)
-    kit.mirror_to_game(lit_geometry["bones"])
-    cube_tilt.assert_axes(all_cubes, merged.assemblies, ASSEMBLIES)
-    source = rounded({"format_version": "1.12.0", "minecraft:geometry": [geometry]})
-    geometry = source["minecraft:geometry"][0]
-    partitioned = geometry_passes.partition_geometry(geometry, [
+                uv = local_uvs[id(original)]
+                # Match the side-face U reversal already applied to the mirrored geometry.
+                if name in ("north", "south", "east", "west"):
+                    uv = region_atlas.UvRect(uv.u + uv.w, uv.v, -uv.w, uv.h)
+                relocate_face(uv, regions[original.region], lit_layout, face)
+    specs = [
         geometry_passes.PassSpec("geometry.yasu_ride.scooter", lambda bone, cube, name: not is_paint(cube["uv"][name])),
         geometry_passes.PassSpec("geometry.yasu_ride.scooter_paint", lambda bone, cube, name: is_paint(cube["uv"][name])),
-    ])
-    fixed_pixels = atlas.render_atlas(fixed_layout)
-    paint_pixels = atlas.render_atlas(paint_layout)
-    fixed_image = region_atlas.AtlasImage(*fixed_layout.size, fixed_pixels)
-    paint_image = region_atlas.AtlasImage(*paint_layout.size, paint_pixels)
-    fixed_pass = _visible_pass(partitioned[0], fixed_image)
-    paint_pass = _visible_pass(partitioned[1], paint_image)
+    ]
+    partitioned = geometry_passes.partition_geometry(geometry, specs)
+    fixed_visible = _face_visibility(fixed_image)
+    paint_visible = _face_visibility(paint_image)
+    fixed_pass = _visible_pass(partitioned[0], fixed_visible)
+    paint_pass = _visible_pass(partitioned[1], paint_visible)
+    removals = []
+    for spec, visible, (shipped, _) in zip(specs, (fixed_visible, paint_visible),
+                                           (fixed_pass, paint_pass), strict=True):
+        before = _count_faces_and_cubes(uncull, lambda bone, cube, side:
+                                       spec.keeps_face(bone, cube, side) and visible(bone, cube, side))
+        after = _count_faces_and_cubes(shipped, lambda bone, cube, side: True)
+        removals.append(RemovalCounts(*(old - new for old, new in zip(before, after, strict=True))))
     # Source faces already live in source_geometry, so this pass only retains the atlas.
     paint_source = AtlasPass(None, paint_layout, paint_pixels)
     shared_paint_layout = _share_paint_regions(paint_pass[0], paint_layout, paint_image)
@@ -332,7 +385,7 @@ def build():
     lit = finish_pass(rounded(lit_geometry), lit_layout)
     full = {**source, "minecraft:geometry": [_rejoin(
         geometry, partitioned, (fixed_pass, paint_pass), is_paint)]}
-    return BuildResult(source, full, fixed, paint, lit, paint_source)
+    return BuildResult(source, full, fixed, paint, lit, paint_source, cull, tuple(removals))
 
 
 def main(argv):
@@ -345,8 +398,16 @@ def main(argv):
     for name, render_pass in (("scooter", built.fixed), ("scooter_paint", built.paint), ("scooter_lit", built.lit)):
         outputs.json(rp / f"models/entity/yasu_ride/{name}.geo.json", render_pass.geometry)
     outputs.json(rp / "animations/yasu_ride/scooter.anim.json", load_tool("scooter_anim").build())
-    scooter_textures.write(outputs, rp, built.fixed.layout, built.fixed.pixels,
-                           built.paint.layout, built.paint.pixels, built.lit.layout, built.lit.pixels)
+    paint_textures = scooter_textures.write(
+        outputs, rp, built.fixed.layout, built.fixed.pixels,
+        built.paint.layout, built.paint.pixels, built.lit.layout, built.lit.pixels)
+    for render_pass, textures, removed in zip(
+            (built.fixed, built.paint), (("scooter_fixed",), paint_textures.color_of.values()),
+            built.removals, strict=True):
+        identifier = render_pass.geometry["minecraft:geometry"][0]["description"]["identifier"]
+        face_cull.write_record(outputs, identifier,
+                               (f"textures/entity/yasu_ride/{name}" for name in dict.fromkeys(textures)),
+                               removed, UNCULLED_BONES)
     counts = [(b["name"], len(b["cubes"])) for b in source_geometry["bones"]]
     for name, count in counts:
         print(f"{name}: {count}")

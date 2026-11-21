@@ -23,6 +23,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
+import face_cull
+
 texture_io = load_tool("texture_io")
 DIMS = load_tool("tent_dims").DIMS
 tent_body = load_tool("tent_body")
@@ -238,20 +240,35 @@ def texture_pixels(paint="khaki"):
     )
 
 
+def cull_policy(textures):
+    uv_space = (ATLAS_WIDTH, ATLAS_HEIGHT)
+    samples = [((ATLAS_WIDTH, ATLAS_HEIGHT, pixels), uv_space) for pixels in textures.values()]
+    return face_cull.CullPolicy(
+        excluded_bones=("lantern_glass",),
+        occluder_opaque=face_cull.opaque_occluder(lambda bone, cube, side: samples),
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     geo_path = args.resource_pack / GEOMETRY
-    textures = {paint: args.resource_pack / texture_path(paint) for paint in FLY_PAINTS}
+    textures = {texture_path(paint): texture_pixels(paint) for paint in FLY_PAINTS}
+    policy = cull_policy(textures)
     document = geometry()
-    validate(document["minecraft:geometry"][0]["bones"])
+    entry = document["minecraft:geometry"][0]
+    validate(entry["bones"])
     out = texture_io.Outputs(args.check, report_writes=True)
 
+    result = face_cull.cull_buried_faces(entry, policy)
+    document["minecraft:geometry"][0] = result.geometry
     out.json(geo_path, document)
-    for paint, path in textures.items():
-        out.png(path, ATLAS_WIDTH, ATLAS_HEIGHT, texture_io.texel_reader(ATLAS_WIDTH, texture_pixels(paint)), compress_level=9)
+    face_cull.write_record(out, IDENTIFIER, (path.removesuffix(".png") for path in textures),
+                           result, policy.excluded_bones)
+    for path, pixels in textures.items():
+        out.rgba(args.resource_pack / path, ATLAS_WIDTH, ATLAS_HEIGHT, pixels)
     out.finish("Tent outputs are out of date with tools/gen_tent.py. Run `pnpm model` and commit the result:", "tent model and textures are up to date")
 
 

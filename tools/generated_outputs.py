@@ -48,6 +48,7 @@ class ManifestEntry:
     reads: tuple[str, ...]
     tracked: bool
     after_generators: bool
+    tracked_outputs: tuple[str, ...] = ()
 
 
 def entry_id(entry) -> str:
@@ -64,14 +65,15 @@ class OutputManifest:
         self._entries = tuple(
             ManifestEntry(entry_id(entry), entry["script"], tuple(entry.get("args", ())),
                           tuple(entry["outputs"]), tuple(entry["reads"]),
-                          entry.get("tracked", False), entry.get("afterGenerators", False))
+                          entry.get("tracked", False), entry.get("afterGenerators", False),
+                          tuple(entry.get("trackedOutputs", ())))
             for entry in entries
         )
         self._generators = tuple(ids)
         self._outputs = tuple(
-            GeneratedOutput(entry_id(entry), pattern,
-                            entry.get("tracked", False) or pattern in entry.get("trackedOutputs", ()))
-            for entry in entries for pattern in entry["outputs"]
+            GeneratedOutput(entry.id, pattern, entry.tracked or any(
+                fnmatch.fnmatchcase(pattern, tracked) for tracked in entry.tracked_outputs))
+            for entry in self._entries for pattern in entry.outputs
         )
         self._inputs = tuple(dict.fromkeys(
             ["tools/**"] + [path for entry in entries for path in entry["reads"]

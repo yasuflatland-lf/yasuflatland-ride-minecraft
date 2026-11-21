@@ -854,3 +854,20 @@ A failing row gets a follow-up issue; do not fix it in this PR.
 | KD11 | Aim at top and bottom fronts and at the counter surface.                                                          | The primary shared-cell routing selects the intended drawer and preserves counter decor (#1681). | not run (owner decision, tracked in #1704) | pass (2026-11-15, iPad, 55685b02): top front toggles only the top, bottom front only the bottom (also with the top open); counter-surface tap moves no drawer and keeps the counter item             |
 | KD12 | Open the top drawer, then TAP the bottom drawer with an empty hand.                                               | The bottom drawer opens while the top stays open; tapping the top toggles only the top.          | not run (owner decision, tracked in #1704) | pass (2026-11-15, iPad, 55685b02): each drawer toggles independently                                                                                                                                 |
 | KD13 | Open the bottom drawer, then TAP the lower part of its slid-out front; reopen it and TAP the floor just under it. | Each tap closes the open bottom drawer.                                                          | not run (owner decision, tracked in #1704) | pass (2026-11-15, iPad, 55685b02): tap on the slid-out front, lower part and floor under it closes the drawer                                                                                        |
+
+## Render benchmark
+
+1. Join the dev BDS with the test pack enabled. Use an open area of a flat Creative world. Set noon with `/time set noon` and clear weather with `/weather clear`. Use default video settings and record the device model, render distance and graphics mode alongside its results.
+2. Mark a starting block and face a cardinal direction with clear ground ahead. Enable Creative flight and hover just above the ground so the camera stays at the benchmark height after teleporting. Return to the same starting position and heading for each run.
+3. Run `/scriptevent yasu_ride_test:bench camper 16`. The command replaces the previous scene and positions the camera. Keep the camera still, wait 10 seconds, then observe the frame rate for 10 seconds. On Windows, pin the Xbox Game Bar Performance widget and read FPS. On a phone without a counter, record “smooth” or “stutter” as allowed by [ADR 0247](adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md).
+4. Repeat with `suv 16` and `gear 64` on each device. The command also accepts `scooter`, `bulldozer`, `sportsboat` and `tent`. Counts range from 1 to 64 and default to 16. Run `/scriptevent yasu_ride_test:bench clear` before leaving the area.
+5. Record the baseline on the unculled build. Repeat on the culled build using the same devices, settings, starting position and heading.
+
+| Device | Kind   | Count | Before fps | After fps | Date |
+| ------ | ------ | ----- | ---------- | --------- | ---- |
+| PC     | camper | 16    |            |           |      |
+| PC     | suv    | 16    |            |           |      |
+| PC     | gear   | 64    |            |           |      |
+| Phone  | camper | 16    |            |           |      |
+| Phone  | suv    | 16    |            |           |      |
+| Phone  | gear   | 64    |            |           |      |
