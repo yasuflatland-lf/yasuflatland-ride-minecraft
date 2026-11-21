@@ -161,6 +161,13 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
   });
 }
 
+export function enteredBaseHeight(
+  before: BuildFlow,
+  after: BuildFlow,
+): boolean {
+  return after.kind === "baseHeight" && before.kind !== "baseHeight";
+}
+
 export function adjustHeight(flow: BuildFlow): BuildFlow {
   if (
     flow.kind !== "selected" ||

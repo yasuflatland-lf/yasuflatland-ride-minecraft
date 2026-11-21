@@ -1,5 +1,5 @@
 import { volume } from "../../domain/build/box";
-import { tapAir } from "../../domain/build/flow/flow";
+import { enteredBaseHeight, tapAir } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { Cell } from "../../domain/shared/cells";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -13,10 +13,13 @@ export class TapAir {
   execute(cmd: { playerId: PlayerId; end?: Cell }): void {
     const session = this.repo.get(cmd.playerId);
     if (!session) return;
-    const next = tapAir(session.flow, cmd.end);
-    if (next === session.flow) return;
+    const flow = session.flow;
+    const next = tapAir(flow, cmd.end);
+    if (next === flow) return;
     session.setFlow(next);
-    if (next.kind === "selected")
+    if (enteredBaseHeight(flow, next))
+      this.feedback.showMessage(cmd.playerId, "heightAim");
+    else if (next.kind === "selected")
       this.feedback.showMessage(
         cmd.playerId,
         "endSet",
