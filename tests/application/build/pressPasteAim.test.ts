@@ -90,6 +90,7 @@ function setup(
   session.setFlow({ kind: "pasteAim", manualTurn: 0, facing: "east" });
   const aim = new FakeAimReader();
   aim.target = {
+    input: "pointer",
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: block, face },
   };
@@ -164,7 +165,7 @@ it("returns menu on air without starting a job or changing the flow", () => {
       const e = setup(block, face, tick);
       const flow = e.session.flow;
       if (!e.aim.target) throw new Error("Expected aim");
-      e.aim.target = { ray: e.aim.target.ray };
+      e.aim.target = { input: e.aim.target.input, ray: e.aim.target.ray };
       expect(e.execute(false)).toBe("menu");
       expect(e.start).not.toHaveBeenCalled();
       expect(e.session.isEditing).toBe(false);
@@ -306,7 +307,7 @@ it("never writes for a plain press with arbitrary aim and tick", () => {
         const e = setup(block, face, tick);
         if (kind === 0) e.aim.target = undefined;
         else if (kind === 1 && e.aim.target)
-          e.aim.target = { ray: e.aim.target.ray };
+          e.aim.target = { input: e.aim.target.input, ray: e.aim.target.ray };
         const capture = vi.spyOn(e.structures, "capture");
         expect(e.execute(false)).toBe("menu");
         e.jobs.step();
@@ -329,7 +330,10 @@ it("reports a missing target for a sneak press", () => {
         const e = setup(block, face, tick);
         e.aim.target = missingAim
           ? undefined
-          : { ray: { origin: block, direction: { x: 1, y: 0, z: 0 } } };
+          : {
+              input: "pointer",
+              ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
+            };
         expect(e.execute(true)).toBe("ignored");
         expect(e.feedback.messages).toEqual([{ message: "pasteNoTarget" }]);
         expect(e.start).not.toHaveBeenCalled();

@@ -85,17 +85,33 @@ it("follows the aimed block and falls back to the air plane without changing the
   session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
   const flow = session.flow;
   const hit = { x: 4, y: 70, z: 2 };
-  aim.mockReturnValue({ ray, block: { cell: hit, face: "up" } });
+  aim.mockReturnValue({
+    input: "pointer",
+    ray,
+    block: { cell: hit, face: "up" },
+  });
   preview.execute(0);
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(flow, { blink: true, end: hit }),
   );
-  aim.mockReturnValue({ ray });
+  aim.mockReturnValue({ input: "pointer", ray });
   preview.execute(interval);
   expect(feedback.previews[1]?.set).toEqual(
     previewPoints(flow, { blink: false, end }),
   );
   expect(session.flow).toBe(flow);
+});
+
+it("shows a virtual end marker beyond touch reach only for pointer aim", () => {
+  const { session, preview, feedback, aim } = setup();
+  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
+  for (const input of ["touch", "pointer"] as const) {
+    aim.mockReturnValue({ input, ray });
+    preview.execute(0);
+  }
+  expect(feedback.previews[0]?.set.endMarker).toEqual([]);
+  expect(feedback.previews[0]?.set.shape).toEqual([]);
+  expect(feedback.previews[1]?.set.endMarker.length).toBeGreaterThan(0);
 });
 
 it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
@@ -111,7 +127,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
     session,
     structureClipboard(boxOf(cell, end), () => material),
   );
-  aim.mockReturnValue({ ray, block: { cell, face: "up" } });
+  aim.mockReturnValue({ input: "pointer", ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(session.flow, { blink: true }),
@@ -156,7 +172,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
     material,
   });
   const flow = session.flow;
-  aim.mockReturnValue({ ray });
+  aim.mockReturnValue({ input: "pointer", ray });
   preview.execute(0);
   expect(session.flow).toBe(flow);
   new AimHeight(repo).execute({ playerId: alex, ray });
@@ -174,7 +190,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
 it("anchors paste on each typed face in the viewer dimension and ignores absent targets", () => {
   const { session, preview, feedback, aim } = setup();
   session.setFlow({ kind: "pasteAim", manualTurn: 0 });
-  aim.mockReturnValue({ ray, block: { cell, face: "up" } });
+  aim.mockReturnValue({ input: "pointer", ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
   holdClipboard(
@@ -189,7 +205,7 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
     "east",
     "west",
   ] as const) {
-    aim.mockReturnValue({ ray, block: { cell, face } });
+    aim.mockReturnValue({ input: "pointer", ray, block: { cell, face } });
     preview.execute(0);
   }
   expect(feedback.previews).toHaveLength(6);
@@ -201,7 +217,7 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
       pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
     }),
   });
-  for (const target of [{ ray }, undefined]) {
+  for (const target of [{ input: "pointer" as const, ray }, undefined]) {
     aim.mockReturnValue(target);
     preview.execute(0);
   }
@@ -224,6 +240,7 @@ it("keeps concurrent players and their aim targets separate", () => {
       { playerId: bob, held: "wand" },
     ]);
   aim.mockImplementation((id) => ({
+    input: "pointer",
     ray,
     block: { cell: id === alex ? end : cell, face: "up" },
   }));
@@ -257,13 +274,14 @@ it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
       material,
     };
     session.setFlow(flow);
-    aim.mockReturnValue({ ray });
+    aim.mockReturnValue({ input: "pointer", ray });
     preview.execute(0);
     preview.execute(interval);
     expect(feedback.sizes).toEqual([
       { playerId: alex, size: { x: 9, y: 3, z: 5 } },
     ]);
     aim.mockReturnValue({
+      input: "pointer",
       ray: { ...ray, origin: { ...ray.origin, y: 69.5 } },
     });
     preview.execute(2 * interval);
@@ -294,9 +312,12 @@ it("reports a locked cylinder once and ignores changes in aim", () => {
     material,
   });
   preview.execute(0);
-  aim.mockReturnValue({ ray });
+  aim.mockReturnValue({ input: "pointer", ray });
   preview.execute(interval);
-  aim.mockReturnValue({ ray: { ...ray, origin: { ...ray.origin, y: 80 } } });
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { ...ray, origin: { ...ray.origin, y: 80 } },
+  });
   preview.execute(2 * interval);
   expect(feedback.sizes).toEqual([
     { playerId: alex, size: { x: 9, y: 12, z: 5 } },
@@ -305,7 +326,7 @@ it("reports a locked cylinder once and ignores changes in aim", () => {
 
 it("does not report sizes outside the height step", () => {
   const { session, preview, feedback, aim } = setup();
-  aim.mockReturnValue({ ray });
+  aim.mockReturnValue({ input: "pointer", ray });
   preview.execute(0);
   session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
   preview.execute(interval);
@@ -448,7 +469,7 @@ it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed
     aim,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
   );
-  for (const target of [{ ray }, undefined]) {
+  for (const target of [{ input: "pointer" as const, ray }, undefined]) {
     aim.target = target;
     preview.execute(0);
   }
@@ -466,7 +487,11 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
       );
       session.setFlow({ kind: "pasteAim", manualTurn: 0 });
       session.startNewCopy();
-      aim.mockReturnValue(hit ? { ray, block: { cell, face: "up" } } : { ray });
+      aim.mockReturnValue(
+        hit
+          ? { input: "pointer", ray, block: { cell, face: "up" } }
+          : { input: "pointer", ray },
+      );
       preview.execute(redraw * interval);
       expect(feedback.previews).toEqual([]);
       expect(feedback.modes).toEqual([]);
@@ -491,7 +516,9 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
         const clipboard = structureClipboard(box, () => material);
         session.completeCopy(selectionOf(overworld, box, AIR), clipboard);
         aim.mockReturnValue(
-          hit ? { ray, block: { cell: end, face: "up" } } : { ray },
+          hit
+            ? { input: "pointer", ray, block: { cell: end, face: "up" } }
+            : { input: "pointer", ray },
         );
         preview.execute(0);
         expect(feedback.modes).toEqual([
@@ -540,6 +567,7 @@ it("outlines the rotated paste box at each heading", () => {
         turn
       ] as Facing;
       aim.mockReturnValue({
+        input: "pointer",
         ray: { ...ray, direction: facingVector(facing) },
         block: { cell, face: "up" },
       });
@@ -568,7 +596,7 @@ it("refreshes only the requested player's rotated paste between outline ticks", 
     selectionOf(overworld, boxOf(cell, end), AIR),
     structureClipboard(boxOf(cell, end)),
   );
-  e.aim.mockReturnValue({ ray, block: { cell, face: "up" } });
+  e.aim.mockReturnValue({ input: "pointer", ray, block: { cell, face: "up" } });
   e.preview.execute(0);
   e.session.rotatePaste();
   e.feedback.previews.length = 0;
@@ -608,6 +636,7 @@ it("shows the effective degrees for every facing and manual turn, including air 
         });
         e.session.setFlow({ kind: "pasteAim", manualTurn });
         e.aim.mockReturnValue({
+          input: "pointer",
           ray: { ...ray, direction: facingVector(gaze) },
           block: hit ? { cell, face: "up" } : undefined,
         });
@@ -647,12 +676,21 @@ it("redraws the live selection outline and retains its last height for a vertica
     ),
   );
   const origin = { x: -1.5, y: 80, z: 2.5 };
-  aim.mockReturnValue({ ray: { origin, direction: { x: 1, y: 0, z: 0 } } });
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { origin, direction: { x: 1, y: 0, z: 0 } },
+  });
   preview.execute(0);
-  aim.mockReturnValue({ ray: { origin, direction: { x: 0.8, y: 0.6, z: 0 } } });
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { origin, direction: { x: 0.8, y: 0.6, z: 0 } },
+  });
   preview.execute(interval - 1);
   preview.execute(interval);
-  aim.mockReturnValue({ ray: { origin, direction: { x: 0, y: 1, z: 0 } } });
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { origin, direction: { x: 0, y: 1, z: 0 } },
+  });
   preview.execute(2 * interval);
   expect(
     feedback.previews.map(({ set }) => Math.max(...set.shape.map((p) => p.y))),
