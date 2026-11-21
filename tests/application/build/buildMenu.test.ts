@@ -13,7 +13,7 @@ import {
 import { selectionHeightLimit } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { confirmEndpointHeight } from "../../support/buildSelection";
-import { FakeSessions, overworld } from "./fakes";
+import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
 
@@ -90,7 +90,11 @@ it("adjusts an existing selection from its current height and confirms the new h
         );
         if (initial.kind !== "selected") throw new Error("Expected selection");
         session.setFlow(initial);
-        new ChooseAdjustHeight(repo).execute({ playerId });
+        const feedback = new FakeFeedback();
+        const adjust = new ChooseAdjustHeight(repo, feedback);
+        adjust.execute({ playerId });
+        adjust.execute({ playerId });
+        expect(feedback.messages).toEqual([{ message: "heightAim" }]);
         const flow = session.flow;
         if (flow.kind !== "baseHeight") throw new Error("Expected live height");
         expect(flow.selection).toEqual(initial.selection);
