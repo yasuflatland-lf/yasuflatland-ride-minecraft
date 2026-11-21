@@ -39,6 +39,7 @@ import {
   TEST_PRESS_EVENT,
   TEST_RESULT_EVENT,
   TEST_TAP_EVENT,
+  TEST_TAP_TARGET_EVENT,
 } from "../../infrastructure/build/identifiers";
 import { type Arena, wait } from "../arena";
 import {
@@ -77,6 +78,7 @@ interface Reply {
     menuLevel?: "root" | "build";
     heightLocked?: boolean;
     heightedKind?: string;
+    to?: Cell;
     selection?: { box: CellBox };
   };
   mode?: boolean;
@@ -981,6 +983,52 @@ export function buildTapTargetPointer(a: Arena): Promise<Outcome> {
     );
     aimedTapTargetCell(f);
     check(targets().length === 0, "a pointer player received a tap target");
+  });
+}
+
+export function buildTapTargetPress(a: Arena): Promise<Outcome> {
+  return withTapTargetAim(a, true, async (f, targets) => {
+    const press = () =>
+      system.sendScriptEvent(TEST_TAP_TARGET_EVENT, f.player.name);
+    await setTapTargetStart(f);
+    await wait(BUILD_SPEC.outlineInterval + 1);
+    const cell = aimedTapTargetCell(f);
+    const [target, extra] = targets();
+    check(
+      target !== undefined &&
+        extra === undefined &&
+        sameCell(target.location, cellCenter(cell)),
+      "expected one target at the aimed endpoint",
+    );
+    press();
+    press();
+    await wait(1);
+    const base = (await f.mode()).flow;
+    check(
+      base.kind === "baseHeight" &&
+        base.to !== undefined &&
+        sameCell(base.to, cell),
+      "the repeated press did not fix just the targeted endpoint",
+    );
+
+    await f.lookSettled(-90, -35);
+    await wait(BUILD_SPEC.outlineInterval + 1);
+    const raised = (await f.mode()).flow;
+    check(
+      raised.kind === "baseHeight" &&
+        raised.previous !== undefined &&
+        raised.previous > (base.previous ?? 0),
+      "looking up did not raise the live outline",
+    );
+    press();
+    await wait(1);
+    const fixed = (await f.mode()).flow;
+    check(
+      fixed.kind === "selected" &&
+        fixed.selection?.box.max.y ===
+          Math.min(f.cell().y, cell.y) + raised.previous - 1,
+      "the next target press did not confirm the live height",
+    );
   });
 }
 

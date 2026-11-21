@@ -3,6 +3,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { registerEditTick } from "../../../src/infrastructure/build/bedrock/handlers/editTick";
 import { registerPasteControls } from "../../../src/infrastructure/build/bedrock/handlers/pasteControls";
+import { registerTapTarget } from "../../../src/infrastructure/build/bedrock/handlers/tapTarget";
 import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers/wand";
 import { installBuild } from "../../../src/infrastructure/build/install";
 
@@ -53,6 +54,9 @@ vi.mock(
 );
 vi.mock("../../../src/infrastructure/build/bedrock/handlers/wand", () => ({
   registerWand: vi.fn(),
+}));
+vi.mock("../../../src/infrastructure/build/bedrock/handlers/tapTarget", () => ({
+  registerTapTarget: vi.fn(),
 }));
 vi.mock("../../../src/infrastructure/build/bedrock/handlers/editTick", () => ({
   registerEditTick: vi.fn(),
@@ -109,6 +113,9 @@ it.each([false, true])(
     expect(controls?.rotateDebounce).toBeDefined();
     expect(controls?.pasteDebounce).toBe(wand.pasteDebounce);
     expect(controls?.undoDebounce).toBeDefined();
+    const tapTarget = vi.mocked(registerTapTarget).mock.calls[0]?.[0];
+    expect(tapTarget?.debounce).toBe(wand.debounce);
+    expect(tapTarget?.repo).toBe(wand.repo);
     controls?.undo.execute({ playerId });
     expect(wand.repo.get(playerId)).toBeUndefined();
     expect(setActionBar).toHaveBeenLastCalledWith({
