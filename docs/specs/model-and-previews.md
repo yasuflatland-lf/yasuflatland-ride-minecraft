@@ -2,6 +2,7 @@
 
 - Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV, sports boat, camper, bulldozer and scooter README previews and the pack icons are rendered from the model files and kept fresh.
 - Verified at: 7267bd8a
+- Source: [0255](../adr/0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md)
 - Source: [0252](../adr/0252-budget-client-entity-texture-memory.md)
 - Source: [0009](../adr/0009-vehicle-model-conventions.md)
 - Source: [0016](../adr/0016-readme-preview-rendered-from-model.md)
@@ -45,6 +46,15 @@
 - Basis: [0248](../adr/0248-treat-generated-pack-files-as-build-outputs.md) defines how tests obtain generated geometry. [Issue #2181](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/2181) defines the counts.
 - Implementation: `tests/packs/renderBudget.test.ts` and `tests/packs/fixtures/render-budget/`.
 - Verification: `pnpm test` compares both counts to the fixture for each geometry identifier.
+
+### Coplanar faces
+
+- Applies to: Each geometry in the main and test Resource Packs.
+- Rule: A geometry's visible coplanar face count must match its baseline. A pair counts when faces on different cubes point the same way, lie on the same plane, overlap by more than 0.0001 square model pixels, and differ by more than 12 in a mean RGB channel. Each face must sample a texel with nonzero alpha. Mutually exclusive bones and pairs of ground-contact `down` faces are exempt. Use a trim offset of at least 0.01 model pixels when separating faces.
+- Agreement: Accepted
+- Basis: [0255](../adr/0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md) Decision.
+- Implementation: The [ratchet test](../../tests/packs/coplanarFaces.test.ts) uses the bound textures and exclusive bone slots in its [configuration](../../tests/packs/coplanarFaces.config.ts). Update the [geometry fixture](../../tests/packs/fixtures/coplanar/) when removing findings. An absent fixture means zero and `cleanBones` records bones that must remain free of findings.
+- Verification: `pnpm test tests/packs/coplanarFaces.test.ts tests/packs/coplanarFaces.support.test.ts` checks current geometry counts and verifies the exclusions on small models.
 
 ### Client entity texture memory
 
