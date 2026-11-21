@@ -102,6 +102,18 @@ it("follows the aimed block and falls back to the air plane without changing the
   expect(session.flow).toBe(flow);
 });
 
+it("shows a virtual end marker beyond touch reach only for pointer aim", () => {
+  const { session, preview, feedback, aim } = setup();
+  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
+  for (const input of ["touch", "pointer"] as const) {
+    aim.mockReturnValue({ input, ray });
+    preview.execute(0);
+  }
+  expect(feedback.previews[0]?.set.endMarker).toEqual([]);
+  expect(feedback.previews[0]?.set.shape).toEqual([]);
+  expect(feedback.previews[1]?.set.endMarker.length).toBeGreaterThan(0);
+});
+
 it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   const { session, preview, feedback, aim } = setup();
   session.setFlow({

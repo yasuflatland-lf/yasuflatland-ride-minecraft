@@ -3,6 +3,9 @@ import { ticks } from "../shared/ticks";
 // Limits the build feature reads (ADR 0178).
 export const BUILD_SPEC = Object.freeze({
   reach: 64, // blocks along the view ray before an aim counts as air
+  // The spike confirmed taps at 3 blocks. Five is an unmeasured starting value
+  // pending iPad measurements. Keep it below reach.
+  touchTapReach: 5,
   // Bound per-column work so paste previews cannot scan the full world height.
   groundSearchDepth: 64,
   // Cells one ground snap may read; matches the one-tick read bound of copy.
