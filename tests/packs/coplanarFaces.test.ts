@@ -57,6 +57,11 @@ for (const { pack, geometry } of models) {
     const baseline: Baseline = existsSync(file)
       ? JSON.parse(readFileSync(file, "utf8"))
       : { pairs: 0 };
+    if (name === "yasu_ride.bulldozer") {
+      expect(baseline.cleanBones).toEqual(
+        expect.arrayContaining(["blade", "blade_wide"]),
+      );
+    }
     const texture = GEOMETRY_TEXTURES[identifier];
     const findings = texture
       ? findCoplanarFaces(geometry, textureFor(pack, texture))

@@ -5,6 +5,7 @@ import { PAINTS } from "../../src/domain/shared/paint";
 import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
+import { findCoplanarFaces } from "./coplanarFaces.support";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
@@ -66,6 +67,26 @@ function expectedAlpha(slot: number): number {
 }
 
 describe("bulldozer model (ADR 0009, 0136)", () => {
+  it("has no yellow fender slice below CAB_SILL overlapping the dark band", () => {
+    const body = bone("body");
+    const fender = body.cubes?.filter(
+      ({ origin: [x, , z], size: [width, , depth] }) => {
+        const innerEdge = Math.min(Math.abs(x), Math.abs(x + width));
+        return Math.abs(innerEdge - 9.8) < 1e-6 && z >= 7.4 && depth <= 0.5;
+      },
+    );
+    expect(fender?.length).toBeGreaterThan(0);
+    const findings = findCoplanarFaces(
+      { ...geometry(), bones: [bone("root"), { ...body, cubes: fender }] },
+      texture(),
+    );
+    const conflicts = findings.filter(
+      ({ a, b }) =>
+        a.side === b.side && (a.side === "north" || a.side === "south"),
+    );
+    expect(conflicts.map(({ a, b }) => [a.cubeIndex, b.cubeIndex])).toEqual([]);
+  });
+
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = bones().flatMap((bone) => bone.cubes ?? []);
     const compound = cubes.filter(multipleAxes);

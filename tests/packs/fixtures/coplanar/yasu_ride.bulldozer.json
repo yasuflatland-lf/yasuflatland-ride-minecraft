@@ -1,3 +1,4 @@
 {
-  "pairs": 1606
+  "pairs": 1180,
+  "cleanBones": ["blade", "blade_wide"]
 }
