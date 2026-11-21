@@ -1,4 +1,4 @@
-import { type BuildFlow, opensUtilityMenu } from "./flow";
+import { acceptsAnyItemUse, type BuildFlow, opensUtilityMenu } from "./flow";
 
 export type PressRole = "wand" | "pasteRotate" | "pastePlace" | "undo";
 export type PressRoute = "itemUse" | "blockInteract";
@@ -46,8 +46,8 @@ export function routePress({
   if (flow.kind === "stairContents") return { kind: "ignore" };
   if (flow.kind === "stairAim") return { kind: "fixStairGoal" };
 
-  // An aimed block tap can emit both events. Only blockInteract handles it.
-  if (route === "itemUse" && target !== "air") return { kind: "ignore" };
+  if (route === "itemUse" && target !== "air" && !acceptsAnyItemUse(flow))
+    return { kind: "ignore" };
   if (flow.kind === "baseHeight") return { kind: "confirmLiveHeight" };
   if (flow.kind === "heightStep") return { kind: "aimHeight" };
   if (route === "blockInteract")

@@ -63,15 +63,15 @@ const wandTable = {
     "openUtilityMenu",
     "openUtilityMenu",
     "openUtilityMenu",
-    "ignore",
-    "ignore",
+    "openUtilityMenu",
+    "openUtilityMenu",
   ],
   baseHeight: [
     "confirmLiveHeight",
     "confirmLiveHeight",
     "confirmLiveHeight",
-    "ignore",
-    "ignore",
+    "confirmLiveHeight",
+    "confirmLiveHeight",
   ],
   heightStep: ["aimHeight", "aimHeight", "aimHeight", "ignore", "ignore"],
   terrainConfirm: [
@@ -145,13 +145,62 @@ it.each(controlRoles)("routes %s on both input routes", (role) => {
   }
 });
 
-it("returns a known intent for every combination of press inputs", () => {
-  const knownKinds = [
-    ...Object.values(wandTable).flat(),
-    ...Object.values(controlTable),
-    "rotateSelection",
-  ];
-  const choices = Object.values(flows);
+function oldRoutePress({
+  flow,
+  role,
+  route,
+  target,
+  sneaking,
+}: Parameters<typeof routePress>[0]): PressIntent {
+  if (role === "pasteRotate" && flow.kind === "selected")
+    return { kind: "rotateSelection" };
+  if (role !== "wand") return { kind: controlTable[role] };
+  if (flow.kind === "pasteAim")
+    return { kind: route === "itemUse" ? "pasteAim" : "ignore" };
+  if (flow.kind === "stairContents") return { kind: "ignore" };
+  if (flow.kind === "stairAim") return { kind: "fixStairGoal" };
+  if (route === "itemUse" && target !== "air") return { kind: "ignore" };
+  if (flow.kind === "baseHeight") return { kind: "confirmLiveHeight" };
+  if (flow.kind === "heightStep") return { kind: "aimHeight" };
+  if (route === "blockInteract")
+    return {
+      kind: flow.kind === "selected" ? "openUtilityMenu" : "selectPoint",
+    };
+  return {
+    kind:
+      sneaking || flow.kind === "idle" || flow.kind === "selected"
+        ? "openUtilityMenu"
+        : "fixEndpoint",
+  };
+}
+
+it.each([
+  { flow: baseHeight, kind: "confirmLiveHeight" },
+  { flow: selected, kind: "openUtilityMenu" },
+])("routes item use to $kind for any target", ({ flow, kind }) => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(...targets),
+      fc.boolean(),
+      (target, sneaking) => {
+        expect(
+          routePress({
+            flow,
+            role: "wand",
+            route: "itemUse",
+            target,
+            sneaking,
+          }),
+        ).toEqual({ kind });
+      },
+    ),
+  );
+});
+
+it("preserves the old press table in all other flows", () => {
+  const choices = Object.values(flows).filter(
+    (flow) => flow.kind !== "baseHeight" && flow.kind !== "selected",
+  );
   const examples = choices.flatMap((flow) =>
     roles.flatMap((role) =>
       routes.flatMap((route) =>
@@ -173,7 +222,7 @@ it("returns a known intent for every combination of press inputs", () => {
         sneaking: fc.boolean(),
       }),
       (input) => {
-        expect(knownKinds).toContain(routePress(input).kind);
+        expect(routePress(input)).toEqual(oldRoutePress(input));
       },
     ),
     { examples },
