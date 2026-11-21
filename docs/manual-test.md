@@ -859,15 +859,17 @@ A failing row gets a follow-up issue; do not fix it in this PR.
 
 1. Join the dev BDS with the test pack enabled. Use an open area of a flat Creative world. Set noon with `/time set noon` and clear weather with `/weather clear`. Use default video settings and record the device model, render distance and graphics mode alongside its results.
 2. Mark a starting block and face a cardinal direction with clear ground ahead. Enable Creative flight and hover just above the ground so the camera stays at the benchmark height after teleporting. Return to the same starting position and heading for each run.
-3. Run `/scriptevent yasu_ride_test:bench camper 16`. The command replaces the previous scene and positions the camera. Keep the camera still, wait 10 seconds, then observe the frame rate for 10 seconds. On Windows, pin the Xbox Game Bar Performance widget and read FPS. On a phone without a counter, record “smooth” or “stutter” as allowed by [ADR 0247](adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md).
-4. Repeat with `suv 16` and `gear 64` on each device. The command also accepts `scooter`, `bulldozer`, `sportsboat` and `tent`. Counts range from 1 to 64 and default to 16. Run `/scriptevent yasu_ride_test:bench clear` before leaving the area.
+3. Run `/scriptevent yasu_ride_test:bench camper 10`. The command replaces the previous scene and positions the camera. Keep the camera still, wait 10 seconds, then observe the frame rate for 10 seconds. On Windows, pin the Xbox Game Bar Performance widget and read FPS. On a phone without a counter, record “smooth” or “stutter” as allowed by [ADR 0247](adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md).
+4. Repeat with `suv 10` and `gear 64` on each device. The command also accepts `scooter`, `bulldozer`, `sportsboat` and `tent`. Counts range from 1 to 64 and default to 16. Use 10 for vehicles: unowned vehicles are capped at 10 world-wide ([ADR 0066](adr/0066-limit-vehicles-per-player-and-kind.md), `SPEC.maxUnownedVehicles`), so a 16-vehicle scene loses 6 of them. Run `/scriptevent yasu_ride_test:bench clear` before leaving the area.
 5. Record the baseline on the unculled build. Repeat on the culled build using the same devices, settings, starting position and heading.
 
-| Device | Kind   | Count | Before fps | After fps | Date |
-| ------ | ------ | ----- | ---------- | --------- | ---- |
-| PC     | camper | 16    |            |           |      |
-| PC     | suv    | 16    |            |           |      |
-| PC     | gear   | 64    |            |           |      |
-| Phone  | camper | 16    |            |           |      |
-| Phone  | suv    | 16    |            |           |      |
-| Phone  | gear   | 64    |            |           |      |
+| Device | Kind   | Count | Before fps | After fps | Date       |
+| ------ | ------ | ----- | ---------- | --------- | ---------- |
+| PC     | camper | 10    |            |           |            |
+| PC     | suv    | 10    |            |           |            |
+| PC     | gear   | 64    |            |           |            |
+| iPad   | camper | 10    | smooth     | smooth    | 2026-11-21 |
+| iPad   | suv    | 10    | smooth     | smooth    | 2026-11-21 |
+| iPad   | gear   | 64    | smooth     | smooth    | 2026-11-21 |
+
+The iPad has no FPS counter, so its rows are qualitative. Before is the unculled build at commit `a4c2c82a4` (Resource Pack 0.1.445) and after is `main` with every culling pull request (Resource Pack 0.1.452), with the same device, settings, position and heading. The iPad could not tell the two builds apart (likely capped at its refresh rate or under too little load), so these rows do not settle the 10 percent criterion of [ADR 0256](adr/0256-cull-buried-faces-at-generation.md). A device with a numeric FPS readout (Windows Game Bar or the Mac Metal HUD) is still needed.
