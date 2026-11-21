@@ -1,0 +1,13 @@
+{
+  "excludedBones": [
+    "glass",
+    "door_glass"
+  ],
+  "textures": [
+    "textures/entity/yasu_ride/camper",
+    "textures/entity/yasu_ride/camper_lit",
+    "textures/entity/yasu_ride/camper_mirror"
+  ],
+  "removedFaces": 14820,
+  "removedCubes": 28
+}

@@ -27,6 +27,7 @@ vi.mock("../../src/test-pack/inputProbe", () => ({}));
 vi.mock("../../src/test-pack/loungeProbe", () => ({}));
 vi.mock("../../src/test-pack/scooterPoseProbe", () => ({}));
 vi.mock("../../src/test-pack/manualProbes", () => ({}));
+vi.mock("../../src/test-pack/renderBench", () => ({}));
 vi.mock("../../src/test-pack/arena", () => ({
   prepareRun: harness.setup,
   removeVehicles: harness.remove,
