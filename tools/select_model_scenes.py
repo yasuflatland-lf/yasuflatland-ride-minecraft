@@ -61,7 +61,7 @@ def select(changed_paths: Iterable[str], manifest: OutputManifest) -> Selection:
         affected.update(entry for entry in others
                         if any(fnmatch.fnmatchcase(path, pattern)
                                for pattern in (*entry.reads,
-                                               *(entry.outputs if entry.tracked else ()))))
+                                               *(entry.outputs if entry.tracked else entry.tracked_outputs))))
         run_others |= bool(affected)
         outputs = tuple(output for entry in dependency_closure(affected, others)
                         for output in entry.outputs)
