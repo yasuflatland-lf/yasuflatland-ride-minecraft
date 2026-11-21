@@ -137,6 +137,21 @@ export function overlapArea(a: ModelFace, b: ModelFace): number {
   const delta = subtract(a.normal, b.normal);
   if (dot(delta, delta) > NORMAL_TOLERANCE ** 2) return 0;
 
+  // Projection preserves a world coordinate when both normals have zero
+  // component along that axis. Disjoint intervals then stay disjoint.
+  for (const axis of [0, 1, 2] as const) {
+    if (a.normal[axis] !== 0 || b.normal[axis] !== 0) continue;
+    const [p, q, r, s] = a.corners;
+    const [t, u, v, w] = b.corners;
+    if (
+      Math.max(p[axis], q[axis], r[axis], s[axis]) <
+        Math.min(t[axis], u[axis], v[axis], w[axis]) ||
+      Math.max(t[axis], u[axis], v[axis], w[axis]) <
+        Math.min(p[axis], q[axis], r[axis], s[axis])
+    )
+      return 0;
+  }
+
   // Project onto a common plane so neither face's normal controls the result.
   const normal = unit([
     a.normal[0] + b.normal[0],

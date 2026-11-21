@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CAMPER_FURNITURE } from "../../../src/domain/vehicle/kinds/camper/furniture";
-import { modelFaces, overlapArea } from "../../support/modelFaces";
+import {
+  modelFaces,
+  overlapArea,
+  PLANE_TOLERANCE,
+} from "../../support/modelFaces";
 import { MIN_OVERLAP_AREA } from "../coplanarFaces.config";
 import {
   bone,
@@ -53,12 +57,19 @@ describe("fridge surface continuity", () => {
         cubes: fridgeCubes(owner.name),
       })),
     });
+    const byOffset = [...faces.entries()].sort(
+      ([, a], [, b]) => a.offset - b.offset,
+    );
     const conflicts: string[] = [];
-    for (const [index, a] of faces.entries()) {
-      for (let previous = 0; previous < index; previous++) {
-        const b = faces[previous];
+    for (const [index, [faceIndex, face]] of byOffset.entries()) {
+      for (let previous = index - 1; previous >= 0; previous--) {
+        const neighbor = byOffset[previous];
+        if (!neighbor || face.offset - neighbor[1].offset > PLANE_TOLERANCE)
+          break;
+        // Keep the original clipping and diagnostic order within each pair.
+        const [a, b] =
+          faceIndex > neighbor[0] ? [face, neighbor[1]] : [neighbor[1], face];
         if (
-          b &&
           (a.bone !== b.bone || a.cubeIndex !== b.cubeIndex) &&
           overlapArea(a, b) > MIN_OVERLAP_AREA
         ) {
