@@ -6,7 +6,7 @@ import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
-import type { BuildFlow } from "../../../../domain/build/flow/flow";
+import { acceptsAnyItemUse } from "../../../../domain/build/flow/flow";
 import { routePress } from "../../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import type { Cell } from "../../../../domain/shared/cells";
@@ -19,7 +19,11 @@ import {
 import { buildItemRole } from "../../identifiers";
 import type { BuildMenus } from "../buildMenus";
 import { heldBuildItem } from "../heldBuildItem";
-import { dispatchWandPress, pressStairGoal } from "./wandPress";
+import {
+  type BlockPressContext,
+  dispatchWandPress,
+  pressBlockCell,
+} from "./wandPress";
 
 export function registerWand({
   setPoint,
@@ -48,6 +52,16 @@ export function registerWand({
   pasteDebounce: Debounces<PlayerId>;
   pointOf(playerId: PlayerId): Cell | undefined;
 }): void {
+  const blockPressContext: BlockPressContext = {
+    aim,
+    aimHeight,
+    confirmLiveHeight,
+    debounce,
+    fixStairGoal,
+    menus,
+    repo,
+    setPoint,
+  };
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     if (heldBuildItem(ev.player) === "wand") ev.cancel = true;
   });
@@ -57,58 +71,29 @@ export function registerWand({
     if (!ev.isFirstEvent) return;
     const player = ev.player;
     const playerId = asPlayerId(player.id);
-    const routeBlockPress = (flow: BuildFlow | undefined) =>
-      routePress({
-        flow: flow ?? { kind: "idle" },
-        role: "wand",
-        route: "blockInteract",
-        target: "block",
-        sneaking: player.isSneaking,
-      });
-    const intent = routeBlockPress(repo.get(playerId)?.flow).kind;
+    const flow = repo.get(playerId)?.flow ?? { kind: "idle" };
+    const intent = routePress({
+      flow,
+      role: "wand",
+      route: "blockInteract",
+      target: "block",
+      sneaking: player.isSneaking,
+    }).kind;
     if (intent === "ignore") return;
+    // A PC right-click can emit itemUse before the deferred block action runs.
+    if (
+      (intent === "confirmLiveHeight" || intent === "openUtilityMenu") &&
+      acceptsAnyItemUse(flow) &&
+      !debounce.press(playerId, system.currentTick)
+    )
+      return;
     const command = {
+      player,
       playerId,
       dimensionId: asDimensionId(ev.block.dimension.id),
       cell: ev.block.location,
     };
-    system.run(() => {
-      if (!player.isValid) return;
-      const flow = repo.get(command.playerId)?.flow;
-      // A deferred confirmation can race an item-use event from the same press.
-      if (routeBlockPress(flow).kind !== intent) return;
-      switch (intent) {
-        case "confirmLiveHeight": {
-          const target = aim.aim(playerId);
-          if (!target) return;
-          debounce.press(playerId, system.currentTick);
-          aimHeight.execute({ playerId, ray: target.ray });
-          confirmLiveHeight.execute({ playerId });
-          break;
-        }
-        case "fixStairGoal":
-          if (
-            flow?.kind === "stairAim" &&
-            debounce.press(playerId, system.currentTick)
-          )
-            pressStairGoal(player, flow.op, fixStairGoal, menus);
-          break;
-        case "aimHeight": {
-          if (flow?.kind !== "heightStep") return;
-          const target = aim.aim(command.playerId);
-          if (!target) return;
-          aimHeight.execute({ playerId: command.playerId, ray: target.ray });
-          void menus.showContentsMenu(player);
-          break;
-        }
-        case "selectPoint":
-          setPoint.execute(command);
-          break;
-        case "openUtilityMenu":
-          void menus.showUtilityMenu(player);
-          break;
-      }
-    });
+    system.run(() => pressBlockCell(blockPressContext, command, intent));
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
     if (!source.isValid || buildItemRole(itemStack.typeId) !== "wand") return;

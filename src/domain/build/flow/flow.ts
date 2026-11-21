@@ -214,6 +214,10 @@ export function closeBuildMenu(flow: BuildFlow): BuildFlow {
     : flow;
 }
 
+export function acceptsAnyItemUse(flow: BuildFlow): boolean {
+  return flow.kind === "baseHeight" || flow.kind === "selected";
+}
+
 export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
   return sneaking || flow.kind === "idle" || flow.kind === "selected";
 }
