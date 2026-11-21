@@ -349,7 +349,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Rule: Cull a face only when a distinct, solid, opaque cube in the same non-excluded bone contains all four corners after a 0.001 px outward shift. Check containment in the occluder's local frame. The normal axis is strict and the two lateral axes allow an inclusive 1e-6 px tolerance. Verify opacity across every texture that can draw each occluder face. Exclude bones that bind blend materials, and exclude all bones of a block using the blend render method.
 - Agreement: Proposed
 - Basis: [0255](../adr/0255-cull-buried-faces-at-generation.md).
-- Implementation: [tools/face_cull.py](../../tools/face_cull.py). Generators opt in and write a tracked policy record.
+- Implementation: [tools/face_cull.py](../../tools/face_cull.py). The SUV checks all 16 paint textures and the lit texture, with no excluded bones. Its generator writes the counts and bindings to the [SUV policy record](../../tests/packs/fixtures/face-cull/yasu_ride.suv.json).
 - Verification: [tests/tools/faceCull.test.ts](../../tests/tools/faceCull.test.ts) checks containment and opacity. [tests/packs/faceCullPolicy.test.ts](../../tests/packs/faceCullPolicy.test.ts) checks recorded textures and exclusions against the pack's render bindings.
 
 ### Camping gear geometry kit

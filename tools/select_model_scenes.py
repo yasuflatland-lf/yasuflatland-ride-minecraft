@@ -60,8 +60,7 @@ def select(changed_paths: Iterable[str], manifest: OutputManifest) -> Selection:
                                for pattern in (*scene.reads, *scene.outputs)))
         affected.update(entry for entry in others
                         if any(fnmatch.fnmatchcase(path, pattern)
-                               for pattern in (*entry.reads,
-                                               *(entry.outputs if entry.tracked else ()))))
+                               for pattern in (*entry.reads, *entry.tracked_outputs)))
         run_others |= bool(affected)
         outputs = tuple(output for entry in dependency_closure(affected, others)
                         for output in entry.outputs)
