@@ -26,6 +26,13 @@ vi.mock("@minecraft/server", () => ({
     getDimension: engine.getDimension,
   },
   BlockPermutation: { resolve: engine.resolve },
+  MolangVariableMap: class {
+    readonly colors: Record<string, unknown> = {};
+
+    setColorRGB(name: string, color: unknown): void {
+      this.colors[name] = color;
+    }
+  },
 }));
 beforeEach(() => {
   vi.resetAllMocks();
@@ -246,6 +253,7 @@ it("sends translated counts and bounded player-only particles at block centers",
               ? "minecraft:villager_happy"
               : "minecraft:blue_flame_particle",
             { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 },
+            undefined,
           ]),
         );
         spawnParticle.mockClear();
@@ -269,7 +277,7 @@ it("sends translated counts and bounded player-only particles at block centers",
   );
 });
 
-it("draws 36 endrod particles on the corner boundary for the owner only", () => {
+it("draws 36 marker particles on the corner boundary for the owner only", () => {
   fc.assert(
     fc.property(cell, (at) => {
       const spawnParticle = vi.fn();
@@ -288,8 +296,10 @@ it("draws 36 endrod particles on the corner boundary for the owner only", () => 
       );
       expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
       expect(spawnParticle).toHaveBeenCalledTimes(36);
-      expect(spawnParticle.mock.calls).toEqual(
-        cornerMarkerPoints(at).map((point) => ["minecraft:endrod", point]),
+      expect(
+        spawnParticle.mock.calls.map(([particle, point]) => [particle, point]),
+      ).toEqual(
+        cornerMarkerPoints(at).map((point) => ["yasu_build:marker", point]),
       );
       spawnParticle.mockClear();
       feedback.drawPreview(
@@ -320,7 +330,7 @@ it("stops a corner marker at the first rejected particle without throwing", () =
   fc.assert(
     fc.property(
       cell,
-      fc.integer({ min: 0, max: 19 }),
+      fc.integer({ min: 0, max: 35 }),
       (at, successfulSpawns) => {
         const spawnParticle = vi.fn(() => {
           if (spawnParticle.mock.calls.length > successfulSpawns) {
@@ -365,7 +375,53 @@ it("refuses air, liquids and data-holding blocks as material", () => {
   }
 });
 
-it("draws every preview style in the viewer dimension when no dimension is fixed", () => {
+it("uses a distinct Molang color map for each marker layer and reuses it for the layer's points", () => {
+  const spawnParticle = vi.fn();
+  engine.getEntity.mockReturnValue({
+    typeId: "minecraft:player",
+    isValid: true,
+    dimension: { id: dimension },
+    spawnParticle,
+  });
+  const first = { x: 1, y: 2, z: 3 };
+  const second = { x: 2, y: 2, z: 3 };
+  new BedrockFeedback().drawPreview(
+    playerId,
+    dimension,
+    preview({
+      startMarker: [first, second],
+      endMarker: [first, second],
+      sharedMarker: [first, second],
+    }),
+  );
+  expect(spawnParticle).toHaveBeenCalledTimes(6);
+  const colors = [
+    { red: 1, green: 1, blue: 1 },
+    { red: 1, green: 0.15, blue: 0.15 },
+    { red: 1, green: 0.55, blue: 0 },
+  ];
+  const maps = colors.map((color, index) => {
+    const firstCall = index * 2 + 1;
+    const molang = spawnParticle.mock.calls[firstCall - 1]?.[2];
+    expect(spawnParticle).toHaveBeenNthCalledWith(
+      firstCall,
+      "yasu_build:marker",
+      first,
+      expect.objectContaining({ colors: { "variable.color": color } }),
+    );
+    expect(spawnParticle).toHaveBeenNthCalledWith(
+      firstCall + 1,
+      "yasu_build:marker",
+      second,
+      molang,
+    );
+    expect(spawnParticle.mock.calls[firstCall]?.[2]).toBe(molang);
+    return molang;
+  });
+  expect(new Set(maps).size).toBe(colors.length);
+});
+
+it("draws non-marker styles without Molang variables in the viewer dimension when no dimension is fixed", () => {
   const spawnParticle = vi.fn();
   engine.getEntity.mockReturnValue({
     typeId: "minecraft:player",
@@ -378,17 +434,19 @@ it("draws every preview style in the viewer dimension when no dimension is fixed
     playerId,
     undefined,
     preview({
-      endMarker: [point],
+      shape: [point],
       roof: [point],
+      stairs: [point],
       paste: [point],
       pasteVertical: [point],
     }),
   );
   expect(spawnParticle.mock.calls).toEqual([
-    ["minecraft:endrod", point],
-    ["minecraft:villager_happy", point],
-    ["minecraft:blue_flame_particle", point],
-    ["minecraft:basic_flame_particle", point],
+    ["minecraft:villager_happy", point, undefined],
+    ["minecraft:villager_happy", point, undefined],
+    ["minecraft:villager_happy", point, undefined],
+    ["minecraft:blue_flame_particle", point, undefined],
+    ["minecraft:basic_flame_particle", point, undefined],
   ]);
 });
 
