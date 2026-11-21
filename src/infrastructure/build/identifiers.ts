@@ -2,7 +2,6 @@ import type { BuildMessage } from "../../application/build/ports/feedback";
 
 export const BUILD_NAMESPACE = "yasu_build";
 export const buildId = (name: string): string => `${BUILD_NAMESPACE}:${name}`;
-/** @public Temporary Knip exception until tap target placement and input use this export (#2208, #2209). */
 export const TAP_TARGET_TYPE = buildId("tap_target");
 export const SELECTION_WAND_TYPE = buildId("selection_wand");
 export const PASTE_ROTATE_TYPE = buildId("paste_rotate");
@@ -43,6 +42,7 @@ export const BUILD_MESSAGE: Readonly<
   heightSize: "yasu_build.message.height_size",
   pointSet: "yasu_build.message.point_set",
   endSet: "yasu_build.message.end_set",
+  heightAim: "yasu_build.message.height_aim",
   aimStairGoal: "yasu_build.message.aim_stair_goal",
   noStairGoal: "yasu_build.message.no_stair_goal",
   fillMaterialRefused: "yasu_build.message.fill_material_refused",

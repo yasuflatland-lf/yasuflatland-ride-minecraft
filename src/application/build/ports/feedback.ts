@@ -10,6 +10,7 @@ export type BuildMessage =
   | "cutIncomplete"
   | "removing"
   | "pointSet"
+  | "heightAim"
   | "endSet"
   | "aimStairGoal"
   | "noStairGoal"

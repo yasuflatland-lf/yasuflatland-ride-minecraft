@@ -161,6 +161,13 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
   });
 }
 
+export function enteredBaseHeight(
+  before: BuildFlow,
+  after: BuildFlow,
+): boolean {
+  return after.kind === "baseHeight" && before.kind !== "baseHeight";
+}
+
 export function adjustHeight(flow: BuildFlow): BuildFlow {
   if (
     flow.kind !== "selected" ||
@@ -205,6 +212,10 @@ export function closeBuildMenu(flow: BuildFlow): BuildFlow {
   return flow.kind === "selected" && flow.menuLevel === "build"
     ? Object.freeze({ ...flow, menuLevel: "root" })
     : flow;
+}
+
+export function acceptsAnyItemUse(flow: BuildFlow): boolean {
+  return flow.kind === "baseHeight" || flow.kind === "selected";
 }
 
 export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
