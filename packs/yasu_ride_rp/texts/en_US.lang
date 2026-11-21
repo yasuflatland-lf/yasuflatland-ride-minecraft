@@ -300,3 +300,5 @@ yasu_build.form.stair_steps_only=Steps only
 yasu_build.message.height_aim=Look up or down to set the height, then tap to confirm.
 yasu_build.message.aim_stair_goal=Look at the goal and press
 yasu_build.message.no_stair_goal=No goal there
+entity.yasu_build:tap_target.name=Build Wand Tap Target
+action.interact.yasu_build.tap_target=Tap

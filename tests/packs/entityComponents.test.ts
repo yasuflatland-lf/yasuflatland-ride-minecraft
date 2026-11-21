@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { TAP_TARGET_TYPE } from "../../src/infrastructure/build/identifiers";
 import {
   CHAIR_KINDS,
   ROOF_TENT_FAMILY,
@@ -42,6 +43,7 @@ it.each(immuneEntities)(
 );
 
 const furnitureExceptions = new Map<string, string>([
+  [TAP_TARGET_TYPE, "The wand target follows a temporary selection marker."],
   ...Object.values(ENTITY_TYPE).map(
     (id) => [id, "Drivable vehicles must move."] as const,
   ),
@@ -116,3 +118,25 @@ it.each(furniture)(
     });
   },
 );
+
+it("gives the temporary wand target a one-block hit box and a touch interaction", () => {
+  const target = entities.find(
+    ({ description }) => description.identifier === TAP_TARGET_TYPE,
+  );
+  expect(target).toMatchObject({
+    description: { is_spawnable: false, is_summonable: true },
+    components: {
+      "minecraft:type_family": {
+        family: ["yasu_build_tap_target", "inanimate"],
+      },
+      "minecraft:physics": { has_gravity: false, has_collision: false },
+      "minecraft:collision_box": { width: 1, height: 1 },
+      "minecraft:interact": {
+        interactions: [
+          { interact_text: "action.interact.yasu_build.tap_target" },
+        ],
+      },
+    },
+  });
+  expect(target?.components).not.toHaveProperty("minecraft:persistent");
+});
