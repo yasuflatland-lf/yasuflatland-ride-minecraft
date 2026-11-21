@@ -1,4 +1,4 @@
-import { virtualEndPoint } from "../../domain/build/aim/aim";
+import { aimedEndPoint } from "../../domain/build/aim/endPoint";
 import { aimedHeight } from "../../domain/build/aim/height";
 import type { BuildFlow } from "../../domain/build/flow/flow";
 import {
@@ -65,7 +65,7 @@ export class ShowPreview {
     const { flow } = session;
     const preview: PreviewAim = { blink };
     if (flow.kind === "point1" && aim)
-      preview.end = aim.block?.cell ?? virtualEndPoint(flow.cell, aim.ray);
+      preview.end = aimedEndPoint(flow.cell, aim);
     if (flow.kind === "heightStep") {
       preview.height =
         !flow.heightLocked && aim ? aimedHeight(flow, aim.ray) : flow.previous;

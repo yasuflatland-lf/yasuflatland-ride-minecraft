@@ -137,6 +137,7 @@ function snapshotHook() {
   ]);
   const reader = new FakeAimReader();
   reader.target = {
+    input: "pointer",
     ray: { origin: { x: 0, y: 5, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
   };
   const aim = new TestAimReader(reader);

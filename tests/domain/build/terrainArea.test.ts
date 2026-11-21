@@ -27,10 +27,14 @@ describe("terrainAreaOf", () => {
         cell,
         fc.integer({ min: -500, max: 500 }),
         (point, a, b, hitY) => {
-          const end = virtualEndPoint(point, {
-            origin: { x: point.x - 0.5, y: hitY - 1, z: point.z },
-            direction: { x: 1, y: 1, z: 0 },
-          });
+          const end = virtualEndPoint(
+            point,
+            {
+              origin: { x: point.x - 0.5, y: hitY - 1, z: point.z },
+              direction: { x: 1, y: 1, z: 0 },
+            },
+            BUILD_SPEC.reach,
+          );
           expect(end).toBeDefined();
           if (!end) return;
           const area = terrainAreaOf(boxOf(a, b), point, end);

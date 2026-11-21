@@ -113,6 +113,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const aim = {
     dimensionOf: () => nether,
     aim: vi.fn(() => ({
+      input: "pointer" as const,
       ray: { origin: cell, direction: { x: 1, y: 0, z: 0 } },
       block: { cell, face: "up" as const },
     })),
