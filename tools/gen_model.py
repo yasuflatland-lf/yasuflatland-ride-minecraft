@@ -8,6 +8,7 @@ wheel_fl / wheel_fr / wheel_rl / wheel_rr / glow_fl / glow_fr / glow_rl / glow_r
 prop_rl / prop_rr / arm_fl / arm_fr / arm_rl / arm_rr / sub_arm_rl / sub_arm_rr / door_fr / door_rr / door_fl /
 door_rl / seat_0..3.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -22,7 +23,27 @@ RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
 ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
 ITEM_TEXTURES = RP / "textures/items/yasu_ride"
-out = load_tool("texture_io").Outputs("--check" in sys.argv[2:])
+face_cull = load_tool("face_cull")
+texture_io = load_tool("texture_io")
+client = Path(__file__).resolve().parents[1] / "packs/yasu_ride_rp/entity/yasu_ride/suv.ce.json"
+texture_paths = json.loads(client.read_text())["minecraft:client_entity"]["description"]["textures"].values()
+
+
+class SuvOutputs(texture_io.Outputs):
+    """Keep the exact bound color buffers for the culling pass, including in check mode."""
+
+    def __init__(self, check):
+        super().__init__(check)
+        self.bound_paths = {RP / f"{path}.png" for path in texture_paths}
+        self.images = {}
+
+    def rgba(self, path, width, height, pixels, **options):
+        if path in self.bound_paths:
+            self.images[path] = (width, height, pixels)
+        super().rgba(path, width, height, pixels, **options)
+
+
+out = SuvOutputs("--check" in sys.argv[2:])
 
 globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
 palette = load_tool("suv_palette")
@@ -124,15 +145,20 @@ model_cubes = [cube for bone in geometry["bones"] for cube in bone.get("cubes", 
 hull_turns = [cube for cube in compound_cubes(model_cubes) if id(cube) in hull_turn_ids]
 arcs = [cube for cube in compound_cubes(model_cubes) if id(cube) not in hull_turn_ids]
 assert_axes(model_cubes, {"arc": arcs, "hull_turns": hull_turns}, ASSEMBLIES)
-out.json(MODELS / "suv.geo.json", geo)
 
 export.paint_textures(out, ENTITY_TEXTURES)
 load_tool("lit_textures").build_lit_textures(
     out, ENTITY_TEXTURES, "suv", ATLAS.width, ATLAS.height,
     texture.paint_pixel(palette.BODY_PAINTS[0]),
     is_lit=texture.is_lit, opaque_unlit_cutouts=True)
+textures = [(out.images[RP / f"{path}.png"], (ATLAS.width, ATLAS.height)) for path in texture_paths]
+policy = face_cull.CullPolicy((), face_cull.opaque_occluder(lambda bone, cube, side: textures))
+result = face_cull.cull_buried_faces(geometry, policy)
+geo["minecraft:geometry"][0] = result.geometry
+out.json(MODELS / "suv.geo.json", geo)
+face_cull.write_record(out, geometry["description"]["identifier"], texture_paths, result, policy.excluded_bones)
 export.item_icons(out, ITEM_TEXTURES)
-print("cubes:", len(model_cubes))
+print("cubes:", len(model_cubes) - result.removed_cubes)
 
 if out.check:
     out.finish("Stale SUV outputs:", "SUV model and textures are up to date")

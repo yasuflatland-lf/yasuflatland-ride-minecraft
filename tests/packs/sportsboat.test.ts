@@ -17,10 +17,12 @@ import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
+const HELM_CUBES = 280;
 const EXTENSION_CUBES = 3;
 const POD_CUBES = 32;
 const LEVER_CUBES = 8;
 const THROTTLE_CUBES = EXTENSION_CUBES + POD_CUBES + LEVER_CUBES;
+const FILLER_START = HELM_CUBES + THROTTLE_CUBES;
 const RP = "packs/yasu_ride_rp";
 const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
 const paintAtlas = (paint: string) =>
@@ -354,7 +356,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
   // Each swatch is a 4-texel cell in palette order (tools/gen_sportsboat.py): hull is the 1st,
   // strake the 3rd, and stripe the 20th.
   const swatch = (index: number) => (cube: Cube) =>
-    cube.uv.up?.uv[0] === index * 4 + 1;
+    Object.values(cube.uv).some(
+      ({ uv }) => uv[0] === index * 4 + 1 && uv[1] === 1,
+    );
   const isHull = swatch(0);
   const shell = cubes.filter(
     (cube) => isHull(cube) || swatch(2)(cube) || swatch(19)(cube),
@@ -1232,7 +1236,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const F = 9.3;
     const pivot = [-7.6, F + 7.5, -7.4];
     const body = bone("body");
-    // The console anchors the 282-cube helm block, independent of hull cube counts.
+    // The console anchors the helm block, independent of hull cube counts.
     const start = body.findIndex(
       (cube) =>
         cube.origin[0] === -15.4 &&
@@ -1240,7 +1244,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
         cube.origin[2] === -12.5 &&
         cube.size[1] === 7,
     );
-    const helm = body.slice(start, start + 282);
+    const helm = body.slice(start, start + HELM_CUBES);
     const wheel = helm.slice(22, 168);
     const supports = helm.slice(168, 171);
     const angles = [
@@ -1324,7 +1328,10 @@ describe("sports boat hull planking (ADR 0161)", () => {
     });
 
     it("bridges each exposed trough to the existing hull with a thin gloss ledge", () => {
-      const fillers = body.slice(start + 325, start + 327);
+      const fillers = body.slice(
+        start + FILLER_START,
+        start + FILLER_START + 2,
+      );
       expect(fillers).toHaveLength(2);
       for (const [i, filler] of fillers.entries()) {
         const base = helm[i * 2] as Cube;
@@ -1401,7 +1408,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
       // Includes every display, strip, dial, wheel, column and throttle cube.
       const remaining = new Set(
         body
-          .slice(start + 8, start + 327)
+          .slice(start + 8, start + FILLER_START + 2)
           .filter((part) => !connected.includes(part)),
       );
       let changed = true;
@@ -1438,8 +1445,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
       const assemblies = {
         wheel,
         throttle_lever: body.slice(
-          start + 282 + EXTENSION_CUBES + POD_CUBES,
-          start + 282 + THROTTLE_CUBES,
+          start + HELM_CUBES + EXTENSION_CUBES + POD_CUBES,
+          start + HELM_CUBES + THROTTLE_CUBES,
         ),
       };
       expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
@@ -1764,8 +1771,9 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
           expect(next.origin[0]).toBeCloseTo(plate.origin[0]);
           expect(next.size[0]).toBeGreaterThan(plate.size[0]);
         }
-        for (const face of ["down", "north", "south", "east", "west"])
+        for (const face of ["down", "north", "east", "west"])
           expect(plate.uv[face]?.uv).toEqual([13, 1]);
+        expect(plate.uv.south?.uv).toEqual(next ? undefined : [13, 1]);
       }
     });
 
@@ -1911,10 +1919,10 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
           cube.origin[2] === -12.5 &&
           cube.size[1] === 7,
       );
-      const helm = body.slice(start, start + 327);
+      const helm = body.slice(start, start + FILLER_START + 2);
       expect(start).toBeGreaterThanOrEqual(0);
       const obstacles = [...helm.slice(8, 10), ...helm.slice(20)];
-      expect(obstacles).toHaveLength(309);
+      expect(obstacles).toHaveLength(307);
       for (const plate of plates) {
         expect(
           Math.min(...corners(plate).map((p) => p[1] ?? 0)),
@@ -1991,7 +1999,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
         cube.origin[2] === -12.5 &&
         cube.size[1] === 7,
     );
-    const helm = body.slice(start, start + 282);
+    const helm = body.slice(start, start + HELM_CUBES);
     const controller = helm.slice(171);
     const plates = controller.filter(
       (cube) =>
@@ -2035,7 +2043,10 @@ print(json.dumps({name: {"uv": uv, "size": size}
     };
 
     describe("sports boat throttle (ADR 0166, #692)", () => {
-      const throttle = body.slice(start + 282, start + 282 + THROTTLE_CUBES);
+      const throttle = body.slice(
+        start + HELM_CUBES,
+        start + HELM_CUBES + THROTTLE_CUBES,
+      );
       const extension = throttle.slice(0, EXTENSION_CUBES);
       const pod = throttle.slice(EXTENSION_CUBES, EXTENSION_CUBES + POD_CUBES);
       const lever = throttle.slice(EXTENSION_CUBES + POD_CUBES);
@@ -2331,7 +2342,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
         uv: display.uv,
         uv_size: display.size,
       });
-      for (const side of ["north", "east", "west", "up", "down"])
+      expect(faces[0]?.uv.north).toBeUndefined();
+      for (const side of ["east", "west", "up", "down"])
         expect(faces[0]?.uv[side]?.uv).toEqual([49, 1]);
     });
 
@@ -2790,16 +2802,21 @@ describe("sports boat gloss hull (ADR 0163) and dash (ADR 0166)", () => {
         return b.left < 4 && b.right > 0 && b.top < 4 && b.bottom > 0;
       }),
     );
-    expect(hull.length).toBeGreaterThan(0);
+    expect(hull).toHaveLength(461);
+    const faceCounts = {
+      north: 378,
+      south: 412,
+      east: 446,
+      west: 446,
+      up: 353,
+      down: 444,
+    };
+    for (const [side, count] of Object.entries(faceCounts))
+      expect(
+        hull.filter((cube) => side in cube.uv),
+        side,
+      ).toHaveLength(count);
     for (const cube of hull) {
-      expect(Object.keys(cube.uv).sort()).toEqual([
-        "down",
-        "east",
-        "north",
-        "south",
-        "up",
-        "west",
-      ]);
       for (const face of Object.values(cube.uv)) {
         const b = bounds(face);
         expect(b.left).toBeGreaterThanOrEqual(0);

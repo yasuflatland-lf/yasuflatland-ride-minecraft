@@ -29,7 +29,11 @@
   "overrides": [
     {
       "includes": ["tests/packs/fixtures/face-cull/*.json"],
-      "formatter": { "enabled": false }
+      "json": {
+        "formatter": {
+          "expand": "always"
+        }
+      }
     }
   ],
   "assist": {

@@ -48,7 +48,7 @@ class ManifestEntry:
     reads: tuple[str, ...]
     tracked: bool
     after_generators: bool
-    tracked_outputs: tuple[str, ...]
+    tracked_outputs: tuple[str, ...] = ()
 
 
 def entry_id(entry) -> str:

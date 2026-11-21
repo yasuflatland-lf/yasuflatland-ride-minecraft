@@ -95,28 +95,13 @@ describe("camper rib atlas (ADR 0190)", () => {
           .map(([side, face]) => ({ bone: b.name, cube: c, side, face })),
       ),
     );
-    const expectedWallFaces = (side: "west" | "east") =>
-      (bone("body").cubes ?? []).filter((cube) => {
-        const north = cube.uv.north;
-        // The roof slab never passes through rib_sides in tools/gen_camper.py.
-        const plainCap =
-          cube.size[0] === 48 && cube.origin[1] === 61 && cube.size[1] === 3;
-        return (
-          !cube.rotation &&
-          north?.uv[0] === swatchUv("white")[0] &&
-          north.uv[1] === swatchUv("white")[1] &&
-          north.uv_size[0] === 1 &&
-          north.uv_size[1] === 1 &&
-          (side === "west" ? cube.origin[0] === -24 : end(cube, 0) === 24) &&
-          !plainCap
-        );
-      }).length;
+    // The side walls retain 294 of 396 west ribs and 279 of 363 east ribs after culling.
     expect(
       entries.filter((e) => e.bone === "body" && e.side === "west"),
-    ).toHaveLength(expectedWallFaces("west"));
+    ).toHaveLength(294);
     expect(
       entries.filter((e) => e.bone === "body" && e.side === "east"),
-    ).toHaveLength(expectedWallFaces("east"));
+    ).toHaveLength(279);
     const roof = (bone("body").cubes ?? []).find(
       (c) => c.origin[1] === 61 && c.size[1] === 3 && c.size[0] === 48,
     );
@@ -282,7 +267,7 @@ describe("camper rib atlas (ADR 0190)", () => {
           c.origin[0] === -24.5 && c.origin[1] === 47.8 && c.origin[2] === 41.2,
       ),
     );
-    expect(rail.uv.north?.uv).toEqual(swatchUv("aluminium"));
+    expect(rail.uv.up?.uv).toEqual(swatchUv("aluminium"));
     expect(rail.uv.west).toEqual(regionFace("vent_screws"));
   });
 

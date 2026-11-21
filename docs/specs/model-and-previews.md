@@ -2,6 +2,7 @@
 
 - Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV, sports boat, camper, bulldozer and scooter README previews and the pack icons are rendered from the model files and kept fresh.
 - Verified at: 7267bd8a
+- Source: [0255](../adr/0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md)
 - Source: [0252](../adr/0252-budget-client-entity-texture-memory.md)
 - Source: [0009](../adr/0009-vehicle-model-conventions.md)
 - Source: [0016](../adr/0016-readme-preview-rendered-from-model.md)
@@ -24,7 +25,7 @@
 - Source: [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md)
 - Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md)
-- Source: [0255](../adr/0255-cull-buried-faces-at-generation.md)
+- Source: [0256](../adr/0256-cull-buried-faces-at-generation.md)
 - Excluded: [0241](../adr/0241-dining-table-top-blocks.md): Dining Table physics and hosted-item clearance belong to the resort gear topic
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
@@ -45,6 +46,15 @@
 - Basis: [0248](../adr/0248-treat-generated-pack-files-as-build-outputs.md) defines how tests obtain generated geometry. [Issue #2181](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/2181) defines the counts.
 - Implementation: `tests/packs/renderBudget.test.ts` and `tests/packs/fixtures/render-budget/`.
 - Verification: `pnpm test` compares both counts to the fixture for each geometry identifier.
+
+### Coplanar faces
+
+- Applies to: Each geometry in the main and test Resource Packs.
+- Rule: A geometry's visible coplanar face count must match its baseline. A pair counts when faces on different cubes point the same way, lie on the same plane, overlap by more than 0.0001 square model pixels, and differ by more than 12 in a mean RGB channel. Each face must sample a texel with nonzero alpha. Mutually exclusive bones and pairs of ground-contact `down` faces are exempt. Use a trim offset of at least 0.01 model pixels when separating faces.
+- Agreement: Accepted
+- Basis: [0255](../adr/0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md) Decision.
+- Implementation: The [ratchet test](../../tests/packs/coplanarFaces.test.ts) uses the bound textures and exclusive bone slots in its [configuration](../../tests/packs/coplanarFaces.config.ts). Update the [geometry fixture](../../tests/packs/fixtures/coplanar/) when removing findings. An absent fixture means zero and `cleanBones` records bones that must remain free of findings.
+- Verification: `pnpm test tests/packs/coplanarFaces.test.ts tests/packs/coplanarFaces.support.test.ts` checks current geometry counts and verifies the exclusions on small models.
 
 ### Client entity texture memory
 
@@ -281,10 +291,10 @@ order; the orchestrator separately retains the existing bone draw order.
 | 20          | `tools/camper_arches.py`         | Interior wheel-well panels                                       |
 
 The generator also writes `tests/packs/fixtures/camper-areas.json` through `Outputs.fixture_json` with `indent=2` and a trailing newline,
-relative to the repository root. It maps each area and bone to inclusive final cube indices
-`[first, last]`. The `shell` and `curtains` body entries use lists of such ranges because
-curtains were interleaved with the walls; preserving that order keeps the model identical.
-Every other area has one contiguous range per bone. No ownership field enters a cube.
+relative to the repository root. It maps each area's original cube indices through the
+buried-face cull, skips fully removed cubes, and merges adjacent surviving indices.
+Each area's bone entry is an inclusive `[first, last]` range or a list of such ranges for
+interleaved cubes. No ownership field enters a cube.
 `tests/packs/camperAreas.test.ts` checks that the ranges cover every cube exactly once.
 `pnpm generate` and `pnpm model` recreate this ignored build fixture. Its generator keeps two-space indentation; parsed-content checks remain available through `tools/run_generators.py --check`.
 
@@ -348,8 +358,8 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 - Applies to: per-face UV geometry passed to the shared generation pass.
 - Rule: Cull a face only when a distinct, solid, opaque cube in the same non-excluded bone contains all four corners after a 0.001 px outward shift. Check containment in the occluder's local frame. The normal axis is strict and the two lateral axes allow an inclusive 1e-6 px tolerance. Verify opacity across every texture that can draw each occluder face. Exclude bones that bind blend materials, and exclude all bones of a block using the blend render method.
 - Agreement: Proposed
-- Basis: [0255](../adr/0255-cull-buried-faces-at-generation.md).
-- Implementation: [tools/face_cull.py](../../tools/face_cull.py). [tools/gen_camping_gear.py](../../tools/gen_camping_gear.py) culls standalone decor and pair geometries against the shared 512 x 512 atlas after applying the cube budgets to the uncut shapes. It excludes every bone of standalone sugar pot decor because the block uses blend, and writes a tracked policy record for each geometry.
+- Basis: [0256](../adr/0256-cull-buried-faces-at-generation.md).
+- Implementation: [tools/face_cull.py](../../tools/face_cull.py). `tools/gen_camper.py` culls the rounded camper and drawer-item geometries using their bound colour textures. It excludes the camper's glass bones and the drawers' sugar pot bones and writes a tracked policy record for each geometry. The SUV checks all 16 paint textures and the lit texture, with no excluded bones. Its generator writes the counts and bindings to the [SUV policy record](../../tests/packs/fixtures/face-cull/yasu_ride.suv.json). The scooter generator culls the mirrored, rounded geometry before splitting the render passes. It checks each occluder face in its fixed or paint UV space, including all paint variants, and excludes `glow_*`, `headlights`, and `tail_lights` because the lit pass remaps their UVs. It writes a tracked policy record for each of the fixed and paint geometries. The sportsboat generator culls its rounded geometry using the fixed and lit textures, excludes the blend-material `windshield` bone, and writes a tracked policy record. `tools/gen_tent.py` culls the rounded tent geometry using all fly paint textures, excludes the blend-material `lantern_glass` bone, and writes a tracked policy record. [tools/gen_camping_gear.py](../../tools/gen_camping_gear.py) culls standalone decor and pair geometries against the shared 512 x 512 atlas after applying the cube budgets to the uncut shapes. It excludes every bone of standalone sugar pot decor because the block uses blend, and writes a tracked policy record for each geometry.
 - Verification: [tests/tools/faceCull.test.ts](../../tests/tools/faceCull.test.ts) checks containment and opacity. [tests/packs/faceCullPolicy.test.ts](../../tests/packs/faceCullPolicy.test.ts) checks recorded textures and exclusions against the pack's render bindings.
 
 ### Camping gear geometry kit
@@ -436,7 +446,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 ### Generated pack files are build outputs
 
 - Applies to: generated pack assets and the camper ownership fixture.
-- Rule: Outputs from `tools/run_generators.py --list-outputs --untracked` are ignored and never committed. `pnpm generate` recreates them, and build and Vitest ensure generation automatically. Renderer outputs marked `tracked: true` remain committed: README previews, rendered item icons, and all three pack icons. `.gitignore` has exactly the untracked patterns in manifest order. Biome uses these Git ignores. Its formatter leaves generated face-cull records as written by the generator.
+- Rule: Outputs from `tools/run_generators.py --list-outputs --untracked` are ignored and never committed. `pnpm generate` recreates them, and build and Vitest ensure generation automatically. README previews, rendered item icons, all three pack icons, and face-culling policy records remain committed. `.gitignore` has exactly the untracked patterns in manifest order. Biome uses these Git ignores, with no generated-output exclusions or Linguist attributes.
 - Agreement: Proposed
 - Basis: [0248](../adr/0248-treat-generated-pack-files-as-build-outputs.md) Decision.
 - Implementation: `.gitignore`; `biome.json`; `tools/generators.json`; `package.json`.
@@ -445,7 +455,7 @@ Every other area has one contiguous range per bone. No ownership field enters a 
 ### Generator output and input declarations
 
 - Applies to: every entry in `tools/generators.json` and its generated assets.
-- Rule: Each entry has an optional `id`, defaulting to its `script`; ids must be unique, while entries may share a script. Output ownership reports identify entries by id. Each entry declares repository-relative `outputs` globs and `reads` paths outside `tools/`. `tools/**` is an implicit input, excluding paths containing `__pycache__`. `OutputManifest.load(path=PLAN)` exposes immutable `GeneratedOutput(generator, pattern, tracked)` values through `outputs()`, one owner through `matches(repo_path)`, the deduplicated input union through `inputs()`, and non-retained patterns through `untracked_patterns()`. Matching uses POSIX `fnmatch` semantics; stars match across folders. The renderer declares previews, rendered item icons, and the three pack icons with `tracked: true`. A generator that also writes untracked outputs uses `trackedOutputs` globs to retain selected declared outputs, as camping gear does for its face-cull records. The preview renderer has six entries, `render_preview.py:<scene>` for `suv`, `boat`, `camper`, `bulldozer`, `scooter`, and `gear`, each with `--scene <scene>`, scene-specific reads, and the shared `after` list. SUV owns its previews and all three pack icons; gear owns its previews and rendered item icons; each other scene owns its vehicle previews. All six retain the pack manifest validation reads from `--icons`. The scooter preview reads `scooter.png` for its ivory default paint, and `scooter_lit.geo.json` with `scooter_lit.png` for its lamps and hover glow. It projects matching lit faces into base-atlas coordinates for combined texel sampling and uses the lit geometry for hover pools, preserving the preview pixels. White shares the stored `scooter` texture with khaki; no `scooter_white.png` is produced. `--only ID [ID ...]` selects entries in manifest order, deduplicates ids, and verifies ownership for exactly those entries in write or `--check` mode. It bypasses `after` dependencies and the after-generators barrier, so callers must run `pnpm generate` first. Unknown ids fail with the valid ids listed. It rejects `--ensure`, `--status`, and listing flags, and never invalidates or writes the generation stamp. The runner lists outputs with `--list-outputs [--untracked]`, inputs with `--list-inputs`, and performs no formatting step. The plan has no `format` key. Biome uses Git ignores to skip build outputs and formats hand-written JSON normally. The complete item texture atlas uses compact JSON generated from `tools/item_texture_base.json` and the gear spec. `--report-touched FILE` writes JSON Lines containing each generator id and every repo-relative path its `Outputs` instances wrote or checked. The generated `.gitignore` section equals `untracked_patterns()` in plan order; outputs marked for retention stay committed.
+- Rule: Each entry has an optional `id`, defaulting to its `script`; ids must be unique, while entries may share a script. Output ownership reports identify entries by id. Each entry declares repository-relative `outputs` globs and `reads` paths outside `tools/`. Set `tracked: true` to retain all of an entry's outputs or list individual output patterns in `trackedOutputs`. `tools/**` is an implicit input, excluding paths containing `__pycache__`. `OutputManifest.load(path=PLAN)` exposes immutable `GeneratedOutput(generator, pattern, tracked)` values through `outputs()`, one owner through `matches(repo_path)`, the deduplicated input union through `inputs()`, and non-retained patterns through `untracked_patterns()`. Matching uses POSIX `fnmatch` semantics; stars match across folders. The renderer declares previews, rendered item icons, and the three pack icons with `tracked: true`. The preview renderer has six entries, `render_preview.py:<scene>` for `suv`, `boat`, `camper`, `bulldozer`, `scooter`, and `gear`, each with `--scene <scene>`, scene-specific reads, and the shared `after` list. SUV owns its previews and all three pack icons; gear owns its previews and rendered item icons; each other scene owns its vehicle previews. All six retain the pack manifest validation reads from `--icons`. The scooter preview reads `scooter.png` for its ivory default paint, and `scooter_lit.geo.json` with `scooter_lit.png` for its lamps and hover glow. It projects matching lit faces into base-atlas coordinates for combined texel sampling and uses the lit geometry for hover pools, preserving the preview pixels. White shares the stored `scooter` texture with khaki; no `scooter_white.png` is produced. `--only ID [ID ...]` selects entries in manifest order, deduplicates ids, and verifies ownership for exactly those entries in write or `--check` mode. It bypasses `after` dependencies and the after-generators barrier, so callers must run `pnpm generate` first. Unknown ids fail with the valid ids listed. It rejects `--ensure`, `--status`, and listing flags, and never invalidates or writes the generation stamp. The runner lists outputs with `--list-outputs [--untracked]`, inputs with `--list-inputs`, and performs no formatting step. The plan has no `format` key. Biome uses Git ignores to skip build outputs and formats hand-written JSON normally. The complete item texture atlas uses compact JSON generated from `tools/item_texture_base.json` and the gear spec. `--report-touched FILE` writes JSON Lines containing each generator id and every repo-relative path its `Outputs` instances wrote or checked. The generated `.gitignore` section equals `untracked_patterns()` in plan order; tracked renderer outputs and face-cull policy records stay committed.
 - Agreement: Proposed
 - Basis: [0193](../adr/0193-shared-texture-tooling.md) Decision, "`tools/generators.json` is the authoritative plan for every generator's `outputs` and `reads` outside `tools/`."
 - Implementation: `tools/generators.json`; `tools/generated_outputs.py`; `tools/run_generators.py`; `tools/texture_io.py`; `.gitignore`.
