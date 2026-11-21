@@ -36,6 +36,7 @@
 
 ### Pure logic and unit properties
 
+- `tests/packs/renderBudget.test.ts` checks each geometry in both Resource Packs against its exact face and cube counts.
 - Applies to: unit tests under `tests/`.
 - Rule: `pnpm test` runs Vitest over `tests/**/*.test.ts`. Pure domain computation is separate from the game API. Tests use fast-check properties as well as examples; movement properties run generated input sequences against a simplified engine that applies friction or air drag and zeroes horizontal velocity at a wall. Engine-model constants are separate from controller tuning so some incorrect assumptions can be detected independently.
 - Agreement: Accepted

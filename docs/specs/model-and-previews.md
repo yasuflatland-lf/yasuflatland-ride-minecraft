@@ -37,6 +37,15 @@
 
 ## Rules
 
+### Render budget
+
+- Applies to: Every geometry in the release and test Resource Packs.
+- Rule: Count every cube and each face listed in its UV object. A box-UV cube contributes six faces. Faces × 4 estimates the vertex count. Update the geometry's fixture with every geometry change so reviewers can see the difference in counts.
+- Agreement: Proposed
+- Basis: [0248](../adr/0248-treat-generated-pack-files-as-build-outputs.md) defines how tests obtain generated geometry. [Issue #2181](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/2181) defines the counts.
+- Implementation: `tests/packs/renderBudget.test.ts` and `tests/packs/fixtures/render-budget/`.
+- Verification: `pnpm test` compares both counts to the fixture for each geometry identifier.
+
 ### Coplanar faces
 
 - Applies to: Each geometry in the main and test Resource Packs.
