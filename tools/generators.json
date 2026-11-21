@@ -45,6 +45,7 @@
       "script": "gen_bulldozer.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.bulldozer.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/bulldozer*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/bulldozer*.texture_set.json",
@@ -55,7 +56,10 @@
         "packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer_monitor.geo.json",
         "packs/yasu_ride_rp/render_controllers/yasu_ride/bulldozer_monitor.rc.json"
       ],
-      "reads": []
+      "trackedOutputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.bulldozer.json"
+      ],
+      "reads": ["packs/yasu_ride_rp/entity/yasu_ride/bulldozer.ce.json"]
     },
     {
       "script": "gen_scooter.py",

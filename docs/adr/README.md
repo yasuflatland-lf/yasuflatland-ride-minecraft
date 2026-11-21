@@ -258,8 +258,8 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0252](0252-budget-client-entity-texture-memory.md) | Budget client entity texture memory | Accepted |
 | [0253](0253-persistent-build-selection-and-tool-swapping.md) | Persistent build selection and tool swapping | Proposed |
 | [0254](0254-build-wand-stairs-and-terrace.md) | Build Wand stairs and terrace from a row and a gaze goal | Proposed |
-| [0255](0255-cull-buried-faces-at-generation.md) | Cull buried faces at generation | Proposed |
 | [0255](0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md) | Forbid visible coplanar faces with a ratcheted model test | Accepted |
+| [0256](0256-cull-buried-faces-at-generation.md) | Cull buried faces at generation | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

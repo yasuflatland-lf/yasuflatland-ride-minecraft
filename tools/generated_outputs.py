@@ -69,8 +69,9 @@ class OutputManifest:
         )
         self._generators = tuple(ids)
         self._outputs = tuple(
-            GeneratedOutput(entry.id, pattern, entry.tracked)
-            for entry in self._entries for pattern in entry.outputs
+            GeneratedOutput(entry_id(entry), pattern,
+                            entry.get("tracked", False) or pattern in entry.get("trackedOutputs", ()))
+            for entry in entries for pattern in entry["outputs"]
         )
         self._inputs = tuple(dict.fromkeys(
             ["tools/**"] + [path for entry in entries for path in entry["reads"]

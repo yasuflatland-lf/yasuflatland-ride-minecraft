@@ -1,4 +1,4 @@
-# 0255. Cull buried faces at generation
+# 0256. Cull buried faces at generation
 
 - Status: Proposed
 - Acceptance condition: the owner records the before and after numbers in parts 3/13 and 13/13 of the rendering series

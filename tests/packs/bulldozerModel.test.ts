@@ -475,7 +475,11 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     const arms = (rig.cubes ?? []).filter((c) => c.size[1] === 4.2);
     const yellow = arms[0]?.uv.north?.uv[0];
     const supports = (rig.cubes ?? [])
-      .filter((c) => c.uv.north?.uv[0] === yellow && c.size[1] !== 4.2)
+      .filter(
+        (c) =>
+          c.size[1] !== 4.2 &&
+          Object.values(c.uv).some((face) => face.uv[0] === yellow),
+      )
       .map((c) => turnedCorners(rig, c))
       .filter((ps) => {
         const ax = ps.map((p) => Math.abs(p[0]));
@@ -709,9 +713,7 @@ describe("bulldozer step mesh (ADR 0146)", () => {
         ),
       ).toBe(true);
     }
-    expect(right.filter((c) => c.uv.north?.uv[0] === HOLE_SLOT)).toHaveLength(
-      1,
-    );
+    expect(right.filter((c) => c.uv.up?.uv[0] === HOLE_SLOT)).toHaveLength(1);
   });
   it("centers the bars so the edge cells match", () => {
     for (const [y, axis, lo, hi] of [
@@ -738,7 +740,7 @@ describe("bulldozer step mesh (ADR 0146)", () => {
       for (const [i, c] of bars.entries()) {
         expect(c.size[axis]).toBeCloseTo(0.4, 4);
         expect(c.size[1]).toBeCloseTo(0.1, 4);
-        expect(c.uv.north?.uv[0]).toBe(YELLOW_SLOT);
+        expect(c.uv.up?.uv[0]).toBe(YELLOW_SLOT);
         const next = bars[i + 1];
         if (next)
           expect(
