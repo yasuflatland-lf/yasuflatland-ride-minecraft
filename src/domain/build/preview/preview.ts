@@ -5,6 +5,7 @@ import { cornerMarkerPoints } from "../cornerMarker";
 import { type BuildFlow, liveHeightBox } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
 import type { Staircase } from "../stairs/staircase";
+import { endMarkerCell } from "../tapTarget";
 import { volumeOf } from "../volume/geometry";
 import { pasteOutline } from "./pasteOutline";
 import { stairPreviewPoints } from "./stairPreview";
@@ -63,21 +64,22 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
     paste: [],
     pasteVertical: [],
   };
+  const end = endMarkerCell(flow, aim.end);
   switch (flow.kind) {
     case "idle":
       break;
     case "point1":
-      Object.assign(set, endpointMarkers(flow.cell, aim.end, aim.blink));
-      if (aim.end) set.shape = outline(boxOf(flow.cell, aim.end));
+      Object.assign(set, endpointMarkers(flow.cell, end, aim.blink));
+      if (end) set.shape = outline(boxOf(flow.cell, end));
       break;
     case "baseHeight":
       set.shape = outline(liveHeightBox(flow));
-      Object.assign(set, endpointMarkers(flow.from, flow.to, false));
+      Object.assign(set, endpointMarkers(flow.from, end, false));
       break;
     case "selected":
     case "terrainConfirm":
       set.shape = outline(flow.selection.box);
-      Object.assign(set, endpointMarkers(flow.from, flow.to, false));
+      Object.assign(set, endpointMarkers(flow.from, end, false));
       break;
     case "heightStep": {
       const height = flow.heightLocked

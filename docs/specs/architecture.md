@@ -26,6 +26,7 @@
 - Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
 - Source: [0221](../adr/0221-organize-infrastructure-vehicle-code-by-kind.md)
 - Source: [0222](../adr/0222-split-the-drive-world-port-by-role.md)
+- Excluded: [0257](../adr/0257-tap-the-build-wand-virtual-block-through-an-invisible-target-entity.md): touch input and marker placement belong to the build tools spec
 - Excluded: [0154](../adr/0154-keep-camper-passengers-in-their-seats-on-departure.md): camper seat choice and departure belong to the seating topic; vehicle release remains based on 0120.
 - Excluded: [0179](../adr/0179-support-realms-as-a-second-play-environment.md): Realms support belongs to the dev-environment topic.
 - Excluded: [0204](../adr/0204-shard-unit-tests-across-ci-jobs.md): CI sharding belongs to the testing topic, not runtime layering.
