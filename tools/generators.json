@@ -68,6 +68,10 @@
     {
       "script": "gen_scooter.py",
       "args": ["packs/yasu_ride_rp"],
+      "trackedOutputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter_paint.json"
+      ],
       "outputs": [
         ".cache/generated/scooter_source.geo.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/scooter.geo.json",
@@ -76,7 +80,9 @@
         "packs/yasu_ride_rp/animations/yasu_ride/scooter.anim.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/scooter*.texture_set.json",
-        "packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png"
+        "packs/yasu_ride_rp/textures/items/yasu_ride/scooter_item.png",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter.json",
+        "tests/packs/fixtures/face-cull/yasu_ride.scooter_paint.json"
       ],
       "reads": [
         "tools/scooter_running.py",

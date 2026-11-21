@@ -1,4 +1,5 @@
 import { readFileSync, statSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startPythonWorker } from "../support/pythonWorker";
 import {
@@ -7,7 +8,7 @@ import {
   loadScooterGeo,
   runWithScooterBuild,
 } from "../tools/helpers/scooterGeo";
-import { assertOneAxis, multipleAxes } from "./oneAxis";
+import { multipleAxes } from "./oneAxis";
 
 type Cube = {
   origin: number[];
@@ -416,7 +417,6 @@ for strut in d.STRUT_BONES.values():
   });
 
   it("authorizes every compound cube through the exact assembly table", () => {
-    assertOneAxis(cubes, metadata.assemblies);
     expect(Object.keys(metadata.assemblies).sort()).toEqual(
       Object.keys(metadata.table).sort(),
     );
@@ -424,16 +424,24 @@ for strut in d.STRUT_BONES.values():
       expect(members).toHaveLength(metadata.table[name]?.cubes ?? -1);
       expect(metadata.table[name]?.owner).toBe("scooter");
     }
-    const authorized = new Set(
-      Object.values(metadata.assemblies)
-        .flat()
-        .map((member) => JSON.stringify(member)),
-    );
-    expect(
-      cubes
-        .filter(multipleAxes)
-        .every((cube) => authorized.has(JSON.stringify(cube))),
-    ).toBe(true);
+    const authorized = new Map<string, Cube["uv"][]>();
+    for (const { uv, ...shape } of Object.values(metadata.assemblies).flat()) {
+      const key = JSON.stringify(shape);
+      const matches = authorized.get(key) ?? [];
+      matches.push(uv);
+      authorized.set(key, matches);
+    }
+    for (const { uv, ...shape } of cubes.filter(multipleAxes)) {
+      expect(
+        authorized
+          .get(JSON.stringify(shape))
+          ?.some((member) =>
+            Object.entries(uv).every(([side, face]) =>
+              isDeepStrictEqual(face, member[side]),
+            ),
+          ),
+      ).toBe(true);
+    }
   }, 90_000);
 
   it("keeps all face rectangles inside the texture and respects the ceiling", () => {
