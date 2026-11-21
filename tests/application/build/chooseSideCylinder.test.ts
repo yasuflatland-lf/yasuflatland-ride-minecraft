@@ -36,6 +36,7 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
         let currentDirection = direction;
         const aim = {
           aim: vi.fn(() => ({
+            input: "pointer" as const,
             ray: { origin: { x: 0, y: 0, z: 0 }, direction: currentDirection },
           })),
         };
@@ -156,7 +157,12 @@ it.each([
   new ChooseSideCylinder(
     repo,
     new FakeFeedback(),
-    { aim: () => ({ ray: { origin: { x: 0, y: 0, z: 0 }, direction } }) },
+    {
+      aim: () => ({
+        input: "pointer",
+        ray: { origin: { x: 0, y: 0, z: 0 }, direction },
+      }),
+    },
     delegate,
   ).execute({ playerId });
   expect(delegate.execute).toHaveBeenCalledExactlyOnceWith({

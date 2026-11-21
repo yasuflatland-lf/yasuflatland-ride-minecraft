@@ -55,7 +55,7 @@ describe("virtualEndPoint", () => {
               },
               direction: dir,
             };
-            const result = virtualEndPoint(point, ray);
+            const result = virtualEndPoint(point, ray, BUILD_SPEC.reach);
             expect(result).toEqual({
               x: Math.floor(hit.x),
               y: Math.floor(hit.y),
@@ -92,7 +92,7 @@ describe("virtualEndPoint", () => {
           };
           origin[axis] = point[axis] + 0.5 - distance * d[axis];
           const ray = { origin, direction: d };
-          const result = virtualEndPoint(point, ray);
+          const result = virtualEndPoint(point, ray, BUILD_SPEC.reach);
           if (!result) return;
           const other = axis === "x" ? "z" : "x";
           const t =
@@ -119,10 +119,14 @@ describe("virtualEndPoint", () => {
       [BUILD_SPEC.worldBottomY - 10, BUILD_SPEC.worldBottomY],
     ] as const) {
       expect(
-        virtualEndPoint(point, {
-          origin: { x: -0.5, y: y - 1, z: 0 },
-          direction: { x: 1, y: 1, z: 0 },
-        })?.y,
+        virtualEndPoint(
+          point,
+          {
+            origin: { x: -0.5, y: y - 1, z: 0 },
+            direction: { x: 1, y: 1, z: 0 },
+          },
+          BUILD_SPEC.reach,
+        )?.y,
       ).toBe(expected);
     }
   });
@@ -136,14 +140,18 @@ describe("virtualEndPoint", () => {
         (point, d, extra) => {
           for (const distance of [-extra, BUILD_SPEC.reach + extra]) {
             expect(
-              virtualEndPoint(point, {
-                origin: {
-                  x: point.x + 0.5 - distance * d.x,
-                  y: point.y + 0.5 - distance * d.y,
-                  z: point.z + 0.5 - distance * d.z,
+              virtualEndPoint(
+                point,
+                {
+                  origin: {
+                    x: point.x + 0.5 - distance * d.x,
+                    y: point.y + 0.5 - distance * d.y,
+                    z: point.z + 0.5 - distance * d.z,
+                  },
+                  direction: d,
                 },
-                direction: d,
-              }),
+                BUILD_SPEC.reach,
+              ),
             ).toBeUndefined();
           }
         },
@@ -158,11 +166,51 @@ describe("virtualEndPoint", () => {
         fc.double({ min: -1e-7, max: 1e-7, noNaN: true }),
         (point, x) => {
           expect(
-            virtualEndPoint(point, {
-              origin: point,
-              direction: { x, y: Math.sqrt(1 - x * x), z: 0 },
-            }),
+            virtualEndPoint(
+              point,
+              {
+                origin: point,
+                direction: { x, y: Math.sqrt(1 - x * x), z: 0 },
+              },
+              BUILD_SPEC.reach,
+            ),
           ).toBeUndefined();
+        },
+      ),
+    );
+  });
+
+  it("accepts an intersection only within the supplied reach in world units", () => {
+    fc.assert(
+      fc.property(
+        cell,
+        fc.integer({ min: 1, max: 4 }),
+        fc.nat(20),
+        coord,
+        (point, scale, t, offset) => {
+          const direction = { x: 3 * scale, y: 0, z: 4 * scale };
+          const y = Math.max(
+            BUILD_SPEC.worldBottomY,
+            Math.min(BUILD_SPEC.worldTopY, point.y),
+          );
+          const ray = {
+            origin: {
+              x: point.x + 0.5 - t * direction.x,
+              y,
+              z: point.z + 0.5 - t * direction.z,
+            },
+            direction,
+          };
+          const distance = t * 5 * scale;
+          for (const reach of [
+            Math.max(0, distance + offset / 4),
+            distance,
+            BUILD_SPEC.reach,
+          ]) {
+            expect(virtualEndPoint(point, ray, reach)).toEqual(
+              distance <= reach ? { ...point, y } : undefined,
+            );
+          }
         },
       ),
     );
@@ -173,6 +221,7 @@ describe("virtualEndPoint", () => {
       virtualEndPoint(
         { x: 64, y: 0, z: 0 },
         { origin: { x: 0.5, y: 0.5, z: 0.5 }, direction: { x: 1, y: 0, z: 0 } },
+        BUILD_SPEC.reach,
       ),
     ).toEqual({ x: 64, y: 0, z: 0 });
     expect(
@@ -182,6 +231,7 @@ describe("virtualEndPoint", () => {
           origin: { x: 0, y: 0, z: 0 },
           direction: { x: Math.SQRT1_2, y: 0, z: Math.SQRT1_2 },
         },
+        BUILD_SPEC.reach,
       ),
     ).toEqual({ x: 2, y: 0, z: 2 });
   });

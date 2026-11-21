@@ -5,7 +5,7 @@ import type { FixStairGoal } from "../../../../application/build/fixStairGoal";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { TapAir } from "../../../../application/build/tapAir";
-import { virtualEndPoint } from "../../../../domain/build/aim/aim";
+import { virtualAimedEndPoint } from "../../../../domain/build/aim/endPoint";
 import { routePress } from "../../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import type { StairOp } from "../../../../domain/build/stairs/contents";
@@ -59,7 +59,7 @@ function airTapPress(
   target: Target,
 ): void {
   const point1 = pointOf(playerId);
-  const end = point1 ? virtualEndPoint(point1, target.ray) : undefined;
+  const end = point1 ? virtualAimedEndPoint(point1, target) : undefined;
   tapAir.execute({ playerId, end });
 }
 

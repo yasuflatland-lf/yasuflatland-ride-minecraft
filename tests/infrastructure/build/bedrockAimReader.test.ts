@@ -1,11 +1,21 @@
+import { InputMode } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { BedrockAimReader } from "../../../src/infrastructure/build/bedrock/bedrockAimReader";
+import {
+  BedrockAimReader,
+  readInputKind,
+} from "../../../src/infrastructure/build/bedrock/bedrockAimReader";
 
 const engine = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
   GameMode: {},
+  InputMode: {
+    Touch: "Touch",
+    KeyboardAndMouse: "KeyboardAndMouse",
+    Gamepad: "Gamepad",
+    MotionController: "MotionController",
+  },
   Direction: {
     Up: "Up",
     Down: "Down",
@@ -26,6 +36,7 @@ function player() {
   return {
     typeId: "minecraft:player",
     isValid: true,
+    inputInfo: { lastInputModeUsed: InputMode.Touch },
     getHeadLocation: () => ray.origin,
     getViewDirection: () => ray.direction,
     getBlockFromViewDirection: vi.fn(() => undefined as unknown),
@@ -37,16 +48,50 @@ it("reads the head ray and optional block hit within build reach", () => {
   const p = player();
   engine.getEntity.mockReturnValue(p);
   const reader = new BedrockAimReader();
-  expect(reader.aim(id)).toEqual({ ray, block: undefined });
+  expect(reader.aim(id)).toEqual({ ray, block: undefined, input: "touch" });
   const cell = { x: 1, y: 65, z: 8 };
   p.getBlockFromViewDirection.mockReturnValue({
     block: { location: cell },
     face: "North",
   });
-  expect(reader.aim(id)).toEqual({ ray, block: { cell, face: "north" } });
+  expect(reader.aim(id)).toEqual({
+    ray,
+    block: { cell, face: "north" },
+    input: "touch",
+  });
   expect(engine.getEntity).toHaveBeenCalledWith(id);
   expect(p.getBlockFromViewDirection).toHaveBeenCalledWith({
     maxDistance: BUILD_SPEC.reach,
+  });
+});
+
+it.each([
+  [InputMode.Touch, "touch"],
+  [InputMode.KeyboardAndMouse, "pointer"],
+  [InputMode.Gamepad, "pointer"],
+  [InputMode.MotionController, "pointer"],
+  ["unknown", "pointer"],
+  [undefined, "pointer"],
+])("maps input mode %s to %s", (mode, expected) => {
+  expect(readInputKind(() => mode)).toBe(expected);
+});
+
+it("falls back to pointer when input mode cannot be read", () => {
+  const readMode = () => {
+    throw new Error("input unavailable");
+  };
+  expect(readInputKind(readMode)).toBe("pointer");
+
+  engine.getEntity.mockReturnValue({
+    ...player(),
+    get inputInfo() {
+      return readMode();
+    },
+  });
+  expect(new BedrockAimReader().aim(id)).toEqual({
+    ray,
+    block: undefined,
+    input: "pointer",
   });
 });
 

@@ -73,6 +73,7 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
     dimensionId: overworld,
     aim: {
       block: { cell: block, face: "up" as const },
+      input: "pointer" as const,
       ray: { origin: block, direction: facingVector(facing) },
     },
     tick: 100,
