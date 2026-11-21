@@ -17,7 +17,6 @@ export function endMarkerCell(
   }
 }
 
-/** @public Temporary Knip exception until tap target placement and input use this export (#2208, #2209). */
 export function tapTargetCell(
   flow: BuildFlow,
   aimedEnd: Cell | undefined,

@@ -1,6 +1,7 @@
 import {
   type BlockPermutation,
   Direction,
+  InputMode,
   ItemStack,
   type Player,
   type PlayerInteractWithBlockAfterEvent,
@@ -8,6 +9,7 @@ import {
   system,
   world,
 } from "@minecraft/server";
+import { virtualEndPoint } from "../../domain/build/aim/aim";
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
 import { type CellBox, sameBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
@@ -30,7 +32,9 @@ import {
   PASTE_PLACE_TYPE,
   PASTE_ROTATE_TYPE,
   SELECTION_WAND_TYPE,
+  TAP_TARGET_TYPE,
   TEST_EDIT_EVENT,
+  TEST_INPUT_EVENT,
   TEST_MODE_EVENT,
   TEST_PRESS_EVENT,
   TEST_RESULT_EVENT,
@@ -841,6 +845,142 @@ export function buildPersistentSelection(a: Arena): Promise<Outcome> {
         );
       }
     }
+  });
+}
+
+function withTapTargetAim(
+  a: Arena,
+  touch: boolean,
+  run: (
+    f: Fixture,
+    targets: () => ReturnType<Arena["dim"]["getEntities"]>,
+  ) => Promise<void>,
+): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const setTouch = (enabled: boolean) =>
+      system.sendScriptEvent(
+        TEST_INPUT_EVENT,
+        JSON.stringify({ player: f.player.name, touch: enabled }),
+      );
+    const targets = () =>
+      a.dim.getEntities({
+        type: TAP_TARGET_TYPE,
+        location: f.cell(),
+        maxDistance: BUILD_SPEC.touchTapReach + 4,
+      });
+    setTouch(touch);
+    try {
+      const feet = f.cell(-3);
+      f.block(f.cell(-3, -1)).setType("minecraft:stone");
+      f.block(f.cell(0, 0, 3)).setType("minecraft:stone");
+      f.player.teleport(cellCenter(feet), { dimension: a.dim });
+      await f.lookSettled(-90, -5);
+      await run(f, targets);
+    } finally {
+      setTouch(false);
+      await wait(1);
+    }
+  });
+}
+
+async function setTapTargetStart(f: Fixture): Promise<void> {
+  const start = await f.tap("block", f.cell(0, 0, 3));
+  check(start.flow.kind === "point1", "first tap missing");
+}
+
+function aimedTapTargetCell(f: Fixture): Cell {
+  check(
+    !f.player.getBlockFromViewDirection({ maxDistance: BUILD_SPEC.reach }),
+    "the tap target fixture must aim into air",
+  );
+  const cell = virtualEndPoint(
+    f.cell(0, 0, 3),
+    {
+      origin: f.player.getHeadLocation(),
+      direction: f.player.getViewDirection(),
+    },
+    BUILD_SPEC.touchTapReach,
+  );
+  check(cell !== undefined && f.block(cell).isAir, "no reachable air endpoint");
+  return cell;
+}
+
+export function buildTapTargetFollows(a: Arena): Promise<Outcome> {
+  return withTapTargetAim(a, true, async (f, targets) => {
+    await setTapTargetStart(f);
+    await wait(BUILD_SPEC.outlineInterval + 1);
+    const first = aimedTapTargetCell(f);
+    const [target, extra] = targets();
+    check(
+      target !== undefined &&
+        extra === undefined &&
+        sameCell(target.location, cellCenter(first)),
+      "expected one target at the first end marker",
+    );
+    const targetId = target.id;
+
+    await f.lookSettled(-90, -35);
+    await wait(BUILD_SPEC.outlineInterval + 1);
+    const next = aimedTapTargetCell(f);
+    check(
+      !sameCell(first, next),
+      "moving the aim did not change the marker cell",
+    );
+    const [moved, duplicate] = targets();
+    check(
+      moved?.id === targetId &&
+        duplicate === undefined &&
+        sameCell(moved.location, cellCenter(next)),
+      "expected the same single target at the moved end marker",
+    );
+  });
+}
+
+export function buildTapTargetCleanup(a: Arena): Promise<Outcome> {
+  return withTapTargetAim(a, true, async (f, targets) => {
+    await setTapTargetStart(f);
+    await wait(BUILD_SPEC.outlineInterval + 1);
+    check(targets().length === 1, "target missing before switching items");
+    await f.switchItem();
+    check(
+      (await f.mode()).mode === false,
+      "putting the wand away did not exit build mode",
+    );
+    check(
+      targets().length === 0,
+      "target lingered after putting away the wand",
+    );
+
+    await f.switchItem(true);
+    await setTapTargetStart(f);
+    await wait(BUILD_SPEC.outlineInterval + 1);
+    check(
+      targets().length === 1,
+      "target missing before clearing the selection",
+    );
+    check(
+      (await f.tap("clear")).flow.kind === "idle",
+      "clearing did not return the flow to idle",
+    );
+    await wait(BUILD_SPEC.outlineInterval + 1);
+    check(
+      (await f.mode()).mode === true,
+      "clearing unexpectedly exited build mode",
+    );
+    check(targets().length === 0, "target lingered in idle");
+  });
+}
+
+export function buildTapTargetPointer(a: Arena): Promise<Outcome> {
+  return withTapTargetAim(a, false, async (f, targets) => {
+    await setTapTargetStart(f);
+    await wait(BUILD_SPEC.outlineInterval + 1);
+    check(
+      f.player.inputInfo.lastInputModeUsed !== InputMode.Touch,
+      "a pointer player is required",
+    );
+    aimedTapTargetCell(f);
+    check(targets().length === 0, "a pointer player received a tap target");
   });
 }
 

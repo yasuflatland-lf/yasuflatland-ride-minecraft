@@ -16,7 +16,13 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { StructureHandle } from "../../../src/domain/build/structure/handle";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
+import {
+  FakeFeedback,
+  FakeSessions,
+  FakeTapTargets,
+  FakeWorld,
+  overworld,
+} from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("builder");
@@ -144,8 +150,15 @@ it("discards cleared structures once through every exit and leaves no live clipb
           } else if (exit === "end")
             new EndPasting(e.repo, e.structures).execute(playerId);
           else if (exit === "leave")
-            new LeaveBuild(e.repo, e.structures).execute(playerId);
-          else new EndBuildSession(e.repo, e.structures).execute(playerId);
+            new LeaveBuild(e.repo, e.structures, new FakeTapTargets()).execute(
+              playerId,
+            );
+          else
+            new EndBuildSession(
+              e.repo,
+              e.structures,
+              new FakeTapTargets(),
+            ).execute(playerId);
         };
         clear();
         clear();
@@ -360,9 +373,17 @@ it.each(["absent", "structure"] as const)(
               if (operation === "endPasting")
                 new EndPasting(e.repo, e.structures).execute(playerId);
               else if (operation === "leaveBuild")
-                new LeaveBuild(e.repo, e.structures).execute(playerId);
+                new LeaveBuild(
+                  e.repo,
+                  e.structures,
+                  new FakeTapTargets(),
+                ).execute(playerId);
               else {
-                new EndBuildSession(e.repo, e.structures).execute(playerId);
+                new EndBuildSession(
+                  e.repo,
+                  e.structures,
+                  new FakeTapTargets(),
+                ).execute(playerId);
                 snapshotHandles = [];
                 sessionExists = false;
               }
@@ -417,7 +438,11 @@ it.each(["absent", "structure"] as const)(
               );
             }
           }
-          new EndBuildSession(e.repo, e.structures).execute(playerId);
+          new EndBuildSession(
+            e.repo,
+            e.structures,
+            new FakeTapTargets(),
+          ).execute(playerId);
           expect(e.structures.live.size).toBe(0);
           expect(discarded).toEqual(captured);
         },

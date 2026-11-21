@@ -17,6 +17,7 @@ import { sameCell } from "../../domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
+import { BedrockTapTargets } from "../../infrastructure/build/bedrock/bedrockTapTargets";
 import { InMemorySessionRepository } from "../../infrastructure/build/persistence/inMemorySessionRepository";
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
@@ -191,7 +192,9 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
   } catch (error) {
     check(String(error), false);
   } finally {
-    new EndBuildSession(repo, structures).execute(playerId);
+    new EndBuildSession(repo, structures, new BedrockTapTargets()).execute(
+      playerId,
+    );
     structures.clearEntities(dimensionId, plan.union);
     check("cleanup", structures.clearBlocks(dimensionId, plan.union));
   }

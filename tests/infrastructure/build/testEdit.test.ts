@@ -23,6 +23,8 @@ import {
   FakeAimReader,
   FakeGroundProbe,
   FakeSessions,
+  FakeTapTargets,
+  fakeSyncTapTarget,
 } from "../../application/build/fakes";
 import { FakeStructureStore } from "../../application/build/fakes/structureStore";
 
@@ -146,6 +148,7 @@ function snapshotHook() {
     messages.feedback,
     aim,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
+    fakeSyncTapTarget(),
   );
   const execute = vi.fn(() => "pasted" as const);
   type Args = Parameters<typeof registerTestEdit>;
@@ -157,7 +160,7 @@ function snapshotHook() {
     new DescribeBuild(repo),
     messages,
     repo,
-    new EndBuildSession(repo, structures),
+    new EndBuildSession(repo, structures, new FakeTapTargets()),
     structures,
     new RotatePasteAim(repo, messages.feedback),
     { aim, preview },

@@ -19,6 +19,15 @@ export class BedrockBlockWorld implements BuildBlockWorld {
     const state = this.stateAt(dimensionId, cell);
     return isUsableMaterial(state) ? state : "refused";
   }
+
+  isAir(dimensionId: DimensionId, cell: Cell): boolean {
+    try {
+      return world.getDimension(dimensionId).getBlock(cell)?.isAir === true;
+    } catch {
+      return false;
+    }
+  }
+
   stateAt(dimensionId: DimensionId, cell: Cell): BlockState | undefined {
     try {
       const permutation = world

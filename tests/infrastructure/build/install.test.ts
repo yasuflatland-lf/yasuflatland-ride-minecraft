@@ -35,6 +35,7 @@ vi.mock("@minecraft/server", () => {
       },
     },
     system: {
+      run: vi.fn(),
       runInterval: vi.fn(),
       afterEvents: { scriptEventReceive: event },
     },
