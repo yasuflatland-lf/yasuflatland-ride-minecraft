@@ -10,7 +10,7 @@ services:
       EULA: "TRUE"
       VERSION: "LATEST"
       LEVEL_NAME: "yasuflatland-ride-dev"
-      LEVEL_TYPE: "FLAT"
+      LEVEL_TYPE: "${BDS_LEVEL_TYPE:-FLAT}"
       GAMEMODE: "creative"
       ALLOW_CHEATS: "true"
       ALLOW_LIST: "false"
