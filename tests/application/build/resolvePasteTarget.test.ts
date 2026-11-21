@@ -35,6 +35,7 @@ import {
 const playerId = asPlayerId("p");
 const coordinate = fc.integer({ min: -100, max: 100 });
 const aim = fc.record({
+  input: fc.constant("pointer" as const),
   ray: fc.constant({
     origin: { x: 0, y: 64, z: 0 },
     direction: { x: 1, y: 0, z: 0 },
@@ -81,7 +82,7 @@ it("matches the domain target for every face and turn, and returns no target on 
         resolver.execute({
           playerId,
           dimensionId: nether,
-          aim: { ray: aim.ray },
+          aim: { input: aim.input, ray: aim.ray },
           tick: 0,
         }),
       ).toEqual({ kind: "noTarget" });
@@ -124,7 +125,9 @@ it("draws the same paste box that the press sends to PasteAt", () => {
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           session.tickMode({ holding: true });
         const ray = { ...hit.ray, direction: facingVector(facing) };
-        const aim: AimResult = hasBlock ? { ...hit, ray } : { ray };
+        const aim: AimResult = hasBlock
+          ? { ...hit, ray }
+          : { input: hit.input, ray };
         const reader = new FakeAimReader();
         reader.target = aim;
         const feedback = new FakeFeedback();
@@ -198,6 +201,7 @@ it("refuses no ground with feedback and no paste outline or placement", () => {
   const resolver = new ResolvePasteTarget(repo, probe);
   const reader = new FakeAimReader();
   reader.target = {
+    input: "pointer",
     ray: { origin: { x: 0, y: 80, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: { x: 0, y: 80, z: 0 }, face: "east" },
   };
@@ -236,6 +240,7 @@ it("reuses a preview snap for an unchanged box until it expires, and presses alw
   const probe = new FakeGroundProbe();
   const resolver = new ResolvePasteTarget(repo, probe);
   const hit: AimResult = {
+    input: "pointer",
     ray: { origin: { x: 0, y: 80, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
   };
@@ -285,6 +290,7 @@ it("reads one cell per footprint column on flat ground", () => {
     playerId,
     dimensionId: nether,
     aim: {
+      input: "pointer",
       ray: { origin: { x: 0, y: 80, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
       block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
     },
@@ -307,6 +313,7 @@ it("keeps the previous facing for diagonal hysteresis and vertical gaze", () => 
           dimensionId: nether,
           tick: 0,
           aim: {
+            input: "pointer",
             ray: { origin: { x: 0, y: 80, z: 0 }, direction },
             block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
           },
@@ -341,6 +348,7 @@ it("uses the clipboard facing for an initial vertical gaze", () => {
         dimensionId: nether,
         tick: 0,
         aim: {
+          input: "pointer",
           ray: {
             origin: { x: 0, y: 80, z: 0 },
             direction: { x: 0, y: 1, z: 0 },
@@ -370,6 +378,7 @@ it("never covers the aimed block on a side face for any gaze", () => {
           dimensionId: nether,
           tick: 0,
           aim: {
+            input: "pointer",
             ray: { ...hit.ray, direction: facingVector(facing) },
             block: { cell, face },
           },

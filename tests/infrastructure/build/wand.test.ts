@@ -112,6 +112,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const aim = {
           dimensionOf: () => nether,
           aim: () => ({
+            input: "pointer" as const,
             ray: {
               origin: { x: 0, y: 0, z: 0 },
               direction: { x: 1, y: 0, z: 0 },
@@ -246,6 +247,7 @@ function setupAir() {
   const aim: AimReader = {
     dimensionOf: () => nether,
     aim: () => ({
+      input: "pointer",
       ray: {
         origin: { x: 0.5, y: 5.5, z: 0.5 },
         direction: { x: 1, y: 0, z: 0 },
@@ -350,6 +352,7 @@ it.each(["gable", "hip"] as const)(
   (kind) => {
     const e = setupRoof(kind);
     const target = {
+      input: "pointer" as const,
       ray: e.ray,
       block: { cell: { x: 90, y: 80, z: 70 }, face: "up" as const },
     };
@@ -413,7 +416,7 @@ function setupRoof(kind: "gable" | "hip") {
     origin: { x: -10, y: 5, z: 2.5 },
     direction: { x: 1, y: 0, z: 0 },
   };
-  e.aim.aim = () => ({ ray });
+  e.aim.aim = () => ({ input: "pointer", ray });
   e.menus.showContentsMenu.mockImplementation(() => {
     expect(e.session.flow).toEqual({ ...flow, previous: 6 });
   });
@@ -490,6 +493,7 @@ it("does nothing on an air press without a session", () => {
 it("ignores itemUse for an aimed block, even before the deferred interact callback", () => {
   const { aim, use, execute, menus, player } = setupAir();
   aim.aim = () => ({
+    input: "pointer",
     ray: { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: { x: 1, y: 0, z: 0 }, face: "up" as const },
   });
@@ -540,6 +544,7 @@ it("routes paste aiming through itemUse with live aim and separate commit deboun
         e.session.setFlow({ kind: "pasteAim", manualTurn: 0 });
         const flow = e.session.flow;
         const target = {
+          input: "pointer" as const,
           ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
           block: hasBlock ? { cell: block, face } : undefined,
         };
@@ -613,6 +618,7 @@ it.each([false, true])(
       material: blockStateOf("minecraft:stone"),
     });
     e.aim.aim = () => ({
+      input: "pointer",
       ray: { origin: { x: 0, y: 60, z: 2 }, direction: { x: 1, y: 0, z: 0 } },
     });
     e.use();
@@ -648,6 +654,7 @@ it.each([
     expect(selection.kind).toBe("selected");
     e.player.isSneaking = sneaking;
     e.aim.aim = () => ({
+      input: "pointer",
       ray: { origin: { x: 0, y: 2, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
       block: { cell: location, face: "up" },
     });
@@ -678,6 +685,7 @@ it("opens the selected menu once during held item use aimed at a block", () => {
   expect(e.session.flow.kind).toBe("selected");
   const cell = { x: 10, y: 2, z: 0 };
   e.aim.aim = () => ({
+    input: "touch",
     ray: { origin: { x: 0, y: 2, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
     block: { cell, face: "up" },
   });
@@ -693,6 +701,7 @@ it("accepts a point1 block tap within the item-use debounce window", () => {
   const e = setupAir();
   const cell = { x: 12, y: 0, z: 2 };
   e.aim.aim = () => ({
+    input: "pointer",
     ray: { origin: { x: 0, y: 0, z: 2 }, direction: { x: 1, y: 0, z: 0 } },
     block: { cell, face: "up" },
   });
@@ -737,6 +746,7 @@ it("accepts a commit immediately after the menu and suppresses a second commit a
   );
   e.session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   e.aim.aim = () => ({
+    input: "pointer",
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
     block: { cell: { ...block, x: engine.tick }, face: "up" },
   });
@@ -782,7 +792,9 @@ it.each(["air", "block"] as const)(
       cancel: false,
     };
     e.aim.aim = () =>
-      target === "air" ? { ray } : { ray, block: { cell: max, face: "up" } };
+      target === "air"
+        ? { input: "pointer", ray }
+        : { input: "pointer", ray, block: { cell: max, face: "up" } };
     if (target === "block") {
       engine.handlers.get("interact")?.(event);
       expect(event.cancel).toBe(true);
@@ -798,7 +810,7 @@ it.each(["air", "block"] as const)(
       from: min,
       to: max,
     });
-    e.aim.aim = () => ({ ray });
+    e.aim.aim = () => ({ input: "pointer", ray });
     engine.tick += 4;
     e.use();
     expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
@@ -833,6 +845,7 @@ it.each([
     const { ray } = e.aim.aim(e.id) ?? {};
     if (!ray) throw new Error("Expected fixture ray");
     vi.spyOn(e.aim, "aim").mockReturnValue({
+      input: "pointer",
       ray,
       block: { cell: goal, face: "up" },
     });

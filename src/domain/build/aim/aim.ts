@@ -13,12 +13,16 @@ export interface Ray {
 }
 
 /** The floored hit on the plane through point 1; y is clamped to the build height range. */
-export function virtualEndPoint(point1: Cell, ray: Ray): Cell | undefined {
+export function virtualEndPoint(
+  point1: Cell,
+  ray: Ray,
+  reach: number,
+): Cell | undefined {
   const { origin, direction } = ray;
   const axis = dominantHorizontalAxis(direction);
   if (Math.abs(direction[axis]) < PLANE_PARALLEL_EPSILON) return undefined;
   const t = (point1[axis] + 0.5 - origin[axis]) / direction[axis];
-  if (t < 0 || t * length3(direction) > BUILD_SPEC.reach) {
+  if (t < 0 || t * length3(direction) > reach) {
     return undefined;
   }
   return {

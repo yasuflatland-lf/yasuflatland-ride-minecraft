@@ -305,6 +305,7 @@ export function registerTestEdit(
             playerId,
             dimensionId: asDimensionId(player.dimension.id),
             aim: {
+              input: "pointer",
               ray: {
                 origin: player.location,
                 direction: facingVector(facing),

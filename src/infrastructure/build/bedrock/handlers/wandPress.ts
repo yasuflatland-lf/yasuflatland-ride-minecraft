@@ -6,7 +6,7 @@ import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
-import { virtualEndPoint } from "../../../../domain/build/aim/aim";
+import { virtualAimedEndPoint } from "../../../../domain/build/aim/endPoint";
 import {
   type PressIntent,
   routePress,
@@ -75,7 +75,7 @@ function airTapPress(
   target: Target,
 ): void {
   const point1 = pointOf(playerId);
-  const end = point1 ? virtualEndPoint(point1, target.ray) : undefined;
+  const end = point1 ? virtualAimedEndPoint(point1, target) : undefined;
   tapAir.execute({ playerId, end });
 }
 
