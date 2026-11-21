@@ -26,6 +26,12 @@
       "quoteStyle": "double"
     }
   },
+  "overrides": [
+    {
+      "includes": ["tests/packs/fixtures/face-cull/*.json"],
+      "formatter": { "enabled": false }
+    }
+  ],
   "assist": {
     "enabled": true,
     "actions": {
