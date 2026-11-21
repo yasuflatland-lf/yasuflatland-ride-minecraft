@@ -2,6 +2,7 @@
 
 - Scope: The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, the camper preview texture density limit, and how the SUV, sports boat, camper, bulldozer and scooter README previews and the pack icons are rendered from the model files and kept fresh.
 - Verified at: 7267bd8a
+- Source: [0255](../adr/0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md)
 - Source: [0252](../adr/0252-budget-client-entity-texture-memory.md)
 - Source: [0009](../adr/0009-vehicle-model-conventions.md)
 - Source: [0016](../adr/0016-readme-preview-rendered-from-model.md)
@@ -24,7 +25,7 @@
 - Source: [0234](../adr/0234-plated-camper-mirrors-and-a-simpler-camper-exterior.md)
 - Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md)
-- Source: [0255](../adr/0255-cull-buried-faces-at-generation.md)
+- Source: [0256](../adr/0256-cull-buried-faces-at-generation.md)
 - Excluded: [0241](../adr/0241-dining-table-top-blocks.md): Dining Table physics and hosted-item clearance belong to the resort gear topic
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
@@ -45,6 +46,15 @@
 - Basis: [0248](../adr/0248-treat-generated-pack-files-as-build-outputs.md) defines how tests obtain generated geometry. [Issue #2181](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/2181) defines the counts.
 - Implementation: `tests/packs/renderBudget.test.ts` and `tests/packs/fixtures/render-budget/`.
 - Verification: `pnpm test` compares both counts to the fixture for each geometry identifier.
+
+### Coplanar faces
+
+- Applies to: Each geometry in the main and test Resource Packs.
+- Rule: A geometry's visible coplanar face count must match its baseline. A pair counts when faces on different cubes point the same way, lie on the same plane, overlap by more than 0.0001 square model pixels, and differ by more than 12 in a mean RGB channel. Each face must sample a texel with nonzero alpha. Mutually exclusive bones and pairs of ground-contact `down` faces are exempt. Use a trim offset of at least 0.01 model pixels when separating faces.
+- Agreement: Accepted
+- Basis: [0255](../adr/0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md) Decision.
+- Implementation: The [ratchet test](../../tests/packs/coplanarFaces.test.ts) uses the bound textures and exclusive bone slots in its [configuration](../../tests/packs/coplanarFaces.config.ts). Update the [geometry fixture](../../tests/packs/fixtures/coplanar/) when removing findings. An absent fixture means zero and `cleanBones` records bones that must remain free of findings.
+- Verification: `pnpm test tests/packs/coplanarFaces.test.ts tests/packs/coplanarFaces.support.test.ts` checks current geometry counts and verifies the exclusions on small models.
 
 ### Client entity texture memory
 
@@ -348,7 +358,7 @@ interleaved cubes. No ownership field enters a cube.
 - Applies to: per-face UV geometry passed to the shared generation pass.
 - Rule: Cull a face only when a distinct, solid, opaque cube in the same non-excluded bone contains all four corners after a 0.001 px outward shift. Check containment in the occluder's local frame. The normal axis is strict and the two lateral axes allow an inclusive 1e-6 px tolerance. Verify opacity across every texture that can draw each occluder face. Exclude bones that bind blend materials, and exclude all bones of a block using the blend render method.
 - Agreement: Proposed
-- Basis: [0255](../adr/0255-cull-buried-faces-at-generation.md).
+- Basis: [0256](../adr/0256-cull-buried-faces-at-generation.md).
 - Implementation: [tools/face_cull.py](../../tools/face_cull.py). `tools/gen_camper.py` culls the rounded camper and drawer-item geometries using their bound colour textures. It excludes the camper's glass bones and the drawers' sugar pot bones and writes a tracked policy record for each geometry.
 - Verification: [tests/tools/faceCull.test.ts](../../tests/tools/faceCull.test.ts) checks containment and opacity. [tests/packs/faceCullPolicy.test.ts](../../tests/packs/faceCullPolicy.test.ts) checks recorded textures and exclusions against the pack's render bindings.
 
