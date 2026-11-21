@@ -4,6 +4,7 @@
       "script": "gen_model.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
+        "tests/packs/fixtures/face-cull/yasu_ride.suv.json",
         "packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json",
         "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/suv*.png",
@@ -11,7 +12,8 @@
         "packs/yasu_ride_rp/textures/items/yasu_ride/suv_item.png",
         "packs/yasu_ride_rp/textures/items/yasu_ride/headlight_switch.png"
       ],
-      "reads": []
+      "trackedOutputs": ["tests/packs/fixtures/face-cull/yasu_ride.suv.json"],
+      "reads": ["packs/yasu_ride_rp/entity/yasu_ride/suv.ce.json"]
     },
     {
       "script": "gen_sportsboat.py",
