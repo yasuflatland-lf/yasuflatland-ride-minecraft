@@ -61,13 +61,16 @@ import { registerModeTick } from "./bedrock/handlers/modeTick";
 import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
 import { registerPasteControls } from "./bedrock/handlers/pasteControls";
 import { registerSessions } from "./bedrock/handlers/sessions";
+import { registerTapTarget } from "./bedrock/handlers/tapTarget";
 import { TestAimReader } from "./bedrock/handlers/testAim";
 import { registerTestTap } from "./bedrock/handlers/testCorner";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
 import { registerTestInput } from "./bedrock/handlers/testInput";
 import { registerTestMode } from "./bedrock/handlers/testMode";
 import { registerTestPress } from "./bedrock/handlers/testPress";
+import { registerTestTapTarget } from "./bedrock/handlers/testTapTarget";
 import { registerWand } from "./bedrock/handlers/wand";
+import type { BlockPressContext } from "./bedrock/handlers/wandPress";
 import { MenuChoices } from "./bedrock/menuChoices";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
@@ -204,10 +207,8 @@ export function installBuild(deps: {
     rotateDebounce,
     refresh: (id, tick) => preview.refresh(id, tick),
   });
-  registerWand({
+  const blockPressContext: BlockPressContext = {
     setPoint: new SetPoint(repo, blocks, feedback),
-    tapAir: new TapAir(repo, feedback),
-    pressPasteAim,
     aimHeight: cases.aimHeight,
     confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
     fixStairGoal: new FixStairGoal(repo, feedback, aim),
@@ -215,11 +216,20 @@ export function installBuild(deps: {
     menus,
     aim,
     debounce,
+  };
+  registerWand({
+    ...blockPressContext,
+    tapAir: new TapAir(repo, feedback),
+    pressPasteAim,
     pasteDebounce,
     pointOf: (playerId) => {
       const flow = repo.get(playerId)?.flow;
       return flow?.kind === "point1" ? flow.cell : undefined;
     },
+  });
+  const pressTapTarget = registerTapTarget({
+    ...blockPressContext,
+    targets: tapTargets,
   });
   registerModeTick(modes);
   registerOutlineTick(preview);
@@ -233,6 +243,7 @@ export function installBuild(deps: {
     (id) => bedrockAim.setTouchOverride(id, false),
   );
   registerTestInput(bedrockAim);
+  registerTestTapTarget(tapTargets, pressTapTarget);
   registerTestTap(
     repo,
     feedback,

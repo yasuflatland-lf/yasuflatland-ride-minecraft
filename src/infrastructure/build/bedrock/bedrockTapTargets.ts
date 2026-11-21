@@ -63,6 +63,12 @@ export class BedrockTapTargets implements TapTargets {
     return undefined;
   }
 
+  targetIdOf(playerId: PlayerId): string | undefined {
+    const placement = this.placements.get(playerId);
+    if (placement)
+      return entityOfType(world, placement.entityId, TAP_TARGET_TYPE)?.id;
+  }
+
   sweep(): void {
     const owned = new Set(
       [...this.placements.values()].map(({ entityId }) => entityId),

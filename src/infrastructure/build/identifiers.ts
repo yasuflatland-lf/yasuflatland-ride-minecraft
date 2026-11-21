@@ -71,6 +71,7 @@ export const BUILD_MESSAGE: Readonly<
 };
 
 export const TEST_TAP_EVENT = buildId("test_tap");
+export const TEST_TAP_TARGET_EVENT = buildId("test_tap_target");
 export const TEST_INPUT_EVENT = buildId("test_input");
 export const TEST_MODE_EVENT = buildId("test_mode");
 export const TEST_PRESS_EVENT = buildId("test_press");
