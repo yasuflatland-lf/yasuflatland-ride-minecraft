@@ -18,8 +18,8 @@ def _faces(bone, cube_index, cube):
     return uv
 
 
-def _build(geometry, identifier, kept):
-    """kept maps (bone index, cube index) to the face names to keep."""
+def keep_faces(geometry, kept, identifier=None):
+    """Copy the geometry, keeping the faces named for each (bone index, cube index)."""
     bones = []
     for bone_index, bone in enumerate(geometry["bones"]):
         out = {key: copy.deepcopy(value) for key, value in bone.items() if key != "cubes"}
@@ -35,7 +35,9 @@ def _build(geometry, identifier, kept):
             out["cubes"] = cubes
         bones.append(out)
     result = {key: copy.deepcopy(value) for key, value in geometry.items() if key not in ("bones", "description")}
-    result["description"] = {**copy.deepcopy(geometry["description"]), "identifier": identifier}
+    result["description"] = copy.deepcopy(geometry["description"])
+    if identifier is not None:
+        result["description"]["identifier"] = identifier
     result["bones"] = bones
     return result
 
@@ -55,7 +57,7 @@ def select_faces(geometry, spec):
     kept = _decisions(geometry, spec)
     if not kept:
         raise ValueError(f"{spec.identifier}: no face is kept")
-    return _build(geometry, spec.identifier, kept)
+    return keep_faces(geometry, kept, spec.identifier)
 
 
 def partition_geometry(geometry, specs: Sequence[PassSpec]):
@@ -69,4 +71,4 @@ def partition_geometry(geometry, specs: Sequence[PassSpec]):
                 if len(owners) != 1:
                     problem = "is kept by no pass" if not owners else f"is kept by several passes ({', '.join(owners)})"
                     raise ValueError(f"bone {bone['name']!r} cube {cube_index} face {face!r} {problem}")
-    return [_build(geometry, spec.identifier, kept) for spec, kept in zip(specs, per_spec)]
+    return [keep_faces(geometry, kept, spec.identifier) for spec, kept in zip(specs, per_spec)]
