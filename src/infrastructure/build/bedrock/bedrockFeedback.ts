@@ -11,15 +11,15 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { playerById } from "../../shared/players";
 import { BUILD_MESSAGE } from "../identifiers";
-import { MARKER_COLORS, MARKER_PARTICLE } from "./markerStyle";
+import { MARKER_COLORS, MARKER_PARTICLE, OUTLINE_COLOR } from "./markerStyle";
 
 const PREVIEW_STYLES: Readonly<Record<keyof PreviewSet, string | RGB>> = {
   startMarker: MARKER_COLORS.startMarker,
-  shape: "minecraft:villager_happy",
+  shape: OUTLINE_COLOR,
   endMarker: MARKER_COLORS.endMarker,
   sharedMarker: MARKER_COLORS.sharedMarker,
-  roof: "minecraft:villager_happy",
-  stairs: "minecraft:villager_happy",
+  roof: OUTLINE_COLOR,
+  stairs: OUTLINE_COLOR,
   paste: "minecraft:blue_flame_particle",
   pasteVertical: "minecraft:basic_flame_particle",
 };

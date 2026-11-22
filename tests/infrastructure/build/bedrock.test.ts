@@ -260,10 +260,10 @@ it("sends translated counts and bounded player-only particles at block centers",
         expect(spawnParticle.mock.calls).toEqual(
           points.map((p) => [
             style === "selection"
-              ? "minecraft:villager_happy"
+              ? "yasu_build:marker"
               : "minecraft:blue_flame_particle",
             { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 },
-            undefined,
+            style === "selection" ? expect.anything() : undefined,
           ]),
         );
         spawnParticle.mockClear();
@@ -287,7 +287,7 @@ it("sends translated counts and bounded player-only particles at block centers",
   );
 });
 
-it("draws 36 marker particles on the corner boundary for the owner only", () => {
+it("draws the marker particles on the corner boundary for the owner only", () => {
   fc.assert(
     fc.property(cell, (at) => {
       const spawnParticle = vi.fn();
@@ -305,7 +305,9 @@ it("draws 36 marker particles on the corner boundary for the owner only", () => 
         preview({ startMarker: cornerMarkerPoints(at) }),
       );
       expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
-      expect(spawnParticle).toHaveBeenCalledTimes(36);
+      expect(spawnParticle).toHaveBeenCalledTimes(
+        cornerMarkerPoints(at).length,
+      );
       expect(
         spawnParticle.mock.calls.map(([particle, point]) => [particle, point]),
       ).toEqual(
@@ -431,7 +433,7 @@ it("uses a distinct Molang color map for each marker layer and reuses it for the
   expect(new Set(maps).size).toBe(colors.length);
 });
 
-it("draws non-marker styles without Molang variables in the viewer dimension when no dimension is fixed", () => {
+it("draws outlines with the marker particle and flames without Molang variables in the viewer dimension when no dimension is fixed", () => {
   const spawnParticle = vi.fn();
   engine.getEntity.mockReturnValue({
     typeId: "minecraft:player",
@@ -452,9 +454,9 @@ it("draws non-marker styles without Molang variables in the viewer dimension whe
     }),
   );
   expect(spawnParticle.mock.calls).toEqual([
-    ["minecraft:villager_happy", point, undefined],
-    ["minecraft:villager_happy", point, undefined],
-    ["minecraft:villager_happy", point, undefined],
+    ["yasu_build:marker", point, expect.anything()],
+    ["yasu_build:marker", point, expect.anything()],
+    ["yasu_build:marker", point, expect.anything()],
     ["minecraft:blue_flame_particle", point, undefined],
     ["minecraft:basic_flame_particle", point, undefined],
   ]);

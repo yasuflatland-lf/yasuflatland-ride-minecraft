@@ -51,8 +51,22 @@ export class ShowPreview {
       if (!session?.isInBuildMode || session.flow.kind !== "stairAim")
         this.staircases.delete(id);
     }
-    if (tick % BUILD_SPEC.outlineInterval !== 0) return;
-    for (const id of this.repo.ids()) this.refresh(id, tick);
+    for (const id of this.repo.ids()) {
+      const interval = this.followsGaze(id)
+        ? BUILD_SPEC.liveOutlineInterval
+        : BUILD_SPEC.outlineInterval;
+      if (tick % interval === 0) this.refresh(id, tick);
+    }
+  }
+
+  private followsGaze(id: PlayerId): boolean {
+    const session = this.repo.get(id);
+    if (!session?.isInBuildMode) return false;
+    const { flow } = session;
+    return (
+      flow.kind === "baseHeight" ||
+      (flow.kind === "heightStep" && !flow.heightLocked)
+    );
   }
 
   refresh(id: PlayerId, tick: number): void {

@@ -32,7 +32,9 @@ export const BUILD_SPEC = Object.freeze({
   modeEnterTicks: ticks(6), // ticks to enter build mode (ADR 0178 Decision 3)
   modeLeaveTicks: ticks(6), // ticks to leave build mode (ADR 0178 Decision 3)
   outlineInterval: ticks(10), // ticks between outline redraws
+  liveOutlineInterval: ticks(5), // ticks between redraws while the gaze sets the height
   outlineMaxPoints: 512, // particles per outline
-  markerHorizontalEdgeSteps: 4,
+  markerHorizontalEdgeSteps: 8,
+  markerOutset: 0.0625, // blocks (a binary fraction, so offsets stay exact) the marker cube grows past each face so ground-level cells stay visible
   denseOutlinePerBlock: 4, // particles per block on the horizontal edges of a height-step outline
 });

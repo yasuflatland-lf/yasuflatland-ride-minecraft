@@ -11,6 +11,7 @@ import { SyncTapTarget } from "../../../src/application/build/syncTapTarget";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import { tapAir } from "../../../src/domain/build/flow/flow";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import {
@@ -131,7 +132,9 @@ it("draws the marker for its owner in the flow dimension on alternate redraws", 
   for (const entry of feedback.previews) {
     expect(entry.playerId).toBe(alex);
     expect(entry.dimensionId).toBe(nether);
-    expect(entry.set.startMarker).toHaveLength(36);
+    expect(entry.set.startMarker).toHaveLength(
+      cornerMarkerPoints({ x: 0, y: 0, z: 0 }).length,
+    );
   }
 });
 
@@ -187,7 +190,9 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(session.flow, { blink: true }),
   );
-  expect(feedback.previews[0]?.set.startMarker).toHaveLength(36);
+  expect(feedback.previews[0]?.set.startMarker).toHaveLength(
+    cornerMarkerPoints({ x: 0, y: 0, z: 0 }).length,
+  );
   expect(feedback.previews[0]?.set.paste).toEqual([]);
 });
 
@@ -752,4 +757,39 @@ it("redraws the live selection outline and retains its last height for a vertica
     feedback.previews.map(({ set }) => Math.max(...set.shape.map((p) => p.y))),
   ).toEqual([64.5, 67.5, 67.5]);
   expect(session.flow).toMatchObject({ kind: "baseHeight", previous: 4 });
+});
+
+it("redraws faster while the gaze sets the height and at the usual pace otherwise", () => {
+  const { session, preview, feedback, aim } = setup(false);
+  const from = { x: 0, y: 64, z: 0 };
+  const to = { x: 4, y: 64, z: 4 };
+  const origin = { x: -1.5, y: 80, z: 2.5 };
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { origin, direction: { x: 1, y: 0, z: 0 } },
+  });
+  session.setFlow(
+    tapAir(
+      { kind: "point1", dimensionId: overworld, cell: from, material },
+      to,
+    ),
+  );
+  expect(session.flow.kind).toBe("baseHeight");
+  const live = BUILD_SPEC.liveOutlineInterval;
+  expect(live).toBeLessThan(interval);
+  preview.execute(live);
+  preview.execute(2 * live);
+  expect(feedback.previews).toHaveLength(2);
+
+  feedback.previews.length = 0;
+  session.setFlow({
+    kind: "point1",
+    dimensionId: overworld,
+    cell: from,
+    material,
+  });
+  preview.execute(live);
+  expect(feedback.previews).toHaveLength(0);
+  preview.execute(interval);
+  expect(feedback.previews).toHaveLength(1);
 });
