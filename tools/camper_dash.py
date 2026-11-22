@@ -508,7 +508,7 @@ def build_dash(registry: "RegionRegistry") -> "AreaCubes":
         if top > SILL_Y:
             c['size'][1] -= (top-SILL_Y)/co
     # Area modules build +x right; the spike's traced coordinates are already game-facing. They
-    # name the +x face east, so the swap is the one correction mirror_x no longer makes (ADR 0259).
+    # name the +x face east, so the swap is the one correction to_game_frame no longer makes (ADR 0259).
     for c in cubes:
         c['origin'][0] = -c['origin'][0]-c['size'][0]
         c['uv']['east'],c['uv']['west'] = c['uv']['west'],c['uv']['east']
