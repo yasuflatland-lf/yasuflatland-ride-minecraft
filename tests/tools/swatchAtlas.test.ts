@@ -16,6 +16,142 @@ const run = (script: string) =>
     ].join("\n"),
   );
 
+const swatchGridDimensions = fc
+  .record({
+    count: fc.integer({ min: 1, max: 32 }),
+    cell: fc.integer({ min: 1, max: 8 }),
+  })
+  .chain(({ count, cell }) =>
+    fc
+      .integer({ min: 0, max: Math.floor((cell - 1) / 2) })
+      .map((inset) => ({ count, cell, inset })),
+  );
+
+it("rejects invalid swatch grid dimensions, indices, and mutations", async () => {
+  await run(`import dataclasses
+
+for count in (0, -1, True, 1.5):
+    try: m.SwatchGrid(count)
+    except ValueError: pass
+    else: raise AssertionError(('expected invalid count', count))
+
+for dimensions in (
+    {'cell': 0}, {'cell': True}, {'inset': -1}, {'inset': 1.0},
+    {'cell': 2, 'inset': 1}, {'columns': 0}, {'columns': True}, {'columns': 1.5},
+):
+    try: m.SwatchGrid(1, **dimensions)
+    except ValueError: pass
+    else: raise AssertionError(('expected invalid dimensions', dimensions))
+
+grid = m.SwatchGrid(3, cell=4, columns=2)
+for method in (grid.origin, grid.sample_rect):
+    for index in (-1, grid.count):
+        try: method(index)
+        except IndexError: pass
+        else: raise AssertionError(('expected invalid index', method.__name__, index))
+
+try: grid.count = 4
+except dataclasses.FrozenInstanceError: pass
+else: raise AssertionError('expected the grid to be frozen')
+
+try: m.Atlas(['a', 'b', 'c'], cell=4, columns=2, height=7)
+except ValueError: pass
+else: raise AssertionError('expected rejection for an atlas shorter than its swatch grid')`);
+});
+
+it("keeps sampled texels inside the grid and maps each texel to its own swatch", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      swatchGridDimensions,
+      fc.integer({ min: 1, max: 40 }),
+      async ({ count, cell, inset }, columns) => {
+        await run(`grid = m.SwatchGrid(${count}, ${cell}, ${inset}, ${columns})
+sampled = set()
+for i in range(grid.count):
+    x, y, w, h = grid.sample_rect(i)
+    assert 0 <= x < x + w <= grid.width
+    assert 0 <= y < y + h <= grid.height
+    for py in range(y, y + h):
+        for px in range(x, x + w):
+            assert (px, py) not in sampled
+            sampled.add((px, py))
+            assert grid.index_at(px, py) == i`);
+      },
+    ),
+  );
+});
+
+it("maps every grid texel to its swatch and rejects empty cells and out-of-bounds texels", async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      swatchGridDimensions,
+      fc.integer({ min: 1, max: 40 }),
+      async ({ count, cell, inset }, columns) => {
+        await run(`grid = m.SwatchGrid(${count}, ${cell}, ${inset}, ${columns})
+for y in range(grid.height):
+    for x in range(grid.width):
+        index = (y // grid.cell) * grid.columns + (x // grid.cell)
+        assert grid.index_at(x, y) == (index if index < grid.count else None)
+    assert grid.index_at(-1, y) is None
+    assert grid.index_at(grid.width, y) is None
+for x in range(grid.width):
+    assert grid.index_at(x, -1) is None
+    assert grid.index_at(x, grid.height) is None`);
+      },
+    ),
+  );
+});
+
+it("preserves the original one-row layout with implicit or explicit columns", async () => {
+  await fc.assert(
+    fc.asyncProperty(swatchGridDimensions, async ({ count, cell, inset }) => {
+      await run(`for columns in (None, ${count}):
+    grid = m.SwatchGrid(${count}, ${cell}, ${inset}, columns)
+    assert (grid.width, grid.rows, grid.height) == (${count * cell}, 1, ${cell})
+    for i in range(grid.count):
+        assert grid.origin(i) == (i * ${cell}, 0)
+        assert grid.sample_rect(i) == (i * ${cell} + ${inset}, ${inset}, ${cell - 2 * inset}, ${cell - 2 * inset})`);
+    }),
+  );
+});
+
+it("uses the wrapped grid for faces, pixels, and region placement", async () => {
+  await run(`a = m.Atlas(['a', 'b', 'c'], cell=4, inset=1, columns=2)
+assert (a.width, a.swatch_rows, a.height) == (8, 8, 8)
+assert a.swatch_uv('c') == [0, 4]
+assert a.face('c') == {'uv': [1, 5], 'uv_size': [2, 2]}
+assert a.swatch_at(0, 4) == 2
+assert a.swatch_at(4, 4) is None
+assert a.swatch_at(8, 0) is None
+assert a.swatch_at(0, 8) is None
+assert a.pixel({'c': (1, 2, 3, 4)}, 0, 4) == (1, 2, 3, 4)
+assert a.pixel({}, 4, 4) == a.fill
+try: a.place('unused cell', 4, 4, 1, 1)
+except ValueError: pass
+else: raise AssertionError('expected rejection inside the swatch rows')
+assert a.allocate('panel', 1, 1) == m.Region('panel', 0, 8, 1, 1)`);
+});
+
+it("resolves registered swatches from atlas coordinates and falls back to local coordinates", async () => {
+  await run(`import types
+
+camper_atlas = load_tool('camper_atlas')
+a = camper_atlas.RegisteredAtlas(['a', 'b', 'c'], cell=4, inset=1, columns=2)
+a.base_ref = types.SimpleNamespace(
+    _registry=types.SimpleNamespace(
+        _layout=types.SimpleNamespace(origin=lambda name: (5, 7)),
+    ),
+)
+for y in range(a.height + 2):
+    for x in range(a.width + 2):
+        assert a.atlas_swatch_at(5 + x, 7 + y) == a.swatch_at(x, y)
+
+a.base_ref = None
+for y in range(a.height + 2):
+    for x in range(a.width + 2):
+        assert a.atlas_swatch_at(x, y) == a.swatch_at(x, y)`);
+});
+
 it("preserves the original SUV swatch layout and pixels for every paint", async () => {
   await run(`suv_atlas = load_tool('suv_atlas')
 suv_palette = load_tool('suv_palette')

@@ -1,6 +1,55 @@
 """Pack swatches and rectangular texture regions into an atlas."""
 
+from dataclasses import dataclass
 from typing import NamedTuple, Sequence
+
+
+@dataclass(frozen=True, slots=True)
+class SwatchGrid:
+    count: int
+    cell: int = 1
+    inset: int = 0
+    columns: int | None = None
+
+    def __post_init__(self):
+        if type(self.count) is not int or self.count < 1:
+            raise ValueError("Swatch count must be a positive integer")
+        if (type(self.cell) is not int or self.cell < 1
+                or type(self.inset) is not int or self.inset < 0 or self.cell - 2 * self.inset < 1):
+            raise ValueError("Invalid swatch cell or inset")
+        if self.columns is None:
+            object.__setattr__(self, "columns", self.count)
+        elif type(self.columns) is not int or self.columns < 1:
+            raise ValueError("Swatch columns must be a positive integer")
+
+    @property
+    def width(self) -> int:
+        return self.columns * self.cell
+
+    @property
+    def rows(self) -> int:
+        return (self.count + self.columns - 1) // self.columns
+
+    @property
+    def height(self) -> int:
+        return self.rows * self.cell
+
+    def origin(self, index: int) -> tuple[int, int]:
+        if not 0 <= index < self.count:
+            raise IndexError("Swatch index out of range")
+        row, column = divmod(index, self.columns)
+        return column * self.cell, row * self.cell
+
+    def sample_rect(self, index: int) -> tuple[int, int, int, int]:
+        x, y = self.origin(index)
+        size = self.cell - 2 * self.inset
+        return x + self.inset, y + self.inset, size, size
+
+    def index_at(self, x: int, y: int) -> int | None:
+        if not (0 <= y < self.height and 0 <= x < self.width):
+            return None
+        index = int(y // self.cell) * self.columns + int(x // self.cell)
+        return index if index < self.count else None
 
 
 class Region(NamedTuple):
@@ -55,19 +104,16 @@ class Block:
 class Atlas:
     def __init__(self, swatches: Sequence[str], cell: int = 1, inset: int = 0,
                  width: int | None = None, height: int | None = None,
-                 fill: tuple[int, int, int, int] = (0, 0, 0, 0)):
+                 fill: tuple[int, int, int, int] = (0, 0, 0, 0), *,
+                 columns: int | None = None):
         self.swatches = tuple(swatches)
         if not self.swatches or len(set(self.swatches)) != len(self.swatches):
             raise ValueError("Swatches must be nonempty and unique")
-        if type(cell) is not int or cell < 1 or type(inset) is not int or inset < 0 or cell - 2 * inset < 1:
-            raise ValueError("Invalid swatch cell or inset")
-        if width is not None and (type(width) is not int or width < len(self.swatches) * cell):
+        self.grid = SwatchGrid(len(self.swatches), cell, inset, columns)
+        if width is not None and (type(width) is not int or width < self.grid.width):
             raise ValueError("Swatches exceed atlas width")
-        if height is not None and (type(height) is not int or height < cell):
+        if height is not None and (type(height) is not int or height < self.grid.height):
             raise ValueError("Swatches exceed atlas height")
-        self.cell = cell
-        self.inset = inset
-        self.swatch_rows = cell
         self._width = width
         self._height = height
         self.fill = tuple(fill)
@@ -80,9 +126,13 @@ class Atlas:
         return tuple(self._regions)
 
     @property
+    def swatch_rows(self):
+        return self.grid.height
+
+    @property
     def width(self):
         return self._width if self._width is not None else max(
-            [len(self.swatches) * self.cell, *(r.x + r.w for r in self._regions)])
+            [self.grid.width, *(r.x + r.w for r in self._regions)])
 
     @property
     def height(self):
@@ -123,16 +173,15 @@ class Atlas:
         return block
 
     def swatch_uv(self, name):
-        return [self.swatches.index(name) * self.cell, 0]
+        return list(self.grid.origin(self.swatches.index(name)))
 
     def swatch_at(self, x, y):
-        return x // self.cell if 0 <= y < self.cell and 0 <= x < len(self.swatches) * self.cell else None
+        return self.grid.index_at(x, y)
 
     def face(self, target, offset=(0, 0), uv_size=None):
         if isinstance(target, str):
-            x, _ = self.swatch_uv(target)
-            size = self.cell - 2 * self.inset
-            return {"uv": [x + self.inset, self.inset], "uv_size": [size, size]}
+            x, y, w, h = self.grid.sample_rect(self.swatches.index(target))
+            return {"uv": [x, y], "uv_size": [w, h]}
         dx, dy = offset
         w, h = uv_size if uv_size is not None else (target.w - dx, target.h - dy)
         if dx < 0 or dy < 0 or w <= 0 or h <= 0 or dx + w > target.w or dy + h > target.h:
