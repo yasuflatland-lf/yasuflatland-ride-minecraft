@@ -24,6 +24,8 @@ import {
   chooseTerrain,
   fixStairGoal,
   openBuildMenu,
+  tapAir,
+  tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import {
   buildMenu,
@@ -256,6 +258,21 @@ const labels = (entries: { id: string }[]) =>
   entries.map(({ id }) => ({
     translate: BUILD_FORM[id as keyof typeof BUILD_FORM],
   }));
+
+it("accepts a line menu response after opening clears the undo target", async () => {
+  const { session, menus, player, cases } = setup();
+  const point = tapBlock({ kind: "idle" }, overworld, from, stone);
+  const line = tapAir(point, { ...from, x: 4 });
+  session.setFlow(line);
+  ui.answers.push({
+    selection: shapeMenu(line).findIndex((entry) => entry.id === "cancel"),
+  });
+
+  await menus.showShapeMenu(player);
+
+  expect(cases.clear.execute).toHaveBeenCalledExactlyOnceWith({ playerId });
+  expect(session.flow.kind).toBe("idle");
+});
 
 it.each(["back", "dismiss", "unanswered"] as const)(
   "returns from build %s to the unchanged root",

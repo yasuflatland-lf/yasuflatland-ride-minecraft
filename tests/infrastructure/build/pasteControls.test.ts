@@ -5,11 +5,14 @@ import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
+import { PressUndo } from "../../../src/application/build/pressUndo";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
+import { StepBackSelection } from "../../../src/application/build/stepBackSelection";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { Debounces } from "../../../src/domain/shared/debounce";
@@ -107,7 +110,12 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     structures,
   );
   const undoEdit = new UndoEdit(repo, feedback, jobs, blocks, structures, log);
-  const undo = vi.spyOn(undoEdit, "execute");
+  const editUndo = vi.spyOn(undoEdit, "execute");
+  const pressUndo = new PressUndo(
+    new StepBackSelection(repo, feedback),
+    undoEdit,
+  );
+  const undo = vi.spyOn(pressUndo, "execute");
   const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const refresh = vi.fn();
   const aim = {
@@ -129,7 +137,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     rotatePasteAim,
     rotateSelection,
     pressPasteAim,
-    undo: undoEdit,
+    pressUndo,
     undoDebounce,
     rotateDebounce,
     pasteDebounce,
@@ -163,6 +171,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   };
   return {
     undo,
+    editUndo,
     interact,
     pressPasteControl,
     rotateSelection,
@@ -565,3 +574,25 @@ it("preserves busy feedback and isolates Undo debouncing per player", () => {
   expect(e.undo).toHaveBeenLastCalledWith({ playerId: other.id });
   expect(e.repo.get(other.id)).toBeUndefined();
 });
+
+it.each([false, true])(
+  "refreshes the stepped flow once across paired Undo events (block first: %s)",
+  (blockFirst) => {
+    const e = setup(BUILD_UNDO_TYPE, false);
+    const point = tapBlock(
+      { kind: "idle" },
+      nether,
+      { x: 0, y: 60, z: 0 },
+      AIR,
+    );
+    e.session.setFlow(tapAir(point, { x: 4, y: 60, z: 4 }));
+    if (blockFirst) e.interact();
+    e.use();
+    if (!blockFirst) e.interact();
+    flush();
+    expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
+    expect(e.session.flow).toBe(point);
+    expect(e.editUndo).not.toHaveBeenCalled();
+    expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 0);
+  },
+);

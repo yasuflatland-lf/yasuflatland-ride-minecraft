@@ -116,7 +116,7 @@ it.each([false, true])(
     const tapTarget = vi.mocked(registerTapTarget).mock.calls[0]?.[0];
     expect(tapTarget?.debounce).toBe(wand.debounce);
     expect(tapTarget?.repo).toBe(wand.repo);
-    controls?.undo.execute({ playerId });
+    controls?.pressUndo.execute({ playerId });
     expect(wand.repo.get(playerId)).toBeUndefined();
     expect(setActionBar).toHaveBeenLastCalledWith({
       translate: "yasu_build.message.nothing_to_undo",

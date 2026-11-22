@@ -26,6 +26,7 @@ import {
   tapBlock,
   tappedSpanHeight,
   tapsOf,
+  withoutStepBack,
 } from "../../../src/domain/build/flow/flow";
 import {
   buildEntries,
@@ -867,7 +868,7 @@ it("starts and re-enters live height at the clamped tapped span", () => {
         from,
         to,
       });
-      expect(adjusted).toEqual(flow);
+      expect(adjusted).toEqual(withoutStepBack(flow));
     }),
   );
 });
@@ -904,5 +905,32 @@ it("confirms the tapped span at root independently of the live height", () => {
           expect(confirmTappedSpan(reopened)).toEqual(expected);
       },
     ),
+  );
+});
+
+it("keeps the fresh endpoint through live height updates but ends it on confirmation and adjustment", () => {
+  fc.assert(
+    fc.property(cell, fc.integer({ min: 1, max: 20 }), (start, height) => {
+      const point = tapBlock(idle, dim, start, stone);
+      const base = tapAir(point, { ...start, x: start.x + 3, z: start.z + 2 });
+      if (base.kind !== "baseHeight") throw new Error("Expected base height");
+      expect(setHeight(base, height)).toHaveProperty("stepBackTo", point);
+      for (const confirmed of [
+        confirmLiveHeight(base),
+        confirmTappedSpan(base),
+      ]) {
+        expect(confirmed).not.toHaveProperty("stepBackTo");
+        expect(adjustHeight(confirmed)).not.toHaveProperty("stepBackTo");
+        const session = new BuildSession(asPlayerId("p"));
+        session.setFlow(base);
+        session.confirmBox(confirmed.selection, "selected", {
+          from: base.from,
+          to: base.to,
+        });
+        expect(session.flow).not.toHaveProperty("stepBackTo");
+        session.selectPasted(confirmed.selection);
+        expect(session.flow).not.toHaveProperty("stepBackTo");
+      }
+    }),
   );
 });

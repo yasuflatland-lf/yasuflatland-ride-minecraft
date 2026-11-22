@@ -103,20 +103,22 @@ export class BedrockBuildMenus implements BuildMenus {
     while (true) {
       const flow = this.repo.get(playerId)?.flow;
       if (flow?.kind !== "selected" || flow.menuLevel !== level) return;
+      const entries =
+        level === "root"
+          ? this.cases.openSelectionMenu.execute({ playerId })
+          : buildMenu(flow);
+      const opened = this.repo.get(playerId)?.flow;
       const answer = await chooseFromFormResult(
         player,
         level === "root" ? BUILD_FORM.shapeTitle : BUILD_FORM.buildShapeTitle,
-        (level === "root"
-          ? this.cases.openSelectionMenu.execute({ playerId })
-          : buildMenu(flow)
-        ).map((entry) => ({
+        entries.map((entry) => ({
           id: entry.id,
           textKey: menuLabel(entry),
         })),
       );
       if (!player.isValid) return;
       const current = this.repo.get(playerId)?.flow;
-      if (current !== flow) return;
+      if (current !== opened) return;
       const choice =
         answer.status === "answered"
           ? answer.choice

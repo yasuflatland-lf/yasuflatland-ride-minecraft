@@ -151,12 +151,15 @@ function snapshotHook() {
     fakeSyncTapTarget(),
   );
   const execute = vi.fn(() => "pasted" as const);
+  const undo = vi.fn(() => ({}));
+  const undoItem = vi.fn(() => "stepped" as const);
   type Args = Parameters<typeof registerTestEdit>;
   registerTestEdit(
     {} as Args[0],
     {} as Args[1],
     { execute } as unknown as Args[2],
-    {} as Args[3],
+    { execute: undo } as unknown as Args[3],
+    { execute: undoItem } as unknown as Args[4],
     new DescribeBuild(repo),
     messages,
     repo,
@@ -175,8 +178,18 @@ function snapshotHook() {
       id: TEST_EDIT_EVENT,
       message: `player ${command}`,
     } as Parameters<typeof callback>[0]);
-  return { repo, structures, send, execute, messages, aim };
+  return { repo, structures, send, execute, messages, aim, undo, undoItem };
 }
+
+it("routes undoitem to the item use case and undo to edit history", () => {
+  const e = snapshotHook();
+  e.send("undoitem");
+  expect(e.undoItem).toHaveBeenCalledExactlyOnceWith({ playerId: player });
+  expect(e.undo).not.toHaveBeenCalled();
+  e.send("undo");
+  expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: player });
+  expect(e.undoItem).toHaveBeenCalledTimes(1);
+});
 
 it("captures normalized snapshot corners in the player's dimension and discards only evicted handles", () => {
   const e = snapshotHook();

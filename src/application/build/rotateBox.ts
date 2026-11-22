@@ -1,4 +1,5 @@
 import { cellsOf, volume } from "../../domain/build/box";
+import { withoutStepBack } from "../../domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { inDimension, withBox } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -97,6 +98,7 @@ export class RotateBox {
       }),
     );
     this.structures.discard(source);
+    session.setFlow(withoutStepBack(flow));
     session.replaceSelection(withBox(selection, plan.target));
     unstuck(this.world, this.players, playerId, dimensionId, plan.target);
     this.feedback.showMessage(playerId, "rotateDone", volume(selectedBox));

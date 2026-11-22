@@ -1,9 +1,9 @@
 import { type Player, system, world } from "@minecraft/server";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
+import type { PressUndo } from "../../../../application/build/pressUndo";
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { RotateSelection } from "../../../../application/build/rotateSelection";
-import type { UndoEdit } from "../../../../application/build/undoEdit";
 import {
   type PressRole,
   type PressRoute,
@@ -33,7 +33,7 @@ export function registerPasteControls({
   rotatePasteAim,
   rotateSelection,
   pressPasteAim,
-  undo,
+  pressUndo,
   undoDebounce,
   rotateDebounce,
   pasteDebounce,
@@ -44,7 +44,7 @@ export function registerPasteControls({
   rotatePasteAim: RotatePasteAim;
   rotateSelection: Pick<RotateSelection, "execute">;
   pressPasteAim: PressPasteAim;
-  undo: UndoEdit;
+  pressUndo: Pick<PressUndo, "execute">;
   undoDebounce: Debounces<PlayerId>;
   rotateDebounce: Debounces<PlayerId>;
   pasteDebounce: Debounces<PlayerId>;
@@ -90,7 +90,8 @@ export function registerPasteControls({
     switch (intent.kind) {
       case "undo":
         if (!undoDebounce.press(playerId, tick)) return;
-        undo.execute({ playerId });
+        if (pressUndo.execute({ playerId }) === "stepped")
+          refresh(playerId, tick);
         break;
       case "rotateSelection":
         if (!rotateDebounce.press(playerId, tick)) return;

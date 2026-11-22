@@ -1,8 +1,10 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
+import { PressUndo } from "../../../src/application/build/pressUndo";
 import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateSelection } from "../../../src/application/build/rotateSelection";
+import { StepBackSelection } from "../../../src/application/build/stepBackSelection";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
@@ -15,6 +17,8 @@ import {
 import {
   type BuildFlow,
   selectionBoxOf,
+  tapAir,
+  tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -475,3 +479,39 @@ it("retains an earlier snapshot and frees a player buried in the rotated target"
   });
   expect(e.session.takeUndo()).toBe("nothingToUndo");
 });
+
+it.each([false, true])(
+  "Build Undo reverses a fresh line rotation only when it succeeds (blocked: %s)",
+  (blocked) => {
+    const end = { ...origin, x: origin.x + 4 };
+    const box = boxOf(origin, end);
+    const e = setup(box);
+    const point = tapBlock({ kind: "idle" }, overworld, origin, stone);
+    const fresh = tapAir(point, end);
+    e.session.setFlow(fresh);
+    for (const cell of cellsOf(box)) e.world.put(cell, stone);
+    const union = planRotationAboutCenter(box).union;
+    const original = [...cellsOf(union)].map((cell) =>
+      e.world.stateAt(overworld, cell),
+    );
+    if (blocked) e.world.protectedCells.add(cellKey(origin));
+    expect(
+      e.rotateSelection.execute({ playerId, dimensionId: overworld }),
+    ).toBe(blocked ? "refused" : "rotated");
+    const press = new PressUndo(
+      new StepBackSelection(e.repo, e.feedback),
+      e.undo,
+    );
+    expect(press.execute({ playerId })).toBe(blocked ? "stepped" : "undone");
+    if (blocked) expect(e.session.flow).toBe(point);
+    else {
+      expect(selectionBoxOf(e.session.flow)).toEqual(box);
+      expect(e.session.flow).not.toHaveProperty("stepBackTo");
+      expect(e.feedback.messages.at(-1)?.message).toBe("undoDone");
+      expect(
+        [...cellsOf(union)].map((cell) => e.world.stateAt(overworld, cell)),
+      ).toEqual(original);
+    }
+    expect(e.session.hasHistory).toBe(false);
+  },
+);

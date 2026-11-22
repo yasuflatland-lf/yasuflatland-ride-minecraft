@@ -30,6 +30,7 @@ export type BuildFlow =
     }
   | {
       readonly kind: "baseHeight";
+      readonly stepBackTo?: Point1Flow;
       readonly selection: Selection;
       readonly baseBox: CellBox;
       readonly previous: number;
@@ -38,6 +39,7 @@ export type BuildFlow =
     }
   | {
       readonly kind: "selected";
+      readonly stepBackTo?: Point1Flow;
       readonly menuLevel: "root" | "build";
       readonly selection: Selection;
       // Aiming can resume from the first tap, which need not be the minimum corner.
@@ -98,6 +100,8 @@ export function cornerTaps(box: CellBox): Taps {
   return { from: box.min, to: box.max };
 }
 
+export type Point1Flow = Extract<BuildFlow, { kind: "point1" }>;
+
 export type BaseHeightFlow = Extract<BuildFlow, { kind: "baseHeight" }>;
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
 
@@ -148,6 +152,7 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
   if (shapeOf(from, to).kind === "line")
     return Object.freeze({
       kind: "selected",
+      stepBackTo: flow,
       menuLevel: "root",
       selection,
       from,
@@ -155,12 +160,23 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
     });
   return Object.freeze({
     kind: "baseHeight",
+    stepBackTo: flow,
     selection,
     from,
     to,
     baseBox: boxWithHeight(selection.box, 1),
     previous: tappedSpanHeight(selection.box),
   });
+}
+
+export function withoutStepBack(flow: BuildFlow): BuildFlow {
+  if (
+    (flow.kind !== "baseHeight" && flow.kind !== "selected") ||
+    !flow.stepBackTo
+  )
+    return flow;
+  const { stepBackTo: _, ...confirmed } = flow;
+  return Object.freeze(confirmed);
 }
 
 export function enteredBaseHeight(

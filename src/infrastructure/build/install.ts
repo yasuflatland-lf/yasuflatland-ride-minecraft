@@ -31,6 +31,7 @@ import { OpenBuildMenu } from "../../application/build/openBuildMenu";
 import { OpenSelectionMenu } from "../../application/build/openSelectionMenu";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
+import { PressUndo } from "../../application/build/pressUndo";
 import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotatePasteAim } from "../../application/build/rotatePasteAim";
@@ -38,6 +39,7 @@ import { RotateSelection } from "../../application/build/rotateSelection";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
+import { StepBackSelection } from "../../application/build/stepBackSelection";
 import { SyncTapTarget } from "../../application/build/syncTapTarget";
 import { TapAir } from "../../application/build/tapAir";
 import { UndoEdit } from "../../application/build/undoEdit";
@@ -195,8 +197,12 @@ export function installBuild(deps: {
     resolveTarget,
   );
   const rotatePasteAim = new RotatePasteAim(repo, feedback);
+  const pressUndo = new PressUndo(
+    new StepBackSelection(repo, feedback),
+    cases.undo,
+  );
   const routes = registerPasteControls({
-    undo: cases.undo,
+    pressUndo,
     undoDebounce,
     repo,
     aim,
@@ -262,6 +268,7 @@ export function installBuild(deps: {
     menuCases.setHeight,
     pressPasteAim,
     cases.undo,
+    pressUndo,
     describe,
     recorded,
     repo,

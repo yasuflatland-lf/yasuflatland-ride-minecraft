@@ -10,8 +10,12 @@ import {
   world,
 } from "@minecraft/server";
 import { virtualEndPoint } from "../../domain/build/aim/aim";
-import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
-import { type CellBox, sameBox } from "../../domain/build/box";
+import {
+  type BlockState,
+  blockStateOf,
+  sameBlockState,
+} from "../../domain/build/blockState";
+import { boxOf, type CellBox, sameBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import {
   type RoofSpec,
@@ -78,6 +82,9 @@ interface Reply {
     menuLevel?: "root" | "build";
     heightLocked?: boolean;
     heightedKind?: string;
+    cell?: Cell;
+    dimensionId?: string;
+    material?: BlockState;
     to?: Cell;
     selection?: { box: CellBox };
   };
@@ -1345,6 +1352,79 @@ export function buildUndoItemShape(a: Arena): Promise<Outcome> {
       "Shape Undo failed",
     );
     check(unchanged(f, cells, before), "Shape Undo did not restore the box");
+  });
+}
+
+export function buildUndoItemEnd(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const start = f.cell();
+    const material = blockStateOf("minecraft:stone");
+    f.block(start).setType(material.typeId);
+    for (const line of [false, true]) {
+      await f.tap("clear");
+      check((await f.tap("block")).flow.kind === "point1", "Start tap failed");
+      const wrong = f.cell(2, 0, line ? 0 : 2);
+      const next = f.cell(4, 0, line ? 0 : 3);
+      const endpoint = await f.tap("air", wrong);
+      check(
+        endpoint.flow.kind === (line ? "selected" : "baseHeight"),
+        "End tap entered the wrong flow",
+      );
+      const { flow, message } = await f.edit("undoitem");
+      check(
+        message === "endCleared" && flow.kind === "point1",
+        "End remained set",
+      );
+      check(
+        flow.cell !== undefined && sameCell(flow.cell, start),
+        "Start moved",
+      );
+      check(flow.dimensionId === a.dim.id, "Dimension changed");
+      check(
+        flow.material !== undefined && sameBlockState(flow.material, material),
+        "Material changed",
+      );
+
+      const picked = await f.tap("air", next);
+      const selected = line ? picked : await f.tap("fixHeight");
+      check(
+        selected.flow.kind === "selected" &&
+          selected.flow.selection !== undefined &&
+          sameBox(selected.flow.selection.box, boxOf(start, next)),
+        "Re-picking the end did not select the new box",
+      );
+    }
+  });
+}
+
+export function buildUndoItemStart(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    f.block(f.cell()).setType("minecraft:stone");
+    check((await f.tap("block")).flow.kind === "point1", "Start tap failed");
+    const { flow, message } = await f.edit("undoitem");
+    check(
+      message === "startCleared" && flow.kind === "idle",
+      "Start remained set",
+    );
+  });
+}
+
+export function buildUndoItemAfterBuild(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 1, 1);
+    for (const c of cells) f.block(c).setType("minecraft:air");
+    await f.select(f.cell(2));
+    const before = snapshot(f, cells);
+    check(
+      (await f.menu("shape", "place")).message === "editDoneCount",
+      "Place failed",
+    );
+    check(f.count(cells) === cells.length, "Place did not write the line");
+    check(
+      (await f.edit("undoitem")).message === "undoDone",
+      "Build Undo did not undo Place",
+    );
+    check(unchanged(f, cells, before), "Build Undo did not restore the line");
   });
 }
 

@@ -1,3 +1,4 @@
+import { withoutStepBack } from "../../domain/build/flow/flow";
 import {
   type MenuEntry,
   type RootEntryId,
@@ -10,7 +11,11 @@ export class OpenSelectionMenu {
   constructor(private readonly repo: BuildSessionRepository) {}
 
   execute({ playerId }: { playerId: PlayerId }): MenuEntry<RootEntryId>[] {
-    const flow = this.repo.get(playerId)?.flow;
-    return flow ? shapeMenu(flow) : [];
+    const session = this.repo.get(playerId);
+    const flow = session?.flow;
+    if (!session || flow?.kind !== "selected" || flow.menuLevel !== "root")
+      return [];
+    session.setFlow(withoutStepBack(flow));
+    return shapeMenu(flow);
   }
 }

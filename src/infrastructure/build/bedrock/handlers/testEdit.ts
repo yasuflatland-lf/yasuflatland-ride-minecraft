@@ -14,6 +14,7 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import type { BuildStructureStore } from "../../../../application/build/ports/structures";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
+import type { PressUndo } from "../../../../application/build/pressUndo";
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { ShowPreview } from "../../../../application/build/showPreview";
@@ -95,6 +96,7 @@ export function registerTestEdit(
   height: SetHeightTo,
   paste: PressPasteAim,
   undo: UndoEdit,
+  pressUndo: PressUndo,
   describe: DescribeBuild,
   messages: Pick<
     ReturnType<typeof recordMessages>,
@@ -332,6 +334,8 @@ export function registerTestEdit(
           player.selectedSlotIndex = Number(args[0]);
         } else if (command === "undo" && args.length === 0)
           undo.execute({ playerId });
+        else if (command === "undoitem" && args.length === 0)
+          pressUndo.execute({ playerId });
         else return;
       } catch {
         // A malformed test command must not interrupt the server event loop.

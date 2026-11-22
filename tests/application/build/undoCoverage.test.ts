@@ -6,8 +6,11 @@ import { ConfirmTerrain } from "../../../src/application/build/confirmTerrain";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
+import { PasteAt } from "../../../src/application/build/pasteAt";
+import { PressUndo } from "../../../src/application/build/pressUndo";
 import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateSelection } from "../../../src/application/build/rotateSelection";
+import { StepBackSelection } from "../../../src/application/build/stepBackSelection";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import {
@@ -20,6 +23,8 @@ import {
   chooseHeighted,
   cornerTaps,
   setHeight,
+  tapAir,
+  tapBlock,
   tapsOf,
 } from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
@@ -57,6 +62,7 @@ function setup() {
     log,
   );
   const session = repo.getOrCreate(playerId);
+  const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   return {
     repo,
     world,
@@ -69,7 +75,9 @@ function setup() {
     copy: new CopyBox(repo, structures, feedback),
     cut: new CutBox(repo, world, structures, feedback, log),
     rotate: new RotateSelection(repo, rotateBox, feedback),
-    undo: new UndoEdit(repo, feedback, jobs, world, structures, log),
+    paste: new PasteAt(repo, world, feedback, structures, players),
+    undo,
+    pressUndo: new PressUndo(new StepBackSelection(repo, feedback), undo),
     drain: () => {
       for (let i = 0; i < 1000 && session.isEditing; i++) jobs.step();
       expect(session.isEditing).toBe(false);
@@ -137,6 +145,49 @@ it("keeps the filled box selected and restores its pre-build selection on Undo",
   e.drain();
   expect(e.session.flow).toMatchObject(selected);
 });
+
+it.each(["build", "paste"] as const)(
+  "Build Undo restores blocks after %s selects its result",
+  (edit) => {
+    const e = setup();
+    const source = boxOf({ x: 0, y: 64, z: 0 }, { x: 2, y: 64, z: 0 });
+    const target =
+      edit === "paste"
+        ? boxOf({ x: 5, y: 64, z: 0 }, { x: 7, y: 64, z: 0 })
+        : source;
+    const before = seed(e, target);
+    const point = tapBlock({ kind: "idle" }, overworld, source.min, stone);
+    e.session.setFlow(tapAir(point, source.max));
+    if (edit === "paste") {
+      for (const cell of cellsOf(source)) e.world.put(cell, stone);
+      expect(
+        e.copy.execute({
+          playerId,
+          facing: "east",
+          selection: selectionOf(overworld, source, stone),
+        }),
+      ).toBe(true);
+      expect(
+        e.paste.execute({
+          playerId,
+          dimensionId: overworld,
+          target: { anchor: target.min, box: target, turn: 0 },
+        }),
+      ).toBe("pasted");
+    } else {
+      e.shape.execute({ playerId, style: "fill" });
+      e.drain();
+    }
+    expect(e.session.flow.kind).toBe("selected");
+    expect(snapshot(e, target)).not.toEqual(before);
+
+    expect(e.pressUndo.execute({ playerId })).toBe("undone");
+    e.drain();
+    expect(e.feedback.messages.at(-1)?.message).toBe("undoDone");
+    expect(e.session.hasHistory).toBe(false);
+    expect(snapshot(e, target)).toEqual(before);
+  },
+);
 
 it.each(["endpoint", "heightStep"] as const)(
   "undo reports the box selected at %s confirmation",
