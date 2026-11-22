@@ -17,6 +17,8 @@ export type BuildMessage =
   | "noStairGoal"
   | "materialRefused"
   | "fillMaterialRefused"
+  | "endCleared"
+  | "startCleared"
   | "selectionCleared"
   | "noSelection"
   | "tooLarge"

@@ -52,6 +52,8 @@ export const BUILD_MESSAGE: Readonly<
   noStairGoal: "yasu_build.message.no_stair_goal",
   fillMaterialRefused: "yasu_build.message.fill_material_refused",
   materialRefused: "yasu_build.message.material_refused",
+  endCleared: "yasu_build.message.end_cleared",
+  startCleared: "yasu_build.message.start_cleared",
   selectionCleared: "yasu_build.message.selection_cleared",
   noSelection: "yasu_build.message.no_selection",
   tooLarge: "yasu_build.message.too_large",

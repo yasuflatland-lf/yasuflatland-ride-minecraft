@@ -123,6 +123,8 @@ item.yasu_build:paste_place.name=Paste Place
 item.yasu_build:build_undo.name=Build Undo
 yasu_build:building_tools=Building Tools
 
+yasu_build.message.end_cleared=End point cleared. Aim again.
+yasu_build.message.start_cleared=Start point cleared.
 yasu_build.message.selection_cleared=Selection cleared.
 yasu_build.message.no_selection=Confirm a shape to copy, or set both points to build.
 yasu_build.message.too_large=The shape has %s blocks and is too large (edit limit: %s blocks; copy limit: %s blocks).

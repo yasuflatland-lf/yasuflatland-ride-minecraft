@@ -123,6 +123,8 @@ item.yasu_build:paste_place.name=貼り付け配置
 item.yasu_build:build_undo.name=ビルド取り消し
 yasu_build:building_tools=建築ツール
 
+yasu_build.message.end_cleared=終点を解除しました。もう一度狙ってください。
+yasu_build.message.start_cleared=始点を解除しました。
 yasu_build.message.selection_cleared=選択を解除しました。
 yasu_build.message.no_selection=コピーには確定済みの範囲、建築には始点と終点が必要です。
 yasu_build.message.too_large=ブロック数 %s は上限を超えています（編集上限: %s ブロック、コピー上限: %s ブロック）。
