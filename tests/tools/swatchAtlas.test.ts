@@ -22,11 +22,9 @@ const swatchGridDimensions = fc
     cell: fc.integer({ min: 1, max: 8 }),
   })
   .chain(({ count, cell }) =>
-    fc.record({
-      count: fc.constant(count),
-      cell: fc.constant(cell),
-      inset: fc.integer({ min: 0, max: Math.floor((cell - 1) / 2) }),
-    }),
+    fc
+      .integer({ min: 0, max: Math.floor((cell - 1) / 2) })
+      .map((inset) => ({ count, cell, inset })),
   );
 
 it("keeps sampled texels inside the grid and maps each texel to its own swatch", async () => {
