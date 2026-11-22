@@ -57,12 +57,19 @@ export const end = (cube: Cube, axis: number) =>
 
 export const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
-const registry: {
+export const registry: {
   base: [number, number];
+  layoutSize: [number, number];
+  atlasWidth: number;
   swatchRows: number;
   cell: number;
   inset: number;
+  columns: number;
   faces: Record<string, Cube["uv"][string]>;
+  swatches: Record<
+    string,
+    { origin: [number, number]; sampleRect: [number, number, number, number] }
+  >;
 } = JSON.parse(
   execFileSync(
     "python3",
@@ -73,7 +80,15 @@ const registry: {
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 kit = load_tool('camper_kit')
-print(json.dumps(dict(base=kit.LAYOUT.origin('base'), swatchRows=kit.ATLAS.swatch_rows, cell=kit.SWATCH_CELL, inset=kit.SWATCH_INSET, faces={name: kit.ATLAS.face(name) for name in kit.SLOTS})))`,
+layout = kit.LAYOUT
+grid = kit.ATLAS.grid
+print(json.dumps(dict(
+    base=layout.origin('base'), layoutSize=layout.size, atlasWidth=kit.ATLAS.width,
+    swatchRows=kit.ATLAS.swatch_rows, cell=kit.SWATCH_CELL, inset=kit.SWATCH_INSET,
+    columns=kit.SWATCH_COLUMNS, faces={name: kit.ATLAS.face(name) for name in kit.SLOTS},
+    swatches={name: dict(origin=grid.origin(index), sampleRect=grid.sample_rect(index))
+              for index, name in enumerate(kit.SLOTS)},
+)))`,
     ],
     { encoding: "utf8" },
   ),

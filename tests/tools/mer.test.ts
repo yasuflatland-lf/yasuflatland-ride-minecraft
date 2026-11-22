@@ -71,6 +71,8 @@ it("relocates camper companion masks and non-emissive materials with the layout"
 from pathlib import Path
 r = load_tool('camper_regions')
 k = load_tool('camper_kit')
+assert k.SWATCH_CELL == 8
+assert k.SWATCH_INSET == 2
 assert Path('tools/camper_mer.py').exists(), 'Interior MER builder is missing'
 c = load_tool('camper_mer')
 l = load_tool('lit_textures')
@@ -94,10 +96,16 @@ for name, rgb in expected.items():
 assert pixel(0,0) == (0,0,255,255)
 lit_names = ('lens','marker_amber','marker_red','dome','glow')
 lit_cells = [k.ATLAS.grid.origin(k.SLOTS.index(name)) for name in lit_names]
-swatches = {'white': (0,0,85), 'panel': (0,0,90), 'ivory': (0,0,80), 'steel': (255,0,75), 'chrome': (255,0,50), 'slat': (255,0,80), 'aluminium': (255,0,80), 'dash': (0,0,185), 'dark_dash': (0,0,190), 'dash_pad': (0,0,175), 'wood': (0,0,155), 'wall_in': (0,0,160), 'gauge': (0,0,65), 'needle': (0,0,65), 'tweed': (0,0,245), 'tweed_line': (0,0,245), 'curtain': (0,0,245), 'piping': (0,0,235), 'khaki': (0,0,100), 'stripe': (0,0,100), 'tan': (0,0,100)}
-for name,rgb in swatches.items():
-    x,y,w,h = k.ATLAS.grid.sample_rect(k.SLOTS.index(name))
-    assert pixel(${dx}+x,${dy}+y) == (*rgb,255)
+swatches = {'white': (0,0,85), 'panel': (0,0,90), 'ivory': (0,0,80), 'steel': (255,0,75), 'chrome': (255,0,50), 'slat': (255,0,80), 'aluminium': (255,0,80), 'dash': (0,0,185), 'dark_dash': (0,0,190), 'dash_pad': (0,0,175), 'wood': (0,0,155), 'wall_in': (0,0,160), 'gauge': (0,0,65), 'needle': (0,0,65), 'tweed': (0,0,245), 'tweed_line': (0,0,245), 'curtain': (0,0,245), 'piping': (0,0,235), 'carpet_beige': (0,0,250), 'khaki': (0,0,100), 'stripe': (0,0,100), 'tan': (0,0,100)}
+for index, name in enumerate(k.SLOTS):
+    if name in lit_names:
+        continue
+    x,y,_,_ = k.ATLAS.grid.sample_rect(index)
+    x,y = x-k.SWATCH_INSET, y-k.SWATCH_INSET
+    rgb = swatches.get(name, (0,0,255))
+    for v in range(k.SWATCH_CELL):
+        for u in range(k.SWATCH_CELL):
+            assert pixel(${dx}+x+u,${dy}+y+v) == (*rgb,255), (name, u, v)
 for region in k.ATLAS.regions:
     rgb = (0,0,85) if region.name == 'rib' else (255,0,26) if region.name == 'mirror_chrome' else (0,0,255) if region.name == 'burner_cast' else (255,0,75)
     for v in range(region.h):

@@ -63,10 +63,17 @@ assert m.downsample([(20, 0, 40, 0), (40, 30, 0, 0)], 1, 2) == ([(30, 15, 20, 0)
 
 it.each([
   { vehicle: "suv", atlas: "suv_atlas", requiredThrough: 2 },
-  { vehicle: "camper", atlas: "camper_kit", requiredThrough: 2 },
+  // The packed camper base cells are offset from multiples of 8, so at level 3
+  // (one texel per 8x8 cell), neighbouring cells blend. The measured max error is 193.
+  {
+    vehicle: "camper",
+    atlas: "camper_kit",
+    requiredThrough: 2,
+    knownFailingLevel: 3,
+  },
 ])(
   "checks every $vehicle swatch through mip level $requiredThrough",
-  async ({ vehicle, atlas, requiredThrough }) => {
+  async ({ vehicle, atlas, requiredThrough, knownFailingLevel }) => {
     const output = await run(`import json
 rects = m.swatch_rects(load_tool('${atlas}').ATLAS)
 chain = m.mip_chain(*m.read_texture('${vehicle}'), 3)
@@ -80,5 +87,11 @@ print(json.dumps([max(m.swatch_mip_error(chain, rect, level) for rect in rects.v
       failedLevels,
       `Maximum errors by level: ${errors.join(", ")}`,
     ).toEqual([]);
+    if (knownFailingLevel !== undefined) {
+      expect(
+        errors[knownFailingLevel],
+        `Update the known mip level ${knownFailingLevel} limitation if it is fixed`,
+      ).toBeGreaterThan(8);
+    }
   },
 );
