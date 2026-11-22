@@ -11,6 +11,8 @@ found 28,547 of the camper's 64,670 faces inside another cube. The scan
 ignored cut-outs and glass, so its count is an upper bound on potential
 savings. Removing a buried face saves four vertices.
 
+The original cull used the opposite x convention, with `east` on the maximum x side. Bedrock draws `east` on the minimum x side, so it removed outward-facing faces. See [ADR 0259](0259-bedrock-draws-east-on-the-minimum-x-side.md).
+
 ## Decision
 
 Remove a face only when all four rules hold.

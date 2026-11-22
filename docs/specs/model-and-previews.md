@@ -26,6 +26,7 @@
 - Source: [0240](../adr/0240-resort-furniture-family.md)
 - Source: [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md)
 - Source: [0256](../adr/0256-cull-buried-faces-at-generation.md)
+- Source: [0259](../adr/0259-bedrock-draws-east-on-the-minimum-x-side.md)
 - Excluded: [0241](../adr/0241-dining-table-top-blocks.md): Dining Table physics and hosted-item clearance belong to the resort gear topic
 - Excluded: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md): the sports boat helm assembly and its wheel exception; 0167 replaces its one-assembly limit, and the helm geometry belongs to the sports boat topic
 - Excluded: [0170](../adr/0170-measure-suv-side-view-proportions.md): replaces the SUV collision dimensions of 0009, which the SUV body and seats topic states
@@ -352,6 +353,15 @@ interleaved cubes. No ownership field enters a cube.
 - Basis: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "`tilt_assembly(cubes, pivot, axis, degrees, assembly=None, assemblies=None)` requires the name to be a key in the supplied table whenever a result carries multiple axes."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "The default table is empty; unknown or missing names fail with `ValueError`, including a zero-degree tilt of an already compound cube."; [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) Decision, "Preserve the rotation-order assumption from 0166: `Rz(-rz) * Ry(ry) * Rx(-rx)`, z outermost and x innermost."
 - Implementation: `tools/cube_tilt.py` (`tilt_assembly`, `cube_matrix`); `tools/gen_sportsboat.py` (calls with `assembly="wheel"` and `assembly="throttle_lever"`); `tools/gen_noga_chair.py`
 - Verification: `tests/tools/cubeTilt.test.ts` "tilt_assembly (ADR 0166)" cases, including "composes the tilt after the cube's own z turn, Rx * Rz", "changes nothing for 0 degrees" and "requires a declared assembly for compound tilt results". Not verified: that the rotation order matches the game for a compound cube; 0167 says confirmation on a device is pending and no check is recorded.
+
+### Named face sides
+
+- Applies to: every tool that reasons about where a named cube face sits in a geometry file (the cull, the preview renderer, the pack tests).
+- Rule: `east` is the minimum x side, `west` the maximum x side, `north` the minimum z side, `south` the maximum z side, `down` the minimum y side and `up` the maximum y side. Generators that only name faces in UV maps are unaffected.
+- Agreement: Accepted
+- Basis: [0259](../adr/0259-bedrock-draws-east-on-the-minimum-x-side.md).
+- Implementation: Not yet implemented. A single shared face-side value object for the tools, a mirror for the tests and a parity test are planned follow-up changes; the cull, preview renderer and pack tests still use the opposite x convention until then.
+- Verification: confirmed in game on an iPad with diagnostic camper builds (0259 table). Not verified offline, because a wrong convention cannot be detected without the game.
 
 ### Buried face culling
 
