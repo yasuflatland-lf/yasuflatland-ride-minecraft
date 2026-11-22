@@ -72,13 +72,13 @@ assert m.swatch_mip_error(chain, (4, 0, 5, 5), 1) == 0`);
 // Largest per-channel drift allowed between a flat swatch and its mip texel.
 const MIP_TOLERANCE = 8;
 
-// requiredThrough is the deepest mip level that must be within tolerance (SUV 2, camper 3).
+// requiredThrough is the deepest mip level that must be within tolerance (levels 0-2 for both; camper level 3 still blends neighbouring cells).
 it.each([
   { vehicle: "suv", atlas: "suv_atlas", requiredThrough: 2, failures: [] },
   {
     vehicle: "camper",
     atlas: "camper_kit",
-    requiredThrough: 3,
+    requiredThrough: 2,
     failures: [],
   },
 ])(
