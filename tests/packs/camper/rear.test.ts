@@ -142,15 +142,16 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
   it("frames a grey-beige panel in a raised aluminium rim with cut corners", () => {
     const cubes = lid();
     for (const c of cubes)
-      for (const face of Object.values(c.uv))
-        if (swatchName(face) !== undefined)
+      for (const face of Object.values(c.uv)) {
+        const name = swatchName(face);
+        if (name !== undefined)
           expect([
             "trim_beige",
             "steel",
             "black",
             "chrome",
             "aluminium",
-          ]).toContain(swatchName(face));
+          ]).toContain(name);
         else {
           expect(face.uv[1]).toBeGreaterThanOrEqual(baseOrigin[1] + swatchRows);
           expect(
@@ -160,6 +161,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
             (face.uv[1] ?? 0) + (face.uv_size[1] ?? 0),
           ).toBeLessThanOrEqual(geometry.description.texture_height);
         }
+      }
     const rim = cubes.filter((c) =>
       ["chrome", "aluminium"].includes(swatchName(c.uv.north) ?? ""),
     );
