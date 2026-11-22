@@ -18,9 +18,10 @@ def downsample(pixels, width, height):
             alphas = [texel[3] for texel in texels]
             total_alpha = sum(alphas)
             weights = alphas if total_alpha else (1, 1, 1, 1)
+            divisor = total_alpha or 4
             rgb = [
                 round(sum(texel[c] * weight for texel, weight in zip(texels, weights))
-                      / (total_alpha or 4))
+                      / divisor)
                 for c in range(3)
             ]
             result.append((*rgb, round(total_alpha / 4)))
@@ -35,6 +36,12 @@ def mip_chain(pixels, width, height, levels):
 
 
 def swatch_mip_error(chain, rect, level) -> float:
+    """Measure the error for a flat, single-colour swatch rectangle.
+
+    Return the maximum per-channel difference, including alpha, between the
+    top-left source texel and the texel at the given mip level covering the
+    rectangle's centre, with the mip coordinates clamped to the image bounds.
+    """
     x, y, w, h = rect
     source, source_width, _ = chain[0]
     pixels, width, height = chain[level]
