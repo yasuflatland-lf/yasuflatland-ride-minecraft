@@ -260,7 +260,7 @@ it("sends translated counts and bounded player-only particles at block centers",
         expect(spawnParticle.mock.calls).toEqual(
           points.map((p) => [
             style === "selection"
-              ? "yasu_build:marker"
+              ? "yasu_build:outline"
               : "minecraft:blue_flame_particle",
             { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 },
             style === "selection" ? expect.anything() : undefined,
@@ -454,9 +454,9 @@ it("draws outlines with the marker particle and flames without Molang variables 
     }),
   );
   expect(spawnParticle.mock.calls).toEqual([
-    ["yasu_build:marker", point, expect.anything()],
-    ["yasu_build:marker", point, expect.anything()],
-    ["yasu_build:marker", point, expect.anything()],
+    ["yasu_build:outline", point, expect.anything()],
+    ["yasu_build:outline", point, expect.anything()],
+    ["yasu_build:outline", point, expect.anything()],
     ["minecraft:blue_flame_particle", point, undefined],
     ["minecraft:basic_flame_particle", point, undefined],
   ]);

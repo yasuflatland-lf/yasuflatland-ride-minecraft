@@ -11,7 +11,18 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { playerById } from "../../shared/players";
 import { BUILD_MESSAGE } from "../identifiers";
-import { MARKER_COLORS, MARKER_PARTICLE, OUTLINE_COLOR } from "./markerStyle";
+import {
+  MARKER_COLORS,
+  MARKER_PARTICLE,
+  OUTLINE_COLOR,
+  OUTLINE_PARTICLE,
+} from "./markerStyle";
+
+const OUTLINE_LAYERS: ReadonlySet<keyof PreviewSet> = new Set([
+  "shape",
+  "roof",
+  "stairs",
+]);
 
 const PREVIEW_STYLES: Readonly<Record<keyof PreviewSet, string | RGB>> = {
   startMarker: MARKER_COLORS.startMarker,
@@ -140,7 +151,10 @@ export class BedrockFeedback implements BuildFeedback {
       } else {
         const molang = new MolangVariableMap();
         molang.setColorRGB("variable.color", style);
-        if (!this.spawnAll(player, MARKER_PARTICLE, points, molang)) return;
+        const particle = OUTLINE_LAYERS.has(layer)
+          ? OUTLINE_PARTICLE
+          : MARKER_PARTICLE;
+        if (!this.spawnAll(player, particle, points, molang)) return;
       }
     }
   }
