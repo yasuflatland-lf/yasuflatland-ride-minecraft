@@ -174,9 +174,8 @@ def mirror_x(bones):
             bone["rotation"] = [rx, -ry, -rz]
         for c in bone.get("cubes", []):
             c["origin"] = [-(c["origin"][0] + c["size"][0]), *c["origin"][1:]]
-            # Face names follow the written x axis, so a ribbed outer face swaps names with the
-            # mirror, as the sports boat's turn-around does (gen_sportsboat.py).
-            c["uv"]["east"], c["uv"]["west"] = c["uv"]["west"], c["uv"]["east"]
+            # Face names stay as written: builders name the build frame's maximum-x face east,
+            # and the mirror moves it to the minimum-x side, where Bedrock draws east (ADR 0259).
             if "pivot" in c:
                 c["pivot"] = [-c["pivot"][0], *c["pivot"][1:]]
                 rx, ry, rz = c["rotation"]
