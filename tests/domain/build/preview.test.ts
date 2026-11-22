@@ -363,7 +363,7 @@ it("draws a locked cylinder at the box height even when another height is aimed"
   );
 });
 
-it("boxOutline adds only horizontal half-step points and stays within the budget", () => {
+it("boxOutline adds extra points on horizontal edges only and stays within the budget", () => {
   fc.assert(
     fc.property(
       fc.integer({ min: 0, max: 40 }),
@@ -374,10 +374,12 @@ it("boxOutline adds only horizontal half-step points and stays within the budget
         const points = boxOutline(box);
         expect(points.length).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
         for (const p of points) {
-          // Block centers sit on .5; a half-step point has exactly one
-          // integer horizontal coordinate and never a vertical one.
-          expect(Number.isInteger(p.y)).toBe(false);
-          expect(Number.isInteger(p.x) && Number.isInteger(p.z)).toBe(false);
+          // Extra points stay at block-center height and on the center line
+          // of one horizontal axis, so they lie on a horizontal edge.
+          expect(Number.isInteger(p.y - 0.5)).toBe(true);
+          expect(
+            Number.isInteger(p.x - 0.5) || Number.isInteger(p.z - 0.5),
+          ).toBe(true);
         }
         const cells = edgePoints(box, BUILD_SPEC.outlineMaxPoints);
         if (cells.length === 1 || dx + dz === 0) return;

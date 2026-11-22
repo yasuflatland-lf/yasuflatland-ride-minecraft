@@ -30,7 +30,7 @@ export interface PreviewAim {
 }
 
 /**
- * Block centers along the box edges, plus a point halfway between neighbours
+ * Block centers along the box edges, plus extra points between neighbours
  * on the horizontal edges only, so the outline reads as a line from the side
  * without spending extra particles on the vertical edges.
  */
@@ -51,13 +51,19 @@ function withHorizontalMidpoints(box: CellBox, cells: Cell[]): Vec3[] {
   const { min, max } = box;
   const onEnds = (value: number, lo: number, hi: number) =>
     value === lo || value === hi;
+  const steps = BUILD_SPEC.outlineHorizontalSteps;
   const points: Vec3[] = [];
   for (const p of cells) {
     points.push(cellCenter(p, 0.5));
-    if (onEnds(p.y, min.y, max.y) && onEnds(p.z, min.z, max.z) && p.x < max.x)
-      points.push({ x: p.x + 1, y: p.y + 0.5, z: p.z + 0.5 });
-    if (onEnds(p.x, min.x, max.x) && onEnds(p.y, min.y, max.y) && p.z < max.z)
-      points.push({ x: p.x + 0.5, y: p.y + 0.5, z: p.z + 1 });
+    const alongX =
+      onEnds(p.y, min.y, max.y) && onEnds(p.z, min.z, max.z) && p.x < max.x;
+    const alongZ =
+      onEnds(p.x, min.x, max.x) && onEnds(p.y, min.y, max.y) && p.z < max.z;
+    for (let k = 1; k < steps; k++) {
+      const offset = 0.5 + k / steps;
+      if (alongX) points.push({ x: p.x + offset, y: p.y + 0.5, z: p.z + 0.5 });
+      if (alongZ) points.push({ x: p.x + 0.5, y: p.y + 0.5, z: p.z + offset });
+    }
   }
   return points;
 }
